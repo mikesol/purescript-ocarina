@@ -4,21 +4,29 @@ import Prelude
 
 import Control.Alt (class Alt)
 import Control.Alternative (class Alternative)
+import Control.Applicative.Indexed (class IxApplicative)
+import Control.Apply.Indexed (class IxApply)
+import Control.Bind.Indexed (class IxBind)
 import Control.Lazy (class Lazy)
 import Control.Monad.Cont (class MonadCont)
 import Control.Monad.Error.Class (class MonadError, class MonadThrow)
+import Control.Monad.Indexed (class IxMonad)
 import Control.Monad.Reader (class MonadAsk, class MonadReader)
 import Control.Monad.Rec.Class (class MonadRec)
 import Control.Monad.State (class MonadTrans, StateT, State, gets, modify_)
 import Control.Monad.Writer (class MonadTell, class MonadWriter)
 import Control.MonadPlus (class MonadPlus, class MonadZero)
 import Control.Plus (class Plus)
+import Data.Functor.Indexed (class IxFunctor)
 import Data.Identity (Identity)
 import Data.Map (Map, insert)
+import Data.Map as M
+import Data.Tuple (Tuple(..), fst, snd)
 import Data.Typelevel.Bool (False, True)
 import Data.Typelevel.Num (D0, d0)
 import Effect.Class (class MonadEffect)
 import Safe.Coerce (coerce)
+import Type.Proxy (Proxy(..))
 import Unsafe.Coerce (unsafeCoerce)
 
 data Ptr
@@ -27,11 +35,11 @@ foreign import data PtrZ :: Ptr
 
 foreign import data PtrSucc :: Ptr -> Ptr
 
-data AudioParameter
+data TAudioParameter
 
-foreign import data Changing :: AudioParameter
+foreign import data Changing :: TAudioParameter
 
-foreign import data Static :: AudioParameter
+foreign import data Static :: TAudioParameter
 
 data AudioUnitList
 
@@ -50,13 +58,13 @@ foreign import data NoEdge :: EdgeProfile
 
 data AudioUnit
 
-foreign import data SinOsc :: Ptr -> AudioParameter -> AudioUnit
+foreign import data TSinOsc :: Ptr -> TAudioParameter -> AudioUnit
 
-foreign import data Highpass :: Ptr -> AudioParameter -> AudioParameter -> AudioUnit
+foreign import data THighpass :: Ptr -> TAudioParameter -> TAudioParameter -> AudioUnit
 
-foreign import data Gain :: Ptr -> AudioParameter -> AudioUnit
+foreign import data TGain :: Ptr -> TAudioParameter -> AudioUnit
 
-foreign import data Speaker :: Ptr -> AudioParameter -> AudioUnit
+foreign import data TSpeaker :: Ptr -> TAudioParameter -> AudioUnit
 
 data Node
 
@@ -75,12 +83,25 @@ foreign import data GraphC :: Node -> NodeList -> Graph
 
 data Universe
 
--- outgraph destroyable accumulator
-foreign import data UniverseC :: Graph -> NodeList -> Universe
+-- currentIdx graph destroyable accumulator
+foreign import data UniverseC :: Ptr -> Graph -> NodeList -> Type -> Universe
 
 ---------------------------
 ------------ util
 --class Gate :: forall k1. Type -> k1 -> k1 -> k1 -> Constraint
+class GetPointer (audioUnit :: AudioUnit) (ptr :: Ptr) | audioUnit -> ptr
+
+instance getPointerSinOsc :: GetPointer (TSinOsc ptr a) ptr
+
+instance getPointerHighpass :: GetPointer (THighpass ptr a b) ptr
+
+instance getPointerGain :: GetPointer (TGain ptr a) ptr
+
+instance getPointerSpeaker :: GetPointer (TSpeaker ptr a) ptr
+
+getPointer :: forall i u. AudioUnitRef i u -> Int
+getPointer (AudioUnitRef i) = i
+
 class Gate tf l r o | tf l r -> o
 
 instance gateTrue :: Gate True l r l
@@ -97,11 +118,20 @@ instance getAudioUnitNodeC :: GetAudioUnit (NodeC au ep) au
 
 class AudioUnitEq (a :: AudioUnit) (b :: AudioUnit) (tf :: Type) | a b -> tf
 
-instance audioUnitEqSinOsc :: AudioUnitEq (SinOsc idx freq) (SinOsc idx freq) True
-else instance audioUnitEqHighpass :: AudioUnitEq (Highpass idx freq q) (Highpass idx freq q) True
-else instance audioUnitEqGain :: AudioUnitEq (Gain idx vol) (Gain idx vol) True
-else instance audioUnitEqSpeaker :: AudioUnitEq (Speaker idx vol) (Speaker idx vol) True
+instance audioUnitEqTSinOsc :: AudioUnitEq (TSinOsc idx freq) (TSinOsc idx freq) True
+else instance audioUnitEqTHighpass :: AudioUnitEq (THighpass idx freq q) (THighpass idx freq q) True
+else instance audioUnitEqTGain :: AudioUnitEq (TGain idx vol) (TGain idx vol) True
+else instance audioUnitEqTSpeaker :: AudioUnitEq (TSpeaker idx vol) (TSpeaker idx vol) True
 else instance audioUnitEqFalse :: AudioUnitEq a b False
+
+class LookupNL (ptr :: Ptr) (graph :: NodeList) (node :: Node) | ptr graph -> node
+
+instance lookupFoundNodeEq :: (GetAudioUnit head headAU, GetPointer headAU ptr) => LookupNL ptr (NodeListCons head tail) head
+else instance lookupFoundNodeNeq :: LookupNL ptr tail o => LookupNL ptr (NodeListCons head tail) o
+
+class Lookup (ptr :: Ptr) (graph :: Graph) (node :: Node) | ptr graph -> node
+
+instance lookup :: (GraphToNodeList graph nodeList, LookupNL ptr nodeList node) => Lookup ptr graph node
 
 ---------------------------
 ------------ NoNodesAreDuplicated
@@ -372,13 +402,13 @@ class AllNodesAreFullyHydratedNL (graph :: NodeList)
 
 instance allNodesAreFullyHydratedNil :: AllNodesAreFullyHydratedNL NodeListNil
 
-instance allNodesAreFullyHydratedConsSinOsc :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (SinOsc a b) NoEdge) tail)
+instance allNodesAreFullyHydratedConsTSinOsc :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (TSinOsc a b) NoEdge) tail)
 
-instance allNodesAreFullyHydratedConsHighpass :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (Highpass a b c) (SingleEdge e)) tail)
+instance allNodesAreFullyHydratedConsTHighpass :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (THighpass a b c) (SingleEdge e)) tail)
 
-instance allNodesAreFullyHydratedConsGain :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (Gain a b) (ManyEdges e l)) tail)
+instance allNodesAreFullyHydratedConsTGain :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (TGain a b) (ManyEdges e l)) tail)
 
-instance allNodesAreFullyHydratedConsSpeaker :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (Speaker a b) (ManyEdges e l)) tail)
+instance allNodesAreFullyHydratedConsTSpeaker :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (TSpeaker a b) (ManyEdges e l)) tail)
 
 class AllNodesAreFullyHydrated (graph :: Graph)
 
@@ -386,7 +416,7 @@ instance allNodesAreFullyHydrated :: (GraphToNodeList graph nodeList, AllNodesAr
 
 class NodeIsOutputDevice (node :: Node)
 
-instance nodeIsOutputDeviceSpeaker :: NodeIsOutputDevice (NodeC (Speaker a b) x)
+instance nodeIsOutputDeviceTSpeaker :: NodeIsOutputDevice (NodeC (TSpeaker a b) x)
 
 -- for the end
 class GraphIsRenderable (graph :: Graph)
@@ -463,9 +493,187 @@ data Instruction
   | SetRefDistance Int Number
   | SetRolloffFactor Int Number
 
+type AudioState a
+  = State { currentIdx :: Int, instructions :: Array Instruction, internalGraph :: Map Int AnAudioUnit } a
 
 newtype Scene (ig :: Universe) (og :: Universe) (a :: Type)
-  = Scene (State { currentIdx :: Int, instructions :: Array Instruction } a)
+  = Scene (AudioState a)
+
+-- do not export!
+unScene :: forall i o a. Scene i o a -> AudioState a
+unScene (Scene state) = state
+
+instance sceneIxFunctor :: IxFunctor Scene where
+  imap f (Scene a) = Scene (f <$> a)
+
+instance sceneIxApplicative :: IxApply Scene where
+  iapply (Scene f) (Scene a) = Scene (f <*> a)
+
+instance sceneIxApply :: IxApplicative Scene where
+  ipure a = Scene $ pure a
+
+instance sceneIxBind :: IxBind Scene where
+  ibind (Scene monad) function = Scene (monad >>= (unScene <<< function))
+
+instance sceneIxMonad :: IxMonad Scene
+
+-- create (hpf and gain can start empty)
+defaultParam :: AudioParameter'
+defaultParam = { param: 0.0, timeOffset: 0.0, transition: LinearRamp, forceSet: false }
+
+type AudioParameter'
+  = { param :: Number
+    , timeOffset :: Number
+    , transition :: AudioParameterTransition
+    , forceSet :: Boolean
+    }
+
+newtype AudioParameter
+  = AudioParameter AudioParameter'
+
+class InitialVal a where
+  initialVal :: a -> AudioParameter
+
+instance initialValNumber :: InitialVal Number where
+  initialVal a = AudioParameter $ defaultParam { param = a }
+
+instance initialValAudioParameter :: InitialVal AudioParameter where
+  initialVal = identity
+
+instance initialValTupleNumber :: InitialVal a => InitialVal (Tuple a b) where
+  initialVal = initialVal <<< fst
+
+data AudioUnitRef (ptr :: Ptr) (universe :: Universe)
+  = AudioUnitRef Int
+
+data ARef (ptr :: Ptr)
+  = ARef
+
+data SinOsc a
+  = SinOsc a
+
+data AnAudioUnit
+  = ASinOsc AudioParameter
+  | AHighpass AudioParameter AudioParameter
+
+data Highpass a b c
+  = Highpass a b c
+
+data Highpass_ a b
+  = Highpass_ a b
+
+data Gain a b
+  = Gain a b
+
+data Speaker a b
+  = Speaker a b
+
+class Create (a :: Type) (i :: Universe) (o :: Universe) (ix :: Ptr) | a i -> o ix where
+  create :: a -> Scene i o (AudioUnitRef ix o)
+
+instance createSinOsc ::
+  InitialVal a =>
+  Create
+    (SinOsc a)
+    -- universe starts at ptr
+    (UniverseC ptr (GraphC head tail) destroyed acc)
+    -- universe continues at ptr + 1
+    ( UniverseC (PtrSucc ptr)
+        -- new node is at ptr
+        (GraphC (NodeC (TSinOsc ptr Changing) NoEdge) (NodeListCons head tail))
+        destroyed
+        acc
+    )
+    -- the sinosc is at this ptr
+    ptr where
+  create (SinOsc a) =
+    Scene
+      $ do
+          idx <- gets _.currentIdx
+          let
+            iv' = initialVal a
+
+            AudioParameter iv = iv'
+          modify_
+            ( \i ->
+                i
+                  { currentIdx = idx + 1
+                  , internalGraph = M.insert idx (ASinOsc iv') i.internalGraph 
+                  , instructions =
+                    i.instructions
+                      <> [ NewUnit idx "sinosc"
+                        , SetFrequency idx iv.param iv.timeOffset iv.transition
+                        ]
+                  }
+            )
+          pure $ AudioUnitRef idx
+
+instance createHighpass ::
+  ( InitialVal a
+  , InitialVal b
+  , Create
+      c
+      -- we increase the pointer by 1 in this universe
+      -- as the highpass consumed ptr already
+      (UniverseC (PtrSucc ptr) graphi destroyedi acci)
+      (UniverseC outptr grapho destroyedo acco)
+      op
+  , Lookup op grapho (NodeC au ep)
+  , GraphToNodeList grapho nodeList
+  ) =>
+  Create
+    -- highpass
+    (Highpass a b (ARef ptr -> c))
+    -- universe starts at ptr
+    (UniverseC ptr graphi destroyedi acci)
+    ( UniverseC
+        -- we pass along the outptr of the inner computation
+        outptr
+        -- the highpass is at this ptr
+        (GraphC (NodeC (THighpass ptr Changing Changing) (SingleEdge au)) nodeList)
+        destroyedo
+        acco
+    )
+    -- the highpass is at this ptr
+    ptr where
+  create (Highpass a b c) =
+    Scene
+      $ do
+          idx <- gets _.currentIdx
+          let
+            aiv' = initialVal a
+
+            biv' = initialVal b
+
+            AudioParameter aiv = aiv'
+
+            AudioParameter biv = biv'
+          modify_
+            ( \i ->
+                i
+                  { currentIdx = idx + 1
+                  , internalGraph = M.insert idx (AHighpass aiv' biv') i.internalGraph
+                  , instructions =
+                    i.instructions
+                      <> [ NewUnit idx "highpass"
+                        , SetFrequency idx aiv.param aiv.timeOffset aiv.transition
+                        , SetQ idx biv.param biv.timeOffset biv.transition
+                        ]
+                  }
+            )
+          let
+            (Scene mc) = (create :: c -> Scene (UniverseC (PtrSucc ptr) graphi destroyedi acci) (UniverseC outptr grapho destroyedo acco) (AudioUnitRef op (UniverseC outptr grapho destroyedo acco))) (c ARef)
+          oc <- mc
+          modify_
+            ( \i ->
+                i
+                  { instructions =
+                    i.instructions
+                      <> [ ConnectXToY (getPointer oc) idx ]
+                  }
+            )
+          pure $ AudioUnitRef idx
+
 {-
 derive newtype instance functorScene :: Functor m => Functor (SceneT ig og m)
 
