@@ -1,7 +1,6 @@
 module Stream8 where
 
 import Prelude
-
 import Control.Alt (class Alt)
 import Control.Alternative (class Alternative)
 import Control.Applicative.Indexed (class IxApplicative)
@@ -47,12 +46,18 @@ foreign import data AudioUnitCons :: AudioUnit -> AudioUnitList -> AudioUnitList
 
 foreign import data AudioUnitNil :: AudioUnitList
 
+data PtrList
+
+foreign import data PtrListCons :: Ptr -> PtrList -> PtrList
+
+foreign import data PtrListNil :: PtrList
+
 data EdgeProfile
 
 -- non empty
-foreign import data ManyEdges :: AudioUnit -> AudioUnitList -> EdgeProfile
+foreign import data ManyEdges :: Ptr -> PtrList -> EdgeProfile
 
-foreign import data SingleEdge :: AudioUnit -> EdgeProfile
+foreign import data SingleEdge :: Ptr -> EdgeProfile
 
 foreign import data NoEdge :: EdgeProfile
 
@@ -167,18 +172,15 @@ instance noNodesAreDuplicated ::
 
 ---------------------------
 ------------ AllEdgesPointToNodes
-class AudioUnitInNodeList (foundNode :: Type) (audioUnit :: AudioUnit) (nodeList :: NodeList) (output :: Type) | foundNode audioUnit nodeList -> output
+class PtrInNodeList (ptr :: Ptr) (nodeList :: NodeList)
 
-instance audioUnitInNodeListTrue :: AudioUnitInNodeList True a b True
-
-instance audioUnitInNodeListFalseNil :: AudioUnitInNodeList False a NodeListNil False
-
-instance audioUnitInNodeListFalseCons ::
+instance ptrInNodeListFound ::
   ( GetAudioUnit head headAu
-  , AudioUnitEq au headAu foundNode
-  , AudioUnitInNodeList foundNode au tail o
+  , GetPointer headAu ptr
   ) =>
-  AudioUnitInNodeList False au (NodeListCons head tail) o
+  PtrInNodeList ptr (NodeListCons head tail)
+else instance ptrInNodeListNext ::
+  PtrInNodeList ptr tail => PtrInNodeList ptr (NodeListCons head tail)
 
 class AudioUnitInAudioUnitList (foundNode :: Type) (audioUnit :: AudioUnit) (audioUnitList :: AudioUnitList) (output :: Type) | foundNode audioUnit audioUnitList -> output
 
@@ -192,31 +194,31 @@ instance audioUnitInAudioUnitListFalseCons ::
   ) =>
   AudioUnitInAudioUnitList False au (AudioUnitCons head tail) o
 
-class AllAudioUnitsInNodeList (needles :: AudioUnitList) (haystack :: NodeList)
+class AllPtrsInNodeList (needles :: PtrList) (haystack :: NodeList)
 
-instance allAudioUnitsInNodeListNil :: AllAudioUnitsInNodeList AudioUnitNil haystack
+instance allPtrsInNodeList :: AllPtrsInNodeList PtrListNil haystack
 
-instance allAudioUnitsInNodeListCons ::
-  ( AudioUnitInNodeList False head haystack True
-  , AllAudioUnitsInNodeList tail haystack
+instance allPtrsInNodeListCons ::
+  ( PtrInNodeList head haystack
+  , AllPtrsInNodeList tail haystack
   ) =>
-  AllAudioUnitsInNodeList (AudioUnitCons head tail) haystack
+  AllPtrsInNodeList (PtrListCons head tail) haystack
 
-class GetEdgesAsAudioUnitList (node :: Node) (audioUnitList :: AudioUnitList) | node -> audioUnitList
+class GetEdgesAsPtrList (node :: Node) (ptrList :: PtrList) | node -> ptrList
 
-instance getEdgesAsAudioUnitListNoEdge :: GetEdgesAsAudioUnitList (NodeC x NoEdge) AudioUnitNil
+instance getEdgesAsPtrListNoEdge :: GetEdgesAsPtrList (NodeC x NoEdge) PtrListNil
 
-instance getEdgesAsAudioUnitListSingleEdge :: GetEdgesAsAudioUnitList (NodeC x (SingleEdge e)) (AudioUnitCons e AudioUnitNil)
+instance getEdgesAsPtrListSingleEdge :: GetEdgesAsPtrList (NodeC x (SingleEdge e)) (PtrListCons e PtrListNil)
 
-instance getEdgesAsAudioUnitListManyEdges :: GetEdgesAsAudioUnitList (NodeC x (ManyEdges e l)) (AudioUnitCons e l)
+instance getEdgesAsPtrListManyEdges :: GetEdgesAsPtrList (NodeC x (ManyEdges e l)) (PtrListCons e l)
 
 class AllEdgesInNodeList (needles :: NodeList) (haystack :: NodeList)
 
 instance allEdgesInNodeListNil :: AllEdgesInNodeList NodeListNil haystack
 
 instance allEdgesInNodeListCons ::
-  ( GetEdgesAsAudioUnitList head audioUnitList
-  , AllAudioUnitsInNodeList audioUnitList haystack
+  ( GetEdgesAsPtrList head ptrList
+  , AllPtrsInNodeList ptrList haystack
   , AllEdgesInNodeList tail haystack
   ) =>
   AllEdgesInNodeList (NodeListCons head tail) haystack
@@ -331,7 +333,7 @@ class ToVisitSingle (accumulator :: NodeList) (graph :: NodeList) (unvisited :: 
 instance toVisitSingleNil :: ToVisitSingle accumulator NodeListNil unvisited accumulator
 
 instance toVisitSingleCons ::
-  ( GetEdgesAsAudioUnitList head edgeList
+  ( GetEdgesAsPtrList head edgeList
   , GetAudioUnit unvisited au
   , AudioUnitInAudioUnitList False au edgeList tf
   , Gate tf (NodeListCons head accumulator) accumulator acc
@@ -598,7 +600,7 @@ instance createSinOsc ::
             ( \i ->
                 i
                   { currentIdx = idx + 1
-                  , internalGraph = M.insert idx (ASinOsc iv') i.internalGraph 
+                  , internalGraph = M.insert idx (ASinOsc iv') i.internalGraph
                   , instructions =
                     i.instructions
                       <> [ NewUnit idx "sinosc"
