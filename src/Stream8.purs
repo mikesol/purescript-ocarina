@@ -182,6 +182,10 @@ instance ptrInNodeListFound ::
 else instance ptrInNodeListNext ::
   PtrInNodeList ptr tail => PtrInNodeList ptr (NodeListCons head tail)
 
+
+class PtrInPtrList () (ptr :: Ptr) (nodeList :: NodeList) () | ? ptr nodeList -> ?
+
+
 class AudioUnitInAudioUnitList (foundNode :: Type) (audioUnit :: AudioUnit) (audioUnitList :: AudioUnitList) (output :: Type) | foundNode audioUnit audioUnitList -> output
 
 instance audioUnitInAudioUnitListTrue :: AudioUnitInAudioUnitList True a b True
@@ -287,6 +291,19 @@ instance bottomLevelNodes ::
   ) =>
   BottomLevelNodes graph bottomLevelNodes
 
+class AudioUnitInNodeList (foundNode :: Type) (audioUnit :: AudioUnit) (nodeList :: NodeList) (output :: Type) | foundNode audioUnit nodeList -> output
+
+instance audioUnitInNodeListTrue :: AudioUnitInNodeList True a b True
+
+instance audioUnitInNodeListFalseNil :: AudioUnitInNodeList False a NodeListNil False
+
+instance audioUnitInNodeListFalseCons ::
+  ( GetAudioUnit head headAu
+  , AudioUnitEq au headAu foundNode
+  , AudioUnitInNodeList foundNode au tail o
+  ) =>
+  AudioUnitInNodeList False au (NodeListCons head tail) o
+
 class RemoveDuplicates (accumulator :: NodeList) (maybeWithDuplicates :: NodeList) (removed :: NodeList) | accumulator maybeWithDuplicates -> removed
 
 instance removeDuplicatesNil :: RemoveDuplicates accumulator NodeListNil accumulator
@@ -335,7 +352,8 @@ instance toVisitSingleNil :: ToVisitSingle accumulator NodeListNil unvisited acc
 instance toVisitSingleCons ::
   ( GetEdgesAsPtrList head edgeList
   , GetAudioUnit unvisited au
-  , AudioUnitInAudioUnitList False au edgeList tf
+  , GetPointer au ptr
+  , PtrInPtrList False ptr edgeList tf
   , Gate tf (NodeListCons head accumulator) accumulator acc
   , ToVisitSingle acc tail unvisited o
   ) =>
