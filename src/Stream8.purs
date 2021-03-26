@@ -186,7 +186,6 @@ instance noNodesAreDuplicated ::
 
 ---------------------------
 ------------ AllEdgesPointToNodes
-
 class PtrInPtrList (foundPtr :: Type) (ptr :: Ptr) (nodeList :: PtrList) (output :: Type) | foundPtr ptr nodeList -> output
 
 instance ptrInPtrListTrue :: PtrInPtrList True a b True
@@ -606,8 +605,10 @@ class GetPointers t where
 
 instance getPointersAudioReference :: GetPointers (AudioUnitRef ptr universe) where
   getPointers (AudioUnitRef i) = [ i ]
+
 instance getPointersAudioReferenceTL :: GetPointers Unit where
   getPointers _ = []
+
 instance getPointersAudioReferenceTR :: GetPointers a => GetPointers (Tuple (AudioUnitRef ptr universe) a) where
   getPointers (Tuple (AudioUnitRef i) a) = [ i ] <> getPointers a
 
