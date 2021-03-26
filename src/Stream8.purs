@@ -134,14 +134,23 @@ else instance audioUnitEqTGain :: AudioUnitEq (TGain idx vol) (TGain idx vol) Tr
 else instance audioUnitEqTSpeaker :: AudioUnitEq (TSpeaker idx vol) (TSpeaker idx vol) True
 else instance audioUnitEqFalse :: AudioUnitEq a b False
 
-class LookupNL (ptr :: Ptr) (graph :: NodeList) (node :: Node) | ptr graph -> node
+class NodeListKeepSingleton (nodeListA :: NodeList) (nodeListB :: NodeList) (nodeListC :: NodeList) | nodeListA nodeListB -> nodeListC
 
-instance lookupFoundNodeEq :: (GetAudioUnit head headAU, GetPointer headAU ptr) => LookupNL ptr (NodeListCons head tail) head
-else instance lookupFoundNodeNeq :: LookupNL ptr tail o => LookupNL ptr (NodeListCons head tail) o
+instance nodeListKeepSingletonNil :: NodeListKeepSingleton NodeListNil NodeListNil NodeListNil
+
+instance nodeListKeepSingletonL :: NodeListKeepSingleton (NodeListCons a NodeListNil) NodeListNil (NodeListCons a NodeListNil)
+
+instance nodeListKeepSingletonR :: NodeListKeepSingleton NodeListNil (NodeListCons a NodeListNil) (NodeListCons a NodeListNil)
+
+class LookupNL (accumulator :: NodeList) (ptr :: Ptr) (graph :: NodeList) (node :: NodeList) | ptr graph -> node
+
+instance lookupNLNil :: LookupNL accumulator ptr NodeListNil accumulator
+
+instance lookupNLNilCons :: (GetAudioUnit head headAU, GetPointer headAU maybePtr, PtrEq maybePtr ptr tf, Gate tf (NodeListCons head NodeListNil) NodeListNil toComp, NodeListKeepSingleton toComp accumulator acc, LookupNL acc ptr tail o) => LookupNL accumulator ptr (NodeListCons head tail) o
 
 class Lookup (ptr :: Ptr) (graph :: Graph) (node :: Node) | ptr graph -> node
 
-instance lookup :: (GraphToNodeList graph nodeList, LookupNL ptr nodeList node) => Lookup ptr graph node
+instance lookup :: (GraphToNodeList graph nodeList, LookupNL NodeListNil ptr nodeList (NodeListCons node NodeListNil)) => Lookup ptr graph node
 
 ---------------------------
 ------------ NoNodesAreDuplicated
@@ -177,16 +186,6 @@ instance noNodesAreDuplicated ::
 
 ---------------------------
 ------------ AllEdgesPointToNodes
-class PtrInNodeList (ptr :: Ptr) (nodeList :: NodeList)
-
-instance ptrInNodeListFound ::
-  ( GetAudioUnit head headAu
-  , GetPointer headAu ptr
-  ) =>
-  PtrInNodeList ptr (NodeListCons head tail)
-else instance ptrInNodeListNext ::
-  PtrInNodeList ptr tail =>
-  PtrInNodeList ptr (NodeListCons head tail)
 
 class PtrInPtrList (foundPtr :: Type) (ptr :: Ptr) (nodeList :: PtrList) (output :: Type) | foundPtr ptr nodeList -> output
 
@@ -217,7 +216,7 @@ class AllPtrsInNodeList (needles :: PtrList) (haystack :: NodeList)
 instance allPtrsInNodeList :: AllPtrsInNodeList PtrListNil haystack
 
 instance allPtrsInNodeListCons ::
-  ( PtrInNodeList head haystack
+  ( LookupNL accumulator head haystack (NodeListCons x NodeListNil)
   , AllPtrsInNodeList tail haystack
   ) =>
   AllPtrsInNodeList (PtrListCons head tail) haystack
@@ -607,9 +606,9 @@ class GetPointers t where
 
 instance getPointersAudioReference :: GetPointers (AudioUnitRef ptr universe) where
   getPointers (AudioUnitRef i) = [ i ]
-else instance getPointersAudioReferenceTL :: GetPointers (Tuple (AudioUnitRef ptr universe) Unit) where
-  getPointers (Tuple (AudioUnitRef i) _) = [ i ]
-else instance getPointersAudioReferenceTR :: GetPointers a => GetPointers (Tuple (AudioUnitRef ptr universe) a) where
+instance getPointersAudioReferenceTL :: GetPointers Unit where
+  getPointers _ = []
+instance getPointersAudioReferenceTR :: GetPointers a => GetPointers (Tuple (AudioUnitRef ptr universe) a) where
   getPointers (Tuple (AudioUnitRef i) a) = [ i ] <> getPointers a
 
 class Create (a :: Type) (i :: Universe) (o :: Universe) (rv :: Ptr -> Universe -> Type) (ix :: Ptr) | a i -> rv o ix where
