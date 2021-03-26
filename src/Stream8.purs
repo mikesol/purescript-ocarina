@@ -121,6 +121,11 @@ class GetAudioUnit (node :: Node) (au :: AudioUnit) | node -> au
 
 instance getAudioUnitNodeC :: GetAudioUnit (NodeC au ep) au
 
+class PtrEq (a :: Ptr) (b :: Ptr) (tf :: Type) | a b -> tf
+
+instance ptrEqTrue :: PtrEq a a True
+else instance ptrEqFalse :: PtrEq a b False
+
 class AudioUnitEq (a :: AudioUnit) (b :: AudioUnit) (tf :: Type) | a b -> tf
 
 instance audioUnitEqTSinOsc :: AudioUnitEq (TSinOsc idx freq) (TSinOsc idx freq) True
@@ -180,11 +185,20 @@ instance ptrInNodeListFound ::
   ) =>
   PtrInNodeList ptr (NodeListCons head tail)
 else instance ptrInNodeListNext ::
-  PtrInNodeList ptr tail => PtrInNodeList ptr (NodeListCons head tail)
+  PtrInNodeList ptr tail =>
+  PtrInNodeList ptr (NodeListCons head tail)
 
+class PtrInPtrList (foundPtr :: Type) (ptr :: Ptr) (nodeList :: PtrList) (output :: Type) | foundPtr ptr nodeList -> output
 
-class PtrInPtrList () (ptr :: Ptr) (nodeList :: NodeList) () | ? ptr nodeList -> ?
+instance ptrInPtrListTrue :: PtrInPtrList True a b True
 
+instance ptrInPtrListFalseNil :: PtrInPtrList False a PtrListNil False
+
+instance ptrInPtrListFalseCons ::
+  ( PtrEq au head foundNode
+  , PtrInPtrList foundNode au tail o
+  ) =>
+  PtrInPtrList False ptr (PtrListCons head tail) o
 
 class AudioUnitInAudioUnitList (foundNode :: Type) (audioUnit :: AudioUnit) (audioUnitList :: AudioUnitList) (output :: Type) | foundNode audioUnit audioUnitList -> output
 
@@ -588,8 +602,18 @@ data Gain a b
 data Speaker a b
   = Speaker a b
 
-class Create (a :: Type) (i :: Universe) (o :: Universe) (ix :: Ptr) | a i -> o ix where
-  create :: a -> Scene i o (AudioUnitRef ix o)
+class GetPointers t where
+  getPointers :: t -> Array Int
+
+instance getPointersAudioReference :: GetPointers (AudioUnitRef ptr universe) where
+  getPointers (AudioUnitRef i) = [ i ]
+else instance getPointersAudioReferenceTL :: GetPointers (Tuple (AudioUnitRef ptr universe) Unit) where
+  getPointers (Tuple (AudioUnitRef i) _) = [ i ]
+else instance getPointersAudioReferenceTR :: GetPointers a => GetPointers (Tuple (AudioUnitRef ptr universe) a) where
+  getPointers (Tuple (AudioUnitRef i) a) = [ i ] <> getPointers a
+
+class Create (a :: Type) (i :: Universe) (o :: Universe) (rv :: Ptr -> Universe -> Type) (ix :: Ptr) | a i -> rv o ix where
+  create :: a -> Scene i o (rv ix o)
 
 instance createSinOsc ::
   InitialVal a =>
@@ -604,6 +628,7 @@ instance createSinOsc ::
         destroyed
         acc
     )
+    AudioUnitRef
     -- the sinosc is at this ptr
     ptr where
   create (SinOsc a) =
@@ -631,14 +656,17 @@ instance createSinOsc ::
 instance createHighpass ::
   ( InitialVal a
   , InitialVal b
+  , GetPointers (term op (UniverseC outptr grapho destroyedo acco))
   , Create
       c
       -- we increase the pointer by 1 in this universe
       -- as the highpass consumed ptr already
       (UniverseC (PtrSucc ptr) graphi destroyedi acci)
       (UniverseC outptr grapho destroyedo acco)
+      term
       op
   , Lookup op grapho (NodeC au ep)
+  , GetPointer au auPtr
   , GraphToNodeList grapho nodeList
   ) =>
   Create
@@ -650,10 +678,11 @@ instance createHighpass ::
         -- we pass along the outptr of the inner computation
         outptr
         -- the highpass is at this ptr
-        (GraphC (NodeC (THighpass ptr Changing Changing) (SingleEdge au)) nodeList)
+        (GraphC (NodeC (THighpass ptr Changing Changing) (SingleEdge auPtr)) nodeList)
         destroyedo
         acco
     )
+    AudioUnitRef
     -- the highpass is at this ptr
     ptr where
   create (Highpass a b c) =
@@ -682,14 +711,21 @@ instance createHighpass ::
                   }
             )
           let
-            (Scene mc) = (create :: c -> Scene (UniverseC (PtrSucc ptr) graphi destroyedi acci) (UniverseC outptr grapho destroyedo acco) (AudioUnitRef op (UniverseC outptr grapho destroyedo acco))) (c ARef)
+            (Scene mc) =
+              ( create ::
+                  c ->
+                  Scene (UniverseC (PtrSucc ptr) graphi destroyedi acci)
+                    (UniverseC outptr grapho destroyedo acco)
+                    (term op (UniverseC outptr grapho destroyedo acco))
+              )
+                (c ARef)
           oc <- mc
           modify_
             ( \i ->
                 i
                   { instructions =
                     i.instructions
-                      <> [ ConnectXToY (getPointer oc) idx ]
+                      <> map (flip ConnectXToY idx) (getPointers oc)
                   }
             )
           pure $ AudioUnitRef idx
