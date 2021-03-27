@@ -31,6 +31,10 @@ import Type.Proxy (Proxy(..))
 import Unsafe.Coerce (unsafeCoerce)
 
 infixr 5 type Above as ^^
+infixr 5 type NodeListCons as /:
+infixr 5 type PtrListCons as +:
+infixr 5 type NodeC as /->
+
 
 data Ptr
 
@@ -311,6 +315,10 @@ instance bottomLevelNodes ::
   ) =>
   BottomLevelNodes graph bottomLevelNodes
 
+class HasBottomLevelNodes (graph :: Graph)
+
+instance hasBottomLevelNodes :: BottomLevelNodes graph (NodeListCons a b) => HasBottomLevelNodes graph
+
 class AudioUnitInNodeList (foundNode :: Type) (audioUnit :: AudioUnit) (nodeList :: NodeList) (output :: Type) | foundNode audioUnit nodeList -> output
 
 instance audioUnitInNodeListTrue :: AudioUnitInNodeList True a b True
@@ -404,8 +412,9 @@ instance toVisitCons ::
   , IsNodeListEmpty o tf
   , Gate tf (NodeListCons findMeInAnEdge parentlessAccumulator) parentlessAccumulator pA
   , NodeListAppend candidatesAccumulator o cA
+  , ToVisit cA pA graph tail ccA ppA
   ) =>
-  ToVisit candidatesAccumulator parentlessAccumulator graph (NodeListCons findMeInAnEdge tail) cA pA
+  ToVisit candidatesAccumulator parentlessAccumulator graph (NodeListCons findMeInAnEdge tail) ccA ppA
 
 class TerminusLoop (graph :: NodeList) (visited :: NodeList) (visiting :: NodeList) (accumulator :: NodeList) (output :: NodeList) | graph visited visiting accumulator -> output
 
@@ -465,6 +474,7 @@ instance graphIsRenderable ::
   ( NoNodesAreDuplicated graph
   , AllEdgesPointToNodes graph
   , NoParallelEdges graph
+  , HasBottomLevelNodes graph
   , UniqueTerminus graph terminus
   , NodeIsOutputDevice terminus
   , AllNodesAreFullyHydrated graph
