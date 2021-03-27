@@ -157,10 +157,6 @@ instance lookupNLNil :: LookupNL accumulator ptr NodeListNil accumulator
 
 instance lookupNLNilCons :: (GetAudioUnit head headAU, GetPointer headAU maybePtr, PtrEq maybePtr ptr tf, Gate tf (NodeListCons head NodeListNil) NodeListNil toComp, NodeListKeepSingleton toComp accumulator acc, LookupNL acc ptr tail o) => LookupNL accumulator ptr (NodeListCons head tail) o
 
-class Lookup (ptr :: Ptr) (graph :: Graph) (node :: Node) | ptr graph -> node
-
-instance lookup :: (GraphToNodeList graph nodeList, LookupNL NodeListNil ptr nodeList (NodeListCons node NodeListNil)) => Lookup ptr graph node
-
 ---------------------------
 ------------ NoNodesAreDuplicated
 class NodeNotInNodeList (node :: Node) (nodeList :: NodeList)
