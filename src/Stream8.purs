@@ -421,7 +421,11 @@ class TerminusLoop (graph :: NodeList) (visited :: NodeList) (visiting :: NodeLi
 instance terminusLoopNil :: TerminusLoop graph visited NodeListNil accumulator accumulator
 
 instance terminusLoopCons ::
-  ( ToVisit NodeListNil NodeListNil graph (NodeListCons a b) candidates parentless
+  ( ToVisit NodeListNil NodeListNil graph (NodeListCons a b) candidatesDup parentless
+  -- remove duplicates in case where we have many nodes pointing to one node
+  -- in this case, it would be in candidates multiple times
+  -- we remove duplicates from the parent only at the end, as we are not recursing over it
+  , RemoveDuplicates NodeListNil candidatesDup candidates
   , UnvisitedNodes visited NodeListNil candidates unvisited
   , NodeListAppend unvisited visited newVisited
   , NodeListAppend accumulator parentless newAccumulator
@@ -435,6 +439,7 @@ instance uniqueTerminus ::
   ( BottomLevelNodes graph bottomLevel
   , GraphToNodeList graph graphAsNodeList
   , TerminusLoop graphAsNodeList NodeListNil bottomLevel NodeListNil terminii
+  -- we remove duplicates from the parent only after terminus loop, as we are not recursing over it in the loop
   , RemoveDuplicates NodeListNil terminii unduped
   , AssertSingleton unduped node
   ) =>
@@ -455,7 +460,9 @@ instance allNodesAreFullyHydratedConsTSinOsc :: AllNodesAreFullyHydratedNL tail 
 
 instance allNodesAreFullyHydratedConsTHighpass :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (THighpass a b c) (SingleEdge e)) tail)
 
-instance allNodesAreFullyHydratedConsTGain :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (TGain a b) (ManyEdges e l)) tail)
+instance allNodesAreFullyHydratedConsTGainME :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (TGain a b) (ManyEdges e l)) tail)
+
+instance allNodesAreFullyHydratedConsTGainSE :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (TGain a b) (SingleEdge e)) tail)
 
 instance allNodesAreFullyHydratedConsTSpeaker :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (TSpeaker a b) (ManyEdges e l)) tail)
 
