@@ -4,7 +4,7 @@ import Prelude
 
 import Control.Alt (class Alt)
 import Control.Alternative (class Alternative)
-import Control.Applicative.Indexed (class IxApplicative)
+import Control.Applicative.Indexed (class IxApplicative, ipure)
 import Control.Apply.Indexed (class IxApply)
 import Control.Bind.Indexed (class IxBind)
 import Control.Lazy (class Lazy)
@@ -409,6 +409,11 @@ instance nodeListAppendNilR :: NodeListAppend (NodeListCons x y) NodeListNil (No
 
 instance nodeListAppendCons :: (NodeListAppend b (NodeListCons c d) o) => NodeListAppend (NodeListCons a b) (NodeListCons c d) (NodeListCons a o)
 
+class EdgeProfileChooseGreater (a :: EdgeProfile) (b :: EdgeProfile) (c :: EdgeProfile) | a b -> c
+
+instance edgeProfileChooseGreater0 :: EdgeProfileChooseGreater NoEdge b b
+else instance edgeProfileChooseGreater1 :: EdgeProfileChooseGreater a NoEdge a
+
 class IsNodeListEmpty (nodeList :: NodeList) (tf :: Type) | nodeList -> tf
 
 instance isNodeListEmptyNil :: IsNodeListEmpty NodeListNil True
@@ -653,7 +658,7 @@ data AudioUnitRef (ptr :: Ptr) (universe :: Universe)
 data AudioParamRef (ptr :: Ptr) (universe :: Universe)
   = AudioParamRef Int AudioParameter
 
-data ARef (ptr :: Ptr)
+data ARef
   = ARef
 
 data SinOsc a
@@ -689,17 +694,32 @@ instance edgeListableTuple :: EdgeListable x y => EdgeListable (Tuple (AudioUnit
 newtype PtrArr a
   = PtrArr (Array Int)
 
+class ToARefFunction (a :: Type) (b :: Type)| a -> b where
+  toARefFunction :: a -> (ARef -> b)
+
+instance toARefFunctionFunction :: ToARefFunction (ARef -> b) b where
+  toARefFunction = identity
+else instance toARefFunctionConst :: ToARefFunction b b where
+  toARefFunction = const
+
 class AsEdgeProfile a (b :: EdgeProfile) | a -> b where
   getPointers :: a -> PtrArr b
 
 instance asEdgeProfileAR :: AsEdgeProfile (AudioUnitRef ptr universe) (SingleEdge ptr) where
   getPointers (AudioUnitRef i) = PtrArr [ i ]
 
+
+instance asEdgeProfileUnit :: AsEdgeProfile Unit e where
+  getPointers _ = PtrArr [ ]
+
 instance asEdgeProfileTupl :: EdgeListable x y => AsEdgeProfile (Tuple (AudioUnitRef ptr universe) x) (ManyEdges ptr y) where
   getPointers (Tuple (AudioUnitRef i) el) = let PtrArr o = getPointers' el in PtrArr ([ i ] <> o)
 
 class Create (a :: Type) (env :: Type) (i :: Universe) (o :: Universe) (x :: Type) | a env i -> o x where
   create :: a -> Scene env i o x
+
+instance createARef :: Create ARef env universe universe Unit where
+  create _ = Scene (pure unit)
 
 instance createSinOsc ::
   (InitialVal env acc a, Nat ptr, Succ ptr next) =>
@@ -758,10 +778,11 @@ instance createHighpass ::
       term
   , AsEdgeProfile term (SingleEdge op)
   , GraphToNodeList grapho nodeList
+  , ToARefFunction fc c
   ) =>
   Create
     -- highpass
-    (Highpass a b (ARef ptr -> c))
+    (Highpass a b fc)
     env
     -- universe starts at ptr
     (UniverseC ptr graphi destroyedi acci)
@@ -816,7 +837,7 @@ instance createHighpass ::
                     (UniverseC outptr grapho destroyedo acco)
                     term
               )
-                (c ARef)
+                ((toARefFunction c) ARef)
           oc <- mc
           modify_
             ( \i ->
@@ -846,7 +867,7 @@ instance createGain ::
   ) =>
   Create
     -- gain
-    (Gain a (ARef ptr -> b))
+    (Gain a (ARef -> b))
     env
     -- universe starts at ptr
     (UniverseC ptr graphi destroyedi acci)
@@ -994,36 +1015,42 @@ change' ::
   a -> Scene env i o Unit
 change' = change (Proxy :: _ p)
 
-class Change (p :: Ptr) (a :: Type) (env :: Type) (i :: Universe) (o :: Universe) | p a env i -> o where
+class Change p (a :: Type) (env :: Type) (i :: Universe) (o :: Universe) | p a env i -> o where
   change :: Proxy p -> a -> Scene env i o Unit
 
 --
-class ModifyRes (tag :: Type) (p :: Ptr) (i :: Node) (o :: Node) (mod :: NodeList) | tag p i -> i mod
+class ModifyRes (tag :: Type) (p :: Ptr) (i :: Node) (o :: Node) (mod :: NodeList) (plist :: EdgeProfile) | tag p i -> i mod plist
 
-instance modifyResSinOsc :: ModifyRes (SinOsc a) p (NodeC (TSinOsc p Static) e) (NodeC (TSinOsc p Changing) e) (NodeListCons (NodeC (TSinOsc p Changing) e) NodeListNil)
-else instance modifyResMiss :: ModifyRes tag p n n NodeListNil
+instance modifyResSinOsc :: ModifyRes (SinOsc a) p (NodeC (TSinOsc p Static) e) (NodeC (TSinOsc p Changing) e) (NodeListCons (NodeC (TSinOsc p Changing) e) NodeListNil) e
+else instance modifyResHighpass :: ModifyRes (SinOsc a) p (NodeC (THighpass p Static Static) e) (NodeC (THighpass p Changing Changing) e) (NodeListCons (NodeC (THighpass p Changing Changing) e) NodeListNil) e
+else instance modifyResMiss :: ModifyRes tag p n n NodeListNil NoEdge
 
-class Modify' (tag :: Type) (p :: Ptr) (i :: NodeList) (o :: NodeList) (mod :: NodeList) | tag p i -> o mod
+class Modify' (tag :: Type) (p :: Ptr) (i :: NodeList) (o :: NodeList) (mod :: NodeList) (nextP :: EdgeProfile) | tag p i -> o mod nextP
 
-instance modifySinOscNil :: Modify' tag p NodeListNil o mod
+instance modifyNil :: Modify' tag p NodeListNil NodeListNil NodeListNil NoEdge
 
-instance modifySinOscCons ::
-  ( ModifyRes tag p head headRes headResAsList
-  , Modify' tag p tail tailRes tailResAsList
+instance modifyCons ::
+  ( ModifyRes tag p head headRes headResAsList headPlist
+  , Modify' tag p tail tailRes tailResAsList tailPlist
   , NodeListAppend headResAsList tailResAsList o
+  , EdgeProfileChooseGreater headPlist tailPlist plist
   ) =>
-  Modify' tag p (NodeListCons head tail) (NodeListCons headRes tailRes) o
+  Modify' tag p (NodeListCons head tail) (NodeListCons headRes tailRes) o plist
 
-class Modify (tag :: Type) (p :: Ptr) (i :: Universe) (o :: Universe) | tag p i -> o
+class Modify (tag :: Type) (p :: Ptr) (i :: Universe) (o :: Universe) (nextP :: EdgeProfile) | tag p i -> o nextP
 
-instance modify :: (GraphToNodeList ig il, Modify' tag p il ol mod, AssertSingleton mod x, GraphToNodeList og ol) => Modify tag p (UniverseC i ig d acc) (UniverseC i og d acc)
+instance modify :: (GraphToNodeList ig il, Modify' tag p il ol mod nextPL, AssertSingleton mod x, GraphToNodeList og ol) => Modify tag p (UniverseC i ig d acc) (UniverseC i og d acc) nextP
+
+instance changeNothing ::
+  Change p ARef env inuniv outuniv where
+  change _ _ = Scene (pure unit)
 
 instance changeSinOsc ::
   ( GetAccumulator inuniv acc
   , SetterAsChanged env acc a delta
   , IsChanging delta
   , Nat p
-  , Modify (SinOsc a) p inuniv outuniv
+  , Modify (SinOsc a) p inuniv outuniv nextP
   ) =>
   Change p (SinOsc a) env inuniv outuniv where
   change _ (SinOsc a) =
@@ -1054,6 +1081,55 @@ instance changeSinOsc ::
                             , instructions =
                               i.instructions
                                 <> [ SetFrequency ptr iv.param iv.timeOffset iv.transition ]
+                            }
+                      )
+                -- bad, means there is an inconsistent state
+                _ -> pure unit
+              -- bad, means there is an inconsistent state
+              Nothing -> pure unit
+
+instance changeHighpass ::
+  ( GetAccumulator inuniv acc
+  , SetterAsChanged env acc a deltaA
+  , SetterAsChanged env acc b deltaB
+  , IsChanging delta
+  , Nat p
+  , Modify (Highpass a b c) p inuniv middle nextP
+  , Change nextP c env middle outuniv
+  ) =>
+  Change p (Highpass a b c) env inuniv outuniv where
+  change _ (Highpass a b c) =
+    Scene
+      $ case isChanging (Proxy :: _ delta) of
+          false -> pure unit
+          true -> do
+            { env, acc } <- get
+            let
+              accAsAcc = unsafeCoerce acc :: acc
+
+              asv = (setterVal :: a -> (env -> acc -> AudioParameter -> AudioParameter)) a
+              bsv = (setterVal :: b -> (env -> acc -> AudioParameter -> AudioParameter)) b
+              ptr = toInt' (Proxy :: _ p)
+            sosc <- M.lookup ptr <$> gets _.internalGraph
+            case sosc of
+              Just v -> case v of
+                AHighpass aparam bparam ->
+                  let
+                    aiv' = asv env accAsAcc aparam
+
+                    AudioParameter aiv = aiv'
+                    biv' = bsv env accAsAcc bparam
+
+                    AudioParameter biv = biv'
+                  in
+                    modify_
+                      ( \i ->
+                          i
+                            { internalGraph = M.insert ptr (AHighpass aiv' biv') i.internalGraph
+                            , instructions =
+                              i.instructions
+                                <> [ SetFrequency ptr aiv.param aiv.timeOffset aiv.transition
+                                , SetQ ptr biv.param biv.timeOffset biv.transition ]
                             }
                       )
                 -- bad, means there is an inconsistent state
