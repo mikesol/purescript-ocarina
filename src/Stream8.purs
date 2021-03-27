@@ -1,6 +1,7 @@
 module Stream8 where
 
 import Prelude
+
 import Control.Alt (class Alt)
 import Control.Alternative (class Alternative)
 import Control.Applicative.Indexed (class IxApplicative)
@@ -24,6 +25,7 @@ import Data.Tuple (Tuple(..), fst, snd)
 import Data.Typelevel.Bool (False, True)
 import Data.Typelevel.Num (D0, d0)
 import Effect.Class (class MonadEffect)
+import Prim.TypeError (class Warn, Quote)
 import Safe.Coerce (coerce)
 import Type.Proxy (Proxy(..))
 import Unsafe.Coerce (unsafeCoerce)
@@ -215,7 +217,7 @@ class AllPtrsInNodeList (needles :: PtrList) (haystack :: NodeList)
 instance allPtrsInNodeList :: AllPtrsInNodeList PtrListNil haystack
 
 instance allPtrsInNodeListCons ::
-  ( LookupNL accumulator head haystack (NodeListCons x NodeListNil)
+  ( LookupNL NodeListNil head haystack (NodeListCons x NodeListNil)
   , AllPtrsInNodeList tail haystack
   ) =>
   AllPtrsInNodeList (PtrListCons head tail) haystack
@@ -245,25 +247,25 @@ instance allEdgesPointToNodes :: (GraphToNodeList graph nodeList, AllEdgesInNode
 
 ----------------------- NoParallelEdges
 ------- NoParallelEdges
-class AudioUnitNotInAudioUnitList (audioUnit :: AudioUnit) (audioUnitList :: AudioUnitList)
+class PtrNotInPtrList (ptr :: Ptr) (ptrList :: PtrList)
 
-instance audioUnitNotInAudioUnitListNil :: AudioUnitNotInAudioUnitList audioUnit AudioUnitNil
+instance ptrNotInPtrListNil :: PtrNotInPtrList ptr PtrListNil
 
-instance audioUnitNotInAudioUnitListCons ::
-  ( AudioUnitEq audioUnit head False
-  , AudioUnitNotInAudioUnitList audioUnit tail
+instance ptrNotInPtrListCons ::
+  ( PtrEq ptr head False
+  , PtrNotInPtrList ptr tail
   ) =>
-  AudioUnitNotInAudioUnitList audioUnit (AudioUnitCons head tail)
+  PtrNotInPtrList ptr (PtrListCons head tail)
 
-class NoAudioUnitsAreDuplicatedInAudioUnitList (nodeList :: AudioUnitList)
+class NoPtrsAreDuplicatedInPtrList (ptrList :: PtrList)
 
-instance noAudioUnitsAreDuplicatedInAudioUnitListNil :: NoAudioUnitsAreDuplicatedInAudioUnitList AudioUnitNil
+instance noPtrsAreDuplicatedInPtrListNil :: NoPtrsAreDuplicatedInPtrList PtrListNil
 
-instance noAudioUnitsAreDuplicatedInAudioUnitListCons ::
-  ( AudioUnitNotInAudioUnitList head tail
-  , NoAudioUnitsAreDuplicatedInAudioUnitList tail
+instance noPtrsAreDuplicatedInPtrListCons ::
+  ( PtrNotInPtrList head tail
+  , NoPtrsAreDuplicatedInPtrList tail
   ) =>
-  NoAudioUnitsAreDuplicatedInAudioUnitList (AudioUnitCons head tail)
+  NoPtrsAreDuplicatedInPtrList (PtrListCons head tail)
 
 class NoParallelEdgesNL (nodeList :: NodeList)
 
@@ -273,7 +275,11 @@ instance noParallelEdgesNLConsNoEdge :: (NoParallelEdgesNL tail) => NoParallelEd
 
 instance noParallelEdgesNLConsSingleEdge :: (NoParallelEdgesNL tail) => NoParallelEdgesNL (NodeListCons (NodeC n (SingleEdge e)) tail)
 
-instance noParallelEdgesNLConsManyEdges :: (NoParallelEdgesNL tail) => NoParallelEdgesNL (NodeListCons (NodeC n (ManyEdges e l)) tail)
+instance noParallelEdgesNLConsManyEdges ::
+  ( NoPtrsAreDuplicatedInPtrList (PtrListCons e l)
+  , NoParallelEdgesNL tail
+  ) =>
+  NoParallelEdgesNL (NodeListCons (NodeC n (ManyEdges e l)) tail)
 
 class NoParallelEdges (graph :: Graph)
 
