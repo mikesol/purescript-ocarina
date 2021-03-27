@@ -691,13 +691,14 @@ instance asEdgeProfileAR :: AsEdgeProfile (AudioUnitRef ptr universe) (SingleEdg
 instance asEdgeProfileTupl :: EdgeListable x y => AsEdgeProfile (Tuple (AudioUnitRef ptr universe) x) (ManyEdges ptr y) where
   getPointers (Tuple (AudioUnitRef i) el) = let PtrArr o = getPointers' el in PtrArr ([ i ] <> o)
 
-class Create (a :: Type) (i :: Universe) (o :: Universe) (x :: Type) | a i -> o x where
-  create :: forall env. a -> Scene env i o x
+class Create (a :: Type) (env :: Type) (i :: Universe) (o :: Universe) (x :: Type) | a env i -> o x where
+  create :: a -> Scene env i o x
 
 instance createSinOsc ::
   InitialVal a =>
   Create
     (SinOsc a)
+    env
     -- universe starts at ptr
     (UniverseC ptr (GraphC head tail) destroyed acc)
     -- universe continues at ptr + 1
@@ -742,6 +743,7 @@ instance createHighpass ::
   , InitialVal b
   , Create
       c
+      env
       -- we increase the pointer by 1 in this universe
       -- as the highpass consumed ptr already
       (UniverseC (PtrSucc ptr) graphi destroyedi acci)
@@ -753,6 +755,7 @@ instance createHighpass ::
   Create
     -- highpass
     (Highpass a b (ARef ptr -> c))
+    env
     -- universe starts at ptr
     (UniverseC ptr graphi destroyedi acci)
     ( UniverseC
@@ -801,7 +804,6 @@ instance createHighpass ::
           let
             (Scene mc) =
               ( create ::
-                  forall env.
                   c ->
                   Scene env (UniverseC (PtrSucc ptr) graphi destroyedi acci)
                     (UniverseC outptr grapho destroyedo acco)
@@ -826,6 +828,7 @@ instance createGain ::
   ( InitialVal a
   , Create
       b
+      env
       -- we increase the pointer by 1 in this universe
       -- as the gain consumed ptr already
       (UniverseC (PtrSucc ptr) graphi destroyedi acci)
@@ -837,6 +840,7 @@ instance createGain ::
   Create
     -- gain
     (Gain a (ARef ptr -> b))
+    env
     -- universe starts at ptr
     (UniverseC ptr graphi destroyedi acci)
     ( UniverseC
@@ -880,7 +884,6 @@ instance createGain ::
           let
             (Scene mb) =
               ( create ::
-                  forall env.
                   b ->
                   Scene env (UniverseC (PtrSucc ptr) graphi destroyedi acci)
                     (UniverseC outptr grapho destroyedo acco)
@@ -905,6 +908,7 @@ instance createSpeaker ::
   ( InitialVal a
   , Create
       a
+      env
       -- we increase the pointer by 1 in this universe
       -- as the gain consumed ptr already
       (UniverseC (PtrSucc ptr) graphi destroyedi acci)
@@ -916,6 +920,7 @@ instance createSpeaker ::
   Create
     -- gain
     (Speaker a)
+    env
     -- universe starts at ptr
     (UniverseC ptr graphi destroyedi acci)
     ( UniverseC
@@ -953,7 +958,6 @@ instance createSpeaker ::
           let
             (Scene ma) =
               ( create ::
-                  forall env.
                   a ->
                   Scene env (UniverseC (PtrSucc ptr) graphi destroyedi acci)
                     (UniverseC outptr grapho destroyedo acco)
