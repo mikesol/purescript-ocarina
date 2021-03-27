@@ -13,7 +13,7 @@ import Control.Monad.Error.Class (class MonadError, class MonadThrow)
 import Control.Monad.Indexed (class IxMonad)
 import Control.Monad.Reader (class MonadAsk, class MonadReader)
 import Control.Monad.Rec.Class (class MonadRec)
-import Control.Monad.State (class MonadTrans, State, StateT, gets, modify_)
+import Control.Monad.State (class MonadTrans, State, StateT, get, gets, modify_)
 import Control.Monad.Writer (class MonadTell, class MonadWriter)
 import Control.MonadPlus (class MonadPlus, class MonadZero)
 import Control.Plus (class Plus)
@@ -104,6 +104,10 @@ foreign import data UniverseC :: Ptr -> Graph -> NodeList -> Type -> Universe
 
 ---------------------------
 ------------ util
+
+class GetAccumulator (u :: Universe) (acc :: Type) | u -> acc
+
+instance getAccumulator :: GetAccumulator (UniverseC ptr graph destroyable acc) acc
 
 class PToInt (ptr :: Ptr) where
   pToInt :: Proxy ptr -> Int
@@ -567,6 +571,9 @@ data Instruction
 type AudioState env a
   = State
       { env :: env
+      -- because the acc is buried deep in universe and not part of the signature
+      -- we let it be void for the time being
+      , acc :: Void
       , currentIdx :: Int
       , instructions :: Array Instruction
       , internalGraph :: Map Int AnAudioUnit
@@ -608,37 +615,40 @@ type AudioParameter'
 newtype AudioParameter
   = AudioParameter AudioParameter'
 
-class InitialVal a where
-  initialVal :: a -> AudioParameter
+class InitialVal env acc a where
+  initialVal :: env -> acc -> a -> AudioParameter
 
-instance initialValNumber :: InitialVal Number where
-  initialVal a = AudioParameter $ defaultParam { param = a }
+instance initialValNumber :: InitialVal env acc Number where
+  initialVal _ _ a = AudioParameter $ defaultParam { param = a }
 
-instance initialValAudioParameter :: InitialVal AudioParameter where
-  initialVal = identity
+instance initialValAudioParameter :: InitialVal env acc AudioParameter where
+  initialVal _ _ = identity
 
-instance initialValTuple :: InitialVal a => InitialVal (Tuple a b) where
-  initialVal = initialVal <<< fst
+instance initialValFunction :: InitialVal env acc (env -> acc -> AudioParameter) where
+  initialVal env acc f = f env acc
 
-class SetterVal a where
-  setterVal :: a -> (AudioParameter -> AudioParameter)
+instance initialValTuple :: InitialVal env acc a => InitialVal env acc (Tuple a b) where
+  initialVal env acc a = initialVal env acc $ fst a
 
-instance setterValNumber :: SetterVal Number where
+class SetterVal env acc a where
+  setterVal :: a -> (env -> acc -> AudioParameter -> AudioParameter)
+
+instance setterValNumber :: SetterVal env acc Number where
   setterVal = const <<< initialVal
 
-instance setterValAudioParameter :: SetterVal AudioParameter where
+instance setterValAudioParameter :: SetterVal env acc AudioParameter where
   setterVal = const <<< initialVal
 
-instance setterValTuple :: SetterVal (Tuple a (AudioParameter -> AudioParameter)) where
+instance setterValTuple :: SetterVal env acc (Tuple a (env -> acc -> AudioParameter -> AudioParameter)) where
   setterVal = snd
 
-class SetterVal a <= SetterAsChanged a (b :: TAudioParameter) | a -> b
+class SetterVal env acc a <= SetterAsChanged env acc a (b :: TAudioParameter) | a -> b
 
-instance setterAsChangedNumber :: SetterAsChanged Number Static
+instance setterAsChangedNumber :: SetterAsChanged env acc Number Static
 
-instance setterAsChangedAudioParameter :: SetterAsChanged AudioParameter Static
+instance setterAsChangedAudioParameter :: SetterAsChanged env acc AudioParameter Static
 
-instance setterAsChangedTuple :: SetterAsChanged (Tuple a (AudioParameter -> AudioParameter)) Changing
+instance setterAsChangedTuple :: SetterAsChanged env acc (Tuple a (env -> acc -> AudioParameter -> AudioParameter)) Changing
 
 data AudioUnitRef (ptr :: Ptr) (universe :: Universe)
   = AudioUnitRef Int
@@ -695,7 +705,7 @@ class Create (a :: Type) (env :: Type) (i :: Universe) (o :: Universe) (x :: Typ
   create :: a -> Scene env i o x
 
 instance createSinOsc ::
-  InitialVal a =>
+  InitialVal env acc a =>
   Create
     (SinOsc a)
     env
@@ -719,11 +729,11 @@ instance createSinOsc ::
   create (SinOsc a) =
     Scene
       $ do
-          idx <- gets _.currentIdx
+          {currentIdx: idx, env, acc} <- get 
           let
-            iv' = initialVal a
+            iv' = initialVal env (unsafeCoerce acc :: acc) a
 
-            AudioParameter iv = iv'
+            AudioParameter iv = iv' 
           modify_
             ( \i ->
                 i
@@ -739,8 +749,8 @@ instance createSinOsc ::
           pure $ AudioUnitRef idx
 
 instance createHighpass ::
-  ( InitialVal a
-  , InitialVal b
+  ( InitialVal env acc a
+  , InitialVal env acc b
   , Create
       c
       env
@@ -779,11 +789,11 @@ instance createHighpass ::
   create (Highpass a b c) =
     Scene
       $ do
-          idx <- gets _.currentIdx
+          {currentIdx: idx, env, acc } <- get
           let
-            aiv' = initialVal a
+            aiv' = initialVal env (unsafeCoerce acc :: acc) a
 
-            biv' = initialVal b
+            biv' = initialVal env (unsafeCoerce acc :: acc) b
 
             AudioParameter aiv = aiv'
 
@@ -825,7 +835,7 @@ instance createHighpass ::
           pure $ AudioUnitRef idx
 
 instance createGain ::
-  ( InitialVal a
+  ( InitialVal env acc a
   , Create
       b
       env
@@ -864,9 +874,9 @@ instance createGain ::
   create (Gain a b) =
     Scene
       $ do
-          idx <- gets _.currentIdx
+          {currentIdx: idx, env, acc } <- get
           let
-            aiv' = initialVal a
+            aiv' = initialVal env (unsafeCoerce acc :: acc) a
 
             AudioParameter aiv = aiv'
           modify_
@@ -905,8 +915,7 @@ instance createGain ::
           pure $ AudioUnitRef idx
 
 instance createSpeaker ::
-  ( InitialVal a
-  , Create
+  ( Create
       a
       env
       -- we increase the pointer by 1 in this universe
@@ -984,12 +993,12 @@ change' ::
   UniqueTerminus g t => 
   GetAudioUnit t u => 
   GetPointer u p => 
-  Change p a i o => 
+  Change p a env i o => 
   a -> Scene env i o Unit
 change' = change (Proxy :: _ p)
 
-class Change (p :: Ptr) (a :: Type) (i :: Universe) (o :: Universe) | p a i -> o where
-  change :: forall env. Proxy p -> a -> Scene env i o Unit
+class Change (p :: Ptr) (a :: Type) (env :: Type) (i :: Universe) (o :: Universe) | p a env i -> o where
+  change :: Proxy p -> a -> Scene env i o Unit
 --
 
 class ModifyRes (tag :: Type) (p :: Ptr) (i :: Node) (o :: Node) (mod :: NodeList) | tag p i -> i mod
@@ -1012,14 +1021,16 @@ class Modify (tag :: Type) (p :: Ptr) (i :: Universe) (o :: Universe) | tag p i 
 instance modify :: (GraphToNodeList ig il, Modify' tag p il ol mod, AssertSingleton mod x, GraphToNodeList og ol) => Modify tag p (UniverseC i ig d acc) (UniverseC i og d acc)
 
 instance changeSinOsc ::
-  (SetterAsChanged a delta, PToInt p, Modify (SinOsc a) p inuniv outuniv) =>
-  Change p (SinOsc a) inuniv outuniv
+  (GetAccumulator inuniv acc, SetterAsChanged env acc a delta, PToInt p, Modify (SinOsc a) p inuniv outuniv) =>
+  Change p (SinOsc a) env inuniv outuniv
   where
   change _ (SinOsc a) =
     Scene
       $ do
+          { env, acc } <- get
           let
-            sv = setterVal a
+            accAsAcc = unsafeCoerce acc :: acc
+            sv = (setterVal :: a -> (env -> acc -> AudioParameter -> AudioParameter)) a
             ptr = pToInt (Proxy :: _ p)
           sosc <- M.lookup ptr  <$> gets _.internalGraph
           case sosc of
@@ -1027,7 +1038,7 @@ instance changeSinOsc ::
               case v of
                 ASinOsc param ->
                   let
-                    iv' = sv param
+                    iv' = sv env accAsAcc param
                     AudioParameter iv = iv'
                   in
                     modify_
