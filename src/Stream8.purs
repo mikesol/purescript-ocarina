@@ -25,7 +25,7 @@ import Data.Tuple (Tuple(..), fst, snd)
 import Data.Typelevel.Bool (False, True)
 import Data.Typelevel.Num (D0, d0)
 import Effect.Class (class MonadEffect)
-import Prim.TypeError (class Warn, Quote)
+import Prim.TypeError (class Warn, Quote, Text)
 import Safe.Coerce (coerce)
 import Type.Proxy (Proxy(..))
 import Unsafe.Coerce (unsafeCoerce)
@@ -410,7 +410,8 @@ class TerminusLoop (graph :: NodeList) (visited :: NodeList) (visiting :: NodeLi
 instance terminusLoopNil :: TerminusLoop graph visited NodeListNil accumulator accumulator
 
 instance terminusLoopCons ::
-  ( ToVisit NodeListNil NodeListNil graph (NodeListCons a b) candidates parentless
+  ( Warn (Text "Starting loop")
+  , ToVisit NodeListNil NodeListNil graph (NodeListCons a b) candidates parentless
   , UnvisitedNodes visited NodeListNil candidates unvisited
   , NodeListAppend unvisited visited newVisited
   , NodeListAppend accumulator parentless newAccumulator
