@@ -25,10 +25,12 @@ import Data.Tuple (Tuple(..), fst, snd)
 import Data.Typelevel.Bool (False, True)
 import Data.Typelevel.Num (D0, d0)
 import Effect.Class (class MonadEffect)
-import Prim.TypeError (class Warn, Quote, Text)
+import Prim.TypeError (class Warn, Above, Beside, Quote, Text)
 import Safe.Coerce (coerce)
 import Type.Proxy (Proxy(..))
 import Unsafe.Coerce (unsafeCoerce)
+
+infixr 5 type Above as ^^
 
 data Ptr
 
@@ -195,8 +197,8 @@ instance ptrInPtrListTrue :: PtrInPtrList True a b True
 instance ptrInPtrListFalseNil :: PtrInPtrList False a PtrListNil False
 
 instance ptrInPtrListFalseCons ::
-  ( PtrEq au head foundNode
-  , PtrInPtrList foundNode au tail o
+  ( PtrEq ptr head foundNode
+  , PtrInPtrList foundNode ptr tail o
   ) =>
   PtrInPtrList False ptr (PtrListCons head tail) o
 
@@ -363,19 +365,19 @@ instance unvisitedNodesCons ::
   ) =>
   UnvisitedNodes visited accumulator (NodeListCons head tail) o
 
-class ToVisitSingle (accumulator :: NodeList) (graph :: NodeList) (unvisited :: Node) (candidates :: NodeList) | accumulator graph unvisited -> candidates
+class ToVisitSingle (accumulator :: NodeList) (graph :: NodeList) (findMeInAnEdge :: Node) (candidates :: NodeList) | accumulator graph findMeInAnEdge -> candidates
 
-instance toVisitSingleNil :: ToVisitSingle accumulator NodeListNil unvisited accumulator
+instance toVisitSingleNil :: ToVisitSingle accumulator NodeListNil findMeInAnEdge accumulator
 
 instance toVisitSingleCons ::
   ( GetEdgesAsPtrList head edgeList
-  , GetAudioUnit unvisited au
+  , GetAudioUnit findMeInAnEdge au
   , GetPointer au ptr
   , PtrInPtrList False ptr edgeList tf
   , Gate tf (NodeListCons head accumulator) accumulator acc
-  , ToVisitSingle acc tail unvisited o
+  , ToVisitSingle acc tail findMeInAnEdge o
   ) =>
-  ToVisitSingle accumulator (NodeListCons head tail) unvisited o
+  ToVisitSingle accumulator (NodeListCons head tail) findMeInAnEdge o
 
 class NodeListAppend (l :: NodeList) (r :: NodeList) (o :: NodeList) | l r -> o
 
@@ -393,25 +395,24 @@ instance isNodeListEmptyNil :: IsNodeListEmpty NodeListNil True
 
 instance isNodeListEmptyCons :: IsNodeListEmpty (NodeListCons a b) False
 
-class ToVisit (candidatesAccumulator :: NodeList) (parentlessAccumulator :: NodeList) (graph :: NodeList) (unvisited :: NodeList) (candidates :: NodeList) (parentless :: NodeList) | candidatesAccumulator parentlessAccumulator graph unvisited -> candidates parentless
+class ToVisit (candidatesAccumulator :: NodeList) (parentlessAccumulator :: NodeList) (graph :: NodeList) (findMeInAnEdge :: NodeList) (candidates :: NodeList) (parentless :: NodeList) | candidatesAccumulator parentlessAccumulator graph findMeInAnEdge -> candidates parentless
 
 instance toVisitNil :: ToVisit candidatesAccumulator parentlessAccumulator graph NodeListNil candidatesAccumulator parentlessAccumulator
 
 instance toVisitCons ::
-  ( ToVisitSingle NodeListNil graph head o
+  ( ToVisitSingle NodeListNil graph findMeInAnEdge o
   , IsNodeListEmpty o tf
-  , Gate tf (NodeListCons head parentlessAccumulator) parentlessAccumulator pA
+  , Gate tf (NodeListCons findMeInAnEdge parentlessAccumulator) parentlessAccumulator pA
   , NodeListAppend candidatesAccumulator o cA
   ) =>
-  ToVisit candidatesAccumulator parentlessAccumulator graph (NodeListCons head tail) cA pA
+  ToVisit candidatesAccumulator parentlessAccumulator graph (NodeListCons findMeInAnEdge tail) cA pA
 
 class TerminusLoop (graph :: NodeList) (visited :: NodeList) (visiting :: NodeList) (accumulator :: NodeList) (output :: NodeList) | graph visited visiting accumulator -> output
 
 instance terminusLoopNil :: TerminusLoop graph visited NodeListNil accumulator accumulator
 
 instance terminusLoopCons ::
-  ( Warn (Text "Starting loop")
-  , ToVisit NodeListNil NodeListNil graph (NodeListCons a b) candidates parentless
+  ( ToVisit NodeListNil NodeListNil graph (NodeListCons a b) candidates parentless
   , UnvisitedNodes visited NodeListNil candidates unvisited
   , NodeListAppend unvisited visited newVisited
   , NodeListAppend accumulator parentless newAccumulator

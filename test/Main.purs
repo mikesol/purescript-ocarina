@@ -2,12 +2,10 @@ module Test.Main where
 
 import Prelude
 
-import Data.Tuple (Tuple(..))
 import Data.Typelevel.Bool (True, False)
 import Effect (Effect)
 import Effect.Class.Console (log)
 import Stream8 (class AllEdgesPointToNodes, class AudioUnitEq, class Gate, class Lookup, class NoNodesAreDuplicated, class NoParallelEdges, class PtrEq, class UniqueTerminus, Changing, GraphC, ManyEdges, NoEdge, NodeC, NodeListCons, NodeListNil, PtrListCons, PtrListNil, PtrSucc, PtrZ, SingleEdge, Static, TGain, THighpass, TSinOsc)
-import Type.Equality (class TypeEquals)
 import Type.Proxy (Proxy(..))
 
 ---------------------------
@@ -128,11 +126,11 @@ testNoParallelEdges2 =
     Proxy node
 
 -- UniqueTerminus
-testUniqueTerminus :: Proxy (NodeC (THighpass (PtrSucc (PtrSucc PtrZ)) Static Static) (SingleEdge (PtrSucc (PtrSucc PtrZ))))
+testUniqueTerminus :: Proxy (NodeC (THighpass (PtrSucc (PtrSucc PtrZ)) Static Static) (SingleEdge (PtrSucc PtrZ)))
 testUniqueTerminus =
   Proxy ::
     forall node.
-    UniqueTerminus (GraphC (NodeC (TSinOsc (PtrSucc PtrZ) Changing) NoEdge) (NodeListCons (NodeC (THighpass (PtrSucc (PtrSucc PtrZ)) Static Static) (SingleEdge (PtrSucc (PtrSucc PtrZ)))) NodeListNil)) node =>
+    UniqueTerminus (GraphC (NodeC (TSinOsc (PtrSucc PtrZ) Changing) NoEdge) (NodeListCons (NodeC (THighpass (PtrSucc (PtrSucc PtrZ)) Static Static) (SingleEdge (PtrSucc PtrZ))) NodeListNil)) node =>
     Proxy node
 
 main :: Effect Unit
