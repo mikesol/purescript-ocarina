@@ -102,7 +102,10 @@ foreign import data UniverseC :: Ptr -> Graph -> NodeList -> Type -> Universe
 
 ---------------------------
 ------------ util
---class Gate :: forall k1. Type -> k1 -> k1 -> k1 -> Constraint
+class GetGraph (u :: Universe) (g :: Graph) | u -> g
+
+instance getGraphUniverseC :: GetGraph (UniverseC ptr graph destroyed acc) graph
+
 class GetPointer (audioUnit :: AudioUnit) (ptr :: Ptr) | audioUnit -> ptr
 
 instance getPointerSinOsc :: GetPointer (TSinOsc ptr a) ptr
@@ -547,29 +550,35 @@ data Instruction
   | SetRefDistance Int Number
   | SetRolloffFactor Int Number
 
-type AudioState a
-  = State { currentIdx :: Int, instructions :: Array Instruction, internalGraph :: Map Int AnAudioUnit } a
+type AudioState env a
+  = State
+      { env :: env
+      , currentIdx :: Int
+      , instructions :: Array Instruction
+      , internalGraph :: Map Int AnAudioUnit
+      }
+      a
 
-newtype Scene (ig :: Universe) (og :: Universe) (a :: Type)
-  = Scene (AudioState a)
+newtype Scene (env :: Type) (ig :: Universe) (og :: Universe) (a :: Type)
+  = Scene (AudioState env a)
 
 -- do not export!
-unScene :: forall i o a. Scene i o a -> AudioState a
+unScene :: forall env i o a. Scene env i o a -> AudioState env a
 unScene (Scene state) = state
 
-instance sceneIxFunctor :: IxFunctor Scene where
+instance sceneIxFunctor :: IxFunctor (Scene env) where
   imap f (Scene a) = Scene (f <$> a)
 
-instance sceneIxApplicative :: IxApply Scene where
+instance sceneIxApplicative :: IxApply (Scene env) where
   iapply (Scene f) (Scene a) = Scene (f <*> a)
 
-instance sceneIxApply :: IxApplicative Scene where
+instance sceneIxApply :: IxApplicative (Scene env) where
   ipure a = Scene $ pure a
 
-instance sceneIxBind :: IxBind Scene where
+instance sceneIxBind :: IxBind (Scene env) where
   ibind (Scene monad) function = Scene (monad >>= (unScene <<< function))
 
-instance sceneIxMonad :: IxMonad Scene
+instance sceneIxMonad :: IxMonad (Scene env)
 
 -- create (hpf and gain can start empty)
 defaultParam :: AudioParameter'
@@ -594,8 +603,28 @@ instance initialValNumber :: InitialVal Number where
 instance initialValAudioParameter :: InitialVal AudioParameter where
   initialVal = identity
 
-instance initialValTupleNumber :: InitialVal a => InitialVal (Tuple a b) where
+instance initialValTuple :: InitialVal a => InitialVal (Tuple a b) where
   initialVal = initialVal <<< fst
+
+class SetterVal a where
+  setterVal :: a -> (AudioParameter -> AudioParameter)
+
+instance setterValNumber :: SetterVal Number where
+  setterVal = const <<< initialVal
+
+instance setterValAudioParameter :: SetterVal AudioParameter where
+  setterVal = const <<< initialVal
+
+instance setterValTuple :: SetterVal (Tuple a (AudioParameter -> AudioParameter)) where
+  setterVal = snd
+
+class SetterVal a <= SetterAsChanged a (b :: TAudioParameter) | a -> b
+
+instance setterAsChangedNumber :: SetterAsChanged Number Static
+
+instance setterAsChangedAudioParameter :: SetterAsChanged AudioParameter Static
+
+instance setterAsChangedTuple :: SetterAsChanged (Tuple a (AudioParameter -> AudioParameter)) Changing
 
 data AudioUnitRef (ptr :: Ptr) (universe :: Universe)
   = AudioUnitRef Int
@@ -649,7 +678,7 @@ instance asEdgeProfileTupl :: EdgeListable x y => AsEdgeProfile (Tuple (AudioUni
   getPointers (Tuple (AudioUnitRef i) el) = let PtrArr o = getPointers' el in PtrArr ([ i ] <> o)
 
 class Create (a :: Type) (i :: Universe) (o :: Universe) (x :: Type) | a i -> o x where
-  create :: a -> Scene i o x
+  create :: forall env. a -> Scene env i o x
 
 instance createSinOsc ::
   InitialVal a =>
@@ -758,8 +787,9 @@ instance createHighpass ::
           let
             (Scene mc) =
               ( create ::
+                  forall env.
                   c ->
-                  Scene (UniverseC (PtrSucc ptr) graphi destroyedi acci)
+                  Scene env (UniverseC (PtrSucc ptr) graphi destroyedi acci)
                     (UniverseC outptr grapho destroyedo acco)
                     term
               )
@@ -768,9 +798,12 @@ instance createHighpass ::
           modify_
             ( \i ->
                 i
-                  { instructions = let PtrArr o = getPointers oc in
-                    i.instructions
-                      <> map (flip ConnectXToY idx) o
+                  { instructions =
+                    let
+                      PtrArr o = getPointers oc
+                    in
+                      i.instructions
+                        <> map (flip ConnectXToY idx) o
                   }
             )
           pure $ AudioUnitRef idx
@@ -833,8 +866,9 @@ instance createGain ::
           let
             (Scene mb) =
               ( create ::
+                  forall env.
                   b ->
-                  Scene (UniverseC (PtrSucc ptr) graphi destroyedi acci)
+                  Scene env (UniverseC (PtrSucc ptr) graphi destroyedi acci)
                     (UniverseC outptr grapho destroyedo acco)
                     term
               )
@@ -843,9 +877,12 @@ instance createGain ::
           modify_
             ( \i ->
                 i
-                  { instructions = let PtrArr o = getPointers ob in
-                    i.instructions
-                      <> map (flip ConnectXToY idx) o
+                  { instructions =
+                    let
+                      PtrArr o = getPointers ob
+                    in
+                      i.instructions
+                        <> map (flip ConnectXToY idx) o
                   }
             )
           pure $ AudioUnitRef idx
@@ -901,8 +938,10 @@ instance createSpeaker ::
             )
           let
             (Scene ma) =
-              ( create :: a ->
-                  Scene (UniverseC (PtrSucc ptr) graphi destroyedi acci)
+              ( create ::
+                  forall env.
+                  a ->
+                  Scene env (UniverseC (PtrSucc ptr) graphi destroyedi acci)
                     (UniverseC outptr grapho destroyedo acco)
                     term
               )
@@ -911,12 +950,28 @@ instance createSpeaker ::
           modify_
             ( \i ->
                 i
-                  { instructions = let PtrArr o = getPointers oa in
-                    i.instructions
-                      <> map (flip ConnectXToY idx) o
+                  { instructions =
+                    let
+                      PtrArr o = getPointers oa
+                    in
+                      i.instructions
+                        <> map (flip ConnectXToY idx) o
                   }
             )
           pure $ AudioUnitRef idx
+
+change' ::
+  forall a g t u p i o x env.
+  GetGraph i g =>
+  UniqueTerminus g t => 
+  GetAudioUnit t u => 
+  GetPointer u p => 
+  Change a p i o x => 
+  a -> Scene env i o x
+change' = change (Proxy :: _ p)
+
+class Change (a :: Type) (p :: Ptr) (i :: Universe) (o :: Universe) (x :: Type) | a p i -> o x where
+  change :: forall env. Proxy p -> a -> Scene env i o x
 
 {-
 derive newtype instance functorScene :: Functor m => Functor (SceneT ig og m)

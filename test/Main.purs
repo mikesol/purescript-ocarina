@@ -4,7 +4,7 @@ import Prelude
 import Data.Typelevel.Bool (True, False)
 import Effect (Effect)
 import Effect.Class.Console (log)
-import Stream8 (class AllEdgesPointToNodes, class AudioUnitEq, class Gate, class HasBottomLevelNodes, class NoNodesAreDuplicated, class NoParallelEdges, class PtrEq, class UniqueTerminus, type (+:), type (/->), type (/:), Changing, GraphC, ManyEdges, NoEdge, NodeC, NodeListCons, NodeListNil, PtrListCons, PtrListNil, PtrSucc, PtrZ, SingleEdge, Static, TGain, THighpass, TSinOsc)
+import Stream8 (class AllEdgesPointToNodes, class AudioUnitEq, class Gate, class HasBottomLevelNodes, class NoNodesAreDuplicated, class NoParallelEdges, class PtrEq, class UniqueTerminus, type (+:), type (/->), type (/:), AudioUnitRef(..), Changing, GraphC, ManyEdges, NoEdge, NodeC, NodeListCons, NodeListNil, PtrListCons, PtrListNil, PtrSucc, PtrZ, Scene(..), SinOsc(..), SingleEdge, Static, TGain, THighpass, TSinOsc, UniverseC, create)
 import Type.Proxy (Proxy(..))
 
 ---------------------------
@@ -96,7 +96,6 @@ testHasBottomLevelNodes =
     HasBottomLevelNodes node => Proxy node
 
 -- UniqueTerminus
-
 testUniqueTerminus :: Proxy (NodeC (THighpass (PtrSucc (PtrSucc PtrZ)) Static Static) (SingleEdge (PtrSucc PtrZ)))
 testUniqueTerminus =
   Proxy ::
@@ -111,7 +110,7 @@ testUniqueTerminus2 =
     UniqueTerminus
       ( GraphC
           (TGain PtrZ Static /-> ManyEdges PtrZ (PtrSucc PtrZ +: PtrSucc (PtrSucc PtrZ) +: PtrListNil))
-          ( ( (THighpass (PtrSucc PtrZ) Static Static) /-> (SingleEdge PtrZ))
+          ( ((THighpass (PtrSucc PtrZ) Static Static) /-> (SingleEdge PtrZ))
               /: ((TSinOsc (PtrSucc (PtrSucc PtrZ)) Static) /-> NoEdge)
               /: (TGain (PtrSucc (PtrSucc (PtrSucc PtrZ))) Static /-> ManyEdges PtrZ (PtrSucc (PtrSucc PtrZ) +: PtrListNil))
               /: NodeListNil
@@ -119,6 +118,23 @@ testUniqueTerminus2 =
       )
       node =>
     Proxy node
+
+createTest1 ::
+  forall env ptr destroyed head tail acc.
+  Scene env (UniverseC ptr (GraphC head tail) destroyed acc)
+    ( UniverseC (PtrSucc ptr)
+        (GraphC (NodeC (TSinOsc ptr Changing) NoEdge) (NodeListCons head tail))
+        destroyed
+        acc
+    )
+    ( AudioUnitRef ptr
+        ( UniverseC (PtrSucc ptr)
+            (GraphC (NodeC (TSinOsc ptr Changing) NoEdge) (NodeListCons head tail))
+            destroyed
+            acc
+        )
+    )
+createTest1 = create (SinOsc 440.0)
 
 main :: Effect Unit
 main = do
