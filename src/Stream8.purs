@@ -1,6 +1,7 @@
 module Stream8 where
 
 import Prelude
+import Prim.Row(class Cons)
 import Control.Alt (class Alt)
 import Control.Alternative (class Alternative)
 import Control.Applicative.Indexed (class IxApplicative)
@@ -27,6 +28,7 @@ import Effect.Class (class MonadEffect)
 import Prim.TypeError (class Warn, Above, Beside, Quote, Text)
 import Safe.Coerce (coerce)
 import Type.Proxy (Proxy(..))
+import Record as R
 import Unsafe.Coerce (unsafeCoerce)
 
 infixr 5 type Above as ^^
@@ -72,13 +74,13 @@ foreign import data NoEdge :: EdgeProfile
 
 data AudioUnit
 
-foreign import data TSinOsc :: Ptr -> TAudioParameter -> AudioUnit
+foreign import data TSinOsc :: Ptr -> Row TAudioParameter -> AudioUnit
 
-foreign import data THighpass :: Ptr -> TAudioParameter -> TAudioParameter -> AudioUnit
+foreign import data THighpass :: Ptr -> Row TAudioParameter -> AudioUnit
 
-foreign import data TGain :: Ptr -> TAudioParameter -> AudioUnit
+foreign import data TGain :: Ptr -> Row TAudioParameter -> AudioUnit
 
-foreign import data TSpeaker :: Ptr -> TAudioParameter -> AudioUnit
+foreign import data TSpeaker :: Ptr -> AudioUnit
 
 data Node
 
@@ -107,11 +109,11 @@ class GetPointer (audioUnit :: AudioUnit) (ptr :: Ptr) | audioUnit -> ptr
 
 instance getPointerSinOsc :: GetPointer (TSinOsc ptr a) ptr
 
-instance getPointerHighpass :: GetPointer (THighpass ptr a b) ptr
+instance getPointerHighpass :: GetPointer (THighpass ptr a) ptr
 
 instance getPointerGain :: GetPointer (TGain ptr a) ptr
 
-instance getPointerSpeaker :: GetPointer (TSpeaker ptr a) ptr
+instance getPointerSpeaker :: GetPointer (TSpeaker ptr) ptr
 
 getPointer :: forall i u. AudioUnitRef i u -> Int
 getPointer (AudioUnitRef i) = i
@@ -137,10 +139,10 @@ else instance ptrEqFalse :: PtrEq a b False
 
 class AudioUnitEq (a :: AudioUnit) (b :: AudioUnit) (tf :: Type) | a b -> tf
 
-instance audioUnitEqTSinOsc :: AudioUnitEq (TSinOsc idx freq) (TSinOsc idx freq) True
-else instance audioUnitEqTHighpass :: AudioUnitEq (THighpass idx freq q) (THighpass idx freq q) True
-else instance audioUnitEqTGain :: AudioUnitEq (TGain idx vol) (TGain idx vol) True
-else instance audioUnitEqTSpeaker :: AudioUnitEq (TSpeaker idx vol) (TSpeaker idx vol) True
+instance audioUnitEqTSinOsc :: AudioUnitEq (TSinOsc idx r) (TSinOsc idx r) True
+else instance audioUnitEqTHighpass :: AudioUnitEq (THighpass idx r) (THighpass idx r) True
+else instance audioUnitEqTGain :: AudioUnitEq (TGain idx r) (TGain idx r) True
+else instance audioUnitEqTSpeaker :: AudioUnitEq (TSpeaker idx) (TSpeaker idx) True
 else instance audioUnitEqFalse :: AudioUnitEq a b False
 
 class NodeListKeepSingleton (nodeListA :: NodeList) (nodeListB :: NodeList) (nodeListC :: NodeList) | nodeListA nodeListB -> nodeListC
@@ -455,13 +457,13 @@ instance allNodesAreFullyHydratedNil :: AllNodesAreFullyHydratedNL NodeListNil
 
 instance allNodesAreFullyHydratedConsTSinOsc :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (TSinOsc a b) NoEdge) tail)
 
-instance allNodesAreFullyHydratedConsTHighpass :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (THighpass a b c) (SingleEdge e)) tail)
+instance allNodesAreFullyHydratedConsTHighpass :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (THighpass a b) (SingleEdge e)) tail)
 
 instance allNodesAreFullyHydratedConsTGainME :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (TGain a b) (ManyEdges e l)) tail)
 
 instance allNodesAreFullyHydratedConsTGainSE :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (TGain a b) (SingleEdge e)) tail)
 
-instance allNodesAreFullyHydratedConsTSpeaker :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (TSpeaker a b) (ManyEdges e l)) tail)
+instance allNodesAreFullyHydratedConsTSpeaker :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (TSpeaker a) (ManyEdges e l)) tail)
 
 class AllNodesAreFullyHydrated (graph :: Graph)
 
@@ -469,7 +471,7 @@ instance allNodesAreFullyHydrated :: (GraphToNodeList graph nodeList, AllNodesAr
 
 class NodeIsOutputDevice (node :: Node)
 
-instance nodeIsOutputDeviceTSpeaker :: NodeIsOutputDevice (NodeC (TSpeaker a b) x)
+instance nodeIsOutputDeviceTSpeaker :: NodeIsOutputDevice (NodeC (TSpeaker a) x)
 
 -- for the end
 class GraphIsRenderable (graph :: Graph)
@@ -600,27 +602,29 @@ instance initialValTupleNumber :: InitialVal a => InitialVal (Tuple a b) where
 data AudioUnitRef (ptr :: Ptr) (universe :: Universe)
   = AudioUnitRef Int
 
+data AudioParamRef (ptr :: Ptr) (universe :: Universe)
+  = AudioParamRef Int AudioParameter
+
 data ARef (ptr :: Ptr)
   = ARef
 
 data SinOsc a
-  = SinOsc a
+  = SinOsc {|a}
 
 data AnAudioUnit
-  = ASinOsc AudioParameter
-  | AHighpass AudioParameter AudioParameter
+  = ASinOsc { freq :: AudioParameter }
+  | AHighpass { freq :: AudioParameter, q :: AudioParameter }
+  | AGain { vol :: AudioParameter }
+  | ASpeaker
 
-data Highpass a b c
-  = Highpass a b c
-
-data Highpass_ a b
-  = Highpass_ a b
+data Highpass a b
+  = Highpass {|a} b
 
 data Gain a b
-  = Gain a b
+  = Gain {|a} b
 
-data Speaker a b
-  = Speaker a b
+data Speaker a
+  = Speaker a
 
 class EdgeListable a (b :: PtrList) | a -> b where
   getPointers' :: a -> PtrArr b
@@ -647,22 +651,25 @@ class Create (a :: Type) (i :: Universe) (o :: Universe) (x :: Type) | a i -> o 
   create :: a -> Scene i o x
 
 instance createSinOsc ::
-  InitialVal a =>
+  ( InitialVal a
+  , Cons "freq" a rterm rowTerm
+  , Cons "freq" Changing rtype rowType
+  ) =>
   Create
-    (SinOsc a)
+    (SinOsc rowTerm)
     -- universe starts at ptr
     (UniverseC ptr (GraphC head tail) destroyed acc)
     -- universe continues at ptr + 1
     ( UniverseC (PtrSucc ptr)
         -- new node is at ptr
-        (GraphC (NodeC (TSinOsc ptr Changing) NoEdge) (NodeListCons head tail))
+        (GraphC (NodeC (TSinOsc ptr rowType) NoEdge) (NodeListCons head tail))
         destroyed
         acc
     )
     -- the sinosc is at this ptr
     ( AudioUnitRef ptr
         ( UniverseC (PtrSucc ptr)
-            (GraphC (NodeC (TSinOsc ptr Changing) NoEdge) (NodeListCons head tail))
+            (GraphC (NodeC (TSinOsc ptr rowType) NoEdge) (NodeListCons head tail))
             destroyed
             acc
         )
@@ -672,18 +679,18 @@ instance createSinOsc ::
       $ do
           idx <- gets _.currentIdx
           let
-            iv' = initialVal a
+            ivFreq' = initialVal (R.get (Proxy :: _ "freq") a)
 
-            AudioParameter iv = iv'
+            AudioParameter ivFreq = ivFreq'
           modify_
             ( \i ->
                 i
                   { currentIdx = idx + 1
-                  , internalGraph = M.insert idx (ASinOsc iv') i.internalGraph
+                  , internalGraph = M.insert idx (ASinOsc { freq: ivFreq' }) i.internalGraph
                   , instructions =
                     i.instructions
                       <> [ NewUnit idx "sinosc"
-                        , SetFrequency idx iv.param iv.timeOffset iv.transition
+                        , SetFrequency idx ivFreq.param ivFreq.timeOffset ivFreq.transition
                         ]
                   }
             )
@@ -692,6 +699,10 @@ instance createSinOsc ::
 instance createHighpass ::
   ( InitialVal a
   , InitialVal b
+  , Cons "freq" a rtermNoFreq rowTerm
+  , Cons "q" b rtermNoQ rowTerm
+  , Cons "freq" Changing rtypeNoFreq rowType
+  , Cons "q" Changing rtypeNoQ rowType
   , Create
       c
       -- we increase the pointer by 1 in this universe
@@ -704,14 +715,14 @@ instance createHighpass ::
   ) =>
   Create
     -- highpass
-    (Highpass a b (ARef ptr -> c))
+    (Highpass rowTerm (ARef ptr -> c))
     -- universe starts at ptr
     (UniverseC ptr graphi destroyedi acci)
     ( UniverseC
         -- we pass along the outptr of the inner computation
         outptr
         -- the highpass is at this ptr
-        (GraphC (NodeC (THighpass ptr Changing Changing) (SingleEdge op)) nodeList)
+        (GraphC (NodeC (THighpass ptr rowType) (SingleEdge op)) nodeList)
         destroyedo
         acco
     )
@@ -720,33 +731,33 @@ instance createHighpass ::
             -- we pass along the outptr of the inner computation
             outptr
             -- the highpass is at this ptr
-            (GraphC (NodeC (THighpass ptr Changing Changing) (SingleEdge op)) nodeList)
+            (GraphC (NodeC (THighpass ptr rowType) (SingleEdge op)) nodeList)
             destroyedo
             acco
         )
     ) where
-  create (Highpass a b c) =
+  create (Highpass {freq, q} c) =
     Scene
       $ do
           idx <- gets _.currentIdx
           let
-            aiv' = initialVal a
+            freqiv' = initialVal freq
 
-            biv' = initialVal b
+            qiv' = initialVal q
 
-            AudioParameter aiv = aiv'
+            AudioParameter freqiv = freqiv'
 
-            AudioParameter biv = biv'
+            AudioParameter qiv = qiv'
           modify_
             ( \i ->
                 i
                   { currentIdx = idx + 1
-                  , internalGraph = M.insert idx (AHighpass aiv' biv') i.internalGraph
+                  , internalGraph = M.insert idx (AHighpass {freq: freqiv', q: qiv'}) i.internalGraph
                   , instructions =
                     i.instructions
                       <> [ NewUnit idx "highpass"
-                        , SetFrequency idx aiv.param aiv.timeOffset aiv.transition
-                        , SetQ idx biv.param biv.timeOffset biv.transition
+                        , SetFrequency idx freqiv.param freqiv.timeOffset freqiv.transition
+                        , SetQ idx qiv.param qiv.timeOffset qiv.transition
                         ]
                   }
             )
@@ -763,9 +774,164 @@ instance createHighpass ::
           modify_
             ( \i ->
                 i
-                  { instructions = let PtrArr o = getPointers oc in
+                  { instructions =
+                    let
+                      PtrArr o = getPointers oc
+                    in
+                      i.instructions
+                        <> map (flip ConnectXToY idx) o
+                  }
+            )
+          pure $ AudioUnitRef idx
+
+instance createGain ::
+  ( InitialVal a
+  , Cons "vol" a rtermNoFreq rowTerm
+  , Cons "vol" Changing rtypeNoFreq rowType
+  , Create
+      b
+      -- we increase the pointer by 1 in this universe
+      -- as the gain consumed ptr already
+      (UniverseC (PtrSucc ptr) graphi destroyedi acci)
+      (UniverseC outptr grapho destroyedo acco)
+      term
+  , AsEdgeProfile term eprof
+  , GraphToNodeList grapho nodeList
+  ) =>
+  Create
+    -- gain
+    (Gain rowTerm (ARef ptr -> b))
+    -- universe starts at ptr
+    (UniverseC ptr graphi destroyedi acci)
+    ( UniverseC
+        -- we pass along the outptr of the inner computation
+        outptr
+        -- the gain is at this ptr
+        (GraphC (NodeC (TGain ptr rowType) eprof) nodeList)
+        destroyedo
+        acco
+    )
+    ( AudioUnitRef ptr
+        ( UniverseC
+            -- we pass along the outptr of the inner computation
+            outptr
+            -- the gain is at this ptr
+            (GraphC (NodeC (TGain ptr rowType) eprof) nodeList)
+            destroyedo
+            acco
+        )
+    ) where
+  create (Gain {vol} b) =
+    Scene
+      $ do
+          idx <- gets _.currentIdx
+          let
+            aiv' = initialVal vol
+
+            AudioParameter aiv = aiv'
+          modify_
+            ( \i ->
+                i
+                  { currentIdx = idx + 1
+                  , internalGraph = M.insert idx (AGain {vol: aiv'}) i.internalGraph
+                  , instructions =
                     i.instructions
-                      <> map (flip ConnectXToY idx) o
+                      <> [ NewUnit idx "gain"
+                        , SetGain idx aiv.param aiv.timeOffset aiv.transition
+                        ]
+                  }
+            )
+          let
+            (Scene mb) =
+              ( create ::
+                  b ->
+                  Scene (UniverseC (PtrSucc ptr) graphi destroyedi acci)
+                    (UniverseC outptr grapho destroyedo acco)
+                    term
+              )
+                (b ARef)
+          ob <- mb
+          modify_
+            ( \i ->
+                i
+                  { instructions =
+                    let
+                      PtrArr o = getPointers ob
+                    in
+                      i.instructions
+                        <> map (flip ConnectXToY idx) o
+                  }
+            )
+          pure $ AudioUnitRef idx
+
+instance createSpeaker ::
+  ( InitialVal a
+  , Create
+      a
+      -- we increase the pointer by 1 in this universe
+      -- as the gain consumed ptr already
+      (UniverseC (PtrSucc ptr) graphi destroyedi acci)
+      (UniverseC outptr grapho destroyedo acco)
+      term
+  , AsEdgeProfile term eprof
+  , GraphToNodeList grapho nodeList
+  ) =>
+  Create
+    -- gain
+    (Speaker a)
+    -- universe starts at ptr
+    (UniverseC ptr graphi destroyedi acci)
+    ( UniverseC
+        -- we pass along the outptr of the inner computation
+        outptr
+        -- the gain is at this ptr
+        (GraphC (NodeC (TSpeaker ptr) eprof) nodeList)
+        destroyedo
+        acco
+    )
+    ( AudioUnitRef ptr
+        ( UniverseC
+            -- we pass along the outptr of the inner computation
+            outptr
+            -- the gain is at this ptr
+            (GraphC (NodeC (TSpeaker ptr) eprof) nodeList)
+            destroyedo
+            acco
+        )
+    ) where
+  create (Speaker a) =
+    Scene
+      $ do
+          idx <- gets _.currentIdx
+          modify_
+            ( \i ->
+                i
+                  { currentIdx = idx + 1
+                  , internalGraph = M.insert idx ASpeaker i.internalGraph
+                  , instructions =
+                    i.instructions
+                      <> [ NewUnit idx "speaker" ]
+                  }
+            )
+          let
+            (Scene ma) =
+              ( create ::
+                  a ->
+                  Scene (UniverseC (PtrSucc ptr) graphi destroyedi acci)
+                    (UniverseC outptr grapho destroyedo acco)
+                    term
+              )
+                a
+          oa <- ma
+          modify_
+            ( \i ->
+                i
+                  { instructions =
+                    let
+                      PtrArr o = getPointers oa
+                    in
+                      i.instructions
+                        <> map (flip ConnectXToY idx) o
                   }
             )
           pure $ AudioUnitRef idx
