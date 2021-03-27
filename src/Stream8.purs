@@ -1,7 +1,6 @@
 module Stream8 where
 
 import Prelude
-
 import Control.Alt (class Alt)
 import Control.Alternative (class Alternative)
 import Control.Applicative.Indexed (class IxApplicative)
@@ -31,10 +30,12 @@ import Type.Proxy (Proxy(..))
 import Unsafe.Coerce (unsafeCoerce)
 
 infixr 5 type Above as ^^
-infixr 5 type NodeListCons as /:
-infixr 5 type PtrListCons as +:
-infixr 5 type NodeC as /->
 
+infixr 5 type NodeListCons as /:
+
+infixr 5 type PtrListCons as +:
+
+infixr 5 type NodeC as /->
 
 data Ptr
 
@@ -625,20 +626,29 @@ data Gain a b
 data Speaker a b
   = Speaker a b
 
-class GetPointers t where
-  getPointers :: t -> Array Int
+class EdgeListable a (b :: PtrList) | a -> b where
+  getPointers' :: a -> PtrArr b
 
-instance getPointersAudioReference :: GetPointers (AudioUnitRef ptr universe) where
-  getPointers (AudioUnitRef i) = [ i ]
+instance edgeListableUnit :: EdgeListable Unit PtrListNil where
+  getPointers' _ = PtrArr []
 
-instance getPointersAudioReferenceTL :: GetPointers Unit where
-  getPointers _ = []
+instance edgeListableTuple :: EdgeListable x y => EdgeListable (Tuple (AudioUnitRef ptr universe) x) (PtrListCons ptr y) where
+  getPointers' (Tuple (AudioUnitRef i) x) = let PtrArr o = getPointers' x in PtrArr ([ i ] <> o)
 
-instance getPointersAudioReferenceTR :: GetPointers a => GetPointers (Tuple (AudioUnitRef ptr universe) a) where
-  getPointers (Tuple (AudioUnitRef i) a) = [ i ] <> getPointers a
+newtype PtrArr a
+  = PtrArr (Array Int)
 
-class Create (a :: Type) (i :: Universe) (o :: Universe) (rv :: Ptr -> Universe -> Type) (ix :: Ptr) | a i -> rv o ix where
-  create :: a -> Scene i o (rv ix o)
+class AsEdgeProfile a (b :: EdgeProfile) | a -> b where
+  getPointers :: a -> PtrArr b
+
+instance asEdgeProfileAR :: AsEdgeProfile (AudioUnitRef ptr universe) (SingleEdge ptr) where
+  getPointers (AudioUnitRef i) = PtrArr [ i ]
+
+instance asEdgeProfileTupl :: EdgeListable x y => AsEdgeProfile (Tuple (AudioUnitRef ptr universe) x) (ManyEdges ptr y) where
+  getPointers (Tuple (AudioUnitRef i) el) = let PtrArr o = getPointers' el in PtrArr ([ i ] <> o)
+
+class Create (a :: Type) (i :: Universe) (o :: Universe) (x :: Type) | a i -> o x where
+  create :: a -> Scene i o x
 
 instance createSinOsc ::
   InitialVal a =>
@@ -653,9 +663,14 @@ instance createSinOsc ::
         destroyed
         acc
     )
-    AudioUnitRef
     -- the sinosc is at this ptr
-    ptr where
+    ( AudioUnitRef ptr
+        ( UniverseC (PtrSucc ptr)
+            (GraphC (NodeC (TSinOsc ptr Changing) NoEdge) (NodeListCons head tail))
+            destroyed
+            acc
+        )
+    ) where
   create (SinOsc a) =
     Scene
       $ do
@@ -681,7 +696,6 @@ instance createSinOsc ::
 instance createHighpass ::
   ( InitialVal a
   , InitialVal b
-  , GetPointers (term op (UniverseC outptr grapho destroyedo acco))
   , Create
       c
       -- we increase the pointer by 1 in this universe
@@ -689,9 +703,7 @@ instance createHighpass ::
       (UniverseC (PtrSucc ptr) graphi destroyedi acci)
       (UniverseC outptr grapho destroyedo acco)
       term
-      op
-  , Lookup op grapho (NodeC au ep)
-  , GetPointer au auPtr
+  , AsEdgeProfile term (SingleEdge op)
   , GraphToNodeList grapho nodeList
   ) =>
   Create
@@ -703,13 +715,20 @@ instance createHighpass ::
         -- we pass along the outptr of the inner computation
         outptr
         -- the highpass is at this ptr
-        (GraphC (NodeC (THighpass ptr Changing Changing) (SingleEdge auPtr)) nodeList)
+        (GraphC (NodeC (THighpass ptr Changing Changing) (SingleEdge op)) nodeList)
         destroyedo
         acco
     )
-    AudioUnitRef
-    -- the highpass is at this ptr
-    ptr where
+    ( AudioUnitRef ptr
+        ( UniverseC
+            -- we pass along the outptr of the inner computation
+            outptr
+            -- the highpass is at this ptr
+            (GraphC (NodeC (THighpass ptr Changing Changing) (SingleEdge op)) nodeList)
+            destroyedo
+            acco
+        )
+    ) where
   create (Highpass a b c) =
     Scene
       $ do
@@ -741,16 +760,16 @@ instance createHighpass ::
                   c ->
                   Scene (UniverseC (PtrSucc ptr) graphi destroyedi acci)
                     (UniverseC outptr grapho destroyedo acco)
-                    (term op (UniverseC outptr grapho destroyedo acco))
+                    term
               )
                 (c ARef)
           oc <- mc
           modify_
             ( \i ->
                 i
-                  { instructions =
+                  { instructions = let PtrArr o = getPointers oc in
                     i.instructions
-                      <> map (flip ConnectXToY idx) (getPointers oc)
+                      <> map (flip ConnectXToY idx) o
                   }
             )
           pure $ AudioUnitRef idx
