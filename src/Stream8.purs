@@ -23,8 +23,9 @@ import Data.Map (Map, insert)
 import Data.Map as M
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..), fst, snd)
+import Data.Tuple.Nested (type (/\), (/\))
 import Data.Typelevel.Bool (False, True)
-import Data.Typelevel.Num (D0, d0)
+import Data.Typelevel.Num (class Nat, class Succ, D0, d0, toInt')
 import Effect.Class (class MonadEffect)
 import Prim.TypeError (class Warn, Above, Beside, Quote, Text)
 import Safe.Coerce (coerce)
@@ -39,11 +40,12 @@ infixr 5 type PtrListCons as +:
 
 infixr 5 type NodeC as /->
 
-data Ptr
+data Binary
 
-foreign import data PtrZ :: Ptr
+foreign import data I :: Binary
+foreign import data O :: Binary
 
-foreign import data PtrSucc :: Ptr -> Ptr
+type Ptr = Type
 
 data TAudioParameter
 
@@ -104,18 +106,9 @@ foreign import data UniverseC :: Ptr -> Graph -> NodeList -> Type -> Universe
 
 ---------------------------
 ------------ util
-
 class GetAccumulator (u :: Universe) (acc :: Type) | u -> acc
 
 instance getAccumulator :: GetAccumulator (UniverseC ptr graph destroyable acc) acc
-
-class PToInt (ptr :: Ptr) where
-  pToInt :: Proxy ptr -> Int
-
-instance pToIntZ :: PToInt PtrZ where
-  pToInt _ = 0
-instance pToIntSucc :: PToInt x => PToInt (PtrSucc x) where
-  pToInt _ = 1 + (pToInt (Proxy :: _ x))
 
 class GetGraph (u :: Universe) (g :: Graph) | u -> g
 
@@ -178,6 +171,7 @@ instance lookupNLNilCons :: (GetAudioUnit head headAU, GetPointer headAU maybePt
 class Lookup (ptr :: Ptr) (graph :: Graph) (node :: Node) | ptr graph -> node
 
 instance lookup :: (GraphToNodeList graph nodeList, LookupNL NodeListNil ptr nodeList (NodeListCons node NodeListNil)) => Lookup ptr graph node
+
 ---------------------------
 ------------ NoNodesAreDuplicated
 class NodeNotInNodeList (node :: Node) (nodeList :: NodeList)
@@ -642,6 +636,9 @@ instance setterValAudioParameter :: SetterVal env acc AudioParameter where
 instance setterValTuple :: SetterVal env acc (Tuple a (env -> acc -> AudioParameter -> AudioParameter)) where
   setterVal = snd
 
+class IsChanging (b :: TAudioParameter) where
+  isChanging :: Proxy b -> Boolean
+
 class SetterVal env acc a <= SetterAsChanged env acc a (b :: TAudioParameter) | a -> b
 
 instance setterAsChangedNumber :: SetterAsChanged env acc Number Static
@@ -705,14 +702,14 @@ class Create (a :: Type) (env :: Type) (i :: Universe) (o :: Universe) (x :: Typ
   create :: a -> Scene env i o x
 
 instance createSinOsc ::
-  InitialVal env acc a =>
+  (InitialVal env acc a, Nat ptr, Succ ptr next) =>
   Create
     (SinOsc a)
     env
     -- universe starts at ptr
     (UniverseC ptr (GraphC head tail) destroyed acc)
     -- universe continues at ptr + 1
-    ( UniverseC (PtrSucc ptr)
+    ( UniverseC next
         -- new node is at ptr
         (GraphC (NodeC (TSinOsc ptr Changing) NoEdge) (NodeListCons head tail))
         destroyed
@@ -720,7 +717,7 @@ instance createSinOsc ::
     )
     -- the sinosc is at this ptr
     ( AudioUnitRef ptr
-        ( UniverseC (PtrSucc ptr)
+        ( UniverseC next
             (GraphC (NodeC (TSinOsc ptr Changing) NoEdge) (NodeListCons head tail))
             destroyed
             acc
@@ -729,11 +726,11 @@ instance createSinOsc ::
   create (SinOsc a) =
     Scene
       $ do
-          {currentIdx: idx, env, acc} <- get 
+          { currentIdx: idx, env, acc } <- get
           let
             iv' = initialVal env (unsafeCoerce acc :: acc) a
 
-            AudioParameter iv = iv' 
+            AudioParameter iv = iv'
           modify_
             ( \i ->
                 i
@@ -749,14 +746,14 @@ instance createSinOsc ::
           pure $ AudioUnitRef idx
 
 instance createHighpass ::
-  ( InitialVal env acc a
+  ( InitialVal env acc a, Nat ptr, Succ ptr next
   , InitialVal env acc b
   , Create
       c
       env
       -- we increase the pointer by 1 in this universe
       -- as the highpass consumed ptr already
-      (UniverseC (PtrSucc ptr) graphi destroyedi acci)
+      (UniverseC next graphi destroyedi acci)
       (UniverseC outptr grapho destroyedo acco)
       term
   , AsEdgeProfile term (SingleEdge op)
@@ -789,7 +786,7 @@ instance createHighpass ::
   create (Highpass a b c) =
     Scene
       $ do
-          {currentIdx: idx, env, acc } <- get
+          { currentIdx: idx, env, acc } <- get
           let
             aiv' = initialVal env (unsafeCoerce acc :: acc) a
 
@@ -815,7 +812,7 @@ instance createHighpass ::
             (Scene mc) =
               ( create ::
                   c ->
-                  Scene env (UniverseC (PtrSucc ptr) graphi destroyedi acci)
+                  Scene env (UniverseC next graphi destroyedi acci)
                     (UniverseC outptr grapho destroyedo acco)
                     term
               )
@@ -835,13 +832,13 @@ instance createHighpass ::
           pure $ AudioUnitRef idx
 
 instance createGain ::
-  ( InitialVal env acc a
+  ( InitialVal env acc a, Nat ptr, Succ ptr next
   , Create
       b
       env
       -- we increase the pointer by 1 in this universe
       -- as the gain consumed ptr already
-      (UniverseC (PtrSucc ptr) graphi destroyedi acci)
+      (UniverseC next graphi destroyedi acci)
       (UniverseC outptr grapho destroyedo acco)
       term
   , AsEdgeProfile term eprof
@@ -874,7 +871,7 @@ instance createGain ::
   create (Gain a b) =
     Scene
       $ do
-          {currentIdx: idx, env, acc } <- get
+          { currentIdx: idx, env, acc } <- get
           let
             aiv' = initialVal env (unsafeCoerce acc :: acc) a
 
@@ -895,7 +892,7 @@ instance createGain ::
             (Scene mb) =
               ( create ::
                   b ->
-                  Scene env (UniverseC (PtrSucc ptr) graphi destroyedi acci)
+                  Scene env (UniverseC next graphi destroyedi acci)
                     (UniverseC outptr grapho destroyedo acco)
                     term
               )
@@ -915,12 +912,12 @@ instance createGain ::
           pure $ AudioUnitRef idx
 
 instance createSpeaker ::
-  ( Create
+  ( Nat ptr, Succ ptr next, Create
       a
       env
       -- we increase the pointer by 1 in this universe
       -- as the gain consumed ptr already
-      (UniverseC (PtrSucc ptr) graphi destroyedi acci)
+      (UniverseC next graphi destroyedi acci)
       (UniverseC outptr grapho destroyedo acco)
       term
   , AsEdgeProfile term eprof
@@ -968,7 +965,7 @@ instance createSpeaker ::
             (Scene ma) =
               ( create ::
                   a ->
-                  Scene env (UniverseC (PtrSucc ptr) graphi destroyedi acci)
+                  Scene env (UniverseC next graphi destroyedi acci)
                     (UniverseC outptr grapho destroyedo acco)
                     term
               )
@@ -990,17 +987,17 @@ instance createSpeaker ::
 change' ::
   forall a g t u p i o env.
   GetGraph i g =>
-  UniqueTerminus g t => 
-  GetAudioUnit t u => 
-  GetPointer u p => 
-  Change p a env i o => 
+  UniqueTerminus g t =>
+  GetAudioUnit t u =>
+  GetPointer u p =>
+  Change p a env i o =>
   a -> Scene env i o Unit
 change' = change (Proxy :: _ p)
 
 class Change (p :: Ptr) (a :: Type) (env :: Type) (i :: Universe) (o :: Universe) | p a env i -> o where
   change :: Proxy p -> a -> Scene env i o Unit
---
 
+--
 class ModifyRes (tag :: Type) (p :: Ptr) (i :: Node) (o :: Node) (mod :: NodeList) | tag p i -> i mod
 
 instance modifyResSinOsc :: ModifyRes (SinOsc a) p (NodeC (TSinOsc p Static) e) (NodeC (TSinOsc p Changing) e) (NodeListCons (NodeC (TSinOsc p Changing) e) NodeListNil)
@@ -1011,34 +1008,43 @@ class Modify' (tag :: Type) (p :: Ptr) (i :: NodeList) (o :: NodeList) (mod :: N
 instance modifySinOscNil :: Modify' tag p NodeListNil o mod
 
 instance modifySinOscCons ::
-  ( ModifyRes tag p head headRes headResAsList 
+  ( ModifyRes tag p head headRes headResAsList
   , Modify' tag p tail tailRes tailResAsList
   , NodeListAppend headResAsList tailResAsList o
-) => Modify' tag p (NodeListCons head tail) (NodeListCons headRes tailRes) o
+  ) =>
+  Modify' tag p (NodeListCons head tail) (NodeListCons headRes tailRes) o
 
 class Modify (tag :: Type) (p :: Ptr) (i :: Universe) (o :: Universe) | tag p i -> o
 
 instance modify :: (GraphToNodeList ig il, Modify' tag p il ol mod, AssertSingleton mod x, GraphToNodeList og ol) => Modify tag p (UniverseC i ig d acc) (UniverseC i og d acc)
 
 instance changeSinOsc ::
-  (GetAccumulator inuniv acc, SetterAsChanged env acc a delta, PToInt p, Modify (SinOsc a) p inuniv outuniv) =>
-  Change p (SinOsc a) env inuniv outuniv
-  where
+  ( GetAccumulator inuniv acc
+  , SetterAsChanged env acc a delta
+  , IsChanging delta
+  , Nat p
+  , Modify (SinOsc a) p inuniv outuniv
+  ) =>
+  Change p (SinOsc a) env inuniv outuniv where
   change _ (SinOsc a) =
     Scene
-      $ do
-          { env, acc } <- get
-          let
-            accAsAcc = unsafeCoerce acc :: acc
-            sv = (setterVal :: a -> (env -> acc -> AudioParameter -> AudioParameter)) a
-            ptr = pToInt (Proxy :: _ p)
-          sosc <- M.lookup ptr  <$> gets _.internalGraph
-          case sosc of
-            Just v ->
-              case v of
+      $ case isChanging (Proxy :: _ delta) of
+          false -> pure unit
+          true -> do
+            { env, acc } <- get
+            let
+              accAsAcc = unsafeCoerce acc :: acc
+
+              sv = (setterVal :: a -> (env -> acc -> AudioParameter -> AudioParameter)) a
+
+              ptr = toInt' (Proxy :: _ p)
+            sosc <- M.lookup ptr <$> gets _.internalGraph
+            case sosc of
+              Just v -> case v of
                 ASinOsc param ->
                   let
                     iv' = sv env accAsAcc param
+
                     AudioParameter iv = iv'
                   in
                     modify_
@@ -1050,10 +1056,11 @@ instance changeSinOsc ::
                                 <> [ SetFrequency ptr iv.param iv.timeOffset iv.transition ]
                             }
                       )
-               -- bad, means there is an inconsistent state
+                -- bad, means there is an inconsistent state
                 _ -> pure unit
-            -- bad, means there is an inconsistent state
-            Nothing -> pure unit
+              -- bad, means there is an inconsistent state
+              Nothing -> pure unit
+
 {-
 derive newtype instance functorScene :: Functor m => Functor (SceneT ig og m)
 

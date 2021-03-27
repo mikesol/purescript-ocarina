@@ -3,9 +3,10 @@ module Test.Main where
 import Prelude
 
 import Data.Typelevel.Bool (True, False)
+import Data.Typelevel.Num (class Succ, D0, D1, D2, D3)
 import Effect (Effect)
 import Effect.Class.Console (log)
-import Stream8 (class AllEdgesPointToNodes, class AudioUnitEq, class Gate, class HasBottomLevelNodes, class Lookup, class NoNodesAreDuplicated, class NoParallelEdges, class PtrEq, class UniqueTerminus, type (+:), type (/->), type (/:), AudioUnitRef(..), Changing, GraphC, ManyEdges, NoEdge, NodeC, NodeListCons, NodeListNil, PtrListCons, PtrListNil, PtrSucc, PtrZ, Scene(..), SinOsc(..), SingleEdge, Static, TGain, THighpass, TSinOsc, UniverseC, create)
+import Stream8 (class AllEdgesPointToNodes, class AudioUnitEq, class Gate, class HasBottomLevelNodes, class Lookup, class NoNodesAreDuplicated, class NoParallelEdges, class PtrEq, class UniqueTerminus, type (+:), type (/->), type (/:), AudioUnitRef, Changing, GraphC, ManyEdges, NoEdge, NodeC, NodeListCons, NodeListNil, PtrListCons, PtrListNil, Scene, SinOsc(..), SingleEdge, Static, TGain, THighpass, TSinOsc, UniverseC, create)
 import Type.Proxy (Proxy(..))
 
 ---------------------------
@@ -14,14 +15,14 @@ testPtrEq :: Proxy True
 testPtrEq =
   Proxy ::
     forall tf.
-    PtrEq PtrZ PtrZ tf =>
+    PtrEq D0 D0 tf =>
     Proxy tf
 
 testPtrEq2 :: Proxy False
 testPtrEq2 =
   Proxy ::
     forall tf.
-    PtrEq PtrZ (PtrSucc PtrZ) tf =>
+    PtrEq D0 D1 tf =>
     Proxy tf
 
 testGate :: Proxy "a"
@@ -42,50 +43,50 @@ testAudioUnitEq :: Proxy False
 testAudioUnitEq =
   Proxy ::
     forall tf.
-    AudioUnitEq (TSinOsc PtrZ Changing) (TSinOsc PtrZ Static) tf =>
+    AudioUnitEq (TSinOsc D0 Changing) (TSinOsc D0 Static) tf =>
     Proxy tf
 
 testAudioUnitEq2 :: Proxy True
 testAudioUnitEq2 =
   Proxy ::
     forall tf.
-    AudioUnitEq (TSinOsc PtrZ Changing) (TSinOsc PtrZ Changing) tf =>
+    AudioUnitEq (TSinOsc D0 Changing) (TSinOsc D0 Changing) tf =>
     Proxy tf
-testLookup :: Proxy (NodeC (TSinOsc PtrZ Changing) NoEdge)
+testLookup :: Proxy (NodeC (TSinOsc D0 Changing) NoEdge)
 testLookup =
   Proxy ::
     forall node.
-    Lookup PtrZ (GraphC (NodeC (TSinOsc PtrZ Changing) NoEdge) NodeListNil) node =>
+    Lookup D0 (GraphC (NodeC (TSinOsc D0 Changing) NoEdge) NodeListNil) node =>
     Proxy node
 
-testLookup2 :: Proxy (NodeC (TSinOsc (PtrSucc PtrZ) Changing) NoEdge)
+testLookup2 :: Proxy (NodeC (TSinOsc D1 Changing) NoEdge)
 testLookup2 =
   Proxy ::
     forall node.
-    Lookup (PtrSucc PtrZ) (GraphC (NodeC (TSinOsc (PtrSucc PtrZ) Changing) NoEdge) NodeListNil) node =>
+    Lookup D1 (GraphC (NodeC (TSinOsc D1 Changing) NoEdge) NodeListNil) node =>
     Proxy node
 
-testLookup3 :: Proxy (NodeC (TSinOsc (PtrSucc PtrZ) Changing) NoEdge)
+testLookup3 :: Proxy (NodeC (TSinOsc D1 Changing) NoEdge)
 testLookup3 =
   Proxy ::
     forall node.
-    Lookup (PtrSucc PtrZ) (GraphC (NodeC (TSinOsc (PtrSucc PtrZ) Changing) NoEdge) (NodeListCons (NodeC (TSinOsc PtrZ Static) NoEdge) NodeListNil)) node =>
+    Lookup D1 (GraphC (NodeC (TSinOsc D1 Changing) NoEdge) (NodeListCons (NodeC (TSinOsc D0 Static) NoEdge) NodeListNil)) node =>
     Proxy node
 
-testLookup4 :: Proxy (NodeC (TSinOsc PtrZ Static) NoEdge)
+testLookup4 :: Proxy (NodeC (TSinOsc D0 Static) NoEdge)
 testLookup4 =
   Proxy ::
     forall node.
-    Lookup PtrZ (GraphC (NodeC (TSinOsc (PtrSucc PtrZ) Changing) NoEdge) (NodeListCons (NodeC (TSinOsc PtrZ Static) NoEdge) NodeListNil)) node =>
+    Lookup D0 (GraphC (NodeC (TSinOsc D1 Changing) NoEdge) (NodeListCons (NodeC (TSinOsc D0 Static) NoEdge) NodeListNil)) node =>
     Proxy node
 
-testLookup5 :: Proxy (NodeC (TSinOsc PtrZ Static) NoEdge)
+testLookup5 :: Proxy (NodeC (TSinOsc D0 Static) NoEdge)
 testLookup5 =
   Proxy ::
     forall node.
-    Lookup PtrZ (GraphC (NodeC (TSinOsc (PtrSucc PtrZ) Changing) NoEdge) (NodeListCons (NodeC (TSinOsc PtrZ Static) NoEdge) (NodeListCons (NodeC (THighpass (PtrSucc (PtrSucc PtrZ)) Static Static) NoEdge) NodeListNil))) node =>
+    Lookup D0 (GraphC (NodeC (TSinOsc D1 Changing) NoEdge) (NodeListCons (NodeC (TSinOsc D0 Static) NoEdge) (NodeListCons (NodeC (THighpass D2 Static Static) NoEdge) NodeListNil))) node =>
     Proxy node
-testNoNodesAreDuplicated :: Proxy (GraphC (NodeC (TSinOsc (PtrSucc PtrZ) Changing) NoEdge) (NodeListCons (NodeC (TSinOsc PtrZ Static) NoEdge) (NodeListCons (NodeC (THighpass (PtrSucc (PtrSucc PtrZ)) Static Static) NoEdge) NodeListNil)))
+testNoNodesAreDuplicated :: Proxy (GraphC (NodeC (TSinOsc D1 Changing) NoEdge) (NodeListCons (NodeC (TSinOsc D0 Static) NoEdge) (NodeListCons (NodeC (THighpass D2 Static Static) NoEdge) NodeListNil)))
 testNoNodesAreDuplicated =
   Proxy ::
     forall node.
@@ -93,14 +94,14 @@ testNoNodesAreDuplicated =
     Proxy node
 
 -- AllEdgesPointToNodes
-testAllEdgesPointToNodes :: Proxy (GraphC (NodeC (TSinOsc (PtrSucc PtrZ) Changing) NoEdge) (NodeListCons (NodeC (TSinOsc PtrZ Static) NoEdge) (NodeListCons (NodeC (THighpass (PtrSucc (PtrSucc PtrZ)) Static Static) (SingleEdge (PtrSucc (PtrSucc PtrZ)))) NodeListNil)))
+testAllEdgesPointToNodes :: Proxy (GraphC (NodeC (TSinOsc D1 Changing) NoEdge) (NodeListCons (NodeC (TSinOsc D0 Static) NoEdge) (NodeListCons (NodeC (THighpass D2 Static Static) (SingleEdge D2)) NodeListNil)))
 testAllEdgesPointToNodes =
   Proxy ::
     forall node.
     AllEdgesPointToNodes node =>
     Proxy node
 
-testAllEdgesPointToNodes2 :: Proxy (GraphC (NodeC (TSinOsc (PtrSucc PtrZ) Changing) NoEdge) (NodeListCons (NodeC (TSinOsc PtrZ Static) NoEdge) (NodeListCons (NodeC (TGain (PtrSucc (PtrSucc PtrZ)) Static) (ManyEdges (PtrSucc (PtrSucc PtrZ)) (PtrListCons PtrZ PtrListNil))) NodeListNil)))
+testAllEdgesPointToNodes2 :: Proxy (GraphC (NodeC (TSinOsc D1 Changing) NoEdge) (NodeListCons (NodeC (TSinOsc D0 Static) NoEdge) (NodeListCons (NodeC (TGain D2 Static) (ManyEdges D2 (PtrListCons D0 PtrListNil))) NodeListNil)))
 testAllEdgesPointToNodes2 =
   Proxy ::
     forall node.
@@ -108,14 +109,14 @@ testAllEdgesPointToNodes2 =
     Proxy node
 
 -- NoParallelEdges
-testNoParallelEdges :: Proxy (GraphC (NodeC (TSinOsc (PtrSucc PtrZ) Changing) NoEdge) (NodeListCons (NodeC (TSinOsc PtrZ Static) NoEdge) (NodeListCons (NodeC (THighpass (PtrSucc (PtrSucc PtrZ)) Static Static) (SingleEdge (PtrSucc (PtrSucc PtrZ)))) NodeListNil)))
+testNoParallelEdges :: Proxy (GraphC (NodeC (TSinOsc D1 Changing) NoEdge) (NodeListCons (NodeC (TSinOsc D0 Static) NoEdge) (NodeListCons (NodeC (THighpass D2 Static Static) (SingleEdge D2)) NodeListNil)))
 testNoParallelEdges =
   Proxy ::
     forall node.
     NoParallelEdges node =>
     Proxy node
 
-testNoParallelEdges2 :: Proxy (GraphC ((TSinOsc (PtrSucc PtrZ) Changing) /-> NoEdge) (((TSinOsc PtrZ Static) /-> NoEdge) /: ((TGain (PtrSucc (PtrSucc PtrZ)) Static) /-> (ManyEdges (PtrSucc (PtrSucc PtrZ)) (PtrZ +: PtrListNil))) /: NodeListNil))
+testNoParallelEdges2 :: Proxy (GraphC ((TSinOsc D1 Changing) /-> NoEdge) (((TSinOsc D0 Static) /-> NoEdge) /: ((TGain D2 Static) /-> (ManyEdges D2 (D0 +: PtrListNil))) /: NodeListNil))
 testNoParallelEdges2 =
   Proxy ::
     forall node.
@@ -123,30 +124,30 @@ testNoParallelEdges2 =
     Proxy node
 
 -- HasBottomLevelNodes
-testHasBottomLevelNodes :: Proxy (GraphC (NodeC (TSinOsc (PtrSucc PtrZ) Changing) NoEdge) (NodeListCons (NodeC (THighpass (PtrSucc (PtrSucc PtrZ)) Static Static) (SingleEdge (PtrSucc PtrZ))) NodeListNil))
+testHasBottomLevelNodes :: Proxy (GraphC (NodeC (TSinOsc D1 Changing) NoEdge) (NodeListCons (NodeC (THighpass D2 Static Static) (SingleEdge D1)) NodeListNil))
 testHasBottomLevelNodes =
   Proxy ::
     forall node.
     HasBottomLevelNodes node => Proxy node
 
 -- UniqueTerminus
-testUniqueTerminus :: Proxy (NodeC (THighpass (PtrSucc (PtrSucc PtrZ)) Static Static) (SingleEdge (PtrSucc PtrZ)))
+testUniqueTerminus :: Proxy (NodeC (THighpass D2 Static Static) (SingleEdge D1))
 testUniqueTerminus =
   Proxy ::
     forall node.
-    UniqueTerminus (GraphC (NodeC (TSinOsc (PtrSucc PtrZ) Changing) NoEdge) (NodeListCons (NodeC (THighpass (PtrSucc (PtrSucc PtrZ)) Static Static) (SingleEdge (PtrSucc PtrZ))) NodeListNil)) node =>
+    UniqueTerminus (GraphC (NodeC (TSinOsc D1 Changing) NoEdge) (NodeListCons (NodeC (THighpass D2 Static Static) (SingleEdge D1)) NodeListNil)) node =>
     Proxy node
 
-testUniqueTerminus2 :: Proxy (TGain (PtrSucc (PtrSucc (PtrSucc PtrZ))) Static /-> ManyEdges PtrZ (PtrSucc (PtrSucc PtrZ) +: PtrListNil))
+testUniqueTerminus2 :: Proxy (TGain D3 Static /-> ManyEdges D0 (D2 +: PtrListNil))
 testUniqueTerminus2 =
   Proxy ::
     forall node.
     UniqueTerminus
       ( GraphC
-          (TGain PtrZ Static /-> ManyEdges PtrZ (PtrSucc PtrZ +: PtrSucc (PtrSucc PtrZ) +: PtrListNil))
-          ( ((THighpass (PtrSucc PtrZ) Static Static) /-> (SingleEdge PtrZ))
-              /: ((TSinOsc (PtrSucc (PtrSucc PtrZ)) Static) /-> NoEdge)
-              /: (TGain (PtrSucc (PtrSucc (PtrSucc PtrZ))) Static /-> ManyEdges PtrZ (PtrSucc (PtrSucc PtrZ) +: PtrListNil))
+          (TGain D0 Static /-> ManyEdges D0 (D1 +: D2 +: PtrListNil))
+          ( ((THighpass D1 Static Static) /-> (SingleEdge D0))
+              /: ((TSinOsc D2 Static) /-> NoEdge)
+              /: (TGain D3 Static /-> ManyEdges D0 (D2 +: PtrListNil))
               /: NodeListNil
           )
       )
@@ -154,15 +155,15 @@ testUniqueTerminus2 =
     Proxy node
 
 createTest1 ::
-  forall env ptr destroyed head tail acc.
+  forall ptr next env destroyed head tail acc. Succ ptr next =>
   Scene env (UniverseC ptr (GraphC head tail) destroyed acc)
-    ( UniverseC (PtrSucc ptr)
+    ( UniverseC next
         (GraphC (NodeC (TSinOsc ptr Changing) NoEdge) (NodeListCons head tail))
         destroyed
         acc
     )
     ( AudioUnitRef ptr
-        ( UniverseC (PtrSucc ptr)
+        ( UniverseC next
             (GraphC (NodeC (TSinOsc ptr Changing) NoEdge) (NodeListCons head tail))
             destroyed
             acc
