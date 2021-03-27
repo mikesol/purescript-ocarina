@@ -192,6 +192,25 @@ createTest2 ::
     )
 createTest2 = create (Highpass 440.0 1.0 (\(_ :: ARef) -> SinOsc 440.0))
 
+createTest3 ::
+  forall first mid last env destroyed head tail acc.
+  Succ first mid =>
+  Succ mid last =>
+  Scene env (UniverseC first (GraphC head tail) destroyed acc)
+    ( UniverseC last
+        (GraphC (NodeC (THighpass first Changing Changing) (SingleEdge mid)) (NodeListCons (NodeC (TSinOsc mid Changing) NoEdge) (NodeListCons head tail)))
+        destroyed
+        acc
+    )
+    ( AudioUnitRef first
+        ( UniverseC last
+            (GraphC (NodeC (THighpass first Changing Changing) (SingleEdge mid)) (NodeListCons (NodeC (TSinOsc mid Changing) NoEdge) (NodeListCons head tail)))
+            destroyed
+            acc
+        )
+    )
+createTest3 = create (Highpass 440.0 1.0 (SinOsc 440.0))
+
 main :: Effect Unit
 main = do
   log "🍝"
