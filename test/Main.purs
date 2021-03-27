@@ -1,10 +1,11 @@
 module Test.Main where
 
 import Prelude
+
 import Data.Typelevel.Bool (True, False)
 import Effect (Effect)
 import Effect.Class.Console (log)
-import Stream8 (class AllEdgesPointToNodes, class AudioUnitEq, class Gate, class HasBottomLevelNodes, class NoNodesAreDuplicated, class NoParallelEdges, class PtrEq, class UniqueTerminus, type (+:), type (/->), type (/:), AudioUnitRef(..), Changing, GraphC, ManyEdges, NoEdge, NodeC, NodeListCons, NodeListNil, PtrListCons, PtrListNil, PtrSucc, PtrZ, Scene(..), SinOsc(..), SingleEdge, Static, TGain, THighpass, TSinOsc, UniverseC, create)
+import Stream8 (class AllEdgesPointToNodes, class AudioUnitEq, class Gate, class HasBottomLevelNodes, class Lookup, class NoNodesAreDuplicated, class NoParallelEdges, class PtrEq, class UniqueTerminus, type (+:), type (/->), type (/:), AudioUnitRef(..), Changing, GraphC, ManyEdges, NoEdge, NodeC, NodeListCons, NodeListNil, PtrListCons, PtrListNil, PtrSucc, PtrZ, Scene(..), SinOsc(..), SingleEdge, Static, TGain, THighpass, TSinOsc, UniverseC, create)
 import Type.Proxy (Proxy(..))
 
 ---------------------------

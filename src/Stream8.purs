@@ -1,6 +1,7 @@
 module Stream8 where
 
 import Prelude
+
 import Control.Alt (class Alt)
 import Control.Alternative (class Alternative)
 import Control.Applicative.Indexed (class IxApplicative)
@@ -12,7 +13,7 @@ import Control.Monad.Error.Class (class MonadError, class MonadThrow)
 import Control.Monad.Indexed (class IxMonad)
 import Control.Monad.Reader (class MonadAsk, class MonadReader)
 import Control.Monad.Rec.Class (class MonadRec)
-import Control.Monad.State (class MonadTrans, StateT, State, gets, modify_)
+import Control.Monad.State (class MonadTrans, State, StateT, gets, modify_)
 import Control.Monad.Writer (class MonadTell, class MonadWriter)
 import Control.MonadPlus (class MonadPlus, class MonadZero)
 import Control.Plus (class Plus)
@@ -20,6 +21,7 @@ import Data.Functor.Indexed (class IxFunctor)
 import Data.Identity (Identity)
 import Data.Map (Map, insert)
 import Data.Map as M
+import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..), fst, snd)
 import Data.Typelevel.Bool (False, True)
 import Data.Typelevel.Num (D0, d0)
@@ -102,6 +104,15 @@ foreign import data UniverseC :: Ptr -> Graph -> NodeList -> Type -> Universe
 
 ---------------------------
 ------------ util
+
+class PToInt (ptr :: Ptr) where
+  pToInt :: Proxy ptr -> Int
+
+instance pToIntZ :: PToInt PtrZ where
+  pToInt _ = 0
+instance pToIntSucc :: PToInt x => PToInt (PtrSucc x) where
+  pToInt _ = 1 + (pToInt (Proxy :: _ x))
+
 class GetGraph (u :: Universe) (g :: Graph) | u -> g
 
 instance getGraphUniverseC :: GetGraph (UniverseC ptr graph destroyed acc) graph
@@ -125,7 +136,7 @@ instance gateTrue :: Gate True l r l
 
 instance gateFalse :: Gate False l r r
 
-class GraphToNodeList (graph :: Graph) (nodeList :: NodeList) | graph -> nodeList
+class GraphToNodeList (graph :: Graph) (nodeList :: NodeList) | graph -> nodeList, nodeList -> graph
 
 instance graphToNodeList :: GraphToNodeList (GraphC node nodeList) (NodeListCons node nodeList)
 
@@ -160,6 +171,9 @@ instance lookupNLNil :: LookupNL accumulator ptr NodeListNil accumulator
 
 instance lookupNLNilCons :: (GetAudioUnit head headAU, GetPointer headAU maybePtr, PtrEq maybePtr ptr tf, Gate tf (NodeListCons head NodeListNil) NodeListNil toComp, NodeListKeepSingleton toComp accumulator acc, LookupNL acc ptr tail o) => LookupNL accumulator ptr (NodeListCons head tail) o
 
+class Lookup (ptr :: Ptr) (graph :: Graph) (node :: Node) | ptr graph -> node
+
+instance lookup :: (GraphToNodeList graph nodeList, LookupNL NodeListNil ptr nodeList (NodeListCons node NodeListNil)) => Lookup ptr graph node
 ---------------------------
 ------------ NoNodesAreDuplicated
 class NodeNotInNodeList (node :: Node) (nodeList :: NodeList)
@@ -961,18 +975,70 @@ instance createSpeaker ::
           pure $ AudioUnitRef idx
 
 change' ::
-  forall a g t u p i o x env.
+  forall a g t u p i o env.
   GetGraph i g =>
   UniqueTerminus g t => 
   GetAudioUnit t u => 
   GetPointer u p => 
-  Change a p i o x => 
-  a -> Scene env i o x
+  Change p a i o => 
+  a -> Scene env i o Unit
 change' = change (Proxy :: _ p)
 
-class Change (a :: Type) (p :: Ptr) (i :: Universe) (o :: Universe) (x :: Type) | a p i -> o x where
-  change :: forall env. Proxy p -> a -> Scene env i o x
+class Change (p :: Ptr) (a :: Type) (i :: Universe) (o :: Universe) | p a i -> o where
+  change :: forall env. Proxy p -> a -> Scene env i o Unit
+--
 
+class ModifyRes (tag :: Type) (p :: Ptr) (i :: Node) (o :: Node) (mod :: NodeList) | tag p i -> i mod
+
+instance modifyResSinOsc :: ModifyRes (SinOsc a) p (NodeC (TSinOsc p Static) e) (NodeC (TSinOsc p Changing) e) (NodeListCons (NodeC (TSinOsc p Changing) e) NodeListNil)
+else instance modifyResMiss :: ModifyRes tag p n n NodeListNil
+
+class Modify' (tag :: Type) (p :: Ptr) (i :: NodeList) (o :: NodeList) (mod :: NodeList) | tag p i -> o mod
+
+instance modifySinOscNil :: Modify' tag p NodeListNil o mod
+
+instance modifySinOscCons ::
+  ( ModifyRes tag p head headRes headResAsList 
+  , Modify' tag p tail tailRes tailResAsList
+  , NodeListAppend headResAsList tailResAsList o
+) => Modify' tag p (NodeListCons head tail) (NodeListCons headRes tailRes) o
+
+class Modify (tag :: Type) (p :: Ptr) (i :: Universe) (o :: Universe) | tag p i -> o
+
+instance modify :: (GraphToNodeList ig il, Modify' tag p il ol mod, AssertSingleton mod x, GraphToNodeList og ol) => Modify tag p (UniverseC i ig d acc) (UniverseC i og d acc)
+
+instance changeSinOsc ::
+  (SetterAsChanged a delta, PToInt p, Modify (SinOsc a) p inuniv outuniv) =>
+  Change p (SinOsc a) inuniv outuniv
+  where
+  change _ (SinOsc a) =
+    Scene
+      $ do
+          let
+            sv = setterVal a
+            ptr = pToInt (Proxy :: _ p)
+          sosc <- M.lookup ptr  <$> gets _.internalGraph
+          case sosc of
+            Just v ->
+              case v of
+                ASinOsc param ->
+                  let
+                    iv' = sv param
+                    AudioParameter iv = iv'
+                  in
+                    modify_
+                      ( \i ->
+                          i
+                            { internalGraph = M.insert ptr (ASinOsc iv') i.internalGraph
+                            , instructions =
+                              i.instructions
+                                <> [ SetFrequency ptr iv.param iv.timeOffset iv.transition ]
+                            }
+                      )
+               -- bad, means there is an inconsistent state
+                _ -> pure unit
+            -- bad, means there is an inconsistent state
+            Nothing -> pure unit
 {-
 derive newtype instance functorScene :: Functor m => Functor (SceneT ig og m)
 
