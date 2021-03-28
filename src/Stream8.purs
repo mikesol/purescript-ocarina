@@ -65,6 +65,17 @@ foreign import data PtrListCons :: Ptr -> PtrList -> PtrList
 
 foreign import data PtrListNil :: PtrList
 
+data SkolemPair
+
+foreign import data SkolemPairC :: Type -> Ptr -> SkolemPair
+
+data SkolemList
+
+foreign import data SkolemListCons :: SkolemPair -> SkolemList -> SkolemList
+
+foreign import data SkolemListNil :: SkolemList
+
+
 data EdgeProfile
 
 -- non empty
@@ -102,17 +113,17 @@ foreign import data GraphC :: Node -> NodeList -> Graph
 data Universe
 
 -- currentIdx graph destroyable accumulator
-foreign import data UniverseC :: Ptr -> Graph -> PtrList -> Type -> Universe
+foreign import data UniverseC :: Ptr -> Graph -> PtrList -> SkolemList -> Type -> Universe
 
 ---------------------------
 ------------ util
 class GetAccumulator (u :: Universe) (acc :: Type) | u -> acc
 
-instance getAccumulator :: GetAccumulator (UniverseC ptr graph destroyable acc) acc
+instance getAccumulator :: GetAccumulator (UniverseC ptr graph destroyable skolems acc) acc
 
 class GetGraph (u :: Universe) (g :: Graph) | u -> g
 
-instance getGraphUniverseC :: GetGraph (UniverseC ptr graph destroyed acc) graph
+instance getGraphUniverseC :: GetGraph (UniverseC ptr graph destroyed skolems acc) graph
 
 class GetPointer (audioUnit :: AudioUnit) (ptr :: Ptr) | audioUnit -> ptr
 
@@ -843,10 +854,11 @@ instance createSinOsc ::
     (SinOsc a)
     env
     acc
-    (UniverseC ptr (GraphC head tail) destroyed acc)
+    (UniverseC ptr (GraphC head tail) destroyed skolems acc)
     ( UniverseC next
         (GraphC (NodeC (TSinOsc ptr Changing) NoEdge) (NodeListCons head tail))
         destroyed
+        skolems
         acc
     )
     (AudioUnitRef ptr) where
@@ -865,8 +877,8 @@ instance createHighpass ::
       acc
       -- we increase the pointer by 1 in this universe
       -- as the highpass consumed ptr already
-      (UniverseC next graphi destroyed acc)
-      (UniverseC outptr grapho destroyed acc)
+      (UniverseC next graphi destroyed skolems acc)
+      (UniverseC outptr grapho destroyed skolems acc)
       term
   , AsEdgeProfile term (SingleEdge op)
   , GraphToNodeList grapho nodeList
@@ -875,11 +887,12 @@ instance createHighpass ::
     (Highpass a b fc)
     env
     acc
-    (UniverseC ptr graphi destroyed acc)
+    (UniverseC ptr graphi destroyed skolems acc)
     ( UniverseC
         outptr
         (GraphC (NodeC (THighpass ptr Changing Changing) (SingleEdge op)) nodeList)
         destroyed
+        skolems
         acc
     )
     (AudioUnitRef ptr) where
@@ -891,8 +904,8 @@ instance createHighpass ::
             Proxy term ->
             (Highpass a b fc) ->
             Scene env acc
-              (UniverseC next graphi destroyed acc)
-              (UniverseC outptr grapho destroyed acc)
+              (UniverseC next graphi destroyed skolems acc)
+              (UniverseC outptr grapho destroyed skolems acc)
               Int
         )
           Proxy
@@ -911,8 +924,8 @@ instance createGain ::
       acc
       -- we increase the pointer by 1 in this universe
       -- as the gain consumed ptr already
-      (UniverseC next graphi destroyed acc)
-      (UniverseC outptr grapho destroyed acc)
+      (UniverseC next graphi destroyed skolems acc)
+      (UniverseC outptr grapho destroyed skolems acc)
       term
   , AsEdgeProfile term eprof
   , GraphToNodeList grapho nodeList
@@ -921,11 +934,12 @@ instance createGain ::
     (Gain a fb)
     env
     acc
-    (UniverseC ptr graphi destroyed acc)
+    (UniverseC ptr graphi destroyed skolems acc)
     ( UniverseC
         outptr
         (GraphC (NodeC (TGain ptr Changing) eprof) nodeList)
         destroyed
+        skolems
         acc
     )
     (AudioUnitRef ptr) where
@@ -937,8 +951,8 @@ instance createGain ::
             Proxy term ->
             (Gain a fb) ->
             Scene env acc
-              (UniverseC next graphi destroyed acc)
-              (UniverseC outptr grapho destroyed acc)
+              (UniverseC next graphi destroyed skolems acc)
+              (UniverseC outptr grapho destroyed skolems acc)
               Int
         )
           Proxy
@@ -955,8 +969,8 @@ instance createSpeaker ::
       acc
       -- we increase the pointer by 1 in this universe
       -- as the gain consumed ptr already
-      (UniverseC next graphi destroyed acc)
-      (UniverseC outptr grapho destroyed acc)
+      (UniverseC next graphi destroyed skolems acc)
+      (UniverseC outptr grapho destroyed skolems acc)
       term
   , AsEdgeProfile term eprof
   , GraphToNodeList grapho nodeList
@@ -965,11 +979,12 @@ instance createSpeaker ::
     (Speaker a)
     env
     acc
-    (UniverseC ptr graphi destroyed acc)
+    (UniverseC ptr graphi destroyed skolems acc)
     ( UniverseC
         outptr
         (GraphC (NodeC (TSpeaker ptr) eprof) nodeList)
         destroyed
+        skolems
         acc
     )
     (AudioUnitRef ptr) where
@@ -981,8 +996,8 @@ instance createSpeaker ::
             Proxy term ->
             (Speaker a) ->
             Scene env acc
-              (UniverseC next graphi destroyed acc)
-              (UniverseC outptr grapho destroyed acc)
+              (UniverseC next graphi destroyed skolems acc)
+              (UniverseC outptr grapho destroyed skolems acc)
               Int
         )
           Proxy
@@ -1023,7 +1038,7 @@ instance modifyCons ::
 
 class Modify (tag :: Type) (p :: Ptr) (i :: Universe) (o :: Universe) (nextP :: EdgeProfile) | tag p i -> o nextP
 
-instance modify :: (GraphToNodeList ig il, Modify' tag p il ol mod nextPL, AssertSingleton mod x, GraphToNodeList og ol) => Modify tag p (UniverseC i ig d acc) (UniverseC i og d acc) nextP
+instance modify :: (GraphToNodeList ig il, Modify' tag p il ol mod nextPL, AssertSingleton mod x, GraphToNodeList og ol) => Modify tag p (UniverseC i ig d sk acc) (UniverseC i og d sk acc) nextP
 
 instance changeNothing ::
   Change p (AudioUnitRef p) env acc inuniv outuniv where
