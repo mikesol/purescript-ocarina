@@ -124,7 +124,7 @@ instance getPointerGain :: GetPointer (TGain ptr a) ptr
 
 instance getPointerSpeaker :: GetPointer (TSpeaker ptr) ptr
 
-getPointer :: forall i u. AudioUnitRef i u -> Int
+getPointer :: forall i. AudioUnitRef i -> Int
 getPointer (AudioUnitRef i) = i
 
 class Gate tf l r o | tf l r -> o
@@ -707,11 +707,8 @@ instance setterAsChangedAudioParameter :: SetterAsChanged env acc AudioParameter
 
 instance setterAsChangedTuple :: SetterAsChanged env acc (Tuple a (env -> acc -> AudioParameter -> AudioParameter)) Changing
 
-data AudioUnitRef (ptr :: Ptr) (universe :: Universe)
+data AudioUnitRef (ptr :: Ptr)
   = AudioUnitRef Int
-
-data AudioParamRef (ptr :: Ptr) (universe :: Universe)
-  = AudioParamRef Int AudioParameter
 
 data ARef
   = ARef
@@ -743,7 +740,7 @@ class EdgeListable a (b :: PtrList) | a -> b where
 instance edgeListableUnit :: EdgeListable Unit PtrListNil where
   getPointers' _ = PtrArr []
 
-instance edgeListableTuple :: EdgeListable x y => EdgeListable (Tuple (AudioUnitRef ptr universe) x) (PtrListCons ptr y) where
+instance edgeListableTuple :: EdgeListable x y => EdgeListable (Tuple (AudioUnitRef ptr) x) (PtrListCons ptr y) where
   getPointers' (Tuple (AudioUnitRef i) x) = let PtrArr o = getPointers' x in PtrArr ([ i ] <> o)
 
 newtype PtrArr a
@@ -772,13 +769,13 @@ else instance toARefFunctionConst :: ToARefFunction b b where
 class AsEdgeProfile a (b :: EdgeProfile) | a -> b where
   getPointers :: a -> PtrArr b
 
-instance asEdgeProfileAR :: AsEdgeProfile (AudioUnitRef ptr universe) (SingleEdge ptr) where
+instance asEdgeProfileAR :: AsEdgeProfile (AudioUnitRef ptr) (SingleEdge ptr) where
   getPointers (AudioUnitRef i) = PtrArr [ i ]
 
 instance asEdgeProfileUnit :: AsEdgeProfile Unit e where
   getPointers _ = PtrArr []
 
-instance asEdgeProfileTupl :: EdgeListable x y => AsEdgeProfile (Tuple (AudioUnitRef ptr universe) x) (ManyEdges ptr y) where
+instance asEdgeProfileTupl :: EdgeListable x y => AsEdgeProfile (Tuple (AudioUnitRef ptr) x) (ManyEdges ptr y) where
   getPointers (Tuple (AudioUnitRef i) el) = let PtrArr o = getPointers' el in PtrArr ([ i ] <> o)
 
 class Create (a :: Type) (env :: Type) (acc :: Type) (i :: Universe) (o :: Universe) (x :: Type) | a env i -> o x where
@@ -848,13 +845,7 @@ instance createSinOsc ::
         destroyed
         acc
     )
-    ( AudioUnitRef ptr
-        ( UniverseC next
-            (GraphC (NodeC (TSinOsc ptr Changing) NoEdge) (NodeListCons head tail))
-            destroyed
-            acc
-        )
-    ) where
+    (AudioUnitRef ptr) where
   create = Scene <<< map AudioUnitRef <<< creationStep
 
 instance createHighpass ::
@@ -886,14 +877,7 @@ instance createHighpass ::
         destroyed
         acc
     )
-    ( AudioUnitRef ptr
-        ( UniverseC
-            outptr
-            (GraphC (NodeC (THighpass ptr Changing Changing) (SingleEdge op)) nodeList)
-            destroyed
-            acc
-        )
-    ) where
+    (AudioUnitRef ptr) where
   create =
     Scene <<< map AudioUnitRef <<< unScene
       <<< ( createAndConnect ::
@@ -934,14 +918,7 @@ instance createGain ::
         destroyed
         acc
     )
-    ( AudioUnitRef ptr
-        ( UniverseC
-            outptr
-            (GraphC (NodeC (TGain ptr Changing) eprof) nodeList)
-            destroyed
-            acc
-        )
-    ) where
+    (AudioUnitRef ptr) where
   create =
     Scene <<< map AudioUnitRef <<< unScene
       <<< ( createAndConnect ::
@@ -981,14 +958,7 @@ instance createSpeaker ::
         destroyed
         acc
     )
-    ( AudioUnitRef ptr
-        ( UniverseC
-            outptr
-            (GraphC (NodeC (TSpeaker ptr) eprof) nodeList)
-            destroyed
-            acc
-        )
-    ) where
+    (AudioUnitRef ptr) where
   create =
     Scene <<< map AudioUnitRef <<< unScene
       <<< ( createAndConnect ::
