@@ -6,7 +6,7 @@ import Data.Typelevel.Bool (True, False)
 import Data.Typelevel.Num (class Succ, D0, D1, D2, D3)
 import Effect (Effect)
 import Effect.Class.Console (log)
-import Stream8 (class AllEdgesPointToNodes, class AudioUnitEq, class Gate, class HasBottomLevelNodes, class Lookup, class NoNodesAreDuplicated, class NoParallelEdges, class PtrEq, class UniqueTerminus, type (+:), type (/->), type (/:), AudioUnitRef, Changing, Fix(..), Gain(..), GraphC, Highpass(..), ManyEdges, NoEdge, NodeC, NodeListCons, NodeListNil, PtrListCons, PtrListNil, Scene, SinOsc(..), SingleEdge, SkolemListNil, Static, TGain, THighpass, TSinOsc, UniverseC, create)
+import Stream8 (class AllEdgesPointToNodes, class AudioUnitEq, class Gate, class HasBottomLevelNodes, class Lookup, class NoNodesAreDuplicated, class NoParallelEdges, class PtrEq, class UniqueTerminus, type (+:), type (/->), type (/:), AudioUnitRef, Changing, Gain(..), GraphC, Highpass(..), ManyEdges, NoEdge, NodeC, NodeListCons, NodeListNil, PtrListCons, PtrListNil, Scene, SinOsc(..), SingleEdge, SkolemListNil, Static, TGain, THighpass, TSinOsc, UniverseC, create)
 import Type.Proxy (Proxy(..))
 
 ---------------------------
@@ -202,9 +202,7 @@ createTest3 ::
         acc
     )
     (AudioUnitRef first)
-createTest3 = create $ Fix (\(gain :: Proxy MyGain) -> (Gain 1.0 (gain /\ SinOsc 440.0 /\ unit)))
-
-data MySinOsc
+createTest3 = create (Gain 1.0 (\(gain :: Proxy MyGain) -> gain /\ SinOsc 440.0 /\ unit))
 
 createTest4 ::
   forall first mid0 mid1 last env destroyed head tail acc.
@@ -215,10 +213,10 @@ createTest4 ::
     ( UniverseC last
         ( GraphC
             ( NodeC (TGain first Changing)
-                (ManyEdges first (PtrListCons mid1 (PtrListCons mid0 PtrListNil)))
+                (ManyEdges first (PtrListCons mid0 PtrListNil))
             )
-            ( NodeListCons (NodeC (THighpass mid1 Changing Changing) (SingleEdge mid1))
-                (NodeListCons (NodeC (TSinOsc mid0 Changing) NoEdge) (NodeListCons head tail))
+            ( NodeListCons (NodeC (THighpass mid0 Changing Changing) (SingleEdge mid1))
+                (NodeListCons (NodeC (TSinOsc mid1 Changing) NoEdge) (NodeListCons head tail))
             )
         )
         destroyed
@@ -228,16 +226,11 @@ createTest4 ::
     (AudioUnitRef first)
 createTest4 =
   create
-    $ Fix
+    ( Gain 1.0
         ( \(gain :: Proxy MyGain) ->
-            Fix
-              ( \(sinOsc :: Proxy MySinOsc) ->
-                  ( Gain 1.0
-                      ( gain /\ Highpass 330.0 1.0 sinOsc /\ sinOsc /\ unit
-                      )
-                  )
-              )
+            gain /\ Highpass 330.0 1.0 (SinOsc 440.0) /\ unit
         )
+    )
 
 main :: Effect Unit
 main = do
