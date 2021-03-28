@@ -1,7 +1,6 @@
 module Stream8 where
 
 import Prelude
-
 import Control.Alt (class Alt)
 import Control.Alternative (class Alternative)
 import Control.Applicative.Indexed (class IxApplicative, ipure)
@@ -153,19 +152,19 @@ class LookupSkolem' (accumulator :: PtrList) (skolem :: Type) (skolemList :: Sko
 
 instance lookupSkolemNil :: LookupSkolem' accumulator ptr SkolemListNil accumulator
 
-instance lookupSkolemCons :: (
-  TypeEqualTF skolem candidate tf,
-  Gate tf (PtrListCons ptr PtrListNil) PtrListNil toComp,
-  PtrListKeepSingleton toComp accumulator acc,
-  LookupSkolem' acc skolem tail o
-) => LookupSkolem' accumulator skolem (SkolemListCons (SkolemPairC candidate ptr) tail) o
+instance lookupSkolemCons ::
+  ( TypeEqualTF skolem candidate tf
+  , Gate tf (PtrListCons ptr PtrListNil) PtrListNil toComp
+  , PtrListKeepSingleton toComp accumulator acc
+  , LookupSkolem' acc skolem tail o
+  ) =>
+  LookupSkolem' accumulator skolem (SkolemListCons (SkolemPairC candidate ptr) tail) o
 
 class LookupSkolem (skolem :: Type) (skolemList :: SkolemList) (ptr :: Ptr) | skolem skolemList -> ptr
 
 instance lookupSkolem :: (LookupSkolem' PtrListNil skolem skolemList (PtrListCons ptr PtrListNil)) => LookupSkolem skolem skolemList ptr
 
-
-class TypeEqualTF (a :: Type) (b :: Type) (c :: Type)
+class TypeEqualTF (a :: Type) (b :: Type) (c :: Type) | a b -> c
 
 instance typeEqualTFT :: TypeEqualTF a a True
 else instance typeEqualTFF :: TypeEqualTF a b False
@@ -179,7 +178,9 @@ instance skolemNotYetPresentCons ::
   SkolemNotYetPresent skolem (SkolemListCons (SkolemPairC candidate ptr) tail)
 
 class SkolemNotYetPresent (skolem :: Type) (skolemList :: SkolemList)
+
 class SkolemNotYetPresentOrDiscardable (skolem :: Type) (skolemList :: SkolemList)
+
 instance skolemNotYetPresentOrDiscardableD :: SkolemNotYetPresentOrDiscardable DiscardableSkolem skolemList
 else instance skolemNotYetPresentOrDiscardableO :: SkolemNotYetPresent o skolemList => SkolemNotYetPresentOrDiscardable o skolemList
 
@@ -802,28 +803,27 @@ data DiscardableSkolem
 
 class GetSkolemFromRecursiveArgument (a :: Type) (skolem :: Type) | a -> skolem
 
-instance getSkolemFromRecursiveArgumentF :: GetSkolemFromRecursiveArgument (skolem -> b) skolem
+instance getSkolemFromRecursiveArgumentF :: GetSkolemFromRecursiveArgument ((Proxy skolem) -> b) skolem
 else instance getSkolemFromRecursiveArgumentC :: GetSkolemFromRecursiveArgument b DiscardableSkolem
-
-class GetAudioUnitRefFunction (a :: Type) (skolem :: Type) (b :: Type) | a skolem -> b where
-  getAudioUnitRefFunction :: a -> (Proxy skolem -> b)
 
 class ToSkolemizedFunction (a :: Type) (skolem :: Type) (b :: Type) | a skolem -> b where
   toSkolemizedFunction :: a -> (Proxy skolem -> b)
-
-instance getAudioUnitRefFunctionHighpass :: ToSkolemizedFunction i skolem o => GetAudioUnitRefFunction (Highpass a b i) skolem o where
-  getAudioUnitRefFunction (Highpass a b c) = toSkolemizedFunction c
-
-instance getAudioUnitRefFunctionGain :: ToSkolemizedFunction i skolem o => GetAudioUnitRefFunction (Gain a i) skolem o where
-  getAudioUnitRefFunction (Gain a b) = toSkolemizedFunction b
-
-instance getAudioUnitRefFunctionSpeaker :: ToSkolemizedFunction i skolem o => GetAudioUnitRefFunction (Speaker i) skolem o where
-  getAudioUnitRefFunction (Speaker a) = toSkolemizedFunction a
 
 instance toSkolemizedFunctionFunction :: ToSkolemizedFunction (Proxy skolem -> b) skolem b where
   toSkolemizedFunction = identity
 else instance toSkolemizedFunctionConst :: ToSkolemizedFunction b skolem b where
   toSkolemizedFunction = const
+
+class GetSkolemizedFunctionFromAU (a :: Type) (skolem :: Type) (b :: Type) | a skolem -> b where
+  getSkolemizedFunctionFromAU :: a -> (Proxy skolem -> b)
+instance getSkolemizedFunctionFromAUHighpass :: ToSkolemizedFunction i skolem o => GetSkolemizedFunctionFromAU (Highpass a b i) skolem o where
+  getSkolemizedFunctionFromAU (Highpass a b c) = toSkolemizedFunction c
+
+instance getSkolemizedFunctionFromAUGain :: ToSkolemizedFunction i skolem o => GetSkolemizedFunctionFromAU (Gain a i) skolem o where
+  getSkolemizedFunctionFromAU (Gain a b) = toSkolemizedFunction b
+
+instance getSkolemizedFunctionFromAUSpeaker :: ToSkolemizedFunction i skolem o => GetSkolemizedFunctionFromAU (Speaker i) skolem o where
+  getSkolemizedFunctionFromAU (Speaker a) = toSkolemizedFunction a
 
 class AsEdgeProfile a (b :: EdgeProfile) | a -> b where
   getPointers :: a -> PtrArr b
@@ -858,7 +858,7 @@ creationStep g = do
 
 createAndConnect ::
   forall env acc g ptr skolem c i o innerTerm eprof.
-  GetAudioUnitRefFunction g skolem c =>
+  GetSkolemizedFunctionFromAU g skolem c =>
   AsEdgeProfile innerTerm eprof =>
   CreationInstructions env acc g =>
   Create c env acc i o innerTerm =>
@@ -874,7 +874,7 @@ createAndConnect _ _ _ g =
         let
           (Scene mc) =
             (create :: c -> Scene env acc i o innerTerm)
-              ( ((getAudioUnitRefFunction :: g -> (Proxy skolem -> c)) g)
+              ( ((getSkolemizedFunctionFromAU :: g -> (Proxy skolem -> c)) g)
                   Proxy
               )
         oc <- mc
@@ -909,6 +909,7 @@ instance createTuple ::
   create (x /\ y) = Scene $ Tuple <$> x' <*> y'
     where
     Scene x' = (create :: x -> Scene env acc u0 u1 x') x
+
     Scene y' = (create :: y -> Scene env acc u1 u2 y') y
 
 instance createProxy ::
@@ -923,7 +924,6 @@ instance createProxy ::
     (UniverseC next graph destroyed skolems acc)
     (AudioUnitRef ptr) where
   create _ = Scene (pure $ AudioUnitRef $ toInt' (Proxy :: Proxy ptr))
-
 
 instance createSinOsc ::
   ( InitialVal env acc a
@@ -947,8 +947,8 @@ instance createSinOsc ::
 instance createHighpass ::
   ( InitialVal env acc a
   , InitialVal env acc b
-  , ToSkolemizedFunction fc skolem c
   , GetSkolemFromRecursiveArgument fc skolem
+  , ToSkolemizedFunction fc skolem c
   , SkolemNotYetPresentOrDiscardable skolem skolems
   , MakeInternalSkolemStack skolem ptr skolems skolemsInternal
   , Nat ptr
@@ -993,10 +993,9 @@ instance createHighpass ::
           Proxy
 
 instance createGain ::
-  ( Warn ((Text "hello") ^^ (Quote fb))
-  , InitialVal env acc a
-  , ToSkolemizedFunction fb skolem b
+  ( InitialVal env acc a
   , GetSkolemFromRecursiveArgument fb skolem
+  , ToSkolemizedFunction fb skolem b
   , SkolemNotYetPresentOrDiscardable skolem skolems
   , MakeInternalSkolemStack skolem ptr skolems skolemsInternal
   , Nat ptr
