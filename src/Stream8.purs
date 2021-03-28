@@ -208,6 +208,9 @@ instance creationInstructionsGain :: InitialVal env acc a => CreationInstruction
       ]
         /\ AGain iv'
 
+instance creationInstructionsSpeaker :: CreationInstructions env acc (Speaker a) where
+  creationInstructions idx env acc (Speaker _) = [] /\ ASpeaker
+
 class NodeListKeepSingleton (nodeListA :: NodeList) (nodeListB :: NodeList) (nodeListC :: NodeList) | nodeListA nodeListB -> nodeListC
 
 instance nodeListKeepSingletonNil :: NodeListKeepSingleton NodeListNil NodeListNil NodeListNil
@@ -758,6 +761,9 @@ instance getARefFunctionHighpass :: ToARefFunction i o => GetARefFunction (Highp
 instance getARefFunctionGain :: ToARefFunction i o => GetARefFunction (Gain a i) o where
   getARefFunction (Gain a b) = toARefFunction b
 
+instance getARefFunctionSpeaker :: ToARefFunction i o => GetARefFunction (Speaker i) o where
+  getARefFunction (Speaker a) = toARefFunction a
+
 instance toARefFunctionFunction :: ToARefFunction (ARef -> b) b where
   toARefFunction = identity
 else instance toARefFunctionConst :: ToARefFunction b b where
@@ -836,16 +842,12 @@ instance createSinOsc ::
     (SinOsc a)
     env
     acc
-    -- universe starts at ptr
     (UniverseC ptr (GraphC head tail) destroyed acc)
-    -- universe continues at ptr + 1
     ( UniverseC next
-        -- new node is at ptr
         (GraphC (NodeC (TSinOsc ptr Changing) NoEdge) (NodeListCons head tail))
         destroyed
         acc
     )
-    -- the sinosc is at this ptr
     ( AudioUnitRef ptr
         ( UniverseC next
             (GraphC (NodeC (TSinOsc ptr Changing) NoEdge) (NodeListCons head tail))
@@ -874,25 +876,19 @@ instance createHighpass ::
   , GraphToNodeList grapho nodeList
   ) =>
   Create
-    -- highpass
     (Highpass a b fc)
     env
     acc
-    -- universe starts at ptr
     (UniverseC ptr graphi destroyed acc)
     ( UniverseC
-        -- we pass along the outptr of the inner computation
         outptr
-        -- the highpass is at this ptr
         (GraphC (NodeC (THighpass ptr Changing Changing) (SingleEdge op)) nodeList)
         destroyed
         acc
     )
     ( AudioUnitRef ptr
         ( UniverseC
-            -- we pass along the outptr of the inner computation
             outptr
-            -- the highpass is at this ptr
             (GraphC (NodeC (THighpass ptr Changing Changing) (SingleEdge op)) nodeList)
             destroyed
             acc
@@ -928,25 +924,19 @@ instance createGain ::
   , GraphToNodeList grapho nodeList
   ) =>
   Create
-    -- gain
     (Gain a fb)
     env
     acc
-    -- universe starts at ptr
     (UniverseC ptr graphi destroyed acc)
     ( UniverseC
-        -- we pass along the outptr of the inner computation
         outptr
-        -- the gain is at this ptr
         (GraphC (NodeC (TGain ptr Changing) eprof) nodeList)
         destroyed
         acc
     )
     ( AudioUnitRef ptr
         ( UniverseC
-            -- we pass along the outptr of the inner computation
             outptr
-            -- the gain is at this ptr
             (GraphC (NodeC (TGain ptr Changing) eprof) nodeList)
             destroyed
             acc
@@ -965,7 +955,8 @@ instance createGain ::
           (Proxy :: _ term)
 
 instance createSpeaker ::
-  ( Nat ptr
+  ( ToARefFunction fa a
+  , Nat ptr
   , Succ ptr next
   , Create
       a
@@ -980,66 +971,35 @@ instance createSpeaker ::
   , GraphToNodeList grapho nodeList
   ) =>
   Create
-    -- gain
-    (Speaker a)
+    (Speaker fa)
     env
     acc
-    -- universe starts at ptr
     (UniverseC ptr graphi destroyed acc)
     ( UniverseC
-        -- we pass along the outptr of the inner computation
         outptr
-        -- the gain is at this ptr
         (GraphC (NodeC (TSpeaker ptr) eprof) nodeList)
         destroyed
         acc
     )
     ( AudioUnitRef ptr
         ( UniverseC
-            -- we pass along the outptr of the inner computation
             outptr
-            -- the gain is at this ptr
             (GraphC (NodeC (TSpeaker ptr) eprof) nodeList)
             destroyed
             acc
         )
     ) where
-  create (Speaker a) =
-    Scene
-      $ do
-          idx <- gets _.currentIdx
-          modify_
-            ( \i ->
-                i
-                  { currentIdx = idx + 1
-                  , internalGraph = M.insert idx ASpeaker i.internalGraph
-                  , instructions =
-                    i.instructions
-                      <> [ NewUnit idx "speaker" ]
-                  }
-            )
-          let
-            (Scene ma) =
-              ( create ::
-                  a ->
-                  Scene env acc (UniverseC next graphi destroyed acc)
-                    (UniverseC outptr grapho destroyed acc)
-                    term
-              )
-                a
-          oa <- ma
-          modify_
-            ( \i ->
-                i
-                  { instructions =
-                    let
-                      PtrArr o = getPointers oa
-                    in
-                      i.instructions
-                        <> map (flip ConnectXToY idx) o
-                  }
-            )
-          pure $ AudioUnitRef idx
+  create =
+    Scene <<< map AudioUnitRef <<< unScene
+      <<< ( createAndConnect ::
+            Proxy term ->
+            (Speaker fa) ->
+            Scene env acc
+              (UniverseC next graphi destroyed acc)
+              (UniverseC outptr grapho destroyed acc)
+              Int
+        )
+          (Proxy :: _ term)
 
 change' ::
   forall a g t u p i o env acc.
