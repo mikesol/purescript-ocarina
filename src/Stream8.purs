@@ -102,7 +102,7 @@ foreign import data GraphC :: Node -> NodeList -> Graph
 data Universe
 
 -- currentIdx graph destroyable accumulator
-foreign import data UniverseC :: Ptr -> Graph -> NodeList -> Type -> Universe
+foreign import data UniverseC :: Ptr -> Graph -> PtrList -> Type -> Universe
 
 ---------------------------
 ------------ util
