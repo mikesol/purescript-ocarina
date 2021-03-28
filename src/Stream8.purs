@@ -13,8 +13,8 @@ import Control.Monad.Error.Class (class MonadError, class MonadThrow)
 import Control.Monad.Indexed (class IxMonad)
 import Control.Monad.Reader (class MonadAsk, class MonadReader)
 import Control.Monad.Rec.Class (class MonadRec)
-import Control.Monad.State (class MonadTrans, State, StateT, get, gets, modify_)
-import Control.Monad.Writer (class MonadTell, class MonadWriter)
+import Control.Monad.State (class MonadTrans, State, StateT, execState, get, gets, modify_)
+import Control.Monad.Writer (class MonadTell, class MonadWriter, WriterT(..), runWriterT)
 import Control.MonadPlus (class MonadPlus, class MonadZero)
 import Control.Plus (class Plus)
 import Data.Functor.Indexed (class IxFunctor)
@@ -22,6 +22,8 @@ import Data.Identity (Identity)
 import Data.Map (Map, insert)
 import Data.Map as M
 import Data.Maybe (Maybe(..))
+import Data.Monoid.Endo (Endo(..))
+import Data.Newtype (class Newtype)
 import Data.Tuple (Tuple(..), fst, snd)
 import Data.Tuple.Nested (type (/\), (/\))
 import Data.Typelevel.Bool (False, True)
@@ -110,6 +112,7 @@ data Graph
 
 -- non empty
 foreign import data GraphC :: Node -> NodeList -> Graph
+
 foreign import data InitialGraph :: Graph
 
 data Universe
@@ -146,6 +149,7 @@ instance gateFalse :: Gate False l r r
 class GraphToNodeList (graph :: Graph) (nodeList :: NodeList) | graph -> nodeList, nodeList -> graph
 
 instance graphToNodeList :: GraphToNodeList (GraphC node nodeList) (NodeListCons node nodeList)
+
 instance graphToNodeListIG :: GraphToNodeList InitialGraph NodeListNil
 
 class GetAudioUnit (node :: Node) (au :: AudioUnit) | node -> au
@@ -608,7 +612,6 @@ class NodeIsOutputDevice (node :: Node)
 
 instance nodeIsOutputDeviceTSpeaker :: NodeIsOutputDevice (NodeC (TSpeaker a) x)
 
--- for the end
 class GraphIsRenderable (graph :: Graph)
 
 instance graphIsRenderable ::
@@ -622,7 +625,7 @@ instance graphIsRenderable ::
   ) =>
   GraphIsRenderable graph
 
--- for any given step
+-- for any given step - worth it?
 class GraphIsCoherent (graph :: Graph)
 
 instance graphIsCoherent ::
@@ -684,34 +687,67 @@ data Instruction
   | SetRefDistance Int Number
   | SetRolloffFactor Int Number
 
+type AudioState' env acc
+  = { env :: env
+    , acc :: acc
+    , currentIdx :: Int
+    , instructions :: Array Instruction
+    , internalGraph :: Map Int AnAudioUnit
+    }
+
 type AudioState env acc a
-  = State
-      { env :: env
-      , acc :: acc
-      , currentIdx :: Int
-      , instructions :: Array Instruction
-      , internalGraph :: Map Int AnAudioUnit
-      }
-      a
+  = WriterT (Endo Function (AudioState' env acc)) (State (AudioState' env acc)) a
 
 newtype Frame (env :: Type) (acc :: Type) (proof :: Type) (ig :: Universe) (og :: Universe) (a :: Type)
   = Frame (AudioState env acc a)
 
 data Frame0
 
-type InitialFrame env acc og = Frame env acc Frame0 (UniverseC D0 InitialGraph PtrListNil SkolemListNil acc) og Unit
+type InitialFrame env acc og
+  = Frame env acc Frame0 (UniverseC D0 InitialGraph PtrListNil SkolemListNil acc) og Unit
 
-newtype Scene (env :: Type) = Scene (env -> Tuple (Effect Unit) (Scene env))
+newtype Scene (env :: Type)
+  = Scene (env -> Map Int AnAudioUnit /\ Array Instruction /\ (Scene env))
 
---makeScene :: forall env. 
+derive instance newtypeScene :: Newtype (Scene env) _
 
--- safe to export
-unScene :: forall env. Scene env -> env -> Tuple (Effect Unit) (Scene env)
-unScene (Scene f) = f
+instance universeIsCoherent ::
+  GraphIsRenderable graph =>
+  UniverseIsCoherent (UniverseC ptr graph destroyed SkolemListNil acc)
+
+class UniverseIsCoherent (u :: Universe)
+
+makeScene0 ::
+  forall env acc g0 g1.
+  UniverseIsCoherent g0 =>
+  AsStatic g0 g1 =>
+  acc ->
+  InitialFrame env acc g0 ->
+  (forall proof. Frame env acc proof g1 g1 Unit -> Scene env) ->
+  Scene env
+makeScene0 acc fr@(Frame f) trans = Scene go
+  where
+  go env =
+    let
+      os =
+        execState (map fst (runWriterT f))
+          (initialAudioState env acc)
+      scene = trans $ Frame $ WriterT (pure (Tuple unit (Endo (const $ os))))
+    in
+      os.internalGraph /\ os.instructions /\ scene
 
 -- do not export!
 unFrame :: forall env acc proof i o a. Frame env acc proof i o a -> AudioState env acc a
 unFrame (Frame state) = state
+
+initialAudioState :: forall env acc. env -> acc -> AudioState' env acc
+initialAudioState env acc =
+  { env: env
+  , acc: acc
+  , currentIdx: 0
+  , instructions: []
+  , internalGraph: M.empty
+  }
 
 instance sceneIxFunctor :: IxFunctor (Frame env acc proof) where
   imap f (Frame a) = Frame (f <$> a)
@@ -857,26 +893,28 @@ instance asEdgeProfileTupl :: EdgeListable x y => AsEdgeProfile (Tuple (AudioUni
 class DynToStat'' (i :: AudioUnit) (o :: AudioUnit) | i -> o
 
 instance d2sTSinOsc :: DynToStat'' (TSinOsc idx freq) (TSinOsc idx Static)
+
 instance d2sTHighpass :: DynToStat'' (THighpass idx freq q) (THighpass idx Static Static)
+
 instance d2sTGain :: DynToStat'' (TGain idx vol) (TGain idx Static)
+
 instance d2sTSpeaker :: DynToStat'' (TSpeaker idx) (TSpeaker idx)
 
 class DynToStat' (i :: Node) (o :: Node) | i -> o
 
-instance d2s :: DynToStat'' i o  => DynToStat' (NodeC i x) (NodeC o x)
+instance d2s :: DynToStat'' i o => DynToStat' (NodeC i x) (NodeC o x)
 
 class DynToStat (i :: NodeList) (o :: NodeList) | i -> o
 
 instance dynToStatNil :: DynToStat NodeListNil NodeListNil
+
 instance dynToStatCons :: (DynToStat' head newHead, DynToStat tail newTail) => DynToStat (NodeListCons head tail) (NodeListCons newHead newTail)
 
-class AsStatic (env :: Type) (acc :: Type) (proof :: Type) (i :: Universe) (m :: Universe) (o :: Universe)| env acc proof i m -> o where 
-  asStatic :: Frame env acc proof i m Unit -> Frame env acc proof m o Unit
+class AsStatic (m :: Universe) (o :: Universe) | m -> o
 
 -- only do when there are no skolems
 -- this will force the step to the end
-instance asStaticAll :: (GraphToNodeList dynGraph dynGraphL, DynToStat dynGraphL statGraphL, GraphToNodeList statGraph statGraphL) => AsStatic env acc proof i (UniverseC ptr dynGraph destroyed SkolemListNil acc) (UniverseC ptr statGraph destroyed SkolemListNil acc) where
-  asStatic (Frame x) = Frame x
+instance asStaticAll :: (GraphToNodeList dynGraph dynGraphL, DynToStat dynGraphL statGraphL, GraphToNodeList statGraph statGraphL) => AsStatic (UniverseC ptr dynGraph destroyed SkolemListNil acc) (UniverseC ptr statGraph destroyed SkolemListNil acc)
 
 class Create (a :: Type) (env :: Type) (acc :: Type) (proof :: Type) (i :: Universe) (o :: Universe) (x :: Type) | a env i -> o x where
   create :: a -> Frame env acc proof i o x
