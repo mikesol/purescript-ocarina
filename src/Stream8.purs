@@ -690,26 +690,26 @@ type AudioState env acc a
       }
       a
 
-newtype Scene (env :: Type) (acc :: Type) (ig :: Universe) (og :: Universe) (a :: Type)
-  = Scene (AudioState env acc a)
+newtype Frame (env :: Type) (acc :: Type) (proof :: Type) (ig :: Universe) (og :: Universe) (a :: Type)
+  = Frame (AudioState env acc a)
 
 -- do not export!
-unScene :: forall env acc i o a. Scene env acc i o a -> AudioState env acc a
-unScene (Scene state) = state
+unFrame :: forall env acc proof i o a. Frame env acc proof i o a -> AudioState env acc a
+unFrame (Frame state) = state
 
-instance sceneIxFunctor :: IxFunctor (Scene env acc) where
-  imap f (Scene a) = Scene (f <$> a)
+instance sceneIxFunctor :: IxFunctor (Frame env acc proof) where
+  imap f (Frame a) = Frame (f <$> a)
 
-instance sceneIxApplicative :: IxApply (Scene env acc) where
-  iapply (Scene f) (Scene a) = Scene (f <*> a)
+instance sceneIxApplicative :: IxApply (Frame env acc proof) where
+  iapply (Frame f) (Frame a) = Frame (f <*> a)
 
-instance sceneIxApply :: IxApplicative (Scene env acc) where
-  ipure a = Scene $ pure a
+instance sceneIxApply :: IxApplicative (Frame env acc proof) where
+  ipure a = Frame $ pure a
 
-instance sceneIxBind :: IxBind (Scene env acc) where
-  ibind (Scene monad) function = Scene (monad >>= (unScene <<< function))
+instance sceneIxBind :: IxBind (Frame env acc proof) where
+  ibind (Frame monad) function = Frame (monad >>= (unFrame <<< function))
 
-instance sceneIxMonad :: IxMonad (Scene env acc)
+instance sceneIxMonad :: IxMonad (Frame env acc proof)
 
 -- create (hpf and gain can start empty)
 defaultParam :: AudioParameter'
@@ -838,8 +838,8 @@ instance asEdgeProfileAR :: AsEdgeProfile (AudioUnitRef ptr) (SingleEdge ptr) wh
 instance asEdgeProfileTupl :: EdgeListable x y => AsEdgeProfile (Tuple (AudioUnitRef ptr) x) (ManyEdges ptr y) where
   getPointers (Tuple (AudioUnitRef i) el) = let PtrArr o = getPointers' el in PtrArr ([ i ] <> o)
 
-class Create (a :: Type) (env :: Type) (acc :: Type) (i :: Universe) (o :: Universe) (x :: Type) | a env i -> o x where
-  create :: a -> Scene env acc i o x
+class Create (a :: Type) (env :: Type) (acc :: Type) (proof :: Type) (i :: Universe) (o :: Universe) (x :: Type) | a env i -> o x where
+  create :: a -> Frame env acc proof i o x
 
 creationStep ::
   forall env acc g.
@@ -861,23 +861,23 @@ creationStep g = do
   pure currentIdx
 
 createAndConnect ::
-  forall env acc g ptr skolem c i o innerTerm eprof.
+  forall env acc proof g ptr skolem c i o innerTerm eprof.
   GetSkolemizedFunctionFromAU g skolem c =>
   AsEdgeProfile innerTerm eprof =>
   CreationInstructions env acc g =>
-  Create c env acc i o innerTerm =>
+  Create c env acc proof i o innerTerm =>
   Proxy skolem ->
   Proxy ptr ->
   Proxy innerTerm ->
   g ->
-  Scene env acc i o Int
+  Frame env acc proof i o Int
 createAndConnect _ _ _ g =
-  Scene
+  Frame
     $ do
         idx <- cs
         let
-          (Scene mc) =
-            (create :: c -> Scene env acc i o innerTerm)
+          (Frame mc) =
+            (create :: c -> Frame env acc proof i o innerTerm)
               ( ((getSkolemizedFunctionFromAU :: g -> (Proxy skolem -> c)) g)
                   Proxy
               )
@@ -902,19 +902,20 @@ instance createUnit ::
     Unit
     env
     acc
+    proof
     u
     u
     Unit where
-  create = Scene <<< pure
+  create = Frame <<< pure
 
 instance createTuple ::
-  (Create x env acc u0 u1 x', Create y env acc u1 u2 y') =>
-  Create (x /\ y) env acc u0 u2 (x' /\ y') where
-  create (x /\ y) = Scene $ Tuple <$> x' <*> y'
+  (Create x env acc proof u0 u1 x', Create y env acc proof u1 u2 y') =>
+  Create (x /\ y) env acc proof u0 u2 (x' /\ y') where
+  create (x /\ y) = Frame $ Tuple <$> x' <*> y'
     where
-    Scene x' = (create :: x -> Scene env acc u0 u1 x') x
+    Frame x' = (create :: x -> Frame env acc proof u0 u1 x') x
 
-    Scene y' = (create :: y -> Scene env acc u1 u2 y') y
+    Frame y' = (create :: y -> Frame env acc proof u1 u2 y') y
 
 instance createProxy ::
   ( LookupSkolem skolem skolems ptr
@@ -924,10 +925,11 @@ instance createProxy ::
     (Proxy skolem)
     env
     acc
+    proof
     (UniverseC next graph destroyed skolems acc)
     (UniverseC next graph destroyed skolems acc)
     (AudioUnitRef ptr) where
-  create _ = Scene (pure $ AudioUnitRef $ toInt' (Proxy :: Proxy ptr))
+  create _ = Frame (pure $ AudioUnitRef $ toInt' (Proxy :: Proxy ptr))
 
 instance createDup ::
   ( Nat ptr
@@ -936,6 +938,7 @@ instance createDup ::
       a
       env
       acc
+      proof
       (UniverseC ptr graphi destroyed skolems acc)
       (UniverseC midptr graphm destroyed skolems acc)
       (AudioUnitRef ptr)
@@ -943,35 +946,35 @@ instance createDup ::
       b
       env
       acc
+      proof
       (UniverseC midptr graphm destroyed (SkolemListCons (SkolemPairC skolem ptr) skolems) acc)
       (UniverseC outptr grapho destroyed (SkolemListCons (SkolemPairC skolem ptr) skolems) acc)
       ignore
   ) =>
   Create
-    (Dup a  (Proxy skolem -> b))
+    (Dup a (Proxy skolem -> b))
     env
     acc
+    proof
     (UniverseC ptr graphi destroyed skolems acc)
     (UniverseC outptr grapho destroyed skolems acc)
     (AudioUnitRef ptr) where
-  create (Dup a f) = Scene $ x <* y
+  create (Dup a f) = Frame $ x <* y
     where
-    Scene x =
+    Frame x =
       ( create ::
           a ->
-          Scene env
-            acc
+          Frame env acc proof
             (UniverseC ptr graphi destroyed skolems acc)
             (UniverseC midptr graphm destroyed skolems acc)
             (AudioUnitRef ptr)
       )
         a
 
-    Scene y =
+    Frame y =
       ( create ::
           b ->
-          Scene env
-            acc
+          Frame env acc proof
             (UniverseC midptr graphm destroyed (SkolemListCons (SkolemPairC skolem ptr) skolems) acc)
             (UniverseC outptr grapho destroyed (SkolemListCons (SkolemPairC skolem ptr) skolems) acc)
             ignore
@@ -987,6 +990,7 @@ instance createSinOsc ::
     (SinOsc a)
     env
     acc
+    proof
     (UniverseC ptr (GraphC head tail) destroyed skolems acc)
     ( UniverseC next
         (GraphC (NodeC (TSinOsc ptr Changing) NoEdge) (NodeListCons head tail))
@@ -995,7 +999,7 @@ instance createSinOsc ::
         acc
     )
     (AudioUnitRef ptr) where
-  create = Scene <<< map AudioUnitRef <<< creationStep
+  create = Frame <<< map AudioUnitRef <<< creationStep
 
 instance createHighpass ::
   ( InitialVal env acc a
@@ -1010,6 +1014,7 @@ instance createHighpass ::
       c
       env
       acc
+      proof
       (UniverseC next graphi destroyed skolemsInternal acc)
       (UniverseC outptr grapho destroyed skolemsInternal acc)
       term
@@ -1020,6 +1025,7 @@ instance createHighpass ::
     (Highpass a b fc)
     env
     acc
+    proof
     (UniverseC ptr graphi destroyed skolems acc)
     ( UniverseC
         outptr
@@ -1030,13 +1036,13 @@ instance createHighpass ::
     )
     (AudioUnitRef ptr) where
   create =
-    Scene <<< map AudioUnitRef <<< unScene
+    Frame <<< map AudioUnitRef <<< unFrame
       <<< ( createAndConnect ::
             Proxy skolem ->
             Proxy ptr ->
             Proxy term ->
             (Highpass a b fc) ->
-            Scene env acc
+            Frame env acc proof
               (UniverseC next graphi destroyed skolemsInternal acc)
               (UniverseC outptr grapho destroyed skolemsInternal acc)
               Int
@@ -1057,6 +1063,7 @@ instance createGain ::
       b
       env
       acc
+      proof
       (UniverseC next graphi destroyed skolemsInternal acc)
       (UniverseC outptr grapho destroyed skolemsInternal acc)
       term
@@ -1067,6 +1074,7 @@ instance createGain ::
     (Gain a fb)
     env
     acc
+    proof
     (UniverseC ptr graphi destroyed skolems acc)
     ( UniverseC
         outptr
@@ -1077,13 +1085,13 @@ instance createGain ::
     )
     (AudioUnitRef ptr) where
   create =
-    Scene <<< map AudioUnitRef <<< unScene
+    Frame <<< map AudioUnitRef <<< unFrame
       <<< ( createAndConnect ::
             Proxy skolem ->
             Proxy ptr ->
             Proxy term ->
             (Gain a fb) ->
-            Scene env acc
+            Frame env acc proof
               (UniverseC next graphi destroyed skolemsInternal acc)
               (UniverseC outptr grapho destroyed skolemsInternal acc)
               Int
@@ -1100,6 +1108,7 @@ instance createSpeaker ::
       a
       env
       acc
+      proof
       (UniverseC next graphi destroyed skolems acc)
       (UniverseC outptr grapho destroyed skolems acc)
       term
@@ -1110,6 +1119,7 @@ instance createSpeaker ::
     (Speaker a)
     env
     acc
+    proof
     (UniverseC ptr graphi destroyed skolems acc)
     ( UniverseC
         outptr
@@ -1120,13 +1130,13 @@ instance createSpeaker ::
     )
     (AudioUnitRef ptr) where
   create =
-    Scene <<< map AudioUnitRef <<< unScene
+    Frame <<< map AudioUnitRef <<< unFrame
       <<< ( createAndConnect ::
             Proxy DiscardableSkolem ->
             Proxy ptr ->
             Proxy term ->
             (Speaker a) ->
-            Scene env acc
+            Frame env acc proof
               (UniverseC next graphi destroyed skolems acc)
               (UniverseC outptr grapho destroyed skolems acc)
               Int
@@ -1136,17 +1146,17 @@ instance createSpeaker ::
           Proxy
 
 change' ::
-  forall a g t u p i o env acc.
+  forall a g t u p i o env acc proof.
   GetGraph i g =>
   UniqueTerminus g t =>
   GetAudioUnit t u =>
   GetPointer u p =>
-  Change p a env acc i o =>
-  a -> Scene env acc i o Unit
+  Change p a env acc proof i o =>
+  a -> Frame env acc proof i o Unit
 change' = change (Proxy :: _ p)
 
-class Change p (a :: Type) (env :: Type) (acc :: Type) (i :: Universe) (o :: Universe) | p a env i -> o where
-  change :: Proxy p -> a -> Scene env acc i o Unit
+class Change p (a :: Type) (env :: Type) (acc :: Type) (proof :: Type) (i :: Universe) (o :: Universe) | p a env i -> o where
+  change :: Proxy p -> a -> Frame env acc proof i o Unit
 
 --
 class ModifyRes (tag :: Type) (p :: Ptr) (i :: Node) (o :: Node) (mod :: NodeList) (plist :: EdgeProfile) | tag p i -> i mod plist
@@ -1172,8 +1182,8 @@ class Modify (tag :: Type) (p :: Ptr) (i :: Universe) (o :: Universe) (nextP :: 
 instance modify :: (GraphToNodeList ig il, Modify' tag p il ol mod nextPL, AssertSingleton mod x, GraphToNodeList og ol) => Modify tag p (UniverseC i ig d sk acc) (UniverseC i og d sk acc) nextP
 
 instance changeNothing ::
-  Change p (AudioUnitRef p) env acc inuniv outuniv where
-  change _ _ = Scene (pure unit)
+  Change p (AudioUnitRef p) env acc proof inuniv outuniv where
+  change _ _ = Frame (pure unit)
 
 instance changeSinOsc ::
   ( GetAccumulator inuniv acc
@@ -1182,9 +1192,9 @@ instance changeSinOsc ::
   , Nat p
   , Modify (SinOsc a) p inuniv outuniv nextP
   ) =>
-  Change p (SinOsc a) env acc inuniv outuniv where
+  Change p (SinOsc a) env acc proof inuniv outuniv where
   change _ (SinOsc a) =
-    Scene
+    Frame
       $ case isChanging (Proxy :: _ delta) of
           false -> pure unit
           true -> do
@@ -1225,11 +1235,11 @@ instance changeHighpass ::
   , IsChanging delta
   , Nat p
   , Modify (Highpass a b c) p inuniv middle nextP
-  , Change nextP c env acc middle outuniv
+  , Change nextP c env acc proof middle outuniv
   ) =>
-  Change p (Highpass a b c) env acc inuniv outuniv where
+  Change p (Highpass a b c) env acc proof inuniv outuniv where
   change _ (Highpass a b c) =
-    Scene
+    Frame
       $ case isChanging (Proxy :: _ delta) of
           false -> pure unit
           true -> do
@@ -1272,51 +1282,51 @@ instance changeHighpass ::
               Nothing -> pure unit
 
 {-
-derive newtype instance functorScene :: Functor m => Functor (SceneT ig og m)
+derive newtype instance functorFrame :: Functor m => Functor (FrameT ig og m)
 
-derive newtype instance applyScene :: Monad m => Apply (SceneT ig og m)
+derive newtype instance applyFrame :: Monad m => Apply (FrameT ig og m)
 
-derive newtype instance applicativeScene :: Monad m => Applicative (SceneT ig og m)
+derive newtype instance applicativeFrame :: Monad m => Applicative (FrameT ig og m)
 
-derive newtype instance bindScene :: Monad m => Bind (SceneT ig og m)
+derive newtype instance bindFrame :: Monad m => Bind (FrameT ig og m)
 
-derive newtype instance monadScene :: Monad m => Monad (SceneT ig og m)
+derive newtype instance monadFrame :: Monad m => Monad (FrameT ig og m)
 
-derive newtype instance monadTransScene :: MonadTrans (SceneT ig og)
+derive newtype instance monadTransFrame :: MonadTrans (FrameT ig og)
 
-derive newtype instance altScene :: (Monad m, Alt m) => Alt (SceneT ig og m)
+derive newtype instance altFrame :: (Monad m, Alt m) => Alt (FrameT ig og m)
 
-derive newtype instance plusScene :: (Monad m, Plus m) => Plus (SceneT ig og m)
+derive newtype instance plusFrame :: (Monad m, Plus m) => Plus (FrameT ig og m)
 
-derive newtype instance alternativeScene :: (Monad m, Alternative m) => Alternative (SceneT ig og m)
+derive newtype instance alternativeFrame :: (Monad m, Alternative m) => Alternative (FrameT ig og m)
 
-derive newtype instance monadRecScene :: (Monad m, MonadRec m) => MonadRec (SceneT ig og m)
+derive newtype instance monadRecFrame :: (Monad m, MonadRec m) => MonadRec (FrameT ig og m)
 
-derive newtype instance monadZeroScene :: (Monad m, MonadZero m) => MonadZero (SceneT ig og m)
+derive newtype instance monadZeroFrame :: (Monad m, MonadZero m) => MonadZero (FrameT ig og m)
 
-derive newtype instance monadPlusScene :: (Monad m, MonadPlus m) => MonadPlus (SceneT ig og m)
+derive newtype instance monadPlusFrame :: (Monad m, MonadPlus m) => MonadPlus (FrameT ig og m)
 
-derive newtype instance lazyScene :: Lazy (SceneT ig og m a)
+derive newtype instance lazyFrame :: Lazy (FrameT ig og m a)
 
-derive newtype instance monadEffectScene :: (Monad m, MonadEffect m) => MonadEffect (SceneT ig og m)
+derive newtype instance monadEffectFrame :: (Monad m, MonadEffect m) => MonadEffect (FrameT ig og m)
 
-derive newtype instance monadContScene :: (Monad m, MonadCont m) => MonadCont (SceneT ig og m)
+derive newtype instance monadContFrame :: (Monad m, MonadCont m) => MonadCont (FrameT ig og m)
 
-derive newtype instance monadThrowScene :: (Monad m, MonadThrow e m) => MonadThrow e (SceneT ig og m)
+derive newtype instance monadThrowFrame :: (Monad m, MonadThrow e m) => MonadThrow e (FrameT ig og m)
 
-derive newtype instance monadErrorScene :: (Monad m, MonadError e m) => MonadError e (SceneT ig og m)
+derive newtype instance monadErrorFrame :: (Monad m, MonadError e m) => MonadError e (FrameT ig og m)
 
-derive newtype instance monadAskScene :: (Monad m, MonadAsk r m) => MonadAsk r (SceneT ig og m)
+derive newtype instance monadAskFrame :: (Monad m, MonadAsk r m) => MonadAsk r (FrameT ig og m)
 
-derive newtype instance monadReaderScene :: (Monad m, MonadReader r m) => MonadReader r (SceneT ig og m)
+derive newtype instance monadReaderFrame :: (Monad m, MonadReader r m) => MonadReader r (FrameT ig og m)
 
-derive newtype instance monadTellScene :: (Monad m, MonadTell w m) => MonadTell w (SceneT ig og m)
+derive newtype instance monadTellFrame :: (Monad m, MonadTell w m) => MonadTell w (FrameT ig og m)
 
-derive newtype instance monadWriterScene :: (Monad m, MonadWriter w m) => MonadWriter w (SceneT ig og m)
+derive newtype instance monadWriterFrame :: (Monad m, MonadWriter w m) => MonadWriter w (FrameT ig og m)
 
-derive newtype instance semigroupScene :: (Monad m, Semigroup a) => Semigroup (SceneT ig og m a)
+derive newtype instance semigroupFrame :: (Monad m, Semigroup a) => Semigroup (FrameT ig og m a)
 
-derive newtype instance monoidScene :: (Monad m, Monoid a) => Monoid (SceneT ig og m a)
+derive newtype instance monoidFrame :: (Monad m, Monoid a) => Monoid (FrameT ig og m a)
 
 defaultParam :: AudioParameter'
 defaultParam = { param: 0.0, timeOffset: 0.0, transition: LinearRamp, forceSet: false }
@@ -1337,8 +1347,8 @@ type AudioParameter'
 newtype AudioParameter
   = AudioParameter AudioParameter'
 
-type Scene
-  = SceneT Identity
+type Frame
+  = FrameT Identity
 
 newtype SinOsc
   = SinOsc Int
@@ -1350,9 +1360,9 @@ data AudioUnit_
   = SinOsc_ { idx :: Int, freq :: AudioParameter }
   | Highpass_ { idx :: Int, freq :: AudioParameter, q :: AudioParameter, a :: Int }
 
-simpleBulder :: forall a. (Int -> a) -> (Int -> AudioUnit_) -> (Scene a)
+simpleBulder :: forall a. (Int -> a) -> (Int -> AudioUnit_) -> (Frame a)
 simpleBulder ia iau =
-  Scene
+  Frame
     $ do
         idx <- gets _.currentIdx
         modify_ (\i -> i { currentIdx = idx + 1, graph = insert idx (iau idx) i.graph })
@@ -1365,7 +1375,7 @@ class AudioUnit a ch | a -> ch where
   audioInfo :: a -> AudioInfo ch
 
 class Modify k v x g where
-  modify :: k -> (g -> x -> v -> v) -> Scene Unit
+  modify :: k -> (g -> x -> v -> v) -> Frame Unit
 
 newtype Freq
   = Freq Number
@@ -1374,7 +1384,7 @@ newtype Q
   = Q Number
 
 class CSinOsc freq where
-  sinOsc :: { freq :: freq } -> Scene SinOsc
+  sinOsc :: { freq :: freq } -> Frame SinOsc
 
 instance cSinOscNumber :: CSinOsc Number where
   sinOsc { freq } = simpleBulder SinOsc (\idx -> SinOsc_ { freq: AudioParameter $ defaultParam { param = freq }, idx })
@@ -1386,7 +1396,7 @@ instance audioUnitSinOsc :: AudioUnit SinOsc D0 where
   audioInfo a = { nChans: d0, idx: coerce a }
 
 class CHighpass freq q where
-  highpass :: forall a ch. AudioUnit a ch => { freq :: freq, q :: q, a :: a } -> Scene (Highpass ch)
+  highpass :: forall a ch. AudioUnit a ch => { freq :: freq, q :: q, a :: a } -> Frame (Highpass ch)
 
 instance cHighPassFreqNumberQNumber :: CHighpass Number Number where
   highpass { freq, q, a } = highpass { freq: AudioParameter $ defaultParam { param = freq }, q: AudioParameter $ defaultParam { param = q }, a }

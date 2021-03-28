@@ -6,7 +6,7 @@ import Data.Typelevel.Bool (True, False)
 import Data.Typelevel.Num (class Succ, D0, D1, D2, D3)
 import Effect (Effect)
 import Effect.Class.Console (log)
-import Stream8 (class AllEdgesPointToNodes, class AudioUnitEq, class Gate, class HasBottomLevelNodes, class Lookup, class NoNodesAreDuplicated, class NoParallelEdges, class PtrEq, class UniqueTerminus, type (+:), type (/->), type (/:), AudioUnitRef, Changing, Dup(..), Gain(..), GraphC, Highpass(..), ManyEdges, NoEdge, NodeC, NodeListCons, NodeListNil, PtrListCons, PtrListNil, Scene, SinOsc(..), SingleEdge, SkolemListNil, Static, TGain, THighpass, TSinOsc, UniverseC, create)
+import Stream8 (class AllEdgesPointToNodes, class AudioUnitEq, class Gate, class HasBottomLevelNodes, class Lookup, class NoNodesAreDuplicated, class NoParallelEdges, class PtrEq, class UniqueTerminus, type (+:), type (/->), type (/:), AudioUnitRef, Changing, Dup(..), Gain(..), GraphC, Highpass(..), ManyEdges, NoEdge, NodeC, NodeListCons, NodeListNil, PtrListCons, PtrListNil, Frame, SinOsc(..), SingleEdge, SkolemListNil, Static, TGain, THighpass, TSinOsc, UniverseC, create)
 import Type.Proxy (Proxy(..))
 
 ---------------------------
@@ -157,9 +157,9 @@ testUniqueTerminus2 =
     Proxy node
 
 createTest1 ::
-  forall ptr next env destroyed skolems head tail acc.
+  forall ptr next env destroyed skolems head tail acc proof.
   Succ ptr next =>
-  Scene env acc (UniverseC ptr (GraphC head tail) destroyed skolems acc)
+  Frame env acc proof (UniverseC ptr (GraphC head tail) destroyed skolems acc)
     ( UniverseC next
         (GraphC (NodeC (TSinOsc ptr Changing) NoEdge) (NodeListCons head tail))
         destroyed
@@ -170,10 +170,10 @@ createTest1 ::
 createTest1 = create (SinOsc 440.0)
 
 createTest2 ::
-  forall first mid last env destroyed skolems head tail acc.
+  forall first mid last env destroyed skolems head tail acc proof.
   Succ first mid =>
   Succ mid last =>
-  Scene env acc (UniverseC first (GraphC head tail) destroyed skolems acc)
+  Frame env acc proof (UniverseC first (GraphC head tail) destroyed skolems acc)
     ( UniverseC last
         (GraphC (NodeC (THighpass first Changing Changing) (SingleEdge mid)) (NodeListCons (NodeC (TSinOsc mid Changing) NoEdge) (NodeListCons head tail)))
         destroyed
@@ -186,10 +186,10 @@ createTest2 = create (Highpass 440.0 1.0 (SinOsc 440.0))
 data MyGain
 
 createTest3 ::
-  forall first mid last env destroyed head tail acc.
+  forall first mid last env destroyed head tail acc proof.
   Succ first mid =>
   Succ mid last =>
-  Scene env acc (UniverseC first (GraphC head tail) destroyed SkolemListNil acc)
+  Frame env acc proof (UniverseC first (GraphC head tail) destroyed SkolemListNil acc)
     ( UniverseC last
         ( GraphC
             ( NodeC (TGain first Changing)
@@ -205,11 +205,11 @@ createTest3 ::
 createTest3 = create (Gain 1.0 (\(gain :: Proxy MyGain) -> gain /\ SinOsc 440.0 /\ unit))
 
 createTest4 ::
-  forall first mid0 mid1 last env destroyed head tail acc.
+  forall first mid0 mid1 last env destroyed head tail acc proof.
   Succ first mid0 =>
   Succ mid0 mid1 =>
   Succ mid1 last =>
-  Scene env acc (UniverseC first (GraphC head tail) destroyed SkolemListNil acc)
+  Frame env acc proof (UniverseC first (GraphC head tail) destroyed SkolemListNil acc)
     ( UniverseC last
         ( GraphC
             ( NodeC (TGain first Changing)
@@ -232,11 +232,11 @@ createTest4 =
 data MySinOsc
 
 createTest5 ::
-  forall first mid0 mid1 last env destroyed head tail acc.
+  forall first mid0 mid1 last env destroyed head tail acc proof.
   Succ first mid0 =>
   Succ mid0 mid1 =>
   Succ mid1 last =>
-  Scene env acc (UniverseC first (GraphC head tail) destroyed SkolemListNil acc)
+  Frame env acc proof (UniverseC first (GraphC head tail) destroyed SkolemListNil acc)
     ( UniverseC last
         ( GraphC
             ( NodeC (TGain mid0 Changing)
