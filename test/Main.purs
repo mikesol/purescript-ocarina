@@ -187,7 +187,7 @@ createTest2 = create (Highpass 440.0 1.0 (SinOsc 440.0))
 data MyGain
 
 createTest3 ::
-  forall first mid last env destroyed skolems head tail acc.
+  forall first mid last env destroyed head tail acc.
   Succ first mid =>
   Succ mid last =>
   Scene env acc (UniverseC first (GraphC head tail) destroyed SkolemListNil acc)
