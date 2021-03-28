@@ -1,6 +1,7 @@
 module Stream8 where
 
 import Prelude
+
 import Control.Alt (class Alt)
 import Control.Alternative (class Alternative)
 import Control.Applicative.Indexed (class IxApplicative, ipure)
@@ -25,6 +26,7 @@ import Data.Tuple (Tuple(..), fst, snd)
 import Data.Tuple.Nested (type (/\), (/\))
 import Data.Typelevel.Bool (False, True)
 import Data.Typelevel.Num (class Nat, class Succ, D0, d0, toInt')
+import Effect (Effect)
 import Effect.Class (class MonadEffect)
 import Prim.TypeError (class Warn, Above, Beside, Quote, Text)
 import Safe.Coerce (coerce)
@@ -108,6 +110,7 @@ data Graph
 
 -- non empty
 foreign import data GraphC :: Node -> NodeList -> Graph
+foreign import data InitialGraph :: Graph
 
 data Universe
 
@@ -143,6 +146,7 @@ instance gateFalse :: Gate False l r r
 class GraphToNodeList (graph :: Graph) (nodeList :: NodeList) | graph -> nodeList, nodeList -> graph
 
 instance graphToNodeList :: GraphToNodeList (GraphC node nodeList) (NodeListCons node nodeList)
+instance graphToNodeListIG :: GraphToNodeList InitialGraph NodeListNil
 
 class GetAudioUnit (node :: Node) (au :: AudioUnit) | node -> au
 
@@ -693,6 +697,18 @@ type AudioState env acc a
 newtype Frame (env :: Type) (acc :: Type) (proof :: Type) (ig :: Universe) (og :: Universe) (a :: Type)
   = Frame (AudioState env acc a)
 
+data Frame0
+
+type InitialFrame env acc og = Frame env acc Frame0 (UniverseC D0 InitialGraph PtrListNil SkolemListNil acc) og Unit
+
+newtype Scene (env :: Type) = Scene (env -> Tuple (Effect Unit) (Scene env))
+
+--makeScene :: forall env. 
+
+-- safe to export
+unScene :: forall env. Scene env -> env -> Tuple (Effect Unit) (Scene env)
+unScene (Scene f) = f
+
 -- do not export!
 unFrame :: forall env acc proof i o a. Frame env acc proof i o a -> AudioState env acc a
 unFrame (Frame state) = state
@@ -837,6 +853,30 @@ instance asEdgeProfileAR :: AsEdgeProfile (AudioUnitRef ptr) (SingleEdge ptr) wh
 
 instance asEdgeProfileTupl :: EdgeListable x y => AsEdgeProfile (Tuple (AudioUnitRef ptr) x) (ManyEdges ptr y) where
   getPointers (Tuple (AudioUnitRef i) el) = let PtrArr o = getPointers' el in PtrArr ([ i ] <> o)
+
+class DynToStat'' (i :: AudioUnit) (o :: AudioUnit) | i -> o
+
+instance d2sTSinOsc :: DynToStat'' (TSinOsc idx freq) (TSinOsc idx Static)
+instance d2sTHighpass :: DynToStat'' (THighpass idx freq q) (THighpass idx Static Static)
+instance d2sTGain :: DynToStat'' (TGain idx vol) (TGain idx Static)
+instance d2sTSpeaker :: DynToStat'' (TSpeaker idx) (TSpeaker idx)
+
+class DynToStat' (i :: Node) (o :: Node) | i -> o
+
+instance d2s :: DynToStat'' i o  => DynToStat' (NodeC i x) (NodeC o x)
+
+class DynToStat (i :: NodeList) (o :: NodeList) | i -> o
+
+instance dynToStatNil :: DynToStat NodeListNil NodeListNil
+instance dynToStatCons :: (DynToStat' head newHead, DynToStat tail newTail) => DynToStat (NodeListCons head tail) (NodeListCons newHead newTail)
+
+class AsStatic (env :: Type) (acc :: Type) (proof :: Type) (i :: Universe) (m :: Universe) (o :: Universe)| env acc proof i m -> o where 
+  asStatic :: Frame env acc proof i m Unit -> Frame env acc proof m o Unit
+
+-- only do when there are no skolems
+-- this will force the step to the end
+instance asStaticAll :: (GraphToNodeList dynGraph dynGraphL, DynToStat dynGraphL statGraphL, GraphToNodeList statGraph statGraphL) => AsStatic env acc proof i (UniverseC ptr dynGraph destroyed SkolemListNil acc) (UniverseC ptr statGraph destroyed SkolemListNil acc) where
+  asStatic (Frame x) = Frame x
 
 class Create (a :: Type) (env :: Type) (acc :: Type) (proof :: Type) (i :: Universe) (o :: Universe) (x :: Type) | a env i -> o x where
   create :: a -> Frame env acc proof i o x
@@ -985,15 +1025,16 @@ instance createSinOsc ::
   ( InitialVal env acc a
   , Nat ptr
   , Succ ptr next
+  , GraphToNodeList graph nodeList
   ) =>
   Create
     (SinOsc a)
     env
     acc
     proof
-    (UniverseC ptr (GraphC head tail) destroyed skolems acc)
+    (UniverseC ptr graph destroyed skolems acc)
     ( UniverseC next
-        (GraphC (NodeC (TSinOsc ptr Changing) NoEdge) (NodeListCons head tail))
+        (GraphC (NodeC (TSinOsc ptr Changing) NoEdge) nodeList)
         destroyed
         skolems
         acc
