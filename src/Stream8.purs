@@ -173,21 +173,11 @@ instance skolemNotYetPresentNil :: SkolemNotYetPresent skolem SkolemListNil
 
 instance skolemNotYetPresentCons ::
   ( TypeEqualTF skolem candidate False
-  , SkolemNotYetPresentOrDiscardable skolem tail
+  , SkolemNotYetPresent skolem tail
   ) =>
   SkolemNotYetPresent skolem (SkolemListCons (SkolemPairC candidate ptr) tail)
 
 class SkolemNotYetPresent (skolem :: Type) (skolemList :: SkolemList)
-
-class SkolemNotYetPresentOrDiscardable (skolem :: Type) (skolemList :: SkolemList)
-
-instance skolemNotYetPresentOrDiscardableD :: SkolemNotYetPresentOrDiscardable DiscardableSkolem skolemList
-else instance skolemNotYetPresentOrDiscardableO :: SkolemNotYetPresent o skolemList => SkolemNotYetPresentOrDiscardable o skolemList
-
-class MakeInternalSkolemStack (skolem :: Ptr) (ptr :: Ptr) (skolems :: SkolemList) (skolemsInternal :: SkolemList) | skolem ptr skolems -> skolemsInternal
-
-instance makeInternalSkolemStackDiscardable :: MakeInternalSkolemStack DiscardableSkolem ptr skolems skolems
-else instance makeInternalSkolemStack :: MakeInternalSkolemStack skolem ptr skolems (SkolemListCons (SkolemPairC skolem ptr) skolems)
 
 class PtrEq (a :: Ptr) (b :: Ptr) (tf :: Type) | a b -> tf
 
@@ -763,23 +753,23 @@ instance setterAsChangedAudioParameter :: SetterAsChanged env acc AudioParameter
 
 instance setterAsChangedTuple :: SetterAsChanged env acc (Tuple a (env -> acc -> AudioParameter -> AudioParameter)) Changing
 
-data AudioUnitRef (ptr :: Ptr)
-  = AudioUnitRef Int
-
-data SinOsc a
-  = SinOsc a
-
 data AnAudioUnit
   = ASinOsc AudioParameter
   | AHighpass AudioParameter AudioParameter
   | AGain AudioParameter
   | ASpeaker
 
+data AudioUnitRef (ptr :: Ptr)
+  = AudioUnitRef Int
+
+data Fix a
+  = Fix a
+
+data SinOsc a
+  = SinOsc a
+
 data Highpass a b c
   = Highpass a b c
-
-data Highpass_ a b
-  = Highpass_ a b
 
 data Gain a b
   = Gain a b
@@ -799,31 +789,17 @@ instance edgeListableTuple :: EdgeListable x y => EdgeListable (Tuple (AudioUnit
 newtype PtrArr a
   = PtrArr (Array Int)
 
-data DiscardableSkolem
+class GetInnerTermFromAU (a :: Type) (b :: Type) | a -> b where
+  getInnerTermFromAU :: a -> b
 
-class GetSkolemFromRecursiveArgument (a :: Type) (skolem :: Type) | a -> skolem
+instance getInnerTermFromAUHighpass :: GetInnerTermFromAU (Highpass a b o) o where
+  getInnerTermFromAU (Highpass a b c) = c
 
-instance getSkolemFromRecursiveArgumentF :: GetSkolemFromRecursiveArgument ((Proxy skolem) -> b) skolem
-else instance getSkolemFromRecursiveArgumentC :: GetSkolemFromRecursiveArgument b DiscardableSkolem
+instance getInnerTermFromAUGain :: GetInnerTermFromAU (Gain a o) o where
+  getInnerTermFromAU (Gain a b) = b
 
-class ToSkolemizedFunction (a :: Type) (skolem :: Type) (b :: Type) | a skolem -> b where
-  toSkolemizedFunction :: a -> (Proxy skolem -> b)
-
-instance toSkolemizedFunctionFunction :: ToSkolemizedFunction (Proxy skolem -> b) skolem b where
-  toSkolemizedFunction = identity
-else instance toSkolemizedFunctionConst :: ToSkolemizedFunction b skolem b where
-  toSkolemizedFunction = const
-
-class GetSkolemizedFunctionFromAU (a :: Type) (skolem :: Type) (b :: Type) | a skolem -> b where
-  getSkolemizedFunctionFromAU :: a -> (Proxy skolem -> b)
-instance getSkolemizedFunctionFromAUHighpass :: ToSkolemizedFunction i skolem o => GetSkolemizedFunctionFromAU (Highpass a b i) skolem o where
-  getSkolemizedFunctionFromAU (Highpass a b c) = toSkolemizedFunction c
-
-instance getSkolemizedFunctionFromAUGain :: ToSkolemizedFunction i skolem o => GetSkolemizedFunctionFromAU (Gain a i) skolem o where
-  getSkolemizedFunctionFromAU (Gain a b) = toSkolemizedFunction b
-
-instance getSkolemizedFunctionFromAUSpeaker :: ToSkolemizedFunction i skolem o => GetSkolemizedFunctionFromAU (Speaker i) skolem o where
-  getSkolemizedFunctionFromAU (Speaker a) = toSkolemizedFunction a
+instance getInnerTermFromAUSpeaker :: GetInnerTermFromAU (Speaker o) o where
+  getInnerTermFromAU (Speaker a) = a
 
 class AsEdgeProfile a (b :: EdgeProfile) | a -> b where
   getPointers :: a -> PtrArr b
@@ -857,26 +833,23 @@ creationStep g = do
   pure currentIdx
 
 createAndConnect ::
-  forall env acc g ptr skolem c i o innerTerm eprof.
-  GetSkolemizedFunctionFromAU g skolem c =>
+  forall env acc g ptr c i o innerTerm eprof.
+  GetInnerTermFromAU g c =>
   AsEdgeProfile innerTerm eprof =>
   CreationInstructions env acc g =>
   Create c env acc i o innerTerm =>
-  Proxy skolem ->
   Proxy ptr ->
   Proxy innerTerm ->
   g ->
   Scene env acc i o Int
-createAndConnect _ _ _ g =
+createAndConnect _ _ g =
   Scene
     $ do
         idx <- cs
         let
           (Scene mc) =
             (create :: c -> Scene env acc i o innerTerm)
-              ( ((getSkolemizedFunctionFromAU :: g -> (Proxy skolem -> c)) g)
-                  Proxy
-              )
+              (((getInnerTermFromAU :: g -> c) g))
         oc <- mc
         let
           PtrArr o = getPointers oc
@@ -947,24 +920,20 @@ instance createSinOsc ::
 instance createHighpass ::
   ( InitialVal env acc a
   , InitialVal env acc b
-  , GetSkolemFromRecursiveArgument fc skolem
-  , ToSkolemizedFunction fc skolem c
-  , SkolemNotYetPresentOrDiscardable skolem skolems
-  , MakeInternalSkolemStack skolem ptr skolems skolemsInternal
   , Nat ptr
   , Succ ptr next
   , Create
       c
       env
       acc
-      (UniverseC next graphi destroyed skolemsInternal acc)
-      (UniverseC outptr grapho destroyed skolemsInternal acc)
+      (UniverseC next graphi destroyed skolems acc)
+      (UniverseC outptr grapho destroyed skolems acc)
       term
   , AsEdgeProfile term (SingleEdge op)
   , GraphToNodeList grapho nodeList
   ) =>
   Create
-    (Highpass a b fc)
+    (Highpass a b c)
     env
     acc
     (UniverseC ptr graphi destroyed skolems acc)
@@ -979,39 +948,33 @@ instance createHighpass ::
   create =
     Scene <<< map AudioUnitRef <<< unScene
       <<< ( createAndConnect ::
-            Proxy skolem ->
             Proxy ptr ->
             Proxy term ->
-            (Highpass a b fc) ->
+            (Highpass a b c) ->
             Scene env acc
-              (UniverseC next graphi destroyed skolemsInternal acc)
-              (UniverseC outptr grapho destroyed skolemsInternal acc)
+              (UniverseC next graphi destroyed skolems acc)
+              (UniverseC outptr grapho destroyed skolems acc)
               Int
         )
-          Proxy
           Proxy
           Proxy
 
 instance createGain ::
   ( InitialVal env acc a
-  , GetSkolemFromRecursiveArgument fb skolem
-  , ToSkolemizedFunction fb skolem b
-  , SkolemNotYetPresentOrDiscardable skolem skolems
-  , MakeInternalSkolemStack skolem ptr skolems skolemsInternal
   , Nat ptr
   , Succ ptr next
   , Create
       b
       env
       acc
-      (UniverseC next graphi destroyed skolemsInternal acc)
-      (UniverseC outptr grapho destroyed skolemsInternal acc)
+      (UniverseC next graphi destroyed skolems acc)
+      (UniverseC outptr grapho destroyed skolems acc)
       term
   , AsEdgeProfile term eprof
   , GraphToNodeList grapho nodeList
   ) =>
   Create
-    (Gain a fb)
+    (Gain a b)
     env
     acc
     (UniverseC ptr graphi destroyed skolems acc)
@@ -1026,22 +989,19 @@ instance createGain ::
   create =
     Scene <<< map AudioUnitRef <<< unScene
       <<< ( createAndConnect ::
-            Proxy skolem ->
             Proxy ptr ->
             Proxy term ->
-            (Gain a fb) ->
+            (Gain a b) ->
             Scene env acc
-              (UniverseC next graphi destroyed skolemsInternal acc)
-              (UniverseC outptr grapho destroyed skolemsInternal acc)
+              (UniverseC next graphi destroyed skolems acc)
+              (UniverseC outptr grapho destroyed skolems acc)
               Int
         )
           Proxy
           Proxy
-          Proxy
 
 instance createSpeaker ::
-  ( ToSkolemizedFunction (DiscardableSkolem -> a) ptr a
-  , Nat ptr
+  ( Nat ptr
   , Succ ptr next
   , Create
       a
@@ -1069,7 +1029,6 @@ instance createSpeaker ::
   create =
     Scene <<< map AudioUnitRef <<< unScene
       <<< ( createAndConnect ::
-            Proxy DiscardableSkolem ->
             Proxy ptr ->
             Proxy term ->
             (Speaker a) ->
@@ -1080,7 +1039,37 @@ instance createSpeaker ::
         )
           Proxy
           Proxy
-          Proxy
+
+instance createFix ::
+  ( Nat ptr
+  , SkolemNotYetPresent skolem skolems
+  , Create
+      a
+      env
+      acc
+      (UniverseC ptr graphi destroyed (SkolemListCons (SkolemPairC skolem ptr) skolems) acc)
+      (UniverseC outptr grapho destroyed (SkolemListCons (SkolemPairC skolem ptr) skolems) acc)
+      (AudioUnitRef ptr)
+  ) =>
+  Create
+    (Fix (Proxy skolem -> a))
+    env
+    acc
+    (UniverseC ptr graphi destroyed skolems acc)
+    (UniverseC outptr grapho destroyed skolems acc)
+    (AudioUnitRef ptr) where
+  create (Fix f) = Scene x
+    where
+    Scene x =
+      ( create ::
+          a ->
+          Scene env
+            acc
+            (UniverseC ptr graphi destroyed (SkolemListCons (SkolemPairC skolem ptr) skolems) acc)
+            (UniverseC outptr grapho destroyed (SkolemListCons (SkolemPairC skolem ptr) skolems) acc)
+            (AudioUnitRef ptr)
+      )
+        (f (Proxy :: _ skolem))
 
 change' ::
   forall a g t u p i o env acc.
