@@ -1,13 +1,13 @@
 module Test.Main where
 
+import Data.Tuple.Nested
 import Prelude
 
 import Data.Typelevel.Bool (True, False)
 import Data.Typelevel.Num (class Succ, D0, D1, D2, D3)
 import Effect (Effect)
 import Effect.Class.Console (log)
-import Stream8 (class AllEdgesPointToNodes, class AudioUnitEq, class Gate, class HasBottomLevelNodes, class Lookup, class NoNodesAreDuplicated, class NoParallelEdges, class PtrEq, class UniqueTerminus, type (+:), type (/->), type (/:), AudioUnitRef, Changing, GraphC, Highpass(..), ManyEdges, NoEdge, NodeC, NodeListCons, NodeListNil, PtrListCons, PtrListNil, Gain (..), Scene, SinOsc(..), SingleEdge, Static, TGain, THighpass, TSinOsc, UniverseC, create)
-import Data.Tuple.Nested
+import Stream8 (class AllEdgesPointToNodes, class AudioUnitEq, class Gate, class HasBottomLevelNodes, class Lookup, class NoNodesAreDuplicated, class NoParallelEdges, class PtrEq, class UniqueTerminus, type (+:), type (/->), type (/:), AudioUnitRef, Changing, Gain(..), GraphC, Highpass(..), ManyEdges, NoEdge, NodeC, NodeListCons, NodeListNil, PtrListCons, PtrListNil, Scene, SinOsc(..), SingleEdge, SkolemListNil, Static, TGain, THighpass, TSinOsc, UniverseC, create)
 import Type.Proxy (Proxy(..))
 
 ---------------------------
@@ -184,22 +184,20 @@ createTest2 ::
     (AudioUnitRef first)
 createTest2 = create (Highpass 440.0 1.0 (SinOsc 440.0))
 
-{-
-createTest3 ::
-  forall first mid last env destroyed head tail acc.
-  Succ first mid =>
-  Succ mid last =>
-  Scene env acc (UniverseC first (GraphC head tail) destroyed acc)
-    ( UniverseC last
-        (GraphC (NodeC (THighpass first Changing Changing) (SingleEdge mid)) (NodeListCons (NodeC (TSinOsc mid Changing) NoEdge) (NodeListCons head tail)))
-        destroyed
-        acc
-    )
-    ( AudioUnitRef first)
--}
-
 data MyGain
 
+createTest3 ::
+  forall first mid last env destroyed skolems head tail acc.
+  Succ first mid =>
+  Succ mid last =>
+  Scene env acc (UniverseC first (GraphC head tail) destroyed SkolemListNil acc)
+    ( UniverseC last
+        (GraphC (NodeC (TGain first Changing) (ManyEdges first (PtrListCons mid PtrListNil))) (NodeListCons (NodeC (TSinOsc mid Changing) NoEdge) (NodeListCons head tail)))
+        destroyed
+        SkolemListNil
+        acc
+    )
+    (AudioUnitRef first)
 createTest3 = create (Gain 1.0 (\(gain :: Proxy MyGain) -> gain /\ SinOsc 440.0 /\ unit))
 
 main :: Effect Unit

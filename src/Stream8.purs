@@ -808,22 +808,22 @@ else instance getSkolemFromRecursiveArgumentC :: GetSkolemFromRecursiveArgument 
 class GetAudioUnitRefFunction (a :: Type) (skolem :: Type) (b :: Type) | a skolem -> b where
   getAudioUnitRefFunction :: a -> (Proxy skolem -> b)
 
-class ToAudioUnitRefFunction (a :: Type) (skolem :: Type) (b :: Type) | a skolem -> b where
-  toAudioUnitRefFunction :: a -> (Proxy skolem -> b)
+class ToSkolemizedFunction (a :: Type) (skolem :: Type) (b :: Type) | a skolem -> b where
+  toSkolemizedFunction :: a -> (Proxy skolem -> b)
 
-instance getAudioUnitRefFunctionHighpass :: ToAudioUnitRefFunction i skolem o => GetAudioUnitRefFunction (Highpass a b i) skolem o where
-  getAudioUnitRefFunction (Highpass a b c) = toAudioUnitRefFunction c
+instance getAudioUnitRefFunctionHighpass :: ToSkolemizedFunction i skolem o => GetAudioUnitRefFunction (Highpass a b i) skolem o where
+  getAudioUnitRefFunction (Highpass a b c) = toSkolemizedFunction c
 
-instance getAudioUnitRefFunctionGain :: ToAudioUnitRefFunction i skolem o => GetAudioUnitRefFunction (Gain a i) skolem o where
-  getAudioUnitRefFunction (Gain a b) = toAudioUnitRefFunction b
+instance getAudioUnitRefFunctionGain :: ToSkolemizedFunction i skolem o => GetAudioUnitRefFunction (Gain a i) skolem o where
+  getAudioUnitRefFunction (Gain a b) = toSkolemizedFunction b
 
-instance getAudioUnitRefFunctionSpeaker :: ToAudioUnitRefFunction i skolem o => GetAudioUnitRefFunction (Speaker i) skolem o where
-  getAudioUnitRefFunction (Speaker a) = toAudioUnitRefFunction a
+instance getAudioUnitRefFunctionSpeaker :: ToSkolemizedFunction i skolem o => GetAudioUnitRefFunction (Speaker i) skolem o where
+  getAudioUnitRefFunction (Speaker a) = toSkolemizedFunction a
 
-instance toAudioUnitRefFunctionFunction :: ToAudioUnitRefFunction (Proxy skolem -> b) skolem b where
-  toAudioUnitRefFunction = identity
-else instance toAudioUnitRefFunctionConst :: ToAudioUnitRefFunction b skolem b where
-  toAudioUnitRefFunction = const
+instance toSkolemizedFunctionFunction :: ToSkolemizedFunction (Proxy skolem -> b) skolem b where
+  toSkolemizedFunction = identity
+else instance toSkolemizedFunctionConst :: ToSkolemizedFunction b skolem b where
+  toSkolemizedFunction = const
 
 class AsEdgeProfile a (b :: EdgeProfile) | a -> b where
   getPointers :: a -> PtrArr b
@@ -947,7 +947,7 @@ instance createSinOsc ::
 instance createHighpass ::
   ( InitialVal env acc a
   , InitialVal env acc b
-  , ToAudioUnitRefFunction fc skolem c
+  , ToSkolemizedFunction fc skolem c
   , GetSkolemFromRecursiveArgument fc skolem
   , SkolemNotYetPresentOrDiscardable skolem skolems
   , MakeInternalSkolemStack skolem ptr skolems skolemsInternal
@@ -993,9 +993,10 @@ instance createHighpass ::
           Proxy
 
 instance createGain ::
-  ( InitialVal env acc a
-  , ToAudioUnitRefFunction fb skolem b
-  , GetSkolemFromRecursiveArgument fc skolem
+  ( Warn ((Text "hello") ^^ (Quote fb))
+  , InitialVal env acc a
+  , ToSkolemizedFunction fb skolem b
+  , GetSkolemFromRecursiveArgument fb skolem
   , SkolemNotYetPresentOrDiscardable skolem skolems
   , MakeInternalSkolemStack skolem ptr skolems skolemsInternal
   , Nat ptr
@@ -1040,7 +1041,7 @@ instance createGain ::
           Proxy
 
 instance createSpeaker ::
-  ( ToAudioUnitRefFunction (DiscardableSkolem -> a) ptr a
+  ( ToSkolemizedFunction (DiscardableSkolem -> a) ptr a
   , Nat ptr
   , Succ ptr next
   , Create
