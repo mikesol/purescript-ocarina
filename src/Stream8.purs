@@ -1,6 +1,7 @@
 module Stream8 where
 
 import Prelude
+
 import Control.Alt (class Alt)
 import Control.Alternative (class Alternative)
 import Control.Applicative.Indexed (class IxApplicative, ipure)
@@ -148,6 +149,22 @@ class GetAudioUnit (node :: Node) (au :: AudioUnit) | node -> au
 
 instance getAudioUnitNodeC :: GetAudioUnit (NodeC au ep) au
 
+class LookupSkolem' (accumulator :: PtrList) (skolem :: Type) (skolemList :: SkolemList) (ptr :: PtrList) | accumulator skolem skolemList -> ptr
+
+instance lookupSkolemNil :: LookupSkolem' accumulator ptr SkolemListNil accumulator
+
+instance lookupSkolemCons :: (
+  TypeEqualTF skolem candidate tf,
+  Gate tf (PtrListCons ptr PtrListNil) PtrListNil toComp,
+  PtrListKeepSingleton toComp accumulator acc,
+  LookupSkolem' acc skolem tail o
+) => LookupSkolem' accumulator skolem (SkolemListCons (SkolemPairC candidate ptr) tail) o
+
+class LookupSkolem (skolem :: Type) (skolemList :: SkolemList) (ptr :: Ptr) | skolem skolemList -> ptr
+
+instance lookupSkolem :: (LookupSkolem' PtrListNil skolem skolemList (PtrListCons ptr PtrListNil)) => LookupSkolem skolem skolemList ptr
+
+
 class TypeEqualTF (a :: Type) (b :: Type) (c :: Type)
 
 instance typeEqualTFT :: TypeEqualTF a a True
@@ -249,7 +266,15 @@ instance nodeListKeepSingletonL :: NodeListKeepSingleton (NodeListCons a NodeLis
 
 instance nodeListKeepSingletonR :: NodeListKeepSingleton NodeListNil (NodeListCons a NodeListNil) (NodeListCons a NodeListNil)
 
-class LookupNL (accumulator :: NodeList) (ptr :: Ptr) (graph :: NodeList) (node :: NodeList) | ptr graph -> node
+class PtrListKeepSingleton (ptrListA :: PtrList) (ptrListB :: PtrList) (ptrListC :: PtrList) | ptrListA ptrListB -> ptrListC
+
+instance ptrListKeepSingletonNil :: PtrListKeepSingleton PtrListNil PtrListNil PtrListNil
+
+instance ptrListKeepSingletonL :: PtrListKeepSingleton (PtrListCons a PtrListNil) PtrListNil (PtrListCons a PtrListNil)
+
+instance ptrListKeepSingletonR :: PtrListKeepSingleton PtrListNil (PtrListCons a PtrListNil) (PtrListCons a PtrListNil)
+
+class LookupNL (accumulator :: NodeList) (ptr :: Ptr) (graph :: NodeList) (node :: NodeList) | accumulator ptr graph -> node
 
 instance lookupNLNil :: LookupNL accumulator ptr NodeListNil accumulator
 
@@ -866,6 +891,39 @@ createAndConnect _ _ _ g =
         pure idx
   where
   cs = creationStep g
+
+-- end of the line in tuples
+instance createUnit ::
+  Create
+    Unit
+    env
+    acc
+    u
+    u
+    Unit where
+  create = Scene <<< pure
+
+instance createTuple ::
+  (Create x env acc u0 u1 x', Create y env acc u1 u2 y') =>
+  Create (x /\ y) env acc u0 u2 (x' /\ y') where
+  create (x /\ y) = Scene $ Tuple <$> x' <*> y'
+    where
+    Scene x' = (create :: x -> Scene env acc u0 u1 x') x
+    Scene y' = (create :: y -> Scene env acc u1 u2 y') y
+
+instance createProxy ::
+  ( LookupSkolem skolem skolems ptr
+  , Nat ptr
+  ) =>
+  Create
+    (Proxy skolem)
+    env
+    acc
+    (UniverseC next graph destroyed skolems acc)
+    (UniverseC next graph destroyed skolems acc)
+    (AudioUnitRef ptr) where
+  create _ = Scene (pure $ AudioUnitRef $ toInt' (Proxy :: Proxy ptr))
+
 
 instance createSinOsc ::
   ( InitialVal env acc a
