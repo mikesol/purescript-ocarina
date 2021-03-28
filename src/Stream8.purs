@@ -707,9 +707,6 @@ instance setterAsChangedTuple :: SetterAsChanged env acc (Tuple a (env -> acc ->
 data AudioUnitRef (ptr :: Ptr)
   = AudioUnitRef Int
 
-data ARef
-  = ARef
-
 data SinOsc a
   = SinOsc a
 
@@ -743,25 +740,25 @@ instance edgeListableTuple :: EdgeListable x y => EdgeListable (Tuple (AudioUnit
 newtype PtrArr a
   = PtrArr (Array Int)
 
-class GetARefFunction (a :: Type) (b :: Type) | a -> b where
-  getARefFunction :: a -> (ARef -> b)
+class GetAudioUnitRefFunction (a :: Type) (ptr :: Type) (b :: Type) | a ptr -> b where
+  getAudioUnitRefFunction :: a -> (AudioUnitRef ptr -> b)
 
-class ToARefFunction (a :: Type) (b :: Type) | a -> b where
-  toARefFunction :: a -> (ARef -> b)
+class ToAudioUnitRefFunction (a :: Type) (ptr :: Type) (b :: Type) | a ptr -> b where
+  toAudioUnitRefFunction :: a -> (AudioUnitRef ptr -> b)
 
-instance getARefFunctionHighpass :: ToARefFunction i o => GetARefFunction (Highpass a b i) o where
-  getARefFunction (Highpass a b c) = toARefFunction c
+instance getAudioUnitRefFunctionHighpass :: ToAudioUnitRefFunction i ptr o => GetAudioUnitRefFunction (Highpass a b i) ptr o where
+  getAudioUnitRefFunction (Highpass a b c) = toAudioUnitRefFunction c
 
-instance getARefFunctionGain :: ToARefFunction i o => GetARefFunction (Gain a i) o where
-  getARefFunction (Gain a b) = toARefFunction b
+instance getAudioUnitRefFunctionGain :: ToAudioUnitRefFunction i ptr o => GetAudioUnitRefFunction (Gain a i) ptr o where
+  getAudioUnitRefFunction (Gain a b) = toAudioUnitRefFunction b
 
-instance getARefFunctionSpeaker :: ToARefFunction i o => GetARefFunction (Speaker i) o where
-  getARefFunction (Speaker a) = toARefFunction a
+instance getAudioUnitRefFunctionSpeaker :: ToAudioUnitRefFunction i ptr o => GetAudioUnitRefFunction (Speaker i) ptr o where
+  getAudioUnitRefFunction (Speaker a) = toAudioUnitRefFunction a
 
-instance toARefFunctionFunction :: ToARefFunction (ARef -> b) b where
-  toARefFunction = identity
-else instance toARefFunctionConst :: ToARefFunction b b where
-  toARefFunction = const
+instance toAudioUnitRefFunctionFunction :: ToAudioUnitRefFunction (AudioUnitRef ptr -> b) ptr b where
+  toAudioUnitRefFunction = identity
+else instance toAudioUnitRefFunctionConst :: ToAudioUnitRefFunction b ptr b where
+  toAudioUnitRefFunction = const
 
 class AsEdgeProfile a (b :: EdgeProfile) | a -> b where
   getPointers :: a -> PtrArr b
@@ -798,18 +795,25 @@ creationStep g = do
   pure currentIdx
 
 createAndConnect ::
-  forall env acc g c i o innerTerm eprof.
-  GetARefFunction g c =>
+  forall env acc g ptr c i o innerTerm eprof.
+  GetAudioUnitRefFunction g ptr c =>
   AsEdgeProfile innerTerm eprof =>
   CreationInstructions env acc g =>
   Create c env acc i o innerTerm =>
+  Proxy ptr ->
   Proxy innerTerm ->
   g ->
   Scene env acc i o Int
-createAndConnect _ g =
+createAndConnect _ _ g =
   Scene
     $ do
         idx <- cs
+        let
+          (Scene mc) =
+            (create :: c -> Scene env acc i o innerTerm)
+              ( ((getAudioUnitRefFunction :: g -> (AudioUnitRef ptr -> c)) g)
+                  (AudioUnitRef idx)
+              )
         oc <- mc
         let
           PtrArr o = getPointers oc
@@ -824,8 +828,6 @@ createAndConnect _ g =
         pure idx
   where
   cs = creationStep g
-
-  (Scene mc) = (create :: c -> Scene env acc i o innerTerm) ((getARefFunction g) ARef)
 
 instance createSinOsc ::
   ( InitialVal env acc a
@@ -848,7 +850,7 @@ instance createSinOsc ::
 instance createHighpass ::
   ( InitialVal env acc a
   , InitialVal env acc b
-  , ToARefFunction fc c
+  , ToAudioUnitRefFunction fc ptr c
   , Nat ptr
   , Succ ptr next
   , Create
@@ -878,6 +880,7 @@ instance createHighpass ::
   create =
     Scene <<< map AudioUnitRef <<< unScene
       <<< ( createAndConnect ::
+            Proxy ptr ->
             Proxy term ->
             (Highpass a b fc) ->
             Scene env acc
@@ -885,11 +888,11 @@ instance createHighpass ::
               (UniverseC outptr grapho destroyed acc)
               Int
         )
-          (Proxy :: _ term)
+          Proxy Proxy
 
 instance createGain ::
   ( InitialVal env acc a
-  , ToARefFunction fb b
+  , ToAudioUnitRefFunction fb ptr b
   , Nat ptr
   , Succ ptr next
   , Create
@@ -919,6 +922,7 @@ instance createGain ::
   create =
     Scene <<< map AudioUnitRef <<< unScene
       <<< ( createAndConnect ::
+            Proxy ptr ->
             Proxy term ->
             (Gain a fb) ->
             Scene env acc
@@ -926,10 +930,10 @@ instance createGain ::
               (UniverseC outptr grapho destroyed acc)
               Int
         )
-          (Proxy :: _ term)
+          Proxy Proxy
 
 instance createSpeaker ::
-  ( ToARefFunction fa a
+  ( ToAudioUnitRefFunction fa ptr a
   , Nat ptr
   , Succ ptr next
   , Create
@@ -959,6 +963,7 @@ instance createSpeaker ::
   create =
     Scene <<< map AudioUnitRef <<< unScene
       <<< ( createAndConnect ::
+            Proxy ptr ->
             Proxy term ->
             (Speaker fa) ->
             Scene env acc
@@ -966,7 +971,7 @@ instance createSpeaker ::
               (UniverseC outptr grapho destroyed acc)
               Int
         )
-          (Proxy :: _ term)
+          Proxy Proxy
 
 change' ::
   forall a g t u p i o env acc.
@@ -1005,7 +1010,7 @@ class Modify (tag :: Type) (p :: Ptr) (i :: Universe) (o :: Universe) (nextP :: 
 instance modify :: (GraphToNodeList ig il, Modify' tag p il ol mod nextPL, AssertSingleton mod x, GraphToNodeList og ol) => Modify tag p (UniverseC i ig d acc) (UniverseC i og d acc) nextP
 
 instance changeNothing ::
-  Change p ARef env acc inuniv outuniv where
+  Change p (AudioUnitRef p) env acc inuniv outuniv where
   change _ _ = Scene (pure unit)
 
 instance changeSinOsc ::
