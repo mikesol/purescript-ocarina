@@ -198,7 +198,7 @@ createTest3 ::
 
 data MyGain
 
-createTest3 = create (Gain 1.0 (\(gain :: MyGain) -> gain /\ SinOsc 440.0 /\ unit))
+createTest3 = create (Gain 1.0 (\(gain :: Proxy MyGain) -> gain /\ SinOsc 440.0 /\ unit))
 
 main :: Effect Unit
 main = do
