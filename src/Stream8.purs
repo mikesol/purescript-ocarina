@@ -124,9 +124,6 @@ instance getPointerGain :: GetPointer (TGain ptr a) ptr
 
 instance getPointerSpeaker :: GetPointer (TSpeaker ptr) ptr
 
-getPointer :: forall i. AudioUnitRef i -> Int
-getPointer (AudioUnitRef i) = i
-
 class Gate tf l r o | tf l r -> o
 
 instance gateTrue :: Gate True l r l

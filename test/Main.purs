@@ -164,13 +164,7 @@ createTest1 ::
         destroyed
         acc
     )
-    ( AudioUnitRef ptr
-        ( UniverseC next
-            (GraphC (NodeC (TSinOsc ptr Changing) NoEdge) (NodeListCons head tail))
-            destroyed
-            acc
-        )
-    )
+    (AudioUnitRef ptr)
 createTest1 = create (SinOsc 440.0)
 
 createTest2 ::
@@ -183,13 +177,7 @@ createTest2 ::
         destroyed
         acc
     )
-    ( AudioUnitRef first
-        ( UniverseC last
-            (GraphC (NodeC (THighpass first Changing Changing) (SingleEdge mid)) (NodeListCons (NodeC (TSinOsc mid Changing) NoEdge) (NodeListCons head tail)))
-            destroyed
-            acc
-        )
-    )
+    (AudioUnitRef first)
 createTest2 = create (Highpass 440.0 1.0 (\(_ :: ARef) -> SinOsc 440.0))
 
 createTest3 ::
@@ -202,13 +190,7 @@ createTest3 ::
         destroyed
         acc
     )
-    ( AudioUnitRef first
-        ( UniverseC last
-            (GraphC (NodeC (THighpass first Changing Changing) (SingleEdge mid)) (NodeListCons (NodeC (TSinOsc mid Changing) NoEdge) (NodeListCons head tail)))
-            destroyed
-            acc
-        )
-    )
+    ( AudioUnitRef first)
 createTest3 = create (Highpass 440.0 1.0 (SinOsc 440.0))
 
 main :: Effect Unit
