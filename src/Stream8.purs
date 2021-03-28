@@ -740,11 +740,24 @@ instance edgeListableTuple :: EdgeListable x y => EdgeListable (Tuple (AudioUnit
 newtype PtrArr a
   = PtrArr (Array Int)
 
-class GetAudioUnitRefFunction (a :: Type) (ptr :: Type) (b :: Type) | a ptr -> b where
-  getAudioUnitRefFunction :: a -> (AudioUnitRef ptr -> b)
+data DiscardableSkolem = DiscardableSkolem
 
-class ToAudioUnitRefFunction (a :: Type) (ptr :: Type) (b :: Type) | a ptr -> b where
-  toAudioUnitRefFunction :: a -> (AudioUnitRef ptr -> b)
+instance semigroupDiscardableSkolem :: Semigroup DiscardableSkolem where
+  append _ _ = DiscardableSkolem
+
+instance monoidDiscardableSkolem :: Monoid DiscardableSkolem where
+  mempty = DiscardableSkolem
+
+class GetSkolemFromRecursiveArgument (a :: Type) (skolem :: Type) | a -> skolem
+
+instance getSkolemFromRecursiveArgumentF :: GetSkolemFromRecursiveArgument (skolem -> b) skolem
+else instance getSkolemFromRecursiveArgumentC :: GetSkolemFromRecursiveArgument b DiscardableSkolem
+
+class GetAudioUnitRefFunction (a :: Type) (skolem :: Type) (b :: Type) | a skolem -> b where
+  getAudioUnitRefFunction :: a -> (skolem -> b)
+
+class ToAudioUnitRefFunction (a :: Type) (skolem :: Type) (b :: Type) | a skolem -> b where
+  toAudioUnitRefFunction :: a -> (skolem -> b)
 
 instance getAudioUnitRefFunctionHighpass :: ToAudioUnitRefFunction i ptr o => GetAudioUnitRefFunction (Highpass a b i) ptr o where
   getAudioUnitRefFunction (Highpass a b c) = toAudioUnitRefFunction c
@@ -755,9 +768,9 @@ instance getAudioUnitRefFunctionGain :: ToAudioUnitRefFunction i ptr o => GetAud
 instance getAudioUnitRefFunctionSpeaker :: ToAudioUnitRefFunction i ptr o => GetAudioUnitRefFunction (Speaker i) ptr o where
   getAudioUnitRefFunction (Speaker a) = toAudioUnitRefFunction a
 
-instance toAudioUnitRefFunctionFunction :: ToAudioUnitRefFunction (AudioUnitRef ptr -> b) ptr b where
+instance toAudioUnitRefFunctionFunction :: ToAudioUnitRefFunction (skolem -> b) skolem b where
   toAudioUnitRefFunction = identity
-else instance toAudioUnitRefFunctionConst :: ToAudioUnitRefFunction b ptr b where
+else instance toAudioUnitRefFunctionConst :: ToAudioUnitRefFunction b skolem b where
   toAudioUnitRefFunction = const
 
 class AsEdgeProfile a (b :: EdgeProfile) | a -> b where
@@ -792,24 +805,26 @@ creationStep g = do
   pure currentIdx
 
 createAndConnect ::
-  forall env acc g ptr c i o innerTerm eprof.
-  GetAudioUnitRefFunction g ptr c =>
+  forall env acc g ptr skolem c i o innerTerm eprof.
+  Monoid skolem =>
+  GetAudioUnitRefFunction g skolem c =>
   AsEdgeProfile innerTerm eprof =>
   CreationInstructions env acc g =>
   Create c env acc i o innerTerm =>
+  Proxy skolem ->
   Proxy ptr ->
   Proxy innerTerm ->
   g ->
   Scene env acc i o Int
-createAndConnect _ _ g =
+createAndConnect _ _ _ g =
   Scene
     $ do
         idx <- cs
         let
           (Scene mc) =
             (create :: c -> Scene env acc i o innerTerm)
-              ( ((getAudioUnitRefFunction :: g -> (AudioUnitRef ptr -> c)) g)
-                  (AudioUnitRef idx)
+              ( ((getAudioUnitRefFunction :: g -> (skolem -> c)) g)
+                  mempty
               )
         oc <- mc
         let
@@ -847,7 +862,9 @@ instance createSinOsc ::
 instance createHighpass ::
   ( InitialVal env acc a
   , InitialVal env acc b
-  , ToAudioUnitRefFunction fc ptr c
+  , Monoid skolem
+  , GetSkolemFromRecursiveArgument fc skolem
+  , ToAudioUnitRefFunction fc skolem c
   , Nat ptr
   , Succ ptr next
   , Create
@@ -877,6 +894,7 @@ instance createHighpass ::
   create =
     Scene <<< map AudioUnitRef <<< unScene
       <<< ( createAndConnect ::
+            Proxy skolem ->
             Proxy ptr ->
             Proxy term ->
             (Highpass a b fc) ->
@@ -887,10 +905,13 @@ instance createHighpass ::
         )
           Proxy
           Proxy
+          Proxy
 
 instance createGain ::
   ( InitialVal env acc a
-  , ToAudioUnitRefFunction fb ptr b
+  , Monoid skolem
+  , GetSkolemFromRecursiveArgument fc skolem
+  , ToAudioUnitRefFunction fb skolem b
   , Nat ptr
   , Succ ptr next
   , Create
@@ -920,6 +941,7 @@ instance createGain ::
   create =
     Scene <<< map AudioUnitRef <<< unScene
       <<< ( createAndConnect ::
+            Proxy skolem ->
             Proxy ptr ->
             Proxy term ->
             (Gain a fb) ->
@@ -930,9 +952,10 @@ instance createGain ::
         )
           Proxy
           Proxy
+          Proxy
 
 instance createSpeaker ::
-  ( ToAudioUnitRefFunction (AudioUnitRef ptr -> a) ptr a
+  ( ToAudioUnitRefFunction (DiscardableSkolem -> a) ptr a
   , Nat ptr
   , Succ ptr next
   , Create
@@ -962,6 +985,7 @@ instance createSpeaker ::
   create =
     Scene <<< map AudioUnitRef <<< unScene
       <<< ( createAndConnect ::
+            Proxy DiscardableSkolem ->
             Proxy ptr ->
             Proxy term ->
             (Speaker a) ->
@@ -970,6 +994,7 @@ instance createSpeaker ::
               (UniverseC outptr grapho destroyed acc)
               Int
         )
+          Proxy
           Proxy
           Proxy
 

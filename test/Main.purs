@@ -195,7 +195,10 @@ createTest3 ::
     )
     ( AudioUnitRef first)
 -}
-createTest3 = create (Gain 1.0 (\gain -> gain /\ SinOsc 440.0 /\ unit))
+
+data MyGain
+
+createTest3 = create (Gain 1.0 (\(gain :: MyGain) -> gain /\ SinOsc 440.0 /\ unit))
 
 main :: Effect Unit
 main = do
