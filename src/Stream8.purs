@@ -1,7 +1,6 @@
 module Stream8 where
 
 import Prelude
-
 import Control.Alt (class Alt)
 import Control.Alternative (class Alternative)
 import Control.Applicative.Indexed (class IxApplicative, ipure)
@@ -43,9 +42,11 @@ infixr 5 type NodeC as /->
 data Binary
 
 foreign import data I :: Binary
+
 foreign import data O :: Binary
 
-type Ptr = Type
+type Ptr
+  = Type
 
 data TAudioParameter
 
@@ -153,6 +154,31 @@ else instance audioUnitEqTHighpass :: AudioUnitEq (THighpass idx freq q) (THighp
 else instance audioUnitEqTGain :: AudioUnitEq (TGain idx vol) (TGain idx vol) True
 else instance audioUnitEqTSpeaker :: AudioUnitEq (TSpeaker idx) (TSpeaker idx) True
 else instance audioUnitEqFalse :: AudioUnitEq a b False
+
+class TermToInitialAudioUnit (a :: Type) (p :: Ptr) (b :: AudioUnit) | a p -> b
+
+instance termToInitialAudioUnitSinOsc :: TermToInitialAudioUnit (SinOsc a) ptr (TSinOsc ptr Changing)
+
+instance termToInitialAudioUnitHighpass :: TermToInitialAudioUnit (Highpass a b c) ptr (THighpass ptr Changing Changing)
+
+instance termToInitialAudioUnitGain :: TermToInitialAudioUnit (Gain a b) ptr (TGain ptr Changing)
+
+instance termToInitialAudioUnitSpeaker :: TermToInitialAudioUnit (Speaker a) ptr (TSpeaker ptr)
+
+class CreationInstructions (env :: Type) (acc :: Type) (g :: Type) where
+  creationInstructions :: Int -> env -> acc -> g -> Array Instruction /\ AnAudioUnit
+
+instance creationInstructionsSinOsc :: InitialVal env acc a => CreationInstructions env acc (SinOsc a) where
+  creationInstructions idx env acc (SinOsc a) =
+    let
+      iv' = initialVal env acc a
+
+      AudioParameter iv = iv'
+    in
+      [ NewUnit idx "sinosc"
+      , SetFrequency idx iv.param iv.timeOffset iv.transition
+      ]
+        /\ ASinOsc iv'
 
 class NodeListKeepSingleton (nodeListA :: NodeList) (nodeListB :: NodeList) (nodeListC :: NodeList) | nodeListA nodeListB -> nodeListC
 
@@ -567,38 +593,36 @@ data Instruction
   | SetRefDistance Int Number
   | SetRolloffFactor Int Number
 
-type AudioState env a
+type AudioState env acc a
   = State
       { env :: env
-      -- because the acc is buried deep in universe and not part of the signature
-      -- we let it be void for the time being
-      , acc :: Void
+      , acc :: acc
       , currentIdx :: Int
       , instructions :: Array Instruction
       , internalGraph :: Map Int AnAudioUnit
       }
       a
 
-newtype Scene (env :: Type) (ig :: Universe) (og :: Universe) (a :: Type)
-  = Scene (AudioState env a)
+newtype Scene (env :: Type) (acc :: Type) (ig :: Universe) (og :: Universe) (a :: Type)
+  = Scene (AudioState env acc a)
 
 -- do not export!
-unScene :: forall env i o a. Scene env i o a -> AudioState env a
+unScene :: forall env acc i o a. Scene env acc i o a -> AudioState env acc a
 unScene (Scene state) = state
 
-instance sceneIxFunctor :: IxFunctor (Scene env) where
+instance sceneIxFunctor :: IxFunctor (Scene env acc) where
   imap f (Scene a) = Scene (f <$> a)
 
-instance sceneIxApplicative :: IxApply (Scene env) where
+instance sceneIxApplicative :: IxApply (Scene env acc) where
   iapply (Scene f) (Scene a) = Scene (f <*> a)
 
-instance sceneIxApply :: IxApplicative (Scene env) where
+instance sceneIxApply :: IxApplicative (Scene env acc) where
   ipure a = Scene $ pure a
 
-instance sceneIxBind :: IxBind (Scene env) where
+instance sceneIxBind :: IxBind (Scene env acc) where
   ibind (Scene monad) function = Scene (monad >>= (unScene <<< function))
 
-instance sceneIxMonad :: IxMonad (Scene env)
+instance sceneIxMonad :: IxMonad (Scene env acc)
 
 -- create (hpf and gain can start empty)
 defaultParam :: AudioParameter'
@@ -694,7 +718,7 @@ instance edgeListableTuple :: EdgeListable x y => EdgeListable (Tuple (AudioUnit
 newtype PtrArr a
   = PtrArr (Array Int)
 
-class ToARefFunction (a :: Type) (b :: Type)| a -> b where
+class ToARefFunction (a :: Type) (b :: Type) | a -> b where
   toARefFunction :: a -> (ARef -> b)
 
 instance toARefFunctionFunction :: ToARefFunction (ARef -> b) b where
@@ -708,24 +732,43 @@ class AsEdgeProfile a (b :: EdgeProfile) | a -> b where
 instance asEdgeProfileAR :: AsEdgeProfile (AudioUnitRef ptr universe) (SingleEdge ptr) where
   getPointers (AudioUnitRef i) = PtrArr [ i ]
 
-
 instance asEdgeProfileUnit :: AsEdgeProfile Unit e where
-  getPointers _ = PtrArr [ ]
+  getPointers _ = PtrArr []
 
 instance asEdgeProfileTupl :: EdgeListable x y => AsEdgeProfile (Tuple (AudioUnitRef ptr universe) x) (ManyEdges ptr y) where
   getPointers (Tuple (AudioUnitRef i) el) = let PtrArr o = getPointers' el in PtrArr ([ i ] <> o)
 
-class Create (a :: Type) (env :: Type) (i :: Universe) (o :: Universe) (x :: Type) | a env i -> o x where
-  create :: a -> Scene env i o x
+class Create (a :: Type) (env :: Type) (acc :: Type) (i :: Universe) (o :: Universe) (x :: Type) | a env i -> o x where
+  create :: a -> Scene env acc i o x
 
-instance createARef :: Create ARef env universe universe Unit where
-  create _ = Scene (pure unit)
+creationStep ::
+  forall env acc g.
+  CreationInstructions env acc g =>
+  g ->
+  AudioState env acc Int
+creationStep g = do
+  { currentIdx, env, acc } <- get
+  let
+    renderable /\ internal = creationInstructions currentIdx env acc g
+  modify_
+    ( \i ->
+        i
+          { currentIdx = currentIdx + 1
+          , internalGraph = M.insert currentIdx internal i.internalGraph
+          , instructions = i.instructions <> renderable
+          }
+    )
+  pure currentIdx
 
 instance createSinOsc ::
-  (InitialVal env acc a, Nat ptr, Succ ptr next) =>
+  ( InitialVal env acc a
+  , Nat ptr
+  , Succ ptr next
+  ) =>
   Create
     (SinOsc a)
     env
+    acc
     -- universe starts at ptr
     (UniverseC ptr (GraphC head tail) destroyed acc)
     -- universe continues at ptr + 1
@@ -743,56 +786,40 @@ instance createSinOsc ::
             acc
         )
     ) where
-  create (SinOsc a) =
-    Scene
-      $ do
-          { currentIdx: idx, env, acc } <- get
-          let
-            iv' = initialVal env (unsafeCoerce acc :: acc) a
-
-            AudioParameter iv = iv'
-          modify_
-            ( \i ->
-                i
-                  { currentIdx = idx + 1
-                  , internalGraph = M.insert idx (ASinOsc iv') i.internalGraph
-                  , instructions =
-                    i.instructions
-                      <> [ NewUnit idx "sinosc"
-                        , SetFrequency idx iv.param iv.timeOffset iv.transition
-                        ]
-                  }
-            )
-          pure $ AudioUnitRef idx
+  create = Scene <<< map AudioUnitRef <<< creationStep
 
 instance createHighpass ::
-  ( InitialVal env acc a, Nat ptr, Succ ptr next
+  ( InitialVal env acc a
   , InitialVal env acc b
+  , ToARefFunction fc c
+  , Nat ptr
+  , Succ ptr next
   , Create
       c
       env
+      acc
       -- we increase the pointer by 1 in this universe
       -- as the highpass consumed ptr already
-      (UniverseC next graphi destroyedi acci)
-      (UniverseC outptr grapho destroyedo acco)
+      (UniverseC next graphi destroyed acc)
+      (UniverseC outptr grapho destroyed acc)
       term
   , AsEdgeProfile term (SingleEdge op)
   , GraphToNodeList grapho nodeList
-  , ToARefFunction fc c
   ) =>
   Create
     -- highpass
     (Highpass a b fc)
     env
+    acc
     -- universe starts at ptr
-    (UniverseC ptr graphi destroyedi acci)
+    (UniverseC ptr graphi destroyed acc)
     ( UniverseC
         -- we pass along the outptr of the inner computation
         outptr
         -- the highpass is at this ptr
         (GraphC (NodeC (THighpass ptr Changing Changing) (SingleEdge op)) nodeList)
-        destroyedo
-        acco
+        destroyed
+        acc
     )
     ( AudioUnitRef ptr
         ( UniverseC
@@ -800,8 +827,8 @@ instance createHighpass ::
             outptr
             -- the highpass is at this ptr
             (GraphC (NodeC (THighpass ptr Changing Changing) (SingleEdge op)) nodeList)
-            destroyedo
-            acco
+            destroyed
+            acc
         )
     ) where
   create (Highpass a b c) =
@@ -833,8 +860,8 @@ instance createHighpass ::
             (Scene mc) =
               ( create ::
                   c ->
-                  Scene env (UniverseC next graphi destroyedi acci)
-                    (UniverseC outptr grapho destroyedo acco)
+                  Scene env acc (UniverseC next graphi destroyed acc)
+                    (UniverseC outptr grapho destroyed acc)
                     term
               )
                 ((toARefFunction c) ARef)
@@ -853,14 +880,17 @@ instance createHighpass ::
           pure $ AudioUnitRef idx
 
 instance createGain ::
-  ( InitialVal env acc a, Nat ptr, Succ ptr next
+  ( InitialVal env acc a
+  , Nat ptr
+  , Succ ptr next
   , Create
       b
       env
+      acc
       -- we increase the pointer by 1 in this universe
       -- as the gain consumed ptr already
-      (UniverseC next graphi destroyedi acci)
-      (UniverseC outptr grapho destroyedo acco)
+      (UniverseC next graphi destroyed acc)
+      (UniverseC outptr grapho destroyed acc)
       term
   , AsEdgeProfile term eprof
   , GraphToNodeList grapho nodeList
@@ -869,15 +899,16 @@ instance createGain ::
     -- gain
     (Gain a (ARef -> b))
     env
+    acc
     -- universe starts at ptr
-    (UniverseC ptr graphi destroyedi acci)
+    (UniverseC ptr graphi destroyed acc)
     ( UniverseC
         -- we pass along the outptr of the inner computation
         outptr
         -- the gain is at this ptr
         (GraphC (NodeC (TGain ptr Changing) eprof) nodeList)
-        destroyedo
-        acco
+        destroyed
+        acc
     )
     ( AudioUnitRef ptr
         ( UniverseC
@@ -885,8 +916,8 @@ instance createGain ::
             outptr
             -- the gain is at this ptr
             (GraphC (NodeC (TGain ptr Changing) eprof) nodeList)
-            destroyedo
-            acco
+            destroyed
+            acc
         )
     ) where
   create (Gain a b) =
@@ -913,8 +944,8 @@ instance createGain ::
             (Scene mb) =
               ( create ::
                   b ->
-                  Scene env (UniverseC next graphi destroyedi acci)
-                    (UniverseC outptr grapho destroyedo acco)
+                  Scene env acc (UniverseC next graphi destroyed acc)
+                    (UniverseC outptr grapho destroyed acc)
                     term
               )
                 (b ARef)
@@ -933,13 +964,16 @@ instance createGain ::
           pure $ AudioUnitRef idx
 
 instance createSpeaker ::
-  ( Nat ptr, Succ ptr next, Create
+  ( Nat ptr
+  , Succ ptr next
+  , Create
       a
       env
+      acc
       -- we increase the pointer by 1 in this universe
       -- as the gain consumed ptr already
-      (UniverseC next graphi destroyedi acci)
-      (UniverseC outptr grapho destroyedo acco)
+      (UniverseC next graphi destroyed acc)
+      (UniverseC outptr grapho destroyed acc)
       term
   , AsEdgeProfile term eprof
   , GraphToNodeList grapho nodeList
@@ -948,15 +982,16 @@ instance createSpeaker ::
     -- gain
     (Speaker a)
     env
+    acc
     -- universe starts at ptr
-    (UniverseC ptr graphi destroyedi acci)
+    (UniverseC ptr graphi destroyed acc)
     ( UniverseC
         -- we pass along the outptr of the inner computation
         outptr
         -- the gain is at this ptr
         (GraphC (NodeC (TSpeaker ptr) eprof) nodeList)
-        destroyedo
-        acco
+        destroyed
+        acc
     )
     ( AudioUnitRef ptr
         ( UniverseC
@@ -964,8 +999,8 @@ instance createSpeaker ::
             outptr
             -- the gain is at this ptr
             (GraphC (NodeC (TSpeaker ptr) eprof) nodeList)
-            destroyedo
-            acco
+            destroyed
+            acc
         )
     ) where
   create (Speaker a) =
@@ -986,8 +1021,8 @@ instance createSpeaker ::
             (Scene ma) =
               ( create ::
                   a ->
-                  Scene env (UniverseC next graphi destroyedi acci)
-                    (UniverseC outptr grapho destroyedo acco)
+                  Scene env acc (UniverseC next graphi destroyed acc)
+                    (UniverseC outptr grapho destroyed acc)
                     term
               )
                 a
@@ -1006,17 +1041,17 @@ instance createSpeaker ::
           pure $ AudioUnitRef idx
 
 change' ::
-  forall a g t u p i o env.
+  forall a g t u p i o env acc.
   GetGraph i g =>
   UniqueTerminus g t =>
   GetAudioUnit t u =>
   GetPointer u p =>
-  Change p a env i o =>
-  a -> Scene env i o Unit
+  Change p a env acc i o =>
+  a -> Scene env acc i o Unit
 change' = change (Proxy :: _ p)
 
-class Change p (a :: Type) (env :: Type) (i :: Universe) (o :: Universe) | p a env i -> o where
-  change :: Proxy p -> a -> Scene env i o Unit
+class Change p (a :: Type) (env :: Type) (acc :: Type) (i :: Universe) (o :: Universe) | p a env i -> o where
+  change :: Proxy p -> a -> Scene env acc i o Unit
 
 --
 class ModifyRes (tag :: Type) (p :: Ptr) (i :: Node) (o :: Node) (mod :: NodeList) (plist :: EdgeProfile) | tag p i -> i mod plist
@@ -1042,7 +1077,7 @@ class Modify (tag :: Type) (p :: Ptr) (i :: Universe) (o :: Universe) (nextP :: 
 instance modify :: (GraphToNodeList ig il, Modify' tag p il ol mod nextPL, AssertSingleton mod x, GraphToNodeList og ol) => Modify tag p (UniverseC i ig d acc) (UniverseC i og d acc) nextP
 
 instance changeNothing ::
-  Change p ARef env inuniv outuniv where
+  Change p ARef env acc inuniv outuniv where
   change _ _ = Scene (pure unit)
 
 instance changeSinOsc ::
@@ -1052,7 +1087,7 @@ instance changeSinOsc ::
   , Nat p
   , Modify (SinOsc a) p inuniv outuniv nextP
   ) =>
-  Change p (SinOsc a) env inuniv outuniv where
+  Change p (SinOsc a) env acc inuniv outuniv where
   change _ (SinOsc a) =
     Scene
       $ case isChanging (Proxy :: _ delta) of
@@ -1095,9 +1130,9 @@ instance changeHighpass ::
   , IsChanging delta
   , Nat p
   , Modify (Highpass a b c) p inuniv middle nextP
-  , Change nextP c env middle outuniv
+  , Change nextP c env acc middle outuniv
   ) =>
-  Change p (Highpass a b c) env inuniv outuniv where
+  Change p (Highpass a b c) env acc inuniv outuniv where
   change _ (Highpass a b c) =
     Scene
       $ case isChanging (Proxy :: _ delta) of
@@ -1108,7 +1143,9 @@ instance changeHighpass ::
               accAsAcc = unsafeCoerce acc :: acc
 
               asv = (setterVal :: a -> (env -> acc -> AudioParameter -> AudioParameter)) a
+
               bsv = (setterVal :: b -> (env -> acc -> AudioParameter -> AudioParameter)) b
+
               ptr = toInt' (Proxy :: _ p)
             sosc <- M.lookup ptr <$> gets _.internalGraph
             case sosc of
@@ -1118,6 +1155,7 @@ instance changeHighpass ::
                     aiv' = asv env accAsAcc aparam
 
                     AudioParameter aiv = aiv'
+
                     biv' = bsv env accAsAcc bparam
 
                     AudioParameter biv = biv'
@@ -1129,7 +1167,8 @@ instance changeHighpass ::
                             , instructions =
                               i.instructions
                                 <> [ SetFrequency ptr aiv.param aiv.timeOffset aiv.transition
-                                , SetQ ptr biv.param biv.timeOffset biv.transition ]
+                                  , SetQ ptr biv.param biv.timeOffset biv.transition
+                                  ]
                             }
                       )
                 -- bad, means there is an inconsistent state

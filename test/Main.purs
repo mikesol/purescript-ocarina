@@ -158,7 +158,7 @@ testUniqueTerminus2 =
 createTest1 ::
   forall ptr next env destroyed head tail acc.
   Succ ptr next =>
-  Scene env (UniverseC ptr (GraphC head tail) destroyed acc)
+  Scene env acc (UniverseC ptr (GraphC head tail) destroyed acc)
     ( UniverseC next
         (GraphC (NodeC (TSinOsc ptr Changing) NoEdge) (NodeListCons head tail))
         destroyed
@@ -177,7 +177,7 @@ createTest2 ::
   forall first mid last env destroyed head tail acc.
   Succ first mid =>
   Succ mid last =>
-  Scene env (UniverseC first (GraphC head tail) destroyed acc)
+  Scene env acc (UniverseC first (GraphC head tail) destroyed acc)
     ( UniverseC last
         (GraphC (NodeC (THighpass first Changing Changing) (SingleEdge mid)) (NodeListCons (NodeC (TSinOsc mid Changing) NoEdge) (NodeListCons head tail)))
         destroyed
@@ -196,7 +196,7 @@ createTest3 ::
   forall first mid last env destroyed head tail acc.
   Succ first mid =>
   Succ mid last =>
-  Scene env (UniverseC first (GraphC head tail) destroyed acc)
+  Scene env acc (UniverseC first (GraphC head tail) destroyed acc)
     ( UniverseC last
         (GraphC (NodeC (THighpass first Changing Changing) (SingleEdge mid)) (NodeListCons (NodeC (TSinOsc mid Changing) NoEdge) (NodeListCons head tail)))
         destroyed
