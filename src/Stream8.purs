@@ -75,7 +75,6 @@ foreign import data SkolemListCons :: SkolemPair -> SkolemList -> SkolemList
 
 foreign import data SkolemListNil :: SkolemList
 
-
 data EdgeProfile
 
 -- non empty
@@ -148,6 +147,29 @@ instance graphToNodeList :: GraphToNodeList (GraphC node nodeList) (NodeListCons
 class GetAudioUnit (node :: Node) (au :: AudioUnit) | node -> au
 
 instance getAudioUnitNodeC :: GetAudioUnit (NodeC au ep) au
+
+class TypeEqualTF (a :: Type) (b :: Type) (c :: Type)
+
+instance typeEqualTFT :: TypeEqualTF a a True
+else instance typeEqualTFF :: TypeEqualTF a b False
+
+instance skolemNotYetPresentNil :: SkolemNotYetPresent skolem SkolemListNil
+
+instance skolemNotYetPresentCons ::
+  ( TypeEqualTF skolem candidate False
+  , SkolemNotYetPresentOrDiscardable skolem tail
+  ) =>
+  SkolemNotYetPresent skolem (SkolemListCons (SkolemPairC candidate ptr) tail)
+
+class SkolemNotYetPresent (skolem :: Type) (skolemList :: SkolemList)
+class SkolemNotYetPresentOrDiscardable (skolem :: Type) (skolemList :: SkolemList)
+instance skolemNotYetPresentOrDiscardableD :: SkolemNotYetPresentOrDiscardable DiscardableSkolem skolemList
+else instance skolemNotYetPresentOrDiscardableO :: SkolemNotYetPresent o skolemList => SkolemNotYetPresentOrDiscardable o skolemList
+
+class MakeInternalSkolemStack (skolem :: Ptr) (ptr :: Ptr) (skolems :: SkolemList) (skolemsInternal :: SkolemList) | skolem ptr skolems -> skolemsInternal
+
+instance makeInternalSkolemStackDiscardable :: MakeInternalSkolemStack DiscardableSkolem ptr skolems skolems
+else instance makeInternalSkolemStack :: MakeInternalSkolemStack skolem ptr skolems (SkolemListCons (SkolemPairC skolem ptr) skolems)
 
 class PtrEq (a :: Ptr) (b :: Ptr) (tf :: Type) | a b -> tf
 
@@ -867,18 +889,18 @@ instance createSinOsc ::
 instance createHighpass ::
   ( InitialVal env acc a
   , InitialVal env acc b
-  , GetSkolemFromRecursiveArgument fc skolem
   , ToAudioUnitRefFunction fc skolem c
+  , GetSkolemFromRecursiveArgument fc skolem
+  , SkolemNotYetPresentOrDiscardable skolem skolems
+  , MakeInternalSkolemStack skolem ptr skolems skolemsInternal
   , Nat ptr
   , Succ ptr next
   , Create
       c
       env
       acc
-      -- we increase the pointer by 1 in this universe
-      -- as the highpass consumed ptr already
-      (UniverseC next graphi destroyed skolems acc)
-      (UniverseC outptr grapho destroyed skolems acc)
+      (UniverseC next graphi destroyed skolemsInternal acc)
+      (UniverseC outptr grapho destroyed skolemsInternal acc)
       term
   , AsEdgeProfile term (SingleEdge op)
   , GraphToNodeList grapho nodeList
@@ -904,8 +926,8 @@ instance createHighpass ::
             Proxy term ->
             (Highpass a b fc) ->
             Scene env acc
-              (UniverseC next graphi destroyed skolems acc)
-              (UniverseC outptr grapho destroyed skolems acc)
+              (UniverseC next graphi destroyed skolemsInternal acc)
+              (UniverseC outptr grapho destroyed skolemsInternal acc)
               Int
         )
           Proxy
@@ -914,18 +936,18 @@ instance createHighpass ::
 
 instance createGain ::
   ( InitialVal env acc a
-  , GetSkolemFromRecursiveArgument fc skolem
   , ToAudioUnitRefFunction fb skolem b
+  , GetSkolemFromRecursiveArgument fc skolem
+  , SkolemNotYetPresentOrDiscardable skolem skolems
+  , MakeInternalSkolemStack skolem ptr skolems skolemsInternal
   , Nat ptr
   , Succ ptr next
   , Create
       b
       env
       acc
-      -- we increase the pointer by 1 in this universe
-      -- as the gain consumed ptr already
-      (UniverseC next graphi destroyed skolems acc)
-      (UniverseC outptr grapho destroyed skolems acc)
+      (UniverseC next graphi destroyed skolemsInternal acc)
+      (UniverseC outptr grapho destroyed skolemsInternal acc)
       term
   , AsEdgeProfile term eprof
   , GraphToNodeList grapho nodeList
@@ -951,8 +973,8 @@ instance createGain ::
             Proxy term ->
             (Gain a fb) ->
             Scene env acc
-              (UniverseC next graphi destroyed skolems acc)
-              (UniverseC outptr grapho destroyed skolems acc)
+              (UniverseC next graphi destroyed skolemsInternal acc)
+              (UniverseC outptr grapho destroyed skolemsInternal acc)
               Int
         )
           Proxy
@@ -967,8 +989,6 @@ instance createSpeaker ::
       a
       env
       acc
-      -- we increase the pointer by 1 in this universe
-      -- as the gain consumed ptr already
       (UniverseC next graphi destroyed skolems acc)
       (UniverseC outptr grapho destroyed skolems acc)
       term
