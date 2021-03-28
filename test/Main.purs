@@ -1,11 +1,13 @@
 module Test.Main where
 
 import Prelude
+
 import Data.Typelevel.Bool (True, False)
 import Data.Typelevel.Num (class Succ, D0, D1, D2, D3)
 import Effect (Effect)
 import Effect.Class.Console (log)
-import Stream8 (class AllEdgesPointToNodes, class AudioUnitEq, class Gate, class HasBottomLevelNodes, class Lookup, class NoNodesAreDuplicated, class NoParallelEdges, class PtrEq, class UniqueTerminus, type (+:), type (/->), type (/:), ARef(..), AudioUnitRef, Changing, GraphC, Highpass(..), ManyEdges, NoEdge, NodeC, NodeListCons, NodeListNil, PtrListCons, PtrListNil, Scene, SinOsc(..), SingleEdge, Static, TGain, THighpass, TSinOsc, UniverseC, create)
+import Stream8 (class AllEdgesPointToNodes, class AudioUnitEq, class Gate, class HasBottomLevelNodes, class Lookup, class NoNodesAreDuplicated, class NoParallelEdges, class PtrEq, class UniqueTerminus, type (+:), type (/->), type (/:), AudioUnitRef, Changing, GraphC, Highpass(..), ManyEdges, NoEdge, NodeC, NodeListCons, NodeListNil, PtrListCons, PtrListNil, Gain (..), Scene, SinOsc(..), SingleEdge, Static, TGain, THighpass, TSinOsc, UniverseC, create)
+import Data.Tuple.Nested
 import Type.Proxy (Proxy(..))
 
 ---------------------------
@@ -178,8 +180,9 @@ createTest2 ::
         acc
     )
     (AudioUnitRef first)
-createTest2 = create (Highpass 440.0 1.0 (\(_ :: ARef) -> SinOsc 440.0))
+createTest2 = create (Highpass 440.0 1.0 (SinOsc 440.0))
 
+{-
 createTest3 ::
   forall first mid last env destroyed head tail acc.
   Succ first mid =>
@@ -191,7 +194,8 @@ createTest3 ::
         acc
     )
     ( AudioUnitRef first)
-createTest3 = create (Highpass 440.0 1.0 (SinOsc 440.0))
+-}
+createTest3 = create (Gain 1.0 (\gain -> gain /\ SinOsc 440.0 /\ unit))
 
 main :: Effect Unit
 main = do

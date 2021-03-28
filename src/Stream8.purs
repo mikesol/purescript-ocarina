@@ -766,9 +766,6 @@ class AsEdgeProfile a (b :: EdgeProfile) | a -> b where
 instance asEdgeProfileAR :: AsEdgeProfile (AudioUnitRef ptr) (SingleEdge ptr) where
   getPointers (AudioUnitRef i) = PtrArr [ i ]
 
-instance asEdgeProfileUnit :: AsEdgeProfile Unit e where
-  getPointers _ = PtrArr []
-
 instance asEdgeProfileTupl :: EdgeListable x y => AsEdgeProfile (Tuple (AudioUnitRef ptr) x) (ManyEdges ptr y) where
   getPointers (Tuple (AudioUnitRef i) el) = let PtrArr o = getPointers' el in PtrArr ([ i ] <> o)
 
@@ -888,7 +885,8 @@ instance createHighpass ::
               (UniverseC outptr grapho destroyed acc)
               Int
         )
-          Proxy Proxy
+          Proxy
+          Proxy
 
 instance createGain ::
   ( InitialVal env acc a
@@ -930,10 +928,11 @@ instance createGain ::
               (UniverseC outptr grapho destroyed acc)
               Int
         )
-          Proxy Proxy
+          Proxy
+          Proxy
 
 instance createSpeaker ::
-  ( ToAudioUnitRefFunction fa ptr a
+  ( ToAudioUnitRefFunction (AudioUnitRef ptr -> a) ptr a
   , Nat ptr
   , Succ ptr next
   , Create
@@ -949,7 +948,7 @@ instance createSpeaker ::
   , GraphToNodeList grapho nodeList
   ) =>
   Create
-    (Speaker fa)
+    (Speaker a)
     env
     acc
     (UniverseC ptr graphi destroyed acc)
@@ -965,13 +964,14 @@ instance createSpeaker ::
       <<< ( createAndConnect ::
             Proxy ptr ->
             Proxy term ->
-            (Speaker fa) ->
+            (Speaker a) ->
             Scene env acc
               (UniverseC next graphi destroyed acc)
               (UniverseC outptr grapho destroyed acc)
               Int
         )
-          Proxy Proxy
+          Proxy
+          Proxy
 
 change' ::
   forall a g t u p i o env acc.
