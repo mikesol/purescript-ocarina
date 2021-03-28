@@ -769,6 +769,9 @@ data AudioUnitRef (ptr :: Ptr)
 data SinOsc a
   = SinOsc a
 
+data Dup a b
+  = Dup a b
+
 data AnAudioUnit
   = ASinOsc AudioParameter
   | AHighpass AudioParameter AudioParameter
@@ -816,6 +819,7 @@ else instance toSkolemizedFunctionConst :: ToSkolemizedFunction b skolem b where
 
 class GetSkolemizedFunctionFromAU (a :: Type) (skolem :: Type) (b :: Type) | a skolem -> b where
   getSkolemizedFunctionFromAU :: a -> (Proxy skolem -> b)
+
 instance getSkolemizedFunctionFromAUHighpass :: ToSkolemizedFunction i skolem o => GetSkolemizedFunctionFromAU (Highpass a b i) skolem o where
   getSkolemizedFunctionFromAU (Highpass a b c) = toSkolemizedFunction c
 
@@ -924,6 +928,55 @@ instance createProxy ::
     (UniverseC next graph destroyed skolems acc)
     (AudioUnitRef ptr) where
   create _ = Scene (pure $ AudioUnitRef $ toInt' (Proxy :: Proxy ptr))
+
+instance createDup ::
+  ( Nat ptr
+  , SkolemNotYetPresent skolem skolems
+  , Create
+      a
+      env
+      acc
+      (UniverseC ptr graphi destroyed skolems acc)
+      (UniverseC midptr graphm destroyed skolems acc)
+      (AudioUnitRef ptr)
+  , Create
+      b
+      env
+      acc
+      (UniverseC midptr graphm destroyed (SkolemListCons (SkolemPairC skolem ptr) skolems) acc)
+      (UniverseC outptr grapho destroyed (SkolemListCons (SkolemPairC skolem ptr) skolems) acc)
+      ignore
+  ) =>
+  Create
+    (Dup a  (Proxy skolem -> b))
+    env
+    acc
+    (UniverseC ptr graphi destroyed skolems acc)
+    (UniverseC outptr grapho destroyed skolems acc)
+    (AudioUnitRef ptr) where
+  create (Dup a f) = Scene $ x <* y
+    where
+    Scene x =
+      ( create ::
+          a ->
+          Scene env
+            acc
+            (UniverseC ptr graphi destroyed skolems acc)
+            (UniverseC midptr graphm destroyed skolems acc)
+            (AudioUnitRef ptr)
+      )
+        a
+
+    Scene y =
+      ( create ::
+          b ->
+          Scene env
+            acc
+            (UniverseC midptr graphm destroyed (SkolemListCons (SkolemPairC skolem ptr) skolems) acc)
+            (UniverseC outptr grapho destroyed (SkolemListCons (SkolemPairC skolem ptr) skolems) acc)
+            ignore
+      )
+        (f (Proxy :: _ skolem))
 
 instance createSinOsc ::
   ( InitialVal env acc a

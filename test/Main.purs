@@ -6,7 +6,7 @@ import Data.Typelevel.Bool (True, False)
 import Data.Typelevel.Num (class Succ, D0, D1, D2, D3)
 import Effect (Effect)
 import Effect.Class.Console (log)
-import Stream8 (class AllEdgesPointToNodes, class AudioUnitEq, class Gate, class HasBottomLevelNodes, class Lookup, class NoNodesAreDuplicated, class NoParallelEdges, class PtrEq, class UniqueTerminus, type (+:), type (/->), type (/:), AudioUnitRef, Changing, Gain(..), GraphC, Highpass(..), ManyEdges, NoEdge, NodeC, NodeListCons, NodeListNil, PtrListCons, PtrListNil, Scene, SinOsc(..), SingleEdge, SkolemListNil, Static, TGain, THighpass, TSinOsc, UniverseC, create)
+import Stream8 (class AllEdgesPointToNodes, class AudioUnitEq, class Gate, class HasBottomLevelNodes, class Lookup, class NoNodesAreDuplicated, class NoParallelEdges, class PtrEq, class UniqueTerminus, type (+:), type (/->), type (/:), AudioUnitRef, Changing, Dup(..), Gain(..), GraphC, Highpass(..), ManyEdges, NoEdge, NodeC, NodeListCons, NodeListNil, PtrListCons, PtrListNil, Scene, SinOsc(..), SingleEdge, SkolemListNil, Static, TGain, THighpass, TSinOsc, UniverseC, create)
 import Type.Proxy (Proxy(..))
 
 ---------------------------
@@ -226,11 +226,37 @@ createTest4 ::
     (AudioUnitRef first)
 createTest4 =
   create
-    ( Gain 1.0
-        ( \(gain :: Proxy MyGain) ->
-            gain /\ Highpass 330.0 1.0 (SinOsc 440.0) /\ unit
+    $ Gain 1.0 \(gain :: Proxy MyGain) ->
+        gain /\ Highpass 330.0 1.0 (SinOsc 440.0) /\ unit
+
+data MySinOsc
+
+createTest5 ::
+  forall first mid0 mid1 last env destroyed head tail acc.
+  Succ first mid0 =>
+  Succ mid0 mid1 =>
+  Succ mid1 last =>
+  Scene env acc (UniverseC first (GraphC head tail) destroyed SkolemListNil acc)
+    ( UniverseC last
+        ( GraphC
+            ( NodeC (TGain mid0 Changing)
+                (ManyEdges mid0 (PtrListCons mid1 (PtrListCons first PtrListNil)))
+            )
+            ( NodeListCons
+                (NodeC (THighpass mid1 Changing Changing) (SingleEdge first))
+                (NodeListCons (NodeC (TSinOsc first Changing) NoEdge) (NodeListCons head tail))
+            )
         )
+        destroyed
+        SkolemListNil
+        acc
     )
+    (AudioUnitRef first)
+createTest5 =
+  create
+    $ Dup (SinOsc 440.0) \(mySinOsc :: Proxy MySinOsc) ->
+        Gain 1.0 \(gain :: Proxy MyGain) ->
+          gain /\ Highpass 330.0 1.0 mySinOsc /\ mySinOsc /\ unit
 
 main :: Effect Unit
 main = do
