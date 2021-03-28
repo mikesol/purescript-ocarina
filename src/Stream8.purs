@@ -29,7 +29,6 @@ import Effect.Class (class MonadEffect)
 import Prim.TypeError (class Warn, Above, Beside, Quote, Text)
 import Safe.Coerce (coerce)
 import Type.Proxy (Proxy(..))
-import Unsafe.Coerce (unsafeCoerce)
 
 infixr 5 type Above as ^^
 
@@ -179,6 +178,35 @@ instance creationInstructionsSinOsc :: InitialVal env acc a => CreationInstructi
       , SetFrequency idx iv.param iv.timeOffset iv.transition
       ]
         /\ ASinOsc iv'
+
+instance creationInstructionsHighpass :: (InitialVal env acc a, InitialVal env acc b) => CreationInstructions env acc (Highpass a b c) where
+  creationInstructions idx env acc (Highpass a b _) =
+    let
+      aiv' = initialVal env acc a
+
+      biv' = initialVal env acc b
+
+      AudioParameter aiv = aiv'
+
+      AudioParameter biv = biv'
+    in
+      [ NewUnit idx "highpass"
+      , SetFrequency idx aiv.param aiv.timeOffset aiv.transition
+      , SetQ idx biv.param biv.timeOffset biv.transition
+      ]
+        /\ AHighpass aiv' biv'
+
+instance creationInstructionsGain :: InitialVal env acc a => CreationInstructions env acc (Gain a b) where
+  creationInstructions idx env acc (Gain a _) =
+    let
+      iv' = initialVal env acc a
+
+      AudioParameter iv = iv'
+    in
+      [ NewUnit idx "gain"
+      , SetGain idx iv.param iv.timeOffset iv.transition
+      ]
+        /\ AGain iv'
 
 class NodeListKeepSingleton (nodeListA :: NodeList) (nodeListB :: NodeList) (nodeListC :: NodeList) | nodeListA nodeListB -> nodeListC
 
@@ -718,8 +746,17 @@ instance edgeListableTuple :: EdgeListable x y => EdgeListable (Tuple (AudioUnit
 newtype PtrArr a
   = PtrArr (Array Int)
 
+class GetARefFunction (a :: Type) (b :: Type) | a -> b where
+  getARefFunction :: a -> (ARef -> b)
+
 class ToARefFunction (a :: Type) (b :: Type) | a -> b where
   toARefFunction :: a -> (ARef -> b)
+
+instance getARefFunctionHighpass :: ToARefFunction i o => GetARefFunction (Highpass a b i) o where
+  getARefFunction (Highpass a b c) = toARefFunction c
+
+instance getARefFunctionGain :: ToARefFunction i o => GetARefFunction (Gain a i) o where
+  getARefFunction (Gain a b) = toARefFunction b
 
 instance toARefFunctionFunction :: ToARefFunction (ARef -> b) b where
   toARefFunction = identity
@@ -759,6 +796,36 @@ creationStep g = do
           }
     )
   pure currentIdx
+
+createAndConnect ::
+  forall env acc g c i o innerTerm eprof.
+  GetARefFunction g c =>
+  AsEdgeProfile innerTerm eprof =>
+  CreationInstructions env acc g =>
+  Create c env acc i o innerTerm =>
+  Proxy innerTerm ->
+  g ->
+  Scene env acc i o Int
+createAndConnect _ g =
+  Scene
+    $ do
+        idx <- cs
+        oc <- mc
+        let
+          PtrArr o = getPointers oc
+        modify_
+          ( \i ->
+              i
+                { instructions =
+                  i.instructions
+                    <> map (flip ConnectXToY idx) o
+                }
+          )
+        pure idx
+  where
+  cs = creationStep g
+
+  (Scene mc) = (create :: c -> Scene env acc i o innerTerm) ((getARefFunction g) ARef)
 
 instance createSinOsc ::
   ( InitialVal env acc a
@@ -831,56 +898,21 @@ instance createHighpass ::
             acc
         )
     ) where
-  create (Highpass a b c) =
-    Scene
-      $ do
-          { currentIdx: idx, env, acc } <- get
-          let
-            aiv' = initialVal env (unsafeCoerce acc :: acc) a
-
-            biv' = initialVal env (unsafeCoerce acc :: acc) b
-
-            AudioParameter aiv = aiv'
-
-            AudioParameter biv = biv'
-          modify_
-            ( \i ->
-                i
-                  { currentIdx = idx + 1
-                  , internalGraph = M.insert idx (AHighpass aiv' biv') i.internalGraph
-                  , instructions =
-                    i.instructions
-                      <> [ NewUnit idx "highpass"
-                        , SetFrequency idx aiv.param aiv.timeOffset aiv.transition
-                        , SetQ idx biv.param biv.timeOffset biv.transition
-                        ]
-                  }
-            )
-          let
-            (Scene mc) =
-              ( create ::
-                  c ->
-                  Scene env acc (UniverseC next graphi destroyed acc)
-                    (UniverseC outptr grapho destroyed acc)
-                    term
-              )
-                ((toARefFunction c) ARef)
-          oc <- mc
-          modify_
-            ( \i ->
-                i
-                  { instructions =
-                    let
-                      PtrArr o = getPointers oc
-                    in
-                      i.instructions
-                        <> map (flip ConnectXToY idx) o
-                  }
-            )
-          pure $ AudioUnitRef idx
+  create =
+    Scene <<< map AudioUnitRef <<< unScene
+      <<< ( createAndConnect ::
+            Proxy term ->
+            (Highpass a b fc) ->
+            Scene env acc
+              (UniverseC next graphi destroyed acc)
+              (UniverseC outptr grapho destroyed acc)
+              Int
+        )
+          (Proxy :: _ term)
 
 instance createGain ::
   ( InitialVal env acc a
+  , ToARefFunction fb b
   , Nat ptr
   , Succ ptr next
   , Create
@@ -897,7 +929,7 @@ instance createGain ::
   ) =>
   Create
     -- gain
-    (Gain a (ARef -> b))
+    (Gain a fb)
     env
     acc
     -- universe starts at ptr
@@ -920,48 +952,17 @@ instance createGain ::
             acc
         )
     ) where
-  create (Gain a b) =
-    Scene
-      $ do
-          { currentIdx: idx, env, acc } <- get
-          let
-            aiv' = initialVal env (unsafeCoerce acc :: acc) a
-
-            AudioParameter aiv = aiv'
-          modify_
-            ( \i ->
-                i
-                  { currentIdx = idx + 1
-                  , internalGraph = M.insert idx (AGain aiv') i.internalGraph
-                  , instructions =
-                    i.instructions
-                      <> [ NewUnit idx "gain"
-                        , SetGain idx aiv.param aiv.timeOffset aiv.transition
-                        ]
-                  }
-            )
-          let
-            (Scene mb) =
-              ( create ::
-                  b ->
-                  Scene env acc (UniverseC next graphi destroyed acc)
-                    (UniverseC outptr grapho destroyed acc)
-                    term
-              )
-                (b ARef)
-          ob <- mb
-          modify_
-            ( \i ->
-                i
-                  { instructions =
-                    let
-                      PtrArr o = getPointers ob
-                    in
-                      i.instructions
-                        <> map (flip ConnectXToY idx) o
-                  }
-            )
-          pure $ AudioUnitRef idx
+  create =
+    Scene <<< map AudioUnitRef <<< unScene
+      <<< ( createAndConnect ::
+            Proxy term ->
+            (Gain a fb) ->
+            Scene env acc
+              (UniverseC next graphi destroyed acc)
+              (UniverseC outptr grapho destroyed acc)
+              Int
+        )
+          (Proxy :: _ term)
 
 instance createSpeaker ::
   ( Nat ptr
@@ -1095,7 +1096,7 @@ instance changeSinOsc ::
           true -> do
             { env, acc } <- get
             let
-              accAsAcc = unsafeCoerce acc :: acc
+              accAsAcc = acc
 
               sv = (setterVal :: a -> (env -> acc -> AudioParameter -> AudioParameter)) a
 
@@ -1140,7 +1141,7 @@ instance changeHighpass ::
           true -> do
             { env, acc } <- get
             let
-              accAsAcc = unsafeCoerce acc :: acc
+              accAsAcc = acc
 
               asv = (setterVal :: a -> (env -> acc -> AudioParameter -> AudioParameter)) a
 
