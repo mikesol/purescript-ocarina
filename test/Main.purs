@@ -2,7 +2,6 @@ module Test.Main where
 
 import Data.Tuple.Nested
 import Prelude
-
 import Data.Typelevel.Bool (True, False)
 import Data.Typelevel.Num (class Succ, D0, D1, D2, D3)
 import Effect (Effect)
@@ -192,13 +191,46 @@ createTest3 ::
   Succ mid last =>
   Scene env acc (UniverseC first (GraphC head tail) destroyed SkolemListNil acc)
     ( UniverseC last
-        (GraphC (NodeC (TGain first Changing) (ManyEdges first (PtrListCons mid PtrListNil))) (NodeListCons (NodeC (TSinOsc mid Changing) NoEdge) (NodeListCons head tail)))
+        ( GraphC
+            ( NodeC (TGain first Changing)
+                (ManyEdges first (PtrListCons mid PtrListNil))
+            )
+            (NodeListCons (NodeC (TSinOsc mid Changing) NoEdge) (NodeListCons head tail))
+        )
         destroyed
         SkolemListNil
         acc
     )
     (AudioUnitRef first)
 createTest3 = create (Gain 1.0 (\(gain :: Proxy MyGain) -> gain /\ SinOsc 440.0 /\ unit))
+
+createTest4 ::
+  forall first mid0 mid1 last env destroyed head tail acc.
+  Succ first mid0 =>
+  Succ mid0 mid1 =>
+  Succ mid1 last =>
+  Scene env acc (UniverseC first (GraphC head tail) destroyed SkolemListNil acc)
+    ( UniverseC last
+        ( GraphC
+            ( NodeC (TGain first Changing)
+                (ManyEdges first (PtrListCons mid0 PtrListNil))
+            )
+            ( NodeListCons (NodeC (THighpass mid0 Changing Changing) (SingleEdge mid1))
+                (NodeListCons (NodeC (TSinOsc mid1 Changing) NoEdge) (NodeListCons head tail))
+            )
+        )
+        destroyed
+        SkolemListNil
+        acc
+    )
+    (AudioUnitRef first)
+createTest4 =
+  create
+    ( Gain 1.0
+        ( \(gain :: Proxy MyGain) ->
+            gain /\ Highpass 330.0 1.0 (SinOsc 440.0) /\ unit
+        )
+    )
 
 main :: Effect Unit
 main = do
