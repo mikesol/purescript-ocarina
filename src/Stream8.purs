@@ -719,9 +719,11 @@ unScene = unsafeCoerce
 
 instance universeIsCoherent ::
   GraphIsRenderable graph =>
-  UniverseIsCoherent (UniverseC ptr graph destroyed SkolemListNil acc)
+  UniverseIsCoherent (UniverseC ptr graph destroyed SkolemListNil acc) where
+  assertCoherence _ = unit
 
-class UniverseIsCoherent (u :: Universe)
+class UniverseIsCoherent (u :: Universe) where
+  assertCoherence :: forall env proof i x. Frame env proof i u x -> Unit
 
 makeScene0 ::
   forall env acc g0 g1.
@@ -743,17 +745,16 @@ makeScene0 acc fr@(Frame f) trans = asScene go
     in
       os.internalGraph /\ os.instructions /\ scene
 
-makeScene ::
+infixr 6 makeScene0 as @@>
+
+makeScene' ::
   forall env proof g0 g1 g2.
-  UniverseIsCoherent g1 =>
-  AsStatic g1 g2 =>
+  (Frame env proof g0 g1 Unit -> Unit) ->
+  (Frame env proof g0 g1 Unit -> Frame env proof g2 g2 Unit) ->
   Frame env proof g0 g1 Unit ->
-  -- now we've hit the problem with fixing acc
-  -- there is no way for acc to budge in the indexed monad
-  -- but if that's the case, we're screwed, as we need it to budge
   (Frame env proof g2 g2 Unit -> Scene env proof) ->
   Scene env proof
-makeScene fr@(Frame f) trans = asScene go
+makeScene' _ mogrify fr@(Frame f) trans = asScene go
   where
   go env =
     let
@@ -774,6 +775,32 @@ makeScene fr@(Frame f) trans = asScene go
       scene = trans $ Frame $ WriterT (pure (Tuple unit (Endo (const $ os))))
     in
       os.internalGraph /\ os.instructions /\ scene
+
+makeScene ::
+  forall env proof g0 g1 g2.
+  UniverseIsCoherent g1 =>
+  AsStatic g1 g2 =>
+  Frame env proof g0 g1 Unit ->
+  (Frame env proof g2 g2 Unit -> Scene env proof) ->
+  Scene env proof
+makeScene = makeScene' assertCoherence asStatic
+
+infixr 6 makeScene as @>
+
+loop' ::
+  forall env proof g0 g1.
+  (Frame env proof g0 g1 Unit -> Unit) ->
+  Frame env proof g0 g1 Unit ->
+  Scene env proof
+loop' cu fr = makeScene' (const unit) (\(Frame s) -> Frame s) fr (loop' (const $ unit))
+
+loop ::
+  forall env proof g0 g1.
+  UniverseIsCoherent g1 =>
+  Frame env proof g0 g1 Unit ->
+  Scene env proof
+loop fr = makeScene' assertCoherence (\(Frame s) -> Frame s) fr (loop' $ const unit)
+
 
 unFrame :: forall env proof i o a. Frame env proof i o a -> AudioState env a
 unFrame (Frame state) = state
@@ -948,11 +975,13 @@ instance dynToStatNil :: DynToStat NodeListNil NodeListNil
 
 instance dynToStatCons :: (DynToStat' head newHead, DynToStat tail newTail) => DynToStat (NodeListCons head tail) (NodeListCons newHead newTail)
 
-class AsStatic (m :: Universe) (o :: Universe) | m -> o
+class AsStatic (m :: Universe) (o :: Universe) | m -> o where
+  asStatic :: forall env proof i x. Frame env proof i m x -> Frame env proof o o x
 
 -- only do when there are no skolems
 -- this will force the step to the end
-instance asStaticAll :: (GraphToNodeList dynGraph dynGraphL, DynToStat dynGraphL statGraphL, GraphToNodeList statGraph statGraphL) => AsStatic (UniverseC ptr dynGraph destroyed SkolemListNil acc) (UniverseC ptr statGraph destroyed SkolemListNil acc)
+instance asStaticAll :: (GraphToNodeList dynGraph dynGraphL, DynToStat dynGraphL statGraphL, GraphToNodeList statGraph statGraphL) => AsStatic (UniverseC ptr dynGraph destroyed SkolemListNil acc) (UniverseC ptr statGraph destroyed SkolemListNil acc) where
+  asStatic (Frame a) = Frame a
 
 class Create (a :: Type) (env :: Type) (proof :: Type) (i :: Universe) (o :: Universe) (x :: Type) | a env i -> o x where
   create :: a -> Frame env proof i o x
