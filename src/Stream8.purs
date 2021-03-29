@@ -275,64 +275,74 @@ instance creationInstructionsGain :: InitialVal env acc a => CreationInstruction
 instance creationInstructionsSpeaker :: CreationInstructions env acc (Speaker a) where
   creationInstructions idx env acc (Speaker _) = [] /\ ASpeaker
 
-class ChangeInstructions (env :: Type) (acc :: Type) (g :: Type) (delta :: TAudioParameter) | env acc g -> delta where
-  changeInstructions :: (Proxy delta) /\ (Int -> env -> acc -> g -> AnAudioUnit -> Maybe (Array Instruction /\ AnAudioUnit))
+class KeepChanging (a :: TAudioParameter) (b :: TAudioParameter) (c :: TAudioParameter) | a b -> c
 
-instance changeInstructionsSinOsc :: (SetterAsChanged env acc a delta) => ChangeInstructions env acc (SinOsc a) delta where
-  changeInstructions =
-    (Proxy :: Proxy delta)
-      /\ \idx env acc (SinOsc a) -> case _ of
-          ASinOsc prm ->
-            let
-              sv = (setterVal :: a -> (env -> acc -> AudioParameter -> AudioParameter)) a
+instance keepChangingSL :: KeepChanging Changing a Changing
+else instance keepChangingSR :: KeepChanging b Changing Changing
+else instance staticChange :: KeepChanging a b Static
 
-              iv' = sv env acc prm
+class ChangeInstructions (env :: Type) (acc :: Type) (g :: Type) where
+  changeInstructions :: Int -> env -> acc -> g -> AnAudioUnit -> Maybe (Array Instruction /\ AnAudioUnit)
 
-              AudioParameter iv = iv'
-            in
-              Just $ [ SetFrequency idx iv.param iv.timeOffset iv.transition ] /\ ASinOsc iv'
-          _ -> Nothing
+instance changeInstructionsSinOsc :: (SetterAsChanged env acc a delta, IsChanging delta) => ChangeInstructions env acc (SinOsc a) where
+  changeInstructions idx env acc (SinOsc a) = case _ of
+    ASinOsc prm -> case (isChanging (Proxy :: _ delta)) of
+      false -> Nothing
+      true ->
+        let
+          -- case (isChanging)
+          iv' = ((setterVal :: a -> (env -> acc -> AudioParameter -> AudioParameter)) a) env acc prm
+
+          AudioParameter iv = iv'
+        in
+          Just $ [ SetFrequency idx iv.param iv.timeOffset iv.transition ] /\ ASinOsc iv'
+    _ -> Nothing
 
 -- todo: deal with case of multiple deltas?
-instance changeInstructionsHighpass :: (SetterAsChanged env acc a delta, SetterAsChanged env acc b delta2) => ChangeInstructions env acc (Highpass a b c) delta where
-  changeInstructions =
-    (Proxy :: Proxy delta)
-      /\ \idx env acc (Highpass a b _) -> case _ of
-          ASinOsc prm ->
-            let
-              asv = (setterVal :: a -> (env -> acc -> AudioParameter -> AudioParameter)) a
+instance changeInstructionsHighpass :: (SetterAsChanged env acc a delta1, SetterAsChanged env acc b delta2, IsChanging delta1, IsChanging delta2) => ChangeInstructions env acc (Highpass a b c) where
+  changeInstructions idx env acc (Highpass a b _) = case _ of
+    AHighpass va vb ->
+      --todo: split across two functions?
+      let
+        aic = isChanging (Proxy :: Proxy delta1)
 
-              aiv' = asv env acc prm
+        aiv' = case aic of
+          true -> ((setterVal :: a -> (env -> acc -> AudioParameter -> AudioParameter)) a) env acc va
+          false -> va
 
-              AudioParameter aiv = aiv'
+        freqChanges = case aic of
+          false -> []
+          true -> let AudioParameter aiv = aiv' in [ SetFrequency idx aiv.param aiv.timeOffset aiv.transition ]
 
-              bsv = (setterVal :: b -> (env -> acc -> AudioParameter -> AudioParameter)) b
+        bic = isChanging (Proxy :: Proxy delta2)
 
-              biv' = bsv env acc prm
+        biv' = case bic of
+          true -> ((setterVal :: b -> (env -> acc -> AudioParameter -> AudioParameter)) b) env acc vb
+          false -> vb
 
-              AudioParameter biv = biv'
-            in
-              Just
-                $ [ SetFrequency idx aiv.param aiv.timeOffset aiv.transition
-                  , SetQ idx biv.param biv.timeOffset biv.transition
-                  ]
-                /\ AHighpass aiv' biv'
-          _ -> Nothing
+        qChanges = case aic of
+          false -> []
+          true -> let AudioParameter biv = biv' in [ SetQ idx biv.param biv.timeOffset biv.transition ]
+      in
+        Just
+          $ (freqChanges <> qChanges)
+          /\ AHighpass aiv' biv'
+    _ -> Nothing
 
-instance changeInstructionsGain :: (SetterAsChanged env acc a delta) => ChangeInstructions env acc (Gain a b) delta where
-  changeInstructions =
-    (Proxy :: Proxy delta)
-      /\ \idx env acc (Gain a _) -> case _ of
-          ASinOsc prm ->
-            let
-              sv = (setterVal :: a -> (env -> acc -> AudioParameter -> AudioParameter)) a
+instance changeInstructionsGain :: (SetterAsChanged env acc a delta, IsChanging delta) => ChangeInstructions env acc (Gain a b) where
+  changeInstructions idx env acc (Gain a _) fromMap = case (isChanging (Proxy :: _ delta)) of
+    false -> Nothing
+    true -> case fromMap of
+      AGain prm ->
+        let
+          sv = (setterVal :: a -> (env -> acc -> AudioParameter -> AudioParameter)) a
 
-              iv' = sv env acc prm
+          iv' = sv env acc prm
 
-              AudioParameter iv = iv'
-            in
-              Just $ [ SetGain idx iv.param iv.timeOffset iv.transition ] /\ AGain iv'
-          _ -> Nothing
+          AudioParameter iv = iv'
+        in
+          Just $ [ SetGain idx iv.param iv.timeOffset iv.transition ] /\ AGain iv'
+      _ -> Nothing
 
 class NodeListKeepSingleton (nodeListA :: NodeList) (nodeListB :: NodeList) (nodeListC :: NodeList) | nodeListA nodeListB -> nodeListC
 
@@ -1457,34 +1467,31 @@ instance changeNothing ::
   change' _ _ = Frame (pure unit)
 
 changeAudioUnit ::
-  forall delta g env proof acc inuniv outuniv p nextP.
+  forall g env proof acc inuniv outuniv p nextP.
   GetAccumulator inuniv acc =>
-  ChangeInstructions env acc g delta =>
-  IsChanging delta =>
+  ChangeInstructions env acc g =>
   Nat p =>
   Modify g p inuniv outuniv nextP =>
   Proxy (p /\ acc /\ (Proxy nextP)) -> g -> Frame env proof inuniv outuniv Unit
 changeAudioUnit _ g =
   Frame
-    $ case isChanging (Proxy :: _ delta) of
-        false -> pure unit
-        true -> do
-          { env, acc } <- get
-          let
-            ptr = toInt' (Proxy :: _ p)
-          anAudioUnit' <- M.lookup ptr <$> gets _.internalNodes
-          case anAudioUnit' of
-            Just anAudioUnit -> case (snd changeInstructions) ptr env (unsafeCoerce acc :: acc) g anAudioUnit of
-              Just (instr /\ au) ->
-                modify_
-                  ( \i ->
-                      i
-                        { internalNodes = M.insert ptr au i.internalNodes
-                        , instructions = i.instructions <> instr
-                        }
-                  )
-              Nothing -> pure unit
+    $ do
+        { env, acc } <- get
+        let
+          ptr = toInt' (Proxy :: _ p)
+        anAudioUnit' <- M.lookup ptr <$> gets _.internalNodes
+        case anAudioUnit' of
+          Just anAudioUnit -> case changeInstructions ptr env (unsafeCoerce acc :: acc) g anAudioUnit of
+            Just (instr /\ au) ->
+              modify_
+                ( \i ->
+                    i
+                      { internalNodes = M.insert ptr au i.internalNodes
+                      , instructions = i.instructions <> instr
+                      }
+                )
             Nothing -> pure unit
+          Nothing -> pure unit
 
 instance changeSinOsc ::
   ( GetAccumulator inuniv acc
@@ -1502,6 +1509,7 @@ instance changeHighpass ::
   , SetterAsChanged env acc b deltaB
   , IsChanging deltaA
   , IsChanging deltaB
+  , KeepChanging deltaA deltaB delta
   , Nat p
   , Modify (Highpass a b c) p inuniv middle nextP
   , Change nextP c env proof middle outuniv
@@ -1523,7 +1531,6 @@ instance changeGain ::
   change' _ (Gain a b) = Ix.do
     (changeAudioUnit :: Proxy (p /\ acc /\ (Proxy nextP)) -> (Gain a b) -> Frame env proof inuniv middle Unit) Proxy (Gain a b)
     (change' :: (Proxy nextP) -> b -> Frame env proof middle outuniv Unit) Proxy b
-
 
 {-
 derive newtype instance functorFrame :: Functor m => Functor (FrameT ig og m)

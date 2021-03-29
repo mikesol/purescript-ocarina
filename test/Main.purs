@@ -280,13 +280,13 @@ main = do
                   ( ivoid $ create
                       $ Speaker
                           ( Gain 1.0 \(gain :: Proxy MyGain) ->
-                              gain /\ Highpass 330.0 1.0 (SinOsc 440.0) /\ unit
+                              gain /\ Highpass (330.0 /\ \{ time } _ -> 330.0 + time * 10.0) 1.0 (SinOsc 440.0) /\ unit
                           )
                   )
                   loop
-              (frame0Nodes /\ frame0Edges /\ frame0Instr /\ frame1) = oneFrame simpleScene unit
-              (frame1Nodes /\ frame1Edges /\ frame1Instr /\ frame2) = oneFrame frame1 unit
-              (frame2Nodes /\ frame2Edges /\frame2Instr /\ _) = oneFrame frame2 unit
+              (frame0Nodes /\ frame0Edges /\ frame0Instr /\ frame1) = oneFrame simpleScene { time: 0.0 }
+              (frame1Nodes /\ frame1Edges /\ frame1Instr /\ frame2) = oneFrame frame1 { time: 0.1 }
+              (frame2Nodes /\ frame2Edges /\frame2Instr /\ _) = oneFrame frame2 { time: 0.2 }
               nodeAssertion = M.fromFoldable [0 /\ ASpeaker, 1 /\ (AGain (param 1.0)), 2 /\ (AHighpass (param 330.0) (param 1.0)), 3 /\ (ASinOsc (param 440.0))]
               edgeAssertion = M.fromFoldable [0 /\ S.singleton 1, 1 /\ S.fromFoldable [1, 2], 2 /\ S.singleton 3]
               instructionAssertion = A.sortBy testCompare [NewUnit 1 "gain", NewUnit 2 "highpass", NewUnit 3 "sinosc", ConnectXToY 1 0, ConnectXToY 1 1, ConnectXToY 2 1, ConnectXToY 3 2, SetGain 1 1.0 0.0 LinearRamp, SetFrequency 3 440.0 0.0 LinearRamp, SetFrequency 2 330.0 0.0 LinearRamp, SetQ 2 1.0 0.0 LinearRamp]
