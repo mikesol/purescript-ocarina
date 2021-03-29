@@ -20,6 +20,7 @@ import Control.Plus (class Plus)
 import Data.Functor.Indexed (class IxFunctor)
 import Data.Generic.Rep (class Generic)
 import Data.Identity (Identity)
+import Control.Monad.Indexed.Qualified as Ix
 import Data.Map (Map, insert)
 import Data.Map as M
 import Data.Maybe (Maybe(..))
@@ -1468,54 +1469,16 @@ instance changeHighpass ::
   ( GetAccumulator inuniv acc
   , SetterAsChanged env acc a deltaA
   , SetterAsChanged env acc b deltaB
-  , IsChanging delta
+  , IsChanging deltaA
+  , IsChanging deltaB
   , Nat p
   , Modify (Highpass a b c) p inuniv middle nextP
   , Change nextP c env proof middle outuniv
   ) =>
   Change p (Highpass a b c) env proof inuniv outuniv where
-  change' _ (Highpass a b c) =
-    Frame
-      $ case isChanging (Proxy :: _ delta) of
-          false -> pure unit
-          true -> do
-            { env, acc } <- get
-            let
-              accAsAcc = (unsafeCoerce acc :: acc)
-
-              asv = (setterVal :: a -> (env -> acc -> AudioParameter -> AudioParameter)) a
-
-              bsv = (setterVal :: b -> (env -> acc -> AudioParameter -> AudioParameter)) b
-
-              ptr = toInt' (Proxy :: _ p)
-            sosc <- M.lookup ptr <$> gets _.internalNodes
-            case sosc of
-              Just v -> case v of
-                AHighpass aparam bparam ->
-                  let
-                    aiv' = asv env accAsAcc aparam
-
-                    AudioParameter aiv = aiv'
-
-                    biv' = bsv env accAsAcc bparam
-
-                    AudioParameter biv = biv'
-                  in
-                    modify_
-                      ( \i ->
-                          i
-                            { internalNodes = M.insert ptr (AHighpass aiv' biv') i.internalNodes
-                            , instructions =
-                              i.instructions
-                                <> [ SetFrequency ptr aiv.param aiv.timeOffset aiv.transition
-                                  , SetQ ptr biv.param biv.timeOffset biv.transition
-                                  ]
-                            }
-                      )
-                -- bad, means there is an inconsistent state
-                _ -> pure unit
-              -- bad, means there is an inconsistent state
-              Nothing -> pure unit
+  change' _ (Highpass a b c) = Ix.do
+    (changeAudioUnit :: Proxy (p /\ acc /\ (Proxy nextP)) -> (Highpass a b c) -> Frame env proof inuniv middle Unit) Proxy (Highpass a b c)
+    (change' :: (Proxy nextP) -> c -> Frame env proof middle outuniv Unit) Proxy c
 
 {-
 derive newtype instance functorFrame :: Functor m => Functor (FrameT ig og m)
