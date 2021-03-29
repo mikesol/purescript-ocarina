@@ -603,11 +603,13 @@ instance allNodesAreFullyHydratedConsTSinOsc :: AllNodesAreFullyHydratedNL tail 
 
 instance allNodesAreFullyHydratedConsTHighpass :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (THighpass a b c) (SingleEdge e)) tail)
 
-instance allNodesAreFullyHydratedConsTGainME :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (TGain a b) (ManyEdges e l)) tail)
-
 instance allNodesAreFullyHydratedConsTGainSE :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (TGain a b) (SingleEdge e)) tail)
 
-instance allNodesAreFullyHydratedConsTSpeaker :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (TSpeaker a) (ManyEdges e l)) tail)
+instance allNodesAreFullyHydratedConsTGainME :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (TGain a b) (ManyEdges e l)) tail)
+
+instance allNodesAreFullyHydratedConsTSpeakerSE :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (TSpeaker a) (SingleEdge e)) tail)
+
+instance allNodesAreFullyHydratedConsTSpeakerME :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (TSpeaker a) (ManyEdges e l)) tail)
 
 class AllNodesAreFullyHydrated (graph :: Graph)
 
@@ -729,7 +731,7 @@ instance universeIsCoherent ::
 class UniverseIsCoherent (u :: Universe) where
   assertCoherence :: forall env proof i x. Frame env proof i u x -> Unit
 
-makeScene0 ::
+start ::
   forall env acc g0 g1.
   UniverseIsCoherent g0 =>
   AsStatic g0 g1 =>
@@ -737,7 +739,16 @@ makeScene0 ::
   InitialFrame env acc g0 ->
   (forall proof. Frame env proof g1 g1 Unit -> Scene env proof) ->
   Scene env Frame0
-makeScene0 acc fr@(Frame f) trans = asScene go
+start a b = makeScene0T (a /\ b)
+
+makeScene0T ::
+  forall env acc g0 g1.
+  UniverseIsCoherent g0 =>
+  AsStatic g0 g1 =>
+  acc /\ InitialFrame env acc g0 ->
+  (forall proof. Frame env proof g1 g1 Unit -> Scene env proof) ->
+  Scene env Frame0
+makeScene0T (acc /\ fr@(Frame f)) trans = asScene go
   where
   go env =
     let
@@ -749,7 +760,7 @@ makeScene0 acc fr@(Frame f) trans = asScene go
     in
       os.internalGraph /\ os.instructions /\ scene
 
-infixr 6 makeScene0 as @@>
+infixr 6 makeScene0T as @@>
 
 makeScene' ::
   forall env proof g0 g1 g2.
@@ -1232,9 +1243,9 @@ instance createGain ::
               Int
         )
           Proxy
-
+-- toSkolemizedFunction :: a -> (Proxy skolem -> b)
 instance createSpeaker ::
-  ( ToSkolemizedFunction (DiscardableSkolem -> a) ptr a
+  ( ToSkolemizedFunction a DiscardableSkolem a
   , Nat ptr
   , Succ ptr next
   , Create

@@ -2,11 +2,13 @@ module Test.Main where
 
 import Data.Tuple.Nested
 import Prelude
+
+import Data.Functor.Indexed (ivoid)
 import Data.Typelevel.Bool (True, False)
 import Data.Typelevel.Num (class Succ, D0, D1, D2, D3)
 import Effect (Effect)
 import Effect.Class.Console (log)
-import Stream8 (class AllEdgesPointToNodes, class AudioUnitEq, class Gate, class HasBottomLevelNodes, class Lookup, class NoNodesAreDuplicated, class NoParallelEdges, class PtrEq, class UniqueTerminus, type (+:), type (/->), type (/:), AudioUnitRef, Changing, Dup(..), Gain(..), GraphC, Highpass(..), ManyEdges, NoEdge, NodeC, NodeListCons, NodeListNil, PtrListCons, PtrListNil, Frame, SinOsc(..), SingleEdge, SkolemListNil, Static, TGain, THighpass, TSinOsc, UniverseC, create)
+import Stream8 (class AllEdgesPointToNodes, class AudioUnitEq, class Gate, class HasBottomLevelNodes, class Lookup, class NoNodesAreDuplicated, class NoParallelEdges, class PtrEq, class UniqueTerminus, type (+:), type (/->), type (/:), AudioUnitRef, Changing, Dup(..), Frame, Gain(..), GraphC, Highpass(..), ManyEdges, NoEdge, NodeC, NodeListCons, NodeListNil, PtrListCons, PtrListNil, SinOsc(..), SingleEdge, SkolemListNil, Speaker(..), Static, TGain, THighpass, TSinOsc, UniverseC, create, loop, start, (@>), (@@>))
 import Type.Proxy (Proxy(..))
 
 ---------------------------
@@ -257,6 +259,15 @@ createTest5 =
     $ Dup (SinOsc 440.0) \(mySinOsc :: Proxy MySinOsc) ->
         Gain 1.0 \(gain :: Proxy MyGain) ->
           gain /\ Highpass 330.0 1.0 mySinOsc /\ mySinOsc /\ unit
+
+loopTest =
+  start unit
+      ( ivoid $ create
+            $ Speaker
+                ( Gain 1.0 \(gain :: Proxy MyGain) ->
+                    gain /\ Highpass 330.0 1.0 (SinOsc 440.0) /\ unit
+                )
+        )  loop
 
 main :: Effect Unit
 main = do
