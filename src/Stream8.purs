@@ -1,7 +1,6 @@
 module Stream8 where
 
 import Prelude
-
 import Control.Alt (class Alt)
 import Control.Alternative (class Alternative)
 import Control.Applicative.Indexed (class IxApplicative, ipure)
@@ -127,7 +126,6 @@ foreign import data UniverseC :: Ptr -> Graph -> PtrList -> SkolemList -> Type -
 
 ---------------------------
 ------------ util
-
 cunit :: forall a. a -> Unit
 cunit = const unit
 
@@ -275,6 +273,22 @@ instance creationInstructionsGain :: InitialVal env acc a => CreationInstruction
 
 instance creationInstructionsSpeaker :: CreationInstructions env acc (Speaker a) where
   creationInstructions idx env acc (Speaker _) = [] /\ ASpeaker
+
+class ChangeInstructions (env :: Type) (acc :: Type) (g :: Type) where
+  changeInstructions :: Int -> env -> acc -> g -> AnAudioUnit -> Maybe (Array Instruction /\ AnAudioUnit)
+
+instance changeInstructionsSinOsc :: SetterAsChanged env acc a delta => ChangeInstructions env acc (SinOsc a) where
+  changeInstructions idx env acc (SinOsc a) = case _ of
+    ASinOsc prm ->
+      let
+        sv = (setterVal :: a -> (env -> acc -> AudioParameter -> AudioParameter)) a
+
+        iv' = sv env acc prm
+
+        AudioParameter iv = iv'
+      in
+        Just $ [ SetFrequency idx iv.param iv.timeOffset iv.transition ] /\ ASinOsc iv'
+    _ -> Nothing
 
 class NodeListKeepSingleton (nodeListA :: NodeList) (nodeListB :: NodeList) (nodeListC :: NodeList) | nodeListA nodeListB -> nodeListC
 
@@ -659,7 +673,9 @@ data AudioParameterTransition
   | Immediately
 
 derive instance eqAudioParameterTransition :: Eq AudioParameterTransition
+
 derive instance genericAudioParameterTransition :: Generic AudioParameterTransition _
+
 instance showAudioParameterTransition :: Show AudioParameterTransition where
   show = genericShow
 
@@ -717,9 +733,9 @@ instance ordInstruction :: Ord Instruction where
   compare (DisconnectXFromY _ _) _ = LT
   compare (Free x) (Free y) = compare x y
   compare (Free _) _ = LT
-  compare _ (Stop _)  = GT
-  compare _ (DisconnectXFromY _ _)  = GT
-  compare _ (Free _)  = GT
+  compare _ (Stop _) = GT
+  compare _ (DisconnectXFromY _ _) = GT
+  compare _ (Free _) = GT
   compare (ConnectXToY x _) (ConnectXToY y _) = compare x y
   compare (ConnectXToY _ _) _ = GT
   compare (NewUnit x _) (NewUnit y _) = compare x y
@@ -818,7 +834,9 @@ makeScene' _ _ fr@(Frame f) trans = asScene go
       stateM = map fst rt
 
       initialSt = map snd rt
+
       ias = initialAudioState env (unsafeCoerce unit)
+
       os =
         execState
           ( do
@@ -855,7 +873,6 @@ loop ::
   Frame env proof g0 g1 Unit ->
   Scene env proof
 loop fr = makeScene' cunit (\(Frame s) -> Frame s) fr (loop' cunit)
-
 
 unFrame :: forall env proof i o a. Frame env proof i o a -> AudioState env a
 unFrame (Frame state) = state
@@ -899,11 +916,14 @@ newtype AudioParameter
   = AudioParameter AudioParameter'
 
 param :: Number -> AudioParameter
-param = AudioParameter <<< defaultParam {
-  param = _
-}
+param =
+  AudioParameter
+    <<< defaultParam
+        { param = _
+        }
 
 derive newtype instance eqAudioParameter :: Eq AudioParameter
+
 derive newtype instance showAudioParameter :: Show AudioParameter
 
 class InitialVal env acc a where
@@ -1077,7 +1097,8 @@ creationStep _ g = do
     )
   pure currentIdx
 
-type ProxyCC acc skolem ptr innerTerm = Proxy (acc /\ skolem /\ ptr /\ innerTerm)
+type ProxyCC acc skolem ptr innerTerm
+  = Proxy (acc /\ skolem /\ ptr /\ innerTerm)
 
 createAndConnect ::
   forall env acc proof g ptr skolem c i o innerTerm eprof.
@@ -1104,9 +1125,9 @@ createAndConnect _ g =
         modify_
           ( \i ->
               i
-                { internalEdges = 
-                  M.insertWith S.union idx (S.fromFoldable o) i.internalEdges,
-                instructions =
+                { internalEdges =
+                  M.insertWith S.union idx (S.fromFoldable o) i.internalEdges
+                , instructions =
                   i.instructions
                     <> map (flip ConnectXToY idx) o
                 }
@@ -1301,6 +1322,7 @@ instance createGain ::
               Int
         )
           Proxy
+
 -- toSkolemizedFunction :: a -> (Proxy skolem -> b)
 instance createSpeaker ::
   ( ToSkolemizedFunction a DiscardableSkolem a
@@ -1404,9 +1426,9 @@ instance changeSinOsc ::
             sosc <- M.lookup ptr <$> gets _.internalNodes
             case sosc of
               Just v -> case v of
-                ASinOsc param ->
+                ASinOsc prm ->
                   let
-                    iv' = sv env accAsAcc param
+                    iv' = sv env accAsAcc prm
 
                     AudioParameter iv = iv'
                   in
