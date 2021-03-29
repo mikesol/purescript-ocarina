@@ -123,6 +123,10 @@ foreign import data UniverseC :: Ptr -> Graph -> PtrList -> SkolemList -> Type -
 
 ---------------------------
 ------------ util
+
+cunit :: forall a. a -> Unit
+cunit = const unit
+
 class GetAccumulator (u :: Universe) (acc :: Type) | u -> acc
 
 instance getAccumulator :: GetAccumulator (UniverseC ptr graph destroyable skolems acc) acc
@@ -792,14 +796,14 @@ loop' ::
   (Frame env proof g0 g1 Unit -> Unit) ->
   Frame env proof g0 g1 Unit ->
   Scene env proof
-loop' cu fr = makeScene' (const unit) (\(Frame s) -> Frame s) fr (loop' (const $ unit))
+loop' cu fr = makeScene' cunit (\(Frame s) -> Frame s) fr (loop' cunit)
 
 loop ::
   forall env proof g0 g1.
   UniverseIsCoherent g1 =>
   Frame env proof g0 g1 Unit ->
   Scene env proof
-loop fr = makeScene' assertCoherence (\(Frame s) -> Frame s) fr (loop' $ const unit)
+loop fr = makeScene' cunit (\(Frame s) -> Frame s) fr (loop' cunit)
 
 
 unFrame :: forall env proof i o a. Frame env proof i o a -> AudioState env a
