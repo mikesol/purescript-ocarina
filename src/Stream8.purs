@@ -975,6 +975,9 @@ instance setterValAudioParameter :: SetterVal env acc AudioParameter where
 instance setterValTuple :: SetterVal env acc (Tuple a (env -> acc -> AudioParameter -> AudioParameter)) where
   setterVal = snd
 
+instance setterValFunction :: SetterVal env acc (env -> acc -> AudioParameter -> AudioParameter) where
+  setterVal = identity
+
 class IsChanging (b :: TAudioParameter) where
   isChanging :: Proxy b -> Boolean
 
@@ -985,6 +988,8 @@ instance setterAsChangedNumber :: SetterAsChanged env acc Number Static
 instance setterAsChangedAudioParameter :: SetterAsChanged env acc AudioParameter Static
 
 instance setterAsChangedTuple :: SetterAsChanged env acc (Tuple a (env -> acc -> AudioParameter -> AudioParameter)) Changing
+
+instance setterAsChangedFunction :: SetterAsChanged env acc (env -> acc -> AudioParameter -> AudioParameter) Changing
 
 data AudioUnitRef (ptr :: Ptr)
   = AudioUnitRef Int
