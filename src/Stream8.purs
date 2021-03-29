@@ -1422,13 +1422,14 @@ instance createSpeaker ::
           Proxy
 
 change ::
-  forall a g t u (p :: EdgeProfile) i o env proof.
+  forall a g t u ptr i o env proof.
   GetGraph i g =>
   UniqueTerminus g t =>
   GetAudioUnit t u =>
-  Change p a env proof i o =>
+  GetPointer u ptr =>
+  Change (SingleEdge ptr) a env proof i o =>
   a -> Frame env proof i o Unit
-change = change' (Proxy :: _ p)
+change = change' (Proxy :: _ (SingleEdge ptr))
 
 class Change (p :: EdgeProfile) (a :: Type) (env :: Type) (proof :: Type) (i :: Universe) (o :: Universe) | p a env i -> o where
   change' :: Proxy p -> a -> Frame env proof i o Unit
@@ -1454,15 +1455,7 @@ instance modifyCons ::
 
 class Modify (tag :: Type) (p :: Ptr) (i :: Universe) (o :: Universe) (nextP :: EdgeProfile) | tag p i -> o nextP
 
-instance modify :: (GraphToNodeList ig il, Modify' tag p il ol mod nextPL, AssertSingleton mod x, GraphToNodeList og ol) => Modify tag p (UniverseC i ig d sk acc) (UniverseC i og d sk acc) nextP
-
-instance changeSkolem ::
-  Change p (Proxy skolem) env proof inuniv outuniv where
-  change' _ _ = Frame (pure unit)
-
-instance changeNothing ::
-  Change p Unit env proof inuniv outuniv where
-  change' _ _ = Frame (pure unit)
+instance modify :: (GraphToNodeList ig il, Modify' tag p il ol mod nextP, AssertSingleton mod x, GraphToNodeList og ol) => Modify tag p (UniverseC i ig d sk acc) (UniverseC i og d sk acc) nextP
 
 changeAudioUnit ::
   forall g env proof acc inuniv outuniv p nextP.
@@ -1490,6 +1483,27 @@ changeAudioUnit _ g =
                 )
             Nothing -> pure unit
           Nothing -> pure unit
+
+instance changeNoEdge ::
+  Change NoEdge g env proof inuniv outuniv where
+  change' _ _ = Frame (pure unit)
+
+instance changeSkolem ::
+  Change (SingleEdge p) (Proxy skolem) env proof inuniv outuniv where
+  change' _ _ = Frame (pure unit)
+
+instance changeMany2 ::
+  (Change (SingleEdge p) x env proof inuniv miduniv,
+  Change (ManyEdges a b) y env proof miduniv outuniv) =>
+  Change (ManyEdges p (PtrListCons a b)) (x /\ y) env proof inuniv outuniv where
+  change' _ (x /\ y) = Ix.do
+      (change' :: Proxy (SingleEdge p) -> x -> Frame env proof inuniv miduniv Unit) Proxy x
+      (change' :: Proxy (ManyEdges a b) -> y -> Frame env proof miduniv outuniv Unit) Proxy y
+
+instance changeMany1 ::
+  Change (SingleEdge p) a env proof inuniv outuniv =>
+  Change (ManyEdges p PtrListNil) (a /\ Unit) env proof inuniv outuniv where
+  change' _ (a /\ _) = (change' :: Proxy (SingleEdge p) -> a -> Frame env proof inuniv outuniv Unit) Proxy a
 
 instance changeSinOsc ::
   ( GetAccumulator inuniv acc
