@@ -1,6 +1,7 @@
 module Stream8 where
 
 import Prelude
+
 import Control.Alt (class Alt)
 import Control.Alternative (class Alternative)
 import Control.Applicative.Indexed (class IxApplicative, ipure)
@@ -706,10 +707,15 @@ data Frame0
 type InitialFrame env acc og
   = Frame env Frame0 (UniverseC D0 InitialGraph PtrListNil SkolemListNil acc) og Unit
 
-newtype Scene (env :: Type) (proof :: Type)
-  = Scene (env -> Map Int AnAudioUnit /\ Array Instruction /\ (Scene env proof))
+foreign import data Scene :: Type -> Type -> Type
 
-derive instance newtypeScene :: Newtype (Scene env proof) _
+type role Scene representational representational
+
+asScene :: forall env proof. (env -> Map Int AnAudioUnit /\ Array Instruction /\ (Scene env proof)) -> Scene env proof
+asScene = unsafeCoerce
+
+unScene :: forall env proof. Scene env proof -> env -> Map Int AnAudioUnit /\ Array Instruction /\ (Scene env proof)
+unScene = unsafeCoerce
 
 instance universeIsCoherent ::
   GraphIsRenderable graph =>
@@ -725,7 +731,7 @@ makeScene0 ::
   InitialFrame env acc g0 ->
   (forall proof. Frame env proof g1 g1 Unit -> Scene env proof) ->
   Scene env Frame0
-makeScene0 acc fr@(Frame f) trans = Scene go
+makeScene0 acc fr@(Frame f) trans = asScene go
   where
   go env =
     let
@@ -747,7 +753,7 @@ makeScene ::
   -- but if that's the case, we're screwed, as we need it to budge
   (Frame env proof g2 g2 Unit -> Scene env proof) ->
   Scene env proof
-makeScene fr@(Frame f) trans = Scene go
+makeScene fr@(Frame f) trans = asScene go
   where
   go env =
     let
