@@ -758,7 +758,7 @@ makeScene' ::
   Frame env proof g0 g1 Unit ->
   (Frame env proof g2 g2 Unit -> Scene env proof) ->
   Scene env proof
-makeScene' _ mogrify fr@(Frame f) trans = asScene go
+makeScene' _ _ fr@(Frame f) trans = asScene go
   where
   go env =
     let
@@ -796,7 +796,7 @@ loop' ::
   (Frame env proof g0 g1 Unit -> Unit) ->
   Frame env proof g0 g1 Unit ->
   Scene env proof
-loop' cu fr = makeScene' cunit (\(Frame s) -> Frame s) fr (loop' cunit)
+loop' _ fr = makeScene' cunit (\(Frame s) -> Frame s) fr (loop' cunit)
 
 loop ::
   forall env proof g0 g1.
