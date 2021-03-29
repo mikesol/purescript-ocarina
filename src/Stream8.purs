@@ -319,6 +319,21 @@ instance changeInstructionsHighpass :: (SetterAsChanged env acc a delta, SetterA
                 /\ AHighpass aiv' biv'
           _ -> Nothing
 
+instance changeInstructionsGain :: (SetterAsChanged env acc a delta) => ChangeInstructions env acc (Gain a b) delta where
+  changeInstructions =
+    (Proxy :: Proxy delta)
+      /\ \idx env acc (Gain a _) -> case _ of
+          ASinOsc prm ->
+            let
+              sv = (setterVal :: a -> (env -> acc -> AudioParameter -> AudioParameter)) a
+
+              iv' = sv env acc prm
+
+              AudioParameter iv = iv'
+            in
+              Just $ [ SetGain idx iv.param iv.timeOffset iv.transition ] /\ AGain iv'
+          _ -> Nothing
+
 class NodeListKeepSingleton (nodeListA :: NodeList) (nodeListB :: NodeList) (nodeListC :: NodeList) | nodeListA nodeListB -> nodeListC
 
 instance nodeListKeepSingletonNil :: NodeListKeepSingleton NodeListNil NodeListNil NodeListNil
@@ -1495,6 +1510,20 @@ instance changeHighpass ::
   change' _ (Highpass a b c) = Ix.do
     (changeAudioUnit :: Proxy (p /\ acc /\ (Proxy nextP)) -> (Highpass a b c) -> Frame env proof inuniv middle Unit) Proxy (Highpass a b c)
     (change' :: (Proxy nextP) -> c -> Frame env proof middle outuniv Unit) Proxy c
+
+instance changeGain ::
+  ( GetAccumulator inuniv acc
+  , SetterAsChanged env acc a delta
+  , IsChanging delta
+  , Nat p
+  , Modify (Gain a b) p inuniv middle nextP
+  , Change nextP b env proof middle outuniv
+  ) =>
+  Change p (Gain a b) env proof inuniv outuniv where
+  change' _ (Gain a b) = Ix.do
+    (changeAudioUnit :: Proxy (p /\ acc /\ (Proxy nextP)) -> (Gain a b) -> Frame env proof inuniv middle Unit) Proxy (Gain a b)
+    (change' :: (Proxy nextP) -> b -> Frame env proof middle outuniv Unit) Proxy b
+
 
 {-
 derive newtype instance functorFrame :: Functor m => Functor (FrameT ig og m)
