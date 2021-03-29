@@ -1010,19 +1010,18 @@ creationStep _ g = do
     )
   pure currentIdx
 
+type ProxyCC acc skolem ptr innerTerm = Proxy (acc /\ skolem /\ ptr /\ innerTerm)
+
 createAndConnect ::
   forall env acc proof g ptr skolem c i o innerTerm eprof.
   GetSkolemizedFunctionFromAU g skolem c =>
   AsEdgeProfile innerTerm eprof =>
   CreationInstructions env acc g =>
   Create c env proof i o innerTerm =>
-  Proxy acc ->
-  Proxy skolem ->
-  Proxy ptr ->
-  Proxy innerTerm ->
+  Proxy (acc /\ skolem /\ ptr /\ innerTerm) ->
   g ->
   Frame env proof i o Int
-createAndConnect _ _ _ _ g =
+createAndConnect _ g =
   Frame
     $ do
         idx <- cs
@@ -1182,19 +1181,13 @@ instance createHighpass ::
   create =
     Frame <<< map AudioUnitRef <<< unFrame
       <<< ( createAndConnect ::
-            Proxy acc ->
-            Proxy skolem ->
-            Proxy ptr ->
-            Proxy term ->
+            ProxyCC acc skolem ptr term ->
             (Highpass a b fc) ->
             Frame env proof
               (UniverseC next graphi destroyed skolemsInternal acc)
               (UniverseC outptr grapho destroyed skolemsInternal acc)
               Int
         )
-          Proxy
-          Proxy
-          Proxy
           Proxy
 
 instance createGain ::
@@ -1231,19 +1224,13 @@ instance createGain ::
   create =
     Frame <<< map AudioUnitRef <<< unFrame
       <<< ( createAndConnect ::
-            Proxy acc ->
-            Proxy skolem ->
-            Proxy ptr ->
-            Proxy term ->
+            ProxyCC acc skolem ptr term ->
             (Gain a fb) ->
             Frame env proof
               (UniverseC next graphi destroyed skolemsInternal acc)
               (UniverseC outptr grapho destroyed skolemsInternal acc)
               Int
         )
-          Proxy
-          Proxy
-          Proxy
           Proxy
 
 instance createSpeaker ::
@@ -1276,19 +1263,13 @@ instance createSpeaker ::
   create =
     Frame <<< map AudioUnitRef <<< unFrame
       <<< ( createAndConnect ::
-            Proxy acc ->
-            Proxy DiscardableSkolem ->
-            Proxy ptr ->
-            Proxy term ->
+            ProxyCC acc DiscardableSkolem ptr term ->
             (Speaker a) ->
             Frame env proof
               (UniverseC next graphi destroyed skolems acc)
               (UniverseC outptr grapho destroyed skolems acc)
               Int
         )
-          Proxy
-          Proxy
-          Proxy
           Proxy
 
 change' ::
