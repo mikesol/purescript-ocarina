@@ -298,7 +298,6 @@ instance changeInstructionsSinOsc :: (SetterAsChanged env acc a delta, IsChangin
           Just $ [ SetFrequency idx iv.param iv.timeOffset iv.transition ] /\ ASinOsc iv'
     _ -> Nothing
 
--- todo: deal with case of multiple deltas?
 instance changeInstructionsHighpass :: (SetterAsChanged env acc a delta1, SetterAsChanged env acc b delta2, IsChanging delta1, IsChanging delta2) => ChangeInstructions env acc (Highpass a b c) where
   changeInstructions idx env acc (Highpass a b _) = case _ of
     AHighpass va vb ->
@@ -1423,16 +1422,15 @@ instance createSpeaker ::
           Proxy
 
 change ::
-  forall a g t u p i o env proof.
+  forall a g t u (p :: EdgeProfile) i o env proof.
   GetGraph i g =>
   UniqueTerminus g t =>
   GetAudioUnit t u =>
-  GetPointer u p =>
   Change p a env proof i o =>
   a -> Frame env proof i o Unit
 change = change' (Proxy :: _ p)
 
-class Change p (a :: Type) (env :: Type) (proof :: Type) (i :: Universe) (o :: Universe) | p a env i -> o where
+class Change (p :: EdgeProfile) (a :: Type) (env :: Type) (proof :: Type) (i :: Universe) (o :: Universe) | p a env i -> o where
   change' :: Proxy p -> a -> Frame env proof i o Unit
 
 --
@@ -1500,7 +1498,7 @@ instance changeSinOsc ::
   , Nat p
   , Modify (SinOsc a) p inuniv outuniv nextP
   ) =>
-  Change p (SinOsc a) env proof inuniv outuniv where
+  Change (SingleEdge p) (SinOsc a) env proof inuniv outuniv where
   change' _ = (changeAudioUnit :: Proxy (p /\ acc /\ (Proxy nextP)) -> (SinOsc a) -> Frame env proof inuniv outuniv Unit) Proxy
 
 instance changeHighpass ::
@@ -1514,7 +1512,7 @@ instance changeHighpass ::
   , Modify (Highpass a b c) p inuniv middle nextP
   , Change nextP c env proof middle outuniv
   ) =>
-  Change p (Highpass a b c) env proof inuniv outuniv where
+  Change (SingleEdge p) (Highpass a b c) env proof inuniv outuniv where
   change' _ (Highpass a b c) = Ix.do
     (changeAudioUnit :: Proxy (p /\ acc /\ (Proxy nextP)) -> (Highpass a b c) -> Frame env proof inuniv middle Unit) Proxy (Highpass a b c)
     (change' :: (Proxy nextP) -> c -> Frame env proof middle outuniv Unit) Proxy c
@@ -1527,10 +1525,17 @@ instance changeGain ::
   , Modify (Gain a b) p inuniv middle nextP
   , Change nextP b env proof middle outuniv
   ) =>
-  Change p (Gain a b) env proof inuniv outuniv where
+  Change (SingleEdge p) (Gain a b) env proof inuniv outuniv where
   change' _ (Gain a b) = Ix.do
     (changeAudioUnit :: Proxy (p /\ acc /\ (Proxy nextP)) -> (Gain a b) -> Frame env proof inuniv middle Unit) Proxy (Gain a b)
     (change' :: (Proxy nextP) -> b -> Frame env proof middle outuniv Unit) Proxy b
+
+instance changeSpeaker ::
+  ( Nat p
+  , Change nextP a env proof inuniv outuniv
+  ) =>
+  Change (SingleEdge p) (Speaker a) env proof inuniv outuniv where
+  change' _ (Speaker a) =  (change' :: (Proxy nextP) -> a -> Frame env proof inuniv outuniv Unit) Proxy a
 
 {-
 derive newtype instance functorFrame :: Functor m => Functor (FrameT ig og m)
