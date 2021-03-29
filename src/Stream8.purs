@@ -1,7 +1,6 @@
 module Stream8 where
 
 import Prelude
-
 import Control.Alt (class Alt)
 import Control.Alternative (class Alternative)
 import Control.Applicative.Indexed (class IxApplicative, ipure)
@@ -280,37 +279,45 @@ class ChangeInstructions (env :: Type) (acc :: Type) (g :: Type) (delta :: TAudi
   changeInstructions :: (Proxy delta) /\ (Int -> env -> acc -> g -> AnAudioUnit -> Maybe (Array Instruction /\ AnAudioUnit))
 
 instance changeInstructionsSinOsc :: (SetterAsChanged env acc a delta) => ChangeInstructions env acc (SinOsc a) delta where
-  changeInstructions = (Proxy :: Proxy delta) /\ \idx env acc (SinOsc a) -> case _ of
-    ASinOsc prm ->
-      let
-        sv = (setterVal :: a -> (env -> acc -> AudioParameter -> AudioParameter)) a
+  changeInstructions =
+    (Proxy :: Proxy delta)
+      /\ \idx env acc (SinOsc a) -> case _ of
+          ASinOsc prm ->
+            let
+              sv = (setterVal :: a -> (env -> acc -> AudioParameter -> AudioParameter)) a
 
-        iv' = sv env acc prm
+              iv' = sv env acc prm
 
-        AudioParameter iv = iv'
-      in
-        Just $ [ SetFrequency idx iv.param iv.timeOffset iv.transition ] /\ ASinOsc iv'
-    _ -> Nothing
+              AudioParameter iv = iv'
+            in
+              Just $ [ SetFrequency idx iv.param iv.timeOffset iv.transition ] /\ ASinOsc iv'
+          _ -> Nothing
 
 -- todo: deal with case of multiple deltas?
 instance changeInstructionsHighpass :: (SetterAsChanged env acc a delta, SetterAsChanged env acc b delta2) => ChangeInstructions env acc (Highpass a b c) delta where
-  changeInstructions = (Proxy :: Proxy delta) /\ \idx env acc (Highpass a b _) -> case _ of
-    ASinOsc prm ->
-      let
-        asv = (setterVal :: a -> (env -> acc -> AudioParameter -> AudioParameter)) a
+  changeInstructions =
+    (Proxy :: Proxy delta)
+      /\ \idx env acc (Highpass a b _) -> case _ of
+          ASinOsc prm ->
+            let
+              asv = (setterVal :: a -> (env -> acc -> AudioParameter -> AudioParameter)) a
 
-        aiv' = asv env acc prm
+              aiv' = asv env acc prm
 
-        AudioParameter aiv = aiv'
-        bsv = (setterVal :: b -> (env -> acc -> AudioParameter -> AudioParameter)) b
+              AudioParameter aiv = aiv'
 
-        biv' = bsv env acc prm
+              bsv = (setterVal :: b -> (env -> acc -> AudioParameter -> AudioParameter)) b
 
-        AudioParameter biv = biv'
-      in
-        Just $ [ SetFrequency idx aiv.param aiv.timeOffset aiv.transition,
-        SetQ idx biv.param biv.timeOffset biv.transition ] /\ AHighpass aiv' biv'
-    _ -> Nothing
+              biv' = bsv env acc prm
+
+              AudioParameter biv = biv'
+            in
+              Just
+                $ [ SetFrequency idx aiv.param aiv.timeOffset aiv.transition
+                  , SetQ idx biv.param biv.timeOffset biv.transition
+                  ]
+                /\ AHighpass aiv' biv'
+          _ -> Nothing
 
 class NodeListKeepSingleton (nodeListA :: NodeList) (nodeListB :: NodeList) (nodeListC :: NodeList) | nodeListA nodeListB -> nodeListC
 
@@ -1442,23 +1449,27 @@ changeAudioUnit ::
   Nat p =>
   Modify g p inuniv outuniv nextP =>
   Proxy (p /\ acc /\ (Proxy nextP)) -> g -> Frame env proof inuniv outuniv Unit
-changeAudioUnit _ g = Frame
-      $ case isChanging (Proxy :: _ delta) of
-          false -> pure unit
-          true -> do
-            { env, acc } <- get
-            let ptr = toInt' (Proxy :: _ p)
-            anAudioUnit' <- M.lookup ptr <$> gets _.internalNodes
-            case anAudioUnit' of
-              Just anAudioUnit -> case (snd changeInstructions) ptr env (unsafeCoerce acc :: acc) g anAudioUnit of
-                Just (instr /\ au) -> modify_ ( \i ->
-                            i
-                              { internalNodes = M.insert ptr au i.internalNodes
-                              , instructions = i.instructions <> instr
-                              }
-                        )
-                Nothing -> pure unit
+changeAudioUnit _ g =
+  Frame
+    $ case isChanging (Proxy :: _ delta) of
+        false -> pure unit
+        true -> do
+          { env, acc } <- get
+          let
+            ptr = toInt' (Proxy :: _ p)
+          anAudioUnit' <- M.lookup ptr <$> gets _.internalNodes
+          case anAudioUnit' of
+            Just anAudioUnit -> case (snd changeInstructions) ptr env (unsafeCoerce acc :: acc) g anAudioUnit of
+              Just (instr /\ au) ->
+                modify_
+                  ( \i ->
+                      i
+                        { internalNodes = M.insert ptr au i.internalNodes
+                        , instructions = i.instructions <> instr
+                        }
+                  )
               Nothing -> pure unit
+            Nothing -> pure unit
 
 instance changeSinOsc ::
   ( GetAccumulator inuniv acc
