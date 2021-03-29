@@ -1,6 +1,7 @@
 module Stream8 where
 
 import Prelude
+
 import Control.Alt (class Alt)
 import Control.Alternative (class Alternative)
 import Control.Applicative.Indexed (class IxApplicative, ipure)
@@ -274,11 +275,11 @@ instance creationInstructionsGain :: InitialVal env acc a => CreationInstruction
 instance creationInstructionsSpeaker :: CreationInstructions env acc (Speaker a) where
   creationInstructions idx env acc (Speaker _) = [] /\ ASpeaker
 
-class ChangeInstructions (env :: Type) (acc :: Type) (g :: Type) where
-  changeInstructions :: Int -> env -> acc -> g -> AnAudioUnit -> Maybe (Array Instruction /\ AnAudioUnit)
+class ChangeInstructions (env :: Type) (acc :: Type) (g :: Type) (delta :: TAudioParameter) | env acc g -> delta where
+  changeInstructions :: (Proxy delta) /\ (Int -> env -> acc -> g -> AnAudioUnit -> Maybe (Array Instruction /\ AnAudioUnit))
 
-instance changeInstructionsSinOsc :: SetterAsChanged env acc a delta => ChangeInstructions env acc (SinOsc a) where
-  changeInstructions idx env acc (SinOsc a) = case _ of
+instance changeInstructionsSinOsc :: (SetterAsChanged env acc a delta) => ChangeInstructions env acc (SinOsc a) delta where
+  changeInstructions = (Proxy :: Proxy delta) /\ \idx env acc (SinOsc a) -> case _ of
     ASinOsc prm ->
       let
         sv = (setterVal :: a -> (env -> acc -> AudioParameter -> AudioParameter)) a
@@ -288,6 +289,26 @@ instance changeInstructionsSinOsc :: SetterAsChanged env acc a delta => ChangeIn
         AudioParameter iv = iv'
       in
         Just $ [ SetFrequency idx iv.param iv.timeOffset iv.transition ] /\ ASinOsc iv'
+    _ -> Nothing
+
+-- todo: deal with case of multiple deltas?
+instance changeInstructionsHighpass :: (SetterAsChanged env acc a delta, SetterAsChanged env acc b delta2) => ChangeInstructions env acc (Highpass a b c) delta where
+  changeInstructions = (Proxy :: Proxy delta) /\ \idx env acc (Highpass a b _) -> case _ of
+    ASinOsc prm ->
+      let
+        asv = (setterVal :: a -> (env -> acc -> AudioParameter -> AudioParameter)) a
+
+        aiv' = asv env acc prm
+
+        AudioParameter aiv = aiv'
+        bsv = (setterVal :: b -> (env -> acc -> AudioParameter -> AudioParameter)) b
+
+        biv' = bsv env acc prm
+
+        AudioParameter biv = biv'
+      in
+        Just $ [ SetFrequency idx aiv.param aiv.timeOffset aiv.transition,
+        SetQ idx biv.param biv.timeOffset biv.transition ] /\ AHighpass aiv' biv'
     _ -> Nothing
 
 class NodeListKeepSingleton (nodeListA :: NodeList) (nodeListB :: NodeList) (nodeListC :: NodeList) | nodeListA nodeListB -> nodeListC
@@ -1363,7 +1384,7 @@ instance createSpeaker ::
         )
           Proxy
 
-change' ::
+change ::
   forall a g t u p i o env proof.
   GetGraph i g =>
   UniqueTerminus g t =>
@@ -1371,10 +1392,10 @@ change' ::
   GetPointer u p =>
   Change p a env proof i o =>
   a -> Frame env proof i o Unit
-change' = change (Proxy :: _ p)
+change = change' (Proxy :: _ p)
 
 class Change p (a :: Type) (env :: Type) (proof :: Type) (i :: Universe) (o :: Universe) | p a env i -> o where
-  change :: Proxy p -> a -> Frame env proof i o Unit
+  change' :: Proxy p -> a -> Frame env proof i o Unit
 
 --
 class ModifyRes (tag :: Type) (p :: Ptr) (i :: Node) (o :: Node) (mod :: NodeList) (plist :: EdgeProfile) | tag p i -> i mod plist
@@ -1399,9 +1420,39 @@ class Modify (tag :: Type) (p :: Ptr) (i :: Universe) (o :: Universe) (nextP :: 
 
 instance modify :: (GraphToNodeList ig il, Modify' tag p il ol mod nextPL, AssertSingleton mod x, GraphToNodeList og ol) => Modify tag p (UniverseC i ig d sk acc) (UniverseC i og d sk acc) nextP
 
+instance changeSkolem ::
+  Change p (Proxy skolem) env proof inuniv outuniv where
+  change' _ _ = Frame (pure unit)
+
 instance changeNothing ::
-  Change p (AudioUnitRef p) env proof inuniv outuniv where
-  change _ _ = Frame (pure unit)
+  Change p Unit env proof inuniv outuniv where
+  change' _ _ = Frame (pure unit)
+
+changeAudioUnit ::
+  forall delta g env proof acc inuniv outuniv p nextP.
+  GetAccumulator inuniv acc =>
+  ChangeInstructions env acc g delta =>
+  IsChanging delta =>
+  Nat p =>
+  Modify g p inuniv outuniv nextP =>
+  Proxy (p /\ acc /\ (Proxy nextP)) -> g -> Frame env proof inuniv outuniv Unit
+changeAudioUnit _ g = Frame
+      $ case isChanging (Proxy :: _ delta) of
+          false -> pure unit
+          true -> do
+            { env, acc } <- get
+            let ptr = toInt' (Proxy :: _ p)
+            anAudioUnit' <- M.lookup ptr <$> gets _.internalNodes
+            case anAudioUnit' of
+              Just anAudioUnit -> case (snd changeInstructions) ptr env (unsafeCoerce acc :: acc) g anAudioUnit of
+                Just (instr /\ au) -> modify_ ( \i ->
+                            i
+                              { internalNodes = M.insert ptr au i.internalNodes
+                              , instructions = i.instructions <> instr
+                              }
+                        )
+                Nothing -> pure unit
+              Nothing -> pure unit
 
 instance changeSinOsc ::
   ( GetAccumulator inuniv acc
@@ -1411,40 +1462,7 @@ instance changeSinOsc ::
   , Modify (SinOsc a) p inuniv outuniv nextP
   ) =>
   Change p (SinOsc a) env proof inuniv outuniv where
-  change _ (SinOsc a) =
-    Frame
-      $ case isChanging (Proxy :: _ delta) of
-          false -> pure unit
-          true -> do
-            { env, acc } <- get
-            let
-              accAsAcc = (unsafeCoerce acc :: acc)
-
-              sv = (setterVal :: a -> (env -> acc -> AudioParameter -> AudioParameter)) a
-
-              ptr = toInt' (Proxy :: _ p)
-            sosc <- M.lookup ptr <$> gets _.internalNodes
-            case sosc of
-              Just v -> case v of
-                ASinOsc prm ->
-                  let
-                    iv' = sv env accAsAcc prm
-
-                    AudioParameter iv = iv'
-                  in
-                    modify_
-                      ( \i ->
-                          i
-                            { internalNodes = M.insert ptr (ASinOsc iv') i.internalNodes
-                            , instructions =
-                              i.instructions
-                                <> [ SetFrequency ptr iv.param iv.timeOffset iv.transition ]
-                            }
-                      )
-                -- bad, means there is an inconsistent state
-                _ -> pure unit
-              -- bad, means there is an inconsistent state
-              Nothing -> pure unit
+  change' _ = (changeAudioUnit :: Proxy (p /\ acc /\ (Proxy nextP)) -> (SinOsc a) -> Frame env proof inuniv outuniv Unit) Proxy
 
 instance changeHighpass ::
   ( GetAccumulator inuniv acc
@@ -1456,7 +1474,7 @@ instance changeHighpass ::
   , Change nextP c env proof middle outuniv
   ) =>
   Change p (Highpass a b c) env proof inuniv outuniv where
-  change _ (Highpass a b c) =
+  change' _ (Highpass a b c) =
     Frame
       $ case isChanging (Proxy :: _ delta) of
           false -> pure unit
