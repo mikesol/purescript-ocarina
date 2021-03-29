@@ -159,7 +159,7 @@ testUniqueTerminus2 =
 createTest1 ::
   forall ptr next env destroyed skolems head tail acc proof.
   Succ ptr next =>
-  Frame env acc proof (UniverseC ptr (GraphC head tail) destroyed skolems acc)
+  Frame env proof (UniverseC ptr (GraphC head tail) destroyed skolems acc)
     ( UniverseC next
         (GraphC (NodeC (TSinOsc ptr Changing) NoEdge) (NodeListCons head tail))
         destroyed
@@ -173,7 +173,7 @@ createTest2 ::
   forall first mid last env destroyed skolems head tail acc proof.
   Succ first mid =>
   Succ mid last =>
-  Frame env acc proof (UniverseC first (GraphC head tail) destroyed skolems acc)
+  Frame env proof (UniverseC first (GraphC head tail) destroyed skolems acc)
     ( UniverseC last
         (GraphC (NodeC (THighpass first Changing Changing) (SingleEdge mid)) (NodeListCons (NodeC (TSinOsc mid Changing) NoEdge) (NodeListCons head tail)))
         destroyed
@@ -189,7 +189,7 @@ createTest3 ::
   forall first mid last env destroyed head tail acc proof.
   Succ first mid =>
   Succ mid last =>
-  Frame env acc proof (UniverseC first (GraphC head tail) destroyed SkolemListNil acc)
+  Frame env proof (UniverseC first (GraphC head tail) destroyed SkolemListNil acc)
     ( UniverseC last
         ( GraphC
             ( NodeC (TGain first Changing)
@@ -209,7 +209,7 @@ createTest4 ::
   Succ first mid0 =>
   Succ mid0 mid1 =>
   Succ mid1 last =>
-  Frame env acc proof (UniverseC first (GraphC head tail) destroyed SkolemListNil acc)
+  Frame env proof (UniverseC first (GraphC head tail) destroyed SkolemListNil acc)
     ( UniverseC last
         ( GraphC
             ( NodeC (TGain first Changing)
@@ -236,7 +236,7 @@ createTest5 ::
   Succ first mid0 =>
   Succ mid0 mid1 =>
   Succ mid1 last =>
-  Frame env acc proof (UniverseC first (GraphC head tail) destroyed SkolemListNil acc)
+  Frame env proof (UniverseC first (GraphC head tail) destroyed SkolemListNil acc)
     ( UniverseC last
         ( GraphC
             ( NodeC (TGain mid0 Changing)
