@@ -18,12 +18,16 @@ import Control.Monad.Writer (class MonadTell, class MonadWriter, WriterT(..), ru
 import Control.MonadPlus (class MonadPlus, class MonadZero)
 import Control.Plus (class Plus)
 import Data.Functor.Indexed (class IxFunctor)
+import Data.Generic.Rep (class Generic)
 import Data.Identity (Identity)
 import Data.Map (Map, insert)
 import Data.Map as M
 import Data.Maybe (Maybe(..))
 import Data.Monoid.Endo (Endo(..))
 import Data.Newtype (class Newtype)
+import Data.Set (Set)
+import Data.Set as S
+import Data.Show.Generic (genericShow)
 import Data.Tuple (Tuple(..), fst, snd)
 import Data.Tuple.Nested (type (/\), (/\))
 import Data.Typelevel.Bool (False, True)
@@ -654,6 +658,11 @@ data AudioParameterTransition
   | ExponentialRamp
   | Immediately
 
+derive instance eqAudioParameterTransition :: Eq AudioParameterTransition
+derive instance genericAudioParameterTransition :: Generic AudioParameterTransition _
+instance showAudioParameterTransition :: Show AudioParameterTransition where
+  show = genericShow
+
 data Instruction
   = Stop Int
   | Free Int
@@ -694,12 +703,43 @@ data Instruction
   | SetRefDistance Int Number
   | SetRolloffFactor Int Number
 
+derive instance eqInstruction :: Eq Instruction
+
+derive instance genericInstruction :: Generic Instruction _
+
+instance showInstruction :: Show Instruction where
+  show = genericShow
+
+instance ordInstruction :: Ord Instruction where
+  compare (Stop x) (Stop y) = compare x y
+  compare (Stop _) _ = LT
+  compare (DisconnectXFromY x _) (DisconnectXFromY y _) = compare x y
+  compare (DisconnectXFromY _ _) _ = LT
+  compare (Free x) (Free y) = compare x y
+  compare (Free _) _ = LT
+  compare _ (Stop _)  = GT
+  compare _ (DisconnectXFromY _ _)  = GT
+  compare _ (Free _)  = GT
+  compare (ConnectXToY x _) (ConnectXToY y _) = compare x y
+  compare (ConnectXToY _ _) _ = GT
+  compare (NewUnit x _) (NewUnit y _) = compare x y
+  compare (NewUnit _ _) _ = GT
+  compare _ (ConnectXToY _ _) = LT
+  compare _ (NewUnit _ _) = LT
+  compare _ _ = EQ
+
+testCompare :: Instruction -> Instruction -> Ordering
+testCompare a b = case compare a b of
+  EQ -> compare (show a) (show b)
+  x -> x
+
 type AudioState' env
   = { env :: env
     , acc :: Void
     , currentIdx :: Int
     , instructions :: Array Instruction
-    , internalGraph :: Map Int AnAudioUnit
+    , internalNodes :: Map Int AnAudioUnit
+    , internalEdges :: Map Int (Set Int)
     }
 
 type AudioState env a
@@ -717,11 +757,11 @@ foreign import data Scene :: Type -> Type -> Type
 
 type role Scene representational representational
 
-asScene :: forall env proof. (env -> Map Int AnAudioUnit /\ Array Instruction /\ (Scene env proof)) -> Scene env proof
+asScene :: forall env proof. (env -> Map Int AnAudioUnit /\ Map Int (Set Int) /\ Array Instruction /\ (Scene env proof)) -> Scene env proof
 asScene = unsafeCoerce
 
-unScene :: forall env proof. Scene env proof -> env -> Map Int AnAudioUnit /\ Array Instruction /\ (Scene env proof)
-unScene = unsafeCoerce
+oneFrame :: forall env proof. Scene env proof -> env -> Map Int AnAudioUnit /\ Map Int (Set Int) /\ Array Instruction /\ (Scene env proof)
+oneFrame = unsafeCoerce
 
 instance universeIsCoherent ::
   GraphIsRenderable graph =>
@@ -758,7 +798,7 @@ makeScene0T (acc /\ fr@(Frame f)) trans = asScene go
 
       scene = trans $ Frame $ WriterT (pure (Tuple unit (Endo (const $ os))))
     in
-      os.internalGraph /\ os.instructions /\ scene
+      os.internalNodes /\ os.internalEdges /\ os.instructions /\ scene
 
 infixr 6 makeScene0T as @@>
 
@@ -783,13 +823,13 @@ makeScene' _ _ fr@(Frame f) trans = asScene go
         execState
           ( do
               Endo s <- initialSt
-              withState (const $ (s ias) { env = env }) stateM
+              withState (const $ (s ias) { env = env, instructions = [] }) stateM
           )
           ias
 
       scene = trans $ Frame $ WriterT (pure (Tuple unit (Endo (const $ os))))
     in
-      os.internalGraph /\ os.instructions /\ scene
+      os.internalNodes /\ os.internalEdges /\ os.instructions /\ scene
 
 makeScene ::
   forall env proof g0 g1 g2.
@@ -826,7 +866,8 @@ initialAudioState env acc =
   , acc: unsafeCoerce acc
   , currentIdx: 0
   , instructions: []
-  , internalGraph: M.empty
+  , internalNodes: M.empty
+  , internalEdges: M.empty
   }
 
 instance sceneIxFunctor :: IxFunctor (Frame env proof) where
@@ -856,6 +897,14 @@ type AudioParameter'
 
 newtype AudioParameter
   = AudioParameter AudioParameter'
+
+param :: Number -> AudioParameter
+param = AudioParameter <<< defaultParam {
+  param = _
+}
+
+derive newtype instance eqAudioParameter :: Eq AudioParameter
+derive newtype instance showAudioParameter :: Show AudioParameter
 
 class InitialVal env acc a where
   initialVal :: env -> acc -> a -> AudioParameter
@@ -909,6 +958,13 @@ data AnAudioUnit
   | AHighpass AudioParameter AudioParameter
   | AGain AudioParameter
   | ASpeaker
+
+derive instance eqAnAudioUnit :: Eq AnAudioUnit
+
+derive instance genericAnAudioUnit :: Generic AnAudioUnit _
+
+instance showAnAudioUnit :: Show AnAudioUnit where
+  show = genericShow
 
 data Highpass a b c
   = Highpass a b c
@@ -1015,7 +1071,7 @@ creationStep _ g = do
     ( \i ->
         i
           { currentIdx = currentIdx + 1
-          , internalGraph = M.insert currentIdx internal i.internalGraph
+          , internalNodes = M.insert currentIdx internal i.internalNodes
           , instructions = i.instructions <> renderable
           }
     )
@@ -1048,7 +1104,9 @@ createAndConnect _ g =
         modify_
           ( \i ->
               i
-                { instructions =
+                { internalEdges = 
+                  M.insertWith S.union idx (S.fromFoldable o) i.internalEdges,
+                instructions =
                   i.instructions
                     <> map (flip ConnectXToY idx) o
                 }
@@ -1343,7 +1401,7 @@ instance changeSinOsc ::
               sv = (setterVal :: a -> (env -> acc -> AudioParameter -> AudioParameter)) a
 
               ptr = toInt' (Proxy :: _ p)
-            sosc <- M.lookup ptr <$> gets _.internalGraph
+            sosc <- M.lookup ptr <$> gets _.internalNodes
             case sosc of
               Just v -> case v of
                 ASinOsc param ->
@@ -1355,7 +1413,7 @@ instance changeSinOsc ::
                     modify_
                       ( \i ->
                           i
-                            { internalGraph = M.insert ptr (ASinOsc iv') i.internalGraph
+                            { internalNodes = M.insert ptr (ASinOsc iv') i.internalNodes
                             , instructions =
                               i.instructions
                                 <> [ SetFrequency ptr iv.param iv.timeOffset iv.transition ]
@@ -1390,7 +1448,7 @@ instance changeHighpass ::
               bsv = (setterVal :: b -> (env -> acc -> AudioParameter -> AudioParameter)) b
 
               ptr = toInt' (Proxy :: _ p)
-            sosc <- M.lookup ptr <$> gets _.internalGraph
+            sosc <- M.lookup ptr <$> gets _.internalNodes
             case sosc of
               Just v -> case v of
                 AHighpass aparam bparam ->
@@ -1406,7 +1464,7 @@ instance changeHighpass ::
                     modify_
                       ( \i ->
                           i
-                            { internalGraph = M.insert ptr (AHighpass aiv' biv') i.internalGraph
+                            { internalNodes = M.insert ptr (AHighpass aiv' biv') i.internalNodes
                             , instructions =
                               i.instructions
                                 <> [ SetFrequency ptr aiv.param aiv.timeOffset aiv.transition

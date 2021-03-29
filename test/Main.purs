@@ -3,12 +3,20 @@ module Test.Main where
 import Data.Tuple.Nested
 import Prelude
 
+import Data.Array as A
 import Data.Functor.Indexed (ivoid)
+import Data.Map as M
+import Data.Set as S
 import Data.Typelevel.Bool (True, False)
 import Data.Typelevel.Num (class Succ, D0, D1, D2, D3)
 import Effect (Effect)
+import Effect.Aff (launchAff_)
 import Effect.Class.Console (log)
-import Stream8 (class AllEdgesPointToNodes, class AudioUnitEq, class Gate, class HasBottomLevelNodes, class Lookup, class NoNodesAreDuplicated, class NoParallelEdges, class PtrEq, class UniqueTerminus, type (+:), type (/->), type (/:), AudioUnitRef, Changing, Dup(..), Frame, Gain(..), GraphC, Highpass(..), ManyEdges, NoEdge, NodeC, NodeListCons, NodeListNil, PtrListCons, PtrListNil, SinOsc(..), SingleEdge, SkolemListNil, Speaker(..), Static, TGain, THighpass, TSinOsc, UniverseC, create, loop, start, (@>), (@@>))
+import Stream8 (class AllEdgesPointToNodes, class AudioUnitEq, class Gate, class HasBottomLevelNodes, class Lookup, class NoNodesAreDuplicated, class NoParallelEdges, class PtrEq, class UniqueTerminus, type (+:), type (/->), type (/:), AnAudioUnit(..), AudioParameterTransition(..), AudioUnitRef, Changing, Dup(..), Frame, Gain(..), GraphC, Highpass(..), Instruction(..), ManyEdges, NoEdge, NodeC, NodeListCons, NodeListNil, PtrListCons, PtrListNil, SinOsc(..), SingleEdge, SkolemListNil, Speaker(..), Static, TGain, THighpass, TSinOsc, UniverseC, create, defaultParam, loop, oneFrame, param, start, testCompare, (@>), (@@>))
+import Test.Spec (describe, it)
+import Test.Spec.Assertions (shouldEqual)
+import Test.Spec.Reporter (consoleReporter)
+import Test.Spec.Runner (runSpec)
 import Type.Proxy (Proxy(..))
 
 ---------------------------
@@ -260,16 +268,35 @@ createTest5 =
         Gain 1.0 \(gain :: Proxy MyGain) ->
           gain /\ Highpass 330.0 1.0 mySinOsc /\ mySinOsc /\ unit
 
-loopTest =
-  start unit
-      ( ivoid $ create
-            $ Speaker
-                ( Gain 1.0 \(gain :: Proxy MyGain) ->
-                    gain /\ Highpass 330.0 1.0 (SinOsc 440.0) /\ unit
-                )
-        )  loop
-
 main :: Effect Unit
 main = do
-  log "🍝"
-  log "You should add some tests."
+  launchAff_
+    $ runSpec [ consoleReporter ] do
+        describe "simple scene" do
+          it "is coherent" do
+            let
+              simpleScene =
+                start unit
+                  ( ivoid $ create
+                      $ Speaker
+                          ( Gain 1.0 \(gain :: Proxy MyGain) ->
+                              gain /\ Highpass 330.0 1.0 (SinOsc 440.0) /\ unit
+                          )
+                  )
+                  loop
+              (frame0Nodes /\ frame0Edges /\ frame0Instr /\ frame1) = oneFrame simpleScene unit
+              (frame1Nodes /\ frame1Edges /\ frame1Instr /\ frame2) = oneFrame frame1 unit
+              (frame2Nodes /\ frame2Edges /\frame2Instr /\ _) = oneFrame frame2 unit
+              nodeAssertion = M.fromFoldable [0 /\ ASpeaker, 1 /\ (AGain (param 1.0)), 2 /\ (AHighpass (param 330.0) (param 1.0)), 3 /\ (ASinOsc (param 440.0))]
+              edgeAssertion = M.fromFoldable [0 /\ S.singleton 1, 1 /\ S.fromFoldable [1, 2], 2 /\ S.singleton 3]
+              instructionAssertion = A.sortBy testCompare [NewUnit 1 "gain", NewUnit 2 "highpass", NewUnit 3 "sinosc", ConnectXToY 1 0, ConnectXToY 1 1, ConnectXToY 2 1, ConnectXToY 3 2, SetGain 1 1.0 0.0 LinearRamp, SetFrequency 3 440.0 0.0 LinearRamp, SetFrequency 2 330.0 0.0 LinearRamp, SetQ 2 1.0 0.0 LinearRamp]
+            frame0Nodes `shouldEqual` nodeAssertion
+            frame1Nodes `shouldEqual` nodeAssertion
+            frame2Nodes `shouldEqual` nodeAssertion
+            frame0Edges `shouldEqual` edgeAssertion
+            frame1Edges `shouldEqual` edgeAssertion
+            frame2Edges `shouldEqual` edgeAssertion
+            A.sortBy testCompare frame0Instr `shouldEqual` instructionAssertion
+            A.sortBy testCompare frame1Instr `shouldEqual` []
+            A.sortBy testCompare frame2Instr `shouldEqual` []
+            pure unit
