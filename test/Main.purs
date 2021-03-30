@@ -248,18 +248,18 @@ createTest5 ::
   Frame env proof (UniverseC first (GraphC head tail) SkolemListNil acc)
     ( UniverseC last
         ( GraphC
-            ( NodeC (TGain mid0)
-                (ManyEdges mid0 (PtrListCons mid1 (PtrListCons first PtrListNil)))
+            ( NodeC (TGain first)
+                (ManyEdges first (PtrListCons mid0 (PtrListCons mid1 PtrListNil)))
             )
             ( NodeListCons
-                (NodeC (THighpass mid1) (SingleEdge first))
-                (NodeListCons (NodeC (TSinOsc first) NoEdge) (NodeListCons head tail))
+                (NodeC (THighpass mid0) (SingleEdge mid1))
+                (NodeListCons (NodeC (TSinOsc mid1) NoEdge) (NodeListCons head tail))
             )
         )
         SkolemListNil
         acc
     )
-    (AudioUnitRef first)
+    (AudioUnitRef mid1)
 createTest5 =
   create
     $ Dup (SinOsc 440.0) \(mySinOsc :: Proxy MySinOsc) ->
@@ -267,6 +267,7 @@ createTest5 =
           gain /\ Highpass 330.0 1.0 mySinOsc /\ mySinOsc /\ unit
 
 --
+{-
 opsTest0 ::
   Frame Unit Void (UniverseC D0 InitialGraph SkolemListNil Unit)
     ( UniverseC D3
@@ -422,7 +423,7 @@ opsTest5 = Ix.do
   disconnect csin chpf
   disconnect csin cgain
   destroy csin
-
+-}
 type Time
   = { time :: Number }
 

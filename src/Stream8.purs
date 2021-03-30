@@ -1193,15 +1193,15 @@ instance createDup ::
   , Create
       a
       env
-      (UniverseC ptr graphi skolems acc)
-      (UniverseC midptr graphm skolems acc)
-      (AudioUnitRef ptr)
+      (UniverseC midptr graphi skolems acc)
+      (UniverseC outptr graphm skolems acc)
+      ignore
   , Create
       b
       env
-      (UniverseC midptr graphm (SkolemListCons (SkolemPairC skolem ptr) skolems) acc)
-      (UniverseC outptr grapho (SkolemListCons (SkolemPairC skolem ptr) skolems) acc)
-      ignore
+      (UniverseC ptr graphm (SkolemListCons (SkolemPairC skolem ptr) skolems) acc)
+      (UniverseC midptr grapho (SkolemListCons (SkolemPairC skolem ptr) skolems) acc)
+      (AudioUnitRef ptr)
   ) =>
   Create
     (Dup a (Proxy skolem -> b))
@@ -1209,16 +1209,16 @@ instance createDup ::
     (UniverseC ptr graphi skolems acc)
     (UniverseC outptr grapho skolems acc)
     (AudioUnitRef ptr) where
-  create (Dup a f) = Frame $ x <* y
+  create (Dup a f) = Frame $ x *> y
     where
     Frame x =
       ( create ::
           forall proof.
           a ->
           Frame env proof
-            (UniverseC ptr graphi skolems acc)
-            (UniverseC midptr graphm skolems acc)
-            (AudioUnitRef ptr)
+            (UniverseC midptr graphi skolems acc)
+            (UniverseC outptr graphm skolems acc)
+            ignore
       )
         a
 
@@ -1227,9 +1227,9 @@ instance createDup ::
           forall proof.
           b ->
           Frame env proof
-            (UniverseC midptr graphm (SkolemListCons (SkolemPairC skolem ptr) skolems) acc)
-            (UniverseC outptr grapho (SkolemListCons (SkolemPairC skolem ptr) skolems) acc)
-            ignore
+            (UniverseC ptr graphm (SkolemListCons (SkolemPairC skolem ptr) skolems) acc)
+            (UniverseC midptr grapho (SkolemListCons (SkolemPairC skolem ptr) skolems) acc)
+            (AudioUnitRef ptr)
       )
         (f (Proxy :: _ skolem))
 
@@ -1489,21 +1489,23 @@ instance changeHighpass ::
 
 instance changeDup ::
   ( Nat p
-  , Change (SingleEdge p) a env inuniv
+  -- incoming to the change will be the ptr of the inner closure, which is the actual connection
+  -- we run the inner closure to get the ptr for the outer closure
   , Create
-      a
+      b
       env
       (UniverseC D0 InitialGraph (SkolemListCons (SkolemPairC skolem D0) skolems) acc)
       (UniverseC outptr grapho (SkolemListCons (SkolemPairC skolem D0) skolems) acc)
       ignore
   , Nat outptr
   , Add p outptr continuation
-  , Change (SingleEdge continuation) b env inuniv
+  , Change (SingleEdge p) b env inuniv
+  , Change (SingleEdge continuation) a env inuniv
   ) =>
   Change (SingleEdge p) (Dup a (Proxy skolem -> b)) env inuniv where
   change' _ (Dup a f) = Ix.do
-    (change' :: forall proof. (Proxy (SingleEdge p)) -> a -> Frame env proof inuniv inuniv Unit) Proxy a
-    (change' :: forall proof. (Proxy (SingleEdge continuation)) -> b -> Frame env proof inuniv inuniv Unit) Proxy (f Proxy)
+    (change' :: forall proof. (Proxy (SingleEdge p)) -> b -> Frame env proof inuniv inuniv Unit) Proxy (f Proxy)
+    (change' :: forall proof. (Proxy (SingleEdge continuation)) -> a -> Frame env proof inuniv inuniv Unit) Proxy a
 
 instance changeGain ::
   ( GetAccumulator inuniv acc
@@ -1605,18 +1607,18 @@ instance cursorMany1 ::
 
 instance cursorDup ::
   ( Nat p
-  , CursorI (SingleEdge p) a env inuniv o0
+  -- incoming to the change will be the ptr of the inner closure, which is the actual connection
+  -- we run the inner closure to get the ptr for the outer closure
   , Create
-      a
+      b
       env
       (UniverseC D0 InitialGraph (SkolemListCons (SkolemPairC skolem D0) skolems) acc)
       (UniverseC outptr grapho (SkolemListCons (SkolemPairC skolem D0) skolems) acc)
       ignore
   , Nat outptr
   , Add p outptr continuation
-  , Warn (Text "dupP" ^^ Quote p)
-  , Warn (Text "dupContinuation" ^^ Quote continuation)
-  , CursorI (SingleEdge continuation) b env inuniv o1
+  , CursorI (SingleEdge p) b env inuniv o0
+  , CursorI (SingleEdge continuation) a env inuniv o1
   , PtrListAppend o0 o1 oo
   ) =>
   CursorI (SingleEdge p) (Dup a (Proxy skolem -> b)) env inuniv oo
