@@ -12,7 +12,7 @@ import Data.Typelevel.Num (class Succ, D0, D1, D2, D3)
 import Effect (Effect)
 import Effect.Aff (launchAff_)
 import Effect.Class.Console (log)
-import Stream8 (class AllEdgesPointToNodes, class AudioUnitEq, class Gate, class HasBottomLevelNodes, class Lookup, class NoNodesAreDuplicated, class NoParallelEdges, class PtrEq, class UniqueTerminus, type (+:), type (/->), type (/:), AnAudioUnit(..), AudioParameterTransition(..), AudioUnitRef, Potential, Dup(..), Frame, Gain(..), GraphC, Highpass(..), Instruction(..), ManyEdges, NoEdge, NodeC, NodeListCons, NodeListNil, PtrListCons, PtrListNil, SinOsc(..), SingleEdge, SkolemListNil, Speaker(..), Actual, TGain, THighpass, TSinOsc, UniverseC, change, create, defaultParam, ixspy, loop, makeScene, oneFrame, param, start, testCompare, (@!>))
+import Stream8 (class AllEdgesPointToNodes, class AudioUnitEq, class Gate, class HasBottomLevelNodes, class Lookup, class NoNodesAreDuplicated, class NoParallelEdges, class PtrEq, class UniqueTerminus, type (+:), type (/->), type (/:), Actual, AnAudioUnit(..), AudioParameter(..), AudioParameterTransition(..), AudioUnitRef, Dup(..), Frame, Gain(..), GraphC, Highpass(..), Instruction(..), ManyEdges, NoEdge, NodeC, NodeListCons, NodeListNil, Potential, PtrListCons, PtrListNil, SinOsc(..), SingleEdge, SkolemListNil, Speaker(..), TGain, THighpass, TSinOsc, UniverseC, change, create, defaultParam, ixspy, loop, makeScene, oneFrame, param, start, testCompare, (@!>))
 import Test.Spec (describe, it)
 import Test.Spec.Assertions (shouldEqual)
 import Test.Spec.Reporter (consoleReporter)
@@ -268,6 +268,9 @@ createTest5 =
         Gain 1.0 \(gain :: Proxy MyGain) ->
           gain /\ Highpass 330.0 1.0 mySinOsc /\ mySinOsc /\ unit
 
+type Time
+  = { time :: Number }
+
 main :: Effect Unit
 main = do
   launchAff_
@@ -277,11 +280,20 @@ main = do
             scene0 =
               Speaker
                 ( Gain 1.0 \(gain :: Proxy MyGain) ->
-                    gain /\ Highpass (330.0 /\ \{ time } _ -> 330.0 + time * 10.0) 1.0 (SinOsc 440.0) /\ unit
+                    gain
+                      /\ Highpass
+                          ( 330.0
+                              /\ \({ time } :: Time) (_ :: Unit) (_ :: AudioParameter) ->
+                                  330.0 + time * 10.0
+                          )
+                          1.0
+                          (SinOsc 440.0)
+                      /\ unit
                 )
           it "is coherent" do
             let
               creation = ivoid $ create $ scene0
+
               simpleScene =
                 start unit
                   creation
@@ -316,8 +328,6 @@ main = do
                 start unit creation
                   ( \m ->
                       let
-                        ________ = ixspy m
-
                         mo =
                           ( Ix.do
                               m
