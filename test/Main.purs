@@ -2,6 +2,7 @@ module Test.Main where
 
 import Data.Tuple.Nested
 import Prelude
+
 import Control.Monad.Indexed.Qualified as Ix
 import Data.Array as A
 import Data.Functor.Indexed (ivoid)
@@ -12,6 +13,7 @@ import Data.Typelevel.Num (class Succ, D0, D1, D2, D3)
 import Effect (Effect)
 import Effect.Aff (launchAff_)
 import Effect.Class.Console (log)
+import Effect.Class.Console as Log
 import Stream8 (class AllEdgesPointToNodes, class AudioUnitEq, class Gate, class HasBottomLevelNodes, class Lookup, class NoNodesAreDuplicated, class NoParallelEdges, class PtrEq, class UniqueTerminus, type (+:), type (/->), type (/:), Actual, AnAudioUnit(..), AudioParameter(..), AudioParameterTransition(..), AudioUnitRef, Dup(..), Frame, Gain(..), GraphC, Highpass(..), Instruction(..), ManyEdges, NoEdge, NodeC, NodeListCons, NodeListNil, Potential, PtrListCons, PtrListNil, SinOsc(..), SingleEdge, SkolemListNil, Speaker(..), TGain, THighpass, TSinOsc, UniverseC, change, create, defaultParam, ixspy, loop, makeScene, oneFrame, param, start, testCompare, (@!>))
 import Test.Spec (describe, it)
 import Test.Spec.Assertions (shouldEqual)
@@ -323,7 +325,6 @@ main = do
           it "is coherent after change" do
             let
               creation = (ivoid $ create $ scene0)
-
               simpleScene =
                 start unit creation
                   ( \m ->
@@ -343,18 +344,19 @@ main = do
 
               (frame2Nodes /\ frame2Edges /\ frame2Instr /\ _) = oneFrame frame2 { time: 0.2 }
 
-              nodeAssertion = M.fromFoldable [ 0 /\ ASpeaker, 1 /\ (AGain (param 1.0)), 2 /\ (AHighpass (param 330.0) (param 1.0)), 3 /\ (ASinOsc (param 440.0)) ]
+              nodeAssertion i = M.fromFoldable [ 0 /\ ASpeaker, 1 /\ (AGain (param 1.0)), 2 /\ (AHighpass (param $ 330.0 + i) (param 1.0)), 3 /\ (ASinOsc (param 440.0)) ]
 
               edgeAssertion = M.fromFoldable [ 0 /\ S.singleton 1, 1 /\ S.fromFoldable [ 1, 2 ], 2 /\ S.singleton 3 ]
 
               instructionAssertion = A.sortBy testCompare [ NewUnit 1 "gain", NewUnit 2 "highpass", NewUnit 3 "sinosc", ConnectXToY 1 0, ConnectXToY 1 1, ConnectXToY 2 1, ConnectXToY 3 2, SetGain 1 1.0 0.0 LinearRamp, SetFrequency 3 440.0 0.0 LinearRamp, SetFrequency 2 330.0 0.0 LinearRamp, SetQ 2 1.0 0.0 LinearRamp ]
-            frame0Nodes `shouldEqual` nodeAssertion
-            frame1Nodes `shouldEqual` nodeAssertion
-            frame2Nodes `shouldEqual` nodeAssertion
+            frame0Nodes `shouldEqual` (nodeAssertion 0.0)
+            frame1Nodes `shouldEqual` (nodeAssertion 1.0)
+            frame2Nodes `shouldEqual` (nodeAssertion 2.0)
+            Log.warn "zz"
             frame0Edges `shouldEqual` edgeAssertion
             frame1Edges `shouldEqual` edgeAssertion
             frame2Edges `shouldEqual` edgeAssertion
-            --A.sortBy testCompare frame0Instr `shouldEqual` instructionAssertion
+            A.sortBy testCompare frame0Instr `shouldEqual` instructionAssertion
             A.sortBy testCompare frame1Instr `shouldEqual` []
             A.sortBy testCompare frame2Instr `shouldEqual` []
             pure unit

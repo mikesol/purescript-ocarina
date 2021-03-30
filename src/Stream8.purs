@@ -915,6 +915,14 @@ makeScene ::
   Scene env proofA
 makeScene = makeScene' assertCoherence asPotential
 
+{-
+makeChangingScene ::
+  forall edge a i o env proofA g0 g1 g2 g3.
+  TerminalIdentityEdge i edge =>
+  Change edge a env proof i o =>
+  a -> Frame env proof g2 g3 Unit
+change = change' (Proxy :: _ edge)
+-}
 infixr 6 makeScene as @!>
 
 loop' ::
@@ -1450,15 +1458,22 @@ instance createSpeaker ::
         )
           Proxy
 
+class TerminalNode (u :: Universe) (ptr :: Ptr) | u -> ptr
+
+instance terminalNode ::   (GetGraph i g ,
+  UniqueTerminus g t ,
+  GetAudioUnit t u ,
+  GetPointer u ptr) => TerminalNode i ptr
+
+class TerminalIdentityEdge (u :: Universe) (prof :: EdgeProfile) | u -> prof
+instance terminalIdentityEdge :: (TerminalNode i ptr) => TerminalIdentityEdge i (SingleEdge ptr)
+
 change ::
-  forall a g t u ptr i o env proof.
-  GetGraph i g =>
-  UniqueTerminus g t =>
-  GetAudioUnit t u =>
-  GetPointer u ptr =>
-  Change (SingleEdge ptr) a env proof i o =>
+  forall edge a i o env proof.
+  TerminalIdentityEdge i edge =>
+  Change edge a env proof i o =>
   a -> Frame env proof i o Unit
-change = change' (Proxy :: _ (SingleEdge ptr))
+change = change' (Proxy :: _ edge)
 
 class Change (p :: EdgeProfile) (a :: Type) (env :: Type) (proof :: Type) (i :: Universe) (o :: Universe) | p a env i -> o where
   change' :: Proxy p -> a -> Frame env proof i o Unit
