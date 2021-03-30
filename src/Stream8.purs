@@ -1166,8 +1166,8 @@ class AsPotential (m :: Universe) (o :: Universe) | m -> o where
 instance asPotentialAll :: (GraphToNodeList dynGraph dynGraphL, ToPotential dynGraphL statGraphL, GraphToNodeList statGraph statGraphL) => AsPotential (UniverseC ptr dynGraph destroyed SkolemListNil acc) (UniverseC ptr statGraph destroyed SkolemListNil acc) where
   asPotential (Frame a) = Frame a
 
-class Create (a :: Type) (env :: Type) (proof :: Type) (i :: Universe) (o :: Universe) (x :: Type) | a env i -> o x where
-  create :: a -> Frame env proof i o x
+class Create (a :: Type) (env :: Type) (i :: Universe) (o :: Universe) (x :: Type) | a env i -> o x where
+  create :: forall proof. a -> Frame env proof i o x
 
 creationStep ::
   forall env acc g.
@@ -1189,16 +1189,16 @@ creationStep _ g = do
     )
   pure currentIdx
 
-type ProxyCC acc skolem ptr innerTerm
-  = Proxy (acc /\ skolem /\ ptr /\ innerTerm)
+type ProxyCC acc skolem ptr innerTerm env i o
+  = Proxy (acc /\ skolem /\ ptr /\ innerTerm /\ env /\ i /\ o)
 
 createAndConnect ::
   forall env acc proof g ptr skolem c i o innerTerm eprof.
   GetSkolemizedFunctionFromAU g skolem c =>
   AsEdgeProfile innerTerm eprof =>
   CreationInstructions env acc g =>
-  Create c env proof i o innerTerm =>
-  Proxy (acc /\ skolem /\ ptr /\ innerTerm) ->
+  Create c env i o innerTerm =>
+  Proxy (acc /\ skolem /\ ptr /\ innerTerm /\ env /\ (Proxy i) /\ (Proxy o)) ->
   g ->
   Frame env proof i o Int
 createAndConnect _ g =
@@ -1230,23 +1230,17 @@ createAndConnect _ g =
 
 -- end of the line in tuples
 instance createUnit ::
-  Create
-    Unit
-    env
-    proof
-    u
-    u
-    Unit where
+  Create Unit env u u Unit where
   create = Frame <<< pure
 
 instance createTuple ::
-  (Create x env proof u0 u1 x', Create y env proof u1 u2 y') =>
-  Create (x /\ y) env proof u0 u2 (x' /\ y') where
+  (Create x env u0 u1 x', Create y env u1 u2 y') =>
+  Create (x /\ y) env u0 u2 (x' /\ y') where
   create (x /\ y) = Frame $ Tuple <$> x' <*> y'
     where
-    Frame x' = (create :: x -> Frame env proof u0 u1 x') x
+    Frame x' = (create :: forall proof. x -> Frame env proof u0 u1 x') x
 
-    Frame y' = (create :: y -> Frame env proof u1 u2 y') y
+    Frame y' = (create :: forall proof. y -> Frame env proof u1 u2 y') y
 
 instance createProxy ::
   ( LookupSkolem skolem skolems ptr
@@ -1255,7 +1249,6 @@ instance createProxy ::
   Create
     (Proxy skolem)
     env
-    proof
     (UniverseC next graph destroyed skolems acc)
     (UniverseC next graph destroyed skolems acc)
     (AudioUnitRef ptr) where
@@ -1267,14 +1260,12 @@ instance createDup ::
   , Create
       a
       env
-      proof
       (UniverseC ptr graphi destroyed skolems acc)
       (UniverseC midptr graphm destroyed skolems acc)
       (AudioUnitRef ptr)
   , Create
       b
       env
-      proof
       (UniverseC midptr graphm destroyed (SkolemListCons (SkolemPairC skolem ptr) skolems) acc)
       (UniverseC outptr grapho destroyed (SkolemListCons (SkolemPairC skolem ptr) skolems) acc)
       ignore
@@ -1282,14 +1273,13 @@ instance createDup ::
   Create
     (Dup a (Proxy skolem -> b))
     env
-    proof
     (UniverseC ptr graphi destroyed skolems acc)
     (UniverseC outptr grapho destroyed skolems acc)
     (AudioUnitRef ptr) where
   create (Dup a f) = Frame $ x <* y
     where
     Frame x =
-      ( create ::
+      ( create :: forall proof.
           a ->
           Frame env proof
             (UniverseC ptr graphi destroyed skolems acc)
@@ -1299,7 +1289,7 @@ instance createDup ::
         a
 
     Frame y =
-      ( create ::
+      ( create :: forall proof.
           b ->
           Frame env proof
             (UniverseC midptr graphm destroyed (SkolemListCons (SkolemPairC skolem ptr) skolems) acc)
@@ -1318,7 +1308,6 @@ instance createSinOsc ::
   Create
     (SinOsc a)
     env
-    proof
     (UniverseC ptr graph destroyed skolems acc)
     ( UniverseC next
         (GraphC (NodeC (TSinOsc ptr Actual) NoEdge) nodeList)
@@ -1341,7 +1330,6 @@ instance createHighpass ::
   , Create
       c
       env
-      proof
       (UniverseC next graphi destroyed skolemsInternal acc)
       (UniverseC outptr grapho destroyed skolemsInternal acc)
       term
@@ -1351,7 +1339,6 @@ instance createHighpass ::
   Create
     (Highpass a b fc)
     env
-    proof
     (UniverseC ptr graphi destroyed skolems acc)
     ( UniverseC
         outptr
@@ -1363,15 +1350,7 @@ instance createHighpass ::
     (AudioUnitRef ptr) where
   create =
     Frame <<< map AudioUnitRef <<< unFrame
-      <<< ( createAndConnect ::
-            ProxyCC acc skolem ptr term ->
-            (Highpass a b fc) ->
-            Frame env proof
-              (UniverseC next graphi destroyed skolemsInternal acc)
-              (UniverseC outptr grapho destroyed skolemsInternal acc)
-              Int
-        )
-          Proxy
+      <<< createAndConnect (Proxy :: ProxyCC acc skolem ptr term env  (Proxy (UniverseC next graphi destroyed skolemsInternal acc)) (Proxy (UniverseC outptr grapho destroyed skolemsInternal acc)))
 
 instance createGain ::
   ( InitialVal env acc a
@@ -1384,7 +1363,6 @@ instance createGain ::
   , Create
       b
       env
-      proof
       (UniverseC next graphi destroyed skolemsInternal acc)
       (UniverseC outptr grapho destroyed skolemsInternal acc)
       term
@@ -1394,7 +1372,6 @@ instance createGain ::
   Create
     (Gain a fb)
     env
-    proof
     (UniverseC ptr graphi destroyed skolems acc)
     ( UniverseC
         outptr
@@ -1404,17 +1381,18 @@ instance createGain ::
         acc
     )
     (AudioUnitRef ptr) where
+  create :: forall proof. Gain a fb -> Frame env proof (UniverseC ptr graphi destroyed skolems acc)
+    ( UniverseC
+        outptr
+        (GraphC (NodeC (TGain ptr Actual) eprof) nodeList)
+        destroyed
+        skolems
+        acc
+    )
+    (AudioUnitRef ptr)
   create =
     Frame <<< map AudioUnitRef <<< unFrame
-      <<< ( createAndConnect ::
-            ProxyCC acc skolem ptr term ->
-            (Gain a fb) ->
-            Frame env proof
-              (UniverseC next graphi destroyed skolemsInternal acc)
-              (UniverseC outptr grapho destroyed skolemsInternal acc)
-              Int
-        )
-          Proxy
+      <<< ( createAndConnect (Proxy :: ProxyCC acc skolem ptr term env (Proxy (UniverseC next graphi destroyed skolemsInternal acc)) (Proxy (UniverseC outptr grapho destroyed skolemsInternal acc))))
 
 -- toSkolemizedFunction :: a -> (Proxy skolem -> b)
 instance createSpeaker ::
@@ -1425,7 +1403,6 @@ instance createSpeaker ::
   , Create
       a
       env
-      proof
       (UniverseC next graphi destroyed skolems acc)
       (UniverseC outptr grapho destroyed skolems acc)
       term
@@ -1436,7 +1413,6 @@ instance createSpeaker ::
   Create
     (Speaker a)
     env
-    proof
     (UniverseC ptr graphi destroyed skolems acc)
     ( UniverseC
         outptr
@@ -1448,15 +1424,7 @@ instance createSpeaker ::
     (AudioUnitRef ptr) where
   create =
     Frame <<< map AudioUnitRef <<< unFrame
-      <<< ( createAndConnect ::
-            ProxyCC acc DiscardableSkolem ptr term ->
-            (Speaker a) ->
-            Frame env proof
-              (UniverseC next graphi destroyed skolems acc)
-              (UniverseC outptr grapho destroyed skolems acc)
-              Int
-        )
-          Proxy
+      <<< ( createAndConnect (Proxy :: ProxyCC acc DiscardableSkolem ptr term env (Proxy (UniverseC next graphi destroyed skolems acc)) (Proxy (UniverseC outptr grapho destroyed skolems acc))))
 
 class TerminalNode (u :: Universe) (ptr :: Ptr) | u -> ptr
 
@@ -1471,12 +1439,12 @@ instance terminalIdentityEdge :: (TerminalNode i ptr) => TerminalIdentityEdge i 
 change ::
   forall edge a i o env proof.
   TerminalIdentityEdge i edge =>
-  Change edge a env proof i o =>
+  Change edge a env i o =>
   a -> Frame env proof i o Unit
 change = change' (Proxy :: _ edge)
 
-class Change (p :: EdgeProfile) (a :: Type) (env :: Type) (proof :: Type) (i :: Universe) (o :: Universe) | p a env i -> o where
-  change' :: Proxy p -> a -> Frame env proof i o Unit
+class Change (p :: EdgeProfile) (a :: Type) (env :: Type) (i :: Universe) (o :: Universe) | p a env i -> o where
+  change' :: forall proof. Proxy p -> a -> Frame env proof i o Unit
 
 --
 class ModifyRes (tag :: Type) (p :: Ptr) (i :: Node) (o :: Node) (mod :: NodeList) (plist :: EdgeProfile) | tag p i -> o mod plist
@@ -1509,7 +1477,7 @@ changeAudioUnit ::
   ChangeInstructions env acc g =>
   Nat p =>
   Modify g p inuniv outuniv nextP =>
-  Proxy (p /\ acc /\ (Proxy nextP)) -> g -> Frame env proof inuniv outuniv Unit
+  Proxy (p /\ acc /\ (Proxy nextP) /\ env /\ Proxy inuniv /\ Proxy outuniv) -> g -> Frame env proof inuniv outuniv Unit
 changeAudioUnit _ g =
   Frame
     $ do
@@ -1531,26 +1499,26 @@ changeAudioUnit _ g =
           Nothing -> pure unit
 
 instance changeNoEdge ::
-  Change NoEdge g env proof inuniv inuniv where
+  Change NoEdge g env inuniv inuniv where
   change' _ _ = Frame (pure unit)
 
 instance changeSkolem ::
-  Change (SingleEdge p) (Proxy skolem) env proof inuniv inuniv where
+  Change (SingleEdge p) (Proxy skolem) env inuniv inuniv where
   change' _ _ = Frame (pure unit)
 
 instance changeMany2 ::
-  ( Change (SingleEdge p) x env proof inuniv miduniv
+  ( Change (SingleEdge p) x env inuniv miduniv
   , Warn ((Text "change many 2") ^^ (Quote x))
-  , Change (ManyEdges a b) y env proof miduniv outuniv) =>
-  Change (ManyEdges p (PtrListCons a b)) (x /\ y) env proof inuniv outuniv where
+  , Change (ManyEdges a b) y env miduniv outuniv) =>
+  Change (ManyEdges p (PtrListCons a b)) (x /\ y) env inuniv outuniv where
   change' _ (x /\ y) = Ix.do
-      (change' :: Proxy (SingleEdge p) -> x -> Frame env proof inuniv miduniv Unit) Proxy x
-      (change' :: Proxy (ManyEdges a b) -> y -> Frame env proof miduniv outuniv Unit) Proxy y
+      (change' :: forall proof. Proxy (SingleEdge p) -> x -> Frame env proof inuniv miduniv Unit) Proxy x
+      (change' :: forall proof. Proxy (ManyEdges a b) -> y -> Frame env proof miduniv outuniv Unit) Proxy y
 
 instance changeMany1 ::
-  Change (SingleEdge p) a env proof inuniv outuniv =>
-  Change (ManyEdges p PtrListNil) (a /\ Unit) env proof inuniv outuniv where
-  change' _ (a /\ _) = (change' :: Proxy (SingleEdge p) -> a -> Frame env proof inuniv outuniv Unit) Proxy a
+  Change (SingleEdge p) a env inuniv outuniv =>
+  Change (ManyEdges p PtrListNil) (a /\ Unit) env inuniv outuniv where
+  change' _ (a /\ _) = (change' :: forall proof. Proxy (SingleEdge p) -> a -> Frame env proof inuniv outuniv Unit) Proxy a
 
 instance changeSinOsc ::
   ( Warn ((Text "sinOsc Change"))
@@ -1561,8 +1529,8 @@ instance changeSinOsc ::
   , Warn ((Text "Got accumulator sinOsc") ^^ (Quote acc))
   , Modify (SinOsc a) p inuniv outuniv nextP
   ) =>
-  Change (SingleEdge p) (SinOsc a) env proof inuniv outuniv where
-  change' _ = (changeAudioUnit :: Proxy (p /\ acc /\ (Proxy nextP)) -> (SinOsc a) -> Frame env proof inuniv outuniv Unit) Proxy
+  Change (SingleEdge p) (SinOsc a) env inuniv outuniv where
+  change' _ = changeAudioUnit (Proxy :: Proxy (p /\ acc /\ (Proxy nextP) /\ env /\ Proxy inuniv /\ Proxy outuniv))
 
 instance changeHighpass ::
   ( Warn ((Text "hp change") ^^ (Quote (Proxy inuniv)))
@@ -1577,12 +1545,12 @@ instance changeHighpass ::
   , ToSkolemizedFunction fc skolem c
   , Modify (Highpass a b c) p inuniv middle nextP
   , Warn ((Text "hp nextP") ^^ (Quote (Proxy nextP)))
-  , Change nextP c env proof middle outuniv
+  , Change nextP c env middle outuniv
   ) =>
-  Change (SingleEdge p) (Highpass a b fc) env proof inuniv outuniv where
+  Change (SingleEdge p) (Highpass a b fc) env inuniv outuniv where
   change' _ (Highpass a b fc) = let c = (((toSkolemizedFunction :: fc -> (Proxy skolem -> c)) fc) Proxy) in Ix.do
-    (changeAudioUnit :: Proxy (p /\ acc /\ (Proxy nextP)) -> (Highpass a b c) -> Frame env proof inuniv middle Unit) Proxy (Highpass a b c) 
-    (change' :: (Proxy nextP) -> c -> Frame env proof middle outuniv Unit) Proxy c
+    changeAudioUnit (Proxy :: Proxy (p /\ acc /\ (Proxy nextP) /\ env /\ Proxy inuniv /\ Proxy middle)) (Highpass a b c) 
+    (change' :: forall proof. (Proxy nextP) -> c -> Frame env proof middle outuniv Unit) Proxy c
 
 instance changeGain ::
   ( GetAccumulator inuniv acc
@@ -1595,12 +1563,12 @@ instance changeGain ::
   , Modify (Gain a b) p inuniv middle nextP
   , Warn ((Text "Gain nextP") ^^ (Quote (Proxy nextP)))
   , Warn ((Text "Got Gain middle") ^^ (Quote (Proxy middle)))
-  , Change nextP b env proof middle outuniv
+  , Change nextP b env middle outuniv
   ) =>
-  Change (SingleEdge p) (Gain a fb) env proof inuniv outuniv where
+  Change (SingleEdge p) (Gain a fb) env inuniv outuniv where
   change' _ (Gain a fb) = let b = (((toSkolemizedFunction :: fb -> (Proxy skolem -> b)) fb) Proxy) in Ix.do
-    (changeAudioUnit :: Proxy (p /\ acc /\ (Proxy nextP)) -> (Gain a b) -> Frame env proof inuniv middle Unit) Proxy (Gain a b)
-    (change' :: (Proxy nextP) -> b -> Frame env proof middle outuniv Unit) Proxy b
+    changeAudioUnit (Proxy :: Proxy (p /\ acc /\ (Proxy nextP) /\ env /\ Proxy inuniv /\ Proxy middle)) (Gain a b)
+    (change' :: forall proof. (Proxy nextP) -> b -> Frame env proof middle outuniv Unit) Proxy b
 
 instance changeSpeaker ::
   ( Warn ((Text "Change speaker") ^^ (Quote (Proxy inuniv)))
@@ -1610,13 +1578,13 @@ instance changeSpeaker ::
   , GetSkolemFromRecursiveArgument fa skolem
   , ToSkolemizedFunction fa skolem a
   , Modify (Speaker a) p inuniv middle nextP
-  , Change nextP a env proof middle outuniv
+  , Change nextP a env middle outuniv
   , Warn ((Text "Speaker out") ^^ (Quote (Proxy outuniv)))
   ) =>
-  Change (SingleEdge p) (Speaker fa) env proof inuniv outuniv where
+  Change (SingleEdge p) (Speaker fa) env inuniv outuniv where
   change' _ (Speaker fa) = let a = (((toSkolemizedFunction :: fa -> (Proxy skolem -> a)) fa) Proxy) in Ix.do
-    (changeAudioUnit :: Proxy (p /\ acc /\ (Proxy nextP)) -> (Speaker a) -> Frame env proof inuniv middle Unit) Proxy (Speaker a)
-    (change' :: (Proxy nextP) -> a -> Frame env proof middle outuniv Unit) Proxy a
+    changeAudioUnit (Proxy :: Proxy (p /\ acc /\ (Proxy nextP) /\ env /\ Proxy inuniv /\ Proxy middle)) (Speaker a)
+    (change' :: forall proof. (Proxy nextP) -> a -> Frame env proof middle outuniv Unit) Proxy a
 {-
 derive newtype instance functorFrame :: Functor m => Functor (FrameT ig og m)
 
