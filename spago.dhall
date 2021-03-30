@@ -6,6 +6,7 @@ You can edit this file as you like.
 , dependencies =
   [ "behaviors"
   , "console"
+  , "debug"
   , "effect"
   , "free"
   , "indexed-monad"
