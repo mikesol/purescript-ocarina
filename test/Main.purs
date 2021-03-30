@@ -1,7 +1,7 @@
 module Test.Main where
 
 import Prelude
-import Data.Tuple.Nested((/\))
+import Data.Tuple.Nested ((/\))
 import Data.Array as A
 import Data.Functor.Indexed (ivoid)
 import Data.Map as M
@@ -290,11 +290,9 @@ main = do
                 )
           it "is coherent" do
             let
-              creation = ivoid $ create $ scene0
-
               simpleScene =
                 start unit
-                  creation
+                  (ivoid $ create scene0)
                   loop
 
               (frame0Nodes /\ frame0Edges /\ frame0Instr /\ frame1) = oneFrame simpleScene { time: 0.0 }
@@ -320,9 +318,7 @@ main = do
             pure unit
           it "is coherent after change" do
             let
-              creation = (ivoid $ create $ scene0)
-
-              simpleScene = start unit creation (makeChangingSceneLoop scene0)
+              simpleScene = start unit (ivoid $ create scene0) (makeChangingSceneLoop scene0)
 
               (frame0Nodes /\ frame0Edges /\ frame0Instr /\ frame1) = oneFrame simpleScene { time: 0.0 }
 

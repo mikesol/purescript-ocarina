@@ -1518,3 +1518,8 @@ instance changeSpeaker ::
       Ix.do
         changeAudioUnit (Proxy :: Proxy (p /\ acc /\ (Proxy nextP) /\ env /\ Proxy inuniv)) (Speaker a)
         (change' :: forall proof. (Proxy nextP) -> a -> Frame env proof inuniv inuniv Unit) Proxy a
+
+-- get
+-- connect
+-- disconnect
+-- destroy
