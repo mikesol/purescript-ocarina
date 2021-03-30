@@ -1436,6 +1436,12 @@ instance changeSkolem ::
   Change (SingleEdge p) (Proxy skolem) env inuniv where
   change' _ _ = Frame (pure unit)
 
+instance changeIdentity :: Change (SingleEdge p) x env inuniv => Change (SingleEdge p) (Identity x) env inuniv where
+  change' p (Identity x) = change' p x
+
+instance changeFocus :: Change (SingleEdge p) x env inuniv => Change (SingleEdge p) (Focus x) env inuniv where
+  change' p (Focus x) = change' p x
+
 instance changeMany2 ::
   ( Change (SingleEdge p) x env inuniv
   , Change (ManyEdges a b) y env inuniv
