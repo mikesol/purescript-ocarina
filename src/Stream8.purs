@@ -1,7 +1,6 @@
 module Stream8 where
 
 import Prelude
-
 import Control.Applicative.Indexed (class IxApplicative, iapplySecond)
 import Control.Apply.Indexed (class IxApply)
 import Control.Bind.Indexed (class IxBind)
@@ -263,12 +262,14 @@ class ChangeInstructions (env :: Type) (acc :: Type) (g :: Type) where
 instance changeInstructionsSinOsc :: SetterVal env acc a => ChangeInstructions env acc (SinOsc a) where
   changeInstructions idx env acc (SinOsc a) = case _ of
     ASinOsc prm ->
-      (setterVal :: a -> Maybe (env -> acc -> AudioParameter -> AudioParameter)) a <#> \f ->
-        let
-          iv' = f env acc prm
-          AudioParameter iv = iv'
-        in
-          [ SetFrequency idx iv.param iv.timeOffset iv.transition ] /\ ASinOsc iv'
+      (setterVal :: a -> Maybe (env -> acc -> AudioParameter -> AudioParameter)) a
+        <#> \f ->
+            let
+              iv' = f env acc prm
+
+              AudioParameter iv = iv'
+            in
+              [ SetFrequency idx iv.param iv.timeOffset iv.transition ] /\ ASinOsc iv'
     _ -> Nothing
 
 instance changeInstructionsHighpass :: (SetterVal env acc a, SetterVal env acc b) => ChangeInstructions env acc (Highpass a b c) where
@@ -276,11 +277,13 @@ instance changeInstructionsHighpass :: (SetterVal env acc a, SetterVal env acc b
     AHighpass va vb ->
       let
         sa = (setterVal :: a -> Maybe (env -> acc -> AudioParameter -> AudioParameter)) a
+
         aiv' = maybe va (\f -> f env acc va) sa
 
         freqChanges = if isJust sa then let AudioParameter aiv = aiv' in [ SetFrequency idx aiv.param aiv.timeOffset aiv.transition ] else []
 
         sb = (setterVal :: b -> Maybe (env -> acc -> AudioParameter -> AudioParameter)) b
+
         biv' = maybe vb (\f -> f env acc vb) sb
 
         qChanges = if isJust sb then let AudioParameter biv = biv' in [ SetQ idx biv.param biv.timeOffset biv.transition ] else []
@@ -293,13 +296,14 @@ instance changeInstructionsHighpass :: (SetterVal env acc a, SetterVal env acc b
 instance changeInstructionsGain :: SetterVal env acc a => ChangeInstructions env acc (Gain a b) where
   changeInstructions idx env acc (Gain a _) fromMap = case fromMap of
     AGain prm ->
-      (setterVal :: a -> Maybe (env -> acc -> AudioParameter -> AudioParameter)) a <#> \f ->
-        let
-          iv' = f env acc prm
+      (setterVal :: a -> Maybe (env -> acc -> AudioParameter -> AudioParameter)) a
+        <#> \f ->
+            let
+              iv' = f env acc prm
 
-          AudioParameter iv = iv'
-        in
-          [ SetGain idx iv.param iv.timeOffset iv.transition ] /\ AGain iv'
+              AudioParameter iv = iv'
+            in
+              [ SetGain idx iv.param iv.timeOffset iv.transition ] /\ AGain iv'
     _ -> Nothing
 
 instance changeInstructionsSpeaker :: ChangeInstructions env acc (Speaker a) where
@@ -1139,7 +1143,8 @@ createAndConnect _ g =
   where
   cs = creationStep (Proxy :: _ acc) g
 
-data Focus a = Focus a
+data Focus a
+  = Focus a
 
 -- end of the line in tuples
 instance createUnit ::
