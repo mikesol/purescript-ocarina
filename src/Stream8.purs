@@ -572,6 +572,16 @@ instance nodeListAppendNilR :: NodeListAppend (NodeListCons x y) NodeListNil (No
 
 instance nodeListAppendCons :: (NodeListAppend b (NodeListCons c d) o) => NodeListAppend (NodeListCons a b) (NodeListCons c d) (NodeListCons a o)
 
+class PtrListAppend (l :: PtrList) (r :: PtrList) (o :: PtrList) | l r -> o
+
+instance ptrListAppendNilNil :: PtrListAppend PtrListNil PtrListNil PtrListNil
+
+instance ptrListAppendNilL :: PtrListAppend PtrListNil (PtrListCons x y) (PtrListCons x y)
+
+instance ptrListAppendNilR :: PtrListAppend (PtrListCons x y) PtrListNil (PtrListCons x y)
+
+instance ptrListAppendCons :: (PtrListAppend b (PtrListCons c d) o) => PtrListAppend (PtrListCons a b) (PtrListCons c d) (PtrListCons a o)
+
 class EdgeProfileChooseGreater (a :: EdgeProfile) (b :: EdgeProfile) (c :: EdgeProfile) | a b -> c
 
 instance edgeProfileChooseGreater0 :: EdgeProfileChooseGreater NoEdge b b
@@ -1376,7 +1386,6 @@ change = change' (Proxy :: _ edge)
 class Change (p :: EdgeProfile) (a :: Type) (env :: Type) (o :: Universe) where
   change' :: forall i proof. Proxy p -> a -> Frame env proof i o Unit
 
---
 class ModifyRes (tag :: Type) (p :: Ptr) (i :: Node) (mod :: NodeList) (plist :: EdgeProfile) | tag p i -> mod plist
 
 instance modifyResSinOsc :: ModifyRes (SinOsc a) p (NodeC (TSinOsc p) e) (NodeListCons (NodeC (TSinOsc p) e) NodeListNil) e
@@ -1519,7 +1528,91 @@ instance changeSpeaker ::
         changeAudioUnit (Proxy :: Proxy (p /\ acc /\ (Proxy nextP) /\ env /\ Proxy inuniv)) (Speaker a)
         (change' :: forall proof. (Proxy nextP) -> a -> Frame env proof inuniv inuniv Unit) Proxy a
 
--- get
+--------------------- getters
+
+cursor ::
+  forall edge a x i env proof p.
+  TerminalIdentityEdge i edge =>
+  Cursor edge a env i p =>
+  a -> Frame env proof x i (AudioUnitRef p)
+cursor = cursor' (Proxy :: _ edge)
+
+class Cursor (p :: EdgeProfile) (a :: Type) (env :: Type) (o :: Universe) (ptr :: Ptr) | p a env o -> ptr where
+  cursor' :: forall i proof. Proxy p -> a -> Frame env proof i o (AudioUnitRef ptr)
+
+instance cursorRecurse :: (Nat head, CursorI p a env o (PtrListCons head PtrListNil)) => Cursor p a env o head where
+  cursor' _ _ = Frame (pure $ AudioUnitRef (toInt' (Proxy :: Proxy head)))
+
+class CursorRes (tag :: Type) (p :: Ptr) (i :: Node) (plist :: EdgeProfile) | tag p i -> plist
+
+instance cursorResSinOsc :: CursorRes (SinOsc a) p (NodeC (TSinOsc p) e) e
+else instance cursorResHighpass :: CursorRes (Highpass a b c) p (NodeC (THighpass p) e) e
+else instance cursorResGain :: CursorRes (Gain a b) p (NodeC (TGain p) e) e
+else instance cursorResSpeaker :: CursorRes (Speaker a) p (NodeC (TSpeaker p) e) e
+else instance cursorResMiss :: CursorRes tag p n NoEdge
+
+class Cursor' (tag :: Type) (p :: Ptr) (i :: NodeList) (nextP :: EdgeProfile) | tag p i -> nextP
+
+instance cursorNil :: Cursor' tag p NodeListNil NoEdge
+
+instance cursorCons ::
+  ( CursorRes tag p head headPlist
+  , Cursor' tag p tail tailPlist
+  , EdgeProfileChooseGreater headPlist tailPlist plist
+  ) =>
+  Cursor' tag p (NodeListCons head tail) plist
+
+class CursorX (tag :: Type) (p :: Ptr) (i :: Universe) (nextP :: EdgeProfile) | tag p i -> nextP
+
+instance cursorX :: (GraphToNodeList ig il, Cursor' tag p il nextP) => CursorX tag p (UniverseC i ig d sk acc) nextP
+
+class CursorI (p :: EdgeProfile) (a :: Type) (env :: Type) (o :: Universe) (ptr :: PtrList) | p a env o -> ptr
+
+instance cursorNoEdge ::CursorI NoEdge g env inuniv PtrListNil
+
+instance cursorSkolem :: Nat p => CursorI (SingleEdge p) (Proxy skolem) env inuniv PtrListNil
+
+instance cursorIdentity :: (Nat p, CursorI (SingleEdge p) x env inuniv o) => CursorI (SingleEdge p) (Identity x) env inuniv o
+
+instance cursorFocus :: (Nat p, CursorI (SingleEdge p) x env inuniv o) => CursorI (SingleEdge p) (Focus x) env inuniv (PtrListCons p o)
+
+instance cursorMany2 ::
+  ( Nat p
+  , Nat a
+  , CursorI (SingleEdge p) x env inuniv o0
+  , CursorI (ManyEdges a b) y env inuniv o1
+  , PtrListAppend o0 o1 oo
+  ) =>
+  CursorI (ManyEdges p (PtrListCons a b)) (x /\ y) env inuniv oo
+
+instance cursorMany1 ::
+  (Nat p, CursorI (SingleEdge p) a env inuniv o) =>
+  CursorI (ManyEdges p PtrListNil) (a /\ Unit) env inuniv o
+
+instance cursorSinOsc ::
+  Nat p => CursorI (SingleEdge p) (SinOsc a) env inuniv PtrListNil
+
+instance cursorHighpass ::
+  ( Nat p
+  , CursorX (Highpass a b c) p inuniv nextP
+  , CursorI nextP c env inuniv o
+  ) =>
+  CursorI (SingleEdge p) (Highpass a b fc) env inuniv o
+
+instance cursorGain ::
+  ( Nat p
+  , CursorX (Gain a b) p inuniv nextP
+  , CursorI nextP c env inuniv o
+  ) =>
+  CursorI (SingleEdge p) (Gain a b) env inuniv o
+
+instance cursorSpeaker ::
+  ( Nat p
+  , CursorX (Speaker a) p inuniv nextP
+  , CursorI nextP c env inuniv o
+  ) =>
+  CursorI (SingleEdge p) (Speaker a) env inuniv o
+
 -- connect
 -- disconnect
 -- destroy
