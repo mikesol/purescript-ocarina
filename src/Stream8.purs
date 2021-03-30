@@ -2,42 +2,28 @@ module Stream8 where
 
 import Prelude
 
-import Control.Alt (class Alt)
-import Control.Alternative (class Alternative)
-import Control.Applicative.Indexed (class IxApplicative, iapplySecond, ipure)
+import Control.Applicative.Indexed (class IxApplicative, iapplySecond)
 import Control.Apply.Indexed (class IxApply)
-import Control.Bind.Indexed (class IxBind, ibindFlipped)
-import Control.Lazy (class Lazy, fix)
-import Control.Monad.Cont (class MonadCont)
-import Control.Monad.Error.Class (class MonadError, class MonadThrow)
+import Control.Bind.Indexed (class IxBind)
+import Control.Lazy (fix)
 import Control.Monad.Indexed (class IxMonad)
 import Control.Monad.Indexed.Qualified as Ix
-import Control.Monad.Reader (class MonadAsk, class MonadReader)
-import Control.Monad.Rec.Class (class MonadRec)
-import Control.Monad.State (class MonadTrans, State, StateT, execState, get, gets, modify_, withState)
-import Control.Monad.Writer (class MonadTell, class MonadWriter, WriterT(..), runWriterT)
-import Control.MonadPlus (class MonadPlus, class MonadZero)
-import Control.Plus (class Plus)
+import Control.Monad.State (State, execState, get, gets, modify_, withState)
+import Control.Monad.Writer (WriterT(..), runWriterT)
 import Data.Functor.Indexed (class IxFunctor)
 import Data.Generic.Rep (class Generic)
-import Data.Identity (Identity)
-import Data.Map (Map, insert)
+import Data.Identity (Identity(..))
 import Data.Map as M
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), isJust, maybe)
 import Data.Monoid.Endo (Endo(..))
-import Data.Newtype (class Newtype)
 import Data.Set (Set)
 import Data.Set as S
 import Data.Show.Generic (genericShow)
 import Data.Tuple (Tuple(..), fst, snd)
 import Data.Tuple.Nested (type (/\), (/\))
 import Data.Typelevel.Bool (False, True)
-import Data.Typelevel.Num (class Nat, class Succ, D0, d0, toInt')
-import Debug.Trace (spy)
-import Effect (Effect)
-import Effect.Class (class MonadEffect)
-import Prim.TypeError (class Warn, Above, Beside, Quote, Text)
-import Safe.Coerce (coerce)
+import Data.Typelevel.Num (class Nat, class Succ, D0, toInt')
+import Prim.TypeError (class Warn, Above, Quote, Text)
 import Type.Proxy (Proxy(..))
 import Unsafe.Coerce (unsafeCoerce)
 
@@ -57,7 +43,6 @@ foreign import data O :: Binary
 
 type Ptr
   = Type
-
 
 data AudioUnitList
 
@@ -277,26 +262,28 @@ class ChangeInstructions (env :: Type) (acc :: Type) (g :: Type) where
 
 instance changeInstructionsSinOsc :: SetterVal env acc a => ChangeInstructions env acc (SinOsc a) where
   changeInstructions idx env acc (SinOsc a) = case _ of
-    ASinOsc prm -> let
-          iv' = ((setterVal :: a -> (env -> acc -> AudioParameter -> AudioParameter)) a) env acc prm
-
+    ASinOsc prm ->
+      (setterVal :: a -> Maybe (env -> acc -> AudioParameter -> AudioParameter)) a <#> \f ->
+        let
+          iv' = f env acc prm
           AudioParameter iv = iv'
         in
-          Just $ [ SetFrequency idx iv.param iv.timeOffset iv.transition ] /\ ASinOsc iv'
+          [ SetFrequency idx iv.param iv.timeOffset iv.transition ] /\ ASinOsc iv'
     _ -> Nothing
 
 instance changeInstructionsHighpass :: (SetterVal env acc a, SetterVal env acc b) => ChangeInstructions env acc (Highpass a b c) where
   changeInstructions idx env acc (Highpass a b _) = case _ of
     AHighpass va vb ->
       let
+        sa = (setterVal :: a -> Maybe (env -> acc -> AudioParameter -> AudioParameter)) a
+        aiv' = maybe va (\f -> f env acc va) sa
 
-        aiv' = ((setterVal :: a -> (env -> acc -> AudioParameter -> AudioParameter)) a) env acc va
+        freqChanges = if isJust sa then let AudioParameter aiv = aiv' in [ SetFrequency idx aiv.param aiv.timeOffset aiv.transition ] else []
 
-        freqChanges = let AudioParameter aiv = aiv' in [ SetFrequency idx aiv.param aiv.timeOffset aiv.transition ]
+        sb = (setterVal :: b -> Maybe (env -> acc -> AudioParameter -> AudioParameter)) b
+        biv' = maybe vb (\f -> f env acc vb) sb
 
-        biv' = ((setterVal :: b -> (env -> acc -> AudioParameter -> AudioParameter)) b) env acc vb
-
-        qChanges = let AudioParameter biv = biv' in [ SetQ idx biv.param biv.timeOffset biv.transition ]
+        qChanges = if isJust sb then let AudioParameter biv = biv' in [ SetQ idx biv.param biv.timeOffset biv.transition ] else []
       in
         Just
           $ (freqChanges <> qChanges)
@@ -305,16 +292,15 @@ instance changeInstructionsHighpass :: (SetterVal env acc a, SetterVal env acc b
 
 instance changeInstructionsGain :: SetterVal env acc a => ChangeInstructions env acc (Gain a b) where
   changeInstructions idx env acc (Gain a _) fromMap = case fromMap of
-      AGain prm ->
+    AGain prm ->
+      (setterVal :: a -> Maybe (env -> acc -> AudioParameter -> AudioParameter)) a <#> \f ->
         let
-          sv = (setterVal :: a -> (env -> acc -> AudioParameter -> AudioParameter)) a
-
-          iv' = sv env acc prm
+          iv' = f env acc prm
 
           AudioParameter iv = iv'
         in
-          Just $ [ SetGain idx iv.param iv.timeOffset iv.transition ] /\ AGain iv'
-      _ -> Nothing
+          [ SetGain idx iv.param iv.timeOffset iv.transition ] /\ AGain iv'
+    _ -> Nothing
 
 instance changeInstructionsSpeaker :: ChangeInstructions env acc (Speaker a) where
   changeInstructions _ _ _ _ _ = Nothing
@@ -783,8 +769,8 @@ type AudioState' env
     , acc :: Void
     , currentIdx :: Int
     , instructions :: Array Instruction
-    , internalNodes :: Map Int AnAudioUnit
-    , internalEdges :: Map Int (Set Int)
+    , internalNodes :: M.Map Int AnAudioUnit
+    , internalEdges :: M.Map Int (Set Int)
     }
 
 type AudioState env a
@@ -802,10 +788,10 @@ foreign import data Scene :: Type -> Type -> Type
 
 type role Scene representational representational
 
-asScene :: forall env proof. (env -> Map Int AnAudioUnit /\ Map Int (Set Int) /\ Array Instruction /\ (Scene env proof)) -> Scene env proof
+asScene :: forall env proof. (env -> M.Map Int AnAudioUnit /\ M.Map Int (Set Int) /\ Array Instruction /\ (Scene env proof)) -> Scene env proof
 asScene = unsafeCoerce
 
-oneFrame :: forall env proof. Scene env proof -> env -> Map Int AnAudioUnit /\ Map Int (Set Int) /\ Array Instruction /\ (Scene env proof)
+oneFrame :: forall env proof. Scene env proof -> env -> M.Map Int AnAudioUnit /\ M.Map Int (Set Int) /\ Array Instruction /\ (Scene env proof)
 oneFrame = unsafeCoerce
 
 instance universeIsCoherent ::
@@ -819,7 +805,6 @@ class UniverseIsCoherent (u :: Universe) where
 start ::
   forall env acc g0.
   UniverseIsCoherent g0 =>
-  (Warn ((Text "msStart") ^^ (Quote acc) ^^ (Quote (Proxy g0)))) =>
   acc ->
   InitialFrame env acc g0 ->
   (forall proof. Frame env proof g0 g0 Unit -> Scene env proof) ->
@@ -829,7 +814,6 @@ start a b = makeScene0T (a /\ b)
 makeScene0T ::
   forall env acc g0.
   UniverseIsCoherent g0 =>
-  (Warn ((Text "ms0") ^^ (Quote (Proxy g0)))) =>
   acc /\ InitialFrame env acc g0 ->
   (forall proof. Frame env proof g0 g0 Unit -> Scene env proof) ->
   Scene env Frame0
@@ -857,6 +841,7 @@ makeScene' ::
 makeScene' _ mogrify fr trans = asScene go
   where
   Frame f = mogrify ((unsafeCoerce :: Frame env proofA g0 g1 Unit -> Frame env proofB g0 g1 Unit) fr)
+
   go env =
     let
       rt = runWriterT f
@@ -887,7 +872,6 @@ makeScene ::
   Scene env proofA
 makeScene = makeScene' assertCoherence identity
 
-
 makeChangingScene ::
   forall env proofA g0 g1 edge a.
   TerminalIdentityEdge g1 edge =>
@@ -898,7 +882,6 @@ makeChangingScene ::
   (forall proofB. Frame env proofB g0 g1 Unit -> Scene env proofB) ->
   Scene env proofA
 makeChangingScene a = makeScene' assertCoherence (flip iapplySecond (change a))
-
 
 makeChangingSceneLoop ::
   forall env proofA g0 g1 edge a.
@@ -936,7 +919,7 @@ instance sceneIxFunctor :: IxFunctor (Frame env proof) where
   imap f (Frame a) = Frame (f <$> a)
 
 instance sceneIxApplicative :: IxApply (Frame env proof) where
-  iapply (Frame f) (Frame a) = let _________ = spy "i am applying" f in Frame (f <*> a)
+  iapply (Frame f) (Frame a) = Frame (f <*> a)
 
 instance sceneIxApply :: IxApplicative (Frame env proof) where
   ipure a = Frame $ pure a
@@ -949,10 +932,9 @@ instance sceneIxMonad :: IxMonad (Frame env proof)
 class IxSpy m i o a where
   ixspy :: m i o a -> m i o a
 
-instance ixspyI :: (Warn ((Text "ixspy") ^^ (Quote (m i o a)))) => IxSpy m i o a
-  where ixspy = identity
+instance ixspyI :: (Warn ((Text "ixspy") ^^ (Quote (m i o a)))) => IxSpy m i o a where
+  ixspy = identity
 
--- create (hpf and gain can start empty)
 defaultParam :: AudioParameter'
 defaultParam = { param: 0.0, timeOffset: 0.0, transition: LinearRamp, forceSet: false }
 
@@ -993,25 +975,25 @@ instance initialValTuple :: InitialVal env acc a => InitialVal env acc (Tuple a 
   initialVal env acc a = initialVal env acc $ fst a
 
 class SetterVal env acc a where
-  setterVal :: a -> (env -> acc -> AudioParameter -> AudioParameter)
+  setterVal :: a -> Maybe (env -> acc -> AudioParameter -> AudioParameter)
 
 instance setterValNumber :: SetterVal env acc Number where
-  setterVal = const <<< initialVal
+  setterVal _ = Nothing
 
 instance setterValAudioParameter :: SetterVal env acc AudioParameter where
-  setterVal = const <<< initialVal
+  setterVal _ = Nothing
 
 instance setterValTuple :: SetterVal env acc (Tuple a (env -> acc -> AudioParameter -> AudioParameter)) where
-  setterVal = snd
+  setterVal = Just <<< snd
 
 instance setterValTupleN :: SetterVal env acc (Tuple a (env -> acc -> AudioParameter -> Number)) where
-  setterVal = ((map <<< map <<< map) param) <<< snd
+  setterVal = Just <<< ((map <<< map <<< map) param) <<< snd
 
 instance setterValFunction :: SetterVal env acc (env -> acc -> AudioParameter -> AudioParameter) where
-  setterVal = identity
+  setterVal = Just
 
 instance setterValFunctionN :: SetterVal env acc (env -> acc -> AudioParameter -> Number) where
-  setterVal = (map <<< map <<< map) param
+  setterVal = Just <<< (map <<< map <<< map) param
 
 data AudioUnitRef (ptr :: Ptr)
   = AudioUnitRef Int
@@ -1157,6 +1139,8 @@ createAndConnect _ g =
   where
   cs = creationStep (Proxy :: _ acc) g
 
+data Focus a = Focus a
+
 -- end of the line in tuples
 instance createUnit ::
   Create Unit env u u Unit where
@@ -1170,6 +1154,12 @@ instance createTuple ::
     Frame x' = (create :: forall proof. x -> Frame env proof u0 u1 x') x
 
     Frame y' = (create :: forall proof. y -> Frame env proof u1 u2 y') y
+
+instance createIdentity :: Create x env i o r => Create (Identity x) env i o r where
+  create (Identity x) = create x
+
+instance createFocus :: Create x env i o r => Create (Focus x) env i o r where
+  create (Focus x) = create x
 
 instance createProxy ::
   ( LookupSkolem skolem skolems ptr
@@ -1208,7 +1198,8 @@ instance createDup ::
   create (Dup a f) = Frame $ x <* y
     where
     Frame x =
-      ( create :: forall proof.
+      ( create ::
+          forall proof.
           a ->
           Frame env proof
             (UniverseC ptr graphi destroyed skolems acc)
@@ -1218,7 +1209,8 @@ instance createDup ::
         a
 
     Frame y =
-      ( create :: forall proof.
+      ( create ::
+          forall proof.
           b ->
           Frame env proof
             (UniverseC midptr graphm destroyed (SkolemListCons (SkolemPairC skolem ptr) skolems) acc)
@@ -1228,8 +1220,7 @@ instance createDup ::
         (f (Proxy :: _ skolem))
 
 instance createSinOsc ::
-  ( Warn ((Text "SinOsc"))
-  , InitialVal env acc a
+  ( InitialVal env acc a
   , Nat ptr
   , Succ ptr next
   , GraphToNodeList graph nodeList
@@ -1279,7 +1270,7 @@ instance createHighpass ::
     (AudioUnitRef ptr) where
   create =
     Frame <<< map AudioUnitRef <<< unFrame
-      <<< createAndConnect (Proxy :: ProxyCC acc skolem ptr term env  (Proxy (UniverseC next graphi destroyed skolemsInternal acc)) (Proxy (UniverseC outptr grapho destroyed skolemsInternal acc)))
+      <<< createAndConnect (Proxy :: ProxyCC acc skolem ptr term env (Proxy (UniverseC next graphi destroyed skolemsInternal acc)) (Proxy (UniverseC outptr grapho destroyed skolemsInternal acc)))
 
 instance createGain ::
   ( InitialVal env acc a
@@ -1310,23 +1301,25 @@ instance createGain ::
         acc
     )
     (AudioUnitRef ptr) where
-  create :: forall proof. Gain a fb -> Frame env proof (UniverseC ptr graphi destroyed skolems acc)
-    ( UniverseC
-        outptr
-        (GraphC (NodeC (TGain ptr) eprof) nodeList)
-        destroyed
-        skolems
-        acc
-    )
-    (AudioUnitRef ptr)
+  create ::
+    forall proof.
+    Gain a fb ->
+    Frame env proof (UniverseC ptr graphi destroyed skolems acc)
+      ( UniverseC
+          outptr
+          (GraphC (NodeC (TGain ptr) eprof) nodeList)
+          destroyed
+          skolems
+          acc
+      )
+      (AudioUnitRef ptr)
   create =
     Frame <<< map AudioUnitRef <<< unFrame
-      <<< ( createAndConnect (Proxy :: ProxyCC acc skolem ptr term env (Proxy (UniverseC next graphi destroyed skolemsInternal acc)) (Proxy (UniverseC outptr grapho destroyed skolemsInternal acc))))
+      <<< (createAndConnect (Proxy :: ProxyCC acc skolem ptr term env (Proxy (UniverseC next graphi destroyed skolemsInternal acc)) (Proxy (UniverseC outptr grapho destroyed skolemsInternal acc))))
 
 -- toSkolemizedFunction :: a -> (Proxy skolem -> b)
 instance createSpeaker ::
   ( ToSkolemizedFunction a DiscardableSkolem a
-  , Warn ((Text "spkr"))
   , Nat ptr
   , Succ ptr next
   , Create
@@ -1337,7 +1330,6 @@ instance createSpeaker ::
       term
   , AsEdgeProfile term eprof
   , GraphToNodeList grapho nodeList
-  , Warn ((Text "g2nl") ^^ (Quote (Proxy nodeList)))
   ) =>
   Create
     (Speaker a)
@@ -1353,23 +1345,27 @@ instance createSpeaker ::
     (AudioUnitRef ptr) where
   create =
     Frame <<< map AudioUnitRef <<< unFrame
-      <<< ( createAndConnect (Proxy :: ProxyCC acc DiscardableSkolem ptr term env (Proxy (UniverseC next graphi destroyed skolems acc)) (Proxy (UniverseC outptr grapho destroyed skolems acc))))
+      <<< (createAndConnect (Proxy :: ProxyCC acc DiscardableSkolem ptr term env (Proxy (UniverseC next graphi destroyed skolems acc)) (Proxy (UniverseC outptr grapho destroyed skolems acc))))
 
 class TerminalNode (u :: Universe) (ptr :: Ptr) | u -> ptr
 
-instance terminalNode ::   (GetGraph i g ,
-  UniqueTerminus g t ,
-  GetAudioUnit t u ,
-  GetPointer u ptr) => TerminalNode i ptr
+instance terminalNode ::
+  ( GetGraph i g
+  , UniqueTerminus g t
+  , GetAudioUnit t u
+  , GetPointer u ptr
+  ) =>
+  TerminalNode i ptr
 
 class TerminalIdentityEdge (u :: Universe) (prof :: EdgeProfile) | u -> prof
+
 instance terminalIdentityEdge :: (TerminalNode i ptr) => TerminalIdentityEdge i (SingleEdge ptr)
 
 change ::
-  forall edge a i o env proof.
+  forall edge a x i env proof.
   TerminalIdentityEdge i edge =>
   Change edge a env i =>
-  a -> Frame env proof i i Unit
+  a -> Frame env proof x i Unit
 change = change' (Proxy :: _ edge)
 
 class Change (p :: EdgeProfile) (a :: Type) (env :: Type) (o :: Universe) where
@@ -1401,7 +1397,7 @@ class Modify (tag :: Type) (p :: Ptr) (i :: Universe) (nextP :: EdgeProfile) | t
 instance modify :: (GraphToNodeList ig il, Modify' tag p il mod nextP, AssertSingleton mod x) => Modify tag p (UniverseC i ig d sk acc) nextP
 
 changeAudioUnit ::
-  forall g env proof acc inuniv outuniv p nextP univ.
+  forall g env proof acc inuniv p nextP univ.
   GetAccumulator inuniv acc =>
   ChangeInstructions env acc g =>
   Nat p =>
@@ -1437,12 +1433,12 @@ instance changeSkolem ::
 
 instance changeMany2 ::
   ( Change (SingleEdge p) x env inuniv
-  , Warn ((Text "change many 2") ^^ (Quote x))
-  , Change (ManyEdges a b) y env inuniv) =>
+  , Change (ManyEdges a b) y env inuniv
+  ) =>
   Change (ManyEdges p (PtrListCons a b)) (x /\ y) env inuniv where
   change' _ (x /\ y) = Ix.do
-      (change' :: forall i proof. Proxy (SingleEdge p) -> x -> Frame env proof i inuniv Unit) Proxy x
-      (change' :: forall i proof. Proxy (ManyEdges a b) -> y -> Frame env proof i inuniv Unit) Proxy y
+    (change' :: forall i proof. Proxy (SingleEdge p) -> x -> Frame env proof i inuniv Unit) Proxy x
+    (change' :: forall i proof. Proxy (ManyEdges a b) -> y -> Frame env proof i inuniv Unit) Proxy y
 
 instance changeMany1 ::
   Change (SingleEdge p) a env inuniv =>
@@ -1450,65 +1446,68 @@ instance changeMany1 ::
   change' _ (a /\ _) = (change' :: forall i proof. Proxy (SingleEdge p) -> a -> Frame env proof i inuniv Unit) Proxy a
 
 instance changeSinOsc ::
-  ( Warn ((Text "sinOsc Change"))
-  , GetAccumulator inuniv acc
+  ( GetAccumulator inuniv acc
   , SetterVal env acc a
   , Nat p
-  , Warn ((Text "Got accumulator sinOsc") ^^ (Quote acc))
   , Modify (SinOsc a) p inuniv nextP
   ) =>
   Change (SingleEdge p) (SinOsc a) env inuniv where
   change' _ = changeAudioUnit (Proxy :: Proxy (p /\ acc /\ (Proxy nextP) /\ env /\ Proxy inuniv))
 
 instance changeHighpass ::
-  ( Warn ((Text "hp change") ^^ (Quote (Proxy inuniv)))
-  , GetAccumulator inuniv acc
+  ( GetAccumulator inuniv acc
   , SetterVal env acc a
   , SetterVal env acc b
   , Nat p
   , GetSkolemFromRecursiveArgument fc skolem
   , ToSkolemizedFunction fc skolem c
   , Modify (Highpass a b c) p inuniv nextP
-  , Warn ((Text "hp nextP") ^^ (Quote (Proxy nextP)))
   , Change nextP c env inuniv
   ) =>
   Change (SingleEdge p) (Highpass a b fc) env inuniv where
-  change' _ (Highpass a b fc) = let c = (((toSkolemizedFunction :: fc -> (Proxy skolem -> c)) fc) Proxy) in Ix.do
-    changeAudioUnit (Proxy :: Proxy (p /\ acc /\ (Proxy nextP) /\ env /\ Proxy inuniv)) (Highpass a b c) 
-    (change' :: forall proof. (Proxy nextP) -> c -> Frame env proof inuniv inuniv Unit) Proxy c
+  change' _ (Highpass a b fc) =
+    let
+      c = (((toSkolemizedFunction :: fc -> (Proxy skolem -> c)) fc) Proxy)
+    in
+      Ix.do
+        changeAudioUnit (Proxy :: Proxy (p /\ acc /\ (Proxy nextP) /\ env /\ Proxy inuniv)) (Highpass a b c)
+        (change' :: forall proof. (Proxy nextP) -> c -> Frame env proof inuniv inuniv Unit) Proxy c
 
 instance changeGain ::
   ( GetAccumulator inuniv acc
-  , Warn ((Text "Got inuniv gain") ^^ (Quote (Proxy inuniv)))
   , SetterVal env acc a
   , Nat p
   , GetSkolemFromRecursiveArgument fb skolem
   , ToSkolemizedFunction fb skolem b
   , Modify (Gain a b) p inuniv nextP
-  , Warn ((Text "Gain nextP") ^^ (Quote (Proxy nextP)))
-  , Warn ((Text "Got Gain middle") ^^ (Quote (Proxy middle)))
   , Change nextP b env inuniv
   ) =>
   Change (SingleEdge p) (Gain a fb) env inuniv where
-  change' _ (Gain a fb) = let b = (((toSkolemizedFunction :: fb -> (Proxy skolem -> b)) fb) Proxy) in Ix.do
-    changeAudioUnit (Proxy :: Proxy (p /\ acc /\ (Proxy nextP) /\ env /\ Proxy inuniv)) (Gain a b)
-    (change' :: forall proof. (Proxy nextP) -> b -> Frame env proof inuniv inuniv Unit) Proxy b
+  change' _ (Gain a fb) =
+    let
+      b = (((toSkolemizedFunction :: fb -> (Proxy skolem -> b)) fb) Proxy)
+    in
+      Ix.do
+        changeAudioUnit (Proxy :: Proxy (p /\ acc /\ (Proxy nextP) /\ env /\ Proxy inuniv)) (Gain a b)
+        (change' :: forall proof. (Proxy nextP) -> b -> Frame env proof inuniv inuniv Unit) Proxy b
 
 instance changeSpeaker ::
-  ( Warn ((Text "Change speaker") ^^ (Quote (Proxy inuniv)))
-  , GetAccumulator inuniv acc
-  , Warn ((Text "Got accumulator") ^^ (Quote acc))
+  ( GetAccumulator inuniv acc
   , Nat p
   , GetSkolemFromRecursiveArgument fa skolem
   , ToSkolemizedFunction fa skolem a
   , Modify (Speaker a) p inuniv nextP
   , Change nextP a env inuniv
-  , Warn ((Text "Speaker out") ^^ (Quote (Proxy outuniv)))
   ) =>
   Change (SingleEdge p) (Speaker fa) env inuniv where
-  change' _ (Speaker fa) = let a = (((toSkolemizedFunction :: fa -> (Proxy skolem -> a)) fa) Proxy) in Ix.do
-    changeAudioUnit (Proxy :: Proxy (p /\ acc /\ (Proxy nextP) /\ env /\ Proxy inuniv)) (Speaker a)
-    (change' :: forall proof. (Proxy nextP) -> a -> Frame env proof inuniv inuniv Unit) Proxy a
+  change' _ (Speaker fa) =
+    let
+      a = (((toSkolemizedFunction :: fa -> (Proxy skolem -> a)) fa) Proxy)
+    in
+      Ix.do
+        changeAudioUnit (Proxy :: Proxy (p /\ acc /\ (Proxy nextP) /\ env /\ Proxy inuniv)) (Speaker a)
+        (change' :: forall proof. (Proxy nextP) -> a -> Frame env proof inuniv inuniv Unit) Proxy a
+
 {-
 derive newtype instance functorFrame :: Functor m => Functor (FrameT ig og m)
 

@@ -1,10 +1,7 @@
 module Test.Main where
 
-import Data.Tuple.Nested
 import Prelude
-
-import Control.Lazy (fix)
-import Control.Monad.Indexed.Qualified as Ix
+import Data.Tuple.Nested((/\))
 import Data.Array as A
 import Data.Functor.Indexed (ivoid)
 import Data.Map as M
@@ -13,9 +10,7 @@ import Data.Typelevel.Bool (True, False)
 import Data.Typelevel.Num (class Succ, D0, D1, D2, D3)
 import Effect (Effect)
 import Effect.Aff (launchAff_)
-import Effect.Class.Console (log)
-import Effect.Class.Console as Log
-import Stream8 (class AllEdgesPointToNodes, class AudioUnitEq, class Gate, class HasBottomLevelNodes, class Lookup, class NoNodesAreDuplicated, class NoParallelEdges, class PtrEq, class UniqueTerminus, type (+:), type (/->), type (/:), AnAudioUnit(..), AudioParameter(..), AudioParameterTransition(..), AudioUnitRef, Dup(..), Frame, Gain(..), GraphC, Highpass(..), Instruction(..), ManyEdges, NoEdge, NodeC, NodeListCons, NodeListNil, PtrListCons, PtrListNil, SinOsc(..), SingleEdge, SkolemListNil, Speaker(..), TGain, THighpass, TSinOsc, UniverseC, change, create, defaultParam, ixspy, loop, makeChangingSceneLoop, makeScene, oneFrame, param, start, testCompare, (@!>))
+import Stream8 (class AllEdgesPointToNodes, class AudioUnitEq, class Gate, class HasBottomLevelNodes, class Lookup, class NoNodesAreDuplicated, class NoParallelEdges, class PtrEq, class UniqueTerminus, type (+:), type (/->), type (/:), AnAudioUnit(..), AudioParameter, AudioParameterTransition(..), AudioUnitRef, Dup(..), Frame, Gain(..), GraphC, Highpass(..), Instruction(..), ManyEdges, NoEdge, NodeC, NodeListCons, NodeListNil, PtrListCons, PtrListNil, SinOsc(..), SingleEdge, SkolemListNil, Speaker(..), TGain, THighpass, TSinOsc, UniverseC, create, loop, makeChangingSceneLoop, oneFrame, param, start, testCompare)
 import Test.Spec (describe, it)
 import Test.Spec.Assertions (shouldEqual)
 import Test.Spec.Reporter (consoleReporter)
@@ -98,10 +93,10 @@ testLookup5 :: Proxy (NodeC (TSinOsc D0) NoEdge)
 testLookup5 =
   Proxy ::
     forall node.
-    Lookup D0 (GraphC (NodeC (TSinOsc D1) NoEdge) (NodeListCons (NodeC (TSinOsc D0) NoEdge) (NodeListCons (NodeC (THighpass D2 ) NoEdge) NodeListNil))) node =>
+    Lookup D0 (GraphC (NodeC (TSinOsc D1) NoEdge) (NodeListCons (NodeC (TSinOsc D0) NoEdge) (NodeListCons (NodeC (THighpass D2) NoEdge) NodeListNil))) node =>
     Proxy node
 
-testNoNodesAreDuplicated :: Proxy (GraphC (NodeC (TSinOsc D1) NoEdge) (NodeListCons (NodeC (TSinOsc D0) NoEdge) (NodeListCons (NodeC (THighpass D2 ) NoEdge) NodeListNil)))
+testNoNodesAreDuplicated :: Proxy (GraphC (NodeC (TSinOsc D1) NoEdge) (NodeListCons (NodeC (TSinOsc D0) NoEdge) (NodeListCons (NodeC (THighpass D2) NoEdge) NodeListNil)))
 testNoNodesAreDuplicated =
   Proxy ::
     forall node.
@@ -109,7 +104,7 @@ testNoNodesAreDuplicated =
     Proxy node
 
 -- AllEdgesPointToNodes
-testAllEdgesPointToNodes :: Proxy (GraphC (NodeC (TSinOsc D1) NoEdge) (NodeListCons (NodeC (TSinOsc D0) NoEdge) (NodeListCons (NodeC (THighpass D2 ) (SingleEdge D2)) NodeListNil)))
+testAllEdgesPointToNodes :: Proxy (GraphC (NodeC (TSinOsc D1) NoEdge) (NodeListCons (NodeC (TSinOsc D0) NoEdge) (NodeListCons (NodeC (THighpass D2) (SingleEdge D2)) NodeListNil)))
 testAllEdgesPointToNodes =
   Proxy ::
     forall node.
@@ -124,7 +119,7 @@ testAllEdgesPointToNodes2 =
     Proxy node
 
 -- NoParallelEdges
-testNoParallelEdges :: Proxy (GraphC (NodeC (TSinOsc D1) NoEdge) (NodeListCons (NodeC (TSinOsc D0) NoEdge) (NodeListCons (NodeC (THighpass D2 ) (SingleEdge D2)) NodeListNil)))
+testNoParallelEdges :: Proxy (GraphC (NodeC (TSinOsc D1) NoEdge) (NodeListCons (NodeC (TSinOsc D0) NoEdge) (NodeListCons (NodeC (THighpass D2) (SingleEdge D2)) NodeListNil)))
 testNoParallelEdges =
   Proxy ::
     forall node.
@@ -139,18 +134,18 @@ testNoParallelEdges2 =
     Proxy node
 
 -- HasBottomLevelNodes
-testHasBottomLevelNodes :: Proxy (GraphC (NodeC (TSinOsc D1) NoEdge) (NodeListCons (NodeC (THighpass D2 ) (SingleEdge D1)) NodeListNil))
+testHasBottomLevelNodes :: Proxy (GraphC (NodeC (TSinOsc D1) NoEdge) (NodeListCons (NodeC (THighpass D2) (SingleEdge D1)) NodeListNil))
 testHasBottomLevelNodes =
   Proxy ::
     forall node.
     HasBottomLevelNodes node => Proxy node
 
 -- UniqueTerminus
-testUniqueTerminus :: Proxy (NodeC (THighpass D2 ) (SingleEdge D1))
+testUniqueTerminus :: Proxy (NodeC (THighpass D2) (SingleEdge D1))
 testUniqueTerminus =
   Proxy ::
     forall node.
-    UniqueTerminus (GraphC (NodeC (TSinOsc D1) NoEdge) (NodeListCons (NodeC (THighpass D2 ) (SingleEdge D1)) NodeListNil)) node =>
+    UniqueTerminus (GraphC (NodeC (TSinOsc D1) NoEdge) (NodeListCons (NodeC (THighpass D2) (SingleEdge D1)) NodeListNil)) node =>
     Proxy node
 
 testUniqueTerminus2 :: Proxy (TGain D3 /-> ManyEdges D0 (D2 +: PtrListNil))
@@ -160,7 +155,7 @@ testUniqueTerminus2 =
     UniqueTerminus
       ( GraphC
           (TGain D0 /-> ManyEdges D0 (D1 +: D2 +: PtrListNil))
-          ( ((THighpass D1 ) /-> (SingleEdge D0))
+          ( ((THighpass D1) /-> (SingleEdge D0))
               /: ((TSinOsc D2) /-> NoEdge)
               /: (TGain D3 /-> ManyEdges D0 (D2 +: PtrListNil))
               /: NodeListNil
@@ -188,7 +183,7 @@ createTest2 ::
   Succ mid last =>
   Frame env proof (UniverseC first (GraphC head tail) destroyed skolems acc)
     ( UniverseC last
-        (GraphC (NodeC (THighpass first ) (SingleEdge mid)) (NodeListCons (NodeC (TSinOsc mid) NoEdge) (NodeListCons head tail)))
+        (GraphC (NodeC (THighpass first) (SingleEdge mid)) (NodeListCons (NodeC (TSinOsc mid) NoEdge) (NodeListCons head tail)))
         destroyed
         skolems
         acc
@@ -228,7 +223,7 @@ createTest4 ::
             ( NodeC (TGain first)
                 (ManyEdges first (PtrListCons mid0 PtrListNil))
             )
-            ( NodeListCons (NodeC (THighpass mid0 ) (SingleEdge mid1))
+            ( NodeListCons (NodeC (THighpass mid0) (SingleEdge mid1))
                 (NodeListCons (NodeC (TSinOsc mid1) NoEdge) (NodeListCons head tail))
             )
         )
@@ -256,7 +251,7 @@ createTest5 ::
                 (ManyEdges mid0 (PtrListCons mid1 (PtrListCons first PtrListNil)))
             )
             ( NodeListCons
-                (NodeC (THighpass mid1 ) (SingleEdge first))
+                (NodeC (THighpass mid1) (SingleEdge first))
                 (NodeListCons (NodeC (TSinOsc first) NoEdge) (NodeListCons head tail))
             )
         )
@@ -326,8 +321,8 @@ main = do
           it "is coherent after change" do
             let
               creation = (ivoid $ create $ scene0)
-              simpleScene =
-                start unit creation (makeChangingSceneLoop scene0)
+
+              simpleScene = start unit creation (makeChangingSceneLoop scene0)
 
               (frame0Nodes /\ frame0Edges /\ frame0Instr /\ frame1) = oneFrame simpleScene { time: 0.0 }
 
@@ -340,16 +335,13 @@ main = do
               edgeAssertion = M.fromFoldable [ 0 /\ S.singleton 1, 1 /\ S.fromFoldable [ 1, 2 ], 2 /\ S.singleton 3 ]
 
               instructionAssertion = A.sortBy testCompare [ NewUnit 1 "gain", NewUnit 2 "highpass", NewUnit 3 "sinosc", ConnectXToY 1 0, ConnectXToY 1 1, ConnectXToY 2 1, ConnectXToY 3 2, SetGain 1 1.0 0.0 LinearRamp, SetFrequency 3 440.0 0.0 LinearRamp, SetFrequency 2 330.0 0.0 LinearRamp, SetQ 2 1.0 0.0 LinearRamp ]
-            Log.warn "aa"
             frame0Nodes `shouldEqual` (nodeAssertion 0.0)
-            Log.warn "bb"
             frame1Nodes `shouldEqual` (nodeAssertion 1.0)
-            Log.warn "cc"
             frame2Nodes `shouldEqual` (nodeAssertion 2.0)
             frame0Edges `shouldEqual` edgeAssertion
             frame1Edges `shouldEqual` edgeAssertion
             frame2Edges `shouldEqual` edgeAssertion
             A.sortBy testCompare frame0Instr `shouldEqual` instructionAssertion
-            A.sortBy testCompare frame1Instr `shouldEqual` []
-            A.sortBy testCompare frame2Instr `shouldEqual` []
+            A.sortBy testCompare frame1Instr `shouldEqual` [ SetFrequency 2 331.0 0.0 LinearRamp ]
+            A.sortBy testCompare frame2Instr `shouldEqual` [ SetFrequency 2 332.0 0.0 LinearRamp ]
             pure unit
