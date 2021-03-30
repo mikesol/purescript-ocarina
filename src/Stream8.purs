@@ -58,11 +58,6 @@ foreign import data O :: Binary
 type Ptr
   = Type
 
-data TAudioParameter
-
-foreign import data Potential :: TAudioParameter
-
-foreign import data Actual :: TAudioParameter
 
 data AudioUnitList
 
@@ -97,11 +92,11 @@ foreign import data NoEdge :: EdgeProfile
 
 data AudioUnit
 
-foreign import data TSinOsc :: Ptr -> TAudioParameter -> AudioUnit
+foreign import data TSinOsc :: Ptr -> AudioUnit
 
-foreign import data THighpass :: Ptr -> TAudioParameter -> TAudioParameter -> AudioUnit
+foreign import data THighpass :: Ptr -> AudioUnit
 
-foreign import data TGain :: Ptr -> TAudioParameter -> AudioUnit
+foreign import data TGain :: Ptr -> AudioUnit
 
 foreign import data TSpeaker :: Ptr -> AudioUnit
 
@@ -142,11 +137,11 @@ instance getGraphUniverseC :: GetGraph (UniverseC ptr graph destroyed skolems ac
 
 class GetPointer (audioUnit :: AudioUnit) (ptr :: Ptr) | audioUnit -> ptr
 
-instance getPointerSinOsc :: GetPointer (TSinOsc ptr a) ptr
+instance getPointerSinOsc :: GetPointer (TSinOsc ptr) ptr
 
-instance getPointerHighpass :: GetPointer (THighpass ptr a b) ptr
+instance getPointerHighpass :: GetPointer (THighpass ptr) ptr
 
-instance getPointerGain :: GetPointer (TGain ptr a) ptr
+instance getPointerGain :: GetPointer (TGain ptr) ptr
 
 instance getPointerSpeaker :: GetPointer (TSpeaker ptr) ptr
 
@@ -214,19 +209,19 @@ else instance ptrEqFalse :: PtrEq a b False
 
 class AudioUnitEq (a :: AudioUnit) (b :: AudioUnit) (tf :: Type) | a b -> tf
 
-instance audioUnitEqTSinOsc :: AudioUnitEq (TSinOsc idx freq) (TSinOsc idx freq) True
-else instance audioUnitEqTHighpass :: AudioUnitEq (THighpass idx freq q) (THighpass idx freq q) True
-else instance audioUnitEqTGain :: AudioUnitEq (TGain idx vol) (TGain idx vol) True
+instance audioUnitEqTSinOsc :: AudioUnitEq (TSinOsc idx) (TSinOsc idx) True
+else instance audioUnitEqTHighpass :: AudioUnitEq (THighpass idx) (THighpass idx) True
+else instance audioUnitEqTGain :: AudioUnitEq (TGain idx) (TGain idx) True
 else instance audioUnitEqTSpeaker :: AudioUnitEq (TSpeaker idx) (TSpeaker idx) True
 else instance audioUnitEqFalse :: AudioUnitEq a b False
 
 class TermToInitialAudioUnit (a :: Type) (p :: Ptr) (b :: AudioUnit) | a p -> b
 
-instance termToInitialAudioUnitSinOsc :: TermToInitialAudioUnit (SinOsc a) ptr (TSinOsc ptr Actual)
+instance termToInitialAudioUnitSinOsc :: TermToInitialAudioUnit (SinOsc a) ptr (TSinOsc ptr)
 
-instance termToInitialAudioUnitHighpass :: TermToInitialAudioUnit (Highpass a b c) ptr (THighpass ptr Actual Actual)
+instance termToInitialAudioUnitHighpass :: TermToInitialAudioUnit (Highpass a b c) ptr (THighpass ptr)
 
-instance termToInitialAudioUnitGain :: TermToInitialAudioUnit (Gain a b) ptr (TGain ptr Actual)
+instance termToInitialAudioUnitGain :: TermToInitialAudioUnit (Gain a b) ptr (TGain ptr)
 
 instance termToInitialAudioUnitSpeaker :: TermToInitialAudioUnit (Speaker a) ptr (TSpeaker ptr)
 
@@ -277,22 +272,12 @@ instance creationInstructionsGain :: InitialVal env acc a => CreationInstruction
 instance creationInstructionsSpeaker :: CreationInstructions env acc (Speaker a) where
   creationInstructions idx env acc (Speaker _) = [] /\ ASpeaker
 
-class KeepPotential (a :: TAudioParameter) (b :: TAudioParameter) (c :: TAudioParameter) | a b -> c
-
-instance keepActualSL :: KeepPotential Potential a Potential
-else instance keepActualSR :: KeepPotential b Potential Potential
-else instance keepActualPotential :: KeepPotential a b Actual
-
 class ChangeInstructions (env :: Type) (acc :: Type) (g :: Type) where
   changeInstructions :: Int -> env -> acc -> g -> AnAudioUnit -> Maybe (Array Instruction /\ AnAudioUnit)
 
-instance changeInstructionsSinOsc :: (SetterPotentiality env acc a delta, IsPotential delta) => ChangeInstructions env acc (SinOsc a) where
+instance changeInstructionsSinOsc :: SetterVal env acc a => ChangeInstructions env acc (SinOsc a) where
   changeInstructions idx env acc (SinOsc a) = case _ of
-    ASinOsc prm -> case (isPotential (Proxy :: _ delta)) of
-      false -> Nothing
-      true ->
-        let
-          -- case (isPotential)
+    ASinOsc prm -> let
           iv' = ((setterVal :: a -> (env -> acc -> AudioParameter -> AudioParameter)) a) env acc prm
 
           AudioParameter iv = iv'
@@ -300,40 +285,26 @@ instance changeInstructionsSinOsc :: (SetterPotentiality env acc a delta, IsPote
           Just $ [ SetFrequency idx iv.param iv.timeOffset iv.transition ] /\ ASinOsc iv'
     _ -> Nothing
 
-instance changeInstructionsHighpass :: (SetterPotentiality env acc a delta1, SetterPotentiality env acc b delta2, IsPotential delta1, IsPotential delta2) => ChangeInstructions env acc (Highpass a b c) where
+instance changeInstructionsHighpass :: (SetterVal env acc a, SetterVal env acc b) => ChangeInstructions env acc (Highpass a b c) where
   changeInstructions idx env acc (Highpass a b _) = case _ of
     AHighpass va vb ->
-      --todo: split across two functions?
       let
-        aic = isPotential (Proxy :: Proxy delta1)
 
-        aiv' = case aic of
-          true -> ((setterVal :: a -> (env -> acc -> AudioParameter -> AudioParameter)) a) env acc va
-          false -> va
+        aiv' = ((setterVal :: a -> (env -> acc -> AudioParameter -> AudioParameter)) a) env acc va
 
-        freqChanges = case aic of
-          false -> []
-          true -> let AudioParameter aiv = aiv' in [ SetFrequency idx aiv.param aiv.timeOffset aiv.transition ]
+        freqChanges = let AudioParameter aiv = aiv' in [ SetFrequency idx aiv.param aiv.timeOffset aiv.transition ]
 
-        bic = isPotential (Proxy :: Proxy delta2)
+        biv' = ((setterVal :: b -> (env -> acc -> AudioParameter -> AudioParameter)) b) env acc vb
 
-        biv' = case bic of
-          true -> ((setterVal :: b -> (env -> acc -> AudioParameter -> AudioParameter)) b) env acc vb
-          false -> vb
-
-        qChanges = case aic of
-          false -> []
-          true -> let AudioParameter biv = biv' in [ SetQ idx biv.param biv.timeOffset biv.transition ]
+        qChanges = let AudioParameter biv = biv' in [ SetQ idx biv.param biv.timeOffset biv.transition ]
       in
         Just
           $ (freqChanges <> qChanges)
           /\ AHighpass aiv' biv'
     _ -> Nothing
 
-instance changeInstructionsGain :: (SetterPotentiality env acc a delta, IsPotential delta) => ChangeInstructions env acc (Gain a b) where
-  changeInstructions idx env acc (Gain a _) fromMap = case (isPotential (Proxy :: _ delta)) of
-    false -> Nothing
-    true -> case fromMap of
+instance changeInstructionsGain :: SetterVal env acc a => ChangeInstructions env acc (Gain a b) where
+  changeInstructions idx env acc (Gain a _) fromMap = case fromMap of
       AGain prm ->
         let
           sv = (setterVal :: a -> (env -> acc -> AudioParameter -> AudioParameter)) a
@@ -344,8 +315,10 @@ instance changeInstructionsGain :: (SetterPotentiality env acc a delta, IsPotent
         in
           Just $ [ SetGain idx iv.param iv.timeOffset iv.transition ] /\ AGain iv'
       _ -> Nothing
+
 instance changeInstructionsSpeaker :: ChangeInstructions env acc (Speaker a) where
   changeInstructions _ _ _ _ _ = Nothing
+
 class NodeListKeepSingleton (nodeListA :: NodeList) (nodeListB :: NodeList) (nodeListC :: NodeList) | nodeListA nodeListB -> nodeListC
 
 instance nodeListKeepSingletonNil :: NodeListKeepSingleton NodeListNil NodeListNil NodeListNil
@@ -673,13 +646,13 @@ class AllNodesAreFullyHydratedNL (graph :: NodeList)
 
 instance allNodesAreFullyHydratedNil :: AllNodesAreFullyHydratedNL NodeListNil
 
-instance allNodesAreFullyHydratedConsTSinOsc :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (TSinOsc a b) NoEdge) tail)
+instance allNodesAreFullyHydratedConsTSinOsc :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (TSinOsc a) NoEdge) tail)
 
-instance allNodesAreFullyHydratedConsTHighpass :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (THighpass a b c) (SingleEdge e)) tail)
+instance allNodesAreFullyHydratedConsTHighpass :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (THighpass a) (SingleEdge e)) tail)
 
-instance allNodesAreFullyHydratedConsTGainSE :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (TGain a b) (SingleEdge e)) tail)
+instance allNodesAreFullyHydratedConsTGainSE :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (TGain a) (SingleEdge e)) tail)
 
-instance allNodesAreFullyHydratedConsTGainME :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (TGain a b) (ManyEdges e l)) tail)
+instance allNodesAreFullyHydratedConsTGainME :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (TGain a) (ManyEdges e l)) tail)
 
 instance allNodesAreFullyHydratedConsTSpeakerSE :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (TSpeaker a) (SingleEdge e)) tail)
 
@@ -844,23 +817,21 @@ class UniverseIsCoherent (u :: Universe) where
   assertCoherence :: forall env proof i x. Frame env proof i u x -> Unit
 
 start ::
-  forall env acc g0 g1.
+  forall env acc g0.
   UniverseIsCoherent g0 =>
-  AsPotential g0 g1 =>
   (Warn ((Text "msStart") ^^ (Quote acc) ^^ (Quote (Proxy g0)))) =>
   acc ->
   InitialFrame env acc g0 ->
-  (forall proof. Frame env proof g1 g1 Unit -> Scene env proof) ->
+  (forall proof. Frame env proof g0 g0 Unit -> Scene env proof) ->
   Scene env Frame0
 start a b = makeScene0T (a /\ b)
 
 makeScene0T ::
-  forall env acc g0 g1.
+  forall env acc g0.
   UniverseIsCoherent g0 =>
-  AsPotential g0 g1 =>
   (Warn ((Text "ms0") ^^ (Quote (Proxy g0)))) =>
   acc /\ InitialFrame env acc g0 ->
-  (forall proof. Frame env proof g1 g1 Unit -> Scene env proof) ->
+  (forall proof. Frame env proof g0 g0 Unit -> Scene env proof) ->
   Scene env Frame0
 makeScene0T (acc /\ fr@(Frame f)) trans = asScene go
   where
@@ -877,11 +848,11 @@ makeScene0T (acc /\ fr@(Frame f)) trans = asScene go
 infixr 6 makeScene0T as @@!>
 
 makeScene' ::
-  forall env proofA proofB g0 g1 g2 g3.
+  forall env proofA proofB g0 g1 g2.
   (Frame env proofA g0 g1 Unit -> Unit) ->
-  (Frame env proofB g0 g1 Unit -> Frame env proofB g2 g3 Unit) ->
+  (Frame env proofB g0 g1 Unit -> Frame env proofB g0 g2 Unit) ->
   Frame env proofA g0 g1 Unit ->
-  (Frame env proofB g2 g3 Unit -> Scene env proofB) ->
+  (Frame env proofB g0 g2 Unit -> Scene env proofB) ->
   Scene env proofA
 makeScene' _ mogrify fr trans = asScene go
   where
@@ -909,37 +880,35 @@ makeScene' _ mogrify fr trans = asScene go
       os.internalNodes /\ os.internalEdges /\ os.instructions /\ ((unsafeCoerce :: Scene env proofB -> Scene env proofA) scene)
 
 makeScene ::
-  forall env proofA g0 g1 g2.
+  forall env proofA g0 g1.
   UniverseIsCoherent g1 =>
-  AsPotential g1 g2 =>
   Frame env proofA g0 g1 Unit ->
-  (forall proofB. Frame env proofB g2 g2 Unit -> Scene env proofB) ->
+  (forall proofB. Frame env proofB g0 g1 Unit -> Scene env proofB) ->
   Scene env proofA
-makeScene = makeScene' assertCoherence asPotential
+makeScene = makeScene' assertCoherence identity
 
 
 makeChangingScene ::
-  forall env proofA g0 g1 g2 edge a g3.
-  TerminalIdentityEdge g2 edge =>
-  Change edge a env g2 g3 =>
+  forall env proofA g0 g1 edge a.
+  TerminalIdentityEdge g1 edge =>
+  Change edge a env g1 =>
   UniverseIsCoherent g1 =>
-  AsPotential g1 g2 =>
   a ->
   Frame env proofA g0 g1 Unit ->
-  (forall proofB. Frame env proofB g2 g3 Unit -> Scene env proofB) ->
+  (forall proofB. Frame env proofB g0 g1 Unit -> Scene env proofB) ->
   Scene env proofA
-makeChangingScene a = makeScene' assertCoherence (flip iapplySecond (change a) <<< asPotential)
+makeChangingScene a = makeScene' assertCoherence (flip iapplySecond (change a))
 
-{-makeChangingSceneLoop ::
-  forall env proofA g0 g1 g2 edge a g3.
-  TerminalIdentityEdge g2 edge =>
-  Change edge a env g2 g3 =>
+
+makeChangingSceneLoop ::
+  forall env proofA g0 g1 edge a.
+  TerminalIdentityEdge g1 edge =>
+  Change edge a env g1 =>
   UniverseIsCoherent g1 =>
-  AsPotential g1 g2 =>
   a ->
   Frame env proofA g0 g1 Unit ->
   Scene env proofA
-makeChangingSceneLoop a = fix \f -> flip (makeChangingScene a) f-}
+makeChangingSceneLoop a = fix \f -> flip (makeScene' assertCoherence (flip iapplySecond (change a))) f
 
 infixr 6 makeScene as @!>
 
@@ -1044,29 +1013,6 @@ instance setterValFunction :: SetterVal env acc (env -> acc -> AudioParameter ->
 instance setterValFunctionN :: SetterVal env acc (env -> acc -> AudioParameter -> Number) where
   setterVal = (map <<< map <<< map) param
 
-class IsPotential (b :: TAudioParameter) where
-  isPotential :: Proxy b -> Boolean
-
-instance isPotentialPotential :: IsPotential Potential where
-  isPotential _ = true
-
-instance isPotentialActual :: IsPotential Actual where
-  isPotential _ = false
-
-class SetterVal env acc a <= SetterPotentiality env acc a (b :: TAudioParameter) | a -> b
-
-instance setterPotentialityNumber :: SetterPotentiality env acc Number Actual
-
-instance setterPotentialityAudioParameter :: SetterPotentiality env acc AudioParameter Actual
-
-instance setterPotentialityTuple :: SetterPotentiality env acc (Tuple a (env -> acc -> AudioParameter -> AudioParameter)) Potential
-
-instance setterPotentialityTupleN :: SetterPotentiality env acc (Tuple a (env -> acc -> AudioParameter -> Number)) Potential
-
-instance setterPotentialityFunction :: SetterPotentiality env acc (env -> acc -> AudioParameter -> AudioParameter) Potential
-
-instance setterPotentialityFunctionN :: SetterPotentiality env acc (env -> acc -> AudioParameter -> Number) Potential
-
 data AudioUnitRef (ptr :: Ptr)
   = AudioUnitRef Int
 
@@ -1148,34 +1094,6 @@ instance asEdgeProfileAR :: AsEdgeProfile (AudioUnitRef ptr) (SingleEdge ptr) wh
 
 instance asEdgeProfileTupl :: EdgeListable x y => AsEdgeProfile (Tuple (AudioUnitRef ptr) x) (ManyEdges ptr y) where
   getPointers (Tuple (AudioUnitRef i) el) = let PtrArr o = getPointers' el in PtrArr ([ i ] <> o)
-
-class ToPotential'' (i :: AudioUnit) (o :: AudioUnit) | i -> o
-
-instance d2sTSinOsc :: ToPotential'' (TSinOsc idx freq) (TSinOsc idx Potential)
-
-instance d2sTHighpass :: ToPotential'' (THighpass idx freq q) (THighpass idx Potential Potential)
-
-instance d2sTGain :: ToPotential'' (TGain idx vol) (TGain idx Potential)
-
-instance d2sTSpeaker :: ToPotential'' (TSpeaker idx) (TSpeaker idx)
-
-class ToPotential' (i :: Node) (o :: Node) | i -> o
-
-instance d2s :: ToPotential'' i o => ToPotential' (NodeC i x) (NodeC o x)
-
-class ToPotential (i :: NodeList) (o :: NodeList) | i -> o
-
-instance dynToStatNil :: ToPotential NodeListNil NodeListNil
-
-instance dynToStatCons :: (ToPotential' head newHead, ToPotential tail newTail) => ToPotential (NodeListCons head tail) (NodeListCons newHead newTail)
-
-class AsPotential (m :: Universe) (o :: Universe) | m -> o where
-  asPotential :: forall env proof i x. Frame env proof i m x -> Frame env proof o o x
-
--- only do when there are no skolems
--- this will force the step to the end
-instance asPotentialAll :: (GraphToNodeList dynGraph dynGraphL, ToPotential dynGraphL statGraphL, GraphToNodeList statGraph statGraphL) => AsPotential (UniverseC ptr dynGraph destroyed SkolemListNil acc) (UniverseC ptr statGraph destroyed SkolemListNil acc) where
-  asPotential (Frame a) = Frame a
 
 class Create (a :: Type) (env :: Type) (i :: Universe) (o :: Universe) (x :: Type) | a env i -> o x where
   create :: forall proof. a -> Frame env proof i o x
@@ -1321,7 +1239,7 @@ instance createSinOsc ::
     env
     (UniverseC ptr graph destroyed skolems acc)
     ( UniverseC next
-        (GraphC (NodeC (TSinOsc ptr Actual) NoEdge) nodeList)
+        (GraphC (NodeC (TSinOsc ptr) NoEdge) nodeList)
         destroyed
         skolems
         acc
@@ -1353,7 +1271,7 @@ instance createHighpass ::
     (UniverseC ptr graphi destroyed skolems acc)
     ( UniverseC
         outptr
-        (GraphC (NodeC (THighpass ptr Actual Actual) (SingleEdge op)) nodeList)
+        (GraphC (NodeC (THighpass ptr) (SingleEdge op)) nodeList)
         destroyed
         skolems
         acc
@@ -1386,7 +1304,7 @@ instance createGain ::
     (UniverseC ptr graphi destroyed skolems acc)
     ( UniverseC
         outptr
-        (GraphC (NodeC (TGain ptr Actual) eprof) nodeList)
+        (GraphC (NodeC (TGain ptr) eprof) nodeList)
         destroyed
         skolems
         acc
@@ -1395,7 +1313,7 @@ instance createGain ::
   create :: forall proof. Gain a fb -> Frame env proof (UniverseC ptr graphi destroyed skolems acc)
     ( UniverseC
         outptr
-        (GraphC (NodeC (TGain ptr Actual) eprof) nodeList)
+        (GraphC (NodeC (TGain ptr) eprof) nodeList)
         destroyed
         skolems
         acc
@@ -1450,45 +1368,45 @@ instance terminalIdentityEdge :: (TerminalNode i ptr) => TerminalIdentityEdge i 
 change ::
   forall edge a i o env proof.
   TerminalIdentityEdge i edge =>
-  Change edge a env i o =>
-  a -> Frame env proof i o Unit
+  Change edge a env i =>
+  a -> Frame env proof i i Unit
 change = change' (Proxy :: _ edge)
 
-class Change (p :: EdgeProfile) (a :: Type) (env :: Type) (i :: Universe) (o :: Universe) | p a env i -> o where
-  change' :: forall proof. Proxy p -> a -> Frame env proof i o Unit
+class Change (p :: EdgeProfile) (a :: Type) (env :: Type) (o :: Universe) where
+  change' :: forall i proof. Proxy p -> a -> Frame env proof i o Unit
 
 --
-class ModifyRes (tag :: Type) (p :: Ptr) (i :: Node) (o :: Node) (mod :: NodeList) (plist :: EdgeProfile) | tag p i -> o mod plist
+class ModifyRes (tag :: Type) (p :: Ptr) (i :: Node) (mod :: NodeList) (plist :: EdgeProfile) | tag p i -> mod plist
 
-instance modifyResSinOsc :: ModifyRes (SinOsc a) p (NodeC (TSinOsc p Potential) e) (NodeC (TSinOsc p Actual) e) (NodeListCons (NodeC (TSinOsc p Actual) e) NodeListNil) e
-else instance modifyResHighpass :: ModifyRes (Highpass a b c) p (NodeC (THighpass p Potential Potential) e) (NodeC (THighpass p Actual Actual) e) (NodeListCons (NodeC (THighpass p Actual Actual) e) NodeListNil) e
-else instance modifyResGain :: ModifyRes (Gain a b) p (NodeC (TGain p Potential) e) (NodeC (TGain p Actual) e) (NodeListCons (NodeC (TGain p Actual) e) NodeListNil) e
-else instance modifyResSpeaker :: ModifyRes (Speaker a) p (NodeC (TSpeaker p) e) (NodeC (TSpeaker p) e) (NodeListCons (NodeC (TSpeaker p) e) NodeListNil) e
-else instance modifyResMiss :: ModifyRes tag p n n NodeListNil NoEdge
+instance modifyResSinOsc :: ModifyRes (SinOsc a) p (NodeC (TSinOsc p) e) (NodeListCons (NodeC (TSinOsc p) e) NodeListNil) e
+else instance modifyResHighpass :: ModifyRes (Highpass a b c) p (NodeC (THighpass p) e) (NodeListCons (NodeC (THighpass p) e) NodeListNil) e
+else instance modifyResGain :: ModifyRes (Gain a b) p (NodeC (TGain p) e) (NodeListCons (NodeC (TGain p) e) NodeListNil) e
+else instance modifyResSpeaker :: ModifyRes (Speaker a) p (NodeC (TSpeaker p) e) (NodeListCons (NodeC (TSpeaker p) e) NodeListNil) e
+else instance modifyResMiss :: ModifyRes tag p n NodeListNil NoEdge
 
-class Modify' (tag :: Type) (p :: Ptr) (i :: NodeList) (o :: NodeList) (mod :: NodeList) (nextP :: EdgeProfile) | tag p i -> o mod nextP
+class Modify' (tag :: Type) (p :: Ptr) (i :: NodeList) (mod :: NodeList) (nextP :: EdgeProfile) | tag p i -> mod nextP
 
-instance modifyNil :: Modify' tag p NodeListNil NodeListNil NodeListNil NoEdge
+instance modifyNil :: Modify' tag p NodeListNil NodeListNil NoEdge
 
 instance modifyCons ::
-  ( ModifyRes tag p head headRes headResAsList headPlist
-  , Modify' tag p tail tailRes tailResAsList tailPlist
+  ( ModifyRes tag p head headResAsList headPlist
+  , Modify' tag p tail tailResAsList tailPlist
   , NodeListAppend headResAsList tailResAsList o
   , EdgeProfileChooseGreater headPlist tailPlist plist
   ) =>
-  Modify' tag p (NodeListCons head tail) (NodeListCons headRes tailRes) o plist
+  Modify' tag p (NodeListCons head tail) o plist
 
-class Modify (tag :: Type) (p :: Ptr) (i :: Universe) (o :: Universe) (nextP :: EdgeProfile) | tag p i -> o nextP
+class Modify (tag :: Type) (p :: Ptr) (i :: Universe) (nextP :: EdgeProfile) | tag p i -> nextP
 
-instance modify :: (GraphToNodeList ig il, Modify' tag p il ol mod nextP, AssertSingleton mod x, GraphToNodeList og ol) => Modify tag p (UniverseC i ig d sk acc) (UniverseC i og d sk acc) nextP
+instance modify :: (GraphToNodeList ig il, Modify' tag p il mod nextP, AssertSingleton mod x) => Modify tag p (UniverseC i ig d sk acc) nextP
 
 changeAudioUnit ::
-  forall g env proof acc inuniv outuniv p nextP.
+  forall g env proof acc inuniv outuniv p nextP univ.
   GetAccumulator inuniv acc =>
   ChangeInstructions env acc g =>
   Nat p =>
-  Modify g p inuniv outuniv nextP =>
-  Proxy (p /\ acc /\ (Proxy nextP) /\ env /\ Proxy inuniv /\ Proxy outuniv) -> g -> Frame env proof inuniv outuniv Unit
+  Modify g p inuniv nextP =>
+  Proxy (p /\ acc /\ (Proxy nextP) /\ env /\ Proxy inuniv) -> g -> Frame env proof univ inuniv Unit
 changeAudioUnit _ g =
   Frame
     $ do
@@ -1510,76 +1428,71 @@ changeAudioUnit _ g =
           Nothing -> pure unit
 
 instance changeNoEdge ::
-  Change NoEdge g env inuniv inuniv where
+  Change NoEdge g env inuniv where
   change' _ _ = Frame (pure unit)
 
 instance changeSkolem ::
-  Change (SingleEdge p) (Proxy skolem) env inuniv inuniv where
+  Change (SingleEdge p) (Proxy skolem) env inuniv where
   change' _ _ = Frame (pure unit)
 
 instance changeMany2 ::
-  ( Change (SingleEdge p) x env inuniv miduniv
+  ( Change (SingleEdge p) x env inuniv
   , Warn ((Text "change many 2") ^^ (Quote x))
-  , Change (ManyEdges a b) y env miduniv outuniv) =>
-  Change (ManyEdges p (PtrListCons a b)) (x /\ y) env inuniv outuniv where
+  , Change (ManyEdges a b) y env inuniv) =>
+  Change (ManyEdges p (PtrListCons a b)) (x /\ y) env inuniv where
   change' _ (x /\ y) = Ix.do
-      (change' :: forall proof. Proxy (SingleEdge p) -> x -> Frame env proof inuniv miduniv Unit) Proxy x
-      (change' :: forall proof. Proxy (ManyEdges a b) -> y -> Frame env proof miduniv outuniv Unit) Proxy y
+      (change' :: forall i proof. Proxy (SingleEdge p) -> x -> Frame env proof i inuniv Unit) Proxy x
+      (change' :: forall i proof. Proxy (ManyEdges a b) -> y -> Frame env proof i inuniv Unit) Proxy y
 
 instance changeMany1 ::
-  Change (SingleEdge p) a env inuniv outuniv =>
-  Change (ManyEdges p PtrListNil) (a /\ Unit) env inuniv outuniv where
-  change' _ (a /\ _) = (change' :: forall proof. Proxy (SingleEdge p) -> a -> Frame env proof inuniv outuniv Unit) Proxy a
+  Change (SingleEdge p) a env inuniv =>
+  Change (ManyEdges p PtrListNil) (a /\ Unit) env inuniv where
+  change' _ (a /\ _) = (change' :: forall i proof. Proxy (SingleEdge p) -> a -> Frame env proof i inuniv Unit) Proxy a
 
 instance changeSinOsc ::
   ( Warn ((Text "sinOsc Change"))
   , GetAccumulator inuniv acc
-  , SetterPotentiality env acc a delta
-  , IsPotential delta
+  , SetterVal env acc a
   , Nat p
   , Warn ((Text "Got accumulator sinOsc") ^^ (Quote acc))
-  , Modify (SinOsc a) p inuniv outuniv nextP
+  , Modify (SinOsc a) p inuniv nextP
   ) =>
-  Change (SingleEdge p) (SinOsc a) env inuniv outuniv where
-  change' _ = changeAudioUnit (Proxy :: Proxy (p /\ acc /\ (Proxy nextP) /\ env /\ Proxy inuniv /\ Proxy outuniv))
+  Change (SingleEdge p) (SinOsc a) env inuniv where
+  change' _ = changeAudioUnit (Proxy :: Proxy (p /\ acc /\ (Proxy nextP) /\ env /\ Proxy inuniv))
 
 instance changeHighpass ::
   ( Warn ((Text "hp change") ^^ (Quote (Proxy inuniv)))
   , GetAccumulator inuniv acc
-  , SetterPotentiality env acc a deltaA
-  , SetterPotentiality env acc b deltaB
-  , IsPotential deltaA
-  , IsPotential deltaB
-  , KeepPotential deltaA deltaB delta
+  , SetterVal env acc a
+  , SetterVal env acc b
   , Nat p
   , GetSkolemFromRecursiveArgument fc skolem
   , ToSkolemizedFunction fc skolem c
-  , Modify (Highpass a b c) p inuniv middle nextP
+  , Modify (Highpass a b c) p inuniv nextP
   , Warn ((Text "hp nextP") ^^ (Quote (Proxy nextP)))
-  , Change nextP c env middle outuniv
+  , Change nextP c env inuniv
   ) =>
-  Change (SingleEdge p) (Highpass a b fc) env inuniv outuniv where
+  Change (SingleEdge p) (Highpass a b fc) env inuniv where
   change' _ (Highpass a b fc) = let c = (((toSkolemizedFunction :: fc -> (Proxy skolem -> c)) fc) Proxy) in Ix.do
-    changeAudioUnit (Proxy :: Proxy (p /\ acc /\ (Proxy nextP) /\ env /\ Proxy inuniv /\ Proxy middle)) (Highpass a b c) 
-    (change' :: forall proof. (Proxy nextP) -> c -> Frame env proof middle outuniv Unit) Proxy c
+    changeAudioUnit (Proxy :: Proxy (p /\ acc /\ (Proxy nextP) /\ env /\ Proxy inuniv)) (Highpass a b c) 
+    (change' :: forall proof. (Proxy nextP) -> c -> Frame env proof inuniv inuniv Unit) Proxy c
 
 instance changeGain ::
   ( GetAccumulator inuniv acc
   , Warn ((Text "Got inuniv gain") ^^ (Quote (Proxy inuniv)))
-  , SetterPotentiality env acc a delta
-  , IsPotential delta
+  , SetterVal env acc a
   , Nat p
   , GetSkolemFromRecursiveArgument fb skolem
   , ToSkolemizedFunction fb skolem b
-  , Modify (Gain a b) p inuniv middle nextP
+  , Modify (Gain a b) p inuniv nextP
   , Warn ((Text "Gain nextP") ^^ (Quote (Proxy nextP)))
   , Warn ((Text "Got Gain middle") ^^ (Quote (Proxy middle)))
-  , Change nextP b env middle outuniv
+  , Change nextP b env inuniv
   ) =>
-  Change (SingleEdge p) (Gain a fb) env inuniv outuniv where
+  Change (SingleEdge p) (Gain a fb) env inuniv where
   change' _ (Gain a fb) = let b = (((toSkolemizedFunction :: fb -> (Proxy skolem -> b)) fb) Proxy) in Ix.do
-    changeAudioUnit (Proxy :: Proxy (p /\ acc /\ (Proxy nextP) /\ env /\ Proxy inuniv /\ Proxy middle)) (Gain a b)
-    (change' :: forall proof. (Proxy nextP) -> b -> Frame env proof middle outuniv Unit) Proxy b
+    changeAudioUnit (Proxy :: Proxy (p /\ acc /\ (Proxy nextP) /\ env /\ Proxy inuniv)) (Gain a b)
+    (change' :: forall proof. (Proxy nextP) -> b -> Frame env proof inuniv inuniv Unit) Proxy b
 
 instance changeSpeaker ::
   ( Warn ((Text "Change speaker") ^^ (Quote (Proxy inuniv)))
@@ -1588,14 +1501,14 @@ instance changeSpeaker ::
   , Nat p
   , GetSkolemFromRecursiveArgument fa skolem
   , ToSkolemizedFunction fa skolem a
-  , Modify (Speaker a) p inuniv middle nextP
-  , Change nextP a env middle outuniv
+  , Modify (Speaker a) p inuniv nextP
+  , Change nextP a env inuniv
   , Warn ((Text "Speaker out") ^^ (Quote (Proxy outuniv)))
   ) =>
-  Change (SingleEdge p) (Speaker fa) env inuniv outuniv where
+  Change (SingleEdge p) (Speaker fa) env inuniv where
   change' _ (Speaker fa) = let a = (((toSkolemizedFunction :: fa -> (Proxy skolem -> a)) fa) Proxy) in Ix.do
-    changeAudioUnit (Proxy :: Proxy (p /\ acc /\ (Proxy nextP) /\ env /\ Proxy inuniv /\ Proxy middle)) (Speaker a)
-    (change' :: forall proof. (Proxy nextP) -> a -> Frame env proof middle outuniv Unit) Proxy a
+    changeAudioUnit (Proxy :: Proxy (p /\ acc /\ (Proxy nextP) /\ env /\ Proxy inuniv)) (Speaker a)
+    (change' :: forall proof. (Proxy nextP) -> a -> Frame env proof inuniv inuniv Unit) Proxy a
 {-
 derive newtype instance functorFrame :: Functor m => Functor (FrameT ig og m)
 
