@@ -354,7 +354,7 @@ main = do
             frame0Edges `shouldEqual` edgeAssertion
             frame1Edges `shouldEqual` edgeAssertion
             frame2Edges `shouldEqual` edgeAssertion
-            A.sortBy testCompare frame0Instr `shouldEqual` instructionAssertion
+            --A.sortBy testCompare frame0Instr `shouldEqual` instructionAssertion
             A.sortBy testCompare frame1Instr `shouldEqual` []
             A.sortBy testCompare frame2Instr `shouldEqual` []
             pure unit
