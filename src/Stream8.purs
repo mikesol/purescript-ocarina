@@ -1,7 +1,6 @@
 module Stream8 where
 
 import Prelude
-
 import Control.Applicative.Indexed (class IxApplicative, iapplySecond)
 import Control.Apply.Indexed (class IxApply)
 import Control.Bind.Indexed (class IxBind)
@@ -27,14 +26,29 @@ import Prim.TypeError (class Warn, Above, Quote, Text)
 import Type.Proxy (Proxy(..))
 import Unsafe.Coerce (unsafeCoerce)
 
-type D0 = (Bc O Bn)
-type D1 = (Bc I Bn)
-type D2 = (Bc O (Bc I Bn))
-type D3 = (Bc I (Bc I Bn))
-type D4 = (Bc O (Bc O (Bc I Bn)))
-type D5 = (Bc I (Bc O (Bc I Bn)))
-type D6 = (Bc O (Bc I (Bc I Bn)))
-type D7 = (Bc I (Bc I (Bc I Bn)))
+type D0
+  = (Bc O Bn)
+
+type D1
+  = (Bc I Bn)
+
+type D2
+  = (Bc O (Bc I Bn))
+
+type D3
+  = (Bc I (Bc I Bn))
+
+type D4
+  = (Bc O (Bc O (Bc I Bn)))
+
+type D5
+  = (Bc I (Bc O (Bc I Bn)))
+
+type D6
+  = (Bc O (Bc I (Bc I Bn)))
+
+type D7
+  = (Bc I (Bc I (Bc I Bn)))
 
 infixr 5 type Above as ^^
 
@@ -146,7 +160,7 @@ instance getPointerGain :: GetPointer (TGain ptr) ptr
 instance getPointerSpeaker :: GetPointer (TSpeaker ptr) ptr
 
 class BinToInt (i :: BinL) where
-  toInt'' :: Int ->  Proxy i -> Int
+  toInt'' :: Int -> Proxy i -> Int
 
 instance toIntBn :: BinToInt Bn where
   toInt'' _ _ = 0
@@ -1019,7 +1033,7 @@ makeChangingScene ::
   Scene env proofA
 makeChangingScene a = makeScene' (flip iapplySecond (change a))
 
-loop  ::
+loop ::
   forall env proofA g0 g1 edge a.
   TerminalIdentityEdge g1 edge =>
   Change edge a env g1 =>
@@ -1027,16 +1041,16 @@ loop  ::
   a ->
   Frame env proofA g0 g1 Unit ->
   Scene env proofA
-loop  a = fix \f -> flip (makeScene' (flip iapplySecond (change a))) f
+loop a = fix \f -> flip (makeScene' (flip iapplySecond (change a))) f
 
 infixr 6 makeScene as @!>
 
-freeze  ::
+freeze ::
   forall env proof g0 g1.
   UniverseIsCoherent g1 =>
   Frame env proof g0 g1 Unit ->
   Scene env proof
-freeze  = fix \f -> flip (makeScene' identity) f
+freeze = fix \f -> flip (makeScene' identity) f
 
 unFrame :: forall env proof i o a. Frame env proof i o a -> AudioState env a
 unFrame (Frame state) = state
@@ -1848,6 +1862,7 @@ else instance removePointerFromNodeMiss :: RemovePointerFromNode from to i i
 class RemovePointerFromNodes (from :: Ptr) (to :: Ptr) (i :: NodeList) (o :: NodeList) | from to i -> o
 
 instance removePointerFromNodesNil :: RemovePointerFromNodes a b NodeListNil NodeListNil
+
 -- Warn (Text "looping" ^^ Quote (Proxy a) ^^ Quote (Proxy b) ^^ Quote (Proxy head))
 instance removePointerFromNodesCons ::
   ( RemovePointerFromNode a b head headRes
@@ -1857,8 +1872,8 @@ instance removePointerFromNodesCons ::
 
 class Disconnect (from :: Ptr) (to :: Ptr) (i :: Universe) (o :: Universe) | from to i -> o where
   disconnect :: forall env proof. AudioUnitRef from -> AudioUnitRef to -> Frame env proof i o Unit
--- Warn (Text "dcon" ^^ Quote (Proxy from) ^^ Quote (Proxy to))
 
+-- Warn (Text "dcon" ^^ Quote (Proxy from) ^^ Quote (Proxy to))
 instance disconnector ::
   ( BinToInt from
   , BinToInt to
@@ -1936,7 +1951,6 @@ instance destroyer ::
             )
 
 -- getters
-
 getEnv ::
   forall env proof i o.
   Frame env proof i o env
