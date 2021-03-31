@@ -1,13 +1,16 @@
 module Stream8 where
 
 import Prelude
+
 import Control.Applicative.Indexed (class IxApplicative, iapplySecond)
 import Control.Apply.Indexed (class IxApply)
 import Control.Bind.Indexed (class IxBind)
+import Control.Comonad (class Comonad)
+import Control.Extend (class Extend)
 import Control.Lazy (fix)
 import Control.Monad.Indexed (class IxMonad)
 import Control.Monad.Indexed.Qualified as Ix
-import Control.Monad.State (State, execState, get, gets, modify, modify_, withState)
+import Control.Monad.State (State, StateT(..), execState, get, gets, modify, modify_, withState)
 import Control.Monad.Writer (WriterT(..), runWriterT)
 import Data.Functor.Indexed (class IxFunctor)
 import Data.Generic.Rep (class Generic)
@@ -981,17 +984,14 @@ makeScene0T (acc /\ fr@(Frame f)) trans = asScene go
 
 infixr 6 makeScene0T as @@!>
 
-makeScene' ::
+makeScene ::
   forall env proofA proofB g0 g1 g2.
   UniverseIsCoherent g1 =>
-  (Frame env proofB g0 g1 Unit -> Frame env proofB g0 g2 Unit) ->
   Frame env proofA g0 g1 Unit ->
   (Frame env proofB g0 g2 Unit -> Scene env proofB) ->
   Scene env proofA
-makeScene' mogrify fr trans = asScene go
+makeScene (Frame f) trans = asScene go
   where
-  Frame f = mogrify ((unsafeCoerce :: Frame env proofA g0 g1 Unit -> Frame env proofB g0 g1 Unit) fr)
-
   go env =
     let
       rt = runWriterT f
@@ -1014,13 +1014,6 @@ makeScene' mogrify fr trans = asScene go
     in
       os.internalNodes /\ os.internalEdges /\ os.instructions /\ ((unsafeCoerce :: Scene env proofB -> Scene env proofA) scene)
 
-makeScene ::
-  forall env proofA g0 g1.
-  UniverseIsCoherent g1 =>
-  Frame env proofA g0 g1 Unit ->
-  (forall proofB. Frame env proofB g0 g1 Unit -> Scene env proofB) ->
-  Scene env proofA
-makeScene = makeScene' identity
 
 makeChangingScene ::
   forall env proofA g0 g1 edge a.
@@ -1031,7 +1024,7 @@ makeChangingScene ::
   Frame env proofA g0 g1 Unit ->
   (forall proofB. Frame env proofB g0 g1 Unit -> Scene env proofB) ->
   Scene env proofA
-makeChangingScene a = makeScene' (flip iapplySecond (change a))
+makeChangingScene a b = makeScene (iapplySecond b (change a))
 
 loop ::
   forall env proofA g0 g1 edge a.
@@ -1041,8 +1034,26 @@ loop ::
   a ->
   Frame env proofA g0 g1 Unit ->
   Scene env proofA
-loop a = fix \f -> flip (makeScene' (flip iapplySecond (change a))) f
+--loop = fix <<< flip <<< makeScene <<< flip iapplySecond <<< change
+loop a b = makeScene (iapplySecond b (change a)) ((loop :: a ->  Frame env proofA g0 g1 Unit -> Scene env proofA) a)
 
+--branch ::
+--  forall env proofA g0 g1 edge a.
+--  TerminalIdentityEdge g1 edge =>
+--  Change edge a env g1 =>
+--  UniverseIsCoherent g1 =>
+--  a ->
+--  Frame env proofA g0 g1 (Either (Scene env proofA) Unit) ->
+--  Scene env proofA
+{-
+branch a b = makeScene' (Ix.do
+  leftOrRight <- b
+  case leftOrRight of
+    Left scene -> ipure scene
+    Right _ -> ipure $ loop a (ipure unit)
+) b (loop a)
+-}
+--loop a b = makeScene' (\x -> iapplySecond x (change a)) b (loop a)
 infixr 6 makeScene as @!>
 
 freeze ::
@@ -1050,7 +1061,7 @@ freeze ::
   UniverseIsCoherent g1 =>
   Frame env proof g0 g1 Unit ->
   Scene env proof
-freeze = fix \f -> flip (makeScene' identity) f
+freeze = fix \f -> flip makeScene f
 
 unFrame :: forall env proof i o a. Frame env proof i o a -> AudioState env a
 unFrame (Frame state) = state
@@ -1065,19 +1076,32 @@ initialAudioState env acc =
   , internalEdges: M.empty
   }
 
-instance sceneIxFunctor :: IxFunctor (Frame env proof) where
+{-
+instance frameFunctor :: Functor (Frame env proof i o) where
+  map f (Frame (WriterT m)) = Frame (WriterT do
+    Tuple a w <- m
+    pure (Tuple (f a) w)
+  )
+
+instance frameExtend :: Extend (Frame env proof i o) where
+  extend destroy fr@(Frame a) = Frame (a *> pure (destroy fr))
+
+instance frameComonad :: Comonad (Frame env proof i o) where
+  extract (Frame m) = runWriterT
+-}
+instance frameIxFunctor :: IxFunctor (Frame env proof) where
   imap f (Frame a) = Frame (f <$> a)
 
-instance sceneIxApplicative :: IxApply (Frame env proof) where
+instance frameIxApplicative :: IxApply (Frame env proof) where
   iapply (Frame f) (Frame a) = Frame (f <*> a)
 
-instance sceneIxApply :: IxApplicative (Frame env proof) where
+instance frameIxApply :: IxApplicative (Frame env proof) where
   ipure a = Frame $ pure a
 
-instance sceneIxBind :: IxBind (Frame env proof) where
+instance frameIxBind :: IxBind (Frame env proof) where
   ibind (Frame monad) function = Frame (monad >>= (unFrame <<< function))
 
-instance sceneIxMonad :: IxMonad (Frame env proof)
+instance frameIxMonad :: IxMonad (Frame env proof)
 
 class IxSpy m i o a where
   ixspy :: m i o a -> m i o a
@@ -1516,7 +1540,7 @@ class TerminalIdentityEdge (u :: Universe) (prof :: EdgeProfile) | u -> prof
 instance terminalIdentityEdge :: (TerminalNode i ptr) => TerminalIdentityEdge i (SingleEdge ptr)
 
 change ::
-  forall edge a x i env proof.
+  forall edge a i env proof.
   TerminalIdentityEdge i edge =>
   Change edge a env i =>
   a -> Frame env proof i i Unit
