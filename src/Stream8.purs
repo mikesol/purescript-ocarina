@@ -1,17 +1,16 @@
 module Stream8 where
 
 import Prelude
-
-import Control.Applicative.Indexed (class IxApplicative, iapplySecond)
+import Control.Applicative.Indexed (class IxApplicative, iapplyFirst, iapplySecond, ipure)
 import Control.Apply.Indexed (class IxApply)
 import Control.Bind.Indexed (class IxBind)
-import Control.Comonad (class Comonad)
+import Control.Comonad (class Comonad, extract)
 import Control.Extend (class Extend)
 import Control.Lazy (fix)
 import Control.Monad.Indexed (class IxMonad)
 import Control.Monad.Indexed.Qualified as Ix
-import Control.Monad.State (State, StateT(..), execState, get, gets, modify, modify_, withState)
-import Control.Monad.Writer (WriterT(..), runWriterT)
+import Control.Monad.State (State, StateT(..), evalState, execState, get, gets, modify, modify_, runState, withState)
+import Data.Either (Either(..))
 import Data.Functor.Indexed (class IxFunctor)
 import Data.Generic.Rep (class Generic)
 import Data.Identity (Identity(..))
@@ -25,6 +24,7 @@ import Data.Show.Generic (genericShow)
 import Data.Tuple (Tuple(..), fst, snd)
 import Data.Tuple.Nested (type (/\), (/\))
 import Data.Typelevel.Bool (class And, False, True)
+import Main3 (a)
 import Prim.TypeError (class Warn, Above, Quote, Text)
 import Type.Proxy (Proxy(..))
 import Unsafe.Coerce (unsafeCoerce)
@@ -927,16 +927,20 @@ type AudioState' env
     , internalEdges :: M.Map Int (Set Int)
     }
 
+ei = Endo identity
+
+frame = Tuple (Endo identity)
+
 type AudioState env a
-  = WriterT (Endo Function (AudioState' env)) (State (AudioState' env)) a
+  = Tuple (Endo Function (AudioState' env)) (State (AudioState' env) a)
 
 newtype Frame (env :: Type) (proof :: Type) (iu :: Universe) (ou :: Universe) (a :: Type)
   = Frame (AudioState env a)
 
 data Frame0
 
-type InitialFrame env acc og
-  = Frame env Frame0 (UniverseC D0 InitialGraph SkolemListNil acc) og Unit
+type InitialFrame env acc og a
+  = Frame env Frame0 (UniverseC D0 InitialGraph SkolemListNil acc) og a
 
 foreign import data Scene :: Type -> Type -> Type
 
@@ -956,103 +960,102 @@ class UniverseIsCoherent (u :: Universe) where
   assertCoherence :: forall env proof i x. Frame env proof i u x -> Unit
 
 start ::
-  forall env acc g0.
+  forall env acc g0 a.
   UniverseIsCoherent g0 =>
   acc ->
-  InitialFrame env acc g0 ->
-  (forall proof. Frame env proof g0 g0 Unit -> Scene env proof) ->
+  InitialFrame env acc g0 a ->
+  (forall proof. Frame env proof g0 g0 a -> Scene env proof) ->
   Scene env Frame0
 start a b = makeScene0T (a /\ b)
 
 makeScene0T ::
-  forall env acc g0.
+  forall env acc g0 a.
   UniverseIsCoherent g0 =>
-  acc /\ InitialFrame env acc g0 ->
-  (forall proof. Frame env proof g0 g0 Unit -> Scene env proof) ->
+  acc /\ InitialFrame env acc g0 a ->
+  (forall proof. Frame env proof g0 g0 a -> Scene env proof) ->
   Scene env Frame0
-makeScene0T (acc /\ fr@(Frame f)) trans = asScene go
+makeScene0T (acc /\ fr@(Frame (_ /\ f))) trans = asScene go
   where
   go env =
     let
-      os =
-        execState (map fst (runWriterT f))
-          (initialAudioState env acc)
+      a /\ os = runState f (initialAudioState env acc)
 
-      scene = trans $ Frame $ WriterT (pure (Tuple unit (Endo (const $ os))))
+      scene = trans $ Frame $ Tuple (Endo (const $ os)) (pure a)
     in
       os.internalNodes /\ os.internalEdges /\ os.instructions /\ scene
 
 infixr 6 makeScene0T as @@!>
 
 makeScene ::
-  forall env proofA proofB g0 g1 g2.
+  forall env proofA proofB g0 g1 g2 a.
   UniverseIsCoherent g1 =>
-  Frame env proofA g0 g1 Unit ->
-  (Frame env proofB g0 g2 Unit -> Scene env proofB) ->
+  Frame env proofA g0 g1 a ->
+  (Frame env proofB g0 g2 a -> Scene env proofB) ->
   Scene env proofA
-makeScene (Frame f) trans = asScene go
+makeScene (Frame (x /\ stateM)) trans = asScene go
   where
   go env =
     let
-      rt = runWriterT f
+      Endo prev = x
 
-      stateM = map fst rt
+      initialSt = prev (unsafeCoerce unit)
 
-      initialSt = map snd rt
+      a /\ os = runState stateM (initialSt { env = env, instructions = [] })
 
-      ias = initialAudioState env (unsafeCoerce unit)
-
-      os =
-        execState
-          ( do
-              Endo s <- initialSt
-              withState (const $ (s ias) { env = env, instructions = [] }) stateM
-          )
-          ias
-
-      scene = trans $ Frame $ WriterT (pure (Tuple unit (Endo (const $ os))))
+      scene = trans $ Frame $ Tuple (Endo (const $ os)) (pure a)
     in
       os.internalNodes /\ os.internalEdges /\ os.instructions /\ ((unsafeCoerce :: Scene env proofB -> Scene env proofA) scene)
 
-
 makeChangingScene ::
-  forall env proofA g0 g1 edge a.
+  forall env proofA g0 g1 edge a b.
   TerminalIdentityEdge g1 edge =>
   Change edge a env g1 =>
   UniverseIsCoherent g1 =>
   a ->
-  Frame env proofA g0 g1 Unit ->
-  (forall proofB. Frame env proofB g0 g1 Unit -> Scene env proofB) ->
+  Frame env proofA g0 g1 b ->
+  (forall proofB. Frame env proofB g0 g1 b -> Scene env proofB) ->
   Scene env proofA
-makeChangingScene a b = makeScene (iapplySecond b (change a))
+makeChangingScene a b = makeScene (iapplyFirst b (change a))
 
 loop ::
-  forall env proofA g0 g1 edge a.
+  forall env proofA g0 g1 edge a b.
   TerminalIdentityEdge g1 edge =>
   Change edge a env g1 =>
   UniverseIsCoherent g1 =>
   a ->
-  Frame env proofA g0 g1 Unit ->
+  Frame env proofA g0 g1 b ->
   Scene env proofA
---loop = fix <<< flip <<< makeScene <<< flip iapplySecond <<< change
-loop a b = makeScene (iapplySecond b (change a)) ((loop :: a ->  Frame env proofA g0 g1 Unit -> Scene env proofA) a)
+loop a b =
+  makeScene (iapplySecond b (change a))
+    ((loop :: a -> Frame env proofA g0 g1 Unit -> Scene env proofA) a)
 
---branch ::
---  forall env proofA g0 g1 edge a.
---  TerminalIdentityEdge g1 edge =>
---  Change edge a env g1 =>
---  UniverseIsCoherent g1 =>
---  a ->
---  Frame env proofA g0 g1 (Either (Scene env proofA) Unit) ->
---  Scene env proofA
-{-
-branch a b = makeScene' (Ix.do
-  leftOrRight <- b
-  case leftOrRight of
-    Left scene -> ipure scene
-    Right _ -> ipure $ loop a (ipure unit)
-) b (loop a)
--}
+branch ::
+  forall env proofA g0 g1 edge a b.
+  TerminalIdentityEdge g1 edge =>
+  Change edge a env g1 =>
+  UniverseIsCoherent g1 =>
+  a ->
+  Frame env proofA g0 g1 (Either (Scene env proofA) b) ->
+  Scene env proofA
+branch a b =
+  makeScene
+    ( Ix.do
+        leftOrRight <- b
+        change a
+        case leftOrRight of
+          Left scene -> ipure scene
+          Right _ ->
+            ipure
+              $ ( branch ::
+                    a ->
+                    Frame env proofA g0 g1 (Either (Scene env proofA) b) ->
+                    Scene env proofA
+                )
+                  a
+                  b
+    )
+    extract
+
 --loop a b = makeScene' (\x -> iapplySecond x (change a)) b (loop a)
 infixr 6 makeScene as @!>
 
@@ -1076,30 +1079,27 @@ initialAudioState env acc =
   , internalEdges: M.empty
   }
 
-{-
 instance frameFunctor :: Functor (Frame env proof i o) where
-  map f (Frame (WriterT m)) = Frame (WriterT do
-    Tuple a w <- m
-    pure (Tuple (f a) w)
-  )
+  map f (Frame (x /\ m)) = Frame (x /\ (f <$> m))
 
 instance frameExtend :: Extend (Frame env proof i o) where
-  extend destroy fr@(Frame a) = Frame (a *> pure (destroy fr))
+  extend destroy fr@(Frame (x /\ a)) = Frame $ x /\ (a *> pure (destroy fr))
 
 instance frameComonad :: Comonad (Frame env proof i o) where
-  extract (Frame m) = runWriterT
--}
+  extract (Frame ((Endo f) /\ ma)) = evalState ma (f (unsafeCoerce unit))
+
 instance frameIxFunctor :: IxFunctor (Frame env proof) where
-  imap f (Frame a) = Frame (f <$> a)
+  imap f (Frame (x /\ a)) = Frame (x /\ (f <$> a))
 
 instance frameIxApplicative :: IxApply (Frame env proof) where
-  iapply (Frame f) (Frame a) = Frame (f <*> a)
+  iapply (Frame (Endo y /\ f)) (Frame (Endo z /\ a)) = Frame ((Endo (y <<< z)) /\ (f <*> a))
 
 instance frameIxApply :: IxApplicative (Frame env proof) where
-  ipure a = Frame $ pure a
+  ipure a = Frame $ frame (pure a)
 
+-- we ignore anything trying to write over x
 instance frameIxBind :: IxBind (Frame env proof) where
-  ibind (Frame monad) function = Frame (monad >>= (unFrame <<< function))
+  ibind (Frame (x /\ monad)) function = Frame (x /\ (monad >>= (snd <<< unFrame <<< function)))
 
 instance frameIxMonad :: IxMonad (Frame env proof)
 
@@ -1260,19 +1260,20 @@ creationStep ::
   Proxy acc ->
   g ->
   AudioState env Int
-creationStep _ g = do
-  { currentIdx, env, acc } <- get
-  let
-    renderable /\ internal = creationInstructions currentIdx env (unsafeCoerce acc :: acc) g
-  modify_
-    ( \i ->
-        i
-          { currentIdx = currentIdx + 1
-          , internalNodes = M.insert currentIdx internal i.internalNodes
-          , instructions = i.instructions <> renderable
-          }
-    )
-  pure currentIdx
+creationStep _ g =
+  frame do
+    { currentIdx, env, acc } <- get
+    let
+      renderable /\ internal = creationInstructions currentIdx env (unsafeCoerce acc :: acc) g
+    modify_
+      ( \i ->
+          i
+            { currentIdx = currentIdx + 1
+            , internalNodes = M.insert currentIdx internal i.internalNodes
+            , instructions = i.instructions <> renderable
+            }
+      )
+    pure currentIdx
 
 type ProxyCC acc skolem ptr innerTerm env i o
   = Proxy (acc /\ skolem /\ ptr /\ innerTerm /\ env /\ i /\ o)
@@ -1288,10 +1289,10 @@ createAndConnect ::
   Frame env proof i o Int
 createAndConnect _ g =
   Frame
-    $ do
+    $ frame do
         idx <- cs
         let
-          (Frame mc) =
+          (Frame (_ /\ mc)) =
             (create :: c -> Frame env proof i o innerTerm)
               ( ((getSkolemizedFunctionFromAU :: g -> (Proxy skolem -> c)) g)
                   Proxy
@@ -1311,7 +1312,7 @@ createAndConnect _ g =
           )
         pure idx
   where
-  cs = creationStep (Proxy :: _ acc) g
+  _ /\ cs = creationStep (Proxy :: _ acc) g
 
 data Focus a
   = Focus a
@@ -1319,16 +1320,16 @@ data Focus a
 -- end of the line in tuples
 instance createUnit ::
   Create Unit env u u Unit where
-  create = Frame <<< pure
+  create = Frame <<< frame <<< pure
 
 instance createTuple ::
   (Create x env u0 u1 x', Create y env u1 u2 y') =>
   Create (x /\ y) env u0 u2 (x' /\ y') where
-  create (x /\ y) = Frame $ Tuple <$> x' <*> y'
+  create (x /\ y) = (Frame <<< frame) $ Tuple <$> x' <*> y'
     where
-    Frame x' = (create :: forall proof. x -> Frame env proof u0 u1 x') x
+    Frame (_ /\ x') = (create :: forall proof. x -> Frame env proof u0 u1 x') x
 
-    Frame y' = (create :: forall proof. y -> Frame env proof u1 u2 y') y
+    Frame (_ /\ y') = (create :: forall proof. y -> Frame env proof u1 u2 y') y
 
 instance createIdentity :: Create x env i o r => Create (Identity x) env i o r where
   create (Identity x) = create x
@@ -1346,7 +1347,7 @@ instance createProxy ::
     (UniverseC next graph skolems acc)
     (UniverseC next graph skolems acc)
     (AudioUnitRef ptr) where
-  create _ = Frame (pure $ AudioUnitRef $ toInt' (Proxy :: Proxy ptr))
+  create _ = Frame $ frame (pure $ AudioUnitRef $ toInt' (Proxy :: Proxy ptr))
 
 instance createDup ::
   ( SkolemNotYetPresent skolem skolems
@@ -1416,7 +1417,7 @@ instance createSinOsc ::
         acc
     )
     (AudioUnitRef ptr) where
-  create = Frame <<< map AudioUnitRef <<< creationStep (Proxy :: _ acc)
+  create = Frame <<< (map <<< map) AudioUnitRef <<< creationStep (Proxy :: _ acc)
 
 instance createHighpass ::
   ( InitialVal env acc a
@@ -1448,7 +1449,7 @@ instance createHighpass ::
     )
     (AudioUnitRef ptr) where
   create =
-    Frame <<< map AudioUnitRef <<< unFrame
+    Frame <<< (map <<< map) AudioUnitRef <<< unFrame
       <<< createAndConnect (Proxy :: ProxyCC acc skolem (Proxy ptr) term env (Proxy (UniverseC next graphi skolemsInternal acc)) (Proxy (UniverseC outptr grapho skolemsInternal acc)))
 
 instance createGain ::
@@ -1493,7 +1494,7 @@ instance createGain ::
       )
       (AudioUnitRef ptr)
   create =
-    Frame <<< map AudioUnitRef <<< unFrame
+    Frame <<< (map <<< map) AudioUnitRef <<< unFrame
       <<< (createAndConnect (Proxy :: ProxyCC acc skolem (Proxy ptr) term env (Proxy (UniverseC next graphi skolemsInternal acc)) (Proxy (UniverseC outptr grapho skolemsInternal acc))))
 
 -- toSkolemizedFunction :: a -> (Proxy skolem -> b)
@@ -1522,7 +1523,7 @@ instance createSpeaker ::
     )
     (AudioUnitRef ptr) where
   create =
-    Frame <<< map AudioUnitRef <<< unFrame
+    Frame <<< (map <<< map) AudioUnitRef <<< unFrame
       <<< (createAndConnect (Proxy :: ProxyCC acc DiscardableSkolem (Proxy ptr) term env (Proxy (UniverseC next graphi skolems acc)) (Proxy (UniverseC outptr grapho skolems acc))))
 
 class TerminalNode (u :: Universe) (ptr :: Ptr) | u -> ptr
@@ -1582,7 +1583,7 @@ changeAudioUnit ::
   Proxy ((Proxy p) /\ acc /\ (Proxy nextP) /\ env /\ Proxy inuniv) -> g -> Frame env proof univ inuniv Unit
 changeAudioUnit _ g =
   Frame
-    $ do
+    $ frame do
         { env, acc } <- get
         let
           ptr = toInt' (Proxy :: _ p)
@@ -1602,11 +1603,11 @@ changeAudioUnit _ g =
 
 instance changeNoEdge ::
   Change NoEdge g env inuniv where
-  change' _ _ = Frame (pure unit)
+  change' _ _ = Frame $ frame (pure unit)
 
 instance changeSkolem ::
   Change (SingleEdge p) (Proxy skolem) env inuniv where
-  change' _ _ = Frame (pure unit)
+  change' _ _ = Frame $ frame (pure unit)
 
 instance changeIdentity :: Change (SingleEdge p) x env inuniv => Change (SingleEdge p) (Identity x) env inuniv where
   change' p (Identity x) = change' p x
@@ -1728,7 +1729,7 @@ class Cursor (p :: EdgeProfile) (a :: Type) (env :: Type) (o :: Universe) (ptr :
   cursor' :: forall proof. Proxy p -> a -> Frame env proof o o (AudioUnitRef ptr)
 
 instance cursorRecurse :: (BinToInt head, CursorI p a env o (PtrListCons head PtrListNil)) => Cursor p a env o head where
-  cursor' _ _ = Frame (pure $ AudioUnitRef (toInt' (Proxy :: Proxy head)))
+  cursor' _ _ = Frame $ frame (pure $ AudioUnitRef (toInt' (Proxy :: Proxy head)))
 
 class CursorRes (tag :: Type) (p :: Ptr) (i :: Node) (plist :: EdgeProfile) | tag p i -> plist
 
@@ -1857,7 +1858,7 @@ class Connect (from :: Ptr) (to :: Ptr) (i :: Universe) (o :: Universe) | from t
 instance connectAll :: (BinToInt from, BinToInt to, GraphToNodeList graphi nodeListI, AddPointerToNodes from to nodeListI nodeListO, GraphToNodeList grapho nodeListO) => Connect from to (UniverseC ptr graphi skolems acc) (UniverseC ptr grapho skolems acc) where
   connect (AudioUnitRef fromI) (AudioUnitRef toI) =
     Frame
-      $ do
+      $ frame do
           modify_
             ( \i ->
                 i
@@ -1908,7 +1909,7 @@ instance disconnector ::
   Disconnect from to (UniverseC ptr graphi skolems acc) (UniverseC ptr grapho skolems acc) where
   disconnect (AudioUnitRef fromI) (AudioUnitRef toI) =
     Frame
-      $ do
+      $ frame do
           modify_
             ( \i ->
                 i
@@ -1964,7 +1965,7 @@ instance destroyer ::
   Destroy ptr (UniverseC x graphi skolems acc) (UniverseC x grapho skolems acc) where
   destroy (AudioUnitRef ptrI) =
     Frame
-      $ do
+      $ frame do
           modify_
             ( \i ->
                 i
@@ -1978,13 +1979,13 @@ instance destroyer ::
 getEnv ::
   forall env proof i o.
   Frame env proof i o env
-getEnv = Frame $ gets _.env
+getEnv = Frame (frame (gets _.env))
 
 getAcc ::
   forall env proof i o acc.
   GetAccumulator o acc =>
   Frame env proof i o acc
-getAcc = Frame $ gets ((unsafeCoerce :: Void -> acc) <<< _.acc)
+getAcc = Frame (frame (gets ((unsafeCoerce :: Void -> acc) <<< _.acc)))
 
 -- setters
 modifyAcc ::
@@ -1993,4 +1994,4 @@ modifyAcc ::
   GetAccumulator o acc1 =>
   (acc0 -> acc1) ->
   Frame env proof i o acc1
-modifyAcc f = Frame (modify (\i -> i { acc = (unsafeCoerce :: acc1 -> Void) (f (unsafeCoerce i.acc :: acc0)) }) <#> ((unsafeCoerce :: Void -> acc1) <<< _.acc))
+modifyAcc f = Frame (frame (modify (\i -> i { acc = (unsafeCoerce :: acc1 -> Void) (f (unsafeCoerce i.acc :: acc0)) }) <#> ((unsafeCoerce :: Void -> acc1) <<< _.acc)))
