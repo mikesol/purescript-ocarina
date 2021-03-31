@@ -8,7 +8,7 @@ import Control.Bind.Indexed (class IxBind)
 import Control.Lazy (fix)
 import Control.Monad.Indexed (class IxMonad)
 import Control.Monad.Indexed.Qualified as Ix
-import Control.Monad.State (State, execState, get, gets, modify_, withState)
+import Control.Monad.State (State, execState, get, gets, modify, modify_, withState)
 import Control.Monad.Writer (WriterT(..), runWriterT)
 import Data.Functor.Indexed (class IxFunctor)
 import Data.Generic.Rep (class Generic)
@@ -1934,3 +1934,25 @@ instance destroyer ::
                   , instructions = i.instructions <> [ Free ptrI, Stop ptrI ]
                   }
             )
+
+-- getters
+
+getEnv ::
+  forall env proof i o.
+  Frame env proof i o env
+getEnv = Frame $ gets _.env
+
+getAcc ::
+  forall env proof i o acc.
+  GetAccumulator o acc =>
+  Frame env proof i o acc
+getAcc = Frame $ gets ((unsafeCoerce :: Void -> acc) <<< _.acc)
+
+-- setters
+modifyAcc ::
+  forall env proof i o acc0 acc1.
+  GetAccumulator i acc0 =>
+  GetAccumulator o acc1 =>
+  (acc0 -> acc1) ->
+  Frame env proof i o acc1
+modifyAcc f = Frame (modify (\i -> i { acc = (unsafeCoerce :: acc1 -> Void) (f (unsafeCoerce i.acc :: acc0)) }) <#> ((unsafeCoerce :: Void -> acc1) <<< _.acc))
