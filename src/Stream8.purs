@@ -969,12 +969,12 @@ infixr 6 makeScene0T as @@!>
 
 makeScene' ::
   forall env proofA proofB g0 g1 g2.
-  (Frame env proofA g0 g1 Unit -> Unit) ->
+  UniverseIsCoherent g1 =>
   (Frame env proofB g0 g1 Unit -> Frame env proofB g0 g2 Unit) ->
   Frame env proofA g0 g1 Unit ->
   (Frame env proofB g0 g2 Unit -> Scene env proofB) ->
   Scene env proofA
-makeScene' _ mogrify fr trans = asScene go
+makeScene' mogrify fr trans = asScene go
   where
   Frame f = mogrify ((unsafeCoerce :: Frame env proofA g0 g1 Unit -> Frame env proofB g0 g1 Unit) fr)
 
@@ -1006,7 +1006,7 @@ makeScene ::
   Frame env proofA g0 g1 Unit ->
   (forall proofB. Frame env proofB g0 g1 Unit -> Scene env proofB) ->
   Scene env proofA
-makeScene = makeScene' assertCoherence identity
+makeScene = makeScene' identity
 
 makeChangingScene ::
   forall env proofA g0 g1 edge a.
@@ -1017,7 +1017,7 @@ makeChangingScene ::
   Frame env proofA g0 g1 Unit ->
   (forall proofB. Frame env proofB g0 g1 Unit -> Scene env proofB) ->
   Scene env proofA
-makeChangingScene a = makeScene' assertCoherence (flip iapplySecond (change a))
+makeChangingScene a = makeScene' (flip iapplySecond (change a))
 
 makeChangingSceneLoop ::
   forall env proofA g0 g1 edge a.
@@ -1027,7 +1027,7 @@ makeChangingSceneLoop ::
   a ->
   Frame env proofA g0 g1 Unit ->
   Scene env proofA
-makeChangingSceneLoop a = fix \f -> flip (makeScene' assertCoherence (flip iapplySecond (change a))) f
+makeChangingSceneLoop a = fix \f -> flip (makeScene' (flip iapplySecond (change a))) f
 
 infixr 6 makeScene as @!>
 
@@ -1036,7 +1036,7 @@ loop ::
   UniverseIsCoherent g1 =>
   Frame env proof g0 g1 Unit ->
   Scene env proof
-loop = fix \f -> flip (makeScene' assertCoherence identity) f
+loop = fix \f -> flip (makeScene' identity) f
 
 unFrame :: forall env proof i o a. Frame env proof i o a -> AudioState env a
 unFrame (Frame state) = state
