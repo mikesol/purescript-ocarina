@@ -15,15 +15,77 @@ import Data.Typelevel.Num (class Succ, D0, D1, D2, D3, D4)
 import Debug.Trace (spy)
 import Effect (Effect)
 import Effect.Aff (launchAff_)
-import Stream8 (class AllEdgesPointToNodes, class AudioUnitEq, class Gate, class HasBottomLevelNodes, class Lookup, class NoNodesAreDuplicated, class NoParallelEdges, class PtrEq, class UniqueTerminus, type (+:), type (/->), type (/:), AnAudioUnit(..), AudioParameter, AudioParameterTransition(..), AudioUnitRef(..), Dup(..), Focus(..), Frame, Gain(..), GraphC, Highpass(..), InitialGraph, Instruction(..), ManyEdges, NoEdge, NodeC, NodeListCons, NodeListNil, PtrListCons, PtrListNil, SinOsc(..), SingleEdge, SkolemListNil, Speaker(..), TGain, THighpass, TSinOsc, TSpeaker, UniverseC, create, cursor, destroy, disconnect, loop, makeChangingSceneLoop, oneFrame, param, start, testCompare)
+import Stream8 (class AllEdgesPointToNodes, class AudioUnitEq, class BinSub, class BinSucc, class Gate, class HasBottomLevelNodes, class Lookup, class NoNodesAreDuplicated, class NoParallelEdges, class PtrEq, class UniqueTerminus, type (+:), type (/->), type (/:), AnAudioUnit(..), AudioParameter, AudioParameterTransition(..), AudioUnitRef(..), Bc, Bn, Dup(..), Focus(..), Frame, Gain(..), GraphC, Highpass(..), I, InitialGraph, Instruction(..), ManyEdges, NoEdge, NodeC, NodeListCons, NodeListNil, O, PtrListCons, PtrListNil, SinOsc(..), SingleEdge, SkolemListNil, Speaker(..), TGain, THighpass, TSinOsc, TSpeaker, UniverseC, create, cursor, destroy, disconnect, loop, makeChangingSceneLoop, oneFrame, param, start, testCompare)
 import Test.Spec (describe, it)
 import Test.Spec.Assertions (shouldEqual)
 import Test.Spec.Reporter (consoleReporter)
 import Test.Spec.Runner (runSpec)
 import Type.Proxy (Proxy(..))
 
+---- data
+data MyGain
+
+data MySinOsc
+
 ---------------------------
 ----- tests
+testBinSucc0 :: Proxy (Bc I Bn)
+testBinSucc0 =
+  Proxy ::
+    forall b.
+    BinSucc (Bc O Bn) b =>
+    Proxy b
+
+testBinSucc1 :: Proxy (Bc O (Bc I Bn))
+testBinSucc1 =
+  Proxy ::
+    forall b.
+    BinSucc (Bc I Bn) b =>
+    Proxy b
+
+testBinSucc2 :: Proxy (Bc I (Bc I Bn))
+testBinSucc2 =
+  Proxy ::
+    forall b.
+    BinSucc (Bc O (Bc I Bn)) b =>
+    Proxy b
+
+testBinSucc3 :: Proxy (Bc O (Bc O (Bc I Bn)))
+testBinSucc3 =
+  Proxy ::
+    forall b.
+    BinSucc (Bc I (Bc I Bn)) b =>
+    Proxy b
+
+testBinSub3m0 :: Proxy (Bc I (Bc I Bn))
+testBinSub3m0 =
+  Proxy ::
+    forall b.
+    BinSub (Bc I (Bc I Bn)) (Bc O Bn) b =>
+    Proxy b
+
+testBinSub3m1 :: Proxy (Bc O (Bc I Bn))
+testBinSub3m1 =
+  Proxy ::
+    forall b.
+    BinSub (Bc I (Bc I Bn)) (Bc I Bn) b =>
+    Proxy b
+
+testBinSub8m6 :: Proxy (Bc O (Bc I Bn))
+testBinSub8m6 =
+  Proxy ::
+    forall b.
+    BinSub (Bc O (Bc O (Bc O (Bc I Bn)))) (Bc O (Bc I (Bc I Bn))) b =>
+    Proxy b
+
+
+testBinSub1 :: Proxy (Bc O (Bc I Bn))
+testBinSub1 =
+  Proxy ::
+    forall b.
+    BinSub (Bc I (Bc I Bn)) (Bc I Bn) b =>
+    Proxy b
+
 testPtrEq :: Proxy True
 testPtrEq =
   Proxy ::
@@ -194,8 +256,6 @@ createTest2 ::
     (AudioUnitRef first)
 createTest2 = create (Highpass 440.0 1.0 (SinOsc 440.0))
 
-data MyGain
-
 createTest3 ::
   forall first mid last env head tail acc proof.
   Succ first mid =>
@@ -238,28 +298,23 @@ createTest4 =
     $ Gain 1.0 \(gain :: Proxy MyGain) ->
         gain /\ Highpass 330.0 1.0 (SinOsc 440.0) /\ unit
 
-data MySinOsc
-
 createTest5 ::
-  forall first mid0 mid1 last env head tail acc proof.
-  Succ first mid0 =>
-  Succ mid0 mid1 =>
-  Succ mid1 last =>
-  Frame env proof (UniverseC first (GraphC head tail) SkolemListNil acc)
-    ( UniverseC last
+  forall env head tail acc proof r g.
+  Frame env proof (UniverseC D0 (GraphC head tail) SkolemListNil acc)
+    ( UniverseC D3
         ( GraphC
-            ( NodeC (TGain first)
-                (ManyEdges first (PtrListCons mid0 (PtrListCons mid1 PtrListNil)))
+            ( NodeC (TGain D1)
+                (ManyEdges D1 (PtrListCons D2 (PtrListCons D0 PtrListNil)))
             )
             ( NodeListCons
-                (NodeC (THighpass mid0) (SingleEdge mid1))
-                (NodeListCons (NodeC (TSinOsc mid1) NoEdge) (NodeListCons head tail))
+                (NodeC (THighpass D2) (SingleEdge D0))
+                (NodeListCons (NodeC (TSinOsc D0) NoEdge) (NodeListCons head tail))
             )
         )
         SkolemListNil
         acc
     )
-    (AudioUnitRef mid1)
+    (AudioUnitRef D1)
 createTest5 =
   create
     $ Dup (SinOsc 440.0) \(mySinOsc :: Proxy MySinOsc) ->
@@ -267,7 +322,6 @@ createTest5 =
           gain /\ Highpass 330.0 1.0 mySinOsc /\ mySinOsc /\ unit
 
 --
-{-
 opsTest0 ::
   Frame Unit Void (UniverseC D0 InitialGraph SkolemListNil Unit)
     ( UniverseC D3
@@ -283,7 +337,7 @@ opsTest0 ::
         SkolemListNil
         Unit
     )
-    (AudioUnitRef D0)
+    (AudioUnitRef D1)
 opsTest0 =
   create
     $ Dup (SinOsc 440.0) \(mySinOsc :: Proxy MySinOsc) ->
@@ -298,26 +352,29 @@ ot1Type ::
   Speaker
     ( Dup (g (SinOsc Number))
         ( Proxy MySinOsc ->
-          h (Gain Number
-            ( Proxy MyGain ->
-              Proxy MyGain /\ (f (Highpass Number Number (Proxy MySinOsc)))
-                /\ Proxy MySinOsc
-                /\ Unit
-            ))
+          h
+            ( Gain Number
+                ( Proxy MyGain ->
+                  Proxy MyGain /\ (f (Highpass Number Number (Proxy MySinOsc)))
+                    /\ Proxy MySinOsc
+                    /\ Unit
+                )
+            )
         )
     )
 ot1Type f g h =
   Speaker
     $ Dup (g (SinOsc 440.0)) \(mySinOsc :: Proxy MySinOsc) ->
-        h (Gain 1.0 \(gain :: Proxy MyGain) ->
-          gain /\ f (Highpass 330.0 1.0 mySinOsc) /\ mySinOsc /\ unit)
-
+        h
+          ( Gain 1.0 \(gain :: Proxy MyGain) ->
+              gain /\ f (Highpass 330.0 1.0 mySinOsc) /\ mySinOsc /\ unit
+          )
 
 opsTest1 ::
   Frame Unit Void (UniverseC D0 InitialGraph SkolemListNil Unit)
     ( UniverseC D4
         ( GraphC
-            (NodeC (TSpeaker D0) (SingleEdge D1))
+            (NodeC (TSpeaker D0) (SingleEdge D2))
             ( NodeListCons
                 ( NodeC (TGain D2)
                     (ManyEdges D2 (PtrListCons D3 (PtrListCons D1 PtrListNil)))
@@ -337,7 +394,7 @@ opsTest2 ::
   Frame Unit Void (UniverseC D0 InitialGraph SkolemListNil Unit)
     ( UniverseC D4
         ( GraphC
-            (NodeC (TSpeaker D0) (SingleEdge D1))
+            (NodeC (TSpeaker D0) (SingleEdge D2))
             ( NodeListCons
                 ( NodeC (TGain D2)
                     (ManyEdges D2 (PtrListCons D3 (PtrListCons D1 PtrListNil)))
@@ -357,7 +414,7 @@ opsTest3 ::
   Frame Unit Void (UniverseC D0 InitialGraph SkolemListNil Unit)
     ( UniverseC D4
         ( GraphC
-            (NodeC (TSpeaker D0) (SingleEdge D1))
+            (NodeC (TSpeaker D0) (SingleEdge D2))
             ( NodeListCons
                 ( NodeC (TGain D2)
                     (ManyEdges D2 (PtrListCons D3 (PtrListCons D1 PtrListNil)))
@@ -379,7 +436,7 @@ opsTest4 ::
   Frame Unit Void (UniverseC D0 InitialGraph SkolemListNil Unit)
     ( UniverseC D4
         ( GraphC
-            (NodeC (TSpeaker D0) (SingleEdge D1))
+            (NodeC (TSpeaker D0) (SingleEdge D2))
             ( NodeListCons
                 ( NodeC (TGain D2)
                     (ManyEdges D2 (PtrListCons D3 (PtrListCons D1 PtrListNil)))
@@ -398,17 +455,66 @@ opsTest4 = Ix.do
   chpf <- cursor (ot1Type Focus Identity Identity)
   cursor (ot1Type Identity Focus Identity)
 
-
 opsTest5 ::
   Frame Unit Void (UniverseC D0 InitialGraph SkolemListNil Unit)
     ( UniverseC D4
         ( GraphC
-            (NodeC (TSpeaker D0) (SingleEdge D1))
+            (NodeC (TSpeaker D0) (SingleEdge D2))
             ( NodeListCons
                 ( NodeC (TGain D2)
-                    (ManyEdges D2 (PtrListCons D3 PtrListNil))
+                    (ManyEdges D2 (PtrListCons D3 (PtrListCons D1 PtrListNil)))
                 )
-                ( NodeListCons (NodeC (THighpass D3) NoEdge) NodeListNil)
+                ( NodeListCons (NodeC (THighpass D3) (SingleEdge D1))
+                    (NodeListCons (NodeC (TSinOsc D1) NoEdge) NodeListNil)
+                )
+            )
+        )
+        SkolemListNil
+        Unit
+    )
+    (AudioUnitRef D2)
+opsTest5 = Ix.do
+  ivoid $ create $ ot1Type Identity Identity Identity
+  chpf <- cursor (ot1Type Focus Identity Identity)
+  csin <- cursor (ot1Type Identity Focus Identity)
+  cursor (ot1Type Identity Identity Focus)
+{-
+opsTest6 ::
+  Frame Unit Void (UniverseC D0 InitialGraph SkolemListNil Unit)
+    ( UniverseC D4
+        ( GraphC
+            (NodeC (TSpeaker D0) (SingleEdge D2))
+            ( NodeListCons
+                ( NodeC (TGain D2)
+                    (ManyEdges D2 (PtrListCons D3 (PtrListCons D1 PtrListNil)))
+                )
+                ( NodeListCons (NodeC (THighpass D3) NoEdge)
+                    (NodeListCons (NodeC (TSinOsc D1) NoEdge) NodeListNil)
+                )
+            )
+        )
+        SkolemListNil
+        Unit
+    )
+    Unit
+opsTest6 = Ix.do
+  ivoid $ create $ ot1Type Identity Identity Identity
+  chpf <- cursor (ot1Type Focus Identity Identity)
+  csin <- cursor (ot1Type Identity Focus Identity)
+  cgain <- cursor (ot1Type Identity Identity Focus)
+  disconnect csin chpf
+-}
+{-
+opsTest5 ::
+  Frame Unit Void (UniverseC D0 InitialGraph SkolemListNil Unit)
+    ( UniverseC D4
+        ( GraphC
+            (NodeC (TSpeaker D0) (SingleEdge D2))
+            ( NodeListCons
+                ( NodeC (TGain D2)
+                    (ManyEdges D2 (PtrListCons D2 (PtrListCons D1 PtrListNil)))
+                )
+                (NodeListCons (NodeC (TSinOsc D1) NoEdge) NodeListNil)
             )
         )
         SkolemListNil
@@ -421,9 +527,10 @@ opsTest5 = Ix.do
   csin <- cursor (ot1Type Identity Focus Identity)
   cgain <- cursor (ot1Type Identity Identity Focus)
   disconnect csin chpf
-  disconnect csin cgain
-  destroy csin
+  disconnect chpf cgain
+  destroy chpf
 -}
+{--}
 type Time
   = { time :: Number }
 

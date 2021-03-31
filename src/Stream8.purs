@@ -20,8 +20,8 @@ import Data.Set as S
 import Data.Show.Generic (genericShow)
 import Data.Tuple (Tuple(..), fst, snd)
 import Data.Tuple.Nested (type (/\), (/\))
-import Data.Typelevel.Bool (False, True)
-import Data.Typelevel.Num (class Add, class Nat, class Succ, D0, toInt')
+import Data.Typelevel.Bool (class And, False, True)
+import Data.Typelevel.Num (class Add, class Gt, class Nat, class Sub, class Succ, D0, toInt')
 import Prim.TypeError (class Warn, Above, Quote, Text)
 import Type.Proxy (Proxy(..))
 import Unsafe.Coerce (unsafeCoerce)
@@ -34,11 +34,17 @@ infixr 5 type PtrListCons as +:
 
 infixr 5 type NodeC as /->
 
-data Binary
+data Bin
 
-foreign import data I :: Binary
+foreign import data I :: Bin
 
-foreign import data O :: Binary
+foreign import data O :: Bin
+
+data BinL
+
+foreign import data Bc :: Bin -> BinL -> BinL
+
+foreign import data Bn :: BinL
 
 type Ptr
   = Type
@@ -128,6 +134,95 @@ instance getPointerHighpass :: GetPointer (THighpass ptr) ptr
 instance getPointerGain :: GetPointer (TGain ptr) ptr
 
 instance getPointerSpeaker :: GetPointer (TSpeaker ptr) ptr
+
+class BinSucc (i :: BinL) (o :: BinL) | i -> o
+
+instance binSuccNull :: BinSucc Bn (Bc I Bn)
+
+instance binSuccO :: BinSucc (Bc O r) (Bc I r)
+
+instance binSuccI :: BinSucc r r' => BinSucc (Bc I r) (Bc O r')
+
+class BinSub' (carrying :: Type) (l :: BinL) (r :: BinL) (o :: BinL) | carrying l r -> o
+
+instance binSubDoneIF :: BinSub' False (Bc I r) Bn (Bc I r)
+
+instance binSubDoneIT :: BinSub' True (Bc I r) Bn (Bc O r)
+
+instance binSubDoneOF :: BinSub' False (Bc O r) Bn (Bc O r)
+
+instance binSubDoneOT :: BinSub' True r Bn o => BinSub' True (Bc O r) Bn o
+
+instance binSubNul1 :: BinSub' True Bn (Bc x y) Bn
+
+instance binSubNul2 :: BinSub' True Bn Bn Bn
+
+instance binSubNul3 :: BinSub' False Bn (Bc x y) Bn
+
+instance binSubNul4 :: BinSub' False Bn Bn Bn
+
+instance binSubIterFOO :: BinSub' False i o r => BinSub' False (Bc O i) (Bc O o) (Bc O r)
+
+instance binSubIterFIO :: BinSub' False i o r => BinSub' False (Bc I i) (Bc O o) (Bc I r)
+
+instance binSubIterFOI :: BinSub' True i o r => BinSub' False (Bc O i) (Bc I o) (Bc I r)
+
+instance binSubIterFII :: BinSub' False i o r => BinSub' False (Bc I i) (Bc I o) (Bc O r)
+
+----------
+instance binSubIterTOO :: BinSub' False (Bc O i) (Bc I o) x => BinSub' True (Bc O i) (Bc O o) x
+
+instance binSubIterTIO :: BinSub' False (Bc I i) (Bc I o) x => BinSub' True (Bc I i) (Bc O o) x
+
+instance binSubIterTOI :: BinSub' True i o r => BinSub' True (Bc O i) (Bc I o) (Bc O r)
+
+instance binSubIterTII :: BinSub' False (Bc O i) (Bc I o) x => BinSub' True (Bc I i) (Bc I o) x
+
+class Beq (a :: Bin) (b :: Bin) (tf :: Type) | a b -> tf
+
+instance beqOO :: Beq O O True
+
+instance beqOI :: Beq O I False
+
+instance beqIO :: Beq I O False
+
+instance beqII :: Beq I I True
+
+class BinEq (a :: BinL) (b :: BinL) (tf :: Type) | a b -> tf
+
+instance binEq0 :: BinEq Bn Bn True
+
+instance binEq1 :: BinEq Bn (Bc x y) False
+
+instance binEq2 :: BinEq (Bc x y) Bn False
+
+instance binEq3 :: (Beq a x tf, BinEq b y rest, And tf rest r) => BinEq (Bc a b) (Bc x y) r
+
+class AllZerosToNull (i :: BinL) (o :: BinL) | i -> o
+
+instance allZerosToNullBn :: AllZerosToNull Bn Bn
+
+instance allZerosToNullBcI :: AllZerosToNull (Bc I o) (Bc I o)
+
+instance allZerosToNullBcO :: AllZerosToNull o x => AllZerosToNull (Bc O o) x
+
+class RemoveTrailingZeros (i :: BinL) (o :: BinL) | i -> o
+
+instance removeTrailingZerosBn :: RemoveTrailingZeros Bn Bn
+
+instance removeTrailingZerosI :: RemoveTrailingZeros r r' => RemoveTrailingZeros (Bc I r) (Bc I r')
+
+instance removeTrailingZerosO ::
+  ( AllZerosToNull r n
+  , RemoveTrailingZeros r r'
+  , BinEq n Bn tf
+  , Gate tf Bn (Bc O r') x
+  ) =>
+  RemoveTrailingZeros (Bc O r) x
+
+class BinSub (l :: BinL) (r :: BinL) (o :: BinL) | l r -> o
+
+instance binSub :: (BinSub' False l r o', RemoveTrailingZeros o' o) => BinSub l r o
 
 class Gate tf l r o | tf l r -> o
 
@@ -1188,27 +1283,31 @@ instance createProxy ::
   create _ = Frame (pure $ AudioUnitRef $ toInt' (Proxy :: Proxy ptr))
 
 instance createDup ::
-  ( Nat ptr
-  , SkolemNotYetPresent skolem skolems
+  ( SkolemNotYetPresent skolem skolems
+  , Nat ptr
+  , Warn (Text "Starting" ^^ Quote (Proxy ptr))
   , Create
       a
       env
-      (UniverseC midptr graphi skolems acc)
-      (UniverseC outptr graphm skolems acc)
+      (UniverseC ptr graphi skolems acc)
+      (UniverseC midptr graphm skolems acc)
       ignore
+  , Warn (Text "Started" ^^ Quote (Proxy graphi))
   , Create
       b
       env
-      (UniverseC ptr graphm (SkolemListCons (SkolemPairC skolem ptr) skolems) acc)
-      (UniverseC midptr grapho (SkolemListCons (SkolemPairC skolem ptr) skolems) acc)
-      (AudioUnitRef ptr)
+      (UniverseC midptr graphm (SkolemListCons (SkolemPairC skolem ptr) skolems) acc)
+      (UniverseC outptr grapho (SkolemListCons (SkolemPairC skolem ptr) skolems) acc)
+      (AudioUnitRef midptr)
+  , Warn (Text "Going" ^^ Quote (Proxy graphm))
+  , (Warn (Text "ptr" ^^ Quote ptr ^^ Text "midptr" ^^ Quote midptr))
   ) =>
   Create
     (Dup a (Proxy skolem -> b))
     env
     (UniverseC ptr graphi skolems acc)
     (UniverseC outptr grapho skolems acc)
-    (AudioUnitRef ptr) where
+    (AudioUnitRef midptr) where
   create (Dup a f) = Frame $ x *> y
     where
     Frame x =
@@ -1216,8 +1315,8 @@ instance createDup ::
           forall proof.
           a ->
           Frame env proof
-            (UniverseC midptr graphi skolems acc)
-            (UniverseC outptr graphm skolems acc)
+            (UniverseC ptr graphi skolems acc)
+            (UniverseC midptr graphm skolems acc)
             ignore
       )
         a
@@ -1227,16 +1326,18 @@ instance createDup ::
           forall proof.
           b ->
           Frame env proof
-            (UniverseC ptr graphm (SkolemListCons (SkolemPairC skolem ptr) skolems) acc)
-            (UniverseC midptr grapho (SkolemListCons (SkolemPairC skolem ptr) skolems) acc)
-            (AudioUnitRef ptr)
+            (UniverseC midptr graphm (SkolemListCons (SkolemPairC skolem ptr) skolems) acc)
+            (UniverseC outptr grapho (SkolemListCons (SkolemPairC skolem ptr) skolems) acc)
+            (AudioUnitRef midptr)
       )
         (f (Proxy :: _ skolem))
 
 instance createSinOsc ::
   ( InitialVal env acc a
   , Nat ptr
+  , Warn (Text "In SinOsc created" ^^ Quote ptr)
   , Succ ptr next
+  , Warn (Text "In SinOsc next" ^^ Quote next)
   , GraphToNodeList graph nodeList
   ) =>
   Create
@@ -1286,6 +1387,7 @@ instance createHighpass ::
 
 instance createGain ::
   ( InitialVal env acc a
+  , Warn (Text "In gain" ^^ Quote (Proxy skolems))
   , GetSkolemFromRecursiveArgument fb skolem
   , ToSkolemizedFunction fb skolem b
   , SkolemNotYetPresentOrDiscardable skolem skolems
@@ -1298,6 +1400,7 @@ instance createGain ::
       (UniverseC next graphi skolemsInternal acc)
       (UniverseC outptr grapho skolemsInternal acc)
       term
+  , Warn (Text "In gain" ^^ Quote (Proxy skolems) ^^ Quote (Proxy graphi) ^^ Quote (Proxy grapho))
   , AsEdgeProfile term eprof
   , GraphToNodeList grapho nodeList
   ) =>
@@ -1488,17 +1591,20 @@ instance changeHighpass ::
         (change' :: forall proof. (Proxy nextP) -> c -> Frame env proof inuniv inuniv Unit) Proxy c
 
 instance changeDup ::
-  ( Nat p
-  -- incoming to the change will be the ptr of the inner closure, which is the actual connection
-  -- we run the inner closure to get the ptr for the outer closure
-  , Create
-      b
+  ( Create
+      a
       env
       (UniverseC D0 InitialGraph (SkolemListCons (SkolemPairC skolem D0) skolems) acc)
       (UniverseC outptr grapho (SkolemListCons (SkolemPairC skolem D0) skolems) acc)
       ignore
+  --, Warn ((Text "changeDup outptr for b") ^^ (Quote (Proxy p)))
+  --, Warn ((Text "changeDup b") ^^ (Quote b))
+  , Nat p
   , Nat outptr
-  , Add p outptr continuation
+  , Nat continuation
+  , Add continuation outptr p
+  --, Warn ((Text "changeDup continuation for a") ^^ (Quote (Proxy continuation)))
+  --, Warn ((Text "changeDup a") ^^ (Quote a))
   , Change (SingleEdge p) b env inuniv
   , Change (SingleEdge continuation) a env inuniv
   ) =>
@@ -1545,10 +1651,9 @@ instance changeSpeaker ::
 --------------------- getters
 cursor ::
   forall edge a x i env proof p.
-  Warn (Text "starting" ^^ Quote (Proxy i)) =>
   TerminalIdentityEdge i edge =>
-  Warn (Text "edge" ^^ Quote (Proxy edge)) =>
   Cursor edge a env i p =>
+  Warn (Text "cret" ^^ Quote (Proxy p)) =>
   Nat p =>
   a -> Frame env proof i i (AudioUnitRef p)
 cursor = cursor' (Proxy :: _ edge)
@@ -1605,18 +1710,25 @@ instance cursorMany1 ::
   (Nat p, CursorI (SingleEdge p) a env inuniv o) =>
   CursorI (ManyEdges p PtrListNil) (a /\ Unit) env inuniv o
 
+-- incoming to the change will be the ptr of the inner closure, which is the actual connection -- we run the inner closure to get the ptr for the outer closure
 instance cursorDup ::
-  ( Nat p
-  -- incoming to the change will be the ptr of the inner closure, which is the actual connection
-  -- we run the inner closure to get the ptr for the outer closure
-  , Create
-      b
+  ( Create
+      a
       env
       (UniverseC D0 InitialGraph (SkolemListCons (SkolemPairC skolem D0) skolems) acc)
       (UniverseC outptr grapho (SkolemListCons (SkolemPairC skolem D0) skolems) acc)
       ignore
+  , Warn ((Text "cursorDup outptr for b") ^^ (Quote (Proxy p)))
+  , Warn ((Text "cursorDup b") ^^ (Quote b))
+  , Nat p
   , Nat outptr
-  , Add p outptr continuation
+  , Nat continuation
+  , Gt p outptr
+  , Sub p outptr continuation
+  , Warn ((Text "cursorDup continuation for a") ^^ (Quote (Proxy continuation)))
+  , Warn ((Text "cursorDup outptr") ^^ (Quote outptr))
+  , Warn ((Text "cursorDup p") ^^ (Quote p))
+  , Warn ((Text "cursorDup a") ^^ (Quote a))
   , CursorI (SingleEdge p) b env inuniv o0
   , CursorI (SingleEdge continuation) a env inuniv o1
   , PtrListAppend o0 o1 oo
@@ -1699,7 +1811,7 @@ instance removePtrFromListCons :: (PtrEq ptr head tf, RemovePtrFromList ptr tail
 
 class RemovePointerFromNode (from :: Ptr) (to :: Ptr) (i :: Node) (o :: Node) | from to i -> o
 
-instance removePointerFromNodeHPFHitSE :: RemovePointerFromNode from to (NodeC (THighpass to) (SingleEdge from)) (NodeC (THighpass to) NoEdge)
+instance removePointerFromNodeHPFHitSE :: Warn (Text "RMHP") => RemovePointerFromNode from to (NodeC (THighpass to) (SingleEdge from)) (NodeC (THighpass to) NoEdge)
 else instance removePointerFromNodeGainHitSE :: RemovePointerFromNode from to (NodeC (TGain to) (SingleEdge from)) (NodeC (TGain to) NoEdge)
 else instance removePointerFromNodeGainHitME :: (RemovePtrFromList from (PtrListCons e (PtrListCons l r)) (PtrListCons head tail)) => RemovePointerFromNode from to (NodeC (TGain to) (ManyEdges e (PtrListCons l r))) (NodeC (TGain to) (ManyEdges head tail))
 else instance removePointerFromNodeSpeakerHitSE :: RemovePointerFromNode from to (NodeC (TSpeaker to) (SingleEdge from)) (NodeC (TSpeaker to) NoEdge)
@@ -1710,12 +1822,25 @@ class RemovePointerFromNodes (from :: Ptr) (to :: Ptr) (i :: NodeList) (o :: Nod
 
 instance removePointerFromNodesNil :: RemovePointerFromNodes a b NodeListNil NodeListNil
 
-instance removePointerFromNodesCons :: (RemovePointerFromNode a b head headRes, RemovePointerFromNodes a b tail tailRes) => RemovePointerFromNodes a b (NodeListCons head tail) (NodeListCons headRes tailRes)
+instance removePointerFromNodesCons ::
+  ( Warn (Text "looping" ^^ Quote a ^^ Quote b ^^ Quote (Proxy head))
+  , RemovePointerFromNode a b head headRes
+  , RemovePointerFromNodes a b tail tailRes
+  ) =>
+  RemovePointerFromNodes a b (NodeListCons head tail) (NodeListCons headRes tailRes)
 
 class Disconnect (from :: Ptr) (to :: Ptr) (i :: Universe) (o :: Universe) | from to i -> o where
   disconnect :: forall env proof. AudioUnitRef from -> AudioUnitRef to -> Frame env proof i o Unit
 
-instance disconnector :: (Nat from, Nat to, GraphToNodeList graphi nodeListI, RemovePointerFromNodes from to nodeListI nodeListO, GraphToNodeList grapho nodeListO) => Disconnect from to (UniverseC ptr graphi skolems acc) (UniverseC ptr grapho skolems acc) where
+instance disconnector ::
+  ( Warn (Text "dcon" ^^ Quote from ^^ Quote to)
+  , Nat from
+  , Nat to
+  , GraphToNodeList graphi nodeListI
+  , RemovePointerFromNodes from to nodeListI nodeListO
+  , GraphToNodeList grapho nodeListO
+  ) =>
+  Disconnect from to (UniverseC ptr graphi skolems acc) (UniverseC ptr grapho skolems acc) where
   disconnect (AudioUnitRef fromI) (AudioUnitRef toI) =
     Frame
       $ do
