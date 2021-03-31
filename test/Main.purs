@@ -11,11 +11,10 @@ import Data.Map as M
 import Data.Set as S
 import Data.Tuple.Nested ((/\), type (/\))
 import Data.Typelevel.Bool (True, False)
-import Data.Typelevel.Num (class Succ, D0, D1, D2, D3, D4)
 import Debug.Trace (spy)
 import Effect (Effect)
 import Effect.Aff (launchAff_)
-import Stream8 (class AllEdgesPointToNodes, class AudioUnitEq, class BinSub, class BinSucc, class Gate, class HasBottomLevelNodes, class Lookup, class NoNodesAreDuplicated, class NoParallelEdges, class PtrEq, class UniqueTerminus, type (+:), type (/->), type (/:), AnAudioUnit(..), AudioParameter, AudioParameterTransition(..), AudioUnitRef(..), Bc, Bn, Dup(..), Focus(..), Frame, Gain(..), GraphC, Highpass(..), I, InitialGraph, Instruction(..), ManyEdges, NoEdge, NodeC, NodeListCons, NodeListNil, O, PtrListCons, PtrListNil, SinOsc(..), SingleEdge, SkolemListNil, Speaker(..), TGain, THighpass, TSinOsc, TSpeaker, UniverseC, create, cursor, destroy, disconnect, loop, makeChangingSceneLoop, oneFrame, param, start, testCompare)
+import Stream8 (class AllEdgesPointToNodes, class AudioUnitEq, class BinEq, class BinSub, class BinSucc, class BinToInt, class Destroy, class Gate, class HasBottomLevelNodes, class Lookup, class NoNodesAreDuplicated, class NoParallelEdges, class UniqueTerminus, type (+:), type (/->), type (/:), AnAudioUnit(..), AudioParameter, AudioParameterTransition(..), AudioUnitRef(..), Bc, Bn, D0, D1, D2, D3, D4, D5, Dup(..), Focus(..), Frame, Gain(..), GraphC, Highpass(..), I, InitialGraph, Instruction(..), ManyEdges, NoEdge, NodeC, NodeListCons, NodeListNil, O, PtrListCons, PtrListNil, SinOsc(..), SingleEdge, SkolemListNil, Speaker(..), TGain, THighpass, TSinOsc, TSpeaker, Universe, UniverseC, create, cursor, destroy, disconnect, loop, makeChangingSceneLoop, oneFrame, param, start, testCompare)
 import Test.Spec (describe, it)
 import Test.Spec.Assertions (shouldEqual)
 import Test.Spec.Reporter (consoleReporter)
@@ -33,28 +32,28 @@ testBinSucc0 :: Proxy (Bc I Bn)
 testBinSucc0 =
   Proxy ::
     forall b.
-    BinSucc (Bc O Bn) b =>
+    BinSucc  (Bc O Bn) b =>
     Proxy b
 
 testBinSucc1 :: Proxy (Bc O (Bc I Bn))
 testBinSucc1 =
   Proxy ::
     forall b.
-    BinSucc (Bc I Bn) b =>
+    BinSucc  (Bc I Bn) b =>
     Proxy b
 
 testBinSucc2 :: Proxy (Bc I (Bc I Bn))
 testBinSucc2 =
   Proxy ::
     forall b.
-    BinSucc (Bc O (Bc I Bn)) b =>
+    BinSucc  (Bc O (Bc I Bn)) b =>
     Proxy b
 
 testBinSucc3 :: Proxy (Bc O (Bc O (Bc I Bn)))
 testBinSucc3 =
   Proxy ::
     forall b.
-    BinSucc (Bc I (Bc I Bn)) b =>
+    BinSucc  (Bc I (Bc I Bn)) b =>
     Proxy b
 
 testBinSub3m0 :: Proxy (Bc I (Bc I Bn))
@@ -86,18 +85,18 @@ testBinSub1 =
     BinSub (Bc I (Bc I Bn)) (Bc I Bn) b =>
     Proxy b
 
-testPtrEq :: Proxy True
-testPtrEq =
+testBinEq :: Proxy True
+testBinEq =
   Proxy ::
     forall tf.
-    PtrEq D0 D0 tf =>
+    BinEq D0 D0 tf =>
     Proxy tf
 
-testPtrEq2 :: Proxy False
-testPtrEq2 =
+testBinEq2 :: Proxy False
+testBinEq2 =
   Proxy ::
     forall tf.
-    PtrEq D0 D1 tf =>
+    BinEq D0 D1 tf =>
     Proxy tf
 
 testGate :: Proxy "a"
@@ -233,7 +232,9 @@ testUniqueTerminus2 =
 
 createTest1 ::
   forall ptr next env skolems head tail acc proof.
-  Succ ptr next =>
+  BinToInt ptr =>
+  BinToInt next =>
+  BinSucc ptr next =>
   Frame env proof (UniverseC ptr (GraphC head tail) skolems acc)
     ( UniverseC next
         (GraphC (NodeC (TSinOsc ptr) NoEdge) (NodeListCons head tail))
@@ -245,8 +246,11 @@ createTest1 = create (SinOsc 440.0)
 
 createTest2 ::
   forall first mid last env skolems head tail acc proof.
-  Succ first mid =>
-  Succ mid last =>
+  BinToInt first =>
+  BinToInt mid =>
+  BinToInt last =>
+  BinSucc first mid =>
+  BinSucc mid last =>
   Frame env proof (UniverseC first (GraphC head tail) skolems acc)
     ( UniverseC last
         (GraphC (NodeC (THighpass first) (SingleEdge mid)) (NodeListCons (NodeC (TSinOsc mid) NoEdge) (NodeListCons head tail)))
@@ -258,8 +262,11 @@ createTest2 = create (Highpass 440.0 1.0 (SinOsc 440.0))
 
 createTest3 ::
   forall first mid last env head tail acc proof.
-  Succ first mid =>
-  Succ mid last =>
+  BinToInt first =>
+  BinToInt mid =>
+  BinToInt last =>
+  BinSucc first mid =>
+  BinSucc mid last =>
   Frame env proof (UniverseC first (GraphC head tail) SkolemListNil acc)
     ( UniverseC last
         ( GraphC
@@ -276,9 +283,13 @@ createTest3 = create (Gain 1.0 (\(gain :: Proxy MyGain) -> gain /\ SinOsc 440.0 
 
 createTest4 ::
   forall first mid0 mid1 last env head tail acc proof.
-  Succ first mid0 =>
-  Succ mid0 mid1 =>
-  Succ mid1 last =>
+  BinToInt first =>
+  BinToInt mid0 =>
+  BinToInt mid1 =>
+  BinToInt last =>
+  BinSucc first mid0 =>
+  BinSucc mid0 mid1 =>
+  BinSucc mid1 last =>
   Frame env proof (UniverseC first (GraphC head tail) SkolemListNil acc)
     ( UniverseC last
         ( GraphC
@@ -478,7 +489,7 @@ opsTest5 = Ix.do
   chpf <- cursor (ot1Type Focus Identity Identity)
   csin <- cursor (ot1Type Identity Focus Identity)
   cursor (ot1Type Identity Identity Focus)
-{-
+
 opsTest6 ::
   Frame Unit Void (UniverseC D0 InitialGraph SkolemListNil Unit)
     ( UniverseC D4
@@ -503,16 +514,41 @@ opsTest6 = Ix.do
   csin <- cursor (ot1Type Identity Focus Identity)
   cgain <- cursor (ot1Type Identity Identity Focus)
   disconnect csin chpf
--}
-{-
-opsTest5 ::
+
+opsTest7 ::
   Frame Unit Void (UniverseC D0 InitialGraph SkolemListNil Unit)
     ( UniverseC D4
         ( GraphC
             (NodeC (TSpeaker D0) (SingleEdge D2))
             ( NodeListCons
                 ( NodeC (TGain D2)
-                    (ManyEdges D2 (PtrListCons D2 (PtrListCons D1 PtrListNil)))
+                    (ManyEdges D2 (PtrListCons D1 PtrListNil))
+                )
+                ( NodeListCons (NodeC (THighpass D3) NoEdge)
+                    (NodeListCons (NodeC (TSinOsc D1) NoEdge) NodeListNil)
+                )
+            )
+        )
+        SkolemListNil
+        Unit
+    )
+    Unit
+opsTest7 = Ix.do
+  ivoid $ create $ ot1Type Identity Identity Identity
+  chpf <- cursor (ot1Type Focus Identity Identity)
+  csin <- cursor (ot1Type Identity Focus Identity)
+  cgain <- cursor (ot1Type Identity Identity Focus)
+  disconnect csin chpf
+  disconnect chpf cgain
+
+opsTest8 :: 
+  Frame Unit Void (UniverseC D0 InitialGraph SkolemListNil Unit)
+    ( UniverseC D4
+        ( GraphC
+            (NodeC (TSpeaker D0) (SingleEdge D2))
+            ( NodeListCons
+                ( NodeC (TGain D2)
+                    (ManyEdges D2 (PtrListCons D1 PtrListNil))
                 )
                 (NodeListCons (NodeC (TSinOsc D1) NoEdge) NodeListNil)
             )
@@ -521,7 +557,7 @@ opsTest5 ::
         Unit
     )
     Unit
-opsTest5 = Ix.do
+opsTest8 = Ix.do
   ivoid $ create $ ot1Type Identity Identity Identity
   chpf <- cursor (ot1Type Focus Identity Identity)
   csin <- cursor (ot1Type Identity Focus Identity)
@@ -529,8 +565,7 @@ opsTest5 = Ix.do
   disconnect csin chpf
   disconnect chpf cgain
   destroy chpf
--}
-{--}
+
 type Time
   = { time :: Number }
 
