@@ -1019,7 +1019,7 @@ makeChangingScene ::
   Scene env proofA
 makeChangingScene a = makeScene' (flip iapplySecond (change a))
 
-makeChangingSceneLoop ::
+loop  ::
   forall env proofA g0 g1 edge a.
   TerminalIdentityEdge g1 edge =>
   Change edge a env g1 =>
@@ -1027,16 +1027,16 @@ makeChangingSceneLoop ::
   a ->
   Frame env proofA g0 g1 Unit ->
   Scene env proofA
-makeChangingSceneLoop a = fix \f -> flip (makeScene' (flip iapplySecond (change a))) f
+loop  a = fix \f -> flip (makeScene' (flip iapplySecond (change a))) f
 
 infixr 6 makeScene as @!>
 
-loop ::
+freeze  ::
   forall env proof g0 g1.
   UniverseIsCoherent g1 =>
   Frame env proof g0 g1 Unit ->
   Scene env proof
-loop = fix \f -> flip (makeScene' identity) f
+freeze  = fix \f -> flip (makeScene' identity) f
 
 unFrame :: forall env proof i o a. Frame env proof i o a -> AudioState env a
 unFrame (Frame state) = state

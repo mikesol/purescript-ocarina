@@ -1,7 +1,6 @@
 module Test.Main where
 
 import Prelude
-
 import Control.Applicative.Indexed (ipure, ivoid)
 import Control.Monad.Indexed.Qualified as Ix
 import Data.Array as A
@@ -14,7 +13,7 @@ import Data.Typelevel.Bool (True, False)
 import Debug.Trace (spy)
 import Effect (Effect)
 import Effect.Aff (launchAff_)
-import Stream8 (class AllEdgesPointToNodes, class AudioUnitEq, class BinEq, class BinSub, class BinSucc, class BinToInt, class Destroy, class Gate, class HasBottomLevelNodes, class Lookup, class NoNodesAreDuplicated, class NoParallelEdges, class UniqueTerminus, type (+:), type (/->), type (/:), AnAudioUnit(..), AudioParameter, AudioParameterTransition(..), AudioUnitRef(..), Bc, Bn, D0, D1, D2, D3, D4, D5, Dup(..), Focus(..), Frame, Gain(..), GraphC, Highpass(..), I, InitialGraph, Instruction(..), ManyEdges, NoEdge, NodeC, NodeListCons, NodeListNil, O, PtrListCons, PtrListNil, SinOsc(..), SingleEdge, SkolemListNil, Speaker(..), TGain, THighpass, TSinOsc, TSpeaker, Universe, UniverseC, create, cursor, destroy, disconnect, freeze , makeChangingSceneLoop, oneFrame, param, start, testCompare)
+import Stream8 (class AllEdgesPointToNodes, class AudioUnitEq, class BinEq, class BinSub, class BinSucc, class BinToInt, class Destroy, class Gate, class HasBottomLevelNodes, class Lookup, class NoNodesAreDuplicated, class NoParallelEdges, class UniqueTerminus, type (+:), type (/->), type (/:), AnAudioUnit(..), AudioParameter, AudioParameterTransition(..), AudioUnitRef(..), Bc, Bn, D0, D1, D2, D3, D4, D5, Dup(..), Focus(..), Frame, Gain(..), GraphC, Highpass(..), I, InitialGraph, Instruction(..), ManyEdges, NoEdge, NodeC, NodeListCons, NodeListNil, O, PtrListCons, PtrListNil, SinOsc(..), SingleEdge, SkolemListNil, Speaker(..), TGain, THighpass, TSinOsc, TSpeaker, Universe, UniverseC, create, cursor, destroy, disconnect, freeze, loop, oneFrame, param, start, testCompare)
 import Test.Spec (describe, it)
 import Test.Spec.Assertions (shouldEqual)
 import Test.Spec.Reporter (consoleReporter)
@@ -32,28 +31,28 @@ testBinSucc0 :: Proxy (Bc I Bn)
 testBinSucc0 =
   Proxy ::
     forall b.
-    BinSucc  (Bc O Bn) b =>
+    BinSucc (Bc O Bn) b =>
     Proxy b
 
 testBinSucc1 :: Proxy (Bc O (Bc I Bn))
 testBinSucc1 =
   Proxy ::
     forall b.
-    BinSucc  (Bc I Bn) b =>
+    BinSucc (Bc I Bn) b =>
     Proxy b
 
 testBinSucc2 :: Proxy (Bc I (Bc I Bn))
 testBinSucc2 =
   Proxy ::
     forall b.
-    BinSucc  (Bc O (Bc I Bn)) b =>
+    BinSucc (Bc O (Bc I Bn)) b =>
     Proxy b
 
 testBinSucc3 :: Proxy (Bc O (Bc O (Bc I Bn)))
 testBinSucc3 =
   Proxy ::
     forall b.
-    BinSucc  (Bc I (Bc I Bn)) b =>
+    BinSucc (Bc I (Bc I Bn)) b =>
     Proxy b
 
 testBinSub3m0 :: Proxy (Bc I (Bc I Bn))
@@ -76,7 +75,6 @@ testBinSub8m6 =
     forall b.
     BinSub (Bc O (Bc O (Bc O (Bc I Bn)))) (Bc O (Bc I (Bc I Bn))) b =>
     Proxy b
-
 
 testBinSub1 :: Proxy (Bc O (Bc I Bn))
 testBinSub1 =
@@ -541,7 +539,7 @@ opsTest7 = Ix.do
   disconnect csin chpf
   disconnect chpf cgain
 
-opsTest8 :: 
+opsTest8 ::
   Frame Unit Void (UniverseC D0 InitialGraph SkolemListNil Unit)
     ( UniverseC D4
         ( GraphC
@@ -593,7 +591,7 @@ main = do
               simpleScene =
                 start unit
                   (ivoid $ create scene0)
-                  freeze 
+                  freeze
 
               (frame0Nodes /\ frame0Edges /\ frame0Instr /\ frame1) = oneFrame simpleScene { time: 0.0 }
 
@@ -618,7 +616,7 @@ main = do
             pure unit
           it "is coherent after change" do
             let
-              simpleScene = start unit (ivoid $ create scene0) (makeChangingSceneLoop scene0)
+              simpleScene = start unit (ivoid $ create scene0) (loop scene0)
 
               (frame0Nodes /\ frame0Edges /\ frame0Instr /\ frame1) = oneFrame simpleScene { time: 0.0 }
 
