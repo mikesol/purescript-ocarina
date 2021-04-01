@@ -1068,6 +1068,7 @@ instance frameFunctor :: Functor (Frame env proof i o) where
 instance frameExtend :: Extend (Frame env proof i o) where
   extend destroy fr@(Frame (x /\ a)) = Frame $ x /\ (a *> pure (destroy fr))
 
+-- AudioState needs to be a monoid so that we can legally perform extract
 instance frameComonad :: Monoid env => Comonad (Frame env proof i o) where
   extract (Frame (x /\ ma)) = evalState ma (fromMaybe mempty x)
 
