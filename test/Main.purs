@@ -2,20 +2,23 @@ module Test.Main where
 
 import Prelude
 
-import Control.Applicative.Indexed (ipure, ivoid)
+import Control.Applicative.Indexed (imap, ipure, ivoid)
+import Control.Extend (duplicate)
 import Control.Monad.Indexed.Qualified as Ix
 import Data.Array as A
 import Data.Either (Either(..))
 import Data.Functor.Indexed (ivoid)
 import Data.Identity (Identity(..))
 import Data.Map as M
+import Data.Monoid.Additive (Additive(..))
 import Data.Set as S
 import Data.Tuple.Nested ((/\), type (/\))
 import Data.Typelevel.Bool (True, False)
 import Debug.Trace (spy)
 import Effect (Effect)
 import Effect.Aff (launchAff_)
-import Stream8 (class AllEdgesPointToNodes, class AudioUnitEq, class BinEq, class BinSub, class BinSucc, class BinToInt, class Destroy, class Gate, class HasBottomLevelNodes, class Lookup, class NoNodesAreDuplicated, class NoParallelEdges, class UniqueTerminus, type (+:), type (/->), type (/:), AnAudioUnit(..), AudioParameter, AudioParameterTransition(..), AudioUnitRef(..), Bc, Bn, D0, D1, D2, D3, D4, D5, Dup(..), Focus(..), Frame, Gain(..), GraphC, Highpass(..), I, InitialGraph, Instruction(..), ManyEdges, NoEdge, NodeC, NodeListCons, NodeListNil, O, PtrListCons, PtrListNil, SinOsc(..), SingleEdge, SkolemListNil, Speaker(..), TGain, THighpass, TSinOsc, TSpeaker, Universe, UniverseC, branch, connect, create, cursor, destroy, disconnect, freeze, getEnv, loop, makeScene, oneFrame, param, start, testCompare)
+import Effect.Class.Console as Log
+import Stream8 (class AllEdgesPointToNodes, class AudioUnitEq, class BinEq, class BinSub, class BinSucc, class BinToInt, class Destroy, class Gate, class HasBottomLevelNodes, class Lookup, class NoNodesAreDuplicated, class NoParallelEdges, class UniqueTerminus, type (+:), type (/->), type (/:), AnAudioUnit(..), AudioParameter, AudioParameterTransition(..), AudioUnitRef(..), Bc, Bn, D0, D1, D2, D3, D4, D5, Dup(..), Focus(..), Frame, Gain(..), GraphC, Highpass(..), I, InitialGraph, Instruction(..), ManyEdges, NoEdge, NodeC, NodeListCons, NodeListNil, O, PtrListCons, PtrListNil, SinOsc(..), SingleEdge, SkolemListNil, Speaker(..), TGain, THighpass, TSinOsc, TSpeaker, Universe, UniverseC, branch, change, connect, create, cursor, destroy, disconnect, freeze, getEnv, loop, makeScene, makeScene', oneFrame, param, start, testCompare)
 import Test.Spec (describe, it)
 import Test.Spec.Assertions (shouldEqual)
 import Test.Spec.Reporter (consoleReporter)
@@ -231,43 +234,44 @@ testUniqueTerminus2 =
     Proxy node
 
 createTest1 ::
-  forall ptr next env skolems head tail acc proof.
+  forall ptr next env skolems head tail proof.
+  Semigroup env =>
   BinToInt ptr =>
   BinToInt next =>
   BinSucc ptr next =>
-  Frame env proof (UniverseC ptr (GraphC head tail) skolems acc)
+  Frame env proof (UniverseC ptr (GraphC head tail) skolems)
     ( UniverseC next
         (GraphC (NodeC (TSinOsc ptr) NoEdge) (NodeListCons head tail))
         skolems
-        acc
     )
     (AudioUnitRef ptr)
 createTest1 = create (SinOsc 440.0)
 
 createTest2 ::
-  forall first mid last env skolems head tail acc proof.
+  forall first mid last env skolems head tail proof.
+  Semigroup env =>
   BinToInt first =>
   BinToInt mid =>
   BinToInt last =>
   BinSucc first mid =>
   BinSucc mid last =>
-  Frame env proof (UniverseC first (GraphC head tail) skolems acc)
+  Frame env proof (UniverseC first (GraphC head tail) skolems)
     ( UniverseC last
         (GraphC (NodeC (THighpass first) (SingleEdge mid)) (NodeListCons (NodeC (TSinOsc mid) NoEdge) (NodeListCons head tail)))
         skolems
-        acc
     )
     (AudioUnitRef first)
 createTest2 = create (Highpass 440.0 1.0 (SinOsc 440.0))
 
 createTest3 ::
-  forall first mid last env head tail acc proof.
+  forall first mid last env head tail proof.
+  Semigroup env =>
   BinToInt first =>
   BinToInt mid =>
   BinToInt last =>
   BinSucc first mid =>
   BinSucc mid last =>
-  Frame env proof (UniverseC first (GraphC head tail) SkolemListNil acc)
+  Frame env proof (UniverseC first (GraphC head tail) SkolemListNil)
     ( UniverseC last
         ( GraphC
             ( NodeC (TGain first)
@@ -276,13 +280,13 @@ createTest3 ::
             (NodeListCons (NodeC (TSinOsc mid) NoEdge) (NodeListCons head tail))
         )
         SkolemListNil
-        acc
     )
     (AudioUnitRef first)
 createTest3 = create (Gain 1.0 (\(gain :: Proxy MyGain) -> gain /\ SinOsc 440.0 /\ unit))
 
 createTest4 ::
-  forall first mid0 mid1 last env head tail acc proof.
+  forall first mid0 mid1 last env head tail proof.
+  Semigroup env =>
   BinToInt first =>
   BinToInt mid0 =>
   BinToInt mid1 =>
@@ -290,7 +294,7 @@ createTest4 ::
   BinSucc first mid0 =>
   BinSucc mid0 mid1 =>
   BinSucc mid1 last =>
-  Frame env proof (UniverseC first (GraphC head tail) SkolemListNil acc)
+  Frame env proof (UniverseC first (GraphC head tail) SkolemListNil)
     ( UniverseC last
         ( GraphC
             ( NodeC (TGain first)
@@ -301,7 +305,6 @@ createTest4 ::
             )
         )
         SkolemListNil
-        acc
     )
     (AudioUnitRef first)
 createTest4 =
@@ -310,8 +313,9 @@ createTest4 =
         gain /\ Highpass 330.0 1.0 (SinOsc 440.0) /\ unit
 
 createTest5 ::
-  forall env head tail acc proof r g.
-  Frame env proof (UniverseC D0 (GraphC head tail) SkolemListNil acc)
+  forall env head tail proof r g.
+  Semigroup env =>
+  Frame env proof (UniverseC D0 (GraphC head tail) SkolemListNil)
     ( UniverseC D3
         ( GraphC
             ( NodeC (TGain D1)
@@ -323,7 +327,6 @@ createTest5 ::
             )
         )
         SkolemListNil
-        acc
     )
     (AudioUnitRef D1)
 createTest5 =
@@ -334,7 +337,7 @@ createTest5 =
 
 --
 opsTest0 ::
-  Frame Unit Void (UniverseC D0 InitialGraph SkolemListNil Unit)
+  Frame Unit Void (UniverseC D0 InitialGraph SkolemListNil)
     ( UniverseC D3
         ( GraphC
             ( NodeC (TGain D1)
@@ -346,7 +349,6 @@ opsTest0 ::
             )
         )
         SkolemListNil
-        Unit
     )
     (AudioUnitRef D1)
 opsTest0 =
@@ -382,7 +384,7 @@ ot1Type f g h =
           )
 
 opsTest1 ::
-  Frame Unit Void (UniverseC D0 InitialGraph SkolemListNil Unit)
+  Frame Unit Void (UniverseC D0 InitialGraph SkolemListNil)
     ( UniverseC D4
         ( GraphC
             (NodeC (TSpeaker D0) (SingleEdge D2))
@@ -396,13 +398,12 @@ opsTest1 ::
             )
         )
         SkolemListNil
-        Unit
     )
     (AudioUnitRef D0)
 opsTest1 = create $ ot1Type Identity Identity Identity
 
 opsTest2 ::
-  Frame Unit Void (UniverseC D0 InitialGraph SkolemListNil Unit)
+  Frame Unit Void (UniverseC D0 InitialGraph SkolemListNil)
     ( UniverseC D4
         ( GraphC
             (NodeC (TSpeaker D0) (SingleEdge D2))
@@ -416,13 +417,12 @@ opsTest2 ::
             )
         )
         SkolemListNil
-        Unit
     )
     (AudioUnitRef D0)
 opsTest2 = create $ ot1Type Focus Identity Identity
 
 opsTest3 ::
-  Frame Unit Void (UniverseC D0 InitialGraph SkolemListNil Unit)
+  Frame Unit Void (UniverseC D0 InitialGraph SkolemListNil)
     ( UniverseC D4
         ( GraphC
             (NodeC (TSpeaker D0) (SingleEdge D2))
@@ -436,7 +436,6 @@ opsTest3 ::
             )
         )
         SkolemListNil
-        Unit
     )
     (AudioUnitRef D3)
 opsTest3 = Ix.do
@@ -444,7 +443,7 @@ opsTest3 = Ix.do
   cursor (ot1Type Focus Identity Identity)
 
 opsTest4 ::
-  Frame Unit Void (UniverseC D0 InitialGraph SkolemListNil Unit)
+  Frame Unit Void (UniverseC D0 InitialGraph SkolemListNil)
     ( UniverseC D4
         ( GraphC
             (NodeC (TSpeaker D0) (SingleEdge D2))
@@ -458,7 +457,6 @@ opsTest4 ::
             )
         )
         SkolemListNil
-        Unit
     )
     (AudioUnitRef D1)
 opsTest4 = Ix.do
@@ -467,7 +465,7 @@ opsTest4 = Ix.do
   cursor (ot1Type Identity Focus Identity)
 
 opsTest5 ::
-  Frame Unit Void (UniverseC D0 InitialGraph SkolemListNil Unit)
+  Frame Unit Void (UniverseC D0 InitialGraph SkolemListNil)
     ( UniverseC D4
         ( GraphC
             (NodeC (TSpeaker D0) (SingleEdge D2))
@@ -481,7 +479,6 @@ opsTest5 ::
             )
         )
         SkolemListNil
-        Unit
     )
     (AudioUnitRef D2)
 opsTest5 = Ix.do
@@ -491,7 +488,7 @@ opsTest5 = Ix.do
   cursor (ot1Type Identity Identity Focus)
 
 opsTest6 ::
-  Frame Unit Void (UniverseC D0 InitialGraph SkolemListNil Unit)
+  Frame Unit Void (UniverseC D0 InitialGraph SkolemListNil)
     ( UniverseC D4
         ( GraphC
             (NodeC (TSpeaker D0) (SingleEdge D2))
@@ -505,7 +502,6 @@ opsTest6 ::
             )
         )
         SkolemListNil
-        Unit
     )
     Unit
 opsTest6 = Ix.do
@@ -516,7 +512,7 @@ opsTest6 = Ix.do
   disconnect csin chpf
 
 opsTest7 ::
-  Frame Unit Void (UniverseC D0 InitialGraph SkolemListNil Unit)
+  Frame Unit Void (UniverseC D0 InitialGraph SkolemListNil)
     ( UniverseC D4
         ( GraphC
             (NodeC (TSpeaker D0) (SingleEdge D2))
@@ -530,7 +526,6 @@ opsTest7 ::
             )
         )
         SkolemListNil
-        Unit
     )
     Unit
 opsTest7 = Ix.do
@@ -542,7 +537,7 @@ opsTest7 = Ix.do
   disconnect chpf cgain
 
 opsTest8 ::
-  Frame Unit Void (UniverseC D0 InitialGraph SkolemListNil Unit)
+  Frame Unit Void (UniverseC D0 InitialGraph SkolemListNil)
     ( UniverseC D4
         ( GraphC
             (NodeC (TSpeaker D0) (SingleEdge D2))
@@ -554,7 +549,6 @@ opsTest8 ::
             )
         )
         SkolemListNil
-        Unit
     )
     Unit
 opsTest8 = Ix.do
@@ -567,7 +561,7 @@ opsTest8 = Ix.do
   destroy chpf
 
 type Time
-  = { time :: Number }
+  = { time :: (Additive Number) }
 
 main :: Effect Unit
 main = do
@@ -575,14 +569,14 @@ main = do
     $ runSpec [ consoleReporter ] do
         describe "simple scene" do
           let
-            scene0 =
+            scene0 ({ time: Additive time' } :: Time) =
               Speaker
                 ( Gain 1.0 \(gain :: Proxy MyGain) ->
                     gain
                       /\ Highpass
                           ( 330.0
-                              /\ \({ time } :: Time) (_ :: Unit) (_ :: AudioParameter) ->
-                                  330.0 + time * 10.0
+                              /\ \(_ :: AudioParameter) ->
+                                  330.0 + time' * 10.0
                           )
                           1.0
                           (SinOsc 440.0)
@@ -591,15 +585,18 @@ main = do
           it "is coherent" do
             let
               simpleScene =
-                start unit
-                  (ivoid $ create scene0)
+                start
+                  ( Ix.do
+                      env <- getEnv
+                      ivoid $ create (scene0 env)
+                  )
                   freeze
 
-              (frame0Nodes /\ frame0Edges /\ frame0Instr /\ frame1) = oneFrame simpleScene { time: 0.0 }
+              (frame0Nodes /\ frame0Edges /\ frame0Instr /\ frame1) = oneFrame simpleScene { time: Additive 0.0 }
 
-              (frame1Nodes /\ frame1Edges /\ frame1Instr /\ frame2) = oneFrame frame1 { time: 0.1 }
+              (frame1Nodes /\ frame1Edges /\ frame1Instr /\ frame2) = oneFrame frame1 { time: Additive 0.1 }
 
-              (frame2Nodes /\ frame2Edges /\ frame2Instr /\ _) = oneFrame frame2 { time: 0.2 }
+              (frame2Nodes /\ frame2Edges /\ frame2Instr /\ _) = oneFrame frame2 { time: Additive 0.2 }
 
               nodeAssertion = M.fromFoldable [ 0 /\ ASpeaker, 1 /\ (AGain (param 1.0)), 2 /\ (AHighpass (param 330.0) (param 1.0)), 3 /\ (ASinOsc (param 440.0)) ]
 
@@ -618,13 +615,29 @@ main = do
             pure unit
           it "is coherent after change" do
             let
-              simpleScene = start unit (ivoid $ create scene0) (loop scene0)
+              simpleScene =
+                start
+                  ( Ix.do
+                      env <- getEnv
+                      ivoid $ create (scene0 env)
+                  )
+                  ( loop
+                      ( const
+                          $ Ix.do
+                              env <- getEnv
+                              ivoid $ change (scene0 env)
+                      )
+                  )
 
-              (frame0Nodes /\ frame0Edges /\ frame0Instr /\ frame1) = oneFrame simpleScene { time: 0.0 }
+              (frame0Nodes /\ frame0Edges /\ frame0Instr /\ frame1) = oneFrame simpleScene { time: Additive 0.0 }
 
-              (frame1Nodes /\ frame1Edges /\ frame1Instr /\ frame2) = oneFrame frame1 { time: 0.1 }
+              (frame1Nodes /\ frame1Edges /\ frame1Instr /\ frame2) = oneFrame frame1 { time: Additive 0.1 }
 
-              (frame2Nodes /\ frame2Edges /\ frame2Instr /\ _) = oneFrame frame2 { time: 0.2 }
+              (frame2Nodes /\ frame2Edges /\ frame2Instr /\ frame3) = oneFrame frame2 { time: Additive 0.2 }
+
+              (frame3Nodes /\ frame3Edges /\ frame3Instr /\ frame4) = oneFrame frame3 { time: Additive 0.3 }
+
+              (frame4Nodes /\ frame4Edges /\ frame4Instr /\ _) = oneFrame frame4 { time: Additive 0.4 }
 
               nodeAssertion i = M.fromFoldable [ 0 /\ ASpeaker, 1 /\ (AGain (param 1.0)), 2 /\ (AHighpass (param $ 330.0 + i) (param 1.0)), 3 /\ (ASinOsc (param 440.0)) ]
 
@@ -634,6 +647,8 @@ main = do
             frame0Nodes `shouldEqual` (nodeAssertion 0.0)
             frame1Nodes `shouldEqual` (nodeAssertion 1.0)
             frame2Nodes `shouldEqual` (nodeAssertion 2.0)
+            frame3Nodes `shouldEqual` (nodeAssertion 3.0)
+            frame4Nodes `shouldEqual` (nodeAssertion 4.0)
             frame0Edges `shouldEqual` edgeAssertion
             frame1Edges `shouldEqual` edgeAssertion
             frame2Edges `shouldEqual` edgeAssertion
@@ -643,14 +658,14 @@ main = do
             pure unit
         describe "branching scene" do
           let
-            scene0 =
+            scene0 ({ time: Additive time' } :: Time) =
               Speaker
                 ( Focus
                     ( Gain 1.0
                         ( Highpass
                             ( 330.0
-                                /\ \({ time } :: Time) (_ :: Unit) (_ :: AudioParameter) ->
-                                    330.0 + time * 10.0
+                                /\ \(_ :: AudioParameter) ->
+                                    330.0 + time' * 10.0
                             )
                             1.0
                             (SinOsc 440.0)
@@ -661,25 +676,49 @@ main = do
           it "branches at a given time" do
             let
               simpleScene =
-                start unit
+                start
                   ( Ix.do
-                      ivoid $ create scene0
                       env <- getEnv
-                      ipure
-                        $ if env.time > 1.0 then
-                            ( Left
+                      ivoid $ create (scene0 env)
+                  )
+                  ( branch
+                      $ const Ix.do
+                          rf <- duplicate (ipure unit)
+                          env <- getEnv
+                          if env.time >= (Additive 1.0) then
+                            ( ipure $ Left
+                                -- this make scene is starting
+                                -- with the context from this new comonad
+                                -- it has no way to grab it from the outer one atm
+                                -- it's not even aware of its existence
+                                -- so when we explode it, we get the monoidal context
+                                -- blech
                                 $ makeScene
                                     ( Ix.do
-                                        gain <- cursor scene0
-                                        sosc <- create (SinOsc 330.0)
+                                        rf
+                                        change (scene0 env)
+                                        gain <- cursor (scene0 env)
+                                        sosc <- create (SinOsc 230.0)
                                         connect sosc gain
                                     )
                                     freeze
                             )
                           else
-                            (Right unit)
+                            (imap Right (ivoid $ change (scene0 env)))
                   )
-                  (branch scene0)
 
-              (frame0Nodes /\ frame0Edges /\ frame0Instr /\ frame1) = oneFrame simpleScene { time: 0.0 }
-            pure unit
+              (frame0Nodes /\ frame0Edges /\ frame0Instr /\ frame1) = oneFrame simpleScene { time: Additive 0.0 }
+
+              (frame1Nodes /\ frame1Edges /\ frame1Instr /\ frame2) = oneFrame frame1 { time: Additive 0.5 }
+
+              (frame2Nodes /\ frame2Edges /\ frame2Instr /\ frame3) = oneFrame frame2 { time: Additive 1.0 }
+
+              (frame3Nodes /\ frame3Edges /\ frame3Instr /\ frame4) = oneFrame frame3 { time: Additive 1.5 }
+
+              nodeAssertion i = [ 0 /\ ASpeaker, 1 /\ (AGain (param 1.0)), 2 /\ (AHighpass (param $ 330.0 + i) (param 1.0)), 3 /\ (ASinOsc (param 440.0)) ]
+
+              edgeAssertion =  [ 0 /\ S.singleton 1, 1 /\ S.fromFoldable [ 1, 2 ], 2 /\ S.singleton 3 ]
+            frame0Nodes `shouldEqual` M.fromFoldable(nodeAssertion 0.0)
+            frame1Nodes `shouldEqual` M.fromFoldable (nodeAssertion 5.0)
+            --frame2Nodes `shouldEqual` M.fromFoldable ([4 /\ (ASinOsc (param 230.0))] <> (nodeAssertion 10.0))
+            frame3Nodes `shouldEqual` M.fromFoldable ([4 /\ (ASinOsc (param 230.0))] <> (nodeAssertion 15.0))
