@@ -1,14 +1,17 @@
 module WAGS.Control.Functions
   ( start
   , makeScene
+  , makeScene'
   , loop
   , branch
   , env
   , freeze
   , (@>)
+  , (@|>)
   ) where
 
 import Prelude
+
 import Control.Applicative.Indexed (ipure)
 import Control.Lazy (fix)
 import Control.Monad.Indexed.Qualified as Ix
@@ -96,6 +99,17 @@ freeze ::
   Frame env proof i u x ->
   Scene env
 freeze = fix (flip compose (imap Right) <<< flip makeScene)
+
+
+makeScene' ::
+  forall env proofA proofB i u a.
+  UniverseIsCoherent u =>
+  Frame env proofA i u a ->
+  (Frame env proofB i u a -> Scene env) ->
+  Scene env
+makeScene' = makeScene <<< imap Right
+
+infixr 6 makeScene' as @|>
 
 env ::
   forall env proof i.

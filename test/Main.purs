@@ -2,7 +2,7 @@ module Test.Main where
 
 import Prelude
 
-import Control.Applicative.Indexed (imap, ipure, ivoid)
+import Control.Applicative.Indexed (imap, ipure)
 import Control.Monad.Indexed.Qualified as Ix
 import Data.Array as A
 import Data.Either (Either(..))
@@ -18,7 +18,7 @@ import Test.Spec.Assertions (shouldEqual)
 import Test.Spec.Reporter (consoleReporter)
 import Test.Spec.Runner (runSpec)
 import Type.Proxy (Proxy)
-import WAGS (AnAudioUnit(..), AudioParameter, AudioParameterTransition(..), Focus(..), Gain(..), Highpass(..), Instruction(..), SinOsc(..), Speaker(..), branch, change, changeAt, create, cursor, env, freeze, loop, oneFrame, param, start, (@>))
+import WAGS (AnAudioUnit(..), AudioParameter, AudioParameterTransition(..), Focus(..), Gain(..), Highpass(..), Instruction(..), SinOsc(..), Speaker(..), branch, change, changeAt, create, cursor, env, freeze, loop, oneFrame, param, start, (@>), (@|>))
 
 testCompare :: Instruction -> Instruction -> Ordering
 testCompare a b = case compare a b of
@@ -72,9 +72,9 @@ main = do
               ( Ix.do
                   start
                   e <- env
-                  imap Right $ create (scene0 e)
+                  create (scene0 e)
               )
-                @> freeze
+                @|> freeze
 
             (frame0Nodes /\ frame0Edges /\ frame0Instr /\ frame1) = oneFrame simpleScene { time: 0.0 }
 
