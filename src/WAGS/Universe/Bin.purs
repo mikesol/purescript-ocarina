@@ -30,6 +30,15 @@ type D6
 type D7
   = (Bc I (Bc I (Bc I Bn)))
 
+type D8
+  = (Bc O (Bc O (Bc O (Bc I Bn))))
+
+type D9
+  = (Bc I (Bc O (Bc O (Bc I Bn))))
+
+type D10
+  = (Bc O (Bc I (Bc O (Bc I Bn))))
+
 data Bin
 
 foreign import data I :: Bin

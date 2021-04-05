@@ -2,23 +2,27 @@ module WAGS.Rebase where
 
 import Prelude
 
-import Control.Monad.State ( modify_)
+import Control.Monad.State (modify_)
+import Prim.TypeError (class Warn, Text)
 import Type.Proxy (Proxy(..))
 import WAGS.Control.Types (Frame(..), AudioState)
-import WAGS.Rendered ( Instruction(..))
+import WAGS.Rendered (Instruction(..))
 import WAGS.Universe.AudioUnit (AudioUnitRef, TGain, THighpass, TSinOsc, TSpeaker)
 import WAGS.Universe.Bin (class BinToInt, PtrListCons, PtrListNil, toInt')
 import WAGS.Universe.EdgeProfile (ManyEdges, NoEdge, SingleEdge)
 import WAGS.Universe.Graph (class GraphToNodeList)
-import WAGS.Universe.Node ( NodeC, NodeListCons, NodeListNil)
+import WAGS.Universe.Node (NodeC, NodeListCons, NodeListNil)
 import WAGS.Universe.Universe (class GetGraph, Universe)
 import WAGS.Validation (class LookupNL, class TerminalIdentityEdge)
 
 
 rebase ::
   forall edgeA iA edgeB iB env proof.
+  Warn (Text "starting rebase") =>
   TerminalIdentityEdge iA edgeA =>
+  Warn (Text "found tieA") =>
   TerminalIdentityEdge iB edgeB =>
+  Warn (Text "found tieB") =>
   Rebase edgeA iA edgeB iB =>
   Proxy iA -> Proxy iB -> Frame env proof iA iB Unit
 rebase iA iB = rebase' (Proxy :: _ edgeA) iA (Proxy :: _ edgeB) iB 
