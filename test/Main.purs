@@ -1,22 +1,19 @@
 module Test.Main where
 
 import Prelude
-import Control.Applicative.Indexed (imap, ipure, ivoid)
-import Control.Extend (duplicate)
+import Control.Applicative.Indexed (ipure)
 import Control.Monad.Indexed.Qualified as Ix
 import Data.Array as A
 import Data.Either (Either(..))
 import Data.Functor.Indexed (ivoid)
 import Data.Identity (Identity(..))
 import Data.Map as M
-import Data.Maybe (Maybe(..))
 import Data.Set as S
 import Data.Tuple.Nested ((/\), type (/\))
 import Data.Typelevel.Bool (True, False)
 import Effect (Effect)
 import Effect.Aff (launchAff_)
-import Effect.Class.Console as Log
-import WAGS (class AllEdgesPointToNodes, class AudioUnitEq, class BinEq, class BinSub, class BinSucc, class BinToInt, class Destroy, class Gate, class HasBottomLevelNodes, class Lookup, class NoNodesAreDuplicated, class NoParallelEdges, class UniqueTerminus, type (+:), type (/->), (@>), type (/:), AnAudioUnit(..), AudioParameter, AudioParameterTransition(..), AudioUnitRef(..), Bc, Bn, D0, D1, D2, D3, D4, D5, Dup(..), Focus(..), Frame, Gain(..), GraphC, Highpass(..), I, InitialGraph, Instruction(..), ManyEdges, NoEdge, NodeC, NodeListCons, NodeListNil, O, PtrListCons, PtrListNil, SinOsc(..), SingleEdge, SkolemListNil, Speaker(..), TGain, THighpass, TSinOsc, TSpeaker, Universe, UniverseC, change, connect, create, cursor, destroy, disconnect, freeze, env, branch, loop, makeScene, oneFrame, param, start, testCompare)
+import WAGS (class AllEdgesPointToNodes, class AudioUnitEq, class BinEq, class BinSub, class BinSucc, class BinToInt, class Gate, class HasBottomLevelNodes, class Lookup, class NoNodesAreDuplicated, class NoParallelEdges, class UniqueTerminus, type (+:), type (/->), type (/:), AnAudioUnit(..), AudioParameter, AudioParameterTransition(..), AudioUnitRef, Bc, Bn, D0, D1, D2, D3, D4, Dup(..), Focus(..), Frame, Gain(..), GraphC, Highpass(..), I, InitialGraph, Instruction(..), ManyEdges, NoEdge, NodeC, NodeListCons, NodeListNil, O, PtrListCons, PtrListNil, SinOsc(..), SingleEdge, SkolemListNil, Speaker(..), TGain, THighpass, TSinOsc, TSpeaker, UniverseC, branch, change, create, cursor, destroy, disconnect, env, freeze, loop, oneFrame, param, start, testCompare, (@>))
 import Test.Spec (describe, it)
 import Test.Spec.Assertions (shouldEqual)
 import Test.Spec.Reporter (consoleReporter)
