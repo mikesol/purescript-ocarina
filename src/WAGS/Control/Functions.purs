@@ -65,8 +65,7 @@ makeScene (Frame m) trans = asScene go
 infixr 6 makeScene as @>
 
 branch ::
-  forall env proofA i u edge a.
-  TerminalIdentityEdge u edge =>
+  forall env proofA i u a.
   UniverseIsCoherent u =>
   Frame env proofA u u (Either (Frame env proofA i u a -> Scene env) (a -> Frame env proofA u u a)) ->
   Frame env proofA i u a ->
