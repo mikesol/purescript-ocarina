@@ -9,10 +9,10 @@ import Data.Either (Either(..))
 import Data.Functor.Indexed (ivoid)
 import Data.Identity (Identity(..))
 import Data.Map as M
+import Data.Maybe (Maybe(..))
 import Data.Set as S
 import Data.Tuple.Nested ((/\), type (/\))
 import Data.Typelevel.Bool (True, False)
-import Debug.Trace (spy)
 import Effect (Effect)
 import Effect.Aff (launchAff_)
 import Effect.Class.Console as Log
@@ -696,36 +696,28 @@ main = do
                   ivoid $ create (scene0 e)
                   ipure $ Right unit
               )
-                @> ( \im ->
-                      let
-                        cont =
-                          ( loop
-                              ( const
-                                  $ Ix.do
-                                      e <- env
-                                      ivoid $ change (scene1 e)
-                              )
-                          )
-                            im
+                @> ( let
+                      cont =
+                        ( loop
+                            ( const
+                                $ Ix.do
+                                    e <- env
+                                    ivoid $ change (scene1 e)
+                            )
+                        )
 
-                        split = Ix.do
-                          { time } <- env
-                          let
-                            _______________ = spy "time" time
-                          if time < 0.3 then
-                            ipure $ Right unit
-                          else
-                            ipure $ Left cont
-                      in
-                        -- cont
-                        branch
-                          ( const
-                              $ Ix.do
-                                  e <- env
-                                  ivoid $ change (scene0 e)
-                          )
-                          split
-                          im
+                      split = Ix.do
+                        { time } <- env
+                        ipure $ if time < 0.3 then Nothing else Just cont
+                    in
+                      -- cont
+                      branch
+                        ( const
+                            $ Ix.do
+                                e <- env
+                                ivoid $ change (scene0 e)
+                        )
+                        split
                   )
 
             (frame0Nodes /\ frame0Edges /\ frame0Instr /\ frame1) = oneFrame simpleScene { time: 0.0 }

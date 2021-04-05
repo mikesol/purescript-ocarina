@@ -993,17 +993,17 @@ branch ::
   TerminalIdentityEdge u edge =>
   UniverseIsCoherent u =>
   (a -> Frame env proofA u u a) ->
-  Frame env proofA u u (Either (Scene env) Unit) ->
+  Frame env proofA u u (Maybe (Frame env proofA i u a -> Scene env)) ->
   Frame env proofA i u a ->
   Scene env
 branch fa mch m =
   makeScene
     ( Ix.do
         r <- m
-        lr <- mch
-        case lr of
-          Left l -> ipure $ Left l
-          Right _ -> imap Right (fa r)
+        mbe <- mch
+        case mbe of
+          Just l -> ipure $ Left (l m)
+          Nothing -> imap Right (fa r)
     )
     (branch fa mch)
 
