@@ -1,35 +1,26 @@
 module Stream8 where
 
 import Prelude
-
-import Control.Applicative.Indexed (class IxApplicative, iapplyFirst, iapplySecond, imap, ipure)
+import Control.Applicative.Indexed (class IxApplicative, ipure)
 import Control.Apply.Indexed (class IxApply)
-import Control.Bind.Indexed (class IxBind, ibind, ibindFlipped)
-import Control.Comonad (class Comonad, extract)
-import Control.Extend (class Extend)
-import Control.Lazy (fix)
+import Control.Bind.Indexed (class IxBind, ibind)
 import Control.Monad.Indexed (class IxMonad)
 import Control.Monad.Indexed.Qualified as Ix
-import Control.Monad.State (State, StateT(..), evalState, execState, get, gets, modify, modify_, runState, withState)
-import Data.Either (Either(..), either)
-import Data.Functor.Indexed (class IxFunctor)
+import Control.Monad.Reader (ReaderT, ask, runReaderT)
+import Control.Monad.State (State, gets, modify_, put, runState)
+import Data.Either (Either(..))
+import Data.Functor.Indexed (class IxFunctor, imap)
 import Data.Generic.Rep (class Generic)
 import Data.Identity (Identity(..))
 import Data.Int.Bits (shl)
 import Data.Map as M
-import Data.Maybe (Maybe(..), fromMaybe, isJust, maybe)
-import Data.Monoid.Additive (Additive(..))
-import Data.Monoid.Endo (Endo(..))
-import Data.Newtype (unwrap, wrap)
-import Data.Profunctor (lcmap)
-import Data.Semigroup.Last (Last(..))
+import Data.Maybe (Maybe(..), isJust, maybe)
 import Data.Set (Set)
 import Data.Set as S
 import Data.Show.Generic (genericShow)
 import Data.Tuple (Tuple(..), fst, snd)
 import Data.Tuple.Nested (type (/\), (/\))
 import Data.Typelevel.Bool (class And, False, True)
-import Main3 (a)
 import Prim.TypeError (class Warn, Above, Quote, Text)
 import Type.Proxy (Proxy(..))
 import Unsafe.Coerce (unsafeCoerce)
@@ -923,36 +914,34 @@ testCompare a b = case compare a b of
   EQ -> compare (show a) (show b)
   x -> x
 
-type AudioState' env
-  = { env :: env
-    , currentIdx :: Additive Int
+type AudioState'
+  = { currentIdx :: Int
     , instructions :: Array Instruction
-    , internalNodes :: M.SemigroupMap Int (Last AnAudioUnit)
-    , internalEdges :: M.SemigroupMap Int (Set Int)
+    , internalNodes :: M.Map Int (AnAudioUnit)
+    , internalEdges :: M.Map Int (Set Int)
     }
 
-frame = Tuple mempty
-
 type AudioState env a
-  = Tuple (Maybe (AudioState' env)) (State (AudioState' env) a)
+  = ReaderT env (State (AudioState')) a
 
 newtype Frame (env :: Type) (proof :: Type) (iu :: Universe) (ou :: Universe) (a :: Type)
   = Frame (AudioState env a)
 
 data Frame0
 
-type InitialUniverse = UniverseC D0 InitialGraph SkolemListNil
+type InitialUniverse
+  = UniverseC D0 InitialGraph SkolemListNil
 
-type InitialFrame env og a
-  = Frame env Frame0 InitialUniverse og a
+type InitialFrame env a
+  = Frame env Frame0 InitialUniverse InitialUniverse a
 
-foreign import data Scene :: Type -> Type -> Type
+foreign import data Scene :: Type -> Type
 
---type role Scene representational representational
-asScene :: forall env proof. (env -> M.Map Int AnAudioUnit /\ M.Map Int (Set Int) /\ Array Instruction /\ (Scene env proof)) -> Scene env proof
+--type role Scene representational
+asScene :: forall env. (env -> M.Map Int AnAudioUnit /\ M.Map Int (Set Int) /\ Array Instruction /\ (Scene env)) -> Scene env
 asScene = unsafeCoerce
 
-oneFrame :: forall env proof. Scene env proof -> env -> M.Map Int AnAudioUnit /\ M.Map Int (Set Int) /\ Array Instruction /\ (Scene env proof)
+oneFrame :: forall env proof. Scene env -> env -> M.Map Int AnAudioUnit /\ M.Map Int (Set Int) /\ Array Instruction /\ (Scene env)
 oneFrame = unsafeCoerce
 
 instance universeIsCoherent ::
@@ -963,129 +952,95 @@ instance universeIsCoherent ::
 class UniverseIsCoherent (u :: Universe) where
   assertCoherence :: forall env proof i x. Frame env proof i u x -> Unit
 
-start ::
-  forall env g0 a.
-  UniverseIsCoherent g0 =>
-  InitialFrame env g0 a ->
-  (forall proof. Frame env proof g0 g0 a -> Scene env proof) ->
-  Scene env Frame0
-start (fr@(Frame (_ /\ f))) trans = asScene go
-  where
-  go env =
-    let
-      a /\ os = runState f (initialAudioState env)
-
-      scene = trans $ Frame $ Tuple (Just os) (pure a)
-    in
-      (map unwrap $ unwrap os.internalNodes) /\ (unwrap os.internalEdges) /\ os.instructions /\ scene
-
-infixr 6 start as @@!>
+start :: forall env. InitialFrame env Unit
+start = Frame (pure unit)
 
 makeScene ::
   forall env proofA proofB g0 g1 a.
-  Monoid env =>
   UniverseIsCoherent g1 =>
-  Frame env proofA g0 g1 a ->
-  (Frame env proofB g0 g1 a -> Scene env proofB) ->
-  Scene env proofA
-makeScene (Frame (x /\ stateM)) trans = asScene go
+  Frame env proofA g0 g1 (Either (Scene env) a) ->
+  (Frame env proofB g0 g1 a -> Scene env) ->
+  Scene env
+makeScene (Frame m) trans = asScene go
   where
-  go env =
+  go ev =
     let
-      initialSt = fromMaybe mempty x
+      step1 = runReaderT m ev
 
-      a /\ os = runState stateM (initialSt { env = env, instructions = [] })
-
-      scene = trans $ Frame $ Tuple (Just os) (pure a)
+      Tuple outcome newState = runState step1 initialAudioState
     in
-      (map unwrap $ unwrap os.internalNodes) /\ (unwrap os.internalEdges) /\ os.instructions /\ ((unsafeCoerce :: Scene env proofB -> Scene env proofA) scene)
-
-makeScene' ::
-  forall env proofA proofB g0 g1 a.
-  Monoid env =>
-  UniverseIsCoherent g1 =>
-  (Proxy (env /\ (Proxy g0) /\ (Proxy g1))) ->
-  Frame env proofA g0 g1 a ->
-  (Frame env proofB g0 g1 a -> Scene env proofB) ->
-  Scene env proofA
-makeScene' _ = makeScene
+      case outcome of
+        Left s -> oneFrame s ev
+        Right r ->
+          newState.internalNodes /\ newState.internalEdges /\ newState.instructions
+            /\ ( trans
+                  $ Frame do
+                      put $ newState { instructions = [] }
+                      pure r
+              )
 
 loop ::
-  forall env proofA u edge a.
-  Monoid env =>
+  forall env proofA i u edge a.
   TerminalIdentityEdge u edge =>
   UniverseIsCoherent u =>
   (a -> Frame env proofA u u a) ->
-  Frame env proofA u u a ->
-  Scene env proofA
-loop fa ma = makeScene (ibind ma fa) (loop fa) -- (\x -> loop fa (ibind x fa))
+  Frame env proofA i u a ->
+  Scene env
+loop fa ma = makeScene (imap Right $ ibind ma fa) (loop fa)
 
 branch ::
-  forall env proofA u edge a.
-  Monoid env =>
+  forall env proofA i u edge a.
   TerminalIdentityEdge u edge =>
   UniverseIsCoherent u =>
-  (a -> Frame env proofA u u (Either (Scene env proofA) a)) ->
-  Frame env proofA u u a ->
-  Scene env proofA
-branch a b =
-  let
-    m = Ix.do
-          v <- b
-          leftOrRight <- (a v)
-          case leftOrRight of
-            Left scene -> ipure scene
-            Right c ->  ipure $ branch a b
-  in
-    makeScene m extract
+  (a -> Frame env proofA u u a) ->
+  Frame env proofA u u (Either (Scene env) Unit) ->
+  Frame env proofA i u a ->
+  Scene env
+branch fa mch m =
+  makeScene
+    ( Ix.do
+        r <- m
+        lr <- mch
+        case lr of
+          Left l -> ipure $ Left l
+          Right _ -> imap Right (fa r)
+    )
+    (branch fa mch)
 
---loop a b = makeScene' (\x -> iapplySecond x (change a)) b (loop a)
-infixr 6 makeScene as @!>
+infixr 6 makeScene as @>
 
 freeze ::
   forall env proof g0 g1.
-  Monoid env =>
   UniverseIsCoherent g1 =>
   Frame env proof g0 g1 Unit ->
-  Scene env proof
-freeze = fix \f -> flip makeScene f
+  Scene env
+freeze s = makeScene (imap Right s) freeze
 
 unFrame :: forall env proof i o a. Frame env proof i o a -> AudioState env a
 unFrame (Frame state) = state
 
-initialAudioState :: forall env. env -> AudioState' env
-initialAudioState env =
-  { env: env
-  , currentIdx: mempty
-  , instructions: mempty
-  , internalNodes: mempty
-  , internalEdges: mempty
+initialAudioState :: AudioState'
+initialAudioState =
+  { currentIdx: 0
+  , instructions: []
+  , internalNodes: M.empty
+  , internalEdges: M.empty
   }
 
-instance frameFunctor :: Functor (Frame env proof i o) where
-  map f (Frame (x /\ m)) = Frame (x /\ (f <$> m))
-
-instance frameExtend :: Extend (Frame env proof i o) where
-  extend destroy fr@(Frame (x /\ a)) = Frame $ x /\ (a *> pure (destroy fr))
-
--- AudioState needs to be a monoid so that we can legally perform extract
-instance frameComonad :: Monoid env => Comonad (Frame env proof i o) where
-  extract (Frame (x /\ ma)) = evalState ma (fromMaybe mempty x)
-
 instance frameIxFunctor :: IxFunctor (Frame env proof) where
-  imap f (Frame (x /\ a)) = Frame (x /\ (f <$> a))
+  imap f (Frame (a)) = Frame (f <$> a)
 
-instance frameIxApplicative :: Semigroup env => IxApply (Frame env proof) where
-  iapply (Frame (y /\ f)) (Frame (z /\ a)) = Frame ((y <> z) /\ (f <*> a))
+instance frameIxApplicative :: IxApply (Frame env proof) where
+  iapply (Frame (f)) (Frame (a)) = Frame ((f <*> a))
 
-instance frameIxApply :: Semigroup env => IxApplicative (Frame env proof) where
-  ipure a = Frame $ frame (pure a)
+instance frameIxApply :: IxApplicative (Frame env proof) where
+  ipure a = Frame $ (pure a)
 
 -- we ignore anything trying to write over x
-instance frameIxBind :: Semigroup env => IxBind (Frame env proof) where
-  ibind (Frame (x /\ monad)) function = Frame (x /\ (monad >>= (snd <<< unFrame <<< function)))
+instance frameIxBind :: IxBind (Frame env proof) where
+  ibind (Frame (monad)) function = Frame ((monad >>= (unFrame <<< function)))
 
-instance frameIxMonad :: Semigroup env => IxMonad (Frame env proof)
+instance frameIxMonad :: IxMonad (Frame env proof)
 
 class IxSpy m i o a where
   ixspy :: m i o a -> m i o a
@@ -1233,35 +1188,32 @@ instance asEdgeProfileTupl :: EdgeListable x y => AsEdgeProfile (Tuple (AudioUni
   getPointers (Tuple (AudioUnitRef i) el) = let PtrArr o = getPointers' el in PtrArr ([ i ] <> o)
 
 class Create (a :: Type) (i :: Universe) (o :: Universe) (x :: Type) | a i -> o x where
-  create :: forall env proof. Semigroup env => a -> Frame env proof i o x
+  create :: forall env proof. a -> Frame env proof i o x
 
 creationStep ::
   forall env g.
-  Semigroup env =>
   CreationInstructions g =>
   g ->
   AudioState env Int
-creationStep g =
-  frame do
-    currentIdx <- unwrap <$> gets _.currentIdx
-    let
-      renderable /\ internal = creationInstructions currentIdx g
-    modify_
-      ( \i ->
-          i
-            { currentIdx = Additive (currentIdx + 1)
-            , internalNodes = wrap (M.insert currentIdx (Last internal) $ unwrap i.internalNodes)
-            , instructions = i.instructions <> renderable
-            }
-      )
-    pure currentIdx
+creationStep g = do
+  currentIdx <- gets _.currentIdx
+  let
+    renderable /\ internal = creationInstructions currentIdx g
+  modify_
+    ( \i ->
+        i
+          { currentIdx = (currentIdx + 1)
+          , internalNodes = (M.insert currentIdx (internal) i.internalNodes)
+          , instructions = i.instructions <> renderable
+          }
+    )
+  pure currentIdx
 
 type ProxyCC skolem ptr innerTerm i o
   = Proxy (skolem /\ ptr /\ innerTerm /\ i /\ o)
 
 createAndConnect ::
   forall env proof g (ptr :: BinL) skolem c (i :: Universe) (o :: Universe) innerTerm eprof.
-  Semigroup env =>
   GetSkolemizedFunctionFromAU g skolem c =>
   AsEdgeProfile innerTerm eprof =>
   CreationInstructions g =>
@@ -1271,10 +1223,10 @@ createAndConnect ::
   Frame env proof i o Int
 createAndConnect _ g =
   Frame
-    $ frame do
+    $ do
         idx <- cs
         let
-          (Frame (_ /\ mc)) =
+          (Frame (mc)) =
             (create :: c -> Frame env proof i o innerTerm)
               ( ((getSkolemizedFunctionFromAU :: g -> (Proxy skolem -> c)) g)
                   Proxy
@@ -1286,7 +1238,7 @@ createAndConnect _ g =
           ( \i ->
               i
                 { internalEdges =
-                  wrap (M.insertWith S.union idx (S.fromFoldable o) $ unwrap i.internalEdges)
+                  (M.insertWith S.union idx (S.fromFoldable o) i.internalEdges)
                 , instructions =
                   i.instructions
                     <> map (flip ConnectXToY idx) o
@@ -1294,7 +1246,7 @@ createAndConnect _ g =
           )
         pure idx
   where
-  _ /\ cs = creationStep g
+  cs = creationStep g
 
 data Focus a
   = Focus a
@@ -1302,16 +1254,16 @@ data Focus a
 -- end of the line in tuples
 instance createUnit ::
   Create Unit u u Unit where
-  create = Frame <<< frame <<< pure
+  create = Frame <<< pure
 
 instance createTuple ::
   (Create x u0 u1 x', Create y u1 u2 y') =>
   Create (x /\ y) u0 u2 (x' /\ y') where
-  create (x /\ y) = (Frame <<< frame) $ Tuple <$> x' <*> y'
+  create (x /\ y) = (Frame) $ Tuple <$> x' <*> y'
     where
-    Frame (_ /\ x') = (create :: forall env proof. Semigroup env => x -> Frame env proof u0 u1 x') x
+    Frame (x') = (create :: forall env proof. x -> Frame env proof u0 u1 x') x
 
-    Frame (_ /\ y') = (create :: forall env proof. Semigroup env => y -> Frame env proof u1 u2 y') y
+    Frame (y') = (create :: forall env proof. y -> Frame env proof u1 u2 y') y
 
 instance createIdentity :: Create x i o r => Create (Identity x) i o r where
   create (Identity x) = create x
@@ -1328,7 +1280,7 @@ instance createProxy ::
     (UniverseC next graph skolems)
     (UniverseC next graph skolems)
     (AudioUnitRef ptr) where
-  create _ = Frame $ frame (pure $ AudioUnitRef $ toInt' (Proxy :: Proxy ptr))
+  create _ = Frame $ (pure $ AudioUnitRef $ toInt' (Proxy :: Proxy ptr))
 
 instance createDup ::
   ( SkolemNotYetPresent skolem skolems
@@ -1358,7 +1310,6 @@ instance createDup ::
     Frame x =
       ( create ::
           forall env proof.
-          Semigroup env =>
           a ->
           Frame env proof
             (UniverseC ptr graphi skolems)
@@ -1370,7 +1321,6 @@ instance createDup ::
     Frame y =
       ( create ::
           forall env proof.
-          Semigroup env =>
           b ->
           Frame env proof
             (UniverseC midptr graphm (SkolemListCons (SkolemPairC skolem ptr) skolems))
@@ -1395,7 +1345,7 @@ instance createSinOsc ::
         skolems
     )
     (AudioUnitRef ptr) where
-  create = Frame <<< (map <<< map) AudioUnitRef <<< creationStep
+  create = Frame <<< (map) AudioUnitRef <<< creationStep
 
 instance createHighpass ::
   ( InitialVal a
@@ -1424,7 +1374,7 @@ instance createHighpass ::
     )
     (AudioUnitRef ptr) where
   create =
-    Frame <<< (map <<< map) AudioUnitRef <<< unFrame
+    Frame <<< (map) AudioUnitRef <<< unFrame
       <<< createAndConnect (Proxy :: ProxyCC skolem (Proxy ptr) term (Proxy (UniverseC next graphi skolemsInternal)) (Proxy (UniverseC outptr grapho skolemsInternal)))
 
 instance createGain ::
@@ -1455,7 +1405,7 @@ instance createGain ::
     )
     (AudioUnitRef ptr) where
   create =
-    Frame <<< (map <<< map) AudioUnitRef <<< unFrame
+    Frame <<< (map) AudioUnitRef <<< unFrame
       <<< (createAndConnect (Proxy :: ProxyCC skolem (Proxy ptr) term (Proxy (UniverseC next graphi skolemsInternal)) (Proxy (UniverseC outptr grapho skolemsInternal))))
 
 -- toSkolemizedFunction :: a -> (Proxy skolem -> b)
@@ -1481,7 +1431,7 @@ instance createSpeaker ::
     )
     (AudioUnitRef ptr) where
   create =
-    Frame <<< (map <<< map) AudioUnitRef <<< unFrame
+    Frame <<< (map) AudioUnitRef <<< unFrame
       <<< (createAndConnect (Proxy :: ProxyCC DiscardableSkolem (Proxy ptr) term (Proxy (UniverseC next graphi skolems)) (Proxy (UniverseC outptr grapho skolems))))
 
 class TerminalNode (u :: Universe) (ptr :: Ptr) | u -> ptr
@@ -1500,14 +1450,13 @@ instance terminalIdentityEdge :: (TerminalNode i ptr) => TerminalIdentityEdge i 
 
 change ::
   forall edge a i env proof.
-  Semigroup env =>
   TerminalIdentityEdge i edge =>
   Change edge a i =>
   a -> Frame env proof i i Unit
 change = change' (Proxy :: _ edge)
 
 class Change (p :: EdgeProfile) (a :: Type) (o :: Universe) where
-  change' :: forall env proof. Semigroup env => Proxy p -> a -> Frame env proof o o Unit
+  change' :: forall env proof. Proxy p -> a -> Frame env proof o o Unit
 
 class ModifyRes (tag :: Type) (p :: Ptr) (i :: Node) (mod :: NodeList) (plist :: EdgeProfile) | tag p i -> mod plist
 
@@ -1535,7 +1484,6 @@ instance modify :: (GraphToNodeList ig il, Modify' tag p il mod nextP, AssertSin
 
 changeAudioUnit ::
   forall g env proof acc (inuniv :: Universe) (p :: BinL) (nextP :: EdgeProfile) univ.
-  Semigroup env =>
   GetAccumulator inuniv acc =>
   ChangeInstructions g =>
   BinToInt p =>
@@ -1543,17 +1491,17 @@ changeAudioUnit ::
   Proxy ((Proxy p) /\ acc /\ (Proxy nextP) /\ Proxy inuniv) -> g -> Frame env proof univ inuniv Unit
 changeAudioUnit _ g =
   Frame
-    $ frame do
+    $ do
         let
           ptr = toInt' (Proxy :: _ p)
-        anAudioUnit' <- M.lookup ptr <<< unwrap <$> gets _.internalNodes
+        anAudioUnit' <- M.lookup ptr <$> gets _.internalNodes
         case anAudioUnit' of
-          Just (Last anAudioUnit) -> case changeInstructions ptr g anAudioUnit of
+          Just (anAudioUnit) -> case changeInstructions ptr g anAudioUnit of
             Just (instr /\ au) ->
               modify_
                 ( \i ->
                     i
-                      { internalNodes = wrap $ M.insert ptr (Last au) $ unwrap i.internalNodes
+                      { internalNodes = M.insert ptr (au) i.internalNodes
                       , instructions = i.instructions <> instr
                       }
                 )
@@ -1562,11 +1510,11 @@ changeAudioUnit _ g =
 
 instance changeNoEdge ::
   Change NoEdge g inuniv where
-  change' _ _ = Frame $ frame (pure unit)
+  change' _ _ = Frame $ (pure unit)
 
 instance changeSkolem ::
   Change (SingleEdge p) (Proxy skolem) inuniv where
-  change' _ _ = Frame $ frame (pure unit)
+  change' _ _ = Frame $ (pure unit)
 
 instance changeIdentity :: Change (SingleEdge p) x inuniv => Change (SingleEdge p) (Identity x) inuniv where
   change' p (Identity x) = change' p x
@@ -1580,13 +1528,13 @@ instance changeMany2 ::
   ) =>
   Change (ManyEdges p (PtrListCons a b)) (x /\ y) inuniv where
   change' _ (x /\ y) = Ix.do
-    (change' :: forall env proof. Semigroup env => Proxy (SingleEdge p) -> x -> Frame env proof inuniv inuniv Unit) Proxy x
-    (change' :: forall env proof. Semigroup env => Proxy (ManyEdges a b) -> y -> Frame env proof inuniv inuniv Unit) Proxy y
+    (change' :: forall env proof. Proxy (SingleEdge p) -> x -> Frame env proof inuniv inuniv Unit) Proxy x
+    (change' :: forall env proof. Proxy (ManyEdges a b) -> y -> Frame env proof inuniv inuniv Unit) Proxy y
 
 instance changeMany1 ::
   Change (SingleEdge p) a inuniv =>
   Change (ManyEdges p PtrListNil) (a /\ Unit) inuniv where
-  change' _ (a /\ _) = (change' :: forall env proof. Semigroup env => Proxy (SingleEdge p) -> a -> Frame env proof inuniv inuniv Unit) Proxy a
+  change' _ (a /\ _) = (change' :: forall env proof. Proxy (SingleEdge p) -> a -> Frame env proof inuniv inuniv Unit) Proxy a
 
 instance changeSinOsc ::
   ( GetAccumulator inuniv acc
@@ -1614,7 +1562,7 @@ instance changeHighpass ::
     in
       Ix.do
         changeAudioUnit (Proxy :: Proxy (Proxy p /\ acc /\ (Proxy nextP) /\ Proxy inuniv)) (Highpass a b c)
-        (change' :: forall env proof. Semigroup env => (Proxy nextP) -> c -> Frame env proof inuniv inuniv Unit) Proxy c
+        (change' :: forall env proof. (Proxy nextP) -> c -> Frame env proof inuniv inuniv Unit) Proxy c
 
 instance changeDup ::
   ( Create
@@ -1635,8 +1583,8 @@ instance changeDup ::
   ) =>
   Change (SingleEdge p) (Dup a (Proxy skolem -> b)) inuniv where
   change' _ (Dup a f) = Ix.do
-    (change' :: forall env proof. Semigroup env => (Proxy (SingleEdge p)) -> b -> Frame env proof inuniv inuniv Unit) Proxy (f Proxy)
-    (change' :: forall env proof. Semigroup env => (Proxy (SingleEdge continuation)) -> a -> Frame env proof inuniv inuniv Unit) Proxy a
+    (change' :: forall env proof. (Proxy (SingleEdge p)) -> b -> Frame env proof inuniv inuniv Unit) Proxy (f Proxy)
+    (change' :: forall env proof. (Proxy (SingleEdge continuation)) -> a -> Frame env proof inuniv inuniv Unit) Proxy a
 
 instance changeGain ::
   ( GetAccumulator inuniv acc
@@ -1654,7 +1602,7 @@ instance changeGain ::
     in
       Ix.do
         changeAudioUnit (Proxy :: Proxy (Proxy p /\ acc /\ (Proxy nextP) /\ Proxy inuniv)) (Gain a b)
-        (change' :: forall env proof. Semigroup env => (Proxy nextP) -> b -> Frame env proof inuniv inuniv Unit) Proxy b
+        (change' :: forall env proof. (Proxy nextP) -> b -> Frame env proof inuniv inuniv Unit) Proxy b
 
 instance changeSpeaker ::
   ( GetAccumulator inuniv acc
@@ -1671,12 +1619,11 @@ instance changeSpeaker ::
     in
       Ix.do
         changeAudioUnit (Proxy :: Proxy (Proxy p /\ acc /\ (Proxy nextP) /\ Proxy inuniv)) (Speaker a)
-        (change' :: forall env proof. Semigroup env => (Proxy nextP) -> a -> Frame env proof inuniv inuniv Unit) Proxy a
+        (change' :: forall env proof. (Proxy nextP) -> a -> Frame env proof inuniv inuniv Unit) Proxy a
 
 --------------------- getters
 cursor ::
   forall edge a x i env proof p.
-  Semigroup env =>
   TerminalIdentityEdge i edge =>
   Cursor edge a i p =>
   --Warn (Text "cret" ^^ Quote (Proxy p)) =>
@@ -1685,10 +1632,10 @@ cursor ::
 cursor = cursor' (Proxy :: _ edge)
 
 class Cursor (p :: EdgeProfile) (a :: Type) (o :: Universe) (ptr :: Ptr) | p a o -> ptr where
-  cursor' :: forall env proof. Semigroup env => Proxy p -> a -> Frame env proof o o (AudioUnitRef ptr)
+  cursor' :: forall env proof. Proxy p -> a -> Frame env proof o o (AudioUnitRef ptr)
 
 instance cursorRecurse :: (BinToInt head, CursorI p a o (PtrListCons head PtrListNil)) => Cursor p a o head where
-  cursor' _ _ = Frame $ frame (pure $ AudioUnitRef (toInt' (Proxy :: Proxy head)))
+  cursor' _ _ = Frame $ (pure $ AudioUnitRef (toInt' (Proxy :: Proxy head)))
 
 class CursorRes (tag :: Type) (p :: Ptr) (i :: Node) (plist :: EdgeProfile) | tag p i -> plist
 
@@ -1811,16 +1758,16 @@ instance addPointerToNodesNil :: AddPointerToNodes a b NodeListNil NodeListNil
 instance addPointerToNodesCons :: (AddPointerToNode a b head headRes, AddPointerToNodes a b tail tailRes) => AddPointerToNodes a b (NodeListCons head tail) (NodeListCons headRes tailRes)
 
 class Connect (from :: Ptr) (to :: Ptr) (i :: Universe) (o :: Universe) | from to i -> o where
-  connect :: forall env proof. Semigroup env => AudioUnitRef from -> AudioUnitRef to -> Frame env proof i o Unit
+  connect :: forall env proof. AudioUnitRef from -> AudioUnitRef to -> Frame env proof i o Unit
 
 instance connectAll :: (BinToInt from, BinToInt to, GraphToNodeList graphi nodeListI, AddPointerToNodes from to nodeListI nodeListO, GraphToNodeList grapho nodeListO) => Connect from to (UniverseC ptr graphi skolems) (UniverseC ptr grapho skolems) where
   connect (AudioUnitRef fromI) (AudioUnitRef toI) =
     Frame
-      $ frame do
+      $ do
           modify_
             ( \i ->
                 i
-                  { internalEdges = wrap (M.insertWith S.union toI (S.singleton fromI) $ unwrap i.internalEdges)
+                  { internalEdges = (M.insertWith S.union toI (S.singleton fromI) i.internalEdges)
                   , instructions = i.instructions <> [ ConnectXToY fromI toI ]
                   }
             )
@@ -1854,7 +1801,7 @@ instance removePointerFromNodesCons ::
   RemovePointerFromNodes a b (NodeListCons head tail) (NodeListCons headRes tailRes)
 
 class Disconnect (from :: Ptr) (to :: Ptr) (i :: Universe) (o :: Universe) | from to i -> o where
-  disconnect :: forall env proof. Semigroup env => AudioUnitRef from -> AudioUnitRef to -> Frame env proof i o Unit
+  disconnect :: forall env proof. AudioUnitRef from -> AudioUnitRef to -> Frame env proof i o Unit
 
 -- Warn (Text "dcon" ^^ Quote (Proxy from) ^^ Quote (Proxy to))
 instance disconnector ::
@@ -1867,11 +1814,11 @@ instance disconnector ::
   Disconnect from to (UniverseC ptr graphi skolems) (UniverseC ptr grapho skolems) where
   disconnect (AudioUnitRef fromI) (AudioUnitRef toI) =
     Frame
-      $ frame do
+      $ do
           modify_
             ( \i ->
                 i
-                  { internalEdges = wrap $ M.insertWith S.difference toI (S.singleton fromI) (unwrap i.internalEdges)
+                  { internalEdges = M.insertWith S.difference toI (S.singleton fromI) (i.internalEdges)
                   , instructions = i.instructions <> [ DisconnectXFromY fromI toI ]
                   }
             )
@@ -1911,7 +1858,7 @@ instance removePtrFromNListNil :: RemovePtrFromNodeList ptr NodeListNil NodeList
 instance removePtrFromNListCons :: (GetAudioUnit head headAu, GetPointer headAu headPtr, BinEq ptr headPtr tf, RemovePtrFromNodeList ptr tail newTail, Gate tf newTail (NodeListCons head newTail) o) => RemovePtrFromNodeList ptr (NodeListCons head tail) o
 
 class Destroy (ptr :: Ptr) (i :: Universe) (o :: Universe) | ptr i -> o where
-  destroy :: forall env proof. Semigroup env => AudioUnitRef ptr -> Frame env proof i o Unit
+  destroy :: forall env proof. AudioUnitRef ptr -> Frame env proof i o Unit
 
 instance destroyer ::
   ( BinToInt ptr
@@ -1923,19 +1870,18 @@ instance destroyer ::
   Destroy ptr (UniverseC x graphi skolems) (UniverseC x grapho skolems) where
   destroy (AudioUnitRef ptrI) =
     Frame
-      $ frame do
+      $ do
           modify_
             ( \i ->
                 i
-                  { internalNodes = wrap $ M.delete ptrI (unwrap i.internalNodes)
-                  , internalEdges = wrap $ M.delete ptrI (unwrap i.internalEdges)
+                  { internalNodes = M.delete ptrI (i.internalNodes)
+                  , internalEdges = M.delete ptrI (i.internalEdges)
                   , instructions = i.instructions <> [ Free ptrI, Stop ptrI ]
                   }
             )
 
 -- getters
-getEnv ::
+env ::
   forall env proof i.
-  Semigroup env =>
   Frame env proof i i env
-getEnv = Frame (frame (gets _.env))
+env = Frame ask
