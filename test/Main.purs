@@ -698,26 +698,24 @@ main = do
               )
                 @> ( let
                       cont =
-                        ( loop
-                            ( const
-                                $ Ix.do
-                                    e <- env
-                                    ivoid $ change (scene1 e)
-                            )
-                        )
+                        loop
+                          ( const
+                              $ Ix.do
+                                  e <- env
+                                  ivoid $ change (scene1 e)
+                          )
+
+                      hold =
+                        const
+                          $ Ix.do
+                              e <- env
+                              ivoid $ change (scene0 e)
 
                       split = Ix.do
                         { time } <- env
-                        ipure $ if time < 0.3 then Nothing else Just cont
+                        ipure $ if time < 0.3 then Right hold else Left cont
                     in
-                      -- cont
-                      branch
-                        ( const
-                            $ Ix.do
-                                e <- env
-                                ivoid $ change (scene0 e)
-                        )
-                        split
+                      branch split
                   )
 
             (frame0Nodes /\ frame0Edges /\ frame0Instr /\ frame1) = oneFrame simpleScene { time: 0.0 }
