@@ -938,20 +938,19 @@ type InitialFrame env a
 
 foreign import data Scene :: Type -> Type
 
---type role Scene representational
+type role Scene representational
+
 asScene :: forall env. (env -> M.Map Int AnAudioUnit /\ M.Map Int (Set Int) /\ Array Instruction /\ (Scene env)) -> Scene env
 asScene = unsafeCoerce
 
-oneFrame :: forall env proof. Scene env -> env -> M.Map Int AnAudioUnit /\ M.Map Int (Set Int) /\ Array Instruction /\ (Scene env)
+oneFrame :: forall env. Scene env -> env -> M.Map Int AnAudioUnit /\ M.Map Int (Set Int) /\ Array Instruction /\ (Scene env)
 oneFrame = unsafeCoerce
 
 instance universeIsCoherent ::
   GraphIsRenderable graph =>
-  UniverseIsCoherent (UniverseC ptr graph SkolemListNil) where
-  assertCoherence _ = unit
+  UniverseIsCoherent (UniverseC ptr graph SkolemListNil)
 
-class UniverseIsCoherent (u :: Universe) where
-  assertCoherence :: forall env proof i x. Frame env proof i u x -> Unit
+class UniverseIsCoherent (u :: Universe)
 
 start :: forall env. InitialFrame env Unit
 start = Frame (pure unit)
