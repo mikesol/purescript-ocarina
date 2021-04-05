@@ -6,7 +6,9 @@ module WAGS.Control.Types
   , InitialFrame
   , Frame0
   , Scene
+  , Scene'
   , oneFrame
+  , oneFrame'
   ) where
 
 import Prelude
@@ -19,10 +21,10 @@ import Control.Monad.State (State)
 import Data.Functor.Indexed (class IxFunctor)
 import Data.Map as M
 import Data.Set (Set)
-import Data.Tuple.Nested (type (/\))
 import Unsafe.Coerce (unsafeCoerce)
 import WAGS.Rendered (AnAudioUnit, Instruction)
 import WAGS.Universe.Bin (D0)
+import Data.Tuple.Nested((/\), type(/\))
 import WAGS.Universe.Graph (InitialGraph)
 import WAGS.Universe.Skolems (SkolemListNil)
 import WAGS.Universe.Universe (Universe, UniverseC)
@@ -66,5 +68,17 @@ foreign import data Scene :: Type -> Type
 
 type role Scene representational
 
-oneFrame :: forall env. Scene env -> env -> M.Map Int AnAudioUnit /\ M.Map Int (Set Int) /\ Array Instruction /\ (Scene env)
+type Scene' env
+  = { nodes :: M.Map Int AnAudioUnit
+    , edges :: M.Map Int (Set Int)
+    , instructions :: Array Instruction
+    , next :: Scene env
+    }
+
+oneFrame :: forall env. Scene env -> env -> Scene' env
 oneFrame = unsafeCoerce
+
+oneFrame' :: forall env. Scene env -> env -> M.Map Int AnAudioUnit /\ M.Map Int (Set Int) /\ Array Instruction /\ Scene env
+oneFrame' s e = nodes /\ edges /\ instructions /\ next
+  where
+  { nodes, edges ,instructions, next } = oneFrame s e

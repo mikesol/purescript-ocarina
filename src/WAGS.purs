@@ -33,7 +33,7 @@ import WAGS.Graph.Constructors (Dup(..), Gain(..), Highpass(..), SinOsc(..), Spe
 import WAGS.Graph.Decorators (Focus(..))
 import WAGS.Graph.Parameter (AudioParameter(..), AudioParameter', AudioParameterTransition(..), defaultParam, param)
 import WAGS.Control.Functions (branch, env, freeze, loop, makeScene, start, (@>), (@|>))
-import WAGS.Control.Types (AudioState, AudioState', Frame, Frame0, InitialFrame, InitialUniverse, Scene, oneFrame)
+import WAGS.Control.Types (AudioState, AudioState', Frame, Frame0, InitialFrame, InitialUniverse, Scene, oneFrame, oneFrame')
 import WAGS.Universe.AudioUnit (class AudioUnitEq, class GetPointer, AudioUnit, AudioUnitCons, AudioUnitList, AudioUnitNil, AudioUnitRef, TGain, THighpass, TSinOsc, TSpeaker)
 import WAGS.Universe.Bin (class AllZerosToNull, class Beq, class BinEq, class BinSub, class BinSub', class BinSucc, class BinToInt, class PtrListKeepSingleton, class RemoveTrailingZeros, type (+:), Bc, Bin, BinL, Bn, D0, D1, D2, D3, D4, D5, D6, D7, I, O, Ptr, PtrList, PtrListCons, PtrListNil, toInt', toInt'')
 import WAGS.Universe.EdgeProfile (EdgeProfile, ManyEdges, NoEdge, SingleEdge)

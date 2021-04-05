@@ -11,7 +11,6 @@ module WAGS.Control.Functions
   ) where
 
 import Prelude
-
 import Control.Applicative.Indexed (ipure)
 import Control.Lazy (fix)
 import Control.Monad.Indexed.Qualified as Ix
@@ -20,11 +19,9 @@ import Control.Monad.State (put, runState)
 import Data.Either (Either(..))
 import Data.Functor.Indexed (imap)
 import Data.Map as M
-import Data.Set (Set)
-import Data.Tuple.Nested ((/\), type (/\))
+import Data.Tuple.Nested ((/\))
 import Unsafe.Coerce (unsafeCoerce)
-import WAGS.Control.Types (AudioState', Frame(..), InitialFrame, Scene, oneFrame)
-import WAGS.Rendered (AnAudioUnit, Instruction)
+import WAGS.Control.Types (AudioState', Frame(..), InitialFrame, Scene, Scene', oneFrame)
 import WAGS.Validation (class TerminalIdentityEdge, class UniverseIsCoherent)
 
 start :: forall env. InitialFrame env Unit
@@ -38,7 +35,7 @@ initialAudioState =
   , internalEdges: M.empty
   }
 
-asScene :: forall env. (env -> M.Map Int AnAudioUnit /\ M.Map Int (Set Int) /\ Array Instruction /\ (Scene env)) -> Scene env
+asScene :: forall env. (env -> Scene' env) -> Scene env
 asScene = unsafeCoerce
 
 makeScene ::
@@ -58,12 +55,15 @@ makeScene (Frame m) trans = asScene go
       case outcome of
         Left s -> oneFrame s ev
         Right r ->
-          newState.internalNodes /\ newState.internalEdges /\ newState.instructions
-            /\ ( trans
-                  $ Frame do
-                      put $ newState { instructions = [] }
-                      pure r
-              )
+          { nodes: newState.internalNodes
+          , edges: newState.internalEdges
+          , instructions: newState.instructions
+          , next:
+              trans
+                $ Frame do
+                    put $ newState { instructions = [] }
+                    pure r
+          }
 
 infixr 6 makeScene as @>
 
@@ -99,7 +99,6 @@ freeze ::
   Frame env proof i u x ->
   Scene env
 freeze = fix (flip compose (imap Right) <<< flip makeScene)
-
 
 makeScene' ::
   forall env proofA proofB i u a.
