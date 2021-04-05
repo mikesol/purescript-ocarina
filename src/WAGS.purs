@@ -1,6 +1,7 @@
 module WAGS where
 
 import Prelude
+
 import Control.Applicative.Indexed (class IxApplicative, ipure)
 import Control.Apply.Indexed (class IxApply)
 import Control.Bind.Indexed (class IxBind, ibind)
@@ -389,32 +390,32 @@ class ChangeInstructions (g :: Type) where
 
 instance changeInstructionsSinOsc :: SetterVal a => ChangeInstructions (SinOsc a) where
   changeInstructions idx (SinOsc a) = case _ of
-    ASinOsc prm ->
-      (setterVal :: a -> Maybe (AudioParameter -> AudioParameter)) a
-        <#> \f ->
+    ASinOsc prm@(AudioParameter prm') ->
+      Just $ setterVal a
+        # \f ->
             let
               iv' = f prm
 
               AudioParameter iv = iv'
             in
-              [ SetFrequency idx iv.param iv.timeOffset iv.transition ] /\ ASinOsc iv'
+              (if iv.param == prm'.param then [] else [ SetFrequency idx iv.param iv.timeOffset iv.transition ]) /\ ASinOsc iv'
     _ -> Nothing
 
 instance changeInstructionsHighpass :: (SetterVal a, SetterVal b) => ChangeInstructions (Highpass a b c) where
   changeInstructions idx (Highpass a b _) = case _ of
-    AHighpass va vb ->
+    AHighpass va@(AudioParameter va') vb@(AudioParameter vb') ->
       let
-        sa = (setterVal :: a -> Maybe (AudioParameter -> AudioParameter)) a
+        sa = setterVal a
 
-        aiv' = maybe va (\f -> f va) sa
+        aiv' = sa va
 
-        freqChanges = if isJust sa then let AudioParameter aiv = aiv' in [ SetFrequency idx aiv.param aiv.timeOffset aiv.transition ] else []
+        freqChanges = let AudioParameter aiv = aiv' in if aiv.param == va'.param then [] else [ SetFrequency idx aiv.param aiv.timeOffset aiv.transition ]
 
-        sb = (setterVal :: b -> Maybe (AudioParameter -> AudioParameter)) b
+        sb = setterVal b
 
-        biv' = maybe vb (\f -> f vb) sb
+        biv' = sb vb
 
-        qChanges = if isJust sb then let AudioParameter biv = biv' in [ SetQ idx biv.param biv.timeOffset biv.transition ] else []
+        qChanges = let AudioParameter biv = biv' in if biv.param == vb'.param then [] else [ SetQ idx biv.param biv.timeOffset biv.transition ]
       in
         Just
           $ (freqChanges <> qChanges)
@@ -423,15 +424,15 @@ instance changeInstructionsHighpass :: (SetterVal a, SetterVal b) => ChangeInstr
 
 instance changeInstructionsGain :: SetterVal a => ChangeInstructions (Gain a b) where
   changeInstructions idx (Gain a _) fromMap = case fromMap of
-    AGain prm ->
-      (setterVal :: a -> Maybe (AudioParameter -> AudioParameter)) a
-        <#> \f ->
+    AGain prm@(AudioParameter prm') ->
+      Just $ setterVal a
+        # \f ->
             let
               iv' = f prm
 
               AudioParameter iv = iv'
             in
-              [ SetGain idx iv.param iv.timeOffset iv.transition ] /\ AGain iv'
+              (if iv.param == prm'.param then [] else [ SetGain idx iv.param iv.timeOffset iv.transition ]) /\ AGain iv'
     _ -> Nothing
 
 instance changeInstructionsSpeaker :: ChangeInstructions (Speaker a) where
@@ -1084,25 +1085,25 @@ instance initialValTuple :: InitialVal a => InitialVal (Tuple a b) where
   initialVal = initialVal <<< fst
 
 class SetterVal a where
-  setterVal :: a -> Maybe (AudioParameter -> AudioParameter)
+  setterVal :: a -> AudioParameter -> AudioParameter
 
 instance setterValNumber :: SetterVal Number where
-  setterVal _ = Nothing
+  setterVal = const <<< AudioParameter <<< defaultParam { param = _ }
 
 instance setterValAudioParameter :: SetterVal AudioParameter where
-  setterVal _ = Nothing
+  setterVal = const
 
 instance setterValTuple :: SetterVal (Tuple a (AudioParameter -> AudioParameter)) where
-  setterVal = Just <<< snd
+  setterVal = snd
 
 instance setterValTupleN :: SetterVal (Tuple a (AudioParameter -> Number)) where
-  setterVal = Just <<< (map param) <<< snd
+  setterVal = map param <<< snd
 
 instance setterValFunction :: SetterVal (AudioParameter -> AudioParameter) where
-  setterVal = Just
+  setterVal = identity
 
 instance setterValFunctionN :: SetterVal (AudioParameter -> Number) where
-  setterVal = Just <<< map param
+  setterVal = map param
 
 data AudioUnitRef (ptr :: Ptr)
   = AudioUnitRef Int
@@ -1453,6 +1454,13 @@ change ::
   Change edge a i =>
   a -> Frame env proof i i Unit
 change = change' (Proxy :: _ edge)
+
+changeAt ::
+  forall ptr a i env proof.
+  Change (SingleEdge ptr) a i =>
+  AudioUnitRef ptr -> a -> Frame env proof i i Unit
+changeAt _ = change' (Proxy :: _ (SingleEdge ptr))
+
 
 class Change (p :: EdgeProfile) (a :: Type) (o :: Universe) where
   change' :: forall env proof. Proxy p -> a -> Frame env proof o o Unit
