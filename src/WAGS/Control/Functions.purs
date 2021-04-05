@@ -91,9 +91,9 @@ loop ::
 loop = branch <<< ipure <<< Right
 
 freeze ::
-  forall env proof i u.
+  forall env proof i u x.
   UniverseIsCoherent u =>
-  Frame env proof i u Unit ->
+  Frame env proof i u x ->
   Scene env
 freeze = fix (flip compose (imap Right) <<< flip makeScene)
 

@@ -1,7 +1,8 @@
 module Test.Main where
 
 import Prelude
-import Control.Applicative.Indexed (ipure)
+
+import Control.Applicative.Indexed (imap, ipure, ivoid)
 import Control.Monad.Indexed.Qualified as Ix
 import Data.Array as A
 import Data.Either (Either(..))
@@ -71,8 +72,7 @@ main = do
               ( Ix.do
                   start
                   e <- env
-                  ivoid $ create (scene0 e)
-                  ipure $ Right unit
+                  imap Right $ create (scene0 e)
               )
                 @> freeze
 
@@ -111,8 +111,7 @@ main = do
               ( Ix.do
                   start
                   e <- env
-                  ivoid $ create (scene0 e)
-                  ipure $ Right unit
+                  imap Right $ ivoid $ create (scene0 e)
               )
                 @> ( loop
                       ( const
