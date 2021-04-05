@@ -5,6 +5,7 @@ module WAGS.Control.Functions
   , branch
   , env
   , freeze
+  , (@>)
   ) where
 
 import Prelude
