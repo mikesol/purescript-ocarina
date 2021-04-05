@@ -1,4 +1,4 @@
-module WAGS.Bin where
+module WAGS.Universe.Bin where
 
 import Prelude
 import Data.Int.Bits (shl)
@@ -156,3 +156,12 @@ class BinSub (l :: BinL) (r :: BinL) (o :: BinL) | l r -> o
 instance binSub :: (BinSub' False l r o', RemoveTrailingZeros o' o) => BinSub l r o
 
 infixr 5 type PtrListCons as +:
+
+
+class PtrListKeepSingleton (ptrListA :: PtrList) (ptrListB :: PtrList) (ptrListC :: PtrList) | ptrListA ptrListB -> ptrListC
+
+instance ptrListKeepSingletonNil :: PtrListKeepSingleton PtrListNil PtrListNil PtrListNil
+
+instance ptrListKeepSingletonL :: PtrListKeepSingleton (PtrListCons a PtrListNil) PtrListNil (PtrListCons a PtrListNil)
+
+instance ptrListKeepSingletonR :: PtrListKeepSingleton PtrListNil (PtrListCons a PtrListNil) (PtrListCons a PtrListNil)

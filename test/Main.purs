@@ -19,7 +19,13 @@ import Test.Spec.Assertions (shouldEqual)
 import Test.Spec.Reporter (consoleReporter)
 import Test.Spec.Runner (runSpec)
 import Type.Proxy (Proxy(..))
-import WAGS (class AllEdgesPointToNodes, class AudioUnitEq, class BinEq, class BinSub, class BinSucc, class BinToInt, class Gate, class HasBottomLevelNodes, class Lookup, class NoNodesAreDuplicated, class NoParallelEdges, class UniqueTerminus, type (+:), type (/->), type (/:), AnAudioUnit(..), AudioParameter, AudioParameterTransition(..), AudioUnitRef, Bc, Bn, D0, D1, D2, D3, D4, Dup(..), Focus(..), Frame, Gain(..), GraphC, Highpass(..), I, InitialGraph, Instruction(..), ManyEdges, NoEdge, NodeC, NodeListCons, NodeListNil, O, PtrListCons, PtrListNil, SinOsc(..), SingleEdge, SkolemListNil, Speaker(..), TGain, THighpass, TSinOsc, TSpeaker, UniverseC, branch, change, changeAt, create, cursor, destroy, disconnect, env, freeze, loop, oneFrame, param, start, testCompare, (@>))
+import WAGS (class AllEdgesPointToNodes, class AudioUnitEq, class BinEq, class BinSub, class BinSucc, class BinToInt, class Gate, class HasBottomLevelNodes, class LookupNL, class NoNodesAreDuplicated, class NoParallelEdges, class UniqueTerminus, type (+:), type (/->), type (/:), AnAudioUnit(..), AudioParameter, AudioParameterTransition(..), AudioUnitRef, Bc, Bn, D0, D1, D2, D3, D4, Dup(..), Focus(..), Frame, Gain(..), GraphC, Highpass(..), I, InitialGraph, Instruction(..), ManyEdges, NoEdge, NodeC, NodeListCons, NodeListNil, O, PtrListCons, PtrListNil, SinOsc(..), SingleEdge, SkolemListNil, Speaker(..), TGain, THighpass, TSinOsc, TSpeaker, UniverseC, branch, change, changeAt, create, cursor, destroy, disconnect, env, freeze, loop, oneFrame, param, start, testCompare, (@>))
+import WAGS.Universe (NodeListCons)
+
+testCompare :: Instruction -> Instruction -> Ordering
+testCompare a b = case compare a b of
+  EQ -> compare (show a) (show b)
+  x -> x
 
 ---- data
 data MyGain
@@ -126,39 +132,39 @@ testAudioUnitEq2 =
     AudioUnitEq (TSinOsc D0) (TSinOsc D0) tf =>
     Proxy tf
 
-testLookup :: Proxy (NodeC (TSinOsc D0) NoEdge)
-testLookup =
+testLookupNL :: Proxy (NodeC (TSinOsc D0) NoEdge)
+testLookupNL =
   Proxy ::
     forall node.
-    Lookup D0 (GraphC (NodeC (TSinOsc D0) NoEdge) NodeListNil) node =>
+    LookupNL D0 (NodeListCons (NodeC (TSinOsc D0) NoEdge) NodeListNil) node =>
     Proxy node
 
-testLookup2 :: Proxy (NodeC (TSinOsc D1) NoEdge)
-testLookup2 =
+testLookupNL2 :: Proxy (NodeC (TSinOsc D1) NoEdge)
+testLookupNL2 =
   Proxy ::
     forall node.
-    Lookup D1 (GraphC (NodeC (TSinOsc D1) NoEdge) NodeListNil) node =>
+    LookupNL D1 (NodeListCons (NodeC (TSinOsc D1) NoEdge) NodeListNil) node =>
     Proxy node
 
-testLookup3 :: Proxy (NodeC (TSinOsc D1) NoEdge)
-testLookup3 =
+testLookupNL3 :: Proxy (NodeC (TSinOsc D1) NoEdge)
+testLookupNL3 =
   Proxy ::
     forall node.
-    Lookup D1 (GraphC (NodeC (TSinOsc D1) NoEdge) (NodeListCons (NodeC (TSinOsc D0) NoEdge) NodeListNil)) node =>
+    LookupNL D1 (NodeListCons (NodeC (TSinOsc D1) NoEdge) (NodeListCons (NodeC (TSinOsc D0) NoEdge) NodeListNil)) node =>
     Proxy node
 
-testLookup4 :: Proxy (NodeC (TSinOsc D0) NoEdge)
-testLookup4 =
+testLookupNL4 :: Proxy (NodeC (TSinOsc D0) NoEdge)
+testLookupNL4 =
   Proxy ::
     forall node.
-    Lookup D0 (GraphC (NodeC (TSinOsc D1) NoEdge) (NodeListCons (NodeC (TSinOsc D0) NoEdge) NodeListNil)) node =>
+    LookupNL D0 (NodeListCons (NodeC (TSinOsc D1) NoEdge) (NodeListCons (NodeC (TSinOsc D0) NoEdge) NodeListNil)) node =>
     Proxy node
 
-testLookup5 :: Proxy (NodeC (TSinOsc D0) NoEdge)
-testLookup5 =
+testLookupNL5 :: Proxy (NodeC (TSinOsc D0) NoEdge)
+testLookupNL5 =
   Proxy ::
     forall node.
-    Lookup D0 (GraphC (NodeC (TSinOsc D1) NoEdge) (NodeListCons (NodeC (TSinOsc D0) NoEdge) (NodeListCons (NodeC (THighpass D2) NoEdge) NodeListNil))) node =>
+    LookupNL D0 (NodeListCons (NodeC (TSinOsc D1) NoEdge) (NodeListCons (NodeC (TSinOsc D0) NoEdge) (NodeListCons (NodeC (THighpass D2) NoEdge) NodeListNil))) node =>
     Proxy node
 
 testNoNodesAreDuplicated :: Proxy (GraphC (NodeC (TSinOsc D1) NoEdge) (NodeListCons (NodeC (TSinOsc D0) NoEdge) (NodeListCons (NodeC (THighpass D2) NoEdge) NodeListNil)))
