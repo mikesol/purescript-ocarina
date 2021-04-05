@@ -1,4 +1,4 @@
-module Stream8 where
+module WAGS where
 
 import Prelude
 import Control.Applicative.Indexed (class IxApplicative, ipure)

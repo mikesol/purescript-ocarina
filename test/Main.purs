@@ -16,7 +16,7 @@ import Data.Typelevel.Bool (True, False)
 import Effect (Effect)
 import Effect.Aff (launchAff_)
 import Effect.Class.Console as Log
-import Stream8 (class AllEdgesPointToNodes, class AudioUnitEq, class BinEq, class BinSub, class BinSucc, class BinToInt, class Destroy, class Gate, class HasBottomLevelNodes, class Lookup, class NoNodesAreDuplicated, class NoParallelEdges, class UniqueTerminus, type (+:), type (/->), (@>), type (/:), AnAudioUnit(..), AudioParameter, AudioParameterTransition(..), AudioUnitRef(..), Bc, Bn, D0, D1, D2, D3, D4, D5, Dup(..), Focus(..), Frame, Gain(..), GraphC, Highpass(..), I, InitialGraph, Instruction(..), ManyEdges, NoEdge, NodeC, NodeListCons, NodeListNil, O, PtrListCons, PtrListNil, SinOsc(..), SingleEdge, SkolemListNil, Speaker(..), TGain, THighpass, TSinOsc, TSpeaker, Universe, UniverseC, change, connect, create, cursor, destroy, disconnect, freeze, env, branch, loop, makeScene, oneFrame, param, start, testCompare)
+import WAGS (class AllEdgesPointToNodes, class AudioUnitEq, class BinEq, class BinSub, class BinSucc, class BinToInt, class Destroy, class Gate, class HasBottomLevelNodes, class Lookup, class NoNodesAreDuplicated, class NoParallelEdges, class UniqueTerminus, type (+:), type (/->), (@>), type (/:), AnAudioUnit(..), AudioParameter, AudioParameterTransition(..), AudioUnitRef(..), Bc, Bn, D0, D1, D2, D3, D4, D5, Dup(..), Focus(..), Frame, Gain(..), GraphC, Highpass(..), I, InitialGraph, Instruction(..), ManyEdges, NoEdge, NodeC, NodeListCons, NodeListNil, O, PtrListCons, PtrListNil, SinOsc(..), SingleEdge, SkolemListNil, Speaker(..), TGain, THighpass, TSinOsc, TSpeaker, Universe, UniverseC, change, connect, create, cursor, destroy, disconnect, freeze, env, branch, loop, makeScene, oneFrame, param, start, testCompare)
 import Test.Spec (describe, it)
 import Test.Spec.Assertions (shouldEqual)
 import Test.Spec.Reporter (consoleReporter)
@@ -593,7 +593,7 @@ main :: Effect Unit
 main = do
   launchAff_
     $ runSpec [ consoleReporter ] do
-        describe "simple scene" do
+        describe "a simple scene that doesn't change" do
           let
             simpleScene =
               ( Ix.do
@@ -633,7 +633,7 @@ main = do
             A.sortBy testCompare frame1Instr `shouldEqual` []
           it "is coherent at frame0Instr" do
             A.sortBy testCompare frame2Instr `shouldEqual` []
-        describe "changing scene" do
+        describe "a simple scene that changes as a function of time" do
           let
             simpleScene =
               ( Ix.do
@@ -687,7 +687,7 @@ main = do
             A.sortBy testCompare frame1Instr `shouldEqual` [ SetFrequency 2 331.0 0.0 LinearRamp ]
           it "is coherent after frame2Instr" do
             A.sortBy testCompare frame2Instr `shouldEqual` [ SetFrequency 2 332.0 0.0 LinearRamp ]
-        describe "branching scene" do
+        describe "a scene that forks at 0.3 seconds" do
           let
             simpleScene =
               ( Ix.do
