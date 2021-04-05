@@ -10,7 +10,7 @@ module WAGS.Control.Functions
 
 import Prelude
 import Control.Applicative.Indexed (ipure)
-import Control.Bind.Indexed (ibind)
+import Control.Lazy (fix)
 import Control.Monad.Indexed.Qualified as Ix
 import Control.Monad.Reader (runReaderT, ask)
 import Control.Monad.State (put, runState)
@@ -39,10 +39,10 @@ asScene :: forall env. (env -> M.Map Int AnAudioUnit /\ M.Map Int (Set Int) /\ A
 asScene = unsafeCoerce
 
 makeScene ::
-  forall env proofA proofB g0 g1 a.
-  UniverseIsCoherent g1 =>
-  Frame env proofA g0 g1 (Either (Scene env) a) ->
-  (Frame env proofB g0 g1 a -> Scene env) ->
+  forall env proofA proofB i u a.
+  UniverseIsCoherent u =>
+  Frame env proofA i u (Either (Scene env) a) ->
+  (Frame env proofB i u a -> Scene env) ->
   Scene env
 makeScene (Frame m) trans = asScene go
   where
@@ -62,14 +62,7 @@ makeScene (Frame m) trans = asScene go
                       pure r
               )
 
-loop ::
-  forall env proofA i u edge a.
-  TerminalIdentityEdge u edge =>
-  UniverseIsCoherent u =>
-  (a -> Frame env proofA u u a) ->
-  Frame env proofA i u a ->
-  Scene env
-loop fa ma = makeScene (imap Right $ ibind ma fa) (loop fa)
+infixr 6 makeScene as @>
 
 branch ::
   forall env proofA i u edge a.
@@ -89,14 +82,21 @@ branch mch m =
     )
     (branch mch)
 
-infixr 6 makeScene as @>
+loop ::
+  forall env proofA i u edge a.
+  TerminalIdentityEdge u edge =>
+  UniverseIsCoherent u =>
+  (a -> Frame env proofA u u a) ->
+  Frame env proofA i u a ->
+  Scene env
+loop = branch <<< ipure <<< Right
 
 freeze ::
-  forall env proof g0 g1.
-  UniverseIsCoherent g1 =>
-  Frame env proof g0 g1 Unit ->
+  forall env proof i u.
+  UniverseIsCoherent u =>
+  Frame env proof i u Unit ->
   Scene env
-freeze s = makeScene (imap Right s) freeze
+freeze = fix (flip compose (imap Right) <<< flip makeScene)
 
 env ::
   forall env proof i.
