@@ -816,7 +816,6 @@ instance graphIsRenderable ::
   ) =>
   GraphIsRenderable graph
 
--- for any given step - worth it?
 class GraphIsCoherent (graph :: Graph)
 
 instance graphIsCoherent ::
@@ -826,12 +825,6 @@ instance graphIsCoherent ::
   ) =>
   GraphIsCoherent graph
 
--- create (hpf and gain can start empty)
--- get (uses a getter on a node to get another node, think optics)
--- remove (leaves a hole, no attempt to reconstitute chain)
--- destroy (destroys all connected nodes)
--- replace (for hpf and gain)
--- add (for gain and hpf)
 data AudioParameterTransition
   = NoRamp
   | LinearRamp
