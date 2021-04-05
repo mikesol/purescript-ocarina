@@ -309,7 +309,7 @@ createTest4 =
         gain /\ Highpass 330.0 1.0 (SinOsc 440.0) /\ unit
 
 createTest5 ::
-  forall env head tail proof r g.
+  forall env head tail proof.
   Semigroup env =>
   Frame env proof (UniverseC D0 (GraphC head tail) SkolemListNil)
     ( UniverseC D3
