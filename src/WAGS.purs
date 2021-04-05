@@ -6,6 +6,7 @@ module WAGS
   , module WAGS.Destroy
   , module WAGS.Disconnect
   , module WAGS.Move
+  , module WAGS.Rebase
   , module WAGS.Rendered
   , module WAGS.Validation
   , module WAGS.Graph.Constructors
@@ -28,7 +29,8 @@ import WAGS.Create (class AsEdgeProfile, class Create, class CreationInstruction
 import WAGS.Cursor (class Cursor, class Cursor', class CursorI, class CursorRes, class CursorX, cursor, cursor')
 import WAGS.Destroy (class Destroy, class PointerNotConnected, class PointerNotConnecteds, class RemovePtrFromNodeList, destroy)
 import WAGS.Disconnect (class Disconnect, class RemovePointerFromNode, class RemovePointerFromNodes, class RemovePtrFromList, disconnect)
-import WAGS.Move
+import WAGS.Move (class GetPtrIndex, class InsertIn, class LtEq, class LtTf, class MaybeMinusOne, class Move, class MovePointer, class MovePointer', class MovePointer'', class MovePointer''', class MovePointers, class NewIdx, class PtrListLen, class RemoveAt, move)
+import WAGS.Rebase
 import WAGS.Rendered (AnAudioUnit(..), Instruction(..))
 import WAGS.Validation (class AllEdgesInNodeList, class AllEdgesPointToNodes, class AllNodesAreFullyHydrated, class AllNodesAreFullyHydratedNL, class AllPtrsInNodeList, class AssertSingleton, class AudioUnitInAudioUnitList, class AudioUnitInNodeList, class BottomLevelNodes, class BottomLevelNodesNL, class EdgeProfileChooseGreater, class GetEdgesAsPtrList, class GraphIsCoherent, class GraphIsRenderable, class HasBottomLevelNodes, class HasUniqueTerminus, class IsNodeListEmpty, class LookupNL, class NoNodesAreDuplicated, class NoNodesAreDuplicatedInNodeList, class NoParallelEdges, class NoParallelEdgesNL, class NoPtrsAreDuplicatedInPtrList, class NodeInNodeList, class NodeIsOutputDevice, class NodeListAppend, class NodeNotInNodeList, class PtrInPtrList, class PtrListAppend, class PtrNotInPtrList, class RemoveDuplicates, class TerminalIdentityEdge, class TerminalNode, class TerminusLoop, class ToVisit, class ToVisitSingle, class UniqueTerminus, class UniverseIsCoherent, class UnvisitedNodes)
 import WAGS.Graph.Constructors (Dup(..), Gain(..), Highpass(..), SinOsc(..), Speaker(..))
