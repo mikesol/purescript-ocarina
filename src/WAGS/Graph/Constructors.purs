@@ -1,6 +1,5 @@
 module WAGS.Graph.Constructors where
 
-
 data SinOsc a
   = SinOsc a
 
@@ -15,4 +14,3 @@ data Gain a b
 
 data Speaker a
   = Speaker a
-

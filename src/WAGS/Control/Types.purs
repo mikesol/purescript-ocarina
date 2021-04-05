@@ -1,7 +1,15 @@
-module WAGS.Control.Types where
+module WAGS.Control.Types
+  ( Frame(..)
+  , AudioState
+  , AudioState'
+  , InitialUniverse
+  , InitialFrame
+  , Frame0
+  , Scene
+  , oneFrame
+  ) where
 
 import Prelude
-
 import Control.Applicative.Indexed (class IxApplicative)
 import Control.Apply.Indexed (class IxApply)
 import Control.Bind.Indexed (class IxBind)
@@ -57,9 +65,6 @@ instance frameIxMonad :: IxMonad (Frame env proof)
 foreign import data Scene :: Type -> Type
 
 type role Scene representational
-
-asScene :: forall env. (env -> M.Map Int AnAudioUnit /\ M.Map Int (Set Int) /\ Array Instruction /\ (Scene env)) -> Scene env
-asScene = unsafeCoerce
 
 oneFrame :: forall env. Scene env -> env -> M.Map Int AnAudioUnit /\ M.Map Int (Set Int) /\ Array Instruction /\ (Scene env)
 oneFrame = unsafeCoerce

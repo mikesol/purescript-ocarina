@@ -1,7 +1,13 @@
-module WAGS.Control.Functions where
+module WAGS.Control.Functions
+  ( start
+  , makeScene
+  , loop
+  , branch
+  , env
+  , freeze
+  ) where
 
 import Prelude
-
 import Control.Applicative.Indexed (ipure)
 import Control.Bind.Indexed (ibind)
 import Control.Monad.Indexed.Qualified as Ix
@@ -10,12 +16,26 @@ import Control.Monad.State (put, runState)
 import Data.Either (Either(..))
 import Data.Functor.Indexed (imap)
 import Data.Map as M
-import Data.Tuple.Nested ((/\))
-import WAGS.Control.Types (AudioState', Frame(..), InitialFrame, Scene, asScene, oneFrame)
+import Data.Set (Set)
+import Data.Tuple.Nested ((/\), type (/\))
+import Unsafe.Coerce (unsafeCoerce)
+import WAGS.Control.Types (AudioState', Frame(..), InitialFrame, Scene, oneFrame)
+import WAGS.Rendered (AnAudioUnit, Instruction)
 import WAGS.Validation (class TerminalIdentityEdge, class UniverseIsCoherent)
 
 start :: forall env. InitialFrame env Unit
 start = Frame (pure unit)
+
+initialAudioState :: AudioState'
+initialAudioState =
+  { currentIdx: 0
+  , instructions: []
+  , internalNodes: M.empty
+  , internalEdges: M.empty
+  }
+
+asScene :: forall env. (env -> M.Map Int AnAudioUnit /\ M.Map Int (Set Int) /\ Array Instruction /\ (Scene env)) -> Scene env
+asScene = unsafeCoerce
 
 makeScene ::
   forall env proofA proofB g0 g1 a.
@@ -76,14 +96,6 @@ freeze ::
   Frame env proof g0 g1 Unit ->
   Scene env
 freeze s = makeScene (imap Right s) freeze
-
-initialAudioState :: AudioState'
-initialAudioState =
-  { currentIdx: 0
-  , instructions: []
-  , internalNodes: M.empty
-  , internalEdges: M.empty
-  }
 
 env ::
   forall env proof i.
