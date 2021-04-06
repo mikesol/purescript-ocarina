@@ -50,6 +50,9 @@ type InitialUniverse
 type InitialFrame env a
   = Frame env Frame0 InitialUniverse InitialUniverse a
 
+instance frameFunctor :: Functor (Frame env proof i o) where
+  map f (Frame (a)) = Frame (f <$> a)
+
 instance frameIxFunctor :: IxFunctor (Frame env proof) where
   imap f (Frame (a)) = Frame (f <$> a)
 

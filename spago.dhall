@@ -9,6 +9,7 @@ You can edit this file as you like.
   , "debug"
   , "effect"
   , "free"
+  , "heterogeneous"
   , "indexed-monad"
   , "maybe"
   , "ordered-collections"

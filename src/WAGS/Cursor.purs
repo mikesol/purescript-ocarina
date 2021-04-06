@@ -1,7 +1,6 @@
 module WAGS.Cursor where
 
 import Prelude
-
 import Data.Identity (Identity)
 import Data.Tuple.Nested (type (/\))
 import Type.Proxy (Proxy(..))
@@ -29,7 +28,11 @@ cursor = cursor' (Proxy :: _ edge)
 class Cursor (p :: EdgeProfile) (a :: Type) (o :: Universe) (ptr :: Ptr) | p a o -> ptr where
   cursor' :: forall env proof. Proxy p -> a -> Frame env proof o o (AudioUnitRef ptr)
 
-instance cursorRecurse :: (BinToInt head, CursorI p a o (PtrListCons head PtrListNil)) => Cursor p a o head where
+instance cursorRecurse ::
+  ( BinToInt head
+  , CursorI p a o (PtrListCons head PtrListNil)
+  ) =>
+  Cursor p a o head where
   cursor' _ _ = Frame $ (pure $ AudioUnitRef (toInt' (Proxy :: Proxy head)))
 
 class CursorRes (tag :: Type) (p :: Ptr) (i :: Node) (plist :: EdgeProfile) | tag p i -> plist
