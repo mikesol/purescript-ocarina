@@ -12,6 +12,7 @@ module WAGS
   , module WAGS.Graph.Constructors
   , module WAGS.Graph.Decorators
   , module WAGS.Graph.Parameter
+  , module WAGS.Control.Env
   , module WAGS.Control.Functions
   , module WAGS.Control.Types
   , module WAGS.Universe.AudioUnit
@@ -30,9 +31,10 @@ import WAGS.Cursor (class Cursor, class Cursor', class CursorI, class CursorRes,
 import WAGS.Destroy (class Destroy, class PointerNotConnected, class PointerNotConnecteds, class RemovePtrFromNodeList, destroy)
 import WAGS.Disconnect (class Disconnect, class RemovePointerFromNode, class RemovePointerFromNodes, class RemovePtrFromList, disconnect)
 import WAGS.Move (class GetPtrIndex, class InsertIn, class LtEq, class LtTf, class MaybeMinusOne, class Move, class MovePointer, class MovePointer', class MovePointer'', class MovePointer''', class MovePointers, class NewIdx, class PtrListLen, class RemoveAt, move)
-import WAGS.Rebase
+import WAGS.Rebase (class Rebase, class Rebase', class RebaseCheck', class RebaseCont', RebaseProof(..), rebase, rebase', rebaseAudioUnit, rebaseCheck', rebaseCont')
 import WAGS.Rendered (AnAudioUnit(..), Instruction(..))
 import WAGS.Validation (class AllEdgesInNodeList, class AllEdgesPointToNodes, class AllNodesAreFullyHydrated, class AllNodesAreFullyHydratedNL, class AllPtrsInNodeList, class AssertSingleton, class AudioUnitInAudioUnitList, class AudioUnitInNodeList, class BottomLevelNodes, class BottomLevelNodesNL, class EdgeProfileChooseGreater, class GetEdgesAsPtrList, class GraphIsCoherent, class GraphIsRenderable, class HasBottomLevelNodes, class HasUniqueTerminus, class IsNodeListEmpty, class LookupNL, class NoNodesAreDuplicated, class NoNodesAreDuplicatedInNodeList, class NoParallelEdges, class NoParallelEdgesNL, class NoPtrsAreDuplicatedInPtrList, class NodeInNodeList, class NodeIsOutputDevice, class NodeListAppend, class NodeNotInNodeList, class PtrInPtrList, class PtrListAppend, class PtrNotInPtrList, class RemoveDuplicates, class TerminalIdentityEdge, class TerminalNode, class TerminusLoop, class ToVisit, class ToVisitSingle, class UniqueTerminus, class UniverseIsCoherent, class UnvisitedNodes)
+import WAGS.Control.Env(EFrame, withReader)
 import WAGS.Graph.Constructors (Dup(..), Gain(..), Highpass(..), SinOsc(..), Speaker(..))
 import WAGS.Graph.Decorators (Decorated, class Decorate, class MakeDecorators, Decorating(..), Focus(..), decorate, dk, makeDecorators)
 import WAGS.Graph.Parameter (AudioParameter(..), AudioParameter', AudioParameterTransition(..), defaultParam, param)
