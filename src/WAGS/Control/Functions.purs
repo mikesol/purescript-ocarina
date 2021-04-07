@@ -12,11 +12,10 @@ module WAGS.Control.Functions
   ) where
 
 import Prelude
-
 import Control.Applicative.Indexed (ipure)
 import Control.Bind.Indexed (ibind)
 import Control.Monad.Indexed.Qualified as Ix
-import Control.Monad.Reader (ReaderT(..), ask, runReaderT)
+import Control.Monad.State (gets)
 import Data.Either (Either(..))
 import Data.Functor.Indexed (imap)
 import Data.Map as M
@@ -25,7 +24,7 @@ import Type.Data.Peano (Succ)
 import Type.Proxy (Proxy(..))
 import Unsafe.Coerce (unsafeCoerce)
 import WAGS.Change (changes)
-import WAGS.Control.MemoizedState (makeMemoizedState, runMemoizedState)
+import WAGS.Control.MemoizedState (makeMemoizedState, runMemoizedState')
 import WAGS.Control.Types (AudioState', Frame(..), InitialFrame, Scene, Scene', oneFrame)
 import WAGS.Rendered (sortInstructions)
 import WAGS.Universe.Universe (UniverseC)
@@ -34,9 +33,10 @@ import WAGS.Validation (class GraphIsRenderable, class TerminalIdentityEdge)
 start :: forall env. InitialFrame env Unit
 start = Frame (pure unit)
 
-initialAudioState :: AudioState'
-initialAudioState =
+initialAudioState :: forall env. env -> AudioState' env
+initialAudioState e =
   { currentIdx: 0
+  , env: e
   , instructions: []
   , internalNodes: M.empty
   , internalEdges: M.empty
@@ -55,9 +55,7 @@ makeScene (Frame m) trans = asScene go
   where
   go ev =
     let
-      step1 = runReaderT m ev
-
-      outcome /\ newState = runMemoizedState step1 (unsafeCoerce unit) initialAudioState
+      outcome /\ newState = runMemoizedState' m (unsafeCoerce unit) (_ { env = ev }) (initialAudioState ev)
     in
       case outcome of
         Left s -> oneFrame s ev
@@ -68,13 +66,9 @@ makeScene (Frame m) trans = asScene go
           , next:
               trans
                 $ Frame
-                    ( ReaderT
-                        ( pure
-                            ( makeMemoizedState (unsafeCoerce unit)
-                                (newState { instructions = [] })
-                                r
-                            )
-                        )
+                    ( makeMemoizedState (unsafeCoerce unit)
+                        (newState { instructions = [] })
+                        r
                     )
           }
 
@@ -129,7 +123,7 @@ infixr 6 makeScene' as @|>
 env ::
   forall env proof i.
   Frame env proof i i env
-env = Frame ask
+env = Frame (gets _.env)
 
 universe ::
   forall env proof i o.

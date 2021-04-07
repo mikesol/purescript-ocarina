@@ -17,7 +17,6 @@ import Control.Applicative.Indexed (class IxApplicative)
 import Control.Apply.Indexed (class IxApply)
 import Control.Bind.Indexed (class IxBind)
 import Control.Monad.Indexed (class IxMonad)
-import Control.Monad.Reader (ReaderT)
 import Data.Functor.Indexed (class IxFunctor)
 import Data.Map as M
 import Data.Set (Set)
@@ -31,15 +30,15 @@ import WAGS.Universe.Graph (InitialGraph)
 import WAGS.Universe.Skolems (SkolemListNil)
 import WAGS.Universe.Universe (Universe, UniverseC)
 
-type AudioState'
-  = { currentIdx :: Int
+type AudioState' env
+  = { env :: env, currentIdx :: Int
     , instructions :: Array Instruction
     , internalNodes :: M.Map Int (AnAudioUnit)
     , internalEdges :: M.Map Int (Set Int)
     }
 
 type AudioState env proof a
-  = ReaderT env (MemoizedState proof (AudioState')) a
+  = (MemoizedState proof (AudioState' env)) a
 
 newtype Frame (env :: Type) (proof :: Type) (iu :: Universe) (ou :: Universe) (a :: Type)
   = Frame (AudioState env proof a)

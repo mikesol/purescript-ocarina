@@ -1,7 +1,6 @@
 module WAGS.Control.MemoizedState where
 
 import Prelude
-
 import Control.Monad.State (class MonadState, State, put, runState, state)
 import Data.Maybe (Maybe(..))
 import Data.Maybe.First (First(..))
@@ -35,15 +34,18 @@ instance monadMemoizedState :: Monad (MemoizedState proof s)
 instance monadStateMemoizedState :: MonadState s (MemoizedState proof s) where
   state = MemoizedState <<< Tuple (First Nothing) <<< state
 
-runMemoizedState :: forall proof s a. MemoizedState proof s a -> proof -> s -> Tuple a s
-runMemoizedState (MemoizedState (Tuple maybe st)) _ =
+runMemoizedState' :: forall proof s a. MemoizedState proof s a -> proof -> (s -> s) -> s -> Tuple a s
+runMemoizedState' (MemoizedState (Tuple maybe st)) _ trans =
   runState
     ( case maybe of
         First (Just x) -> do
-          put x
+          put (trans x)
           st
         First Nothing -> st
     )
+
+runMemoizedState :: forall proof s a. MemoizedState proof s a -> proof -> s -> Tuple a s
+runMemoizedState m proof = runMemoizedState' m proof identity
 
 makeMemoizedState :: forall proof s a. proof -> s -> a -> MemoizedState proof s a
 makeMemoizedState _ s a = MemoizedState (Tuple (First (Just s)) (pure a))
