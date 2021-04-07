@@ -84,10 +84,31 @@ sortInstructions = A.fromFoldable <<< go mempty <<< L.fromFoldable
   go l L.Nil = (L.sort l)
 
 data AnAudioUnit
-  = ASinOsc AudioParameter
-  | AHighpass AudioParameter AudioParameter
+  = AAllpass AudioParameter AudioParameter
+  | ABandpass AudioParameter AudioParameter
+  | AConstant AudioParameter
+  | AConvolver
+  | ADelay AudioParameter
+  | ADynamicsCompressor AudioParameter AudioParameter AudioParameter AudioParameter AudioParameter
   | AGain AudioParameter
+  | AHighpass AudioParameter AudioParameter
+  | AHighshelf AudioParameter AudioParameter
+  | ALoopBuf AudioParameter
+  | ALowpass AudioParameter AudioParameter
+  | ALowshelf AudioParameter AudioParameter
+  | AMicrophone
+  | ANotch AudioParameter AudioParameter
+  | APeaking AudioParameter AudioParameter AudioParameter
+  | APeriodicOsc AudioParameter
+  | APlayBuf AudioParameter
+  | ARecorder
+  | ASawtoothOsc AudioParameter
+  | ASinOsc AudioParameter
   | ASpeaker
+  | ASquareOsc AudioParameter
+  | AStereoPanner AudioParameter
+  | ATriangleOsc AudioParameter
+  | AWaveShaper
 
 derive instance eqAnAudioUnit :: Eq AnAudioUnit
 

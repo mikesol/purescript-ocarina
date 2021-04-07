@@ -54,7 +54,7 @@ else instance cursorResLowshelf :: CursorRes (CTOR.Lowshelf a b c) ptr (NodeC (A
 else instance cursorResMicrophone :: CursorRes (CTOR.Microphone a) ptr (NodeC (AU.TMicrophone ptr) edge) edge
 else instance cursorResNotch :: CursorRes (CTOR.Notch a b c) ptr (NodeC (AU.TNotch ptr) edge) edge
 else instance cursorResPeaking :: CursorRes (CTOR.Peaking a b c d) ptr (NodeC (AU.TPeaking ptr) edge) edge
-else instance cursorResPeriodicOsc :: CursorRes (CTOR.PeriodicOsc a) ptr (NodeC (AU.TPeriodicOsc ptr) edge) edge
+else instance cursorResPeriodicOsc :: CursorRes (CTOR.PeriodicOsc a b) ptr (NodeC (AU.TPeriodicOsc ptr) edge) edge
 else instance cursorResPlayBuf :: CursorRes (CTOR.PlayBuf a b) ptr (NodeC (AU.TPlayBuf ptr) edge) edge
 else instance cursorResRecorder :: CursorRes (CTOR.Recorder a b) ptr (NodeC (AU.TRecorder ptr) edge) edge
 else instance cursorResSawtoothOsc :: CursorRes (CTOR.SawtoothOsc a) ptr (NodeC (AU.TSawtoothOsc ptr) edge) edge
@@ -239,7 +239,7 @@ instance cursorPeaking ::
 
 instance cursorPeriodicOsc ::
   BinToInt p =>
-  CursorI (SingleEdge p) (CTOR.PeriodicOsc argA) inuniv PtrListNil
+  CursorI (SingleEdge p) (CTOR.PeriodicOsc argA argB) inuniv PtrListNil
 
 instance cursorPlayBuf ::
   BinToInt p =>

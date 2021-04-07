@@ -61,8 +61,8 @@ data Notch a b c
 data Peaking a b c d
   = Peaking a b c d
 
-data PeriodicOsc a
-  = PeriodicOsc a
+data PeriodicOsc (s :: Symbol) a
+  = PeriodicOsc (Proxy s) a
 
 data PlayBuf (s :: Symbol) a
   = PlayBuf (Proxy s) Number a
