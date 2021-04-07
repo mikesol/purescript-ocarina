@@ -14,7 +14,7 @@ data Instruction
   | DisconnectXFromY Int Int -- id id
   | ConnectXToY Int Int
   | NewUnit Int String
-  | Rebase Int Int
+  | Rebase (Array {from :: Int, to :: Int })
   | SetFrequency Int Number Number AudioParameterTransition -- frequency
   | SetThreshold Int Number Number AudioParameterTransition -- threshold
   | SetKnee Int Number Number AudioParameterTransition -- knee

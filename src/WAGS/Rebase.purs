@@ -28,19 +28,27 @@ instance rebaseRebase ::
   , Rebase' PtrListNil PtrListNil RebaseProof edgeA (idxA graphA changeBitA skolemsA) edgeB (idxB graphB changeBitB skolemsB)
   ) =>
   Rebase (idxA graphA changeBitA skolemsA) (idxB graphB changeBitB skolemsB) where
-  rebase iA iB = rebase' (Proxy :: _ PtrListNil) (Proxy :: _ PtrListNil) RebaseProof (Proxy :: _ edgeA) iA (Proxy :: _ edgeB) iB
+  rebase iA iB = Frame do
+    a <- arr
+    modify_ \i -> i {
+      instructions = i.instructions <> [Rebase a]
+    }
+    where
+    Frame arr = rebase' (Proxy :: _ PtrListNil) (Proxy :: _ PtrListNil) RebaseProof (Proxy :: _ edgeA) iA (Proxy :: _ edgeB) iB
 
+type AFT = (Array {from:: Int, to:: Int})
+-- private, only used to collect rebase instructions
 class Rebase' :: forall k1. PtrList -> PtrList -> Type -> k1 -> Universe -> k1 -> Universe -> Constraint
 class Rebase' plA plB rbp pA (iA :: Universe) pB (iB :: Universe) where
-  rebase' :: forall env proof. Proxy plA -> Proxy plB -> rbp -> Proxy pA -> Proxy iA -> Proxy pB -> Proxy iB -> Frame env proof iA iB Unit
+  rebase' :: forall env proof. Proxy plA -> Proxy plB -> rbp -> Proxy pA -> Proxy iA -> Proxy pB -> Proxy iB -> Frame env proof iA iB AFT
 
 class RebaseCheck' :: forall k1. PtrList -> PtrList -> Type -> k1 -> Universe -> k1 -> Universe -> Constraint
 class RebaseCheck' plA plB rbp pA (iA :: Universe) pB (iB :: Universe) where
-  rebaseCheck' :: forall env proof. Proxy plA -> Proxy plB -> rbp -> Proxy pA -> Proxy iA -> Proxy pB -> Proxy iB -> Frame env proof iA iB Unit
+  rebaseCheck' :: forall env proof. Proxy plA -> Proxy plB -> rbp -> Proxy pA -> Proxy iA -> Proxy pB -> Proxy iB -> Frame env proof iA iB AFT
 
 class RebaseCont' :: forall k1. Type -> Type -> Ptr -> Ptr -> PtrList -> PtrList -> Type -> k1 -> Universe -> k1 -> Universe -> Constraint
 class RebaseCont' foundA foundB ptrA ptrB plA plB rbp pA (iA :: Universe) pB (iB :: Universe) where
-  rebaseCont' :: forall env proof. Proxy foundA -> Proxy foundB -> Proxy ptrA -> Proxy ptrB -> Proxy plA -> Proxy plB -> rbp -> Proxy pA -> Proxy iA -> Proxy pB -> Proxy iB -> Frame env proof iA iB Unit
+  rebaseCont' :: forall env proof. Proxy foundA -> Proxy foundB -> Proxy ptrA -> Proxy ptrB -> Proxy plA -> Proxy plB -> rbp -> Proxy pA -> Proxy iA -> Proxy pB -> Proxy iB -> Frame env proof iA iB AFT
 
 rebaseAudioUnit ::
   forall env proof ptrA ptrB.
@@ -48,22 +56,22 @@ rebaseAudioUnit ::
   BinToInt ptrB =>
   Proxy ptrA ->
   Proxy ptrB ->
-  AudioState proof env Unit
-rebaseAudioUnit ptrA ptrB = if iA == iB then pure unit else modify_ \i -> i { instructions = i.instructions <> [ Rebase iA iB ] }
+  AudioState proof env AFT
+rebaseAudioUnit ptrA ptrB = if iA == iB then pure [] else pure [ {from:iA, to:iB} ]
   where
   iA = toInt' ptrA
 
   iB = toInt' ptrB
 
 instance rebaseNoEdge :: Rebase' rblA rblB RebaseProof NoEdge iA NoEdge iB where
-  rebase' _ _ _ _ _ _ _ = Frame $ pure unit
+  rebase' _ _ _ _ _ _ _ = Frame $ pure []
 
 instance rebaseMany2 ::
   ( Rebase' rblA rblB RebaseProof (SingleEdge pA) iA (SingleEdge pB) iB
   , Rebase' rblA rblB RebaseProof (ManyEdges aA bA) iA (ManyEdges aB bB) iB
   ) =>
   Rebase' rblA rblB RebaseProof (ManyEdges pA (PtrListCons aA bA)) iA (ManyEdges pB (PtrListCons aB bB)) iB where
-  rebase' _ _ _ _ iA _ iB = Frame (l *> r)
+  rebase' _ _ _ _ iA _ iB = Frame (append <$> l <*> r)
     where
     Frame l = rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ (SingleEdge pA)) (Proxy :: _ iA) (Proxy :: _ (SingleEdge pB)) (Proxy :: _ iB)
 
@@ -97,7 +105,7 @@ instance rebaseCheckSingleEdge ::
 
 instance rebaseContTT ::
   RebaseCont' True True ptrA ptrB rblA rblB RebaseProof a b c d where
-  rebaseCont' _ _ _ _ _ _ _ _ _ _ _ = Frame $ pure unit
+  rebaseCont' _ _ _ _ _ _ _ _ _ _ _ = Frame $ pure []
 
 instance rebaseContFF ::
   Rebase' (PtrListCons ptrA a) (PtrListCons ptrB b) c d e f g =>
@@ -114,9 +122,7 @@ instance rebaseHighpass ::
   Rebase' rblA rblB RebaseProof (NodeC (THighpass ptrA) eA) iA (NodeC (THighpass ptrB) eB) iB where
   rebase' _ _ _ _ _ _ _ =
     Frame
-      $ do
-          rebaseAudioUnit (Proxy :: _ ptrA) (Proxy :: _ ptrB)
-          rest
+      $ append <$> rebaseAudioUnit (Proxy :: _ ptrA) (Proxy :: _ ptrB) <*> rest
     where
     Frame rest = rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ iA) (Proxy :: _ eB) (Proxy :: _ iB)
 
@@ -125,9 +131,7 @@ instance rebaseGain ::
   Rebase' rblA rblB RebaseProof (NodeC (TGain ptrA) eA) iA (NodeC (TGain ptrB) eB) iB where
   rebase' _ _ _ _ _ _ _ =
     Frame
-      $ do
-          rebaseAudioUnit (Proxy :: _ ptrA) (Proxy :: _ ptrB)
-          rest
+      $ append <$> rebaseAudioUnit (Proxy :: _ ptrA) (Proxy :: _ ptrB) <*>  rest
     where
     Frame rest = rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ iA) (Proxy :: _ eB) (Proxy :: _ iB)
 
@@ -136,8 +140,6 @@ instance rebaseSpeaker ::
   Rebase' rblA rblB RebaseProof (NodeC (TSpeaker ptrA) eA) iA (NodeC (TSpeaker ptrB) eB) iB where
   rebase' _ _ _ _ _ _ _ =
     Frame
-      $ do
-          rebaseAudioUnit (Proxy :: _ ptrA) (Proxy :: _ ptrB)
-          rest
+      $ append <$> rebaseAudioUnit (Proxy :: _ ptrA) (Proxy :: _ ptrB) <*> rest
     where
     Frame rest = rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ iA) (Proxy :: _ eB) (Proxy :: _ iB)
