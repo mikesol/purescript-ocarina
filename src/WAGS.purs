@@ -35,7 +35,7 @@ import WAGS.Rebase (class Rebase, class Rebase', class RebaseCheck', class Rebas
 import WAGS.Rendered (AnAudioUnit(..), Instruction(..))
 import WAGS.Validation (class AllEdgesInNodeList, class AllEdgesPointToNodes, class AllNodesAreFullyHydrated, class AllNodesAreFullyHydratedNL, class AllPtrsInNodeList, class AssertSingleton, class AudioUnitInAudioUnitList, class AudioUnitInNodeList, class BottomLevelNodes, class BottomLevelNodesNL, class EdgeProfileChooseGreater, class GetEdgesAsPtrList, class GraphIsRenderable, class HasBottomLevelNodes, class HasUniqueTerminus, class IsNodeListEmpty, class LookupNL, class NoNodesAreDuplicated, class NoNodesAreDuplicatedInNodeList, class NoParallelEdges, class NoParallelEdgesNL, class NoPtrsAreDuplicatedInPtrList, class NodeInNodeList, class NodeIsOutputDevice, class NodeListAppend, class NodeNotInNodeList, class PtrInPtrList, class PtrListAppend, class PtrNotInPtrList, class RemoveDuplicates, class TerminalIdentityEdge, class TerminalNode, class TerminusLoop, class ToVisit, class ToVisitSingle, class UniqueTerminus, class UnvisitedNodes)
 import WAGS.Control.Env(EFrame, withReader)
-import WAGS.Graph.Constructors (Dup(..), Gain(..), Highpass(..), SinOsc(..), Speaker(..))
+import WAGS.Graph.Constructors
 import WAGS.Graph.Decorators (Decorated, class Decorate, class MakeDecorators, Decorating(..), Focus(..), decorate, dk, makeDecorators)
 import WAGS.Graph.Parameter (AudioParameter(..), AudioParameter', AudioParameterTransition(..), defaultParam, param)
 import WAGS.Control.Functions (branch, env, freeze, loop, makeScene, start, universe, (@>), (@|>))
