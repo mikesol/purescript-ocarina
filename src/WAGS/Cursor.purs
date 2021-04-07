@@ -10,7 +10,7 @@ import WAGS.Create (class Create)
 --import WAGS.Graph.Constructors (Dup, Gain, Highpass, SinOsc, Speaker)
 import WAGS.Universe.AudioUnit as AU
 import WAGS.Graph.Decorators (Focus)
-import WAGS.Universe.AudioUnit (AudioUnitRef(..), TGain, THighpass, TSinOsc, TSpeaker)
+import WAGS.Universe.AudioUnit (AudioUnitRef(..))
 import WAGS.Universe.Bin (class BinSub, class BinToInt, D0, Ptr, PtrList, PtrListCons, PtrListNil, toInt')
 import WAGS.Universe.EdgeProfile (EdgeProfile, ManyEdges, NoEdge, SingleEdge)
 import WAGS.Universe.Graph (class GraphToNodeList, InitialGraph)
@@ -141,19 +141,150 @@ instance cursorDup ::
   ) =>
   CursorI (SingleEdge p) (CTOR.Dup a (Proxy skolem -> b)) inuniv oo
 
-instance cursorSinOsc ::
+--------------
+instance cursorAllpass ::
+  ( BinToInt p
+  , GetSkolemFromRecursiveArgument fOfargC skolem
+  , ToSkolemizedFunction fOfargC skolem argC
+  , CursorX (CTOR.Allpass argA argB argC) p inuniv nextP
+  , CursorI nextP argC inuniv o
+  ) =>
+  CursorI (SingleEdge p) (CTOR.Allpass argA argB fOfargC) inuniv o
+instance cursorBandpass ::
+  ( BinToInt p
+  , GetSkolemFromRecursiveArgument fOfargC skolem
+  , ToSkolemizedFunction fOfargC skolem argC
+  , CursorX (CTOR.Bandpass argA argB argC) p inuniv nextP
+  , CursorI nextP argC inuniv o
+  ) =>
+  CursorI (SingleEdge p) (CTOR.Bandpass argA argB fOfargC) inuniv o
+instance cursorConstant ::
   BinToInt p =>
-  CursorI (SingleEdge p) (CTOR.SinOsc a) inuniv PtrListNil
+  CursorI (SingleEdge p) (CTOR.Constant argA) inuniv PtrListNil
+instance cursorConvolver ::
+  ( BinToInt p
+  , GetSkolemFromRecursiveArgument fOfargB skolem
+  , ToSkolemizedFunction fOfargB skolem argB
+  , CursorX (CTOR.Convolver argA argB) p inuniv nextP
+  , CursorI nextP argB inuniv o
+  ) =>
+  CursorI (SingleEdge p) (CTOR.Convolver argA fOfargB) inuniv o
+instance cursorDelay ::
+  ( BinToInt p
+  , GetSkolemFromRecursiveArgument fOfargB skolem
+  , ToSkolemizedFunction fOfargB skolem argB
+  , CursorX (CTOR.Delay argA argB) p inuniv nextP
+  , CursorI nextP argB inuniv o
+  ) =>
+  CursorI (SingleEdge p) (CTOR.Delay argA fOfargB) inuniv o
+
+instance cursorDynamicsCompressor ::
+  ( BinToInt p
+  , GetSkolemFromRecursiveArgument fOfargF skolem
+  , ToSkolemizedFunction fOfargF skolem argF
+  , CursorX (CTOR.DynamicsCompressor argA argB argC argD argE argF) p inuniv nextP
+  , CursorI nextP argF inuniv o
+  ) =>
+  CursorI (SingleEdge p) (CTOR.DynamicsCompressor argA argB argC argD argE fOfargF) inuniv o
 
 instance cursorHighpass ::
   ( BinToInt p
-  , GetSkolemFromRecursiveArgument fc skolem
-  , ToSkolemizedFunction fc skolem c
-  , CursorX (CTOR.Highpass a b c) p inuniv nextP
-  , CursorI nextP c inuniv o
+  , GetSkolemFromRecursiveArgument fOfargC skolem
+  , ToSkolemizedFunction fOfargC skolem argC
+  , CursorX (CTOR.Highpass argA argB argC) p inuniv nextP
+  , CursorI nextP argC inuniv o
   ) =>
-  CursorI (SingleEdge p) (CTOR.Highpass a b fc) inuniv o
+  CursorI (SingleEdge p) (CTOR.Highpass argA argB fOfargC) inuniv o
+instance cursorHighshelf ::
+  ( BinToInt p
+  , GetSkolemFromRecursiveArgument fOfargC skolem
+  , ToSkolemizedFunction fOfargC skolem argC
+  , CursorX (CTOR.Highshelf argA argB argC) p inuniv nextP
+  , CursorI nextP argC inuniv o
+  ) =>
+  CursorI (SingleEdge p) (CTOR.Highshelf argA argB fOfargC) inuniv o
+instance cursorLoopBuf ::
+  BinToInt p =>
+  CursorI (SingleEdge p) (CTOR.LoopBuf argA argB) inuniv PtrListNil
+instance cursorLowpass ::
+  ( BinToInt p
+  , GetSkolemFromRecursiveArgument fOfargC skolem
+  , ToSkolemizedFunction fOfargC skolem argC
+  , CursorX (CTOR.Lowpass argA argB argC) p inuniv nextP
+  , CursorI nextP argC inuniv o
+  ) =>
+  CursorI (SingleEdge p) (CTOR.Lowpass argA argB fOfargC) inuniv o
+instance cursorLowshelf ::
+  ( BinToInt p
+  , GetSkolemFromRecursiveArgument fOfargC skolem
+  , ToSkolemizedFunction fOfargC skolem argC
+  , CursorX (CTOR.Lowshelf argA argB argC) p inuniv nextP
+  , CursorI nextP argC inuniv o
+  ) =>
+  CursorI (SingleEdge p) (CTOR.Lowshelf argA argB fOfargC) inuniv o
+instance cursorMicrophone ::
+  BinToInt p =>
+  CursorI (SingleEdge p) (CTOR.Microphone argA) inuniv PtrListNil
+instance cursorNotch ::
+  ( BinToInt p
+  , GetSkolemFromRecursiveArgument fOfargC skolem
+  , ToSkolemizedFunction fOfargC skolem argC
+  , CursorX (CTOR.Notch argA argB argC) p inuniv nextP
+  , CursorI nextP argC inuniv o
+  ) =>
+  CursorI (SingleEdge p) (CTOR.Notch argA argB fOfargC) inuniv o
+instance cursorPeaking ::
+  ( BinToInt p
+  , GetSkolemFromRecursiveArgument fOfargD skolem
+  , ToSkolemizedFunction fOfargD skolem argD
+  , CursorX (CTOR.Peaking argA argB argC argD) p inuniv nextP
+  , CursorI nextP argD inuniv o
+  ) =>
+  CursorI (SingleEdge p) (CTOR.Peaking argA argB argC fOfargD) inuniv o
+instance cursorPeriodicOsc ::
+  BinToInt p =>
+  CursorI (SingleEdge p) (CTOR.PeriodicOsc argA) inuniv PtrListNil
+instance cursorPlayBuf ::
+  BinToInt p =>
+  CursorI (SingleEdge p) (CTOR.PlayBuf argA argB) inuniv PtrListNil
+instance cursorRecorder ::
+  ( BinToInt p
+  , GetSkolemFromRecursiveArgument fOfargB skolem
+  , ToSkolemizedFunction fOfargB skolem argB
+  , CursorX (CTOR.Recorder argA argB) p inuniv nextP
+  , CursorI nextP argB inuniv o
+  ) =>
+  CursorI (SingleEdge p) (CTOR.Recorder argA fOfargB) inuniv o
+instance cursorSawtoothOsc ::
+  BinToInt p =>
+  CursorI (SingleEdge p) (CTOR.SawtoothOsc argA) inuniv PtrListNil
+instance cursorSinOsc ::
+  BinToInt p =>
+  CursorI (SingleEdge p) (CTOR.SinOsc argA) inuniv PtrListNil
 
+instance cursorSquareOsc ::
+  BinToInt p =>
+  CursorI (SingleEdge p) (CTOR.SquareOsc argA) inuniv PtrListNil
+instance cursorStereoPanner ::
+  ( BinToInt p
+  , GetSkolemFromRecursiveArgument fOfargB skolem
+  , ToSkolemizedFunction fOfargB skolem argB
+  , CursorX (CTOR.StereoPanner argA argB) p inuniv nextP
+  , CursorI nextP argB inuniv o
+  ) =>
+  CursorI (SingleEdge p) (CTOR.StereoPanner argA fOfargB) inuniv o
+instance cursorTriangleOsc ::
+  BinToInt p =>
+  CursorI (SingleEdge p) (CTOR.TriangleOsc argA) inuniv PtrListNil
+instance cursorWaveShaper ::
+  ( BinToInt p
+  , GetSkolemFromRecursiveArgument fOfargC skolem
+  , ToSkolemizedFunction fOfargC skolem argC
+  , CursorX (CTOR.WaveShaper argA argB argC) p inuniv nextP
+  , CursorI nextP argC inuniv o
+  ) =>
+  CursorI (SingleEdge p) (CTOR.WaveShaper argA argB fOfargC) inuniv o
+---------------
 instance cursorGain ::
   ( BinToInt p
   , GetSkolemFromRecursiveArgument fb skolem
