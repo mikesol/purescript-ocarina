@@ -13,11 +13,12 @@ import Type.Proxy (Proxy(..))
 import WAGS.Control.Types (Frame(..))
 import WAGS.Create (class Create)
 import WAGS.Graph.Constructors as CTOR
-import WAGS.Graph.Constructors (Dup(..), Gain(..), Highpass(..), SinOsc(..), Speaker(..))
+import WAGS.Graph.Constructors (Dup(..), Gain(..), Highpass(..), SinOsc, Speaker(..))
 import WAGS.Graph.Decorators (Focus(..))
 import WAGS.Graph.Parameter (AudioParameter(..), defaultParam, param)
 import WAGS.Rendered (AnAudioUnit(..), Instruction(..))
-import WAGS.Universe.AudioUnit (AudioUnitRef, TGain, THighpass, TSinOsc, TSpeaker)
+import WAGS.Universe.AudioUnit (AudioUnitRef)
+import WAGS.Universe.AudioUnit as AU
 import WAGS.Universe.Bin (class BinSub, class BinToInt, BinL, D0, Ptr, PtrListCons, PtrListNil, toInt')
 import WAGS.Universe.EdgeProfile (EdgeProfile, ManyEdges, NoEdge, SingleEdge)
 import WAGS.Universe.Graph (class GraphToNodeList, Graph, InitialGraph)
@@ -541,10 +542,31 @@ class Change (p :: EdgeProfile) (a :: Type) (grapho :: Graph) where
 
 class ModifyRes (tag :: Type) (p :: Ptr) (i :: Node) (mod :: NodeList) (plist :: EdgeProfile) | tag p i -> mod plist
 
-instance modifyResSinOsc :: ModifyRes (SinOsc a) p (NodeC (TSinOsc p) e) (NodeListCons (NodeC (TSinOsc p) e) NodeListNil) e
-else instance modifyResHighpass :: ModifyRes (Highpass a b c) p (NodeC (THighpass p) e) (NodeListCons (NodeC (THighpass p) e) NodeListNil) e
-else instance modifyResGain :: ModifyRes (Gain a b) p (NodeC (TGain p) e) (NodeListCons (NodeC (TGain p) e) NodeListNil) e
-else instance modifyResSpeaker :: ModifyRes (Speaker a) p (NodeC (TSpeaker p) e) (NodeListCons (NodeC (TSpeaker p) e) NodeListNil) e
+instance modifyResAllpass :: ModifyRes (CTOR.Allpass a b c) ptr (NodeC (AU.TAllpass ptr) edge) (NodeListCons (NodeC (AU.TAllpass ptr) edge) NodeListNil) edge
+else instance modifyResBandpass :: ModifyRes (CTOR.Bandpass a b c) ptr (NodeC (AU.TBandpass ptr) edge) (NodeListCons (NodeC (AU.TBandpass ptr) edge) NodeListNil) edge
+else instance modifyResConstant :: ModifyRes (CTOR.Constant a) ptr (NodeC (AU.TConstant ptr) edge) (NodeListCons (NodeC (AU.TConstant ptr) edge) NodeListNil) edge
+else instance modifyResConvolver :: ModifyRes (CTOR.Convolver a b) ptr (NodeC (AU.TConvolver ptr) edge) (NodeListCons (NodeC (AU.TConvolver ptr) edge) NodeListNil) edge
+else instance modifyResDelay :: ModifyRes (CTOR.Delay a b) ptr (NodeC (AU.TDelay ptr) edge) (NodeListCons (NodeC (AU.TDelay ptr) edge) NodeListNil) edge
+else instance modifyResDynamicsCompressor :: ModifyRes (CTOR.DynamicsCompressor a b c d e f) ptr (NodeC (AU.TDynamicsCompressor ptr) edge) (NodeListCons (NodeC (AU.TDynamicsCompressor ptr) edge) NodeListNil) edge
+else instance modifyResGain :: ModifyRes (CTOR.Gain a b) ptr (NodeC (AU.TGain ptr) edge) (NodeListCons (NodeC (AU.TGain ptr) edge) NodeListNil) edge
+else instance modifyResHighpass :: ModifyRes (CTOR.Highpass a b c) ptr (NodeC (AU.THighpass ptr) edge) (NodeListCons (NodeC (AU.THighpass ptr) edge) NodeListNil) edge
+else instance modifyResHighshelf :: ModifyRes (CTOR.Highshelf a b c) ptr (NodeC (AU.THighshelf ptr) edge) (NodeListCons (NodeC (AU.THighshelf ptr) edge) NodeListNil) edge
+else instance modifyResLoopBuf :: ModifyRes (CTOR.LoopBuf a b) ptr (NodeC (AU.TLoopBuf ptr) edge) (NodeListCons (NodeC (AU.TLoopBuf ptr) edge) NodeListNil) edge
+else instance modifyResLowpass :: ModifyRes (CTOR.Lowpass a b c) ptr (NodeC (AU.TLowpass ptr) edge) (NodeListCons (NodeC (AU.TLowpass ptr) edge) NodeListNil) edge
+else instance modifyResLowshelf :: ModifyRes (CTOR.Lowshelf a b c) ptr (NodeC (AU.TLowshelf ptr) edge) (NodeListCons (NodeC (AU.TLowshelf ptr) edge) NodeListNil) edge
+else instance modifyResMicrophone :: ModifyRes (CTOR.Microphone a) ptr (NodeC (AU.TMicrophone ptr) edge) (NodeListCons (NodeC (AU.TMicrophone ptr) edge) NodeListNil) edge
+else instance modifyResNotch :: ModifyRes (CTOR.Notch a b c) ptr (NodeC (AU.TNotch ptr) edge) (NodeListCons (NodeC (AU.TNotch ptr) edge) NodeListNil) edge
+else instance modifyResPeaking :: ModifyRes (CTOR.Peaking a b c d) ptr (NodeC (AU.TPeaking ptr) edge) (NodeListCons (NodeC (AU.TPeaking ptr) edge) NodeListNil) edge
+else instance modifyResPeriodicOsc :: ModifyRes (CTOR.PeriodicOsc a b) ptr (NodeC (AU.TPeriodicOsc ptr) edge) (NodeListCons (NodeC (AU.TPeriodicOsc ptr) edge) NodeListNil) edge
+else instance modifyResPlayBuf :: ModifyRes (CTOR.PlayBuf a b) ptr (NodeC (AU.TPlayBuf ptr) edge) (NodeListCons (NodeC (AU.TPlayBuf ptr) edge) NodeListNil) edge
+else instance modifyResRecorder :: ModifyRes (CTOR.Recorder a b) ptr (NodeC (AU.TRecorder ptr) edge) (NodeListCons (NodeC (AU.TRecorder ptr) edge) NodeListNil) edge
+else instance modifyResSawtoothOsc :: ModifyRes (CTOR.SawtoothOsc a) ptr (NodeC (AU.TSawtoothOsc ptr) edge) (NodeListCons (NodeC (AU.TSawtoothOsc ptr) edge) NodeListNil) edge
+else instance modifyResSinOsc :: ModifyRes (CTOR.SinOsc a) ptr (NodeC (AU.TSinOsc ptr) edge) (NodeListCons (NodeC (AU.TSinOsc ptr) edge) NodeListNil) edge
+else instance modifyResSpeaker :: ModifyRes (CTOR.Speaker a) ptr (NodeC (AU.TSpeaker ptr) edge) (NodeListCons (NodeC (AU.TSpeaker ptr) edge) NodeListNil) edge
+else instance modifyResSquareOsc :: ModifyRes (CTOR.SquareOsc a) ptr (NodeC (AU.TSquareOsc ptr) edge) (NodeListCons (NodeC (AU.TSquareOsc ptr) edge) NodeListNil) edge
+else instance modifyResStereoPanner :: ModifyRes (CTOR.StereoPanner a b) ptr (NodeC (AU.TStereoPanner ptr) edge) (NodeListCons (NodeC (AU.TStereoPanner ptr) edge) NodeListNil) edge
+else instance modifyResTriangleOsc :: ModifyRes (CTOR.TriangleOsc a) ptr (NodeC (AU.TTriangleOsc ptr) edge) (NodeListCons (NodeC (AU.TTriangleOsc ptr) edge) NodeListNil) edge
+else instance modifyResWaveShaper :: ModifyRes (CTOR.WaveShaper a b c) ptr (NodeC (AU.TWaveShaper ptr) edge) (NodeListCons (NodeC (AU.TWaveShaper ptr) edge) NodeListNil) edge
 else instance modifyResMiss :: ModifyRes tag p n NodeListNil NoEdge
 
 class Modify' (tag :: Type) (p :: Ptr) (i :: NodeList) (mod :: NodeList) (nextP :: EdgeProfile) | tag p i -> mod nextP
