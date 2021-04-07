@@ -6,8 +6,7 @@ import WAGS.Universe.Bin (class BinEq, Ptr, PtrList, PtrListCons, PtrListNil)
 import WAGS.Universe.EdgeProfile (EdgeProfile, ManyEdges, NoEdge, SingleEdge)
 import WAGS.Universe.Graph (class GraphToNodeList, Graph)
 import WAGS.Universe.Node (class GetAudioUnit, class NodeListKeepSingleton, Node, NodeC, NodeList, NodeListCons, NodeListNil)
-import WAGS.Universe.Skolems (SkolemListNil)
-import WAGS.Universe.Universe (class GetGraph, Universe, UniverseC)
+import WAGS.Universe.Universe (class GetGraph, Universe)
 import WAGS.Util (class Gate)
 
 
@@ -368,21 +367,6 @@ instance graphIsRenderable ::
   , AllNodesAreFullyHydrated graph
   ) =>
   GraphIsRenderable graph
-
-class GraphIsCoherent (graph :: Graph)
-
-instance graphIsCoherent ::
-  ( NoNodesAreDuplicated graph
-  , AllEdgesPointToNodes graph
-  , NoParallelEdges graph
-  ) =>
-  GraphIsCoherent graph
-
-instance universeIsCoherent ::
-  GraphIsRenderable graph =>
-  UniverseIsCoherent (UniverseC ptr graph SkolemListNil)
-
-class UniverseIsCoherent (u :: Universe)
 
 class TerminalNode (u :: Universe) (ptr :: Ptr) | u -> ptr
 
