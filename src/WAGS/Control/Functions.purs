@@ -4,6 +4,7 @@ module WAGS.Control.Functions
   , makeScene'
   , loop
   , branch
+  , universe
   , env
   , freeze
   , (@>)
@@ -11,6 +12,7 @@ module WAGS.Control.Functions
   ) where
 
 import Prelude
+
 import Control.Applicative.Indexed (ipure)
 import Control.Bind.Indexed (ibind)
 import Control.Monad.Indexed.Qualified as Ix
@@ -20,12 +22,13 @@ import Data.Functor.Indexed (imap)
 import Data.Map as M
 import Data.Tuple.Nested ((/\))
 import Type.Data.Peano (Succ)
+import Type.Proxy (Proxy(..))
 import Unsafe.Coerce (unsafeCoerce)
 import WAGS.Change (changes)
 import WAGS.Control.MemoizedState (makeMemoizedState, runMemoizedState)
 import WAGS.Control.Types (AudioState', Frame(..), InitialFrame, Scene, Scene', oneFrame)
+import WAGS.Rendered (sortInstructions)
 import WAGS.Universe.Universe (UniverseC)
-import WAGS.Rendered(sortInstructions)
 import WAGS.Validation (class GraphIsRenderable, class TerminalIdentityEdge)
 
 start :: forall env. InitialFrame env Unit
@@ -127,3 +130,8 @@ env ::
   forall env proof i.
   Frame env proof i i env
 env = Frame ask
+
+universe ::
+  forall env proof i o.
+  Frame env proof i o (Proxy o)
+universe = Frame $ pure $ (Proxy :: _ o)
