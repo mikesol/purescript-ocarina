@@ -38,11 +38,11 @@ type AudioState'
     , internalEdges :: M.Map Int (Set Int)
     }
 
-type AudioState env a
-  = ReaderT env (MemoizedState (AudioState')) a
+type AudioState env proof a
+  = ReaderT env (MemoizedState proof (AudioState')) a
 
 newtype Frame (env :: Type) (proof :: Type) (iu :: Universe) (ou :: Universe) (a :: Type)
-  = Frame (AudioState env a)
+  = Frame (AudioState env proof a)
 
 data Frame0
 

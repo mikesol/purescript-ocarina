@@ -43,12 +43,12 @@ class RebaseCont' foundA foundB ptrA ptrB plA plB rbp pA (iA :: Universe) pB (iB
   rebaseCont' :: forall env proof. Proxy foundA -> Proxy foundB -> Proxy ptrA -> Proxy ptrB -> Proxy plA -> Proxy plB -> rbp -> Proxy pA -> Proxy iA -> Proxy pB -> Proxy iB -> Frame env proof iA iB Unit
 
 rebaseAudioUnit ::
-  forall env ptrA ptrB.
+  forall env proof ptrA ptrB.
   BinToInt ptrA =>
   BinToInt ptrB =>
   Proxy ptrA ->
   Proxy ptrB ->
-  AudioState env Unit
+  AudioState proof env Unit
 rebaseAudioUnit ptrA ptrB = if iA == iB then pure unit else modify_ \i -> i { instructions = i.instructions <> [ Rebase iA iB ] }
   where
   iA = toInt' ptrA

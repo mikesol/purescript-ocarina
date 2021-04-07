@@ -53,7 +53,7 @@ makeScene (Frame m) trans = asScene go
     let
       step1 = runReaderT m ev
 
-      outcome /\ newState = runMemoizedState step1 initialAudioState
+      outcome /\ newState = runMemoizedState step1 (unsafeCoerce unit) initialAudioState
     in
       case outcome of
         Left s -> oneFrame s ev
@@ -63,7 +63,15 @@ makeScene (Frame m) trans = asScene go
           , instructions: newState.instructions
           , next:
               trans
-                $ Frame (ReaderT (pure (makeMemoizedState (newState { instructions = [] }) r)))
+                $ Frame
+                    ( ReaderT
+                        ( pure
+                            ( makeMemoizedState (unsafeCoerce unit)
+                                (newState { instructions = [] })
+                                r
+                            )
+                        )
+                    )
           }
 
 infixr 6 makeScene as @>

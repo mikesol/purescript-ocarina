@@ -106,10 +106,10 @@ class Create (a :: Type) (i :: Universe) (o :: Universe) (x :: Type) | a i -> o 
   create :: forall env proof. a -> Frame env proof i o x
 
 creationStep ::
-  forall env g.
+  forall env proof g.
   CreationInstructions g =>
   g ->
-  AudioState env Int
+  AudioState proof env Int
 creationStep g = do
   currentIdx <- gets _.currentIdx
   let
