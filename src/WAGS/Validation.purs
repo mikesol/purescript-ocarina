@@ -6,7 +6,7 @@ import WAGS.Universe.Bin (class BinEq, Ptr, PtrList, PtrListCons, PtrListNil)
 import WAGS.Universe.EdgeProfile (EdgeProfile, ManyEdges, NoEdge, SingleEdge)
 import WAGS.Universe.Graph (class GraphToNodeList, Graph)
 import WAGS.Universe.Node (class GetAudioUnit, class NodeListKeepSingleton, Node, NodeC, NodeList, NodeListCons, NodeListNil)
-import WAGS.Universe.Universe (class GetGraph, Universe)
+import WAGS.Universe.Universe (class GetGraph)
 import WAGS.Util (class Gate)
 
 

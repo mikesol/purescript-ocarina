@@ -1,12 +1,12 @@
-
 module WAGS.Rendered where
 
 import Prelude
-
+import Data.Array as A
 import Data.Generic.Rep (class Generic)
+import Data.List ((:))
+import Data.List as L
 import Data.Show.Generic (genericShow)
 import WAGS.Graph.Parameter (AudioParameter, AudioParameterTransition)
-
 
 data Instruction
   = Stop Int
@@ -14,7 +14,7 @@ data Instruction
   | DisconnectXFromY Int Int -- id id
   | ConnectXToY Int Int
   | NewUnit Int String
-  | Rebase (Array {from :: Int, to :: Int })
+  | Rebase (Array { from :: Int, to :: Int })
   | SetFrequency Int Number Number AudioParameterTransition -- frequency
   | SetThreshold Int Number Number AudioParameterTransition -- threshold
   | SetKnee Int Number Number AudioParameterTransition -- knee
@@ -74,6 +74,14 @@ instance ordInstruction :: Ord Instruction where
   compare _ (NewUnit _ _) = LT
   compare _ _ = EQ
 
+sortInstructions :: Array Instruction -> Array Instruction
+sortInstructions = A.fromFoldable <<< go mempty <<< L.fromFoldable
+  where
+  go l (Rebase x : b) = (L.sort l) <> pure (Rebase x) <> go mempty b
+
+  go l (a : b) = go (a : l) b
+
+  go l L.Nil = (L.sort l)
 
 data AnAudioUnit
   = ASinOsc AudioParameter

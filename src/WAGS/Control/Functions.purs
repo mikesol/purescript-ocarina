@@ -25,6 +25,7 @@ import WAGS.Change (changes)
 import WAGS.Control.MemoizedState (makeMemoizedState, runMemoizedState)
 import WAGS.Control.Types (AudioState', Frame(..), InitialFrame, Scene, Scene', oneFrame)
 import WAGS.Universe.Universe (UniverseC)
+import WAGS.Rendered(sortInstructions)
 import WAGS.Validation (class GraphIsRenderable, class TerminalIdentityEdge)
 
 start :: forall env. InitialFrame env Unit
@@ -60,7 +61,7 @@ makeScene (Frame m) trans = asScene go
         Right r ->
           { nodes: newState.internalNodes
           , edges: newState.internalEdges
-          , instructions: newState.instructions
+          , instructions: (sortInstructions newState.instructions)
           , next:
               trans
                 $ Frame

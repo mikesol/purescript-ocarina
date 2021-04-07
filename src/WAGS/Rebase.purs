@@ -57,14 +57,14 @@ rebaseAudioUnit ::
   Proxy ptrA ->
   Proxy ptrB ->
   AudioState proof env AFT
-rebaseAudioUnit ptrA ptrB = if iA == iB then pure [] else pure [ {from:iA, to:iB} ]
+rebaseAudioUnit ptrA ptrB = if iA == iB then pure mempty else (pure <<< pure) {from:iA, to:iB}
   where
   iA = toInt' ptrA
 
   iB = toInt' ptrB
 
 instance rebaseNoEdge :: Rebase' rblA rblB RebaseProof NoEdge iA NoEdge iB where
-  rebase' _ _ _ _ _ _ _ = Frame $ pure []
+  rebase' _ _ _ _ _ _ _ = Frame $ pure mempty
 
 instance rebaseMany2 ::
   ( Rebase' rblA rblB RebaseProof (SingleEdge pA) iA (SingleEdge pB) iB
@@ -105,7 +105,7 @@ instance rebaseCheckSingleEdge ::
 
 instance rebaseContTT ::
   RebaseCont' True True ptrA ptrB rblA rblB RebaseProof a b c d where
-  rebaseCont' _ _ _ _ _ _ _ _ _ _ _ = Frame $ pure []
+  rebaseCont' _ _ _ _ _ _ _ _ _ _ _ = Frame $ pure mempty
 
 instance rebaseContFF ::
   Rebase' (PtrListCons ptrA a) (PtrListCons ptrB b) c d e f g =>
