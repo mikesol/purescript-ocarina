@@ -1,24 +1,15 @@
 module WAGS.Graph.Constructors where
 
-import Prelude
-import Data.Generic.Rep (class Generic)
-import Data.Maybe (Maybe)
-import Data.Show.Generic (genericShow)
 
-data Oversample
-  = None
-  | TwoX
-  | FourX
 
-derive instance genericOversample :: Generic Oversample _
+import Type.Proxy (Proxy)
 
-instance showOversample :: Show Oversample where
-  show s = genericShow s
+data OversampleNone = OversampleNone
+data OversampleTwoX = OversampleTwoX
+data OversampleFourX = OversampleFourX
 
-derive instance eqOversample :: Eq Oversample
-
-data WaveShaper a
-  = WaveShaper String Oversample a
+data WaveShaper (s :: Symbol) a b
+  = WaveShaper (Proxy s) a b
 
 data SinOsc a
   = SinOsc a
@@ -68,17 +59,17 @@ data Gain a b
 data Speaker a
   = Speaker a
 
-data Microphone
-  = Microphone String
+data Microphone (s :: Symbol)
+  = Microphone (Proxy s)
 
-data PlayBuf a
-  = PlayBuf String (Maybe Number) a
+data PlayBuf (s :: Symbol) a
+  = PlayBuf (Proxy s) Number a
 
-data LoopBuf a
-  = LoopBuf String a Number Number
+data LoopBuf (s :: Symbol) a
+  = LoopBuf (Proxy s) a Number Number
 
-data Convolver a
-  = Convolver String a
+data Convolver (s :: Symbol) a
+  = Convolver (Proxy s) a
 
 data DynamicsCompressor a b c d e f
   = DynamicsCompressor a b c d e f
@@ -92,5 +83,5 @@ data Constant a
 data Delay a b
   = Delay a b
 
-data Recorder a
-  = Recorder String a
+data Recorder (s :: Symbol) a
+  = Recorder (Proxy s) a
