@@ -1,13 +1,13 @@
 module WAGS.Validation where
 
 import Data.Typelevel.Bool (False, True)
-import WAGS.Universe.AudioUnit (class AudioUnitEq, class GetPointer, AudioUnit, AudioUnitCons, AudioUnitList, AudioUnitNil, TGain, THighpass, TSinOsc, TSpeaker)
+import WAGS.Universe.AudioUnit (class AudioUnitEq, class GetPointer, AudioUnit, AudioUnitCons, AudioUnitList, AudioUnitNil)
+import WAGS.Universe.AudioUnit as AU
 import WAGS.Universe.Bin (class BinEq, Ptr, PtrList, PtrListCons, PtrListNil)
 import WAGS.Universe.EdgeProfile (EdgeProfile, ManyEdges, NoEdge, SingleEdge)
 import WAGS.Universe.Graph (class GraphToNodeList, Graph)
 import WAGS.Universe.Node (class GetAudioUnit, class NodeListKeepSingleton, Node, NodeC, NodeList, NodeListCons, NodeListNil)
 import WAGS.Util (class Gate)
-
 
 class LookupNL (accumulator :: NodeList) (ptr :: Ptr) (graph :: NodeList) (node :: NodeList) | accumulator ptr graph -> node
 
@@ -332,27 +332,70 @@ instance hasUniqueTerminus :: UniqueTerminus graph node => HasUniqueTerminus gra
 -------------- Even though we have a unique terminus, we don't want a state where a gain is a bottom node
 class AllNodesAreFullyHydratedNL (graph :: NodeList)
 
-instance allNodesAreFullyHydratedNil :: AllNodesAreFullyHydratedNL NodeListNil
+instance allNodesAreFullyHydratedConsTAllpass :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (AU.TAllpass a) (SingleEdge e)) tail)
 
-instance allNodesAreFullyHydratedConsTSinOsc :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (TSinOsc a) NoEdge) tail)
+instance allNodesAreFullyHydratedConsTBandpass :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (AU.TBandpass a) (SingleEdge e)) tail)
 
-instance allNodesAreFullyHydratedConsTHighpass :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (THighpass a) (SingleEdge e)) tail)
+instance allNodesAreFullyHydratedConsTConstant :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (AU.TConstant a) NoEdge) tail)
 
-instance allNodesAreFullyHydratedConsTGainSE :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (TGain a) (SingleEdge e)) tail)
+instance allNodesAreFullyHydratedConsTConvolver :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (AU.TConvolver a) (SingleEdge e)) tail)
 
-instance allNodesAreFullyHydratedConsTGainME :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (TGain a) (ManyEdges e l)) tail)
+instance allNodesAreFullyHydratedConsTDelay :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (AU.TDelay a) (SingleEdge e)) tail)
 
-instance allNodesAreFullyHydratedConsTSpeakerSE :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (TSpeaker a) (SingleEdge e)) tail)
+instance allNodesAreFullyHydratedConsTDynamicsCompressor :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (AU.TDynamicsCompressor a) (SingleEdge e)) tail)
 
-instance allNodesAreFullyHydratedConsTSpeakerME :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (TSpeaker a) (ManyEdges e l)) tail)
+instance allNodesAreFullyHydratedCons_SE_TGain :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (AU.TGain a) (SingleEdge e)) tail)
 
+instance allNodesAreFullyHydratedCons_ME_TGain :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (AU.TGain a) (ManyEdges e l)) tail)
+
+instance allNodesAreFullyHydratedConsTHighpass :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (AU.THighpass a) (SingleEdge e)) tail)
+
+instance allNodesAreFullyHydratedConsTHighshelf :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (AU.THighshelf a) (SingleEdge e)) tail)
+
+instance allNodesAreFullyHydratedConsTLoopBuf :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (AU.TLoopBuf a) NoEdge) tail)
+
+instance allNodesAreFullyHydratedConsTLowpass :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (AU.TLowpass a) (SingleEdge e)) tail)
+
+instance allNodesAreFullyHydratedConsTLowshelf :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (AU.TLowshelf a) (SingleEdge e)) tail)
+
+instance allNodesAreFullyHydratedConsTMicrophone :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (AU.TMicrophone a) NoEdge) tail)
+
+instance allNodesAreFullyHydratedConsTNotch :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (AU.TNotch a) (SingleEdge e)) tail)
+
+instance allNodesAreFullyHydratedConsTPeaking :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (AU.TPeaking a) (SingleEdge e)) tail)
+
+instance allNodesAreFullyHydratedConsTPeriodicOsc :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (AU.TPeriodicOsc a) NoEdge) tail)
+
+instance allNodesAreFullyHydratedConsTPlayBuf :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (AU.TPlayBuf a) NoEdge) tail)
+
+instance allNodesAreFullyHydratedConsTRecorder :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (AU.TRecorder a) (SingleEdge e)) tail)
+
+instance allNodesAreFullyHydratedConsTSawtoothOsc :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (AU.TSawtoothOsc a) NoEdge) tail)
+
+instance allNodesAreFullyHydratedConsTSinOsc :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (AU.TSinOsc a) NoEdge) tail)
+
+instance allNodesAreFullyHydratedCons_SE_TSpeaker :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (AU.TSpeaker a) (SingleEdge e)) tail)
+
+instance allNodesAreFullyHydratedCons_ME_TSpeaker :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (AU.TSpeaker a) (ManyEdges e l)) tail)
+
+instance allNodesAreFullyHydratedConsTSquareOsc :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (AU.TSquareOsc a) NoEdge) tail)
+
+instance allNodesAreFullyHydratedConsTStereoPanner :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (AU.TStereoPanner a) (SingleEdge e)) tail)
+
+instance allNodesAreFullyHydratedConsTTriangleOsc :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (AU.TTriangleOsc a) NoEdge) tail)
+
+instance allNodesAreFullyHydratedConsTWaveShaper :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (AU.TWaveShaper a) (SingleEdge e)) tail)
+
+-------------------------------------
+-------------------------------------
+-------------------------------------
 class AllNodesAreFullyHydrated (graph :: Graph)
 
 instance allNodesAreFullyHydrated :: (GraphToNodeList graph nodeList, AllNodesAreFullyHydratedNL nodeList) => AllNodesAreFullyHydrated graph
 
 class NodeIsOutputDevice (node :: Node)
 
-instance nodeIsOutputDeviceTSpeaker :: NodeIsOutputDevice (NodeC (TSpeaker a) x)
+instance nodeIsOutputDeviceTSpeaker :: NodeIsOutputDevice (NodeC (AU.TSpeaker a) x)
 
 class GraphIsRenderable (graph :: Graph)
 
