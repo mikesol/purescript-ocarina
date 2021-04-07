@@ -52,8 +52,8 @@ data Lowpass a b c
 data Lowshelf a b c
   = Lowshelf a b c
 
-data Microphone (s :: Symbol)
-  = Microphone (Proxy s)
+data Microphone
+  = Microphone
 
 data Notch a b c
   = Notch a b c

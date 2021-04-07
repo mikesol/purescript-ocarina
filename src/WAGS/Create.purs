@@ -1,19 +1,23 @@
 module WAGS.Create where
 
 import Prelude
+
 import Control.Monad.State (gets, modify_)
 import Data.Identity (Identity(..))
 import Data.Map as M
 import Data.Set as S
+import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.Tuple (Tuple(..), fst)
 import Data.Tuple.Nested (type (/\), (/\))
 import Type.Proxy (Proxy(..))
 import WAGS.Control.Types (Frame(..), AudioState)
-import WAGS.Graph.Constructors (Dup(..), Gain(..), Highpass(..), SinOsc(..), Speaker(..))
+import WAGS.Graph.Constructors (Dup(..), Gain, Speaker)
+import WAGS.Graph.Constructors as CTOR
 import WAGS.Graph.Decorators (Focus(..))
 import WAGS.Graph.Parameter (AudioParameter(..), defaultParam)
 import WAGS.Rendered (AnAudioUnit(..), Instruction(..))
-import WAGS.Universe.AudioUnit (AudioUnitRef(..), TGain, THighpass, TSinOsc, TSpeaker)
+import WAGS.Universe.AudioUnit (AudioUnitRef(..), TGain, TSpeaker)
+import WAGS.Universe.AudioUnit as AU
 import WAGS.Universe.Bin (class BinSucc, class BinToInt, BinL, PtrList, PtrListCons, PtrListNil, toInt')
 import WAGS.Universe.EdgeProfile (EdgeProfile, ManyEdges, NoEdge, SingleEdge)
 import WAGS.Universe.Graph (class GraphToNodeList, GraphC)
@@ -58,6 +62,7 @@ instance initialValTuple :: InitialVal a => InitialVal (Tuple a b) where
 class CreationInstructions (g :: Type) where
   creationInstructions :: Int -> g -> Array Instruction /\ AnAudioUnit
 
+{-
 instance creationInstructionsSinOsc :: InitialVal a => CreationInstructions (SinOsc a) where
   creationInstructions idx (SinOsc a) =
     let
@@ -101,6 +106,278 @@ instance creationInstructionsGain :: InitialVal a => CreationInstructions (Gain 
 
 instance creationInstructionsSpeaker :: CreationInstructions (Speaker a) where
   creationInstructions idx (Speaker _) = [] /\ ASpeaker
+
+
+-}
+instance creationInstructionsAllpass :: (InitialVal argA, InitialVal argB) => CreationInstructions (CTOR.Allpass argA argB argC) where
+  creationInstructions idx (CTOR.Allpass argA argB _) =
+    let
+      argA_iv' = initialVal argA
+
+      argA_StartsWith = let AudioParameter argA_iv = argA_iv' in [ SetQ idx argA_iv.param argA_iv.timeOffset argA_iv.transition ]
+
+      argB_iv' = initialVal argB
+
+      argB_StartsWith = let AudioParameter argB_iv = argB_iv' in [ SetGain idx argB_iv.param argB_iv.timeOffset argB_iv.transition ]
+    in
+      ([ NewUnit idx "allpass" ] <> argA_StartsWith <> argB_StartsWith)
+        /\ AAllpass argA_iv' argB_iv'
+
+instance creationInstructionsBandpass :: (InitialVal argA, InitialVal argB) => CreationInstructions (CTOR.Bandpass argA argB argC) where
+  creationInstructions idx (CTOR.Bandpass argA argB _) =
+    let
+      argA_iv' = initialVal argA
+
+      argA_StartsWith = let AudioParameter argA_iv = argA_iv' in [ SetFrequency idx argA_iv.param argA_iv.timeOffset argA_iv.transition ]
+
+      argB_iv' = initialVal argB
+
+      argB_StartsWith = let AudioParameter argB_iv = argB_iv' in [ SetQ idx argB_iv.param argB_iv.timeOffset argB_iv.transition ]
+    in
+      ([ NewUnit idx "bandpass" ] <> argA_StartsWith <> argB_StartsWith)
+        /\ ABandpass argA_iv' argB_iv'
+
+instance creationInstructionsConstant :: (InitialVal argA) => CreationInstructions (CTOR.Constant argA) where
+  creationInstructions idx (CTOR.Constant argA) =
+    let
+      argA_iv' = initialVal argA
+
+      argA_StartsWith = let AudioParameter argA_iv = argA_iv' in [ SetOffset idx argA_iv.param argA_iv.timeOffset argA_iv.transition ]
+    in
+      ([ NewUnit idx "constant" ] <> argA_StartsWith)
+        /\ AConstant argA_iv'
+
+instance creationInstructionsConvolver :: CreationInstructions (CTOR.Convolver argA argB) where
+  creationInstructions _ _ = [] /\ ASpeaker
+
+instance creationInstructionsDelay :: (InitialVal argA) => CreationInstructions (CTOR.Delay argA argB) where
+  creationInstructions idx (CTOR.Delay argA _) =
+    let
+      argA_iv' = initialVal argA
+
+      argA_StartsWith = let AudioParameter argA_iv = argA_iv' in [ SetDelay idx argA_iv.param argA_iv.timeOffset argA_iv.transition ]
+    in
+      ([ NewUnit idx "delay" ] <> argA_StartsWith)
+        /\ ADelay argA_iv'
+
+instance creationInstructionsDynamicsCompressor :: (InitialVal argA, InitialVal argB, InitialVal argC, InitialVal argD, InitialVal argE) => CreationInstructions (CTOR.DynamicsCompressor argA argB argC argD argE argF) where
+  creationInstructions idx (CTOR.DynamicsCompressor argA argB argC argD argE _) =
+    let
+      argA_iv' = initialVal argA
+
+      argA_StartsWith = let AudioParameter argA_iv = argA_iv' in [ SetThreshold idx argA_iv.param argA_iv.timeOffset argA_iv.transition ]
+
+      argB_iv' = initialVal argB
+
+      argB_StartsWith = let AudioParameter argB_iv = argB_iv' in [ SetKnee idx argB_iv.param argB_iv.timeOffset argB_iv.transition ]
+
+      argC_iv' = initialVal argC
+
+      argC_StartsWith = let AudioParameter argC_iv = argC_iv' in [ SetRatio idx argC_iv.param argC_iv.timeOffset argC_iv.transition ]
+
+      argD_iv' = initialVal argD
+
+      argD_StartsWith = let AudioParameter argD_iv = argD_iv' in [ SetAttack idx argD_iv.param argD_iv.timeOffset argD_iv.transition ]
+
+      argE_iv' = initialVal argE
+
+      argE_StartsWith = let AudioParameter argE_iv = argE_iv' in [ SetRelease idx argE_iv.param argE_iv.timeOffset argE_iv.transition ]
+    in
+      ([ NewUnit idx "dynamicscompressor" ] <> argA_StartsWith <> argB_StartsWith <> argC_StartsWith <> argD_StartsWith <> argE_StartsWith)
+        /\ ADynamicsCompressor argA_iv' argB_iv' argC_iv' argD_iv' argE_iv'
+
+instance creationInstructionsGain :: (InitialVal argA) => CreationInstructions (CTOR.Gain argA argB) where
+  creationInstructions idx (CTOR.Gain argA _) =
+    let
+      argA_iv' = initialVal argA
+
+      argA_StartsWith = let AudioParameter argA_iv = argA_iv' in [ SetGain idx argA_iv.param argA_iv.timeOffset argA_iv.transition ]
+    in
+      ([ NewUnit idx "gain" ] <> argA_StartsWith)
+        /\ AGain argA_iv'
+
+instance creationInstructionsHighpass :: (InitialVal argA, InitialVal argB) => CreationInstructions (CTOR.Highpass argA argB argC) where
+  creationInstructions idx (CTOR.Highpass argA argB _) =
+    let
+      argA_iv' = initialVal argA
+
+      argA_StartsWith = let AudioParameter argA_iv = argA_iv' in [ SetFrequency idx argA_iv.param argA_iv.timeOffset argA_iv.transition ]
+
+      argB_iv' = initialVal argB
+
+      argB_StartsWith = let AudioParameter argB_iv = argB_iv' in [ SetQ idx argB_iv.param argB_iv.timeOffset argB_iv.transition ]
+    in
+      ([ NewUnit idx "highpass" ] <> argA_StartsWith <> argB_StartsWith)
+        /\ AHighpass argA_iv' argB_iv'
+
+instance creationInstructionsHighshelf :: (InitialVal argA, InitialVal argB) => CreationInstructions (CTOR.Highshelf argA argB argC) where
+  creationInstructions idx (CTOR.Highshelf argA argB _) =
+    let
+      argA_iv' = initialVal argA
+
+      argA_StartsWith = let AudioParameter argA_iv = argA_iv' in [ SetFrequency idx argA_iv.param argA_iv.timeOffset argA_iv.transition ]
+
+      argB_iv' = initialVal argB
+
+      argB_StartsWith = let AudioParameter argB_iv = argB_iv' in [ SetGain idx argB_iv.param argB_iv.timeOffset argB_iv.transition ]
+    in
+      ([ NewUnit idx "highshelf" ] <> argA_StartsWith <> argB_StartsWith)
+        /\ AHighshelf argA_iv' argB_iv'
+
+instance creationInstructionsLoopBuf :: (IsSymbol argA, InitialVal argB) => CreationInstructions (CTOR.LoopBuf argA argB) where
+  creationInstructions idx (CTOR.LoopBuf px argB loopStart loopEnd) =
+    let
+      argB_iv' = initialVal argB
+
+      argB_StartsWith = let AudioParameter argB_iv = argB_iv' in [ SetPlaybackRate idx argB_iv.param argB_iv.timeOffset argB_iv.transition ]
+      bufname = reflectSymbol px
+    in
+      ([ NewUnit idx "loopbuf" ] <> argB_StartsWith)
+        /\ ALoopBuf bufname argB_iv' loopStart loopEnd
+
+instance creationInstructionsLowpass :: (InitialVal argA, InitialVal argB) => CreationInstructions (CTOR.Lowpass argA argB argC) where
+  creationInstructions idx (CTOR.Lowpass argA argB _) =
+    let
+      argA_iv' = initialVal argA
+
+      argA_StartsWith = let AudioParameter argA_iv = argA_iv' in [ SetFrequency idx argA_iv.param argA_iv.timeOffset argA_iv.transition ]
+
+      argB_iv' = initialVal argB
+
+      argB_StartsWith = let AudioParameter argB_iv = argB_iv' in [ SetQ idx argB_iv.param argB_iv.timeOffset argB_iv.transition ]
+    in
+      ([ NewUnit idx "lowpass" ] <> argA_StartsWith <> argB_StartsWith)
+        /\ ALowpass argA_iv' argB_iv'
+
+instance creationInstructionsLowshelf :: (InitialVal argA, InitialVal argB) => CreationInstructions (CTOR.Lowshelf argA argB argC) where
+  creationInstructions idx (CTOR.Lowshelf argA argB _) =
+    let
+      argA_iv' = initialVal argA
+
+      argA_StartsWith = let AudioParameter argA_iv = argA_iv' in [ SetFrequency idx argA_iv.param argA_iv.timeOffset argA_iv.transition ]
+
+      argB_iv' = initialVal argB
+
+      argB_StartsWith = let AudioParameter argB_iv = argB_iv' in [ SetGain idx argB_iv.param argB_iv.timeOffset argB_iv.transition ]
+    in
+      ([ NewUnit idx "lowshelf" ] <> argA_StartsWith <> argB_StartsWith)
+        /\ ALowshelf argA_iv' argB_iv'
+
+instance creationInstructionsMicrophone :: CreationInstructions (CTOR.Microphone) where
+  creationInstructions _ _ = [] /\ ASpeaker
+
+instance creationInstructionsNotch :: (InitialVal argA, InitialVal argB) => CreationInstructions (CTOR.Notch argA argB argC) where
+  creationInstructions idx (CTOR.Notch argA argB _) =
+    let
+      argA_iv' = initialVal argA
+
+      argA_StartsWith = let AudioParameter argA_iv = argA_iv' in [ SetFrequency idx argA_iv.param argA_iv.timeOffset argA_iv.transition ]
+
+      argB_iv' = initialVal argB
+
+      argB_StartsWith = let AudioParameter argB_iv = argB_iv' in [ SetQ idx argB_iv.param argB_iv.timeOffset argB_iv.transition ]
+    in
+      ([ NewUnit idx "notch" ] <> argA_StartsWith <> argB_StartsWith)
+        /\ ANotch argA_iv' argB_iv'
+
+instance creationInstructionsPeaking :: (InitialVal argA, InitialVal argB, InitialVal argC) => CreationInstructions (CTOR.Peaking argA argB argC argD) where
+  creationInstructions idx (CTOR.Peaking argA argB argC _) =
+    let
+      argA_iv' = initialVal argA
+
+      argA_StartsWith = let AudioParameter argA_iv = argA_iv' in [ SetFrequency idx argA_iv.param argA_iv.timeOffset argA_iv.transition ]
+
+      argB_iv' = initialVal argB
+
+      argB_StartsWith = let AudioParameter argB_iv = argB_iv' in [ SetQ idx argB_iv.param argB_iv.timeOffset argB_iv.transition ]
+
+      argC_iv' = initialVal argC
+
+      argC_StartsWith = let AudioParameter argC_iv = argC_iv' in [ SetGain idx argC_iv.param argC_iv.timeOffset argC_iv.transition ]
+    in
+      ([ NewUnit idx "peaking" ] <> argA_StartsWith <> argB_StartsWith <> argC_StartsWith)
+        /\ APeaking argA_iv' argB_iv' argC_iv'
+
+instance creationInstructionsPeriodicOsc :: (IsSymbol argA, InitialVal argB) => CreationInstructions (CTOR.PeriodicOsc argA argB) where
+  creationInstructions idx (CTOR.PeriodicOsc px argB) =
+    let
+      argB_iv' = initialVal argB
+
+      argB_StartsWith = let AudioParameter argB_iv = argB_iv' in [ SetFrequency idx argB_iv.param argB_iv.timeOffset argB_iv.transition ]
+      oscname = reflectSymbol px
+    in
+      ([ NewPeriodicOsc idx oscname ] <> argB_StartsWith)
+        /\ APeriodicOsc oscname argB_iv'
+
+instance creationInstructionsPlayBuf :: (IsSymbol argA, InitialVal argB) => CreationInstructions (CTOR.PlayBuf argA argB) where
+  creationInstructions idx (CTOR.PlayBuf px offset argB) =
+    let
+      argB_iv' = initialVal argB
+
+      argB_StartsWith = let AudioParameter argB_iv = argB_iv' in [ SetPlaybackRate idx argB_iv.param argB_iv.timeOffset argB_iv.transition ]
+      bufname = reflectSymbol px
+    in
+      ([ NewPlayBuf idx bufname offset ] <> argB_StartsWith)
+        /\ APlayBuf bufname offset argB_iv'
+
+instance creationInstructionsRecorder :: CreationInstructions (CTOR.Recorder argA argB) where
+  creationInstructions _ _ = [] /\ ASpeaker
+
+instance creationInstructionsSawtoothOsc :: (InitialVal argA) => CreationInstructions (CTOR.SawtoothOsc argA) where
+  creationInstructions idx (CTOR.SawtoothOsc argA) =
+    let
+      argA_iv' = initialVal argA
+
+      argA_StartsWith = let AudioParameter argA_iv = argA_iv' in [ SetFrequency idx argA_iv.param argA_iv.timeOffset argA_iv.transition ]
+    in
+      ([ NewUnit idx "sawtoothosc" ] <> argA_StartsWith)
+        /\ ASawtoothOsc argA_iv'
+
+instance creationInstructionsSinOsc :: (InitialVal argA) => CreationInstructions (CTOR.SinOsc argA) where
+  creationInstructions idx (CTOR.SinOsc argA) =
+    let
+      argA_iv' = initialVal argA
+
+      argA_StartsWith = let AudioParameter argA_iv = argA_iv' in [ SetFrequency idx argA_iv.param argA_iv.timeOffset argA_iv.transition ]
+    in
+      ([ NewUnit idx "sinosc" ] <> argA_StartsWith)
+        /\ ASinOsc argA_iv'
+
+instance creationInstructionsSpeaker :: CreationInstructions (CTOR.Speaker argA) where
+  creationInstructions _ _ = [] /\ ASpeaker
+
+instance creationInstructionsSquareOsc :: (InitialVal argA) => CreationInstructions (CTOR.SquareOsc argA) where
+  creationInstructions idx (CTOR.SquareOsc argA) =
+    let
+      argA_iv' = initialVal argA
+
+      argA_StartsWith = let AudioParameter argA_iv = argA_iv' in [ SetFrequency idx argA_iv.param argA_iv.timeOffset argA_iv.transition ]
+    in
+      ([ NewUnit idx "squareosc" ] <> argA_StartsWith)
+        /\ ASquareOsc argA_iv'
+
+instance creationInstructionsStereoPanner :: (InitialVal argA) => CreationInstructions (CTOR.StereoPanner argA argB) where
+  creationInstructions idx (CTOR.StereoPanner argA _) =
+    let
+      argA_iv' = initialVal argA
+
+      argA_StartsWith = let AudioParameter argA_iv = argA_iv' in [ SetPan idx argA_iv.param argA_iv.timeOffset argA_iv.transition ]
+    in
+      ([ NewUnit idx "stereopanner" ] <> argA_StartsWith)
+        /\ AStereoPanner argA_iv'
+
+instance creationInstructionsTriangleOsc :: (InitialVal argA) => CreationInstructions (CTOR.TriangleOsc argA) where
+  creationInstructions idx (CTOR.TriangleOsc argA) =
+    let
+      argA_iv' = initialVal argA
+
+      argA_StartsWith = let AudioParameter argA_iv = argA_iv' in [ SetFrequency idx argA_iv.param argA_iv.timeOffset argA_iv.transition ]
+    in
+      ([ NewUnit idx "triangleosc" ] <> argA_StartsWith)
+        /\ ATriangleOsc argA_iv'
+
+instance creationInstructionsWaveShaper :: CreationInstructions (CTOR.WaveShaper argA argB argC) where
+  creationInstructions _ _ = [] /\ ASpeaker
 
 class Create (a :: Type) (i :: Universe) (o :: Universe) (x :: Type) | a i -> o x where
   create :: forall env proof. a -> Frame env proof i o x
@@ -236,7 +513,7 @@ instance createDup ::
             (AudioUnitRef midptr)
       )
         (f (Proxy :: _ skolem))
-
+{-
 instance createSinOsc ::
   ( InitialVal a
   , BinToInt ptr
@@ -284,7 +561,579 @@ instance createHighpass ::
   create =
     Frame <<< (map) AudioUnitRef <<< (\(Frame x) -> x)
       <<< createAndConnect (Proxy :: ProxyCC skolem (Proxy ptr) term (Proxy (UniverseC next graphi changeBit skolemsInternal)) (Proxy (UniverseC outptr grapho changeBit skolemsInternal)))
+-}
+instance createAllpass::
+  (InitialVal argA, InitialVal argB,
+  
+    GetSkolemFromRecursiveArgument fOfargC skolem
+  , ToSkolemizedFunction fOfargC skolem argC
+  , SkolemNotYetPresentOrDiscardable skolem skolems
+  , MakeInternalSkolemStack skolem ptr skolems skolemsInternal
+  , BinToInt ptr
+  , BinSucc ptr next
+  , Create
+      argC
+      (UniverseC next graphi changeBit skolemsInternal)
+      (UniverseC outptr grapho changeBit skolemsInternal)
+      term
+  , AsEdgeProfile term (SingleEdge op)
+  , GraphToNodeList grapho nodeList
+  ) =>
+  Create
+    (CTOR.Allpass argA argB fOfargC) 
+    (UniverseC ptr graphi changeBit skolems)
+    ( UniverseC
+        outptr
+        (GraphC (NodeC (AU.TAllpass ptr) (SingleEdge op)) nodeList)
+        changeBit
+        skolems
+    )
+    (AudioUnitRef ptr) where
+  create =
+    Frame <<< (map) AudioUnitRef <<< (\(Frame x) -> x)
+      <<< createAndConnect (Proxy :: ProxyCC skolem (Proxy ptr) term (Proxy (UniverseC next graphi changeBit skolemsInternal)) (Proxy (UniverseC outptr grapho changeBit skolemsInternal)))
+instance createBandpass::
+  (InitialVal argA, InitialVal argB,
+  
+    GetSkolemFromRecursiveArgument fOfargC skolem
+  , ToSkolemizedFunction fOfargC skolem argC
+  , SkolemNotYetPresentOrDiscardable skolem skolems
+  , MakeInternalSkolemStack skolem ptr skolems skolemsInternal
+  , BinToInt ptr
+  , BinSucc ptr next
+  , Create
+      argC
+      (UniverseC next graphi changeBit skolemsInternal)
+      (UniverseC outptr grapho changeBit skolemsInternal)
+      term
+  , AsEdgeProfile term (SingleEdge op)
+  , GraphToNodeList grapho nodeList
+  ) =>
+  Create
+    (CTOR.Bandpass argA argB fOfargC) 
+    (UniverseC ptr graphi changeBit skolems)
+    ( UniverseC
+        outptr
+        (GraphC (NodeC (AU.TBandpass ptr) (SingleEdge op)) nodeList)
+        changeBit
+        skolems
+    )
+    (AudioUnitRef ptr) where
+  create =
+    Frame <<< (map) AudioUnitRef <<< (\(Frame x) -> x)
+      <<< createAndConnect (Proxy :: ProxyCC skolem (Proxy ptr) term (Proxy (UniverseC next graphi changeBit skolemsInternal)) (Proxy (UniverseC outptr grapho changeBit skolemsInternal)))
+instance createConstant::
+  ( InitialVal argA, BinToInt ptr
+  , BinSucc ptr next
+  , GraphToNodeList graph nodeList
+  ) =>
+  Create
+    (CTOR.Constant argA)
+    (UniverseC ptr graph changeBit skolems)
+    ( UniverseC next
+        (GraphC (NodeC (AU.TConstant ptr) NoEdge) nodeList)
+        changeBit
+        skolems
+    )
+    (AudioUnitRef ptr) where
+  create = Frame <<< (map) AudioUnitRef <<< creationStep
+  
+instance createConvolver::
+  (
+  
+    GetSkolemFromRecursiveArgument fOfargB skolem
+  , ToSkolemizedFunction fOfargB skolem argB
+  , SkolemNotYetPresentOrDiscardable skolem skolems
+  , MakeInternalSkolemStack skolem ptr skolems skolemsInternal
+  , BinToInt ptr
+  , BinSucc ptr next
+  , Create
+      argB
+      (UniverseC next graphi changeBit skolemsInternal)
+      (UniverseC outptr grapho changeBit skolemsInternal)
+      term
+  , AsEdgeProfile term (SingleEdge op)
+  , GraphToNodeList grapho nodeList
+  ) =>
+  Create
+    (CTOR.Convolver argA fOfargB) 
+    (UniverseC ptr graphi changeBit skolems)
+    ( UniverseC
+        outptr
+        (GraphC (NodeC (AU.TConvolver ptr) (SingleEdge op)) nodeList)
+        changeBit
+        skolems
+    )
+    (AudioUnitRef ptr) where
+  create =
+    Frame <<< (map) AudioUnitRef <<< (\(Frame x) -> x)
+      <<< createAndConnect (Proxy :: ProxyCC skolem (Proxy ptr) term (Proxy (UniverseC next graphi changeBit skolemsInternal)) (Proxy (UniverseC outptr grapho changeBit skolemsInternal)))
+instance createDelay::
+  (InitialVal argA,
+  
+    GetSkolemFromRecursiveArgument fOfargB skolem
+  , ToSkolemizedFunction fOfargB skolem argB
+  , SkolemNotYetPresentOrDiscardable skolem skolems
+  , MakeInternalSkolemStack skolem ptr skolems skolemsInternal
+  , BinToInt ptr
+  , BinSucc ptr next
+  , Create
+      argB
+      (UniverseC next graphi changeBit skolemsInternal)
+      (UniverseC outptr grapho changeBit skolemsInternal)
+      term
+  , AsEdgeProfile term (SingleEdge op)
+  , GraphToNodeList grapho nodeList
+  ) =>
+  Create
+    (CTOR.Delay argA fOfargB) 
+    (UniverseC ptr graphi changeBit skolems)
+    ( UniverseC
+        outptr
+        (GraphC (NodeC (AU.TDelay ptr) (SingleEdge op)) nodeList)
+        changeBit
+        skolems
+    )
+    (AudioUnitRef ptr) where
+  create =
+    Frame <<< (map) AudioUnitRef <<< (\(Frame x) -> x)
+      <<< createAndConnect (Proxy :: ProxyCC skolem (Proxy ptr) term (Proxy (UniverseC next graphi changeBit skolemsInternal)) (Proxy (UniverseC outptr grapho changeBit skolemsInternal)))
+instance createDynamicsCompressor::
+  (InitialVal argA, InitialVal argB, InitialVal argC, InitialVal argD, InitialVal argE,
+  
+    GetSkolemFromRecursiveArgument fOfargF skolem
+  , ToSkolemizedFunction fOfargF skolem argF
+  , SkolemNotYetPresentOrDiscardable skolem skolems
+  , MakeInternalSkolemStack skolem ptr skolems skolemsInternal
+  , BinToInt ptr
+  , BinSucc ptr next
+  , Create
+      argF
+      (UniverseC next graphi changeBit skolemsInternal)
+      (UniverseC outptr grapho changeBit skolemsInternal)
+      term
+  , AsEdgeProfile term (SingleEdge op)
+  , GraphToNodeList grapho nodeList
+  ) =>
+  Create
+    (CTOR.DynamicsCompressor argA argB argC argD argE fOfargF) 
+    (UniverseC ptr graphi changeBit skolems)
+    ( UniverseC
+        outptr
+        (GraphC (NodeC (AU.TDynamicsCompressor ptr) (SingleEdge op)) nodeList)
+        changeBit
+        skolems
+    )
+    (AudioUnitRef ptr) where
+  create =
+    Frame <<< (map) AudioUnitRef <<< (\(Frame x) -> x)
+      <<< createAndConnect (Proxy :: ProxyCC skolem (Proxy ptr) term (Proxy (UniverseC next graphi changeBit skolemsInternal)) (Proxy (UniverseC outptr grapho changeBit skolemsInternal)))
 
+instance createHighpass::
+  (InitialVal argA, InitialVal argB,
+  
+    GetSkolemFromRecursiveArgument fOfargC skolem
+  , ToSkolemizedFunction fOfargC skolem argC
+  , SkolemNotYetPresentOrDiscardable skolem skolems
+  , MakeInternalSkolemStack skolem ptr skolems skolemsInternal
+  , BinToInt ptr
+  , BinSucc ptr next
+  , Create
+      argC
+      (UniverseC next graphi changeBit skolemsInternal)
+      (UniverseC outptr grapho changeBit skolemsInternal)
+      term
+  , AsEdgeProfile term (SingleEdge op)
+  , GraphToNodeList grapho nodeList
+  ) =>
+  Create
+    (CTOR.Highpass argA argB fOfargC) 
+    (UniverseC ptr graphi changeBit skolems)
+    ( UniverseC
+        outptr
+        (GraphC (NodeC (AU.THighpass ptr) (SingleEdge op)) nodeList)
+        changeBit
+        skolems
+    )
+    (AudioUnitRef ptr) where
+  create =
+    Frame <<< (map) AudioUnitRef <<< (\(Frame x) -> x)
+      <<< createAndConnect (Proxy :: ProxyCC skolem (Proxy ptr) term (Proxy (UniverseC next graphi changeBit skolemsInternal)) (Proxy (UniverseC outptr grapho changeBit skolemsInternal)))
+instance createHighshelf::
+  (InitialVal argA, InitialVal argB,
+  
+    GetSkolemFromRecursiveArgument fOfargC skolem
+  , ToSkolemizedFunction fOfargC skolem argC
+  , SkolemNotYetPresentOrDiscardable skolem skolems
+  , MakeInternalSkolemStack skolem ptr skolems skolemsInternal
+  , BinToInt ptr
+  , BinSucc ptr next
+  , Create
+      argC
+      (UniverseC next graphi changeBit skolemsInternal)
+      (UniverseC outptr grapho changeBit skolemsInternal)
+      term
+  , AsEdgeProfile term (SingleEdge op)
+  , GraphToNodeList grapho nodeList
+  ) =>
+  Create
+    (CTOR.Highshelf argA argB fOfargC) 
+    (UniverseC ptr graphi changeBit skolems)
+    ( UniverseC
+        outptr
+        (GraphC (NodeC (AU.THighshelf ptr) (SingleEdge op)) nodeList)
+        changeBit
+        skolems
+    )
+    (AudioUnitRef ptr) where
+  create =
+    Frame <<< (map) AudioUnitRef <<< (\(Frame x) -> x)
+      <<< createAndConnect (Proxy :: ProxyCC skolem (Proxy ptr) term (Proxy (UniverseC next graphi changeBit skolemsInternal)) (Proxy (UniverseC outptr grapho changeBit skolemsInternal)))
+instance createLoopBuf::
+  ( InitialVal argB, BinToInt ptr
+  , BinSucc ptr next
+  , IsSymbol argA
+  , GraphToNodeList graph nodeList
+  ) =>
+  Create
+    (CTOR.LoopBuf argA argB)
+    (UniverseC ptr graph changeBit skolems)
+    ( UniverseC next
+        (GraphC (NodeC (AU.TLoopBuf ptr) NoEdge) nodeList)
+        changeBit
+        skolems
+    )
+    (AudioUnitRef ptr) where
+  create = Frame <<< (map) AudioUnitRef <<< creationStep
+  
+instance createLowpass::
+  (InitialVal argA, InitialVal argB,
+  
+    GetSkolemFromRecursiveArgument fOfargC skolem
+  , ToSkolemizedFunction fOfargC skolem argC
+  , SkolemNotYetPresentOrDiscardable skolem skolems
+  , MakeInternalSkolemStack skolem ptr skolems skolemsInternal
+  , BinToInt ptr
+  , BinSucc ptr next
+  , Create
+      argC
+      (UniverseC next graphi changeBit skolemsInternal)
+      (UniverseC outptr grapho changeBit skolemsInternal)
+      term
+  , AsEdgeProfile term (SingleEdge op)
+  , GraphToNodeList grapho nodeList
+  ) =>
+  Create
+    (CTOR.Lowpass argA argB fOfargC) 
+    (UniverseC ptr graphi changeBit skolems)
+    ( UniverseC
+        outptr
+        (GraphC (NodeC (AU.TLowpass ptr) (SingleEdge op)) nodeList)
+        changeBit
+        skolems
+    )
+    (AudioUnitRef ptr) where
+  create =
+    Frame <<< (map) AudioUnitRef <<< (\(Frame x) -> x)
+      <<< createAndConnect (Proxy :: ProxyCC skolem (Proxy ptr) term (Proxy (UniverseC next graphi changeBit skolemsInternal)) (Proxy (UniverseC outptr grapho changeBit skolemsInternal)))
+instance createLowshelf::
+  (InitialVal argA, InitialVal argB,
+  
+    GetSkolemFromRecursiveArgument fOfargC skolem
+  , ToSkolemizedFunction fOfargC skolem argC
+  , SkolemNotYetPresentOrDiscardable skolem skolems
+  , MakeInternalSkolemStack skolem ptr skolems skolemsInternal
+  , BinToInt ptr
+  , BinSucc ptr next
+  , Create
+      argC
+      (UniverseC next graphi changeBit skolemsInternal)
+      (UniverseC outptr grapho changeBit skolemsInternal)
+      term
+  , AsEdgeProfile term (SingleEdge op)
+  , GraphToNodeList grapho nodeList
+  ) =>
+  Create
+    (CTOR.Lowshelf argA argB fOfargC) 
+    (UniverseC ptr graphi changeBit skolems)
+    ( UniverseC
+        outptr
+        (GraphC (NodeC (AU.TLowshelf ptr) (SingleEdge op)) nodeList)
+        changeBit
+        skolems
+    )
+    (AudioUnitRef ptr) where
+  create =
+    Frame <<< (map) AudioUnitRef <<< (\(Frame x) -> x)
+      <<< createAndConnect (Proxy :: ProxyCC skolem (Proxy ptr) term (Proxy (UniverseC next graphi changeBit skolemsInternal)) (Proxy (UniverseC outptr grapho changeBit skolemsInternal)))
+instance createMicrophone::
+  (  BinToInt ptr
+  , BinSucc ptr next
+  , GraphToNodeList graph nodeList
+  ) =>
+  Create
+    (CTOR.Microphone)
+    (UniverseC ptr graph changeBit skolems)
+    ( UniverseC next
+        (GraphC (NodeC (AU.TMicrophone ptr) NoEdge) nodeList)
+        changeBit
+        skolems
+    )
+    (AudioUnitRef ptr) where
+  create = Frame <<< (map) AudioUnitRef <<< creationStep
+  
+instance createNotch::
+  (InitialVal argA, InitialVal argB,
+  
+    GetSkolemFromRecursiveArgument fOfargC skolem
+  , ToSkolemizedFunction fOfargC skolem argC
+  , SkolemNotYetPresentOrDiscardable skolem skolems
+  , MakeInternalSkolemStack skolem ptr skolems skolemsInternal
+  , BinToInt ptr
+  , BinSucc ptr next
+  , Create
+      argC
+      (UniverseC next graphi changeBit skolemsInternal)
+      (UniverseC outptr grapho changeBit skolemsInternal)
+      term
+  , AsEdgeProfile term (SingleEdge op)
+  , GraphToNodeList grapho nodeList
+  ) =>
+  Create
+    (CTOR.Notch argA argB fOfargC) 
+    (UniverseC ptr graphi changeBit skolems)
+    ( UniverseC
+        outptr
+        (GraphC (NodeC (AU.TNotch ptr) (SingleEdge op)) nodeList)
+        changeBit
+        skolems
+    )
+    (AudioUnitRef ptr) where
+  create =
+    Frame <<< (map) AudioUnitRef <<< (\(Frame x) -> x)
+      <<< createAndConnect (Proxy :: ProxyCC skolem (Proxy ptr) term (Proxy (UniverseC next graphi changeBit skolemsInternal)) (Proxy (UniverseC outptr grapho changeBit skolemsInternal)))
+instance createPeaking::
+  (InitialVal argA, InitialVal argB, InitialVal argC,
+  
+    GetSkolemFromRecursiveArgument fOfargD skolem
+  , ToSkolemizedFunction fOfargD skolem argD
+  , SkolemNotYetPresentOrDiscardable skolem skolems
+  , MakeInternalSkolemStack skolem ptr skolems skolemsInternal
+  , BinToInt ptr
+  , BinSucc ptr next
+  , Create
+      argD
+      (UniverseC next graphi changeBit skolemsInternal)
+      (UniverseC outptr grapho changeBit skolemsInternal)
+      term
+  , AsEdgeProfile term (SingleEdge op)
+  , GraphToNodeList grapho nodeList
+  ) =>
+  Create
+    (CTOR.Peaking argA argB argC fOfargD) 
+    (UniverseC ptr graphi changeBit skolems)
+    ( UniverseC
+        outptr
+        (GraphC (NodeC (AU.TPeaking ptr) (SingleEdge op)) nodeList)
+        changeBit
+        skolems
+    )
+    (AudioUnitRef ptr) where
+  create =
+    Frame <<< (map) AudioUnitRef <<< (\(Frame x) -> x)
+      <<< createAndConnect (Proxy :: ProxyCC skolem (Proxy ptr) term (Proxy (UniverseC next graphi changeBit skolemsInternal)) (Proxy (UniverseC outptr grapho changeBit skolemsInternal)))
+instance createPeriodicOsc::
+  ( InitialVal argB, BinToInt ptr
+  , BinSucc ptr next
+  , IsSymbol argA
+  , GraphToNodeList graph nodeList
+  ) =>
+  Create
+    (CTOR.PeriodicOsc argA argB)
+    (UniverseC ptr graph changeBit skolems)
+    ( UniverseC next
+        (GraphC (NodeC (AU.TPeriodicOsc ptr) NoEdge) nodeList)
+        changeBit
+        skolems
+    )
+    (AudioUnitRef ptr) where
+  create = Frame <<< (map) AudioUnitRef <<< creationStep
+  
+instance createPlayBuf::
+  ( InitialVal argB, BinToInt ptr
+  , BinSucc ptr next
+  , IsSymbol argA
+  , GraphToNodeList graph nodeList
+  ) =>
+  Create
+    (CTOR.PlayBuf argA argB)
+    (UniverseC ptr graph changeBit skolems)
+    ( UniverseC next
+        (GraphC (NodeC (AU.TPlayBuf ptr) NoEdge) nodeList)
+        changeBit
+        skolems
+    )
+    (AudioUnitRef ptr) where
+  create = Frame <<< (map) AudioUnitRef <<< creationStep
+  
+instance createRecorder::
+  (
+  
+    GetSkolemFromRecursiveArgument fOfargB skolem
+  , ToSkolemizedFunction fOfargB skolem argB
+  , SkolemNotYetPresentOrDiscardable skolem skolems
+  , MakeInternalSkolemStack skolem ptr skolems skolemsInternal
+  , BinToInt ptr
+  , BinSucc ptr next
+  , Create
+      argB
+      (UniverseC next graphi changeBit skolemsInternal)
+      (UniverseC outptr grapho changeBit skolemsInternal)
+      term
+  , AsEdgeProfile term (SingleEdge op)
+  , GraphToNodeList grapho nodeList
+  ) =>
+  Create
+    (CTOR.Recorder argA fOfargB) 
+    (UniverseC ptr graphi changeBit skolems)
+    ( UniverseC
+        outptr
+        (GraphC (NodeC (AU.TRecorder ptr) (SingleEdge op)) nodeList)
+        changeBit
+        skolems
+    )
+    (AudioUnitRef ptr) where
+  create =
+    Frame <<< (map) AudioUnitRef <<< (\(Frame x) -> x)
+      <<< createAndConnect (Proxy :: ProxyCC skolem (Proxy ptr) term (Proxy (UniverseC next graphi changeBit skolemsInternal)) (Proxy (UniverseC outptr grapho changeBit skolemsInternal)))
+instance createSawtoothOsc::
+  ( InitialVal argA, BinToInt ptr
+  , BinSucc ptr next
+  , GraphToNodeList graph nodeList
+  ) =>
+  Create
+    (CTOR.SawtoothOsc argA)
+    (UniverseC ptr graph changeBit skolems)
+    ( UniverseC next
+        (GraphC (NodeC (AU.TSawtoothOsc ptr) NoEdge) nodeList)
+        changeBit
+        skolems
+    )
+    (AudioUnitRef ptr) where
+  create = Frame <<< (map) AudioUnitRef <<< creationStep
+  
+instance createSinOsc::
+  ( InitialVal argA, BinToInt ptr
+  , BinSucc ptr next
+  , GraphToNodeList graph nodeList
+  ) =>
+  Create
+    (CTOR.SinOsc argA)
+    (UniverseC ptr graph changeBit skolems)
+    ( UniverseC next
+        (GraphC (NodeC (AU.TSinOsc ptr) NoEdge) nodeList)
+        changeBit
+        skolems
+    )
+    (AudioUnitRef ptr) where
+  create = Frame <<< (map) AudioUnitRef <<< creationStep
+  
+
+instance createSquareOsc::
+  ( InitialVal argA, BinToInt ptr
+  , BinSucc ptr next
+  , GraphToNodeList graph nodeList
+  ) =>
+  Create
+    (CTOR.SquareOsc argA)
+    (UniverseC ptr graph changeBit skolems)
+    ( UniverseC next
+        (GraphC (NodeC (AU.TSquareOsc ptr) NoEdge) nodeList)
+        changeBit
+        skolems
+    )
+    (AudioUnitRef ptr) where
+  create = Frame <<< (map) AudioUnitRef <<< creationStep
+  
+instance createStereoPanner::
+  (InitialVal argA,
+  
+    GetSkolemFromRecursiveArgument fOfargB skolem
+  , ToSkolemizedFunction fOfargB skolem argB
+  , SkolemNotYetPresentOrDiscardable skolem skolems
+  , MakeInternalSkolemStack skolem ptr skolems skolemsInternal
+  , BinToInt ptr
+  , BinSucc ptr next
+  , Create
+      argB
+      (UniverseC next graphi changeBit skolemsInternal)
+      (UniverseC outptr grapho changeBit skolemsInternal)
+      term
+  , AsEdgeProfile term (SingleEdge op)
+  , GraphToNodeList grapho nodeList
+  ) =>
+  Create
+    (CTOR.StereoPanner argA fOfargB) 
+    (UniverseC ptr graphi changeBit skolems)
+    ( UniverseC
+        outptr
+        (GraphC (NodeC (AU.TStereoPanner ptr) (SingleEdge op)) nodeList)
+        changeBit
+        skolems
+    )
+    (AudioUnitRef ptr) where
+  create =
+    Frame <<< (map) AudioUnitRef <<< (\(Frame x) -> x)
+      <<< createAndConnect (Proxy :: ProxyCC skolem (Proxy ptr) term (Proxy (UniverseC next graphi changeBit skolemsInternal)) (Proxy (UniverseC outptr grapho changeBit skolemsInternal)))
+instance createTriangleOsc::
+  ( InitialVal argA, BinToInt ptr
+  , BinSucc ptr next
+  , GraphToNodeList graph nodeList
+  ) =>
+  Create
+    (CTOR.TriangleOsc argA)
+    (UniverseC ptr graph changeBit skolems)
+    ( UniverseC next
+        (GraphC (NodeC (AU.TTriangleOsc ptr) NoEdge) nodeList)
+        changeBit
+        skolems
+    )
+    (AudioUnitRef ptr) where
+  create = Frame <<< (map) AudioUnitRef <<< creationStep
+  
+instance createWaveShaper::
+  (
+  
+    GetSkolemFromRecursiveArgument fOfargC skolem
+  , ToSkolemizedFunction fOfargC skolem argC
+  , SkolemNotYetPresentOrDiscardable skolem skolems
+  , MakeInternalSkolemStack skolem ptr skolems skolemsInternal
+  , BinToInt ptr
+  , BinSucc ptr next
+  , Create
+      argC
+      (UniverseC next graphi changeBit skolemsInternal)
+      (UniverseC outptr grapho changeBit skolemsInternal)
+      term
+  , AsEdgeProfile term (SingleEdge op)
+  , GraphToNodeList grapho nodeList
+  ) =>
+  Create
+    (CTOR.WaveShaper argA argB fOfargC) 
+    (UniverseC ptr graphi changeBit skolems)
+    ( UniverseC
+        outptr
+        (GraphC (NodeC (AU.TWaveShaper ptr) (SingleEdge op)) nodeList)
+        changeBit
+        skolems
+    )
+    (AudioUnitRef ptr) where
+  create =
+    Frame <<< (map) AudioUnitRef <<< (\(Frame x) -> x)
+      <<< createAndConnect (Proxy :: ProxyCC skolem (Proxy ptr) term (Proxy (UniverseC next graphi changeBit skolemsInternal)) (Proxy (UniverseC outptr grapho changeBit skolemsInternal)))
+
+-----------------------
+------------------------
 instance createGain ::
   ( InitialVal a
   , GetSkolemFromRecursiveArgument fb skolem

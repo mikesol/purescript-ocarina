@@ -51,7 +51,7 @@ else instance cursorResHighshelf :: CursorRes (CTOR.Highshelf a b c) ptr (NodeC 
 else instance cursorResLoopBuf :: CursorRes (CTOR.LoopBuf a b) ptr (NodeC (AU.TLoopBuf ptr) edge) edge
 else instance cursorResLowpass :: CursorRes (CTOR.Lowpass a b c) ptr (NodeC (AU.TLowpass ptr) edge) edge
 else instance cursorResLowshelf :: CursorRes (CTOR.Lowshelf a b c) ptr (NodeC (AU.TLowshelf ptr) edge) edge
-else instance cursorResMicrophone :: CursorRes (CTOR.Microphone a) ptr (NodeC (AU.TMicrophone ptr) edge) edge
+else instance cursorResMicrophone :: CursorRes (CTOR.Microphone) ptr (NodeC (AU.TMicrophone ptr) edge) edge
 else instance cursorResNotch :: CursorRes (CTOR.Notch a b c) ptr (NodeC (AU.TNotch ptr) edge) edge
 else instance cursorResPeaking :: CursorRes (CTOR.Peaking a b c d) ptr (NodeC (AU.TPeaking ptr) edge) edge
 else instance cursorResPeriodicOsc :: CursorRes (CTOR.PeriodicOsc a b) ptr (NodeC (AU.TPeriodicOsc ptr) edge) edge
@@ -217,7 +217,7 @@ instance cursorLowshelf ::
 
 instance cursorMicrophone ::
   BinToInt p =>
-  CursorI (SingleEdge p) (CTOR.Microphone argA) inuniv PtrListNil
+  CursorI (SingleEdge p) (CTOR.Microphone) inuniv PtrListNil
 
 instance cursorNotch ::
   ( BinToInt p

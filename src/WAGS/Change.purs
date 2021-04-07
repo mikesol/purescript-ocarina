@@ -205,7 +205,7 @@ instance changeInstructionsHighshelf :: (SetterVal argA, SetterVal argB) => Chan
 
 instance changeInstructionsLoopBuf :: (SetterVal argB) => ChangeInstructions (CTOR.LoopBuf argA argB) where
   changeInstructions idx (CTOR.LoopBuf _ argB _ _) = case _ of
-    ALoopBuf v_argB@(AudioParameter v_argB') ->
+    ALoopBuf x v_argB@(AudioParameter v_argB') y z ->
       let
         s_argB = setterVal argB
 
@@ -215,7 +215,7 @@ instance changeInstructionsLoopBuf :: (SetterVal argB) => ChangeInstructions (CT
       in
         Just
           $ (argB_Changes)
-          /\ ALoopBuf argB_iv'
+          /\ ALoopBuf x argB_iv' y z
     _ -> Nothing
 
 instance changeInstructionsLowpass :: (SetterVal argA, SetterVal argB) => ChangeInstructions (CTOR.Lowpass argA argB argC) where
@@ -260,7 +260,7 @@ instance changeInstructionsLowshelf :: (SetterVal argA, SetterVal argB) => Chang
           /\ ALowshelf argA_iv' argB_iv'
     _ -> Nothing
 
-instance changeInstructionsMicrophone :: ChangeInstructions (CTOR.Microphone argA) where
+instance changeInstructionsMicrophone :: ChangeInstructions (CTOR.Microphone) where
   changeInstructions _ _ _ = Nothing
 
 instance changeInstructionsNotch :: (SetterVal argA, SetterVal argB) => ChangeInstructions (CTOR.Notch argA argB argC) where
@@ -313,7 +313,7 @@ instance changeInstructionsPeaking :: (SetterVal argA, SetterVal argB, SetterVal
 
 instance changeInstructionsPeriodicOsc :: (SetterVal argB) => ChangeInstructions (CTOR.PeriodicOsc argA argB) where
   changeInstructions idx (CTOR.PeriodicOsc _ argB) = case _ of
-    APeriodicOsc v_argB@(AudioParameter v_argB') ->
+    APeriodicOsc x v_argB@(AudioParameter v_argB') ->
       let
         s_argB = setterVal argB
 
@@ -323,12 +323,12 @@ instance changeInstructionsPeriodicOsc :: (SetterVal argB) => ChangeInstructions
       in
         Just
           $ (argB_Changes)
-          /\ APeriodicOsc argB_iv'
+          /\ APeriodicOsc x argB_iv'
     _ -> Nothing
 
 instance changeInstructionsPlayBuf :: (SetterVal argC) => ChangeInstructions (CTOR.PlayBuf argA argC) where
   changeInstructions idx (CTOR.PlayBuf _ _ argC) = case _ of
-    APlayBuf v_argC@(AudioParameter v_argC') ->
+    APlayBuf x y v_argC@(AudioParameter v_argC') ->
       let
         s_argC = setterVal argC
 
@@ -338,7 +338,7 @@ instance changeInstructionsPlayBuf :: (SetterVal argC) => ChangeInstructions (CT
       in
         Just
           $ (argC_Changes)
-          /\ APlayBuf argC_iv'
+          /\ APlayBuf x y argC_iv'
     _ -> Nothing
 
 instance changeInstructionsRecorder :: ChangeInstructions (CTOR.Recorder argA argB) where
@@ -504,7 +504,7 @@ else instance modifyResHighshelf :: ModifyRes (CTOR.Highshelf a b c) ptr (NodeC 
 else instance modifyResLoopBuf :: ModifyRes (CTOR.LoopBuf a b) ptr (NodeC (AU.TLoopBuf ptr) edge) (NodeListCons (NodeC (AU.TLoopBuf ptr) edge) NodeListNil) edge
 else instance modifyResLowpass :: ModifyRes (CTOR.Lowpass a b c) ptr (NodeC (AU.TLowpass ptr) edge) (NodeListCons (NodeC (AU.TLowpass ptr) edge) NodeListNil) edge
 else instance modifyResLowshelf :: ModifyRes (CTOR.Lowshelf a b c) ptr (NodeC (AU.TLowshelf ptr) edge) (NodeListCons (NodeC (AU.TLowshelf ptr) edge) NodeListNil) edge
-else instance modifyResMicrophone :: ModifyRes (CTOR.Microphone a) ptr (NodeC (AU.TMicrophone ptr) edge) (NodeListCons (NodeC (AU.TMicrophone ptr) edge) NodeListNil) edge
+else instance modifyResMicrophone :: ModifyRes (CTOR.Microphone) ptr (NodeC (AU.TMicrophone ptr) edge) (NodeListCons (NodeC (AU.TMicrophone ptr) edge) NodeListNil) edge
 else instance modifyResNotch :: ModifyRes (CTOR.Notch a b c) ptr (NodeC (AU.TNotch ptr) edge) (NodeListCons (NodeC (AU.TNotch ptr) edge) NodeListNil) edge
 else instance modifyResPeaking :: ModifyRes (CTOR.Peaking a b c d) ptr (NodeC (AU.TPeaking ptr) edge) (NodeListCons (NodeC (AU.TPeaking ptr) edge) NodeListNil) edge
 else instance modifyResPeriodicOsc :: ModifyRes (CTOR.PeriodicOsc a b) ptr (NodeC (AU.TPeriodicOsc ptr) edge) (NodeListCons (NodeC (AU.TPeriodicOsc ptr) edge) NodeListNil) edge

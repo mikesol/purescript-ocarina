@@ -14,6 +14,8 @@ data Instruction
   | DisconnectXFromY Int Int -- id id
   | ConnectXToY Int Int
   | NewUnit Int String
+  | NewPlayBuf Int String Number
+  | NewPeriodicOsc Int String
   | Rebase (Array { from :: Int, to :: Int })
   | SetFrequency Int Number Number AudioParameterTransition -- frequency
   | SetThreshold Int Number Number AudioParameterTransition -- threshold
@@ -83,32 +85,44 @@ sortInstructions = A.fromFoldable <<< go mempty <<< L.fromFoldable
 
   go l L.Nil = (L.sort l)
 
+data Oversample
+  = None
+  | TwoX
+  | FourX
+
+derive instance eqOversample :: Eq Oversample
+
+derive instance genericOversample :: Generic Oversample _
+
+instance showOversample :: Show Oversample where
+  show = genericShow
+
 data AnAudioUnit
   = AAllpass AudioParameter AudioParameter
   | ABandpass AudioParameter AudioParameter
   | AConstant AudioParameter
-  | AConvolver
+  | AConvolver String
   | ADelay AudioParameter
   | ADynamicsCompressor AudioParameter AudioParameter AudioParameter AudioParameter AudioParameter
   | AGain AudioParameter
   | AHighpass AudioParameter AudioParameter
   | AHighshelf AudioParameter AudioParameter
-  | ALoopBuf AudioParameter
+  | ALoopBuf String AudioParameter Number Number
   | ALowpass AudioParameter AudioParameter
   | ALowshelf AudioParameter AudioParameter
   | AMicrophone
   | ANotch AudioParameter AudioParameter
   | APeaking AudioParameter AudioParameter AudioParameter
-  | APeriodicOsc AudioParameter
-  | APlayBuf AudioParameter
-  | ARecorder
+  | APeriodicOsc String AudioParameter
+  | APlayBuf String Number AudioParameter
+  | ARecorder String
   | ASawtoothOsc AudioParameter
   | ASinOsc AudioParameter
   | ASpeaker
   | ASquareOsc AudioParameter
   | AStereoPanner AudioParameter
   | ATriangleOsc AudioParameter
-  | AWaveShaper
+  | AWaveShaper String Oversample
 
 derive instance eqAnAudioUnit :: Eq AnAudioUnit
 
