@@ -1,7 +1,6 @@
 module WAGS.Move where
 
 import Prelude
-
 import Data.Typelevel.Bool (False, True)
 import Type.Data.Peano (Nat, Succ, Z)
 import Type.Proxy (Proxy)
@@ -100,15 +99,15 @@ instance movePointer' :: MovePointer'' from to (PtrListCons a b) (PtrListCons x 
 
 class MovePointer (at :: Ptr) (from :: Type) (to :: Nat) (i :: Node) (o :: Node) | at from to i -> o
 
-instance addPointerToNodeGain :: MovePointer' from to (ManyEdges e l) oe => MovePointer at from to (NodeC (TGain at) (ManyEdges e l)) (NodeC (TGain at) oe)
-else instance addPointerToNodeSpeaker :: MovePointer' from to (ManyEdges e l) oe => MovePointer at from to (NodeC (TSpeaker at) (ManyEdges e l)) (NodeC (TSpeaker at) oe)
-else instance addPointerToNodeMiss :: MovePointer at from to i i
+instance movePointerGain :: MovePointer' from to (ManyEdges e l) oe => MovePointer at from to (NodeC (TGain at) (ManyEdges e l)) (NodeC (TGain at) oe)
+else instance movePointerSpeaker :: MovePointer' from to (ManyEdges e l) oe => MovePointer at from to (NodeC (TSpeaker at) (ManyEdges e l)) (NodeC (TSpeaker at) oe)
+else instance movePointerMiss :: MovePointer at from to i i
 
 class MovePointers (at :: Ptr) (from :: Type) (to :: Nat) (i :: NodeList) (o :: NodeList) | at from to i -> o
 
-instance addPointerToNodesNil :: MovePointers at a b NodeListNil NodeListNil
+instance movePointersNil :: MovePointers at a b NodeListNil NodeListNil
 
-instance addPointerToNodesCons :: (MovePointer at a b head headRes, MovePointers at a b tail tailRes) => MovePointers at a b (NodeListCons head tail) (NodeListCons headRes tailRes)
+instance movePointersCons :: (MovePointer at a b head headRes, MovePointers at a b tail tailRes) => MovePointers at a b (NodeListCons head tail) (NodeListCons headRes tailRes)
 
 class Move (at :: Ptr) (from :: Type) (to :: Nat) (i :: Universe) (o :: Universe) | at from to i -> o where
   move :: forall env proof. AudioUnitRef at -> from -> Proxy to -> Frame env proof i o Unit
