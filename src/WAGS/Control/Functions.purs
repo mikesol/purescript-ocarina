@@ -15,13 +15,13 @@ import Prelude
 import Control.Applicative.Indexed (ipure)
 import Control.Bind.Indexed (ibind)
 import Control.Monad.Indexed.Qualified as Ix
-import Control.Monad.Reader (runReaderT, ask)
-import Control.Monad.State (put, runState)
+import Control.Monad.Reader (ReaderT(..), ask, runReaderT)
 import Data.Either (Either(..))
 import Data.Functor.Indexed (imap)
 import Data.Map as M
 import Data.Tuple.Nested ((/\))
 import Unsafe.Coerce (unsafeCoerce)
+import WAGS.Control.MemoizedState (makeMemoizedState, runMemoizedState)
 import WAGS.Control.Types (AudioState', Frame(..), InitialFrame, Scene, Scene', oneFrame)
 import WAGS.Validation (class TerminalIdentityEdge, class UniverseIsCoherent)
 
@@ -51,7 +51,7 @@ makeScene (Frame m) trans = asScene go
     let
       step1 = runReaderT m ev
 
-      outcome /\ newState = runState step1 initialAudioState
+      outcome /\ newState = runMemoizedState step1 initialAudioState
     in
       case outcome of
         Left s -> oneFrame s ev
@@ -61,9 +61,7 @@ makeScene (Frame m) trans = asScene go
           , instructions: newState.instructions
           , next:
               trans
-                $ Frame do
-                    put $ newState { instructions = [] }
-                    pure r
+                $ Frame (ReaderT (pure (makeMemoizedState (newState { instructions = [] }) r)))
           }
 
 infixr 6 makeScene as @>

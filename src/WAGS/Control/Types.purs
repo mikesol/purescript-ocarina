@@ -12,19 +12,20 @@ module WAGS.Control.Types
   ) where
 
 import Prelude
+
 import Control.Applicative.Indexed (class IxApplicative)
 import Control.Apply.Indexed (class IxApply)
 import Control.Bind.Indexed (class IxBind)
 import Control.Monad.Indexed (class IxMonad)
 import Control.Monad.Reader (ReaderT)
-import Control.Monad.State (State)
 import Data.Functor.Indexed (class IxFunctor)
 import Data.Map as M
 import Data.Set (Set)
+import Data.Tuple.Nested ((/\), type (/\))
 import Unsafe.Coerce (unsafeCoerce)
+import WAGS.Control.MemoizedState (MemoizedState)
 import WAGS.Rendered (AnAudioUnit, Instruction)
 import WAGS.Universe.Bin (D0)
-import Data.Tuple.Nested((/\), type(/\))
 import WAGS.Universe.Graph (InitialGraph)
 import WAGS.Universe.Skolems (SkolemListNil)
 import WAGS.Universe.Universe (Universe, UniverseC)
@@ -37,7 +38,7 @@ type AudioState'
     }
 
 type AudioState env a
-  = ReaderT env (State (AudioState')) a
+  = ReaderT env (MemoizedState (AudioState')) a
 
 newtype Frame (env :: Type) (proof :: Type) (iu :: Universe) (ou :: Universe) (a :: Type)
   = Frame (AudioState env a)
