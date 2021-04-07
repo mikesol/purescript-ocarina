@@ -36,15 +36,15 @@ initialAudioState =
   , internalEdges: M.empty
   }
 
-asScene :: forall env. (env -> Scene' env) -> Scene env
+asScene :: forall env proof. (env -> Scene' env proof) -> Scene env proof
 asScene = unsafeCoerce
 
 makeScene ::
   forall env proofA i u a.
   UniverseIsCoherent u =>
-  Frame env proofA i u (Either (Scene env) a) ->
-  (forall proofB. Frame env proofB i u a -> Scene env) ->
-  Scene env
+  Frame env proofA i u (Either (Scene env proofA) a) ->
+  (forall proofB. Frame env proofB i u a -> Scene env proofB) ->
+  Scene env proofA
 makeScene (Frame m) trans = asScene go
   where
   go ev =
@@ -71,9 +71,9 @@ infixr 6 makeScene as @>
 branch ::
   forall env proofA i u a.
   UniverseIsCoherent u =>
-  (forall proofB. Frame env proofB u u (Either (Frame env proofB i u a -> Scene env) (a -> Frame env proofB u u a))) ->
+  (forall proofB. Frame env proofB u u (Either (Frame env proofB i u a -> Scene env proofB) (a -> Frame env proofB u u a))) ->
   Frame env proofA i u a ->
-  Scene env
+  Scene env proofA
 branch mch m =
   makeScene
     ( Ix.do
@@ -91,7 +91,7 @@ loop ::
   UniverseIsCoherent u =>
   (forall proofB. a -> Frame env proofB u u a) ->
   Frame env proofA i u a ->
-  Scene env
+  Scene env proofA
 --loop = branch <<< ipure <<< Right
 loop fa ma = makeScene (imap Right $ ibind ma fa) (loop fa)
 
@@ -99,15 +99,15 @@ freeze ::
   forall env proof i u x.
   UniverseIsCoherent u =>
   Frame env proof i u x ->
-  Scene env
+  Scene env proof
 freeze s = makeScene (imap Right s) freeze
 
 makeScene' ::
   forall env proofA i u a.
   UniverseIsCoherent u =>
   Frame env proofA i u a ->
-  (forall proofB. Frame env proofB i u a -> Scene env) ->
-  Scene env
+  (forall proofB. Frame env proofB i u a -> Scene env proofB) ->
+  Scene env proofA
 makeScene' a b = makeScene (imap Right a) b
 
 infixr 6 makeScene' as @|>

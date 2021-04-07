@@ -67,21 +67,21 @@ instance frameIxBind :: IxBind (Frame env proof) where
 
 instance frameIxMonad :: IxMonad (Frame env proof)
 
-foreign import data Scene :: Type -> Type
+foreign import data Scene :: Type -> Type ->  Type
 
-type role Scene representational
+type role Scene representational representational
 
-type Scene' env
+type Scene' env proof
   = { nodes :: M.Map Int AnAudioUnit
     , edges :: M.Map Int (Set Int)
     , instructions :: Array Instruction
-    , next :: Scene env
+    , next :: Scene env proof
     }
 
-oneFrame :: forall env. Scene env -> env -> Scene' env
+oneFrame :: forall env proofA. Scene env proofA -> env -> (forall proofB. Scene' env proofB)
 oneFrame = unsafeCoerce
 
-oneFrame' :: forall env. Scene env -> env -> M.Map Int AnAudioUnit /\ M.Map Int (Set Int) /\ Array Instruction /\ Scene env
+oneFrame' :: forall env proofA. Scene env proofA -> env -> (forall proofB. M.Map Int AnAudioUnit /\ M.Map Int (Set Int) /\ Array Instruction /\ Scene env proofB)
 oneFrame' s e = nodes /\ edges /\ instructions /\ next
   where
   { nodes, edges ,instructions, next } = oneFrame s e
