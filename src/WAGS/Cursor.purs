@@ -37,11 +37,13 @@ instance cursorRecurse ::
 
 class CursorRes (tag :: Type) (p :: Ptr) (i :: Node) (plist :: EdgeProfile) | tag p i -> plist
 
-instance cursorResSinOsc :: CursorRes (SinOsc a) p (NodeC (TSinOsc p) e) e
+{-instance cursorResSinOsc :: CursorRes (SinOsc a) p (NodeC (TSinOsc p) e) e
 else instance cursorResHighpass :: CursorRes (Highpass a b c) p (NodeC (THighpass p) e) e
 else instance cursorResGain :: CursorRes (Gain a b) p (NodeC (TGain p) e) e
 else instance cursorResSpeaker :: CursorRes (Speaker a) p (NodeC (TSpeaker p) e) e
-else instance cursorResMiss :: CursorRes tag p n NoEdge
+else instance cursorResMiss :: CursorRes tag p n NoEdge-}
+
+
 
 class Cursor' (tag :: Type) (p :: Ptr) (i :: NodeList) (nextP :: EdgeProfile) | tag p i -> nextP
 
