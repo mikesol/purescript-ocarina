@@ -11,7 +11,6 @@ module WAGS.Control.Functions
   ) where
 
 import Prelude
-
 import Control.Applicative.Indexed (ipure)
 import Control.Bind.Indexed (ibind)
 import Control.Monad.Indexed.Qualified as Ix
@@ -20,7 +19,9 @@ import Data.Either (Either(..))
 import Data.Functor.Indexed (imap)
 import Data.Map as M
 import Data.Tuple.Nested ((/\))
+import Type.Data.Peano (Succ)
 import Unsafe.Coerce (unsafeCoerce)
+import WAGS.Change (changes)
 import WAGS.Control.MemoizedState (makeMemoizedState, runMemoizedState)
 import WAGS.Control.Types (AudioState', Frame(..), InitialFrame, Scene, Scene', oneFrame)
 import WAGS.Universe.Universe (UniverseC)
@@ -70,7 +71,7 @@ infixr 6 makeScene as @>
 branch ::
   forall env proofA i currentIdx graph changeBit skolems a.
   GraphIsRenderable graph =>
-  (forall proofB. Frame env proofB (UniverseC currentIdx graph changeBit skolems) (UniverseC currentIdx graph changeBit skolems) (Either (Frame env proofB i (UniverseC currentIdx graph changeBit skolems) a -> Scene env proofB) (a -> Frame env proofB (UniverseC currentIdx graph changeBit skolems) (UniverseC currentIdx graph changeBit skolems) a))) ->
+  (forall proofB j. Frame env proofB (UniverseC currentIdx graph j skolems) (UniverseC currentIdx graph j skolems) (Either (Frame env proofB i (UniverseC currentIdx graph j skolems) a -> Scene env proofB) (a -> Frame env proofB (UniverseC currentIdx graph j skolems) (UniverseC currentIdx graph (Succ j) skolems) a))) ->
   Frame env proofA i (UniverseC currentIdx graph changeBit skolems) a ->
   Scene env proofA
 branch mch m =
@@ -79,16 +80,18 @@ branch mch m =
         r <- m
         mbe <- mch
         case mbe of
-          Left l -> ipure $ Left (l m)
+          Left l -> Ix.do
+            changes unit
+            ipure $ Left (l m)
           Right fa -> imap Right (fa r)
     )
     (branch mch)
 
 loop ::
   forall env proofA i currentIdx graph changeBit skolems edge a.
-  TerminalIdentityEdge (UniverseC currentIdx graph changeBit skolems) edge =>
+  TerminalIdentityEdge graph edge =>
   GraphIsRenderable graph =>
-  (forall proofB. a -> Frame env proofB (UniverseC currentIdx graph changeBit skolems) (UniverseC currentIdx graph changeBit skolems) a) ->
+  (forall proofB j. a -> Frame env proofB (UniverseC currentIdx graph j skolems) (UniverseC currentIdx graph (Succ j) skolems) a) ->
   Frame env proofA i (UniverseC currentIdx graph changeBit skolems) a ->
   Scene env proofA
 --loop = branch <<< ipure <<< Right

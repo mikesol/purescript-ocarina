@@ -368,16 +368,15 @@ instance graphIsRenderable ::
   ) =>
   GraphIsRenderable graph
 
-class TerminalNode (u :: Universe) (ptr :: Ptr) | u -> ptr
+class TerminalNode (g :: Graph) (ptr :: Ptr) | g -> ptr
 
 instance terminalNode ::
-  ( GetGraph i g
-  , UniqueTerminus g t
+  ( UniqueTerminus g t
   , GetAudioUnit t u
   , GetPointer u ptr
   ) =>
-  TerminalNode i ptr
+  TerminalNode g ptr
 
-class TerminalIdentityEdge (u :: Universe) (prof :: EdgeProfile) | u -> prof
+class TerminalIdentityEdge (u :: Graph) (prof :: EdgeProfile) | u -> prof
 
 instance terminalIdentityEdge :: (TerminalNode i ptr) => TerminalIdentityEdge i (SingleEdge ptr)

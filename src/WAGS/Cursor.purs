@@ -18,11 +18,11 @@ import WAGS.Universe.Universe (Universe, UniverseC)
 import WAGS.Validation (class EdgeProfileChooseGreater, class PtrListAppend, class TerminalIdentityEdge)
 
 cursor ::
-  forall edge a i env proof p.
-  TerminalIdentityEdge i edge =>
-  Cursor edge a i p =>
+  forall edge a q r s t env proof p.
+  TerminalIdentityEdge r edge =>
+  Cursor edge a (UniverseC q r s t) p =>
   BinToInt p =>
-  a -> Frame env proof i i (AudioUnitRef p)
+  a -> Frame env proof (UniverseC q r s t) (UniverseC q r s t) (AudioUnitRef p)
 cursor = cursor' (Proxy :: _ edge)
 
 class Cursor (p :: EdgeProfile) (a :: Type) (o :: Universe) (ptr :: Ptr) | p a o -> ptr where

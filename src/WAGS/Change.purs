@@ -1,7 +1,6 @@
 module WAGS.Change where
 
 import Prelude
-
 import Control.Monad.Indexed.Qualified as Ix
 import Control.Monad.State (gets, modify_)
 import Data.Identity (Identity(..))
@@ -9,6 +8,7 @@ import Data.Map as M
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple, snd)
 import Data.Tuple.Nested ((/\), type (/\))
+import Type.Data.Peano (Succ)
 import Type.Proxy (Proxy(..))
 import WAGS.Control.Types (Frame(..))
 import WAGS.Create (class Create)
@@ -19,10 +19,10 @@ import WAGS.Rendered (AnAudioUnit(..), Instruction(..))
 import WAGS.Universe.AudioUnit (AudioUnitRef, TGain, THighpass, TSinOsc, TSpeaker)
 import WAGS.Universe.Bin (class BinSub, class BinToInt, BinL, D0, Ptr, PtrListCons, PtrListNil, toInt')
 import WAGS.Universe.EdgeProfile (EdgeProfile, ManyEdges, NoEdge, SingleEdge)
-import WAGS.Universe.Graph (class GraphToNodeList, InitialGraph)
+import WAGS.Universe.Graph (class GraphToNodeList, Graph, InitialGraph)
 import WAGS.Universe.Node (Node, NodeC, NodeList, NodeListCons, NodeListNil)
 import WAGS.Universe.Skolems (class GetSkolemFromRecursiveArgument, class ToSkolemizedFunction, SkolemListCons, SkolemPairC, toSkolemizedFunction)
-import WAGS.Universe.Universe (Universe, UniverseC)
+import WAGS.Universe.Universe (UniverseC)
 import WAGS.Validation (class AssertSingleton, class EdgeProfileChooseGreater, class NodeListAppend, class TerminalIdentityEdge)
 
 class ChangeInstructions (g :: Type) where
@@ -100,20 +100,45 @@ instance setterValFunctionN :: SetterVal (AudioParameter -> Number) where
   setterVal = map param
 
 change ::
-  forall edge a i env proof.
-  TerminalIdentityEdge i edge =>
-  Change edge a i =>
-  a -> Frame env proof i i Unit
+  forall edge a currentIdx graph changeBit skolems env proof.
+  TerminalIdentityEdge graph edge =>
+  Change edge a graph =>
+  a -> Frame env proof (UniverseC currentIdx graph changeBit skolems) (UniverseC currentIdx graph (Succ changeBit) skolems) Unit
 change = change' (Proxy :: _ edge)
 
 changeAt ::
-  forall ptr a i env proof.
-  Change (SingleEdge ptr) a i =>
-  AudioUnitRef ptr -> a -> Frame env proof i i Unit
+  forall ptr a env proof currentIdx graph changeBit skolems.
+  Change (SingleEdge ptr) a graph =>
+  AudioUnitRef ptr -> a -> Frame env proof (UniverseC currentIdx graph changeBit skolems) (UniverseC currentIdx graph (Succ changeBit) skolems) Unit
 changeAt _ = change' (Proxy :: _ (SingleEdge ptr))
 
-class Change (p :: EdgeProfile) (a :: Type) (o :: Universe) where
-  change' :: forall env proof. Proxy p -> a -> Frame env proof o o Unit
+type ChangeType (p :: EdgeProfile) (a :: Type) (grapho :: Graph)
+  = forall env proof ptr changeBit skolems. Proxy p -> a -> Frame env proof (UniverseC ptr grapho changeBit skolems) (UniverseC ptr grapho (Succ changeBit) skolems) Unit
+
+type ChangesType (a :: Type) (g :: Graph)
+  = forall env proof ptr changeBit skolems. a -> Frame env proof (UniverseC ptr g changeBit skolems) (UniverseC ptr g (Succ changeBit) skolems) Unit
+
+class Changes (a :: Type) (g :: Graph) where
+  changes :: forall env proof ptr changeBit skolems. a -> Frame env proof (UniverseC ptr g changeBit skolems) (UniverseC ptr g (Succ changeBit) skolems) Unit
+
+data ChangeInstruction a b
+  = ChangeInstruction a b
+
+instance changesUnit :: Changes Unit g where
+  changes _ = Frame (pure unit)
+else instance changesPx :: Change p a graph => Changes (ChangeInstruction (Proxy p) a) graph where
+  changes (ChangeInstruction p a) = (change' :: ChangeType p a graph) p a
+else instance changesTp :: (Changes x graph, Changes y graph) => Changes (Tuple x y) graph where
+  changes (x /\ y) = Frame (x' *> y')
+    where
+    Frame x' = (changes :: ChangesType x graph) x
+
+    Frame y' = (changes :: ChangesType y graph) y
+else instance changesSingle :: (TerminalIdentityEdge graph edge, Change edge a graph) => Changes a graph where
+  changes a = change a
+
+class Change (p :: EdgeProfile) (a :: Type) (grapho :: Graph) where
+  change' :: forall env proof ptr changeBit skolems. Proxy p -> a -> Frame env proof (UniverseC ptr grapho changeBit skolems) (UniverseC ptr grapho (Succ changeBit) skolems) Unit
 
 class ModifyRes (tag :: Type) (p :: Ptr) (i :: Node) (mod :: NodeList) (plist :: EdgeProfile) | tag p i -> mod plist
 
@@ -135,21 +160,21 @@ instance modifyCons ::
   ) =>
   Modify' tag p (NodeListCons head tail) o plist
 
-class Modify (tag :: Type) (p :: Ptr) (i :: Universe) (nextP :: EdgeProfile) | tag p i -> nextP
+class Modify (tag :: Type) (p :: Ptr) (i :: Graph) (nextP :: EdgeProfile) | tag p i -> nextP
 
 instance modify ::
   ( GraphToNodeList ig il
   , Modify' tag p il mod nextP
   , AssertSingleton mod x
   ) =>
-  Modify tag p (UniverseC i ig cb sk) nextP
+  Modify tag p ig nextP
 
 changeAudioUnit ::
-  forall g env proof (inuniv :: Universe) (p :: BinL) (nextP :: EdgeProfile) univ.
+  forall g env proof currentIdx (igraph :: Graph) changeBit skolems (p :: BinL) (nextP :: EdgeProfile) univ.
   ChangeInstructions g =>
   BinToInt p =>
-  Modify g p inuniv nextP =>
-  Proxy (Proxy p /\ Proxy nextP /\ Proxy inuniv) -> g -> Frame env proof univ inuniv Unit
+  Modify g p igraph nextP =>
+  Proxy (Proxy p /\ Proxy nextP /\ Proxy igraph) -> g -> Frame env proof univ (UniverseC currentIdx igraph changeBit skolems) Unit
 changeAudioUnit _ g =
   Frame
     $ do
@@ -170,40 +195,42 @@ changeAudioUnit _ g =
           Nothing -> pure unit
 
 instance changeNoEdge ::
-  Change NoEdge g inuniv where
+  Change NoEdge g igraph where
   change' _ _ = Frame $ (pure unit)
 
 instance changeSkolem ::
-  Change (SingleEdge p) (Proxy skolem) inuniv where
+  Change (SingleEdge p) (Proxy skolem) igraph where
   change' _ _ = Frame $ (pure unit)
 
-instance changeIdentity :: Change (SingleEdge p) x inuniv => Change (SingleEdge p) (Identity x) inuniv where
+instance changeIdentity :: Change (SingleEdge p) x igraph => Change (SingleEdge p) (Identity x) igraph where
   change' p (Identity x) = change' p x
 
-instance changeFocus :: Change (SingleEdge p) x inuniv => Change (SingleEdge p) (Focus x) inuniv where
+instance changeFocus :: Change (SingleEdge p) x igraph => Change (SingleEdge p) (Focus x) igraph where
   change' p (Focus x) = change' p x
 
 instance changeMany2 ::
-  ( Change (SingleEdge p) x inuniv
-  , Change (ManyEdges a b) y inuniv
+  ( Change (SingleEdge p) x igraph
+  , Change (ManyEdges a b) y igraph
   ) =>
-  Change (ManyEdges p (PtrListCons a b)) (x /\ y) inuniv where
-  change' _ (x /\ y) = Ix.do
-    (change' :: forall env proof. Proxy (SingleEdge p) -> x -> Frame env proof inuniv inuniv Unit) Proxy x
-    (change' :: forall env proof. Proxy (ManyEdges a b) -> y -> Frame env proof inuniv inuniv Unit) Proxy y
+  Change (ManyEdges p (PtrListCons a b)) (x /\ y) igraph where
+  change' _ (x /\ y) = Frame (_1 *> _2)
+    where
+    Frame _1 = (change' :: ChangeType (SingleEdge p) x igraph) Proxy x
+
+    Frame _2 = (change' :: ChangeType (ManyEdges a b) y igraph) Proxy y
 
 instance changeMany1 ::
-  Change (SingleEdge p) a inuniv =>
-  Change (ManyEdges p PtrListNil) (a /\ Unit) inuniv where
-  change' _ (a /\ _) = (change' :: forall env proof. Proxy (SingleEdge p) -> a -> Frame env proof inuniv inuniv Unit) Proxy a
+  Change (SingleEdge p) a igraph =>
+  Change (ManyEdges p PtrListNil) (a /\ Unit) igraph where
+  change' _ (a /\ _) = (change' :: ChangeType (SingleEdge p) a igraph) Proxy a
 
 instance changeSinOsc ::
   ( SetterVal a
   , BinToInt p
-  , Modify (SinOsc a) p inuniv nextP
+  , Modify (SinOsc a) p igraph nextP
   ) =>
-  Change (SingleEdge p) (SinOsc a) inuniv where
-  change' _ = changeAudioUnit (Proxy :: Proxy ((Proxy p) /\ (Proxy nextP) /\ Proxy inuniv))
+  Change (SingleEdge p) (SinOsc a) igraph where
+  change' _ = changeAudioUnit (Proxy :: Proxy ((Proxy p) /\ (Proxy nextP) /\ Proxy igraph))
 
 instance changeHighpass ::
   ( SetterVal a
@@ -211,17 +238,17 @@ instance changeHighpass ::
   , BinToInt p
   , GetSkolemFromRecursiveArgument fc skolem
   , ToSkolemizedFunction fc skolem c
-  , Modify (Highpass a b c) p inuniv nextP
-  , Change nextP c inuniv
+  , Modify (Highpass a b c) p igraph nextP
+  , Change nextP c igraph
   ) =>
-  Change (SingleEdge p) (Highpass a b fc) inuniv where
+  Change (SingleEdge p) (Highpass a b fc) igraph where
   change' _ (Highpass a b fc) =
     let
       c = (((toSkolemizedFunction :: fc -> (Proxy skolem -> c)) fc) Proxy)
     in
       Ix.do
-        changeAudioUnit (Proxy :: Proxy (Proxy p /\ Proxy nextP /\ Proxy inuniv)) (Highpass a b c)
-        (change' :: forall env proof. (Proxy nextP) -> c -> Frame env proof inuniv inuniv Unit) Proxy c
+        changeAudioUnit (Proxy :: Proxy (Proxy p /\ Proxy nextP /\ Proxy igraph)) (Highpass a b c)
+        (change' :: ChangeType nextP c igraph) Proxy c
 
 instance changeDup ::
   ( Create
@@ -233,43 +260,45 @@ instance changeDup ::
   , BinToInt outptr
   , BinToInt continuation
   , BinSub p outptr continuation
-  , Change (SingleEdge p) b inuniv
-  , Change (SingleEdge continuation) a inuniv
+  , Change (SingleEdge p) b igraph
+  , Change (SingleEdge continuation) a igraph
   ) =>
-  Change (SingleEdge p) (Dup a (Proxy skolem -> b)) inuniv where
-  change' _ (Dup a f) = Ix.do
-    (change' :: forall env proof. (Proxy (SingleEdge p)) -> b -> Frame env proof inuniv inuniv Unit) Proxy (f Proxy)
-    (change' :: forall env proof. (Proxy (SingleEdge continuation)) -> a -> Frame env proof inuniv inuniv Unit) Proxy a
+  Change (SingleEdge p) (Dup a (Proxy skolem -> b)) igraph where
+  change' _ (Dup a f) = Frame (_1 *> _2)
+    where
+    Frame _1 = (change' :: ChangeType (SingleEdge p) b igraph) Proxy (f Proxy)
+
+    Frame _2 = (change' :: ChangeType (SingleEdge continuation) a igraph) Proxy a
 
 instance changeGain ::
   ( SetterVal a
   , BinToInt p
   , GetSkolemFromRecursiveArgument fb skolem
   , ToSkolemizedFunction fb skolem b
-  , Modify (Gain a b) p inuniv nextP
-  , Change nextP b inuniv
+  , Modify (Gain a b) p igraph nextP
+  , Change nextP b igraph
   ) =>
-  Change (SingleEdge p) (Gain a fb) inuniv where
+  Change (SingleEdge p) (Gain a fb) igraph where
   change' _ (Gain a fb) =
     let
       b = (((toSkolemizedFunction :: fb -> (Proxy skolem -> b)) fb) Proxy)
     in
       Ix.do
-        changeAudioUnit (Proxy :: Proxy (Proxy p /\ Proxy nextP /\ Proxy inuniv)) (Gain a b)
-        (change' :: forall env proof. (Proxy nextP) -> b -> Frame env proof inuniv inuniv Unit) Proxy b
+        changeAudioUnit (Proxy :: Proxy (Proxy p /\ Proxy nextP /\ Proxy igraph)) (Gain a b)
+        (change' :: ChangeType nextP b igraph) Proxy b
 
 instance changeSpeaker ::
   ( BinToInt p
   , GetSkolemFromRecursiveArgument fa skolem
   , ToSkolemizedFunction fa skolem a
-  , Modify (Speaker a) p inuniv nextP
-  , Change nextP a inuniv
+  , Modify (Speaker a) p igraph nextP
+  , Change nextP a igraph
   ) =>
-  Change (SingleEdge p) (Speaker fa) inuniv where
+  Change (SingleEdge p) (Speaker fa) igraph where
   change' _ (Speaker fa) =
     let
       a = (((toSkolemizedFunction :: fa -> (Proxy skolem -> a)) fa) Proxy)
     in
       Ix.do
-        changeAudioUnit (Proxy :: Proxy (Proxy p /\ Proxy nextP /\ Proxy inuniv)) (Speaker a)
-        (change' :: forall env proof. (Proxy nextP) -> a -> Frame env proof inuniv inuniv Unit) Proxy a
+        changeAudioUnit (Proxy :: Proxy (Proxy p /\ Proxy nextP /\ Proxy igraph)) (Speaker a)
+        (change' :: ChangeType nextP a igraph) Proxy a

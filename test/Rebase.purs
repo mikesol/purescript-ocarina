@@ -41,6 +41,9 @@ type RBR
         )
         Z W.SkolemListNil
 
+{-
+-- internal compiler error
 rebaseTest0 ::
   W.Frame Unit Void RBL RBR Unit
 rebaseTest0 = W.rebase (Proxy :: _ RBL) (Proxy :: _ RBR)
+-}

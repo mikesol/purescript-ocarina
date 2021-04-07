@@ -23,11 +23,11 @@ class Rebase iA iB where
   rebase :: forall env proof. Proxy iA -> Proxy iB -> Frame env proof iA iB Unit
 
 instance rebaseRebase ::
-  ( TerminalIdentityEdge iA edgeA
-  , TerminalIdentityEdge iB edgeB
-  , Rebase' PtrListNil PtrListNil RebaseProof edgeA iA edgeB iB
+  ( TerminalIdentityEdge graphA edgeA
+  , TerminalIdentityEdge graphB edgeB
+  , Rebase' PtrListNil PtrListNil RebaseProof edgeA (idxA graphA changeBitA skolemsA) edgeB (idxB graphB changeBitB skolemsB)
   ) =>
-  Rebase iA iB where
+  Rebase (idxA graphA changeBitA skolemsA) (idxB graphB changeBitB skolemsB) where
   rebase iA iB = rebase' (Proxy :: _ PtrListNil) (Proxy :: _ PtrListNil) RebaseProof (Proxy :: _ edgeA) iA (Proxy :: _ edgeB) iB
 
 class Rebase' :: forall k1. PtrList -> PtrList -> Type -> k1 -> Universe -> k1 -> Universe -> Constraint
