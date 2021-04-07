@@ -11,8 +11,9 @@ module WAGS.Control.Functions
   ) where
 
 import Prelude
+
 import Control.Applicative.Indexed (ipure)
-import Control.Lazy (fix)
+import Control.Bind.Indexed (ibind)
 import Control.Monad.Indexed.Qualified as Ix
 import Control.Monad.Reader (runReaderT, ask)
 import Control.Monad.State (put, runState)
@@ -39,10 +40,10 @@ asScene :: forall env. (env -> Scene' env) -> Scene env
 asScene = unsafeCoerce
 
 makeScene ::
-  forall env proofA proofB i u a.
+  forall env proofA i u a.
   UniverseIsCoherent u =>
   Frame env proofA i u (Either (Scene env) a) ->
-  (Frame env proofB i u a -> Scene env) ->
+  (forall proofB. Frame env proofB i u a -> Scene env) ->
   Scene env
 makeScene (Frame m) trans = asScene go
   where
@@ -70,7 +71,7 @@ infixr 6 makeScene as @>
 branch ::
   forall env proofA i u a.
   UniverseIsCoherent u =>
-  Frame env proofA u u (Either (Frame env proofA i u a -> Scene env) (a -> Frame env proofA u u a)) ->
+  (forall proofB. Frame env proofB u u (Either (Frame env proofB i u a -> Scene env) (a -> Frame env proofB u u a))) ->
   Frame env proofA i u a ->
   Scene env
 branch mch m =
@@ -88,25 +89,26 @@ loop ::
   forall env proofA i u edge a.
   TerminalIdentityEdge u edge =>
   UniverseIsCoherent u =>
-  (a -> Frame env proofA u u a) ->
+  (forall proofB. a -> Frame env proofB u u a) ->
   Frame env proofA i u a ->
   Scene env
-loop = branch <<< ipure <<< Right
+--loop = branch <<< ipure <<< Right
+loop fa ma = makeScene (imap Right $ ibind ma fa) (loop fa)
 
 freeze ::
   forall env proof i u x.
   UniverseIsCoherent u =>
   Frame env proof i u x ->
   Scene env
-freeze = fix (flip compose (imap Right) <<< flip makeScene)
+freeze s = makeScene (imap Right s) freeze
 
 makeScene' ::
-  forall env proofA proofB i u a.
+  forall env proofA i u a.
   UniverseIsCoherent u =>
   Frame env proofA i u a ->
-  (Frame env proofB i u a -> Scene env) ->
+  (forall proofB. Frame env proofB i u a -> Scene env) ->
   Scene env
-makeScene' = makeScene <<< imap Right
+makeScene' a b = makeScene (imap Right a) b
 
 infixr 6 makeScene' as @|>
 

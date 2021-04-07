@@ -1,7 +1,6 @@
 module Test.Main where
 
 import Prelude
-
 import Control.Applicative.Indexed (imap, ipure)
 import Control.Monad.Indexed.Qualified as Ix
 import Data.Array as A
@@ -222,26 +221,25 @@ main = do
                   ivoid $ create (scene0 e)
                   ipure $ Right unit
               )
-                @> ( let
-                      cont =
-                        loop
-                          ( const
-                              $ Ix.do
-                                  e <- env
-                                  ivoid $ change (scene1 e)
-                          )
-
-                      hold =
-                        const
-                          $ Ix.do
-                              e <- env
-                              ivoid $ change (scene0 e)
-
-                      split = Ix.do
-                        { time } <- env
-                        ipure $ if time < 0.3 then Right hold else Left cont
-                    in
-                      branch split
+                @> ( branch Ix.do
+                      { time } <- env
+                      ipure
+                        $ if time < 0.3 then
+                            Right
+                              ( const
+                                  $ Ix.do
+                                      e <- env
+                                      ivoid $ change (scene0 e)
+                              )
+                          else
+                            Left
+                              ( loop
+                                  ( const
+                                      $ Ix.do
+                                          e <- env
+                                          ivoid $ change (scene1 e)
+                                  )
+                              )
                   )
 
             (frame0Nodes /\ frame0Edges /\ frame0Instr /\ frame1) = oneFrame' simpleScene { time: 0.0 }
