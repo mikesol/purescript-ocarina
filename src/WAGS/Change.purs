@@ -142,7 +142,7 @@ instance modify ::
   , Modify' tag p il mod nextP
   , AssertSingleton mod x
   ) =>
-  Modify tag p (UniverseC i ig sk) nextP
+  Modify tag p (UniverseC i ig cb sk) nextP
 
 changeAudioUnit ::
   forall g env proof (inuniv :: Universe) (p :: BinL) (nextP :: EdgeProfile) univ.
@@ -226,8 +226,8 @@ instance changeHighpass ::
 instance changeDup ::
   ( Create
       a
-      (UniverseC D0 InitialGraph (SkolemListCons (SkolemPairC skolem D0) skolems))
-      (UniverseC outptr grapho (SkolemListCons (SkolemPairC skolem D0) skolems))
+      (UniverseC D0 InitialGraph changeBit (SkolemListCons (SkolemPairC skolem D0) skolems))
+      (UniverseC outptr grapho changeBit (SkolemListCons (SkolemPairC skolem D0) skolems))
       ignore
   , BinToInt p
   , BinToInt outptr

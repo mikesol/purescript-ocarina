@@ -41,10 +41,10 @@ asScene :: forall env proof. (env -> Scene' env proof) -> Scene env proof
 asScene = unsafeCoerce
 
 makeScene ::
-  forall env proofA i currentIdx graph skolems a.
+  forall env proofA i currentIdx graph changeBit skolems a.
   GraphIsRenderable graph =>
-  Frame env proofA i (UniverseC currentIdx graph skolems) (Either (Scene env proofA) a) ->
-  (forall proofB. Frame env proofB i (UniverseC currentIdx graph skolems) a -> Scene env proofB) ->
+  Frame env proofA i (UniverseC currentIdx graph changeBit skolems) (Either (Scene env proofA) a) ->
+  (forall proofB. Frame env proofB i (UniverseC currentIdx graph changeBit skolems) a -> Scene env proofB) ->
   Scene env proofA
 makeScene (Frame m) trans = asScene go
   where
@@ -68,10 +68,10 @@ makeScene (Frame m) trans = asScene go
 infixr 6 makeScene as @>
 
 branch ::
-  forall env proofA i currentIdx graph skolems a.
+  forall env proofA i currentIdx graph changeBit skolems a.
   GraphIsRenderable graph =>
-  (forall proofB. Frame env proofB (UniverseC currentIdx graph skolems) (UniverseC currentIdx graph skolems) (Either (Frame env proofB i (UniverseC currentIdx graph skolems) a -> Scene env proofB) (a -> Frame env proofB (UniverseC currentIdx graph skolems) (UniverseC currentIdx graph skolems) a))) ->
-  Frame env proofA i (UniverseC currentIdx graph skolems) a ->
+  (forall proofB. Frame env proofB (UniverseC currentIdx graph changeBit skolems) (UniverseC currentIdx graph changeBit skolems) (Either (Frame env proofB i (UniverseC currentIdx graph changeBit skolems) a -> Scene env proofB) (a -> Frame env proofB (UniverseC currentIdx graph changeBit skolems) (UniverseC currentIdx graph changeBit skolems) a))) ->
+  Frame env proofA i (UniverseC currentIdx graph changeBit skolems) a ->
   Scene env proofA
 branch mch m =
   makeScene
@@ -85,27 +85,27 @@ branch mch m =
     (branch mch)
 
 loop ::
-  forall env proofA i currentIdx graph skolems edge a.
-  TerminalIdentityEdge (UniverseC currentIdx graph skolems) edge =>
+  forall env proofA i currentIdx graph changeBit skolems edge a.
+  TerminalIdentityEdge (UniverseC currentIdx graph changeBit skolems) edge =>
   GraphIsRenderable graph =>
-  (forall proofB. a -> Frame env proofB (UniverseC currentIdx graph skolems) (UniverseC currentIdx graph skolems) a) ->
-  Frame env proofA i (UniverseC currentIdx graph skolems) a ->
+  (forall proofB. a -> Frame env proofB (UniverseC currentIdx graph changeBit skolems) (UniverseC currentIdx graph changeBit skolems) a) ->
+  Frame env proofA i (UniverseC currentIdx graph changeBit skolems) a ->
   Scene env proofA
 --loop = branch <<< ipure <<< Right
 loop fa ma = makeScene (imap Right $ ibind ma fa) (loop fa)
 
 freeze ::
-  forall env proof i currentIdx graph skolems x.
+  forall env proof i currentIdx graph changeBit skolems x.
   GraphIsRenderable graph =>
-  Frame env proof i (UniverseC currentIdx graph skolems) x ->
+  Frame env proof i (UniverseC currentIdx graph changeBit skolems) x ->
   Scene env proof
 freeze s = makeScene (imap Right s) freeze
 
 makeScene' ::
-  forall env proofA i currentIdx graph skolems a.
+  forall env proofA i currentIdx graph changeBit skolems a.
   GraphIsRenderable graph =>
-  Frame env proofA i (UniverseC currentIdx graph skolems) a ->
-  (forall proofB. Frame env proofB i (UniverseC currentIdx graph skolems) a -> Scene env proofB) ->
+  Frame env proofA i (UniverseC currentIdx graph changeBit skolems) a ->
+  (forall proofB. Frame env proofB i (UniverseC currentIdx graph changeBit skolems) a -> Scene env proofB) ->
   Scene env proofA
 makeScene' a b = makeScene (imap Right a) b
 

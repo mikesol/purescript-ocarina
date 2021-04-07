@@ -1,7 +1,6 @@
 module Test.Move where
 
 import Prelude
-
 import Type.Data.Peano (Succ, Z)
 import Type.Proxy (Proxy(..))
 import WAGS as W
@@ -23,6 +22,7 @@ moveTest0 ::
                 (W.NodeListCons (W.NodeC (W.TSinOsc W.D0) W.NoEdge) W.NodeListNil)
             )
         )
+        Z
         W.SkolemListNil
     )
     ( W.UniverseC W.D3
@@ -35,6 +35,7 @@ moveTest0 ::
                 (W.NodeListCons (W.NodeC (W.TSinOsc W.D0) W.NoEdge) W.NodeListNil)
             )
         )
+        Z
         W.SkolemListNil
     )
     Unit
@@ -53,6 +54,7 @@ moveTest1 ::
                 (W.NodeListCons (W.NodeC (W.TSinOsc W.D0) W.NoEdge) W.NodeListNil)
             )
         )
+        Z
         W.SkolemListNil
     )
     ( W.UniverseC W.D3
@@ -65,6 +67,7 @@ moveTest1 ::
                 (W.NodeListCons (W.NodeC (W.TSinOsc W.D0) W.NoEdge) W.NodeListNil)
             )
         )
+        Z
         W.SkolemListNil
     )
     Unit
@@ -83,6 +86,7 @@ moveTest2 ::
                 (W.NodeListCons (W.NodeC (W.TSinOsc W.D0) W.NoEdge) W.NodeListNil)
             )
         )
+        Z
         W.SkolemListNil
     )
     ( W.UniverseC W.D3
@@ -95,6 +99,7 @@ moveTest2 ::
                 (W.NodeListCons (W.NodeC (W.TSinOsc W.D0) W.NoEdge) W.NodeListNil)
             )
         )
+        Z
         W.SkolemListNil
     )
     Unit
@@ -113,6 +118,7 @@ moveTest3 ::
                 (W.NodeListCons (W.NodeC (W.TSinOsc W.D0) W.NoEdge) W.NodeListNil)
             )
         )
+        Z
         W.SkolemListNil
     )
     ( W.UniverseC W.D3
@@ -125,6 +131,7 @@ moveTest3 ::
                 (W.NodeListCons (W.NodeC (W.TSinOsc W.D0) W.NoEdge) W.NodeListNil)
             )
         )
+        Z
         W.SkolemListNil
     )
     Unit
@@ -143,6 +150,7 @@ moveTest4 ::
                 (W.NodeListCons (W.NodeC (W.TSinOsc W.D0) W.NoEdge) W.NodeListNil)
             )
         )
+        Z
         W.SkolemListNil
     )
     ( W.UniverseC W.D3
@@ -155,6 +163,7 @@ moveTest4 ::
                 (W.NodeListCons (W.NodeC (W.TSinOsc W.D0) W.NoEdge) W.NodeListNil)
             )
         )
+        Z
         W.SkolemListNil
     )
     Unit
@@ -174,6 +183,7 @@ moveTest5 ::
                 (W.NodeListCons (W.NodeC (W.TSinOsc W.D0) W.NoEdge) W.NodeListNil)
             )
         )
+        Z
         W.SkolemListNil
     )
     ( W.UniverseC W.D3
@@ -186,6 +196,7 @@ moveTest5 ::
                 (W.NodeListCons (W.NodeC (W.TSinOsc W.D0) W.NoEdge) W.NodeListNil)
             )
         )
+        Z
         W.SkolemListNil
     )
     Unit

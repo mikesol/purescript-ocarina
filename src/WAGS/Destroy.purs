@@ -65,7 +65,7 @@ instance destroyer ::
   , RemovePtrFromNodeList ptr nodeListI nodeListO
   , GraphToNodeList grapho nodeListO
   ) =>
-  Destroy ptr (UniverseC x graphi skolems) (UniverseC x grapho skolems) where
+  Destroy ptr (UniverseC x graphi changeBit skolems) (UniverseC x grapho changeBit skolems) where
   destroy (AudioUnitRef ptrI) =
     Frame
       $ do

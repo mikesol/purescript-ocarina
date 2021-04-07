@@ -57,7 +57,7 @@ instance disconnector ::
   , RemovePointerFromNodes from to nodeListI nodeListO True
   , GraphToNodeList grapho nodeListO
   ) =>
-  Disconnect from to (UniverseC ptr graphi skolems) (UniverseC ptr grapho skolems) where
+  Disconnect from to (UniverseC ptr graphi changeBit skolems) (UniverseC ptr grapho changeBit skolems) where
   disconnect (AudioUnitRef fromI) (AudioUnitRef toI) =
     Frame
       $ do

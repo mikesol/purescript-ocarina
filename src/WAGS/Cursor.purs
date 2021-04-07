@@ -60,7 +60,7 @@ instance cursorX ::
   ( GraphToNodeList ig il
   , Cursor' tag p il nextP
   ) =>
-  CursorX tag p (UniverseC i ig sk) nextP
+  CursorX tag p (UniverseC i ig cb sk) nextP
 
 class CursorI (p :: EdgeProfile) (a :: Type) (o :: Universe) (ptr :: PtrList) | p a o -> ptr
 
@@ -89,8 +89,8 @@ instance cursorMany1 ::
 instance cursorDup ::
   ( Create
       a
-      (UniverseC D0 InitialGraph (SkolemListCons (SkolemPairC skolem D0) skolems))
-      (UniverseC outptr grapho (SkolemListCons (SkolemPairC skolem D0) skolems))
+      (UniverseC D0 InitialGraph changeBit (SkolemListCons (SkolemPairC skolem D0) skolems))
+      (UniverseC outptr grapho changeBit (SkolemListCons (SkolemPairC skolem D0) skolems))
       ignore
   , BinToInt p
   , BinToInt outptr

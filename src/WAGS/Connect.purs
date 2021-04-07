@@ -40,7 +40,7 @@ instance connectAll ::
   , AddPointerToNodes from to nodeListI nodeListO True
   , GraphToNodeList grapho nodeListO
   ) =>
-  Connect from to (UniverseC ptr graphi skolems) (UniverseC ptr grapho skolems) where
+  Connect from to (UniverseC ptr graphi changeBit skolems) (UniverseC ptr grapho changeBit skolems) where
   connect (AudioUnitRef fromI) (AudioUnitRef toI) =
     Frame
       $ do

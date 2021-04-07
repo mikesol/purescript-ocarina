@@ -1,6 +1,8 @@
 module Test.Rebase where
 
 import Prelude
+
+import Type.Data.Peano (Z)
 import Type.Proxy (Proxy(..))
 import WAGS as W
 
@@ -21,7 +23,7 @@ type RBL
                 )
             )
         )
-        W.SkolemListNil
+        Z W.SkolemListNil
     
 
 type RBR
@@ -37,7 +39,7 @@ type RBR
                 )
             )
         )
-        W.SkolemListNil
+        Z W.SkolemListNil
 
 rebaseTest0 ::
   W.Frame Unit Void RBL RBR Unit

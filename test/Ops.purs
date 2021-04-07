@@ -7,6 +7,7 @@ import Data.Functor.Indexed (ivoid)
 import Data.Identity (Identity(..))
 import Data.Tuple (fst, snd)
 import Data.Tuple.Nested ((/\), type (/\))
+import Type.Data.Peano (Z)
 import Type.Proxy (Proxy)
 import WAGS as W
 
@@ -15,7 +16,7 @@ data MyGain
 data MySinOsc
 
 opsTest0 ::
-  W.Frame Unit Void (W.UniverseC W.D0 W.InitialGraph W.SkolemListNil)
+  W.Frame Unit Void (W.UniverseC W.D0 W.InitialGraph Z W.SkolemListNil)
     ( W.UniverseC W.D3
         ( W.GraphC
             ( W.NodeC (W.TGain W.D1)
@@ -26,7 +27,7 @@ opsTest0 ::
                 (W.NodeListCons (W.NodeC (W.TSinOsc W.D0) W.NoEdge) W.NodeListNil)
             )
         )
-        W.SkolemListNil
+        Z W.SkolemListNil
     )
     (W.AudioUnitRef W.D1)
 opsTest0 =
@@ -67,7 +68,7 @@ ot1Type { hpf, gain, osc } =
           )
 
 opsTest1 ::
-  W.Frame Unit Void (W.UniverseC W.D0 W.InitialGraph W.SkolemListNil)
+  W.Frame Unit Void (W.UniverseC W.D0 W.InitialGraph Z W.SkolemListNil)
     ( W.UniverseC W.D4
         ( W.GraphC
             (W.NodeC (W.TSpeaker W.D0) (W.SingleEdge W.D2))
@@ -80,13 +81,13 @@ opsTest1 ::
                 )
             )
         )
-        W.SkolemListNil
+        Z W.SkolemListNil
     )
     (W.AudioUnitRef W.D0)
 opsTest1 = W.create $ ot1Type (fst ot1Cursors)
 
 opsTest2 ::
-  W.Frame Unit Void (W.UniverseC W.D0 W.InitialGraph W.SkolemListNil)
+  W.Frame Unit Void (W.UniverseC W.D0 W.InitialGraph Z W.SkolemListNil)
     ( W.UniverseC W.D4
         ( W.GraphC
             (W.NodeC (W.TSpeaker W.D0) (W.SingleEdge W.D2))
@@ -99,13 +100,13 @@ opsTest2 ::
                 )
             )
         )
-        W.SkolemListNil
+        Z W.SkolemListNil
     )
     (W.AudioUnitRef W.D0)
 opsTest2 = W.create $ ot1Type (snd ot1Cursors).hpf
 
 opsTest3 ::
-  W.Frame Unit Void (W.UniverseC W.D0 W.InitialGraph W.SkolemListNil)
+  W.Frame Unit Void (W.UniverseC W.D0 W.InitialGraph Z W.SkolemListNil)
     ( W.UniverseC W.D4
         ( W.GraphC
             (W.NodeC (W.TSpeaker W.D0) (W.SingleEdge W.D2))
@@ -118,7 +119,7 @@ opsTest3 ::
                 )
             )
         )
-        W.SkolemListNil
+        Z W.SkolemListNil
     )
     (W.AudioUnitRef W.D3)
 opsTest3 = Ix.do
@@ -126,7 +127,7 @@ opsTest3 = Ix.do
   W.cursor (ot1Type (snd ot1Cursors).hpf)
 
 opsTest4 ::
-  W.Frame Unit Void (W.UniverseC W.D0 W.InitialGraph W.SkolemListNil)
+  W.Frame Unit Void (W.UniverseC W.D0 W.InitialGraph Z W.SkolemListNil)
     ( W.UniverseC W.D4
         ( W.GraphC
             (W.NodeC (W.TSpeaker W.D0) (W.SingleEdge W.D2))
@@ -139,7 +140,7 @@ opsTest4 ::
                 )
             )
         )
-        W.SkolemListNil
+        Z W.SkolemListNil
     )
     (W.AudioUnitRef W.D1)
 opsTest4 = Ix.do
@@ -148,7 +149,7 @@ opsTest4 = Ix.do
   W.cursor $ ot1Type (snd ot1Cursors).osc
 
 opsTest5 ::
-  W.Frame Unit Void (W.UniverseC W.D0 W.InitialGraph W.SkolemListNil)
+  W.Frame Unit Void (W.UniverseC W.D0 W.InitialGraph Z W.SkolemListNil)
     ( W.UniverseC W.D4
         ( W.GraphC
             (W.NodeC (W.TSpeaker W.D0) (W.SingleEdge W.D2))
@@ -161,7 +162,7 @@ opsTest5 ::
                 )
             )
         )
-        W.SkolemListNil
+        Z W.SkolemListNil
     )
     (W.AudioUnitRef W.D2)
 opsTest5 = Ix.do
@@ -171,7 +172,7 @@ opsTest5 = Ix.do
   W.cursor $ ot1Type (snd ot1Cursors).gain
 
 opsTest6 ::
-  W.Frame Unit Void (W.UniverseC W.D0 W.InitialGraph W.SkolemListNil)
+  W.Frame Unit Void (W.UniverseC W.D0 W.InitialGraph Z W.SkolemListNil)
     ( W.UniverseC W.D4
         ( W.GraphC
             (W.NodeC (W.TSpeaker W.D0) (W.SingleEdge W.D2))
@@ -184,7 +185,7 @@ opsTest6 ::
                 )
             )
         )
-        W.SkolemListNil
+        Z W.SkolemListNil
     )
     Unit
 opsTest6 = Ix.do
@@ -195,7 +196,7 @@ opsTest6 = Ix.do
   W.disconnect csin chpf
 
 opsTest7 ::
-  W.Frame Unit Void (W.UniverseC W.D0 W.InitialGraph W.SkolemListNil)
+  W.Frame Unit Void (W.UniverseC W.D0 W.InitialGraph Z W.SkolemListNil)
     ( W.UniverseC W.D4
         ( W.GraphC
             (W.NodeC (W.TSpeaker W.D0) (W.SingleEdge W.D2))
@@ -208,7 +209,7 @@ opsTest7 ::
                 )
             )
         )
-        W.SkolemListNil
+        Z W.SkolemListNil
     )
     Unit
 opsTest7 = Ix.do
@@ -220,7 +221,7 @@ opsTest7 = Ix.do
   W.disconnect chpf cgain
 
 opsTest8 ::
-  W.Frame Unit Void (W.UniverseC W.D0 W.InitialGraph W.SkolemListNil)
+  W.Frame Unit Void (W.UniverseC W.D0 W.InitialGraph Z W.SkolemListNil)
     ( W.UniverseC W.D4
         ( W.GraphC
             (W.NodeC (W.TSpeaker W.D0) (W.SingleEdge W.D2))
@@ -231,7 +232,7 @@ opsTest8 ::
                 (W.NodeListCons (W.NodeC (W.TSinOsc W.D1) W.NoEdge) W.NodeListNil)
             )
         )
-        W.SkolemListNil
+        Z W.SkolemListNil
     )
     Unit
 opsTest8 = Ix.do

@@ -22,6 +22,7 @@ import Data.Functor.Indexed (class IxFunctor)
 import Data.Map as M
 import Data.Set (Set)
 import Data.Tuple.Nested ((/\), type (/\))
+import Type.Data.Peano (Z)
 import Unsafe.Coerce (unsafeCoerce)
 import WAGS.Control.MemoizedState (MemoizedState)
 import WAGS.Rendered (AnAudioUnit, Instruction)
@@ -46,7 +47,7 @@ newtype Frame (env :: Type) (proof :: Type) (iu :: Universe) (ou :: Universe) (a
 data Frame0
 
 type InitialUniverse
-  = UniverseC D0 InitialGraph SkolemListNil
+  = UniverseC D0 InitialGraph Z SkolemListNil
 
 type InitialFrame env a
   = Frame env Frame0 InitialUniverse InitialUniverse a

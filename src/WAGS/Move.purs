@@ -118,5 +118,5 @@ instance moveAref ::
   , MovePointers at from to nodeListI nodeListO
   , GraphToNodeList grapho nodeListO
   ) =>
-  Move at from to (UniverseC ptr graphi skolems) (UniverseC ptr grapho skolems) where
+  Move at from to (UniverseC ptr graphi changeBit skolems) (UniverseC ptr grapho changeBit skolems) where
   move _ _ _ = Frame (pure unit)

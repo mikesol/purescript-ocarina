@@ -1,8 +1,9 @@
 module Test.WAGS.Create where
 
 import Prelude
-import Type.Proxy (Proxy)
 import Data.Tuple.Nested ((/\))
+import Type.Data.Peano (Z)
+import Type.Proxy (Proxy)
 import WAGS as W
 
 data MyGain
@@ -14,9 +15,10 @@ createTest1 ::
   W.BinToInt ptr =>
   W.BinToInt next =>
   W.BinSucc ptr next =>
-  W.Frame env proof (W.UniverseC ptr (W.GraphC head tail) skolems)
+  W.Frame env proof (W.UniverseC ptr (W.GraphC head tail) Z skolems)
     ( W.UniverseC next
         (W.GraphC (W.NodeC (W.TSinOsc ptr) W.NoEdge) (W.NodeListCons head tail))
+        Z
         skolems
     )
     (W.AudioUnitRef ptr)
@@ -29,9 +31,10 @@ createTest2 ::
   W.BinToInt last =>
   W.BinSucc first mid =>
   W.BinSucc mid last =>
-  W.Frame env proof (W.UniverseC first (W.GraphC head tail) skolems)
+  W.Frame env proof (W.UniverseC first (W.GraphC head tail) Z skolems)
     ( W.UniverseC last
         (W.GraphC (W.NodeC (W.THighpass first) (W.SingleEdge mid)) (W.NodeListCons (W.NodeC (W.TSinOsc mid) W.NoEdge) (W.NodeListCons head tail)))
+        Z
         skolems
     )
     (W.AudioUnitRef first)
@@ -44,7 +47,7 @@ createTest3 ::
   W.BinToInt last =>
   W.BinSucc first mid =>
   W.BinSucc mid last =>
-  W.Frame env proof (W.UniverseC first (W.GraphC head tail) W.SkolemListNil)
+  W.Frame env proof (W.UniverseC first (W.GraphC head tail) Z W.SkolemListNil)
     ( W.UniverseC last
         ( W.GraphC
             ( W.NodeC (W.TGain first)
@@ -52,6 +55,7 @@ createTest3 ::
             )
             (W.NodeListCons (W.NodeC (W.TSinOsc mid) W.NoEdge) (W.NodeListCons head tail))
         )
+        Z
         W.SkolemListNil
     )
     (W.AudioUnitRef first)
@@ -66,7 +70,7 @@ createTest4 ::
   W.BinSucc first mid0 =>
   W.BinSucc mid0 mid1 =>
   W.BinSucc mid1 last =>
-  W.Frame env proof (W.UniverseC first (W.GraphC head tail) W.SkolemListNil)
+  W.Frame env proof (W.UniverseC first (W.GraphC head tail) Z W.SkolemListNil)
     ( W.UniverseC last
         ( W.GraphC
             ( W.NodeC (W.TGain first)
@@ -76,6 +80,7 @@ createTest4 ::
                 (W.NodeListCons (W.NodeC (W.TSinOsc mid1) W.NoEdge) (W.NodeListCons head tail))
             )
         )
+        Z
         W.SkolemListNil
     )
     (W.AudioUnitRef first)
@@ -86,7 +91,7 @@ createTest4 =
 
 createTest5 ::
   forall env head tail proof.
-  W.Frame env proof (W.UniverseC W.D0 (W.GraphC head tail) W.SkolemListNil)
+  W.Frame env proof (W.UniverseC W.D0 (W.GraphC head tail) Z W.SkolemListNil)
     ( W.UniverseC W.D3
         ( W.GraphC
             ( W.NodeC (W.TGain W.D1)
@@ -97,6 +102,7 @@ createTest5 ::
                 (W.NodeListCons (W.NodeC (W.TSinOsc W.D0) W.NoEdge) (W.NodeListCons head tail))
             )
         )
+        Z
         W.SkolemListNil
     )
     (W.AudioUnitRef W.D1)
