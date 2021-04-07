@@ -332,6 +332,8 @@ instance hasUniqueTerminus :: UniqueTerminus graph node => HasUniqueTerminus gra
 -------------- Even though we have a unique terminus, we don't want a state where a gain is a bottom node
 class AllNodesAreFullyHydratedNL (graph :: NodeList)
 
+instance allNodesAreFullyHydratedNil :: AllNodesAreFullyHydratedNL NodeListNil
+
 instance allNodesAreFullyHydratedConsTAllpass :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (AU.TAllpass a) (SingleEdge e)) tail)
 
 instance allNodesAreFullyHydratedConsTBandpass :: AllNodesAreFullyHydratedNL tail => AllNodesAreFullyHydratedNL (NodeListCons (NodeC (AU.TBandpass a) (SingleEdge e)) tail)
