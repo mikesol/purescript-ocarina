@@ -6,6 +6,7 @@ module WAGS
   , module WAGS.Destroy
   , module WAGS.Disconnect
   , module WAGS.Move
+  , module WAGS.Control.Thunkable
   , module WAGS.Rebase
   , module WAGS.Rendered
   , module WAGS.Validation
@@ -35,6 +36,7 @@ import WAGS.Rebase (class Rebase, class Rebase', class RebaseCheck', class Rebas
 import WAGS.Rendered (AnAudioUnit(..), Instruction(..))
 import WAGS.Validation (class AllEdgesInNodeList, class AllEdgesPointToNodes, class AllNodesAreFullyHydrated, class AllNodesAreFullyHydratedNL, class AllPtrsInNodeList, class AssertSingleton, class AudioUnitInAudioUnitList, class AudioUnitInNodeList, class BottomLevelNodes, class BottomLevelNodesNL, class EdgeProfileChooseGreater, class GetEdgesAsPtrList, class GraphIsRenderable, class HasBottomLevelNodes, class HasUniqueTerminus, class IsNodeListEmpty, class LookupNL, class NoNodesAreDuplicated, class NoNodesAreDuplicatedInNodeList, class NoParallelEdges, class NoParallelEdgesNL, class NoPtrsAreDuplicatedInPtrList, class NodeInNodeList, class NodeIsOutputDevice, class NodeListAppend, class NodeNotInNodeList, class PtrInPtrList, class PtrListAppend, class PtrNotInPtrList, class RemoveDuplicates, class TerminalIdentityEdge, class TerminalNode, class TerminusLoop, class ToVisit, class ToVisitSingle, class UniqueTerminus, class UnvisitedNodes)
 import WAGS.Control.Env(EFrame, withReader)
+import WAGS.Control.Thunkable (Thunkable(..), runThunkable, thunkThunkable, runThunkableWithCount, wait, isWait, isHere)
 import WAGS.Graph.Constructors (Allpass(..), Bandpass(..), Constant(..), Convolver(..), Delay(..), Dup(..), DynamicsCompressor(..), Gain(..), Highpass(..), Highshelf(..), LoopBuf(..), Lowpass(..), Lowshelf(..), Microphone(..), Notch(..), OversampleFourX(..), OversampleNone(..), OversampleTwoX(..), Peaking(..), PeriodicOsc(..), PlayBuf(..), Recorder(..), SawtoothOsc(..), SinOsc(..), Speaker(..), SquareOsc(..), StereoPanner(..), TriangleOsc(..), WaveShaper(..))
 import WAGS.Graph.Decorators (Decorated, class Decorate, class MakeDecorators, Decorating(..), Focus(..), decorate, dk, makeDecorators)
 import WAGS.Graph.Parameter (AudioParameter(..), AudioParameter', AudioParameterTransition(..), defaultParam, param)

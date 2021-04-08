@@ -1,6 +1,7 @@
 module Test.Main where
 
 import Prelude
+
 import Control.Applicative.Indexed (imap, ipure)
 import Control.Monad.Indexed.Qualified as Ix
 import Data.Array as A
@@ -9,6 +10,7 @@ import Data.Functor.Indexed (ivoid)
 import Data.Identity (Identity(..))
 import Data.Map as M
 import Data.Set as S
+import Data.Tuple (fst, snd)
 import Data.Tuple.Nested ((/\))
 import Effect (Effect)
 import Effect.Aff (launchAff_)
@@ -17,7 +19,7 @@ import Test.Spec.Assertions (shouldEqual)
 import Test.Spec.Reporter (consoleReporter)
 import Test.Spec.Runner (runSpec)
 import Type.Proxy (Proxy)
-import WAGS (AnAudioUnit(..), AudioParameter, AudioParameterTransition(..), Focus(..), Gain(..), Highpass(..), Instruction(..), SinOsc(..), Speaker(..), branch, change, changeAt, create, cursor, env, freeze, loop, oneFrame', param, start, (@>), (@|>))
+import WAGS (AnAudioUnit(..), AudioParameter, AudioParameterTransition(..), Focus(..), Gain(..), Highpass(..), Instruction(..), SinOsc(..), Speaker(..), branch, change, changeAt, create, cursor, env, freeze, loop, oneFrame', param, start, (@>), (@|>), runThunkableWithCount, wait, isWait, isHere, thunkThunkable)
 
 testCompare :: Instruction -> Instruction -> Ordering
 testCompare a b = case compare a b of
@@ -65,6 +67,36 @@ main :: Effect Unit
 main = do
   launchAff_
     $ runSpec [ consoleReporter ] do
+        describe "thunkable" do
+          it "thunks" do
+            let x = (+) <$> wait 1 <*> pure 2
+            let x' = runThunkableWithCount x
+            (snd x') `shouldEqual` 3
+            (fst x') `shouldEqual` 1
+            let y = wait (+) <*> pure 1 <*> pure 2
+            let y' = runThunkableWithCount y
+            (snd y') `shouldEqual` 3
+            (fst y') `shouldEqual` 1
+            let z = wait (+) <*> wait 1 <*> pure 2
+            let z' = runThunkableWithCount z
+            (snd z') `shouldEqual` 3
+            (fst z') `shouldEqual` 2
+            let a = wait (+) <*> pure 1 <*> wait 2
+            let a' = runThunkableWithCount a
+            (snd a') `shouldEqual` 3
+            (fst a') `shouldEqual` 2
+            let b = (wait (+)) >>= (\f -> pure (f 1)) >>= (\f -> pure (f 2))
+            let b' = runThunkableWithCount b
+            (snd b') `shouldEqual` 3
+            (fst b') `shouldEqual` 1
+            let c = (pure (+)) >>= (\f -> wait (f 1)) >>= (\f -> pure (f 2))
+            let c' = runThunkableWithCount c
+            (snd c') `shouldEqual` 3
+            (fst c') `shouldEqual` 1
+            let d = (pure (+)) >>= (\f -> wait (f 1)) >>= (\f -> wait (f 2))
+            let d' = runThunkableWithCount d
+            (snd d') `shouldEqual` 3
+            (fst d') `shouldEqual` 2
         describe "a simple scene that doesn't change" do
           let
             simpleScene =
