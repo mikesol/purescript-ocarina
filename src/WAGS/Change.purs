@@ -10,7 +10,7 @@ import Data.Tuple (Tuple, snd)
 import Data.Tuple.Nested ((/\), type (/\))
 import Type.Data.Peano (Succ)
 import Type.Proxy (Proxy(..))
-import WAGS.Control.Types (Frame(..))
+import WAGS.Control.Types (FrameT(..))
 import WAGS.Create (class Create)
 import WAGS.Graph.Constructors as CTOR
 import WAGS.Graph.Constructors (Dup(..), Gain(..), Speaker(..))
@@ -450,45 +450,47 @@ instance setterValFunctionN :: SetterVal (AudioParameter -> Number) where
   setterVal = map param
 
 change ::
-  forall edge a currentIdx graph changeBit skolems env proof.
+  forall edge m a currentIdx graph changeBit skolems env proof.
+  Monad m =>
   TerminalIdentityEdge graph edge =>
   Change edge a graph =>
-  a -> Frame env proof (UniverseC currentIdx graph changeBit skolems) (UniverseC currentIdx graph (Succ changeBit) skolems) Unit
+  a -> FrameT env proof m (UniverseC currentIdx graph changeBit skolems) (UniverseC currentIdx graph (Succ changeBit) skolems) Unit
 change = change' (Proxy :: _ edge)
 
 changeAt ::
-  forall ptr a env proof currentIdx graph changeBit skolems.
+  forall ptr a env proof m currentIdx graph changeBit skolems.
+  Monad m =>
   Change (SingleEdge ptr) a graph =>
-  AudioUnitRef ptr -> a -> Frame env proof (UniverseC currentIdx graph changeBit skolems) (UniverseC currentIdx graph (Succ changeBit) skolems) Unit
+  AudioUnitRef ptr -> a -> FrameT env proof m (UniverseC currentIdx graph changeBit skolems) (UniverseC currentIdx graph (Succ changeBit) skolems) Unit
 changeAt _ = change' (Proxy :: _ (SingleEdge ptr))
 
 type ChangeType (p :: EdgeProfile) (a :: Type) (grapho :: Graph)
-  = forall env proof ptr changeBit skolems. Proxy p -> a -> Frame env proof (UniverseC ptr grapho changeBit skolems) (UniverseC ptr grapho (Succ changeBit) skolems) Unit
+  = forall env proof m ptr changeBit skolems. Monad m => Proxy p -> a -> FrameT env proof m (UniverseC ptr grapho changeBit skolems) (UniverseC ptr grapho (Succ changeBit) skolems) Unit
 
 type ChangesType (a :: Type) (g :: Graph)
-  = forall env proof ptr changeBit skolems. a -> Frame env proof (UniverseC ptr g changeBit skolems) (UniverseC ptr g (Succ changeBit) skolems) Unit
+  = forall env proof m ptr changeBit skolems. Monad m => a -> FrameT env proof m (UniverseC ptr g changeBit skolems) (UniverseC ptr g (Succ changeBit) skolems) Unit
 
 class Changes (a :: Type) (g :: Graph) where
-  changes :: forall env proof ptr changeBit skolems. a -> Frame env proof (UniverseC ptr g changeBit skolems) (UniverseC ptr g (Succ changeBit) skolems) Unit
+  changes :: forall env proof m ptr changeBit skolems. Monad m => a -> FrameT env proof m (UniverseC ptr g changeBit skolems) (UniverseC ptr g (Succ changeBit) skolems) Unit
 
 data ChangeInstruction a b
   = ChangeInstruction a b
 
 instance changesUnit :: Changes Unit g where
-  changes _ = Frame (pure unit)
+  changes _ = FrameT (pure unit)
 else instance changesPx :: Change p a graph => Changes (ChangeInstruction (Proxy p) a) graph where
   changes (ChangeInstruction p a) = (change' :: ChangeType p a graph) p a
 else instance changesTp :: (Changes x graph, Changes y graph) => Changes (Tuple x y) graph where
-  changes (x /\ y) = Frame (x' *> y')
+  changes (x /\ y) = FrameT (x' *> y')
     where
-    Frame x' = (changes :: ChangesType x graph) x
+    FrameT x' = (changes :: ChangesType x graph) x
 
-    Frame y' = (changes :: ChangesType y graph) y
+    FrameT y' = (changes :: ChangesType y graph) y
 else instance changesSingle :: (TerminalIdentityEdge graph edge, Change edge a graph) => Changes a graph where
   changes a = change a
 
 class Change (p :: EdgeProfile) (a :: Type) (grapho :: Graph) where
-  change' :: forall env proof ptr changeBit skolems. Proxy p -> a -> Frame env proof (UniverseC ptr grapho changeBit skolems) (UniverseC ptr grapho (Succ changeBit) skolems) Unit
+  change' :: forall env proof m ptr changeBit skolems. Monad m => Proxy p -> a -> FrameT env proof m (UniverseC ptr grapho changeBit skolems) (UniverseC ptr grapho (Succ changeBit) skolems) Unit
 
 class ModifyRes (tag :: Type) (p :: Ptr) (i :: Node) (mod :: NodeList) (plist :: EdgeProfile) | tag p i -> mod plist
 
@@ -541,13 +543,14 @@ instance modify ::
   Modify tag p ig nextP
 
 changeAudioUnit ::
-  forall g env proof currentIdx (igraph :: Graph) changeBit skolems (p :: BinL) (nextP :: EdgeProfile) univ.
+  forall g env proof m currentIdx (igraph :: Graph) changeBit skolems (p :: BinL) (nextP :: EdgeProfile) univ.
+  Monad m =>
   ChangeInstructions g =>
   BinToInt p =>
   Modify g p igraph nextP =>
-  Proxy (Proxy p /\ Proxy nextP /\ Proxy igraph) -> g -> Frame env proof univ (UniverseC currentIdx igraph changeBit skolems) Unit
+  Proxy (Proxy p /\ Proxy nextP /\ Proxy igraph) -> g -> FrameT env proof m univ (UniverseC currentIdx igraph changeBit skolems) Unit
 changeAudioUnit _ g =
-  Frame
+  FrameT
     $ do
         let
           ptr = toInt' (Proxy :: _ p)
@@ -567,11 +570,11 @@ changeAudioUnit _ g =
 
 instance changeNoEdge ::
   Change NoEdge g igraph where
-  change' _ _ = Frame $ (pure unit)
+  change' _ _ = FrameT $ (pure unit)
 
 instance changeSkolem ::
   Change (SingleEdge p) (Proxy skolem) igraph where
-  change' _ _ = Frame $ (pure unit)
+  change' _ _ = FrameT $ (pure unit)
 
 instance changeIdentity :: Change (SingleEdge p) x igraph => Change (SingleEdge p) (Identity x) igraph where
   change' p (Identity x) = change' p x
@@ -584,11 +587,11 @@ instance changeMany2 ::
   , Change (ManyEdges a b) y igraph
   ) =>
   Change (ManyEdges p (PtrListCons a b)) (x /\ y) igraph where
-  change' _ (x /\ y) = Frame (_1 *> _2)
+  change' _ (x /\ y) = FrameT (_1 *> _2)
     where
-    Frame _1 = (change' :: ChangeType (SingleEdge p) x igraph) Proxy x
+    FrameT _1 = (change' :: ChangeType (SingleEdge p) x igraph) Proxy x
 
-    Frame _2 = (change' :: ChangeType (ManyEdges a b) y igraph) Proxy y
+    FrameT _2 = (change' :: ChangeType (ManyEdges a b) y igraph) Proxy y
 
 instance changeMany1 ::
   Change (SingleEdge p) a igraph =>
@@ -610,11 +613,11 @@ instance changeDup ::
   , Change (SingleEdge continuation) a igraph
   ) =>
   Change (SingleEdge p) (Dup a (Proxy skolem -> b)) igraph where
-  change' _ (Dup a f) = Frame (_1 *> _2)
+  change' _ (Dup a f) = FrameT (_1 *> _2)
     where
-    Frame _1 = (change' :: ChangeType (SingleEdge p) b igraph) Proxy (f Proxy)
+    FrameT _1 = (change' :: ChangeType (SingleEdge p) b igraph) Proxy (f Proxy)
 
-    Frame _2 = (change' :: ChangeType (SingleEdge continuation) a igraph) Proxy a
+    FrameT _2 = (change' :: ChangeType (SingleEdge continuation) a igraph) Proxy a
 
 ----------------------------------------
 -----------------------------------

@@ -5,7 +5,7 @@ import Prelude
 import Control.Monad.State (modify_)
 import Data.Map as M
 import Data.Typelevel.Bool (False)
-import WAGS.Control.Types (Frame(..))
+import WAGS.Control.Types (FrameT(..))
 import WAGS.Rendered (Instruction(..))
 import WAGS.Universe.AudioUnit as AU
 import WAGS.Universe.AudioUnit (class GetPointer, AudioUnitRef(..))
@@ -114,7 +114,7 @@ instance removePtrFromNListCons ::
   RemovePtrFromNodeList ptr (NodeListCons head tail) o
 
 class Destroy (ptr :: Ptr) (i :: Universe) (o :: Universe) | ptr i -> o where
-  destroy :: forall env proof. AudioUnitRef ptr -> Frame env proof i o Unit
+  destroy :: forall env proof m. Monad m => AudioUnitRef ptr -> FrameT env proof m i o Unit
 
 instance destroyer ::
   ( BinToInt ptr
@@ -125,7 +125,7 @@ instance destroyer ::
   ) =>
   Destroy ptr (UniverseC x graphi changeBit skolems) (UniverseC x grapho changeBit skolems) where
   destroy (AudioUnitRef ptrI) =
-    Frame
+    FrameT
       $ do
           modify_
             ( \i ->
