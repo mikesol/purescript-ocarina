@@ -38,7 +38,7 @@ instance functorThunkable :: Functor Thunkable where
 
 instance applyThunkable :: Apply Thunkable where
   apply (Here f) (Here a) = Here (f a)
-  apply (Here f) (Wait fa) = Wait ((map <<< map) f fa)
+  apply (Here f) (Wait fa) = Wait (const $ apply (pure f) (fa unit))
   apply (Wait ff) (Here a) = Wait (const $ apply (ff unit) (pure a))
   apply (Wait ff) (Wait fa) = Wait (const $ apply (ff unit) (Wait fa))
 
