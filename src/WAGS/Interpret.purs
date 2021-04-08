@@ -10,6 +10,18 @@
 module WAGS.Interpret where
 
 import Prelude
+
+{-
+  touchAudio
+    toFFI -- we can get rid of this
+    audioTime -- this we will definitely need
+    instructionSet -- this is what we're providing
+    ctx -- this we will definitely need
+    audioInfo -- this we will definitely need
+    uts -- this we will definitely need
+so really, we want audioInterpreter to be:
+interpretAudio :: Number -> AudioContext -> AudioInfo -> Foreign -> Instructions -> Foreign
+-}
 {-
 import Control.Bind (bindFlipped)
 import Control.Promise (Promise)
