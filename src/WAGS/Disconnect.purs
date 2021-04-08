@@ -5,7 +5,7 @@ import Control.Monad.State (modify_)
 import Data.Map as M
 import Data.Set as S
 import Data.Typelevel.Bool (class Or, False, True)
-import WAGS.Control.Types (Frame(..))
+import WAGS.Control.Types (FrameT(..))
 import WAGS.Rendered (Instruction(..))
 import WAGS.Universe.AudioUnit as AU
 import WAGS.Universe.AudioUnit (AudioUnitRef(..))
@@ -61,7 +61,7 @@ instance removePointerFromNodesCons ::
   RemovePointerFromNodes a b (NodeListCons head tail) (NodeListCons headRes tailRes) fin
 
 class Disconnect (from :: Ptr) (to :: Ptr) (i :: Universe) (o :: Universe) | from to i -> o where
-  disconnect :: forall env proof. AudioUnitRef from -> AudioUnitRef to -> Frame env proof i o Unit
+  disconnect :: forall env proof m. Monad m => AudioUnitRef from -> AudioUnitRef to -> FrameT env proof m i o Unit
 
 instance disconnector ::
   ( BinToInt from
@@ -72,7 +72,7 @@ instance disconnector ::
   ) =>
   Disconnect from to (UniverseC ptr graphi changeBit skolems) (UniverseC ptr grapho changeBit skolems) where
   disconnect (AudioUnitRef fromI) (AudioUnitRef toI) =
-    Frame
+    FrameT
       $ do
           modify_
             ( \i ->

@@ -10,7 +10,7 @@ import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.Tuple (Tuple(..), fst)
 import Data.Tuple.Nested (type (/\), (/\))
 import Type.Proxy (Proxy(..))
-import WAGS.Control.Types (Frame(..), AudioState)
+import WAGS.Control.Types (FrameT(..), AudioState)
 import WAGS.Graph.Constructors (Dup(..), Gain, Speaker)
 import WAGS.Graph.Constructors as CTOR
 import WAGS.Graph.Decorators (Focus(..))
@@ -380,13 +380,14 @@ instance creationInstructionsWaveShaper :: CreationInstructions (CTOR.WaveShaper
   creationInstructions _ _ = [] /\ ASpeaker
 
 class Create (a :: Type) (i :: Universe) (o :: Universe) (x :: Type) | a i -> o x where
-  create :: forall env proof. a -> Frame env proof i o x
+  create :: forall env proof m. Monad m => a -> FrameT env proof m i o x
 
 creationStep ::
-  forall env proof g.
+  forall env proof m g.
+  Monad m =>
   CreationInstructions g =>
   g ->
-  AudioState proof env Int
+  AudioState proof env m Int
 creationStep g = do
   currentIdx <- gets _.currentIdx
   let
@@ -405,21 +406,22 @@ type ProxyCC skolem ptr innerTerm i o
   = Proxy (skolem /\ ptr /\ innerTerm /\ i /\ o)
 
 createAndConnect ::
-  forall env proof g (ptr :: BinL) skolem c (i :: Universe) (o :: Universe) innerTerm eprof.
+  forall env proof g (ptr :: BinL) skolem c (i :: Universe) (o :: Universe) innerTerm eprof m.
+  Monad m =>
   GetSkolemizedFunctionFromAU g skolem c =>
   AsEdgeProfile innerTerm eprof =>
   CreationInstructions g =>
   Create c i o innerTerm =>
   Proxy (skolem /\ (Proxy ptr) /\ innerTerm /\ (Proxy i) /\ (Proxy o)) ->
   g ->
-  Frame env proof i o Int
+  FrameT env proof m i o Int
 createAndConnect _ g =
-  Frame
+  FrameT
     $ do
         idx <- cs
         let
-          (Frame (mc)) =
-            (create :: c -> Frame env proof i o innerTerm)
+          (FrameT (mc)) =
+            (create :: forall mo. Monad mo => c -> FrameT env proof mo i o innerTerm)
               ( ((getSkolemizedFunctionFromAU :: g -> (Proxy skolem -> c)) g)
                   Proxy
               )
@@ -443,16 +445,16 @@ createAndConnect _ g =
 -- end of the line in tuples
 instance createUnit ::
   Create Unit u u Unit where
-  create = Frame <<< pure
+  create = FrameT <<< pure
 
 instance createTuple ::
   (Create x u0 u1 x', Create y u1 u2 y') =>
   Create (x /\ y) u0 u2 (x' /\ y') where
-  create (x /\ y) = (Frame) $ Tuple <$> x' <*> y'
+  create (x /\ y) = (FrameT) $ Tuple <$> x' <*> y'
     where
-    Frame (x') = (create :: forall env proof. x -> Frame env proof u0 u1 x') x
+    FrameT (x') = (create :: forall env proof m. Monad m => x -> FrameT env proof m u0 u1 x') x
 
-    Frame (y') = (create :: forall env proof. y -> Frame env proof u1 u2 y') y
+    FrameT (y') = (create :: forall env proof m. Monad m => y -> FrameT env proof m u1 u2 y') y
 
 instance createIdentity :: Create x i o r => Create (Identity x) i o r where
   create (Identity x) = create x
@@ -469,7 +471,7 @@ instance createProxy ::
     (UniverseC next graph changeBit skolems)
     (UniverseC next graph changeBit skolems)
     (AudioUnitRef ptr) where
-  create _ = Frame $ (pure $ AudioUnitRef $ toInt' (Proxy :: Proxy ptr))
+  create _ = FrameT $ (pure $ AudioUnitRef $ toInt' (Proxy :: Proxy ptr))
 
 instance createDup ::
   ( SkolemNotYetPresent skolem skolems
@@ -490,24 +492,24 @@ instance createDup ::
     (UniverseC ptr graphi changeBit skolems)
     (UniverseC outptr grapho changeBit skolems)
     (AudioUnitRef midptr) where
-  create (Dup a f) = Frame $ x *> y
+  create (Dup a f) = FrameT $ x *> y
     where
-    Frame x =
+    FrameT x =
       ( create ::
-          forall env proof.
+          forall env proof m. Monad m =>
           a ->
-          Frame env proof
+          FrameT env proof m
             (UniverseC ptr graphi changeBit skolems)
             (UniverseC midptr graphm changeBit skolems)
             ignore
       )
         a
 
-    Frame y =
+    FrameT y =
       ( create ::
-          forall env proof.
+          forall env proof m. Monad m =>
           b ->
-          Frame env proof
+          FrameT env proof m
             (UniverseC midptr graphm changeBit (SkolemListCons (SkolemPairC skolem ptr) skolems))
             (UniverseC outptr grapho changeBit (SkolemListCons (SkolemPairC skolem ptr) skolems))
             (AudioUnitRef midptr)
@@ -529,7 +531,7 @@ instance createSinOsc ::
         skolems
     )
     (AudioUnitRef ptr) where
-  create = Frame <<< (map) AudioUnitRef <<< creationStep
+  create = FrameT <<< (map) AudioUnitRef <<< creationStep
 
 instance createHighpass ::
   ( InitialVal a
@@ -559,7 +561,7 @@ instance createHighpass ::
     )
     (AudioUnitRef ptr) where
   create =
-    Frame <<< (map) AudioUnitRef <<< (\(Frame x) -> x)
+    FrameT <<< (map) AudioUnitRef <<< (\(FrameT x) -> x)
       <<< createAndConnect (Proxy :: ProxyCC skolem (Proxy ptr) term (Proxy (UniverseC next graphi changeBit skolemsInternal)) (Proxy (UniverseC outptr grapho changeBit skolemsInternal)))
 -}
 instance createAllpass::
@@ -590,7 +592,7 @@ instance createAllpass::
     )
     (AudioUnitRef ptr) where
   create =
-    Frame <<< (map) AudioUnitRef <<< (\(Frame x) -> x)
+    FrameT <<< (map) AudioUnitRef <<< (\(FrameT x) -> x)
       <<< createAndConnect (Proxy :: ProxyCC skolem (Proxy ptr) term (Proxy (UniverseC next graphi changeBit skolemsInternal)) (Proxy (UniverseC outptr grapho changeBit skolemsInternal)))
 instance createBandpass::
   (InitialVal argA, InitialVal argB,
@@ -620,7 +622,7 @@ instance createBandpass::
     )
     (AudioUnitRef ptr) where
   create =
-    Frame <<< (map) AudioUnitRef <<< (\(Frame x) -> x)
+    FrameT <<< (map) AudioUnitRef <<< (\(FrameT x) -> x)
       <<< createAndConnect (Proxy :: ProxyCC skolem (Proxy ptr) term (Proxy (UniverseC next graphi changeBit skolemsInternal)) (Proxy (UniverseC outptr grapho changeBit skolemsInternal)))
 instance createConstant::
   ( InitialVal argA, BinToInt ptr
@@ -636,7 +638,7 @@ instance createConstant::
         skolems
     )
     (AudioUnitRef ptr) where
-  create = Frame <<< (map) AudioUnitRef <<< creationStep
+  create = FrameT <<< (map) AudioUnitRef <<< creationStep
   
 instance createConvolver::
   (
@@ -666,7 +668,7 @@ instance createConvolver::
     )
     (AudioUnitRef ptr) where
   create =
-    Frame <<< (map) AudioUnitRef <<< (\(Frame x) -> x)
+    FrameT <<< (map) AudioUnitRef <<< (\(FrameT x) -> x)
       <<< createAndConnect (Proxy :: ProxyCC skolem (Proxy ptr) term (Proxy (UniverseC next graphi changeBit skolemsInternal)) (Proxy (UniverseC outptr grapho changeBit skolemsInternal)))
 instance createDelay::
   (InitialVal argA,
@@ -696,7 +698,7 @@ instance createDelay::
     )
     (AudioUnitRef ptr) where
   create =
-    Frame <<< (map) AudioUnitRef <<< (\(Frame x) -> x)
+    FrameT <<< (map) AudioUnitRef <<< (\(FrameT x) -> x)
       <<< createAndConnect (Proxy :: ProxyCC skolem (Proxy ptr) term (Proxy (UniverseC next graphi changeBit skolemsInternal)) (Proxy (UniverseC outptr grapho changeBit skolemsInternal)))
 instance createDynamicsCompressor::
   (InitialVal argA, InitialVal argB, InitialVal argC, InitialVal argD, InitialVal argE,
@@ -726,7 +728,7 @@ instance createDynamicsCompressor::
     )
     (AudioUnitRef ptr) where
   create =
-    Frame <<< (map) AudioUnitRef <<< (\(Frame x) -> x)
+    FrameT <<< (map) AudioUnitRef <<< (\(FrameT x) -> x)
       <<< createAndConnect (Proxy :: ProxyCC skolem (Proxy ptr) term (Proxy (UniverseC next graphi changeBit skolemsInternal)) (Proxy (UniverseC outptr grapho changeBit skolemsInternal)))
 
 instance createHighpass::
@@ -757,7 +759,7 @@ instance createHighpass::
     )
     (AudioUnitRef ptr) where
   create =
-    Frame <<< (map) AudioUnitRef <<< (\(Frame x) -> x)
+    FrameT <<< (map) AudioUnitRef <<< (\(FrameT x) -> x)
       <<< createAndConnect (Proxy :: ProxyCC skolem (Proxy ptr) term (Proxy (UniverseC next graphi changeBit skolemsInternal)) (Proxy (UniverseC outptr grapho changeBit skolemsInternal)))
 instance createHighshelf::
   (InitialVal argA, InitialVal argB,
@@ -787,7 +789,7 @@ instance createHighshelf::
     )
     (AudioUnitRef ptr) where
   create =
-    Frame <<< (map) AudioUnitRef <<< (\(Frame x) -> x)
+    FrameT <<< (map) AudioUnitRef <<< (\(FrameT x) -> x)
       <<< createAndConnect (Proxy :: ProxyCC skolem (Proxy ptr) term (Proxy (UniverseC next graphi changeBit skolemsInternal)) (Proxy (UniverseC outptr grapho changeBit skolemsInternal)))
 instance createLoopBuf::
   ( InitialVal argB, BinToInt ptr
@@ -804,7 +806,7 @@ instance createLoopBuf::
         skolems
     )
     (AudioUnitRef ptr) where
-  create = Frame <<< (map) AudioUnitRef <<< creationStep
+  create = FrameT <<< (map) AudioUnitRef <<< creationStep
   
 instance createLowpass::
   (InitialVal argA, InitialVal argB,
@@ -834,7 +836,7 @@ instance createLowpass::
     )
     (AudioUnitRef ptr) where
   create =
-    Frame <<< (map) AudioUnitRef <<< (\(Frame x) -> x)
+    FrameT <<< (map) AudioUnitRef <<< (\(FrameT x) -> x)
       <<< createAndConnect (Proxy :: ProxyCC skolem (Proxy ptr) term (Proxy (UniverseC next graphi changeBit skolemsInternal)) (Proxy (UniverseC outptr grapho changeBit skolemsInternal)))
 instance createLowshelf::
   (InitialVal argA, InitialVal argB,
@@ -864,7 +866,7 @@ instance createLowshelf::
     )
     (AudioUnitRef ptr) where
   create =
-    Frame <<< (map) AudioUnitRef <<< (\(Frame x) -> x)
+    FrameT <<< (map) AudioUnitRef <<< (\(FrameT x) -> x)
       <<< createAndConnect (Proxy :: ProxyCC skolem (Proxy ptr) term (Proxy (UniverseC next graphi changeBit skolemsInternal)) (Proxy (UniverseC outptr grapho changeBit skolemsInternal)))
 instance createMicrophone::
   (  BinToInt ptr
@@ -880,7 +882,7 @@ instance createMicrophone::
         skolems
     )
     (AudioUnitRef ptr) where
-  create = Frame <<< (map) AudioUnitRef <<< creationStep
+  create = FrameT <<< (map) AudioUnitRef <<< creationStep
   
 instance createNotch::
   (InitialVal argA, InitialVal argB,
@@ -910,7 +912,7 @@ instance createNotch::
     )
     (AudioUnitRef ptr) where
   create =
-    Frame <<< (map) AudioUnitRef <<< (\(Frame x) -> x)
+    FrameT <<< (map) AudioUnitRef <<< (\(FrameT x) -> x)
       <<< createAndConnect (Proxy :: ProxyCC skolem (Proxy ptr) term (Proxy (UniverseC next graphi changeBit skolemsInternal)) (Proxy (UniverseC outptr grapho changeBit skolemsInternal)))
 instance createPeaking::
   (InitialVal argA, InitialVal argB, InitialVal argC,
@@ -940,7 +942,7 @@ instance createPeaking::
     )
     (AudioUnitRef ptr) where
   create =
-    Frame <<< (map) AudioUnitRef <<< (\(Frame x) -> x)
+    FrameT <<< (map) AudioUnitRef <<< (\(FrameT x) -> x)
       <<< createAndConnect (Proxy :: ProxyCC skolem (Proxy ptr) term (Proxy (UniverseC next graphi changeBit skolemsInternal)) (Proxy (UniverseC outptr grapho changeBit skolemsInternal)))
 instance createPeriodicOsc::
   ( InitialVal argB, BinToInt ptr
@@ -957,7 +959,7 @@ instance createPeriodicOsc::
         skolems
     )
     (AudioUnitRef ptr) where
-  create = Frame <<< (map) AudioUnitRef <<< creationStep
+  create = FrameT <<< (map) AudioUnitRef <<< creationStep
   
 instance createPlayBuf::
   ( InitialVal argB, BinToInt ptr
@@ -974,7 +976,7 @@ instance createPlayBuf::
         skolems
     )
     (AudioUnitRef ptr) where
-  create = Frame <<< (map) AudioUnitRef <<< creationStep
+  create = FrameT <<< (map) AudioUnitRef <<< creationStep
   
 instance createRecorder::
   (
@@ -1004,7 +1006,7 @@ instance createRecorder::
     )
     (AudioUnitRef ptr) where
   create =
-    Frame <<< (map) AudioUnitRef <<< (\(Frame x) -> x)
+    FrameT <<< (map) AudioUnitRef <<< (\(FrameT x) -> x)
       <<< createAndConnect (Proxy :: ProxyCC skolem (Proxy ptr) term (Proxy (UniverseC next graphi changeBit skolemsInternal)) (Proxy (UniverseC outptr grapho changeBit skolemsInternal)))
 instance createSawtoothOsc::
   ( InitialVal argA, BinToInt ptr
@@ -1020,7 +1022,7 @@ instance createSawtoothOsc::
         skolems
     )
     (AudioUnitRef ptr) where
-  create = Frame <<< (map) AudioUnitRef <<< creationStep
+  create = FrameT <<< (map) AudioUnitRef <<< creationStep
   
 instance createSinOsc::
   ( InitialVal argA, BinToInt ptr
@@ -1036,7 +1038,7 @@ instance createSinOsc::
         skolems
     )
     (AudioUnitRef ptr) where
-  create = Frame <<< (map) AudioUnitRef <<< creationStep
+  create = FrameT <<< (map) AudioUnitRef <<< creationStep
   
 
 instance createSquareOsc::
@@ -1053,7 +1055,7 @@ instance createSquareOsc::
         skolems
     )
     (AudioUnitRef ptr) where
-  create = Frame <<< (map) AudioUnitRef <<< creationStep
+  create = FrameT <<< (map) AudioUnitRef <<< creationStep
   
 instance createStereoPanner::
   (InitialVal argA,
@@ -1083,7 +1085,7 @@ instance createStereoPanner::
     )
     (AudioUnitRef ptr) where
   create =
-    Frame <<< (map) AudioUnitRef <<< (\(Frame x) -> x)
+    FrameT <<< (map) AudioUnitRef <<< (\(FrameT x) -> x)
       <<< createAndConnect (Proxy :: ProxyCC skolem (Proxy ptr) term (Proxy (UniverseC next graphi changeBit skolemsInternal)) (Proxy (UniverseC outptr grapho changeBit skolemsInternal)))
 instance createTriangleOsc::
   ( InitialVal argA, BinToInt ptr
@@ -1099,7 +1101,7 @@ instance createTriangleOsc::
         skolems
     )
     (AudioUnitRef ptr) where
-  create = Frame <<< (map) AudioUnitRef <<< creationStep
+  create = FrameT <<< (map) AudioUnitRef <<< creationStep
   
 instance createWaveShaper::
   (
@@ -1129,7 +1131,7 @@ instance createWaveShaper::
     )
     (AudioUnitRef ptr) where
   create =
-    Frame <<< (map) AudioUnitRef <<< (\(Frame x) -> x)
+    FrameT <<< (map) AudioUnitRef <<< (\(FrameT x) -> x)
       <<< createAndConnect (Proxy :: ProxyCC skolem (Proxy ptr) term (Proxy (UniverseC next graphi changeBit skolemsInternal)) (Proxy (UniverseC outptr grapho changeBit skolemsInternal)))
 
 -----------------------
@@ -1161,7 +1163,7 @@ instance createGain ::
     )
     (AudioUnitRef ptr) where
   create =
-    Frame <<< (map) AudioUnitRef <<< (\(Frame x) -> x)
+    FrameT <<< (map) AudioUnitRef <<< (\(FrameT x) -> x)
       <<< (createAndConnect (Proxy :: ProxyCC skolem (Proxy ptr) term (Proxy (UniverseC next graphi changeBit skolemsInternal)) (Proxy (UniverseC outptr grapho changeBit skolemsInternal))))
 
 instance createSpeaker ::
@@ -1187,7 +1189,7 @@ instance createSpeaker ::
     )
     (AudioUnitRef ptr) where
   create =
-    Frame <<< (map) AudioUnitRef <<< (\(Frame x) -> x)
+    FrameT <<< (map) AudioUnitRef <<< (\(FrameT x) -> x)
       <<< (createAndConnect (Proxy :: ProxyCC DiscardableSkolem (Proxy ptr) term (Proxy (UniverseC next graphi changeBit skolems)) (Proxy (UniverseC outptr grapho changeBit skolems))))
 
 ----------

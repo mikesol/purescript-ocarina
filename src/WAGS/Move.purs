@@ -4,7 +4,7 @@ import Prelude
 import Data.Typelevel.Bool (False, True)
 import Type.Data.Peano (Nat, Succ, Z)
 import Type.Proxy (Proxy)
-import WAGS.Control.Types (Frame(..))
+import WAGS.Control.Types (FrameT(..))
 import WAGS.Universe.AudioUnit (AudioUnitRef, TGain, TSpeaker)
 import WAGS.Universe.Bin (class BinEq, Ptr, PtrList, PtrListCons, PtrListNil)
 import WAGS.Universe.EdgeProfile (EdgeProfile, ManyEdges)
@@ -110,7 +110,7 @@ instance movePointersNil :: MovePointers at a b NodeListNil NodeListNil
 instance movePointersCons :: (MovePointer at a b head headRes, MovePointers at a b tail tailRes) => MovePointers at a b (NodeListCons head tail) (NodeListCons headRes tailRes)
 
 class Move (at :: Ptr) (from :: Type) (to :: Nat) (i :: Universe) (o :: Universe) | at from to i -> o where
-  move :: forall env proof. AudioUnitRef at -> from -> Proxy to -> Frame env proof i o Unit
+  move :: forall env proof m. Monad m => AudioUnitRef at -> from -> Proxy to -> FrameT env proof m i o Unit
 
 instance moveAref ::
   ( GraphToNodeList graphi nodeListI
@@ -118,4 +118,4 @@ instance moveAref ::
   , GraphToNodeList grapho nodeListO
   ) =>
   Move at from to (UniverseC ptr graphi changeBit skolems) (UniverseC ptr grapho changeBit skolems) where
-  move _ _ _ = Frame (pure unit)
+  move _ _ _ = FrameT (pure unit)

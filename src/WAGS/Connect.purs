@@ -5,7 +5,7 @@ import Control.Monad.State (modify_)
 import Data.Map as M
 import Data.Set as S
 import Data.Typelevel.Bool (class Or, False, True)
-import WAGS.Control.Types (Frame(..))
+import WAGS.Control.Types (FrameT(..))
 import WAGS.Rendered (Instruction(..))
 import WAGS.Universe.AudioUnit as AU
 import WAGS.Universe.AudioUnit (AudioUnitRef(..))
@@ -44,7 +44,7 @@ instance addPointerToNodesNil :: AddPointerToNodes a b NodeListNil NodeListNil F
 instance addPointerToNodesCons :: (AddPointerToNode a b head headRes tf0, AddPointerToNodes a b tail tailRes tf1, Or tf0 tf1 fin) => AddPointerToNodes a b (NodeListCons head tail) (NodeListCons headRes tailRes) fin
 
 class Connect (from :: Ptr) (to :: Ptr) (i :: Universe) (o :: Universe) | from to i -> o where
-  connect :: forall env proof. AudioUnitRef from -> AudioUnitRef to -> Frame env proof i o Unit
+  connect :: forall env proof m. Monad m => AudioUnitRef from -> AudioUnitRef to -> FrameT env proof m i o Unit
 
 instance connectAll ::
   ( BinToInt from
@@ -55,7 +55,7 @@ instance connectAll ::
   ) =>
   Connect from to (UniverseC ptr graphi changeBit skolems) (UniverseC ptr grapho changeBit skolems) where
   connect (AudioUnitRef fromI) (AudioUnitRef toI) =
-    Frame
+    FrameT
       $ do
           modify_
             ( \i ->

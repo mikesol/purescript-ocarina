@@ -5,7 +5,7 @@ import Data.Identity (Identity)
 import Data.Tuple.Nested (type (/\))
 import Type.Proxy (Proxy(..))
 import WAGS.Graph.Constructors as CTOR
-import WAGS.Control.Types (Frame(..))
+import WAGS.Control.Types (FrameT(..))
 import WAGS.Create (class Create)
 --import WAGS.Graph.Constructors (Dup, Gain, Highpass, SinOsc, Speaker)
 import WAGS.Universe.AudioUnit as AU
@@ -20,22 +20,23 @@ import WAGS.Universe.Universe (Universe, UniverseC)
 import WAGS.Validation (class EdgeProfileChooseGreater, class PtrListAppend, class TerminalIdentityEdge)
 
 cursor ::
-  forall edge a q r s t env proof p.
+  forall edge a q r s t env proof m p.
+  Monad m =>
   TerminalIdentityEdge r edge =>
   Cursor edge a (UniverseC q r s t) p =>
   BinToInt p =>
-  a -> Frame env proof (UniverseC q r s t) (UniverseC q r s t) (AudioUnitRef p)
+  a -> FrameT env proof m (UniverseC q r s t) (UniverseC q r s t) (AudioUnitRef p)
 cursor = cursor' (Proxy :: _ edge)
 
 class Cursor (p :: EdgeProfile) (a :: Type) (o :: Universe) (ptr :: Ptr) | p a o -> ptr where
-  cursor' :: forall env proof. Proxy p -> a -> Frame env proof o o (AudioUnitRef ptr)
+  cursor' :: forall env proof m. Monad m => Proxy p -> a -> FrameT env proof m o o (AudioUnitRef ptr)
 
 instance cursorRecurse ::
   ( BinToInt head
   , CursorI p a o (PtrListCons head PtrListNil)
   ) =>
   Cursor p a o head where
-  cursor' _ _ = Frame $ (pure $ AudioUnitRef (toInt' (Proxy :: Proxy head)))
+  cursor' _ _ = FrameT $ (pure $ AudioUnitRef (toInt' (Proxy :: Proxy head)))
 
 class CursorRes (tag :: Type) (p :: Ptr) (i :: Node) (plist :: EdgeProfile) | tag p i -> plist
 

@@ -1,5 +1,6 @@
 module WAGS.Control.Functions
-  ( start
+  ( startT
+  , start
   , makeScene
   , makeScene'
   , loop
@@ -12,26 +13,31 @@ module WAGS.Control.Functions
   ) where
 
 import Prelude
+
 import Control.Applicative.Indexed (ipure)
 import Control.Bind.Indexed (ibind)
 import Control.Monad.Indexed.Qualified as Ix
 import Control.Monad.State (gets)
 import Data.Either (Either(..))
 import Data.Functor.Indexed (imap)
+import Data.Identity (Identity)
 import Data.Map as M
 import Data.Tuple.Nested ((/\))
 import Type.Data.Peano (Succ)
 import Type.Proxy (Proxy(..))
 import Unsafe.Coerce (unsafeCoerce)
 import WAGS.Change (changes)
-import WAGS.Control.MemoizedState (makeMemoizedState, runMemoizedState')
-import WAGS.Control.Types (AudioState', Frame(..), InitialFrame, Scene, Scene', oneFrame)
+import WAGS.Control.MemoizedState (makeMemoizedStateT, runMemoizedStateT')
+import WAGS.Control.Types (AudioState', FrameT(..), InitialFrameT, SceneT(..), SceneT', oneFrameT)
 import WAGS.Rendered (sortInstructions)
 import WAGS.Universe.Universe (UniverseC)
 import WAGS.Validation (class GraphIsRenderable, class TerminalIdentityEdge)
 
-start :: forall env. InitialFrame env Unit
-start = Frame (pure unit)
+startT :: forall env m. Monad m => InitialFrameT env m Unit
+startT = FrameT (pure unit)
+
+start :: forall env. InitialFrameT env Identity Unit
+start = FrameT (pure unit)
 
 initialAudioState :: forall env. env -> AudioState' env
 initialAudioState e =
@@ -42,44 +48,48 @@ initialAudioState e =
   , internalEdges: M.empty
   }
 
-asScene :: forall env proof. (env -> Scene' env proof) -> Scene env proof
-asScene = unsafeCoerce
-
 makeScene ::
-  forall env proofA i currentIdx graph changeBit skolems a.
+  forall env proofA m i currentIdx graph changeBit skolems a.
+  Monad m =>
   GraphIsRenderable graph =>
-  Frame env proofA i (UniverseC currentIdx graph changeBit skolems) (Either (Scene env proofA) a) ->
-  (forall proofB. Frame env proofB i (UniverseC currentIdx graph changeBit skolems) a -> Scene env proofB) ->
-  Scene env proofA
-makeScene (Frame m) trans = asScene go
+  FrameT env proofA m i (UniverseC currentIdx graph changeBit skolems) (Either (SceneT env proofA m) a) ->
+  (forall proofB. FrameT env proofB m i (UniverseC currentIdx graph changeBit skolems) a -> SceneT env proofB m) ->
+  SceneT env proofA m
+makeScene (FrameT m) trans = SceneT go
   where
+  go :: forall proofB. env -> m (SceneT' env proofB m)
   go ev =
     let
-      outcome /\ newState = runMemoizedState' m (unsafeCoerce unit) (_ { env = ev }) (initialAudioState ev)
+      res = runMemoizedStateT' m (unsafeCoerce unit) (_ { env = ev }) (initialAudioState ev)
     in
-      case outcome of
-        Left s -> oneFrame s ev
-        Right r ->
-          { nodes: newState.internalNodes
-          , edges: newState.internalEdges
-          , instructions: (sortInstructions newState.instructions)
-          , next:
-              trans
-                $ Frame
-                    ( makeMemoizedState (unsafeCoerce unit)
-                        (newState { instructions = [] })
-                        r
+      do
+        outcome /\ newState <- res
+        case outcome of
+          Left s -> oneFrameT s ev
+          Right r ->
+            pure
+              $ { nodes: newState.internalNodes
+                , edges: newState.internalEdges
+                , instructions: (sortInstructions newState.instructions)
+                , next:
+                    ( trans
+                        $ FrameT
+                            ( makeMemoizedStateT (unsafeCoerce unit)
+                                (newState { instructions = [] })
+                                r
+                            )
                     )
-          }
+                }
 
 infixr 6 makeScene as @>
 
 branch ::
-  forall env proofA i currentIdx graph changeBit skolems a.
+  forall env proofA i m currentIdx graph changeBit skolems a.
+  Monad m =>
   GraphIsRenderable graph =>
-  (forall proofB j. Frame env proofB (UniverseC currentIdx graph j skolems) (UniverseC currentIdx graph j skolems) (Either (Frame env proofB i (UniverseC currentIdx graph j skolems) a -> Scene env proofB) (a -> Frame env proofB (UniverseC currentIdx graph j skolems) (UniverseC currentIdx graph (Succ j) skolems) a))) ->
-  Frame env proofA i (UniverseC currentIdx graph changeBit skolems) a ->
-  Scene env proofA
+  (forall proofB j. FrameT env proofB m (UniverseC currentIdx graph j skolems) (UniverseC currentIdx graph j skolems) (Either (FrameT env proofB m i (UniverseC currentIdx graph j skolems) a -> SceneT env proofB m) (a -> FrameT env proofB m (UniverseC currentIdx graph j skolems) (UniverseC currentIdx graph (Succ j) skolems) a))) ->
+  FrameT env proofA m i (UniverseC currentIdx graph changeBit skolems) a ->
+  SceneT env proofA m
 branch mch m =
   makeScene
     ( Ix.do
@@ -94,38 +104,43 @@ branch mch m =
     (branch mch)
 
 loop ::
-  forall env proofA i currentIdx graph changeBit skolems edge a.
+  forall env proofA i m currentIdx graph changeBit skolems edge a.
+  Monad m =>
   TerminalIdentityEdge graph edge =>
   GraphIsRenderable graph =>
-  (forall proofB j. a -> Frame env proofB (UniverseC currentIdx graph j skolems) (UniverseC currentIdx graph (Succ j) skolems) a) ->
-  Frame env proofA i (UniverseC currentIdx graph changeBit skolems) a ->
-  Scene env proofA
+  (forall proofB j. a -> FrameT env proofB m (UniverseC currentIdx graph j skolems) (UniverseC currentIdx graph (Succ j) skolems) a) ->
+  FrameT env proofA m i (UniverseC currentIdx graph changeBit skolems) a ->
+  SceneT env proofA m
 --loop = branch <<< ipure <<< Right
 loop fa ma = makeScene (imap Right $ ibind ma fa) (loop fa)
 
 freeze ::
-  forall env proof i currentIdx graph changeBit skolems x.
+  forall env proof m i currentIdx graph changeBit skolems x.
+  Monad m =>
   GraphIsRenderable graph =>
-  Frame env proof i (UniverseC currentIdx graph changeBit skolems) x ->
-  Scene env proof
+  FrameT env proof m i (UniverseC currentIdx graph changeBit skolems) x ->
+  SceneT env proof m
 freeze s = makeScene (imap Right s) freeze
 
 makeScene' ::
-  forall env proofA i currentIdx graph changeBit skolems a.
+  forall env proofA m i currentIdx graph changeBit skolems a.
+  Monad m =>
   GraphIsRenderable graph =>
-  Frame env proofA i (UniverseC currentIdx graph changeBit skolems) a ->
-  (forall proofB. Frame env proofB i (UniverseC currentIdx graph changeBit skolems) a -> Scene env proofB) ->
-  Scene env proofA
+  FrameT env proofA m i (UniverseC currentIdx graph changeBit skolems) a ->
+  (forall proofB. FrameT env proofB m i (UniverseC currentIdx graph changeBit skolems) a -> SceneT env proofB m) ->
+  SceneT env proofA m
 makeScene' a b = makeScene (imap Right a) b
 
 infixr 6 makeScene' as @|>
 
 env ::
-  forall env proof i.
-  Frame env proof i i env
-env = Frame (gets _.env)
+  forall env proof m i.
+  Monad m =>
+  FrameT env proof m i i env
+env = FrameT (gets _.env)
 
 universe ::
-  forall env proof i o.
-  Frame env proof i o (Proxy o)
-universe = Frame $ pure $ (Proxy :: _ o)
+  forall env proof m i o.
+  Monad m =>
+  FrameT env proof m i o (Proxy o)
+universe = FrameT $ pure $ (Proxy :: _ o)
