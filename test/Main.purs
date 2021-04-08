@@ -19,7 +19,7 @@ import Test.Spec.Assertions (shouldEqual)
 import Test.Spec.Reporter (consoleReporter)
 import Test.Spec.Runner (runSpec)
 import Type.Proxy (Proxy)
-import WAGS (AnAudioUnit(..), AudioParameter, AudioParameterTransition(..), Focus(..), Gain(..), Highpass(..), Instruction(..), SinOsc(..), Speaker(..), branch, change, changeAt, create, cursor, env, freeze, loop, oneFrame', param, start, (@>), (@|>), runThunkableWithCount, wait, isWait, isHere, thunkThunkable)
+import WAGS (AnAudioUnit(..), AudioParameter, AudioParameterTransition(..), Focus(..), Gain(..), Highpass(..), Instruction(..), SinOsc(..), Speaker(..), branch, change, changeAt, create, cursor, env, freeze, loop, oneFrame', param, start, (@>), (@|>), Thunkable(..), runThunkableWithCount, wait, isWait, isHere, thunkThunkable)
 
 testCompare :: Instruction -> Instruction -> Ordering
 testCompare a b = case compare a b of
@@ -73,14 +73,17 @@ main = do
             let x' = runThunkableWithCount x
             (snd x') `shouldEqual` 3
             (fst x') `shouldEqual` 1
+            thunkThunkable x `shouldEqual` Here 3
             let y = wait (+) <*> pure 1 <*> pure 2
             let y' = runThunkableWithCount y
             (snd y') `shouldEqual` 3
             (fst y') `shouldEqual` 1
+            thunkThunkable y `shouldEqual` Here 3
             let z = wait (+) <*> wait 1 <*> pure 2
             let z' = runThunkableWithCount z
             (snd z') `shouldEqual` 3
             (fst z') `shouldEqual` 2
+            thunkThunkable ((thunkThunkable z)) `shouldEqual` Here 3
             let a = wait (+) <*> pure 1 <*> wait 2
             let a' = runThunkableWithCount a
             (snd a') `shouldEqual` 3
