@@ -4,7 +4,8 @@ You can edit this file as you like.
 -}
 { name = "pab-sketches"
 , dependencies =
-  [ "behaviors"
+  [ "aff-promise"
+  , "behaviors"
   , "console"
   , "debug"
   , "effect"
@@ -16,6 +17,7 @@ You can edit this file as you like.
   , "profunctor-lenses"
   , "psci-support"
   , "record"
+  , "sized-vectors"
   , "transformers"
   , "tuples"
   , "typelevel"
