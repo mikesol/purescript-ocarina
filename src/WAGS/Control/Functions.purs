@@ -8,6 +8,7 @@ module WAGS.Control.Functions
   , universe
   , env
   , freeze
+  , lift
   , (@>)
   , (@|>)
   ) where
@@ -18,16 +19,20 @@ import Control.Applicative.Indexed (ipure)
 import Control.Bind.Indexed (ibind)
 import Control.Monad.Indexed.Qualified as Ix
 import Control.Monad.State (gets)
+import Control.Monad.State as MT
 import Data.Either (Either(..))
 import Data.Functor.Indexed (imap)
 import Data.Identity (Identity)
 import Data.Map as M
+import Data.Maybe (Maybe(..))
+import Data.Maybe.First (First(..))
+import Data.Tuple (Tuple(..))
 import Data.Tuple.Nested ((/\))
 import Type.Data.Peano (Succ)
 import Type.Proxy (Proxy(..))
 import Unsafe.Coerce (unsafeCoerce)
 import WAGS.Change (changes)
-import WAGS.Control.MemoizedState (makeMemoizedStateT, runMemoizedStateT')
+import WAGS.Control.MemoizedState (MemoizedStateT(..), makeMemoizedStateT, runMemoizedStateT')
 import WAGS.Control.Types (AudioState', FrameT(..), InitialFrameT, SceneT(..), SceneT', oneFrameT)
 import WAGS.Rendered (sortInstructions)
 import WAGS.Universe.Universe (UniverseC)
@@ -140,7 +145,13 @@ env ::
 env = FrameT (gets _.env)
 
 universe ::
-  forall env proof m i o.
+  forall env proof m i.
   Monad m =>
-  FrameT env proof m i o (Proxy o)
-universe = FrameT $ pure $ (Proxy :: _ o)
+  FrameT env proof m i i (Proxy i)
+universe = FrameT $ pure $ (Proxy :: _ i)
+
+lift ::
+  forall env proof m i a.
+  Monad m =>
+  m a -> FrameT env proof m i i a
+lift = FrameT <<< MemoizedStateT <<< Tuple (First Nothing) <<< MT.lift
