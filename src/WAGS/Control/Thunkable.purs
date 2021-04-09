@@ -3,6 +3,7 @@ module WAGS.Control.Thunkable where
 import Prelude
 
 import Control.Alternative (class Alt, class Alternative, class Plus, alt, empty)
+import Data.Identity (Identity)
 import Data.Traversable (class Foldable, class Traversable, foldMapDefaultR, sequence, traverseDefault)
 import Data.Tuple (Tuple(..))
 
@@ -113,5 +114,11 @@ instance plusThunkable :: Plus Thunkable where
 
 instance alternativeThunkable :: Alternative Thunkable
 
-wait :: forall a. a -> Thunkable a
-wait = Wait <<< pure <<< pure
+class Waitable f where
+  wait :: forall a. a -> f a
+
+instance waitableThunkable :: Waitable Thunkable where
+  wait = Wait <<< pure <<< pure
+
+instance waitableIdentity :: Waitable Identity where
+  wait = pure

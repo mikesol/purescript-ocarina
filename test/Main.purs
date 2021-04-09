@@ -73,17 +73,17 @@ main = do
             let x' = runThunkableWithCount x
             (snd x') `shouldEqual` 3
             (fst x') `shouldEqual` 1
-            thunkThunkable x `shouldEqual` Here 3
+            isHere (thunkThunkable x) `shouldEqual` true
             let y = wait (+) <*> pure 1 <*> pure 2
             let y' = runThunkableWithCount y
             (snd y') `shouldEqual` 3
             (fst y') `shouldEqual` 1
-            thunkThunkable y `shouldEqual` Here 3
+            isHere (thunkThunkable y) `shouldEqual` true
             let z = wait (+) <*> wait 1 <*> pure 2
             let z' = runThunkableWithCount z
             (snd z') `shouldEqual` 3
             (fst z') `shouldEqual` 2
-            thunkThunkable ((thunkThunkable z)) `shouldEqual` Here 3
+            isHere (thunkThunkable (thunkThunkable z)) `shouldEqual` true
             let a = wait (+) <*> pure 1 <*> wait 2
             let a' = runThunkableWithCount a
             (snd a') `shouldEqual` 3
