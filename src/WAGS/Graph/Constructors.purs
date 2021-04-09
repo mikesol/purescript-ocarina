@@ -22,8 +22,8 @@ data Bandpass a b c
 data Constant a
   = Constant a
 
-data Convolver (s :: Symbol) a
-  = Convolver (Proxy s) a
+data Convolver (s :: Symbol) b
+  = Convolver (Proxy s) b
 
 data Delay a b
   = Delay a b

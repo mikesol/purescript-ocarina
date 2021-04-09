@@ -9,9 +9,9 @@ data MyGain
 
 data MySinOsc
 
-moveTest0 ::
+moveTest0 :: forall audio engine.
   W.AudioUnitRef W.D1 ->
-  W.Frame Unit Void
+  W.Frame Unit audio engine Void
     ( W.UniverseC W.D3
         ( W.GraphC
             ( W.NodeC (W.TGain W.D1)
@@ -41,9 +41,9 @@ moveTest0 ::
     Unit
 moveTest0 ref = W.move ref (Proxy :: _ Z) (Proxy :: _ Z)
 
-moveTest1 ::
+moveTest1 :: forall audio engine.
   W.AudioUnitRef W.D1 ->
-  W.Frame Unit Void
+  W.Frame Unit audio engine Void
     ( W.UniverseC W.D3
         ( W.GraphC
             ( W.NodeC (W.TGain W.D1)
@@ -73,9 +73,9 @@ moveTest1 ::
     Unit
 moveTest1 ref = W.move ref ref (Proxy :: _ Z)
 
-moveTest2 ::
+moveTest2 :: forall audio engine.
   W.AudioUnitRef W.D1 ->
-  W.Frame Unit Void
+  W.Frame Unit  audio engine Void
     ( W.UniverseC W.D3
         ( W.GraphC
             ( W.NodeC (W.TGain W.D1)
@@ -105,9 +105,9 @@ moveTest2 ::
     Unit
 moveTest2 ref = W.move ref ref (Proxy :: _ (Succ Z))
 
-moveTest3 ::
+moveTest3 :: forall audio engine.
   W.AudioUnitRef W.D1 ->
-  W.Frame Unit Void
+  W.Frame Unit audio engine Void
     ( W.UniverseC W.D3
         ( W.GraphC
             ( W.NodeC (W.TGain W.D1)
@@ -137,9 +137,9 @@ moveTest3 ::
     Unit
 moveTest3 ref = W.move ref ref (Proxy :: _ (Succ (Succ Z)))
 
-moveTest4 ::
+moveTest4 :: forall audio engine.
   W.AudioUnitRef W.D1 ->
-  W.Frame Unit Void
+  W.Frame Unit audio engine Void
     ( W.UniverseC W.D3
         ( W.GraphC
             ( W.NodeC (W.TGain W.D1)
@@ -169,10 +169,10 @@ moveTest4 ::
     Unit
 moveTest4 ref = W.move ref (Proxy :: _ (Succ Z)) (Proxy :: _ Z)
 
-moveTest5 ::
+moveTest5 :: forall audio engine.
   W.AudioUnitRef W.D1 ->
   W.AudioUnitRef W.D2 ->
-  W.Frame Unit Void
+  W.Frame Unit audio engine Void
     ( W.UniverseC W.D3
         ( W.GraphC
             ( W.NodeC (W.TGain W.D1)

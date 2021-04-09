@@ -1,7 +1,9 @@
 module WAGS.Control.MemoizedState where
 
 import Prelude
-import Control.Monad.State (class MonadState, StateT, put, runStateT, state)
+
+import Control.Monad.State (class MonadState, class MonadTrans, StateT, put, runStateT, state)
+import Control.Monad.State as MT
 import Data.Identity (Identity)
 import Data.Maybe (Maybe(..))
 import Data.Maybe.First (First(..))
@@ -38,6 +40,9 @@ instance monadMemoizedStateT :: Monad m => Monad (MemoizedStateT proof s m)
 
 instance monadStateMemoizedStateT :: Monad m => MonadState s (MemoizedStateT proof s m) where
   state = MemoizedStateT <<< Tuple (First Nothing) <<< state
+
+instance monadTransMemoizedStateT :: MonadTrans (MemoizedStateT proof s) where
+  lift = MemoizedStateT <<< Tuple (First Nothing) <<< MT.lift
 
 runMemoizedStateT' :: forall proof s m a. Monad m => MemoizedStateT proof s m a -> proof -> (s -> s) -> s -> m (Tuple a s)
 runMemoizedStateT' (MemoizedStateT (Tuple maybe st)) _ trans =

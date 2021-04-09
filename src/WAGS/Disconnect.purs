@@ -1,14 +1,15 @@
 module WAGS.Disconnect where
 
 import Prelude
+
 import Control.Monad.State (modify_)
 import Data.Map as M
 import Data.Set as S
 import Data.Typelevel.Bool (class Or, False, True)
 import WAGS.Control.Types (FrameT(..))
-import WAGS.Rendered (Instruction(..))
-import WAGS.Universe.AudioUnit as AU
+import WAGS.Interpret (class AudioInterpret, disconnectXFromY)
 import WAGS.Universe.AudioUnit (AudioUnitRef(..))
+import WAGS.Universe.AudioUnit as AU
 import WAGS.Universe.Bin (class BinEq, class BinToInt, Ptr, PtrList, PtrListCons, PtrListNil)
 import WAGS.Universe.EdgeProfile (ManyEdges, NoEdge, SingleEdge)
 import WAGS.Universe.Graph (class GraphToNodeList)
@@ -61,7 +62,7 @@ instance removePointerFromNodesCons ::
   RemovePointerFromNodes a b (NodeListCons head tail) (NodeListCons headRes tailRes) fin
 
 class Disconnect (from :: Ptr) (to :: Ptr) (i :: Universe) (o :: Universe) | from to i -> o where
-  disconnect :: forall env proof m. Monad m => AudioUnitRef from -> AudioUnitRef to -> FrameT env proof m i o Unit
+  disconnect :: forall env audio engine proof m. Monad m => AudioInterpret audio engine => AudioUnitRef from -> AudioUnitRef to -> FrameT env audio engine  proof m i o Unit
 
 instance disconnector ::
   ( BinToInt from
@@ -78,6 +79,6 @@ instance disconnector ::
             ( \i ->
                 i
                   { internalEdges = M.insertWith S.difference toI (S.singleton fromI) (i.internalEdges)
-                  , instructions = i.instructions <> [ DisconnectXFromY fromI toI ]
+                  , instructions = i.instructions <> [ disconnectXFromY fromI toI ]
                   }
             )

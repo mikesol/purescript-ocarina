@@ -5,17 +5,19 @@ import Data.Tuple.Nested ((/\))
 import Type.Data.Peano (Z)
 import Type.Proxy (Proxy)
 import WAGS as W
+import WAGS.Interpret (class AudioInterpret)
 
 data MyGain
 
 data MySinOsc
 
 createTest1 ::
-  forall ptr next env skolems head tail proof.
+  forall ptr next env audio engine skolems head tail proof.
   W.BinToInt ptr =>
   W.BinToInt next =>
   W.BinSucc ptr next =>
-  W.Frame env proof (W.UniverseC ptr (W.GraphC head tail) Z skolems)
+  AudioInterpret audio engine =>
+  W.Frame env audio engine proof (W.UniverseC ptr (W.GraphC head tail) Z skolems)
     ( W.UniverseC next
         (W.GraphC (W.NodeC (W.TSinOsc ptr) W.NoEdge) (W.NodeListCons head tail))
         Z
@@ -25,13 +27,14 @@ createTest1 ::
 createTest1 = W.create (W.SinOsc 440.0)
 
 createTest2 ::
-  forall first mid last env skolems head tail proof.
+  forall first mid last env audio engine skolems head tail proof.
   W.BinToInt first =>
   W.BinToInt mid =>
   W.BinToInt last =>
   W.BinSucc first mid =>
   W.BinSucc mid last =>
-  W.Frame env proof (W.UniverseC first (W.GraphC head tail) Z skolems)
+  AudioInterpret audio engine =>
+  W.Frame env audio engine proof (W.UniverseC first (W.GraphC head tail) Z skolems)
     ( W.UniverseC last
         (W.GraphC (W.NodeC (W.THighpass first) (W.SingleEdge mid)) (W.NodeListCons (W.NodeC (W.TSinOsc mid) W.NoEdge) (W.NodeListCons head tail)))
         Z
@@ -41,13 +44,14 @@ createTest2 ::
 createTest2 = W.create (W.Highpass 440.0 1.0 (W.SinOsc 440.0))
 
 createTest3 ::
-  forall first mid last env head tail proof.
+  forall first mid last env audio engine head tail proof.
   W.BinToInt first =>
   W.BinToInt mid =>
   W.BinToInt last =>
   W.BinSucc first mid =>
   W.BinSucc mid last =>
-  W.Frame env proof (W.UniverseC first (W.GraphC head tail) Z W.SkolemListNil)
+  AudioInterpret audio engine =>
+  W.Frame env audio engine proof (W.UniverseC first (W.GraphC head tail) Z W.SkolemListNil)
     ( W.UniverseC last
         ( W.GraphC
             ( W.NodeC (W.TGain first)
@@ -62,7 +66,7 @@ createTest3 ::
 createTest3 = W.create (W.Gain 1.0 (\(gain :: Proxy MyGain) -> gain /\ W.SinOsc 440.0 /\ unit))
 
 createTest4 ::
-  forall first mid0 mid1 last env head tail proof.
+  forall first mid0 mid1 last env audio engine head tail proof.
   W.BinToInt first =>
   W.BinToInt mid0 =>
   W.BinToInt mid1 =>
@@ -70,7 +74,8 @@ createTest4 ::
   W.BinSucc first mid0 =>
   W.BinSucc mid0 mid1 =>
   W.BinSucc mid1 last =>
-  W.Frame env proof (W.UniverseC first (W.GraphC head tail) Z W.SkolemListNil)
+  AudioInterpret audio engine =>
+  W.Frame env audio engine proof (W.UniverseC first (W.GraphC head tail) Z W.SkolemListNil)
     ( W.UniverseC last
         ( W.GraphC
             ( W.NodeC (W.TGain first)
@@ -90,8 +95,9 @@ createTest4 =
         gain /\ W.Highpass 330.0 1.0 (W.SinOsc 440.0) /\ unit
 
 createTest5 ::
-  forall env head tail proof.
-  W.Frame env proof (W.UniverseC W.D0 (W.GraphC head tail) Z W.SkolemListNil)
+  forall env audio engine head tail proof.
+  AudioInterpret audio engine =>
+  W.Frame env audio engine proof (W.UniverseC W.D0 (W.GraphC head tail) Z W.SkolemListNil)
     ( W.UniverseC W.D3
         ( W.GraphC
             ( W.NodeC (W.TGain W.D1)

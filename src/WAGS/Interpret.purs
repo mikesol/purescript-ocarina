@@ -10,7 +10,98 @@
 module WAGS.Interpret where
 
 import Prelude
+import Data.Const (Const(..))
+import WAGS.Graph.Parameter (AudioParameter(..))
+import WAGS.Rendered (Instruction(..), Oversample)
 
+class AudioInterpret audio engine where
+  connectXToY :: Int -> Int -> audio -> engine audio
+  disconnectXFromY :: Int -> Int -> audio -> engine audio
+  destroyUnit :: Int -> audio -> engine audio
+  rebaseAllUnits :: Array { from :: Int, to :: Int } -> audio -> engine audio
+  makeAllpass :: Int -> AudioParameter -> AudioParameter -> audio -> engine audio
+  makeBandpass :: Int -> AudioParameter -> AudioParameter -> audio -> engine audio
+  makeConstant :: Int -> AudioParameter -> audio -> engine audio
+  makeConvolver :: Int -> String -> audio -> engine audio
+  makeDelay :: Int -> AudioParameter -> audio -> engine audio
+  makeDynamicsCompressor :: Int -> AudioParameter -> AudioParameter -> AudioParameter -> AudioParameter -> AudioParameter -> audio -> engine audio
+  makeGain :: Int -> AudioParameter -> audio -> engine audio
+  makeHighpass :: Int -> AudioParameter -> AudioParameter -> audio -> engine audio
+  makeHighshelf :: Int -> AudioParameter -> AudioParameter -> audio -> engine audio
+  makeLoopBuf :: Int -> String -> AudioParameter -> Number -> Number -> audio -> engine audio
+  makeLowpass :: Int -> AudioParameter -> AudioParameter -> audio -> engine audio
+  makeLowshelf :: Int -> AudioParameter -> AudioParameter -> audio -> engine audio
+  makeMicrophone :: Int -> audio -> engine audio
+  makeNotch :: Int -> AudioParameter -> AudioParameter -> audio -> engine audio
+  makePeaking :: Int -> AudioParameter -> AudioParameter -> AudioParameter -> audio -> engine audio
+  makePeriodicOsc :: Int -> String -> AudioParameter -> audio -> engine audio
+  makePlayBuf :: Int -> String -> Number -> AudioParameter -> audio -> engine audio
+  makeRecorder :: Int -> String -> audio -> engine audio
+  makeSawtoothOsc :: Int -> AudioParameter -> audio -> engine audio
+  makeSinOsc :: Int -> AudioParameter -> audio -> engine audio
+  makeSquareOsc :: Int -> AudioParameter -> audio -> engine audio
+  makeStereoPanner :: Int -> AudioParameter -> audio -> engine audio
+  makeTriangleOsc :: Int -> AudioParameter -> audio -> engine audio
+  makeWaveShaper :: Int -> String -> Oversample -> audio -> engine audio
+  setRatio :: Int -> AudioParameter -> audio -> engine audio
+  setOffset :: Int -> AudioParameter -> audio -> engine audio
+  setAttack :: Int -> AudioParameter -> audio -> engine audio
+  setGain :: Int -> AudioParameter -> audio -> engine audio
+  setQ :: Int -> AudioParameter -> audio -> engine audio
+  setPan :: Int -> AudioParameter -> audio -> engine audio
+  setThreshold :: Int -> AudioParameter -> audio -> engine audio
+  setRelease :: Int -> AudioParameter -> audio -> engine audio
+  setKnee :: Int -> AudioParameter -> audio -> engine audio
+  setDelay :: Int -> AudioParameter -> audio -> engine audio
+  setPlaybackRate :: Int -> AudioParameter -> audio -> engine audio
+  setFrequency :: Int -> AudioParameter -> audio -> engine audio
+
+instance freeAudioInterpret :: AudioInterpret Unit (Const Instruction) where
+  connectXToY a b = const $ Const $ ConnectXToY a b
+  disconnectXFromY a b = const $ Const $ DisconnectXFromY a b
+  destroyUnit a = const $ Const $ DestroyUnit a
+  rebaseAllUnits a = const $ Const $ RebaseAllUnits a
+  makeAllpass a b c = const $ Const $ MakeAllpass a b c
+  makeBandpass a b c = const $ Const $ MakeBandpass a b c
+  makeConstant a b = const $ Const $ MakeConstant a b
+  makeConvolver a b = const $ Const $ MakeConvolver a b
+  makeDelay a b = const $ Const $ MakeDelay a b
+  makeDynamicsCompressor a b c d e f = const $ Const $ MakeDynamicsCompressor a b c d e f
+  makeGain a b = const $ Const $ MakeGain a b
+  makeHighpass a b c = const $ Const $ MakeHighpass a b c
+  makeHighshelf a b c = const $ Const $ MakeHighshelf a b c
+  makeLoopBuf a b c d e = const $ Const $ MakeLoopBuf a b c d e
+  makeLowpass a b c = const $ Const $ MakeLowpass a b c
+  makeLowshelf a b c = const $ Const $ MakeLowshelf a b c
+  makeMicrophone a = const $ Const $ MakeMicrophone a
+  makeNotch a b c = const $ Const $ MakeNotch a b c
+  makePeaking a b c d = const $ Const $ MakePeaking a b c d
+  makePeriodicOsc a b c = const $ Const $ MakePeriodicOsc a b c
+  makePlayBuf a b c d = const $ Const $ MakePlayBuf a b c d
+  makeRecorder a b = const $ Const $ MakeRecorder a b
+  makeSawtoothOsc a b = const $ Const $ MakeSawtoothOsc a b
+  makeSinOsc a b = const $ Const $ MakeSinOsc a b
+  makeSquareOsc a b = const $ Const $ MakeSquareOsc a b
+  makeStereoPanner a b = const $ Const $ MakeStereoPanner a b
+  makeTriangleOsc a b = const $ Const $ MakeTriangleOsc a b
+  makeWaveShaper a b c = const $ Const $ MakeWaveShaper a b c
+  setRatio a b = const $ Const $ SetRatio a b
+  setOffset a b = const $ Const $ SetOffset a b
+  setAttack a b = const $ Const $ SetAttack a b
+  setGain a b = const $ Const $ SetGain a b
+  setQ a b = const $ Const $ SetQ a b
+  setPan a b = const $ Const $ SetPan a b
+  setThreshold a b = const $ Const $ SetThreshold a b
+  setRelease a b = const $ Const $ SetRelease a b
+  setKnee a b = const $ Const $ SetKnee a b
+  setDelay a b = const $ Const $ SetDelay a b
+  setPlaybackRate a b = const $ Const $ SetPlaybackRate a b
+  setFrequency a b = const $ Const $ SetFrequency a b
+
+{-
+instance freeAudioInterpret :: AudioInterpret Unit (Const Instruction) where
+  makeSinOsc i _ _ = Const $ NewUnit i "sinosc"
+-}
 {-
   touchAudio
     toFFI -- we can get rid of this

@@ -6,6 +6,8 @@ import Control.Alternative (class Alt, class Alternative, class Plus, alt, empty
 import Data.Identity (Identity)
 import Data.Traversable (class Foldable, class Traversable, foldMapDefaultR, sequence, traverseDefault)
 import Data.Tuple (Tuple(..))
+import Effect.Aff (Aff)
+import WAGS.Control.MemoizedState (MemoizedStateT)
 
 data Thunkable a
   = Here a
@@ -107,7 +109,7 @@ instance altThunkable :: Alt Thunkable where
   alt (Here a) (Here _) = Here a
   alt (Here a) (Wait _) = Here a
   alt (Wait _) (Here a) = Here a
-  alt (Wait a) (Wait b) = alt (a unit) (b unit)
+  alt (Wait a) (Wait b) = Wait (\_ -> alt (a unit) (b unit))
 
 instance plusThunkable :: Plus Thunkable where
   empty = Wait (\_ -> empty)
@@ -121,4 +123,10 @@ instance waitableThunkable :: Waitable Thunkable where
   wait = Wait <<< pure <<< pure
 
 instance waitableIdentity :: Waitable Identity where
+  wait = pure
+
+instance waitableAff :: Waitable Aff where
+  wait = pure
+
+instance waitableMemoizedStateT :: Waitable (MemoizedStateT proof s Thunkable) where
   wait = pure

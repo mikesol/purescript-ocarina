@@ -20,16 +20,16 @@ import WAGS.Universe.Universe (Universe, UniverseC)
 import WAGS.Validation (class EdgeProfileChooseGreater, class PtrListAppend, class TerminalIdentityEdge)
 
 cursor ::
-  forall edge a q r s t env proof m p.
+  forall edge audio engine a q r s t env proof m p.
   Monad m =>
   TerminalIdentityEdge r edge =>
   Cursor edge a (UniverseC q r s t) p =>
   BinToInt p =>
-  a -> FrameT env proof m (UniverseC q r s t) (UniverseC q r s t) (AudioUnitRef p)
+  a -> FrameT env audio engine proof m (UniverseC q r s t) (UniverseC q r s t) (AudioUnitRef p)
 cursor = cursor' (Proxy :: _ edge)
 
 class Cursor (p :: EdgeProfile) (a :: Type) (o :: Universe) (ptr :: Ptr) | p a o -> ptr where
-  cursor' :: forall env proof m. Monad m => Proxy p -> a -> FrameT env proof m o o (AudioUnitRef ptr)
+  cursor' :: forall env audio engine proof m. Monad m => Proxy p -> a -> FrameT env audio engine proof m o o (AudioUnitRef ptr)
 
 instance cursorRecurse ::
   ( BinToInt head

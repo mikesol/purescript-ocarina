@@ -6,9 +6,9 @@ import Control.Monad.State (modify_)
 import Data.Map as M
 import Data.Typelevel.Bool (False)
 import WAGS.Control.Types (FrameT(..))
-import WAGS.Rendered (Instruction(..))
-import WAGS.Universe.AudioUnit as AU
+import WAGS.Interpret (class AudioInterpret, destroyUnit)
 import WAGS.Universe.AudioUnit (class GetPointer, AudioUnitRef(..))
+import WAGS.Universe.AudioUnit as AU
 import WAGS.Universe.Bin (class BinEq, class BinToInt, Ptr, PtrListCons)
 import WAGS.Universe.EdgeProfile (ManyEdges, NoEdge, SingleEdge)
 import WAGS.Universe.Graph (class GraphToNodeList)
@@ -114,7 +114,7 @@ instance removePtrFromNListCons ::
   RemovePtrFromNodeList ptr (NodeListCons head tail) o
 
 class Destroy (ptr :: Ptr) (i :: Universe) (o :: Universe) | ptr i -> o where
-  destroy :: forall env proof m. Monad m => AudioUnitRef ptr -> FrameT env proof m i o Unit
+  destroy :: forall env audio engine proof m. Monad m => AudioInterpret audio engine => AudioUnitRef ptr -> FrameT env audio engine proof m i o Unit
 
 instance destroyer ::
   ( BinToInt ptr
@@ -132,6 +132,6 @@ instance destroyer ::
                 i
                   { internalNodes = M.delete ptrI (i.internalNodes)
                   , internalEdges = M.delete ptrI (i.internalEdges)
-                  , instructions = i.instructions <> [ Free ptrI, Stop ptrI ]
+                  , instructions = i.instructions <> [ destroyUnit ptrI ]
                   }
             )

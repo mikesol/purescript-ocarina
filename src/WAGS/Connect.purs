@@ -1,14 +1,15 @@
 module WAGS.Connect where
 
 import Prelude
+
 import Control.Monad.State (modify_)
 import Data.Map as M
 import Data.Set as S
 import Data.Typelevel.Bool (class Or, False, True)
 import WAGS.Control.Types (FrameT(..))
-import WAGS.Rendered (Instruction(..))
-import WAGS.Universe.AudioUnit as AU
+import WAGS.Interpret (class AudioInterpret, connectXToY)
 import WAGS.Universe.AudioUnit (AudioUnitRef(..))
+import WAGS.Universe.AudioUnit as AU
 import WAGS.Universe.Bin (class BinToInt, Ptr, PtrListCons, PtrListNil)
 import WAGS.Universe.EdgeProfile (ManyEdges, SingleEdge)
 import WAGS.Universe.Graph (class GraphToNodeList)
@@ -44,7 +45,7 @@ instance addPointerToNodesNil :: AddPointerToNodes a b NodeListNil NodeListNil F
 instance addPointerToNodesCons :: (AddPointerToNode a b head headRes tf0, AddPointerToNodes a b tail tailRes tf1, Or tf0 tf1 fin) => AddPointerToNodes a b (NodeListCons head tail) (NodeListCons headRes tailRes) fin
 
 class Connect (from :: Ptr) (to :: Ptr) (i :: Universe) (o :: Universe) | from to i -> o where
-  connect :: forall env proof m. Monad m => AudioUnitRef from -> AudioUnitRef to -> FrameT env proof m i o Unit
+  connect :: forall env audio engine proof m. Monad m => AudioInterpret audio engine => AudioUnitRef from -> AudioUnitRef to -> FrameT env audio engine proof m i o Unit
 
 instance connectAll ::
   ( BinToInt from
@@ -61,6 +62,6 @@ instance connectAll ::
             ( \i ->
                 i
                   { internalEdges = (M.insertWith S.union toI (S.singleton fromI) i.internalEdges)
-                  , instructions = i.instructions <> [ ConnectXToY fromI toI ]
+                  , instructions = i.instructions <> [ connectXToY fromI toI ]
                   }
             )

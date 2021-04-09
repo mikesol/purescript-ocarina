@@ -110,7 +110,7 @@ instance movePointersNil :: MovePointers at a b NodeListNil NodeListNil
 instance movePointersCons :: (MovePointer at a b head headRes, MovePointers at a b tail tailRes) => MovePointers at a b (NodeListCons head tail) (NodeListCons headRes tailRes)
 
 class Move (at :: Ptr) (from :: Type) (to :: Nat) (i :: Universe) (o :: Universe) | at from to i -> o where
-  move :: forall env proof m. Monad m => AudioUnitRef at -> from -> Proxy to -> FrameT env proof m i o Unit
+  move :: forall env audio engine proof m. Monad m => AudioUnitRef at -> from -> Proxy to -> FrameT env audio engine proof m i o Unit
 
 instance moveAref ::
   ( GraphToNodeList graphi nodeListI

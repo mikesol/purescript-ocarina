@@ -1,14 +1,15 @@
 module Test.Main where
 
 import Prelude
-
 import Control.Applicative.Indexed (imap, ipure)
 import Control.Monad.Indexed.Qualified as Ix
 import Data.Array as A
+import Data.Const (Const(..))
 import Data.Either (Either(..))
 import Data.Functor.Indexed (ivoid)
 import Data.Identity (Identity(..))
 import Data.Map as M
+import Data.Newtype (unwrap)
 import Data.Set as S
 import Data.Tuple (fst, snd)
 import Data.Tuple.Nested ((/\))
@@ -19,12 +20,7 @@ import Test.Spec.Assertions (shouldEqual)
 import Test.Spec.Reporter (consoleReporter)
 import Test.Spec.Runner (runSpec)
 import Type.Proxy (Proxy)
-import WAGS (AnAudioUnit(..), AudioParameter, AudioParameterTransition(..), Focus(..), Gain(..), Highpass(..), Instruction(..), SinOsc(..), Speaker(..), branch, change, changeAt, create, cursor, env, freeze, loop, oneFrame', param, start, (@>), (@|>), Thunkable(..), runThunkableWithCount, wait, isWait, isHere, thunkThunkable)
-
-testCompare :: Instruction -> Instruction -> Ordering
-testCompare a b = case compare a b of
-  EQ -> compare (show a) (show b)
-  x -> x
+import WAGS (AnAudioUnit(..), AudioParameter, AudioParameterTransition(..), Focus(..), Gain(..), Highpass(..), Instruction(..), SinOsc(..), Speaker(..), Thunkable(..), branch, change, changeAt, create, cursor, env, freeze, isHere, isWait, loop, oneFrame', param, runThunkableWithCount, start, thunkThunkable, wait, (@>), (@|>))
 
 data MyGain
 
@@ -63,41 +59,58 @@ scene1 ({ time: time' } :: Time) =
           /\ unit
     )
 
+resolveInstructions :: Array (Unit -> Const Instruction Unit) -> Array Instruction
+resolveInstructions = map (\f -> unwrap $ (f unit))
+
 main :: Effect Unit
 main = do
   launchAff_
     $ runSpec [ consoleReporter ] do
         describe "thunkable" do
           it "thunks" do
-            let x = (+) <$> wait 1 <*> pure 2
-            let x' = runThunkableWithCount x
+            let
+              x = (+) <$> wait 1 <*> pure 2
+            let
+              x' = runThunkableWithCount x
             (snd x') `shouldEqual` 3
             (fst x') `shouldEqual` 1
             isHere (thunkThunkable x) `shouldEqual` true
-            let y = wait (+) <*> pure 1 <*> pure 2
-            let y' = runThunkableWithCount y
+            let
+              y = wait (+) <*> pure 1 <*> pure 2
+            let
+              y' = runThunkableWithCount y
             (snd y') `shouldEqual` 3
             (fst y') `shouldEqual` 1
             isHere (thunkThunkable y) `shouldEqual` true
-            let z = wait (+) <*> wait 1 <*> pure 2
-            let z' = runThunkableWithCount z
+            let
+              z = wait (+) <*> wait 1 <*> pure 2
+            let
+              z' = runThunkableWithCount z
             (snd z') `shouldEqual` 3
             (fst z') `shouldEqual` 2
             isHere (thunkThunkable (thunkThunkable z)) `shouldEqual` true
-            let a = wait (+) <*> pure 1 <*> wait 2
-            let a' = runThunkableWithCount a
+            let
+              a = wait (+) <*> pure 1 <*> wait 2
+            let
+              a' = runThunkableWithCount a
             (snd a') `shouldEqual` 3
             (fst a') `shouldEqual` 2
-            let b = (wait (+)) >>= (\f -> pure (f 1)) >>= (\f -> pure (f 2))
-            let b' = runThunkableWithCount b
+            let
+              b = (wait (+)) >>= (\f -> pure (f 1)) >>= (\f -> pure (f 2))
+            let
+              b' = runThunkableWithCount b
             (snd b') `shouldEqual` 3
             (fst b') `shouldEqual` 1
-            let c = (pure (+)) >>= (\f -> wait (f 1)) >>= (\f -> pure (f 2))
-            let c' = runThunkableWithCount c
+            let
+              c = (pure (+)) >>= (\f -> wait (f 1)) >>= (\f -> pure (f 2))
+            let
+              c' = runThunkableWithCount c
             (snd c') `shouldEqual` 3
             (fst c') `shouldEqual` 1
-            let d = (pure (+)) >>= (\f -> wait (f 1)) >>= (\f -> wait (f 2))
-            let d' = runThunkableWithCount d
+            let
+              d = (pure (+)) >>= (\f -> wait (f 1)) >>= (\f -> wait (f 2))
+            let
+              d' = runThunkableWithCount d
             (snd d') `shouldEqual` 3
             (fst d') `shouldEqual` 2
         describe "a simple scene that doesn't change" do
@@ -120,7 +133,15 @@ main = do
 
             edgeAssertion = M.fromFoldable [ 0 /\ S.singleton 1, 1 /\ S.fromFoldable [ 1, 2 ], 2 /\ S.singleton 3 ]
 
-            instructionAssertion = A.sortBy testCompare [ NewUnit 1 "gain", NewUnit 2 "highpass", NewUnit 3 "sinosc", ConnectXToY 1 0, ConnectXToY 1 1, ConnectXToY 2 1, ConnectXToY 3 2, SetGain 1 1.0 0.0 LinearRamp, SetFrequency 3 440.0 0.0 LinearRamp, SetFrequency 2 330.0 0.0 LinearRamp, SetQ 2 1.0 0.0 LinearRamp ]
+            instructionAssertion =
+              [ MakeGain 1 (param 1.0)
+              , MakeHighpass 2 (param 330.0) (param 1.0)
+              , MakeSinOsc 3 (param 440.0)
+              , (ConnectXToY 3 2)
+              , (ConnectXToY 1 1)
+              , (ConnectXToY 2 1)
+              , (ConnectXToY 1 0)
+              ]
           it "is coherent at frame0Nodes" do
             frame0Nodes `shouldEqual` nodeAssertion
           it "is coherent at frame1Nodes" do
@@ -134,11 +155,11 @@ main = do
           it "is coherent at frame2Edges" do
             frame2Edges `shouldEqual` edgeAssertion
           it "is coherent at frame0Instr" do
-            A.sortBy testCompare frame0Instr `shouldEqual` instructionAssertion
+            resolveInstructions frame0Instr `shouldEqual` instructionAssertion
           it "is coherent at frame1Instr" do
-            A.sortBy testCompare frame1Instr `shouldEqual` []
-          it "is coherent at frame0Instr" do
-            A.sortBy testCompare frame2Instr `shouldEqual` []
+            resolveInstructions frame1Instr `shouldEqual` []
+          it "is coherent at frame2Instr" do
+            resolveInstructions frame2Instr `shouldEqual` []
         describe "a simple scene that changes only the sine wave osc as a function of time" do
           let
             simpleScene =
@@ -170,7 +191,15 @@ main = do
 
             edgeAssertion = M.fromFoldable [ 0 /\ S.singleton 1, 1 /\ S.fromFoldable [ 1, 2 ], 2 /\ S.singleton 3 ]
 
-            instructionAssertion = A.sortBy testCompare [ NewUnit 1 "gain", NewUnit 2 "highpass", NewUnit 3 "sinosc", ConnectXToY 1 0, ConnectXToY 1 1, ConnectXToY 2 1, ConnectXToY 3 2, SetGain 1 1.0 0.0 LinearRamp, SetFrequency 3 440.0 0.0 LinearRamp, SetFrequency 2 330.0 0.0 LinearRamp, SetQ 2 1.0 0.0 LinearRamp ]
+            instructionAssertion =
+              [ MakeGain 1 (param 1.0)
+              , MakeHighpass 2 (param 330.0) (param 1.0)
+              , MakeSinOsc 3 (param 440.0)
+              , (ConnectXToY 3 2)
+              , (ConnectXToY 1 1)
+              , (ConnectXToY 2 1)
+              , (ConnectXToY 1 0)
+              ]
           it "is coherent after frame0Nodes" do
             frame0Nodes `shouldEqual` (nodeAssertion 0.0)
           it "is coherent after frame1Nodes" do
@@ -188,11 +217,11 @@ main = do
           it "is coherent after frame2Edges" do
             frame2Edges `shouldEqual` edgeAssertion
           it "is coherent after frame0Instr" do
-            A.sortBy testCompare frame0Instr `shouldEqual` instructionAssertion
+            resolveInstructions frame0Instr `shouldEqual` instructionAssertion
           it "is coherent after frame1Instr" do
-            A.sortBy testCompare frame1Instr `shouldEqual` [ SetFrequency 3 445.0 0.0 LinearRamp ]
+            resolveInstructions frame1Instr `shouldEqual` [ SetFrequency 3 $ param 445.0 ]
           it "is coherent after frame2Instr" do
-            A.sortBy testCompare frame2Instr `shouldEqual` [ SetFrequency 3 450.0 0.0 LinearRamp ]
+            resolveInstructions frame2Instr `shouldEqual` [ SetFrequency 3 $ param 450.0 ]
         describe "a simple scene that changes the entire graph as a function of time" do
           let
             simpleScene =
@@ -224,7 +253,15 @@ main = do
 
             edgeAssertion = M.fromFoldable [ 0 /\ S.singleton 1, 1 /\ S.fromFoldable [ 1, 2 ], 2 /\ S.singleton 3 ]
 
-            instructionAssertion = A.sortBy testCompare [ NewUnit 1 "gain", NewUnit 2 "highpass", NewUnit 3 "sinosc", ConnectXToY 1 0, ConnectXToY 1 1, ConnectXToY 2 1, ConnectXToY 3 2, SetGain 1 1.0 0.0 LinearRamp, SetFrequency 3 440.0 0.0 LinearRamp, SetFrequency 2 330.0 0.0 LinearRamp, SetQ 2 1.0 0.0 LinearRamp ]
+            instructionAssertion =
+              [ MakeGain 1 (param 1.0)
+              , MakeHighpass 2 (param 330.0) (param 1.0)
+              , MakeSinOsc 3 (param 440.0)
+              , (ConnectXToY 3 2)
+              , (ConnectXToY 1 1)
+              , (ConnectXToY 2 1)
+              , (ConnectXToY 1 0)
+              ]
           it "is coherent after frame0Nodes" do
             frame0Nodes `shouldEqual` (nodeAssertion 0.0)
           it "is coherent after frame1Nodes" do
@@ -242,11 +279,11 @@ main = do
           it "is coherent after frame2Edges" do
             frame2Edges `shouldEqual` edgeAssertion
           it "is coherent after frame0Instr" do
-            A.sortBy testCompare frame0Instr `shouldEqual` instructionAssertion
+            resolveInstructions frame0Instr `shouldEqual` instructionAssertion
           it "is coherent after frame1Instr" do
-            A.sortBy testCompare frame1Instr `shouldEqual` [ SetFrequency 2 331.0 0.0 LinearRamp ]
+            resolveInstructions frame1Instr `shouldEqual` [ SetFrequency 2 $ param 331.0 ]
           it "is coherent after frame2Instr" do
-            A.sortBy testCompare frame2Instr `shouldEqual` [ SetFrequency 2 332.0 0.0 LinearRamp ]
+            resolveInstructions frame2Instr `shouldEqual` [ SetFrequency 2 $ param 332.0 ]
         describe "a scene that forks at 0.3 seconds" do
           let
             simpleScene =
@@ -291,7 +328,15 @@ main = do
 
             edgeAssertion = M.fromFoldable [ 0 /\ S.singleton 1, 1 /\ S.fromFoldable [ 1, 2 ], 2 /\ S.singleton 3 ]
 
-            instructionAssertion = A.sortBy testCompare [ NewUnit 1 "gain", NewUnit 2 "highpass", NewUnit 3 "sinosc", ConnectXToY 1 0, ConnectXToY 1 1, ConnectXToY 2 1, ConnectXToY 3 2, SetGain 1 1.0 0.0 LinearRamp, SetFrequency 3 440.0 0.0 LinearRamp, SetFrequency 2 330.0 0.0 LinearRamp, SetQ 2 1.0 0.0 LinearRamp ]
+            instructionAssertion =
+              [ MakeGain 1 (param 1.0)
+              , MakeHighpass 2 (param 330.0) (param 1.0)
+              , MakeSinOsc 3 (param 440.0)
+              , (ConnectXToY 3 2)
+              , (ConnectXToY 1 1)
+              , (ConnectXToY 2 1)
+              , (ConnectXToY 1 0)
+              ]
           it "branches at frame0Nodes" do
             frame0Nodes `shouldEqual` (nodeAssertion 0.0)
           it "branches at frame1Nodes" do
@@ -309,12 +354,12 @@ main = do
           it "branches at edgeAssertion" do
             frame2Edges `shouldEqual` edgeAssertion
           it "branches at edgeAssertion" do
-            A.sortBy testCompare frame0Instr `shouldEqual` instructionAssertion
+            resolveInstructions frame0Instr `shouldEqual` instructionAssertion
           it "branches at frame0Instr" do
-            A.sortBy testCompare frame1Instr `shouldEqual` [ SetFrequency 2 331.0 0.0 LinearRamp ]
+            resolveInstructions frame1Instr `shouldEqual` [ SetFrequency 2 $ param 331.0 ]
           it "branches at frame1Instr" do
-            A.sortBy testCompare frame2Instr `shouldEqual` [ SetFrequency 2 332.0 0.0 LinearRamp ]
+            resolveInstructions frame2Instr `shouldEqual` [ SetFrequency 2 $ param 332.0 ]
           it "branches at frame2Instr" do
-            A.sortBy testCompare frame3Instr `shouldEqual` [ SetFrequency 2 345.0 0.0 LinearRamp ]
+            resolveInstructions frame3Instr `shouldEqual` [ SetFrequency 2 $ param 345.0 ]
           it "branches at frame3Instr" do
-            A.sortBy testCompare frame4Instr `shouldEqual` [ SetFrequency 2 350.0 0.0 LinearRamp ]
+            resolveInstructions frame4Instr `shouldEqual` [ SetFrequency 2 $ param 350.0 ]
