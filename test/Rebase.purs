@@ -1,9 +1,6 @@
 module Test.Rebase where
 
-import Prelude
-
 import Type.Data.Peano (Z)
-import Type.Proxy (Proxy(..))
 import WAGS as W
 
 data MyGain

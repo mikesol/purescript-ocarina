@@ -1,6 +1,7 @@
 module WAGS.Create where
 
 import Prelude
+
 import Control.Monad.State (gets, modify_)
 import Data.Identity (Identity(..))
 import Data.Map as M
@@ -14,7 +15,7 @@ import WAGS.Graph.Constructors (Dup(..), Gain, Speaker)
 import WAGS.Graph.Constructors as CTOR
 import WAGS.Graph.Decorators (Focus(..))
 import WAGS.Graph.Parameter (AudioParameter(..), defaultParam)
-import WAGS.Interpret (class AudioInterpret, connectXToY, makeAllpass, makeBandpass, makeConstant, makeConvolver, makeDelay, makeDynamicsCompressor, makeGain, makeHighpass, makeHighshelf, makeLoopBuf, makeLowpass, makeLowshelf, makeMicrophone, makeNotch, makePeaking, makePeriodicOsc, makePlayBuf, makeRecorder, makeSawtoothOsc, makeSinOsc, makeSquareOsc, makeStereoPanner, makeTriangleOsc)
+import WAGS.Interpret (class AudioInterpret, connectXToY, makeAllpass, makeBandpass, makeConstant, makeConvolver, makeDelay, makeDynamicsCompressor, makeGain, makeHighpass, makeHighshelf, makeLoopBuf, makeLowpass, makeLowshelf, makeMicrophone, makeNotch, makePeaking, makePeriodicOsc, makePlayBuf, makeRecorder, makeSawtoothOsc, makeSinOsc, makeSpeaker, makeSquareOsc, makeStereoPanner, makeTriangleOsc)
 import WAGS.Rendered (AnAudioUnit(..))
 import WAGS.Universe.AudioUnit (AudioUnitRef(..), TGain, TSpeaker)
 import WAGS.Universe.AudioUnit as AU
@@ -92,7 +93,7 @@ instance creationInstructionsConstant :: (AudioInterpret audio engine, InitialVa
         /\ AConstant argA_iv'
 
 instance creationInstructionsConvolver :: (IsSymbol argA, AudioInterpret audio engine) => CreationInstructions audio engine (CTOR.Convolver argA argB) where
-  creationInstructions idx (CTOR.Convolver px _) = [ makeConvolver idx (reflectSymbol px) ] /\ ASpeaker
+  creationInstructions idx (CTOR.Convolver px _) = let name = (reflectSymbol px) in [ makeConvolver idx name ] /\ AConvolver name
 
 instance creationInstructionsDelay :: (AudioInterpret audio engine, InitialVal argA) => CreationInstructions audio engine (CTOR.Delay argA argB) where
   creationInstructions idx (CTOR.Delay argA _) =
@@ -177,7 +178,7 @@ instance creationInstructionsLowshelf :: (AudioInterpret audio engine, InitialVa
         /\ ALowshelf argA_iv' argB_iv'
 
 instance creationInstructionsMicrophone :: AudioInterpret audio engine => CreationInstructions audio engine (CTOR.Microphone) where
-  creationInstructions idx _ = [ makeMicrophone idx ] /\ ASpeaker
+  creationInstructions idx _ = [ makeMicrophone idx ] /\ AMicrophone
 
 instance creationInstructionsNotch :: (AudioInterpret audio engine, InitialVal argA, InitialVal argB) => CreationInstructions audio engine (CTOR.Notch argA argB argC) where
   creationInstructions idx (CTOR.Notch argA argB _) =
@@ -222,7 +223,7 @@ instance creationInstructionsPlayBuf :: (IsSymbol argA, AudioInterpret audio eng
         /\ APlayBuf bufname offset argB_iv'
 
 instance creationInstructionsRecorder :: (IsSymbol argA, AudioInterpret audio engine) => CreationInstructions audio engine (CTOR.Recorder argA argB) where
-  creationInstructions idx _ = [ makeRecorder idx (reflectSymbol (Proxy :: _ argA)) ] /\ ASpeaker
+  creationInstructions idx (CTOR.Recorder px _) = let name = (reflectSymbol px) in [ makeRecorder idx name ] /\ ARecorder name
 
 instance creationInstructionsSawtoothOsc :: (AudioInterpret audio engine, InitialVal argA) => CreationInstructions audio engine (CTOR.SawtoothOsc argA) where
   creationInstructions idx (CTOR.SawtoothOsc argA) =
@@ -241,7 +242,7 @@ instance creationInstructionsSinOsc :: (AudioInterpret audio engine, InitialVal 
         /\ ASinOsc argA_iv'
 
 instance creationInstructionsSpeaker :: AudioInterpret audio engine => CreationInstructions audio engine (CTOR.Speaker argA) where
-  creationInstructions _ _ = [] /\ ASpeaker
+  creationInstructions idx (CTOR.Speaker _) = [ makeSpeaker idx ] /\ ASpeaker
 
 instance creationInstructionsSquareOsc :: (AudioInterpret audio engine, InitialVal argA) => CreationInstructions audio engine (CTOR.SquareOsc argA) where
   creationInstructions idx (CTOR.SquareOsc argA) =

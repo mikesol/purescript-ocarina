@@ -1,12 +1,9 @@
-{-
-Welcome to a Spago project!
-You can edit this file as you like.
--}
-{ name = "pab-sketches"
+{ name = "purescript-wags"
 , dependencies =
   [ "aff-promise"
   , "behaviors"
   , "console"
+  , "convertable-options"
   , "debug"
   , "effect"
   , "free"

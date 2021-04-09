@@ -1,498 +1,727 @@
-exports.touchAudio_ = function (context) {
-  return function (audioInfo) {
-    return {
-      connect: {},
-      disconnect:{},
-      destroy:{},
-      newUnit:{},
-      setFrequency:{},
-      setGain:{},
-      setPan:{},
-      setOffset:{},
-    }
+/**
+ * 
+ * @param {data AudioParameterTransition
+  = NoRamp
+  | LinearRamp
+  | ExponentialRamp
+  | Immediately
+} unit 
+ * @param {*} param
+ param 
+ timeOffset
+    , transition: show transition
+    , forceSet
+ */
+var genericStarter = function (unit, name, param) {
+  unit[name].value = param.param;
+};
+var genericSetter = function (unit, name, timeToSet, param) {
+  if (param.transition === "Immediately") {
+    unit[name].value = param.param;
+  } else {
+    unit[name][
+      param.transition === "NoRamp"
+        ? "setValueAtTime"
+        : param.transition === "LinearRamp"
+        ? "linearRampToValueAtTime"
+        : param.transition === "ExponentialRamp"
+        ? "exponentialRampToValueAtTime"
+        : "linearRampToValueAtTime"
+    ](param.param, timeToSet + param.timeOffset);
+  }
+};
+exports.connectXToY_ = function (x) {
+  return function (y) {
+    return function (state) {
+      return function () {
+        state.cache[x].main.connect(state.cache[y].main);
+        if (state.cache[y].se) {
+          state.cache[x].main.connect(state.cache[y].se);
+        }
+        return state;
+      };
+    };
+  };
+};
+exports.disconnectXFromY_ = function (x) {
+  return function (y) {
+    return function (state) {
+      return function () {
+        state.cache[x].main.disconnect(state.cache[y].main);
+        if (state.cache[y].se) {
+          state.cache[x].main.disconnect(state.cache[y].se);
+        }
+        return state;
+      };
+    };
+  };
+};
+exports.destroyUnit_ = function (ptr) {
+  return function (state) {
+    return function () {
+      delete state.cache[ptr];
+      return state;
+    };
+  };
+};
+exports.rebaseAllUnits_ = function (toRebase) {
+  return function (state) {
+    return function () {
+      var newCache = {};
+      for (var i = 0; i < toRebase.length; i++) {
+        var trb = toRebase[i];
+        newCache[trb.to] = state.cache[trb.from];
+      }
+      state.cache = newCache;
+      return state;
+    };
+  };
+};
+/**
+ * 
+ * @param {                  getMainFromGenerator(generators[c.value0]).type = "lowpass";
+                } else if (predicates.isBandpass(c.value1)) {
+                  getMainFromGenerator(generators[c.value0]).type = "bandpass";
+                } else if (predicates.isLowshelf(c.value1)) {
+                  getMainFromGenerator(generators[c.value0]).type = "lowshelf";
+                } else if (predicates.isHighshelf(c.value1)) {
+                  getMainFromGenerator(generators[c.value0]).type = "highshelf";
+                } else if (predicates.isNotch(c.value1)) {
+                  getMainFromGenerator(generators[c.value0]).type = "notch";
+                } else if (predicates.isAllpass(c.value1)) {
+                  getMainFromGenerator(generators[c.value0]).type = "allpass";
+                } else if (predicates.isPeaking(c.value1)) {
+                  getMainFromGenerator(generators[c.value0]).type = "peaking";
+                } else if (predicates.isHighpass(c.value1)) {
+                  getMainFromGenerator(generators[c.value0]).type = "highpass";
+} ptr 
+ */
+exports.makeAllpass_ = function (ptr) {
+  return function (a) {
+    return function (b) {
+      return function (state) {
+        return function () {
+          state.cache[ptr] = { main: state.context.createBiquadFilter() };
+          state.cache[ptr].main.type = "allpass";
+          genericStarter(state.cache[ptr].main, "frequency", a);
+          genericStarter(state.cache[ptr].main, "Q", b);
+          return state;
+        };
+      };
+    };
+  };
+};
+exports.makeBandpass_ = function (ptr) {
+  return function (a) {
+    return function (b) {
+      return function (state) {
+        return function () {
+          state.cache[ptr] = { main: state.context.createBiquadFilter() };
+          state.cache[ptr].main.type = "bandpass";
+          genericStarter(state.cache[ptr].main, "frequency", a);
+          genericStarter(state.cache[ptr].main, "Q", b);
+          return state;
+        };
+      };
+    };
+  };
+};
+exports.makeConstant_ = function (ptr) {
+  return function (a) {
+    return function (state) {
+      return function () {
+        state.cache[ptr] = { main: state.context.createConstantSource() };
+        genericStarter(state.cache[ptr].main, "offset", a);
+        return state;
+      };
+    };
+  };
+};
+exports.makeConvolver_ = function (ptr) {
+  return function (a) {
+    return function (state) {
+      return function () {
+        state.cache[ptr] = { main: state.context.createConvolver() };
+        state.cache[ptr].main.buffer = state.buffers[a];
+        return state;
+      };
+    };
+  };
+};
+exports.makeDelay_ = function (ptr) {
+  return function (a) {
+    return function (state) {
+      return function () {
+        state.cache[ptr] = { main: state.context.createDelay() };
+        genericStarter(state.cache[ptr].main, "delayTime", a);
+        return state;
+      };
+    };
+  };
+};
+exports.makeDynamicsCompressor_ = function (ptr) {
+  return function (a) {
+    return function (b) {
+      return function (c) {
+        return function (d) {
+          return function (e) {
+            return function (state) {
+              return function () {
+                state.cache[ptr] = {
+                  main: state.context.createDynamicsCompressor(),
+                };
+                genericStarter(state.cache[ptr].main, "threshold", a);
+                genericStarter(state.cache[ptr].main, "knee", b);
+                genericStarter(state.cache[ptr].main, "ratio", c);
+                genericStarter(state.cache[ptr].main, "attack", d);
+                genericStarter(state.cache[ptr].main, "release", e);
+                return state;
+              };
+            };
+          };
+        };
+      };
+    };
+  };
+};
+exports.makeGain_ = function (ptr) {
+  return function (a) {
+    return function (state) {
+      return function () {
+        state.cache[ptr] = { main: state.context.createGain() };
+        genericStarter(state.cache[ptr].main, "gain", a);
+        return state;
+      };
+    };
+  };
+};
+exports.makeHighpass_ = function (ptr) {
+  return function (a) {
+    return function (b) {
+      return function (state) {
+        return function () {
+          state.cache[ptr] = { main: state.context.createBiquadFilter() };
+          state.cache[ptr].main.type = "highpass";
+          genericStarter(state.cache[ptr].main, "frequency", a);
+          genericStarter(state.cache[ptr].main, "Q", b);
+          return state;
+        };
+      };
+    };
+  };
+};
+exports.makeHighshelf_ = function (ptr) {
+  return function (a) {
+    return function (b) {
+      return function (state) {
+        return function () {
+          state.cache[ptr] = { main: state.context.createBiquadFilter() };
+          state.cache[ptr].main.type = "highshelf";
+          genericStarter(state.cache[ptr].main, "frequency", a);
+          genericStarter(state.cache[ptr].main, "gain", b);
+          return state;
+        };
+      };
+    };
+  };
+};
+exports.makeLoopBuf_ = function (ptr) {
+  return function (a) {
+    return function (b) {
+      return function (c) {
+        return function (d) {
+          return function (state) {
+            return function () {
+              state.cache[ptr] = { main: state.context.createBufferSource() };
+              state.cache[ptr].main.loop = true;
+              state.cache[ptr].main.buffer = state.buffers[a];
+              state.cache[ptr].main.start(state.timeToSet + b.timeOffset, c);
+              state.cache[ptr].main.loopStart = c;
+              state.cache[ptr].main.loopEnd = d;
+              genericStarter(state.cache[ptr].main, "playbackRate", b);
+            };
+          };
+        };
+      };
+    };
+  };
+};
+exports.makeLowpass_ = function (ptr) {
+  return function (freq) {
+    return function (q) {
+      return function (state) {
+        return function () {
+          state.cache[ptr] = { main: state.context.createBiquadFilter() };
+          state.cache[ptr].main.type = "lowpass";
+          genericStarter(state.cache[ptr].main, "frequency", a);
+          genericStarter(state.cache[ptr].main, "Q", b);
+          return state;
+        };
+      };
+    };
+  };
+};
+exports.makeLowshelf_ = function (ptr) {
+  return function (a) {
+    return function (b) {
+      return function (state) {
+        return function () {
+          state.cache[ptr] = { main: state.context.createBiquadFilter() };
+          state.cache[ptr].main.type = "lowshelf";
+          genericStarter(state.cache[ptr].main, "frequency", a);
+          genericStarter(state.cache[ptr].main, "gain", b);
+          return state;
+        };
+      };
+    };
+  };
+};
+exports.makeMicrophone_ = function (ptr) {
+  return function (a) {
+    return function (state) {
+      return function () {
+        state.cache[ptr] = {
+          main: context.createMediaStreamSource(
+            state.cache.microphones[Object.keys(state.cache.microphones)[0]]
+          ),
+        };
+        return state;
+      };
+    };
+  };
+};
+exports.makeNotch_ = function (ptr) {
+  return function (a) {
+    return function (b) {
+      return function (state) {
+        return function () {
+          state.cache[ptr] = { main: state.context.createBiquadFilter() };
+          state.cache[ptr].main.type = "notch";
+          genericStarter(state.cache[ptr].main, "frequency", a);
+          genericStarter(state.cache[ptr].main, "Q", b);
+          return state;
+        };
+      };
+    };
+  };
+};
+exports.makePeaking_ = function (ptr) {
+  return function (a) {
+    return function (b) {
+      return function (c) {
+        return function (state) {
+          return function () {
+            state.cache[ptr] = { main: state.context.createBiquadFilter() };
+            state.cache[ptr].main.type = "peaking";
+            genericStarter(state.cache[ptr].main, "frequency", a);
+            genericStarter(state.cache[ptr].main, "Q", b);
+            genericStarter(state.cache[ptr].main, "gain", c);
+            return state;
+          };
+        };
+      };
+    };
+  };
+};
+exports.makePeriodicOsc_ = function (ptr) {
+  return function (a) {
+    return function (b) {
+      return function (state) {
+        return function () {
+          state.cache[ptr] = { main: state.context.createOscillator() };
+          state.cache[ptr].main.setPeriodicWave(state.periodicWaves[a]);
+          state.cache[ptr].main.start(state.timeToSet + b.timeOffset);
+          genericStarter(state.cache[ptr].main, "frequency", b);
+          return state;
+        };
+      };
+    };
+  };
+};
+exports.makePlayBuf_ = function (ptr) {
+  return function (a) {
+    return function (b) {
+      return function (c) {
+        return function (state) {
+          return function () {
+            state.cache[ptr] = { main: state.context.createBufferSource() };
+            state.cache[ptr].main.buffer = state.buffers[a];
+            state.cache[ptr].main.start(state.timeToSet + b.timeOffset, c);
+            genericStarter(state.cache[ptr].main, "playbackRate", b);
+            return state;
+          };
+        };
+      };
+    };
+  };
+};
+exports.makeRecorder_ = function (ptr) {
+  return function (a) {
+    return function (state) {
+      return function () {
+        var mediaRecorderSideEffectFn = state.recorders[a];
+        var dest = state.context.createMediaStreamDestination();
+        var mediaRecorder = new MediaRecorder(dest.stream);
+        state.recorders.concat(mediaRecorder);
+        mediaRecorderSideEffectFn(mediaRecorder)();
+        mediaRecorder.start();
+        state.cache[ptr] = { main: state.context.createGain(), se: dest };
+        return state;
+      };
+    };
+  };
+};
+exports.makeSawtoothOsc_ = function (ptr) {
+  return function (a) {
+    return function (state) {
+      return function () {
+        state.cache[ptr] = { main: state.context.createOscillator() };
+        state.cache[ptr].main.type = "sawtooth";
+        state.cache[ptr].main.start(state.timeToSet + a.timeOffset);
+        genericStarter(state.cache[ptr].main, "frequency", a);
+        return state;
+      };
+    };
+  };
+};
+exports.makeSinOsc_ = function (ptr) {
+  return function (a) {
+    return function (state) {
+      return function () {
+        state.cache[ptr] = { main: state.context.createOscillator() };
+        state.cache[ptr].main.type = "sine";
+        state.cache[ptr].main.start(state.timeToSet + a.timeOffset);
+        genericStarter(state.cache[ptr].main, "frequency", a);
+        return state;
+      };
+    };
+  };
+};
+exports.makeSpeaker_ = function (ptr) {
+  return function (state) {
+    return function () {
+      state.cache[ptr] = {
+        main: state.context.createGain(),
+        se: context.destination,
+      };
+      return state;
+    };
   };
 };
 
-exports.touchAudio_ = function (timeToSet) {
-  return function (context) {
-    return function (audioInfo) {
-      return function (incoming) {
-        return function (instructions) {
-          return function () {
-            // should never happen
-            if (timeToSet < context.currentTime) {
-              console.warn(
-                "Programming error: we are setting in the past",
-                timeToSet,
-                context.currentTime
-              );
-              timeToSet = context.currentTime;
-            }
-            var nu = [];
-            var lb = {};
-            var generators = incoming.generators.slice();
-            var recorders = incoming.recorders;
-            var old = incoming.generators.slice();
-            for (var i = 0; i < instructions.length; i++) {
-              var c = instructions[i];
-              if (predicates.isDisconnectFrom(c)) {
-                getMainFromGenerator(generators[c.value0]).disconnect(
-                  getMainFromGenerator(generators[c.value1])
-                );
-                var se = getSideEffectFromGenerator(generators[c.value1]);
-                if (se) {
-                  getMainFromGenerator(generators[c.value0]).disconnect(se);
-                }
-              } else if (predicates.isConnectTo(c)) {
-                if (predicates.isNothing(c.value2)) {
-                  getMainFromGenerator(generators[c.value0]).connect(
-                    getMainFromGenerator(generators[c.value1])
-                  );
-                  var se = getSideEffectFromGenerator(generators[c.value1]);
-                  if (se) {
-                    getMainFromGenerator(generators[c.value0]).connect(se);
-                  }
-                } else {
-                  getMainFromGenerator(generators[c.value0]).connect(
-                    getMainFromGenerator(generators[c.value1]),
-                    c.value2.value0.value0,
-                    c.value2.value0.value1
-                  );
-                }
-              } else if (predicates.isShuffle(c)) {
-                generators[c.value1] = old[c.value0];
-              } else if (predicates.isNewUnit(c)) {
-                nu.push(c);
-                generators[c.value0] = {
-                  main: predicates.isSpeaker(c.value1)
-                    ? context.createGain()
-                    : predicates.isRecorder(c.value1)
-                    ? context.createGain()
-                    : predicates.isMicrophone(c.value1)
-                    ? context.createMediaStreamSource(
-                        audioInfo.microphones[
-                          Object.keys(audioInfo.microphones)[0]
-                        ]
-                      )
-                    : predicates.isPlay(c.value1)
-                    ? context.createMediaElementSource(
-                        audioInfo.tracks[c.value3.value0]
-                      )
-                    : predicates.isPlayBuf(c.value1)
-                    ? context.createBufferSource()
-                    : predicates.isLoopBuf(c.value1)
-                    ? context.createBufferSource()
-                    : predicates.isIIRFilter(c.value1)
-                    ? context.createIIRFilter(
-                        c.value6.value0.value0,
-                        c.value6.value0.value1
-                      )
-                    : predicates.isLowpass(c.value1)
-                    ? context.createBiquadFilter()
-                    : predicates.isBandpass(c.value1)
-                    ? context.createBiquadFilter()
-                    : predicates.isLowshelf(c.value1)
-                    ? context.createBiquadFilter()
-                    : predicates.isHighshelf(c.value1)
-                    ? context.createBiquadFilter()
-                    : predicates.isNotch(c.value1)
-                    ? context.createBiquadFilter()
-                    : predicates.isAllpass(c.value1)
-                    ? context.createBiquadFilter()
-                    : predicates.isPeaking(c.value1)
-                    ? context.createBiquadFilter()
-                    : predicates.isHighpass(c.value1)
-                    ? context.createBiquadFilter()
-                    : predicates.isConvolver(c.value1)
-                    ? context.createConvolver()
-                    : predicates.isDynamicsCompressor(c.value1)
-                    ? context.createDynamicsCompressor()
-                    : predicates.isSawtoothOsc(c.value1)
-                    ? context.createOscillator()
-                    : predicates.isTriangleOsc(c.value1)
-                    ? context.createOscillator()
-                    : predicates.isPeriodicOsc(c.value1)
-                    ? context.createOscillator()
-                    : predicates.isWaveShaper(c.value1)
-                    ? context.createWaveShaper()
-                    : predicates.isDup(c.value1)
-                    ? context.createGain()
-                    : predicates.isStereoPanner(c.value1)
-                    ? context.createStereoPanner()
-                    : predicates.isPanner(c.value1)
-                    ? context.createPanner()
-                    : predicates.isSinOsc(c.value1)
-                    ? context.createOscillator()
-                    : predicates.isSquareOsc(c.value1)
-                    ? context.createOscillator()
-                    : predicates.isMul(c.value1)
-                    ? (function () {
-                        var nConnections = 0;
-                        for (var j = 0; j < instructions.length; j++) {
-                          // this hack is necessary because
-                          // custom audio worklets need explicit
-                          // channel assignments. maybe make explicit everywhere?
-                          var d = instructions[j];
-                          if (
-                            predicates.isConnectTo(d) &&
-                            d.value1 == c.value0
-                          ) {
-                            d.value2 = predicates.justly(
-                              predicates.tupply(0)(nConnections)
-                            );
-                            nConnections += 1;
-                          }
-                        }
-                        return new AudioWorkletNode(context, "ps-aud-mul", {
-                          numberOfInputs: nConnections,
-                          numberOfOutputs: 1,
-                        });
-                      })()
-                    : predicates.isAudioWorkletGenerator(c.value1) ||
-                      predicates.isAudioWorkletProcessor(c.value1) ||
-                      predicates.isAudioWorkletAggregator(c.value1)
-                    ? (function () {
-                        var initialParams = {};
-                        for (var j = 0; j < instructions.length; j++) {
-                          var d = instructions[j];
-                          if (
-                            predicates.isSetCustomParam(d) &&
-                            d.value0 == c.value0
-                          ) {
-                            initialParams[d.value1] = d.value2;
-                          }
-                        }
-                        if (predicates.isAudioWorkletAggregator(c.value1)) {
-                          var nConnections = 0;
-                          for (var j = 0; j < instructions.length; j++) {
-                            // this hack is necessary because
-                            // custom audio worklets need explicit
-                            // channel assignments. maybe make explicit everywhere?
-                            var d = instructions[j];
-                            if (
-                              predicates.isConnectTo(d) &&
-                              d.value1 == c.value0
-                            ) {
-                              d.value2 = predicates.justly(
-                                predicates.tupply(0)(nConnections)
-                              );
-                              nConnections += 1;
-                            }
-                          }
-                        }
-                        return new AudioWorkletNode(context, c.value3.value0, {
-                          numberOfInputs: predicates.isAudioWorkletGenerator(
-                            c.value1
-                          )
-                            ? 0
-                            : predicates.isAudioWorkletProcessor(c.value1)
-                            ? 1
-                            : 2,
-                          numberOfOutputs: 1,
-                          parameterData: initialParams,
-                        });
-                      })()
-                    : predicates.isAdd(c.value1)
-                    ? context.createGain()
-                    : predicates.isDelay(c.value1)
-                    ? context.createDelay(10.0) // magic number for 10 seconds...make tweakable?
-                    : predicates.isConstant(c.value1)
-                    ? context.createConstantSource()
-                    : predicates.isGain(c.value1)
-                    ? context.createGain()
-                    : predicates.isSplitRes(c.value1)
-                    ? context.createGain()
-                    : predicates.isDupRes(c.value1)
-                    ? context.createGain()
-                    : predicates.isSplitter(c.value1)
-                    ? context.createChannelSplitter(c.value2.value0)
-                    : predicates.isMerger(c.value1)
-                    ? context.createChannelMerger(c.value2.value0)
-                    : null,
-                };
-                if (predicates.isSpeaker(c.value1)) {
-                  generators[c.value0].se = context.destination;
-                } else if (predicates.isRecorder(c.value1)) {
-                  var mediaRecorderSideEffectFn =
-                    audioInfo.recorders[c.value3.value0];
-                  var dest = context.createMediaStreamDestination();
-                  var mediaRecorder = new MediaRecorder(dest.stream);
-                  recorders = recorders.concat(mediaRecorder);
-                  mediaRecorderSideEffectFn(mediaRecorder)();
-                  mediaRecorder.start();
-                  generators[c.value0].se = dest;
-                }
-              } else if (predicates.isSetFrequency(c)) {
-                genericSetter(
-                  predicates,
-                  generators,
-                  c,
-                  "frequency",
-                  timeToSet
-                );
-              } else if (predicates.isSetPan(c)) {
-                genericSetter(predicates, generators, c, "pan", timeToSet);
-              } else if (predicates.isSetGain(c)) {
-                genericSetter(predicates, generators, c, "gain", timeToSet);
-              } else if (predicates.isSetQ(c)) {
-                genericSetter(predicates, generators, c, "Q", timeToSet);
-              } else if (predicates.isSetBuffer(c)) {
-                var myArrayBuffer = context.createBuffer(
-                  c.value2.length,
-                  c.value2[0].length,
-                  c.value1
-                );
-                for (
-                  var channel = 0;
-                  channel < myArrayBuffer.numberOfChannels;
-                  channel++
-                ) {
-                  var nowBuffering = myArrayBuffer.getChannelData(channel);
-                  for (var i = 0; i < myArrayBuffer.length; i++) {
-                    nowBuffering[i] = c.value2[channel][i];
-                  }
-                }
-                getMainFromGenerator(
-                  generators[c.value0]
-                ).buffer = myArrayBuffer;
-              } else if (predicates.isSetDelay(c)) {
-                genericSetter(
-                  predicates,
-                  generators,
-                  c,
-                  "delayTime",
-                  timeToSet
-                );
-              } else if (predicates.isSetOffset(c)) {
-                genericSetter(predicates, generators, c, "offset", timeToSet);
-              } else if (predicates.isSetLoopStart(c)) {
-                lb[c.value0] = c.value1;
-                getMainFromGenerator(generators[c.value0]).loopStart = c.value1;
-              } else if (predicates.isSetLoopEnd(c)) {
-                getMainFromGenerator(generators[c.value0]).loopEnd = c.value1;
-              } else if (predicates.isSetOversample(c)) {
-                getMainFromGenerator(generators[c.value0]).oversample =
-                  c.value1;
-              } else if (predicates.isSetCurve(c)) {
-                var curve = new Float32Array(c.value1.length);
-                for (var i = 0; i < c.value1.length; i++) {
-                  curve[i] = c.value1[i];
-                }
+exports.makeSquareOsc_ = function (ptr) {
+  return function (a) {
+    return function (state) {
+      return function () {
+        state.cache[ptr] = { main: state.context.createOscillator() };
+        state.cache[ptr].main.type = "square";
+        state.cache[ptr].main.start(state.timeToSet + a.timeOffset);
+        genericStarter(state.cache[ptr].main, "frequency", a);
+        return state;
+      };
+    };
+  };
+};
+exports.makeStereoPanner_ = function (ptr) {
+  return function (a) {
+    return function (state) {
+      return function () {
+        state.cache[ptr] = { main: state.context.createDelay() };
+        genericStarter(state.cache[ptr].main, "pan", a);
+        return state;
+      };
+    };
+  };
+};
+exports.makeTriangleOsc_ = function (ptr) {
+  return function (a) {
+    return function (state) {
+      return function () {
+        state.cache[ptr] = { main: state.context.createOscillator() };
+        state.cache[ptr].main.type = "triangle";
+        state.cache[ptr].main.start(state.timeToSet + a.timeOffset);
+        genericStarter(state.cache[ptr].main, "frequency", a);
+        return state;
+      };
+    };
+  };
+};
+exports.makeWaveShaper_ = function (ptr) {
+  return function (a) {
+    return function (b) {
+      return function (state) {
+        return function () {
+          state.cache[ptr] = { main: state.context.createWaveShaper() };
+          state.cache[ptr].main.curve = state.floatArrays[a];
+          state.cache[ptr].main.oversample = b;
+        };
+      };
+    };
+  };
+};
+exports.setLoopStart_ = function (ptr) {
+  return function (a) {
+    return function (state) {
+      return function () {
+        state.cache[ptr].main.loopStart = a;
+      };
+    };
+  };
+};
+exports.setLoopEnd_ = function (ptr) {
+  return function (a) {
+    return function (state) {
+      return function () {
+        state.cache[ptr].main.loopEnd = a;
+      };
+    };
+  };
+};
+exports.setRatio_ = function (ptr) {
+  return function (a) {
+    return function (state) {
+      return function () {
+        genericSetter(state.cache[ptr].main, "ratio", state.timeOffset, a);
+      };
+    };
+  };
+};
+exports.setOffset_ = function (ptr) {
+  return function (a) {
+    return function (state) {
+      return function () {
+        genericSetter(state.cache[ptr].main, "offset", state.timeOffset, a);
+      };
+    };
+  };
+};
+exports.setAttack_ = function (ptr) {
+  return function (a) {
+    return function (state) {
+      return function () {
+        genericSetter(state.cache[ptr].main, "attack", state.timeOffset, a);
+      };
+    };
+  };
+};
+exports.setGain_ = function (ptr) {
+  return function (a) {
+    return function (state) {
+      return function () {
+        genericSetter(state.cache[ptr].main, "gain", state.timeOffset, a);
+      };
+    };
+  };
+};
+exports.setQ_ = function (ptr) {
+  return function (a) {
+    return function (state) {
+      return function () {
+        genericSetter(state.cache[ptr].main, "Q", state.timeOffset, a);
+      };
+    };
+  };
+};
+exports.setPan_ = function (ptr) {
+  return function (a) {
+    return function (state) {
+      return function () {
+        genericSetter(state.cache[ptr].main, "pan", state.timeOffset, a);
+      };
+    };
+  };
+};
+exports.setThreshold_ = function (ptr) {
+  return function (a) {
+    return function (state) {
+      return function () {
+        genericSetter(state.cache[ptr].main, "threshold", state.timeOffset, a);
+      };
+    };
+  };
+};
+exports.setRelease_ = function (ptr) {
+  return function (a) {
+    return function (state) {
+      return function () {
+        genericSetter(state.cache[ptr].main, "release", state.timeOffset, a);
+      };
+    };
+  };
+};
+exports.setKnee_ = function (ptr) {
+  return function (a) {
+    return function (state) {
+      return function () {
+        genericSetter(state.cache[ptr].main, "knee", state.timeOffset, a);
+      };
+    };
+  };
+};
+exports.setDelay_ = function (ptr) {
+  return function (a) {
+    return function (state) {
+      return function () {
+        genericSetter(state.cache[ptr].main, "delay", state.timeOffset, a);
+      };
+    };
+  };
+};
+exports.setPlaybackRate_ = function (ptr) {
+  return function (a) {
+    return function (state) {
+      return function () {
+        genericSetter(
+          state.cache[ptr].main,
+          "playbackRate",
+          state.timeOffset,
+          a
+        );
+      };
+    };
+  };
+};
+exports.setFrequency_ = function (ptr) {
+  return function (a) {
+    return function (state) {
+      return function () {
+        genericSetter(state.cache[ptr].main, "frequency", state.timeOffset, a);
+      };
+    };
+  };
+};
 
-                getMainFromGenerator(generators[c.value0]).curve = curve;
-              } else if (predicates.isSetPlaybackRate(c)) {
-                genericSetter(
-                  predicates,
-                  generators,
-                  c,
-                  "playbackRate",
-                  timeToSet
-                );
-              } else if (predicates.isSetThreshold(c)) {
-                genericSetter(
-                  predicates,
-                  generators,
-                  c,
-                  "threshold",
-                  timeToSet
-                );
-              } else if (predicates.isSetKnee(c)) {
-                genericSetter(predicates, generators, c, "knee", timeToSet);
-              } else if (predicates.isSetRatio(c)) {
-                genericSetter(predicates, generators, c, "ratio", timeToSet);
-              } else if (predicates.isSetAttack(c)) {
-                genericSetter(predicates, generators, c, "attack", timeToSet);
-              } else if (predicates.isSetRelease(c)) {
-                genericSetter(predicates, generators, c, "release", timeToSet);
-              } else if (predicates.isSetCustomParam(c)) {
-                getMainFromGenerator(generators[c.value0])
-                  .parameters.get(c.value1)
-                  .linearRampToValueAtTime(c.value2, timeToSet + c.value3);
-              } else if (predicates.isStop(c)) {
-                getMainFromGenerator(generators[c.value0]).stop();
-              } else if (predicates.isFree(c)) {
-                delete generators[c.value0];
-              } else if (predicates.isSetConeInnerAngle(c)) {
-                getMainFromGenerator(generators[c.value0]).coneInnerAngle =
-                  c.value1;
-              } else if (predicates.isSetConeOuterAngle(c)) {
-                getMainFromGenerator(generators[c.value0]).coneOuterAngle =
-                  c.value1;
-              } else if (predicates.isSetConeOuterGain(c)) {
-                getMainFromGenerator(generators[c.value0]).coneOuterGain =
-                  c.value1;
-              } else if (predicates.isSetDistanceModel(c)) {
-                getMainFromGenerator(generators[c.value0]).distanceModel =
-                  c.value1;
-              } else if (predicates.isSetMaxDistance(c)) {
-                getMainFromGenerator(generators[c.value0]).maxDistance =
-                  c.value1;
-              } else if (predicates.isSetOrientationX(c)) {
-                genericSetter(
-                  predicates,
-                  generators,
-                  c,
-                  "orientationX",
-                  timeToSet
-                );
-              } else if (predicates.isSetOrientationY(c)) {
-                genericSetter(
-                  predicates,
-                  generators,
-                  c,
-                  "orientationY",
-                  timeToSet
-                );
-              } else if (predicates.isSetOrientationZ(c)) {
-                genericSetter(
-                  predicates,
-                  generators,
-                  c,
-                  "orientationZ",
-                  timeToSet
-                );
-              } else if (predicates.isSetPanningModel(c)) {
-                getMainFromGenerator(generators[c.value0]).panningModel =
-                  c.value1;
-              } else if (predicates.isSetPositionX(c)) {
-                genericSetter(
-                  predicates,
-                  generators,
-                  c,
-                  "positionX",
-                  timeToSet
-                );
-              } else if (predicates.isSetPositionY(c)) {
-                genericSetter(
-                  predicates,
-                  generators,
-                  c,
-                  "positionY",
-                  timeToSet
-                );
-              } else if (predicates.isSetPositionZ(c)) {
-                genericSetter(
-                  predicates,
-                  generators,
-                  c,
-                  "positionZ",
-                  timeToSet
-                );
-              } else if (predicates.isSetRefDistance(c)) {
-                getMainFromGenerator(generators[c.value0]).refDistance =
-                  c.value1;
-              } else if (predicates.isSetRolloffFactor(c)) {
-                getMainFromGenerator(generators[c.value0]).rolloffFactor =
-                  c.value1;
-              }
-            }
-            for (var i = 0; i < nu.length; i++) {
-              var c = nu[i];
-              if (predicates.isLoopBuf(c.value1)) {
-                getMainFromGenerator(generators[c.value0]).loop = true;
-                getMainFromGenerator(generators[c.value0]).buffer =
-                  audioInfo.buffers[c.value3.value0];
-                getMainFromGenerator(generators[c.value0]).start(
-                  predicates.isNothing(c.value4)
-                    ? 0.0
-                    : timeToSet + c.value4.value0,
-                  lb[c.value0]
-                );
-              } else if (predicates.isWaveShaper(c.value1)) {
-                getMainFromGenerator(generators[c.value0]).curve =
-                  audioInfo.floatArrays[c.value3.value0];
-              } else if (predicates.isConvolver(c.value1)) {
-                getMainFromGenerator(generators[c.value0]).buffer =
-                  audioInfo.buffers[c.value3.value0];
-              } else if (predicates.isPlayBuf(c.value1)) {
-                getMainFromGenerator(generators[c.value0]).loop = false;
-                getMainFromGenerator(generators[c.value0]).buffer =
-                  audioInfo.buffers[c.value3.value0];
-                getMainFromGenerator(generators[c.value0]).start(
-                  predicates.isNothing(c.value4)
-                    ? 0.0
-                    : timeToSet + c.value4.value0,
-                  c.value5.value0
-                );
-              } else if (predicates.isPlay(c.value1)) {
-                // todo - if the same element is resumed via play it won't
-                // work in the current setup
-                // this is because there is a 1-to-1 relationship between source
-                // and media element
-                // the current workaround is to create multiple media elements.
-                // todo - add delay somehow...
-                audioInfo.tracks[c.value3.value0].play();
-              } else if (predicates.isConstant(c.value1)) {
-                getMainFromGenerator(generators[c.value0]).start(
-                  predicates.isNothing(c.value4)
-                    ? 0.0
-                    : timeToSet + c.value4.value0
-                );
-              } else if (predicates.isLowpass(c.value1)) {
-                getMainFromGenerator(generators[c.value0]).type = "lowpass";
-              } else if (predicates.isBandpass(c.value1)) {
-                getMainFromGenerator(generators[c.value0]).type = "bandpass";
-              } else if (predicates.isLowshelf(c.value1)) {
-                getMainFromGenerator(generators[c.value0]).type = "lowshelf";
-              } else if (predicates.isHighshelf(c.value1)) {
-                getMainFromGenerator(generators[c.value0]).type = "highshelf";
-              } else if (predicates.isNotch(c.value1)) {
-                getMainFromGenerator(generators[c.value0]).type = "notch";
-              } else if (predicates.isAllpass(c.value1)) {
-                getMainFromGenerator(generators[c.value0]).type = "allpass";
-              } else if (predicates.isPeaking(c.value1)) {
-                getMainFromGenerator(generators[c.value0]).type = "peaking";
-              } else if (predicates.isHighpass(c.value1)) {
-                getMainFromGenerator(generators[c.value0]).type = "highpass";
-              } else if (predicates.isSinOsc(c.value1)) {
-                getMainFromGenerator(generators[c.value0]).type = "sine";
-                getMainFromGenerator(generators[c.value0]).start(
-                  predicates.isNothing(c.value4)
-                    ? 0.0
-                    : timeToSet + c.value4.value0
-                );
-              } else if (predicates.isSquareOsc(c.value1)) {
-                getMainFromGenerator(generators[c.value0]).type = "square";
-                getMainFromGenerator(generators[c.value0]).start(
-                  predicates.isNothing(c.value4)
-                    ? 0.0
-                    : timeToSet + c.value4.value0
-                );
-              } else if (predicates.isTriangleOsc(c.value1)) {
-                getMainFromGenerator(generators[c.value0]).type = "triangle";
-                getMainFromGenerator(generators[c.value0]).start(
-                  predicates.isNothing(c.value4)
-                    ? 0.0
-                    : timeToSet + c.value4.value0
-                );
-              } else if (predicates.isSawtoothOsc(c.value1)) {
-                getMainFromGenerator(generators[c.value0]).type = "sawtooth";
-                getMainFromGenerator(generators[c.value0]).start(
-                  predicates.isNothing(c.value4)
-                    ? 0.0
-                    : timeToSet + c.value4.value0
-                );
-              } else if (predicates.isPeriodicOsc(c.value1)) {
-                getMainFromGenerator(generators[c.value0]).setPeriodicWave(
-                  audioInfo.periodicWaves[c.value3.value0]
-                );
-                getMainFromGenerator(generators[c.value0]).start(
-                  predicates.isNothing(c.value4)
-                    ? 0.0
-                    : timeToSet + c.value4.value0
-                );
-              } else if (predicates.isSplitRes(c.value1)) {
-                getMainFromGenerator(
-                  generators[c.value0]
-                ).gain.linearRampToValueAtTime(1.0, timeToSet);
-              } else if (predicates.isDupRes(c.value1)) {
-                getMainFromGenerator(
-                  generators[c.value0]
-                ).gain.linearRampToValueAtTime(1.0, timeToSet);
-              }
-            }
-            return { generators: generators, recorders: recorders };
-          };
+exports.makeAudioContext = function () {
+  return new (window.AudioContext || window.webkitAudioContext)();
+};
+
+exports.makeAudioTrack = function (s) {
+  return function () {
+    var o = new Audio(s);
+    o.crossOrigin = "anonymous";
+    return o;
+  };
+};
+exports.decodeAudioDataFromBase64EncodedString = function (ctx) {
+  return function (s) {
+    return function () {
+      {
+        function base64ToArrayBuffer(base64) {
+          var binaryString = window.atob(base64);
+          var len = binaryString.length;
+          var bytes = new Uint8Array(len);
+          for (var i = 0; i < len; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
+          return bytes.buffer;
+        }
+        return ctx.decodeAudioData(base64ToArrayBuffer(s));
+      }
+    };
+  };
+};
+exports.decodeAudioDataFromUri = function (ctx) {
+  return function (s) {
+    return function () {
+      {
+        return fetch(s)
+          .then(function (b) {
+            return b.arrayBuffer();
+          })
+          .then(function (b) {
+            return ctx.decodeAudioData(b);
+          });
+      }
+    };
+  };
+};
+exports.audioWorkletAddModule = function (ctx) {
+  return function (s) {
+    return function () {
+      {
+        return ctx.audioWorklet.addModule(s);
+      }
+    };
+  };
+};
+exports.makeAudioBuffer = function (ctx) {
+  return function (b) {
+    return function () {
+      var myArrayBuffer = ctx.createBuffer(
+        b.value1.length,
+        b.value1[0].length,
+        b.value0
+      );
+      for (
+        var channel = 0;
+        channel < myArrayBuffer.numberOfChannels;
+        channel++
+      ) {
+        var nowBuffering = myArrayBuffer.getChannelData(channel);
+        for (var i = 0; i < myArrayBuffer.length; i++) {
+          nowBuffering[i] = b.value1[channel][i];
+        }
+      }
+      return myArrayBuffer;
+    };
+  };
+};
+
+exports.makePeriodicWaveImpl = function (ctx) {
+  return function (real_) {
+    return function (imag_) {
+      return function () {
+        var real = new Float32Array(real_.length);
+        var imag = new Float32Array(imag_.length);
+        for (var i = 0; i < real_.length; i++) {
+          real[i] = real_[i];
+        }
+        for (var i = 0; i < imag_.length; i++) {
+          imag[i] = imag_[i];
+        }
+        return ctx.createPeriodicWave(real, imag, {
+          disableNormalization: true,
+        });
+      };
+    };
+  };
+};
+
+exports.makeFloatArray = function (fa) {
+  return function () {
+    var r = new Float32Array(fa.length);
+    for (var i = 0; i < fa.length; i++) {
+      r[i] = fa[i];
+    }
+    return r;
+  };
+};
+
+exports.stopMediaRecorder = function (mediaRecorder) {
+  return function () {
+    mediaRecorder.stop();
+  };
+};
+
+exports.isTypeSupported = function (mimeType) {
+  return function () {
+    return MediaRecorder.isTypeSupported(mimeType);
+  };
+};
+
+exports.mediaRecorderToUrl = function (mimeType) {
+  return function (handler) {
+    return function (mediaRecorder) {
+      var chunks = [];
+      return function () {
+        mediaRecorder.ondataavailable = function (evt) {
+          chunks.push(evt.data);
+        };
+
+        mediaRecorder.onstop = function () {
+          var blob = new Blob(chunks, { type: mimeType });
+          handler(URL.createObjectURL(blob))();
+          chunks = null;
         };
       };
     };

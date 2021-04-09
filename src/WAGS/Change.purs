@@ -17,7 +17,7 @@ import WAGS.Graph.Constructors (Dup(..), Gain(..), Speaker(..))
 import WAGS.Graph.Constructors as CTOR
 import WAGS.Graph.Decorators (Focus(..))
 import WAGS.Graph.Parameter (AudioParameter(..), defaultParam, param)
-import WAGS.Interpret (class AudioInterpret, setAttack, setDelay, setFrequency, setGain, setKnee, setOffset, setPan, setPlaybackRate, setQ, setRatio, setRelease, setThreshold)
+import WAGS.Interpret (class AudioInterpret, setAttack, setDelay, setFrequency, setGain, setKnee, setLoopEnd, setLoopStart, setOffset, setPan, setPlaybackRate, setQ, setRatio, setRelease, setThreshold)
 import WAGS.Rendered (AnAudioUnit(..))
 import WAGS.Universe.AudioUnit (AudioUnitRef)
 import WAGS.Universe.AudioUnit as AU
@@ -207,8 +207,8 @@ instance changeInstructionsHighshelf :: (AudioInterpret audio engine, SetterVal 
     _ -> Nothing
 
 instance changeInstructionsLoopBuf :: (AudioInterpret audio engine, SetterVal argB) => ChangeInstructions audio engine (CTOR.LoopBuf argA argB) where
-  changeInstructions idx (CTOR.LoopBuf _ argB _ _) = case _ of
-    ALoopBuf x v_argB@(AudioParameter v_argB') y z ->
+  changeInstructions idx (CTOR.LoopBuf _ argB loopStart loopEnd) = case _ of
+    ALoopBuf x v_argB@(AudioParameter v_argB') oldLoopStart oldLoopEnd ->
       let
         s_argB = setterVal argB
 
@@ -217,8 +217,8 @@ instance changeInstructionsLoopBuf :: (AudioInterpret audio engine, SetterVal ar
         argB_Changes = let AudioParameter argB_iv = argB_iv' in if argB_iv.param == v_argB'.param then [] else [ setPlaybackRate idx argB_iv' ]
       in
         Just
-          $ (argB_Changes)
-          /\ ALoopBuf x argB_iv' y z
+          $ (argB_Changes <> (if oldLoopStart /= loopStart then [setLoopStart idx loopStart] else []) <> (if oldLoopEnd /= loopEnd then [setLoopEnd idx loopEnd] else []))
+          /\ ALoopBuf x argB_iv' loopStart loopEnd
     _ -> Nothing
 
 instance changeInstructionsLowpass :: (AudioInterpret audio engine, SetterVal argA, SetterVal argB) => ChangeInstructions audio engine (CTOR.Lowpass argA argB argC) where

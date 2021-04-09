@@ -3,8 +3,7 @@ module Test.Main where
 import Prelude
 import Control.Applicative.Indexed (imap, ipure)
 import Control.Monad.Indexed.Qualified as Ix
-import Data.Array as A
-import Data.Const (Const(..))
+import Data.Const (Const)
 import Data.Either (Either(..))
 import Data.Functor.Indexed (ivoid)
 import Data.Identity (Identity(..))
@@ -20,7 +19,7 @@ import Test.Spec.Assertions (shouldEqual)
 import Test.Spec.Reporter (consoleReporter)
 import Test.Spec.Runner (runSpec)
 import Type.Proxy (Proxy)
-import WAGS (AnAudioUnit(..), AudioParameter, AudioParameterTransition(..), Focus(..), Gain(..), Highpass(..), Instruction(..), SinOsc(..), Speaker(..), Thunkable(..), branch, change, changeAt, create, cursor, env, freeze, isHere, isWait, loop, oneFrame', param, runThunkableWithCount, start, thunkThunkable, wait, (@>), (@|>))
+import WAGS (AnAudioUnit(..), AudioParameter, AudioParameterTransition(..), Focus(..), Gain(..), Highpass(..), Instruction(..), SinOsc(..), Speaker(..), Thunkable(..), branch, change, changeAt, create, cursor, env, freeze, isHere, isWait, loop, oneFrame', param, runThunkableWithCount, start, thunkThunkable, wait, (@>), (@|>), gain)
 
 data MyGain
 
@@ -31,8 +30,8 @@ type Time
 
 scene0_ f ({ time: time' } :: Time) =
   Speaker
-    ( Gain 1.0 \(gain :: Proxy MyGain) ->
-        gain
+    ( gain {gain: 1.0} \myGain -> 
+        myGain
           /\ Highpass
               ( 330.0
                   /\ \(_ :: AudioParameter) ->
@@ -134,7 +133,8 @@ main = do
             edgeAssertion = M.fromFoldable [ 0 /\ S.singleton 1, 1 /\ S.fromFoldable [ 1, 2 ], 2 /\ S.singleton 3 ]
 
             instructionAssertion =
-              [ MakeGain 1 (param 1.0)
+              [ (MakeSpeaker 0)
+              , MakeGain 1 (param 1.0)
               , MakeHighpass 2 (param 330.0) (param 1.0)
               , MakeSinOsc 3 (param 440.0)
               , (ConnectXToY 3 2)
@@ -192,7 +192,8 @@ main = do
             edgeAssertion = M.fromFoldable [ 0 /\ S.singleton 1, 1 /\ S.fromFoldable [ 1, 2 ], 2 /\ S.singleton 3 ]
 
             instructionAssertion =
-              [ MakeGain 1 (param 1.0)
+              [ (MakeSpeaker 0)
+              , MakeGain 1 (param 1.0)
               , MakeHighpass 2 (param 330.0) (param 1.0)
               , MakeSinOsc 3 (param 440.0)
               , (ConnectXToY 3 2)
@@ -254,7 +255,8 @@ main = do
             edgeAssertion = M.fromFoldable [ 0 /\ S.singleton 1, 1 /\ S.fromFoldable [ 1, 2 ], 2 /\ S.singleton 3 ]
 
             instructionAssertion =
-              [ MakeGain 1 (param 1.0)
+              [ (MakeSpeaker 0)
+              , MakeGain 1 (param 1.0)
               , MakeHighpass 2 (param 330.0) (param 1.0)
               , MakeSinOsc 3 (param 440.0)
               , (ConnectXToY 3 2)
@@ -329,7 +331,8 @@ main = do
             edgeAssertion = M.fromFoldable [ 0 /\ S.singleton 1, 1 /\ S.fromFoldable [ 1, 2 ], 2 /\ S.singleton 3 ]
 
             instructionAssertion =
-              [ MakeGain 1 (param 1.0)
+              [ (MakeSpeaker 0)
+              , MakeGain 1 (param 1.0)
               , MakeHighpass 2 (param 330.0) (param 1.0)
               , MakeSinOsc 3 (param 440.0)
               , (ConnectXToY 3 2)

@@ -4,7 +4,6 @@ import Prelude
 
 import Control.Monad.Indexed.Qualified as Ix
 import Data.Functor.Indexed (ivoid)
-import Data.Identity (Identity(..))
 import Data.Tuple (fst, snd)
 import Data.Tuple.Nested ((/\), type (/\))
 import Type.Data.Peano (Z)

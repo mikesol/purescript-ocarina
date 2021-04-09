@@ -1,6 +1,11 @@
 module WAGS.Graph.Constructors where
 
-import Type.Proxy (Proxy)
+import Prelude
+
+import Data.Tuple (Tuple(..))
+import Type.Proxy (Proxy(..))
+import Unsafe.Coerce (unsafeCoerce)
+
 
 -- for waveshaper
 data OversampleNone
@@ -90,3 +95,68 @@ data TriangleOsc a
 
 data WaveShaper (s :: Symbol) a b
   = WaveShaper (Proxy s) a b
+
+class IsAudio (audio :: Type)
+
+instance isAudioAllpass :: IsAudio (Allpass a b c)
+
+instance isAudioBandpass :: IsAudio (Bandpass a b c)
+
+instance isAudioConstant :: IsAudio (Constant a)
+
+instance isAudioConvolver :: IsAudio (Convolver a b)
+
+instance isAudioDelay :: IsAudio (Delay a b)
+
+instance isAudioDup :: IsAudio (Dup a b)
+
+instance isAudioDynamicsCompressor :: IsAudio (DynamicsCompressor a b c d e f)
+
+instance isAudioGain :: IsAudio (Gain a b)
+
+instance isAudioHighpass :: IsAudio (Highpass a b c)
+
+instance isAudioHighshelf :: IsAudio (Highshelf a b c)
+
+instance isAudioLoopBuf :: IsAudio (LoopBuf a b)
+
+instance isAudioLowpass :: IsAudio (Lowpass a b c)
+
+instance isAudioLowshelf :: IsAudio (Lowshelf a b c)
+
+instance isAudioMicrophone :: IsAudio Microphone
+
+instance isAudioNotch :: IsAudio (Notch a b c)
+
+instance isAudioPeaking :: IsAudio (Peaking a b c b)
+
+instance isAudioPeriodicOsc :: IsAudio (PeriodicOsc a b)
+
+instance isAudioPlayBuf :: IsAudio (PlayBuf a b)
+
+instance isAudioRecorder :: IsAudio (Recorder a b)
+
+instance isAudioSawtoothOsc :: IsAudio (SawtoothOsc a)
+
+instance isAudioSinOsc :: IsAudio (SinOsc a)
+
+instance isAudioSpeaker :: IsAudio (Speaker a)
+
+instance isAudioSquareOsc :: IsAudio (SquareOsc a)
+
+instance isAudioStereoPanner :: IsAudio (StereoPanner a b)
+
+instance isAudioTriangleOsc :: IsAudio (TriangleOsc a)
+
+instance isAudioWaveShaper :: IsAudio (WaveShaper a b c)
+instance isAudioUnit :: IsAudio Unit
+instance isAudioTuple :: (IsAudio a, IsAudio b) => IsAudio (Tuple a b)
+instance isAudioProxy :: IsAudio (Proxy s)
+
+class IsAudioOrF (audioOrF :: Type) (s :: Type) (audio :: Type) | audioOrF s -> audio where
+  toF :: audioOrF -> (Proxy s -> audio)
+
+instance isAudioOrFProxy :: IsAudio a => IsAudioOrF (Proxy s -> a) s a where
+  toF f s = f s
+else instance isAudioOrFAudio :: IsAudio a => IsAudioOrF a s a where
+  toF = const

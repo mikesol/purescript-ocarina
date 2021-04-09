@@ -1,12 +1,14 @@
 module WAGS.Control.Thunkable where
 
 import Prelude
-
 import Control.Alternative (class Alt, class Alternative, class Plus, alt, empty)
+import Data.Either (Either(..))
 import Data.Identity (Identity)
 import Data.Traversable (class Foldable, class Traversable, foldMapDefaultR, sequence, traverseDefault)
 import Data.Tuple (Tuple(..))
-import Effect.Aff (Aff)
+import Effect.Aff (Aff, Milliseconds(..), delay)
+import Effect.Class (liftEffect)
+import Effect.Ref (Ref, read)
 import WAGS.Control.MemoizedState (MemoizedStateT)
 
 data Thunkable a
@@ -47,6 +49,17 @@ intercalateThunkable :: forall m. Monad m => m Unit -> Thunkable ~> m
 intercalateThunkable m t = case (thunkThunkable t) of
   Here a -> pure a
   Wait f -> m >>= \_ -> intercalateThunkable m (f unit)
+
+affifyThunkable :: forall a. Ref Boolean -> Thunkable a -> Aff (Either Unit a)
+affifyThunkable r t = case (thunkThunkable t) of
+  Here a -> pure $ Right a
+  Wait f -> do
+    b <- liftEffect $ read r
+    if (not b) then
+      pure (Left unit)
+    else do
+      delay (Milliseconds 0.0001)
+      affifyThunkable r (f unit)
 
 instance semigroupThunkable :: Semigroup a => Semigroup (Thunkable a) where
   append (Here a) (Here b) = Here (a <> b)

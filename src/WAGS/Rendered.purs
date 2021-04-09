@@ -32,9 +32,12 @@ data Instruction
   | MakeSawtoothOsc Int AudioParameter
   | MakeSinOsc Int AudioParameter
   | MakeSquareOsc Int AudioParameter
+  | MakeSpeaker Int
   | MakeStereoPanner Int AudioParameter
   | MakeTriangleOsc Int AudioParameter
   | MakeWaveShaper Int String Oversample
+  | SetLoopStart Int Number
+  | SetLoopEnd Int Number
   | SetRatio Int AudioParameter
   | SetOffset Int AudioParameter
   | SetAttack Int AudioParameter

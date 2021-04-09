@@ -110,12 +110,7 @@ let upstream =
 let overrides = {=}
 
 let additions =
-      { typelevel-graph =
-        { dependencies = [ "typelevel-peano" ]
-        , repo = "https://github.com/mikesol/purescript-typelevel-graph.git"
-        , version = "main"
-        }
-      , typelevel-peano =
+      { typelevel-peano =
         { dependencies =
           [ "arrays"
           , "console"
@@ -156,19 +151,10 @@ let additions =
         , repo = "https://github.com/mikesol/purescript-behaviors.git"
         , version = "master"
         }
-      , painting =
-        { dependencies =
-          [ "canvas"
-          , "colors"
-          , "console"
-          , "effect"
-          , "foldable-traversable"
-          , "foreign-object"
-          , "psci-support"
-          , "web-html"
-          ]
-        , repo = "https://github.com/mikesol/purescript-painting.git"
-        , version = "main"
+      , convertable-options = { dependencies =
+          [  "console", "effect", "maybe", "record"   ]
+        , repo = "https://github.com/natefaubion/purescript-convertable-options.git"
+        , version = "v1.0.0"
         }
       }
 
