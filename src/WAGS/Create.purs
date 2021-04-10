@@ -62,8 +62,8 @@ instance initialValTuple :: InitialVal a => InitialVal (Tuple a b) where
   initialVal = initialVal <<< fst
 
 class
-  AudioInterpret audio engine <= CreationInstructions (audio :: Type) (engine :: Type -> Type) (g :: Type) where
-  creationInstructions :: Int -> g -> Array (audio -> engine audio) /\ AnAudioUnit
+  AudioInterpret audio engine <= CreationInstructions (audio :: Type) (engine :: Type) (g :: Type) where
+  creationInstructions :: Int -> g -> Array (audio -> engine) /\ AnAudioUnit
 
 instance creationInstructionsAllpass :: (AudioInterpret audio engine, InitialVal argA, InitialVal argB) => CreationInstructions audio engine (CTOR.Allpass argA argB argC) where
   creationInstructions idx (CTOR.Allpass argA argB _) =

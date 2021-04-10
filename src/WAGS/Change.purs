@@ -1,7 +1,6 @@
 module WAGS.Change where
 
 import Prelude
-
 import Control.Monad.Indexed.Qualified as Ix
 import Control.Monad.State (gets, modify_)
 import Data.Identity (Identity(..))
@@ -30,8 +29,8 @@ import WAGS.Universe.Universe (UniverseC)
 import WAGS.Validation (class AssertSingleton, class EdgeProfileChooseGreater, class NodeListAppend, class TerminalIdentityEdge)
 
 class
-  AudioInterpret audio engine <= ChangeInstructions (audio :: Type) (engine :: Type -> Type) (g :: Type) where
-  changeInstructions :: Int -> g -> AnAudioUnit -> Maybe (Array (audio -> engine audio) /\ AnAudioUnit)
+  AudioInterpret audio engine <= ChangeInstructions (audio :: Type) (engine :: Type) (g :: Type) where
+  changeInstructions :: Int -> g -> AnAudioUnit -> Maybe (Array (audio -> engine) /\ AnAudioUnit)
 
 --------------
 --------
@@ -217,7 +216,7 @@ instance changeInstructionsLoopBuf :: (AudioInterpret audio engine, SetterVal ar
         argB_Changes = let AudioParameter argB_iv = argB_iv' in if argB_iv.param == v_argB'.param then [] else [ setPlaybackRate idx argB_iv' ]
       in
         Just
-          $ (argB_Changes <> (if oldLoopStart /= loopStart then [setLoopStart idx loopStart] else []) <> (if oldLoopEnd /= loopEnd then [setLoopEnd idx loopEnd] else []))
+          $ (argB_Changes <> (if oldLoopStart /= loopStart then [ setLoopStart idx loopStart ] else []) <> (if oldLoopEnd /= loopEnd then [ setLoopEnd idx loopEnd ] else []))
           /\ ALoopBuf x argB_iv' loopStart loopEnd
     _ -> Nothing
 

@@ -36,10 +36,10 @@ import WAGS.Universe.Graph (InitialGraph)
 import WAGS.Universe.Skolems (SkolemListNil)
 import WAGS.Universe.Universe (Universe, UniverseC)
 
-type AudioState' env audio (engine :: Type -> Type)
+type AudioState' env audio (engine :: Type)
   = { env :: env
     , currentIdx :: Int
-    , instructions :: Array (audio -> engine audio)
+    , instructions :: Array (audio -> engine)
     , internalNodes :: M.Map Int (AnAudioUnit)
     , internalEdges :: M.Map Int (Set Int)
     }
@@ -47,10 +47,10 @@ type AudioState' env audio (engine :: Type -> Type)
 type AudioState env audio engine proof m a
   = (MemoizedStateT proof (AudioState' env audio engine) m) a
 
-newtype FrameT (env :: Type) (audio :: Type) (engine :: Type -> Type) (proof :: Type) (m :: Type -> Type) (iu :: Universe) (ou :: Universe) (a :: Type)
+newtype FrameT (env :: Type) (audio :: Type) (engine :: Type) (proof :: Type) (m :: Type -> Type) (iu :: Universe) (ou :: Universe) (a :: Type)
   = FrameT (AudioState env audio engine proof m a)
 
-type Frame (env :: Type) (audio :: Type) (engine :: Type -> Type) (proof :: Type) (iu :: Universe) (ou :: Universe) (a :: Type)
+type Frame (env :: Type) (audio :: Type) (engine :: Type) (proof :: Type) (iu :: Universe) (ou :: Universe) (a :: Type)
   = FrameT env audio engine proof Thunkable iu ou a
 
 data Frame0
@@ -81,23 +81,23 @@ instance frameIxBind :: Monad m => IxBind (FrameT env audio engine proof m) wher
 
 instance frameIxMonad :: Monad m => IxMonad (FrameT env audio engine proof m)
 
-data SceneT :: forall k. Type -> Type -> (Type -> Type) -> k -> (Type -> Type) -> Type
+data SceneT :: forall k. Type -> Type -> Type -> k -> (Type -> Type) -> Type
 data SceneT env audio engine proof m
   = SceneT (env -> m (SceneT' env audio engine proof m))
 
-type Scene :: forall k. Type -> Type -> (Type -> Type) ->k -> Type
+type Scene :: forall k. Type -> Type -> Type ->k -> Type
 type Scene env audio engine proof
   = SceneT env audio engine proof Thunkable
 
-type SceneT' :: forall k. Type -> Type -> (Type -> Type) -> k -> (Type -> Type) -> Type
+type SceneT' :: forall k. Type -> Type -> Type -> k -> (Type -> Type) -> Type
 type SceneT' env audio engine proof m
   = { nodes :: M.Map Int AnAudioUnit
     , edges :: M.Map Int (Set Int)
-    , instructions :: Array (audio -> engine audio)
+    , instructions :: Array (audio -> engine)
     , next :: SceneT env audio engine proof m
     }
 
-type Scene' :: forall k. Type -> Type -> (Type -> Type) -> k -> Type
+type Scene' :: forall k. Type -> Type -> Type -> k -> Type
 type Scene' env audio engine proof
   = SceneT' env audio engine proof Thunkable
 
@@ -108,12 +108,12 @@ oneFrameT (SceneT f) = (unsafeCoerce :: (env -> m (SceneT' env audio engine proo
 oneFrame :: forall env audio engine proofA. Scene env audio engine proofA -> env -> (forall proofB. Scene' env audio engine proofB)
 oneFrame m s = runThunkable (oneFrameT m s)
 
-oneFrameT' :: forall env audio engine proofA m. Monad m => SceneT env audio engine proofA m -> env -> (forall proofB. m (M.Map Int AnAudioUnit /\ M.Map Int (Set Int) /\ Array (audio -> engine audio) /\ SceneT env audio engine proofB m))
+oneFrameT' :: forall env audio engine proofA m. Monad m => SceneT env audio engine proofA m -> env -> (forall proofB. m (M.Map Int AnAudioUnit /\ M.Map Int (Set Int) /\ Array (audio -> engine) /\ SceneT env audio engine proofB m))
 oneFrameT' s e = go <$> (oneFrameT s e)
   where
   go x = nodes /\ edges /\ instructions /\ next
     where
     { nodes, edges, instructions, next } = x
 
-oneFrame' :: forall env audio engine proofA. Scene env audio engine proofA -> env -> (forall proofB. (M.Map Int AnAudioUnit /\ M.Map Int (Set Int) /\ Array (audio -> engine audio) /\ Scene env audio engine proofB))
+oneFrame' :: forall env audio engine proofA. Scene env audio engine proofA -> env -> (forall proofB. (M.Map Int AnAudioUnit /\ M.Map Int (Set Int) /\ Array (audio -> engine) /\ Scene env audio engine proofB))
 oneFrame' s e = runThunkable (oneFrameT' s e)

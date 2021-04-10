@@ -41,10 +41,9 @@ scene1 ({ time: time' } :: Time) =
   speaker
     $ gain 1.0 \(myGain :: Proxy MyGain) ->
         myGain /\ highpass (330.0 + time' * 50.0) (sinOsc 440.0) /\ unit
-    
 
-resolveInstructions :: Array (Unit -> Const Instruction Unit) -> Array Instruction
-resolveInstructions = map (\f -> unwrap $ (f unit))
+resolveInstructions :: Array (Unit -> Instruction) -> Array Instruction
+resolveInstructions = map (_ $ unit)
 
 main :: Effect Unit
 main = do
