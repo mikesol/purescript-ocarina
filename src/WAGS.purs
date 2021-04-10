@@ -40,8 +40,8 @@ import WAGS.Control.Thunkable (Thunkable(..), runThunkable, thunkThunkable, runT
 import WAGS.Graph.Constructors (Allpass(..), Bandpass(..), Constant(..), Convolver(..), Delay(..), Dup(..), DynamicsCompressor(..), Gain(..), Highpass(..), Highshelf(..), LoopBuf(..), Lowpass(..), Lowshelf(..), Microphone(..), Notch(..), OversampleFourX(..), OversampleNone(..), OversampleTwoX(..), Peaking(..), PeriodicOsc(..), PlayBuf(..), Recorder(..), SawtoothOsc(..), SinOsc(..), Speaker(..), SquareOsc(..), StereoPanner(..), TriangleOsc(..), WaveShaper(..))
 import WAGS.Graph.Decorators (Decorated, class Decorate, class MakeDecorators, Decorating(..), Focus(..), decorate, dk, makeDecorators)
 import WAGS.Graph.Parameter (AudioParameter(..), AudioParameter', AudioParameterTransition(..), defaultParam, param)
-import WAGS.Control.Functions (branch, env, freeze, loop, makeScene, start, startT, universe, lift, (@>), (@|>))
-import WAGS.Control.Types
+import WAGS.Control.Functions (branch, proof, withProof, env, freeze, loop, makeScene, start, startT, universe, lift, (@>), (@|>))
+import WAGS.Control.Types (AudioState, AudioState', Frame, Frame0, FrameT, InitialFrame, InitialFrameT, InitialUniverse, Scene, SceneT(..), SceneT', oneFrame, oneFrame', oneFrameT, oneFrameT', unsafeFrame, unsafeUnframe)
 import WAGS.Universe.AudioUnit (class AudioUnitEq, class GetPointer, AudioUnit, AudioUnitCons, AudioUnitList, AudioUnitNil, AudioUnitRef(..), TAllpass, TBandpass, TConstant, TConvolver, TDelay, TDup, TDynamicsCompressor, TGain, THighpass, THighshelf, TLoopBuf, TLowpass, TLowshelf, TMicrophone, TNotch, TPeaking, TPeriodicOsc, TPlayBuf, TRecorder, TSawtoothOsc, TSinOsc, TSpeaker, TSquareOsc, TStereoPanner, TTriangleOsc, TWaveShaper)
 import WAGS.Universe.Bin (class AllZerosToNull, class Beq, class BinEq, class BinSub, class BinSub', class BinSucc, class BinToInt, class PtrListKeepSingleton, class RemoveTrailingZeros, type (+:), Bc, Bin, BinL, Bn, D0, D1, D2, D3, D4, D5, D6, D7, D8, D9, D10, I, O, Ptr, PtrList, PtrListCons, PtrListNil, toInt', toInt'')
 import WAGS.Universe.EdgeProfile (EdgeProfile, ManyEdges, NoEdge, SingleEdge)

@@ -20,10 +20,7 @@ module WAGS.Control.Types
 
 import Prelude
 
-import Control.Applicative.Indexed (class IxApplicative)
 import Control.Apply.Indexed (class IxApply)
-import Control.Bind.Indexed (class IxBind)
-import Control.Monad.Indexed (class IxMonad)
 import Data.Functor.Indexed (class IxFunctor)
 import Data.Map as M
 import Data.Set (Set)
@@ -80,14 +77,6 @@ instance frameIxFunctor :: Monad m => IxFunctor (FrameT env audio engine proof m
 
 instance frameIxApplicative :: Monad m => IxApply (FrameT env audio engine proof m) where
   iapply (FrameT (f)) (FrameT (a)) = FrameT ((f <*> a))
-
-instance frameIxApply :: Monad m => IxApplicative (FrameT env audio engine proof m) where
-  ipure a = FrameT $ (pure a)
-
-instance frameIxBind :: Monad m => IxBind (FrameT env audio engine proof m) where
-  ibind (FrameT (monad)) function = FrameT ((monad >>= ((\(FrameT x) -> x) <<< function)))
-
-instance frameIxMonad :: Monad m => IxMonad (FrameT env audio engine proof m)
 
 data SceneT :: forall k. Type -> Type -> Type -> k -> (Type -> Type) -> Type
 data SceneT env audio engine proof m

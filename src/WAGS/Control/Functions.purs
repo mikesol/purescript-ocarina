@@ -9,14 +9,13 @@ module WAGS.Control.Functions
   , env
   , freeze
   , lift
+  , proof
+  , withProof
   , (@>)
   , (@|>)
   ) where
 
 import Prelude
-import Control.Applicative.Indexed (ipure)
-import Control.Bind.Indexed (ibind)
-import Control.Monad.Indexed.Qualified as Ix
 import Control.Monad.State (gets)
 import Control.Monad.State as MT
 import Data.Either (Either(..))
@@ -28,6 +27,7 @@ import Type.Proxy (Proxy(..))
 import Unsafe.Coerce (unsafeCoerce)
 import WAGS.Change (changes)
 import WAGS.Control.MemoizedState (makeMemoizedStateT, runMemoizedStateT')
+import WAGS.Control.Qualified as Ix
 import WAGS.Control.Thunkable (Thunkable)
 import WAGS.Control.Types (AudioState', FrameT, InitialFrameT, SceneT(..), SceneT', oneFrameT, unsafeFrame, unsafeUnframe)
 import WAGS.Interpret (class AudioInterpret)
@@ -103,9 +103,7 @@ branch mch m =
         r <- m
         mbe <- mch
         case mbe of
-          Left l -> Ix.do
-            changes unit
-            ipure $ Left (l m)
+          Left l -> changes unit $> Left (l m)
           Right fa -> imap Right (fa r)
     )
     (branch mch)
@@ -120,7 +118,7 @@ loop ::
   FrameT env audio engine proofA m i (UniverseC currentIdx graph changeBit skolems) a ->
   SceneT env audio engine proofA m
 --loop = branch <<< ipure <<< Right
-loop fa ma = makeScene (imap Right $ ibind ma fa) (loop fa)
+loop fa ma = makeScene (imap Right $ Ix.bind ma fa) (loop fa)
 
 freeze ::
   forall env audio engine proof m i currentIdx graph changeBit skolems x.
@@ -149,6 +147,20 @@ env ::
   AudioInterpret audio engine =>
   FrameT env audio engine proof m i i env
 env = unsafeFrame (gets _.env)
+
+proof ::
+  forall env audio engine proof m i.
+  Monad m =>
+  AudioInterpret audio engine =>
+  FrameT env audio engine proof m i i proof
+proof = unsafeFrame (pure (unsafeCoerce unit))
+
+withProof ::
+  forall env audio engine proof m i a.
+  Monad m =>
+  AudioInterpret audio engine =>
+  proof -> a -> FrameT env audio engine proof m i i a
+withProof _ a = unsafeFrame (pure a)
 
 universe ::
   forall env audio engine proof m i.

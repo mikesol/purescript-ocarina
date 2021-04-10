@@ -1,7 +1,6 @@
 module WAGS.Change where
 
 import Prelude
-import Control.Monad.Indexed.Qualified as Ix
 import Control.Monad.State (gets, modify_)
 import Data.Identity (Identity(..))
 import Data.Map as M
@@ -27,6 +26,7 @@ import WAGS.Universe.Node (Node, NodeC, NodeList, NodeListCons, NodeListNil)
 import WAGS.Universe.Skolems (class GetSkolemFromRecursiveArgument, class ToSkolemizedFunction, SkolemListCons, SkolemPairC, toSkolemizedFunction)
 import WAGS.Universe.Universe (UniverseC)
 import WAGS.Validation (class AssertSingleton, class EdgeProfileChooseGreater, class NodeListAppend, class TerminalIdentityEdge)
+import WAGS.Control.Qualified as Ix
 
 class
   AudioInterpret audio engine <= ChangeInstructions (audio :: Type) (engine :: Type) (g :: Type) where

@@ -1,14 +1,11 @@
 module Test.Main where
 
 import Prelude
-import Control.Applicative.Indexed (imap, ipure)
-import Control.Monad.Indexed.Qualified as Ix
-import Data.Const (Const)
+import Control.Applicative.Indexed (imap)
 import Data.Either (Either(..))
 import Data.Functor.Indexed (ivoid)
 import Data.Identity (Identity(..))
 import Data.Map as M
-import Data.Newtype (unwrap)
 import Data.Set as S
 import Data.Tuple (fst, snd)
 import Data.Tuple.Nested ((/\))
@@ -19,7 +16,8 @@ import Test.Spec.Assertions (shouldEqual)
 import Test.Spec.Reporter (consoleReporter)
 import Test.Spec.Runner (runSpec)
 import Type.Proxy (Proxy)
-import WAGS (AnAudioUnit(..), AudioParameter, AudioParameterTransition(..), Focus(..), Gain(..), Highpass(..), Instruction(..), SinOsc(..), Speaker(..), Thunkable(..), branch, change, changeAt, create, cursor, env, freeze, speaker, gain, mix, highpass, isHere, isWait, loop, oneFrame', param, runThunkableWithCount, start, sinOsc, thunkThunkable, wait, (@>), (@|>))
+import WAGS (AnAudioUnit(..), Focus(..), Instruction(..), SinOsc(..), branch, change, changeAt, create, cursor, env, freeze, gain, highpass, isHere, loop, mix, oneFrame', param, proof, runThunkableWithCount, sinOsc, speaker, start, thunkThunkable, wait, withProof, (@>), (@|>))
+import WAGS.Control.Qualified as Ix
 
 data MyMix
 
@@ -213,8 +211,7 @@ main = do
               ( Ix.do
                   start
                   e <- env
-                  ivoid $ create (scene0 e)
-                  ipure $ Right unit
+                  create (scene0 e) $> Right unit
               )
                 @> ( loop
                       ( const
@@ -276,12 +273,12 @@ main = do
               ( Ix.do
                   start
                   e <- env
-                  ivoid $ create (scene0 e)
-                  ipure $ Right unit
+                  create (scene0 e) $> Right unit
               )
                 @> ( branch Ix.do
                       { time } <- env
-                      ipure
+                      pr <- proof
+                      withProof pr
                         $ if time < 0.3 then
                             Right
                               ( const
