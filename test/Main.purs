@@ -31,7 +31,7 @@ type Time
   = { time :: (Number) }
 
 scene0_ f ({ time: time' } :: Time) =
-  Speaker
+  speaker
     ( mix \(myMix :: Proxy MyMix) ->
         myMix /\ highpass (330.0 + time' * 10.0) (f (sinOsc 440.0)) /\ unit
     )
