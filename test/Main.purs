@@ -32,17 +32,16 @@ type Time
 
 scene0_ f ({ time: time' } :: Time) =
   speaker
-    ( mix \(myMix :: Proxy MyMix) ->
+    $ mix \(myMix :: Proxy MyMix) ->
         myMix /\ highpass (330.0 + time' * 10.0) (f (sinOsc 440.0)) /\ unit
-    )
 
 scene0 = scene0_ Identity
 
 scene1 ({ time: time' } :: Time) =
   speaker
-    ( gain 1.0 \(myGain :: Proxy MyGain) ->
+    $ gain 1.0 \(myGain :: Proxy MyGain) ->
         myGain /\ highpass (330.0 + time' * 50.0) (sinOsc 440.0) /\ unit
-    )
+    
 
 resolveInstructions :: Array (Unit -> Const Instruction Unit) -> Array Instruction
 resolveInstructions = map (\f -> unwrap $ (f unit))
