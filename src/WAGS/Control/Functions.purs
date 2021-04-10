@@ -21,13 +21,13 @@ import Control.Monad.State (gets)
 import Control.Monad.State as MT
 import Data.Either (Either(..))
 import Data.Functor.Indexed (imap)
-import Data.Identity (Identity)
 import Data.Map as M
 import Data.Tuple.Nested ((/\))
 import Type.Data.Peano (Succ)
 import Type.Proxy (Proxy(..))
 import Unsafe.Coerce (unsafeCoerce)
 import WAGS.Change (changes)
+import WAGS.Control.Thunkable(Thunkable)
 import WAGS.Interpret (class AudioInterpret)
 import WAGS.Control.MemoizedState (makeMemoizedStateT, runMemoizedStateT')
 import WAGS.Control.Types (AudioState', FrameT(..), InitialFrameT, SceneT(..), SceneT', oneFrameT)
@@ -41,7 +41,7 @@ startT ::
   InitialFrameT env audio engine m Unit
 startT = FrameT (pure unit)
 
-start :: forall env audio engine. InitialFrameT env audio engine Identity Unit
+start :: forall env audio engine. InitialFrameT env audio engine Thunkable Unit
 start = FrameT (pure unit)
 
 initialAudioState :: forall env audio engine. env -> AudioState' env audio engine
