@@ -361,17 +361,6 @@ instance createIdentity :: Create x i o r => Create (Identity x) i o r where
 instance createFocus :: Create x i o r => Create (Focus x) i o r where
   create (Focus x) = create x
 
-instance createProxy ::
-  ( LookupSkolem skolem skolems ptr
-  , BinToInt ptr
-  ) =>
-  Create
-    (Proxy skolem)
-    (UniverseC next graph changeBit skolems)
-    (UniverseC next graph changeBit skolems)
-    (AudioUnitRef ptr) where
-  create _ = FrameT $ (pure $ AudioUnitRef $ toInt' (Proxy :: Proxy ptr))
-
 instance createDup ::
   ( SkolemNotYetPresent skolem skolems
   , BinToInt ptr
@@ -418,56 +407,6 @@ instance createDup ::
             (AudioUnitRef midptr)
       )
         (f (Proxy :: _ skolem))
-
-{-
-instance createSinOsc ::
-  ( InitialVal a
-  , BinToInt ptr
-  , BinSucc ptr next
-  , GraphToNodeList graph nodeList
-  ) =>
-  Create
-    (SinOsc a)
-    (UniverseC ptr graph changeBit skolems)
-    ( UniverseC next
-        (GraphC (NodeC (TSinOsc ptr) NoEdge) nodeList)
-        changeBit
-        skolems
-    )
-    (AudioUnitRef ptr) where
-  create = FrameT <<< (map) AudioUnitRef <<< creationStep
-
-instance createHighpass ::
-  ( InitialVal a
-  , InitialVal b
-  , GetSkolemFromRecursiveArgument fc skolem
-  , ToSkolemizedFunction fc skolem c
-  , SkolemNotYetPresentOrDiscardable skolem skolems
-  , MakeInternalSkolemStack skolem ptr skolems skolemsInternal
-  , BinToInt ptr
-  , BinSucc ptr next
-  , Create
-      c
-      (UniverseC next graphi changeBit skolemsInternal)
-      (UniverseC outptr grapho changeBit skolemsInternal)
-      term
-  , AsEdgeProfile term (SingleEdge op)
-  , GraphToNodeList grapho nodeList
-  ) =>
-  Create
-    (Highpass a b fc)
-    (UniverseC ptr graphi changeBit skolems)
-    ( UniverseC
-        outptr
-        (GraphC (NodeC (THighpass ptr) (SingleEdge op)) nodeList)
-        changeBit
-        skolems
-    )
-    (AudioUnitRef ptr) where
-  create =
-    FrameT <<< (map) AudioUnitRef <<< (\(FrameT x) -> x)
-      <<< createAndConnect (Proxy :: ProxyCC skolem (Proxy ptr) term (Proxy (UniverseC next graphi changeBit skolemsInternal)) (Proxy (UniverseC outptr grapho changeBit skolemsInternal)))
--}
 instance createAllpass ::
   ( InitialVal argA
   , InitialVal argB
@@ -1116,3 +1055,14 @@ instance createSpeaker ::
       <<< (createAndConnect (Proxy :: ProxyCC DiscardableSkolem (Proxy ptr) term (Proxy (UniverseC next graphi changeBit skolems)) (Proxy (UniverseC outptr grapho changeBit skolems))))
 
 ----------
+
+instance createProxy ::
+  ( LookupSkolem skolem skolems ptr
+  , BinToInt ptr
+  ) =>
+  Create
+    (Proxy skolem)
+    (UniverseC next graph changeBit skolems)
+    (UniverseC next graph changeBit skolems)
+    (AudioUnitRef ptr) where
+  create _ = FrameT $ (pure $ AudioUnitRef $ toInt' (Proxy :: Proxy ptr))
