@@ -1,5 +1,5 @@
 module WAGS.Control.Types
-  ( FrameT(..)
+  ( FrameT
   , Frame
   , AudioState
   , AudioState'
@@ -14,6 +14,8 @@ module WAGS.Control.Types
   , oneFrame'
   , oneFrameT
   , oneFrameT'
+  , unsafeUnframe
+  , unsafeFrame
   ) where
 
 import Prelude
@@ -49,6 +51,12 @@ type AudioState env audio engine proof m a
 
 newtype FrameT (env :: Type) (audio :: Type) (engine :: Type) (proof :: Type) (m :: Type -> Type) (iu :: Universe) (ou :: Universe) (a :: Type)
   = FrameT (AudioState env audio engine proof m a)
+
+unsafeUnframe :: forall env audio engine proof m iu ou a. FrameT env audio engine proof m iu ou a -> AudioState env audio engine proof m a
+unsafeUnframe (FrameT x) = x
+
+unsafeFrame :: forall env audio engine proof m iu ou a. AudioState env audio engine proof m a -> FrameT env audio engine proof m iu ou a
+unsafeFrame = FrameT
 
 type Frame (env :: Type) (audio :: Type) (engine :: Type) (proof :: Type) (iu :: Universe) (ou :: Universe) (a :: Type)
   = FrameT env audio engine proof Thunkable iu ou a

@@ -4,7 +4,7 @@ import Prelude
 import Data.Typelevel.Bool (False, True)
 import Type.Data.Peano (Nat, Succ, Z)
 import Type.Proxy (Proxy)
-import WAGS.Control.Types (FrameT(..))
+import WAGS.Control.Types (FrameT, unsafeFrame)
 import WAGS.Universe.AudioUnit (AudioUnitRef, TGain, TSpeaker)
 import WAGS.Universe.Bin (class BinEq, Ptr, PtrList, PtrListCons, PtrListNil)
 import WAGS.Universe.EdgeProfile (EdgeProfile, ManyEdges)
@@ -118,4 +118,4 @@ instance moveAref ::
   , GraphToNodeList grapho nodeListO
   ) =>
   Move at from to (UniverseC ptr graphi changeBit skolems) (UniverseC ptr grapho changeBit skolems) where
-  move _ _ _ = FrameT (pure unit)
+  move _ _ _ = unsafeFrame (pure unit)

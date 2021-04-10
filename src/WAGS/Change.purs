@@ -10,7 +10,7 @@ import Data.Tuple (Tuple, snd)
 import Data.Tuple.Nested ((/\), type (/\))
 import Type.Data.Peano (Succ)
 import Type.Proxy (Proxy(..))
-import WAGS.Control.Types (FrameT(..))
+import WAGS.Control.Types (FrameT, unsafeFrame, unsafeUnframe)
 import WAGS.Create (class Create)
 import WAGS.Graph.Constructors (Dup(..), Gain(..), Speaker(..))
 import WAGS.Graph.Constructors as CTOR
@@ -480,15 +480,15 @@ data ChangeInstruction a b
   = ChangeInstruction a b
 
 instance changesUnit :: Changes Unit g where
-  changes _ = FrameT (pure unit)
+  changes _ = unsafeFrame (pure unit)
 else instance changesPx :: Change p a graph => Changes (ChangeInstruction (Proxy p) a) graph where
   changes (ChangeInstruction p a) = (change' :: ChangeType p a graph) p a
 else instance changesTp :: (Changes x graph, Changes y graph) => Changes (Tuple x y) graph where
-  changes (x /\ y) = FrameT (x' *> y')
+  changes (x /\ y) = unsafeFrame (x' *> y')
     where
-    FrameT x' = (changes :: ChangesType x graph) x
+    x' = unsafeUnframe $ (changes :: ChangesType x graph) x
 
-    FrameT y' = (changes :: ChangesType y graph) y
+    y' = unsafeUnframe $ (changes :: ChangesType y graph) y
 else instance changesSingle :: (TerminalIdentityEdge graph edge, Change edge a graph) => Changes a graph where
   changes a = change a
 
@@ -554,7 +554,7 @@ changeAudioUnit ::
   Modify g p igraph nextP =>
   Proxy (Proxy p /\ Proxy nextP /\ Proxy igraph) -> g -> FrameT env audio engine proof m univ (UniverseC currentIdx igraph changeBit skolems) Unit
 changeAudioUnit _ g =
-  FrameT
+  unsafeFrame
     $ do
         let
           ptr = toInt' (Proxy :: _ p)
@@ -574,11 +574,11 @@ changeAudioUnit _ g =
 
 instance changeNoEdge ::
   Change NoEdge g igraph where
-  change' _ _ = FrameT $ (pure unit)
+  change' _ _ = unsafeFrame $ (pure unit)
 
 instance changeSkolem ::
   Change (SingleEdge p) (Proxy skolem) igraph where
-  change' _ _ = FrameT $ (pure unit)
+  change' _ _ = unsafeFrame $ (pure unit)
 
 instance changeIdentity :: Change (SingleEdge p) x igraph => Change (SingleEdge p) (Identity x) igraph where
   change' p (Identity x) = change' p x
@@ -591,11 +591,11 @@ instance changeMany2 ::
   , Change (ManyEdges a b) y igraph
   ) =>
   Change (ManyEdges p (PtrListCons a b)) (x /\ y) igraph where
-  change' _ (x /\ y) = FrameT (_1 *> _2)
+  change' _ (x /\ y) = unsafeFrame (_1 *> _2)
     where
-    FrameT _1 = (change' :: ChangeType (SingleEdge p) x igraph) Proxy x
+    _1 = unsafeUnframe $ (change' :: ChangeType (SingleEdge p) x igraph) Proxy x
 
-    FrameT _2 = (change' :: ChangeType (ManyEdges a b) y igraph) Proxy y
+    _2 = unsafeUnframe $ (change' :: ChangeType (ManyEdges a b) y igraph) Proxy y
 
 instance changeMany1 ::
   Change (SingleEdge p) a igraph =>
@@ -617,11 +617,11 @@ instance changeDup ::
   , Change (SingleEdge continuation) a igraph
   ) =>
   Change (SingleEdge p) (Dup a (Proxy skolem -> b)) igraph where
-  change' _ (Dup a f) = FrameT (_1 *> _2)
+  change' _ (Dup a f) = unsafeFrame (_1 *> _2)
     where
-    FrameT _1 = (change' :: ChangeType (SingleEdge p) b igraph) Proxy (f Proxy)
+    _1 = unsafeUnframe $ (change' :: ChangeType (SingleEdge p) b igraph) Proxy (f Proxy)
 
-    FrameT _2 = (change' :: ChangeType (SingleEdge continuation) a igraph) Proxy a
+    _2 = unsafeUnframe $ (change' :: ChangeType (SingleEdge continuation) a igraph) Proxy a
 
 ----------------------------------------
 -----------------------------------

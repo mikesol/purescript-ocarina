@@ -1,12 +1,11 @@
 module WAGS.Connect where
 
 import Prelude
-
 import Control.Monad.State (modify_)
 import Data.Map as M
 import Data.Set as S
 import Data.Typelevel.Bool (class Or, False, True)
-import WAGS.Control.Types (FrameT(..))
+import WAGS.Control.Types (FrameT, unsafeFrame)
 import WAGS.Interpret (class AudioInterpret, connectXToY)
 import WAGS.Universe.AudioUnit (AudioUnitRef(..))
 import WAGS.Universe.AudioUnit as AU
@@ -56,7 +55,7 @@ instance connectAll ::
   ) =>
   Connect from to (UniverseC ptr graphi changeBit skolems) (UniverseC ptr grapho changeBit skolems) where
   connect (AudioUnitRef fromI) (AudioUnitRef toI) =
-    FrameT
+    unsafeFrame
       $ do
           modify_
             ( \i ->

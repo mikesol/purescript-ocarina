@@ -4,13 +4,12 @@ import Prelude
 import Data.Identity (Identity)
 import Data.Tuple.Nested (type (/\))
 import Type.Proxy (Proxy(..))
-import WAGS.Graph.Constructors as CTOR
-import WAGS.Control.Types (FrameT(..))
+import WAGS.Control.Types (FrameT, unsafeFrame)
 import WAGS.Create (class Create)
---import WAGS.Graph.Constructors (Dup, Gain, Highpass, SinOsc, Speaker)
-import WAGS.Universe.AudioUnit as AU
+import WAGS.Graph.Constructors as CTOR
 import WAGS.Graph.Decorators (Focus)
 import WAGS.Universe.AudioUnit (AudioUnitRef(..))
+import WAGS.Universe.AudioUnit as AU
 import WAGS.Universe.Bin (class BinSub, class BinToInt, D0, Ptr, PtrList, PtrListCons, PtrListNil, toInt')
 import WAGS.Universe.EdgeProfile (EdgeProfile, ManyEdges, NoEdge, SingleEdge)
 import WAGS.Universe.Graph (class GraphToNodeList, InitialGraph)
@@ -36,7 +35,7 @@ instance cursorRecurse ::
   , CursorI p a o (PtrListCons head PtrListNil)
   ) =>
   Cursor p a o head where
-  cursor' _ _ = FrameT $ (pure $ AudioUnitRef (toInt' (Proxy :: Proxy head)))
+  cursor' _ _ = unsafeFrame $ (pure $ AudioUnitRef (toInt' (Proxy :: Proxy head)))
 
 class CursorRes (tag :: Type) (p :: Ptr) (i :: Node) (plist :: EdgeProfile) | tag p i -> plist
 

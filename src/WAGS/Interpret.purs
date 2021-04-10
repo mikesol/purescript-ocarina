@@ -2,7 +2,6 @@ module WAGS.Interpret where
 
 import Prelude
 import Control.Promise (Promise)
-import Data.Const (Const(..))
 import Data.Generic.Rep (class Generic)
 import Data.Show.Generic (genericShow)
 import Data.Typelevel.Num (class Pos)
@@ -99,12 +98,6 @@ instance safeToFFI_Oversample :: SafeToFFI Oversample String where
 instance safeToFFI_FFIAudio :: SafeToFFI FFIAudio FFIAudio' where
   safeToFFI (FFIAudio x) = x
 
-instance safeToFFI_FFIForeign :: SafeToFFI Foreign Foreign where
-  safeToFFI = identity
-
-instance safeToFFI_FFIEForeign :: SafeToFFI (Effect Unit) (Effect Unit) where
-  safeToFFI = identity
-
 type FFIAudioParameter'
   = { param :: Number
     , timeOffset :: Number
@@ -122,7 +115,9 @@ instance safeToFFI_AudioParameter ::
     }
 
 type FFIAudio'
-  = { microphones :: Object BrowserMicrophone
+  = { context :: AudioContext
+    , units :: Foreign
+    , microphones :: Object BrowserMicrophone
     , recorders :: Object (MediaRecorder -> Effect Unit)
     , tracks :: Object BrowserAudioTrack
     , buffers :: Object BrowserAudioBuffer
@@ -223,133 +218,133 @@ instance freeAudioInterpret :: AudioInterpret Unit Instruction where
   setPlaybackRate a b = const $ SetPlaybackRate a b
   setFrequency a b = const $ SetFrequency a b
 
-foreign import connectXToY_ :: Int -> Int -> Foreign -> Effect Unit
+foreign import connectXToY_ :: Int -> Int -> FFIAudio' -> Effect Unit
 
-foreign import disconnectXFromY_ :: Int -> Int -> Foreign -> Effect Unit
+foreign import disconnectXFromY_ :: Int -> Int -> FFIAudio' -> Effect Unit
 
-foreign import destroyUnit_ :: Int -> Foreign -> Effect Unit
+foreign import destroyUnit_ :: Int -> FFIAudio' -> Effect Unit
 
-foreign import rebaseAllUnits_ :: Array { from :: Int, to :: Int } -> Foreign -> Effect Unit
+foreign import rebaseAllUnits_ :: Array { from :: Int, to :: Int } -> FFIAudio' -> Effect Unit
 
-foreign import makeAllpass_ :: Int -> FFIAudioParameter' -> FFIAudioParameter' -> Foreign -> Effect Unit
+foreign import makeAllpass_ :: Int -> FFIAudioParameter' -> FFIAudioParameter' -> FFIAudio' -> Effect Unit
 
-foreign import makeBandpass_ :: Int -> FFIAudioParameter' -> FFIAudioParameter' -> Foreign -> Effect Unit
+foreign import makeBandpass_ :: Int -> FFIAudioParameter' -> FFIAudioParameter' -> FFIAudio' -> Effect Unit
 
-foreign import makeConstant_ :: Int -> FFIAudioParameter' -> Foreign -> Effect Unit
+foreign import makeConstant_ :: Int -> FFIAudioParameter' -> FFIAudio' -> Effect Unit
 
-foreign import makeConvolver_ :: Int -> String -> Foreign -> Effect Unit
+foreign import makeConvolver_ :: Int -> String -> FFIAudio' -> Effect Unit
 
-foreign import makeDelay_ :: Int -> FFIAudioParameter' -> Foreign -> Effect Unit
+foreign import makeDelay_ :: Int -> FFIAudioParameter' -> FFIAudio' -> Effect Unit
 
-foreign import makeDynamicsCompressor_ :: Int -> FFIAudioParameter' -> FFIAudioParameter' -> FFIAudioParameter' -> FFIAudioParameter' -> FFIAudioParameter' -> Foreign -> Effect Unit
+foreign import makeDynamicsCompressor_ :: Int -> FFIAudioParameter' -> FFIAudioParameter' -> FFIAudioParameter' -> FFIAudioParameter' -> FFIAudioParameter' -> FFIAudio' -> Effect Unit
 
-foreign import makeGain_ :: Int -> FFIAudioParameter' -> Foreign -> Effect Unit
+foreign import makeGain_ :: Int -> FFIAudioParameter' -> FFIAudio' -> Effect Unit
 
-foreign import makeHighpass_ :: Int -> FFIAudioParameter' -> FFIAudioParameter' -> Foreign -> Effect Unit
+foreign import makeHighpass_ :: Int -> FFIAudioParameter' -> FFIAudioParameter' -> FFIAudio' -> Effect Unit
 
-foreign import makeHighshelf_ :: Int -> FFIAudioParameter' -> FFIAudioParameter' -> Foreign -> Effect Unit
+foreign import makeHighshelf_ :: Int -> FFIAudioParameter' -> FFIAudioParameter' -> FFIAudio' -> Effect Unit
 
-foreign import makeLoopBuf_ :: Int -> String -> FFIAudioParameter' -> Number -> Number -> Foreign -> Effect Unit
+foreign import makeLoopBuf_ :: Int -> String -> FFIAudioParameter' -> Number -> Number -> FFIAudio' -> Effect Unit
 
-foreign import makeLowpass_ :: Int -> FFIAudioParameter' -> FFIAudioParameter' -> Foreign -> Effect Unit
+foreign import makeLowpass_ :: Int -> FFIAudioParameter' -> FFIAudioParameter' -> FFIAudio' -> Effect Unit
 
-foreign import makeLowshelf_ :: Int -> FFIAudioParameter' -> FFIAudioParameter' -> Foreign -> Effect Unit
+foreign import makeLowshelf_ :: Int -> FFIAudioParameter' -> FFIAudioParameter' -> FFIAudio' -> Effect Unit
 
-foreign import makeMicrophone_ :: Int -> Foreign -> Effect Unit
+foreign import makeMicrophone_ :: Int -> FFIAudio' -> Effect Unit
 
-foreign import makeNotch_ :: Int -> FFIAudioParameter' -> FFIAudioParameter' -> Foreign -> Effect Unit
+foreign import makeNotch_ :: Int -> FFIAudioParameter' -> FFIAudioParameter' -> FFIAudio' -> Effect Unit
 
-foreign import makePeaking_ :: Int -> FFIAudioParameter' -> FFIAudioParameter' -> FFIAudioParameter' -> Foreign -> Effect Unit
+foreign import makePeaking_ :: Int -> FFIAudioParameter' -> FFIAudioParameter' -> FFIAudioParameter' -> FFIAudio' -> Effect Unit
 
-foreign import makePeriodicOsc_ :: Int -> String -> FFIAudioParameter' -> Foreign -> Effect Unit
+foreign import makePeriodicOsc_ :: Int -> String -> FFIAudioParameter' -> FFIAudio' -> Effect Unit
 
-foreign import makePlayBuf_ :: Int -> String -> Number -> FFIAudioParameter' -> Foreign -> Effect Unit
+foreign import makePlayBuf_ :: Int -> String -> Number -> FFIAudioParameter' -> FFIAudio' -> Effect Unit
 
-foreign import makeRecorder_ :: Int -> String -> Foreign -> Effect Unit
+foreign import makeRecorder_ :: Int -> String -> FFIAudio' -> Effect Unit
 
-foreign import makeSawtoothOsc_ :: Int -> FFIAudioParameter' -> Foreign -> Effect Unit
+foreign import makeSawtoothOsc_ :: Int -> FFIAudioParameter' -> FFIAudio' -> Effect Unit
 
-foreign import makeSinOsc_ :: Int -> FFIAudioParameter' -> Foreign -> Effect Unit
+foreign import makeSinOsc_ :: Int -> FFIAudioParameter' -> FFIAudio' -> Effect Unit
 
-foreign import makeSpeaker_ :: Int -> Foreign -> Effect Unit
+foreign import makeSpeaker_ :: Int -> FFIAudio' -> Effect Unit
 
-foreign import makeSquareOsc_ :: Int -> FFIAudioParameter' -> Foreign -> Effect Unit
+foreign import makeSquareOsc_ :: Int -> FFIAudioParameter' -> FFIAudio' -> Effect Unit
 
-foreign import makeStereoPanner_ :: Int -> FFIAudioParameter' -> Foreign -> Effect Unit
+foreign import makeStereoPanner_ :: Int -> FFIAudioParameter' -> FFIAudio' -> Effect Unit
 
-foreign import makeTriangleOsc_ :: Int -> FFIAudioParameter' -> Foreign -> Effect Unit
+foreign import makeTriangleOsc_ :: Int -> FFIAudioParameter' -> FFIAudio' -> Effect Unit
 
-foreign import makeWaveShaper_ :: Int -> String -> Oversample -> Foreign -> Effect Unit
+foreign import makeWaveShaper_ :: Int -> String -> Oversample -> FFIAudio' -> Effect Unit
 
-foreign import setLoopStart_ :: Int -> Number -> Foreign -> Effect Unit
+foreign import setLoopStart_ :: Int -> Number -> FFIAudio' -> Effect Unit
 
-foreign import setLoopEnd_ :: Int -> Number -> Foreign -> Effect Unit
+foreign import setLoopEnd_ :: Int -> Number -> FFIAudio' -> Effect Unit
 
-foreign import setRatio_ :: Int -> FFIAudioParameter' -> Foreign -> Effect Unit
+foreign import setRatio_ :: Int -> FFIAudioParameter' -> FFIAudio' -> Effect Unit
 
-foreign import setOffset_ :: Int -> FFIAudioParameter' -> Foreign -> Effect Unit
+foreign import setOffset_ :: Int -> FFIAudioParameter' -> FFIAudio' -> Effect Unit
 
-foreign import setAttack_ :: Int -> FFIAudioParameter' -> Foreign -> Effect Unit
+foreign import setAttack_ :: Int -> FFIAudioParameter' -> FFIAudio' -> Effect Unit
 
-foreign import setGain_ :: Int -> FFIAudioParameter' -> Foreign -> Effect Unit
+foreign import setGain_ :: Int -> FFIAudioParameter' -> FFIAudio' -> Effect Unit
 
-foreign import setQ_ :: Int -> FFIAudioParameter' -> Foreign -> Effect Unit
+foreign import setQ_ :: Int -> FFIAudioParameter' -> FFIAudio' -> Effect Unit
 
-foreign import setPan_ :: Int -> FFIAudioParameter' -> Foreign -> Effect Unit
+foreign import setPan_ :: Int -> FFIAudioParameter' -> FFIAudio' -> Effect Unit
 
-foreign import setThreshold_ :: Int -> FFIAudioParameter' -> Foreign -> Effect Unit
+foreign import setThreshold_ :: Int -> FFIAudioParameter' -> FFIAudio' -> Effect Unit
 
-foreign import setRelease_ :: Int -> FFIAudioParameter' -> Foreign -> Effect Unit
+foreign import setRelease_ :: Int -> FFIAudioParameter' -> FFIAudio' -> Effect Unit
 
-foreign import setKnee_ :: Int -> FFIAudioParameter' -> Foreign -> Effect Unit
+foreign import setKnee_ :: Int -> FFIAudioParameter' -> FFIAudio' -> Effect Unit
 
-foreign import setDelay_ :: Int -> FFIAudioParameter' -> Foreign -> Effect Unit
+foreign import setDelay_ :: Int -> FFIAudioParameter' -> FFIAudio' -> Effect Unit
 
-foreign import setPlaybackRate_ :: Int -> FFIAudioParameter' -> Foreign -> Effect Unit
+foreign import setPlaybackRate_ :: Int -> FFIAudioParameter' -> FFIAudio' -> Effect Unit
 
-foreign import setFrequency_ :: Int -> FFIAudioParameter' -> Foreign -> Effect Unit
+foreign import setFrequency_ :: Int -> FFIAudioParameter' -> FFIAudio' -> Effect Unit
 
-instance effectfulAudioInterpret :: AudioInterpret Foreign (Effect Unit) where
-  connectXToY a b c = connectXToY_ a b c
-  disconnectXFromY a b c = disconnectXFromY_ a b c
-  destroyUnit a b = destroyUnit_ a b
-  rebaseAllUnits a = rebaseAllUnits_ a
-  makeAllpass a b c = makeAllpass_ a (safeToFFI b) (safeToFFI c)
-  makeBandpass a b c = makeBandpass_ a (safeToFFI b) (safeToFFI c)
+instance effectfulAudioInterpret :: AudioInterpret FFIAudio (Effect Unit) where
+  connectXToY a b c = connectXToY_ a b (safeToFFI c)
+  disconnectXFromY a b c = disconnectXFromY_ a b (safeToFFI c)
+  destroyUnit a b = destroyUnit_ a (safeToFFI b)
+  rebaseAllUnits a b = rebaseAllUnits_ a (safeToFFI b)
+  makeAllpass a b c d = makeAllpass_ a (safeToFFI b) (safeToFFI c) (safeToFFI d)
+  makeBandpass a b c d = makeBandpass_ a (safeToFFI b) (safeToFFI c) (safeToFFI d)
   makeConstant a b c = makeConstant_ a (safeToFFI b) (safeToFFI c)
-  makeConvolver = makeConvolver_
-  makeDelay a b = makeDelay_ a (safeToFFI b)
-  makeDynamicsCompressor a b c d e f = makeDynamicsCompressor_ a (safeToFFI b) (safeToFFI c) (safeToFFI d) (safeToFFI e) (safeToFFI f)
-  makeGain a b = makeGain_ a (safeToFFI b)
-  makeHighpass a b c = makeHighpass_ a (safeToFFI b) (safeToFFI c)
-  makeHighshelf a b c = makeHighshelf_ a (safeToFFI b) (safeToFFI c)
-  makeLoopBuf a b c = makeLoopBuf_ a (safeToFFI b) (safeToFFI c)
-  makeLowpass a b c = makeLowpass_ a (safeToFFI b) (safeToFFI c)
-  makeLowshelf a b c = makeLowshelf_ a (safeToFFI b) (safeToFFI c)
-  makeMicrophone = makeMicrophone_
-  makeNotch a b c = makeNotch_ a (safeToFFI b) (safeToFFI c)
-  makePeaking a b c d = makePeaking_ a (safeToFFI b) (safeToFFI c) (safeToFFI d)
-  makePeriodicOsc a b c = makePeriodicOsc_ a (safeToFFI b) (safeToFFI c)
-  makePlayBuf a b c d = makePlayBuf_ a (safeToFFI b) (safeToFFI c) (safeToFFI d)
-  makeRecorder = makeRecorder_
-  makeSawtoothOsc a b = makeSawtoothOsc_ a (safeToFFI b)
-  makeSinOsc a b = makeSinOsc_ a (safeToFFI b)
-  makeSpeaker = makeSpeaker_
-  makeSquareOsc a b = makeSquareOsc_ a (safeToFFI b)
-  makeStereoPanner a b = makeStereoPanner_ a (safeToFFI b)
-  makeTriangleOsc a b = makeTriangleOsc_ a (safeToFFI b)
-  makeWaveShaper = makeWaveShaper_
-  setLoopStart = setLoopStart_
-  setLoopEnd = setLoopEnd_
-  setRatio a b = setRatio_ a (safeToFFI b)
-  setOffset a b = setOffset_ a (safeToFFI b)
-  setAttack a b = setAttack_ a (safeToFFI b)
-  setGain a b = setGain_ a (safeToFFI b)
-  setQ a b = setQ_ a (safeToFFI b)
-  setPan a b = setPan_ a (safeToFFI b)
-  setThreshold a b = setThreshold_ a (safeToFFI b)
-  setRelease a b = setRelease_ a (safeToFFI b)
-  setKnee a b = setKnee_ a (safeToFFI b)
-  setDelay a b = setDelay_ a (safeToFFI b)
-  setPlaybackRate a b = setPlaybackRate_ a (safeToFFI b)
-  setFrequency a b = setFrequency_ a (safeToFFI b)
+  makeConvolver a b c = makeConvolver_ a b (safeToFFI c)
+  makeDelay a b c = makeDelay_ a (safeToFFI b) (safeToFFI c)
+  makeDynamicsCompressor a b c d e f g = makeDynamicsCompressor_ a (safeToFFI b) (safeToFFI c) (safeToFFI d) (safeToFFI e) (safeToFFI f) (safeToFFI g)
+  makeGain a b c = makeGain_ a (safeToFFI b) (safeToFFI c)
+  makeHighpass a b c d = makeHighpass_ a (safeToFFI b) (safeToFFI c) (safeToFFI d)
+  makeHighshelf a b c d = makeHighshelf_ a (safeToFFI b) (safeToFFI c) (safeToFFI d)
+  makeLoopBuf a b c d e f = makeLoopBuf_ a b (safeToFFI c) d e (safeToFFI f)
+  makeLowpass a b c d = makeLowpass_ a (safeToFFI b) (safeToFFI c) (safeToFFI d)
+  makeLowshelf a b c d = makeLowshelf_ a (safeToFFI b) (safeToFFI c) (safeToFFI d)
+  makeMicrophone a b = makeMicrophone_ a (safeToFFI b)
+  makeNotch a b c d = makeNotch_ a (safeToFFI b) (safeToFFI c) (safeToFFI d)
+  makePeaking a b c d e = makePeaking_ a (safeToFFI b) (safeToFFI c) (safeToFFI d) (safeToFFI e)
+  makePeriodicOsc a b c d = makePeriodicOsc_ a (safeToFFI b) (safeToFFI c) (safeToFFI d)
+  makePlayBuf a b c d e = makePlayBuf_ a (safeToFFI b) (safeToFFI c) (safeToFFI d) (safeToFFI e)
+  makeRecorder a b c = makeRecorder_ a (safeToFFI b) (safeToFFI c)
+  makeSawtoothOsc a b c = makeSawtoothOsc_ a (safeToFFI b) (safeToFFI c)
+  makeSinOsc a b c = makeSinOsc_ a (safeToFFI b) (safeToFFI c)
+  makeSpeaker a b = makeSpeaker_ a (safeToFFI b)
+  makeSquareOsc a b c = makeSquareOsc_ a (safeToFFI b) (safeToFFI c)
+  makeStereoPanner a b c = makeStereoPanner_ a (safeToFFI b) (safeToFFI c)
+  makeTriangleOsc a b c = makeTriangleOsc_ a (safeToFFI b) (safeToFFI c)
+  makeWaveShaper a b c d = makeWaveShaper_ a b c (safeToFFI d)
+  setLoopStart a b c = setLoopStart_ a b (safeToFFI c)
+  setLoopEnd a b c = setLoopEnd_ a b (safeToFFI c)
+  setRatio a b c = setRatio_ a (safeToFFI b) (safeToFFI c)
+  setOffset a b c = setOffset_ a (safeToFFI b) (safeToFFI c)
+  setAttack a b c = setAttack_ a (safeToFFI b) (safeToFFI c)
+  setGain a b c = setGain_ a (safeToFFI b) (safeToFFI c)
+  setQ a b c = setQ_ a (safeToFFI b) (safeToFFI c)
+  setPan a b c = setPan_ a (safeToFFI b) (safeToFFI c)
+  setThreshold a b c = setThreshold_ a (safeToFFI b) (safeToFFI c)
+  setRelease a b c = setRelease_ a (safeToFFI b) (safeToFFI c)
+  setKnee a b c = setKnee_ a (safeToFFI b) (safeToFFI c)
+  setDelay a b c = setDelay_ a (safeToFFI b) (safeToFFI c)
+  setPlaybackRate a b c = setPlaybackRate_ a (safeToFFI b) (safeToFFI c)
+  setFrequency a b c = setFrequency_ a (safeToFFI b) (safeToFFI c)

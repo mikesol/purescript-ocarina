@@ -1,7 +1,6 @@
 module WAGS.Rendered where
 
 import Prelude
-
 import Data.Generic.Rep (class Generic)
 import Data.Show.Generic (genericShow)
 import WAGS.Graph.Parameter (AudioParameter)
@@ -57,7 +56,6 @@ derive instance genericInstruction :: Generic Instruction _
 
 instance showInstruction :: Show Instruction where
   show = genericShow
-
 
 data Oversample
   = None

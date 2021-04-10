@@ -27,10 +27,10 @@ import Type.Data.Peano (Succ)
 import Type.Proxy (Proxy(..))
 import Unsafe.Coerce (unsafeCoerce)
 import WAGS.Change (changes)
-import WAGS.Control.Thunkable(Thunkable)
-import WAGS.Interpret (class AudioInterpret)
 import WAGS.Control.MemoizedState (makeMemoizedStateT, runMemoizedStateT')
-import WAGS.Control.Types (AudioState', FrameT(..), InitialFrameT, SceneT(..), SceneT', oneFrameT)
+import WAGS.Control.Thunkable (Thunkable)
+import WAGS.Control.Types (AudioState', FrameT, InitialFrameT, SceneT(..), SceneT', oneFrameT, unsafeFrame, unsafeUnframe)
+import WAGS.Interpret (class AudioInterpret)
 import WAGS.Universe.Universe (UniverseC)
 import WAGS.Validation (class GraphIsRenderable, class TerminalIdentityEdge)
 
@@ -39,10 +39,10 @@ startT ::
   Monad m =>
   AudioInterpret audio engine =>
   InitialFrameT env audio engine m Unit
-startT = FrameT (pure unit)
+startT = unsafeFrame (pure unit)
 
 start :: forall env audio engine. InitialFrameT env audio engine Thunkable Unit
-start = FrameT (pure unit)
+start = unsafeFrame (pure unit)
 
 initialAudioState :: forall env audio engine. env -> AudioState' env audio engine
 initialAudioState e =
@@ -61,12 +61,12 @@ makeScene ::
   FrameT env audio engine proofA m i (UniverseC currentIdx graph changeBit skolems) (Either (SceneT env audio engine proofA m) a) ->
   (forall proofB. FrameT env audio engine proofB m i (UniverseC currentIdx graph changeBit skolems) a -> SceneT env audio engine proofB m) ->
   SceneT env audio engine proofA m
-makeScene (FrameT m) trans = SceneT go
+makeScene m trans = SceneT go
   where
   go :: forall proofB. env -> m (SceneT' env audio engine proofB m)
   go ev =
     let
-      res = runMemoizedStateT' m (unsafeCoerce unit) (_ { env = ev }) (initialAudioState ev)
+      res = runMemoizedStateT' (unsafeUnframe m) (unsafeCoerce unit) (_ { env = ev }) (initialAudioState ev)
     in
       do
         outcome /\ newState <- res
@@ -79,7 +79,7 @@ makeScene (FrameT m) trans = SceneT go
                 , instructions: newState.instructions
                 , next:
                     ( trans
-                        $ FrameT
+                        $ unsafeFrame
                             ( makeMemoizedStateT (unsafeCoerce unit)
                                 (newState { instructions = [] })
                                 r
@@ -148,18 +148,18 @@ env ::
   Monad m =>
   AudioInterpret audio engine =>
   FrameT env audio engine proof m i i env
-env = FrameT (gets _.env)
+env = unsafeFrame (gets _.env)
 
 universe ::
   forall env audio engine proof m i.
   Monad m =>
   AudioInterpret audio engine =>
   FrameT env audio engine proof m i i (Proxy i)
-universe = FrameT $ pure $ (Proxy :: _ i)
+universe = unsafeFrame $ pure $ (Proxy :: _ i)
 
 lift ::
   forall env audio engine proof m i a.
   Monad m =>
   AudioInterpret audio engine =>
   m a -> FrameT env audio engine proof m i i a
-lift = FrameT <<< MT.lift
+lift = unsafeFrame <<< MT.lift

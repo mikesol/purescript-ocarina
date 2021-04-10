@@ -1,14 +1,15 @@
 module WAGS.Rebase where
 
 import Prelude
+
 import Control.Monad.State (modify_)
 import Data.Map as M
-import Data.Set as S
 import Data.Maybe (fromMaybe)
+import Data.Set as S
 import Data.Tuple.Nested ((/\))
 import Data.Typelevel.Bool (False, True)
 import Type.Proxy (Proxy(..))
-import WAGS.Control.Types (FrameT(..), AudioState)
+import WAGS.Control.Types (AudioState, FrameT, unsafeFrame, unsafeUnframe)
 import WAGS.Interpret (class AudioInterpret, rebaseAllUnits)
 import WAGS.Universe.AudioUnit as AU
 import WAGS.Universe.Bin (class BinToInt, PtrList, PtrListCons, PtrListNil, Ptr, toInt')
@@ -35,7 +36,7 @@ instance rebaseRebase ::
   ) =>
   Rebase (idxA graphA changeBitA skolemsA) (idxB graphB changeBitB skolemsB) where
   rebase iA iB =
-    FrameT do
+    unsafeFrame do
       a <- arr
       modify_ \i ->
         let
@@ -64,7 +65,7 @@ instance rebaseRebase ::
             , instructions = i.instructions <> [ rebaseAllUnits a ]
             }
     where
-    FrameT arr = rebase' (Proxy :: _ PtrListNil) (Proxy :: _ PtrListNil) RebaseProof (Proxy :: _ edgeA) iA (Proxy :: _ edgeB) iB
+    arr = unsafeUnframe $ rebase' (Proxy :: _ PtrListNil) (Proxy :: _ PtrListNil) RebaseProof (Proxy :: _ edgeA) iA (Proxy :: _ edgeB) iB
 
 type AFT
   = (Array { from :: Int, to :: Int })
@@ -98,18 +99,18 @@ rebaseAudioUnit ptrA ptrB = if iA == iB then pure mempty else (pure <<< pure) { 
   iB = toInt' ptrB
 
 instance rebaseNoEdge :: Rebase' rblA rblB RebaseProof NoEdge iA NoEdge iB where
-  rebase' _ _ _ _ _ _ _ = FrameT $ pure mempty
+  rebase' _ _ _ _ _ _ _ = unsafeFrame $ pure mempty
 
 instance rebaseMany2 ::
   ( Rebase' rblA rblB RebaseProof (SingleEdge pA) iA (SingleEdge pB) iB
   , Rebase' rblA rblB RebaseProof (ManyEdges aA bA) iA (ManyEdges aB bB) iB
   ) =>
   Rebase' rblA rblB RebaseProof (ManyEdges pA (PtrListCons aA bA)) iA (ManyEdges pB (PtrListCons aB bB)) iB where
-  rebase' _ _ _ _ iA _ iB = FrameT (append <$> l <*> r)
+  rebase' _ _ _ _ iA _ iB = unsafeFrame (append <$> l <*> r)
     where
-    FrameT l = rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ (SingleEdge pA)) (Proxy :: _ iA) (Proxy :: _ (SingleEdge pB)) (Proxy :: _ iB)
+    l = unsafeUnframe $ rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ (SingleEdge pA)) (Proxy :: _ iA) (Proxy :: _ (SingleEdge pB)) (Proxy :: _ iB)
 
-    FrameT r = rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ (ManyEdges aA bA)) (Proxy :: _ iA) (Proxy :: _ (ManyEdges aB bB)) (Proxy :: _ iB)
+    r = unsafeUnframe $ rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ (ManyEdges aA bA)) (Proxy :: _ iA) (Proxy :: _ (ManyEdges aB bB)) (Proxy :: _ iB)
 
 instance rebaseMany1 ::
   ( Rebase' rblA rblB RebaseProof (SingleEdge pA) iA (SingleEdge pB) iB
@@ -139,7 +140,7 @@ instance rebaseCheckSingleEdge ::
 
 instance rebaseContTT ::
   RebaseCont' True True ptrA ptrB rblA rblB RebaseProof a b c d where
-  rebaseCont' _ _ _ _ _ _ _ _ _ _ _ = FrameT $ pure mempty
+  rebaseCont' _ _ _ _ _ _ _ _ _ _ _ = unsafeFrame $ pure mempty
 
 instance rebaseContFF ::
   Rebase' (PtrListCons ptrA a) (PtrListCons ptrB b) c d e f g =>
@@ -151,221 +152,221 @@ instance rebaseAllpass ::
   (BinToInt ptrA, BinToInt ptrB, Rebase' rblA rblB RebaseProof eA iA eB iB) =>
   Rebase' rblA rblB RebaseProof (NodeC (AU.TAllpass ptrA) eA) iA (NodeC (AU.TAllpass ptrB) eB) iB where
   rebase' _ _ _ _ _ _ _ =
-    FrameT
+    unsafeFrame
       $ append
       <$> rebaseAudioUnit (Proxy :: _ ptrA) (Proxy :: _ ptrB)
       <*> rest
     where
-    FrameT rest = rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ iA) (Proxy :: _ eB) (Proxy :: _ iB)
+    rest = unsafeUnframe $  rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ iA) (Proxy :: _ eB) (Proxy :: _ iB)
 
 instance rebaseBandpass ::
   (BinToInt ptrA, BinToInt ptrB, Rebase' rblA rblB RebaseProof eA iA eB iB) =>
   Rebase' rblA rblB RebaseProof (NodeC (AU.TBandpass ptrA) eA) iA (NodeC (AU.TBandpass ptrB) eB) iB where
   rebase' _ _ _ _ _ _ _ =
-    FrameT
+    unsafeFrame
       $ append
       <$> rebaseAudioUnit (Proxy :: _ ptrA) (Proxy :: _ ptrB)
       <*> rest
     where
-    FrameT rest = rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ iA) (Proxy :: _ eB) (Proxy :: _ iB)
+    rest = unsafeUnframe $  rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ iA) (Proxy :: _ eB) (Proxy :: _ iB)
 
 instance rebaseConstant ::
   (BinToInt ptrA, BinToInt ptrB) =>
   Rebase' rblA rblB RebaseProof (NodeC (AU.TConstant ptrA) NoEdge) iA (NodeC (AU.TConstant ptrB) NoEdge) iB where
-  rebase' _ _ _ _ _ _ _ = FrameT (rebaseAudioUnit (Proxy :: _ ptrA) (Proxy :: _ ptrB))
+  rebase' _ _ _ _ _ _ _ = unsafeFrame (rebaseAudioUnit (Proxy :: _ ptrA) (Proxy :: _ ptrB))
 
 instance rebaseConvolver ::
   (BinToInt ptrA, BinToInt ptrB, Rebase' rblA rblB RebaseProof eA iA eB iB) =>
   Rebase' rblA rblB RebaseProof (NodeC (AU.TConvolver ptrA) eA) iA (NodeC (AU.TConvolver ptrB) eB) iB where
   rebase' _ _ _ _ _ _ _ =
-    FrameT
+    unsafeFrame
       $ append
       <$> rebaseAudioUnit (Proxy :: _ ptrA) (Proxy :: _ ptrB)
       <*> rest
     where
-    FrameT rest = rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ iA) (Proxy :: _ eB) (Proxy :: _ iB)
+    rest = unsafeUnframe $  rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ iA) (Proxy :: _ eB) (Proxy :: _ iB)
 
 instance rebaseDelay ::
   (BinToInt ptrA, BinToInt ptrB, Rebase' rblA rblB RebaseProof eA iA eB iB) =>
   Rebase' rblA rblB RebaseProof (NodeC (AU.TDelay ptrA) eA) iA (NodeC (AU.TDelay ptrB) eB) iB where
   rebase' _ _ _ _ _ _ _ =
-    FrameT
+    unsafeFrame
       $ append
       <$> rebaseAudioUnit (Proxy :: _ ptrA) (Proxy :: _ ptrB)
       <*> rest
     where
-    FrameT rest = rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ iA) (Proxy :: _ eB) (Proxy :: _ iB)
+    rest = unsafeUnframe $  rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ iA) (Proxy :: _ eB) (Proxy :: _ iB)
 
 instance rebaseDynamicsCompressor ::
   (BinToInt ptrA, BinToInt ptrB, Rebase' rblA rblB RebaseProof eA iA eB iB) =>
   Rebase' rblA rblB RebaseProof (NodeC (AU.TDynamicsCompressor ptrA) eA) iA (NodeC (AU.TDynamicsCompressor ptrB) eB) iB where
   rebase' _ _ _ _ _ _ _ =
-    FrameT
+    unsafeFrame
       $ append
       <$> rebaseAudioUnit (Proxy :: _ ptrA) (Proxy :: _ ptrB)
       <*> rest
     where
-    FrameT rest = rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ iA) (Proxy :: _ eB) (Proxy :: _ iB)
+    rest = unsafeUnframe $  rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ iA) (Proxy :: _ eB) (Proxy :: _ iB)
 
 instance rebaseGain ::
   (BinToInt ptrA, BinToInt ptrB, Rebase' rblA rblB RebaseProof eA iA eB iB) =>
   Rebase' rblA rblB RebaseProof (NodeC (AU.TGain ptrA) eA) iA (NodeC (AU.TGain ptrB) eB) iB where
   rebase' _ _ _ _ _ _ _ =
-    FrameT
+    unsafeFrame
       $ append
       <$> rebaseAudioUnit (Proxy :: _ ptrA) (Proxy :: _ ptrB)
       <*> rest
     where
-    FrameT rest = rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ iA) (Proxy :: _ eB) (Proxy :: _ iB)
+    rest = unsafeUnframe $  rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ iA) (Proxy :: _ eB) (Proxy :: _ iB)
 
 instance rebaseHighpass ::
   (BinToInt ptrA, BinToInt ptrB, Rebase' rblA rblB RebaseProof eA iA eB iB) =>
   Rebase' rblA rblB RebaseProof (NodeC (AU.THighpass ptrA) eA) iA (NodeC (AU.THighpass ptrB) eB) iB where
   rebase' _ _ _ _ _ _ _ =
-    FrameT
+    unsafeFrame
       $ append
       <$> rebaseAudioUnit (Proxy :: _ ptrA) (Proxy :: _ ptrB)
       <*> rest
     where
-    FrameT rest = rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ iA) (Proxy :: _ eB) (Proxy :: _ iB)
+    rest = unsafeUnframe $  rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ iA) (Proxy :: _ eB) (Proxy :: _ iB)
 
 instance rebaseHighshelf ::
   (BinToInt ptrA, BinToInt ptrB, Rebase' rblA rblB RebaseProof eA iA eB iB) =>
   Rebase' rblA rblB RebaseProof (NodeC (AU.THighshelf ptrA) eA) iA (NodeC (AU.THighshelf ptrB) eB) iB where
   rebase' _ _ _ _ _ _ _ =
-    FrameT
+    unsafeFrame
       $ append
       <$> rebaseAudioUnit (Proxy :: _ ptrA) (Proxy :: _ ptrB)
       <*> rest
     where
-    FrameT rest = rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ iA) (Proxy :: _ eB) (Proxy :: _ iB)
+    rest = unsafeUnframe $  rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ iA) (Proxy :: _ eB) (Proxy :: _ iB)
 
 instance rebaseLoopBuf ::
   (BinToInt ptrA, BinToInt ptrB) =>
   Rebase' rblA rblB RebaseProof (NodeC (AU.TLoopBuf ptrA) NoEdge) iA (NodeC (AU.TLoopBuf ptrB) NoEdge) iB where
-  rebase' _ _ _ _ _ _ _ = FrameT (rebaseAudioUnit (Proxy :: _ ptrA) (Proxy :: _ ptrB))
+  rebase' _ _ _ _ _ _ _ = unsafeFrame (rebaseAudioUnit (Proxy :: _ ptrA) (Proxy :: _ ptrB))
 
 instance rebaseLowpass ::
   (BinToInt ptrA, BinToInt ptrB, Rebase' rblA rblB RebaseProof eA iA eB iB) =>
   Rebase' rblA rblB RebaseProof (NodeC (AU.TLowpass ptrA) eA) iA (NodeC (AU.TLowpass ptrB) eB) iB where
   rebase' _ _ _ _ _ _ _ =
-    FrameT
+    unsafeFrame
       $ append
       <$> rebaseAudioUnit (Proxy :: _ ptrA) (Proxy :: _ ptrB)
       <*> rest
     where
-    FrameT rest = rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ iA) (Proxy :: _ eB) (Proxy :: _ iB)
+    rest = unsafeUnframe $  rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ iA) (Proxy :: _ eB) (Proxy :: _ iB)
 
 instance rebaseLowshelf ::
   (BinToInt ptrA, BinToInt ptrB, Rebase' rblA rblB RebaseProof eA iA eB iB) =>
   Rebase' rblA rblB RebaseProof (NodeC (AU.TLowshelf ptrA) eA) iA (NodeC (AU.TLowshelf ptrB) eB) iB where
   rebase' _ _ _ _ _ _ _ =
-    FrameT
+    unsafeFrame
       $ append
       <$> rebaseAudioUnit (Proxy :: _ ptrA) (Proxy :: _ ptrB)
       <*> rest
     where
-    FrameT rest = rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ iA) (Proxy :: _ eB) (Proxy :: _ iB)
+    rest = unsafeUnframe $  rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ iA) (Proxy :: _ eB) (Proxy :: _ iB)
 
 instance rebaseMicrophone ::
   (BinToInt ptrA, BinToInt ptrB) =>
   Rebase' rblA rblB RebaseProof (NodeC (AU.TMicrophone ptrA) NoEdge) iA (NodeC (AU.TMicrophone ptrB) NoEdge) iB where
-  rebase' _ _ _ _ _ _ _ = FrameT (rebaseAudioUnit (Proxy :: _ ptrA) (Proxy :: _ ptrB))
+  rebase' _ _ _ _ _ _ _ = unsafeFrame (rebaseAudioUnit (Proxy :: _ ptrA) (Proxy :: _ ptrB))
 
 instance rebaseNotch ::
   (BinToInt ptrA, BinToInt ptrB, Rebase' rblA rblB RebaseProof eA iA eB iB) =>
   Rebase' rblA rblB RebaseProof (NodeC (AU.TNotch ptrA) eA) iA (NodeC (AU.TNotch ptrB) eB) iB where
   rebase' _ _ _ _ _ _ _ =
-    FrameT
+    unsafeFrame
       $ append
       <$> rebaseAudioUnit (Proxy :: _ ptrA) (Proxy :: _ ptrB)
       <*> rest
     where
-    FrameT rest = rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ iA) (Proxy :: _ eB) (Proxy :: _ iB)
+    rest = unsafeUnframe $  rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ iA) (Proxy :: _ eB) (Proxy :: _ iB)
 
 instance rebasePeaking ::
   (BinToInt ptrA, BinToInt ptrB, Rebase' rblA rblB RebaseProof eA iA eB iB) =>
   Rebase' rblA rblB RebaseProof (NodeC (AU.TPeaking ptrA) eA) iA (NodeC (AU.TPeaking ptrB) eB) iB where
   rebase' _ _ _ _ _ _ _ =
-    FrameT
+    unsafeFrame
       $ append
       <$> rebaseAudioUnit (Proxy :: _ ptrA) (Proxy :: _ ptrB)
       <*> rest
     where
-    FrameT rest = rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ iA) (Proxy :: _ eB) (Proxy :: _ iB)
+    rest = unsafeUnframe $  rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ iA) (Proxy :: _ eB) (Proxy :: _ iB)
 
 instance rebasePeriodicOsc ::
   (BinToInt ptrA, BinToInt ptrB) =>
   Rebase' rblA rblB RebaseProof (NodeC (AU.TPeriodicOsc ptrA) NoEdge) iA (NodeC (AU.TPeriodicOsc ptrB) NoEdge) iB where
-  rebase' _ _ _ _ _ _ _ = FrameT (rebaseAudioUnit (Proxy :: _ ptrA) (Proxy :: _ ptrB))
+  rebase' _ _ _ _ _ _ _ = unsafeFrame (rebaseAudioUnit (Proxy :: _ ptrA) (Proxy :: _ ptrB))
 
 instance rebasePlayBuf ::
   (BinToInt ptrA, BinToInt ptrB) =>
   Rebase' rblA rblB RebaseProof (NodeC (AU.TPlayBuf ptrA) NoEdge) iA (NodeC (AU.TPlayBuf ptrB) NoEdge) iB where
-  rebase' _ _ _ _ _ _ _ = FrameT (rebaseAudioUnit (Proxy :: _ ptrA) (Proxy :: _ ptrB))
+  rebase' _ _ _ _ _ _ _ = unsafeFrame (rebaseAudioUnit (Proxy :: _ ptrA) (Proxy :: _ ptrB))
 
 instance rebaseRecorder ::
   (BinToInt ptrA, BinToInt ptrB, Rebase' rblA rblB RebaseProof eA iA eB iB) =>
   Rebase' rblA rblB RebaseProof (NodeC (AU.TRecorder ptrA) eA) iA (NodeC (AU.TRecorder ptrB) eB) iB where
   rebase' _ _ _ _ _ _ _ =
-    FrameT
+    unsafeFrame
       $ append
       <$> rebaseAudioUnit (Proxy :: _ ptrA) (Proxy :: _ ptrB)
       <*> rest
     where
-    FrameT rest = rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ iA) (Proxy :: _ eB) (Proxy :: _ iB)
+    rest = unsafeUnframe $  rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ iA) (Proxy :: _ eB) (Proxy :: _ iB)
 
 instance rebaseSawtoothOsc ::
   (BinToInt ptrA, BinToInt ptrB) =>
   Rebase' rblA rblB RebaseProof (NodeC (AU.TSawtoothOsc ptrA) NoEdge) iA (NodeC (AU.TSawtoothOsc ptrB) NoEdge) iB where
-  rebase' _ _ _ _ _ _ _ = FrameT (rebaseAudioUnit (Proxy :: _ ptrA) (Proxy :: _ ptrB))
+  rebase' _ _ _ _ _ _ _ = unsafeFrame (rebaseAudioUnit (Proxy :: _ ptrA) (Proxy :: _ ptrB))
 
 instance rebaseSinOsc ::
   (BinToInt ptrA, BinToInt ptrB) =>
   Rebase' rblA rblB RebaseProof (NodeC (AU.TSinOsc ptrA) NoEdge) iA (NodeC (AU.TSinOsc ptrB) NoEdge) iB where
-  rebase' _ _ _ _ _ _ _ = FrameT (rebaseAudioUnit (Proxy :: _ ptrA) (Proxy :: _ ptrB))
+  rebase' _ _ _ _ _ _ _ = unsafeFrame (rebaseAudioUnit (Proxy :: _ ptrA) (Proxy :: _ ptrB))
 
 instance rebaseSpeaker ::
   (BinToInt ptrA, BinToInt ptrB, Rebase' rblA rblB RebaseProof eA iA eB iB) =>
   Rebase' rblA rblB RebaseProof (NodeC (AU.TSpeaker ptrA) eA) iA (NodeC (AU.TSpeaker ptrB) eB) iB where
   rebase' _ _ _ _ _ _ _ =
-    FrameT
+    unsafeFrame
       $ append
       <$> rebaseAudioUnit (Proxy :: _ ptrA) (Proxy :: _ ptrB)
       <*> rest
     where
-    FrameT rest = rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ iA) (Proxy :: _ eB) (Proxy :: _ iB)
+    rest = unsafeUnframe $  rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ iA) (Proxy :: _ eB) (Proxy :: _ iB)
 
 instance rebaseSquareOsc ::
   (BinToInt ptrA, BinToInt ptrB) =>
   Rebase' rblA rblB RebaseProof (NodeC (AU.TSquareOsc ptrA) NoEdge) iA (NodeC (AU.TSquareOsc ptrB) NoEdge) iB where
-  rebase' _ _ _ _ _ _ _ = FrameT (rebaseAudioUnit (Proxy :: _ ptrA) (Proxy :: _ ptrB))
+  rebase' _ _ _ _ _ _ _ = unsafeFrame (rebaseAudioUnit (Proxy :: _ ptrA) (Proxy :: _ ptrB))
 
 instance rebaseStereoPanner ::
   (BinToInt ptrA, BinToInt ptrB, Rebase' rblA rblB RebaseProof eA iA eB iB) =>
   Rebase' rblA rblB RebaseProof (NodeC (AU.TStereoPanner ptrA) eA) iA (NodeC (AU.TStereoPanner ptrB) eB) iB where
   rebase' _ _ _ _ _ _ _ =
-    FrameT
+    unsafeFrame
       $ append
       <$> rebaseAudioUnit (Proxy :: _ ptrA) (Proxy :: _ ptrB)
       <*> rest
     where
-    FrameT rest = rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ iA) (Proxy :: _ eB) (Proxy :: _ iB)
+    rest = unsafeUnframe $  rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ iA) (Proxy :: _ eB) (Proxy :: _ iB)
 
 instance rebaseTriangleOsc ::
   (BinToInt ptrA, BinToInt ptrB) =>
   Rebase' rblA rblB RebaseProof (NodeC (AU.TTriangleOsc ptrA) NoEdge) iA (NodeC (AU.TTriangleOsc ptrB) NoEdge) iB where
-  rebase' _ _ _ _ _ _ _ = FrameT (rebaseAudioUnit (Proxy :: _ ptrA) (Proxy :: _ ptrB))
+  rebase' _ _ _ _ _ _ _ = unsafeFrame (rebaseAudioUnit (Proxy :: _ ptrA) (Proxy :: _ ptrB))
 
 instance rebaseWaveShaper ::
   (BinToInt ptrA, BinToInt ptrB, Rebase' rblA rblB RebaseProof eA iA eB iB) =>
   Rebase' rblA rblB RebaseProof (NodeC (AU.TWaveShaper ptrA) eA) iA (NodeC (AU.TWaveShaper ptrB) eB) iB where
   rebase' _ _ _ _ _ _ _ =
-    FrameT
+    unsafeFrame
       $ append
       <$> rebaseAudioUnit (Proxy :: _ ptrA) (Proxy :: _ ptrB)
       <*> rest
     where
-    FrameT rest = rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ iA) (Proxy :: _ eB) (Proxy :: _ iB)
+    rest = unsafeUnframe $  rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ iA) (Proxy :: _ eB) (Proxy :: _ iB)
 
 --------------------------------------
