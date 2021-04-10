@@ -14,8 +14,9 @@ import WAGS.Control.Types (FrameT(..), AudioState)
 import WAGS.Graph.Constructors (Dup(..), Gain, Speaker)
 import WAGS.Graph.Constructors as CTOR
 import WAGS.Graph.Decorators (Focus(..))
+import WAGS.Graph.IsAudio (class IsOversample, reflectOversample)
 import WAGS.Graph.Parameter (AudioParameter(..), defaultParam)
-import WAGS.Interpret (class AudioInterpret, connectXToY, makeAllpass, makeBandpass, makeConstant, makeConvolver, makeDelay, makeDynamicsCompressor, makeGain, makeHighpass, makeHighshelf, makeLoopBuf, makeLowpass, makeLowshelf, makeMicrophone, makeNotch, makePeaking, makePeriodicOsc, makePlayBuf, makeRecorder, makeSawtoothOsc, makeSinOsc, makeSpeaker, makeSquareOsc, makeStereoPanner, makeTriangleOsc)
+import WAGS.Interpret (class AudioInterpret, connectXToY, makeAllpass, makeBandpass, makeConstant, makeConvolver, makeDelay, makeDynamicsCompressor, makeGain, makeHighpass, makeHighshelf, makeLoopBuf, makeLowpass, makeLowshelf, makeMicrophone, makeNotch, makePeaking, makePeriodicOsc, makePlayBuf, makeRecorder, makeSawtoothOsc, makeSinOsc, makeSpeaker, makeSquareOsc, makeStereoPanner, makeTriangleOsc, makeWaveShaper)
 import WAGS.Rendered (AnAudioUnit(..))
 import WAGS.Universe.AudioUnit (AudioUnitRef(..), TGain, TSpeaker)
 import WAGS.Universe.AudioUnit as AU
@@ -268,8 +269,12 @@ instance creationInstructionsTriangleOsc :: (AudioInterpret audio engine, Initia
       [ makeTriangleOsc idx argA_iv' ]
         /\ ATriangleOsc argA_iv'
 
-instance creationInstructionsWaveShaper :: AudioInterpret audio engine => CreationInstructions audio engine (CTOR.WaveShaper argA argB argC) where
-  creationInstructions _ _ = [] /\ ASpeaker
+instance creationInstructionsWaveShaper :: (IsSymbol argA, AudioInterpret audio engine, IsOversample argB) => CreationInstructions audio engine (CTOR.WaveShaper argA argB argC) where
+  creationInstructions idx (CTOR.WaveShaper argA argB _) = let
+    name = (reflectSymbol argA)
+    os = (reflectOversample argB)
+  in
+    [makeWaveShaper idx name os ] /\ AWaveShaper name os
 
 class Create (a :: Type) (i :: Universe) (o :: Universe) (x :: Type) | a i -> o x where
   create :: forall env audio engine proof m. Monad m => AudioInterpret audio engine => a -> FrameT env audio engine proof m i o x
@@ -1022,7 +1027,9 @@ instance createTriangleOsc ::
   create = FrameT <<< (map) AudioUnitRef <<< creationStep
 
 instance createWaveShaper ::
-  ( GetSkolemFromRecursiveArgument fOfargC skolem
+  ( IsSymbol argA
+  , IsOversample argB
+  , GetSkolemFromRecursiveArgument fOfargC skolem
   , ToSkolemizedFunction fOfargC skolem argC
   , SkolemNotYetPresentOrDiscardable skolem skolems
   , MakeInternalSkolemStack skolem ptr skolems skolemsInternal

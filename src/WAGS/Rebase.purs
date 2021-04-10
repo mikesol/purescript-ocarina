@@ -1,8 +1,11 @@
 module WAGS.Rebase where
 
 import Prelude
-
 import Control.Monad.State (modify_)
+import Data.Map as M
+import Data.Set as S
+import Data.Maybe (fromMaybe)
+import Data.Tuple.Nested ((/\))
 import Data.Typelevel.Bool (False, True)
 import Type.Proxy (Proxy(..))
 import WAGS.Control.Types (FrameT(..), AudioState)
@@ -18,6 +21,9 @@ import WAGS.Validation (class LookupNL, class PtrInPtrList, class TerminalIdenti
 data RebaseProof
   = RebaseProof
 
+forceArray :: forall a. Array a -> Array a
+forceArray = identity
+
 class Rebase :: Universe -> Universe -> Constraint
 class Rebase iA iB where
   rebase :: forall env audio engine proof m. Monad m => AudioInterpret audio engine => Proxy iA -> Proxy iB -> FrameT env audio engine proof m iA iB Unit
@@ -32,9 +38,31 @@ instance rebaseRebase ::
     FrameT do
       a <- arr
       modify_ \i ->
-        i
-          { instructions = i.instructions <> [ rebaseAllUnits a ]
-          }
+        let
+          mapping = M.fromFoldable $ map (\{ from, to } -> from /\ to) a
+        in
+          i
+            { internalNodes =
+              M.fromFoldable
+                $ map
+                    ( \(idx /\ v) ->
+                        (fromMaybe idx $ M.lookup idx mapping) /\ v
+                    )
+                $ forceArray
+                $ M.toUnfoldable
+                $ i.internalNodes
+            , internalEdges =
+              M.fromFoldable
+                $ map
+                    ( \(idx /\ v) ->
+                        (fromMaybe idx $ M.lookup idx mapping) /\
+                         (S.map (\idx' -> fromMaybe idx' $ M.lookup idx' mapping) v)
+                    )
+                $ forceArray
+                $ M.toUnfoldable
+                $ i.internalEdges
+            , instructions = i.instructions <> [ rebaseAllUnits a ]
+            }
     where
     FrameT arr = rebase' (Proxy :: _ PtrListNil) (Proxy :: _ PtrListNil) RebaseProof (Proxy :: _ edgeA) iA (Proxy :: _ edgeB) iB
 
@@ -42,7 +70,7 @@ type AFT
   = (Array { from :: Int, to :: Int })
 
 -- private, only used to collect rebase instructions
-class Rebase' :: forall k1. PtrList -> PtrList -> Type -> k1 -> Universe -> k1 -> Universe -> Constraint
+  class Rebase' :: forall k1. PtrList -> PtrList -> Type -> k1 -> Universe -> k1 -> Universe -> Constraint
 class Rebase' plA plB rbp pA (iA :: Universe) pB (iB :: Universe) where
   rebase' :: forall env audio engine proof m. Monad m => AudioInterpret audio engine => Proxy plA -> Proxy plB -> rbp -> Proxy pA -> Proxy iA -> Proxy pB -> Proxy iB -> FrameT env audio engine proof m iA iB AFT
 

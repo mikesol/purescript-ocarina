@@ -19,7 +19,9 @@ import Test.Spec.Assertions (shouldEqual)
 import Test.Spec.Reporter (consoleReporter)
 import Test.Spec.Runner (runSpec)
 import Type.Proxy (Proxy)
-import WAGS (AnAudioUnit(..), AudioParameter, AudioParameterTransition(..), Focus(..), Gain(..), Highpass(..), Instruction(..), SinOsc(..), Speaker(..), Thunkable(..), branch, change, changeAt, create, cursor, env, freeze, isHere, isWait, loop, oneFrame', param, runThunkableWithCount, start, thunkThunkable, wait, (@>), (@|>), gain)
+import WAGS (AnAudioUnit(..), AudioParameter, AudioParameterTransition(..), Focus(..), Gain(..), Highpass(..), Instruction(..), SinOsc(..), Speaker(..), Thunkable(..), branch, change, changeAt, create, cursor, env, freeze, gain, mix, highpass, isHere, isWait, loop, oneFrame', param, runThunkableWithCount, start, sinOsc, thunkThunkable, wait, (@>), (@|>))
+
+data MyMix
 
 data MyGain
 
@@ -30,16 +32,8 @@ type Time
 
 scene0_ f ({ time: time' } :: Time) =
   Speaker
-    ( gain {gain: 1.0} \myGain -> 
-        myGain
-          /\ Highpass
-              ( 330.0
-                  /\ \(_ :: AudioParameter) ->
-                      330.0 + time' * 10.0
-              )
-              1.0
-              (f (SinOsc 440.0))
-          /\ unit
+    ( mix \(myMix :: Proxy MyMix) ->
+        myMix /\ highpass (330.0 + time' * 10.0) (f (sinOsc 440.0)) /\ unit
     )
 
 scene0 = scene0_ Identity
