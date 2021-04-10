@@ -19,7 +19,7 @@ import Test.Spec.Assertions (shouldEqual)
 import Test.Spec.Reporter (consoleReporter)
 import Test.Spec.Runner (runSpec)
 import Type.Proxy (Proxy)
-import WAGS (AnAudioUnit(..), AudioParameter, AudioParameterTransition(..), Focus(..), Gain(..), Highpass(..), Instruction(..), SinOsc(..), Speaker(..), Thunkable(..), branch, change, changeAt, create, cursor, env, freeze, gain, mix, highpass, isHere, isWait, loop, oneFrame', param, runThunkableWithCount, start, sinOsc, thunkThunkable, wait, (@>), (@|>))
+import WAGS (AnAudioUnit(..), AudioParameter, AudioParameterTransition(..), Focus(..), Gain(..), Highpass(..), Instruction(..), SinOsc(..), Speaker(..), Thunkable(..), branch, change, changeAt, create, cursor, env, freeze, speaker, gain, mix, highpass, isHere, isWait, loop, oneFrame', param, runThunkableWithCount, start, sinOsc, thunkThunkable, wait, (@>), (@|>))
 
 data MyMix
 
@@ -39,17 +39,9 @@ scene0_ f ({ time: time' } :: Time) =
 scene0 = scene0_ Identity
 
 scene1 ({ time: time' } :: Time) =
-  Speaker
-    ( Gain 1.0 \(gain :: Proxy MyGain) ->
-        gain
-          /\ Highpass
-              ( 330.0
-                  /\ \(_ :: AudioParameter) ->
-                      330.0 + time' * 50.0
-              )
-              1.0
-              (SinOsc 440.0)
-          /\ unit
+  speaker
+    ( gain 1.0 \(myGain :: Proxy MyGain) ->
+        myGain /\ highpass (330.0 + time' * 50.0) (sinOsc 440.0) /\ unit
     )
 
 resolveInstructions :: Array (Unit -> Const Instruction Unit) -> Array Instruction

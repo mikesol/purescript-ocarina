@@ -55,8 +55,8 @@ instance rebaseRebase ::
               M.fromFoldable
                 $ map
                     ( \(idx /\ v) ->
-                        (fromMaybe idx $ M.lookup idx mapping) /\
-                         (S.map (\idx' -> fromMaybe idx' $ M.lookup idx' mapping) v)
+                        (fromMaybe idx $ M.lookup idx mapping)
+                          /\ (S.map (\idx' -> fromMaybe idx' $ M.lookup idx' mapping) v)
                     )
                 $ forceArray
                 $ M.toUnfoldable
@@ -70,7 +70,7 @@ type AFT
   = (Array { from :: Int, to :: Int })
 
 -- private, only used to collect rebase instructions
-  class Rebase' :: forall k1. PtrList -> PtrList -> Type -> k1 -> Universe -> k1 -> Universe -> Constraint
+class Rebase' :: forall k1. PtrList -> PtrList -> Type -> k1 -> Universe -> k1 -> Universe -> Constraint
 class Rebase' plA plB rbp pA (iA :: Universe) pB (iB :: Universe) where
   rebase' :: forall env audio engine proof m. Monad m => AudioInterpret audio engine => Proxy plA -> Proxy plB -> rbp -> Proxy pA -> Proxy iA -> Proxy pB -> Proxy iB -> FrameT env audio engine proof m iA iB AFT
 
