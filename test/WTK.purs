@@ -18,10 +18,23 @@ import Test.Spec.Assertions (shouldEqual)
 import Test.Spec.Reporter (consoleReporter)
 import Test.Spec.Runner (runSpec)
 import Type.Proxy (Proxy)
-import WAGS (class GraphIsRenderable, AnAudioUnit(..), AudioUnitRef, Focus(..), FrameT, Instruction(..), SceneT, SinOsc(..), UniverseC, branch, change, changeAt, create, cursor, env, freeze, gain, highpass, isHere, loop, mix, oneFrame', param, proof, runThunkableWithCount, sinOsc, speaker, start, thunkThunkable, wait, withProof, (@>), (@|>))
+import WAGS (class Connect, class Create, class Cursor, class GraphIsRenderable, AnAudioUnit(..), AudioParameter, AudioUnitRef, Focus(..), FrameT, Instruction(..), SceneT, SinOsc(..), SingleEdge, UniverseC, branch, change, changeAt, create, cursor, env, freeze, gain, highpass, isHere, loop, mix, oneFrame', param, proof, runThunkableWithCount, sinOsc, speaker, start, thunkThunkable, wait, withProof, (@>), (@|>))
 import WAGS.Control.Qualified as Ix
 import WAGS.Interpret (class AudioInterpret)
 
+{-
+addKeys ::
+  forall audio engine proofA sosc i m currentIdx mixer graph graphM0 graphM1 changeBit skolems currentIdx' graph' onsetCache acc' acc.
+  Monad m =>
+  AudioInterpret audio engine =>
+  GraphIsRenderable graph =>
+  Create (SinOsc AudioParameter) graph graphM (AudioRef sosc)
+  Connect (AudioRef sosc) (AudioRef mixer) graphM0 graphM1
+  --------------- how do we get from graphM1 to graph'?
+  List Int ->
+  FrameT Env audio engine proofA m (UniverseC currentIdx graph changeBit skolems) (UniverseC currentIdx' graph' changeBit skolems) { | acc } ->
+addKeys (a : b) = ?hole
+  -}
 {-
 type Env
   = { event :: { keys :: List Int, time :: Number }
