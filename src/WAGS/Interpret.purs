@@ -27,6 +27,8 @@ foreign import data AudioContext :: Type
 
 foreign import data BrowserMicrophone :: Type
 
+foreign import getAudioClockTime :: AudioContext -> Effect Number
+
 foreign import stopMediaRecorder :: MediaRecorder -> Effect Unit
 
 foreign import mediaRecorderToUrl :: String -> (String -> Effect Unit) -> MediaRecorder -> Effect Unit
@@ -116,6 +118,7 @@ instance safeToFFI_AudioParameter ::
 
 type FFIAudio'
   = { context :: AudioContext
+    , writeHead :: Number
     , units :: Foreign
     , microphones :: Object BrowserMicrophone
     , recorders :: Object (MediaRecorder -> Effect Unit)
@@ -124,6 +127,8 @@ type FFIAudio'
     , floatArrays :: Object BrowserFloatArray
     , periodicWaves :: Object BrowserPeriodicWave
     }
+
+foreign import renderAudio :: FFIAudio -> Array (FFIAudio -> Effect Unit) -> Effect Unit
 
 newtype FFIAudio
   = FFIAudio FFIAudio'

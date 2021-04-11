@@ -77,25 +77,20 @@ exports.rebaseAllUnits_ = function (toRebase) {
     };
   };
 };
-/**
- * 
- * @param {                  getMainFromGenerator(generators[c.value0]).type = "lowpass";
-                } else if (predicates.isBandpass(c.value1)) {
-                  getMainFromGenerator(generators[c.value0]).type = "bandpass";
-                } else if (predicates.isLowshelf(c.value1)) {
-                  getMainFromGenerator(generators[c.value0]).type = "lowshelf";
-                } else if (predicates.isHighshelf(c.value1)) {
-                  getMainFromGenerator(generators[c.value0]).type = "highshelf";
-                } else if (predicates.isNotch(c.value1)) {
-                  getMainFromGenerator(generators[c.value0]).type = "notch";
-                } else if (predicates.isAllpass(c.value1)) {
-                  getMainFromGenerator(generators[c.value0]).type = "allpass";
-                } else if (predicates.isPeaking(c.value1)) {
-                  getMainFromGenerator(generators[c.value0]).type = "peaking";
-                } else if (predicates.isHighpass(c.value1)) {
-                  getMainFromGenerator(generators[c.value0]).type = "highpass";
-} ptr 
- */
+exports.renderAudio = function (ffiAudio) {
+  return function (arrayToApply) {
+    return function () {
+      for (var i = 0; i < arrayToApply.length; i++) {
+        arrayToApply[i](ffiAudio)();
+      }
+    };
+  };
+};
+exports.getAudioClockTime = function (ctx) {
+  return function () {
+    return ctx.currentTime;
+  };
+};
 exports.makeAllpass_ = function (ptr) {
   return function (a) {
     return function (b) {

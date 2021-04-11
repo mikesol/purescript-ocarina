@@ -10,6 +10,7 @@ module WAGS.Control.Types
   , SceneT(..)
   , SceneT'
   , Scene
+  , Scene'
   , oneFrame
   , oneFrame'
   , oneFrameT
@@ -101,7 +102,6 @@ type Scene' env audio engine proof
 oneFrameT :: forall env audio engine proofA m. Monad m => SceneT env audio engine proofA m -> env -> (forall proofB. m (SceneT' env audio engine proofB m))
 oneFrameT (SceneT f) = (unsafeCoerce :: (env -> m (SceneT' env audio engine proofA m)) -> (env -> (forall proofB. m (SceneT' env audio engine proofB m))) ) f
   
-
 oneFrame :: forall env audio engine proofA. Scene env audio engine proofA -> env -> (forall proofB. Scene' env audio engine proofB)
 oneFrame m s = runThunkable (oneFrameT m s)
 
