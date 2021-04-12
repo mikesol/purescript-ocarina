@@ -1,7 +1,9 @@
 module WAGS.Run where
 
 import Prelude
+
 import Control.Comonad.Cofree (Cofree, head, tail)
+import Data.DateTime.Instant (Instant)
 import Data.Int (floor, toNumber)
 import Data.JSDate (getTime, now)
 import Data.Map as M
@@ -10,6 +12,7 @@ import Effect (Effect)
 import Effect.Ref as Ref
 import Effect.Timer (clearTimeout, setTimeout)
 import FRP.Behavior (Behavior, sampleBy, sample_)
+import FRP.Behavior.Time (instant)
 import FRP.Event (Event, makeEvent, subscribe)
 import Record as R
 import WAGS.Control.Types (Frame0, Scene, oneFrame)
@@ -38,18 +41,20 @@ type Run
 runInternal ::
   forall env event.
   Number ->
-  { env :: { | env }
+  { env :: env
   , trigger :: event
+  , sysTime :: Instant
   , active :: Boolean
   } ->
-  Behavior { | env } ->
+  Behavior { env :: env, sysTime :: Instant } ->
   Ref.Ref (Effect Unit) ->
   Ref.Ref EasingAlgorithm ->
   Ref.Ref
     ( Scene
         { time :: Number
-        , env :: { | env }
+        , env :: env
         , trigger :: event
+        , sysTime :: Instant
         , active :: Boolean
         }
         FFIAudio
@@ -94,8 +99,8 @@ runInternal audioClockStart envAndTrigger world currentTimeoutCanceler currentEa
   -- note that if we did not allocate enough time, we still
   -- set a timeout of 1 so that th canceler can run in case it needs to
   canceler <-
-    subscribe (sample_ world (delayEvent $ max 1 remainingTimeInMs)) \env ->
-      runInternal audioClockStart { env, trigger: envAndTrigger.trigger, active: false } world currentTimeoutCanceler currentEasingAlg currentScene audio' reporter
+    subscribe (sample_ world (delayEvent $ max 1 remainingTimeInMs)) \{ env, sysTime } ->
+      runInternal audioClockStart { env, sysTime , trigger: envAndTrigger.trigger, active: false } world currentTimeoutCanceler currentEasingAlg currentScene audio' reporter
   Ref.write canceler currentTimeoutCanceler
 
 run ::
@@ -107,7 +112,8 @@ run ::
   Scene
     { time :: Number
     , env :: { | env }
-    , trigger :: event
+    , trigger :: event -- List (Tuple Number event)
+    , sysTime :: Instant
     , active :: Boolean
     }
     FFIAudio
@@ -122,7 +128,7 @@ run engineInfo audio@(FFIAudio audio') trigger world scene =
     currentScene <- Ref.new scene
     currentEasingAlg <- Ref.new engineInfo.easingAlgorithm
     let
-      eventAndEnv = sampleBy (\a b -> { trigger: b, env: a, active: true }) world trigger
+      eventAndEnv = sampleBy (\{ env, sysTime } b -> { trigger: b, env, sysTime, active: true }) newWorld trigger
     unsubscribe <-
       subscribe eventAndEnv \ee -> do
         cancelTimeout <- Ref.read currentTimeoutCanceler
@@ -130,7 +136,7 @@ run engineInfo audio@(FFIAudio audio') trigger world scene =
         runInternal
           audioClockStart
           ee
-          world
+          newWorld
           currentTimeoutCanceler
           currentEasingAlg
           currentScene
@@ -140,7 +146,8 @@ run engineInfo audio@(FFIAudio audio') trigger world scene =
       cancelTimeout <- Ref.read currentTimeoutCanceler
       cancelTimeout
       unsubscribe
-
+  where
+  newWorld = (\env sysTime -> { env, sysTime }) <$> world <*> instant
 {-
 fiberedScene ::
   forall env audio engine proof.
