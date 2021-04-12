@@ -40,6 +40,7 @@ runInternal ::
   Number ->
   { env :: { | env }
   , trigger :: event
+  , active :: Boolean
   } ->
   Behavior { | env } ->
   Ref.Ref (Effect Unit) ->
@@ -49,6 +50,7 @@ runInternal ::
         { time :: Number
         , env :: { | env }
         , trigger :: event
+        , active :: Boolean
         }
         FFIAudio
         (Effect Unit)
@@ -93,7 +95,7 @@ runInternal audioClockStart envAndTrigger world currentTimeoutCanceler currentEa
   -- set a timeout of 1 so that th canceler can run in case it needs to
   canceler <-
     subscribe (sample_ world (delayEvent $ max 1 remainingTimeInMs)) \env ->
-      runInternal audioClockStart { env, trigger: envAndTrigger.trigger } world currentTimeoutCanceler currentEasingAlg currentScene audio' reporter
+      runInternal audioClockStart { env, trigger: envAndTrigger.trigger, active: false } world currentTimeoutCanceler currentEasingAlg currentScene audio' reporter
   Ref.write canceler currentTimeoutCanceler
 
 run ::
@@ -106,6 +108,7 @@ run ::
     { time :: Number
     , env :: { | env }
     , trigger :: event
+    , active :: Boolean
     }
     FFIAudio
     (Effect Unit)
@@ -119,7 +122,7 @@ run engineInfo audio@(FFIAudio audio') trigger world scene =
     currentScene <- Ref.new scene
     currentEasingAlg <- Ref.new engineInfo.easingAlgorithm
     let
-      eventAndEnv = sampleBy (\a b -> { trigger: b, env: a }) world trigger
+      eventAndEnv = sampleBy (\a b -> { trigger: b, env: a, active: true }) world trigger
     unsubscribe <-
       subscribe eventAndEnv \ee -> do
         cancelTimeout <- Ref.read currentTimeoutCanceler
