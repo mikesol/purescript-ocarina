@@ -151,69 +151,69 @@ playKeys ::
   Change (SingleEdge k58) buildInfo graph =>
   Change (SingleEdge k59) buildInfo graph =>
   Changes incoming graph =>
-  Proxy (Proxy graph /\ Proxy k0 /\ Proxy k1 /\ Proxy k2 /\ Proxy k3 /\ Proxy k4 /\ Proxy k5 /\ Proxy k6 /\ Proxy k7 /\ Proxy k8 /\ Proxy k9 /\ Proxy k10 /\ Proxy k11 /\ Proxy k12 /\ Proxy k13 /\ Proxy k14 /\ Proxy k15 /\ Proxy k16 /\ Proxy k17 /\ Proxy k18 /\ Proxy k19 /\ Proxy k20 /\ Proxy k21 /\ Proxy k22 /\ Proxy k23 /\ Proxy k24 /\ Proxy k25 /\ Proxy k26 /\ Proxy k27 /\ Proxy k28 /\ Proxy k29 /\ Proxy k30 /\ Proxy k31 /\ Proxy k32 /\ Proxy k33 /\ Proxy k34 /\ Proxy k35 /\ Proxy k36 /\ Proxy k37 /\ Proxy k38 /\ Proxy k39 /\ Proxy k40 /\ Proxy k41 /\ Proxy k42 /\ Proxy k43 /\ Proxy k44 /\ Proxy k45 /\ Proxy k46 /\ Proxy k47 /\ Proxy k48 /\ Proxy k49 /\ Proxy k50 /\ Proxy k51 /\ Proxy k52 /\ Proxy k53 /\ Proxy k54 /\ Proxy k55 /\ Proxy k56 /\ Proxy k57 /\ Proxy k58 /\ Proxy k59) -> incoming -> List Key -> (Key -> buildInfo) -> FrameT env audio engine proof m (UniverseC currentIdx graph j skolems) (UniverseC currentIdx graph (Succ j) skolems) Unit
+  Proxy (Proxy graph /\ Proxy k0 /\ Proxy k1 /\ Proxy k2 /\ Proxy k3 /\ Proxy k4 /\ Proxy k5 /\ Proxy k6 /\ Proxy k7 /\ Proxy k8 /\ Proxy k9 /\ Proxy k10 /\ Proxy k11 /\ Proxy k12 /\ Proxy k13 /\ Proxy k14 /\ Proxy k15 /\ Proxy k16 /\ Proxy k17 /\ Proxy k18 /\ Proxy k19 /\ Proxy k20 /\ Proxy k21 /\ Proxy k22 /\ Proxy k23 /\ Proxy k24 /\ Proxy k25 /\ Proxy k26 /\ Proxy k27 /\ Proxy k28 /\ Proxy k29 /\ Proxy k30 /\ Proxy k31 /\ Proxy k32 /\ Proxy k33 /\ Proxy k34 /\ Proxy k35 /\ Proxy k36 /\ Proxy k37 /\ Proxy k38 /\ Proxy k39 /\ Proxy k40 /\ Proxy k41 /\ Proxy k42 /\ Proxy k43 /\ Proxy k44 /\ Proxy k45 /\ Proxy k46 /\ Proxy k47 /\ Proxy k48 /\ Proxy k49 /\ Proxy k50 /\ Proxy k51 /\ Proxy k52 /\ Proxy k53 /\ Proxy k54 /\ Proxy k55 /\ Proxy k56 /\ Proxy k57 /\ Proxy k58 /\ Proxy k59) -> Number -> (Key -> buildInfo) -> incoming -> List Key -> FrameT env audio engine proof m (UniverseC currentIdx graph j skolems) (UniverseC currentIdx graph (Succ j) skolems) Unit
 -- then need key sustaing ctor and coff ctor
 -- finally add start/stop to change
-playKeys proxyForTypes incoming Nil keyStartCtor = changes incoming
+playKeys proxyForTypes currentTime keyStartCtor incoming Nil = changes incoming
 
-playKeys proxyForTypes incoming (a : b) keyStartCtor = case a of
-  K0 -> playKeys proxyForTypes (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k0)) (keyStartCtor K0)) incoming) b keyStartCtor
-  K1 -> playKeys proxyForTypes (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k1)) (keyStartCtor K1)) incoming) b keyStartCtor
-  K2 -> playKeys proxyForTypes (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k2)) (keyStartCtor K2)) incoming) b keyStartCtor
-  K3 -> playKeys proxyForTypes (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k3)) (keyStartCtor K3)) incoming) b keyStartCtor
-  K4 -> playKeys proxyForTypes (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k4)) (keyStartCtor K4)) incoming) b keyStartCtor
-  K5 -> playKeys proxyForTypes (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k5)) (keyStartCtor K5)) incoming) b keyStartCtor
-  K6 -> playKeys proxyForTypes (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k6)) (keyStartCtor K6)) incoming) b keyStartCtor
-  K7 -> playKeys proxyForTypes (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k7)) (keyStartCtor K7)) incoming) b keyStartCtor
-  K8 -> playKeys proxyForTypes (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k8)) (keyStartCtor K8)) incoming) b keyStartCtor
-  K9 -> playKeys proxyForTypes (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k9)) (keyStartCtor K9)) incoming) b keyStartCtor
-  K10 -> playKeys proxyForTypes (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k10)) (keyStartCtor K10)) incoming) b keyStartCtor
-  K11 -> playKeys proxyForTypes (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k11)) (keyStartCtor K11)) incoming) b keyStartCtor
-  K12 -> playKeys proxyForTypes (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k12)) (keyStartCtor K12)) incoming) b keyStartCtor
-  K13 -> playKeys proxyForTypes (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k13)) (keyStartCtor K13)) incoming) b keyStartCtor
-  K14 -> playKeys proxyForTypes (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k14)) (keyStartCtor K14)) incoming) b keyStartCtor
-  K15 -> playKeys proxyForTypes (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k15)) (keyStartCtor K15)) incoming) b keyStartCtor
-  K16 -> playKeys proxyForTypes (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k16)) (keyStartCtor K16)) incoming) b keyStartCtor
-  K17 -> playKeys proxyForTypes (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k17)) (keyStartCtor K17)) incoming) b keyStartCtor
-  K18 -> playKeys proxyForTypes (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k18)) (keyStartCtor K18)) incoming) b keyStartCtor
-  K19 -> playKeys proxyForTypes (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k19)) (keyStartCtor K19)) incoming) b keyStartCtor
-  K20 -> playKeys proxyForTypes (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k20)) (keyStartCtor K20)) incoming) b keyStartCtor
-  K21 -> playKeys proxyForTypes (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k21)) (keyStartCtor K21)) incoming) b keyStartCtor
-  K22 -> playKeys proxyForTypes (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k22)) (keyStartCtor K22)) incoming) b keyStartCtor
-  K23 -> playKeys proxyForTypes (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k23)) (keyStartCtor K23)) incoming) b keyStartCtor
-  K24 -> playKeys proxyForTypes (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k24)) (keyStartCtor K24)) incoming) b keyStartCtor
-  K25 -> playKeys proxyForTypes (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k25)) (keyStartCtor K25)) incoming) b keyStartCtor
-  K26 -> playKeys proxyForTypes (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k26)) (keyStartCtor K26)) incoming) b keyStartCtor
-  K27 -> playKeys proxyForTypes (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k27)) (keyStartCtor K27)) incoming) b keyStartCtor
-  K28 -> playKeys proxyForTypes (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k28)) (keyStartCtor K28)) incoming) b keyStartCtor
-  K29 -> playKeys proxyForTypes (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k29)) (keyStartCtor K29)) incoming) b keyStartCtor
-  K30 -> playKeys proxyForTypes (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k30)) (keyStartCtor K30)) incoming) b keyStartCtor
-  K31 -> playKeys proxyForTypes (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k31)) (keyStartCtor K31)) incoming) b keyStartCtor
-  K32 -> playKeys proxyForTypes (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k32)) (keyStartCtor K32)) incoming) b keyStartCtor
-  K33 -> playKeys proxyForTypes (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k33)) (keyStartCtor K33)) incoming) b keyStartCtor
-  K34 -> playKeys proxyForTypes (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k34)) (keyStartCtor K34)) incoming) b keyStartCtor
-  K35 -> playKeys proxyForTypes (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k35)) (keyStartCtor K35)) incoming) b keyStartCtor
-  K36 -> playKeys proxyForTypes (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k36)) (keyStartCtor K36)) incoming) b keyStartCtor
-  K37 -> playKeys proxyForTypes (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k37)) (keyStartCtor K37)) incoming) b keyStartCtor
-  K38 -> playKeys proxyForTypes (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k38)) (keyStartCtor K38)) incoming) b keyStartCtor
-  K39 -> playKeys proxyForTypes (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k39)) (keyStartCtor K39)) incoming) b keyStartCtor
-  K40 -> playKeys proxyForTypes (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k40)) (keyStartCtor K40)) incoming) b keyStartCtor
-  K41 -> playKeys proxyForTypes (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k41)) (keyStartCtor K41)) incoming) b keyStartCtor
-  K42 -> playKeys proxyForTypes (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k42)) (keyStartCtor K42)) incoming) b keyStartCtor
-  K43 -> playKeys proxyForTypes (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k43)) (keyStartCtor K43)) incoming) b keyStartCtor
-  K44 -> playKeys proxyForTypes (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k44)) (keyStartCtor K44)) incoming) b keyStartCtor
-  K45 -> playKeys proxyForTypes (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k45)) (keyStartCtor K45)) incoming) b keyStartCtor
-  K46 -> playKeys proxyForTypes (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k46)) (keyStartCtor K46)) incoming) b keyStartCtor
-  K47 -> playKeys proxyForTypes (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k47)) (keyStartCtor K47)) incoming) b keyStartCtor
-  K48 -> playKeys proxyForTypes (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k48)) (keyStartCtor K48)) incoming) b keyStartCtor
-  K49 -> playKeys proxyForTypes (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k49)) (keyStartCtor K49)) incoming) b keyStartCtor
-  K50 -> playKeys proxyForTypes (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k50)) (keyStartCtor K50)) incoming) b keyStartCtor
-  K51 -> playKeys proxyForTypes (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k51)) (keyStartCtor K51)) incoming) b keyStartCtor
-  K52 -> playKeys proxyForTypes (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k52)) (keyStartCtor K52)) incoming) b keyStartCtor
-  K53 -> playKeys proxyForTypes (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k53)) (keyStartCtor K53)) incoming) b keyStartCtor
-  K54 -> playKeys proxyForTypes (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k54)) (keyStartCtor K54)) incoming) b keyStartCtor
-  K55 -> playKeys proxyForTypes (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k55)) (keyStartCtor K55)) incoming) b keyStartCtor
-  K56 -> playKeys proxyForTypes (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k56)) (keyStartCtor K56)) incoming) b keyStartCtor
-  K57 -> playKeys proxyForTypes (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k57)) (keyStartCtor K57)) incoming) b keyStartCtor
-  K58 -> playKeys proxyForTypes (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k58)) (keyStartCtor K58)) incoming) b keyStartCtor
-  K59 -> playKeys proxyForTypes (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k59)) (keyStartCtor K59)) incoming) b keyStartCtor
+playKeys proxyForTypes currentTime keyStartCtor incoming (a : b) = case a of
+  K0 -> playKeys proxyForTypes currentTime keyStartCtor (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k0)) (keyStartCtor K0)) incoming) b
+  K1 -> playKeys proxyForTypes currentTime keyStartCtor (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k1)) (keyStartCtor K1)) incoming) b
+  K2 -> playKeys proxyForTypes currentTime keyStartCtor (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k2)) (keyStartCtor K2)) incoming) b
+  K3 -> playKeys proxyForTypes currentTime keyStartCtor (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k3)) (keyStartCtor K3)) incoming) b
+  K4 -> playKeys proxyForTypes currentTime keyStartCtor (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k4)) (keyStartCtor K4)) incoming) b
+  K5 -> playKeys proxyForTypes currentTime keyStartCtor (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k5)) (keyStartCtor K5)) incoming) b
+  K6 -> playKeys proxyForTypes currentTime keyStartCtor (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k6)) (keyStartCtor K6)) incoming) b
+  K7 -> playKeys proxyForTypes currentTime keyStartCtor (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k7)) (keyStartCtor K7)) incoming) b
+  K8 -> playKeys proxyForTypes currentTime keyStartCtor (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k8)) (keyStartCtor K8)) incoming) b
+  K9 -> playKeys proxyForTypes currentTime keyStartCtor (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k9)) (keyStartCtor K9)) incoming) b
+  K10 -> playKeys proxyForTypes currentTime keyStartCtor (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k10)) (keyStartCtor K10)) incoming) b
+  K11 -> playKeys proxyForTypes currentTime keyStartCtor (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k11)) (keyStartCtor K11)) incoming) b
+  K12 -> playKeys proxyForTypes currentTime keyStartCtor (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k12)) (keyStartCtor K12)) incoming) b
+  K13 -> playKeys proxyForTypes currentTime keyStartCtor (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k13)) (keyStartCtor K13)) incoming) b
+  K14 -> playKeys proxyForTypes currentTime keyStartCtor (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k14)) (keyStartCtor K14)) incoming) b
+  K15 -> playKeys proxyForTypes currentTime keyStartCtor (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k15)) (keyStartCtor K15)) incoming) b
+  K16 -> playKeys proxyForTypes currentTime keyStartCtor (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k16)) (keyStartCtor K16)) incoming) b
+  K17 -> playKeys proxyForTypes currentTime keyStartCtor (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k17)) (keyStartCtor K17)) incoming) b
+  K18 -> playKeys proxyForTypes currentTime keyStartCtor (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k18)) (keyStartCtor K18)) incoming) b
+  K19 -> playKeys proxyForTypes currentTime keyStartCtor (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k19)) (keyStartCtor K19)) incoming) b
+  K20 -> playKeys proxyForTypes currentTime keyStartCtor (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k20)) (keyStartCtor K20)) incoming) b
+  K21 -> playKeys proxyForTypes currentTime keyStartCtor (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k21)) (keyStartCtor K21)) incoming) b
+  K22 -> playKeys proxyForTypes currentTime keyStartCtor (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k22)) (keyStartCtor K22)) incoming) b
+  K23 -> playKeys proxyForTypes currentTime keyStartCtor (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k23)) (keyStartCtor K23)) incoming) b
+  K24 -> playKeys proxyForTypes currentTime keyStartCtor (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k24)) (keyStartCtor K24)) incoming) b
+  K25 -> playKeys proxyForTypes currentTime keyStartCtor (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k25)) (keyStartCtor K25)) incoming) b
+  K26 -> playKeys proxyForTypes currentTime keyStartCtor (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k26)) (keyStartCtor K26)) incoming) b
+  K27 -> playKeys proxyForTypes currentTime keyStartCtor (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k27)) (keyStartCtor K27)) incoming) b
+  K28 -> playKeys proxyForTypes currentTime keyStartCtor (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k28)) (keyStartCtor K28)) incoming) b
+  K29 -> playKeys proxyForTypes currentTime keyStartCtor (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k29)) (keyStartCtor K29)) incoming) b
+  K30 -> playKeys proxyForTypes currentTime keyStartCtor (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k30)) (keyStartCtor K30)) incoming) b
+  K31 -> playKeys proxyForTypes currentTime keyStartCtor (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k31)) (keyStartCtor K31)) incoming) b
+  K32 -> playKeys proxyForTypes currentTime keyStartCtor (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k32)) (keyStartCtor K32)) incoming) b
+  K33 -> playKeys proxyForTypes currentTime keyStartCtor (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k33)) (keyStartCtor K33)) incoming) b
+  K34 -> playKeys proxyForTypes currentTime keyStartCtor (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k34)) (keyStartCtor K34)) incoming) b
+  K35 -> playKeys proxyForTypes currentTime keyStartCtor (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k35)) (keyStartCtor K35)) incoming) b
+  K36 -> playKeys proxyForTypes currentTime keyStartCtor (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k36)) (keyStartCtor K36)) incoming) b
+  K37 -> playKeys proxyForTypes currentTime keyStartCtor (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k37)) (keyStartCtor K37)) incoming) b
+  K38 -> playKeys proxyForTypes currentTime keyStartCtor (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k38)) (keyStartCtor K38)) incoming) b
+  K39 -> playKeys proxyForTypes currentTime keyStartCtor (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k39)) (keyStartCtor K39)) incoming) b
+  K40 -> playKeys proxyForTypes currentTime keyStartCtor (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k40)) (keyStartCtor K40)) incoming) b
+  K41 -> playKeys proxyForTypes currentTime keyStartCtor (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k41)) (keyStartCtor K41)) incoming) b
+  K42 -> playKeys proxyForTypes currentTime keyStartCtor (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k42)) (keyStartCtor K42)) incoming) b
+  K43 -> playKeys proxyForTypes currentTime keyStartCtor (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k43)) (keyStartCtor K43)) incoming) b
+  K44 -> playKeys proxyForTypes currentTime keyStartCtor (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k44)) (keyStartCtor K44)) incoming) b
+  K45 -> playKeys proxyForTypes currentTime keyStartCtor (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k45)) (keyStartCtor K45)) incoming) b
+  K46 -> playKeys proxyForTypes currentTime keyStartCtor (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k46)) (keyStartCtor K46)) incoming) b
+  K47 -> playKeys proxyForTypes currentTime keyStartCtor (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k47)) (keyStartCtor K47)) incoming) b
+  K48 -> playKeys proxyForTypes currentTime keyStartCtor (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k48)) (keyStartCtor K48)) incoming) b
+  K49 -> playKeys proxyForTypes currentTime keyStartCtor (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k49)) (keyStartCtor K49)) incoming) b
+  K50 -> playKeys proxyForTypes currentTime keyStartCtor (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k50)) (keyStartCtor K50)) incoming) b
+  K51 -> playKeys proxyForTypes currentTime keyStartCtor (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k51)) (keyStartCtor K51)) incoming) b
+  K52 -> playKeys proxyForTypes currentTime keyStartCtor (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k52)) (keyStartCtor K52)) incoming) b
+  K53 -> playKeys proxyForTypes currentTime keyStartCtor (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k53)) (keyStartCtor K53)) incoming) b
+  K54 -> playKeys proxyForTypes currentTime keyStartCtor (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k54)) (keyStartCtor K54)) incoming) b
+  K55 -> playKeys proxyForTypes currentTime keyStartCtor (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k55)) (keyStartCtor K55)) incoming) b
+  K56 -> playKeys proxyForTypes currentTime keyStartCtor (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k56)) (keyStartCtor K56)) incoming) b
+  K57 -> playKeys proxyForTypes currentTime keyStartCtor (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k57)) (keyStartCtor K57)) incoming) b
+  K58 -> playKeys proxyForTypes currentTime keyStartCtor (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k58)) (keyStartCtor K58)) incoming) b
+  K59 -> playKeys proxyForTypes currentTime keyStartCtor (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k59)) (keyStartCtor K59)) incoming) b
