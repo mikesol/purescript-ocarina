@@ -476,6 +476,9 @@ type ChangesType (a :: Type) (g :: Graph)
 class Changes (a :: Type) (g :: Graph) where
   changes :: forall env audio engine proof m ptr changeBit skolems. Monad m => AudioInterpret audio engine => a -> FrameT env audio engine proof m (UniverseC ptr g changeBit skolems) (UniverseC ptr g (Succ changeBit) skolems) Unit
 
+{-existentialChanges :: forall p a g env audio engine proof m ptr changeBit skolems. Monad m => AudioInterpret audio engine => Changes (ChangeInstruction (Proxy p) a) g => (ChangeInstruction (Proxy p) a) -> (forall x. Changes x g => x) -> FrameT env audio engine proof m (UniverseC ptr g changeBit skolems) (UniverseC ptr g (Succ changeBit) skolems) Unit
+existentialChanges a b = changes (a /\ b)-}
+
 data ChangeInstruction a b
   = ChangeInstruction a b
 
@@ -491,6 +494,12 @@ else instance changesTp :: (Changes x graph, Changes y graph) => Changes (Tuple 
     y' = unsafeUnframe $ (changes :: ChangesType y graph) y
 else instance changesSingle :: (TerminalIdentityEdge graph edge, Change edge a graph) => Changes a graph where
   changes a = change a
+
+class Change (SingleEdge p) a grapho <= ChangeP (p :: Ptr) (a :: Type) (grapho :: Graph) where
+  changeP :: forall env audio engine proof m ptr changeBit skolems. Monad m => AudioInterpret audio engine => Proxy p -> a -> FrameT env audio engine proof m (UniverseC ptr grapho changeBit skolems) (UniverseC ptr grapho (Succ changeBit) skolems) Unit
+
+instance changePAll :: Change (SingleEdge p) a grapho => ChangeP p a grapho where
+  changeP _ = change' (Proxy :: _ (SingleEdge p))
 
 class Change (p :: EdgeProfile) (a :: Type) (grapho :: Graph) where
   change' :: forall env audio engine proof m ptr changeBit skolems. Monad m => AudioInterpret audio engine => Proxy p -> a -> FrameT env audio engine proof m (UniverseC ptr grapho changeBit skolems) (UniverseC ptr grapho (Succ changeBit) skolems) Unit
