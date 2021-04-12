@@ -34,7 +34,7 @@ opsTest0 ::
     (W.AudioUnitRef W.D1)
 opsTest0 =
   W.create
-    $ W.Dup (W.SinOsc 440.0) \(mySinOsc :: Proxy MySinOsc) ->
+    $ W.Dup (W.SinOsc W.On 440.0) \(mySinOsc :: Proxy MySinOsc) ->
         W.Gain 1.0 \(gain :: Proxy MyGain) ->
           gain /\ W.Highpass 330.0 1.0 mySinOsc /\ mySinOsc /\ unit
 
@@ -62,7 +62,7 @@ ot1Cursors = W.decorate ot1Type
 ot1Type :: forall f g h. OT1Type f g h
 ot1Type { hpf, gain, osc } =
   W.Speaker
-    $ W.Dup (W.dk osc (W.SinOsc 440.0)) \(mySinOsc :: Proxy MySinOsc) ->
+    $ W.Dup (W.dk osc (W.SinOsc W.On 440.0)) \(mySinOsc :: Proxy MySinOsc) ->
         W.dk gain
           ( W.Gain 1.0 \(myGain :: Proxy MyGain) ->
               myGain /\ W.dk hpf (W.Highpass 330.0 1.0 mySinOsc) /\ mySinOsc /\ unit

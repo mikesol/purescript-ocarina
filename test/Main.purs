@@ -1,6 +1,7 @@
 module Test.Main where
 
 import Prelude
+
 import Control.Applicative.Indexed (imap)
 import Data.Either (Either(..))
 import Data.Functor.Indexed (ivoid)
@@ -16,7 +17,7 @@ import Test.Spec.Assertions (shouldEqual)
 import Test.Spec.Reporter (consoleReporter)
 import Test.Spec.Runner (runSpec)
 import Type.Proxy (Proxy)
-import WAGS (AnAudioUnit(..), Focus(..), Instruction(..), SinOsc(..), branch, change, changeAt, create, cursor, env, freeze, gain, highpass, isHere, loop, mix, oneFrame', param, proof, runThunkableWithCount, sinOsc, speaker, start, thunkThunkable, wait, withProof, (@>), (@|>))
+import WAGS (AnAudioUnit(..), Focus(..), Instruction(..), OnOff(..), SinOsc(..), branch, change, changeAt, create, cursor, env, freeze, gain, highpass, isHere, loop, mix, oneFrame', param, proof, runThunkableWithCount, sinOsc, speaker, start, thunkThunkable, wait, withProof, (@>), (@|>))
 import WAGS.Control.Qualified as Ix
 
 data MyMix
@@ -110,7 +111,7 @@ main = do
 
             (frame2Nodes /\ frame2Edges /\ frame2Instr /\ _) = oneFrame' frame2 { time: 0.2 }
 
-            nodeAssertion = M.fromFoldable [ 0 /\ ASpeaker, 1 /\ (AGain (param 1.0)), 2 /\ (AHighpass (param 330.0) (param 1.0)), 3 /\ (ASinOsc (param 440.0)) ]
+            nodeAssertion = M.fromFoldable [ 0 /\ ASpeaker, 1 /\ (AGain (param 1.0)), 2 /\ (AHighpass (param 330.0) (param 1.0)), 3 /\ (ASinOsc On (param 440.0)) ]
 
             edgeAssertion = M.fromFoldable [ 0 /\ S.singleton 1, 1 /\ S.fromFoldable [ 1, 2 ], 2 /\ S.singleton 3 ]
 
@@ -118,7 +119,7 @@ main = do
               [ (MakeSpeaker 0)
               , MakeGain 1 (param 1.0)
               , MakeHighpass 2 (param 330.0) (param 1.0)
-              , MakeSinOsc 3 (param 440.0)
+              , MakeSinOsc 3 On (param 440.0)
               , (ConnectXToY 3 2)
               , (ConnectXToY 1 1)
               , (ConnectXToY 2 1)
@@ -155,7 +156,7 @@ main = do
                           $ Ix.do
                               e <- env
                               sosc <- cursor (scene0_ Focus e)
-                              ivoid $ changeAt sosc (SinOsc $ 440.0 + e.time * 50.0)
+                              ivoid $ changeAt sosc (SinOsc On $ 440.0 + e.time * 50.0)
                       )
                   )
 
@@ -169,7 +170,7 @@ main = do
 
             (frame4Nodes /\ frame4Edges /\ frame4Instr /\ _) = oneFrame' frame4 { time: 0.4 }
 
-            nodeAssertion i = M.fromFoldable [ 0 /\ ASpeaker, 1 /\ (AGain (param 1.0)), 2 /\ (AHighpass (param $ 330.0) (param 1.0)), 3 /\ (ASinOsc (param $ 440.0 + i)) ]
+            nodeAssertion i = M.fromFoldable [ 0 /\ ASpeaker, 1 /\ (AGain (param 1.0)), 2 /\ (AHighpass (param $ 330.0) (param 1.0)), 3 /\ (ASinOsc On (param $ 440.0 + i)) ]
 
             edgeAssertion = M.fromFoldable [ 0 /\ S.singleton 1, 1 /\ S.fromFoldable [ 1, 2 ], 2 /\ S.singleton 3 ]
 
@@ -177,7 +178,7 @@ main = do
               [ (MakeSpeaker 0)
               , MakeGain 1 (param 1.0)
               , MakeHighpass 2 (param 330.0) (param 1.0)
-              , MakeSinOsc 3 (param 440.0)
+              , MakeSinOsc  3 On (param 440.0)
               , (ConnectXToY 3 2)
               , (ConnectXToY 1 1)
               , (ConnectXToY 2 1)
@@ -231,7 +232,7 @@ main = do
 
             (frame4Nodes /\ frame4Edges /\ frame4Instr /\ _) = oneFrame' frame4 { time: 0.4 }
 
-            nodeAssertion i = M.fromFoldable [ 0 /\ ASpeaker, 1 /\ (AGain (param 1.0)), 2 /\ (AHighpass (param $ 330.0 + i) (param 1.0)), 3 /\ (ASinOsc (param 440.0)) ]
+            nodeAssertion i = M.fromFoldable [ 0 /\ ASpeaker, 1 /\ (AGain (param 1.0)), 2 /\ (AHighpass (param $ 330.0 + i) (param 1.0)), 3 /\ (ASinOsc On (param 440.0)) ]
 
             edgeAssertion = M.fromFoldable [ 0 /\ S.singleton 1, 1 /\ S.fromFoldable [ 1, 2 ], 2 /\ S.singleton 3 ]
 
@@ -239,7 +240,7 @@ main = do
               [ (MakeSpeaker 0)
               , MakeGain 1 (param 1.0)
               , MakeHighpass 2 (param 330.0) (param 1.0)
-              , MakeSinOsc 3 (param 440.0)
+              , MakeSinOsc 3 On (param 440.0)
               , (ConnectXToY 3 2)
               , (ConnectXToY 1 1)
               , (ConnectXToY 2 1)
@@ -307,7 +308,7 @@ main = do
 
             (frame4Nodes /\ frame4Edges /\ frame4Instr /\ _) = oneFrame' frame4 { time: 0.4 }
 
-            nodeAssertion i = M.fromFoldable [ 0 /\ ASpeaker, 1 /\ (AGain (param 1.0)), 2 /\ (AHighpass (param $ 330.0 + i) (param 1.0)), 3 /\ (ASinOsc (param 440.0)) ]
+            nodeAssertion i = M.fromFoldable [ 0 /\ ASpeaker, 1 /\ (AGain (param 1.0)), 2 /\ (AHighpass (param $ 330.0 + i) (param 1.0)), 3 /\ (ASinOsc On (param 440.0)) ]
 
             edgeAssertion = M.fromFoldable [ 0 /\ S.singleton 1, 1 /\ S.fromFoldable [ 1, 2 ], 2 /\ S.singleton 3 ]
 
@@ -315,7 +316,7 @@ main = do
               [ (MakeSpeaker 0)
               , MakeGain 1 (param 1.0)
               , MakeHighpass 2 (param 330.0) (param 1.0)
-              , MakeSinOsc 3 (param 440.0)
+              , MakeSinOsc 3 On (param 440.0)
               , (ConnectXToY 3 2)
               , (ConnectXToY 1 1)
               , (ConnectXToY 2 1)

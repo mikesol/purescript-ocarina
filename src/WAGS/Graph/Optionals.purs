@@ -1,13 +1,13 @@
 module WAGS.Graph.Optionals where
 
 import Prelude
-
 import ConvertableOptions (class ConvertOption, class ConvertOptionsWithDefaults, convertOptionsWithDefaults)
 import Data.Symbol (class IsSymbol)
 import Data.Tuple (Tuple(..))
 import Type.Proxy (Proxy)
 import WAGS.Change (class SetterVal, setterVal)
 import WAGS.Create (class InitialVal, initialVal)
+import WAGS.Graph.Constructors (OnOff(..))
 import WAGS.Graph.Constructors as CTOR
 import WAGS.Graph.IsAudio (class IsAudio, class IsAudioOrF, class IsMultiAudio, class IsMultiAudioOrF, class IsOversample)
 import WAGS.Graph.Parameter (AudioParameter, param)
@@ -93,12 +93,21 @@ else instance bandpassCtor2 :: (InitialVal a, SetterVal a, IsAudioOrF b) => Band
   bandpass a cont = CTOR.Bandpass (Tuple (initialVal a) (setterVal a)) defaultBandpass.q cont
 
 ------
-constant ::
-  forall a.
-  InitialVal a =>
-  SetterVal a =>
-  a -> CTOR.Constant GetSetAP
-constant gvsv = CTOR.Constant (Tuple (initialVal gvsv) (setterVal gvsv))
+class ConstantCtor i o | i -> o where
+  constant :: i -> o
+
+instance constantCtor2 ::
+  ( InitialVal a
+  , SetterVal a
+  ) =>
+  ConstantCtor OnOff (a -> CTOR.Constant GetSetAP) where
+  constant oo gvsv = CTOR.Constant oo (Tuple (initialVal gvsv) (setterVal gvsv))
+else instance constantCtor1 ::
+  ( InitialVal a
+  , SetterVal a
+  ) =>
+  ConstantCtor a (CTOR.Constant GetSetAP) where
+  constant gvsv = CTOR.Constant On (Tuple (initialVal gvsv) (setterVal gvsv))
 
 ------
 convolver ::
@@ -270,17 +279,20 @@ else instance highshelfCtor2 :: (InitialVal a, SetterVal a, IsAudioOrF b) => Hig
   highshelf a cont = CTOR.Highshelf (Tuple (initialVal a) (setterVal a)) defaultHighshelf.gain cont
 
 ----
-class LoopBufCtor loopBuf where
-  loopBuf :: loopBuf
+class LoopBufCtor i o | i -> o where
+  loopBuf :: i -> o
 
-instance loopBufCtor1 :: (IsSymbol s, InitialVal a, SetterVal a) => LoopBufCtor (Proxy s -> a -> CTOR.LoopBuf s GetSetAP) where
-  loopBuf s a = CTOR.LoopBuf s (Tuple (initialVal a) (setterVal a)) 0.0 0.0
+instance loopBufCtor1 :: (IsSymbol s, InitialVal a, SetterVal a) => LoopBufCtor (Proxy s) (a -> CTOR.LoopBuf s GetSetAP) where
+  loopBuf s a = CTOR.LoopBuf s On (Tuple (initialVal a) (setterVal a)) 0.0 0.0
 
-instance loopBufCtor2 :: (IsSymbol s, InitialVal a, SetterVal a) => LoopBufCtor (Proxy s -> a -> Number -> CTOR.LoopBuf s GetSetAP) where
-  loopBuf s a start = CTOR.LoopBuf s (Tuple (initialVal a) (setterVal a)) start 0.0
+instance loopBufCtor2 :: (IsSymbol s, InitialVal a, SetterVal a) => LoopBufCtor Number (Proxy s -> a -> CTOR.LoopBuf s GetSetAP) where
+  loopBuf start s a = CTOR.LoopBuf s On (Tuple (initialVal a) (setterVal a)) start 0.0
 
-instance loopBufCtor3 :: (IsSymbol s, InitialVal a, SetterVal a) => LoopBufCtor (Proxy s -> a -> Number -> Number -> CTOR.LoopBuf s GetSetAP) where
-  loopBuf s a start end = CTOR.LoopBuf s (Tuple (initialVal a) (setterVal a)) start end
+instance loopBufCtor3 :: (IsSymbol s, InitialVal a, SetterVal a) => LoopBufCtor (Tuple Number Number) (Proxy s -> a -> CTOR.LoopBuf s GetSetAP) where
+  loopBuf (Tuple start end) s a = CTOR.LoopBuf s On (Tuple (initialVal a) (setterVal a)) start end
+
+instance loopBufCtor4 :: (IsSymbol s, InitialVal a, SetterVal a) => LoopBufCtor OnOff ((Tuple Number Number) -> Proxy s -> a -> CTOR.LoopBuf s GetSetAP) where
+  loopBuf oo (Tuple start end) s a = CTOR.LoopBuf s On (Tuple (initialVal a) (setterVal a)) start end
 
 -----
 data Lowpass'
@@ -433,23 +445,37 @@ else instance peakingCtor2 :: (InitialVal a, SetterVal a, IsAudioOrF b) => Peaki
   peaking a cont = CTOR.Peaking (Tuple (initialVal a) (setterVal a)) defaultPeaking.q defaultPeaking.gain cont
 
 ------
-periodicOsc ::
-  forall s a.
-  IsSymbol s =>
-  InitialVal a =>
-  SetterVal a =>
-  Proxy s -> a -> CTOR.PeriodicOsc s GetSetAP
-periodicOsc px gvsv = CTOR.PeriodicOsc px (Tuple (initialVal gvsv) (setterVal gvsv))
+class PeriodicOscCtor i o | i -> o where
+  periodicOsc :: i -> o
+
+instance periodicOsc1 ::
+  ( InitialVal a
+  , IsSymbol s
+  , SetterVal a
+  ) =>
+  PeriodicOscCtor (Proxy s) (a -> CTOR.PeriodicOsc s GetSetAP) where
+  periodicOsc px gvsv = CTOR.PeriodicOsc px On (Tuple (initialVal gvsv) (setterVal gvsv))
+
+instance periodicOsc2 ::
+  ( InitialVal a
+  , IsSymbol s
+  , SetterVal a
+  ) =>
+  PeriodicOscCtor OnOff (Proxy s -> a -> CTOR.PeriodicOsc s GetSetAP) where
+  periodicOsc oo px gvsv = CTOR.PeriodicOsc px oo (Tuple (initialVal gvsv) (setterVal gvsv))
 
 ---
-class PlayBufCtor playBuf where
-  playBuf :: playBuf
+class PlayBufCtor i o | i -> o where
+  playBuf :: i -> o
 
-instance playBufCtor1 :: (IsSymbol s, InitialVal a, SetterVal a) => PlayBufCtor (Proxy s -> a -> CTOR.PlayBuf s GetSetAP) where
-  playBuf s a = CTOR.PlayBuf s 0.0 (Tuple (initialVal a) (setterVal a))
+instance playBufCtor1 :: (IsSymbol s, InitialVal a, SetterVal a) => PlayBufCtor (Proxy s) (a -> CTOR.PlayBuf s GetSetAP) where
+  playBuf s a = CTOR.PlayBuf s 0.0 On (Tuple (initialVal a) (setterVal a))
 
-instance playBufCtor2 :: (IsSymbol s, InitialVal a, SetterVal a) => PlayBufCtor ((Tuple (Proxy s) Number) -> a -> CTOR.PlayBuf s GetSetAP) where
-  playBuf (Tuple s offset) a = CTOR.PlayBuf s offset (Tuple (initialVal a) (setterVal a))
+instance playBufCtor2 :: (IsSymbol s, InitialVal a, SetterVal a) => PlayBufCtor Number (Proxy s -> a -> CTOR.PlayBuf s GetSetAP) where
+  playBuf offset s a = CTOR.PlayBuf s offset On (Tuple (initialVal a) (setterVal a))
+
+instance playBufCtor3 :: (IsSymbol s, InitialVal a, SetterVal a) => PlayBufCtor OnOff (Number -> Proxy s -> a -> CTOR.PlayBuf s GetSetAP) where
+  playBuf oo offset s a = CTOR.PlayBuf s offset oo (Tuple (initialVal a) (setterVal a))
 
 ------
 recorder ::
@@ -460,20 +486,38 @@ recorder ::
 recorder = CTOR.Recorder
 
 ------
-sawtoothOsc ::
-  forall a.
-  InitialVal a =>
-  SetterVal a =>
-  a -> CTOR.SawtoothOsc GetSetAP
-sawtoothOsc gvsv = CTOR.SawtoothOsc (Tuple (initialVal gvsv) (setterVal gvsv))
+class SawtoothOscCtor i o | i -> o where
+  sawtoothOsc :: i -> o
+
+instance sawtoothOsc2 ::
+  ( InitialVal a
+  , SetterVal a
+  ) =>
+  SawtoothOscCtor OnOff (a -> CTOR.SawtoothOsc GetSetAP) where
+  sawtoothOsc oo gvsv = CTOR.SawtoothOsc oo (Tuple (initialVal gvsv) (setterVal gvsv))
+else instance sawtoothOsc1 ::
+  ( InitialVal a
+  , SetterVal a
+  ) =>
+  SawtoothOscCtor a (CTOR.SawtoothOsc GetSetAP) where
+  sawtoothOsc gvsv = CTOR.SawtoothOsc On (Tuple (initialVal gvsv) (setterVal gvsv))
 
 ------
-sinOsc ::
-  forall a.
-  InitialVal a =>
-  SetterVal a =>
-  a -> CTOR.SinOsc GetSetAP
-sinOsc gvsv = CTOR.SinOsc (Tuple (initialVal gvsv) (setterVal gvsv))
+class SinOscCtor i o | i -> o where
+  sinOsc :: i -> o
+
+instance sinOscCtor2 ::
+  ( InitialVal a
+  , SetterVal a
+  ) =>
+  SinOscCtor OnOff (a -> CTOR.SinOsc GetSetAP) where
+  sinOsc oo gvsv = CTOR.SinOsc oo (Tuple (initialVal gvsv) (setterVal gvsv))
+else instance sinOscCtor1 ::
+  ( InitialVal a
+  , SetterVal a
+  ) =>
+  SinOscCtor a (CTOR.SinOsc GetSetAP) where
+  sinOsc gvsv = CTOR.SinOsc On (Tuple (initialVal gvsv) (setterVal gvsv))
 
 ------
 speaker ::
@@ -483,12 +527,21 @@ speaker ::
 speaker = CTOR.Speaker
 
 ------
-squareOsc ::
-  forall a.
-  InitialVal a =>
-  SetterVal a =>
-  a -> CTOR.SquareOsc GetSetAP
-squareOsc gvsv = CTOR.SquareOsc (Tuple (initialVal gvsv) (setterVal gvsv))
+class SquareOscCtor i o | i -> o where
+  squareOsc :: i -> o
+
+instance squareOscCtor2 ::
+  ( InitialVal a
+  , SetterVal a
+  ) =>
+  SquareOscCtor OnOff (a -> CTOR.SquareOsc GetSetAP) where
+  squareOsc oo gvsv = CTOR.SquareOsc oo (Tuple (initialVal gvsv) (setterVal gvsv))
+else instance squareOscCtor1 ::
+  ( InitialVal a
+  , SetterVal a
+  ) =>
+  SquareOscCtor a (CTOR.SquareOsc GetSetAP) where
+  squareOsc gvsv = CTOR.SquareOsc On (Tuple (initialVal gvsv) (setterVal gvsv))
 
 ------
 pan ::
@@ -499,14 +552,22 @@ pan ::
   a -> c -> CTOR.StereoPanner GetSetAP c
 pan gvsv cont = CTOR.StereoPanner (Tuple (initialVal gvsv) (setterVal gvsv)) cont
 
-
 ------
-triangleOsc ::
-  forall a.
-  InitialVal a =>
-  SetterVal a =>
-  a -> CTOR.TriangleOsc GetSetAP
-triangleOsc gvsv = CTOR.TriangleOsc (Tuple (initialVal gvsv) (setterVal gvsv))
+class TriangleOscCtor i o | i -> o where
+  triangleOsc :: i -> o
+
+instance triangleOscCtor2 ::
+  ( InitialVal a
+  , SetterVal a
+  ) =>
+  TriangleOscCtor OnOff (a -> CTOR.TriangleOsc GetSetAP) where
+  triangleOsc oo gvsv = CTOR.TriangleOsc oo (Tuple (initialVal gvsv) (setterVal gvsv))
+else instance triangleOscCtor1 ::
+  ( InitialVal a
+  , SetterVal a
+  ) =>
+  TriangleOscCtor a (CTOR.TriangleOsc GetSetAP) where
+  triangleOsc gvsv = CTOR.TriangleOsc On (Tuple (initialVal gvsv) (setterVal gvsv))
 
 ----------
 waveShaper ::

@@ -4,6 +4,8 @@ module WAGS
   , module WAGS.Create
   , module WAGS.Cursor
   , module WAGS.Destroy
+  , module WAGS.Interpret
+  , module WAGS.Run
   , module WAGS.Disconnect
   , module WAGS.Move
   , module WAGS.Control.Thunkable
@@ -37,7 +39,7 @@ import WAGS.Rendered (AnAudioUnit(..), Instruction(..))
 import WAGS.Graph.Optionals
 import WAGS.Validation (class AllEdgesInNodeList, class AllEdgesPointToNodes, class AllNodesAreFullyHydrated, class AllNodesAreFullyHydratedNL, class AllPtrsInNodeList, class AssertSingleton, class AudioUnitInAudioUnitList, class AudioUnitInNodeList, class BottomLevelNodes, class BottomLevelNodesNL, class EdgeProfileChooseGreater, class GetEdgesAsPtrList, class GraphIsRenderable, class HasBottomLevelNodes, class HasUniqueTerminus, class IsNodeListEmpty, class LookupNL, class NoNodesAreDuplicated, class NoNodesAreDuplicatedInNodeList, class NoParallelEdges, class NoParallelEdgesNL, class NoPtrsAreDuplicatedInPtrList, class NodeInNodeList, class NodeIsOutputDevice, class NodeListAppend, class NodeNotInNodeList, class PtrInPtrList, class PtrListAppend, class PtrNotInPtrList, class RemoveDuplicates, class TerminalIdentityEdge, class TerminalNode, class TerminusLoop, class ToVisit, class ToVisitSingle, class UniqueTerminus, class UnvisitedNodes)
 import WAGS.Control.Thunkable (Thunkable(..), runThunkable, thunkThunkable, runThunkableWithCount, wait, isWait, isHere)
-import WAGS.Graph.Constructors (Allpass(..), Bandpass(..), Constant(..), Convolver(..), Delay(..), Dup(..), DynamicsCompressor(..), Gain(..), Highpass(..), Highshelf(..), LoopBuf(..), Lowpass(..), Lowshelf(..), Microphone(..), Notch(..), OversampleFourX(..), OversampleNone(..), OversampleTwoX(..), Peaking(..), PeriodicOsc(..), PlayBuf(..), Recorder(..), SawtoothOsc(..), SinOsc(..), Speaker(..), SquareOsc(..), StereoPanner(..), TriangleOsc(..), WaveShaper(..))
+import WAGS.Graph.Constructors (Allpass(..), Bandpass(..), Constant(..), Convolver(..), Delay(..), Dup(..), DynamicsCompressor(..), Gain(..), Highpass(..), Highshelf(..), LoopBuf(..), Lowpass(..), Lowshelf(..), Microphone(..), Notch(..), OversampleFourX(..), OversampleNone(..), OversampleTwoX(..), Peaking(..), PeriodicOsc(..), PlayBuf(..), Recorder(..), SawtoothOsc(..), SinOsc(..), Speaker(..), SquareOsc(..), StereoPanner(..), TriangleOsc(..), WaveShaper(..), OnOff(..))
 import WAGS.Graph.Decorators (Decorated, class Decorate, class MakeDecorators, Decorating(..), Focus(..), decorate, dk, makeDecorators)
 import WAGS.Graph.Parameter (AudioParameter(..), AudioParameter', AudioParameterTransition(..), defaultParam, param)
 import WAGS.Control.Functions (branch, proof, withProof, env, freeze, loop, makeScene, start, startT, universe, lift, (@>), (@|>))
@@ -49,3 +51,5 @@ import WAGS.Universe.Graph (class GraphToNodeList, Graph, GraphC, InitialGraph)
 import WAGS.Universe.Node (class GetAudioUnit, class NodeListKeepSingleton, type (/->), type (/:), Node, NodeC, NodeList, NodeListCons, NodeListNil)
 import WAGS.Universe.Skolems (class GetSkolemFromRecursiveArgument, class GetSkolemizedFunctionFromAU, class LookupSkolem, class LookupSkolem', class MakeInternalSkolemStack, class SkolemNotYetPresent, class SkolemNotYetPresentOrDiscardable, class ToSkolemizedFunction, DiscardableSkolem, SkolemList, SkolemListCons, SkolemListNil, SkolemPair, SkolemPairC, getSkolemizedFunctionFromAU, toSkolemizedFunction)
 import WAGS.Universe.Universe (Universe, class GetGraph, UniverseC)
+import WAGS.Interpret
+import WAGS.Run

@@ -86,12 +86,12 @@ instance creationInstructionsBandpass :: (AudioInterpret audio engine, InitialVa
         /\ ABandpass argA_iv' argB_iv'
 
 instance creationInstructionsConstant :: (AudioInterpret audio engine, InitialVal argA) => CreationInstructions audio engine (CTOR.Constant argA) where
-  creationInstructions idx (CTOR.Constant argA) =
+  creationInstructions idx (CTOR.Constant onOff argA) =
     let
       argA_iv' = initialVal argA
     in
-      [ makeConstant idx argA_iv' ]
-        /\ AConstant argA_iv'
+      [ makeConstant idx onOff argA_iv' ]
+        /\ AConstant onOff argA_iv'
 
 instance creationInstructionsConvolver :: (IsSymbol argA, AudioInterpret audio engine) => CreationInstructions audio engine (CTOR.Convolver argA argB) where
   creationInstructions idx (CTOR.Convolver px _) = let name = (reflectSymbol px) in [ makeConvolver idx name ] /\ AConvolver name
@@ -149,14 +149,14 @@ instance creationInstructionsHighshelf :: (AudioInterpret audio engine, InitialV
         /\ AHighshelf argA_iv' argB_iv'
 
 instance creationInstructionsLoopBuf :: (IsSymbol argA, AudioInterpret audio engine, InitialVal argB) => CreationInstructions audio engine (CTOR.LoopBuf argA argB) where
-  creationInstructions idx (CTOR.LoopBuf px argB loopStart loopEnd) =
+  creationInstructions idx (CTOR.LoopBuf px onOff argB loopStart loopEnd) =
     let
       argB_iv' = initialVal argB
 
       bufname = reflectSymbol px
     in
-      [ makeLoopBuf idx bufname argB_iv' loopStart loopEnd ]
-        /\ ALoopBuf bufname argB_iv' loopStart loopEnd
+      [ makeLoopBuf idx bufname onOff argB_iv' loopStart loopEnd ]
+        /\ ALoopBuf bufname onOff argB_iv' loopStart loopEnd
 
 instance creationInstructionsLowpass :: (AudioInterpret audio engine, InitialVal argA, InitialVal argB) => CreationInstructions audio engine (CTOR.Lowpass argA argB argC) where
   creationInstructions idx (CTOR.Lowpass argA argB _) =
@@ -204,54 +204,54 @@ instance creationInstructionsPeaking :: (AudioInterpret audio engine, InitialVal
         /\ APeaking argA_iv' argB_iv' argC_iv'
 
 instance creationInstructionsPeriodicOsc :: (IsSymbol argA, AudioInterpret audio engine, InitialVal argB) => CreationInstructions audio engine (CTOR.PeriodicOsc argA argB) where
-  creationInstructions idx (CTOR.PeriodicOsc px argB) =
+  creationInstructions idx (CTOR.PeriodicOsc px onOff argB) =
     let
       argB_iv' = initialVal argB
 
       oscname = reflectSymbol px
     in
-      [ makePeriodicOsc idx oscname argB_iv' ]
-        /\ APeriodicOsc oscname argB_iv'
+      [ makePeriodicOsc idx oscname onOff argB_iv' ]
+        /\ APeriodicOsc oscname onOff argB_iv'
 
 instance creationInstructionsPlayBuf :: (IsSymbol argA, AudioInterpret audio engine, InitialVal argB) => CreationInstructions audio engine (CTOR.PlayBuf argA argB) where
-  creationInstructions idx (CTOR.PlayBuf px offset argB) =
+  creationInstructions idx (CTOR.PlayBuf px offset onOff argB) =
     let
       argB_iv' = initialVal argB
 
       bufname = reflectSymbol px
     in
-      [ makePlayBuf idx bufname offset argB_iv' ]
-        /\ APlayBuf bufname offset argB_iv'
+      [ makePlayBuf idx bufname offset onOff argB_iv' ]
+        /\ APlayBuf bufname offset onOff argB_iv'
 
 instance creationInstructionsRecorder :: (IsSymbol argA, AudioInterpret audio engine) => CreationInstructions audio engine (CTOR.Recorder argA argB) where
   creationInstructions idx (CTOR.Recorder px _) = let name = (reflectSymbol px) in [ makeRecorder idx name ] /\ ARecorder name
 
 instance creationInstructionsSawtoothOsc :: (AudioInterpret audio engine, InitialVal argA) => CreationInstructions audio engine (CTOR.SawtoothOsc argA) where
-  creationInstructions idx (CTOR.SawtoothOsc argA) =
+  creationInstructions idx (CTOR.SawtoothOsc onOff argA) =
     let
       argA_iv' = initialVal argA
     in
-      [ makeSawtoothOsc idx argA_iv' ]
-        /\ ASawtoothOsc argA_iv'
+      [ makeSawtoothOsc idx onOff argA_iv' ]
+        /\ ASawtoothOsc onOff argA_iv'
 
 instance creationInstructionsSinOsc :: (AudioInterpret audio engine, InitialVal argA) => CreationInstructions audio engine (CTOR.SinOsc argA) where
-  creationInstructions idx (CTOR.SinOsc argA) =
+  creationInstructions idx (CTOR.SinOsc onOff argA) =
     let
       argA_iv' = initialVal argA
     in
-      [ makeSinOsc idx argA_iv' ]
-        /\ ASinOsc argA_iv'
+      [ makeSinOsc idx onOff argA_iv' ]
+        /\ ASinOsc onOff argA_iv'
 
 instance creationInstructionsSpeaker :: AudioInterpret audio engine => CreationInstructions audio engine (CTOR.Speaker argA) where
   creationInstructions idx (CTOR.Speaker _) = [ makeSpeaker idx ] /\ ASpeaker
 
 instance creationInstructionsSquareOsc :: (AudioInterpret audio engine, InitialVal argA) => CreationInstructions audio engine (CTOR.SquareOsc argA) where
-  creationInstructions idx (CTOR.SquareOsc argA) =
+  creationInstructions idx (CTOR.SquareOsc onOff argA) =
     let
       argA_iv' = initialVal argA
     in
-      [ makeSquareOsc idx argA_iv' ]
-        /\ ASquareOsc argA_iv'
+      [ makeSquareOsc idx onOff argA_iv' ]
+        /\ ASquareOsc onOff argA_iv'
 
 instance creationInstructionsStereoPanner :: (AudioInterpret audio engine, InitialVal argA) => CreationInstructions audio engine (CTOR.StereoPanner argA argB) where
   creationInstructions idx (CTOR.StereoPanner argA _) =
@@ -262,12 +262,12 @@ instance creationInstructionsStereoPanner :: (AudioInterpret audio engine, Initi
         /\ AStereoPanner argA_iv'
 
 instance creationInstructionsTriangleOsc :: (AudioInterpret audio engine, InitialVal argA) => CreationInstructions audio engine (CTOR.TriangleOsc argA) where
-  creationInstructions idx (CTOR.TriangleOsc argA) =
+  creationInstructions idx (CTOR.TriangleOsc onOff argA) =
     let
       argA_iv' = initialVal argA
     in
-      [ makeTriangleOsc idx argA_iv' ]
-        /\ ATriangleOsc argA_iv'
+      [ makeTriangleOsc idx onOff argA_iv' ]
+        /\ ATriangleOsc onOff argA_iv'
 
 instance creationInstructionsWaveShaper :: (IsSymbol argA, AudioInterpret audio engine, IsOversample argB) => CreationInstructions audio engine (CTOR.WaveShaper argA argB argC) where
   creationInstructions idx (CTOR.WaveShaper argA argB _) = let

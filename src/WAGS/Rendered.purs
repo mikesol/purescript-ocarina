@@ -1,8 +1,10 @@
 module WAGS.Rendered where
 
 import Prelude
+
 import Data.Generic.Rep (class Generic)
 import Data.Show.Generic (genericShow)
+import WAGS.Graph.Constructors (OnOff)
 import WAGS.Graph.Parameter (AudioParameter)
 
 data Instruction
@@ -12,29 +14,31 @@ data Instruction
   | RebaseAllUnits (Array { from :: Int, to :: Int })
   | MakeAllpass Int AudioParameter AudioParameter
   | MakeBandpass Int AudioParameter AudioParameter
-  | MakeConstant Int AudioParameter
+  | MakeConstant Int OnOff AudioParameter
   | MakeConvolver Int String
   | MakeDelay Int AudioParameter
   | MakeDynamicsCompressor Int AudioParameter AudioParameter AudioParameter AudioParameter AudioParameter
   | MakeGain Int AudioParameter
   | MakeHighpass Int AudioParameter AudioParameter
   | MakeHighshelf Int AudioParameter AudioParameter
-  | MakeLoopBuf Int String AudioParameter Number Number
+  | MakeLoopBuf Int String OnOff AudioParameter Number Number
   | MakeLowpass Int AudioParameter AudioParameter
   | MakeLowshelf Int AudioParameter AudioParameter
   | MakeMicrophone Int
   | MakeNotch Int AudioParameter AudioParameter
   | MakePeaking Int AudioParameter AudioParameter AudioParameter
-  | MakePeriodicOsc Int String AudioParameter
-  | MakePlayBuf Int String Number AudioParameter
+  | MakePeriodicOsc Int String OnOff AudioParameter
+  | MakePlayBuf Int String Number OnOff AudioParameter
   | MakeRecorder Int String
-  | MakeSawtoothOsc Int AudioParameter
-  | MakeSinOsc Int AudioParameter
-  | MakeSquareOsc Int AudioParameter
+  | MakeSawtoothOsc Int OnOff AudioParameter
+  | MakeSinOsc Int OnOff AudioParameter
+  | MakeSquareOsc Int OnOff AudioParameter
   | MakeSpeaker Int
   | MakeStereoPanner Int AudioParameter
-  | MakeTriangleOsc Int AudioParameter
+  | MakeTriangleOsc Int OnOff AudioParameter
   | MakeWaveShaper Int String Oversample
+  | SetOn Int
+  | SetOff Int
   | SetLoopStart Int Number
   | SetLoopEnd Int Number
   | SetRatio Int AudioParameter
@@ -72,28 +76,28 @@ instance showOversample :: Show Oversample where
 data AnAudioUnit
   = AAllpass AudioParameter AudioParameter
   | ABandpass AudioParameter AudioParameter
-  | AConstant AudioParameter
+  | AConstant OnOff AudioParameter
   | AConvolver String
   | ADelay AudioParameter
   | ADynamicsCompressor AudioParameter AudioParameter AudioParameter AudioParameter AudioParameter
   | AGain AudioParameter
   | AHighpass AudioParameter AudioParameter
   | AHighshelf AudioParameter AudioParameter
-  | ALoopBuf String AudioParameter Number Number
+  | ALoopBuf String OnOff AudioParameter Number Number
   | ALowpass AudioParameter AudioParameter
   | ALowshelf AudioParameter AudioParameter
   | AMicrophone
   | ANotch AudioParameter AudioParameter
   | APeaking AudioParameter AudioParameter AudioParameter
-  | APeriodicOsc String AudioParameter
-  | APlayBuf String Number AudioParameter
+  | APeriodicOsc String OnOff AudioParameter
+  | APlayBuf String Number OnOff AudioParameter
   | ARecorder String
-  | ASawtoothOsc AudioParameter
-  | ASinOsc AudioParameter
+  | ASawtoothOsc OnOff AudioParameter
+  | ASinOsc OnOff AudioParameter
   | ASpeaker
-  | ASquareOsc AudioParameter
+  | ASquareOsc OnOff AudioParameter
   | AStereoPanner AudioParameter
-  | ATriangleOsc AudioParameter
+  | ATriangleOsc OnOff AudioParameter
   | AWaveShaper String Oversample
 
 derive instance eqAnAudioUnit :: Eq AnAudioUnit

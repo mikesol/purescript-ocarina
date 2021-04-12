@@ -9,13 +9,14 @@ import Data.Tuple (Tuple, snd)
 import Data.Tuple.Nested ((/\), type (/\))
 import Type.Data.Peano (Succ)
 import Type.Proxy (Proxy(..))
+import WAGS.Control.Qualified as Ix
 import WAGS.Control.Types (FrameT, unsafeFrame, unsafeUnframe)
 import WAGS.Create (class Create)
-import WAGS.Graph.Constructors (Dup(..), Gain(..), Speaker(..))
+import WAGS.Graph.Constructors (Dup(..), Gain(..), OnOff(..), Speaker(..))
 import WAGS.Graph.Constructors as CTOR
 import WAGS.Graph.Decorators (Focus(..))
 import WAGS.Graph.Parameter (AudioParameter(..), defaultParam, param)
-import WAGS.Interpret (class AudioInterpret, setAttack, setDelay, setFrequency, setGain, setKnee, setLoopEnd, setLoopStart, setOffset, setPan, setPlaybackRate, setQ, setRatio, setRelease, setThreshold)
+import WAGS.Interpret (class AudioInterpret, setAttack, setDelay, setFrequency, setGain, setKnee, setLoopEnd, setLoopStart, setOff, setOffset, setOn, setPan, setPlaybackRate, setQ, setRatio, setRelease, setThreshold)
 import WAGS.Rendered (AnAudioUnit(..))
 import WAGS.Universe.AudioUnit (AudioUnitRef)
 import WAGS.Universe.AudioUnit as AU
@@ -26,7 +27,6 @@ import WAGS.Universe.Node (Node, NodeC, NodeList, NodeListCons, NodeListNil)
 import WAGS.Universe.Skolems (class GetSkolemFromRecursiveArgument, class ToSkolemizedFunction, SkolemListCons, SkolemPairC, toSkolemizedFunction)
 import WAGS.Universe.Universe (UniverseC)
 import WAGS.Validation (class AssertSingleton, class EdgeProfileChooseGreater, class NodeListAppend, class TerminalIdentityEdge)
-import WAGS.Control.Qualified as Ix
 
 class
   AudioInterpret audio engine <= ChangeInstructions (audio :: Type) (engine :: Type) (g :: Type) where
@@ -77,8 +77,8 @@ instance changeInstructionsBandpass :: (AudioInterpret audio engine, SetterVal a
     _ -> Nothing
 
 instance changeInstructionsConstant :: (AudioInterpret audio engine, SetterVal argA) => ChangeInstructions audio engine (CTOR.Constant argA) where
-  changeInstructions idx (CTOR.Constant argA) = case _ of
-    AConstant v_argA@(AudioParameter v_argA') ->
+  changeInstructions idx (CTOR.Constant onOff argA) = case _ of
+    AConstant oldOnOff v_argA@(AudioParameter v_argA') ->
       let
         s_argA = setterVal argA
 
@@ -87,8 +87,8 @@ instance changeInstructionsConstant :: (AudioInterpret audio engine, SetterVal a
         argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param then [] else [ setOffset idx argA_iv' ]
       in
         Just
-          $ (argA_Changes)
-          /\ AConstant argA_iv'
+          $ (argA_Changes <> (if oldOnOff /= onOff then [ (if onOff == On then setOn else setOff) idx ] else []))
+          /\ AConstant onOff argA_iv'
     _ -> Nothing
 
 instance changeInstructionsConvolver :: AudioInterpret audio engine => ChangeInstructions audio engine (CTOR.Convolver argA argB) where
@@ -206,8 +206,8 @@ instance changeInstructionsHighshelf :: (AudioInterpret audio engine, SetterVal 
     _ -> Nothing
 
 instance changeInstructionsLoopBuf :: (AudioInterpret audio engine, SetterVal argB) => ChangeInstructions audio engine (CTOR.LoopBuf argA argB) where
-  changeInstructions idx (CTOR.LoopBuf _ argB loopStart loopEnd) = case _ of
-    ALoopBuf x v_argB@(AudioParameter v_argB') oldLoopStart oldLoopEnd ->
+  changeInstructions idx (CTOR.LoopBuf _ onOff argB loopStart loopEnd) = case _ of
+    ALoopBuf x oldOnOff v_argB@(AudioParameter v_argB') oldLoopStart oldLoopEnd ->
       let
         s_argB = setterVal argB
 
@@ -216,8 +216,8 @@ instance changeInstructionsLoopBuf :: (AudioInterpret audio engine, SetterVal ar
         argB_Changes = let AudioParameter argB_iv = argB_iv' in if argB_iv.param == v_argB'.param then [] else [ setPlaybackRate idx argB_iv' ]
       in
         Just
-          $ (argB_Changes <> (if oldLoopStart /= loopStart then [ setLoopStart idx loopStart ] else []) <> (if oldLoopEnd /= loopEnd then [ setLoopEnd idx loopEnd ] else []))
-          /\ ALoopBuf x argB_iv' loopStart loopEnd
+          $ (argB_Changes <> (if oldLoopStart /= loopStart then [ setLoopStart idx loopStart ] else []) <> (if oldLoopEnd /= loopEnd then [ setLoopEnd idx loopEnd ] else []) <> (if oldOnOff /= onOff then [ (if onOff == On then setOn else setOff) idx ] else []))
+          /\ ALoopBuf x onOff argB_iv' loopStart loopEnd
     _ -> Nothing
 
 instance changeInstructionsLowpass :: (AudioInterpret audio engine, SetterVal argA, SetterVal argB) => ChangeInstructions audio engine (CTOR.Lowpass argA argB argC) where
@@ -314,8 +314,8 @@ instance changeInstructionsPeaking :: (AudioInterpret audio engine, SetterVal ar
     _ -> Nothing
 
 instance changeInstructionsPeriodicOsc :: (AudioInterpret audio engine, SetterVal argB) => ChangeInstructions audio engine (CTOR.PeriodicOsc argA argB) where
-  changeInstructions idx (CTOR.PeriodicOsc _ argB) = case _ of
-    APeriodicOsc x v_argB@(AudioParameter v_argB') ->
+  changeInstructions idx (CTOR.PeriodicOsc _ onOff argB) = case _ of
+    APeriodicOsc x oldOnOff v_argB@(AudioParameter v_argB') ->
       let
         s_argB = setterVal argB
 
@@ -324,13 +324,13 @@ instance changeInstructionsPeriodicOsc :: (AudioInterpret audio engine, SetterVa
         argB_Changes = let AudioParameter argB_iv = argB_iv' in if argB_iv.param == v_argB'.param then [] else [ setFrequency idx argB_iv' ]
       in
         Just
-          $ (argB_Changes)
-          /\ APeriodicOsc x argB_iv'
+          $ (argB_Changes <> (if oldOnOff /= onOff then [ (if onOff == On then setOn else setOff) idx ] else []))
+          /\ APeriodicOsc x onOff argB_iv'
     _ -> Nothing
 
 instance changeInstructionsPlayBuf :: (AudioInterpret audio engine, SetterVal argC) => ChangeInstructions audio engine (CTOR.PlayBuf argA argC) where
-  changeInstructions idx (CTOR.PlayBuf _ _ argC) = case _ of
-    APlayBuf x y v_argC@(AudioParameter v_argC') ->
+  changeInstructions idx (CTOR.PlayBuf _ _ onOff argC) = case _ of
+    APlayBuf x y oldOnOff v_argC@(AudioParameter v_argC') ->
       let
         s_argC = setterVal argC
 
@@ -339,16 +339,16 @@ instance changeInstructionsPlayBuf :: (AudioInterpret audio engine, SetterVal ar
         argC_Changes = let AudioParameter argC_iv = argC_iv' in if argC_iv.param == v_argC'.param then [] else [ setPlaybackRate idx argC_iv' ]
       in
         Just
-          $ (argC_Changes)
-          /\ APlayBuf x y argC_iv'
+          $ (argC_Changes <> (if oldOnOff /= onOff then [ (if onOff == On then setOn else setOff) idx ] else []))
+          /\ APlayBuf x y onOff argC_iv'
     _ -> Nothing
 
 instance changeInstructionsRecorder :: AudioInterpret audio engine => ChangeInstructions audio engine (CTOR.Recorder argA argB) where
   changeInstructions _ _ _ = Nothing
 
 instance changeInstructionsSawtoothOsc :: (AudioInterpret audio engine, SetterVal argA) => ChangeInstructions audio engine (CTOR.SawtoothOsc argA) where
-  changeInstructions idx (CTOR.SawtoothOsc argA) = case _ of
-    ASawtoothOsc v_argA@(AudioParameter v_argA') ->
+  changeInstructions idx (CTOR.SawtoothOsc onOff argA) = case _ of
+    ASawtoothOsc oldOnOff v_argA@(AudioParameter v_argA') ->
       let
         s_argA = setterVal argA
 
@@ -357,13 +357,13 @@ instance changeInstructionsSawtoothOsc :: (AudioInterpret audio engine, SetterVa
         argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param then [] else [ setFrequency idx argA_iv' ]
       in
         Just
-          $ (argA_Changes)
-          /\ ASawtoothOsc argA_iv'
+          $ (argA_Changes <> (if oldOnOff /= onOff then [ (if onOff == On then setOn else setOff) idx ] else []))
+          /\ ASawtoothOsc onOff argA_iv'
     _ -> Nothing
 
 instance changeInstructionsSinOsc :: (AudioInterpret audio engine, SetterVal argA) => ChangeInstructions audio engine (CTOR.SinOsc argA) where
-  changeInstructions idx (CTOR.SinOsc argA) = case _ of
-    ASinOsc v_argA@(AudioParameter v_argA') ->
+  changeInstructions idx (CTOR.SinOsc onOff argA) = case _ of
+    ASinOsc oldOnOff v_argA@(AudioParameter v_argA') ->
       let
         s_argA = setterVal argA
 
@@ -372,16 +372,16 @@ instance changeInstructionsSinOsc :: (AudioInterpret audio engine, SetterVal arg
         argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param then [] else [ setFrequency idx argA_iv' ]
       in
         Just
-          $ (argA_Changes)
-          /\ ASinOsc argA_iv'
+          $ (argA_Changes <> (if oldOnOff /= onOff then [ (if onOff == On then setOn else setOff) idx ] else []))
+          /\ ASinOsc onOff argA_iv'
     _ -> Nothing
 
 instance changeInstructionsSpeaker :: AudioInterpret audio engine => ChangeInstructions audio engine (CTOR.Speaker argA) where
   changeInstructions _ _ _ = Nothing
 
 instance changeInstructionsSquareOsc :: (AudioInterpret audio engine, SetterVal argA) => ChangeInstructions audio engine (CTOR.SquareOsc argA) where
-  changeInstructions idx (CTOR.SquareOsc argA) = case _ of
-    ASquareOsc v_argA@(AudioParameter v_argA') ->
+  changeInstructions idx (CTOR.SquareOsc onOff argA) = case _ of
+    ASquareOsc oldOnOff v_argA@(AudioParameter v_argA') ->
       let
         s_argA = setterVal argA
 
@@ -390,8 +390,8 @@ instance changeInstructionsSquareOsc :: (AudioInterpret audio engine, SetterVal 
         argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param then [] else [ setFrequency idx argA_iv' ]
       in
         Just
-          $ (argA_Changes)
-          /\ ASquareOsc argA_iv'
+          $ (argA_Changes <> (if oldOnOff /= onOff then [ (if onOff == On then setOn else setOff) idx ] else []))
+          /\ ASquareOsc onOff argA_iv'
     _ -> Nothing
 
 instance changeInstructionsStereoPanner :: (AudioInterpret audio engine, SetterVal argA) => ChangeInstructions audio engine (CTOR.StereoPanner argA argB) where
@@ -410,8 +410,8 @@ instance changeInstructionsStereoPanner :: (AudioInterpret audio engine, SetterV
     _ -> Nothing
 
 instance changeInstructionsTriangleOsc :: (AudioInterpret audio engine, SetterVal argA) => ChangeInstructions audio engine (CTOR.TriangleOsc argA) where
-  changeInstructions idx (CTOR.TriangleOsc argA) = case _ of
-    ATriangleOsc v_argA@(AudioParameter v_argA') ->
+  changeInstructions idx (CTOR.TriangleOsc onOff argA) = case _ of
+    ATriangleOsc oldOnOff v_argA@(AudioParameter v_argA') ->
       let
         s_argA = setterVal argA
 
@@ -420,8 +420,8 @@ instance changeInstructionsTriangleOsc :: (AudioInterpret audio engine, SetterVa
         argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param then [] else [ setFrequency idx argA_iv' ]
       in
         Just
-          $ (argA_Changes)
-          /\ ATriangleOsc argA_iv'
+          $ (argA_Changes <> (if oldOnOff /= onOff then [ (if onOff == On then setOn else setOff) idx ] else []))
+          /\ ATriangleOsc onOff argA_iv'
     _ -> Nothing
 
 instance changeInstructionsWaveShaper :: AudioInterpret audio engine => ChangeInstructions audio engine (CTOR.WaveShaper argA argB argC) where
@@ -478,7 +478,6 @@ class Changes (a :: Type) (g :: Graph) where
 
 {-existentialChanges :: forall p a g env audio engine proof m ptr changeBit skolems. Monad m => AudioInterpret audio engine => Changes (ChangeInstruction (Proxy p) a) g => (ChangeInstruction (Proxy p) a) -> (forall x. Changes x g => x) -> FrameT env audio engine proof m (UniverseC ptr g changeBit skolems) (UniverseC ptr g (Succ changeBit) skolems) Unit
 existentialChanges a b = changes (a /\ b)-}
-
 data ChangeInstruction a b
   = ChangeInstruction a b
 
@@ -495,7 +494,8 @@ else instance changesTp :: (Changes x graph, Changes y graph) => Changes (Tuple 
 else instance changesSingle :: (TerminalIdentityEdge graph edge, Change edge a graph) => Changes a graph where
   changes a = change a
 
-class Change (SingleEdge p) a grapho <= ChangeP (p :: Ptr) (a :: Type) (grapho :: Graph) where
+class
+  Change (SingleEdge p) a grapho <= ChangeP (p :: Ptr) (a :: Type) (grapho :: Graph) where
   changeP :: forall env audio engine proof m ptr changeBit skolems. Monad m => AudioInterpret audio engine => Proxy p -> a -> FrameT env audio engine proof m (UniverseC ptr grapho changeBit skolems) (UniverseC ptr grapho (Succ changeBit) skolems) Unit
 
 instance changePAll :: Change (SingleEdge p) a grapho => ChangeP p a grapho where

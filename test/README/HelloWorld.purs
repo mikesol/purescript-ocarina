@@ -3,9 +3,9 @@ module Test.Readme.HelloWorld where
 import Prelude
 
 import Control.Apply.Indexed ((:*>))
-import WAGS (SinOsc(..), Speaker(..), create, freeze, oneFrame, start, (@|>))
+import WAGS (create, freeze, oneFrame, sinOsc, speaker, start, (@|>))
 
-scene = (start :*> create (Speaker (SinOsc 440.0))) @|> freeze
+scene = (start :*> create (speaker (sinOsc 440.0))) @|> freeze
 
 step0 = oneFrame scene unit
 

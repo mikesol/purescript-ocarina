@@ -22,8 +22,8 @@ type EasingAlgorithm
 type EngineInfo
   = { easingAlgorithm :: EasingAlgorithm }
 
-delay :: Int -> Event Unit
-delay n =
+delayEvent :: Int -> Event Unit
+delayEvent n =
   makeEvent \k -> do
     id <-
       setTimeout n do
@@ -92,7 +92,7 @@ runInternal audioClockStart envAndTrigger world currentTimeoutCanceler currentEa
   -- note that if we did not allocate enough time, we still
   -- set a timeout of 1 so that th canceler can run in case it needs to
   canceler <-
-    subscribe (sample_ world (delay $ max 1 remainingTimeInMs)) \env ->
+    subscribe (sample_ world (delayEvent $ max 1 remainingTimeInMs)) \env ->
       runInternal audioClockStart { env, trigger: envAndTrigger.trigger } world currentTimeoutCanceler currentEasingAlg currentScene audio' reporter
   Ref.write canceler currentTimeoutCanceler
 

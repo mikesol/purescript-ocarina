@@ -14,7 +14,7 @@ This library is comprised of two parts.
 Here is an example of a web audio stream.
 
 ```purescript
-scene = (start :*> create (Speaker (SinOsc 440.0))) @|> freeze
+scene = (start :*> create (speaker (sinOsc 440.0))) @|> freeze
 
 step0 = oneFrame scene unit
 step1 = oneFrame step0.next unit

@@ -38,7 +38,6 @@ exports.connectXToY_ = function (x) {
         if (state.cache[y].se) {
           state.cache[x].main.connect(state.cache[y].se);
         }
-        return state;
       };
     };
   };
@@ -51,7 +50,6 @@ exports.disconnectXFromY_ = function (x) {
         if (state.cache[y].se) {
           state.cache[x].main.disconnect(state.cache[y].se);
         }
-        return state;
       };
     };
   };
@@ -60,7 +58,6 @@ exports.destroyUnit_ = function (ptr) {
   return function (state) {
     return function () {
       delete state.cache[ptr];
-      return state;
     };
   };
 };
@@ -73,7 +70,6 @@ exports.rebaseAllUnits_ = function (toRebase) {
         newCache[trb.to] = state.cache[trb.from];
       }
       state.cache = newCache;
-      return state;
     };
   };
 };
@@ -100,7 +96,6 @@ exports.makeAllpass_ = function (ptr) {
           state.cache[ptr].main.type = "allpass";
           genericStarter(state.cache[ptr].main, "frequency", a);
           genericStarter(state.cache[ptr].main, "Q", b);
-          return state;
         };
       };
     };
@@ -115,19 +110,22 @@ exports.makeBandpass_ = function (ptr) {
           state.cache[ptr].main.type = "bandpass";
           genericStarter(state.cache[ptr].main, "frequency", a);
           genericStarter(state.cache[ptr].main, "Q", b);
-          return state;
         };
       };
     };
   };
 };
 exports.makeConstant_ = function (ptr) {
-  return function (a) {
-    return function (state) {
-      return function () {
-        state.cache[ptr] = { main: state.context.createConstantSource() };
-        genericStarter(state.cache[ptr].main, "offset", a);
-        return state;
+  return function (onOff) {
+    return function (a) {
+      return function (state) {
+        return function () {
+          state.cache[ptr] = { main: state.context.createConstantSource() };
+          genericStarter(state.cache[ptr].main, "offset", a);
+          if (onOff) {
+            state.cache[ptr].main.start();
+          }
+        };
       };
     };
   };
@@ -138,7 +136,6 @@ exports.makeConvolver_ = function (ptr) {
       return function () {
         state.cache[ptr] = { main: state.context.createConvolver() };
         state.cache[ptr].main.buffer = state.buffers[a];
-        return state;
       };
     };
   };
@@ -149,7 +146,6 @@ exports.makeDelay_ = function (ptr) {
       return function () {
         state.cache[ptr] = { main: state.context.createDelay() };
         genericStarter(state.cache[ptr].main, "delayTime", a);
-        return state;
       };
     };
   };
@@ -170,7 +166,6 @@ exports.makeDynamicsCompressor_ = function (ptr) {
                 genericStarter(state.cache[ptr].main, "ratio", c);
                 genericStarter(state.cache[ptr].main, "attack", d);
                 genericStarter(state.cache[ptr].main, "release", e);
-                return state;
               };
             };
           };
@@ -185,7 +180,6 @@ exports.makeGain_ = function (ptr) {
       return function () {
         state.cache[ptr] = { main: state.context.createGain() };
         genericStarter(state.cache[ptr].main, "gain", a);
-        return state;
       };
     };
   };
@@ -199,7 +193,6 @@ exports.makeHighpass_ = function (ptr) {
           state.cache[ptr].main.type = "highpass";
           genericStarter(state.cache[ptr].main, "frequency", a);
           genericStarter(state.cache[ptr].main, "Q", b);
-          return state;
         };
       };
     };
@@ -214,7 +207,6 @@ exports.makeHighshelf_ = function (ptr) {
           state.cache[ptr].main.type = "highshelf";
           genericStarter(state.cache[ptr].main, "frequency", a);
           genericStarter(state.cache[ptr].main, "gain", b);
-          return state;
         };
       };
     };
@@ -222,18 +214,25 @@ exports.makeHighshelf_ = function (ptr) {
 };
 exports.makeLoopBuf_ = function (ptr) {
   return function (a) {
-    return function (b) {
-      return function (c) {
-        return function (d) {
-          return function (state) {
-            return function () {
-              state.cache[ptr] = { main: state.context.createBufferSource() };
-              state.cache[ptr].main.loop = true;
-              state.cache[ptr].main.buffer = state.buffers[a];
-              state.cache[ptr].main.start(state.timeToSet + b.timeOffset, c);
-              state.cache[ptr].main.loopStart = c;
-              state.cache[ptr].main.loopEnd = d;
-              genericStarter(state.cache[ptr].main, "playbackRate", b);
+    return function (onOff) {
+      return function (b) {
+        return function (c) {
+          return function (d) {
+            return function (state) {
+              return function () {
+                state.cache[ptr] = { main: state.context.createBufferSource() };
+                state.cache[ptr].main.loop = true;
+                state.cache[ptr].main.buffer = state.buffers[a];
+                state.cache[ptr].main.loopStart = c;
+                state.cache[ptr].main.loopEnd = d;
+                genericStarter(state.cache[ptr].main, "playbackRate", b);
+                if (onOff) {
+                  state.cache[ptr].main.start(
+                    state.timeToSet + b.timeOffset,
+                    c
+                  );
+                }
+              };
             };
           };
         };
@@ -242,15 +241,14 @@ exports.makeLoopBuf_ = function (ptr) {
   };
 };
 exports.makeLowpass_ = function (ptr) {
-  return function (freq) {
-    return function (q) {
+  return function (a) {
+    return function (b) {
       return function (state) {
         return function () {
           state.cache[ptr] = { main: state.context.createBiquadFilter() };
           state.cache[ptr].main.type = "lowpass";
           genericStarter(state.cache[ptr].main, "frequency", a);
           genericStarter(state.cache[ptr].main, "Q", b);
-          return state;
         };
       };
     };
@@ -265,26 +263,23 @@ exports.makeLowshelf_ = function (ptr) {
           state.cache[ptr].main.type = "lowshelf";
           genericStarter(state.cache[ptr].main, "frequency", a);
           genericStarter(state.cache[ptr].main, "gain", b);
-          return state;
         };
       };
     };
   };
 };
 exports.makeMicrophone_ = function (ptr) {
-  return function (a) {
-    return function (state) {
-      return function () {
-        state.cache[ptr] = {
-          main: context.createMediaStreamSource(
-            state.cache.microphones[Object.keys(state.cache.microphones)[0]]
-          ),
-        };
-        return state;
+  return function (state) {
+    return function () {
+      state.cache[ptr] = {
+        main: context.createMediaStreamSource(
+          state.cache.microphones[Object.keys(state.cache.microphones)[0]]
+        ),
       };
     };
   };
 };
+
 exports.makeNotch_ = function (ptr) {
   return function (a) {
     return function (b) {
@@ -294,7 +289,6 @@ exports.makeNotch_ = function (ptr) {
           state.cache[ptr].main.type = "notch";
           genericStarter(state.cache[ptr].main, "frequency", a);
           genericStarter(state.cache[ptr].main, "Q", b);
-          return state;
         };
       };
     };
@@ -311,7 +305,6 @@ exports.makePeaking_ = function (ptr) {
             genericStarter(state.cache[ptr].main, "frequency", a);
             genericStarter(state.cache[ptr].main, "Q", b);
             genericStarter(state.cache[ptr].main, "gain", c);
-            return state;
           };
         };
       };
@@ -320,14 +313,17 @@ exports.makePeaking_ = function (ptr) {
 };
 exports.makePeriodicOsc_ = function (ptr) {
   return function (a) {
-    return function (b) {
-      return function (state) {
-        return function () {
-          state.cache[ptr] = { main: state.context.createOscillator() };
-          state.cache[ptr].main.setPeriodicWave(state.periodicWaves[a]);
-          state.cache[ptr].main.start(state.timeToSet + b.timeOffset);
-          genericStarter(state.cache[ptr].main, "frequency", b);
-          return state;
+    return function (onOff) {
+      return function (b) {
+        return function (state) {
+          return function () {
+            state.cache[ptr] = { main: state.context.createOscillator() };
+            state.cache[ptr].main.setPeriodicWave(state.periodicWaves[a]);
+            genericStarter(state.cache[ptr].main, "frequency", b);
+            if (onOff) {
+              state.cache[ptr].main.start(state.timeToSet + b.timeOffset);
+            }
+          };
         };
       };
     };
@@ -336,14 +332,17 @@ exports.makePeriodicOsc_ = function (ptr) {
 exports.makePlayBuf_ = function (ptr) {
   return function (a) {
     return function (b) {
-      return function (c) {
-        return function (state) {
-          return function () {
-            state.cache[ptr] = { main: state.context.createBufferSource() };
-            state.cache[ptr].main.buffer = state.buffers[a];
-            state.cache[ptr].main.start(state.timeToSet + b.timeOffset, c);
-            genericStarter(state.cache[ptr].main, "playbackRate", b);
-            return state;
+      return function (onOff) {
+        return function (c) {
+          return function (state) {
+            return function () {
+              state.cache[ptr] = { main: state.context.createBufferSource() };
+              state.cache[ptr].main.buffer = state.buffers[a];
+              genericStarter(state.cache[ptr].main, "playbackRate", c);
+              if (onOff) {
+                state.cache[ptr].main.start(state.timeToSet + c.timeOffset, b);
+              }
+            };
           };
         };
       };
@@ -361,33 +360,38 @@ exports.makeRecorder_ = function (ptr) {
         mediaRecorderSideEffectFn(mediaRecorder)();
         mediaRecorder.start();
         state.cache[ptr] = { main: state.context.createGain(), se: dest };
-        return state;
       };
     };
   };
 };
 exports.makeSawtoothOsc_ = function (ptr) {
-  return function (a) {
-    return function (state) {
-      return function () {
-        state.cache[ptr] = { main: state.context.createOscillator() };
-        state.cache[ptr].main.type = "sawtooth";
-        state.cache[ptr].main.start(state.timeToSet + a.timeOffset);
-        genericStarter(state.cache[ptr].main, "frequency", a);
-        return state;
+  return function (onOff) {
+    return function (a) {
+      return function (state) {
+        return function () {
+          state.cache[ptr] = { main: state.context.createOscillator() };
+          state.cache[ptr].main.type = "sawtooth";
+          genericStarter(state.cache[ptr].main, "frequency", a);
+          if (onOff) {
+            state.cache[ptr].main.start(state.timeToSet + a.timeOffset);
+          }
+        };
       };
     };
   };
 };
 exports.makeSinOsc_ = function (ptr) {
-  return function (a) {
-    return function (state) {
-      return function () {
-        state.cache[ptr] = { main: state.context.createOscillator() };
-        state.cache[ptr].main.type = "sine";
-        state.cache[ptr].main.start(state.timeToSet + a.timeOffset);
-        genericStarter(state.cache[ptr].main, "frequency", a);
-        return state;
+  return function (onOff) {
+    return function (a) {
+      return function (state) {
+        return function () {
+          state.cache[ptr] = { main: state.context.createOscillator() };
+          state.cache[ptr].main.type = "sine";
+          genericStarter(state.cache[ptr].main, "frequency", a);
+          if (onOff) {
+            state.cache[ptr].main.start(state.timeToSet + a.timeOffset);
+          }
+        };
       };
     };
   };
@@ -399,20 +403,22 @@ exports.makeSpeaker_ = function (ptr) {
         main: state.context.createGain(),
         se: context.destination,
       };
-      return state;
     };
   };
 };
 
 exports.makeSquareOsc_ = function (ptr) {
-  return function (a) {
-    return function (state) {
-      return function () {
-        state.cache[ptr] = { main: state.context.createOscillator() };
-        state.cache[ptr].main.type = "square";
-        state.cache[ptr].main.start(state.timeToSet + a.timeOffset);
-        genericStarter(state.cache[ptr].main, "frequency", a);
-        return state;
+  return function (onOff) {
+    return function (a) {
+      return function (state) {
+        return function () {
+          state.cache[ptr] = { main: state.context.createOscillator() };
+          state.cache[ptr].main.type = "square";
+          genericStarter(state.cache[ptr].main, "frequency", a);
+          if (onOff) {
+            state.cache[ptr].main.start(state.timeToSet + a.timeOffset);
+          }
+        };
       };
     };
   };
@@ -423,20 +429,22 @@ exports.makeStereoPanner_ = function (ptr) {
       return function () {
         state.cache[ptr] = { main: state.context.createDelay() };
         genericStarter(state.cache[ptr].main, "pan", a);
-        return state;
       };
     };
   };
 };
 exports.makeTriangleOsc_ = function (ptr) {
-  return function (a) {
-    return function (state) {
-      return function () {
-        state.cache[ptr] = { main: state.context.createOscillator() };
-        state.cache[ptr].main.type = "triangle";
-        state.cache[ptr].main.start(state.timeToSet + a.timeOffset);
-        genericStarter(state.cache[ptr].main, "frequency", a);
-        return state;
+  return function (onOff) {
+    return function (a) {
+      return function (state) {
+        return function () {
+          state.cache[ptr] = { main: state.context.createOscillator() };
+          state.cache[ptr].main.type = "triangle";
+          genericStarter(state.cache[ptr].main, "frequency", a);
+          if (onOff) {
+            state.cache[ptr].main.start(state.timeToSet + a.timeOffset);
+          }
+        };
       };
     };
   };
@@ -451,6 +459,20 @@ exports.makeWaveShaper_ = function (ptr) {
           state.cache[ptr].main.oversample = b;
         };
       };
+    };
+  };
+};
+exports.setOn_ = function (ptr) {
+  return function (state) {
+    return function () {
+      state.cache[ptr].main.start();
+    };
+  };
+};
+exports.setOff_ = function (ptr) {
+  return function (state) {
+    return function () {
+      state.cache[ptr].main.stop();
     };
   };
 };
