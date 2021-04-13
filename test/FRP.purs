@@ -33,5 +33,5 @@ testFRP = do
       delay (Milliseconds 300.0)
       incoming <- liftEffect $ Ref.read stash
       length incoming `shouldEqual` 4
-      for_ incoming \i -> length i `shouldEqual` 4
+      for_ incoming (shouldEqual 4 <<< length)
       liftEffect $ canceler
