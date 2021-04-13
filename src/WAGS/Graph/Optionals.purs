@@ -9,7 +9,7 @@ import WAGS.Change (class SetterVal, setterVal)
 import WAGS.Create (class InitialVal, initialVal)
 import WAGS.Graph.Constructors (OnOff(..))
 import WAGS.Graph.Constructors as CTOR
-import WAGS.Graph.IsAudio (class IsAudio, class IsAudioOrF, class IsMultiAudio, class IsMultiAudioOrF, class IsOversample)
+import WAGS.Graph.Decorators (class IsAudio, class IsAudioOrF, class IsMultiAudio, class IsMultiAudioOrF, class IsOversample)
 import WAGS.Graph.Parameter (AudioParameter, param)
 
 type GetSetAP

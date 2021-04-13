@@ -13,13 +13,9 @@ import Data.Tuple.Nested ((/\), type (/\))
 import Effect (Effect)
 import Effect.Aff (launchAff_)
 import Prim.Row (class Cons)
-import Test.Spec (describe, it)
-import Test.Spec.Assertions (shouldEqual)
-import Test.Spec.Reporter (consoleReporter)
-import Test.Spec.Runner (runSpec)
 import Type.Data.Peano (Succ)
 import Type.Proxy (Proxy(..))
-import WAGS (class Change, class Changes, class Connect, class Create, class Cursor, class GraphIsRenderable, AnAudioUnit(..), AudioParameter, AudioUnitRef(..), Focus(..), FrameT, Instruction(..), SceneT, SinOsc(..), SingleEdge, UniverseC, branch, change, changeAt, create, cursor, env, freeze, gain, highpass, isHere, loop, mix, oneFrame', param, proof, runThunkableWithCount, sinOsc, speaker, start, thunkThunkable, wait, withProof, (@>), (@|>))
+import WAGS (class Change, class Changes, class Connect, class Create, class Cursor, class GraphIsRenderable, AnAudioUnit(..), AudioParameter, AudioUnitRef(..), Decorating(..), Focus(..), FrameT, Gain(..), GetSetAP, Instruction(..), OnOff(..), SceneT, SinOsc(..), SingleEdge, Speaker(..), UniverseC, branch, change, changeAt, create, cursor, defaultGetSetAP, dk, env, freeze, gain, highpass, isHere, loop, mix, oneFrame', param, proof, runThunkableWithCount, sinOsc, speaker, start, thunkThunkable, wait, withProof, (@>), (@|>))
 import WAGS.Change (ChangeInstruction(..), changes)
 import WAGS.Control.Qualified as Ix
 import WAGS.Interpret (class AudioInterpret)
@@ -285,3 +281,268 @@ playKeys rec@{ keyStartCtor } incoming (a : b) currentPlaying = case a of
   K57 -> playKeys rec (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k57)) (keyStartCtor K57)) incoming) b currentPlaying
   K58 -> playKeys rec (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k58)) (keyStartCtor K58)) incoming) b currentPlaying
   K59 -> playKeys rec (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k59)) (keyStartCtor K59)) incoming) b currentPlaying
+
+keyToPitch :: Key -> Number
+keyToPitch = case _ of
+  K0 -> 69.295658
+  K1 -> 73.416192
+  K2 -> 77.781746
+  K3 -> 82.406889
+  K4 -> 87.307058
+  K5 -> 92.498606
+  K6 -> 97.998859
+  K7 -> 103.826174
+  K8 -> 110.000000
+  K9 -> 116.540940
+  K10 -> 123.470825
+  K11 -> 130.812783
+  K12 -> 138.591315
+  K13 -> 146.832384
+  K14 -> 155.563492
+  K15 -> 164.813778
+  K16 -> 174.614116
+  K17 -> 184.997211
+  K18 -> 195.997718
+  K19 -> 207.652349
+  K20 -> 220.000000
+  K21 -> 233.081881
+  K22 -> 246.941651
+  K23 -> 261.625565
+  K24 -> 277.182631
+  K25 -> 293.664768
+  K26 -> 311.126984
+  K27 -> 329.627557
+  K28 -> 349.228231
+  K29 -> 369.994423
+  K30 -> 391.995436
+  K31 -> 415.304698
+  K32 -> 440.000000
+  K33 -> 466.163762
+  K34 -> 493.883301
+  K35 -> 523.251131
+  K36 -> 554.365262
+  K37 -> 587.329536
+  K38 -> 622.253967
+  K39 -> 659.255114
+  K40 -> 698.456463
+  K41 -> 739.988845
+  K42 -> 783.990872
+  K43 -> 830.609395
+  K44 -> 880.000000
+  K45 -> 932.327523
+  K46 -> 987.766603
+  K47 -> 1046.502261
+  K48 -> 1108.730524
+  K49 -> 1174.659072
+  K50 -> 1244.507935
+  K51 -> 1318.510228
+  K52 -> 1396.912926
+  K53 -> 1479.977691
+  K54 -> 1567.981744
+  K55 -> 1661.218790
+  K56 -> 1760.000000
+  K57 -> 1864.655046
+  K58 -> 1975.533205
+  K59 -> 2093.004522
+
+type KlavierType k0 k1 k2 k3 k4 k5 k6 k7 k8 k9 k10 k11 k12 k13 k14 k15 k16 k17 k18 k19 k20 k21 k22 k23 k24 k25 k26 k27 k28 k29 k30 k31 k32 k33 k34 k35 k36 k37 k38 k39 k40 k41 k42 k43 k44 k45 k46 k47 k48 k49 k50 k51 k52 k53 k54 k55 k56 k57 k58 k59
+  = { k0 :: Decorating k0
+    , k1 :: Decorating k1
+    , k2 :: Decorating k2
+    , k3 :: Decorating k3
+    , k4 :: Decorating k4
+    , k5 :: Decorating k5
+    , k6 :: Decorating k6
+    , k7 :: Decorating k7
+    , k8 :: Decorating k8
+    , k9 :: Decorating k9
+    , k10 :: Decorating k10
+    , k11 :: Decorating k11
+    , k12 :: Decorating k12
+    , k13 :: Decorating k13
+    , k14 :: Decorating k14
+    , k15 :: Decorating k15
+    , k16 :: Decorating k16
+    , k17 :: Decorating k17
+    , k18 :: Decorating k18
+    , k19 :: Decorating k19
+    , k20 :: Decorating k20
+    , k21 :: Decorating k21
+    , k22 :: Decorating k22
+    , k23 :: Decorating k23
+    , k24 :: Decorating k24
+    , k25 :: Decorating k25
+    , k26 :: Decorating k26
+    , k27 :: Decorating k27
+    , k28 :: Decorating k28
+    , k29 :: Decorating k29
+    , k30 :: Decorating k30
+    , k31 :: Decorating k31
+    , k32 :: Decorating k32
+    , k33 :: Decorating k33
+    , k34 :: Decorating k34
+    , k35 :: Decorating k35
+    , k36 :: Decorating k36
+    , k37 :: Decorating k37
+    , k38 :: Decorating k38
+    , k39 :: Decorating k39
+    , k40 :: Decorating k40
+    , k41 :: Decorating k41
+    , k42 :: Decorating k42
+    , k43 :: Decorating k43
+    , k44 :: Decorating k44
+    , k45 :: Decorating k45
+    , k46 :: Decorating k46
+    , k47 :: Decorating k47
+    , k48 :: Decorating k48
+    , k49 :: Decorating k49
+    , k50 :: Decorating k50
+    , k51 :: Decorating k51
+    , k52 :: Decorating k52
+    , k53 :: Decorating k53
+    , k54 :: Decorating k54
+    , k55 :: Decorating k55
+    , k56 :: Decorating k56
+    , k57 :: Decorating k57
+    , k58 :: Decorating k58
+    , k59 :: Decorating k59
+    } ->
+    Speaker
+      ( Gain GetSetAP
+          ( k0 KeyUnit
+              /\ k1 KeyUnit
+              /\ k2 KeyUnit
+              /\ k3 KeyUnit
+              /\ k4 KeyUnit
+              /\ k5 KeyUnit
+              /\ k6 KeyUnit
+              /\ k7 KeyUnit
+              /\ k8 KeyUnit
+              /\ k9 KeyUnit
+              /\ k10 KeyUnit
+              /\ k11 KeyUnit
+              /\ k12 KeyUnit
+              /\ k13 KeyUnit
+              /\ k14 KeyUnit
+              /\ k15 KeyUnit
+              /\ k16 KeyUnit
+              /\ k17 KeyUnit
+              /\ k18 KeyUnit
+              /\ k19 KeyUnit
+              /\ k20 KeyUnit
+              /\ k21 KeyUnit
+              /\ k22 KeyUnit
+              /\ k23 KeyUnit
+              /\ k24 KeyUnit
+              /\ k25 KeyUnit
+              /\ k26 KeyUnit
+              /\ k27 KeyUnit
+              /\ k28 KeyUnit
+              /\ k29 KeyUnit
+              /\ k30 KeyUnit
+              /\ k31 KeyUnit
+              /\ k32 KeyUnit
+              /\ k33 KeyUnit
+              /\ k34 KeyUnit
+              /\ k35 KeyUnit
+              /\ k36 KeyUnit
+              /\ k37 KeyUnit
+              /\ k38 KeyUnit
+              /\ k39 KeyUnit
+              /\ k40 KeyUnit
+              /\ k41 KeyUnit
+              /\ k42 KeyUnit
+              /\ k43 KeyUnit
+              /\ k44 KeyUnit
+              /\ k45 KeyUnit
+              /\ k46 KeyUnit
+              /\ k47 KeyUnit
+              /\ k48 KeyUnit
+              /\ k49 KeyUnit
+              /\ k50 KeyUnit
+              /\ k51 KeyUnit
+              /\ k52 KeyUnit
+              /\ k53 KeyUnit
+              /\ k54 KeyUnit
+              /\ k55 KeyUnit
+              /\ k56 KeyUnit
+              /\ k57 KeyUnit
+              /\ k58 KeyUnit
+              /\ k59 KeyUnit
+              /\ Unit
+          )
+      )
+
+type KeyUnit
+  = Gain GetSetAP (SinOsc GetSetAP)
+
+initialKey :: Key -> KeyUnit
+initialKey key = Gain (defaultGetSetAP 0.0) (SinOsc Off (defaultGetSetAP (keyToPitch key)))
+
+fullKeyboard :: forall k0 k1 k2 k3 k4 k5 k6 k7 k8 k9 k10 k11 k12 k13 k14 k15 k16 k17 k18 k19 k20 k21 k22 k23 k24 k25 k26 k27 k28 k29 k30 k31 k32 k33 k34 k35 k36 k37 k38 k39 k40 k41 k42 k43 k44 k45 k46 k47 k48 k49 k50 k51 k52 k53 k54 k55 k56 k57 k58 k59. KlavierType k0 k1 k2 k3 k4 k5 k6 k7 k8 k9 k10 k11 k12 k13 k14 k15 k16 k17 k18 k19 k20 k21 k22 k23 k24 k25 k26 k27 k28 k29 k30 k31 k32 k33 k34 k35 k36 k37 k38 k39 k40 k41 k42 k43 k44 k45 k46 k47 k48 k49 k50 k51 k52 k53 k54 k55 k56 k57 k58 k59
+fullKeyboard { k0, k1, k2, k3, k4, k5, k6, k7, k8, k9, k10, k11, k12, k13, k14, k15, k16, k17, k18, k19, k20, k21, k22, k23, k24, k25, k26, k27, k28, k29, k30, k31, k32, k33, k34, k35, k36, k37, k38, k39, k40, k41, k42, k43, k44, k45, k46, k47, k48, k49, k50, k51, k52, k53, k54, k55, k56, k57, k58, k59 } =
+  Speaker
+    ( Gain (defaultGetSetAP 1.0)
+        ( dk k0 (initialKey K0)
+            /\ dk k1 (initialKey K1)
+            /\ dk k2 (initialKey K2)
+            /\ dk k3 (initialKey K3)
+            /\ dk k4 (initialKey K4)
+            /\ dk k5 (initialKey K5)
+            /\ dk k6 (initialKey K6)
+            /\ dk k7 (initialKey K7)
+            /\ dk k8 (initialKey K8)
+            /\ dk k9 (initialKey K9)
+            /\ dk k10 (initialKey K10)
+            /\ dk k11 (initialKey K11)
+            /\ dk k12 (initialKey K12)
+            /\ dk k13 (initialKey K13)
+            /\ dk k14 (initialKey K14)
+            /\ dk k15 (initialKey K15)
+            /\ dk k16 (initialKey K16)
+            /\ dk k17 (initialKey K17)
+            /\ dk k18 (initialKey K18)
+            /\ dk k19 (initialKey K19)
+            /\ dk k20 (initialKey K20)
+            /\ dk k21 (initialKey K21)
+            /\ dk k22 (initialKey K22)
+            /\ dk k23 (initialKey K23)
+            /\ dk k24 (initialKey K24)
+            /\ dk k25 (initialKey K25)
+            /\ dk k26 (initialKey K26)
+            /\ dk k27 (initialKey K27)
+            /\ dk k28 (initialKey K28)
+            /\ dk k29 (initialKey K29)
+            /\ dk k30 (initialKey K30)
+            /\ dk k31 (initialKey K31)
+            /\ dk k32 (initialKey K32)
+            /\ dk k33 (initialKey K33)
+            /\ dk k34 (initialKey K34)
+            /\ dk k35 (initialKey K35)
+            /\ dk k36 (initialKey K36)
+            /\ dk k37 (initialKey K37)
+            /\ dk k38 (initialKey K38)
+            /\ dk k39 (initialKey K39)
+            /\ dk k40 (initialKey K40)
+            /\ dk k41 (initialKey K41)
+            /\ dk k42 (initialKey K42)
+            /\ dk k43 (initialKey K43)
+            /\ dk k44 (initialKey K44)
+            /\ dk k45 (initialKey K45)
+            /\ dk k46 (initialKey K46)
+            /\ dk k47 (initialKey K47)
+            /\ dk k48 (initialKey K48)
+            /\ dk k49 (initialKey K49)
+            /\ dk k50 (initialKey K50)
+            /\ dk k51 (initialKey K51)
+            /\ dk k52 (initialKey K52)
+            /\ dk k53 (initialKey K53)
+            /\ dk k54 (initialKey K54)
+            /\ dk k55 (initialKey K55)
+            /\ dk k56 (initialKey K56)
+            /\ dk k57 (initialKey K57)
+            /\ dk k58 (initialKey K58)
+            /\ dk k59 (initialKey K59)
+            /\ unit
+        )
+    )
