@@ -152,10 +152,10 @@ run ::
   EngineInfo ->
   FFIAudio ->
   Event event ->
-  Behavior { | env } ->
+  Behavior env ->
   Scene
     { time :: Number
-    , env :: { | env }
+    , env :: env
     , trigger :: event
     , sysTime :: Instant
     , active :: Boolean
