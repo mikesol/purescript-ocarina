@@ -612,13 +612,6 @@ exports.makeAudioContext = function () {
   return new (window.AudioContext || window.webkitAudioContext)();
 };
 
-exports.makeAudioTrack = function (s) {
-  return function () {
-    var o = new Audio(s);
-    o.crossOrigin = "anonymous";
-    return o;
-  };
-};
 exports.decodeAudioDataFromBase64EncodedString = function (ctx) {
   return function (s) {
     return function () {

@@ -22,7 +22,6 @@ foreign import data BrowserAudioBuffer :: Type
 
 foreign import data BrowserFloatArray :: Type
 
-foreign import data BrowserAudioTrack :: Type
 
 foreign import data AudioContext :: Type
 
@@ -45,8 +44,6 @@ foreign import audioWorkletAddModule :: AudioContext -> String -> Effect (Promis
 foreign import makeAudioContext :: Effect AudioContext
 
 foreign import makePeriodicWaveImpl :: AudioContext -> Array Number -> Array Number -> Effect BrowserPeriodicWave
-
-foreign import makeAudioTrack :: String -> Effect BrowserAudioTrack
 
 foreign import makeAudioBuffer :: AudioContext -> AudioBuffer -> Effect BrowserAudioBuffer
 
@@ -128,7 +125,6 @@ type FFIAudio'
     , units :: Foreign
     , microphones :: Object BrowserMicrophone
     , recorders :: Object (MediaRecorder -> Effect Unit)
-    , tracks :: Object BrowserAudioTrack
     , buffers :: Object BrowserAudioBuffer
     , floatArrays :: Object BrowserFloatArray
     , periodicWaves :: Object BrowserPeriodicWave

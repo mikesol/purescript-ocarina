@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+  <script src="index.js"></script>
+  <script>
+    var offCb = null;
+    var audioCtx = null;
+    function turnOnAudio() {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      offCb = PS["WAGS.Example.HelloWorld"].myRun({
+        context: audioCtx,
+        writeHead: 0.0,
+        units: {},
+        microphones: {},
+        recorders: {},
+        buffers: {},
+        floatArrays: {},
+        periodicWaves: {},
+      })();
+    }
+    function turnOffAudio() {
+      offCb ? offCb() : null;
+      offCB = null;
+      audioCtx ? audioCtx.close() : null;
+      audioCtx = null;
+    }
+  </script>
+  <body>
+    <button onclick="turnOnAudio();">turn on</button>
+    <button onclick="turnOffAudio();">turn off</button>
+    <audio controls></audio>
+  </body>
+</html>
