@@ -2,20 +2,24 @@ module WAGS.Example.WTK where
 
 import Prelude
 import Control.Applicative.Indexed (imap)
+import Data.Compactable (compact)
 import Data.Either (Either(..))
 import Data.Functor.Indexed (ivoid)
 import Data.Identity (Identity(..))
-import Data.List (List(..), (:))
+import Data.List (List(..), (:), filter)
 import Data.Map as M
+import Data.Maybe (Maybe(..))
 import Data.Set as S
 import Data.Tuple (Tuple(..), fst, snd)
 import Data.Tuple.Nested ((/\), type (/\))
 import Effect (Effect)
 import Effect.Aff (launchAff_)
+import FRP.Event.MIDI (MIDIEvent(..))
 import Prim.Row (class Cons)
 import Type.Data.Peano (Succ)
+import Record (modify)
 import Type.Proxy (Proxy(..))
-import WAGS (class Change, class Changes, class Connect, class Create, class Cursor, class GraphIsRenderable, AnAudioUnit(..), AudioParameter, AudioUnitRef(..), Decorating(..), Focus(..), FrameT, Gain(..), GetSetAP, Instruction(..), OnOff(..), SceneT, SinOsc(..), SingleEdge, Speaker(..), UniverseC, branch, change, changeAt, create, cursor, defaultGetSetAP, dk, env, freeze, gain, highpass, isHere, loop, mix, oneFrame', param, proof, runThunkableWithCount, sinOsc, speaker, start, thunkThunkable, wait, withProof, (@>), (@|>))
+import WAGS (class Change, class Changes, class Connect, class Create, class Cursor, class GraphIsRenderable, AnAudioUnit(..), AudioParameter, AudioUnitRef(..), Decorating(..), FFIAudio(..), Focus(..), Frame0, FrameT, Gain(..), GetSetAP, Instruction(..), OnOff(..), Scene, SceneI, SceneT, SinOsc(..), SingleEdge, Speaker(..), UniverseC, branch, change, changeAt, create, cursor, defaultGetSetAP, dk, env, freeze, gain, highpass, isHere, loop, mix, oneFrame', param, proof, runThunkableWithCount, sinOsc, speaker, start, thunkThunkable, wait, withProof, (@>), (@|>), graph)
 import WAGS.Change (ChangeInstruction(..), changes)
 import WAGS.Control.Qualified as Ix
 import WAGS.Interpret (class AudioInterpret)
@@ -82,6 +86,70 @@ data Key
   | K58
   | K59
 
+noteToKey :: Int -> Maybe Key
+noteToKey = case _ of
+  36 -> Just K0
+  37 -> Just K1
+  38 -> Just K2
+  39 -> Just K3
+  40 -> Just K4
+  41 -> Just K5
+  42 -> Just K6
+  43 -> Just K7
+  44 -> Just K8
+  45 -> Just K9
+  46 -> Just K10
+  47 -> Just K11
+  48 -> Just K12
+  49 -> Just K13
+  50 -> Just K14
+  51 -> Just K15
+  52 -> Just K16
+  53 -> Just K17
+  54 -> Just K18
+  55 -> Just K19
+  56 -> Just K20
+  57 -> Just K21
+  58 -> Just K22
+  59 -> Just K23
+  60 -> Just K24
+  61 -> Just K25
+  62 -> Just K26
+  63 -> Just K27
+  64 -> Just K28
+  65 -> Just K29
+  66 -> Just K30
+  67 -> Just K31
+  68 -> Just K32
+  69 -> Just K33
+  70 -> Just K34
+  71 -> Just K35
+  72 -> Just K36
+  73 -> Just K37
+  74 -> Just K38
+  75 -> Just K39
+  76 -> Just K40
+  77 -> Just K41
+  78 -> Just K42
+  79 -> Just K43
+  80 -> Just K44
+  81 -> Just K45
+  82 -> Just K46
+  83 -> Just K47
+  84 -> Just K48
+  85 -> Just K49
+  86 -> Just K50
+  87 -> Just K51
+  88 -> Just K52
+  89 -> Just K53
+  90 -> Just K54
+  91 -> Just K55
+  92 -> Just K56
+  93 -> Just K57
+  94 -> Just K58
+  95 -> Just K59
+  _ -> Nothing
+
 playKeys ::
   forall buildInfo k0 k1 k2 k3 k4 k5 k6 k7 k8 k9 k10 k11 k12 k13 k14 k15 k16 k17 k18 k19 k20 k21 k22 k23 k24 k25 k26 k27 k28 k29 k30 k31 k32 k33 k34 k35 k36 k37 k38 k39 k40 k41 k42 k43 k44 k45 k46 k47 k48 k49 k50 k51 k52 k53 k54 k55 k56 k57 k58 k59 incoming env audio engine proof m currentIdx graph j skolems.
   Monad m =>
@@ -147,7 +215,8 @@ playKeys ::
   Change (SingleEdge k58) buildInfo graph =>
   Change (SingleEdge k59) buildInfo graph =>
   Changes incoming graph =>
-  { proxyForTypes :: Proxy (Proxy graph /\ Proxy k0 /\ Proxy k1 /\ Proxy k2 /\ Proxy k3 /\ Proxy k4 /\ Proxy k5 /\ Proxy k6 /\ Proxy k7 /\ Proxy k8 /\ Proxy k9 /\ Proxy k10 /\ Proxy k11 /\ Proxy k12 /\ Proxy k13 /\ Proxy k14 /\ Proxy k15 /\ Proxy k16 /\ Proxy k17 /\ Proxy k18 /\ Proxy k19 /\ Proxy k20 /\ Proxy k21 /\ Proxy k22 /\ Proxy k23 /\ Proxy k24 /\ Proxy k25 /\ Proxy k26 /\ Proxy k27 /\ Proxy k28 /\ Proxy k29 /\ Proxy k30 /\ Proxy k31 /\ Proxy k32 /\ Proxy k33 /\ Proxy k34 /\ Proxy k35 /\ Proxy k36 /\ Proxy k37 /\ Proxy k38 /\ Proxy k39 /\ Proxy k40 /\ Proxy k41 /\ Proxy k42 /\ Proxy k43 /\ Proxy k44 /\ Proxy k45 /\ Proxy k46 /\ Proxy k47 /\ Proxy k48 /\ Proxy k49 /\ Proxy k50 /\ Proxy k51 /\ Proxy k52 /\ Proxy k53 /\ Proxy k54 /\ Proxy k55 /\ Proxy k56 /\ Proxy k57 /\ Proxy k58 /\ Proxy k59)
+  { graphProxy :: Proxy graph
+  , audioRefs :: AudioUnitRef k0 /\ AudioUnitRef k1 /\ AudioUnitRef k2 /\ AudioUnitRef k3 /\ AudioUnitRef k4 /\ AudioUnitRef k5 /\ AudioUnitRef k6 /\ AudioUnitRef k7 /\ AudioUnitRef k8 /\ AudioUnitRef k9 /\ AudioUnitRef k10 /\ AudioUnitRef k11 /\ AudioUnitRef k12 /\ AudioUnitRef k13 /\ AudioUnitRef k14 /\ AudioUnitRef k15 /\ AudioUnitRef k16 /\ AudioUnitRef k17 /\ AudioUnitRef k18 /\ AudioUnitRef k19 /\ AudioUnitRef k20 /\ AudioUnitRef k21 /\ AudioUnitRef k22 /\ AudioUnitRef k23 /\ AudioUnitRef k24 /\ AudioUnitRef k25 /\ AudioUnitRef k26 /\ AudioUnitRef k27 /\ AudioUnitRef k28 /\ AudioUnitRef k29 /\ AudioUnitRef k30 /\ AudioUnitRef k31 /\ AudioUnitRef k32 /\ AudioUnitRef k33 /\ AudioUnitRef k34 /\ AudioUnitRef k35 /\ AudioUnitRef k36 /\ AudioUnitRef k37 /\ AudioUnitRef k38 /\ AudioUnitRef k39 /\ AudioUnitRef k40 /\ AudioUnitRef k41 /\ AudioUnitRef k42 /\ AudioUnitRef k43 /\ AudioUnitRef k44 /\ AudioUnitRef k45 /\ AudioUnitRef k46 /\ AudioUnitRef k47 /\ AudioUnitRef k48 /\ AudioUnitRef k49 /\ AudioUnitRef k50 /\ AudioUnitRef k51 /\ AudioUnitRef k52 /\ AudioUnitRef k53 /\ AudioUnitRef k54 /\ AudioUnitRef k55 /\ AudioUnitRef k56 /\ AudioUnitRef k57 /\ AudioUnitRef k58 /\ AudioUnitRef k59
   , currentTime :: Number
   , keyDuration :: Number
   , keyStartCtor :: Key -> buildInfo
@@ -346,66 +415,66 @@ keyToPitch = case _ of
   K59 -> 2093.004522
 
 type KlavierType k0 k1 k2 k3 k4 k5 k6 k7 k8 k9 k10 k11 k12 k13 k14 k15 k16 k17 k18 k19 k20 k21 k22 k23 k24 k25 k26 k27 k28 k29 k30 k31 k32 k33 k34 k35 k36 k37 k38 k39 k40 k41 k42 k43 k44 k45 k46 k47 k48 k49 k50 k51 k52 k53 k54 k55 k56 k57 k58 k59
-  = { k0 :: Decorating k0
-    , k1 :: Decorating k1
-    , k2 :: Decorating k2
-    , k3 :: Decorating k3
-    , k4 :: Decorating k4
-    , k5 :: Decorating k5
-    , k6 :: Decorating k6
-    , k7 :: Decorating k7
-    , k8 :: Decorating k8
-    , k9 :: Decorating k9
-    , k10 :: Decorating k10
-    , k11 :: Decorating k11
-    , k12 :: Decorating k12
-    , k13 :: Decorating k13
-    , k14 :: Decorating k14
-    , k15 :: Decorating k15
-    , k16 :: Decorating k16
-    , k17 :: Decorating k17
-    , k18 :: Decorating k18
-    , k19 :: Decorating k19
-    , k20 :: Decorating k20
-    , k21 :: Decorating k21
-    , k22 :: Decorating k22
-    , k23 :: Decorating k23
-    , k24 :: Decorating k24
-    , k25 :: Decorating k25
-    , k26 :: Decorating k26
-    , k27 :: Decorating k27
-    , k28 :: Decorating k28
-    , k29 :: Decorating k29
-    , k30 :: Decorating k30
-    , k31 :: Decorating k31
-    , k32 :: Decorating k32
-    , k33 :: Decorating k33
-    , k34 :: Decorating k34
-    , k35 :: Decorating k35
-    , k36 :: Decorating k36
-    , k37 :: Decorating k37
-    , k38 :: Decorating k38
-    , k39 :: Decorating k39
-    , k40 :: Decorating k40
-    , k41 :: Decorating k41
-    , k42 :: Decorating k42
-    , k43 :: Decorating k43
-    , k44 :: Decorating k44
-    , k45 :: Decorating k45
-    , k46 :: Decorating k46
-    , k47 :: Decorating k47
-    , k48 :: Decorating k48
-    , k49 :: Decorating k49
-    , k50 :: Decorating k50
-    , k51 :: Decorating k51
-    , k52 :: Decorating k52
-    , k53 :: Decorating k53
-    , k54 :: Decorating k54
-    , k55 :: Decorating k55
-    , k56 :: Decorating k56
-    , k57 :: Decorating k57
-    , k58 :: Decorating k58
-    , k59 :: Decorating k59
+  = { k0 :: (forall a. a -> k0 a)
+    , k1 :: (forall a. a -> k1 a)
+    , k2 :: (forall a. a -> k2 a)
+    , k3 :: (forall a. a -> k3 a)
+    , k4 :: (forall a. a -> k4 a)
+    , k5 :: (forall a. a -> k5 a)
+    , k6 :: (forall a. a -> k6 a)
+    , k7 :: (forall a. a -> k7 a)
+    , k8 :: (forall a. a -> k8 a)
+    , k9 :: (forall a. a -> k9 a)
+    , k10 :: (forall a. a -> k10 a)
+    , k11 :: (forall a. a -> k11 a)
+    , k12 :: (forall a. a -> k12 a)
+    , k13 :: (forall a. a -> k13 a)
+    , k14 :: (forall a. a -> k14 a)
+    , k15 :: (forall a. a -> k15 a)
+    , k16 :: (forall a. a -> k16 a)
+    , k17 :: (forall a. a -> k17 a)
+    , k18 :: (forall a. a -> k18 a)
+    , k19 :: (forall a. a -> k19 a)
+    , k20 :: (forall a. a -> k20 a)
+    , k21 :: (forall a. a -> k21 a)
+    , k22 :: (forall a. a -> k22 a)
+    , k23 :: (forall a. a -> k23 a)
+    , k24 :: (forall a. a -> k24 a)
+    , k25 :: (forall a. a -> k25 a)
+    , k26 :: (forall a. a -> k26 a)
+    , k27 :: (forall a. a -> k27 a)
+    , k28 :: (forall a. a -> k28 a)
+    , k29 :: (forall a. a -> k29 a)
+    , k30 :: (forall a. a -> k30 a)
+    , k31 :: (forall a. a -> k31 a)
+    , k32 :: (forall a. a -> k32 a)
+    , k33 :: (forall a. a -> k33 a)
+    , k34 :: (forall a. a -> k34 a)
+    , k35 :: (forall a. a -> k35 a)
+    , k36 :: (forall a. a -> k36 a)
+    , k37 :: (forall a. a -> k37 a)
+    , k38 :: (forall a. a -> k38 a)
+    , k39 :: (forall a. a -> k39 a)
+    , k40 :: (forall a. a -> k40 a)
+    , k41 :: (forall a. a -> k41 a)
+    , k42 :: (forall a. a -> k42 a)
+    , k43 :: (forall a. a -> k43 a)
+    , k44 :: (forall a. a -> k44 a)
+    , k45 :: (forall a. a -> k45 a)
+    , k46 :: (forall a. a -> k46 a)
+    , k47 :: (forall a. a -> k47 a)
+    , k48 :: (forall a. a -> k48 a)
+    , k49 :: (forall a. a -> k49 a)
+    , k50 :: (forall a. a -> k50 a)
+    , k51 :: (forall a. a -> k51 a)
+    , k52 :: (forall a. a -> k52 a)
+    , k53 :: (forall a. a -> k53 a)
+    , k54 :: (forall a. a -> k54 a)
+    , k55 :: (forall a. a -> k55 a)
+    , k56 :: (forall a. a -> k56 a)
+    , k57 :: (forall a. a -> k57 a)
+    , k58 :: (forall a. a -> k58 a)
+    , k59 :: (forall a. a -> k59 a)
     } ->
     Speaker
       ( Gain GetSetAP
@@ -473,76 +542,280 @@ type KlavierType k0 k1 k2 k3 k4 k5 k6 k7 k8 k9 k10 k11 k12 k13 k14 k15 k16 k17 k
           )
       )
 
+klavierIdentity =
+  { k0: Identity
+  , k1: Identity
+  , k2: Identity
+  , k3: Identity
+  , k4: Identity
+  , k5: Identity
+  , k6: Identity
+  , k7: Identity
+  , k8: Identity
+  , k9: Identity
+  , k10: Identity
+  , k11: Identity
+  , k12: Identity
+  , k13: Identity
+  , k14: Identity
+  , k15: Identity
+  , k16: Identity
+  , k17: Identity
+  , k18: Identity
+  , k19: Identity
+  , k20: Identity
+  , k21: Identity
+  , k22: Identity
+  , k23: Identity
+  , k24: Identity
+  , k25: Identity
+  , k26: Identity
+  , k27: Identity
+  , k28: Identity
+  , k29: Identity
+  , k30: Identity
+  , k31: Identity
+  , k32: Identity
+  , k33: Identity
+  , k34: Identity
+  , k35: Identity
+  , k36: Identity
+  , k37: Identity
+  , k38: Identity
+  , k39: Identity
+  , k40: Identity
+  , k41: Identity
+  , k42: Identity
+  , k43: Identity
+  , k44: Identity
+  , k45: Identity
+  , k46: Identity
+  , k47: Identity
+  , k48: Identity
+  , k49: Identity
+  , k50: Identity
+  , k51: Identity
+  , k52: Identity
+  , k53: Identity
+  , k54: Identity
+  , k55: Identity
+  , k56: Identity
+  , k57: Identity
+  , k58: Identity
+  , k59: Identity
+  }
+
 type KeyUnit
   = Gain GetSetAP (SinOsc GetSetAP)
-
-initialKey :: Key -> KeyUnit
-initialKey key = Gain (defaultGetSetAP 0.0) (SinOsc Off (defaultGetSetAP (keyToPitch key)))
 
 fullKeyboard :: forall k0 k1 k2 k3 k4 k5 k6 k7 k8 k9 k10 k11 k12 k13 k14 k15 k16 k17 k18 k19 k20 k21 k22 k23 k24 k25 k26 k27 k28 k29 k30 k31 k32 k33 k34 k35 k36 k37 k38 k39 k40 k41 k42 k43 k44 k45 k46 k47 k48 k49 k50 k51 k52 k53 k54 k55 k56 k57 k58 k59. KlavierType k0 k1 k2 k3 k4 k5 k6 k7 k8 k9 k10 k11 k12 k13 k14 k15 k16 k17 k18 k19 k20 k21 k22 k23 k24 k25 k26 k27 k28 k29 k30 k31 k32 k33 k34 k35 k36 k37 k38 k39 k40 k41 k42 k43 k44 k45 k46 k47 k48 k49 k50 k51 k52 k53 k54 k55 k56 k57 k58 k59
 fullKeyboard { k0, k1, k2, k3, k4, k5, k6, k7, k8, k9, k10, k11, k12, k13, k14, k15, k16, k17, k18, k19, k20, k21, k22, k23, k24, k25, k26, k27, k28, k29, k30, k31, k32, k33, k34, k35, k36, k37, k38, k39, k40, k41, k42, k43, k44, k45, k46, k47, k48, k49, k50, k51, k52, k53, k54, k55, k56, k57, k58, k59 } =
   Speaker
     ( Gain (defaultGetSetAP 1.0)
-        ( dk k0 (initialKey K0)
-            /\ dk k1 (initialKey K1)
-            /\ dk k2 (initialKey K2)
-            /\ dk k3 (initialKey K3)
-            /\ dk k4 (initialKey K4)
-            /\ dk k5 (initialKey K5)
-            /\ dk k6 (initialKey K6)
-            /\ dk k7 (initialKey K7)
-            /\ dk k8 (initialKey K8)
-            /\ dk k9 (initialKey K9)
-            /\ dk k10 (initialKey K10)
-            /\ dk k11 (initialKey K11)
-            /\ dk k12 (initialKey K12)
-            /\ dk k13 (initialKey K13)
-            /\ dk k14 (initialKey K14)
-            /\ dk k15 (initialKey K15)
-            /\ dk k16 (initialKey K16)
-            /\ dk k17 (initialKey K17)
-            /\ dk k18 (initialKey K18)
-            /\ dk k19 (initialKey K19)
-            /\ dk k20 (initialKey K20)
-            /\ dk k21 (initialKey K21)
-            /\ dk k22 (initialKey K22)
-            /\ dk k23 (initialKey K23)
-            /\ dk k24 (initialKey K24)
-            /\ dk k25 (initialKey K25)
-            /\ dk k26 (initialKey K26)
-            /\ dk k27 (initialKey K27)
-            /\ dk k28 (initialKey K28)
-            /\ dk k29 (initialKey K29)
-            /\ dk k30 (initialKey K30)
-            /\ dk k31 (initialKey K31)
-            /\ dk k32 (initialKey K32)
-            /\ dk k33 (initialKey K33)
-            /\ dk k34 (initialKey K34)
-            /\ dk k35 (initialKey K35)
-            /\ dk k36 (initialKey K36)
-            /\ dk k37 (initialKey K37)
-            /\ dk k38 (initialKey K38)
-            /\ dk k39 (initialKey K39)
-            /\ dk k40 (initialKey K40)
-            /\ dk k41 (initialKey K41)
-            /\ dk k42 (initialKey K42)
-            /\ dk k43 (initialKey K43)
-            /\ dk k44 (initialKey K44)
-            /\ dk k45 (initialKey K45)
-            /\ dk k46 (initialKey K46)
-            /\ dk k47 (initialKey K47)
-            /\ dk k48 (initialKey K48)
-            /\ dk k49 (initialKey K49)
-            /\ dk k50 (initialKey K50)
-            /\ dk k51 (initialKey K51)
-            /\ dk k52 (initialKey K52)
-            /\ dk k53 (initialKey K53)
-            /\ dk k54 (initialKey K54)
-            /\ dk k55 (initialKey K55)
-            /\ dk k56 (initialKey K56)
-            /\ dk k57 (initialKey K57)
-            /\ dk k58 (initialKey K58)
-            /\ dk k59 (initialKey K59)
+        ( k0 (initialKey K0)
+            /\ k1 (initialKey K1)
+            /\ k2 (initialKey K2)
+            /\ k3 (initialKey K3)
+            /\ k4 (initialKey K4)
+            /\ k5 (initialKey K5)
+            /\ k6 (initialKey K6)
+            /\ k7 (initialKey K7)
+            /\ k8 (initialKey K8)
+            /\ k9 (initialKey K9)
+            /\ k10 (initialKey K10)
+            /\ k11 (initialKey K11)
+            /\ k12 (initialKey K12)
+            /\ k13 (initialKey K13)
+            /\ k14 (initialKey K14)
+            /\ k15 (initialKey K15)
+            /\ k16 (initialKey K16)
+            /\ k17 (initialKey K17)
+            /\ k18 (initialKey K18)
+            /\ k19 (initialKey K19)
+            /\ k20 (initialKey K20)
+            /\ k21 (initialKey K21)
+            /\ k22 (initialKey K22)
+            /\ k23 (initialKey K23)
+            /\ k24 (initialKey K24)
+            /\ k25 (initialKey K25)
+            /\ k26 (initialKey K26)
+            /\ k27 (initialKey K27)
+            /\ k28 (initialKey K28)
+            /\ k29 (initialKey K29)
+            /\ k30 (initialKey K30)
+            /\ k31 (initialKey K31)
+            /\ k32 (initialKey K32)
+            /\ k33 (initialKey K33)
+            /\ k34 (initialKey K34)
+            /\ k35 (initialKey K35)
+            /\ k36 (initialKey K36)
+            /\ k37 (initialKey K37)
+            /\ k38 (initialKey K38)
+            /\ k39 (initialKey K39)
+            /\ k40 (initialKey K40)
+            /\ k41 (initialKey K41)
+            /\ k42 (initialKey K42)
+            /\ k43 (initialKey K43)
+            /\ k44 (initialKey K44)
+            /\ k45 (initialKey K45)
+            /\ k46 (initialKey K46)
+            /\ k47 (initialKey K47)
+            /\ k48 (initialKey K48)
+            /\ k49 (initialKey K49)
+            /\ k50 (initialKey K50)
+            /\ k51 (initialKey K51)
+            /\ k52 (initialKey K52)
+            /\ k53 (initialKey K53)
+            /\ k54 (initialKey K54)
+            /\ k55 (initialKey K55)
+            /\ k56 (initialKey K56)
+            /\ k57 (initialKey K57)
+            /\ k58 (initialKey K58)
+            /\ k59 (initialKey K59)
             /\ unit
         )
     )
+
+keyDur :: Number
+keyDur = 1.6
+
+initialKey :: Key -> KeyUnit
+initialKey key = Gain (defaultGetSetAP 0.0) (SinOsc Off (defaultGetSetAP (keyToPitch key)))
+
+keyStart :: Key -> KeyUnit
+keyStart key = Gain (defaultGetSetAP 0.0) (SinOsc On (defaultGetSetAP (keyToPitch key)))
+
+calcSlope :: Number -> Number -> Number -> Number -> Number -> Number
+calcSlope x0 y0 x1 y1 x =
+  if x1 == x0 || y1 == y0 then
+    y0
+  else
+    let
+      m = (y1 - y0) / (x1 - x0)
+
+      b = y0 - m * x0
+    in
+      m * x + b
+
+asdr :: Number -> Number
+asdr n
+  | n <= 0.0 = 0.0
+  | n < 0.25 = calcSlope 0.0 0.0 0.25 0.5 n
+  | n < 0.5 = calcSlope 0.25 0.5 0.5 0.1 n
+  | n < keyDur = calcSlope 0.5 0.1 keyDur 0.0 n
+  | otherwise = 0.0
+
+keySustain :: Number -> Key -> KeyUnit
+keySustain nSecLive key =
+  Gain
+    (defaultGetSetAP (asdr nSecLive))
+    (SinOsc On (defaultGetSetAP (keyToPitch key)))
+
+keyEnd :: Key -> KeyUnit
+keyEnd key = Gain (defaultGetSetAP 0.0) (SinOsc Off (defaultGetSetAP (keyToPitch key)))
+
+midiEventsToOnsets :: List MIDIEvent -> List Key
+midiEventsToOnsets = compact <<< go Nil
+  where
+  go acc Nil = acc
+
+  go acc (a : b) =
+    go
+      ( Cons
+          ( case a of
+              NoteOn _ note _ -> noteToKey note
+              _ -> Nothing
+          )
+          acc
+      )
+      b
+
+piece :: Scene (SceneI (List MIDIEvent) Unit) FFIAudio (Effect Unit) Frame0
+piece =
+  Ix.do
+    start
+    ivoid $ create $ fullKeyboard klavierIdentity
+    k0 <- cursor $ fullKeyboard (modify (Proxy :: _ "k0") (const Focus) klavierIdentity)
+    k1 <- cursor $ fullKeyboard (modify (Proxy :: _ "k1") (const Focus) klavierIdentity)
+    k2 <- cursor $ fullKeyboard (modify (Proxy :: _ "k2") (const Focus) klavierIdentity)
+    k3 <- cursor $ fullKeyboard (modify (Proxy :: _ "k3") (const Focus) klavierIdentity)
+    k4 <- cursor $ fullKeyboard (modify (Proxy :: _ "k4") (const Focus) klavierIdentity)
+    k5 <- cursor $ fullKeyboard (modify (Proxy :: _ "k5") (const Focus) klavierIdentity)
+    k6 <- cursor $ fullKeyboard (modify (Proxy :: _ "k6") (const Focus) klavierIdentity)
+    k7 <- cursor $ fullKeyboard (modify (Proxy :: _ "k7") (const Focus) klavierIdentity)
+    k8 <- cursor $ fullKeyboard (modify (Proxy :: _ "k8") (const Focus) klavierIdentity)
+    k9 <- cursor $ fullKeyboard (modify (Proxy :: _ "k9") (const Focus) klavierIdentity)
+    k10 <- cursor $ fullKeyboard (modify (Proxy :: _ "k10") (const Focus) klavierIdentity)
+    k11 <- cursor $ fullKeyboard (modify (Proxy :: _ "k11") (const Focus) klavierIdentity)
+    k12 <- cursor $ fullKeyboard (modify (Proxy :: _ "k12") (const Focus) klavierIdentity)
+    k13 <- cursor $ fullKeyboard (modify (Proxy :: _ "k13") (const Focus) klavierIdentity)
+    k14 <- cursor $ fullKeyboard (modify (Proxy :: _ "k14") (const Focus) klavierIdentity)
+    k15 <- cursor $ fullKeyboard (modify (Proxy :: _ "k15") (const Focus) klavierIdentity)
+    k16 <- cursor $ fullKeyboard (modify (Proxy :: _ "k16") (const Focus) klavierIdentity)
+    k17 <- cursor $ fullKeyboard (modify (Proxy :: _ "k17") (const Focus) klavierIdentity)
+    k18 <- cursor $ fullKeyboard (modify (Proxy :: _ "k18") (const Focus) klavierIdentity)
+    k19 <- cursor $ fullKeyboard (modify (Proxy :: _ "k19") (const Focus) klavierIdentity)
+    k20 <- cursor $ fullKeyboard (modify (Proxy :: _ "k20") (const Focus) klavierIdentity)
+    k21 <- cursor $ fullKeyboard (modify (Proxy :: _ "k21") (const Focus) klavierIdentity)
+    k22 <- cursor $ fullKeyboard (modify (Proxy :: _ "k22") (const Focus) klavierIdentity)
+    k23 <- cursor $ fullKeyboard (modify (Proxy :: _ "k23") (const Focus) klavierIdentity)
+    k24 <- cursor $ fullKeyboard (modify (Proxy :: _ "k24") (const Focus) klavierIdentity)
+    k25 <- cursor $ fullKeyboard (modify (Proxy :: _ "k25") (const Focus) klavierIdentity)
+    k26 <- cursor $ fullKeyboard (modify (Proxy :: _ "k26") (const Focus) klavierIdentity)
+    k27 <- cursor $ fullKeyboard (modify (Proxy :: _ "k27") (const Focus) klavierIdentity)
+    k28 <- cursor $ fullKeyboard (modify (Proxy :: _ "k28") (const Focus) klavierIdentity)
+    k29 <- cursor $ fullKeyboard (modify (Proxy :: _ "k29") (const Focus) klavierIdentity)
+    k30 <- cursor $ fullKeyboard (modify (Proxy :: _ "k30") (const Focus) klavierIdentity)
+    k31 <- cursor $ fullKeyboard (modify (Proxy :: _ "k31") (const Focus) klavierIdentity)
+    k32 <- cursor $ fullKeyboard (modify (Proxy :: _ "k32") (const Focus) klavierIdentity)
+    k33 <- cursor $ fullKeyboard (modify (Proxy :: _ "k33") (const Focus) klavierIdentity)
+    k34 <- cursor $ fullKeyboard (modify (Proxy :: _ "k34") (const Focus) klavierIdentity)
+    k35 <- cursor $ fullKeyboard (modify (Proxy :: _ "k35") (const Focus) klavierIdentity)
+    k36 <- cursor $ fullKeyboard (modify (Proxy :: _ "k36") (const Focus) klavierIdentity)
+    k37 <- cursor $ fullKeyboard (modify (Proxy :: _ "k37") (const Focus) klavierIdentity)
+    k38 <- cursor $ fullKeyboard (modify (Proxy :: _ "k38") (const Focus) klavierIdentity)
+    k39 <- cursor $ fullKeyboard (modify (Proxy :: _ "k39") (const Focus) klavierIdentity)
+    k40 <- cursor $ fullKeyboard (modify (Proxy :: _ "k40") (const Focus) klavierIdentity)
+    k41 <- cursor $ fullKeyboard (modify (Proxy :: _ "k41") (const Focus) klavierIdentity)
+    k42 <- cursor $ fullKeyboard (modify (Proxy :: _ "k42") (const Focus) klavierIdentity)
+    k43 <- cursor $ fullKeyboard (modify (Proxy :: _ "k43") (const Focus) klavierIdentity)
+    k44 <- cursor $ fullKeyboard (modify (Proxy :: _ "k44") (const Focus) klavierIdentity)
+    k45 <- cursor $ fullKeyboard (modify (Proxy :: _ "k45") (const Focus) klavierIdentity)
+    k46 <- cursor $ fullKeyboard (modify (Proxy :: _ "k46") (const Focus) klavierIdentity)
+    k47 <- cursor $ fullKeyboard (modify (Proxy :: _ "k47") (const Focus) klavierIdentity)
+    k48 <- cursor $ fullKeyboard (modify (Proxy :: _ "k48") (const Focus) klavierIdentity)
+    k49 <- cursor $ fullKeyboard (modify (Proxy :: _ "k49") (const Focus) klavierIdentity)
+    k50 <- cursor $ fullKeyboard (modify (Proxy :: _ "k50") (const Focus) klavierIdentity)
+    k51 <- cursor $ fullKeyboard (modify (Proxy :: _ "k51") (const Focus) klavierIdentity)
+    k52 <- cursor $ fullKeyboard (modify (Proxy :: _ "k52") (const Focus) klavierIdentity)
+    k53 <- cursor $ fullKeyboard (modify (Proxy :: _ "k53") (const Focus) klavierIdentity)
+    k54 <- cursor $ fullKeyboard (modify (Proxy :: _ "k54") (const Focus) klavierIdentity)
+    k55 <- cursor $ fullKeyboard (modify (Proxy :: _ "k55") (const Focus) klavierIdentity)
+    k56 <- cursor $ fullKeyboard (modify (Proxy :: _ "k56") (const Focus) klavierIdentity)
+    k57 <- cursor $ fullKeyboard (modify (Proxy :: _ "k57") (const Focus) klavierIdentity)
+    k58 <- cursor $ fullKeyboard (modify (Proxy :: _ "k58") (const Focus) klavierIdentity)
+    k59 <- cursor $ fullKeyboard (modify (Proxy :: _ "k59") (const Focus) klavierIdentity)
+    myProof <- proof
+    withProof myProof $ Right { audioRefs: k0 /\ k1 /\ k2 /\ k3 /\ k4 /\ k5 /\ k6 /\ k7 /\ k8 /\ k9 /\ k10 /\ k11 /\ k12 /\ k13 /\ k14 /\ k15 /\ k16 /\ k17 /\ k18 /\ k19 /\ k20 /\ k21 /\ k22 /\ k23 /\ k24 /\ k25 /\ k26 /\ k27 /\ k28 /\ k29 /\ k30 /\ k31 /\ k32 /\ k33 /\ k34 /\ k35 /\ k36 /\ k37 /\ k38 /\ k39 /\ k40 /\ k41 /\ k42 /\ k43 /\ k44 /\ k45 /\ k46 /\ k47 /\ k48 /\ k49 /\ k50 /\ k51 /\ k52 /\ k53 /\ k54 /\ k55 /\ k56 /\ k57 /\ k58 /\ k59, currentKeys: (Nil :: List (Tuple Number Key)) }
+    @> loop
+        ( \{ audioRefs, currentKeys } -> Ix.do
+            { time, trigger } <- env
+            graphProxy <- graph
+            let
+              onsets = midiEventsToOnsets trigger
+            ( playKeys
+                { graphProxy
+                , audioRefs
+                , currentTime: time
+                , keyDuration: keyDur
+                , keyStartCtor: keyStart
+                , keySustainCtor: keySustain
+                , keyEndCtor: keyEnd
+                }
+                unit
+                onsets
+                currentKeys
+            )
+              $> { audioRefs, 
+              currentKeys: (filter (\(Tuple t _) -> time - t > keyDur) currentKeys) <> map (Tuple time) onsets }
+        )

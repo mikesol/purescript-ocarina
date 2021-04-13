@@ -8,6 +8,7 @@ module WAGS.Control.Functions
   , universe
   , env
   , freeze
+  , graph
   , lift
   , proof
   , withProof
@@ -168,6 +169,13 @@ universe ::
   AudioInterpret audio engine =>
   FrameT env audio engine proof m i i (Proxy i)
 universe = unsafeFrame $ pure $ (Proxy :: _ i)
+
+graph ::
+  forall env audio engine proof m currentIdx graph changeBit skolems.
+  Monad m =>
+  AudioInterpret audio engine =>
+  FrameT env audio engine proof m (UniverseC currentIdx graph changeBit skolems) (UniverseC currentIdx graph changeBit skolems) (Proxy graph)
+graph = unsafeFrame $ pure $ (Proxy :: _ graph)
 
 lift ::
   forall env audio engine proof m i a.
