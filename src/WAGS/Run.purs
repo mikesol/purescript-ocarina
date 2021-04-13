@@ -86,6 +86,7 @@ runInternal ::
         , env :: env
         , trigger :: event
         , sysTime :: Instant
+        , headroom :: Int
         , active :: Boolean
         }
         FFIAudio
@@ -110,7 +111,7 @@ runInternal audioClockStart envAndTrigger world currentTimeoutCanceler currentEa
 
     time = (audioClockPriorToComputation - audioClockStart) + headroomInSeconds
 
-    fromScene = oneFrame sceneNow (R.union envAndTrigger { time })
+    fromScene = oneFrame sceneNow (R.union envAndTrigger { time, headroom })
   audioClockAfterComputation <- getAudioClockTime audio'.context
   renderAudio
     ( FFIAudio
@@ -146,6 +147,7 @@ run ::
     , trigger :: event
     , sysTime :: Instant
     , active :: Boolean
+    , headroom :: Int
     }
     FFIAudio
     (Effect Unit)
@@ -179,48 +181,3 @@ run engineInfo audio@(FFIAudio audio') trigger world scene =
       unsubscribe
   where
   newWorld = (\env sysTime -> { env, sysTime }) <$> world <*> instant
-
-{-
-fiberedScene ::
-  forall env audio engine proof.
-  Ref Boolean ->
-  env ->
-  Scene env audio engine proof ->
-  Event (Fiber (Scene' env audio engine proof))
-fiberedScene ref env scene = affToEventizedFiber $ affifyThunkable ref next
-  where
-  next = oneFrameT scene env
-
-
-run ::
-  forall a env envWithTime.
-  Cons "time" Number env envWithTime =>
-  EngineInfo ->
-  FFIAudio ->
-  Event a ->
-  Behavior { | env } ->
-  Scene { | envWithTime } FFIAudio (Effect Unit) Frame0 ->
-  Event (a /\ Run)
-run engineInfo audio thunk world scene = ?hole
-  where
-  loop =
-    fix \(i :: Event { jankyTime :: Instant,
-    computation: Fiber (Scene' env audio engine proof) }) ->
-      let
-        state = sampleBy Tuple world (Tuple <$> hydrated <*> i)
-
-        needsForce (env /\ { time, index } /\ { jankyTime })
-          | time > jankyTime && index == 0 = ?hole
-          | time > jankyTime = ?hole
-          | otherwise = ?hole
-      in
-        { input: i
-        , output: needsForce <$> state
-        }
-
-  hydrated =
-    mapAccum
-      (\x i -> Tuple (i + 1) (R.union x { index: i }))
-      (withTime thunk)
-      0
--}
