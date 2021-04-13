@@ -23,15 +23,15 @@ testFRP = do
         $ launchAff_ do
             for_ [ 0, 1, 2, 3 ] \_ -> do
               delay (Milliseconds 50.0)
-              for_ [ 0, 1, 2, 3 ] \_ -> do
+              for_ [ 0, 1, 2, 3, 4 ] \_ -> do
                 liftEffect $ myEvent.push unit
                 delay (Milliseconds 1.0)
       canceler <-
         liftEffect
-          $ subscribe (bufferToList 10 myEvent.event) \i -> do
+          $ subscribe (bufferToList 12 myEvent.event) \i -> do
               Ref.modify_ (Cons i) stash
       delay (Milliseconds 300.0)
       incoming <- liftEffect $ Ref.read stash
       length incoming `shouldEqual` 4
-      for_ incoming (shouldEqual 4 <<< length)
+      for_ incoming (shouldEqual 5 <<< length)
       liftEffect $ canceler
