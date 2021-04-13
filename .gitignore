@@ -9,3 +9,4 @@
 /.psa*
 /.spago
 /examples/hello-world/index.js
+/examples/wtk/index.js

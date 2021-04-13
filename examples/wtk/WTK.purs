@@ -1,4 +1,4 @@
-module Test.WTK where
+module WAGS.Example.WTK where
 
 import Prelude
 import Control.Applicative.Indexed (imap)
