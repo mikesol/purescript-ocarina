@@ -1,7 +1,6 @@
 module WAGS.Run where
 
 import Prelude
-
 import Control.Comonad.Cofree (Cofree, head, tail)
 import Data.DateTime.Instant (Instant)
 import Data.Foldable (for_)
@@ -17,7 +16,7 @@ import Effect.Timer (TimeoutId, clearTimeout, setTimeout)
 import FRP.Behavior (Behavior, sampleBy, sample_)
 import FRP.Behavior.Time (instant)
 import FRP.Event (Event, makeEvent, subscribe)
-import FRP.Event.Time (withTime)
+import FRP.Event.Time (withTime, delay)
 import Record as R
 import WAGS.Control.Types (Frame0, Scene, oneFrame)
 import WAGS.Interpret (FFIAudio(..), FFIAudio', getAudioClockTime, renderAudio)
@@ -28,25 +27,6 @@ type EasingAlgorithm
 
 type EngineInfo
   = { easingAlgorithm :: EasingAlgorithm }
-
-delayEvent :: forall a. Int -> Event a -> Event a
-delayEvent n e =
-  makeEvent \k -> do
-    tid <- Ref.new (mempty :: Set TimeoutId)
-    canceler <-
-      subscribe e \a -> do
-        localId <- Ref.new (Nothing :: Maybe TimeoutId)
-        id <-
-          setTimeout n do
-            k a
-            lid <- Ref.read localId
-            maybe (pure unit) (\id -> Ref.modify_ (delete id) tid) lid
-        Ref.write (Just id) localId
-        Ref.modify_ (append (singleton id)) tid
-    pure do
-      ids <- Ref.read tid
-      for_ ids clearTimeout
-      canceler
 
 type Run
   = { nodes :: M.Map Int AnAudioUnit
@@ -81,6 +61,15 @@ bufferToList timeToCollect incomingEvent =
   where
   timed = withTime incomingEvent
 
+type SceneI event env
+  = { time :: Number
+    , env :: env
+    , trigger :: event
+    , sysTime :: Instant
+    , active :: Boolean
+    , headroom :: Int
+    }
+
 runInternal ::
   forall env event.
   Number ->
@@ -94,13 +83,7 @@ runInternal ::
   Ref.Ref EasingAlgorithm ->
   Ref.Ref
     ( Scene
-        { time :: Number
-        , env :: env
-        , trigger :: event
-        , sysTime :: Instant
-        , headroom :: Int
-        , active :: Boolean
-        }
+        (SceneI event env)
         FFIAudio
         (Effect Unit)
         Frame0
@@ -143,7 +126,7 @@ runInternal audioClockStart envAndTrigger world currentTimeoutCanceler currentEa
   -- note that if we did not allocate enough time, we still
   -- set a timeout of 1 so that th canceler can run in case it needs to
   canceler <-
-    subscribe (sample_ world (delayEvent (max 1 remainingTimeInMs) (pure unit))) \{ env, sysTime } ->
+    subscribe (sample_ world (delay (max 1 remainingTimeInMs) (pure unit))) \{ env, sysTime } ->
       runInternal audioClockStart { env, sysTime, trigger: envAndTrigger.trigger, active: false } world currentTimeoutCanceler currentEasingAlg currentScene audio' reporter
   Ref.write canceler currentTimeoutCanceler
 
@@ -154,13 +137,7 @@ run ::
   Event event ->
   Behavior env ->
   Scene
-    { time :: Number
-    , env :: env
-    , trigger :: event
-    , sysTime :: Instant
-    , active :: Boolean
-    , headroom :: Int
-    }
+    (SceneI event env)
     FFIAudio
     (Effect Unit)
     Frame0 ->
