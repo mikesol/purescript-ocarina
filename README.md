@@ -32,11 +32,12 @@ Then, we call `oneFrame scene` with an `env` parameter, where `env` is whatever 
 `oneFrame scene` yields a record with the following members:
 
 ```purescript
-type Scene' env
+type SceneT' :: forall k. Type -> Type -> Type -> k -> (Type -> Type) -> Type
+type SceneT' env audio engine proof m
   = { nodes :: M.Map Int AnAudioUnit
     , edges :: M.Map Int (Set Int)
-    , instructions :: Array Instruction
-    , next :: Scene env
+    , instructions :: Array (audio -> engine)
+    , next :: SceneT env audio engine proof m
     }
 ```
 
@@ -45,4 +46,19 @@ Where:
 1. `nodes` is a map from indices to nodes. The example above is translated to `{0: ASpeaker, 1: ASinOsc 440.0}`.
 2. `edges` is a map from indices to _incoming_ connections. The sample above is translated to `{0:[1]}`, as the `SinOsc` is going into the speaker.
 3. `instructions` is a list of instructions to the Web Audio API for any changes that need to be done. At the first step, the instructions would be `[NewUnit 0 "speaker", NewUnit 1 "sinosc", SetFrequency 1 440.0]`. For the second step (and each subsequent step), the instruction array is empty as nothing changes.
-4. `next` represents a new stream, which can be called with `oneFrame env` to get the next `Scene'` record.
+4. `next` represents a new stream, which can be called with `oneFrame env` to get the next `Scene'` record. In our case, we are using `Scene`, which is `SceneT` specialized to the `Thunkable` monad.
+
+
+## Bundling on your site
+
+To see how to bundle this library on your site, please visit the [examples](./examples) directory.
+
+To compile the JS for the hello world example, issue the following command:
+
+```bash
+spago -x examples.dhall bundle-app \
+  --main WAGS.Example.HelloWorld \
+  --to examples/hello-world/index.js
+```
+
+Other examples will work the same way, with the directory and module name changing.

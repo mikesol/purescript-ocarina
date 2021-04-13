@@ -44,3 +44,6 @@ myRun ffiAudio =
   subscribe
     (run { easingAlgorithm } (FFIAudio ffiAudio) (pure unit) (pure unit) piece)
     (const $ pure unit)
+
+main :: Effect Unit
+main = pure unit

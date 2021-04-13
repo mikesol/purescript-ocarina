@@ -1,6 +1,7 @@
 { name = "purescript-wags"
 , dependencies =
   [ "aff-promise"
+  , "arraybuffer-types"
   , "behaviors"
   , "console"
   , "convertable-options"
