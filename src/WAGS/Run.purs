@@ -1,6 +1,7 @@
 module WAGS.Run where
 
 import Prelude
+
 import Control.Comonad.Cofree (Cofree, head, tail)
 import Data.DateTime.Instant (Instant)
 import Data.Int (floor, toNumber)
@@ -59,6 +60,7 @@ bufferToList timeToCollect incomingEvent =
             setTimeout timeToCollect do
               cil <- Ref.read currentEventList
               Ref.write Nil currentEventList
+              Ref.write Nothing currentTimeoutId
               k cil
           Ref.write (Just id) currentTimeoutId
       pure do
