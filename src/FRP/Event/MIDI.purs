@@ -143,22 +143,3 @@ midi midiAccess_ =
                 listeners
         pure unit
     pure dispose
-
-{-
-disposeMidi :: MIDI -> Effect Unit
-disposeMidi (MIDI { dispose }) = dispose
-
--- | Create an event which also returns the current state of MIDI.
-withMidi ::
-  forall a.
-  MIDI ->
-  Event a ->
-  Event { value :: a, midi :: Map String (List MIDIEventInTime) }
-withMidi (MIDI { midi }) e =
-  makeEvent \k ->
-    e
-      `subscribe`
-        \value -> do
-          midi_ <- Ref.read midi
-          k { value, midi: midi_ }
--}
