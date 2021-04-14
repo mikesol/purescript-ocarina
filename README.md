@@ -21,10 +21,10 @@ step1 = oneFrame step0.next unit
 step2 = oneFrame step1.next unit
 ```
 
-First, we create a scene. The scene can be read as follows:
+The variable `scene` can be read as follows:
 
-1. Start the scene.
-1. Create a sine wave oscillator at `440.0Hz`.
+1. Start the web audio API.
+1. Create a sine wave oscillator at `440.0Hz` connected to a speaker.
 1. Stay at this value.
 
 Then, we call `oneFrame scene` with an `env` parameter, where `env` is whatever the external environment is. This could be (for example) the time of the audio clock, whether the user is clicking a mouse, MIDI input, or other things that come from an environment.  In the example above, we use a trivial environment of `unit`.
