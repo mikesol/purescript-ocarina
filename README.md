@@ -60,7 +60,7 @@ To see more about how streams can be created and consumed, check out [`test/Inst
 
 ## Rendering audio
 
-The following is the complete hello-world example from the `examples` directory. In this section, we'll decompose it step-by-step to show how audio is rendered.
+The following is the complete hello-world example from the `examples` directory. In this section, we'll decompose it step-by-step to show how audio is rendered. You can listen to it [here](https://purescript-wags-hello-world.surge.sh/).
 
 ```purescript
 module WAGS.Example.HelloWorld where
