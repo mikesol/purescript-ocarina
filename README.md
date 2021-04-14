@@ -215,6 +215,13 @@ main :: Effect Unit
 main = pure unit
 ```
 
+### Other examples
+
+There are two other examples to get you started:
+
+- Atari speaks ([code](./examples/atari-speaks) | [sound](https://purescript-wags-atari-speaks.surge.sh/))
+- The Well-Typed Klavier ([code](./examples/wtk) | [sound](https://twitter.com/stronglynormal/status/1382221415802408960))
+
 ## Bundling on your site
 
 To see how to bundle this library on your site, please visit the [examples](./examples) directory.

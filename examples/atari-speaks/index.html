@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+  <script src="index.js"></script>
+  <script>
+    var offCb = null;
+    var audioCtx = null;
+    function turnOnAudio() {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      PS["WAGS.Example.AtariSpeaks"]
+        .atari(audioCtx)()
+        .then(function (buf) {
+          offCb = PS["WAGS.Example.AtariSpeaks"].myRun({
+            context: audioCtx,
+            writeHead: 0.0,
+            units: {},
+            microphones: {},
+            recorders: {},
+            buffers: { atar: buf },
+            floatArrays: {},
+            periodicWaves: {},
+          })();
+          return Promise.resolve(true);
+        });
+    }
+    function turnOffAudio() {
+      offCb ? offCb() : null;
+      offCB = null;
+      audioCtx ? audioCtx.close() : null;
+      audioCtx = null;
+    }
+  </script>
+  <body>
+    <button onclick="turnOnAudio();">turn on</button>
+    <button onclick="turnOffAudio();">turn off</button>
+  </body>
+</html>
