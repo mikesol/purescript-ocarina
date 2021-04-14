@@ -16,13 +16,55 @@ data AudioUnitRef (ptr :: Ptr)
 
 class GetPointer (audioUnit :: AudioUnit) (ptr :: Ptr) | audioUnit -> ptr
 
-instance getPointerSinOsc :: GetPointer (TSinOsc ptr) ptr
+instance getPointerAllpass :: GetPointer (TAllpass ptr) ptr
 
-instance getPointerHighpass :: GetPointer (THighpass ptr) ptr
+instance getPointerBandpass :: GetPointer (TBandpass ptr) ptr
+
+instance getPointerConstant :: GetPointer (TConstant ptr) ptr
+
+instance getPointerConvolver :: GetPointer (TConvolver ptr) ptr
+
+instance getPointerDelay :: GetPointer (TDelay ptr) ptr
+
+instance getPointerDynamicsCompressor :: GetPointer (TDynamicsCompressor ptr) ptr
 
 instance getPointerGain :: GetPointer (TGain ptr) ptr
 
+instance getPointerHighpass :: GetPointer (THighpass ptr) ptr
+
+instance getPointerHighshelf :: GetPointer (THighshelf ptr) ptr
+
+instance getPointerLoopBuf :: GetPointer (TLoopBuf ptr) ptr
+
+instance getPointerLowpass :: GetPointer (TLowpass ptr) ptr
+
+instance getPointerLowshelf :: GetPointer (TLowshelf ptr) ptr
+
+instance getPointerMicrophone :: GetPointer (TMicrophone ptr) ptr
+
+instance getPointerNotch :: GetPointer (TNotch ptr) ptr
+
+instance getPointerPeaking :: GetPointer (TPeaking ptr) ptr
+
+instance getPointerPeriodicOsc :: GetPointer (TPeriodicOsc ptr) ptr
+
+instance getPointerPlayBuf :: GetPointer (TPlayBuf ptr) ptr
+
+instance getPointerRecorder :: GetPointer (TRecorder ptr) ptr
+
+instance getPointerSawtoothOsc :: GetPointer (TSawtoothOsc ptr) ptr
+
+instance getPointerSinOsc :: GetPointer (TSinOsc ptr) ptr
+
 instance getPointerSpeaker :: GetPointer (TSpeaker ptr) ptr
+
+instance getPointerSquareOsc :: GetPointer (TSquareOsc ptr) ptr
+
+instance getPointerStereoPanner :: GetPointer (TStereoPanner ptr) ptr
+
+instance getPointerTriangleOsc :: GetPointer (TTriangleOsc ptr) ptr
+
+instance getPointerWaveShaper :: GetPointer (TWaveShaper ptr) ptr
 
 ---
 foreign import data TAllpass :: Ptr -> AudioUnit
