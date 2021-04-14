@@ -1,7 +1,9 @@
 module WAGS.Control.Thunkable where
 
 import Prelude
+
 import Control.Alternative (class Alt, class Alternative, class Plus, alt, empty)
+import Control.Monad.Trans.Class (lift)
 import Data.Identity (Identity)
 import Data.Traversable (class Foldable, class Traversable, foldMapDefaultR, sequence, traverseDefault)
 import Data.Tuple (Tuple(..))
@@ -128,7 +130,7 @@ instance waitableIdentity :: Waitable Identity where
   wait = pure
 
 instance waitableAff :: Waitable Aff where
-  wait = pure
+  wait a = delay (Milliseconds 0.0001) *> pure a
 
 instance waitableMemoizedStateT :: Waitable (MemoizedStateT proof s Thunkable) where
-  wait = pure
+  wait = lift <<< wait

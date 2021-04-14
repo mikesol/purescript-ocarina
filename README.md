@@ -41,12 +41,20 @@ type SceneT' env audio engine proof m
     }
 ```
 
-Where:
+Let's look at the type of `SceneT'` first:
 
-1. `nodes` is a map from indices to nodes. The example above is translated to `{0: ASpeaker, 1: ASinOsc 440.0}`.
-2. `edges` is a map from indices to _incoming_ connections. The sample above is translated to `{0:[1]}`, as the `SinOsc` is going into the speaker.
-3. `instructions` is a list of instructions to the Web Audio API for any changes that need to be done. At the first step, the instructions would be `[NewUnit 0 "speaker", NewUnit 1 "sinosc", SetFrequency 1 440.0]`. For the second step (and each subsequent step), the instruction array is empty as nothing changes.
-4. `next` represents a new stream, which can be called with `oneFrame env` to get the next `Scene'` record. In our case, we are using `Scene`, which is `SceneT` specialized to the `Thunkable` monad.
+1. `env` is the outside environment a scene receives. In the case above, it is `Unit`. Often times, the environment will be a combination of events (ie mouse click events) and behaviors (ie a mouse's position).
+2. `audio` contains all the information needed by the engine to render. For web audio, this includes an audio context, buffers and a microphone (amongst other things). For testing, this is just `Unit`.
+3. `engine` is the type in which audio is rendered. For actual web audio, this is `Effect Unit`. For testing, this is the `Instruction` type, which is an ADT representation of instructions like `SetFrequency` or `MakeSinOsc`.
+4. `proof` is a transactional type that makes sure a `Scene` corresponds to a given moment in time.
+5. `m` is the monadic context of the return value from `oneFrameT`. `oneFrame`, used above, extracts the scene from its monadic context using the same pattern as that used in the [`transformers`](https://github.com/purescript/purescript-transformers) library.
+
+Now, let's look at the terms it contains:
+
+1. `nodes` is a map from _pointers_ to _audio units_. Pointers are opaque blobs that allow you to refer to an audio unit, and audio units are things like like sine wave oscillators or highpass filters.
+2. `edges` is a map from _pointers_ to _pointers of incoming connections_ in the audio graph.
+3. `instructions` is a list of instructions to the audio renderer.
+4. `next` can be called with `oneFrame env`, where env is the environment, to get the next `Scene`.
 
 
 ## Bundling on your site
