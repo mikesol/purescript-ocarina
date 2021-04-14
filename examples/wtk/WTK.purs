@@ -19,7 +19,7 @@ import Effect.Class (liftEffect)
 import FRP.Event (subscribe)
 import FRP.Event.MIDI (MIDIEvent(..), MIDIEventInTime, midi, midiAccess)
 import Math (pow)
-import Record (modify)
+import Record (set)
 import Type.Data.Peano (Succ)
 import Type.Proxy (Proxy(..))
 import WAGS (class Change, class Changes, AudioUnitRef, FFIAudio(..), FFIAudio', Focus(..), Frame0, FrameT, Gain(..), GetSetAP, Decorating', OnOff(..), Scene, SceneI, SinOsc(..), SingleEdge, Speaker(..), UniverseC, bufferToList, create, cursor, defaultGetSetAP, env, graph, loop, proof, run, start, withProof, (@>))
@@ -133,16 +133,16 @@ klavierIdentity =
   }
 
 cursors =
-  { k0: fullKeyboard (modify (Proxy :: _ "k0") (const Focus) klavierIdentity)
-  , k1: fullKeyboard (modify (Proxy :: _ "k1") (const Focus) klavierIdentity)
-  , k2: fullKeyboard (modify (Proxy :: _ "k2") (const Focus) klavierIdentity)
-  , k3: fullKeyboard (modify (Proxy :: _ "k3") (const Focus) klavierIdentity)
-  , k4: fullKeyboard (modify (Proxy :: _ "k4") (const Focus) klavierIdentity)
-  , k5: fullKeyboard (modify (Proxy :: _ "k5") (const Focus) klavierIdentity)
-  , k6: fullKeyboard (modify (Proxy :: _ "k6") (const Focus) klavierIdentity)
-  , k7: fullKeyboard (modify (Proxy :: _ "k7") (const Focus) klavierIdentity)
-  , k8: fullKeyboard (modify (Proxy :: _ "k8") (const Focus) klavierIdentity)
-  , k9: fullKeyboard (modify (Proxy :: _ "k9") (const Focus) klavierIdentity)
+  { k0: fullKeyboard (set (Proxy :: _ "k0") Focus klavierIdentity)
+  , k1: fullKeyboard (set (Proxy :: _ "k1") Focus klavierIdentity)
+  , k2: fullKeyboard (set (Proxy :: _ "k2") Focus klavierIdentity)
+  , k3: fullKeyboard (set (Proxy :: _ "k3") Focus klavierIdentity)
+  , k4: fullKeyboard (set (Proxy :: _ "k4") Focus klavierIdentity)
+  , k5: fullKeyboard (set (Proxy :: _ "k5") Focus klavierIdentity)
+  , k6: fullKeyboard (set (Proxy :: _ "k6") Focus klavierIdentity)
+  , k7: fullKeyboard (set (Proxy :: _ "k7") Focus klavierIdentity)
+  , k8: fullKeyboard (set (Proxy :: _ "k8") Focus klavierIdentity)
+  , k9: fullKeyboard (set (Proxy :: _ "k9") Focus klavierIdentity)
   }
 
 type KeyUnit
