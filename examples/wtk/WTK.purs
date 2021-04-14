@@ -17,16 +17,14 @@ import Effect (Effect)
 import Effect.Aff (launchAff_)
 import Effect.Class (liftEffect)
 import FRP.Event (subscribe)
-import FRP.Event.MIDI (MIDIEvent(..), MIDIEventInTime, MIDIEventInTime, midi, midiAccess)
+import FRP.Event.MIDI (MIDIEvent(..), MIDIEventInTime, midi, midiAccess)
 import Math (pow)
 import Record (modify)
 import Type.Data.Peano (Succ)
 import Type.Proxy (Proxy(..))
-import Data.Set as S
 import WAGS (class Change, class Changes, AudioUnitRef, FFIAudio(..), FFIAudio', Focus(..), Frame0, FrameT, Gain(..), GetSetAP, OnOff(..), Scene, SceneI, SinOsc(..), SingleEdge, Speaker(..), UniverseC, bufferToList, create, cursor, defaultGetSetAP, env, graph, loop, proof, run, start, withProof, (@>))
 import WAGS.Change (ChangeInstruction(..), changes)
 import WAGS.Control.Qualified as Ix
-import WAGS.Debug (type (^^))
 import WAGS.Interpret (class AudioInterpret)
 
 data Key
