@@ -22,7 +22,7 @@ import Math (pow)
 import Record (modify)
 import Type.Data.Peano (Succ)
 import Type.Proxy (Proxy(..))
-import WAGS (class Change, class Changes, AudioUnitRef, FFIAudio(..), FFIAudio', Focus(..), Frame0, FrameT, Gain(..), GetSetAP, OnOff(..), Scene, SceneI, SinOsc(..), SingleEdge, Speaker(..), UniverseC, bufferToList, create, cursor, defaultGetSetAP, env, graph, loop, proof, run, start, withProof, (@>))
+import WAGS (class Change, class Changes, AudioUnitRef, FFIAudio(..), FFIAudio', Focus(..), Frame0, FrameT, Gain(..), GetSetAP, Decorating', OnOff(..), Scene, SceneI, SinOsc(..), SingleEdge, Speaker(..), UniverseC, bufferToList, create, cursor, defaultGetSetAP, env, graph, loop, proof, run, start, withProof, (@>))
 import WAGS.Change (ChangeInstruction(..), changes)
 import WAGS.Control.Qualified as Ix
 import WAGS.Interpret (class AudioInterpret)
@@ -92,16 +92,16 @@ playKeys rec incoming (a : b) currentPlaying = case a.k of
 
 
 type KlavierType k0 k1 k2 k3 k4 k5 k6 k7 k8 k9
-  = { k0 :: (forall a. a -> k0 a)
-    , k1 :: (forall a. a -> k1 a)
-    , k2 :: (forall a. a -> k2 a)
-    , k3 :: (forall a. a -> k3 a)
-    , k4 :: (forall a. a -> k4 a)
-    , k5 :: (forall a. a -> k5 a)
-    , k6 :: (forall a. a -> k6 a)
-    , k7 :: (forall a. a -> k7 a)
-    , k8 :: (forall a. a -> k8 a)
-    , k9 :: (forall a. a -> k9 a)
+  = { k0 :: Decorating' k0
+    , k1 :: Decorating' k1
+    , k2 :: Decorating' k2
+    , k3 :: Decorating' k3
+    , k4 :: Decorating' k4
+    , k5 :: Decorating' k5
+    , k6 :: Decorating' k6
+    , k7 :: Decorating' k7
+    , k8 :: Decorating' k8
+    , k9 :: Decorating' k9
     } ->
     Speaker
       ( Gain GetSetAP

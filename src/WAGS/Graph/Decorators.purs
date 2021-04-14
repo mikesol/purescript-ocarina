@@ -8,13 +8,12 @@ import Prim.Row (class Cons, class Lacks)
 import Prim.RowList as RL
 import Record (insert, modify)
 import Type.Proxy (Proxy(..))
-import Data.Identity (Identity)
 import Data.Tuple (Tuple)
-import Type.Proxy (Proxy)
 import WAGS.Graph.Constructors as CTOR
 import WAGS.Rendered (Oversample(..))
 
-type Decorated a = forall b c. Decorate a b c => { | b } /\ { | c }
+type Decorated a
+  = forall b c. Decorate a b c => { | b } /\ { | c }
 
 class Decorate (a :: Row Type) (b :: Row Type) (c :: Row Type) | a -> b c where
   decorate :: forall d. ({ | a } -> d) -> { | b } /\ { | c }
@@ -42,10 +41,13 @@ instance decorateDecorating :: (RL.RowToList a rl, MakeDecorators rl b, MakeFocu
     where
     idy = makeDecorators (Proxy :: _ rl)
 
-newtype Decorating f
-  = Decorating (forall a. a -> f a)
+type Decorating' f
+  = forall a. a -> f a
 
-dk :: forall f. Decorating f -> (forall a. a -> f a)
+newtype Decorating f
+  = Decorating (Decorating' f)
+
+dk :: forall f. Decorating f -> (Decorating' f)
 dk (Decorating f) = f
 
 data Focus a
@@ -131,10 +133,10 @@ class IsOversample oversample where
   reflectOversample :: oversample -> Oversample
 
 instance isOversampleNone :: IsOversample CTOR.OversampleNone where
-  reflectOversample _ = None 
+  reflectOversample _ = None
 
 instance isOversampleTwoX :: IsOversample CTOR.OversampleTwoX where
-  reflectOversample _ = TwoX 
+  reflectOversample _ = TwoX
 
 instance isOversampleFourX :: IsOversample CTOR.OversampleFourX where
-  reflectOversample _ = FourX 
+  reflectOversample _ = FourX
