@@ -1,10 +1,8 @@
 module WAGS.Example.WTK where
 
 import Prelude
-import Control.Applicative.Indexed (imap)
 import Control.Comonad.Cofree (Cofree, mkCofree)
 import Control.Promise (toAffE)
-import Data.Compactable (compact)
 import Control.Alt ((<|>))
 import Data.DateTime.Instant (Instant)
 import Data.Either (Either(..))
@@ -12,22 +10,20 @@ import Data.Functor.Indexed (ivoid)
 import Data.Identity (Identity(..))
 import Data.Int (toNumber)
 import Data.List (List(..), (:), filter, length, drop, zipWith)
-import Data.Map as M
-import Data.Maybe (Maybe(..))
 import Data.Set as S
-import Data.Tuple (Tuple(..), fst, snd)
+import Data.Tuple (Tuple(..))
 import Data.Tuple.Nested ((/\), type (/\))
 import Effect (Effect)
 import Effect.Aff (launchAff_)
 import Effect.Class (liftEffect)
 import FRP.Event (subscribe)
-import FRP.Event.MIDI (MIDIEvent(..), MIDIEventInTime(..), MIDIEventInTime, midi, midiAccess)
+import FRP.Event.MIDI (MIDIEvent(..), MIDIEventInTime, MIDIEventInTime, midi, midiAccess)
 import Math (pow)
-import Prim.Row (class Cons)
 import Record (modify)
 import Type.Data.Peano (Succ)
 import Type.Proxy (Proxy(..))
-import WAGS (class Change, class Changes, class Connect, class Create, class Cursor, class GraphIsRenderable, AnAudioUnit(..), AudioParameter, AudioUnitRef(..), Decorating(..), FFIAudio(..), FFIAudio', Focus(..), Frame0, FrameT, Gain(..), GetSetAP, Instruction(..), OnOff(..), Scene, SceneI, SceneT, SinOsc(..), SingleEdge, Speaker(..), UniverseC, branch, bufferToList, change, changeAt, create, cursor, defaultGetSetAP, dk, env, freeze, gain, graph, highpass, isHere, loop, mix, oneFrame', param, proof, run, runThunkableWithCount, sinOsc, speaker, start, thunkThunkable, wait, withProof, (@>), (@|>))
+import Data.Set as S
+import WAGS (class Change, class Changes, AudioUnitRef, FFIAudio(..), FFIAudio', Focus(..), Frame0, FrameT, Gain(..), GetSetAP, OnOff(..), Scene, SceneI, SinOsc(..), SingleEdge, Speaker(..), UniverseC, bufferToList, create, cursor, defaultGetSetAP, env, graph, loop, proof, run, start, withProof, (@>))
 import WAGS.Change (ChangeInstruction(..), changes)
 import WAGS.Control.Qualified as Ix
 import WAGS.Debug (type (^^))
@@ -63,23 +59,26 @@ playKeys ::
   { graphProxy :: Proxy graph
   , audioRefs :: AudioUnitRef k0 /\ AudioUnitRef k1 /\ AudioUnitRef k2 /\ AudioUnitRef k3 /\ AudioUnitRef k4 /\ AudioUnitRef k5 /\ AudioUnitRef k6 /\ AudioUnitRef k7 /\ AudioUnitRef k8 /\ AudioUnitRef k9
   , currentTime :: Number
-  , keyDuration :: Number
+  , notesOff :: S.Set Int
   } ->
-  incoming -> List KeyInfo -> List KeyInfo -> FrameT env audio engine proof m (UniverseC currentIdx graph j skolems) (UniverseC currentIdx graph (Succ j) skolems) Unit
+  incoming ->
+  List KeyInfo ->
+  List KeyInfo ->
+  FrameT env audio engine proof m (UniverseC currentIdx graph j skolems) (UniverseC currentIdx graph (Succ j) skolems) Unit
 -- finally add start/stop to change
 playKeys rec incoming Nil Nil = changes incoming
 
-playKeys rec@{ currentTime, keyDuration } incoming Nil (a : b) = case a.k of
-  K0 -> playKeys rec (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k0)) (if currentTime - a.startT > keyDuration then a.endU else a.sustainU currentTime)) incoming) Nil b
-  K1 -> playKeys rec (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k1)) (if currentTime - a.startT > keyDuration then a.endU else a.sustainU currentTime)) incoming) Nil b
-  K2 -> playKeys rec (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k2)) (if currentTime - a.startT > keyDuration then a.endU else a.sustainU currentTime)) incoming) Nil b
-  K3 -> playKeys rec (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k3)) (if currentTime - a.startT > keyDuration then a.endU else a.sustainU currentTime)) incoming) Nil b
-  K4 -> playKeys rec (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k4)) (if currentTime - a.startT > keyDuration then a.endU else a.sustainU currentTime)) incoming) Nil b
-  K5 -> playKeys rec (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k5)) (if currentTime - a.startT > keyDuration then a.endU else a.sustainU currentTime)) incoming) Nil b
-  K6 -> playKeys rec (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k6)) (if currentTime - a.startT > keyDuration then a.endU else a.sustainU currentTime)) incoming) Nil b
-  K7 -> playKeys rec (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k7)) (if currentTime - a.startT > keyDuration then a.endU else a.sustainU currentTime)) incoming) Nil b
-  K8 -> playKeys rec (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k8)) (if currentTime - a.startT > keyDuration then a.endU else a.sustainU currentTime)) incoming) Nil b
-  K9 -> playKeys rec (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k9)) (if currentTime - a.startT > keyDuration then a.endU else a.sustainU currentTime)) incoming) Nil b
+playKeys rec@{ currentTime, notesOff } incoming Nil (a : b) = case a.k of
+  K0 -> playKeys rec (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k0)) (if currentTime - a.startT > a.keyDuration then a.endU else a.sustainU currentTime)) incoming) Nil b
+  K1 -> playKeys rec (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k1)) (if currentTime - a.startT > a.keyDuration then a.endU else a.sustainU currentTime)) incoming) Nil b
+  K2 -> playKeys rec (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k2)) (if currentTime - a.startT > a.keyDuration then a.endU else a.sustainU currentTime)) incoming) Nil b
+  K3 -> playKeys rec (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k3)) (if currentTime - a.startT > a.keyDuration then a.endU else a.sustainU currentTime)) incoming) Nil b
+  K4 -> playKeys rec (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k4)) (if currentTime - a.startT > a.keyDuration then a.endU else a.sustainU currentTime)) incoming) Nil b
+  K5 -> playKeys rec (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k5)) (if currentTime - a.startT > a.keyDuration then a.endU else a.sustainU currentTime)) incoming) Nil b
+  K6 -> playKeys rec (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k6)) (if currentTime - a.startT > a.keyDuration then a.endU else a.sustainU currentTime)) incoming) Nil b
+  K7 -> playKeys rec (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k7)) (if currentTime - a.startT > a.keyDuration then a.endU else a.sustainU currentTime)) incoming) Nil b
+  K8 -> playKeys rec (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k8)) (if currentTime - a.startT > a.keyDuration then a.endU else a.sustainU currentTime)) incoming) Nil b
+  K9 -> playKeys rec (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k9)) (if currentTime - a.startT > a.keyDuration then a.endU else a.sustainU currentTime)) incoming) Nil b
 
 playKeys rec incoming (a : b) currentPlaying = case a.k of
   K0 -> playKeys rec (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k0)) a.startU) incoming) b currentPlaying
@@ -93,18 +92,6 @@ playKeys rec incoming (a : b) currentPlaying = case a.k of
   K8 -> playKeys rec (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k8)) a.startU) incoming) b currentPlaying
   K9 -> playKeys rec (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k9)) a.startU) incoming) b currentPlaying
 
-keyToPitch :: Key -> Number
-keyToPitch = case _ of
-  K0 -> 69.295658
-  K1 -> 73.416192
-  K2 -> 77.781746
-  K3 -> 82.406889
-  K4 -> 87.307058
-  K5 -> 92.498606
-  K6 -> 97.998859
-  K7 -> 103.826174
-  K8 -> 110.000000
-  K9 -> 116.540940
 
 type KlavierType k0 k1 k2 k3 k4 k5 k6 k7 k8 k9
   = { k0 :: (forall a. a -> k0 a)
@@ -188,7 +175,7 @@ initialKey :: KeyUnit
 initialKey = Gain (defaultGetSetAP 0.0) (SinOsc Off (defaultGetSetAP 440.0))
 
 keyToCps :: Int -> Number
-keyToCps i = 440.0 * (2.0 `pow` ((toNumber i - 68.0) / 12.0))
+keyToCps i = 440.0 * (2.0 `pow` ((toNumber i - 69.0) / 12.0))
 
 calcSlope :: Number -> Number -> Number -> Number -> Number -> Number
 calcSlope x0 y0 x1 y1 x =
@@ -202,12 +189,18 @@ calcSlope x0 y0 x1 y1 x =
     in
       m * x + b
 
+dampen :: Number -> Number -> Number
+dampen currentTime offTime
+  | currentTime < offTime = 1.0
+  | currentTime >= offTime + 0.2 = 0.0
+  | otherwise = calcSlope offTime 1.0 (offTime + 0.2) 0.0 currentTime
+
 asdr :: Number -> Number
 asdr n
   | n <= 0.0 = 0.0
-  | n < 0.25 = calcSlope 0.0 0.0 0.25 0.5 n
-  | n < 0.5 = calcSlope 0.25 0.5 0.5 0.1 n
-  | n < keyDur = calcSlope 0.5 0.1 keyDur 0.0 n
+  | n < 0.25 = calcSlope 0.0 0.0 0.25 0.01 n
+  | n < 0.5 = calcSlope 0.25 0.01 0.5 0.005 n
+  | n < keyDur = calcSlope 0.5 0.005 keyDur 0.0 n
   | otherwise = 0.0
 
 keyStart :: Number -> KeyUnit
@@ -219,30 +212,34 @@ keySustain initialTime cps currentTime =
     (defaultGetSetAP (asdr (currentTime - initialTime)))
     (SinOsc On (defaultGetSetAP cps))
 
+keySustainOff :: Number -> Number -> Number -> Number -> KeyUnit
+keySustainOff initialTime cps offTime currentTime =
+  Gain
+    (defaultGetSetAP (asdr (currentTime - initialTime) * dampen currentTime offTime))
+    (SinOsc On (defaultGetSetAP cps))
+
 keyEnd :: Number -> KeyUnit
 keyEnd cps = Gain (defaultGetSetAP 0.0) (SinOsc Off (defaultGetSetAP cps))
 
-midiEventsToOnsets :: List MIDIEvent -> List Int
-midiEventsToOnsets = compact <<< go Nil
+midiEventsToOnsets :: List MIDIEvent -> (List Int /\ List Int)
+midiEventsToOnsets = go Nil Nil
   where
-  go acc Nil = acc
+  go accOn accOff Nil = accOn /\ accOff
 
-  go acc (a : b) =
-    go
-      ( Cons
-          ( case a of
-              NoteOn _ note _ -> Just note
-              _ -> Nothing
-          )
-          acc
-      )
-      b
+  go accOn accOff (NoteOn _ note _ : b) = go (Cons note accOn) accOff b
+
+  go accOn accOff (NoteOff _ note _ : b) = go accOn (Cons note accOff) b
+
+  go accOn accOff (_ : b) = go accOn accOff b
 
 type KeyInfo
   = { startU :: KeyUnit
     , endU :: KeyUnit
     , sustainU :: Number -> KeyUnit
     , startT :: Number
+    , cps :: Number
+    , keyDuration :: Number
+    , i :: Int
     , k :: Key
     }
 
@@ -274,6 +271,12 @@ piece =
             { time, trigger, active } <- env
             graphProxy <- graph
             let
+              notesOn /\ notesOffAsList =
+                midiEventsToOnsets
+                  (if active then (map _.value.event trigger) else Nil)
+
+              notesOff = S.fromFoldable notesOffAsList
+
               onsets =
                 zipWith
                   ( \i k ->
@@ -284,31 +287,47 @@ piece =
                         , startU: keyStart cps
                         , endU: keyEnd cps
                         , startT: time
+                        , cps
+                        , keyDuration: keyDur
+                        , i
                         , k
                         }
                   )
-                  (midiEventsToOnsets (if active then (map _.value.event trigger) else Nil))
+                  notesOn
                   availableKeys
 
               newAvailableKeys = drop (length onsets) availableKeys
+
+              newCurrentKeys =
+                map
+                  ( \rec ->
+                      if S.member rec.i notesOff then
+                        rec
+                          { keyDuration = (time - rec.startT) + 0.2
+                          , sustainU = keySustainOff rec.startT rec.cps time
+                          }
+                      else
+                        rec
+                  )
+                  currentKeys
             ( playKeys
                 { graphProxy
                 , audioRefs
                 , currentTime: time
-                , keyDuration: keyDur
+                , notesOff
                 }
                 unit
                 onsets
-                currentKeys
+                newCurrentKeys
             )
               $> { audioRefs
-                , currentKeys: (filter (\{ startT } -> time - startT <= keyDur) currentKeys) <> onsets
-                , availableKeys: newAvailableKeys <> (map _.k (filter (\{ startT } -> time - startT > keyDur) currentKeys))
+                , currentKeys: (filter (\{ startT, keyDuration, i } -> time - startT <= keyDuration) newCurrentKeys) <> onsets
+                , availableKeys: newAvailableKeys <> (map _.k (filter (\{ startT, keyDuration, i } -> time - startT > keyDuration) newCurrentKeys))
                 }
         )
 
 easingAlgorithm :: Cofree ((->) Int) Int
-easingAlgorithm = let x initialTime = mkCofree initialTime \_ -> x initialTime in x 20
+easingAlgorithm = let fOf initialTime = mkCofree initialTime \adj -> fOf $ max 10 (initialTime - adj) in fOf 20
 
 myRun :: FFIAudio' -> Effect Unit
 myRun ffiAudio =

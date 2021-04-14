@@ -317,11 +317,12 @@ instance changeInstructionsPeriodicOsc :: (AudioInterpret audio engine, SetterVa
   changeInstructions idx (CTOR.PeriodicOsc _ onOff argB) = case _ of
     APeriodicOsc x oldOnOff v_argB@(AudioParameter v_argB') ->
       let
+        onOffDiff = oldOnOff /= onOff
         s_argB = setterVal argB
 
         argB_iv' = s_argB v_argB
 
-        argB_Changes = let AudioParameter argB_iv = argB_iv' in if argB_iv.param == v_argB'.param then [] else [ setFrequency idx argB_iv' ]
+        argB_Changes = let AudioParameter argB_iv = argB_iv' in if argB_iv.param == v_argB'.param && not (onOffDiff && onOff == On) then [] else [ setFrequency idx argB_iv' ]
       in
         Just
           $ (argB_Changes <> (if oldOnOff /= onOff then [ (if onOff == On then setOn else setOff) idx ] else []))
@@ -350,11 +351,12 @@ instance changeInstructionsSawtoothOsc :: (AudioInterpret audio engine, SetterVa
   changeInstructions idx (CTOR.SawtoothOsc onOff argA) = case _ of
     ASawtoothOsc oldOnOff v_argA@(AudioParameter v_argA') ->
       let
+        onOffDiff = oldOnOff /= onOff
         s_argA = setterVal argA
 
         argA_iv' = s_argA v_argA
 
-        argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param then [] else [ setFrequency idx argA_iv' ]
+        argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param && not (onOffDiff && onOff == On) then [] else [ setFrequency idx argA_iv' ]
       in
         Just
           $ (argA_Changes <> (if oldOnOff /= onOff then [ (if onOff == On then setOn else setOff) idx ] else []))
@@ -365,14 +367,16 @@ instance changeInstructionsSinOsc :: (AudioInterpret audio engine, SetterVal arg
   changeInstructions idx (CTOR.SinOsc onOff argA) = case _ of
     ASinOsc oldOnOff v_argA@(AudioParameter v_argA') ->
       let
+        onOffDiff = oldOnOff /= onOff
+
         s_argA = setterVal argA
 
         argA_iv' = s_argA v_argA
 
-        argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param then [] else [ setFrequency idx argA_iv' ]
+        argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param && not (onOffDiff && onOff == On) then [] else [ setFrequency idx argA_iv' ]
       in
         Just
-          $ (argA_Changes <> (if oldOnOff /= onOff then [ (if onOff == On then setOn else setOff) idx ] else []))
+          $ (argA_Changes <> (if onOffDiff then [ (if onOff == On then setOn else setOff) idx ] else []))
           /\ ASinOsc onOff argA_iv'
     _ -> Nothing
 
@@ -383,11 +387,12 @@ instance changeInstructionsSquareOsc :: (AudioInterpret audio engine, SetterVal 
   changeInstructions idx (CTOR.SquareOsc onOff argA) = case _ of
     ASquareOsc oldOnOff v_argA@(AudioParameter v_argA') ->
       let
+        onOffDiff = oldOnOff /= onOff
         s_argA = setterVal argA
 
         argA_iv' = s_argA v_argA
 
-        argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param then [] else [ setFrequency idx argA_iv' ]
+        argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param && not (onOffDiff && onOff == On) then [] else [ setFrequency idx argA_iv' ]
       in
         Just
           $ (argA_Changes <> (if oldOnOff /= onOff then [ (if onOff == On then setOn else setOff) idx ] else []))
@@ -413,11 +418,12 @@ instance changeInstructionsTriangleOsc :: (AudioInterpret audio engine, SetterVa
   changeInstructions idx (CTOR.TriangleOsc onOff argA) = case _ of
     ATriangleOsc oldOnOff v_argA@(AudioParameter v_argA') ->
       let
+        onOffDiff = oldOnOff /= onOff
         s_argA = setterVal argA
 
         argA_iv' = s_argA v_argA
 
-        argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param then [] else [ setFrequency idx argA_iv' ]
+        argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param && not (onOffDiff && onOff == On) then [] else [ setFrequency idx argA_iv' ]
       in
         Just
           $ (argA_Changes <> (if oldOnOff /= onOff then [ (if onOff == On then setOn else setOff) idx ] else []))
