@@ -153,7 +153,8 @@ loop ::
       a
   ) ->
   FrameT env audio engine proofA m i
-   (UniverseC currentIdx graph changeBit skolems) a ->
+    (UniverseC currentIdx graph changeBit skolems)
+    a ->
   SceneT env audio engine proofA m
 loop fa ma = makeScene (imap Right $ Ix.bind ma fa) (loop fa)
 
@@ -163,7 +164,8 @@ freeze ::
   AudioInterpret audio engine =>
   GraphIsRenderable graph =>
   FrameT env audio engine proof m i
-   (UniverseC currentIdx graph changeBit skolems) x ->
+    (UniverseC currentIdx graph changeBit skolems)
+    x ->
   SceneT env audio engine proof m
 freeze s = makeScene (imap Right s) freeze
 
