@@ -37,7 +37,7 @@ piece =
         )
 
 easingAlgorithm :: Cofree ((->) Int) Int
-easingAlgorithm = let x initialTime = mkCofree initialTime \_ -> x initialTime in x 20
+easingAlgorithm = let fOf initialTime = mkCofree initialTime \adj -> fOf $ max 20 (initialTime - adj) in fOf 20
 
 myRun :: FFIAudio' -> Effect (Effect Unit)
 myRun ffiAudio =
