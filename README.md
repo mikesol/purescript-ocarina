@@ -56,6 +56,8 @@ Now, let's look at the terms it contains:
 3. `instructions` is a list of instructions to the audio renderer.
 4. `next` can be called with `oneFrame env`, where env is the environment, to get the next `Scene`.
 
+To see more about how streams can be created and consumed, check out [`test/Instructions.purs`](test/Instructions.purs).
+
 ## Rendering audio
 
 The following is the complete hello-world example from the `examples` directory. In this section, we'll decompose it step-by-step to show how audio is rendered.
