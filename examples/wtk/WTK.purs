@@ -63,7 +63,6 @@ playKeys ::
   List KeyInfo ->
   List KeyInfo ->
   FrameT env audio engine proof m (UniverseC currentIdx graph j skolems) (UniverseC currentIdx graph (Succ j) skolems) Unit
--- finally add start/stop to change
 playKeys rec incoming Nil Nil = changes incoming
 
 playKeys rec@{ currentTime, notesOff } incoming Nil (a : b) = case a.k of
