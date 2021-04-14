@@ -71,7 +71,23 @@ import Data.Tuple.Nested ((/\))
 import Effect (Effect)
 import FRP.Event (subscribe)
 import Math (pi, sin)
-import WAGS (FFIAudio(..), Frame0, Scene, SceneI, FFIAudio', change, create, env, gain, loop, run, sinOsc, speaker, start, (@>))
+import WAGS
+  ( FFIAudio(..)
+  , Frame0
+  , Scene
+  , SceneI
+  , FFIAudio'
+  , change
+  , create
+  , env
+  , gain
+  , loop
+  , run
+  , sinOsc
+  , speaker
+  , start
+  , (@>)
+  )
 import WAGS.Control.Qualified as Ix
 
 scene time =
