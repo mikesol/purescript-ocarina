@@ -100,7 +100,11 @@ piece =
         )
 
 easingAlgorithm :: Cofree ((->) Int) Int
-easingAlgorithm = let fOf initialTime = mkCofree initialTime \adj -> fOf $ max 20 (initialTime - adj) in fOf 20
+easingAlgorithm =
+  let
+    fOf initialTime = mkCofree initialTime \adj -> fOf $ max 20 (initialTime - adj)
+  in
+    fOf 20
 
 myRun :: FFIAudio' -> Effect (Effect Unit)
 myRun ffiAudio =
@@ -177,7 +181,11 @@ The `main` function at the end is perfunctory and is necessary so that `spago` c
 
 ```purescript
 easingAlgorithm :: Cofree ((->) Int) Int
-easingAlgorithm = let fOf initialTime = mkCofree initialTime \adj -> fOf $ max 20 (initialTime - adj) in fOf 20
+easingAlgorithm =
+  let
+    fOf initialTime = mkCofree initialTime \adj -> fOf $ max 20 (initialTime - adj)
+  in
+    fOf 20
 
 myRun :: FFIAudio' -> Effect (Effect Unit)
 myRun ffiAudio =
