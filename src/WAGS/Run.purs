@@ -129,18 +129,19 @@ runInternal audioClockStart worldAndTrigger world' currentTimeoutCanceler curren
       runInternal audioClockStart { world, sysTime, trigger: worldAndTrigger.trigger, active: false } world' currentTimeoutCanceler currentEasingAlg currentScene audio' reporter
   Ref.write canceler currentTimeoutCanceler
 
-run ::
-  forall world trigger.
-  EngineInfo ->
-  FFIAudio ->
-  Event trigger ->
-  Behavior world ->
-  Scene
-    (SceneI trigger world)
-    FFIAudio
-    (Effect Unit)
-    Frame0 ->
-  Event Run
+type RunSig world trigger
+  = EngineInfo ->
+    FFIAudio ->
+    Event trigger ->
+    Behavior world ->
+    Scene
+      (SceneI trigger world)
+      FFIAudio
+      (Effect Unit)
+      Frame0 ->
+    Event Run
+
+run :: forall world trigger. RunSig world trigger
 run engineInfo audio@(FFIAudio audio') trigger world' scene =
   makeEvent \k -> do
     audioClockStart <- getAudioClockTime audio'.context
