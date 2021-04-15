@@ -10,6 +10,7 @@ import Data.Vec as V
 import Effect (Effect)
 import Foreign (Foreign)
 import Foreign.Object (Object)
+import Foreign.Object as O
 import WAGS.Graph.Constructors (OnOff(..))
 import WAGS.Graph.Parameter (AudioParameter(..))
 import WAGS.Rendered (Instruction(..), Oversample(..))
@@ -21,7 +22,6 @@ foreign import data BrowserPeriodicWave :: Type
 foreign import data BrowserAudioBuffer :: Type
 
 foreign import data BrowserFloatArray :: Type
-
 
 foreign import data AudioContext :: Type
 
@@ -129,6 +129,24 @@ type FFIAudio'
     , floatArrays :: Object BrowserFloatArray
     , periodicWaves :: Object BrowserPeriodicWave
     }
+
+defaultFFIAudio :: AudioContext -> Foreign -> FFIAudio'
+defaultFFIAudio audioCtx unitCache =
+  { context: audioCtx
+  , writeHead: 0.0
+  , units: unitCache
+  , microphones: O.empty
+  , recorders: O.empty
+  , buffers: O.empty
+  , floatArrays: O.empty
+  , periodicWaves: O.empty
+  }
+
+foreign import context :: Effect AudioContext
+
+foreign import close :: AudioContext -> Effect Unit
+
+foreign import makeUnitCache :: Effect Foreign
 
 foreign import renderAudio :: FFIAudio -> Array (FFIAudio -> Effect Unit) -> Effect Unit
 

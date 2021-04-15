@@ -1,3 +1,14 @@
+exports.context = function () {
+  return new (window.AudioContext || window.webkitAudioContext)();
+};
+exports.makeUnitCache = function () {
+  return {}
+};
+exports.close = function (audioCtx) {
+  return function () {
+    audioCtx.close();
+  };
+};
 var genericStarter = function (unit, name, param) {
   unit[name].value = param.param;
 };
