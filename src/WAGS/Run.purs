@@ -1,13 +1,15 @@
 module WAGS.Run where
 
 import Prelude
+
 import Control.Comonad.Cofree (Cofree, head, tail)
 import Data.DateTime.Instant (Instant)
+import Data.Foldable (for_)
 import Data.Int (floor, toNumber)
 import Data.JSDate (getTime, now)
 import Data.List (List(..))
 import Data.Map as M
-import Data.Maybe (Maybe(..), maybe)
+import Data.Maybe (Maybe(..))
 import Data.Set (Set)
 import Effect (Effect)
 import Effect.Ref as Ref
@@ -54,9 +56,7 @@ bufferToList timeToCollect incomingEvent =
               Ref.write Nothing currentTimeoutId
               k cil
           Ref.write (Just id) currentTimeoutId
-      pure do
-        maybeId <- Ref.read currentTimeoutId
-        maybe (pure unit) clearTimeout maybeId
+      pure $ Ref.read currentTimeoutId >>= flip for_ clearTimeout 
   where
   timed = withTime incomingEvent
 
