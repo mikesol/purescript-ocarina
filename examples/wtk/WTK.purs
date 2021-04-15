@@ -337,7 +337,7 @@ myRun ffiAudio =
       $ do
           unsubscribe <-
             subscribe
-              (run { easingAlgorithm } (FFIAudio ffiAudio) trigger (pure unit) piece)
+              (run trigger (pure unit) { easingAlgorithm } (FFIAudio ffiAudio) piece)
               (const $ pure unit)
           -- swallow unsubscribe
           pure unit

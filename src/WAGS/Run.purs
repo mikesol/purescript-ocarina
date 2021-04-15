@@ -130,10 +130,10 @@ runInternal audioClockStart worldAndTrigger world' currentTimeoutCanceler curren
   Ref.write canceler currentTimeoutCanceler
 
 type RunSig world trigger
-  = EngineInfo ->
-    FFIAudio ->
-    Event trigger ->
+  = Event trigger ->
     Behavior world ->
+    EngineInfo ->
+    FFIAudio ->
     Scene
       (SceneI trigger world)
       FFIAudio
@@ -142,7 +142,7 @@ type RunSig world trigger
     Event Run
 
 run :: forall world trigger. RunSig world trigger
-run engineInfo audio@(FFIAudio audio') trigger world' scene =
+run trigger world' engineInfo audio@(FFIAudio audio') scene =
   makeEvent \k -> do
     audioClockStart <- getAudioClockTime audio'.context
     clockClockStart <- map ((_ / 1000.0) <<< getTime) now

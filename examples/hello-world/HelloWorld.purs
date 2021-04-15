@@ -62,7 +62,7 @@ easingAlgorithm =
 myRun :: FFIAudio' -> Effect (Effect Unit)
 myRun ffiAudio =
   subscribe
-    (run { easingAlgorithm } (FFIAudio ffiAudio) (pure unit) (pure unit) piece)
+    (run (pure unit) (pure unit) { easingAlgorithm } (FFIAudio ffiAudio) piece)
     (const $ pure unit)
 
 main :: Effect Unit

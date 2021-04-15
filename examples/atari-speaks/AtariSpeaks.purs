@@ -75,7 +75,7 @@ atari ctx = decodeAudioDataFromUri ctx "https://freesound.org/data/previews/100/
 myRun :: FFIAudio' -> Effect (Effect Unit)
 myRun ffiAudio =
   subscribe
-    (run { easingAlgorithm } (FFIAudio ffiAudio) (pure unit) (pure unit) piece)
+    (run (pure unit) (pure unit) { easingAlgorithm } (FFIAudio ffiAudio) piece)
     (const $ pure unit)
 
 main :: Effect Unit
