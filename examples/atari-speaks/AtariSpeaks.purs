@@ -1,7 +1,6 @@
 module WAGS.Example.AtariSpeaks where
 
 import Prelude
-
 import Control.Comonad.Cofree (Cofree, mkCofree)
 import Control.Promise (toAffE)
 import Data.Either (Either(..))
@@ -141,7 +140,7 @@ handleAction = case _ of
             (const $ pure unit)
     H.modify_ _ { unsubscribe = unsubscribe, audioCtx = Just audioCtx }
   StopAudio -> do
-    {unsubscribe, audioCtx} <- H.get
+    { unsubscribe, audioCtx } <- H.get
     H.liftEffect unsubscribe
     for_ audioCtx (H.liftEffect <<< close)
     H.modify_ _ { unsubscribe = pure unit, audioCtx = Nothing }
