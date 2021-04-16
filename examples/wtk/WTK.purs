@@ -57,7 +57,7 @@ render :: forall m. State -> H.ComponentHTML Action () m
 render state = do
   HH.div_
     [ HH.h1_
-        [ HH.text "Atari speaks" ]
+        [ HH.text "The Well-Typed Klavier" ]
     , HH.button
         [ HE.onClick \_ -> StartAudio ]
         [ HH.text "Start audio" ]
