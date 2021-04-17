@@ -2,7 +2,7 @@ exports.context = function () {
   return new (window.AudioContext || window.webkitAudioContext)();
 };
 exports.makeUnitCache = function () {
-  return {}
+  return {};
 };
 exports.close = function (audioCtx) {
   return function () {
@@ -327,10 +327,11 @@ exports.makeLowshelf_ = function (ptr) {
 exports.makeMicrophone_ = function (ptr) {
   return function (state) {
     return function () {
+      if (state.microphone === null) {
+        throw "Trying to use a microphone when no microphone is available.";
+      }
       state.units[ptr] = {
-        main: state.context.createMediaStreamSource(
-          state.units.microphones[Object.keys(state.units.microphones)[0]]
-        ),
+        main: state.context.createMediaStreamSource(state.microphone),
       };
     };
   };
@@ -761,10 +762,6 @@ exports.setFrequency_ = function (ptr) {
       };
     };
   };
-};
-
-exports.makeAudioContext = function () {
-  return new (window.AudioContext || window.webkitAudioContext)();
 };
 
 exports.decodeAudioDataFromBase64EncodedString = function (ctx) {
