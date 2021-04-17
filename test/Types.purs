@@ -2,7 +2,7 @@ module Test.WAGS.Types where
 
 import Data.Typelevel.Bool (False, True)
 import Type.Proxy (Proxy(..))
-import WAGS (class AllEdgesPointToNodes, class AudioUnitEq, class BinEq, class BinSub, class BinSucc, class HasBottomLevelNodes, class LookupNL, class NoNodesAreDuplicated, class NoParallelEdges, class UniqueTerminus, type (+:), type (/->), type (/:), Bc, Bn, D0, D1, D2, D3, GraphC, I, ManyEdges, NoEdge, NodeC, NodeListCons, NodeListNil, O, PtrListCons, PtrListNil, SingleEdge, TGain, THighpass, TSinOsc)
+import WAGS (class AllEdgesPointToNodes, class AudioUnitEq, class BinEq, class BinSub, class BinSucc, class HasSourceNodes, class LookupNL, class NoNodesAreDuplicated, class NoParallelEdges, class UniqueTerminus, type (+:), type (/->), type (/:), Bc, Bn, D0, D1, D2, D3, GraphC, I, ManyEdges, NoEdge, NodeC, NodeListCons, NodeListNil, O, PtrListCons, PtrListNil, SingleEdge, TGain, THighpass, TSinOsc)
 import WAGS.Util (class Gate)
 
 testBinSucc0 :: Proxy (Bc I Bn)
@@ -175,12 +175,12 @@ testNoParallelEdges2 =
     NoParallelEdges node =>
     Proxy node
 
--- HasBottomLevelNodes
-testHasBottomLevelNodes :: Proxy (GraphC (NodeC (TSinOsc D1) NoEdge) (NodeListCons (NodeC (THighpass D2) (SingleEdge D1)) NodeListNil))
-testHasBottomLevelNodes =
+-- HasSourceNodes
+testHasSourceNodes :: Proxy (GraphC (NodeC (TSinOsc D1) NoEdge) (NodeListCons (NodeC (THighpass D2) (SingleEdge D1)) NodeListNil))
+testHasSourceNodes =
   Proxy ::
     forall node.
-    HasBottomLevelNodes node => Proxy node
+    HasSourceNodes node => Proxy node
 
 -- UniqueTerminus
 testUniqueTerminus :: Proxy (NodeC (THighpass D2) (SingleEdge D1))

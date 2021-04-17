@@ -16,7 +16,7 @@ import WAGS.Universe.Graph (class GraphToNodeList, InitialGraph)
 import WAGS.Universe.Node (Node, NodeC, NodeList, NodeListCons, NodeListNil)
 import WAGS.Universe.Skolems (class GetSkolemFromRecursiveArgument, class ToSkolemizedFunction, SkolemListCons, SkolemPairC)
 import WAGS.Universe.Universe (Universe, UniverseC)
-import WAGS.Validation (class EdgeProfileChooseGreater, class PtrListAppend, class TerminalIdentityEdge)
+import WAGS.Validation (class AltEdgeProfile, class PtrListAppend, class TerminalIdentityEdge)
 
 cursor ::
   forall edge audio engine a q r s t env proof m p.
@@ -73,7 +73,7 @@ instance cursorNil :: Cursor' tag p NodeListNil NoEdge
 instance cursorCons ::
   ( CursorRes tag p head headPlist
   , Cursor' tag p tail tailPlist
-  , EdgeProfileChooseGreater headPlist tailPlist plist
+  , AltEdgeProfile headPlist tailPlist plist
   ) =>
   Cursor' tag p (NodeListCons head tail) plist
 

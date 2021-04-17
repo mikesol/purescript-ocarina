@@ -1,6 +1,7 @@
 module WAGS.Change where
 
 import Prelude
+
 import Control.Monad.State (gets, modify_)
 import Data.Identity (Identity(..))
 import Data.Map as M
@@ -26,7 +27,7 @@ import WAGS.Universe.Graph (class GraphToNodeList, Graph, InitialGraph)
 import WAGS.Universe.Node (Node, NodeC, NodeList, NodeListCons, NodeListNil)
 import WAGS.Universe.Skolems (class GetSkolemFromRecursiveArgument, class ToSkolemizedFunction, SkolemListCons, SkolemPairC, toSkolemizedFunction)
 import WAGS.Universe.Universe (UniverseC)
-import WAGS.Validation (class AssertSingleton, class EdgeProfileChooseGreater, class NodeListAppend, class TerminalIdentityEdge)
+import WAGS.Validation (class AltEdgeProfile, class NodeListAppend, class TerminalIdentityEdge)
 
 class
   AudioInterpret audio engine <= ChangeInstructions (audio :: Type) (engine :: Type) (g :: Type) where
@@ -555,7 +556,7 @@ instance modifyCons ::
   ( ModifyRes tag p head headResAsList headPlist
   , Modify' tag p tail tailResAsList tailPlist
   , NodeListAppend headResAsList tailResAsList o
-  , EdgeProfileChooseGreater headPlist tailPlist plist
+  , AltEdgeProfile headPlist tailPlist plist
   ) =>
   Modify' tag p (NodeListCons head tail) o plist
 
@@ -563,8 +564,7 @@ class Modify (tag :: Type) (p :: Ptr) (i :: Graph) (nextP :: EdgeProfile) | tag 
 
 instance modify ::
   ( GraphToNodeList ig il
-  , Modify' tag p il mod nextP
-  , AssertSingleton mod x
+  , Modify' tag p il (NodeListCons x NodeListNil) nextP
   ) =>
   Modify tag p ig nextP
 

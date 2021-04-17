@@ -1,4 +1,12 @@
-module WAGS.Run where
+-- | Run a `Scene` to produce sound using the Web Audio API.
+module WAGS.Run
+  ( EasingAlgorithm
+  , EngineInfo
+  , Run
+  , SceneI
+  , bufferToList
+  , run
+  ) where
 
 import Prelude
 import Control.Comonad.Cofree (Cofree, head, tail)
@@ -22,15 +30,87 @@ import WAGS.Control.Types (Frame0, Scene, oneFrame)
 import WAGS.Interpret (FFIAudio(..), FFIAudio', getAudioClockTime, renderAudio)
 import WAGS.Rendered (AnAudioUnit)
 
-type EasingAlgorithm
-  = Cofree ((->) Int) Int
+-- | Run a scene.
+-- |
+-- | - `Event trigger` is the event to which the scene reacts. `trigger` will contain things like an initial event, mouse clicks, MIDI onsets, OSC commands and any other event to which the scene should respond.  Because of this, the polymorphic type `trigger` is often defined as an ADT with different potential incoming actions, similar to how [actions are defined in Halogen](https://github.com/purescript-halogen/purescript-halogen/blob/master/docs/guide/02-Introducing-Components.md#actions). Note that no sound will be produced unless there is _at least_ one event. For this reason, there is usually some form of initial event, ie `data Trigger = InitialEvent | MouseClick | etc..`, that is sent to start audio rendering. All of the examples in this repo contain an initial event, which is often `pure unit` in the case where there in _only_ the initial event.
+-- | - `Behavior world` is the outside environment. `world` will usually contain things like the current mouse position, the ambient temperature, the axial tilt of the Earth, or other things that can be modeled as a continuous function of time. One important thing to note is that `world` _lags_ `trigger` by 0 or 1 events in the [browser event queue](https://developer.mozilla.org/en-US/docs/Web/JavaScript/EventLoop). For most real-world applications, this does not matter, but it does lead to subtle logic bugs if `trigger` and `world` are corrolated. For this reason, it is good to decouple `trigger` and `world`.
+-- | - `EngineInfo` is the engine information needed for rendering.
+-- | - `FFIAudio` is the audio state needed for rendering
+-- | - `Scene` is the scene to render. See `SceneI` to understand how `trigger` and `world` are blended into the inptu environment going to `Scene`.
+run ::
+  forall trigger world.
+  Event trigger ->
+  Behavior world ->
+  EngineInfo ->
+  FFIAudio ->
+  Scene
+    (SceneI trigger world)
+    FFIAudio
+    (Effect Unit)
+    Frame0 ->
+  Event Run
+run trigger world' engineInfo audio@(FFIAudio audio') scene =
+  makeEvent \k -> do
+    audioClockStart <- getAudioClockTime audio'.context
+    clockClockStart <- map ((_ / 1000.0) <<< getTime) now
+    currentTimeoutCanceler <- Ref.new (pure unit :: Effect Unit)
+    currentScene <- Ref.new scene
+    currentEasingAlg <- Ref.new engineInfo.easingAlgorithm
+    let
+      eventAndEnv = sampleBy (\{ world, sysTime } b -> { trigger: b, world, sysTime, active: true }) newWorld trigger
+    unsubscribe <-
+      subscribe eventAndEnv \ee -> do
+        cancelTimeout <- Ref.read currentTimeoutCanceler
+        cancelTimeout
+        runInternal
+          audioClockStart
+          ee
+          newWorld
+          currentTimeoutCanceler
+          currentEasingAlg
+          currentScene
+          audio'
+          k
+    pure do
+      cancelTimeout <- Ref.read currentTimeoutCanceler
+      cancelTimeout
+      unsubscribe
+  where
+  newWorld = (\world sysTime -> { world, sysTime }) <$> world' <*> instant
 
+-- | The information provided to `run` that tells the engine how to make certain rendering tradeoffs.
 type EngineInfo
   = { easingAlgorithm :: EasingAlgorithm }
+
+-- | An algorithm that tells the engine how much lookahead the audio should have in milliseconds. The `(->) Int` is a penalty function, where a positive input is the number of milliseconds left over after rendering (meaning we gave too much headroom) and a negative input is the number of milliseconds by which we missed the deadline (meaning there was not enough headroom). This allows the algorithm to make adjustments if necessary.
+-- |
+-- | As an example:
+-- |
+-- | ```purescript
+-- | easingAlgorithm :: EasingAlgorithm
+-- | easingAlgorithm =
+-- |   let
+-- |     fOf initialTime = mkCofree initialTime \adj -> fOf $ max 20 (initialTime - adj)
+-- |   in
+-- |     fOf 20
+-- | ```
+-- |
+-- | This easing algorithm always provides at least 20ms of headroom to the algorithm, but adjusts upwards in case deadlines are being missed.
+type EasingAlgorithm
+  = Cofree ((->) Int) Int
 
 type Run
   = { nodes :: M.Map Int AnAudioUnit
     , edges :: M.Map Int (Set Int)
+    }
+
+type SceneI trigger world
+  = { time :: Number
+    , world :: world
+    , trigger :: trigger
+    , sysTime :: Instant
+    , active :: Boolean
+    , headroom :: Int
     }
 
 bufferToList ::
@@ -55,17 +135,8 @@ bufferToList timeToCollect incomingEvent =
   where
   timed = withTime incomingEvent
 
-type SceneI trigger world
-  = { time :: Number
-    , world :: world
-    , trigger :: trigger
-    , sysTime :: Instant
-    , active :: Boolean
-    , headroom :: Int
-    }
-
 runInternal ::
-  forall world trigger.
+  forall trigger world.
   Number ->
   { world :: world
   , trigger :: trigger
@@ -123,45 +194,3 @@ runInternal audioClockStart worldAndTrigger world' currentTimeoutCanceler curren
     subscribe (sample_ world' (delay (max 1 remainingTimeInMs) (pure unit))) \{ world, sysTime } ->
       runInternal audioClockStart { world, sysTime, trigger: worldAndTrigger.trigger, active: false } world' currentTimeoutCanceler currentEasingAlg currentScene audio' reporter
   Ref.write canceler currentTimeoutCanceler
-
-type RunSig world trigger
-  = Event trigger ->
-    Behavior world ->
-    EngineInfo ->
-    FFIAudio ->
-    Scene
-      (SceneI trigger world)
-      FFIAudio
-      (Effect Unit)
-      Frame0 ->
-    Event Run
-
-run :: forall world trigger. RunSig world trigger
-run trigger world' engineInfo audio@(FFIAudio audio') scene =
-  makeEvent \k -> do
-    audioClockStart <- getAudioClockTime audio'.context
-    clockClockStart <- map ((_ / 1000.0) <<< getTime) now
-    currentTimeoutCanceler <- Ref.new (pure unit :: Effect Unit)
-    currentScene <- Ref.new scene
-    currentEasingAlg <- Ref.new engineInfo.easingAlgorithm
-    let
-      eventAndEnv = sampleBy (\{ world, sysTime } b -> { trigger: b, world, sysTime, active: true }) newWorld trigger
-    unsubscribe <-
-      subscribe eventAndEnv \ee -> do
-        cancelTimeout <- Ref.read currentTimeoutCanceler
-        cancelTimeout
-        runInternal
-          audioClockStart
-          ee
-          newWorld
-          currentTimeoutCanceler
-          currentEasingAlg
-          currentScene
-          audio'
-          k
-    pure do
-      cancelTimeout <- Ref.read currentTimeoutCanceler
-      cancelTimeout
-      unsubscribe
-  where
-  newWorld = (\world sysTime -> { world, sysTime }) <$> world' <*> instant
