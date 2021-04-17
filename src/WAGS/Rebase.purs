@@ -1,7 +1,15 @@
-module WAGS.Rebase where
+module WAGS.Rebase
+  ( class Rebase
+  , class Rebase'
+  , class RebaseCheck'
+  , class RebaseCont'
+  , rebase
+  , rebase'
+  , rebaseCheck'
+  , rebaseCont'
+  ) where
 
 import Prelude
-
 import Control.Monad.State (modify_)
 import Data.Map as M
 import Data.Maybe (fromMaybe)
@@ -25,6 +33,36 @@ data RebaseProof
 forceArray :: forall a. Array a -> Array a
 forceArray = identity
 
+-- | Rebase an Universe from `iA` to `iB`.
+-- |
+-- | Rebasing is used when you have an audio graph that goes through a series of mutations and winds
+-- | up in the same state as before but with different pointers to audio nodes.
+-- | For example, if you remove a node and add a node back in the same place with the same content,
+-- | the universe will be semantically equivalent to the previous one but the type will be different
+-- | because the pointers are different.  Rebasing takes the type from the output and "resets" it to
+-- | the input.
+-- |
+-- | As an example, imagine that you have a function that mutates an audio graph
+-- | through the following stages:
+-- |
+-- | - `TSpeaker D0 (TSinOsc D1 /\ TSinOsc D2 /\ Unit)`
+-- | - `TSpeaker D0 (TSinOsc D2 /\ Unit)`
+-- | - `TSpeaker D0 (TSinOsc D3 /\ TSinOsc D2 /\ Unit)`
+-- |
+-- | In this case, the output graph is topologically similar to the input graph, but a function that
+-- | accepts the input type of `TSpeaker D0 (TSinOsc D1 /\ TSinOsc D2 /\ Unit)` would not accept the
+-- | input type of `TSpeaker D0 (TSinOsc D3 /\ TSinOsc D2 /\ Unit)` because `D3` is not the same type as
+-- | `D1`. In this instance, `rebase` will reset the output type back to the input type. If the rebase
+-- | operation is attempted on graphs that are not topologically equivalent, a compile-time error will
+-- | occur.
+-- |
+-- | Rebasing is useful if you want to call a function recursively. In that case, the input type needs
+-- | to be the same each time the function is called, and rebase brings an audio graph back to the
+-- | original type when possible.
+-- |
+-- | Rebasing only makes sense for functions that need to accommodate different loops.
+-- | In the case of simpler loops, a similar effect can be achieved by making pointers polymorphic,
+-- | ie `forall ptr. TSpeaker D0 (TSinOsc ptr /\ TSinOsc D2 /\ Unit)`.
 class Rebase :: Universe -> Universe -> Constraint
 class Rebase iA iB where
   rebase :: forall env audio engine proof m. Monad m => AudioInterpret audio engine => Proxy iA -> Proxy iB -> FrameT env audio engine proof m iA iB Unit
@@ -70,15 +108,17 @@ instance rebaseRebase ::
 type AFT
   = (Array { from :: Int, to :: Int })
 
--- private, only used to collect rebase instructions
+-- | An internal helper class used to help in the rebasing calculation.
 class Rebase' :: forall k1. PtrList -> PtrList -> Type -> k1 -> Universe -> k1 -> Universe -> Constraint
 class Rebase' plA plB rbp pA (iA :: Universe) pB (iB :: Universe) where
   rebase' :: forall env audio engine proof m. Monad m => AudioInterpret audio engine => Proxy plA -> Proxy plB -> rbp -> Proxy pA -> Proxy iA -> Proxy pB -> Proxy iB -> FrameT env audio engine proof m iA iB AFT
 
+-- | An internal helper class used to help in the rebasing calculation.
 class RebaseCheck' :: forall k1. PtrList -> PtrList -> Type -> k1 -> Universe -> k1 -> Universe -> Constraint
 class RebaseCheck' plA plB rbp pA (iA :: Universe) pB (iB :: Universe) where
   rebaseCheck' :: forall env audio engine proof m. Monad m => AudioInterpret audio engine => Proxy plA -> Proxy plB -> rbp -> Proxy pA -> Proxy iA -> Proxy pB -> Proxy iB -> FrameT env audio engine proof m iA iB AFT
 
+-- | An internal helper class used to help in the rebasing calculation.
 class RebaseCont' :: forall k1. Type -> Type -> Ptr -> Ptr -> PtrList -> PtrList -> Type -> k1 -> Universe -> k1 -> Universe -> Constraint
 class RebaseCont' foundA foundB ptrA ptrB plA plB rbp pA (iA :: Universe) pB (iB :: Universe) where
   rebaseCont' :: forall env audio engine proof m. Monad m => AudioInterpret audio engine => Proxy foundA -> Proxy foundB -> Proxy ptrA -> Proxy ptrB -> Proxy plA -> Proxy plB -> rbp -> Proxy pA -> Proxy iA -> Proxy pB -> Proxy iB -> FrameT env audio engine proof m iA iB AFT
@@ -157,7 +197,7 @@ instance rebaseAllpass ::
       <$> rebaseAudioUnit (Proxy :: _ ptrA) (Proxy :: _ ptrB)
       <*> rest
     where
-    rest = unsafeUnframe $  rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ iA) (Proxy :: _ eB) (Proxy :: _ iB)
+    rest = unsafeUnframe $ rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ iA) (Proxy :: _ eB) (Proxy :: _ iB)
 
 instance rebaseBandpass ::
   (BinToInt ptrA, BinToInt ptrB, Rebase' rblA rblB RebaseProof eA iA eB iB) =>
@@ -168,7 +208,7 @@ instance rebaseBandpass ::
       <$> rebaseAudioUnit (Proxy :: _ ptrA) (Proxy :: _ ptrB)
       <*> rest
     where
-    rest = unsafeUnframe $  rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ iA) (Proxy :: _ eB) (Proxy :: _ iB)
+    rest = unsafeUnframe $ rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ iA) (Proxy :: _ eB) (Proxy :: _ iB)
 
 instance rebaseConstant ::
   (BinToInt ptrA, BinToInt ptrB) =>
@@ -184,7 +224,7 @@ instance rebaseConvolver ::
       <$> rebaseAudioUnit (Proxy :: _ ptrA) (Proxy :: _ ptrB)
       <*> rest
     where
-    rest = unsafeUnframe $  rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ iA) (Proxy :: _ eB) (Proxy :: _ iB)
+    rest = unsafeUnframe $ rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ iA) (Proxy :: _ eB) (Proxy :: _ iB)
 
 instance rebaseDelay ::
   (BinToInt ptrA, BinToInt ptrB, Rebase' rblA rblB RebaseProof eA iA eB iB) =>
@@ -195,7 +235,7 @@ instance rebaseDelay ::
       <$> rebaseAudioUnit (Proxy :: _ ptrA) (Proxy :: _ ptrB)
       <*> rest
     where
-    rest = unsafeUnframe $  rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ iA) (Proxy :: _ eB) (Proxy :: _ iB)
+    rest = unsafeUnframe $ rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ iA) (Proxy :: _ eB) (Proxy :: _ iB)
 
 instance rebaseDynamicsCompressor ::
   (BinToInt ptrA, BinToInt ptrB, Rebase' rblA rblB RebaseProof eA iA eB iB) =>
@@ -206,7 +246,7 @@ instance rebaseDynamicsCompressor ::
       <$> rebaseAudioUnit (Proxy :: _ ptrA) (Proxy :: _ ptrB)
       <*> rest
     where
-    rest = unsafeUnframe $  rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ iA) (Proxy :: _ eB) (Proxy :: _ iB)
+    rest = unsafeUnframe $ rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ iA) (Proxy :: _ eB) (Proxy :: _ iB)
 
 instance rebaseGain ::
   (BinToInt ptrA, BinToInt ptrB, Rebase' rblA rblB RebaseProof eA iA eB iB) =>
@@ -217,7 +257,7 @@ instance rebaseGain ::
       <$> rebaseAudioUnit (Proxy :: _ ptrA) (Proxy :: _ ptrB)
       <*> rest
     where
-    rest = unsafeUnframe $  rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ iA) (Proxy :: _ eB) (Proxy :: _ iB)
+    rest = unsafeUnframe $ rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ iA) (Proxy :: _ eB) (Proxy :: _ iB)
 
 instance rebaseHighpass ::
   (BinToInt ptrA, BinToInt ptrB, Rebase' rblA rblB RebaseProof eA iA eB iB) =>
@@ -228,7 +268,7 @@ instance rebaseHighpass ::
       <$> rebaseAudioUnit (Proxy :: _ ptrA) (Proxy :: _ ptrB)
       <*> rest
     where
-    rest = unsafeUnframe $  rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ iA) (Proxy :: _ eB) (Proxy :: _ iB)
+    rest = unsafeUnframe $ rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ iA) (Proxy :: _ eB) (Proxy :: _ iB)
 
 instance rebaseHighshelf ::
   (BinToInt ptrA, BinToInt ptrB, Rebase' rblA rblB RebaseProof eA iA eB iB) =>
@@ -239,7 +279,7 @@ instance rebaseHighshelf ::
       <$> rebaseAudioUnit (Proxy :: _ ptrA) (Proxy :: _ ptrB)
       <*> rest
     where
-    rest = unsafeUnframe $  rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ iA) (Proxy :: _ eB) (Proxy :: _ iB)
+    rest = unsafeUnframe $ rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ iA) (Proxy :: _ eB) (Proxy :: _ iB)
 
 instance rebaseLoopBuf ::
   (BinToInt ptrA, BinToInt ptrB) =>
@@ -255,7 +295,7 @@ instance rebaseLowpass ::
       <$> rebaseAudioUnit (Proxy :: _ ptrA) (Proxy :: _ ptrB)
       <*> rest
     where
-    rest = unsafeUnframe $  rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ iA) (Proxy :: _ eB) (Proxy :: _ iB)
+    rest = unsafeUnframe $ rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ iA) (Proxy :: _ eB) (Proxy :: _ iB)
 
 instance rebaseLowshelf ::
   (BinToInt ptrA, BinToInt ptrB, Rebase' rblA rblB RebaseProof eA iA eB iB) =>
@@ -266,7 +306,7 @@ instance rebaseLowshelf ::
       <$> rebaseAudioUnit (Proxy :: _ ptrA) (Proxy :: _ ptrB)
       <*> rest
     where
-    rest = unsafeUnframe $  rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ iA) (Proxy :: _ eB) (Proxy :: _ iB)
+    rest = unsafeUnframe $ rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ iA) (Proxy :: _ eB) (Proxy :: _ iB)
 
 instance rebaseMicrophone ::
   (BinToInt ptrA, BinToInt ptrB) =>
@@ -282,7 +322,7 @@ instance rebaseNotch ::
       <$> rebaseAudioUnit (Proxy :: _ ptrA) (Proxy :: _ ptrB)
       <*> rest
     where
-    rest = unsafeUnframe $  rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ iA) (Proxy :: _ eB) (Proxy :: _ iB)
+    rest = unsafeUnframe $ rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ iA) (Proxy :: _ eB) (Proxy :: _ iB)
 
 instance rebasePeaking ::
   (BinToInt ptrA, BinToInt ptrB, Rebase' rblA rblB RebaseProof eA iA eB iB) =>
@@ -293,7 +333,7 @@ instance rebasePeaking ::
       <$> rebaseAudioUnit (Proxy :: _ ptrA) (Proxy :: _ ptrB)
       <*> rest
     where
-    rest = unsafeUnframe $  rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ iA) (Proxy :: _ eB) (Proxy :: _ iB)
+    rest = unsafeUnframe $ rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ iA) (Proxy :: _ eB) (Proxy :: _ iB)
 
 instance rebasePeriodicOsc ::
   (BinToInt ptrA, BinToInt ptrB) =>
@@ -314,7 +354,7 @@ instance rebaseRecorder ::
       <$> rebaseAudioUnit (Proxy :: _ ptrA) (Proxy :: _ ptrB)
       <*> rest
     where
-    rest = unsafeUnframe $  rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ iA) (Proxy :: _ eB) (Proxy :: _ iB)
+    rest = unsafeUnframe $ rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ iA) (Proxy :: _ eB) (Proxy :: _ iB)
 
 instance rebaseSawtoothOsc ::
   (BinToInt ptrA, BinToInt ptrB) =>
@@ -335,7 +375,7 @@ instance rebaseSpeaker ::
       <$> rebaseAudioUnit (Proxy :: _ ptrA) (Proxy :: _ ptrB)
       <*> rest
     where
-    rest = unsafeUnframe $  rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ iA) (Proxy :: _ eB) (Proxy :: _ iB)
+    rest = unsafeUnframe $ rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ iA) (Proxy :: _ eB) (Proxy :: _ iB)
 
 instance rebaseSquareOsc ::
   (BinToInt ptrA, BinToInt ptrB) =>
@@ -351,7 +391,7 @@ instance rebaseStereoPanner ::
       <$> rebaseAudioUnit (Proxy :: _ ptrA) (Proxy :: _ ptrB)
       <*> rest
     where
-    rest = unsafeUnframe $  rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ iA) (Proxy :: _ eB) (Proxy :: _ iB)
+    rest = unsafeUnframe $ rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ iA) (Proxy :: _ eB) (Proxy :: _ iB)
 
 instance rebaseTriangleOsc ::
   (BinToInt ptrA, BinToInt ptrB) =>
@@ -367,6 +407,6 @@ instance rebaseWaveShaper ::
       <$> rebaseAudioUnit (Proxy :: _ ptrA) (Proxy :: _ ptrB)
       <*> rest
     where
-    rest = unsafeUnframe $  rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ iA) (Proxy :: _ eB) (Proxy :: _ iB)
+    rest = unsafeUnframe $ rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ iA) (Proxy :: _ eB) (Proxy :: _ iB)
 
 --------------------------------------

@@ -99,20 +99,58 @@ type EngineInfo
 type EasingAlgorithm
   = Cofree ((->) Int) Int
 
+-- | The output of `run` to be consumed downstream (or not). It contains:
+-- | - `nodes`: the nodes in the audio graph including information about things like their frequency, Q value, on/off state etc.
+-- | - `edges`: incoming edges into nodes.
+-- |
+-- | This information can be used for visualizing the audio graph or for other instruments outside of a browser that are using the browser as a control layer.
 type Run
   = { nodes :: M.Map Int AnAudioUnit
     , edges :: M.Map Int (Set Int)
     }
 
+-- | The input type to a scene that is handled by `run`. Given `Event trigger` and `Behavior world`, the scene will receive:
+-- |
+-- | `trigger` - the trigger.
+-- | `world` - the world.
+-- | `time` - the time of the audio context.
+-- | `sysTime` - the time provided by `new Date().getTime()`
+-- | `active` - whether this event was caused by a trigger or is a measurement of the world. This is useful to not repeat onsets from the trigger.
+-- | `headroom` - the amount of lookahead time. If you are programming a precise rhythmic event and need the onset to occur at a specific moment, you can use `headroom` to determine if the apex should happen now or later.
 type SceneI trigger world
-  = { time :: Number
+  = { trigger :: trigger
     , world :: world
-    , trigger :: trigger
+    , time :: Number
     , sysTime :: Instant
     , active :: Boolean
     , headroom :: Int
     }
 
+-- | Given a buffering window and an event, return a list of events that occur within that window.
+-- | - `timeToCollect` - the buffering window
+-- | - `incomingEvent` - the event to buffer
+-- |
+-- | For example, if `event` outputs the following sequence:
+-- |
+-- | - `unit` @ 0 ms
+-- | - `unit` @ 1 ms
+-- | - `unit` @ 7 ms
+-- | - `unit` @ 9 ms
+-- | - `unit` @ 15 ms
+-- |
+-- | Then:
+-- |
+-- | ```purescript
+-- | bufferToList 4 event
+-- | ```
+-- |
+-- | would group together events within the same 4ms window before emitting them, resulting in
+-- |
+-- | ```purescript
+-- | { time :: 0ms, value :: unit } : { time :: 1ms, value :: unit } : Nil -- emitted at 4ms
+-- | { time :: 7ms, value :: unit } : { time :: 9ms, value :: unit } : Nil -- emitted at 11ms
+-- | { time :: 15ms, value :: unit } : Nil -- emitted at 19ms
+-- | ```
 bufferToList ::
   forall a.
   Int ->

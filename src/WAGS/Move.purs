@@ -13,12 +13,14 @@ import WAGS.Universe.Node (Node, NodeC, NodeList, NodeListCons, NodeListNil)
 import WAGS.Universe.Universe (Universe, UniverseC)
 import WAGS.Util (class Gate)
 
+-- | Get the length of pointer list `i` as natural number `n`/
 class PtrListLen (i :: PtrList) (n :: Nat) | i -> n
 
 instance ptrListLenZ :: PtrListLen PtrListNil Z
 
 instance ptrListLenSucc :: PtrListLen b x => PtrListLen (PtrListCons a b) (Succ x)
 
+-- | Is `a` less than `b`? True or False (`c`)
 class LtTf (a :: Nat) (b :: Nat) (c :: Type) | a b -> c
 
 instance ltTfZ :: LtTf Z Z False
@@ -27,6 +29,7 @@ instance ltTfZ' :: LtTf Z (Succ x) True
 
 instance ltTfS :: LtTf x y tf => LtTf (Succ x) (Succ y) tf
 
+-- | Assertion that `a` is less than `b`
 class LtEq (a :: Nat) (b :: Nat)
 
 instance ltEqZ :: LtEq Z Z
@@ -36,17 +39,6 @@ instance ltEqZ' :: LtEq Z (Succ x)
 instance ltEqS :: LtEq x y => LtEq (Succ x) (Succ y)
 
 class MovePointer''' (from :: Nat) (to :: Nat) (i :: PtrList) (o :: PtrList) | from to i -> o
-
-class MaybeMinusOne (tf :: Type) (to :: Nat) (newTo :: Nat) | tf to -> newTo
-
-instance maybeMinusOneT :: MaybeMinusOne True (Succ x) x
-
-instance maybeMinusOneF :: MaybeMinusOne False x x
-
--- if from < to then (to - 1) else to
-class NewIdx (from :: Nat) (to :: Nat) (newTo :: Nat) | from to -> newTo
-
-instance newIdx :: (LtTf from to tf, MaybeMinusOne tf to newTo) => NewIdx from to newTo
 
 class InsertIn (fptr :: Ptr) (newTo :: Nat) (i' :: PtrList) (o :: PtrList) | fptr newTo i' -> o
 
