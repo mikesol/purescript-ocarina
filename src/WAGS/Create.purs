@@ -1,7 +1,19 @@
-module WAGS.Create where
+module WAGS.Create
+  ( class AsEdgeProfile
+  , class Create
+  , class CreationInstructions
+  , class EdgeListable
+  , class InitialVal
+  , ProxyCC
+  , PtrArr(..)
+  , create
+  , creationInstructions
+  , getPointers
+  , getPointers'
+  , initialVal
+  ) where
 
 import Prelude
-
 import Control.Monad.State (gets, modify_)
 import Data.Identity (Identity(..))
 import Data.Map as M
@@ -26,28 +38,30 @@ import WAGS.Universe.Node (NodeC)
 import WAGS.Universe.Skolems (class GetSkolemFromRecursiveArgument, class GetSkolemizedFunctionFromAU, class LookupSkolem, class MakeInternalSkolemStack, class SkolemNotYetPresent, class SkolemNotYetPresentOrDiscardable, class ToSkolemizedFunction, DiscardableSkolem, SkolemListCons, SkolemPairC, getSkolemizedFunctionFromAU)
 import WAGS.Universe.Universe (Universe, UniverseC)
 
-newtype PtrArr :: forall k. k -> Type
-newtype PtrArr a
-  = PtrArr (Array Int)
+-- | Create audio units using template `a` for input universe `i`, resulting in output universe `o` as well as a reference to the top-level created audio unit(s). The example below creates a speaker, a gain unit and two sine-wave oscillators.  The gain is connected to the speaker and the sine wave oscillators are connected to the gain.
+-- |
+-- | ```purescript
+-- | create (Speaker (Gain 1.0 (SinOsc 440.0 /\ SinOsc 330.0 /\ Unit)))
+-- | ```
+-- |
+-- | Feedback loops are possible using proxies.  The example below loops a gain unit into itself with a 
+-- | delay of 0.2 seconds, creating an echo effect.
+-- |
+-- | ```purescript
+-- | data MyGain
+-- | myCreate =
+-- |   create (Speaker (Gain 1.0 \(myGain :: Proxy MyGain) ->
+-- |     (PlayBuf (Proxy :: _ "hello")
+-- |       /\ Highpass 440.0 1.0 (Delay 0.2 (Gain 0.5 myGain))
+-- |       /\ Unit)))
+-- | ```
+-- |
+-- | Created audio units do not have to have a `Speaker` at the top-level. It is possible to create
+-- | an audio unit and then connect it to another one using `connect`.
+class Create (a :: Type) (i :: Universe) (o :: Universe) (ref :: Type) | a i -> o ref where
+  create :: forall env audio engine proof m. Monad m => AudioInterpret audio engine => a -> FrameT env audio engine proof m i o ref
 
-class EdgeListable a (b :: PtrList) | a -> b where
-  getPointers' :: a -> PtrArr b
-
-instance edgeListableUnit :: EdgeListable Unit PtrListNil where
-  getPointers' _ = PtrArr []
-
-instance edgeListableTuple :: EdgeListable x y => EdgeListable (Tuple (AudioUnitRef ptr) x) (PtrListCons ptr y) where
-  getPointers' (Tuple (AudioUnitRef i) x) = let PtrArr o = getPointers' x in PtrArr ([ i ] <> o)
-
-class AsEdgeProfile a (b :: EdgeProfile) | a -> b where
-  getPointers :: a -> PtrArr b
-
-instance asEdgeProfileAR :: AsEdgeProfile (AudioUnitRef ptr) (SingleEdge ptr) where
-  getPointers (AudioUnitRef i) = PtrArr [ i ]
-
-instance asEdgeProfileTupl :: EdgeListable x y => AsEdgeProfile (Tuple (AudioUnitRef ptr) x) (ManyEdges ptr y) where
-  getPointers (Tuple (AudioUnitRef i) el) = let PtrArr o = getPointers' el in PtrArr ([ i ] <> o)
-
+-- | A value that can be coerced to an initial control-rate audio parameter.
 class InitialVal a where
   initialVal :: a -> AudioParameter
 
@@ -60,6 +74,32 @@ instance initialValAudioParameter :: InitialVal AudioParameter where
 instance initialValTuple :: InitialVal a => InitialVal (Tuple a b) where
   initialVal = initialVal <<< fst
 
+-- | An array of pointers. Used internaly in the create computation.
+newtype PtrArr :: forall k. k -> Type
+newtype PtrArr a
+  = PtrArr (Array Int)
+
+-- | Gets incoming pointers for a node. Used internally in the create computation.
+class EdgeListable a (b :: PtrList) | a -> b where
+  getPointers' :: a -> PtrArr b
+
+instance edgeListableUnit :: EdgeListable Unit PtrListNil where
+  getPointers' _ = PtrArr []
+
+instance edgeListableTuple :: EdgeListable x y => EdgeListable (Tuple (AudioUnitRef ptr) x) (PtrListCons ptr y) where
+  getPointers' (Tuple (AudioUnitRef i) x) = let PtrArr o = getPointers' x in PtrArr ([ i ] <> o)
+
+-- | Coerce something to an edge profile. Used internally in the create computation.
+class AsEdgeProfile a (b :: EdgeProfile) | a -> b where
+  getPointers :: a -> PtrArr b
+
+instance asEdgeProfileAR :: AsEdgeProfile (AudioUnitRef ptr) (SingleEdge ptr) where
+  getPointers (AudioUnitRef i) = PtrArr [ i ]
+
+instance asEdgeProfileTupl :: EdgeListable x y => AsEdgeProfile (Tuple (AudioUnitRef ptr) x) (ManyEdges ptr y) where
+  getPointers (Tuple (AudioUnitRef i) el) = let PtrArr o = getPointers' el in PtrArr ([ i ] <> o)
+
+-- | Internal class used to make term-level instructions for audio unit creation.
 class
   AudioInterpret audio engine <= CreationInstructions (audio :: Type) (engine :: Type) (g :: Type) where
   creationInstructions :: Int -> g -> Array (audio -> engine) /\ AnAudioUnit
@@ -74,7 +114,12 @@ instance creationInstructionsAllpass :: (AudioInterpret audio engine, InitialVal
       [ makeAllpass idx argA_iv' argB_iv' ]
         /\ AAllpass argA_iv' argB_iv'
 
-instance creationInstructionsBandpass :: (AudioInterpret audio engine, InitialVal argA, InitialVal argB) => CreationInstructions audio engine (CTOR.Bandpass argA argB argC) where
+instance creationInstructionsBandpass ::
+  ( AudioInterpret audio engine
+  , InitialVal argA
+  , InitialVal argB
+  ) =>
+  CreationInstructions audio engine (CTOR.Bandpass argA argB argC) where
   creationInstructions idx (CTOR.Bandpass argA argB _) =
     let
       argA_iv' = initialVal argA
@@ -269,14 +314,13 @@ instance creationInstructionsTriangleOsc :: (AudioInterpret audio engine, Initia
         /\ ATriangleOsc onOff argA_iv'
 
 instance creationInstructionsWaveShaper :: (IsSymbol argA, AudioInterpret audio engine, IsOversample argB) => CreationInstructions audio engine (CTOR.WaveShaper argA argB argC) where
-  creationInstructions idx (CTOR.WaveShaper argA argB _) = let
-    name = (reflectSymbol argA)
-    os = (reflectOversample argB)
-  in
-    [makeWaveShaper idx name os ] /\ AWaveShaper name os
+  creationInstructions idx (CTOR.WaveShaper argA argB _) =
+    let
+      name = (reflectSymbol argA)
 
-class Create (a :: Type) (i :: Universe) (o :: Universe) (x :: Type) | a i -> o x where
-  create :: forall env audio engine proof m. Monad m => AudioInterpret audio engine => a -> FrameT env audio engine proof m i o x
+      os = (reflectOversample argB)
+    in
+      [ makeWaveShaper idx name os ] /\ AWaveShaper name os
 
 creationStep ::
   forall env audio engine proof m g.
@@ -318,11 +362,12 @@ createAndConnect _ g =
     $ do
         idx <- cs
         let
-          mc = unsafeUnframe $
-            (create :: forall mo. Monad mo => c -> FrameT env audio engine proof mo i o innerTerm)
-              ( ((getSkolemizedFunctionFromAU :: g -> (Proxy skolem -> c)) g)
-                  Proxy
-              )
+          mc =
+            unsafeUnframe
+              $ (create :: forall mo. Monad mo => c -> FrameT env audio engine proof mo i o innerTerm)
+                  ( ((getSkolemizedFunctionFromAU :: g -> (Proxy skolem -> c)) g)
+                      Proxy
+                  )
         oc <- mc
         let
           PtrArr o = getPointers oc
@@ -352,7 +397,7 @@ instance createTuple ::
     where
     (x') = unsafeUnframe $ (create :: forall env audio engine proof m. Monad m => AudioInterpret audio engine => x -> FrameT env audio engine proof m u0 u1 x') x
 
-    (y') =  unsafeUnframe $(create :: forall env audio engine proof m. Monad m => AudioInterpret audio engine => y -> FrameT env audio engine proof m u1 u2 y') y
+    (y') = unsafeUnframe $ (create :: forall env audio engine proof m. Monad m => AudioInterpret audio engine => y -> FrameT env audio engine proof m u1 u2 y') y
 
 instance createIdentity :: Create x i o r => Create (Identity x) i o r where
   create (Identity x) = create x
@@ -381,31 +426,34 @@ instance createDup ::
     (AudioUnitRef midptr) where
   create (Dup a f) = unsafeFrame $ x *> y
     where
-    x =  unsafeUnframe $
-      ( create ::
-          forall env audio engine proof m.
-          Monad m =>
-          AudioInterpret audio engine =>
-          a ->
-          FrameT env audio engine proof m
-            (UniverseC ptr graphi changeBit skolems)
-            (UniverseC midptr graphm changeBit skolems)
-            ignore
-      )
-        a
+    x =
+      unsafeUnframe
+        $ ( create ::
+              forall env audio engine proof m.
+              Monad m =>
+              AudioInterpret audio engine =>
+              a ->
+              FrameT env audio engine proof m
+                (UniverseC ptr graphi changeBit skolems)
+                (UniverseC midptr graphm changeBit skolems)
+                ignore
+          )
+            a
 
-    y =  unsafeUnframe $
-      ( create ::
-          forall env audio engine proof m.
-          Monad m =>
-          AudioInterpret audio engine =>
-          b ->
-          FrameT env audio engine proof m
-            (UniverseC midptr graphm changeBit (SkolemListCons (SkolemPairC skolem ptr) skolems))
-            (UniverseC outptr grapho changeBit (SkolemListCons (SkolemPairC skolem ptr) skolems))
-            (AudioUnitRef midptr)
-      )
-        (f (Proxy :: _ skolem))
+    y =
+      unsafeUnframe
+        $ ( create ::
+              forall env audio engine proof m.
+              Monad m =>
+              AudioInterpret audio engine =>
+              b ->
+              FrameT env audio engine proof m
+                (UniverseC midptr graphm changeBit (SkolemListCons (SkolemPairC skolem ptr) skolems))
+                (UniverseC outptr grapho changeBit (SkolemListCons (SkolemPairC skolem ptr) skolems))
+                (AudioUnitRef midptr)
+          )
+            (f (Proxy :: _ skolem))
+
 instance createAllpass ::
   ( InitialVal argA
   , InitialVal argB
@@ -434,7 +482,7 @@ instance createAllpass ::
     )
     (AudioUnitRef ptr) where
   create =
-    unsafeFrame <<< (map) AudioUnitRef <<<  unsafeUnframe
+    unsafeFrame <<< (map) AudioUnitRef <<< unsafeUnframe
       <<< createAndConnect (Proxy :: ProxyCC skolem (Proxy ptr) term (Proxy (UniverseC next graphi changeBit skolemsInternal)) (Proxy (UniverseC outptr grapho changeBit skolemsInternal)))
 
 instance createBandpass ::
@@ -1054,7 +1102,6 @@ instance createSpeaker ::
       <<< (createAndConnect (Proxy :: ProxyCC DiscardableSkolem (Proxy ptr) term (Proxy (UniverseC next graphi changeBit skolems)) (Proxy (UniverseC outptr grapho changeBit skolems))))
 
 ----------
-
 instance createProxy ::
   ( LookupSkolem skolem skolems ptr
   , BinToInt ptr

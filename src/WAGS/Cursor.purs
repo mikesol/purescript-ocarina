@@ -18,6 +18,30 @@ import WAGS.Universe.Skolems (class GetSkolemFromRecursiveArgument, class ToSkol
 import WAGS.Universe.Universe (Universe, UniverseC)
 import WAGS.Validation (class AltEdgeProfile, class PtrListAppend, class TerminalIdentityEdge)
 
+-- | Focus on a particular audio unit in a graph. Use in conjunction with `change` to modify
+-- | an audio unit.
+-- |
+-- | ```purescript
+-- | myCursor <- cursor (Speaker (Gain 1.0 (SinOsc 440.0 /\ Focus (SinOsc 330.0) /\ Unit)))
+-- | change myCursor (SinOsc 332.0)
+-- | ```
+-- |
+-- | Graphs can be focused on different elements, allowing multiple cursors to be generated from
+-- | the same graph.
+-- | 
+-- | ```purescript
+-- | let
+-- |   graph a b = Speaker (Gain 1.0 (a (SinOsc 440.0) /\ b (SinOsc 330.0) /\ Unit))
+-- | cursor1 <- cursor (graph Focus Identity)
+-- | cursor2 <- cursor (graph Identity Focus)
+-- | change cursor1 (SinOsc 444.0)
+-- | change cursor2 (SinOsc 332.0)
+-- | ```
+-- |
+-- | For more complex graphs, decorators can be used to auto-generate cursors.
+-- | See `WAGS.Graph.Decorators`.
+-- |
+-- | To see examples of cursors, check out `test/Ops.purs` and `examples/wtk/WTK/TLP.purs`.
 cursor ::
   forall edge audio engine a q r s t env proof m p.
   Monad m =>
@@ -27,6 +51,9 @@ cursor ::
   a -> FrameT env audio engine proof m (UniverseC q r s t) (UniverseC q r s t) (AudioUnitRef p)
 cursor = cursor' (Proxy :: _ edge)
 
+-- | Like `cursor`, but starting from an arbitrary edge in a graph. This is useful when, for example,
+-- | the cursor needs to be obtained for an audio unit that is not yet connected to a speaker.  In
+-- | most cases, however, you'll want to use `cursor`, which uses `Speaker` as the top-most unit.
 class Cursor (p :: EdgeProfile) (a :: Type) (o :: Universe) (ptr :: Ptr) | p a o -> ptr where
   cursor' :: forall env audio engine proof m. Monad m => Proxy p -> a -> FrameT env audio engine proof m o o (AudioUnitRef ptr)
 
@@ -66,6 +93,7 @@ else instance cursorResTriangleOsc :: CursorRes (CTOR.TriangleOsc a) ptr (NodeC 
 else instance cursorResWaveShaper :: CursorRes (CTOR.WaveShaper a b c) ptr (NodeC (AU.TWaveShaper ptr) edge) edge
 else instance cursorResMiss :: CursorRes tag p n NoEdge
 
+-- | Internal helper class used for Cursor.
 class Cursor' (tag :: Type) (p :: Ptr) (i :: NodeList) (nextP :: EdgeProfile) | tag p i -> nextP
 
 instance cursorNil :: Cursor' tag p NodeListNil NoEdge
@@ -77,6 +105,7 @@ instance cursorCons ::
   ) =>
   Cursor' tag p (NodeListCons head tail) plist
 
+-- | Internal helper class used for Cursor.
 class CursorX (tag :: Type) (p :: Ptr) (i :: Universe) (nextP :: EdgeProfile) | tag p i -> nextP
 
 instance cursorX ::
@@ -85,6 +114,7 @@ instance cursorX ::
   ) =>
   CursorX tag p (UniverseC i ig cb sk) nextP
 
+-- | Internal helper class used for Cursor.
 class CursorI (p :: EdgeProfile) (a :: Type) (o :: Universe) (ptr :: PtrList) | p a o -> ptr
 
 instance cursorNoEdge :: CursorI NoEdge g inuniv PtrListNil

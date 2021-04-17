@@ -16,6 +16,30 @@ import WAGS.Universe.Universe (Universe, UniverseC)
 import WAGS.Util (class Gate)
 import WAGS.Validation (class PtrNotInPtrList)
 
+-- | Destroy node `ptr` in universe `i`, resulting in universe `o`. Note that, to destroy a node, it must have no outgoing or incoming edges. This is achieved via use of `disconnect`. Failure to disconnect nodes before destroying will result in a compile-time error during graph validation.
+class Destroy (ptr :: Ptr) (i :: Universe) (o :: Universe) | ptr i -> o where
+  destroy :: forall env audio engine proof m. Monad m => AudioInterpret audio engine => AudioUnitRef ptr -> FrameT env audio engine proof m i o Unit
+
+instance destroyer ::
+  ( BinToInt ptr
+  , GraphToNodeList graphi nodeListI
+  , PointerNotConnecteds ptr nodeListI
+  , RemovePtrFromNodeList ptr nodeListI nodeListO
+  , GraphToNodeList grapho nodeListO
+  ) =>
+  Destroy ptr (UniverseC x graphi changeBit skolems) (UniverseC x grapho changeBit skolems) where
+  destroy (AudioUnitRef ptrI) =
+    unsafeFrame
+      $ do
+          modify_
+            ( \i ->
+                i
+                  { internalNodes = M.delete ptrI (i.internalNodes)
+                  , internalEdges = M.delete ptrI (i.internalEdges)
+                  , instructions = i.instructions <> [ destroyUnit ptrI ]
+                  }
+            )
+-- | Internal helper class used for destroing audio nodes.
 class PointerNotConnected (ptr :: Ptr) (i :: Node)
 
 instance pointerNotConnected_NE_Allpass :: PointerNotConnected ptr (NodeC (AU.TAllpass x) NoEdge)
@@ -104,15 +128,14 @@ instance pointerNotConnected_NE_WaveShaper :: PointerNotConnected ptr (NodeC (AU
 
 instance pointerNotConnected_SE_WaveShaper :: BinEq ptr y False => PointerNotConnected ptr (NodeC (AU.TWaveShaper x) (SingleEdge y))
 
------------------------------------
------------------------------------
------------------------------------
+-- | Internal helper class used for destroing audio nodes.
 class PointerNotConnecteds (ptr :: Ptr) (i :: NodeList)
 
 instance pointerNotConnectedsNil :: PointerNotConnecteds a NodeListNil
 
 instance pointerNotConnectedsCons :: (PointerNotConnected a head, PointerNotConnecteds a tail) => PointerNotConnecteds a (NodeListCons head tail)
 
+-- | Internal helper class used for destroing audio nodes.
 class RemovePtrFromNodeList (ptr :: Ptr) (nodeListI :: NodeList) (nodeListO :: NodeList) | ptr nodeListI -> nodeListO
 
 instance removePtrFromNListNil :: RemovePtrFromNodeList ptr NodeListNil NodeListNil
@@ -125,26 +148,3 @@ instance removePtrFromNListCons ::
   , Gate tf newTail (NodeListCons head newTail) o
   ) =>
   RemovePtrFromNodeList ptr (NodeListCons head tail) o
-
-class Destroy (ptr :: Ptr) (i :: Universe) (o :: Universe) | ptr i -> o where
-  destroy :: forall env audio engine proof m. Monad m => AudioInterpret audio engine => AudioUnitRef ptr -> FrameT env audio engine proof m i o Unit
-
-instance destroyer ::
-  ( BinToInt ptr
-  , GraphToNodeList graphi nodeListI
-  , PointerNotConnecteds ptr nodeListI
-  , RemovePtrFromNodeList ptr nodeListI nodeListO
-  , GraphToNodeList grapho nodeListO
-  ) =>
-  Destroy ptr (UniverseC x graphi changeBit skolems) (UniverseC x grapho changeBit skolems) where
-  destroy (AudioUnitRef ptrI) =
-    unsafeFrame
-      $ do
-          modify_
-            ( \i ->
-                i
-                  { internalNodes = M.delete ptrI (i.internalNodes)
-                  , internalEdges = M.delete ptrI (i.internalEdges)
-                  , instructions = i.instructions <> [ destroyUnit ptrI ]
-                  }
-            )

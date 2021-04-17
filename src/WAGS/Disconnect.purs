@@ -1,7 +1,6 @@
 module WAGS.Disconnect where
 
 import Prelude
-
 import Control.Monad.State (modify_)
 import Data.Map as M
 import Data.Set as S
@@ -17,6 +16,30 @@ import WAGS.Universe.Node (Node, NodeC, NodeList, NodeListCons, NodeListNil)
 import WAGS.Universe.Universe (Universe, UniverseC)
 import WAGS.Util (class Gate)
 
+-- | Disconnect node `source` from node `dest` in universe `i`, resulting in output universe `o`.
+class Disconnect (source :: Ptr) (dest :: Ptr) (i :: Universe) (o :: Universe) | source dest i -> o where
+  disconnect :: forall env audio engine proof m. Monad m => AudioInterpret audio engine => AudioUnitRef source -> AudioUnitRef dest -> FrameT env audio engine proof m i o Unit
+
+instance disconnector ::
+  ( BinToInt from
+  , BinToInt to
+  , GraphToNodeList graphi nodeListI
+  , RemovePointerFromNodes from to nodeListI nodeListO True
+  , GraphToNodeList grapho nodeListO
+  ) =>
+  Disconnect from to (UniverseC ptr graphi changeBit skolems) (UniverseC ptr grapho changeBit skolems) where
+  disconnect (AudioUnitRef fromI) (AudioUnitRef toI) =
+    unsafeFrame
+      $ do
+          modify_
+            ( \i ->
+                i
+                  { internalEdges = M.insertWith S.difference toI (S.singleton fromI) (i.internalEdges)
+                  , instructions = i.instructions <> [ disconnectXFromY fromI toI ]
+                  }
+            )
+
+-- | Internal helper class used for disconnecting.
 class RemovePtrFromList (ptr :: Ptr) (i :: PtrList) (o :: PtrList) | ptr i -> o
 
 instance removePtrFromListNil :: RemovePtrFromList ptr PtrListNil PtrListNil
@@ -28,6 +51,7 @@ instance removePtrFromListCons ::
   ) =>
   RemovePtrFromList ptr (PtrListCons head tail) o
 
+-- | Internal helper class used for disconnecting.
 class RemovePointerFromNode (from :: Ptr) (to :: Ptr) (i :: Node) (o :: Node) (tf :: Type) | from to i -> o tf
 
 instance removePointerFromNodeAllpassHitSE :: RemovePointerFromNode from to (NodeC (AU.TAllpass to) (SingleEdge from)) (NodeC (AU.TAllpass to) NoEdge) True
@@ -50,6 +74,7 @@ else instance removePointerFromNodeStereoPannerHitSE :: RemovePointerFromNode fr
 else instance removePointerFromNodeWaveShaperHitSE :: RemovePointerFromNode from to (NodeC (AU.TWaveShaper to) (SingleEdge from)) (NodeC (AU.TWaveShaper to) NoEdge) True
 else instance removePointerFromNodeMiss :: RemovePointerFromNode from to i i False
 
+-- | Internal helper class used for disconnecting.
 class RemovePointerFromNodes (from :: Ptr) (to :: Ptr) (i :: NodeList) (o :: NodeList) (tf :: Type) | from to i -> o tf
 
 instance removePointerFromNodesNil :: RemovePointerFromNodes a b NodeListNil NodeListNil False
@@ -60,25 +85,3 @@ instance removePointerFromNodesCons ::
   , Or tf0 tf1 fin
   ) =>
   RemovePointerFromNodes a b (NodeListCons head tail) (NodeListCons headRes tailRes) fin
-
-class Disconnect (from :: Ptr) (to :: Ptr) (i :: Universe) (o :: Universe) | from to i -> o where
-  disconnect :: forall env audio engine proof m. Monad m => AudioInterpret audio engine => AudioUnitRef from -> AudioUnitRef to -> FrameT env audio engine proof m i o Unit
-
-instance disconnector ::
-  ( BinToInt from
-  , BinToInt to
-  , GraphToNodeList graphi nodeListI
-  , RemovePointerFromNodes from to nodeListI nodeListO True
-  , GraphToNodeList grapho nodeListO
-  ) =>
-  Disconnect from to (UniverseC ptr graphi changeBit skolems) (UniverseC ptr grapho changeBit skolems) where
-  disconnect (AudioUnitRef fromI) (AudioUnitRef toI) =
-    unsafeFrame
-      $ do
-          modify_
-            ( \i ->
-                i
-                  { internalEdges = M.insertWith S.difference toI (S.singleton fromI) (i.internalEdges)
-                  , instructions = i.instructions <> [ disconnectXFromY fromI toI ]
-                  }
-            )

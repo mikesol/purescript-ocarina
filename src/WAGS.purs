@@ -29,7 +29,7 @@ module WAGS
 
 import WAGS.Change (class Change, class ChangeP, class Changes, class ChangeInstructions, ChangeInstruction, class Modify, class Modify', class ModifyRes, class SetterVal, change, change', changeAt, changeAudioUnit, changeInstructions, setterVal)
 import WAGS.Connect (class AddPointerToNode, class AddPointerToNodes, class Connect, connect)
-import WAGS.Create (class AsEdgeProfile, class Create, class CreationInstructions, class EdgeListable, class InitialVal, ProxyCC, PtrArr(..), create, createAndConnect, creationInstructions, creationStep, getPointers, getPointers', initialVal)
+import WAGS.Create (class AsEdgeProfile, class Create, class CreationInstructions, class EdgeListable, class InitialVal, ProxyCC, PtrArr(..), create, creationInstructions, getPointers, getPointers', initialVal)
 import WAGS.Cursor (class Cursor, class Cursor', class CursorI, class CursorRes, class CursorX, cursor, cursor')
 import WAGS.Destroy (class Destroy, class PointerNotConnected, class PointerNotConnecteds, class RemovePtrFromNodeList, destroy)
 import WAGS.Disconnect (class Disconnect, class RemovePointerFromNode, class RemovePointerFromNodes, class RemovePtrFromList, disconnect)
