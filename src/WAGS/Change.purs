@@ -1,7 +1,23 @@
-module WAGS.Change where
+module WAGS.Change
+  ( class Change
+  , class ChangeP
+  , changeP
+  , changes
+  , class Changes
+  , class ChangeInstructions
+  , ChangeInstruction
+  , class Modify
+  , class Modify'
+  , class ModifyRes
+  , class SetterVal
+  , change
+  , change'
+  , changeAt
+  , changeInstructions
+  , setterVal
+  ) where
 
 import Prelude
-
 import Control.Monad.State (gets, modify_)
 import Data.Identity (Identity(..))
 import Data.Map as M
@@ -29,12 +45,69 @@ import WAGS.Universe.Skolems (class GetSkolemFromRecursiveArgument, class ToSkol
 import WAGS.Universe.Universe (UniverseC)
 import WAGS.Validation (class AltEdgeProfile, class NodeListAppend, class TerminalIdentityEdge)
 
+-- | Change all of the audio nodes in edge profile `p` using the template laid out by type `a` for `graph`.
+-- |
+-- | ```purescript
+-- | myCursor <- cursor (Speaker (Gain 1.0 (SinOsc 440.0 /\ Focus (SinOsc 330.0) /\ Unit)))
+-- | change' (asEdgeProfile myCursor) (SinOsc 332.0)
+-- | ```
+-- |
+-- | Note that `change'` increments the `changeBit` in the universe by 1, aka `Succ`.
+-- | This use of inductive types in an indexed bind operation guarantees that we never go
+-- | "back in time" after having changed an audio graph.
+class Change (p :: EdgeProfile) (a :: Type) (graph :: Graph) where
+  change' :: forall env audio engine proof m ptr changeBit skolems. Monad m => AudioInterpret audio engine => Proxy p -> a -> FrameT env audio engine proof m (UniverseC ptr graph changeBit skolems) (UniverseC ptr graph (Succ changeBit) skolems) Unit
+
+-- | Similar to `change'`, but starting from an `AudioReference ptr` (the result of `cursor`) instead of starting from an edge profile.
+changeAt ::
+  forall ptr a env audio engine proof m currentIdx graph changeBit skolems.
+  Monad m =>
+  AudioInterpret audio engine =>
+  Change (SingleEdge ptr) a graph =>
+  AudioUnitRef ptr -> a -> FrameT env audio engine proof m (UniverseC currentIdx graph changeBit skolems) (UniverseC currentIdx graph (Succ changeBit) skolems) Unit
+changeAt _ = change' (Proxy :: _ (SingleEdge ptr))
+
+-- | Similar to `change'`, but starting from the top-level node, which is usually a `Speaker`.
+change ::
+  forall edge m a currentIdx graph changeBit skolems env audio engine proof.
+  Monad m =>
+  AudioInterpret audio engine =>
+  TerminalIdentityEdge graph edge =>
+  Change edge a graph =>
+  a -> FrameT env audio engine proof m (UniverseC currentIdx graph changeBit skolems) (UniverseC currentIdx graph (Succ changeBit) skolems) Unit
+change = change' (Proxy :: _ edge)
+
+-- | Rolls multiple changes into a single increment of the `changeBit`. This is useful when writing loops. A loop may have many or no changes, and this allows all of them to be executed in a single transaction. As an example, see `examples/wtk/WTK/TLP.purs`. In the `playKeys` function, each finger may potentially change, and each change is rolled into the `a` value that is ultimately passed to `changes`.
+class Changes (a :: Type) (g :: Graph) where
+  changes :: forall env audio engine proof m ptr changeBit skolems. Monad m => AudioInterpret audio engine => a -> FrameT env audio engine proof m (UniverseC ptr g changeBit skolems) (UniverseC ptr g (Succ changeBit) skolems) Unit
+
+-- | A term that can be coerced to an setter for a control-rate audio parameter.
+class SetterVal a where
+  setterVal :: a -> AudioParameter -> AudioParameter
+
+instance setterValNumber :: SetterVal Number where
+  setterVal = const <<< AudioParameter <<< defaultParam { param = _ }
+
+instance setterValAudioParameter :: SetterVal AudioParameter where
+  setterVal = const
+
+instance setterValTuple :: SetterVal (Tuple a (AudioParameter -> AudioParameter)) where
+  setterVal = snd
+
+instance setterValTupleN :: SetterVal (Tuple a (AudioParameter -> Number)) where
+  setterVal = map param <<< snd
+
+instance setterValFunction :: SetterVal (AudioParameter -> AudioParameter) where
+  setterVal = identity
+
+instance setterValFunctionN :: SetterVal (AudioParameter -> Number) where
+  setterVal = map param
+
+-- | Internal class used to make term-level instructions for audio unit changes.
 class
   AudioInterpret audio engine <= ChangeInstructions (audio :: Type) (engine :: Type) (g :: Type) where
   changeInstructions :: Int -> g -> AnAudioUnit -> Maybe (Array (audio -> engine) /\ AnAudioUnit)
 
---------------
---------
 instance changeInstructionsAllpass :: (AudioInterpret audio engine, SetterVal argA, SetterVal argB) => ChangeInstructions audio engine (CTOR.Allpass argA argB argC) where
   changeInstructions idx (CTOR.Allpass argA argB _) = case _ of
     AAllpass v_argA@(AudioParameter v_argA') v_argB@(AudioParameter v_argB') ->
@@ -442,57 +515,12 @@ instance changeInstructionsTriangleOsc :: (AudioInterpret audio engine, SetterVa
 instance changeInstructionsWaveShaper :: AudioInterpret audio engine => ChangeInstructions audio engine (CTOR.WaveShaper argA argB argC) where
   changeInstructions _ _ _ = Nothing
 
--------
-------------------
-class SetterVal a where
-  setterVal :: a -> AudioParameter -> AudioParameter
-
-instance setterValNumber :: SetterVal Number where
-  setterVal = const <<< AudioParameter <<< defaultParam { param = _ }
-
-instance setterValAudioParameter :: SetterVal AudioParameter where
-  setterVal = const
-
-instance setterValTuple :: SetterVal (Tuple a (AudioParameter -> AudioParameter)) where
-  setterVal = snd
-
-instance setterValTupleN :: SetterVal (Tuple a (AudioParameter -> Number)) where
-  setterVal = map param <<< snd
-
-instance setterValFunction :: SetterVal (AudioParameter -> AudioParameter) where
-  setterVal = identity
-
-instance setterValFunctionN :: SetterVal (AudioParameter -> Number) where
-  setterVal = map param
-
-change ::
-  forall edge m a currentIdx graph changeBit skolems env audio engine proof.
-  Monad m =>
-  AudioInterpret audio engine =>
-  TerminalIdentityEdge graph edge =>
-  Change edge a graph =>
-  a -> FrameT env audio engine proof m (UniverseC currentIdx graph changeBit skolems) (UniverseC currentIdx graph (Succ changeBit) skolems) Unit
-change = change' (Proxy :: _ edge)
-
-changeAt ::
-  forall ptr a env audio engine proof m currentIdx graph changeBit skolems.
-  Monad m =>
-  AudioInterpret audio engine =>
-  Change (SingleEdge ptr) a graph =>
-  AudioUnitRef ptr -> a -> FrameT env audio engine proof m (UniverseC currentIdx graph changeBit skolems) (UniverseC currentIdx graph (Succ changeBit) skolems) Unit
-changeAt _ = change' (Proxy :: _ (SingleEdge ptr))
-
-type ChangeType (p :: EdgeProfile) (a :: Type) (grapho :: Graph)
-  = forall env audio engine proof m ptr changeBit skolems. Monad m => AudioInterpret audio engine => Proxy p -> a -> FrameT env audio engine proof m (UniverseC ptr grapho changeBit skolems) (UniverseC ptr grapho (Succ changeBit) skolems) Unit
+type ChangeType (p :: EdgeProfile) (a :: Type) (graph :: Graph)
+  = forall env audio engine proof m ptr changeBit skolems. Monad m => AudioInterpret audio engine => Proxy p -> a -> FrameT env audio engine proof m (UniverseC ptr graph changeBit skolems) (UniverseC ptr graph (Succ changeBit) skolems) Unit
 
 type ChangesType (a :: Type) (g :: Graph)
   = forall env audio engine proof m ptr changeBit skolems. Monad m => AudioInterpret audio engine => a -> FrameT env audio engine proof m (UniverseC ptr g changeBit skolems) (UniverseC ptr g (Succ changeBit) skolems) Unit
 
-class Changes (a :: Type) (g :: Graph) where
-  changes :: forall env audio engine proof m ptr changeBit skolems. Monad m => AudioInterpret audio engine => a -> FrameT env audio engine proof m (UniverseC ptr g changeBit skolems) (UniverseC ptr g (Succ changeBit) skolems) Unit
-
-{-existentialChanges :: forall p a g env audio engine proof m ptr changeBit skolems. Monad m => AudioInterpret audio engine => Changes (ChangeInstruction (Proxy p) a) g => (ChangeInstruction (Proxy p) a) -> (forall x. Changes x g => x) -> FrameT env audio engine proof m (UniverseC ptr g changeBit skolems) (UniverseC ptr g (Succ changeBit) skolems) Unit
-existentialChanges a b = changes (a /\ b)-}
 data ChangeInstruction a b
   = ChangeInstruction a b
 
@@ -509,16 +537,15 @@ else instance changesTp :: (Changes x graph, Changes y graph) => Changes (Tuple 
 else instance changesSingle :: (TerminalIdentityEdge graph edge, Change edge a graph) => Changes a graph where
   changes a = change a
 
+-- | Internal helper class used for changing audio nodes.
 class
-  Change (SingleEdge p) a grapho <= ChangeP (p :: Ptr) (a :: Type) (grapho :: Graph) where
-  changeP :: forall env audio engine proof m ptr changeBit skolems. Monad m => AudioInterpret audio engine => Proxy p -> a -> FrameT env audio engine proof m (UniverseC ptr grapho changeBit skolems) (UniverseC ptr grapho (Succ changeBit) skolems) Unit
+  Change (SingleEdge p) a graph <= ChangeP (p :: Ptr) (a :: Type) (graph :: Graph) where
+  changeP :: forall env audio engine proof m ptr changeBit skolems. Monad m => AudioInterpret audio engine => Proxy p -> a -> FrameT env audio engine proof m (UniverseC ptr graph changeBit skolems) (UniverseC ptr graph (Succ changeBit) skolems) Unit
 
-instance changePAll :: Change (SingleEdge p) a grapho => ChangeP p a grapho where
+instance changePAll :: Change (SingleEdge p) a graph => ChangeP p a graph where
   changeP _ = change' (Proxy :: _ (SingleEdge p))
 
-class Change (p :: EdgeProfile) (a :: Type) (grapho :: Graph) where
-  change' :: forall env audio engine proof m ptr changeBit skolems. Monad m => AudioInterpret audio engine => Proxy p -> a -> FrameT env audio engine proof m (UniverseC ptr grapho changeBit skolems) (UniverseC ptr grapho (Succ changeBit) skolems) Unit
-
+-- | Internal helper class used for changing audio nodes.
 class ModifyRes (tag :: Type) (p :: Ptr) (i :: Node) (mod :: NodeList) (plist :: EdgeProfile) | tag p i -> mod plist
 
 instance modifyResAllpass :: ModifyRes (CTOR.Allpass a b c) ptr (NodeC (AU.TAllpass ptr) edge) (NodeListCons (NodeC (AU.TAllpass ptr) edge) NodeListNil) edge
@@ -548,6 +575,7 @@ else instance modifyResTriangleOsc :: ModifyRes (CTOR.TriangleOsc a) ptr (NodeC 
 else instance modifyResWaveShaper :: ModifyRes (CTOR.WaveShaper a b c) ptr (NodeC (AU.TWaveShaper ptr) edge) (NodeListCons (NodeC (AU.TWaveShaper ptr) edge) NodeListNil) edge
 else instance modifyResMiss :: ModifyRes tag p n NodeListNil NoEdge
 
+-- | Internal helper class used for changing audio nodes.
 class Modify' (tag :: Type) (p :: Ptr) (i :: NodeList) (mod :: NodeList) (nextP :: EdgeProfile) | tag p i -> mod nextP
 
 instance modifyNil :: Modify' tag p NodeListNil NodeListNil NoEdge
@@ -560,6 +588,7 @@ instance modifyCons ::
   ) =>
   Modify' tag p (NodeListCons head tail) o plist
 
+-- | Internal helper class used for changing audio nodes.
 class Modify (tag :: Type) (p :: Ptr) (i :: Graph) (nextP :: EdgeProfile) | tag p i -> nextP
 
 instance modify ::
@@ -630,7 +659,7 @@ instance changeDup ::
   ( Create
       a
       (UniverseC D0 InitialGraph changeBit (SkolemListCons (SkolemPairC skolem D0) skolems))
-      (UniverseC outptr grapho changeBit (SkolemListCons (SkolemPairC skolem D0) skolems))
+      (UniverseC outptr graph changeBit (SkolemListCons (SkolemPairC skolem D0) skolems))
       ignore
   , BinToInt p
   , BinToInt outptr

@@ -1,3 +1,5 @@
+-- | This module is used internally to create and use skolem variables in an audio graph.
+-- | To learn more about skolemnization, check out the [Skolem normal form](https://en.wikipedia.org/wiki/Skolem_normal_form) wiki.
 module WAGS.Universe.Skolems where
 
 import Prelude
@@ -7,18 +9,25 @@ import WAGS.Graph.Constructors as CTOR
 import WAGS.Universe.Bin (class PtrListKeepSingleton, Ptr, PtrList, PtrListCons, PtrListNil)
 import WAGS.Util (class Gate, class TypeEqualTF)
 
+-- | A skolem variable that is unified with a pointer.
 data SkolemPair
 
+-- | The unique constructor for a `SkolemPair`, accepting a skolem variable and a pointer in the audio graph.
 foreign import data SkolemPairC :: Type -> Ptr -> SkolemPair
 
+-- | A list of known skolem variables in the audio graph.
 data SkolemList
 
+-- | Cons for a `SkolemList`
 foreign import data SkolemListCons :: SkolemPair -> SkolemList -> SkolemList
 
+-- | Nil for a `SkolemList`
 foreign import data SkolemListNil :: SkolemList
 
+-- | A skolem variable that is trivial and can be discarded, meaning it will never be used.
 data DiscardableSkolem
 
+-- | Tail-recursive algorithm to look up a skolem variable in the substitution map.
 class LookupSkolem' (accumulator :: PtrList) (skolem :: Type) (skolemList :: SkolemList) (ptr :: PtrList) | accumulator skolem skolemList -> ptr
 
 instance lookupSkolemNil :: LookupSkolem' accumulator ptr SkolemListNil accumulator
@@ -31,6 +40,7 @@ instance lookupSkolemCons ::
   ) =>
   LookupSkolem' accumulator skolem (SkolemListCons (SkolemPairC candidate ptr) tail) o
 
+-- | Class to look up a skolem variable in the substitution map.
 class LookupSkolem (skolem :: Type) (skolemList :: SkolemList) (ptr :: Ptr) | skolem skolemList -> ptr
 
 instance lookupSkolem :: (LookupSkolem' PtrListNil skolem skolemList (PtrListCons ptr PtrListNil)) => LookupSkolem skolem skolemList ptr
@@ -43,23 +53,28 @@ instance skolemNotYetPresentCons ::
   ) =>
   SkolemNotYetPresent skolem (SkolemListCons (SkolemPairC candidate ptr) tail)
 
+-- | Assertion that a skolem is not yet present in a skolem lists. Makes sure each skolem variable is fresh/unique.
 class SkolemNotYetPresent (skolem :: Type) (skolemList :: SkolemList)
 
+-- | Assertion that a skolem is not yet present in a skolem lists _or_ that it is discardable.
 class SkolemNotYetPresentOrDiscardable (skolem :: Type) (skolemList :: SkolemList)
 
 instance skolemNotYetPresentOrDiscardableD :: SkolemNotYetPresentOrDiscardable DiscardableSkolem skolemList
 else instance skolemNotYetPresentOrDiscardableO :: SkolemNotYetPresent o skolemList => SkolemNotYetPresentOrDiscardable o skolemList
 
+-- | Appends `skolem` and `ptr` to `skolems`, creating `skolemsInternal`. The `DiscardableSkolem` is discarded in this append operation.
 class MakeInternalSkolemStack (skolem :: Type) (ptr :: Ptr) (skolems :: SkolemList) (skolemsInternal :: SkolemList) | skolem ptr skolems -> skolemsInternal
 
 instance makeInternalSkolemStackDiscardable :: MakeInternalSkolemStack DiscardableSkolem ptr skolems skolems
 else instance makeInternalSkolemStack :: MakeInternalSkolemStack skolem ptr skolems (SkolemListCons (SkolemPairC skolem ptr) skolems)
 
+-- | Gets a skolem variable from a function with a single proxy argument, treating the proxied type as the skolem variable.
 class GetSkolemFromRecursiveArgument (a :: Type) (skolem :: Type) | a -> skolem
 
 instance getSkolemFromRecursiveArgumentF :: GetSkolemFromRecursiveArgument ((Proxy skolem) -> b) skolem
 else instance getSkolemFromRecursiveArgumentC :: GetSkolemFromRecursiveArgument b DiscardableSkolem
 
+-- | Coerces a term to a skolemized function. It is either already a skolemized function or a constant, in which case it is coerced to a skolemized function that uses the `DiscardableSkolem`.
 class ToSkolemizedFunction (a :: Type) (skolem :: Type) (b :: Type) | a skolem -> b where
   toSkolemizedFunction :: a -> (Proxy skolem -> b)
 
@@ -68,16 +83,10 @@ instance toSkolemizedFunctionFunction :: ToSkolemizedFunction (Proxy skolem -> b
 else instance toSkolemizedFunctionConst :: ToSkolemizedFunction b skolem b where
   toSkolemizedFunction = const
 
+-- | Gets a skolem variable from a specific audio unit `a`.
 class GetSkolemizedFunctionFromAU (a :: Type) (skolem :: Type) (b :: Type) | a skolem -> b where
   getSkolemizedFunctionFromAU :: a -> (Proxy skolem -> b)
 
--- instance getSkolemizedFunctionFromAUHighpass :: ToSkolemizedFunction i skolem o => GetSkolemizedFunctionFromAU (Highpass a b i) skolem o where
---   getSkolemizedFunctionFromAU (Highpass a b c) = toSkolemizedFunction c
--- instance getSkolemizedFunctionFromAUGain :: ToSkolemizedFunction i skolem o => GetSkolemizedFunctionFromAU (Gain a i) skolem o where
---   getSkolemizedFunctionFromAU (Gain a b) = toSkolemizedFunction b
--- instance getSkolemizedFunctionFromAUSpeaker :: ToSkolemizedFunction i skolem o => GetSkolemizedFunctionFromAU (Speaker i) skolem o where
---   getSkolemizedFunctionFromAU (Speaker a) = toSkolemizedFunction a
-----------
 instance getSkolemizedFunctionFromAUAllpass :: ToSkolemizedFunction argC skolem o => GetSkolemizedFunctionFromAU (CTOR.Allpass argA argB argC) skolem o where
   getSkolemizedFunctionFromAU (CTOR.Allpass argA argB argC) = toSkolemizedFunction argC
 

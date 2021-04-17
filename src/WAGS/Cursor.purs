@@ -23,7 +23,7 @@ import WAGS.Validation (class AltEdgeProfile, class PtrListAppend, class Termina
 -- |
 -- | ```purescript
 -- | myCursor <- cursor (Speaker (Gain 1.0 (SinOsc 440.0 /\ Focus (SinOsc 330.0) /\ Unit)))
--- | change myCursor (SinOsc 332.0)
+-- | changeAt myCursor (SinOsc 332.0)
 -- | ```
 -- |
 -- | Graphs can be focused on different elements, allowing multiple cursors to be generated from
@@ -34,8 +34,8 @@ import WAGS.Validation (class AltEdgeProfile, class PtrListAppend, class Termina
 -- |   graph a b = Speaker (Gain 1.0 (a (SinOsc 440.0) /\ b (SinOsc 330.0) /\ Unit))
 -- | cursor1 <- cursor (graph Focus Identity)
 -- | cursor2 <- cursor (graph Identity Focus)
--- | change cursor1 (SinOsc 444.0)
--- | change cursor2 (SinOsc 332.0)
+-- | changeAt cursor1 (SinOsc 444.0)
+-- | changeAt cursor2 (SinOsc 332.0)
 -- | ```
 -- |
 -- | For more complex graphs, decorators can be used to auto-generate cursors.

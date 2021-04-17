@@ -1,19 +1,15 @@
 module WAGS.Create
-  ( class AsEdgeProfile
-  , class Create
+  ( class Create
   , class CreationInstructions
-  , class EdgeListable
   , class InitialVal
   , ProxyCC
-  , PtrArr(..)
   , create
   , creationInstructions
-  , getPointers
-  , getPointers'
   , initialVal
   ) where
 
 import Prelude
+
 import Control.Monad.State (gets, modify_)
 import Data.Identity (Identity(..))
 import Data.Map as M
@@ -31,8 +27,8 @@ import WAGS.Interpret (class AudioInterpret, connectXToY, makeAllpass, makeBandp
 import WAGS.Rendered (AnAudioUnit(..))
 import WAGS.Universe.AudioUnit (AudioUnitRef(..), TGain, TSpeaker)
 import WAGS.Universe.AudioUnit as AU
-import WAGS.Universe.Bin (class BinSucc, class BinToInt, BinL, PtrList, PtrListCons, PtrListNil, toInt')
-import WAGS.Universe.EdgeProfile (EdgeProfile, ManyEdges, NoEdge, SingleEdge)
+import WAGS.Universe.Bin (class BinSucc, class BinToInt, BinL, toInt')
+import WAGS.Universe.EdgeProfile (class AsEdgeProfile, NoEdge, PtrArr(..), SingleEdge, getPointers)
 import WAGS.Universe.Graph (class GraphToNodeList, GraphC)
 import WAGS.Universe.Node (NodeC)
 import WAGS.Universe.Skolems (class GetSkolemFromRecursiveArgument, class GetSkolemizedFunctionFromAU, class LookupSkolem, class MakeInternalSkolemStack, class SkolemNotYetPresent, class SkolemNotYetPresentOrDiscardable, class ToSkolemizedFunction, DiscardableSkolem, SkolemListCons, SkolemPairC, getSkolemizedFunctionFromAU)
@@ -74,30 +70,7 @@ instance initialValAudioParameter :: InitialVal AudioParameter where
 instance initialValTuple :: InitialVal a => InitialVal (Tuple a b) where
   initialVal = initialVal <<< fst
 
--- | An array of pointers. Used internaly in the create computation.
-newtype PtrArr :: forall k. k -> Type
-newtype PtrArr a
-  = PtrArr (Array Int)
 
--- | Gets incoming pointers for a node. Used internally in the create computation.
-class EdgeListable a (b :: PtrList) | a -> b where
-  getPointers' :: a -> PtrArr b
-
-instance edgeListableUnit :: EdgeListable Unit PtrListNil where
-  getPointers' _ = PtrArr []
-
-instance edgeListableTuple :: EdgeListable x y => EdgeListable (Tuple (AudioUnitRef ptr) x) (PtrListCons ptr y) where
-  getPointers' (Tuple (AudioUnitRef i) x) = let PtrArr o = getPointers' x in PtrArr ([ i ] <> o)
-
--- | Coerce something to an edge profile. Used internally in the create computation.
-class AsEdgeProfile a (b :: EdgeProfile) | a -> b where
-  getPointers :: a -> PtrArr b
-
-instance asEdgeProfileAR :: AsEdgeProfile (AudioUnitRef ptr) (SingleEdge ptr) where
-  getPointers (AudioUnitRef i) = PtrArr [ i ]
-
-instance asEdgeProfileTupl :: EdgeListable x y => AsEdgeProfile (Tuple (AudioUnitRef ptr) x) (ManyEdges ptr y) where
-  getPointers (Tuple (AudioUnitRef i) el) = let PtrArr o = getPointers' el in PtrArr ([ i ] <> o)
 
 -- | Internal class used to make term-level instructions for audio unit creation.
 class
