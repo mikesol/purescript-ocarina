@@ -5,7 +5,7 @@ module WAGS.Change
   , changes
   , class Changes
   , class ChangeInstructions
-  , ChangeInstruction
+  , ChangeInstruction(..)
   , class Modify
   , class Modify'
   , class ModifyRes
@@ -37,7 +37,7 @@ import WAGS.Interpret (class AudioInterpret, setAttack, setDelay, setFrequency, 
 import WAGS.Rendered (AnAudioUnit(..))
 import WAGS.Universe.AudioUnit (AudioUnitRef)
 import WAGS.Universe.AudioUnit as AU
-import WAGS.Universe.Bin (class BinSub, class BinToInt, BinL, D0, Ptr, PtrListCons, PtrListNil, toInt')
+import WAGS.Universe.Bin (class BinSub, class BinToInt, Bits, D0, Ptr, PtrListCons, PtrListNil, toInt')
 import WAGS.Universe.EdgeProfile (EdgeProfile, ManyEdges, NoEdge, SingleEdge)
 import WAGS.Universe.Graph (class GraphToNodeList, Graph, InitialGraph)
 import WAGS.Universe.Node (Node, NodeC, NodeList, NodeListCons, NodeListNil)
@@ -598,7 +598,7 @@ instance modify ::
   Modify tag p ig nextP
 
 changeAudioUnit ::
-  forall g env audio engine proof m currentIdx (igraph :: Graph) changeBit skolems (p :: BinL) (nextP :: EdgeProfile) univ.
+  forall g env audio engine proof m currentIdx (igraph :: Graph) changeBit skolems (p :: Bits) (nextP :: EdgeProfile) univ.
   Monad m =>
   AudioInterpret audio engine =>
   ChangeInstructions audio engine g =>

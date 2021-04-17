@@ -7,13 +7,16 @@ import Type.Proxy (Proxy(..))
 import WAGS.Universe.AudioUnit (AudioUnitRef(..))
 import WAGS.Universe.Bin (Ptr, PtrList, PtrListCons, PtrListNil)
 
+-- | An edge profile represents incoming edges in a node.
 data EdgeProfile
 
--- non empty
+-- | Used for a node that has at least one and potentiall more incoming edges.
 foreign import data ManyEdges :: Ptr -> PtrList -> EdgeProfile
 
+-- | Used for a node that has only one incoming edge.
 foreign import data SingleEdge :: Ptr -> EdgeProfile
 
+-- | Used for a node that has no incoming edges.
 foreign import data NoEdge :: EdgeProfile
 
 -- | An array of pointers that represents incoming edges to a node.

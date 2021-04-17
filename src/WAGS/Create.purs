@@ -27,7 +27,7 @@ import WAGS.Interpret (class AudioInterpret, connectXToY, makeAllpass, makeBandp
 import WAGS.Rendered (AnAudioUnit(..))
 import WAGS.Universe.AudioUnit (AudioUnitRef(..), TGain, TSpeaker)
 import WAGS.Universe.AudioUnit as AU
-import WAGS.Universe.Bin (class BinSucc, class BinToInt, BinL, toInt')
+import WAGS.Universe.Bin (class BinSucc, class BinToInt, Bits, toInt')
 import WAGS.Universe.EdgeProfile (class AsEdgeProfile, NoEdge, PtrArr(..), SingleEdge, getPointers)
 import WAGS.Universe.Graph (class GraphToNodeList, GraphC)
 import WAGS.Universe.Node (NodeC)
@@ -320,7 +320,7 @@ type ProxyCC skolem ptr innerTerm i o
   = Proxy (skolem /\ ptr /\ innerTerm /\ i /\ o)
 
 createAndConnect ::
-  forall env audio engine proof g (ptr :: BinL) skolem c (i :: Universe) (o :: Universe) innerTerm eprof m.
+  forall env audio engine proof g (ptr :: Bits) skolem c (i :: Universe) (o :: Universe) innerTerm eprof m.
   Monad m =>
   AudioInterpret audio engine =>
   GetSkolemizedFunctionFromAU g skolem c =>

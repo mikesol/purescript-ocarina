@@ -6,6 +6,91 @@ import Data.Generic.Rep (class Generic)
 import Data.Show.Generic (genericShow)
 import Type.Proxy (Proxy)
 
+-- | Term-level constructor for an allpass filter.
+data Allpass frequency q audioUnit
+  = Allpass frequency q audioUnit
+
+-- | Term-level constructor for a bandpass filter.
+data Bandpass frequency q audioUnit
+  = Bandpass frequency q audioUnit
+
+-- | Term-level constructor for a constant value.
+data Constant offset
+  = Constant OnOff offset
+
+-- | Term-level constructor for a convolver, aka reverb.
+data Convolver (buffer :: Symbol) audioUnit
+  = Convolver (Proxy buffer) audioUnit
+
+-- | Term-level constructor for a delay unit.
+data Delay delay audioUnit
+  = Delay delay audioUnit
+
+-- | Term-level constructor for a duplicated audio unit.
+data Dup audioUnit continuation
+  = Dup audioUnit continuation
+
+data DynamicsCompressor threshold knee ratio attack release audioUnit
+  = DynamicsCompressor threshold knee ratio attack release audioUnit
+
+data Gain volume audioUnit
+  = Gain volume audioUnit
+
+data Highpass frequency q audioUnit
+  = Highpass frequency q audioUnit
+
+data Highshelf frequency gain audioUnit
+  = Highshelf frequency gain audioUnit
+
+data LoopBuf (buffer :: Symbol) playbackRate
+  = LoopBuf (Proxy buffer) OnOff playbackRate Number Number
+
+data Lowpass frequency q audioUnit
+  = Lowpass frequency q audioUnit
+
+data Lowshelf frequency gain audioUnit
+  = Lowshelf frequency gain audioUnit
+
+data Microphone
+  = Microphone
+
+data Notch frequency q audioUnit
+  = Notch frequency q audioUnit
+
+data Peaking frequency q gain audioUnit
+  = Peaking frequency q gain audioUnit
+
+data PeriodicOsc (periodicOsc :: Symbol) frequency
+  = PeriodicOsc (Proxy periodicOsc) OnOff frequency
+
+data PlayBuf (buffer :: Symbol) playbackRate
+  = PlayBuf (Proxy buffer) Number OnOff playbackRate
+
+data Recorder (recorder :: Symbol) audioUnit
+  = Recorder (Proxy recorder) audioUnit
+
+data SawtoothOsc frequency
+  = SawtoothOsc OnOff frequency
+
+data SinOsc frequency
+  = SinOsc OnOff frequency
+
+data Speaker audioUnit
+  = Speaker audioUnit
+
+data SquareOsc frequency
+  = SquareOsc OnOff frequency
+
+data StereoPanner pan audioUnit
+  = StereoPanner pan audioUnit
+
+data TriangleOsc frequency
+  = TriangleOsc OnOff frequency
+
+data WaveShaper (floatArray :: Symbol) oversample audioUnit
+  = WaveShaper (Proxy floatArray) oversample audioUnit
+
+-- | Term-level constructor for a generator being on or off
 data OnOff
   = On
   | Off
@@ -15,91 +100,14 @@ derive instance genericOnOff :: Generic OnOff _
 instance showOnOff :: Show OnOff where
   show = genericShow
 
--- for waveshaper
+-- | Type-level oversample none for a wave shaper. This is at the type-level and not the term-level via an ADT because we need make sure to construct an entirely new wave shaper if the value changes.
 data OversampleNone
   = OversampleNone
 
+-- | Type-level oversample 2x for a wave shaper. This is at the type-level and not the term-level via an ADT because we need make sure to construct an entirely new wave shaper if the value changes.
 data OversampleTwoX
   = OversampleTwoX
 
+-- | Type-level oversample 4x for a wave shaper. This is at the type-level and not the term-level via an ADT because we need make sure to construct an entirely new wave shaper if the value changes.
 data OversampleFourX
   = OversampleFourX
-
---
-data Allpass a b c
-  = Allpass a b c
-
-data Bandpass a b c
-  = Bandpass a b c
-
-data Constant a
-  = Constant OnOff a
-
-data Convolver (s :: Symbol) b
-  = Convolver (Proxy s) b
-
-data Delay a b
-  = Delay a b
-
-data Dup a b
-  = Dup a b
-
-data DynamicsCompressor a b c d e f
-  = DynamicsCompressor a b c d e f
-
-data Gain a b
-  = Gain a b
-
-data Highpass a b c
-  = Highpass a b c
-
-data Highshelf a b c
-  = Highshelf a b c
-
-data LoopBuf (s :: Symbol) a
-  = LoopBuf (Proxy s) OnOff a Number Number
-
-data Lowpass a b c
-  = Lowpass a b c
-
-data Lowshelf a b c
-  = Lowshelf a b c
-
-data Microphone
-  = Microphone
-
-data Notch a b c
-  = Notch a b c
-
-data Peaking a b c d
-  = Peaking a b c d
-
-data PeriodicOsc (s :: Symbol) a
-  = PeriodicOsc (Proxy s) OnOff a
-
-data PlayBuf (s :: Symbol) a
-  = PlayBuf (Proxy s) Number OnOff a
-
-data Recorder (s :: Symbol) a
-  = Recorder (Proxy s) a
-
-data SawtoothOsc a
-  = SawtoothOsc OnOff a
-
-data SinOsc a
-  = SinOsc OnOff a
-
-data Speaker a
-  = Speaker a
-
-data SquareOsc a
-  = SquareOsc OnOff a
-
-data StereoPanner a b
-  = StereoPanner a b
-
-data TriangleOsc a
-  = TriangleOsc OnOff a
-
-data WaveShaper (s :: Symbol) a b
-  = WaveShaper (Proxy s) a b
