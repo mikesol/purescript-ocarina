@@ -15,6 +15,30 @@ import WAGS.Universe.Graph (class GraphToNodeList)
 import WAGS.Universe.Node (Node, NodeC, NodeList, NodeListCons, NodeListNil)
 import WAGS.Universe.Universe (Universe, UniverseC)
 
+-- | Connect node `source` from node `dest` in universe `i`, resulting in output universe `o`.
+class Connect (source :: Ptr) (dest :: Ptr) (i :: Universe) (o :: Universe) | source dest i -> o where
+  connect :: forall env audio engine proof m. Monad m => AudioInterpret audio engine => AudioUnitRef source -> AudioUnitRef dest -> FrameT env audio engine proof m i o Unit
+
+instance connectAll ::
+  ( BinToInt from
+  , BinToInt to
+  , GraphToNodeList graphi nodeListI
+  , AddPointerToNodes from to nodeListI nodeListO True
+  , GraphToNodeList grapho nodeListO
+  ) =>
+  Connect from to (UniverseC ptr graphi changeBit skolems) (UniverseC ptr grapho changeBit skolems) where
+  connect (AudioUnitRef fromI) (AudioUnitRef toI) =
+    unsafeFrame
+      $ do
+          modify_
+            ( \i ->
+                i
+                  { internalEdges = (M.insertWith S.union toI (S.singleton fromI) i.internalEdges)
+                  , instructions = i.instructions <> [ connectXToY fromI toI ]
+                  }
+            )
+
+-- | Internal helper class used for connecting.
 class AddPointerToNode (from :: Ptr) (to :: Ptr) (i :: Node) (o :: Node) (tf :: Type) | from to i -> o tf
 
 instance addPointerToNodeAllpassHitSE :: AddPointerToNode from to (NodeC (AU.TAllpass to) (SingleEdge e)) (NodeC (AU.TAllpass to) (SingleEdge from)) True
@@ -37,30 +61,9 @@ else instance addPointerToNodeStereoPannerHitSE :: AddPointerToNode from to (Nod
 else instance addPointerToNodeWaveShaperHitSE :: AddPointerToNode from to (NodeC (AU.TWaveShaper to) (SingleEdge e)) (NodeC (AU.TWaveShaper to) (SingleEdge from)) True
 else instance addPointerToNodeMiss :: AddPointerToNode from to i i False
 
+-- | Internal helper class used for connecting.
 class AddPointerToNodes (from :: Ptr) (to :: Ptr) (i :: NodeList) (o :: NodeList) (tf :: Type) | from to i -> o tf
 
 instance addPointerToNodesNil :: AddPointerToNodes a b NodeListNil NodeListNil False
 
 instance addPointerToNodesCons :: (AddPointerToNode a b head headRes tf0, AddPointerToNodes a b tail tailRes tf1, Or tf0 tf1 fin) => AddPointerToNodes a b (NodeListCons head tail) (NodeListCons headRes tailRes) fin
-
-class Connect (from :: Ptr) (to :: Ptr) (i :: Universe) (o :: Universe) | from to i -> o where
-  connect :: forall env audio engine proof m. Monad m => AudioInterpret audio engine => AudioUnitRef from -> AudioUnitRef to -> FrameT env audio engine proof m i o Unit
-
-instance connectAll ::
-  ( BinToInt from
-  , BinToInt to
-  , GraphToNodeList graphi nodeListI
-  , AddPointerToNodes from to nodeListI nodeListO True
-  , GraphToNodeList grapho nodeListO
-  ) =>
-  Connect from to (UniverseC ptr graphi changeBit skolems) (UniverseC ptr grapho changeBit skolems) where
-  connect (AudioUnitRef fromI) (AudioUnitRef toI) =
-    unsafeFrame
-      $ do
-          modify_
-            ( \i ->
-                i
-                  { internalEdges = (M.insertWith S.union toI (S.singleton fromI) i.internalEdges)
-                  , instructions = i.instructions <> [ connectXToY fromI toI ]
-                  }
-            )
