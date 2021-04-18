@@ -1,6 +1,7 @@
 module WAGS.Disconnect where
 
 import Prelude
+
 import Control.Monad.State (modify_)
 import Data.Map as M
 import Data.Set as S
@@ -11,14 +12,14 @@ import WAGS.Universe.AudioUnit (AudioUnitRef(..))
 import WAGS.Universe.AudioUnit as AU
 import WAGS.Universe.Bin (class BinEq, class BinToInt, Ptr, PtrList, PtrListCons, PtrListNil)
 import WAGS.Universe.EdgeProfile (ManyEdges, NoEdge, SingleEdge)
-import WAGS.Universe.Graph (class GraphToNodeList)
+import WAGS.Universe.Graph (class GraphToNodeList, Graph)
 import WAGS.Universe.Node (Node, NodeC, NodeList, NodeListCons, NodeListNil)
-import WAGS.Universe.Universe (Universe, UniverseC)
+import WAGS.Universe.Universe (UniverseC)
 import WAGS.Util (class Gate)
 
--- | Disconnect node `source` from node `dest` in universe `i`, resulting in output universe `o`.
-class Disconnect (source :: Ptr) (dest :: Ptr) (i :: Universe) (o :: Universe) | source dest i -> o where
-  disconnect :: forall env audio engine proof m. Monad m => AudioInterpret audio engine => AudioUnitRef source -> AudioUnitRef dest -> FrameT env audio engine proof m i o Unit
+-- | Disconnect node `source` from node `dest` in graph `i`, resulting in output graph `o`.
+class Disconnect (source :: Ptr) (dest :: Ptr) (i :: Graph) (o :: Graph) | source dest i -> o where
+  disconnect :: forall env audio engine proof m currentIdx changeBit skolems. Monad m => AudioInterpret audio engine => AudioUnitRef source -> AudioUnitRef dest -> FrameT env audio engine proof m (UniverseC currentIdx i changeBit skolems) (UniverseC currentIdx o changeBit skolems) Unit
 
 instance disconnector ::
   ( BinToInt from
@@ -27,7 +28,7 @@ instance disconnector ::
   , RemovePointerFromNodes from to nodeListI nodeListO True
   , GraphToNodeList grapho nodeListO
   ) =>
-  Disconnect from to (UniverseC ptr graphi changeBit skolems) (UniverseC ptr grapho changeBit skolems) where
+  Disconnect from to graphi grapho where
   disconnect (AudioUnitRef fromI) (AudioUnitRef toI) =
     unsafeFrame
       $ do

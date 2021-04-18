@@ -8,10 +8,10 @@ import WAGS.Control.Types (FrameT, unsafeFrame)
 import WAGS.Universe.AudioUnit (AudioUnitRef, TGain, TSpeaker)
 import WAGS.Universe.Bin (class BinEq, Ptr, PtrList, PtrListCons, PtrListNil)
 import WAGS.Universe.EdgeProfile (EdgeProfile, ManyEdges)
-import WAGS.Universe.Graph (class GraphToNodeList)
+import WAGS.Universe.Graph (class GraphToNodeList, Graph)
 import WAGS.Universe.Node (Node, NodeC, NodeList, NodeListCons, NodeListNil)
-import WAGS.Universe.Universe (Universe, UniverseC)
-import WAGS.Util (class Gate)
+import WAGS.Universe.Universe (UniverseC)
+import WAGS.Util (class Gate, class LtEq)
 
 -- | Move an edge in an edge list for a given node.
 -- | As an example, if we have a gain node with incoming edges `7,8,9`, this can be used to move `7`
@@ -24,15 +24,15 @@ import WAGS.Util (class Gate)
 -- | `to` - the new position in the list
 -- | `i` - the input universe
 -- | `o` - the output universe
-class Move (at :: Ptr) (from :: Type) (to :: Nat) (i :: Universe) (o :: Universe) | at from to i -> o where
-  move :: forall env audio engine proof m. Monad m => AudioUnitRef at -> from -> Proxy to -> FrameT env audio engine proof m i o Unit
+class Move (at :: Ptr) (from :: Type) (to :: Nat) (i :: Graph) (o :: Graph) | at from to i -> o where
+  move :: forall env audio engine proof m currentIdx changeBit skolems. Monad m => AudioUnitRef at -> from -> Proxy to -> FrameT env audio engine proof m (UniverseC currentIdx i changeBit skolems) (UniverseC currentIdx o changeBit skolems) Unit
 
 instance moveAref ::
   ( GraphToNodeList graphi nodeListI
   , MovePointers at from to nodeListI nodeListO
   , GraphToNodeList grapho nodeListO
   ) =>
-  Move at from to (UniverseC ptr graphi changeBit skolems) (UniverseC ptr grapho changeBit skolems) where
+  Move at from to graphi grapho where
   move _ _ _ = unsafeFrame (pure unit)
 
 -- | Get the length of pointer list `i` as natural number `n`/
@@ -41,24 +41,6 @@ class PtrListLen (i :: PtrList) (n :: Nat) | i -> n
 instance ptrListLenZ :: PtrListLen PtrListNil Z
 
 instance ptrListLenSucc :: PtrListLen b x => PtrListLen (PtrListCons a b) (Succ x)
-
--- | Is `a` less than `b`? True or False (`c`)
-class LtTf (a :: Nat) (b :: Nat) (c :: Type) | a b -> c
-
-instance ltTfZ :: LtTf Z Z False
-
-instance ltTfZ' :: LtTf Z (Succ x) True
-
-instance ltTfS :: LtTf x y tf => LtTf (Succ x) (Succ y) tf
-
--- | Assertion that `a` is less than `b`
-class LtEq (a :: Nat) (b :: Nat)
-
-instance ltEqZ :: LtEq Z Z
-
-instance ltEqZ' :: LtEq Z (Succ x)
-
-instance ltEqS :: LtEq x y => LtEq (Succ x) (Succ y)
 
 instance movePointer''' ::
   ( PtrListLen i li

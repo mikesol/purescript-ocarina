@@ -6,6 +6,7 @@ module WAGS.Control.Functions
   , loop
   , branch
   , universe
+  , changeBit
   , env
   , freeze
   , graph
@@ -396,6 +397,17 @@ graph ::
     (UniverseC currentIdx graph changeBit skolems)
     (Proxy graph)
 graph = unsafeFrame $ pure $ (Proxy :: _ graph)
+
+-- | Get the changeBit as a proxy.
+changeBit ::
+  forall env audio engine proof m currentIdx graph changeBit skolems.
+  Monad m =>
+  AudioInterpret audio engine =>
+  FrameT env audio engine proof m
+    (UniverseC currentIdx graph changeBit skolems)
+    (UniverseC currentIdx graph changeBit skolems)
+    (Proxy changeBit)
+changeBit = unsafeFrame $ pure $ (Proxy :: _ changeBit)
 
 -- | Lift a computation from the underlying monad `m` into `FrameT`.
 lift ::

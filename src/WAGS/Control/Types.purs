@@ -11,6 +11,7 @@ module WAGS.Control.Types
   , SceneT'
   , Scene
   , Scene'
+  , Universe'
   , oneFrame
   , oneFrame'
   , oneFrameT
@@ -61,6 +62,9 @@ data Frame0
 -- | The `Universe` at which any scene starts.
 type InitialUniverse
   = UniverseC D0 InitialGraph Z SkolemListNil
+
+-- | A type constructor for a graph with no changes and no skolems
+type Universe' currentIndex graph cb = UniverseC currentIndex graph cb SkolemListNil
 
 -- | The `FrameT` at which any scene starts.
 type InitialFrameT env audio engine m a

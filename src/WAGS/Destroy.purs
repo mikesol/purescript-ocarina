@@ -1,6 +1,7 @@
 module WAGS.Destroy where
 
 import Prelude
+
 import Control.Monad.State (modify_)
 import Data.Map as M
 import Data.Typelevel.Bool (False)
@@ -10,15 +11,15 @@ import WAGS.Universe.AudioUnit (class GetPointer, AudioUnitRef(..))
 import WAGS.Universe.AudioUnit as AU
 import WAGS.Universe.Bin (class BinEq, class BinToInt, Ptr, PtrListCons)
 import WAGS.Universe.EdgeProfile (ManyEdges, NoEdge, SingleEdge)
-import WAGS.Universe.Graph (class GraphToNodeList)
+import WAGS.Universe.Graph (class GraphToNodeList, Graph)
 import WAGS.Universe.Node (class GetAudioUnit, Node, NodeC, NodeList, NodeListCons, NodeListNil)
-import WAGS.Universe.Universe (Universe, UniverseC)
+import WAGS.Universe.Universe (UniverseC)
 import WAGS.Util (class Gate)
 import WAGS.Validation (class PtrNotInPtrList)
 
--- | Destroy node `ptr` in universe `i`, resulting in universe `o`. Note that, to destroy a node, it must have no outgoing or incoming edges. This is achieved via use of `disconnect`. Failure to disconnect nodes before destroying will result in a compile-time error during graph validation.
-class Destroy (ptr :: Ptr) (i :: Universe) (o :: Universe) | ptr i -> o where
-  destroy :: forall env audio engine proof m. Monad m => AudioInterpret audio engine => AudioUnitRef ptr -> FrameT env audio engine proof m i o Unit
+-- | Destroy node `ptr` in graph `i`, resulting in graph `o`. Note that, to destroy a node, it must have no outgoing or incoming edges. This is achieved via use of `disconnect`. Failure to disconnect nodes before destroying will result in a compile-time error during graph validation.
+class Destroy (ptr :: Ptr) (i :: Graph) (o :: Graph) | ptr i -> o where
+  destroy :: forall env audio engine proof m currentIdx changeBit skolems. Monad m => AudioInterpret audio engine => AudioUnitRef ptr -> FrameT env audio engine proof m (UniverseC currentIdx i changeBit skolems) (UniverseC currentIdx o changeBit skolems) Unit
 
 instance destroyer ::
   ( BinToInt ptr
@@ -27,7 +28,7 @@ instance destroyer ::
   , RemovePtrFromNodeList ptr nodeListI nodeListO
   , GraphToNodeList grapho nodeListO
   ) =>
-  Destroy ptr (UniverseC x graphi changeBit skolems) (UniverseC x grapho changeBit skolems) where
+  Destroy ptr graphi grapho where
   destroy (AudioUnitRef ptrI) =
     unsafeFrame
       $ do
