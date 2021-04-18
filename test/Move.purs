@@ -1,203 +1,212 @@
 module Test.Move where
 
 import Prelude
+
 import Type.Data.Peano (Succ, Z)
 import Type.Proxy (Proxy(..))
-import WAGS as W
+import WAGS.Control.Types (Frame)
+import WAGS.Move (move)
+import WAGS.Universe.AudioUnit (AudioUnitRef, TGain, THighpass, TSinOsc)
+import WAGS.Universe.Bin (D0, D1, D2, D3, PtrListCons, PtrListNil)
+import WAGS.Universe.EdgeProfile (ManyEdges, NoEdge, SingleEdge)
+import WAGS.Universe.Graph (GraphC)
+import WAGS.Universe.Node (NodeC, NodeListCons, NodeListNil)
+import WAGS.Universe.Skolems (SkolemListNil)
+import WAGS.Universe.Universe (UniverseC)
 
 data MyGain
 
 data MySinOsc
 
 moveTest0 :: forall audio engine.
-  W.AudioUnitRef W.D1 ->
-  W.Frame Unit audio engine Void
-    ( W.UniverseC W.D3
-        ( W.GraphC
-            ( W.NodeC (W.TGain W.D1)
-                (W.ManyEdges W.D1 (W.PtrListCons W.D2 (W.PtrListCons W.D0 W.PtrListNil)))
+  AudioUnitRef D1 ->
+  Frame Unit audio engine Void
+    ( UniverseC D3
+        ( GraphC
+            ( NodeC (TGain D1)
+                (ManyEdges D1 (PtrListCons D2 (PtrListCons D0 PtrListNil)))
             )
-            ( W.NodeListCons
-                (W.NodeC (W.THighpass W.D2) (W.SingleEdge W.D0))
-                (W.NodeListCons (W.NodeC (W.TSinOsc W.D0) W.NoEdge) W.NodeListNil)
+            ( NodeListCons
+                (NodeC (THighpass D2) (SingleEdge D0))
+                (NodeListCons (NodeC (TSinOsc D0) NoEdge) NodeListNil)
             )
         )
         Z
-        W.SkolemListNil
+        SkolemListNil
     )
-    ( W.UniverseC W.D3
-        ( W.GraphC
-            ( W.NodeC (W.TGain W.D1)
-                (W.ManyEdges W.D1 (W.PtrListCons W.D2 (W.PtrListCons W.D0 W.PtrListNil)))
+    ( UniverseC D3
+        ( GraphC
+            ( NodeC (TGain D1)
+                (ManyEdges D1 (PtrListCons D2 (PtrListCons D0 PtrListNil)))
             )
-            ( W.NodeListCons
-                (W.NodeC (W.THighpass W.D2) (W.SingleEdge W.D0))
-                (W.NodeListCons (W.NodeC (W.TSinOsc W.D0) W.NoEdge) W.NodeListNil)
+            ( NodeListCons
+                (NodeC (THighpass D2) (SingleEdge D0))
+                (NodeListCons (NodeC (TSinOsc D0) NoEdge) NodeListNil)
             )
         )
         Z
-        W.SkolemListNil
+        SkolemListNil
     )
     Unit
-moveTest0 ref = W.move ref (Proxy :: _ Z) (Proxy :: _ Z)
+moveTest0 ref = move ref (Proxy :: _ Z) (Proxy :: _ Z)
 
 moveTest1 :: forall audio engine.
-  W.AudioUnitRef W.D1 ->
-  W.Frame Unit audio engine Void
-    ( W.UniverseC W.D3
-        ( W.GraphC
-            ( W.NodeC (W.TGain W.D1)
-                (W.ManyEdges W.D1 (W.PtrListCons W.D2 (W.PtrListCons W.D0 W.PtrListNil)))
+  AudioUnitRef D1 ->
+  Frame Unit audio engine Void
+    ( UniverseC D3
+        ( GraphC
+            ( NodeC (TGain D1)
+                (ManyEdges D1 (PtrListCons D2 (PtrListCons D0 PtrListNil)))
             )
-            ( W.NodeListCons
-                (W.NodeC (W.THighpass W.D2) (W.SingleEdge W.D0))
-                (W.NodeListCons (W.NodeC (W.TSinOsc W.D0) W.NoEdge) W.NodeListNil)
+            ( NodeListCons
+                (NodeC (THighpass D2) (SingleEdge D0))
+                (NodeListCons (NodeC (TSinOsc D0) NoEdge) NodeListNil)
             )
         )
         Z
-        W.SkolemListNil
+        SkolemListNil
     )
-    ( W.UniverseC W.D3
-        ( W.GraphC
-            ( W.NodeC (W.TGain W.D1)
-                (W.ManyEdges W.D1 (W.PtrListCons W.D2 (W.PtrListCons W.D0 W.PtrListNil)))
+    ( UniverseC D3
+        ( GraphC
+            ( NodeC (TGain D1)
+                (ManyEdges D1 (PtrListCons D2 (PtrListCons D0 PtrListNil)))
             )
-            ( W.NodeListCons
-                (W.NodeC (W.THighpass W.D2) (W.SingleEdge W.D0))
-                (W.NodeListCons (W.NodeC (W.TSinOsc W.D0) W.NoEdge) W.NodeListNil)
+            ( NodeListCons
+                (NodeC (THighpass D2) (SingleEdge D0))
+                (NodeListCons (NodeC (TSinOsc D0) NoEdge) NodeListNil)
             )
         )
         Z
-        W.SkolemListNil
+        SkolemListNil
     )
     Unit
-moveTest1 ref = W.move ref ref (Proxy :: _ Z)
+moveTest1 ref = move ref ref (Proxy :: _ Z)
 
 moveTest2 :: forall audio engine.
-  W.AudioUnitRef W.D1 ->
-  W.Frame Unit  audio engine Void
-    ( W.UniverseC W.D3
-        ( W.GraphC
-            ( W.NodeC (W.TGain W.D1)
-                (W.ManyEdges W.D1 (W.PtrListCons W.D2 (W.PtrListCons W.D0 W.PtrListNil)))
+  AudioUnitRef D1 ->
+  Frame Unit  audio engine Void
+    ( UniverseC D3
+        ( GraphC
+            ( NodeC (TGain D1)
+                (ManyEdges D1 (PtrListCons D2 (PtrListCons D0 PtrListNil)))
             )
-            ( W.NodeListCons
-                (W.NodeC (W.THighpass W.D2) (W.SingleEdge W.D0))
-                (W.NodeListCons (W.NodeC (W.TSinOsc W.D0) W.NoEdge) W.NodeListNil)
+            ( NodeListCons
+                (NodeC (THighpass D2) (SingleEdge D0))
+                (NodeListCons (NodeC (TSinOsc D0) NoEdge) NodeListNil)
             )
         )
         Z
-        W.SkolemListNil
+        SkolemListNil
     )
-    ( W.UniverseC W.D3
-        ( W.GraphC
-            ( W.NodeC (W.TGain W.D1)
-                (W.ManyEdges W.D2 (W.PtrListCons W.D1 (W.PtrListCons W.D0 W.PtrListNil)))
+    ( UniverseC D3
+        ( GraphC
+            ( NodeC (TGain D1)
+                (ManyEdges D2 (PtrListCons D1 (PtrListCons D0 PtrListNil)))
             )
-            ( W.NodeListCons
-                (W.NodeC (W.THighpass W.D2) (W.SingleEdge W.D0))
-                (W.NodeListCons (W.NodeC (W.TSinOsc W.D0) W.NoEdge) W.NodeListNil)
+            ( NodeListCons
+                (NodeC (THighpass D2) (SingleEdge D0))
+                (NodeListCons (NodeC (TSinOsc D0) NoEdge) NodeListNil)
             )
         )
         Z
-        W.SkolemListNil
+        SkolemListNil
     )
     Unit
-moveTest2 ref = W.move ref ref (Proxy :: _ (Succ Z))
+moveTest2 ref = move ref ref (Proxy :: _ (Succ Z))
 
 moveTest3 :: forall audio engine.
-  W.AudioUnitRef W.D1 ->
-  W.Frame Unit audio engine Void
-    ( W.UniverseC W.D3
-        ( W.GraphC
-            ( W.NodeC (W.TGain W.D1)
-                (W.ManyEdges W.D1 (W.PtrListCons W.D2 (W.PtrListCons W.D0 W.PtrListNil)))
+  AudioUnitRef D1 ->
+  Frame Unit audio engine Void
+    ( UniverseC D3
+        ( GraphC
+            ( NodeC (TGain D1)
+                (ManyEdges D1 (PtrListCons D2 (PtrListCons D0 PtrListNil)))
             )
-            ( W.NodeListCons
-                (W.NodeC (W.THighpass W.D2) (W.SingleEdge W.D0))
-                (W.NodeListCons (W.NodeC (W.TSinOsc W.D0) W.NoEdge) W.NodeListNil)
+            ( NodeListCons
+                (NodeC (THighpass D2) (SingleEdge D0))
+                (NodeListCons (NodeC (TSinOsc D0) NoEdge) NodeListNil)
             )
         )
         Z
-        W.SkolemListNil
+        SkolemListNil
     )
-    ( W.UniverseC W.D3
-        ( W.GraphC
-            ( W.NodeC (W.TGain W.D1)
-                (W.ManyEdges W.D2 (W.PtrListCons W.D0 (W.PtrListCons W.D1 W.PtrListNil)))
+    ( UniverseC D3
+        ( GraphC
+            ( NodeC (TGain D1)
+                (ManyEdges D2 (PtrListCons D0 (PtrListCons D1 PtrListNil)))
             )
-            ( W.NodeListCons
-                (W.NodeC (W.THighpass W.D2) (W.SingleEdge W.D0))
-                (W.NodeListCons (W.NodeC (W.TSinOsc W.D0) W.NoEdge) W.NodeListNil)
+            ( NodeListCons
+                (NodeC (THighpass D2) (SingleEdge D0))
+                (NodeListCons (NodeC (TSinOsc D0) NoEdge) NodeListNil)
             )
         )
         Z
-        W.SkolemListNil
+        SkolemListNil
     )
     Unit
-moveTest3 ref = W.move ref ref (Proxy :: _ (Succ (Succ Z)))
+moveTest3 ref = move ref ref (Proxy :: _ (Succ (Succ Z)))
 
 moveTest4 :: forall audio engine.
-  W.AudioUnitRef W.D1 ->
-  W.Frame Unit audio engine Void
-    ( W.UniverseC W.D3
-        ( W.GraphC
-            ( W.NodeC (W.TGain W.D1)
-                (W.ManyEdges W.D1 (W.PtrListCons W.D2 (W.PtrListCons W.D0 W.PtrListNil)))
+  AudioUnitRef D1 ->
+  Frame Unit audio engine Void
+    ( UniverseC D3
+        ( GraphC
+            ( NodeC (TGain D1)
+                (ManyEdges D1 (PtrListCons D2 (PtrListCons D0 PtrListNil)))
             )
-            ( W.NodeListCons
-                (W.NodeC (W.THighpass W.D2) (W.SingleEdge W.D0))
-                (W.NodeListCons (W.NodeC (W.TSinOsc W.D0) W.NoEdge) W.NodeListNil)
+            ( NodeListCons
+                (NodeC (THighpass D2) (SingleEdge D0))
+                (NodeListCons (NodeC (TSinOsc D0) NoEdge) NodeListNil)
             )
         )
         Z
-        W.SkolemListNil
+        SkolemListNil
     )
-    ( W.UniverseC W.D3
-        ( W.GraphC
-            ( W.NodeC (W.TGain W.D1)
-                (W.ManyEdges W.D2 (W.PtrListCons W.D1 (W.PtrListCons W.D0 W.PtrListNil)))
+    ( UniverseC D3
+        ( GraphC
+            ( NodeC (TGain D1)
+                (ManyEdges D2 (PtrListCons D1 (PtrListCons D0 PtrListNil)))
             )
-            ( W.NodeListCons
-                (W.NodeC (W.THighpass W.D2) (W.SingleEdge W.D0))
-                (W.NodeListCons (W.NodeC (W.TSinOsc W.D0) W.NoEdge) W.NodeListNil)
+            ( NodeListCons
+                (NodeC (THighpass D2) (SingleEdge D0))
+                (NodeListCons (NodeC (TSinOsc D0) NoEdge) NodeListNil)
             )
         )
         Z
-        W.SkolemListNil
+        SkolemListNil
     )
     Unit
-moveTest4 ref = W.move ref (Proxy :: _ (Succ Z)) (Proxy :: _ Z)
+moveTest4 ref = move ref (Proxy :: _ (Succ Z)) (Proxy :: _ Z)
 
 moveTest5 :: forall audio engine.
-  W.AudioUnitRef W.D1 ->
-  W.AudioUnitRef W.D2 ->
-  W.Frame Unit audio engine Void
-    ( W.UniverseC W.D3
-        ( W.GraphC
-            ( W.NodeC (W.TGain W.D1)
-                (W.ManyEdges W.D1 (W.PtrListCons W.D2 (W.PtrListCons W.D0 W.PtrListNil)))
+  AudioUnitRef D1 ->
+  AudioUnitRef D2 ->
+  Frame Unit audio engine Void
+    ( UniverseC D3
+        ( GraphC
+            ( NodeC (TGain D1)
+                (ManyEdges D1 (PtrListCons D2 (PtrListCons D0 PtrListNil)))
             )
-            ( W.NodeListCons
-                (W.NodeC (W.THighpass W.D2) (W.SingleEdge W.D0))
-                (W.NodeListCons (W.NodeC (W.TSinOsc W.D0) W.NoEdge) W.NodeListNil)
+            ( NodeListCons
+                (NodeC (THighpass D2) (SingleEdge D0))
+                (NodeListCons (NodeC (TSinOsc D0) NoEdge) NodeListNil)
             )
         )
         Z
-        W.SkolemListNil
+        SkolemListNil
     )
-    ( W.UniverseC W.D3
-        ( W.GraphC
-            ( W.NodeC (W.TGain W.D1)
-                (W.ManyEdges W.D2 (W.PtrListCons W.D1 (W.PtrListCons W.D0 W.PtrListNil)))
+    ( UniverseC D3
+        ( GraphC
+            ( NodeC (TGain D1)
+                (ManyEdges D2 (PtrListCons D1 (PtrListCons D0 PtrListNil)))
             )
-            ( W.NodeListCons
-                (W.NodeC (W.THighpass W.D2) (W.SingleEdge W.D0))
-                (W.NodeListCons (W.NodeC (W.TSinOsc W.D0) W.NoEdge) W.NodeListNil)
+            ( NodeListCons
+                (NodeC (THighpass D2) (SingleEdge D0))
+                (NodeListCons (NodeC (TSinOsc D0) NoEdge) NodeListNil)
             )
         )
         Z
-        W.SkolemListNil
+        SkolemListNil
     )
     Unit
-moveTest5 ref ref2 = W.move ref ref2 (Proxy :: _ Z)
+moveTest5 ref ref2 = move ref ref2 (Proxy :: _ Z)

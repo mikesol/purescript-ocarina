@@ -1,6 +1,7 @@
 module WAGS.Example.AtariSpeaks where
 
 import Prelude
+
 import Control.Comonad.Cofree (Cofree, mkCofree)
 import Control.Promise (toAffE)
 import Data.Either (Either(..))
@@ -20,8 +21,15 @@ import Halogen.HTML.Events as HE
 import Halogen.VDom.Driver (runUI)
 import Math (pi, sin)
 import Type.Proxy (Proxy(..))
-import WAGS (AudioContext, FFIAudio(..), Frame0, Gain, GetSetAP, LoopBuf, Scene, SceneI, Speaker, change, close, context, create, decodeAudioDataFromUri, defaultFFIAudio, env, gain, loop, loopBuf, makeUnitCache, run, speaker, start, (@>))
+import WAGS.Change (change)
+import WAGS.Control.Functions (env, loop, start, (@>))
 import WAGS.Control.Qualified as Ix
+import WAGS.Control.Types (Frame0, Scene)
+import WAGS.Create (create)
+import WAGS.Graph.Constructors (Gain, LoopBuf, Speaker)
+import WAGS.Graph.Optionals (GetSetAP, gain, loopBuf, speaker)
+import WAGS.Interpret (AudioContext, FFIAudio(..), close, context, decodeAudioDataFromUri, defaultFFIAudio, makeUnitCache)
+import WAGS.Run (SceneI, run)
 
 vol = 1.4 :: Number
 

@@ -11,7 +11,7 @@ import Effect.Ref as Ref
 import FRP.Event (EventIO, create, subscribe)
 import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (shouldEqual)
-import WAGS (bufferToList)
+import WAGS.Run (bufferToList)
 
 testFRP :: Spec Unit
 testFRP = do

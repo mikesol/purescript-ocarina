@@ -1,6 +1,7 @@
 module WAGS.Example.WTK where
 
 import Prelude
+
 import Control.Alt ((<|>))
 import Control.Comonad.Cofree (Cofree, mkCofree)
 import Control.Promise (toAffE)
@@ -17,9 +18,10 @@ import Halogen.Aff (awaitBody, runHalogenAff)
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.VDom.Driver (runUI)
-import WAGS (AudioContext, FFIAudio(..), bufferToList, close, context, defaultFFIAudio, makeUnitCache, run)
 import WAGS.Example.WTK.RenderingEnv (makeRenderingEnv)
 import WAGS.Example.WTK.TLP (piece)
+import WAGS.Interpret (AudioContext, FFIAudio(..), close, context, defaultFFIAudio, makeUnitCache)
+import WAGS.Run (bufferToList, run)
 
 easingAlgorithm :: Cofree ((->) Int) Int
 easingAlgorithm = let fOf initialTime = mkCofree initialTime \adj -> fOf $ max 10 (initialTime - adj) in fOf 20

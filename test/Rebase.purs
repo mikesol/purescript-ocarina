@@ -1,46 +1,52 @@
 module Test.Rebase where
 
 import Type.Data.Peano (Z)
-import WAGS as W
+import WAGS.Universe.AudioUnit (TGain, THighpass, TSinOsc, TSpeaker)
+import WAGS.Universe.Bin (D0, D1, D2, D3, D4, D5, D6, D7, D8, D9, PtrListCons, PtrListNil)
+import WAGS.Universe.EdgeProfile (ManyEdges, NoEdge, SingleEdge)
+import WAGS.Universe.Graph (GraphC)
+import WAGS.Universe.Node (NodeC, NodeListCons, NodeListNil)
+import WAGS.Universe.Skolems (SkolemListNil)
+import WAGS.Universe.Universe (UniverseC)
 
 data MyGain
 
 data MySinOsc
 
 type RBL
-  =  W.UniverseC W.D4
-        ( W.GraphC
-            (W.NodeC (W.TSpeaker W.D0) (W.SingleEdge W.D2))
-            ( W.NodeListCons
-                ( W.NodeC (W.TGain W.D2)
-                    (W.ManyEdges W.D2 (W.PtrListCons W.D3 (W.PtrListCons W.D1 W.PtrListNil)))
+  =  UniverseC D4
+        ( GraphC
+            (NodeC (TSpeaker D0) (SingleEdge D2))
+            ( NodeListCons
+                ( NodeC (TGain D2)
+                    (ManyEdges D2 (PtrListCons D3 (PtrListCons D1 PtrListNil)))
                 )
-                ( W.NodeListCons (W.NodeC (W.THighpass W.D3) (W.SingleEdge W.D1))
-                    (W.NodeListCons (W.NodeC (W.TSinOsc W.D1) W.NoEdge) W.NodeListNil)
+                ( NodeListCons (NodeC (THighpass D3) (SingleEdge D1))
+                    (NodeListCons (NodeC (TSinOsc D1) NoEdge) NodeListNil)
                 )
             )
         )
-        Z W.SkolemListNil
+        Z SkolemListNil
     
 
 type RBR
-  = W.UniverseC W.D9
-        ( W.GraphC
-            (W.NodeC (W.TSpeaker W.D5) (W.SingleEdge W.D7))
-            ( W.NodeListCons
-                ( W.NodeC (W.TGain W.D7)
-                    (W.ManyEdges W.D7 (W.PtrListCons W.D8 (W.PtrListCons W.D6 W.PtrListNil)))
+  = UniverseC D9
+        ( GraphC
+            (NodeC (TSpeaker D5) (SingleEdge D7))
+            ( NodeListCons
+                ( NodeC (TGain D7)
+                    (ManyEdges D7 (PtrListCons D8 (PtrListCons D6 PtrListNil)))
                 )
-                ( W.NodeListCons (W.NodeC (W.THighpass W.D8) (W.SingleEdge W.D6))
-                    (W.NodeListCons (W.NodeC (W.TSinOsc W.D6) W.NoEdge) W.NodeListNil)
+                ( NodeListCons (NodeC (THighpass D8) (SingleEdge D6))
+                    (NodeListCons (NodeC (TSinOsc D6) NoEdge) NodeListNil)
                 )
             )
         )
-        Z W.SkolemListNil
+        Z SkolemListNil
 
 {-
 -- internal compiler error
 rebaseTest0 ::
-  W.Frame Unit Void RBL RBR Unit
-rebaseTest0 = W.rebase (Proxy :: _ RBL) (Proxy :: _ RBR)
+  Frame Unit Void RBL RBR Unit
+rebaseTest0 = rebase (Proxy :: _ RBL) (Proxy :: _ RBR)
 -}

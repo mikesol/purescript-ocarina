@@ -2,8 +2,13 @@ module Test.WAGS.Types where
 
 import Data.Typelevel.Bool (False, True)
 import Type.Proxy (Proxy(..))
-import WAGS (class AllEdgesPointToNodes, class AudioUnitEq, class BinEq, class BinSub, class BinSucc, class HasSourceNodes, class LookupNL, class NoNodesAreDuplicated, class NoParallelEdges, class UniqueTerminus, type (+:), type (/->), type (/:), Bc, Bn, D0, D1, D2, D3, GraphC, I, ManyEdges, NoEdge, NodeC, NodeListCons, NodeListNil, O, PtrListCons, PtrListNil, SingleEdge, TGain, THighpass, TSinOsc)
+import WAGS.Universe.AudioUnit (class AudioUnitEq, TGain, THighpass, TSinOsc)
+import WAGS.Universe.Bin (class BinEq, class BinSub, class BinSucc, type (+:), Bc, Bn, D0, D1, D2, I, O, PtrListCons, PtrListNil, D3)
+import WAGS.Universe.EdgeProfile (ManyEdges, NoEdge, SingleEdge)
+import WAGS.Universe.Graph (GraphC)
+import WAGS.Universe.Node (type (/:), type (/->), NodeC, NodeListCons, NodeListNil)
 import WAGS.Util (class Gate)
+import WAGS.Validation (class AllEdgesPointToNodes, class HasSourceNodes, class LookupNL, class NoNodesAreDuplicated, class NoParallelEdges, class UniqueTerminus)
 
 testBinSucc0 :: Proxy (Bc I Bn)
 testBinSucc0 =

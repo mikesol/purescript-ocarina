@@ -3,7 +3,10 @@ module Test.Readme.HelloWorld where
 import Prelude
 
 import Control.Apply.Indexed ((:*>))
-import WAGS (create, freeze, oneFrame, sinOsc, speaker, start, (@|>))
+import WAGS.Control.Functions (freeze, start, (@|>))
+import WAGS.Control.Types (oneFrame)
+import WAGS.Create (create)
+import WAGS.Graph.Optionals (sinOsc, speaker)
 
 scene = (start :*> create (speaker (sinOsc 440.0))) @|> freeze
 

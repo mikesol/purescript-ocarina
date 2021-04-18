@@ -1,10 +1,21 @@
-module Test.WAGS.Create where
+module Test.GS.Create where
 
 import Prelude
+
 import Data.Tuple.Nested ((/\))
 import Type.Data.Peano (Z)
 import Type.Proxy (Proxy)
-import WAGS as W
+import WAGS.Control.Types (Frame)
+import WAGS.Create (create)
+import WAGS.Graph.Constructors (Dup(..), Gain(..), Highpass(..), OnOff(..), SinOsc(..))
+import WAGS.Interpret (class AudioInterpret)
+import WAGS.Universe.AudioUnit (AudioUnitRef, TGain, THighpass, TSinOsc)
+import WAGS.Universe.Bin (class BinSucc, class BinToInt, PtrListCons, PtrListNil, D0, D1, D2, D3)
+import WAGS.Universe.EdgeProfile (ManyEdges, NoEdge, SingleEdge)
+import WAGS.Universe.Graph (GraphC)
+import WAGS.Universe.Node (NodeC, NodeListCons)
+import WAGS.Universe.Skolems (SkolemListNil)
+import WAGS.Universe.Universe (UniverseC)
 
 data MyGain
 
@@ -12,107 +23,107 @@ data MySinOsc
 
 createTest1 ::
   forall ptr next env audio engine skolems head tail proof.
-  W.BinToInt ptr =>
-  W.BinToInt next =>
-  W.BinSucc ptr next =>
-  W.AudioInterpret audio engine =>
-  W.Frame env audio engine proof (W.UniverseC ptr (W.GraphC head tail) Z skolems)
-    ( W.UniverseC next
-        (W.GraphC (W.NodeC (W.TSinOsc ptr) W.NoEdge) (W.NodeListCons head tail))
+  BinToInt ptr =>
+  BinToInt next =>
+  BinSucc ptr next =>
+  AudioInterpret audio engine =>
+  Frame env audio engine proof (UniverseC ptr (GraphC head tail) Z skolems)
+    ( UniverseC next
+        (GraphC (NodeC (TSinOsc ptr) NoEdge) (NodeListCons head tail))
         Z
         skolems
     )
-    (W.AudioUnitRef ptr)
-createTest1 = W.create (W.SinOsc W.On 440.0)
+    (AudioUnitRef ptr)
+createTest1 = create (SinOsc On 440.0)
 
 createTest2 ::
   forall first mid last env audio engine skolems head tail proof.
-  W.BinToInt first =>
-  W.BinToInt mid =>
-  W.BinToInt last =>
-  W.BinSucc first mid =>
-  W.BinSucc mid last =>
-  W.AudioInterpret audio engine =>
-  W.Frame env audio engine proof (W.UniverseC first (W.GraphC head tail) Z skolems)
-    ( W.UniverseC last
-        (W.GraphC (W.NodeC (W.THighpass first) (W.SingleEdge mid)) (W.NodeListCons (W.NodeC (W.TSinOsc mid) W.NoEdge) (W.NodeListCons head tail)))
+  BinToInt first =>
+  BinToInt mid =>
+  BinToInt last =>
+  BinSucc first mid =>
+  BinSucc mid last =>
+  AudioInterpret audio engine =>
+  Frame env audio engine proof (UniverseC first (GraphC head tail) Z skolems)
+    ( UniverseC last
+        (GraphC (NodeC (THighpass first) (SingleEdge mid)) (NodeListCons (NodeC (TSinOsc mid) NoEdge) (NodeListCons head tail)))
         Z
         skolems
     )
-    (W.AudioUnitRef first)
-createTest2 = W.create (W.Highpass 440.0 1.0 (W.SinOsc W.On 440.0))
+    (AudioUnitRef first)
+createTest2 = create (Highpass 440.0 1.0 (SinOsc On 440.0))
 
 createTest3 ::
   forall first mid last env audio engine head tail proof.
-  W.BinToInt first =>
-  W.BinToInt mid =>
-  W.BinToInt last =>
-  W.BinSucc first mid =>
-  W.BinSucc mid last =>
-  W.AudioInterpret audio engine =>
-  W.Frame env audio engine proof (W.UniverseC first (W.GraphC head tail) Z W.SkolemListNil)
-    ( W.UniverseC last
-        ( W.GraphC
-            ( W.NodeC (W.TGain first)
-                (W.ManyEdges first (W.PtrListCons mid W.PtrListNil))
+  BinToInt first =>
+  BinToInt mid =>
+  BinToInt last =>
+  BinSucc first mid =>
+  BinSucc mid last =>
+  AudioInterpret audio engine =>
+  Frame env audio engine proof (UniverseC first (GraphC head tail) Z SkolemListNil)
+    ( UniverseC last
+        ( GraphC
+            ( NodeC (TGain first)
+                (ManyEdges first (PtrListCons mid PtrListNil))
             )
-            (W.NodeListCons (W.NodeC (W.TSinOsc mid) W.NoEdge) (W.NodeListCons head tail))
+            (NodeListCons (NodeC (TSinOsc mid) NoEdge) (NodeListCons head tail))
         )
         Z
-        W.SkolemListNil
+        SkolemListNil
     )
-    (W.AudioUnitRef first)
-createTest3 = W.create (W.Gain 1.0 (\(gain :: Proxy MyGain) -> gain /\ W.SinOsc W.On 440.0 /\ unit))
+    (AudioUnitRef first)
+createTest3 = create (Gain 1.0 (\(gain :: Proxy MyGain) -> gain /\ SinOsc On 440.0 /\ unit))
 
 createTest4 ::
   forall first mid0 mid1 last env audio engine head tail proof.
-  W.BinToInt first =>
-  W.BinToInt mid0 =>
-  W.BinToInt mid1 =>
-  W.BinToInt last =>
-  W.BinSucc first mid0 =>
-  W.BinSucc mid0 mid1 =>
-  W.BinSucc mid1 last =>
-  W.AudioInterpret audio engine =>
-  W.Frame env audio engine proof (W.UniverseC first (W.GraphC head tail) Z W.SkolemListNil)
-    ( W.UniverseC last
-        ( W.GraphC
-            ( W.NodeC (W.TGain first)
-                (W.ManyEdges first (W.PtrListCons mid0 W.PtrListNil))
+  BinToInt first =>
+  BinToInt mid0 =>
+  BinToInt mid1 =>
+  BinToInt last =>
+  BinSucc first mid0 =>
+  BinSucc mid0 mid1 =>
+  BinSucc mid1 last =>
+  AudioInterpret audio engine =>
+  Frame env audio engine proof (UniverseC first (GraphC head tail) Z SkolemListNil)
+    ( UniverseC last
+        ( GraphC
+            ( NodeC (TGain first)
+                (ManyEdges first (PtrListCons mid0 PtrListNil))
             )
-            ( W.NodeListCons (W.NodeC (W.THighpass mid0) (W.SingleEdge mid1))
-                (W.NodeListCons (W.NodeC (W.TSinOsc mid1) W.NoEdge) (W.NodeListCons head tail))
+            ( NodeListCons (NodeC (THighpass mid0) (SingleEdge mid1))
+                (NodeListCons (NodeC (TSinOsc mid1) NoEdge) (NodeListCons head tail))
             )
         )
         Z
-        W.SkolemListNil
+        SkolemListNil
     )
-    (W.AudioUnitRef first)
+    (AudioUnitRef first)
 createTest4 =
-  W.create
-    $ W.Gain 1.0 \(gain :: Proxy MyGain) ->
-        gain /\ W.Highpass 330.0 1.0 (W.SinOsc W.On 440.0) /\ unit
+  create
+    $ Gain 1.0 \(gain :: Proxy MyGain) ->
+        gain /\ Highpass 330.0 1.0 (SinOsc On 440.0) /\ unit
 
 createTest5 ::
   forall env audio engine head tail proof.
-  W.AudioInterpret audio engine =>
-  W.Frame env audio engine proof (W.UniverseC W.D0 (W.GraphC head tail) Z W.SkolemListNil)
-    ( W.UniverseC W.D3
-        ( W.GraphC
-            ( W.NodeC (W.TGain W.D1)
-                (W.ManyEdges W.D1 (W.PtrListCons W.D2 (W.PtrListCons W.D0 W.PtrListNil)))
+  AudioInterpret audio engine =>
+  Frame env audio engine proof (UniverseC D0 (GraphC head tail) Z SkolemListNil)
+    ( UniverseC D3
+        ( GraphC
+            ( NodeC (TGain D1)
+                (ManyEdges D1 (PtrListCons D2 (PtrListCons D0 PtrListNil)))
             )
-            ( W.NodeListCons
-                (W.NodeC (W.THighpass W.D2) (W.SingleEdge W.D0))
-                (W.NodeListCons (W.NodeC (W.TSinOsc W.D0) W.NoEdge) (W.NodeListCons head tail))
+            ( NodeListCons
+                (NodeC (THighpass D2) (SingleEdge D0))
+                (NodeListCons (NodeC (TSinOsc D0) NoEdge) (NodeListCons head tail))
             )
         )
         Z
-        W.SkolemListNil
+        SkolemListNil
     )
-    (W.AudioUnitRef W.D1)
+    (AudioUnitRef D1)
 createTest5 =
-  W.create
-    $ W.Dup (W.SinOsc W.On 440.0) \(mySinOsc :: Proxy MySinOsc) ->
-        W.Gain 1.0 \(gain :: Proxy MyGain) ->
-          gain /\ W.Highpass 330.0 1.0 mySinOsc /\ mySinOsc /\ unit
+  create
+    $ Dup (SinOsc On 440.0) \(mySinOsc :: Proxy MySinOsc) ->
+        Gain 1.0 \(gain :: Proxy MyGain) ->
+          gain /\ Highpass 330.0 1.0 mySinOsc /\ mySinOsc /\ unit

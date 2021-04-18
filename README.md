@@ -65,7 +65,6 @@ The following is the complete hello-world example from the `examples` directory.
 ```purescript
 module WAGS.Example.HelloWorld where
 
-import Prelude
 import Control.Comonad.Cofree (Cofree, mkCofree)
 import Data.Either (Either(..))
 import Data.Functor.Indexed (ivoid)
@@ -73,24 +72,14 @@ import Data.Tuple.Nested ((/\))
 import Effect (Effect)
 import FRP.Event (subscribe)
 import Math (pi, sin)
-import WAGS
-  ( FFIAudio(..)
-  , Frame0
-  , Scene
-  , SceneI
-  , FFIAudio'
-  , change
-  , create
-  , env
-  , gain
-  , loop
-  , run
-  , sinOsc
-  , speaker
-  , start
-  , (@>)
-  )
+import WAGS.Change (change)
+import WAGS.Control.Functions (env, loop, start, (@>))
 import WAGS.Control.Qualified as Ix
+import WAGS.Control.Types (Frame0, Scene)
+import WAGS.Create (create)
+import WAGS.Graph.Optionals (gain, sinOsc, speaker)
+import WAGS.Interpret (FFIAudio(..), FFIAudio')
+import WAGS.Run (SceneI, run)
 
 scene time =
   let

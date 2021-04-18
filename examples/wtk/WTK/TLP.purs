@@ -1,6 +1,7 @@
 module WAGS.Example.WTK.TLP where
 
 import Prelude
+
 import Data.Either (Either(..))
 import Data.Functor.Indexed (ivoid)
 import Data.List (List(..), (:))
@@ -10,11 +11,18 @@ import Data.Tuple.Nested ((/\), type (/\))
 import Effect (Effect)
 import Type.Data.Peano (Succ)
 import Type.Proxy (Proxy(..))
-import WAGS (class Change, class Changes, AudioUnitRef, FFIAudio, Frame0, FrameT, Scene, SceneI, SingleEdge, UniverseC, create, cursor, env, graph, loop, proof, start, withProof, (@>))
-import WAGS.Change (ChangeInstruction(..), changes)
+import WAGS.Change (class Change, class Changes, ChangeInstruction(..), changes)
+import WAGS.Control.Functions (env, graph, loop, proof, start, withProof, (@>))
 import WAGS.Control.Qualified as Ix
+import WAGS.Control.Types (Frame0, FrameT, Scene)
+import WAGS.Create (create)
+import WAGS.Cursor (cursor)
 import WAGS.Example.WTK.Types (Key(..), MakeRenderingEnv, KeyInfo, KeyUnit, Trigger, cursors, fullKeyboard, klavierIdentity)
-import WAGS.Interpret (class AudioInterpret)
+import WAGS.Interpret (class AudioInterpret, FFIAudio)
+import WAGS.Run (SceneI)
+import WAGS.Universe.AudioUnit (AudioUnitRef)
+import WAGS.Universe.EdgeProfile (SingleEdge)
+import WAGS.Universe.Universe (UniverseC)
 
 playKeys ::
   forall k0 k1 k2 k3 k4 k5 k6 k7 k8 k9 incoming env audio engine proof m currentIdx graph j skolems.

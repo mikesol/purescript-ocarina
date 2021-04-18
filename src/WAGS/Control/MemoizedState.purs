@@ -10,7 +10,7 @@ import Data.Maybe.First (First(..))
 import Data.Newtype (unwrap)
 import Data.Tuple (Tuple(..))
 
--- | MemoizedStateT combines the `StateT` monad and the `Env` comonad. It is isomorphic to `StateT s (m (Env a))`. It is useful when a state combines elements that are known and unknown. The `proof` term allows producers to lock an initial state in place.
+-- | MemoizedStateT combines the `StateT` monad and the `Env` comonad. It is similar to `StateT s (m (Env a))`. It is useful when a state combines elements that are known and unknown. The `proof` term allows producers to lock an initial state in place.
 newtype MemoizedStateT (proof :: Type) s m a
   = MemoizedStateT (Tuple (First s) (StateT s m a))
 

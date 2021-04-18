@@ -1,14 +1,16 @@
 module WAGS.Example.WTK.RenderingEnv where
 
 import Prelude
+
 import Data.Int (toNumber)
 import Data.List (List(..), (:), filter, length, drop, zipWith)
 import Data.Set as S
 import Data.Tuple.Nested ((/\), type (/\))
 import FRP.Event.MIDI (MIDIEvent(..))
 import Math (pow)
-import WAGS (Gain(..), OnOff(..), SinOsc(..), defaultGetSetAP)
 import WAGS.Example.WTK.Types (KeyUnit, MakeRenderingEnv)
+import WAGS.Graph.Constructors (Gain(..), OnOff(..), SinOsc(..))
+import WAGS.Graph.Optionals (defaultGetSetAP)
 
 keyDur :: Number
 keyDur = 1.6

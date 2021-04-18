@@ -5,7 +5,7 @@ import Prelude
 import Data.Tuple (fst, snd)
 import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (shouldEqual)
-import WAGS (isHere, runThunkableWithCount, thunkThunkable, wait)
+import WAGS.Control.Thunkable (isHere, runThunkableWithCount, thunkThunkable, wait)
 
 testThunkable :: Spec Unit
 testThunkable = do

@@ -1,6 +1,7 @@
 module WAGS.Example.WTK.Types where
 
 import Prelude
+
 import Data.DateTime.Instant (Instant)
 import Data.Identity (Identity(..))
 import Data.List (List)
@@ -9,7 +10,9 @@ import Data.Tuple.Nested ((/\), type (/\))
 import FRP.Event.MIDI (MIDIEventInTime)
 import Record (set)
 import Type.Proxy (Proxy(..))
-import WAGS (Decorating', Focus(..), Gain(..), GetSetAP, OnOff(..), SinOsc(..), Speaker(..), defaultGetSetAP)
+import WAGS.Graph.Constructors (Gain(..), OnOff(..), SinOsc(..), Speaker(..))
+import WAGS.Graph.Decorators (Decorating', Focus(..))
+import WAGS.Graph.Optionals (GetSetAP, defaultGetSetAP)
 
 data Key
   = K0

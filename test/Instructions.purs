@@ -1,6 +1,7 @@
 module Test.Instructions where
 
 import Prelude
+
 import Control.Applicative.Indexed (imap)
 import Data.Either (Either(..))
 import Data.Functor.Indexed (ivoid)
@@ -11,8 +12,17 @@ import Data.Tuple.Nested ((/\))
 import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (shouldEqual)
 import Type.Proxy (Proxy)
-import WAGS (AnAudioUnit(..), Focus(..), Instruction(..), OnOff(..), SinOsc(..), branch, change, changeAt, create, cursor, env, freeze, gain, highpass, loop, mix, oneFrame', param, proof, sinOsc, speaker, start, withProof, (@>), (@|>))
+import WAGS.Change (change, changeAt)
+import WAGS.Control.Functions (branch, env, freeze, loop, proof, start, withProof, (@>), (@|>))
 import WAGS.Control.Qualified as Ix
+import WAGS.Control.Types (oneFrame')
+import WAGS.Create (create)
+import WAGS.Cursor (cursor)
+import WAGS.Graph.Constructors (OnOff(..), SinOsc(..))
+import WAGS.Graph.Decorators (Focus(..))
+import WAGS.Graph.Optionals (gain, highpass, mix, sinOsc, speaker)
+import WAGS.Graph.Parameter (param)
+import WAGS.Rendered (AnAudioUnit(..), Instruction(..))
 
 data MyMix
 
