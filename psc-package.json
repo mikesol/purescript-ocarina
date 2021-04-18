@@ -1,0 +1,28 @@
+{
+  "name": "delete-me-kind",
+  "set": "psc-0.14.0",
+  "source": "packages.json",
+  "depends": [
+    "aff-promise",
+    "arraybuffer-types",
+    "behaviors",
+    "console",
+    "convertable-options",
+    "debug",
+    "effect",
+    "free",
+    "heterogeneous",
+    "indexed-monad",
+    "maybe",
+    "ordered-collections",
+    "profunctor-lenses",
+    "psci-support",
+    "record",
+    "sized-vectors",
+    "transformers",
+    "tuples",
+    "typelevel",
+    "typelevel-peano",
+    "typelevel-prelude"
+  ]
+}
