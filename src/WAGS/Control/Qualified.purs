@@ -1,3 +1,5 @@
+-- | Import this module to use `do` notation with `FrameT`.
+-- | This qualified file is needed because `FrameT` does not implement `IxMonad`.
 module WAGS.Control.Qualified where
 
 import Prelude as P

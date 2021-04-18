@@ -10,25 +10,30 @@ import Data.Tuple (Tuple(..))
 import Effect.Aff (Aff, Milliseconds(..), delay)
 import WAGS.Control.MemoizedState (MemoizedStateT)
 
+-- | Thunkable is the [`Trampoline`](https://pursuit.purescript.org/packages/purescript-free/6.0.0/docs/Control.Monad.Trampoline#t:Trampoline) moand with some extra typeclasses like `Alt` and `Plus` and some extra utility methods for thunking.
 data Thunkable a
   = Here a
   | Wait (Unit -> Thunkable a)
 
+-- | Returns `true` if the `Thunkable` is a `Wait`, else `false`.
 isWait :: forall a. Thunkable a -> Boolean
 isWait = case _ of
   Wait x -> true
   Here x -> false
 
+-- | Returns `true` if the `Thunkable` is a `Here`, else `false`.
 isHere :: forall a. Thunkable a -> Boolean
 isHere = case _ of
   Wait x -> false
   Here x -> true
 
+-- | Runs a thunkable to produce an `a`. Same as [`runTrampoline`](https://pursuit.purescript.org/packages/purescript-free/6.0.0/docs/Control.Monad.Trampoline#v:runTrampoline).
 runThunkable :: forall a. Thunkable a -> a
 runThunkable (Here a) = a
 
 runThunkable (Wait f) = runThunkable (f unit)
 
+-- | Runs a thunkable to produce an `a`, counting how many "thunks" were needed.
 runThunkableWithCount :: forall a. Thunkable a -> Tuple Int a
 runThunkableWithCount (Here a) = Tuple 0 a
 
@@ -36,20 +41,24 @@ runThunkableWithCount (Wait f) = Tuple (x + 1) y
   where
   Tuple x y = runThunkableWithCount (f unit)
 
+-- | Thunks a thunkable once, producing a new thunkable. Same as [`runFree`](https://pursuit.purescript.org/packages/purescript-free/6.0.0/docs/Control.Monad.Free#v:runFree).
 thunkThunkable :: forall a. Thunkable a -> Thunkable a
 thunkThunkable (Here a) = Here a
 
 thunkThunkable (Wait f) = f unit
 
+-- | A natural transformation from `Thunkable` to any monad `m`. Same as [`foldFree`](https://pursuit.purescript.org/packages/purescript-free/6.0.0/docs/Control.Monad.Free#v:foldFree).
 monadifyThunkable :: forall m. Monad m => Thunkable ~> m
 monadifyThunkable = intercalateThunkable (pure unit)
 
+-- | A natural transformation from `Thunkable` to any monad `m` that inserts `m Unit` in between thunks.
 intercalateThunkable :: forall m. Monad m => m Unit -> Thunkable ~> m
 intercalateThunkable m t = case (thunkThunkable t) of
   Here a -> pure a
   Wait f -> m >>= \_ -> intercalateThunkable m (f unit)
 
-affifyThunkable :: forall a. Thunkable a -> Aff a
+-- | A natural transformation from `Thunkable` to `Aff` that guarantees the `Wait` operation will resume on the next tick of a browser or node event loop.
+affifyThunkable :: Thunkable ~> Aff
 affifyThunkable = intercalateThunkable (delay (Milliseconds 0.0001))
 
 instance semigroupThunkable :: Semigroup a => Semigroup (Thunkable a) where
@@ -120,6 +129,7 @@ instance plusThunkable :: Plus Thunkable where
 
 instance alternativeThunkable :: Alternative Thunkable
 
+-- | Waitable is a something that can be told to wait.
 class Waitable f where
   wait :: forall a. a -> f a
 
