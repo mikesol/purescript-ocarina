@@ -43,6 +43,13 @@ defaultAllpass :: { | AllpassOptional }
 defaultAllpass = { q: defaultGetSetAP 1.0 }
 
 class AllpassCtor i allpass | i -> allpass where
+  -- | Make an allpass filter
+  -- |
+  -- | ```purescript
+  -- | allpass { freq: 440.0 } sinOsc 440.0
+  -- | allpass { freq: 440.0, q: 1.0 } sinOsc 440.0
+  -- | allpass 440.0 sinOsc 440.0
+  -- | ```
   allpass :: i -> allpass
 
 instance allpassCtor1 ::
@@ -79,6 +86,13 @@ defaultBandpass :: { | BandpassOptional }
 defaultBandpass = { q: defaultGetSetAP 1.0 }
 
 class BandpassCtor i bandpass | i -> bandpass where
+  -- | Make a bandpass filter
+  -- |
+  -- | ```purescript
+  -- | bandpass { freq: 440.0 } sinOsc 440.0
+  -- | bandpass { freq: 440.0, q: 1.0 } sinOsc 440.0
+  -- | bandpass 440.0 sinOsc 440.0
+  -- | ```
   bandpass :: i -> bandpass
 
 instance bandpassCtor1 ::
@@ -95,6 +109,12 @@ else instance bandpassCtor2 :: (InitialVal a, SetterVal a, IsAudioOrF b) => Band
 
 ------
 class ConstantCtor i o | i -> o where
+  -- | Make a constant value
+  -- |
+  -- | ```purescript
+  -- | constant 0.5
+  -- | constant On 0.5
+  -- | ```
   constant :: i -> o
 
 instance constantCtor2 ::
@@ -111,6 +131,11 @@ else instance constantCtor1 ::
   constant gvsv = CTOR.Constant On (Tuple (initialVal gvsv) (setterVal gvsv))
 
 ------
+-- | Make a convolver, aka reverb.
+-- |
+-- | ```purescript
+-- | convolver (Proxy :: _ "room") (playBuf (Proxy :: _ "track"))
+-- | ```
 convolver ::
   forall s c.
   IsSymbol s =>
@@ -119,6 +144,11 @@ convolver ::
 convolver px cont = CTOR.Convolver px cont
 
 ------
+-- | Make a delay unit.
+-- |
+-- | ```purescript
+-- | delay 0.5 (playBuf (Proxy :: _ "track"))
+-- | ```
 delay ::
   forall a c.
   InitialVal a =>
@@ -169,6 +199,14 @@ defaultDynamicsCompressor =
   }
 
 class DynamicsCompressorCtor i compressor | i -> compressor where
+  -- | Make a compressor.
+  -- |
+  -- | ```purescript
+  -- | compressor (playBuf (Proxy :: _ "track"))
+  -- | compressor { threshold: -10.0 } (playBuf (Proxy :: _ "track"))
+  -- | compressor { knee: 20.0, ratio: 10.0 } (playBuf (Proxy :: _ "track"))
+  -- | compressor { attack: 0.01, release: 0.3 } (playBuf (Proxy :: _ "track"))
+  -- | ```
   compressor :: i -> compressor
 
 instance compressorCTor ::
@@ -199,11 +237,21 @@ else instance compressorCTorNp :: (IsAudioOrF b) => DynamicsCompressorCtor b (CT
 
 ------
 class GainCtor i gain | i -> gain where
+  -- | Make a gain unit
+  -- |
+  -- | ```purescript
+  -- | gain 0.5 (playBuf (Proxy :: _ "hello") /\ playBuf (Proxy :: _ "world") /\ unit)
+  -- | ```
   gain :: i -> gain
 
 instance gainCtor1 :: (InitialVal a, SetterVal a, IsMultiAudioOrF b) => GainCtor a (b -> (CTOR.Gain GetSetAP b)) where
   gain a cont = CTOR.Gain (Tuple (initialVal a) (setterVal a)) cont
 
+-- | Mix together several audio units
+-- |
+-- | ```purescript
+-- | mix (playBuf (Proxy :: _ "hello") /\ playBuf (Proxy :: _ "world") /\ unit)
+-- | ```
 mix :: forall a. IsMultiAudioOrF a => a -> CTOR.Gain GetSetAP a
 mix cont = CTOR.Gain (defaultGetSetAP 1.0) cont
 
@@ -229,6 +277,13 @@ defaultHighpass :: { | HighpassOptional }
 defaultHighpass = { q: defaultGetSetAP 1.0 }
 
 class HighpassCtor i highpass | i -> highpass where
+  -- | Make a highpass filter
+  -- |
+  -- | ```purescript
+  -- | highpass { freq: 440.0 } sinOsc 440.0
+  -- | highpass { freq: 440.0, q: 1.0 } sinOsc 440.0
+  -- | highpass 440.0 sinOsc 440.0
+  -- | ```
   highpass :: i -> highpass
 
 instance highpassCtor1 ::
@@ -265,6 +320,13 @@ defaultHighshelf :: { | HighshelfOptional }
 defaultHighshelf = { gain: defaultGetSetAP 0.0 }
 
 class HighshelfCtor i highshelf | i -> highshelf where
+  -- | Make a highshelf filter
+  -- |
+  -- | ```purescript
+  -- | highshelf { freq: 440.0 } sinOsc 440.0
+  -- | highshelf { freq: 440.0, gain: 1.0 } sinOsc 440.0
+  -- | highshelf 440.0 sinOsc 440.0
+  -- | ```
   highshelf :: i -> highshelf
 
 instance highshelfCtor1 ::
@@ -280,20 +342,57 @@ else instance highshelfCtor2 :: (InitialVal a, SetterVal a, IsAudioOrF b) => Hig
   highshelf a cont = CTOR.Highshelf (Tuple (initialVal a) (setterVal a)) defaultHighshelf.gain cont
 
 ----
-class LoopBufCtor i o | i -> o where
-  loopBuf :: i -> o
+data LoopBuf'
+  = LoopBuf'
 
-instance loopBufCtor1 :: (IsSymbol s, InitialVal a, SetterVal a) => LoopBufCtor (Proxy s) (a -> CTOR.LoopBuf s GetSetAP) where
-  loopBuf s a = CTOR.LoopBuf s On (Tuple (initialVal a) (setterVal a)) 0.0 0.0
+instance convertLoopBufPlaybackRate :: (InitialVal a, SetterVal a) => ConvertOption LoopBuf' "playbackRate" a GetSetAP where
+  convertOption _ _ gvsv = Tuple (initialVal gvsv) (setterVal gvsv)
 
-instance loopBufCtor2 :: (IsSymbol s, InitialVal a, SetterVal a) => LoopBufCtor Number (Proxy s -> a -> CTOR.LoopBuf s GetSetAP) where
-  loopBuf start s a = CTOR.LoopBuf s On (Tuple (initialVal a) (setterVal a)) start 0.0
+instance convertLoopBufOnOff :: ConvertOption LoopBuf' "onOff" OnOff OnOff where
+  convertOption _ _ = identity
 
-instance loopBufCtor3 :: (IsSymbol s, InitialVal a, SetterVal a) => LoopBufCtor (Tuple Number Number) (Proxy s -> a -> CTOR.LoopBuf s GetSetAP) where
-  loopBuf (Tuple start end) s a = CTOR.LoopBuf s On (Tuple (initialVal a) (setterVal a)) start end
+instance convertLoopBufStart :: ConvertOption LoopBuf' "start" Number Number where
+  convertOption _ _ = identity
 
-instance loopBufCtor4 :: (IsSymbol s, InitialVal a, SetterVal a) => LoopBufCtor OnOff ((Tuple Number Number) -> Proxy s -> a -> CTOR.LoopBuf s GetSetAP) where
-  loopBuf oo (Tuple start end) s a = CTOR.LoopBuf s On (Tuple (initialVal a) (setterVal a)) start end
+instance convertLoopBufEnd :: ConvertOption LoopBuf' "end" Number Number where
+  convertOption _ _ = identity
+
+type LoopBufOptional
+  = ( playbackRate :: GetSetAP, onOff :: OnOff, start :: Number, end :: Number )
+
+type LoopBufAll
+  = ( | LoopBufOptional )
+
+defaultLoopBuf :: { | LoopBufOptional }
+defaultLoopBuf = { playbackRate: defaultGetSetAP 1.0, onOff: On, start: 0.0, end: 0.0 }
+
+class LoopBufCtor i loopBuf | i -> loopBuf where
+  -- | Make a looping buffer.
+  -- |
+  -- | ```purescript
+  -- | loopBuf { playbackRate: 1.0 } (Proxy :: _ "track")
+  -- | loopBuf { playbackRate: 1.0, start: 0.5 } (Proxy :: _ "track")
+  -- | loopBuf (Proxy :: _ "track")
+  -- | ```
+  loopBuf :: i -> loopBuf
+
+instance loopBufCtor1 ::
+  ( IsSymbol l
+  , ConvertOptionsWithDefaults LoopBuf' { | LoopBufOptional } { | provided } { | LoopBufAll }
+  ) =>
+  LoopBufCtor { | provided } (Proxy l -> CTOR.LoopBuf l GetSetAP) where
+  loopBuf provided proxy = CTOR.LoopBuf proxy all.onOff all.playbackRate all.start all.end
+    where
+    all :: { | LoopBufAll }
+    all = convertOptionsWithDefaults LoopBuf' defaultLoopBuf provided
+else instance loopBufCtor2 :: IsSymbol l => LoopBufCtor (Proxy l) (CTOR.LoopBuf l GetSetAP) where
+  loopBuf proxy =
+    CTOR.LoopBuf
+      proxy
+      defaultLoopBuf.onOff
+      defaultLoopBuf.playbackRate
+      defaultLoopBuf.start
+      defaultLoopBuf.end
 
 -----
 data Lowpass'
@@ -317,6 +416,13 @@ defaultLowpass :: { | LowpassOptional }
 defaultLowpass = { q: defaultGetSetAP 1.0 }
 
 class LowpassCtor i lowpass | i -> lowpass where
+  -- | Make a lowpass filter
+  -- |
+  -- | ```purescript
+  -- | lowpass { freq: 440.0 } sinOsc 440.0
+  -- | lowpass { freq: 440.0, q: 1.0 } sinOsc 440.0
+  -- | lowpass 440.0 sinOsc 440.0
+  -- | ```
   lowpass :: i -> lowpass
 
 instance lowpassCtor1 ::
@@ -353,6 +459,13 @@ defaultLowshelf :: { | LowshelfOptional }
 defaultLowshelf = { gain: defaultGetSetAP 0.0 }
 
 class LowshelfCtor i lowshelf | i -> lowshelf where
+  -- | Make a lowshelf filter
+  -- |
+  -- | ```purescript
+  -- | lowshelf { freq: 440.0 } sinOsc 440.0
+  -- | lowshelf { freq: 440.0, gain: 1.0 } sinOsc 440.0
+  -- | lowshelf 440.0 sinOsc 440.0
+  -- | ```
   lowshelf :: i -> lowshelf
 
 instance lowshelfCtor1 ::
@@ -447,6 +560,12 @@ else instance peakingCtor2 :: (InitialVal a, SetterVal a, IsAudioOrF b) => Peaki
 
 ------
 class PeriodicOscCtor i o | i -> o where
+  -- | Make a periodic oscillator
+  -- |
+  -- | ```purescript
+  -- | periodicOsc (Proxy :: _ "my-wavetable") 440.0
+  -- | periodicOsc On (Proxy :: _ "my-wavetable") 440.0
+  -- | ```
   periodicOsc :: i -> o
 
 instance periodicOsc1 ::
@@ -466,19 +585,57 @@ instance periodicOsc2 ::
   periodicOsc oo px gvsv = CTOR.PeriodicOsc px oo (Tuple (initialVal gvsv) (setterVal gvsv))
 
 ---
-class PlayBufCtor i o | i -> o where
-  playBuf :: i -> o
+data PlayBuf'
+  = PlayBuf'
 
-instance playBufCtor1 :: (IsSymbol s, InitialVal a, SetterVal a) => PlayBufCtor (Proxy s) (a -> CTOR.PlayBuf s GetSetAP) where
-  playBuf s a = CTOR.PlayBuf s 0.0 On (Tuple (initialVal a) (setterVal a))
+instance convertPlayBufPlaybackRate :: (InitialVal a, SetterVal a) => ConvertOption PlayBuf' "playbackRate" a GetSetAP where
+  convertOption _ _ gvsv = Tuple (initialVal gvsv) (setterVal gvsv)
 
-instance playBufCtor2 :: (IsSymbol s, InitialVal a, SetterVal a) => PlayBufCtor Number (Proxy s -> a -> CTOR.PlayBuf s GetSetAP) where
-  playBuf offset s a = CTOR.PlayBuf s offset On (Tuple (initialVal a) (setterVal a))
+instance convertPlayBufOnOff :: ConvertOption PlayBuf' "onOff" OnOff OnOff where
+  convertOption _ _ = identity
 
-instance playBufCtor3 :: (IsSymbol s, InitialVal a, SetterVal a) => PlayBufCtor OnOff (Number -> Proxy s -> a -> CTOR.PlayBuf s GetSetAP) where
-  playBuf oo offset s a = CTOR.PlayBuf s offset oo (Tuple (initialVal a) (setterVal a))
+type PlayBufOptional
+  = ( playbackRate :: GetSetAP, onOff :: OnOff, start :: Number )
+
+type PlayBufAll
+  = ( | PlayBufOptional )
+
+defaultPlayBuf :: { | PlayBufOptional }
+defaultPlayBuf = { playbackRate: defaultGetSetAP 1.0, onOff: On, start: 0.0 }
+
+class PlayBufCtor i playBuf | i -> playBuf where
+  -- | Make a unit that plays from a buffer.
+  -- |
+  -- | ```purescript
+  -- | playBuf { playbackRate: 1.0 } (Proxy :: _ "track")
+  -- | playBuf { playbackRate: 1.0, start: 0.5 } (Proxy :: _ "track")
+  -- | playBuf (Proxy :: _ "track")
+  -- | ```
+  playBuf :: i -> playBuf
+
+instance playBufCtor1 ::
+  ( IsSymbol l
+  , ConvertOptionsWithDefaults PlayBuf' { | PlayBufOptional } { | provided } { | PlayBufAll }
+  ) =>
+  PlayBufCtor { | provided } (Proxy l -> CTOR.PlayBuf l GetSetAP) where
+  playBuf provided proxy = CTOR.PlayBuf proxy all.start all.onOff all.playbackRate
+    where
+    all :: { | PlayBufAll }
+    all = convertOptionsWithDefaults PlayBuf' defaultPlayBuf provided
+else instance playBufCtor2 :: IsSymbol l => PlayBufCtor (Proxy l) (CTOR.PlayBuf l GetSetAP) where
+  playBuf proxy =
+    CTOR.PlayBuf
+      proxy
+      defaultPlayBuf.start
+      defaultPlayBuf.onOff
+      defaultPlayBuf.playbackRate
 
 ------
+-- | Make a recorder.
+-- |
+-- | ```purescript
+-- | recorder (Proxy :: _ "track") music
+-- | ```
 recorder ::
   forall a c.
   IsSymbol a =>
@@ -488,6 +645,12 @@ recorder = CTOR.Recorder
 
 ------
 class SawtoothOscCtor i o | i -> o where
+  -- | Make a sawtooth oscillator
+  -- |
+  -- | ```purescript
+  -- | sawtoothOsc 440.0
+  -- | sawtoothOsc On 440.0
+  -- | ```
   sawtoothOsc :: i -> o
 
 instance sawtoothOsc2 ::
@@ -505,6 +668,12 @@ else instance sawtoothOsc1 ::
 
 ------
 class SinOscCtor i o | i -> o where
+  -- | Make a sine-wave oscillator
+  -- |
+  -- | ```purescript
+  -- | sinOsc 440.0
+  -- | sinOsc On 440.0
+  -- | ```
   sinOsc :: i -> o
 
 instance sinOscCtor2 ::
@@ -521,6 +690,11 @@ else instance sinOscCtor1 ::
   sinOsc gvsv = CTOR.SinOsc On (Tuple (initialVal gvsv) (setterVal gvsv))
 
 ------
+-- | Send sound to the loudspeaker.
+-- |
+-- | ```purescript
+-- | speaker music
+-- | ```
 speaker ::
   forall c.
   IsMultiAudio c =>
@@ -529,6 +703,12 @@ speaker = CTOR.Speaker
 
 ------
 class SquareOscCtor i o | i -> o where
+  -- | Make a square-wave oscillator
+  -- |
+  -- | ```purescript
+  -- | squareOsc 440.0
+  -- | squareOsc On 440.0
+  -- | ```
   squareOsc :: i -> o
 
 instance squareOscCtor2 ::
@@ -545,6 +725,11 @@ else instance squareOscCtor1 ::
   squareOsc gvsv = CTOR.SquareOsc On (Tuple (initialVal gvsv) (setterVal gvsv))
 
 ------
+-- | Pan audio.
+-- |
+-- | ```purescript
+-- | pan 0.5 music
+-- | ```
 pan ::
   forall a c.
   InitialVal a =>
@@ -555,6 +740,12 @@ pan gvsv cont = CTOR.StereoPanner (Tuple (initialVal gvsv) (setterVal gvsv)) con
 
 ------
 class TriangleOscCtor i o | i -> o where
+  -- | Make a triangle-wave oscillator
+  -- |
+  -- | ```purescript
+  -- | triangleOsc 440.0
+  -- | triangleOsc On 440.0
+  -- | ```
   triangleOsc :: i -> o
 
 instance triangleOscCtor2 ::
@@ -571,6 +762,11 @@ else instance triangleOscCtor1 ::
   triangleOsc gvsv = CTOR.TriangleOsc On (Tuple (initialVal gvsv) (setterVal gvsv))
 
 ----------
+-- | Apply distorion to audio
+-- |
+-- | ```purescript
+-- | waveShaper (Proxy :: _ "my-wave") OversampleNone sound
+-- | ```
 waveShaper ::
   forall a b c.
   IsSymbol a =>

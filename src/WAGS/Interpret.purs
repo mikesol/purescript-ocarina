@@ -539,14 +539,12 @@ type FFIAudioParameter'
   = { param :: Number
     , timeOffset :: Number
     , transition :: String
-    , forceSet :: Boolean
     }
 
 instance safeToFFI_AudioParameter ::
   SafeToFFI AudioParameter FFIAudioParameter' where
-  safeToFFI (AudioParameter { param, timeOffset, transition, forceSet }) =
+  safeToFFI (AudioParameter { param, timeOffset, transition }) =
     { param
     , timeOffset
     , transition: show transition
-    , forceSet
     }

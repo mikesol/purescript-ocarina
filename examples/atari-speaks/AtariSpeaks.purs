@@ -39,22 +39,19 @@ scene time =
   in
     speaker
       $ ( ( gain (0.3 * vol)
-              ( loopBuf (0.0 /\ 0.0)
-                  (Proxy :: _ "atar")
-                  (1.0 + 0.1 * sin rad)
-              )
+              (loopBuf { playbackRate: 1.0 + 0.1 * sin rad } (Proxy :: _ "atar"))
           )
             /\ ( gain (0.15 * vol)
                   ( loopBuf
-                      ( (0.1 + 0.1 * sin rad)
-                          /\ (0.5 + 0.25 * sin (2.0 * rad))
-                      )
+                      { playbackRate: 1.5 + 0.1 * sin (2.0 * rad)
+                      , start: 0.1 + 0.1 * sin rad
+                      , end: 0.5 + 0.25 * sin (2.0 * rad)
+                      }
                       (Proxy :: _ "atar")
-                      (1.5 + 0.1 * sin (2.0 * rad))
                   )
               )
             /\ ( gain (0.3 * vol)
-                  (loopBuf (0.0 /\ 0.0) (Proxy :: _ "atar") 0.25)
+                  (loopBuf { playbackRate: 0.25 } (Proxy :: _ "atar"))
               )
             /\ unit
         )
