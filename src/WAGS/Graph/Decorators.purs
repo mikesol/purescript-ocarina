@@ -12,7 +12,7 @@ import Data.Tuple (Tuple)
 import WAGS.Graph.Constructors as CTOR
 import WAGS.Rendered (Oversample(..))
 
--- A newtype for a decorator, isomorphic to `Exists f` where `f` is a type constructor of type `Type -> Type`.
+-- A newtype for a decorator, isomorphic to `Exists f` where `f` is a type constructor of type `Type -> Type`. We use decorating instead of `Exists` because `Exists` does not (yet) have an API to work with raw type constructors.
 newtype Decorating f
   = Decorating (Decorating' f)
 

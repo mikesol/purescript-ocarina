@@ -1,3 +1,4 @@
+-- | This module provides functions for the construction of audio units that more closely resemble the overloaded constructors of the Web Audio API.
 module WAGS.Graph.Optionals where
 
 import Prelude
