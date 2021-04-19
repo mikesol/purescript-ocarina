@@ -1,6 +1,7 @@
 module WAGS.Example.KitchenSink.TLP.SinOsc where
 
 import Prelude
+
 import Data.Either (Either(..))
 import Effect (Effect)
 import Math ((%))
@@ -16,7 +17,7 @@ import WAGS.Disconnect (disconnect)
 import WAGS.Example.KitchenSink.TLP.LoopSig (LoopSig)
 import WAGS.Example.KitchenSink.TLP.TriangleOsc (doTriangleOsc)
 import WAGS.Example.KitchenSink.Types (pieceTime)
-import WAGS.Example.KitchenSink.Types.SinOsc (SinOscUniverse, deltaPhase1, phase1Gain, phase1SinOsc, phase1Time)
+import WAGS.Example.KitchenSink.Types.SinOsc (SinOscUniverse, deltaPhase1, phase1Gain, phase1Integral, phase1SinOsc)
 import WAGS.Graph.Constructors (OnOff(..), TriangleOsc(..))
 import WAGS.Interpret (FFIAudio)
 import WAGS.Run (SceneI)
@@ -32,7 +33,7 @@ doSinOsc =
     gn <- cursor phase1Gain
     pr <- proof
     withProof pr
-      $ if time % pieceTime < phase1Time then
+      $ if time % pieceTime < phase1Integral then
           Right (change (deltaPhase1 time) $> lsig)
         else
           Left \thunk ->

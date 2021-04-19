@@ -1,6 +1,7 @@
 module WAGS.Example.KitchenSink.TLP.SawtoothOsc where
 
 import Prelude
+
 import Data.Either (Either(..))
 import Effect (Effect)
 import Math ((%))
@@ -16,11 +17,8 @@ import WAGS.Destroy (destroy)
 import WAGS.Disconnect (disconnect)
 import WAGS.Example.KitchenSink.TLP.LoopSig (LoopSig(..))
 import WAGS.Example.KitchenSink.Types (pieceTime)
-import WAGS.Example.KitchenSink.Types.PeriodicOsc (phase4Time)
-import WAGS.Example.KitchenSink.Types.SawtoothOsc (SawtoothOscUniverse, deltaPhase5, phase5Gain, phase5SawtoothOsc, phase5Time)
-import WAGS.Example.KitchenSink.Types.SinOsc (SinOscGraph, phase1Time)
-import WAGS.Example.KitchenSink.Types.SquareOsc (phase3Time)
-import WAGS.Example.KitchenSink.Types.TriangleOsc (phase2Time)
+import WAGS.Example.KitchenSink.Types.SawtoothOsc (SawtoothOscUniverse, deltaPhase5, phase5Gain, phase5Integral, phase5SawtoothOsc)
+import WAGS.Example.KitchenSink.Types.SinOsc (SinOscGraph)
 import WAGS.Graph.Constructors (OnOff(..), SinOsc(..))
 import WAGS.Interpret (FFIAudio)
 import WAGS.Rebase (rebase)
@@ -38,7 +36,7 @@ doSawtoothOsc =
     gn <- cursor phase5Gain
     pr <- proof
     withProof pr
-      $ if time % pieceTime < (phase1Time + phase2Time + phase3Time + phase4Time + phase5Time) then
+      $ if time % pieceTime < phase5Integral then
           Right (change (deltaPhase5 time) $> l)
         else
           Left \thunk ->

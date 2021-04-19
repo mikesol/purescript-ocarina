@@ -4,6 +4,7 @@ import Prelude
 
 import Data.Identity (Identity(..))
 import WAGS.Control.Types (Universe')
+import WAGS.Example.KitchenSink.Types.PeriodicOsc (phase4Integral)
 import WAGS.Graph.Constructors (Gain(..), OnOff(..), SawtoothOsc(..), Speaker(..))
 import WAGS.Graph.Decorators (Focus(..), Decorating')
 import WAGS.Graph.Optionals (GetSetAP, defaultGetSetAP)
@@ -49,3 +50,5 @@ deltaPhase5 :: Number -> Speaker (Gain GetSetAP (SawtoothOsc GetSetAP))
 deltaPhase5 time = Speaker $ Gain (defaultGetSetAP 0.0) (SawtoothOsc On (defaultGetSetAP 440.0))
 
 phase5Time = 5.0 :: Number
+
+phase5Integral = phase5Time + phase4Integral :: Number

@@ -4,6 +4,7 @@ import Prelude
 
 import Data.Identity (Identity(..))
 import WAGS.Control.Types (Universe')
+import WAGS.Example.KitchenSink.Types.SinOsc (phase1Integral)
 import WAGS.Graph.Constructors (Gain(..), OnOff(..), Speaker(..), TriangleOsc(..))
 import WAGS.Graph.Decorators (Focus(..), Decorating')
 import WAGS.Graph.Optionals (GetSetAP, defaultGetSetAP)
@@ -50,3 +51,5 @@ deltaPhase2 :: Number -> Speaker (Gain GetSetAP (TriangleOsc GetSetAP))
 deltaPhase2 time = Speaker $ Gain (defaultGetSetAP 0.0) (TriangleOsc On (defaultGetSetAP 440.0))
 
 phase2Time = 5.0 :: Number
+
+phase2Integral = phase2Time + phase1Integral :: Number

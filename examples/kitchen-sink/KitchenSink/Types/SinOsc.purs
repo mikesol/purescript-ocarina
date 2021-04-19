@@ -49,3 +49,5 @@ deltaPhase1 :: Number -> Speaker (Gain GetSetAP (SinOsc GetSetAP))
 deltaPhase1 time = Speaker $ Gain (defaultGetSetAP 0.0) (SinOsc On (defaultGetSetAP 440.0))
 
 phase1Time = 5.0 :: Number
+
+phase1Integral = phase1Time :: Number
