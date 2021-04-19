@@ -1,7 +1,6 @@
 module Test.Instructions where
 
 import Prelude
-
 import Control.Applicative.Indexed (imap)
 import Data.Either (Either(..))
 import Data.Functor.Indexed (ivoid)
@@ -231,16 +230,15 @@ testInstructions = do
             e <- env
             create (scene0 e) $> Right unit
         )
-          @> ( branch WAGS.do
+          @> ( branch \_ -> WAGS.do
                 { time } <- env
                 pr <- proof
                 withProof pr
                   $ if time < 0.3 then
                       Right
-                        ( const
-                            $ WAGS.do
-                                e <- env
-                                ivoid $ change (scene0 e)
+                        ( WAGS.do
+                            e <- env
+                            ivoid $ change (scene0 e)
                         )
                     else
                       Left

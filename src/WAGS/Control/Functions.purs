@@ -190,16 +190,16 @@ loop fa ma = makeScene (imap Right $ Ix.bind ma fa) (loop fa)
 -- |       e <- env
 -- |       create (scene0 e) $> Right unit
 -- |   )
--- |     @> ( branch Ix.do
+-- |     @> ( branch \_ -> Ix.do
 -- |           { time } <- env
 -- |           pr <- proof
 -- |           withProof pr
 -- |             $ if time < 0.3 then
 -- |                 Right
--- |                   ( const
--- |                       $ Ix.do
--- |                           e <- env
--- |                           ivoid $ change (scene0 e)
+-- |                   (
+-- |                       Ix.do
+-- |                         e <- env
+-- |                         ivoid $ change (scene0 e)
 -- |                   )
 -- |               else
 -- |                 Left
@@ -218,17 +218,17 @@ branch ::
   AudioInterpret audio engine =>
   GraphIsRenderable graph =>
   ( forall proofB j.
+    a ->
     FrameT env audio engine proofB m
       (UniverseC currentIdx graph j skolems)
       (UniverseC currentIdx graph j skolems)
       ( Either
           ( FrameT env audio engine proofB m i
               (UniverseC currentIdx graph j skolems)
-              a ->
+              Unit ->
             SceneT env audio engine proofB m
           )
-          ( a ->
-            FrameT env audio engine proofB m
+          ( FrameT env audio engine proofB m
               (UniverseC currentIdx graph j skolems)
               (UniverseC currentIdx graph (Succ j) skolems)
               a
@@ -243,10 +243,10 @@ branch mch m =
   makeScene
     ( Ix.do
         r <- m
-        mbe <- mch
+        mbe <- mch r
         case mbe of
-          Left l -> changes unit $> Left (l m)
-          Right fa -> imap Right (fa r)
+          Left l -> changes unit $> Left (l (m $> unit))
+          Right fa -> imap Right fa
     )
     (branch mch)
 
