@@ -1,26 +1,23 @@
 module WAGS.Rebase
-  ( class Rebase
-  , class Rebase'
+  ( class Rebase'
   , class RebaseCheck'
   , class RebaseCont'
   , rebase
+  , RebaseProof
   , rebase'
   , rebaseCheck'
   , rebaseCont'
   ) where
 
 import Prelude
-
 import Control.Monad.State (modify_)
 import Data.Map as M
 import Data.Maybe (fromMaybe)
 import Data.Set as S
 import Data.Tuple.Nested ((/\))
 import Data.Typelevel.Bool (False, True)
-import Prim.TypeError (class Warn, Quote, Text)
 import Type.Proxy (Proxy(..))
 import WAGS.Control.Types (AudioState, FrameT, unsafeFrame, unsafeUnframe)
-import WAGS.Debug (type (^^))
 import WAGS.Interpret (class AudioInterpret, rebaseAllUnits)
 import WAGS.Universe.AudioUnit as AU
 import WAGS.Universe.Bin (class BinToInt, PtrListCons, PtrListNil, Ptr, toInt')
@@ -66,50 +63,43 @@ forceArray = identity
 -- | Rebasing only makes sense for functions that need to accommodate different loops.
 -- | In the case of simpler loops, a similar effect can be achieved by making pointers polymorphic,
 -- | ie `forall ptr. TSpeaker D0 (TSinOsc ptr /\ TSinOsc D2 /\ Unit)`.
-class Rebase ptrA graphA ptrB graphB where
-  rebase :: forall env audio engine proof m changeBit skolems. Monad m => AudioInterpret audio engine => Proxy ptrA -> Proxy graphA -> Proxy ptrB -> Proxy graphB -> FrameT env audio engine proof m (UniverseC ptrA graphA changeBit skolems) (UniverseC ptrB graphB changeBit skolems) Unit
-
-instance rebaseRebase ::
-  ( TerminalIdentityEdge graphA edgeA
-  , TerminalIdentityEdge graphB edgeB
-  , Warn (Text "in rebase" ^^ (Quote (Proxy edgeA)) ^^ (Quote (Proxy idxA)) ^^ (Quote (Proxy graphA)) ^^ (Quote (Proxy edgeB)) ^^ (Quote (Proxy idxB)) ^^ (Quote (Proxy graphB)) )
-  , Rebase' PtrListNil PtrListNil RebaseProof edgeA idxA graphA edgeB idxB graphB
-  , Warn (Text "executing on rebase")
-  ) =>
-  Rebase idxA graphA idxB graphB where
-  rebase ptrA gA ptrB gB =
-    unsafeFrame do
-      a <- arr
-      --let a = []
-      modify_ \i ->
-        let
-          mapping = M.fromFoldable $ map (\{ from, to } -> from /\ to) a
-        in
-          i
-            { internalNodes =
-              M.fromFoldable
-                $ map
-                    ( \(idx /\ v) ->
-                        (fromMaybe idx $ M.lookup idx mapping) /\ v
-                    )
-                $ forceArray
-                $ M.toUnfoldable
-                $ i.internalNodes
-            , internalEdges =
-              M.fromFoldable
-                $ map
-                    ( \(idx /\ v) ->
-                        (fromMaybe idx $ M.lookup idx mapping)
-                          /\ (S.map (\idx' -> fromMaybe idx' $ M.lookup idx' mapping) v)
-                    )
-                $ forceArray
-                $ M.toUnfoldable
-                $ i.internalEdges
-            , instructions = i.instructions <> [ rebaseAllUnits a ]
-            }
-    where
-    arr = unsafeUnframe $ rebase' (Proxy :: _ PtrListNil) (Proxy :: _ PtrListNil) RebaseProof (Proxy :: _ edgeA) (Proxy :: _ idxA) (Proxy :: _ graphA) (Proxy :: _ edgeB) (Proxy :: _ idxB) (Proxy :: _ graphB)
-    -- arr = 42 -- unsafeFrame (pure [])
+rebase ::
+  forall env audio engine proof m changeBit skolems edgeA idxA graphA edgeB idxB graphB.
+  Monad m =>
+  AudioInterpret audio engine =>
+  TerminalIdentityEdge graphA edgeA =>
+  TerminalIdentityEdge graphB edgeB =>
+  Rebase' PtrListNil PtrListNil RebaseProof edgeA idxA graphA edgeB idxB graphB =>
+  Proxy idxA -> Proxy graphA -> Proxy idxB -> Proxy graphB -> FrameT env audio engine proof m (UniverseC idxA graphA changeBit skolems) (UniverseC idxB graphB changeBit skolems) Unit
+rebase ptrA gA ptrB gB =
+  unsafeFrame do
+    a <- (unsafeUnframe $ rebase' (Proxy :: _ PtrListNil) (Proxy :: _ PtrListNil) RebaseProof (Proxy :: _ edgeA) (Proxy :: _ idxA) (Proxy :: _ graphA) (Proxy :: _ edgeB) (Proxy :: _ idxB) (Proxy :: _ graphB))
+    modify_ \i ->
+      let
+        mapping = M.fromFoldable $ map (\{ from, to } -> from /\ to) a
+      in
+        i
+          { internalNodes =
+            M.fromFoldable
+              $ map
+                  ( \(idx /\ v) ->
+                      (fromMaybe idx $ M.lookup idx mapping) /\ v
+                  )
+              $ forceArray
+              $ M.toUnfoldable
+              $ i.internalNodes
+          , internalEdges =
+            M.fromFoldable
+              $ map
+                  ( \(idx /\ v) ->
+                      (fromMaybe idx $ M.lookup idx mapping)
+                        /\ (S.map (\idx' -> fromMaybe idx' $ M.lookup idx' mapping) v)
+                  )
+              $ forceArray
+              $ M.toUnfoldable
+              $ i.internalEdges
+          , instructions = i.instructions <> [ rebaseAllUnits a ]
+          }
 
 type AFT
   = (Array { from :: Int, to :: Int })
@@ -127,7 +117,7 @@ class RebaseCheck' plA plB rbp pA ptrA graphA pB ptrB graphB where
 -- | An internal helper class used to help in the rebasing calculation.
 class RebaseCont' :: forall k1 k2 k3 k4 k5 k6 k7 k8. k1 -> k2 -> k3 -> k4 -> k5 -> k6 -> Type -> k7 -> Ptr -> Graph -> k8 -> Ptr -> Graph -> Constraint
 class RebaseCont' foundA foundB xpA xpB plA plB rbp pA ptrA graphA pB ptrB graphB where
-  rebaseCont' :: forall env audio engine proof m changeBit skolems. Monad m => AudioInterpret audio engine => Proxy foundA -> Proxy foundB -> Proxy xpA -> Proxy xpB -> Proxy plA -> Proxy plB -> rbp -> Proxy pA -> Proxy ptrA -> Proxy graphA -> Proxy pB -> Proxy ptrB -> Proxy graphB  -> FrameT env audio engine proof m (UniverseC ptrA graphA changeBit skolems) (UniverseC ptrB graphB changeBit skolems) AFT
+  rebaseCont' :: forall env audio engine proof m changeBit skolems. Monad m => AudioInterpret audio engine => Proxy foundA -> Proxy foundB -> Proxy xpA -> Proxy xpB -> Proxy plA -> Proxy plB -> rbp -> Proxy pA -> Proxy ptrA -> Proxy graphA -> Proxy pB -> Proxy ptrB -> Proxy graphB -> FrameT env audio engine proof m (UniverseC ptrA graphA changeBit skolems) (UniverseC ptrB graphB changeBit skolems) AFT
 
 rebaseAudioUnit ::
   forall env proof ptrA ptrB audio engine m.
@@ -143,7 +133,6 @@ rebaseAudioUnit ptrA ptrB = if iA == iB then pure mempty else (pure <<< pure) { 
   iA = toInt' ptrA
 
   iB = toInt' ptrB
-
 
 instance rebaseNoEdge :: Rebase' rblA rblB RebaseProof NoEdge ptrA graphA NoEdge ptrB graphB where
   rebase' _ _ _ _ _ _ _ _ _ = unsafeFrame $ pure mempty
@@ -166,9 +155,7 @@ instance rebaseMany1 ::
   rebase' _ _ _ _ _ _ _ _ _ = rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ (SingleEdge pA)) (Proxy :: _ ptrA) (Proxy :: _ gA) (Proxy :: _ (SingleEdge pB)) (Proxy :: _ ptrB) (Proxy :: _ gB)
 
 instance rebaseSingleEdge ::
-  ( Warn (Text "in rebase single edge"),
-    RebaseCheck' rblA rblB RebaseProof (SingleEdge pA) ptrA graphA (SingleEdge pB) ptrB graphB
-    ) =>
+  RebaseCheck' rblA rblB  RebaseProof (SingleEdge pA) ptrA graphA (SingleEdge pB) ptrB graphB =>
   Rebase' rblA rblB RebaseProof (SingleEdge pA) ptrA graphA (SingleEdge pB) ptrB graphB where
   rebase' = rebaseCheck'
 
@@ -223,7 +210,7 @@ instance rebaseConstant ::
 
 instance rebaseConvolver ::
   (BinToInt ptrA, BinToInt ptrB, Rebase' rblA rblB RebaseProof eA ptrA gA eB ptrB gB) =>
-  Rebase' rblA rblB RebaseProof (NodeC (AU.TConvolver ptrA) eA) ptrA gA (NodeC (AU.TConvolver ptrB) eB) ptrB gB where
+  Rebase' rblA rblB RebaseProof (NodeC (AU.TConvolver ptrA name) eA) ptrA gA (NodeC (AU.TConvolver ptrB name) eB) ptrB gB where
   rebase' _ _ _ _ _ _ _ _ _ =
     unsafeFrame
       $ append
@@ -289,7 +276,7 @@ instance rebaseHighshelf ::
 
 instance rebaseLoopBuf ::
   (BinToInt ptrA, BinToInt ptrB) =>
-  Rebase' rblA rblB RebaseProof (NodeC (AU.TLoopBuf ptrA) NoEdge) ptrA gA (NodeC (AU.TLoopBuf ptrB) NoEdge) ptrB gB where
+  Rebase' rblA rblB RebaseProof (NodeC (AU.TLoopBuf ptrA name) NoEdge) ptrA gA (NodeC (AU.TLoopBuf ptrB name) NoEdge) ptrB gB where
   rebase' _ _ _ _ _ _ _ _ _ = unsafeFrame (rebaseAudioUnit (Proxy :: _ ptrA) (Proxy :: _ ptrB))
 
 instance rebaseLowpass ::
@@ -343,24 +330,24 @@ instance rebasePeaking ::
 
 instance rebasePeriodicOsc ::
   (BinToInt ptrA, BinToInt ptrB) =>
-  Rebase' rblA rblB RebaseProof (NodeC (AU.TPeriodicOsc ptrA) NoEdge) ptrA gA (NodeC (AU.TPeriodicOsc ptrB) NoEdge) ptrB gB where
+  Rebase' rblA rblB RebaseProof (NodeC (AU.TPeriodicOsc ptrA name) NoEdge) ptrA gA (NodeC (AU.TPeriodicOsc ptrB name) NoEdge) ptrB gB where
   rebase' _ _ _ _ _ _ _ _ _ = unsafeFrame (rebaseAudioUnit (Proxy :: _ ptrA) (Proxy :: _ ptrB))
 
 instance rebasePlayBuf ::
   (BinToInt ptrA, BinToInt ptrB) =>
-  Rebase' rblA rblB RebaseProof (NodeC (AU.TPlayBuf ptrA) NoEdge) ptrA gA (NodeC (AU.TPlayBuf ptrB) NoEdge) ptrB gB where
+  Rebase' rblA rblB RebaseProof (NodeC (AU.TPlayBuf ptrA name) NoEdge) ptrA gA (NodeC (AU.TPlayBuf ptrB name) NoEdge) ptrB gB where
   rebase' _ _ _ _ _ _ _ _ _ = unsafeFrame (rebaseAudioUnit (Proxy :: _ ptrA) (Proxy :: _ ptrB))
 
 instance rebaseRecorder ::
   (BinToInt ptrA, BinToInt ptrB, Rebase' rblA rblB RebaseProof eA ptrA gA eB ptrB gB) =>
-  Rebase' rblA rblB RebaseProof (NodeC (AU.TRecorder ptrA) eA) ptrA gA (NodeC (AU.TRecorder ptrB) eB) ptrB gB where
+  Rebase' rblA rblB RebaseProof (NodeC (AU.TRecorder ptrA name) eA) ptrA gA (NodeC (AU.TRecorder ptrB name) eB) ptrB gB where
   rebase' _ _ _ _ _ _ _ _ _ =
     unsafeFrame
       $ append
       <$> rebaseAudioUnit (Proxy :: _ ptrA) (Proxy :: _ ptrB)
       <*> rest
     where
-    rest = unsafeUnframe $ rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA)  (Proxy :: _ ptrA) (Proxy :: _ gA) (Proxy :: _ eB) (Proxy :: _ ptrB) (Proxy :: _ gB)
+    rest = unsafeUnframe $ rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ eA) (Proxy :: _ ptrA) (Proxy :: _ gA) (Proxy :: _ eB) (Proxy :: _ ptrB) (Proxy :: _ gB)
 
 instance rebaseSawtoothOsc ::
   (BinToInt ptrA, BinToInt ptrB) =>
@@ -406,7 +393,7 @@ instance rebaseTriangleOsc ::
 
 instance rebaseWaveShaper ::
   (BinToInt ptrA, BinToInt ptrB, Rebase' rblA rblB RebaseProof eA ptrA gA eB ptrB gB) =>
-  Rebase' rblA rblB RebaseProof (NodeC (AU.TWaveShaper ptrA) eA) ptrA gA (NodeC (AU.TWaveShaper ptrB) eB) ptrB gB where
+  Rebase' rblA rblB RebaseProof (NodeC (AU.TWaveShaper ptrA name) eA) ptrA gA (NodeC (AU.TWaveShaper ptrB name) eB) ptrB gB where
   rebase' _ _ _ _ _ _ _ _ _ =
     unsafeFrame
       $ append

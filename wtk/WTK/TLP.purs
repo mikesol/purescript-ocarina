@@ -13,7 +13,7 @@ import Type.Data.Peano (Succ)
 import Type.Proxy (Proxy(..))
 import WAGS.Change (class Change, class Changes, ChangeInstruction(..), changes)
 import WAGS.Control.Functions (env, graph, loop, proof, start, withProof, (@>))
-import WAGS.Control.Qualified as Ix
+import WAGS.Control.Qualified as WAGS
 import WAGS.Control.Types (Frame0, FrameT, Scene)
 import WAGS.Create (create)
 import WAGS.Cursor (cursor)
@@ -76,7 +76,7 @@ playKeys rec incoming (a : b) currentPlaying = case a.k of
 
 piece :: { makeRenderingEnv :: MakeRenderingEnv } -> Scene (SceneI Trigger Unit) FFIAudio (Effect Unit) Frame0
 piece { makeRenderingEnv } =
-  ( Ix.do
+  ( WAGS.do
       start
       ivoid $ create $ fullKeyboard klavierIdentity
       k0 <- cursor $ cursors.k0
@@ -98,7 +98,7 @@ piece { makeRenderingEnv } =
             }
   )
     @> loop
-        ( \{ audioRefs, currentKeys, availableKeys } -> Ix.do
+        ( \{ audioRefs, currentKeys, availableKeys } -> WAGS.do
             { time, trigger, active } <- env
             graphProxy <- graph
             let

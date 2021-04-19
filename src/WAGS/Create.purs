@@ -548,7 +548,7 @@ instance createConvolver ::
     graphi
     skolems
     outptr
-    (GraphC (NodeC (AU.TConvolver ptr) (SingleEdge op)) nodeList)
+    (GraphC (NodeC (AU.TConvolver ptr argA) (SingleEdge op)) nodeList)
     skolems
     (AudioUnitRef ptr) where
   create =
@@ -706,7 +706,7 @@ instance createLoopBuf ::
     graph
     skolems
     next
-    (GraphC (NodeC (AU.TLoopBuf ptr) NoEdge) nodeList)
+    (GraphC (NodeC (AU.TLoopBuf ptr argA) NoEdge) nodeList)
     skolems
     (AudioUnitRef ptr) where
   create = unsafeFrame <<< (map) AudioUnitRef <<< creationStep
@@ -877,7 +877,7 @@ instance createPeriodicOsc ::
     graph
     skolems
     next
-    (GraphC (NodeC (AU.TPeriodicOsc ptr) NoEdge) nodeList)
+    (GraphC (NodeC (AU.TPeriodicOsc ptr argA) NoEdge) nodeList)
     skolems
     (AudioUnitRef ptr) where
   create = unsafeFrame <<< (map) AudioUnitRef <<< creationStep
@@ -895,7 +895,7 @@ instance createPlayBuf ::
     graph
     skolems
     next
-    (GraphC (NodeC (AU.TPlayBuf ptr) NoEdge) nodeList)
+    (GraphC (NodeC (AU.TPlayBuf ptr argA) NoEdge) nodeList)
     skolems
     (AudioUnitRef ptr) where
   create = unsafeFrame <<< (map) AudioUnitRef <<< creationStep
@@ -926,7 +926,7 @@ instance createRecorder ::
     graphi
     skolems
     outptr
-    (GraphC (NodeC (AU.TRecorder ptr) (SingleEdge op)) nodeList)
+    (GraphC (NodeC (AU.TRecorder ptr argA) (SingleEdge op)) nodeList)
     skolems
     (AudioUnitRef ptr) where
   create =
@@ -1061,7 +1061,7 @@ instance createWaveShaper ::
     graphi
     skolems
     outptr
-    (GraphC (NodeC (AU.TWaveShaper ptr) (SingleEdge op)) nodeList)
+    (GraphC (NodeC (AU.TWaveShaper ptr argA) (SingleEdge op)) nodeList)
     skolems
     (AudioUnitRef ptr) where
   create =

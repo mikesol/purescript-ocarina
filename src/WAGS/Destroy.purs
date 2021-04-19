@@ -53,9 +53,9 @@ instance pointerNotConnected_SE_Bandpass :: BinEq ptr y False => PointerNotConne
 
 instance pointerNotConnectedConstant :: PointerNotConnected ptr (NodeC (AU.TConstant x) NoEdge)
 
-instance pointerNotConnected_NE_Convolver :: PointerNotConnected ptr (NodeC (AU.TConvolver x) NoEdge)
+instance pointerNotConnected_NE_Convolver :: PointerNotConnected ptr (NodeC (AU.TConvolver x name) NoEdge)
 
-instance pointerNotConnected_SE_Convolver :: BinEq ptr y False => PointerNotConnected ptr (NodeC (AU.TConvolver x) (SingleEdge y))
+instance pointerNotConnected_SE_Convolver :: BinEq ptr y False => PointerNotConnected ptr (NodeC (AU.TConvolver x name) (SingleEdge y))
 
 instance pointerNotConnected_NE_Delay :: PointerNotConnected ptr (NodeC (AU.TDelay x) NoEdge)
 
@@ -79,7 +79,7 @@ instance pointerNotConnected_NE_Highshelf :: PointerNotConnected ptr (NodeC (AU.
 
 instance pointerNotConnected_SE_Highshelf :: BinEq ptr y False => PointerNotConnected ptr (NodeC (AU.THighshelf x) (SingleEdge y))
 
-instance pointerNotConnectedLoopBuf :: PointerNotConnected ptr (NodeC (AU.TLoopBuf x) NoEdge)
+instance pointerNotConnectedLoopBuf :: PointerNotConnected ptr (NodeC (AU.TLoopBuf x name) NoEdge)
 
 instance pointerNotConnected_NE_Lowpass :: PointerNotConnected ptr (NodeC (AU.TLowpass x) NoEdge)
 
@@ -99,13 +99,13 @@ instance pointerNotConnected_NE_Peaking :: PointerNotConnected ptr (NodeC (AU.TP
 
 instance pointerNotConnected_SE_Peaking :: BinEq ptr y False => PointerNotConnected ptr (NodeC (AU.TPeaking x) (SingleEdge y))
 
-instance pointerNotConnectedPeriodicOsc :: PointerNotConnected ptr (NodeC (AU.TPeriodicOsc x) NoEdge)
+instance pointerNotConnectedPeriodicOsc :: PointerNotConnected ptr (NodeC (AU.TPeriodicOsc x name) NoEdge)
 
-instance pointerNotConnectedPlayBuf :: PointerNotConnected ptr (NodeC (AU.TPlayBuf x) NoEdge)
+instance pointerNotConnectedPlayBuf :: PointerNotConnected ptr (NodeC (AU.TPlayBuf x name) NoEdge)
 
-instance pointerNotConnected_NE_Recorder :: PointerNotConnected ptr (NodeC (AU.TRecorder x) NoEdge)
+instance pointerNotConnected_NE_Recorder :: PointerNotConnected ptr (NodeC (AU.TRecorder x name) NoEdge)
 
-instance pointerNotConnected_SE_Recorder :: BinEq ptr y False => PointerNotConnected ptr (NodeC (AU.TRecorder x) (SingleEdge y))
+instance pointerNotConnected_SE_Recorder :: BinEq ptr y False => PointerNotConnected ptr (NodeC (AU.TRecorder x name) (SingleEdge y))
 
 instance pointerNotConnectedSawtoothOsc :: PointerNotConnected ptr (NodeC (AU.TSawtoothOsc x) NoEdge)
 
@@ -125,9 +125,9 @@ instance pointerNotConnected_SE_StereoPanner :: BinEq ptr y False => PointerNotC
 
 instance pointerNotConnectedTriangleOsc :: PointerNotConnected ptr (NodeC (AU.TTriangleOsc x) NoEdge)
 
-instance pointerNotConnected_NE_WaveShaper :: PointerNotConnected ptr (NodeC (AU.TWaveShaper x) NoEdge)
+instance pointerNotConnected_NE_WaveShaper :: PointerNotConnected ptr (NodeC (AU.TWaveShaper x name) NoEdge)
 
-instance pointerNotConnected_SE_WaveShaper :: BinEq ptr y False => PointerNotConnected ptr (NodeC (AU.TWaveShaper x) (SingleEdge y))
+instance pointerNotConnected_SE_WaveShaper :: BinEq ptr y False => PointerNotConnected ptr (NodeC (AU.TWaveShaper x name) (SingleEdge y))
 
 -- | Internal helper class used for destroing audio nodes.
 class PointerNotConnecteds (ptr :: Ptr) (i :: NodeList)

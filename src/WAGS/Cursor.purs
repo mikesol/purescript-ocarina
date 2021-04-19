@@ -69,28 +69,28 @@ class CursorRes (tag :: Type) (p :: Ptr) (i :: Node) (plist :: EdgeProfile) | ta
 instance cursorResAllpass :: CursorRes (CTOR.Allpass a b c) ptr (NodeC (AU.TAllpass ptr) edge) edge
 else instance cursorResBandpass :: CursorRes (CTOR.Bandpass a b c) ptr (NodeC (AU.TBandpass ptr) edge) edge
 else instance cursorResConstant :: CursorRes (CTOR.Constant a) ptr (NodeC (AU.TConstant ptr) edge) edge
-else instance cursorResConvolver :: CursorRes (CTOR.Convolver a b) ptr (NodeC (AU.TConvolver ptr) edge) edge
+else instance cursorResConvolver :: CursorRes (CTOR.Convolver name b) ptr (NodeC (AU.TConvolver ptr name) edge) edge
 else instance cursorResDelay :: CursorRes (CTOR.Delay a b) ptr (NodeC (AU.TDelay ptr) edge) edge
 else instance cursorResDynamicsCompressor :: CursorRes (CTOR.DynamicsCompressor a b c d e f) ptr (NodeC (AU.TDynamicsCompressor ptr) edge) edge
 else instance cursorResGain :: CursorRes (CTOR.Gain a b) ptr (NodeC (AU.TGain ptr) edge) edge
 else instance cursorResHighpass :: CursorRes (CTOR.Highpass a b c) ptr (NodeC (AU.THighpass ptr) edge) edge
 else instance cursorResHighshelf :: CursorRes (CTOR.Highshelf a b c) ptr (NodeC (AU.THighshelf ptr) edge) edge
-else instance cursorResLoopBuf :: CursorRes (CTOR.LoopBuf a b) ptr (NodeC (AU.TLoopBuf ptr) edge) edge
+else instance cursorResLoopBuf :: CursorRes (CTOR.LoopBuf name b) ptr (NodeC (AU.TLoopBuf ptr name) edge) edge
 else instance cursorResLowpass :: CursorRes (CTOR.Lowpass a b c) ptr (NodeC (AU.TLowpass ptr) edge) edge
 else instance cursorResLowshelf :: CursorRes (CTOR.Lowshelf a b c) ptr (NodeC (AU.TLowshelf ptr) edge) edge
 else instance cursorResMicrophone :: CursorRes (CTOR.Microphone) ptr (NodeC (AU.TMicrophone ptr) edge) edge
 else instance cursorResNotch :: CursorRes (CTOR.Notch a b c) ptr (NodeC (AU.TNotch ptr) edge) edge
 else instance cursorResPeaking :: CursorRes (CTOR.Peaking a b c d) ptr (NodeC (AU.TPeaking ptr) edge) edge
-else instance cursorResPeriodicOsc :: CursorRes (CTOR.PeriodicOsc a b) ptr (NodeC (AU.TPeriodicOsc ptr) edge) edge
-else instance cursorResPlayBuf :: CursorRes (CTOR.PlayBuf a b) ptr (NodeC (AU.TPlayBuf ptr) edge) edge
-else instance cursorResRecorder :: CursorRes (CTOR.Recorder a b) ptr (NodeC (AU.TRecorder ptr) edge) edge
+else instance cursorResPeriodicOsc :: CursorRes (CTOR.PeriodicOsc name b) ptr (NodeC (AU.TPeriodicOsc ptr name) edge) edge
+else instance cursorResPlayBuf :: CursorRes (CTOR.PlayBuf name b) ptr (NodeC (AU.TPlayBuf ptr name) edge) edge
+else instance cursorResRecorder :: CursorRes (CTOR.Recorder name b) ptr (NodeC (AU.TRecorder ptr name) edge) edge
 else instance cursorResSawtoothOsc :: CursorRes (CTOR.SawtoothOsc a) ptr (NodeC (AU.TSawtoothOsc ptr) edge) edge
 else instance cursorResSinOsc :: CursorRes (CTOR.SinOsc a) ptr (NodeC (AU.TSinOsc ptr) edge) edge
 else instance cursorResSpeaker :: CursorRes (CTOR.Speaker a) ptr (NodeC (AU.TSpeaker ptr) edge) edge
 else instance cursorResSquareOsc :: CursorRes (CTOR.SquareOsc a) ptr (NodeC (AU.TSquareOsc ptr) edge) edge
 else instance cursorResStereoPanner :: CursorRes (CTOR.StereoPanner a b) ptr (NodeC (AU.TStereoPanner ptr) edge) edge
 else instance cursorResTriangleOsc :: CursorRes (CTOR.TriangleOsc a) ptr (NodeC (AU.TTriangleOsc ptr) edge) edge
-else instance cursorResWaveShaper :: CursorRes (CTOR.WaveShaper a b c) ptr (NodeC (AU.TWaveShaper ptr) edge) edge
+else instance cursorResWaveShaper :: CursorRes (CTOR.WaveShaper name b c) ptr (NodeC (AU.TWaveShaper ptr name) edge) edge
 else instance cursorResMiss :: CursorRes tag p n NoEdge
 
 -- | Internal helper class used for Cursor.

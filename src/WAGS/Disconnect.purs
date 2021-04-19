@@ -57,7 +57,7 @@ class RemovePointerFromNode (from :: Ptr) (to :: Ptr) (i :: Node) (o :: Node) (t
 
 instance removePointerFromNodeAllpassHitSE :: RemovePointerFromNode from to (NodeC (AU.TAllpass to) (SingleEdge from)) (NodeC (AU.TAllpass to) NoEdge) True
 else instance removePointerFromNodeBandpassHitSE :: RemovePointerFromNode from to (NodeC (AU.TBandpass to) (SingleEdge from)) (NodeC (AU.TBandpass to) NoEdge) True
-else instance removePointerFromNodeConvolverHitSE :: RemovePointerFromNode from to (NodeC (AU.TConvolver to) (SingleEdge from)) (NodeC (AU.TConvolver to) NoEdge) True
+else instance removePointerFromNodeConvolverHitSE :: RemovePointerFromNode from to (NodeC (AU.TConvolver to name) (SingleEdge from)) (NodeC (AU.TConvolver to name) NoEdge) True
 else instance removePointerFromNodeDelayHitSE :: RemovePointerFromNode from to (NodeC (AU.TDelay to) (SingleEdge from)) (NodeC (AU.TDelay to) NoEdge) True
 else instance removePointerFromNodeDynamicsCompressorHitSE :: RemovePointerFromNode from to (NodeC (AU.TDynamicsCompressor to) (SingleEdge from)) (NodeC (AU.TDynamicsCompressor to) NoEdge) True
 else instance removePointerFromNodeGainHitSE :: RemovePointerFromNode from to (NodeC (AU.TGain to) (SingleEdge from)) (NodeC (AU.TGain to) NoEdge) True
@@ -68,11 +68,11 @@ else instance removePointerFromNodeLowpassHitSE :: RemovePointerFromNode from to
 else instance removePointerFromNodeLowshelfHitSE :: RemovePointerFromNode from to (NodeC (AU.TLowshelf to) (SingleEdge from)) (NodeC (AU.TLowshelf to) NoEdge) True
 else instance removePointerFromNodeNotchHitSE :: RemovePointerFromNode from to (NodeC (AU.TNotch to) (SingleEdge from)) (NodeC (AU.TNotch to) NoEdge) True
 else instance removePointerFromNodePeakingHitSE :: RemovePointerFromNode from to (NodeC (AU.TPeaking to) (SingleEdge from)) (NodeC (AU.TPeaking to) NoEdge) True
-else instance removePointerFromNodeRecorderHitSE :: RemovePointerFromNode from to (NodeC (AU.TRecorder to) (SingleEdge from)) (NodeC (AU.TRecorder to) NoEdge) True
+else instance removePointerFromNodeRecorderHitSE :: RemovePointerFromNode from to (NodeC (AU.TRecorder to name) (SingleEdge from)) (NodeC (AU.TRecorder to name) NoEdge) True
 else instance removePointerFromNodeSpeakerHitSE :: RemovePointerFromNode from to (NodeC (AU.TSpeaker to) (SingleEdge from)) (NodeC (AU.TSpeaker to) NoEdge) True
 else instance removePointerFromNodeSpeakerHitME :: (RemovePtrFromList from (PtrListCons e (PtrListCons l r)) (PtrListCons head tail)) => RemovePointerFromNode from to (NodeC (AU.TSpeaker to) (ManyEdges e (PtrListCons l r))) (NodeC (AU.TSpeaker to) (ManyEdges head tail)) True
 else instance removePointerFromNodeStereoPannerHitSE :: RemovePointerFromNode from to (NodeC (AU.TStereoPanner to) (SingleEdge from)) (NodeC (AU.TStereoPanner to) NoEdge) True
-else instance removePointerFromNodeWaveShaperHitSE :: RemovePointerFromNode from to (NodeC (AU.TWaveShaper to) (SingleEdge from)) (NodeC (AU.TWaveShaper to) NoEdge) True
+else instance removePointerFromNodeWaveShaperHitSE :: RemovePointerFromNode from to (NodeC (AU.TWaveShaper to name) (SingleEdge from)) (NodeC (AU.TWaveShaper to name) NoEdge) True
 else instance removePointerFromNodeMiss :: RemovePointerFromNode from to i i False
 
 -- | Internal helper class used for disconnecting.

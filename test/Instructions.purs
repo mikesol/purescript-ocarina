@@ -14,7 +14,7 @@ import Test.Spec.Assertions (shouldEqual)
 import Type.Proxy (Proxy)
 import WAGS.Change (change, changeAt)
 import WAGS.Control.Functions (branch, env, freeze, loop, proof, start, withProof, (@>), (@|>))
-import WAGS.Control.Qualified as Ix
+import WAGS.Control.Qualified as WAGS
 import WAGS.Control.Types (oneFrame')
 import WAGS.Create (create)
 import WAGS.Cursor (cursor)
@@ -53,7 +53,7 @@ testInstructions = do
   describe "a simple scene that doesn't change" do
     let
       simpleScene =
-        ( Ix.do
+        ( WAGS.do
             start
             e <- env
             create (scene0 e)
@@ -101,14 +101,14 @@ testInstructions = do
   describe "a simple scene that changes only the sine wave osc as a function of time" do
     let
       simpleScene =
-        ( Ix.do
+        ( WAGS.do
             start
             e <- env
             imap Right $ ivoid $ create (scene0 e)
         )
           @> ( loop
                 ( const
-                    $ Ix.do
+                    $ WAGS.do
                         e <- env
                         sosc <- cursor (scene0_ Focus e)
                         ivoid $ changeAt sosc (SinOsc On $ 440.0 + e.time * 50.0)
@@ -164,14 +164,14 @@ testInstructions = do
   describe "a simple scene that changes the entire graph as a function of time" do
     let
       simpleScene =
-        ( Ix.do
+        ( WAGS.do
             start
             e <- env
             create (scene0 e) $> Right unit
         )
           @> ( loop
                 ( const
-                    $ Ix.do
+                    $ WAGS.do
                         e <- env
                         ivoid $ change (scene0 e)
                 )
@@ -226,19 +226,19 @@ testInstructions = do
   describe "a scene that forks at 0.3 seconds" do
     let
       simpleScene =
-        ( Ix.do
+        ( WAGS.do
             start
             e <- env
             create (scene0 e) $> Right unit
         )
-          @> ( branch Ix.do
+          @> ( branch WAGS.do
                 { time } <- env
                 pr <- proof
                 withProof pr
                   $ if time < 0.3 then
                       Right
                         ( const
-                            $ Ix.do
+                            $ WAGS.do
                                 e <- env
                                 ivoid $ change (scene0 e)
                         )
@@ -246,7 +246,7 @@ testInstructions = do
                       Left
                         ( loop
                             ( const
-                                $ Ix.do
+                                $ WAGS.do
                                     e <- env
                                     ivoid $ change (scene1 e)
                             )

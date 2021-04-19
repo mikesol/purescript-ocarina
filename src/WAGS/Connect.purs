@@ -44,7 +44,7 @@ class AddPointerToNode (from :: Ptr) (to :: Ptr) (i :: Node) (o :: Node) (tf :: 
 
 instance addPointerToNodeAllpassHitSE :: AddPointerToNode from to (NodeC (AU.TAllpass to) NoEdge) (NodeC (AU.TAllpass to) (SingleEdge from)) True
 else instance addPointerToNodeBandpassHitSE :: AddPointerToNode from to (NodeC (AU.TBandpass to) NoEdge) (NodeC (AU.TBandpass to) (SingleEdge from)) True
-else instance addPointerToNodeConvolverHitSE :: AddPointerToNode from to (NodeC (AU.TConvolver to) NoEdge) (NodeC (AU.TConvolver to) (SingleEdge from)) True
+else instance addPointerToNodeConvolverHitSE :: AddPointerToNode from to (NodeC (AU.TConvolver to name) NoEdge) (NodeC (AU.TConvolver to name) (SingleEdge from)) True
 else instance addPointerToNodeDelayHitSE :: AddPointerToNode from to (NodeC (AU.TDelay to) NoEdge) (NodeC (AU.TDelay to) (SingleEdge from)) True
 else instance addPointerToNodeDynamicsCompressorHitSE :: AddPointerToNode from to (NodeC (AU.TDynamicsCompressor to) NoEdge) (NodeC (AU.TDynamicsCompressor to) (SingleEdge from)) True
 else instance addPointerToNodeGainHitNE :: AddPointerToNode from to (NodeC (AU.TGain to) NoEdge) (NodeC (AU.TGain to) (SingleEdge from)) True
@@ -56,12 +56,12 @@ else instance addPointerToNodeLowpassHitSE :: AddPointerToNode from to (NodeC (A
 else instance addPointerToNodeLowshelfHitSE :: AddPointerToNode from to (NodeC (AU.TLowshelf to) NoEdge) (NodeC (AU.TLowshelf to) (SingleEdge from)) True
 else instance addPointerToNodeNotchHitSE :: AddPointerToNode from to (NodeC (AU.TNotch to) NoEdge) (NodeC (AU.TNotch to) (SingleEdge from)) True
 else instance addPointerToNodePeakingHitSE :: AddPointerToNode from to (NodeC (AU.TPeaking to) NoEdge) (NodeC (AU.TPeaking to) (SingleEdge from)) True
-else instance addPointerToNodeRecorderHitSE :: AddPointerToNode from to (NodeC (AU.TRecorder to) NoEdge) (NodeC (AU.TRecorder to) (SingleEdge from)) True
+else instance addPointerToNodeRecorderHitSE :: AddPointerToNode from to (NodeC (AU.TRecorder to name) NoEdge) (NodeC (AU.TRecorder to name) (SingleEdge from)) True
 else instance addPointerToNodeSpeakerHitNE :: AddPointerToNode from to (NodeC (AU.TSpeaker to) NoEdge) (NodeC (AU.TSpeaker to) (SingleEdge from)) True
 else instance addPointerToNodeSpeakerHitSE :: AddPointerToNode from to (NodeC (AU.TSpeaker to) (SingleEdge e)) (NodeC (AU.TSpeaker to) (ManyEdges from (PtrListCons e PtrListNil))) True
 else instance addPointerToNodeSpeakerHitME :: AddPointerToNode from to (NodeC (AU.TSpeaker to) (ManyEdges e l)) (NodeC (AU.TSpeaker to) (ManyEdges from (PtrListCons e l))) True
 else instance addPointerToNodeStereoPannerHitSE :: AddPointerToNode from to (NodeC (AU.TStereoPanner to) NoEdge) (NodeC (AU.TStereoPanner to) (SingleEdge from)) True
-else instance addPointerToNodeWaveShaperHitSE :: AddPointerToNode from to (NodeC (AU.TWaveShaper to) NoEdge) (NodeC (AU.TWaveShaper to) (SingleEdge from)) True
+else instance addPointerToNodeWaveShaperHitSE :: AddPointerToNode from to (NodeC (AU.TWaveShaper to name) NoEdge) (NodeC (AU.TWaveShaper to name) (SingleEdge from)) True
 else instance addPointerToNodeMiss :: AddPointerToNode from to i i False
 
 -- | Internal helper class used for connecting.
