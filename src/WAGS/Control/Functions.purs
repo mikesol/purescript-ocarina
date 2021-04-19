@@ -6,6 +6,7 @@ module WAGS.Control.Functions
   , loop
   , branch
   , universe
+  , currentIdx
   , changeBit
   , env
   , freeze
@@ -386,6 +387,17 @@ universe ::
   AudioInterpret audio engine =>
   FrameT env audio engine proof m i i (Proxy i)
 universe = unsafeFrame $ pure $ (Proxy :: _ i)
+
+-- | Get the current index as a proxy.
+currentIdx ::
+  forall env audio engine proof m currentIdx graph changeBit skolems.
+  Monad m =>
+  AudioInterpret audio engine =>
+  FrameT env audio engine proof m
+    (UniverseC currentIdx graph changeBit skolems)
+    (UniverseC currentIdx graph changeBit skolems)
+    (Proxy currentIdx)
+currentIdx = unsafeFrame $ pure $ (Proxy :: _ currentIdx)
 
 -- | Get the current graph as a proxy.
 graph ::

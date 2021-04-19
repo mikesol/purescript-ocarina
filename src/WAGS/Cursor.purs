@@ -12,10 +12,10 @@ import WAGS.Universe.AudioUnit (AudioUnitRef(..))
 import WAGS.Universe.AudioUnit as AU
 import WAGS.Universe.Bin (class BinSub, class BinToInt, D0, Ptr, PtrList, PtrListCons, PtrListNil, toInt')
 import WAGS.Universe.EdgeProfile (EdgeProfile, ManyEdges, NoEdge, SingleEdge)
-import WAGS.Universe.Graph (class GraphToNodeList, InitialGraph)
+import WAGS.Universe.Graph (class GraphToNodeList, Graph, InitialGraph)
 import WAGS.Universe.Node (Node, NodeC, NodeList, NodeListCons, NodeListNil)
 import WAGS.Universe.Skolems (class GetSkolemFromRecursiveArgument, class ToSkolemizedFunction, SkolemListCons, SkolemPairC)
-import WAGS.Universe.Universe (Universe, UniverseC)
+import WAGS.Universe.Universe (UniverseC)
 import WAGS.Validation (class AltEdgeProfile, class PtrListAppend, class TerminalIdentityEdge)
 
 -- | Focus on a particular audio unit in a graph. Use in conjunction with `change` to modify
@@ -46,7 +46,7 @@ cursor ::
   forall edge audio engine a q r s t env proof m p.
   Monad m =>
   TerminalIdentityEdge r edge =>
-  Cursor edge a (UniverseC q r s t) p =>
+  Cursor edge a r p =>
   BinToInt p =>
   a -> FrameT env audio engine proof m (UniverseC q r s t) (UniverseC q r s t) (AudioUnitRef p)
 cursor = cursor' (Proxy :: _ edge)
@@ -54,8 +54,8 @@ cursor = cursor' (Proxy :: _ edge)
 -- | Like `cursor`, but starting from an arbitrary edge in a graph. This is useful when, for example,
 -- | the cursor needs to be obtained for an audio unit that is not yet connected to a speaker.  In
 -- | most cases, however, you'll want to use `cursor`, which uses `Speaker` as the top-most unit.
-class Cursor (p :: EdgeProfile) (a :: Type) (o :: Universe) (ptr :: Ptr) | p a o -> ptr where
-  cursor' :: forall env audio engine proof m. Monad m => Proxy p -> a -> FrameT env audio engine proof m o o (AudioUnitRef ptr)
+class Cursor (p :: EdgeProfile) (a :: Type) (g :: Graph) (ptr :: Ptr) | p a g -> ptr where
+  cursor' :: forall env audio engine proof m currentIdx changeBit skolems. Monad m => Proxy p -> a -> FrameT env audio engine proof m (UniverseC currentIdx g changeBit skolems) (UniverseC currentIdx g changeBit skolems) (AudioUnitRef ptr)
 
 instance cursorRecurse ::
   ( BinToInt head
@@ -106,231 +106,235 @@ instance cursorCons ::
   Cursor' tag p (NodeListCons head tail) plist
 
 -- | Internal helper class used for Cursor.
-class CursorX (tag :: Type) (p :: Ptr) (i :: Universe) (nextP :: EdgeProfile) | tag p i -> nextP
+class CursorX (tag :: Type) (p :: Ptr) (i :: Graph) (nextP :: EdgeProfile) | tag p i -> nextP
 
 instance cursorX ::
   ( GraphToNodeList ig il
   , Cursor' tag p il nextP
   ) =>
-  CursorX tag p (UniverseC i ig cb sk) nextP
+  CursorX tag p ig nextP
 
 -- | Internal helper class used for Cursor.
-class CursorI (p :: EdgeProfile) (a :: Type) (o :: Universe) (ptr :: PtrList) | p a o -> ptr
+class CursorI (p :: EdgeProfile) (a :: Type) (g :: Graph) (ptr :: PtrList) | p a g -> ptr
 
-instance cursorNoEdge :: CursorI NoEdge g inuniv PtrListNil
+instance cursorNoEdge :: CursorI NoEdge g igraph PtrListNil
 
-instance cursorSkolem :: BinToInt p => CursorI (SingleEdge p) (Proxy skolem) inuniv PtrListNil
+instance cursorSkolem :: BinToInt p => CursorI (SingleEdge p) (Proxy skolem) igraph PtrListNil
 
-instance cursorIdentity :: (BinToInt p, CursorI (SingleEdge p) x inuniv o) => CursorI (SingleEdge p) (Identity x) inuniv o
+instance cursorIdentity :: (BinToInt p, CursorI (SingleEdge p) x igraph o) => CursorI (SingleEdge p) (Identity x) igraph o
 
-instance cursorFocus :: (BinToInt p, CursorI (SingleEdge p) x inuniv o) => CursorI (SingleEdge p) (Focus x) inuniv (PtrListCons p o)
+instance cursorFocus :: (BinToInt p, CursorI (SingleEdge p) x igraph o) => CursorI (SingleEdge p) (Focus x) igraph (PtrListCons p o)
 
 instance cursorMany2 ::
   ( BinToInt p
   , BinToInt a
-  , CursorI (SingleEdge p) x inuniv o0
-  , CursorI (ManyEdges a b) y inuniv o1
+  , CursorI (SingleEdge p) x igraph o0
+  , CursorI (ManyEdges a b) y igraph o1
   , PtrListAppend o0 o1 oo
   ) =>
-  CursorI (ManyEdges p (PtrListCons a b)) (x /\ y) inuniv oo
+  CursorI (ManyEdges p (PtrListCons a b)) (x /\ y) igraph oo
 
 instance cursorMany1 ::
-  (BinToInt p, CursorI (SingleEdge p) a inuniv o) =>
-  CursorI (ManyEdges p PtrListNil) (a /\ Unit) inuniv o
+  (BinToInt p, CursorI (SingleEdge p) a igraph o) =>
+  CursorI (ManyEdges p PtrListNil) (a /\ Unit) igraph o
 
 -- incoming to the change will be the ptr of the inner closure, which is the actual connection -- we run the inner closure to get the ptr for the outer closure
 instance cursorDup ::
   ( Create
       a
-      (UniverseC D0 InitialGraph changeBit (SkolemListCons (SkolemPairC skolem D0) skolems))
-      (UniverseC outptr grapho changeBit (SkolemListCons (SkolemPairC skolem D0) skolems))
+      D0
+      InitialGraph
+      (SkolemListCons (SkolemPairC skolem D0) skolems)
+      outptr
+      grapho
+      (SkolemListCons (SkolemPairC skolem D0) skolems)
       ignore
   , BinToInt p
   , BinToInt outptr
   , BinToInt continuation
   , BinSub p outptr continuation
-  , CursorI (SingleEdge p) b inuniv o0
-  , CursorI (SingleEdge continuation) a inuniv o1
+  , CursorI (SingleEdge p) b igraph o0
+  , CursorI (SingleEdge continuation) a igraph o1
   , PtrListAppend o0 o1 oo
   ) =>
-  CursorI (SingleEdge p) (CTOR.Dup a (Proxy skolem -> b)) inuniv oo
+  CursorI (SingleEdge p) (CTOR.Dup a (Proxy skolem -> b)) igraph oo
 
 --------------
 instance cursorAllpass ::
   ( BinToInt p
   , GetSkolemFromRecursiveArgument fOfargC skolem
   , ToSkolemizedFunction fOfargC skolem argC
-  , CursorX (CTOR.Allpass argA argB argC) p inuniv nextP
-  , CursorI nextP argC inuniv o
+  , CursorX (CTOR.Allpass argA argB argC) p igraph nextP
+  , CursorI nextP argC igraph o
   ) =>
-  CursorI (SingleEdge p) (CTOR.Allpass argA argB fOfargC) inuniv o
+  CursorI (SingleEdge p) (CTOR.Allpass argA argB fOfargC) igraph o
 
 instance cursorBandpass ::
   ( BinToInt p
   , GetSkolemFromRecursiveArgument fOfargC skolem
   , ToSkolemizedFunction fOfargC skolem argC
-  , CursorX (CTOR.Bandpass argA argB argC) p inuniv nextP
-  , CursorI nextP argC inuniv o
+  , CursorX (CTOR.Bandpass argA argB argC) p igraph nextP
+  , CursorI nextP argC igraph o
   ) =>
-  CursorI (SingleEdge p) (CTOR.Bandpass argA argB fOfargC) inuniv o
+  CursorI (SingleEdge p) (CTOR.Bandpass argA argB fOfargC) igraph o
 
 instance cursorConstant ::
   BinToInt p =>
-  CursorI (SingleEdge p) (CTOR.Constant argA) inuniv PtrListNil
+  CursorI (SingleEdge p) (CTOR.Constant argA) igraph PtrListNil
 
 instance cursorConvolver ::
   ( BinToInt p
   , GetSkolemFromRecursiveArgument fOfargB skolem
   , ToSkolemizedFunction fOfargB skolem argB
-  , CursorX (CTOR.Convolver argA argB) p inuniv nextP
-  , CursorI nextP argB inuniv o
+  , CursorX (CTOR.Convolver argA argB) p igraph nextP
+  , CursorI nextP argB igraph o
   ) =>
-  CursorI (SingleEdge p) (CTOR.Convolver argA fOfargB) inuniv o
+  CursorI (SingleEdge p) (CTOR.Convolver argA fOfargB) igraph o
 
 instance cursorDelay ::
   ( BinToInt p
   , GetSkolemFromRecursiveArgument fOfargB skolem
   , ToSkolemizedFunction fOfargB skolem argB
-  , CursorX (CTOR.Delay argA argB) p inuniv nextP
-  , CursorI nextP argB inuniv o
+  , CursorX (CTOR.Delay argA argB) p igraph nextP
+  , CursorI nextP argB igraph o
   ) =>
-  CursorI (SingleEdge p) (CTOR.Delay argA fOfargB) inuniv o
+  CursorI (SingleEdge p) (CTOR.Delay argA fOfargB) igraph o
 
 instance cursorDynamicsCompressor ::
   ( BinToInt p
   , GetSkolemFromRecursiveArgument fOfargF skolem
   , ToSkolemizedFunction fOfargF skolem argF
-  , CursorX (CTOR.DynamicsCompressor argA argB argC argD argE argF) p inuniv nextP
-  , CursorI nextP argF inuniv o
+  , CursorX (CTOR.DynamicsCompressor argA argB argC argD argE argF) p igraph nextP
+  , CursorI nextP argF igraph o
   ) =>
-  CursorI (SingleEdge p) (CTOR.DynamicsCompressor argA argB argC argD argE fOfargF) inuniv o
+  CursorI (SingleEdge p) (CTOR.DynamicsCompressor argA argB argC argD argE fOfargF) igraph o
 
 instance cursorHighpass ::
   ( BinToInt p
   , GetSkolemFromRecursiveArgument fOfargC skolem
   , ToSkolemizedFunction fOfargC skolem argC
-  , CursorX (CTOR.Highpass argA argB argC) p inuniv nextP
-  , CursorI nextP argC inuniv o
+  , CursorX (CTOR.Highpass argA argB argC) p igraph nextP
+  , CursorI nextP argC igraph o
   ) =>
-  CursorI (SingleEdge p) (CTOR.Highpass argA argB fOfargC) inuniv o
+  CursorI (SingleEdge p) (CTOR.Highpass argA argB fOfargC) igraph o
 
 instance cursorHighshelf ::
   ( BinToInt p
   , GetSkolemFromRecursiveArgument fOfargC skolem
   , ToSkolemizedFunction fOfargC skolem argC
-  , CursorX (CTOR.Highshelf argA argB argC) p inuniv nextP
-  , CursorI nextP argC inuniv o
+  , CursorX (CTOR.Highshelf argA argB argC) p igraph nextP
+  , CursorI nextP argC igraph o
   ) =>
-  CursorI (SingleEdge p) (CTOR.Highshelf argA argB fOfargC) inuniv o
+  CursorI (SingleEdge p) (CTOR.Highshelf argA argB fOfargC) igraph o
 
 instance cursorLoopBuf ::
   BinToInt p =>
-  CursorI (SingleEdge p) (CTOR.LoopBuf argA argB) inuniv PtrListNil
+  CursorI (SingleEdge p) (CTOR.LoopBuf argA argB) igraph PtrListNil
 
 instance cursorLowpass ::
   ( BinToInt p
   , GetSkolemFromRecursiveArgument fOfargC skolem
   , ToSkolemizedFunction fOfargC skolem argC
-  , CursorX (CTOR.Lowpass argA argB argC) p inuniv nextP
-  , CursorI nextP argC inuniv o
+  , CursorX (CTOR.Lowpass argA argB argC) p igraph nextP
+  , CursorI nextP argC igraph o
   ) =>
-  CursorI (SingleEdge p) (CTOR.Lowpass argA argB fOfargC) inuniv o
+  CursorI (SingleEdge p) (CTOR.Lowpass argA argB fOfargC) igraph o
 
 instance cursorLowshelf ::
   ( BinToInt p
   , GetSkolemFromRecursiveArgument fOfargC skolem
   , ToSkolemizedFunction fOfargC skolem argC
-  , CursorX (CTOR.Lowshelf argA argB argC) p inuniv nextP
-  , CursorI nextP argC inuniv o
+  , CursorX (CTOR.Lowshelf argA argB argC) p igraph nextP
+  , CursorI nextP argC igraph o
   ) =>
-  CursorI (SingleEdge p) (CTOR.Lowshelf argA argB fOfargC) inuniv o
+  CursorI (SingleEdge p) (CTOR.Lowshelf argA argB fOfargC) igraph o
 
 instance cursorMicrophone ::
   BinToInt p =>
-  CursorI (SingleEdge p) (CTOR.Microphone) inuniv PtrListNil
+  CursorI (SingleEdge p) (CTOR.Microphone) igraph PtrListNil
 
 instance cursorNotch ::
   ( BinToInt p
   , GetSkolemFromRecursiveArgument fOfargC skolem
   , ToSkolemizedFunction fOfargC skolem argC
-  , CursorX (CTOR.Notch argA argB argC) p inuniv nextP
-  , CursorI nextP argC inuniv o
+  , CursorX (CTOR.Notch argA argB argC) p igraph nextP
+  , CursorI nextP argC igraph o
   ) =>
-  CursorI (SingleEdge p) (CTOR.Notch argA argB fOfargC) inuniv o
+  CursorI (SingleEdge p) (CTOR.Notch argA argB fOfargC) igraph o
 
 instance cursorPeaking ::
   ( BinToInt p
   , GetSkolemFromRecursiveArgument fOfargD skolem
   , ToSkolemizedFunction fOfargD skolem argD
-  , CursorX (CTOR.Peaking argA argB argC argD) p inuniv nextP
-  , CursorI nextP argD inuniv o
+  , CursorX (CTOR.Peaking argA argB argC argD) p igraph nextP
+  , CursorI nextP argD igraph o
   ) =>
-  CursorI (SingleEdge p) (CTOR.Peaking argA argB argC fOfargD) inuniv o
+  CursorI (SingleEdge p) (CTOR.Peaking argA argB argC fOfargD) igraph o
 
 instance cursorPeriodicOsc ::
   BinToInt p =>
-  CursorI (SingleEdge p) (CTOR.PeriodicOsc argA argB) inuniv PtrListNil
+  CursorI (SingleEdge p) (CTOR.PeriodicOsc argA argB) igraph PtrListNil
 
 instance cursorPlayBuf ::
   BinToInt p =>
-  CursorI (SingleEdge p) (CTOR.PlayBuf argA argB) inuniv PtrListNil
+  CursorI (SingleEdge p) (CTOR.PlayBuf argA argB) igraph PtrListNil
 
 instance cursorRecorder ::
   ( BinToInt p
   , GetSkolemFromRecursiveArgument fOfargB skolem
   , ToSkolemizedFunction fOfargB skolem argB
-  , CursorX (CTOR.Recorder argA argB) p inuniv nextP
-  , CursorI nextP argB inuniv o
+  , CursorX (CTOR.Recorder argA argB) p igraph nextP
+  , CursorI nextP argB igraph o
   ) =>
-  CursorI (SingleEdge p) (CTOR.Recorder argA fOfargB) inuniv o
+  CursorI (SingleEdge p) (CTOR.Recorder argA fOfargB) igraph o
 
 instance cursorSawtoothOsc ::
   BinToInt p =>
-  CursorI (SingleEdge p) (CTOR.SawtoothOsc argA) inuniv PtrListNil
+  CursorI (SingleEdge p) (CTOR.SawtoothOsc argA) igraph PtrListNil
 
 instance cursorSinOsc ::
   BinToInt p =>
-  CursorI (SingleEdge p) (CTOR.SinOsc argA) inuniv PtrListNil
+  CursorI (SingleEdge p) (CTOR.SinOsc argA) igraph PtrListNil
 
 instance cursorSquareOsc ::
   BinToInt p =>
-  CursorI (SingleEdge p) (CTOR.SquareOsc argA) inuniv PtrListNil
+  CursorI (SingleEdge p) (CTOR.SquareOsc argA) igraph PtrListNil
 
 instance cursorStereoPanner ::
   ( BinToInt p
   , GetSkolemFromRecursiveArgument fOfargB skolem
   , ToSkolemizedFunction fOfargB skolem argB
-  , CursorX (CTOR.StereoPanner argA argB) p inuniv nextP
-  , CursorI nextP argB inuniv o
+  , CursorX (CTOR.StereoPanner argA argB) p igraph nextP
+  , CursorI nextP argB igraph o
   ) =>
-  CursorI (SingleEdge p) (CTOR.StereoPanner argA fOfargB) inuniv o
+  CursorI (SingleEdge p) (CTOR.StereoPanner argA fOfargB) igraph o
 
 instance cursorTriangleOsc ::
   BinToInt p =>
-  CursorI (SingleEdge p) (CTOR.TriangleOsc argA) inuniv PtrListNil
+  CursorI (SingleEdge p) (CTOR.TriangleOsc argA) igraph PtrListNil
 
 instance cursorWaveShaper ::
   ( BinToInt p
   , GetSkolemFromRecursiveArgument fOfargC skolem
   , ToSkolemizedFunction fOfargC skolem argC
-  , CursorX (CTOR.WaveShaper argA argB argC) p inuniv nextP
-  , CursorI nextP argC inuniv o
+  , CursorX (CTOR.WaveShaper argA argB argC) p igraph nextP
+  , CursorI nextP argC igraph o
   ) =>
-  CursorI (SingleEdge p) (CTOR.WaveShaper argA argB fOfargC) inuniv o
+  CursorI (SingleEdge p) (CTOR.WaveShaper argA argB fOfargC) igraph o
 
 ---------------
 instance cursorGain ::
   ( BinToInt p
   , GetSkolemFromRecursiveArgument fb skolem
   , ToSkolemizedFunction fb skolem b
-  , CursorX (CTOR.Gain a b) p inuniv nextP
-  , CursorI nextP b inuniv o
+  , CursorX (CTOR.Gain a b) p igraph nextP
+  , CursorI nextP b igraph o
   ) =>
-  CursorI (SingleEdge p) (CTOR.Gain a fb) inuniv o
+  CursorI (SingleEdge p) (CTOR.Gain a fb) igraph o
 
 instance cursorSpeaker ::
   ( BinToInt p
-  , CursorX (CTOR.Speaker a) p inuniv nextP
-  , CursorI nextP a inuniv o
+  , CursorX (CTOR.Speaker a) p igraph nextP
+  , CursorI nextP a igraph o
   ) =>
-  CursorI (SingleEdge p) (CTOR.Speaker a) inuniv o
+  CursorI (SingleEdge p) (CTOR.Speaker a) igraph o

@@ -658,8 +658,12 @@ instance changeMany1 ::
 instance changeDup ::
   ( Create
       a
-      (UniverseC D0 InitialGraph changeBit (SkolemListCons (SkolemPairC skolem D0) skolems))
-      (UniverseC outptr graph changeBit (SkolemListCons (SkolemPairC skolem D0) skolems))
+      D0
+      InitialGraph
+      (SkolemListCons (SkolemPairC skolem D0) skolems)
+      outptr
+      graph
+      (SkolemListCons (SkolemPairC skolem D0) skolems)
       ignore
   , BinToInt p
   , BinToInt outptr
