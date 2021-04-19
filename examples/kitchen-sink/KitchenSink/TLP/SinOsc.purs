@@ -33,8 +33,7 @@ doSinOsc =
     pr <- proof
     withProof pr
       $ if time % pieceTime < phase1Time then
-          Right
-            (change (deltaPhase1 time) $> lsig)
+          Right (change (deltaPhase1 time) $> lsig)
         else
           Left \thunk ->
             doTriangleOsc WAGS.do

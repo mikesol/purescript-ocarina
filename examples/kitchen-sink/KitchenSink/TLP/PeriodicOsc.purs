@@ -36,8 +36,7 @@ doPeriodicOsc =
     pr <- proof
     withProof pr
       $ if time % pieceTime < (phase1Time + phase2Time + phase3Time + phase4Time) then
-          Right
-            (change (deltaPhase4 time) $> lsig)
+          Right (change (deltaPhase4 time) $> lsig)
         else
           Left \thunk ->
             doSawtoothOsc WAGS.do

@@ -34,8 +34,7 @@ doTriangleOsc =
     pr <- proof
     withProof pr
       $ if time % pieceTime < (phase1Time + phase2Time) then
-          Right
-            (change (deltaPhase2 time) $> lsig)
+          Right (change (deltaPhase2 time) $> lsig)
         else
           Left \thunk ->
             doSquareOsc WAGS.do
