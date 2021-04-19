@@ -9,7 +9,6 @@ module WAGS.Create
   ) where
 
 import Prelude
-
 import Control.Monad.State (gets, modify_)
 import Data.Identity (Identity(..))
 import Data.Map as M
@@ -27,12 +26,12 @@ import WAGS.Interpret (class AudioInterpret, connectXToY, makeAllpass, makeBandp
 import WAGS.Rendered (AnAudioUnit(..))
 import WAGS.Universe.AudioUnit (AudioUnitRef(..), TGain, TSpeaker)
 import WAGS.Universe.AudioUnit as AU
-import WAGS.Universe.Bin (class BinSucc, class BinToInt, Bits, toInt')
+import WAGS.Universe.Bin (class BinSucc, class BinToInt, Bits, Ptr, toInt')
 import WAGS.Universe.EdgeProfile (class AsEdgeProfile, NoEdge, PtrArr(..), SingleEdge, getPointers)
-import WAGS.Universe.Graph (class GraphToNodeList, GraphC)
+import WAGS.Universe.Graph (class GraphToNodeList, Graph, GraphC)
 import WAGS.Universe.Node (NodeC)
-import WAGS.Universe.Skolems (class GetSkolemFromRecursiveArgument, class GetSkolemizedFunctionFromAU, class LookupSkolem, class MakeInternalSkolemStack, class SkolemNotYetPresent, class SkolemNotYetPresentOrDiscardable, class ToSkolemizedFunction, DiscardableSkolem, SkolemListCons, SkolemPairC, getSkolemizedFunctionFromAU)
-import WAGS.Universe.Universe (Universe, UniverseC)
+import WAGS.Universe.Skolems (class GetSkolemFromRecursiveArgument, class GetSkolemizedFunctionFromAU, class LookupSkolem, class MakeInternalSkolemStack, class SkolemNotYetPresent, class SkolemNotYetPresentOrDiscardable, class ToSkolemizedFunction, DiscardableSkolem, SkolemList, SkolemListCons, SkolemPairC, getSkolemizedFunctionFromAU)
+import WAGS.Universe.Universe (UniverseC)
 
 -- | Create audio units using template `a` for input universe `i`, resulting in output universe `o` as well as a reference to the top-level created audio unit(s). The example below creates a speaker, a gain unit and two sine-wave oscillators.  The gain is connected to the speaker and the sine wave oscillators are connected to the gain.
 -- |
@@ -54,8 +53,8 @@ import WAGS.Universe.Universe (Universe, UniverseC)
 -- |
 -- | Created audio units do not have to have a `Speaker` at the top-level. It is possible to create
 -- | an audio unit and then connect it to another one using `connect`.
-class Create (a :: Type) (i :: Universe) (o :: Universe) (ref :: Type) | a i -> o ref where
-  create :: forall env audio engine proof m. Monad m => AudioInterpret audio engine => a -> FrameT env audio engine proof m i o ref
+class Create (a :: Type) (inIndex :: Ptr) (inGraph :: Graph) (inSkolems :: SkolemList) (outIndex :: Ptr) (outGraph :: Graph) (outSkolems :: SkolemList) (ref :: Type) | a inIndex inGraph inSkolems -> outIndex outGraph outSkolems ref where
+  create :: forall env audio engine proof m changeBit. Monad m => AudioInterpret audio engine => a -> FrameT env audio engine proof m (UniverseC inIndex inGraph changeBit inSkolems) (UniverseC outIndex outGraph changeBit outSkolems) ref
 
 -- | A value that can be coerced to an initial control-rate audio parameter.
 class InitialVal a where
@@ -69,8 +68,6 @@ instance initialValAudioParameter :: InitialVal AudioParameter where
 
 instance initialValTuple :: InitialVal a => InitialVal (Tuple a b) where
   initialVal = initialVal <<< fst
-
-
 
 -- | Internal class used to make term-level instructions for audio unit creation.
 class
@@ -316,20 +313,21 @@ creationStep g = do
     )
   pure currentIdx
 
-type ProxyCC skolem ptr innerTerm i o
-  = Proxy (skolem /\ ptr /\ innerTerm /\ i /\ o)
+type ProxyCC :: forall k1 k2 k3 k4 k5 k6 k7. Type -> k1 -> Type -> k2 -> k3 -> k4 -> k5 -> k6 -> k7 -> Type
+type ProxyCC skolem ptr innerTerm i0 g0 s0 i1 g1 s1
+  = Proxy (skolem /\ (Proxy ptr) /\ innerTerm /\ (Proxy i0) /\ (Proxy g0) /\ (Proxy s0) /\ (Proxy i1) /\ (Proxy g1) /\ (Proxy s1))
 
 createAndConnect ::
-  forall env audio engine proof g (ptr :: Bits) skolem c (i :: Universe) (o :: Universe) innerTerm eprof m.
+  forall env audio engine proof g (ptr :: Bits) skolem c i0 g0 s0 i1 g1 s1 cb innerTerm eprof m.
   Monad m =>
   AudioInterpret audio engine =>
   GetSkolemizedFunctionFromAU g skolem c =>
   AsEdgeProfile innerTerm eprof =>
   CreationInstructions audio engine g =>
-  Create c i o innerTerm =>
-  Proxy (skolem /\ (Proxy ptr) /\ innerTerm /\ (Proxy i) /\ (Proxy o)) ->
+  Create c i0 g0 s0 i1 g1 s1 innerTerm =>
+  Proxy (skolem /\ (Proxy ptr) /\ innerTerm /\ (Proxy i0) /\ (Proxy g0) /\ (Proxy s0) /\ (Proxy i1) /\ (Proxy g1) /\ (Proxy s1)) ->
   g ->
-  FrameT env audio engine proof m i o Int
+  FrameT env audio engine proof m (UniverseC i0 g0 cb s0) (UniverseC i1 g1 cb s1) Int
 createAndConnect _ g =
   unsafeFrame
     $ do
@@ -337,7 +335,7 @@ createAndConnect _ g =
         let
           mc =
             unsafeUnframe
-              $ (create :: forall mo. Monad mo => c -> FrameT env audio engine proof mo i o innerTerm)
+              $ (create :: forall changeBit mo. Monad mo => c -> FrameT env audio engine proof mo (UniverseC i0 g0 changeBit s0) (UniverseC i1 g1 changeBit s1) innerTerm)
                   ( ((getSkolemizedFunctionFromAU :: g -> (Proxy skolem -> c)) g)
                       Proxy
                   )
@@ -360,22 +358,22 @@ createAndConnect _ g =
 
 -- end of the line in tuples
 instance createUnit ::
-  Create Unit u u Unit where
+  Create Unit i g s i g s Unit where
   create = unsafeFrame <<< pure
 
 instance createTuple ::
-  (Create x u0 u1 x', Create y u1 u2 y') =>
-  Create (x /\ y) u0 u2 (x' /\ y') where
+  (Create x i0 g0 s0 i1 g1 s1 x', Create y i1 g1 s1 i2 g2 s2 y') =>
+  Create (x /\ y) i0 g0 s0 i2 g2 s2 (x' /\ y') where
   create (x /\ y) = (unsafeFrame) $ Tuple <$> x' <*> y'
     where
-    (x') = unsafeUnframe $ (create :: forall env audio engine proof m. Monad m => AudioInterpret audio engine => x -> FrameT env audio engine proof m u0 u1 x') x
+    (x') = unsafeUnframe $ (create :: forall env audio engine proof m cb. Monad m => AudioInterpret audio engine => x -> FrameT env audio engine proof m (UniverseC i0 g0 cb s0) (UniverseC i1 g1 cb s1) x') x
 
-    (y') = unsafeUnframe $ (create :: forall env audio engine proof m. Monad m => AudioInterpret audio engine => y -> FrameT env audio engine proof m u1 u2 y') y
+    (y') = unsafeUnframe $ (create :: forall env audio engine proof m cb. Monad m => AudioInterpret audio engine => y -> FrameT env audio engine proof m (UniverseC i1 g1 cb s1) (UniverseC i2 g2 cb s2) y') y
 
-instance createIdentity :: Create x i o r => Create (Identity x) i o r where
+instance createIdentity :: Create x i0 g0 s0 i1 g1 s1 r => Create (Identity x) i0 g0 s0 i1 g1 s1 r where
   create (Identity x) = create x
 
-instance createFocus :: Create x i o r => Create (Focus x) i o r where
+instance createFocus :: Create x i0 g0 s0 i1 g1 s1 r => Create (Focus x) i0 g0 s0 i1 g1 s1 r where
   create (Focus x) = create x
 
 instance createDup ::
@@ -383,26 +381,38 @@ instance createDup ::
   , BinToInt ptr
   , Create
       a
-      (UniverseC ptr graphi changeBit skolems)
-      (UniverseC midptr graphm changeBit skolems)
+      ptr
+      graphi
+      skolems
+      midptr
+      graphm
+      skolems
       ignore
   , Create
       b
-      (UniverseC midptr graphm changeBit (SkolemListCons (SkolemPairC skolem ptr) skolems))
-      (UniverseC outptr grapho changeBit (SkolemListCons (SkolemPairC skolem ptr) skolems))
+      midptr
+      graphm
+      (SkolemListCons (SkolemPairC skolem ptr) skolems)
+      outptr
+      grapho
+      (SkolemListCons (SkolemPairC skolem ptr) skolems)
       (AudioUnitRef midptr)
   ) =>
   Create
     (Dup a (Proxy skolem -> b))
-    (UniverseC ptr graphi changeBit skolems)
-    (UniverseC outptr grapho changeBit skolems)
+    ptr
+    graphi
+    skolems
+    outptr
+    grapho
+    skolems
     (AudioUnitRef midptr) where
   create (Dup a f) = unsafeFrame $ x *> y
     where
     x =
       unsafeUnframe
         $ ( create ::
-              forall env audio engine proof m.
+              forall env audio engine proof changeBit m.
               Monad m =>
               AudioInterpret audio engine =>
               a ->
@@ -416,7 +426,7 @@ instance createDup ::
     y =
       unsafeUnframe
         $ ( create ::
-              forall env audio engine proof m.
+              forall env audio engine proof changeBit m.
               Monad m =>
               AudioInterpret audio engine =>
               b ->
@@ -438,25 +448,28 @@ instance createAllpass ::
   , BinSucc ptr next
   , Create
       argC
-      (UniverseC next graphi changeBit skolemsInternal)
-      (UniverseC outptr grapho changeBit skolemsInternal)
+      next
+      graphi
+      skolemsInternal
+      outptr
+      grapho
+      skolemsInternal
       term
   , AsEdgeProfile term (SingleEdge op)
   , GraphToNodeList grapho nodeList
   ) =>
   Create
     (CTOR.Allpass argA argB fOfargC)
-    (UniverseC ptr graphi changeBit skolems)
-    ( UniverseC
-        outptr
-        (GraphC (NodeC (AU.TAllpass ptr) (SingleEdge op)) nodeList)
-        changeBit
-        skolems
-    )
+    ptr
+    graphi
+    skolems
+    outptr
+    (GraphC (NodeC (AU.TAllpass ptr) (SingleEdge op)) nodeList)
+    skolems
     (AudioUnitRef ptr) where
   create =
     unsafeFrame <<< (map) AudioUnitRef <<< unsafeUnframe
-      <<< createAndConnect (Proxy :: ProxyCC skolem (Proxy ptr) term (Proxy (UniverseC next graphi changeBit skolemsInternal)) (Proxy (UniverseC outptr grapho changeBit skolemsInternal)))
+      <<< createAndConnect (Proxy :: ProxyCC skolem ptr term next graphi skolemsInternal outptr grapho skolemsInternal)
 
 instance createBandpass ::
   ( InitialVal argA
@@ -469,25 +482,28 @@ instance createBandpass ::
   , BinSucc ptr next
   , Create
       argC
-      (UniverseC next graphi changeBit skolemsInternal)
-      (UniverseC outptr grapho changeBit skolemsInternal)
+      next
+      graphi
+      skolemsInternal
+      outptr
+      grapho
+      skolemsInternal
       term
   , AsEdgeProfile term (SingleEdge op)
   , GraphToNodeList grapho nodeList
   ) =>
   Create
     (CTOR.Bandpass argA argB fOfargC)
-    (UniverseC ptr graphi changeBit skolems)
-    ( UniverseC
-        outptr
-        (GraphC (NodeC (AU.TBandpass ptr) (SingleEdge op)) nodeList)
-        changeBit
-        skolems
-    )
+    ptr
+    graphi
+    skolems
+    outptr
+    (GraphC (NodeC (AU.TBandpass ptr) (SingleEdge op)) nodeList)
+    skolems
     (AudioUnitRef ptr) where
   create =
     unsafeFrame <<< (map) AudioUnitRef <<< unsafeUnframe
-      <<< createAndConnect (Proxy :: ProxyCC skolem (Proxy ptr) term (Proxy (UniverseC next graphi changeBit skolemsInternal)) (Proxy (UniverseC outptr grapho changeBit skolemsInternal)))
+      <<< createAndConnect (Proxy :: ProxyCC skolem ptr term next graphi skolemsInternal outptr grapho skolemsInternal)
 
 instance createConstant ::
   ( InitialVal argA
@@ -497,12 +513,12 @@ instance createConstant ::
   ) =>
   Create
     (CTOR.Constant argA)
-    (UniverseC ptr graph changeBit skolems)
-    ( UniverseC next
-        (GraphC (NodeC (AU.TConstant ptr) NoEdge) nodeList)
-        changeBit
-        skolems
-    )
+    ptr
+    graph
+    skolems
+    next
+    (GraphC (NodeC (AU.TConstant ptr) NoEdge) nodeList)
+    skolems
     (AudioUnitRef ptr) where
   create = unsafeFrame <<< (map) AudioUnitRef <<< creationStep
 
@@ -516,25 +532,28 @@ instance createConvolver ::
   , BinSucc ptr next
   , Create
       argB
-      (UniverseC next graphi changeBit skolemsInternal)
-      (UniverseC outptr grapho changeBit skolemsInternal)
+      next
+      graphi
+      skolemsInternal
+      outptr
+      grapho
+      skolemsInternal
       term
   , AsEdgeProfile term (SingleEdge op)
   , GraphToNodeList grapho nodeList
   ) =>
   Create
     (CTOR.Convolver argA fOfargB)
-    (UniverseC ptr graphi changeBit skolems)
-    ( UniverseC
-        outptr
-        (GraphC (NodeC (AU.TConvolver ptr) (SingleEdge op)) nodeList)
-        changeBit
-        skolems
-    )
+    ptr
+    graphi
+    skolems
+    outptr
+    (GraphC (NodeC (AU.TConvolver ptr argA) (SingleEdge op)) nodeList)
+    skolems
     (AudioUnitRef ptr) where
   create =
     unsafeFrame <<< (map) AudioUnitRef <<< unsafeUnframe
-      <<< createAndConnect (Proxy :: ProxyCC skolem (Proxy ptr) term (Proxy (UniverseC next graphi changeBit skolemsInternal)) (Proxy (UniverseC outptr grapho changeBit skolemsInternal)))
+      <<< createAndConnect (Proxy :: ProxyCC skolem ptr term next graphi skolemsInternal outptr grapho skolemsInternal)
 
 instance createDelay ::
   ( InitialVal argA
@@ -546,25 +565,28 @@ instance createDelay ::
   , BinSucc ptr next
   , Create
       argB
-      (UniverseC next graphi changeBit skolemsInternal)
-      (UniverseC outptr grapho changeBit skolemsInternal)
+      next
+      graphi
+      skolemsInternal
+      outptr
+      grapho
+      skolemsInternal
       term
   , AsEdgeProfile term (SingleEdge op)
   , GraphToNodeList grapho nodeList
   ) =>
   Create
     (CTOR.Delay argA fOfargB)
-    (UniverseC ptr graphi changeBit skolems)
-    ( UniverseC
-        outptr
-        (GraphC (NodeC (AU.TDelay ptr) (SingleEdge op)) nodeList)
-        changeBit
-        skolems
-    )
+    ptr
+    graphi
+    skolems
+    outptr
+    (GraphC (NodeC (AU.TDelay ptr) (SingleEdge op)) nodeList)
+    skolems
     (AudioUnitRef ptr) where
   create =
     unsafeFrame <<< (map) AudioUnitRef <<< unsafeUnframe
-      <<< createAndConnect (Proxy :: ProxyCC skolem (Proxy ptr) term (Proxy (UniverseC next graphi changeBit skolemsInternal)) (Proxy (UniverseC outptr grapho changeBit skolemsInternal)))
+      <<< createAndConnect (Proxy :: ProxyCC skolem ptr term next graphi skolemsInternal outptr grapho skolemsInternal)
 
 instance createDynamicsCompressor ::
   ( InitialVal argA
@@ -580,25 +602,28 @@ instance createDynamicsCompressor ::
   , BinSucc ptr next
   , Create
       argF
-      (UniverseC next graphi changeBit skolemsInternal)
-      (UniverseC outptr grapho changeBit skolemsInternal)
+      next
+      graphi
+      skolemsInternal
+      outptr
+      grapho
+      skolemsInternal
       term
   , AsEdgeProfile term (SingleEdge op)
   , GraphToNodeList grapho nodeList
   ) =>
   Create
     (CTOR.DynamicsCompressor argA argB argC argD argE fOfargF)
-    (UniverseC ptr graphi changeBit skolems)
-    ( UniverseC
-        outptr
-        (GraphC (NodeC (AU.TDynamicsCompressor ptr) (SingleEdge op)) nodeList)
-        changeBit
-        skolems
-    )
+    ptr
+    graphi
+    skolems
+    outptr
+    (GraphC (NodeC (AU.TDynamicsCompressor ptr) (SingleEdge op)) nodeList)
+    skolems
     (AudioUnitRef ptr) where
   create =
     unsafeFrame <<< (map) AudioUnitRef <<< unsafeUnframe
-      <<< createAndConnect (Proxy :: ProxyCC skolem (Proxy ptr) term (Proxy (UniverseC next graphi changeBit skolemsInternal)) (Proxy (UniverseC outptr grapho changeBit skolemsInternal)))
+      <<< createAndConnect (Proxy :: ProxyCC skolem ptr term next graphi skolemsInternal outptr grapho skolemsInternal)
 
 instance createHighpass ::
   ( InitialVal argA
@@ -611,25 +636,28 @@ instance createHighpass ::
   , BinSucc ptr next
   , Create
       argC
-      (UniverseC next graphi changeBit skolemsInternal)
-      (UniverseC outptr grapho changeBit skolemsInternal)
+      next
+      graphi
+      skolemsInternal
+      outptr
+      grapho
+      skolemsInternal
       term
   , AsEdgeProfile term (SingleEdge op)
   , GraphToNodeList grapho nodeList
   ) =>
   Create
     (CTOR.Highpass argA argB fOfargC)
-    (UniverseC ptr graphi changeBit skolems)
-    ( UniverseC
-        outptr
-        (GraphC (NodeC (AU.THighpass ptr) (SingleEdge op)) nodeList)
-        changeBit
-        skolems
-    )
+    ptr
+    graphi
+    skolems
+    outptr
+    (GraphC (NodeC (AU.THighpass ptr) (SingleEdge op)) nodeList)
+    skolems
     (AudioUnitRef ptr) where
   create =
     unsafeFrame <<< (map) AudioUnitRef <<< unsafeUnframe
-      <<< createAndConnect (Proxy :: ProxyCC skolem (Proxy ptr) term (Proxy (UniverseC next graphi changeBit skolemsInternal)) (Proxy (UniverseC outptr grapho changeBit skolemsInternal)))
+      <<< createAndConnect (Proxy :: ProxyCC skolem ptr term next graphi skolemsInternal outptr grapho skolemsInternal)
 
 instance createHighshelf ::
   ( InitialVal argA
@@ -642,25 +670,28 @@ instance createHighshelf ::
   , BinSucc ptr next
   , Create
       argC
-      (UniverseC next graphi changeBit skolemsInternal)
-      (UniverseC outptr grapho changeBit skolemsInternal)
+      next
+      graphi
+      skolemsInternal
+      outptr
+      grapho
+      skolemsInternal
       term
   , AsEdgeProfile term (SingleEdge op)
   , GraphToNodeList grapho nodeList
   ) =>
   Create
     (CTOR.Highshelf argA argB fOfargC)
-    (UniverseC ptr graphi changeBit skolems)
-    ( UniverseC
-        outptr
-        (GraphC (NodeC (AU.THighshelf ptr) (SingleEdge op)) nodeList)
-        changeBit
-        skolems
-    )
+    ptr
+    graphi
+    skolems
+    outptr
+    (GraphC (NodeC (AU.THighshelf ptr) (SingleEdge op)) nodeList)
+    skolems
     (AudioUnitRef ptr) where
   create =
     unsafeFrame <<< (map) AudioUnitRef <<< unsafeUnframe
-      <<< createAndConnect (Proxy :: ProxyCC skolem (Proxy ptr) term (Proxy (UniverseC next graphi changeBit skolemsInternal)) (Proxy (UniverseC outptr grapho changeBit skolemsInternal)))
+      <<< createAndConnect (Proxy :: ProxyCC skolem ptr term next graphi skolemsInternal outptr grapho skolemsInternal)
 
 instance createLoopBuf ::
   ( InitialVal argB
@@ -671,12 +702,12 @@ instance createLoopBuf ::
   ) =>
   Create
     (CTOR.LoopBuf argA argB)
-    (UniverseC ptr graph changeBit skolems)
-    ( UniverseC next
-        (GraphC (NodeC (AU.TLoopBuf ptr) NoEdge) nodeList)
-        changeBit
-        skolems
-    )
+    ptr
+    graph
+    skolems
+    next
+    (GraphC (NodeC (AU.TLoopBuf ptr argA) NoEdge) nodeList)
+    skolems
     (AudioUnitRef ptr) where
   create = unsafeFrame <<< (map) AudioUnitRef <<< creationStep
 
@@ -691,25 +722,28 @@ instance createLowpass ::
   , BinSucc ptr next
   , Create
       argC
-      (UniverseC next graphi changeBit skolemsInternal)
-      (UniverseC outptr grapho changeBit skolemsInternal)
+      next
+      graphi
+      skolemsInternal
+      outptr
+      grapho
+      skolemsInternal
       term
   , AsEdgeProfile term (SingleEdge op)
   , GraphToNodeList grapho nodeList
   ) =>
   Create
     (CTOR.Lowpass argA argB fOfargC)
-    (UniverseC ptr graphi changeBit skolems)
-    ( UniverseC
-        outptr
-        (GraphC (NodeC (AU.TLowpass ptr) (SingleEdge op)) nodeList)
-        changeBit
-        skolems
-    )
+    ptr
+    graphi
+    skolems
+    outptr
+    (GraphC (NodeC (AU.TLowpass ptr) (SingleEdge op)) nodeList)
+    skolems
     (AudioUnitRef ptr) where
   create =
     unsafeFrame <<< (map) AudioUnitRef <<< unsafeUnframe
-      <<< createAndConnect (Proxy :: ProxyCC skolem (Proxy ptr) term (Proxy (UniverseC next graphi changeBit skolemsInternal)) (Proxy (UniverseC outptr grapho changeBit skolemsInternal)))
+      <<< createAndConnect (Proxy :: ProxyCC skolem ptr term next graphi skolemsInternal outptr grapho skolemsInternal)
 
 instance createLowshelf ::
   ( InitialVal argA
@@ -722,25 +756,28 @@ instance createLowshelf ::
   , BinSucc ptr next
   , Create
       argC
-      (UniverseC next graphi changeBit skolemsInternal)
-      (UniverseC outptr grapho changeBit skolemsInternal)
+      next
+      graphi
+      skolemsInternal
+      outptr
+      grapho
+      skolemsInternal
       term
   , AsEdgeProfile term (SingleEdge op)
   , GraphToNodeList grapho nodeList
   ) =>
   Create
     (CTOR.Lowshelf argA argB fOfargC)
-    (UniverseC ptr graphi changeBit skolems)
-    ( UniverseC
-        outptr
-        (GraphC (NodeC (AU.TLowshelf ptr) (SingleEdge op)) nodeList)
-        changeBit
-        skolems
-    )
+    ptr
+    graphi
+    skolems
+    outptr
+    (GraphC (NodeC (AU.TLowshelf ptr) (SingleEdge op)) nodeList)
+    skolems
     (AudioUnitRef ptr) where
   create =
     unsafeFrame <<< (map) AudioUnitRef <<< unsafeUnframe
-      <<< createAndConnect (Proxy :: ProxyCC skolem (Proxy ptr) term (Proxy (UniverseC next graphi changeBit skolemsInternal)) (Proxy (UniverseC outptr grapho changeBit skolemsInternal)))
+      <<< createAndConnect (Proxy :: ProxyCC skolem ptr term next graphi skolemsInternal outptr grapho skolemsInternal)
 
 instance createMicrophone ::
   ( BinToInt ptr
@@ -749,12 +786,12 @@ instance createMicrophone ::
   ) =>
   Create
     (CTOR.Microphone)
-    (UniverseC ptr graph changeBit skolems)
-    ( UniverseC next
-        (GraphC (NodeC (AU.TMicrophone ptr) NoEdge) nodeList)
-        changeBit
-        skolems
-    )
+    ptr
+    graph
+    skolems
+    next
+    (GraphC (NodeC (AU.TMicrophone ptr) NoEdge) nodeList)
+    skolems
     (AudioUnitRef ptr) where
   create = unsafeFrame <<< (map) AudioUnitRef <<< creationStep
 
@@ -769,25 +806,28 @@ instance createNotch ::
   , BinSucc ptr next
   , Create
       argC
-      (UniverseC next graphi changeBit skolemsInternal)
-      (UniverseC outptr grapho changeBit skolemsInternal)
+      next
+      graphi
+      skolemsInternal
+      outptr
+      grapho
+      skolemsInternal
       term
   , AsEdgeProfile term (SingleEdge op)
   , GraphToNodeList grapho nodeList
   ) =>
   Create
     (CTOR.Notch argA argB fOfargC)
-    (UniverseC ptr graphi changeBit skolems)
-    ( UniverseC
-        outptr
-        (GraphC (NodeC (AU.TNotch ptr) (SingleEdge op)) nodeList)
-        changeBit
-        skolems
-    )
+    ptr
+    graphi
+    skolems
+    outptr
+    (GraphC (NodeC (AU.TNotch ptr) (SingleEdge op)) nodeList)
+    skolems
     (AudioUnitRef ptr) where
   create =
     unsafeFrame <<< (map) AudioUnitRef <<< unsafeUnframe
-      <<< createAndConnect (Proxy :: ProxyCC skolem (Proxy ptr) term (Proxy (UniverseC next graphi changeBit skolemsInternal)) (Proxy (UniverseC outptr grapho changeBit skolemsInternal)))
+      <<< createAndConnect (Proxy :: ProxyCC skolem ptr term next graphi skolemsInternal outptr grapho skolemsInternal)
 
 instance createPeaking ::
   ( InitialVal argA
@@ -801,25 +841,28 @@ instance createPeaking ::
   , BinSucc ptr next
   , Create
       argD
-      (UniverseC next graphi changeBit skolemsInternal)
-      (UniverseC outptr grapho changeBit skolemsInternal)
+      next
+      graphi
+      skolemsInternal
+      outptr
+      grapho
+      skolemsInternal
       term
   , AsEdgeProfile term (SingleEdge op)
   , GraphToNodeList grapho nodeList
   ) =>
   Create
     (CTOR.Peaking argA argB argC fOfargD)
-    (UniverseC ptr graphi changeBit skolems)
-    ( UniverseC
-        outptr
-        (GraphC (NodeC (AU.TPeaking ptr) (SingleEdge op)) nodeList)
-        changeBit
-        skolems
-    )
+    ptr
+    graphi
+    skolems
+    outptr
+    (GraphC (NodeC (AU.TPeaking ptr) (SingleEdge op)) nodeList)
+    skolems
     (AudioUnitRef ptr) where
   create =
     unsafeFrame <<< (map) AudioUnitRef <<< unsafeUnframe
-      <<< createAndConnect (Proxy :: ProxyCC skolem (Proxy ptr) term (Proxy (UniverseC next graphi changeBit skolemsInternal)) (Proxy (UniverseC outptr grapho changeBit skolemsInternal)))
+      <<< createAndConnect (Proxy :: ProxyCC skolem ptr term next graphi skolemsInternal outptr grapho skolemsInternal)
 
 instance createPeriodicOsc ::
   ( InitialVal argB
@@ -830,12 +873,12 @@ instance createPeriodicOsc ::
   ) =>
   Create
     (CTOR.PeriodicOsc argA argB)
-    (UniverseC ptr graph changeBit skolems)
-    ( UniverseC next
-        (GraphC (NodeC (AU.TPeriodicOsc ptr) NoEdge) nodeList)
-        changeBit
-        skolems
-    )
+    ptr
+    graph
+    skolems
+    next
+    (GraphC (NodeC (AU.TPeriodicOsc ptr argA) NoEdge) nodeList)
+    skolems
     (AudioUnitRef ptr) where
   create = unsafeFrame <<< (map) AudioUnitRef <<< creationStep
 
@@ -848,12 +891,12 @@ instance createPlayBuf ::
   ) =>
   Create
     (CTOR.PlayBuf argA argB)
-    (UniverseC ptr graph changeBit skolems)
-    ( UniverseC next
-        (GraphC (NodeC (AU.TPlayBuf ptr) NoEdge) nodeList)
-        changeBit
-        skolems
-    )
+    ptr
+    graph
+    skolems
+    next
+    (GraphC (NodeC (AU.TPlayBuf ptr argA) NoEdge) nodeList)
+    skolems
     (AudioUnitRef ptr) where
   create = unsafeFrame <<< (map) AudioUnitRef <<< creationStep
 
@@ -867,25 +910,28 @@ instance createRecorder ::
   , BinSucc ptr next
   , Create
       argB
-      (UniverseC next graphi changeBit skolemsInternal)
-      (UniverseC outptr grapho changeBit skolemsInternal)
+      next
+      graphi
+      skolemsInternal
+      outptr
+      grapho
+      skolemsInternal
       term
   , AsEdgeProfile term (SingleEdge op)
   , GraphToNodeList grapho nodeList
   ) =>
   Create
     (CTOR.Recorder argA fOfargB)
-    (UniverseC ptr graphi changeBit skolems)
-    ( UniverseC
-        outptr
-        (GraphC (NodeC (AU.TRecorder ptr) (SingleEdge op)) nodeList)
-        changeBit
-        skolems
-    )
+    ptr
+    graphi
+    skolems
+    outptr
+    (GraphC (NodeC (AU.TRecorder ptr argA) (SingleEdge op)) nodeList)
+    skolems
     (AudioUnitRef ptr) where
   create =
     unsafeFrame <<< (map) AudioUnitRef <<< unsafeUnframe
-      <<< createAndConnect (Proxy :: ProxyCC skolem (Proxy ptr) term (Proxy (UniverseC next graphi changeBit skolemsInternal)) (Proxy (UniverseC outptr grapho changeBit skolemsInternal)))
+      <<< createAndConnect (Proxy :: ProxyCC skolem ptr term next graphi skolemsInternal outptr grapho skolemsInternal)
 
 instance createSawtoothOsc ::
   ( InitialVal argA
@@ -895,12 +941,12 @@ instance createSawtoothOsc ::
   ) =>
   Create
     (CTOR.SawtoothOsc argA)
-    (UniverseC ptr graph changeBit skolems)
-    ( UniverseC next
-        (GraphC (NodeC (AU.TSawtoothOsc ptr) NoEdge) nodeList)
-        changeBit
-        skolems
-    )
+    ptr
+    graph
+    skolems
+    next
+    (GraphC (NodeC (AU.TSawtoothOsc ptr) NoEdge) nodeList)
+    skolems
     (AudioUnitRef ptr) where
   create = unsafeFrame <<< (map) AudioUnitRef <<< creationStep
 
@@ -912,12 +958,12 @@ instance createSinOsc ::
   ) =>
   Create
     (CTOR.SinOsc argA)
-    (UniverseC ptr graph changeBit skolems)
-    ( UniverseC next
-        (GraphC (NodeC (AU.TSinOsc ptr) NoEdge) nodeList)
-        changeBit
-        skolems
-    )
+    ptr
+    graph
+    skolems
+    next
+    (GraphC (NodeC (AU.TSinOsc ptr) NoEdge) nodeList)
+    skolems
     (AudioUnitRef ptr) where
   create = unsafeFrame <<< (map) AudioUnitRef <<< creationStep
 
@@ -929,12 +975,12 @@ instance createSquareOsc ::
   ) =>
   Create
     (CTOR.SquareOsc argA)
-    (UniverseC ptr graph changeBit skolems)
-    ( UniverseC next
-        (GraphC (NodeC (AU.TSquareOsc ptr) NoEdge) nodeList)
-        changeBit
-        skolems
-    )
+    ptr
+    graph
+    skolems
+    next
+    (GraphC (NodeC (AU.TSquareOsc ptr) NoEdge) nodeList)
+    skolems
     (AudioUnitRef ptr) where
   create = unsafeFrame <<< (map) AudioUnitRef <<< creationStep
 
@@ -948,25 +994,28 @@ instance createStereoPanner ::
   , BinSucc ptr next
   , Create
       argB
-      (UniverseC next graphi changeBit skolemsInternal)
-      (UniverseC outptr grapho changeBit skolemsInternal)
+      next
+      graphi
+      skolemsInternal
+      outptr
+      grapho
+      skolemsInternal
       term
   , AsEdgeProfile term (SingleEdge op)
   , GraphToNodeList grapho nodeList
   ) =>
   Create
     (CTOR.StereoPanner argA fOfargB)
-    (UniverseC ptr graphi changeBit skolems)
-    ( UniverseC
-        outptr
-        (GraphC (NodeC (AU.TStereoPanner ptr) (SingleEdge op)) nodeList)
-        changeBit
-        skolems
-    )
+    ptr
+    graphi
+    skolems
+    outptr
+    (GraphC (NodeC (AU.TStereoPanner ptr) (SingleEdge op)) nodeList)
+    skolems
     (AudioUnitRef ptr) where
   create =
     unsafeFrame <<< (map) AudioUnitRef <<< unsafeUnframe
-      <<< createAndConnect (Proxy :: ProxyCC skolem (Proxy ptr) term (Proxy (UniverseC next graphi changeBit skolemsInternal)) (Proxy (UniverseC outptr grapho changeBit skolemsInternal)))
+      <<< createAndConnect (Proxy :: ProxyCC skolem ptr term next graphi skolemsInternal outptr grapho skolemsInternal)
 
 instance createTriangleOsc ::
   ( InitialVal argA
@@ -976,12 +1025,12 @@ instance createTriangleOsc ::
   ) =>
   Create
     (CTOR.TriangleOsc argA)
-    (UniverseC ptr graph changeBit skolems)
-    ( UniverseC next
-        (GraphC (NodeC (AU.TTriangleOsc ptr) NoEdge) nodeList)
-        changeBit
-        skolems
-    )
+    ptr
+    graph
+    skolems
+    next
+    (GraphC (NodeC (AU.TTriangleOsc ptr) NoEdge) nodeList)
+    skolems
     (AudioUnitRef ptr) where
   create = unsafeFrame <<< (map) AudioUnitRef <<< creationStep
 
@@ -996,25 +1045,28 @@ instance createWaveShaper ::
   , BinSucc ptr next
   , Create
       argC
-      (UniverseC next graphi changeBit skolemsInternal)
-      (UniverseC outptr grapho changeBit skolemsInternal)
+      next
+      graphi
+      skolemsInternal
+      outptr
+      grapho
+      skolemsInternal
       term
   , AsEdgeProfile term (SingleEdge op)
   , GraphToNodeList grapho nodeList
   ) =>
   Create
     (CTOR.WaveShaper argA argB fOfargC)
-    (UniverseC ptr graphi changeBit skolems)
-    ( UniverseC
-        outptr
-        (GraphC (NodeC (AU.TWaveShaper ptr) (SingleEdge op)) nodeList)
-        changeBit
-        skolems
-    )
+    ptr
+    graphi
+    skolems
+    outptr
+    (GraphC (NodeC (AU.TWaveShaper ptr argA) (SingleEdge op)) nodeList)
+    skolems
     (AudioUnitRef ptr) where
   create =
     unsafeFrame <<< (map) AudioUnitRef <<< unsafeUnframe
-      <<< createAndConnect (Proxy :: ProxyCC skolem (Proxy ptr) term (Proxy (UniverseC next graphi changeBit skolemsInternal)) (Proxy (UniverseC outptr grapho changeBit skolemsInternal)))
+      <<< createAndConnect (Proxy :: ProxyCC skolem ptr term next graphi skolemsInternal outptr grapho skolemsInternal)
 
 -----------------------
 ------------------------
@@ -1028,25 +1080,28 @@ instance createGain ::
   , BinSucc ptr next
   , Create
       b
-      (UniverseC next graphi changeBit skolemsInternal)
-      (UniverseC outptr grapho changeBit skolemsInternal)
+      next
+      graphi
+      skolemsInternal
+      outptr
+      grapho
+      skolemsInternal
       term
   , AsEdgeProfile term eprof
   , GraphToNodeList grapho nodeList
   ) =>
   Create
     (Gain a fb)
-    (UniverseC ptr graphi changeBit skolems)
-    ( UniverseC
-        outptr
-        (GraphC (NodeC (TGain ptr) eprof) nodeList)
-        changeBit
-        skolems
-    )
+    ptr
+    graphi
+    skolems
+    outptr
+    (GraphC (NodeC (TGain ptr) eprof) nodeList)
+    skolems
     (AudioUnitRef ptr) where
   create =
     unsafeFrame <<< (map) AudioUnitRef <<< unsafeUnframe
-      <<< (createAndConnect (Proxy :: ProxyCC skolem (Proxy ptr) term (Proxy (UniverseC next graphi changeBit skolemsInternal)) (Proxy (UniverseC outptr grapho changeBit skolemsInternal))))
+      <<< (createAndConnect (Proxy :: ProxyCC skolem ptr term next graphi skolemsInternal outptr grapho skolemsInternal))
 
 instance createSpeaker ::
   ( ToSkolemizedFunction a DiscardableSkolem a
@@ -1054,25 +1109,28 @@ instance createSpeaker ::
   , BinSucc ptr next
   , Create
       a
-      (UniverseC next graphi changeBit skolems)
-      (UniverseC outptr grapho changeBit skolems)
+      next
+      graphi
+      skolems
+      outptr
+      grapho
+      skolems
       term
   , AsEdgeProfile term eprof
   , GraphToNodeList grapho nodeList
   ) =>
   Create
     (Speaker a)
-    (UniverseC ptr graphi changeBit skolems)
-    ( UniverseC
-        outptr
-        (GraphC (NodeC (TSpeaker ptr) eprof) nodeList)
-        changeBit
-        skolems
-    )
+    ptr
+    graphi
+    skolems
+    outptr
+    (GraphC (NodeC (TSpeaker ptr) eprof) nodeList)
+    skolems
     (AudioUnitRef ptr) where
   create =
     unsafeFrame <<< (map) AudioUnitRef <<< unsafeUnframe
-      <<< (createAndConnect (Proxy :: ProxyCC DiscardableSkolem (Proxy ptr) term (Proxy (UniverseC next graphi changeBit skolems)) (Proxy (UniverseC outptr grapho changeBit skolems))))
+      <<< (createAndConnect (Proxy :: ProxyCC DiscardableSkolem ptr term next graphi skolems outptr grapho skolems))
 
 ----------
 instance createProxy ::
@@ -1081,7 +1139,11 @@ instance createProxy ::
   ) =>
   Create
     (Proxy skolem)
-    (UniverseC next graph changeBit skolems)
-    (UniverseC next graph changeBit skolems)
+    next
+    graph
+    skolems
+    next
+    graph
+    skolems
     (AudioUnitRef ptr) where
   create _ = unsafeFrame (pure $ AudioUnitRef $ toInt' (Proxy :: Proxy ptr))

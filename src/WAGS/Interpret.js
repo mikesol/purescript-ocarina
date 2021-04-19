@@ -76,7 +76,14 @@ exports.rebaseAllUnits_ = function (toRebase) {
         var trb = toRebase[i];
         newCache[trb.to] = state.units[trb.from];
       }
-      state.units = newCache;
+      var propsO = Object.getOwnPropertyNames(state.units);
+      for (var i = 0; i < propsO.length; i++) {
+        delete state.units[propsO[i]];
+      }
+      var propsN = Object.getOwnPropertyNames(newCache);
+      for (var i = 0; i < propsN.length; i++) {
+        state.units[propsN[i]] = newCache[propsN[i]];
+      }
     };
   };
 };
@@ -385,7 +392,7 @@ exports.makePeriodicOsc_ = function (ptr) {
             var createFunction = function () {
               var unit = state.context.createOscillator();
               unit.setPeriodicWave(state.periodicWaves[a]);
-              genericStarter(unit, "frequency", a);
+              genericStarter(unit, "frequency", b);
               return unit;
             };
             state.units[ptr] = {
@@ -395,7 +402,7 @@ exports.makePeriodicOsc_ = function (ptr) {
               main: createFunction(),
             };
             if (onOff) {
-              state.units[ptr].main.start(state.writeHead + a.timeOffset);
+              state.units[ptr].main.start(state.writeHead + b.timeOffset);
             }
           };
         };

@@ -11,7 +11,7 @@ import FRP.Event (subscribe)
 import Math (pi, sin)
 import WAGS.Change (change)
 import WAGS.Control.Functions (env, loop, start, (@>))
-import WAGS.Control.Qualified as Ix
+import WAGS.Control.Qualified as WAGS
 import WAGS.Control.Types (Frame0, Scene)
 import WAGS.Create (create)
 import WAGS.Graph.Optionals (gain, sinOsc, speaker)
@@ -32,13 +32,13 @@ scene time =
 
 piece :: Scene (SceneI Unit Unit) FFIAudio (Effect Unit) Frame0
 piece =
-  Ix.do
+  WAGS.do
     start
     { time } <- env
     create (scene time) $> Right unit
     @> loop
         ( const
-            $ Ix.do
+            $ WAGS.do
                 { time } <- env
                 ivoid $ change (scene time)
         )

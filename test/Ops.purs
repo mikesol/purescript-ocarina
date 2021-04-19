@@ -7,7 +7,7 @@ import Data.Tuple (fst, snd)
 import Data.Tuple.Nested ((/\), type (/\))
 import Type.Data.Peano (Z)
 import Type.Proxy (Proxy)
-import WAGS.Control.Qualified as Ix
+import WAGS.Control.Qualified as WAGS
 import WAGS.Control.Types (Frame)
 import WAGS.Create (create)
 import WAGS.Cursor (cursor)
@@ -146,7 +146,7 @@ opsTest3 ::
         SkolemListNil
     )
     (AudioUnitRef D3)
-opsTest3 = Ix.do
+opsTest3 = WAGS.do
   ivoid $ create $ ot1Type (fst ot1Cursors)
   cursor (ot1Type (snd ot1Cursors).hpf)
 
@@ -170,7 +170,7 @@ opsTest4 ::
         SkolemListNil
     )
     (AudioUnitRef D1)
-opsTest4 = Ix.do
+opsTest4 = WAGS.do
   ivoid $ create $ ot1Type (fst ot1Cursors)
   chpf <- cursor $ ot1Type (snd ot1Cursors).hpf
   cursor $ ot1Type (snd ot1Cursors).osc
@@ -195,7 +195,7 @@ opsTest5 ::
         SkolemListNil
     )
     (AudioUnitRef D2)
-opsTest5 = Ix.do
+opsTest5 = WAGS.do
   ivoid $ create $ ot1Type (fst ot1Cursors)
   chpf <- cursor $ ot1Type (snd ot1Cursors).hpf
   csin <- cursor $ ot1Type (snd ot1Cursors).osc
@@ -221,7 +221,7 @@ opsTest6 ::
         SkolemListNil
     )
     Unit
-opsTest6 = Ix.do
+opsTest6 = WAGS.do
   ivoid $ create $ ot1Type (fst ot1Cursors)
   chpf <- cursor $ ot1Type (snd ot1Cursors).hpf
   csin <- cursor $ ot1Type (snd ot1Cursors).osc
@@ -248,7 +248,7 @@ opsTest7 ::
         SkolemListNil
     )
     Unit
-opsTest7 = Ix.do
+opsTest7 = WAGS.do
   ivoid $ create $ ot1Type (fst ot1Cursors)
   chpf <- cursor $ ot1Type (snd ot1Cursors).hpf
   csin <- cursor $ ot1Type (snd ot1Cursors).osc
@@ -274,7 +274,7 @@ opsTest8 ::
         SkolemListNil
     )
     Unit
-opsTest8 = Ix.do
+opsTest8 = WAGS.do
   ivoid $ create $ ot1Type (fst ot1Cursors)
   chpf <- cursor $ ot1Type (snd ot1Cursors).hpf
   csin <- cursor $ ot1Type (snd ot1Cursors).osc

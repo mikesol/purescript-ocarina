@@ -28,7 +28,7 @@ instance getPointerBandpass :: GetPointer (TBandpass ptr) ptr
 
 instance getPointerConstant :: GetPointer (TConstant ptr) ptr
 
-instance getPointerConvolver :: GetPointer (TConvolver ptr) ptr
+instance getPointerConvolver :: GetPointer (TConvolver ptr name) ptr
 
 instance getPointerDelay :: GetPointer (TDelay ptr) ptr
 
@@ -40,7 +40,7 @@ instance getPointerHighpass :: GetPointer (THighpass ptr) ptr
 
 instance getPointerHighshelf :: GetPointer (THighshelf ptr) ptr
 
-instance getPointerLoopBuf :: GetPointer (TLoopBuf ptr) ptr
+instance getPointerLoopBuf :: GetPointer (TLoopBuf ptr name) ptr
 
 instance getPointerLowpass :: GetPointer (TLowpass ptr) ptr
 
@@ -52,11 +52,11 @@ instance getPointerNotch :: GetPointer (TNotch ptr) ptr
 
 instance getPointerPeaking :: GetPointer (TPeaking ptr) ptr
 
-instance getPointerPeriodicOsc :: GetPointer (TPeriodicOsc ptr) ptr
+instance getPointerPeriodicOsc :: GetPointer (TPeriodicOsc ptr name) ptr
 
-instance getPointerPlayBuf :: GetPointer (TPlayBuf ptr) ptr
+instance getPointerPlayBuf :: GetPointer (TPlayBuf ptr name) ptr
 
-instance getPointerRecorder :: GetPointer (TRecorder ptr) ptr
+instance getPointerRecorder :: GetPointer (TRecorder ptr name) ptr
 
 instance getPointerSawtoothOsc :: GetPointer (TSawtoothOsc ptr) ptr
 
@@ -70,7 +70,7 @@ instance getPointerStereoPanner :: GetPointer (TStereoPanner ptr) ptr
 
 instance getPointerTriangleOsc :: GetPointer (TTriangleOsc ptr) ptr
 
-instance getPointerWaveShaper :: GetPointer (TWaveShaper ptr) ptr
+instance getPointerWaveShaper :: GetPointer (TWaveShaper ptr name) ptr
 
 -- | Type-level constructor for an allpass filter.
 foreign import data TAllpass :: Ptr -> AudioUnit
@@ -82,7 +82,7 @@ foreign import data TBandpass :: Ptr -> AudioUnit
 foreign import data TConstant :: Ptr -> AudioUnit
 
 -- | Type-level constructor for a convolver, aka reverb.
-foreign import data TConvolver :: Ptr -> AudioUnit
+foreign import data TConvolver :: Ptr -> Symbol -> AudioUnit
 
 -- | Type-level constructor for a delay unit.
 foreign import data TDelay :: Ptr -> AudioUnit
@@ -100,7 +100,7 @@ foreign import data THighpass :: Ptr -> AudioUnit
 foreign import data THighshelf :: Ptr -> AudioUnit
 
 -- | Type-level constructor for a looping buffer.
-foreign import data TLoopBuf :: Ptr -> AudioUnit
+foreign import data TLoopBuf :: Ptr -> Symbol -> AudioUnit
 
 -- | Type-level constructor for a lowpass filter.
 foreign import data TLowpass :: Ptr -> AudioUnit
@@ -118,13 +118,13 @@ foreign import data TNotch :: Ptr -> AudioUnit
 foreign import data TPeaking :: Ptr -> AudioUnit
 
 -- | Type-level constructor for a periodic oscillator.
-foreign import data TPeriodicOsc :: Ptr -> AudioUnit
+foreign import data TPeriodicOsc :: Ptr -> Symbol -> AudioUnit
 
 -- | Type-level constructor for playback from a buffer.
-foreign import data TPlayBuf :: Ptr -> AudioUnit
+foreign import data TPlayBuf :: Ptr -> Symbol -> AudioUnit
 
 -- | Type-level constructor for a recorder.
-foreign import data TRecorder :: Ptr -> AudioUnit
+foreign import data TRecorder :: Ptr -> Symbol -> AudioUnit
 
 -- | Type-level constructor for a sawtooth oscillator.
 foreign import data TSawtoothOsc :: Ptr -> AudioUnit
@@ -145,7 +145,7 @@ foreign import data TStereoPanner :: Ptr -> AudioUnit
 foreign import data TTriangleOsc :: Ptr -> AudioUnit
 
 -- | Type-level constructor for a wave shaper.
-foreign import data TWaveShaper :: Ptr -> AudioUnit
+foreign import data TWaveShaper :: Ptr -> Symbol -> AudioUnit
 
 -- | Class that takes `AudioUnit`-s `a` and `b` and outputs `True` as `tf` if they are equal else `False`.
 class AudioUnitEq (a :: AudioUnit) (b :: AudioUnit) (tf :: Type) | a b -> tf
@@ -153,26 +153,26 @@ class AudioUnitEq (a :: AudioUnit) (b :: AudioUnit) (tf :: Type) | a b -> tf
 instance audioUnitEqTAllpass :: AudioUnitEq (TAllpass idx) (TAllpass idx) True
 else instance audioUnitEqTBandpass :: AudioUnitEq (TBandpass idx) (TBandpass idx) True
 else instance audioUnitEqTConstant :: AudioUnitEq (TConstant idx) (TConstant idx) True
-else instance audioUnitEqTConvolver :: AudioUnitEq (TConvolver idx) (TConvolver idx) True
+else instance audioUnitEqTConvolver :: AudioUnitEq (TConvolver idx name) (TConvolver idx name) True
 else instance audioUnitEqTDelay :: AudioUnitEq (TDelay idx) (TDelay idx) True
 else instance audioUnitEqTDynamicsCompressor :: AudioUnitEq (TDynamicsCompressor idx) (TDynamicsCompressor idx) True
 else instance audioUnitEqTGain :: AudioUnitEq (TGain idx) (TGain idx) True
 else instance audioUnitEqTHighpass :: AudioUnitEq (THighpass idx) (THighpass idx) True
 else instance audioUnitEqTHighshelf :: AudioUnitEq (THighshelf idx) (THighshelf idx) True
-else instance audioUnitEqTLoopBuf :: AudioUnitEq (TLoopBuf idx) (TLoopBuf idx) True
+else instance audioUnitEqTLoopBuf :: AudioUnitEq (TLoopBuf idx name) (TLoopBuf idx name) True
 else instance audioUnitEqTLowpass :: AudioUnitEq (TLowpass idx) (TLowpass idx) True
 else instance audioUnitEqTLowshelf :: AudioUnitEq (TLowshelf idx) (TLowshelf idx) True
 else instance audioUnitEqTMicrophone :: AudioUnitEq (TMicrophone idx) (TMicrophone idx) True
 else instance audioUnitEqTNotch :: AudioUnitEq (TNotch idx) (TNotch idx) True
 else instance audioUnitEqTPeaking :: AudioUnitEq (TPeaking idx) (TPeaking idx) True
-else instance audioUnitEqTPeriodicOsc :: AudioUnitEq (TPeriodicOsc idx) (TPeriodicOsc idx) True
-else instance audioUnitEqTPlayBuf :: AudioUnitEq (TPlayBuf idx) (TPlayBuf idx) True
-else instance audioUnitEqTRecorder :: AudioUnitEq (TRecorder idx) (TRecorder idx) True
+else instance audioUnitEqTPeriodicOsc :: AudioUnitEq (TPeriodicOsc idx name) (TPeriodicOsc idx name) True
+else instance audioUnitEqTPlayBuf :: AudioUnitEq (TPlayBuf idx name) (TPlayBuf idx name) True
+else instance audioUnitEqTRecorder :: AudioUnitEq (TRecorder idx name) (TRecorder idx name) True
 else instance audioUnitEqTSawtoothOsc :: AudioUnitEq (TSawtoothOsc idx) (TSawtoothOsc idx) True
 else instance audioUnitEqTSinOsc :: AudioUnitEq (TSinOsc idx) (TSinOsc idx) True
 else instance audioUnitEqTSpeaker :: AudioUnitEq (TSpeaker idx) (TSpeaker idx) True
 else instance audioUnitEqTSquareOsc :: AudioUnitEq (TSquareOsc idx) (TSquareOsc idx) True
 else instance audioUnitEqTStereoPanner :: AudioUnitEq (TStereoPanner idx) (TStereoPanner idx) True
 else instance audioUnitEqTTriangleOsc :: AudioUnitEq (TTriangleOsc idx) (TTriangleOsc idx) True
-else instance audioUnitEqTWaveShaper :: AudioUnitEq (TWaveShaper idx) (TWaveShaper idx) True
+else instance audioUnitEqTWaveShaper :: AudioUnitEq (TWaveShaper idx name) (TWaveShaper idx name) True
 else instance audioUnitNotEq :: AudioUnitEq a b False

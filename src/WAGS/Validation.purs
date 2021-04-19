@@ -463,7 +463,7 @@ instance allNodesAreSaturatedConsTBandpass :: AllNodesAreSaturatedNL tail => All
 
 instance allNodesAreSaturatedConsTConstant :: AllNodesAreSaturatedNL tail => AllNodesAreSaturatedNL (NodeListCons (NodeC (AU.TConstant a) NoEdge) tail)
 
-instance allNodesAreSaturatedConsTConvolver :: AllNodesAreSaturatedNL tail => AllNodesAreSaturatedNL (NodeListCons (NodeC (AU.TConvolver a) (SingleEdge e)) tail)
+instance allNodesAreSaturatedConsTConvolver :: AllNodesAreSaturatedNL tail => AllNodesAreSaturatedNL (NodeListCons (NodeC (AU.TConvolver a name) (SingleEdge e)) tail)
 
 instance allNodesAreSaturatedConsTDelay :: AllNodesAreSaturatedNL tail => AllNodesAreSaturatedNL (NodeListCons (NodeC (AU.TDelay a) (SingleEdge e)) tail)
 
@@ -477,7 +477,7 @@ instance allNodesAreSaturatedConsTHighpass :: AllNodesAreSaturatedNL tail => All
 
 instance allNodesAreSaturatedConsTHighshelf :: AllNodesAreSaturatedNL tail => AllNodesAreSaturatedNL (NodeListCons (NodeC (AU.THighshelf a) (SingleEdge e)) tail)
 
-instance allNodesAreSaturatedConsTLoopBuf :: AllNodesAreSaturatedNL tail => AllNodesAreSaturatedNL (NodeListCons (NodeC (AU.TLoopBuf a) NoEdge) tail)
+instance allNodesAreSaturatedConsTLoopBuf :: AllNodesAreSaturatedNL tail => AllNodesAreSaturatedNL (NodeListCons (NodeC (AU.TLoopBuf a name) NoEdge) tail)
 
 instance allNodesAreSaturatedConsTLowpass :: AllNodesAreSaturatedNL tail => AllNodesAreSaturatedNL (NodeListCons (NodeC (AU.TLowpass a) (SingleEdge e)) tail)
 
@@ -489,11 +489,11 @@ instance allNodesAreSaturatedConsTNotch :: AllNodesAreSaturatedNL tail => AllNod
 
 instance allNodesAreSaturatedConsTPeaking :: AllNodesAreSaturatedNL tail => AllNodesAreSaturatedNL (NodeListCons (NodeC (AU.TPeaking a) (SingleEdge e)) tail)
 
-instance allNodesAreSaturatedConsTPeriodicOsc :: AllNodesAreSaturatedNL tail => AllNodesAreSaturatedNL (NodeListCons (NodeC (AU.TPeriodicOsc a) NoEdge) tail)
+instance allNodesAreSaturatedConsTPeriodicOsc :: AllNodesAreSaturatedNL tail => AllNodesAreSaturatedNL (NodeListCons (NodeC (AU.TPeriodicOsc a name) NoEdge) tail)
 
-instance allNodesAreSaturatedConsTPlayBuf :: AllNodesAreSaturatedNL tail => AllNodesAreSaturatedNL (NodeListCons (NodeC (AU.TPlayBuf a) NoEdge) tail)
+instance allNodesAreSaturatedConsTPlayBuf :: AllNodesAreSaturatedNL tail => AllNodesAreSaturatedNL (NodeListCons (NodeC (AU.TPlayBuf a name) NoEdge) tail)
 
-instance allNodesAreSaturatedConsTRecorder :: AllNodesAreSaturatedNL tail => AllNodesAreSaturatedNL (NodeListCons (NodeC (AU.TRecorder a) (SingleEdge e)) tail)
+instance allNodesAreSaturatedConsTRecorder :: AllNodesAreSaturatedNL tail => AllNodesAreSaturatedNL (NodeListCons (NodeC (AU.TRecorder a name) (SingleEdge e)) tail)
 
 instance allNodesAreSaturatedConsTSawtoothOsc :: AllNodesAreSaturatedNL tail => AllNodesAreSaturatedNL (NodeListCons (NodeC (AU.TSawtoothOsc a) NoEdge) tail)
 
@@ -509,7 +509,7 @@ instance allNodesAreSaturatedConsTStereoPanner :: AllNodesAreSaturatedNL tail =>
 
 instance allNodesAreSaturatedConsTTriangleOsc :: AllNodesAreSaturatedNL tail => AllNodesAreSaturatedNL (NodeListCons (NodeC (AU.TTriangleOsc a) NoEdge) tail)
 
-instance allNodesAreSaturatedConsTWaveShaper :: AllNodesAreSaturatedNL tail => AllNodesAreSaturatedNL (NodeListCons (NodeC (AU.TWaveShaper a) (SingleEdge e)) tail)
+instance allNodesAreSaturatedConsTWaveShaper :: AllNodesAreSaturatedNL tail => AllNodesAreSaturatedNL (NodeListCons (NodeC (AU.TWaveShaper a name) (SingleEdge e)) tail)
 
 -- | Asserts that all nodes in `graph` are saturated. This is
 -- | the same as the node-list algorithm, but for a graph.
@@ -523,4 +523,4 @@ class NodeIsOutputDevice (node :: Node)
 
 instance nodeIsOutputDeviceTSpeaker :: NodeIsOutputDevice (NodeC (AU.TSpeaker a) x)
 
-instance nodeIsOutputDeviceTRecorder :: NodeIsOutputDevice (NodeC (AU.TRecorder a) x)
+instance nodeIsOutputDeviceTRecorder :: NodeIsOutputDevice (NodeC (AU.TRecorder a name) x)

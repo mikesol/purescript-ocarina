@@ -6,6 +6,8 @@ module WAGS.Control.Functions
   , loop
   , branch
   , universe
+  , currentIdx
+  , changeBit
   , env
   , freeze
   , graph
@@ -188,16 +190,16 @@ loop fa ma = makeScene (imap Right $ Ix.bind ma fa) (loop fa)
 -- |       e <- env
 -- |       create (scene0 e) $> Right unit
 -- |   )
--- |     @> ( branch Ix.do
+-- |     @> ( branch \_ -> Ix.do
 -- |           { time } <- env
 -- |           pr <- proof
 -- |           withProof pr
 -- |             $ if time < 0.3 then
 -- |                 Right
--- |                   ( const
--- |                       $ Ix.do
--- |                           e <- env
--- |                           ivoid $ change (scene0 e)
+-- |                   (
+-- |                       Ix.do
+-- |                         e <- env
+-- |                         ivoid $ change (scene0 e)
 -- |                   )
 -- |               else
 -- |                 Left
@@ -216,17 +218,17 @@ branch ::
   AudioInterpret audio engine =>
   GraphIsRenderable graph =>
   ( forall proofB j.
+    a ->
     FrameT env audio engine proofB m
       (UniverseC currentIdx graph j skolems)
       (UniverseC currentIdx graph j skolems)
       ( Either
           ( FrameT env audio engine proofB m i
               (UniverseC currentIdx graph j skolems)
-              a ->
+              Unit ->
             SceneT env audio engine proofB m
           )
-          ( a ->
-            FrameT env audio engine proofB m
+          ( FrameT env audio engine proofB m
               (UniverseC currentIdx graph j skolems)
               (UniverseC currentIdx graph (Succ j) skolems)
               a
@@ -241,10 +243,10 @@ branch mch m =
   makeScene
     ( Ix.do
         r <- m
-        mbe <- mch
+        mbe <- mch r
         case mbe of
-          Left l -> changes unit $> Left (l m)
-          Right fa -> imap Right (fa r)
+          Left l -> changes unit $> Left (l (m $> unit))
+          Right fa -> imap Right fa
     )
     (branch mch)
 
@@ -386,6 +388,17 @@ universe ::
   FrameT env audio engine proof m i i (Proxy i)
 universe = unsafeFrame $ pure $ (Proxy :: _ i)
 
+-- | Get the current index as a proxy.
+currentIdx ::
+  forall env audio engine proof m currentIdx graph changeBit skolems.
+  Monad m =>
+  AudioInterpret audio engine =>
+  FrameT env audio engine proof m
+    (UniverseC currentIdx graph changeBit skolems)
+    (UniverseC currentIdx graph changeBit skolems)
+    (Proxy currentIdx)
+currentIdx = unsafeFrame $ pure $ (Proxy :: _ currentIdx)
+
 -- | Get the current graph as a proxy.
 graph ::
   forall env audio engine proof m currentIdx graph changeBit skolems.
@@ -396,6 +409,17 @@ graph ::
     (UniverseC currentIdx graph changeBit skolems)
     (Proxy graph)
 graph = unsafeFrame $ pure $ (Proxy :: _ graph)
+
+-- | Get the changeBit as a proxy.
+changeBit ::
+  forall env audio engine proof m currentIdx graph changeBit skolems.
+  Monad m =>
+  AudioInterpret audio engine =>
+  FrameT env audio engine proof m
+    (UniverseC currentIdx graph changeBit skolems)
+    (UniverseC currentIdx graph changeBit skolems)
+    (Proxy changeBit)
+changeBit = unsafeFrame $ pure $ (Proxy :: _ changeBit)
 
 -- | Lift a computation from the underlying monad `m` into `FrameT`.
 lift ::
