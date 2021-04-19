@@ -3,9 +3,10 @@ module WAGS.Example.KitchenSink.Types.PeriodicOsc where
 import Prelude
 
 import Data.Identity (Identity(..))
+import Math (cos, pi, pow, sin, (%))
 import Type.Proxy (Proxy(..))
 import WAGS.Control.Types (Universe')
-import WAGS.Example.KitchenSink.Types.SquareOsc (phase3Integral)
+import WAGS.Example.KitchenSink.Types (phase3Integral, pieceTime)
 import WAGS.Graph.Constructors (Gain(..), OnOff(..), PeriodicOsc(..), Speaker(..))
 import WAGS.Graph.Decorators (Focus(..), Decorating')
 import WAGS.Graph.Optionals (GetSetAP, defaultGetSetAP)
@@ -53,8 +54,12 @@ phase4Gain :: Phase4 Focus Identity
 phase4Gain = phase4' Focus Identity
 
 deltaPhase4 :: Number -> Speaker (Gain GetSetAP (PeriodicOsc "my-wave" GetSetAP))
-deltaPhase4 time = Speaker $ Gain (defaultGetSetAP 0.0) (PeriodicOsc (Proxy :: Proxy "my-wave") On (defaultGetSetAP 440.0))
-
-phase4Time = 5.0 :: Number
-
-phase4Integral = phase4Time + phase3Integral :: Number
+deltaPhase4 = 
+  (_ % pieceTime)
+    >>> (_ - phase3Integral)
+    >>> (max 0.0)
+    >>> \time ->
+        let
+          rad = pi * time
+        in
+          Speaker $ Gain (defaultGetSetAP $ 0.1 - 0.1 * (cos time)) (PeriodicOsc (Proxy :: Proxy "my-wave") On (defaultGetSetAP $ 440.0 + 50.0 * ((sin (rad * 1.5)) `pow` 2.0)))

@@ -1,19 +1,26 @@
 module WAGS.Example.KitchenSink.Types where
 
 import Prelude
-import WAGS.Example.KitchenSink.Types.PeriodicOsc (phase4Time)
-import WAGS.Example.KitchenSink.Types.SawtoothOsc (phase5Time)
-import WAGS.Example.KitchenSink.Types.SinOsc (SinOscUniverse, phase1Time)
-import WAGS.Example.KitchenSink.Types.SquareOsc (phase3Time)
-import WAGS.Example.KitchenSink.Types.TriangleOsc (phase2Time)
 
-type BaseUniverse cb
-  = SinOscUniverse cb
+phase1Time = 5.0 :: Number
+
+phase1Integral = phase1Time :: Number
+
+phase2Time = 5.0 :: Number
+
+phase2Integral = phase2Time + phase1Integral :: Number
+
+phase3Time = 5.0 :: Number
+
+phase3Integral = phase3Time + phase2Integral :: Number
+
+phase4Time = 5.0 :: Number
+
+phase4Integral = phase4Time + phase3Integral :: Number
+
+phase5Time = 5.0 :: Number
+
+phase5Integral = phase5Time + phase4Integral :: Number
 
 pieceTime :: Number
-pieceTime =
-  phase1Time
-    + phase2Time
-    + phase3Time
-    + phase4Time
-    + phase5Time
+pieceTime = phase5Integral

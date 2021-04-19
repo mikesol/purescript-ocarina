@@ -3,8 +3,9 @@ module WAGS.Example.KitchenSink.Types.TriangleOsc where
 import Prelude
 
 import Data.Identity (Identity(..))
+import Math (cos, pi, pow, sin, (%))
 import WAGS.Control.Types (Universe')
-import WAGS.Example.KitchenSink.Types.SinOsc (phase1Integral)
+import WAGS.Example.KitchenSink.Types (phase1Integral, pieceTime)
 import WAGS.Graph.Constructors (Gain(..), OnOff(..), Speaker(..), TriangleOsc(..))
 import WAGS.Graph.Decorators (Focus(..), Decorating')
 import WAGS.Graph.Optionals (GetSetAP, defaultGetSetAP)
@@ -48,8 +49,13 @@ phase2Gain :: Phase2 Focus Identity
 phase2Gain = phase2' Focus Identity
 
 deltaPhase2 :: Number -> Speaker (Gain GetSetAP (TriangleOsc GetSetAP))
-deltaPhase2 time = Speaker $ Gain (defaultGetSetAP 0.0) (TriangleOsc On (defaultGetSetAP 440.0))
+deltaPhase2 = 
+  (_ % pieceTime)
+    >>> (_ - phase1Integral)
+    >>> (max 0.0)
+    >>> \time ->
+        let
+          rad = pi * time
+        in
+          Speaker $ Gain (defaultGetSetAP $ 0.1 - 0.1 * (cos time)) (TriangleOsc On (defaultGetSetAP $ 440.0 + 50.0 * ((sin (rad * 1.5)) `pow` 2.0)))
 
-phase2Time = 5.0 :: Number
-
-phase2Integral = phase2Time + phase1Integral :: Number

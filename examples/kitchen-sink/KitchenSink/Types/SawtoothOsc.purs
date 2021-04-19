@@ -3,8 +3,9 @@ module WAGS.Example.KitchenSink.Types.SawtoothOsc where
 import Prelude
 
 import Data.Identity (Identity(..))
+import Math (cos, pi, pow, sin, (%))
 import WAGS.Control.Types (Universe')
-import WAGS.Example.KitchenSink.Types.PeriodicOsc (phase4Integral)
+import WAGS.Example.KitchenSink.Types (phase4Integral, pieceTime)
 import WAGS.Graph.Constructors (Gain(..), OnOff(..), SawtoothOsc(..), Speaker(..))
 import WAGS.Graph.Decorators (Focus(..), Decorating')
 import WAGS.Graph.Optionals (GetSetAP, defaultGetSetAP)
@@ -47,8 +48,14 @@ phase5Gain :: Phase5 Focus Identity
 phase5Gain = phase5' Focus Identity
 
 deltaPhase5 :: Number -> Speaker (Gain GetSetAP (SawtoothOsc GetSetAP))
-deltaPhase5 time = Speaker $ Gain (defaultGetSetAP 0.0) (SawtoothOsc On (defaultGetSetAP 440.0))
+deltaPhase5 =
+  (_ % pieceTime)
+    >>> (_ - phase4Integral)
+    >>> (max 0.0)
+    >>> \time ->
+        let
+          rad = pi * time
+        in
+          Speaker $ Gain (defaultGetSetAP $ 0.1 - 0.1 * (cos time)) (SawtoothOsc On (defaultGetSetAP $ 440.0 + 50.0 * ((sin (rad * 1.5)) `pow` 2.0)))
 
-phase5Time = 5.0 :: Number
 
-phase5Integral = phase5Time + phase4Integral :: Number

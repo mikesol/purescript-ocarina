@@ -1,20 +1,23 @@
 module WAGS.Example.KitchenSink where
 
 import Prelude
+
 import Control.Comonad.Cofree (Cofree, mkCofree)
 import Data.Foldable (for_)
 import Data.Maybe (Maybe(..))
+import Data.Vec((+>), empty)
 import Effect (Effect)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect)
 import FRP.Event (subscribe)
+import Foreign.Object as O
 import Halogen as H
 import Halogen.Aff (awaitBody, runHalogenAff)
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.VDom.Driver (runUI)
 import WAGS.Example.KitchenSink.TLP (piece)
-import WAGS.Interpret (AudioContext, FFIAudio(..), close, context, defaultFFIAudio, makeUnitCache)
+import WAGS.Interpret (AudioContext, FFIAudio(..), close, context, defaultFFIAudio, makePeriodicWave, makeUnitCache)
 import WAGS.Run (run)
 
 easingAlgorithm :: Cofree ((->) Int) Int
@@ -68,8 +71,11 @@ handleAction = case _ of
   StartAudio -> do
     audioCtx <- H.liftEffect context
     unitCache <- H.liftEffect makeUnitCache
+    myWave <- H.liftEffect $ makePeriodicWave audioCtx (0.3 +> -0.1 +> empty) (-0.25 +> 0.05 +> empty)
     let
-      ffiAudio = defaultFFIAudio audioCtx unitCache
+      ffiAudio = (defaultFFIAudio audioCtx unitCache) {
+        periodicWaves = O.singleton "my-wave" myWave
+      }
     unsubscribe <-
       H.liftEffect
         $ subscribe
