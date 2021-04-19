@@ -40,12 +40,10 @@ doPeriodicOsc =
             (change (deltaPhase4 time) $> lsig)
         else
           Left \thunk ->
-            doSawtoothOsc
-              ( WAGS.do
-                  thunk
-                  toAdd <- create (SawtoothOsc On 440.0)
-                  disconnect toRemove gn
-                  connect toAdd gn
-                  destroy toRemove
-                  withProof pr lsig
-              )
+            doSawtoothOsc WAGS.do
+              thunk
+              toAdd <- create (SawtoothOsc On 440.0)
+              disconnect toRemove gn
+              connect toAdd gn
+              destroy toRemove
+              withProof pr lsig

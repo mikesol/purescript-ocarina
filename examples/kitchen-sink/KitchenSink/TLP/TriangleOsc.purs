@@ -38,12 +38,10 @@ doTriangleOsc =
             (change (deltaPhase2 time) $> lsig)
         else
           Left \thunk ->
-            doSquareOsc
-              ( WAGS.do
-                  thunk
-                  toAdd <- create (SquareOsc On 440.0)
-                  disconnect toRemove gn
-                  connect toAdd gn
-                  destroy toRemove
-                  withProof pr lsig
-              )
+            doSquareOsc WAGS.do
+              thunk
+              toAdd <- create (SquareOsc On 440.0)
+              disconnect toRemove gn
+              connect toAdd gn
+              destroy toRemove
+              withProof pr lsig

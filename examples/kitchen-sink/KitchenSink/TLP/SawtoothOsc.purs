@@ -42,15 +42,13 @@ doSawtoothOsc =
           Right (change (deltaPhase5 time) $> l)
         else
           Left \thunk ->
-            lsig
-              ( WAGS.do
-                  thunk
-                  toAdd <- create (SinOsc On 440.0)
-                  disconnect toRemove gn
-                  connect toAdd gn
-                  destroy toRemove
-                  ci <- currentIdx
-                  g <- graph
-                  rebase ci g (Proxy :: _ D3) (Proxy :: _ SinOscGraph)
-                  withProof pr l
-              )
+            lsig WAGS.do
+              thunk
+              toAdd <- create (SinOsc On 440.0)
+              disconnect toRemove gn
+              connect toAdd gn
+              destroy toRemove
+              ci <- currentIdx
+              g <- graph
+              rebase ci g (Proxy :: _ D3) (Proxy :: _ SinOscGraph)
+              withProof pr l

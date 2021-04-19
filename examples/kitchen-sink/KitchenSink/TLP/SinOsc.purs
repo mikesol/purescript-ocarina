@@ -37,12 +37,10 @@ doSinOsc =
             (change (deltaPhase1 time) $> lsig)
         else
           Left \thunk ->
-            doTriangleOsc
-              ( WAGS.do
-                  thunk
-                  toAdd <- create (TriangleOsc On 440.0)
-                  disconnect toRemove gn
-                  connect toAdd gn
-                  destroy toRemove
-                  withProof pr lsig
-              )
+            doTriangleOsc WAGS.do
+              thunk
+              toAdd <- create (TriangleOsc On 440.0)
+              disconnect toRemove gn
+              connect toAdd gn
+              destroy toRemove
+              withProof pr lsig

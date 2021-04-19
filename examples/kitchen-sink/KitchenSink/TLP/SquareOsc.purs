@@ -40,12 +40,10 @@ doSquareOsc =
             (change (deltaPhase3 time) $> lsig)
         else
           Left \thunk ->
-            doPeriodicOsc
-              ( WAGS.do
-                  thunk
-                  toAdd <- create (PeriodicOsc (Proxy :: Proxy "my-wave") On 440.0)
-                  disconnect toRemove gn
-                  connect toAdd gn
-                  destroy toRemove
-                  withProof pr lsig
-              )
+            doPeriodicOsc WAGS.do
+              thunk
+              toAdd <- create (PeriodicOsc (Proxy :: Proxy "my-wave") On 440.0)
+              disconnect toRemove gn
+              connect toAdd gn
+              destroy toRemove
+              withProof pr lsig
