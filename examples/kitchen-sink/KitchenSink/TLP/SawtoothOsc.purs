@@ -41,18 +41,16 @@ doSawtoothOsc =
       $ if time % pieceTime < (phase1Time + phase2Time + phase3Time + phase4Time + phase5Time) then
           Right (change (deltaPhase5 time) $> l)
         else
-          Left
-            ( \thunk ->
-                lsig
-                  ( WAGS.do
-                      thunk
-                      toAdd <- create (SinOsc On 440.0)
-                      disconnect toRemove gn
-                      connect toAdd gn
-                      destroy toRemove
-                      ci <- currentIdx
-                      g <- graph
-                      rebase ci g (Proxy :: _ D3) (Proxy :: _ SinOscGraph)
-                      withProof pr l
-                  )
-            )
+          Left \thunk ->
+            lsig
+              ( WAGS.do
+                  thunk
+                  toAdd <- create (SinOsc On 440.0)
+                  disconnect toRemove gn
+                  connect toAdd gn
+                  destroy toRemove
+                  ci <- currentIdx
+                  g <- graph
+                  rebase ci g (Proxy :: _ D3) (Proxy :: _ SinOscGraph)
+                  withProof pr l
+              )

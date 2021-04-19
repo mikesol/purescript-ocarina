@@ -1,7 +1,6 @@
 module WAGS.Example.KitchenSink.TLP.PeriodicOsc where
 
 import Prelude
-
 import Data.Either (Either(..))
 import Effect (Effect)
 import Math ((%))
@@ -40,15 +39,13 @@ doPeriodicOsc =
           Right
             (change (deltaPhase4 time) $> lsig)
         else
-          Left
-            ( \thunk ->
-                doSawtoothOsc
-                  ( WAGS.do
-                      thunk
-                      toAdd <- create (SawtoothOsc On 440.0)
-                      disconnect toRemove gn
-                      connect toAdd gn
-                      destroy toRemove
-                      withProof pr lsig
-                  )
-            )
+          Left \thunk ->
+            doSawtoothOsc
+              ( WAGS.do
+                  thunk
+                  toAdd <- create (SawtoothOsc On 440.0)
+                  disconnect toRemove gn
+                  connect toAdd gn
+                  destroy toRemove
+                  withProof pr lsig
+              )

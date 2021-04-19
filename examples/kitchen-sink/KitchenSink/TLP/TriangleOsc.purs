@@ -1,7 +1,6 @@
 module WAGS.Example.KitchenSink.TLP.TriangleOsc where
 
 import Prelude
-
 import Data.Either (Either(..))
 import Effect (Effect)
 import Math ((%))
@@ -38,15 +37,13 @@ doTriangleOsc =
           Right
             (change (deltaPhase2 time) $> lsig)
         else
-          Left
-            ( \thunk ->
-                doSquareOsc
-                  ( WAGS.do
-                      thunk
-                      toAdd <- create (SquareOsc On 440.0)
-                      disconnect toRemove gn
-                      connect toAdd gn
-                      destroy toRemove
-                      withProof pr lsig
-                  )
-            )
+          Left \thunk ->
+            doSquareOsc
+              ( WAGS.do
+                  thunk
+                  toAdd <- create (SquareOsc On 440.0)
+                  disconnect toRemove gn
+                  connect toAdd gn
+                  destroy toRemove
+                  withProof pr lsig
+              )
