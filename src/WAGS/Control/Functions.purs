@@ -5,6 +5,7 @@ module WAGS.Control.Functions
   , makeScene'
   , loop
   , branch
+  , inSitu
   , universe
   , currentIdx
   , changeBit
@@ -30,7 +31,7 @@ import Type.Proxy (Proxy(..))
 import Unsafe.Coerce (unsafeCoerce)
 import WAGS.Change (changes)
 import WAGS.Control.MemoizedState (makeMemoizedStateT, runMemoizedStateT')
-import WAGS.Control.Qualified as Ix
+import WAGS.Control.Qualified as WAGS
 import WAGS.Control.Thunkable (Thunkable)
 import WAGS.Control.Types (AudioState', FrameT, InitialFrameT, SceneT(..), SceneT', oneFrameT, unsafeFrame, unsafeUnframe)
 import WAGS.Interpret (class AudioInterpret)
@@ -42,13 +43,13 @@ import WAGS.Validation (class GraphIsRenderable, class TerminalIdentityEdge)
 -- | ```purescript
 -- | piece :: Scene (SceneI Unit Unit) FFIAudio (Effect Unit) Frame0
 -- | piece =
--- |   Ix.do
+-- |   WAGS.do
 -- |     start -- initial frame
 -- |     { time } <- env
 -- |     create (scene time) $> Right unit
 -- |     @> loop
 -- |         ( const
--- |             $ Ix.do
+-- |             $ WAGS.do
 -- |                 { time } <- env
 -- |                 ivoid $ change (scene time)
 -- |         )
@@ -86,13 +87,13 @@ initialAudioState e =
 -- | ```purescript
 -- | piece :: Scene (SceneI Unit Unit) FFIAudio (Effect Unit) Frame0
 -- | piece =
--- |   Ix.do
+-- |   WAGS.do
 -- |     start
 -- |     { time } <- env
 -- |     create (scene time) $> Right unit
 -- |     @> loop -- here, @> is the infix version of `makeScene`
 -- |         ( const
--- |             $ Ix.do
+-- |             $ WAGS.do
 -- |                 { time } <- env
 -- |                 ivoid $ change (scene time)
 -- |         )
@@ -152,13 +153,13 @@ infixr 6 makeScene as @>
 -- | ```purescript
 -- | piece :: Scene (SceneI Unit Unit) FFIAudio (Effect Unit) Frame0
 -- | piece =
--- |   Ix.do
+-- |   WAGS.do
 -- |     start -- initial frame
 -- |     { time } <- env
 -- |     create (scene time) $> Right unit
 -- |     @> loop -- we loop by changing the scene based on `time` in the `env`
 -- |         ( const
--- |             $ Ix.do
+-- |             $ WAGS.do
 -- |                 { time } <- env
 -- |                 ivoid $ change (scene time)
 -- |         )
@@ -179,25 +180,25 @@ loop ::
     (UniverseC currentIdx graph changeBit skolems)
     a ->
   SceneT env audio engine proofA m
-loop fa ma = makeScene (imap Right $ Ix.bind ma fa) (loop fa)
+loop fa ma = makeScene (imap Right $ WAGS.bind ma fa) (loop fa)
 
 -- | Accepts a "branch" frame for making a scene, where `Left` is a new scene and `Right` is the incoming scene with the change bit incremented by 1. Useful for the common pattern where we loop an audio graph until something in the environment changes, at which point we move on to a new graph.
 -- |
 -- | ```purescript
 -- | simpleScene =
--- |   ( Ix.do
+-- |   ( WAGS.do
 -- |       start
 -- |       e <- env
 -- |       create (scene0 e) $> Right unit
 -- |   )
--- |     @> ( branch \_ -> Ix.do
+-- |     @> ( branch \_ -> WAGS.do
 -- |           { time } <- env
 -- |           pr <- proof
 -- |           withProof pr
 -- |             $ if time < 0.3 then
 -- |                 Right
 -- |                   (
--- |                       Ix.do
+-- |                       WAGS.do
 -- |                         e <- env
 -- |                         ivoid $ change (scene0 e)
 -- |                   )
@@ -205,7 +206,7 @@ loop fa ma = makeScene (imap Right $ Ix.bind ma fa) (loop fa)
 -- |                 Left
 -- |                   ( loop
 -- |                       ( const
--- |                           $ Ix.do
+-- |                           $ WAGS.do
 -- |                               e <- env
 -- |                               ivoid $ change (scene1 e)
 -- |                       )
@@ -241,7 +242,7 @@ branch ::
   SceneT env audio engine proofA m
 branch mch m =
   makeScene
-    ( Ix.do
+    ( WAGS.do
         r <- m
         mbe <- mch r
         case mbe of
@@ -249,6 +250,23 @@ branch mch m =
           Right fa -> imap Right fa
     )
     (branch mch)
+
+-- | Often times, the computation in a frame will need to start from
+-- | universe `x` and proceed to universe `z` before continuing to
+-- | produce a scene. `inSitu` "thunks" the computation at `x`.
+inSitu ::
+  forall env audio engine proof m i x z a.
+  Monad m =>
+  ( FrameT env audio engine proof m i z a ->
+    SceneT env audio engine proof m
+  ) ->
+  FrameT env audio engine proof m x z a ->
+  FrameT env audio engine proof m i x Unit ->
+  SceneT env audio engine proof m
+inSitu f x thunk =
+  f WAGS.do
+    thunk
+    x
 
 -- | Freezes the current audio frame.
 -- |
@@ -291,13 +309,13 @@ infixr 6 makeScene' as @|>
 -- | ```purescript
 -- | piece :: Scene (SceneI Unit Unit) FFIAudio (Effect Unit) Frame0
 -- | piece =
--- |   Ix.do
+-- |   WAGS.do
 -- |     start
 -- |     { time } <- env -- get the environment
 -- |     create (scene time) $> Right unit
 -- |     @> loop
 -- |         ( const
--- |             $ Ix.do
+-- |             $ WAGS.do
 -- |                 { time } <- env
 -- |                 ivoid $ change (scene time)
 -- |         )
@@ -315,7 +333,7 @@ env = unsafeFrame (gets _.env)
 -- | ```purescript
 -- | piece :: { makeRenderingEnv :: MakeRenderingEnv } -> Scene (SceneI Trigger Unit) FFIAudio (Effect Unit) Frame0
 -- | piece { makeRenderingEnv } =
--- |   ( Ix.do
+-- |   ( WAGS.do
 -- |       start
 -- |       ivoid $ create $ fullKeyboard klavierIdentity
 -- |       k0 <- cursor $ cursors.k0
@@ -337,7 +355,7 @@ env = unsafeFrame (gets _.env)
 -- |             }
 -- |   )
 -- |     @> loop
--- |         ( \{ audioRefs, currentKeys, availableKeys } -> Ix.do
+-- |         ( \{ audioRefs, currentKeys, availableKeys } -> WAGS.do
 -- |             { time, trigger, active } <- env
 -- |             graphProxy <- graph
 -- |             let

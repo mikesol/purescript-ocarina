@@ -5,7 +5,7 @@ import Prelude
 import Data.Identity (Identity(..))
 import Math (cos, pi, pow, sin, (%))
 import WAGS.Control.Types (Universe')
-import WAGS.Example.KitchenSink.Timing (phase1Integral, pieceTime)
+import WAGS.Example.KitchenSink.Timing (ksTriangleOscIntegral, ksTriangleOscTime, pieceTime)
 import WAGS.Graph.Constructors (Gain(..), OnOff(..), Speaker(..), TriangleOsc(..))
 import WAGS.Graph.Decorators (Focus(..), Decorating')
 import WAGS.Graph.Optionals (GetSetAP, defaultGetSetAP)
@@ -15,7 +15,9 @@ import WAGS.Universe.EdgeProfile (NoEdge, SingleEdge)
 import WAGS.Universe.Graph (GraphC)
 import WAGS.Universe.Node (NodeC, NodeListCons, NodeListNil)
 
------------ phase2
+ksTriangleOscBegin = ksTriangleOscIntegral - ksTriangleOscTime :: Number
+
+----------- ksTriangleOsc
 type TriangleOscGraph
   = GraphC
       (NodeC (TTriangleOsc D2) NoEdge)
@@ -27,31 +29,31 @@ type TriangleOscGraph
 type TriangleOscUniverse cb
   = Universe' D3 TriangleOscGraph cb
 
-type Phase2 g t
+type KsTriangleOsc g t
   = Speaker (g (Gain GetSetAP (t (TriangleOsc GetSetAP))))
 
-phase2' ::
+ksTriangleOsc' ::
   forall g t.
   Decorating' g ->
   Decorating' t ->
-  Phase2 g t
-phase2' fg ft =
+  KsTriangleOsc g t
+ksTriangleOsc' fg ft =
   Speaker
     (fg $ Gain (defaultGetSetAP 0.0) (ft $ TriangleOsc On (defaultGetSetAP 440.0)))
 
-phase2 :: Phase2 Identity Identity
-phase2 = phase2' Identity Identity
+ksTriangleOsc :: KsTriangleOsc Identity Identity
+ksTriangleOsc = ksTriangleOsc' Identity Identity
 
-phase2TriangleOsc :: Phase2 Identity Focus
-phase2TriangleOsc = phase2' Identity Focus
+ksTriangleOscTriangleOsc :: KsTriangleOsc Identity Focus
+ksTriangleOscTriangleOsc = ksTriangleOsc' Identity Focus
 
-phase2Gain :: Phase2 Focus Identity
-phase2Gain = phase2' Focus Identity
+ksTriangleOscGain :: KsTriangleOsc Focus Identity
+ksTriangleOscGain = ksTriangleOsc' Focus Identity
 
-deltaPhase2 :: Number -> Speaker (Gain GetSetAP (TriangleOsc GetSetAP))
-deltaPhase2 = 
+deltaKsTriangleOsc :: Number -> Speaker (Gain GetSetAP (TriangleOsc GetSetAP))
+deltaKsTriangleOsc = 
   (_ % pieceTime)
-    >>> (_ - phase1Integral)
+    >>> (_ - ksTriangleOscBegin)
     >>> (max 0.0)
     >>> \time ->
         let

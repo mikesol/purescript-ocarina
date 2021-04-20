@@ -5,7 +5,7 @@ import Prelude
 import Data.Identity (Identity(..))
 import Math (cos, pi, pow, sin, (%))
 import WAGS.Control.Types (Universe')
-import WAGS.Example.KitchenSink.Timing (phase4Integral, pieceTime)
+import WAGS.Example.KitchenSink.Timing (ksSawtoothOscIntegral, ksSawtoothOscTime, pieceTime)
 import WAGS.Graph.Constructors (Gain(..), OnOff(..), SawtoothOsc(..), Speaker(..))
 import WAGS.Graph.Decorators (Focus(..), Decorating')
 import WAGS.Graph.Optionals (GetSetAP, defaultGetSetAP)
@@ -14,6 +14,8 @@ import WAGS.Universe.BinN (D0, D1, D2, D3)
 import WAGS.Universe.EdgeProfile (NoEdge, SingleEdge)
 import WAGS.Universe.Graph (GraphC)
 import WAGS.Universe.Node (NodeC, NodeListCons, NodeListNil)
+
+ksSawtoothOscBegins = ksSawtoothOscIntegral - ksSawtoothOscTime :: Number
 
 type SawtoothOscGraph
   = GraphC
@@ -26,31 +28,31 @@ type SawtoothOscGraph
 type SawtoothOscUniverse cb
   = Universe' D3 SawtoothOscGraph cb
 
-type Phase5 g t
+type KsSawtoothOsc g t
   = Speaker (g (Gain GetSetAP (t (SawtoothOsc GetSetAP))))
 
-phase5' ::
+ksSawtoothOsc' ::
   forall g t.
   Decorating' g ->
   Decorating' t ->
-  Phase5 g t
-phase5' fg ft =
+  KsSawtoothOsc g t
+ksSawtoothOsc' fg ft =
   Speaker
     (fg $ Gain (defaultGetSetAP 0.0) (ft $ SawtoothOsc On (defaultGetSetAP 440.0)))
 
-phase5 :: Phase5 Identity Identity
-phase5 = phase5' Identity Identity
+ksSawtoothOsc :: KsSawtoothOsc Identity Identity
+ksSawtoothOsc = ksSawtoothOsc' Identity Identity
 
-phase5SawtoothOsc :: Phase5 Identity Focus
-phase5SawtoothOsc = phase5' Identity Focus
+ksSawtoothOscSawtoothOsc :: KsSawtoothOsc Identity Focus
+ksSawtoothOscSawtoothOsc = ksSawtoothOsc' Identity Focus
 
-phase5Gain :: Phase5 Focus Identity
-phase5Gain = phase5' Focus Identity
+ksSawtoothOscGain :: KsSawtoothOsc Focus Identity
+ksSawtoothOscGain = ksSawtoothOsc' Focus Identity
 
-deltaPhase5 :: Number -> Speaker (Gain GetSetAP (SawtoothOsc GetSetAP))
-deltaPhase5 =
+deltaKsSawtoothOsc :: Number -> Speaker (Gain GetSetAP (SawtoothOsc GetSetAP))
+deltaKsSawtoothOsc =
   (_ % pieceTime)
-    >>> (_ - phase4Integral)
+    >>> (_ - ksSawtoothOscBegins)
     >>> (max 0.0)
     >>> \time ->
         let

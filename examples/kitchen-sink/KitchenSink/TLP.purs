@@ -12,7 +12,7 @@ import WAGS.Control.Types (Frame0, Scene)
 import WAGS.Create (create)
 import WAGS.Example.KitchenSink.TLP.LoopSig (LoopSig(..))
 import WAGS.Example.KitchenSink.TLP.SinOsc (doSinOsc)
-import WAGS.Example.KitchenSink.Types.SinOsc (phase1)
+import WAGS.Example.KitchenSink.Types.SinOsc (ksSinOsc)
 import WAGS.Interpret (FFIAudio)
 import WAGS.MoveNode (moveNode)
 import WAGS.Run (SceneI)
@@ -21,6 +21,6 @@ piece :: Scene (SceneI Unit Unit) FFIAudio (Effect Unit) Frame0
 piece =
   WAGS.do
     start
-    ivoid $ create phase1
+    ivoid $ create ksSinOsc
     moveNode (Proxy :: _ N.D2) (Proxy :: _ N.D0) $> LoopSig doSinOsc
     @|> doSinOsc

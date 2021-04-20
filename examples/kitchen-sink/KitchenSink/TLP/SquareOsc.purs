@@ -7,7 +7,7 @@ import Math ((%))
 import Type.Proxy (Proxy(..))
 import WAGS.Change (change)
 import WAGS.Connect (connect)
-import WAGS.Control.Functions (branch, env, proof, withProof)
+import WAGS.Control.Functions (branch, env, inSitu, proof, withProof)
 import WAGS.Control.Qualified as WAGS
 import WAGS.Control.Types (Frame, Scene)
 import WAGS.Create (create)
@@ -16,9 +16,9 @@ import WAGS.Destroy (destroy)
 import WAGS.Disconnect (disconnect)
 import WAGS.Example.KitchenSink.TLP.LoopSig (LoopSig)
 import WAGS.Example.KitchenSink.TLP.PeriodicOsc (doPeriodicOsc)
-import WAGS.Example.KitchenSink.Timing (pieceTime, phase3Integral)
+import WAGS.Example.KitchenSink.Timing (pieceTime)
 import WAGS.Example.KitchenSink.Types.Empty (reset)
-import WAGS.Example.KitchenSink.Types.SquareOsc (SquareOscUniverse, deltaPhase3, phase3Gain, phase3SquareOsc)
+import WAGS.Example.KitchenSink.Types.SquareOsc (SquareOscUniverse, deltaKsSquareOsc, ksSquareOscBegins, ksSquareOscGain, ksSquareOscSquareOsc)
 import WAGS.Graph.Constructors (OnOff(..), PeriodicOsc(..))
 import WAGS.Interpret (FFIAudio)
 import WAGS.Run (SceneI)
@@ -30,19 +30,18 @@ doSquareOsc ::
 doSquareOsc =
   branch \lsig -> WAGS.do
     { time } <- env
-    toRemove <- cursor phase3SquareOsc
-    gn <- cursor phase3Gain
+    toRemove <- cursor ksSquareOscSquareOsc
+    gn <- cursor ksSquareOscGain
     pr <- proof
     withProof pr
-      $ if time % pieceTime < phase3Integral then
-          Right (change (deltaPhase3 time) $> lsig)
+      $ if time % pieceTime < ksSquareOscBegins then
+          Right (change (deltaKsSquareOsc time) $> lsig)
         else
-          Left \thunk ->
-            doPeriodicOsc WAGS.do
-              thunk
-              disconnect toRemove gn
-              destroy toRemove
-              reset
-              toAdd <- create (PeriodicOsc (Proxy :: Proxy "my-wave") On 440.0)
-              connect toAdd gn
-              withProof pr lsig
+          Left
+            $ inSitu doPeriodicOsc WAGS.do
+                disconnect toRemove gn
+                destroy toRemove
+                reset
+                toAdd <- create (PeriodicOsc (Proxy :: Proxy "my-wave") On 440.0)
+                connect toAdd gn
+                withProof pr lsig

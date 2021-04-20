@@ -14,33 +14,33 @@ calcSlope x0 y0 x1 y1 x =
     in
       m * x + b
 
-phase1Time = 5.0 :: Number
+ksSinOscTime = 5.0 :: Number
 
-phase1Integral = phase1Time :: Number
+ksSinOscIntegral = ksSinOscTime :: Number
 
-phase2Time = 5.0 :: Number
+ksTriangleOscTime = 5.0 :: Number
 
-phase2Integral = phase2Time + phase1Integral :: Number
+ksTriangleOscIntegral = ksTriangleOscTime + ksSinOscIntegral :: Number
 
-phase3Time = 5.0 :: Number
+ksSquareOscTime = 5.0 :: Number
 
-phase3Integral = phase3Time + phase2Integral :: Number
+ksSquareOscIntegral = ksSquareOscTime + ksTriangleOscIntegral :: Number
 
-phase4Time = 5.0 :: Number
+ksPeriodicOscTime = 5.0 :: Number
 
-phase4Integral = phase4Time + phase3Integral :: Number
+ksPeriodicOscIntegral = ksPeriodicOscTime + ksSquareOscIntegral :: Number
 
-phase5Time = 5.0 :: Number
+ksSawtoothOscTime = 5.0 :: Number
 
-phase5Integral = phase5Time + phase4Integral :: Number
+ksSawtoothOscIntegral = ksSawtoothOscTime + ksPeriodicOscIntegral :: Number
 
-phase6Time = 10.0 :: Number
+ksAllpassTime = 10.0 :: Number
 
-phase6Integral = phase6Time + phase5Integral :: Number
+ksAllpassIntegral = ksAllpassTime + ksSawtoothOscIntegral :: Number
 
-phase7Time = 10.0 :: Number
+ksHighpassTime = 10.0 :: Number
 
-phase7Integral = phase7Time + phase6Integral :: Number
+ksHighpassIntegral = ksHighpassTime + ksAllpassIntegral :: Number
 
 pieceTime :: Number
-pieceTime = phase6Integral
+pieceTime = ksAllpassIntegral

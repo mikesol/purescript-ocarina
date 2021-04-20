@@ -1,11 +1,12 @@
 module WAGS.Example.KitchenSink.Types.Highpass where
 
 import Prelude
+
 import Data.Identity (Identity(..))
-import Type.Proxy (Proxy(..))
 import Math ((%))
+import Type.Proxy (Proxy(..))
 import WAGS.Control.Types (Universe')
-import WAGS.Example.KitchenSink.Timing (calcSlope, phase5Integral, phase7Time, pieceTime)
+import WAGS.Example.KitchenSink.Timing (calcSlope, ksHighpassIntegral, ksHighpassTime, pieceTime)
 import WAGS.Graph.Constructors (Highpass(..), Gain(..), OnOff(..), PlayBuf(..), Speaker(..))
 import WAGS.Graph.Decorators (Focus(..), Decorating')
 import WAGS.Universe.AudioUnit (THighpass, TGain, TPlayBuf, TSpeaker)
@@ -13,6 +14,8 @@ import WAGS.Universe.BinN (D0, D1, D2, D3, D4)
 import WAGS.Universe.EdgeProfile (NoEdge, SingleEdge)
 import WAGS.Universe.Graph (GraphC)
 import WAGS.Universe.Node (NodeC, NodeListCons, NodeListNil)
+
+ksHighpassBegins = ksHighpassIntegral - ksHighpassTime :: Number
 
 type HighpassGraph
   = GraphC
@@ -28,49 +31,49 @@ type HighpassGraph
 type HighpassUniverse cb
   = Universe' D4 HighpassGraph cb
 
-type Phase7reate (t :: Type -> Type) b
+type KsHighpassreate (t :: Type -> Type) b
   = t (Highpass Number Number (b (PlayBuf "my-buffer" Number)))
 
-type Phase7 g t b
-  = Speaker (g (Gain Number (Phase7reate t b)))
+type KsHighpass g t b
+  = Speaker (g (Gain Number (KsHighpassreate t b)))
 
-phase7Create ::
+ksHighpassCreate ::
   forall t b.
   Decorating' t ->
   Decorating' b ->
-  Phase7reate t b
-phase7Create ft fb = ft $ Highpass 300.0 1.0 (fb $ PlayBuf (Proxy :: _ "my-buffer") 0.0 On 1.0)
+  KsHighpassreate t b
+ksHighpassCreate ft fb = ft $ Highpass 300.0 1.0 (fb $ PlayBuf (Proxy :: _ "my-buffer") 0.0 On 1.0)
 
-phase7' ::
+ksHighpass' ::
   forall g t b.
   Decorating' g ->
   Decorating' t ->
   Decorating' b ->
-  Phase7 g t b
-phase7' fg ft fb =
+  KsHighpass g t b
+ksHighpass' fg ft fb =
   Speaker
-    (fg $ Gain 1.0 (phase7Create ft fb))
+    (fg $ Gain 1.0 (ksHighpassCreate ft fb))
 
-phase7 :: Phase7 Identity Identity Identity
-phase7 = phase7' Identity Identity Identity
+ksHighpass :: KsHighpass Identity Identity Identity
+ksHighpass = ksHighpass' Identity Identity Identity
 
-phase7Playbuf :: Phase7 Identity Identity Focus
-phase7Playbuf = phase7' Identity Identity Focus
+ksHighpassPlaybuf :: KsHighpass Identity Identity Focus
+ksHighpassPlaybuf = ksHighpass' Identity Identity Focus
 
-phase7Highpass :: Phase7 Identity Focus Identity
-phase7Highpass = phase7' Identity Focus Identity
+ksHighpassHighpass :: KsHighpass Identity Focus Identity
+ksHighpassHighpass = ksHighpass' Identity Focus Identity
 
-phase7Gain :: Phase7 Focus Identity Identity
-phase7Gain = phase7' Focus Identity Identity
+ksHighpassGain :: KsHighpass Focus Identity Identity
+ksHighpassGain = ksHighpass' Focus Identity Identity
 
-deltaPhase7 :: Number -> Phase7 Identity Identity Identity
-deltaPhase7 =
+deltaKsHighpass :: Number -> KsHighpass Identity Identity Identity
+deltaKsHighpass =
   (_ % pieceTime)
-    >>> (_ - phase5Integral)
+    >>> (_ - ksHighpassBegins)
     >>> (max 0.0)
     >>> \time ->
         Speaker
           ( Identity
               $ Gain (if time > 9.0 then 0.0 else 1.0)
-                  (Identity $ Highpass (calcSlope 0.0 300.0 phase7Time 200.0 time) 1.0 (Identity $ PlayBuf (Proxy :: _ "my-buffer") 0.0 On 1.0))
+                  (Identity $ Highpass (calcSlope 0.0 300.0 ksHighpassTime 200.0 time) 1.0 (Identity $ PlayBuf (Proxy :: _ "my-buffer") 0.0 On 1.0))
           )

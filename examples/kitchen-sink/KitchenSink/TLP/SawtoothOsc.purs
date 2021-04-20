@@ -7,7 +7,7 @@ import Effect (Effect)
 import Math ((%))
 import WAGS.Change (change)
 import WAGS.Connect (connect)
-import WAGS.Control.Functions (branch, env, proof, withProof)
+import WAGS.Control.Functions (branch, env, inSitu, proof, withProof)
 import WAGS.Control.Qualified as WAGS
 import WAGS.Control.Types (Frame, Scene)
 import WAGS.Create (create)
@@ -16,10 +16,10 @@ import WAGS.Destroy (destroy)
 import WAGS.Disconnect (disconnect)
 import WAGS.Example.KitchenSink.TLP.Allpass (doAllpass)
 import WAGS.Example.KitchenSink.TLP.LoopSig (LoopSig)
-import WAGS.Example.KitchenSink.Timing (phase5Integral, pieceTime)
-import WAGS.Example.KitchenSink.Types.Allpass (phase6Create)
+import WAGS.Example.KitchenSink.Timing (ksSawtoothOscIntegral, pieceTime)
+import WAGS.Example.KitchenSink.Types.Allpass (ksAllpassCreate)
 import WAGS.Example.KitchenSink.Types.Empty (reset)
-import WAGS.Example.KitchenSink.Types.SawtoothOsc (SawtoothOscUniverse, deltaPhase5, phase5Gain, phase5SawtoothOsc)
+import WAGS.Example.KitchenSink.Types.SawtoothOsc (SawtoothOscUniverse, deltaKsSawtoothOsc, ksSawtoothOscGain, ksSawtoothOscSawtoothOsc)
 import WAGS.Interpret (FFIAudio)
 import WAGS.Run (SceneI)
 
@@ -30,19 +30,18 @@ doSawtoothOsc ::
 doSawtoothOsc =
   branch \lsig -> WAGS.do
     { time } <- env
-    toRemove <- cursor phase5SawtoothOsc
-    gn <- cursor phase5Gain
+    toRemove <- cursor ksSawtoothOscSawtoothOsc
+    gn <- cursor ksSawtoothOscGain
     pr <- proof
     withProof pr
-      $ if time % pieceTime < phase5Integral then
-          Right (change (deltaPhase5 time) $> lsig)
+      $ if time % pieceTime < ksSawtoothOscIntegral then
+          Right (change (deltaKsSawtoothOsc time) $> lsig)
         else
-          Left \thunk ->
-            doAllpass WAGS.do
-              thunk
-              disconnect toRemove gn
-              destroy toRemove
-              reset
-              toAdd <- create (phase6Create Identity Identity)
-              connect toAdd gn
-              withProof pr lsig
+          Left
+            $ inSitu doAllpass WAGS.do
+                disconnect toRemove gn
+                destroy toRemove
+                reset
+                toAdd <- create (ksAllpassCreate Identity Identity)
+                connect toAdd gn
+                withProof pr lsig

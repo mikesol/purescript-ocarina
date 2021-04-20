@@ -6,7 +6,7 @@ import Data.Identity (Identity(..))
 import Math (cos, pi, pow, sin, (%))
 import Type.Proxy (Proxy(..))
 import WAGS.Control.Types (Universe')
-import WAGS.Example.KitchenSink.Timing (phase3Integral, pieceTime)
+import WAGS.Example.KitchenSink.Timing (ksPeriodicOscIntegral, ksPeriodicOscTime, pieceTime)
 import WAGS.Graph.Constructors (Gain(..), OnOff(..), PeriodicOsc(..), Speaker(..))
 import WAGS.Graph.Decorators (Focus(..), Decorating')
 import WAGS.Graph.Optionals (GetSetAP, defaultGetSetAP)
@@ -16,7 +16,9 @@ import WAGS.Universe.EdgeProfile (NoEdge, SingleEdge)
 import WAGS.Universe.Graph (GraphC)
 import WAGS.Universe.Node (NodeC, NodeListCons, NodeListNil)
 
------------ phase4
+ksPeriodicOscBegins = ksPeriodicOscIntegral - ksPeriodicOscTime :: Number
+
+----------- ksPeriodicOsc
 type PeriodicOscGraph
   = GraphC
       (NodeC (TPeriodicOsc D2 "my-wave") NoEdge)
@@ -28,15 +30,15 @@ type PeriodicOscGraph
 type PeriodicOscUniverse cb
   = Universe' D3 PeriodicOscGraph cb
 
-type Phase4 g t
+type KsPeriodicOsc g t
   = Speaker (g (Gain GetSetAP (t (PeriodicOsc "my-wave" GetSetAP))))
 
-phase4' ::
+ksPeriodicOsc' ::
   forall g t.
   Decorating' g ->
   Decorating' t ->
-  Phase4 g t
-phase4' fg ft =
+  KsPeriodicOsc g t
+ksPeriodicOsc' fg ft =
   Speaker
     ( fg
         $ Gain
@@ -44,19 +46,19 @@ phase4' fg ft =
             (ft $ PeriodicOsc (Proxy :: Proxy "my-wave") On (defaultGetSetAP 440.0))
     )
 
-phase4 :: Phase4 Identity Identity
-phase4 = phase4' Identity Identity
+ksPeriodicOsc :: KsPeriodicOsc Identity Identity
+ksPeriodicOsc = ksPeriodicOsc' Identity Identity
 
-phase4PeriodicOsc :: Phase4 Identity Focus
-phase4PeriodicOsc = phase4' Identity Focus
+ksPeriodicOscPeriodicOsc :: KsPeriodicOsc Identity Focus
+ksPeriodicOscPeriodicOsc = ksPeriodicOsc' Identity Focus
 
-phase4Gain :: Phase4 Focus Identity
-phase4Gain = phase4' Focus Identity
+ksPeriodicOscGain :: KsPeriodicOsc Focus Identity
+ksPeriodicOscGain = ksPeriodicOsc' Focus Identity
 
-deltaPhase4 :: Number -> Speaker (Gain GetSetAP (PeriodicOsc "my-wave" GetSetAP))
-deltaPhase4 = 
+deltaKsPeriodicOsc :: Number -> Speaker (Gain GetSetAP (PeriodicOsc "my-wave" GetSetAP))
+deltaKsPeriodicOsc = 
   (_ % pieceTime)
-    >>> (_ - phase3Integral)
+    >>> (_ - ksPeriodicOscBegins)
     >>> (max 0.0)
     >>> \time ->
         let

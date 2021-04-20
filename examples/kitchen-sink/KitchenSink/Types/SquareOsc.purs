@@ -5,7 +5,7 @@ import Prelude
 import Data.Identity (Identity(..))
 import Math (cos, pi, pow, sin, (%))
 import WAGS.Control.Types (Universe')
-import WAGS.Example.KitchenSink.Timing (phase2Integral, pieceTime)
+import WAGS.Example.KitchenSink.Timing (ksSquareOscIntegral, ksSquareOscTime, pieceTime)
 import WAGS.Graph.Constructors (Gain(..), OnOff(..), Speaker(..), SquareOsc(..))
 import WAGS.Graph.Decorators (Focus(..), Decorating')
 import WAGS.Graph.Optionals (GetSetAP, defaultGetSetAP)
@@ -15,7 +15,9 @@ import WAGS.Universe.EdgeProfile (NoEdge, SingleEdge)
 import WAGS.Universe.Graph (GraphC)
 import WAGS.Universe.Node (NodeC, NodeListCons, NodeListNil)
 
------------ phase3
+ksSquareOscBegins = ksSquareOscIntegral - ksSquareOscTime :: Number
+
+----------- ksSquareOsc
 type SquareOscGraph
   = GraphC
       (NodeC (TSquareOsc D2) NoEdge)
@@ -27,31 +29,31 @@ type SquareOscGraph
 type SquareOscUniverse cb
   = Universe' D3 SquareOscGraph cb
 
-type Phase3 g t
+type KsSquareOsc g t
   = Speaker (g (Gain GetSetAP (t (SquareOsc GetSetAP))))
 
-phase3' ::
+ksSquareOsc' ::
   forall g t.
   Decorating' g ->
   Decorating' t ->
-  Phase3 g t
-phase3' fg ft =
+  KsSquareOsc g t
+ksSquareOsc' fg ft =
   Speaker
     (fg $ Gain (defaultGetSetAP 0.0) (ft $ SquareOsc On (defaultGetSetAP 440.0)))
 
-phase3 :: Phase3 Identity Identity
-phase3 = phase3' Identity Identity
+ksSquareOsc :: KsSquareOsc Identity Identity
+ksSquareOsc = ksSquareOsc' Identity Identity
 
-phase3SquareOsc :: Phase3 Identity Focus
-phase3SquareOsc = phase3' Identity Focus
+ksSquareOscSquareOsc :: KsSquareOsc Identity Focus
+ksSquareOscSquareOsc = ksSquareOsc' Identity Focus
 
-phase3Gain :: Phase3 Focus Identity
-phase3Gain = phase3' Focus Identity
+ksSquareOscGain :: KsSquareOsc Focus Identity
+ksSquareOscGain = ksSquareOsc' Focus Identity
 
-deltaPhase3 :: Number -> Speaker (Gain GetSetAP (SquareOsc GetSetAP))
-deltaPhase3 = 
+deltaKsSquareOsc :: Number -> Speaker (Gain GetSetAP (SquareOsc GetSetAP))
+deltaKsSquareOsc = 
   (_ % pieceTime)
-    >>> (_ - phase2Integral)
+    >>> (_ - ksSquareOscBegins)
     >>> (max 0.0)
     >>> \time ->
         let

@@ -1,12 +1,13 @@
 module WAGS.Example.KitchenSink.TLP.PeriodicOsc where
 
 import Prelude
+
 import Data.Either (Either(..))
 import Effect (Effect)
 import Math ((%))
 import WAGS.Change (change)
 import WAGS.Connect (connect)
-import WAGS.Control.Functions (branch, env, proof, withProof)
+import WAGS.Control.Functions (branch, env, inSitu, proof, withProof)
 import WAGS.Control.Qualified as WAGS
 import WAGS.Control.Types (Frame, Scene)
 import WAGS.Create (create)
@@ -15,9 +16,9 @@ import WAGS.Destroy (destroy)
 import WAGS.Disconnect (disconnect)
 import WAGS.Example.KitchenSink.TLP.LoopSig (LoopSig)
 import WAGS.Example.KitchenSink.TLP.SawtoothOsc (doSawtoothOsc)
-import WAGS.Example.KitchenSink.Timing (pieceTime, phase4Integral)
+import WAGS.Example.KitchenSink.Timing (pieceTime, ksPeriodicOscIntegral)
 import WAGS.Example.KitchenSink.Types.Empty (reset)
-import WAGS.Example.KitchenSink.Types.PeriodicOsc (PeriodicOscUniverse, deltaPhase4, phase4Gain, phase4PeriodicOsc)
+import WAGS.Example.KitchenSink.Types.PeriodicOsc (PeriodicOscUniverse, deltaKsPeriodicOsc, ksPeriodicOscGain, ksPeriodicOscPeriodicOsc)
 import WAGS.Graph.Constructors (OnOff(..), SawtoothOsc(..))
 import WAGS.Interpret (FFIAudio)
 import WAGS.Run (SceneI)
@@ -29,19 +30,18 @@ doPeriodicOsc ::
 doPeriodicOsc =
   branch \lsig -> WAGS.do
     { time } <- env
-    toRemove <- cursor phase4PeriodicOsc
-    gn <- cursor phase4Gain
+    toRemove <- cursor ksPeriodicOscPeriodicOsc
+    gn <- cursor ksPeriodicOscGain
     pr <- proof
     withProof pr
-      $ if time % pieceTime < phase4Integral then
-          Right (change (deltaPhase4 time) $> lsig)
+      $ if time % pieceTime < ksPeriodicOscIntegral then
+          Right (change (deltaKsPeriodicOsc time) $> lsig)
         else
-          Left \thunk ->
-            doSawtoothOsc WAGS.do
-              thunk
-              disconnect toRemove gn
-              destroy toRemove
-              reset
-              toAdd <- create (SawtoothOsc On 440.0)
-              connect toAdd gn
-              withProof pr lsig
+          Left
+            $ inSitu doSawtoothOsc WAGS.do
+                disconnect toRemove gn
+                destroy toRemove
+                reset
+                toAdd <- create (SawtoothOsc On 440.0)
+                connect toAdd gn
+                withProof pr lsig

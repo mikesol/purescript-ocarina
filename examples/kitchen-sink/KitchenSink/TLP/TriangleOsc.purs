@@ -6,7 +6,7 @@ import Effect (Effect)
 import Math ((%))
 import WAGS.Change (change)
 import WAGS.Connect (connect)
-import WAGS.Control.Functions (branch, env, proof, withProof)
+import WAGS.Control.Functions (branch, env, inSitu, proof, withProof)
 import WAGS.Control.Qualified as WAGS
 import WAGS.Control.Types (Frame, Scene)
 import WAGS.Create (create)
@@ -15,9 +15,9 @@ import WAGS.Destroy (destroy)
 import WAGS.Disconnect (disconnect)
 import WAGS.Example.KitchenSink.TLP.LoopSig (LoopSig)
 import WAGS.Example.KitchenSink.TLP.SquareOsc (doSquareOsc)
-import WAGS.Example.KitchenSink.Timing (pieceTime, phase2Integral)
+import WAGS.Example.KitchenSink.Timing (pieceTime)
 import WAGS.Example.KitchenSink.Types.Empty (reset)
-import WAGS.Example.KitchenSink.Types.TriangleOsc (TriangleOscUniverse, deltaPhase2, phase2Gain, phase2TriangleOsc)
+import WAGS.Example.KitchenSink.Types.TriangleOsc (TriangleOscUniverse, deltaKsTriangleOsc, ksTriangleOscBegin, ksTriangleOscGain, ksTriangleOscTriangleOsc)
 import WAGS.Graph.Constructors (OnOff(..), SquareOsc(..))
 import WAGS.Interpret (FFIAudio)
 import WAGS.Run (SceneI)
@@ -29,19 +29,18 @@ doTriangleOsc ::
 doTriangleOsc =
   branch \lsig -> WAGS.do
     { time } <- env
-    toRemove <- cursor phase2TriangleOsc
-    gn <- cursor phase2Gain
+    toRemove <- cursor ksTriangleOscTriangleOsc
+    gn <- cursor ksTriangleOscGain
     pr <- proof
     withProof pr
-      $ if time % pieceTime < phase2Integral then
-          Right (change (deltaPhase2 time) $> lsig)
+      $ if time % pieceTime < ksTriangleOscBegin then
+          Right (change (deltaKsTriangleOsc time) $> lsig)
         else
-          Left \thunk ->
-            doSquareOsc WAGS.do
-              thunk
-              disconnect toRemove gn
-              destroy toRemove
-              reset
-              toAdd <- create (SquareOsc On 440.0)
-              connect toAdd gn
-              withProof pr lsig
+          Left
+            $ inSitu doSquareOsc WAGS.do
+                disconnect toRemove gn
+                destroy toRemove
+                reset
+                toAdd <- create (SquareOsc On 440.0)
+                connect toAdd gn
+                withProof pr lsig

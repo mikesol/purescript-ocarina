@@ -3,6 +3,8 @@ module WAGS.Rebase
   , class RebaseCheck'
   , class RebaseCont'
   , rebase
+  , reset
+  , ResetSig
   , RebaseProof
   , rebase'
   , rebaseCheck'
@@ -10,6 +12,7 @@ module WAGS.Rebase
   ) where
 
 import Prelude
+
 import Control.Monad.State (modify_)
 import Data.Map as M
 import Data.Maybe (fromMaybe)
@@ -17,6 +20,8 @@ import Data.Set as S
 import Data.Tuple.Nested ((/\))
 import Data.Typelevel.Bool (False, True)
 import Type.Proxy (Proxy(..))
+import WAGS.Control.Functions (currentIdx, graph)
+import WAGS.Control.Qualified as WAGS
 import WAGS.Control.Types (AudioState, FrameT, unsafeFrame, unsafeUnframe)
 import WAGS.Interpret (class AudioInterpret, rebaseAllUnits)
 import WAGS.Universe.AudioUnit as AU
@@ -24,6 +29,7 @@ import WAGS.Universe.Bin (class BinToInt, Ptr, PtrListCons, PtrListNil, toInt')
 import WAGS.Universe.EdgeProfile (ManyEdges, NoEdge, SingleEdge)
 import WAGS.Universe.Graph (class GraphToNodeList, Graph)
 import WAGS.Universe.Node (NodeC, NodeListCons, NodeListNil)
+import WAGS.Universe.Skolems (SkolemListNil)
 import WAGS.Universe.Universe (UniverseC)
 import WAGS.Validation (class LookupNL, class PtrInPtrList, class TerminalIdentityEdge)
 
@@ -65,6 +71,7 @@ forceArray = identity
 -- | ie `forall ptr. TSpeaker D0 (TSinOsc ptr /\ TSinOsc D2 /\ Unit)`.
 rebase ::
   forall env audio engine proof m changeBit skolems edgeA idxA graphA edgeB idxB graphB.
+  BinToInt idxA =>
   BinToInt idxB =>
   Monad m =>
   AudioInterpret audio engine =>
@@ -102,6 +109,24 @@ rebase ptrA gA ptrB gB =
               $ i.internalEdges
           , instructions = i.instructions <> [ rebaseAllUnits a ]
           }
+
+type ResetSig i1 g1 = 
+  forall env audio engine proof m cb e0 i0 g0 e1.
+  BinToInt i0 =>
+  BinToInt i1 =>
+  Monad m =>
+  AudioInterpret audio engine =>
+  TerminalIdentityEdge g0 e0 =>
+  TerminalIdentityEdge g1 e1 =>
+  Rebase' PtrListNil PtrListNil RebaseProof e0 i0 g0 e1 i1 g1 =>
+  FrameT env audio engine proof m (UniverseC i0 g0 cb SkolemListNil) (UniverseC i1 g1 cb SkolemListNil) Unit
+
+reset :: forall i1 g1. Proxy i1 -> Proxy g1 -> ResetSig i1 g1
+reset i1 g1 = WAGS.do
+  ci <- currentIdx
+  g <- graph
+  rebase ci g i1 g1
+
 
 type AFT
   = (Array { from :: Int, to :: Int })
