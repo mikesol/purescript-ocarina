@@ -1,4 +1,4 @@
-module WAGS.Example.KitchenSink.TLP.Allpass where
+module WAGS.Example.KitchenSink.TLP.Bandpass where
 
 import Prelude
 
@@ -16,36 +16,36 @@ import WAGS.Cursor (cursor)
 import WAGS.Destroy (destroy)
 import WAGS.Disconnect (disconnect)
 import WAGS.Example.KitchenSink.TLP.LoopSig (LoopSig)
-import WAGS.Example.KitchenSink.TLP.Lowpass (doLowpass)
-import WAGS.Example.KitchenSink.Timing (ksAllpassIntegral, pieceTime)
-import WAGS.Example.KitchenSink.Types.Allpass (AllpassUniverse, ksAllpassAllpass, ksAllpassGain, ksAllpassPlaybuf, deltaKsAllpass)
+import WAGS.Example.KitchenSink.TLP.Notch (doNotch)
+import WAGS.Example.KitchenSink.Timing (ksBandpassIntegral, pieceTime)
+import WAGS.Example.KitchenSink.Types.Bandpass (BandpassUniverse, ksBandpassBandpass, ksBandpassGain, ksBandpassPlaybuf, deltaKsBandpass)
 import WAGS.Example.KitchenSink.Types.Empty (reset)
-import WAGS.Example.KitchenSink.Types.Lowpass (ksLowpassCreate)
+import WAGS.Example.KitchenSink.Types.Notch (ksNotchCreate)
 import WAGS.Interpret (FFIAudio)
 import WAGS.Run (SceneI)
 
-doAllpass ::
+doBandpass ::
   forall proofA iu cb.
-  Frame (SceneI Unit Unit) FFIAudio (Effect Unit) proofA iu (AllpassUniverse cb) LoopSig ->
+  Frame (SceneI Unit Unit) FFIAudio (Effect Unit) proofA iu (BandpassUniverse cb) LoopSig ->
   Scene (SceneI Unit Unit) FFIAudio (Effect Unit) proofA
-doAllpass =
+doBandpass =
   branch \lsig -> WAGS.do
     { time } <- env
-    toRemove <- cursor ksAllpassAllpass
-    toRemoveBuf <- cursor ksAllpassPlaybuf
-    gn <- cursor ksAllpassGain
+    toRemove <- cursor ksBandpassBandpass
+    toRemoveBuf <- cursor ksBandpassPlaybuf
+    gn <- cursor ksBandpassGain
     pr <- proof
     withProof pr
-      $ if time % pieceTime < ksAllpassIntegral then
-          Right (change (deltaKsAllpass time) $> lsig)
+      $ if time % pieceTime < ksBandpassIntegral then
+          Right (change (deltaKsBandpass time) $> lsig)
         else
           Left
-            $ inSitu doLowpass WAGS.do
+            $ inSitu doNotch WAGS.do
                 disconnect toRemoveBuf toRemove
                 disconnect toRemove gn
                 destroy toRemove
                 destroy toRemoveBuf
                 reset
-                toAdd <- create (ksLowpassCreate Identity Identity)
+                toAdd <- create (ksNotchCreate Identity Identity)
                 connect toAdd gn
                 withProof pr lsig

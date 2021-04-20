@@ -1,6 +1,7 @@
 module WAGS.Example.KitchenSink.TLP.SinOsc where
 
 import Prelude
+
 import Data.Either (Either(..))
 import Effect (Effect)
 import Math ((%))
@@ -15,9 +16,9 @@ import WAGS.Destroy (destroy)
 import WAGS.Disconnect (disconnect)
 import WAGS.Example.KitchenSink.TLP.LoopSig (LoopSig)
 import WAGS.Example.KitchenSink.TLP.TriangleOsc (doTriangleOsc)
-import WAGS.Example.KitchenSink.Timing (pieceTime)
+import WAGS.Example.KitchenSink.Timing (ksSinOscIntegral, pieceTime)
 import WAGS.Example.KitchenSink.Types.Empty (reset)
-import WAGS.Example.KitchenSink.Types.SinOsc (SinOscUniverse, deltaKsSinOsc, ksSinOscBegins, ksSinOscGain, ksSinOscSinOsc)
+import WAGS.Example.KitchenSink.Types.SinOsc (SinOscUniverse, deltaKsSinOsc, ksSinOscGain, ksSinOscSinOsc)
 import WAGS.Graph.Constructors (OnOff(..), TriangleOsc(..))
 import WAGS.Interpret (FFIAudio)
 import WAGS.Run (SceneI)
@@ -33,7 +34,7 @@ doSinOsc =
     gn <- cursor ksSinOscGain
     pr <- proof
     withProof pr
-      $ if time % pieceTime < ksSinOscBegins then
+      $ if time % pieceTime < ksSinOscIntegral then
           Right (change (deltaKsSinOsc time) $> lsig)
         else
           Left

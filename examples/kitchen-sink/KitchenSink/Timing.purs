@@ -38,9 +38,33 @@ ksAllpassTime = 10.0 :: Number
 
 ksAllpassIntegral = ksAllpassTime + ksSawtoothOscIntegral :: Number
 
+ksLowpassTime = 10.0 :: Number
+
+ksLowpassIntegral = ksLowpassTime + ksAllpassIntegral :: Number
+
+ksHighshelfTime = 10.0 :: Number
+
+ksHighshelfIntegral = ksHighshelfTime + ksLowpassIntegral :: Number
+
+ksLowshelfTime = 10.0 :: Number
+
+ksLowshelfIntegral = ksLowshelfTime + ksHighshelfIntegral :: Number
+
+ksBandpassTime = 10.0 :: Number
+
+ksBandpassIntegral = ksBandpassTime + ksLowshelfIntegral :: Number
+
+ksNotchTime = 10.0 :: Number
+
+ksNotchIntegral = ksNotchTime + ksBandpassIntegral :: Number
+
+ksPeakingTime = 10.0 :: Number
+
+ksPeakingIntegral = ksPeakingTime + ksNotchIntegral :: Number
+
 ksHighpassTime = 10.0 :: Number
 
-ksHighpassIntegral = ksHighpassTime + ksAllpassIntegral :: Number
+ksHighpassIntegral = ksHighpassTime + ksPeakingIntegral :: Number
 
 pieceTime :: Number
 pieceTime = ksAllpassIntegral

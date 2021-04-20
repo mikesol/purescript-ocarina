@@ -1,11 +1,11 @@
-module WAGS.Example.KitchenSink.TLP.SquareOsc where
+module WAGS.Example.KitchenSink.TLP.Notch where
 
 import Prelude
 
 import Data.Either (Either(..))
+import Data.Identity (Identity(..))
 import Effect (Effect)
 import Math ((%))
-import Type.Proxy (Proxy(..))
 import WAGS.Change (change)
 import WAGS.Connect (connect)
 import WAGS.Control.Functions (branch, env, inSitu, proof, withProof)
@@ -16,33 +16,36 @@ import WAGS.Cursor (cursor)
 import WAGS.Destroy (destroy)
 import WAGS.Disconnect (disconnect)
 import WAGS.Example.KitchenSink.TLP.LoopSig (LoopSig)
-import WAGS.Example.KitchenSink.TLP.PeriodicOsc (doPeriodicOsc)
-import WAGS.Example.KitchenSink.Timing (ksSquareOscIntegral, pieceTime)
+import WAGS.Example.KitchenSink.TLP.Peaking (doPeaking)
+import WAGS.Example.KitchenSink.Timing (ksNotchIntegral, pieceTime)
 import WAGS.Example.KitchenSink.Types.Empty (reset)
-import WAGS.Example.KitchenSink.Types.SquareOsc (SquareOscUniverse, deltaKsSquareOsc, ksSquareOscGain, ksSquareOscSquareOsc)
-import WAGS.Graph.Constructors (OnOff(..), PeriodicOsc(..))
+import WAGS.Example.KitchenSink.Types.Notch (NotchUniverse, ksNotchNotch, ksNotchGain, ksNotchPlaybuf, deltaKsNotch)
+import WAGS.Example.KitchenSink.Types.Peaking (ksPeakingCreate)
 import WAGS.Interpret (FFIAudio)
 import WAGS.Run (SceneI)
 
-doSquareOsc ::
+doNotch ::
   forall proofA iu cb.
-  Frame (SceneI Unit Unit) FFIAudio (Effect Unit) proofA iu (SquareOscUniverse cb) LoopSig ->
+  Frame (SceneI Unit Unit) FFIAudio (Effect Unit) proofA iu (NotchUniverse cb) LoopSig ->
   Scene (SceneI Unit Unit) FFIAudio (Effect Unit) proofA
-doSquareOsc =
+doNotch =
   branch \lsig -> WAGS.do
     { time } <- env
-    toRemove <- cursor ksSquareOscSquareOsc
-    gn <- cursor ksSquareOscGain
+    toRemove <- cursor ksNotchNotch
+    toRemoveBuf <- cursor ksNotchPlaybuf
+    gn <- cursor ksNotchGain
     pr <- proof
     withProof pr
-      $ if time % pieceTime < ksSquareOscIntegral then
-          Right (change (deltaKsSquareOsc time) $> lsig)
+      $ if time % pieceTime < ksNotchIntegral then
+          Right (change (deltaKsNotch time) $> lsig)
         else
           Left
-            $ inSitu doPeriodicOsc WAGS.do
+            $ inSitu doPeaking WAGS.do
+                disconnect toRemoveBuf toRemove
                 disconnect toRemove gn
                 destroy toRemove
+                destroy toRemoveBuf
                 reset
-                toAdd <- create (PeriodicOsc (Proxy :: Proxy "my-wave") On 440.0)
+                toAdd <- create (ksPeakingCreate Identity Identity)
                 connect toAdd gn
                 withProof pr lsig
