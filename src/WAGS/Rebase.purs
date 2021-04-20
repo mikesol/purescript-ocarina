@@ -110,6 +110,7 @@ rebase ptrA gA ptrB gB =
           , instructions = i.instructions <> [ rebaseAllUnits a ]
           }
 
+-- | Signature for the reset operation for index `i1` and graph `g1`.
 type ResetSig i1 g1 = 
   forall env audio engine proof m cb e0 i0 g0 e1.
   BinToInt i0 =>
@@ -121,6 +122,7 @@ type ResetSig i1 g1 =
   Rebase' PtrListNil PtrListNil RebaseProof e0 i0 g0 e1 i1 g1 =>
   FrameT env audio engine proof m (UniverseC i0 g0 cb SkolemListNil) (UniverseC i1 g1 cb SkolemListNil) Unit
 
+-- | Rebase the current audio graph to index `i1` and graph `g1`.
 reset :: forall i1 g1. Proxy i1 -> Proxy g1 -> ResetSig i1 g1
 reset i1 g1 = WAGS.do
   ci <- currentIdx
