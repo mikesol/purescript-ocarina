@@ -7,8 +7,9 @@ import Math ((%))
 import Type.Proxy (Proxy(..))
 import WAGS.Control.Types (Universe')
 import WAGS.Example.KitchenSink.Timing (calcSlope, ksAllpassIntegral, ksAllpassTime, pieceTime)
-import WAGS.Graph.Constructors (Allpass(..), Gain(..), OnOff(..), PlayBuf(..), Speaker(..))
+import WAGS.Graph.Constructors (Allpass, Gain,  PlayBuf, Speaker)
 import WAGS.Graph.Decorators (Focus(..), Decorating')
+import WAGS.Graph.Optionals (GetSetAP, allpass, gain, playBuf, speaker)
 import WAGS.Universe.AudioUnit (TAllpass, TGain, TPlayBuf, TSpeaker)
 import WAGS.Universe.BinN (D0, D1, D2, D3, D4)
 import WAGS.Universe.EdgeProfile (NoEdge, SingleEdge)
@@ -32,17 +33,17 @@ type AllpassUniverse cb
   = Universe' D4 AllpassGraph cb
 
 type KsAllpassCreate (t :: Type -> Type) b
-  = t (Allpass Number Number (b (PlayBuf "my-buffer" Number)))
+  = t (Allpass GetSetAP GetSetAP (b (PlayBuf "my-buffer" GetSetAP)))
 
 type KsAllpass g t b
-  = Speaker (g (Gain Number (KsAllpassCreate t b)))
+  = Speaker (g (Gain GetSetAP (KsAllpassCreate t b)))
 
 ksAllpassCreate ::
   forall t b.
   Decorating' t ->
   Decorating' b ->
   KsAllpassCreate t b
-ksAllpassCreate ft fb = ft $ Allpass 300.0 1.0 (fb $ PlayBuf (Proxy :: _ "my-buffer") 0.0 On 1.0)
+ksAllpassCreate ft fb = ft $ allpass { freq: 300.0 } (fb $ playBuf (Proxy :: _ "my-buffer"))
 
 ksAllpass' ::
   forall g t b.
@@ -51,8 +52,8 @@ ksAllpass' ::
   Decorating' b ->
   KsAllpass g t b
 ksAllpass' fg ft fb =
-  Speaker
-    (fg $ Gain 1.0 (ksAllpassCreate ft fb))
+  speaker
+    (fg $ gain 1.0 (ksAllpassCreate ft fb))
 
 ksAllpass :: KsAllpass Identity Identity Identity
 ksAllpass = ksAllpass' Identity Identity Identity
@@ -72,8 +73,8 @@ deltaKsAllpass =
     >>> (_ - ksAllpassBegins)
     >>> (max 0.0)
     >>> \time ->
-        Speaker
+        speaker
           ( Identity
-              $ Gain (if time > 9.0 then 0.0 else 1.0)
-                  (Identity $ Allpass (calcSlope 0.0 300.0 ksAllpassTime 200.0 time) 1.0 (Identity $ PlayBuf (Proxy :: _ "my-buffer") 0.0 On 1.0))
+              $ gain (if time > 9.0 then 0.0 else 1.0)
+                  (Identity $ allpass { freq: calcSlope 0.0 300.0 ksAllpassTime 200.0 time } (Identity $ playBuf (Proxy :: _ "my-buffer")))
           )

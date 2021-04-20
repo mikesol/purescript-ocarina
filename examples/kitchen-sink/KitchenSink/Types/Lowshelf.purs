@@ -1,14 +1,14 @@
 module WAGS.Example.KitchenSink.Types.Lowshelf where
 
 import Prelude
-
 import Data.Identity (Identity(..))
 import Math ((%))
 import Type.Proxy (Proxy(..))
 import WAGS.Control.Types (Universe')
 import WAGS.Example.KitchenSink.Timing (calcSlope, ksLowshelfIntegral, ksLowshelfTime, pieceTime)
-import WAGS.Graph.Constructors (Lowshelf(..), Gain(..), OnOff(..), PlayBuf(..), Speaker(..))
+import WAGS.Graph.Constructors (Lowshelf, Gain, PlayBuf, Speaker)
 import WAGS.Graph.Decorators (Focus(..), Decorating')
+import WAGS.Graph.Optionals (GetSetAP, gain, lowshelf, playBuf, speaker)
 import WAGS.Universe.AudioUnit (TLowshelf, TGain, TPlayBuf, TSpeaker)
 import WAGS.Universe.BinN (D0, D1, D2, D3, D4)
 import WAGS.Universe.EdgeProfile (NoEdge, SingleEdge)
@@ -32,17 +32,17 @@ type LowshelfUniverse cb
   = Universe' D4 LowshelfGraph cb
 
 type KsLowshelfreate (t :: Type -> Type) b
-  = t (Lowshelf Number Number (b (PlayBuf "my-buffer" Number)))
+  = t (Lowshelf GetSetAP GetSetAP (b (PlayBuf "my-buffer" GetSetAP)))
 
 type KsLowshelf g t b
-  = Speaker (g (Gain Number (KsLowshelfreate t b)))
+  = Speaker (g (Gain GetSetAP (KsLowshelfreate t b)))
 
 ksLowshelfCreate ::
   forall t b.
   Decorating' t ->
   Decorating' b ->
   KsLowshelfreate t b
-ksLowshelfCreate ft fb = ft $ Lowshelf 300.0 0.0 (fb $ PlayBuf (Proxy :: _ "my-buffer") 0.0 On 1.0)
+ksLowshelfCreate ft fb = ft $ lowshelf { freq: 300.0 } (fb $ playBuf (Proxy :: _ "my-buffer"))
 
 ksLowshelf' ::
   forall g t b.
@@ -51,8 +51,8 @@ ksLowshelf' ::
   Decorating' b ->
   KsLowshelf g t b
 ksLowshelf' fg ft fb =
-  Speaker
-    (fg $ Gain 1.0 (ksLowshelfCreate ft fb))
+  speaker
+    (fg $ gain 1.0 (ksLowshelfCreate ft fb))
 
 ksLowshelf :: KsLowshelf Identity Identity Identity
 ksLowshelf = ksLowshelf' Identity Identity Identity
@@ -72,8 +72,8 @@ deltaKsLowshelf =
     >>> (_ - ksLowshelfBegins)
     >>> (max 0.0)
     >>> \time ->
-        Speaker
+        speaker
           ( Identity
-              $ Gain (if time > 9.0 then 0.0 else 1.0)
-                  (Identity $ Lowshelf (calcSlope 0.0 300.0 ksLowshelfTime 200.0 time) 0.0 (Identity $ PlayBuf (Proxy :: _ "my-buffer") 0.0 On 1.0))
+              $ gain (if time > 9.0 then 0.0 else 1.0)
+                  (Identity $ lowshelf { freq: (calcSlope 0.0 300.0 ksLowshelfTime 200.0 time) } (Identity $ playBuf (Proxy :: _ "my-buffer")))
           )

@@ -47,6 +47,14 @@ class Decorate (a :: Row Type) (b :: Row Type) (c :: Row Type) | a -> b c where
 data Focus a
   = Focus a
 
+derive instance functorFocus :: Functor Focus
+
+instance applyFocus :: Apply Focus where
+  apply (Focus f) (Focus a) = Focus (f a)
+
+instance applicativeFocus :: Applicative Focus where
+  pure = Focus
+
 -- Class to determine if a type is audio.
 class IsAudio (audio :: Type)
 
@@ -135,4 +143,3 @@ instance decorateDecorating :: (RL.RowToList a rl, MakeDecorators rl b, MakeFocu
   decorate _ = idy /\ (makeFocusing (Proxy :: _ rl) idy)
     where
     idy = makeDecorators (Proxy :: _ rl)
-

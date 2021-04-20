@@ -1,14 +1,13 @@
 module WAGS.Example.KitchenSink.Types.SinOsc where
 
 import Prelude
-
 import Data.Identity (Identity(..))
 import Math (cos, pi, pow, sin, (%))
 import WAGS.Control.Types (Universe')
 import WAGS.Example.KitchenSink.Timing (ksSinOscIntegral, ksSinOscTime, pieceTime)
-import WAGS.Graph.Constructors (Gain(..), OnOff(..), SinOsc(..), Speaker(..))
+import WAGS.Graph.Constructors (Gain, SinOsc, Speaker)
 import WAGS.Graph.Decorators (Focus(..), Decorating')
-import WAGS.Graph.Optionals (GetSetAP, defaultGetSetAP)
+import WAGS.Graph.Optionals (GetSetAP, gain, sinOsc, speaker)
 import WAGS.Universe.AudioUnit (TGain, TSinOsc, TSpeaker)
 import WAGS.Universe.BinN (D0, D1, D2, D3)
 import WAGS.Universe.EdgeProfile (NoEdge, SingleEdge)
@@ -36,9 +35,7 @@ ksSinOsc' ::
   Decorating' g ->
   Decorating' s ->
   KsSinOsc g s
-ksSinOsc' fg fs =
-  Speaker
-    (fg $ Gain (defaultGetSetAP 0.0) (fs $ SinOsc On (defaultGetSetAP 440.0)))
+ksSinOsc' fg fs = speaker (fg $ gain 0.0 (fs $ sinOsc 440.0))
 
 ksSinOsc :: KsSinOsc Identity Identity
 ksSinOsc = ksSinOsc' Identity Identity
@@ -58,4 +55,6 @@ deltaKsSinOsc =
         let
           rad = pi * time
         in
-          Speaker $ Gain (defaultGetSetAP $ 0.1 - 0.1 * (cos time)) (SinOsc On (defaultGetSetAP $ 440.0 + 50.0 * ((sin (rad * 1.5)) `pow` 2.0)))
+          speaker
+            $ gain (0.1 - 0.1 * (cos time))
+                (sinOsc (440.0 + 50.0 * ((sin (rad * 1.5)) `pow` 2.0)))

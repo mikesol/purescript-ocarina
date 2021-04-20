@@ -1,6 +1,7 @@
 module WAGS.Example.KitchenSink.TLP.Peaking where
 
 import Prelude
+
 import Data.Either (Either(..))
 import Data.Identity (Identity(..))
 import Effect (Effect)
@@ -17,9 +18,9 @@ import WAGS.Disconnect (disconnect)
 import WAGS.Example.KitchenSink.TLP.Highpass (doHighpass)
 import WAGS.Example.KitchenSink.TLP.LoopSig (LoopSig)
 import WAGS.Example.KitchenSink.Timing (ksPeakingIntegral, pieceTime)
-import WAGS.Example.KitchenSink.Types.Peaking (PeakingUniverse, ksPeakingPeaking, ksPeakingGain, ksPeakingPlaybuf, deltaKsPeaking)
 import WAGS.Example.KitchenSink.Types.Empty (reset)
 import WAGS.Example.KitchenSink.Types.Highpass (ksHighpassCreate)
+import WAGS.Example.KitchenSink.Types.Peaking (PeakingUniverse, ksPeakingPeaking, ksPeakingGain, ksPeakingPlaybuf, deltaKsPeaking)
 import WAGS.Interpret (FFIAudio)
 import WAGS.Run (SceneI)
 

@@ -1,14 +1,13 @@
 module WAGS.Example.KitchenSink.Types.TriangleOsc where
 
 import Prelude
-
 import Data.Identity (Identity(..))
 import Math (cos, pi, pow, sin, (%))
 import WAGS.Control.Types (Universe')
 import WAGS.Example.KitchenSink.Timing (ksTriangleOscIntegral, ksTriangleOscTime, pieceTime)
-import WAGS.Graph.Constructors (Gain(..), OnOff(..), Speaker(..), TriangleOsc(..))
+import WAGS.Graph.Constructors (Gain, Speaker, TriangleOsc)
 import WAGS.Graph.Decorators (Focus(..), Decorating')
-import WAGS.Graph.Optionals (GetSetAP, defaultGetSetAP)
+import WAGS.Graph.Optionals (GetSetAP, gain, speaker, triangleOsc)
 import WAGS.Universe.AudioUnit (TGain, TSpeaker, TTriangleOsc)
 import WAGS.Universe.BinN (D0, D1, D2, D3)
 import WAGS.Universe.EdgeProfile (NoEdge, SingleEdge)
@@ -17,7 +16,6 @@ import WAGS.Universe.Node (NodeC, NodeListCons, NodeListNil)
 
 ksTriangleOscBegin = ksTriangleOscIntegral - ksTriangleOscTime :: Number
 
------------ ksTriangleOsc
 type TriangleOscGraph
   = GraphC
       (NodeC (TTriangleOsc D2) NoEdge)
@@ -37,9 +35,7 @@ ksTriangleOsc' ::
   Decorating' g ->
   Decorating' t ->
   KsTriangleOsc g t
-ksTriangleOsc' fg ft =
-  Speaker
-    (fg $ Gain (defaultGetSetAP 0.0) (ft $ TriangleOsc On (defaultGetSetAP 440.0)))
+ksTriangleOsc' fg ft = speaker (fg $ gain 0.0 (ft $ triangleOsc 440.0))
 
 ksTriangleOsc :: KsTriangleOsc Identity Identity
 ksTriangleOsc = ksTriangleOsc' Identity Identity
@@ -51,7 +47,7 @@ ksTriangleOscGain :: KsTriangleOsc Focus Identity
 ksTriangleOscGain = ksTriangleOsc' Focus Identity
 
 deltaKsTriangleOsc :: Number -> Speaker (Gain GetSetAP (TriangleOsc GetSetAP))
-deltaKsTriangleOsc = 
+deltaKsTriangleOsc =
   (_ % pieceTime)
     >>> (_ - ksTriangleOscBegin)
     >>> (max 0.0)
@@ -59,5 +55,6 @@ deltaKsTriangleOsc =
         let
           rad = pi * time
         in
-          Speaker $ Gain (defaultGetSetAP $ 0.1 - 0.1 * (cos time)) (TriangleOsc On (defaultGetSetAP $ 440.0 + 50.0 * ((sin (rad * 1.5)) `pow` 2.0)))
-
+          speaker
+            $ gain (0.1 - 0.1 * (cos time))
+                (triangleOsc (440.0 + 50.0 * ((sin (rad * 1.5)) `pow` 2.0)))

@@ -1,15 +1,14 @@
 module WAGS.Example.KitchenSink.Types.PeriodicOsc where
 
 import Prelude
-
 import Data.Identity (Identity(..))
 import Math (cos, pi, pow, sin, (%))
 import Type.Proxy (Proxy(..))
 import WAGS.Control.Types (Universe')
 import WAGS.Example.KitchenSink.Timing (ksPeriodicOscIntegral, ksPeriodicOscTime, pieceTime)
-import WAGS.Graph.Constructors (Gain(..), OnOff(..), PeriodicOsc(..), Speaker(..))
+import WAGS.Graph.Constructors (Gain,  PeriodicOsc, Speaker)
 import WAGS.Graph.Decorators (Focus(..), Decorating')
-import WAGS.Graph.Optionals (GetSetAP, defaultGetSetAP)
+import WAGS.Graph.Optionals (GetSetAP, gain, periodicOsc, speaker)
 import WAGS.Universe.AudioUnit (TGain, TPeriodicOsc, TSpeaker)
 import WAGS.Universe.BinN (D0, D1, D2, D3)
 import WAGS.Universe.EdgeProfile (NoEdge, SingleEdge)
@@ -38,13 +37,7 @@ ksPeriodicOsc' ::
   Decorating' g ->
   Decorating' t ->
   KsPeriodicOsc g t
-ksPeriodicOsc' fg ft =
-  Speaker
-    ( fg
-        $ Gain
-            (defaultGetSetAP 0.0)
-            (ft $ PeriodicOsc (Proxy :: Proxy "my-wave") On (defaultGetSetAP 440.0))
-    )
+ksPeriodicOsc' fg ft = speaker (fg $ gain 0.0 (ft $ periodicOsc (Proxy :: Proxy "my-wave") 440.0))
 
 ksPeriodicOsc :: KsPeriodicOsc Identity Identity
 ksPeriodicOsc = ksPeriodicOsc' Identity Identity
@@ -56,7 +49,7 @@ ksPeriodicOscGain :: KsPeriodicOsc Focus Identity
 ksPeriodicOscGain = ksPeriodicOsc' Focus Identity
 
 deltaKsPeriodicOsc :: Number -> Speaker (Gain GetSetAP (PeriodicOsc "my-wave" GetSetAP))
-deltaKsPeriodicOsc = 
+deltaKsPeriodicOsc =
   (_ % pieceTime)
     >>> (_ - ksPeriodicOscBegins)
     >>> (max 0.0)
@@ -64,4 +57,8 @@ deltaKsPeriodicOsc =
         let
           rad = pi * time
         in
-          Speaker $ Gain (defaultGetSetAP $ 0.1 - 0.1 * (cos time)) (PeriodicOsc (Proxy :: Proxy "my-wave") On (defaultGetSetAP $ 440.0 + 50.0 * ((sin (rad * 1.5)) `pow` 2.0)))
+          speaker
+            $ gain (0.1 - 0.1 * (cos time))
+                ( periodicOsc (Proxy :: Proxy "my-wave")
+                    (440.0 + 50.0 * ((sin (rad * 1.5)) `pow` 2.0))
+                )

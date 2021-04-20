@@ -66,5 +66,9 @@ ksHighpassTime = 10.0 :: Number
 
 ksHighpassIntegral = ksHighpassTime + ksPeakingIntegral :: Number
 
+ksDynamicsCompressorTime = 10.0 :: Number
+
+ksDynamicsCompressorIntegral = ksDynamicsCompressorTime + ksHighpassIntegral :: Number
+
 pieceTime :: Number
 pieceTime = ksAllpassIntegral
