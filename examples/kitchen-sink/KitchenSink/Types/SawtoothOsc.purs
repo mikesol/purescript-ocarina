@@ -10,21 +10,21 @@ import WAGS.Graph.Constructors (Gain(..), OnOff(..), SawtoothOsc(..), Speaker(..
 import WAGS.Graph.Decorators (Focus(..), Decorating')
 import WAGS.Graph.Optionals (GetSetAP, defaultGetSetAP)
 import WAGS.Universe.AudioUnit (TGain, TSawtoothOsc, TSpeaker)
-import WAGS.Universe.BinN (D0, D1, D6, D7)
+import WAGS.Universe.BinN (D0, D1, D2, D3)
 import WAGS.Universe.EdgeProfile (NoEdge, SingleEdge)
 import WAGS.Universe.Graph (GraphC)
 import WAGS.Universe.Node (NodeC, NodeListCons, NodeListNil)
 
 type SawtoothOscGraph
   = GraphC
-      (NodeC (TSawtoothOsc D6) NoEdge)
+      (NodeC (TSawtoothOsc D2) NoEdge)
       ( NodeListCons
           (NodeC (TSpeaker D0) (SingleEdge D1))
-          (NodeListCons (NodeC (TGain D1) (SingleEdge D6)) NodeListNil)
+          (NodeListCons (NodeC (TGain D1) (SingleEdge D2)) NodeListNil)
       )
 
 type SawtoothOscUniverse cb
-  = Universe' D7 SawtoothOscGraph cb
+  = Universe' D3 SawtoothOscGraph cb
 
 type Phase5 g t
   = Speaker (g (Gain GetSetAP (t (SawtoothOsc GetSetAP))))

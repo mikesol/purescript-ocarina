@@ -6,9 +6,10 @@ import Data.Either (Either(..))
 import Data.Identity (Identity(..))
 import Effect (Effect)
 import Math ((%))
+import Type.Proxy (Proxy(..))
 import WAGS.Change (change)
 import WAGS.Connect (connect)
-import WAGS.Control.Functions (branch, env, proof, withProof)
+import WAGS.Control.Functions (branch, currentIdx, env, graph, proof, withProof)
 import WAGS.Control.Qualified as WAGS
 import WAGS.Control.Types (Frame, Scene)
 import WAGS.Create (create)
@@ -19,8 +20,10 @@ import WAGS.Example.KitchenSink.TLP.Highpass (doHighpass)
 import WAGS.Example.KitchenSink.TLP.LoopSig (LoopSig)
 import WAGS.Example.KitchenSink.Timing (phase6Integral, pieceTime)
 import WAGS.Example.KitchenSink.Types.Allpass (AllpassUniverse, phase6Allpass, phase6Gain, phase6Playbuf, deltaPhase6)
+import WAGS.Example.KitchenSink.Types.Empty (EI, EmptyGraph)
 import WAGS.Example.KitchenSink.Types.Highpass (phase7Create)
 import WAGS.Interpret (FFIAudio)
+import WAGS.Rebase (rebase)
 import WAGS.Run (SceneI)
 
 doAllpass ::
@@ -41,10 +44,13 @@ doAllpass =
           Left \thunk ->
             doHighpass WAGS.do
               thunk
-              toAdd <- create (phase7Create Identity Identity)
               disconnect toRemoveBuf toRemove
               disconnect toRemove gn
-              connect toAdd gn
               destroy toRemove
               destroy toRemoveBuf
+              ci <- currentIdx
+              g <- graph
+              rebase ci g (Proxy :: _ EI) (Proxy :: _ EmptyGraph)
+              toAdd <- create (phase7Create Identity Identity)
+              connect toAdd gn
               withProof pr lsig

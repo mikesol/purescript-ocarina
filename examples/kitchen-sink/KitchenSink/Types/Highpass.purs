@@ -9,24 +9,24 @@ import WAGS.Example.KitchenSink.Timing (calcSlope, phase5Integral, phase7Time, p
 import WAGS.Graph.Constructors (Highpass(..), Gain(..), OnOff(..), PlayBuf(..), Speaker(..))
 import WAGS.Graph.Decorators (Focus(..), Decorating')
 import WAGS.Universe.AudioUnit (THighpass, TGain, TPlayBuf, TSpeaker)
-import WAGS.Universe.BinN (D0, D1, D9, D10, D11)
+import WAGS.Universe.BinN (D0, D1, D2, D3, D4)
 import WAGS.Universe.EdgeProfile (NoEdge, SingleEdge)
 import WAGS.Universe.Graph (GraphC)
 import WAGS.Universe.Node (NodeC, NodeListCons, NodeListNil)
 
 type HighpassGraph
   = GraphC
-      (NodeC (THighpass D9) (SingleEdge D10))
+      (NodeC (THighpass D2) (SingleEdge D3))
       ( NodeListCons
-          (NodeC (TPlayBuf D10 "my-buffer") NoEdge)
+          (NodeC (TPlayBuf D3 "my-buffer") NoEdge)
           ( NodeListCons
               (NodeC (TSpeaker D0) (SingleEdge D1))
-              (NodeListCons (NodeC (TGain D1) (SingleEdge D9)) NodeListNil)
+              (NodeListCons (NodeC (TGain D1) (SingleEdge D2)) NodeListNil)
           )
       )
 
 type HighpassUniverse cb
-  = Universe' D11 HighpassGraph cb
+  = Universe' D4 HighpassGraph cb
 
 type Phase7reate (t :: Type -> Type) b
   = t (Highpass Number Number (b (PlayBuf "my-buffer" Number)))

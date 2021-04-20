@@ -11,7 +11,7 @@ import WAGS.Graph.Constructors (Gain(..), OnOff(..), PeriodicOsc(..), Speaker(..
 import WAGS.Graph.Decorators (Focus(..), Decorating')
 import WAGS.Graph.Optionals (GetSetAP, defaultGetSetAP)
 import WAGS.Universe.AudioUnit (TGain, TPeriodicOsc, TSpeaker)
-import WAGS.Universe.BinN (D0, D1, D5, D6)
+import WAGS.Universe.BinN (D0, D1, D2, D3)
 import WAGS.Universe.EdgeProfile (NoEdge, SingleEdge)
 import WAGS.Universe.Graph (GraphC)
 import WAGS.Universe.Node (NodeC, NodeListCons, NodeListNil)
@@ -19,14 +19,14 @@ import WAGS.Universe.Node (NodeC, NodeListCons, NodeListNil)
 ----------- phase4
 type PeriodicOscGraph
   = GraphC
-      (NodeC (TPeriodicOsc D5 "my-wave") NoEdge)
+      (NodeC (TPeriodicOsc D2 "my-wave") NoEdge)
       ( NodeListCons
           (NodeC (TSpeaker D0) (SingleEdge D1))
-          (NodeListCons (NodeC (TGain D1) (SingleEdge D5)) NodeListNil)
+          (NodeListCons (NodeC (TGain D1) (SingleEdge D2)) NodeListNil)
       )
 
 type PeriodicOscUniverse cb
-  = Universe' D6 PeriodicOscGraph cb
+  = Universe' D3 PeriodicOscGraph cb
 
 type Phase4 g t
   = Speaker (g (Gain GetSetAP (t (PeriodicOsc "my-wave" GetSetAP))))

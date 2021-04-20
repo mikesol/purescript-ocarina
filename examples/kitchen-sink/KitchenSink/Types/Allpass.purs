@@ -9,24 +9,24 @@ import WAGS.Example.KitchenSink.Timing (calcSlope, phase5Integral, phase6Time, p
 import WAGS.Graph.Constructors (Allpass(..), Gain(..), OnOff(..), PlayBuf(..), Speaker(..))
 import WAGS.Graph.Decorators (Focus(..), Decorating')
 import WAGS.Universe.AudioUnit (TAllpass, TGain, TPlayBuf, TSpeaker)
-import WAGS.Universe.BinN (D0, D1, D7, D8, D9)
+import WAGS.Universe.BinN (D0, D1, D2, D3, D4)
 import WAGS.Universe.EdgeProfile (NoEdge, SingleEdge)
 import WAGS.Universe.Graph (GraphC)
 import WAGS.Universe.Node (NodeC, NodeListCons, NodeListNil)
 
 type AllpassGraph
   = GraphC
-      (NodeC (TAllpass D7) (SingleEdge D8))
+      (NodeC (TAllpass D2) (SingleEdge D3))
       ( NodeListCons
-          (NodeC (TPlayBuf D8 "my-buffer") NoEdge)
+          (NodeC (TPlayBuf D3 "my-buffer") NoEdge)
           ( NodeListCons
               (NodeC (TSpeaker D0) (SingleEdge D1))
-              (NodeListCons (NodeC (TGain D1) (SingleEdge D7)) NodeListNil)
+              (NodeListCons (NodeC (TGain D1) (SingleEdge D2)) NodeListNil)
           )
       )
 
 type AllpassUniverse cb
-  = Universe' D9 AllpassGraph cb
+  = Universe' D4 AllpassGraph cb
 
 type Phase6reate (t :: Type -> Type) b
   = t (Allpass Number Number (b (PlayBuf "my-buffer" Number)))

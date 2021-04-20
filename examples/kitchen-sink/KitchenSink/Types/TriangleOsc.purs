@@ -10,7 +10,7 @@ import WAGS.Graph.Constructors (Gain(..), OnOff(..), Speaker(..), TriangleOsc(..
 import WAGS.Graph.Decorators (Focus(..), Decorating')
 import WAGS.Graph.Optionals (GetSetAP, defaultGetSetAP)
 import WAGS.Universe.AudioUnit (TGain, TSpeaker, TTriangleOsc)
-import WAGS.Universe.BinN (D0, D1, D3, D4)
+import WAGS.Universe.BinN (D0, D1, D2, D3)
 import WAGS.Universe.EdgeProfile (NoEdge, SingleEdge)
 import WAGS.Universe.Graph (GraphC)
 import WAGS.Universe.Node (NodeC, NodeListCons, NodeListNil)
@@ -18,14 +18,14 @@ import WAGS.Universe.Node (NodeC, NodeListCons, NodeListNil)
 ----------- phase2
 type TriangleOscGraph
   = GraphC
-      (NodeC (TTriangleOsc D3) NoEdge)
+      (NodeC (TTriangleOsc D2) NoEdge)
       ( NodeListCons
           (NodeC (TSpeaker D0) (SingleEdge D1))
-          (NodeListCons (NodeC (TGain D1) (SingleEdge D3)) NodeListNil)
+          (NodeListCons (NodeC (TGain D1) (SingleEdge D2)) NodeListNil)
       )
 
 type TriangleOscUniverse cb
-  = Universe' D4 TriangleOscGraph cb
+  = Universe' D3 TriangleOscGraph cb
 
 type Phase2 g t
   = Speaker (g (Gain GetSetAP (t (TriangleOsc GetSetAP))))
