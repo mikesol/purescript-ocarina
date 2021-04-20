@@ -1,4 +1,4 @@
-module WAGS.Example.KitchenSink.TLP.SawtoothOsc where
+module WAGS.Example.KitchenSink.TLP.Allpass where
 
 import Prelude
 
@@ -15,33 +15,36 @@ import WAGS.Create (create)
 import WAGS.Cursor (cursor)
 import WAGS.Destroy (destroy)
 import WAGS.Disconnect (disconnect)
-import WAGS.Example.KitchenSink.TLP.Allpass (doAllpass)
+import WAGS.Example.KitchenSink.TLP.Highpass (doHighpass)
 import WAGS.Example.KitchenSink.TLP.LoopSig (LoopSig)
-import WAGS.Example.KitchenSink.Types (phase5Integral, pieceTime)
-import WAGS.Example.KitchenSink.Types.Allpass (phase6Create)
-import WAGS.Example.KitchenSink.Types.SawtoothOsc (SawtoothOscUniverse, deltaPhase5, phase5Gain, phase5SawtoothOsc)
+import WAGS.Example.KitchenSink.Types (phase6Integral, pieceTime)
+import WAGS.Example.KitchenSink.Types.Allpass (AllpassUniverse, phase6Allpass, phase6Gain, phase6Playbuf, deltaPhase6)
+import WAGS.Example.KitchenSink.Types.Highpass (phase7Create)
 import WAGS.Interpret (FFIAudio)
 import WAGS.Run (SceneI)
 
-doSawtoothOsc ::
+doAllpass ::
   forall proofA iu cb.
-  Frame (SceneI Unit Unit) FFIAudio (Effect Unit) proofA iu (SawtoothOscUniverse cb) LoopSig ->
+  Frame (SceneI Unit Unit) FFIAudio (Effect Unit) proofA iu (AllpassUniverse cb) LoopSig ->
   Scene (SceneI Unit Unit) FFIAudio (Effect Unit) proofA
-doSawtoothOsc =
+doAllpass =
   branch \lsig -> WAGS.do
     { time } <- env
-    toRemove <- cursor phase5SawtoothOsc
-    gn <- cursor phase5Gain
+    toRemove <- cursor phase6Allpass
+    toRemoveBuf <- cursor phase6Playbuf
+    gn <- cursor phase6Gain
     pr <- proof
     withProof pr
-      $ if time % pieceTime < phase5Integral then
-          Right (change (deltaPhase5 time) $> lsig)
+      $ if time % pieceTime < phase6Integral then
+          Right (change (deltaPhase6 time) $> lsig)
         else
           Left \thunk ->
-            doAllpass WAGS.do
+            doHighpass WAGS.do
               thunk
-              toAdd <- create (phase6Create Identity Identity)
+              toAdd <- create (phase7Create Identity Identity)
+              disconnect toRemoveBuf toRemove
               disconnect toRemove gn
               connect toAdd gn
               destroy toRemove
+              destroy toRemoveBuf
               withProof pr lsig

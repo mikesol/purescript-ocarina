@@ -3,9 +3,10 @@ module WAGS.Example.KitchenSink where
 import Prelude
 
 import Control.Comonad.Cofree (Cofree, mkCofree)
+import Control.Promise (toAffE)
 import Data.Foldable (for_)
 import Data.Maybe (Maybe(..))
-import Data.Vec((+>), empty)
+import Data.Vec ((+>), empty)
 import Effect (Effect)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect)
@@ -17,7 +18,7 @@ import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.VDom.Driver (runUI)
 import WAGS.Example.KitchenSink.TLP (piece)
-import WAGS.Interpret (AudioContext, FFIAudio(..), close, context, defaultFFIAudio, makePeriodicWave, makeUnitCache)
+import WAGS.Interpret (AudioContext, FFIAudio(..), close, context, decodeAudioDataFromUri, defaultFFIAudio, makePeriodicWave, makeUnitCache)
 import WAGS.Run (run)
 
 easingAlgorithm :: Cofree ((->) Int) Int
@@ -71,11 +72,20 @@ handleAction = case _ of
   StartAudio -> do
     audioCtx <- H.liftEffect context
     unitCache <- H.liftEffect makeUnitCache
-    myWave <- H.liftEffect $ makePeriodicWave audioCtx (0.3 +> -0.1 +> empty) (-0.25 +> 0.05 +> empty)
+    myWave <-
+      H.liftEffect
+        $ makePeriodicWave audioCtx (0.3 +> -0.1 +> empty) (-0.25 +> 0.05 +> empty)
+    chimes <-
+      H.liftAff $ toAffE
+        $ decodeAudioDataFromUri
+            audioCtx
+            "https://freesound.org/data/previews/353/353194_5121236-hq.mp3"
     let
-      ffiAudio = (defaultFFIAudio audioCtx unitCache) {
-        periodicWaves = O.singleton "my-wave" myWave
-      }
+      ffiAudio =
+        (defaultFFIAudio audioCtx unitCache)
+          { periodicWaves = O.singleton "my-wave" myWave
+          , buffers = O.singleton "my-buffer" chimes
+          }
     unsubscribe <-
       H.liftEffect
         $ subscribe
