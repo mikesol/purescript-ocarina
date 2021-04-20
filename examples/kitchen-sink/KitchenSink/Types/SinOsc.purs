@@ -5,7 +5,7 @@ import Prelude
 import Data.Identity (Identity(..))
 import Math (cos, pi, pow, sin, (%))
 import WAGS.Control.Types (Universe')
-import WAGS.Example.KitchenSink.Types (pieceTime)
+import WAGS.Example.KitchenSink.Timing (pieceTime)
 import WAGS.Graph.Constructors (Gain(..), OnOff(..), SinOsc(..), Speaker(..))
 import WAGS.Graph.Decorators (Focus(..), Decorating')
 import WAGS.Graph.Optionals (GetSetAP, defaultGetSetAP)
