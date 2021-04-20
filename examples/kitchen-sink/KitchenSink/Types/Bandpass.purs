@@ -7,30 +7,27 @@ import Math ((%))
 import Type.Proxy (Proxy(..))
 import WAGS.Control.Types (Universe')
 import WAGS.Example.KitchenSink.Timing (calcSlope, ksBandpassIntegral, ksBandpassTime, pieceTime)
+import WAGS.Example.KitchenSink.Types.Empty (BaseGraph, EI0, EI1, EI2)
 import WAGS.Graph.Constructors (Bandpass, Gain, PlayBuf, Speaker)
 import WAGS.Graph.Decorators (Focus(..), Decorating')
 import WAGS.Graph.Optionals (GetSetAP, bandpass, gain, playBuf, speaker)
-import WAGS.Universe.AudioUnit (TBandpass, TGain, TPlayBuf, TSpeaker)
-import WAGS.Universe.BinN (D0, D1, D2, D3, D4)
+import WAGS.Universe.AudioUnit (TBandpass, TPlayBuf)
 import WAGS.Universe.EdgeProfile (NoEdge, SingleEdge)
 import WAGS.Universe.Graph (GraphC)
-import WAGS.Universe.Node (NodeC, NodeListCons, NodeListNil)
+import WAGS.Universe.Node (NodeC, NodeListCons)
 
 ksBandpassBegins = ksBandpassIntegral - ksBandpassTime :: Number
 
 type BandpassGraph
   = GraphC
-      (NodeC (TBandpass D2) (SingleEdge D3))
+      (NodeC (TBandpass EI0) (SingleEdge EI1))
       ( NodeListCons
-          (NodeC (TPlayBuf D3 "my-buffer") NoEdge)
-          ( NodeListCons
-              (NodeC (TSpeaker D0) (SingleEdge D1))
-              (NodeListCons (NodeC (TGain D1) (SingleEdge D2)) NodeListNil)
-          )
+          (NodeC (TPlayBuf EI1 "my-buffer") NoEdge)
+          (BaseGraph EI0)
       )
 
 type BandpassUniverse cb
-  = Universe' D4 BandpassGraph cb
+  = Universe' EI2 BandpassGraph cb
 
 type KsBandpassreate (t :: Type -> Type) b
   = t (Bandpass GetSetAP GetSetAP (b (PlayBuf "my-buffer" GetSetAP)))

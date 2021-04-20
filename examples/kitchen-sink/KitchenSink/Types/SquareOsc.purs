@@ -1,31 +1,29 @@
 module WAGS.Example.KitchenSink.Types.SquareOsc where
 
 import Prelude
+
 import Data.Identity (Identity(..))
 import Math (cos, pi, pow, sin, (%))
 import WAGS.Control.Types (Universe')
 import WAGS.Example.KitchenSink.Timing (ksSquareOscIntegral, ksSquareOscTime, pieceTime)
+import WAGS.Example.KitchenSink.Types.Empty (BaseGraph, EI0, EI1)
 import WAGS.Graph.Constructors (Gain, Speaker, SquareOsc)
 import WAGS.Graph.Decorators (Focus(..), Decorating')
 import WAGS.Graph.Optionals (GetSetAP, gain, speaker, squareOsc)
-import WAGS.Universe.AudioUnit (TGain, TSpeaker, TSquareOsc)
-import WAGS.Universe.BinN (D0, D1, D2, D3)
-import WAGS.Universe.EdgeProfile (NoEdge, SingleEdge)
+import WAGS.Universe.AudioUnit (TSquareOsc)
+import WAGS.Universe.EdgeProfile (NoEdge)
 import WAGS.Universe.Graph (GraphC)
-import WAGS.Universe.Node (NodeC, NodeListCons, NodeListNil)
+import WAGS.Universe.Node (NodeC)
 
 ksSquareOscBegins = ksSquareOscIntegral - ksSquareOscTime :: Number
 
 type SquareOscGraph
   = GraphC
-      (NodeC (TSquareOsc D2) NoEdge)
-      ( NodeListCons
-          (NodeC (TSpeaker D0) (SingleEdge D1))
-          (NodeListCons (NodeC (TGain D1) (SingleEdge D2)) NodeListNil)
-      )
+      (NodeC (TSquareOsc EI0) NoEdge)
+      (BaseGraph EI0)
 
 type SquareOscUniverse cb
-  = Universe' D3 SquareOscGraph cb
+  = Universe' EI1 SquareOscGraph cb
 
 type KsSquareOsc g t
   = Speaker (g (Gain GetSetAP (t (SquareOsc GetSetAP))))

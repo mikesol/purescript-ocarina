@@ -5,27 +5,24 @@ import Data.Identity (Identity(..))
 import Math (cos, pi, pow, sin, (%))
 import WAGS.Control.Types (Universe')
 import WAGS.Example.KitchenSink.Timing (ksSinOscIntegral, ksSinOscTime, pieceTime)
+import WAGS.Example.KitchenSink.Types.Empty (BaseGraph, EI0, EI1)
 import WAGS.Graph.Constructors (Gain, SinOsc, Speaker)
 import WAGS.Graph.Decorators (Focus(..), Decorating')
 import WAGS.Graph.Optionals (GetSetAP, gain, sinOsc, speaker)
-import WAGS.Universe.AudioUnit (TGain, TSinOsc, TSpeaker)
-import WAGS.Universe.BinN (D0, D1, D2, D3)
-import WAGS.Universe.EdgeProfile (NoEdge, SingleEdge)
+import WAGS.Universe.AudioUnit (TSinOsc)
+import WAGS.Universe.EdgeProfile (NoEdge)
 import WAGS.Universe.Graph (GraphC)
-import WAGS.Universe.Node (NodeC, NodeListCons, NodeListNil)
+import WAGS.Universe.Node (NodeC)
 
 ksSinOscBegins = ksSinOscIntegral - ksSinOscTime :: Number
 
 type SinOscGraph
   = GraphC
-      (NodeC (TSinOsc D2) NoEdge)
-      ( NodeListCons
-          (NodeC (TSpeaker D0) (SingleEdge D1))
-          (NodeListCons (NodeC (TGain D1) (SingleEdge D2)) NodeListNil)
-      )
+      (NodeC (TSinOsc EI0) NoEdge)
+      (BaseGraph EI0)
 
 type SinOscUniverse cb
-  = Universe' D3 SinOscGraph cb
+  = Universe' EI1 SinOscGraph cb
 
 type KsSinOsc g s
   = Speaker (g (Gain GetSetAP (s (SinOsc GetSetAP))))

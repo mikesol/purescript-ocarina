@@ -6,28 +6,25 @@ import Math (cos, pi, pow, sin, (%))
 import Type.Proxy (Proxy(..))
 import WAGS.Control.Types (Universe')
 import WAGS.Example.KitchenSink.Timing (ksPeriodicOscIntegral, ksPeriodicOscTime, pieceTime)
-import WAGS.Graph.Constructors (Gain,  PeriodicOsc, Speaker)
+import WAGS.Example.KitchenSink.Types.Empty (BaseGraph, EI0, EI1)
+import WAGS.Graph.Constructors (Gain, PeriodicOsc, Speaker)
 import WAGS.Graph.Decorators (Focus(..), Decorating')
 import WAGS.Graph.Optionals (GetSetAP, gain, periodicOsc, speaker)
-import WAGS.Universe.AudioUnit (TGain, TPeriodicOsc, TSpeaker)
-import WAGS.Universe.BinN (D0, D1, D2, D3)
-import WAGS.Universe.EdgeProfile (NoEdge, SingleEdge)
+import WAGS.Universe.AudioUnit (TPeriodicOsc)
+import WAGS.Universe.EdgeProfile (NoEdge)
 import WAGS.Universe.Graph (GraphC)
-import WAGS.Universe.Node (NodeC, NodeListCons, NodeListNil)
+import WAGS.Universe.Node (NodeC)
 
 ksPeriodicOscBegins = ksPeriodicOscIntegral - ksPeriodicOscTime :: Number
 
 ----------- ksPeriodicOsc
 type PeriodicOscGraph
   = GraphC
-      (NodeC (TPeriodicOsc D2 "my-wave") NoEdge)
-      ( NodeListCons
-          (NodeC (TSpeaker D0) (SingleEdge D1))
-          (NodeListCons (NodeC (TGain D1) (SingleEdge D2)) NodeListNil)
-      )
+      (NodeC (TPeriodicOsc EI0 "my-wave") NoEdge)
+      (BaseGraph EI0)
 
 type PeriodicOscUniverse cb
-  = Universe' D3 PeriodicOscGraph cb
+  = Universe' EI1 PeriodicOscGraph cb
 
 type KsPeriodicOsc g t
   = Speaker (g (Gain GetSetAP (t (PeriodicOsc "my-wave" GetSetAP))))

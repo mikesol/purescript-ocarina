@@ -1,35 +1,33 @@
 module WAGS.Example.KitchenSink.Types.Peaking where
 
 import Prelude
+
 import Data.Identity (Identity(..))
 import Math ((%))
 import Type.Proxy (Proxy(..))
 import WAGS.Control.Types (Universe')
 import WAGS.Example.KitchenSink.Timing (calcSlope, ksPeakingIntegral, ksPeakingTime, pieceTime)
+import WAGS.Example.KitchenSink.Types.Empty (BaseGraph, EI0, EI1, EI2)
 import WAGS.Graph.Constructors (Peaking, Gain, PlayBuf, Speaker)
 import WAGS.Graph.Decorators (Focus(..), Decorating')
 import WAGS.Graph.Optionals (GetSetAP, gain, peaking, playBuf, speaker)
-import WAGS.Universe.AudioUnit (TPeaking, TGain, TPlayBuf, TSpeaker)
-import WAGS.Universe.BinN (D0, D1, D2, D3, D4)
+import WAGS.Universe.AudioUnit (TPeaking, TPlayBuf)
 import WAGS.Universe.EdgeProfile (NoEdge, SingleEdge)
 import WAGS.Universe.Graph (GraphC)
-import WAGS.Universe.Node (NodeC, NodeListCons, NodeListNil)
+import WAGS.Universe.Node (NodeC, NodeListCons)
 
 ksPeakingBegins = ksPeakingIntegral - ksPeakingTime :: Number
 
 type PeakingGraph
   = GraphC
-      (NodeC (TPeaking D2) (SingleEdge D3))
+      (NodeC (TPeaking EI0) (SingleEdge EI1))
       ( NodeListCons
-          (NodeC (TPlayBuf D3 "my-buffer") NoEdge)
-          ( NodeListCons
-              (NodeC (TSpeaker D0) (SingleEdge D1))
-              (NodeListCons (NodeC (TGain D1) (SingleEdge D2)) NodeListNil)
-          )
+          (NodeC (TPlayBuf EI1 "my-buffer") NoEdge)
+          (BaseGraph EI0)
       )
 
 type PeakingUniverse cb
-  = Universe' D4 PeakingGraph cb
+  = Universe' EI2 PeakingGraph cb
 
 type KsPeakingreate (t :: Type -> Type) b
   = t (Peaking GetSetAP GetSetAP GetSetAP (b (PlayBuf "my-buffer" GetSetAP)))

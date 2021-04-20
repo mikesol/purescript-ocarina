@@ -1,31 +1,29 @@
 module WAGS.Example.KitchenSink.Types.TriangleOsc where
 
 import Prelude
+
 import Data.Identity (Identity(..))
 import Math (cos, pi, pow, sin, (%))
 import WAGS.Control.Types (Universe')
 import WAGS.Example.KitchenSink.Timing (ksTriangleOscIntegral, ksTriangleOscTime, pieceTime)
+import WAGS.Example.KitchenSink.Types.Empty (BaseGraph, EI0, EI1)
 import WAGS.Graph.Constructors (Gain, Speaker, TriangleOsc)
 import WAGS.Graph.Decorators (Focus(..), Decorating')
 import WAGS.Graph.Optionals (GetSetAP, gain, speaker, triangleOsc)
-import WAGS.Universe.AudioUnit (TGain, TSpeaker, TTriangleOsc)
-import WAGS.Universe.BinN (D0, D1, D2, D3)
-import WAGS.Universe.EdgeProfile (NoEdge, SingleEdge)
+import WAGS.Universe.AudioUnit (TTriangleOsc)
+import WAGS.Universe.EdgeProfile (NoEdge)
 import WAGS.Universe.Graph (GraphC)
-import WAGS.Universe.Node (NodeC, NodeListCons, NodeListNil)
+import WAGS.Universe.Node (NodeC)
 
 ksTriangleOscBegin = ksTriangleOscIntegral - ksTriangleOscTime :: Number
 
 type TriangleOscGraph
   = GraphC
-      (NodeC (TTriangleOsc D2) NoEdge)
-      ( NodeListCons
-          (NodeC (TSpeaker D0) (SingleEdge D1))
-          (NodeListCons (NodeC (TGain D1) (SingleEdge D2)) NodeListNil)
-      )
+      (NodeC (TTriangleOsc EI0) NoEdge)
+      (BaseGraph EI0)
 
 type TriangleOscUniverse cb
-  = Universe' D3 TriangleOscGraph cb
+  = Universe' EI1 TriangleOscGraph cb
 
 type KsTriangleOsc g t
   = Speaker (g (Gain GetSetAP (t (TriangleOsc GetSetAP))))

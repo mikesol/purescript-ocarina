@@ -1,35 +1,33 @@
 module WAGS.Example.KitchenSink.Types.Lowshelf where
 
 import Prelude
+
 import Data.Identity (Identity(..))
 import Math ((%))
 import Type.Proxy (Proxy(..))
 import WAGS.Control.Types (Universe')
 import WAGS.Example.KitchenSink.Timing (calcSlope, ksLowshelfIntegral, ksLowshelfTime, pieceTime)
+import WAGS.Example.KitchenSink.Types.Empty (BaseGraph, EI0, EI1, EI2)
 import WAGS.Graph.Constructors (Lowshelf, Gain, PlayBuf, Speaker)
 import WAGS.Graph.Decorators (Focus(..), Decorating')
 import WAGS.Graph.Optionals (GetSetAP, gain, lowshelf, playBuf, speaker)
-import WAGS.Universe.AudioUnit (TLowshelf, TGain, TPlayBuf, TSpeaker)
-import WAGS.Universe.BinN (D0, D1, D2, D3, D4)
+import WAGS.Universe.AudioUnit (TLowshelf, TPlayBuf)
 import WAGS.Universe.EdgeProfile (NoEdge, SingleEdge)
 import WAGS.Universe.Graph (GraphC)
-import WAGS.Universe.Node (NodeC, NodeListCons, NodeListNil)
+import WAGS.Universe.Node (NodeC, NodeListCons)
 
 ksLowshelfBegins = ksLowshelfIntegral - ksLowshelfTime :: Number
 
 type LowshelfGraph
   = GraphC
-      (NodeC (TLowshelf D2) (SingleEdge D3))
+      (NodeC (TLowshelf EI0) (SingleEdge EI1))
       ( NodeListCons
-          (NodeC (TPlayBuf D3 "my-buffer") NoEdge)
-          ( NodeListCons
-              (NodeC (TSpeaker D0) (SingleEdge D1))
-              (NodeListCons (NodeC (TGain D1) (SingleEdge D2)) NodeListNil)
-          )
+          (NodeC (TPlayBuf EI1 "my-buffer") NoEdge)
+          (BaseGraph EI0)
       )
 
 type LowshelfUniverse cb
-  = Universe' D4 LowshelfGraph cb
+  = Universe' EI2 LowshelfGraph cb
 
 type KsLowshelfreate (t :: Type -> Type) b
   = t (Lowshelf GetSetAP GetSetAP (b (PlayBuf "my-buffer" GetSetAP)))

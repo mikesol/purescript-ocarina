@@ -1,31 +1,29 @@
 module WAGS.Example.KitchenSink.Types.SawtoothOsc where
 
 import Prelude
+
 import Data.Identity (Identity(..))
 import Math (cos, pi, pow, sin, (%))
 import WAGS.Control.Types (Universe')
 import WAGS.Example.KitchenSink.Timing (ksSawtoothOscIntegral, ksSawtoothOscTime, pieceTime)
+import WAGS.Example.KitchenSink.Types.Empty (BaseGraph, EI0, EI1)
 import WAGS.Graph.Constructors (Gain, SawtoothOsc, Speaker)
 import WAGS.Graph.Decorators (Focus(..), Decorating')
 import WAGS.Graph.Optionals (GetSetAP, gain, sawtoothOsc, speaker)
-import WAGS.Universe.AudioUnit (TGain, TSawtoothOsc, TSpeaker)
-import WAGS.Universe.BinN (D0, D1, D2, D3)
-import WAGS.Universe.EdgeProfile (NoEdge, SingleEdge)
+import WAGS.Universe.AudioUnit (TSawtoothOsc)
+import WAGS.Universe.EdgeProfile (NoEdge)
 import WAGS.Universe.Graph (GraphC)
-import WAGS.Universe.Node (NodeC, NodeListCons, NodeListNil)
+import WAGS.Universe.Node (NodeC)
 
 ksSawtoothOscBegins = ksSawtoothOscIntegral - ksSawtoothOscTime :: Number
 
 type SawtoothOscGraph
   = GraphC
-      (NodeC (TSawtoothOsc D2) NoEdge)
-      ( NodeListCons
-          (NodeC (TSpeaker D0) (SingleEdge D1))
-          (NodeListCons (NodeC (TGain D1) (SingleEdge D2)) NodeListNil)
-      )
+      (NodeC (TSawtoothOsc EI0) NoEdge)
+      (BaseGraph EI0)
 
 type SawtoothOscUniverse cb
-  = Universe' D3 SawtoothOscGraph cb
+  = Universe' EI1 SawtoothOscGraph cb
 
 type KsSawtoothOsc g t
   = Speaker (g (Gain GetSetAP (t (SawtoothOsc GetSetAP))))

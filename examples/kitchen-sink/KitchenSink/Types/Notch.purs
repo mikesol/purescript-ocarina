@@ -1,35 +1,33 @@
 module WAGS.Example.KitchenSink.Types.Notch where
 
 import Prelude
+
 import Data.Identity (Identity(..))
 import Math ((%))
 import Type.Proxy (Proxy(..))
 import WAGS.Control.Types (Universe')
 import WAGS.Example.KitchenSink.Timing (calcSlope, ksNotchIntegral, ksNotchTime, pieceTime)
+import WAGS.Example.KitchenSink.Types.Empty (BaseGraph, EI0, EI1, EI2)
 import WAGS.Graph.Constructors (Notch, Gain, PlayBuf, Speaker)
 import WAGS.Graph.Decorators (Focus(..), Decorating')
 import WAGS.Graph.Optionals (GetSetAP, gain, notch, playBuf, speaker)
-import WAGS.Universe.AudioUnit (TNotch, TGain, TPlayBuf, TSpeaker)
-import WAGS.Universe.BinN (D0, D1, D2, D3, D4)
+import WAGS.Universe.AudioUnit (TNotch, TPlayBuf)
 import WAGS.Universe.EdgeProfile (NoEdge, SingleEdge)
 import WAGS.Universe.Graph (GraphC)
-import WAGS.Universe.Node (NodeC, NodeListCons, NodeListNil)
+import WAGS.Universe.Node (NodeC, NodeListCons)
 
 ksNotchBegins = ksNotchIntegral - ksNotchTime :: Number
 
 type NotchGraph
   = GraphC
-      (NodeC (TNotch D2) (SingleEdge D3))
+      (NodeC (TNotch EI0) (SingleEdge EI1))
       ( NodeListCons
-          (NodeC (TPlayBuf D3 "my-buffer") NoEdge)
-          ( NodeListCons
-              (NodeC (TSpeaker D0) (SingleEdge D1))
-              (NodeListCons (NodeC (TGain D1) (SingleEdge D2)) NodeListNil)
-          )
+          (NodeC (TPlayBuf EI1 "my-buffer") NoEdge)
+          (BaseGraph EI0)
       )
 
 type NotchUniverse cb
-  = Universe' D4 NotchGraph cb
+  = Universe' EI2 NotchGraph cb
 
 type KsNotchreate (t :: Type -> Type) b
   = t (Notch GetSetAP GetSetAP (b (PlayBuf "my-buffer" GetSetAP)))

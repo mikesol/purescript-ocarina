@@ -7,30 +7,27 @@ import Math ((%))
 import Type.Proxy (Proxy(..))
 import WAGS.Control.Types (Universe')
 import WAGS.Example.KitchenSink.Timing (calcSlope, ksAllpassIntegral, ksAllpassTime, pieceTime)
-import WAGS.Graph.Constructors (Allpass, Gain,  PlayBuf, Speaker)
+import WAGS.Example.KitchenSink.Types.Empty (BaseGraph, EI0, EI1, EI2)
+import WAGS.Graph.Constructors (Allpass, Gain, PlayBuf, Speaker)
 import WAGS.Graph.Decorators (Focus(..), Decorating')
 import WAGS.Graph.Optionals (GetSetAP, allpass, gain, playBuf, speaker)
-import WAGS.Universe.AudioUnit (TAllpass, TGain, TPlayBuf, TSpeaker)
-import WAGS.Universe.BinN (D0, D1, D2, D3, D4)
+import WAGS.Universe.AudioUnit (TAllpass, TPlayBuf)
 import WAGS.Universe.EdgeProfile (NoEdge, SingleEdge)
 import WAGS.Universe.Graph (GraphC)
-import WAGS.Universe.Node (NodeC, NodeListCons, NodeListNil)
+import WAGS.Universe.Node (NodeC, NodeListCons)
 
 ksAllpassBegins = ksAllpassIntegral - ksAllpassTime :: Number
 
 type AllpassGraph
   = GraphC
-      (NodeC (TAllpass D2) (SingleEdge D3))
+      (NodeC (TAllpass EI0) (SingleEdge EI1))
       ( NodeListCons
-          (NodeC (TPlayBuf D3 "my-buffer") NoEdge)
-          ( NodeListCons
-              (NodeC (TSpeaker D0) (SingleEdge D1))
-              (NodeListCons (NodeC (TGain D1) (SingleEdge D2)) NodeListNil)
-          )
+          (NodeC (TPlayBuf EI1 "my-buffer") NoEdge)
+          (BaseGraph EI0)
       )
 
 type AllpassUniverse cb
-  = Universe' D4 AllpassGraph cb
+  = Universe' EI2 AllpassGraph cb
 
 type KsAllpassCreate (t :: Type -> Type) b
   = t (Allpass GetSetAP GetSetAP (b (PlayBuf "my-buffer" GetSetAP)))

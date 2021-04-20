@@ -1,35 +1,33 @@
 module WAGS.Example.KitchenSink.Types.DynamicsCompressor where
 
 import Prelude
+
 import Data.Identity (Identity(..))
 import Math ((%))
 import Type.Proxy (Proxy(..))
 import WAGS.Control.Types (Universe')
 import WAGS.Example.KitchenSink.Timing (ksDynamicsCompressorIntegral, ksDynamicsCompressorTime, pieceTime)
+import WAGS.Example.KitchenSink.Types.Empty (BaseGraph, EI0, EI1, EI2)
 import WAGS.Graph.Constructors (DynamicsCompressor, Gain, PlayBuf, Speaker)
 import WAGS.Graph.Decorators (Focus(..), Decorating')
 import WAGS.Graph.Optionals (GetSetAP, compressor, gain, playBuf, speaker)
-import WAGS.Universe.AudioUnit (TDynamicsCompressor, TGain, TPlayBuf, TSpeaker)
-import WAGS.Universe.BinN (D0, D1, D2, D3, D4)
+import WAGS.Universe.AudioUnit (TDynamicsCompressor, TPlayBuf)
 import WAGS.Universe.EdgeProfile (NoEdge, SingleEdge)
 import WAGS.Universe.Graph (GraphC)
-import WAGS.Universe.Node (NodeC, NodeListCons, NodeListNil)
+import WAGS.Universe.Node (NodeC, NodeListCons)
 
 ksDynamicsCompressorBegins = ksDynamicsCompressorIntegral - ksDynamicsCompressorTime :: Number
 
 type DynamicsCompressorGraph
   = GraphC
-      (NodeC (TDynamicsCompressor D2) (SingleEdge D3))
+      (NodeC (TDynamicsCompressor EI0) (SingleEdge EI1))
       ( NodeListCons
-          (NodeC (TPlayBuf D3 "my-buffer") NoEdge)
-          ( NodeListCons
-              (NodeC (TSpeaker D0) (SingleEdge D1))
-              (NodeListCons (NodeC (TGain D1) (SingleEdge D2)) NodeListNil)
-          )
+          (NodeC (TPlayBuf EI1 "my-buffer") NoEdge)
+          (BaseGraph EI0)
       )
 
 type DynamicsCompressorUniverse cb
-  = Universe' D4 DynamicsCompressorGraph cb
+  = Universe' EI2 DynamicsCompressorGraph cb
 
 type KsDynamicsCompressorreate (t :: Type -> Type) b
   = t (DynamicsCompressor GetSetAP GetSetAP GetSetAP GetSetAP GetSetAP (b (PlayBuf "my-buffer" GetSetAP)))

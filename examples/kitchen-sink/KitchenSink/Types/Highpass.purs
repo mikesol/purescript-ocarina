@@ -1,35 +1,33 @@
 module WAGS.Example.KitchenSink.Types.Highpass where
 
 import Prelude
+
 import Data.Identity (Identity(..))
 import Math ((%))
 import Type.Proxy (Proxy(..))
 import WAGS.Control.Types (Universe')
 import WAGS.Example.KitchenSink.Timing (calcSlope, ksHighpassIntegral, ksHighpassTime, pieceTime)
+import WAGS.Example.KitchenSink.Types.Empty (EI0, EI1, EI2, BaseGraph)
 import WAGS.Graph.Constructors (Highpass, Gain, PlayBuf, Speaker)
 import WAGS.Graph.Decorators (Focus(..), Decorating')
 import WAGS.Graph.Optionals (GetSetAP, gain, highpass, playBuf, speaker)
-import WAGS.Universe.AudioUnit (THighpass, TGain, TPlayBuf, TSpeaker)
-import WAGS.Universe.BinN (D0, D1, D2, D3, D4)
+import WAGS.Universe.AudioUnit (THighpass, TPlayBuf)
 import WAGS.Universe.EdgeProfile (NoEdge, SingleEdge)
 import WAGS.Universe.Graph (GraphC)
-import WAGS.Universe.Node (NodeC, NodeListCons, NodeListNil)
+import WAGS.Universe.Node (NodeC, NodeListCons)
 
 ksHighpassBegins = ksHighpassIntegral - ksHighpassTime :: Number
 
 type HighpassGraph
   = GraphC
-      (NodeC (THighpass D2) (SingleEdge D3))
+      (NodeC (THighpass EI0) (SingleEdge EI1))
       ( NodeListCons
-          (NodeC (TPlayBuf D3 "my-buffer") NoEdge)
-          ( NodeListCons
-              (NodeC (TSpeaker D0) (SingleEdge D1))
-              (NodeListCons (NodeC (TGain D1) (SingleEdge D2)) NodeListNil)
-          )
+          (NodeC (TPlayBuf EI1 "my-buffer") NoEdge)
+          (BaseGraph EI0)
       )
 
 type HighpassUniverse cb
-  = Universe' D4 HighpassGraph cb
+  = Universe' EI2 HighpassGraph cb
 
 type KsHighpassreate (t :: Type -> Type) b
   = t (Highpass GetSetAP GetSetAP (b (PlayBuf "my-buffer" GetSetAP)))
