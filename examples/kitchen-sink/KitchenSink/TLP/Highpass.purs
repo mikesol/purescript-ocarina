@@ -5,10 +5,9 @@ import Prelude
 import Data.Either (Either(..))
 import Effect (Effect)
 import Math ((%))
-import Type.Proxy (Proxy(..))
 import WAGS.Change (change)
 import WAGS.Connect (connect)
-import WAGS.Control.Functions (branch, currentIdx, env, graph, proof, withProof)
+import WAGS.Control.Functions (branch, env, proof, withProof)
 import WAGS.Control.Qualified as WAGS
 import WAGS.Control.Types (Frame, Scene)
 import WAGS.Create (create)
@@ -17,11 +16,10 @@ import WAGS.Destroy (destroy)
 import WAGS.Disconnect (disconnect)
 import WAGS.Example.KitchenSink.TLP.LoopSig (LoopSig(..))
 import WAGS.Example.KitchenSink.Timing (phase6Integral, pieceTime)
-import WAGS.Example.KitchenSink.Types.Empty (EI, EmptyGraph)
+import WAGS.Example.KitchenSink.Types.Empty (reset)
 import WAGS.Example.KitchenSink.Types.Highpass (HighpassUniverse, phase7Highpass, phase7Gain, phase7Playbuf, deltaPhase7)
 import WAGS.Graph.Constructors (OnOff(..), SinOsc(..))
 import WAGS.Interpret (FFIAudio)
-import WAGS.Rebase (rebase)
 import WAGS.Run (SceneI)
 
 doHighpass ::
@@ -44,9 +42,7 @@ doHighpass =
               disconnect toRemove gn
               destroy toRemove
               destroy toRemoveBuf
-              ci <- currentIdx
-              g <- graph
-              rebase ci g (Proxy :: _ EI) (Proxy :: _ EmptyGraph)
+              reset
               toAdd <- create (SinOsc On 440.0)
               connect toAdd gn
               withProof pr l

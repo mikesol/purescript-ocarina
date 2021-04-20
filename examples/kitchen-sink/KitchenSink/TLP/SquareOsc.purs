@@ -1,14 +1,13 @@
 module WAGS.Example.KitchenSink.TLP.SquareOsc where
 
 import Prelude
-
 import Data.Either (Either(..))
 import Effect (Effect)
 import Math ((%))
 import Type.Proxy (Proxy(..))
 import WAGS.Change (change)
 import WAGS.Connect (connect)
-import WAGS.Control.Functions (branch, currentIdx, env, graph, proof, withProof)
+import WAGS.Control.Functions (branch, env, proof, withProof)
 import WAGS.Control.Qualified as WAGS
 import WAGS.Control.Types (Frame, Scene)
 import WAGS.Create (create)
@@ -18,11 +17,10 @@ import WAGS.Disconnect (disconnect)
 import WAGS.Example.KitchenSink.TLP.LoopSig (LoopSig)
 import WAGS.Example.KitchenSink.TLP.PeriodicOsc (doPeriodicOsc)
 import WAGS.Example.KitchenSink.Timing (pieceTime, phase3Integral)
-import WAGS.Example.KitchenSink.Types.Empty (EI, EmptyGraph)
+import WAGS.Example.KitchenSink.Types.Empty (reset)
 import WAGS.Example.KitchenSink.Types.SquareOsc (SquareOscUniverse, deltaPhase3, phase3Gain, phase3SquareOsc)
 import WAGS.Graph.Constructors (OnOff(..), PeriodicOsc(..))
 import WAGS.Interpret (FFIAudio)
-import WAGS.Rebase (rebase)
 import WAGS.Run (SceneI)
 
 doSquareOsc ::
@@ -44,9 +42,7 @@ doSquareOsc =
               thunk
               disconnect toRemove gn
               destroy toRemove
-              ci <- currentIdx
-              g <- graph
-              rebase ci g (Proxy :: _ EI) (Proxy :: _ EmptyGraph)
+              reset
               toAdd <- create (PeriodicOsc (Proxy :: Proxy "my-wave") On 440.0)
               connect toAdd gn
               withProof pr lsig

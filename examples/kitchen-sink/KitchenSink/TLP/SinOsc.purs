@@ -1,14 +1,12 @@
 module WAGS.Example.KitchenSink.TLP.SinOsc where
 
 import Prelude
-
 import Data.Either (Either(..))
 import Effect (Effect)
 import Math ((%))
-import Type.Proxy (Proxy(..))
 import WAGS.Change (change)
 import WAGS.Connect (connect)
-import WAGS.Control.Functions (branch, currentIdx, env, graph, proof, withProof)
+import WAGS.Control.Functions (branch, env, proof, withProof)
 import WAGS.Control.Qualified as WAGS
 import WAGS.Control.Types (Frame, Scene)
 import WAGS.Create (create)
@@ -18,11 +16,10 @@ import WAGS.Disconnect (disconnect)
 import WAGS.Example.KitchenSink.TLP.LoopSig (LoopSig)
 import WAGS.Example.KitchenSink.TLP.TriangleOsc (doTriangleOsc)
 import WAGS.Example.KitchenSink.Timing (pieceTime, phase1Integral)
-import WAGS.Example.KitchenSink.Types.Empty (EI, EmptyGraph)
+import WAGS.Example.KitchenSink.Types.Empty (reset)
 import WAGS.Example.KitchenSink.Types.SinOsc (SinOscUniverse, deltaPhase1, phase1Gain, phase1SinOsc)
 import WAGS.Graph.Constructors (OnOff(..), TriangleOsc(..))
 import WAGS.Interpret (FFIAudio)
-import WAGS.Rebase (rebase)
 import WAGS.Run (SceneI)
 
 doSinOsc ::
@@ -44,9 +41,7 @@ doSinOsc =
               thunk
               disconnect toRemove gn
               destroy toRemove
-              ci <- currentIdx
-              g <- graph
-              rebase ci g (Proxy :: _ EI) (Proxy :: _ EmptyGraph)
-              toAdd <-  create (TriangleOsc On 440.0)
+              reset
+              toAdd <- create (TriangleOsc On 440.0)
               connect toAdd gn
               withProof pr lsig
