@@ -70,6 +70,10 @@ ksMicrophoneTime = 5.0 :: Number
 
 ksMicrophoneIntegral = ksMicrophoneTime + ksHighpassIntegral :: Number
 
+ksWaveShaperTime = 5.0 :: Number
+
+ksWaveShaperIntegral = ksWaveShaperTime + ksMicrophoneIntegral :: Number
+
 ksDynamicsCompressorTime = 10.0 :: Number
 
 ksDynamicsCompressorIntegral = ksDynamicsCompressorTime + ksMicrophoneIntegral :: Number

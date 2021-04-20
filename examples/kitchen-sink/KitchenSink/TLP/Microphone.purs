@@ -15,12 +15,12 @@ import WAGS.Create (create)
 import WAGS.Cursor (cursor)
 import WAGS.Destroy (destroy)
 import WAGS.Disconnect (disconnect)
-import WAGS.Example.KitchenSink.TLP.DynamicsCompressor (doDynamicsCompressor)
 import WAGS.Example.KitchenSink.TLP.LoopSig (LoopSig)
+import WAGS.Example.KitchenSink.TLP.WaveShaper (doWaveShaper)
 import WAGS.Example.KitchenSink.Timing (ksMicrophoneIntegral, pieceTime)
-import WAGS.Example.KitchenSink.Types.DynamicsCompressor (ksDynamicsCompressorCreate)
 import WAGS.Example.KitchenSink.Types.Empty (reset)
 import WAGS.Example.KitchenSink.Types.Microphone (MicrophoneUniverse, ksMicrophoneMicrophone, ksMicrophoneGain, deltaKsMicrophone)
+import WAGS.Example.KitchenSink.Types.WaveShaper (ksWaveShaperCreate)
 import WAGS.Interpret (FFIAudio)
 import WAGS.Run (SceneI)
 
@@ -39,10 +39,10 @@ doMicrophone =
           Right (change (deltaKsMicrophone time) $> lsig)
         else
           Left
-            $ inSitu doDynamicsCompressor WAGS.do
+            $ inSitu doWaveShaper WAGS.do
                 disconnect toRemove gn
                 destroy toRemove
                 reset
-                toAdd <- create (ksDynamicsCompressorCreate Identity Identity)
+                toAdd <- create (ksWaveShaperCreate Identity Identity)
                 connect toAdd gn
                 withProof pr lsig

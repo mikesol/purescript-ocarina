@@ -985,3 +985,17 @@ instance changeSpeaker ::
       Ix.do
         changeAudioUnit (Proxy :: Proxy (Proxy p /\ Proxy nextP /\ Proxy igraph)) (Speaker a)
         (change' :: ChangeType nextP a igraph) Proxy a
+
+instance changeWaveShaper ::
+  ( BinToInt p
+  , GetSkolemFromRecursiveArgument fOfargB skolem
+  , ToSkolemizedFunction fOfargB skolem argB
+  , Modify (CTOR.WaveShaper sym overshape argB) p igraph nextP
+  , Change nextP argB igraph
+  ) =>
+  Change (SingleEdge p) (CTOR.WaveShaper sym overshape fOfargB) igraph where
+  change' _ (CTOR.WaveShaper sym overshape fOfargB) =
+    let
+      argB = (((toSkolemizedFunction :: fOfargB -> (Proxy skolem -> argB)) fOfargB) Proxy)
+    in
+      (change' :: ChangeType nextP argB igraph) Proxy argB
