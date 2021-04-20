@@ -9,7 +9,7 @@ import WAGS.Example.KitchenSink.Timing (calcSlope, phase5Integral, phase6Time, p
 import WAGS.Graph.Constructors (Allpass(..), Gain(..), OnOff(..), PlayBuf(..), Speaker(..))
 import WAGS.Graph.Decorators (Focus(..), Decorating')
 import WAGS.Universe.AudioUnit (TAllpass, TGain, TPlayBuf, TSpeaker)
-import WAGS.Universe.Bin (D0, D1, D7, D8, D9)
+import WAGS.Universe.BinN (D0, D1, D7, D8, D9)
 import WAGS.Universe.EdgeProfile (NoEdge, SingleEdge)
 import WAGS.Universe.Graph (GraphC)
 import WAGS.Universe.Node (NodeC, NodeListCons, NodeListNil)

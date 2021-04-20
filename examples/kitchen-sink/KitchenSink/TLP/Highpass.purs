@@ -23,7 +23,7 @@ import WAGS.Graph.Constructors (OnOff(..), SinOsc(..))
 import WAGS.Interpret (FFIAudio)
 import WAGS.Rebase (rebase)
 import WAGS.Run (SceneI)
-import WAGS.Universe.Bin (D3)
+import WAGS.Universe.BinN (D3)
 
 doHighpass ::
   forall proofA iu cb.

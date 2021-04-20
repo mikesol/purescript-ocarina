@@ -10,7 +10,7 @@ import WAGS.Graph.Constructors (Gain(..), OnOff(..), Speaker(..), TriangleOsc(..
 import WAGS.Graph.Decorators (Focus(..), Decorating')
 import WAGS.Graph.Optionals (GetSetAP, defaultGetSetAP)
 import WAGS.Universe.AudioUnit (TGain, TSpeaker, TTriangleOsc)
-import WAGS.Universe.Bin (D0, D1, D3, D4)
+import WAGS.Universe.BinN (D0, D1, D3, D4)
 import WAGS.Universe.EdgeProfile (NoEdge, SingleEdge)
 import WAGS.Universe.Graph (GraphC)
 import WAGS.Universe.Node (NodeC, NodeListCons, NodeListNil)

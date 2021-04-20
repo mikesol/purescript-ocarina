@@ -37,7 +37,8 @@ import WAGS.Interpret (class AudioInterpret, setAttack, setDelay, setFrequency, 
 import WAGS.Rendered (AnAudioUnit(..))
 import WAGS.Universe.AudioUnit (AudioUnitRef)
 import WAGS.Universe.AudioUnit as AU
-import WAGS.Universe.Bin (class BinSub, class BinToInt, Bits, D0, Ptr, PtrListCons, PtrListNil, toInt')
+import WAGS.Universe.BinN (D0)
+import WAGS.Universe.Bin (class BinSub, class BinToInt, Bits, Ptr, PtrListCons, PtrListNil, toInt')
 import WAGS.Universe.EdgeProfile (EdgeProfile, ManyEdges, NoEdge, SingleEdge)
 import WAGS.Universe.Graph (class GraphToNodeList, Graph, InitialGraph)
 import WAGS.Universe.Node (Node, NodeC, NodeList, NodeListCons, NodeListNil)

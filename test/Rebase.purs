@@ -2,7 +2,8 @@ module Test.Rebase where
 
 import Type.Data.Peano (Z)
 import WAGS.Universe.AudioUnit (TGain, THighpass, TSinOsc, TSpeaker)
-import WAGS.Universe.Bin (D0, D1, D2, D3, D4, D5, D6, D7, D8, D9, PtrListCons, PtrListNil)
+import WAGS.Universe.BinN (D0, D1, D2, D3, D4, D5, D6, D7, D8, D9)
+import WAGS.Universe.Bin (PtrListCons, PtrListNil)
 import WAGS.Universe.EdgeProfile (ManyEdges, NoEdge, SingleEdge)
 import WAGS.Universe.Graph (GraphC)
 import WAGS.Universe.Node (NodeC, NodeListCons, NodeListNil)
