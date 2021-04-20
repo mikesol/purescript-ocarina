@@ -845,6 +845,11 @@ instance changeLowshelf ::
         changeAudioUnit (Proxy :: Proxy (Proxy p /\ Proxy nextP /\ Proxy igraph)) (CTOR.Lowshelf argA argB argC)
         (change' :: ChangeType nextP argC igraph) Proxy argC
 
+instance changeMicrophone ::
+  Change (SingleEdge p) (CTOR.Microphone) igraph where
+  change' _ _ = unsafeFrame $ (pure unit)
+
+
 instance changeNotch ::
   ( SetterVal argA
   , SetterVal argB

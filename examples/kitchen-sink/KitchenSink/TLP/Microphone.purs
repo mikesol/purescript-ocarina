@@ -1,8 +1,9 @@
-module WAGS.Example.KitchenSink.TLP.Highpass where
+module WAGS.Example.KitchenSink.TLP.Microphone where
 
 import Prelude
 
 import Data.Either (Either(..))
+import Data.Identity (Identity(..))
 import Effect (Effect)
 import Math ((%))
 import WAGS.Change (change)
@@ -14,37 +15,34 @@ import WAGS.Create (create)
 import WAGS.Cursor (cursor)
 import WAGS.Destroy (destroy)
 import WAGS.Disconnect (disconnect)
+import WAGS.Example.KitchenSink.TLP.DynamicsCompressor (doDynamicsCompressor)
 import WAGS.Example.KitchenSink.TLP.LoopSig (LoopSig)
-import WAGS.Example.KitchenSink.TLP.Microphone (doMicrophone)
-import WAGS.Example.KitchenSink.Timing (ksHighpassIntegral, pieceTime)
+import WAGS.Example.KitchenSink.Timing (ksMicrophoneIntegral, pieceTime)
+import WAGS.Example.KitchenSink.Types.DynamicsCompressor (ksDynamicsCompressorCreate)
 import WAGS.Example.KitchenSink.Types.Empty (reset)
-import WAGS.Example.KitchenSink.Types.Highpass (HighpassUniverse, ksHighpassHighpass, ksHighpassGain, ksHighpassPlaybuf, deltaKsHighpass)
-import WAGS.Graph.Optionals (microphone)
+import WAGS.Example.KitchenSink.Types.Microphone (MicrophoneUniverse, ksMicrophoneMicrophone, ksMicrophoneGain, deltaKsMicrophone)
 import WAGS.Interpret (FFIAudio)
 import WAGS.Run (SceneI)
 
-doHighpass ::
+doMicrophone ::
   forall proofA iu cb.
-  Frame (SceneI Unit Unit) FFIAudio (Effect Unit) proofA iu (HighpassUniverse cb) LoopSig ->
+  Frame (SceneI Unit Unit) FFIAudio (Effect Unit) proofA iu (MicrophoneUniverse cb) LoopSig ->
   Scene (SceneI Unit Unit) FFIAudio (Effect Unit) proofA
-doHighpass =
+doMicrophone =
   branch \lsig -> WAGS.do
     { time } <- env
-    toRemove <- cursor ksHighpassHighpass
-    toRemoveBuf <- cursor ksHighpassPlaybuf
-    gn <- cursor ksHighpassGain
+    toRemove <- cursor ksMicrophoneMicrophone
+    gn <- cursor ksMicrophoneGain
     pr <- proof
     withProof pr
-      $ if time % pieceTime < ksHighpassIntegral then
-          Right (change (deltaKsHighpass time) $> lsig)
+      $ if time % pieceTime < ksMicrophoneIntegral then
+          Right (change (deltaKsMicrophone time) $> lsig)
         else
           Left
-            $ inSitu doMicrophone WAGS.do
-                disconnect toRemoveBuf toRemove
+            $ inSitu doDynamicsCompressor WAGS.do
                 disconnect toRemove gn
                 destroy toRemove
-                destroy toRemoveBuf
                 reset
-                toAdd <- create microphone
+                toAdd <- create (ksDynamicsCompressorCreate Identity Identity)
                 connect toAdd gn
                 withProof pr lsig
