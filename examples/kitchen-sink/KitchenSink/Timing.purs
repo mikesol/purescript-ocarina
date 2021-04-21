@@ -32,6 +32,7 @@ type KitchenSinkTiming
     , ksWaveShaper :: TimeInfo
     , ksDelay :: TimeInfo
     , ksFeedback :: TimeInfo
+    , ksLoopBuf :: TimeInfo
     , ksDynamicsCompressor :: TimeInfo
     }
 
@@ -72,26 +73,28 @@ timing =
           , ksWaveShaper: _
           , ksDelay: _
           , ksFeedback: _
+          , ksLoopBuf: _
           , ksDynamicsCompressor: _
           }
-            <$> integrate 5.0
-            <*> integrate 5.0
-            <*> integrate 5.0
-            <*> integrate 5.0
-            <*> integrate 5.0
-            <*> integrate 10.0
-            <*> integrate 10.0
-            <*> integrate 10.0
-            <*> integrate 10.0
-            <*> integrate 10.0
-            <*> integrate 10.0
-            <*> integrate 10.0
-            <*> integrate 10.0
-            <*> integrate 5.0
-            <*> integrate 10.0
-            <*> integrate 10.0
-            <*> integrate 10.0
-            <*> integrate 10.0
+            <$> integrate 5.0 -- ksSinOsc
+            <*> integrate 5.0 -- ksTriangleOsc
+            <*> integrate 5.0 -- ksSquareOsc
+            <*> integrate 5.0 -- ksPeriodicOsc
+            <*> integrate 5.0 -- ksSawtoothOsc
+            <*> integrate 10.0 -- ksAllpass
+            <*> integrate 10.0 -- ksLowpass
+            <*> integrate 10.0 -- ksHighshelf
+            <*> integrate 10.0 -- ksLowshelf
+            <*> integrate 10.0 -- ksBandpass
+            <*> integrate 10.0 -- ksNotch
+            <*> integrate 10.0 -- ksPeaking
+            <*> integrate 10.0 -- ksHighpass
+            <*> integrate 5.0 -- ksMicrophone
+            <*> integrate 10.0 -- ksWaveShaper
+            <*> integrate 10.0 -- ksDelay
+            <*> integrate 10.0 -- ksFeedback
+            <*> integrate 5.0 -- ksLoopBuf
+            <*> integrate 10.0 -- ksDynamicsCompressor
         )
         mempty
 
