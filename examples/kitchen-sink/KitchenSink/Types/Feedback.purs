@@ -8,7 +8,7 @@ import Math ((%))
 import Type.Proxy (Proxy(..))
 import WAGS.Control.Types (Universe')
 import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
-import WAGS.Example.KitchenSink.Types.Empty (BaseGraph, EI1, EI2, EI3, EI0)
+import WAGS.Example.KitchenSink.Types.Empty (BaseGraph, EI0, EI1, EI2, EI3, EI4)
 import WAGS.Graph.Constructors (Delay, Gain, PlayBuf, Speaker)
 import WAGS.Graph.Decorators (Focus(..), Decorating')
 import WAGS.Graph.Optionals (GetSetAP, Mix, delay, gain, mix, playBuf, speaker)
@@ -33,7 +33,7 @@ type FeedbackGraph
       )
 
 type FeedbackUniverse cb
-  = Universe' EI3 FeedbackGraph cb
+  = Universe' EI4 FeedbackGraph cb
 
 data MyMix
 

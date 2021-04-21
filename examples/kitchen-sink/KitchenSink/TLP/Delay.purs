@@ -16,11 +16,13 @@ import WAGS.Cursor (cursor)
 import WAGS.Destroy (destroy)
 import WAGS.Disconnect (disconnect)
 import WAGS.Example.KitchenSink.TLP.DynamicsCompressor (doDynamicsCompressor)
+import WAGS.Example.KitchenSink.TLP.Feedback (doFeedback)
 import WAGS.Example.KitchenSink.TLP.LoopSig (LoopSig)
-import WAGS.Example.KitchenSink.Timing ( pieceTime, timing)
+import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
 import WAGS.Example.KitchenSink.Types.Delay (DelayUniverse, deltaKsDelay, ksDelayDelay, ksDelayGain, ksDelayMix, ksDelayPlaybuf)
 import WAGS.Example.KitchenSink.Types.DynamicsCompressor (ksDynamicsCompressorCreate)
 import WAGS.Example.KitchenSink.Types.Empty (reset)
+import WAGS.Example.KitchenSink.Types.Feedback (ksFeedbackCreate)
 import WAGS.Interpret (FFIAudio)
 import WAGS.Run (SceneI)
 
@@ -41,7 +43,7 @@ doDelay =
           Right (change (deltaKsDelay time) $> lsig)
         else
           Left
-            $ inSitu doDynamicsCompressor WAGS.do
+            $ inSitu doFeedback WAGS.do
                 disconnect toRemoveBuf toRemoveMix
                 disconnect toRemoveBuf toRemoveDelay
                 disconnect toRemoveDelay toRemoveMix
@@ -50,6 +52,6 @@ doDelay =
                 destroy toRemoveDelay
                 destroy toRemoveMix
                 reset
-                toAdd <- create (ksDynamicsCompressorCreate Identity Identity)
+                toAdd <- create (ksFeedbackCreate Identity Identity Identity Identity)
                 connect toAdd gn
                 withProof pr lsig
