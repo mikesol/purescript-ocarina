@@ -1,9 +1,8 @@
-module WAGS.Example.KitchenSink.TLP.LoopBuf where
+module WAGS.Example.KitchenSink.TLP.StereoPanner where
 
 import Prelude
 
 import Data.Either (Either(..))
-import Data.Identity (Identity(..))
 import Effect (Effect)
 import Math ((%))
 import WAGS.Change (change)
@@ -15,34 +14,37 @@ import WAGS.Create (create)
 import WAGS.Cursor (cursor)
 import WAGS.Destroy (destroy)
 import WAGS.Disconnect (disconnect)
+import WAGS.Example.KitchenSink.TLP.Constant (doConstant)
 import WAGS.Example.KitchenSink.TLP.LoopSig (LoopSig)
-import WAGS.Example.KitchenSink.TLP.StereoPanner (doStereoPanner)
 import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
 import WAGS.Example.KitchenSink.Types.Empty (reset)
-import WAGS.Example.KitchenSink.Types.LoopBuf (LoopBufUniverse, deltaKsLoopBuf, ksLoopBufGain, ksLoopBufLoopBuf)
-import WAGS.Example.KitchenSink.Types.StereoPanner (ksStereoPannerCreate)
+import WAGS.Example.KitchenSink.Types.StereoPanner (StereoPannerUniverse, deltaKsStereoPanner, ksStereoPannerStereoPanner, ksStereoPannerGain, ksStereoPannerPlaybuf)
+import WAGS.Graph.Optionals (constant)
 import WAGS.Interpret (FFIAudio)
 import WAGS.Run (SceneI)
 
-doLoopBuf ::
+doStereoPanner ::
   forall proofA iu cb.
-  Frame (SceneI Unit Unit) FFIAudio (Effect Unit) proofA iu (LoopBufUniverse cb) LoopSig ->
+  Frame (SceneI Unit Unit) FFIAudio (Effect Unit) proofA iu (StereoPannerUniverse cb) LoopSig ->
   Scene (SceneI Unit Unit) FFIAudio (Effect Unit) proofA
-doLoopBuf =
+doStereoPanner =
   branch \lsig -> WAGS.do
     { time } <- env
-    toRemove <- cursor ksLoopBufLoopBuf
-    gn <- cursor ksLoopBufGain
+    toRemove <- cursor ksStereoPannerStereoPanner
+    toRemoveBuf <- cursor ksStereoPannerPlaybuf
+    gn <- cursor ksStereoPannerGain
     pr <- proof
     withProof pr
-      $ if time % pieceTime < timing.ksLoopBuf.end then
-          Right (change (deltaKsLoopBuf time) $> lsig)
+      $ if time % pieceTime < timing.ksStereoPanner.end then
+          Right (change (deltaKsStereoPanner time) $> lsig)
         else
           Left
-            $ inSitu doStereoPanner WAGS.do
+            $ inSitu doConstant WAGS.do
+                disconnect toRemoveBuf toRemove
                 disconnect toRemove gn
                 destroy toRemove
+                destroy toRemoveBuf
                 reset
-                toAdd <- create (ksStereoPannerCreate Identity Identity)
+                toAdd <- create (constant 0.0)
                 connect toAdd gn
                 withProof pr lsig

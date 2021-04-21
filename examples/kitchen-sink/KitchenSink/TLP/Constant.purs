@@ -1,4 +1,4 @@
-module WAGS.Example.KitchenSink.TLP.LoopBuf where
+module WAGS.Example.KitchenSink.TLP.Constant where
 
 import Prelude
 
@@ -15,34 +15,34 @@ import WAGS.Create (create)
 import WAGS.Cursor (cursor)
 import WAGS.Destroy (destroy)
 import WAGS.Disconnect (disconnect)
+import WAGS.Example.KitchenSink.TLP.DynamicsCompressor (doDynamicsCompressor)
 import WAGS.Example.KitchenSink.TLP.LoopSig (LoopSig)
-import WAGS.Example.KitchenSink.TLP.StereoPanner (doStereoPanner)
 import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
+import WAGS.Example.KitchenSink.Types.Constant (ConstantUniverse, deltaKsConstant, ksConstantGain, ksConstantConstant)
+import WAGS.Example.KitchenSink.Types.DynamicsCompressor (ksDynamicsCompressorCreate)
 import WAGS.Example.KitchenSink.Types.Empty (reset)
-import WAGS.Example.KitchenSink.Types.LoopBuf (LoopBufUniverse, deltaKsLoopBuf, ksLoopBufGain, ksLoopBufLoopBuf)
-import WAGS.Example.KitchenSink.Types.StereoPanner (ksStereoPannerCreate)
 import WAGS.Interpret (FFIAudio)
 import WAGS.Run (SceneI)
 
-doLoopBuf ::
+doConstant ::
   forall proofA iu cb.
-  Frame (SceneI Unit Unit) FFIAudio (Effect Unit) proofA iu (LoopBufUniverse cb) LoopSig ->
+  Frame (SceneI Unit Unit) FFIAudio (Effect Unit) proofA iu (ConstantUniverse cb) LoopSig ->
   Scene (SceneI Unit Unit) FFIAudio (Effect Unit) proofA
-doLoopBuf =
+doConstant =
   branch \lsig -> WAGS.do
     { time } <- env
-    toRemove <- cursor ksLoopBufLoopBuf
-    gn <- cursor ksLoopBufGain
+    toRemove <- cursor ksConstantConstant
+    gn <- cursor ksConstantGain
     pr <- proof
     withProof pr
-      $ if time % pieceTime < timing.ksLoopBuf.end then
-          Right (change (deltaKsLoopBuf time) $> lsig)
+      $ if time % pieceTime < timing.ksConstant.end then
+          Right (change (deltaKsConstant time) $> lsig)
         else
           Left
-            $ inSitu doStereoPanner WAGS.do
+            $ inSitu doDynamicsCompressor WAGS.do
                 disconnect toRemove gn
                 destroy toRemove
                 reset
-                toAdd <- create (ksStereoPannerCreate Identity Identity)
+                toAdd <- create (ksDynamicsCompressorCreate Identity Identity)
                 connect toAdd gn
                 withProof pr lsig
