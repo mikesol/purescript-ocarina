@@ -2,13 +2,14 @@
 module WAGS.Graph.Optionals where
 
 import Prelude
+
 import ConvertableOptions (class ConvertOption, class ConvertOptionsWithDefaults, convertOptionsWithDefaults)
 import Data.Symbol (class IsSymbol)
 import Data.Tuple (Tuple(..))
 import Type.Proxy (Proxy)
 import WAGS.Change (class SetterVal, setterVal)
 import WAGS.Create (class InitialVal, initialVal)
-import WAGS.Graph.Constructors (OnOff(..))
+import WAGS.Graph.Constructors (Dup(..), Gain, OnOff(..))
 import WAGS.Graph.Constructors as CTOR
 import WAGS.Graph.Decorators (class IsAudio, class IsAudioOrF, class IsMultiAudio, class IsMultiAudioOrF, class IsOversample)
 import WAGS.Graph.Parameter (AudioParameter, param)
@@ -254,6 +255,8 @@ instance gainCtor1 :: (InitialVal a, SetterVal a, IsMultiAudioOrF b) => GainCtor
 -- | ```
 mix :: forall a. IsMultiAudioOrF a => a -> CTOR.Gain GetSetAP a
 mix cont = CTOR.Gain (defaultGetSetAP 1.0) cont
+
+type Mix a = Gain GetSetAP a
 
 ------
 data Highpass'
@@ -774,3 +777,7 @@ waveShaper ::
   IsAudioOrF c =>
   Proxy a -> b -> c -> (CTOR.WaveShaper a b c)
 waveShaper = CTOR.WaveShaper
+
+--------------------
+dup :: forall toDup continuation. toDup -> continuation -> Dup toDup continuation
+dup = Dup

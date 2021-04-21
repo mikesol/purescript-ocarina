@@ -17,7 +17,7 @@ import WAGS.Destroy (destroy)
 import WAGS.Disconnect (disconnect)
 import WAGS.Example.KitchenSink.TLP.LoopSig (LoopSig)
 import WAGS.Example.KitchenSink.TLP.WaveShaper (doWaveShaper)
-import WAGS.Example.KitchenSink.Timing (ksMicrophoneIntegral, pieceTime)
+import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
 import WAGS.Example.KitchenSink.Types.Empty (reset)
 import WAGS.Example.KitchenSink.Types.Microphone (MicrophoneUniverse, ksMicrophoneMicrophone, ksMicrophoneGain, deltaKsMicrophone)
 import WAGS.Example.KitchenSink.Types.WaveShaper (ksWaveShaperCreate)
@@ -35,7 +35,7 @@ doMicrophone =
     gn <- cursor ksMicrophoneGain
     pr <- proof
     withProof pr
-      $ if time % pieceTime < ksMicrophoneIntegral then
+      $ if time % pieceTime < timing.ksMicrophone.end then
           Right (change (deltaKsMicrophone time) $> lsig)
         else
           Left

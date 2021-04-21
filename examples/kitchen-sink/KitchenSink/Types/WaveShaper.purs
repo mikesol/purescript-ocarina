@@ -5,7 +5,7 @@ import Data.Identity (Identity(..))
 import Math ((%))
 import Type.Proxy (Proxy(..))
 import WAGS.Control.Types (Universe')
-import WAGS.Example.KitchenSink.Timing (ksWaveShaperIntegral, ksWaveShaperTime, pieceTime)
+import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
 import WAGS.Example.KitchenSink.Types.Empty (BaseGraph, EI0, EI1, EI2)
 import WAGS.Graph.Constructors (Gain, OversampleTwoX(..), PlayBuf, Speaker, WaveShaper)
 import WAGS.Graph.Decorators (Focus(..), Decorating')
@@ -14,8 +14,6 @@ import WAGS.Universe.AudioUnit (TWaveShaper, TPlayBuf)
 import WAGS.Universe.EdgeProfile (NoEdge, SingleEdge)
 import WAGS.Universe.Graph (GraphC)
 import WAGS.Universe.Node (NodeC, NodeListCons)
-
-ksWaveShaperBegins = ksWaveShaperIntegral - ksWaveShaperTime :: Number
 
 type WaveShaperGraph
   = GraphC
@@ -70,11 +68,15 @@ ksWaveShaperGain = ksWaveShaper' Focus Identity Identity
 deltaKsWaveShaper :: Number -> KsWaveShaper Identity Identity Identity
 deltaKsWaveShaper =
   (_ % pieceTime)
-    >>> (_ - ksWaveShaperBegins)
+    >>> (_ - timing.ksWaveShaper.begin)
     >>> (max 0.0)
     >>> \time ->
         speaker
           ( Identity
               $ gain (if time > 9.0 then 0.0 else 1.0)
-                  (Identity $ waveShaper (Proxy :: _ "my-waveshaper") OversampleTwoX (Identity $ playBuf (Proxy :: _ "my-buffer")))
+                  ( Identity
+                      $ waveShaper (Proxy :: _ "my-waveshaper")
+                          OversampleTwoX
+                          (Identity $ playBuf (Proxy :: _ "my-buffer"))
+                  )
           )

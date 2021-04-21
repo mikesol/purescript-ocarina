@@ -1,6 +1,7 @@
 module WAGS.Cursor where
 
 import Prelude
+
 import Data.Identity (Identity)
 import Data.Tuple.Nested (type (/\))
 import Type.Proxy (Proxy(..))
@@ -10,8 +11,8 @@ import WAGS.Graph.Constructors as CTOR
 import WAGS.Graph.Decorators (Focus)
 import WAGS.Universe.AudioUnit (AudioUnitRef(..))
 import WAGS.Universe.AudioUnit as AU
-import WAGS.Universe.BinN (D0)
 import WAGS.Universe.Bin (class BinSub, class BinToInt, Ptr, PtrList, PtrListCons, PtrListNil, toInt')
+import WAGS.Universe.BinN (D0)
 import WAGS.Universe.EdgeProfile (EdgeProfile, ManyEdges, NoEdge, SingleEdge)
 import WAGS.Universe.Graph (class GraphToNodeList, Graph, InitialGraph)
 import WAGS.Universe.Node (Node, NodeC, NodeList, NodeListCons, NodeListNil)

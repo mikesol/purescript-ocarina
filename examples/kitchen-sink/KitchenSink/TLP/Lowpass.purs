@@ -17,7 +17,7 @@ import WAGS.Destroy (destroy)
 import WAGS.Disconnect (disconnect)
 import WAGS.Example.KitchenSink.TLP.Highshelf (doHighshelf)
 import WAGS.Example.KitchenSink.TLP.LoopSig (LoopSig)
-import WAGS.Example.KitchenSink.Timing (ksLowpassIntegral, pieceTime)
+import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
 import WAGS.Example.KitchenSink.Types.Empty (reset)
 import WAGS.Example.KitchenSink.Types.Highshelf (ksHighshelfCreate)
 import WAGS.Example.KitchenSink.Types.Lowpass (LowpassUniverse, ksLowpassLowpass, ksLowpassGain, ksLowpassPlaybuf, deltaKsLowpass)
@@ -36,7 +36,7 @@ doLowpass =
     gn <- cursor ksLowpassGain
     pr <- proof
     withProof pr
-      $ if time % pieceTime < ksLowpassIntegral then
+      $ if time % pieceTime < timing.ksLowpass.end then
           Right (change (deltaKsLowpass time) $> lsig)
         else
           Left

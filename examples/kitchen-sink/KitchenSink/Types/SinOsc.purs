@@ -1,10 +1,11 @@
 module WAGS.Example.KitchenSink.Types.SinOsc where
 
 import Prelude
+
 import Data.Identity (Identity(..))
 import Math (cos, pi, pow, sin, (%))
 import WAGS.Control.Types (Universe')
-import WAGS.Example.KitchenSink.Timing (ksSinOscIntegral, ksSinOscTime, pieceTime)
+import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
 import WAGS.Example.KitchenSink.Types.Empty (BaseGraph, EI0, EI1)
 import WAGS.Graph.Constructors (Gain, SinOsc, Speaker)
 import WAGS.Graph.Decorators (Focus(..), Decorating')
@@ -14,7 +15,6 @@ import WAGS.Universe.EdgeProfile (NoEdge)
 import WAGS.Universe.Graph (GraphC)
 import WAGS.Universe.Node (NodeC)
 
-ksSinOscBegins = ksSinOscIntegral - ksSinOscTime :: Number
 
 type SinOscGraph
   = GraphC
@@ -46,7 +46,7 @@ ksSinOscGain = ksSinOsc' Focus Identity
 deltaKsSinOsc :: Number -> Speaker (Gain GetSetAP (SinOsc GetSetAP))
 deltaKsSinOsc =
   (_ % pieceTime)
-    >>> (_ - ksSinOscBegins)
+    >>> (_ - timing.ksSinOsc.begin)
     >>> (max 0.0)
     >>> \time ->
         let

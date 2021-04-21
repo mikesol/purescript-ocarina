@@ -17,7 +17,7 @@ import WAGS.Destroy (destroy)
 import WAGS.Disconnect (disconnect)
 import WAGS.Example.KitchenSink.TLP.LoopSig (LoopSig)
 import WAGS.Example.KitchenSink.TLP.PeriodicOsc (doPeriodicOsc)
-import WAGS.Example.KitchenSink.Timing (ksSquareOscIntegral, pieceTime)
+import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
 import WAGS.Example.KitchenSink.Types.Empty (reset)
 import WAGS.Example.KitchenSink.Types.SquareOsc (SquareOscUniverse, deltaKsSquareOsc, ksSquareOscGain, ksSquareOscSquareOsc)
 import WAGS.Graph.Constructors (OnOff(..), PeriodicOsc(..))
@@ -35,7 +35,7 @@ doSquareOsc =
     gn <- cursor ksSquareOscGain
     pr <- proof
     withProof pr
-      $ if time % pieceTime < ksSquareOscIntegral then
+      $ if time % pieceTime < timing.ksSquareOsc.end then
           Right (change (deltaKsSquareOsc time) $> lsig)
         else
           Left

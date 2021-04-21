@@ -3,6 +3,7 @@ module WAGS.Example.KitchenSink.TLP.Allpass where
 import Prelude
 
 import Data.Either (Either(..))
+import Data.Functor.Indexed (ivoid)
 import Data.Identity (Identity(..))
 import Effect (Effect)
 import Math ((%))
@@ -17,8 +18,8 @@ import WAGS.Destroy (destroy)
 import WAGS.Disconnect (disconnect)
 import WAGS.Example.KitchenSink.TLP.LoopSig (LoopSig)
 import WAGS.Example.KitchenSink.TLP.Lowpass (doLowpass)
-import WAGS.Example.KitchenSink.Timing (ksAllpassIntegral, pieceTime)
-import WAGS.Example.KitchenSink.Types.Allpass (AllpassUniverse, ksAllpassAllpass, ksAllpassGain, ksAllpassPlaybuf, deltaKsAllpass)
+import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
+import WAGS.Example.KitchenSink.Types.Allpass (AllpassUniverse, deltaKsAllpass, ksAllpassAllpass, ksAllpassGain, ksAllpassPlaybuf)
 import WAGS.Example.KitchenSink.Types.Empty (reset)
 import WAGS.Example.KitchenSink.Types.Lowpass (ksLowpassCreate)
 import WAGS.Interpret (FFIAudio)
@@ -36,7 +37,7 @@ doAllpass =
     gn <- cursor ksAllpassGain
     pr <- proof
     withProof pr
-      $ if time % pieceTime < ksAllpassIntegral then
+      $ if time % pieceTime < timing.ksAllpass.end then
           Right (change (deltaKsAllpass time) $> lsig)
         else
           Left

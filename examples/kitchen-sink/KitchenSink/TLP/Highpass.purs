@@ -16,7 +16,7 @@ import WAGS.Destroy (destroy)
 import WAGS.Disconnect (disconnect)
 import WAGS.Example.KitchenSink.TLP.LoopSig (LoopSig)
 import WAGS.Example.KitchenSink.TLP.Microphone (doMicrophone)
-import WAGS.Example.KitchenSink.Timing (ksHighpassIntegral, pieceTime)
+import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
 import WAGS.Example.KitchenSink.Types.Empty (reset)
 import WAGS.Example.KitchenSink.Types.Highpass (HighpassUniverse, ksHighpassHighpass, ksHighpassGain, ksHighpassPlaybuf, deltaKsHighpass)
 import WAGS.Graph.Optionals (microphone)
@@ -35,7 +35,7 @@ doHighpass =
     gn <- cursor ksHighpassGain
     pr <- proof
     withProof pr
-      $ if time % pieceTime < ksHighpassIntegral then
+      $ if time % pieceTime < timing.ksHighpass.end then
           Right (change (deltaKsHighpass time) $> lsig)
         else
           Left

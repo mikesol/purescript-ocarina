@@ -5,7 +5,7 @@ import Prelude
 import Data.Identity (Identity(..))
 import Math (cos, pi, pow, sin, (%))
 import WAGS.Control.Types (Universe')
-import WAGS.Example.KitchenSink.Timing (ksTriangleOscIntegral, ksTriangleOscTime, pieceTime)
+import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
 import WAGS.Example.KitchenSink.Types.Empty (BaseGraph, EI0, EI1)
 import WAGS.Graph.Constructors (Gain, Speaker, TriangleOsc)
 import WAGS.Graph.Decorators (Focus(..), Decorating')
@@ -14,8 +14,6 @@ import WAGS.Universe.AudioUnit (TTriangleOsc)
 import WAGS.Universe.EdgeProfile (NoEdge)
 import WAGS.Universe.Graph (GraphC)
 import WAGS.Universe.Node (NodeC)
-
-ksTriangleOscBegin = ksTriangleOscIntegral - ksTriangleOscTime :: Number
 
 type TriangleOscGraph
   = GraphC
@@ -47,7 +45,7 @@ ksTriangleOscGain = ksTriangleOsc' Focus Identity
 deltaKsTriangleOsc :: Number -> Speaker (Gain GetSetAP (TriangleOsc GetSetAP))
 deltaKsTriangleOsc =
   (_ % pieceTime)
-    >>> (_ - ksTriangleOscBegin)
+    >>> (_ - timing.ksTriangleOsc.begin)
     >>> (max 0.0)
     >>> \time ->
         let

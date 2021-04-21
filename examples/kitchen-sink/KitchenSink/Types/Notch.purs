@@ -6,7 +6,7 @@ import Data.Identity (Identity(..))
 import Math ((%))
 import Type.Proxy (Proxy(..))
 import WAGS.Control.Types (Universe')
-import WAGS.Example.KitchenSink.Timing (calcSlope, ksNotchIntegral, ksNotchTime, pieceTime)
+import WAGS.Example.KitchenSink.Timing (calcSlope, pieceTime, timing)
 import WAGS.Example.KitchenSink.Types.Empty (BaseGraph, EI0, EI1, EI2)
 import WAGS.Graph.Constructors (Notch, Gain, PlayBuf, Speaker)
 import WAGS.Graph.Decorators (Focus(..), Decorating')
@@ -16,7 +16,6 @@ import WAGS.Universe.EdgeProfile (NoEdge, SingleEdge)
 import WAGS.Universe.Graph (GraphC)
 import WAGS.Universe.Node (NodeC, NodeListCons)
 
-ksNotchBegins = ksNotchIntegral - ksNotchTime :: Number
 
 type NotchGraph
   = GraphC
@@ -67,14 +66,14 @@ ksNotchGain = ksNotch' Focus Identity Identity
 deltaKsNotch :: Number -> KsNotch Identity Identity Identity
 deltaKsNotch =
   (_ % pieceTime)
-    >>> (_ - ksNotchBegins)
+    >>> (_ - timing.ksNotch.begin)
     >>> (max 0.0)
     >>> \time ->
         speaker
           ( Identity
               $ gain (if time > 9.0 then 0.0 else 1.0)
                   ( Identity
-                      $ notch { freq: calcSlope 0.0 300.0 ksNotchTime 200.0 time }
+                      $ notch { freq: calcSlope 0.0 300.0 timing.ksNotch.dur 200.0 time }
                           (Identity $ playBuf (Proxy :: _ "my-buffer"))
                   )
           )

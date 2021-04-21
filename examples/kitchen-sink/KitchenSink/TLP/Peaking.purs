@@ -17,7 +17,7 @@ import WAGS.Destroy (destroy)
 import WAGS.Disconnect (disconnect)
 import WAGS.Example.KitchenSink.TLP.Highpass (doHighpass)
 import WAGS.Example.KitchenSink.TLP.LoopSig (LoopSig)
-import WAGS.Example.KitchenSink.Timing (ksPeakingIntegral, pieceTime)
+import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
 import WAGS.Example.KitchenSink.Types.Empty (reset)
 import WAGS.Example.KitchenSink.Types.Highpass (ksHighpassCreate)
 import WAGS.Example.KitchenSink.Types.Peaking (PeakingUniverse, ksPeakingPeaking, ksPeakingGain, ksPeakingPlaybuf, deltaKsPeaking)
@@ -36,7 +36,7 @@ doPeaking =
     gn <- cursor ksPeakingGain
     pr <- proof
     withProof pr
-      $ if time % pieceTime < ksPeakingIntegral then
+      $ if time % pieceTime < timing.ksPeaking.end then
           Right (change (deltaKsPeaking time) $> lsig)
         else
           Left

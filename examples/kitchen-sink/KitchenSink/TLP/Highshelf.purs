@@ -17,7 +17,7 @@ import WAGS.Destroy (destroy)
 import WAGS.Disconnect (disconnect)
 import WAGS.Example.KitchenSink.TLP.LoopSig (LoopSig)
 import WAGS.Example.KitchenSink.TLP.Lowshelf (doLowshelf)
-import WAGS.Example.KitchenSink.Timing (ksHighshelfIntegral, pieceTime)
+import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
 import WAGS.Example.KitchenSink.Types.Empty (reset)
 import WAGS.Example.KitchenSink.Types.Highshelf (HighshelfUniverse, ksHighshelfHighshelf, ksHighshelfGain, ksHighshelfPlaybuf, deltaKsHighshelf)
 import WAGS.Example.KitchenSink.Types.Lowshelf (ksLowshelfCreate)
@@ -36,7 +36,7 @@ doHighshelf =
     gn <- cursor ksHighshelfGain
     pr <- proof
     withProof pr
-      $ if time % pieceTime < ksHighshelfIntegral then
+      $ if time % pieceTime < timing.ksHighshelf.end then
           Right (change (deltaKsHighshelf time) $> lsig)
         else
           Left

@@ -15,10 +15,10 @@ import WAGS.Create (create)
 import WAGS.Cursor (cursor)
 import WAGS.Destroy (destroy)
 import WAGS.Disconnect (disconnect)
-import WAGS.Example.KitchenSink.TLP.DynamicsCompressor (doDynamicsCompressor)
+import WAGS.Example.KitchenSink.TLP.Delay (doDelay)
 import WAGS.Example.KitchenSink.TLP.LoopSig (LoopSig)
-import WAGS.Example.KitchenSink.Timing (ksWaveShaperIntegral, pieceTime)
-import WAGS.Example.KitchenSink.Types.DynamicsCompressor (ksDynamicsCompressorCreate)
+import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
+import WAGS.Example.KitchenSink.Types.Delay (ksDelayCreate)
 import WAGS.Example.KitchenSink.Types.Empty (reset)
 import WAGS.Example.KitchenSink.Types.WaveShaper (WaveShaperUniverse, deltaKsWaveShaper, ksWaveShaperGain, ksWaveShaperPlaybuf, ksWaveShaperWaveShaper)
 import WAGS.Interpret (FFIAudio)
@@ -36,16 +36,16 @@ doWaveShaper =
     gn <- cursor ksWaveShaperGain
     pr <- proof
     withProof pr
-      $ if time % pieceTime < ksWaveShaperIntegral then
+      $ if time % pieceTime < timing.ksWaveShaper.end then
           Right (change (deltaKsWaveShaper time) $> lsig)
         else
           Left
-            $ inSitu doDynamicsCompressor WAGS.do
+            $ inSitu doDelay WAGS.do
                 disconnect toRemoveBuf toRemove
                 disconnect toRemove gn
                 destroy toRemoveBuf
                 destroy toRemove
                 reset
-                toAdd <- create (ksDynamicsCompressorCreate Identity Identity)
+                toAdd <- create (ksDelayCreate Identity Identity Identity)
                 connect toAdd gn
                 withProof pr lsig

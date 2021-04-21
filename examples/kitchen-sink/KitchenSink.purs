@@ -1,12 +1,13 @@
 module WAGS.Example.KitchenSink where
 
 import Prelude
+
 import Control.Comonad.Cofree (Cofree, mkCofree)
 import Control.Promise (toAffE)
+import Data.Array ((..))
 import Data.Foldable (for_)
 import Data.Int (toNumber)
 import Data.Maybe (Maybe(..))
-import Data.Array ((..))
 import Data.Vec ((+>), empty)
 import Effect (Effect)
 import Effect.Aff.Class (class MonadAff)
@@ -20,6 +21,7 @@ import Halogen.HTML.Events as HE
 import Halogen.VDom.Driver (runUI)
 import Math (abs, pi)
 import WAGS.Example.KitchenSink.TLP (piece)
+import WAGS.Example.KitchenSink.Timing (timing)
 import WAGS.Interpret (AudioContext, FFIAudio(..), close, context, decodeAudioDataFromUri, defaultFFIAudio, makeFloatArray, makePeriodicWave, makeUnitCache)
 import WAGS.Run (run)
 
@@ -82,6 +84,7 @@ render state = do
     , HH.button
         [ HE.onClick \_ -> StopAudio ]
         [ HH.text "Stop audio" ]
+    , HH.p [] [HH.text $ show timing]
     ]
 
 handleAction :: forall output m. MonadEffect m => MonadAff m => Action -> H.HalogenM State Action () output m Unit

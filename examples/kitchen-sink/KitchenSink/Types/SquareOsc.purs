@@ -1,11 +1,10 @@
 module WAGS.Example.KitchenSink.Types.SquareOsc where
 
 import Prelude
-
 import Data.Identity (Identity(..))
 import Math (cos, pi, pow, sin, (%))
 import WAGS.Control.Types (Universe')
-import WAGS.Example.KitchenSink.Timing (ksSquareOscIntegral, ksSquareOscTime, pieceTime)
+import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
 import WAGS.Example.KitchenSink.Types.Empty (BaseGraph, EI0, EI1)
 import WAGS.Graph.Constructors (Gain, Speaker, SquareOsc)
 import WAGS.Graph.Decorators (Focus(..), Decorating')
@@ -14,8 +13,6 @@ import WAGS.Universe.AudioUnit (TSquareOsc)
 import WAGS.Universe.EdgeProfile (NoEdge)
 import WAGS.Universe.Graph (GraphC)
 import WAGS.Universe.Node (NodeC)
-
-ksSquareOscBegins = ksSquareOscIntegral - ksSquareOscTime :: Number
 
 type SquareOscGraph
   = GraphC
@@ -47,7 +44,7 @@ ksSquareOscGain = ksSquareOsc' Focus Identity
 deltaKsSquareOsc :: Number -> Speaker (Gain GetSetAP (SquareOsc GetSetAP))
 deltaKsSquareOsc =
   (_ % pieceTime)
-    >>> (_ - ksSquareOscBegins)
+    >>> (_ - timing.ksSquareOsc.begin)
     >>> (max 0.0)
     >>> \time ->
         let

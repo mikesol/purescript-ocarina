@@ -6,7 +6,7 @@ import Data.Identity (Identity(..))
 import Math ((%))
 import Type.Proxy (Proxy(..))
 import WAGS.Control.Types (Universe')
-import WAGS.Example.KitchenSink.Timing (calcSlope, ksBandpassIntegral, ksBandpassTime, pieceTime)
+import WAGS.Example.KitchenSink.Timing (calcSlope, pieceTime, timing)
 import WAGS.Example.KitchenSink.Types.Empty (BaseGraph, EI0, EI1, EI2)
 import WAGS.Graph.Constructors (Bandpass, Gain, PlayBuf, Speaker)
 import WAGS.Graph.Decorators (Focus(..), Decorating')
@@ -15,8 +15,6 @@ import WAGS.Universe.AudioUnit (TBandpass, TPlayBuf)
 import WAGS.Universe.EdgeProfile (NoEdge, SingleEdge)
 import WAGS.Universe.Graph (GraphC)
 import WAGS.Universe.Node (NodeC, NodeListCons)
-
-ksBandpassBegins = ksBandpassIntegral - ksBandpassTime :: Number
 
 type BandpassGraph
   = GraphC
@@ -67,11 +65,11 @@ ksBandpassGain = ksBandpass' Focus Identity Identity
 deltaKsBandpass :: Number -> KsBandpass Identity Identity Identity
 deltaKsBandpass =
   (_ % pieceTime)
-    >>> (_ - ksBandpassBegins)
+    >>> (_ - timing.ksBandpass.begin)
     >>> (max 0.0)
     >>> \time ->
         speaker
           ( Identity
               $ gain (if time > 9.0 then 0.0 else 1.0)
-                  (Identity $ bandpass {freq:calcSlope 0.0 300.0 ksBandpassTime 200.0 time} (Identity $ playBuf (Proxy :: _ "my-buffer")))
+                  (Identity $ bandpass {freq:calcSlope 0.0 300.0 timing.ksBandpass.dur 200.0 time} (Identity $ playBuf (Proxy :: _ "my-buffer")))
           )

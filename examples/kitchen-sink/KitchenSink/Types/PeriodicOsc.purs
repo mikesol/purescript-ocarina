@@ -1,11 +1,12 @@
 module WAGS.Example.KitchenSink.Types.PeriodicOsc where
 
 import Prelude
+
 import Data.Identity (Identity(..))
 import Math (cos, pi, pow, sin, (%))
 import Type.Proxy (Proxy(..))
 import WAGS.Control.Types (Universe')
-import WAGS.Example.KitchenSink.Timing (ksPeriodicOscIntegral, ksPeriodicOscTime, pieceTime)
+import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
 import WAGS.Example.KitchenSink.Types.Empty (BaseGraph, EI0, EI1)
 import WAGS.Graph.Constructors (Gain, PeriodicOsc, Speaker)
 import WAGS.Graph.Decorators (Focus(..), Decorating')
@@ -14,8 +15,6 @@ import WAGS.Universe.AudioUnit (TPeriodicOsc)
 import WAGS.Universe.EdgeProfile (NoEdge)
 import WAGS.Universe.Graph (GraphC)
 import WAGS.Universe.Node (NodeC)
-
-ksPeriodicOscBegins = ksPeriodicOscIntegral - ksPeriodicOscTime :: Number
 
 ----------- ksPeriodicOsc
 type PeriodicOscGraph
@@ -48,7 +47,7 @@ ksPeriodicOscGain = ksPeriodicOsc' Focus Identity
 deltaKsPeriodicOsc :: Number -> Speaker (Gain GetSetAP (PeriodicOsc "my-wave" GetSetAP))
 deltaKsPeriodicOsc =
   (_ % pieceTime)
-    >>> (_ - ksPeriodicOscBegins)
+    >>> (_ - timing.ksPeriodicOsc.begin)
     >>> (max 0.0)
     >>> \time ->
         let

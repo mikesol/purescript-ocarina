@@ -61,7 +61,8 @@ else instance removePointerFromNodeConvolverHitSE :: RemovePointerFromNode from 
 else instance removePointerFromNodeDelayHitSE :: RemovePointerFromNode from to (NodeC (AU.TDelay to) (SingleEdge from)) (NodeC (AU.TDelay to) NoEdge) True
 else instance removePointerFromNodeDynamicsCompressorHitSE :: RemovePointerFromNode from to (NodeC (AU.TDynamicsCompressor to) (SingleEdge from)) (NodeC (AU.TDynamicsCompressor to) NoEdge) True
 else instance removePointerFromNodeGainHitSE :: RemovePointerFromNode from to (NodeC (AU.TGain to) (SingleEdge from)) (NodeC (AU.TGain to) NoEdge) True
-else instance removePointerFromNodeGainHitME :: (RemovePtrFromList from (PtrListCons e (PtrListCons l r)) (PtrListCons head tail)) => RemovePointerFromNode from to (NodeC (AU.TGain to) (ManyEdges e (PtrListCons l r))) (NodeC (AU.TGain to) (ManyEdges head tail)) True
+else instance removePointerFromNodeGainHitMEC :: (RemovePtrFromList from (PtrListCons e (PtrListCons l (PtrListCons r0 r1))) (PtrListCons head tail)) => RemovePointerFromNode from to (NodeC (AU.TGain to) (ManyEdges e (PtrListCons l (PtrListCons r0 r1)))) (NodeC (AU.TGain to) (ManyEdges head tail)) True
+else instance removePointerFromNodeGainHitMEN :: (RemovePtrFromList from (PtrListCons e (PtrListCons l PtrListNil)) (PtrListCons head PtrListNil)) => RemovePointerFromNode from to (NodeC (AU.TGain to) (ManyEdges e (PtrListCons l PtrListNil))) (NodeC (AU.TGain to) (SingleEdge head)) True
 else instance removePointerFromNodeHighpassHitSE :: RemovePointerFromNode from to (NodeC (AU.THighpass to) (SingleEdge from)) (NodeC (AU.THighpass to) NoEdge) True
 else instance removePointerFromNodeHighshelfHitSE :: RemovePointerFromNode from to (NodeC (AU.THighshelf to) (SingleEdge from)) (NodeC (AU.THighshelf to) NoEdge) True
 else instance removePointerFromNodeLowpassHitSE :: RemovePointerFromNode from to (NodeC (AU.TLowpass to) (SingleEdge from)) (NodeC (AU.TLowpass to) NoEdge) True
@@ -70,7 +71,8 @@ else instance removePointerFromNodeNotchHitSE :: RemovePointerFromNode from to (
 else instance removePointerFromNodePeakingHitSE :: RemovePointerFromNode from to (NodeC (AU.TPeaking to) (SingleEdge from)) (NodeC (AU.TPeaking to) NoEdge) True
 else instance removePointerFromNodeRecorderHitSE :: RemovePointerFromNode from to (NodeC (AU.TRecorder to name) (SingleEdge from)) (NodeC (AU.TRecorder to name) NoEdge) True
 else instance removePointerFromNodeSpeakerHitSE :: RemovePointerFromNode from to (NodeC (AU.TSpeaker to) (SingleEdge from)) (NodeC (AU.TSpeaker to) NoEdge) True
-else instance removePointerFromNodeSpeakerHitME :: (RemovePtrFromList from (PtrListCons e (PtrListCons l r)) (PtrListCons head tail)) => RemovePointerFromNode from to (NodeC (AU.TSpeaker to) (ManyEdges e (PtrListCons l r))) (NodeC (AU.TSpeaker to) (ManyEdges head tail)) True
+else instance removePointerFromNodeSpeakerHitMEC :: (RemovePtrFromList from (PtrListCons e (PtrListCons l (PtrListCons r0 r1))) (PtrListCons head tail)) => RemovePointerFromNode from to (NodeC (AU.TSpeaker to) (ManyEdges e (PtrListCons l (PtrListCons r0 r1)))) (NodeC (AU.TSpeaker to) (ManyEdges head tail)) True
+else instance removePointerFromNodeSpeakerHitMEN :: (RemovePtrFromList from (PtrListCons e (PtrListCons l PtrListNil)) (PtrListCons head PtrListNil)) => RemovePointerFromNode from to (NodeC (AU.TSpeaker to) (ManyEdges e (PtrListCons l PtrListNil))) (NodeC (AU.TSpeaker to) (SingleEdge head)) True
 else instance removePointerFromNodeStereoPannerHitSE :: RemovePointerFromNode from to (NodeC (AU.TStereoPanner to) (SingleEdge from)) (NodeC (AU.TStereoPanner to) NoEdge) True
 else instance removePointerFromNodeWaveShaperHitSE :: RemovePointerFromNode from to (NodeC (AU.TWaveShaper to name) (SingleEdge from)) (NodeC (AU.TWaveShaper to name) NoEdge) True
 else instance removePointerFromNodeMiss :: RemovePointerFromNode from to i i False

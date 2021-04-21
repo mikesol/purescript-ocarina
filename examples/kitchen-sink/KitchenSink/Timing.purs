@@ -2,6 +2,99 @@ module WAGS.Example.KitchenSink.Timing where
 
 import Prelude
 
+import Control.Monad.State (State, evalState, get, modify)
+import Data.Monoid.Additive (Additive)
+import Data.Newtype (unwrap)
+import Heterogeneous.Folding (hfoldl)
+import Heterogeneous.Mapping (class HMap, hmap)
+
+type TimeInfo
+  = { begin :: Additive Number, dur :: Additive Number, end :: Additive Number }
+
+type TimeInfo'
+  = { begin :: Number, dur :: Number, end :: Number }
+
+type KitchenSinkTiming
+  = { ksSinOsc :: TimeInfo
+    , ksTriangleOsc :: TimeInfo
+    , ksSquareOsc :: TimeInfo
+    , ksPeriodicOsc :: TimeInfo
+    , ksSawtoothOsc :: TimeInfo
+    , ksAllpass :: TimeInfo
+    , ksLowpass :: TimeInfo
+    , ksHighshelf :: TimeInfo
+    , ksLowshelf :: TimeInfo
+    , ksBandpass :: TimeInfo
+    , ksNotch :: TimeInfo
+    , ksPeaking :: TimeInfo
+    , ksHighpass :: TimeInfo
+    , ksMicrophone :: TimeInfo
+    , ksWaveShaper :: TimeInfo
+    , ksDelay :: TimeInfo
+    , ksDynamicsCompressor :: TimeInfo
+    }
+
+type Timed
+  = State (Additive Number)
+
+integrate :: Number -> Timed TimeInfo
+integrate n =
+  { begin: _, dur: _, end: _ }
+    <$> get
+    <*> (pure $ pure n)
+    <*> (modify (append (pure n)))
+
+data KSFold
+  = KSFold
+
+deAdd :: TimeInfo -> TimeInfo'
+deAdd { begin, dur, end } = { begin: unwrap begin, dur: unwrap dur, end: unwrap end }
+
+timing :: forall a. HMap (TimeInfo -> TimeInfo') KitchenSinkTiming a => a
+timing =
+  hmap deAdd
+    $ evalState
+        ( { ksSinOsc: _
+          , ksTriangleOsc: _
+          , ksSquareOsc: _
+          , ksPeriodicOsc: _
+          , ksSawtoothOsc: _
+          , ksAllpass: _
+          , ksLowpass: _
+          , ksHighshelf: _
+          , ksLowshelf: _
+          , ksBandpass: _
+          , ksNotch: _
+          , ksPeaking: _
+          , ksHighpass: _
+          , ksMicrophone: _
+          , ksWaveShaper: _
+          , ksDelay: _
+          , ksDynamicsCompressor: _
+          }
+            <$> integrate 5.0
+            <*> integrate 5.0
+            <*> integrate 5.0
+            <*> integrate 5.0
+            <*> integrate 5.0
+            <*> integrate 10.0
+            <*> integrate 10.0
+            <*> integrate 10.0
+            <*> integrate 10.0
+            <*> integrate 10.0
+            <*> integrate 10.0
+            <*> integrate 10.0
+            <*> integrate 10.0
+            <*> integrate 5.0
+            <*> integrate 10.0
+            <*> integrate 10.0
+            <*> integrate 10.0
+        )
+        mempty
+
+pieceTime :: Number
+pieceTime = hfoldl (\(a :: Number) (b :: TimeInfo') -> max a b.end) 0.0 timing
+
 calcSlope :: Number -> Number -> Number -> Number -> Number -> Number
 calcSlope x0 y0 x1 y1 x =
   if x1 == x0 || y1 == y0 then
@@ -13,70 +106,3 @@ calcSlope x0 y0 x1 y1 x =
       b = y0 - m * x0
     in
       m * x + b
-
-ksSinOscTime = 5.0 :: Number
-
-ksSinOscIntegral = ksSinOscTime :: Number
-
-ksTriangleOscTime = 5.0 :: Number
-
-ksTriangleOscIntegral = ksTriangleOscTime + ksSinOscIntegral :: Number
-
-ksSquareOscTime = 5.0 :: Number
-
-ksSquareOscIntegral = ksSquareOscTime + ksTriangleOscIntegral :: Number
-
-ksPeriodicOscTime = 5.0 :: Number
-
-ksPeriodicOscIntegral = ksPeriodicOscTime + ksSquareOscIntegral :: Number
-
-ksSawtoothOscTime = 5.0 :: Number
-
-ksSawtoothOscIntegral = ksSawtoothOscTime + ksPeriodicOscIntegral :: Number
-
-ksAllpassTime = 10.0 :: Number
-
-ksAllpassIntegral = ksAllpassTime + ksSawtoothOscIntegral :: Number
-
-ksLowpassTime = 10.0 :: Number
-
-ksLowpassIntegral = ksLowpassTime + ksAllpassIntegral :: Number
-
-ksHighshelfTime = 10.0 :: Number
-
-ksHighshelfIntegral = ksHighshelfTime + ksLowpassIntegral :: Number
-
-ksLowshelfTime = 10.0 :: Number
-
-ksLowshelfIntegral = ksLowshelfTime + ksHighshelfIntegral :: Number
-
-ksBandpassTime = 10.0 :: Number
-
-ksBandpassIntegral = ksBandpassTime + ksLowshelfIntegral :: Number
-
-ksNotchTime = 10.0 :: Number
-
-ksNotchIntegral = ksNotchTime + ksBandpassIntegral :: Number
-
-ksPeakingTime = 10.0 :: Number
-
-ksPeakingIntegral = ksPeakingTime + ksNotchIntegral :: Number
-
-ksHighpassTime = 10.0 :: Number
-
-ksHighpassIntegral = ksHighpassTime + ksPeakingIntegral :: Number
-
-ksMicrophoneTime = 5.0 :: Number
-
-ksMicrophoneIntegral = ksMicrophoneTime + ksHighpassIntegral :: Number
-
-ksWaveShaperTime = 5.0 :: Number
-
-ksWaveShaperIntegral = ksWaveShaperTime + ksMicrophoneIntegral :: Number
-
-ksDynamicsCompressorTime = 10.0 :: Number
-
-ksDynamicsCompressorIntegral = ksDynamicsCompressorTime + ksMicrophoneIntegral :: Number
-
-pieceTime :: Number
-pieceTime = ksAllpassIntegral

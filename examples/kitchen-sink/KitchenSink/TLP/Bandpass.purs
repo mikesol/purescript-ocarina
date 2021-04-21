@@ -17,7 +17,7 @@ import WAGS.Destroy (destroy)
 import WAGS.Disconnect (disconnect)
 import WAGS.Example.KitchenSink.TLP.LoopSig (LoopSig)
 import WAGS.Example.KitchenSink.TLP.Notch (doNotch)
-import WAGS.Example.KitchenSink.Timing (ksBandpassIntegral, pieceTime)
+import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
 import WAGS.Example.KitchenSink.Types.Bandpass (BandpassUniverse, ksBandpassBandpass, ksBandpassGain, ksBandpassPlaybuf, deltaKsBandpass)
 import WAGS.Example.KitchenSink.Types.Empty (reset)
 import WAGS.Example.KitchenSink.Types.Notch (ksNotchCreate)
@@ -36,7 +36,7 @@ doBandpass =
     gn <- cursor ksBandpassGain
     pr <- proof
     withProof pr
-      $ if time % pieceTime < ksBandpassIntegral then
+      $ if time % pieceTime < timing.ksBandpass.end then
           Right (change (deltaKsBandpass time) $> lsig)
         else
           Left

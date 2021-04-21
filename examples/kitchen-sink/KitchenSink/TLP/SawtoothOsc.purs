@@ -16,7 +16,7 @@ import WAGS.Destroy (destroy)
 import WAGS.Disconnect (disconnect)
 import WAGS.Example.KitchenSink.TLP.Allpass (doAllpass)
 import WAGS.Example.KitchenSink.TLP.LoopSig (LoopSig)
-import WAGS.Example.KitchenSink.Timing (ksSawtoothOscIntegral, pieceTime)
+import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
 import WAGS.Example.KitchenSink.Types.Allpass (ksAllpassCreate)
 import WAGS.Example.KitchenSink.Types.Empty (reset)
 import WAGS.Example.KitchenSink.Types.SawtoothOsc (SawtoothOscUniverse, deltaKsSawtoothOsc, ksSawtoothOscGain, ksSawtoothOscSawtoothOsc)
@@ -34,7 +34,7 @@ doSawtoothOsc =
     gn <- cursor ksSawtoothOscGain
     pr <- proof
     withProof pr
-      $ if time % pieceTime < ksSawtoothOscIntegral then
+      $ if time % pieceTime < timing.ksSawtoothOsc.end then
           Right (change (deltaKsSawtoothOsc time) $> lsig)
         else
           Left

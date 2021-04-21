@@ -16,7 +16,7 @@ import WAGS.Destroy (destroy)
 import WAGS.Disconnect (disconnect)
 import WAGS.Example.KitchenSink.TLP.LoopSig (LoopSig)
 import WAGS.Example.KitchenSink.TLP.TriangleOsc (doTriangleOsc)
-import WAGS.Example.KitchenSink.Timing (ksSinOscIntegral, pieceTime)
+import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
 import WAGS.Example.KitchenSink.Types.Empty (reset)
 import WAGS.Example.KitchenSink.Types.SinOsc (SinOscUniverse, deltaKsSinOsc, ksSinOscGain, ksSinOscSinOsc)
 import WAGS.Graph.Constructors (OnOff(..), TriangleOsc(..))
@@ -34,7 +34,7 @@ doSinOsc =
     gn <- cursor ksSinOscGain
     pr <- proof
     withProof pr
-      $ if time % pieceTime < ksSinOscIntegral then
+      $ if time % pieceTime < timing.ksSinOsc.end then
           Right (change (deltaKsSinOsc time) $> lsig)
         else
           Left

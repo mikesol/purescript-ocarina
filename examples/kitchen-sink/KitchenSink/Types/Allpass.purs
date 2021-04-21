@@ -6,7 +6,7 @@ import Data.Identity (Identity(..))
 import Math ((%))
 import Type.Proxy (Proxy(..))
 import WAGS.Control.Types (Universe')
-import WAGS.Example.KitchenSink.Timing (calcSlope, ksAllpassIntegral, ksAllpassTime, pieceTime)
+import WAGS.Example.KitchenSink.Timing (calcSlope, timing, pieceTime)
 import WAGS.Example.KitchenSink.Types.Empty (BaseGraph, EI0, EI1, EI2)
 import WAGS.Graph.Constructors (Allpass, Gain, PlayBuf, Speaker)
 import WAGS.Graph.Decorators (Focus(..), Decorating')
@@ -15,8 +15,6 @@ import WAGS.Universe.AudioUnit (TAllpass, TPlayBuf)
 import WAGS.Universe.EdgeProfile (NoEdge, SingleEdge)
 import WAGS.Universe.Graph (GraphC)
 import WAGS.Universe.Node (NodeC, NodeListCons)
-
-ksAllpassBegins = ksAllpassIntegral - ksAllpassTime :: Number
 
 type AllpassGraph
   = GraphC
@@ -67,11 +65,11 @@ ksAllpassGain = ksAllpass' Focus Identity Identity
 deltaKsAllpass :: Number -> KsAllpass Identity Identity Identity
 deltaKsAllpass =
   (_ % pieceTime)
-    >>> (_ - ksAllpassBegins)
+    >>> (_ - timing.ksAllpass.begin)
     >>> (max 0.0)
     >>> \time ->
         speaker
           ( Identity
               $ gain (if time > 9.0 then 0.0 else 1.0)
-                  (Identity $ allpass { freq: calcSlope 0.0 300.0 ksAllpassTime 200.0 time } (Identity $ playBuf (Proxy :: _ "my-buffer")))
+                  (Identity $ allpass { freq: calcSlope 0.0 300.0 timing.ksAllpass.dur 200.0 time } (Identity $ playBuf (Proxy :: _ "my-buffer")))
           )

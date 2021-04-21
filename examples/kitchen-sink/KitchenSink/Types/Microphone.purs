@@ -1,10 +1,11 @@
 module WAGS.Example.KitchenSink.Types.Microphone where
 
 import Prelude
+
 import Data.Identity (Identity(..))
 import Math (cos, pi, (%))
 import WAGS.Control.Types (Universe')
-import WAGS.Example.KitchenSink.Timing (ksMicrophoneIntegral, ksMicrophoneTime, pieceTime)
+import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
 import WAGS.Example.KitchenSink.Types.Empty (BaseGraph, EI0, EI1)
 import WAGS.Graph.Constructors (Gain, Microphone, Speaker)
 import WAGS.Graph.Decorators (Focus(..), Decorating')
@@ -14,7 +15,6 @@ import WAGS.Universe.EdgeProfile (NoEdge)
 import WAGS.Universe.Graph (GraphC)
 import WAGS.Universe.Node (NodeC)
 
-ksMicrophoneBegins = ksMicrophoneIntegral - ksMicrophoneTime :: Number
 
 type MicrophoneGraph
   = GraphC
@@ -46,7 +46,7 @@ ksMicrophoneGain = ksMicrophone' Focus Identity
 deltaKsMicrophone :: Number -> Speaker (Gain GetSetAP Microphone)
 deltaKsMicrophone =
   (_ % pieceTime)
-    >>> (_ - ksMicrophoneBegins)
+    >>> (_ - timing.ksMicrophone.begin)
     >>> (max 0.0)
     >>> \time ->
         let

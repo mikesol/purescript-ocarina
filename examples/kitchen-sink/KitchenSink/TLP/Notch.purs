@@ -17,7 +17,7 @@ import WAGS.Destroy (destroy)
 import WAGS.Disconnect (disconnect)
 import WAGS.Example.KitchenSink.TLP.LoopSig (LoopSig)
 import WAGS.Example.KitchenSink.TLP.Peaking (doPeaking)
-import WAGS.Example.KitchenSink.Timing (ksNotchIntegral, pieceTime)
+import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
 import WAGS.Example.KitchenSink.Types.Empty (reset)
 import WAGS.Example.KitchenSink.Types.Notch (NotchUniverse, ksNotchNotch, ksNotchGain, ksNotchPlaybuf, deltaKsNotch)
 import WAGS.Example.KitchenSink.Types.Peaking (ksPeakingCreate)
@@ -36,7 +36,7 @@ doNotch =
     gn <- cursor ksNotchGain
     pr <- proof
     withProof pr
-      $ if time % pieceTime < ksNotchIntegral then
+      $ if time % pieceTime < timing.ksNotch.end then
           Right (change (deltaKsNotch time) $> lsig)
         else
           Left

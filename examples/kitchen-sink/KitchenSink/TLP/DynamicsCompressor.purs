@@ -1,6 +1,7 @@
 module WAGS.Example.KitchenSink.TLP.DynamicsCompressor where
 
 import Prelude
+
 import Data.Either (Either(..))
 import Effect (Effect)
 import Math ((%))
@@ -14,9 +15,9 @@ import WAGS.Cursor (cursor)
 import WAGS.Destroy (destroy)
 import WAGS.Disconnect (disconnect)
 import WAGS.Example.KitchenSink.TLP.LoopSig (LoopSig(..))
-import WAGS.Example.KitchenSink.Timing (pieceTime)
+import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
+import WAGS.Example.KitchenSink.Types.DynamicsCompressor (DynamicsCompressorUniverse, deltaKsDynamicsCompressor, ksDynamicsCompressorGain, ksDynamicsCompressorDynamicsCompressor, ksDynamicsCompressorPlaybuf)
 import WAGS.Example.KitchenSink.Types.Empty (reset)
-import WAGS.Example.KitchenSink.Types.DynamicsCompressor (DynamicsCompressorUniverse, deltaKsDynamicsCompressor, ksDynamicsCompressorBegins, ksDynamicsCompressorGain, ksDynamicsCompressorDynamicsCompressor, ksDynamicsCompressorPlaybuf)
 import WAGS.Graph.Constructors (OnOff(..), SinOsc(..))
 import WAGS.Interpret (FFIAudio)
 import WAGS.Run (SceneI)
@@ -33,7 +34,7 @@ doDynamicsCompressor =
     gn <- cursor ksDynamicsCompressorGain
     pr <- proof
     withProof pr
-      $ if time % pieceTime < ksDynamicsCompressorBegins then
+      $ if time % pieceTime < timing.ksDynamicsCompressor.begin then
           Left
             $ inSitu lsig WAGS.do
                 disconnect toRemoveBuf toRemove

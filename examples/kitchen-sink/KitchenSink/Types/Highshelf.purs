@@ -6,7 +6,7 @@ import Data.Identity (Identity(..))
 import Math ((%))
 import Type.Proxy (Proxy(..))
 import WAGS.Control.Types (Universe')
-import WAGS.Example.KitchenSink.Timing (calcSlope, ksHighshelfIntegral, ksHighshelfTime, pieceTime)
+import WAGS.Example.KitchenSink.Timing (calcSlope, pieceTime, timing)
 import WAGS.Example.KitchenSink.Types.Empty (EI0, EI1, EI2, BaseGraph)
 import WAGS.Graph.Constructors (Highshelf, Gain, PlayBuf, Speaker)
 import WAGS.Graph.Decorators (Focus(..), Decorating')
@@ -16,7 +16,6 @@ import WAGS.Universe.EdgeProfile (NoEdge, SingleEdge)
 import WAGS.Universe.Graph (GraphC)
 import WAGS.Universe.Node (NodeC, NodeListCons)
 
-ksHighshelfBegins = ksHighshelfIntegral - ksHighshelfTime :: Number
 
 type HighshelfGraph
   = GraphC
@@ -67,11 +66,11 @@ ksHighshelfGain = ksHighshelf' Focus Identity Identity
 deltaKsHighshelf :: Number -> KsHighshelf Identity Identity Identity
 deltaKsHighshelf =
   (_ % pieceTime)
-    >>> (_ - ksHighshelfBegins)
+    >>> (_ - timing.ksHighshelf.begin)
     >>> (max 0.0)
     >>> \time ->
         speaker
           ( Identity
               $ gain (if time > 9.0 then 0.0 else 1.0)
-                  (Identity $ highshelf { freq: calcSlope 0.0 300.0 ksHighshelfTime 200.0 time } (Identity $ playBuf (Proxy :: _ "my-buffer")))
+                  (Identity $ highshelf { freq: calcSlope 0.0 300.0 timing.ksHighshelf.dur 200.0 time } (Identity $ playBuf (Proxy :: _ "my-buffer")))
           )
