@@ -23,7 +23,7 @@ import Halogen.HTML.Properties as HP
 import Halogen.Subscription as HS
 import Halogen.VDom.Driver (runUI)
 import Math (abs, pi)
-import WAGS.Example.KitchenSink.TLP (piece)
+import WAGS.Example.KitchenSink.Piece (piece)
 import WAGS.Interpret (AudioContext, FFIAudio(..), close, context, decodeAudioDataFromUri, defaultFFIAudio, getMicrophoneAndCamera, makeFloatArray, makePeriodicWave, makeUnitCache, mediaRecorderToUrl)
 import WAGS.Run (Run, run)
 

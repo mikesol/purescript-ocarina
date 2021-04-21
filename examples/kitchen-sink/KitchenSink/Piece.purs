@@ -1,4 +1,4 @@
-module WAGS.Example.KitchenSink.TLP where
+module WAGS.Example.KitchenSink.Piece where
 
 import Prelude
 
