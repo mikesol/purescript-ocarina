@@ -33,6 +33,7 @@ type KitchenSinkTiming
     , ksDelay :: TimeInfo
     , ksFeedback :: TimeInfo
     , ksLoopBuf :: TimeInfo
+    , ksStereoPanner :: TimeInfo
     , ksDynamicsCompressor :: TimeInfo
     }
 
@@ -74,6 +75,7 @@ timing =
           , ksDelay: _
           , ksFeedback: _
           , ksLoopBuf: _
+          , ksStereoPanner: _
           , ksDynamicsCompressor: _
           }
             <$> integrate 5.0 -- ksSinOsc
@@ -94,6 +96,7 @@ timing =
             <*> integrate 10.0 -- ksDelay
             <*> integrate 10.0 -- ksFeedback
             <*> integrate 5.0 -- ksLoopBuf
+            <*> integrate 5.0 -- ksStereoPanner
             <*> integrate 10.0 -- ksDynamicsCompressor
         )
         mempty

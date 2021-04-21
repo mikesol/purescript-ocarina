@@ -70,6 +70,6 @@ deltaKsHighpass =
     >>> \time ->
         speaker
           ( Identity
-              $ gain (if time > 9.0 then 0.0 else 1.0)
+              $ gain (if time > (timing.ksHighpass.dur - 1.0) then 0.0 else 1.0)
                   (Identity $ highpass { freq: calcSlope 0.0 300.0 timing.ksHighpass.dur 200.0 time } (Identity $ playBuf (Proxy :: _ "my-buffer")))
           )

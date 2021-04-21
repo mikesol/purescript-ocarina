@@ -73,7 +73,7 @@ deltaKsWaveShaper =
     >>> \time ->
         speaker
           ( Identity
-              $ gain (if time > 9.0 then 0.0 else 1.0)
+              $ gain (if time > (timing.ksWaveShaper.dur - 1.0) then 0.0 else 1.0)
                   ( Identity
                       $ waveShaper (Proxy :: _ "my-waveshaper")
                           OversampleTwoX

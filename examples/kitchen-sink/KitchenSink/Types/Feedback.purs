@@ -103,6 +103,6 @@ deltaKsFeedback =
     >>> \time ->
         speaker
           ( Identity
-              $ gain (if time > 9.0 then 0.0 else 1.0)
+              $ gain (if time > (timing.ksFeedback.dur - 1.0) then 0.0 else 1.0)
                   (ksFeedbackCreate Identity Identity Identity Identity)
           )

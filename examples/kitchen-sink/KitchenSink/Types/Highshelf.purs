@@ -71,6 +71,6 @@ deltaKsHighshelf =
     >>> \time ->
         speaker
           ( Identity
-              $ gain (if time > 9.0 then 0.0 else 1.0)
+              $ gain (if time > (timing.ksHighshelf.dur - 1.0) then 0.0 else 1.0)
                   (Identity $ highshelf { freq: calcSlope 0.0 300.0 timing.ksHighshelf.dur 200.0 time } (Identity $ playBuf (Proxy :: _ "my-buffer")))
           )

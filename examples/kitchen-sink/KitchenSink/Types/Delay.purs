@@ -93,6 +93,6 @@ deltaKsDelay =
     >>> \time ->
         speaker
           ( Identity
-              $ gain (if time > 9.0 then 0.0 else 1.0)
+              $ gain (if time > (timing.ksDelay.dur - 1.0) then 0.0 else 1.0)
                   (ksDelayCreate Identity Identity Identity)
           )
