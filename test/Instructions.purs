@@ -59,11 +59,11 @@ testInstructions = do
         )
           @|> freeze
 
-      (frame0Nodes /\ frame0Edges /\ frame0Instr /\ frame1) = oneFrame' simpleScene { time: 0.0 }
+      (frame0Nodes /\ frame0Edges /\ frame0Instr /\ _ /\ frame1) = oneFrame' simpleScene { time: 0.0 }
 
-      (frame1Nodes /\ frame1Edges /\ frame1Instr /\ frame2) = oneFrame' frame1 { time: 0.1 }
+      (frame1Nodes /\ frame1Edges /\ frame1Instr /\ _ /\ frame2) = oneFrame' frame1 { time: 0.1 }
 
-      (frame2Nodes /\ frame2Edges /\ frame2Instr /\ _) = oneFrame' frame2 { time: 0.2 }
+      (frame2Nodes /\ frame2Edges /\ frame2Instr /\ _ /\ _) = oneFrame' frame2 { time: 0.2 }
 
       nodeAssertion = M.fromFoldable [ 0 /\ ASpeaker, 1 /\ (AGain (param 1.0)), 2 /\ (AHighpass (param 330.0) (param 1.0)), 3 /\ (ASinOsc On (param 440.0)) ]
 
@@ -114,15 +114,15 @@ testInstructions = do
                 )
             )
 
-      (frame0Nodes /\ frame0Edges /\ frame0Instr /\ frame1) = oneFrame' simpleScene { time: 0.0 }
+      (frame0Nodes /\ frame0Edges /\ frame0Instr /\ _ /\ frame1) = oneFrame' simpleScene { time: 0.0 }
 
-      (frame1Nodes /\ frame1Edges /\ frame1Instr /\ frame2) = oneFrame' frame1 { time: 0.1 }
+      (frame1Nodes /\ frame1Edges /\ frame1Instr /\ _ /\ frame2) = oneFrame' frame1 { time: 0.1 }
 
-      (frame2Nodes /\ frame2Edges /\ frame2Instr /\ frame3) = oneFrame' frame2 { time: 0.2 }
+      (frame2Nodes /\ frame2Edges /\ frame2Instr /\ _ /\ frame3) = oneFrame' frame2 { time: 0.2 }
 
-      (frame3Nodes /\ frame3Edges /\ frame3Instr /\ frame4) = oneFrame' frame3 { time: 0.3 }
+      (frame3Nodes /\ frame3Edges /\ frame3Instr /\ _ /\ frame4) = oneFrame' frame3 { time: 0.3 }
 
-      (frame4Nodes /\ frame4Edges /\ frame4Instr /\ _) = oneFrame' frame4 { time: 0.4 }
+      (frame4Nodes /\ frame4Edges /\ frame4Instr /\ _ /\ _) = oneFrame' frame4 { time: 0.4 }
 
       nodeAssertion i = M.fromFoldable [ 0 /\ ASpeaker, 1 /\ (AGain (param 1.0)), 2 /\ (AHighpass (param $ 330.0) (param 1.0)), 3 /\ (ASinOsc On (param $ 440.0 + i)) ]
 
@@ -176,15 +176,15 @@ testInstructions = do
                 )
             )
 
-      (frame0Nodes /\ frame0Edges /\ frame0Instr /\ frame1) = oneFrame' simpleScene { time: 0.0 }
+      (frame0Nodes /\ frame0Edges /\ frame0Instr /\ _ /\ frame1) = oneFrame' simpleScene { time: 0.0 }
 
-      (frame1Nodes /\ frame1Edges /\ frame1Instr /\ frame2) = oneFrame' frame1 { time: 0.1 }
+      (frame1Nodes /\ frame1Edges /\ frame1Instr /\ _ /\ frame2) = oneFrame' frame1 { time: 0.1 }
 
-      (frame2Nodes /\ frame2Edges /\ frame2Instr /\ frame3) = oneFrame' frame2 { time: 0.2 }
+      (frame2Nodes /\ frame2Edges /\ frame2Instr /\ _ /\ frame3) = oneFrame' frame2 { time: 0.2 }
 
-      (frame3Nodes /\ frame3Edges /\ frame3Instr /\ frame4) = oneFrame' frame3 { time: 0.3 }
+      (frame3Nodes /\ frame3Edges /\ frame3Instr /\ _ /\ frame4) = oneFrame' frame3 { time: 0.3 }
 
-      (frame4Nodes /\ frame4Edges /\ frame4Instr /\ _) = oneFrame' frame4 { time: 0.4 }
+      (frame4Nodes /\ frame4Edges /\ frame4Instr /\ _ /\ _) = oneFrame' frame4 { time: 0.4 }
 
       nodeAssertion i = M.fromFoldable [ 0 /\ ASpeaker, 1 /\ (AGain (param 1.0)), 2 /\ (AHighpass (param $ 330.0 + i) (param 1.0)), 3 /\ (ASinOsc On (param 440.0)) ]
 
@@ -251,15 +251,15 @@ testInstructions = do
                         )
             )
 
-      (frame0Nodes /\ frame0Edges /\ frame0Instr /\ frame1) = oneFrame' simpleScene { time: 0.0 }
+      (frame0Nodes /\ frame0Edges /\ frame0Instr /\ _ /\ frame1) = oneFrame' simpleScene { time: 0.0 }
 
-      (frame1Nodes /\ frame1Edges /\ frame1Instr /\ frame2) = oneFrame' frame1 { time: 0.1 }
+      (frame1Nodes /\ frame1Edges /\ frame1Instr /\ _ /\ frame2) = oneFrame' frame1 { time: 0.1 }
 
-      (frame2Nodes /\ frame2Edges /\ frame2Instr /\ frame3) = oneFrame' frame2 { time: 0.2 }
+      (frame2Nodes /\ frame2Edges /\ frame2Instr /\ _ /\ frame3) = oneFrame' frame2 { time: 0.2 }
 
-      (frame3Nodes /\ frame3Edges /\ frame3Instr /\ frame4) = oneFrame' frame3 { time: 0.3 }
+      (frame3Nodes /\ frame3Edges /\ frame3Instr /\ _ /\ frame4) = oneFrame' frame3 { time: 0.3 }
 
-      (frame4Nodes /\ frame4Edges /\ frame4Instr /\ _) = oneFrame' frame4 { time: 0.4 }
+      (frame4Nodes /\ frame4Edges /\ frame4Instr /\ _ /\ _) = oneFrame' frame4 { time: 0.4 }
 
       nodeAssertion i = M.fromFoldable [ 0 /\ ASpeaker, 1 /\ (AGain (param 1.0)), 2 /\ (AHighpass (param $ 330.0 + i) (param 1.0)), 3 /\ (ASinOsc On (param 440.0)) ]
 

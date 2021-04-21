@@ -19,7 +19,7 @@ import WAGS.Util (class Gate)
 
 -- | Disconnect node `source` from node `dest` in graph `i`, resulting in output graph `o`.
 class Disconnect (source :: Ptr) (dest :: Ptr) (i :: Graph) (o :: Graph) | source dest i -> o where
-  disconnect :: forall env audio engine proof m currentIdx changeBit skolems. Monad m => AudioInterpret audio engine => AudioUnitRef source -> AudioUnitRef dest -> FrameT env audio engine proof m (UniverseC currentIdx i changeBit skolems) (UniverseC currentIdx o changeBit skolems) Unit
+  disconnect :: forall env audio engine proof m res currentIdx changeBit skolems. Monad m => AudioInterpret audio engine => AudioUnitRef source -> AudioUnitRef dest -> FrameT env audio engine proof m res (UniverseC currentIdx i changeBit skolems) (UniverseC currentIdx o changeBit skolems) Unit
 
 instance disconnector ::
   ( BinToInt from

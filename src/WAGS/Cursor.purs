@@ -45,19 +45,19 @@ import WAGS.Validation (class AltEdgeProfile, class PtrListAppend, class Termina
 -- |
 -- | To see examples of cursors, check out `test/Ops.purs` and `examples/wtk/WTK/TLP.purs`.
 cursor ::
-  forall edge audio engine a q r s t env proof m p.
+  forall edge audio engine a q r s t env proof m res p.
   Monad m =>
   TerminalIdentityEdge r edge =>
   Cursor edge a r p =>
   BinToInt p =>
-  a -> FrameT env audio engine proof m (UniverseC q r s t) (UniverseC q r s t) (AudioUnitRef p)
+  a -> FrameT env audio engine proof m res (UniverseC q r s t) (UniverseC q r s t) (AudioUnitRef p)
 cursor = cursor' (Proxy :: _ edge)
 
 -- | Like `cursor`, but starting from an arbitrary edge in a graph. This is useful when, for example,
 -- | the cursor needs to be obtained for an audio unit that is not yet connected to a speaker.  In
 -- | most cases, however, you'll want to use `cursor`, which uses `Speaker` as the top-most unit.
 class Cursor (p :: EdgeProfile) (a :: Type) (g :: Graph) (ptr :: Ptr) | p a g -> ptr where
-  cursor' :: forall env audio engine proof m currentIdx changeBit skolems. Monad m => Proxy p -> a -> FrameT env audio engine proof m (UniverseC currentIdx g changeBit skolems) (UniverseC currentIdx g changeBit skolems) (AudioUnitRef ptr)
+  cursor' :: forall env audio engine proof m res currentIdx changeBit skolems. Monad m => Proxy p -> a -> FrameT env audio engine proof m res (UniverseC currentIdx g changeBit skolems) (UniverseC currentIdx g changeBit skolems) (AudioUnitRef ptr)
 
 instance cursorRecurse ::
   ( BinToInt head

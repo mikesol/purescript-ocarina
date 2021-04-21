@@ -57,30 +57,30 @@ import WAGS.Validation (class AltEdgeProfile, class NodeListAppend, class Termin
 -- | This use of inductive types in an indexed bind operation guarantees that we never go
 -- | "back in time" after having changed an audio graph.
 class Change (p :: EdgeProfile) (a :: Type) (graph :: Graph) where
-  change' :: forall env audio engine proof m ptr changeBit skolems. Monad m => AudioInterpret audio engine => Proxy p -> a -> FrameT env audio engine proof m (UniverseC ptr graph changeBit skolems) (UniverseC ptr graph (Succ changeBit) skolems) Unit
+  change' :: forall env audio engine proof m res ptr changeBit skolems. Monad m => AudioInterpret audio engine => Proxy p -> a -> FrameT env audio engine proof m res (UniverseC ptr graph changeBit skolems) (UniverseC ptr graph (Succ changeBit) skolems) Unit
 
 -- | Similar to `change'`, but starting from an `AudioReference ptr` (the result of `cursor`) instead of starting from an edge profile.
 changeAt ::
-  forall ptr a env audio engine proof m currentIdx graph changeBit skolems.
+  forall ptr a env audio engine proof m res currentIdx graph changeBit skolems.
   Monad m =>
   AudioInterpret audio engine =>
   Change (SingleEdge ptr) a graph =>
-  AudioUnitRef ptr -> a -> FrameT env audio engine proof m (UniverseC currentIdx graph changeBit skolems) (UniverseC currentIdx graph (Succ changeBit) skolems) Unit
+  AudioUnitRef ptr -> a -> FrameT env audio engine proof m res (UniverseC currentIdx graph changeBit skolems) (UniverseC currentIdx graph (Succ changeBit) skolems) Unit
 changeAt _ = change' (Proxy :: _ (SingleEdge ptr))
 
 -- | Similar to `change'`, but starting from the top-level node, which is usually a `Speaker`.
 change ::
-  forall edge m a currentIdx graph changeBit skolems env audio engine proof.
+  forall edge m res a currentIdx graph changeBit skolems env audio engine proof.
   Monad m =>
   AudioInterpret audio engine =>
   TerminalIdentityEdge graph edge =>
   Change edge a graph =>
-  a -> FrameT env audio engine proof m (UniverseC currentIdx graph changeBit skolems) (UniverseC currentIdx graph (Succ changeBit) skolems) Unit
+  a -> FrameT env audio engine proof m res (UniverseC currentIdx graph changeBit skolems) (UniverseC currentIdx graph (Succ changeBit) skolems) Unit
 change = change' (Proxy :: _ edge)
 
 -- | Rolls multiple changes into a single increment of the `changeBit`. This is useful when writing loops. A loop may have many or no changes, and this allows all of them to be executed in a single transaction. As an example, see `examples/wtk/WTK/TLP.purs`. In the `playKeys` function, each finger may potentially change, and each change is rolled into the `a` value that is ultimately passed to `changes`.
 class Changes (a :: Type) (g :: Graph) where
-  changes :: forall env audio engine proof m ptr changeBit skolems. Monad m => AudioInterpret audio engine => a -> FrameT env audio engine proof m (UniverseC ptr g changeBit skolems) (UniverseC ptr g (Succ changeBit) skolems) Unit
+  changes :: forall env audio engine proof m res ptr changeBit skolems. Monad m => AudioInterpret audio engine => a -> FrameT env audio engine proof m res (UniverseC ptr g changeBit skolems) (UniverseC ptr g (Succ changeBit) skolems) Unit
 
 -- | A term that can be coerced to an setter for a control-rate audio parameter.
 class SetterVal a where
@@ -517,10 +517,10 @@ instance changeInstructionsWaveShaper :: AudioInterpret audio engine => ChangeIn
   changeInstructions _ _ _ = Nothing
 
 type ChangeType (p :: EdgeProfile) (a :: Type) (graph :: Graph)
-  = forall env audio engine proof m ptr changeBit skolems. Monad m => AudioInterpret audio engine => Proxy p -> a -> FrameT env audio engine proof m (UniverseC ptr graph changeBit skolems) (UniverseC ptr graph (Succ changeBit) skolems) Unit
+  = forall env audio engine proof m res ptr changeBit skolems. Monad m => AudioInterpret audio engine => Proxy p -> a -> FrameT env audio engine proof m res (UniverseC ptr graph changeBit skolems) (UniverseC ptr graph (Succ changeBit) skolems) Unit
 
 type ChangesType (a :: Type) (g :: Graph)
-  = forall env audio engine proof m ptr changeBit skolems. Monad m => AudioInterpret audio engine => a -> FrameT env audio engine proof m (UniverseC ptr g changeBit skolems) (UniverseC ptr g (Succ changeBit) skolems) Unit
+  = forall env audio engine proof m res ptr changeBit skolems. Monad m => AudioInterpret audio engine => a -> FrameT env audio engine proof m res (UniverseC ptr g changeBit skolems) (UniverseC ptr g (Succ changeBit) skolems) Unit
 
 data ChangeInstruction a b
   = ChangeInstruction a b
@@ -541,7 +541,7 @@ else instance changesSingle :: (TerminalIdentityEdge graph edge, Change edge a g
 -- | Internal helper class used for changing audio nodes.
 class
   Change (SingleEdge p) a graph <= ChangeP (p :: Ptr) (a :: Type) (graph :: Graph) where
-  changeP :: forall env audio engine proof m ptr changeBit skolems. Monad m => AudioInterpret audio engine => Proxy p -> a -> FrameT env audio engine proof m (UniverseC ptr graph changeBit skolems) (UniverseC ptr graph (Succ changeBit) skolems) Unit
+  changeP :: forall env audio engine proof m res ptr changeBit skolems. Monad m => AudioInterpret audio engine => Proxy p -> a -> FrameT env audio engine proof m res (UniverseC ptr graph changeBit skolems) (UniverseC ptr graph (Succ changeBit) skolems) Unit
 
 instance changePAll :: Change (SingleEdge p) a graph => ChangeP p a graph where
   changeP _ = change' (Proxy :: _ (SingleEdge p))
@@ -599,13 +599,13 @@ instance modify ::
   Modify tag p ig nextP
 
 changeAudioUnit ::
-  forall g env audio engine proof m currentIdx (igraph :: Graph) changeBit skolems (p :: Bits) (nextP :: EdgeProfile) univ.
+  forall g env audio engine proof m res currentIdx (igraph :: Graph) changeBit skolems (p :: Bits) (nextP :: EdgeProfile) univ.
   Monad m =>
   AudioInterpret audio engine =>
   ChangeInstructions audio engine g =>
   BinToInt p =>
   Modify g p igraph nextP =>
-  Proxy (Proxy p /\ Proxy nextP /\ Proxy igraph) -> g -> FrameT env audio engine proof m univ (UniverseC currentIdx igraph changeBit skolems) Unit
+  Proxy (Proxy p /\ Proxy nextP /\ Proxy igraph) -> g -> FrameT env audio engine proof m res univ (UniverseC currentIdx igraph changeBit skolems) Unit
 changeAudioUnit _ g =
   unsafeFrame
     $ do

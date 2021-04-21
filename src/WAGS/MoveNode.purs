@@ -17,7 +17,7 @@ import WAGS.Util (class LtEq)
 -- | `i` - the input universe
 -- | `o` - the output universe
 class MoveNode (from :: Nat) (to :: Nat) (i :: Graph) (o :: Graph) | from to i -> o where
-  moveNode :: forall env audio engine proof m currentIdx changeBit skolems. Monad m => Proxy from -> Proxy to -> FrameT env audio engine proof m (UniverseC currentIdx i changeBit skolems) (UniverseC currentIdx o changeBit skolems) Unit
+  moveNode :: forall env audio engine proof m res currentIdx changeBit skolems. Monad m => Proxy from -> Proxy to -> FrameT env audio engine proof m res (UniverseC currentIdx i changeBit skolems) (UniverseC currentIdx o changeBit skolems) Unit
 
 instance moveNodeAll ::
   ( GraphToNodeList graphi nodeListI

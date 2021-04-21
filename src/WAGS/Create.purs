@@ -54,7 +54,7 @@ import WAGS.Universe.Universe (UniverseC)
 -- | Created audio units do not have to have a `Speaker` at the top-level. It is possible to create
 -- | an audio unit and then connect it to another one using `connect`.
 class Create (a :: Type) (inIndex :: Ptr) (inGraph :: Graph) (inSkolems :: SkolemList) (outIndex :: Ptr) (outGraph :: Graph) (outSkolems :: SkolemList) (ref :: Type) | a inIndex inGraph inSkolems -> outIndex outGraph outSkolems ref where
-  create :: forall env audio engine proof m changeBit. Monad m => AudioInterpret audio engine => a -> FrameT env audio engine proof m (UniverseC inIndex inGraph changeBit inSkolems) (UniverseC outIndex outGraph changeBit outSkolems) ref
+  create :: forall env audio engine proof m res changeBit. Monad m => AudioInterpret audio engine => a -> FrameT env audio engine proof m res (UniverseC inIndex inGraph changeBit inSkolems) (UniverseC outIndex outGraph changeBit outSkolems) ref
 
 -- | A value that can be coerced to an initial control-rate audio parameter.
 class InitialVal a where
@@ -293,12 +293,12 @@ instance creationInstructionsWaveShaper :: (IsSymbol argA, AudioInterpret audio 
       [ makeWaveShaper idx name os ] /\ AWaveShaper name os
 
 creationStep ::
-  forall env audio engine proof m g.
+  forall env audio engine proof m res g.
   Monad m =>
   AudioInterpret audio engine =>
   CreationInstructions audio engine g =>
   g ->
-  AudioState env audio engine proof m Int
+  AudioState env audio engine proof m res Int
 creationStep g = do
   currentIdx <- gets _.currentIdx
   let
@@ -318,7 +318,7 @@ type ProxyCC skolem ptr innerTerm i0 g0 s0 i1 g1 s1
   = Proxy (skolem /\ (Proxy ptr) /\ innerTerm /\ (Proxy i0) /\ (Proxy g0) /\ (Proxy s0) /\ (Proxy i1) /\ (Proxy g1) /\ (Proxy s1))
 
 createAndConnect ::
-  forall env audio engine proof g (ptr :: Bits) skolem c i0 g0 s0 i1 g1 s1 cb innerTerm eprof m.
+  forall env audio engine proof g (ptr :: Bits) skolem c i0 g0 s0 i1 g1 s1 cb innerTerm eprof m res.
   Monad m =>
   AudioInterpret audio engine =>
   GetSkolemizedFunctionFromAU g skolem c =>
@@ -327,7 +327,7 @@ createAndConnect ::
   Create c i0 g0 s0 i1 g1 s1 innerTerm =>
   Proxy (skolem /\ (Proxy ptr) /\ innerTerm /\ (Proxy i0) /\ (Proxy g0) /\ (Proxy s0) /\ (Proxy i1) /\ (Proxy g1) /\ (Proxy s1)) ->
   g ->
-  FrameT env audio engine proof m (UniverseC i0 g0 cb s0) (UniverseC i1 g1 cb s1) Int
+  FrameT env audio engine proof m res (UniverseC i0 g0 cb s0) (UniverseC i1 g1 cb s1) Int
 createAndConnect _ g =
   unsafeFrame
     $ do
@@ -335,7 +335,7 @@ createAndConnect _ g =
         let
           mc =
             unsafeUnframe
-              $ (create :: forall changeBit mo. Monad mo => c -> FrameT env audio engine proof mo (UniverseC i0 g0 changeBit s0) (UniverseC i1 g1 changeBit s1) innerTerm)
+              $ (create :: forall changeBit mo rez. Monad mo => c -> FrameT env audio engine proof mo rez (UniverseC i0 g0 changeBit s0) (UniverseC i1 g1 changeBit s1) innerTerm)
                   ( ((getSkolemizedFunctionFromAU :: g -> (Proxy skolem -> c)) g)
                       Proxy
                   )
@@ -366,9 +366,9 @@ instance createTuple ::
   Create (x /\ y) i0 g0 s0 i2 g2 s2 (x' /\ y') where
   create (x /\ y) = (unsafeFrame) $ Tuple <$> x' <*> y'
     where
-    (x') = unsafeUnframe $ (create :: forall env audio engine proof m cb. Monad m => AudioInterpret audio engine => x -> FrameT env audio engine proof m (UniverseC i0 g0 cb s0) (UniverseC i1 g1 cb s1) x') x
+    (x') = unsafeUnframe $ (create :: forall env audio engine proof m res cb. Monad m => AudioInterpret audio engine => x -> FrameT env audio engine proof m res (UniverseC i0 g0 cb s0) (UniverseC i1 g1 cb s1) x') x
 
-    (y') = unsafeUnframe $ (create :: forall env audio engine proof m cb. Monad m => AudioInterpret audio engine => y -> FrameT env audio engine proof m (UniverseC i1 g1 cb s1) (UniverseC i2 g2 cb s2) y') y
+    (y') = unsafeUnframe $ (create :: forall env audio engine proof m res cb. Monad m => AudioInterpret audio engine => y -> FrameT env audio engine proof m res (UniverseC i1 g1 cb s1) (UniverseC i2 g2 cb s2) y') y
 
 instance createIdentity :: Create x i0 g0 s0 i1 g1 s1 r => Create (Identity x) i0 g0 s0 i1 g1 s1 r where
   create (Identity x) = create x
@@ -412,11 +412,11 @@ instance createDup ::
     x =
       unsafeUnframe
         $ ( create ::
-              forall env audio engine proof changeBit m.
+              forall env audio engine proof changeBit m res.
               Monad m =>
               AudioInterpret audio engine =>
               a ->
-              FrameT env audio engine proof m
+              FrameT env audio engine proof m res
                 (UniverseC ptr graphi changeBit skolems)
                 (UniverseC midptr graphm changeBit skolems)
                 ignore
@@ -426,11 +426,11 @@ instance createDup ::
     y =
       unsafeUnframe
         $ ( create ::
-              forall env audio engine proof changeBit m.
+              forall env audio engine proof changeBit m res.
               Monad m =>
               AudioInterpret audio engine =>
               b ->
-              FrameT env audio engine proof m
+              FrameT env audio engine proof m res
                 (UniverseC midptr graphm changeBit (SkolemListCons (SkolemPairC skolem ptr) skolems))
                 (UniverseC outptr grapho changeBit (SkolemListCons (SkolemPairC skolem ptr) skolems))
                 (AudioUnitRef midptr)

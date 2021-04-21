@@ -25,8 +25,9 @@ import WAGS.Universe.EdgeProfile (SingleEdge)
 import WAGS.Universe.Universe (UniverseC)
 
 playKeys ::
-  forall k0 k1 k2 k3 k4 k5 k6 k7 k8 k9 incoming env audio engine proof m currentIdx graph j skolems.
+  forall k0 k1 k2 k3 k4 k5 k6 k7 k8 k9 incoming env audio engine proof m res currentIdx graph j skolems.
   Monad m =>
+  Monoid res =>
   AudioInterpret audio engine =>
   Change (SingleEdge k0) KeyUnit graph =>
   Change (SingleEdge k1) KeyUnit graph =>
@@ -47,7 +48,7 @@ playKeys ::
   incoming ->
   List KeyInfo ->
   List KeyInfo ->
-  FrameT env audio engine proof m (UniverseC currentIdx graph j skolems) (UniverseC currentIdx graph (Succ j) skolems) Unit
+  FrameT env audio engine proof m res (UniverseC currentIdx graph j skolems) (UniverseC currentIdx graph (Succ j) skolems) Unit
 playKeys rec incoming Nil Nil = changes incoming
 
 playKeys rec@{ currentTime, notesOff } incoming Nil (a : b) = case a.k of

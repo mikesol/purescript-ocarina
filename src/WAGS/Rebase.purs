@@ -70,7 +70,7 @@ forceArray = identity
 -- | In the case of simpler loops, a similar effect can be achieved by making pointers polymorphic,
 -- | ie `forall ptr. TSpeaker D0 (TSinOsc ptr /\ TSinOsc D2 /\ Unit)`.
 rebase ::
-  forall env audio engine proof m changeBit skolems edgeA idxA graphA edgeB idxB graphB.
+  forall env audio engine proof m res changeBit skolems edgeA idxA graphA edgeB idxB graphB.
   BinToInt idxA =>
   BinToInt idxB =>
   Monad m =>
@@ -78,7 +78,7 @@ rebase ::
   TerminalIdentityEdge graphA edgeA =>
   TerminalIdentityEdge graphB edgeB =>
   Rebase' PtrListNil PtrListNil RebaseProof edgeA idxA graphA edgeB idxB graphB =>
-  Proxy idxA -> Proxy graphA -> Proxy idxB -> Proxy graphB -> FrameT env audio engine proof m (UniverseC idxA graphA changeBit skolems) (UniverseC idxB graphB changeBit skolems) Unit
+  Proxy idxA -> Proxy graphA -> Proxy idxB -> Proxy graphB -> FrameT env audio engine proof m res (UniverseC idxA graphA changeBit skolems) (UniverseC idxB graphB changeBit skolems) Unit
 rebase ptrA gA ptrB gB =
   unsafeFrame do
     a <- (unsafeUnframe $ rebase' (Proxy :: _ PtrListNil) (Proxy :: _ PtrListNil) RebaseProof (Proxy :: _ edgeA) (Proxy :: _ idxA) (Proxy :: _ graphA) (Proxy :: _ edgeB) (Proxy :: _ idxB) (Proxy :: _ graphB))
@@ -112,7 +112,7 @@ rebase ptrA gA ptrB gB =
 
 -- | Signature for the reset operation for index `i1` and graph `g1`.
 type ResetSig i1 g1 = 
-  forall env audio engine proof m cb e0 i0 g0 e1.
+  forall env audio engine proof m res cb e0 i0 g0 e1.
   BinToInt i0 =>
   BinToInt i1 =>
   Monad m =>
@@ -120,7 +120,7 @@ type ResetSig i1 g1 =
   TerminalIdentityEdge g0 e0 =>
   TerminalIdentityEdge g1 e1 =>
   Rebase' PtrListNil PtrListNil RebaseProof e0 i0 g0 e1 i1 g1 =>
-  FrameT env audio engine proof m (UniverseC i0 g0 cb SkolemListNil) (UniverseC i1 g1 cb SkolemListNil) Unit
+  FrameT env audio engine proof m res (UniverseC i0 g0 cb SkolemListNil) (UniverseC i1 g1 cb SkolemListNil) Unit
 
 -- | Rebase the current audio graph to index `i1` and graph `g1`.
 reset :: forall i1 g1. Proxy i1 -> Proxy g1 -> ResetSig i1 g1
@@ -136,27 +136,27 @@ type AFT
 -- | An internal helper class used to help in the rebasing calculation.
 class Rebase' :: forall k1 k2 k3 k4. k1 -> k2 -> Type -> k3 -> Ptr -> Graph -> k4 -> Ptr -> Graph -> Constraint
 class Rebase' plA plB rbp pA ptrA graphA pB ptrB graphB where
-  rebase' :: forall env audio engine proof m changeBit skolems. Monad m => AudioInterpret audio engine => Proxy plA -> Proxy plB -> rbp -> Proxy pA -> Proxy ptrA -> Proxy graphA -> Proxy pB -> Proxy ptrB -> Proxy graphB -> FrameT env audio engine proof m (UniverseC ptrA graphA changeBit skolems) (UniverseC ptrB graphB changeBit skolems) AFT
+  rebase' :: forall env audio engine proof m res changeBit skolems. Monad m => AudioInterpret audio engine => Proxy plA -> Proxy plB -> rbp -> Proxy pA -> Proxy ptrA -> Proxy graphA -> Proxy pB -> Proxy ptrB -> Proxy graphB -> FrameT env audio engine proof m res (UniverseC ptrA graphA changeBit skolems) (UniverseC ptrB graphB changeBit skolems) AFT
 
 -- | An internal helper class used to help in the rebasing calculation.
 class RebaseCheck' :: forall k1 k2 k3 k4. k1 -> k2 -> Type -> k3 -> Ptr -> Graph -> k4 -> Ptr -> Graph -> Constraint
 class RebaseCheck' plA plB rbp pA ptrA graphA pB ptrB graphB where
-  rebaseCheck' :: forall env audio engine proof m changeBit skolems. Monad m => AudioInterpret audio engine => Proxy plA -> Proxy plB -> rbp -> Proxy pA -> Proxy ptrA -> Proxy graphA -> Proxy pB -> Proxy ptrB -> Proxy graphB -> FrameT env audio engine proof m (UniverseC ptrA graphA changeBit skolems) (UniverseC ptrB graphB changeBit skolems) AFT
+  rebaseCheck' :: forall env audio engine proof m res changeBit skolems. Monad m => AudioInterpret audio engine => Proxy plA -> Proxy plB -> rbp -> Proxy pA -> Proxy ptrA -> Proxy graphA -> Proxy pB -> Proxy ptrB -> Proxy graphB -> FrameT env audio engine proof m res (UniverseC ptrA graphA changeBit skolems) (UniverseC ptrB graphB changeBit skolems) AFT
 
 -- | An internal helper class used to help in the rebasing calculation.
 class RebaseCont' :: forall k1 k2 k3 k4 k5 k6 k7 k8. k1 -> k2 -> k3 -> k4 -> k5 -> k6 -> Type -> k7 -> Ptr -> Graph -> k8 -> Ptr -> Graph -> Constraint
 class RebaseCont' foundA foundB xpA xpB plA plB rbp pA ptrA graphA pB ptrB graphB where
-  rebaseCont' :: forall env audio engine proof m changeBit skolems. Monad m => AudioInterpret audio engine => Proxy foundA -> Proxy foundB -> Proxy xpA -> Proxy xpB -> Proxy plA -> Proxy plB -> rbp -> Proxy pA -> Proxy ptrA -> Proxy graphA -> Proxy pB -> Proxy ptrB -> Proxy graphB -> FrameT env audio engine proof m (UniverseC ptrA graphA changeBit skolems) (UniverseC ptrB graphB changeBit skolems) AFT
+  rebaseCont' :: forall env audio engine proof m res changeBit skolems. Monad m => AudioInterpret audio engine => Proxy foundA -> Proxy foundB -> Proxy xpA -> Proxy xpB -> Proxy plA -> Proxy plB -> rbp -> Proxy pA -> Proxy ptrA -> Proxy graphA -> Proxy pB -> Proxy ptrB -> Proxy graphB -> FrameT env audio engine proof m res (UniverseC ptrA graphA changeBit skolems) (UniverseC ptrB graphB changeBit skolems) AFT
 
 rebaseAudioUnit ::
-  forall env proof ptrA ptrB audio engine m.
+  forall env proof ptrA ptrB audio engine m res.
   Monad m =>
   BinToInt ptrA =>
   BinToInt ptrB =>
   AudioInterpret audio engine =>
   Proxy ptrA ->
   Proxy ptrB ->
-  AudioState env audio engine proof m AFT
+  AudioState env audio engine proof m res AFT
 rebaseAudioUnit ptrA ptrB = (pure <<< pure) { from: iA, to: iB }
   where
   iA = toInt' ptrA

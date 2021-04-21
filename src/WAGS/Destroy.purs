@@ -19,7 +19,7 @@ import WAGS.Validation (class PtrNotInPtrList)
 
 -- | Destroy node `ptr` in graph `i`, resulting in graph `o`. Note that, to destroy a node, it must have no outgoing or incoming edges. This is achieved via use of `disconnect`. Failure to disconnect nodes before destroying will result in a compile-time error during graph validation.
 class Destroy (ptr :: Ptr) (i :: Graph) (o :: Graph) | ptr i -> o where
-  destroy :: forall env audio engine proof m currentIdx changeBit skolems. Monad m => AudioInterpret audio engine => AudioUnitRef ptr -> FrameT env audio engine proof m (UniverseC currentIdx i changeBit skolems) (UniverseC currentIdx o changeBit skolems) Unit
+  destroy :: forall env audio engine proof m res currentIdx changeBit skolems. Monad m => AudioInterpret audio engine => AudioUnitRef ptr -> FrameT env audio engine proof m res (UniverseC currentIdx i changeBit skolems) (UniverseC currentIdx o changeBit skolems) Unit
 
 instance destroyer ::
   ( BinToInt ptr
