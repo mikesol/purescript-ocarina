@@ -4,30 +4,23 @@ import Prelude
 
 import Data.Either (Either(..))
 import Data.Identity (Identity(..))
-import Effect (Effect)
 import Math ((%))
 import WAGS.Change (change)
 import WAGS.Connect (connect)
 import WAGS.Control.Functions (branch, env, inSitu, proof, withProof)
 import WAGS.Control.Qualified as WAGS
-import WAGS.Control.Types (Frame, Scene)
 import WAGS.Create (create)
 import WAGS.Cursor (cursor)
 import WAGS.Destroy (destroy)
 import WAGS.Disconnect (disconnect)
-import WAGS.Example.KitchenSink.TLP.LoopSig (LoopSig)
+import WAGS.Example.KitchenSink.TLP.LoopSig (StepSig)
 import WAGS.Example.KitchenSink.TLP.StereoPanner (doStereoPanner)
 import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
 import WAGS.Example.KitchenSink.Types.Empty (reset)
 import WAGS.Example.KitchenSink.Types.LoopBuf (LoopBufUniverse, deltaKsLoopBuf, ksLoopBufGain, ksLoopBufLoopBuf)
 import WAGS.Example.KitchenSink.Types.StereoPanner (ksStereoPannerCreate)
-import WAGS.Interpret (FFIAudio)
-import WAGS.Run (SceneI)
 
-doLoopBuf ::
-  forall proofA iu cb.
-  Frame (SceneI Unit Unit) FFIAudio (Effect Unit) proofA iu (LoopBufUniverse cb) LoopSig ->
-  Scene (SceneI Unit Unit) FFIAudio (Effect Unit) proofA
+doLoopBuf :: forall proof iu cb. StepSig (LoopBufUniverse cb) proof iu
 doLoopBuf =
   branch \lsig -> WAGS.do
     { time } <- env

@@ -1,12 +1,14 @@
 module WAGS.Example.KitchenSink where
 
 import Prelude
+
 import Control.Comonad.Cofree (Cofree, mkCofree)
 import Control.Promise (toAffE)
 import Data.Array ((..))
 import Data.Foldable (for_)
 import Data.Int (toNumber)
 import Data.Maybe (Maybe(..), maybe)
+import Data.Newtype (unwrap)
 import Data.Nullable (toNullable)
 import Data.Vec ((+>), empty)
 import Effect (Effect)
@@ -23,6 +25,7 @@ import Halogen.HTML.Properties as HP
 import Halogen.Subscription as HS
 import Halogen.VDom.Driver (runUI)
 import Math (abs, pi)
+import Record as R
 import WAGS.Example.KitchenSink.Piece (piece)
 import WAGS.Interpret (AudioContext, FFIAudio(..), close, context, decodeAudioDataFromUri, defaultFFIAudio, getMicrophoneAndCamera, makeFloatArray, makePeriodicWave, makeUnitCache, mediaRecorderToUrl)
 import WAGS.Run (Run, run)
@@ -103,7 +106,7 @@ render state = do
 handleAction :: forall output m. MonadEffect m => MonadAff m => Action -> H.HalogenM State Action () output m Unit
 handleAction = case _ of
   HydrateRecording rec -> H.modify_ (_ { audioSrc = pure $ rec })
-  ReportGraph graph -> H.modify_ (_ { graph = pure $ show graph })
+  ReportGraph graph -> H.modify_ (_ { graph = pure $ show (R.modify (\i -> i { rec = (unwrap i.rec) "" }) graph) })
   StartAudio -> do
     handleAction StopAudio
     { emitter, listener } <- H.liftEffect HS.create

@@ -3,31 +3,24 @@ module WAGS.Example.KitchenSink.TLP.SinOsc where
 import Prelude
 
 import Data.Either (Either(..))
-import Effect (Effect)
 import Math ((%))
 import Type.Proxy (Proxy(..))
 import WAGS.Change (change)
 import WAGS.Connect (connect)
 import WAGS.Control.Functions (branch, env, inSitu, proof, withProof)
 import WAGS.Control.Qualified as WAGS
-import WAGS.Control.Types (Frame, Scene)
 import WAGS.Create (create)
 import WAGS.Cursor (cursor)
 import WAGS.Destroy (destroy)
 import WAGS.Disconnect (disconnect)
-import WAGS.Example.KitchenSink.TLP.LoopSig (LoopSig)
+import WAGS.Example.KitchenSink.TLP.LoopSig (StepSig)
 import WAGS.Example.KitchenSink.TLP.TriangleOsc (doTriangleOsc)
 import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
 import WAGS.Example.KitchenSink.Types.Empty (reset)
 import WAGS.Example.KitchenSink.Types.SinOsc (SinOscUniverse, deltaKsSinOsc, ksSinOscGain, ksSinOscSinOsc)
 import WAGS.Graph.Optionals (recorder, triangleOsc)
-import WAGS.Interpret (FFIAudio)
-import WAGS.Run (SceneI)
 
-doSinOsc ::
-  forall proofA iu cb.
-  Frame (SceneI Unit Unit) FFIAudio (Effect Unit) proofA iu (SinOscUniverse cb) LoopSig ->
-  Scene (SceneI Unit Unit) FFIAudio (Effect Unit) proofA
+doSinOsc :: forall proof iu cb. StepSig (SinOscUniverse cb) proof iu
 doSinOsc =
   branch \lsig -> WAGS.do
     { time } <- env

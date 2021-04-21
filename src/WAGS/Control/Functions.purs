@@ -1,6 +1,6 @@
 module WAGS.Control.Functions
-  ( startT
-  , start
+  ( start
+  , modifyRes
   , makeScene
   , makeScene'
   , loop
@@ -32,7 +32,6 @@ import Unsafe.Coerce (unsafeCoerce)
 import WAGS.Change (changes)
 import WAGS.Control.MemoizedState (makeMemoizedStateT, runMemoizedStateT')
 import WAGS.Control.Qualified as WAGS
-import WAGS.Control.Thunkable (Thunkable)
 import WAGS.Control.Types (AudioState', FrameT, InitialFrameT, SceneT(..), SceneT', oneFrameT, unsafeFrame, unsafeUnframe)
 import WAGS.Interpret (class AudioInterpret)
 import WAGS.Universe.Universe (UniverseC)
@@ -54,16 +53,12 @@ import WAGS.Validation (class GraphIsRenderable, class TerminalIdentityEdge)
 -- |                 ivoid $ change (scene time)
 -- |         )
 -- | ```
-start :: forall env audio engine. InitialFrameT env audio engine Thunkable Unit Unit
-start = unsafeFrame (pure unit)
-
--- | The initial `FrameT` that is needed to begin any `SceneT`.
-startT ::
+start ::
   forall env audio engine m res.
   Monad m =>
   AudioInterpret audio engine =>
   InitialFrameT env audio engine m res Unit
-startT = unsafeFrame (pure unit)
+start = unsafeFrame (pure unit)
 
 initialAudioState :: forall env audio engine res. Monoid res => env -> AudioState' env audio engine res
 initialAudioState e =
