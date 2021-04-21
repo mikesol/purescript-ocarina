@@ -7,6 +7,7 @@ module WAGS.Interpret
   , AudioBuffer
   , AudioContext
   , BrowserAudioBuffer
+  , BrowserCamera
   , BrowserFloatArray
   , BrowserMicrophone
   , BrowserPeriodicWave
@@ -25,6 +26,7 @@ module WAGS.Interpret
   , destroyUnit
   , disconnectXFromY
   , getAudioClockTime
+  , getMicrophoneAndCamera
   , isTypeSupported
   , makeAllpass
   , makeAudioBuffer
@@ -79,15 +81,20 @@ module WAGS.Interpret
   ) where
 
 import Prelude
-import Control.Promise (Promise)
+
+import Control.Plus (empty)
+import Control.Promise (Promise, toAffE)
+import Data.Maybe (Maybe)
 import Data.Nullable (Nullable, null)
 import Data.Typelevel.Num (class Pos)
 import Data.Vec (Vec)
 import Data.Vec as V
 import Effect (Effect)
+import Effect.Aff (Aff)
 import Foreign (Foreign)
 import Foreign.Object (Object)
 import Foreign.Object as O
+import Unsafe.Coerce (unsafeCoerce)
 import WAGS.Graph.Constructors (OnOff(..))
 import WAGS.Graph.Parameter (AudioParameter(..))
 import WAGS.Rendered (Instruction(..), Oversample(..))
@@ -109,6 +116,9 @@ foreign import data AudioContext :: Type
 
 -- | The [MediaStream](https://developer.mozilla.org/en-US/docs/Web/API/MediaStream) object for a microphone.
 foreign import data BrowserMicrophone :: Type
+
+-- | The [MediaStream](https://developer.mozilla.org/en-US/docs/Web/API/MediaStream) object for a camera.
+foreign import data BrowserCamera :: Type
 
 -- | Gets the audio clock time from an audio context.
 foreign import getAudioClockTime :: AudioContext -> Effect Number
@@ -148,6 +158,26 @@ foreign import context :: Effect AudioContext
 
 -- | Close an audio context.
 foreign import close :: AudioContext -> Effect Unit
+
+foreign import data BrowserMediaStream :: Type
+
+foreign import getBrowserMediaStreamImpl :: Boolean -> Boolean -> Effect (Promise BrowserMediaStream)
+
+
+browserMediaStreamToBrowserMicrophone :: BrowserMediaStream -> BrowserMicrophone
+browserMediaStreamToBrowserMicrophone = unsafeCoerce
+
+browserMediaStreamToBrowserCamera :: BrowserMediaStream -> BrowserCamera
+browserMediaStreamToBrowserCamera = unsafeCoerce
+
+getMicrophoneAndCamera :: Boolean -> Boolean -> Aff { microphone :: Maybe BrowserMicrophone, camera :: Maybe BrowserCamera }
+getMicrophoneAndCamera audio video =
+  ( \i ->
+      { microphone: if audio then pure $ browserMediaStreamToBrowserMicrophone i else empty
+      , camera: if video then pure $ browserMediaStreamToBrowserCamera i else empty
+      }
+  )
+    <$> toAffE (getBrowserMediaStreamImpl audio video)
 
 -- | Create a unit cache. This returns a fresh empty object `{}` that is used to cache audio units.
 foreign import makeUnitCache :: Effect Foreign

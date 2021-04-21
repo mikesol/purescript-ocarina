@@ -6,7 +6,8 @@ import Control.Promise (toAffE)
 import Data.Array ((..))
 import Data.Foldable (for_)
 import Data.Int (toNumber)
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), maybe)
+import Data.Nullable (toNullable)
 import Data.Vec ((+>), empty)
 import Effect (Effect)
 import Effect.Aff.Class (class MonadAff)
@@ -18,12 +19,12 @@ import Halogen as H
 import Halogen.Aff (awaitBody, runHalogenAff)
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
+import Halogen.HTML.Properties as HP
 import Halogen.Subscription as HS
 import Halogen.VDom.Driver (runUI)
 import Math (abs, pi)
 import WAGS.Example.KitchenSink.TLP (piece)
-import WAGS.Example.KitchenSink.Timing (timing)
-import WAGS.Interpret (AudioContext, FFIAudio(..), close, context, decodeAudioDataFromUri, defaultFFIAudio, makeFloatArray, makePeriodicWave, makeUnitCache)
+import WAGS.Interpret (AudioContext, FFIAudio(..), close, context, decodeAudioDataFromUri, defaultFFIAudio, getMicrophoneAndCamera, makeFloatArray, makePeriodicWave, makeUnitCache, mediaRecorderToUrl)
 import WAGS.Run (Run, run)
 
 makeDistortionCurve :: Number -> Array Number
@@ -55,11 +56,13 @@ type State
     , unsubscribeFromHalogen :: Maybe SubscriptionId
     , audioCtx :: Maybe AudioContext
     , graph :: Maybe String
+    , audioSrc :: Maybe String
     }
 
 data Action
   = StartAudio
   | ReportGraph (Run Unit)
+  | HydrateRecording String
   | StopAudio
 
 component :: forall query input output m. MonadEffect m => MonadAff m => H.Component query input output m
@@ -76,26 +79,30 @@ initialState _ =
   , unsubscribeFromHalogen: Nothing
   , audioCtx: Nothing
   , graph: Nothing
+  , audioSrc: Nothing
   }
 
 render :: forall m. State -> H.ComponentHTML Action () m
 render state = do
   HH.div_
-    [ HH.h1_
-        [ HH.text "Kitchen sink" ]
-    , HH.p [] [ HH.text "Unit tests for WAGS. Tries to test everything!" ]
-    , HH.button
-        [ HE.onClick \_ -> StartAudio ]
-        [ HH.text "Start audio" ]
-    , HH.button
-        [ HE.onClick \_ -> StopAudio ]
-        [ HH.text "Stop audio" ]
-    , HH.p [] [ HH.text $ "Timing :: " <> show timing ]
-    , HH.p [] [ HH.text $ "Graph :: " <> show state.graph ]
-    ]
+    $ [ HH.h1_
+          [ HH.text "Kitchen sink" ]
+      , HH.p [] [ HH.text "Unit tests for WAGS. Tries to test everything!" ]
+      , HH.p [] [ HH.text "As the audio plays, the current graph should appear below." ]
+      , HH.p [] [ HH.text "When data is available for a recording (which should happen every time the triangleOsc plays) an audio tag should appear." ]
+      , HH.button
+          [ HE.onClick \_ -> StartAudio ]
+          [ HH.text "Start audio" ]
+      , HH.button
+          [ HE.onClick \_ -> StopAudio ]
+          [ HH.text "Stop audio" ]
+      , HH.p [] [ HH.text $ "Graph :: " <> show state.graph ]
+      ]
+    <> maybe [] (\aud -> [ HH.audio [ HP.src aud, HP.controls true ] [] ]) state.audioSrc
 
 handleAction :: forall output m. MonadEffect m => MonadAff m => Action -> H.HalogenM State Action () output m Unit
 handleAction = case _ of
+  HydrateRecording rec -> H.modify_ (_ { audioSrc = pure $ rec })
   ReportGraph graph -> H.modify_ (_ { graph = pure $ show graph })
   StartAudio -> do
     handleAction StopAudio
@@ -107,6 +114,12 @@ handleAction = case _ of
       H.liftEffect
         $ makePeriodicWave audioCtx (0.3 +> -0.1 +> empty) (-0.25 +> 0.05 +> empty)
     wicked <- H.liftEffect $ makeFloatArray (makeDistortionCurve 400.0)
+    let
+      recorder =
+        mediaRecorderToUrl
+          "audio/ogg; codecs=opus"
+          (HS.notify listener <<< HydrateRecording)
+    { microphone } <- H.liftAff $ getMicrophoneAndCamera true false
     chimes <-
       H.liftAff $ toAffE
         $ decodeAudioDataFromUri
@@ -118,6 +131,8 @@ handleAction = case _ of
           { periodicWaves = O.singleton "my-wave" myWave
           , buffers = O.singleton "my-buffer" chimes
           , floatArrays = O.singleton "my-waveshaper" wicked
+          , recorders = O.singleton "my-recorder" recorder
+          , microphone = toNullable microphone
           }
     unsubscribeFromWAGS <-
       H.liftEffect

@@ -72,5 +72,5 @@ deltaKsLowshelf =
         speaker
           ( Identity
               $ gain (if time > (timing.ksLowshelf.dur - 1.0) then 0.0 else 1.0)
-                  (Identity $ lowshelf { freq: (calcSlope 0.0 300.0 timing.ksLowshelf.dur 200.0 time) } (Identity $ playBuf (Proxy :: _ "my-buffer")))
+                  (Identity $ lowshelf { freq: (calcSlope 0.0 300.0 timing.ksLowshelf.dur 2000.0 time) } (Identity $ playBuf (Proxy :: _ "my-buffer")))
           )

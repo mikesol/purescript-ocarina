@@ -18,7 +18,7 @@ import WAGS.Example.KitchenSink.TLP.LoopSig (LoopSig)
 import WAGS.Example.KitchenSink.TLP.SquareOsc (doSquareOsc)
 import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
 import WAGS.Example.KitchenSink.Types.Empty (reset)
-import WAGS.Example.KitchenSink.Types.TriangleOsc (TriangleOscUniverse, deltaKsTriangleOsc, ksTriangleOscGain, ksTriangleOscTriangleOsc)
+import WAGS.Example.KitchenSink.Types.TriangleOsc (TriangleOscUniverse, deltaKsTriangleOsc, ksTriangleOscGain, ksTriangleOscRecorder, ksTriangleOscTriangleOsc)
 import WAGS.Graph.Constructors (OnOff(..), SquareOsc(..))
 import WAGS.Interpret (FFIAudio)
 import WAGS.Run (SceneI)
@@ -31,6 +31,7 @@ doTriangleOsc =
   branch \lsig -> WAGS.do
     { time } <- env
     toRemove <- cursor ksTriangleOscTriangleOsc
+    toRemoveRec <- cursor ksTriangleOscRecorder
     gn <- cursor ksTriangleOscGain
     pr <- proof
     withProof pr
@@ -39,8 +40,10 @@ doTriangleOsc =
         else
           Left
             $ inSitu doSquareOsc WAGS.do
-                disconnect toRemove gn
+                disconnect toRemoveRec gn
+                disconnect toRemove toRemoveRec
                 destroy toRemove
+                destroy toRemoveRec
                 reset
                 toAdd <- create (SquareOsc On 440.0)
                 connect toAdd gn

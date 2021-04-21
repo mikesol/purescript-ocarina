@@ -72,7 +72,7 @@ deltaKsLowpass =
           ( Identity
               $ gain (if time > (timing.ksLowpass.dur - 1.0) then 0.0 else 1.0)
                   ( Identity
-                      $ lowpass { freq: calcSlope 0.0 300.0 timing.ksLowpass.dur 200.0 time }
+                      $ lowpass { freq: calcSlope 0.0 300.0 timing.ksLowpass.dur 2000.0 time }
                           (Identity $ playBuf (Proxy :: _ "my-buffer"))
                   )
           )

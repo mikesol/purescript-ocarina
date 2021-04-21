@@ -5,6 +5,7 @@ import Prelude
 import Data.Either (Either(..))
 import Effect (Effect)
 import Math ((%))
+import Type.Proxy (Proxy(..))
 import WAGS.Change (change)
 import WAGS.Connect (connect)
 import WAGS.Control.Functions (branch, env, inSitu, proof, withProof)
@@ -19,7 +20,7 @@ import WAGS.Example.KitchenSink.TLP.TriangleOsc (doTriangleOsc)
 import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
 import WAGS.Example.KitchenSink.Types.Empty (reset)
 import WAGS.Example.KitchenSink.Types.SinOsc (SinOscUniverse, deltaKsSinOsc, ksSinOscGain, ksSinOscSinOsc)
-import WAGS.Graph.Constructors (OnOff(..), TriangleOsc(..))
+import WAGS.Graph.Optionals (recorder, triangleOsc)
 import WAGS.Interpret (FFIAudio)
 import WAGS.Run (SceneI)
 
@@ -42,6 +43,6 @@ doSinOsc =
                 disconnect toRemove gn
                 destroy toRemove
                 reset
-                toAdd <- create (TriangleOsc On 440.0)
+                toAdd <- create (recorder (Proxy :: _ "my-recorder") (triangleOsc 440.0))
                 connect toAdd gn
                 withProof pr lsig

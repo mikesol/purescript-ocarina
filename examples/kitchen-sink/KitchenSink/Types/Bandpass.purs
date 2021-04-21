@@ -71,5 +71,5 @@ deltaKsBandpass =
         speaker
           ( Identity
               $ gain (if time > (timing.ksBandpass.dur - 1.0) then 0.0 else 1.0)
-                  (Identity $ bandpass {freq:calcSlope 0.0 300.0 timing.ksBandpass.dur 200.0 time} (Identity $ playBuf (Proxy :: _ "my-buffer")))
+                  (Identity $ bandpass {freq:calcSlope 0.0 300.0 timing.ksBandpass.dur 2000.0 time} (Identity $ playBuf (Proxy :: _ "my-buffer")))
           )

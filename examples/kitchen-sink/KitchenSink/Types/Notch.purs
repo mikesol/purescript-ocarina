@@ -73,7 +73,7 @@ deltaKsNotch =
           ( Identity
               $ gain (if time > (timing.ksNotch.dur - 1.0) then 0.0 else 1.0)
                   ( Identity
-                      $ notch { freq: calcSlope 0.0 300.0 timing.ksNotch.dur 200.0 time }
+                      $ notch { freq: calcSlope 0.0 300.0 timing.ksNotch.dur 2000.0 time }
                           (Identity $ playBuf (Proxy :: _ "my-buffer"))
                   )
           )

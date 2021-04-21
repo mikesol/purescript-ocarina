@@ -64,6 +64,10 @@ exports.disconnectXFromY_ = disconnectXFromY;
 exports.destroyUnit_ = function (ptr) {
   return function (state) {
     return function () {
+      // hack for recorder
+      if (state.units[ptr].recorder) {
+        state.units[ptr].recorder.stop();
+      }
       delete state.units[ptr];
     };
   };
@@ -339,6 +343,8 @@ exports.makeMicrophone_ = function (ptr) {
       }
       state.units[ptr] = {
         main: state.context.createMediaStreamSource(state.microphone),
+        outgoing: [],
+        incoming: [],
       };
     };
   };
@@ -446,12 +452,12 @@ exports.makeRecorder_ = function (ptr) {
         var mediaRecorderSideEffectFn = state.recorders[a];
         var dest = state.context.createMediaStreamDestination();
         var mediaRecorder = new MediaRecorder(dest.stream);
-        state.recorders.concat(mediaRecorder);
         mediaRecorderSideEffectFn(mediaRecorder)();
         mediaRecorder.start();
         state.units[ptr] = {
           outgoing: [],
           incoming: [],
+          recorder: mediaRecorder,
           main: state.context.createGain(),
           se: dest,
         };
@@ -893,6 +899,16 @@ exports.mediaRecorderToUrl = function (mimeType) {
           chunks = null;
         };
       };
+    };
+  };
+};
+exports.getBrowserMediaStreamImpl = function (audio) {
+  return function (video) {
+    return function () {
+      return navigator.mediaDevices.getUserMedia({
+        audio: audio,
+        video: video,
+      });
     };
   };
 };

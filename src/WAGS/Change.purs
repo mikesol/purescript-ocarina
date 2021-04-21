@@ -999,3 +999,17 @@ instance changeWaveShaper ::
       argB = (((toSkolemizedFunction :: fOfargB -> (Proxy skolem -> argB)) fOfargB) Proxy)
     in
       (change' :: ChangeType nextP argB igraph) Proxy argB
+
+instance changeRecorder ::
+  ( BinToInt p
+  , GetSkolemFromRecursiveArgument fa skolem
+  , ToSkolemizedFunction fa skolem a
+  , Modify (CTOR.Recorder sym a) p igraph nextP
+  , Change nextP a igraph
+  ) =>
+  Change (SingleEdge p) (CTOR.Recorder sym fa) igraph where
+  change' _ (CTOR.Recorder sym fa) =
+    let
+      a = (((toSkolemizedFunction :: fa -> (Proxy skolem -> a)) fa) Proxy)
+    in
+      (change' :: ChangeType nextP a igraph) Proxy a
