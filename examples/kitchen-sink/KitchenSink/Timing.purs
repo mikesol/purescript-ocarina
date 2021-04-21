@@ -48,9 +48,6 @@ integrate n =
     <*> (pure $ pure n)
     <*> (modify (append (pure n)))
 
-data KSFold
-  = KSFold
-
 deAdd :: TimeInfo -> TimeInfo'
 deAdd { begin, dur, end } = { begin: unwrap begin, dur: unwrap dur, end: unwrap end }
 

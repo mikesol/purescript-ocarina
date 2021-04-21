@@ -119,7 +119,7 @@ makeScene m trans = SceneT go
         runMemoizedStateT'
           (unsafeUnframe m)
           (unsafeCoerce unit)
-          (_ { env = ev })
+          (_ { env = ev, res = mempty })
           (initialAudioState ev)
     in
       do
