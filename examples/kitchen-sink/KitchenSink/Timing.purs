@@ -6,7 +6,7 @@ import Control.Monad.State (State, evalState, get, modify)
 import Data.Monoid.Additive (Additive)
 import Data.Newtype (unwrap)
 import Heterogeneous.Folding (hfoldl)
-import Heterogeneous.Mapping (class HMap, hmap)
+import Heterogeneous.Mapping (hmap)
 
 type TimeInfo
   = { begin :: Additive Number, dur :: Additive Number, end :: Additive Number }
@@ -14,28 +14,28 @@ type TimeInfo
 type TimeInfo'
   = { begin :: Number, dur :: Number, end :: Number }
 
-type KitchenSinkTiming
-  = { ksSinOsc :: TimeInfo
-    , ksTriangleOsc :: TimeInfo
-    , ksSquareOsc :: TimeInfo
-    , ksPeriodicOsc :: TimeInfo
-    , ksSawtoothOsc :: TimeInfo
-    , ksAllpass :: TimeInfo
-    , ksLowpass :: TimeInfo
-    , ksHighshelf :: TimeInfo
-    , ksLowshelf :: TimeInfo
-    , ksBandpass :: TimeInfo
-    , ksNotch :: TimeInfo
-    , ksPeaking :: TimeInfo
-    , ksHighpass :: TimeInfo
-    , ksMicrophone :: TimeInfo
-    , ksWaveShaper :: TimeInfo
-    , ksDelay :: TimeInfo
-    , ksFeedback :: TimeInfo
-    , ksLoopBuf :: TimeInfo
-    , ksStereoPanner :: TimeInfo
-    , ksConstant :: TimeInfo
-    , ksDynamicsCompressor :: TimeInfo
+type KitchenSinkTiming' a
+  = { ksSinOsc :: a
+    , ksTriangleOsc :: a
+    , ksSquareOsc :: a
+    , ksPeriodicOsc :: a
+    , ksSawtoothOsc :: a
+    , ksAllpass :: a
+    , ksLowpass :: a
+    , ksHighshelf :: a
+    , ksLowshelf :: a
+    , ksBandpass :: a
+    , ksNotch :: a
+    , ksPeaking :: a
+    , ksHighpass :: a
+    , ksMicrophone :: a
+    , ksWaveShaper :: a
+    , ksDelay :: a
+    , ksFeedback :: a
+    , ksLoopBuf :: a
+    , ksStereoPanner :: a
+    , ksConstant :: a
+    , ksDynamicsCompressor :: a
     }
 
 type Timed
@@ -54,7 +54,7 @@ data KSFold
 deAdd :: TimeInfo -> TimeInfo'
 deAdd { begin, dur, end } = { begin: unwrap begin, dur: unwrap dur, end: unwrap end }
 
-timing :: forall a. HMap (TimeInfo -> TimeInfo') KitchenSinkTiming a => a
+timing :: KitchenSinkTiming' TimeInfo'
 timing =
   hmap deAdd
     $ evalState
