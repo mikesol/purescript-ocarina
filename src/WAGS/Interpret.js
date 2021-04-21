@@ -146,10 +146,16 @@ exports.makeConstant_ = function (ptr) {
     return function (a) {
       return function (state) {
         return function () {
+          var createFunction = function () {
+            var unit = state.context.createConstantSource();
+            genericStarter(unit, "offset", a);
+            return unit;
+          };
           state.units[ptr] = {
             outgoing: [],
             incoming: [],
-            main: state.context.createConstantSource(),
+            createFunction: createFunction,
+            main: createFunction(),
           };
           genericStarter(state.units[ptr].main, "offset", a);
           if (onOff) {
@@ -198,6 +204,8 @@ exports.makeDynamicsCompressor_ = function (ptr) {
               return function () {
                 state.units[ptr] = {
                   main: state.context.createDynamicsCompressor(),
+                  outgoing: [],
+                  incoming: [],
                 };
                 genericStarter(state.units[ptr].main, "threshold", a);
                 genericStarter(state.units[ptr].main, "knee", b);
@@ -560,7 +568,7 @@ exports.makeStereoPanner_ = function (ptr) {
         state.units[ptr] = {
           outgoing: [],
           incoming: [],
-          main: state.context.createDelay(),
+          main: state.context.createStereoPanner(),
         };
         genericStarter(state.units[ptr].main, "pan", a);
       };

@@ -67,6 +67,17 @@ deltaKsDynamicsCompressor =
     >>> \time ->
         speaker
           ( Identity
-              $ gain (if time > (timing.ksDynamicsCompressor.dur - 1.0) then 0.0 else 1.0)
-                  (Identity $ compressor (Identity $ playBuf (Proxy :: _ "my-buffer")))
+              $ gain (if time > (dur - 1.0) then 0.0 else 1.0)
+                  ( Identity
+                      $ compressor
+                          { threshold: if time > (dur / 2.0) then -50.0 else -40.0
+                          , knee: if time > (dur / 3.0) then 20.0 else 40.0
+                          , ratio: if time > (dur / 4.0) then 2.0 else 5.0
+                          , attack: if time > (dur / 5.0) then 0.003 else 0.005
+                          , release: if time > (dur / 6.0) then 0.25 else 0.5
+                          }
+                          (Identity $ playBuf (Proxy :: _ "my-buffer"))
+                  )
           )
+  where
+  dur = timing.ksDynamicsCompressor.dur

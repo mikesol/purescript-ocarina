@@ -51,7 +51,7 @@ ksWaveShaper' ::
   KsWaveShaper g t b
 ksWaveShaper' fg ft fb =
   speaker
-    (fg $ gain 1.0 (ksWaveShaperCreate ft fb))
+    (fg $ gain 0.25 (ksWaveShaperCreate ft fb))
 
 ksWaveShaper :: KsWaveShaper Identity Identity Identity
 ksWaveShaper = ksWaveShaper' Identity Identity Identity
@@ -73,7 +73,7 @@ deltaKsWaveShaper =
     >>> \time ->
         speaker
           ( Identity
-              $ gain (if time > (timing.ksWaveShaper.dur - 1.0) then 0.0 else 1.0)
+              $ gain (if time > (timing.ksWaveShaper.dur - 1.0) then 0.0 else 0.25)
                   ( Identity
                       $ waveShaper (Proxy :: _ "my-waveshaper")
                           OversampleTwoX

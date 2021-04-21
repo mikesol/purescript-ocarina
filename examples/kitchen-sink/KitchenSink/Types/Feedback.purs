@@ -1,7 +1,6 @@
 module WAGS.Example.KitchenSink.Types.Feedback where
 
 import Prelude
-
 import Data.Identity (Identity(..))
 import Data.Tuple.Nested (type (/\), (/\))
 import Math ((%))
@@ -22,11 +21,11 @@ type FeedbackGraph
   = GraphC
       (NodeC (TGain EI0) (ManyEdges EI1 (PtrListCons EI3 PtrListNil)))
       ( NodeListCons
-          (NodeC (TDelay EI1) (SingleEdge EI2))
+          (NodeC (TPlayBuf EI3 "my-buffer") NoEdge)
           ( NodeListCons
-              (NodeC (TGain EI2) (SingleEdge EI0))
+              (NodeC (TDelay EI1) (SingleEdge EI2))
               ( NodeListCons
-                  (NodeC (TPlayBuf EI3 "my-buffer") NoEdge)
+                  (NodeC (TGain EI2) (SingleEdge EI0))
                   (BaseGraph EI0)
               )
           )
