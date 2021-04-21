@@ -4,7 +4,7 @@ import Type.Proxy (Proxy(..))
 import WAGS.Rebase (ResetSig)
 import WAGS.Rebase as Rb
 import WAGS.Universe.AudioUnit (TGain, TSpeaker)
-import WAGS.Universe.BinN (D0, D1, D2, D3, D4, D5)
+import WAGS.Universe.BinN (D0, D1, D2, D3, D4, D5, D6)
 import WAGS.Universe.EdgeProfile (NoEdge, SingleEdge)
 import WAGS.Universe.Graph (GraphC)
 import WAGS.Universe.Node (NodeC, NodeListCons, NodeListNil)
@@ -23,6 +23,9 @@ type EI2
 
 type EI3
   = D5
+
+type EI4
+  = D6
 
 type EmptyGraph
   = GraphC

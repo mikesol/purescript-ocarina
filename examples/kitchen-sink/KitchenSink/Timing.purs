@@ -31,6 +31,7 @@ type KitchenSinkTiming
     , ksMicrophone :: TimeInfo
     , ksWaveShaper :: TimeInfo
     , ksDelay :: TimeInfo
+    , ksFeedback :: TimeInfo
     , ksDynamicsCompressor :: TimeInfo
     }
 
@@ -70,6 +71,7 @@ timing =
           , ksMicrophone: _
           , ksWaveShaper: _
           , ksDelay: _
+          , ksFeedback: _
           , ksDynamicsCompressor: _
           }
             <$> integrate 5.0
@@ -86,6 +88,7 @@ timing =
             <*> integrate 10.0
             <*> integrate 10.0
             <*> integrate 5.0
+            <*> integrate 10.0
             <*> integrate 10.0
             <*> integrate 10.0
             <*> integrate 10.0

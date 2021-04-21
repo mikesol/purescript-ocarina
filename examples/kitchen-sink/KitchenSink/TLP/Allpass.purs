@@ -3,7 +3,6 @@ module WAGS.Example.KitchenSink.TLP.Allpass where
 import Prelude
 
 import Data.Either (Either(..))
-import Data.Functor.Indexed (ivoid)
 import Data.Identity (Identity(..))
 import Effect (Effect)
 import Math ((%))
