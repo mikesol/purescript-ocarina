@@ -1,7 +1,6 @@
 module WAGS.Example.KitchenSink where
 
 import Prelude
-
 import Control.Comonad.Cofree (Cofree, mkCofree)
 import Control.Promise (toAffE)
 import Data.Array ((..))
@@ -14,16 +13,18 @@ import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect)
 import FRP.Event (subscribe)
 import Foreign.Object as O
+import Halogen (SubscriptionId)
 import Halogen as H
 import Halogen.Aff (awaitBody, runHalogenAff)
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
+import Halogen.Subscription as HS
 import Halogen.VDom.Driver (runUI)
 import Math (abs, pi)
 import WAGS.Example.KitchenSink.TLP (piece)
 import WAGS.Example.KitchenSink.Timing (timing)
 import WAGS.Interpret (AudioContext, FFIAudio(..), close, context, decodeAudioDataFromUri, defaultFFIAudio, makeFloatArray, makePeriodicWave, makeUnitCache)
-import WAGS.Run (run)
+import WAGS.Run (Run, run)
 
 makeDistortionCurve :: Number -> Array Number
 makeDistortionCurve k =
@@ -50,12 +51,15 @@ main =
     runUI component unit body
 
 type State
-  = { unsubscribe :: Effect Unit
+  = { unsubscribeFromWAGS :: Effect Unit
+    , unsubscribeFromHalogen :: Maybe SubscriptionId
     , audioCtx :: Maybe AudioContext
+    , graph :: Maybe String
     }
 
 data Action
   = StartAudio
+  | ReportGraph (Run Unit)
   | StopAudio
 
 component :: forall query input output m. MonadEffect m => MonadAff m => H.Component query input output m
@@ -68,8 +72,10 @@ component =
 
 initialState :: forall input. input -> State
 initialState _ =
-  { unsubscribe: pure unit
+  { unsubscribeFromWAGS: pure unit
+  , unsubscribeFromHalogen: Nothing
   , audioCtx: Nothing
+  , graph: Nothing
   }
 
 render :: forall m. State -> H.ComponentHTML Action () m
@@ -84,12 +90,17 @@ render state = do
     , HH.button
         [ HE.onClick \_ -> StopAudio ]
         [ HH.text "Stop audio" ]
-    , HH.p [] [HH.text $ show timing]
+    , HH.p [] [ HH.text $ "Timing :: " <> show timing ]
+    , HH.p [] [ HH.text $ "Graph :: " <> show state.graph ]
     ]
 
 handleAction :: forall output m. MonadEffect m => MonadAff m => Action -> H.HalogenM State Action () output m Unit
 handleAction = case _ of
+  ReportGraph graph -> H.modify_ (_ { graph = pure $ show graph })
   StartAudio -> do
+    handleAction StopAudio
+    { emitter, listener } <- H.liftEffect HS.create
+    unsubscribeFromHalogen <- H.subscribe emitter
     audioCtx <- H.liftEffect context
     unitCache <- H.liftEffect makeUnitCache
     myWave <-
@@ -108,7 +119,7 @@ handleAction = case _ of
           , buffers = O.singleton "my-buffer" chimes
           , floatArrays = O.singleton "my-waveshaper" wicked
           }
-    unsubscribe <-
+    unsubscribeFromWAGS <-
       H.liftEffect
         $ subscribe
             ( run
@@ -118,10 +129,16 @@ handleAction = case _ of
                 (FFIAudio ffiAudio)
                 piece
             )
-            (const $ pure unit)
-    H.modify_ _ { unsubscribe = unsubscribe, audioCtx = Just audioCtx }
+            (HS.notify listener <<< ReportGraph)
+    H.modify_
+      _
+        { unsubscribeFromWAGS = unsubscribeFromWAGS
+        , unsubscribeFromHalogen = pure unsubscribeFromHalogen
+        , audioCtx = Just audioCtx
+        }
   StopAudio -> do
-    { unsubscribe, audioCtx } <- H.get
-    H.liftEffect unsubscribe
+    { unsubscribeFromWAGS, unsubscribeFromHalogen, audioCtx } <- H.get
+    H.liftEffect unsubscribeFromWAGS
     for_ audioCtx (H.liftEffect <<< close)
-    H.modify_ _ { unsubscribe = pure unit, audioCtx = Nothing }
+    for_ unsubscribeFromHalogen H.unsubscribe
+    H.modify_ _ { unsubscribeFromWAGS = pure unit, audioCtx = Nothing }
