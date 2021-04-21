@@ -9,6 +9,7 @@ module WAGS.Run
   ) where
 
 import Prelude
+
 import Control.Comonad.Cofree (Cofree, head, tail)
 import Data.DateTime.Instant (Instant)
 import Data.Foldable (for_)
@@ -26,7 +27,8 @@ import FRP.Behavior.Time (instant)
 import FRP.Event (Event, makeEvent, subscribe)
 import FRP.Event.Time (withTime, delay)
 import Record as R
-import WAGS.Control.Types (Frame0, Scene, oneFrame)
+import WAGS.Control.Thunkable (Thunkable, runThunkable)
+import WAGS.Control.Types (Frame0, SceneT, oneFrameT)
 import WAGS.Interpret (FFIAudio(..), FFIAudio', getAudioClockTime, renderAudio)
 import WAGS.Rendered (AnAudioUnit)
 
@@ -38,17 +40,20 @@ import WAGS.Rendered (AnAudioUnit)
 -- | - `FFIAudio` is the audio state needed for rendering
 -- | - `Scene` is the scene to render. See `SceneI` to understand how `trigger` and `world` are blended into the inptu environment going to `Scene`.
 run ::
-  forall trigger world.
+  forall trigger world res.
+  Monoid res =>
   Event trigger ->
   Behavior world ->
   EngineInfo ->
   FFIAudio ->
-  Scene
+  SceneT
     (SceneI trigger world)
     FFIAudio
     (Effect Unit)
-    Frame0 ->
-  Event Run
+    Frame0
+    Thunkable
+    res ->
+  Event (Run res)
 run trigger world' engineInfo audio@(FFIAudio audio') scene =
   makeEvent \k -> do
     audioClockStart <- getAudioClockTime audio'.context
@@ -102,11 +107,13 @@ type EasingAlgorithm
 -- | The output of `run` to be consumed downstream (or not). It contains:
 -- | - `nodes`: the nodes in the audio graph including information about things like their frequency, Q value, on/off state etc.
 -- | - `edges`: incoming edges into nodes.
+-- | - `res`: the residual from the computation.
 -- |
 -- | This information can be used for visualizing the audio graph or for other instruments outside of a browser that are using the browser as a control layer.
-type Run
+type Run res
   = { nodes :: M.Map Int AnAudioUnit
     , edges :: M.Map Int (Set Int)
+    , res :: res
     }
 
 -- | The input type to a scene that is handled by `run`. Given `Event trigger` and `Behavior world`, the scene will receive:
@@ -174,7 +181,8 @@ bufferToList timeToCollect incomingEvent =
   timed = withTime incomingEvent
 
 runInternal ::
-  forall trigger world.
+  forall trigger world res.
+  Monoid res =>
   Number ->
   { world :: world
   , trigger :: trigger
@@ -185,14 +193,16 @@ runInternal ::
   Ref.Ref (Effect Unit) ->
   Ref.Ref EasingAlgorithm ->
   Ref.Ref
-    ( Scene
+    ( SceneT
         (SceneI trigger world)
         FFIAudio
         (Effect Unit)
         Frame0
+        Thunkable
+        res
     ) ->
   FFIAudio' ->
-  (Run -> Effect Unit) ->
+  (Run res -> Effect Unit) ->
   Effect Unit
 runInternal audioClockStart worldAndTrigger world' currentTimeoutCanceler currentEasingAlg currentScene audio' reporter = do
   easingAlgNow <- Ref.read currentEasingAlg
@@ -209,7 +219,7 @@ runInternal audioClockStart worldAndTrigger world' currentTimeoutCanceler curren
 
     time = (audioClockPriorToComputation - audioClockStart) + headroomInSeconds
 
-    fromScene = oneFrame sceneNow (R.union worldAndTrigger { time, headroom })
+    fromScene = runThunkable (oneFrameT  sceneNow (R.union worldAndTrigger { time, headroom }))
   audioClockAfterComputation <- getAudioClockTime audio'.context
   renderAudio
     ( FFIAudio
@@ -224,7 +234,7 @@ runInternal audioClockStart worldAndTrigger world' currentTimeoutCanceler curren
   Ref.write
     fromScene.next
     currentScene
-  reporter { nodes: fromScene.nodes, edges: fromScene.edges }
+  reporter { nodes: fromScene.nodes, edges: fromScene.edges, res: fromScene.res }
   -- we thunk the world and move on to the next event
   -- note that if we did not allocate enough time, we still
   -- set a timeout of 1 so that th canceler can run in case it needs to
