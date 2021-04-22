@@ -151,9 +151,10 @@ let additions =
         , repo = "https://github.com/mikesol/purescript-behaviors.git"
         , version = "v8.1.0"
         }
-      , convertable-options = { dependencies =
-          [  "console", "effect", "maybe", "record"   ]
-        , repo = "https://github.com/natefaubion/purescript-convertable-options.git"
+      , convertable-options =
+        { dependencies = [ "console", "effect", "maybe", "record" ]
+        , repo =
+            "https://github.com/natefaubion/purescript-convertable-options.git"
         , version = "v1.0.0"
         }
       }
