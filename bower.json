@@ -1,0 +1,33 @@
+{
+  "name": "purescript-wags",
+  "license": ["Apache-2.0"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mikesol/purescript-wags.git"
+  },
+  "ignore": ["**/.*", "node_modules", "bower_components", "output"],
+  "dependencies": {
+    "purescript-aff-promise": "^v3.0.0",
+    "purescript-arraybuffer-types": "^v3.0.0",
+    "purescript-behaviors": "^v8.1.0",
+    "purescript-console": "^v5.0.0",
+    "purescript-convertable-options": "^v1.0.0",
+    "purescript-debug": "^v4.0.1",
+    "purescript-effect": "^v3.0.0",
+    "purescript-event": "^v1.4.1",
+    "purescript-free": "^v6.0.0",
+    "purescript-heterogeneous": "^v0.5.0",
+    "purescript-indexed-monad": "^v2.0.0",
+    "purescript-maybe": "^v5.0.0",
+    "purescript-ordered-collections": "^v2.0.0",
+    "purescript-profunctor-lenses": "^v7.0.0",
+    "purescript-psci-support": "^v5.0.0",
+    "purescript-record": "^v3.0.0",
+    "purescript-sized-vectors": "^v5.0.2",
+    "purescript-transformers": "^v5.0.0",
+    "purescript-tuples": "^v6.0.0",
+    "purescript-typelevel": "^v6.0.0",
+    "purescript-typelevel-peano": "^v1.0.1",
+    "purescript-typelevel-prelude": "^v6.0.0"
+  }
+}

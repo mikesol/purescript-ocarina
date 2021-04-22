@@ -7,6 +7,7 @@
   , "convertable-options"
   , "debug"
   , "effect"
+  , "event"
   , "free"
   , "heterogeneous"
   , "indexed-monad"
