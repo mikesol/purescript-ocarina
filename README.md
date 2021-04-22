@@ -207,7 +207,7 @@ main :: Effect Unit
 main = pure unit
 ```
 
-### Other examples
+## Other examples
 
 There are some other examples to get you started:
 
@@ -216,6 +216,10 @@ There are some other examples to get you started:
 - **The Well-Typed Klavier** ([code](./examples/wtk) | [sound](https://twitter.com/stronglynormal/status/1382221415802408960))
 
 The **Atari speaks** and **Kitchen sink** examples show how to use `purescript-wags` in a [Halogen](https://github.com/purescript-halogen/purescript-halogen) app.
+
+## Documentation
+
+Module documentation is [published on Pursuit](https://pursuit.purescript.org/packages/purescript-wags/).
 
 ## Bundling on your site
 
