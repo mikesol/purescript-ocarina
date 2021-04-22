@@ -134,7 +134,7 @@ let additions =
           , "now"
           ]
         , repo = "https://github.com/mikesol/purescript-event.git"
-        , version = "master"
+        , version = "v1.4.1"
         }
       , behaviors =
         { dependencies =
@@ -149,7 +149,7 @@ let additions =
           , "web-uievents"
           ]
         , repo = "https://github.com/mikesol/purescript-behaviors.git"
-        , version = "master"
+        , version = "v8.1.0"
         }
       , convertable-options = { dependencies =
           [  "console", "effect", "maybe", "record"   ]
