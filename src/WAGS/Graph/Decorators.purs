@@ -12,7 +12,7 @@ import Data.Tuple (Tuple)
 import WAGS.Graph.Constructors as CTOR
 import WAGS.Rendered (Oversample(..))
 
--- A newtype for a decorator, isomorphic to `Exists f` where `f` is a type constructor of type `Type -> Type`. We use decorating instead of `Exists` because `Exists` does not (yet) have an API to work with raw type constructors.
+-- | A newtype for a decorator, isomorphic to `Exists f` where `f` is a type constructor of type `Type -> Type`. We use decorating instead of `Exists` because `Exists` does not (yet) have an API to work with raw type constructors.
 newtype Decorating f
   = Decorating (Decorating' f)
 
@@ -20,7 +20,7 @@ newtype Decorating f
 type Decorating' f
   = forall a. a -> f a
 
--- | Retrieves the type constructor from decorating, isomorphic to `runExists`.
+-- | Retrieves the type constructor from decorating.
 dk :: forall f. Decorating f -> Decorating' f
 dk (Decorating f) = f
 
@@ -55,7 +55,7 @@ instance applyFocus :: Apply Focus where
 instance applicativeFocus :: Applicative Focus where
   pure = Focus
 
--- Class to determine if a type is audio.
+-- | Class to determine if a type is audio.
 class IsAudio (audio :: Type)
 
 instance isAudioAllpass :: IsAudio (CTOR.Allpass a b c)

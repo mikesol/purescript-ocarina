@@ -39,15 +39,15 @@ foreign import data PtrListCons :: Ptr -> PtrList -> PtrList
 -- | Nil for a pointer list
 foreign import data PtrListNil :: PtrList
 
--- Cast a binary value to an int
+-- | Cast a binary value to an int
 toInt' :: forall (i :: Bits). BinToInt i => Proxy i -> Int
 toInt' = toInt'' 1
 
--- Cast a binary value to an int
+-- | Cast a binary value to an int
 toInt :: forall (i :: Bits). BinToInt i => Int
 toInt = toInt'' 1 (Proxy :: _ i)
 
--- Class representing the successor function for binary values.
+-- | Class representing the successor function for binary values.
 class BinSucc (i :: Bits) (o :: Bits) | i -> o
 
 instance binSuccNull :: BinSucc Bn (Bc I Bn)
@@ -56,12 +56,12 @@ instance binSuccO :: BinSucc (Bc O r) (Bc I r)
 
 instance binSuccI :: BinSucc r r' => BinSucc (Bc I r) (Bc O r')
 
--- Class representing subtraction of binary values if l is greater than r and Bn otherwise.
+-- | Class representing subtraction of binary values if l is greater than r and Bn otherwise.
 class BinSub (l :: Bits) (r :: Bits) (o :: Bits) | l r -> o
 
 instance binSub :: (BinSub' False l r o', RemoveTrailingZeros o' o) => BinSub l r o
 
--- Internal class helping with binary subtraction.
+-- | Internal class helping with binary subtraction.
 class BinSub' (carrying :: Type) (l :: Bits) (r :: Bits) (o :: Bits) | carrying l r -> o
 
 instance binSubDoneIF :: BinSub' False (Bc I r) Bn (Bc I r)
@@ -96,7 +96,7 @@ instance binSubIterTOI :: BinSub' True i o r => BinSub' True (Bc O i) (Bc I o) (
 
 instance binSubIterTII :: BinSub' False (Bc O i) (Bc I o) x => BinSub' True (Bc I i) (Bc I o) x
 
--- Class asking if two bits are equal and responding t if true and f otherwise, aka NOT XOR.
+-- | Class asking if two bits are equal and responding t if true and f otherwise, aka NOT XOR.
 class Beq (a :: Bit) (b :: Bit) (tf :: Type) | a b -> tf
 
 instance beqOO :: Beq O O True
@@ -107,7 +107,7 @@ instance beqIO :: Beq I O False
 
 instance beqII :: Beq I I True
 
--- Class asking if two binary values are equal and responding t if true and f otherwise.
+-- | Class asking if two binary values are equal and responding t if true and f otherwise.
 class BinEq (a :: Bits) (b :: Bits) (tf :: Type) | a b -> tf
 
 instance binEq0 :: BinEq Bn Bn True
@@ -118,7 +118,7 @@ instance binEq2 :: BinEq (Bc x y) Bn False
 
 instance binEq3 :: (Beq a x tf, BinEq b y rest, And tf rest r) => BinEq (Bc a b) (Bc x y) r
 
--- Class that turns a list of Os to `Bn`.
+-- | Class that turns a list of Os to `Bn`.
 class AllZerosToNull (i :: Bits) (o :: Bits) | i -> o
 
 instance allZerosToNullBn :: AllZerosToNull Bn Bn
@@ -127,7 +127,7 @@ instance allZerosToNullBcI :: AllZerosToNull (Bc I o) (Bc I o)
 
 instance allZerosToNullBcO :: AllZerosToNull o x => AllZerosToNull (Bc O o) x
 
--- Class that removes trailing 0s from a binary number.
+-- | Class that removes trailing 0s from a binary number.
 class RemoveTrailingZeros (i :: Bits) (o :: Bits) | i -> o
 
 instance removeTrailingZerosBn :: RemoveTrailingZeros Bn Bn
