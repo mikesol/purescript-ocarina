@@ -23,6 +23,7 @@ import Web.Event.Event as WE
 import Web.Event.EventTarget (EventTarget, addEventListener, eventListener, removeEventListener)
 import Web.Internal.FFI (unsafeReadProtoTagged)
 
+-- | Represents a single MIDI event.
 data MIDIEvent
   = NoteOff Int Int Int
   | NoteOn Int Int Int
@@ -32,15 +33,19 @@ data MIDIEvent
   | Aftertouch Int Int
   | Pitchwheel Int Int
 
+-- | Represents a MIDI event with a timestamp.
 type MIDIEventInTime
   = { timeStamp :: Number
     , event :: MIDIEvent
     }
 
+-- | The Web API's [MIDIAccess](https://developer.mozilla.org/en-US/docs/Web/API/MIDIAccess).
 foreign import data MIDIAccess :: Type
 
+-- | The Web API's [MIDIMessageEvent](https://developer.mozilla.org/en-US/docs/Web/API/MIDIMessageEvent).
 foreign import data MIDIMessageEvent :: Type
 
+-- | Get the [MIDIAccess](https://developer.mozilla.org/en-US/docs/Web/API/MIDIAccess) from the browser.
 foreign import midiAccess :: Effect (Promise MIDIAccess)
 
 foreign import toTargetMap :: MIDIAccess -> Effect (O.Object EventTarget)
@@ -84,6 +89,7 @@ toMIDIEvent =
 fromEvent :: WE.Event -> Maybe MIDIMessageEvent
 fromEvent = unsafeReadProtoTagged "MIDIMessageEvent"
 
+-- | After having acquired the [MIDIAccess](https://developer.mozilla.org/en-US/docs/Web/API/MIDIAccess) from the browser, use it to create a streamed event of type `Event MIDIEventInTime`.
 midi :: MIDIAccess -> Event MIDIEventInTime
 midi midiAccess_ =
   makeEvent \push -> do
