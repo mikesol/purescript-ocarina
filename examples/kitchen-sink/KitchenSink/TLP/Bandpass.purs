@@ -23,9 +23,6 @@ doBandpass :: forall proof iu cb. StepSig (BandpassUniverse cb) proof iu
 doBandpass =
   branch \lsig -> WAGS.do
     { time } <- env
-    toRemove <- cursor ksBandpassBandpass
-    toRemoveBuf <- cursor ksBandpassPlaybuf
-    gn <- cursor ksBandpassGain
     pr <- proof
     withProof pr
       $ if time % pieceTime < timing.ksBandpass.end then
@@ -33,11 +30,14 @@ doBandpass =
         else
           Left
             $ inSitu doNotch WAGS.do
-                disconnect toRemoveBuf toRemove
-                disconnect toRemove gn
-                destroy toRemove
-                destroy toRemoveBuf
+                bandpassCursor <- cursor ksBandpassBandpass
+                playBufCursor <- cursor ksBandpassPlaybuf
+                gainCursor <- cursor ksBandpassGain
+                disconnect playBufCursor bandpassCursor
+                disconnect bandpassCursor gainCursor
+                destroy bandpassCursor
+                destroy playBufCursor
                 reset
                 toAdd <- create (ksNotchCreate Identity Identity)
-                connect toAdd gn
+                connect toAdd gainCursor
                 withProof pr lsig
