@@ -1,13 +1,14 @@
 module WAGS.Example.KitchenSink.Types.WaveShaper where
 
 import Prelude
+
 import Data.Identity (Identity(..))
 import Math ((%))
 import Type.Proxy (Proxy(..))
 import WAGS.Control.Types (Universe')
 import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
-import WAGS.Example.KitchenSink.Types.Empty (BaseGraph, EI0, EI1, EI2)
-import WAGS.Graph.Constructors (Gain, OversampleTwoX(..), PlayBuf, Speaker, WaveShaper)
+import WAGS.Example.KitchenSink.Types.Empty (BaseGraph, EI0, EI1, EI2, TopLevel)
+import WAGS.Graph.Constructors (OversampleTwoX(..), PlayBuf, WaveShaper)
 import WAGS.Graph.Decorators (Focus(..), Decorating')
 import WAGS.Graph.Optionals (GetSetAP, gain, playBuf, speaker, waveShaper)
 import WAGS.Universe.AudioUnit (TWaveShaper, TPlayBuf)
@@ -30,7 +31,7 @@ type KsWaveShaperCreate (t :: Type -> Type) b
   = t (WaveShaper "my-waveshaper" OversampleTwoX (b (PlayBuf "my-buffer" GetSetAP)))
 
 type KsWaveShaper g t b
-  = Speaker (g (Gain GetSetAP (KsWaveShaperCreate t b)))
+  = TopLevel g (KsWaveShaperCreate t b)
 
 ksWaveShaperCreate ::
   forall t b.

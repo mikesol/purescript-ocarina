@@ -7,8 +7,8 @@ import Math (sin, (%), pi)
 import Type.Proxy (Proxy(..))
 import WAGS.Control.Types (Universe')
 import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
-import WAGS.Example.KitchenSink.Types.Empty (BaseGraph, EI0, EI1, EI2)
-import WAGS.Graph.Constructors (StereoPanner, Gain, PlayBuf, Speaker)
+import WAGS.Example.KitchenSink.Types.Empty (BaseGraph, EI0, EI1, EI2, TopLevel)
+import WAGS.Graph.Constructors (StereoPanner, PlayBuf)
 import WAGS.Graph.Decorators (Focus(..), Decorating')
 import WAGS.Graph.Optionals (GetSetAP, pan, gain, playBuf, speaker)
 import WAGS.Universe.AudioUnit (TStereoPanner, TPlayBuf)
@@ -31,7 +31,7 @@ type KsStereoPannerCreate (t :: Type -> Type) b
   = t (StereoPanner GetSetAP (b (PlayBuf "my-buffer" GetSetAP)))
 
 type KsStereoPanner g t b
-  = Speaker (g (Gain GetSetAP (KsStereoPannerCreate t b)))
+  = TopLevel g (KsStereoPannerCreate t b)
 
 ksStereoPannerCreate ::
   forall t b.

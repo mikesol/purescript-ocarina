@@ -7,7 +7,7 @@ import Math (cos, pi, pow, sin, (%))
 import Type.Proxy (Proxy(..))
 import WAGS.Control.Types (Universe')
 import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
-import WAGS.Example.KitchenSink.Types.Empty (BaseGraph, EI0, EI1, EI2)
+import WAGS.Example.KitchenSink.Types.Empty (BaseGraph, EI0, EI1, EI2, TopLevel)
 import WAGS.Graph.Constructors (Gain, Recorder, Speaker, TriangleOsc)
 import WAGS.Graph.Decorators (Focus(..), Decorating')
 import WAGS.Graph.Optionals (GetSetAP, gain, recorder, speaker, triangleOsc)
@@ -28,7 +28,7 @@ type TriangleOscUniverse cb
   = Universe' EI2 TriangleOscGraph cb
 
 type KsTriangleOsc g t r
-  = Speaker (g (Gain GetSetAP (r (Recorder "my-recorder" (t (TriangleOsc GetSetAP))))))
+  = TopLevel g (r (Recorder "my-recorder" (t (TriangleOsc GetSetAP))))
 
 ksTriangleOsc' ::
   forall g t r.

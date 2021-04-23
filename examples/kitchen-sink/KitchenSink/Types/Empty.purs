@@ -1,6 +1,8 @@
 module WAGS.Example.KitchenSink.Types.Empty where
 
 import Type.Proxy (Proxy(..))
+import WAGS.Graph.Constructors (Gain, Speaker)
+import WAGS.Graph.Optionals (GetSetAP)
 import WAGS.Rebase (ResetSig)
 import WAGS.Rebase as Rb
 import WAGS.Universe.AudioUnit (TGain, TSpeaker)
@@ -36,6 +38,10 @@ type BaseGraph ptr
   = NodeListCons
       (NodeC (TSpeaker D0) (SingleEdge D1))
       (NodeListCons (NodeC (TGain D1) (SingleEdge ptr)) NodeListNil)
+
+type TopLevel g c
+  = Speaker (g (Gain GetSetAP c))
+
 
 reset :: ResetSig EI EmptyGraph
 reset = Rb.reset (Proxy :: _ EI) (Proxy :: _ EmptyGraph)

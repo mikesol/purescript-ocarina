@@ -7,8 +7,8 @@ import Math ((%))
 import Type.Proxy (Proxy(..))
 import WAGS.Control.Types (Universe')
 import WAGS.Example.KitchenSink.Timing (calcSlope, pieceTime, timing)
-import WAGS.Example.KitchenSink.Types.Empty (BaseGraph, EI0, EI1, EI2)
-import WAGS.Graph.Constructors (Peaking, Gain, PlayBuf, Speaker)
+import WAGS.Example.KitchenSink.Types.Empty (BaseGraph, EI0, EI1, EI2, TopLevel)
+import WAGS.Graph.Constructors (Peaking, PlayBuf)
 import WAGS.Graph.Decorators (Focus(..), Decorating')
 import WAGS.Graph.Optionals (GetSetAP, gain, peaking, playBuf, speaker)
 import WAGS.Universe.AudioUnit (TPeaking, TPlayBuf)
@@ -31,7 +31,7 @@ type KsPeakingreate (t :: Type -> Type) b
   = t (Peaking GetSetAP GetSetAP GetSetAP (b (PlayBuf "my-buffer" GetSetAP)))
 
 type KsPeaking g t b
-  = Speaker (g (Gain GetSetAP (KsPeakingreate t b)))
+  = TopLevel g (KsPeakingreate t b)
 
 ksPeakingCreate ::
   forall t b.

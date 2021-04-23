@@ -1,13 +1,14 @@
 module WAGS.Example.KitchenSink.Types.DynamicsCompressor where
 
 import Prelude
+
 import Data.Identity (Identity(..))
 import Math ((%))
 import Type.Proxy (Proxy(..))
 import WAGS.Control.Types (Universe')
 import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
-import WAGS.Example.KitchenSink.Types.Empty (BaseGraph, EI0, EI1, EI2)
-import WAGS.Graph.Constructors (DynamicsCompressor, Gain, PlayBuf, Speaker)
+import WAGS.Example.KitchenSink.Types.Empty (BaseGraph, EI0, EI1, EI2, TopLevel)
+import WAGS.Graph.Constructors (DynamicsCompressor, PlayBuf)
 import WAGS.Graph.Decorators (Focus(..), Decorating')
 import WAGS.Graph.Optionals (GetSetAP, compressor, gain, playBuf, speaker)
 import WAGS.Universe.AudioUnit (TDynamicsCompressor, TPlayBuf)
@@ -30,7 +31,7 @@ type KsDynamicsCompressorreate (t :: Type -> Type) b
   = t (DynamicsCompressor GetSetAP GetSetAP GetSetAP GetSetAP GetSetAP (b (PlayBuf "my-buffer" GetSetAP)))
 
 type KsDynamicsCompressor g t b
-  = Speaker (g (Gain GetSetAP (KsDynamicsCompressorreate t b)))
+  = TopLevel g (KsDynamicsCompressorreate t b)
 
 ksDynamicsCompressorCreate ::
   forall t b.

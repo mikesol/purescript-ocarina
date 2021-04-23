@@ -7,7 +7,7 @@ import Math (cos, pi, pow, sin, (%))
 import Type.Proxy (Proxy(..))
 import WAGS.Control.Types (Universe')
 import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
-import WAGS.Example.KitchenSink.Types.Empty (BaseGraph, EI0, EI1)
+import WAGS.Example.KitchenSink.Types.Empty (BaseGraph, EI0, EI1, TopLevel)
 import WAGS.Graph.Constructors (Gain, PeriodicOsc, Speaker)
 import WAGS.Graph.Decorators (Focus(..), Decorating')
 import WAGS.Graph.Optionals (GetSetAP, gain, periodicOsc, speaker)
@@ -26,7 +26,7 @@ type PeriodicOscUniverse cb
   = Universe' EI1 PeriodicOscGraph cb
 
 type KsPeriodicOsc g t
-  = Speaker (g (Gain GetSetAP (t (PeriodicOsc "my-wave" GetSetAP))))
+  = TopLevel g (t (PeriodicOsc "my-wave" GetSetAP))
 
 ksPeriodicOsc' ::
   forall g t.

@@ -1,12 +1,13 @@
 module WAGS.Example.KitchenSink.Types.LoopBuf where
 
 import Prelude
+
 import Data.Identity (Identity(..))
 import Math (pi, sin, (%))
 import Type.Proxy (Proxy(..))
 import WAGS.Control.Types (Universe')
 import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
-import WAGS.Example.KitchenSink.Types.Empty (BaseGraph, EI0, EI1)
+import WAGS.Example.KitchenSink.Types.Empty (BaseGraph, EI0, EI1, TopLevel)
 import WAGS.Graph.Constructors (Gain, Speaker, LoopBuf)
 import WAGS.Graph.Decorators (Focus(..), Decorating')
 import WAGS.Graph.Optionals (GetSetAP, gain, loopBuf, speaker)
@@ -24,7 +25,7 @@ type LoopBufUniverse cb
   = Universe' EI1 LoopBufGraph cb
 
 type KsLoopBuf g t
-  = Speaker (g (Gain GetSetAP (t (LoopBuf "my-buffer" GetSetAP))))
+  = TopLevel g (t (LoopBuf "my-buffer" GetSetAP))
 
 ksLoopBuf' ::
   forall g t.

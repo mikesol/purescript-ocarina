@@ -7,8 +7,8 @@ import Math ((%))
 import Type.Proxy (Proxy(..))
 import WAGS.Control.Types (Universe')
 import WAGS.Example.KitchenSink.Timing (calcSlope, pieceTime, timing)
-import WAGS.Example.KitchenSink.Types.Empty (BaseGraph, EI0, EI1, EI2)
-import WAGS.Graph.Constructors (Bandpass, Gain, PlayBuf, Speaker)
+import WAGS.Example.KitchenSink.Types.Empty (BaseGraph, EI0, EI1, EI2, TopLevel)
+import WAGS.Graph.Constructors (Bandpass, PlayBuf)
 import WAGS.Graph.Decorators (Focus(..), Decorating')
 import WAGS.Graph.Optionals (GetSetAP, bandpass, gain, playBuf, speaker)
 import WAGS.Universe.AudioUnit (TBandpass, TPlayBuf)
@@ -31,7 +31,7 @@ type KsBandpassreate (t :: Type -> Type) b
   = t (Bandpass GetSetAP GetSetAP (b (PlayBuf "my-buffer" GetSetAP)))
 
 type KsBandpass g t b
-  = Speaker (g (Gain GetSetAP (KsBandpassreate t b)))
+  = TopLevel g (KsBandpassreate t b)
 
 ksBandpassCreate ::
   forall t b.

@@ -1,14 +1,15 @@
 module WAGS.Example.KitchenSink.Types.Feedback where
 
 import Prelude
+
 import Data.Identity (Identity(..))
 import Data.Tuple.Nested (type (/\), (/\))
 import Math ((%))
 import Type.Proxy (Proxy(..))
 import WAGS.Control.Types (Universe')
 import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
-import WAGS.Example.KitchenSink.Types.Empty (BaseGraph, EI0, EI1, EI2, EI3, EI4)
-import WAGS.Graph.Constructors (Delay, Gain, PlayBuf, Speaker)
+import WAGS.Example.KitchenSink.Types.Empty (BaseGraph, EI0, EI1, EI2, EI3, EI4, TopLevel)
+import WAGS.Graph.Constructors (Delay, Gain, PlayBuf)
 import WAGS.Graph.Decorators (Focus(..), Decorating')
 import WAGS.Graph.Optionals (GetSetAP, Mix, delay, gain, mix, playBuf, speaker)
 import WAGS.Universe.AudioUnit (TDelay, TGain, TPlayBuf)
@@ -48,7 +49,7 @@ type KsFeedbackCreate t b (mx :: Type -> Type) atten
       )
 
 type KsFeedback g t b mx atten
-  = Speaker (g (Gain GetSetAP (KsFeedbackCreate t b mx atten)))
+  = TopLevel g (KsFeedbackCreate t b mx atten)
 
 ksFeedbackCreate ::
   forall t b mx atten.

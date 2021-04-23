@@ -1,9 +1,10 @@
 module WAGS.Example.KitchenSink.Types.Constant where
 
 import Prelude
+
 import Data.Identity (Identity(..))
 import WAGS.Control.Types (Universe')
-import WAGS.Example.KitchenSink.Types.Empty (BaseGraph, EI0, EI1)
+import WAGS.Example.KitchenSink.Types.Empty (BaseGraph, EI0, EI1, TopLevel)
 import WAGS.Graph.Constructors (Gain, Speaker, Constant)
 import WAGS.Graph.Decorators (Focus(..), Decorating')
 import WAGS.Graph.Optionals (GetSetAP, constant, gain, speaker)
@@ -21,7 +22,7 @@ type ConstantUniverse cb
   = Universe' EI1 ConstantGraph cb
 
 type KsConstant g t
-  = Speaker (g (Gain GetSetAP (t (Constant GetSetAP))))
+  = TopLevel g (t (Constant GetSetAP))
 
 ksConstant' ::
   forall g t.

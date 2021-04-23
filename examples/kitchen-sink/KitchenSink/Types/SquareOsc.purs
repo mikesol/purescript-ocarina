@@ -5,7 +5,7 @@ import Data.Identity (Identity(..))
 import Math (cos, pi, pow, sin, (%))
 import WAGS.Control.Types (Universe')
 import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
-import WAGS.Example.KitchenSink.Types.Empty (BaseGraph, EI0, EI1)
+import WAGS.Example.KitchenSink.Types.Empty (BaseGraph, EI0, EI1, TopLevel)
 import WAGS.Graph.Constructors (Gain, Speaker, SquareOsc)
 import WAGS.Graph.Decorators (Focus(..), Decorating')
 import WAGS.Graph.Optionals (GetSetAP, gain, speaker, squareOsc)
@@ -23,7 +23,7 @@ type SquareOscUniverse cb
   = Universe' EI1 SquareOscGraph cb
 
 type KsSquareOsc g t
-  = Speaker (g (Gain GetSetAP (t (SquareOsc GetSetAP))))
+  = TopLevel g (t (SquareOsc GetSetAP))
 
 ksSquareOsc' ::
   forall g t.

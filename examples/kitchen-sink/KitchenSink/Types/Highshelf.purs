@@ -7,8 +7,8 @@ import Math ((%))
 import Type.Proxy (Proxy(..))
 import WAGS.Control.Types (Universe')
 import WAGS.Example.KitchenSink.Timing (calcSlope, pieceTime, timing)
-import WAGS.Example.KitchenSink.Types.Empty (EI0, EI1, EI2, BaseGraph)
-import WAGS.Graph.Constructors (Highshelf, Gain, PlayBuf, Speaker)
+import WAGS.Example.KitchenSink.Types.Empty (BaseGraph, EI0, EI1, EI2, TopLevel)
+import WAGS.Graph.Constructors (Highshelf, PlayBuf)
 import WAGS.Graph.Decorators (Focus(..), Decorating')
 import WAGS.Graph.Optionals (GetSetAP, gain, highshelf, playBuf, speaker)
 import WAGS.Universe.AudioUnit (THighshelf, TPlayBuf)
@@ -32,7 +32,7 @@ type KsHighshelfreate (t :: Type -> Type) b
   = t (Highshelf GetSetAP GetSetAP (b (PlayBuf "my-buffer" GetSetAP)))
 
 type KsHighshelf g t b
-  = Speaker (g (Gain GetSetAP (KsHighshelfreate t b)))
+  = TopLevel g (KsHighshelfreate t b)
 
 ksHighshelfCreate ::
   forall t b.

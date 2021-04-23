@@ -8,8 +8,8 @@ import Math ((%))
 import Type.Proxy (Proxy(..))
 import WAGS.Control.Types (Universe')
 import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
-import WAGS.Example.KitchenSink.Types.Empty (BaseGraph, EI0, EI1, EI2, EI3)
-import WAGS.Graph.Constructors (Delay, Dup, Gain, PlayBuf, Speaker)
+import WAGS.Example.KitchenSink.Types.Empty (BaseGraph, EI0, EI1, EI2, EI3, TopLevel)
+import WAGS.Graph.Constructors (Delay, Dup, PlayBuf)
 import WAGS.Graph.Decorators (Focus(..), Decorating')
 import WAGS.Graph.Optionals (GetSetAP, Mix, delay, dup, gain, mix, playBuf, speaker)
 import WAGS.Universe.AudioUnit (TDelay, TGain, TPlayBuf)
@@ -48,7 +48,7 @@ type KsDelayCreate (t :: Type -> Type) b mx
       )
 
 type KsDelay g t b mx
-  = Speaker (g (Gain GetSetAP (KsDelayCreate t b mx)))
+  = TopLevel g (KsDelayCreate t b mx)
 
 ksDelayCreate ::
   forall t b mx.
