@@ -220,24 +220,32 @@ handleAction :: forall output m. MonadEffect m => MonadAff m => Action -> H.Halo
 handleAction = case _ of
   StartAudio -> do
     handleAction StopAudio
-    audioCtx <- H.liftEffect context
-    unitCache <- H.liftEffect makeUnitCache
-    bday <-
-      H.liftEffect
-        $ makePeriodicWave
+    { unsubscribe, audioCtx } <-
+      H.liftEffect do
+        audioCtx <- context
+        unitCache <- makeUnitCache
+        bday <-
+          makePeriodicWave
             audioCtx
             (0.02 +> 0.3 +> -0.1 +> -0.25 +> V.empty)
             (-0.03 +> -0.25 +> 0.05 +> 0.2 +> V.empty)
-    let
-      ffiAudio = (defaultFFIAudio audioCtx unitCache) { periodicWaves = O.singleton "bday" bday }
-    unsubscribe <-
-      H.liftEffect
-        $ subscribe
-            (run (pure unit) (pure unit) { easingAlgorithm } (FFIAudio ffiAudio) piece)
+        let
+          ffiAudio =
+            (defaultFFIAudio audioCtx unitCache)
+              { periodicWaves = O.singleton "bday" bday
+              }
+        unsubscribe <-
+          subscribe
+            ( run (pure unit) (pure unit) { easingAlgorithm }
+                (FFIAudio ffiAudio)
+                piece
+            )
             (const $ pure unit)
+        pure { unsubscribe, audioCtx }
     H.modify_ _ { unsubscribe = unsubscribe, audioCtx = Just audioCtx }
   StopAudio -> do
     { unsubscribe, audioCtx } <- H.get
-    H.liftEffect unsubscribe
-    for_ audioCtx (H.liftEffect <<< close)
+    H.liftEffect do
+      unsubscribe
+      for_ audioCtx close
     H.modify_ _ { unsubscribe = pure unit, audioCtx = Nothing }
