@@ -3,7 +3,6 @@ module WAGS.Example.Makenna where
 import Prelude
 import Control.Comonad.Cofree (Cofree, mkCofree)
 import Control.Plus (empty)
-import Data.Either (Either(..))
 import Halogen.HTML.Properties as HP
 import Data.Foldable (foldl, for_)
 import Data.Lens (over)
@@ -29,7 +28,7 @@ import Heterogeneous.Mapping (hmap)
 import Math (pow)
 import Type.Proxy (Proxy(..))
 import WAGS.Change (change, changes)
-import WAGS.Control.Functions (env, loop, start, (@>))
+import WAGS.Control.Functions (env, loop, start, (@|>))
 import WAGS.Control.Qualified as WAGS
 import WAGS.Control.Types (Frame0, Scene)
 import WAGS.Create (create)
@@ -154,18 +153,16 @@ piece =
   WAGS.do
     start
     { time } <- env
-    create (scene time (inTempo rest0)) $> Right (L.fromFoldable score'')
-    @> loop
-        ( \l -> WAGS.do
-            { time } <- env
-            let
-              f = case _ of
-                Nil -> changes unit $> Nil
-                (a : b)
-                  | time > (fst a).end -> f b
-                  | otherwise -> change (scene time a) $> (a : b)
-            f l
-        )
+    create (scene time (inTempo rest0)) $> L.fromFoldable score''
+    @|> loop \l -> WAGS.do
+        { time } <- env
+        let
+          f = case _ of
+            Nil -> changes unit $> Nil
+            (a : b)
+              | time > (fst a).end -> f b
+              | otherwise -> change (scene time a) $> (a : b)
+        f l
 
 easingAlgorithm :: Cofree ((->) Int) Int
 easingAlgorithm =
@@ -203,7 +200,7 @@ initialState _ =
   , audioCtx: Nothing
   }
 
-buttonStyle :: forall r i. HP.IProp (style :: String | r) i
+buttonStyle :: forall r i. HP.IProp ( style :: String | r ) i
 buttonStyle = HP.style "padding: 3px; margin: 5px"
 
 render :: forall m. State -> H.ComponentHTML Action () m
