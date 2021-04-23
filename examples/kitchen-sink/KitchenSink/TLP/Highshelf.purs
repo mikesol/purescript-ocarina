@@ -25,9 +25,6 @@ doHighshelf :: forall proof iu cb. StepSig (HighshelfUniverse cb) proof iu
 doHighshelf =
   branch \lsig -> WAGS.do
     { time } <- env
-    toRemove <- cursor ksHighshelfHighshelf
-    toRemoveBuf <- cursor ksHighshelfPlaybuf
-    gn <- cursor ksHighshelfGain
     pr <- proof
     withProof pr
       $ if time % pieceTime < timing.ksHighshelf.end then
@@ -35,11 +32,14 @@ doHighshelf =
         else
           Left
             $ inSitu doLowshelf WAGS.do
-                disconnect toRemoveBuf toRemove
-                disconnect toRemove gn
-                destroy toRemove
-                destroy toRemoveBuf
+                cursorHighshelf <- cursor ksHighshelfHighshelf
+                cursorPlayBuf <- cursor ksHighshelfPlaybuf
+                cursorGain <- cursor ksHighshelfGain
+                disconnect cursorPlayBuf cursorHighshelf
+                disconnect cursorHighshelf cursorGain
+                destroy cursorHighshelf
+                destroy cursorPlayBuf
                 reset
                 toAdd <- create (ksLowshelfCreate Identity Identity)
-                connect toAdd gn
+                connect toAdd cursorGain
                 withProof pr lsig

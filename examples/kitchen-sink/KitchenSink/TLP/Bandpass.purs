@@ -30,14 +30,14 @@ doBandpass =
         else
           Left
             $ inSitu doNotch WAGS.do
-                bandpassCursor <- cursor ksBandpassBandpass
-                playBufCursor <- cursor ksBandpassPlaybuf
-                gainCursor <- cursor ksBandpassGain
-                disconnect playBufCursor bandpassCursor
-                disconnect bandpassCursor gainCursor
-                destroy bandpassCursor
-                destroy playBufCursor
+                cursorBandpass <- cursor ksBandpassBandpass
+                cursorPlayBuf <- cursor ksBandpassPlaybuf
+                cursorGain <- cursor ksBandpassGain
+                disconnect cursorPlayBuf cursorBandpass
+                disconnect cursorBandpass cursorGain
+                destroy cursorBandpass
+                destroy cursorPlayBuf
                 reset
                 toAdd <- create (ksNotchCreate Identity Identity)
-                connect toAdd gainCursor
+                connect toAdd cursorGain
                 withProof pr lsig

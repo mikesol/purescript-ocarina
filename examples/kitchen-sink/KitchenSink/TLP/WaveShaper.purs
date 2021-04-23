@@ -23,9 +23,6 @@ doWaveShaper :: forall proof iu cb. StepSig (WaveShaperUniverse cb) proof iu
 doWaveShaper =
   branch \lsig -> WAGS.do
     { time } <- env
-    toRemove <- cursor ksWaveShaperWaveShaper
-    toRemoveBuf <- cursor ksWaveShaperPlaybuf
-    gn <- cursor ksWaveShaperGain
     pr <- proof
     withProof pr
       $ if time % pieceTime < timing.ksWaveShaper.end then
@@ -33,11 +30,14 @@ doWaveShaper =
         else
           Left
             $ inSitu doDelay WAGS.do
-                disconnect toRemoveBuf toRemove
-                disconnect toRemove gn
-                destroy toRemoveBuf
-                destroy toRemove
+                cursorWaveShaper <- cursor ksWaveShaperWaveShaper
+                cursorPlayBuf <- cursor ksWaveShaperPlaybuf
+                cursorGain <- cursor ksWaveShaperGain
+                disconnect cursorPlayBuf cursorWaveShaper
+                disconnect cursorWaveShaper cursorGain
+                destroy cursorPlayBuf
+                destroy cursorWaveShaper
                 reset
                 toAdd <- create (ksDelayCreate Identity Identity Identity)
-                connect toAdd gn
+                connect toAdd cursorGain
                 withProof pr lsig

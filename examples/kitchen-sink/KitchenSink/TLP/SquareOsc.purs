@@ -26,8 +26,6 @@ doSquareOsc :: forall proof iu cb. StepSig (SquareOscUniverse cb) proof iu
 doSquareOsc =
   branch \lsig -> WAGS.do
     { time } <- env
-    toRemove <- cursor ksSquareOscSquareOsc
-    gn <- cursor ksSquareOscGain
     pr <- proof
     ivoid $ modifyRes (const "Playing a square osc")
     withProof pr
@@ -36,9 +34,11 @@ doSquareOsc =
         else
           Left
             $ inSitu doPeriodicOsc WAGS.do
-                disconnect toRemove gn
-                destroy toRemove
+                cursorSquareOsc <- cursor ksSquareOscSquareOsc
+                cursorGain <- cursor ksSquareOscGain
+                disconnect cursorSquareOsc cursorGain
+                destroy cursorSquareOsc
                 reset
                 toAdd <- create (PeriodicOsc (Proxy :: Proxy "my-wave") On 440.0)
-                connect toAdd gn
+                connect toAdd cursorGain
                 withProof pr lsig

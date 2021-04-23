@@ -24,8 +24,6 @@ doConstant :: forall proof iu cb. StepSig (ConstantUniverse cb) proof iu
 doConstant =
   branch \lsig -> WAGS.do
     { time } <- env
-    toRemove <- cursor ksConstantConstant
-    gn <- cursor ksConstantGain
     pr <- proof
     withProof pr
       $ if time % pieceTime < timing.ksConstant.end then
@@ -33,9 +31,11 @@ doConstant =
         else
           Left
             $ inSitu doDynamicsCompressor WAGS.do
-                disconnect toRemove gn
-                destroy toRemove
+                cursorConstant <- cursor ksConstantConstant
+                cursorGain <- cursor ksConstantGain
+                disconnect cursorConstant cursorGain
+                destroy cursorConstant
                 reset
                 toAdd <- create (ksDynamicsCompressorCreate Identity Identity)
-                connect toAdd gn
+                connect toAdd cursorGain
                 withProof pr lsig

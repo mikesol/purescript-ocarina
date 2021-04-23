@@ -25,8 +25,6 @@ doMicrophone :: forall proof iu cb. StepSig (MicrophoneUniverse cb) proof iu
 doMicrophone =
   branch \lsig -> WAGS.do
     { time } <- env
-    toRemove <- cursor ksMicrophoneMicrophone
-    gn <- cursor ksMicrophoneGain
     pr <- proof
     withProof pr
       $ if time % pieceTime < timing.ksMicrophone.end then
@@ -34,9 +32,11 @@ doMicrophone =
         else
           Left
             $ inSitu doWaveShaper WAGS.do
-                disconnect toRemove gn
-                destroy toRemove
+                cursorMicrophone <- cursor ksMicrophoneMicrophone
+                cursorGain <- cursor ksMicrophoneGain
+                disconnect cursorMicrophone cursorGain
+                destroy cursorMicrophone
                 reset
                 toAdd <- create (ksWaveShaperCreate Identity Identity)
-                connect toAdd gn
+                connect toAdd cursorGain
                 withProof pr lsig

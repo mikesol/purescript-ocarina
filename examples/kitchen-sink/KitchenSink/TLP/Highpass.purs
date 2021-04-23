@@ -22,9 +22,6 @@ doHighpass :: forall proof iu cb. StepSig (HighpassUniverse cb) proof iu
 doHighpass =
   branch \lsig -> WAGS.do
     { time } <- env
-    toRemove <- cursor ksHighpassHighpass
-    toRemoveBuf <- cursor ksHighpassPlaybuf
-    gn <- cursor ksHighpassGain
     pr <- proof
     withProof pr
       $ if time % pieceTime < timing.ksHighpass.end then
@@ -32,11 +29,14 @@ doHighpass =
         else
           Left
             $ inSitu doMicrophone WAGS.do
-                disconnect toRemoveBuf toRemove
-                disconnect toRemove gn
-                destroy toRemove
-                destroy toRemoveBuf
+                cursorHighpass <- cursor ksHighpassHighpass
+                cursorHighpassBuf <- cursor ksHighpassPlaybuf
+                cursorGain <- cursor ksHighpassGain
+                disconnect cursorHighpassBuf cursorHighpass
+                disconnect cursorHighpass cursorGain
+                destroy cursorHighpass
+                destroy cursorHighpassBuf
                 reset
                 toAdd <- create microphone
-                connect toAdd gn
+                connect toAdd cursorGain
                 withProof pr lsig

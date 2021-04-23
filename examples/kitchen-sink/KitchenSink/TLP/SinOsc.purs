@@ -24,8 +24,6 @@ doSinOsc :: forall proof iu cb. StepSig (SinOscUniverse cb) proof iu
 doSinOsc =
   branch \lsig -> WAGS.do
     { time } <- env
-    toRemove <- cursor ksSinOscSinOsc
-    gn <- cursor ksSinOscGain
     pr <- proof
     withProof pr
       $ if time % pieceTime < timing.ksSinOsc.end then
@@ -33,9 +31,11 @@ doSinOsc =
         else
           Left
             $ inSitu doTriangleOsc WAGS.do
-                disconnect toRemove gn
-                destroy toRemove
+                cursorSinOsc <- cursor ksSinOscSinOsc
+                cursorGain <- cursor ksSinOscGain
+                disconnect cursorSinOsc cursorGain
+                destroy cursorSinOsc
                 reset
                 toAdd <- create (recorder (Proxy :: _ "my-recorder") (triangleOsc 440.0))
-                connect toAdd gn
+                connect toAdd cursorGain
                 withProof pr lsig

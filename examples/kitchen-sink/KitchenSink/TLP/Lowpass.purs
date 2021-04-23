@@ -24,9 +24,6 @@ doLowpass :: forall proof iu cb. StepSig (LowpassUniverse cb) proof iu
 doLowpass =
   branch \lsig -> WAGS.do
     { time } <- env
-    toRemove <- cursor ksLowpassLowpass
-    toRemoveBuf <- cursor ksLowpassPlaybuf
-    gn <- cursor ksLowpassGain
     pr <- proof
     withProof pr
       $ if time % pieceTime < timing.ksLowpass.end then
@@ -34,11 +31,14 @@ doLowpass =
         else
           Left
             $ inSitu doHighshelf WAGS.do
-                disconnect toRemoveBuf toRemove
-                disconnect toRemove gn
-                destroy toRemove
-                destroy toRemoveBuf
+                cursorLowpass <- cursor ksLowpassLowpass
+                cursorPlayBuf <- cursor ksLowpassPlaybuf
+                cursorGain <- cursor ksLowpassGain
+                disconnect cursorPlayBuf cursorLowpass
+                disconnect cursorLowpass cursorGain
+                destroy cursorLowpass
+                destroy cursorPlayBuf
                 reset
                 toAdd <- create (ksHighshelfCreate Identity Identity)
-                connect toAdd gn
+                connect toAdd cursorGain
                 withProof pr lsig

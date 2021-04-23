@@ -23,9 +23,6 @@ doTriangleOsc :: forall proof iu cb. StepSig (TriangleOscUniverse cb) proof iu
 doTriangleOsc =
   branch \lsig -> WAGS.do
     { time } <- env
-    toRemove <- cursor ksTriangleOscTriangleOsc
-    toRemoveRec <- cursor ksTriangleOscRecorder
-    gn <- cursor ksTriangleOscGain
     pr <- proof
     withProof pr
       $ if time % pieceTime < timing.ksTriangleOsc.end then
@@ -33,11 +30,14 @@ doTriangleOsc =
         else
           Left
             $ inSitu doSquareOsc WAGS.do
-                disconnect toRemoveRec gn
-                disconnect toRemove toRemoveRec
-                destroy toRemove
-                destroy toRemoveRec
+                cursorTriangleOsc <- cursor ksTriangleOscTriangleOsc
+                cursorRecorder <- cursor ksTriangleOscRecorder
+                cursorGain <- cursor ksTriangleOscGain
+                disconnect cursorRecorder cursorGain
+                disconnect cursorTriangleOsc cursorRecorder
+                destroy cursorTriangleOsc
+                destroy cursorRecorder
                 reset
                 toAdd <- create (SquareOsc On 440.0)
-                connect toAdd gn
+                connect toAdd cursorGain
                 withProof pr lsig

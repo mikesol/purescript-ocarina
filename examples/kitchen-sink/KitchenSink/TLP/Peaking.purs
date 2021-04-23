@@ -25,10 +25,7 @@ doPeaking :: forall proof iu cb. StepSig (PeakingUniverse cb) proof iu
 doPeaking =
   branch \lsig -> WAGS.do
     { time } <- env
-    toRemove <- cursor ksPeakingPeaking
-    toRemoveBuf <- cursor ksPeakingPlaybuf
     ivoid $ modifyRes (const $ "Using a peaking filter")
-    gn <- cursor ksPeakingGain
     pr <- proof
     withProof pr
       $ if time % pieceTime < timing.ksPeaking.end then
@@ -36,11 +33,14 @@ doPeaking =
         else
           Left
             $ inSitu doHighpass WAGS.do
-                disconnect toRemoveBuf toRemove
-                disconnect toRemove gn
-                destroy toRemove
-                destroy toRemoveBuf
+                cursorPeaking <- cursor ksPeakingPeaking
+                cursorPlayBuf <- cursor ksPeakingPlaybuf
+                cursorGain <- cursor ksPeakingGain
+                disconnect cursorPlayBuf cursorPeaking
+                disconnect cursorPeaking cursorGain
+                destroy cursorPeaking
+                destroy cursorPlayBuf
                 reset
                 toAdd <- create (ksHighpassCreate Identity Identity)
-                connect toAdd gn
+                connect toAdd cursorGain
                 withProof pr lsig

@@ -25,31 +25,31 @@ doFeedback =
   branch \lsig -> WAGS.do
     { time } <- env
     pr <- proof
-    toRemoveDelay <- cursor ksFeedbackDelay
-    toRemoveBuf <- cursor ksFeedbackPlaybuf
-    toRemoveMix <- cursor ksFeedbackMix
-    toRemoveAttenuation <- cursor ksFeedbackAttenuation
-    gn <- cursor ksFeedbackGain
     withProof pr
       $ if time % pieceTime < timing.ksFeedback.end then
           Right (change (deltaKsFeedback time) $> lsig)
         else
           Left
             $ inSitu doLoopBuf WAGS.do
-                disconnect toRemoveBuf toRemoveMix
-                disconnect toRemoveDelay toRemoveMix
-                disconnect toRemoveAttenuation toRemoveDelay
-                disconnect toRemoveMix toRemoveAttenuation
-                disconnect toRemoveMix gn
-                destroy toRemoveBuf
-                destroy toRemoveDelay
-                destroy toRemoveMix
-                destroy toRemoveAttenuation
+                cursorDelay <- cursor ksFeedbackDelay
+                cursorPlayBuf <- cursor ksFeedbackPlaybuf
+                cursorMix <- cursor ksFeedbackMix
+                cursorAttenuation <- cursor ksFeedbackAttenuation
+                cursorGain <- cursor ksFeedbackGain
+                disconnect cursorPlayBuf cursorMix
+                disconnect cursorDelay cursorMix
+                disconnect cursorAttenuation cursorDelay
+                disconnect cursorMix cursorAttenuation
+                disconnect cursorMix cursorGain
+                destroy cursorPlayBuf
+                destroy cursorDelay
+                destroy cursorMix
+                destroy cursorAttenuation
                 reset
                 toAdd <-
                   create
                     $ loopBuf
                         { playbackRate: 1.0, start: 1.0, end: 2.5 }
                         (Proxy :: _ "my-buffer")
-                connect toAdd gn
+                connect toAdd cursorGain
                 withProof pr lsig

@@ -24,10 +24,6 @@ doDelay :: forall proof iu cb. StepSig (DelayUniverse cb) proof iu
 doDelay =
   branch \lsig -> WAGS.do
     { time } <- env
-    toRemoveDelay <- cursor ksDelayDelay
-    toRemoveBuf <- cursor ksDelayPlaybuf
-    toRemoveMix <- cursor ksDelayMix
-    gn <- cursor ksDelayGain
     pr <- proof
     withProof pr
       $ if time % pieceTime < timing.ksDelay.end then
@@ -35,14 +31,18 @@ doDelay =
         else
           Left
             $ inSitu doFeedback WAGS.do
-                disconnect toRemoveBuf toRemoveMix
-                disconnect toRemoveBuf toRemoveDelay
-                disconnect toRemoveDelay toRemoveMix
-                disconnect toRemoveMix gn
-                destroy toRemoveBuf
-                destroy toRemoveDelay
-                destroy toRemoveMix
+                cursorDelay <- cursor ksDelayDelay
+                cursorPlayBuf <- cursor ksDelayPlaybuf
+                cursorMix <- cursor ksDelayMix
+                cursorGain <- cursor ksDelayGain
+                disconnect cursorPlayBuf cursorMix
+                disconnect cursorPlayBuf cursorDelay
+                disconnect cursorDelay cursorMix
+                disconnect cursorMix cursorGain
+                destroy cursorPlayBuf
+                destroy cursorDelay
+                destroy cursorMix
                 reset
                 toAdd <- create (ksFeedbackCreate Identity Identity Identity Identity)
-                connect toAdd gn
+                connect toAdd cursorGain
                 withProof pr lsig

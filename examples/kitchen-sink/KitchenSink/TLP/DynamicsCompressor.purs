@@ -22,21 +22,21 @@ doDynamicsCompressor :: forall proof iu cb. StepSig (DynamicsCompressorUniverse 
 doDynamicsCompressor =
   branch \l@(LoopSig lsig) -> WAGS.do
     { time } <- env
-    toRemove <- cursor ksDynamicsCompressorDynamicsCompressor
-    toRemoveBuf <- cursor ksDynamicsCompressorPlaybuf
-    gn <- cursor ksDynamicsCompressorGain
     pr <- proof
     withProof pr
       $ if time % pieceTime < timing.ksDynamicsCompressor.begin then
           Left
             $ inSitu lsig WAGS.do
-                disconnect toRemoveBuf toRemove
-                disconnect toRemove gn
-                destroy toRemove
-                destroy toRemoveBuf
+                cursorCompressor <- cursor ksDynamicsCompressorDynamicsCompressor
+                cursorPlayBuf <- cursor ksDynamicsCompressorPlaybuf
+                cursorGain <- cursor ksDynamicsCompressorGain
+                disconnect cursorPlayBuf cursorCompressor
+                disconnect cursorCompressor cursorGain
+                destroy cursorCompressor
+                destroy cursorPlayBuf
                 reset
                 toAdd <- create (SinOsc On 440.0)
-                connect toAdd gn
+                connect toAdd cursorGain
                 withProof pr l
         else
           Right (change (deltaKsDynamicsCompressor time) $> l)

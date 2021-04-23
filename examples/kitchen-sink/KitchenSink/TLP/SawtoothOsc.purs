@@ -23,8 +23,6 @@ doSawtoothOsc :: forall proof iu cb. StepSig (SawtoothOscUniverse cb) proof iu
 doSawtoothOsc =
   branch \lsig -> WAGS.do
     { time } <- env
-    toRemove <- cursor ksSawtoothOscSawtoothOsc
-    gn <- cursor ksSawtoothOscGain
     pr <- proof
     withProof pr
       $ if time % pieceTime < timing.ksSawtoothOsc.end then
@@ -32,9 +30,11 @@ doSawtoothOsc =
         else
           Left
             $ inSitu doAllpass WAGS.do
-                disconnect toRemove gn
-                destroy toRemove
+                cursorSawtoothOsc <- cursor ksSawtoothOscSawtoothOsc
+                cursorGain <- cursor ksSawtoothOscGain
+                disconnect cursorSawtoothOsc cursorGain
+                destroy cursorSawtoothOsc
                 reset
                 toAdd <- create (ksAllpassCreate Identity Identity)
-                connect toAdd gn
+                connect toAdd cursorGain
                 withProof pr lsig

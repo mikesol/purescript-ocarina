@@ -24,8 +24,6 @@ doPeriodicOsc :: forall proof iu cb. StepSig (PeriodicOscUniverse cb) proof iu
 doPeriodicOsc =
   branch \lsig -> WAGS.do
     { time } <- env
-    toRemove <- cursor ksPeriodicOscPeriodicOsc
-    gn <- cursor ksPeriodicOscGain
     pr <- proof
     withProof pr
       $ if time % pieceTime < timing.ksPeriodicOsc.end then
@@ -33,9 +31,11 @@ doPeriodicOsc =
         else
           Left
             $ inSitu doSawtoothOsc WAGS.do
-                disconnect toRemove gn
-                destroy toRemove
+                cursorPeriodicOsc <- cursor ksPeriodicOscPeriodicOsc
+                cursorGain <- cursor ksPeriodicOscGain
+                disconnect cursorPeriodicOsc cursorGain
+                destroy cursorPeriodicOsc
                 reset
                 toAdd <- create (SawtoothOsc On 440.0)
-                connect toAdd gn
+                connect toAdd cursorGain
                 withProof pr lsig

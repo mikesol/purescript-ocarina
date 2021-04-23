@@ -23,9 +23,6 @@ doAllpass :: forall proof iu cb. StepSig (AllpassUniverse cb) proof iu
 doAllpass =
   branch \lsig -> WAGS.do
     { time } <- env
-    toRemove <- cursor ksAllpassAllpass
-    toRemoveBuf <- cursor ksAllpassPlaybuf
-    gn <- cursor ksAllpassGain
     pr <- proof
     withProof pr
       $ if time % pieceTime < timing.ksAllpass.end then
@@ -33,11 +30,14 @@ doAllpass =
         else
           Left
             $ inSitu doLowpass WAGS.do
-                disconnect toRemoveBuf toRemove
-                disconnect toRemove gn
-                destroy toRemove
-                destroy toRemoveBuf
+                cursorAllpass <- cursor ksAllpassAllpass
+                cursorPlayBuf <- cursor ksAllpassPlaybuf
+                cursorGain <- cursor ksAllpassGain
+                disconnect cursorPlayBuf cursorAllpass
+                disconnect cursorAllpass cursorGain
+                destroy cursorAllpass
+                destroy cursorPlayBuf
                 reset
                 toAdd <- create (ksLowpassCreate Identity Identity)
-                connect toAdd gn
+                connect toAdd cursorGain
                 withProof pr lsig

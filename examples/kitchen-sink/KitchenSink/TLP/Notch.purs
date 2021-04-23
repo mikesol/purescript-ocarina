@@ -24,9 +24,6 @@ doNotch :: forall proof iu cb. StepSig (NotchUniverse cb) proof iu
 doNotch =
   branch \lsig -> WAGS.do
     { time } <- env
-    toRemove <- cursor ksNotchNotch
-    toRemoveBuf <- cursor ksNotchPlaybuf
-    gn <- cursor ksNotchGain
     pr <- proof
     withProof pr
       $ if time % pieceTime < timing.ksNotch.end then
@@ -34,11 +31,14 @@ doNotch =
         else
           Left
             $ inSitu doPeaking WAGS.do
-                disconnect toRemoveBuf toRemove
-                disconnect toRemove gn
-                destroy toRemove
-                destroy toRemoveBuf
+                cursorNotch <- cursor ksNotchNotch
+                cursorPlayBuf <- cursor ksNotchPlaybuf
+                cursorGain <- cursor ksNotchGain
+                disconnect cursorPlayBuf cursorNotch
+                disconnect cursorNotch cursorGain
+                destroy cursorNotch
+                destroy cursorPlayBuf
                 reset
                 toAdd <- create (ksPeakingCreate Identity Identity)
-                connect toAdd gn
+                connect toAdd cursorGain
                 withProof pr lsig

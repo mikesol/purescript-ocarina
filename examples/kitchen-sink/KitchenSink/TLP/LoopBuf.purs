@@ -24,8 +24,6 @@ doLoopBuf :: forall proof iu cb. StepSig (LoopBufUniverse cb) proof iu
 doLoopBuf =
   branch \lsig -> WAGS.do
     { time } <- env
-    toRemove <- cursor ksLoopBufLoopBuf
-    gn <- cursor ksLoopBufGain
     pr <- proof
     withProof pr
       $ if time % pieceTime < timing.ksLoopBuf.end then
@@ -33,9 +31,11 @@ doLoopBuf =
         else
           Left
             $ inSitu doStereoPanner WAGS.do
-                disconnect toRemove gn
-                destroy toRemove
+                cursorLoopBuf <- cursor ksLoopBufLoopBuf
+                cursorGain <- cursor ksLoopBufGain
+                disconnect cursorLoopBuf cursorGain
+                destroy cursorLoopBuf
                 reset
                 toAdd <- create (ksStereoPannerCreate Identity Identity)
-                connect toAdd gn
+                connect toAdd cursorGain
                 withProof pr lsig

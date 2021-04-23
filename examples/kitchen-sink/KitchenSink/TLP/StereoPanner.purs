@@ -24,9 +24,6 @@ doStereoPanner :: forall proof iu cb. StepSig (StereoPannerUniverse cb) proof iu
 doStereoPanner =
   branch \lsig -> WAGS.do
     { time } <- env
-    toRemove <- cursor ksStereoPannerStereoPanner
-    toRemoveBuf <- cursor ksStereoPannerPlaybuf
-    gn <- cursor ksStereoPannerGain
     pr <- proof
     withProof pr
       $ if time % pieceTime < timing.ksStereoPanner.end then
@@ -34,11 +31,14 @@ doStereoPanner =
         else
           Left
             $ inSitu doConstant WAGS.do
-                disconnect toRemoveBuf toRemove
-                disconnect toRemove gn
-                destroy toRemove
-                destroy toRemoveBuf
+                cursorStereoPanner <- cursor ksStereoPannerStereoPanner
+                cursorStereoPannerBuf <- cursor ksStereoPannerPlaybuf
+                cursorGain <- cursor ksStereoPannerGain
+                disconnect cursorStereoPannerBuf cursorStereoPanner
+                disconnect cursorStereoPanner cursorGain
+                destroy cursorStereoPanner
+                destroy cursorStereoPannerBuf
                 reset
                 toAdd <- create (constant 0.0)
-                connect toAdd gn
+                connect toAdd cursorGain
                 withProof pr lsig
