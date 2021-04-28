@@ -95,7 +95,7 @@ midi midiAccess_ =
   makeEvent \push -> do
     targetMap <- toTargetMap midiAccess_ >>= pure <<< M.fromFoldable <<< (O.toUnfoldable :: O.Object EventTarget -> List (Tuple String EventTarget))
     let
-      makeListener inputName =
+      makeListener _ =
         eventListener \e -> do
           fromEvent e
             # traverse_ \me -> do

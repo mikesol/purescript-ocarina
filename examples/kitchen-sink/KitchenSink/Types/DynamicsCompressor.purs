@@ -1,13 +1,14 @@
 module WAGS.Example.KitchenSink.Types.DynamicsCompressor where
 
 import Prelude
+
 import Data.Identity (Identity(..))
 import Math ((%))
 import WAGS.Control.Types (Universe')
 import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
 import WAGS.Example.KitchenSink.Types.Empty (BaseGraph, EI0, EI1, EI2, TopLevel)
-import WAGS.Graph.Constructors (DynamicsCompressor, PlayBuf)
-import WAGS.Graph.Decorators (Focus(..), Decorating')
+import WAGS.Graph.Constructors (DynamicsCompressor, PlayBuf, Speaker)
+import WAGS.Graph.Decorators (Decorating', Focus(..), This(..))
 import WAGS.Graph.Optionals (GetSetAP, compressor, gain, playBuf, speaker)
 import WAGS.Universe.AudioUnit (TDynamicsCompressor, TPlayBuf)
 import WAGS.Universe.EdgeProfile (NoEdge, SingleEdge)
@@ -55,8 +56,8 @@ ksDynamicsCompressorPlaybuf = ksDynamicsCompressor' Identity Identity Focus
 ksDynamicsCompressorDynamicsCompressor :: KsDynamicsCompressor Identity Focus Identity
 ksDynamicsCompressorDynamicsCompressor = ksDynamicsCompressor' Identity Focus Identity
 
-ksDynamicsCompressorGain :: KsDynamicsCompressor Focus Identity Identity
-ksDynamicsCompressorGain = ksDynamicsCompressor' Focus Identity Identity
+ksDynamicsCompressorGain :: Speaker This
+ksDynamicsCompressorGain = speaker This
 
 deltaKsDynamicsCompressor :: Number -> KsDynamicsCompressor Identity Identity Identity
 deltaKsDynamicsCompressor =

@@ -78,7 +78,7 @@ rebase ::
   TerminalIdentityEdge graphB edgeB =>
   Rebase' PtrListNil PtrListNil RebaseProof edgeA idxA graphA edgeB idxB graphB =>
   Proxy idxA -> Proxy graphA -> Proxy idxB -> Proxy graphB -> FrameT env audio engine proof m res (UniverseC idxA graphA changeBit skolems) (UniverseC idxB graphB changeBit skolems) Unit
-rebase ptrA gA ptrB gB =
+rebase _ _ _ _ =
   unsafeFrame do
     a <- (unsafeUnframe $ rebase' (Proxy :: _ PtrListNil) (Proxy :: _ PtrListNil) RebaseProof (Proxy :: _ edgeA) (Proxy :: _ idxA) (Proxy :: _ graphA) (Proxy :: _ edgeB) (Proxy :: _ idxB) (Proxy :: _ graphB))
     modify_ \i ->
@@ -169,7 +169,7 @@ instance rebaseMany2 ::
   , Rebase' rblA rblB RebaseProof (ManyEdges aA bA) ptrA graphA (ManyEdges aB bB) ptrB graphB
   ) =>
   Rebase' rblA rblB RebaseProof (ManyEdges pA (PtrListCons aA bA)) ptrA graphA (ManyEdges pB (PtrListCons aB bB)) ptrB graphB where
-  rebase' _ _ _ _ _ptrA graphA _ ptrB graphB = unsafeFrame (append <$> l <*> r)
+  rebase' _ _ _ _ _ _ _ _ _ = unsafeFrame (append <$> l <*> r)
     where
     l = unsafeUnframe $ rebase' (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ (SingleEdge pA)) (Proxy :: _ ptrA) (Proxy :: _ graphA) (Proxy :: _ (SingleEdge pB)) (Proxy :: _ ptrB) (Proxy :: _ graphB)
 
@@ -196,7 +196,7 @@ instance rebaseCheckSingleEdge ::
   , RebaseCont' tfA tfB pA pB rblA rblB RebaseProof nodeA ptrA gA nodeB ptrB gB
   ) =>
   RebaseCheck' rblA rblB RebaseProof (SingleEdge pA) ptrA gA (SingleEdge pB) ptrB gB where
-  rebaseCheck' _ _ _ _ ptrA gA _ ptrB gB = rebaseCont' (Proxy :: _ tfA) (Proxy :: _ tfB) (Proxy :: _ pA) (Proxy :: _ pB) (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ nodeA) (Proxy :: _ ptrA) (Proxy :: _ gA) (Proxy :: _ nodeB) (Proxy :: _ ptrB) (Proxy :: _ gB)
+  rebaseCheck' _ _ _ _ _ _ _ _ _ = rebaseCont' (Proxy :: _ tfA) (Proxy :: _ tfB) (Proxy :: _ pA) (Proxy :: _ pB) (Proxy :: _ rblA) (Proxy :: _ rblB) RebaseProof (Proxy :: _ nodeA) (Proxy :: _ ptrA) (Proxy :: _ gA) (Proxy :: _ nodeB) (Proxy :: _ ptrB) (Proxy :: _ gB)
 
 instance rebaseContTT ::
   RebaseCont' True True ptrA ptrB rblA rblB RebaseProof a b c d e f where

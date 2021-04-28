@@ -43,9 +43,17 @@ dk (Decorating f) = f
 class Decorate (a :: Row Type) (b :: Row Type) (c :: Row Type) | a -> b c where
   decorate :: forall d. ({ | a } -> d) -> { | b } /\ { | c }
 
--- Used to focus on a cursor.
+-- | Used to focus on a specific audio unit when creating a cursor.
 data Focus a
   = Focus a
+
+-- | Used as a placeholder for a spcific audio unit when creating a cursor.
+data This
+  = This
+
+-- | Used to tell the cursor traversal to ignore an element.
+data IgnoreMe
+  = IgnoreMe
 
 derive instance functorFocus :: Functor Focus
 
@@ -85,6 +93,8 @@ else instance isAudioStereoPanner :: IsAudio (CTOR.StereoPanner a b)
 else instance isAudioTriangleOsc :: IsAudio (CTOR.TriangleOsc a)
 else instance isAudioWaveShaper :: IsAudio (CTOR.WaveShaper a b c)
 else instance isAudioProxy :: IsAudio (Proxy s)
+else instance isAudioThis :: IsAudio This
+else instance isAudioIgnoreMe :: IsAudio IgnoreMe
 else instance isAudioFofAudio :: IsAudio i => IsAudio (f i)
 
 -- | Class to determine if a type is audio or multiple audios.

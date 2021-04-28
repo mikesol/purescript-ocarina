@@ -9,12 +9,10 @@ module WAGS.Run
   ) where
 
 import Prelude
-
 import Control.Comonad.Cofree (Cofree, head, tail)
 import Data.DateTime.Instant (Instant)
 import Data.Foldable (for_)
 import Data.Int (floor, toNumber)
-import Data.JSDate (getTime, now)
 import Data.List (List(..))
 import Data.Map as M
 import Data.Maybe (Maybe(..), isNothing)
@@ -54,10 +52,9 @@ run ::
     Thunkable
     res ->
   Event (Run res)
-run trigger world' engineInfo audio@(FFIAudio audio') scene =
+run trigger world' engineInfo (FFIAudio audio') scene =
   makeEvent \k -> do
     audioClockStart <- getAudioClockTime audio'.context
-    clockClockStart <- map ((_ / 1000.0) <<< getTime) now
     currentTimeoutCanceler <- Ref.new (pure unit :: Effect Unit)
     currentScene <- Ref.new scene
     currentEasingAlg <- Ref.new engineInfo.easingAlgorithm
@@ -219,7 +216,7 @@ runInternal audioClockStart worldAndTrigger world' currentTimeoutCanceler curren
 
     time = (audioClockPriorToComputation - audioClockStart) + headroomInSeconds
 
-    fromScene = runThunkable (oneFrameT  sceneNow (R.union worldAndTrigger { time, headroom }))
+    fromScene = runThunkable (oneFrameT sceneNow (R.union worldAndTrigger { time, headroom }))
   audioClockAfterComputation <- getAudioClockTime audio'.context
   renderAudio
     ( FFIAudio

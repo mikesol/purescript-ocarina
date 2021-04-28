@@ -1,13 +1,14 @@
 module WAGS.Cursor where
 
 import Prelude
+
 import Data.Identity (Identity)
 import Data.Tuple.Nested (type (/\))
 import Type.Proxy (Proxy(..))
 import WAGS.Control.Types (FrameT, unsafeFrame)
 import WAGS.Create (class Create)
 import WAGS.Graph.Constructors as CTOR
-import WAGS.Graph.Decorators (Focus)
+import WAGS.Graph.Decorators (Focus, This, IgnoreMe)
 import WAGS.Universe.AudioUnit (AudioUnitRef(..))
 import WAGS.Universe.AudioUnit as AU
 import WAGS.Universe.Bin (class BinSub, class BinToInt, Ptr, PtrList, PtrListCons, PtrListNil, toInt')
@@ -125,6 +126,10 @@ instance cursorSkolem :: BinToInt p => CursorI (SingleEdge p) (Proxy skolem) igr
 instance cursorIdentity :: (BinToInt p, CursorI (SingleEdge p) x igraph o) => CursorI (SingleEdge p) (Identity x) igraph o
 
 instance cursorFocus :: (BinToInt p, CursorI (SingleEdge p) x igraph o) => CursorI (SingleEdge p) (Focus x) igraph (PtrListCons p o)
+
+instance cursorThis :: CursorI (SingleEdge p) This igraph (PtrListCons p PtrListNil)
+
+instance cursorIgnoreMe :: CursorI (SingleEdge p) IgnoreMe igraph PtrListNil
 
 instance cursorMany2 ::
   ( BinToInt p

@@ -18,6 +18,7 @@ module WAGS.Change
   ) where
 
 import Prelude
+
 import Control.Monad.State (gets, modify_)
 import Data.Identity (Identity(..))
 import Data.Map as M
@@ -31,7 +32,7 @@ import WAGS.Control.Types (FrameT, unsafeFrame, unsafeUnframe)
 import WAGS.Create (class Create)
 import WAGS.Graph.Constructors (Dup(..), Gain(..), OnOff(..), Speaker(..))
 import WAGS.Graph.Constructors as CTOR
-import WAGS.Graph.Decorators (Focus(..))
+import WAGS.Graph.Decorators (Focus(..), IgnoreMe)
 import WAGS.Graph.Parameter (AudioParameter(..), defaultParam, param)
 import WAGS.Interpret (class AudioInterpret, setAttack, setBuffer, setDelay, setFrequency, setGain, setKnee, setLoopEnd, setLoopStart, setOff, setOffset, setOn, setPan, setPeriodicOsc, setPlaybackRate, setQ, setRatio, setRelease, setThreshold)
 import WAGS.Rendered (AnAudioUnit(..))
@@ -411,7 +412,7 @@ instance changeInstructionsPeriodicOsc :: (AudioInterpret audio engine, SetterVa
 
 instance changeInstructionsPlayBuf :: (AudioInterpret audio engine, SetterVal argC) => ChangeInstructions audio engine (CTOR.PlayBuf argC) where
   -- todo: set ny if different
-  changeInstructions idx (CTOR.PlayBuf bf ny onOff argC) = case _ of
+  changeInstructions idx (CTOR.PlayBuf bf _ onOff argC) = case _ of
     APlayBuf x y oldOnOff v_argC@(AudioParameter v_argC') ->
       let
         onOffDiff = oldOnOff /= onOff
@@ -638,6 +639,9 @@ instance changeSkolem ::
 
 instance changeIdentity :: Change (SingleEdge p) x igraph => Change (SingleEdge p) (Identity x) igraph where
   change' p (Identity x) = change' p x
+
+instance changeIgnoreMe ::  Change (SingleEdge p) IgnoreMe igraph where
+  change'  _ _ = unsafeFrame $ (pure unit)
 
 instance changeFocus :: Change (SingleEdge p) x igraph => Change (SingleEdge p) (Focus x) igraph where
   change' p (Focus x) = change' p x
@@ -996,7 +1000,7 @@ instance changeWaveShaper ::
   , Change nextP argB igraph
   ) =>
   Change (SingleEdge p) (CTOR.WaveShaper sym overshape fOfargB) igraph where
-  change' _ (CTOR.WaveShaper sym overshape fOfargB) =
+  change' _ (CTOR.WaveShaper _ _ fOfargB) =
     let
       argB = (((toSkolemizedFunction :: fOfargB -> (Proxy skolem -> argB)) fOfargB) Proxy)
     in
@@ -1010,7 +1014,7 @@ instance changeRecorder ::
   , Change nextP a igraph
   ) =>
   Change (SingleEdge p) (CTOR.Recorder sym fa) igraph where
-  change' _ (CTOR.Recorder sym fa) =
+  change' _ (CTOR.Recorder _ fa) =
     let
       a = (((toSkolemizedFunction :: fa -> (Proxy skolem -> a)) fa) Proxy)
     in
