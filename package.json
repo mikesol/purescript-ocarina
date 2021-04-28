@@ -3,6 +3,8 @@
   "version": "0.0.3",
   "description": "Web Audio Graphs as a Stream",
   "scripts": {
+    "build": "spago build",
+    "docs": "pulp docs",
     "test": "spago -x test.dhall test"
   },
   "keywords": [],
