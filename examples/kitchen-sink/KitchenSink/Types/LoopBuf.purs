@@ -6,7 +6,7 @@ import Math (pi, sin, (%))
 import WAGS.Control.Types (Universe')
 import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
 import WAGS.Example.KitchenSink.Types.Empty (BaseGraph, EI0, EI1, TopLevel)
-import WAGS.Graph.Constructors (Gain, Speaker, LoopBuf)
+import WAGS.Graph.Constructors (Gain, LoopBuf, OnOff(..), Speaker)
 import WAGS.Graph.Decorators (Focus(..), Decorating')
 import WAGS.Graph.Optionals (GetSetAP, gain, loopBuf, speaker)
 import WAGS.Universe.AudioUnit (TLoopBuf)
@@ -49,7 +49,18 @@ deltaKsLoopBuf =
     >>> \time ->
         let
           rad = pi * time
+
+          switchOO = time % 2.0 < 1.0
+
+          switchW = time % 4.0 < 2.0
         in
           speaker
             $ gain 1.0
-                (loopBuf { playbackRate: 1.0 + (0.1 * sin rad), start: 1.0, end: 2.5 + (sin rad) } "my-buffer")
+                ( loopBuf
+                    { onOff: if switchOO then On else Off
+                    , playbackRate: 1.0 + (0.1 * sin rad)
+                    , start: 1.0
+                    , end: 1.4 + 0.2 * (sin rad)
+                    }
+                    (if switchW then "my-buffer" else "shruti")
+                )

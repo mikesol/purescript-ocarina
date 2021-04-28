@@ -155,6 +155,8 @@ instance changeInstructionsConstant :: (AudioInterpret audio engine, SetterVal a
   changeInstructions idx (CTOR.Constant onOff argA) = case _ of
     AConstant oldOnOff v_argA@(AudioParameter v_argA') ->
       let
+        onOffDiff = oldOnOff /= onOff
+
         s_argA = setterVal argA
 
         argA_iv' = s_argA v_argA
@@ -162,7 +164,7 @@ instance changeInstructionsConstant :: (AudioInterpret audio engine, SetterVal a
         argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param then [] else [ setOffset idx argA_iv' ]
       in
         Just
-          $ (argA_Changes <> (if oldOnOff /= onOff then [ (if onOff == On then setOn else setOff) idx ] else []))
+          $ (argA_Changes <> (if onOffDiff then [ (if onOff == On then setOn else setOff) idx ] else []))
           /\ AConstant onOff argA_iv'
     _ -> Nothing
 
@@ -293,8 +295,8 @@ instance changeInstructionsLoopBuf :: (AudioInterpret audio engine, SetterVal ar
         argB_Changes = let AudioParameter argB_iv = argB_iv' in if argB_iv.param == v_argB'.param && not (onOffDiff && onOff == On) then [] else [ setPlaybackRate idx argB_iv' ]
       in
         Just
-          $ (if bf /= x then [ setBuffer idx bf ] else [] <> argB_Changes <> (if (oldLoopStart /= loopStart) || (onOffDiff && onOff == On) then [ setLoopStart idx loopStart ] else []) <> (if (oldLoopEnd /= loopEnd) || (onOffDiff && onOff == On) then [ setLoopEnd idx loopEnd ] else []) <> (if oldOnOff /= onOff then [ (if onOff == On then setOn else setOff) idx ] else []))
-          /\ ALoopBuf x onOff argB_iv' loopStart loopEnd
+          $ ((if bf /= x then [ setBuffer idx bf ] else []) <> argB_Changes <> (if (oldLoopStart /= loopStart) || (onOffDiff && onOff == On) then [ setLoopStart idx loopStart ] else []) <> (if (oldLoopEnd /= loopEnd) || (onOffDiff && onOff == On) then [ setLoopEnd idx loopEnd ] else []) <> (if onOffDiff then [ (if onOff == On then setOn else setOff) idx ] else []))
+          /\ ALoopBuf bf onOff argB_iv' loopStart loopEnd
     _ -> Nothing
 
 instance changeInstructionsLowpass :: (AudioInterpret audio engine, SetterVal argA, SetterVal argB) => ChangeInstructions audio engine (CTOR.Lowpass argA argB argC) where
@@ -403,8 +405,8 @@ instance changeInstructionsPeriodicOsc :: (AudioInterpret audio engine, SetterVa
         argB_Changes = let AudioParameter argB_iv = argB_iv' in if argB_iv.param == v_argB'.param && not (onOffDiff && onOff == On) then [] else [ setFrequency idx argB_iv' ]
       in
         Just
-          $ (if po /= x then [ setPeriodicOsc idx po ] else [] <> argB_Changes <> (if oldOnOff /= onOff then [ (if onOff == On then setOn else setOff) idx ] else []))
-          /\ APeriodicOsc x onOff argB_iv'
+          $ ((if po /= x then [ setPeriodicOsc idx po ] else []) <> argB_Changes <> (if onOffDiff then [ (if onOff == On then setOn else setOff) idx ] else []))
+          /\ APeriodicOsc po onOff argB_iv'
     _ -> Nothing
 
 instance changeInstructionsPlayBuf :: (AudioInterpret audio engine, SetterVal argC) => ChangeInstructions audio engine (CTOR.PlayBuf argC) where
@@ -421,8 +423,8 @@ instance changeInstructionsPlayBuf :: (AudioInterpret audio engine, SetterVal ar
         argC_Changes = let AudioParameter argC_iv = argC_iv' in if argC_iv.param == v_argC'.param && not (onOffDiff && onOff == On) then [] else [ setPlaybackRate idx argC_iv' ]
       in
         Just
-          $ (if bf /= x then [ setBuffer idx bf ] else [] <> argC_Changes <> (if oldOnOff /= onOff then [ (if onOff == On then setOn else setOff) idx ] else []))
-          /\ APlayBuf x y onOff argC_iv'
+          $ ((if bf /= x then [ setBuffer idx bf ] else []) <> argC_Changes <> (if onOffDiff then [ (if onOff == On then setOn else setOff) idx ] else []))
+          /\ APlayBuf bf y onOff argC_iv'
     _ -> Nothing
 
 instance changeInstructionsRecorder :: AudioInterpret audio engine => ChangeInstructions audio engine (CTOR.Recorder argA argB) where
@@ -441,7 +443,7 @@ instance changeInstructionsSawtoothOsc :: (AudioInterpret audio engine, SetterVa
         argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param && not (onOffDiff && onOff == On) then [] else [ setFrequency idx argA_iv' ]
       in
         Just
-          $ (argA_Changes <> (if oldOnOff /= onOff then [ (if onOff == On then setOn else setOff) idx ] else []))
+          $ (argA_Changes <> (if onOffDiff then [ (if onOff == On then setOn else setOff) idx ] else []))
           /\ ASawtoothOsc onOff argA_iv'
     _ -> Nothing
 
@@ -478,7 +480,7 @@ instance changeInstructionsSquareOsc :: (AudioInterpret audio engine, SetterVal 
         argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param && not (onOffDiff && onOff == On) then [] else [ setFrequency idx argA_iv' ]
       in
         Just
-          $ (argA_Changes <> (if oldOnOff /= onOff then [ (if onOff == On then setOn else setOff) idx ] else []))
+          $ (argA_Changes <> (if onOffDiff then [ (if onOff == On then setOn else setOff) idx ] else []))
           /\ ASquareOsc onOff argA_iv'
     _ -> Nothing
 
@@ -510,7 +512,7 @@ instance changeInstructionsTriangleOsc :: (AudioInterpret audio engine, SetterVa
         argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param && not (onOffDiff && onOff == On) then [] else [ setFrequency idx argA_iv' ]
       in
         Just
-          $ (argA_Changes <> (if oldOnOff /= onOff then [ (if onOff == On then setOn else setOff) idx ] else []))
+          $ (argA_Changes <> (if onOffDiff then [ (if onOff == On then setOn else setOff) idx ] else []))
           /\ ATriangleOsc onOff argA_iv'
     _ -> Nothing
 
