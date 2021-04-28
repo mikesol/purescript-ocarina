@@ -1,11 +1,9 @@
 module WAGS.Example.KitchenSink.TLP.SquareOsc where
 
 import Prelude
-
 import Data.Either (Either(..))
 import Data.Functor.Indexed (ivoid)
 import Math ((%))
-import Type.Proxy (Proxy(..))
 import WAGS.Change (change)
 import WAGS.Connect (connect)
 import WAGS.Control.Functions (branch, env, inSitu, modifyRes, proof, withProof)
@@ -20,7 +18,6 @@ import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
 import WAGS.Example.KitchenSink.Types.Empty (reset)
 import WAGS.Example.KitchenSink.Types.SquareOsc (SquareOscUniverse, deltaKsSquareOsc, ksSquareOscGain, ksSquareOscSquareOsc)
 import WAGS.Graph.Constructors (OnOff(..), PeriodicOsc(..))
-
 
 doSquareOsc :: forall proof iu cb. StepSig (SquareOscUniverse cb) proof iu
 doSquareOsc =
@@ -39,6 +36,6 @@ doSquareOsc =
                 disconnect cursorSquareOsc cursorGain
                 destroy cursorSquareOsc
                 reset
-                toAdd <- create (PeriodicOsc (Proxy :: Proxy "my-wave") On 440.0)
+                toAdd <- create (PeriodicOsc "my-wave" On 440.0)
                 connect toAdd cursorGain
                 withProof pr lsig

@@ -1,10 +1,8 @@
 module WAGS.Example.KitchenSink.Types.Lowpass where
 
 import Prelude
-
 import Data.Identity (Identity(..))
 import Math ((%))
-import Type.Proxy (Proxy(..))
 import WAGS.Control.Types (Universe')
 import WAGS.Example.KitchenSink.Timing (calcSlope, pieceTime, timing)
 import WAGS.Example.KitchenSink.Types.Empty (BaseGraph, EI0, EI1, EI2, TopLevel)
@@ -20,7 +18,7 @@ type LowpassGraph
   = GraphC
       (NodeC (TLowpass EI0) (SingleEdge EI1))
       ( NodeListCons
-          (NodeC (TPlayBuf EI1 "my-buffer") NoEdge)
+          (NodeC (TPlayBuf EI1) NoEdge)
           (BaseGraph EI0)
       )
 
@@ -28,7 +26,7 @@ type LowpassUniverse cb
   = Universe' EI2 LowpassGraph cb
 
 type KsLowpassreate (t :: Type -> Type) b
-  = t (Lowpass GetSetAP GetSetAP (b (PlayBuf "my-buffer" GetSetAP)))
+  = t (Lowpass GetSetAP GetSetAP (b (PlayBuf GetSetAP)))
 
 type KsLowpass g t b
   = TopLevel g (KsLowpassreate t b)
@@ -38,7 +36,7 @@ ksLowpassCreate ::
   Decorating' t ->
   Decorating' b ->
   KsLowpassreate t b
-ksLowpassCreate ft fb = ft $ lowpass { freq: 300.0 } (fb $ playBuf (Proxy :: _ "my-buffer"))
+ksLowpassCreate ft fb = ft $ lowpass { freq: 300.0 } (fb $ playBuf "my-buffer")
 
 ksLowpass' ::
   forall g t b.
@@ -73,6 +71,6 @@ deltaKsLowpass =
               $ gain (if time > (timing.ksLowpass.dur - 1.0) then 0.0 else 1.0)
                   ( Identity
                       $ lowpass { freq: calcSlope 0.0 300.0 timing.ksLowpass.dur 2000.0 time }
-                          (Identity $ playBuf (Proxy :: _ "my-buffer"))
+                          (Identity $ playBuf "my-buffer")
                   )
           )

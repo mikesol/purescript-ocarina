@@ -1,10 +1,8 @@
 module WAGS.Example.KitchenSink.Types.Peaking where
 
 import Prelude
-
 import Data.Identity (Identity(..))
 import Math ((%))
-import Type.Proxy (Proxy(..))
 import WAGS.Control.Types (Universe')
 import WAGS.Example.KitchenSink.Timing (calcSlope, pieceTime, timing)
 import WAGS.Example.KitchenSink.Types.Empty (BaseGraph, EI0, EI1, EI2, TopLevel)
@@ -20,7 +18,7 @@ type PeakingGraph
   = GraphC
       (NodeC (TPeaking EI0) (SingleEdge EI1))
       ( NodeListCons
-          (NodeC (TPlayBuf EI1 "my-buffer") NoEdge)
+          (NodeC (TPlayBuf EI1) NoEdge)
           (BaseGraph EI0)
       )
 
@@ -28,7 +26,7 @@ type PeakingUniverse cb
   = Universe' EI2 PeakingGraph cb
 
 type KsPeakingreate (t :: Type -> Type) b
-  = t (Peaking GetSetAP GetSetAP GetSetAP (b (PlayBuf "my-buffer" GetSetAP)))
+  = t (Peaking GetSetAP GetSetAP GetSetAP (b (PlayBuf GetSetAP)))
 
 type KsPeaking g t b
   = TopLevel g (KsPeakingreate t b)
@@ -38,7 +36,7 @@ ksPeakingCreate ::
   Decorating' t ->
   Decorating' b ->
   KsPeakingreate t b
-ksPeakingCreate ft fb = ft $ peaking { freq: 300.0 } (fb $ playBuf (Proxy :: _ "my-buffer"))
+ksPeakingCreate ft fb = ft $ peaking { freq: 300.0 } (fb $ playBuf "my-buffer")
 
 ksPeaking' ::
   forall g t b.
@@ -71,5 +69,5 @@ deltaKsPeaking =
         speaker
           ( Identity
               $ gain (if time > (timing.ksPeaking.dur - 1.0) then 0.0 else 1.0)
-                  (Identity $ peaking { freq: (calcSlope 0.0 300.0 timing.ksPeaking.dur 2000.0 time) } (Identity $ playBuf (Proxy :: _ "my-buffer")))
+                  (Identity $ peaking { freq: (calcSlope 0.0 300.0 timing.ksPeaking.dur 2000.0 time) } (Identity $ playBuf "my-buffer"))
           )

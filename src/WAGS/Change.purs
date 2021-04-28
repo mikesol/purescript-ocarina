@@ -33,12 +33,12 @@ import WAGS.Graph.Constructors (Dup(..), Gain(..), OnOff(..), Speaker(..))
 import WAGS.Graph.Constructors as CTOR
 import WAGS.Graph.Decorators (Focus(..))
 import WAGS.Graph.Parameter (AudioParameter(..), defaultParam, param)
-import WAGS.Interpret (class AudioInterpret, setAttack, setDelay, setFrequency, setGain, setKnee, setLoopEnd, setLoopStart, setOff, setOffset, setOn, setPan, setPlaybackRate, setQ, setRatio, setRelease, setThreshold)
+import WAGS.Interpret (class AudioInterpret, setAttack, setBuffer, setDelay, setFrequency, setGain, setKnee, setLoopEnd, setLoopStart, setOff, setOffset, setOn, setPan, setPeriodicOsc, setPlaybackRate, setQ, setRatio, setRelease, setThreshold)
 import WAGS.Rendered (AnAudioUnit(..))
 import WAGS.Universe.AudioUnit (AudioUnitRef)
 import WAGS.Universe.AudioUnit as AU
-import WAGS.Universe.BinN (D0)
 import WAGS.Universe.Bin (class BinSub, class BinToInt, Bits, Ptr, PtrListCons, PtrListNil, toInt')
+import WAGS.Universe.BinN (D0)
 import WAGS.Universe.EdgeProfile (EdgeProfile, ManyEdges, NoEdge, SingleEdge)
 import WAGS.Universe.Graph (class GraphToNodeList, Graph, InitialGraph)
 import WAGS.Universe.Node (Node, NodeC, NodeList, NodeListCons, NodeListNil)
@@ -280,8 +280,8 @@ instance changeInstructionsHighshelf :: (AudioInterpret audio engine, SetterVal 
           /\ AHighshelf argA_iv' argB_iv'
     _ -> Nothing
 
-instance changeInstructionsLoopBuf :: (AudioInterpret audio engine, SetterVal argB) => ChangeInstructions audio engine (CTOR.LoopBuf argA argB) where
-  changeInstructions idx (CTOR.LoopBuf _ onOff argB loopStart loopEnd) = case _ of
+instance changeInstructionsLoopBuf :: (AudioInterpret audio engine, SetterVal argB) => ChangeInstructions audio engine (CTOR.LoopBuf argB) where
+  changeInstructions idx (CTOR.LoopBuf bf onOff argB loopStart loopEnd) = case _ of
     ALoopBuf x oldOnOff v_argB@(AudioParameter v_argB') oldLoopStart oldLoopEnd ->
       let
         onOffDiff = oldOnOff /= onOff
@@ -293,7 +293,7 @@ instance changeInstructionsLoopBuf :: (AudioInterpret audio engine, SetterVal ar
         argB_Changes = let AudioParameter argB_iv = argB_iv' in if argB_iv.param == v_argB'.param && not (onOffDiff && onOff == On) then [] else [ setPlaybackRate idx argB_iv' ]
       in
         Just
-          $ (argB_Changes <> (if (oldLoopStart /= loopStart) || (onOffDiff && onOff == On) then [ setLoopStart idx loopStart ] else []) <> (if (oldLoopEnd /= loopEnd) || (onOffDiff && onOff == On) then [ setLoopEnd idx loopEnd ] else []) <> (if oldOnOff /= onOff then [ (if onOff == On then setOn else setOff) idx ] else []))
+          $ (if bf /= x then [ setBuffer idx bf ] else [] <> argB_Changes <> (if (oldLoopStart /= loopStart) || (onOffDiff && onOff == On) then [ setLoopStart idx loopStart ] else []) <> (if (oldLoopEnd /= loopEnd) || (onOffDiff && onOff == On) then [ setLoopEnd idx loopEnd ] else []) <> (if oldOnOff /= onOff then [ (if onOff == On then setOn else setOff) idx ] else []))
           /\ ALoopBuf x onOff argB_iv' loopStart loopEnd
     _ -> Nothing
 
@@ -390,8 +390,8 @@ instance changeInstructionsPeaking :: (AudioInterpret audio engine, SetterVal ar
           /\ APeaking argA_iv' argB_iv' argC_iv'
     _ -> Nothing
 
-instance changeInstructionsPeriodicOsc :: (AudioInterpret audio engine, SetterVal argB) => ChangeInstructions audio engine (CTOR.PeriodicOsc argA argB) where
-  changeInstructions idx (CTOR.PeriodicOsc _ onOff argB) = case _ of
+instance changeInstructionsPeriodicOsc :: (AudioInterpret audio engine, SetterVal argB) => ChangeInstructions audio engine (CTOR.PeriodicOsc argB) where
+  changeInstructions idx (CTOR.PeriodicOsc po onOff argB) = case _ of
     APeriodicOsc x oldOnOff v_argB@(AudioParameter v_argB') ->
       let
         onOffDiff = oldOnOff /= onOff
@@ -403,12 +403,13 @@ instance changeInstructionsPeriodicOsc :: (AudioInterpret audio engine, SetterVa
         argB_Changes = let AudioParameter argB_iv = argB_iv' in if argB_iv.param == v_argB'.param && not (onOffDiff && onOff == On) then [] else [ setFrequency idx argB_iv' ]
       in
         Just
-          $ (argB_Changes <> (if oldOnOff /= onOff then [ (if onOff == On then setOn else setOff) idx ] else []))
+          $ (if po /= x then [ setPeriodicOsc idx po ] else [] <> argB_Changes <> (if oldOnOff /= onOff then [ (if onOff == On then setOn else setOff) idx ] else []))
           /\ APeriodicOsc x onOff argB_iv'
     _ -> Nothing
 
-instance changeInstructionsPlayBuf :: (AudioInterpret audio engine, SetterVal argC) => ChangeInstructions audio engine (CTOR.PlayBuf argA argC) where
-  changeInstructions idx (CTOR.PlayBuf _ _ onOff argC) = case _ of
+instance changeInstructionsPlayBuf :: (AudioInterpret audio engine, SetterVal argC) => ChangeInstructions audio engine (CTOR.PlayBuf argC) where
+  -- todo: set ny if different
+  changeInstructions idx (CTOR.PlayBuf bf ny onOff argC) = case _ of
     APlayBuf x y oldOnOff v_argC@(AudioParameter v_argC') ->
       let
         onOffDiff = oldOnOff /= onOff
@@ -420,7 +421,7 @@ instance changeInstructionsPlayBuf :: (AudioInterpret audio engine, SetterVal ar
         argC_Changes = let AudioParameter argC_iv = argC_iv' in if argC_iv.param == v_argC'.param && not (onOffDiff && onOff == On) then [] else [ setPlaybackRate idx argC_iv' ]
       in
         Just
-          $ (argC_Changes <> (if oldOnOff /= onOff then [ (if onOff == On then setOn else setOff) idx ] else []))
+          $ (if bf /= x then [ setBuffer idx bf ] else [] <> argC_Changes <> (if oldOnOff /= onOff then [ (if onOff == On then setOn else setOff) idx ] else []))
           /\ APlayBuf x y onOff argC_iv'
     _ -> Nothing
 
@@ -558,14 +559,14 @@ else instance modifyResDynamicsCompressor :: ModifyRes (CTOR.DynamicsCompressor 
 else instance modifyResGain :: ModifyRes (CTOR.Gain a b) ptr (NodeC (AU.TGain ptr) edge) (NodeListCons (NodeC (AU.TGain ptr) edge) NodeListNil) edge
 else instance modifyResHighpass :: ModifyRes (CTOR.Highpass a b c) ptr (NodeC (AU.THighpass ptr) edge) (NodeListCons (NodeC (AU.THighpass ptr) edge) NodeListNil) edge
 else instance modifyResHighshelf :: ModifyRes (CTOR.Highshelf a b c) ptr (NodeC (AU.THighshelf ptr) edge) (NodeListCons (NodeC (AU.THighshelf ptr) edge) NodeListNil) edge
-else instance modifyResLoopBuf :: ModifyRes (CTOR.LoopBuf a b) ptr (NodeC (AU.TLoopBuf ptr name) edge) (NodeListCons (NodeC (AU.TLoopBuf ptr name) edge) NodeListNil) edge
+else instance modifyResLoopBuf :: ModifyRes (CTOR.LoopBuf a) ptr (NodeC (AU.TLoopBuf ptr) edge) (NodeListCons (NodeC (AU.TLoopBuf ptr) edge) NodeListNil) edge
 else instance modifyResLowpass :: ModifyRes (CTOR.Lowpass a b c) ptr (NodeC (AU.TLowpass ptr) edge) (NodeListCons (NodeC (AU.TLowpass ptr) edge) NodeListNil) edge
 else instance modifyResLowshelf :: ModifyRes (CTOR.Lowshelf a b c) ptr (NodeC (AU.TLowshelf ptr) edge) (NodeListCons (NodeC (AU.TLowshelf ptr) edge) NodeListNil) edge
 else instance modifyResMicrophone :: ModifyRes (CTOR.Microphone) ptr (NodeC (AU.TMicrophone ptr) edge) (NodeListCons (NodeC (AU.TMicrophone ptr) edge) NodeListNil) edge
 else instance modifyResNotch :: ModifyRes (CTOR.Notch a b c) ptr (NodeC (AU.TNotch ptr) edge) (NodeListCons (NodeC (AU.TNotch ptr) edge) NodeListNil) edge
 else instance modifyResPeaking :: ModifyRes (CTOR.Peaking a b c d) ptr (NodeC (AU.TPeaking ptr) edge) (NodeListCons (NodeC (AU.TPeaking ptr) edge) NodeListNil) edge
-else instance modifyResPeriodicOsc :: ModifyRes (CTOR.PeriodicOsc a b) ptr (NodeC (AU.TPeriodicOsc ptr name) edge) (NodeListCons (NodeC (AU.TPeriodicOsc ptr name) edge) NodeListNil) edge
-else instance modifyResPlayBuf :: ModifyRes (CTOR.PlayBuf a b) ptr (NodeC (AU.TPlayBuf ptr name) edge) (NodeListCons (NodeC (AU.TPlayBuf ptr name) edge) NodeListNil) edge
+else instance modifyResPeriodicOsc :: ModifyRes (CTOR.PeriodicOsc a) ptr (NodeC (AU.TPeriodicOsc ptr) edge) (NodeListCons (NodeC (AU.TPeriodicOsc ptr) edge) NodeListNil) edge
+else instance modifyResPlayBuf :: ModifyRes (CTOR.PlayBuf a) ptr (NodeC (AU.TPlayBuf ptr) edge) (NodeListCons (NodeC (AU.TPlayBuf ptr) edge) NodeListNil) edge
 else instance modifyResRecorder :: ModifyRes (CTOR.Recorder a b) ptr (NodeC (AU.TRecorder ptr name) edge) (NodeListCons (NodeC (AU.TRecorder ptr name) edge) NodeListNil) edge
 else instance modifyResSawtoothOsc :: ModifyRes (CTOR.SawtoothOsc a) ptr (NodeC (AU.TSawtoothOsc ptr) edge) (NodeListCons (NodeC (AU.TSawtoothOsc ptr) edge) NodeListNil) edge
 else instance modifyResSinOsc :: ModifyRes (CTOR.SinOsc a) ptr (NodeC (AU.TSinOsc ptr) edge) (NodeListCons (NodeC (AU.TSinOsc ptr) edge) NodeListNil) edge
@@ -804,9 +805,9 @@ instance changeHighshelf ::
 instance changeLoopBuf ::
   ( SetterVal argB
   , BinToInt p
-  , Modify (CTOR.LoopBuf argA argB) p igraph nextP
+  , Modify (CTOR.LoopBuf argB) p igraph nextP
   ) =>
-  Change (SingleEdge p) (CTOR.LoopBuf argA argB) igraph where
+  Change (SingleEdge p) (CTOR.LoopBuf argB) igraph where
   change' _ = changeAudioUnit (Proxy :: Proxy ((Proxy p) /\ (Proxy nextP) /\ Proxy igraph))
 
 instance changeLowpass ::
@@ -849,7 +850,6 @@ instance changeMicrophone ::
   Change (SingleEdge p) (CTOR.Microphone) igraph where
   change' _ _ = unsafeFrame $ (pure unit)
 
-
 instance changeNotch ::
   ( SetterVal argA
   , SetterVal argB
@@ -890,17 +890,17 @@ instance changePeaking ::
 instance changePeriodicOsc ::
   ( SetterVal argB
   , BinToInt p
-  , Modify (CTOR.PeriodicOsc argA argB) p igraph nextP
+  , Modify (CTOR.PeriodicOsc argB) p igraph nextP
   ) =>
-  Change (SingleEdge p) (CTOR.PeriodicOsc argA argB) igraph where
+  Change (SingleEdge p) (CTOR.PeriodicOsc argB) igraph where
   change' _ = changeAudioUnit (Proxy :: Proxy ((Proxy p) /\ (Proxy nextP) /\ Proxy igraph))
 
 instance changePlayBuf ::
   ( SetterVal argB
   , BinToInt p
-  , Modify (CTOR.PlayBuf argA argB) p igraph nextP
+  , Modify (CTOR.PlayBuf argB) p igraph nextP
   ) =>
-  Change (SingleEdge p) (CTOR.PlayBuf argA argB) igraph where
+  Change (SingleEdge p) (CTOR.PlayBuf argB) igraph where
   change' _ = changeAudioUnit (Proxy :: Proxy ((Proxy p) /\ (Proxy nextP) /\ Proxy igraph))
 
 instance changeSawtoothOsc ::

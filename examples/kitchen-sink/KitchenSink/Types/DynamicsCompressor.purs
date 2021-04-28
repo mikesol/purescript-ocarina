@@ -1,10 +1,8 @@
 module WAGS.Example.KitchenSink.Types.DynamicsCompressor where
 
 import Prelude
-
 import Data.Identity (Identity(..))
 import Math ((%))
-import Type.Proxy (Proxy(..))
 import WAGS.Control.Types (Universe')
 import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
 import WAGS.Example.KitchenSink.Types.Empty (BaseGraph, EI0, EI1, EI2, TopLevel)
@@ -20,7 +18,7 @@ type DynamicsCompressorGraph
   = GraphC
       (NodeC (TDynamicsCompressor EI0) (SingleEdge EI1))
       ( NodeListCons
-          (NodeC (TPlayBuf EI1 "my-buffer") NoEdge)
+          (NodeC (TPlayBuf EI1) NoEdge)
           (BaseGraph EI0)
       )
 
@@ -28,7 +26,7 @@ type DynamicsCompressorUniverse cb
   = Universe' EI2 DynamicsCompressorGraph cb
 
 type KsDynamicsCompressorreate (t :: Type -> Type) b
-  = t (DynamicsCompressor GetSetAP GetSetAP GetSetAP GetSetAP GetSetAP (b (PlayBuf "my-buffer" GetSetAP)))
+  = t (DynamicsCompressor GetSetAP GetSetAP GetSetAP GetSetAP GetSetAP (b (PlayBuf GetSetAP)))
 
 type KsDynamicsCompressor g t b
   = TopLevel g (KsDynamicsCompressorreate t b)
@@ -38,7 +36,7 @@ ksDynamicsCompressorCreate ::
   Decorating' t ->
   Decorating' b ->
   KsDynamicsCompressorreate t b
-ksDynamicsCompressorCreate ft fb = ft $ compressor (fb $ playBuf (Proxy :: _ "my-buffer"))
+ksDynamicsCompressorCreate ft fb = ft $ compressor (fb $ playBuf "my-buffer")
 
 ksDynamicsCompressor' ::
   forall g t b.
@@ -77,7 +75,7 @@ deltaKsDynamicsCompressor =
                           , attack: if time > (dur / 5.0) then 0.003 else 0.005
                           , release: if time > (dur / 6.0) then 0.25 else 0.5
                           }
-                          (Identity $ playBuf (Proxy :: _ "my-buffer"))
+                          (Identity $ playBuf "my-buffer")
                   )
           )
   where

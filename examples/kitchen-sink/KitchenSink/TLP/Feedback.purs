@@ -1,10 +1,8 @@
 module WAGS.Example.KitchenSink.TLP.Feedback where
 
 import Prelude
-
 import Data.Either (Either(..))
 import Math ((%))
-import Type.Proxy (Proxy(..))
 import WAGS.Change (change)
 import WAGS.Connect (connect)
 import WAGS.Control.Functions (branch, env, inSitu, proof, withProof)
@@ -50,6 +48,6 @@ doFeedback =
                   create
                     $ loopBuf
                         { playbackRate: 1.0, start: 1.0, end: 2.5 }
-                        (Proxy :: _ "my-buffer")
+                        "my-buffer"
                 connect toAdd cursorGain
                 withProof pr lsig

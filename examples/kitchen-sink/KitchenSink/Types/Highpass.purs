@@ -1,10 +1,8 @@
 module WAGS.Example.KitchenSink.Types.Highpass where
 
 import Prelude
-
 import Data.Identity (Identity(..))
 import Math ((%))
-import Type.Proxy (Proxy(..))
 import WAGS.Control.Types (Universe')
 import WAGS.Example.KitchenSink.Timing (calcSlope, pieceTime, timing)
 import WAGS.Example.KitchenSink.Types.Empty (BaseGraph, EI0, EI1, EI2, TopLevel)
@@ -20,7 +18,7 @@ type HighpassGraph
   = GraphC
       (NodeC (THighpass EI0) (SingleEdge EI1))
       ( NodeListCons
-          (NodeC (TPlayBuf EI1 "my-buffer") NoEdge)
+          (NodeC (TPlayBuf EI1) NoEdge)
           (BaseGraph EI0)
       )
 
@@ -28,7 +26,7 @@ type HighpassUniverse cb
   = Universe' EI2 HighpassGraph cb
 
 type KsHighpassreate (t :: Type -> Type) b
-  = t (Highpass GetSetAP GetSetAP (b (PlayBuf "my-buffer" GetSetAP)))
+  = t (Highpass GetSetAP GetSetAP (b (PlayBuf GetSetAP)))
 
 type KsHighpass g t b
   = TopLevel g (KsHighpassreate t b)
@@ -38,7 +36,7 @@ ksHighpassCreate ::
   Decorating' t ->
   Decorating' b ->
   KsHighpassreate t b
-ksHighpassCreate ft fb = ft $ highpass { freq: 300.0 } (fb $ playBuf (Proxy :: _ "my-buffer"))
+ksHighpassCreate ft fb = ft $ highpass { freq: 300.0 } (fb $ playBuf "my-buffer")
 
 ksHighpass' ::
   forall g t b.
@@ -71,5 +69,5 @@ deltaKsHighpass =
         speaker
           ( Identity
               $ gain (if time > (timing.ksHighpass.dur - 1.0) then 0.0 else 1.0)
-                  (Identity $ highpass { freq: calcSlope 0.0 300.0 timing.ksHighpass.dur 2000.0 time } (Identity $ playBuf (Proxy :: _ "my-buffer")))
+                  (Identity $ highpass { freq: calcSlope 0.0 300.0 timing.ksHighpass.dur 2000.0 time } (Identity $ playBuf "my-buffer"))
           )

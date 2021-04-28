@@ -162,12 +162,12 @@ instance creationInstructionsHighshelf :: (AudioInterpret audio engine, InitialV
       [ makeHighshelf idx argA_iv' argB_iv' ]
         /\ AHighshelf argA_iv' argB_iv'
 
-instance creationInstructionsLoopBuf :: (IsSymbol argA, AudioInterpret audio engine, InitialVal argB) => CreationInstructions audio engine (CTOR.LoopBuf argA argB) where
+instance creationInstructionsLoopBuf :: (AudioInterpret audio engine, InitialVal argB) => CreationInstructions audio engine (CTOR.LoopBuf argB) where
   creationInstructions idx (CTOR.LoopBuf px onOff argB loopStart loopEnd) =
     let
       argB_iv' = initialVal argB
 
-      bufname = reflectSymbol px
+      bufname = px
     in
       [ makeLoopBuf idx bufname onOff argB_iv' loopStart loopEnd ]
         /\ ALoopBuf bufname onOff argB_iv' loopStart loopEnd
@@ -217,22 +217,22 @@ instance creationInstructionsPeaking :: (AudioInterpret audio engine, InitialVal
       [ makePeaking idx argA_iv' argB_iv' argC_iv' ]
         /\ APeaking argA_iv' argB_iv' argC_iv'
 
-instance creationInstructionsPeriodicOsc :: (IsSymbol argA, AudioInterpret audio engine, InitialVal argB) => CreationInstructions audio engine (CTOR.PeriodicOsc argA argB) where
+instance creationInstructionsPeriodicOsc :: (AudioInterpret audio engine, InitialVal argB) => CreationInstructions audio engine (CTOR.PeriodicOsc argB) where
   creationInstructions idx (CTOR.PeriodicOsc px onOff argB) =
     let
       argB_iv' = initialVal argB
 
-      oscname = reflectSymbol px
+      oscname = px
     in
       [ makePeriodicOsc idx oscname onOff argB_iv' ]
         /\ APeriodicOsc oscname onOff argB_iv'
 
-instance creationInstructionsPlayBuf :: (IsSymbol argA, AudioInterpret audio engine, InitialVal argB) => CreationInstructions audio engine (CTOR.PlayBuf argA argB) where
+instance creationInstructionsPlayBuf :: (AudioInterpret audio engine, InitialVal argB) => CreationInstructions audio engine (CTOR.PlayBuf argB) where
   creationInstructions idx (CTOR.PlayBuf px offset onOff argB) =
     let
       argB_iv' = initialVal argB
 
-      bufname = reflectSymbol px
+      bufname = px
     in
       [ makePlayBuf idx bufname offset onOff argB_iv' ]
         /\ APlayBuf bufname offset onOff argB_iv'
@@ -697,16 +697,15 @@ instance createLoopBuf ::
   ( InitialVal argB
   , BinToInt ptr
   , BinSucc ptr next
-  , IsSymbol argA
   , GraphToNodeList graph nodeList
   ) =>
   Create
-    (CTOR.LoopBuf argA argB)
+    (CTOR.LoopBuf argB)
     ptr
     graph
     skolems
     next
-    (GraphC (NodeC (AU.TLoopBuf ptr argA) NoEdge) nodeList)
+    (GraphC (NodeC (AU.TLoopBuf ptr) NoEdge) nodeList)
     skolems
     (AudioUnitRef ptr) where
   create = unsafeFrame <<< (map) AudioUnitRef <<< creationStep
@@ -868,16 +867,15 @@ instance createPeriodicOsc ::
   ( InitialVal argB
   , BinToInt ptr
   , BinSucc ptr next
-  , IsSymbol argA
   , GraphToNodeList graph nodeList
   ) =>
   Create
-    (CTOR.PeriodicOsc argA argB)
+    (CTOR.PeriodicOsc argB)
     ptr
     graph
     skolems
     next
-    (GraphC (NodeC (AU.TPeriodicOsc ptr argA) NoEdge) nodeList)
+    (GraphC (NodeC (AU.TPeriodicOsc ptr) NoEdge) nodeList)
     skolems
     (AudioUnitRef ptr) where
   create = unsafeFrame <<< (map) AudioUnitRef <<< creationStep
@@ -886,16 +884,15 @@ instance createPlayBuf ::
   ( InitialVal argB
   , BinToInt ptr
   , BinSucc ptr next
-  , IsSymbol argA
   , GraphToNodeList graph nodeList
   ) =>
   Create
-    (CTOR.PlayBuf argA argB)
+    (CTOR.PlayBuf argB)
     ptr
     graph
     skolems
     next
-    (GraphC (NodeC (AU.TPlayBuf ptr argA) NoEdge) nodeList)
+    (GraphC (NodeC (AU.TPlayBuf ptr) NoEdge) nodeList)
     skolems
     (AudioUnitRef ptr) where
   create = unsafeFrame <<< (map) AudioUnitRef <<< creationStep

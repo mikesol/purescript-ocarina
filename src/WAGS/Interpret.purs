@@ -61,6 +61,8 @@ module WAGS.Interpret
   , rebaseAllUnits
   , renderAudio
   , safeToFFI
+  , setBuffer
+  , setPeriodicOsc
   , setAttack
   , setDelay
   , setFrequency
@@ -81,7 +83,6 @@ module WAGS.Interpret
   ) where
 
 import Prelude
-
 import Control.Plus (empty)
 import Control.Promise (Promise, toAffE)
 import Data.Maybe (Maybe)
@@ -162,7 +163,6 @@ foreign import close :: AudioContext -> Effect Unit
 foreign import data BrowserMediaStream :: Type
 
 foreign import getBrowserMediaStreamImpl :: Boolean -> Boolean -> Effect (Promise BrowserMediaStream)
-
 
 browserMediaStreamToBrowserMicrophone :: BrowserMediaStream -> BrowserMicrophone
 browserMediaStreamToBrowserMicrophone = unsafeCoerce
@@ -292,15 +292,15 @@ class AudioInterpret audio engine where
   makeLoopBuf :: Int -> String -> OnOff -> AudioParameter -> Number -> Number -> audio -> engine
   -- | Make a lowpass filter.
   makeLowpass :: Int -> AudioParameter -> AudioParameter -> audio -> engine
-   -- | Make a lowshelf filter.
+  -- | Make a lowshelf filter.
   makeLowshelf :: Int -> AudioParameter -> AudioParameter -> audio -> engine
-   -- | Make a microphone.
+  -- | Make a microphone.
   makeMicrophone :: Int -> audio -> engine
-   -- | Make a notch filter.
+  -- | Make a notch filter.
   makeNotch :: Int -> AudioParameter -> AudioParameter -> audio -> engine
-   -- | Make a peaking filter.
+  -- | Make a peaking filter.
   makePeaking :: Int -> AudioParameter -> AudioParameter -> AudioParameter -> audio -> engine
-   -- | Make a periodic oscillator.
+  -- | Make a periodic oscillator.
   makePeriodicOsc :: Int -> String -> OnOff -> AudioParameter -> audio -> engine
   -- | Make an audio buffer node.
   makePlayBuf :: Int -> String -> Number -> OnOff -> AudioParameter -> audio -> engine
@@ -320,6 +320,10 @@ class AudioInterpret audio engine where
   makeTriangleOsc :: Int -> OnOff -> AudioParameter -> audio -> engine
   -- | Make a wave shaper.
   makeWaveShaper :: Int -> String -> Oversample -> audio -> engine
+  -- | Sets the buffer to read from in a playBuf or loopBuf
+  setBuffer :: Int -> String -> audio -> engine
+  -- | Sets the periodic oscillator to read from in a periodicOsc
+  setPeriodicOsc :: Int -> String -> audio -> engine
   -- | Turn on a generator (an oscillator or playback node).
   setOn :: Int -> audio -> engine
   -- | Turn off a generator (an oscillator or playback node).
@@ -383,6 +387,8 @@ instance freeAudioInterpret :: AudioInterpret Unit Instruction where
   makeStereoPanner a b = const $ MakeStereoPanner a b
   makeTriangleOsc a b c = const $ MakeTriangleOsc a b c
   makeWaveShaper a b c = const $ MakeWaveShaper a b c
+  setBuffer a b = const $ SetBuffer a b
+  setPeriodicOsc a b = const $ SetPeriodicOsc a b
   setOn a = const $ SetOn a
   setOff a = const $ SetOff a
   setLoopStart a b = const $ SetLoopStart a b
@@ -490,6 +496,10 @@ foreign import setPlaybackRate_ :: Int -> FFIAudioParameter' -> FFIAudio' -> Eff
 
 foreign import setFrequency_ :: Int -> FFIAudioParameter' -> FFIAudio' -> Effect Unit
 
+foreign import setBuffer_ :: Int -> String -> FFIAudio' -> Effect Unit
+
+foreign import setPeriodicOsc_ :: Int -> String -> FFIAudio' -> Effect Unit
+
 instance effectfulAudioInterpret :: AudioInterpret FFIAudio (Effect Unit) where
   connectXToY a b c = connectXToY_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
   disconnectXFromY a b c = disconnectXFromY_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
@@ -520,6 +530,8 @@ instance effectfulAudioInterpret :: AudioInterpret FFIAudio (Effect Unit) where
   makeStereoPanner a b c = makeStereoPanner_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
   makeTriangleOsc a b c d = makeTriangleOsc_ (safeToFFI a) (safeToFFI b) (safeToFFI c) (safeToFFI d)
   makeWaveShaper a b c d = makeWaveShaper_ (safeToFFI a) (safeToFFI b) (safeToFFI c) (safeToFFI d)
+  setBuffer a b c = setBuffer_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
+  setPeriodicOsc a b c = setPeriodicOsc_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
   setOn a b = setOn_ (safeToFFI a) (safeToFFI b)
   setOff a b = setOff_ (safeToFFI a) (safeToFFI b)
   setLoopStart a b c = setLoopStart_ (safeToFFI a) (safeToFFI b) (safeToFFI c)

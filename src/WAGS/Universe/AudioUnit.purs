@@ -40,7 +40,7 @@ instance getPointerHighpass :: GetPointer (THighpass ptr) ptr
 
 instance getPointerHighshelf :: GetPointer (THighshelf ptr) ptr
 
-instance getPointerLoopBuf :: GetPointer (TLoopBuf ptr name) ptr
+instance getPointerLoopBuf :: GetPointer (TLoopBuf ptr) ptr
 
 instance getPointerLowpass :: GetPointer (TLowpass ptr) ptr
 
@@ -52,9 +52,9 @@ instance getPointerNotch :: GetPointer (TNotch ptr) ptr
 
 instance getPointerPeaking :: GetPointer (TPeaking ptr) ptr
 
-instance getPointerPeriodicOsc :: GetPointer (TPeriodicOsc ptr name) ptr
+instance getPointerPeriodicOsc :: GetPointer (TPeriodicOsc ptr) ptr
 
-instance getPointerPlayBuf :: GetPointer (TPlayBuf ptr name) ptr
+instance getPointerPlayBuf :: GetPointer (TPlayBuf ptr) ptr
 
 instance getPointerRecorder :: GetPointer (TRecorder ptr name) ptr
 
@@ -100,7 +100,7 @@ foreign import data THighpass :: Ptr -> AudioUnit
 foreign import data THighshelf :: Ptr -> AudioUnit
 
 -- | Type-level constructor for a looping buffer.
-foreign import data TLoopBuf :: Ptr -> Symbol -> AudioUnit
+foreign import data TLoopBuf :: Ptr -> AudioUnit
 
 -- | Type-level constructor for a lowpass filter.
 foreign import data TLowpass :: Ptr -> AudioUnit
@@ -118,10 +118,10 @@ foreign import data TNotch :: Ptr -> AudioUnit
 foreign import data TPeaking :: Ptr -> AudioUnit
 
 -- | Type-level constructor for a periodic oscillator.
-foreign import data TPeriodicOsc :: Ptr -> Symbol -> AudioUnit
+foreign import data TPeriodicOsc :: Ptr -> AudioUnit
 
 -- | Type-level constructor for playback from a buffer.
-foreign import data TPlayBuf :: Ptr -> Symbol -> AudioUnit
+foreign import data TPlayBuf :: Ptr -> AudioUnit
 
 -- | Type-level constructor for a recorder.
 foreign import data TRecorder :: Ptr -> Symbol -> AudioUnit
@@ -159,14 +159,14 @@ else instance audioUnitEqTDynamicsCompressor :: AudioUnitEq (TDynamicsCompressor
 else instance audioUnitEqTGain :: AudioUnitEq (TGain idx) (TGain idx) True
 else instance audioUnitEqTHighpass :: AudioUnitEq (THighpass idx) (THighpass idx) True
 else instance audioUnitEqTHighshelf :: AudioUnitEq (THighshelf idx) (THighshelf idx) True
-else instance audioUnitEqTLoopBuf :: AudioUnitEq (TLoopBuf idx name) (TLoopBuf idx name) True
+else instance audioUnitEqTLoopBuf :: AudioUnitEq (TLoopBuf idx) (TLoopBuf idx) True
 else instance audioUnitEqTLowpass :: AudioUnitEq (TLowpass idx) (TLowpass idx) True
 else instance audioUnitEqTLowshelf :: AudioUnitEq (TLowshelf idx) (TLowshelf idx) True
 else instance audioUnitEqTMicrophone :: AudioUnitEq (TMicrophone idx) (TMicrophone idx) True
 else instance audioUnitEqTNotch :: AudioUnitEq (TNotch idx) (TNotch idx) True
 else instance audioUnitEqTPeaking :: AudioUnitEq (TPeaking idx) (TPeaking idx) True
-else instance audioUnitEqTPeriodicOsc :: AudioUnitEq (TPeriodicOsc idx name) (TPeriodicOsc idx name) True
-else instance audioUnitEqTPlayBuf :: AudioUnitEq (TPlayBuf idx name) (TPlayBuf idx name) True
+else instance audioUnitEqTPeriodicOsc :: AudioUnitEq (TPeriodicOsc idx) (TPeriodicOsc idx) True
+else instance audioUnitEqTPlayBuf :: AudioUnitEq (TPlayBuf idx) (TPlayBuf idx) True
 else instance audioUnitEqTRecorder :: AudioUnitEq (TRecorder idx name) (TRecorder idx name) True
 else instance audioUnitEqTSawtoothOsc :: AudioUnitEq (TSawtoothOsc idx) (TSawtoothOsc idx) True
 else instance audioUnitEqTSinOsc :: AudioUnitEq (TSinOsc idx) (TSinOsc idx) True

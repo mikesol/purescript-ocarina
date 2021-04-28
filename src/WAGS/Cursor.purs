@@ -1,7 +1,6 @@
 module WAGS.Cursor where
 
 import Prelude
-
 import Data.Identity (Identity)
 import Data.Tuple.Nested (type (/\))
 import Type.Proxy (Proxy(..))
@@ -77,14 +76,14 @@ else instance cursorResDynamicsCompressor :: CursorRes (CTOR.DynamicsCompressor 
 else instance cursorResGain :: CursorRes (CTOR.Gain a b) ptr (NodeC (AU.TGain ptr) edge) edge
 else instance cursorResHighpass :: CursorRes (CTOR.Highpass a b c) ptr (NodeC (AU.THighpass ptr) edge) edge
 else instance cursorResHighshelf :: CursorRes (CTOR.Highshelf a b c) ptr (NodeC (AU.THighshelf ptr) edge) edge
-else instance cursorResLoopBuf :: CursorRes (CTOR.LoopBuf name b) ptr (NodeC (AU.TLoopBuf ptr name) edge) edge
+else instance cursorResLoopBuf :: CursorRes (CTOR.LoopBuf b) ptr (NodeC (AU.TLoopBuf ptr) edge) edge
 else instance cursorResLowpass :: CursorRes (CTOR.Lowpass a b c) ptr (NodeC (AU.TLowpass ptr) edge) edge
 else instance cursorResLowshelf :: CursorRes (CTOR.Lowshelf a b c) ptr (NodeC (AU.TLowshelf ptr) edge) edge
 else instance cursorResMicrophone :: CursorRes (CTOR.Microphone) ptr (NodeC (AU.TMicrophone ptr) edge) edge
 else instance cursorResNotch :: CursorRes (CTOR.Notch a b c) ptr (NodeC (AU.TNotch ptr) edge) edge
 else instance cursorResPeaking :: CursorRes (CTOR.Peaking a b c d) ptr (NodeC (AU.TPeaking ptr) edge) edge
-else instance cursorResPeriodicOsc :: CursorRes (CTOR.PeriodicOsc name b) ptr (NodeC (AU.TPeriodicOsc ptr name) edge) edge
-else instance cursorResPlayBuf :: CursorRes (CTOR.PlayBuf name b) ptr (NodeC (AU.TPlayBuf ptr name) edge) edge
+else instance cursorResPeriodicOsc :: CursorRes (CTOR.PeriodicOsc b) ptr (NodeC (AU.TPeriodicOsc ptr) edge) edge
+else instance cursorResPlayBuf :: CursorRes (CTOR.PlayBuf b) ptr (NodeC (AU.TPlayBuf ptr) edge) edge
 else instance cursorResRecorder :: CursorRes (CTOR.Recorder name b) ptr (NodeC (AU.TRecorder ptr name) edge) edge
 else instance cursorResSawtoothOsc :: CursorRes (CTOR.SawtoothOsc a) ptr (NodeC (AU.TSawtoothOsc ptr) edge) edge
 else instance cursorResSinOsc :: CursorRes (CTOR.SinOsc a) ptr (NodeC (AU.TSinOsc ptr) edge) edge
@@ -231,7 +230,7 @@ instance cursorHighshelf ::
 
 instance cursorLoopBuf ::
   BinToInt p =>
-  CursorI (SingleEdge p) (CTOR.LoopBuf argA argB) igraph PtrListNil
+  CursorI (SingleEdge p) (CTOR.LoopBuf argB) igraph PtrListNil
 
 instance cursorLowpass ::
   ( BinToInt p
@@ -275,11 +274,11 @@ instance cursorPeaking ::
 
 instance cursorPeriodicOsc ::
   BinToInt p =>
-  CursorI (SingleEdge p) (CTOR.PeriodicOsc argA argB) igraph PtrListNil
+  CursorI (SingleEdge p) (CTOR.PeriodicOsc argB) igraph PtrListNil
 
 instance cursorPlayBuf ::
   BinToInt p =>
-  CursorI (SingleEdge p) (CTOR.PlayBuf argA argB) igraph PtrListNil
+  CursorI (SingleEdge p) (CTOR.PlayBuf argB) igraph PtrListNil
 
 instance cursorRecorder ::
   ( BinToInt p

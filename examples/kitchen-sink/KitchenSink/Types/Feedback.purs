@@ -1,11 +1,10 @@
 module WAGS.Example.KitchenSink.Types.Feedback where
 
 import Prelude
-
 import Data.Identity (Identity(..))
 import Data.Tuple.Nested (type (/\), (/\))
 import Math ((%))
-import Type.Proxy (Proxy(..))
+import Type.Proxy (Proxy)
 import WAGS.Control.Types (Universe')
 import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
 import WAGS.Example.KitchenSink.Types.Empty (BaseGraph, EI0, EI1, EI2, EI3, EI4, TopLevel)
@@ -22,7 +21,7 @@ type FeedbackGraph
   = GraphC
       (NodeC (TGain EI0) (ManyEdges EI1 (PtrListCons EI3 PtrListNil)))
       ( NodeListCons
-          (NodeC (TPlayBuf EI3 "my-buffer") NoEdge)
+          (NodeC (TPlayBuf EI3) NoEdge)
           ( NodeListCons
               (NodeC (TDelay EI1) (SingleEdge EI2))
               ( NodeListCons
@@ -42,7 +41,7 @@ type KsFeedbackCreate t b (mx :: Type -> Type) atten
       ( Mix
           ( Proxy MyMix ->
             ( (t (Delay GetSetAP (atten (Gain GetSetAP (Proxy MyMix)))))
-                /\ (b (PlayBuf "my-buffer" GetSetAP))
+                /\ (b (PlayBuf GetSetAP))
                 /\ Unit
             )
           )
@@ -63,7 +62,7 @@ ksFeedbackCreate ft fb fmx fatten =
     $ mix
         ( \(myMix :: Proxy MyMix) ->
             (ft (delay 0.3 (fatten (gain 0.2 myMix))))
-              /\ (fb $ playBuf (Proxy :: _ "my-buffer"))
+              /\ (fb $ playBuf "my-buffer")
               /\ unit
         )
 

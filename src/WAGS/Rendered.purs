@@ -5,7 +5,6 @@
 module WAGS.Rendered where
 
 import Prelude
-
 import Data.Generic.Rep (class Generic)
 import Data.Show.Generic (genericShow)
 import WAGS.Graph.Constructors (OnOff)
@@ -44,6 +43,8 @@ data Instruction
   | MakeStereoPanner Int AudioParameter
   | MakeTriangleOsc Int OnOff AudioParameter
   | MakeWaveShaper Int String Oversample
+  | SetBuffer Int String
+  | SetPeriodicOsc Int String
   | SetOn Int
   | SetOff Int
   | SetLoopStart Int Number

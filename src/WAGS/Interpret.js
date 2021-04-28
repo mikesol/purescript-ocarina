@@ -281,7 +281,6 @@ exports.makeLoopBuf_ = function (ptr) {
                 var createFunction = function () {
                   var unit = state.context.createBufferSource();
                   unit.loop = true;
-                  unit.buffer = state.buffers[a];
                   unit.loopStart = c;
                   unit.loopEnd = d;
                   genericStarter(unit, "playbackRate", b);
@@ -290,10 +289,12 @@ exports.makeLoopBuf_ = function (ptr) {
                 state.units[ptr] = {
                   outgoing: [],
                   incoming: [],
+                  buffer: a,
                   createFunction: createFunction,
                   main: createFunction(),
                 };
                 if (onOff) {
+                  state.units[ptr].main.buffer = state.buffers[a];
                   state.units[ptr].main.start(
                     state.writeHead + b.timeOffset,
                     c
@@ -405,17 +406,18 @@ exports.makePeriodicOsc_ = function (ptr) {
           return function () {
             var createFunction = function () {
               var unit = state.context.createOscillator();
-              unit.setPeriodicWave(state.periodicWaves[a]);
               genericStarter(unit, "frequency", b);
               return unit;
             };
             state.units[ptr] = {
               outgoing: [],
               incoming: [],
+              periodicOsc: a,
               createFunction: createFunction,
-              main: createFunction(),
+              main: createFunction(a),
             };
             if (onOff) {
+              state.units[ptr].main.setPeriodicWave(state.periodicWaves[a]);
               state.units[ptr].main.start(state.writeHead + b.timeOffset);
             }
           };
@@ -433,17 +435,18 @@ exports.makePlayBuf_ = function (ptr) {
             return function () {
               var createFunction = function () {
                 var unit = state.context.createBufferSource();
-                unit.buffer = state.buffers[a];
                 genericStarter(unit, "playbackRate", c);
                 return unit;
               };
               state.units[ptr] = {
                 outgoing: [],
                 incoming: [],
+                buffer: a,
                 createFunction: createFunction,
                 main: createFunction(),
               };
               if (onOff) {
+                state.units[ptr].main.buffer = state.buffers[a];
                 state.units[ptr].main.start(state.writeHead + c.timeOffset, b);
               }
             };
@@ -617,9 +620,35 @@ exports.makeWaveShaper_ = function (ptr) {
     };
   };
 };
+exports.setBuffer_ = function (ptr) {
+  return function (buffer) {
+    return function (state) {
+      return function () {
+        state.units[ptr].buffer = buffer;
+      };
+    };
+  };
+};
+exports.setPeriodicOsc_ = function (ptr) {
+  return function (periodicOsc) {
+    return function (state) {
+      return function () {
+        state.units[ptr].periodicOsc = periodicOsc;
+      };
+    };
+  };
+};
 exports.setOn_ = function (ptr) {
   return function (state) {
     return function () {
+      if (state.units[ptr].periodicOsc) {
+        state.units[ptr].main.setPeriodicWave(
+          state.periodicWaves[state.units[ptr].periodicOsc]
+        );
+      }
+      if (state.units[ptr].buffer) {
+        state.units[ptr].main.buffer = state.buffers[state.units[ptr].buffer];
+      }
       state.units[ptr].main.start();
     };
   };
