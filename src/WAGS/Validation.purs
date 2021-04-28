@@ -60,7 +60,6 @@ instance terminalIdentityEdge :: (TerminalNode i ptr) => TerminalIdentityEdge i 
 -----------------------
 -----------------------
 -----------------------
-
 -- | Tail recursive lookup of a node in a node list.
 -- | - `accumulator`: the accumulator for tail recursion that should start at `NodeListNil`.
 -- | - `ptr`: the pointer of the node we are trying retrieve.
@@ -79,7 +78,6 @@ instance lookupNLNilCons ::
   , LookupNL acc ptr tail o
   ) =>
   LookupNL accumulator ptr (NodeListCons head tail) o
-
 
 -- | Assertion that `node` is not present in `nodeList`.
 class NodeNotInNodeList (node :: Node) (nodeList :: NodeList)
@@ -477,7 +475,7 @@ instance allNodesAreSaturatedConsTHighpass :: AllNodesAreSaturatedNL tail => All
 
 instance allNodesAreSaturatedConsTHighshelf :: AllNodesAreSaturatedNL tail => AllNodesAreSaturatedNL (NodeListCons (NodeC (AU.THighshelf a) (SingleEdge e)) tail)
 
-instance allNodesAreSaturatedConsTLoopBuf :: AllNodesAreSaturatedNL tail => AllNodesAreSaturatedNL (NodeListCons (NodeC (AU.TLoopBuf a name) NoEdge) tail)
+instance allNodesAreSaturatedConsTLoopBuf :: AllNodesAreSaturatedNL tail => AllNodesAreSaturatedNL (NodeListCons (NodeC (AU.TLoopBuf a) NoEdge) tail)
 
 instance allNodesAreSaturatedConsTLowpass :: AllNodesAreSaturatedNL tail => AllNodesAreSaturatedNL (NodeListCons (NodeC (AU.TLowpass a) (SingleEdge e)) tail)
 
@@ -489,9 +487,9 @@ instance allNodesAreSaturatedConsTNotch :: AllNodesAreSaturatedNL tail => AllNod
 
 instance allNodesAreSaturatedConsTPeaking :: AllNodesAreSaturatedNL tail => AllNodesAreSaturatedNL (NodeListCons (NodeC (AU.TPeaking a) (SingleEdge e)) tail)
 
-instance allNodesAreSaturatedConsTPeriodicOsc :: AllNodesAreSaturatedNL tail => AllNodesAreSaturatedNL (NodeListCons (NodeC (AU.TPeriodicOsc a name) NoEdge) tail)
+instance allNodesAreSaturatedConsTPeriodicOsc :: AllNodesAreSaturatedNL tail => AllNodesAreSaturatedNL (NodeListCons (NodeC (AU.TPeriodicOsc a) NoEdge) tail)
 
-instance allNodesAreSaturatedConsTPlayBuf :: AllNodesAreSaturatedNL tail => AllNodesAreSaturatedNL (NodeListCons (NodeC (AU.TPlayBuf a name) NoEdge) tail)
+instance allNodesAreSaturatedConsTPlayBuf :: AllNodesAreSaturatedNL tail => AllNodesAreSaturatedNL (NodeListCons (NodeC (AU.TPlayBuf a) NoEdge) tail)
 
 instance allNodesAreSaturatedConsTRecorder :: AllNodesAreSaturatedNL tail => AllNodesAreSaturatedNL (NodeListCons (NodeC (AU.TRecorder a name) (SingleEdge e)) tail)
 

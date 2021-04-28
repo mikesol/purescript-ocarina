@@ -1,14 +1,12 @@
 module WAGS.Example.KitchenSink.Types.LoopBuf where
 
 import Prelude
-
 import Data.Identity (Identity(..))
 import Math (pi, sin, (%))
-import Type.Proxy (Proxy(..))
 import WAGS.Control.Types (Universe')
 import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
 import WAGS.Example.KitchenSink.Types.Empty (BaseGraph, EI0, EI1, TopLevel)
-import WAGS.Graph.Constructors (Gain, Speaker, LoopBuf)
+import WAGS.Graph.Constructors (Gain, LoopBuf, OnOff(..), Speaker)
 import WAGS.Graph.Decorators (Focus(..), Decorating')
 import WAGS.Graph.Optionals (GetSetAP, gain, loopBuf, speaker)
 import WAGS.Universe.AudioUnit (TLoopBuf)
@@ -18,21 +16,21 @@ import WAGS.Universe.Node (NodeC)
 
 type LoopBufGraph
   = GraphC
-      (NodeC (TLoopBuf EI0 "my-buffer") NoEdge)
+      (NodeC (TLoopBuf EI0) NoEdge)
       (BaseGraph EI0)
 
 type LoopBufUniverse cb
   = Universe' EI1 LoopBufGraph cb
 
 type KsLoopBuf g t
-  = TopLevel g (t (LoopBuf "my-buffer" GetSetAP))
+  = TopLevel g (t (LoopBuf GetSetAP))
 
 ksLoopBuf' ::
   forall g t.
   Decorating' g ->
   Decorating' t ->
   KsLoopBuf g t
-ksLoopBuf' fg ft = speaker (fg $ gain 0.0 (ft $ loopBuf { playbackRate: 1.0, start: 1.0, end: 2.5 } (Proxy :: _ "my-buffer")))
+ksLoopBuf' fg ft = speaker (fg $ gain 0.0 (ft $ loopBuf { playbackRate: 1.0, start: 1.0, end: 2.5 } "my-buffer"))
 
 ksLoopBuf :: KsLoopBuf Identity Identity
 ksLoopBuf = ksLoopBuf' Identity Identity
@@ -43,7 +41,7 @@ ksLoopBufLoopBuf = ksLoopBuf' Identity Focus
 ksLoopBufGain :: KsLoopBuf Focus Identity
 ksLoopBufGain = ksLoopBuf' Focus Identity
 
-deltaKsLoopBuf :: Number -> Speaker (Gain GetSetAP (LoopBuf "my-buffer" GetSetAP))
+deltaKsLoopBuf :: Number -> Speaker (Gain GetSetAP (LoopBuf GetSetAP))
 deltaKsLoopBuf =
   (_ % pieceTime)
     >>> (_ - timing.ksLoopBuf.begin)
@@ -51,7 +49,18 @@ deltaKsLoopBuf =
     >>> \time ->
         let
           rad = pi * time
+
+          switchOO = time % 2.0 < 1.0
+
+          switchW = time % 4.0 < 2.0
         in
           speaker
             $ gain 1.0
-                (loopBuf { playbackRate: 1.0 + (0.1 * sin rad), start: 1.0, end: 2.5 + (sin rad) } (Proxy :: _ "my-buffer"))
+                ( loopBuf
+                    { onOff: if switchOO then On else Off
+                    , playbackRate: 1.0 + (0.1 * sin rad)
+                    , start: 1.0
+                    , end: 1.4 + 0.2 * (sin rad)
+                    }
+                    (if switchW then "my-buffer" else "shruti")
+                )

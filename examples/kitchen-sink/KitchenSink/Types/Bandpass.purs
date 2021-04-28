@@ -1,10 +1,8 @@
 module WAGS.Example.KitchenSink.Types.Bandpass where
 
 import Prelude
-
 import Data.Identity (Identity(..))
 import Math ((%))
-import Type.Proxy (Proxy(..))
 import WAGS.Control.Types (Universe')
 import WAGS.Example.KitchenSink.Timing (calcSlope, pieceTime, timing)
 import WAGS.Example.KitchenSink.Types.Empty (BaseGraph, EI0, EI1, EI2, TopLevel)
@@ -20,7 +18,7 @@ type BandpassGraph
   = GraphC
       (NodeC (TBandpass EI0) (SingleEdge EI1))
       ( NodeListCons
-          (NodeC (TPlayBuf EI1 "my-buffer") NoEdge)
+          (NodeC (TPlayBuf EI1) NoEdge)
           (BaseGraph EI0)
       )
 
@@ -28,7 +26,7 @@ type BandpassUniverse cb
   = Universe' EI2 BandpassGraph cb
 
 type KsBandpassreate (t :: Type -> Type) b
-  = t (Bandpass GetSetAP GetSetAP (b (PlayBuf "my-buffer" GetSetAP)))
+  = t (Bandpass GetSetAP GetSetAP (b (PlayBuf GetSetAP)))
 
 type KsBandpass g t b
   = TopLevel g (KsBandpassreate t b)
@@ -38,7 +36,7 @@ ksBandpassCreate ::
   Decorating' t ->
   Decorating' b ->
   KsBandpassreate t b
-ksBandpassCreate ft fb = ft $ bandpass {freq: 300.0} (fb $ playBuf (Proxy :: _ "my-buffer"))
+ksBandpassCreate ft fb = ft $ bandpass { freq: 300.0 } (fb $ playBuf "my-buffer")
 
 ksBandpass' ::
   forall g t b.
@@ -71,5 +69,5 @@ deltaKsBandpass =
         speaker
           ( Identity
               $ gain (if time > (timing.ksBandpass.dur - 1.0) then 0.0 else 1.0)
-                  (Identity $ bandpass {freq:calcSlope 0.0 300.0 timing.ksBandpass.dur 2000.0 time} (Identity $ playBuf (Proxy :: _ "my-buffer")))
+                  (Identity $ bandpass { freq: calcSlope 0.0 300.0 timing.ksBandpass.dur 2000.0 time } (Identity $ playBuf "my-buffer"))
           )

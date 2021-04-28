@@ -1,7 +1,6 @@
 module WAGS.Example.KitchenSink.Types.WaveShaper where
 
 import Prelude
-
 import Data.Identity (Identity(..))
 import Math ((%))
 import Type.Proxy (Proxy(..))
@@ -20,7 +19,7 @@ type WaveShaperGraph
   = GraphC
       (NodeC (TWaveShaper EI0 "my-waveshaper") (SingleEdge EI1))
       ( NodeListCons
-          (NodeC (TPlayBuf EI1 "my-buffer") NoEdge)
+          (NodeC (TPlayBuf EI1) NoEdge)
           (BaseGraph EI0)
       )
 
@@ -28,7 +27,7 @@ type WaveShaperUniverse cb
   = Universe' EI2 WaveShaperGraph cb
 
 type KsWaveShaperCreate (t :: Type -> Type) b
-  = t (WaveShaper "my-waveshaper" OversampleTwoX (b (PlayBuf "my-buffer" GetSetAP)))
+  = t (WaveShaper "my-waveshaper" OversampleTwoX (b (PlayBuf GetSetAP)))
 
 type KsWaveShaper g t b
   = TopLevel g (KsWaveShaperCreate t b)
@@ -42,7 +41,7 @@ ksWaveShaperCreate ft fb =
   ft
     $ waveShaper (Proxy :: _ "my-waveshaper")
         OversampleTwoX
-        (fb $ playBuf (Proxy :: _ "my-buffer"))
+        (fb $ playBuf "my-buffer")
 
 ksWaveShaper' ::
   forall g t b.
@@ -78,6 +77,6 @@ deltaKsWaveShaper =
                   ( Identity
                       $ waveShaper (Proxy :: _ "my-waveshaper")
                           OversampleTwoX
-                          (Identity $ playBuf (Proxy :: _ "my-buffer"))
+                          (Identity $ playBuf "my-buffer")
                   )
           )

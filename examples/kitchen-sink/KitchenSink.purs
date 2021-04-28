@@ -1,12 +1,12 @@
 module WAGS.Example.KitchenSink where
 
 import Prelude
-
 import Control.Comonad.Cofree (Cofree, mkCofree)
 import Control.Promise (toAffE)
 import Data.Array ((..))
 import Data.Foldable (for_)
 import Data.Int (toNumber)
+import Data.Tuple.Nested ((/\))
 import Data.Maybe (Maybe(..), maybe)
 import Data.Nullable (toNullable)
 import Data.Vec ((+>), empty)
@@ -25,7 +25,7 @@ import Halogen.Subscription as HS
 import Halogen.VDom.Driver (runUI)
 import Math (abs, pi)
 import WAGS.Example.KitchenSink.Piece (piece)
-import WAGS.Interpret (AudioContext, FFIAudio(..), close, context, decodeAudioDataFromUri, defaultFFIAudio, getMicrophoneAndCamera, makeFloatArray, makePeriodicWave, makeUnitCache, mediaRecorderToUrl)
+import WAGS.Interpret (AudioContext, BrowserAudioBuffer, FFIAudio(..), close, context, decodeAudioDataFromUri, defaultFFIAudio, getMicrophoneAndCamera, makeFloatArray, makePeriodicWave, makeUnitCache, mediaRecorderToUrl)
 import WAGS.Run (Run, run)
 
 makeDistortionCurve :: Number -> Array Number
@@ -101,6 +101,13 @@ render state = do
       ]
     <> maybe [] (\aud -> [ HH.audio [ HP.src aud, HP.controls true ] [] ]) state.audioSrc
 
+fetchBuffer :: ∀ (m ∷ Type -> Type). MonadAff m ⇒ AudioContext → String → m BrowserAudioBuffer
+fetchBuffer audioCtx addr =
+  H.liftAff $ toAffE
+    $ decodeAudioDataFromUri
+        audioCtx
+        addr
+
 handleAction :: forall output m. MonadEffect m => MonadAff m => Action -> H.HalogenM State Action () output m Unit
 handleAction = case _ of
   HydrateRecording rec -> H.modify_ (_ { audioSrc = pure $ rec })
@@ -114,6 +121,9 @@ handleAction = case _ of
     myWave <-
       H.liftEffect
         $ makePeriodicWave audioCtx (0.3 +> -0.1 +> empty) (-0.25 +> 0.05 +> empty)
+    anotherWave <-
+      H.liftEffect
+        $ makePeriodicWave audioCtx (0.1 +> -0.3 +> -0.5 +> 0.05 +> 0.2 +> empty) (-0.05 +> 0.25 +> 0.4 +> -0.2 +> 0.05 +> empty)
     wicked <- H.liftEffect $ makeFloatArray (makeDistortionCurve 400.0)
     let
       recorder =
@@ -121,16 +131,13 @@ handleAction = case _ of
           "audio/ogg; codecs=opus"
           (HS.notify listener <<< HydrateRecording)
     { microphone } <- H.liftAff $ getMicrophoneAndCamera true false
-    chimes <-
-      H.liftAff $ toAffE
-        $ decodeAudioDataFromUri
-            audioCtx
-            "https://freesound.org/data/previews/353/353194_5121236-hq.mp3"
+    chimes <- fetchBuffer audioCtx "https://freesound.org/data/previews/353/353194_5121236-hq.mp3"
+    shruti <- fetchBuffer audioCtx "https://freesound.org/data/previews/513/513742_153257-hq.mp3"
     let
       ffiAudio =
         (defaultFFIAudio audioCtx unitCache)
-          { periodicWaves = O.singleton "my-wave" myWave
-          , buffers = O.singleton "my-buffer" chimes
+          { periodicWaves = O.fromFoldable [ "my-wave" /\ myWave, "another-wave" /\ anotherWave ]
+          , buffers = O.fromFoldable [ "my-buffer" /\ chimes, "shruti" /\ shruti ]
           , floatArrays = O.singleton "my-waveshaper" wicked
           , recorders = O.singleton "my-recorder" recorder
           , microphone = toNullable microphone

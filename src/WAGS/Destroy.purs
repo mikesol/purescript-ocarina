@@ -1,7 +1,6 @@
 module WAGS.Destroy where
 
 import Prelude
-
 import Control.Monad.State (modify_)
 import Data.Map as M
 import Data.Typelevel.Bool (False)
@@ -40,6 +39,7 @@ instance destroyer ::
                   , instructions = i.instructions <> [ destroyUnit ptrI ]
                   }
             )
+
 -- | Internal helper class used for destroing audio nodes.
 class PointerNotConnected (ptr :: Ptr) (i :: Node)
 
@@ -79,7 +79,7 @@ instance pointerNotConnected_NE_Highshelf :: PointerNotConnected ptr (NodeC (AU.
 
 instance pointerNotConnected_SE_Highshelf :: BinEq ptr y False => PointerNotConnected ptr (NodeC (AU.THighshelf x) (SingleEdge y))
 
-instance pointerNotConnectedLoopBuf :: PointerNotConnected ptr (NodeC (AU.TLoopBuf x name) NoEdge)
+instance pointerNotConnectedLoopBuf :: PointerNotConnected ptr (NodeC (AU.TLoopBuf x) NoEdge)
 
 instance pointerNotConnected_NE_Lowpass :: PointerNotConnected ptr (NodeC (AU.TLowpass x) NoEdge)
 
@@ -99,9 +99,9 @@ instance pointerNotConnected_NE_Peaking :: PointerNotConnected ptr (NodeC (AU.TP
 
 instance pointerNotConnected_SE_Peaking :: BinEq ptr y False => PointerNotConnected ptr (NodeC (AU.TPeaking x) (SingleEdge y))
 
-instance pointerNotConnectedPeriodicOsc :: PointerNotConnected ptr (NodeC (AU.TPeriodicOsc x name) NoEdge)
+instance pointerNotConnectedPeriodicOsc :: PointerNotConnected ptr (NodeC (AU.TPeriodicOsc x) NoEdge)
 
-instance pointerNotConnectedPlayBuf :: PointerNotConnected ptr (NodeC (AU.TPlayBuf x name) NoEdge)
+instance pointerNotConnectedPlayBuf :: PointerNotConnected ptr (NodeC (AU.TPlayBuf x) NoEdge)
 
 instance pointerNotConnected_NE_Recorder :: PointerNotConnected ptr (NodeC (AU.TRecorder x name) NoEdge)
 

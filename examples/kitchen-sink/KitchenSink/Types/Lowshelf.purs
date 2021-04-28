@@ -1,10 +1,8 @@
 module WAGS.Example.KitchenSink.Types.Lowshelf where
 
 import Prelude
-
 import Data.Identity (Identity(..))
 import Math ((%))
-import Type.Proxy (Proxy(..))
 import WAGS.Control.Types (Universe')
 import WAGS.Example.KitchenSink.Timing (calcSlope, pieceTime, timing)
 import WAGS.Example.KitchenSink.Types.Empty (BaseGraph, EI0, EI1, EI2, TopLevel)
@@ -16,12 +14,11 @@ import WAGS.Universe.EdgeProfile (NoEdge, SingleEdge)
 import WAGS.Universe.Graph (GraphC)
 import WAGS.Universe.Node (NodeC, NodeListCons)
 
-
 type LowshelfGraph
   = GraphC
       (NodeC (TLowshelf EI0) (SingleEdge EI1))
       ( NodeListCons
-          (NodeC (TPlayBuf EI1 "my-buffer") NoEdge)
+          (NodeC (TPlayBuf EI1) NoEdge)
           (BaseGraph EI0)
       )
 
@@ -29,7 +26,7 @@ type LowshelfUniverse cb
   = Universe' EI2 LowshelfGraph cb
 
 type KsLowshelfreate (t :: Type -> Type) b
-  = t (Lowshelf GetSetAP GetSetAP (b (PlayBuf "my-buffer" GetSetAP)))
+  = t (Lowshelf GetSetAP GetSetAP (b (PlayBuf GetSetAP)))
 
 type KsLowshelf g t b
   = TopLevel g (KsLowshelfreate t b)
@@ -39,7 +36,7 @@ ksLowshelfCreate ::
   Decorating' t ->
   Decorating' b ->
   KsLowshelfreate t b
-ksLowshelfCreate ft fb = ft $ lowshelf { freq: 300.0 } (fb $ playBuf (Proxy :: _ "my-buffer"))
+ksLowshelfCreate ft fb = ft $ lowshelf { freq: 300.0 } (fb $ playBuf "my-buffer")
 
 ksLowshelf' ::
   forall g t b.
@@ -72,5 +69,5 @@ deltaKsLowshelf =
         speaker
           ( Identity
               $ gain (if time > (timing.ksLowshelf.dur - 1.0) then 0.0 else 1.0)
-                  (Identity $ lowshelf { freq: (calcSlope 0.0 300.0 timing.ksLowshelf.dur 2000.0 time) } (Identity $ playBuf (Proxy :: _ "my-buffer")))
+                  (Identity $ lowshelf { freq: (calcSlope 0.0 300.0 timing.ksLowshelf.dur 2000.0 time) } (Identity $ playBuf "my-buffer"))
           )

@@ -51,5 +51,5 @@ deltaKsSquareOsc =
           rad = pi * time
         in
           speaker
-            $ gain (0.1 - 0.3 * (cos time))
+            $ gain (0.1 - 0.1 * (cos time))
                 (squareOsc (440.0 + 50.0 * ((sin (rad * 1.5)) `pow` 2.0)))

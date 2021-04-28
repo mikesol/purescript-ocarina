@@ -1,10 +1,8 @@
 module WAGS.Example.KitchenSink.Types.Notch where
 
 import Prelude
-
 import Data.Identity (Identity(..))
 import Math ((%))
-import Type.Proxy (Proxy(..))
 import WAGS.Control.Types (Universe')
 import WAGS.Example.KitchenSink.Timing (calcSlope, pieceTime, timing)
 import WAGS.Example.KitchenSink.Types.Empty (BaseGraph, EI0, EI1, EI2, TopLevel)
@@ -16,12 +14,11 @@ import WAGS.Universe.EdgeProfile (NoEdge, SingleEdge)
 import WAGS.Universe.Graph (GraphC)
 import WAGS.Universe.Node (NodeC, NodeListCons)
 
-
 type NotchGraph
   = GraphC
       (NodeC (TNotch EI0) (SingleEdge EI1))
       ( NodeListCons
-          (NodeC (TPlayBuf EI1 "my-buffer") NoEdge)
+          (NodeC (TPlayBuf EI1) NoEdge)
           (BaseGraph EI0)
       )
 
@@ -29,7 +26,7 @@ type NotchUniverse cb
   = Universe' EI2 NotchGraph cb
 
 type KsNotchreate (t :: Type -> Type) b
-  = t (Notch GetSetAP GetSetAP (b (PlayBuf "my-buffer" GetSetAP)))
+  = t (Notch GetSetAP GetSetAP (b (PlayBuf GetSetAP)))
 
 type KsNotch g t b
   = TopLevel g (KsNotchreate t b)
@@ -39,7 +36,7 @@ ksNotchCreate ::
   Decorating' t ->
   Decorating' b ->
   KsNotchreate t b
-ksNotchCreate ft fb = ft $ notch { freq: 300.0 } (fb $ playBuf (Proxy :: _ "my-buffer"))
+ksNotchCreate ft fb = ft $ notch { freq: 300.0 } (fb $ playBuf "my-buffer")
 
 ksNotch' ::
   forall g t b.
@@ -74,6 +71,6 @@ deltaKsNotch =
               $ gain (if time > (timing.ksNotch.dur - 1.0) then 0.0 else 1.0)
                   ( Identity
                       $ notch { freq: calcSlope 0.0 300.0 timing.ksNotch.dur 2000.0 time }
-                          (Identity $ playBuf (Proxy :: _ "my-buffer"))
+                          (Identity $ playBuf "my-buffer")
                   )
           )

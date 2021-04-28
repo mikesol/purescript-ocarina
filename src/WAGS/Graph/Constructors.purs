@@ -1,7 +1,6 @@
 module WAGS.Graph.Constructors where
 
 import Prelude
-
 import Data.Generic.Rep (class Generic)
 import Data.Show.Generic (genericShow)
 import Type.Proxy (Proxy)
@@ -74,13 +73,13 @@ data Highshelf frequency gain audioUnit
   = Highshelf frequency gain audioUnit
 
 -- | Term-level constructor for a looping buffer.
--- | - `buffer` - a symbol representing the buffer to use.
+-- | - `buffer` - a string representing the buffer to use. Note that this string, when reset, will only reset the buffer when it is stopped.
 -- | - `OnOff` - whether or not the generator is on or off.
 -- | - `playbackRate` - the playback rate.
 -- | - `Number` - where in the file the loop should start.
 -- | - `Number` - where in the file the loop should end. A value of 0.0 or less means play to the end of the buffer.
-data LoopBuf (buffer :: Symbol) playbackRate
-  = LoopBuf (Proxy buffer) OnOff playbackRate Number Number
+data LoopBuf playbackRate
+  = LoopBuf String OnOff playbackRate Number Number
 
 -- | Term-level constructor for a lowpass filter.
 -- | - `frequency` - the frequency above which we start to filter.
@@ -116,19 +115,19 @@ data Peaking frequency q gain audioUnit
   = Peaking frequency q gain audioUnit
 
 -- | Term-level constructor for a periodic oscillator.
--- | - `periodicOsc` - the name of the wave table we'll be using.
+-- | - `periodicOsc` - the name of the wave table we'll be using. Note that, for a chance to take effect, the periodic oscillator must be stopped.
 -- | - `OnOff` - whether the generator is on or off.
 -- | - `frequency` - the frequency of the oscillator.
-data PeriodicOsc (periodicOsc :: Symbol) frequency
-  = PeriodicOsc (Proxy periodicOsc) OnOff frequency
+data PeriodicOsc frequency
+  = PeriodicOsc String OnOff frequency
 
 -- | Term-level constructor for a playback buffer.
--- | - `buffer` - a symbol representing the buffer to use.
+-- | - `buffer` - a string representing the buffer to use. Note that this string, when reset, will only reset the buffer when it is stopped.
 -- | - `Number` - where in the file the playback should start.
 -- | - `OnOff` - whether or not the generator is on or off.
 -- | - `playbackRate` - the playback rate.
-data PlayBuf (buffer :: Symbol) playbackRate
-  = PlayBuf (Proxy buffer) Number OnOff playbackRate
+data PlayBuf playbackRate
+  = PlayBuf String Number OnOff playbackRate
 
 -- | Term-level constructor for a recorder.
 -- | - `recorder` - the recorder to which we write data.
@@ -184,7 +183,9 @@ data OnOff
   | Off
 
 derive instance eqOnOff :: Eq OnOff
+
 derive instance genericOnOff :: Generic OnOff _
+
 instance showOnOff :: Show OnOff where
   show = genericShow
 

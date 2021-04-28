@@ -1,10 +1,8 @@
 module WAGS.Example.KitchenSink.Types.StereoPanner where
 
 import Prelude
-
 import Data.Identity (Identity(..))
 import Math (sin, (%), pi)
-import Type.Proxy (Proxy(..))
 import WAGS.Control.Types (Universe')
 import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
 import WAGS.Example.KitchenSink.Types.Empty (BaseGraph, EI0, EI1, EI2, TopLevel)
@@ -20,7 +18,7 @@ type StereoPannerGraph
   = GraphC
       (NodeC (TStereoPanner EI0) (SingleEdge EI1))
       ( NodeListCons
-          (NodeC (TPlayBuf EI1 "my-buffer") NoEdge)
+          (NodeC (TPlayBuf EI1) NoEdge)
           (BaseGraph EI0)
       )
 
@@ -28,7 +26,7 @@ type StereoPannerUniverse cb
   = Universe' EI2 StereoPannerGraph cb
 
 type KsStereoPannerCreate (t :: Type -> Type) b
-  = t (StereoPanner GetSetAP (b (PlayBuf "my-buffer" GetSetAP)))
+  = t (StereoPanner GetSetAP (b (PlayBuf GetSetAP)))
 
 type KsStereoPanner g t b
   = TopLevel g (KsStereoPannerCreate t b)
@@ -38,7 +36,7 @@ ksStereoPannerCreate ::
   Decorating' t ->
   Decorating' b ->
   KsStereoPannerCreate t b
-ksStereoPannerCreate ft fb = ft $ pan 0.0 (fb $ playBuf (Proxy :: _ "my-buffer"))
+ksStereoPannerCreate ft fb = ft $ pan 0.0 (fb $ playBuf "my-buffer")
 
 ksStereoPanner' ::
   forall g t b.
@@ -71,5 +69,5 @@ deltaKsStereoPanner =
         speaker
           ( Identity
               $ gain (if time > (timing.ksStereoPanner.dur - 1.0) then 0.0 else 1.0)
-                  (Identity $ pan (sin (time * pi)) (Identity $ playBuf (Proxy :: _ "my-buffer")))
+                  (Identity $ pan (sin (time * pi)) (Identity $ playBuf "my-buffer"))
           )

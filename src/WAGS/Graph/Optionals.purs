@@ -2,7 +2,6 @@
 module WAGS.Graph.Optionals where
 
 import Prelude
-
 import ConvertableOptions (class ConvertOption, class ConvertOptionsWithDefaults, convertOptionsWithDefaults)
 import Data.Symbol (class IsSymbol)
 import Data.Tuple (Tuple(..))
@@ -256,7 +255,8 @@ instance gainCtor1 :: (InitialVal a, SetterVal a, IsMultiAudioOrF b) => GainCtor
 mix :: forall a. IsMultiAudioOrF a => a -> CTOR.Gain GetSetAP a
 mix cont = CTOR.Gain (defaultGetSetAP 1.0) cont
 
-type Mix a = Gain GetSetAP a
+type Mix a
+  = Gain GetSetAP a
 
 ------
 data Highpass'
@@ -380,18 +380,17 @@ class LoopBufCtor i loopBuf | i -> loopBuf where
   loopBuf :: i -> loopBuf
 
 instance loopBufCtor1 ::
-  ( IsSymbol l
-  , ConvertOptionsWithDefaults LoopBuf' { | LoopBufOptional } { | provided } { | LoopBufAll }
-  ) =>
-  LoopBufCtor { | provided } (Proxy l -> CTOR.LoopBuf l GetSetAP) where
+  ( ConvertOptionsWithDefaults LoopBuf' { | LoopBufOptional } { | provided } { | LoopBufAll }
+    ) =>
+  LoopBufCtor { | provided } (String -> CTOR.LoopBuf GetSetAP) where
   loopBuf provided proxy = CTOR.LoopBuf proxy all.onOff all.playbackRate all.start all.end
     where
     all :: { | LoopBufAll }
     all = convertOptionsWithDefaults LoopBuf' defaultLoopBuf provided
-else instance loopBufCtor2 :: IsSymbol l => LoopBufCtor (Proxy l) (CTOR.LoopBuf l GetSetAP) where
-  loopBuf proxy =
+else instance loopBufCtor2 :: LoopBufCtor String (CTOR.LoopBuf GetSetAP) where
+  loopBuf name =
     CTOR.LoopBuf
-      proxy
+      name
       defaultLoopBuf.onOff
       defaultLoopBuf.playbackRate
       defaultLoopBuf.start
@@ -573,18 +572,16 @@ class PeriodicOscCtor i o | i -> o where
 
 instance periodicOsc1 ::
   ( InitialVal a
-  , IsSymbol s
   , SetterVal a
   ) =>
-  PeriodicOscCtor (Proxy s) (a -> CTOR.PeriodicOsc s GetSetAP) where
+  PeriodicOscCtor String (a -> CTOR.PeriodicOsc GetSetAP) where
   periodicOsc px gvsv = CTOR.PeriodicOsc px On (Tuple (initialVal gvsv) (setterVal gvsv))
 
 instance periodicOsc2 ::
   ( InitialVal a
-  , IsSymbol s
   , SetterVal a
   ) =>
-  PeriodicOscCtor OnOff (Proxy s -> a -> CTOR.PeriodicOsc s GetSetAP) where
+  PeriodicOscCtor OnOff (String -> a -> CTOR.PeriodicOsc GetSetAP) where
   periodicOsc oo px gvsv = CTOR.PeriodicOsc px oo (Tuple (initialVal gvsv) (setterVal gvsv))
 
 ---
@@ -617,18 +614,17 @@ class PlayBufCtor i playBuf | i -> playBuf where
   playBuf :: i -> playBuf
 
 instance playBufCtor1 ::
-  ( IsSymbol l
-  , ConvertOptionsWithDefaults PlayBuf' { | PlayBufOptional } { | provided } { | PlayBufAll }
-  ) =>
-  PlayBufCtor { | provided } (Proxy l -> CTOR.PlayBuf l GetSetAP) where
+  ( ConvertOptionsWithDefaults PlayBuf' { | PlayBufOptional } { | provided } { | PlayBufAll }
+    ) =>
+  PlayBufCtor { | provided } (String -> CTOR.PlayBuf GetSetAP) where
   playBuf provided proxy = CTOR.PlayBuf proxy all.start all.onOff all.playbackRate
     where
     all :: { | PlayBufAll }
     all = convertOptionsWithDefaults PlayBuf' defaultPlayBuf provided
-else instance playBufCtor2 :: IsSymbol l => PlayBufCtor (Proxy l) (CTOR.PlayBuf l GetSetAP) where
-  playBuf proxy =
+else instance playBufCtor2 :: PlayBufCtor String (CTOR.PlayBuf GetSetAP) where
+  playBuf str =
     CTOR.PlayBuf
-      proxy
+      str
       defaultPlayBuf.start
       defaultPlayBuf.onOff
       defaultPlayBuf.playbackRate

@@ -12,7 +12,6 @@ module WAGS.Rebase
   ) where
 
 import Prelude
-
 import Control.Monad.State (modify_)
 import Data.Map as M
 import Data.Maybe (fromMaybe)
@@ -111,16 +110,16 @@ rebase ptrA gA ptrB gB =
           }
 
 -- | Signature for the reset operation for index `i1` and graph `g1`.
-type ResetSig i1 g1 = 
-  forall env audio engine proof m res cb e0 i0 g0 e1.
-  BinToInt i0 =>
-  BinToInt i1 =>
-  Monad m =>
-  AudioInterpret audio engine =>
-  TerminalIdentityEdge g0 e0 =>
-  TerminalIdentityEdge g1 e1 =>
-  Rebase' PtrListNil PtrListNil RebaseProof e0 i0 g0 e1 i1 g1 =>
-  FrameT env audio engine proof m res (UniverseC i0 g0 cb SkolemListNil) (UniverseC i1 g1 cb SkolemListNil) Unit
+type ResetSig i1 g1
+  = forall env audio engine proof m res cb e0 i0 g0 e1.
+    BinToInt i0 =>
+    BinToInt i1 =>
+    Monad m =>
+    AudioInterpret audio engine =>
+    TerminalIdentityEdge g0 e0 =>
+    TerminalIdentityEdge g1 e1 =>
+    Rebase' PtrListNil PtrListNil RebaseProof e0 i0 g0 e1 i1 g1 =>
+    FrameT env audio engine proof m res (UniverseC i0 g0 cb SkolemListNil) (UniverseC i1 g1 cb SkolemListNil) Unit
 
 -- | Rebase the current audio graph to index `i1` and graph `g1`.
 reset :: forall i1 g1. Proxy i1 -> Proxy g1 -> ResetSig i1 g1
@@ -128,7 +127,6 @@ reset i1 g1 = WAGS.do
   ci <- currentIdx
   g <- graph
   rebase ci g i1 g1
-
 
 type AFT
   = (Array { from :: Int, to :: Int })
@@ -305,7 +303,7 @@ instance rebaseHighshelf ::
 
 instance rebaseLoopBuf ::
   (BinToInt pA, BinToInt pB) =>
-  Rebase' rblA rblB RebaseProof (NodeC (AU.TLoopBuf pA name) NoEdge) ptrA gA (NodeC (AU.TLoopBuf pB name) NoEdge) ptrB gB where
+  Rebase' rblA rblB RebaseProof (NodeC (AU.TLoopBuf pA) NoEdge) ptrA gA (NodeC (AU.TLoopBuf pB) NoEdge) ptrB gB where
   rebase' _ _ _ _ _ _ _ _ _ = unsafeFrame (rebaseAudioUnit (Proxy :: _ pA) (Proxy :: _ pB))
 
 instance rebaseLowpass ::
@@ -359,12 +357,12 @@ instance rebasePeaking ::
 
 instance rebasePeriodicOsc ::
   (BinToInt pA, BinToInt pB) =>
-  Rebase' rblA rblB RebaseProof (NodeC (AU.TPeriodicOsc pA name) NoEdge) ptrA gA (NodeC (AU.TPeriodicOsc pB name) NoEdge) ptrB gB where
+  Rebase' rblA rblB RebaseProof (NodeC (AU.TPeriodicOsc pA) NoEdge) ptrA gA (NodeC (AU.TPeriodicOsc pB) NoEdge) ptrB gB where
   rebase' _ _ _ _ _ _ _ _ _ = unsafeFrame (rebaseAudioUnit (Proxy :: _ pA) (Proxy :: _ pB))
 
 instance rebasePlayBuf ::
   (BinToInt pA, BinToInt pB) =>
-  Rebase' rblA rblB RebaseProof (NodeC (AU.TPlayBuf pA name) NoEdge) ptrA gA (NodeC (AU.TPlayBuf pB name) NoEdge) ptrB gB where
+  Rebase' rblA rblB RebaseProof (NodeC (AU.TPlayBuf pA) NoEdge) ptrA gA (NodeC (AU.TPlayBuf pB) NoEdge) ptrB gB where
   rebase' _ _ _ _ _ _ _ _ _ = unsafeFrame (rebaseAudioUnit (Proxy :: _ pA) (Proxy :: _ pB))
 
 instance rebaseRecorder ::

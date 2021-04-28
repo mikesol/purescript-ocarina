@@ -26,7 +26,6 @@ import Halogen.HTML.Events as HE
 import Halogen.VDom.Driver (runUI)
 import Heterogeneous.Mapping (hmap)
 import Math (pow)
-import Type.Proxy (Proxy(..))
 import WAGS.Change (change, changes)
 import WAGS.Control.Functions (env, loop, start, (@|>))
 import WAGS.Control.Qualified as WAGS
@@ -140,12 +139,12 @@ asdr t d
 scene ::
   Number ->
   EnrichedNote ->
-  Speaker (Gain GetSetAP (PeriodicOsc "bday" GetSetAP /\ Unit))
+  Speaker (Gain GetSetAP (PeriodicOsc GetSetAP /\ Unit))
 scene time ({ start, dur, end } /\ pitch) =
   speaker
     ( gain
         (maybe 0.0 (const $ asdr (time - start) dur) pitch)
-        (periodicOsc (Proxy :: _ "bday") (midiToCps (fromMaybe 60.0 pitch)) /\ unit)
+        (periodicOsc "bday" (midiToCps (fromMaybe 60.0 pitch)) /\ unit)
     )
 
 piece :: Scene (SceneI Unit Unit) FFIAudio (Effect Unit) Frame0

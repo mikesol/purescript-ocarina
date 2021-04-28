@@ -1,11 +1,10 @@
 module WAGS.Example.KitchenSink.Types.Delay where
 
 import Prelude
-
 import Data.Identity (Identity(..))
 import Data.Tuple.Nested (type (/\), (/\))
 import Math ((%))
-import Type.Proxy (Proxy(..))
+import Type.Proxy (Proxy)
 import WAGS.Control.Types (Universe')
 import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
 import WAGS.Example.KitchenSink.Types.Empty (BaseGraph, EI0, EI1, EI2, EI3, TopLevel)
@@ -18,14 +17,13 @@ import WAGS.Universe.EdgeProfile (ManyEdges, NoEdge, SingleEdge)
 import WAGS.Universe.Graph (GraphC)
 import WAGS.Universe.Node (NodeC, NodeListCons)
 
-
 type DelayGraph
   = GraphC
       (NodeC (TGain EI1) (ManyEdges EI2 (PtrListCons EI0 PtrListNil)))
       ( NodeListCons
           (NodeC (TDelay EI2) (SingleEdge EI0))
           ( NodeListCons
-              (NodeC (TPlayBuf EI0 "my-buffer") NoEdge)
+              (NodeC (TPlayBuf EI0) NoEdge)
               (BaseGraph EI1)
           )
       )
@@ -36,7 +34,7 @@ type DelayUniverse cb
 data MyPlayBuf
 
 type KsDelayCreate (t :: Type -> Type) b mx
-  = Dup (b (PlayBuf "my-buffer" GetSetAP))
+  = Dup (b (PlayBuf GetSetAP))
       ( Proxy MyPlayBuf ->
         mx
           ( Mix
@@ -58,7 +56,7 @@ ksDelayCreate ::
   KsDelayCreate t b mx
 ksDelayCreate ft fb fmx =
   dup
-    (fb $ playBuf (Proxy :: _ "my-buffer"))
+    (fb $ playBuf "my-buffer")
     (\(myPlayBuf :: Proxy MyPlayBuf) -> fmx $ mix ((ft $ delay 1.0 myPlayBuf) /\ myPlayBuf /\ unit))
 
 ksDelay' ::

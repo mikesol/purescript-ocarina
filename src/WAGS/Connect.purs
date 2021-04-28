@@ -1,7 +1,6 @@
 module WAGS.Connect where
 
 import Prelude
-
 import Control.Monad.State (modify_)
 import Data.Map as M
 import Data.Set as S

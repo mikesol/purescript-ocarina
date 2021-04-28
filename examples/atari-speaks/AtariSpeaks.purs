@@ -1,7 +1,6 @@
 module WAGS.Example.AtariSpeaks where
 
 import Prelude
-
 import Control.Comonad.Cofree (Cofree, mkCofree)
 import Control.Promise (toAffE)
 import Data.Either (Either(..))
@@ -20,7 +19,6 @@ import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.VDom.Driver (runUI)
 import Math (pi, sin)
-import Type.Proxy (Proxy(..))
 import WAGS.Change (change)
 import WAGS.Control.Functions (env, loop, start, (@>))
 import WAGS.Control.Qualified as Ix
@@ -36,9 +34,9 @@ vol = 1.4 :: Number
 scene ::
   Number ->
   Speaker
-    ( (Gain GetSetAP (LoopBuf "atar" GetSetAP))
-        /\ (Gain GetSetAP (LoopBuf "atar" GetSetAP))
-        /\ (Gain GetSetAP (LoopBuf "atar" GetSetAP))
+    ( (Gain GetSetAP (LoopBuf GetSetAP))
+        /\ (Gain GetSetAP (LoopBuf GetSetAP))
+        /\ (Gain GetSetAP (LoopBuf GetSetAP))
         /\ Unit
     )
 scene time =
@@ -47,7 +45,7 @@ scene time =
   in
     speaker
       $ ( ( gain (0.3 * vol)
-              (loopBuf { playbackRate: 1.0 + 0.1 * sin rad } (Proxy :: _ "atar"))
+              (loopBuf { playbackRate: 1.0 + 0.1 * sin rad } "atar")
           )
             /\ ( gain (0.15 * vol)
                   ( loopBuf
@@ -55,11 +53,11 @@ scene time =
                       , start: 0.1 + 0.1 * sin rad
                       , end: 0.5 + 0.25 * sin (2.0 * rad)
                       }
-                      (Proxy :: _ "atar")
+                      "atar"
                   )
               )
             /\ ( gain (0.3 * vol)
-                  (loopBuf { playbackRate: 0.25 } (Proxy :: _ "atar"))
+                  (loopBuf { playbackRate: 0.25 } "atar")
               )
             /\ unit
         )
