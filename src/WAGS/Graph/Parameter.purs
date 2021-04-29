@@ -2,11 +2,14 @@ module WAGS.Graph.Parameter where
 
 import Prelude
 import Data.Generic.Rep (class Generic)
+import Data.Newtype (class Newtype)
 import Data.Show.Generic (genericShow)
 
 -- | A control-rate audio parameter as a newtype.
 newtype AudioParameter
   = AudioParameter AudioParameter'
+
+derive instance newtypeAudioParameter :: Newtype AudioParameter _
 
 derive newtype instance eqAudioParameter :: Eq AudioParameter
 

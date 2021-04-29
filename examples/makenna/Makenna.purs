@@ -3,17 +3,16 @@ module WAGS.Example.Makenna where
 import Prelude
 import Control.Comonad.Cofree (Cofree, mkCofree)
 import Control.Plus (empty)
-import Halogen.HTML.Properties as HP
 import Data.Foldable (foldl, for_)
 import Data.Lens (over)
-import Data.Vec ((+>))
-import Data.Vec as V
 import Data.Lens.Lens.Tuple (_1)
 import Data.List (List(..), (:))
 import Data.List as L
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Tuple (fst)
 import Data.Tuple.Nested ((/\), type (/\))
+import Data.Vec ((+>))
+import Data.Vec as V
 import Effect (Effect)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect)
@@ -23,6 +22,7 @@ import Halogen as H
 import Halogen.Aff (awaitBody, runHalogenAff)
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
+import Halogen.HTML.Properties as HP
 import Halogen.VDom.Driver (runUI)
 import Heterogeneous.Mapping (hmap)
 import Math (pow)
@@ -140,7 +140,7 @@ scene ::
   Number ->
   EnrichedNote ->
   Speaker (Gain GetSetAP (PeriodicOsc GetSetAP /\ Unit))
-scene time ({ start, dur, end } /\ pitch) =
+scene time ({ start, dur } /\ pitch) =
   speaker
     ( gain
         (maybe 0.0 (const $ asdr (time - start) dur) pitch)
@@ -203,17 +203,18 @@ buttonStyle :: forall r i. HP.IProp ( style :: String | r ) i
 buttonStyle = HP.style "padding: 3px; margin: 5px"
 
 render :: forall m. State -> H.ComponentHTML Action () m
-render state = do
-  HH.div_
-    [ HH.h1_
-        [ HH.text "Happy Birthday, Makenna!" ]
-    , HH.button
-        [ HE.onClick \_ -> StartAudio, buttonStyle ]
-        [ HH.text "Play" ]
-    , HH.button
-        [ HE.onClick \_ -> StopAudio, buttonStyle ]
-        [ HH.text "Stop" ]
-    ]
+render =
+  const do
+    HH.div_
+      [ HH.h1_
+          [ HH.text "Happy Birthday, Makenna!" ]
+      , HH.button
+          [ HE.onClick \_ -> StartAudio, buttonStyle ]
+          [ HH.text "Play" ]
+      , HH.button
+          [ HE.onClick \_ -> StopAudio, buttonStyle ]
+          [ HH.text "Stop" ]
+      ]
 
 handleAction :: forall output m. MonadEffect m => MonadAff m => Action -> H.HalogenM State Action () output m Unit
 handleAction = case _ of

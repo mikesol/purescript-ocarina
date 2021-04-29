@@ -1,7 +1,6 @@
 module WAGS.Example.WTK.TLP where
 
 import Prelude
-
 import Data.Either (Either(..))
 import Data.Functor.Indexed (ivoid)
 import Data.List (List(..), (:))
@@ -17,7 +16,7 @@ import WAGS.Control.Qualified as WAGS
 import WAGS.Control.Types (Frame0, FrameT, Scene)
 import WAGS.Create (create)
 import WAGS.Cursor (cursor)
-import WAGS.Example.WTK.Types (Key(..), MakeRenderingEnv, KeyInfo, KeyUnit, Trigger, cursors, fullKeyboard, klavierIdentity)
+import WAGS.Example.WTK.Types (Key(..), KeyInfo, KeyUnit, MakeRenderingEnv, Trigger, KeyUnitRes, cursors, fullKeyboard, klavierIdentity)
 import WAGS.Interpret (class AudioInterpret, FFIAudio)
 import WAGS.Run (SceneI)
 import WAGS.Universe.AudioUnit (AudioUnitRef)
@@ -25,21 +24,21 @@ import WAGS.Universe.EdgeProfile (SingleEdge)
 import WAGS.Universe.Universe (UniverseC)
 
 playKeys ::
-  forall k0 k1 k2 k3 k4 k5 k6 k7 k8 k9 incoming env audio engine proof m res currentIdx graph j skolems.
+  forall k0 k1 k2 k3 k4 k5 k6 k7 k8 k9 incoming outgoing env audio engine proof m res currentIdx graph j skolems.
   Monad m =>
   Monoid res =>
   AudioInterpret audio engine =>
-  Change (SingleEdge k0) KeyUnit graph =>
-  Change (SingleEdge k1) KeyUnit graph =>
-  Change (SingleEdge k2) KeyUnit graph =>
-  Change (SingleEdge k3) KeyUnit graph =>
-  Change (SingleEdge k4) KeyUnit graph =>
-  Change (SingleEdge k5) KeyUnit graph =>
-  Change (SingleEdge k6) KeyUnit graph =>
-  Change (SingleEdge k7) KeyUnit graph =>
-  Change (SingleEdge k8) KeyUnit graph =>
-  Change (SingleEdge k9) KeyUnit graph =>
-  Changes incoming graph =>
+  Change (SingleEdge k0) KeyUnit graph KeyUnitRes =>
+  Change (SingleEdge k1) KeyUnit graph KeyUnitRes =>
+  Change (SingleEdge k2) KeyUnit graph KeyUnitRes =>
+  Change (SingleEdge k3) KeyUnit graph KeyUnitRes =>
+  Change (SingleEdge k4) KeyUnit graph KeyUnitRes =>
+  Change (SingleEdge k5) KeyUnit graph KeyUnitRes =>
+  Change (SingleEdge k6) KeyUnit graph KeyUnitRes =>
+  Change (SingleEdge k7) KeyUnit graph KeyUnitRes =>
+  Change (SingleEdge k8) KeyUnit graph KeyUnitRes =>
+  Change (SingleEdge k9) KeyUnit graph KeyUnitRes =>
+  Changes incoming graph outgoing =>
   { graphProxy :: Proxy graph
   , audioRefs :: AudioUnitRef k0 /\ AudioUnitRef k1 /\ AudioUnitRef k2 /\ AudioUnitRef k3 /\ AudioUnitRef k4 /\ AudioUnitRef k5 /\ AudioUnitRef k6 /\ AudioUnitRef k7 /\ AudioUnitRef k8 /\ AudioUnitRef k9
   , currentTime :: Number
@@ -49,7 +48,7 @@ playKeys ::
   List KeyInfo ->
   List KeyInfo ->
   FrameT env audio engine proof m res (UniverseC currentIdx graph j skolems) (UniverseC currentIdx graph (Succ j) skolems) Unit
-playKeys rec incoming Nil Nil = changes incoming
+playKeys rec incoming Nil Nil = ivoid $ changes incoming
 
 playKeys rec@{ currentTime, notesOff } incoming Nil (a : b) = case a.k of
   K0 -> playKeys rec (Tuple (ChangeInstruction (Proxy :: Proxy (SingleEdge k0)) (if currentTime - a.startT > a.keyDuration then a.endU else a.sustainU currentTime)) incoming) Nil b

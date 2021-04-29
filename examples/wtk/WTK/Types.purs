@@ -1,7 +1,6 @@
 module WAGS.Example.WTK.Types where
 
 import Prelude
-
 import Data.DateTime.Instant (Instant)
 import Data.Identity (Identity(..))
 import Data.List (List)
@@ -13,6 +12,7 @@ import Type.Proxy (Proxy(..))
 import WAGS.Graph.Constructors (Gain(..), OnOff(..), SinOsc(..), Speaker(..))
 import WAGS.Graph.Decorators (Decorating', Focus(..))
 import WAGS.Graph.Optionals (GetSetAP, defaultGetSetAP)
+import WAGS.Graph.Parameter (AudioParameter)
 
 data Key
   = K0
@@ -28,6 +28,9 @@ data Key
 
 type KeyUnit
   = Gain GetSetAP (SinOsc GetSetAP)
+
+type KeyUnitRes
+  = Gain AudioParameter (SinOsc AudioParameter)
 
 type KlavierType k0 k1 k2 k3 k4 k5 k6 k7 k8 k9
   = { k0 :: Decorating' k0
@@ -104,7 +107,8 @@ fullKeyboard { k0, k1, k2, k3, k4, k5, k6, k7, k8, k9 } =
         )
     )
 
-type Trigger = List { time :: Instant, value :: MIDIEventInTime }
+type Trigger
+  = List { time :: Instant, value :: MIDIEventInTime }
 
 type KeyInfo
   = { startU :: KeyUnit

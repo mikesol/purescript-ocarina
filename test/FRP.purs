@@ -1,7 +1,6 @@
 module Test.FRP where
 
 import Prelude
-
 import Data.DateTime.Instant (Instant)
 import Data.Foldable (for_)
 import Data.List (List(..), length)
