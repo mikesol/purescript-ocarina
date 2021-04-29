@@ -11,7 +11,7 @@ import Data.Tuple.Nested ((/\))
 import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (shouldEqual)
 import Type.Proxy (Proxy)
-import WAGS.Change (change, changeAt)
+import WAGS.Change (change, changeAt, get)
 import WAGS.Control.Functions (branch, env, freeze, loop, proof, start, withProof, (@>), (@|>))
 import WAGS.Control.Qualified as WAGS
 import WAGS.Control.Types (oneFrame')
@@ -120,9 +120,9 @@ testInstructions = do
 
       (frame2Nodes /\ frame2Edges /\ frame2Instr /\ _ /\ frame3) = oneFrame' frame2 { time: 0.2 }
 
-      (frame3Nodes /\ frame3Edges /\ frame3Instr /\ _ /\ frame4) = oneFrame' frame3 { time: 0.3 }
+      (frame3Nodes /\ _ /\ _ /\ _ /\ frame4) = oneFrame' frame3 { time: 0.3 }
 
-      (frame4Nodes /\ frame4Edges /\ frame4Instr /\ _ /\ _) = oneFrame' frame4 { time: 0.4 }
+      (frame4Nodes /\ _ /\ _ /\ _ /\ _) = oneFrame' frame4 { time: 0.4 }
 
       nodeAssertion i = M.fromFoldable [ 0 /\ ASpeaker, 1 /\ (AGain (param 1.0)), 2 /\ (AHighpass (param $ 330.0) (param 1.0)), 3 /\ (ASinOsc On (param $ 440.0 + i)) ]
 
@@ -182,9 +182,9 @@ testInstructions = do
 
       (frame2Nodes /\ frame2Edges /\ frame2Instr /\ _ /\ frame3) = oneFrame' frame2 { time: 0.2 }
 
-      (frame3Nodes /\ frame3Edges /\ frame3Instr /\ _ /\ frame4) = oneFrame' frame3 { time: 0.3 }
+      (frame3Nodes /\ _ /\ _ /\ _ /\ frame4) = oneFrame' frame3 { time: 0.3 }
 
-      (frame4Nodes /\ frame4Edges /\ frame4Instr /\ _ /\ _) = oneFrame' frame4 { time: 0.4 }
+      (frame4Nodes /\ _ /\ _ /\ _ /\ _) = oneFrame' frame4 { time: 0.4 }
 
       nodeAssertion i = M.fromFoldable [ 0 /\ ASpeaker, 1 /\ (AGain (param 1.0)), 2 /\ (AHighpass (param $ 330.0 + i) (param 1.0)), 3 /\ (ASinOsc On (param 440.0)) ]
 
@@ -222,6 +222,69 @@ testInstructions = do
       resolveInstructions frame1Instr `shouldEqual` [ SetFrequency 2 $ param 331.0 ]
     it "is coherent after frame2Instr" do
       resolveInstructions frame2Instr `shouldEqual` [ SetFrequency 2 $ param 332.0 ]
+  describe "a simple scene that gets and then sets with the getter" do
+    let
+      simpleScene =
+        ( WAGS.do
+            start
+            e <- env
+            create (scene0 e) $> Right unit
+        )
+          @> ( loop
+                ( const
+                    $ WAGS.do
+                        e <- env
+                        gotten <- get (scene0 e)
+                        ivoid $ change gotten
+                )
+            )
+
+      (frame0Nodes /\ frame0Edges /\ frame0Instr /\ _ /\ frame1) = oneFrame' simpleScene { time: 0.0 }
+
+      (frame1Nodes /\ frame1Edges /\ frame1Instr /\ _ /\ frame2) = oneFrame' frame1 { time: 0.1 }
+
+      (frame2Nodes /\ frame2Edges /\ frame2Instr /\ _ /\ frame3) = oneFrame' frame2 { time: 0.2 }
+
+      (frame3Nodes /\ _ /\ _ /\ _ /\ frame4) = oneFrame' frame3 { time: 0.3 }
+
+      (frame4Nodes /\ _ /\ _ /\ _ /\ _) = oneFrame' frame4 { time: 0.4 }
+
+      nodeAssertion i = M.fromFoldable [ 0 /\ ASpeaker, 1 /\ (AGain (param 1.0)), 2 /\ (AHighpass (param $ 330.0 + i) (param 1.0)), 3 /\ (ASinOsc On (param 440.0)) ]
+
+      edgeAssertion = M.fromFoldable [ 0 /\ S.singleton 1, 1 /\ S.fromFoldable [ 1, 2 ], 2 /\ S.singleton 3 ]
+
+      instructionAssertion =
+        [ (MakeSpeaker 0)
+        , MakeGain 1 (param 1.0)
+        , MakeHighpass 2 (param 330.0) (param 1.0)
+        , MakeSinOsc 3 On (param 440.0)
+        , (ConnectXToY 3 2)
+        , (ConnectXToY 1 1)
+        , (ConnectXToY 2 1)
+        , (ConnectXToY 1 0)
+        ]
+    it "is coherent after frame0Nodes" do
+      frame0Nodes `shouldEqual` (nodeAssertion 0.0)
+    it "is coherent after frame1Nodes" do
+      frame1Nodes `shouldEqual` (nodeAssertion 0.0)
+    it "is coherent after frame2Nodes" do
+      frame2Nodes `shouldEqual` (nodeAssertion 0.0)
+    it "is coherent after frame3Nodes" do
+      frame3Nodes `shouldEqual` (nodeAssertion 0.0)
+    it "is coherent after frame4Nodes" do
+      frame4Nodes `shouldEqual` (nodeAssertion 0.0)
+    it "is coherent after frame0Edges" do
+      frame0Edges `shouldEqual` edgeAssertion
+    it "is coherent after frame1Edges" do
+      frame1Edges `shouldEqual` edgeAssertion
+    it "is coherent after frame2Edges" do
+      frame2Edges `shouldEqual` edgeAssertion
+    it "is coherent after frame0Instr" do
+      resolveInstructions frame0Instr `shouldEqual` instructionAssertion
+    it "is coherent after frame1Instr" do
+      resolveInstructions frame1Instr `shouldEqual` []
+    it "is coherent after frame2Instr" do
+      resolveInstructions frame2Instr `shouldEqual` []
   describe "a scene that forks at 0.3 seconds" do
     let
       simpleScene =
@@ -257,9 +320,9 @@ testInstructions = do
 
       (frame2Nodes /\ frame2Edges /\ frame2Instr /\ _ /\ frame3) = oneFrame' frame2 { time: 0.2 }
 
-      (frame3Nodes /\ frame3Edges /\ frame3Instr /\ _ /\ frame4) = oneFrame' frame3 { time: 0.3 }
+      (frame3Nodes /\ _ /\ frame3Instr /\ _ /\ frame4) = oneFrame' frame3 { time: 0.3 }
 
-      (frame4Nodes /\ frame4Edges /\ frame4Instr /\ _ /\ _) = oneFrame' frame4 { time: 0.4 }
+      (frame4Nodes /\ _ /\ frame4Instr /\ _ /\ _) = oneFrame' frame4 { time: 0.4 }
 
       nodeAssertion i = M.fromFoldable [ 0 /\ ASpeaker, 1 /\ (AGain (param 1.0)), 2 /\ (AHighpass (param $ 330.0 + i) (param 1.0)), 3 /\ (ASinOsc On (param 440.0)) ]
 
