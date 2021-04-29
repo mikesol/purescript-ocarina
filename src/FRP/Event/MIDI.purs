@@ -137,7 +137,7 @@ midi midiAccess_ =
         _ <-
           sequence
             $ M.mapMaybeWithKey
-                ( \k (Tuple l v) ->
+                ( \_ (Tuple l v) ->
                     Just
                       ( removeEventListener
                           (wrap "midimessage")
