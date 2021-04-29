@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.4] - 2021-04-29
+
+### Added
+
+- Returns an object from `change`, `changeAt`, `changes` and `change'` that reflects the changed audio unit. Previously, these functions had returned `Unit` (akin to `set` in many libraries), whereas now they return an updated value (akin to `modify`).
+- Adds an `asGetter` function to transform any graph into a getter. On `change`, this will get the previous values instead of modifying them.
+- Adds a `get` family of functions, `get`, `getAt`, `gets` and `get'` that work exactly like their analogue from the `change` family of functions but act as getters by using `asGetter` internally. Importantly, the `get` family of functions does _not_ increment the change bit.
+
 ## [0.0.3] - 2021-04-28
 
 ### Added

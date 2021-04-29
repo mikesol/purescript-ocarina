@@ -3,6 +3,7 @@ module WAGS.Change
   , class ChangeP
   , changeP
   , changes
+  , gets
   , class Changes
   , class ChangeInstructions
   , ChangeInstruction(..)
@@ -11,14 +12,17 @@ module WAGS.Change
   , class ModifyRes
   , class SetterVal
   , change
+  , get
   , change'
+  , get'
   , changeAt
+  , getAt
   , changeInstructions
   , setterVal
   ) where
 
 import Prelude
-import Control.Monad.State (gets, modify_)
+import Control.Monad.State as MS
 import Control.Plus (empty)
 import Data.Functor.Indexed (ivoid)
 import Data.Identity (Identity(..))
@@ -35,6 +39,7 @@ import WAGS.Create (class Create)
 import WAGS.Graph.Constructors (OnOff(..))
 import WAGS.Graph.Constructors as CTOR
 import WAGS.Graph.Decorators (Focus(..), IgnoreMe, This)
+import WAGS.Graph.Getter (class AsGetter, asGetter)
 import WAGS.Graph.Parameter (AudioParameter(..), defaultParam, param)
 import WAGS.Interpret (class AudioInterpret, setAttack, setBuffer, setDelay, setFrequency, setGain, setKnee, setLoopEnd, setLoopStart, setOff, setOffset, setOn, setPan, setPeriodicOsc, setPlaybackRate, setQ, setRatio, setRelease, setThreshold)
 import WAGS.Rendered (AnAudioUnit(..))
@@ -71,6 +76,18 @@ changeAt ::
   AudioUnitRef ptr -> a -> FrameT env audio engine proof m res (UniverseC currentIdx graph changeBit skolems) (UniverseC currentIdx graph (Succ changeBit) skolems) b
 changeAt _ = change' (Proxy :: _ (SingleEdge ptr))
 
+-- | Similar to `get'`, but starting from an `AudioReference ptr` (the result of `cursor`) instead of starting from an edge profile.
+getAt ::
+  forall ptr a' a b env audio engine proof m res currentIdx graph changeBit skolems.
+  Monad m =>
+  AudioInterpret audio engine =>
+  AsGetter a' a =>
+  Change (SingleEdge ptr) a graph b =>
+  AudioUnitRef ptr -> a' -> FrameT env audio engine proof m res (UniverseC currentIdx graph changeBit skolems) (UniverseC currentIdx graph changeBit skolems) b
+getAt _ a' = unsafeFrame x
+  where
+  x = unsafeUnframe $ (change' :: ChangeType (SingleEdge ptr) a graph b) (Proxy :: _ (SingleEdge ptr)) $ asGetter a'
+
 -- | Similar to `change'`, but starting from the top-level node, which is usually a `Speaker`.
 change ::
   forall edge m res a b currentIdx graph changeBit skolems env audio engine proof.
@@ -81,9 +98,44 @@ change ::
   a -> FrameT env audio engine proof m res (UniverseC currentIdx graph changeBit skolems) (UniverseC currentIdx graph (Succ changeBit) skolems) b
 change = change' (Proxy :: _ edge)
 
+-- | Similar to `get'`, but starting from the top-level node, which is usually a `Speaker`.
+get ::
+  forall edge m res a' a b currentIdx graph changeBit skolems env audio engine proof.
+  Monad m =>
+  AudioInterpret audio engine =>
+  TerminalIdentityEdge graph edge =>
+  AsGetter a' a =>
+  Change edge a graph b =>
+  a' -> FrameT env audio engine proof m res (UniverseC currentIdx graph changeBit skolems) (UniverseC currentIdx graph changeBit skolems) b
+get a' = unsafeFrame x
+  where
+  x = unsafeUnframe $ (change' :: ChangeType edge a graph b) (Proxy :: _ edge) $ asGetter a'
+
+-- | Uses the incoming graph as a getter. Its values will be discarded and filled with the current values.
+get' ::
+  forall edge m res a' a b currentIdx graph changeBit skolems env audio engine proof.
+  Monad m =>
+  AudioInterpret audio engine =>
+  AsGetter a' a =>
+  Change edge a graph b =>
+  Proxy edge -> a' -> FrameT env audio engine proof m res (UniverseC currentIdx graph changeBit skolems) (UniverseC currentIdx graph changeBit skolems) b
+get' px a' = unsafeFrame x
+  where
+  x = unsafeUnframe $ (change' :: ChangeType edge a graph b) px (asGetter a')
+
 -- | Rolls multiple changes into a single increment of the `changeBit`. This is useful when writing loops. A loop may have many or no changes, and this allows all of them to be executed in a single transaction. As an example, see `examples/wtk/WTK/TLP.purs`. In the `playKeys` function, each finger may potentially change, and each change is rolled into the `a` value that is ultimately passed to `changes`.
 class Changes (a :: Type) (g :: Graph) (b :: Type) | a g -> b where
   changes :: forall env audio engine proof m res ptr changeBit skolems. Monad m => AudioInterpret audio engine => a -> FrameT env audio engine proof m res (UniverseC ptr g changeBit skolems) (UniverseC ptr g (Succ changeBit) skolems) b
+
+-- | Rolls multiple gets into a single function.
+gets ::
+  forall m res a' a b currentIdx g changeBit skolems env audio engine proof.
+  Monad m =>
+  AudioInterpret audio engine =>
+  AsGetter a' a =>
+  Changes a g b =>
+  a' -> FrameT env audio engine proof m res (UniverseC currentIdx g changeBit skolems) (UniverseC currentIdx g changeBit skolems) b
+gets a' = unsafeFrame $ unsafeUnframe $ (changes :: forall ptr. a -> FrameT env audio engine proof m res (UniverseC ptr g changeBit skolems) (UniverseC ptr g (Succ changeBit) skolems) b) (asGetter a')
 
 -- | A term that can be coerced to an setter for a control-rate audio parameter.
 class SetterVal a where
@@ -579,10 +631,10 @@ changeAudioUnit _ g =
     $ do
         let
           ptr = toInt' (Proxy :: _ p)
-        anAudioUnit <- (fromJust <<< M.lookup ptr) <$> gets _.internalNodes
+        anAudioUnit <- (fromJust <<< M.lookup ptr) <$> MS.gets _.internalNodes
         let
           (g' /\ instr /\ au) = changeInstructions ptr g anAudioUnit
-        modify_
+        MS.modify_
           ( \i ->
               i
                 { internalNodes = M.insert ptr (au) i.internalNodes
