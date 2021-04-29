@@ -1,9 +1,9 @@
 module Test.Main where
 
 import Prelude
-
 import Effect (Effect)
 import Effect.Aff (launchAff_)
+import Test.AsGetter (testAsGetter)
 import Test.FRP (testFRP)
 import Test.Instructions (testInstructions)
 import Test.Spec.Reporter (consoleReporter)
@@ -16,4 +16,5 @@ main = do
     $ runSpec [ consoleReporter ] do
         testThunkable
         testInstructions
+        testAsGetter
         testFRP

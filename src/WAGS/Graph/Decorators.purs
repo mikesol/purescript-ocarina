@@ -81,7 +81,7 @@ else instance isAudioLowpass :: IsAudio (CTOR.Lowpass a b c)
 else instance isAudioLowshelf :: IsAudio (CTOR.Lowshelf a b c)
 else instance isAudioMicrophone :: IsAudio CTOR.Microphone
 else instance isAudioNotch :: IsAudio (CTOR.Notch a b c)
-else instance isAudioPeaking :: IsAudio (CTOR.Peaking a b c b)
+else instance isAudioPeaking :: IsAudio (CTOR.Peaking a b c d)
 else instance isAudioPeriodicOsc :: IsAudio (CTOR.PeriodicOsc a)
 else instance isAudioPlayBuf :: IsAudio (CTOR.PlayBuf a)
 else instance isAudioRecorder :: IsAudio (CTOR.Recorder a b)
