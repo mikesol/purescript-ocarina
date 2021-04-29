@@ -18,19 +18,21 @@ module WAGS.Change
   ) where
 
 import Prelude
-
 import Control.Monad.State (gets, modify_)
+import Control.Plus (empty)
+import Data.Functor.Indexed (ivoid)
 import Data.Identity (Identity(..))
+import Data.Lens as Lens
 import Data.Map as M
-import Data.Maybe (Maybe(..))
-import Data.Tuple (Tuple, snd)
+import Data.Maybe (Maybe(..), fromJust)
+import Data.Tuple (Tuple(..), snd)
 import Data.Tuple.Nested ((/\), type (/\))
 import Type.Data.Peano (Succ)
 import Type.Proxy (Proxy(..))
-import WAGS.Control.Qualified as Ix
+import WAGS.Control.Qualified as WAGS
 import WAGS.Control.Types (FrameT, unsafeFrame, unsafeUnframe)
 import WAGS.Create (class Create)
-import WAGS.Graph.Constructors (Dup(..), Gain(..), OnOff(..), Speaker(..))
+import WAGS.Graph.Constructors (OnOff(..))
 import WAGS.Graph.Constructors as CTOR
 import WAGS.Graph.Decorators (Focus(..), IgnoreMe)
 import WAGS.Graph.Parameter (AudioParameter(..), defaultParam, param)
@@ -57,8 +59,8 @@ import WAGS.Validation (class AltEdgeProfile, class NodeListAppend, class Termin
 -- | Note that `change'` increments the `changeBit` in the universe by 1, aka `Succ`.
 -- | This use of inductive types in an indexed bind operation guarantees that we never go
 -- | "back in time" after having changed an audio graph.
-class Change (p :: EdgeProfile) (a :: Type) (graph :: Graph) where
-  change' :: forall env audio engine proof m res ptr changeBit skolems. Monad m => AudioInterpret audio engine => Proxy p -> a -> FrameT env audio engine proof m res (UniverseC ptr graph changeBit skolems) (UniverseC ptr graph (Succ changeBit) skolems) Unit
+class Change (p :: EdgeProfile) (a :: Type) (graph :: Graph) (b :: Type) | p a graph -> b where
+  change' :: forall env audio engine proof m res ptr changeBit skolems. Monad m => AudioInterpret audio engine => Proxy p -> a -> FrameT env audio engine proof m res (UniverseC ptr graph changeBit skolems) (UniverseC ptr graph (Succ changeBit) skolems) b
 
 -- | Similar to `change'`, but starting from an `AudioReference ptr` (the result of `cursor`) instead of starting from an edge profile.
 changeAt ::
@@ -80,8 +82,8 @@ change ::
 change = change' (Proxy :: _ edge)
 
 -- | Rolls multiple changes into a single increment of the `changeBit`. This is useful when writing loops. A loop may have many or no changes, and this allows all of them to be executed in a single transaction. As an example, see `examples/wtk/WTK/TLP.purs`. In the `playKeys` function, each finger may potentially change, and each change is rolled into the `a` value that is ultimately passed to `changes`.
-class Changes (a :: Type) (g :: Graph) where
-  changes :: forall env audio engine proof m res ptr changeBit skolems. Monad m => AudioInterpret audio engine => a -> FrameT env audio engine proof m res (UniverseC ptr g changeBit skolems) (UniverseC ptr g (Succ changeBit) skolems) Unit
+class Changes (a :: Type) (g :: Graph) (b :: Type) | a g -> b where
+  changes :: forall env audio engine proof m res ptr changeBit skolems. Monad m => AudioInterpret audio engine => a -> FrameT env audio engine proof m res (UniverseC ptr g changeBit skolems) (UniverseC ptr g (Succ changeBit) skolems) b
 
 -- | A term that can be coerced to an setter for a control-rate audio parameter.
 class SetterVal a where
@@ -107,293 +109,267 @@ instance setterValFunctionN :: SetterVal (AudioParameter -> Number) where
 
 -- | Internal class used to make term-level instructions for audio unit changes.
 class
-  AudioInterpret audio engine <= ChangeInstructions (audio :: Type) (engine :: Type) (g :: Type) where
-  changeInstructions :: Int -> g -> AnAudioUnit -> Maybe (Array (audio -> engine) /\ AnAudioUnit)
+  AudioInterpret audio engine <= ChangeInstructions (audio :: Type) (engine :: Type) (g :: Type) (h :: Type) | g -> h where
+  changeInstructions :: Partial => Int -> g -> AnAudioUnit -> h /\ Array (audio -> engine) /\ AnAudioUnit
 
-instance changeInstructionsAllpass :: (AudioInterpret audio engine, SetterVal argA, SetterVal argB) => ChangeInstructions audio engine (CTOR.Allpass argA argB argC) where
-  changeInstructions idx (CTOR.Allpass argA argB _) = case _ of
-    AAllpass v_argA@(AudioParameter v_argA') v_argB@(AudioParameter v_argB') ->
-      let
-        s_argA = setterVal argA
+instance changeInstructionsAllpass :: (AudioInterpret audio engine, SetterVal argA, SetterVal argB) => ChangeInstructions audio engine (CTOR.Allpass argA argB argC) (CTOR.Allpass AudioParameter AudioParameter Unit) where
+  changeInstructions idx (CTOR.Allpass argA argB _) (AAllpass v_argA@(AudioParameter v_argA') v_argB@(AudioParameter v_argB')) =
+    let
+      s_argA = setterVal argA
 
-        argA_iv' = s_argA v_argA
+      argA_iv' = s_argA v_argA
 
-        argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param then [] else [ setQ idx argA_iv' ]
+      argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param then [] else [ setQ idx argA_iv' ]
 
-        s_argB = setterVal argB
+      s_argB = setterVal argB
 
-        argB_iv' = s_argB v_argB
+      argB_iv' = s_argB v_argB
 
-        argB_Changes = let AudioParameter argB_iv = argB_iv' in if argB_iv.param == v_argB'.param then [] else [ setGain idx argB_iv' ]
-      in
-        Just
-          $ (argA_Changes <> argB_Changes)
-          /\ AAllpass argA_iv' argB_iv'
-    _ -> Nothing
+      argB_Changes = let AudioParameter argB_iv = argB_iv' in if argB_iv.param == v_argB'.param then [] else [ setGain idx argB_iv' ]
+    in
+      (CTOR.Allpass argA_iv' argB_iv' unit)
+        /\ (argA_Changes <> argB_Changes)
+        /\ AAllpass argA_iv' argB_iv'
 
-instance changeInstructionsBandpass :: (AudioInterpret audio engine, SetterVal argA, SetterVal argB) => ChangeInstructions audio engine (CTOR.Bandpass argA argB argC) where
-  changeInstructions idx (CTOR.Bandpass argA argB _) = case _ of
-    ABandpass v_argA@(AudioParameter v_argA') v_argB@(AudioParameter v_argB') ->
-      let
-        s_argA = setterVal argA
+instance changeInstructionsBandpass :: (AudioInterpret audio engine, SetterVal argA, SetterVal argB) => ChangeInstructions audio engine (CTOR.Bandpass argA argB argC) (CTOR.Bandpass AudioParameter AudioParameter Unit) where
+  changeInstructions idx (CTOR.Bandpass argA argB _) (ABandpass v_argA@(AudioParameter v_argA') v_argB@(AudioParameter v_argB')) =
+    let
+      s_argA = setterVal argA
 
-        argA_iv' = s_argA v_argA
+      argA_iv' = s_argA v_argA
 
-        argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param then [] else [ setFrequency idx argA_iv' ]
+      argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param then [] else [ setFrequency idx argA_iv' ]
 
-        s_argB = setterVal argB
+      s_argB = setterVal argB
 
-        argB_iv' = s_argB v_argB
+      argB_iv' = s_argB v_argB
 
-        argB_Changes = let AudioParameter argB_iv = argB_iv' in if argB_iv.param == v_argB'.param then [] else [ setQ idx argB_iv' ]
-      in
-        Just
-          $ (argA_Changes <> argB_Changes)
-          /\ ABandpass argA_iv' argB_iv'
-    _ -> Nothing
+      argB_Changes = let AudioParameter argB_iv = argB_iv' in if argB_iv.param == v_argB'.param then [] else [ setQ idx argB_iv' ]
+    in
+      (CTOR.Bandpass argA_iv' argB_iv' unit)
+        /\ (argA_Changes <> argB_Changes)
+        /\ ABandpass argA_iv' argB_iv'
 
-instance changeInstructionsConstant :: (AudioInterpret audio engine, SetterVal argA) => ChangeInstructions audio engine (CTOR.Constant argA) where
-  changeInstructions idx (CTOR.Constant onOff argA) = case _ of
-    AConstant oldOnOff v_argA@(AudioParameter v_argA') ->
-      let
-        onOffDiff = oldOnOff /= onOff
+instance changeInstructionsConstant :: (AudioInterpret audio engine, SetterVal argA) => ChangeInstructions audio engine (CTOR.Constant argA) (CTOR.Constant AudioParameter) where
+  changeInstructions idx (CTOR.Constant onOff argA) (AConstant oldOnOff v_argA@(AudioParameter v_argA')) =
+    let
+      onOffDiff = oldOnOff /= onOff
 
-        s_argA = setterVal argA
+      s_argA = setterVal argA
 
-        argA_iv' = s_argA v_argA
+      argA_iv' = s_argA v_argA
 
-        argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param then [] else [ setOffset idx argA_iv' ]
-      in
-        Just
-          $ (argA_Changes <> (if onOffDiff then [ (if onOff == On then setOn else setOff) idx ] else []))
-          /\ AConstant onOff argA_iv'
-    _ -> Nothing
+      argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param then [] else [ setOffset idx argA_iv' ]
+    in
+      (CTOR.Constant onOff argA_iv')
+        /\ (argA_Changes <> (if onOffDiff then [ (if onOff == On then setOn else setOff) idx ] else []))
+        /\ AConstant onOff argA_iv'
 
-instance changeInstructionsConvolver :: AudioInterpret audio engine => ChangeInstructions audio engine (CTOR.Convolver argA argB) where
-  changeInstructions _ _ _ = Nothing
+instance changeInstructionsConvolver :: AudioInterpret audio engine => ChangeInstructions audio engine (CTOR.Convolver argA argB) (CTOR.Convolver argA Unit) where
+  changeInstructions _ (CTOR.Convolver a _) x = (CTOR.Convolver a unit) /\ empty /\ x
 
-instance changeInstructionsDelay :: (AudioInterpret audio engine, SetterVal argA) => ChangeInstructions audio engine (CTOR.Delay argA argB) where
-  changeInstructions idx (CTOR.Delay argA _) = case _ of
-    ADelay v_argA@(AudioParameter v_argA') ->
-      let
-        s_argA = setterVal argA
+instance changeInstructionsDelay :: (AudioInterpret audio engine, SetterVal argA) => ChangeInstructions audio engine (CTOR.Delay argA argB) (CTOR.Delay AudioParameter Unit) where
+  changeInstructions idx (CTOR.Delay argA _) (ADelay v_argA@(AudioParameter v_argA')) =
+    let
+      s_argA = setterVal argA
 
-        argA_iv' = s_argA v_argA
+      argA_iv' = s_argA v_argA
 
-        argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param then [] else [ setDelay idx argA_iv' ]
-      in
-        Just
-          $ (argA_Changes)
-          /\ ADelay argA_iv'
-    _ -> Nothing
+      argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param then [] else [ setDelay idx argA_iv' ]
+    in
+      (CTOR.Delay argA_iv' unit)
+        /\ (argA_Changes)
+        /\ ADelay argA_iv'
 
-instance changeInstructionsDynamicsCompressor :: (AudioInterpret audio engine, SetterVal argA, SetterVal argB, SetterVal argC, SetterVal argD, SetterVal argE) => ChangeInstructions audio engine (CTOR.DynamicsCompressor argA argB argC argD argE argF) where
-  changeInstructions idx (CTOR.DynamicsCompressor argA argB argC argD argE _) = case _ of
-    ADynamicsCompressor v_argA@(AudioParameter v_argA') v_argB@(AudioParameter v_argB') v_argC@(AudioParameter v_argC') v_argD@(AudioParameter v_argD') v_argE@(AudioParameter v_argE') ->
-      let
-        s_argA = setterVal argA
+instance changeInstructionsDynamicsCompressor :: (AudioInterpret audio engine, SetterVal argA, SetterVal argB, SetterVal argC, SetterVal argD, SetterVal argE) => ChangeInstructions audio engine (CTOR.DynamicsCompressor argA argB argC argD argE argF) (CTOR.DynamicsCompressor AudioParameter AudioParameter AudioParameter AudioParameter AudioParameter Unit) where
+  changeInstructions idx (CTOR.DynamicsCompressor argA argB argC argD argE _) (ADynamicsCompressor v_argA@(AudioParameter v_argA') v_argB@(AudioParameter v_argB') v_argC@(AudioParameter v_argC') v_argD@(AudioParameter v_argD') v_argE@(AudioParameter v_argE')) =
+    let
+      s_argA = setterVal argA
 
-        argA_iv' = s_argA v_argA
+      argA_iv' = s_argA v_argA
 
-        argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param then [] else [ setThreshold idx argA_iv' ]
+      argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param then [] else [ setThreshold idx argA_iv' ]
 
-        s_argB = setterVal argB
+      s_argB = setterVal argB
 
-        argB_iv' = s_argB v_argB
+      argB_iv' = s_argB v_argB
 
-        argB_Changes = let AudioParameter argB_iv = argB_iv' in if argB_iv.param == v_argB'.param then [] else [ setKnee idx argB_iv' ]
+      argB_Changes = let AudioParameter argB_iv = argB_iv' in if argB_iv.param == v_argB'.param then [] else [ setKnee idx argB_iv' ]
 
-        s_argC = setterVal argC
+      s_argC = setterVal argC
 
-        argC_iv' = s_argC v_argC
+      argC_iv' = s_argC v_argC
 
-        argC_Changes = let AudioParameter argC_iv = argC_iv' in if argC_iv.param == v_argC'.param then [] else [ setRatio idx argC_iv' ]
+      argC_Changes = let AudioParameter argC_iv = argC_iv' in if argC_iv.param == v_argC'.param then [] else [ setRatio idx argC_iv' ]
 
-        s_argD = setterVal argD
+      s_argD = setterVal argD
 
-        argD_iv' = s_argD v_argD
+      argD_iv' = s_argD v_argD
 
-        argD_Changes = let AudioParameter argD_iv = argD_iv' in if argD_iv.param == v_argD'.param then [] else [ setAttack idx argD_iv' ]
+      argD_Changes = let AudioParameter argD_iv = argD_iv' in if argD_iv.param == v_argD'.param then [] else [ setAttack idx argD_iv' ]
 
-        s_argE = setterVal argE
+      s_argE = setterVal argE
 
-        argE_iv' = s_argE v_argE
+      argE_iv' = s_argE v_argE
 
-        argE_Changes = let AudioParameter argE_iv = argE_iv' in if argE_iv.param == v_argE'.param then [] else [ setRelease idx argE_iv' ]
-      in
-        Just
-          $ (argA_Changes <> argB_Changes <> argC_Changes <> argD_Changes <> argE_Changes)
-          /\ ADynamicsCompressor argA_iv' argB_iv' argC_iv' argD_iv' argE_iv'
-    _ -> Nothing
+      argE_Changes = let AudioParameter argE_iv = argE_iv' in if argE_iv.param == v_argE'.param then [] else [ setRelease idx argE_iv' ]
+    in
+      (CTOR.DynamicsCompressor argA_iv' argB_iv' argC_iv' argD_iv' argE_iv' unit)
+        /\ (argA_Changes <> argB_Changes <> argC_Changes <> argD_Changes <> argE_Changes)
+        /\ ADynamicsCompressor argA_iv' argB_iv' argC_iv' argD_iv' argE_iv'
 
-instance changeInstructionsGain :: (AudioInterpret audio engine, SetterVal argA) => ChangeInstructions audio engine (CTOR.Gain argA argB) where
-  changeInstructions idx (CTOR.Gain argA _) = case _ of
-    AGain v_argA@(AudioParameter v_argA') ->
-      let
-        s_argA = setterVal argA
+instance changeInstructionsGain :: (AudioInterpret audio engine, SetterVal argA) => ChangeInstructions audio engine (CTOR.Gain argA argB) (CTOR.Gain AudioParameter Unit) where
+  changeInstructions idx (CTOR.Gain argA _) (AGain v_argA@(AudioParameter v_argA')) =
+    let
+      s_argA = setterVal argA
 
-        argA_iv' = s_argA v_argA
+      argA_iv' = s_argA v_argA
 
-        argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param then [] else [ setGain idx argA_iv' ]
-      in
-        Just
-          $ (argA_Changes)
-          /\ AGain argA_iv'
-    _ -> Nothing
+      argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param then [] else [ setGain idx argA_iv' ]
+    in
+      (CTOR.Gain argA_iv' unit)
+        /\ (argA_Changes)
+        /\ AGain argA_iv'
 
-instance changeInstructionsHighpass :: (AudioInterpret audio engine, SetterVal argA, SetterVal argB) => ChangeInstructions audio engine (CTOR.Highpass argA argB argC) where
-  changeInstructions idx (CTOR.Highpass argA argB _) = case _ of
-    AHighpass v_argA@(AudioParameter v_argA') v_argB@(AudioParameter v_argB') ->
-      let
-        s_argA = setterVal argA
+instance changeInstructionsHighpass :: (AudioInterpret audio engine, SetterVal argA, SetterVal argB) => ChangeInstructions audio engine (CTOR.Highpass argA argB argC) (CTOR.Highpass AudioParameter AudioParameter Unit) where
+  changeInstructions idx (CTOR.Highpass argA argB _) (AHighpass v_argA@(AudioParameter v_argA') v_argB@(AudioParameter v_argB')) =
+    let
+      s_argA = setterVal argA
 
-        argA_iv' = s_argA v_argA
+      argA_iv' = s_argA v_argA
 
-        argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param then [] else [ setFrequency idx argA_iv' ]
+      argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param then [] else [ setFrequency idx argA_iv' ]
 
-        s_argB = setterVal argB
+      s_argB = setterVal argB
 
-        argB_iv' = s_argB v_argB
+      argB_iv' = s_argB v_argB
 
-        argB_Changes = let AudioParameter argB_iv = argB_iv' in if argB_iv.param == v_argB'.param then [] else [ setQ idx argB_iv' ]
-      in
-        Just
-          $ (argA_Changes <> argB_Changes)
-          /\ AHighpass argA_iv' argB_iv'
-    _ -> Nothing
+      argB_Changes = let AudioParameter argB_iv = argB_iv' in if argB_iv.param == v_argB'.param then [] else [ setQ idx argB_iv' ]
+    in
+      (CTOR.Highpass argA_iv' argB_iv' unit)
+        /\ (argA_Changes <> argB_Changes)
+        /\ AHighpass argA_iv' argB_iv'
 
-instance changeInstructionsHighshelf :: (AudioInterpret audio engine, SetterVal argA, SetterVal argB) => ChangeInstructions audio engine (CTOR.Highshelf argA argB argC) where
-  changeInstructions idx (CTOR.Highshelf argA argB _) = case _ of
-    AHighshelf v_argA@(AudioParameter v_argA') v_argB@(AudioParameter v_argB') ->
-      let
-        s_argA = setterVal argA
+instance changeInstructionsHighshelf :: (AudioInterpret audio engine, SetterVal argA, SetterVal argB) => ChangeInstructions audio engine (CTOR.Highshelf argA argB argC) (CTOR.Highshelf AudioParameter AudioParameter Unit) where
+  changeInstructions idx (CTOR.Highshelf argA argB _) (AHighshelf v_argA@(AudioParameter v_argA') v_argB@(AudioParameter v_argB')) =
+    let
+      s_argA = setterVal argA
 
-        argA_iv' = s_argA v_argA
+      argA_iv' = s_argA v_argA
 
-        argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param then [] else [ setFrequency idx argA_iv' ]
+      argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param then [] else [ setFrequency idx argA_iv' ]
 
-        s_argB = setterVal argB
+      s_argB = setterVal argB
 
-        argB_iv' = s_argB v_argB
+      argB_iv' = s_argB v_argB
 
-        argB_Changes = let AudioParameter argB_iv = argB_iv' in if argB_iv.param == v_argB'.param then [] else [ setGain idx argB_iv' ]
-      in
-        Just
-          $ (argA_Changes <> argB_Changes)
-          /\ AHighshelf argA_iv' argB_iv'
-    _ -> Nothing
+      argB_Changes = let AudioParameter argB_iv = argB_iv' in if argB_iv.param == v_argB'.param then [] else [ setGain idx argB_iv' ]
+    in
+      (CTOR.Highshelf argA_iv' argB_iv' unit)
+        /\ (argA_Changes <> argB_Changes)
+        /\ AHighshelf argA_iv' argB_iv'
 
-instance changeInstructionsLoopBuf :: (AudioInterpret audio engine, SetterVal argB) => ChangeInstructions audio engine (CTOR.LoopBuf argB) where
-  changeInstructions idx (CTOR.LoopBuf bf onOff argB loopStart loopEnd) = case _ of
-    ALoopBuf x oldOnOff v_argB@(AudioParameter v_argB') oldLoopStart oldLoopEnd ->
-      let
-        onOffDiff = oldOnOff /= onOff
+instance changeInstructionsLoopBuf :: (AudioInterpret audio engine, SetterVal argB) => ChangeInstructions audio engine (CTOR.LoopBuf argB) (CTOR.LoopBuf AudioParameter) where
+  changeInstructions idx (CTOR.LoopBuf bf onOff argB loopStart loopEnd) (ALoopBuf x oldOnOff v_argB@(AudioParameter v_argB') oldLoopStart oldLoopEnd) =
+    let
+      onOffDiff = oldOnOff /= onOff
 
-        s_argB = setterVal argB
+      s_argB = setterVal argB
 
-        argB_iv' = s_argB v_argB
+      argB_iv' = s_argB v_argB
 
-        argB_Changes = let AudioParameter argB_iv = argB_iv' in if argB_iv.param == v_argB'.param && not (onOffDiff && onOff == On) then [] else [ setPlaybackRate idx argB_iv' ]
-      in
-        Just
-          $ ((if bf /= x then [ setBuffer idx bf ] else []) <> argB_Changes <> (if (oldLoopStart /= loopStart) || (onOffDiff && onOff == On) then [ setLoopStart idx loopStart ] else []) <> (if (oldLoopEnd /= loopEnd) || (onOffDiff && onOff == On) then [ setLoopEnd idx loopEnd ] else []) <> (if onOffDiff then [ (if onOff == On then setOn else setOff) idx ] else []))
-          /\ ALoopBuf bf onOff argB_iv' loopStart loopEnd
-    _ -> Nothing
+      argB_Changes = let AudioParameter argB_iv = argB_iv' in if argB_iv.param == v_argB'.param && not (onOffDiff && onOff == On) then [] else [ setPlaybackRate idx argB_iv' ]
+    in
+      (CTOR.LoopBuf bf onOff argB_iv' loopStart loopEnd)
+        /\ ((if bf /= x then [ setBuffer idx bf ] else []) <> argB_Changes <> (if (oldLoopStart /= loopStart) || (onOffDiff && onOff == On) then [ setLoopStart idx loopStart ] else []) <> (if (oldLoopEnd /= loopEnd) || (onOffDiff && onOff == On) then [ setLoopEnd idx loopEnd ] else []) <> (if onOffDiff then [ (if onOff == On then setOn else setOff) idx ] else []))
+        /\ ALoopBuf bf onOff argB_iv' loopStart loopEnd
 
-instance changeInstructionsLowpass :: (AudioInterpret audio engine, SetterVal argA, SetterVal argB) => ChangeInstructions audio engine (CTOR.Lowpass argA argB argC) where
-  changeInstructions idx (CTOR.Lowpass argA argB _) = case _ of
-    ALowpass v_argA@(AudioParameter v_argA') v_argB@(AudioParameter v_argB') ->
-      let
-        s_argA = setterVal argA
+instance changeInstructionsLowpass :: (AudioInterpret audio engine, SetterVal argA, SetterVal argB) => ChangeInstructions audio engine (CTOR.Lowpass argA argB argC) (CTOR.Lowpass AudioParameter AudioParameter Unit) where
+  changeInstructions idx (CTOR.Lowpass argA argB _) (ALowpass v_argA@(AudioParameter v_argA') v_argB@(AudioParameter v_argB')) =
+    let
+      s_argA = setterVal argA
 
-        argA_iv' = s_argA v_argA
+      argA_iv' = s_argA v_argA
 
-        argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param then [] else [ setFrequency idx argA_iv' ]
+      argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param then [] else [ setFrequency idx argA_iv' ]
 
-        s_argB = setterVal argB
+      s_argB = setterVal argB
 
-        argB_iv' = s_argB v_argB
+      argB_iv' = s_argB v_argB
 
-        argB_Changes = let AudioParameter argB_iv = argB_iv' in if argB_iv.param == v_argB'.param then [] else [ setQ idx argB_iv' ]
-      in
-        Just
-          $ (argA_Changes <> argB_Changes)
-          /\ ALowpass argA_iv' argB_iv'
-    _ -> Nothing
+      argB_Changes = let AudioParameter argB_iv = argB_iv' in if argB_iv.param == v_argB'.param then [] else [ setQ idx argB_iv' ]
+    in
+      (CTOR.Lowpass argA_iv' argB_iv' unit)
+        /\ (argA_Changes <> argB_Changes)
+        /\ ALowpass argA_iv' argB_iv'
 
-instance changeInstructionsLowshelf :: (AudioInterpret audio engine, SetterVal argA, SetterVal argB) => ChangeInstructions audio engine (CTOR.Lowshelf argA argB argC) where
-  changeInstructions idx (CTOR.Lowshelf argA argB _) = case _ of
-    ALowshelf v_argA@(AudioParameter v_argA') v_argB@(AudioParameter v_argB') ->
-      let
-        s_argA = setterVal argA
+instance changeInstructionsLowshelf :: (AudioInterpret audio engine, SetterVal argA, SetterVal argB) => ChangeInstructions audio engine (CTOR.Lowshelf argA argB argC) (CTOR.Lowshelf AudioParameter AudioParameter Unit) where
+  changeInstructions idx (CTOR.Lowshelf argA argB _) (ALowshelf v_argA@(AudioParameter v_argA') v_argB@(AudioParameter v_argB')) =
+    let
+      s_argA = setterVal argA
 
-        argA_iv' = s_argA v_argA
+      argA_iv' = s_argA v_argA
 
-        argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param then [] else [ setFrequency idx argA_iv' ]
+      argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param then [] else [ setFrequency idx argA_iv' ]
 
-        s_argB = setterVal argB
+      s_argB = setterVal argB
 
-        argB_iv' = s_argB v_argB
+      argB_iv' = s_argB v_argB
 
-        argB_Changes = let AudioParameter argB_iv = argB_iv' in if argB_iv.param == v_argB'.param then [] else [ setGain idx argB_iv' ]
-      in
-        Just
-          $ (argA_Changes <> argB_Changes)
-          /\ ALowshelf argA_iv' argB_iv'
-    _ -> Nothing
+      argB_Changes = let AudioParameter argB_iv = argB_iv' in if argB_iv.param == v_argB'.param then [] else [ setGain idx argB_iv' ]
+    in
+      (CTOR.Lowshelf argA_iv' argB_iv' unit)
+        /\ (argA_Changes <> argB_Changes)
+        /\ ALowshelf argA_iv' argB_iv'
 
-instance changeInstructionsMicrophone :: AudioInterpret audio engine => ChangeInstructions audio engine (CTOR.Microphone) where
-  changeInstructions _ _ _ = Nothing
+instance changeInstructionsMicrophone :: AudioInterpret audio engine => ChangeInstructions audio engine CTOR.Microphone CTOR.Microphone where
+  changeInstructions _ g x = g /\ empty /\ x
 
-instance changeInstructionsNotch :: (AudioInterpret audio engine, SetterVal argA, SetterVal argB) => ChangeInstructions audio engine (CTOR.Notch argA argB argC) where
-  changeInstructions idx (CTOR.Notch argA argB _) = case _ of
-    ANotch v_argA@(AudioParameter v_argA') v_argB@(AudioParameter v_argB') ->
-      let
-        s_argA = setterVal argA
+instance changeInstructionsNotch :: (AudioInterpret audio engine, SetterVal argA, SetterVal argB) => ChangeInstructions audio engine (CTOR.Notch argA argB argC) (CTOR.Notch AudioParameter AudioParameter Unit) where
+  changeInstructions idx (CTOR.Notch argA argB _) (ANotch v_argA@(AudioParameter v_argA') v_argB@(AudioParameter v_argB')) =
+    let
+      s_argA = setterVal argA
 
-        argA_iv' = s_argA v_argA
+      argA_iv' = s_argA v_argA
 
-        argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param then [] else [ setFrequency idx argA_iv' ]
+      argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param then [] else [ setFrequency idx argA_iv' ]
 
-        s_argB = setterVal argB
+      s_argB = setterVal argB
 
-        argB_iv' = s_argB v_argB
+      argB_iv' = s_argB v_argB
 
-        argB_Changes = let AudioParameter argB_iv = argB_iv' in if argB_iv.param == v_argB'.param then [] else [ setQ idx argB_iv' ]
-      in
-        Just
-          $ (argA_Changes <> argB_Changes)
-          /\ ANotch argA_iv' argB_iv'
-    _ -> Nothing
+      argB_Changes = let AudioParameter argB_iv = argB_iv' in if argB_iv.param == v_argB'.param then [] else [ setQ idx argB_iv' ]
+    in
+      (CTOR.Notch argA_iv' argB_iv' unit)
+        /\ (argA_Changes <> argB_Changes)
+        /\ ANotch argA_iv' argB_iv'
 
-instance changeInstructionsPeaking :: (AudioInterpret audio engine, SetterVal argA, SetterVal argB, SetterVal argC) => ChangeInstructions audio engine (CTOR.Peaking argA argB argC argD) where
-  changeInstructions idx (CTOR.Peaking argA argB argC _) = case _ of
-    APeaking v_argA@(AudioParameter v_argA') v_argB@(AudioParameter v_argB') v_argC@(AudioParameter v_argC') ->
-      let
-        s_argA = setterVal argA
+instance changeInstructionsPeaking :: (AudioInterpret audio engine, SetterVal argA, SetterVal argB, SetterVal argC) => ChangeInstructions audio engine (CTOR.Peaking argA argB argC argD) (CTOR.Peaking AudioParameter AudioParameter AudioParameter Unit) where
+  changeInstructions idx (CTOR.Peaking argA argB argC _) (APeaking v_argA@(AudioParameter v_argA') v_argB@(AudioParameter v_argB') v_argC@(AudioParameter v_argC')) =
+    let
+      s_argA = setterVal argA
 
-        argA_iv' = s_argA v_argA
+      argA_iv' = s_argA v_argA
 
-        argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param then [] else [ setFrequency idx argA_iv' ]
+      argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param then [] else [ setFrequency idx argA_iv' ]
 
-        s_argB = setterVal argB
+      s_argB = setterVal argB
 
-        argB_iv' = s_argB v_argB
+      argB_iv' = s_argB v_argB
 
-        argB_Changes = let AudioParameter argB_iv = argB_iv' in if argB_iv.param == v_argB'.param then [] else [ setQ idx argB_iv' ]
+      argB_Changes = let AudioParameter argB_iv = argB_iv' in if argB_iv.param == v_argB'.param then [] else [ setQ idx argB_iv' ]
 
-        s_argC = setterVal argC
+      s_argC = setterVal argC
 
-        argC_iv' = s_argC v_argC
+      argC_iv' = s_argC v_argC
 
-        argC_Changes = let AudioParameter argC_iv = argC_iv' in if argC_iv.param == v_argC'.param then [] else [ setGain idx argC_iv' ]
-      in
-        Just
-          $ (argA_Changes <> argB_Changes <> argC_Changes)
-          /\ APeaking argA_iv' argB_iv' argC_iv'
-    _ -> Nothing
+      argC_Changes = let AudioParameter argC_iv = argC_iv' in if argC_iv.param == v_argC'.param then [] else [ setGain idx argC_iv' ]
+    in
+      (CTOR.Peaking argA_iv' argB_iv' argC_iv' unit)
+        /\ (argA_Changes <> argB_Changes <> argC_Changes)
+        /\ APeaking argA_iv' argB_iv' argC_iv'
 
-instance changeInstructionsPeriodicOsc :: (AudioInterpret audio engine, SetterVal argB) => ChangeInstructions audio engine (CTOR.PeriodicOsc argB) where
+instance changeInstructionsPeriodicOsc :: (AudioInterpret audio engine, SetterVal argB) => ChangeInstructions audio engine (CTOR.PeriodicOsc argB) (CTOR.PeriodicOsc AudioParameter) where
   changeInstructions idx (CTOR.PeriodicOsc po onOff argB) = case _ of
     APeriodicOsc x oldOnOff v_argB@(AudioParameter v_argB') ->
       let
@@ -405,149 +381,136 @@ instance changeInstructionsPeriodicOsc :: (AudioInterpret audio engine, SetterVa
 
         argB_Changes = let AudioParameter argB_iv = argB_iv' in if argB_iv.param == v_argB'.param && not (onOffDiff && onOff == On) then [] else [ setFrequency idx argB_iv' ]
       in
-        Just
-          $ ((if po /= x then [ setPeriodicOsc idx po ] else []) <> argB_Changes <> (if onOffDiff then [ (if onOff == On then setOn else setOff) idx ] else []))
+        (CTOR.PeriodicOsc po onOff argB_iv')
+          /\ ((if po /= x then [ setPeriodicOsc idx po ] else []) <> argB_Changes <> (if onOffDiff then [ (if onOff == On then setOn else setOff) idx ] else []))
           /\ APeriodicOsc po onOff argB_iv'
-    _ -> Nothing
 
-instance changeInstructionsPlayBuf :: (AudioInterpret audio engine, SetterVal argC) => ChangeInstructions audio engine (CTOR.PlayBuf argC) where
+instance changeInstructionsPlayBuf :: (AudioInterpret audio engine, SetterVal argC) => ChangeInstructions audio engine (CTOR.PlayBuf argC) (CTOR.PlayBuf AudioParameter) where
   -- todo: set ny if different
-  changeInstructions idx (CTOR.PlayBuf bf _ onOff argC) = case _ of
-    APlayBuf x y oldOnOff v_argC@(AudioParameter v_argC') ->
-      let
-        onOffDiff = oldOnOff /= onOff
+  changeInstructions idx (CTOR.PlayBuf bf tx onOff argC) (APlayBuf x y oldOnOff v_argC@(AudioParameter v_argC')) =
+    let
+      onOffDiff = oldOnOff /= onOff
 
-        s_argC = setterVal argC
+      s_argC = setterVal argC
 
-        argC_iv' = s_argC v_argC
+      argC_iv' = s_argC v_argC
 
-        argC_Changes = let AudioParameter argC_iv = argC_iv' in if argC_iv.param == v_argC'.param && not (onOffDiff && onOff == On) then [] else [ setPlaybackRate idx argC_iv' ]
-      in
-        Just
-          $ ((if bf /= x then [ setBuffer idx bf ] else []) <> argC_Changes <> (if onOffDiff then [ (if onOff == On then setOn else setOff) idx ] else []))
-          /\ APlayBuf bf y onOff argC_iv'
-    _ -> Nothing
+      argC_Changes = let AudioParameter argC_iv = argC_iv' in if argC_iv.param == v_argC'.param && not (onOffDiff && onOff == On) then [] else [ setPlaybackRate idx argC_iv' ]
+    in
+      (CTOR.PlayBuf bf tx onOff argC_iv')
+        /\ ((if bf /= x then [ setBuffer idx bf ] else []) <> argC_Changes <> (if onOffDiff then [ (if onOff == On then setOn else setOff) idx ] else []))
+        /\ APlayBuf bf y onOff argC_iv'
 
-instance changeInstructionsRecorder :: AudioInterpret audio engine => ChangeInstructions audio engine (CTOR.Recorder argA argB) where
-  changeInstructions _ _ _ = Nothing
+instance changeInstructionsRecorder :: AudioInterpret audio engine => ChangeInstructions audio engine (CTOR.Recorder argA argB) (CTOR.Recorder argA Unit) where
+  changeInstructions _ (CTOR.Recorder sym _) x = (CTOR.Recorder sym unit) /\ empty /\ x
 
-instance changeInstructionsSawtoothOsc :: (AudioInterpret audio engine, SetterVal argA) => ChangeInstructions audio engine (CTOR.SawtoothOsc argA) where
-  changeInstructions idx (CTOR.SawtoothOsc onOff argA) = case _ of
-    ASawtoothOsc oldOnOff v_argA@(AudioParameter v_argA') ->
-      let
-        onOffDiff = oldOnOff /= onOff
+instance changeInstructionsSawtoothOsc :: (AudioInterpret audio engine, SetterVal argA) => ChangeInstructions audio engine (CTOR.SawtoothOsc argA) (CTOR.SawtoothOsc AudioParameter) where
+  changeInstructions idx (CTOR.SawtoothOsc onOff argA) (ASawtoothOsc oldOnOff v_argA@(AudioParameter v_argA')) =
+    let
+      onOffDiff = oldOnOff /= onOff
 
-        s_argA = setterVal argA
+      s_argA = setterVal argA
 
-        argA_iv' = s_argA v_argA
+      argA_iv' = s_argA v_argA
 
-        argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param && not (onOffDiff && onOff == On) then [] else [ setFrequency idx argA_iv' ]
-      in
-        Just
-          $ (argA_Changes <> (if onOffDiff then [ (if onOff == On then setOn else setOff) idx ] else []))
-          /\ ASawtoothOsc onOff argA_iv'
-    _ -> Nothing
+      argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param && not (onOffDiff && onOff == On) then [] else [ setFrequency idx argA_iv' ]
+    in
+      (CTOR.SawtoothOsc onOff argA_iv')
+        /\ (argA_Changes <> (if onOffDiff then [ (if onOff == On then setOn else setOff) idx ] else []))
+        /\ ASawtoothOsc onOff argA_iv'
 
-instance changeInstructionsSinOsc :: (AudioInterpret audio engine, SetterVal argA) => ChangeInstructions audio engine (CTOR.SinOsc argA) where
-  changeInstructions idx (CTOR.SinOsc onOff argA) = case _ of
-    ASinOsc oldOnOff v_argA@(AudioParameter v_argA') ->
-      let
-        onOffDiff = oldOnOff /= onOff
+instance changeInstructionsSinOsc :: (AudioInterpret audio engine, SetterVal argA) => ChangeInstructions audio engine (CTOR.SinOsc argA) (CTOR.SinOsc AudioParameter) where
+  changeInstructions idx (CTOR.SinOsc onOff argA) (ASinOsc oldOnOff v_argA@(AudioParameter v_argA')) =
+    let
+      onOffDiff = oldOnOff /= onOff
 
-        s_argA = setterVal argA
+      s_argA = setterVal argA
 
-        argA_iv' = s_argA v_argA
+      argA_iv' = s_argA v_argA
 
-        argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param && not (onOffDiff && onOff == On) then [] else [ setFrequency idx argA_iv' ]
-      in
-        Just
-          $ (argA_Changes <> (if onOffDiff then [ (if onOff == On then setOn else setOff) idx ] else []))
-          /\ ASinOsc onOff argA_iv'
-    _ -> Nothing
+      argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param && not (onOffDiff && onOff == On) then [] else [ setFrequency idx argA_iv' ]
+    in
+      (CTOR.SinOsc onOff argA_iv')
+        /\ (argA_Changes <> (if onOffDiff then [ (if onOff == On then setOn else setOff) idx ] else []))
+        /\ ASinOsc onOff argA_iv'
 
-instance changeInstructionsSpeaker :: AudioInterpret audio engine => ChangeInstructions audio engine (CTOR.Speaker argA) where
-  changeInstructions _ _ _ = Nothing
+instance changeInstructionsSpeaker :: AudioInterpret audio engine => ChangeInstructions audio engine (CTOR.Speaker argA) (CTOR.Speaker Unit) where
+  changeInstructions _ _ x = (CTOR.Speaker unit) /\ empty /\ x
 
-instance changeInstructionsSquareOsc :: (AudioInterpret audio engine, SetterVal argA) => ChangeInstructions audio engine (CTOR.SquareOsc argA) where
-  changeInstructions idx (CTOR.SquareOsc onOff argA) = case _ of
-    ASquareOsc oldOnOff v_argA@(AudioParameter v_argA') ->
-      let
-        onOffDiff = oldOnOff /= onOff
+instance changeInstructionsSquareOsc :: (AudioInterpret audio engine, SetterVal argA) => ChangeInstructions audio engine (CTOR.SquareOsc argA) (CTOR.SquareOsc AudioParameter) where
+  changeInstructions idx (CTOR.SquareOsc onOff argA) (ASquareOsc oldOnOff v_argA@(AudioParameter v_argA')) =
+    let
+      onOffDiff = oldOnOff /= onOff
 
-        s_argA = setterVal argA
+      s_argA = setterVal argA
 
-        argA_iv' = s_argA v_argA
+      argA_iv' = s_argA v_argA
 
-        argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param && not (onOffDiff && onOff == On) then [] else [ setFrequency idx argA_iv' ]
-      in
-        Just
-          $ (argA_Changes <> (if onOffDiff then [ (if onOff == On then setOn else setOff) idx ] else []))
-          /\ ASquareOsc onOff argA_iv'
-    _ -> Nothing
+      argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param && not (onOffDiff && onOff == On) then [] else [ setFrequency idx argA_iv' ]
+    in
+      (CTOR.SquareOsc onOff argA_iv')
+        /\ (argA_Changes <> (if onOffDiff then [ (if onOff == On then setOn else setOff) idx ] else []))
+        /\ ASquareOsc onOff argA_iv'
 
-instance changeInstructionsStereoPanner :: (AudioInterpret audio engine, SetterVal argA) => ChangeInstructions audio engine (CTOR.StereoPanner argA argB) where
-  changeInstructions idx (CTOR.StereoPanner argA _) = case _ of
-    AStereoPanner v_argA@(AudioParameter v_argA') ->
-      let
-        s_argA = setterVal argA
+instance changeInstructionsStereoPanner :: (AudioInterpret audio engine, SetterVal argA) => ChangeInstructions audio engine (CTOR.StereoPanner argA argB) (CTOR.StereoPanner AudioParameter Unit) where
+  changeInstructions idx (CTOR.StereoPanner argA _) (AStereoPanner v_argA@(AudioParameter v_argA')) =
+    let
+      s_argA = setterVal argA
 
-        argA_iv' = s_argA v_argA
+      argA_iv' = s_argA v_argA
 
-        argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param then [] else [ setPan idx argA_iv' ]
-      in
-        Just
-          $ (argA_Changes)
-          /\ AStereoPanner argA_iv'
-    _ -> Nothing
+      argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param then [] else [ setPan idx argA_iv' ]
+    in
+      CTOR.StereoPanner argA_iv' unit
+        /\ (argA_Changes)
+        /\ AStereoPanner argA_iv'
 
-instance changeInstructionsTriangleOsc :: (AudioInterpret audio engine, SetterVal argA) => ChangeInstructions audio engine (CTOR.TriangleOsc argA) where
-  changeInstructions idx (CTOR.TriangleOsc onOff argA) = case _ of
-    ATriangleOsc oldOnOff v_argA@(AudioParameter v_argA') ->
-      let
-        onOffDiff = oldOnOff /= onOff
+instance changeInstructionsTriangleOsc :: (AudioInterpret audio engine, SetterVal argA) => ChangeInstructions audio engine (CTOR.TriangleOsc argA) (CTOR.TriangleOsc AudioParameter) where
+  changeInstructions idx orig@(CTOR.TriangleOsc onOff argA) (ATriangleOsc oldOnOff v_argA@(AudioParameter v_argA')) =
+    let
+      onOffDiff = oldOnOff /= onOff
 
-        s_argA = setterVal argA
+      s_argA = setterVal argA
 
-        argA_iv' = s_argA v_argA
+      argA_iv' = s_argA v_argA
 
-        argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param && not (onOffDiff && onOff == On) then [] else [ setFrequency idx argA_iv' ]
-      in
-        Just
-          $ (argA_Changes <> (if onOffDiff then [ (if onOff == On then setOn else setOff) idx ] else []))
-          /\ ATriangleOsc onOff argA_iv'
-    _ -> Nothing
+      argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param && not (onOffDiff && onOff == On) then [] else [ setFrequency idx argA_iv' ]
+    in
+      CTOR.TriangleOsc onOff argA_iv'
+        /\ (argA_Changes <> (if onOffDiff then [ (if onOff == On then setOn else setOff) idx ] else []))
+        /\ ATriangleOsc onOff argA_iv'
 
-instance changeInstructionsWaveShaper :: AudioInterpret audio engine => ChangeInstructions audio engine (CTOR.WaveShaper argA argB argC) where
-  changeInstructions _ _ _ = Nothing
+instance changeInstructionsWaveShaper :: AudioInterpret audio engine => ChangeInstructions audio engine (CTOR.WaveShaper argA argB argC) (CTOR.WaveShaper argA argB Unit) where
+  changeInstructions _ (CTOR.WaveShaper argA argB _) x = (CTOR.WaveShaper argA argB unit) /\ empty /\ x
 
-type ChangeType (p :: EdgeProfile) (a :: Type) (graph :: Graph)
-  = forall env audio engine proof m res ptr changeBit skolems. Monad m => AudioInterpret audio engine => Proxy p -> a -> FrameT env audio engine proof m res (UniverseC ptr graph changeBit skolems) (UniverseC ptr graph (Succ changeBit) skolems) Unit
+type ChangeType (p :: EdgeProfile) (a :: Type) (graph :: Graph) (o :: Type)
+  = forall env audio engine proof m res ptr changeBit skolems. Monad m => AudioInterpret audio engine => Proxy p -> a -> FrameT env audio engine proof m res (UniverseC ptr graph changeBit skolems) (UniverseC ptr graph (Succ changeBit) skolems) o
 
-type ChangesType (a :: Type) (g :: Graph)
-  = forall env audio engine proof m res ptr changeBit skolems. Monad m => AudioInterpret audio engine => a -> FrameT env audio engine proof m res (UniverseC ptr g changeBit skolems) (UniverseC ptr g (Succ changeBit) skolems) Unit
+type ChangesType (a :: Type) (g :: Graph) (o :: Type)
+  = forall env audio engine proof m res ptr changeBit skolems. Monad m => AudioInterpret audio engine => a -> FrameT env audio engine proof m res (UniverseC ptr g changeBit skolems) (UniverseC ptr g (Succ changeBit) skolems) o
 
 data ChangeInstruction a b
   = ChangeInstruction a b
 
-instance changesUnit :: Changes Unit g where
+instance changesUnit :: Changes Unit g Unit where
   changes _ = unsafeFrame (pure unit)
-else instance changesPx :: Change p a graph => Changes (ChangeInstruction (Proxy p) a) graph where
-  changes (ChangeInstruction p a) = (change' :: ChangeType p a graph) p a
-else instance changesTp :: (Changes x graph, Changes y graph) => Changes (Tuple x y) graph where
-  changes (x /\ y) = unsafeFrame (x' *> y')
+else instance changesPx :: Change p a graph b => Changes (ChangeInstruction (Proxy p) a) graph (ChangeInstruction (Proxy p) b) where
+  changes (ChangeInstruction p a) = (change' :: ChangeType p a graph b) p a
+else instance changesTp :: (Changes x graph x', Changes y graph y') => Changes (Tuple x y) graph (Tuple x' y') where
+  changes (x /\ y) = unsafeFrame (Tuple <$> x' <*> y')
     where
-    x' = unsafeUnframe $ (changes :: ChangesType x graph) x
+    x' = unsafeUnframe $ (changes :: ChangesType x graph x') x
 
-    y' = unsafeUnframe $ (changes :: ChangesType y graph) y
-else instance changesSingle :: (TerminalIdentityEdge graph edge, Change edge a graph) => Changes a graph where
+    y' = unsafeUnframe $ (changes :: ChangesType y graph y') y
+else instance changesSingle :: (TerminalIdentityEdge graph edge, Change edge a graph b) => Changes a graph b where
   changes a = change a
 
 -- | Internal helper class used for changing audio nodes.
 class
-  Change (SingleEdge p) a graph <= ChangeP (p :: Ptr) (a :: Type) (graph :: Graph) where
-  changeP :: forall env audio engine proof m res ptr changeBit skolems. Monad m => AudioInterpret audio engine => Proxy p -> a -> FrameT env audio engine proof m res (UniverseC ptr graph changeBit skolems) (UniverseC ptr graph (Succ changeBit) skolems) Unit
+  Change (SingleEdge p) a graph b <= ChangeP (p :: Ptr) (a :: Type) (graph :: Graph) (b :: Type) | p a graph -> b where
+  changeP :: forall env audio engine proof m res ptr changeBit skolems. Monad m => AudioInterpret audio engine => Proxy p -> a -> FrameT env audio engine proof m res (UniverseC ptr graph changeBit skolems) (UniverseC ptr graph (Succ changeBit) skolems) b
 
-instance changePAll :: Change (SingleEdge p) a graph => ChangeP p a graph where
+instance changePAll :: Change (SingleEdge p) a graph b => ChangeP p a graph b where
   changeP _ = change' (Proxy :: _ (SingleEdge p))
 
 -- | Internal helper class used for changing audio nodes.
@@ -603,64 +566,61 @@ instance modify ::
   Modify tag p ig nextP
 
 changeAudioUnit ::
-  forall g env audio engine proof m res currentIdx (igraph :: Graph) changeBit skolems (p :: Bits) (nextP :: EdgeProfile) univ.
+  forall g g' env audio engine proof m res currentIdx (igraph :: Graph) changeBit skolems (p :: Bits) (nextP :: EdgeProfile) univ.
+  Partial =>
   Monad m =>
   AudioInterpret audio engine =>
-  ChangeInstructions audio engine g =>
+  ChangeInstructions audio engine g g' =>
   BinToInt p =>
   Modify g p igraph nextP =>
-  Proxy (Proxy p /\ Proxy nextP /\ Proxy igraph) -> g -> FrameT env audio engine proof m res univ (UniverseC currentIdx igraph changeBit skolems) Unit
+  Proxy (Proxy p /\ Proxy nextP /\ Proxy igraph) -> g -> FrameT env audio engine proof m res univ (UniverseC currentIdx igraph changeBit skolems) g'
 changeAudioUnit _ g =
   unsafeFrame
     $ do
         let
           ptr = toInt' (Proxy :: _ p)
-        anAudioUnit' <- M.lookup ptr <$> gets _.internalNodes
-        case anAudioUnit' of
-          Just (anAudioUnit) -> case changeInstructions ptr g anAudioUnit of
-            Just (instr /\ au) ->
-              modify_
-                ( \i ->
-                    i
-                      { internalNodes = M.insert ptr (au) i.internalNodes
-                      , instructions = i.instructions <> instr
-                      }
-                )
-            Nothing -> pure unit
-          Nothing -> pure unit
+        (oo /\ instr /\ au) <- (fromJust <<< M.lookup ptr) <$> gets _.internalNodes
+        modify_
+          ( \i ->
+              i
+                { internalNodes = M.insert ptr (au) i.internalNodes
+                , instructions = i.instructions <> instr
+                }
+          )
+        pure oo
 
 instance changeNoEdge ::
-  Change NoEdge g igraph where
-  change' _ _ = unsafeFrame $ (pure unit)
+  Change NoEdge g igraph g where
+  change' _ = unsafeFrame <<< pure
 
 instance changeSkolem ::
-  Change (SingleEdge p) (Proxy skolem) igraph where
-  change' _ _ = unsafeFrame $ (pure unit)
+  Change (SingleEdge p) (Proxy skolem) igraph (Proxy skolem) where
+  change' _ = unsafeFrame <<< pure
 
-instance changeIdentity :: Change (SingleEdge p) x igraph => Change (SingleEdge p) (Identity x) igraph where
+instance changeIdentity :: Change (SingleEdge p) x igraph y => Change (SingleEdge p) (Identity x) igraph (Identity y) where
   change' p (Identity x) = change' p x
 
-instance changeIgnoreMe ::  Change (SingleEdge p) IgnoreMe igraph where
-  change'  _ _ = unsafeFrame $ (pure unit)
+instance changeIgnoreMe :: Change (SingleEdge p) IgnoreMe igraph IgnoreMe where
+  change' _ = unsafeFrame <<< pure
 
-instance changeFocus :: Change (SingleEdge p) x igraph => Change (SingleEdge p) (Focus x) igraph where
+instance changeFocus :: Change (SingleEdge p) x igraph y => Change (SingleEdge p) (Focus x) igraph (Focus y) where
   change' p (Focus x) = change' p x
 
 instance changeMany2 ::
-  ( Change (SingleEdge p) x igraph
-  , Change (ManyEdges a b) y igraph
+  ( Change (SingleEdge p) x igraph x'
+  , Change (ManyEdges a b) y igraph y'
   ) =>
-  Change (ManyEdges p (PtrListCons a b)) (x /\ y) igraph where
-  change' _ (x /\ y) = unsafeFrame (_1 *> _2)
+  Change (ManyEdges p (PtrListCons a b)) (x /\ y) igraph (x' /\ y') where
+  change' _ (x /\ y) = unsafeFrame (Tuple <$> _1 <*> _2)
     where
-    _1 = unsafeUnframe $ (change' :: ChangeType (SingleEdge p) x igraph) Proxy x
+    _1 = unsafeUnframe $ (change' :: ChangeType (SingleEdge p) x igraph x') Proxy x
 
-    _2 = unsafeUnframe $ (change' :: ChangeType (ManyEdges a b) y igraph) Proxy y
+    _2 = unsafeUnframe $ (change' :: ChangeType (ManyEdges a b) y igraph y') Proxy y
 
 instance changeMany1 ::
-  Change (SingleEdge p) a igraph =>
-  Change (ManyEdges p PtrListNil) (a /\ Unit) igraph where
-  change' _ (a /\ _) = (change' :: ChangeType (SingleEdge p) a igraph) Proxy a
+  Change (SingleEdge p) a igraph b =>
+  Change (ManyEdges p PtrListNil) (a /\ Unit) igraph (b /\ Unit) where
+  change' _ = Lens.over Lens._1 ((change' :: ChangeType (SingleEdge p) a igraph b) Proxy)
 
 ----------
 instance changeDup ::
@@ -677,15 +637,15 @@ instance changeDup ::
   , BinToInt outptr
   , BinToInt continuation
   , BinSub p outptr continuation
-  , Change (SingleEdge p) b igraph
-  , Change (SingleEdge continuation) a igraph
+  , Change (SingleEdge p) b igraph b'
+  , Change (SingleEdge continuation) a igraph a'
   ) =>
-  Change (SingleEdge p) (Dup a (Proxy skolem -> b)) igraph where
-  change' _ (Dup a f) = unsafeFrame (_1 *> _2)
+  Change (SingleEdge p) (CTOR.Dup a (Proxy skolem -> b)) igraph (CTOR.Dup a' b') where
+  change' _ (CTOR.Dup a f) = unsafeFrame (CTOR.Dup <$> _a <*> _b)
     where
-    _1 = unsafeUnframe $ (change' :: ChangeType (SingleEdge p) b igraph) Proxy (f Proxy)
+    _b = unsafeUnframe $ (change' :: ChangeType (SingleEdge p) b igraph b') Proxy (f Proxy)
 
-    _2 = unsafeUnframe $ (change' :: ChangeType (SingleEdge continuation) a igraph) Proxy a
+    _a = unsafeUnframe $ (change' :: ChangeType (SingleEdge continuation) a igraph a') Proxy a
 
 ----------------------------------------
 -----------------------------------
@@ -697,16 +657,16 @@ instance changeAllpass ::
   , GetSkolemFromRecursiveArgument fOfargC skolem
   , ToSkolemizedFunction fOfargC skolem argC
   , Modify (CTOR.Allpass argA argB argC) p igraph nextP
-  , Change nextP argC igraph
+  , Change nextP argC igraph outInner
   ) =>
-  Change (SingleEdge p) (CTOR.Allpass argA argB fOfargC) igraph where
+  Change (SingleEdge p) (CTOR.Allpass argA argB fOfargC) igraph (CTOR.Allpass AudioParameter AudioParameter outInner) where
   change' _ (CTOR.Allpass argA argB fOfargC) =
     let
       argC = (((toSkolemizedFunction :: fOfargC -> (Proxy skolem -> argC)) fOfargC) Proxy)
     in
-      Ix.do
-        changeAudioUnit (Proxy :: Proxy (Proxy p /\ Proxy nextP /\ Proxy igraph)) (CTOR.Allpass argA argB argC)
-        (change' :: ChangeType nextP argC igraph) Proxy argC
+      WAGS.do
+        (CTOR.Allpass argA' argB' _) <- changeAudioUnit (Proxy :: Proxy (Proxy p /\ Proxy nextP /\ Proxy igraph)) (CTOR.Allpass argA argB argC)
+        CTOR.Allpass argA' argB' <$> (change' :: ChangeType nextP argC igraph) Proxy argC
 
 instance changeBandpass ::
   ( SetterVal argA
@@ -715,23 +675,23 @@ instance changeBandpass ::
   , GetSkolemFromRecursiveArgument fOfargC skolem
   , ToSkolemizedFunction fOfargC skolem argC
   , Modify (CTOR.Bandpass argA argB argC) p igraph nextP
-  , Change nextP argC igraph
+  , Change nextP argC igraph outInner
   ) =>
-  Change (SingleEdge p) (CTOR.Bandpass argA argB fOfargC) igraph where
+  Change (SingleEdge p) (CTOR.Bandpass argA argB fOfargC) igraph (CTOR.Bandpass AudioParameter AudioParameter outInner) where
   change' _ (CTOR.Bandpass argA argB fOfargC) =
     let
       argC = (((toSkolemizedFunction :: fOfargC -> (Proxy skolem -> argC)) fOfargC) Proxy)
     in
-      Ix.do
-        changeAudioUnit (Proxy :: Proxy (Proxy p /\ Proxy nextP /\ Proxy igraph)) (CTOR.Bandpass argA argB argC)
-        (change' :: ChangeType nextP argC igraph) Proxy argC
+      WAGS.do
+        (CTOR.Bandpass argA' argB' _) <- changeAudioUnit (Proxy :: Proxy (Proxy p /\ Proxy nextP /\ Proxy igraph)) (CTOR.Bandpass argA argB argC)
+        CTOR.Bandpass argA' argB' <$> (change' :: ChangeType nextP argC igraph) Proxy argC
 
 instance changeConstant ::
   ( SetterVal argA
   , BinToInt p
   , Modify (CTOR.Constant argA) p igraph nextP
   ) =>
-  Change (SingleEdge p) (CTOR.Constant argA) igraph where
+  Change (SingleEdge p) (CTOR.Constant argA) igraph (CTOR.Constant AudioParameter) where
   change' _ = changeAudioUnit (Proxy :: Proxy ((Proxy p) /\ (Proxy nextP) /\ Proxy igraph))
 
 instance changeDelay ::
@@ -740,16 +700,16 @@ instance changeDelay ::
   , GetSkolemFromRecursiveArgument fOfargB skolem
   , ToSkolemizedFunction fOfargB skolem argB
   , Modify (CTOR.Delay argA argB) p igraph nextP
-  , Change nextP argB igraph
+  , Change nextP argB igraph outInner
   ) =>
-  Change (SingleEdge p) (CTOR.Delay argA fOfargB) igraph where
+  Change (SingleEdge p) (CTOR.Delay argA fOfargB) igraph (CTOR.Delay AudioParameter outInner) where
   change' _ (CTOR.Delay argA fOfargB) =
     let
       argB = (((toSkolemizedFunction :: fOfargB -> (Proxy skolem -> argB)) fOfargB) Proxy)
     in
-      Ix.do
-        changeAudioUnit (Proxy :: Proxy (Proxy p /\ Proxy nextP /\ Proxy igraph)) (CTOR.Delay argA argB)
-        (change' :: ChangeType nextP argB igraph) Proxy argB
+      WAGS.do
+        (CTOR.Delay argA' _) <- changeAudioUnit (Proxy :: Proxy (Proxy p /\ Proxy nextP /\ Proxy igraph)) (CTOR.Delay argA argB)
+        CTOR.Delay argA' <$> (change' :: ChangeType nextP argB igraph) Proxy argB
 
 instance changeDynamicsCompressor ::
   ( SetterVal argA
@@ -761,16 +721,16 @@ instance changeDynamicsCompressor ::
   , GetSkolemFromRecursiveArgument fOfargF skolem
   , ToSkolemizedFunction fOfargF skolem argF
   , Modify (CTOR.DynamicsCompressor argA argB argC argD argE argF) p igraph nextP
-  , Change nextP argF igraph
+  , Change nextP argF igraph outInner
   ) =>
-  Change (SingleEdge p) (CTOR.DynamicsCompressor argA argB argC argD argE fOfargF) igraph where
+  Change (SingleEdge p) (CTOR.DynamicsCompressor argA argB argC argD argE fOfargF) igraph (CTOR.DynamicsCompressor AudioParameter AudioParameter AudioParameter AudioParameter AudioParameter outInner) where
   change' _ (CTOR.DynamicsCompressor argA argB argC argD argE fOfargF) =
     let
       argF = (((toSkolemizedFunction :: fOfargF -> (Proxy skolem -> argF)) fOfargF) Proxy)
     in
-      Ix.do
-        changeAudioUnit (Proxy :: Proxy (Proxy p /\ Proxy nextP /\ Proxy igraph)) (CTOR.DynamicsCompressor argA argB argC argD argE argF)
-        (change' :: ChangeType nextP argF igraph) Proxy argF
+      WAGS.do
+        (CTOR.DynamicsCompressor argA' argB' argC' argD' argE' _) <- changeAudioUnit (Proxy :: Proxy (Proxy p /\ Proxy nextP /\ Proxy igraph)) (CTOR.DynamicsCompressor argA argB argC argD argE argF)
+        CTOR.DynamicsCompressor argA' argB' argC' argD' argE' <$> (change' :: ChangeType nextP argF igraph) Proxy argF
 
 instance changeHighpass ::
   ( SetterVal argA
@@ -779,16 +739,16 @@ instance changeHighpass ::
   , GetSkolemFromRecursiveArgument fOfargC skolem
   , ToSkolemizedFunction fOfargC skolem argC
   , Modify (CTOR.Highpass argA argB argC) p igraph nextP
-  , Change nextP argC igraph
+  , Change nextP argC igraph outInner
   ) =>
-  Change (SingleEdge p) (CTOR.Highpass argA argB fOfargC) igraph where
+  Change (SingleEdge p) (CTOR.Highpass argA argB fOfargC) igraph (CTOR.Highpass AudioParameter AudioParameter outInner) where
   change' _ (CTOR.Highpass argA argB fOfargC) =
     let
       argC = (((toSkolemizedFunction :: fOfargC -> (Proxy skolem -> argC)) fOfargC) Proxy)
     in
-      Ix.do
-        changeAudioUnit (Proxy :: Proxy (Proxy p /\ Proxy nextP /\ Proxy igraph)) (CTOR.Highpass argA argB argC)
-        (change' :: ChangeType nextP argC igraph) Proxy argC
+      WAGS.do
+        (CTOR.Highpass argA' argB' _) <- changeAudioUnit (Proxy :: Proxy (Proxy p /\ Proxy nextP /\ Proxy igraph)) (CTOR.Highpass argA argB argC)
+        CTOR.Highpass argA' argB' <$> (change' :: ChangeType nextP argC igraph) Proxy argC
 
 instance changeHighshelf ::
   ( SetterVal argA
@@ -797,23 +757,23 @@ instance changeHighshelf ::
   , GetSkolemFromRecursiveArgument fOfargC skolem
   , ToSkolemizedFunction fOfargC skolem argC
   , Modify (CTOR.Highshelf argA argB argC) p igraph nextP
-  , Change nextP argC igraph
+  , Change nextP argC igraph outInner
   ) =>
-  Change (SingleEdge p) (CTOR.Highshelf argA argB fOfargC) igraph where
+  Change (SingleEdge p) (CTOR.Highshelf argA argB fOfargC) igraph (CTOR.Highshelf AudioParameter AudioParameter outInner) where
   change' _ (CTOR.Highshelf argA argB fOfargC) =
     let
       argC = (((toSkolemizedFunction :: fOfargC -> (Proxy skolem -> argC)) fOfargC) Proxy)
     in
-      Ix.do
-        changeAudioUnit (Proxy :: Proxy (Proxy p /\ Proxy nextP /\ Proxy igraph)) (CTOR.Highshelf argA argB argC)
-        (change' :: ChangeType nextP argC igraph) Proxy argC
+      WAGS.do
+        (CTOR.Highpass argA' argB' _) <- changeAudioUnit (Proxy :: Proxy (Proxy p /\ Proxy nextP /\ Proxy igraph)) (CTOR.Highshelf argA argB argC)
+        CTOR.Highpass argA' argB' <$> (change' :: ChangeType nextP argC igraph) Proxy argC
 
 instance changeLoopBuf ::
   ( SetterVal argB
   , BinToInt p
   , Modify (CTOR.LoopBuf argB) p igraph nextP
   ) =>
-  Change (SingleEdge p) (CTOR.LoopBuf argB) igraph where
+  Change (SingleEdge p) (CTOR.LoopBuf argB) igraph (CTOR.LoopBuf AudioParameter) where
   change' _ = changeAudioUnit (Proxy :: Proxy ((Proxy p) /\ (Proxy nextP) /\ Proxy igraph))
 
 instance changeLowpass ::
@@ -823,16 +783,16 @@ instance changeLowpass ::
   , GetSkolemFromRecursiveArgument fOfargC skolem
   , ToSkolemizedFunction fOfargC skolem argC
   , Modify (CTOR.Lowpass argA argB argC) p igraph nextP
-  , Change nextP argC igraph
+  , Change nextP argC igraph outInner
   ) =>
-  Change (SingleEdge p) (CTOR.Lowpass argA argB fOfargC) igraph where
+  Change (SingleEdge p) (CTOR.Lowpass argA argB fOfargC) igraph (CTOR.Lowpass AudioParameter AudioParameter outInner) where
   change' _ (CTOR.Lowpass argA argB fOfargC) =
     let
       argC = (((toSkolemizedFunction :: fOfargC -> (Proxy skolem -> argC)) fOfargC) Proxy)
     in
-      Ix.do
-        changeAudioUnit (Proxy :: Proxy (Proxy p /\ Proxy nextP /\ Proxy igraph)) (CTOR.Lowpass argA argB argC)
-        (change' :: ChangeType nextP argC igraph) Proxy argC
+      WAGS.do
+        (CTOR.Lowpass argA' argB' _) <- changeAudioUnit (Proxy :: Proxy (Proxy p /\ Proxy nextP /\ Proxy igraph)) (CTOR.Lowpass argA argB argC)
+        CTOR.Lowpass argA' argB' <$> (change' :: ChangeType nextP argC igraph) Proxy argC
 
 instance changeLowshelf ::
   ( SetterVal argA
@@ -841,20 +801,20 @@ instance changeLowshelf ::
   , GetSkolemFromRecursiveArgument fOfargC skolem
   , ToSkolemizedFunction fOfargC skolem argC
   , Modify (CTOR.Lowshelf argA argB argC) p igraph nextP
-  , Change nextP argC igraph
+  , Change nextP argC igraph outInner
   ) =>
-  Change (SingleEdge p) (CTOR.Lowshelf argA argB fOfargC) igraph where
+  Change (SingleEdge p) (CTOR.Lowshelf argA argB fOfargC) igraph (CTOR.Lowshelf AudioParameter AudioParameter outInner) where
   change' _ (CTOR.Lowshelf argA argB fOfargC) =
     let
       argC = (((toSkolemizedFunction :: fOfargC -> (Proxy skolem -> argC)) fOfargC) Proxy)
     in
-      Ix.do
-        changeAudioUnit (Proxy :: Proxy (Proxy p /\ Proxy nextP /\ Proxy igraph)) (CTOR.Lowshelf argA argB argC)
-        (change' :: ChangeType nextP argC igraph) Proxy argC
+      WAGS.do
+        (CTOR.Lowshelf argA' argB' _) <- changeAudioUnit (Proxy :: Proxy (Proxy p /\ Proxy nextP /\ Proxy igraph)) (CTOR.Lowshelf argA argB argC)
+        CTOR.Lowshelf argA' argB' <$> (change' :: ChangeType nextP argC igraph) Proxy argC
 
 instance changeMicrophone ::
-  Change (SingleEdge p) (CTOR.Microphone) igraph where
-  change' _ _ = unsafeFrame $ (pure unit)
+  Change (SingleEdge p) (CTOR.Microphone) igraph CTOR.Microphone where
+  change' _ = unsafeFrame <<< pure
 
 instance changeNotch ::
   ( SetterVal argA
@@ -863,16 +823,16 @@ instance changeNotch ::
   , GetSkolemFromRecursiveArgument fOfargC skolem
   , ToSkolemizedFunction fOfargC skolem argC
   , Modify (CTOR.Notch argA argB argC) p igraph nextP
-  , Change nextP argC igraph
+  , Change nextP argC igraph outInner
   ) =>
-  Change (SingleEdge p) (CTOR.Notch argA argB fOfargC) igraph where
+  Change (SingleEdge p) (CTOR.Notch argA argB fOfargC) igraph (CTOR.Notch AudioParameter AudioParameter outInner) where
   change' _ (CTOR.Notch argA argB fOfargC) =
     let
       argC = (((toSkolemizedFunction :: fOfargC -> (Proxy skolem -> argC)) fOfargC) Proxy)
     in
-      Ix.do
-        changeAudioUnit (Proxy :: Proxy (Proxy p /\ Proxy nextP /\ Proxy igraph)) (CTOR.Notch argA argB argC)
-        (change' :: ChangeType nextP argC igraph) Proxy argC
+      WAGS.do
+        (CTOR.Notch argA' argB' _) <- changeAudioUnit (Proxy :: Proxy (Proxy p /\ Proxy nextP /\ Proxy igraph)) (CTOR.Notch argA argB argC)
+        CTOR.Notch argA' argB' <$> (change' :: ChangeType nextP argC igraph) Proxy argC
 
 instance changePeaking ::
   ( SetterVal argA
@@ -882,23 +842,23 @@ instance changePeaking ::
   , GetSkolemFromRecursiveArgument fOfargD skolem
   , ToSkolemizedFunction fOfargD skolem argD
   , Modify (CTOR.Peaking argA argB argC argD) p igraph nextP
-  , Change nextP argD igraph
+  , Change nextP argD igraph outInner
   ) =>
-  Change (SingleEdge p) (CTOR.Peaking argA argB argC fOfargD) igraph where
+  Change (SingleEdge p) (CTOR.Peaking argA argB argC fOfargD) igraph (CTOR.Peaking AudioParameter AudioParameter AudioParameter outInner) where
   change' _ (CTOR.Peaking argA argB argC fOfargD) =
     let
       argD = (((toSkolemizedFunction :: fOfargD -> (Proxy skolem -> argD)) fOfargD) Proxy)
     in
-      Ix.do
-        changeAudioUnit (Proxy :: Proxy (Proxy p /\ Proxy nextP /\ Proxy igraph)) (CTOR.Peaking argA argB argC argD)
-        (change' :: ChangeType nextP argD igraph) Proxy argD
+      WAGS.do
+        (CTOR.Peaking argA' argB' argC' _) <- changeAudioUnit (Proxy :: Proxy (Proxy p /\ Proxy nextP /\ Proxy igraph)) (CTOR.Peaking argA argB argC argD)
+        CTOR.Peaking argA' argB' argC' <$> (change' :: ChangeType nextP argD igraph) Proxy argD
 
 instance changePeriodicOsc ::
   ( SetterVal argB
   , BinToInt p
   , Modify (CTOR.PeriodicOsc argB) p igraph nextP
   ) =>
-  Change (SingleEdge p) (CTOR.PeriodicOsc argB) igraph where
+  Change (SingleEdge p) (CTOR.PeriodicOsc argB) igraph (CTOR.PeriodicOsc AudioParameter) where
   change' _ = changeAudioUnit (Proxy :: Proxy ((Proxy p) /\ (Proxy nextP) /\ Proxy igraph))
 
 instance changePlayBuf ::
@@ -906,7 +866,7 @@ instance changePlayBuf ::
   , BinToInt p
   , Modify (CTOR.PlayBuf argB) p igraph nextP
   ) =>
-  Change (SingleEdge p) (CTOR.PlayBuf argB) igraph where
+  Change (SingleEdge p) (CTOR.PlayBuf argB) igraph (CTOR.PlayBuf AudioParameter) where
   change' _ = changeAudioUnit (Proxy :: Proxy ((Proxy p) /\ (Proxy nextP) /\ Proxy igraph))
 
 instance changeSawtoothOsc ::
@@ -914,7 +874,7 @@ instance changeSawtoothOsc ::
   , BinToInt p
   , Modify (CTOR.SawtoothOsc argA) p igraph nextP
   ) =>
-  Change (SingleEdge p) (CTOR.SawtoothOsc argA) igraph where
+  Change (SingleEdge p) (CTOR.SawtoothOsc argA) igraph (CTOR.SawtoothOsc AudioParameter) where
   change' _ = changeAudioUnit (Proxy :: Proxy ((Proxy p) /\ (Proxy nextP) /\ Proxy igraph))
 
 instance changeSinOsc ::
@@ -922,7 +882,7 @@ instance changeSinOsc ::
   , BinToInt p
   , Modify (CTOR.SinOsc argA) p igraph nextP
   ) =>
-  Change (SingleEdge p) (CTOR.SinOsc argA) igraph where
+  Change (SingleEdge p) (CTOR.SinOsc argA) igraph (CTOR.SinOsc AudioParameter) where
   change' _ = changeAudioUnit (Proxy :: Proxy ((Proxy p) /\ (Proxy nextP) /\ Proxy igraph))
 
 instance changeSquareOsc ::
@@ -930,7 +890,7 @@ instance changeSquareOsc ::
   , BinToInt p
   , Modify (CTOR.SquareOsc argA) p igraph nextP
   ) =>
-  Change (SingleEdge p) (CTOR.SquareOsc argA) igraph where
+  Change (SingleEdge p) (CTOR.SquareOsc argA) igraph (CTOR.SquareOsc AudioParameter) where
   change' _ = changeAudioUnit (Proxy :: Proxy ((Proxy p) /\ (Proxy nextP) /\ Proxy igraph))
 
 instance changeStereoPanner ::
@@ -939,23 +899,23 @@ instance changeStereoPanner ::
   , GetSkolemFromRecursiveArgument fOfargB skolem
   , ToSkolemizedFunction fOfargB skolem argB
   , Modify (CTOR.StereoPanner argA argB) p igraph nextP
-  , Change nextP argB igraph
+  , Change nextP argB igraph outInner
   ) =>
-  Change (SingleEdge p) (CTOR.StereoPanner argA fOfargB) igraph where
+  Change (SingleEdge p) (CTOR.StereoPanner argA fOfargB) igraph (CTOR.StereoPanner AudioParameter outInner) where
   change' _ (CTOR.StereoPanner argA fOfargB) =
     let
       argB = (((toSkolemizedFunction :: fOfargB -> (Proxy skolem -> argB)) fOfargB) Proxy)
     in
-      Ix.do
-        changeAudioUnit (Proxy :: Proxy (Proxy p /\ Proxy nextP /\ Proxy igraph)) (CTOR.StereoPanner argA argB)
-        (change' :: ChangeType nextP argB igraph) Proxy argB
+      WAGS.do
+        (CTOR.StereoPanner argA' _) <- changeAudioUnit (Proxy :: Proxy (Proxy p /\ Proxy nextP /\ Proxy igraph)) (CTOR.StereoPanner argA argB)
+        CTOR.StereoPanner argA' <$> (change' :: ChangeType nextP argB igraph) Proxy argB
 
 instance changeTriangleOsc ::
   ( SetterVal argA
   , BinToInt p
   , Modify (CTOR.TriangleOsc argA) p igraph nextP
   ) =>
-  Change (SingleEdge p) (CTOR.TriangleOsc argA) igraph where
+  Change (SingleEdge p) (CTOR.TriangleOsc argA) igraph (CTOR.TriangleOsc AudioParameter) where
   change' _ = changeAudioUnit (Proxy :: Proxy ((Proxy p) /\ (Proxy nextP) /\ Proxy igraph))
 
 --------------
@@ -964,42 +924,42 @@ instance changeGain ::
   , BinToInt p
   , GetSkolemFromRecursiveArgument fb skolem
   , ToSkolemizedFunction fb skolem b
-  , Modify (Gain a b) p igraph nextP
-  , Change nextP b igraph
+  , Modify (CTOR.Gain a b) p igraph nextP
+  , Change nextP b igraph outInner
   ) =>
-  Change (SingleEdge p) (Gain a fb) igraph where
-  change' _ (Gain a fb) =
+  Change (SingleEdge p) (CTOR.Gain a fb) igraph (CTOR.Gain AudioParameter outInner) where
+  change' _ (CTOR.Gain a fb) =
     let
       b = (((toSkolemizedFunction :: fb -> (Proxy skolem -> b)) fb) Proxy)
     in
-      Ix.do
-        changeAudioUnit (Proxy :: Proxy (Proxy p /\ Proxy nextP /\ Proxy igraph)) (Gain a b)
-        (change' :: ChangeType nextP b igraph) Proxy b
+      WAGS.do
+        (CTOR.Gain vol _) <- changeAudioUnit (Proxy :: Proxy (Proxy p /\ Proxy nextP /\ Proxy igraph)) (CTOR.Gain a b)
+        CTOR.Gain vol <$> (change' :: ChangeType nextP b igraph) Proxy b
 
 instance changeSpeaker ::
   ( BinToInt p
   , GetSkolemFromRecursiveArgument fa skolem
   , ToSkolemizedFunction fa skolem a
-  , Modify (Speaker a) p igraph nextP
-  , Change nextP a igraph
+  , Modify (CTOR.Speaker a) p igraph nextP
+  , Change nextP a igraph outInner
   ) =>
-  Change (SingleEdge p) (Speaker fa) igraph where
-  change' _ (Speaker fa) =
+  Change (SingleEdge p) (CTOR.Speaker fa) igraph (CTOR.Speaker outInner) where
+  change' _ (CTOR.Speaker fa) =
     let
       a = (((toSkolemizedFunction :: fa -> (Proxy skolem -> a)) fa) Proxy)
     in
-      Ix.do
-        changeAudioUnit (Proxy :: Proxy (Proxy p /\ Proxy nextP /\ Proxy igraph)) (Speaker a)
-        (change' :: ChangeType nextP a igraph) Proxy a
+      WAGS.do
+        ivoid $ changeAudioUnit (Proxy :: Proxy (Proxy p /\ Proxy nextP /\ Proxy igraph)) (CTOR.Speaker a)
+        CTOR.Speaker <$> (change' :: ChangeType nextP a igraph) Proxy a
 
 instance changeWaveShaper ::
   ( BinToInt p
   , GetSkolemFromRecursiveArgument fOfargB skolem
   , ToSkolemizedFunction fOfargB skolem argB
   , Modify (CTOR.WaveShaper sym overshape argB) p igraph nextP
-  , Change nextP argB igraph
+  , Change nextP argB igraph outInner
   ) =>
-  Change (SingleEdge p) (CTOR.WaveShaper sym overshape fOfargB) igraph where
+  Change (SingleEdge p) (CTOR.WaveShaper sym overshape fOfargB) igraph (CTOR.WaveShaper sym overshape outInner) where
   change' _ (CTOR.WaveShaper _ _ fOfargB) =
     let
       argB = (((toSkolemizedFunction :: fOfargB -> (Proxy skolem -> argB)) fOfargB) Proxy)
@@ -1011,9 +971,9 @@ instance changeRecorder ::
   , GetSkolemFromRecursiveArgument fa skolem
   , ToSkolemizedFunction fa skolem a
   , Modify (CTOR.Recorder sym a) p igraph nextP
-  , Change nextP a igraph
+  , Change nextP a igraph outInner
   ) =>
-  Change (SingleEdge p) (CTOR.Recorder sym fa) igraph where
+  Change (SingleEdge p) (CTOR.Recorder sym fa) igraph (CTOR.Recorder sym outInner) where
   change' _ (CTOR.Recorder _ fa) =
     let
       a = (((toSkolemizedFunction :: fa -> (Proxy skolem -> a)) fa) Proxy)
