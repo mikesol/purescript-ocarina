@@ -651,9 +651,14 @@ instance changeSkolem ::
   Change (SingleEdge p) (Proxy skolem) igraph (Proxy skolem) where
   change' _ = unsafeFrame <<< pure
 
--- We drop the identity wrapper in the return type
-instance changeIdentity :: Change (SingleEdge p) x igraph y => Change (SingleEdge p) (Identity x) igraph y where
-  change' p (Identity x) = change' p x
+instance changeIdentity :: Change (SingleEdge p) x igraph y => Change (SingleEdge p) (Identity x) igraph (Identity y) where
+  change' p (Identity x) = Identity <$> change' p x
+
+instance changeFofProxySingle :: Change (SingleEdge p) x igraph y => Change (SingleEdge p) (Proxy s -> x) igraph (Proxy s -> y) where
+  change' p fx = pure <$> change' p (fx Proxy)
+
+instance changeFofProxyMany :: Change (ManyEdges p p') x igraph y => Change (ManyEdges p p') (Proxy s -> x) igraph (Proxy s -> y) where
+  change' p fx = pure <$> change' p (fx Proxy)
 
 -- Ignore me just returns itself
 instance changeIgnoreMe :: Change (SingleEdge p) IgnoreMe igraph IgnoreMe where
@@ -663,9 +668,8 @@ instance changeIgnoreMe :: Change (SingleEdge p) IgnoreMe igraph IgnoreMe where
 instance changeThis :: Change (SingleEdge p) This igraph This where
   change' _ = unsafeFrame <<< pure
 
--- We drop the focus wrapper in the return type
-instance changeFocus :: Change (SingleEdge p) x igraph y => Change (SingleEdge p) (Focus x) igraph y where
-  change' p (Focus x) = change' p x
+instance changeFocus :: Change (SingleEdge p) x igraph y => Change (SingleEdge p) (Focus x) igraph (Focus y) where
+  change' p (Focus x) = Focus <$> change' p x
 
 instance changeMany2 ::
   ( Change (SingleEdge p) x igraph x'
@@ -703,8 +707,8 @@ instance changeDup ::
   , Change (SingleEdge p) b igraph b'
   , Change (SingleEdge continuation) a igraph a'
   ) =>
-  Change (SingleEdge p) (CTOR.Dup a (Proxy skolem -> b)) igraph (CTOR.Dup a' b') where
-  change' _ (CTOR.Dup a f) = unsafeFrame (CTOR.Dup <$> _a <*> _b)
+  Change (SingleEdge p) (CTOR.Dup a (Proxy skolem -> b)) igraph (CTOR.Dup a' (Proxy skolem -> b')) where
+  change' _ (CTOR.Dup a f) = unsafeFrame (CTOR.Dup <$> _a <*> (pure <$> _b))
     where
     _b = unsafeUnframe $ (change' :: ChangeType (SingleEdge p) b igraph b') Proxy (f Proxy)
 
@@ -717,37 +721,25 @@ instance changeAllpass ::
   ( SetterVal argA
   , SetterVal argB
   , BinToInt p
-  , GetSkolemFromRecursiveArgument fOfargC skolem
-  , ToSkolemizedFunction fOfargC skolem argC
   , Modify (CTOR.Allpass argA argB argC) p igraph nextP
   , Change nextP argC igraph outInner
   ) =>
-  Change (SingleEdge p) (CTOR.Allpass argA argB fOfargC) igraph (CTOR.Allpass AudioParameter AudioParameter outInner) where
-  change' _ (CTOR.Allpass argA argB fOfargC) =
-    let
-      argC = (((toSkolemizedFunction :: fOfargC -> (Proxy skolem -> argC)) fOfargC) Proxy)
-    in
-      WAGS.do
-        (CTOR.Allpass argA' argB' _) <- unsafePartial $ changeAudioUnit (Proxy :: Proxy (Proxy p /\ Proxy nextP /\ Proxy igraph)) (CTOR.Allpass argA argB argC)
-        CTOR.Allpass argA' argB' <$> (change' :: ChangeType nextP argC igraph outInner) Proxy argC
+  Change (SingleEdge p) (CTOR.Allpass argA argB argC) igraph (CTOR.Allpass AudioParameter AudioParameter outInner) where
+  change' _ (CTOR.Allpass argA argB argC) = WAGS.do
+    (CTOR.Allpass argA' argB' _) <- unsafePartial $ changeAudioUnit (Proxy :: Proxy (Proxy p /\ Proxy nextP /\ Proxy igraph)) (CTOR.Allpass argA argB argC)
+    CTOR.Allpass argA' argB' <$> (change' :: ChangeType nextP argC igraph outInner) Proxy argC
 
 instance changeBandpass ::
   ( SetterVal argA
   , SetterVal argB
   , BinToInt p
-  , GetSkolemFromRecursiveArgument fOfargC skolem
-  , ToSkolemizedFunction fOfargC skolem argC
   , Modify (CTOR.Bandpass argA argB argC) p igraph nextP
   , Change nextP argC igraph outInner
   ) =>
-  Change (SingleEdge p) (CTOR.Bandpass argA argB fOfargC) igraph (CTOR.Bandpass AudioParameter AudioParameter outInner) where
-  change' _ (CTOR.Bandpass argA argB fOfargC) =
-    let
-      argC = (((toSkolemizedFunction :: fOfargC -> (Proxy skolem -> argC)) fOfargC) Proxy)
-    in
-      WAGS.do
-        (CTOR.Bandpass argA' argB' _) <- unsafePartial $ changeAudioUnit (Proxy :: Proxy (Proxy p /\ Proxy nextP /\ Proxy igraph)) (CTOR.Bandpass argA argB argC)
-        CTOR.Bandpass argA' argB' <$> (change' :: ChangeType nextP argC igraph outInner) Proxy argC
+  Change (SingleEdge p) (CTOR.Bandpass argA argB argC) igraph (CTOR.Bandpass AudioParameter AudioParameter outInner) where
+  change' _ (CTOR.Bandpass argA argB argC) = WAGS.do
+    (CTOR.Bandpass argA' argB' _) <- unsafePartial $ changeAudioUnit (Proxy :: Proxy (Proxy p /\ Proxy nextP /\ Proxy igraph)) (CTOR.Bandpass argA argB argC)
+    CTOR.Bandpass argA' argB' <$> (change' :: ChangeType nextP argC igraph outInner) Proxy argC
 
 instance changeConstant ::
   ( SetterVal argA
@@ -760,19 +752,13 @@ instance changeConstant ::
 instance changeDelay ::
   ( SetterVal argA
   , BinToInt p
-  , GetSkolemFromRecursiveArgument fOfargB skolem
-  , ToSkolemizedFunction fOfargB skolem argB
   , Modify (CTOR.Delay argA argB) p igraph nextP
   , Change nextP argB igraph outInner
   ) =>
-  Change (SingleEdge p) (CTOR.Delay argA fOfargB) igraph (CTOR.Delay AudioParameter outInner) where
-  change' _ (CTOR.Delay argA fOfargB) =
-    let
-      argB = (((toSkolemizedFunction :: fOfargB -> (Proxy skolem -> argB)) fOfargB) Proxy)
-    in
-      WAGS.do
-        (CTOR.Delay argA' _) <- unsafePartial $ changeAudioUnit (Proxy :: Proxy (Proxy p /\ Proxy nextP /\ Proxy igraph)) (CTOR.Delay argA argB)
-        CTOR.Delay argA' <$> (change' :: ChangeType nextP argB igraph outInner) Proxy argB
+  Change (SingleEdge p) (CTOR.Delay argA argB) igraph (CTOR.Delay AudioParameter outInner) where
+  change' _ (CTOR.Delay argA argB) = WAGS.do
+    (CTOR.Delay argA' _) <- unsafePartial $ changeAudioUnit (Proxy :: Proxy (Proxy p /\ Proxy nextP /\ Proxy igraph)) (CTOR.Delay argA argB)
+    CTOR.Delay argA' <$> (change' :: ChangeType nextP argB igraph outInner) Proxy argB
 
 instance changeDynamicsCompressor ::
   ( SetterVal argA
@@ -781,55 +767,37 @@ instance changeDynamicsCompressor ::
   , SetterVal argD
   , SetterVal argE
   , BinToInt p
-  , GetSkolemFromRecursiveArgument fOfargF skolem
-  , ToSkolemizedFunction fOfargF skolem argF
   , Modify (CTOR.DynamicsCompressor argA argB argC argD argE argF) p igraph nextP
   , Change nextP argF igraph outInner
   ) =>
-  Change (SingleEdge p) (CTOR.DynamicsCompressor argA argB argC argD argE fOfargF) igraph (CTOR.DynamicsCompressor AudioParameter AudioParameter AudioParameter AudioParameter AudioParameter outInner) where
-  change' _ (CTOR.DynamicsCompressor argA argB argC argD argE fOfargF) =
-    let
-      argF = (((toSkolemizedFunction :: fOfargF -> (Proxy skolem -> argF)) fOfargF) Proxy)
-    in
-      WAGS.do
-        (CTOR.DynamicsCompressor argA' argB' argC' argD' argE' _) <- unsafePartial $ changeAudioUnit (Proxy :: Proxy (Proxy p /\ Proxy nextP /\ Proxy igraph)) (CTOR.DynamicsCompressor argA argB argC argD argE argF)
-        CTOR.DynamicsCompressor argA' argB' argC' argD' argE' <$> (change' :: ChangeType nextP argF igraph outInner) Proxy argF
+  Change (SingleEdge p) (CTOR.DynamicsCompressor argA argB argC argD argE argF) igraph (CTOR.DynamicsCompressor AudioParameter AudioParameter AudioParameter AudioParameter AudioParameter outInner) where
+  change' _ (CTOR.DynamicsCompressor argA argB argC argD argE argF) = WAGS.do
+    (CTOR.DynamicsCompressor argA' argB' argC' argD' argE' _) <- unsafePartial $ changeAudioUnit (Proxy :: Proxy (Proxy p /\ Proxy nextP /\ Proxy igraph)) (CTOR.DynamicsCompressor argA argB argC argD argE argF)
+    CTOR.DynamicsCompressor argA' argB' argC' argD' argE' <$> (change' :: ChangeType nextP argF igraph outInner) Proxy argF
 
 instance changeHighpass ::
   ( SetterVal argA
   , SetterVal argB
   , BinToInt p
-  , GetSkolemFromRecursiveArgument fOfargC skolem
-  , ToSkolemizedFunction fOfargC skolem argC
   , Modify (CTOR.Highpass argA argB argC) p igraph nextP
   , Change nextP argC igraph outInner
   ) =>
-  Change (SingleEdge p) (CTOR.Highpass argA argB fOfargC) igraph (CTOR.Highpass AudioParameter AudioParameter outInner) where
-  change' _ (CTOR.Highpass argA argB fOfargC) =
-    let
-      argC = (((toSkolemizedFunction :: fOfargC -> (Proxy skolem -> argC)) fOfargC) Proxy)
-    in
-      WAGS.do
-        (CTOR.Highpass argA' argB' _) <- unsafePartial $ changeAudioUnit (Proxy :: Proxy (Proxy p /\ Proxy nextP /\ Proxy igraph)) (CTOR.Highpass argA argB argC)
-        CTOR.Highpass argA' argB' <$> (change' :: ChangeType nextP argC igraph outInner) Proxy argC
+  Change (SingleEdge p) (CTOR.Highpass argA argB argC) igraph (CTOR.Highpass AudioParameter AudioParameter outInner) where
+  change' _ (CTOR.Highpass argA argB argC) = WAGS.do
+    (CTOR.Highpass argA' argB' _) <- unsafePartial $ changeAudioUnit (Proxy :: Proxy (Proxy p /\ Proxy nextP /\ Proxy igraph)) (CTOR.Highpass argA argB argC)
+    CTOR.Highpass argA' argB' <$> (change' :: ChangeType nextP argC igraph outInner) Proxy argC
 
 instance changeHighshelf ::
   ( SetterVal argA
   , SetterVal argB
   , BinToInt p
-  , GetSkolemFromRecursiveArgument fOfargC skolem
-  , ToSkolemizedFunction fOfargC skolem argC
   , Modify (CTOR.Highshelf argA argB argC) p igraph nextP
   , Change nextP argC igraph outInner
   ) =>
-  Change (SingleEdge p) (CTOR.Highshelf argA argB fOfargC) igraph (CTOR.Highshelf AudioParameter AudioParameter outInner) where
-  change' _ (CTOR.Highshelf argA argB fOfargC) =
-    let
-      argC = (((toSkolemizedFunction :: fOfargC -> (Proxy skolem -> argC)) fOfargC) Proxy)
-    in
-      WAGS.do
-        (CTOR.Highshelf argA' argB' _) <- unsafePartial $ changeAudioUnit (Proxy :: Proxy (Proxy p /\ Proxy nextP /\ Proxy igraph)) (CTOR.Highshelf argA argB argC)
-        CTOR.Highshelf argA' argB' <$> (change' :: ChangeType nextP argC igraph outInner) Proxy argC
+  Change (SingleEdge p) (CTOR.Highshelf argA argB argC) igraph (CTOR.Highshelf AudioParameter AudioParameter outInner) where
+  change' _ (CTOR.Highshelf argA argB argC) = WAGS.do
+    (CTOR.Highshelf argA' argB' _) <- unsafePartial $ changeAudioUnit (Proxy :: Proxy (Proxy p /\ Proxy nextP /\ Proxy igraph)) (CTOR.Highshelf argA argB argC)
+    CTOR.Highshelf argA' argB' <$> (change' :: ChangeType nextP argC igraph outInner) Proxy argC
 
 instance changeLoopBuf ::
   ( SetterVal argB
@@ -843,37 +811,25 @@ instance changeLowpass ::
   ( SetterVal argA
   , SetterVal argB
   , BinToInt p
-  , GetSkolemFromRecursiveArgument fOfargC skolem
-  , ToSkolemizedFunction fOfargC skolem argC
   , Modify (CTOR.Lowpass argA argB argC) p igraph nextP
   , Change nextP argC igraph outInner
   ) =>
-  Change (SingleEdge p) (CTOR.Lowpass argA argB fOfargC) igraph (CTOR.Lowpass AudioParameter AudioParameter outInner) where
-  change' _ (CTOR.Lowpass argA argB fOfargC) =
-    let
-      argC = (((toSkolemizedFunction :: fOfargC -> (Proxy skolem -> argC)) fOfargC) Proxy)
-    in
-      WAGS.do
-        (CTOR.Lowpass argA' argB' _) <- unsafePartial $ changeAudioUnit (Proxy :: Proxy (Proxy p /\ Proxy nextP /\ Proxy igraph)) (CTOR.Lowpass argA argB argC)
-        CTOR.Lowpass argA' argB' <$> (change' :: ChangeType nextP argC igraph outInner) Proxy argC
+  Change (SingleEdge p) (CTOR.Lowpass argA argB argC) igraph (CTOR.Lowpass AudioParameter AudioParameter outInner) where
+  change' _ (CTOR.Lowpass argA argB argC) = WAGS.do
+    (CTOR.Lowpass argA' argB' _) <- unsafePartial $ changeAudioUnit (Proxy :: Proxy (Proxy p /\ Proxy nextP /\ Proxy igraph)) (CTOR.Lowpass argA argB argC)
+    CTOR.Lowpass argA' argB' <$> (change' :: ChangeType nextP argC igraph outInner) Proxy argC
 
 instance changeLowshelf ::
   ( SetterVal argA
   , SetterVal argB
   , BinToInt p
-  , GetSkolemFromRecursiveArgument fOfargC skolem
-  , ToSkolemizedFunction fOfargC skolem argC
   , Modify (CTOR.Lowshelf argA argB argC) p igraph nextP
   , Change nextP argC igraph outInner
   ) =>
-  Change (SingleEdge p) (CTOR.Lowshelf argA argB fOfargC) igraph (CTOR.Lowshelf AudioParameter AudioParameter outInner) where
-  change' _ (CTOR.Lowshelf argA argB fOfargC) =
-    let
-      argC = (((toSkolemizedFunction :: fOfargC -> (Proxy skolem -> argC)) fOfargC) Proxy)
-    in
-      WAGS.do
-        (CTOR.Lowshelf argA' argB' _) <- unsafePartial $ changeAudioUnit (Proxy :: Proxy (Proxy p /\ Proxy nextP /\ Proxy igraph)) (CTOR.Lowshelf argA argB argC)
-        CTOR.Lowshelf argA' argB' <$> (change' :: ChangeType nextP argC igraph outInner) Proxy argC
+  Change (SingleEdge p) (CTOR.Lowshelf argA argB argC) igraph (CTOR.Lowshelf AudioParameter AudioParameter outInner) where
+  change' _ (CTOR.Lowshelf argA argB argC) = WAGS.do
+    (CTOR.Lowshelf argA' argB' _) <- unsafePartial $ changeAudioUnit (Proxy :: Proxy (Proxy p /\ Proxy nextP /\ Proxy igraph)) (CTOR.Lowshelf argA argB argC)
+    CTOR.Lowshelf argA' argB' <$> (change' :: ChangeType nextP argC igraph outInner) Proxy argC
 
 instance changeMicrophone ::
   Change (SingleEdge p) (CTOR.Microphone) igraph CTOR.Microphone where
@@ -883,38 +839,26 @@ instance changeNotch ::
   ( SetterVal argA
   , SetterVal argB
   , BinToInt p
-  , GetSkolemFromRecursiveArgument fOfargC skolem
-  , ToSkolemizedFunction fOfargC skolem argC
   , Modify (CTOR.Notch argA argB argC) p igraph nextP
   , Change nextP argC igraph outInner
   ) =>
-  Change (SingleEdge p) (CTOR.Notch argA argB fOfargC) igraph (CTOR.Notch AudioParameter AudioParameter outInner) where
-  change' _ (CTOR.Notch argA argB fOfargC) =
-    let
-      argC = (((toSkolemizedFunction :: fOfargC -> (Proxy skolem -> argC)) fOfargC) Proxy)
-    in
-      WAGS.do
-        (CTOR.Notch argA' argB' _) <- unsafePartial $ changeAudioUnit (Proxy :: Proxy (Proxy p /\ Proxy nextP /\ Proxy igraph)) (CTOR.Notch argA argB argC)
-        CTOR.Notch argA' argB' <$> (change' :: ChangeType nextP argC igraph outInner) Proxy argC
+  Change (SingleEdge p) (CTOR.Notch argA argB argC) igraph (CTOR.Notch AudioParameter AudioParameter outInner) where
+  change' _ (CTOR.Notch argA argB argC) = WAGS.do
+    (CTOR.Notch argA' argB' _) <- unsafePartial $ changeAudioUnit (Proxy :: Proxy (Proxy p /\ Proxy nextP /\ Proxy igraph)) (CTOR.Notch argA argB argC)
+    CTOR.Notch argA' argB' <$> (change' :: ChangeType nextP argC igraph outInner) Proxy argC
 
 instance changePeaking ::
   ( SetterVal argA
   , SetterVal argB
   , SetterVal argC
   , BinToInt p
-  , GetSkolemFromRecursiveArgument fOfargD skolem
-  , ToSkolemizedFunction fOfargD skolem argD
   , Modify (CTOR.Peaking argA argB argC argD) p igraph nextP
   , Change nextP argD igraph outInner
   ) =>
-  Change (SingleEdge p) (CTOR.Peaking argA argB argC fOfargD) igraph (CTOR.Peaking AudioParameter AudioParameter AudioParameter outInner) where
-  change' _ (CTOR.Peaking argA argB argC fOfargD) =
-    let
-      argD = (((toSkolemizedFunction :: fOfargD -> (Proxy skolem -> argD)) fOfargD) Proxy)
-    in
-      WAGS.do
-        (CTOR.Peaking argA' argB' argC' _) <- unsafePartial $ changeAudioUnit (Proxy :: Proxy (Proxy p /\ Proxy nextP /\ Proxy igraph)) (CTOR.Peaking argA argB argC argD)
-        CTOR.Peaking argA' argB' argC' <$> (change' :: ChangeType nextP argD igraph outInner) Proxy argD
+  Change (SingleEdge p) (CTOR.Peaking argA argB argC argD) igraph (CTOR.Peaking AudioParameter AudioParameter AudioParameter outInner) where
+  change' _ (CTOR.Peaking argA argB argC argD) = WAGS.do
+    (CTOR.Peaking argA' argB' argC' _) <- unsafePartial $ changeAudioUnit (Proxy :: Proxy (Proxy p /\ Proxy nextP /\ Proxy igraph)) (CTOR.Peaking argA argB argC argD)
+    CTOR.Peaking argA' argB' argC' <$> (change' :: ChangeType nextP argD igraph outInner) Proxy argD
 
 instance changePeriodicOsc ::
   ( SetterVal argB
@@ -959,19 +903,13 @@ instance changeSquareOsc ::
 instance changeStereoPanner ::
   ( SetterVal argA
   , BinToInt p
-  , GetSkolemFromRecursiveArgument fOfargB skolem
-  , ToSkolemizedFunction fOfargB skolem argB
   , Modify (CTOR.StereoPanner argA argB) p igraph nextP
   , Change nextP argB igraph outInner
   ) =>
-  Change (SingleEdge p) (CTOR.StereoPanner argA fOfargB) igraph (CTOR.StereoPanner AudioParameter outInner) where
-  change' _ (CTOR.StereoPanner argA fOfargB) =
-    let
-      argB = (((toSkolemizedFunction :: fOfargB -> (Proxy skolem -> argB)) fOfargB) Proxy)
-    in
-      WAGS.do
-        (CTOR.StereoPanner argA' _) <- unsafePartial $ changeAudioUnit (Proxy :: Proxy (Proxy p /\ Proxy nextP /\ Proxy igraph)) (CTOR.StereoPanner argA argB)
-        CTOR.StereoPanner argA' <$> (change' :: ChangeType nextP argB igraph outInner) Proxy argB
+  Change (SingleEdge p) (CTOR.StereoPanner argA argB) igraph (CTOR.StereoPanner AudioParameter outInner) where
+  change' _ (CTOR.StereoPanner argA argB) = WAGS.do
+    (CTOR.StereoPanner argA' _) <- unsafePartial $ changeAudioUnit (Proxy :: Proxy (Proxy p /\ Proxy nextP /\ Proxy igraph)) (CTOR.StereoPanner argA argB)
+    CTOR.StereoPanner argA' <$> (change' :: ChangeType nextP argB igraph outInner) Proxy argB
 
 instance changeTriangleOsc ::
   ( SetterVal argA
@@ -985,49 +923,31 @@ instance changeTriangleOsc ::
 instance changeGain ::
   ( SetterVal a
   , BinToInt p
-  , GetSkolemFromRecursiveArgument fb skolem
-  , ToSkolemizedFunction fb skolem b
   , Modify (CTOR.Gain a b) p igraph nextP
   , Change nextP b igraph outInner
   ) =>
-  Change (SingleEdge p) (CTOR.Gain a fb) igraph (CTOR.Gain AudioParameter outInner) where
-  change' _ (CTOR.Gain a fb) =
-    let
-      b = (((toSkolemizedFunction :: fb -> (Proxy skolem -> b)) fb) Proxy)
-    in
-      WAGS.do
-        (CTOR.Gain vol _) <- unsafePartial $ changeAudioUnit (Proxy :: Proxy (Proxy p /\ Proxy nextP /\ Proxy igraph)) (CTOR.Gain a b)
-        CTOR.Gain vol <$> (change' :: ChangeType nextP b igraph outInner) Proxy b
+  Change (SingleEdge p) (CTOR.Gain a b) igraph (CTOR.Gain AudioParameter outInner) where
+  change' _ (CTOR.Gain a b) = WAGS.do
+    (CTOR.Gain vol _) <- unsafePartial $ changeAudioUnit (Proxy :: Proxy (Proxy p /\ Proxy nextP /\ Proxy igraph)) (CTOR.Gain a b)
+    CTOR.Gain vol <$> (change' :: ChangeType nextP b igraph outInner) Proxy b
 
 instance changeSpeaker ::
   ( BinToInt p
-  , GetSkolemFromRecursiveArgument fa skolem
-  , ToSkolemizedFunction fa skolem a
   , Modify (CTOR.Speaker a) p igraph nextP
   , Change nextP a igraph outInner
   ) =>
-  Change (SingleEdge p) (CTOR.Speaker fa) igraph (CTOR.Speaker outInner) where
-  change' _ (CTOR.Speaker fa) =
-    let
-      a = (((toSkolemizedFunction :: fa -> (Proxy skolem -> a)) fa) Proxy)
-    in
-      WAGS.do
-        ivoid $ unsafePartial $ changeAudioUnit (Proxy :: Proxy (Proxy p /\ Proxy nextP /\ Proxy igraph)) (CTOR.Speaker a)
-        CTOR.Speaker <$> (change' :: ChangeType nextP a igraph outInner) Proxy a
+  Change (SingleEdge p) (CTOR.Speaker a) igraph (CTOR.Speaker outInner) where
+  change' _ (CTOR.Speaker a) = WAGS.do
+    ivoid $ unsafePartial $ changeAudioUnit (Proxy :: Proxy (Proxy p /\ Proxy nextP /\ Proxy igraph)) (CTOR.Speaker a)
+    CTOR.Speaker <$> (change' :: ChangeType nextP a igraph outInner) Proxy a
 
 instance changeWaveShaper ::
   ( BinToInt p
-  , GetSkolemFromRecursiveArgument fOfargB skolem
-  , ToSkolemizedFunction fOfargB skolem argB
   , Modify (CTOR.WaveShaper sym overshape argB) p igraph nextP
   , Change nextP argB igraph outInner
   ) =>
-  Change (SingleEdge p) (CTOR.WaveShaper sym overshape fOfargB) igraph (CTOR.WaveShaper sym overshape outInner) where
-  change' _ (CTOR.WaveShaper wv od fOfargB) =
-    let
-      argB = (((toSkolemizedFunction :: fOfargB -> (Proxy skolem -> argB)) fOfargB) Proxy)
-    in
-      CTOR.WaveShaper wv od <$> (change' :: ChangeType nextP argB igraph outInner) Proxy argB
+  Change (SingleEdge p) (CTOR.WaveShaper sym overshape argB) igraph (CTOR.WaveShaper sym overshape outInner) where
+  change' _ (CTOR.WaveShaper wv od argB) = CTOR.WaveShaper wv od <$> (change' :: ChangeType nextP argB igraph outInner) Proxy argB
 
 instance changeRecorder ::
   ( BinToInt p
