@@ -7,8 +7,6 @@ module WAGS.Control.Functions
   , branch
   , inSitu
   , universe
-  , currentIdx
-  , changeBit
   , env
   , freeze
   , graph
@@ -26,16 +24,13 @@ import Data.Either (Either(..))
 import Data.Functor.Indexed (imap)
 import Data.Map as M
 import Data.Tuple.Nested ((/\))
-import Type.Data.Peano (Succ)
 import Type.Proxy (Proxy(..))
 import Unsafe.Coerce (unsafeCoerce)
-import WAGS.Change (changes)
 import WAGS.Control.MemoizedState (makeMemoizedStateT, runMemoizedStateT')
 import WAGS.Control.Qualified as WAGS
 import WAGS.Control.Types (AudioState', FrameT, InitialFrameT, SceneT(..), SceneT', oneFrameT, unsafeFrame, unsafeUnframe)
 import WAGS.Interpret (class AudioInterpret)
-import WAGS.Universe.Universe (UniverseC)
-import WAGS.Validation (class GraphIsRenderable, class TerminalIdentityEdge)
+import WAGS.Validation (class GraphIsRenderable)
 
 -- | The initial `Frame` that is needed to begin any `Scene`.
 -- |
@@ -95,18 +90,15 @@ initialAudioState e =
 -- |         )
 -- | ```
 makeScene ::
-  forall env audio engine proofA m res i currentIdx graph changeBit skolems a.
+  forall env audio engine proofA m res i graph a.
   Monad m =>
   Monoid res =>
   AudioInterpret audio engine =>
   GraphIsRenderable graph =>
-  FrameT env audio engine proofA m res i
-    (UniverseC currentIdx graph changeBit skolems)
+  FrameT env audio engine proofA m res { | i } { | graph }
     (Either (SceneT env audio engine proofA m res) a) ->
   ( forall proofB.
-    FrameT env audio engine proofB m res i
-      (UniverseC currentIdx graph changeBit skolems)
-      a ->
+    FrameT env audio engine proofB m res { | i } { | graph } a ->
     SceneT env audio engine proofB m res
   ) ->
   SceneT env audio engine proofA m res
@@ -163,20 +155,19 @@ infixr 6 makeScene as @>
 -- |         )
 -- | ```
 loop ::
-  forall env audio engine proofA i m res currentIdx graph changeBit skolems edge a.
+  forall env audio engine proofA i m res graph a.
   Monad m =>
   Monoid res =>
   AudioInterpret audio engine =>
-  TerminalIdentityEdge graph edge =>
   GraphIsRenderable graph =>
-  ( forall proofB j.
+  ( forall proofB.
     a ->
-    FrameT env audio engine proofB m res (UniverseC currentIdx graph j skolems)
-      (UniverseC currentIdx graph (Succ j) skolems)
+    FrameT env audio engine proofB m res { | graph }
+      { | graph }
       a
   ) ->
-  FrameT env audio engine proofA m res i
-    (UniverseC currentIdx graph changeBit skolems)
+  FrameT env audio engine proofA m res { | i }
+    { | graph }
     a ->
   SceneT env audio engine proofA m res
 loop fa ma = makeScene (imap Right $ WAGS.bind ma fa) (loop fa)
@@ -213,32 +204,30 @@ loop fa ma = makeScene (imap Right $ WAGS.bind ma fa) (loop fa)
 -- |       )
 -- | ```
 branch ::
-  forall env audio engine proofA i m res currentIdx graph changeBit skolems a.
+  forall env audio engine proofA i m res graph a.
   Monad m =>
   Monoid res =>
   AudioInterpret audio engine =>
   GraphIsRenderable graph =>
-  ( forall proofB j.
+  ( forall proofB.
     a ->
     FrameT env audio engine proofB m res
-      (UniverseC currentIdx graph j skolems)
-      (UniverseC currentIdx graph j skolems)
+      { | graph }
+      { | graph }
       ( Either
-          ( FrameT env audio engine proofB m res i
-              (UniverseC currentIdx graph j skolems)
+          ( FrameT env audio engine proofB m res { | i }
+              { | graph }
               Unit ->
             SceneT env audio engine proofB m res
           )
           ( FrameT env audio engine proofB m res
-              (UniverseC currentIdx graph j skolems)
-              (UniverseC currentIdx graph (Succ j) skolems)
+              { | graph }
+              { | graph }
               a
           )
       )
   ) ->
-  FrameT env audio engine proofA m res i
-    (UniverseC currentIdx graph changeBit skolems)
-    a ->
+  FrameT env audio engine proofA m res { | i } { | graph } a ->
   SceneT env audio engine proofA m res
 branch mch m =
   makeScene
@@ -246,7 +235,9 @@ branch mch m =
         r <- m
         mbe <- mch r
         case mbe of
-          Left l -> changes unit $> Left (l (m $> unit))
+          Left l -> WAGS.do
+            pr <- proof
+            withProof pr unit $> Left (l (m $> unit))
           Right fa -> imap Right fa
     )
     (branch mch)
@@ -274,31 +265,25 @@ inSitu f x thunk =
 -- | scene = (start :*> create (speaker (sinOsc 440.0))) @|> freeze
 -- | ```
 freeze ::
-  forall env audio engine proof m res i currentIdx graph changeBit skolems x.
+  forall env audio engine proof m res i graph x.
   Monad m =>
   Monoid res =>
   AudioInterpret audio engine =>
   GraphIsRenderable graph =>
-  FrameT env audio engine proof m res i
-    (UniverseC currentIdx graph changeBit skolems)
-    x ->
+  FrameT env audio engine proof m res { | i } { | graph } x ->
   SceneT env audio engine proof m res
 freeze s = makeScene (imap Right s) freeze
 
 -- | Similar to `makeScene'`, but without the possibility to branch to a new scene. Aliased as `@|>`.
 makeScene' ::
-  forall env audio engine proofA m res i currentIdx graph changeBit skolems a.
+  forall env audio engine proofA m res i graph a.
   Monad m =>
   Monoid res =>
   AudioInterpret audio engine =>
   GraphIsRenderable graph =>
-  FrameT env audio engine proofA m res i
-    (UniverseC currentIdx graph changeBit skolems)
-    a ->
+  FrameT env audio engine proofA m res { | i } { | graph } a ->
   ( forall proofB.
-    FrameT env audio engine proofB m res i
-      (UniverseC currentIdx graph changeBit skolems)
-      a ->
+    FrameT env audio engine proofB m res { | i } { | graph } a ->
     SceneT env audio engine proofB m res
   ) ->
   SceneT env audio engine proofA m res
@@ -421,38 +406,16 @@ universe ::
   FrameT env audio engine proof m res i i (Proxy i)
 universe = unsafeFrame $ pure $ (Proxy :: _ i)
 
--- | Get the current index as a proxy.
-currentIdx ::
-  forall env audio engine proof m res currentIdx graph changeBit skolems.
-  Monad m =>
-  AudioInterpret audio engine =>
-  FrameT env audio engine proof m res
-    (UniverseC currentIdx graph changeBit skolems)
-    (UniverseC currentIdx graph changeBit skolems)
-    (Proxy currentIdx)
-currentIdx = unsafeFrame $ pure $ (Proxy :: _ currentIdx)
-
 -- | Get the current graph as a proxy.
 graph ::
-  forall env audio engine proof m res currentIdx graph changeBit skolems.
+  forall env audio engine proof m res graph.
   Monad m =>
   AudioInterpret audio engine =>
   FrameT env audio engine proof m res
-    (UniverseC currentIdx graph changeBit skolems)
-    (UniverseC currentIdx graph changeBit skolems)
+    graph
+    graph
     (Proxy graph)
 graph = unsafeFrame $ pure $ (Proxy :: _ graph)
-
--- | Get the changeBit as a proxy.
-changeBit ::
-  forall env audio engine proof m res currentIdx graph changeBit skolems.
-  Monad m =>
-  AudioInterpret audio engine =>
-  FrameT env audio engine proof m res
-    (UniverseC currentIdx graph changeBit skolems)
-    (UniverseC currentIdx graph changeBit skolems)
-    (Proxy changeBit)
-changeBit = unsafeFrame $ pure $ (Proxy :: _ changeBit)
 
 -- | Lift a computation from the underlying monad `m` into `FrameT`.
 lift ::

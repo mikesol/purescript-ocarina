@@ -108,8 +108,8 @@ type EasingAlgorithm
 -- |
 -- | This information can be used for visualizing the audio graph or for other instruments outside of a browser that are using the browser as a control layer.
 type Run res
-  = { nodes :: M.Map Int AnAudioUnit
-    , edges :: M.Map Int (Set Int)
+  = { nodes :: M.Map String AnAudioUnit
+    , edges :: M.Map String (Set String)
     , res :: res
     }
 

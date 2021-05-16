@@ -1,11 +1,11 @@
 module WAGS.Graph.Getter where
 
 import Prelude
-import Data.Identity (Identity)
-import Data.Tuple (Tuple(..))
-import Type.Proxy (Proxy(..))
-import WAGS.Graph.Constructors as CTOR
-import WAGS.Graph.Decorators (IgnoreMe, Focus, This)
+import Data.Symbol (class IsSymbol)
+import Heterogeneous.Folding (class FoldingWithIndex)
+import Prim.Row as R
+import Record as Record
+import WAGS.Graph.AudioUnit as CTOR
 import WAGS.Graph.Parameter (AudioParameter)
 
 type A2A
@@ -17,53 +17,50 @@ type A2A
 class AsGetter (a :: Type) (b :: Type) | a -> b where
   asGetter :: a -> b
 
-instance asGetterAllpass :: AsGetter c c' => AsGetter (CTOR.Allpass a b c) (CTOR.Allpass A2A A2A c') where
-  asGetter (CTOR.Allpass _ _ c) = CTOR.Allpass identity identity (asGetter c)
+instance asGetterAllpass :: AsGetter (CTOR.Allpass a b) (CTOR.Allpass A2A A2A) where
+  asGetter (CTOR.Allpass _ _) = CTOR.Allpass identity identity
 
-instance asGetterBandpass :: AsGetter c c' => AsGetter (CTOR.Bandpass a b c) (CTOR.Bandpass A2A A2A c') where
-  asGetter (CTOR.Bandpass _ _ c) = CTOR.Bandpass identity identity (asGetter c)
+instance asGetterBandpass :: AsGetter (CTOR.Bandpass a b) (CTOR.Bandpass A2A A2A) where
+  asGetter (CTOR.Bandpass _ _) = CTOR.Bandpass identity identity
 
 instance asGetterConstant :: AsGetter (CTOR.Constant a) (CTOR.Constant A2A) where
   asGetter (CTOR.Constant a _) = CTOR.Constant a identity
 
-instance asGetterConvolver :: AsGetter b b' => AsGetter (CTOR.Convolver a b) (CTOR.Convolver a b') where
-  asGetter (CTOR.Convolver a b) = CTOR.Convolver a (asGetter b)
+instance asGetterConvolver :: AsGetter (CTOR.Convolver a) (CTOR.Convolver a) where
+  asGetter = identity
 
-instance asGetterDelay :: AsGetter b b' => AsGetter (CTOR.Delay a b) (CTOR.Delay A2A b') where
-  asGetter (CTOR.Delay _ b) = CTOR.Delay identity (asGetter b)
+instance asGetterDelay :: AsGetter (CTOR.Delay a) (CTOR.Delay A2A) where
+  asGetter (CTOR.Delay _) = CTOR.Delay identity
 
-instance asGetterDup :: (AsGetter a a', AsGetter b b') => AsGetter (CTOR.Dup a b) (CTOR.Dup a' b') where
-  asGetter (CTOR.Dup a b) = CTOR.Dup (asGetter a) (asGetter b)
+instance asGetterDynamicsCompressor :: AsGetter f f' => AsGetter (CTOR.DynamicsCompressor a b c d e) (CTOR.DynamicsCompressor A2A A2A A2A A2A A2A) where
+  asGetter (CTOR.DynamicsCompressor _ _ _ _ _) = CTOR.DynamicsCompressor identity identity identity identity identity
 
-instance asGetterDynamicsCompressor :: AsGetter f f' => AsGetter (CTOR.DynamicsCompressor a b c d e f) (CTOR.DynamicsCompressor A2A A2A A2A A2A A2A f') where
-  asGetter (CTOR.DynamicsCompressor _ _ _ _ _ f) = CTOR.DynamicsCompressor identity identity identity identity identity (asGetter f)
+instance asGetterGain :: AsGetter (CTOR.Gain a) (CTOR.Gain A2A) where
+  asGetter (CTOR.Gain _) = CTOR.Gain identity
 
-instance asGetterGain :: AsGetter b b' => AsGetter (CTOR.Gain a b) (CTOR.Gain A2A b') where
-  asGetter (CTOR.Gain _ b) = CTOR.Gain identity (asGetter b)
+instance asGetterHighpass :: AsGetter (CTOR.Highpass a b) (CTOR.Highpass A2A A2A) where
+  asGetter (CTOR.Highpass _ _) = CTOR.Highpass identity identity
 
-instance asGetterHighpass :: AsGetter c c' => AsGetter (CTOR.Highpass a b c) (CTOR.Highpass A2A A2A c') where
-  asGetter (CTOR.Highpass _ _ c) = CTOR.Highpass identity identity (asGetter c)
-
-instance asGetterHighshelf :: AsGetter c c' => AsGetter (CTOR.Highshelf a b c) (CTOR.Highshelf A2A A2A c') where
-  asGetter (CTOR.Highshelf _ _ c) = CTOR.Highshelf identity identity (asGetter c)
+instance asGetterHighshelf :: AsGetter (CTOR.Highshelf a b) (CTOR.Highshelf A2A A2A) where
+  asGetter (CTOR.Highshelf _ _) = CTOR.Highshelf identity identity
 
 instance asGetterLoopBuf :: AsGetter (CTOR.LoopBuf a) (CTOR.LoopBuf A2A) where
   asGetter (CTOR.LoopBuf a b _ d e) = CTOR.LoopBuf a b identity d e
 
-instance asGetterLowpass :: AsGetter c c' => AsGetter (CTOR.Lowpass a b c) (CTOR.Lowpass A2A A2A c') where
-  asGetter (CTOR.Lowpass _ _ c) = CTOR.Lowpass identity identity (asGetter c)
+instance asGetterLowpass :: AsGetter (CTOR.Lowpass a b) (CTOR.Lowpass A2A A2A) where
+  asGetter (CTOR.Lowpass _ _) = CTOR.Lowpass identity identity
 
-instance asGetterLowshelf :: AsGetter c c' => AsGetter (CTOR.Lowshelf a b c) (CTOR.Lowshelf A2A A2A c') where
-  asGetter (CTOR.Lowshelf _ _ c) = CTOR.Lowshelf identity identity (asGetter c)
+instance asGetterLowshelf :: AsGetter (CTOR.Lowshelf a b) (CTOR.Lowshelf A2A A2A) where
+  asGetter (CTOR.Lowshelf _ _) = CTOR.Lowshelf identity identity
 
 instance asGetterMicrophone :: AsGetter CTOR.Microphone CTOR.Microphone where
   asGetter = identity
 
-instance asGetterNotch :: AsGetter c c' => AsGetter (CTOR.Notch a b c) (CTOR.Notch A2A A2A c') where
-  asGetter (CTOR.Notch _ _ c) = CTOR.Notch identity identity (asGetter c)
+instance asGetterNotch :: AsGetter (CTOR.Notch a b) (CTOR.Notch A2A A2A) where
+  asGetter (CTOR.Notch _ _) = CTOR.Notch identity identity
 
-instance asGetterPeaking :: AsGetter d d' => AsGetter (CTOR.Peaking a b c d) (CTOR.Peaking A2A A2A A2A d') where
-  asGetter (CTOR.Peaking _ _ _ c) = CTOR.Peaking identity identity identity (asGetter c)
+instance asGetterPeaking :: AsGetter d d' => AsGetter (CTOR.Peaking a b c) (CTOR.Peaking A2A A2A A2A) where
+  asGetter (CTOR.Peaking _ _ _) = CTOR.Peaking identity identity identity
 
 instance asGetterPeriodicOsc :: AsGetter (CTOR.PeriodicOsc a) (CTOR.PeriodicOsc A2A) where
   asGetter (CTOR.PeriodicOsc a b _) = CTOR.PeriodicOsc a b identity
@@ -71,8 +68,8 @@ instance asGetterPeriodicOsc :: AsGetter (CTOR.PeriodicOsc a) (CTOR.PeriodicOsc 
 instance asGetterPlayBuf :: AsGetter (CTOR.PlayBuf a) (CTOR.PlayBuf A2A) where
   asGetter (CTOR.PlayBuf a b c _) = CTOR.PlayBuf a b c identity
 
-instance asGetterRecorder :: AsGetter b b' => AsGetter (CTOR.Recorder a b) (CTOR.Recorder a b') where
-  asGetter (CTOR.Recorder a b) = CTOR.Recorder a (asGetter b)
+instance asGetterRecorder :: AsGetter (CTOR.Recorder a) (CTOR.Recorder a) where
+  asGetter = identity
 
 instance asGetterSawtoothOsc :: AsGetter (CTOR.SawtoothOsc a) (CTOR.SawtoothOsc A2A) where
   asGetter (CTOR.SawtoothOsc a _) = CTOR.SawtoothOsc a identity
@@ -80,41 +77,38 @@ instance asGetterSawtoothOsc :: AsGetter (CTOR.SawtoothOsc a) (CTOR.SawtoothOsc 
 instance asGetterSinOsc :: AsGetter (CTOR.SinOsc a) (CTOR.SinOsc A2A) where
   asGetter (CTOR.SinOsc a _) = CTOR.SinOsc a identity
 
-instance asGetterSpeaker :: AsGetter a a' => AsGetter (CTOR.Speaker a) (CTOR.Speaker a') where
-  asGetter (CTOR.Speaker a) = CTOR.Speaker (asGetter a)
+instance asGetterSpeaker :: AsGetter a a' => AsGetter (CTOR.Speaker) (CTOR.Speaker) where
+  asGetter = identity
 
 instance asGetterSquareOsc :: AsGetter (CTOR.SquareOsc a) (CTOR.SquareOsc A2A) where
   asGetter (CTOR.SquareOsc a _) = CTOR.SquareOsc a identity
 
-instance asGetterStereoPanner :: AsGetter b b' => AsGetter (CTOR.StereoPanner a b) (CTOR.StereoPanner A2A b') where
-  asGetter (CTOR.StereoPanner _ b) = CTOR.StereoPanner identity (asGetter b)
+instance asGetterStereoPanner :: AsGetter (CTOR.StereoPanner a) (CTOR.StereoPanner A2A) where
+  asGetter (CTOR.StereoPanner _) = CTOR.StereoPanner identity
 
 instance asGetterTriangleOsc :: AsGetter (CTOR.TriangleOsc a) (CTOR.TriangleOsc A2A) where
   asGetter (CTOR.TriangleOsc a _) = CTOR.TriangleOsc a identity
 
-instance asGetterWaveShaper :: AsGetter c c' => AsGetter (CTOR.WaveShaper a b c) (CTOR.WaveShaper a b c') where
-  asGetter (CTOR.WaveShaper a b c) = CTOR.WaveShaper a b (asGetter c)
-
-instance asGetterProxy :: AsGetter (Proxy s) (Proxy s) where
+instance asGetterWaveShaper :: AsGetter (CTOR.WaveShaper a b) (CTOR.WaveShaper a b) where
   asGetter = identity
 
-instance asGetterThis :: AsGetter This This where
-  asGetter = identity
+data AsGetterFoldingWithIndex
+  = AsGetterFoldingWithIndex
 
-instance asGetterIgnoreMe :: AsGetter IgnoreMe IgnoreMe where
-  asGetter = identity
-
-instance asGetterFocus :: AsGetter i i' => AsGetter (Focus i) (Focus i') where
-  asGetter = map asGetter
-
-instance asGetterIdntity :: AsGetter i i' => AsGetter (Identity i) (Identity i') where
-  asGetter = map asGetter
-
-instance asGetterUnit :: AsGetter Unit Unit where
-  asGetter = identity
-
-instance isMultiAudioTuple :: (AsGetter a a', AsGetter b b') => AsGetter (Tuple a b) (Tuple a' b') where
-  asGetter (Tuple a b) = Tuple (asGetter a) (asGetter b)
-
-instance asGetterOrFProxy :: AsGetter a a' => AsGetter (Proxy s -> a) (Proxy s -> a') where
-  asGetter f = pure (asGetter (f Proxy))
+instance getterFoldingWithIndex ::
+  ( AsGetter node outNode
+  , IsSymbol sym
+  , R.Lacks sym inRecord
+  , R.Cons sym outNode inRecord outRecord
+  ) =>
+  FoldingWithIndex
+    AsGetterFoldingWithIndex
+    (proxy sym)
+    { | inRecord }
+    node
+    { | outRecord } where
+  foldingWithIndex AsGetterFoldingWithIndex prop ir node =
+    Record.insert
+      prop
+      (asGetter node)
+      ir

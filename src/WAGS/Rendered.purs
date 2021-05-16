@@ -7,60 +7,61 @@ module WAGS.Rendered where
 import Prelude
 import Data.Generic.Rep (class Generic)
 import Data.Show.Generic (genericShow)
-import WAGS.Graph.Constructors (OnOff)
+import WAGS.Graph.AudioUnit (OnOff)
 import WAGS.Graph.Parameter (AudioParameter)
 
 -- An audio rendering instruction. These instructions are used
 -- for testing purposes during "dry run" simulations of audio rendering.
 -- `Instruction` can also be used if web-audio is being used to control other audio units.
 data Instruction
-  = ConnectXToY Int Int
-  | DisconnectXFromY Int Int
-  | DestroyUnit Int
-  | RebaseAllUnits (Array { from :: Int, to :: Int })
-  | MakeAllpass Int AudioParameter AudioParameter
-  | MakeBandpass Int AudioParameter AudioParameter
-  | MakeConstant Int OnOff AudioParameter
-  | MakeConvolver Int String
-  | MakeDelay Int AudioParameter
-  | MakeDynamicsCompressor Int AudioParameter AudioParameter AudioParameter AudioParameter AudioParameter
-  | MakeGain Int AudioParameter
-  | MakeHighpass Int AudioParameter AudioParameter
-  | MakeHighshelf Int AudioParameter AudioParameter
-  | MakeLoopBuf Int String OnOff AudioParameter Number Number
-  | MakeLowpass Int AudioParameter AudioParameter
-  | MakeLowshelf Int AudioParameter AudioParameter
-  | MakeMicrophone Int
-  | MakeNotch Int AudioParameter AudioParameter
-  | MakePeaking Int AudioParameter AudioParameter AudioParameter
-  | MakePeriodicOsc Int String OnOff AudioParameter
-  | MakePlayBuf Int String Number OnOff AudioParameter
-  | MakeRecorder Int String
-  | MakeSawtoothOsc Int OnOff AudioParameter
-  | MakeSinOsc Int OnOff AudioParameter
-  | MakeSquareOsc Int OnOff AudioParameter
-  | MakeSpeaker Int
-  | MakeStereoPanner Int AudioParameter
-  | MakeTriangleOsc Int OnOff AudioParameter
-  | MakeWaveShaper Int String Oversample
-  | SetBuffer Int String
-  | SetPeriodicOsc Int String
-  | SetOn Int
-  | SetOff Int
-  | SetLoopStart Int Number
-  | SetLoopEnd Int Number
-  | SetRatio Int AudioParameter
-  | SetOffset Int AudioParameter
-  | SetAttack Int AudioParameter
-  | SetGain Int AudioParameter
-  | SetQ Int AudioParameter
-  | SetPan Int AudioParameter
-  | SetThreshold Int AudioParameter
-  | SetRelease Int AudioParameter
-  | SetKnee Int AudioParameter
-  | SetDelay Int AudioParameter
-  | SetPlaybackRate Int AudioParameter
-  | SetFrequency Int AudioParameter
+  = ConnectXToY String String
+  | DisconnectXFromY String String
+  | DestroyUnit String
+  | RebaseAllUnits (Array { from :: String, to :: String })
+  | MakeAllpass String AudioParameter AudioParameter
+  | MakeBandpass String AudioParameter AudioParameter
+  | MakeConstant String OnOff AudioParameter
+  | MakeConvolver String String
+  | MakeDelay String AudioParameter
+  | MakeDynamicsCompressor String AudioParameter AudioParameter AudioParameter AudioParameter AudioParameter
+  | MakeGain String AudioParameter
+  | MakeHighpass String AudioParameter AudioParameter
+  | MakeHighshelf String AudioParameter AudioParameter
+  | MakeLoopBuf String String OnOff AudioParameter Number Number
+  | MakeLowpass String AudioParameter AudioParameter
+  | MakeLowshelf String AudioParameter AudioParameter
+  | MakeMicrophone
+  | MakeNotch String AudioParameter AudioParameter
+  | MakePeaking String AudioParameter AudioParameter AudioParameter
+  | MakePeriodicOsc String String OnOff AudioParameter
+  | MakePlayBuf String String Number OnOff AudioParameter
+  | MakeRecorder String String
+  | MakeSawtoothOsc String OnOff AudioParameter
+  | MakeSinOsc String OnOff AudioParameter
+  | MakeSquareOsc String OnOff AudioParameter
+  | MakeSpeaker
+  | MakeStereoPanner String AudioParameter
+  | MakeTriangleOsc String OnOff AudioParameter
+  | MakeWaveShaper String String Oversample
+  | SetBuffer String String
+  | SetPeriodicOsc String String
+  | SetOn String
+  | SetOff String
+  | SetBufferOffset String Number
+  | SetLoopStart String Number
+  | SetLoopEnd String Number
+  | SetRatio String AudioParameter
+  | SetOffset String AudioParameter
+  | SetAttack String AudioParameter
+  | SetGain String AudioParameter
+  | SetQ String AudioParameter
+  | SetPan String AudioParameter
+  | SetThreshold String AudioParameter
+  | SetRelease String AudioParameter
+  | SetKnee String AudioParameter
+  | SetDelay String AudioParameter
+  | SetPlaybackRate String AudioParameter
+  | SetFrequency String AudioParameter
 
 derive instance eqInstruction :: Eq Instruction
 

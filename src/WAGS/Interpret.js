@@ -442,6 +442,7 @@ exports.makePlayBuf_ = function (ptr) {
                 outgoing: [],
                 incoming: [],
                 buffer: a,
+                bufferOffset: b,
                 createFunction: createFunction,
                 main: createFunction(),
               };
@@ -649,7 +650,11 @@ exports.setOn_ = function (ptr) {
       if (state.units[ptr].buffer) {
         state.units[ptr].main.buffer = state.buffers[state.units[ptr].buffer];
       }
-      state.units[ptr].main.start();
+      if (state.units[ptr].bufferOffset) {
+        state.units[ptr].main.start(undefined, state.units[ptr].bufferOffset);
+      } else {
+        state.units[ptr].main.start();
+      }
     };
   };
 };
@@ -687,6 +692,15 @@ exports.setLoopStart_ = function (ptr) {
     return function (state) {
       return function () {
         state.units[ptr].main.loopStart = a;
+      };
+    };
+  };
+};
+exports.setBufferOffset_ = function (ptr) {
+  return function (a) {
+    return function (state) {
+      return function () {
+        state.units[ptr].main.bufferOffset = a;
       };
     };
   };
