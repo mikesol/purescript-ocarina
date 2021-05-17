@@ -1,48 +1,67 @@
 module Test.Instructions where
 
 import Prelude
-import Control.Applicative.Indexed (imap)
 import Data.Either (Either(..))
 import Data.Functor.Indexed (ivoid)
-import Data.Identity (Identity(..))
 import Data.Map as M
 import Data.Set as S
-import Data.Tuple.Nested ((/\))
+import Data.Tuple.Nested ((/\), type (/\))
 import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (shouldEqual)
-import Type.Proxy (Proxy)
-import WAGS.Change (change, changeAt, get)
-import WAGS.Control.Functions (branch, env, freeze, loop, proof, start, withProof, (@>), (@|>))
+import WAGS.Change (change)
+import WAGS.Control.Functions (branch, env, freeze, loop, proof, start, withProof, (@|>))
 import WAGS.Control.Qualified as WAGS
-import WAGS.Control.Types (oneFrame')
+import WAGS.Control.Types (Frame, Frame0, InitialGraph, oneFrame')
 import WAGS.Create (create)
-import WAGS.Cursor (cursor)
-import WAGS.Graph.Constructors (OnOff(..), SinOsc(..))
-import WAGS.Graph.Decorators (Focus(..))
-import WAGS.Graph.Optionals (gain, highpass, mix, sinOsc, speaker)
+import WAGS.Get (get)
+import WAGS.Graph.AudioUnit (GetSinOsc, OnOff(..), TGain, THighpass, TSinOsc, TSpeaker)
+import WAGS.Graph.Optionals (CGain, CHighpass, CSinOsc, CSpeaker, Ref, gain, highpass, highpass_, ref, sinOsc, sinOsc_, speaker)
 import WAGS.Graph.Parameter (param)
 import WAGS.Rendered (AnAudioUnit(..), Instruction(..))
 
-data MyMix
-
-data MyGain
-
-data MySinOsc
-
 type Time
-  = { time :: (Number) }
+  = { time :: Number }
 
-scene0_ f ({ time: time' } :: Time) =
+type SceneTemplate
+  = CSpeaker
+      { mix ::
+          CGain
+            { highpass ::
+                CHighpass { sinOsc :: CSinOsc }
+            , mix :: Ref
+            }
+      }
+
+type SceneType
+  = { speaker :: TSpeaker /\ { mix :: Unit }
+    , mix :: TGain /\ { mix :: Unit, highpass :: Unit }
+    , highpass :: THighpass /\ { sinOsc :: Unit }
+    , sinOsc :: TSinOsc /\ {}
+    }
+
+scene0 :: Time -> SceneTemplate
+scene0 { time: time' } =
   speaker
-    $ mix \(myMix :: Proxy MyMix) ->
-        myMix /\ highpass (330.0 + time' * 10.0) (f (sinOsc 440.0)) /\ unit
+    { mix:
+        gain 1.0
+          { mix: ref
+          , highpass:
+              highpass (330.0 + time' * 10.0)
+                { sinOsc: sinOsc 440.0 }
+          }
+    }
 
-scene0 = scene0_ Identity
-
+scene1 :: Time -> SceneTemplate
 scene1 ({ time: time' } :: Time) =
   speaker
-    $ gain 1.0 \(myGain :: Proxy MyGain) ->
-        myGain /\ highpass (330.0 + time' * 50.0) (sinOsc 440.0) /\ unit
+    { mix:
+        gain 1.0
+          { mix: ref
+          , highpass:
+              highpass (330.0 + time' * 50.0)
+                { sinOsc: sinOsc 440.0 }
+          }
+    }
 
 resolveInstructions :: Array (Unit -> Instruction) -> Array Instruction
 resolveInstructions = map (_ $ unit)
@@ -51,13 +70,13 @@ testInstructions :: Spec Unit
 testInstructions = do
   describe "a simple scene that doesn't change" do
     let
-      simpleScene =
-        ( WAGS.do
-            start
-            e <- env
-            create (scene0 e)
-        )
-          @|> freeze
+      simpleFrame :: Frame Time Unit Instruction Frame0 InitialGraph SceneType Unit
+      simpleFrame = WAGS.do
+        start
+        e <- env
+        create (scene0 e)
+
+      simpleScene = simpleFrame @|> freeze
 
       (frame0Nodes /\ frame0Edges /\ frame0Instr /\ _ /\ frame1) = oneFrame' simpleScene { time: 0.0 }
 
@@ -65,19 +84,19 @@ testInstructions = do
 
       (frame2Nodes /\ frame2Edges /\ frame2Instr /\ _ /\ _) = oneFrame' frame2 { time: 0.2 }
 
-      nodeAssertion = M.fromFoldable [ 0 /\ ASpeaker, 1 /\ (AGain (param 1.0)), 2 /\ (AHighpass (param 330.0) (param 1.0)), 3 /\ (ASinOsc On (param 440.0)) ]
+      nodeAssertion = M.fromFoldable [ "speaker" /\ ASpeaker, "mix" /\ (AGain (param 1.0)), "highpass" /\ (AHighpass (param 330.0) (param 1.0)), "sinOsc" /\ (ASinOsc On (param 440.0)) ]
 
-      edgeAssertion = M.fromFoldable [ 0 /\ S.singleton 1, 1 /\ S.fromFoldable [ 1, 2 ], 2 /\ S.singleton 3 ]
+      edgeAssertion = M.fromFoldable [ "speaker" /\ S.singleton "mix", "mix" /\ S.fromFoldable [ "mix", "highpass" ], "highpass" /\ S.singleton "sinOsc" ]
 
       instructionAssertion =
-        [ (MakeSpeaker 0)
-        , MakeGain 1 (param 1.0)
-        , MakeHighpass 2 (param 330.0) (param 1.0)
-        , MakeSinOsc 3 On (param 440.0)
-        , (ConnectXToY 3 2)
-        , (ConnectXToY 1 1)
-        , (ConnectXToY 2 1)
-        , (ConnectXToY 1 0)
+        [ MakeSpeaker
+        , MakeGain "mix" (param 1.0)
+        , MakeHighpass "highpass" (param 330.0) (param 1.0)
+        , MakeSinOsc "sinOsc" On (param 440.0)
+        , ConnectXToY "mix" "speaker"
+        , ConnectXToY "highpass" "mix"
+        , ConnectXToY "mix" "mix"
+        , ConnectXToY "sinOsc" "highpass"
         ]
     it "is coherent at frame0Nodes" do
       frame0Nodes `shouldEqual` nodeAssertion
@@ -99,18 +118,21 @@ testInstructions = do
       resolveInstructions frame2Instr `shouldEqual` []
   describe "a simple scene that changes only the sine wave osc as a function of time" do
     let
+      simpleFrame :: Frame Time Unit Instruction Frame0 InitialGraph SceneType Unit
+      simpleFrame = WAGS.do
+        start
+        e <- env
+        create (scene0 e)
+
       simpleScene =
-        ( WAGS.do
-            start
-            e <- env
-            imap Right $ ivoid $ create (scene0 e)
-        )
-          @> ( loop
+        simpleFrame
+          @|> ( loop
                 ( const
                     $ WAGS.do
                         e <- env
-                        sosc <- cursor (scene0_ Focus e)
-                        ivoid $ changeAt sosc (SinOsc On $ 440.0 + e.time * 50.0)
+                        ivoid
+                          $ change
+                              { sinOsc: sinOsc_ (440.0 + e.time * 50.0) }
                 )
             )
 
@@ -124,19 +146,19 @@ testInstructions = do
 
       (frame4Nodes /\ _ /\ _ /\ _ /\ _) = oneFrame' frame4 { time: 0.4 }
 
-      nodeAssertion i = M.fromFoldable [ 0 /\ ASpeaker, 1 /\ (AGain (param 1.0)), 2 /\ (AHighpass (param $ 330.0) (param 1.0)), 3 /\ (ASinOsc On (param $ 440.0 + i)) ]
+      nodeAssertion i = M.fromFoldable [ "speaker" /\ ASpeaker, "mix" /\ (AGain (param 1.0)), "highpass" /\ (AHighpass (param $ 330.0) (param 1.0)), "sinOsc" /\ (ASinOsc On (param $ 440.0 + i)) ]
 
-      edgeAssertion = M.fromFoldable [ 0 /\ S.singleton 1, 1 /\ S.fromFoldable [ 1, 2 ], 2 /\ S.singleton 3 ]
+      edgeAssertion = M.fromFoldable [ "speaker" /\ S.singleton "mix", "mix" /\ S.fromFoldable [ "mix", "highpass" ], "highpass" /\ S.singleton "sinOsc" ]
 
       instructionAssertion =
-        [ (MakeSpeaker 0)
-        , MakeGain 1 (param 1.0)
-        , MakeHighpass 2 (param 330.0) (param 1.0)
-        , MakeSinOsc 3 On (param 440.0)
-        , (ConnectXToY 3 2)
-        , (ConnectXToY 1 1)
-        , (ConnectXToY 2 1)
-        , (ConnectXToY 1 0)
+        [ MakeSpeaker
+        , MakeGain "mix" (param 1.0)
+        , MakeHighpass "highpass" (param 330.0) (param 1.0)
+        , MakeSinOsc "sinOsc" On (param 440.0)
+        , ConnectXToY "mix" "speaker"
+        , ConnectXToY "highpass" "mix"
+        , ConnectXToY "mix" "mix"
+        , ConnectXToY "sinOsc" "highpass"
         ]
     it "is coherent after frame0Nodes" do
       frame0Nodes `shouldEqual` (nodeAssertion 0.0)
@@ -157,22 +179,28 @@ testInstructions = do
     it "is coherent after frame0Instr" do
       resolveInstructions frame0Instr `shouldEqual` instructionAssertion
     it "is coherent after frame1Instr" do
-      resolveInstructions frame1Instr `shouldEqual` [ SetFrequency 3 $ param 445.0 ]
+      resolveInstructions frame1Instr `shouldEqual` [ SetFrequency "sinOsc" $ param 445.0 ]
     it "is coherent after frame2Instr" do
-      resolveInstructions frame2Instr `shouldEqual` [ SetFrequency 3 $ param 450.0 ]
-  describe "a simple scene that changes the entire graph as a function of time" do
+      resolveInstructions frame2Instr `shouldEqual` [ SetFrequency "sinOsc" $ param 450.0 ]
+  describe "a simple scene that changes several elements as a function of time" do
     let
+      simpleFrame :: Frame Time Unit Instruction Frame0 InitialGraph SceneType Unit
+      simpleFrame = WAGS.do
+        start
+        e <- env
+        create (scene0 e)
+
       simpleScene =
-        ( WAGS.do
-            start
-            e <- env
-            create (scene0 e) $> Right unit
-        )
-          @> ( loop
+        simpleFrame
+          @|> ( loop
                 ( const
                     $ WAGS.do
                         e <- env
-                        ivoid $ change (scene0 e)
+                        ivoid
+                          $ change
+                              { sinOsc: sinOsc_ (440.0 + e.time * 50.0)
+                              , highpass: highpass_ (330.0 + e.time * 10.0)
+                              }
                 )
             )
 
@@ -186,19 +214,19 @@ testInstructions = do
 
       (frame4Nodes /\ _ /\ _ /\ _ /\ _) = oneFrame' frame4 { time: 0.4 }
 
-      nodeAssertion i = M.fromFoldable [ 0 /\ ASpeaker, 1 /\ (AGain (param 1.0)), 2 /\ (AHighpass (param $ 330.0 + i) (param 1.0)), 3 /\ (ASinOsc On (param 440.0)) ]
+      nodeAssertion i = M.fromFoldable [ "speaker" /\ ASpeaker, "mix" /\ (AGain (param 1.0)), "highpass" /\ (AHighpass (param $ 330.0 + i) (param 1.0)), "sinOsc" /\ (ASinOsc On (param $ 440.0 + i * 5.0)) ]
 
-      edgeAssertion = M.fromFoldable [ 0 /\ S.singleton 1, 1 /\ S.fromFoldable [ 1, 2 ], 2 /\ S.singleton 3 ]
+      edgeAssertion = M.fromFoldable [ "speaker" /\ S.singleton "mix", "mix" /\ S.fromFoldable [ "mix", "highpass" ], "highpass" /\ S.singleton "sinOsc" ]
 
       instructionAssertion =
-        [ (MakeSpeaker 0)
-        , MakeGain 1 (param 1.0)
-        , MakeHighpass 2 (param 330.0) (param 1.0)
-        , MakeSinOsc 3 On (param 440.0)
-        , (ConnectXToY 3 2)
-        , (ConnectXToY 1 1)
-        , (ConnectXToY 2 1)
-        , (ConnectXToY 1 0)
+        [ MakeSpeaker
+        , MakeGain "mix" (param 1.0)
+        , MakeHighpass "highpass" (param 330.0) (param 1.0)
+        , MakeSinOsc "sinOsc" On (param 440.0)
+        , ConnectXToY "mix" "speaker"
+        , ConnectXToY "highpass" "mix"
+        , ConnectXToY "mix" "mix"
+        , ConnectXToY "sinOsc" "highpass"
         ]
     it "is coherent after frame0Nodes" do
       frame0Nodes `shouldEqual` (nodeAssertion 0.0)
@@ -219,22 +247,25 @@ testInstructions = do
     it "is coherent after frame0Instr" do
       resolveInstructions frame0Instr `shouldEqual` instructionAssertion
     it "is coherent after frame1Instr" do
-      resolveInstructions frame1Instr `shouldEqual` [ SetFrequency 2 $ param 331.0 ]
+      resolveInstructions frame1Instr `shouldEqual` [ SetFrequency "highpass" $ param 331.0, SetFrequency "sinOsc" $ param 445.0 ]
     it "is coherent after frame2Instr" do
-      resolveInstructions frame2Instr `shouldEqual` [ SetFrequency 2 $ param 332.0 ]
+      resolveInstructions frame2Instr `shouldEqual` [ SetFrequency "highpass" $ param 332.0, SetFrequency "sinOsc" $ param 450.0 ]
   describe "a simple scene that gets and then sets with the getter" do
     let
+      simpleFrame :: Frame Time Unit Instruction Frame0 InitialGraph SceneType Unit
+      simpleFrame = WAGS.do
+        start
+        e <- env
+        create (scene0 e)
+
       simpleScene =
-        ( WAGS.do
-            start
-            e <- env
-            create (scene0 e) $> Right unit
-        )
-          @> ( loop
+        simpleFrame
+          @|> ( loop
                 ( const
                     $ WAGS.do
                         e <- env
-                        gotten <- get (scene0 e)
+                        -- todo: improve get mechanism
+                        gotten :: { sinOsc :: GetSinOsc } <- get { sinOsc: unit }
                         ivoid $ change gotten
                 )
             )
@@ -249,19 +280,19 @@ testInstructions = do
 
       (frame4Nodes /\ _ /\ _ /\ _ /\ _) = oneFrame' frame4 { time: 0.4 }
 
-      nodeAssertion i = M.fromFoldable [ 0 /\ ASpeaker, 1 /\ (AGain (param 1.0)), 2 /\ (AHighpass (param $ 330.0 + i) (param 1.0)), 3 /\ (ASinOsc On (param 440.0)) ]
+      nodeAssertion i = M.fromFoldable [ "speaker" /\ ASpeaker, "mix" /\ (AGain (param 1.0)), "highpass" /\ (AHighpass (param $ 330.0 + i) (param 1.0)), "sinOsc" /\ (ASinOsc On (param 440.0)) ]
 
-      edgeAssertion = M.fromFoldable [ 0 /\ S.singleton 1, 1 /\ S.fromFoldable [ 1, 2 ], 2 /\ S.singleton 3 ]
+      edgeAssertion = M.fromFoldable [ "speaker" /\ S.singleton "mix", "mix" /\ S.fromFoldable [ "mix", "highpass" ], "highpass" /\ S.singleton "sinOsc" ]
 
       instructionAssertion =
-        [ (MakeSpeaker 0)
-        , MakeGain 1 (param 1.0)
-        , MakeHighpass 2 (param 330.0) (param 1.0)
-        , MakeSinOsc 3 On (param 440.0)
-        , (ConnectXToY 3 2)
-        , (ConnectXToY 1 1)
-        , (ConnectXToY 2 1)
-        , (ConnectXToY 1 0)
+        [ MakeSpeaker
+        , MakeGain "mix" (param 1.0)
+        , MakeHighpass "highpass" (param 330.0) (param 1.0)
+        , MakeSinOsc "sinOsc" On (param 440.0)
+        , ConnectXToY "mix" "speaker"
+        , ConnectXToY "highpass" "mix"
+        , ConnectXToY "mix" "mix"
+        , ConnectXToY "sinOsc" "highpass"
         ]
     it "is coherent after frame0Nodes" do
       frame0Nodes `shouldEqual` (nodeAssertion 0.0)
@@ -287,13 +318,15 @@ testInstructions = do
       resolveInstructions frame2Instr `shouldEqual` []
   describe "a scene that forks at 0.3 seconds" do
     let
+      simpleFrame :: Frame Time Unit Instruction Frame0 InitialGraph SceneType Unit
+      simpleFrame = WAGS.do
+        start
+        e <- env
+        create (scene0 e)
+
       simpleScene =
-        ( WAGS.do
-            start
-            e <- env
-            create (scene0 e) $> Right unit
-        )
-          @> ( branch \_ -> WAGS.do
+        simpleFrame
+          @|> ( branch \_ -> WAGS.do
                 { time } <- env
                 pr <- proof
                 withProof pr
@@ -301,7 +334,10 @@ testInstructions = do
                       Right
                         ( WAGS.do
                             e <- env
-                            ivoid $ change (scene0 e)
+                            ivoid
+                              $ change
+                                  { highpass: highpass_ (330.0 + e.time * 10.0)
+                                  }
                         )
                     else
                       Left
@@ -309,7 +345,10 @@ testInstructions = do
                             ( const
                                 $ WAGS.do
                                     e <- env
-                                    ivoid $ change (scene1 e)
+                                    ivoid
+                                      $ change
+                                          { highpass: highpass_ (330.0 + e.time * 50.0)
+                                          }
                             )
                         )
             )
@@ -324,19 +363,19 @@ testInstructions = do
 
       (frame4Nodes /\ _ /\ frame4Instr /\ _ /\ _) = oneFrame' frame4 { time: 0.4 }
 
-      nodeAssertion i = M.fromFoldable [ 0 /\ ASpeaker, 1 /\ (AGain (param 1.0)), 2 /\ (AHighpass (param $ 330.0 + i) (param 1.0)), 3 /\ (ASinOsc On (param 440.0)) ]
+      nodeAssertion i = M.fromFoldable [ "speaker" /\ ASpeaker, "mix" /\ (AGain (param 1.0)), "highpass" /\ (AHighpass (param $ 330.0 + i) (param 1.0)), "sinOsc" /\ (ASinOsc On (param 440.0)) ]
 
-      edgeAssertion = M.fromFoldable [ 0 /\ S.singleton 1, 1 /\ S.fromFoldable [ 1, 2 ], 2 /\ S.singleton 3 ]
+      edgeAssertion = M.fromFoldable [ "speaker" /\ S.singleton "mix", "mix" /\ S.fromFoldable [ "mix", "highpass" ], "highpass" /\ S.singleton "sinOsc" ]
 
       instructionAssertion =
-        [ (MakeSpeaker 0)
-        , MakeGain 1 (param 1.0)
-        , MakeHighpass 2 (param 330.0) (param 1.0)
-        , MakeSinOsc 3 On (param 440.0)
-        , (ConnectXToY 3 2)
-        , (ConnectXToY 1 1)
-        , (ConnectXToY 2 1)
-        , (ConnectXToY 1 0)
+        [ MakeSpeaker
+        , MakeGain "mix" (param 1.0)
+        , MakeHighpass "highpass" (param 330.0) (param 1.0)
+        , MakeSinOsc "sinOsc" On (param 440.0)
+        , ConnectXToY "mix" "speaker"
+        , ConnectXToY "highpass" "mix"
+        , ConnectXToY "mix" "mix"
+        , ConnectXToY "sinOsc" "highpass"
         ]
     it "branches at frame0Nodes" do
       frame0Nodes `shouldEqual` (nodeAssertion 0.0)
@@ -357,10 +396,10 @@ testInstructions = do
     it "branches at edgeAssertion" do
       resolveInstructions frame0Instr `shouldEqual` instructionAssertion
     it "branches at frame0Instr" do
-      resolveInstructions frame1Instr `shouldEqual` [ SetFrequency 2 $ param 331.0 ]
+      resolveInstructions frame1Instr `shouldEqual` [ SetFrequency "highpass" $ param 331.0 ]
     it "branches at frame1Instr" do
-      resolveInstructions frame2Instr `shouldEqual` [ SetFrequency 2 $ param 332.0 ]
+      resolveInstructions frame2Instr `shouldEqual` [ SetFrequency "highpass" $ param 332.0 ]
     it "branches at frame2Instr" do
-      resolveInstructions frame3Instr `shouldEqual` [ SetFrequency 2 $ param 345.0 ]
+      resolveInstructions frame3Instr `shouldEqual` [ SetFrequency "highpass" $ param 345.0 ]
     it "branches at frame3Instr" do
-      resolveInstructions frame4Instr `shouldEqual` [ SetFrequency 2 $ param 350.0 ]
+      resolveInstructions frame4Instr `shouldEqual` [ SetFrequency "highpass" $ param 350.0 ]

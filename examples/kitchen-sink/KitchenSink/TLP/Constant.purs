@@ -3,24 +3,23 @@ module WAGS.Example.KitchenSink.TLP.Constant where
 import Prelude
 
 import Data.Either (Either(..))
-import Data.Identity (Identity(..))
 import Math ((%))
+import Type.Proxy (Proxy(..))
 import WAGS.Change (change)
 import WAGS.Connect (connect)
 import WAGS.Control.Functions (branch, env, inSitu, proof, withProof)
 import WAGS.Control.Qualified as WAGS
 import WAGS.Create (create)
-import WAGS.Cursor (cursor)
 import WAGS.Destroy (destroy)
 import WAGS.Disconnect (disconnect)
 import WAGS.Example.KitchenSink.TLP.DynamicsCompressor (doDynamicsCompressor)
 import WAGS.Example.KitchenSink.TLP.LoopSig (StepSig)
 import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
-import WAGS.Example.KitchenSink.Types.Constant (ConstantUniverse, deltaKsConstant, ksConstantGain, ksConstantConstant)
+import WAGS.Example.KitchenSink.Types.Constant (ConstantGraph, deltaKsConstant)
 import WAGS.Example.KitchenSink.Types.DynamicsCompressor (ksDynamicsCompressorCreate)
-import WAGS.Example.KitchenSink.Types.Empty (reset)
+import WAGS.Example.KitchenSink.Types.Empty (cursorGain)
 
-doConstant :: forall proof iu cb. StepSig (ConstantUniverse cb) proof iu
+doConstant :: forall proof iu. StepSig ConstantGraph proof { | iu }
 doConstant =
   branch \lsig -> WAGS.do
     { time } <- env
@@ -31,11 +30,11 @@ doConstant =
         else
           Left
             $ inSitu doDynamicsCompressor WAGS.do
-                cursorConstant <- cursor ksConstantConstant
-                cursorGain <- cursor ksConstantGain
+                let
+                  cursorConstant = Proxy :: _ "constant"
+
                 disconnect cursorConstant cursorGain
                 destroy cursorConstant
-                reset
-                toAdd <- create (ksDynamicsCompressorCreate Identity Identity)
-                connect toAdd cursorGain
+                create ksDynamicsCompressorCreate
+                connect (Proxy :: _ "compressor") cursorGain
                 withProof pr lsig

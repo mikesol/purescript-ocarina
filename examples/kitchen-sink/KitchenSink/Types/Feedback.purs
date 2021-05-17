@@ -1,116 +1,51 @@
 module WAGS.Example.KitchenSink.Types.Feedback where
 
 import Prelude
-
-import Data.Identity (Identity(..))
-import Data.Tuple.Nested (type (/\), (/\))
+import Data.Tuple.Nested (type (/\))
 import Math ((%))
-import Type.Proxy (Proxy)
-import WAGS.Control.Types (Universe')
-import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
-import WAGS.Example.KitchenSink.Types.Empty (BaseGraph, EI0, EI1, EI2, EI3, EI4, TopLevel)
-import WAGS.Graph.Constructors (Delay, Gain, PlayBuf, Speaker)
-import WAGS.Graph.Decorators (Decorating', Focus(..), IgnoreMe(..))
-import WAGS.Graph.Optionals (Mix, GetSetAP, delay, gain, mix, playBuf, speaker)
-import WAGS.Universe.AudioUnit (TDelay, TGain, TPlayBuf)
-import WAGS.Universe.Bin (PtrListCons, PtrListNil)
-import WAGS.Universe.EdgeProfile (ManyEdges, NoEdge, SingleEdge)
-import WAGS.Universe.Graph (GraphC)
-import WAGS.Universe.Node (NodeC, NodeListCons)
+import WAGS.Example.KitchenSink.Timing (calcSlope, timing, pieceTime)
+import WAGS.Example.KitchenSink.Types.Empty (TopWith)
+import WAGS.Graph.AudioUnit (OnOff(..), TDelay, TGain, THighpass, TPlayBuf)
+import WAGS.Graph.Optionals (CDelay, CGain, CPlayBuf, DDelay, DGain, DPlayBuf, Ref, CHighpass, delay, delay_, gain, gain_, highpass, playBuf, playBuf_, ref)
 
 type FeedbackGraph
-  = GraphC
-      (NodeC (TGain EI0) (ManyEdges EI1 (PtrListCons EI3 PtrListNil)))
-      ( NodeListCons
-          (NodeC (TPlayBuf EI3) NoEdge)
-          ( NodeListCons
-              (NodeC (TDelay EI1) (SingleEdge EI2))
-              ( NodeListCons
-                  (NodeC (TGain EI2) (SingleEdge EI0))
-                  (BaseGraph EI0)
-              )
-          )
+  = TopWith { dmix :: Unit }
+      ( dmix :: TGain /\ { delay :: Unit, buf :: Unit }
+      , delay :: TDelay /\ { highpass :: Unit }
+      , buf :: TPlayBuf /\ {}
+      , highpass :: THighpass /\ { dmix :: Unit }
       )
-
-type FeedbackUniverse cb
-  = Universe' EI4 FeedbackGraph cb
-
-data MyMix
-
-type KsFeedbackCreate t b (mx :: Type -> Type) atten
-  = mx
-      ( Mix
-          ( Proxy MyMix ->
-            ( (t (Delay GetSetAP (atten (Gain GetSetAP (Proxy MyMix)))))
-                /\ (b (PlayBuf GetSetAP))
-                /\ Unit
-            )
-          )
-      )
-
-type KsFeedback g t b mx atten
-  = TopLevel g (KsFeedbackCreate t b mx atten)
 
 ksFeedbackCreate ::
-  forall t b mx atten.
-  Decorating' t ->
-  Decorating' b ->
-  Decorating' mx ->
-  Decorating' atten ->
-  KsFeedbackCreate t b mx atten
-ksFeedbackCreate ft fb fmx fatten =
-  fmx
-    $ mix
-        ( \(myMix :: Proxy MyMix) ->
-            (ft (delay 0.3 (fatten (gain 0.2 myMix))))
-              /\ (fb $ playBuf "my-buffer")
-              /\ unit
-        )
+  { dmix ::
+      CGain
+        { delay :: CDelay { highpass :: CHighpass { dmix :: Ref } }
+        , buf :: CPlayBuf
+        }
+  }
+ksFeedbackCreate =
+  { dmix:
+      gain 1.0
+        { delay: delay 0.3 { highpass: highpass 2000.0 { dmix: ref } }
+        , buf: playBuf "my-buffer"
+        }
+  }
 
-ksFeedback' ::
-  forall g t b mx atten.
-  Decorating' g ->
-  Decorating' t ->
-  Decorating' b ->
-  Decorating' mx ->
-  Decorating' atten ->
-  KsFeedback g t b mx atten
-ksFeedback' fg ft fb fmx fatten = speaker (fg $ gain 1.0 (ksFeedbackCreate ft fb fmx fatten))
-
-ksFeedback :: KsFeedback Identity Identity Identity Identity Identity
-ksFeedback = ksFeedback' Identity Identity Identity Identity Identity
-
-ksFeedbackPlaybuf :: Speaker (Gain GetSetAP (Gain GetSetAP (IgnoreMe /\ ((Focus (PlayBuf GetSetAP)) /\ Unit))))
-ksFeedbackPlaybuf =
-  speaker
-    ( mix
-        ( mix
-            ( IgnoreMe
-                /\ (Focus $ playBuf "my-buffer")
-                /\ unit
-            )
-        )
-    )
-
-ksFeedbackDelay :: KsFeedback Identity Focus Identity Identity Identity
-ksFeedbackDelay = ksFeedback' Identity Focus Identity Identity Identity
-
-ksFeedbackGain :: KsFeedback Focus Identity Identity Identity Identity
-ksFeedbackGain = ksFeedback' Focus Identity Identity Identity Identity
-
-ksFeedbackMix :: KsFeedback Identity Identity Identity Focus Identity
-ksFeedbackMix = ksFeedback' Identity Identity Identity Focus Identity
-
-ksFeedbackAttenuation :: KsFeedback Identity Identity Identity Identity Focus
-ksFeedbackAttenuation = ksFeedback' Identity Identity Identity Identity Focus
-
-deltaKsFeedback :: Number -> Speaker (Gain GetSetAP IgnoreMe)
+deltaKsFeedback :: Number -> { mix :: DGain, delay :: DDelay, buf :: DPlayBuf }
 deltaKsFeedback =
   (_ % pieceTime)
     >>> (_ - timing.ksFeedback.begin)
     >>> (max 0.0)
     >>> \time ->
-        speaker
-          (  gain (if time > (timing.ksFeedback.dur - 1.0) then 0.0 else 1.0)
-                 IgnoreMe
-          )
+        let
+          switchOO = time % 2.0 < 1.0
+
+          switchW = time % 4.0 < 2.0
+        in
+          { mix: gain_ (if time > (timing.ksFeedback.dur - 1.0) then 0.0 else 1.0)
+          , delay: delay_ $ calcSlope 0.0 0.3 timing.ksFeedback.dur 0.6 time
+          , buf:
+              playBuf_
+                { onOff: if switchOO then On else Off }
+                (if switchW then "my-buffer" else "shruti")
+          }

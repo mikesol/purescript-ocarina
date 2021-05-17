@@ -1,6 +1,7 @@
 module WAGS.Example.Makenna where
 
 import Prelude
+
 import Control.Comonad.Cofree (Cofree, mkCofree)
 import Control.Plus (empty)
 import Data.Foldable (foldl, for_)
@@ -26,18 +27,18 @@ import Halogen.HTML.Properties as HP
 import Halogen.VDom.Driver (runUI)
 import Heterogeneous.Mapping (hmap)
 import Math (pow)
-import WAGS.Change (change, changes)
-import WAGS.Control.Functions (env, loop, start, (@|>))
+import WAGS.Change (change)
+import WAGS.Control.Functions (env, loop, proof, start, withProof, (@|>))
 import WAGS.Control.Qualified as WAGS
-import WAGS.Control.Types (Frame0, Scene)
+import WAGS.Control.Types (Frame0, Scene, Frame)
 import WAGS.Create (create)
-import WAGS.Graph.Constructors (Gain, PeriodicOsc, Speaker)
-import WAGS.Graph.Optionals (GetSetAP, gain, periodicOsc, speaker)
+import WAGS.Graph.AudioUnit (TGain, TPeriodicOsc, TSpeaker)
+import WAGS.Graph.Optionals (CPeriodicOsc, CSpeaker, CGain, gain, periodicOsc, speaker)
 import WAGS.Interpret (AudioContext, FFIAudio(..), close, context, defaultFFIAudio, makePeriodicWave, makeUnitCache)
 import WAGS.Run (SceneI, run)
 
 type Note
-  = Number /\ (Maybe Number)
+  = Number /\ Maybe Number
 
 score :: Array Note
 score =
@@ -136,28 +137,42 @@ asdr t d
   | t < d - 0.06 = calcSlope 0.4 0.1 (d - 0.06) 0.0 t
   | otherwise = 0.0
 
-scene ::
-  Number ->
-  EnrichedNote ->
-  Speaker (Gain GetSetAP (PeriodicOsc GetSetAP /\ Unit))
+type SceneTemplate
+  = CSpeaker
+      { gain :: CGain { osc :: CPeriodicOsc }
+      }
+
+type SceneType
+  = { speaker :: TSpeaker /\ { gain :: Unit }
+    , gain :: TGain /\ { osc :: Unit }
+    , osc :: TPeriodicOsc /\ {}
+    }
+
+scene :: Number -> EnrichedNote -> SceneTemplate
 scene time ({ start, dur } /\ pitch) =
   speaker
-    ( gain
-        (maybe 0.0 (const $ asdr (time - start) dur) pitch)
-        (periodicOsc "bday" (midiToCps (fromMaybe 60.0 pitch)) /\ unit)
-    )
+    { gain:
+        gain
+          (maybe 0.0 (const $ asdr (time - start) dur) pitch)
+          { osc: periodicOsc "bday" (midiToCps (fromMaybe 60.0 pitch))
+          }
+    }
+
+createFrame :: Frame (SceneI Unit Unit) FFIAudio (Effect Unit) Frame0 {} SceneType (List EnrichedNote)
+createFrame = WAGS.do
+  start
+  { time } <- env
+  create (scene time (inTempo rest0)) $> L.fromFoldable score''
 
 piece :: Scene (SceneI Unit Unit) FFIAudio (Effect Unit) Frame0
 piece =
-  WAGS.do
-    start
-    { time } <- env
-    create (scene time (inTempo rest0)) $> L.fromFoldable score''
+  createFrame
     @|> loop \l -> WAGS.do
         { time } <- env
+        pr <- proof
         let
           f = case _ of
-            Nil -> changes unit $> Nil
+            Nil -> withProof pr unit $> Nil
             (a : b)
               | time > (fst a).end -> f b
               | otherwise -> change (scene time a) $> (a : b)

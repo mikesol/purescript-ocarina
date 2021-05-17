@@ -4,23 +4,22 @@ import Prelude
 
 import Data.Either (Either(..))
 import Math ((%))
+import Type.Proxy (Proxy(..))
 import WAGS.Change (change)
 import WAGS.Connect (connect)
 import WAGS.Control.Functions (branch, env, inSitu, proof, withProof)
 import WAGS.Control.Qualified as WAGS
 import WAGS.Create (create)
-import WAGS.Cursor (cursor)
 import WAGS.Destroy (destroy)
 import WAGS.Disconnect (disconnect)
 import WAGS.Example.KitchenSink.TLP.Constant (doConstant)
 import WAGS.Example.KitchenSink.TLP.LoopSig (StepSig)
 import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
-import WAGS.Example.KitchenSink.Types.Empty (reset)
-import WAGS.Example.KitchenSink.Types.StereoPanner (StereoPannerUniverse, deltaKsStereoPanner, ksStereoPannerStereoPanner, ksStereoPannerGain, ksStereoPannerPlaybuf)
-import WAGS.Graph.Optionals (constant)
+import WAGS.Example.KitchenSink.Types.Constant (ksConstantCreate)
+import WAGS.Example.KitchenSink.Types.Empty (cursorGain)
+import WAGS.Example.KitchenSink.Types.StereoPanner (StereoPannerGraph, deltaKsStereoPanner)
 
-
-doStereoPanner :: forall proof iu cb. StepSig (StereoPannerUniverse cb) proof iu
+doStereoPanner :: forall proof iu. StepSig StereoPannerGraph proof { | iu }
 doStereoPanner =
   branch \lsig -> WAGS.do
     { time } <- env
@@ -31,14 +30,15 @@ doStereoPanner =
         else
           Left
             $ inSitu doConstant WAGS.do
-                cursorStereoPanner <- cursor ksStereoPannerStereoPanner
-                cursorStereoPannerBuf <- cursor ksStereoPannerPlaybuf
-                cursorGain <- cursor ksStereoPannerGain
+                let
+                  cursorStereoPanner = Proxy :: _ "pan"
+
+                  cursorStereoPannerBuf = Proxy :: _ "buf"
+
                 disconnect cursorStereoPannerBuf cursorStereoPanner
                 disconnect cursorStereoPanner cursorGain
                 destroy cursorStereoPanner
                 destroy cursorStereoPannerBuf
-                reset
-                toAdd <- create (constant 0.0)
-                connect toAdd cursorGain
+                create ksConstantCreate
+                connect (Proxy :: _ "constant") cursorGain
                 withProof pr lsig

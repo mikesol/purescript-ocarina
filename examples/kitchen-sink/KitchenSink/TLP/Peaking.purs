@@ -4,24 +4,23 @@ import Prelude
 
 import Data.Either (Either(..))
 import Data.Functor.Indexed (ivoid)
-import Data.Identity (Identity(..))
 import Math ((%))
+import Type.Proxy (Proxy(..))
 import WAGS.Change (change)
 import WAGS.Connect (connect)
 import WAGS.Control.Functions (branch, env, inSitu, modifyRes, proof, withProof)
 import WAGS.Control.Qualified as WAGS
 import WAGS.Create (create)
-import WAGS.Cursor (cursor)
 import WAGS.Destroy (destroy)
 import WAGS.Disconnect (disconnect)
 import WAGS.Example.KitchenSink.TLP.Highpass (doHighpass)
 import WAGS.Example.KitchenSink.TLP.LoopSig (StepSig)
 import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
-import WAGS.Example.KitchenSink.Types.Empty (reset)
+import WAGS.Example.KitchenSink.Types.Empty (cursorGain)
 import WAGS.Example.KitchenSink.Types.Highpass (ksHighpassCreate)
-import WAGS.Example.KitchenSink.Types.Peaking (PeakingUniverse, ksPeakingPeaking, ksPeakingGain, ksPeakingPlaybuf, deltaKsPeaking)
+import WAGS.Example.KitchenSink.Types.Peaking (PeakingGraph, deltaKsPeaking)
 
-doPeaking :: forall proof iu cb. StepSig (PeakingUniverse cb) proof iu
+doPeaking :: forall proof iu. StepSig PeakingGraph proof {|iu}
 doPeaking =
   branch \lsig -> WAGS.do
     { time } <- env
@@ -33,14 +32,14 @@ doPeaking =
         else
           Left
             $ inSitu doHighpass WAGS.do
-                cursorPeaking <- cursor ksPeakingPeaking
-                cursorPlayBuf <- cursor ksPeakingPlaybuf
-                cursorGain <- cursor ksPeakingGain
+                let
+                  cursorPeaking = Proxy :: _ "peaking"
+
+                  cursorPlayBuf = Proxy :: _ "buf"
                 disconnect cursorPlayBuf cursorPeaking
                 disconnect cursorPeaking cursorGain
                 destroy cursorPeaking
                 destroy cursorPlayBuf
-                reset
-                toAdd <- create (ksHighpassCreate Identity Identity)
-                connect toAdd cursorGain
+                create ksHighpassCreate 
+                connect (Proxy :: _ "highpass") cursorGain
                 withProof pr lsig

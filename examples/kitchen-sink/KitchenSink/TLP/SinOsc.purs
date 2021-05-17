@@ -1,7 +1,6 @@
 module WAGS.Example.KitchenSink.TLP.SinOsc where
 
 import Prelude
-
 import Data.Either (Either(..))
 import Math ((%))
 import Type.Proxy (Proxy(..))
@@ -10,17 +9,16 @@ import WAGS.Connect (connect)
 import WAGS.Control.Functions (branch, env, inSitu, proof, withProof)
 import WAGS.Control.Qualified as WAGS
 import WAGS.Create (create)
-import WAGS.Cursor (cursor)
 import WAGS.Destroy (destroy)
 import WAGS.Disconnect (disconnect)
 import WAGS.Example.KitchenSink.TLP.LoopSig (StepSig)
 import WAGS.Example.KitchenSink.TLP.TriangleOsc (doTriangleOsc)
 import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
-import WAGS.Example.KitchenSink.Types.Empty (reset)
-import WAGS.Example.KitchenSink.Types.SinOsc (SinOscUniverse, deltaKsSinOsc, ksSinOscGain, ksSinOscSinOsc)
-import WAGS.Graph.Optionals (recorder, triangleOsc)
+import WAGS.Example.KitchenSink.Types.Empty (cursorGain)
+import WAGS.Example.KitchenSink.Types.SinOsc (SinOscGraph, deltaKsSinOsc)
+import WAGS.Example.KitchenSink.Types.TriangleOsc (ksTriangleOscCreate)
 
-doSinOsc :: forall proof iu cb. StepSig (SinOscUniverse cb) proof iu
+doSinOsc :: forall proof iu. StepSig SinOscGraph proof { | iu }
 doSinOsc =
   branch \lsig -> WAGS.do
     { time } <- env
@@ -31,11 +29,10 @@ doSinOsc =
         else
           Left
             $ inSitu doTriangleOsc WAGS.do
-                cursorSinOsc <- cursor ksSinOscSinOsc
-                cursorGain <- cursor ksSinOscGain
+                let
+                  cursorSinOsc = Proxy :: _ "sinOsc"
                 disconnect cursorSinOsc cursorGain
                 destroy cursorSinOsc
-                reset
-                toAdd <- create (recorder (Proxy :: _ "my-recorder") (triangleOsc 440.0))
-                connect toAdd cursorGain
+                create ksTriangleOscCreate
+                connect (Proxy :: _ "recorder") cursorGain
                 withProof pr lsig

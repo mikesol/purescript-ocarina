@@ -1,7 +1,6 @@
 module WAGS.Example.WTK.RenderingEnv where
 
 import Prelude
-
 import Data.Int (toNumber)
 import Data.List (List(..), (:), filter, length, drop, zipWith)
 import Data.Set as S
@@ -9,7 +8,7 @@ import Data.Tuple.Nested ((/\), type (/\))
 import FRP.Event.MIDI (MIDIEvent(..))
 import Math (pow)
 import WAGS.Example.WTK.Types (KeyUnit, MakeRenderingEnv)
-import WAGS.Graph.Constructors (Gain(..), OnOff(..), SinOsc(..))
+import WAGS.Graph.AudioUnit (OnOff(..))
 import WAGS.Graph.Optionals (defaultGetSetAP)
 
 keyDur :: Number
@@ -45,22 +44,21 @@ asdr n
   | otherwise = 0.0
 
 keyStart :: Number -> KeyUnit
-keyStart cps = Gain (defaultGetSetAP 0.0) (SinOsc On (defaultGetSetAP cps))
+keyStart cps = { gain: defaultGetSetAP 0.0, onOff: On, freq: defaultGetSetAP cps }
 
 keySustain :: Number -> Number -> Number -> KeyUnit
 keySustain initialTime cps currentTime =
-  Gain
-    (defaultGetSetAP (asdr (currentTime - initialTime)))
-    (SinOsc On (defaultGetSetAP cps))
+  { gain:
+      defaultGetSetAP (asdr (currentTime - initialTime))
+  , onOff: On
+  , freq: defaultGetSetAP cps
+  }
 
 keySustainOff :: Number -> Number -> Number -> Number -> KeyUnit
-keySustainOff initialTime cps offTime currentTime =
-  Gain
-    (defaultGetSetAP (asdr (currentTime - initialTime) * dampen currentTime offTime))
-    (SinOsc On (defaultGetSetAP cps))
+keySustainOff initialTime cps offTime currentTime = { gain: defaultGetSetAP (asdr (currentTime - initialTime) * dampen currentTime offTime), onOff: On, freq: defaultGetSetAP cps }
 
 keyEnd :: Number -> KeyUnit
-keyEnd cps = Gain (defaultGetSetAP 0.0) (SinOsc Off (defaultGetSetAP cps))
+keyEnd cps = { gain: defaultGetSetAP 0.0, onOff: Off, freq: defaultGetSetAP cps }
 
 midiEventsToOnsets :: List MIDIEvent -> (List Int /\ List Int)
 midiEventsToOnsets = go Nil Nil

@@ -2,48 +2,22 @@ module WAGS.Example.KitchenSink.Types.SinOsc where
 
 import Prelude
 
-import Data.Identity (Identity(..))
+import Data.Tuple.Nested (type (/\))
 import Math (cos, pi, pow, sin, (%))
-import WAGS.Control.Types (Universe')
 import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
-import WAGS.Example.KitchenSink.Types.Empty (BaseGraph, EI0, EI1, TopLevel)
-import WAGS.Graph.Constructors (Gain, SinOsc, Speaker)
-import WAGS.Graph.Decorators (Focus(..), Decorating')
-import WAGS.Graph.Optionals (GetSetAP, gain, sinOsc, speaker)
-import WAGS.Universe.AudioUnit (TSinOsc)
-import WAGS.Universe.EdgeProfile (NoEdge)
-import WAGS.Universe.Graph (GraphC)
-import WAGS.Universe.Node (NodeC)
-
+import WAGS.Example.KitchenSink.Types.Empty (TopWith)
+import WAGS.Graph.AudioUnit (OnOff(..), TSinOsc)
+import WAGS.Graph.Optionals (CSinOsc, DSinOsc, DGain, gain_, sinOsc, sinOsc_)
 
 type SinOscGraph
-  = GraphC
-      (NodeC (TSinOsc EI0) NoEdge)
-      (BaseGraph EI0)
+  = TopWith { sinOsc :: Unit }
+      ( sinOsc :: TSinOsc /\ {}
+      )
 
-type SinOscUniverse cb
-  = Universe' EI1 SinOscGraph cb
+ksSinOscCreate :: { sinOsc :: CSinOsc }
+ksSinOscCreate = { sinOsc: sinOsc  440.0 }
 
-type KsSinOsc g s
-  = TopLevel g (s (SinOsc GetSetAP))
-
-ksSinOsc' ::
-  forall g s.
-  Decorating' g ->
-  Decorating' s ->
-  KsSinOsc g s
-ksSinOsc' fg fs = speaker (fg $ gain 0.0 (fs $ sinOsc 440.0))
-
-ksSinOsc :: KsSinOsc Identity Identity
-ksSinOsc = ksSinOsc' Identity Identity
-
-ksSinOscSinOsc :: KsSinOsc Identity Focus
-ksSinOscSinOsc = ksSinOsc' Identity Focus
-
-ksSinOscGain :: KsSinOsc Focus Identity
-ksSinOscGain = ksSinOsc' Focus Identity
-
-deltaKsSinOsc :: Number -> Speaker (Gain GetSetAP (SinOsc GetSetAP))
+deltaKsSinOsc :: Number -> { mix :: DGain, sinOsc :: DSinOsc }
 deltaKsSinOsc =
   (_ % pieceTime)
     >>> (_ - timing.ksSinOsc.begin)
@@ -51,7 +25,13 @@ deltaKsSinOsc =
     >>> \time ->
         let
           rad = pi * time
+
+          switchOO = time % 2.0 < 1.0
+
+          switchW = time % 4.0 < 2.0
         in
-          speaker
-            $ gain (0.1 - 0.1 * (cos time))
-                (sinOsc (440.0 + 50.0 * ((sin (rad * 1.5)) `pow` 2.0)))
+          { mix: gain_ (0.1 - 0.1 * (cos time))
+          , sinOsc:
+              sinOsc_ (if switchOO then On else Off) 
+                (440.0 + 50.0 * ((sin (rad * 1.5)) `pow` 2.0))
+          }

@@ -1,96 +1,44 @@
 module WAGS.Example.KitchenSink.Types.Delay where
 
 import Prelude
-import Data.Identity (Identity(..))
-import Data.Tuple.Nested (type (/\), (/\))
+import Data.Tuple.Nested (type (/\))
 import Math ((%))
-import Type.Proxy (Proxy)
-import WAGS.Control.Types (Universe')
-import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
-import WAGS.Example.KitchenSink.Types.Empty (BaseGraph, EI0, EI1, EI2, EI3, TopLevel)
-import WAGS.Graph.Constructors (Delay, Dup, PlayBuf)
-import WAGS.Graph.Decorators (Focus(..), Decorating')
-import WAGS.Graph.Optionals (GetSetAP, Mix, delay, dup, gain, mix, playBuf, speaker)
-import WAGS.Universe.AudioUnit (TDelay, TGain, TPlayBuf)
-import WAGS.Universe.Bin (PtrListCons, PtrListNil)
-import WAGS.Universe.EdgeProfile (ManyEdges, NoEdge, SingleEdge)
-import WAGS.Universe.Graph (GraphC)
-import WAGS.Universe.Node (NodeC, NodeListCons)
+import WAGS.Example.KitchenSink.Timing (calcSlope, timing, pieceTime)
+import WAGS.Example.KitchenSink.Types.Empty (TopWith)
+import WAGS.Graph.AudioUnit (OnOff(..), TDelay, TGain, TPlayBuf)
+import WAGS.Graph.Optionals (CDelay, CGain, CPlayBuf, DDelay, DGain, DPlayBuf, Ref, delay, delay_, gain, gain_, playBuf, playBuf_, ref)
 
 type DelayGraph
-  = GraphC
-      (NodeC (TGain EI1) (ManyEdges EI2 (PtrListCons EI0 PtrListNil)))
-      ( NodeListCons
-          (NodeC (TDelay EI2) (SingleEdge EI0))
-          ( NodeListCons
-              (NodeC (TPlayBuf EI0) NoEdge)
-              (BaseGraph EI1)
-          )
+  = TopWith { dmix :: Unit }
+      ( dmix :: TGain /\ { delay :: Unit, buf :: Unit }
+      , delay :: TDelay /\ { buf :: Unit }
+      , buf :: TPlayBuf /\ {}
       )
 
-type DelayUniverse cb
-  = Universe' EI3 DelayGraph cb
+ksDelayCreate :: { dmix :: CGain { delay :: CDelay { buf :: CPlayBuf }, buf :: Ref } }
+ksDelayCreate =
+  { dmix:
+      gain 1.0
+        { delay: delay 0.3 { buf: playBuf "my-buffer" }
+        , buf: ref
+        }
+  }
 
-data MyPlayBuf
-
-type KsDelayCreate (t :: Type -> Type) b mx
-  = Dup (b (PlayBuf GetSetAP))
-      ( Proxy MyPlayBuf ->
-        mx
-          ( Mix
-              ( (t (Delay GetSetAP (Proxy MyPlayBuf)))
-                  /\ Proxy MyPlayBuf
-                  /\ Unit
-              )
-          )
-      )
-
-type KsDelay g t b mx
-  = TopLevel g (KsDelayCreate t b mx)
-
-ksDelayCreate ::
-  forall t b mx.
-  Decorating' t ->
-  Decorating' b ->
-  Decorating' mx ->
-  KsDelayCreate t b mx
-ksDelayCreate ft fb fmx =
-  dup
-    (fb $ playBuf "my-buffer")
-    (\(myPlayBuf :: Proxy MyPlayBuf) -> fmx $ mix ((ft $ delay 1.0 myPlayBuf) /\ myPlayBuf /\ unit))
-
-ksDelay' ::
-  forall g t b mx.
-  Decorating' g ->
-  Decorating' t ->
-  Decorating' b ->
-  Decorating' mx ->
-  KsDelay g t b mx
-ksDelay' fg ft fb fmx = speaker (fg $ gain 1.0 (ksDelayCreate ft fb fmx))
-
-ksDelay :: KsDelay Identity Identity Identity Identity
-ksDelay = ksDelay' Identity Identity Identity Identity
-
-ksDelayPlaybuf :: KsDelay Identity Identity Focus Identity
-ksDelayPlaybuf = ksDelay' Identity Identity Focus Identity
-
-ksDelayDelay :: KsDelay Identity Focus Identity Identity
-ksDelayDelay = ksDelay' Identity Focus Identity Identity
-
-ksDelayGain :: KsDelay Focus Identity Identity Identity
-ksDelayGain = ksDelay' Focus Identity Identity Identity
-
-ksDelayMix :: KsDelay Identity Identity Identity Focus
-ksDelayMix = ksDelay' Identity Identity Identity Focus
-
-deltaKsDelay :: Number -> KsDelay Identity Identity Identity Identity
+deltaKsDelay :: Number -> { mix :: DGain, delay :: DDelay, buf :: DPlayBuf }
 deltaKsDelay =
   (_ % pieceTime)
     >>> (_ - timing.ksDelay.begin)
     >>> (max 0.0)
     >>> \time ->
-        speaker
-          ( Identity
-              $ gain (if time > (timing.ksDelay.dur - 1.0) then 0.0 else 1.0)
-                  (ksDelayCreate Identity Identity Identity)
-          )
+        let
+          switchOO = time % 2.0 < 1.0
+
+          switchW = time % 4.0 < 2.0
+        in
+          { mix: gain_ (if time > (timing.ksDelay.dur - 1.0) then 0.0 else 1.0)
+          , delay: delay_ $ calcSlope 0.0 0.3 timing.ksDelay.dur 0.6 time
+          , buf:
+              playBuf_
+                { onOff: if switchOO then On else Off }
+                (if switchW then "my-buffer" else "shruti")
+          }

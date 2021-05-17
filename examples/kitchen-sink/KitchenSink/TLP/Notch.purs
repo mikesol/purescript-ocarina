@@ -3,24 +3,23 @@ module WAGS.Example.KitchenSink.TLP.Notch where
 import Prelude
 
 import Data.Either (Either(..))
-import Data.Identity (Identity(..))
 import Math ((%))
+import Type.Proxy (Proxy(..))
 import WAGS.Change (change)
 import WAGS.Connect (connect)
 import WAGS.Control.Functions (branch, env, inSitu, proof, withProof)
 import WAGS.Control.Qualified as WAGS
 import WAGS.Create (create)
-import WAGS.Cursor (cursor)
 import WAGS.Destroy (destroy)
 import WAGS.Disconnect (disconnect)
 import WAGS.Example.KitchenSink.TLP.LoopSig (StepSig)
 import WAGS.Example.KitchenSink.TLP.Peaking (doPeaking)
 import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
-import WAGS.Example.KitchenSink.Types.Empty (reset)
-import WAGS.Example.KitchenSink.Types.Notch (NotchUniverse, ksNotchNotch, ksNotchGain, ksNotchPlaybuf, deltaKsNotch)
+import WAGS.Example.KitchenSink.Types.Empty (cursorGain)
+import WAGS.Example.KitchenSink.Types.Notch (NotchGraph, deltaKsNotch)
 import WAGS.Example.KitchenSink.Types.Peaking (ksPeakingCreate)
 
-doNotch :: forall proof iu cb. StepSig (NotchUniverse cb) proof iu
+doNotch :: forall proof iu . StepSig NotchGraph proof {|iu}
 doNotch =
   branch \lsig -> WAGS.do
     { time } <- env
@@ -31,14 +30,14 @@ doNotch =
         else
           Left
             $ inSitu doPeaking WAGS.do
-                cursorNotch <- cursor ksNotchNotch
-                cursorPlayBuf <- cursor ksNotchPlaybuf
-                cursorGain <- cursor ksNotchGain
+                let
+                  cursorNotch = Proxy :: _ "notch"
+
+                  cursorPlayBuf = Proxy :: _ "buf"
                 disconnect cursorPlayBuf cursorNotch
                 disconnect cursorNotch cursorGain
                 destroy cursorNotch
                 destroy cursorPlayBuf
-                reset
-                toAdd <- create (ksPeakingCreate Identity Identity)
-                connect toAdd cursorGain
+                create ksPeakingCreate 
+                connect (Proxy :: _ "peaking") cursorGain
                 withProof pr lsig

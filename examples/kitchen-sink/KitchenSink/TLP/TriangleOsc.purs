@@ -1,25 +1,24 @@
 module WAGS.Example.KitchenSink.TLP.TriangleOsc where
 
 import Prelude
-
 import Data.Either (Either(..))
 import Math ((%))
+import Type.Proxy (Proxy(..))
 import WAGS.Change (change)
 import WAGS.Connect (connect)
 import WAGS.Control.Functions (branch, env, inSitu, proof, withProof)
 import WAGS.Control.Qualified as WAGS
 import WAGS.Create (create)
-import WAGS.Cursor (cursor)
 import WAGS.Destroy (destroy)
 import WAGS.Disconnect (disconnect)
 import WAGS.Example.KitchenSink.TLP.LoopSig (StepSig)
 import WAGS.Example.KitchenSink.TLP.SquareOsc (doSquareOsc)
 import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
-import WAGS.Example.KitchenSink.Types.Empty (reset)
-import WAGS.Example.KitchenSink.Types.TriangleOsc (TriangleOscUniverse, deltaKsTriangleOsc, ksTriangleOscGain, ksTriangleOscRecorder, ksTriangleOscTriangleOsc)
-import WAGS.Graph.Constructors (OnOff(..), SquareOsc(..))
+import WAGS.Example.KitchenSink.Types.Empty (cursorGain)
+import WAGS.Example.KitchenSink.Types.SquareOsc (ksSquareOscCreate)
+import WAGS.Example.KitchenSink.Types.TriangleOsc (TriangleOscGraph, deltaKsTriangleOsc)
 
-doTriangleOsc :: forall proof iu cb. StepSig (TriangleOscUniverse cb) proof iu
+doTriangleOsc :: forall proof iu. StepSig TriangleOscGraph proof { | iu }
 doTriangleOsc =
   branch \lsig -> WAGS.do
     { time } <- env
@@ -30,14 +29,14 @@ doTriangleOsc =
         else
           Left
             $ inSitu doSquareOsc WAGS.do
-                cursorTriangleOsc <- cursor ksTriangleOscTriangleOsc
-                cursorRecorder <- cursor ksTriangleOscRecorder
-                cursorGain <- cursor ksTriangleOscGain
+                let
+                  cursorTriangleOsc = Proxy :: _ "triangleOsc"
+
+                  cursorRecorder = Proxy :: _ "recorder"
                 disconnect cursorRecorder cursorGain
                 disconnect cursorTriangleOsc cursorRecorder
                 destroy cursorTriangleOsc
                 destroy cursorRecorder
-                reset
-                toAdd <- create (SquareOsc On 440.0)
-                connect toAdd cursorGain
+                create ksSquareOscCreate
+                connect (Proxy :: _ "squareOsc") cursorGain
                 withProof pr lsig

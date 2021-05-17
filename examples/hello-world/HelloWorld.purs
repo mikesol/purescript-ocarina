@@ -3,40 +3,62 @@ module WAGS.Example.HelloWorld where
 import Prelude
 
 import Control.Comonad.Cofree (Cofree, mkCofree)
-import Data.Either (Either(..))
 import Data.Functor.Indexed (ivoid)
-import Data.Tuple.Nested ((/\))
+import Data.Tuple.Nested (type (/\))
 import Effect (Effect)
 import FRP.Event (subscribe)
 import Math (pi, sin)
 import WAGS.Change (change)
-import WAGS.Control.Functions (env, loop, start, (@>))
+import WAGS.Control.Functions (env, loop, start, (@|>))
 import WAGS.Control.Qualified as WAGS
-import WAGS.Control.Types (Frame0, Scene)
+import WAGS.Control.Types (Frame0, Scene, Frame)
 import WAGS.Create (create)
-import WAGS.Graph.Optionals (gain, sinOsc, speaker)
+import WAGS.Graph.AudioUnit (TGain, TSinOsc, TSpeaker)
+import WAGS.Graph.Optionals (CGain, CSpeaker, CSinOsc, gain, sinOsc, speaker)
 import WAGS.Interpret (FFIAudio(..), FFIAudio')
 import WAGS.Run (SceneI, run)
 
+type SceneTemplate
+  = CSpeaker
+      { gain0 :: CGain { sin0 :: CSinOsc }
+      , gain1 :: CGain { sin1 :: CSinOsc }
+      , gain2 :: CGain { sin2 :: CSinOsc }
+      , gain3 :: CGain { sin3 :: CSinOsc }
+      }
+
+type SceneType
+  = { speaker :: TSpeaker /\ { gain0 :: Unit, gain1 :: Unit, gain2 :: Unit, gain3 :: Unit }
+    , gain0 :: TGain /\ { sin0 :: Unit }
+    , sin0 :: TSinOsc /\ {}
+    , gain1 :: TGain /\ { sin1 :: Unit }
+    , sin1 :: TSinOsc /\ {}
+    , gain2 :: TGain /\ { sin2 :: Unit }
+    , sin2 :: TSinOsc /\ {}
+    , gain3 :: TGain /\ { sin3 :: Unit }
+    , sin3 :: TSinOsc /\ {}
+    }
+
+scene :: Number -> SceneTemplate
 scene time =
   let
     rad = pi * time
   in
-    speaker
-      $ ( (gain 0.1 $ sinOsc (440.0 + (10.0 * sin (2.3 * rad))))
-            /\ (gain 0.25 $ sinOsc (235.0 + (10.0 * sin (1.7 * rad))))
-            /\ (gain 0.2 $ sinOsc (337.0 + (10.0 * sin rad)))
-            /\ (gain 0.1 $ sinOsc (530.0 + (19.0 * (5.0 * sin rad))))
-            /\ unit
-        )
+    speaker {
+      gain0: gain 0.1 { sin0: sinOsc (440.0 + (10.0 * sin (2.3 * rad))) }
+    , gain1: gain 0.25 { sin1: sinOsc (235.0 + (10.0 * sin (1.7 * rad))) }
+    , gain2: gain 0.2 { sin2: sinOsc (337.0 + (10.0 * sin rad)) }
+    , gain3: gain 0.1 { sin3: sinOsc (530.0 + (19.0 * (5.0 * sin rad))) }
+    }
+
+createFrame :: Frame (SceneI Unit Unit) FFIAudio (Effect Unit) Frame0 {} SceneType Unit
+createFrame = WAGS.do
+  start
+  { time } <- env
+  create (scene time)
 
 piece :: Scene (SceneI Unit Unit) FFIAudio (Effect Unit) Frame0
 piece =
-  WAGS.do
-    start
-    { time } <- env
-    create (scene time) $> Right unit
-    @> loop
+  createFrame   @|> loop
         ( const
             $ WAGS.do
                 { time } <- env

@@ -2,48 +2,22 @@ module WAGS.Example.KitchenSink.Types.SawtoothOsc where
 
 import Prelude
 
-import Data.Identity (Identity(..))
+import Data.Tuple.Nested (type (/\))
 import Math (cos, pi, pow, sin, (%))
-import WAGS.Control.Types (Universe')
 import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
-import WAGS.Example.KitchenSink.Types.Empty (BaseGraph, EI0, EI1, TopLevel)
-import WAGS.Graph.Constructors (Gain, SawtoothOsc, Speaker)
-import WAGS.Graph.Decorators (Focus(..), Decorating')
-import WAGS.Graph.Optionals (GetSetAP, gain, sawtoothOsc, speaker)
-import WAGS.Universe.AudioUnit (TSawtoothOsc)
-import WAGS.Universe.EdgeProfile (NoEdge)
-import WAGS.Universe.Graph (GraphC)
-import WAGS.Universe.Node (NodeC)
-
+import WAGS.Example.KitchenSink.Types.Empty (TopWith)
+import WAGS.Graph.AudioUnit (OnOff(..), TSawtoothOsc)
+import WAGS.Graph.Optionals (CSawtoothOsc, DSawtoothOsc, DGain, gain_, sawtoothOsc, sawtoothOsc_)
 
 type SawtoothOscGraph
-  = GraphC
-      (NodeC (TSawtoothOsc EI0) NoEdge)
-      (BaseGraph EI0)
+  = TopWith { sawtoothOsc :: Unit }
+      ( sawtoothOsc :: TSawtoothOsc /\ {}
+      )
 
-type SawtoothOscUniverse cb
-  = Universe' EI1 SawtoothOscGraph cb
+ksSawtoothOscCreate :: { sawtoothOsc :: CSawtoothOsc }
+ksSawtoothOscCreate = { sawtoothOsc: sawtoothOsc  440.0 }
 
-type KsSawtoothOsc g t
-  = TopLevel g (t (SawtoothOsc GetSetAP))
-
-ksSawtoothOsc' ::
-  forall g t.
-  Decorating' g ->
-  Decorating' t ->
-  KsSawtoothOsc g t
-ksSawtoothOsc' fg ft = speaker (fg $ gain 0.0 (ft $ sawtoothOsc 440.0))
-
-ksSawtoothOsc :: KsSawtoothOsc Identity Identity
-ksSawtoothOsc = ksSawtoothOsc' Identity Identity
-
-ksSawtoothOscSawtoothOsc :: KsSawtoothOsc Identity Focus
-ksSawtoothOscSawtoothOsc = ksSawtoothOsc' Identity Focus
-
-ksSawtoothOscGain :: KsSawtoothOsc Focus Identity
-ksSawtoothOscGain = ksSawtoothOsc' Focus Identity
-
-deltaKsSawtoothOsc :: Number -> Speaker (Gain GetSetAP (SawtoothOsc GetSetAP))
+deltaKsSawtoothOsc :: Number -> { mix :: DGain, sawtoothOsc :: DSawtoothOsc }
 deltaKsSawtoothOsc =
   (_ % pieceTime)
     >>> (_ - timing.ksSawtoothOsc.begin)
@@ -51,7 +25,13 @@ deltaKsSawtoothOsc =
     >>> \time ->
         let
           rad = pi * time
+
+          switchOO = time % 2.0 < 1.0
+
+          switchW = time % 4.0 < 2.0
         in
-          speaker
-            $ gain (0.1 - 0.1 * (cos time))
-                (sawtoothOsc (440.0 + 50.0 * ((sin (rad * 1.5)) `pow` 2.0)))
+          { mix: gain_ (0.1 - 0.1 * (cos time))
+          , sawtoothOsc:
+              sawtoothOsc_ (if switchOO then On else Off) 
+                (440.0 + 50.0 * ((sin (rad * 1.5)) `pow` 2.0))
+          }

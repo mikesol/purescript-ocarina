@@ -1,26 +1,24 @@
 module WAGS.Example.KitchenSink.TLP.Lowpass where
 
 import Prelude
-
 import Data.Either (Either(..))
-import Data.Identity (Identity(..))
 import Math ((%))
+import Type.Proxy (Proxy(..))
 import WAGS.Change (change)
 import WAGS.Connect (connect)
 import WAGS.Control.Functions (branch, env, inSitu, proof, withProof)
 import WAGS.Control.Qualified as WAGS
 import WAGS.Create (create)
-import WAGS.Cursor (cursor)
 import WAGS.Destroy (destroy)
 import WAGS.Disconnect (disconnect)
 import WAGS.Example.KitchenSink.TLP.Highshelf (doHighshelf)
 import WAGS.Example.KitchenSink.TLP.LoopSig (StepSig)
 import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
-import WAGS.Example.KitchenSink.Types.Empty (reset)
+import WAGS.Example.KitchenSink.Types.Empty (cursorGain)
 import WAGS.Example.KitchenSink.Types.Highshelf (ksHighshelfCreate)
-import WAGS.Example.KitchenSink.Types.Lowpass (LowpassUniverse, ksLowpassLowpass, ksLowpassGain, ksLowpassPlaybuf, deltaKsLowpass)
+import WAGS.Example.KitchenSink.Types.Lowpass (LowpassGraph, deltaKsLowpass)
 
-doLowpass :: forall proof iu cb. StepSig (LowpassUniverse cb) proof iu
+doLowpass :: forall proof iu. StepSig LowpassGraph proof { | iu }
 doLowpass =
   branch \lsig -> WAGS.do
     { time } <- env
@@ -31,14 +29,14 @@ doLowpass =
         else
           Left
             $ inSitu doHighshelf WAGS.do
-                cursorLowpass <- cursor ksLowpassLowpass
-                cursorPlayBuf <- cursor ksLowpassPlaybuf
-                cursorGain <- cursor ksLowpassGain
+                let
+                  cursorLowpass = Proxy :: _ "lowpass"
+
+                  cursorPlayBuf = Proxy :: _ "buf"
                 disconnect cursorPlayBuf cursorLowpass
                 disconnect cursorLowpass cursorGain
                 destroy cursorLowpass
                 destroy cursorPlayBuf
-                reset
-                toAdd <- create (ksHighshelfCreate Identity Identity)
-                connect toAdd cursorGain
+                create ksHighshelfCreate
+                connect (Proxy :: _ "highshelf") cursorGain
                 withProof pr lsig

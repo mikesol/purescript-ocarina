@@ -3,7 +3,7 @@ module WAGS.Control.Types
   , Frame
   , AudioState
   , AudioState'
-  , InitialUniverse
+  , InitialGraph
   , InitialFrameT
   , InitialFrame
   , Frame0
@@ -11,7 +11,6 @@ module WAGS.Control.Types
   , SceneT'
   , Scene
   , Scene'
-  , Universe'
   , oneFrame
   , oneFrame'
   , oneFrameT
@@ -21,20 +20,16 @@ module WAGS.Control.Types
   ) where
 
 import Prelude
+
 import Control.Apply.Indexed (class IxApply)
 import Data.Functor.Indexed (class IxFunctor)
 import Data.Map as M
 import Data.Set (Set)
 import Data.Tuple.Nested ((/\), type (/\))
-import Type.Data.Peano (Z)
 import Unsafe.Coerce (unsafeCoerce)
 import WAGS.Control.MemoizedState (MemoizedStateT)
 import WAGS.Control.Thunkable (Thunkable, runThunkable)
 import WAGS.Rendered (AnAudioUnit)
-import WAGS.Universe.BinN (D0)
-import WAGS.Universe.Graph (InitialGraph)
-import WAGS.Universe.Skolems (SkolemListNil)
-import WAGS.Universe.Universe (Universe, UniverseC)
 
 -- | Represents a single frame of an audio scene. Conceptually, this is a snapshot in time of audio.
 -- |
@@ -44,35 +39,32 @@ import WAGS.Universe.Universe (Universe, UniverseC)
 -- | - `proof`: A proof term representing the current moment in time. `proof` is a type-safe way to make sure that a frame at time `n` is not composed (ie via bind) with a frame at time `n + 1`.
 -- | - `m`: The underlying monad in which the information of the frame lies. Usually this is `Thunkable` but can also be `Identity` or `Aff` depending on your use case.
 -- | - `res`: A monoid containing a residual from the audio computation. Use this if you need to pass computations from an audio graph to downstream consumers. In general, it is best if computations happen before audio graph rendering, so it's best to use `res` only in cases where a computation is dependent on values that can only be calculated in the audio-graph, ie scheduling based on the audio clock.
--- | - `iu`: The input `Universe`, meaning the state of the frame before a computation.
--- | - `ou`: The output `Universe`, meaning the state of the frame after a computation.
+-- | - `iu`: The input `Graph`, meaning the state of the frame before a computation.
+-- | - `ou`: The output `Graph`, meaning the state of the frame after a computation.
 -- | - `a`: The term within the frame. This is often some form of accumulator that represents an evolving state over time.
 -- |
 -- | > NB: `FrameT` does not implement `IxApplicative` because we never want to be able to pull a `proof` term out of thin air. It does, however, have a `bind` operation in `WAGS.Control.Qualified` that can is used for rebindable `do` notation in all of the tests and examples.
-newtype FrameT (env :: Type) (audio :: Type) (engine :: Type) (proof :: Type) (m :: Type -> Type) (res :: Type) (iu :: Universe) (ou :: Universe) (a :: Type)
+newtype FrameT (env :: Type) (audio :: Type) (engine :: Type) (proof :: Type) (m :: Type -> Type) (res :: Type) (iu :: Type) (ou :: Type) (a :: Type)
   = FrameT (AudioState env audio engine proof m res a)
 
 -- | A `FrameT` specialized to the `Thunkable` monad.
-type Frame (env :: Type) (audio :: Type) (engine :: Type) (proof :: Type) (iu :: Universe) (ou :: Universe) (a :: Type)
+type Frame (env :: Type) (audio :: Type) (engine :: Type) (proof :: Type) (iu :: Type) (ou :: Type) (a :: Type)
   = FrameT env audio engine proof Thunkable Unit iu ou a
 
 -- | A `proof` term for the initial frame.
 data Frame0
 
--- | The `Universe` at which any scene starts.
-type InitialUniverse
-  = UniverseC D0 InitialGraph Z SkolemListNil
-
--- | A type constructor for a graph with no changes and no skolems
-type Universe' currentIndex graph cb = UniverseC currentIndex graph cb SkolemListNil
+-- | The `Graph` at which any scene starts.
+type InitialGraph
+  = {}
 
 -- | The `FrameT` at which any scene starts.
 type InitialFrameT env audio engine m res a
-  = FrameT env audio engine Frame0 m res InitialUniverse InitialUniverse a
+  = FrameT env audio engine Frame0 m res InitialGraph InitialGraph a
 
 -- | The `Frame` at which any scene starts.
 type InitialFrame env audio engine a
-  = Frame env audio engine Frame0 InitialUniverse InitialUniverse a
+  = Frame env audio engine Frame0 InitialGraph InitialGraph a
 
 instance frameFunctor :: Monad m => Functor (FrameT env audio engine proof m res i o) where
   map f (FrameT (a)) = FrameT (f <$> a)
@@ -104,8 +96,8 @@ type Scene env audio engine proof
 -- | - `next`: The next `SceneT`, aka `tail` if `SceneT` were a cofree comonad.
 type SceneT' :: forall k. Type -> Type -> Type -> k -> (Type -> Type) -> Type -> Type
 type SceneT' env audio engine proof m res
-  = { nodes :: M.Map Int AnAudioUnit
-    , edges :: M.Map Int (Set Int)
+  = { nodes :: M.Map String AnAudioUnit
+    , edges :: M.Map String (Set String)
     , instructions :: Array (audio -> engine)
     , res :: res
     , next :: SceneT env audio engine proof m res
@@ -125,7 +117,7 @@ oneFrame :: forall env audio engine proofA. Scene env audio engine proofA -> env
 oneFrame m s = runThunkable (oneFrameT m s)
 
 -- | This represents the output of `oneFrameT` as a tuple instead of a record.
-oneFrameT' :: forall env audio engine proofA m res. Monad m => SceneT env audio engine proofA m res -> env -> (forall proofB. m (M.Map Int AnAudioUnit /\ M.Map Int (Set Int) /\ Array (audio -> engine) /\ res /\ SceneT env audio engine proofB m res))
+oneFrameT' :: forall env audio engine proofA m res. Monad m => SceneT env audio engine proofA m res -> env -> (forall proofB. m (M.Map String AnAudioUnit /\ M.Map String (Set String) /\ Array (audio -> engine) /\ res /\ SceneT env audio engine proofB m res))
 oneFrameT' s e = go <$> (oneFrameT s e)
   where
   go x = nodes /\ edges /\ instructions /\ res /\ next
@@ -133,7 +125,7 @@ oneFrameT' s e = go <$> (oneFrameT s e)
     { nodes, edges, instructions, res, next } = x
 
 -- | This represents the output of `oneFrame` as a tuple instead of a record.
-oneFrame' :: forall env audio engine proofA. Scene env audio engine proofA -> env -> (forall proofB. (M.Map Int AnAudioUnit /\ M.Map Int (Set Int) /\ Array (audio -> engine) /\ Unit /\ Scene env audio engine proofB))
+oneFrame' :: forall env audio engine proofA. Scene env audio engine proofA -> env -> (forall proofB. (M.Map String AnAudioUnit /\ M.Map String (Set String) /\ Array (audio -> engine) /\ Unit /\ Scene env audio engine proofB))
 oneFrame' s e = runThunkable (oneFrameT' s e)
 
 -- | Type used for the internal representation of the current audio state.
@@ -146,8 +138,8 @@ type AudioState' env audio (engine :: Type) res
     , res :: res
     , currentIdx :: Int
     , instructions :: Array (audio -> engine)
-    , internalNodes :: M.Map Int (AnAudioUnit)
-    , internalEdges :: M.Map Int (Set Int)
+    , internalNodes :: M.Map String (AnAudioUnit)
+    , internalEdges :: M.Map String (Set String)
     }
 
 -- | "For office use only" way to access the innards of a frame. Obliterates type safety. Use at your own risk.

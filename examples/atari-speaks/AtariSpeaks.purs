@@ -3,11 +3,10 @@ module WAGS.Example.AtariSpeaks where
 import Prelude
 import Control.Comonad.Cofree (Cofree, mkCofree)
 import Control.Promise (toAffE)
-import Data.Either (Either(..))
 import Data.Foldable (for_)
 import Data.Functor.Indexed (ivoid)
 import Data.Maybe (Maybe(..))
-import Data.Tuple.Nested ((/\), type (/\))
+import Data.Tuple.Nested (type (/\))
 import Effect (Effect)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect)
@@ -20,57 +19,72 @@ import Halogen.HTML.Events as HE
 import Halogen.VDom.Driver (runUI)
 import Math (pi, sin)
 import WAGS.Change (change)
-import WAGS.Control.Functions (env, loop, start, (@>))
-import WAGS.Control.Qualified as Ix
-import WAGS.Control.Types (Frame0, Scene)
+import WAGS.Control.Functions (env, loop, start, (@|>))
+import WAGS.Control.Qualified as WAGS
+import WAGS.Control.Types (Frame0, Scene, Frame)
 import WAGS.Create (create)
-import WAGS.Graph.Constructors (Gain, LoopBuf, Speaker)
-import WAGS.Graph.Optionals (GetSetAP, gain, loopBuf, speaker)
+import WAGS.Graph.AudioUnit (TGain, TLoopBuf, TSpeaker)
+import WAGS.Graph.Optionals (CGain, CLoopBuf, CSpeaker, gain, loopBuf, speaker)
 import WAGS.Interpret (AudioContext, FFIAudio(..), close, context, decodeAudioDataFromUri, defaultFFIAudio, makeUnitCache)
 import WAGS.Run (SceneI, run)
 
 vol = 1.4 :: Number
 
-scene ::
-  Number ->
-  Speaker
-    ( (Gain GetSetAP (LoopBuf GetSetAP))
-        /\ (Gain GetSetAP (LoopBuf GetSetAP))
-        /\ (Gain GetSetAP (LoopBuf GetSetAP))
-        /\ Unit
-    )
+type SceneTemplate
+  = CSpeaker
+      { gain0 :: CGain { loop0 :: CLoopBuf }
+      , gain1 :: CGain { loop1 :: CLoopBuf }
+      , gain2 :: CGain { loop2 :: CLoopBuf }
+      }
+
+type SceneType
+  = { speaker :: TSpeaker /\ { gain0 :: Unit, gain1 :: Unit, gain2 :: Unit }
+    , gain0 :: TGain /\ { loop0 :: Unit }
+    , loop0 :: TLoopBuf /\ {}
+    , gain1 :: TGain /\ { loop1 :: Unit }
+    , loop1 :: TLoopBuf /\ {}
+    , gain2 :: TGain /\ { loop2 :: Unit }
+    , loop2 :: TLoopBuf /\ {}
+    }
+
+scene :: Number -> SceneTemplate
 scene time =
   let
     rad = pi * time
   in
     speaker
-      $ ( ( gain (0.3 * vol)
-              (loopBuf { playbackRate: 1.0 + 0.1 * sin rad } "atar")
-          )
-            /\ ( gain (0.15 * vol)
-                  ( loopBuf
-                      { playbackRate: 1.5 + 0.1 * sin (2.0 * rad)
-                      , start: 0.1 + 0.1 * sin rad
-                      , end: 0.5 + 0.25 * sin (2.0 * rad)
-                      }
-                      "atar"
-                  )
-              )
-            /\ ( gain (0.3 * vol)
-                  (loopBuf { playbackRate: 0.25 } "atar")
-              )
-            /\ unit
-        )
+      { gain0:
+          gain (0.3 * vol)
+            { loop0: loopBuf { playbackRate: 1.0 + 0.1 * sin rad } "atar"
+            }
+      , gain1:
+          gain (0.15 * vol)
+            { loop1:
+                loopBuf
+                  { playbackRate: 1.5 + 0.1 * sin (2.0 * rad)
+                  , start: 0.1 + 0.1 * sin rad
+                  , end: 0.5 + 0.25 * sin (2.0 * rad)
+                  }
+                  "atar"
+            }
+      , gain2:
+          gain (0.3 * vol)
+            { loop2: loopBuf { playbackRate: 0.25 } "atar"
+            }
+      }
+
+createFrame :: Frame (SceneI Unit Unit) FFIAudio (Effect Unit) Frame0 {} SceneType Unit
+createFrame = WAGS.do
+  start
+  { time } <- env
+  create (scene time)
 
 piece :: Scene (SceneI Unit Unit) FFIAudio (Effect Unit) Frame0
 piece =
-  Ix.do
-    start
-    { time } <- env
-    create (scene time) $> Right unit
-    @> loop
+  createFrame
+    @|> loop
         ( const
-            $ Ix.do
+            $ WAGS.do
                 { time } <- env
                 ivoid $ change (scene time)
         )
