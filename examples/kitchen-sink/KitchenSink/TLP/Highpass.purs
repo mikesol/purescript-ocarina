@@ -3,6 +3,7 @@ module WAGS.Example.KitchenSink.TLP.Highpass where
 import Prelude
 import Data.Either (Either(..))
 import Math ((%))
+import Type.Proxy (Proxy(..))
 import WAGS.Change (change)
 import WAGS.Connect (connect)
 import WAGS.Control.Functions (branch, env, inSitu, proof, withProof)
@@ -13,10 +14,11 @@ import WAGS.Disconnect (disconnect)
 import WAGS.Example.KitchenSink.TLP.LoopSig (StepSig)
 import WAGS.Example.KitchenSink.TLP.Microphone (doMicrophone)
 import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
-import WAGS.Example.KitchenSink.Types.Highpass (HighpassUniverse, ksHighpassHighpass, ksHighpassGain, ksHighpassPlaybuf, deltaKsHighpass)
-import WAGS.Graph.Optionals (microphone)
+import WAGS.Example.KitchenSink.Types.Empty (cursorGain)
+import WAGS.Example.KitchenSink.Types.Highpass (HighpassGraph, deltaKsHighpass)
+import WAGS.Example.KitchenSink.Types.Microphone (ksMicrophoneCreate)
 
-doHighpass :: forall proof iu cb. StepSig (HighpassUniverse cb) proof iu
+doHighpass :: forall proof iu. StepSig HighpassGraph proof { | iu }
 doHighpass =
   branch \lsig -> WAGS.do
     { time } <- env
@@ -27,14 +29,14 @@ doHighpass =
         else
           Left
             $ inSitu doMicrophone WAGS.do
-                cursorHighpass <- cursor ksHighpassHighpass
-                cursorHighpassBuf <- cursor ksHighpassPlaybuf
-                cursorGain <- cursor ksHighpassGain
-                disconnect cursorHighpassBuf cursorHighpass
+                let
+                  cursorHighpass = Proxy :: _ "highpass"
+
+                  cursorPlayBuf = Proxy :: _ "buf"
+                disconnect cursorPlayBuf cursorHighpass
                 disconnect cursorHighpass cursorGain
                 destroy cursorHighpass
-                destroy cursorHighpassBuf
-                reset
-                toAdd <- create microphone
-                connect toAdd cursorGain
+                destroy cursorPlayBuf
+                create ksMicrophoneCreate
+                connect (Proxy :: _ "microphone") cursorGain
                 withProof pr lsig

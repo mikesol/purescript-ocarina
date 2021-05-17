@@ -8,7 +8,7 @@ import WAGS.Example.KitchenSink.Types.Empty (TopWith)
 import WAGS.Graph.AudioUnit (OnOff(..), TDelay, TGain, THighpass, TPlayBuf)
 import WAGS.Graph.Optionals (CDelay, CGain, CPlayBuf, DDelay, DGain, DPlayBuf, Ref, CHighpass, delay, delay_, gain, gain_, highpass, playBuf, playBuf_, ref)
 
-type DelayGraph
+type FeedbackGraph
   = TopWith { dmix :: Unit }
       ( dmix :: TGain /\ { delay :: Unit, buf :: Unit }
       , delay :: TDelay /\ { highpass :: Unit }

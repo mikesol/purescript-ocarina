@@ -3,8 +3,8 @@ module WAGS.Example.KitchenSink.TLP.Lowshelf where
 import Prelude
 
 import Data.Either (Either(..))
-import Data.Identity (Identity(..))
 import Math ((%))
+import Type.Proxy (Proxy(..))
 import WAGS.Change (change)
 import WAGS.Connect (connect)
 import WAGS.Control.Functions (branch, env, inSitu, proof, withProof)
@@ -13,12 +13,13 @@ import WAGS.Create (create)
 import WAGS.Destroy (destroy)
 import WAGS.Disconnect (disconnect)
 import WAGS.Example.KitchenSink.TLP.Bandpass (doBandpass)
-import WAGS.Example.KitchenSink.TLP.LoopSig ( StepSig)
+import WAGS.Example.KitchenSink.TLP.LoopSig (StepSig)
 import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
 import WAGS.Example.KitchenSink.Types.Bandpass (ksBandpassCreate)
-import WAGS.Example.KitchenSink.Types.Lowshelf (LowshelfUniverse, ksLowshelfLowshelf, ksLowshelfGain, ksLowshelfPlaybuf, deltaKsLowshelf)
+import WAGS.Example.KitchenSink.Types.Empty (cursorGain)
+import WAGS.Example.KitchenSink.Types.Lowshelf (LowshelfGraph, deltaKsLowshelf)
 
-doLowshelf :: forall proof iu cb. StepSig (LowshelfUniverse cb) proof iu
+doLowshelf :: forall proof iu . StepSig LowshelfGraph proof {|iu}
 doLowshelf =
   branch \lsig -> WAGS.do
     { time } <- env
@@ -29,14 +30,15 @@ doLowshelf =
         else
           Left
             $ inSitu doBandpass WAGS.do
-                cursorLowshelf <- cursor ksLowshelfLowshelf
-                cursorPlayBuf <- cursor ksLowshelfPlaybuf
-                cursorGain <- cursor ksLowshelfGain
+                let
+                  cursorLowshelf = Proxy :: _ "lowshelf"
+
+                  cursorPlayBuf = Proxy :: _ "buf"
+
                 disconnect cursorPlayBuf cursorLowshelf
                 disconnect cursorLowshelf cursorGain
                 destroy cursorLowshelf
                 destroy cursorPlayBuf
-                reset
-                toAdd <- create (ksBandpassCreate Identity Identity)
-                connect toAdd cursorGain
+                create ksBandpassCreate
+                connect (Proxy :: _ "bandpass") cursorGain
                 withProof pr lsig

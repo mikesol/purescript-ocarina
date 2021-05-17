@@ -1,9 +1,10 @@
 module WAGS.Example.KitchenSink.TLP.Allpass where
 
 import Prelude
+
 import Data.Either (Either(..))
-import Data.Identity (Identity(..))
 import Math ((%))
+import Type.Proxy (Proxy(..))
 import WAGS.Change (change)
 import WAGS.Connect (connect)
 import WAGS.Control.Functions (branch, env, inSitu, proof, withProof)
@@ -14,10 +15,11 @@ import WAGS.Disconnect (disconnect)
 import WAGS.Example.KitchenSink.TLP.LoopSig (StepSig)
 import WAGS.Example.KitchenSink.TLP.Lowpass (doLowpass)
 import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
-import WAGS.Example.KitchenSink.Types.Allpass (AllpassUniverse, deltaKsAllpass, ksAllpassAllpass, ksAllpassGain, ksAllpassPlaybuf)
+import WAGS.Example.KitchenSink.Types.Allpass (AllpassGraph, deltaKsAllpass)
+import WAGS.Example.KitchenSink.Types.Empty (cursorGain)
 import WAGS.Example.KitchenSink.Types.Lowpass (ksLowpassCreate)
 
-doAllpass :: forall proof iu cb. StepSig (AllpassUniverse cb) proof iu
+doAllpass :: forall proof iu. StepSig AllpassGraph proof {|iu}
 doAllpass =
   branch \lsig -> WAGS.do
     { time } <- env
@@ -28,14 +30,14 @@ doAllpass =
         else
           Left
             $ inSitu doLowpass WAGS.do
-                cursorAllpass <- cursor ksAllpassAllpass
-                cursorPlayBuf <- cursor ksAllpassPlaybuf
-                cursorGain <- cursor ksAllpassGain
+                let
+                  cursorAllpass = Proxy :: _ "allpass"
+
+                  cursorPlayBuf = Proxy :: _ "buf"
                 disconnect cursorPlayBuf cursorAllpass
                 disconnect cursorAllpass cursorGain
                 destroy cursorAllpass
                 destroy cursorPlayBuf
-                reset
-                toAdd <- create (ksLowpassCreate Identity Identity)
-                connect toAdd cursorGain
+                create ksLowpassCreate
+                connect (Proxy :: _ "lowpass") cursorGain
                 withProof pr lsig

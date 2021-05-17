@@ -4,6 +4,7 @@ import Prelude
 
 import Data.Either (Either(..))
 import Math ((%))
+import Type.Proxy (Proxy(..))
 import WAGS.Change (change)
 import WAGS.Connect (connect)
 import WAGS.Control.Functions (branch, env, inSitu, proof, withProof)
@@ -13,10 +14,11 @@ import WAGS.Destroy (destroy)
 import WAGS.Disconnect (disconnect)
 import WAGS.Example.KitchenSink.TLP.LoopSig (LoopSig(..), StepSig)
 import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
-import WAGS.Example.KitchenSink.Types.DynamicsCompressor (DynamicsCompressorUniverse, deltaKsDynamicsCompressor, ksDynamicsCompressorGain, ksDynamicsCompressorDynamicsCompressor, ksDynamicsCompressorPlaybuf)
-import WAGS.Graph.AudioUnit (OnOff(..), SinOsc(..))
+import WAGS.Example.KitchenSink.Types.DynamicsCompressor (DynamicsCompressorGraph, deltaKsDynamicsCompressor)
+import WAGS.Example.KitchenSink.Types.Empty (cursorGain)
+import WAGS.Example.KitchenSink.Types.SinOsc (ksSinOscCreate)
 
-doDynamicsCompressor :: forall proof iu cb. StepSig (DynamicsCompressorUniverse cb) proof iu
+doDynamicsCompressor :: forall proof iu. StepSig DynamicsCompressorGraph proof { | iu }
 doDynamicsCompressor =
   branch \l@(LoopSig lsig) -> WAGS.do
     { time } <- env
@@ -25,16 +27,17 @@ doDynamicsCompressor =
       $ if time % pieceTime < timing.ksDynamicsCompressor.begin then
           Left
             $ inSitu lsig WAGS.do
-                cursorCompressor <- cursor ksDynamicsCompressorDynamicsCompressor
-                cursorPlayBuf <- cursor ksDynamicsCompressorPlaybuf
-                cursorGain <- cursor ksDynamicsCompressorGain
+                let
+                  cursorCompressor = Proxy :: Proxy "compressor"
+
+                  cursorPlayBuf = Proxy :: Proxy "buf"
+
                 disconnect cursorPlayBuf cursorCompressor
                 disconnect cursorCompressor cursorGain
                 destroy cursorCompressor
                 destroy cursorPlayBuf
-                reset
-                toAdd <- create (SinOsc On 440.0)
-                connect toAdd cursorGain
+                create ksSinOscCreate
+                connect (Proxy :: _ "sinOsc") cursorGain
                 withProof pr l
         else
           Right (change (deltaKsDynamicsCompressor time) $> l)

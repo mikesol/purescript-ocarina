@@ -3,6 +3,7 @@ module WAGS.Destroy where
 import Prelude
 import Control.Monad.State (modify_)
 import Data.Map as M
+import Data.Tuple.Nested(type (/\))
 import Data.Symbol (class IsSymbol, reflectSymbol)
 import Prim.Row as R
 import Prim.RowList (class RowToList)
@@ -18,7 +19,7 @@ class Destroy (ptr :: Symbol) (i :: Graph) (o :: Graph) | ptr i -> o where
 
 instance destroyer ::
   ( IsSymbol ptr
-  , R.Cons ptr ignore0 grapho graphi
+  , R.Cons ptr (node /\ {}) grapho graphi
   , RowToList graphi nodeListI
   , PointerNotPresentInAnyEdgeList ptr nodeListI
   ) =>

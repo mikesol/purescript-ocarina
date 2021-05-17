@@ -4,9 +4,9 @@ import Prelude
 
 import Control.Monad.State (modify_)
 import Data.Map as M
-import Data.Tuple.Nested((/\))
 import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.Tuple (Tuple, fst)
+import Data.Tuple.Nested ((/\))
 import Heterogeneous.Folding (class FoldingWithIndex, class HFoldlWithIndex, hfoldlWithIndex)
 import Prim.Row as R
 import Type.Proxy (Proxy(..))

@@ -215,9 +215,7 @@ branch ::
       { | graph }
       { | graph }
       ( Either
-          ( FrameT env audio engine proofB m res { | i }
-              { | graph }
-              Unit ->
+          ( FrameT env audio engine proofB m res { | i } { | graph } Unit ->
             SceneT env audio engine proofB m res
           )
           ( FrameT env audio engine proofB m res

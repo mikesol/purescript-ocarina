@@ -4,6 +4,7 @@ import Prelude
 import Data.Either (Either(..))
 import Data.Functor.Indexed (ivoid)
 import Math ((%))
+import Type.Proxy (Proxy(..))
 import WAGS.Change (change)
 import WAGS.Connect (connect)
 import WAGS.Control.Functions (branch, env, inSitu, modifyRes, proof, withProof)
@@ -14,10 +15,11 @@ import WAGS.Disconnect (disconnect)
 import WAGS.Example.KitchenSink.TLP.LoopSig (StepSig)
 import WAGS.Example.KitchenSink.TLP.PeriodicOsc (doPeriodicOsc)
 import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
-import WAGS.Example.KitchenSink.Types.SquareOsc (SquareOscUniverse, deltaKsSquareOsc, ksSquareOscGain, ksSquareOscSquareOsc)
-import WAGS.Graph.AudioUnit (OnOff(..), PeriodicOsc(..))
+import WAGS.Example.KitchenSink.Types.Empty (cursorGain)
+import WAGS.Example.KitchenSink.Types.PeriodicOsc (ksPeriodicOscCreate)
+import WAGS.Example.KitchenSink.Types.SquareOsc (SquareOscGraph, deltaKsSquareOsc)
 
-doSquareOsc :: forall proof iu cb. StepSig (SquareOscUniverse cb) proof iu
+doSquareOsc :: forall proof iu. StepSig SquareOscGraph proof { | iu }
 doSquareOsc =
   branch \lsig -> WAGS.do
     { time } <- env
@@ -29,11 +31,10 @@ doSquareOsc =
         else
           Left
             $ inSitu doPeriodicOsc WAGS.do
-                cursorSquareOsc <- cursor ksSquareOscSquareOsc
-                cursorGain <- cursor ksSquareOscGain
+                let
+                  cursorSquareOsc = Proxy :: _ "squareOsc"
                 disconnect cursorSquareOsc cursorGain
                 destroy cursorSquareOsc
-                reset
-                toAdd <- create (PeriodicOsc "my-wave" On 440.0)
-                connect toAdd cursorGain
+                create ksPeriodicOscCreate
+                connect (Proxy :: _ "periodicOsc") cursorGain
                 withProof pr lsig

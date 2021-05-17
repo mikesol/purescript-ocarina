@@ -9,6 +9,7 @@ module WAGS.Run
   ) where
 
 import Prelude
+
 import Control.Comonad.Cofree (Cofree, head, tail)
 import Data.DateTime.Instant (Instant)
 import Data.Foldable (for_)

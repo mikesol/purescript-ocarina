@@ -1,10 +1,9 @@
 module WAGS.Example.KitchenSink.TLP.Microphone where
 
 import Prelude
-
 import Data.Either (Either(..))
-import Data.Identity (Identity(..))
 import Math ((%))
+import Type.Proxy (Proxy(..))
 import WAGS.Change (change)
 import WAGS.Connect (connect)
 import WAGS.Control.Functions (branch, env, inSitu, proof, withProof)
@@ -15,11 +14,11 @@ import WAGS.Disconnect (disconnect)
 import WAGS.Example.KitchenSink.TLP.LoopSig (StepSig)
 import WAGS.Example.KitchenSink.TLP.WaveShaper (doWaveShaper)
 import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
-import WAGS.Example.KitchenSink.Types.Microphone (MicrophoneUniverse, ksMicrophoneMicrophone, ksMicrophoneGain, deltaKsMicrophone)
+import WAGS.Example.KitchenSink.Types.Empty (cursorGain)
+import WAGS.Example.KitchenSink.Types.Microphone (MicrophoneGraph, deltaKsMicrophone)
 import WAGS.Example.KitchenSink.Types.WaveShaper (ksWaveShaperCreate)
 
-
-doMicrophone :: forall proof iu cb. StepSig (MicrophoneUniverse cb) proof iu
+doMicrophone :: forall proof iu. StepSig MicrophoneGraph proof { | iu }
 doMicrophone =
   branch \lsig -> WAGS.do
     { time } <- env
@@ -30,11 +29,10 @@ doMicrophone =
         else
           Left
             $ inSitu doWaveShaper WAGS.do
-                cursorMicrophone <- cursor ksMicrophoneMicrophone
-                cursorGain <- cursor ksMicrophoneGain
+                let
+                  cursorMicrophone = Proxy :: _ "microphone"
                 disconnect cursorMicrophone cursorGain
                 destroy cursorMicrophone
-                reset
-                toAdd <- create (ksWaveShaperCreate Identity Identity)
-                connect toAdd cursorGain
+                create ksWaveShaperCreate
+                connect (Proxy :: _ "waveShaper") cursorGain
                 withProof pr lsig

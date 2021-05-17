@@ -344,17 +344,15 @@ exports.makeLowshelf_ = function (ptr) {
     };
   };
 };
-exports.makeMicrophone_ = function (ptr) {
-  return function (state) {
-    return function () {
-      if (state.microphone === null) {
-        throw "Trying to use a microphone when no microphone is available.";
-      }
-      state.units[ptr] = {
-        main: state.context.createMediaStreamSource(state.microphone),
-        outgoing: [],
-        incoming: [],
-      };
+exports.makeMicrophone_ = function (state) {
+  return function () {
+    if (state.microphone === null) {
+      throw "Trying to use a microphone when no microphone is available.";
+    }
+    state.units["microphone"] = {
+      main: state.context.createMediaStreamSource(state.microphone),
+      outgoing: [],
+      incoming: [],
     };
   };
 };
@@ -527,15 +525,13 @@ exports.makeSinOsc_ = function (ptr) {
     };
   };
 };
-exports.makeSpeaker_ = function (ptr) {
-  return function (state) {
-    return function () {
-      state.units[ptr] = {
-        outgoing: [],
-        incoming: [],
-        main: state.context.createGain(),
-        se: state.context.destination,
-      };
+exports.makeSpeaker_ = function (state) {
+  return function () {
+    state.units["speaker"] = {
+      outgoing: [],
+      incoming: [],
+      main: state.context.createGain(),
+      se: state.context.destination,
     };
   };
 };
@@ -799,7 +795,7 @@ exports.setDelay_ = function (ptr) {
   return function (a) {
     return function (state) {
       return function () {
-        genericSetter(state.units[ptr].main, "delay", state.writeHead, a);
+        genericSetter(state.units[ptr].main, "delayTime", state.writeHead, a);
       };
     };
   };
