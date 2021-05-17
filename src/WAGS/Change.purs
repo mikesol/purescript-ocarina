@@ -12,13 +12,11 @@ import Heterogeneous.Folding (class FoldingWithIndex, class HFoldlWithIndex, hfo
 import Partial.Unsafe (unsafePartial)
 import Prim.Row as R
 import Record as Record
-import Type.Proxy (Proxy)
 import WAGS.Control.Functions (proof, withProof)
 import WAGS.Control.Qualified as WAGS
 import WAGS.Control.Types (FrameT, unsafeFrame)
 import WAGS.Graph.AudioUnit (OnOff(..))
 import WAGS.Graph.AudioUnit as CTOR
-import WAGS.Graph.Getter (class AsGetter, AsGetterFoldingWithIndex(..), asGetter)
 import WAGS.Graph.Graph (Graph)
 import WAGS.Graph.Node (NodeC)
 import WAGS.Graph.Parameter (AudioParameter(..), defaultParam, param)
@@ -29,92 +27,9 @@ type ChangeType (ptr :: Symbol) (a :: Type) (graph :: Graph) (b :: Type)
   = forall proxy env audio engine proof m res. Monad m => AudioInterpret audio engine => proxy ptr -> a -> FrameT env audio engine proof m res { | graph } { | graph } b
 
 -- | Change an audio unit `node` in `igraph` with index `ptr`, outputting the changed node.
--- |
--- | Note that `change'` increments the `changeBit` in the universe by 1, aka `Succ`.
--- | This use of inductive types in an indexed bind operation guarantees that we never go
--- | "back in time" after having changed an audio graph.
 class Change' (ptr :: Symbol) (a :: Type) (graph :: Graph) (b :: Type) | ptr a graph -> b where
   change' :: ChangeType ptr a graph b
 
-
--- | Similar to `get'`, but accepts a record with multiple units to get.
-get ::
-  forall r rr rrr env audio engine proof m res inGraph.
-  Monad m =>
-  AudioInterpret audio engine =>
-  HFoldlWithIndex
-    AsGetterFoldingWithIndex
-    {}
-    { | r }
-    { | rr } =>
-  HFoldlWithIndex
-    ChangeFoldingWithIndex
-    ( FrameT
-        env
-        audio
-        engine
-        proof
-        m
-        res
-        { | inGraph }
-        { | inGraph }
-        {}
-    )
-    { | rr }
-    ( FrameT
-        env
-        audio
-        engine
-        proof
-        m
-        res
-        { | inGraph }
-        { | inGraph }
-        rrr
-    ) =>
-  { | r } ->
-  FrameT
-    env
-    audio
-    engine
-    proof
-    m
-    res
-    { | inGraph }
-    { | inGraph }
-    rrr
-get r =   hfoldlWithIndex
-    ChangeFoldingWithIndex
-    ( (unsafeFrame (pure {})) ::
-        FrameT
-          env
-          audio
-          engine
-          proof
-          m
-          res
-          { | inGraph }
-          { | inGraph }
-          {}
-    )
-    innerStep
-  where
-  innerStep =
-    hfoldlWithIndex
-      AsGetterFoldingWithIndex
-      {}
-      r
-
-
--- | Uses the incoming graph as a getter. Its values will be discarded and filled with the current values.
-get' ::
-  forall ptr m res a' a b graph env audio engine proof.
-  Monad m =>
-  AudioInterpret audio engine =>
-  AsGetter a' a =>
-  Change' ptr a graph b =>
-  Proxy ptr -> a' -> FrameT env audio engine proof m res { | graph } { | graph } b
-get' px = (change' :: ChangeType ptr a graph b) px <<< asGetter
 
 -- | A term that can be coerced to an setter for a control-rate audio parameter.
 class SetterVal a where
