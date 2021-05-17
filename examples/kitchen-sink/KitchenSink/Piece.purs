@@ -12,7 +12,6 @@ import WAGS.Create (create)
 import WAGS.Example.KitchenSink.TLP.LoopSig (LoopSig(..), SceneSig)
 import WAGS.Example.KitchenSink.TLP.SinOsc (doSinOsc)
 import WAGS.Example.KitchenSink.Types.SinOsc (ksSinOsc)
-import WAGS.MoveNode (moveNode)
 
 piece :: SceneSig Frame0
 piece =

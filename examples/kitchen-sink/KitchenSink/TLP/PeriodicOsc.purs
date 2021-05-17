@@ -9,15 +9,13 @@ import WAGS.Connect (connect)
 import WAGS.Control.Functions (branch, env, inSitu, proof, withProof)
 import WAGS.Control.Qualified as WAGS
 import WAGS.Create (create)
-import WAGS.Cursor (cursor)
 import WAGS.Destroy (destroy)
 import WAGS.Disconnect (disconnect)
 import WAGS.Example.KitchenSink.TLP.LoopSig (StepSig)
 import WAGS.Example.KitchenSink.TLP.SawtoothOsc (doSawtoothOsc)
 import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
-import WAGS.Example.KitchenSink.Types.Empty (reset)
 import WAGS.Example.KitchenSink.Types.PeriodicOsc (PeriodicOscUniverse, deltaKsPeriodicOsc, ksPeriodicOscGain, ksPeriodicOscPeriodicOsc)
-import WAGS.Graph.Constructors (OnOff(..), SawtoothOsc(..))
+import WAGS.Graph.AudioUnit (OnOff(..), SawtoothOsc(..))
 
 
 doPeriodicOsc :: forall proof iu cb. StepSig (PeriodicOscUniverse cb) proof iu

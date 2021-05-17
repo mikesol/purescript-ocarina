@@ -10,14 +10,12 @@ import WAGS.Connect (connect)
 import WAGS.Control.Functions (branch, env, inSitu, proof, withProof)
 import WAGS.Control.Qualified as WAGS
 import WAGS.Create (create)
-import WAGS.Cursor (cursor)
 import WAGS.Destroy (destroy)
 import WAGS.Disconnect (disconnect)
 import WAGS.Example.KitchenSink.TLP.Bandpass (doBandpass)
 import WAGS.Example.KitchenSink.TLP.LoopSig ( StepSig)
 import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
 import WAGS.Example.KitchenSink.Types.Bandpass (ksBandpassCreate)
-import WAGS.Example.KitchenSink.Types.Empty (reset)
 import WAGS.Example.KitchenSink.Types.Lowshelf (LowshelfUniverse, ksLowshelfLowshelf, ksLowshelfGain, ksLowshelfPlaybuf, deltaKsLowshelf)
 
 doLowshelf :: forall proof iu cb. StepSig (LowshelfUniverse cb) proof iu

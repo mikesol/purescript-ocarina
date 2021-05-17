@@ -1,7 +1,6 @@
 module WAGS.Change where
 
 import Prelude
-
 import Control.Monad.State as MS
 import Data.Map as M
 import Data.Maybe (Maybe(..))
@@ -15,6 +14,7 @@ import Record as Record
 import WAGS.Control.Functions (proof, withProof)
 import WAGS.Control.Qualified as WAGS
 import WAGS.Control.Types (FrameT, unsafeFrame)
+import WAGS.Edgeable (class Edgeable, withEdge)
 import WAGS.Graph.AudioUnit (OnOff(..))
 import WAGS.Graph.AudioUnit as CTOR
 import WAGS.Graph.Graph (Graph)
@@ -29,7 +29,6 @@ type ChangeType (ptr :: Symbol) (a :: Type) (graph :: Graph) (b :: Type)
 -- | Change an audio unit `node` in `igraph` with index `ptr`, outputting the changed node.
 class Change' (ptr :: Symbol) (a :: Type) (graph :: Graph) (b :: Type) | ptr a graph -> b where
   change' :: ChangeType ptr a graph b
-
 
 -- | A term that can be coerced to an setter for a control-rate audio parameter.
 class SetterVal a where
@@ -53,17 +52,13 @@ instance setterValFunction :: SetterVal (AudioParameter -> AudioParameter) where
 instance setterValFunctionN :: SetterVal (AudioParameter -> Number) where
   setterVal = map param
 
-
 data ChangeFoldingWithIndex
   = ChangeFoldingWithIndex
 
-instance changeFoldingWithIndex ::
+instance changeFoldingWithIndexUnit ::
   ( Monad m
   , AudioInterpret audio engine
-  , Change' sym node inGraph outNode
-  , IsSymbol sym
-  , R.Lacks sym inRecord
-  , R.Cons sym outNode inRecord outRecord
+  , Change' sym Unit inGraph Unit
   ) =>
   FoldingWithIndex
     ChangeFoldingWithIndex
@@ -79,7 +74,71 @@ instance changeFoldingWithIndex ::
         { | inGraph }
         { | inRecord }
     )
-    node
+    Unit
+    ( FrameT
+        env
+        audio
+        engine
+        proof
+        m
+        res
+        { | inGraph }
+        { | inGraph }
+        { | inRecord }
+    ) where
+  foldingWithIndex ChangeFoldingWithIndex prop ifr node = WAGS.do
+    r <- ifr
+    pr <- proof
+    withProof pr r
+else instance changeFoldingWithIndex ::
+  ( Monad m
+  , AudioInterpret audio engine
+  , Edgeable node' (Tuple node edges)
+  , Change' sym node inGraph outNode
+  , IsSymbol sym
+  , R.Lacks sym inRecord
+  , R.Cons sym outNode inRecord midRecord
+  , HFoldlWithIndex
+      ChangeFoldingWithIndex
+      ( FrameT
+          env
+          audio
+          engine
+          proof
+          m
+          res
+          { | inGraph }
+          { | inGraph }
+          { | midRecord }
+      )
+      edges
+      ( FrameT
+          env
+          audio
+          engine
+          proof
+          m
+          res
+          { | inGraph }
+          { | inGraph }
+          { | outRecord }
+      )
+  ) =>
+  FoldingWithIndex
+    ChangeFoldingWithIndex
+    (proxy sym)
+    ( FrameT
+        env
+        audio
+        engine
+        proof
+        m
+        res
+        { | inGraph }
+        { | inGraph }
+        { | inRecord }
+    )
+    node'
     ( FrameT
         env
         audio
@@ -91,11 +150,41 @@ instance changeFoldingWithIndex ::
         { | inGraph }
         { | outRecord }
     ) where
-  foldingWithIndex ChangeFoldingWithIndex prop ifr node = WAGS.do
-    r <- ifr
-    res <- change' prop node
-    pr <- proof
-    withProof pr (Record.insert prop res r)
+  foldingWithIndex ChangeFoldingWithIndex prop ifr node' =
+    let
+      node /\ edges = withEdge node'
+    in
+      WAGS.do
+        r <- ifr
+        res <- change' prop node
+        pr <- proof
+        ( hfoldlWithIndex ::
+            ChangeFoldingWithIndex ->
+            FrameT
+              env
+              audio
+              engine
+              proof
+              m
+              res
+              { | inGraph }
+              { | inGraph }
+              { | midRecord } ->
+            edges ->
+            FrameT
+              env
+              audio
+              engine
+              proof
+              m
+              res
+              { | inGraph }
+              { | inGraph }
+              { | outRecord }
+        )
+          ChangeFoldingWithIndex
+          (withProof pr (Record.insert prop res r))
+          edges
 
 -- | Similar to `change'`, but accepts a record with multiple units to change.
 change ::
@@ -154,6 +243,14 @@ change r =
           {}
     )
     r
+
+instance changeUnit ::
+  Change'
+    ptr
+    Unit
+    graphi
+    Unit where
+  change' _ _ = unsafeFrame $ pure unit
 
 instance changeAllpass ::
   ( IsSymbol ptr

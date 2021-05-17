@@ -10,14 +10,12 @@ import WAGS.Connect (connect)
 import WAGS.Control.Functions (branch, env, inSitu, proof, withProof)
 import WAGS.Control.Qualified as WAGS
 import WAGS.Create (create)
-import WAGS.Cursor (cursor)
 import WAGS.Destroy (destroy)
 import WAGS.Disconnect (disconnect)
 import WAGS.Example.KitchenSink.TLP.Feedback (doFeedback)
 import WAGS.Example.KitchenSink.TLP.LoopSig (StepSig)
 import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
 import WAGS.Example.KitchenSink.Types.Delay (DelayUniverse, deltaKsDelay, ksDelayDelay, ksDelayGain, ksDelayMix, ksDelayPlaybuf)
-import WAGS.Example.KitchenSink.Types.Empty (reset)
 import WAGS.Example.KitchenSink.Types.Feedback (ksFeedbackCreate)
 
 doDelay :: forall proof iu cb. StepSig (DelayUniverse cb) proof iu

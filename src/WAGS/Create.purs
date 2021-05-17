@@ -1,16 +1,19 @@
 module WAGS.Create where
 
 import Prelude
+
 import Control.Monad.State (modify_)
 import Data.Map as M
+import Data.Tuple.Nested((/\))
 import Data.Symbol (class IsSymbol, reflectSymbol)
-import Data.Tuple (Tuple(..), fst, snd)
+import Data.Tuple (Tuple, fst)
 import Heterogeneous.Folding (class FoldingWithIndex, class HFoldlWithIndex, hfoldlWithIndex)
 import Prim.Row as R
 import Type.Proxy (Proxy(..))
 import WAGS.Connect (ConnectFoldingWithIndex(..))
 import WAGS.Control.Qualified as WAGS
 import WAGS.Control.Types (FrameT, unsafeFrame)
+import WAGS.Edgeable (class Edgeable, withEdge)
 import WAGS.Graph.AudioUnit as CTOR
 import WAGS.Graph.Graph (Graph)
 import WAGS.Graph.Node (NodeC)
@@ -81,21 +84,17 @@ instance createFoldingWithIndex ::
         Unit
     ) where
   foldingWithIndex CreateFoldingWithIndex prop ifr edgeable =
-    hfoldlWithIndex
-      CreateFoldingWithIndex
-      ( WAGS.do
-          ifr
-          create' prop (fst (nodeEdge edgeable))
-      )
-      (snd (nodeEdge edgeable))
+    let
+      node /\ edges = withEdge edgeable
+    in
+      hfoldlWithIndex
+        CreateFoldingWithIndex
+        ( WAGS.do
+            ifr
+            create' prop node
+        )
+        edges
 
-class Edgeable a b | a -> b where
-  nodeEdge :: a -> b
-
-instance edgeableTuple :: Edgeable (Tuple a b) (Tuple a b) where
-  nodeEdge = identity
-else instance edgeableRest :: Edgeable a (Tuple a {}) where
-  nodeEdge = flip Tuple {}
 
 data ThenConnectFoldingWithIndex
   = ThenConnectFoldingWithIndex
@@ -182,15 +181,18 @@ instance thenConnectFoldingWithIndex ::
         Unit
     ) where
   foldingWithIndex ThenConnectFoldingWithIndex prop ifr edgeable =
-    hfoldlWithIndex
-      ThenConnectFoldingWithIndex
-      ( hfoldlWithIndex
-          ConnectFoldingWithIndex
-          (ifr $> (Proxy :: _ sym))
-          (snd (nodeEdge edgeable))
-          $> unit
-      )
-      (snd (nodeEdge edgeable))
+    let
+      _ /\ edges = withEdge edgeable
+    in
+      hfoldlWithIndex
+        ThenConnectFoldingWithIndex
+        ( hfoldlWithIndex
+            ConnectFoldingWithIndex
+            (ifr $> (Proxy :: _ sym))
+            edges
+            $> unit
+        )
+        edges
 
 -- | Similar to `create`, but accepts a record with multiple units to create _and_ connect.
 create ::

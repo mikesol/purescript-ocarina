@@ -2,17 +2,12 @@ module WAGS.Example.WTK.Types where
 
 import Prelude
 import Data.DateTime.Instant (Instant)
-import Data.Identity (Identity(..))
 import Data.List (List)
 import Data.Set as S
-import Data.Tuple.Nested ((/\), type (/\))
+import Data.Tuple.Nested (type (/\))
 import FRP.Event.MIDI (MIDIEventInTime)
-import Record (set)
-import Type.Proxy (Proxy(..))
-import WAGS.Graph.Constructors (Gain(..), OnOff(..), SinOsc(..), Speaker(..))
-import WAGS.Graph.Decorators (Decorating', Focus(..))
-import WAGS.Graph.Optionals (GetSetAP, defaultGetSetAP)
-import WAGS.Graph.Parameter (AudioParameter)
+import WAGS.Graph.AudioUnit (OnOff(..), TGain, TSinOsc, TSpeaker)
+import WAGS.Graph.Optionals (CGain, CSinOsc, CSpeaker, GetSetAP, gain, sinOsc, speaker)
 
 data Key
   = K0
@@ -26,89 +21,71 @@ data Key
   | K8
   | K9
 
-type KeyUnit
-  = Gain GetSetAP (SinOsc GetSetAP)
+type KlavierTemplate
+  = CSpeaker
+      { mix ::
+          CGain
+            { k0 :: CGain { osc0 :: CSinOsc }
+            , k1 :: CGain { osc1 :: CSinOsc }
+            , k2 :: CGain { osc2 :: CSinOsc }
+            , k3 :: CGain { osc3 :: CSinOsc }
+            , k4 :: CGain { osc4 :: CSinOsc }
+            , k5 :: CGain { osc5 :: CSinOsc }
+            , k6 :: CGain { osc6 :: CSinOsc }
+            , k7 :: CGain { osc7 :: CSinOsc }
+            , k8 :: CGain { osc8 :: CSinOsc }
+            , k9 :: CGain { osc9 :: CSinOsc }
+            }
+      }
 
-type KeyUnitRes
-  = Gain AudioParameter (SinOsc AudioParameter)
+type KlavierType
+  = { speaker :: TSpeaker /\ { mix :: Unit }
+    , mix :: TGain /\ { k0 :: Unit, k1 :: Unit, k2 :: Unit, k3 :: Unit, k4 :: Unit, k5 :: Unit, k6 :: Unit, k7 :: Unit, k8 :: Unit, k9 :: Unit }
+    , k0 :: TGain /\ { osc0 :: Unit }
+    , osc0 :: TSinOsc /\ {}
+    , k1 :: TGain /\ { osc1 :: Unit }
+    , osc1 :: TSinOsc /\ {}
+    , k2 :: TGain /\ { osc2 :: Unit }
+    , osc2 :: TSinOsc /\ {}
+    , k3 :: TGain /\ { osc3 :: Unit }
+    , osc3 :: TSinOsc /\ {}
+    , k4 :: TGain /\ { osc4 :: Unit }
+    , osc4 :: TSinOsc /\ {}
+    , k5 :: TGain /\ { osc5 :: Unit }
+    , osc5 :: TSinOsc /\ {}
+    , k6 :: TGain /\ { osc6 :: Unit }
+    , osc6 :: TSinOsc /\ {}
+    , k7 :: TGain /\ { osc7 :: Unit }
+    , osc7 :: TSinOsc /\ {}
+    , k8 :: TGain /\ { osc8 :: Unit }
+    , osc8 :: TSinOsc /\ {}
+    , k9 :: TGain /\ { osc9 :: Unit }
+    , osc9 :: TSinOsc /\ {}
+    }
 
-type KlavierType k0 k1 k2 k3 k4 k5 k6 k7 k8 k9
-  = { k0 :: Decorating' k0
-    , k1 :: Decorating' k1
-    , k2 :: Decorating' k2
-    , k3 :: Decorating' k3
-    , k4 :: Decorating' k4
-    , k5 :: Decorating' k5
-    , k6 :: Decorating' k6
-    , k7 :: Decorating' k7
-    , k8 :: Decorating' k8
-    , k9 :: Decorating' k9
-    } ->
-    Speaker
-      ( Gain GetSetAP
-          ( k0 KeyUnit
-              /\ k1 KeyUnit
-              /\ k2 KeyUnit
-              /\ k3 KeyUnit
-              /\ k4 KeyUnit
-              /\ k5 KeyUnit
-              /\ k6 KeyUnit
-              /\ k7 KeyUnit
-              /\ k8 KeyUnit
-              /\ k9 KeyUnit
-              /\ Unit
-          )
-      )
-
-klavierIdentity =
-  { k0: Identity
-  , k1: Identity
-  , k2: Identity
-  , k3: Identity
-  , k4: Identity
-  , k5: Identity
-  , k6: Identity
-  , k7: Identity
-  , k8: Identity
-  , k9: Identity
-  }
-
-cursors =
-  { k0: fullKeyboard (set (Proxy :: _ "k0") Focus klavierIdentity)
-  , k1: fullKeyboard (set (Proxy :: _ "k1") Focus klavierIdentity)
-  , k2: fullKeyboard (set (Proxy :: _ "k2") Focus klavierIdentity)
-  , k3: fullKeyboard (set (Proxy :: _ "k3") Focus klavierIdentity)
-  , k4: fullKeyboard (set (Proxy :: _ "k4") Focus klavierIdentity)
-  , k5: fullKeyboard (set (Proxy :: _ "k5") Focus klavierIdentity)
-  , k6: fullKeyboard (set (Proxy :: _ "k6") Focus klavierIdentity)
-  , k7: fullKeyboard (set (Proxy :: _ "k7") Focus klavierIdentity)
-  , k8: fullKeyboard (set (Proxy :: _ "k8") Focus klavierIdentity)
-  , k9: fullKeyboard (set (Proxy :: _ "k9") Focus klavierIdentity)
-  }
-
-initialKey :: KeyUnit
-initialKey = Gain (defaultGetSetAP 0.0) (SinOsc Off (defaultGetSetAP 440.0))
-
-fullKeyboard :: forall k0 k1 k2 k3 k4 k5 k6 k7 k8 k9. KlavierType k0 k1 k2 k3 k4 k5 k6 k7 k8 k9
-fullKeyboard { k0, k1, k2, k3, k4, k5, k6, k7, k8, k9 } =
-  Speaker
-    ( Gain (defaultGetSetAP 1.0)
-        ( k0 initialKey
-            /\ k1 initialKey
-            /\ k2 initialKey
-            /\ k3 initialKey
-            /\ k4 initialKey
-            /\ k5 initialKey
-            /\ k6 initialKey
-            /\ k7 initialKey
-            /\ k8 initialKey
-            /\ k9 initialKey
-            /\ unit
-        )
-    )
+fullKeyboard :: KlavierTemplate
+fullKeyboard =
+  speaker
+    { mix:
+        gain 1.0
+          { k0: gain 0.0 { osc0: sinOsc Off 440.0 }
+          , k1: gain 0.0 { osc1: sinOsc Off 440.0 }
+          , k2: gain 0.0 { osc2: sinOsc Off 440.0 }
+          , k3: gain 0.0 { osc3: sinOsc Off 440.0 }
+          , k4: gain 0.0 { osc4: sinOsc Off 440.0 }
+          , k5: gain 0.0 { osc5: sinOsc Off 440.0 }
+          , k6: gain 0.0 { osc6: sinOsc Off 440.0 }
+          , k7: gain 0.0 { osc7: sinOsc Off 440.0 }
+          , k8: gain 0.0 { osc8: sinOsc Off 440.0 }
+          , k9: gain 0.0 { osc9: sinOsc Off 440.0 }
+          }
+    }
 
 type Trigger
   = List { time :: Instant, value :: MIDIEventInTime }
+
+type KeyUnit
+  = { gain :: GetSetAP, freq :: GetSetAP, onOff :: OnOff }
 
 type KeyInfo
   = { startU :: KeyUnit

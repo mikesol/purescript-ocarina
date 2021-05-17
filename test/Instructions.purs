@@ -1,7 +1,6 @@
 module Test.Instructions where
 
 import Prelude
-
 import Data.Either (Either(..))
 import Data.Functor.Indexed (ivoid)
 import Data.Map as M
@@ -15,27 +14,23 @@ import WAGS.Control.Qualified as WAGS
 import WAGS.Control.Types (Frame, Frame0, InitialGraph, oneFrame')
 import WAGS.Create (create)
 import WAGS.Get (get)
-import WAGS.Graph.AudioUnit (Gain, Highpass, OnOff(..), SinOsc, Speaker, TGain, THighpass, TSinOsc, TSpeaker, GetSinOsc)
-import WAGS.Graph.Optionals (GetSetAP, Ref, gain, highpass, highpass_, ref, sinOsc, sinOsc_, speaker)
-import WAGS.Graph.Parameter ( param)
+import WAGS.Graph.AudioUnit (GetSinOsc, OnOff(..), TGain, THighpass, TSinOsc, TSpeaker)
+import WAGS.Graph.Optionals (CGain, CHighpass, CSinOsc, CSpeaker, Ref, gain, highpass, highpass_, ref, sinOsc, sinOsc_, speaker)
+import WAGS.Graph.Parameter (param)
 import WAGS.Rendered (AnAudioUnit(..), Instruction(..))
 
 type Time
   = { time :: Number }
 
 type SceneTemplate
-  = { speaker ∷
-        Speaker
-          /\ { mix ::
-              Gain GetSetAP
-                /\ { highpass ::
-                    Highpass GetSetAP GetSetAP
-                      /\ { sinOsc :: SinOsc GetSetAP /\ {}
-                      }
-                , mix :: Ref
-                }
-          }
-    }
+  = CSpeaker
+      { mix ::
+          CGain
+            { highpass ::
+                CHighpass { sinOsc :: CSinOsc }
+            , mix :: Ref
+            }
+      }
 
 type SceneType
   = { speaker :: TSpeaker /\ { mix :: Unit }

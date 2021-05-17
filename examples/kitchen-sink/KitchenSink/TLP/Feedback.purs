@@ -8,13 +8,11 @@ import WAGS.Connect (connect)
 import WAGS.Control.Functions (branch, env, inSitu, proof, withProof)
 import WAGS.Control.Qualified as WAGS
 import WAGS.Create (create)
-import WAGS.Cursor (cursor)
 import WAGS.Destroy (destroy)
 import WAGS.Disconnect (disconnect)
 import WAGS.Example.KitchenSink.TLP.LoopBuf (doLoopBuf)
 import WAGS.Example.KitchenSink.TLP.LoopSig (StepSig)
 import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
-import WAGS.Example.KitchenSink.Types.Empty (reset)
 import WAGS.Example.KitchenSink.Types.Feedback (FeedbackUniverse, deltaKsFeedback, ksFeedbackAttenuation, ksFeedbackDelay, ksFeedbackGain, ksFeedbackMix, ksFeedbackPlaybuf)
 import WAGS.Graph.Optionals (loopBuf)
 
