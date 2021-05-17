@@ -68,9 +68,9 @@ class AllpassCtor_ i allpass | i -> allpass where
   -- | Change an allpass filter
   -- |
   -- | ```purescript
-  -- | allpass { freq: 440.0 } sinOsc 440.0
-  -- | allpass { freq: 440.0, q: 1.0 } sinOsc 440.0
-  -- | allpass 440.0 sinOsc 440.0
+  -- | allpass_ { freq: 440.0 }
+  -- | allpass_ { freq: 440.0, q: 1.0 }
+  -- | allpass_ 440.0
   -- | ```
   allpass_ :: i -> allpass
 
@@ -85,9 +85,11 @@ instance allpassCtor1_ ::
 else instance allpassCtor2_ :: (InitialVal a, SetterVal a) => AllpassCtor_ a (CTOR.Allpass GetSetAP GetSetAP) where
   allpass_ a = CTOR.Allpass (Tuple (initialVal a) (setterVal a)) defaultAllpass.q
 
+-- | The type of a created allpass filter
 type CAllpass a
   = CTOR.Allpass GetSetAP GetSetAP /\ a
 
+-- | The type of a changing allpass filter
 type DAllpass
   = CTOR.Allpass GetSetAP GetSetAP
 
@@ -113,12 +115,12 @@ defaultBandpass :: { | BandpassOptional }
 defaultBandpass = { q: defaultGetSetAP 1.0 }
 
 class BandpassCtor i bandpass | i -> bandpass where
-  -- | Make a bandpass filter
+  -- | Create a bandpass filter, connecting it to another unit
   -- |
   -- | ```purescript
-  -- | bandpass { freq: 440.0 } sinOsc 440.0
-  -- | bandpass { freq: 440.0, q: 1.0 } sinOsc 440.0
-  -- | bandpass 440.0 sinOsc 440.0
+  -- | bandpass { freq: 440.0 } { sinOsc: unit }
+  -- | bandpass { freq: 440.0, q: 1.0 } { sinOsc: unit }
+  -- | bandpass 440.0 { sinOsc: unit }
   -- | ```
   bandpass :: i -> bandpass
 
@@ -134,12 +136,12 @@ else instance bandpassCtor2 :: (InitialVal a, SetterVal a) => BandpassCtor a (b 
   bandpass a b = CTOR.Bandpass (Tuple (initialVal a) (setterVal a)) defaultBandpass.q /\ b
 
 class BandpassCtor_ i bandpass | i -> bandpass where
-  -- | Change a bandpass_ filter
+  -- | Change a bandpass filter
   -- |
   -- | ```purescript
-  -- | bandpass_ { freq: 440.0 } sinOsc 440.0
-  -- | bandpass_ { freq: 440.0, q: 1.0 } sinOsc 440.0
-  -- | bandpass_ 440.0 sinOsc 440.0
+  -- | bandpass_ { freq: 440.0 }
+  -- | bandpass_ { freq: 440.0, q: 1.0 }
+  -- | bandpass_ 440.0
   -- | ```
   bandpass_ :: i -> bandpass
 
@@ -162,11 +164,11 @@ type DBandpass
 
 ------
 class ConstantCtor_ i o | i -> o where
-  -- | Make a constant value
+  -- | Change a constant value
   -- |
   -- | ```purescript
-  -- | constant 0.5
-  -- | constant On 0.5
+  -- | constant_ 0.5
+  -- | constant_ On 0.5
   -- | ```
   constant_ :: i -> o
 
@@ -290,12 +292,12 @@ defaultDynamicsCompressor =
   }
 
 class DynamicsCompressorCtor_ i compressor | i -> compressor where
-  -- | Make a compressor.
+  -- | Change a compressor.
   -- |
   -- | ```purescript
-  -- | compressor { threshold: -10.0 } (playBuf "track")
-  -- | compressor { knee: 20.0, ratio: 10.0 } (playBuf "track")
-  -- | compressor { attack: 0.01, release: 0.3 } (playBuf "track")
+  -- | compressor_ { threshold: -10.0 }
+  -- | compressor_ { knee: 20.0, ratio: 10.0 }
+  -- | compressor_ { attack: 0.01, release: 0.3 }
   -- | ```
   compressor_ :: i -> compressor
 
@@ -318,9 +320,9 @@ class DynamicsCompressorCtor i compressor | i -> compressor where
   -- | Make a compressor.
   -- |
   -- | ```purescript
-  -- | compressor { threshold: -10.0 } (playBuf "track")
-  -- | compressor { knee: 20.0, ratio: 10.0 } (playBuf "track")
-  -- | compressor { attack: 0.01, release: 0.3 } (playBuf "track")
+  -- | compressor { threshold: -10.0 } { buf: playBuf "track" }
+  -- | compressor { knee: 20.0, ratio: 10.0 } { buf: playBuf "track" }
+  -- | compressor { attack: 0.01, release: 0.3 } { buf: playBuf "track" }
   -- | ```
   compressor :: i -> compressor
 
@@ -392,12 +394,12 @@ defaultHighpass :: { | HighpassOptional }
 defaultHighpass = { q: defaultGetSetAP 1.0 }
 
 class HighpassCtor_ i highpass | i -> highpass where
-  -- | Make a highpass filter
+  -- | Change a highpass filter
   -- |
   -- | ```purescript
-  -- | highpass { freq: 440.0 } sinOsc 440.0
-  -- | highpass { freq: 440.0, q: 1.0 } sinOsc 440.0
-  -- | highpass 440.0 sinOsc 440.0
+  -- | highpass_ { freq: 440.0 } 
+  -- | highpass_ { freq: 440.0, q: 1.0 } 
+  -- | highpass_ 440.0 
   -- | ```
   highpass_ :: i -> highpass
 
@@ -416,9 +418,9 @@ class HighpassCtor i highpass | i -> highpass where
   -- | Make a highpass filter
   -- |
   -- | ```purescript
-  -- | highpass { freq: 440.0 } sinOsc 440.0
-  -- | highpass { freq: 440.0, q: 1.0 } sinOsc 440.0
-  -- | highpass 440.0 sinOsc 440.0
+  -- | highpass { freq: 440.0 } { osc: sinOsc 440.0 }
+  -- | highpass { freq: 440.0, q: 1.0 } { osc: sinOsc 440.0 }
+  -- | highpass 440.0 { osc: sinOsc 440.0 }
   -- | ```
   highpass :: i -> highpass
 
@@ -461,12 +463,12 @@ defaultHighshelf :: { | HighshelfOptional }
 defaultHighshelf = { gain: defaultGetSetAP 0.0 }
 
 class HighshelfCtor_ i highshelf | i -> highshelf where
-  -- | Make a highshelf filter
+  -- | Change a highshelf filter
   -- |
   -- | ```purescript
-  -- | highshelf { freq: 440.0 } sinOsc 440.0
-  -- | highshelf { freq: 440.0, gain: 1.0 } sinOsc 440.0
-  -- | highshelf 440.0 sinOsc 440.0
+  -- | highshelf_ { freq: 440.0 }
+  -- | highshelf_ { freq: 440.0, gain: 1.0 } 
+  -- | highshelf_ 440.0 
   -- | ```
   highshelf_ :: i -> highshelf
 
@@ -485,9 +487,9 @@ class HighshelfCtor i highshelf | i -> highshelf where
   -- | Make a highshelf filter
   -- |
   -- | ```purescript
-  -- | highshelf { freq: 440.0 } sinOsc 440.0
-  -- | highshelf { freq: 440.0, gain: 1.0 } sinOsc 440.0
-  -- | highshelf 440.0 sinOsc 440.0
+  -- | highshelf { freq: 440.0 } { osc: sinOsc 440.0 }
+  -- | highshelf { freq: 440.0, gain: 1.0 } { osc: sinOsc 440.0 }
+  -- | highshelf 440.0 { osc: sinOsc 440.0 }
   -- | ```
   highshelf :: i -> highshelf
 
@@ -534,12 +536,12 @@ defaultLoopBuf :: { | LoopBufOptional }
 defaultLoopBuf = { playbackRate: defaultGetSetAP 1.0, onOff: On, start: 0.0, end: 0.0 }
 
 class LoopBufCtor_ i loopBuf | i -> loopBuf where
-  -- | Make a looping buffer.
+  -- | Chage a looping buffer.
   -- |
   -- | ```purescript
-  -- | loopBuf { playbackRate: 1.0 } "track"
-  -- | loopBuf { playbackRate: 1.0, start: 0.5 } "track"
-  -- | loopBuf "track"
+  -- | loopBuf_ { playbackRate: 1.0 } "track"
+  -- | loopBuf_ { playbackRate: 1.0, start: 0.5 } "track"
+  -- | loopBuf_ "track"
   -- | ```
   loopBuf_ :: i -> loopBuf
 
@@ -616,12 +618,12 @@ defaultLowpass :: { | LowpassOptional }
 defaultLowpass = { q: defaultGetSetAP 1.0 }
 
 class LowpassCtor_ i lowpass | i -> lowpass where
-  -- | Make a lowpass_ filter
+  -- | Change a lowpass filter
   -- |
   -- | ```purescript
-  -- | lowpass_ { freq: 440.0 } sinOsc 440.0
-  -- | lowpass_ { freq: 440.0, q: 1.0 } sinOsc 440.0
-  -- | lowpass_ 440.0 sinOsc 440.0
+  -- | lowpass_ { freq: 440.0 }
+  -- | lowpass_ { freq: 440.0, q: 1.0 }
+  -- | lowpass_ 440.0
   -- | ```
   lowpass_ :: i -> lowpass
 
@@ -640,9 +642,9 @@ class LowpassCtor i lowpass | i -> lowpass where
   -- | Make a lowpass filter
   -- |
   -- | ```purescript
-  -- | lowpass { freq: 440.0 } sinOsc 440.0
-  -- | lowpass { freq: 440.0, q: 1.0 } sinOsc 440.0
-  -- | lowpass 440.0 sinOsc 440.0
+  -- | lowpass { freq: 440.0 } { osc: sinOsc 440.0 }
+  -- | lowpass { freq: 440.0, q: 1.0 } { osc: sinOsc 440.0 }
+  -- | lowpass 440.0 { osc: sinOsc 440.0 }
   -- | ```
   lowpass :: i -> lowpass
 
@@ -685,12 +687,12 @@ defaultLowshelf :: { | LowshelfOptional }
 defaultLowshelf = { gain: defaultGetSetAP 0.0 }
 
 class LowshelfCtor_ i lowshelf | i -> lowshelf where
-  -- | Make a lowshelf_ filter
+  -- | Change a lowshelf filter
   -- |
   -- | ```purescript
-  -- | lowshelf_ { freq: 440.0 } sinOsc 440.0
-  -- | lowshelf_ { freq: 440.0, gain: 1.0 } sinOsc 440.0
-  -- | lowshelf_ 440.0 sinOsc 440.0
+  -- | lowshelf_ { freq: 440.0 }
+  -- | lowshelf_ { freq: 440.0, gain: 1.0 }
+  -- | lowshelf_ 440.0
   -- | ```
   lowshelf_ :: i -> lowshelf
 
@@ -709,9 +711,9 @@ class LowshelfCtor i lowshelf | i -> lowshelf where
   -- | Make a lowshelf filter
   -- |
   -- | ```purescript
-  -- | lowshelf { freq: 440.0 } sinOsc 440.0
-  -- | lowshelf { freq: 440.0, gain: 1.0 } sinOsc 440.0
-  -- | lowshelf 440.0 sinOsc 440.0
+  -- | lowshelf { freq: 440.0 } { osc: sinOsc 440.0 }
+  -- | lowshelf { freq: 440.0, gain: 1.0 } { osc: sinOsc 440.0 }
+  -- | lowshelf 440.0 { osc: sinOsc 440.0 }
   -- | ```
   lowshelf :: i -> lowshelf
 
@@ -764,6 +766,13 @@ defaultNotch :: { | NotchOptional }
 defaultNotch = { q: defaultGetSetAP 1.0 }
 
 class NotchCtor_ i notch | i -> notch where
+  -- | Change a notch (band-reject) filter
+  -- |
+  -- | ```purescript
+  -- | notch_ { freq: 440.0 }
+  -- | notch_ { freq: 440.0, gain: 1.0 }
+  -- | notch_ 440.0
+  -- | ```
   notch_ :: i -> notch
 
 instance notch_Ctor1 ::
@@ -778,6 +787,13 @@ else instance notch_Ctor2 :: (InitialVal a, SetterVal a) => NotchCtor_ a ((CTOR.
   notch_ a = CTOR.Notch (Tuple (initialVal a) (setterVal a)) defaultNotch.q
 
 class NotchCtor i notch | i -> notch where
+  -- | Make a notch (band-reject) filter
+  -- |
+  -- | ```purescript
+  -- | notch { freq: 440.0 } { osc: sinOsc 440.0 }
+  -- | notch { freq: 440.0, gain: 1.0 } { osc: sinOsc 440.0 }
+  -- | notch 440.0 { osc: sinOsc 440.0 }
+  -- | ```
   notch :: i -> notch
 
 instance notchCtor1 ::
@@ -822,6 +838,13 @@ defaultPeaking :: { | PeakingOptional }
 defaultPeaking = { q: defaultGetSetAP 1.0, gain: defaultGetSetAP 0.0 }
 
 class PeakingCtor i peaking | i -> peaking where
+  -- | Make a peaking filter
+  -- |
+  -- | ```purescript
+  -- | peaking { freq: 440.0 } { osc: sinOsc 440.0 }
+  -- | peaking { freq: 440.0, gain: 1.0 } { osc: sinOsc 440.0 }
+  -- | peaking 440.0 { osc: sinOsc 440.0 }
+  -- | ```
   peaking :: i -> peaking
 
 instance peakingCtor1 ::
@@ -836,6 +859,13 @@ else instance peakingCtor2 :: (InitialVal a, SetterVal a) => PeakingCtor a (b ->
   peaking a = Tuple (CTOR.Peaking (Tuple (initialVal a) (setterVal a)) defaultPeaking.q defaultPeaking.gain)
 
 class PeakingCtor_ i peaking | i -> peaking where
+  -- | Change a peaking filter
+  -- |
+  -- | ```purescript
+  -- | peaking_ { freq: 440.0 }
+  -- | peaking_ { freq: 440.0, gain: 1.0 }
+  -- | peaking_ 440.0
+  -- | ```
   peaking_ :: i -> peaking
 
 instance peaking_Ctor1 ::
@@ -857,11 +887,11 @@ type DPeaking
 
 ------
 class PeriodicOscCtor_ i o | i -> o where
-  -- | Make a periodic oscillator
+  -- | Change a periodic oscillator
   -- |
   -- | ```purescript
-  -- | periodicOsc (Proxy :: _ "my-wavetable") 440.0
-  -- | periodicOsc On (Proxy :: _ "my-wavetable") 440.0
+  -- | periodicOsc_ "my-wavetable" 440.0
+  -- | periodicOsc_ On "my-wavetable" 440.0
   -- | ```
   periodicOsc_ :: i -> o
 
@@ -883,8 +913,8 @@ class PeriodicOscCtor i o | i -> o where
   -- | Make a periodic oscillator
   -- |
   -- | ```purescript
-  -- | periodicOsc (Proxy :: _ "my-wavetable") 440.0
-  -- | periodicOsc On (Proxy :: _ "my-wavetable") 440.0
+  -- | periodicOsc "my-wavetable" 440.0
+  -- | periodicOsc On "my-wavetable" 440.0
   -- | ```
   periodicOsc :: i -> o
 
@@ -928,12 +958,12 @@ defaultPlayBuf :: { | PlayBufOptional }
 defaultPlayBuf = { playbackRate: defaultGetSetAP 1.0, onOff: On, start: 0.0 }
 
 class PlayBufCtor_ i playBuf | i -> playBuf where
-  -- | Make a unit that plays from a buffer.
+  -- | Change a unit that plays from a buffer.
   -- |
   -- | ```purescript
-  -- | playBuf { playbackRate: 1.0 } "track"
-  -- | playBuf { playbackRate: 1.0, start: 0.5 } "track"
-  -- | playBuf "track"
+  -- | playBuf_ { playbackRate: 1.0 } "track"
+  -- | playBuf_ { playbackRate: 1.0, start: 0.5 } "track"
+  -- | playBuf_ "track"
   -- | ```
   playBuf_ :: i -> playBuf
 
@@ -1002,11 +1032,11 @@ type CRecorder a b
 
 ------
 class SawtoothOscCtor_ i o | i -> o where
-  -- | Make a sawtooth oscillator
+  -- | Change a sawtooth oscillator
   -- |
   -- | ```purescript
-  -- | sawtoothOsc 440.0
-  -- | sawtoothOsc On 440.0
+  -- | sawtoothOsc_ 440.0
+  -- | sawtoothOsc_ On 440.0
   -- | ```
   sawtoothOsc_ :: i -> o
 
@@ -1053,11 +1083,11 @@ type DSawtoothOsc
 
 ------
 class SinOscCtor_ i o | i -> o where
-  -- | Make a sine-wave oscillator
+  -- | Change a sine-wave oscillator
   -- |
   -- | ```purescript
-  -- | sinOsc 440.0
-  -- | sinOsc On 440.0
+  -- | sinOsc_ 440.0
+  -- | sinOsc_ On 440.0
   -- | ```
   sinOsc_ :: i -> o
 
@@ -1111,6 +1141,7 @@ type DSinOsc
 speaker :: forall b. b -> { speaker :: CTOR.Speaker /\ b }
 speaker b = { speaker: CTOR.Speaker /\ b }
 
+-- | The raw constructor for speaker. Probably not useful...
 speaker' :: forall b. b -> CTOR.Speaker /\ b
 speaker' = Tuple CTOR.Speaker
 
@@ -1119,11 +1150,11 @@ type CSpeaker a
 
 ------
 class SquareOscCtor_ i o | i -> o where
-  -- | Make a square-wave oscillator
+  -- | Change a square-wave oscillator
   -- |
   -- | ```purescript
-  -- | squareOsc 440.0
-  -- | squareOsc On 440.0
+  -- | squareOsc_ 440.0
+  -- | squareOsc_ On 440.0
   -- | ```
   squareOsc_ :: i -> o
 
@@ -1172,7 +1203,7 @@ type DSquareOsc
 -- | Pan audio.
 -- |
 -- | ```purescript
--- | pan 0.5
+-- | pan 0.5 { buf: playBuf "my-track" }
 -- | ```
 pan ::
   forall a b.
@@ -1181,6 +1212,11 @@ pan ::
   a -> b -> CTOR.StereoPanner GetSetAP /\ b
 pan gvsv = Tuple (CTOR.StereoPanner (Tuple (initialVal gvsv) (setterVal gvsv)))
 
+-- | Change panned audio.
+-- |
+-- | ```purescript
+-- | pan_ (-0.33)
+-- | ```
 pan_ :: forall a. InitialVal a => SetterVal a => a -> CTOR.StereoPanner GetSetAP
 pan_ = fst <<< flip pan {}
 
@@ -1192,11 +1228,11 @@ type DStereoPanner
 
 ------
 class TriangleOscCtor_ i o | i -> o where
-  -- | Make a triangle-wave oscillator
+  -- | Change a triangle-wave oscillator
   -- |
   -- | ```purescript
-  -- | triangleOsc 440.0
-  -- | triangleOsc On 440.0
+  -- | triangleOsc_ 440.0
+  -- | triangleOsc_ On 440.0
   -- | ```
   triangleOsc_ :: i -> o
 
@@ -1245,7 +1281,7 @@ type DTriangleOsc
 -- | Apply distorion to audio
 -- |
 -- | ```purescript
--- | waveShaper (Proxy :: _ "my-wave") OversampleNone sound
+-- | waveShaper (Proxy :: _ "my-wave") OversampleNone { buf: playBuf "my-track" }
 -- | ```
 waveShaper ::
   forall a b c.
@@ -1261,8 +1297,10 @@ type CWaveShaper a b c
   = CTOR.WaveShaper a b /\ c
 
 ---------------
+-- | A reference to a node in a graph.
 type Ref
   = Unit /\ {}
 
+-- | A reference to a node in a graph.
 ref :: Ref
 ref = unit /\ {}
