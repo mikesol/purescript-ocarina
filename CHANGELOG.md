@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] - 2021-05-20
+
+### Added
+
+- Makes validation of audio graphs optional in `makeScene`. As audio graphs are already validated as they are built, the extra validation step in `makeScene` mostly catches corner cases. By making validation optional in `makeScene`, projects with complex graphs compile ~100x faster and can opt into validation when needed.
+
+### Changed
+
+- Audio graphs no longer have additional validation by default. Validation is now opt-in.
+
 ## [0.1.0] - 2021-05-17
 
 ### Added
