@@ -30,7 +30,6 @@ import WAGS.Control.MemoizedState (makeMemoizedStateT, runMemoizedStateT')
 import WAGS.Control.Qualified as WAGS
 import WAGS.Control.Types (AudioState', FrameT, InitialFrameT, SceneT(..), SceneT', oneFrameT, unsafeFrame, unsafeUnframe)
 import WAGS.Interpret (class AudioInterpret)
-import WAGS.Validation (class GraphIsRenderable)
 
 -- | The initial `Frame` that is needed to begin any `Scene`.
 -- |
@@ -67,8 +66,6 @@ initialAudioState e =
 
 -- | Make a scene. The infix operator for this operation is `@>`.
 -- |
--- | This function uses the `GraphIsRenderable` typeclass to assert that an audio graph is renderable by the web audio engine. This means, amongst other things, that it has a unique output device (ie speaker), that it does not have any dangling units not connected to a loudspeaker, etc.
--- |
 -- | It accepts as arguments:
 -- | - a frame to render
 -- | - a function that accepts a frame from the next moment in time (`proofB`) and returns a scene.
@@ -94,7 +91,6 @@ makeScene ::
   Monad m =>
   Monoid res =>
   AudioInterpret audio engine =>
-  GraphIsRenderable graph =>
   FrameT env audio engine proofA m res { | i } { | graph }
     (Either (SceneT env audio engine proofA m res) a) ->
   ( forall proofB.
@@ -159,7 +155,6 @@ loop ::
   Monad m =>
   Monoid res =>
   AudioInterpret audio engine =>
-  GraphIsRenderable graph =>
   ( forall proofB.
     a ->
     FrameT env audio engine proofB m res { | graph }
@@ -208,7 +203,6 @@ branch ::
   Monad m =>
   Monoid res =>
   AudioInterpret audio engine =>
-  GraphIsRenderable graph =>
   ( forall proofB.
     a ->
     FrameT env audio engine proofB m res
@@ -267,7 +261,6 @@ freeze ::
   Monad m =>
   Monoid res =>
   AudioInterpret audio engine =>
-  GraphIsRenderable graph =>
   FrameT env audio engine proof m res { | i } { | graph } x ->
   SceneT env audio engine proof m res
 freeze s = makeScene (imap Right s) freeze
@@ -278,7 +271,6 @@ makeScene' ::
   Monad m =>
   Monoid res =>
   AudioInterpret audio engine =>
-  GraphIsRenderable graph =>
   FrameT env audio engine proofA m res { | i } { | graph } a ->
   ( forall proofB.
     FrameT env audio engine proofB m res { | i } { | graph } a ->
