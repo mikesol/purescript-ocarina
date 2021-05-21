@@ -4,6 +4,7 @@ import Prelude
 
 import Control.Monad.State (modify_)
 import Data.Map as M
+import Data.Maybe (Maybe(..))
 import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.Tuple (Tuple, fst)
 import Data.Tuple.Nested ((/\))
@@ -18,7 +19,7 @@ import WAGS.Graph.AudioUnit as CTOR
 import WAGS.Graph.Graph (Graph)
 import WAGS.Graph.Node (NodeC)
 import WAGS.Graph.Oversample (class IsOversample, reflectOversample)
-import WAGS.Graph.Parameter (AudioParameter(..), defaultParam)
+import WAGS.Graph.Parameter (AudioParameter_(..), AudioParameter, defaultParam)
 import WAGS.Interpret (class AudioInterpret, makeAllpass, makeBandpass, makeConstant, makeConvolver, makeDelay, makeDynamicsCompressor, makeGain, makeHighpass, makeHighshelf, makeLoopBuf, makeLowpass, makeLowshelf, makeMicrophone, makeNotch, makePeaking, makePeriodicOsc, makePlayBuf, makeRecorder, makeSawtoothOsc, makeSinOsc, makeSpeaker, makeSquareOsc, makeStereoPanner, makeTriangleOsc, makeWaveShaper)
 import WAGS.Rendered (AnAudioUnit(..))
 
@@ -307,7 +308,7 @@ class InitialVal a where
   initialVal :: a -> AudioParameter
 
 instance initialValNumber :: InitialVal Number where
-  initialVal a = AudioParameter $ defaultParam { param = a }
+  initialVal a = AudioParameter $ defaultParam { param = Just a }
 
 instance initialValAudioParameter :: InitialVal AudioParameter where
   initialVal = identity

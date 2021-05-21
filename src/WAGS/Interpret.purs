@@ -83,9 +83,10 @@ module WAGS.Interpret
   ) where
 
 import Prelude
+
 import Control.Plus (empty)
 import Control.Promise (Promise, toAffE)
-import Data.Maybe (Maybe)
+import Data.Maybe (Maybe, fromMaybe, isNothing)
 import Data.Nullable (Nullable, null)
 import Data.Typelevel.Num (class Pos)
 import Data.Vec (Vec)
@@ -97,7 +98,7 @@ import Foreign.Object (Object)
 import Foreign.Object as O
 import Unsafe.Coerce (unsafeCoerce)
 import WAGS.Graph.AudioUnit (OnOff(..))
-import WAGS.Graph.Parameter (AudioParameter(..))
+import WAGS.Graph.Parameter (AudioParameter_(..), AudioParameter)
 import WAGS.Rendered (Instruction(..), Oversample(..))
 
 -- | A [MediaRecorder](https://developer.mozilla.org/en-US/docs/Web/API/MediaRecorder).
@@ -578,17 +579,19 @@ instance safeToFFI_OnOff :: SafeToFFI OnOff Boolean where
 instance safeToFFI_FFIAudio :: SafeToFFI FFIAudio FFIAudio' where
   safeToFFI (FFIAudio x) = x
 
--- | An AudioParameter with the `transition` field stringly-typed for easier rendering in the FFI.
+-- | An AudioParameter with the `transition` field stringly-typed for easier rendering in the FFI and cancelation as a boolean
 type FFIAudioParameter'
   = { param :: Number
     , timeOffset :: Number
     , transition :: String
+    , cancel :: Boolean
     }
 
 instance safeToFFI_AudioParameter ::
-  SafeToFFI AudioParameter FFIAudioParameter' where
+  SafeToFFI (AudioParameter_ Number) FFIAudioParameter' where
   safeToFFI (AudioParameter { param, timeOffset, transition }) =
-    { param
+    { param: fromMaybe 0.0 param
     , timeOffset
     , transition: show transition
+    , cancel: isNothing param
     }

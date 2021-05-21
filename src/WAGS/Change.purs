@@ -19,7 +19,7 @@ import WAGS.Graph.AudioUnit (OnOff(..))
 import WAGS.Graph.AudioUnit as CTOR
 import WAGS.Graph.Graph (Graph)
 import WAGS.Graph.Node (NodeC)
-import WAGS.Graph.Parameter (AudioParameter(..), defaultParam, param)
+import WAGS.Graph.Parameter (AudioParameter_(..), AudioParameter, defaultParam, param)
 import WAGS.Interpret (class AudioInterpret, setAttack, setBuffer, setBufferOffset, setDelay, setFrequency, setGain, setKnee, setLoopEnd, setLoopStart, setOff, setOffset, setOn, setPan, setPeriodicOsc, setPlaybackRate, setQ, setRatio, setRelease, setThreshold)
 import WAGS.Rendered (AnAudioUnit(..))
 
@@ -35,7 +35,7 @@ class SetterVal a where
   setterVal :: a -> AudioParameter -> AudioParameter
 
 instance setterValNumber :: SetterVal Number where
-  setterVal = const <<< AudioParameter <<< defaultParam { param = _ }
+  setterVal = const <<< AudioParameter <<< defaultParam { param = _ } <<< Just
 
 instance setterValAudioParameter :: SetterVal AudioParameter where
   setterVal = const

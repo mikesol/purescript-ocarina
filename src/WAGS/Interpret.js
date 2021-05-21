@@ -14,17 +14,25 @@ var genericStarter = function (unit, name, param) {
 };
 var genericSetter = function (unit, name, timeToSet, param) {
   if (param.transition === "Immediately") {
-    unit[name].value = param.param;
+    if (param.cancel) {
+      unit[name].cancelScheduledValues();
+    } else {
+      unit[name].value = param.param;
+    }
   } else {
-    unit[name][
-      param.transition === "NoRamp"
-        ? "setValueAtTime"
-        : param.transition === "LinearRamp"
-        ? "linearRampToValueAtTime"
-        : param.transition === "ExponentialRamp"
-        ? "exponentialRampToValueAtTime"
-        : "linearRampToValueAtTime"
-    ](param.param, timeToSet + param.timeOffset);
+    if (param.cancel) {
+      unit[name].cancelScheduledValues(timeToSet + param.timeOffset);
+    } else {
+      unit[name][
+        param.transition === "NoRamp"
+          ? "setValueAtTime"
+          : param.transition === "LinearRamp"
+          ? "linearRampToValueAtTime"
+          : param.transition === "ExponentialRamp"
+          ? "exponentialRampToValueAtTime"
+          : "linearRampToValueAtTime"
+      ](param.param, timeToSet + param.timeOffset);
+    }
   }
 };
 var connectXToY = function (x) {

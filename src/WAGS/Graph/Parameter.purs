@@ -1,55 +1,61 @@
 module WAGS.Graph.Parameter where
 
 import Prelude
+
 import Data.Generic.Rep (class Generic)
+import Data.Maybe (Maybe(..), maybe)
 import Data.Newtype (class Newtype)
 import Data.Show.Generic (genericShow)
 
 -- | A control-rate audio parameter as a newtype.
-newtype AudioParameter
-  = AudioParameter AudioParameter'
+newtype AudioParameter_ a
+  = AudioParameter (AudioParameter_' a)
 
-derive instance newtypeAudioParameter :: Newtype AudioParameter _
+type AudioParameter = AudioParameter_ Number
 
-derive newtype instance eqAudioParameter :: Eq AudioParameter
+derive instance newtypeAudioParameter :: Newtype (AudioParameter_ a) _
 
-derive newtype instance showAudioParameter :: Show AudioParameter
+derive newtype instance eqAudioParameter :: Eq a => Eq (AudioParameter_ a)
 
-uop :: (Number -> Number) -> AudioParameter -> AudioParameter
-uop f (AudioParameter a0@{ param: param0, timeOffset: timeOffset0, transition: transition0 }) = AudioParameter { param: f param0, timeOffset: timeOffset0, transition: transition0 }
+derive newtype instance showAudioParameter :: Show a => Show (AudioParameter_ a)
 
-bop :: (Number -> Number -> Number) -> AudioParameter -> AudioParameter -> AudioParameter
-bop f (AudioParameter a0@{ param: param0, timeOffset: timeOffset0, transition: transition0 }) (AudioParameter a1@{ param: param1, timeOffset: timeOffset1, transition: transition1 }) = AudioParameter { param: f param0 param1, timeOffset: timeOffset0 + timeOffset1 / 2.0, transition: transition0 <> transition1 }
+uop :: forall a. (a -> a) -> AudioParameter_ a -> AudioParameter_ a
+uop f (AudioParameter a0@{ param: param0, timeOffset: timeOffset0, transition: transition0 }) = AudioParameter { param: f <$> param0, timeOffset: timeOffset0, transition: transition0 }
 
-instance semiringAudioParameter :: Semiring AudioParameter where
-  zero = param zero
-  one = param one
+bop :: forall a. (a -> a -> a) -> AudioParameter_ a -> AudioParameter_ a -> AudioParameter_ a
+bop f (AudioParameter a0@{ param: param0, timeOffset: timeOffset0, transition: transition0 }) (AudioParameter a1@{ param: param1, timeOffset: timeOffset1, transition: transition1 }) = AudioParameter { param: f <$> param0 <*> param1, timeOffset: timeOffset0 + timeOffset1 / 2.0, transition: transition0 <> transition1 }
+
+instance semiringAudioParameter :: Semiring a => Semiring (AudioParameter_ a) where
+  zero = AudioParameter { param: Just zero, timeOffset: 0.0, transition: LinearRamp }
+  one = AudioParameter { param: Just one, timeOffset: 0.0, transition: LinearRamp }
   add = bop add
   mul = bop mul
 
-instance ringAudioParameter :: Ring AudioParameter where
+instance ringAudioParameter :: Ring a => Ring (AudioParameter_ a) where
   sub = bop sub
 
-instance divisionRingAudioParameter :: DivisionRing AudioParameter where
+instance divisionRingAudioParameter :: DivisionRing a => DivisionRing (AudioParameter_ a) where
   recip = uop recip
 
-instance commutativeRingAudioParameter :: CommutativeRing AudioParameter
+instance commutativeRingAudioParameter :: CommutativeRing a => CommutativeRing  (AudioParameter_ a)
 
-instance euclideanRingAudioParameter :: EuclideanRing AudioParameter where
-  degree (AudioParameter { param: param0 }) = degree param0
+instance euclideanRingAudioParameter :: EuclideanRing a => EuclideanRing (AudioParameter_ a) where
+  degree (AudioParameter { param: param0 }) = maybe 0 degree param0
   div = bop div
   mod = bop mod
 
 -- | A control-rate audio parameter.
 -- |
--- | `param`: The parameter as a floating-point value.
+-- | `param`: The parameter as a floating-point value _or_ an instruction to cancel all future parameters.
 -- | `timeOffset`: How far ahead of the current playhead to set the parameter. This can be used in conjunction with the `headroom` parameter in `run` to execute precisely-timed events. For example, if the `headroom` is `20ms` and an attack should happen in `10ms`, use `timeOffset: 10.0` to make sure that the taret parameter happens exactly at the point of attack.
 -- | `transition`: Transition between two points in time.
-type AudioParameter'
-  = { param :: Number
+type AudioParameter_' a
+  = { param :: Maybe a
     , timeOffset :: Number
     , transition :: AudioParameterTransition
     }
+
+type AudioParameter' = AudioParameter_' Number
 
 -- | A transition between two points in time.
 -- | - `NoRamp` is a discrete step.
@@ -84,10 +90,10 @@ param =
   AudioParameter
     <<< defaultParam
         { param = _
-        }
+        } <<< Just
 
 -- | A default audio parameter.
 -- |
 -- | defaultParam = { param: 0.0, timeOffset: 0.0, transition: LinearRamp }
 defaultParam :: AudioParameter'
-defaultParam = { param: 0.0, timeOffset: 0.0, transition: LinearRamp }
+defaultParam = { param: Just 0.0, timeOffset: 0.0, transition: LinearRamp }

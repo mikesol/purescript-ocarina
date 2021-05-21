@@ -2,12 +2,20 @@ module WAGS.Example.KitchenSink.Types.SawtoothOsc where
 
 import Prelude
 
+import Data.Functor.Indexed (ivoid)
+import Data.Int (toNumber)
+import Data.List ((..))
+import Data.List as L
 import Data.Tuple.Nested (type (/\))
-import Math (cos, pi, pow, sin, (%))
-import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
+import Math (cos, pi, pow, sin)
+import WAGS.Change (change)
+import WAGS.Control.Functions (proof, withProof)
+import WAGS.Control.Qualified as WAGS
+import WAGS.Example.KitchenSink.TLP.LoopSig (FrameSig')
 import WAGS.Example.KitchenSink.Types.Empty (TopWith)
 import WAGS.Graph.AudioUnit (OnOff(..), TSawtoothOsc)
-import WAGS.Graph.Optionals (CSawtoothOsc, DSawtoothOsc, DGain, gain_, sawtoothOsc, sawtoothOsc_)
+import WAGS.Graph.Optionals (CSawtoothOsc, DGain, DSawtoothOsc, gain_, sawtoothOsc, sawtoothOsc_)
+import WAGS.Graph.Parameter (AudioParameterTransition(..), AudioParameter_(..))
 
 type SawtoothOscGraph
   = TopWith { sawtoothOsc :: Unit }
@@ -15,23 +23,30 @@ type SawtoothOscGraph
       )
 
 ksSawtoothOscCreate :: { sawtoothOsc :: CSawtoothOsc }
-ksSawtoothOscCreate = { sawtoothOsc: sawtoothOsc  440.0 }
+ksSawtoothOscCreate = { sawtoothOsc: sawtoothOsc 440.0 }
+
+stSpan :: L.List Number
+stSpan = map (mul 0.04 <<< toNumber) (0 .. 200)
+
+frontloadSawtoothOsc :: forall proof. FrameSig' SawtoothOscGraph proof SawtoothOscGraph Unit
+frontloadSawtoothOsc = go stSpan
+  where
+  go :: L.List Number -> FrameSig' SawtoothOscGraph proof SawtoothOscGraph Unit
+  go L.Nil = WAGS.do
+    pr <- proof
+    withProof pr unit
+
+  go (L.Cons a b) = WAGS.do
+    ivoid $ change (deltaKsSawtoothOsc a)
+    go b
 
 deltaKsSawtoothOsc :: Number -> { mix :: DGain, sawtoothOsc :: DSawtoothOsc }
-deltaKsSawtoothOsc =
-  (_ % pieceTime)
-    >>> (_ - timing.ksSawtoothOsc.begin)
-    >>> (max 0.0)
-    >>> \time ->
-        let
-          rad = pi * time
-
-          switchOO = time % 2.0 < 1.0
-
-          switchW = time % 4.0 < 2.0
-        in
-          { mix: gain_ (0.1 - 0.1 * (cos time))
-          , sawtoothOsc:
-              sawtoothOsc_ (if switchOO then On else Off) 
-                (440.0 + 50.0 * ((sin (rad * 1.5)) `pow` 2.0))
-          }
+deltaKsSawtoothOsc time =
+  let
+    rad = pi * time
+  in
+    { mix: gain_ (0.1 - 0.1 * (cos time))
+    , sawtoothOsc:
+        sawtoothOsc_ On
+          $ AudioParameter { param: pure $ 440.0 + 50.0 * ((sin (rad * 1.5)) `pow` 2.0), timeOffset: time, transition: LinearRamp }
+    }
