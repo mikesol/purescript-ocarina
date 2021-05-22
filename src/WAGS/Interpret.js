@@ -156,12 +156,16 @@ exports.makeConstant_ = function (ptr) {
         return function () {
           var createFunction = function () {
             var unit = state.context.createConstantSource();
-            genericStarter(unit, "offset", a);
             return unit;
           };
           state.units[ptr] = {
             outgoing: [],
             incoming: [],
+            resumeClosure: {
+              offset: function (i) {
+                genericStarter(i, "offset", a);
+              },
+            },
             createFunction: createFunction,
             main: createFunction(),
           };
@@ -278,6 +282,24 @@ exports.makeHighshelf_ = function (ptr) {
     };
   };
 };
+exports.makeLoopBufWithDeferredBuffer_ = function (ptr) {
+  return function (state) {
+    return function () {
+      var createFunction = function () {
+        var unit = state.context.createBufferSource();
+        unit.loop = true;
+        return unit;
+      };
+      state.units[ptr] = {
+        outgoing: [],
+        incoming: [],
+        createFunction: createFunction,
+        resumeClosure: {},
+        main: createFunction(),
+      };
+    };
+  };
+};
 exports.makeLoopBuf_ = function (ptr) {
   return function (a) {
     return function (onOff) {
@@ -289,9 +311,6 @@ exports.makeLoopBuf_ = function (ptr) {
                 var createFunction = function () {
                   var unit = state.context.createBufferSource();
                   unit.loop = true;
-                  unit.loopStart = c;
-                  unit.loopEnd = d;
-                  genericStarter(unit, "playbackRate", b);
                   return unit;
                 };
                 state.units[ptr] = {
@@ -299,8 +318,14 @@ exports.makeLoopBuf_ = function (ptr) {
                   incoming: [],
                   buffer: a,
                   createFunction: createFunction,
+                  resumeClosure: {
+                    playbackRate: function (i) {
+                      genericStarter(i, "playbackRate", d);
+                    },
+                  },
                   main: createFunction(),
                 };
+                genericStarter(state.units[ptr].main, "playbackRate", d);
                 if (onOff) {
                   state.units[ptr].main.buffer = state.buffers[a];
                   state.units[ptr].main.start(
@@ -404,6 +429,23 @@ exports.makePeaking_ = function (ptr) {
     };
   };
 };
+exports.makePeriodicOscWithDeferredOsc_ = function (ptr) {
+  return function (state) {
+    return function () {
+      var createFunction = function () {
+        var unit = state.context.createOscillator();
+        return unit;
+      };
+      state.units[ptr] = {
+        outgoing: [],
+        incoming: [],
+        createFunction: createFunction,
+        resumeClosure: {},
+        main: createFunction(),
+      };
+    };
+  };
+};
 exports.makePeriodicOsc_ = function (ptr) {
   return function (a) {
     return function (onOff) {
@@ -412,22 +454,46 @@ exports.makePeriodicOsc_ = function (ptr) {
           return function () {
             var createFunction = function () {
               var unit = state.context.createOscillator();
-              genericStarter(unit, "frequency", b);
               return unit;
             };
             state.units[ptr] = {
               outgoing: [],
               incoming: [],
-              periodicOsc: a,
               createFunction: createFunction,
-              main: createFunction(a),
+              resumeClosure: {
+                frequency: function (i) {
+                  genericStarter(i, "frequency", b);
+                },
+                periodicOsc: function (i) {
+                  i.setPeriodicWave(state.periodicWaves[a]);
+                },
+              },
+              main: createFunction(),
             };
+            genericStarter(state.units[ptr].main, "frequency", b);
             if (onOff) {
               state.units[ptr].main.setPeriodicWave(state.periodicWaves[a]);
               state.units[ptr].main.start(state.writeHead + b.timeOffset);
             }
           };
         };
+      };
+    };
+  };
+};
+exports.makePlayBufWithDeferredBuffer_ = function (ptr) {
+  return function (state) {
+    return function () {
+      var createFunction = function () {
+        var unit = state.context.createBufferSource();
+        return unit;
+      };
+      state.units[ptr] = {
+        outgoing: [],
+        incoming: [],
+        createFunction: createFunction,
+        resumeClosure: {},
+        main: createFunction(),
       };
     };
   };
@@ -441,7 +507,6 @@ exports.makePlayBuf_ = function (ptr) {
             return function () {
               var createFunction = function () {
                 var unit = state.context.createBufferSource();
-                genericStarter(unit, "playbackRate", c);
                 return unit;
               };
               state.units[ptr] = {
@@ -450,8 +515,14 @@ exports.makePlayBuf_ = function (ptr) {
                 buffer: a,
                 bufferOffset: b,
                 createFunction: createFunction,
+                resumeClosure: {
+                  playbackRate: function (i) {
+                    genericStarter(i, "playbackRate", c);
+                  },
+                },
                 main: createFunction(),
               };
+              genericStarter(state.units[ptr].main, "playbackRate", c);
               if (onOff) {
                 state.units[ptr].main.buffer = state.buffers[a];
                 state.units[ptr].main.start(state.writeHead + c.timeOffset, b);
@@ -491,15 +562,20 @@ exports.makeSawtoothOsc_ = function (ptr) {
           var createFunction = function () {
             var unit = state.context.createOscillator();
             unit.type = "sawtooth";
-            genericStarter(unit, "frequency", a);
             return unit;
           };
           state.units[ptr] = {
             outgoing: [],
             incoming: [],
             createFunction: createFunction,
+            resumeClosure: {
+              frequency: function (i) {
+                genericStarter(i, "frequency", a);
+              },
+            },
             main: createFunction(),
           };
+          genericStarter(state.units[ptr].main, "frequency", a);
           if (onOff) {
             state.units[ptr].main.start(state.writeHead + a.timeOffset);
           }
@@ -516,15 +592,20 @@ exports.makeSinOsc_ = function (ptr) {
           var createFunction = function () {
             var unit = state.context.createOscillator();
             unit.type = "sine";
-            genericStarter(unit, "frequency", a);
             return unit;
           };
           state.units[ptr] = {
             outgoing: [],
             incoming: [],
             createFunction: createFunction,
+            resumeClosure: {
+              frequency: function (i) {
+                genericStarter(i, "frequency", a);
+              },
+            },
             main: createFunction(),
           };
+          genericStarter(state.units[ptr].main, "frequency", a);
           if (onOff) {
             state.units[ptr].main.start(state.writeHead + a.timeOffset);
           }
@@ -552,15 +633,20 @@ exports.makeSquareOsc_ = function (ptr) {
           var createFunction = function () {
             var unit = state.context.createOscillator();
             unit.type = "square";
-            genericStarter(unit, "frequency", a);
             return unit;
           };
           state.units[ptr] = {
             outgoing: [],
             incoming: [],
             createFunction: createFunction,
+            resumeClosure: {
+              frequency: function (i) {
+                genericStarter(i, "frequency", a);
+              },
+            },
             main: createFunction(),
           };
+          genericStarter(state.units[ptr].main, "frequency", a);
           if (onOff) {
             state.units[ptr].main.start(state.writeHead + a.timeOffset);
           }
@@ -591,15 +677,20 @@ exports.makeTriangleOsc_ = function (ptr) {
           var createFunction = function () {
             var unit = state.context.createOscillator();
             unit.type = "triangle";
-            genericStarter(unit, "frequency", a);
             return unit;
           };
           state.units[ptr] = {
             outgoing: [],
             incoming: [],
             createFunction: createFunction,
+            resumeClosure: {
+              frequency: function (i) {
+                genericStarter(i, "frequency", a);
+              },
+            },
             main: createFunction(),
           };
+          genericStarter(state.units[ptr].main, "frequency", a);
           if (onOff) {
             state.units[ptr].main.start(state.writeHead + a.timeOffset);
           }
@@ -629,7 +720,9 @@ exports.setBuffer_ = function (ptr) {
   return function (buffer) {
     return function (state) {
       return function () {
-        state.units[ptr].buffer = buffer;
+        state.units[ptr].resumeClosure.buffer = function (i) {
+          i.buffer = buffer;
+        };
       };
     };
   };
@@ -638,7 +731,9 @@ exports.setPeriodicOsc_ = function (ptr) {
   return function (periodicOsc) {
     return function (state) {
       return function () {
-        state.units[ptr].periodicOsc = periodicOsc;
+        state.units[ptr].resumeClosure.periodicOsc = function (i) {
+          i.setPeriodicWave(state.periodicWaves[periodicOsc]);
+        };
       };
     };
   };
@@ -653,6 +748,13 @@ exports.setOn_ = function (ptr) {
       }
       if (state.units[ptr].buffer) {
         state.units[ptr].main.buffer = state.buffers[state.units[ptr].buffer];
+      }
+      if (state.units[ptr].resumeClosure) {
+        for (var key in state.units[ptr].resumeClosure) {
+          if (state.units[ptr].resumeClosure.hasOwnProperty(key)) {
+            state.units[ptr].resumeClosure[key](state.units[ptr].main);
+          }
+        }
       }
       if (state.units[ptr].bufferOffset) {
         state.units[ptr].main.start(undefined, state.units[ptr].bufferOffset);
@@ -732,6 +834,9 @@ exports.setOffset_ = function (ptr) {
     return function (state) {
       return function () {
         genericSetter(state.units[ptr].main, "offset", state.writeHead, a);
+        state.units[ptr].resumeClosure.offset = function (i) {
+          genericStarter(i, "offset", a);
+        };
       };
     };
   };
@@ -818,6 +923,9 @@ exports.setPlaybackRate_ = function (ptr) {
           state.writeHead,
           a
         );
+        state.units[ptr].resumeClosure.playbackRate = function (i) {
+          genericStarter(i, "playbackRate", a);
+        };
       };
     };
   };
@@ -827,6 +935,9 @@ exports.setFrequency_ = function (ptr) {
     return function (state) {
       return function () {
         genericSetter(state.units[ptr].main, "frequency", state.writeHead, a);
+        state.units[ptr].resumeClosure.frequency = function (i) {
+          genericStarter(i, "frequency", a);
+        };
       };
     };
   };

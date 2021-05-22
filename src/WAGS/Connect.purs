@@ -33,7 +33,7 @@ instance connectInstance ::
           modify_
             ( \i ->
                 i
-                  { internalEdges = (M.insertWith S.union toI (S.singleton fromI) i.internalEdges)
+                  { internalEdges = M.insertWith S.union toI (S.singleton fromI) i.internalEdges
                   , instructions = i.instructions <> [ connectXToY fromI toI ]
                   }
             )
