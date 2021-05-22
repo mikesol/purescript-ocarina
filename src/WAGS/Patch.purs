@@ -1,18 +1,22 @@
 module WAGS.Patch where
 
 import Prelude hiding (Ordering(..))
+
 import Control.Monad.State (modify_)
 import Data.Map as M
 import Data.Set as S
 import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.Tuple.Nested (type (/\))
 import Data.Typelevel.Bool (False, True)
+import Debug.Trace (spy)
 import Prim.Ordering (Ordering, LT, GT, EQ)
 import Prim.RowList (class RowToList)
 import Prim.RowList as RL
 import Prim.Symbol as Sym
+import Prim.TypeError (class Warn, Quote, Text)
 import Type.Proxy (Proxy(..))
 import WAGS.Control.Types (FrameT, unsafeFrame)
+import WAGS.Debug (type (^^))
 import WAGS.Graph.AudioUnit (OnOff(..))
 import WAGS.Graph.AudioUnit as AU
 import WAGS.Graph.Oversample (class IsOversample, reflectOversample)
@@ -293,6 +297,7 @@ instance patchRLNilCons ::
   , PatchRL RL.Nil thanks rest
   , HListAppend connectInstructions rest o
   , DoCreate create u c
+  , Warn (Text "hello" ^^ Quote ((c /\ o)))
   ) =>
   PatchRL RL.Nil (RL.Cons create (u /\ { | me }) thanks) (c /\ o)
 
@@ -572,7 +577,7 @@ instance toGraphEffectsMakeSawtoothOsc :: (IsSymbol ptr, ToGraphEffects rest) =>
 
 instance toGraphEffectsMakeSinOsc :: (IsSymbol ptr, ToGraphEffects rest) => ToGraphEffects (MakeSinOsc ptr /\ rest) where
   toGraphEffects _ i =
-    toGraphEffects (Proxy :: _ rest)
+    toGraphEffects (Proxy :: _ rest) $ spy "SHIT" 
       ( i
           { internalNodes = M.insert ptr' (Rendered.ASinOsc Off (param 440.0)) i.internalNodes
           , instructions = i.instructions <> [ makeSinOsc ptr' Off (param 440.0) ]
@@ -592,7 +597,7 @@ instance toGraphEffectsMakeSquareOsc :: (IsSymbol ptr, ToGraphEffects rest) => T
     where
     ptr' = reflectSymbol (Proxy :: _ ptr)
 
-instance toGraphEffectsMakeSpeaker :: (IsSymbol ptr, ToGraphEffects rest) => ToGraphEffects (MakeSpeaker /\ rest) where
+instance toGraphEffectsMakeSpeaker :: (ToGraphEffects rest) => ToGraphEffects (MakeSpeaker /\ rest) where
   toGraphEffects _ i =
     toGraphEffects (Proxy :: _ rest)
       ( i
@@ -645,6 +650,7 @@ instance patchAll ::
   ( RowToList old oldList
   , RowToList new newList
   , PatchRL oldList newList instructions
+  , Warn (Quote instructions)
   , ToGraphEffects instructions
   ) =>
   Patch old new where
@@ -656,8 +662,8 @@ instance patchAll ::
               n = toGraphEffects (Proxy :: _ instructions) { internalNodes, internalEdges, instructions }
             in
               ( i
-                  { internalNodes = i.internalNodes
-                  , internalEdges = i.internalEdges
-                  , instructions = i.instructions
+                  { internalNodes = n.internalNodes
+                  , internalEdges = n.internalEdges
+                  , instructions = n.instructions
                   }
               )

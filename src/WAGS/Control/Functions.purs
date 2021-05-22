@@ -87,14 +87,14 @@ initialAudioState e =
 -- |         )
 -- | ```
 makeScene ::
-  forall env audio engine proofA m res i graph a.
+  forall env audio engine proofA m res graph a.
   Monad m =>
   Monoid res =>
   AudioInterpret audio engine =>
-  FrameT env audio engine proofA m res { | i } { | graph }
+  FrameT env audio engine proofA m res {} { | graph }
     (Either (SceneT env audio engine proofA m res) a) ->
   ( forall proofB.
-    FrameT env audio engine proofB m res { | i } { | graph } a ->
+    FrameT env audio engine proofB m res {} { | graph } a ->
     SceneT env audio engine proofB m res
   ) ->
   SceneT env audio engine proofA m res
@@ -151,7 +151,7 @@ infixr 6 makeScene as @>
 -- |         )
 -- | ```
 loop ::
-  forall env audio engine proofA i m res graph a.
+  forall env audio engine proofA m res graph a.
   Monad m =>
   Monoid res =>
   AudioInterpret audio engine =>
@@ -161,7 +161,7 @@ loop ::
       { | graph }
       a
   ) ->
-  FrameT env audio engine proofA m res { | i }
+  FrameT env audio engine proofA m res {}
     { | graph }
     a ->
   SceneT env audio engine proofA m res
@@ -199,7 +199,7 @@ loop fa ma = makeScene (imap Right $ WAGS.bind ma fa) (loop fa)
 -- |       )
 -- | ```
 branch ::
-  forall env audio engine proofA i m res graph a.
+  forall env audio engine proofA m res graph a.
   Monad m =>
   Monoid res =>
   AudioInterpret audio engine =>
@@ -209,7 +209,7 @@ branch ::
       { | graph }
       { | graph }
       ( Either
-          ( FrameT env audio engine proofB m res { | i } { | graph } Unit ->
+          ( FrameT env audio engine proofB m res { } { | graph } Unit ->
             SceneT env audio engine proofB m res
           )
           ( FrameT env audio engine proofB m res
@@ -219,7 +219,7 @@ branch ::
           )
       )
   ) ->
-  FrameT env audio engine proofA m res { | i } { | graph } a ->
+  FrameT env audio engine proofA m res { } { | graph } a ->
   SceneT env audio engine proofA m res
 branch mch m =
   makeScene
@@ -257,23 +257,23 @@ inSitu f x thunk =
 -- | scene = (start :*> create (speaker (sinOsc 440.0))) @|> freeze
 -- | ```
 freeze ::
-  forall env audio engine proof m res i graph x.
+  forall env audio engine proof m res graph x.
   Monad m =>
   Monoid res =>
   AudioInterpret audio engine =>
-  FrameT env audio engine proof m res { | i } { | graph } x ->
+  FrameT env audio engine proof m res {} { | graph } x ->
   SceneT env audio engine proof m res
 freeze s = makeScene (imap Right s) freeze
 
 -- | Similar to `makeScene'`, but without the possibility to branch to a new scene. Aliased as `@|>`.
 makeScene' ::
-  forall env audio engine proofA m res i graph a.
+  forall env audio engine proofA m res graph a.
   Monad m =>
   Monoid res =>
   AudioInterpret audio engine =>
-  FrameT env audio engine proofA m res { | i } { | graph } a ->
+  FrameT env audio engine proofA m res {} { | graph } a ->
   ( forall proofB.
-    FrameT env audio engine proofB m res { | i } { | graph } a ->
+    FrameT env audio engine proofB m res {} { | graph } a ->
     SceneT env audio engine proofB m res
   ) ->
   SceneT env audio engine proofA m res
