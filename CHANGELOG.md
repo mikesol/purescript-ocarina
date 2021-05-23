@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.4] - 2021-05-23
+
+### Added
+
+- A new `patch` function allows for the automatic creation, connection, disconnection and destruction of audio units.
+
+### Fixed
+
+- Some bugs in `Interpret.js` caused audio generators to be initialized incorrectly in certain cases when resuming playback. These are fixed.
+
 ## [0.1.3] - 2021-05-21
 
 ### Added
