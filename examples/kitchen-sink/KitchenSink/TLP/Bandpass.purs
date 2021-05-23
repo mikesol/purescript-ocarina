@@ -18,7 +18,7 @@ import WAGS.Example.KitchenSink.Types.Bandpass (BandpassGraph, deltaKsBandpass)
 import WAGS.Example.KitchenSink.Types.Empty (cursorGain)
 import WAGS.Example.KitchenSink.Types.Notch (ksNotchCreate)
 
-doBandpass :: forall proof iu. StepSig BandpassGraph proof { | iu }
+doBandpass :: forall proof. StepSig BandpassGraph proof
 doBandpass =
   branch \lsig -> WAGS.do
     { time } <- env

@@ -22,7 +22,7 @@ import WAGS.Example.KitchenSink.Types.SawtoothOsc (SawtoothOscGraph)
 import WAGS.Graph.Optionals (sawtoothOsc)
 import WAGS.Graph.Parameter (AudioParameter_(..), defaultParam)
 
-doSawtoothOsc :: forall proof iu. StepSig SawtoothOscGraph proof { | iu }
+doSawtoothOsc :: forall proof. StepSig SawtoothOscGraph proof
 doSawtoothOsc =
   branch \lsig -> WAGS.do
     { time } <- env

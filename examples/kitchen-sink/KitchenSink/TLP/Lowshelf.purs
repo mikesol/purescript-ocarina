@@ -1,7 +1,6 @@
 module WAGS.Example.KitchenSink.TLP.Lowshelf where
 
 import Prelude
-
 import Data.Either (Either(..))
 import Math ((%))
 import Type.Proxy (Proxy(..))
@@ -19,7 +18,7 @@ import WAGS.Example.KitchenSink.Types.Bandpass (ksBandpassCreate)
 import WAGS.Example.KitchenSink.Types.Empty (cursorGain)
 import WAGS.Example.KitchenSink.Types.Lowshelf (LowshelfGraph, deltaKsLowshelf)
 
-doLowshelf :: forall proof iu . StepSig LowshelfGraph proof {|iu}
+doLowshelf :: forall proof. StepSig LowshelfGraph proof
 doLowshelf =
   branch \lsig -> WAGS.do
     { time } <- env
@@ -34,7 +33,6 @@ doLowshelf =
                   cursorLowshelf = Proxy :: _ "lowshelf"
 
                   cursorPlayBuf = Proxy :: _ "buf"
-
                 disconnect cursorPlayBuf cursorLowshelf
                 disconnect cursorLowshelf cursorGain
                 destroy cursorLowshelf

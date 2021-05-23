@@ -8,15 +8,12 @@ import Data.Set as S
 import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.Tuple.Nested (type (/\))
 import Data.Typelevel.Bool (False, True)
-import Debug.Trace (spy)
 import Prim.Ordering (Ordering, LT, GT, EQ)
 import Prim.RowList (class RowToList)
 import Prim.RowList as RL
 import Prim.Symbol as Sym
-import Prim.TypeError (class Warn, Quote, Text)
 import Type.Proxy (Proxy(..))
 import WAGS.Control.Types (FrameT, unsafeFrame)
-import WAGS.Debug (type (^^))
 import WAGS.Graph.AudioUnit (OnOff(..))
 import WAGS.Graph.AudioUnit as AU
 import WAGS.Graph.Oversample (class IsOversample, reflectOversample)
@@ -129,9 +126,9 @@ class GetLRCmp (cmp :: Ordering) (a :: Type) (b :: Type) (c :: Type) (l :: Type)
 
 instance getLRCmpEQ :: GetLR a c l r => GetLRCmp EQ a b c (b /\ l) r
 
-instance getLRCmpLT :: GetLR a c l r => GetLRCmp LT a b c (b /\ l) r
+instance getLRCmpLT :: GetLR a c l r => GetLRCmp LT a b c l (b /\ r) 
 
-instance getLRCmpGT :: GetLR a c l r => GetLRCmp GT a b c l (b /\ r)
+instance getLRCmpGT :: GetLR a c l r => GetLRCmp GT a b c (b /\ l) r
 
 class SortInstructions (i :: Type) (o :: Type) | i -> o
 
@@ -297,7 +294,6 @@ instance patchRLNilCons ::
   , PatchRL RL.Nil thanks rest
   , HListAppend connectInstructions rest o
   , DoCreate create u c
-  , Warn (Text "hello" ^^ Quote ((c /\ o)))
   ) =>
   PatchRL RL.Nil (RL.Cons create (u /\ { | me }) thanks) (c /\ o)
 
@@ -356,8 +352,8 @@ instance toGraphEffectsDestroyUnit :: (IsSymbol ptr, ToGraphEffects rest) => ToG
   toGraphEffects _ i =
     toGraphEffects (Proxy :: _ rest)
       ( i
-          { internalNodes = M.delete ptr' (i.internalNodes)
-          , internalEdges = M.delete ptr' (i.internalEdges)
+          { internalNodes = M.delete ptr' i.internalNodes
+          , internalEdges = M.delete ptr' i.internalEdges
           , instructions = i.instructions <> [ destroyUnit ptr' ]
           }
       )
@@ -577,7 +573,7 @@ instance toGraphEffectsMakeSawtoothOsc :: (IsSymbol ptr, ToGraphEffects rest) =>
 
 instance toGraphEffectsMakeSinOsc :: (IsSymbol ptr, ToGraphEffects rest) => ToGraphEffects (MakeSinOsc ptr /\ rest) where
   toGraphEffects _ i =
-    toGraphEffects (Proxy :: _ rest) $ spy "SHIT" 
+    toGraphEffects (Proxy :: _ rest) 
       ( i
           { internalNodes = M.insert ptr' (Rendered.ASinOsc Off (param 440.0)) i.internalNodes
           , instructions = i.instructions <> [ makeSinOsc ptr' Off (param 440.0) ]
@@ -649,8 +645,8 @@ class Patch g0 g1 where
 instance patchAll ::
   ( RowToList old oldList
   , RowToList new newList
-  , PatchRL oldList newList instructions
-  , Warn (Quote instructions)
+  , PatchRL oldList newList instructions'
+  , SortInstructions instructions' instructions
   , ToGraphEffects instructions
   ) =>
   Patch old new where

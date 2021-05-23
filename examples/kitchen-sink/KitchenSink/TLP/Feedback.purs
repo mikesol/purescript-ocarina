@@ -18,7 +18,7 @@ import WAGS.Example.KitchenSink.Types.Empty (cursorGain)
 import WAGS.Example.KitchenSink.Types.Feedback (FeedbackGraph, deltaKsFeedback)
 import WAGS.Example.KitchenSink.Types.LoopBuf (ksLoopBufCreate)
 
-doFeedback :: forall proof iu. StepSig FeedbackGraph proof { | iu }
+doFeedback :: forall proof. StepSig FeedbackGraph proof
 doFeedback =
   branch \lsig -> WAGS.do
     { time } <- env

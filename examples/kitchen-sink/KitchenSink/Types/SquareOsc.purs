@@ -15,7 +15,7 @@ type SquareOscGraph
       )
 
 ksSquareOscCreate :: { squareOsc :: CSquareOsc }
-ksSquareOscCreate = { squareOsc: squareOsc  440.0 }
+ksSquareOscCreate = { squareOsc: squareOsc 220.0 }
 
 deltaKsSquareOsc :: Number -> { mix :: DGain, squareOsc :: DSquareOsc }
 deltaKsSquareOsc =
@@ -33,5 +33,5 @@ deltaKsSquareOsc =
           { mix: gain_ (0.1 - 0.1 * (cos time))
           , squareOsc:
               squareOsc_ (if switchOO then On else Off) 
-                (440.0 + 50.0 * ((sin (rad * 1.5)) `pow` 2.0))
+                (220.0 + 50.0 * ((sin (rad * 1.5)) `pow` 2.0))
           }

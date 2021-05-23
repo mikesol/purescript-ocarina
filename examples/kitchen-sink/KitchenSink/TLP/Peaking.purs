@@ -1,7 +1,6 @@
 module WAGS.Example.KitchenSink.TLP.Peaking where
 
 import Prelude
-
 import Data.Either (Either(..))
 import Data.Functor.Indexed (ivoid)
 import Math ((%))
@@ -20,7 +19,7 @@ import WAGS.Example.KitchenSink.Types.Empty (cursorGain)
 import WAGS.Example.KitchenSink.Types.Highpass (ksHighpassCreate)
 import WAGS.Example.KitchenSink.Types.Peaking (PeakingGraph, deltaKsPeaking)
 
-doPeaking :: forall proof iu. StepSig PeakingGraph proof {|iu}
+doPeaking :: forall proof. StepSig PeakingGraph proof
 doPeaking =
   branch \lsig -> WAGS.do
     { time } <- env
@@ -40,6 +39,6 @@ doPeaking =
                 disconnect cursorPeaking cursorGain
                 destroy cursorPeaking
                 destroy cursorPlayBuf
-                create ksHighpassCreate 
+                create ksHighpassCreate
                 connect (Proxy :: _ "highpass") cursorGain
                 withProof pr lsig

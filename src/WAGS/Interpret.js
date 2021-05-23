@@ -721,7 +721,7 @@ exports.setBuffer_ = function (ptr) {
     return function (state) {
       return function () {
         state.units[ptr].resumeClosure.buffer = function (i) {
-          i.buffer = buffer;
+          i.buffer = state.buffers[buffer];
         };
       };
     };
@@ -741,14 +741,6 @@ exports.setPeriodicOsc_ = function (ptr) {
 exports.setOn_ = function (ptr) {
   return function (state) {
     return function () {
-      if (state.units[ptr].periodicOsc) {
-        state.units[ptr].main.setPeriodicWave(
-          state.periodicWaves[state.units[ptr].periodicOsc]
-        );
-      }
-      if (state.units[ptr].buffer) {
-        state.units[ptr].main.buffer = state.buffers[state.units[ptr].buffer];
-      }
       if (state.units[ptr].resumeClosure) {
         for (var key in state.units[ptr].resumeClosure) {
           if (state.units[ptr].resumeClosure.hasOwnProperty(key)) {
@@ -935,9 +927,13 @@ exports.setFrequency_ = function (ptr) {
     return function (state) {
       return function () {
         genericSetter(state.units[ptr].main, "frequency", state.writeHead, a);
-        state.units[ptr].resumeClosure.frequency = function (i) {
-          genericStarter(i, "frequency", a);
-        };
+        // frequency defined for some non-generators
+        // so check first for existence of resumeClosure
+        if (state.units[ptr].resumeClosure) {
+          state.units[ptr].resumeClosure.frequency = function (i) {
+            genericStarter(i, "frequency", a);
+          };
+        }
       };
     };
   };

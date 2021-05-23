@@ -1,7 +1,6 @@
 module WAGS.Example.KitchenSink.TLP.StereoPanner where
 
 import Prelude
-
 import Data.Either (Either(..))
 import Math ((%))
 import Type.Proxy (Proxy(..))
@@ -19,7 +18,7 @@ import WAGS.Example.KitchenSink.Types.Constant (ksConstantCreate)
 import WAGS.Example.KitchenSink.Types.Empty (cursorGain)
 import WAGS.Example.KitchenSink.Types.StereoPanner (StereoPannerGraph, deltaKsStereoPanner)
 
-doStereoPanner :: forall proof iu. StepSig StereoPannerGraph proof { | iu }
+doStereoPanner :: forall proof. StepSig StereoPannerGraph proof
 doStereoPanner =
   branch \lsig -> WAGS.do
     { time } <- env
@@ -34,7 +33,6 @@ doStereoPanner =
                   cursorStereoPanner = Proxy :: _ "pan"
 
                   cursorStereoPannerBuf = Proxy :: _ "buf"
-
                 disconnect cursorStereoPannerBuf cursorStereoPanner
                 disconnect cursorStereoPanner cursorGain
                 destroy cursorStereoPanner

@@ -18,9 +18,9 @@ import WAGS.Example.KitchenSink.Types.DynamicsCompressor (DynamicsCompressorGrap
 import WAGS.Example.KitchenSink.Types.Empty (cursorGain)
 import WAGS.Example.KitchenSink.Types.SinOsc (ksSinOscCreate)
 
-doDynamicsCompressor :: forall proof iu. StepSig DynamicsCompressorGraph proof { | iu }
+doDynamicsCompressor :: forall proof. StepSig DynamicsCompressorGraph proof
 doDynamicsCompressor =
-  branch \l@(LoopSig lsig) -> WAGS.do
+  branch \l@{loop: LoopSig lsig, iteration } -> WAGS.do
     { time } <- env
     pr <- proof
     withProof pr
@@ -40,4 +40,4 @@ doDynamicsCompressor =
                 connect (Proxy :: _ "sinOsc") cursorGain
                 withProof pr l
         else
-          Right (change (deltaKsDynamicsCompressor time) $> l)
+          Right (change (deltaKsDynamicsCompressor time) $> (l { iteration = l.iteration + 1 }))

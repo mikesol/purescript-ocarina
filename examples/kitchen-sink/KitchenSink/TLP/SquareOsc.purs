@@ -19,7 +19,7 @@ import WAGS.Example.KitchenSink.Types.Empty (cursorGain)
 import WAGS.Example.KitchenSink.Types.PeriodicOsc (ksPeriodicOscCreate)
 import WAGS.Example.KitchenSink.Types.SquareOsc (SquareOscGraph, deltaKsSquareOsc)
 
-doSquareOsc :: forall proof iu. StepSig SquareOscGraph proof { | iu }
+doSquareOsc :: forall proof. StepSig SquareOscGraph proof
 doSquareOsc =
   branch \lsig -> WAGS.do
     { time } <- env

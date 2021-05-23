@@ -18,7 +18,7 @@ import WAGS.Example.KitchenSink.Types.Empty (cursorGain)
 import WAGS.Example.KitchenSink.Types.SinOsc (SinOscGraph, deltaKsSinOsc)
 import WAGS.Example.KitchenSink.Types.TriangleOsc (ksTriangleOscCreate)
 
-doSinOsc :: forall proof iu. StepSig SinOscGraph proof { | iu }
+doSinOsc :: forall proof. StepSig SinOscGraph proof
 doSinOsc =
   branch \lsig -> WAGS.do
     { time } <- env

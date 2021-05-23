@@ -18,7 +18,7 @@ import WAGS.Example.KitchenSink.Types.Empty (cursorGain)
 import WAGS.Example.KitchenSink.Types.LoopBuf (LoopBufGraph, deltaKsLoopBuf)
 import WAGS.Example.KitchenSink.Types.StereoPanner (ksStereoPannerCreate)
 
-doLoopBuf :: forall proof iu. StepSig LoopBufGraph proof { | iu }
+doLoopBuf :: forall proof. StepSig LoopBufGraph proof
 doLoopBuf =
   branch \lsig -> WAGS.do
     { time } <- env

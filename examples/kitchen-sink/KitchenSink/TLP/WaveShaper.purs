@@ -1,7 +1,6 @@
 module WAGS.Example.KitchenSink.TLP.WaveShaper where
 
 import Prelude
-
 import Data.Either (Either(..))
 import Math ((%))
 import Type.Proxy (Proxy(..))
@@ -19,8 +18,7 @@ import WAGS.Example.KitchenSink.Types.Delay (ksDelayCreate)
 import WAGS.Example.KitchenSink.Types.Empty (cursorGain)
 import WAGS.Example.KitchenSink.Types.WaveShaper (WaveShaperGraph, deltaKsWaveShaper)
 
-
-doWaveShaper :: forall proof iu. StepSig WaveShaperGraph proof {|iu}
+doWaveShaper :: forall proof. StepSig WaveShaperGraph proof
 doWaveShaper =
   branch \lsig -> WAGS.do
     { time } <- env
@@ -33,6 +31,7 @@ doWaveShaper =
             $ inSitu doDelay WAGS.do
                 let
                   cursorWaveShaper = Proxy :: _ "waveShaper"
+
                   cursorPlayBuf = Proxy :: _ "buf"
                 disconnect cursorPlayBuf cursorWaveShaper
                 disconnect cursorWaveShaper cursorGain
