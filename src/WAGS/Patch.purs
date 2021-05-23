@@ -640,6 +640,7 @@ instance toGraphEffectsMakeWaveShaper :: (IsSymbol ptr, IsSymbol sym, IsOversamp
     oversample' = reflectOversample (mempty :: oversample)
 
 class Patch g0 g1 where
+  -- | Take any frame from `g0` to `g1`. The compiler automatically determines the necessary operations to perform the transformation.
   patch :: forall env audio engine proof m res. Monad m => AudioInterpret audio engine => FrameT env audio engine proof m res { | g0 } { | g1 } Unit
 
 instance patchAll ::
