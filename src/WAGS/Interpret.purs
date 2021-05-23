@@ -40,14 +40,17 @@ module WAGS.Interpret
   , makeHighpass
   , makeHighshelf
   , makeLoopBuf
+  , makeLoopBufWithDeferredBuffer
   , makeLowpass
   , makeLowshelf
   , makeMicrophone
   , makeNotch
   , makePeaking
   , makePeriodicOsc
+  , makePeriodicOscWithDeferredOsc
   , makePeriodicWave
   , makePlayBuf
+  , makePlayBufWithDeferredBuffer
   , makeRecorder
   , makeSawtoothOsc
   , makeSinOsc
@@ -83,7 +86,6 @@ module WAGS.Interpret
   ) where
 
 import Prelude
-
 import Control.Plus (empty)
 import Control.Promise (Promise, toAffE)
 import Data.Maybe (Maybe, fromMaybe, isNothing)
@@ -287,6 +289,8 @@ class AudioInterpret audio engine where
   makeHighpass :: String -> AudioParameter -> AudioParameter -> audio -> engine
   -- | Make a highshelf filter.
   makeHighshelf :: String -> AudioParameter -> AudioParameter -> audio -> engine
+  -- | Make a looping audio buffer node with a deferred buffer.
+  makeLoopBufWithDeferredBuffer :: String -> audio -> engine
   -- | Make a looping audio buffer node.
   makeLoopBuf :: String -> String -> OnOff -> AudioParameter -> Number -> Number -> audio -> engine
   -- | Make a lowpass filter.
@@ -300,7 +304,11 @@ class AudioInterpret audio engine where
   -- | Make a peaking filter.
   makePeaking :: String -> AudioParameter -> AudioParameter -> AudioParameter -> audio -> engine
   -- | Make a periodic oscillator.
+  makePeriodicOscWithDeferredOsc :: String -> audio -> engine
+  -- | Make a periodic oscillator.
   makePeriodicOsc :: String -> String -> OnOff -> AudioParameter -> audio -> engine
+  -- | Make an audio buffer node with a deferred buffer.
+  makePlayBufWithDeferredBuffer :: String -> audio -> engine
   -- | Make an audio buffer node.
   makePlayBuf :: String -> String -> Number -> OnOff -> AudioParameter -> audio -> engine
   -- | Make a recorder.
@@ -371,6 +379,7 @@ instance freeAudioInterpret :: AudioInterpret Unit Instruction where
   makeGain a b = const $ MakeGain a b
   makeHighpass a b c = const $ MakeHighpass a b c
   makeHighshelf a b c = const $ MakeHighshelf a b c
+  makeLoopBufWithDeferredBuffer a = const $ MakeLoopBufWithDeferredBuffer a
   makeLoopBuf a b c d e f = const $ MakeLoopBuf a b c d e f
   makeLowpass a b c = const $ MakeLowpass a b c
   makeLowshelf a b c = const $ MakeLowshelf a b c
@@ -378,6 +387,8 @@ instance freeAudioInterpret :: AudioInterpret Unit Instruction where
   makeNotch a b c = const $ MakeNotch a b c
   makePeaking a b c d = const $ MakePeaking a b c d
   makePeriodicOsc a b c d = const $ MakePeriodicOsc a b c d
+  makePeriodicOscWithDeferredOsc a = const $ MakePeriodicOscWithDeferredOsc a
+  makePlayBufWithDeferredBuffer a = const $ MakePlayBufWithDeferredBuffer a
   makePlayBuf a b c d e = const $ MakePlayBuf a b c d e
   makeRecorder a b = const $ MakeRecorder a b
   makeSawtoothOsc a b c = const $ MakeSawtoothOsc a b c
@@ -433,6 +444,8 @@ foreign import makeHighpass_ :: String -> FFIAudioParameter' -> FFIAudioParamete
 
 foreign import makeHighshelf_ :: String -> FFIAudioParameter' -> FFIAudioParameter' -> FFIAudio' -> Effect Unit
 
+foreign import makeLoopBufWithDeferredBuffer_ :: String -> FFIAudio' -> Effect Unit
+
 foreign import makeLoopBuf_ :: String -> String -> Boolean -> FFIAudioParameter' -> Number -> Number -> FFIAudio' -> Effect Unit
 
 foreign import makeLowpass_ :: String -> FFIAudioParameter' -> FFIAudioParameter' -> FFIAudio' -> Effect Unit
@@ -445,7 +458,11 @@ foreign import makeNotch_ :: String -> FFIAudioParameter' -> FFIAudioParameter' 
 
 foreign import makePeaking_ :: String -> FFIAudioParameter' -> FFIAudioParameter' -> FFIAudioParameter' -> FFIAudio' -> Effect Unit
 
+foreign import makePeriodicOscWithDeferredOsc_ :: String -> FFIAudio' -> Effect Unit
+
 foreign import makePeriodicOsc_ :: String -> String -> Boolean -> FFIAudioParameter' -> FFIAudio' -> Effect Unit
+
+foreign import makePlayBufWithDeferredBuffer_ :: String -> FFIAudio' -> Effect Unit
 
 foreign import makePlayBuf_ :: String -> String -> Number -> Boolean -> FFIAudioParameter' -> FFIAudio' -> Effect Unit
 
@@ -516,13 +533,16 @@ instance effectfulAudioInterpret :: AudioInterpret FFIAudio (Effect Unit) where
   makeGain a b c = makeGain_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
   makeHighpass a b c d = makeHighpass_ (safeToFFI a) (safeToFFI b) (safeToFFI c) (safeToFFI d)
   makeHighshelf a b c d = makeHighshelf_ (safeToFFI a) (safeToFFI b) (safeToFFI c) (safeToFFI d)
+  makeLoopBufWithDeferredBuffer a b = makeLoopBufWithDeferredBuffer_ (safeToFFI a) (safeToFFI b)
   makeLoopBuf a b c d e f g = makeLoopBuf_ (safeToFFI a) (safeToFFI b) (safeToFFI c) (safeToFFI d) (safeToFFI e) (safeToFFI f) (safeToFFI g)
   makeLowpass a b c d = makeLowpass_ (safeToFFI a) (safeToFFI b) (safeToFFI c) (safeToFFI d)
   makeLowshelf a b c d = makeLowshelf_ (safeToFFI a) (safeToFFI b) (safeToFFI c) (safeToFFI d)
   makeMicrophone a = makeMicrophone_ (safeToFFI a)
   makeNotch a b c d = makeNotch_ (safeToFFI a) (safeToFFI b) (safeToFFI c) (safeToFFI d)
   makePeaking a b c d e = makePeaking_ (safeToFFI a) (safeToFFI b) (safeToFFI c) (safeToFFI d) (safeToFFI e)
+  makePeriodicOscWithDeferredOsc a b = makePeriodicOscWithDeferredOsc_ (safeToFFI a) (safeToFFI b)
   makePeriodicOsc a b c d e = makePeriodicOsc_ (safeToFFI a) (safeToFFI b) (safeToFFI c) (safeToFFI d) (safeToFFI e)
+  makePlayBufWithDeferredBuffer a b = makePlayBufWithDeferredBuffer_ (safeToFFI a) (safeToFFI b)
   makePlayBuf a b c d e f = makePlayBuf_ (safeToFFI a) (safeToFFI b) (safeToFFI c) (safeToFFI d) (safeToFFI e) (safeToFFI f)
   makeRecorder a b c = makeRecorder_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
   makeSawtoothOsc a b c d = makeSawtoothOsc_ (safeToFFI a) (safeToFFI b) (safeToFFI c) (safeToFFI d)

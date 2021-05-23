@@ -18,7 +18,7 @@ import WAGS.Example.KitchenSink.Types.Empty (cursorGain)
 import WAGS.Example.KitchenSink.Types.Microphone (MicrophoneGraph, deltaKsMicrophone)
 import WAGS.Example.KitchenSink.Types.WaveShaper (ksWaveShaperCreate)
 
-doMicrophone :: forall proof iu. StepSig MicrophoneGraph proof { | iu }
+doMicrophone :: forall proof. StepSig MicrophoneGraph proof
 doMicrophone =
   branch \lsig -> WAGS.do
     { time } <- env

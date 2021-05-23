@@ -1,7 +1,6 @@
 module WAGS.Example.KitchenSink.TLP.Constant where
 
 import Prelude
-
 import Data.Either (Either(..))
 import Math ((%))
 import Type.Proxy (Proxy(..))
@@ -19,7 +18,7 @@ import WAGS.Example.KitchenSink.Types.Constant (ConstantGraph, deltaKsConstant)
 import WAGS.Example.KitchenSink.Types.DynamicsCompressor (ksDynamicsCompressorCreate)
 import WAGS.Example.KitchenSink.Types.Empty (cursorGain)
 
-doConstant :: forall proof iu. StepSig ConstantGraph proof { | iu }
+doConstant :: forall proof. StepSig ConstantGraph proof
 doConstant =
   branch \lsig -> WAGS.do
     { time } <- env
@@ -32,7 +31,6 @@ doConstant =
             $ inSitu doDynamicsCompressor WAGS.do
                 let
                   cursorConstant = Proxy :: _ "constant"
-
                 disconnect cursorConstant cursorGain
                 destroy cursorConstant
                 create ksDynamicsCompressorCreate

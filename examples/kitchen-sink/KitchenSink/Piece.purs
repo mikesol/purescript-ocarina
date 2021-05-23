@@ -1,7 +1,6 @@
 module WAGS.Example.KitchenSink.Piece where
 
 import Prelude
-
 import WAGS.Control.Functions (start, (@|>))
 import WAGS.Control.Qualified as WAGS
 import WAGS.Control.Types (Frame0)
@@ -15,5 +14,6 @@ piece :: SceneSig Frame0
 piece =
   WAGS.do
     start
-    (create $ speaker { mix: gain 1.0 ksSinOscCreate }) $> LoopSig doSinOsc
+    (create $ speaker { mix: gain 0.0 ksSinOscCreate })
+      $> { loop: LoopSig doSinOsc, iteration: 0 }
     @|> doSinOsc

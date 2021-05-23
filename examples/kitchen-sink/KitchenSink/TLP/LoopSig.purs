@@ -19,11 +19,11 @@ type FrameSig' step proof iu a
   = FrameT (SceneI Unit Unit) FFIAudio (Effect Unit) proof Thunkable Res iu step a
 
 type FrameSig step proof iu
-  = FrameSig' step proof iu LoopSig
+  = FrameSig' step proof iu { loop :: LoopSig, iteration :: Int }
 
-type StepSig step proof iu
-  = FrameSig step proof iu ->
+type StepSig step proof
+  = FrameSig step proof {} ->
     SceneSig proof
 
 newtype LoopSig
-  = LoopSig (forall proof iu. StepSig SinOscGraph proof { | iu })
+  = LoopSig (forall proof. StepSig SinOscGraph proof)

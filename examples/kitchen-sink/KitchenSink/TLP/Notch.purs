@@ -1,7 +1,6 @@
 module WAGS.Example.KitchenSink.TLP.Notch where
 
 import Prelude
-
 import Data.Either (Either(..))
 import Math ((%))
 import Type.Proxy (Proxy(..))
@@ -19,7 +18,7 @@ import WAGS.Example.KitchenSink.Types.Empty (cursorGain)
 import WAGS.Example.KitchenSink.Types.Notch (NotchGraph, deltaKsNotch)
 import WAGS.Example.KitchenSink.Types.Peaking (ksPeakingCreate)
 
-doNotch :: forall proof iu . StepSig NotchGraph proof {|iu}
+doNotch :: forall proof. StepSig NotchGraph proof
 doNotch =
   branch \lsig -> WAGS.do
     { time } <- env
@@ -38,6 +37,6 @@ doNotch =
                 disconnect cursorNotch cursorGain
                 destroy cursorNotch
                 destroy cursorPlayBuf
-                create ksPeakingCreate 
+                create ksPeakingCreate
                 connect (Proxy :: _ "peaking") cursorGain
                 withProof pr lsig

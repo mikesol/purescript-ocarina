@@ -17,7 +17,6 @@ data Instruction
   = ConnectXToY String String
   | DisconnectXFromY String String
   | DestroyUnit String
-  | RebaseAllUnits (Array { from :: String, to :: String })
   | MakeAllpass String AudioParameter AudioParameter
   | MakeBandpass String AudioParameter AudioParameter
   | MakeConstant String OnOff AudioParameter
@@ -28,13 +27,16 @@ data Instruction
   | MakeHighpass String AudioParameter AudioParameter
   | MakeHighshelf String AudioParameter AudioParameter
   | MakeLoopBuf String String OnOff AudioParameter Number Number
+  | MakeLoopBufWithDeferredBuffer String
   | MakeLowpass String AudioParameter AudioParameter
   | MakeLowshelf String AudioParameter AudioParameter
   | MakeMicrophone
   | MakeNotch String AudioParameter AudioParameter
   | MakePeaking String AudioParameter AudioParameter AudioParameter
+  | MakePeriodicOscWithDeferredOsc String
   | MakePeriodicOsc String String OnOff AudioParameter
   | MakePlayBuf String String Number OnOff AudioParameter
+  | MakePlayBufWithDeferredBuffer String
   | MakeRecorder String String
   | MakeSawtoothOsc String OnOff AudioParameter
   | MakeSinOsc String OnOff AudioParameter

@@ -18,7 +18,7 @@ import WAGS.Example.KitchenSink.Types.Empty (cursorGain)
 import WAGS.Example.KitchenSink.Types.Highpass (HighpassGraph, deltaKsHighpass)
 import WAGS.Example.KitchenSink.Types.Microphone (ksMicrophoneCreate)
 
-doHighpass :: forall proof iu. StepSig HighpassGraph proof { | iu }
+doHighpass :: forall proof. StepSig HighpassGraph proof
 doHighpass =
   branch \lsig -> WAGS.do
     { time } <- env

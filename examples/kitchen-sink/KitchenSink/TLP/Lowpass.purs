@@ -18,7 +18,7 @@ import WAGS.Example.KitchenSink.Types.Empty (cursorGain)
 import WAGS.Example.KitchenSink.Types.Highshelf (ksHighshelfCreate)
 import WAGS.Example.KitchenSink.Types.Lowpass (LowpassGraph, deltaKsLowpass)
 
-doLowpass :: forall proof iu. StepSig LowpassGraph proof { | iu }
+doLowpass :: forall proof. StepSig LowpassGraph proof
 doLowpass =
   branch \lsig -> WAGS.do
     { time } <- env

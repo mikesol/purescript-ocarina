@@ -2,6 +2,7 @@ module WAGS.Example.KitchenSink.TLP.Feedback where
 
 import Prelude
 import Data.Either (Either(..))
+import Data.Functor.Indexed (ivoid)
 import Math ((%))
 import Type.Proxy (Proxy(..))
 import WAGS.Change (change)
@@ -17,8 +18,9 @@ import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
 import WAGS.Example.KitchenSink.Types.Empty (cursorGain)
 import WAGS.Example.KitchenSink.Types.Feedback (FeedbackGraph, deltaKsFeedback)
 import WAGS.Example.KitchenSink.Types.LoopBuf (ksLoopBufCreate)
+import WAGS.Graph.Optionals (gain_)
 
-doFeedback :: forall proof iu. StepSig FeedbackGraph proof { | iu }
+doFeedback :: forall proof. StepSig FeedbackGraph proof
 doFeedback =
   branch \lsig -> WAGS.do
     { time } <- env
@@ -48,4 +50,5 @@ doFeedback =
                 destroy cursorHighpass
                 create ksLoopBufCreate
                 connect (Proxy :: _ "loopBuf") cursorGain
+                ivoid $ change { mix: gain_ 1.0 }
                 withProof pr lsig

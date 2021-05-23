@@ -1,7 +1,6 @@
 module WAGS.Example.KitchenSink.TLP.PeriodicOsc where
 
 import Prelude
-
 import Data.Either (Either(..))
 import Math ((%))
 import Type.Proxy (Proxy(..))
@@ -19,7 +18,7 @@ import WAGS.Example.KitchenSink.Types.Empty (cursorGain)
 import WAGS.Example.KitchenSink.Types.PeriodicOsc (PeriodicOscGraph, deltaKsPeriodicOsc)
 import WAGS.Example.KitchenSink.Types.SawtoothOsc (frontloadSawtoothOsc, ksSawtoothOscCreate)
 
-doPeriodicOsc :: forall proof iu. StepSig PeriodicOscGraph proof { | iu }
+doPeriodicOsc :: forall proof. StepSig PeriodicOscGraph proof
 doPeriodicOsc =
   branch \lsig -> WAGS.do
     { time } <- env
