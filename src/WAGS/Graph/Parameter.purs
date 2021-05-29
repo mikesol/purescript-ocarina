@@ -20,14 +20,14 @@ derive newtype instance eqAudioParameter :: Eq a => Eq (AudioParameter_ a)
 derive newtype instance showAudioParameter :: Show a => Show (AudioParameter_ a)
 
 uop :: forall a. (a -> a) -> AudioParameter_ a -> AudioParameter_ a
-uop f (AudioParameter a0@{ param: param0, timeOffset: timeOffset0, transition: transition0 }) = AudioParameter { param: f <$> param0, timeOffset: timeOffset0, transition: transition0 }
+uop f (AudioParameter a0@{ param: param0, timeOffset: timeOffset0, transition: transition0, forceSet: forceSet0 }) = AudioParameter { param: f <$> param0, timeOffset: timeOffset0, transition: transition0, forceSet: forceSet0 }
 
 bop :: forall a. (a -> a -> a) -> AudioParameter_ a -> AudioParameter_ a -> AudioParameter_ a
-bop f (AudioParameter a0@{ param: param0, timeOffset: timeOffset0, transition: transition0 }) (AudioParameter a1@{ param: param1, timeOffset: timeOffset1, transition: transition1 }) = AudioParameter { param: f <$> param0 <*> param1, timeOffset: timeOffset0 + timeOffset1 / 2.0, transition: transition0 <> transition1 }
+bop f (AudioParameter a0@{ param: param0, timeOffset: timeOffset0, transition: transition0, forceSet: forceSet0  }) (AudioParameter a1@{ param: param1, timeOffset: timeOffset1, transition: transition1, forceSet: forceSet1  }) = AudioParameter { param: f <$> param0 <*> param1, timeOffset: timeOffset0 + timeOffset1 / 2.0, transition: transition0 <> transition1, forceSet: forceSet0 || forceSet1 }
 
 instance semiringAudioParameter :: Semiring a => Semiring (AudioParameter_ a) where
-  zero = AudioParameter { param: Just zero, timeOffset: 0.0, transition: LinearRamp }
-  one = AudioParameter { param: Just one, timeOffset: 0.0, transition: LinearRamp }
+  zero = AudioParameter { param: Just zero, timeOffset: 0.0, transition: LinearRamp, forceSet: false }
+  one = AudioParameter { param: Just one, timeOffset: 0.0, transition: LinearRamp, forceSet: false }
   add = bop add
   mul = bop mul
 
@@ -49,10 +49,12 @@ instance euclideanRingAudioParameter :: EuclideanRing a => EuclideanRing (AudioP
 -- | `param`: The parameter as a floating-point value _or_ an instruction to cancel all future parameters.
 -- | `timeOffset`: How far ahead of the current playhead to set the parameter. This can be used in conjunction with the `headroom` parameter in `run` to execute precisely-timed events. For example, if the `headroom` is `20ms` and an attack should happen in `10ms`, use `timeOffset: 10.0` to make sure that the taret parameter happens exactly at the point of attack.
 -- | `transition`: Transition between two points in time.
+-- | `forceSet`: Should we force the setting of this parameter?
 type AudioParameter_' a
   = { param :: Maybe a
     , timeOffset :: Number
     , transition :: AudioParameterTransition
+    , forceSet :: Boolean
     }
 
 type AudioParameter' = AudioParameter_' Number
@@ -96,4 +98,4 @@ param =
 -- |
 -- | defaultParam = { param: 0.0, timeOffset: 0.0, transition: LinearRamp }
 defaultParam :: AudioParameter'
-defaultParam = { param: Just 0.0, timeOffset: 0.0, transition: LinearRamp }
+defaultParam = { param: Just 0.0, timeOffset: 0.0, transition: LinearRamp, forceSet: false }

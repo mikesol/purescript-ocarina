@@ -48,5 +48,5 @@ deltaKsSawtoothOsc time =
     { mix: gain_ (0.1 - 0.1 * (cos time))
     , sawtoothOsc:
         sawtoothOsc_ On
-          $ AudioParameter { param: pure $ 440.0 + 50.0 * ((sin (rad * 1.5)) `pow` 2.0), timeOffset: time, transition: LinearRamp }
+          $ AudioParameter { param: pure $ 440.0 + 50.0 * ((sin (rad * 1.5)) `pow` 2.0), timeOffset: time, transition: LinearRamp, forceSet: false }
     }
