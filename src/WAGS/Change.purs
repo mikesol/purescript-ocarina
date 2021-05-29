@@ -275,13 +275,13 @@ instance changeAllpass ::
 
             argA_iv' = s_argA v_argA
 
-            argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param then [] else [ setFrequency nn argA_iv' ]
+            argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param && not argA_iv.forceSet then [] else [ setFrequency nn argA_iv' ]
 
             s_argB = setterVal argB
 
             argB_iv' = s_argB v_argB
 
-            argB_Changes = let AudioParameter argB_iv = argB_iv' in if argB_iv.param == v_argB'.param then [] else [ setQ nn argB_iv' ]
+            argB_Changes = let AudioParameter argB_iv = argB_iv' in if argB_iv.param == v_argB'.param && not argB_iv.forceSet then [] else [ setQ nn argB_iv' ]
           MS.modify_
             ( \i ->
                 i
@@ -314,13 +314,13 @@ instance changeBandpass ::
 
             argA_iv' = s_argA v_argA
 
-            argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param then [] else [ setFrequency nn argA_iv' ]
+            argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param && not argA_iv.forceSet then [] else [ setFrequency nn argA_iv' ]
 
             s_argB = setterVal argB
 
             argB_iv' = s_argB v_argB
 
-            argB_Changes = let AudioParameter argB_iv = argB_iv' in if argB_iv.param == v_argB'.param then [] else [ setQ nn argB_iv' ]
+            argB_Changes = let AudioParameter argB_iv = argB_iv' in if argB_iv.param == v_argB'.param && not argB_iv.forceSet then [] else [ setQ nn argB_iv' ]
           MS.modify_
             ( \i ->
                 i
@@ -354,7 +354,7 @@ instance changeConstant ::
 
             argA_iv' = s_argA v_argA
 
-            argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param then [] else [ setOffset nn argA_iv' ]
+            argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param && not argA_iv.forceSet then [] else [ setOffset nn argA_iv' ]
           MS.modify_
             ( \i ->
                 i
@@ -386,7 +386,7 @@ instance changeDelay ::
 
             argA_iv' = s_argA v_argA
 
-            argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param then [] else [ setDelay nn argA_iv' ]
+            argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param && not argA_iv.forceSet then [] else [ setDelay nn argA_iv' ]
           MS.modify_
             ( \i ->
                 i
@@ -422,31 +422,31 @@ instance changeDynamicsCompressor ::
 
             argA_iv' = s_argA v_argA
 
-            argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param then [] else [ setThreshold nn argA_iv' ]
+            argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param && not argA_iv.forceSet then [] else [ setThreshold nn argA_iv' ]
 
             s_argB = setterVal argB
 
             argB_iv' = s_argB v_argB
 
-            argB_Changes = let AudioParameter argB_iv = argB_iv' in if argB_iv.param == v_argB'.param then [] else [ setKnee nn argB_iv' ]
+            argB_Changes = let AudioParameter argB_iv = argB_iv' in if argB_iv.param == v_argB'.param && not argB_iv.forceSet then [] else [ setKnee nn argB_iv' ]
 
             s_argC = setterVal argC
 
             argC_iv' = s_argC v_argC
 
-            argC_Changes = let AudioParameter argC_iv = argC_iv' in if argC_iv.param == v_argC'.param then [] else [ setRatio nn argC_iv' ]
+            argC_Changes = let AudioParameter argC_iv = argC_iv' in if argC_iv.param == v_argC'.param && not argC_iv.forceSet then [] else [ setRatio nn argC_iv' ]
 
             s_argD = setterVal argD
 
             argD_iv' = s_argD v_argD
 
-            argD_Changes = let AudioParameter argD_iv = argD_iv' in if argD_iv.param == v_argD'.param then [] else [ setAttack nn argD_iv' ]
+            argD_Changes = let AudioParameter argD_iv = argD_iv' in if argD_iv.param == v_argD'.param && not argD_iv.forceSet then [] else [ setAttack nn argD_iv' ]
 
             s_argE = setterVal argE
 
             argE_iv' = s_argE v_argE
 
-            argE_Changes = let AudioParameter argE_iv = argE_iv' in if argE_iv.param == v_argE'.param then [] else [ setRelease nn argE_iv' ]
+            argE_Changes = let AudioParameter argE_iv = argE_iv' in if argE_iv.param == v_argE'.param && not argE_iv.forceSet then [] else [ setRelease nn argE_iv' ]
           MS.modify_
             ( \i ->
                 i
@@ -478,7 +478,7 @@ instance changeGain ::
 
             argA_iv' = s_argA v_argA
 
-            argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param then [] else [ setGain nn argA_iv' ]
+            argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param && not argA_iv.forceSet then [] else [ setGain nn argA_iv' ]
           MS.modify_
             ( \i ->
                 i
@@ -511,13 +511,13 @@ instance changeHighpass ::
 
             argA_iv' = s_argA v_argA
 
-            argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param then [] else [ setFrequency nn argA_iv' ]
+            argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param && not argA_iv.forceSet then [] else [ setFrequency nn argA_iv' ]
 
             s_argB = setterVal argB
 
             argB_iv' = s_argB v_argB
 
-            argB_Changes = let AudioParameter argB_iv = argB_iv' in if argB_iv.param == v_argB'.param then [] else [ setQ nn argB_iv' ]
+            argB_Changes = let AudioParameter argB_iv = argB_iv' in if argB_iv.param == v_argB'.param && not argB_iv.forceSet then [] else [ setQ nn argB_iv' ]
           MS.modify_
             ( \i ->
                 i
@@ -550,13 +550,13 @@ instance changeHighshelf ::
 
             argA_iv' = s_argA v_argA
 
-            argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param then [] else [ setFrequency nn argA_iv' ]
+            argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param && not argA_iv.forceSet then [] else [ setFrequency nn argA_iv' ]
 
             s_argB = setterVal argB
 
             argB_iv' = s_argB v_argB
 
-            argB_Changes = let AudioParameter argB_iv = argB_iv' in if argB_iv.param == v_argB'.param then [] else [ setGain nn argB_iv' ]
+            argB_Changes = let AudioParameter argB_iv = argB_iv' in if argB_iv.param == v_argB'.param && not argB_iv.forceSet then [] else [ setGain nn argB_iv' ]
           MS.modify_
             ( \i ->
                 i
@@ -590,7 +590,7 @@ instance changeLoopBuf ::
 
             argA_iv' = s_argA v_argA
 
-            argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param && not (onOffDiff && onOff == On) then [] else [ setPlaybackRate nn argA_iv' ]
+            argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param && not argA_iv.forceSet && not (onOffDiff && onOff == On) then [] else [ setPlaybackRate nn argA_iv' ]
           MS.modify_
             ( \i ->
                 i
@@ -630,13 +630,13 @@ instance changeLowpass ::
 
             argA_iv' = s_argA v_argA
 
-            argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param then [] else [ setFrequency nn argA_iv' ]
+            argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param && not argA_iv.forceSet then [] else [ setFrequency nn argA_iv' ]
 
             s_argB = setterVal argB
 
             argB_iv' = s_argB v_argB
 
-            argB_Changes = let AudioParameter argB_iv = argB_iv' in if argB_iv.param == v_argB'.param then [] else [ setQ nn argB_iv' ]
+            argB_Changes = let AudioParameter argB_iv = argB_iv' in if argB_iv.param == v_argB'.param && not argB_iv.forceSet then [] else [ setQ nn argB_iv' ]
           MS.modify_
             ( \i ->
                 i
@@ -669,13 +669,13 @@ instance changeLowshelf ::
 
             argA_iv' = s_argA v_argA
 
-            argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param then [] else [ setFrequency nn argA_iv' ]
+            argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param && not argA_iv.forceSet then [] else [ setFrequency nn argA_iv' ]
 
             s_argB = setterVal argB
 
             argB_iv' = s_argB v_argB
 
-            argB_Changes = let AudioParameter argB_iv = argB_iv' in if argB_iv.param == v_argB'.param then [] else [ setGain nn argB_iv' ]
+            argB_Changes = let AudioParameter argB_iv = argB_iv' in if argB_iv.param == v_argB'.param && not argB_iv.forceSet then [] else [ setGain nn argB_iv' ]
           MS.modify_
             ( \i ->
                 i
@@ -718,13 +718,13 @@ instance changeNotch ::
 
             argA_iv' = s_argA v_argA
 
-            argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param then [] else [ setFrequency nn argA_iv' ]
+            argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param && not argA_iv.forceSet then [] else [ setFrequency nn argA_iv' ]
 
             s_argB = setterVal argB
 
             argB_iv' = s_argB v_argB
 
-            argB_Changes = let AudioParameter argB_iv = argB_iv' in if argB_iv.param == v_argB'.param then [] else [ setQ nn argB_iv' ]
+            argB_Changes = let AudioParameter argB_iv = argB_iv' in if argB_iv.param == v_argB'.param && not argB_iv.forceSet then [] else [ setQ nn argB_iv' ]
           MS.modify_
             ( \i ->
                 i
@@ -758,19 +758,19 @@ instance changePeaking ::
 
             argA_iv' = s_argA v_argA
 
-            argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param then [] else [ setFrequency nn argA_iv' ]
+            argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param && not argA_iv.forceSet then [] else [ setFrequency nn argA_iv' ]
 
             s_argB = setterVal argB
 
             argB_iv' = s_argB v_argB
 
-            argB_Changes = let AudioParameter argB_iv = argB_iv' in if argB_iv.param == v_argB'.param then [] else [ setQ nn argB_iv' ]
+            argB_Changes = let AudioParameter argB_iv = argB_iv' in if argB_iv.param == v_argB'.param && not argB_iv.forceSet then [] else [ setQ nn argB_iv' ]
 
             s_argC = setterVal argC
 
             argC_iv' = s_argC v_argC
 
-            argC_Changes = let AudioParameter argC_iv = argC_iv' in if argC_iv.param == v_argC'.param then [] else [ setGain nn argC_iv' ]
+            argC_Changes = let AudioParameter argC_iv = argC_iv' in if argC_iv.param == v_argC'.param && not argC_iv.forceSet then [] else [ setGain nn argC_iv' ]
           MS.modify_
             ( \i ->
                 i
@@ -804,7 +804,7 @@ instance changePeriodicOsc ::
 
             argA_iv' = s_argA v_argA
 
-            argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param then [] else [ setFrequency nn argA_iv' ]
+            argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param && not argA_iv.forceSet then [] else [ setFrequency nn argA_iv' ]
           MS.modify_
             ( \i ->
                 i
@@ -838,7 +838,7 @@ instance changePlayBuf ::
 
             argA_iv' = s_argA v_argA
 
-            argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param && not (onOffDiff && onOff == On) then [] else [ setPlaybackRate nn argA_iv' ]
+            argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param && not argA_iv.forceSet && not (onOffDiff && onOff == On) then [] else [ setPlaybackRate nn argA_iv' ]
           MS.modify_
             ( \i ->
                 i
@@ -888,7 +888,7 @@ instance changeSawtoothOsc ::
 
             argA_iv' = s_argA v_argA
 
-            argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param then [] else [ setFrequency nn argA_iv' ]
+            argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param && not argA_iv.forceSet then [] else [ setFrequency nn argA_iv' ]
           MS.modify_
             ( \i ->
                 i
@@ -922,7 +922,7 @@ instance changeSinOsc ::
 
             argA_iv' = s_argA v_argA
 
-            argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param then [] else [ setFrequency nn argA_iv' ]
+            argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param && not argA_iv.forceSet then [] else [ setFrequency nn argA_iv' ]
           MS.modify_
             ( \i ->
                 i
@@ -966,7 +966,7 @@ instance changeSquareOsc ::
 
             argA_iv' = s_argA v_argA
 
-            argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param then [] else [ setFrequency nn argA_iv' ]
+            argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param && not argA_iv.forceSet then [] else [ setFrequency nn argA_iv' ]
           MS.modify_
             ( \i ->
                 i
@@ -998,7 +998,7 @@ instance changeStereoPanner ::
 
             argA_iv' = s_argA v_argA
 
-            argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param then [] else [ setPan nn argA_iv' ]
+            argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param && not argA_iv.forceSet then [] else [ setPan nn argA_iv' ]
           MS.modify_
             ( \i ->
                 i
@@ -1032,7 +1032,7 @@ instance changeTriangleOsc ::
 
             argA_iv' = s_argA v_argA
 
-            argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param then [] else [ setFrequency nn argA_iv' ]
+            argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param && not argA_iv.forceSet then [] else [ setFrequency nn argA_iv' ]
           MS.modify_
             ( \i ->
                 i
