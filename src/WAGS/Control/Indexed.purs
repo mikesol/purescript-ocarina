@@ -2,7 +2,7 @@ module WAGS.Control.Indexed where
 
 import Prelude
 
-import Control.Applicative.Indexed (class IxApplicative, class IxApply)
+import Control.Applicative.Indexed (class IxApplicative, class IxApply, iapply)
 import Control.Bind.Indexed (class IxBind)
 import Control.Comonad (extract)
 import Control.Monad.Indexed (class IxMonad)
@@ -28,6 +28,9 @@ instance ixApplyIxWAG :: IxApply (IxWAG audio engine proof res) where
         a = a' fab
       in
         a $> ((extract fab) (extract a))
+
+instance applyIxWAG :: Apply (IxWAG audio engine proof res graph graph) where
+  apply = iapply
 
 instance ixApplicativeIxWAG :: IxApplicative (IxWAG audio engine proof res) where
   ipure a = IxWAG (voidRight a)

@@ -2,8 +2,11 @@ module WAGS.Control.Functions
   ( start
   , modifyRes
   , makeScene
+  , makeSceneFlipped
   , makeSceneR
+  , makeSceneRFlipped
   , makeSceneR'
+  , makeSceneR'Flipped
   , loop
   , iloop
   , branch
@@ -13,6 +16,9 @@ module WAGS.Control.Functions
   , (@>)
   , (@|>)
   , (@||>)
+  , (<@)
+  , (<|@)
+  , (<||@)
   ) where
 
 import Prelude
@@ -105,6 +111,20 @@ makeScene m trans = Scene go
         }
 
 infixr 6 makeScene as @>
+
+makeSceneFlipped ::
+  forall env audio engine proofA res graph a.
+  Monoid res =>
+  AudioInterpret audio engine =>
+  ( forall proofB.
+    WAG audio engine proofB res { | graph } a ->
+    Scene env audio engine proofB res
+  ) ->
+  EFrame env audio engine proofA res { | graph } a ->
+  Scene env audio engine proofA res
+makeSceneFlipped trans m = makeScene m trans
+
+infixr 6 makeSceneFlipped as <@
 
 -- | Loops audio.
 -- |
@@ -247,6 +267,20 @@ makeSceneR a b = makeScene (map Right a) b
 
 infixr 6 makeSceneR as @|>
 
+makeSceneRFlipped ::
+  forall env audio engine proofA res graph a.
+  Monoid res =>
+  AudioInterpret audio engine =>
+  ( forall proofB.
+    WAG audio engine proofB res { | graph } a ->
+    Scene env audio engine proofB res
+  ) ->
+  Frame env audio engine proofA res { | graph } a ->
+  Scene env audio engine proofA res
+makeSceneRFlipped a b = makeSceneR b a
+
+infixr 6 makeSceneRFlipped as <|@
+
 -- | Similar to `makeSceneR'`, but without the possibility to consult an env. Aliased as `@||>`.
 makeSceneR' ::
   forall env audio engine proofA res graph a.
@@ -261,6 +295,20 @@ makeSceneR' ::
 makeSceneR' a b = makeSceneR (pure a) b
 
 infixr 6 makeSceneR' as @||>
+
+makeSceneR'Flipped ::
+  forall env audio engine proofA res graph a.
+  Monoid res =>
+  AudioInterpret audio engine =>
+  ( forall proofB.
+    WAG audio engine proofB res { | graph } a ->
+    Scene env audio engine proofB res
+  ) ->
+  WAG audio engine proofA res { | graph } a ->
+  Scene env audio engine proofA res
+makeSceneR'Flipped a b = makeSceneR' b a
+
+infixr 6 makeSceneR'Flipped as <||@
 
 -- | Modifies the residual for a frame and returns the result.
 -- | If a frame never modifies its residual, the value of `mempty`

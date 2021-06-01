@@ -1,7 +1,6 @@
 module Test.Instructions where
 
 import Prelude
-import Control.Applicative.Indexed (ipure)
 import Control.Monad.Indexed.Qualified as Ix
 import Control.Monad.Reader (ask)
 import Data.Either (Either(..))
@@ -13,6 +12,7 @@ import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (shouldEqual)
 import WAGS.Change (change, ichange)
 import WAGS.Control.Functions (branch, freeze, ibranch, iloop, iwag, loop, start, (@|>), (@||>))
+import WAGS.Control.Functions.Validated ((<||@))
 import WAGS.Control.Indexed (wag)
 import WAGS.Control.Types (Frame, Frame0, oneFrame')
 import WAGS.Create (create)
@@ -326,13 +326,12 @@ testInstructions = do
                   $ iwag
                       ( Ix.do
                           ivoid $ ichange { highpass: highpass_ (330.0 + time * 50.0) }
-                          w <- wag
-                          ipure
-                            ( w
-                                @||> iloop \e _ ->
-                                    ivoid
-                                      $ ichange { highpass: highpass_ (330.0 + e.time * 50.0) }
+                          (<||@)
+                            ( iloop \e _ ->
+                                ivoid
+                                  $ ichange { highpass: highpass_ (330.0 + e.time * 50.0) }
                             )
+                            <$> wag
                       )
 
       (frame0Nodes /\ frame0Edges /\ frame0Instr /\ _ /\ frame1) = oneFrame' simpleScene { time: 0.0 }
