@@ -19,8 +19,7 @@ import Halogen.HTML.Events as HE
 import Halogen.VDom.Driver (runUI)
 import Math (pi, sin)
 import WAGS.Change (change)
-import WAGS.Control.Functions (env, loop, start, (@|>))
-import WAGS.Control.Qualified as WAGS
+import WAGS.Control.Functions (loop, start, (@|>))
 import WAGS.Control.Types (Frame0, Scene, Frame)
 import WAGS.Create (create)
 import WAGS.Graph.AudioUnit (TGain, TLoopBuf, TSpeaker)

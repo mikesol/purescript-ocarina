@@ -2,7 +2,9 @@ module WAGS.Example.Makenna where
 
 import Prelude
 
+import Control.Comonad (extract)
 import Control.Comonad.Cofree (Cofree, mkCofree)
+import Control.Monad.Reader (ask)
 import Control.Plus (empty)
 import Data.Foldable (foldl, for_)
 import Data.Lens (over)
@@ -28,8 +30,7 @@ import Halogen.VDom.Driver (runUI)
 import Heterogeneous.Mapping (hmap)
 import Math (pow)
 import WAGS.Change (change)
-import WAGS.Control.Functions (env, loop, proof, start, withProof, (@|>))
-import WAGS.Control.Qualified as WAGS
+import WAGS.Control.Functions (loop, start, (@|>))
 import WAGS.Control.Types (Frame0, Scene, Frame)
 import WAGS.Create (create)
 import WAGS.Graph.AudioUnit (TGain, TPeriodicOsc, TSpeaker)
@@ -158,25 +159,23 @@ scene time ({ start, dur } /\ pitch) =
           }
     }
 
-createFrame :: Frame (SceneI Unit Unit) FFIAudio (Effect Unit) Frame0 {} SceneType (List EnrichedNote)
-createFrame = WAGS.do
-  start
-  { time } <- env
-  create (scene time (inTempo rest0)) $> L.fromFoldable score''
+createFrame :: Frame (SceneI Unit Unit) FFIAudio (Effect Unit) Frame0 SceneType (List EnrichedNote)
+createFrame = do
+  { time } <- ask
+  pure (create (start $> scene time (inTempo rest0)) $> L.fromFoldable score'')
 
 piece :: Scene (SceneI Unit Unit) FFIAudio (Effect Unit) Frame0
 piece =
   createFrame
-    @|> loop \l -> WAGS.do
-        { time } <- env
-        pr <- proof
+    @|> loop \fr -> do
+        { time } <- ask
         let
-          f = case _ of
-            Nil -> withProof pr unit $> Nil
+          f i = case (extract i) of
+            Nil -> i $> Nil
             (a : b)
-              | time > (fst a).end -> f b
-              | otherwise -> change (scene time a) $> (a : b)
-        f l
+              | time > (fst a).end -> f (i $> b)
+              | otherwise -> change (i $> scene time a) $> (a : b)
+        pure $ f fr
 
 easingAlgorithm :: Cofree ((->) Int) Int
 easingAlgorithm =

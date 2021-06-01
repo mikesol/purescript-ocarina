@@ -9,8 +9,6 @@ import Data.List as L
 import Data.Tuple.Nested (type (/\))
 import Math (cos, pi, pow, sin)
 import WAGS.Change (change)
-import WAGS.Control.Functions (proof, withProof)
-import WAGS.Control.Qualified as WAGS
 import WAGS.Example.KitchenSink.TLP.LoopSig (FrameSig')
 import WAGS.Example.KitchenSink.Types.Empty (TopWith)
 import WAGS.Graph.AudioUnit (OnOff(..), TSawtoothOsc)

@@ -9,7 +9,6 @@ module WAGS.Run
   ) where
 
 import Prelude
-
 import Control.Comonad.Cofree (Cofree, head, tail)
 import Data.DateTime.Instant (Instant)
 import Data.Foldable (for_)
@@ -26,8 +25,7 @@ import FRP.Behavior.Time (instant)
 import FRP.Event (Event, makeEvent, subscribe)
 import FRP.Event.Time (withTime, delay)
 import Record as R
-import WAGS.Control.Thunkable (Thunkable, runThunkable)
-import WAGS.Control.Types (Frame0, SceneT, oneFrameT)
+import WAGS.Control.Types (Frame0, Scene, oneFrame)
 import WAGS.Interpret (FFIAudio(..), FFIAudio', getAudioClockTime, renderAudio)
 import WAGS.Rendered (AnAudioUnit)
 
@@ -45,12 +43,11 @@ run ::
   Behavior world ->
   EngineInfo ->
   FFIAudio ->
-  SceneT
+  Scene
     (SceneI trigger world)
     FFIAudio
     (Effect Unit)
     Frame0
-    Thunkable
     res ->
   Event (Run res)
 run trigger world' engineInfo (FFIAudio audio') scene =
@@ -191,12 +188,11 @@ runInternal ::
   Ref.Ref (Effect Unit) ->
   Ref.Ref EasingAlgorithm ->
   Ref.Ref
-    ( SceneT
+    ( Scene
         (SceneI trigger world)
         FFIAudio
         (Effect Unit)
         Frame0
-        Thunkable
         res
     ) ->
   FFIAudio' ->
@@ -217,7 +213,7 @@ runInternal audioClockStart worldAndTrigger world' currentTimeoutCanceler curren
 
     time = (audioClockPriorToComputation - audioClockStart) + headroomInSeconds
 
-    fromScene = runThunkable (oneFrameT sceneNow (R.union worldAndTrigger { time, headroom }))
+    fromScene = oneFrame sceneNow (R.union worldAndTrigger { time, headroom })
   audioClockAfterComputation <- getAudioClockTime audio'.context
   renderAudio
     ( FFIAudio

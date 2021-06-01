@@ -1,6 +1,9 @@
 module Test.Instructions where
 
 import Prelude
+import Control.Applicative.Indexed (ipure)
+import Control.Monad.Indexed.Qualified as Ix
+import Control.Monad.Reader (ask)
 import Data.Either (Either(..))
 import Data.Functor.Indexed (ivoid)
 import Data.Map as M
@@ -8,13 +11,12 @@ import Data.Set as S
 import Data.Tuple.Nested ((/\), type (/\))
 import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (shouldEqual)
-import WAGS.Change (change)
-import WAGS.Control.Functions (branch, env, freeze, loop, proof, start, withProof, (@|>))
-import WAGS.Control.Qualified as WAGS
-import WAGS.Control.Types (Frame, Frame0, InitialGraph, oneFrame')
+import WAGS.Change (change, ichange)
+import WAGS.Control.Functions (branch, freeze, ibranch, iloop, iwag, loop, start, (@|>), (@||>))
+import WAGS.Control.Indexed (wag)
+import WAGS.Control.Types (Frame, Frame0, oneFrame')
 import WAGS.Create (create)
-import WAGS.Get (get)
-import WAGS.Graph.AudioUnit (GetSinOsc, OnOff(..), TGain, THighpass, TSinOsc, TSpeaker)
+import WAGS.Graph.AudioUnit (OnOff(..), TGain, THighpass, TSinOsc, TSpeaker)
 import WAGS.Graph.Optionals (CGain, CHighpass, CSinOsc, CSpeaker, Ref, gain, highpass, highpass_, ref, sinOsc, sinOsc_, speaker)
 import WAGS.Graph.Parameter (param)
 import WAGS.Rendered (AnAudioUnit(..), Instruction(..))
@@ -70,11 +72,8 @@ testInstructions :: Spec Unit
 testInstructions = do
   describe "a simple scene that doesn't change" do
     let
-      simpleFrame :: Frame Time Unit Instruction Frame0 InitialGraph SceneType Unit
-      simpleFrame = WAGS.do
-        start
-        e <- env
-        create (scene0 e)
+      simpleFrame :: Frame Time Unit Instruction Frame0 Unit SceneType Unit
+      simpleFrame e = create (start $> scene0 e)
 
       simpleScene = simpleFrame @|> freeze
 
@@ -118,23 +117,14 @@ testInstructions = do
       resolveInstructions frame2Instr `shouldEqual` []
   describe "a simple scene that changes only the sine wave osc as a function of time" do
     let
-      simpleFrame :: Frame Time Unit Instruction Frame0 InitialGraph SceneType Unit
-      simpleFrame = WAGS.do
-        start
-        e <- env
-        create (scene0 e)
+      simpleFrame :: Frame Time Unit Instruction Frame0 Unit SceneType Unit
+      simpleFrame e = create (start $> scene0 e)
 
       simpleScene =
         simpleFrame
-          @|> ( loop
-                ( const
-                    $ WAGS.do
-                        e <- env
-                        ivoid
-                          $ change
-                              { sinOsc: sinOsc_ (440.0 + e.time * 50.0) }
-                )
-            )
+          @|> loop \fr -> do
+              e <- ask
+              pure $ void $ change (fr $> { sinOsc: sinOsc_ (440.0 + e.time * 50.0) })
 
       (frame0Nodes /\ frame0Edges /\ frame0Instr /\ _ /\ frame1) = oneFrame' simpleScene { time: 0.0 }
 
@@ -184,25 +174,20 @@ testInstructions = do
       resolveInstructions frame2Instr `shouldEqual` [ SetFrequency "sinOsc" $ param 450.0 ]
   describe "a simple scene that changes several elements as a function of time" do
     let
-      simpleFrame :: Frame Time Unit Instruction Frame0 InitialGraph SceneType Unit
-      simpleFrame = WAGS.do
-        start
-        e <- env
-        create (scene0 e)
+      simpleFrame :: Frame Time Unit Instruction Frame0 Unit SceneType Unit
+      simpleFrame e = create (start $> scene0 e)
 
       simpleScene =
         simpleFrame
-          @|> ( loop
-                ( const
-                    $ WAGS.do
-                        e <- env
-                        ivoid
-                          $ change
-                              { sinOsc: sinOsc_ (440.0 + e.time * 50.0)
-                              , highpass: highpass_ (330.0 + e.time * 10.0)
-                              }
-                )
-            )
+          @|> loop \fr -> do
+              e <- ask
+              pure
+                $ void
+                $ change
+                $ fr
+                $> { sinOsc: sinOsc_ (440.0 + e.time * 50.0)
+                  , highpass: highpass_ (330.0 + e.time * 10.0)
+                  }
 
       (frame0Nodes /\ frame0Edges /\ frame0Instr /\ _ /\ frame1) = oneFrame' simpleScene { time: 0.0 }
 
@@ -250,25 +235,31 @@ testInstructions = do
       resolveInstructions frame1Instr `shouldEqual` [ SetFrequency "highpass" $ param 331.0, SetFrequency "sinOsc" $ param 445.0 ]
     it "is coherent after frame2Instr" do
       resolveInstructions frame2Instr `shouldEqual` [ SetFrequency "highpass" $ param 332.0, SetFrequency "sinOsc" $ param 450.0 ]
-  describe "a simple scene that gets and then sets with the getter" do
+  describe "a scene that forks at 0.3 seconds" do
     let
-      simpleFrame :: Frame Time Unit Instruction Frame0 InitialGraph SceneType Unit
-      simpleFrame = WAGS.do
-        start
-        e <- env
-        create (scene0 e)
+      simpleFrame :: Frame Time Unit Instruction Frame0 Unit SceneType Unit
+      simpleFrame e = create (start $> scene0 e)
 
       simpleScene =
         simpleFrame
-          @|> ( loop
-                ( const
-                    $ WAGS.do
-                        e <- env
-                        -- todo: improve get mechanism
-                        gotten :: { sinOsc :: GetSinOsc } <- get { sinOsc: unit }
-                        ivoid $ change gotten
-                )
-            )
+          @|> branch \fr -> do
+              { time } <- ask
+              pure
+                $ if time < 0.3 then
+                    Right $ void $ change $ fr $> { highpass: highpass_ (330.0 + time * 10.0) }
+                  else
+                    Left
+                      ( change
+                          (fr $> { highpass: highpass_ (330.0 + time * 50.0) })
+                          @||> loop \fr' -> do
+                              e <- ask
+                              pure
+                                $ change
+                                    ( fr'
+                                        $> { highpass: highpass_ (330.0 + e.time * 50.0)
+                                          }
+                                    )
+                      )
 
       (frame0Nodes /\ frame0Edges /\ frame0Instr /\ _ /\ frame1) = oneFrame' simpleScene { time: 0.0 }
 
@@ -276,9 +267,9 @@ testInstructions = do
 
       (frame2Nodes /\ frame2Edges /\ frame2Instr /\ _ /\ frame3) = oneFrame' frame2 { time: 0.2 }
 
-      (frame3Nodes /\ _ /\ _ /\ _ /\ frame4) = oneFrame' frame3 { time: 0.3 }
+      (frame3Nodes /\ _ /\ frame3Instr /\ _ /\ frame4) = oneFrame' frame3 { time: 0.3 }
 
-      (frame4Nodes /\ _ /\ _ /\ _ /\ _) = oneFrame' frame4 { time: 0.4 }
+      (frame4Nodes /\ _ /\ frame4Instr /\ _ /\ _) = oneFrame' frame4 { time: 0.4 }
 
       nodeAssertion i = M.fromFoldable [ "speaker" /\ ASpeaker, "mix" /\ (AGain (param 1.0)), "highpass" /\ (AHighpass (param $ 330.0 + i) (param 1.0)), "sinOsc" /\ (ASinOsc On (param 440.0)) ]
 
@@ -294,64 +285,55 @@ testInstructions = do
         , ConnectXToY "mix" "mix"
         , ConnectXToY "sinOsc" "highpass"
         ]
-    it "is coherent after frame0Nodes" do
+    it "branches at frame0Nodes" do
       frame0Nodes `shouldEqual` (nodeAssertion 0.0)
-    it "is coherent after frame1Nodes" do
-      frame1Nodes `shouldEqual` (nodeAssertion 0.0)
-    it "is coherent after frame2Nodes" do
-      frame2Nodes `shouldEqual` (nodeAssertion 0.0)
-    it "is coherent after frame3Nodes" do
-      frame3Nodes `shouldEqual` (nodeAssertion 0.0)
-    it "is coherent after frame4Nodes" do
-      frame4Nodes `shouldEqual` (nodeAssertion 0.0)
-    it "is coherent after frame0Edges" do
+    it "branches at frame1Nodes" do
+      frame1Nodes `shouldEqual` (nodeAssertion 1.0)
+    it "branches at frame2Nodes" do
+      frame2Nodes `shouldEqual` (nodeAssertion 2.0)
+    it "branches at frame3Nodes" do
+      frame3Nodes `shouldEqual` (nodeAssertion 15.0)
+    it "branches at frame4Nodes" do
+      frame4Nodes `shouldEqual` (nodeAssertion 20.0)
+    it "branches at frame0Edges" do
       frame0Edges `shouldEqual` edgeAssertion
-    it "is coherent after frame1Edges" do
+    it "branches at edgeAssertion" do
       frame1Edges `shouldEqual` edgeAssertion
-    it "is coherent after frame2Edges" do
+    it "branches at edgeAssertion" do
       frame2Edges `shouldEqual` edgeAssertion
-    it "is coherent after frame0Instr" do
+    it "branches at edgeAssertion" do
       resolveInstructions frame0Instr `shouldEqual` instructionAssertion
-    it "is coherent after frame1Instr" do
-      resolveInstructions frame1Instr `shouldEqual` []
-    it "is coherent after frame2Instr" do
-      resolveInstructions frame2Instr `shouldEqual` []
-  describe "a scene that forks at 0.3 seconds" do
+    it "branches at frame0Instr" do
+      resolveInstructions frame1Instr `shouldEqual` [ SetFrequency "highpass" $ param 331.0 ]
+    it "branches at frame1Instr" do
+      resolveInstructions frame2Instr `shouldEqual` [ SetFrequency "highpass" $ param 332.0 ]
+    it "branches at frame2Instr" do
+      resolveInstructions frame3Instr `shouldEqual` [ SetFrequency "highpass" $ param 345.0 ]
+    it "branches at frame3Instr" do
+      resolveInstructions frame4Instr `shouldEqual` [ SetFrequency "highpass" $ param 350.0 ]
+  describe "a scene that forks at 0.3 seconds with ibranch" do
     let
-      simpleFrame :: Frame Time Unit Instruction Frame0 InitialGraph SceneType Unit
-      simpleFrame = WAGS.do
-        start
-        e <- env
-        create (scene0 e)
+      simpleFrame :: Frame Time Unit Instruction Frame0 Unit SceneType Unit
+      simpleFrame e = create (start $> scene0 e)
 
       simpleScene =
         simpleFrame
-          @|> ( branch \_ -> WAGS.do
-                { time } <- env
-                pr <- proof
-                withProof pr
-                  $ if time < 0.3 then
-                      Right
-                        ( WAGS.do
-                            e <- env
-                            ivoid
-                              $ change
-                                  { highpass: highpass_ (330.0 + e.time * 10.0)
-                                  }
-                        )
-                    else
-                      Left
-                        ( loop
-                            ( const
-                                $ WAGS.do
-                                    e <- env
+          @|> ibranch \{ time } _ ->
+              if time < 0.3 then
+                Right $ ivoid $ ichange { highpass: highpass_ (330.0 + time * 10.0) }
+              else
+                Left
+                  $ iwag
+                      ( Ix.do
+                          ivoid $ ichange { highpass: highpass_ (330.0 + time * 50.0) }
+                          w <- wag
+                          ipure
+                            ( w
+                                @||> iloop \e _ ->
                                     ivoid
-                                      $ change
-                                          { highpass: highpass_ (330.0 + e.time * 50.0)
-                                          }
+                                      $ ichange { highpass: highpass_ (330.0 + e.time * 50.0) }
                             )
-                        )
-            )
+                      )
 
       (frame0Nodes /\ frame0Edges /\ frame0Instr /\ _ /\ frame1) = oneFrame' simpleScene { time: 0.0 }
 

@@ -2,7 +2,8 @@ module WAGS.Create where
 
 import Prelude
 
-import Control.Monad.State (modify_)
+import Control.Comonad (extract)
+import Data.Functor (voidRight)
 import Data.Map as M
 import Data.Maybe (Maybe(..))
 import Data.Symbol (class IsSymbol, reflectSymbol)
@@ -12,8 +13,8 @@ import Heterogeneous.Folding (class FoldingWithIndex, class HFoldlWithIndex, hfo
 import Prim.Row as R
 import Type.Proxy (Proxy(..))
 import WAGS.Connect (ConnectFoldingWithIndex(..))
-import WAGS.Control.Qualified as WAGS
-import WAGS.Control.Types (FrameT, unsafeFrame)
+import WAGS.Control.Indexed (IxWAG(..))
+import WAGS.Control.Types (WAG, unsafeUnWAG, unsafeWAG)
 import WAGS.Edgeable (class Edgeable, withEdge)
 import WAGS.Graph.AudioUnit as CTOR
 import WAGS.Graph.Graph (Graph)
@@ -27,32 +28,25 @@ data CreateFoldingWithIndex
   = CreateFoldingWithIndex
 
 instance createFoldingWithIndex ::
-  ( Monad m
-  , AudioInterpret audio engine
+  ( AudioInterpret audio engine
   , Edgeable node' (Tuple node edges)
-  , Create' sym node midGraph1 midGraph2
+  , Create' sym node inGraph midGraph
   , HFoldlWithIndex
       CreateFoldingWithIndex
-      ( FrameT
-          env
+      ( WAG
           audio
           engine
           proof
-          m
           res
-          { | inGraph }
-          { | midGraph2 }
+          { | midGraph }
           Unit
       )
       edges
-      ( FrameT
-          env
+      ( WAG
           audio
           engine
           proof
-          m
           res
-          { | inGraph }
           { | outGraph }
           Unit
       )
@@ -61,96 +55,75 @@ instance createFoldingWithIndex ::
   FoldingWithIndex
     CreateFoldingWithIndex
     (proxy sym)
-    ( FrameT
-        env
+    ( WAG
         audio
         engine
         proof
-        m
         res
         { | inGraph }
-        { | midGraph1 }
         Unit
     )
     node'
-    ( FrameT
-        env
+    ( WAG
         audio
         engine
         proof
-        m
         res
-        { | inGraph }
         { | outGraph }
         Unit
     ) where
   foldingWithIndex CreateFoldingWithIndex prop ifr edgeable =
     let
       node /\ edges = withEdge edgeable
+
+      res = create' prop (ifr $> node)
     in
       hfoldlWithIndex
         CreateFoldingWithIndex
-        ( WAGS.do
-            ifr
-            create' prop node
-        )
+        (res $> unit)
         edges
-
 
 data ThenConnectFoldingWithIndex
   = ThenConnectFoldingWithIndex
 
 instance thenConnectFoldingWithIndex ::
-  ( Monad m
-  , IsSymbol sym
+  ( IsSymbol sym
   , Edgeable node' (Tuple node edges)
   , HFoldlWithIndex
       ConnectFoldingWithIndex
-      ( FrameT
-          env
+      ( WAG
           audio
           engine
           proof
-          m
           res
           { | inGraph }
-          { | midGraph1 }
           (Proxy sym)
       )
       edges
-      ( FrameT
-          env
+      ( WAG
           audio
           engine
           proof
-          m
           res
-          { | inGraph }
-          { | midGraph2 }
+          { | midGraph }
           (Proxy sym)
       )
   , HFoldlWithIndex
       ThenConnectFoldingWithIndex
-      ( FrameT
-          env
+      ( WAG
           audio
           engine
           proof
-          m
           res
-          { | inGraph }
-          { | midGraph2 }
+          { | midGraph }
           Unit
       )
       edges
-      ( FrameT
-          env
+      ( WAG
           audio
           engine
           proof
-          m
           res
-          { | inGraph }
           { | outGraph }
           Unit
       )
@@ -158,26 +131,20 @@ instance thenConnectFoldingWithIndex ::
   FoldingWithIndex
     ThenConnectFoldingWithIndex
     (proxy sym)
-    ( FrameT
-        env
+    ( WAG
         audio
         engine
         proof
-        m
         res
         { | inGraph }
-        { | midGraph1 }
         Unit
     )
     node'
-    ( FrameT
-        env
+    ( WAG
         audio
         engine
         proof
-        m
         res
-        { | inGraph }
         { | outGraph }
         Unit
     ) where
@@ -191,117 +158,159 @@ instance thenConnectFoldingWithIndex ::
             ConnectFoldingWithIndex
             (ifr $> (Proxy :: _ sym))
             edges
-            $> unit
+            $> (extract ifr)
         )
         edges
 
 -- | Similar to `create`, but accepts a record with multiple units to create _and_ connect.
 create ::
-  forall r env audio engine proof m res inGraph midGraph1 midGraph2 outGraph.
-  Monad m =>
+  forall r audio engine proof res inGraph midGraph outGraph.
   AudioInterpret audio engine =>
   HFoldlWithIndex
     CreateFoldingWithIndex
-    ( FrameT
-        env
+    ( WAG
         audio
         engine
         proof
-        m
         res
         { | inGraph }
-        { | midGraph1 }
         Unit
     )
     { | r }
-    ( FrameT
-        env
+    ( WAG
         audio
         engine
         proof
-        m
         res
-        { | inGraph }
-        { | midGraph2 }
+        { | midGraph }
         Unit
     ) =>
   HFoldlWithIndex
     ThenConnectFoldingWithIndex
-    ( FrameT
-        env
+    ( WAG
         audio
         engine
         proof
-        m
         res
-        { | inGraph }
-        { | midGraph2 }
+        { | midGraph }
         Unit
     )
     { | r }
-    ( FrameT
-        env
+    ( WAG
         audio
         engine
         proof
-        m
         res
-        { | inGraph }
         { | outGraph }
         Unit
     ) =>
-  { | r } ->
-  FrameT
-    env
+  WAG
     audio
     engine
     proof
-    m
     res
     { | inGraph }
+    { | r } ->
+  WAG
+    audio
+    engine
+    proof
+    res
     { | outGraph }
     Unit
-create r =
+create w =
   hfoldlWithIndex
     ThenConnectFoldingWithIndex
     innerStep
-    r
+    (extract w)
   where
   innerStep =
     hfoldlWithIndex
       CreateFoldingWithIndex
-      ( (unsafeFrame (pure unit)) ::
-          FrameT
-            env
-            audio
-            engine
-            proof
-            m
-            res
-            { | inGraph }
-            { | midGraph1 }
-            Unit
-      )
-      r
+      (w $> unit)
+      (extract w)
+
+icreate ::
+  forall r audio engine proof res inGraph midGraph outGraph.
+  AudioInterpret audio engine =>
+  HFoldlWithIndex
+    CreateFoldingWithIndex
+    ( WAG
+        audio
+        engine
+        proof
+        res
+        { | inGraph }
+        Unit
+    )
+    { | r }
+    ( WAG
+        audio
+        engine
+        proof
+        res
+        { | midGraph }
+        Unit
+    ) =>
+  HFoldlWithIndex
+    ThenConnectFoldingWithIndex
+    ( WAG
+        audio
+        engine
+        proof
+        res
+        { | midGraph }
+        Unit
+    )
+    { | r }
+    ( WAG
+        audio
+        engine
+        proof
+        res
+        { | outGraph }
+        Unit
+    ) =>
+  { | r } ->
+  IxWAG
+    audio
+    engine
+    proof
+    res
+    { | inGraph }
+    { | outGraph }
+    Unit
+icreate r = IxWAG (create <<< voidRight r)
 
 -- | Create an audio unit `node` in `igraph` with index `ptr`, resulting in `ograph`.
 class Create' (ptr :: Symbol) (node :: Type) (inGraph :: Graph) (outGraph :: Graph) | ptr node inGraph -> outGraph where
   create' ::
-    forall proxy env audio engine proof m res.
-    Monad m =>
+    forall proxy audio engine proof res.
     AudioInterpret audio engine =>
     proxy ptr ->
-    node ->
-    FrameT
-      env
+    WAG
       audio
       engine
       proof
-      m
       res
       { | inGraph }
+      node ->
+    WAG
+      audio
+      engine
+      proof
+      res
       { | outGraph }
       Unit
+
+icreate' ::
+  forall proxy ptr node audio engine proof res i o.
+  AudioInterpret audio engine =>
+  Create' ptr node i o =>
+  proxy ptr ->
+  node ->
+  IxWAG audio engine proof res { | i } { | o } Unit
+icreate' ptr node = IxWAG (create' ptr <<< voidRight node)
 
 -- | A value that can be coerced to an initial control-rate audio parameter.
 class InitialVal a where
@@ -323,7 +332,7 @@ instance createUnit ::
     Unit
     graphi
     graphi where
-  create' _ _ = unsafeFrame $ pure unit
+  create' _ w = w
 
 instance createAllpass ::
   ( IsSymbol ptr
@@ -337,22 +346,25 @@ instance createAllpass ::
     (CTOR.Allpass argA argB)
     graphi
     grapho where
-  create' ptr (CTOR.Allpass argA argB) =
-    unsafeFrame
-      $ do
-          let
-            nn = reflectSymbol ptr
+  create' ptr w = o
+    where
+    { context: i, value: (CTOR.Allpass argA argB) } = unsafeUnWAG w
 
-            argA_iv' = initialVal argA
+    nn = reflectSymbol ptr
 
-            argB_iv' = initialVal argB
-          modify_
-            ( \i ->
-                i
-                  { internalNodes = (M.insert nn (AAllpass argA_iv' argB_iv') i.internalNodes)
-                  , instructions = i.instructions <> [ makeAllpass nn argA_iv' argB_iv' ]
-                  }
-            )
+    argA_iv' = initialVal argA
+
+    argB_iv' = initialVal argB
+
+    o =
+      unsafeWAG
+        { context:
+            i
+              { internalNodes = (M.insert nn (AAllpass argA_iv' argB_iv') i.internalNodes)
+              , instructions = i.instructions <> [ makeAllpass nn argA_iv' argB_iv' ]
+              }
+        , value: unit
+        }
 
 instance createBandpass ::
   ( IsSymbol ptr
@@ -366,22 +378,25 @@ instance createBandpass ::
     (CTOR.Bandpass argA argB)
     graphi
     grapho where
-  create' ptr (CTOR.Bandpass argA argB) =
-    unsafeFrame
-      $ do
-          let
-            nn = reflectSymbol ptr
+  create' ptr w = o
+    where
+    { context: i, value: (CTOR.Bandpass argA argB) } = unsafeUnWAG w
 
-            argA_iv' = initialVal argA
+    nn = reflectSymbol ptr
 
-            argB_iv' = initialVal argB
-          modify_
-            ( \i ->
-                i
-                  { internalNodes = (M.insert nn (ABandpass argA_iv' argB_iv') i.internalNodes)
-                  , instructions = i.instructions <> [ makeBandpass nn argA_iv' argB_iv' ]
-                  }
-            )
+    argA_iv' = initialVal argA
+
+    argB_iv' = initialVal argB
+
+    o =
+      unsafeWAG
+        { context:
+            i
+              { internalNodes = (M.insert nn (ABandpass argA_iv' argB_iv') i.internalNodes)
+              , instructions = i.instructions <> [ makeBandpass nn argA_iv' argB_iv' ]
+              }
+        , value: unit
+        }
 
 instance createConstant ::
   ( IsSymbol ptr
@@ -394,20 +409,23 @@ instance createConstant ::
     (CTOR.Constant argA)
     graphi
     grapho where
-  create' ptr (CTOR.Constant onOff argA) =
-    unsafeFrame
-      $ do
-          let
-            nn = reflectSymbol ptr
+  create' ptr w = o
+    where
+    { context: i, value: (CTOR.Constant onOff argA) } = unsafeUnWAG w
 
-            argA_iv' = initialVal argA
-          modify_
-            ( \i ->
-                i
-                  { internalNodes = (M.insert nn (AConstant onOff argA_iv') i.internalNodes)
-                  , instructions = i.instructions <> [ makeConstant nn onOff argA_iv' ]
-                  }
-            )
+    nn = reflectSymbol ptr
+
+    argA_iv' = initialVal argA
+
+    o =
+      unsafeWAG
+        { context:
+            i
+              { internalNodes = (M.insert nn (AConstant onOff argA_iv') i.internalNodes)
+              , instructions = i.instructions <> [ makeConstant nn onOff argA_iv' ]
+              }
+        , value: unit
+        }
 
 instance createConvolver ::
   ( IsSymbol ptr
@@ -420,20 +438,23 @@ instance createConvolver ::
     (CTOR.Convolver buffer)
     graphi
     grapho where
-  create' ptr (CTOR.Convolver sym) =
-    unsafeFrame
-      $ do
-          let
-            nn = reflectSymbol ptr
+  create' ptr w = o
+    where
+    { context: i, value: (CTOR.Convolver sym) } = unsafeUnWAG w
 
-            buffer = reflectSymbol sym
-          modify_
-            ( \i ->
-                i
-                  { internalNodes = (M.insert nn (AConvolver buffer) i.internalNodes)
-                  , instructions = i.instructions <> [ makeConvolver nn buffer ]
-                  }
-            )
+    nn = reflectSymbol ptr
+
+    buffer = reflectSymbol sym
+
+    o =
+      unsafeWAG
+        { context:
+            i
+              { internalNodes = (M.insert nn (AConvolver buffer) i.internalNodes)
+              , instructions = i.instructions <> [ makeConvolver nn buffer ]
+              }
+        , value: unit
+        }
 
 instance createDelay ::
   ( IsSymbol ptr
@@ -446,20 +467,23 @@ instance createDelay ::
     (CTOR.Delay argA)
     graphi
     grapho where
-  create' ptr (CTOR.Delay argA) =
-    unsafeFrame
-      $ do
-          let
-            nn = reflectSymbol ptr
+  create' ptr w = o
+    where
+    { context: i, value: (CTOR.Delay argA) } = unsafeUnWAG w
 
-            argA_iv' = initialVal argA
-          modify_
-            ( \i ->
-                i
-                  { internalNodes = (M.insert nn (ADelay argA_iv') i.internalNodes)
-                  , instructions = i.instructions <> [ makeDelay nn argA_iv' ]
-                  }
-            )
+    nn = reflectSymbol ptr
+
+    argA_iv' = initialVal argA
+
+    o =
+      unsafeWAG
+        { context:
+            i
+              { internalNodes = (M.insert nn (ADelay argA_iv') i.internalNodes)
+              , instructions = i.instructions <> [ makeDelay nn argA_iv' ]
+              }
+        , value: unit
+        }
 
 instance createDynamicsCompressor ::
   ( IsSymbol ptr
@@ -476,28 +500,31 @@ instance createDynamicsCompressor ::
     (CTOR.DynamicsCompressor argA argB argC argD argE)
     graphi
     grapho where
-  create' ptr (CTOR.DynamicsCompressor argA argB argC argD argE) =
-    unsafeFrame
-      $ do
-          let
-            nn = reflectSymbol ptr
+  create' ptr w = o
+    where
+    { context: i, value: (CTOR.DynamicsCompressor argA argB argC argD argE) } = unsafeUnWAG w
 
-            argA_iv' = initialVal argA
+    nn = reflectSymbol ptr
 
-            argB_iv' = initialVal argB
+    argA_iv' = initialVal argA
 
-            argC_iv' = initialVal argC
+    argB_iv' = initialVal argB
 
-            argD_iv' = initialVal argD
+    argC_iv' = initialVal argC
 
-            argE_iv' = initialVal argE
-          modify_
-            ( \i ->
-                i
-                  { internalNodes = (M.insert nn (ADynamicsCompressor argA_iv' argB_iv' argC_iv' argD_iv' argE_iv') i.internalNodes)
-                  , instructions = i.instructions <> [ makeDynamicsCompressor nn argA_iv' argB_iv' argC_iv' argD_iv' argE_iv' ]
-                  }
-            )
+    argD_iv' = initialVal argD
+
+    argE_iv' = initialVal argE
+
+    o =
+      unsafeWAG
+        { context:
+            i
+              { internalNodes = (M.insert nn (ADynamicsCompressor argA_iv' argB_iv' argC_iv' argD_iv' argE_iv') i.internalNodes)
+              , instructions = i.instructions <> [ makeDynamicsCompressor nn argA_iv' argB_iv' argC_iv' argD_iv' argE_iv' ]
+              }
+        , value: unit
+        }
 
 instance createGain ::
   ( IsSymbol ptr
@@ -510,20 +537,23 @@ instance createGain ::
     (CTOR.Gain argA)
     graphi
     grapho where
-  create' ptr (CTOR.Gain argA) =
-    unsafeFrame
-      $ do
-          let
-            nn = reflectSymbol ptr
+  create' ptr w = o
+    where
+    { context: i, value: (CTOR.Gain argA) } = unsafeUnWAG w
 
-            argA_iv' = initialVal argA
-          modify_
-            ( \i ->
-                i
-                  { internalNodes = (M.insert nn (AGain argA_iv') i.internalNodes)
-                  , instructions = i.instructions <> [ makeGain nn argA_iv' ]
-                  }
-            )
+    nn = reflectSymbol ptr
+
+    argA_iv' = initialVal argA
+
+    o =
+      unsafeWAG
+        { context:
+            i
+              { internalNodes = (M.insert nn (AGain argA_iv') i.internalNodes)
+              , instructions = i.instructions <> [ makeGain nn argA_iv' ]
+              }
+        , value: unit
+        }
 
 instance createHighpass ::
   ( IsSymbol ptr
@@ -537,22 +567,25 @@ instance createHighpass ::
     (CTOR.Highpass argA argB)
     graphi
     grapho where
-  create' ptr (CTOR.Highpass argA argB) =
-    unsafeFrame
-      $ do
-          let
-            nn = reflectSymbol ptr
+  create' ptr w = o
+    where
+    { context: i, value: (CTOR.Highpass argA argB) } = unsafeUnWAG w
 
-            argA_iv' = initialVal argA
+    nn = reflectSymbol ptr
 
-            argB_iv' = initialVal argB
-          modify_
-            ( \i ->
-                i
-                  { internalNodes = (M.insert nn (AHighpass argA_iv' argB_iv') i.internalNodes)
-                  , instructions = i.instructions <> [ makeHighpass nn argA_iv' argB_iv' ]
-                  }
-            )
+    argA_iv' = initialVal argA
+
+    argB_iv' = initialVal argB
+
+    o =
+      unsafeWAG
+        { context:
+            i
+              { internalNodes = (M.insert nn (AHighpass argA_iv' argB_iv') i.internalNodes)
+              , instructions = i.instructions <> [ makeHighpass nn argA_iv' argB_iv' ]
+              }
+        , value: unit
+        }
 
 instance createHighshelf ::
   ( IsSymbol ptr
@@ -566,22 +599,25 @@ instance createHighshelf ::
     (CTOR.Highshelf argA argB)
     graphi
     grapho where
-  create' ptr (CTOR.Highshelf argA argB) =
-    unsafeFrame
-      $ do
-          let
-            nn = reflectSymbol ptr
+  create' ptr w = o
+    where
+    { context: i, value: (CTOR.Highshelf argA argB) } = unsafeUnWAG w
 
-            argA_iv' = initialVal argA
+    nn = reflectSymbol ptr
 
-            argB_iv' = initialVal argB
-          modify_
-            ( \i ->
-                i
-                  { internalNodes = (M.insert nn (AHighshelf argA_iv' argB_iv') i.internalNodes)
-                  , instructions = i.instructions <> [ makeHighshelf nn argA_iv' argB_iv' ]
-                  }
-            )
+    argA_iv' = initialVal argA
+
+    argB_iv' = initialVal argB
+
+    o =
+      unsafeWAG
+        { context:
+            i
+              { internalNodes = (M.insert nn (AHighshelf argA_iv' argB_iv') i.internalNodes)
+              , instructions = i.instructions <> [ makeHighshelf nn argA_iv' argB_iv' ]
+              }
+        , value: unit
+        }
 
 instance createLoopBuf ::
   ( IsSymbol ptr
@@ -594,20 +630,23 @@ instance createLoopBuf ::
     (CTOR.LoopBuf argA)
     graphi
     grapho where
-  create' ptr (CTOR.LoopBuf bufname onOff argA loopStart loopEnd) =
-    unsafeFrame
-      $ do
-          let
-            nn = reflectSymbol ptr
+  create' ptr w = o
+    where
+    { context: i, value: (CTOR.LoopBuf bufname onOff argA loopStart loopEnd) } = unsafeUnWAG w
 
-            argA_iv' = initialVal argA
-          modify_
-            ( \i ->
-                i
-                  { internalNodes = (M.insert nn (ALoopBuf bufname onOff argA_iv' loopStart loopEnd) i.internalNodes)
-                  , instructions = i.instructions <> [ makeLoopBuf nn bufname onOff argA_iv' loopStart loopEnd ]
-                  }
-            )
+    nn = reflectSymbol ptr
+
+    argA_iv' = initialVal argA
+
+    o =
+      unsafeWAG
+        { context:
+            i
+              { internalNodes = (M.insert nn (ALoopBuf bufname onOff argA_iv' loopStart loopEnd) i.internalNodes)
+              , instructions = i.instructions <> [ makeLoopBuf nn bufname onOff argA_iv' loopStart loopEnd ]
+              }
+        , value: unit
+        }
 
 instance createLowpass ::
   ( IsSymbol ptr
@@ -621,22 +660,25 @@ instance createLowpass ::
     (CTOR.Lowpass argA argB)
     graphi
     grapho where
-  create' ptr (CTOR.Lowpass argA argB) =
-    unsafeFrame
-      $ do
-          let
-            nn = reflectSymbol ptr
+  create' ptr w = o
+    where
+    { context: i, value: (CTOR.Lowpass argA argB) } = unsafeUnWAG w
 
-            argA_iv' = initialVal argA
+    nn = reflectSymbol ptr
 
-            argB_iv' = initialVal argB
-          modify_
-            ( \i ->
-                i
-                  { internalNodes = (M.insert nn (ALowpass argA_iv' argB_iv') i.internalNodes)
-                  , instructions = i.instructions <> [ makeLowpass nn argA_iv' argB_iv' ]
-                  }
-            )
+    argA_iv' = initialVal argA
+
+    argB_iv' = initialVal argB
+
+    o =
+      unsafeWAG
+        { context:
+            i
+              { internalNodes = (M.insert nn (ALowpass argA_iv' argB_iv') i.internalNodes)
+              , instructions = i.instructions <> [ makeLowpass nn argA_iv' argB_iv' ]
+              }
+        , value: unit
+        }
 
 instance createLowshelf ::
   ( IsSymbol ptr
@@ -650,22 +692,25 @@ instance createLowshelf ::
     (CTOR.Lowshelf argA argB)
     graphi
     grapho where
-  create' ptr (CTOR.Lowshelf argA argB) =
-    unsafeFrame
-      $ do
-          let
-            nn = reflectSymbol ptr
+  create' ptr w = o
+    where
+    { context: i, value: (CTOR.Lowshelf argA argB) } = unsafeUnWAG w
 
-            argA_iv' = initialVal argA
+    nn = reflectSymbol ptr
 
-            argB_iv' = initialVal argB
-          modify_
-            ( \i ->
-                i
-                  { internalNodes = (M.insert nn (ALowshelf argA_iv' argB_iv') i.internalNodes)
-                  , instructions = i.instructions <> [ makeLowshelf nn argA_iv' argB_iv' ]
-                  }
-            )
+    argA_iv' = initialVal argA
+
+    argB_iv' = initialVal argB
+
+    o =
+      unsafeWAG
+        { context:
+            i
+              { internalNodes = (M.insert nn (ALowshelf argA_iv' argB_iv') i.internalNodes)
+              , instructions = i.instructions <> [ makeLowshelf nn argA_iv' argB_iv' ]
+              }
+        , value: unit
+        }
 
 instance createMicrophone ::
   ( R.Lacks "microphone" graphi
@@ -676,18 +721,21 @@ instance createMicrophone ::
     CTOR.Microphone
     graphi
     grapho where
-  create' ptr CTOR.Microphone =
-    unsafeFrame
-      $ do
-          let
-            nn = "microphone"
-          modify_
-            ( \i ->
-                i
-                  { internalNodes = (M.insert nn AMicrophone i.internalNodes)
-                  , instructions = i.instructions <> [ makeMicrophone ]
-                  }
-            )
+  create' ptr w = o
+    where
+    { context: i } = unsafeUnWAG w
+
+    nn = "microphone"
+
+    o =
+      unsafeWAG
+        { context:
+            i
+              { internalNodes = (M.insert nn AMicrophone i.internalNodes)
+              , instructions = i.instructions <> [ makeMicrophone ]
+              }
+        , value: unit
+        }
 
 instance createNotch ::
   ( IsSymbol ptr
@@ -701,22 +749,25 @@ instance createNotch ::
     (CTOR.Notch argA argB)
     graphi
     grapho where
-  create' ptr (CTOR.Notch argA argB) =
-    unsafeFrame
-      $ do
-          let
-            nn = reflectSymbol ptr
+  create' ptr w = o
+    where
+    { context: i, value: (CTOR.Notch argA argB) } = unsafeUnWAG w
 
-            argA_iv' = initialVal argA
+    nn = reflectSymbol ptr
 
-            argB_iv' = initialVal argB
-          modify_
-            ( \i ->
-                i
-                  { internalNodes = (M.insert nn (ANotch argA_iv' argB_iv') i.internalNodes)
-                  , instructions = i.instructions <> [ makeNotch nn argA_iv' argB_iv' ]
-                  }
-            )
+    argA_iv' = initialVal argA
+
+    argB_iv' = initialVal argB
+
+    o =
+      unsafeWAG
+        { context:
+            i
+              { internalNodes = (M.insert nn (ANotch argA_iv' argB_iv') i.internalNodes)
+              , instructions = i.instructions <> [ makeNotch nn argA_iv' argB_iv' ]
+              }
+        , value: unit
+        }
 
 instance createPeaking ::
   ( IsSymbol ptr
@@ -731,24 +782,27 @@ instance createPeaking ::
     (CTOR.Peaking argA argB argC)
     graphi
     grapho where
-  create' ptr (CTOR.Peaking argA argB argC) =
-    unsafeFrame
-      $ do
-          let
-            nn = reflectSymbol ptr
+  create' ptr w = o
+    where
+    { context: i, value: (CTOR.Peaking argA argB argC) } = unsafeUnWAG w
 
-            argA_iv' = initialVal argA
+    nn = reflectSymbol ptr
 
-            argB_iv' = initialVal argB
+    argA_iv' = initialVal argA
 
-            argC_iv' = initialVal argC
-          modify_
-            ( \i ->
-                i
-                  { internalNodes = (M.insert nn (APeaking argA_iv' argB_iv' argC_iv') i.internalNodes)
-                  , instructions = i.instructions <> [ makePeaking nn argA_iv' argB_iv' argC_iv' ]
-                  }
-            )
+    argB_iv' = initialVal argB
+
+    argC_iv' = initialVal argC
+
+    o =
+      unsafeWAG
+        { context:
+            i
+              { internalNodes = (M.insert nn (APeaking argA_iv' argB_iv' argC_iv') i.internalNodes)
+              , instructions = i.instructions <> [ makePeaking nn argA_iv' argB_iv' argC_iv' ]
+              }
+        , value: unit
+        }
 
 instance createPeriodicOsc ::
   ( IsSymbol ptr
@@ -761,20 +815,23 @@ instance createPeriodicOsc ::
     (CTOR.PeriodicOsc argA)
     graphi
     grapho where
-  create' ptr (CTOR.PeriodicOsc oscName onOff argA) =
-    unsafeFrame
-      $ do
-          let
-            nn = reflectSymbol ptr
+  create' ptr w = o
+    where
+    { context: i, value: (CTOR.PeriodicOsc oscName onOff argA) } = unsafeUnWAG w
 
-            argA_iv' = initialVal argA
-          modify_
-            ( \i ->
-                i
-                  { internalNodes = (M.insert nn (APeriodicOsc oscName onOff argA_iv') i.internalNodes)
-                  , instructions = i.instructions <> [ makePeriodicOsc nn oscName onOff argA_iv' ]
-                  }
-            )
+    nn = reflectSymbol ptr
+
+    argA_iv' = initialVal argA
+
+    o =
+      unsafeWAG
+        { context:
+            i
+              { internalNodes = (M.insert nn (APeriodicOsc oscName onOff argA_iv') i.internalNodes)
+              , instructions = i.instructions <> [ makePeriodicOsc nn oscName onOff argA_iv' ]
+              }
+        , value: unit
+        }
 
 instance createPlayBuf ::
   ( IsSymbol ptr
@@ -787,20 +844,23 @@ instance createPlayBuf ::
     (CTOR.PlayBuf argA)
     graphi
     grapho where
-  create' ptr (CTOR.PlayBuf bufname offset onOff argA) =
-    unsafeFrame
-      $ do
-          let
-            nn = reflectSymbol ptr
+  create' ptr w = o
+    where
+    { context: i, value: (CTOR.PlayBuf bufname offset onOff argA) } = unsafeUnWAG w
 
-            argA_iv' = initialVal argA
-          modify_
-            ( \i ->
-                i
-                  { internalNodes = (M.insert nn (APlayBuf bufname offset onOff argA_iv') i.internalNodes)
-                  , instructions = i.instructions <> [ makePlayBuf nn bufname offset onOff argA_iv' ]
-                  }
-            )
+    nn = reflectSymbol ptr
+
+    argA_iv' = initialVal argA
+
+    o =
+      unsafeWAG
+        { context:
+            i
+              { internalNodes = (M.insert nn (APlayBuf bufname offset onOff argA_iv') i.internalNodes)
+              , instructions = i.instructions <> [ makePlayBuf nn bufname offset onOff argA_iv' ]
+              }
+        , value: unit
+        }
 
 instance createRecorder ::
   ( IsSymbol ptr
@@ -813,20 +873,23 @@ instance createRecorder ::
     (CTOR.Recorder recorder)
     graphi
     grapho where
-  create' ptr (CTOR.Recorder sym) =
-    unsafeFrame
-      $ do
-          let
-            nn = reflectSymbol ptr
+  create' ptr w = o
+    where
+    { context: i, value: (CTOR.Recorder sym) } = unsafeUnWAG w
 
-            recorder = reflectSymbol sym
-          modify_
-            ( \i ->
-                i
-                  { internalNodes = (M.insert nn (ARecorder recorder) i.internalNodes)
-                  , instructions = i.instructions <> [ makeRecorder nn recorder ]
-                  }
-            )
+    nn = reflectSymbol ptr
+
+    recorder = reflectSymbol sym
+
+    o =
+      unsafeWAG
+        { context:
+            i
+              { internalNodes = (M.insert nn (ARecorder recorder) i.internalNodes)
+              , instructions = i.instructions <> [ makeRecorder nn recorder ]
+              }
+        , value: unit
+        }
 
 instance createSawtoothOsc ::
   ( IsSymbol ptr
@@ -839,20 +902,23 @@ instance createSawtoothOsc ::
     (CTOR.SawtoothOsc argA)
     graphi
     grapho where
-  create' ptr (CTOR.SawtoothOsc onOff argA) =
-    unsafeFrame
-      $ do
-          let
-            nn = reflectSymbol ptr
+  create' ptr w = o
+    where
+    { context: i, value: (CTOR.SawtoothOsc onOff argA) } = unsafeUnWAG w
 
-            argA_iv' = initialVal argA
-          modify_
-            ( \i ->
-                i
-                  { internalNodes = (M.insert nn (ASawtoothOsc onOff argA_iv') i.internalNodes)
-                  , instructions = i.instructions <> [ makeSawtoothOsc nn onOff argA_iv' ]
-                  }
-            )
+    nn = reflectSymbol ptr
+
+    argA_iv' = initialVal argA
+
+    o =
+      unsafeWAG
+        { context:
+            i
+              { internalNodes = (M.insert nn (ASawtoothOsc onOff argA_iv') i.internalNodes)
+              , instructions = i.instructions <> [ makeSawtoothOsc nn onOff argA_iv' ]
+              }
+        , value: unit
+        }
 
 instance createSinOsc ::
   ( IsSymbol ptr
@@ -865,20 +931,23 @@ instance createSinOsc ::
     (CTOR.SinOsc argA)
     graphi
     grapho where
-  create' ptr (CTOR.SinOsc onOff argA) =
-    unsafeFrame
-      $ do
-          let
-            nn = reflectSymbol ptr
+  create' ptr w = o
+    where
+    { context: i, value: (CTOR.SinOsc onOff argA) } = unsafeUnWAG w
 
-            argA_iv' = initialVal argA
-          modify_
-            ( \i ->
-                i
-                  { internalNodes = (M.insert nn (ASinOsc onOff argA_iv') i.internalNodes)
-                  , instructions = i.instructions <> [ makeSinOsc nn onOff argA_iv' ]
-                  }
-            )
+    nn = reflectSymbol ptr
+
+    argA_iv' = initialVal argA
+
+    o =
+      unsafeWAG
+        { context:
+            i
+              { internalNodes = (M.insert nn (ASinOsc onOff argA_iv') i.internalNodes)
+              , instructions = i.instructions <> [ makeSinOsc nn onOff argA_iv' ]
+              }
+        , value: unit
+        }
 
 instance createSpeaker ::
   ( R.Lacks "speaker" graphi
@@ -889,18 +958,21 @@ instance createSpeaker ::
     CTOR.Speaker
     graphi
     grapho where
-  create' ptr CTOR.Speaker =
-    unsafeFrame
-      $ do
-          let
-            nn = "speaker"
-          modify_
-            ( \i ->
-                i
-                  { internalNodes = (M.insert nn ASpeaker i.internalNodes)
-                  , instructions = i.instructions <> [ makeSpeaker ]
-                  }
-            )
+  create' ptr w = o
+    where
+    { context: i } = unsafeUnWAG w
+
+    nn = "speaker"
+
+    o =
+      unsafeWAG
+        { context:
+            i
+              { internalNodes = (M.insert nn ASpeaker i.internalNodes)
+              , instructions = i.instructions <> [ makeSpeaker ]
+              }
+        , value: unit
+        }
 
 instance createSquareOsc ::
   ( IsSymbol ptr
@@ -913,20 +985,23 @@ instance createSquareOsc ::
     (CTOR.SquareOsc argA)
     graphi
     grapho where
-  create' ptr (CTOR.SquareOsc onOff argA) =
-    unsafeFrame
-      $ do
-          let
-            nn = reflectSymbol ptr
+  create' ptr w = o
+    where
+    { context: i, value: (CTOR.SquareOsc onOff argA) } = unsafeUnWAG w
 
-            argA_iv' = initialVal argA
-          modify_
-            ( \i ->
-                i
-                  { internalNodes = (M.insert nn (ASquareOsc onOff argA_iv') i.internalNodes)
-                  , instructions = i.instructions <> [ makeSquareOsc nn onOff argA_iv' ]
-                  }
-            )
+    nn = reflectSymbol ptr
+
+    argA_iv' = initialVal argA
+
+    o =
+      unsafeWAG
+        { context:
+            i
+              { internalNodes = (M.insert nn (ASquareOsc onOff argA_iv') i.internalNodes)
+              , instructions = i.instructions <> [ makeSquareOsc nn onOff argA_iv' ]
+              }
+        , value: unit
+        }
 
 instance createStereoPanner ::
   ( IsSymbol ptr
@@ -939,20 +1014,23 @@ instance createStereoPanner ::
     (CTOR.StereoPanner argA)
     graphi
     grapho where
-  create' ptr (CTOR.StereoPanner argA) =
-    unsafeFrame
-      $ do
-          let
-            nn = reflectSymbol ptr
+  create' ptr w = o
+    where
+    { context: i, value: (CTOR.StereoPanner argA) } = unsafeUnWAG w
 
-            argA_iv' = initialVal argA
-          modify_
-            ( \i ->
-                i
-                  { internalNodes = (M.insert nn (AStereoPanner argA_iv') i.internalNodes)
-                  , instructions = i.instructions <> [ makeStereoPanner nn argA_iv' ]
-                  }
-            )
+    nn = reflectSymbol ptr
+
+    argA_iv' = initialVal argA
+
+    o =
+      unsafeWAG
+        { context:
+            i
+              { internalNodes = (M.insert nn (AStereoPanner argA_iv') i.internalNodes)
+              , instructions = i.instructions <> [ makeStereoPanner nn argA_iv' ]
+              }
+        , value: unit
+        }
 
 instance createTriangleOsc ::
   ( IsSymbol ptr
@@ -965,20 +1043,23 @@ instance createTriangleOsc ::
     (CTOR.TriangleOsc argA)
     graphi
     grapho where
-  create' ptr (CTOR.TriangleOsc onOff argA) =
-    unsafeFrame
-      $ do
-          let
-            nn = reflectSymbol ptr
+  create' ptr w = o
+    where
+    { context: i, value: (CTOR.TriangleOsc onOff argA) } = unsafeUnWAG w
 
-            argA_iv' = initialVal argA
-          modify_
-            ( \i ->
-                i
-                  { internalNodes = (M.insert nn (ATriangleOsc onOff argA_iv') i.internalNodes)
-                  , instructions = i.instructions <> [ makeTriangleOsc nn onOff argA_iv' ]
-                  }
-            )
+    nn = reflectSymbol ptr
+
+    argA_iv' = initialVal argA
+
+    o =
+      unsafeWAG
+        { context:
+            i
+              { internalNodes = (M.insert nn (ATriangleOsc onOff argA_iv') i.internalNodes)
+              , instructions = i.instructions <> [ makeTriangleOsc nn onOff argA_iv' ]
+              }
+        , value: unit
+        }
 
 instance createWaveShaper ::
   ( IsSymbol ptr
@@ -992,19 +1073,22 @@ instance createWaveShaper ::
     (CTOR.WaveShaper floatArray oversample)
     graphi
     grapho where
-  create' ptr (CTOR.WaveShaper floatArray' oversample') =
-    unsafeFrame
-      $ do
-          let
-            nn = reflectSymbol ptr
+  create' ptr w = o
+    where
+    { context: i, value: (CTOR.WaveShaper floatArray' oversample') } = unsafeUnWAG w
 
-            floatArray = reflectSymbol floatArray'
+    nn = reflectSymbol ptr
 
-            oversample = reflectOversample oversample'
-          modify_
-            ( \i ->
-                i
-                  { internalNodes = (M.insert nn (AWaveShaper floatArray oversample) i.internalNodes)
-                  , instructions = i.instructions <> [ makeWaveShaper nn floatArray oversample ]
-                  }
-            )
+    floatArray = reflectSymbol floatArray'
+
+    oversample = reflectOversample oversample'
+
+    o =
+      unsafeWAG
+        { context:
+            i
+              { internalNodes = (M.insert nn (AWaveShaper floatArray oversample) i.internalNodes)
+              , instructions = i.instructions <> [ makeWaveShaper nn floatArray oversample ]
+              }
+        , value: unit
+        }

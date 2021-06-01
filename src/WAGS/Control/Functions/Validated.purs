@@ -1,34 +1,35 @@
 -- | These functions uses the `GraphIsRenderable` typeclass to assert that an audio graph is renderable by the web audio engine. This means, amongst other things, that it has a unique output device (ie speaker), that it does not have any dangling units not connected to a loudspeaker, etc.
 module WAGS.Control.Functions.Validated
   ( makeScene
-  , makeScene'
+  , makeSceneR
+  , makeSceneR'
   , loop
   , branch
   , freeze
   , (@>)
   , (@|>)
+  , (@||>)
   ) where
 
 import Prelude
-import Data.Either (Either)
+
 import WAGS.Control.Functions as Functions
-import WAGS.Control.Types (FrameT, SceneT)
+import WAGS.Control.Indexed (IxWAG)
+import WAGS.Control.Types (EFrame, Frame, Scene, WAG)
 import WAGS.Interpret (class AudioInterpret)
 import WAGS.Validation (class GraphIsRenderable)
 
 makeScene ::
-  forall env audio engine proofA m res graph a.
-  Monad m =>
+  forall env audio engine proofA res graph a.
   Monoid res =>
   AudioInterpret audio engine =>
   GraphIsRenderable graph =>
-  FrameT env audio engine proofA m res {} { | graph }
-    (Either (SceneT env audio engine proofA m res) a) ->
+  EFrame env audio engine proofA res { | graph } a ->
   ( forall proofB.
-    FrameT env audio engine proofB m res {} { | graph } a ->
-    SceneT env audio engine proofB m res
+    WAG audio engine proofB res { | graph } a ->
+    Scene env audio engine proofB res
   ) ->
-  SceneT env audio engine proofA m res
+  Scene env audio engine proofA res
 makeScene = Functions.makeScene
 
 infixr 6 makeScene as @>
@@ -52,71 +53,78 @@ infixr 6 makeScene as @>
 -- |         )
 -- | ```
 loop ::
-  forall env audio engine proofA m res graph a.
-  Monad m =>
+  forall env audio engine proofA res graph a.
   Monoid res =>
-  AudioInterpret audio engine =>
   GraphIsRenderable graph =>
+  AudioInterpret audio engine =>
   ( forall proofB.
-    a ->
-    FrameT env audio engine proofB m res { | graph }
-      { | graph }
-      a
+    WAG audio engine proofB res { | graph } a ->
+    Frame env audio engine proofB res { | graph } a
   ) ->
-  FrameT env audio engine proofA m res {}
-    { | graph }
-    a ->
-  SceneT env audio engine proofA m res
+  WAG audio engine proofA res { | graph } a ->
+  Scene env audio engine proofA res
 loop = Functions.loop
 
-branch ::
-  forall env audio engine proofA m res graph a.
-  Monad m =>
+iloop ::
+  forall env audio engine proofA res graph a.
   Monoid res =>
-  AudioInterpret audio engine =>
   GraphIsRenderable graph =>
+  AudioInterpret audio engine =>
   ( forall proofB.
-    a ->
-    FrameT env audio engine proofB m res
-      { | graph }
-      { | graph }
-      ( Either
-          ( FrameT env audio engine proofB m res {} { | graph } Unit ->
-            SceneT env audio engine proofB m res
-          )
-          ( FrameT env audio engine proofB m res
-              { | graph }
-              { | graph }
-              a
-          )
-      )
+    env -> a -> IxWAG audio engine proofB res { | graph } { | graph } a
   ) ->
-  FrameT env audio engine proofA m res {} { | graph } a ->
-  SceneT env audio engine proofA m res
+  WAG audio engine proofA res { | graph } a ->
+  Scene env audio engine proofA res
+iloop = Functions.iloop
+
+branch ::
+  forall env audio engine proofA res graph a.
+  Monoid res =>
+  GraphIsRenderable graph =>
+  AudioInterpret audio engine =>
+  ( forall proofB.
+    WAG audio engine proofB res { | graph } a ->
+    EFrame env audio engine proofB res { | graph } a
+  ) ->
+  WAG audio engine proofA res { | graph } a ->
+  Scene env audio engine proofA res
 branch = Functions.branch
 
 freeze ::
-  forall env audio engine proof m res graph x.
-  Monad m =>
+  forall env audio engine proof res graph x.
   Monoid res =>
-  AudioInterpret audio engine =>
   GraphIsRenderable graph =>
-  FrameT env audio engine proof m res {} { | graph } x ->
-  SceneT env audio engine proof m res
+  AudioInterpret audio engine =>
+  WAG audio engine proof res { | graph } x ->
+  Scene env audio engine proof res
 freeze = Functions.freeze
 
-makeScene' ::
-  forall env audio engine proofA m res graph a.
-  Monad m =>
+makeSceneR ::
+  forall env audio engine proofA res graph a.
   Monoid res =>
-  AudioInterpret audio engine =>
   GraphIsRenderable graph =>
-  FrameT env audio engine proofA m res {} { | graph } a ->
+  AudioInterpret audio engine =>
+  Frame env audio engine proofA res { | graph } a ->
   ( forall proofB.
-    FrameT env audio engine proofB m res {} { | graph } a ->
-    SceneT env audio engine proofB m res
+    WAG audio engine proofB res { | graph } a ->
+    Scene env audio engine proofB res
   ) ->
-  SceneT env audio engine proofA m res
-makeScene' = Functions.makeScene'
+  Scene env audio engine proofA res
+makeSceneR = Functions.makeSceneR
 
-infixr 6 makeScene' as @|>
+infixr 6 makeSceneR as @|>
+
+makeSceneR' ::
+  forall env audio engine proofA res graph a.
+  Monoid res =>
+  GraphIsRenderable graph =>
+  AudioInterpret audio engine =>
+  WAG audio engine proofA res { | graph } a ->
+  ( forall proofB.
+    WAG audio engine proofB res { | graph } a ->
+    Scene env audio engine proofB res
+  ) ->
+  Scene env audio engine proofA res
+makeSceneR' = Functions.makeSceneR'
+
+infixr 6 makeSceneR' as @||>

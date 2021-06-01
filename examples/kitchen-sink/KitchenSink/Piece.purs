@@ -2,7 +2,6 @@ module WAGS.Example.KitchenSink.Piece where
 
 import Prelude
 import WAGS.Control.Functions (start, (@|>))
-import WAGS.Control.Qualified as WAGS
 import WAGS.Control.Types (Frame0)
 import WAGS.Create (create)
 import WAGS.Example.KitchenSink.TLP.LoopSig (LoopSig(..), SceneSig)

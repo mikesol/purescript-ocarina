@@ -1,8 +1,6 @@
 module WAGS.Patch where
 
 import Prelude hiding (Ordering(..))
-
-import Control.Monad.State (modify_)
 import Data.Map as M
 import Data.Set as S
 import Data.Symbol (class IsSymbol, reflectSymbol)
@@ -13,7 +11,7 @@ import Prim.RowList (class RowToList)
 import Prim.RowList as RL
 import Prim.Symbol as Sym
 import Type.Proxy (Proxy(..))
-import WAGS.Control.Types (FrameT, unsafeFrame)
+import WAGS.Control.Types (WAG, unsafeUnWAG, unsafeWAG)
 import WAGS.Graph.AudioUnit (OnOff(..))
 import WAGS.Graph.AudioUnit as AU
 import WAGS.Graph.Oversample (class IsOversample, reflectOversample)
@@ -126,7 +124,7 @@ class GetLRCmp (cmp :: Ordering) (a :: Type) (b :: Type) (c :: Type) (l :: Type)
 
 instance getLRCmpEQ :: GetLR a c l r => GetLRCmp EQ a b c (b /\ l) r
 
-instance getLRCmpLT :: GetLR a c l r => GetLRCmp LT a b c l (b /\ r) 
+instance getLRCmpLT :: GetLR a c l r => GetLRCmp LT a b c l (b /\ r)
 
 instance getLRCmpGT :: GetLR a c l r => GetLRCmp GT a b c (b /\ l) r
 
@@ -573,7 +571,7 @@ instance toGraphEffectsMakeSawtoothOsc :: (IsSymbol ptr, ToGraphEffects rest) =>
 
 instance toGraphEffectsMakeSinOsc :: (IsSymbol ptr, ToGraphEffects rest) => ToGraphEffects (MakeSinOsc ptr /\ rest) where
   toGraphEffects _ i =
-    toGraphEffects (Proxy :: _ rest) 
+    toGraphEffects (Proxy :: _ rest)
       ( i
           { internalNodes = M.insert ptr' (Rendered.ASinOsc Off (param 440.0)) i.internalNodes
           , instructions = i.instructions <> [ makeSinOsc ptr' Off (param 440.0) ]
@@ -641,7 +639,9 @@ instance toGraphEffectsMakeWaveShaper :: (IsSymbol ptr, IsSymbol sym, IsOversamp
 
 class Patch g0 g1 where
   -- | Take any frame from `g0` to `g1`. The compiler automatically determines the necessary operations to perform the transformation.
-  patch :: forall env audio engine proof m res. Monad m => AudioInterpret audio engine => FrameT env audio engine proof m res { | g0 } { | g1 } Unit
+  patch ::
+    forall audio engine proof res a.
+    AudioInterpret audio engine => WAG audio engine proof res { | g0 } a -> WAG audio engine proof res { | g1 } a
 
 instance patchAll ::
   ( RowToList old oldList
@@ -651,16 +651,17 @@ instance patchAll ::
   , ToGraphEffects instructions
   ) =>
   Patch old new where
-  patch =
-    unsafeFrame
-      $ do
-          modify_ \i@{ internalNodes, internalEdges, instructions } ->
-            let
-              n = toGraphEffects (Proxy :: _ instructions) { internalNodes, internalEdges, instructions }
-            in
-              ( i
-                  { internalNodes = n.internalNodes
-                  , internalEdges = n.internalEdges
-                  , instructions = n.instructions
-                  }
-              )
+  patch w =
+    unsafeWAG
+      { context:
+          i
+            { internalNodes = n.internalNodes
+            , internalEdges = n.internalEdges
+            , instructions = n.instructions
+            }
+      , value
+      }
+    where
+    { context: i@{ internalNodes, internalEdges, instructions }, value } = unsafeUnWAG w
+
+    n = toGraphEffects (Proxy :: _ instructions) { internalNodes, internalEdges, instructions }

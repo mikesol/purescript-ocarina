@@ -2,33 +2,25 @@ module WAGS.Control.Functions
   ( start
   , modifyRes
   , makeScene
-  , makeScene'
+  , makeSceneR
+  , makeSceneR'
   , loop
+  , iloop
   , branch
-  , inSitu
-  , universe
-  , env
+  , ibranch
+  , iwag
   , freeze
-  , graph
-  , lift
-  , proof
-  , withProof
   , (@>)
   , (@|>)
+  , (@||>)
   ) where
 
 import Prelude
-import Control.Monad.State (gets, modify_)
-import Control.Monad.State as MT
+import Control.Comonad (extract)
 import Data.Either (Either(..))
-import Data.Functor.Indexed (imap)
 import Data.Map as M
-import Data.Tuple.Nested ((/\))
-import Type.Proxy (Proxy(..))
-import Unsafe.Coerce (unsafeCoerce)
-import WAGS.Control.MemoizedState (makeMemoizedStateT, runMemoizedStateT')
-import WAGS.Control.Qualified as WAGS
-import WAGS.Control.Types (AudioState', FrameT, InitialFrameT, SceneT(..), SceneT', oneFrameT, unsafeFrame, unsafeUnframe)
+import WAGS.Control.Indexed (IxWAG(..))
+import WAGS.Control.Types (AudioState', EFrame, Frame, InitialWAG, Scene(..), Scene', WAG, oneFrame, unsafeUnWAG, unsafeWAG)
 import WAGS.Interpret (class AudioInterpret)
 
 -- | The initial `Frame` that is needed to begin any `Scene`.
@@ -48,17 +40,15 @@ import WAGS.Interpret (class AudioInterpret)
 -- |         )
 -- | ```
 start ::
-  forall env audio engine m res.
-  Monad m =>
+  forall audio engine res.
+  Monoid res =>
   AudioInterpret audio engine =>
-  InitialFrameT env audio engine m res Unit
-start = unsafeFrame (pure unit)
+  InitialWAG audio engine res Unit
+start = unsafeWAG { context: initialAudioState, value: unit }
 
-initialAudioState :: forall env audio engine res. Monoid res => env -> AudioState' env audio engine res
-initialAudioState e =
-  { currentIdx: 0
-  , env: e
-  , res: mempty
+initialAudioState :: forall audio engine res. Monoid res => AudioState' audio engine res
+initialAudioState =
+  { res: mempty
   , instructions: []
   , internalNodes: M.empty
   , internalEdges: M.empty
@@ -70,7 +60,7 @@ initialAudioState e =
 -- | - a frame to render
 -- | - a function that accepts a frame from the next moment in time (`proofB`) and returns a scene.
 -- |
--- | From these arguments, it produces a `SceneT`.
+-- | From these arguments, it produces a `Scene`.
 -- |
 -- | ```purescript
 -- | piece :: Scene (SceneI Unit Unit) FFIAudio (Effect Unit) Frame0
@@ -87,48 +77,32 @@ initialAudioState e =
 -- |         )
 -- | ```
 makeScene ::
-  forall env audio engine proofA m res graph a.
-  Monad m =>
+  forall env audio engine proofA res graph a.
   Monoid res =>
   AudioInterpret audio engine =>
-  FrameT env audio engine proofA m res {} { | graph }
-    (Either (SceneT env audio engine proofA m res) a) ->
+  EFrame env audio engine proofA res { | graph } a ->
   ( forall proofB.
-    FrameT env audio engine proofB m res {} { | graph } a ->
-    SceneT env audio engine proofB m res
+    WAG audio engine proofB res { | graph } a ->
+    Scene env audio engine proofB res
   ) ->
-  SceneT env audio engine proofA m res
-makeScene m trans = SceneT go
+  Scene env audio engine proofA res
+makeScene m trans = Scene go
   where
-  go :: forall proofB. env -> m (SceneT' env audio engine proofB m res)
-  go ev =
-    let
-      res =
-        runMemoizedStateT'
-          (unsafeUnframe m)
-          (unsafeCoerce unit)
-          (_ { env = ev, res = mempty })
-          (initialAudioState ev)
-    in
-      do
-        outcome /\ newState <- res
-        case outcome of
-          Left s -> oneFrameT s ev
-          Right r ->
-            pure
-              $ { nodes: newState.internalNodes
-                , edges: newState.internalEdges
-                , instructions: newState.instructions
-                , res: newState.res
-                , next:
-                    ( trans
-                        $ unsafeFrame
-                            ( makeMemoizedStateT (unsafeCoerce unit)
-                                (newState { instructions = [] })
-                                r
-                            )
-                    )
-                }
+  go :: forall proofB. env -> Scene' env audio engine proofB res
+  go env = case m env of
+    Left s -> oneFrame s env
+    Right r ->
+      let
+        { context, value } = unsafeUnWAG r
+      in
+        { nodes: context.internalNodes
+        , edges: context.internalEdges
+        , instructions: context.instructions
+        , res: context.res
+        , next:
+            trans
+              $ unsafeWAG { context: context { instructions = [], res = mempty }, value }
+        }
 
 infixr 6 makeScene as @>
 
@@ -151,21 +125,27 @@ infixr 6 makeScene as @>
 -- |         )
 -- | ```
 loop ::
-  forall env audio engine proofA m res graph a.
-  Monad m =>
+  forall env audio engine proofA res graph a.
   Monoid res =>
   AudioInterpret audio engine =>
   ( forall proofB.
-    a ->
-    FrameT env audio engine proofB m res { | graph }
-      { | graph }
-      a
+    WAG audio engine proofB res { | graph } a ->
+    Frame env audio engine proofB res { | graph } a
   ) ->
-  FrameT env audio engine proofA m res {}
-    { | graph }
-    a ->
-  SceneT env audio engine proofA m res
-loop fa ma = makeScene (imap Right $ WAGS.bind ma fa) (loop fa)
+  WAG audio engine proofA res { | graph } a ->
+  Scene env audio engine proofA res
+loop fa ma = makeSceneR (fa ma) (loop fa)
+
+iloop ::
+  forall env audio engine proofA res graph a.
+  Monoid res =>
+  AudioInterpret audio engine =>
+  ( forall proofB.
+    env -> a -> IxWAG audio engine proofB res { | graph } { | graph } a
+  ) ->
+  WAG audio engine proofA res { | graph } a ->
+  Scene env audio engine proofA res
+iloop fa = loop (\wa e -> let IxWAG f = fa e (extract wa) in f wa)
 
 -- | Accepts a "branch" frame for making a scene, where `Left` is a new scene and `Right` is the incoming scene with the change bit incremented by 1. Useful for the common pattern where we loop an audio graph until something in the environment changes, at which point we move on to a new graph.
 -- |
@@ -199,57 +179,45 @@ loop fa ma = makeScene (imap Right $ WAGS.bind ma fa) (loop fa)
 -- |       )
 -- | ```
 branch ::
-  forall env audio engine proofA m res graph a.
-  Monad m =>
+  forall env audio engine proofA res graph a.
   Monoid res =>
   AudioInterpret audio engine =>
   ( forall proofB.
-    a ->
-    FrameT env audio engine proofB m res
-      { | graph }
-      { | graph }
-      ( Either
-          ( FrameT env audio engine proofB m res { } { | graph } Unit ->
-            SceneT env audio engine proofB m res
-          )
-          ( FrameT env audio engine proofB m res
-              { | graph }
-              { | graph }
-              a
-          )
-      )
+    WAG audio engine proofB res { | graph } a ->
+    EFrame env audio engine proofB res { | graph } a
   ) ->
-  FrameT env audio engine proofA m res { } { | graph } a ->
-  SceneT env audio engine proofA m res
-branch mch m =
-  makeScene
-    ( WAGS.do
-        r <- m
-        mbe <- mch r
-        case mbe of
-          Left l -> WAGS.do
-            pr <- proof
-            withProof pr unit $> Left (l (m $> unit))
-          Right fa -> imap Right fa
-    )
-    (branch mch)
+  WAG audio engine proofA res { | graph } a ->
+  Scene env audio engine proofA res
+branch fa w = makeScene (fa w) (branch fa)
 
--- | Often times, the computation in a frame will need to start from
--- | universe `x` and proceed to universe `z` before continuing to
--- | produce a scene. `inSitu` "thunks" the computation at `x`.
-inSitu ::
-  forall env audio engine proof m r i x z a.
-  Monad m =>
-  ( FrameT env audio engine proof m r i z a ->
-    SceneT env audio engine proof m r
+iwag ::
+  forall env audio engine proof res graph grapho a.
+  Monoid res =>
+  AudioInterpret audio engine =>
+  IxWAG audio engine proof res { | graph } { | grapho } (Scene env audio engine proof res) ->
+  WAG audio engine proof res { | graph } a ->
+  Scene env audio engine proof res
+iwag (IxWAG x) w = extract (x w)
+
+ibranch ::
+  forall env audio engine proofA res graph a.
+  Monoid res =>
+  AudioInterpret audio engine =>
+  ( forall proofB.
+    env ->
+    a ->
+    Either
+      (WAG audio engine proofB res { | graph } a -> Scene env audio engine proofB res)
+      (IxWAG audio engine proofB res { | graph } { | graph } a)
   ) ->
-  FrameT env audio engine proof m r x z a ->
-  FrameT env audio engine proof m r i x Unit ->
-  SceneT env audio engine proof m r
-inSitu f x thunk =
-  f WAGS.do
-    thunk
-    x
+  WAG audio engine proofA res { | graph } a ->
+  Scene env audio engine proofA res
+ibranch fa =
+  branch
+    ( \wa e -> case fa e (extract wa) of
+        Left l -> Left $ l wa
+        Right (IxWAG r) -> Right $ r wa
+    )
 
 -- | Freezes the current audio frame.
 -- |
@@ -257,160 +225,52 @@ inSitu f x thunk =
 -- | scene = (start :*> create (speaker (sinOsc 440.0))) @|> freeze
 -- | ```
 freeze ::
-  forall env audio engine proof m res graph x.
-  Monad m =>
+  forall env audio engine proof res graph x.
   Monoid res =>
   AudioInterpret audio engine =>
-  FrameT env audio engine proof m res {} { | graph } x ->
-  SceneT env audio engine proof m res
-freeze s = makeScene (imap Right s) freeze
+  WAG audio engine proof res { | graph } x ->
+  Scene env audio engine proof res
+freeze s = makeScene (pure $ Right s) freeze
 
--- | Similar to `makeScene'`, but without the possibility to branch to a new scene. Aliased as `@|>`.
-makeScene' ::
-  forall env audio engine proofA m res graph a.
-  Monad m =>
+-- | Similar to `makeScene`, but without the possibility to branch to a new scene. Aliased as `@|>`.
+makeSceneR ::
+  forall env audio engine proofA res graph a.
   Monoid res =>
   AudioInterpret audio engine =>
-  FrameT env audio engine proofA m res {} { | graph } a ->
+  Frame env audio engine proofA res { | graph } a ->
   ( forall proofB.
-    FrameT env audio engine proofB m res {} { | graph } a ->
-    SceneT env audio engine proofB m res
+    WAG audio engine proofB res { | graph } a ->
+    Scene env audio engine proofB res
   ) ->
-  SceneT env audio engine proofA m res
-makeScene' a b = makeScene (imap Right a) b
+  Scene env audio engine proofA res
+makeSceneR a b = makeScene (map Right a) b
 
-infixr 6 makeScene' as @|>
+infixr 6 makeSceneR as @|>
 
--- | Get the environment from a frame.
--- |
--- | ```purescript
--- | piece :: Scene (SceneI Unit Unit) FFIAudio (Effect Unit) Frame0
--- | piece =
--- |   WAGS.do
--- |     start
--- |     { time } <- env -- get the environment
--- |     create (scene time) $> Right unit
--- |     @> loop
--- |         ( const
--- |             $ WAGS.do
--- |                 { time } <- env
--- |                 ivoid $ change (scene time)
--- |         )
--- | ```
-env ::
-  forall env audio engine proof m res i.
-  Monad m =>
+-- | Similar to `makeSceneR'`, but without the possibility to consult an env. Aliased as `@||>`.
+makeSceneR' ::
+  forall env audio engine proofA res graph a.
+  Monoid res =>
   AudioInterpret audio engine =>
-  FrameT env audio engine proof m res i i env
-env = unsafeFrame (gets _.env)
+  WAG audio engine proofA res { | graph } a ->
+  ( forall proofB.
+    WAG audio engine proofB res { | graph } a ->
+    Scene env audio engine proofB res
+  ) ->
+  Scene env audio engine proofA res
+makeSceneR' a b = makeSceneR (pure a) b
 
--- | Get the proof term from a frame. Useful to construct a new frame using `withProof`.
--- | The following snippet is taken from the WTK example where `proof` is used to generate a proof term that is then consumed by `withProof` in order to make the final `Frame`.
--- |
--- | ```purescript
--- | piece :: { makeRenderingEnv :: MakeRenderingEnv } -> Scene (SceneI Trigger Unit) FFIAudio (Effect Unit) Frame0
--- | piece { makeRenderingEnv } =
--- |   ( WAGS.do
--- |       start
--- |       ivoid $ create $ fullKeyboard klavierIdentity
--- |       k0 <- cursor $ cursors.k0
--- |       k1 <- cursor $ cursors.k1
--- |       k2 <- cursor $ cursors.k2
--- |       k3 <- cursor $ cursors.k3
--- |       k4 <- cursor $ cursors.k4
--- |       k5 <- cursor $ cursors.k5
--- |       k6 <- cursor $ cursors.k6
--- |       k7 <- cursor $ cursors.k7
--- |       k8 <- cursor $ cursors.k8
--- |       k9 <- cursor $ cursors.k9
--- |       myProof <- proof
--- |       withProof myProof
--- |         $ Right
--- |             { audioRefs: k0 /\ k1 /\ k2 /\ k3 /\ k4 /\ k5 /\ k6 /\ k7 /\ k8 /\ k9
--- |             , currentKeys: (Nil :: (List KeyInfo))
--- |             , availableKeys: K0 : K1 : K2 : K3 : K4 : K5 : K6 : K7 : K8 : K9 : Nil
--- |             }
--- |   )
--- |     @> loop
--- |         ( \{ audioRefs, currentKeys, availableKeys } -> WAGS.do
--- |             { time, trigger, active } <- env
--- |             graphProxy <- graph
--- |             let
--- |               { notesOff
--- |               , onsets
--- |               , newCurrentKeys
--- |               , newAvailableKeys
--- |               , futureCurrentKeys
--- |               , futureAvailableKeys
--- |               } = makeRenderingEnv active trigger time availableKeys currentKeys
--- |             ( playKeys
--- |                 { graphProxy
--- |                 , audioRefs
--- |                 , currentTime: time
--- |                 , notesOff
--- |                 }
--- |                 unit
--- |                 onsets
--- |                 newCurrentKeys
--- |             )
--- |               $> { audioRefs
--- |                 , currentKeys: futureCurrentKeys
--- |                 , availableKeys: futureAvailableKeys
--- |                 }
--- |         )
--- | ```
-proof ::
-  forall env audio engine proof m res i.
-  Monad m =>
-  AudioInterpret audio engine =>
-  FrameT env audio engine proof m res i i proof
-proof = unsafeFrame (pure (unsafeCoerce unit))
-
--- | Consumes a `proof` term to construct a `FrameT`.
--- | This pattern is used because `FrameT` does not implement `IxApplicative`. Instead, in order to construct a frame, one needs to provide `proof` that one is at the current moment in time. This is to prevent frames from different timestamps from mixing.
-withProof ::
-  forall env audio engine proof m res i a.
-  Monad m =>
-  AudioInterpret audio engine =>
-  proof -> a -> FrameT env audio engine proof m res i i a
-withProof _ a = unsafeFrame (pure a)
+infixr 6 makeSceneR' as @||>
 
 -- | Modifies the residual for a frame and returns the result.
 -- | If a frame never modifies its residual, the value of `mempty`
 -- | for `res` is returned to the scene.
 modifyRes ::
-  forall env audio engine proof m res i.
-  Monad m =>
+  forall audio engine proof res i a.
   AudioInterpret audio engine =>
-  (res -> res) -> FrameT env audio engine proof m res i i res
-modifyRes f =
-  unsafeFrame do
-    modify_ \i -> i { res = f i.res }
-    gets _.res
+  (res -> res) -> WAG audio engine proof res i a -> WAG audio engine proof res i res
+modifyRes f w = unsafeWAG { context: (i { res = res' }), value: res' }
+  where
+  { context: i, value } = unsafeUnWAG w
 
--- | Get the current universe as a proxy.
-universe ::
-  forall env audio engine proof m res i.
-  Monad m =>
-  AudioInterpret audio engine =>
-  FrameT env audio engine proof m res i i (Proxy i)
-universe = unsafeFrame $ pure $ (Proxy :: _ i)
-
--- | Get the current graph as a proxy.
-graph ::
-  forall env audio engine proof m res graph.
-  Monad m =>
-  AudioInterpret audio engine =>
-  FrameT env audio engine proof m res
-    graph
-    graph
-    (Proxy graph)
-graph = unsafeFrame $ pure $ (Proxy :: _ graph)
-
--- | Lift a computation from the underlying monad `m` into `FrameT`.
-lift ::
-  forall env audio engine proof m res i a.
-  Monad m =>
-  AudioInterpret audio engine =>
-  m a -> FrameT env audio engine proof m res i i a
-lift = unsafeFrame <<< MT.lift
+  res' = f i.res
