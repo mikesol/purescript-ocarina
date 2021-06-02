@@ -7,9 +7,13 @@ module WAGS.Control.Functions.Validated
   , makeSceneR'
   , makeSceneR'Flipped
   , loop
+  , iloop
   , branch
+  , ibranch
+  , istart
   , freeze
   , (@>)
+  , (@!>)
   , (@|>)
   , (@||>)
   , (<@)
@@ -18,9 +22,10 @@ module WAGS.Control.Functions.Validated
   ) where
 
 import Prelude
+import Data.Either (Either)
 import WAGS.Control.Functions as Functions
-import WAGS.Control.Indexed (IxWAG)
-import WAGS.Control.Types (EFrame, Frame, Scene, WAG)
+import WAGS.Control.Indexed (IxWAG, IxFrame)
+import WAGS.Control.Types (EFrame, Frame, Frame0, Scene, WAG)
 import WAGS.Interpret (class AudioInterpret)
 import WAGS.Validation (class GraphIsRenderable)
 
@@ -109,6 +114,37 @@ branch ::
   WAG audio engine proofA res { | graph } a ->
   Scene env audio engine proofA res
 branch = Functions.branch
+
+ibranch ::
+  forall env audio engine proofA res graph a.
+  Monoid res =>
+  GraphIsRenderable graph =>
+  AudioInterpret audio engine =>
+  ( forall proofB.
+    env ->
+    a ->
+    Either
+      (WAG audio engine proofB res { | graph } a -> Scene env audio engine proofB res)
+      (IxWAG audio engine proofB res { | graph } { | graph } a)
+  ) ->
+  WAG audio engine proofA res { | graph } a ->
+  Scene env audio engine proofA res
+ibranch = Functions.ibranch
+
+istart ::
+  forall env audio engine res graph a.
+  GraphIsRenderable graph =>
+  Monoid res =>
+  AudioInterpret audio engine =>
+  IxFrame env audio engine Frame0 res {} { | graph } a ->
+  ( forall proofB.
+    WAG audio engine proofB res { | graph } a ->
+    Scene env audio engine proofB res
+  ) ->
+  Scene env audio engine Frame0 res
+istart = Functions.istart
+
+infixr 6 istart as @!>
 
 freeze ::
   forall env audio engine proof res graph x.

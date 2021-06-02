@@ -1,15 +1,17 @@
 module WAGS.Example.KitchenSink.TLP.Delay where
 
 import Prelude
+import Control.Monad.Indexed.Qualified as Ix
 import Data.Either (Either(..))
 import Math ((%))
 import Type.Proxy (Proxy(..))
-import WAGS.Change (change)
-import WAGS.Connect (connect)
-import WAGS.Control.Functions (branch)
-import WAGS.Create (create)
-import WAGS.Destroy (destroy)
-import WAGS.Disconnect (disconnect)
+import WAGS.Change (ichange)
+import WAGS.Connect (iconnect)
+import WAGS.Control.Functions (ibranch, iwag)
+import WAGS.Control.Indexed (wag)
+import WAGS.Create (icreate)
+import WAGS.Destroy (idestroy)
+import WAGS.Disconnect (idisconnect)
 import WAGS.Example.KitchenSink.TLP.Feedback (doFeedback)
 import WAGS.Example.KitchenSink.TLP.LoopSig (StepSig)
 import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
@@ -19,28 +21,25 @@ import WAGS.Example.KitchenSink.Types.Feedback (ksFeedbackCreate)
 
 doDelay :: forall proof. StepSig DelayGraph proof
 doDelay =
-  branch \lsig -> WAGS.do
-    { time } <- env
-    pr <- proof
-    withProof pr
-      $ if time % pieceTime < timing.ksDelay.end then
-          Right (change (deltaKsDelay time) $> lsig)
-        else
-          Left
-            $ inSitu doFeedback WAGS.do
-                let
-                  cursorDelay = Proxy :: _ "delay"
+  ibranch \{ time } lsig ->
+    if time % pieceTime < timing.ksDelay.end then
+      Right (ichange (deltaKsDelay time) $> lsig)
+    else
+      Left
+        $ iwag Ix.do
+            let
+              cursorDelay = Proxy :: _ "delay"
 
-                  cursorBuf = Proxy :: _ "buf"
+              cursorBuf = Proxy :: _ "buf"
 
-                  cursorDMix = Proxy :: _ "dmix"
-                disconnect cursorBuf cursorDelay
-                disconnect cursorDelay cursorDMix
-                disconnect cursorBuf cursorDMix
-                disconnect cursorDMix cursorGain
-                destroy cursorBuf
-                destroy cursorDelay
-                destroy cursorDMix
-                create ksFeedbackCreate
-                connect (Proxy :: _ "dmix") cursorGain
-                withProof pr lsig
+              cursorDMix = Proxy :: _ "dmix"
+            idisconnect { source: cursorBuf, dest: cursorDelay }
+            idisconnect { source: cursorDelay, dest: cursorDMix }
+            idisconnect { source: cursorBuf, dest: cursorDMix }
+            idisconnect { source: cursorDMix, dest: cursorGain }
+            idestroy cursorBuf
+            idestroy cursorDelay
+            idestroy cursorDMix
+            icreate ksFeedbackCreate
+            iconnect { source: Proxy :: _ "dmix", dest: cursorGain }
+            doFeedback <$> wag lsig

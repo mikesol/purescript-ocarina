@@ -1,15 +1,17 @@
 module WAGS.Example.KitchenSink.TLP.PeriodicOsc where
 
 import Prelude
+import Control.Monad.Indexed.Qualified as Ix
 import Data.Either (Either(..))
 import Math ((%))
 import Type.Proxy (Proxy(..))
-import WAGS.Change (change)
-import WAGS.Connect (connect)
-import WAGS.Control.Functions (branch)
-import WAGS.Create (create)
-import WAGS.Destroy (destroy)
-import WAGS.Disconnect (disconnect)
+import WAGS.Change (ichange)
+import WAGS.Connect (iconnect)
+import WAGS.Control.Functions (ibranch, iwag)
+import WAGS.Control.Indexed (wag)
+import WAGS.Create (icreate)
+import WAGS.Destroy (idestroy)
+import WAGS.Disconnect (idisconnect)
 import WAGS.Example.KitchenSink.TLP.LoopSig (StepSig)
 import WAGS.Example.KitchenSink.TLP.SawtoothOsc (doSawtoothOsc)
 import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
@@ -19,20 +21,17 @@ import WAGS.Example.KitchenSink.Types.SawtoothOsc (frontloadSawtoothOsc, ksSawto
 
 doPeriodicOsc :: forall proof. StepSig PeriodicOscGraph proof
 doPeriodicOsc =
-  branch \lsig -> WAGS.do
-    { time } <- env
-    pr <- proof
-    withProof pr
-      $ if time % pieceTime < timing.ksPeriodicOsc.end then
-          Right (change (deltaKsPeriodicOsc time) $> lsig)
-        else
-          Left
-            $ inSitu doSawtoothOsc WAGS.do
-                let
-                  cursorPeriodicOsc = Proxy :: _ "periodicOsc"
-                disconnect cursorPeriodicOsc cursorGain
-                destroy cursorPeriodicOsc
-                create ksSawtoothOscCreate
-                connect (Proxy :: _ "sawtoothOsc") cursorGain
-                frontloadSawtoothOsc
-                withProof pr lsig
+  ibranch \{ time } lsig ->
+    if time % pieceTime < timing.ksPeriodicOsc.end then
+      Right (ichange (deltaKsPeriodicOsc time) $> lsig)
+    else
+      Left
+        $ iwag Ix.do
+            let
+              cursorPeriodicOsc = Proxy :: _ "periodicOsc"
+            idisconnect { source: cursorPeriodicOsc, dest: cursorGain }
+            idestroy cursorPeriodicOsc
+            icreate ksSawtoothOscCreate
+            iconnect { source: Proxy :: _ "sawtoothOsc", dest: cursorGain }
+            frontloadSawtoothOsc
+            doSawtoothOsc <$> wag lsig

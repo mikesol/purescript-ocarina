@@ -1,15 +1,17 @@
 module WAGS.Example.KitchenSink.TLP.Lowshelf where
 
 import Prelude
+import Control.Monad.Indexed.Qualified as Ix
 import Data.Either (Either(..))
 import Math ((%))
 import Type.Proxy (Proxy(..))
-import WAGS.Change (change)
-import WAGS.Connect (connect)
-import WAGS.Control.Functions (branch)
-import WAGS.Create (create)
-import WAGS.Destroy (destroy)
-import WAGS.Disconnect (disconnect)
+import WAGS.Change (ichange)
+import WAGS.Connect (iconnect)
+import WAGS.Control.Functions (ibranch, iwag)
+import WAGS.Control.Indexed (wag)
+import WAGS.Create (icreate)
+import WAGS.Destroy (idestroy)
+import WAGS.Disconnect (idisconnect)
 import WAGS.Example.KitchenSink.TLP.Bandpass (doBandpass)
 import WAGS.Example.KitchenSink.TLP.LoopSig (StepSig)
 import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
@@ -19,23 +21,20 @@ import WAGS.Example.KitchenSink.Types.Lowshelf (LowshelfGraph, deltaKsLowshelf)
 
 doLowshelf :: forall proof. StepSig LowshelfGraph proof
 doLowshelf =
-  branch \lsig -> WAGS.do
-    { time } <- env
-    pr <- proof
-    withProof pr
-      $ if time % pieceTime < timing.ksLowshelf.end then
-          Right (change (deltaKsLowshelf time) $> lsig)
-        else
-          Left
-            $ inSitu doBandpass WAGS.do
-                let
-                  cursorLowshelf = Proxy :: _ "lowshelf"
+  ibranch \{ time } lsig ->
+    if time % pieceTime < timing.ksLowshelf.end then
+      Right (ichange (deltaKsLowshelf time) $> lsig)
+    else
+      Left
+        $ iwag Ix.do
+            let
+              cursorLowshelf = Proxy :: _ "lowshelf"
 
-                  cursorPlayBuf = Proxy :: _ "buf"
-                disconnect cursorPlayBuf cursorLowshelf
-                disconnect cursorLowshelf cursorGain
-                destroy cursorLowshelf
-                destroy cursorPlayBuf
-                create ksBandpassCreate
-                connect (Proxy :: _ "bandpass") cursorGain
-                withProof pr lsig
+              cursorPlayBuf = Proxy :: _ "buf"
+            idisconnect { source: cursorPlayBuf, dest: cursorLowshelf }
+            idisconnect { source: cursorLowshelf, dest: cursorGain }
+            idestroy cursorLowshelf
+            idestroy cursorPlayBuf
+            icreate ksBandpassCreate
+            iconnect { source: Proxy :: _ "bandpass", dest: cursorGain }
+            doBandpass <$> wag lsig

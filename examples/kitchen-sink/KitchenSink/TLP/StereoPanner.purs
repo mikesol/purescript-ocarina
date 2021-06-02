@@ -1,15 +1,17 @@
 module WAGS.Example.KitchenSink.TLP.StereoPanner where
 
 import Prelude
+import Control.Monad.Indexed.Qualified as Ix
 import Data.Either (Either(..))
 import Math ((%))
 import Type.Proxy (Proxy(..))
-import WAGS.Change (change)
-import WAGS.Connect (connect)
-import WAGS.Control.Functions (branch)
-import WAGS.Create (create)
-import WAGS.Destroy (destroy)
-import WAGS.Disconnect (disconnect)
+import WAGS.Change (ichange)
+import WAGS.Connect (iconnect)
+import WAGS.Control.Functions (ibranch, iwag)
+import WAGS.Control.Indexed (wag)
+import WAGS.Create (icreate)
+import WAGS.Destroy (idestroy)
+import WAGS.Disconnect (idisconnect)
 import WAGS.Example.KitchenSink.TLP.Constant (doConstant)
 import WAGS.Example.KitchenSink.TLP.LoopSig (StepSig)
 import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
@@ -19,23 +21,20 @@ import WAGS.Example.KitchenSink.Types.StereoPanner (StereoPannerGraph, deltaKsSt
 
 doStereoPanner :: forall proof. StepSig StereoPannerGraph proof
 doStereoPanner =
-  branch \lsig -> WAGS.do
-    { time } <- env
-    pr <- proof
-    withProof pr
-      $ if time % pieceTime < timing.ksStereoPanner.end then
-          Right (change (deltaKsStereoPanner time) $> lsig)
-        else
-          Left
-            $ inSitu doConstant WAGS.do
-                let
-                  cursorStereoPanner = Proxy :: _ "pan"
+  ibranch \{ time } lsig ->
+    if time % pieceTime < timing.ksStereoPanner.end then
+      Right (ichange (deltaKsStereoPanner time) $> lsig)
+    else
+      Left
+        $ iwag Ix.do
+            let
+              cursorStereoPanner = Proxy :: _ "pan"
 
-                  cursorStereoPannerBuf = Proxy :: _ "buf"
-                disconnect cursorStereoPannerBuf cursorStereoPanner
-                disconnect cursorStereoPanner cursorGain
-                destroy cursorStereoPanner
-                destroy cursorStereoPannerBuf
-                create ksConstantCreate
-                connect (Proxy :: _ "constant") cursorGain
-                withProof pr lsig
+              cursorStereoPannerBuf = Proxy :: _ "buf"
+            idisconnect { source: cursorStereoPannerBuf, dest: cursorStereoPanner }
+            idisconnect { source: cursorStereoPanner, dest: cursorGain }
+            idestroy cursorStereoPanner
+            idestroy cursorStereoPannerBuf
+            icreate ksConstantCreate
+            iconnect { source: Proxy :: _ "constant", dest: cursorGain }
+            doConstant <$> (wag lsig)

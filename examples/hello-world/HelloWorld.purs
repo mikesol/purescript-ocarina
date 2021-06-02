@@ -1,17 +1,16 @@
 module WAGS.Example.HelloWorld where
 
 import Prelude
-
 import Control.Comonad.Cofree (Cofree, mkCofree)
 import Data.Functor.Indexed (ivoid)
 import Data.Tuple.Nested (type (/\))
 import Effect (Effect)
 import FRP.Event (subscribe)
 import Math (pi, sin)
-import WAGS.Change (change)
-import WAGS.Control.Functions (loop, start, (@|>))
-import WAGS.Control.Types (Frame0, Scene, Frame)
-import WAGS.Create (create)
+import WAGS.Change (ichange)
+import WAGS.Control.Functions.Validated (iloop, (@!>))
+import WAGS.Control.Types (Frame0, Scene)
+import WAGS.Create (icreate)
 import WAGS.Graph.AudioUnit (TGain, TSinOsc, TSpeaker)
 import WAGS.Graph.Optionals (CGain, CSpeaker, CSinOsc, gain, sinOsc, speaker)
 import WAGS.Interpret (FFIAudio(..), FFIAudio')
@@ -42,27 +41,15 @@ scene time =
   let
     rad = pi * time
   in
-    speaker {
-      gain0: gain 0.1 { sin0: sinOsc (440.0 + (10.0 * sin (2.3 * rad))) }
-    , gain1: gain 0.25 { sin1: sinOsc (235.0 + (10.0 * sin (1.7 * rad))) }
-    , gain2: gain 0.2 { sin2: sinOsc (337.0 + (10.0 * sin rad)) }
-    , gain3: gain 0.1 { sin3: sinOsc (530.0 + (19.0 * (5.0 * sin rad))) }
-    }
+    speaker
+      { gain0: gain 0.1 { sin0: sinOsc (440.0 + (10.0 * sin (2.3 * rad))) }
+      , gain1: gain 0.25 { sin1: sinOsc (235.0 + (10.0 * sin (1.7 * rad))) }
+      , gain2: gain 0.2 { sin2: sinOsc (337.0 + (10.0 * sin rad)) }
+      , gain3: gain 0.1 { sin3: sinOsc (530.0 + (19.0 * (5.0 * sin rad))) }
+      }
 
-createFrame :: Frame (SceneI Unit Unit) FFIAudio (Effect Unit) Frame0 {} SceneType Unit
-createFrame = WAGS.do
-  start
-  { time } <- env
-  create (scene time)
-
-piece :: Scene (SceneI Unit Unit) FFIAudio (Effect Unit) Frame0
-piece =
-  createFrame   @|> loop
-        ( const
-            $ WAGS.do
-                { time } <- env
-                ivoid $ change (scene time)
-        )
+piece :: Scene (SceneI Unit Unit) FFIAudio (Effect Unit) Frame0 Unit
+piece = (_.time >>> scene >>> icreate) @!> iloop \{ time } _ -> ivoid $ ichange (scene time)
 
 easingAlgorithm :: Cofree ((->) Int) Int
 easingAlgorithm =

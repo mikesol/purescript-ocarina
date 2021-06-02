@@ -1,16 +1,18 @@
 module WAGS.Example.KitchenSink.TLP.Peaking where
 
 import Prelude
+import Control.Monad.Indexed ((:*>))
+import Control.Monad.Indexed.Qualified as Ix
 import Data.Either (Either(..))
-import Data.Functor.Indexed (ivoid)
 import Math ((%))
 import Type.Proxy (Proxy(..))
-import WAGS.Change (change)
-import WAGS.Connect (connect)
-import WAGS.Control.Functions (branch)
-import WAGS.Create (create)
-import WAGS.Destroy (destroy)
-import WAGS.Disconnect (disconnect)
+import WAGS.Change (ichange)
+import WAGS.Connect (iconnect)
+import WAGS.Control.Functions (ibranch, imodifyRes, iwag)
+import WAGS.Control.Indexed (wag)
+import WAGS.Create (icreate)
+import WAGS.Destroy (idestroy)
+import WAGS.Disconnect (idisconnect)
 import WAGS.Example.KitchenSink.TLP.Highpass (doHighpass)
 import WAGS.Example.KitchenSink.TLP.LoopSig (StepSig)
 import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
@@ -20,24 +22,23 @@ import WAGS.Example.KitchenSink.Types.Peaking (PeakingGraph, deltaKsPeaking)
 
 doPeaking :: forall proof. StepSig PeakingGraph proof
 doPeaking =
-  branch \lsig -> WAGS.do
-    { time } <- env
-    ivoid $ modifyRes (const $ "Using a peaking filter")
-    pr <- proof
-    withProof pr
-      $ if time % pieceTime < timing.ksPeaking.end then
-          Right (change (deltaKsPeaking time) $> lsig)
-        else
-          Left
-            $ inSitu doHighpass WAGS.do
-                let
-                  cursorPeaking = Proxy :: _ "peaking"
+  ibranch \{ time } lsig ->
+    if time % pieceTime < timing.ksPeaking.end then
+      Right
+        $ imodifyRes (const $ "Using a peaking filter")
+        :*> ichange (deltaKsPeaking time)
+        $> lsig
+    else
+      Left
+        $ iwag Ix.do
+            let
+              cursorPeaking = Proxy :: _ "peaking"
 
-                  cursorPlayBuf = Proxy :: _ "buf"
-                disconnect cursorPlayBuf cursorPeaking
-                disconnect cursorPeaking cursorGain
-                destroy cursorPeaking
-                destroy cursorPlayBuf
-                create ksHighpassCreate
-                connect (Proxy :: _ "highpass") cursorGain
-                withProof pr lsig
+              cursorPlayBuf = Proxy :: _ "buf"
+            idisconnect { source: cursorPlayBuf, dest: cursorPeaking }
+            idisconnect { source: cursorPeaking, dest: cursorGain }
+            idestroy cursorPeaking
+            idestroy cursorPlayBuf
+            icreate ksHighpassCreate
+            iconnect { source: Proxy :: _ "highpass", dest: cursorGain }
+            doHighpass <$> wag lsig

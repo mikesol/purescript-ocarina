@@ -1,10 +1,8 @@
 module WAGS.Example.Makenna where
 
 import Prelude
-
-import Control.Comonad (extract)
+import Control.Applicative.Indexed (ipure)
 import Control.Comonad.Cofree (Cofree, mkCofree)
-import Control.Monad.Reader (ask)
 import Control.Plus (empty)
 import Data.Foldable (foldl, for_)
 import Data.Lens (over)
@@ -29,12 +27,14 @@ import Halogen.HTML.Properties as HP
 import Halogen.VDom.Driver (runUI)
 import Heterogeneous.Mapping (hmap)
 import Math (pow)
-import WAGS.Change (change)
-import WAGS.Control.Functions (loop, start, (@|>))
-import WAGS.Control.Types (Frame0, Scene, Frame)
-import WAGS.Create (create)
+import WAGS.Change (ichange)
+import WAGS.Control.Functions.Validated (iloop, (@!>))
+import WAGS.Control.Indexed (IxFrame)
+import WAGS.Control.Types (Frame0, Scene)
+import WAGS.Create (icreate)
 import WAGS.Graph.AudioUnit (TGain, TPeriodicOsc, TSpeaker)
 import WAGS.Graph.Optionals (CPeriodicOsc, CSpeaker, CGain, gain, periodicOsc, speaker)
+import WAGS.Graph.Parameter (ff, param)
 import WAGS.Interpret (AudioContext, FFIAudio(..), close, context, defaultFFIAudio, makePeriodicWave, makeUnitCache)
 import WAGS.Run (SceneI, run)
 
@@ -149,33 +149,31 @@ type SceneType
     , osc :: TPeriodicOsc /\ {}
     }
 
-scene :: Number -> EnrichedNote -> SceneTemplate
-scene time ({ start, dur } /\ pitch) =
+scene :: Number -> EnrichedNote -> Number -> SceneTemplate
+scene time ({ start, dur } /\ pitch) to =
   speaker
     { gain:
         gain
-          (maybe 0.0 (const $ asdr (time - start) dur) pitch)
-          { osc: periodicOsc "bday" (midiToCps (fromMaybe 60.0 pitch))
+          (ff to $ param (maybe 0.0 (const $ asdr (time - start) dur) pitch))
+          { osc: periodicOsc "bday" (ff to $ param (midiToCps (fromMaybe 60.0 pitch)))
           }
     }
 
-createFrame :: Frame (SceneI Unit Unit) FFIAudio (Effect Unit) Frame0 SceneType (List EnrichedNote)
-createFrame = do
-  { time } <- ask
-  pure (create (start $> scene time (inTempo rest0)) $> L.fromFoldable score'')
+createFrame :: IxFrame (SceneI Unit Unit) FFIAudio (Effect Unit) Frame0 Unit {} SceneType (List EnrichedNote)
+createFrame { time } = icreate (scene time (inTempo rest0) 0.0) $> L.fromFoldable score''
 
-piece :: Scene (SceneI Unit Unit) FFIAudio (Effect Unit) Frame0
+piece :: Scene (SceneI Unit Unit) FFIAudio (Effect Unit) Frame0 Unit
 piece =
   createFrame
-    @|> loop \fr -> do
-        { time } <- ask
+    @!> iloop \{ time } l ->
         let
-          f i = case (extract i) of
-            Nil -> i $> Nil
+          f = case _ of
+            Nil -> ipure Nil
             (a : b)
-              | time > (fst a).end -> f (i $> b)
-              | otherwise -> change (i $> scene time a) $> (a : b)
-        pure $ f fr
+              | time > (fst a).end -> f b
+              | otherwise -> ichange (scene time a 0.05) $> (a : b)
+        in
+          f l
 
 easingAlgorithm :: Cofree ((->) Int) Int
 easingAlgorithm =

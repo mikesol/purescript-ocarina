@@ -1,15 +1,17 @@
 module WAGS.Example.KitchenSink.TLP.Notch where
 
 import Prelude
+import Control.Monad.Indexed.Qualified as Ix
 import Data.Either (Either(..))
 import Math ((%))
 import Type.Proxy (Proxy(..))
-import WAGS.Change (change)
-import WAGS.Connect (connect)
-import WAGS.Control.Functions (branch)
-import WAGS.Create (create)
-import WAGS.Destroy (destroy)
-import WAGS.Disconnect (disconnect)
+import WAGS.Change (ichange)
+import WAGS.Connect (iconnect)
+import WAGS.Control.Functions (ibranch, iwag)
+import WAGS.Control.Indexed (wag)
+import WAGS.Create (icreate)
+import WAGS.Destroy (idestroy)
+import WAGS.Disconnect (idisconnect)
 import WAGS.Example.KitchenSink.TLP.LoopSig (StepSig)
 import WAGS.Example.KitchenSink.TLP.Peaking (doPeaking)
 import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
@@ -19,23 +21,20 @@ import WAGS.Example.KitchenSink.Types.Peaking (ksPeakingCreate)
 
 doNotch :: forall proof. StepSig NotchGraph proof
 doNotch =
-  branch \lsig -> WAGS.do
-    { time } <- env
-    pr <- proof
-    withProof pr
-      $ if time % pieceTime < timing.ksNotch.end then
-          Right (change (deltaKsNotch time) $> lsig)
-        else
-          Left
-            $ inSitu doPeaking WAGS.do
-                let
-                  cursorNotch = Proxy :: _ "notch"
+  ibranch \{ time } lsig ->
+    if time % pieceTime < timing.ksNotch.end then
+      Right (ichange (deltaKsNotch time) $> lsig)
+    else
+      Left
+        $ iwag Ix.do
+            let
+              cursorNotch = Proxy :: _ "notch"
 
-                  cursorPlayBuf = Proxy :: _ "buf"
-                disconnect cursorPlayBuf cursorNotch
-                disconnect cursorNotch cursorGain
-                destroy cursorNotch
-                destroy cursorPlayBuf
-                create ksPeakingCreate
-                connect (Proxy :: _ "peaking") cursorGain
-                withProof pr lsig
+              cursorPlayBuf = Proxy :: _ "buf"
+            idisconnect { source: cursorPlayBuf, dest: cursorNotch }
+            idisconnect { source: cursorNotch, dest: cursorGain }
+            idestroy cursorNotch
+            idestroy cursorPlayBuf
+            icreate ksPeakingCreate
+            iconnect { source: Proxy :: _ "peaking", dest: cursorGain }
+            doPeaking <$> wag lsig

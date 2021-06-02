@@ -16,6 +16,7 @@ module WAGS.Control.Functions
   , iwag
   , freeze
   , (@>)
+  , (@!>)
   , (@|>)
   , (@||>)
   , (<@)
@@ -140,6 +141,8 @@ istart ::
   ) ->
   Scene env audio engine Frame0 res
 istart m = makeSceneR (\e -> let IxWAG f = m e in f start)
+
+infixr 6 istart as @!>
 
 -- | Loops audio.
 -- |

@@ -2,7 +2,7 @@ module WAGS.Control.Indexed where
 
 import Prelude
 
-import Control.Applicative.Indexed (class IxApplicative, class IxApply, iapply)
+import Control.Applicative.Indexed (class IxApplicative, class IxApply, iapply, ipure)
 import Control.Bind.Indexed (class IxBind)
 import Control.Comonad (extract)
 import Control.Monad.Indexed (class IxMonad)
@@ -35,6 +35,9 @@ instance applyIxWAG :: Apply (IxWAG audio engine proof res graph graph) where
 instance ixApplicativeIxWAG :: IxApplicative (IxWAG audio engine proof res) where
   ipure a = IxWAG (voidRight a)
 
+instance applicativeIxWAG :: Applicative (IxWAG audio engine proof res graph graph) where
+  pure = ipure
+
 instance ixBindIxWAG :: IxBind (IxWAG audio engine proof res) where
   ibind (IxWAG ma') aToB =
     IxWAG \i ->
@@ -50,7 +53,12 @@ instance ixMonadIxWAG :: IxMonad (IxWAG audio engine proof res)
 type IxFrame (env :: Type) (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type) (graphi :: Type) (grapho :: Type) (a :: Type)
   = env -> IxWAG audio engine proof res graphi grapho a
 
-wag ::
+wag_ ::
   forall audio engine proof res graph.
   IxWAG audio engine proof res graph graph (WAG audio engine proof res graph Unit)
-wag = IxWAG (\i -> i $> (i $> unit))
+wag_ = wag unit
+
+wag ::
+  forall audio engine proof res graph a.
+  a -> IxWAG audio engine proof res graph graph (WAG audio engine proof res graph a)
+wag a = IxWAG (\i -> i $> (i $> a))

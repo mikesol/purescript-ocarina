@@ -1,6 +1,7 @@
 module Test.Instructions where
 
 import Prelude
+
 import Control.Monad.Indexed.Qualified as Ix
 import Control.Monad.Reader (ask)
 import Data.Either (Either(..))
@@ -13,7 +14,7 @@ import Test.Spec.Assertions (shouldEqual)
 import WAGS.Change (change, ichange)
 import WAGS.Control.Functions (branch, freeze, ibranch, iloop, iwag, loop, start, (@|>), (@||>))
 import WAGS.Control.Functions.Validated ((<||@))
-import WAGS.Control.Indexed (wag)
+import WAGS.Control.Indexed (wag_)
 import WAGS.Control.Types (Frame, Frame0, oneFrame')
 import WAGS.Create (create)
 import WAGS.Graph.AudioUnit (OnOff(..), TGain, THighpass, TSinOsc, TSpeaker)
@@ -331,7 +332,7 @@ testInstructions = do
                                 ivoid
                                   $ ichange { highpass: highpass_ (330.0 + e.time * 50.0) }
                             )
-                            <$> wag
+                            <$> wag_
                       )
 
       (frame0Nodes /\ frame0Edges /\ frame0Instr /\ _ /\ frame1) = oneFrame' simpleScene { time: 0.0 }

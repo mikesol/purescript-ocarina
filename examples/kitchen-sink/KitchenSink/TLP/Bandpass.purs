@@ -1,15 +1,17 @@
 module WAGS.Example.KitchenSink.TLP.Bandpass where
 
 import Prelude
+import Control.Monad.Indexed.Qualified as Ix
 import Data.Either (Either(..))
 import Math ((%))
 import Type.Proxy (Proxy(..))
-import WAGS.Change (change)
-import WAGS.Connect (connect)
-import WAGS.Control.Functions (branch)
-import WAGS.Create (create)
-import WAGS.Destroy (destroy)
-import WAGS.Disconnect (disconnect)
+import WAGS.Change (ichange)
+import WAGS.Connect (iconnect)
+import WAGS.Control.Functions (ibranch, iwag)
+import WAGS.Control.Indexed (wag)
+import WAGS.Create (icreate)
+import WAGS.Destroy (idestroy)
+import WAGS.Disconnect (idisconnect)
 import WAGS.Example.KitchenSink.TLP.LoopSig (StepSig)
 import WAGS.Example.KitchenSink.TLP.Notch (doNotch)
 import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
@@ -19,23 +21,20 @@ import WAGS.Example.KitchenSink.Types.Notch (ksNotchCreate)
 
 doBandpass :: forall proof. StepSig BandpassGraph proof
 doBandpass =
-  branch \lsig -> WAGS.do
-    { time } <- env
-    pr <- proof
-    withProof pr
-      $ if time % pieceTime < timing.ksBandpass.end then
-          Right (change (deltaKsBandpass time) $> lsig)
-        else
-          Left
-            $ inSitu doNotch WAGS.do
-                let
-                  cursorBandpass = Proxy :: _ "bandpass"
+  ibranch \{ time } lsig ->
+    if time % pieceTime < timing.ksBandpass.end then
+      Right (ichange (deltaKsBandpass time) $> lsig)
+    else
+      Left
+        $ iwag Ix.do
+            let
+              cursorBandpass = Proxy :: _ "bandpass"
 
-                  cursorPlayBuf = Proxy :: _ "buf"
-                disconnect cursorPlayBuf cursorBandpass
-                disconnect cursorBandpass cursorGain
-                destroy cursorBandpass
-                destroy cursorPlayBuf
-                create ksNotchCreate
-                connect (Proxy :: _ "notch") cursorGain
-                withProof pr lsig
+              cursorPlayBuf = Proxy :: _ "buf"
+            idisconnect { source: cursorPlayBuf, dest: cursorBandpass }
+            idisconnect { source: cursorBandpass, dest: cursorGain }
+            idestroy cursorBandpass
+            idestroy cursorPlayBuf
+            icreate ksNotchCreate
+            iconnect { source: Proxy :: _ "notch", dest: cursorGain }
+            doNotch <$> wag lsig

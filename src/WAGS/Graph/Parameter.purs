@@ -1,7 +1,6 @@
 module WAGS.Graph.Parameter where
 
 import Prelude
-
 import Data.Generic.Rep (class Generic)
 import Data.Maybe (Maybe(..), maybe)
 import Data.Newtype (class Newtype)
@@ -11,7 +10,8 @@ import Data.Show.Generic (genericShow)
 newtype AudioParameter_ a
   = AudioParameter (AudioParameter_' a)
 
-type AudioParameter = AudioParameter_ Number
+type AudioParameter
+  = AudioParameter_ Number
 
 derive instance newtypeAudioParameter :: Newtype (AudioParameter_ a) _
 
@@ -23,7 +23,7 @@ uop :: forall a. (a -> a) -> AudioParameter_ a -> AudioParameter_ a
 uop f (AudioParameter a0@{ param: param0, timeOffset: timeOffset0, transition: transition0, forceSet: forceSet0 }) = AudioParameter { param: f <$> param0, timeOffset: timeOffset0, transition: transition0, forceSet: forceSet0 }
 
 bop :: forall a. (a -> a -> a) -> AudioParameter_ a -> AudioParameter_ a -> AudioParameter_ a
-bop f (AudioParameter a0@{ param: param0, timeOffset: timeOffset0, transition: transition0, forceSet: forceSet0  }) (AudioParameter a1@{ param: param1, timeOffset: timeOffset1, transition: transition1, forceSet: forceSet1  }) = AudioParameter { param: f <$> param0 <*> param1, timeOffset: timeOffset0 + timeOffset1 / 2.0, transition: transition0 <> transition1, forceSet: forceSet0 || forceSet1 }
+bop f (AudioParameter a0@{ param: param0, timeOffset: timeOffset0, transition: transition0, forceSet: forceSet0 }) (AudioParameter a1@{ param: param1, timeOffset: timeOffset1, transition: transition1, forceSet: forceSet1 }) = AudioParameter { param: f <$> param0 <*> param1, timeOffset: timeOffset0 + timeOffset1 / 2.0, transition: transition0 <> transition1, forceSet: forceSet0 || forceSet1 }
 
 instance semiringAudioParameter :: Semiring a => Semiring (AudioParameter_ a) where
   zero = AudioParameter { param: Just zero, timeOffset: 0.0, transition: LinearRamp, forceSet: false }
@@ -37,7 +37,7 @@ instance ringAudioParameter :: Ring a => Ring (AudioParameter_ a) where
 instance divisionRingAudioParameter :: DivisionRing a => DivisionRing (AudioParameter_ a) where
   recip = uop recip
 
-instance commutativeRingAudioParameter :: CommutativeRing a => CommutativeRing  (AudioParameter_ a)
+instance commutativeRingAudioParameter :: CommutativeRing a => CommutativeRing (AudioParameter_ a)
 
 instance euclideanRingAudioParameter :: EuclideanRing a => EuclideanRing (AudioParameter_ a) where
   degree (AudioParameter { param: param0 }) = maybe 0 degree param0
@@ -57,7 +57,8 @@ type AudioParameter_' a
     , forceSet :: Boolean
     }
 
-type AudioParameter' = AudioParameter_' Number
+type AudioParameter'
+  = AudioParameter_' Number
 
 -- | A transition between two points in time.
 -- | - `NoRamp` is a discrete step.
@@ -92,7 +93,11 @@ param =
   AudioParameter
     <<< defaultParam
         { param = _
-        } <<< Just
+        }
+    <<< Just
+
+ff :: forall a. Number -> AudioParameter_ a -> AudioParameter_ a
+ff n (AudioParameter i) = AudioParameter (i { timeOffset = i.timeOffset + n })
 
 -- | A default audio parameter.
 -- |
