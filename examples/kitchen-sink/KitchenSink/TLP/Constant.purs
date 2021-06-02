@@ -1,16 +1,17 @@
 module WAGS.Example.KitchenSink.TLP.Constant where
 
 import Prelude
+import Control.Monad.Indexed.Qualified as Ix
 import Data.Either (Either(..))
 import Math ((%))
 import Type.Proxy (Proxy(..))
-import WAGS.Change (change)
-import WAGS.Connect (connect)
-import WAGS.Control.Functions (branch, env, inSitu, proof, withProof)
-import WAGS.Control.Qualified as WAGS
-import WAGS.Create (create)
-import WAGS.Destroy (destroy)
-import WAGS.Disconnect (disconnect)
+import WAGS.Change (ichange)
+import WAGS.Connect (iconnect)
+import WAGS.Control.Functions (ibranch, iwag)
+import WAGS.Control.Indexed (wag)
+import WAGS.Create (icreate)
+import WAGS.Destroy (idestroy)
+import WAGS.Disconnect (idisconnect)
 import WAGS.Example.KitchenSink.TLP.DynamicsCompressor (doDynamicsCompressor)
 import WAGS.Example.KitchenSink.TLP.LoopSig (StepSig)
 import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
@@ -20,19 +21,16 @@ import WAGS.Example.KitchenSink.Types.Empty (cursorGain)
 
 doConstant :: forall proof. StepSig ConstantGraph proof
 doConstant =
-  branch \lsig -> WAGS.do
-    { time } <- env
-    pr <- proof
-    withProof pr
-      $ if time % pieceTime < timing.ksConstant.end then
-          Right (change (deltaKsConstant time) $> lsig)
-        else
-          Left
-            $ inSitu doDynamicsCompressor WAGS.do
-                let
-                  cursorConstant = Proxy :: _ "constant"
-                disconnect cursorConstant cursorGain
-                destroy cursorConstant
-                create ksDynamicsCompressorCreate
-                connect (Proxy :: _ "compressor") cursorGain
-                withProof pr lsig
+  ibranch \{ time } lsig ->
+    if time % pieceTime < timing.ksConstant.end then
+      Right (ichange (deltaKsConstant time) $> lsig)
+    else
+      Left
+        $ iwag Ix.do
+            let
+              cursorConstant = Proxy :: _ "constant"
+            idisconnect { source: cursorConstant, dest: cursorGain }
+            idestroy cursorConstant
+            icreate ksDynamicsCompressorCreate
+            iconnect { source: Proxy :: _ "compressor", dest: cursorGain }
+            doDynamicsCompressor <$> (wag lsig)

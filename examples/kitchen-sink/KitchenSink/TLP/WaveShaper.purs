@@ -1,16 +1,17 @@
 module WAGS.Example.KitchenSink.TLP.WaveShaper where
 
 import Prelude
+import Control.Monad.Indexed.Qualified as Ix
 import Data.Either (Either(..))
 import Math ((%))
 import Type.Proxy (Proxy(..))
-import WAGS.Change (change)
-import WAGS.Connect (connect)
-import WAGS.Control.Functions (branch, env, inSitu, proof, withProof)
-import WAGS.Control.Qualified as WAGS
-import WAGS.Create (create)
-import WAGS.Destroy (destroy)
-import WAGS.Disconnect (disconnect)
+import WAGS.Change (ichange)
+import WAGS.Connect (iconnect)
+import WAGS.Control.Functions (ibranch, iwag)
+import WAGS.Control.Indexed (wag)
+import WAGS.Create (icreate)
+import WAGS.Destroy (idestroy)
+import WAGS.Disconnect (idisconnect)
 import WAGS.Example.KitchenSink.TLP.Delay (doDelay)
 import WAGS.Example.KitchenSink.TLP.LoopSig (StepSig)
 import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
@@ -20,23 +21,20 @@ import WAGS.Example.KitchenSink.Types.WaveShaper (WaveShaperGraph, deltaKsWaveSh
 
 doWaveShaper :: forall proof. StepSig WaveShaperGraph proof
 doWaveShaper =
-  branch \lsig -> WAGS.do
-    { time } <- env
-    pr <- proof
-    withProof pr
-      $ if time % pieceTime < timing.ksWaveShaper.end then
-          Right (change (deltaKsWaveShaper time) $> lsig)
-        else
-          Left
-            $ inSitu doDelay WAGS.do
-                let
-                  cursorWaveShaper = Proxy :: _ "waveShaper"
+  ibranch \{ time } lsig ->
+    if time % pieceTime < timing.ksWaveShaper.end then
+      Right (ichange (deltaKsWaveShaper time) $> lsig)
+    else
+      Left
+        $ iwag Ix.do
+            let
+              cursorWaveShaper = Proxy :: _ "waveShaper"
 
-                  cursorPlayBuf = Proxy :: _ "buf"
-                disconnect cursorPlayBuf cursorWaveShaper
-                disconnect cursorWaveShaper cursorGain
-                destroy cursorPlayBuf
-                destroy cursorWaveShaper
-                create ksDelayCreate
-                connect (Proxy :: _ "dmix") cursorGain
-                withProof pr lsig
+              cursorPlayBuf = Proxy :: _ "buf"
+            idisconnect { source: cursorPlayBuf, dest: cursorWaveShaper }
+            idisconnect { source: cursorWaveShaper, dest: cursorGain }
+            idestroy cursorPlayBuf
+            idestroy cursorWaveShaper
+            icreate ksDelayCreate
+            iconnect { source: Proxy :: _ "dmix", dest: cursorGain }
+            doDelay <$> wag lsig

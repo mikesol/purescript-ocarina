@@ -1,16 +1,17 @@
 module WAGS.Example.KitchenSink.TLP.LoopBuf where
 
 import Prelude
+import Control.Monad.Indexed.Qualified as Ix
 import Data.Either (Either(..))
 import Math ((%))
 import Type.Proxy (Proxy(..))
-import WAGS.Change (change)
-import WAGS.Connect (connect)
-import WAGS.Control.Functions (branch, env, inSitu, proof, withProof)
-import WAGS.Control.Qualified as WAGS
-import WAGS.Create (create)
-import WAGS.Destroy (destroy)
-import WAGS.Disconnect (disconnect)
+import WAGS.Change (ichange)
+import WAGS.Connect (iconnect)
+import WAGS.Control.Functions (ibranch, iwag)
+import WAGS.Control.Indexed (wag)
+import WAGS.Create (icreate)
+import WAGS.Destroy (idestroy)
+import WAGS.Disconnect (idisconnect)
 import WAGS.Example.KitchenSink.TLP.LoopSig (StepSig)
 import WAGS.Example.KitchenSink.TLP.StereoPanner (doStereoPanner)
 import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
@@ -20,19 +21,16 @@ import WAGS.Example.KitchenSink.Types.StereoPanner (ksStereoPannerCreate)
 
 doLoopBuf :: forall proof. StepSig LoopBufGraph proof
 doLoopBuf =
-  branch \lsig -> WAGS.do
-    { time } <- env
-    pr <- proof
-    withProof pr
-      $ if time % pieceTime < timing.ksLoopBuf.end then
-          Right (change (deltaKsLoopBuf time) $> lsig)
-        else
-          Left
-            $ inSitu doStereoPanner WAGS.do
-                let
-                  cursorLoopBuf = Proxy :: _ "loopBuf"
-                disconnect cursorLoopBuf cursorGain
-                destroy cursorLoopBuf
-                create ksStereoPannerCreate
-                connect (Proxy :: _ "pan") cursorGain
-                withProof pr lsig
+  ibranch \{ time } lsig ->
+    if time % pieceTime < timing.ksLoopBuf.end then
+      Right (ichange (deltaKsLoopBuf time) $> lsig)
+    else
+      Left
+        $ iwag Ix.do
+            let
+              cursorLoopBuf = Proxy :: _ "loopBuf"
+            idisconnect { source: cursorLoopBuf, dest: cursorGain }
+            idestroy cursorLoopBuf
+            icreate ksStereoPannerCreate
+            iconnect { source: Proxy :: _ "pan", dest: cursorGain }
+            doStereoPanner <$> wag lsig

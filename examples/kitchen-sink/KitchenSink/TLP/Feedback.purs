@@ -1,17 +1,18 @@
 module WAGS.Example.KitchenSink.TLP.Feedback where
 
 import Prelude
+import Control.Monad.Indexed.Qualified as Ix
 import Data.Either (Either(..))
 import Data.Functor.Indexed (ivoid)
 import Math ((%))
 import Type.Proxy (Proxy(..))
-import WAGS.Change (change)
-import WAGS.Connect (connect)
-import WAGS.Control.Functions (branch, env, inSitu, proof, withProof)
-import WAGS.Control.Qualified as WAGS
-import WAGS.Create (create)
-import WAGS.Destroy (destroy)
-import WAGS.Disconnect (disconnect)
+import WAGS.Change (ichange)
+import WAGS.Connect (iconnect)
+import WAGS.Control.Functions (ibranch, iwag)
+import WAGS.Control.Indexed (wag)
+import WAGS.Create (icreate)
+import WAGS.Destroy (idestroy)
+import WAGS.Disconnect (idisconnect)
 import WAGS.Example.KitchenSink.TLP.LoopBuf (doLoopBuf)
 import WAGS.Example.KitchenSink.TLP.LoopSig (StepSig)
 import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
@@ -22,33 +23,30 @@ import WAGS.Graph.Optionals (gain_)
 
 doFeedback :: forall proof. StepSig FeedbackGraph proof
 doFeedback =
-  branch \lsig -> WAGS.do
-    { time } <- env
-    pr <- proof
-    withProof pr
-      $ if time % pieceTime < timing.ksFeedback.end then
-          Right (change (deltaKsFeedback time) $> lsig)
-        else
-          Left
-            $ inSitu doLoopBuf WAGS.do
-                let
-                  cursorDmix = Proxy :: _ "dmix"
+  ibranch \{ time } lsig ->
+    if time % pieceTime < timing.ksFeedback.end then
+      Right (ichange (deltaKsFeedback time) $> lsig)
+    else
+      Left
+        $ iwag Ix.do
+            let
+              cursorDmix = Proxy :: _ "dmix"
 
-                  cursorDelay = Proxy :: _ "delay"
+              cursorDelay = Proxy :: _ "delay"
 
-                  cursorBuf = Proxy :: _ "buf"
+              cursorBuf = Proxy :: _ "buf"
 
-                  cursorHighpass = Proxy :: _ "highpass"
-                disconnect cursorDmix cursorHighpass
-                disconnect cursorHighpass cursorDelay
-                disconnect cursorDelay cursorDmix
-                disconnect cursorBuf cursorDmix
-                disconnect cursorDmix cursorGain
-                destroy cursorBuf
-                destroy cursorDmix
-                destroy cursorDelay
-                destroy cursorHighpass
-                create ksLoopBufCreate
-                connect (Proxy :: _ "loopBuf") cursorGain
-                ivoid $ change { mix: gain_ 1.0 }
-                withProof pr lsig
+              cursorHighpass = Proxy :: _ "highpass"
+            idisconnect { source: cursorDmix, dest: cursorHighpass }
+            idisconnect { source: cursorHighpass, dest: cursorDelay }
+            idisconnect { source: cursorDelay, dest: cursorDmix }
+            idisconnect { source: cursorBuf, dest: cursorDmix }
+            idisconnect { source: cursorDmix, dest: cursorGain }
+            idestroy cursorBuf
+            idestroy cursorDmix
+            idestroy cursorDelay
+            idestroy cursorHighpass
+            icreate ksLoopBufCreate
+            iconnect { source: Proxy :: _ "loopBuf", dest: cursorGain }
+            ivoid $ ichange { mix: gain_ 1.0 }
+            doLoopBuf <$> wag lsig

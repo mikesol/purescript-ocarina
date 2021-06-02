@@ -1,17 +1,16 @@
 module WAGS.Example.KitchenSink.Types.SawtoothOsc where
 
 import Prelude
-
+import Control.Applicative.Indexed (ipure)
+import Control.Monad.Indexed.Qualified as Ix
 import Data.Functor.Indexed (ivoid)
 import Data.Int (toNumber)
 import Data.List ((..))
 import Data.List as L
 import Data.Tuple.Nested (type (/\))
 import Math (cos, pi, pow, sin)
-import WAGS.Change (change)
-import WAGS.Control.Functions (proof, withProof)
-import WAGS.Control.Qualified as WAGS
-import WAGS.Example.KitchenSink.TLP.LoopSig (FrameSig')
+import WAGS.Change (ichange)
+import WAGS.Example.KitchenSink.TLP.LoopSig (IxWAGSig')
 import WAGS.Example.KitchenSink.Types.Empty (TopWith)
 import WAGS.Graph.AudioUnit (OnOff(..), TSawtoothOsc)
 import WAGS.Graph.Optionals (CSawtoothOsc, DGain, DSawtoothOsc, gain_, sawtoothOsc, sawtoothOsc_)
@@ -28,16 +27,14 @@ ksSawtoothOscCreate = { sawtoothOsc: sawtoothOsc 440.0 }
 stSpan :: L.List Number
 stSpan = map (mul 0.04 <<< toNumber) (0 .. 200)
 
-frontloadSawtoothOsc :: forall proof. FrameSig' SawtoothOscGraph proof SawtoothOscGraph Unit
+frontloadSawtoothOsc :: forall proof. IxWAGSig' SawtoothOscGraph SawtoothOscGraph proof Unit
 frontloadSawtoothOsc = go stSpan
   where
-  go :: L.List Number -> FrameSig' SawtoothOscGraph proof SawtoothOscGraph Unit
-  go L.Nil = WAGS.do
-    pr <- proof
-    withProof pr unit
+  go :: L.List Number -> IxWAGSig' SawtoothOscGraph SawtoothOscGraph proof Unit
+  go L.Nil = ipure unit
 
-  go (L.Cons a b) = WAGS.do
-    ivoid $ change (deltaKsSawtoothOsc a)
+  go (L.Cons a b) = Ix.do
+    ivoid $ ichange (deltaKsSawtoothOsc a)
     go b
 
 deltaKsSawtoothOsc :: Number -> { mix :: DGain, sawtoothOsc :: DSawtoothOsc }

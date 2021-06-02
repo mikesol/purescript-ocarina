@@ -3,13 +3,12 @@ module Test.Patch where
 import Prelude
 import Data.Map as M
 import Data.Set as S
+import Data.Tuple (Tuple(..))
 import Data.Tuple.Nested (type (/\), (/\))
 import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (shouldEqual)
-import Data.Tuple (Tuple(..))
-import WAGS.Control.Qualified as WAGS
-import WAGS.Control.Functions ((@|>), freeze)
-import WAGS.Control.Types (Frame, Frame0, oneFrame')
+import WAGS.Control.Functions (freeze, start, (@||>))
+import WAGS.Control.Types (Frame0, WAG, oneFrame')
 import WAGS.Graph.AudioUnit (OnOff(..), THighpass, TSinOsc, TSpeaker, TLowpass, TSawtoothOsc)
 import WAGS.Graph.Parameter (param)
 import WAGS.Patch (patch)
@@ -22,14 +21,15 @@ testPatch = do
       let
         simpleFrame =
           ( patch ::
-              Frame Unit Unit Instruction Frame0 {}
+              WAG Unit Instruction Frame0 Unit {} Unit ->
+              WAG Unit Instruction Frame0 Unit
                 { speaker :: TSpeaker /\ { sinOsc :: Unit }
                 , sinOsc :: TSinOsc /\ {}
                 }
                 Unit
           )
 
-        simpleScene = simpleFrame @|> freeze
+        simpleScene = simpleFrame start @||> freeze
 
         (frame0Nodes /\ frame0Edges /\ frame0Instr /\ _ /\ frame1) = oneFrame' simpleScene unit
       frame0Nodes `shouldEqual` (M.fromFoldable [ "sinOsc" /\ ASinOsc Off (param 440.0), "speaker" /\ ASpeaker ])
@@ -39,8 +39,8 @@ testPatch = do
       let
         startingFrame =
           ( patch ::
-              Frame Unit Unit Instruction Frame0
-                {}
+              WAG Unit Instruction Frame0 Unit {} Unit ->
+              WAG Unit Instruction Frame0 Unit
                 { speaker :: TSpeaker /\ { highpass :: Unit }
                 , highpass :: THighpass /\ { sinOsc :: Unit }
                 , sinOsc :: TSinOsc /\ {}
@@ -51,11 +51,13 @@ testPatch = do
         simpleFrame =
           ( patch ::
               forall proof.
-              Frame Unit Unit Instruction proof
+              WAG Unit Instruction proof Unit
                 { speaker :: TSpeaker /\ { highpass :: Unit }
                 , highpass :: THighpass /\ { sinOsc :: Unit }
                 , sinOsc :: TSinOsc /\ {}
                 }
+                Unit ->
+              WAG Unit Instruction proof Unit
                 { speaker :: TSpeaker /\ { highpass :: Unit }
                 , highpass :: THighpass /\ { sinOsc :: Unit }
                 , sinOsc :: TSinOsc /\ {}
@@ -64,13 +66,10 @@ testPatch = do
           )
 
         simpleScene =
-          startingFrame
-            @|> ( \fr ->
-                  ( WAGS.do
-                      fr
-                      simpleFrame
-                  )
-                    @|> freeze
+          startingFrame start
+            @||> ( \fr ->
+                  (simpleFrame fr)
+                    @||> freeze
               )
 
         (frame0Nodes /\ frame0Edges /\ frame0Instr /\ _ /\ frame1) = oneFrame' simpleScene unit
@@ -81,8 +80,8 @@ testPatch = do
       let
         startingFrame =
           ( patch ::
-              Frame Unit Unit Instruction Frame0
-                {}
+              WAG Unit Instruction Frame0 Unit {} Unit ->
+              WAG Unit Instruction Frame0 Unit
                 { speaker :: TSpeaker /\ { highpass :: Unit, sinOsc :: Unit }
                 , highpass :: THighpass /\ { sinOsc :: Unit }
                 , sinOsc :: TSinOsc /\ {}
@@ -93,11 +92,13 @@ testPatch = do
         simpleFrame =
           ( patch ::
               forall proof.
-              Frame Unit Unit Instruction proof
+              WAG Unit Instruction proof Unit
                 { speaker :: TSpeaker /\ { highpass :: Unit, sinOsc :: Unit }
                 , highpass :: THighpass /\ { sinOsc :: Unit }
                 , sinOsc :: TSinOsc /\ {}
                 }
+                Unit ->
+              WAG Unit Instruction proof Unit
                 { speaker :: TSpeaker /\ { highpass :: Unit }
                 , highpass :: THighpass /\ { sinOsc :: Unit }
                 , sinOsc :: TSinOsc /\ {}
@@ -106,13 +107,10 @@ testPatch = do
           )
 
         simpleScene =
-          startingFrame
-            @|> ( \fr ->
-                  ( WAGS.do
-                      fr
-                      simpleFrame
-                  )
-                    @|> freeze
+          startingFrame start
+            @||> ( \fr ->
+                  (simpleFrame fr)
+                    @||> freeze
               )
 
         (frame0Nodes /\ frame0Edges /\ frame0Instr /\ _ /\ frame1) = oneFrame' simpleScene unit
@@ -123,8 +121,10 @@ testPatch = do
       let
         startingFrame =
           ( patch ::
-              Frame Unit Unit Instruction Frame0
+              WAG Unit Instruction Frame0 Unit
                 {}
+                Unit ->
+              WAG Unit Instruction Frame0 Unit
                 { speaker :: TSpeaker /\ { highpass :: Unit, sinOsc :: Unit }
                 , highpass :: THighpass /\ { sinOsc :: Unit }
                 , sinOsc :: TSinOsc /\ {}
@@ -135,11 +135,13 @@ testPatch = do
         simpleFrame =
           ( patch ::
               forall proof.
-              Frame Unit Unit Instruction proof
+              WAG Unit Instruction proof Unit
                 { speaker :: TSpeaker /\ { highpass :: Unit, sinOsc :: Unit }
                 , highpass :: THighpass /\ { sinOsc :: Unit }
                 , sinOsc :: TSinOsc /\ {}
                 }
+                Unit ->
+              WAG Unit Instruction proof Unit
                 { speaker :: TSpeaker /\ { anotherOsc :: Unit }
                 , anotherOsc :: TSinOsc /\ {}
                 }
@@ -147,13 +149,10 @@ testPatch = do
           )
 
         simpleScene =
-          startingFrame
-            @|> ( \fr ->
-                  ( WAGS.do
-                      fr
-                      simpleFrame
-                  )
-                    @|> freeze
+          startingFrame start
+            @||> ( \fr ->
+                  (simpleFrame fr)
+                    @||> freeze
               )
 
         (frame0Nodes /\ frame0Edges /\ frame0Instr /\ _ /\ frame1) = oneFrame' simpleScene unit
@@ -166,8 +165,10 @@ testPatch = do
       let
         startingFrame =
           ( patch ::
-              Frame Unit Unit Instruction Frame0
+              WAG Unit Instruction Frame0 Unit
                 {}
+                Unit ->
+              WAG Unit Instruction Frame0 Unit
                 { speaker :: TSpeaker /\ { highpass :: Unit, sinOsc :: Unit, lowpass :: Unit }
                 , highpass :: THighpass /\ { sinOsc :: Unit }
                 , sinOsc :: TSinOsc /\ {}
@@ -180,13 +181,15 @@ testPatch = do
         simpleFrame =
           ( patch ::
               forall proof.
-              Frame Unit Unit Instruction proof
+              WAG Unit Instruction proof Unit
                 { speaker :: TSpeaker /\ { highpass :: Unit, sinOsc :: Unit, lowpass :: Unit }
                 , highpass :: THighpass /\ { sinOsc :: Unit }
                 , sinOsc :: TSinOsc /\ {}
                 , lowpass :: TLowpass /\ { sawtoothOsc :: Unit }
                 , sawtoothOsc :: TSawtoothOsc /\ {}
                 }
+                Unit ->
+              WAG Unit Instruction proof Unit
                 { speaker :: TSpeaker /\ { anotherOsc :: Unit, lowpass :: Unit }
                 , anotherOsc :: TSinOsc /\ {}
                 , lowpass :: TLowpass /\ { sawtoothOsc :: Unit }
@@ -196,13 +199,10 @@ testPatch = do
           )
 
         simpleScene =
-          startingFrame
-            @|> ( \fr ->
-                  ( WAGS.do
-                      fr
-                      simpleFrame
-                  )
-                    @|> freeze
+          startingFrame start
+            @||> ( \fr ->
+                  (simpleFrame fr)
+                    @||> freeze
               )
 
         (frame0Nodes /\ frame0Edges /\ frame0Instr /\ _ /\ frame1) = oneFrame' simpleScene unit

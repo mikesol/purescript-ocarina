@@ -1,16 +1,17 @@
 module WAGS.Example.KitchenSink.TLP.Highpass where
 
 import Prelude
+import Control.Monad.Indexed.Qualified as Ix
 import Data.Either (Either(..))
 import Math ((%))
 import Type.Proxy (Proxy(..))
-import WAGS.Change (change)
-import WAGS.Connect (connect)
-import WAGS.Control.Functions (branch, env, inSitu, proof, withProof)
-import WAGS.Control.Qualified as WAGS
-import WAGS.Create (create)
-import WAGS.Destroy (destroy)
-import WAGS.Disconnect (disconnect)
+import WAGS.Change (ichange)
+import WAGS.Connect (iconnect)
+import WAGS.Control.Functions (ibranch, iwag)
+import WAGS.Control.Indexed (wag)
+import WAGS.Create (icreate)
+import WAGS.Destroy (idestroy)
+import WAGS.Disconnect (idisconnect)
 import WAGS.Example.KitchenSink.TLP.LoopSig (StepSig)
 import WAGS.Example.KitchenSink.TLP.Microphone (doMicrophone)
 import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
@@ -20,23 +21,20 @@ import WAGS.Example.KitchenSink.Types.Microphone (ksMicrophoneCreate)
 
 doHighpass :: forall proof. StepSig HighpassGraph proof
 doHighpass =
-  branch \lsig -> WAGS.do
-    { time } <- env
-    pr <- proof
-    withProof pr
-      $ if time % pieceTime < timing.ksHighpass.end then
-          Right (change (deltaKsHighpass time) $> lsig)
-        else
-          Left
-            $ inSitu doMicrophone WAGS.do
-                let
-                  cursorHighpass = Proxy :: _ "highpass"
+  ibranch \{ time } lsig ->
+    if time % pieceTime < timing.ksHighpass.end then
+      Right (ichange (deltaKsHighpass time) $> lsig)
+    else
+      Left
+        $ iwag Ix.do
+            let
+              cursorHighpass = Proxy :: _ "highpass"
 
-                  cursorPlayBuf = Proxy :: _ "buf"
-                disconnect cursorPlayBuf cursorHighpass
-                disconnect cursorHighpass cursorGain
-                destroy cursorHighpass
-                destroy cursorPlayBuf
-                create ksMicrophoneCreate
-                connect (Proxy :: _ "microphone") cursorGain
-                withProof pr lsig
+              cursorPlayBuf = Proxy :: _ "buf"
+            idisconnect { source: cursorPlayBuf, dest: cursorHighpass }
+            idisconnect { source: cursorHighpass, dest: cursorGain }
+            idestroy cursorHighpass
+            idestroy cursorPlayBuf
+            icreate ksMicrophoneCreate
+            iconnect { source: Proxy :: _ "microphone", dest: cursorGain }
+            doMicrophone <$> wag lsig

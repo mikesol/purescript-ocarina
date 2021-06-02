@@ -1,17 +1,18 @@
 module WAGS.Example.KitchenSink.TLP.SquareOsc where
 
 import Prelude
+import Control.Monad.Indexed ((:*>))
+import Control.Monad.Indexed.Qualified as Ix
 import Data.Either (Either(..))
-import Data.Functor.Indexed (ivoid)
 import Math ((%))
 import Type.Proxy (Proxy(..))
-import WAGS.Change (change)
-import WAGS.Connect (connect)
-import WAGS.Control.Functions (branch, env, inSitu, modifyRes, proof, withProof)
-import WAGS.Control.Qualified as WAGS
-import WAGS.Create (create)
-import WAGS.Destroy (destroy)
-import WAGS.Disconnect (disconnect)
+import WAGS.Change (ichange)
+import WAGS.Connect (iconnect)
+import WAGS.Control.Functions (imodifyRes, iwag, ibranch)
+import WAGS.Control.Indexed (wag)
+import WAGS.Create (icreate)
+import WAGS.Destroy (idestroy)
+import WAGS.Disconnect (idisconnect)
 import WAGS.Example.KitchenSink.TLP.LoopSig (StepSig)
 import WAGS.Example.KitchenSink.TLP.PeriodicOsc (doPeriodicOsc)
 import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
@@ -21,20 +22,20 @@ import WAGS.Example.KitchenSink.Types.SquareOsc (SquareOscGraph, deltaKsSquareOs
 
 doSquareOsc :: forall proof. StepSig SquareOscGraph proof
 doSquareOsc =
-  branch \lsig -> WAGS.do
-    { time } <- env
-    pr <- proof
-    ivoid $ modifyRes (const "Playing a square osc")
-    withProof pr
-      $ if time % pieceTime < timing.ksSquareOsc.end then
-          Right (change (deltaKsSquareOsc time) $> lsig)
-        else
-          Left
-            $ inSitu doPeriodicOsc WAGS.do
-                let
-                  cursorSquareOsc = Proxy :: _ "squareOsc"
-                disconnect cursorSquareOsc cursorGain
-                destroy cursorSquareOsc
-                create ksPeriodicOscCreate
-                connect (Proxy :: _ "periodicOsc") cursorGain
-                withProof pr lsig
+  ibranch \{ time } lsig ->
+    if time % pieceTime < timing.ksSquareOsc.end then
+      Right
+        ( imodifyRes (const "Playing a square osc")
+            :*> ichange (deltaKsSquareOsc time)
+            $> lsig
+        )
+    else
+      Left
+        $ iwag Ix.do
+            let
+              cursorSquareOsc = Proxy :: _ "squareOsc"
+            idisconnect { source: cursorSquareOsc, dest: cursorGain }
+            idestroy cursorSquareOsc
+            icreate ksPeriodicOscCreate
+            iconnect { source: Proxy :: _ "periodicOsc", dest: cursorGain }
+            doPeriodicOsc <$> wag lsig

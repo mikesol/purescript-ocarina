@@ -1,21 +1,35 @@
 module WAGS.Connect where
 
 import Prelude hiding (Ordering(..))
-import Control.Monad.State (modify_)
+
+import Control.Comonad (extract)
+import Data.Functor (voidRight)
 import Data.Map as M
 import Data.Set as S
 import Data.Symbol (class IsSymbol, reflectSymbol)
 import Heterogeneous.Folding (class FoldingWithIndex)
 import Prim.Row as R
-import WAGS.Control.Qualified as WAGS
-import WAGS.Control.Types (FrameT, unsafeFrame)
-import WAGS.Interpret (class AudioInterpret, connectXToY)
+import WAGS.Control.Indexed (IxWAG(..))
+import WAGS.Control.Types (WAG, unsafeUnWAG, unsafeWAG)
 import WAGS.Graph.Graph (Graph)
 import WAGS.Graph.Node (NodeC)
+import WAGS.Interpret (class AudioInterpret, connectXToY)
+
+iconnect ::
+  forall proxy source dest audio engine proof res i o.
+  AudioInterpret audio engine =>
+  Connect source dest i o =>
+  { source :: proxy source, dest :: proxy dest } ->
+  IxWAG audio engine proof res { | i } { | o } Unit
+iconnect ptrs = IxWAG (connect <<< voidRight ptrs)
 
 -- | Connect node `source` from node `dest` in graph `i`, resulting in output graph `o`.
 class Connect (source :: Symbol) (dest :: Symbol) (i :: Graph) (o :: Graph) | source dest i -> o where
-  connect :: forall proxy env audio engine proof m res. Monad m => AudioInterpret audio engine => proxy source -> proxy dest -> FrameT env audio engine proof m res { | i } { | o } Unit
+  connect ::
+    forall proxy audio engine proof res.
+    AudioInterpret audio engine =>
+    WAG audio engine proof res { | i } { source :: proxy source, dest :: proxy dest } ->
+    WAG audio engine proof res { | o } Unit
 
 instance connectInstance ::
   ( IsSymbol from
@@ -27,17 +41,18 @@ instance connectInstance ::
   , R.Cons to (NodeC n { | e' }) newg grapho
   ) =>
   Connect from to graphi grapho where
-  connect fromI' toI' =
-    unsafeFrame
-      $ do
-          modify_
-            ( \i ->
-                i
-                  { internalEdges = M.insertWith S.union toI (S.singleton fromI) i.internalEdges
-                  , instructions = i.instructions <> [ connectXToY fromI toI ]
-                  }
-            )
+  connect w =
+    unsafeWAG
+      { context:
+          i
+            { internalEdges = M.insertWith S.union toI (S.singleton fromI) i.internalEdges
+            , instructions = i.instructions <> [ connectXToY fromI toI ]
+            }
+      , value: unit
+      }
     where
+    { context: i, value: { source: fromI', dest: toI' } } = unsafeUnWAG w
+
     fromI = reflectSymbol fromI'
 
     toI = reflectSymbol toI'
@@ -46,39 +61,29 @@ data ConnectFoldingWithIndex
   = ConnectFoldingWithIndex
 
 instance connectFoldingWithIndex ::
-  ( Monad m
-  , AudioInterpret audio engine
-  , Connect from to midGraph outGraph
+  ( AudioInterpret audio engine
+  , Connect from to inGraph outGraph
   , IsSymbol from
   , IsSymbol to
   ) =>
   FoldingWithIndex
     ConnectFoldingWithIndex
     (proxy from)
-    ( FrameT
-        env
+    ( WAG
         audio
         engine
         proof
-        m
         res
         { | inGraph }
-        { | midGraph }
         (proxy to)
     )
     anything
-    ( FrameT
-        env
+    ( WAG
         audio
         engine
         proof
-        m
         res
-        { | inGraph }
         { | outGraph }
         (proxy to)
     ) where
-  foldingWithIndex ConnectFoldingWithIndex from ifr a =
-    WAGS.bind
-      ifr
-      (\to -> connect from to $> to)
+  foldingWithIndex ConnectFoldingWithIndex from ifr a = connect (ifr $> { source: from, dest: extract ifr }) $> extract ifr

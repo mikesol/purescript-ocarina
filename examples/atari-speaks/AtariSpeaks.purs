@@ -18,11 +18,10 @@ import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.VDom.Driver (runUI)
 import Math (pi, sin)
-import WAGS.Change (change)
-import WAGS.Control.Functions (env, loop, start, (@|>))
-import WAGS.Control.Qualified as WAGS
-import WAGS.Control.Types (Frame0, Scene, Frame)
-import WAGS.Create (create)
+import WAGS.Change (ichange)
+import WAGS.Control.Functions.Validated (iloop, (@!>))
+import WAGS.Control.Types (Frame0, Scene)
+import WAGS.Create (icreate)
 import WAGS.Graph.AudioUnit (TGain, TLoopBuf, TSpeaker)
 import WAGS.Graph.Optionals (CGain, CLoopBuf, CSpeaker, gain, loopBuf, speaker)
 import WAGS.Interpret (AudioContext, FFIAudio(..), close, context, decodeAudioDataFromUri, defaultFFIAudio, makeUnitCache)
@@ -73,21 +72,8 @@ scene time =
             }
       }
 
-createFrame :: Frame (SceneI Unit Unit) FFIAudio (Effect Unit) Frame0 {} SceneType Unit
-createFrame = WAGS.do
-  start
-  { time } <- env
-  create (scene time)
-
-piece :: Scene (SceneI Unit Unit) FFIAudio (Effect Unit) Frame0
-piece =
-  createFrame
-    @|> loop
-        ( const
-            $ WAGS.do
-                { time } <- env
-                ivoid $ change (scene time)
-        )
+piece :: Scene (SceneI Unit Unit) FFIAudio (Effect Unit) Frame0 Unit
+piece = (_.time >>> scene >>> icreate) @!> iloop \{ time } _ -> ivoid $ ichange (scene time)
 
 easingAlgorithm :: Cofree ((->) Int) Int
 easingAlgorithm =

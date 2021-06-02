@@ -1,139 +1,136 @@
 module WAGS.Example.WTK.TLP where
 
 import Prelude
+import Control.Applicative.Indexed (ipure)
+import Control.Monad.Indexed.Qualified as Ix
 import Data.Functor.Indexed (ivoid)
 import Data.List (List(..), (:))
 import Data.Set as S
 import Effect (Effect)
-import Type.Proxy (Proxy)
-import WAGS.Change (change)
-import WAGS.Control.Functions (env, graph, loop, proof, start, withProof, (@|>))
-import WAGS.Control.Qualified as WAGS
-import WAGS.Control.Types (Frame0, FrameT, Scene, Frame)
-import WAGS.Create (create)
+import WAGS.Change (ichange)
+import WAGS.Control.Functions.Validated ((@!>), iloop)
+import WAGS.Control.Indexed (IxWAG, IxFrame)
+import WAGS.Control.Types (Frame0, Scene)
+import WAGS.Create (icreate)
 import WAGS.Example.WTK.Types (Key(..), KeyInfo, MakeRenderingEnv, Trigger, KlavierType, fullKeyboard)
 import WAGS.Graph.Optionals (gain_, sinOsc_)
 import WAGS.Interpret (class AudioInterpret, FFIAudio)
 import WAGS.Run (SceneI)
 
 playKeys ::
-  forall env audio engine proof m res graph.
-  Monad m =>
+  forall audio engine proof res.
   Monoid res =>
   AudioInterpret audio engine =>
-  { graphProxy :: Proxy graph
-  , currentTime :: Number
+  { currentTime :: Number
   , notesOff :: S.Set Int
   } ->
   List KeyInfo ->
   List KeyInfo ->
-  FrameT env audio engine proof m res KlavierType KlavierType Unit
-playKeys rec Nil Nil = WAGS.do
-  pr <- proof
-  withProof pr unit
+  IxWAG audio engine proof res KlavierType KlavierType Unit
+playKeys rec Nil Nil = ipure unit
 
 playKeys rec@{ currentTime, notesOff } Nil (a : b) = case a.k of
-  K0 -> WAGS.do
+  K0 -> Ix.do
     let
       { gain, freq, onOff } = if currentTime - a.startT > a.keyDuration then a.endU else a.sustainU currentTime
-    ivoid $ change { k0: gain_ gain, osc0: sinOsc_ onOff freq }
+    ivoid $ ichange { k0: gain_ gain, osc0: sinOsc_ onOff freq }
     playKeys rec Nil b
-  K1 -> WAGS.do
+  K1 -> Ix.do
     let
       { gain, freq, onOff } = if currentTime - a.startT > a.keyDuration then a.endU else a.sustainU currentTime
-    ivoid $ change { k1: gain_ gain, osc1: sinOsc_ onOff freq }
+    ivoid $ ichange { k1: gain_ gain, osc1: sinOsc_ onOff freq }
     playKeys rec Nil b
-  K2 -> WAGS.do
+  K2 -> Ix.do
     let
       { gain, freq, onOff } = if currentTime - a.startT > a.keyDuration then a.endU else a.sustainU currentTime
-    ivoid $ change { k2: gain_ gain, osc2: sinOsc_ onOff freq }
+    ivoid $ ichange { k2: gain_ gain, osc2: sinOsc_ onOff freq }
     playKeys rec Nil b
-  K3 -> WAGS.do
+  K3 -> Ix.do
     let
       { gain, freq, onOff } = if currentTime - a.startT > a.keyDuration then a.endU else a.sustainU currentTime
-    ivoid $ change { k3: gain_ gain, osc3: sinOsc_ onOff freq }
+    ivoid $ ichange { k3: gain_ gain, osc3: sinOsc_ onOff freq }
     playKeys rec Nil b
-  K4 -> WAGS.do
+  K4 -> Ix.do
     let
       { gain, freq, onOff } = if currentTime - a.startT > a.keyDuration then a.endU else a.sustainU currentTime
-    ivoid $ change { k4: gain_ gain, osc4: sinOsc_ onOff freq }
+    ivoid $ ichange { k4: gain_ gain, osc4: sinOsc_ onOff freq }
     playKeys rec Nil b
-  K5 -> WAGS.do
+  K5 -> Ix.do
     let
       { gain, freq, onOff } = if currentTime - a.startT > a.keyDuration then a.endU else a.sustainU currentTime
-    ivoid $ change { k5: gain_ gain, osc5: sinOsc_ onOff freq }
+    ivoid $ ichange { k5: gain_ gain, osc5: sinOsc_ onOff freq }
     playKeys rec Nil b
-  K6 -> WAGS.do
+  K6 -> Ix.do
     let
       { gain, freq, onOff } = if currentTime - a.startT > a.keyDuration then a.endU else a.sustainU currentTime
-    ivoid $ change { k6: gain_ gain, osc6: sinOsc_ onOff freq }
+    ivoid $ ichange { k6: gain_ gain, osc6: sinOsc_ onOff freq }
     playKeys rec Nil b
-  K7 -> WAGS.do
+  K7 -> Ix.do
     let
       { gain, freq, onOff } = if currentTime - a.startT > a.keyDuration then a.endU else a.sustainU currentTime
-    ivoid $ change { k7: gain_ gain, osc7: sinOsc_ onOff freq }
+    ivoid $ ichange { k7: gain_ gain, osc7: sinOsc_ onOff freq }
     playKeys rec Nil b
-  K8 -> WAGS.do
+  K8 -> Ix.do
     let
       { gain, freq, onOff } = if currentTime - a.startT > a.keyDuration then a.endU else a.sustainU currentTime
-    ivoid $ change { k8: gain_ gain, osc8: sinOsc_ onOff freq }
+    ivoid $ ichange { k8: gain_ gain, osc8: sinOsc_ onOff freq }
     playKeys rec Nil b
-  K9 -> WAGS.do
+  K9 -> Ix.do
     let
       { gain, freq, onOff } = if currentTime - a.startT > a.keyDuration then a.endU else a.sustainU currentTime
-    ivoid $ change { k9: gain_ gain, osc9: sinOsc_ onOff freq }
+    ivoid $ ichange { k9: gain_ gain, osc9: sinOsc_ onOff freq }
     playKeys rec Nil b
 
 playKeys rec (a : b) currentPlaying = case a.k of
-  K0 -> WAGS.do
+  K0 -> Ix.do
     let
       { gain, freq, onOff } = a.startU
-    ivoid $ change { k0: gain_ gain, osc0: sinOsc_ onOff freq }
+    ivoid $ ichange { k0: gain_ gain, osc0: sinOsc_ onOff freq }
     playKeys rec b currentPlaying
-  K1 -> WAGS.do
+  K1 -> Ix.do
     let
       { gain, freq, onOff } = a.startU
-    ivoid $ change { k1: gain_ gain, osc1: sinOsc_ onOff freq }
+    ivoid $ ichange { k1: gain_ gain, osc1: sinOsc_ onOff freq }
     playKeys rec b currentPlaying
-  K2 -> WAGS.do
+  K2 -> Ix.do
     let
       { gain, freq, onOff } = a.startU
-    ivoid $ change { k2: gain_ gain, osc2: sinOsc_ onOff freq }
+    ivoid $ ichange { k2: gain_ gain, osc2: sinOsc_ onOff freq }
     playKeys rec b currentPlaying
-  K3 -> WAGS.do
+  K3 -> Ix.do
     let
       { gain, freq, onOff } = a.startU
-    ivoid $ change { k3: gain_ gain, osc3: sinOsc_ onOff freq }
+    ivoid $ ichange { k3: gain_ gain, osc3: sinOsc_ onOff freq }
     playKeys rec b currentPlaying
-  K4 -> WAGS.do
+  K4 -> Ix.do
     let
       { gain, freq, onOff } = a.startU
-    ivoid $ change { k4: gain_ gain, osc4: sinOsc_ onOff freq }
+    ivoid $ ichange { k4: gain_ gain, osc4: sinOsc_ onOff freq }
     playKeys rec b currentPlaying
-  K5 -> WAGS.do
+  K5 -> Ix.do
     let
       { gain, freq, onOff } = a.startU
-    ivoid $ change { k5: gain_ gain, osc5: sinOsc_ onOff freq }
+    ivoid $ ichange { k5: gain_ gain, osc5: sinOsc_ onOff freq }
     playKeys rec b currentPlaying
-  K6 -> WAGS.do
+  K6 -> Ix.do
     let
       { gain, freq, onOff } = a.startU
-    ivoid $ change { k6: gain_ gain, osc6: sinOsc_ onOff freq }
+    ivoid $ ichange { k6: gain_ gain, osc6: sinOsc_ onOff freq }
     playKeys rec b currentPlaying
-  K7 -> WAGS.do
+  K7 -> Ix.do
     let
       { gain, freq, onOff } = a.startU
-    ivoid $ change { k7: gain_ gain, osc7: sinOsc_ onOff freq }
+    ivoid $ ichange { k7: gain_ gain, osc7: sinOsc_ onOff freq }
     playKeys rec b currentPlaying
-  K8 -> WAGS.do
+  K8 -> Ix.do
     let
       { gain, freq, onOff } = a.startU
-    ivoid $ change { k8: gain_ gain, osc8: sinOsc_ onOff freq }
+    ivoid $ ichange { k8: gain_ gain, osc8: sinOsc_ onOff freq }
     playKeys rec b currentPlaying
-  K9 -> WAGS.do
+  K9 -> Ix.do
     let
       { gain, freq, onOff } = a.startU
-    ivoid $ change { k9: gain_ gain, osc9: sinOsc_ onOff freq }
+    ivoid $ ichange { k9: gain_ gain, osc9: sinOsc_ onOff freq }
     playKeys rec b currentPlaying
 
 type Accumulator
@@ -141,38 +138,32 @@ type Accumulator
     , availableKeys :: List Key
     }
 
-createFrame :: Frame (SceneI Trigger Unit) FFIAudio (Effect Unit) Frame0 {} KlavierType Accumulator
-createFrame = WAGS.do
-  start
-  create fullKeyboard
+createFrame :: IxFrame (SceneI Trigger Unit) FFIAudio (Effect Unit) Frame0 Unit {} KlavierType Accumulator
+createFrame _ =
+  icreate fullKeyboard
     $> { currentKeys: Nil
       , availableKeys: K0 : K1 : K2 : K3 : K4 : K5 : K6 : K7 : K8 : K9 : Nil
       }
 
-piece :: { makeRenderingEnv :: MakeRenderingEnv } -> Scene (SceneI Trigger Unit) FFIAudio (Effect Unit) Frame0
+piece :: { makeRenderingEnv :: MakeRenderingEnv } -> Scene (SceneI Trigger Unit) FFIAudio (Effect Unit) Frame0 Unit
 piece { makeRenderingEnv } =
   createFrame
-    @|> loop
-        ( \{ currentKeys, availableKeys } -> WAGS.do
-            { time, trigger, active } <- env
-            graphProxy <- graph
-            let
-              { notesOff
-              , onsets
-              , newCurrentKeys
-              , newAvailableKeys
-              , futureCurrentKeys
-              , futureAvailableKeys
-              } = makeRenderingEnv active trigger time availableKeys currentKeys
-            ( playKeys
-                { graphProxy
-                , currentTime: time
-                , notesOff
-                }
-                onsets
-                newCurrentKeys
-            )
-              $> { currentKeys: futureCurrentKeys
-                , availableKeys: futureAvailableKeys
-                }
+    @!> iloop \{ time, trigger, active } { currentKeys, availableKeys } -> Ix.do
+        let
+          { notesOff
+          , onsets
+          , newCurrentKeys
+          , newAvailableKeys
+          , futureCurrentKeys
+          , futureAvailableKeys
+          } = makeRenderingEnv active trigger time availableKeys currentKeys
+        ( playKeys
+            { currentTime: time
+            , notesOff
+            }
+            onsets
+            newCurrentKeys
         )
+          $> { currentKeys: futureCurrentKeys
+            , availableKeys: futureAvailableKeys
+            }
