@@ -1,14 +1,14 @@
 module WAGS.Example.KitchenSink.TLP.DynamicsCompressor where
 
 import Prelude
+import Control.Applicative.Indexed (ipure)
 import Control.Monad.Indexed.Qualified as Ix
 import Data.Either (Either(..))
 import Math ((%))
 import Type.Proxy (Proxy(..))
 import WAGS.Change (ichange)
 import WAGS.Connect (iconnect)
-import WAGS.Control.Functions (ibranch, iwag)
-import WAGS.Control.Indexed (wag)
+import WAGS.Control.Functions (ibranch, icont)
 import WAGS.Create (icreate)
 import WAGS.Destroy (idestroy)
 import WAGS.Disconnect (idisconnect)
@@ -23,7 +23,7 @@ doDynamicsCompressor =
   ibranch \{ time } l@{ loop: LoopSig lsig, iteration } ->
     if time % pieceTime < timing.ksDynamicsCompressor.begin then
       Left
-        $ iwag Ix.do
+        $ icont lsig Ix.do
             let
               cursorCompressor = Proxy :: Proxy "compressor"
 
@@ -34,6 +34,6 @@ doDynamicsCompressor =
             idestroy cursorPlayBuf
             icreate ksSinOscCreate
             iconnect { source: Proxy :: _ "sinOsc", dest: cursorGain }
-            lsig <$> (wag l { iteration = iteration + 1 })
+            ipure $ l { iteration = iteration + 1 }
     else
       Right (ichange (deltaKsDynamicsCompressor time) $> l)
