@@ -1,6 +1,8 @@
 module WAGS.Control.Functions
   ( start
+  , istart
   , modifyRes
+  , imodifyRes
   , makeScene
   , makeSceneFlipped
   , makeSceneR
@@ -22,11 +24,12 @@ module WAGS.Control.Functions
   ) where
 
 import Prelude
+
 import Control.Comonad (extract)
 import Data.Either (Either(..))
 import Data.Map as M
-import WAGS.Control.Indexed (IxWAG(..))
-import WAGS.Control.Types (AudioState', EFrame, Frame, InitialWAG, Scene(..), Scene', WAG, oneFrame, unsafeUnWAG, unsafeWAG)
+import WAGS.Control.Indexed (IxWAG(..), IxFrame)
+import WAGS.Control.Types (AudioState', EFrame, Frame, Frame0, InitialWAG, Scene(..), Scene', WAG, oneFrame, unsafeUnWAG, unsafeWAG)
 import WAGS.Interpret (class AudioInterpret)
 
 -- | The initial `Frame` that is needed to begin any `Scene`.
@@ -125,6 +128,18 @@ makeSceneFlipped ::
 makeSceneFlipped trans m = makeScene m trans
 
 infixr 6 makeSceneFlipped as <@
+
+istart ::
+  forall env audio engine res graph a.
+  Monoid res =>
+  AudioInterpret audio engine =>
+  IxFrame env audio engine Frame0 res {} { | graph } a ->
+  ( forall proofB.
+    WAG audio engine proofB res { | graph } a ->
+    Scene env audio engine proofB res
+  ) ->
+  Scene env audio engine Frame0 res
+istart m = makeSceneR (\e -> let IxWAG f = m e in f start)
 
 -- | Loops audio.
 -- |
@@ -322,3 +337,12 @@ modifyRes f w = unsafeWAG { context: (i { res = res' }), value: res' }
   { context: i, value } = unsafeUnWAG w
 
   res' = f i.res
+
+-- | Modifies the residual for a frame and returns the result.
+-- | If a frame never modifies its residual, the value of `mempty`
+-- | for `res` is returned to the scene.
+imodifyRes ::
+  forall audio engine proof res i.
+  AudioInterpret audio engine =>
+  (res -> res) -> IxWAG audio engine proof res i i res
+imodifyRes f = IxWAG (modifyRes f)
