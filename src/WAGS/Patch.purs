@@ -1,6 +1,7 @@
 module WAGS.Patch where
 
 import Prelude hiding (Ordering(..))
+
 import Data.Map as M
 import Data.Set as S
 import Data.Symbol (class IsSymbol, reflectSymbol)
@@ -11,6 +12,7 @@ import Prim.RowList (class RowToList)
 import Prim.RowList as RL
 import Prim.Symbol as Sym
 import Type.Proxy (Proxy(..))
+import WAGS.Control.Indexed (IxWAG(..))
 import WAGS.Control.Types (WAG, unsafeUnWAG, unsafeWAG)
 import WAGS.Graph.AudioUnit (OnOff(..))
 import WAGS.Graph.AudioUnit as AU
@@ -636,6 +638,13 @@ instance toGraphEffectsMakeWaveShaper :: (IsSymbol ptr, IsSymbol sym, IsOversamp
     sym' = reflectSymbol (Proxy :: _ sym)
 
     oversample' = reflectOversample (mempty :: oversample)
+
+ipatch ::
+    forall audio engine proof res g0 g1.
+    Patch g0 g1 =>
+    AudioInterpret audio engine =>
+    IxWAG audio engine proof res { | g0 } { | g1 } Unit
+ipatch = IxWAG \i -> patch (i $> unit)
 
 class Patch g0 g1 where
   -- | Take any frame from `g0` to `g1`. The compiler automatically determines the necessary operations to perform the transformation.
