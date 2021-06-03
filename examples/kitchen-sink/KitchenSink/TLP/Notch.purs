@@ -1,14 +1,15 @@
 module WAGS.Example.KitchenSink.TLP.Notch where
 
 import Prelude
+
+import Control.Applicative.Indexed (ipure)
 import Control.Monad.Indexed.Qualified as Ix
 import Data.Either (Either(..))
 import Math ((%))
 import Type.Proxy (Proxy(..))
 import WAGS.Change (ichange)
 import WAGS.Connect (iconnect)
-import WAGS.Control.Functions (ibranch, iwag)
-import WAGS.Control.Indexed (wag)
+import WAGS.Control.Functions (ibranch, icont)
 import WAGS.Create (icreate)
 import WAGS.Destroy (idestroy)
 import WAGS.Disconnect (idisconnect)
@@ -26,7 +27,7 @@ doNotch =
       Right (ichange (deltaKsNotch time) $> lsig)
     else
       Left
-        $ iwag Ix.do
+        $ icont doPeaking Ix.do
             let
               cursorNotch = Proxy :: _ "notch"
 
@@ -37,4 +38,4 @@ doNotch =
             idestroy cursorPlayBuf
             icreate ksPeakingCreate
             iconnect { source: Proxy :: _ "peaking", dest: cursorGain }
-            doPeaking <$> wag lsig
+            ipure lsig

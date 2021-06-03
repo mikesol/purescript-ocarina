@@ -52,13 +52,3 @@ instance ixMonadIxWAG :: IxMonad (IxWAG audio engine proof res)
 
 type IxFrame (env :: Type) (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type) (graphi :: Type) (grapho :: Type) (a :: Type)
   = env -> IxWAG audio engine proof res graphi grapho a
-
-wag_ ::
-  forall audio engine proof res graph.
-  IxWAG audio engine proof res graph graph (WAG audio engine proof res graph Unit)
-wag_ = wag unit
-
-wag ::
-  forall audio engine proof res graph a.
-  a -> IxWAG audio engine proof res graph graph (WAG audio engine proof res graph a)
-wag a = IxWAG (\i -> i $> (i $> a))

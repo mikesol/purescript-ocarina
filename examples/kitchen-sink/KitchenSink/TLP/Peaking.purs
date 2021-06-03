@@ -1,15 +1,15 @@
 module WAGS.Example.KitchenSink.TLP.Peaking where
 
 import Prelude
-import Control.Monad.Indexed ((:*>))
+
+import Control.Monad.Indexed (ipure, (:*>))
 import Control.Monad.Indexed.Qualified as Ix
 import Data.Either (Either(..))
 import Math ((%))
 import Type.Proxy (Proxy(..))
 import WAGS.Change (ichange)
 import WAGS.Connect (iconnect)
-import WAGS.Control.Functions (ibranch, imodifyRes, iwag)
-import WAGS.Control.Indexed (wag)
+import WAGS.Control.Functions (ibranch, imodifyRes, icont)
 import WAGS.Create (icreate)
 import WAGS.Destroy (idestroy)
 import WAGS.Disconnect (idisconnect)
@@ -30,7 +30,7 @@ doPeaking =
         $> lsig
     else
       Left
-        $ iwag Ix.do
+        $ icont doHighpass Ix.do
             let
               cursorPeaking = Proxy :: _ "peaking"
 
@@ -41,4 +41,4 @@ doPeaking =
             idestroy cursorPlayBuf
             icreate ksHighpassCreate
             iconnect { source: Proxy :: _ "highpass", dest: cursorGain }
-            doHighpass <$> wag lsig
+            ipure lsig

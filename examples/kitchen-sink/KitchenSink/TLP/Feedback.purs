@@ -1,6 +1,8 @@
 module WAGS.Example.KitchenSink.TLP.Feedback where
 
 import Prelude
+
+import Control.Applicative.Indexed (ipure)
 import Control.Monad.Indexed.Qualified as Ix
 import Data.Either (Either(..))
 import Data.Functor.Indexed (ivoid)
@@ -8,8 +10,7 @@ import Math ((%))
 import Type.Proxy (Proxy(..))
 import WAGS.Change (ichange)
 import WAGS.Connect (iconnect)
-import WAGS.Control.Functions (ibranch, iwag)
-import WAGS.Control.Indexed (wag)
+import WAGS.Control.Functions (ibranch, icont)
 import WAGS.Create (icreate)
 import WAGS.Destroy (idestroy)
 import WAGS.Disconnect (idisconnect)
@@ -28,7 +29,7 @@ doFeedback =
       Right (ichange (deltaKsFeedback time) $> lsig)
     else
       Left
-        $ iwag Ix.do
+        $ icont doLoopBuf Ix.do
             let
               cursorDmix = Proxy :: _ "dmix"
 
@@ -49,4 +50,4 @@ doFeedback =
             icreate ksLoopBufCreate
             iconnect { source: Proxy :: _ "loopBuf", dest: cursorGain }
             ivoid $ ichange { mix: gain_ 1.0 }
-            doLoopBuf <$> wag lsig
+            ipure lsig

@@ -1,14 +1,15 @@
 module WAGS.Example.KitchenSink.TLP.Lowshelf where
 
 import Prelude
+
+import Control.Applicative.Indexed (ipure)
 import Control.Monad.Indexed.Qualified as Ix
 import Data.Either (Either(..))
 import Math ((%))
 import Type.Proxy (Proxy(..))
 import WAGS.Change (ichange)
 import WAGS.Connect (iconnect)
-import WAGS.Control.Functions (ibranch, iwag)
-import WAGS.Control.Indexed (wag)
+import WAGS.Control.Functions (ibranch, icont)
 import WAGS.Create (icreate)
 import WAGS.Destroy (idestroy)
 import WAGS.Disconnect (idisconnect)
@@ -26,7 +27,7 @@ doLowshelf =
       Right (ichange (deltaKsLowshelf time) $> lsig)
     else
       Left
-        $ iwag Ix.do
+        $ icont doBandpass Ix.do
             let
               cursorLowshelf = Proxy :: _ "lowshelf"
 
@@ -37,4 +38,4 @@ doLowshelf =
             idestroy cursorPlayBuf
             icreate ksBandpassCreate
             iconnect { source: Proxy :: _ "bandpass", dest: cursorGain }
-            doBandpass <$> wag lsig
+            ipure lsig

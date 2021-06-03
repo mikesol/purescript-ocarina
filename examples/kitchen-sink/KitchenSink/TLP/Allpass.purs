@@ -1,6 +1,8 @@
 module WAGS.Example.KitchenSink.TLP.Allpass where
 
 import Prelude
+
+import Control.Applicative.Indexed (ipure)
 import Control.Monad.Indexed.Qualified as Ix
 import Data.Either (Either(..))
 import Data.Functor.Indexed (ivoid)
@@ -8,8 +10,7 @@ import Math ((%))
 import Type.Proxy (Proxy(..))
 import WAGS.Change (ichange)
 import WAGS.Connect (iconnect)
-import WAGS.Control.Functions (ibranch, iwag)
-import WAGS.Control.Indexed (wag)
+import WAGS.Control.Functions (ibranch, icont)
 import WAGS.Create (icreate)
 import WAGS.Destroy (idestroy)
 import WAGS.Disconnect (idisconnect)
@@ -29,7 +30,7 @@ doAllpass =
       Right (ichange (deltaKsAllpass time) $> lsig)
     else if lsig.iteration `mod` 2 == 0 then
       Left
-        $ iwag Ix.do
+        $ icont doLowpass Ix.do
             let
               cursorAllpass = Proxy :: _ "allpass"
 
@@ -40,14 +41,14 @@ doAllpass =
             idestroy cursorPlayBuf
             icreate ksLowpassCreate
             iconnect { source: Proxy :: _ "lowpass", dest: cursorGain }
-            doLowpass <$> wag lsig
+            ipure lsig
     else
       Left
-        $ iwag Ix.do
+        $ icont doLowpass Ix.do
             ipatch
             ivoid
               $ ichange
                   { lowpass: lowpass_ { freq: 300.0 }
                   , buf: playBuf_ "my-buffer"
                   }
-            doLowpass <$> wag lsig
+            ipure lsig

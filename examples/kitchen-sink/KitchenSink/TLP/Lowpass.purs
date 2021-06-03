@@ -1,14 +1,15 @@
 module WAGS.Example.KitchenSink.TLP.Lowpass where
 
 import Prelude
+
+import Control.Applicative.Indexed (ipure)
 import Control.Monad.Indexed.Qualified as Ix
 import Data.Either (Either(..))
 import Math ((%))
 import Type.Proxy (Proxy(..))
 import WAGS.Change (ichange)
 import WAGS.Connect (iconnect)
-import WAGS.Control.Functions (ibranch, iwag)
-import WAGS.Control.Indexed (wag)
+import WAGS.Control.Functions (ibranch, icont)
 import WAGS.Create (icreate)
 import WAGS.Destroy (idestroy)
 import WAGS.Disconnect (idisconnect)
@@ -26,7 +27,7 @@ doLowpass =
       Right (ichange (deltaKsLowpass time) $> lsig)
     else
       Left
-        $ iwag Ix.do
+        $ icont doHighshelf Ix.do
             let
               cursorLowpass = Proxy :: _ "lowpass"
 
@@ -37,4 +38,4 @@ doLowpass =
             idestroy cursorPlayBuf
             icreate ksHighshelfCreate
             iconnect { source: Proxy :: _ "highshelf", dest: cursorGain }
-            doHighshelf <$> wag lsig
+            ipure lsig

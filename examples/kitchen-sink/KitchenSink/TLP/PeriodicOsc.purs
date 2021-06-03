@@ -1,14 +1,15 @@
 module WAGS.Example.KitchenSink.TLP.PeriodicOsc where
 
 import Prelude
+
+import Control.Applicative.Indexed (ipure)
 import Control.Monad.Indexed.Qualified as Ix
 import Data.Either (Either(..))
 import Math ((%))
 import Type.Proxy (Proxy(..))
 import WAGS.Change (ichange)
 import WAGS.Connect (iconnect)
-import WAGS.Control.Functions (ibranch, iwag)
-import WAGS.Control.Indexed (wag)
+import WAGS.Control.Functions (ibranch, icont)
 import WAGS.Create (icreate)
 import WAGS.Destroy (idestroy)
 import WAGS.Disconnect (idisconnect)
@@ -26,7 +27,7 @@ doPeriodicOsc =
       Right (ichange (deltaKsPeriodicOsc time) $> lsig)
     else
       Left
-        $ iwag Ix.do
+        $ icont doSawtoothOsc Ix.do
             let
               cursorPeriodicOsc = Proxy :: _ "periodicOsc"
             idisconnect { source: cursorPeriodicOsc, dest: cursorGain }
@@ -34,4 +35,4 @@ doPeriodicOsc =
             icreate ksSawtoothOscCreate
             iconnect { source: Proxy :: _ "sawtoothOsc", dest: cursorGain }
             frontloadSawtoothOsc
-            doSawtoothOsc <$> wag lsig
+            ipure lsig

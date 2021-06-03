@@ -1,8 +1,6 @@
 module Test.Instructions where
 
 import Prelude
-
-import Control.Monad.Indexed.Qualified as Ix
 import Control.Monad.Reader (ask)
 import Data.Either (Either(..))
 import Data.Functor.Indexed (ivoid)
@@ -12,9 +10,7 @@ import Data.Tuple.Nested ((/\), type (/\))
 import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (shouldEqual)
 import WAGS.Change (change, ichange)
-import WAGS.Control.Functions (branch, freeze, ibranch, iloop, iwag, loop, start, (@|>), (@||>))
-import WAGS.Control.Functions.Validated ((<||@))
-import WAGS.Control.Indexed (wag_)
+import WAGS.Control.Functions (branch, freeze, ibranch, icont, iloop, loop, start, (@|>), (@||>))
 import WAGS.Control.Types (Frame, Frame0, oneFrame')
 import WAGS.Create (create)
 import WAGS.Graph.AudioUnit (OnOff(..), TGain, THighpass, TSinOsc, TSpeaker)
@@ -324,16 +320,12 @@ testInstructions = do
                 Right $ ivoid $ ichange { highpass: highpass_ (330.0 + time * 10.0) }
               else
                 Left
-                  $ iwag
-                      ( Ix.do
-                          ivoid $ ichange { highpass: highpass_ (330.0 + time * 50.0) }
-                          (<||@)
-                            ( iloop \e _ ->
-                                ivoid
-                                  $ ichange { highpass: highpass_ (330.0 + e.time * 50.0) }
-                            )
-                            <$> wag_
+                  $ icont
+                      ( iloop \e _ ->
+                          ivoid
+                            $ ichange { highpass: highpass_ (330.0 + e.time * 50.0) }
                       )
+                      (ivoid $ ichange { highpass: highpass_ (330.0 + time * 50.0) })
 
       (frame0Nodes /\ frame0Edges /\ frame0Instr /\ _ /\ frame1) = oneFrame' simpleScene { time: 0.0 }
 

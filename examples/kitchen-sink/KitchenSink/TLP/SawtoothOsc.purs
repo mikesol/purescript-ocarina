@@ -1,6 +1,7 @@
 module WAGS.Example.KitchenSink.TLP.SawtoothOsc where
 
 import Prelude
+
 import Control.Applicative.Indexed (ipure)
 import Control.Monad.Indexed.Qualified as Ix
 import Data.Either (Either(..))
@@ -10,8 +11,7 @@ import Math ((%))
 import Type.Proxy (Proxy(..))
 import WAGS.Change (ichange)
 import WAGS.Connect (iconnect)
-import WAGS.Control.Functions (ibranch, iwag)
-import WAGS.Control.Indexed (wag)
+import WAGS.Control.Functions (ibranch, icont)
 import WAGS.Create (icreate)
 import WAGS.Destroy (idestroy)
 import WAGS.Disconnect (idisconnect)
@@ -45,11 +45,11 @@ doSawtoothOsc =
         ipure lsig
     else
       Left
-        $ iwag Ix.do
+        $ icont doAllpass Ix.do
             let
               cursorSawtoothOsc = Proxy :: _ "sawtoothOsc"
             idisconnect { source: cursorSawtoothOsc, dest: cursorGain }
             idestroy cursorSawtoothOsc
             icreate ksAllpassCreate
             iconnect { source: Proxy :: _ "allpass", dest: cursorGain }
-            doAllpass <$> wag lsig
+            ipure lsig

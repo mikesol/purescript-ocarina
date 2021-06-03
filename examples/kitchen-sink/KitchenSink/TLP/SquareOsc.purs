@@ -1,15 +1,15 @@
 module WAGS.Example.KitchenSink.TLP.SquareOsc where
 
 import Prelude
-import Control.Monad.Indexed ((:*>))
+
+import Control.Monad.Indexed (ipure, (:*>))
 import Control.Monad.Indexed.Qualified as Ix
 import Data.Either (Either(..))
 import Math ((%))
 import Type.Proxy (Proxy(..))
 import WAGS.Change (ichange)
 import WAGS.Connect (iconnect)
-import WAGS.Control.Functions (imodifyRes, iwag, ibranch)
-import WAGS.Control.Indexed (wag)
+import WAGS.Control.Functions (ibranch, icont, imodifyRes)
 import WAGS.Create (icreate)
 import WAGS.Destroy (idestroy)
 import WAGS.Disconnect (idisconnect)
@@ -31,11 +31,11 @@ doSquareOsc =
         )
     else
       Left
-        $ iwag Ix.do
+        $ icont doPeriodicOsc Ix.do
             let
               cursorSquareOsc = Proxy :: _ "squareOsc"
             idisconnect { source: cursorSquareOsc, dest: cursorGain }
             idestroy cursorSquareOsc
             icreate ksPeriodicOscCreate
             iconnect { source: Proxy :: _ "periodicOsc", dest: cursorGain }
-            doPeriodicOsc <$> wag lsig
+            ipure lsig

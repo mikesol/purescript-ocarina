@@ -13,7 +13,6 @@ module WAGS.Control.Functions
   , iloop
   , branch
   , ibranch
-  , iwag
   , icont
   , freeze
   , (@>)
@@ -227,15 +226,6 @@ branch ::
   WAG audio engine proofA res { | graph } a ->
   Scene env audio engine proofA res
 branch fa w = makeScene (fa w) (branch fa)
-
-iwag ::
-  forall env audio engine proof res graphi grapho a.
-  Monoid res =>
-  AudioInterpret audio engine =>
-  IxWAG audio engine proof res { | graphi } { | grapho } (Scene env audio engine proof res) ->
-  WAG audio engine proof res { | graphi } a ->
-  Scene env audio engine proof res
-iwag (IxWAG x) w = extract (x w)
 
 icont ::
   forall env audio engine proof res graphi grapho a b.

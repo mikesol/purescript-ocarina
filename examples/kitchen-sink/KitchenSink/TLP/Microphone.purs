@@ -1,14 +1,15 @@
 module WAGS.Example.KitchenSink.TLP.Microphone where
 
 import Prelude
+
+import Control.Applicative.Indexed (ipure)
 import Control.Monad.Indexed.Qualified as Ix
 import Data.Either (Either(..))
 import Math ((%))
 import Type.Proxy (Proxy(..))
 import WAGS.Change (ichange)
 import WAGS.Connect (iconnect)
-import WAGS.Control.Functions (ibranch, iwag)
-import WAGS.Control.Indexed (wag)
+import WAGS.Control.Functions (ibranch, icont)
 import WAGS.Create (icreate)
 import WAGS.Destroy (idestroy)
 import WAGS.Disconnect (idisconnect)
@@ -26,11 +27,11 @@ doMicrophone =
       Right (ichange (deltaKsMicrophone time) $> lsig)
     else
       Left
-        $ iwag Ix.do
+        $ icont doWaveShaper Ix.do
             let
               cursorMicrophone = Proxy :: _ "microphone"
             idisconnect { source: cursorMicrophone, dest: cursorGain }
             idestroy cursorMicrophone
             icreate ksWaveShaperCreate
             iconnect { source: Proxy :: _ "waveShaper", dest: cursorGain }
-            doWaveShaper <$> wag lsig
+            ipure lsig
