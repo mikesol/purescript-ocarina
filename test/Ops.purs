@@ -1,7 +1,6 @@
 module Test.Ops where
 
 import Prelude
-
 import Data.Tuple.Nested (type (/\))
 import Type.Proxy (Proxy(..))
 import WAGS.Control.Functions (start)
@@ -23,13 +22,12 @@ opsTest0 ::
     }
     Unit
 opsTest0 =
-  create
-    ( start
-        $> { sinOsc: sinOsc 440.0
-          , gain: gain 1.0 { highpass: ref, sinOsc: ref }
-          , highpass: highpass 330.0 { sinOsc: ref }
-          }
-    )
+  start
+    $> { sinOsc: sinOsc 440.0
+      , gain: gain 1.0 { highpass: ref, sinOsc: ref }
+      , highpass: highpass 330.0 { sinOsc: ref }
+      }
+    # create
 
 opsTest1 ::
   forall audio engine.
@@ -42,14 +40,13 @@ opsTest1 ::
     }
     Unit
 opsTest1 =
-  create
-    ( start
-        $> { sinOsc: sinOsc 440.0
-          , gain: gain 1.0 { highpass: ref, sinOsc: ref }
-          , highpass: highpass 330.0 { sinOsc: ref }
-          , speaker: speaker' { gain: ref }
-          }
-    )
+  start
+    $> { sinOsc: sinOsc 440.0
+      , gain: gain 1.0 { highpass: ref, sinOsc: ref }
+      , highpass: highpass 330.0 { sinOsc: ref }
+      , speaker: speaker' { gain: ref }
+      }
+    # create
 
 opsTest2 ::
   forall audio engine.
@@ -62,17 +59,16 @@ opsTest2 ::
     }
     Unit
 opsTest2 =
-  create
-    ( start
-        $> speaker
-            { gain:
-                gain 1.0
-                  { highpass:
-                      highpass 330.0 { mySine: ref }
-                  , mySine: sinOsc 440.0
-                  }
-            }
-    )
+  start
+    $> speaker
+        { gain:
+            gain 1.0
+              { highpass:
+                  highpass 330.0 { mySine: ref }
+              , mySine: sinOsc 440.0
+              }
+        }
+    # create
 
 opsTest6 ::
   forall audio engine.
@@ -83,22 +79,19 @@ opsTest6 ::
     , highpass :: THighpass /\ {}
     }
     Unit
-opsTest6 = o
-  where
-  a =
-    create
-      ( start
-          $> { gain:
-                gain 1.0
-                  { highpass:
-                      highpass 330.0
-                        { sinOsc: sinOsc 440.0 }
-                  , sinOsc: ref
-                  }
+opsTest6 =
+  start
+    $> { gain:
+          gain 1.0
+            { highpass:
+                highpass 330.0
+                  { sinOsc: sinOsc 440.0 }
+            , sinOsc: ref
             }
-      )
-
-  o = disconnect (a $> { source: Proxy :: _ "sinOsc", dest: Proxy :: _ "highpass" })
+      }
+    # create
+    # (<$) { source: Proxy :: _ "sinOsc", dest: Proxy :: _ "highpass" }
+    # disconnect
 
 opsTest7 ::
   forall audio engine.
@@ -109,20 +102,17 @@ opsTest7 ::
     , highpass :: THighpass /\ {}
     }
     Unit
-opsTest7 = o
-  where
-  a =
-    create
-      ( start
-          $> { sinOsc: sinOsc 440.0
-            , gain: gain 1.0 { highpass: ref, sinOsc: ref }
-            , highpass: highpass 330.0 { sinOsc: ref }
-            }
-      )
-
-  b = disconnect (a $> { source: Proxy :: _ "sinOsc", dest: Proxy :: _ "highpass" })
-
-  o = disconnect (b $> { source: Proxy :: _ "highpass", dest: Proxy :: _ "gain" })
+opsTest7 =
+  start
+    $> { sinOsc: sinOsc 440.0
+      , gain: gain 1.0 { highpass: ref, sinOsc: ref }
+      , highpass: highpass 330.0 { sinOsc: ref }
+      }
+    # create
+    # (<$) { source: Proxy :: _ "sinOsc", dest: Proxy :: _ "highpass" }
+    # disconnect
+    # (<$) { source: Proxy :: _ "highpass", dest: Proxy :: _ "gain" }
+    # disconnect
 
 opsTest8 ::
   forall audio engine.
@@ -132,19 +122,16 @@ opsTest8 ::
     , gain :: TGain /\ { sinOsc :: Unit }
     }
     Unit
-opsTest8 = o
-  where
-  a =
-    create
-      ( start
-          $> { sinOsc: sinOsc 440.0
-            , gain: gain 1.0 { highpass: ref, sinOsc: ref }
-            , highpass: highpass 330.0 { sinOsc: ref }
-            }
-      )
-
-  b = disconnect (a $> { source: Proxy :: _ "sinOsc", dest: Proxy :: _ "highpass" })
-
-  c = disconnect (b $> { source: Proxy :: _ "highpass", dest: Proxy :: _ "gain" })
-
-  o = destroy (c $> (Proxy :: _ "highpass"))
+opsTest8 =
+  start
+    $> { sinOsc: sinOsc 440.0
+      , gain: gain 1.0 { highpass: ref, sinOsc: ref }
+      , highpass: highpass 330.0 { sinOsc: ref }
+      }
+    # create
+    # (<$) { source: Proxy :: _ "sinOsc", dest: Proxy :: _ "highpass" }
+    # disconnect
+    # (<$) { source: Proxy :: _ "highpass", dest: Proxy :: _ "gain" }
+    # disconnect
+    # (<$) (Proxy :: _ "highpass")
+    # destroy
