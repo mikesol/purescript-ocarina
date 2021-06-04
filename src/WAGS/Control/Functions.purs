@@ -86,12 +86,12 @@ initialAudioState =
 -- |         )
 -- | ```
 makeScene ::
-  forall env audio engine proofA res graph a.
+  forall env audio engine proofA res graph control.
   Monoid res =>
   AudioInterpret audio engine =>
-  EFrame env audio engine proofA res { | graph } a ->
+  EFrame env audio engine proofA res { | graph } control ->
   ( forall proofB.
-    WAG audio engine proofB res { | graph } a ->
+    WAG audio engine proofB res { | graph } control ->
     Scene env audio engine proofB res
   ) ->
   Scene env audio engine proofA res
@@ -116,26 +116,26 @@ makeScene m trans = Scene go
 infixr 6 makeScene as @>
 
 makeSceneFlipped ::
-  forall env audio engine proofA res graph a.
+  forall env audio engine proofA res graph control.
   Monoid res =>
   AudioInterpret audio engine =>
   ( forall proofB.
-    WAG audio engine proofB res { | graph } a ->
+    WAG audio engine proofB res { | graph } control ->
     Scene env audio engine proofB res
   ) ->
-  EFrame env audio engine proofA res { | graph } a ->
+  EFrame env audio engine proofA res { | graph } control ->
   Scene env audio engine proofA res
 makeSceneFlipped trans m = makeScene m trans
 
 infixr 6 makeSceneFlipped as <@
 
 istart ::
-  forall env audio engine res graph a.
+  forall env audio engine res graph control.
   Monoid res =>
   AudioInterpret audio engine =>
-  IxFrame env audio engine Frame0 res {} { | graph } a ->
+  IxFrame env audio engine Frame0 res {} { | graph } control ->
   ( forall proofB.
-    WAG audio engine proofB res { | graph } a ->
+    WAG audio engine proofB res { | graph } control ->
     Scene env audio engine proofB res
   ) ->
   Scene env audio engine Frame0 res
@@ -162,25 +162,25 @@ infixr 6 istart as @!>
 -- |         )
 -- | ```
 loop ::
-  forall env audio engine proofA res graph a.
+  forall env audio engine proofA res graph control.
   Monoid res =>
   AudioInterpret audio engine =>
   ( forall proofB.
-    WAG audio engine proofB res { | graph } a ->
-    Frame env audio engine proofB res { | graph } a
+    WAG audio engine proofB res { | graph } control ->
+    Frame env audio engine proofB res { | graph } control
   ) ->
-  WAG audio engine proofA res { | graph } a ->
+  WAG audio engine proofA res { | graph } control ->
   Scene env audio engine proofA res
 loop fa ma = makeSceneR (fa ma) (loop fa)
 
 iloop ::
-  forall env audio engine proofA res graph a.
+  forall env audio engine proofA res graph control.
   Monoid res =>
   AudioInterpret audio engine =>
   ( forall proofB.
-    env -> a -> IxWAG audio engine proofB res { | graph } { | graph } a
+    env -> control -> IxWAG audio engine proofB res { | graph } { | graph } control
   ) ->
-  WAG audio engine proofA res { | graph } a ->
+  WAG audio engine proofA res { | graph } control ->
   Scene env audio engine proofA res
 iloop fa = loop (\wa e -> let IxWAG f = fa e (extract wa) in f wa)
 
@@ -216,14 +216,14 @@ iloop fa = loop (\wa e -> let IxWAG f = fa e (extract wa) in f wa)
 -- |       )
 -- | ```
 branch ::
-  forall env audio engine proofA res graph a.
+  forall env audio engine proofA res graph control.
   Monoid res =>
   AudioInterpret audio engine =>
   ( forall proofB.
-    WAG audio engine proofB res { | graph } a ->
-    EFrame env audio engine proofB res { | graph } a
+    WAG audio engine proofB res { | graph } control ->
+    EFrame env audio engine proofB res { | graph } control
   ) ->
-  WAG audio engine proofA res { | graph } a ->
+  WAG audio engine proofA res { | graph } control ->
   Scene env audio engine proofA res
 branch fa w = makeScene (fa w) (branch fa)
 
@@ -240,17 +240,17 @@ icont ::
 icont c (IxWAG x) = c <<< x
 
 ibranch ::
-  forall env audio engine proofA res graph a.
+  forall env audio engine proofA res graph control.
   Monoid res =>
   AudioInterpret audio engine =>
   ( forall proofB.
     env ->
-    a ->
+    control ->
     Either
-      (WAG audio engine proofB res { | graph } a -> Scene env audio engine proofB res)
-      (IxWAG audio engine proofB res { | graph } { | graph } a)
+      (WAG audio engine proofB res { | graph } control -> Scene env audio engine proofB res)
+      (IxWAG audio engine proofB res { | graph } { | graph } control)
   ) ->
-  WAG audio engine proofA res { | graph } a ->
+  WAG audio engine proofA res { | graph } control ->
   Scene env audio engine proofA res
 ibranch fa =
   branch
@@ -274,12 +274,12 @@ freeze s = makeScene (pure $ Right s) freeze
 
 -- | Similar to `makeScene`, but without the possibility to branch to a new scene. Aliased as `@|>`.
 makeSceneR ::
-  forall env audio engine proofA res graph a.
+  forall env audio engine proofA res graph control.
   Monoid res =>
   AudioInterpret audio engine =>
-  Frame env audio engine proofA res { | graph } a ->
+  Frame env audio engine proofA res { | graph } control ->
   ( forall proofB.
-    WAG audio engine proofB res { | graph } a ->
+    WAG audio engine proofB res { | graph } control ->
     Scene env audio engine proofB res
   ) ->
   Scene env audio engine proofA res
@@ -288,14 +288,14 @@ makeSceneR a b = makeScene (map Right a) b
 infixr 6 makeSceneR as @|>
 
 makeSceneRFlipped ::
-  forall env audio engine proofA res graph a.
+  forall env audio engine proofA res graph control.
   Monoid res =>
   AudioInterpret audio engine =>
   ( forall proofB.
-    WAG audio engine proofB res { | graph } a ->
+    WAG audio engine proofB res { | graph } control ->
     Scene env audio engine proofB res
   ) ->
-  Frame env audio engine proofA res { | graph } a ->
+  Frame env audio engine proofA res { | graph } control ->
   Scene env audio engine proofA res
 makeSceneRFlipped a b = makeSceneR b a
 
@@ -303,12 +303,12 @@ infixr 6 makeSceneRFlipped as <|@
 
 -- | Similar to `makeSceneR'`, but without the possibility to consult an env. Aliased as `@||>`.
 makeSceneR' ::
-  forall env audio engine proofA res graph a.
+  forall env audio engine proofA res graph control.
   Monoid res =>
   AudioInterpret audio engine =>
-  WAG audio engine proofA res { | graph } a ->
+  WAG audio engine proofA res { | graph } control ->
   ( forall proofB.
-    WAG audio engine proofB res { | graph } a ->
+    WAG audio engine proofB res { | graph } control ->
     Scene env audio engine proofB res
   ) ->
   Scene env audio engine proofA res
@@ -317,14 +317,14 @@ makeSceneR' a b = makeSceneR (pure a) b
 infixr 6 makeSceneR' as @||>
 
 makeSceneR'Flipped ::
-  forall env audio engine proofA res graph a.
+  forall env audio engine proofA res graph control.
   Monoid res =>
   AudioInterpret audio engine =>
   ( forall proofB.
-    WAG audio engine proofB res { | graph } a ->
+    WAG audio engine proofB res { | graph } control ->
     Scene env audio engine proofB res
   ) ->
-  WAG audio engine proofA res { | graph } a ->
+  WAG audio engine proofA res { | graph } control ->
   Scene env audio engine proofA res
 makeSceneR'Flipped a b = makeSceneR' b a
 
