@@ -32,6 +32,12 @@ instance bindAudioParameter :: Bind AudioParameter_ where
 
 instance monadAudioParameter :: Monad AudioParameter_
 
+instance semigroupAudioParameter :: Semigroup a => Semigroup (AudioParameter_ a) where
+  append = bop append
+
+instance monoidAudioParameter :: Monoid a => Monoid (AudioParameter_ a) where
+  mempty = param mempty
+
 derive instance newtypeAudioParameter :: Newtype (AudioParameter_ a) _
 
 derive newtype instance showAudioParameter :: Show a => Show (AudioParameter_ a)
