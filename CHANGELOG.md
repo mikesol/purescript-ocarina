@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.2] - 2021-06-05
+
+### Added
+
+- Several functions for working with cofree comonads whose functor varies over time.
+- Math functions for working with interpolation.
+
+### Changed
+
+- Eliminates `iwag` and `wag` functions in favor of `icont`.
+
 ## [0.2.1] - 2021-06-02
 
 ### Added
