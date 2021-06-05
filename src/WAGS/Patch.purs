@@ -1,11 +1,11 @@
 module WAGS.Patch where
 
 import Prelude hiding (Ordering(..))
-
+import Data.Either (Either(..))
 import Data.Map as M
 import Data.Set as S
 import Data.Symbol (class IsSymbol, reflectSymbol)
-import Data.Tuple.Nested (type (/\))
+import Data.Tuple.Nested (type (/\), (/\))
 import Data.Typelevel.Bool (False, True)
 import Prim.Ordering (Ordering, LT, GT, EQ)
 import Prim.RowList (class RowToList)
@@ -529,7 +529,7 @@ instance toGraphEffectsMakePeriodicOsc :: (IsSymbol ptr, ToGraphEffects rest) =>
   toGraphEffects _ i =
     toGraphEffects (Proxy :: _ rest)
       ( i
-          { internalNodes = M.insert ptr' (Rendered.APeriodicOsc "" Off (param 440.0)) i.internalNodes
+          { internalNodes = M.insert ptr' (Rendered.APeriodicOsc (Right ([ 0.0 ] /\ [ 0.0 ])) Off (param 440.0)) i.internalNodes
           , instructions = i.instructions <> [ makePeriodicOscWithDeferredOsc ptr' ]
           }
       )
@@ -640,10 +640,10 @@ instance toGraphEffectsMakeWaveShaper :: (IsSymbol ptr, IsSymbol sym, IsOversamp
     oversample' = reflectOversample (mempty :: oversample)
 
 ipatch ::
-    forall audio engine proof res g0 g1.
-    Patch g0 g1 =>
-    AudioInterpret audio engine =>
-    IxWAG audio engine proof res { | g0 } { | g1 } Unit
+  forall audio engine proof res g0 g1.
+  Patch g0 g1 =>
+  AudioInterpret audio engine =>
+  IxWAG audio engine proof res { | g0 } { | g1 } Unit
 ipatch = IxWAG \i -> patch (i $> unit)
 
 class Patch g0 g1 where

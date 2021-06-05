@@ -121,9 +121,6 @@ handleAction = case _ of
     myWave <-
       H.liftEffect
         $ makePeriodicWave audioCtx (0.3 +> -0.1 +> empty) (-0.25 +> 0.05 +> empty)
-    anotherWave <-
-      H.liftEffect
-        $ makePeriodicWave audioCtx (0.1 +> -0.3 +> -0.5 +> 0.05 +> 0.2 +> empty) (-0.05 +> 0.25 +> 0.4 +> -0.2 +> 0.05 +> empty)
     wicked <- H.liftEffect $ makeFloatArray (makeDistortionCurve 400.0)
     let
       recorder =
@@ -136,7 +133,7 @@ handleAction = case _ of
     let
       ffiAudio =
         (defaultFFIAudio audioCtx unitCache)
-          { periodicWaves = O.fromFoldable [ "my-wave" /\ myWave, "another-wave" /\ anotherWave ]
+          { periodicWaves = O.fromFoldable [ "my-wave" /\ myWave ]
           , buffers = O.fromFoldable [ "my-buffer" /\ chimes, "shruti" /\ shruti ]
           , floatArrays = O.singleton "my-waveshaper" wicked
           , recorders = O.singleton "my-recorder" recorder

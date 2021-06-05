@@ -7,7 +7,7 @@ import Data.Set as S
 import Data.Tuple.Nested ((/\), type (/\))
 import FRP.Event.MIDI (MIDIEvent(..))
 import Math (pow)
-import WAGS.Util(calcSlope)
+import WAGS.Math (calcSlope)
 import WAGS.Example.WTK.Types (KeyUnit, MakeRenderingEnv)
 import WAGS.Graph.AudioUnit (OnOff(..))
 import WAGS.Graph.Optionals (defaultGetSetAP)

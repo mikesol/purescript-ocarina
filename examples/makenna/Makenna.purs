@@ -129,7 +129,7 @@ asdr t d
 
 type SceneTemplate
   = CSpeaker
-      { gain :: CGain { osc :: CPeriodicOsc }
+      { gain :: CGain { osc :: CPeriodicOsc String }
       }
 
 type SceneType

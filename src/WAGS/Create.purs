@@ -1,14 +1,15 @@
 module WAGS.Create where
 
 import Prelude
-
 import Control.Comonad (extract)
+import Data.Either (Either(..))
 import Data.Functor (voidRight)
 import Data.Map as M
 import Data.Maybe (Maybe(..))
 import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.Tuple (Tuple, fst)
-import Data.Tuple.Nested ((/\))
+import Data.Tuple.Nested ((/\), type (/\))
+import Data.Vec as V
 import Heterogeneous.Folding (class FoldingWithIndex, class HFoldlWithIndex, hfoldlWithIndex)
 import Prim.Row as R
 import Type.Proxy (Proxy(..))
@@ -21,8 +22,9 @@ import WAGS.Graph.Graph (Graph)
 import WAGS.Graph.Node (NodeC)
 import WAGS.Graph.Oversample (class IsOversample, reflectOversample)
 import WAGS.Graph.Parameter (AudioParameter_(..), AudioParameter, defaultParam)
-import WAGS.Interpret (class AudioInterpret, makeAllpass, makeBandpass, makeConstant, makeConvolver, makeDelay, makeDynamicsCompressor, makeGain, makeHighpass, makeHighshelf, makeLoopBuf, makeLowpass, makeLowshelf, makeMicrophone, makeNotch, makePeaking, makePeriodicOsc, makePlayBuf, makeRecorder, makeSawtoothOsc, makeSinOsc, makeSpeaker, makeSquareOsc, makeStereoPanner, makeTriangleOsc, makeWaveShaper)
+import WAGS.Interpret (class AudioInterpret, makeAllpass, makeBandpass, makeConstant, makeConvolver, makeDelay, makeDynamicsCompressor, makeGain, makeHighpass, makeHighshelf, makeLoopBuf, makeLowpass, makeLowshelf, makeMicrophone, makeNotch, makePeaking, makePeriodicOsc, makePeriodicOscV, makePlayBuf, makeRecorder, makeSawtoothOsc, makeSinOsc, makeSpeaker, makeSquareOsc, makeStereoPanner, makeTriangleOsc, makeWaveShaper)
 import WAGS.Rendered (AnAudioUnit(..))
+import WAGS.Util (tmap)
 
 data CreateFoldingWithIndex
   = CreateFoldingWithIndex
@@ -812,7 +814,7 @@ instance createPeriodicOsc ::
   ) =>
   Create'
     ptr
-    (CTOR.PeriodicOsc argA)
+    (CTOR.PeriodicOsc String argA)
     graphi
     grapho where
   create' ptr w = o
@@ -827,8 +829,39 @@ instance createPeriodicOsc ::
       unsafeWAG
         { context:
             i
-              { internalNodes = (M.insert nn (APeriodicOsc oscName onOff argA_iv') i.internalNodes)
+              { internalNodes = (M.insert nn (APeriodicOsc (Left oscName) onOff argA_iv') i.internalNodes)
               , instructions = i.instructions <> [ makePeriodicOsc nn oscName onOff argA_iv' ]
+              }
+        , value: unit
+        }
+
+instance createPeriodicOsc2 ::
+  ( IsSymbol ptr
+  , InitialVal argA
+  , R.Lacks ptr graphi
+  , R.Cons ptr (NodeC CTOR.TPeriodicOsc {}) graphi grapho
+  ) =>
+  Create'
+    ptr
+    (CTOR.PeriodicOsc (V.Vec a Number /\ V.Vec a Number) argA)
+    graphi
+    grapho where
+  create' ptr w = o
+    where
+    { context: i, value: (CTOR.PeriodicOsc oscSpec onOff argA) } = unsafeUnWAG w
+
+    nn = reflectSymbol ptr
+
+    argA_iv' = initialVal argA
+
+    rPeriodicWave = Right (tmap V.toArray oscSpec)
+
+    o =
+      unsafeWAG
+        { context:
+            i
+              { internalNodes = (M.insert nn (APeriodicOsc rPeriodicWave onOff argA_iv') i.internalNodes)
+              , instructions = i.instructions <> [ makePeriodicOscV nn oscSpec onOff argA_iv' ]
               }
         , value: unit
         }

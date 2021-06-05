@@ -452,6 +452,7 @@ exports.makePeriodicOscWithDeferredOsc_ = function (ptr) {
     };
   };
 };
+
 exports.makePeriodicOsc_ = function (ptr) {
   return function (a) {
     return function (onOff) {
@@ -472,6 +473,42 @@ exports.makePeriodicOsc_ = function (ptr) {
                 },
                 periodicOsc: function (i) {
                   i.setPeriodicWave(state.periodicWaves[a]);
+                },
+              },
+              main: createFunction(),
+            };
+            applyResumeClosure(state.units[ptr]);
+            if (onOff) {
+              state.units[ptr].main.start(state.writeHead + b.timeOffset);
+            }
+          };
+        };
+      };
+    };
+  };
+};
+exports.makePeriodicOscV_ = function (ptr) {
+  return function (a) {
+    return function (onOff) {
+      return function (b) {
+        return function (state) {
+          return function () {
+            var createFunction = function () {
+              var unit = state.context.createOscillator();
+              return unit;
+            };
+            state.units[ptr] = {
+              outgoing: [],
+              incoming: [],
+              createFunction: createFunction,
+              resumeClosure: {
+                frequency: function (i) {
+                  genericStarter(i, "frequency", b);
+                },
+                periodicOsc: function (i) {
+                  i.setPeriodicWave(
+                    makePeriodicWaveImpl(state.context)(a[0])(a[1])()
+                  );
                 },
               },
               main: createFunction(),
@@ -732,6 +769,7 @@ exports.setBuffer_ = function (ptr) {
     };
   };
 };
+
 exports.setPeriodicOsc_ = function (ptr) {
   return function (periodicOsc) {
     return function (state) {
@@ -743,7 +781,21 @@ exports.setPeriodicOsc_ = function (ptr) {
     };
   };
 };
-
+exports.setPeriodicOscV_ = function (ptr) {
+  return function (periodicOsc) {
+    return function (state) {
+      return function () {
+        state.units[ptr].resumeClosure.periodicOsc = function (i) {
+          i.setPeriodicWave(
+            makePeriodicWaveImpl(state.context)(periodicOsc[0])(
+              periodicOsc[1]
+            )()
+          );
+        };
+      };
+    };
+  };
+};
 var applyResumeClosure = function (i) {
   for (var key in i.resumeClosure) {
     if (i.resumeClosure.hasOwnProperty(key)) {
@@ -1020,7 +1072,7 @@ exports.makeAudioBuffer = function (ctx) {
   };
 };
 
-exports.makePeriodicWaveImpl = function (ctx) {
+var makePeriodicWaveImpl = function (ctx) {
   return function (real_) {
     return function (imag_) {
       return function () {
@@ -1039,7 +1091,7 @@ exports.makePeriodicWaveImpl = function (ctx) {
     };
   };
 };
-
+exports.makePeriodicWaveImpl = makePeriodicWaveImpl;
 exports.makeFloatArray = function (fa) {
   return function () {
     var r = new Float32Array(fa.length);

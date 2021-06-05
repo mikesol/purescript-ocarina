@@ -47,6 +47,7 @@ module WAGS.Interpret
   , makeNotch
   , makePeaking
   , makePeriodicOsc
+  , makePeriodicOscV
   , makePeriodicOscWithDeferredOsc
   , makePeriodicWave
   , makePlayBuf
@@ -65,6 +66,7 @@ module WAGS.Interpret
   , safeToFFI
   , setBuffer
   , setPeriodicOsc
+  , setPeriodicOscV
   , setAttack
   , setDelay
   , setFrequency
@@ -88,8 +90,10 @@ module WAGS.Interpret
 import Prelude
 import Control.Plus (empty)
 import Control.Promise (Promise, toAffE)
+import Data.Either (Either(..))
 import Data.Maybe (Maybe, fromMaybe, isNothing)
 import Data.Nullable (Nullable, null)
+import Data.Tuple.Nested (type (/\), (/\))
 import Data.Typelevel.Num (class Pos)
 import Data.Vec (Vec)
 import Data.Vec as V
@@ -102,6 +106,7 @@ import Unsafe.Coerce (unsafeCoerce)
 import WAGS.Graph.AudioUnit (OnOff(..))
 import WAGS.Graph.Parameter (AudioParameter_(..), AudioParameter)
 import WAGS.Rendered (Instruction(..), Oversample(..))
+import WAGS.Util (tmap)
 
 -- | A [MediaRecorder](https://developer.mozilla.org/en-US/docs/Web/API/MediaRecorder).
 foreign import data MediaRecorder :: Type
@@ -307,6 +312,8 @@ class AudioInterpret audio engine where
   makePeriodicOscWithDeferredOsc :: String -> audio -> engine
   -- | Make a periodic oscillator.
   makePeriodicOsc :: String -> String -> OnOff -> AudioParameter -> audio -> engine
+  -- | Make a periodic oscillator
+  makePeriodicOscV :: forall (a :: Type). String -> V.Vec a Number /\ V.Vec a Number -> OnOff -> AudioParameter -> audio -> engine
   -- | Make an audio buffer node with a deferred buffer.
   makePlayBufWithDeferredBuffer :: String -> audio -> engine
   -- | Make an audio buffer node.
@@ -331,6 +338,8 @@ class AudioInterpret audio engine where
   setBuffer :: String -> String -> audio -> engine
   -- | Sets the periodic oscillator to read from in a periodicOsc
   setPeriodicOsc :: String -> String -> audio -> engine
+  -- | Sets the periodic oscillator to read from in a periodicOsc
+  setPeriodicOscV :: forall (a :: Type). String -> V.Vec a Number /\ V.Vec a Number -> audio -> engine
   -- | Turn on a generator (an oscillator or playback node).
   setOn :: String -> audio -> engine
   -- | Turn off a generator (an oscillator or playback node).
@@ -386,7 +395,8 @@ instance freeAudioInterpret :: AudioInterpret Unit Instruction where
   makeMicrophone = const $ MakeMicrophone
   makeNotch a b c = const $ MakeNotch a b c
   makePeaking a b c d = const $ MakePeaking a b c d
-  makePeriodicOsc a b c d = const $ MakePeriodicOsc a b c d
+  makePeriodicOsc a b c d = const $ MakePeriodicOsc a (Left b) c d
+  makePeriodicOscV a b c d = const $ MakePeriodicOsc a (Right (tmap V.toArray b)) c d
   makePeriodicOscWithDeferredOsc a = const $ MakePeriodicOscWithDeferredOsc a
   makePlayBufWithDeferredBuffer a = const $ MakePlayBufWithDeferredBuffer a
   makePlayBuf a b c d e = const $ MakePlayBuf a b c d e
@@ -399,7 +409,8 @@ instance freeAudioInterpret :: AudioInterpret Unit Instruction where
   makeTriangleOsc a b c = const $ MakeTriangleOsc a b c
   makeWaveShaper a b c = const $ MakeWaveShaper a b c
   setBuffer a b = const $ SetBuffer a b
-  setPeriodicOsc a b = const $ SetPeriodicOsc a b
+  setPeriodicOsc a b = const $ SetPeriodicOsc a (Left b)
+  setPeriodicOscV a b = const $ SetPeriodicOsc a (Right (tmap V.toArray b))
   setOn a = const $ SetOn a
   setOff a = const $ SetOff a
   setBufferOffset a b = const $ SetBufferOffset a b
@@ -462,6 +473,8 @@ foreign import makePeriodicOscWithDeferredOsc_ :: String -> FFIAudio' -> Effect 
 
 foreign import makePeriodicOsc_ :: String -> String -> Boolean -> FFIAudioParameter' -> FFIAudio' -> Effect Unit
 
+foreign import makePeriodicOscV_ :: String -> (Array (Array Number)) -> Boolean -> FFIAudioParameter' -> FFIAudio' -> Effect Unit
+
 foreign import makePlayBufWithDeferredBuffer_ :: String -> FFIAudio' -> Effect Unit
 
 foreign import makePlayBuf_ :: String -> String -> Number -> Boolean -> FFIAudioParameter' -> FFIAudio' -> Effect Unit
@@ -520,6 +533,8 @@ foreign import setBuffer_ :: String -> String -> FFIAudio' -> Effect Unit
 
 foreign import setPeriodicOsc_ :: String -> String -> FFIAudio' -> Effect Unit
 
+foreign import setPeriodicOscV_ :: String -> Array (Array Number) -> FFIAudio' -> Effect Unit
+
 instance effectfulAudioInterpret :: AudioInterpret FFIAudio (Effect Unit) where
   connectXToY a b c = connectXToY_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
   disconnectXFromY a b c = disconnectXFromY_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
@@ -542,6 +557,7 @@ instance effectfulAudioInterpret :: AudioInterpret FFIAudio (Effect Unit) where
   makePeaking a b c d e = makePeaking_ (safeToFFI a) (safeToFFI b) (safeToFFI c) (safeToFFI d) (safeToFFI e)
   makePeriodicOscWithDeferredOsc a b = makePeriodicOscWithDeferredOsc_ (safeToFFI a) (safeToFFI b)
   makePeriodicOsc a b c d e = makePeriodicOsc_ (safeToFFI a) (safeToFFI b) (safeToFFI c) (safeToFFI d) (safeToFFI e)
+  makePeriodicOscV a b c d e = makePeriodicOscV_ (safeToFFI a) (safeToFFI b) (safeToFFI c) (safeToFFI d) (safeToFFI e)
   makePlayBufWithDeferredBuffer a b = makePlayBufWithDeferredBuffer_ (safeToFFI a) (safeToFFI b)
   makePlayBuf a b c d e f = makePlayBuf_ (safeToFFI a) (safeToFFI b) (safeToFFI c) (safeToFFI d) (safeToFFI e) (safeToFFI f)
   makeRecorder a b c = makeRecorder_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
@@ -554,6 +570,7 @@ instance effectfulAudioInterpret :: AudioInterpret FFIAudio (Effect Unit) where
   makeWaveShaper a b c d = makeWaveShaper_ (safeToFFI a) (safeToFFI b) (safeToFFI c) (safeToFFI d)
   setBuffer a b c = setBuffer_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
   setPeriodicOsc a b c = setPeriodicOsc_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
+  setPeriodicOscV a b c = setPeriodicOscV_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
   setOn a b = setOn_ (safeToFFI a) (safeToFFI b)
   setOff a b = setOff_ (safeToFFI a) (safeToFFI b)
   setBufferOffset a b c = setBufferOffset_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
@@ -581,6 +598,9 @@ instance safeToFFI_Int :: SafeToFFI Int Int where
 
 instance safeToFFI_Number :: SafeToFFI Number Number where
   safeToFFI = identity
+
+instance safeToFFI_VecNumber :: SafeToFFI (V.Vec a Number /\ V.Vec a Number) (Array (Array Number)) where
+  safeToFFI (a /\ b) = [ V.toArray a, V.toArray b ]
 
 instance safeToFFI_String :: SafeToFFI String String where
   safeToFFI = identity

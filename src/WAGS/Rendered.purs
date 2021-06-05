@@ -5,6 +5,9 @@
 module WAGS.Rendered where
 
 import Prelude
+
+import Data.Either (Either)
+import Data.Tuple.Nested(type (/\))
 import Data.Generic.Rep (class Generic)
 import Data.Show.Generic (genericShow)
 import WAGS.Graph.AudioUnit (OnOff)
@@ -34,7 +37,7 @@ data Instruction
   | MakeNotch String AudioParameter AudioParameter
   | MakePeaking String AudioParameter AudioParameter AudioParameter
   | MakePeriodicOscWithDeferredOsc String
-  | MakePeriodicOsc String String OnOff AudioParameter
+  | MakePeriodicOsc String (Either String (Array Number /\ Array Number)) OnOff AudioParameter
   | MakePlayBuf String String Number OnOff AudioParameter
   | MakePlayBufWithDeferredBuffer String
   | MakeRecorder String String
@@ -46,7 +49,7 @@ data Instruction
   | MakeTriangleOsc String OnOff AudioParameter
   | MakeWaveShaper String String Oversample
   | SetBuffer String String
-  | SetPeriodicOsc String String
+  | SetPeriodicOsc String (Either String (Array Number /\ Array Number))
   | SetOn String
   | SetOff String
   | SetBufferOffset String Number
@@ -104,7 +107,7 @@ data AnAudioUnit
   | AMicrophone
   | ANotch AudioParameter AudioParameter
   | APeaking AudioParameter AudioParameter AudioParameter
-  | APeriodicOsc String OnOff AudioParameter
+  | APeriodicOsc (Either String (Array Number /\ Array Number)) OnOff AudioParameter
   | APlayBuf String Number OnOff AudioParameter
   | ARecorder String
   | ASawtoothOsc OnOff AudioParameter

@@ -6,6 +6,7 @@ import ConvertableOptions (class ConvertOption, class ConvertOptionsWithDefaults
 import Data.Symbol (class IsSymbol)
 import Data.Tuple (Tuple(..), fst)
 import Data.Tuple.Nested ((/\), type (/\))
+import Data.Vec as V
 import Type.Proxy (Proxy)
 import WAGS.Change (class SetterVal, setterVal)
 import WAGS.Create (class InitialVal, initialVal)
@@ -899,14 +900,28 @@ instance periodicOsc1_ ::
   ( InitialVal a
   , SetterVal a
   ) =>
-  PeriodicOscCtor_ String (a -> CTOR.PeriodicOsc GetSetAP) where
+  PeriodicOscCtor_ String (a -> CTOR.PeriodicOsc String GetSetAP) where
   periodicOsc_ px gvsv = CTOR.PeriodicOsc px On (Tuple (initialVal gvsv) (setterVal gvsv))
 
 instance periodicOsc2_ ::
   ( InitialVal a
   , SetterVal a
   ) =>
-  PeriodicOscCtor_ OnOff (String -> a -> CTOR.PeriodicOsc GetSetAP) where
+  PeriodicOscCtor_ (V.Vec size Number /\ V.Vec size Number) (a -> CTOR.PeriodicOsc (V.Vec size Number /\ V.Vec size Number) GetSetAP) where
+  periodicOsc_ px gvsv = CTOR.PeriodicOsc px On (Tuple (initialVal gvsv) (setterVal gvsv))
+
+class IsPoscable (isPoscable :: Type)
+
+instance isPoscableString :: IsPoscable String
+
+instance isPoscableV :: IsPoscable (V.Vec size Number /\ V.Vec size Number)
+
+instance periodicOsc3_ ::
+  ( InitialVal a
+  , SetterVal a
+  , IsPoscable isPoscable
+  ) =>
+  PeriodicOscCtor_ OnOff (isPoscable -> a -> CTOR.PeriodicOsc isPoscable GetSetAP) where
   periodicOsc_ oo px gvsv = CTOR.PeriodicOsc px oo (Tuple (initialVal gvsv) (setterVal gvsv))
 
 class PeriodicOscCtor i o | i -> o where
@@ -922,21 +937,29 @@ instance periodicOsc1 ::
   ( InitialVal a
   , SetterVal a
   ) =>
-  PeriodicOscCtor String (a -> CTOR.PeriodicOsc GetSetAP /\ {}) where
+  PeriodicOscCtor String (a -> CTOR.PeriodicOsc String GetSetAP /\ {}) where
   periodicOsc px gvsv = CTOR.PeriodicOsc px On (Tuple (initialVal gvsv) (setterVal gvsv)) /\ {}
 
 instance periodicOsc2 ::
   ( InitialVal a
   , SetterVal a
   ) =>
-  PeriodicOscCtor OnOff (String -> a -> CTOR.PeriodicOsc GetSetAP /\ {}) where
+  PeriodicOscCtor (V.Vec size Number /\ V.Vec size Number) (a -> CTOR.PeriodicOsc (V.Vec size Number /\ V.Vec size Number) GetSetAP /\ {}) where
+  periodicOsc px gvsv = CTOR.PeriodicOsc px On (Tuple (initialVal gvsv) (setterVal gvsv)) /\ {}
+
+instance periodicOsc3 ::
+  ( InitialVal a
+  , SetterVal a
+  , IsPoscable isPoscable
+  ) =>
+  PeriodicOscCtor OnOff (isPoscable -> a -> CTOR.PeriodicOsc isPoscable GetSetAP /\ {}) where
   periodicOsc oo px gvsv = CTOR.PeriodicOsc px oo (Tuple (initialVal gvsv) (setterVal gvsv)) /\ {}
 
-type CPeriodicOsc
-  = CTOR.PeriodicOsc GetSetAP /\ {}
+type CPeriodicOsc periodicOsc
+  = CTOR.PeriodicOsc periodicOsc GetSetAP /\ {}
 
-type DPeriodicOsc
-  = CTOR.PeriodicOsc GetSetAP
+type DPeriodicOsc periodicOsc
+  = CTOR.PeriodicOsc periodicOsc GetSetAP
 
 ---
 data PlayBuf'

@@ -7,7 +7,6 @@ import Control.Monad.Indexed.Qualified as Ix
 import Data.Either (Either(..))
 import Math ((%))
 import Type.Proxy (Proxy(..))
-import WAGS.Change (ichange)
 import WAGS.Connect (iconnect)
 import WAGS.Control.Functions (ibranch, icont)
 import WAGS.Create (icreate)
@@ -24,7 +23,7 @@ doPeriodicOsc :: forall proof. StepSig PeriodicOscGraph proof
 doPeriodicOsc =
   ibranch \{ time } lsig ->
     if time % pieceTime < timing.ksPeriodicOsc.end then
-      Right (ichange (deltaKsPeriodicOsc time) $> lsig)
+      Right (deltaKsPeriodicOsc time $> lsig)
     else
       Left
         $ icont doSawtoothOsc Ix.do

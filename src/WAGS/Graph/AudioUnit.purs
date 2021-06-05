@@ -159,8 +159,8 @@ type GetPeaking
 -- | - `periodicOsc` - the name of the wave table we'll be using. Note that, for a chance to take effect, the periodic oscillator must be stopped.
 -- | - `OnOff` - whether the generator is on or off.
 -- | - `frequency` - the frequency of the oscillator.
-data PeriodicOsc frequency
-  = PeriodicOsc String OnOff frequency
+data PeriodicOsc periodicOsc frequency
+  = PeriodicOsc periodicOsc OnOff frequency
 
 type GetPeriodicOsc
   = PeriodicOsc AudioParameter
@@ -494,7 +494,7 @@ instance semigroupTPeriodicOsc :: Semigroup TPeriodicOsc where
 instance monoidTPeriodicOsc :: Monoid TPeriodicOsc where
   mempty = TPeriodicOsc
 
-instance reifyTPeriodicOsc :: ReifyAU (PeriodicOsc a) TPeriodicOsc where
+instance reifyTPeriodicOsc :: ReifyAU (PeriodicOsc periodicOsc a) TPeriodicOsc where
   reifyAU = const mempty
 
 -- | Type-level constructor for playback from a buffer.
