@@ -3,7 +3,8 @@ module WAGS.Example.KitchenSink.Types.Lowpass where
 import Prelude
 import Data.Tuple.Nested (type (/\))
 import Math ((%))
-import WAGS.Example.KitchenSink.Timing (calcSlope, timing, pieceTime)
+import WAGS.Math (calcSlope)
+import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
 import WAGS.Example.KitchenSink.Types.Empty (TopWith)
 import WAGS.Graph.AudioUnit (OnOff(..), TLowpass, TPlayBuf)
 import WAGS.Graph.Optionals (CLowpass, CPlayBuf, DGain, DPlayBuf, DLowpass, lowpass, lowpass_, gain_, playBuf, playBuf_)

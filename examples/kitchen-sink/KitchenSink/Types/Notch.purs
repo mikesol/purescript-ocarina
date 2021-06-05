@@ -3,7 +3,8 @@ module WAGS.Example.KitchenSink.Types.Notch where
 import Prelude
 import Data.Tuple.Nested (type (/\))
 import Math ((%))
-import WAGS.Example.KitchenSink.Timing (calcSlope, timing, pieceTime)
+import WAGS.Math (calcSlope)
+import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
 import WAGS.Example.KitchenSink.Types.Empty (TopWith)
 import WAGS.Graph.AudioUnit (OnOff(..), TNotch, TPlayBuf)
 import WAGS.Graph.Optionals (CNotch, CPlayBuf, DGain, DPlayBuf, DNotch, notch, notch_, gain_, playBuf, playBuf_)

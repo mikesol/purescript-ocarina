@@ -3,7 +3,8 @@ module WAGS.Example.KitchenSink.Types.Lowshelf where
 import Prelude
 import Data.Tuple.Nested (type (/\))
 import Math ((%))
-import WAGS.Example.KitchenSink.Timing (calcSlope, timing, pieceTime)
+import WAGS.Math (calcSlope)
+import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
 import WAGS.Example.KitchenSink.Types.Empty (TopWith)
 import WAGS.Graph.AudioUnit (OnOff(..), TLowshelf, TPlayBuf)
 import WAGS.Graph.Optionals (CLowshelf, CPlayBuf, DGain, DPlayBuf, DLowshelf, lowshelf, lowshelf_, gain_, playBuf, playBuf_)

@@ -102,15 +102,3 @@ timing =
 
 pieceTime :: Number
 pieceTime = hfoldl (\(a :: Number) (b :: TimeInfo') -> max a b.end) 0.0 timing
-
-calcSlope :: Number -> Number -> Number -> Number -> Number -> Number
-calcSlope x0 y0 x1 y1 x =
-  if x1 == x0 || y1 == y0 then
-    y0
-  else
-    let
-      m = (y1 - y0) / (x1 - x0)
-
-      b = y0 - m * x0
-    in
-      m * x + b

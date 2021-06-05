@@ -3,7 +3,8 @@ module WAGS.Example.KitchenSink.Types.Peaking where
 import Prelude
 import Data.Tuple.Nested (type (/\))
 import Math ((%))
-import WAGS.Example.KitchenSink.Timing (calcSlope, timing, pieceTime)
+import WAGS.Math (calcSlope)
+import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
 import WAGS.Example.KitchenSink.Types.Empty (TopWith)
 import WAGS.Graph.AudioUnit (OnOff(..), TPeaking, TPlayBuf)
 import WAGS.Graph.Optionals (CPeaking, CPlayBuf, DGain, DPlayBuf, DPeaking, peaking, peaking_, gain_, playBuf, playBuf_)

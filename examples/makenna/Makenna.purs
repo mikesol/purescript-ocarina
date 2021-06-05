@@ -30,6 +30,7 @@ import Math (pow)
 import WAGS.Change (ichange)
 import WAGS.Control.Functions.Validated (iloop, (@!>))
 import WAGS.Control.Indexed (IxFrame)
+import WAGS.Math (calcSlope)
 import WAGS.Control.Types (Frame0, Scene)
 import WAGS.Create (icreate)
 import WAGS.Graph.AudioUnit (TGain, TPeriodicOsc, TSpeaker)
@@ -109,18 +110,6 @@ score'' = map inTempo score'
 
 midiToCps :: Number -> Number
 midiToCps i = 440.0 * (2.0 `pow` ((i - 69.0) / 12.0))
-
-calcSlope :: Number -> Number -> Number -> Number -> Number -> Number
-calcSlope x0 y0 x1 y1 x =
-  if x1 == x0 || y1 == y0 then
-    y0
-  else
-    let
-      m = (y1 - y0) / (x1 - x0)
-
-      b = y0 - m * x0
-    in
-      m * x + b
 
 shortAsdr :: Number -> Number
 shortAsdr t

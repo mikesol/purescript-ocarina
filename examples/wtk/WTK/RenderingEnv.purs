@@ -7,6 +7,7 @@ import Data.Set as S
 import Data.Tuple.Nested ((/\), type (/\))
 import FRP.Event.MIDI (MIDIEvent(..))
 import Math (pow)
+import WAGS.Util(calcSlope)
 import WAGS.Example.WTK.Types (KeyUnit, MakeRenderingEnv)
 import WAGS.Graph.AudioUnit (OnOff(..))
 import WAGS.Graph.Optionals (defaultGetSetAP)
@@ -16,18 +17,6 @@ keyDur = 1.6
 
 keyToCps :: Int -> Number
 keyToCps i = 440.0 * (2.0 `pow` ((toNumber i - 69.0) / 12.0))
-
-calcSlope :: Number -> Number -> Number -> Number -> Number -> Number
-calcSlope x0 y0 x1 y1 x =
-  if x1 == x0 || y1 == y0 then
-    y0
-  else
-    let
-      m = (y1 - y0) / (x1 - x0)
-
-      b = y0 - m * x0
-    in
-      m * x + b
 
 dampen :: Number -> Number -> Number
 dampen currentTime offTime

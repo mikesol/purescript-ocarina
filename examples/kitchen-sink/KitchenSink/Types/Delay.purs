@@ -3,7 +3,8 @@ module WAGS.Example.KitchenSink.Types.Delay where
 import Prelude
 import Data.Tuple.Nested (type (/\))
 import Math ((%))
-import WAGS.Example.KitchenSink.Timing (calcSlope, timing, pieceTime)
+import WAGS.Math (calcSlope)
+import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
 import WAGS.Example.KitchenSink.Types.Empty (TopWith)
 import WAGS.Graph.AudioUnit (OnOff(..), TDelay, TGain, TPlayBuf)
 import WAGS.Graph.Optionals (CDelay, CGain, CPlayBuf, DDelay, DGain, DPlayBuf, Ref, delay, delay_, gain, gain_, playBuf, playBuf_, ref)
