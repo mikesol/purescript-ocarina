@@ -1,10 +1,13 @@
 module WAGS.Graph.Parameter where
 
-import Prelude
+import Prelude hiding (apply)
+import Data.Function (apply)
 import Data.Generic.Rep (class Generic)
 import Data.Maybe (Maybe(..), maybe)
 import Data.Newtype (class Newtype)
 import Data.Show.Generic (genericShow)
+import Record as R
+import Type.Proxy (Proxy(..))
 
 -- | A control-rate audio parameter as a newtype.
 newtype AudioParameter_ a
@@ -13,16 +16,30 @@ newtype AudioParameter_ a
 type AudioParameter
   = AudioParameter_ Number
 
-derive instance newtypeAudioParameter :: Newtype (AudioParameter_ a) _
+derive instance eqAudioParameter :: Eq a => Eq (AudioParameter_ a)
 
-derive newtype instance eqAudioParameter :: Eq a => Eq (AudioParameter_ a)
+derive instance functorAudioParameter :: Functor AudioParameter_
+
+instance applyAudioParameter :: Apply AudioParameter_ where
+  apply = bop apply
+
+instance applicativeAudioParameter :: Applicative AudioParameter_ where
+  pure = param
+
+instance bindAudioParameter :: Bind AudioParameter_ where
+  bind ma@(AudioParameter i@{ param: Nothing }) _ = AudioParameter (i { param = Nothing })
+  bind ma@(AudioParameter i@{ param: Just a }) f = AudioParameter (R.set (Proxy :: _ "param") (Just identity) i) <*> f a
+
+instance monadAudioParameter :: Monad AudioParameter_
+
+derive instance newtypeAudioParameter :: Newtype (AudioParameter_ a) _
 
 derive newtype instance showAudioParameter :: Show a => Show (AudioParameter_ a)
 
-uop :: forall a. (a -> a) -> AudioParameter_ a -> AudioParameter_ a
+uop :: forall a b. (a -> b) -> AudioParameter_ a -> AudioParameter_ b
 uop f (AudioParameter a0@{ param: param0, timeOffset: timeOffset0, transition: transition0, forceSet: forceSet0 }) = AudioParameter { param: f <$> param0, timeOffset: timeOffset0, transition: transition0, forceSet: forceSet0 }
 
-bop :: forall a. (a -> a -> a) -> AudioParameter_ a -> AudioParameter_ a -> AudioParameter_ a
+bop :: forall a b c. (a -> b -> c) -> AudioParameter_ a -> AudioParameter_ b -> AudioParameter_ c
 bop f (AudioParameter a0@{ param: param0, timeOffset: timeOffset0, transition: transition0, forceSet: forceSet0 }) (AudioParameter a1@{ param: param1, timeOffset: timeOffset1, transition: transition1, forceSet: forceSet1 }) = AudioParameter { param: f <$> param0 <*> param1, timeOffset: timeOffset0 + timeOffset1 / 2.0, transition: transition0 <> transition1, forceSet: forceSet0 || forceSet1 }
 
 instance semiringAudioParameter :: Semiring a => Semiring (AudioParameter_ a) where
@@ -88,13 +105,8 @@ instance semigroupAudioParameterTransition :: Semigroup AudioParameterTransition
   append _ _ = NoRamp
 
 -- | Create an audio parameter from a number using default parameters.
-param :: Number -> AudioParameter
-param =
-  AudioParameter
-    <<< defaultParam
-        { param = _
-        }
-    <<< Just
+param :: forall a. a -> AudioParameter_ a
+param a = AudioParameter (R.set (Proxy :: _ "param") (Just a) defaultParam)
 
 ff :: forall a. Number -> AudioParameter_ a -> AudioParameter_ a
 ff n (AudioParameter i) = AudioParameter (i { timeOffset = i.timeOffset + n })
