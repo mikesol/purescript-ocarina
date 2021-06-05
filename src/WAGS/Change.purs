@@ -3,12 +3,14 @@ module WAGS.Change where
 import Prelude
 
 import Control.Comonad (extract)
+import Data.Either (Either(..))
 import Data.Functor (voidRight)
 import Data.Map as M
 import Data.Maybe (Maybe(..))
 import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.Tuple (Tuple, snd)
 import Data.Tuple.Nested ((/\), type (/\))
+import Data.Vec as V
 import Heterogeneous.Folding (class FoldingWithIndex, class HFoldlWithIndex, hfoldlWithIndex)
 import Partial.Unsafe (unsafePartial)
 import Prim.Row as R
@@ -21,8 +23,9 @@ import WAGS.Graph.AudioUnit as CTOR
 import WAGS.Graph.Graph (Graph)
 import WAGS.Graph.Node (NodeC)
 import WAGS.Graph.Parameter (AudioParameter_(..), AudioParameter, defaultParam, param)
-import WAGS.Interpret (class AudioInterpret, setAttack, setBuffer, setBufferOffset, setDelay, setFrequency, setGain, setKnee, setLoopEnd, setLoopStart, setOff, setOffset, setOn, setPan, setPeriodicOsc, setPlaybackRate, setQ, setRatio, setRelease, setThreshold)
+import WAGS.Interpret (class AudioInterpret, setAttack, setBuffer, setBufferOffset, setDelay, setFrequency, setGain, setKnee, setLoopEnd, setLoopStart, setOff, setOffset, setOn, setPan, setPeriodicOsc, setPeriodicOscV, setPlaybackRate, setQ, setRatio, setRelease, setThreshold)
 import WAGS.Rendered (AnAudioUnit(..))
+import WAGS.Util (tmap)
 
 type ChangeType (ptr :: Symbol) (a :: Type) (graph :: Graph) (b :: Type)
   = forall proxy audio engine proof res.
@@ -809,7 +812,7 @@ instance changePeriodicOsc ::
   , SetterVal argA
   , R.Cons ptr (NodeC CTOR.TPeriodicOsc edges) ignore graphi
   ) =>
-  Change' ptr (CTOR.PeriodicOsc argA) graphi (CTOR.PeriodicOsc AudioParameter) where
+  Change' ptr (CTOR.PeriodicOsc String argA) graphi (CTOR.PeriodicOsc String AudioParameter) where
   change' ptr w = o
     where
     { context: i, value: (CTOR.PeriodicOsc periodicWave onOff argA) } = unsafeUnWAG w
@@ -818,7 +821,7 @@ instance changePeriodicOsc ::
 
     lookup = M.lookup nn i.internalNodes
 
-    partial :: Partial => Maybe AnAudioUnit -> String /\ OnOff /\ AudioParameter
+    partial :: Partial => Maybe AnAudioUnit -> Either String (Array Number /\ Array Number) /\ OnOff /\ AudioParameter
     partial (Just (APeriodicOsc a b c)) = a /\ b /\ c
 
     oldPeriodicWave /\ oldOnOff /\ v_argA@(AudioParameter v_argA') = unsafePartial $ partial lookup
@@ -835,8 +838,47 @@ instance changePeriodicOsc ::
       unsafeWAG
         { context:
             i
-              { internalNodes = (M.insert nn (APeriodicOsc periodicWave onOff argA_iv') i.internalNodes)
-              , instructions = i.instructions <> ((if periodicWave /= oldPeriodicWave then [ setPeriodicOsc nn periodicWave ] else []) <> argA_Changes <> (if onOffDiff then [ (if onOff == On then setOn else setOff) nn ] else []))
+              { internalNodes = (M.insert nn (APeriodicOsc (Left periodicWave) onOff argA_iv') i.internalNodes)
+              , instructions = i.instructions <> ((if (Left periodicWave) /= oldPeriodicWave then [ setPeriodicOsc nn periodicWave ] else []) <> argA_Changes <> (if onOffDiff then [ (if onOff == On then setOn else setOff) nn ] else []))
+              }
+        , value: CTOR.PeriodicOsc periodicWave onOff argA_iv'
+        }
+
+instance changePeriodicOsc2 ::
+  ( IsSymbol ptr
+  , SetterVal argA
+  , R.Cons ptr (NodeC CTOR.TPeriodicOsc edges) ignore graphi
+  ) =>
+  Change' ptr (CTOR.PeriodicOsc (V.Vec size Number /\ V.Vec size Number) argA) graphi (CTOR.PeriodicOsc (V.Vec size Number /\ V.Vec size Number) AudioParameter) where
+  change' ptr w = o
+    where
+    { context: i, value: (CTOR.PeriodicOsc periodicWave onOff argA) } = unsafeUnWAG w
+
+    nn = reflectSymbol ptr
+
+    lookup = M.lookup nn i.internalNodes
+
+    partial :: Partial => Maybe AnAudioUnit -> Either String (Array Number /\ Array Number) /\ OnOff /\ AudioParameter
+    partial (Just (APeriodicOsc a b c)) = a /\ b /\ c
+
+    oldPeriodicWave /\ oldOnOff /\ v_argA@(AudioParameter v_argA') = unsafePartial $ partial lookup
+
+    onOffDiff = oldOnOff /= onOff
+
+    s_argA = setterVal argA
+
+    argA_iv' = s_argA v_argA
+
+    argA_Changes = let AudioParameter argA_iv = argA_iv' in if argA_iv.param == v_argA'.param && not argA_iv.forceSet then [] else [ setFrequency nn argA_iv' ]
+
+    rPeriodicWave = Right (tmap V.toArray periodicWave)
+
+    o =
+      unsafeWAG
+        { context:
+            i
+              { internalNodes = (M.insert nn (APeriodicOsc rPeriodicWave onOff argA_iv') i.internalNodes)
+              , instructions = i.instructions <> ((if rPeriodicWave /= oldPeriodicWave then [ setPeriodicOscV nn periodicWave ] else []) <> argA_Changes <> (if onOffDiff then [ (if onOff == On then setOn else setOff) nn ] else []))
               }
         , value: CTOR.PeriodicOsc periodicWave onOff argA_iv'
         }

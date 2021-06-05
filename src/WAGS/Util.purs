@@ -4,7 +4,7 @@ module WAGS.Util where
 import Prelude hiding (Ordering(..))
 
 import Data.Typelevel.Bool (True, False)
-import Math (pow)
+import Data.Tuple.Nested((/\), type (/\))
 import Prim.Ordering (Ordering, LT, GT, EQ)
 import Prim.RowList (RowList)
 import Prim.RowList as RL
@@ -86,30 +86,5 @@ instance rowListEmptyNil :: RowListEmpty RL.Nil True
 
 instance rowListEmptyCons :: RowListEmpty (RL.Cons a b c) False
 
-calcSlope :: Number -> Number -> Number -> Number -> Number -> Number
-calcSlope x0 y0 x1 y1 x =
-  if x1 == x0 || y1 == y0 then
-    y0
-  else
-    let
-      m = (y1 - y0) / (x1 - x0)
-
-      b = y0 - m * x0
-    in
-      m * x + b
-
-calcSlopeExp :: Number -> Number -> Number -> Number -> Number -> Number -> Number
-calcSlopeExp x0 y0 x1 y1 exp x' =
-  if x1 == x0 || y1 == y0 then
-    y0
-  else
-    let
-      dx = x1 - x0
-
-      x = ((((x' - x0) / dx) `pow` exp) * dx) + x0
-
-      m = (y1 - y0) / dx
-
-      b = y0 - m * x0
-    in
-      m * x + b
+tmap :: forall a b. (a -> b) -> a /\ a -> b /\ b
+tmap f (a0 /\ a1) = f a0 /\ f a1
