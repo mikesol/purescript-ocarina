@@ -70,20 +70,6 @@ initialAudioState =
 -- | - a function that accepts a frame from the next moment in time (`proofB`) and returns a scene.
 -- |
 -- | From these arguments, it produces a `Scene`.
--- |
--- | ```purescript
--- | piece :: Scene (SceneI Unit Unit) FFIAudio (Effect Unit) Frame0
--- | piece =
--- |   WAGS.do
--- |     start
--- |     { time } <- env
--- |     create (scene time) $> Right unit
--- |     @> loop -- here, @> is the infix version of `makeScene`
--- |         ( const
--- |             $ WAGS.do
--- |                 { time } <- env
--- |                 ivoid $ change (scene time)
--- |         )
 -- | ```
 makeScene ::
   forall env audio engine proofA res graph control.
@@ -145,21 +131,8 @@ infixr 6 istart as @!>
 
 -- | Loops audio.
 -- |
--- | In WAGS, a "loop" is a universe whose `changeBit` increments by 1. That means that the structure of the graph is similar (no units added, none taken away) while some or none of its internal content (ie frequencies, gains, etc) has changed. This is accomplished using the `change` family of functions in `WAGS.Change`.
--- |
--- | ```purescript
--- | piece :: Scene (SceneI Unit Unit) FFIAudio (Effect Unit) Frame0
--- | piece =
--- |   WAGS.do
--- |     start -- initial frame
--- |     { time } <- env
--- |     create (scene time) $> Right unit
--- |     @> loop -- we loop by changing the scene based on `time` in the `env`
--- |         ( const
--- |             $ WAGS.do
--- |                 { time } <- env
--- |                 ivoid $ change (scene time)
--- |         )
+-- | The first argument is the loop and the second argument is the incoming graph that gets rendered before the loop.
+-- | This means that all changes applied in the loop must be separately applied to the incoming frame if they are relevant.
 -- | ```
 loop ::
   forall env audio engine proofA res graph control.
@@ -184,37 +157,8 @@ iloop ::
   Scene env audio engine proofA res
 iloop fa = loop (\wa e -> let IxWAG f = fa e (extract wa) in f wa)
 
--- | Accepts a "branch" frame for making a scene, where `Left` is a new scene and `Right` is the incoming scene with the change bit incremented by 1. Useful for the common pattern where we loop an audio graph until something in the environment changes, at which point we move on to a new graph.
+-- | Accepts a "branch" frame for making a scene, where `Left` is a new scene and `Right` is the current scene looped.
 -- |
--- | ```purescript
--- | simpleScene =
--- |   ( WAGS.do
--- |       start
--- |       e <- env
--- |       create (scene0 e) $> Right unit
--- |   )
--- |     @> ( branch \_ -> WAGS.do
--- |           { time } <- env
--- |           pr <- proof
--- |           withProof pr
--- |             $ if time < 0.3 then
--- |                 Right
--- |                   (
--- |                       WAGS.do
--- |                         e <- env
--- |                         ivoid $ change (scene0 e)
--- |                   )
--- |               else
--- |                 Left
--- |                   ( loop
--- |                       ( const
--- |                           $ WAGS.do
--- |                               e <- env
--- |                               ivoid $ change (scene1 e)
--- |                       )
--- |                   )
--- |       )
--- | ```
 branch ::
   forall env audio engine proofA res graph control.
   Monoid res =>
@@ -261,9 +205,6 @@ ibranch fa =
 
 -- | Freezes the current audio frame.
 -- |
--- | ```purescript
--- | scene = (start :*> create (speaker (sinOsc 440.0))) @|> freeze
--- | ```
 freeze ::
   forall env audio engine proof res graph x.
   Monoid res =>
