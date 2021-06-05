@@ -99,6 +99,36 @@ param =
 ff :: forall a. Number -> AudioParameter_ a -> AudioParameter_ a
 ff n (AudioParameter i) = AudioParameter (i { timeOffset = i.timeOffset + n })
 
+modTime :: forall a. (Number -> Number) -> AudioParameter_ a -> AudioParameter_ a
+modTime f (AudioParameter i) = AudioParameter (i { timeOffset = f i.timeOffset })
+
+modParam :: forall a. (a -> a) -> AudioParameter_ a -> AudioParameter_ a
+modParam f (AudioParameter i) = AudioParameter (i { param = f <$> i.param })
+
+forceSet :: forall a. AudioParameter_ a -> AudioParameter_ a
+forceSet = modForceSet (const true)
+
+unForceSet :: forall a. AudioParameter_ a -> AudioParameter_ a
+unForceSet = modForceSet (const false)
+
+modForceSet :: forall a. (Boolean -> Boolean) -> AudioParameter_ a -> AudioParameter_ a
+modForceSet f (AudioParameter i) = AudioParameter (i { forceSet = f i.forceSet })
+
+modRamp :: forall a. (AudioParameterTransition -> AudioParameterTransition) -> AudioParameter_ a -> AudioParameter_ a
+modRamp f (AudioParameter i) = AudioParameter (i { transition = f i.transition })
+
+noRamp :: forall a. AudioParameter_ a -> AudioParameter_ a
+noRamp = modRamp (const NoRamp)
+
+linearRamp :: forall a. AudioParameter_ a -> AudioParameter_ a
+linearRamp = modRamp (const LinearRamp)
+
+exponentialRamp :: forall a. AudioParameter_ a -> AudioParameter_ a
+exponentialRamp = modRamp (const ExponentialRamp)
+
+immediately :: forall a. AudioParameter_ a -> AudioParameter_ a
+immediately = modRamp (const Immediately)
+
 -- | A default audio parameter.
 -- |
 -- | defaultParam = { param: 0.0, timeOffset: 0.0, transition: LinearRamp }
