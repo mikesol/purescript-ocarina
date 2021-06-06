@@ -1,10 +1,7 @@
 module WAGS.Disconnect where
 
 import Prelude hiding (Ordering(..))
-
 import Data.Functor (voidRight)
-import Data.Map as M
-import Data.Set as S
 import Data.Symbol (class IsSymbol, reflectSymbol)
 import Prim.Row as R
 import WAGS.Control.Indexed (IxWAG(..))
@@ -43,8 +40,7 @@ instance disconnector ::
     unsafeWAG
       { context:
           i
-            { internalEdges = M.insertWith S.difference toI (S.singleton fromI) (i.internalEdges)
-            , instructions = i.instructions <> [ disconnectXFromY fromI toI ]
+            { instructions = i.instructions <> [ disconnectXFromY fromI toI ]
             }
       , value: unit
       }

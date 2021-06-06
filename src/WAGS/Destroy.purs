@@ -1,9 +1,7 @@
 module WAGS.Destroy where
 
 import Prelude
-
 import Data.Functor (voidRight)
-import Data.Map as M
 import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.Tuple.Nested (type (/\))
 import Prim.Row as R
@@ -42,9 +40,7 @@ instance destroyer ::
     unsafeWAG
       $ { context:
             i
-              { internalNodes = M.delete ptrI (i.internalNodes)
-              , internalEdges = M.delete ptrI (i.internalEdges)
-              , instructions = i.instructions <> [ destroyUnit ptrI ]
+              { instructions = i.instructions <> [ destroyUnit ptrI ]
               }
         , value: unit
         }

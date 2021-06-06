@@ -194,7 +194,7 @@ foreign import makeUnitCache :: Effect Foreign
 -- | taking `Array Effect Unit -> Effect Unit` and doing `map fold <<< sequence`.
 -- | The reason this version is used is because it is ~2x more computationally efficient,
 -- | which is important in order to be able to hit audio deadlines.
-foreign import renderAudio :: FFIAudio -> Array (FFIAudio -> Effect Unit) -> Effect Unit
+foreign import renderAudio :: Array (Effect Unit) -> Effect Unit
 
 -- | Make a browser periodic wave. A PureScript-ified version of the periodic wave constructor
 -- | from the [Web Audio API](https://developer.mozilla.org/en-US/docs/Web/API/PeriodicWave/PeriodicWave).
@@ -635,3 +635,57 @@ instance safeToFFI_AudioParameter ::
     , transition: show transition
     , cancel: isNothing param
     }
+
+instance mixedAudioInterpret :: (AudioInterpret a c, AudioInterpret b d) => AudioInterpret (a /\ b) (c /\ d) where
+  connectXToY a b (x /\ y) = connectXToY a b x /\ connectXToY a b y
+  disconnectXFromY a b (x /\ y) = disconnectXFromY a b x /\ disconnectXFromY a b y
+  destroyUnit a (x /\ y) = destroyUnit a x /\ destroyUnit a y
+  makeAllpass a b c (x /\ y) = makeAllpass a b c x /\ makeAllpass a b c y
+  makeBandpass a b c (x /\ y) = makeBandpass a b c x /\ makeBandpass a b c y
+  makeConstant a b c (x /\ y) = makeConstant a b c x /\ makeConstant a b c y
+  makeConvolver a b (x /\ y) = makeConvolver a b x /\ makeConvolver a b y
+  makeDelay a b (x /\ y) = makeDelay a b x /\ makeDelay a b y
+  makeDynamicsCompressor a b c d e f (x /\ y) = makeDynamicsCompressor a b c d e f x /\ makeDynamicsCompressor a b c d e f y
+  makeGain a b (x /\ y) = makeGain a b x /\ makeGain a b y
+  makeHighpass a b c (x /\ y) = makeHighpass a b c x /\ makeHighpass a b c y
+  makeHighshelf a b c (x /\ y) = makeHighshelf a b c x /\ makeHighshelf a b c y
+  makeLoopBufWithDeferredBuffer a (x /\ y) = makeLoopBufWithDeferredBuffer a x /\ makeLoopBufWithDeferredBuffer a y
+  makeLoopBuf a b c d e f (x /\ y) = makeLoopBuf a b c d e f x /\ makeLoopBuf a b c d e f y
+  makeLowpass a b c (x /\ y) = makeLowpass a b c x /\ makeLowpass a b c y
+  makeLowshelf a b c (x /\ y) = makeLowshelf a b c x /\ makeLowshelf a b c y
+  makeMicrophone (x /\ y) = makeMicrophone x /\ makeMicrophone y
+  makeNotch a b c (x /\ y) = makeNotch a b c x /\ makeNotch a b c y
+  makePeaking a b c d (x /\ y) = makePeaking a b c d x /\ makePeaking a b c d y
+  makePeriodicOsc a b c d (x /\ y) = makePeriodicOsc a b c d x /\ makePeriodicOsc a b c d y
+  makePeriodicOscV a b c d (x /\ y) = makePeriodicOscV a b c d x /\ makePeriodicOscV a b c d y
+  makePeriodicOscWithDeferredOsc a (x /\ y) = makePeriodicOscWithDeferredOsc a x /\ makePeriodicOscWithDeferredOsc a y
+  makePlayBufWithDeferredBuffer a (x /\ y) = makePlayBufWithDeferredBuffer a x /\ makePlayBufWithDeferredBuffer a y
+  makePlayBuf a b c d e (x /\ y) = makePlayBuf a b c d e x /\ makePlayBuf a b c d e y
+  makeRecorder a b (x /\ y) = makeRecorder a b x /\ makeRecorder a b y
+  makeSawtoothOsc a b c (x /\ y) = makeSawtoothOsc a b c x /\ makeSawtoothOsc a b c y
+  makeSinOsc a b c (x /\ y) = makeSinOsc a b c x /\ makeSinOsc a b c y
+  makeSpeaker (x /\ y) = makeSpeaker x /\ makeSpeaker y
+  makeSquareOsc a b c (x /\ y) = makeSquareOsc a b c x /\ makeSquareOsc a b c y
+  makeStereoPanner a b (x /\ y) = makeStereoPanner a b x /\ makeStereoPanner a b y
+  makeTriangleOsc a b c (x /\ y) = makeTriangleOsc a b c x /\ makeTriangleOsc a b c y
+  makeWaveShaper a b c (x /\ y) = makeWaveShaper a b c x /\ makeWaveShaper a b c y
+  setBuffer a b (x /\ y) = setBuffer a b x /\ setBuffer a b y
+  setPeriodicOsc a b (x /\ y) = setPeriodicOsc a b x /\ setPeriodicOsc a b y
+  setPeriodicOscV a b (x /\ y) = setPeriodicOscV a b x /\ setPeriodicOscV a b y
+  setOn a (x /\ y) = setOn a x /\ setOn a y
+  setOff a (x /\ y) = setOff a x /\ setOff a y
+  setBufferOffset a b (x /\ y) = setBufferOffset a b x /\ setBufferOffset a b y
+  setLoopStart a b (x /\ y) = setLoopStart a b x /\ setLoopStart a b y
+  setLoopEnd a b (x /\ y) = setLoopEnd a b x /\ setLoopEnd a b y
+  setRatio a b (x /\ y) = setRatio a b x /\ setRatio a b y
+  setOffset a b (x /\ y) = setOffset a b x /\ setOffset a b y
+  setAttack a b (x /\ y) = setAttack a b x /\ setAttack a b y
+  setGain a b (x /\ y) = setGain a b x /\ setGain a b y
+  setQ a b (x /\ y) = setQ a b x /\ setQ a b y
+  setPan a b (x /\ y) = setPan a b x /\ setPan a b y
+  setThreshold a b (x /\ y) = setThreshold a b x /\ setThreshold a b y
+  setRelease a b (x /\ y) = setRelease a b x /\ setRelease a b y
+  setKnee a b (x /\ y) = setKnee a b x /\ setKnee a b y
+  setDelay a b (x /\ y) = setDelay a b x /\ setDelay a b y
+  setPlaybackRate a b (x /\ y) = setPlaybackRate a b x /\ setPlaybackRate a b y
+  setFrequency a b (x /\ y) = setFrequency a b x /\ setFrequency a b y

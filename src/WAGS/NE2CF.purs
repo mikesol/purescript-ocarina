@@ -1,7 +1,6 @@
 module WAGS.NE2CF where
 
 import Prelude
-
 import Control.Comonad.Cofree (Cofree, hoistCofree, (:<))
 import Control.Semigroupoid (composeFlipped)
 import Data.Lens (_2, over)
@@ -21,35 +20,30 @@ type ASDR
 -- | From a non-empty list of times and values, make a cofree comonad that emits audio parameters
 -- | Based on a current time and a look-ahead
 makePiecewise :: NonEmpty List (Number /\ Number) -> ASDR
-makePiecewise = makePiecewise' true
-  where
-  makePiecewise' :: Boolean -> NonEmpty List (Number /\ Number) -> ASDR
-  makePiecewise' forceSet (a /\ b :| Nil) _ =
-    AudioParameter
-      { param: Just b
-      , timeOffset: 0.0
-      , transition: LinearRamp
-      , forceSet
-      }
-      :< makePiecewise' false (a /\ b :| Nil)
+makePiecewise (a /\ b :| Nil) _ =
+  AudioParameter
+    { param: Just b
+    , timeOffset: 0.0
+    , transition: LinearRamp
+    }
+    :< makePiecewise (a /\ b :| Nil)
 
-  makePiecewise' forceSet v@(a /\ b :| (Cons (c /\ d) e)) { time, headroom }
-    | time <= c =
-      let
-        lookahead = time + headroom
-      in
-        ( if lookahead >= c then
-            AudioParameter
-              { param: Just d
-              , timeOffset: c - time
-              , transition: LinearRamp
-              , forceSet
-              }
-          else
-            AudioParameter { param: Just (calcSlope a b c d time), timeOffset: 0.0, transition: LinearRamp, forceSet }
-        )
-          :< makePiecewise' false v
-    | otherwise = makePiecewise' false (c /\ d :| e) { time, headroom }
+makePiecewise v@(a /\ b :| (Cons (c /\ d) e)) { time, headroom }
+  | time <= c =
+    let
+      lookahead = time + headroom
+    in
+      ( if lookahead >= c then
+          AudioParameter
+            { param: Just d
+            , timeOffset: c - time
+            , transition: LinearRamp
+            }
+        else
+          AudioParameter { param: Just (calcSlope a b c d time), timeOffset: 0.0, transition: LinearRamp }
+      )
+        :< makePiecewise v
+  | otherwise = makePiecewise (c /\ d :| e) { time, headroom }
 
 type NonEmptyToCofree a b
   = { time :: Number, value :: a } -> Cofree ((->) { time :: Number, value :: a }) b

@@ -99,15 +99,14 @@ exports.rebaseAllUnits_ = function (toRebase) {
     };
   };
 };
-exports.renderAudio = function (ffiAudio) {
-  return function (arrayToApply) {
-    return function () {
-      for (var i = 0; i < arrayToApply.length; i++) {
-        arrayToApply[i](ffiAudio)();
-      }
-    };
+exports.renderAudio = function (arrayToApply) {
+  return function () {
+    for (var i = 0; i < arrayToApply.length; i++) {
+      arrayToApply[i]();
+    }
   };
 };
+
 exports.getAudioClockTime = function (ctx) {
   return function () {
     return ctx.currentTime;

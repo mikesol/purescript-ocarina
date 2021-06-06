@@ -4,8 +4,6 @@ import Prelude hiding (Ordering(..))
 
 import Control.Comonad (extract)
 import Data.Functor (voidRight)
-import Data.Map as M
-import Data.Set as S
 import Data.Symbol (class IsSymbol, reflectSymbol)
 import Heterogeneous.Folding (class FoldingWithIndex)
 import Prim.Row as R
@@ -45,8 +43,7 @@ instance connectInstance ::
     unsafeWAG
       { context:
           i
-            { internalEdges = M.insertWith S.union toI (S.singleton fromI) i.internalEdges
-            , instructions = i.instructions <> [ connectXToY fromI toI ]
+            { instructions = i.instructions <> [ connectXToY fromI toI ]
             }
       , value: unit
       }
