@@ -3,7 +3,7 @@ module Test.Computed where
 import Prelude
 import Data.Tuple.Nested (type (/\))
 import WAGS.Graph.AudioUnit (TGain, TLoopBuf, TSpeaker, reifyAUs)
-import WAGS.Graph.Optionals (gain, loopBuf, speaker)
+import WAGS.Create.Optionals (gain, loopBuf, speaker)
 
 type SceneType
   = { speaker :: TSpeaker /\ { gain0 :: Unit, gain1 :: Unit, gain2 :: Unit }

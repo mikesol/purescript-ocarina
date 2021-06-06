@@ -9,7 +9,6 @@ import Data.Tuple.Nested ((/\), type (/\))
 import Data.Vec as V
 import Heterogeneous.Folding (class FoldingWithIndex, class HFoldlWithIndex, hfoldlWithIndex)
 import Prim.Row as R
-import Record as Record
 import WAGS.Control.Indexed (IxWAG(..))
 import WAGS.Control.Types (WAG, unsafeUnWAG, unsafeWAG)
 import WAGS.Edgeable (class Edgeable, withEdge)
@@ -72,9 +71,6 @@ else instance changeFoldingWithIndex ::
   ( AudioInterpret audio engine
   , Edgeable node' (node /\ edges)
   , Change' sym node inGraph
-  , IsSymbol sym
-  , R.Lacks sym inRecord
-  , R.Cons sym Unit inRecord midRecord
   , HFoldlWithIndex
       ChangeFoldingWithIndex
       ( WAG
@@ -83,7 +79,7 @@ else instance changeFoldingWithIndex ::
           proof
           res
           { | inGraph }
-          { | midRecord }
+          Unit
       )
       edges
       ( WAG
@@ -104,7 +100,7 @@ else instance changeFoldingWithIndex ::
         proof
         res
         { | inGraph }
-        { | inRecord }
+        Unit
     )
     node'
     ( WAG
@@ -123,12 +119,12 @@ else instance changeFoldingWithIndex ::
     in
       hfoldlWithIndex
         ChangeFoldingWithIndex
-        (res $> (Record.insert prop (extract res) (extract ifr)))
+        (res $> unit)
         edges
 
 -- | Similar to `change'`, but accepts a record with multiple units to change.
 change ::
-  forall r rr audio engine proof res inGraph.
+  forall r audio engine proof res inGraph.
   AudioInterpret audio engine =>
   HFoldlWithIndex
     ChangeFoldingWithIndex
@@ -138,7 +134,7 @@ change ::
         proof
         res
         { | inGraph }
-        {}
+        Unit
     )
     { | r }
     ( WAG
@@ -147,7 +143,7 @@ change ::
         proof
         res
         { | inGraph }
-        rr
+        Unit
     ) =>
   WAG
     audio
@@ -162,15 +158,15 @@ change ::
     proof
     res
     { | inGraph }
-    rr
+    Unit
 change r =
   hfoldlWithIndex
     ChangeFoldingWithIndex
-    (r $> {})
+    (r $> unit)
     (extract r)
 
 ichange ::
-  forall r rr audio engine proof res inGraph.
+  forall r audio engine proof res inGraph.
   AudioInterpret audio engine =>
   HFoldlWithIndex
     ChangeFoldingWithIndex
@@ -180,7 +176,7 @@ ichange ::
         proof
         res
         { | inGraph }
-        {}
+        Unit
     )
     { | r }
     ( WAG
@@ -189,7 +185,7 @@ ichange ::
         proof
         res
         { | inGraph }
-        rr
+        Unit
     ) =>
   { | r } ->
   IxWAG
@@ -199,8 +195,13 @@ ichange ::
     res
     { | inGraph }
     { | inGraph }
-    rr
+    Unit
 ichange r = IxWAG (change <<< voidRight r)
+
+class Detup (a :: Type) (b :: Type) | a -> b
+
+instance detupT :: Detup (a /\ b) a
+else instance detupOther :: Detup a a
 
 class
   Monoid tau <= OneShotChange tau p au | tau p -> au where
@@ -215,7 +216,8 @@ instance changeNumber ::
   change' px w = change' px (map (pure :: forall a. a -> AudioParameter_ a) w)
 
 instance changeAudioParameter ::
-  ( R.Cons ptr tau ignore graphi
+  ( R.Cons ptr tau' ignore graphi
+  , Detup tau' tau
   , Monoid tau
   , OneShotChange tau AudioParameter au
   , Change' ptr au graphi
@@ -227,7 +229,8 @@ instance changeAudioParameter ::
   change' px w = change' px (oneShotChange (mempty :: tau) <$> w)
 
 instance changeOO ::
-  ( R.Cons ptr tau ignore graphi
+  ( R.Cons ptr tau' ignore graphi
+  , Detup tau' tau
   , Monoid tau
   , OneShotChange tau OnOff au
   , Change' ptr au graphi
@@ -239,7 +242,8 @@ instance changeOO ::
   change' px w = change' px (oneShotChange (mempty :: tau) <$> w)
 
 instance changeString ::
-  ( R.Cons ptr tau ignore graphi
+  ( R.Cons ptr tau' ignore graphi
+  , Detup tau' tau
   , Monoid tau
   , OneShotChange tau String au
   , Change' ptr au graphi
@@ -251,7 +255,8 @@ instance changeString ::
   change' px w = change' px (oneShotChange (mempty :: tau) <$> w)
 
 instance changeVec ::
-  ( R.Cons ptr tau ignore graphi
+  ( R.Cons ptr tau' ignore graphi
+  , Detup tau' tau
   , Monoid tau
   , OneShotChange tau (V.Vec size Number /\ V.Vec size Number) au
   , Change' ptr au graphi

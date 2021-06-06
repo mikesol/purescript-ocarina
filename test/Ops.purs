@@ -9,7 +9,7 @@ import WAGS.Create (create)
 import WAGS.Destroy (destroy)
 import WAGS.Disconnect (disconnect)
 import WAGS.Graph.AudioUnit (TGain, THighpass, TSinOsc, TSpeaker)
-import WAGS.Graph.Optionals (gain, highpass, ref, sinOsc, speaker, speaker')
+import WAGS.Create.Optionals (gain, highpass, ref, sinOsc, speaker, speaker')
 import WAGS.Interpret (class AudioInterpret)
 
 opsTest0 ::
