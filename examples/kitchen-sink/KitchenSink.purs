@@ -120,7 +120,7 @@ handleAction = case _ of
     unitCache <- H.liftEffect makeUnitCache
     myWave <-
       H.liftEffect
-        $ makePeriodicWave audioCtx (0.3 +> -0.1 +> empty) (-0.25 +> 0.05 +> empty)
+        $ makePeriodicWave audioCtx (0.0 +> -0.1 +> empty) (0.0 +> 0.05 +> empty)
     wicked <- H.liftEffect $ makeFloatArray (makeDistortionCurve 400.0)
     let
       recorder =
