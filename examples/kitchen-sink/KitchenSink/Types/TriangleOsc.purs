@@ -7,7 +7,7 @@ import Type.Proxy (Proxy(..))
 import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
 import WAGS.Example.KitchenSink.Types.Empty (TopWith)
 import WAGS.Graph.AudioUnit (OnOff(..), TRecorder, TTriangleOsc)
-import WAGS.Graph.Optionals (CRecorder, CTriangleOsc, DGain, DTriangleOsc, gain_, recorder, triangleOsc, triangleOsc_)
+import WAGS.Create.Optionals (CRecorder, CTriangleOsc, recorder, triangleOsc)
 
 type TriangleOscGraph
   = TopWith { recorder :: Unit }
@@ -18,7 +18,7 @@ type TriangleOscGraph
 ksTriangleOscCreate :: { recorder :: CRecorder "my-recorder" { triangleOsc :: CTriangleOsc } }
 ksTriangleOscCreate = { recorder: recorder Proxy { triangleOsc: triangleOsc 440.0 } }
 
-deltaKsTriangleOsc :: Number -> { mix :: DGain, triangleOsc :: DTriangleOsc }
+deltaKsTriangleOsc :: Number -> ?hole --{ mix :: DGain, triangleOsc :: DTriangleOsc }
 deltaKsTriangleOsc =
   (_ % pieceTime)
     >>> (_ - timing.ksTriangleOsc.begin)

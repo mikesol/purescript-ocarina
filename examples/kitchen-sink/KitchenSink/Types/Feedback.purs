@@ -7,7 +7,7 @@ import WAGS.Math (calcSlope)
 import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
 import WAGS.Example.KitchenSink.Types.Empty (TopWith)
 import WAGS.Graph.AudioUnit (OnOff(..), TDelay, TGain, THighpass, TPlayBuf)
-import WAGS.Graph.Optionals (CDelay, CGain, CPlayBuf, DDelay, DGain, DPlayBuf, Ref, CHighpass, delay, delay_, gain, gain_, highpass, playBuf, playBuf_, ref)
+import WAGS.Create.Optionals (CDelay, CGain, CPlayBuf, Ref, CHighpass, delay, gain, highpass, playBuf, ref)
 
 type FeedbackGraph
   = TopWith { dmix :: Unit }

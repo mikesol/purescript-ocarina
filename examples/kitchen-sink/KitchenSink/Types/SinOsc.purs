@@ -7,7 +7,7 @@ import Math (cos, pi, pow, sin, (%))
 import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
 import WAGS.Example.KitchenSink.Types.Empty (TopWith)
 import WAGS.Graph.AudioUnit (OnOff(..), TSinOsc)
-import WAGS.Graph.Optionals (CSinOsc, DSinOsc, DGain, gain_, sinOsc, sinOsc_)
+import WAGS.Create.Optionals (CSinOsc, sinOsc)
 
 type SinOscGraph
   = TopWith { sinOsc :: Unit }
@@ -17,7 +17,7 @@ type SinOscGraph
 ksSinOscCreate :: { sinOsc :: CSinOsc }
 ksSinOscCreate = { sinOsc: sinOsc  440.0 }
 
-deltaKsSinOsc :: Number -> { mix :: DGain, sinOsc :: DSinOsc }
+deltaKsSinOsc :: Number -> ?hole -- { mix :: DGain, sinOsc :: DSinOsc }
 deltaKsSinOsc =
   (_ % pieceTime)
     >>> (_ - timing.ksSinOsc.begin)

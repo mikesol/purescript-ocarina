@@ -7,7 +7,7 @@ import Math (pi, sin, (%))
 import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
 import WAGS.Example.KitchenSink.Types.Empty (TopWith)
 import WAGS.Graph.AudioUnit (OnOff(..), TLoopBuf)
-import WAGS.Graph.Optionals (CLoopBuf, DLoopBuf, loopBuf, loopBuf_)
+import WAGS.Create.Optionals (CLoopBuf, loopBuf)
 
 type LoopBufGraph
   = TopWith { loopBuf :: Unit }

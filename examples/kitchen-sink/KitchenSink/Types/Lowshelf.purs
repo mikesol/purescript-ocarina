@@ -7,7 +7,7 @@ import WAGS.Math (calcSlope)
 import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
 import WAGS.Example.KitchenSink.Types.Empty (TopWith)
 import WAGS.Graph.AudioUnit (OnOff(..), TLowshelf, TPlayBuf)
-import WAGS.Graph.Optionals (CLowshelf, CPlayBuf, DGain, DPlayBuf, DLowshelf, lowshelf, lowshelf_, gain_, playBuf, playBuf_)
+import WAGS.Create.Optionals (CLowshelf, CPlayBuf, lowshelf, playBuf)
 
 type LowshelfGraph
   = TopWith { lowshelf :: Unit }
@@ -18,7 +18,7 @@ type LowshelfGraph
 ksLowshelfCreate :: { lowshelf :: CLowshelf { buf :: CPlayBuf } }
 ksLowshelfCreate = { lowshelf: lowshelf { freq: 300.0 } { buf: playBuf "my-buffer" } }
 
-deltaKsLowshelf :: Number -> { mix :: DGain, lowshelf :: DLowshelf, buf :: DPlayBuf }
+deltaKsLowshelf :: Number -> ?hole --{ mix :: DGain, lowshelf :: DLowshelf, buf :: DPlayBuf }
 deltaKsLowshelf =
   (_ % pieceTime)
     >>> (_ - timing.ksLowshelf.begin)

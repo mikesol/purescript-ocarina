@@ -4,7 +4,7 @@ import Prelude
 import Data.Tuple.Nested (type (/\))
 import WAGS.Example.KitchenSink.Types.Empty (TopWith)
 import WAGS.Graph.AudioUnit (TConstant)
-import WAGS.Graph.Optionals (CConstant, DGain, DConstant, constant, constant_, gain_)
+import WAGS.Create.Optionals (CConstant, constant)
 
 type ConstantGraph
   = TopWith { constant :: Unit }

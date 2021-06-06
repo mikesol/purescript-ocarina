@@ -7,7 +7,7 @@ import Math (cos, pi, pow, sin, (%))
 import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
 import WAGS.Example.KitchenSink.Types.Empty (TopWith)
 import WAGS.Graph.AudioUnit (OnOff(..), TSquareOsc)
-import WAGS.Graph.Optionals (CSquareOsc, DSquareOsc, DGain, gain_, squareOsc, squareOsc_)
+import WAGS.Create.Optionals (CSquareOsc, squareOsc)
 
 type SquareOscGraph
   = TopWith { squareOsc :: Unit }

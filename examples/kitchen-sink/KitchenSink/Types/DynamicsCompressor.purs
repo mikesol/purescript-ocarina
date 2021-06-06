@@ -6,7 +6,7 @@ import Math ((%))
 import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
 import WAGS.Example.KitchenSink.Types.Empty (TopWith)
 import WAGS.Graph.AudioUnit (OnOff(..), TDynamicsCompressor, TPlayBuf)
-import WAGS.Graph.Optionals (CDynamicsCompressor, CPlayBuf, DGain, DPlayBuf, DDynamicsCompressor, compressor, compressor_, gain_, playBuf, playBuf_)
+import WAGS.Create.Optionals (CDynamicsCompressor, CPlayBuf, compressor, playBuf)
 
 type DynamicsCompressorGraph
   = TopWith { compressor :: Unit }
@@ -17,7 +17,7 @@ type DynamicsCompressorGraph
 ksDynamicsCompressorCreate :: { compressor :: CDynamicsCompressor { buf :: CPlayBuf } }
 ksDynamicsCompressorCreate = { compressor: compressor {} { buf: playBuf "my-buffer" } }
 
-deltaKsDynamicsCompressor :: Number -> { mix :: DGain, compressor :: DDynamicsCompressor, buf :: DPlayBuf }
+deltaKsDynamicsCompressor :: Number -> ?hole -- { mix :: DGain, compressor :: DDynamicsCompressor, buf :: DPlayBuf }
 deltaKsDynamicsCompressor =
   (_ % pieceTime)
     >>> (_ - timing.ksDynamicsCompressor.begin)

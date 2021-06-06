@@ -13,7 +13,7 @@ import WAGS.Change (ichange)
 import WAGS.Example.KitchenSink.TLP.LoopSig (IxWAGSig')
 import WAGS.Example.KitchenSink.Types.Empty (TopWith)
 import WAGS.Graph.AudioUnit (OnOff(..), TSawtoothOsc)
-import WAGS.Graph.Optionals (CSawtoothOsc, DGain, DSawtoothOsc, gain_, sawtoothOsc, sawtoothOsc_)
+import WAGS.Create.Optionals (CSawtoothOsc, sawtoothOsc)
 import WAGS.Graph.Parameter (AudioParameterTransition(..), AudioParameter_(..))
 
 type SawtoothOscGraph

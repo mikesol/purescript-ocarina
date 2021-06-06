@@ -7,7 +7,7 @@ import WAGS.Math (calcSlope)
 import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
 import WAGS.Example.KitchenSink.Types.Empty (TopWith)
 import WAGS.Graph.AudioUnit (OnOff(..), THighpass, TPlayBuf)
-import WAGS.Graph.Optionals (CHighpass, CPlayBuf, DGain, DPlayBuf, DHighpass, highpass, highpass_, gain_, playBuf, playBuf_)
+import WAGS.Graph.Optionals (CHighpass, CPlayBuf, highpass, playBuf)
 
 type HighpassGraph
   = TopWith { highpass :: Unit }
