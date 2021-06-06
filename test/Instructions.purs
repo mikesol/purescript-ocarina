@@ -238,7 +238,7 @@ testInstructions = do
               else
                 Left
                   $ icont
-                      (iloop \e -> const $ ichange { highpass: 330.0 + e.time * 50.0 })
+                      (iloop \e -> const $ ichange { highpass: { freq: 330.0 + e.time * 50.0, q: e.time } })
                       (ipure unit)
 
       (frame0Instr /\ _ /\ frame1) = oneFrame' simpleScene { time: 0.0 }
@@ -268,6 +268,6 @@ testInstructions = do
     it "branches at frame2Instr" do
       resolveInstructions frame2Instr `shouldEqual` [ SetFrequency "highpass" $ pure 332.0 ]
     it "branches at frame3Instr" do
-      resolveInstructions frame3Instr `shouldEqual` [ SetFrequency "highpass" $ pure 345.0 ]
+      resolveInstructions frame3Instr `shouldEqual` [ SetFrequency "highpass" $ pure 345.0, SetQ "highpass" $ pure 0.3 ]
     it "branches at frame4Instr" do
-      resolveInstructions frame4Instr `shouldEqual` [ SetFrequency "highpass" $ pure 350.0 ]
+      resolveInstructions frame4Instr `shouldEqual` [ SetFrequency "highpass" $ pure 350.0, SetQ "highpass" $ pure 0.4 ]

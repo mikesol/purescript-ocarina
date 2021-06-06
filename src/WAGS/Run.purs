@@ -4,6 +4,8 @@ module WAGS.Run
   , EngineInfo
   , Run
   , SceneI
+  , RunAudio
+  , RunEngine
   , bufferToList
   , run
   ) where
@@ -28,6 +30,12 @@ import Record as R
 import WAGS.Control.Types (Frame0, Scene, oneFrame)
 import WAGS.Interpret (FFIAudio(..), FFIAudio', getAudioClockTime, renderAudio)
 import WAGS.Rendered (Instruction)
+
+type RunAudio
+  = Unit /\ FFIAudio
+
+type RunEngine
+  = Instruction /\ Effect Unit
 
 -- | Run a scene.
 -- |

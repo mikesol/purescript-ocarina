@@ -10,7 +10,6 @@ import Math (pow)
 import WAGS.Math (calcSlope)
 import WAGS.Example.WTK.Types (KeyUnit, MakeRenderingEnv)
 import WAGS.Graph.AudioUnit (OnOff(..))
-import WAGS.Graph.Optionals (defaultGetSetAP)
 
 keyDur :: Number
 keyDur = 1.6
