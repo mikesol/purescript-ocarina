@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2021-06-06
+
+### Added
+
+- Simplifies `change` instructions. Now, instead of writing `{ sinOsc: sinOsc_ 440.0 }` it is possible to write `{ sinOsc: 440.0 }`.
+- Speeds up rendering by avoiding unnecessary checks.
+
+### Changed
+
+- The `Optional` files are now split between `Create` and `Change`. This fixes many bugs where a default parameter in a `Create` accidentally modulated a value during a `Change`. Now, the `Change` default is `Nothing`, meaning nothing changes. Furthermore, the underscore syntax (`sinOsc_`) has been removed.
+
 ## [0.2.4] - 2021-06-05
 
 ### Added
