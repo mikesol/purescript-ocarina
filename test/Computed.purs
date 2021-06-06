@@ -21,20 +21,18 @@ testReifyAUs =
     $ speaker
         { gain0:
             gain (0.3)
-              { loop0: loopBuf { playbackRate: 1.0 + 0.1 } "atar"
-              }
+              { loop0: loopBuf { playbackRate: 1.0 + 0.1 } "atar" }
         , gain1:
             gain (0.15)
               { loop1:
                   loopBuf
                     { playbackRate: 1.5 + 0.1
-                    , start: 0.1 + 0.1
-                    , end: 0.5 + 0.25
+                    , loopStart: 0.1 + 0.1
+                    , loopEnd: 0.5 + 0.25
                     }
                     "atar"
               }
         , gain2:
             gain (0.3)
-              { loop2: loopBuf { playbackRate: 0.25 } "atar"
-              }
+              { loop2: loopBuf { playbackRate: 0.25 } "atar" }
         }
