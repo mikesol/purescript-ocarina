@@ -172,6 +172,7 @@ exports.makeConstant_ = function (ptr) {
           if (onOff) {
             state.units[ptr].main.start();
           }
+          state.units[ptr].onOff = onOff;
         };
       };
     };
@@ -338,6 +339,7 @@ exports.makeLoopBuf_ = function (ptr) {
                     c
                   );
                 }
+                state.units[ptr].onOff = onOff;
               };
             };
           };
@@ -480,6 +482,7 @@ exports.makePeriodicOsc_ = function (ptr) {
             if (onOff) {
               state.units[ptr].main.start(state.writeHead + b.timeOffset);
             }
+            state.units[ptr].onOff = onOff;
           };
         };
       };
@@ -516,6 +519,7 @@ exports.makePeriodicOscV_ = function (ptr) {
             if (onOff) {
               state.units[ptr].main.start(state.writeHead + b.timeOffset);
             }
+            state.units[ptr].onOff = onOff;
           };
         };
       };
@@ -568,6 +572,7 @@ exports.makePlayBuf_ = function (ptr) {
                 state.units[ptr].main.buffer = state.buffers[a];
                 state.units[ptr].main.start(state.writeHead + c.timeOffset, b);
               }
+              state.units[ptr].onOff = onOff;
             };
           };
         };
@@ -620,6 +625,7 @@ exports.makeSawtoothOsc_ = function (ptr) {
           if (onOff) {
             state.units[ptr].main.start(state.writeHead + a.timeOffset);
           }
+          state.units[ptr].onOff = onOff;
         };
       };
     };
@@ -650,6 +656,7 @@ exports.makeSinOsc_ = function (ptr) {
           if (onOff) {
             state.units[ptr].main.start(state.writeHead + a.timeOffset);
           }
+          state.units[ptr].onOff = onOff;
         };
       };
     };
@@ -691,6 +698,7 @@ exports.makeSquareOsc_ = function (ptr) {
           if (onOff) {
             state.units[ptr].main.start(state.writeHead + a.timeOffset);
           }
+          state.units[ptr].onOff = onOff;
         };
       };
     };
@@ -735,6 +743,7 @@ exports.makeTriangleOsc_ = function (ptr) {
           if (onOff) {
             state.units[ptr].main.start(state.writeHead + a.timeOffset);
           }
+          state.units[ptr].onOff = onOff;
         };
       };
     };
@@ -806,6 +815,9 @@ var applyResumeClosure = function (i) {
 exports.setOn_ = function (ptr) {
   return function (state) {
     return function () {
+      if (state.units[ptr].onOff) {
+        return;
+      }
       if (state.units[ptr].resumeClosure) {
         applyResumeClosure(state.units[ptr]);
       }
@@ -820,6 +832,9 @@ exports.setOn_ = function (ptr) {
 exports.setOff_ = function (ptr) {
   return function (state) {
     return function () {
+      if (!state.units[ptr].onOff) {
+        return;
+      }
       state.units[ptr].main.stop();
       for (var i = 0; i < state.units[ptr].outgoing.length; i++) {
         state.units[ptr].main.disconnect(
