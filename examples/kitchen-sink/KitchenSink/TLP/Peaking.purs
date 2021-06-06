@@ -1,13 +1,11 @@
 module WAGS.Example.KitchenSink.TLP.Peaking where
 
 import Prelude
-
 import Control.Monad.Indexed (ipure, (:*>))
 import Control.Monad.Indexed.Qualified as Ix
 import Data.Either (Either(..))
 import Math ((%))
 import Type.Proxy (Proxy(..))
-import WAGS.Change (ichange)
 import WAGS.Connect (iconnect)
 import WAGS.Control.Functions (ibranch, imodifyRes, icont)
 import WAGS.Create (icreate)
@@ -26,7 +24,7 @@ doPeaking =
     if time % pieceTime < timing.ksPeaking.end then
       Right
         $ imodifyRes (const $ "Using a peaking filter")
-        :*> ichange (deltaKsPeaking time)
+        :*> deltaKsPeaking time
         $> lsig
     else
       Left

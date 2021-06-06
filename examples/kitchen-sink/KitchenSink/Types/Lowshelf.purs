@@ -3,11 +3,13 @@ module WAGS.Example.KitchenSink.Types.Lowshelf where
 import Prelude
 import Data.Tuple.Nested (type (/\))
 import Math ((%))
-import WAGS.Math (calcSlope)
+import WAGS.Change (ichange)
+import WAGS.Create.Optionals (CLowshelf, CPlayBuf, lowshelf, playBuf)
+import WAGS.Example.KitchenSink.TLP.LoopSig (IxWAGSig')
 import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
 import WAGS.Example.KitchenSink.Types.Empty (TopWith)
 import WAGS.Graph.AudioUnit (OnOff(..), TLowshelf, TPlayBuf)
-import WAGS.Graph.Optionals (CLowshelf, CPlayBuf, DGain, DPlayBuf, DLowshelf, lowshelf, lowshelf_, gain_, playBuf, playBuf_)
+import WAGS.Math (calcSlope)
 
 type LowshelfGraph
   = TopWith { lowshelf :: Unit }
@@ -18,7 +20,7 @@ type LowshelfGraph
 ksLowshelfCreate :: { lowshelf :: CLowshelf { buf :: CPlayBuf } }
 ksLowshelfCreate = { lowshelf: lowshelf { freq: 300.0 } { buf: playBuf "my-buffer" } }
 
-deltaKsLowshelf :: Number -> { mix :: DGain, lowshelf :: DLowshelf, buf :: DPlayBuf }
+deltaKsLowshelf :: forall proof. Number -> IxWAGSig' LowshelfGraph LowshelfGraph proof Unit
 deltaKsLowshelf =
   (_ % pieceTime)
     >>> (_ - timing.ksLowshelf.begin)
@@ -29,10 +31,8 @@ deltaKsLowshelf =
 
           switchW = time % 4.0 < 2.0
         in
-          { mix: gain_ (if time > (timing.ksLowshelf.dur - 1.0) then 0.0 else 1.0)
-          , lowshelf: lowshelf_ { freq: calcSlope 0.0 300.0 timing.ksLowshelf.dur 2000.0 time }
-          , buf:
-              playBuf_
-                { onOff: if switchOO then On else Off }
-                (if switchW then "my-buffer" else "shruti")
-          }
+          ichange
+            { mix: if time > (timing.ksLowshelf.dur - 1.0) then 0.0 else 1.0
+            , lowshelf: calcSlope 0.0 300.0 timing.ksLowshelf.dur 2000.0 time
+            , buf: { onOff: if switchOO then On else Off, buffer: if switchW then "my-buffer" else "shruti" }
+            }

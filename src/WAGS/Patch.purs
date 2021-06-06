@@ -1,11 +1,8 @@
 module WAGS.Patch where
 
 import Prelude hiding (Ordering(..))
-import Data.Either (Either(..))
-import Data.Map as M
-import Data.Set as S
 import Data.Symbol (class IsSymbol, reflectSymbol)
-import Data.Tuple.Nested (type (/\), (/\))
+import Data.Tuple.Nested (type (/\))
 import Data.Typelevel.Bool (False, True)
 import Prim.Ordering (Ordering, LT, GT, EQ)
 import Prim.RowList (class RowToList)
@@ -17,9 +14,7 @@ import WAGS.Control.Types (WAG, unsafeUnWAG, unsafeWAG)
 import WAGS.Graph.AudioUnit (OnOff(..))
 import WAGS.Graph.AudioUnit as AU
 import WAGS.Graph.Oversample (class IsOversample, reflectOversample)
-import WAGS.Graph.Parameter (param)
 import WAGS.Interpret (class AudioInterpret, connectXToY, destroyUnit, disconnectXFromY, makeAllpass, makeBandpass, makeConstant, makeConvolver, makeDelay, makeDynamicsCompressor, makeGain, makeHighpass, makeHighshelf, makeLoopBufWithDeferredBuffer, makeLowpass, makeLowshelf, makeMicrophone, makeNotch, makePeaking, makePeriodicOscWithDeferredOsc, makePlayBufWithDeferredBuffer, makeRecorder, makeSawtoothOsc, makeSinOsc, makeSpeaker, makeSquareOsc, makeStereoPanner, makeTriangleOsc, makeWaveShaper)
-import WAGS.Rendered as Rendered
 import WAGS.Util (class TypeEqualTF)
 
 data ConnectXToY (x :: Symbol) (y :: Symbol)
@@ -310,13 +305,9 @@ class ToGraphEffects (i :: Type) where
     forall audio engine.
     AudioInterpret audio engine =>
     Proxy i ->
-    { internalNodes :: M.Map String Rendered.AnAudioUnit
-    , internalEdges :: M.Map String (S.Set String)
-    , instructions :: Array (audio -> engine)
+    { instructions :: Array (audio -> engine)
     } ->
-    { internalNodes :: M.Map String Rendered.AnAudioUnit
-    , internalEdges :: M.Map String (S.Set String)
-    , instructions :: Array (audio -> engine)
+    { instructions :: Array (audio -> engine)
     }
 
 instance toGraphEffectsUnit :: ToGraphEffects Unit where
@@ -326,8 +317,7 @@ instance toGraphEffectsConnectXToY :: (IsSymbol from, IsSymbol to, ToGraphEffect
   toGraphEffects _ i =
     toGraphEffects (Proxy :: _ rest)
       ( i
-          { internalEdges = M.insertWith S.union to' (S.singleton from') i.internalEdges
-          , instructions = i.instructions <> [ connectXToY from' to' ]
+          { instructions = i.instructions <> [ connectXToY from' to' ]
           }
       )
     where
@@ -339,8 +329,7 @@ instance toGraphEffectsDisconnectXFromY :: (IsSymbol from, IsSymbol to, ToGraphE
   toGraphEffects _ i =
     toGraphEffects (Proxy :: _ rest)
       ( i
-          { internalEdges = M.insertWith S.difference to' (S.singleton from') (i.internalEdges)
-          , instructions = i.instructions <> [ disconnectXFromY from' to' ]
+          { instructions = i.instructions <> [ disconnectXFromY from' to' ]
           }
       )
     where
@@ -352,9 +341,7 @@ instance toGraphEffectsDestroyUnit :: (IsSymbol ptr, ToGraphEffects rest) => ToG
   toGraphEffects _ i =
     toGraphEffects (Proxy :: _ rest)
       ( i
-          { internalNodes = M.delete ptr' i.internalNodes
-          , internalEdges = M.delete ptr' i.internalEdges
-          , instructions = i.instructions <> [ destroyUnit ptr' ]
+          { instructions = i.instructions <> [ destroyUnit ptr' ]
           }
       )
     where
@@ -364,8 +351,7 @@ instance toGraphEffectsMakeAllpass :: (IsSymbol ptr, ToGraphEffects rest) => ToG
   toGraphEffects _ i =
     toGraphEffects (Proxy :: _ rest)
       ( i
-          { internalNodes = M.insert ptr' (Rendered.AAllpass (param 440.0) (param 1.0)) i.internalNodes
-          , instructions = i.instructions <> [ makeAllpass ptr' (param 440.0) (param 1.0) ]
+          { instructions = i.instructions <> [ makeAllpass ptr' (pure 440.0) (pure 1.0) ]
           }
       )
     where
@@ -375,8 +361,7 @@ instance toGraphEffectsMakeBandpass :: (IsSymbol ptr, ToGraphEffects rest) => To
   toGraphEffects _ i =
     toGraphEffects (Proxy :: _ rest)
       ( i
-          { internalNodes = M.insert ptr' (Rendered.ABandpass (param 440.0) (param 1.0)) i.internalNodes
-          , instructions = i.instructions <> [ makeBandpass ptr' (param 440.0) (param 1.0) ]
+          { instructions = i.instructions <> [ makeBandpass ptr' (pure 440.0) (pure 1.0) ]
           }
       )
     where
@@ -386,8 +371,7 @@ instance toGraphEffectsMakeConstant :: (IsSymbol ptr, ToGraphEffects rest) => To
   toGraphEffects _ i =
     toGraphEffects (Proxy :: _ rest)
       ( i
-          { internalNodes = M.insert ptr' (Rendered.AConstant Off (param 0.0)) i.internalNodes
-          , instructions = i.instructions <> [ makeConstant ptr' Off (param 0.0) ]
+          { instructions = i.instructions <> [ makeConstant ptr' Off (pure 0.0) ]
           }
       )
     where
@@ -397,8 +381,7 @@ instance toGraphEffectsMakeConvolver :: (IsSymbol ptr, IsSymbol sym, ToGraphEffe
   toGraphEffects _ i =
     toGraphEffects (Proxy :: _ rest)
       ( i
-          { internalNodes = M.insert ptr' (Rendered.AConvolver sym') i.internalNodes
-          , instructions = i.instructions <> [ makeConvolver ptr' sym' ]
+          { instructions = i.instructions <> [ makeConvolver ptr' sym' ]
           }
       )
     where
@@ -410,8 +393,7 @@ instance toGraphEffectsMakeDelay :: (IsSymbol ptr, ToGraphEffects rest) => ToGra
   toGraphEffects _ i =
     toGraphEffects (Proxy :: _ rest)
       ( i
-          { internalNodes = M.insert ptr' (Rendered.ADelay (param 1.0)) i.internalNodes
-          , instructions = i.instructions <> [ makeDelay ptr' (param 1.0) ]
+          { instructions = i.instructions <> [ makeDelay ptr' (pure 1.0) ]
           }
       )
     where
@@ -421,8 +403,7 @@ instance toGraphEffectsMakeDynamicsCompressor :: (IsSymbol ptr, ToGraphEffects r
   toGraphEffects _ i =
     toGraphEffects (Proxy :: _ rest)
       ( i
-          { internalNodes = M.insert ptr' (Rendered.ADynamicsCompressor (param (-24.0)) (param 30.0) (param 12.0) (param 0.003) (param 0.25)) i.internalNodes
-          , instructions = i.instructions <> [ makeDynamicsCompressor ptr' (param (-24.0)) (param 30.0) (param 12.0) (param 0.003) (param 0.25) ]
+          { instructions = i.instructions <> [ makeDynamicsCompressor ptr' (pure (-24.0)) (pure 30.0) (pure 12.0) (pure 0.003) (pure 0.25) ]
           }
       )
     where
@@ -432,8 +413,7 @@ instance toGraphEffectsMakeGain :: (IsSymbol ptr, ToGraphEffects rest) => ToGrap
   toGraphEffects _ i =
     toGraphEffects (Proxy :: _ rest)
       ( i
-          { internalNodes = M.insert ptr' (Rendered.AGain (param 0.0)) i.internalNodes
-          , instructions = i.instructions <> [ makeGain ptr' (param 0.0) ]
+          { instructions = i.instructions <> [ makeGain ptr' (pure 0.0) ]
           }
       )
     where
@@ -443,8 +423,7 @@ instance toGraphEffectsMakeHighpass :: (IsSymbol ptr, ToGraphEffects rest) => To
   toGraphEffects _ i =
     toGraphEffects (Proxy :: _ rest)
       ( i
-          { internalNodes = M.insert ptr' (Rendered.AHighpass (param 440.0) (param 1.0)) i.internalNodes
-          , instructions = i.instructions <> [ makeHighpass ptr' (param 440.0) (param 1.0) ]
+          { instructions = i.instructions <> [ makeHighpass ptr' (pure 440.0) (pure 1.0) ]
           }
       )
     where
@@ -454,8 +433,7 @@ instance toGraphEffectsMakeHighshelf :: (IsSymbol ptr, ToGraphEffects rest) => T
   toGraphEffects _ i =
     toGraphEffects (Proxy :: _ rest)
       ( i
-          { internalNodes = M.insert ptr' (Rendered.AHighshelf (param 440.0) (param 0.0)) i.internalNodes
-          , instructions = i.instructions <> [ makeHighshelf ptr' (param 440.0) (param 0.0) ]
+          { instructions = i.instructions <> [ makeHighshelf ptr' (pure 440.0) (pure 0.0) ]
           }
       )
     where
@@ -465,8 +443,7 @@ instance toGraphEffectsMakeLoopBuf :: (IsSymbol ptr, ToGraphEffects rest) => ToG
   toGraphEffects _ i =
     toGraphEffects (Proxy :: _ rest)
       ( i
-          { internalNodes = M.insert ptr' (Rendered.ALoopBuf "" Off (param 1.0) 0.0 0.0) i.internalNodes
-          , instructions = i.instructions <> [ makeLoopBufWithDeferredBuffer ptr' ]
+          { instructions = i.instructions <> [ makeLoopBufWithDeferredBuffer ptr' ]
           }
       )
     where
@@ -476,8 +453,7 @@ instance toGraphEffectsMakeLowpass :: (IsSymbol ptr, ToGraphEffects rest) => ToG
   toGraphEffects _ i =
     toGraphEffects (Proxy :: _ rest)
       ( i
-          { internalNodes = M.insert ptr' (Rendered.ALowpass (param 440.0) (param 1.0)) i.internalNodes
-          , instructions = i.instructions <> [ makeLowpass ptr' (param 440.0) (param 1.0) ]
+          { instructions = i.instructions <> [ makeLowpass ptr' (pure 440.0) (pure 1.0) ]
           }
       )
     where
@@ -487,8 +463,7 @@ instance toGraphEffectsMakeLowshelf :: (IsSymbol ptr, ToGraphEffects rest) => To
   toGraphEffects _ i =
     toGraphEffects (Proxy :: _ rest)
       ( i
-          { internalNodes = M.insert ptr' (Rendered.ALowshelf (param 440.0) (param 0.0)) i.internalNodes
-          , instructions = i.instructions <> [ makeLowshelf ptr' (param 440.0) (param 0.0) ]
+          { instructions = i.instructions <> [ makeLowshelf ptr' (pure 440.0) (pure 0.0) ]
           }
       )
     where
@@ -498,8 +473,7 @@ instance toGraphEffectsMakeMicrophone :: (ToGraphEffects rest) => ToGraphEffects
   toGraphEffects _ i =
     toGraphEffects (Proxy :: _ rest)
       ( i
-          { internalNodes = M.insert "microphone" (Rendered.AMicrophone) i.internalNodes
-          , instructions = i.instructions <> [ makeMicrophone ]
+          { instructions = i.instructions <> [ makeMicrophone ]
           }
       )
 
@@ -507,8 +481,7 @@ instance toGraphEffectsMakeNotch :: (IsSymbol ptr, ToGraphEffects rest) => ToGra
   toGraphEffects _ i =
     toGraphEffects (Proxy :: _ rest)
       ( i
-          { internalNodes = M.insert ptr' (Rendered.ANotch (param 440.0) (param 1.0)) i.internalNodes
-          , instructions = i.instructions <> [ makeNotch ptr' (param 440.0) (param 1.0) ]
+          { instructions = i.instructions <> [ makeNotch ptr' (pure 440.0) (pure 1.0) ]
           }
       )
     where
@@ -518,8 +491,7 @@ instance toGraphEffectsMakePeaking :: (IsSymbol ptr, ToGraphEffects rest) => ToG
   toGraphEffects _ i =
     toGraphEffects (Proxy :: _ rest)
       ( i
-          { internalNodes = M.insert ptr' (Rendered.APeaking (param 440.0) (param 1.0) (param 0.0)) i.internalNodes
-          , instructions = i.instructions <> [ makePeaking ptr' (param 440.0) (param 1.0) (param 0.0) ]
+          { instructions = i.instructions <> [ makePeaking ptr' (pure 440.0) (pure 1.0) (pure 0.0) ]
           }
       )
     where
@@ -529,8 +501,7 @@ instance toGraphEffectsMakePeriodicOsc :: (IsSymbol ptr, ToGraphEffects rest) =>
   toGraphEffects _ i =
     toGraphEffects (Proxy :: _ rest)
       ( i
-          { internalNodes = M.insert ptr' (Rendered.APeriodicOsc (Right ([ 0.0 ] /\ [ 0.0 ])) Off (param 440.0)) i.internalNodes
-          , instructions = i.instructions <> [ makePeriodicOscWithDeferredOsc ptr' ]
+          { instructions = i.instructions <> [ makePeriodicOscWithDeferredOsc ptr' ]
           }
       )
     where
@@ -540,8 +511,7 @@ instance toGraphEffectsMakePlayBuf :: (IsSymbol ptr, ToGraphEffects rest) => ToG
   toGraphEffects _ i =
     toGraphEffects (Proxy :: _ rest)
       ( i
-          { internalNodes = M.insert ptr' (Rendered.APlayBuf "" 0.0 Off (param 1.0)) i.internalNodes
-          , instructions = i.instructions <> [ makePlayBufWithDeferredBuffer ptr' ]
+          { instructions = i.instructions <> [ makePlayBufWithDeferredBuffer ptr' ]
           }
       )
     where
@@ -551,8 +521,7 @@ instance toGraphEffectsMakeRecorder :: (IsSymbol ptr, IsSymbol sym, ToGraphEffec
   toGraphEffects _ i =
     toGraphEffects (Proxy :: _ rest)
       ( i
-          { internalNodes = M.insert ptr' (Rendered.ARecorder sym') i.internalNodes
-          , instructions = i.instructions <> [ makeRecorder ptr' sym' ]
+          { instructions = i.instructions <> [ makeRecorder ptr' sym' ]
           }
       )
     where
@@ -564,8 +533,7 @@ instance toGraphEffectsMakeSawtoothOsc :: (IsSymbol ptr, ToGraphEffects rest) =>
   toGraphEffects _ i =
     toGraphEffects (Proxy :: _ rest)
       ( i
-          { internalNodes = M.insert ptr' (Rendered.ASawtoothOsc Off (param 440.0)) i.internalNodes
-          , instructions = i.instructions <> [ makeSawtoothOsc ptr' Off (param 440.0) ]
+          { instructions = i.instructions <> [ makeSawtoothOsc ptr' Off (pure 440.0) ]
           }
       )
     where
@@ -575,8 +543,7 @@ instance toGraphEffectsMakeSinOsc :: (IsSymbol ptr, ToGraphEffects rest) => ToGr
   toGraphEffects _ i =
     toGraphEffects (Proxy :: _ rest)
       ( i
-          { internalNodes = M.insert ptr' (Rendered.ASinOsc Off (param 440.0)) i.internalNodes
-          , instructions = i.instructions <> [ makeSinOsc ptr' Off (param 440.0) ]
+          { instructions = i.instructions <> [ makeSinOsc ptr' Off (pure 440.0) ]
           }
       )
     where
@@ -586,8 +553,7 @@ instance toGraphEffectsMakeSquareOsc :: (IsSymbol ptr, ToGraphEffects rest) => T
   toGraphEffects _ i =
     toGraphEffects (Proxy :: _ rest)
       ( i
-          { internalNodes = M.insert ptr' (Rendered.ASquareOsc Off (param 440.0)) i.internalNodes
-          , instructions = i.instructions <> [ makeSquareOsc ptr' Off (param 440.0) ]
+          { instructions = i.instructions <> [ makeSquareOsc ptr' Off (pure 440.0) ]
           }
       )
     where
@@ -597,8 +563,7 @@ instance toGraphEffectsMakeSpeaker :: (ToGraphEffects rest) => ToGraphEffects (M
   toGraphEffects _ i =
     toGraphEffects (Proxy :: _ rest)
       ( i
-          { internalNodes = M.insert "speaker" Rendered.ASpeaker i.internalNodes
-          , instructions = i.instructions <> [ makeSpeaker ]
+          { instructions = i.instructions <> [ makeSpeaker ]
           }
       )
 
@@ -606,8 +571,7 @@ instance toGraphEffectsMakeStereoPanner :: (IsSymbol ptr, ToGraphEffects rest) =
   toGraphEffects _ i =
     toGraphEffects (Proxy :: _ rest)
       ( i
-          { internalNodes = M.insert ptr' (Rendered.AStereoPanner (param 0.0)) i.internalNodes
-          , instructions = i.instructions <> [ makeStereoPanner ptr' (param 0.0) ]
+          { instructions = i.instructions <> [ makeStereoPanner ptr' (pure 0.0) ]
           }
       )
     where
@@ -617,8 +581,7 @@ instance toGraphEffectsMakeTriangleOsc :: (IsSymbol ptr, ToGraphEffects rest) =>
   toGraphEffects _ i =
     toGraphEffects (Proxy :: _ rest)
       ( i
-          { internalNodes = M.insert ptr' (Rendered.ATriangleOsc Off (param 440.0)) i.internalNodes
-          , instructions = i.instructions <> [ makeTriangleOsc ptr' Off (param 440.0) ]
+          { instructions = i.instructions <> [ makeTriangleOsc ptr' Off (pure 440.0) ]
           }
       )
     where
@@ -628,8 +591,7 @@ instance toGraphEffectsMakeWaveShaper :: (IsSymbol ptr, IsSymbol sym, IsOversamp
   toGraphEffects _ i =
     toGraphEffects (Proxy :: _ rest)
       ( i
-          { internalNodes = M.insert ptr' (Rendered.AWaveShaper ptr' oversample') i.internalNodes
-          , instructions = i.instructions <> [ makeWaveShaper ptr' sym' oversample' ]
+          { instructions = i.instructions <> [ makeWaveShaper ptr' sym' oversample' ]
           }
       )
     where
@@ -664,13 +626,11 @@ instance patchAll ::
     unsafeWAG
       { context:
           i
-            { internalNodes = n.internalNodes
-            , internalEdges = n.internalEdges
-            , instructions = n.instructions
+            { instructions = n.instructions
             }
       , value
       }
     where
-    { context: i@{ internalNodes, internalEdges, instructions }, value } = unsafeUnWAG w
+    { context: i@{ instructions }, value } = unsafeUnWAG w
 
-    n = toGraphEffects (Proxy :: _ instructions) { internalNodes, internalEdges, instructions }
+    n = toGraphEffects (Proxy :: _ instructions) { instructions }

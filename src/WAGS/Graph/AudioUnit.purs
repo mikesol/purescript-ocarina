@@ -11,7 +11,6 @@ import Prim.Row as R
 import Record as Record
 import Type.Proxy (Proxy(..))
 import WAGS.Edgeable (class Edgeable, withEdge)
-import WAGS.Graph.Parameter (AudioParameter)
 
 -- | Term-level constructor for an allpass filter.
 -- | - `frequency` - the frequency where the phase transition occurs.
@@ -19,42 +18,29 @@ import WAGS.Graph.Parameter (AudioParameter)
 data Allpass frequency q
   = Allpass frequency q
 
-type GetAllpass
-  = Allpass AudioParameter AudioParameter
-
 -- | Term-level constructor for a bandpass filter.
 -- | - `frequency` - the frequency of the isolated band.
 -- | - `q` - the width of the filter.
 data Bandpass frequency q
   = Bandpass frequency q
 
-type GetBandpass
-  = Bandpass AudioParameter AudioParameter
-
 -- | Term-level constructor for a constant value, aka DC offset.
--- | - `OnOff` - whether the generator is on or off.
+-- | - `onOff` - whether the generator is on or off.
 -- | - `offset` - the amount of DC offset.
-data Constant offset
-  = Constant OnOff offset
-
-type GetConstant
-  = Constant AudioParameter
+data Constant onOff offset
+  = Constant onOff offset
 
 -- | Term-level constructor for a convolver, aka reverb.
 -- | - `buffer` - the buffer of the impulse response of the space.
 data Convolver (buffer :: Symbol)
   = Convolver (Proxy buffer)
 
-type GetConvolver buffer
-  = Convolver buffer
 
 -- | Term-level constructor for a delay unit.
 -- | - `delay` - the delay to apply.
 data Delay delay
   = Delay delay
 
-type GetDelay
-  = Delay AudioParameter
 
 -- | Term-level constructor for a compressor.
 -- | - `threshold` - The threshold under which compression kicks in.
@@ -65,21 +51,10 @@ type GetDelay
 data DynamicsCompressor threshold knee ratio attack release
   = DynamicsCompressor threshold knee ratio attack release
 
-type GetDynamicsCompressor
-  = DynamicsCompressor
-      AudioParameter
-      AudioParameter
-      AudioParameter
-      AudioParameter
-      AudioParameter
-
 -- | Term-level constructor for a gain unit.
 -- | - `volume` - the volume of the gain from 0 to 1.
 data Gain volume
   = Gain volume
-
-type GetGain
-  = Gain AudioParameter
 
 -- | Term-level constructor for a highpass filter.
 -- | - `frequency` - the frequency below which we start to filter.
@@ -87,8 +62,6 @@ type GetGain
 data Highpass frequency q
   = Highpass frequency q
 
-type GetHighpass
-  = Highpass AudioParameter AudioParameter
 
 -- | Term-level constructor for a highshelf filter.
 -- | - `frequency` - the frequency above which we start to filter.
@@ -96,20 +69,14 @@ type GetHighpass
 data Highshelf frequency gain
   = Highshelf frequency gain
 
-type GetHighshelf
-  = Highshelf AudioParameter AudioParameter
-
 -- | Term-level constructor for a looping buffer.
 -- | - `buffer` - a string representing the buffer to use. Note that this string, when reset, will only reset the buffer when it is stopped.
--- | - `OnOff` - whether or not the generator is on or off.
+-- | - `onOff` - whether or not the generator is on or off.
 -- | - `playbackRate` - the playback rate.
--- | - `Number` - where in the file the loop should start.
--- | - `Number` - where in the file the loop should end. A value of 0.0 or less means play to the end of the buffer.
-data LoopBuf playbackRate
-  = LoopBuf String OnOff playbackRate Number Number
-
-type GetLoopBuf
-  = LoopBuf AudioParameter
+-- | - `loopStart` - where in the file the loop should start.
+-- | - `loopEnd` - where in the file the loop should end. A value of 0.0 or less means play to the end of the buffer.
+data LoopBuf buffer onOff playbackRate loopStart loopEnd
+  = LoopBuf buffer onOff playbackRate loopStart loopEnd
 
 -- | Term-level constructor for a lowpass filter.
 -- | - `frequency` - the frequency above which we start to filter.
@@ -117,23 +84,14 @@ type GetLoopBuf
 data Lowpass frequency q
   = Lowpass frequency q
 
-type GetLowpass
-  = Lowpass AudioParameter AudioParameter
-
 -- | Term-level constructor for a lowshelf filter.
 -- | - `frequency` - the frequency below which we start to filter.
 -- | - `q` - the width of the filter.
 data Lowshelf frequency gain
   = Lowshelf frequency gain
 
-type GetLowshelf
-  = Lowshelf AudioParameter AudioParameter
-
 -- | Term-level constructor for a microphone
 data Microphone
-  = Microphone
-
-type GetMicrophone
   = Microphone
 
 -- | Term-level constructor for a notch (aka band-reject) filter.
@@ -142,9 +100,6 @@ type GetMicrophone
 data Notch frequency q
   = Notch frequency q
 
-type GetNotch
-  = Notch AudioParameter AudioParameter
-
 -- | Term-level constructor for a peaking filter. A peaking filter is a combination of bandpass and notch where the gain parameter modulates whether we are reinforcing or attenuating a frequency.
 -- | - `frequency` - the frequency we are emphasizing _or_ rejecting.
 -- | - `q` - the width of the filter.
@@ -152,97 +107,64 @@ type GetNotch
 data Peaking frequency q gain
   = Peaking frequency q gain
 
-type GetPeaking
-  = Peaking AudioParameter AudioParameter AudioParameter
-
 -- | Term-level constructor for a periodic oscillator.
 -- | - `periodicOsc` - the name of the wave table we'll be using. Note that, for a chance to take effect, the periodic oscillator must be stopped.
--- | - `OnOff` - whether the generator is on or off.
+-- | - `onOff` - whether the generator is on or off.
 -- | - `frequency` - the frequency of the oscillator.
-data PeriodicOsc periodicOsc frequency
-  = PeriodicOsc periodicOsc OnOff frequency
-
-type GetPeriodicOsc
-  = PeriodicOsc AudioParameter
+data PeriodicOsc periodicOsc onOff frequency
+  = PeriodicOsc periodicOsc onOff frequency
 
 -- | Term-level constructor for a playback buffer.
 -- | - `buffer` - a string representing the buffer to use. Note that this string, when reset, will only reset the buffer when it is stopped.
--- | - `Number` - where in the file the playback should start.
--- | - `OnOff` - whether or not the generator is on or off.
+-- | - `offset` - where in the file the playback should start.
+-- | - `onOff` - whether or not the generator is on or off.
 -- | - `playbackRate` - the playback rate.
-data PlayBuf playbackRate
-  = PlayBuf String Number OnOff playbackRate
-
-type GetPlayBuf
-  = PlayBuf AudioParameter
+data PlayBuf buffer offset onOff playbackRate
+  = PlayBuf buffer offset onOff playbackRate
 
 -- | Term-level constructor for a recorder.
 -- | - `recorder` - the recorder to which we write data.
 data Recorder (recorder :: Symbol)
   = Recorder (Proxy recorder)
 
-type GetRecorder recorder
-  = Recorder recorder
-
 -- | Term-level constructor for a sawtooth oscillator.
--- | - `OnOff` - whether the generator is on or off.
+-- | - `onOff` - whether the generator is on or off.
 -- | - `frequency` - the frequency of the oscillator.
-data SawtoothOsc frequency
-  = SawtoothOsc OnOff frequency
-
-type GetSawtoothOsc
-  = SawtoothOsc AudioParameter
+data SawtoothOsc onOff frequency
+  = SawtoothOsc onOff frequency
 
 -- | Term-level constructor for a sine-wave oscillator.
--- | - `OnOff` - whether the generator is on or off.
+-- | - `onOff` - whether the generator is on or off.
 -- | - `frequency` - the frequency of the oscillator.
-data SinOsc frequency
-  = SinOsc OnOff frequency
-
-type GetSinOsc
-  = SinOsc AudioParameter
+data SinOsc onOff frequency
+  = SinOsc onOff frequency
 
 -- | Term-level constructor for a loudspeaker.
 data Speaker
   = Speaker
 
-type GetSpeaker
-  = Speaker
-
 -- | Term-level constructor for a square-wave oscillator.
--- | - `OnOff` - whether the generator is on or off.
+-- | - `onOff` - whether the generator is on or off.
 -- | - `frequency` - the frequency of the oscillator.
-data SquareOsc frequency
-  = SquareOsc OnOff frequency
-
-type GetSquareOsc
-  = SquareOsc AudioParameter
+data SquareOsc onOff frequency
+  = SquareOsc onOff frequency
 
 -- | Term-level constructor for a stereo panner.
 -- | - `pan` - the amount of pan to apply, where -1.0 is fully to the left and 1.0 is fully to the right.
 data StereoPanner pan
   = StereoPanner pan
 
-type GetStereoPanner
-  = StereoPanner AudioParameter
-
 -- | Term-level constructor for a triangle oscillator.
--- | - `OnOff` - whether the generator is on or off.
+-- | - `onOff` - whether the generator is on or off.
 -- | - `frequency` - the frequency of the oscillator.
-data TriangleOsc frequency
-  = TriangleOsc OnOff frequency
-
-type GetTriangleOsc
-  = TriangleOsc AudioParameter
+data TriangleOsc onOff frequency
+  = TriangleOsc onOff frequency
 
 -- | Term-level constructor for a WaveShaper, aka distortion.
 -- | - `floatArray` - the shape of the distortion.
 -- | - `oversample` - how much to oversample - none, 2x or 4x. Once set, this cannot change without destroying and remaking the audio unit.
 data WaveShaper (floatArray :: Symbol) oversample
   = WaveShaper (Proxy floatArray) oversample
-
-type GetWaveShaper floatArray oversample
-  = WaveShaper floatArray oversample
 
 -- | Term-level constructor for a generator being on or off
 data OnOff
@@ -325,7 +247,7 @@ instance semigroupTConstant :: Semigroup TConstant where
 instance monoidTConstant :: Monoid TConstant where
   mempty = TConstant
 
-instance reifyTConstant :: ReifyAU (Constant a) TConstant where
+instance reifyTConstant :: ReifyAU (Constant a b) TConstant where
   reifyAU = const mempty
 
 -- | Type-level constructor for a convolver, aka reverb.
@@ -416,7 +338,7 @@ instance semigroupTLoopBuf :: Semigroup TLoopBuf where
 instance monoidTLoopBuf :: Monoid TLoopBuf where
   mempty = TLoopBuf
 
-instance reifyTLoopBuf :: ReifyAU (LoopBuf a) TLoopBuf where
+instance reifyTLoopBuf :: ReifyAU (LoopBuf a b c d e) TLoopBuf where
   reifyAU = const mempty
 
 -- | Type-level constructor for a lowpass filter.
@@ -494,7 +416,7 @@ instance semigroupTPeriodicOsc :: Semigroup TPeriodicOsc where
 instance monoidTPeriodicOsc :: Monoid TPeriodicOsc where
   mempty = TPeriodicOsc
 
-instance reifyTPeriodicOsc :: ReifyAU (PeriodicOsc periodicOsc a) TPeriodicOsc where
+instance reifyTPeriodicOsc :: ReifyAU (PeriodicOsc a b c) TPeriodicOsc where
   reifyAU = const mempty
 
 -- | Type-level constructor for playback from a buffer.
@@ -507,7 +429,7 @@ instance semigroupTPlayBuf :: Semigroup TPlayBuf where
 instance monoidTPlayBuf :: Monoid TPlayBuf where
   mempty = TPlayBuf
 
-instance reifyTPlayBuf :: ReifyAU (PlayBuf a) TPlayBuf where
+instance reifyTPlayBuf :: ReifyAU (PlayBuf a b c d) TPlayBuf where
   reifyAU = const mempty
 
 -- | Type-level constructor for a recorder.
@@ -533,7 +455,7 @@ instance semigroupTSawtoothOsc :: Semigroup TSawtoothOsc where
 instance monoidTSawtoothOsc :: Monoid TSawtoothOsc where
   mempty = TSawtoothOsc
 
-instance reifyTSawtoothOsc :: ReifyAU (SawtoothOsc a) TSawtoothOsc where
+instance reifyTSawtoothOsc :: ReifyAU (SawtoothOsc a b) TSawtoothOsc where
   reifyAU = const mempty
 
 -- | Type-level constructor for a sine-wave oscillator.
@@ -546,7 +468,7 @@ instance semigroupTSinOsc :: Semigroup TSinOsc where
 instance monoidTSinOsc :: Monoid TSinOsc where
   mempty = TSinOsc
 
-instance reifyTSinOsc :: ReifyAU (SinOsc a) TSinOsc where
+instance reifyTSinOsc :: ReifyAU (SinOsc a b) TSinOsc where
   reifyAU = const mempty
 
 -- | Type-level constructor for a loudspeaker.
@@ -572,7 +494,7 @@ instance semigroupTSquareOsc :: Semigroup TSquareOsc where
 instance monoidTSquareOsc :: Monoid TSquareOsc where
   mempty = TSquareOsc
 
-instance reifyTSquareOsc :: ReifyAU (SquareOsc a) TSquareOsc where
+instance reifyTSquareOsc :: ReifyAU (SquareOsc a b) TSquareOsc where
   reifyAU = const mempty
 
 -- | Type-level constructor for a stereo panner.
@@ -598,7 +520,7 @@ instance semigroupTTriangleOsc :: Semigroup TTriangleOsc where
 instance monoidTTriangleOsc :: Monoid TTriangleOsc where
   mempty = TTriangleOsc
 
-instance reifyTTriangleOsc :: ReifyAU (TriangleOsc a) TTriangleOsc where
+instance reifyTTriangleOsc :: ReifyAU (TriangleOsc a b) TTriangleOsc where
   reifyAU = const mempty
 
 -- | Type-level constructor for a wave shaper.

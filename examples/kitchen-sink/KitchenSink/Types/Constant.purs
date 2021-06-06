@@ -2,9 +2,11 @@ module WAGS.Example.KitchenSink.Types.Constant where
 
 import Prelude
 import Data.Tuple.Nested (type (/\))
+import WAGS.Change (ichange)
+import WAGS.Create.Optionals (CConstant, constant)
+import WAGS.Example.KitchenSink.TLP.LoopSig (IxWAGSig')
 import WAGS.Example.KitchenSink.Types.Empty (TopWith)
 import WAGS.Graph.AudioUnit (TConstant)
-import WAGS.Graph.Optionals (CConstant, DGain, DConstant, constant, constant_, gain_)
 
 type ConstantGraph
   = TopWith { constant :: Unit }
@@ -14,9 +16,10 @@ type ConstantGraph
 ksConstantCreate :: { constant :: CConstant }
 ksConstantCreate = { constant: constant 0.0 }
 
-deltaKsConstant :: Number -> { mix :: DGain, constant :: DConstant }
+deltaKsConstant :: forall proof. Number -> IxWAGSig' ConstantGraph ConstantGraph proof Unit
 deltaKsConstant =
   const
-    { mix: gain_ 1.0
-    , constant: constant_ 0.0
-    }
+    $ ichange
+        { mix: 1.0
+        , constant: 0.0
+        }

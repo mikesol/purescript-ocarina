@@ -30,14 +30,14 @@ import Math (pow)
 import WAGS.Change (ichange)
 import WAGS.Control.Functions.Validated (iloop, (@!>))
 import WAGS.Control.Indexed (IxFrame)
-import WAGS.Math (calcSlope)
 import WAGS.Control.Types (Frame0, Scene)
 import WAGS.Create (icreate)
+import WAGS.Create.Optionals (CPeriodicOsc, CSpeaker, CGain, gain, periodicOsc, speaker)
 import WAGS.Graph.AudioUnit (TGain, TPeriodicOsc, TSpeaker)
-import WAGS.Graph.Optionals (CPeriodicOsc, CSpeaker, CGain, gain, periodicOsc, speaker)
-import WAGS.Graph.Parameter (ff, param)
+import WAGS.Graph.Parameter (ff)
 import WAGS.Interpret (AudioContext, FFIAudio(..), close, context, defaultFFIAudio, makePeriodicWave, makeUnitCache)
-import WAGS.Run (SceneI, run)
+import WAGS.Math (calcSlope)
+import WAGS.Run (RunAudio, SceneI, RunEngine, run)
 
 type Note
   = Number /\ Maybe Number
@@ -143,15 +143,14 @@ scene time ({ start, dur } /\ pitch) to =
   speaker
     { gain:
         gain
-          (ff to $ param (maybe 0.0 (const $ asdr (time - start) dur) pitch))
-          { osc: periodicOsc "bday" (ff to $ param (midiToCps (fromMaybe 60.0 pitch)))
-          }
+          (ff to $ pure (maybe 0.0 (const $ asdr (time - start) dur) pitch))
+          { osc: periodicOsc "bday" (ff to $ pure (midiToCps (fromMaybe 60.0 pitch))) }
     }
 
-createFrame :: IxFrame (SceneI Unit Unit) FFIAudio (Effect Unit) Frame0 Unit {} SceneType (List EnrichedNote)
+createFrame :: IxFrame (SceneI Unit Unit) RunAudio RunEngine Frame0 Unit {} SceneType (List EnrichedNote)
 createFrame { time } = icreate (scene time (inTempo rest0) 0.0) $> L.fromFoldable score''
 
-piece :: Scene (SceneI Unit Unit) FFIAudio (Effect Unit) Frame0 Unit
+piece :: Scene (SceneI Unit Unit) RunAudio RunEngine Frame0 Unit
 piece =
   createFrame
     @!> iloop \{ time } l ->

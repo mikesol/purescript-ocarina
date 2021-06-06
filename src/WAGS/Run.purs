@@ -4,6 +4,8 @@ module WAGS.Run
   , EngineInfo
   , Run
   , SceneI
+  , RunAudio
+  , RunEngine
   , bufferToList
   , run
   ) where
@@ -14,9 +16,9 @@ import Data.DateTime.Instant (Instant)
 import Data.Foldable (for_)
 import Data.Int (floor, toNumber)
 import Data.List (List(..))
-import Data.Map as M
 import Data.Maybe (Maybe(..), isNothing)
-import Data.Set (Set)
+import Data.Tuple (fst, snd)
+import Data.Tuple.Nested ((/\), type (/\))
 import Effect (Effect)
 import Effect.Ref as Ref
 import Effect.Timer (TimeoutId, clearTimeout, setTimeout)
@@ -27,7 +29,13 @@ import FRP.Event.Time (withTime, delay)
 import Record as R
 import WAGS.Control.Types (Frame0, Scene, oneFrame)
 import WAGS.Interpret (FFIAudio(..), FFIAudio', getAudioClockTime, renderAudio)
-import WAGS.Rendered (AnAudioUnit)
+import WAGS.Rendered (Instruction)
+
+type RunAudio
+  = Unit /\ FFIAudio
+
+type RunEngine
+  = Instruction /\ Effect Unit
 
 -- | Run a scene.
 -- |
@@ -45,8 +53,8 @@ run ::
   FFIAudio ->
   Scene
     (SceneI trigger world)
-    FFIAudio
-    (Effect Unit)
+    (Unit /\ FFIAudio)
+    (Instruction /\ Effect Unit)
     Frame0
     res ->
   Event (Run res)
@@ -99,15 +107,8 @@ type EngineInfo
 type EasingAlgorithm
   = Cofree ((->) Int) Int
 
--- | The output of `run` to be consumed downstream (or not). It contains:
--- | - `nodes`: the nodes in the audio graph including information about things like their frequency, Q value, on/off state etc.
--- | - `edges`: incoming edges into nodes.
--- | - `res`: the residual from the computation.
--- |
--- | This information can be used for visualizing the audio graph or for other instruments outside of a browser that are using the browser as a control layer.
 type Run res
-  = { nodes :: M.Map String AnAudioUnit
-    , edges :: M.Map String (Set String)
+  = { instructions :: Array Instruction
     , res :: res
     }
 
@@ -190,8 +191,8 @@ runInternal ::
   Ref.Ref
     ( Scene
         (SceneI trigger world)
-        FFIAudio
-        (Effect Unit)
+        (Unit /\ FFIAudio)
+        (Instruction /\ Effect Unit)
         Frame0
         res
     ) ->
@@ -215,20 +216,22 @@ runInternal audioClockStart worldAndTrigger world' currentTimeoutCanceler curren
 
     fromScene = oneFrame sceneNow (R.union worldAndTrigger { time, headroom })
   audioClockAfterComputation <- getAudioClockTime audio'.context
-  renderAudio
-    ( FFIAudio
+  let
+    ffi =
+      FFIAudio
         $ audio'
             { writeHead = max audioClockAfterComputation (audioClockPriorToComputation + headroomInSeconds)
             }
-    )
-    fromScene.instructions
+
+    applied = map (\f -> f (unit /\ ffi)) fromScene.instructions
+  renderAudio (map snd applied)
   let
     remainingTimeInMs = floor $ 1000.0 * (audioClockPriorToComputation + headroomInSeconds - audioClockAfterComputation)
   Ref.write (tail easingAlgNow remainingTimeInMs) currentEasingAlg
   Ref.write
     fromScene.next
     currentScene
-  reporter { nodes: fromScene.nodes, edges: fromScene.edges, res: fromScene.res }
+  reporter { instructions: map fst applied, res: fromScene.res }
   -- we thunk the world and move on to the next event
   -- note that if we did not allocate enough time, we still
   -- set a timeout of 1 so that th canceler can run in case it needs to

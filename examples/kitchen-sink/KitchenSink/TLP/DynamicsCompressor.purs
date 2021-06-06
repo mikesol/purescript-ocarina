@@ -6,7 +6,6 @@ import Control.Monad.Indexed.Qualified as Ix
 import Data.Either (Either(..))
 import Math ((%))
 import Type.Proxy (Proxy(..))
-import WAGS.Change (ichange)
 import WAGS.Connect (iconnect)
 import WAGS.Control.Functions (ibranch, icont)
 import WAGS.Create (icreate)
@@ -36,4 +35,4 @@ doDynamicsCompressor =
             iconnect { source: Proxy :: _ "sinOsc", dest: cursorGain }
             ipure $ l { iteration = iteration + 1 }
     else
-      Right (ichange (deltaKsDynamicsCompressor time) $> l)
+      Right (deltaKsDynamicsCompressor time $> l)

@@ -18,7 +18,7 @@ type {s}All
     )
 
 default{s} :: {{ | {s}Optional }}
-default{s} = {{ {opt}: defaultGetSetAP 1.0 }}
+default{s} = {{ {opt}:   1.0 }}
 
 class {s}Ctor i {l} | i -> {l} where
   {l} :: i -> {l}

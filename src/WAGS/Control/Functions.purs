@@ -27,7 +27,6 @@ module WAGS.Control.Functions
 import Prelude
 import Control.Comonad (extract)
 import Data.Either (Either(..))
-import Data.Map as M
 import WAGS.Control.Indexed (IxWAG(..), IxFrame)
 import WAGS.Control.Types (AudioState', EFrame, Frame, Frame0, InitialWAG, Scene(..), Scene', WAG, oneFrame, unsafeUnWAG, unsafeWAG)
 import WAGS.Interpret (class AudioInterpret)
@@ -59,8 +58,6 @@ initialAudioState :: forall audio engine res. Monoid res => AudioState' audio en
 initialAudioState =
   { res: mempty
   , instructions: []
-  , internalNodes: M.empty
-  , internalEdges: M.empty
   }
 
 -- | Make a scene. The infix operator for this operation is `@>`.
@@ -90,9 +87,7 @@ makeScene m trans = Scene go
       let
         { context, value } = unsafeUnWAG r
       in
-        { nodes: context.internalNodes
-        , edges: context.internalEdges
-        , instructions: context.instructions
+        { instructions: context.instructions
         , res: context.res
         , next:
             trans

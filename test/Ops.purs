@@ -3,13 +3,14 @@ module Test.Ops where
 import Prelude
 import Data.Tuple.Nested (type (/\))
 import Type.Proxy (Proxy(..))
+import WAGS.Change (change)
 import WAGS.Control.Functions (start)
 import WAGS.Control.Types (Frame0, WAG)
 import WAGS.Create (create)
+import WAGS.Create.Optionals (gain, highpass, ref, sinOsc, speaker, speaker')
 import WAGS.Destroy (destroy)
 import WAGS.Disconnect (disconnect)
-import WAGS.Graph.AudioUnit (TGain, THighpass, TSinOsc, TSpeaker)
-import WAGS.Graph.Optionals (gain, highpass, ref, sinOsc, speaker, speaker')
+import WAGS.Graph.AudioUnit (OnOff(..), TGain, THighpass, TSinOsc, TSpeaker)
 import WAGS.Interpret (class AudioInterpret)
 
 opsTest0 ::
@@ -69,6 +70,44 @@ opsTest2 =
               }
         }
     # create
+
+opsTest3 ::
+  forall audio engine.
+  AudioInterpret audio engine =>
+  WAG audio engine Frame0 Unit
+    { mySine :: TSinOsc /\ {}
+    , gain :: TGain /\ { highpass :: Unit, mySine :: Unit }
+    , highpass :: THighpass /\ { mySine :: Unit }
+    , speaker :: TSpeaker /\ { gain :: Unit }
+    }
+    Unit
+opsTest3 =
+  start
+    $> speaker
+        { gain:
+            gain 1.0
+              { highpass:
+                  highpass 330.0 { mySine: ref }
+              , mySine: sinOsc 440.0
+              }
+        }
+    # create
+    -- test various changes to make sure they compile
+    
+    # (<$) { highpass: 400.0 }
+    # change
+    # (<$) { highpass: { freq: 400.0 } }
+    # change
+    # (<$) { highpass: { q: 50.0 } }
+    # change
+    # (<$) { mySine: 330.0 }
+    # change
+    # (<$) { mySine: On }
+    # change
+    # (<$) { mySine: { freq: 550.0 } }
+    # change
+    # (<$) { mySine: { freq: 550.0, onOff: On } }
+    # change
 
 opsTest6 ::
   forall audio engine.

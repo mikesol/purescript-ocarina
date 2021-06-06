@@ -1,13 +1,11 @@
 module WAGS.Example.KitchenSink.TLP.Highpass where
 
 import Prelude
-
 import Control.Applicative.Indexed (ipure)
 import Control.Monad.Indexed.Qualified as Ix
 import Data.Either (Either(..))
 import Math ((%))
 import Type.Proxy (Proxy(..))
-import WAGS.Change (ichange)
 import WAGS.Connect (iconnect)
 import WAGS.Control.Functions (ibranch, icont)
 import WAGS.Create (icreate)
@@ -24,7 +22,7 @@ doHighpass :: forall proof. StepSig HighpassGraph proof
 doHighpass =
   ibranch \{ time } lsig ->
     if time % pieceTime < timing.ksHighpass.end then
-      Right (ichange (deltaKsHighpass time) $> lsig)
+      Right (deltaKsHighpass time $> lsig)
     else
       Left
         $ icont doMicrophone Ix.do

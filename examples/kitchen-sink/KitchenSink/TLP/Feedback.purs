@@ -5,7 +5,6 @@ import Prelude
 import Control.Applicative.Indexed (ipure)
 import Control.Monad.Indexed.Qualified as Ix
 import Data.Either (Either(..))
-import Data.Functor.Indexed (ivoid)
 import Math ((%))
 import Type.Proxy (Proxy(..))
 import WAGS.Change (ichange)
@@ -20,13 +19,12 @@ import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
 import WAGS.Example.KitchenSink.Types.Empty (cursorGain)
 import WAGS.Example.KitchenSink.Types.Feedback (FeedbackGraph, deltaKsFeedback)
 import WAGS.Example.KitchenSink.Types.LoopBuf (ksLoopBufCreate)
-import WAGS.Graph.Optionals (gain_)
 
 doFeedback :: forall proof. StepSig FeedbackGraph proof
 doFeedback =
   ibranch \{ time } lsig ->
     if time % pieceTime < timing.ksFeedback.end then
-      Right (ichange (deltaKsFeedback time) $> lsig)
+      Right (deltaKsFeedback time $> lsig)
     else
       Left
         $ icont doLoopBuf Ix.do
@@ -49,5 +47,5 @@ doFeedback =
             idestroy cursorHighpass
             icreate ksLoopBufCreate
             iconnect { source: Proxy :: _ "loopBuf", dest: cursorGain }
-            ivoid $ ichange { mix: gain_ 1.0 }
+            ichange { mix: 1.0 }
             ipure lsig

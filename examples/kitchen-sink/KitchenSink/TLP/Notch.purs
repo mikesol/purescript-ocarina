@@ -1,13 +1,11 @@
 module WAGS.Example.KitchenSink.TLP.Notch where
 
 import Prelude
-
 import Control.Applicative.Indexed (ipure)
 import Control.Monad.Indexed.Qualified as Ix
 import Data.Either (Either(..))
 import Math ((%))
 import Type.Proxy (Proxy(..))
-import WAGS.Change (ichange)
 import WAGS.Connect (iconnect)
 import WAGS.Control.Functions (ibranch, icont)
 import WAGS.Create (icreate)
@@ -24,7 +22,7 @@ doNotch :: forall proof. StepSig NotchGraph proof
 doNotch =
   ibranch \{ time } lsig ->
     if time % pieceTime < timing.ksNotch.end then
-      Right (ichange (deltaKsNotch time) $> lsig)
+      Right (deltaKsNotch time $> lsig)
     else
       Left
         $ icont doPeaking Ix.do

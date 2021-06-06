@@ -7,7 +7,6 @@ import Control.Monad.Indexed.Qualified as Ix
 import Data.Either (Either(..))
 import Math ((%))
 import Type.Proxy (Proxy(..))
-import WAGS.Change (ichange)
 import WAGS.Connect (iconnect)
 import WAGS.Control.Functions (ibranch, icont)
 import WAGS.Create (icreate)
@@ -24,7 +23,7 @@ doStereoPanner :: forall proof. StepSig StereoPannerGraph proof
 doStereoPanner =
   ibranch \{ time } lsig ->
     if time % pieceTime < timing.ksStereoPanner.end then
-      Right (ichange (deltaKsStereoPanner time) $> lsig)
+      Right (deltaKsStereoPanner time $> lsig)
     else
       Left
         $ icont doConstant Ix.do

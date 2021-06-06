@@ -1,13 +1,11 @@
 module WAGS.Example.KitchenSink.TLP.SquareOsc where
 
 import Prelude
-
 import Control.Monad.Indexed (ipure, (:*>))
 import Control.Monad.Indexed.Qualified as Ix
 import Data.Either (Either(..))
 import Math ((%))
 import Type.Proxy (Proxy(..))
-import WAGS.Change (ichange)
 import WAGS.Connect (iconnect)
 import WAGS.Control.Functions (ibranch, icont, imodifyRes)
 import WAGS.Create (icreate)
@@ -26,7 +24,7 @@ doSquareOsc =
     if time % pieceTime < timing.ksSquareOsc.end then
       Right
         ( imodifyRes (const "Playing a square osc")
-            :*> ichange (deltaKsSquareOsc time)
+            :*> deltaKsSquareOsc time
             $> lsig
         )
     else

@@ -1,13 +1,11 @@
 module WAGS.Example.KitchenSink.TLP.WaveShaper where
 
 import Prelude
-
 import Control.Applicative.Indexed (ipure)
 import Control.Monad.Indexed.Qualified as Ix
 import Data.Either (Either(..))
 import Math ((%))
 import Type.Proxy (Proxy(..))
-import WAGS.Change (ichange)
 import WAGS.Connect (iconnect)
 import WAGS.Control.Functions (ibranch, icont)
 import WAGS.Create (icreate)
@@ -24,7 +22,7 @@ doWaveShaper :: forall proof. StepSig WaveShaperGraph proof
 doWaveShaper =
   ibranch \{ time } lsig ->
     if time % pieceTime < timing.ksWaveShaper.end then
-      Right (ichange (deltaKsWaveShaper time) $> lsig)
+      Right (deltaKsWaveShaper time $> lsig)
     else
       Left
         $ icont doDelay Ix.do

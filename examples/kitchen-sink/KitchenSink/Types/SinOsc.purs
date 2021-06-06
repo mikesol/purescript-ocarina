@@ -1,23 +1,21 @@
 module WAGS.Example.KitchenSink.Types.SinOsc where
 
 import Prelude
-
-import Data.Tuple.Nested (type (/\))
 import Math (cos, pi, pow, sin, (%))
+import WAGS.Change (ichange)
+import WAGS.Create.Optionals (CSinOsc, sinOsc)
+import WAGS.Example.KitchenSink.TLP.LoopSig (IxWAGSig')
 import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
-import WAGS.Example.KitchenSink.Types.Empty (TopWith)
-import WAGS.Graph.AudioUnit (OnOff(..), TSinOsc)
-import WAGS.Graph.Optionals (CSinOsc, DSinOsc, DGain, gain_, sinOsc, sinOsc_)
+import WAGS.Example.KitchenSink.Types.StartGraph (StartGraph)
+import WAGS.Graph.AudioUnit (OnOff(..))
 
 type SinOscGraph
-  = TopWith { sinOsc :: Unit }
-      ( sinOsc :: TSinOsc /\ {}
-      )
+  = StartGraph
 
 ksSinOscCreate :: { sinOsc :: CSinOsc }
-ksSinOscCreate = { sinOsc: sinOsc  440.0 }
+ksSinOscCreate = { sinOsc: sinOsc 440.0 }
 
-deltaKsSinOsc :: Number -> { mix :: DGain, sinOsc :: DSinOsc }
+deltaKsSinOsc :: forall proof. Number -> IxWAGSig' SinOscGraph SinOscGraph proof Unit
 deltaKsSinOsc =
   (_ % pieceTime)
     >>> (_ - timing.ksSinOsc.begin)
@@ -30,8 +28,7 @@ deltaKsSinOsc =
 
           switchW = time % 4.0 < 2.0
         in
-          { mix: gain_ (0.1 - 0.1 * (cos time))
-          , sinOsc:
-              sinOsc_ (if switchOO then On else Off) 
-                (440.0 + 50.0 * ((sin (rad * 1.5)) `pow` 2.0))
-          }
+          ichange
+            { mix: 0.1 - 0.1 * (cos time)
+            , sinOsc: { onOff: if switchOO then On else Off, freq: 440.0 + 50.0 * ((sin (rad * 1.5)) `pow` 2.0) }
+            }

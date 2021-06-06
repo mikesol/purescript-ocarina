@@ -1,6 +1,7 @@
 module WAGS.Example.AtariSpeaks where
 
 import Prelude
+
 import Control.Comonad.Cofree (Cofree, mkCofree)
 import Control.Promise (toAffE)
 import Data.Foldable (for_)
@@ -22,10 +23,10 @@ import WAGS.Change (ichange)
 import WAGS.Control.Functions.Validated (iloop, (@!>))
 import WAGS.Control.Types (Frame0, Scene)
 import WAGS.Create (icreate)
+import WAGS.Create.Optionals (CGain, CLoopBuf, CSpeaker, gain, loopBuf, speaker)
 import WAGS.Graph.AudioUnit (TGain, TLoopBuf, TSpeaker)
-import WAGS.Graph.Optionals (CGain, CLoopBuf, CSpeaker, gain, loopBuf, speaker)
 import WAGS.Interpret (AudioContext, FFIAudio(..), close, context, decodeAudioDataFromUri, defaultFFIAudio, makeUnitCache)
-import WAGS.Run (SceneI, run)
+import WAGS.Run (RunAudio, SceneI, RunEngine, run)
 
 vol = 1.4 :: Number
 
@@ -61,8 +62,8 @@ scene time =
             { loop1:
                 loopBuf
                   { playbackRate: 1.5 + 0.1 * sin (2.0 * rad)
-                  , start: 0.1 + 0.1 * sin rad
-                  , end: 0.5 + 0.25 * sin (2.0 * rad)
+                  , loopStart: 0.1 + 0.1 * sin rad
+                  , loopEnd: 0.5 + 0.25 * sin (2.0 * rad)
                   }
                   "atar"
             }
@@ -72,7 +73,7 @@ scene time =
             }
       }
 
-piece :: Scene (SceneI Unit Unit) FFIAudio (Effect Unit) Frame0 Unit
+piece :: Scene (SceneI Unit Unit) RunAudio RunEngine Frame0 Unit
 piece = (_.time >>> scene >>> icreate) @!> iloop \{ time } _ -> ivoid $ ichange (scene time)
 
 easingAlgorithm :: Cofree ((->) Int) Int
