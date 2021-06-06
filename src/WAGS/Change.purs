@@ -247,6 +247,13 @@ ichange ::
     Unit
 ichange r = IxWAG (change <<< (<$) r)
 
+class PushOnOffToEnd (i :: RL.RowList Type) (o :: RL.RowList Type) | i -> o
+
+instance pushOnOffToEndNil :: PushOnOffToEnd RL.Nil RL.Nil
+else instance pushOnOffToEndOO :: PushOnOffToEnd (RL.Cons "onOff" a RL.Nil) (RL.Cons "onOff" a RL.Nil)
+else instance pushOnOffToEndOOC :: PushOnOffToEnd (RL.Cons x y (RL.Cons "onOff" a z)) o => PushOnOffToEnd (RL.Cons "onOff" a (RL.Cons x y z)) o
+else instance pushOnOffToEndRest :: PushOnOffToEnd c o => PushOnOffToEnd (RL.Cons a b c) (RL.Cons a b o)
+
 class Detup (a :: Type) (b :: Type) | a -> b
 
 instance detupT :: Detup (a /\ b) a
@@ -317,7 +324,7 @@ instance changeVec ::
   change' px w = change' px (oneShotChange (mempty :: tau) <$> w)
 
 instance changeRec ::
-  (RL.RowToList r rl, Change'' rl ptr r graph) =>
+  (RL.RowToList r rl', PushOnOffToEnd rl' rl, Change'' rl ptr r graph) =>
   Change'
     ptr
     { | r }

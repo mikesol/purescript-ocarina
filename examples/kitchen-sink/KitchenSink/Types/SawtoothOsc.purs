@@ -43,5 +43,5 @@ deltaKsSawtoothOsc time =
   in
     ichange
       { mix: 0.1 - 0.1 * (cos time)
-      , sawtoothOsc: { freq: modTime (const time) $ pure ((sin (rad * 1.5)) `pow` 2.0) }
+      , sawtoothOsc: modTime (const time) $ pure (440.0 + 50.0 * ((sin (rad * 1.5)) `pow` 2.0))
       }
