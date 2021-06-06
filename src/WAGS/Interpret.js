@@ -818,6 +818,7 @@ exports.setOn_ = function (ptr) {
       if (state.units[ptr].onOff) {
         return;
       }
+      state.units[ptr].onOff = true;
       if (state.units[ptr].resumeClosure) {
         applyResumeClosure(state.units[ptr]);
       }
@@ -835,6 +836,7 @@ exports.setOff_ = function (ptr) {
       if (!state.units[ptr].onOff) {
         return;
       }
+      state.units[ptr].onOff = false;
       state.units[ptr].main.stop();
       for (var i = 0; i < state.units[ptr].outgoing.length; i++) {
         state.units[ptr].main.disconnect(

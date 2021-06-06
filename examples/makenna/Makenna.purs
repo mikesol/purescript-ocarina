@@ -1,7 +1,6 @@
 module WAGS.Example.Makenna where
 
 import Prelude
-
 import Control.Applicative.Indexed (ipure)
 import Control.Comonad.Cofree (Cofree, mkCofree)
 import Control.Plus (empty)
@@ -145,8 +144,7 @@ scene time ({ start, dur } /\ pitch) to =
     { gain:
         gain
           (ff to $ pure (maybe 0.0 (const $ asdr (time - start) dur) pitch))
-          { osc: periodicOsc "bday" (ff to $ pure (midiToCps (fromMaybe 60.0 pitch)))
-          }
+          { osc: periodicOsc "bday" (ff to $ pure (midiToCps (fromMaybe 60.0 pitch))) }
     }
 
 createFrame :: IxFrame (SceneI Unit Unit) RunAudio RunEngine Frame0 Unit {} SceneType (List EnrichedNote)
