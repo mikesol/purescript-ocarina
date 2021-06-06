@@ -1,8 +1,10 @@
 module WAGS.Example.KitchenSink.Types.Highshelf where
 
 import Prelude
+
 import Data.Tuple.Nested (type (/\))
 import Math ((%))
+import WAGS.Change (ichange)
 import WAGS.Create.Optionals (CHighshelf, CPlayBuf, highshelf, playBuf)
 import WAGS.Example.KitchenSink.TLP.LoopSig (IxWAGSig')
 import WAGS.Example.KitchenSink.Timing (timing, pieceTime)

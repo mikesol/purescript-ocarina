@@ -331,32 +331,32 @@ instance change_convertLoopBufPlaybackRate :: (Paramable b, MM a (Maybe b)) => C
 instance change_convertLoopBufOnOff :: (MM a (Maybe OnOff)) => ConvertOption LoopBuf "onOff" a (Maybe OnOff) where
   convertOption _ _ = mm
 
-instance change_convertLoopBufStart :: (MM a (Maybe Number)) => ConvertOption LoopBuf "start" a (Maybe Number) where
+instance change_convertLoopBufStart :: (MM a (Maybe Number)) => ConvertOption LoopBuf "loopStart" a (Maybe Number) where
   convertOption _ _ = mm
 
-instance change_convertLoopBufEnd :: (MM a (Maybe Number)) => ConvertOption LoopBuf "end" a (Maybe Number) where
+instance change_convertLoopBufEnd :: (MM a (Maybe Number)) => ConvertOption LoopBuf "loopEnd" a (Maybe Number) where
   convertOption _ _ = mm
 
 type LoopBufOptional
   = ( buffer :: Maybe String
     , playbackRate :: Maybe AudioParameter
     , onOff :: Maybe OnOff
-    , start :: Maybe Number
-    , end :: Maybe Number
+    , loopStart :: Maybe Number
+    , loopEnd :: Maybe Number
     )
 
 type LoopBufAll
   = ( | LoopBufOptional )
 
 defaultLoopBuf :: { | LoopBufOptional }
-defaultLoopBuf = { buffer: Nothing, playbackRate: Nothing, onOff: Nothing, start: Nothing, end: Nothing }
+defaultLoopBuf = { buffer: Nothing, playbackRate: Nothing, onOff: Nothing, loopStart: Nothing, loopEnd: Nothing }
 
 class LoopBufCtor i loopBuf | i -> loopBuf where
   -- | Change a looping buffer.
   -- |
   -- | ```purescript
   -- | loopBuf { playbackRate: 1.0 } "track"
-  -- | loopBuf { playbackRate: 1.0, start: 0.5 } "track"
+  -- | loopBuf { playbackRate: 1.0, loopStart: 0.5 } "track"
   -- | loopBuf "track"
   -- | ```
   loopBuf :: i -> loopBuf
@@ -365,7 +365,7 @@ instance change_loopBufCtor1 ::
   ( ConvertOptionsWithDefaults LoopBuf { | LoopBufOptional } { | provided } { | LoopBufAll }
     ) =>
   LoopBufCtor { | provided } (CTOR.LoopBuf (Maybe String) (Maybe OnOff) (Maybe AudioParameter) (Maybe Number) (Maybe Number)) where
-  loopBuf provided = CTOR.LoopBuf all.buffer all.onOff all.playbackRate all.start all.end
+  loopBuf provided = CTOR.LoopBuf all.buffer all.onOff all.playbackRate all.loopStart all.loopEnd
     where
     all :: { | LoopBufAll }
     all = convertOptionsWithDefaults LoopBuf defaultLoopBuf provided
@@ -375,8 +375,8 @@ else instance change_loopBufCtor2 :: (Paramable b, MM a (Maybe b)) => LoopBufCto
       defaultLoopBuf.buffer
       defaultLoopBuf.onOff
       (paramize <$> mm rate)
-      defaultLoopBuf.start
-      defaultLoopBuf.end
+      defaultLoopBuf.loopStart
+      defaultLoopBuf.loopEnd
 
 type DLoopBuf
   = CTOR.LoopBuf String (Maybe OnOff) (Maybe AudioParameter) Number Number
@@ -627,20 +627,20 @@ instance change_convertPlayBufBufferOffset :: (MM mOffset (Maybe Number)) => Con
   convertOption _ _ = mm
 
 type PlayBufOptional
-  = ( buffer :: Maybe String, playbackRate :: Maybe AudioParameter, onOff :: Maybe OnOff, start :: Maybe Number )
+  = ( buffer :: Maybe String, playbackRate :: Maybe AudioParameter, onOff :: Maybe OnOff, bufferOffset :: Maybe Number )
 
 type PlayBufAll
   = ( | PlayBufOptional )
 
 defaultPlayBuf :: { | PlayBufOptional }
-defaultPlayBuf = { buffer: Nothing, playbackRate: Nothing, onOff: Nothing, start: Nothing }
+defaultPlayBuf = { buffer: Nothing, playbackRate: Nothing, onOff: Nothing, bufferOffset: Nothing }
 
 class PlayBufCtor i playBuf | i -> playBuf where
   -- | Change a unit that plays from a buffer.
   -- |
   -- | ```purescript
   -- | playBuf { playbackRate: 1.0 } "track"
-  -- | playBuf { playbackRate: 1.0, start: 0.5 } "track"
+  -- | playBuf { playbackRate: 1.0, bufferOffset: 0.5 } "track"
   -- | playBuf "track"
   -- | ```
   playBuf :: i -> playBuf
@@ -648,7 +648,7 @@ class PlayBufCtor i playBuf | i -> playBuf where
 instance change_playBufCtor1 ::
   ConvertOptionsWithDefaults PlayBuf { | PlayBufOptional } { | provided } { | PlayBufAll } =>
   PlayBufCtor { | provided } (CTOR.PlayBuf (Maybe String) (Maybe Number) (Maybe OnOff) (Maybe AudioParameter)) where
-  playBuf provided = CTOR.PlayBuf all.buffer all.start all.onOff all.playbackRate
+  playBuf provided = CTOR.PlayBuf all.buffer all.bufferOffset all.onOff all.playbackRate
     where
     all :: { | PlayBufAll }
     all = convertOptionsWithDefaults PlayBuf defaultPlayBuf provided
@@ -656,7 +656,7 @@ else instance change_playBufCtor2 :: (Paramable b, MM a (Maybe b)) => PlayBufCto
   playBuf rate =
     CTOR.PlayBuf
       defaultPlayBuf.buffer
-      defaultPlayBuf.start
+      defaultPlayBuf.bufferOffset
       defaultPlayBuf.onOff
       (paramize <$> mm rate)
 

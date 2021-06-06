@@ -7,7 +7,7 @@ import WAGS.Create (icreate)
 import WAGS.Example.KitchenSink.TLP.LoopSig (LoopSig(..), SceneSig)
 import WAGS.Example.KitchenSink.TLP.SinOsc (doSinOsc)
 import WAGS.Example.KitchenSink.Types.SinOsc (ksSinOscCreate)
-import WAGS.Graph.Optionals (gain, speaker)
+import WAGS.Create.Optionals (gain, speaker)
 
 piece :: SceneSig Frame0
 piece =

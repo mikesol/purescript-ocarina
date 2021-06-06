@@ -3,18 +3,17 @@ module WAGS.Example.KitchenSink.Types.SawtoothOsc where
 import Prelude
 import Control.Applicative.Indexed (ipure)
 import Control.Monad.Indexed.Qualified as Ix
-import Data.Functor.Indexed (ivoid)
 import Data.Int (toNumber)
 import Data.List ((..))
 import Data.List as L
 import Data.Tuple.Nested (type (/\))
 import Math (cos, pi, pow, sin)
 import WAGS.Change (ichange)
+import WAGS.Create.Optionals (CSawtoothOsc, sawtoothOsc)
 import WAGS.Example.KitchenSink.TLP.LoopSig (IxWAGSig')
 import WAGS.Example.KitchenSink.Types.Empty (TopWith)
-import WAGS.Graph.AudioUnit (OnOff(..), TSawtoothOsc)
-import WAGS.Create.Optionals (CSawtoothOsc, sawtoothOsc)
-import WAGS.Graph.Parameter (AudioParameterTransition(..), AudioParameter_(..))
+import WAGS.Graph.AudioUnit (TSawtoothOsc)
+import WAGS.Graph.Parameter (modTime)
 
 type SawtoothOscGraph
   = TopWith { sawtoothOsc :: Unit }
@@ -34,16 +33,15 @@ frontloadSawtoothOsc = go stSpan
   go L.Nil = ipure unit
 
   go (L.Cons a b) = Ix.do
-    ivoid $ ichange (deltaKsSawtoothOsc a)
+    deltaKsSawtoothOsc a
     go b
 
-deltaKsSawtoothOsc :: Number -> { mix :: DGain, sawtoothOsc :: DSawtoothOsc }
+deltaKsSawtoothOsc :: forall proof. Number -> IxWAGSig' SawtoothOscGraph SawtoothOscGraph proof Unit
 deltaKsSawtoothOsc time =
   let
     rad = pi * time
   in
-    { mix: gain_ (0.1 - 0.1 * (cos time))
-    , sawtoothOsc:
-        sawtoothOsc_ On
-          $ AudioParameter { param: pure $ 440.0 + 50.0 * ((sin (rad * 1.5)) `pow` 2.0), timeOffset: time, transition: LinearRamp, forceSet: false }
-    }
+    ichange
+      { mix: 0.1 - 0.1 * (cos time)
+      , sawtoothOsc: { freq: modTime (const time) $ pure ((sin (rad * 1.5)) `pow` 2.0) }
+      }

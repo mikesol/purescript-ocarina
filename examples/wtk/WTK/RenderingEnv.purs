@@ -32,21 +32,21 @@ asdr n
   | otherwise = 0.0
 
 keyStart :: Number -> KeyUnit
-keyStart cps = { gain: defaultGetSetAP 0.0, onOff: On, freq: defaultGetSetAP cps }
+keyStart cps = { gain: 0.0, onOff: On, freq: cps }
 
 keySustain :: Number -> Number -> Number -> KeyUnit
 keySustain initialTime cps currentTime =
   { gain:
-      defaultGetSetAP (asdr (currentTime - initialTime))
+      (asdr (currentTime - initialTime))
   , onOff: On
-  , freq: defaultGetSetAP cps
+  , freq: cps
   }
 
 keySustainOff :: Number -> Number -> Number -> Number -> KeyUnit
-keySustainOff initialTime cps offTime currentTime = { gain: defaultGetSetAP (asdr (currentTime - initialTime) * dampen currentTime offTime), onOff: On, freq: defaultGetSetAP cps }
+keySustainOff initialTime cps offTime currentTime = { gain: (asdr (currentTime - initialTime) * dampen currentTime offTime), onOff: On, freq: cps }
 
 keyEnd :: Number -> KeyUnit
-keyEnd cps = { gain: defaultGetSetAP 0.0, onOff: Off, freq: defaultGetSetAP cps }
+keyEnd cps = { gain: 0.0, onOff: Off, freq: cps }
 
 midiEventsToOnsets :: List MIDIEvent -> (List Int /\ List Int)
 midiEventsToOnsets = go Nil Nil

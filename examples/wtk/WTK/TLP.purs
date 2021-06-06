@@ -1,20 +1,19 @@
 module WAGS.Example.WTK.TLP where
 
 import Prelude
+
 import Control.Applicative.Indexed (ipure)
 import Control.Monad.Indexed.Qualified as Ix
-import Data.Functor.Indexed (ivoid)
 import Data.List (List(..), (:))
 import Data.Set as S
-import Effect (Effect)
 import WAGS.Change (ichange)
 import WAGS.Control.Functions.Validated ((@!>), iloop)
 import WAGS.Control.Indexed (IxWAG, IxFrame)
 import WAGS.Control.Types (Frame0, Scene)
 import WAGS.Create (icreate)
 import WAGS.Example.WTK.Types (Key(..), KeyInfo, MakeRenderingEnv, Trigger, KlavierType, fullKeyboard)
-import WAGS.Interpret (class AudioInterpret, FFIAudio)
-import WAGS.Run (SceneI)
+import WAGS.Interpret (class AudioInterpret)
+import WAGS.Run (RunAudio, SceneI, RunEngine)
 
 playKeys ::
   forall audio engine proof res.
@@ -137,14 +136,14 @@ type Accumulator
     , availableKeys :: List Key
     }
 
-createFrame :: IxFrame (SceneI Trigger Unit) FFIAudio (Effect Unit) Frame0 Unit {} KlavierType Accumulator
+createFrame :: IxFrame (SceneI Trigger Unit) RunAudio RunEngine Frame0 Unit {} KlavierType Accumulator
 createFrame _ =
   icreate fullKeyboard
     $> { currentKeys: Nil
       , availableKeys: K0 : K1 : K2 : K3 : K4 : K5 : K6 : K7 : K8 : K9 : Nil
       }
 
-piece :: { makeRenderingEnv :: MakeRenderingEnv } -> Scene (SceneI Trigger Unit) FFIAudio (Effect Unit) Frame0 Unit
+piece :: { makeRenderingEnv :: MakeRenderingEnv } -> Scene (SceneI Trigger Unit) RunAudio RunEngine Frame0 Unit
 piece { makeRenderingEnv } =
   createFrame
     @!> iloop \{ time, trigger, active } { currentKeys, availableKeys } -> Ix.do

@@ -3,11 +3,13 @@ module WAGS.Example.KitchenSink.Types.Feedback where
 import Prelude
 import Data.Tuple.Nested (type (/\))
 import Math ((%))
-import WAGS.Math (calcSlope)
+import WAGS.Change (ichange)
+import WAGS.Create.Optionals (CDelay, CGain, CPlayBuf, Ref, CHighpass, delay, gain, highpass, playBuf, ref)
+import WAGS.Example.KitchenSink.TLP.LoopSig (IxWAGSig')
 import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
 import WAGS.Example.KitchenSink.Types.Empty (TopWith)
 import WAGS.Graph.AudioUnit (OnOff(..), TDelay, TGain, THighpass, TPlayBuf)
-import WAGS.Create.Optionals (CDelay, CGain, CPlayBuf, Ref, CHighpass, delay, gain, highpass, playBuf, ref)
+import WAGS.Math (calcSlope)
 
 type FeedbackGraph
   = TopWith { dmix :: Unit }
@@ -32,7 +34,7 @@ ksFeedbackCreate =
         }
   }
 
-deltaKsFeedback :: Number -> { mix :: DGain, delay :: DDelay, buf :: DPlayBuf }
+deltaKsFeedback :: forall proof. Number -> IxWAGSig' FeedbackGraph FeedbackGraph proof Unit
 deltaKsFeedback =
   (_ % pieceTime)
     >>> (_ - timing.ksFeedback.begin)
@@ -43,10 +45,8 @@ deltaKsFeedback =
 
           switchW = time % 4.0 < 2.0
         in
-          { mix: gain_ (if time > (timing.ksFeedback.dur - 1.0) then 0.0 else 1.0)
-          , delay: delay_ $ calcSlope 0.0 0.3 timing.ksFeedback.dur 0.6 time
-          , buf:
-              playBuf_
-                { onOff: if switchOO then On else Off }
-                (if switchW then "my-buffer" else "shruti")
-          }
+          ichange
+            { mix: if time > (timing.ksFeedback.dur - 1.0) then 0.0 else 1.0
+            , delay: calcSlope 0.0 0.3 timing.ksFeedback.dur 0.6 time
+            , buf: { onOff: if switchOO then On else Off, buffer: if switchW then "my-buffer" else "shruti" }
+            }

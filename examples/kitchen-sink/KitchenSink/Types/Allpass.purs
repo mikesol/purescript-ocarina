@@ -3,11 +3,13 @@ module WAGS.Example.KitchenSink.Types.Allpass where
 import Prelude
 import Data.Tuple.Nested (type (/\))
 import Math ((%))
-import WAGS.Math (calcSlope)
+import WAGS.Change (ichange)
+import WAGS.Create.Optionals (CAllpass, CPlayBuf, allpass, playBuf)
+import WAGS.Example.KitchenSink.TLP.LoopSig (IxWAGSig')
 import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
 import WAGS.Example.KitchenSink.Types.Empty (TopWith)
 import WAGS.Graph.AudioUnit (OnOff(..), TAllpass, TPlayBuf)
-import WAGS.Create.Optionals (CAllpass, CPlayBuf,  allpass, playBuf)
+import WAGS.Math (calcSlope)
 
 type AllpassGraph
   = TopWith { allpass :: Unit }
@@ -18,7 +20,7 @@ type AllpassGraph
 ksAllpassCreate :: { allpass :: CAllpass { buf :: CPlayBuf } }
 ksAllpassCreate = { allpass: allpass { freq: 300.0 } { buf: playBuf "my-buffer" } }
 
-deltaKsAllpass :: Number -> { mix :: DGain, allpass :: DAllpass, buf :: DPlayBuf }
+deltaKsAllpass :: forall proof. Number -> IxWAGSig' AllpassGraph AllpassGraph proof Unit
 deltaKsAllpass =
   (_ % pieceTime)
     >>> (_ - timing.ksAllpass.begin)
@@ -29,10 +31,8 @@ deltaKsAllpass =
 
           switchW = time % 4.0 < 2.0
         in
-          { mix: gain_ (if time > (timing.ksAllpass.dur - 1.0) then 0.0 else 1.0)
-          , allpass: allpass_ { freq: calcSlope 0.0 300.0 timing.ksAllpass.dur 2000.0 time }
-          , buf:
-              playBuf_
-                { onOff: if switchOO then On else Off }
-                (if switchW then "my-buffer" else "shruti")
-          }
+          ichange
+            { mix: if time > (timing.ksAllpass.dur - 1.0) then 0.0 else 1.0
+            , allpass: calcSlope 0.0 300.0 timing.ksAllpass.dur 2000.0 time
+            , buf: { onOff: if switchOO then On else Off, buffer: if switchW then "my-buffer" else "shruti" }
+            }

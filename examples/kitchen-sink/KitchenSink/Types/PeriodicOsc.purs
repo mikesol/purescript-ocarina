@@ -1,7 +1,6 @@
 module WAGS.Example.KitchenSink.Types.PeriodicOsc where
 
 import Prelude
-import Data.Functor.Indexed (ivoid)
 import Data.Tuple.Nested (type (/\), (/\))
 import Data.Vec as V
 import Data.Vec ((+>))
@@ -38,7 +37,10 @@ deltaKsPeriodicOsc =
             ichange
               { mix: 0.1 - 0.1 * (cos time)
               , periodicOsc:
-                  periodicOsc_ { waveform: "my-wave" onOff : if switchOO then On else Off, freq: 440.0 + 50.0 * ((sin (rad * 1.5)) `pow` 2.0) }
+                  { waveform: "my-wave"
+                  , onOff: if switchOO then On else Off
+                  , freq: 440.0 + 50.0 * ((sin (rad * 1.5)) `pow` 2.0)
+                  }
               }
           else
             ichange

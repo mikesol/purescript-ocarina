@@ -1,7 +1,6 @@
 module WAGS.Change where
 
 import Prelude
-
 import Control.Comonad (extract)
 import Data.Maybe (Maybe(..), maybe)
 import Data.Symbol (class IsSymbol, reflectSymbol)
@@ -735,6 +734,171 @@ instance canBeChangedWaveformV ::
     nn = reflectSymbol ptr
 
     argA_Changes = [ setPeriodicOscV nn val ]
+
+    o =
+      unsafeWAG
+        { context:
+            i
+              { instructions = i.instructions <> argA_Changes
+              }
+        , value: unit
+        }
+
+class Thresholdable (tau :: Type)
+
+instance thresholdableDynamicsCompressor :: Thresholdable CTOR.TDynamicsCompressor
+
+instance canBeChangedThresholdN ::
+  (CanBeChanged "threshold" AudioParameter ptr graph) =>
+  CanBeChanged "threshold" Number ptr graph where
+  canBeChanged sym val ptr w = canBeChanged sym (apure val) ptr w
+
+instance canBeChangedThreshold ::
+  ( IsSymbol ptr
+  , R.Cons ptr tau' ignore graph
+  , Detup tau' tau
+  , Thresholdable tau
+  ) =>
+  CanBeChanged "threshold" AudioParameter ptr graph where
+  canBeChanged sym val ptr w = o
+    where
+    { context: i } = unsafeUnWAG w
+
+    nn = reflectSymbol ptr
+
+    argA_Changes = [ setThreshold nn val ]
+
+    o =
+      unsafeWAG
+        { context:
+            i
+              { instructions = i.instructions <> argA_Changes
+              }
+        , value: unit
+        }
+
+class Ratioable (tau :: Type)
+
+instance ratioableDynamicsCompressor :: Ratioable CTOR.TDynamicsCompressor
+
+instance canBeChangedRatioN ::
+  (CanBeChanged "ratio" AudioParameter ptr graph) =>
+  CanBeChanged "ratio" Number ptr graph where
+  canBeChanged sym val ptr w = canBeChanged sym (apure val) ptr w
+
+instance canBeChangedRatio ::
+  ( IsSymbol ptr
+  , R.Cons ptr tau' ignore graph
+  , Detup tau' tau
+  , Ratioable tau
+  ) =>
+  CanBeChanged "ratio" AudioParameter ptr graph where
+  canBeChanged sym val ptr w = o
+    where
+    { context: i } = unsafeUnWAG w
+
+    nn = reflectSymbol ptr
+
+    argA_Changes = [ setRatio nn val ]
+
+    o =
+      unsafeWAG
+        { context:
+            i
+              { instructions = i.instructions <> argA_Changes
+              }
+        , value: unit
+        }
+
+class Kneeable (tau :: Type)
+
+instance kneeableDynamicsCompressor :: Kneeable CTOR.TDynamicsCompressor
+
+instance canBeChangedKneeN ::
+  (CanBeChanged "knee" AudioParameter ptr graph) =>
+  CanBeChanged "knee" Number ptr graph where
+  canBeChanged sym val ptr w = canBeChanged sym (apure val) ptr w
+
+instance canBeChangedKnee ::
+  ( IsSymbol ptr
+  , R.Cons ptr tau' ignore graph
+  , Detup tau' tau
+  , Kneeable tau
+  ) =>
+  CanBeChanged "knee" AudioParameter ptr graph where
+  canBeChanged sym val ptr w = o
+    where
+    { context: i } = unsafeUnWAG w
+
+    nn = reflectSymbol ptr
+
+    argA_Changes = [ setKnee nn val ]
+
+    o =
+      unsafeWAG
+        { context:
+            i
+              { instructions = i.instructions <> argA_Changes
+              }
+        , value: unit
+        }
+
+class Attackable (tau :: Type)
+
+instance attackableDynamicsCompressor :: Attackable CTOR.TDynamicsCompressor
+
+instance canBeChangedAttackN ::
+  (CanBeChanged "attack" AudioParameter ptr graph) =>
+  CanBeChanged "attack" Number ptr graph where
+  canBeChanged sym val ptr w = canBeChanged sym (apure val) ptr w
+
+instance canBeChangedAttack ::
+  ( IsSymbol ptr
+  , R.Cons ptr tau' ignore graph
+  , Detup tau' tau
+  , Attackable tau
+  ) =>
+  CanBeChanged "attack" AudioParameter ptr graph where
+  canBeChanged sym val ptr w = o
+    where
+    { context: i } = unsafeUnWAG w
+
+    nn = reflectSymbol ptr
+
+    argA_Changes = [ setAttack nn val ]
+
+    o =
+      unsafeWAG
+        { context:
+            i
+              { instructions = i.instructions <> argA_Changes
+              }
+        , value: unit
+        }
+
+class Releaseable (tau :: Type)
+
+instance releaseableDynamicsCompressor :: Releaseable CTOR.TDynamicsCompressor
+
+instance canBeChangedReleaseN ::
+  (CanBeChanged "release" AudioParameter ptr graph) =>
+  CanBeChanged "release" Number ptr graph where
+  canBeChanged sym val ptr w = canBeChanged sym (apure val) ptr w
+
+instance canBeChangedRelease ::
+  ( IsSymbol ptr
+  , R.Cons ptr tau' ignore graph
+  , Detup tau' tau
+  , Releaseable tau
+  ) =>
+  CanBeChanged "release" AudioParameter ptr graph where
+  canBeChanged sym val ptr w = o
+    where
+    { context: i } = unsafeUnWAG w
+
+    nn = reflectSymbol ptr
+
+    argA_Changes = [ setRelease nn val ]
 
     o =
       unsafeWAG

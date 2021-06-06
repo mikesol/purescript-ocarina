@@ -1,13 +1,11 @@
 module WAGS.Example.KitchenSink.TLP.Lowpass where
 
 import Prelude
-
 import Control.Applicative.Indexed (ipure)
 import Control.Monad.Indexed.Qualified as Ix
 import Data.Either (Either(..))
 import Math ((%))
 import Type.Proxy (Proxy(..))
-import WAGS.Change (ichange)
 import WAGS.Connect (iconnect)
 import WAGS.Control.Functions (ibranch, icont)
 import WAGS.Create (icreate)
@@ -24,7 +22,7 @@ doLowpass :: forall proof. StepSig LowpassGraph proof
 doLowpass =
   ibranch \{ time } lsig ->
     if time % pieceTime < timing.ksLowpass.end then
-      Right (ichange (deltaKsLowpass time) $> lsig)
+      Right (deltaKsLowpass time $> lsig)
     else
       Left
         $ icont doHighshelf Ix.do

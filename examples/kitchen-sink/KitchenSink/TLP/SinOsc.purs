@@ -1,13 +1,11 @@
 module WAGS.Example.KitchenSink.TLP.SinOsc where
 
 import Prelude
-
 import Control.Applicative.Indexed (ipure)
 import Control.Monad.Indexed.Qualified as Ix
 import Data.Either (Either(..))
 import Math ((%))
 import Type.Proxy (Proxy(..))
-import WAGS.Change (ichange)
 import WAGS.Connect (iconnect)
 import WAGS.Control.Functions (ibranch, icont)
 import WAGS.Create (icreate)
@@ -24,7 +22,7 @@ doSinOsc :: forall proof. StepSig SinOscGraph proof
 doSinOsc =
   ibranch \{ time } lsig ->
     if time % pieceTime < timing.ksSinOsc.end then
-      Right (ichange (deltaKsSinOsc time) $> lsig)
+      Right (deltaKsSinOsc time $> lsig)
     else
       Left
         $ icont doTriangleOsc Ix.do

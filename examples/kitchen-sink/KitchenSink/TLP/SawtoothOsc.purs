@@ -1,12 +1,10 @@
 module WAGS.Example.KitchenSink.TLP.SawtoothOsc where
 
 import Prelude
-
 import Control.Applicative.Indexed (ipure)
 import Control.Monad.Indexed.Qualified as Ix
+import Control.Plus (empty)
 import Data.Either (Either(..))
-import Data.Functor.Indexed (ivoid)
-import Data.Maybe (Maybe(..))
 import Math ((%))
 import Type.Proxy (Proxy(..))
 import WAGS.Change (ichange)
@@ -21,8 +19,7 @@ import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
 import WAGS.Example.KitchenSink.Types.Allpass (ksAllpassCreate)
 import WAGS.Example.KitchenSink.Types.Empty (cursorGain)
 import WAGS.Example.KitchenSink.Types.SawtoothOsc (SawtoothOscGraph)
-import WAGS.Graph.Optionals (sawtoothOsc)
-import WAGS.Graph.Parameter (AudioParameter_(..), defaultParam)
+import WAGS.Graph.Parameter (AudioParameter_)
 
 doSawtoothOsc :: forall proof. StepSig SawtoothOscGraph proof
 doSawtoothOsc =
@@ -31,17 +28,7 @@ doSawtoothOsc =
       Right Ix.do
         -- tests cancel
         when (time % pieceTime > timing.ksSawtoothOsc.begin + 2.0)
-          ( ivoid
-              $ ichange
-                  { sawtoothOsc:
-                      sawtoothOsc
-                        $ AudioParameter
-                            ( defaultParam
-                                { param = Nothing :: Maybe Number
-                                }
-                            )
-                  }
-          )
+          (ichange { sawtoothOsc: empty :: AudioParameter_ Number })
         ipure lsig
     else
       Left

@@ -6,7 +6,6 @@ import Control.Monad.Indexed.Qualified as Ix
 import Data.Either (Either(..))
 import Math ((%))
 import Type.Proxy (Proxy(..))
-import WAGS.Change (ichange)
 import WAGS.Connect (iconnect)
 import WAGS.Control.Functions (ibranch, icont)
 import WAGS.Create (icreate)
@@ -23,7 +22,7 @@ doLoopBuf :: forall proof. StepSig LoopBufGraph proof
 doLoopBuf =
   ibranch \{ time } lsig ->
     if time % pieceTime < timing.ksLoopBuf.end then
-      Right (ichange (deltaKsLoopBuf time) $> lsig)
+      Right (deltaKsLoopBuf time $> lsig)
     else
       Left
         $ icont doStereoPanner Ix.do

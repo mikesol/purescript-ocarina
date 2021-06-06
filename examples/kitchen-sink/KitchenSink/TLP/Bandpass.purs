@@ -1,13 +1,11 @@
 module WAGS.Example.KitchenSink.TLP.Bandpass where
 
 import Prelude
-
 import Control.Applicative.Indexed (ipure)
 import Control.Monad.Indexed.Qualified as Ix
 import Data.Either (Either(..))
 import Math ((%))
 import Type.Proxy (Proxy(..))
-import WAGS.Change (ichange)
 import WAGS.Connect (iconnect)
 import WAGS.Control.Functions (ibranch, icont)
 import WAGS.Create (icreate)
@@ -24,7 +22,7 @@ doBandpass :: forall proof. StepSig BandpassGraph proof
 doBandpass =
   ibranch \{ time } lsig ->
     if time % pieceTime < timing.ksBandpass.end then
-      Right (ichange (deltaKsBandpass time) $> lsig)
+      Right (deltaKsBandpass time $> lsig)
     else
       Left
         $ icont doNotch Ix.do

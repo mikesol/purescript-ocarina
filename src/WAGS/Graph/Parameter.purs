@@ -1,6 +1,9 @@
 module WAGS.Graph.Parameter where
 
 import Prelude hiding (apply)
+
+import Control.Alt (class Alt)
+import Control.Plus (class Plus)
 import Data.Function (apply)
 import Data.Generic.Rep (class Generic)
 import Data.Maybe (Maybe(..), maybe)
@@ -19,6 +22,15 @@ type AudioParameter
 derive instance eqAudioParameter :: Eq a => Eq (AudioParameter_ a)
 
 derive instance functorAudioParameter :: Functor AudioParameter_
+
+instance altAudioParameter :: Alt AudioParameter_ where
+  alt l@(AudioParameter { param: Just a }) r@(AudioParameter { param: Just b }) = l
+  alt l@(AudioParameter { param: Nothing }) r@(AudioParameter { param: Just b }) = r
+  alt l@(AudioParameter { param: Just a }) r@(AudioParameter { param: Nothing }) = l
+  alt l@(AudioParameter { param: Nothing }) r@(AudioParameter { param: Nothing }) = l
+
+instance plusAudioParameter :: Plus AudioParameter_ where
+  empty = AudioParameter (R.set (Proxy :: _ "param") Nothing defaultParam)
 
 instance applyAudioParameter :: Apply AudioParameter_ where
   apply = bop apply

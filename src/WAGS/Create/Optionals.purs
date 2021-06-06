@@ -364,27 +364,27 @@ instance convertLoopBufPlaybackRate :: Paramable a => ConvertOption LoopBuf "pla
 instance convertLoopBufOnOff :: ConvertOption LoopBuf "onOff" OnOff OnOff where
   convertOption _ _ = identity
 
-instance convertLoopBufStart :: ConvertOption LoopBuf "start" Number Number where
+instance convertLoopBufStart :: ConvertOption LoopBuf "loopStart" Number Number where
   convertOption _ _ = identity
 
-instance convertLoopBufEnd :: ConvertOption LoopBuf "end" Number Number where
+instance convertLoopBufEnd :: ConvertOption LoopBuf "loopEnd" Number Number where
   convertOption _ _ = identity
 
 type LoopBufOptional
-  = ( playbackRate :: AudioParameter, onOff :: OnOff, start :: Number, end :: Number )
+  = ( playbackRate :: AudioParameter, onOff :: OnOff, loopStart :: Number, loopEnd :: Number )
 
 type LoopBufAll
   = ( | LoopBufOptional )
 
 defaultLoopBuf :: { | LoopBufOptional }
-defaultLoopBuf = { playbackRate: pure 1.0, onOff: On, start: 0.0, end: 0.0 }
+defaultLoopBuf = { playbackRate: pure 1.0, onOff: On, loopStart: 0.0, loopEnd: 0.0 }
 
 class LoopBufCtor i loopBuf | i -> loopBuf where
   -- | Make a looping buffer.
   -- |
   -- | ```purescript
   -- | loopBuf { playbackRate: 1.0 } "track"
-  -- | loopBuf { playbackRate: 1.0, start: 0.5 } "track"
+  -- | loopBuf { playbackRate: 1.0, loopStart: 0.5 } "track"
   -- | loopBuf "track"
   -- | ```
   loopBuf :: i -> loopBuf
@@ -393,7 +393,7 @@ instance loopBufCtor1 ::
   ( ConvertOptionsWithDefaults LoopBuf { | LoopBufOptional } { | provided } { | LoopBufAll }
     ) =>
   LoopBufCtor { | provided } (String -> CTOR.LoopBuf String OnOff AudioParameter Number Number /\ {}) where
-  loopBuf provided proxy = CTOR.LoopBuf proxy all.onOff all.playbackRate all.start all.end /\ {}
+  loopBuf provided proxy = CTOR.LoopBuf proxy all.onOff all.playbackRate all.loopStart all.loopEnd /\ {}
     where
     all :: { | LoopBufAll }
     all = convertOptionsWithDefaults LoopBuf defaultLoopBuf provided
@@ -403,8 +403,8 @@ else instance loopBufCtor2 :: LoopBufCtor String (CTOR.LoopBuf String OnOff Audi
       name
       defaultLoopBuf.onOff
       defaultLoopBuf.playbackRate
-      defaultLoopBuf.start
-      defaultLoopBuf.end
+      defaultLoopBuf.loopStart
+      defaultLoopBuf.loopEnd
       /\ {}
 
 type CLoopBuf
@@ -664,20 +664,20 @@ instance convertPlayBufOnOff :: ConvertOption PlayBuf "onOff" OnOff OnOff where
   convertOption _ _ = identity
 
 type PlayBufOptional
-  = ( playbackRate :: AudioParameter, onOff :: OnOff, start :: Number )
+  = ( playbackRate :: AudioParameter, onOff :: OnOff, bufferOffset :: Number )
 
 type PlayBufAll
   = ( | PlayBufOptional )
 
 defaultPlayBuf :: { | PlayBufOptional }
-defaultPlayBuf = { playbackRate: pure 1.0, onOff: On, start: 0.0 }
+defaultPlayBuf = { playbackRate: pure 1.0, onOff: On, bufferOffset: 0.0 }
 
 class PlayBufCtor i playBuf | i -> playBuf where
   -- | Make a unit that plays from a buffer.
   -- |
   -- | ```purescript
   -- | playBuf { playbackRate: 1.0 } "track"
-  -- | playBuf { playbackRate: 1.0, start: 0.5 } "track"
+  -- | playBuf { playbackRate: 1.0, bufferOffset: 0.5 } "track"
   -- | playBuf "track"
   -- | ```
   playBuf :: i -> playBuf
@@ -685,7 +685,7 @@ class PlayBufCtor i playBuf | i -> playBuf where
 instance playBufCtor1 ::
   ConvertOptionsWithDefaults PlayBuf { | PlayBufOptional } { | provided } { | PlayBufAll } =>
   PlayBufCtor { | provided } (String -> CTOR.PlayBuf String Number OnOff AudioParameter /\ {}) where
-  playBuf provided proxy = CTOR.PlayBuf proxy all.start all.onOff all.playbackRate /\ {}
+  playBuf provided proxy = CTOR.PlayBuf proxy all.bufferOffset all.onOff all.playbackRate /\ {}
     where
     all :: { | PlayBufAll }
     all = convertOptionsWithDefaults PlayBuf defaultPlayBuf provided
@@ -693,7 +693,7 @@ else instance playBufCtor2 :: PlayBufCtor String (CTOR.PlayBuf String Number OnO
   playBuf str =
     CTOR.PlayBuf
       str
-      defaultPlayBuf.start
+      defaultPlayBuf.bufferOffset
       defaultPlayBuf.onOff
       defaultPlayBuf.playbackRate
       /\ {}

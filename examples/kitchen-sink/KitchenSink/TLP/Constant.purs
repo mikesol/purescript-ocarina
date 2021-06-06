@@ -7,7 +7,6 @@ import Control.Monad.Indexed.Qualified as Ix
 import Data.Either (Either(..))
 import Math ((%))
 import Type.Proxy (Proxy(..))
-import WAGS.Change (ichange)
 import WAGS.Connect (iconnect)
 import WAGS.Control.Functions (ibranch, icont)
 import WAGS.Create (icreate)
@@ -24,7 +23,7 @@ doConstant :: forall proof. StepSig ConstantGraph proof
 doConstant =
   ibranch \{ time } lsig ->
     if time % pieceTime < timing.ksConstant.end then
-      Right (ichange (deltaKsConstant time) $> lsig)
+      Right (deltaKsConstant time $> lsig)
     else
       Left
         $ icont doDynamicsCompressor Ix.do

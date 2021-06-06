@@ -4,7 +4,6 @@ import Prelude
 import Control.Applicative.Indexed (ipure)
 import Control.Monad.Indexed.Qualified as Ix
 import Data.Either (Either(..))
-import Data.Functor.Indexed (ivoid)
 import Math ((%))
 import Type.Proxy (Proxy(..))
 import WAGS.Change (ichange)
@@ -19,20 +18,19 @@ import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
 import WAGS.Example.KitchenSink.Types.Empty (cursorGain)
 import WAGS.Example.KitchenSink.Types.SquareOsc (ksSquareOscCreate)
 import WAGS.Example.KitchenSink.Types.TriangleOsc (TriangleOscGraph, deltaKsTriangleOsc)
-import WAGS.Graph.Optionals (squareOsc_)
 import WAGS.Patch (ipatch)
 
 doTriangleOsc :: forall proof. StepSig TriangleOscGraph proof
 doTriangleOsc =
   ibranch \{ time } lsig ->
     if time % pieceTime < timing.ksTriangleOsc.end then
-      Right (ichange (deltaKsTriangleOsc time) $> lsig)
+      Right (deltaKsTriangleOsc time $> lsig)
     else
       Left
         $ icont doSquareOsc
             if lsig.iteration `mod` 2 == 0 then Ix.do
               ipatch
-              ivoid $ ichange { squareOsc: squareOsc_ 220.0 }
+              ichange { squareOsc: 220.0 }
               ipure lsig
             else Ix.do
               let
