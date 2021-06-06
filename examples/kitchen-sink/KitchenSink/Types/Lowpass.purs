@@ -7,7 +7,7 @@ import WAGS.Math (calcSlope)
 import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
 import WAGS.Example.KitchenSink.Types.Empty (TopWith)
 import WAGS.Graph.AudioUnit (OnOff(..), TLowpass, TPlayBuf)
-import WAGS.Graph.Optionals (CLowpass, CPlayBuf, DGain, DPlayBuf, DLowpass, lowpass, lowpass_, gain_, playBuf, playBuf_)
+import WAGS.Create.Optionals (CLowpass, CPlayBuf, lowpass, playBuf)
 
 type LowpassGraph
   = TopWith { lowpass :: Unit }
@@ -18,7 +18,7 @@ type LowpassGraph
 ksLowpassCreate :: { lowpass :: CLowpass { buf :: CPlayBuf } }
 ksLowpassCreate = { lowpass: lowpass { freq: 300.0 } { buf: playBuf "my-buffer" } }
 
-deltaKsLowpass :: Number -> { mix :: DGain, lowpass :: DLowpass, buf :: DPlayBuf }
+deltaKsLowpass :: Number -> ?hole -- { mix :: DGain, lowpass :: DLowpass, buf :: DPlayBuf }
 deltaKsLowpass =
   (_ % pieceTime)
     >>> (_ - timing.ksLowpass.begin)
