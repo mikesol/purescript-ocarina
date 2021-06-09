@@ -11,12 +11,14 @@ module WAGS.Run
   ) where
 
 import Prelude
+
 import Control.Comonad.Cofree (Cofree, head, tail)
-import Data.DateTime.Instant (Instant)
+import Data.DateTime.Instant (Instant, unInstant)
 import Data.Foldable (for_)
 import Data.Int (floor, toNumber)
 import Data.List (List(..))
 import Data.Maybe (Maybe(..), isNothing)
+import Data.Time.Duration (Milliseconds)
 import Data.Tuple (fst, snd)
 import Data.Tuple.Nested ((/\), type (/\))
 import Effect (Effect)
@@ -84,7 +86,7 @@ run trigger world' engineInfo (FFIAudio audio') scene =
       cancelTimeout
       unsubscribe
   where
-  newWorld = (\world sysTime -> { world, sysTime }) <$> world' <*> instant
+  newWorld = (\world sysTime -> { world, sysTime }) <$> world' <*> (map unInstant instant)
 
 -- | The information provided to `run` that tells the engine how to make certain rendering tradeoffs.
 type EngineInfo
@@ -124,7 +126,7 @@ type SceneI trigger world
   = { trigger :: trigger
     , world :: world
     , time :: Number
-    , sysTime :: Instant
+    , sysTime :: Milliseconds
     , active :: Boolean
     , headroom :: Int
     }
@@ -182,10 +184,10 @@ runInternal ::
   Number ->
   { world :: world
   , trigger :: trigger
-  , sysTime :: Instant
+  , sysTime :: Milliseconds
   , active :: Boolean
   } ->
-  Behavior { world :: world, sysTime :: Instant } ->
+  Behavior { world :: world, sysTime :: Milliseconds } ->
   Ref.Ref (Effect Unit) ->
   Ref.Ref EasingAlgorithm ->
   Ref.Ref

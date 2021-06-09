@@ -3,7 +3,7 @@ module WAGS.NE2CF where
 import Prelude
 import Control.Comonad.Cofree (Cofree, hoistCofree, (:<))
 import Control.Semigroupoid (composeFlipped)
-import Data.Lens (_2, over)
+import Data.Lens (_1, _2, over, traversed)
 import Data.List (List(..), (:))
 import Data.Maybe (Maybe(..))
 import Data.NonEmpty (NonEmpty, (:|))
@@ -16,6 +16,35 @@ type TimeHeadroom
 
 type ASDR
   = TimeHeadroom -> Cofree ((->) TimeHeadroom) (AudioParameter)
+
+-- | From a non-empty list of times and values, make a cofree comonad that emits audio parameters
+-- | the first number is how much time to add when looping
+-- | Based on a current time and a look-ahead
+makeLoopingPiecewise :: Number -> NonEmpty List (Number /\ Number) -> ASDR
+makeLoopingPiecewise v0 v1 = go v0 v1 v1
+  where
+  go n i (a /\ b :| Nil) th =
+    let
+      l@(l' :| l'') = over (traversed <<< _1) (add n) i
+    in
+      go n l (a /\ b :| (l' : l'')) th
+
+  go n l v@(a /\ b :| (Cons (c /\ d) e)) { time, headroom }
+    | time <= c =
+      let
+        lookahead = time + headroom
+      in
+        ( if lookahead >= c then
+            AudioParameter
+              { param: Just d
+              , timeOffset: c - time
+              , transition: LinearRamp
+              }
+          else
+            AudioParameter { param: Just (calcSlope a b c d time), timeOffset: 0.0, transition: LinearRamp }
+        )
+          :< go n l v
+    | otherwise = go n l (c /\ d :| e) { time, headroom }
 
 -- | From a non-empty list of times and values, make a cofree comonad that emits audio parameters
 -- | Based on a current time and a look-ahead

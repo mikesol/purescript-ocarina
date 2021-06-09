@@ -1,7 +1,6 @@
 module WAGS.Graph.Parameter where
 
 import Prelude hiding (apply)
-
 import Control.Alt (class Alt)
 import Control.Plus (class Plus)
 import Data.Function (apply)
@@ -20,6 +19,8 @@ type AudioParameter
   = AudioParameter_ Number
 
 derive instance eqAudioParameter :: Eq a => Eq (AudioParameter_ a)
+
+derive instance ordAudioParameter :: Ord a => Ord (AudioParameter_ a)
 
 derive instance functorAudioParameter :: Functor AudioParameter_
 
@@ -58,7 +59,7 @@ uop :: forall a b. (a -> b) -> AudioParameter_ a -> AudioParameter_ b
 uop f (AudioParameter a0@{ param: param0, timeOffset: timeOffset0, transition: transition0 }) = AudioParameter { param: f <$> param0, timeOffset: timeOffset0, transition: transition0 }
 
 bop :: forall a b c. (a -> b -> c) -> AudioParameter_ a -> AudioParameter_ b -> AudioParameter_ c
-bop f (AudioParameter a0@{ param: param0, timeOffset: timeOffset0, transition: transition0}) (AudioParameter a1@{ param: param1, timeOffset: timeOffset1, transition: transition1 }) = AudioParameter { param: f <$> param0 <*> param1, timeOffset: timeOffset0 + timeOffset1 / 2.0, transition: transition0 <> transition1 }
+bop f (AudioParameter a0@{ param: param0, timeOffset: timeOffset0, transition: transition0 }) (AudioParameter a1@{ param: param1, timeOffset: timeOffset1, transition: transition1 }) = AudioParameter { param: f <$> param0 <*> param1, timeOffset: timeOffset0 + timeOffset1 / 2.0, transition: transition0 <> transition1 }
 
 instance semiringAudioParameter :: Semiring a => Semiring (AudioParameter_ a) where
   zero = AudioParameter { param: Just zero, timeOffset: 0.0, transition: LinearRamp }
@@ -105,6 +106,11 @@ data AudioParameterTransition
   | Immediately
 
 derive instance eqAudioParameterTransition :: Eq AudioParameterTransition
+
+instance ordAudioParameterTransition :: Ord AudioParameterTransition where
+  compare Immediately _ = LT
+  compare _ Immediately = GT
+  compare _ _ = EQ
 
 derive instance genericAudioParameterTransition :: Generic AudioParameterTransition _
 
