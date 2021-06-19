@@ -2,10 +2,8 @@ module WAGS.Connect where
 
 import Prelude hiding (Ordering(..))
 
-import Control.Comonad (extract)
 import Data.Functor (voidRight)
 import Data.Symbol (class IsSymbol, reflectSymbol)
-import Heterogeneous.Folding (class FoldingWithIndex)
 import Prim.Row as R
 import WAGS.Control.Indexed (IxWAG(..))
 import WAGS.Control.Types (WAG, unsafeUnWAG, unsafeWAG)
@@ -54,33 +52,3 @@ instance connectInstance ::
 
     toI = reflectSymbol toI'
 
-data ConnectFoldingWithIndex
-  = ConnectFoldingWithIndex
-
-instance connectFoldingWithIndex ::
-  ( AudioInterpret audio engine
-  , Connect from to inGraph outGraph
-  , IsSymbol from
-  , IsSymbol to
-  ) =>
-  FoldingWithIndex
-    ConnectFoldingWithIndex
-    (proxy from)
-    ( WAG
-        audio
-        engine
-        proof
-        res
-        { | inGraph }
-        (proxy to)
-    )
-    anything
-    ( WAG
-        audio
-        engine
-        proof
-        res
-        { | outGraph }
-        (proxy to)
-    ) where
-  foldingWithIndex ConnectFoldingWithIndex from ifr a = connect (ifr $> { source: from, dest: extract ifr }) $> extract ifr

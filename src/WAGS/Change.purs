@@ -6,7 +6,6 @@ import Data.Maybe (Maybe(..), maybe)
 import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.Tuple.Nested ((/\), type (/\))
 import Data.Vec as V
-import Heterogeneous.Folding (class FoldingWithIndex, class HFoldlWithIndex, hfoldlWithIndex)
 import Prim.Row as R
 import Prim.RowList as RL
 import Record as Record
@@ -88,154 +87,97 @@ ichange' ::
   IxWAG audio engine proof res { | i } { | i } Unit
 ichange' ptr a = IxWAG (change' ptr <<< (<$) a)
 
-data ChangeFoldingWithIndex
-  = ChangeFoldingWithIndex
-
-instance changeFoldingWithIndexUnit ::
-  ( AudioInterpret audio engine
-  , Change' sym Unit inGraph
-  ) =>
-  FoldingWithIndex
-    ChangeFoldingWithIndex
-    (proxy sym)
-    ( WAG
-        audio
-        engine
-        proof
-        res
-        { | inGraph }
-        { | inRecord }
-    )
-    Unit
-    ( WAG
-        audio
-        engine
-        proof
-        res
-        { | inGraph }
-        Unit
-    ) where
-  foldingWithIndex ChangeFoldingWithIndex _ ifr node = ifr $> unit
-else instance changeFoldingWithIndex ::
-  ( AudioInterpret audio engine
-  , Edgeable node' (node /\ edges)
-  , Change' sym node inGraph
-  , HFoldlWithIndex
-      ChangeFoldingWithIndex
-      ( WAG
-          audio
-          engine
-          proof
-          res
-          { | inGraph }
-          Unit
-      )
-      edges
-      ( WAG
-          audio
-          engine
-          proof
-          res
-          { | inGraph }
-          Unit
-      )
-  ) =>
-  FoldingWithIndex
-    ChangeFoldingWithIndex
-    (proxy sym)
-    ( WAG
-        audio
-        engine
-        proof
-        res
-        { | inGraph }
-        Unit
-    )
-    node'
-    ( WAG
-        audio
-        engine
-        proof
-        res
-        { | inGraph }
-        Unit
-    ) where
-  foldingWithIndex ChangeFoldingWithIndex prop ifr node' =
-    let
-      node /\ edges = withEdge node'
-
-      res = change' prop (ifr $> node)
-    in
-      hfoldlWithIndex
-        ChangeFoldingWithIndex
-        (res $> unit)
-        edges
-
 -- | Similar to `change'`, but accepts a record with multiple units to change.
-change ::
-  forall r audio engine proof res inGraph.
-  AudioInterpret audio engine =>
-  HFoldlWithIndex
-    ChangeFoldingWithIndex
-    ( WAG
-        audio
-        engine
-        proof
-        res
-        { | inGraph }
-        Unit
-    )
-    { | r }
-    ( WAG
-        audio
-        engine
-        proof
-        res
-        { | inGraph }
-        Unit
-    ) =>
-  WAG
-    audio
-    engine
-    proof
-    res
-    { | inGraph }
-    { | r } ->
-  WAG
-    audio
-    engine
-    proof
-    res
-    { | inGraph }
-    Unit
-change r =
-  hfoldlWithIndex
-    ChangeFoldingWithIndex
-    (r $> unit)
-    (extract r)
+class Change (r :: Row Type) (graph :: Graph) where
+  change ::
+    forall audio engine proof res.
+    AudioInterpret audio engine =>
+    WAG
+      audio
+      engine
+      proof
+      res
+      { | graph }
+      { | r } ->
+    WAG
+      audio
+      engine
+      proof
+      res
+      { | graph }
+      Unit
+
+class ChangeRL (rl :: RL.RowList Type) (r :: Row Type) (graph :: Graph) where
+  changeRL ::
+    forall proxy audio engine proof res.
+    AudioInterpret audio engine =>
+    proxy rl ->
+    WAG
+      audio
+      engine
+      proof
+      res
+      { | graph }
+      { | r } ->
+    WAG
+      audio
+      engine
+      proof
+      res
+      { | graph }
+      Unit
+
+instance changeAll :: (RL.RowToList r rl, ChangeRL rl r graph) => Change r graph where
+  change = changeRL (Proxy :: _ rl)
+
+instance changeRLNil :: ChangeRL RL.Nil r graph where
+  changeRL _ r = r $> unit
+
+instance changeRLConsU :: ChangeRL (RL.Cons key Unit rest) r graph where
+  changeRL _ r = r $> unit
+else instance changeRLCons ::
+  ( IsSymbol key
+  , R.Cons key val ignore r
+  , Edgeable val (node /\ { | edges })
+  , Change' key node graph
+  , Change edges graph
+  , ChangeRL rest r graph
+  ) =>
+  ChangeRL (RL.Cons key val rest) r graph where
+  changeRL _ r = step3
+    where
+    rx = extract r
+    node /\ edges = withEdge (Record.get (Proxy :: _ key) rx)
+
+    step1 = change' (Proxy :: _ key) (r $> node)
+
+    step2 =
+      ( change ::
+          forall audio engine proof res.
+          AudioInterpret audio engine =>
+          WAG
+            audio
+            engine
+            proof
+            res
+            { | graph }
+            { | edges } ->
+          WAG
+            audio
+            engine
+            proof
+            res
+            { | graph }
+            Unit
+      )
+        (step1 $> edges)
+
+    step3 = changeRL (Proxy :: _ rest) (step2 $> rx)
 
 ichange ::
   forall r audio engine proof res inGraph.
   AudioInterpret audio engine =>
-  HFoldlWithIndex
-    ChangeFoldingWithIndex
-    ( WAG
-        audio
-        engine
-        proof
-        res
-        { | inGraph }
-        Unit
-    )
-    { | r }
-    ( WAG
-        audio
-        engine
-        proof
-        res
-        { | inGraph }
-        Unit
-    ) =>
+  Change r inGraph =>
   { | r } ->
   IxWAG
     audio

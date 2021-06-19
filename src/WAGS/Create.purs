@@ -1,7 +1,6 @@
 module WAGS.Create where
 
 import Prelude
-
 import Control.Comonad (extract)
 import Data.Either (Either(..))
 import Data.Functor (voidRight)
@@ -9,10 +8,11 @@ import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.Tuple (Tuple)
 import Data.Tuple.Nested ((/\), type (/\))
 import Data.Vec as V
-import Heterogeneous.Folding (class FoldingWithIndex, class HFoldlWithIndex, hfoldlWithIndex)
 import Prim.Row as R
+import Prim.RowList as RL
+import Record as Record
 import Type.Proxy (Proxy(..))
-import WAGS.Connect (ConnectFoldingWithIndex(..))
+import WAGS.Connect (class Connect, connect)
 import WAGS.Control.Indexed (IxWAG(..))
 import WAGS.Control.Types (WAG, unsafeUnWAG, unsafeWAG)
 import WAGS.Edgeable (class Edgeable, withEdge)
@@ -25,253 +25,194 @@ import WAGS.Graph.Parameter (class Paramable, paramize)
 import WAGS.Interpret (class AudioInterpret, makeAllpass, makeBandpass, makeConstant, makeConvolver, makeDelay, makeDynamicsCompressor, makeGain, makeHighpass, makeHighshelf, makeLoopBuf, makeLowpass, makeLowshelf, makeMicrophone, makeNotch, makePeaking, makePeriodicOsc, makePeriodicOscV, makePlayBuf, makeRecorder, makeSawtoothOsc, makeSinOsc, makeSpeaker, makeSquareOsc, makeStereoPanner, makeTriangleOsc, makeWaveShaper)
 import WAGS.Util (tmap)
 
-data CreateFoldingWithIndex
-  = CreateFoldingWithIndex
+class CreateStep (r :: Row Type) (inGraph :: Graph) (outGraph :: Graph) | r inGraph -> outGraph where
+  createStep ::
+    forall audio engine proof res.
+    AudioInterpret audio engine =>
+    WAG
+      audio
+      engine
+      proof
+      res
+      { | inGraph }
+      { | r } ->
+    WAG
+      audio
+      engine
+      proof
+      res
+      { | outGraph }
+      Unit
 
-instance createFoldingWithIndex ::
-  ( AudioInterpret audio engine
-  , Edgeable node' (Tuple node edges)
-  , Create' sym node inGraph midGraph
-  , HFoldlWithIndex
-      CreateFoldingWithIndex
-      ( WAG
-          audio
-          engine
-          proof
-          res
-          { | midGraph }
-          Unit
-      )
-      edges
-      ( WAG
-          audio
-          engine
-          proof
-          res
-          { | outGraph }
-          Unit
-      )
-  , IsSymbol sym
+class CreateStepRL (rl :: RL.RowList Type) (r :: Row Type) (inGraph :: Graph) (outGraph :: Graph) | rl r inGraph -> outGraph where
+  createStepRL ::
+    forall proxy audio engine proof res.
+    AudioInterpret audio engine =>
+    proxy rl ->
+    WAG
+      audio
+      engine
+      proof
+      res
+      { | inGraph }
+      { | r } ->
+    WAG
+      audio
+      engine
+      proof
+      res
+      { | outGraph }
+      Unit
+
+instance createStepAll :: (RL.RowToList r rl, CreateStepRL rl r inGraph outGraph) => CreateStep r inGraph outGraph where
+  createStep = createStepRL (Proxy :: _ rl)
+
+instance createStepRLNil :: CreateStepRL RL.Nil r inGraph inGraph where
+  createStepRL _ r = r $> unit
+
+instance createStepRLCons ::
+  ( IsSymbol key
+  , R.Cons key val ignore r
+  , Edgeable val (node /\ { | edges })
+  , Create' key node graph0 graph1
+  , CreateStep edges graph1 graph2
+  , CreateStepRL rest r graph2 graph3
   ) =>
-  FoldingWithIndex
-    CreateFoldingWithIndex
-    (proxy sym)
-    ( WAG
-        audio
-        engine
-        proof
-        res
-        { | inGraph }
-        Unit
-    )
-    node'
-    ( WAG
-        audio
-        engine
-        proof
-        res
-        { | outGraph }
-        Unit
-    ) where
-  foldingWithIndex CreateFoldingWithIndex prop ifr edgeable =
-    let
-      node /\ edges = withEdge edgeable
+  CreateStepRL (RL.Cons key val rest) r graph0 graph3 where
+  createStepRL _ r = step3
+    where
+    rx = extract r
 
-      res = create' prop (ifr $> node)
-    in
-      hfoldlWithIndex
-        CreateFoldingWithIndex
-        (res $> unit)
-        edges
+    node /\ edges = withEdge (Record.get (Proxy :: _ key) rx)
 
-data ThenConnectFoldingWithIndex
-  = ThenConnectFoldingWithIndex
+    step1 = create' (Proxy :: _ key) (r $> node)
 
-instance thenConnectFoldingWithIndex ::
-  ( IsSymbol sym
-  , Edgeable node' (Tuple node edges)
-  , HFoldlWithIndex
-      ConnectFoldingWithIndex
-      ( WAG
-          audio
-          engine
-          proof
-          res
-          { | inGraph }
-          (Proxy sym)
+    step2 =
+      ( createStep ::
+          forall audio engine proof res.
+          AudioInterpret audio engine =>
+          WAG
+            audio
+            engine
+            proof
+            res
+            { | graph1 }
+            { | edges } ->
+          WAG
+            audio
+            engine
+            proof
+            res
+            { | graph2 }
+            Unit
       )
-      edges
-      ( WAG
-          audio
-          engine
-          proof
-          res
-          { | midGraph }
-          (Proxy sym)
-      )
-  , HFoldlWithIndex
-      ThenConnectFoldingWithIndex
-      ( WAG
-          audio
-          engine
-          proof
-          res
-          { | midGraph }
-          Unit
-      )
-      edges
-      ( WAG
-          audio
-          engine
-          proof
-          res
-          { | outGraph }
-          Unit
-      )
+        (step1 $> edges)
+
+    step3 = createStepRL (Proxy :: _ rest) (step2 $> rx)
+
+class ConnectEdgesToNode (sources :: RL.RowList Type) (dest :: Symbol) (inGraph :: Graph) (outGraph :: Graph) | sources dest inGraph -> outGraph where
+  connectEdgesToNode ::
+    forall proxyRL proxyS audio engine proof res.
+    AudioInterpret audio engine =>
+    proxyRL sources ->
+    WAG
+      audio
+      engine
+      proof
+      res
+      { | inGraph }
+      (proxyS dest) ->
+    WAG
+      audio
+      engine
+      proof
+      res
+      { | outGraph }
+      (proxyS dest)
+
+instance connectEdgesToNodeNil :: ConnectEdgesToNode RL.Nil dest inGraph inGraph where
+  connectEdgesToNode _ w = w
+
+instance connectEdgesToNodeCons :: (Connect key dest inGraph midGraph, ConnectEdgesToNode rest dest midGraph outGraph) => ConnectEdgesToNode (RL.Cons key ignore rest) dest inGraph outGraph where
+  connectEdgesToNode _ w = step2
+    where
+    step1 = connect (w $> { source: (Proxy :: _ key), dest: (Proxy :: _ dest) })
+
+    step2 = connectEdgesToNode (Proxy :: _ rest) (step1 $> (extract w))
+
+class ConnectAfterCreate (rl :: RL.RowList Type) (inGraph :: Graph) (outGraph :: Graph) | rl inGraph -> outGraph where
+  connectAfterCreate ::
+    forall audio engine proof res.
+    AudioInterpret audio engine =>
+    WAG
+      audio
+      engine
+      proof
+      res
+      { | inGraph }
+      (Proxy rl) ->
+    WAG
+      audio
+      engine
+      proof
+      res
+      { | outGraph }
+      Unit
+
+instance connectAfterCreateNil :: ConnectAfterCreate RL.Nil graph0 graph0 where
+  connectAfterCreate w = w $> unit
+
+instance connectAfterCreateCons ::
+  ( Edgeable node' (Tuple node { | edges })
+  , RL.RowToList edges edgesList
+  , ConnectEdgesToNode edgesList sym graph0 graph1
+  , ConnectAfterCreate edgesList graph1 graph2
+  , ConnectAfterCreate rest graph2 graph3
   ) =>
-  FoldingWithIndex
-    ThenConnectFoldingWithIndex
-    (proxy sym)
-    ( WAG
-        audio
-        engine
-        proof
-        res
-        { | inGraph }
-        Unit
-    )
-    node'
-    ( WAG
-        audio
-        engine
-        proof
-        res
-        { | outGraph }
-        Unit
-    ) where
-  foldingWithIndex ThenConnectFoldingWithIndex prop ifr edgeable =
-    let
-      _ /\ edges = withEdge edgeable
-    in
-      hfoldlWithIndex
-        ThenConnectFoldingWithIndex
-        ( hfoldlWithIndex
-            ConnectFoldingWithIndex
-            (ifr $> (Proxy :: _ sym))
-            edges
-            $> (extract ifr)
-        )
-        edges
+  ConnectAfterCreate (RL.Cons sym node' rest) graph0 graph3 where
+  connectAfterCreate w = step3
+    where
+    step1 = connectEdgesToNode (Proxy :: _ edgesList) (w $> (Proxy :: _ sym))
 
--- | Similar to `create`, but accepts a record with multiple units to create _and_ connect.
-create ::
-  forall r audio engine proof res inGraph midGraph outGraph.
-  AudioInterpret audio engine =>
-  HFoldlWithIndex
-    CreateFoldingWithIndex
-    ( WAG
-        audio
-        engine
-        proof
-        res
-        { | inGraph }
-        Unit
-    )
-    { | r }
-    ( WAG
-        audio
-        engine
-        proof
-        res
-        { | midGraph }
-        Unit
-    ) =>
-  HFoldlWithIndex
-    ThenConnectFoldingWithIndex
-    ( WAG
-        audio
-        engine
-        proof
-        res
-        { | midGraph }
-        Unit
-    )
-    { | r }
-    ( WAG
-        audio
-        engine
-        proof
-        res
-        { | outGraph }
-        Unit
-    ) =>
-  WAG
-    audio
-    engine
-    proof
-    res
-    { | inGraph }
-    { | r } ->
-  WAG
-    audio
-    engine
-    proof
-    res
-    { | outGraph }
-    Unit
-create w =
-  hfoldlWithIndex
-    ThenConnectFoldingWithIndex
-    innerStep
-    (extract w)
-  where
-  innerStep =
-    hfoldlWithIndex
-      CreateFoldingWithIndex
-      (w $> unit)
-      (extract w)
+    step2 = connectAfterCreate (step1 $> (Proxy :: _ edgesList))
+
+    step3 = connectAfterCreate (step2 $> (Proxy :: _ rest))
+
+class Create (r :: Row Type) (inGraph :: Graph) (outGraph :: Graph) | r inGraph -> outGraph where
+  create ::
+    forall audio engine proof res.
+    AudioInterpret audio engine =>
+    WAG
+      audio
+      engine
+      proof
+      res
+      { | inGraph }
+      { | r } ->
+    WAG
+      audio
+      engine
+      proof
+      res
+      { | outGraph }
+      Unit
+
+instance createAll ::
+  ( CreateStep r inGraph midGraph
+  , RL.RowToList r rl
+  , ConnectAfterCreate rl midGraph outGraph
+  ) =>
+  Create r inGraph outGraph where
+  create r = step1
+    where
+    step0 = createStep r
+
+    step1 = connectAfterCreate (step0 $> (Proxy :: _ rl))
 
 icreate ::
-  forall r audio engine proof res inGraph midGraph outGraph.
+  forall r audio engine proof res inGraph outGraph.
   AudioInterpret audio engine =>
-  HFoldlWithIndex
-    CreateFoldingWithIndex
-    ( WAG
-        audio
-        engine
-        proof
-        res
-        { | inGraph }
-        Unit
-    )
-    { | r }
-    ( WAG
-        audio
-        engine
-        proof
-        res
-        { | midGraph }
-        Unit
-    ) =>
-  HFoldlWithIndex
-    ThenConnectFoldingWithIndex
-    ( WAG
-        audio
-        engine
-        proof
-        res
-        { | midGraph }
-        Unit
-    )
-    { | r }
-    ( WAG
-        audio
-        engine
-        proof
-        res
-        { | outGraph }
-        Unit
-    ) =>
+  Create r inGraph outGraph =>
   { | r } ->
   IxWAG
     audio
