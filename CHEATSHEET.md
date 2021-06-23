@@ -47,7 +47,7 @@ graph time = W.speaker {
 
 ## Creating a scene
 
-Constructing a graph as shown above is useful when doing live coding using ie [wagsi](https://github.com/mikesol/wagsi) and for shorter snippets, like the atari-speaks example. When working with more complex works (ie [this example](http://wac-wag-3.surge.sh/) whose code lives [here](https://github.com/mikesol/wac-2021/tree/main/example-3/)), you'll often want to construct the types at the type level and use `ipatch` to create the scene.
+Constructing a graph as shown above is useful when doing live coding using ie [wagsi](https://github.com/mikesol/wagsi) and for shorter snippets, like the [atari-speaks example](./examples/atari-speaks/AtariSpeaks.purs). When working with more complex works (ie [this example](http://wac-wag-3.surge.sh/) whose code lives [here](https://github.com/mikesol/wac-2021/tree/main/example-3/)), you'll often want to construct the types at the type level and use `ipatch` to create the scene.
 
 Here's a basic loop constructed using `ipatch` and `iloop` that creates an upward siren effect.
 
