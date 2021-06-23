@@ -164,7 +164,7 @@ You can stock all of your audio buffers, wavetables, recorders and other assets 
 
 Check out the examples folder, and especially the `kitchen-sink` example, for more examples of how to pre-populate `run` with all the info you'll need.
 
-## Responding to mouse clicks, midi events and sundry.
+## Responding to mouse clicks, midi events and sundry
 
 You pass `Event`s and `Behavior`s to `run`. This [example](https://github.com/mikesol/wac-2021/tree/main/example-2), which you can listen to [here](http://wac-wag-2.surge.sh/), uses mouse clicks. The relevant code is here:
 
