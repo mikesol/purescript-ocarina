@@ -23,6 +23,8 @@ The **Atari speaks** and **Kitchen sink** examples show how to use `purescript-w
 
 Module documentation is [published on Pursuit](https://pursuit.purescript.org/packages/purescript-wags/).
 
+As the Pursuit documentation is quite volumnous, there's also a [cheat sheet](./CHEATSHEET.md) that you can use :100:.
+
 ## Bundling on your site
 
 To see how to bundle this library on your site, please visit the [examples](./examples) directory.
