@@ -52,3 +52,13 @@ instance connectInstance ::
 
     toI = reflectSymbol toI'
 
+class ConnectT (source :: Symbol) (dest :: Symbol) (i :: Graph) (o :: Graph) | source dest i -> o
+
+instance connectTInstance ::
+  ( R.Cons from ignore0 ignore1 graphi
+  , R.Cons to (NodeC n { | e }) newg graphi
+  , R.Lacks from e
+  , R.Cons from Unit e e'
+  , R.Cons to (NodeC n { | e' }) newg grapho
+  ) =>
+  ConnectT from to graphi grapho

@@ -15,3 +15,12 @@ instance isOversampleTwoX :: IsOversample CTOR.OversampleTwoX where
 
 instance isOversampleFourX :: IsOversample CTOR.OversampleFourX where
   reflectOversample _ = FourX
+
+-- | Typelevel variant of IsOversample
+class IsOversampleT (oversample :: Type)
+
+instance isOversampleTNone :: IsOversampleT CTOR.OversampleNone
+
+instance isOversampleTTwoX :: IsOversampleT CTOR.OversampleTwoX
+
+instance isOversampleTFourX :: IsOversampleT CTOR.OversampleFourX

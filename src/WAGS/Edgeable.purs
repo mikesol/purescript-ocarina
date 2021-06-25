@@ -10,3 +10,8 @@ instance edgeableTuple :: Edgeable (Tuple a b) (Tuple a b) where
   withEdge = identity
 else instance edgeableRest :: Edgeable a (Tuple a {}) where
   withEdge = flip Tuple {}
+
+class EdgeableT (a :: Type) (b :: Type) | a -> b
+
+instance edgeableTTuple :: EdgeableT (Tuple a b) (Tuple a b)
+else instance edgeableTRest :: EdgeableT a (Tuple a {})
