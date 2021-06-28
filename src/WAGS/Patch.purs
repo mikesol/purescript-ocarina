@@ -371,7 +371,7 @@ instance toGraphEffectsMakeConstant :: (IsSymbol ptr, ToGraphEffects rest) => To
   toGraphEffects _ i =
     toGraphEffects (Proxy :: _ rest)
       ( i
-          { instructions = i.instructions <> [ makeConstant ptr' Off (pure 0.0) ]
+          { instructions = i.instructions <> [ makeConstant ptr' (pure Off) (pure 0.0) ]
           }
       )
     where
@@ -533,7 +533,7 @@ instance toGraphEffectsMakeSawtoothOsc :: (IsSymbol ptr, ToGraphEffects rest) =>
   toGraphEffects _ i =
     toGraphEffects (Proxy :: _ rest)
       ( i
-          { instructions = i.instructions <> [ makeSawtoothOsc ptr' Off (pure 440.0) ]
+          { instructions = i.instructions <> [ makeSawtoothOsc ptr' (pure Off) (pure 440.0) ]
           }
       )
     where
@@ -543,7 +543,7 @@ instance toGraphEffectsMakeSinOsc :: (IsSymbol ptr, ToGraphEffects rest) => ToGr
   toGraphEffects _ i =
     toGraphEffects (Proxy :: _ rest)
       ( i
-          { instructions = i.instructions <> [ makeSinOsc ptr' Off (pure 440.0) ]
+          { instructions = i.instructions <> [ makeSinOsc ptr' (pure Off) (pure 440.0) ]
           }
       )
     where
@@ -553,7 +553,7 @@ instance toGraphEffectsMakeSquareOsc :: (IsSymbol ptr, ToGraphEffects rest) => T
   toGraphEffects _ i =
     toGraphEffects (Proxy :: _ rest)
       ( i
-          { instructions = i.instructions <> [ makeSquareOsc ptr' Off (pure 440.0) ]
+          { instructions = i.instructions <> [ makeSquareOsc ptr' (pure Off) (pure 440.0) ]
           }
       )
     where
@@ -581,7 +581,7 @@ instance toGraphEffectsMakeTriangleOsc :: (IsSymbol ptr, ToGraphEffects rest) =>
   toGraphEffects _ i =
     toGraphEffects (Proxy :: _ rest)
       ( i
-          { instructions = i.instructions <> [ makeTriangleOsc ptr' Off (pure 440.0) ]
+          { instructions = i.instructions <> [ makeTriangleOsc ptr' (pure Off) (pure 440.0) ]
           }
       )
     where

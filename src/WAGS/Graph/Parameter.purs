@@ -1,6 +1,7 @@
 module WAGS.Graph.Parameter where
 
 import Prelude hiding (apply)
+
 import Control.Alt (class Alt)
 import Control.Plus (class Plus)
 import Data.Function (apply)
@@ -156,15 +157,7 @@ immediately = modRamp (const Immediately)
 defaultParam :: AudioParameter'
 defaultParam = { param: Just 0.0, timeOffset: 0.0, transition: LinearRamp }
 
--- | A value that can be coerced to an initial control-rate audio parameter.
-class Paramable a where
-  paramize :: a -> AudioParameter
 
-instance paramableNumber :: Paramable Number where
-  paramize = pure
-
-instance paramableAudioParameter :: Paramable AudioParameter where
-  paramize = identity
 
 class MM a b | a -> b where
   mm :: a -> b

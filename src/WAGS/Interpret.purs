@@ -102,7 +102,7 @@ import Foreign (Foreign)
 import Foreign.Object (Object)
 import Foreign.Object as O
 import Unsafe.Coerce (unsafeCoerce)
-import WAGS.Graph.AudioUnit (OnOff(..))
+import WAGS.Graph.AudioUnit (OnOff(..), APOnOff)
 import WAGS.Graph.Parameter (AudioParameter, AudioParameter_(..))
 import WAGS.Rendered (Instruction(..), Oversample(..))
 import WAGS.Util (tmap)
@@ -280,7 +280,7 @@ class AudioInterpret audio engine where
   -- | Make a bandpass filter.
   makeBandpass :: String -> AudioParameter -> AudioParameter -> audio -> engine
   -- | Make a constant source, ie a stream of 0s.
-  makeConstant :: String -> OnOff -> AudioParameter -> audio -> engine
+  makeConstant :: String -> APOnOff -> AudioParameter -> audio -> engine
   -- | Make a convolution unit, aka reverb.
   makeConvolver :: String -> String -> audio -> engine
   -- | Make a delay unit.
@@ -296,7 +296,7 @@ class AudioInterpret audio engine where
   -- | Make a looping audio buffer node with a deferred buffer.
   makeLoopBufWithDeferredBuffer :: String -> audio -> engine
   -- | Make a looping audio buffer node.
-  makeLoopBuf :: String -> String -> OnOff -> AudioParameter -> Number -> Number -> audio -> engine
+  makeLoopBuf :: String -> String -> APOnOff -> AudioParameter -> Number -> Number -> audio -> engine
   -- | Make a lowpass filter.
   makeLowpass :: String -> AudioParameter -> AudioParameter -> audio -> engine
   -- | Make a lowshelf filter.
@@ -310,27 +310,27 @@ class AudioInterpret audio engine where
   -- | Make a periodic oscillator.
   makePeriodicOscWithDeferredOsc :: String -> audio -> engine
   -- | Make a periodic oscillator.
-  makePeriodicOsc :: String -> String -> OnOff -> AudioParameter -> audio -> engine
+  makePeriodicOsc :: String -> String -> APOnOff -> AudioParameter -> audio -> engine
   -- | Make a periodic oscillator
-  makePeriodicOscV :: forall (a :: Type). String -> V.Vec a Number /\ V.Vec a Number -> OnOff -> AudioParameter -> audio -> engine
+  makePeriodicOscV :: forall (a :: Type). String -> V.Vec a Number /\ V.Vec a Number -> APOnOff -> AudioParameter -> audio -> engine
   -- | Make an audio buffer node with a deferred buffer.
   makePlayBufWithDeferredBuffer :: String -> audio -> engine
   -- | Make an audio buffer node.
-  makePlayBuf :: String -> String -> Number -> OnOff -> AudioParameter -> audio -> engine
+  makePlayBuf :: String -> String -> Number -> APOnOff -> AudioParameter -> audio -> engine
   -- | Make a recorder.
   makeRecorder :: String -> String -> audio -> engine
   -- | Make a sawtooth oscillator.
-  makeSawtoothOsc :: String -> OnOff -> AudioParameter -> audio -> engine
+  makeSawtoothOsc :: String -> APOnOff -> AudioParameter -> audio -> engine
   -- | Make a sine-wave oscillator.
-  makeSinOsc :: String -> OnOff -> AudioParameter -> audio -> engine
+  makeSinOsc :: String -> APOnOff -> AudioParameter -> audio -> engine
   -- | Make a node representing the loudspeaker. For sound to be rendered, it must go to a loudspeaker.
   makeSpeaker :: audio -> engine
   -- | Make a square-wave oscillator.
-  makeSquareOsc :: String -> OnOff -> AudioParameter -> audio -> engine
+  makeSquareOsc :: String -> APOnOff -> AudioParameter -> audio -> engine
   -- | Make a stereo panner
   makeStereoPanner :: String -> AudioParameter -> audio -> engine
   -- | Make a triangle-wave oscillator.
-  makeTriangleOsc :: String -> OnOff -> AudioParameter -> audio -> engine
+  makeTriangleOsc :: String -> APOnOff -> AudioParameter -> audio -> engine
   -- | Make a wave shaper.
   makeWaveShaper :: String -> String -> Oversample -> audio -> engine
   -- | Sets the buffer to read from in a playBuf or loopBuf
@@ -340,7 +340,7 @@ class AudioInterpret audio engine where
   -- | Sets the periodic oscillator to read from in a periodicOsc
   setPeriodicOscV :: forall (a :: Type). String -> V.Vec a Number /\ V.Vec a Number -> audio -> engine
   -- | Turn on or off a generator (an oscillator or playback node).
-  setOnOff :: String -> AudioParameter_ OnOff -> audio -> engine
+  setOnOff :: String -> APOnOff -> audio -> engine
   -- | Set the offset for a playbuf
   setBufferOffset :: String -> Number -> audio -> engine
   -- | Set the start position of a looping audio buffer node.
@@ -437,7 +437,7 @@ foreign import makeAllpass_ :: String -> FFINumericAudioParameter -> FFINumericA
 
 foreign import makeBandpass_ :: String -> FFINumericAudioParameter -> FFINumericAudioParameter -> FFIAudio' -> Effect Unit
 
-foreign import makeConstant_ :: String -> Boolean -> FFINumericAudioParameter -> FFIAudio' -> Effect Unit
+foreign import makeConstant_ :: String -> FFIStringAudioParameter -> FFINumericAudioParameter -> FFIAudio' -> Effect Unit
 
 foreign import makeConvolver_ :: String -> String -> FFIAudio' -> Effect Unit
 
@@ -453,7 +453,7 @@ foreign import makeHighshelf_ :: String -> FFINumericAudioParameter -> FFINumeri
 
 foreign import makeLoopBufWithDeferredBuffer_ :: String -> FFIAudio' -> Effect Unit
 
-foreign import makeLoopBuf_ :: String -> String -> Boolean -> FFINumericAudioParameter -> Number -> Number -> FFIAudio' -> Effect Unit
+foreign import makeLoopBuf_ :: String -> String -> FFIStringAudioParameter -> FFINumericAudioParameter -> Number -> Number -> FFIAudio' -> Effect Unit
 
 foreign import makeLowpass_ :: String -> FFINumericAudioParameter -> FFINumericAudioParameter -> FFIAudio' -> Effect Unit
 
@@ -467,27 +467,27 @@ foreign import makePeaking_ :: String -> FFINumericAudioParameter -> FFINumericA
 
 foreign import makePeriodicOscWithDeferredOsc_ :: String -> FFIAudio' -> Effect Unit
 
-foreign import makePeriodicOsc_ :: String -> String -> Boolean -> FFINumericAudioParameter -> FFIAudio' -> Effect Unit
+foreign import makePeriodicOsc_ :: String -> String -> FFIStringAudioParameter -> FFINumericAudioParameter -> FFIAudio' -> Effect Unit
 
-foreign import makePeriodicOscV_ :: String -> (Array (Array Number)) -> Boolean -> FFINumericAudioParameter -> FFIAudio' -> Effect Unit
+foreign import makePeriodicOscV_ :: String -> (Array (Array Number)) -> FFIStringAudioParameter -> FFINumericAudioParameter -> FFIAudio' -> Effect Unit
 
 foreign import makePlayBufWithDeferredBuffer_ :: String -> FFIAudio' -> Effect Unit
 
-foreign import makePlayBuf_ :: String -> String -> Number -> Boolean -> FFINumericAudioParameter -> FFIAudio' -> Effect Unit
+foreign import makePlayBuf_ :: String -> String -> Number -> FFIStringAudioParameter -> FFINumericAudioParameter -> FFIAudio' -> Effect Unit
 
 foreign import makeRecorder_ :: String -> String -> FFIAudio' -> Effect Unit
 
-foreign import makeSawtoothOsc_ :: String -> Boolean -> FFINumericAudioParameter -> FFIAudio' -> Effect Unit
+foreign import makeSawtoothOsc_ :: String -> FFIStringAudioParameter -> FFINumericAudioParameter -> FFIAudio' -> Effect Unit
 
-foreign import makeSinOsc_ :: String -> Boolean -> FFINumericAudioParameter -> FFIAudio' -> Effect Unit
+foreign import makeSinOsc_ :: String -> FFIStringAudioParameter -> FFINumericAudioParameter -> FFIAudio' -> Effect Unit
 
 foreign import makeSpeaker_ :: FFIAudio' -> Effect Unit
 
-foreign import makeSquareOsc_ :: String -> Boolean -> FFINumericAudioParameter -> FFIAudio' -> Effect Unit
+foreign import makeSquareOsc_ :: String -> FFIStringAudioParameter -> FFINumericAudioParameter -> FFIAudio' -> Effect Unit
 
 foreign import makeStereoPanner_ :: String -> FFINumericAudioParameter -> FFIAudio' -> Effect Unit
 
-foreign import makeTriangleOsc_ :: String -> Boolean -> FFINumericAudioParameter -> FFIAudio' -> Effect Unit
+foreign import makeTriangleOsc_ :: String -> FFIStringAudioParameter -> FFINumericAudioParameter -> FFIAudio' -> Effect Unit
 
 foreign import makeWaveShaper_ :: String -> String -> String -> FFIAudio' -> Effect Unit
 
@@ -632,7 +632,7 @@ type FFIStringAudioParameter
     , cancel :: Boolean
     }
 
-instance safeToFFI_AudioParameterBoolean ::
+instance safeToFFI_AudioParameterString ::
   SafeToFFI (AudioParameter_ OnOff) FFIStringAudioParameter where
   safeToFFI (AudioParameter { param, timeOffset, transition }) =
     { param:

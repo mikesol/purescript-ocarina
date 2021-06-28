@@ -28,7 +28,7 @@ testPatch = do
         simpleScene = simpleFrame start @||> freeze
 
         (frame0Instr /\ _ /\ frame1) = oneFrame' simpleScene unit
-      (map ((#) unit) frame0Instr) `shouldEqual` [ MakeSpeaker, MakeSinOsc "sinOsc" Off (pure 440.0), ConnectXToY "sinOsc" "speaker" ]
+      (map ((#) unit) frame0Instr) `shouldEqual` [ MakeSpeaker, MakeSinOsc "sinOsc" (pure Off) (pure 440.0), ConnectXToY "sinOsc" "speaker" ]
     it "makes a no op a no op" do
       let
         startingFrame =
@@ -152,7 +152,7 @@ testPatch = do
         (frame0Instr /\ _ /\ frame1) = oneFrame' simpleScene unit
 
         (frame1Instr /\ _ /\ frame2) = oneFrame' frame1 unit
-      (map ((#) unit) frame1Instr) `shouldEqual` [ (DisconnectXFromY "sinOsc" "highpass"), (DisconnectXFromY "highpass" "speaker"), (DisconnectXFromY "sinOsc" "speaker"), (DestroyUnit "highpass"), (DestroyUnit "sinOsc"), (MakeSinOsc "anotherOsc" Off (pure 440.0)), (ConnectXToY "anotherOsc" "speaker") ]
+      (map ((#) unit) frame1Instr) `shouldEqual` [ (DisconnectXFromY "sinOsc" "highpass"), (DisconnectXFromY "highpass" "speaker"), (DisconnectXFromY "sinOsc" "speaker"), (DestroyUnit "highpass"), (DestroyUnit "sinOsc"), (MakeSinOsc "anotherOsc" (pure Off) (pure 440.0)), (ConnectXToY "anotherOsc" "speaker") ]
     it "leaves noop in complex graph" do
       let
         startingFrame =
@@ -200,4 +200,4 @@ testPatch = do
         (frame0Instr /\ _ /\ frame1) = oneFrame' simpleScene unit
 
         (frame1Instr /\ _ /\ frame2) = oneFrame' frame1 unit
-      (map ((#) unit) frame1Instr) `shouldEqual` [ (DisconnectXFromY "sinOsc" "highpass"), (DisconnectXFromY "highpass" "speaker"), (DisconnectXFromY "sinOsc" "speaker"), (DestroyUnit "highpass"), (DestroyUnit "sinOsc"), (MakeSinOsc "anotherOsc" Off (pure 440.0)), (ConnectXToY "anotherOsc" "speaker") ]
+      (map ((#) unit) frame1Instr) `shouldEqual` [ (DisconnectXFromY "sinOsc" "highpass"), (DisconnectXFromY "highpass" "speaker"), (DisconnectXFromY "sinOsc" "speaker"), (DestroyUnit "highpass"), (DestroyUnit "sinOsc"), (MakeSinOsc "anotherOsc" (pure Off) (pure 440.0)), (ConnectXToY "anotherOsc" "speaker") ]

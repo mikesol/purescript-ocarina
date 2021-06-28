@@ -16,12 +16,11 @@ import WAGS.Connect (class Connect, connect)
 import WAGS.Control.Indexed (IxWAG(..))
 import WAGS.Control.Types (WAG, unsafeUnWAG, unsafeWAG)
 import WAGS.Edgeable (class Edgeable, withEdge)
-import WAGS.Graph.AudioUnit (OnOff)
 import WAGS.Graph.AudioUnit as CTOR
 import WAGS.Graph.Graph (Graph)
 import WAGS.Graph.Node (NodeC)
 import WAGS.Graph.Oversample (class IsOversample, reflectOversample)
-import WAGS.Graph.Parameter (class Paramable, paramize)
+import WAGS.Graph.Paramable (class Paramable, paramize, class OnOffable, onOffIze)
 import WAGS.Interpret (class AudioInterpret, makeAllpass, makeBandpass, makeConstant, makeConvolver, makeDelay, makeDynamicsCompressor, makeGain, makeHighpass, makeHighshelf, makeLoopBuf, makeLowpass, makeLowshelf, makeMicrophone, makeNotch, makePeaking, makePeriodicOsc, makePeriodicOscV, makePlayBuf, makeRecorder, makeSawtoothOsc, makeSinOsc, makeSpeaker, makeSquareOsc, makeStereoPanner, makeTriangleOsc, makeWaveShaper)
 import WAGS.Util (tmap)
 
@@ -328,11 +327,13 @@ instance createConstant ::
   ( IsSymbol ptr
   , Paramable argA
   , R.Lacks ptr graphi
+  , OnOffable onOff
+  , OnOffable onOff
   , R.Cons ptr (NodeC CTOR.TConstant {}) graphi grapho
   ) =>
   Create'
     ptr
-    (CTOR.Constant OnOff argA)
+    (CTOR.Constant onOff argA)
     graphi
     grapho where
   create' ptr w = o
@@ -347,7 +348,7 @@ instance createConstant ::
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makeConstant nn onOff argA_iv' ]
+              { instructions = i.instructions <> [ makeConstant nn (onOffIze onOff) argA_iv' ]
               }
         , value: unit
         }
@@ -542,11 +543,12 @@ instance createLoopBuf ::
   ( IsSymbol ptr
   , Paramable argA
   , R.Lacks ptr graphi
+  , OnOffable onOff
   , R.Cons ptr (NodeC CTOR.TLoopBuf {}) graphi grapho
   ) =>
   Create'
     ptr
-    (CTOR.LoopBuf String OnOff argA Number Number)
+    (CTOR.LoopBuf String onOff argA Number Number)
     graphi
     grapho where
   create' ptr w = o
@@ -561,7 +563,7 @@ instance createLoopBuf ::
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makeLoopBuf nn bufname onOff argA_iv' loopStart loopEnd ]
+              { instructions = i.instructions <> [ makeLoopBuf nn bufname (onOffIze onOff) argA_iv' loopStart loopEnd ]
               }
         , value: unit
         }
@@ -721,11 +723,12 @@ instance createPeriodicOsc ::
   ( IsSymbol ptr
   , Paramable argA
   , R.Lacks ptr graphi
+  , OnOffable onOff
   , R.Cons ptr (NodeC CTOR.TPeriodicOsc {}) graphi grapho
   ) =>
   Create'
     ptr
-    (CTOR.PeriodicOsc String OnOff argA)
+    (CTOR.PeriodicOsc String onOff argA)
     graphi
     grapho where
   create' ptr w = o
@@ -740,7 +743,7 @@ instance createPeriodicOsc ::
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makePeriodicOsc nn oscName onOff argA_iv' ]
+              { instructions = i.instructions <> [ makePeriodicOsc nn oscName (onOffIze onOff) argA_iv' ]
               }
         , value: unit
         }
@@ -749,11 +752,12 @@ instance createPeriodicOsc2 ::
   ( IsSymbol ptr
   , Paramable argA
   , R.Lacks ptr graphi
+  , OnOffable onOff
   , R.Cons ptr (NodeC CTOR.TPeriodicOsc {}) graphi grapho
   ) =>
   Create'
     ptr
-    (CTOR.PeriodicOsc (V.Vec a Number /\ V.Vec a Number) OnOff argA)
+    (CTOR.PeriodicOsc (V.Vec a Number /\ V.Vec a Number) onOff argA)
     graphi
     grapho where
   create' ptr w = o
@@ -770,7 +774,7 @@ instance createPeriodicOsc2 ::
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makePeriodicOscV nn oscSpec onOff argA_iv' ]
+              { instructions = i.instructions <> [ makePeriodicOscV nn oscSpec (onOffIze onOff) argA_iv' ]
               }
         , value: unit
         }
@@ -778,12 +782,13 @@ instance createPeriodicOsc2 ::
 instance createPlayBuf ::
   ( IsSymbol ptr
   , Paramable argA
+  , OnOffable onOff
   , R.Lacks ptr graphi
   , R.Cons ptr (NodeC CTOR.TPlayBuf {}) graphi grapho
   ) =>
   Create'
     ptr
-    (CTOR.PlayBuf String Number OnOff argA)
+    (CTOR.PlayBuf String Number onOff argA)
     graphi
     grapho where
   create' ptr w = o
@@ -798,7 +803,7 @@ instance createPlayBuf ::
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makePlayBuf nn bufname offset onOff argA_iv' ]
+              { instructions = i.instructions <> [ makePlayBuf nn bufname offset (onOffIze onOff) argA_iv' ]
               }
         , value: unit
         }
@@ -835,11 +840,12 @@ instance createSawtoothOsc ::
   ( IsSymbol ptr
   , Paramable argA
   , R.Lacks ptr graphi
+  , OnOffable onOff
   , R.Cons ptr (NodeC CTOR.TSawtoothOsc {}) graphi grapho
   ) =>
   Create'
     ptr
-    (CTOR.SawtoothOsc OnOff argA)
+    (CTOR.SawtoothOsc onOff argA)
     graphi
     grapho where
   create' ptr w = o
@@ -854,7 +860,7 @@ instance createSawtoothOsc ::
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makeSawtoothOsc nn onOff argA_iv' ]
+              { instructions = i.instructions <> [ makeSawtoothOsc nn (onOffIze onOff) argA_iv' ]
               }
         , value: unit
         }
@@ -862,12 +868,13 @@ instance createSawtoothOsc ::
 instance createSinOsc ::
   ( IsSymbol ptr
   , Paramable argA
+  , OnOffable onOff
   , R.Lacks ptr graphi
   , R.Cons ptr (NodeC CTOR.TSinOsc {}) graphi grapho
   ) =>
   Create'
     ptr
-    (CTOR.SinOsc OnOff argA)
+    (CTOR.SinOsc onOff argA)
     graphi
     grapho where
   create' ptr w = o
@@ -882,7 +889,7 @@ instance createSinOsc ::
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makeSinOsc nn onOff argA_iv' ]
+              { instructions = i.instructions <> [ makeSinOsc nn (onOffIze onOff) argA_iv' ]
               }
         , value: unit
         }
@@ -914,12 +921,13 @@ instance createSpeaker ::
 instance createSquareOsc ::
   ( IsSymbol ptr
   , Paramable argA
+  , OnOffable onOff
   , R.Lacks ptr graphi
   , R.Cons ptr (NodeC CTOR.TSquareOsc {}) graphi grapho
   ) =>
   Create'
     ptr
-    (CTOR.SquareOsc OnOff argA)
+    (CTOR.SquareOsc onOff argA)
     graphi
     grapho where
   create' ptr w = o
@@ -934,7 +942,7 @@ instance createSquareOsc ::
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makeSquareOsc nn onOff argA_iv' ]
+              { instructions = i.instructions <> [ makeSquareOsc nn (onOffIze onOff) argA_iv' ]
               }
         , value: unit
         }
@@ -970,12 +978,13 @@ instance createStereoPanner ::
 instance createTriangleOsc ::
   ( IsSymbol ptr
   , Paramable argA
+  , OnOffable onOff
   , R.Lacks ptr graphi
   , R.Cons ptr (NodeC CTOR.TTriangleOsc {}) graphi grapho
   ) =>
   Create'
     ptr
-    (CTOR.TriangleOsc OnOff argA)
+    (CTOR.TriangleOsc onOff argA)
     graphi
     grapho where
   create' ptr w = o
@@ -990,7 +999,7 @@ instance createTriangleOsc ::
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makeTriangleOsc nn onOff argA_iv' ]
+              { instructions = i.instructions <> [ makeTriangleOsc nn (onOffIze onOff) argA_iv' ]
               }
         , value: unit
         }

@@ -915,7 +915,9 @@ var setOff_ = function (ptr) {
           return;
         }
         state.units[ptr].onOff = false;
-        state.units[ptr].main.stop(state.writeHead + onOffInstr.timeOffset);
+        // for now, we stop immediately
+        // in the future, we can try to take the stop time into account
+        state.units[ptr].main.stop();
         for (var i = 0; i < state.units[ptr].outgoing.length; i++) {
           state.units[ptr].main.disconnect(
             state.units[state.units[ptr].outgoing[i]].main
