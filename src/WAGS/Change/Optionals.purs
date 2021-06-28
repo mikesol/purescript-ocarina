@@ -2,13 +2,15 @@
 module WAGS.Change.Optionals where
 
 import Prelude
+
 import ConvertableOptions (class ConvertOption, class ConvertOptionsWithDefaults, convertOptionsWithDefaults)
 import Data.Maybe (Maybe(..))
 import Data.Tuple.Nested ((/\), type (/\))
 import Data.Vec as V
-import WAGS.Graph.AudioUnit (OnOff(..))
+import WAGS.Graph.AudioUnit (APOnOff, OnOff(..))
 import WAGS.Graph.AudioUnit as CTOR
-import WAGS.Graph.Parameter (class MM, class Paramable, AudioParameter, mm, paramize)
+import WAGS.Graph.Paramable (class Paramable, paramize, class OnOffable, onOffIze)
+import WAGS.Graph.Parameter (class MM, AudioParameter, mm)
 
 -----------
 data Allpass
@@ -103,11 +105,11 @@ data Constant
 instance change_convertConstantOffset :: (Paramable b, MM a (Maybe b)) => ConvertOption Constant "offset" a (Maybe AudioParameter) where
   convertOption _ _ = map paramize <<< mm
 
-instance change_convertConstantOnOff :: (MM a (Maybe OnOff)) => ConvertOption Constant "onOff" a (Maybe OnOff) where
-  convertOption _ _ = mm
+instance change_convertConstantAPOnOff :: (OnOffable b, MM a (Maybe b)) => ConvertOption Constant "onOff" a (Maybe APOnOff) where
+  convertOption _ _ = map onOffIze <<< mm
 
 type ConstantOptional
-  = ( onOff :: OnOff )
+  = ( onOff :: APOnOff )
 
 type ConstantAll
   = ( offset :: AudioParameter
@@ -115,7 +117,7 @@ type ConstantAll
     )
 
 defaultConstant :: { | ConstantOptional }
-defaultConstant = { onOff: On }
+defaultConstant = { onOff: pure On }
 
 class ConstantCtor i o | i -> o where
   -- | Change a constant value
@@ -128,16 +130,16 @@ class ConstantCtor i o | i -> o where
 instance change_constantCtor1 ::
   ( ConvertOptionsWithDefaults Constant { | ConstantOptional } { | provided } { | ConstantAll }
     ) =>
-  ConstantCtor { | provided } (CTOR.Constant OnOff AudioParameter /\ {}) where
+  ConstantCtor { | provided } (CTOR.Constant APOnOff AudioParameter /\ {}) where
   constant provided = CTOR.Constant all.onOff all.offset /\ {}
     where
     all :: { | ConstantAll }
     all = convertOptionsWithDefaults Constant defaultConstant provided
-else instance change_constantCtor2 :: Paramable a => ConstantCtor a (CTOR.Constant OnOff AudioParameter /\ {}) where
+else instance change_constantCtor2 :: Paramable a => ConstantCtor a (CTOR.Constant APOnOff AudioParameter /\ {}) where
   constant a = CTOR.Constant defaultConstant.onOff (paramize a) /\ {}
 
 type DConstant
-  = CTOR.Constant (Maybe OnOff) (Maybe AudioParameter)
+  = CTOR.Constant (Maybe APOnOff) (Maybe AudioParameter)
 
 ------
 -- | Change a delay unit.
@@ -328,8 +330,8 @@ instance change_convertLoopBufBuffer :: (MM a (Maybe String)) => ConvertOption L
 instance change_convertLoopBufPlaybackRate :: (Paramable b, MM a (Maybe b)) => ConvertOption LoopBuf "playbackRate" a (Maybe AudioParameter) where
   convertOption _ _ = map paramize <<< mm
 
-instance change_convertLoopBufOnOff :: (MM a (Maybe OnOff)) => ConvertOption LoopBuf "onOff" a (Maybe OnOff) where
-  convertOption _ _ = mm
+instance change_convertLoopBufAPOnOff :: (OnOffable b, MM a (Maybe b)) => ConvertOption LoopBuf "onOff" a (Maybe APOnOff) where
+  convertOption _ _ = map onOffIze <<< mm
 
 instance change_convertLoopBufStart :: (MM a (Maybe Number)) => ConvertOption LoopBuf "loopStart" a (Maybe Number) where
   convertOption _ _ = mm
@@ -340,7 +342,7 @@ instance change_convertLoopBufEnd :: (MM a (Maybe Number)) => ConvertOption Loop
 type LoopBufOptional
   = ( buffer :: Maybe String
     , playbackRate :: Maybe AudioParameter
-    , onOff :: Maybe OnOff
+    , onOff :: Maybe APOnOff
     , loopStart :: Maybe Number
     , loopEnd :: Maybe Number
     )
@@ -364,12 +366,12 @@ class LoopBufCtor i loopBuf | i -> loopBuf where
 instance change_loopBufCtor1 ::
   ( ConvertOptionsWithDefaults LoopBuf { | LoopBufOptional } { | provided } { | LoopBufAll }
     ) =>
-  LoopBufCtor { | provided } (CTOR.LoopBuf (Maybe String) (Maybe OnOff) (Maybe AudioParameter) (Maybe Number) (Maybe Number)) where
+  LoopBufCtor { | provided } (CTOR.LoopBuf (Maybe String) (Maybe APOnOff) (Maybe AudioParameter) (Maybe Number) (Maybe Number)) where
   loopBuf provided = CTOR.LoopBuf all.buffer all.onOff all.playbackRate all.loopStart all.loopEnd
     where
     all :: { | LoopBufAll }
     all = convertOptionsWithDefaults LoopBuf defaultLoopBuf provided
-else instance change_loopBufCtor2 :: (Paramable b, MM a (Maybe b)) => LoopBufCtor a (CTOR.LoopBuf (Maybe String) (Maybe OnOff) (Maybe AudioParameter) (Maybe Number) (Maybe Number)) where
+else instance change_loopBufCtor2 :: (Paramable b, MM a (Maybe b)) => LoopBufCtor a (CTOR.LoopBuf (Maybe String) (Maybe APOnOff) (Maybe AudioParameter) (Maybe Number) (Maybe Number)) where
   loopBuf rate =
     CTOR.LoopBuf
       defaultLoopBuf.buffer
@@ -379,7 +381,7 @@ else instance change_loopBufCtor2 :: (Paramable b, MM a (Maybe b)) => LoopBufCto
       defaultLoopBuf.loopEnd
 
 type DLoopBuf
-  = CTOR.LoopBuf String (Maybe OnOff) (Maybe AudioParameter) Number Number
+  = CTOR.LoopBuf String (Maybe APOnOff) (Maybe AudioParameter) Number Number
 
 -----
 data Lowpass
@@ -570,14 +572,14 @@ data PeriodicOsc
 instance change_convertPeriodicOscFrequency :: (Paramable b, MM a (Maybe b)) => ConvertOption PeriodicOsc "freq" a (Maybe AudioParameter) where
   convertOption _ _ = map paramize <<< mm
 
-instance change_convertPeriodicOscOnOff :: MM a (Maybe OnOff) => ConvertOption PeriodicOsc "onOff" a (Maybe OnOff) where
-  convertOption _ _ = mm
+instance change_convertPeriodicOscAPOnOff :: (OnOffable b, MM a (Maybe b)) => ConvertOption PeriodicOsc "onOff" a (Maybe APOnOff) where
+  convertOption _ _ = map onOffIze <<< mm
 
 instance change_convertPeriodicOscWave :: (MM mWave (Maybe wave), CanBeCoercedToPeriodicOsc wave) => ConvertOption PeriodicOsc "waveform" mWave (Maybe wave) where
   convertOption _ _ = mm
 
 type PeriodicOscOptional wave
-  = ( onOff :: Maybe OnOff
+  = ( onOff :: Maybe APOnOff
     , freq :: Maybe AudioParameter
     , wave :: Maybe wave
     )
@@ -599,16 +601,16 @@ class PeriodicOscCtor i o | i -> o where
 instance change_periodicOscCtor1 ::
   ( ConvertOptionsWithDefaults PeriodicOsc { | PeriodicOscOptional wave } { | provided } { | PeriodicOscAll wave }
     ) =>
-  PeriodicOscCtor { | provided } (CTOR.PeriodicOsc (Maybe wave) (Maybe OnOff) (Maybe AudioParameter)) where
+  PeriodicOscCtor { | provided } (CTOR.PeriodicOsc (Maybe wave) (Maybe APOnOff) (Maybe AudioParameter)) where
   periodicOsc provided = CTOR.PeriodicOsc all.wave all.onOff all.freq
     where
     all :: { | PeriodicOscAll wave }
     all = convertOptionsWithDefaults PeriodicOsc defaultPeriodicOsc provided
-else instance change_periodicOscCtor2 :: (MM mWave (Maybe wave), CanBeCoercedToPeriodicOsc wave, Paramable b, MM a (Maybe b)) => PeriodicOscCtor mWave (a -> CTOR.PeriodicOsc (Maybe wave) (Maybe OnOff) (Maybe AudioParameter)) where
+else instance change_periodicOscCtor2 :: (MM mWave (Maybe wave), CanBeCoercedToPeriodicOsc wave, Paramable b, MM a (Maybe b)) => PeriodicOscCtor mWave (a -> CTOR.PeriodicOsc (Maybe wave) (Maybe APOnOff) (Maybe AudioParameter)) where
   periodicOsc wave a = CTOR.PeriodicOsc (mm wave) defaultPeriodicOsc.onOff (paramize <$> mm a)
 
 type DPeriodicOsc periodicOsc
-  = CTOR.PeriodicOsc periodicOsc OnOff AudioParameter
+  = CTOR.PeriodicOsc periodicOsc APOnOff AudioParameter
 
 ---
 data PlayBuf
@@ -620,14 +622,14 @@ instance change_convertPlayBufBuffer :: (MM a (Maybe String)) => ConvertOption P
 instance change_convertPlayBufPlaybackRate :: (Paramable b, MM a (Maybe b)) => ConvertOption PlayBuf "playbackRate" a (Maybe AudioParameter) where
   convertOption _ _ = map paramize <<< mm
 
-instance change_convertPlayBufOnOff :: (MM mOnOff (Maybe OnOff)) => ConvertOption PlayBuf "onOff" mOnOff (Maybe OnOff) where
+instance change_convertPlayBufAPOnOff :: (MM mAPOnOff (Maybe APOnOff)) => ConvertOption PlayBuf "onOff" mAPOnOff (Maybe APOnOff) where
   convertOption _ _ = mm
 
 instance change_convertPlayBufBufferOffset :: (MM mOffset (Maybe Number)) => ConvertOption PlayBuf "bufferOffset" mOffset (Maybe Number) where
   convertOption _ _ = mm
 
 type PlayBufOptional
-  = ( buffer :: Maybe String, playbackRate :: Maybe AudioParameter, onOff :: Maybe OnOff, bufferOffset :: Maybe Number )
+  = ( buffer :: Maybe String, playbackRate :: Maybe AudioParameter, onOff :: Maybe APOnOff, bufferOffset :: Maybe Number )
 
 type PlayBufAll
   = ( | PlayBufOptional )
@@ -647,12 +649,12 @@ class PlayBufCtor i playBuf | i -> playBuf where
 
 instance change_playBufCtor1 ::
   ConvertOptionsWithDefaults PlayBuf { | PlayBufOptional } { | provided } { | PlayBufAll } =>
-  PlayBufCtor { | provided } (CTOR.PlayBuf (Maybe String) (Maybe Number) (Maybe OnOff) (Maybe AudioParameter)) where
+  PlayBufCtor { | provided } (CTOR.PlayBuf (Maybe String) (Maybe Number) (Maybe APOnOff) (Maybe AudioParameter)) where
   playBuf provided = CTOR.PlayBuf all.buffer all.bufferOffset all.onOff all.playbackRate
     where
     all :: { | PlayBufAll }
     all = convertOptionsWithDefaults PlayBuf defaultPlayBuf provided
-else instance change_playBufCtor2 :: (Paramable b, MM a (Maybe b)) => PlayBufCtor a (CTOR.PlayBuf (Maybe String) (Maybe Number) (Maybe OnOff) (Maybe AudioParameter)) where
+else instance change_playBufCtor2 :: (Paramable b, MM a (Maybe b)) => PlayBufCtor a (CTOR.PlayBuf (Maybe String) (Maybe Number) (Maybe APOnOff) (Maybe AudioParameter)) where
   playBuf rate =
     CTOR.PlayBuf
       defaultPlayBuf.buffer
@@ -661,7 +663,7 @@ else instance change_playBufCtor2 :: (Paramable b, MM a (Maybe b)) => PlayBufCto
       (paramize <$> mm rate)
 
 type DPlayBuf
-  = CTOR.PlayBuf String Number (Maybe OnOff) (Maybe AudioParameter)
+  = CTOR.PlayBuf String Number (Maybe APOnOff) (Maybe AudioParameter)
 
 ------
 class SawtoothOscCtor i o | i -> o where
@@ -674,16 +676,16 @@ class SawtoothOscCtor i o | i -> o where
   sawtoothOsc :: i -> o
 
 instance change_sawtoothOsc2 ::
-  (MM mOnOff (Maybe OnOff), Paramable b, MM a (Maybe b)) =>
-  SawtoothOscCtor mOnOff (a -> CTOR.SawtoothOsc (Maybe OnOff) (Maybe AudioParameter)) where
+  (MM mAPOnOff (Maybe APOnOff), Paramable b, MM a (Maybe b)) =>
+  SawtoothOscCtor mAPOnOff (a -> CTOR.SawtoothOsc (Maybe APOnOff) (Maybe AudioParameter)) where
   sawtoothOsc oo gvsv = CTOR.SawtoothOsc (mm oo) (paramize <$> (mm gvsv))
 else instance change_sawtoothOsc1 ::
   (Paramable b, MM a (Maybe b)) =>
-  SawtoothOscCtor a (CTOR.SawtoothOsc (Maybe OnOff) (Maybe AudioParameter)) where
+  SawtoothOscCtor a (CTOR.SawtoothOsc (Maybe APOnOff) (Maybe AudioParameter)) where
   sawtoothOsc gvsv = CTOR.SawtoothOsc Nothing (paramize <$> (mm gvsv))
 
 type DSawtoothOsc
-  = CTOR.SawtoothOsc (Maybe OnOff) (Maybe AudioParameter)
+  = CTOR.SawtoothOsc (Maybe APOnOff) (Maybe AudioParameter)
 
 ------
 data SinOsc
@@ -692,11 +694,11 @@ data SinOsc
 instance change_convertSinOscFrequency :: (Paramable b, MM a (Maybe b)) => ConvertOption SinOsc "freq" a (Maybe AudioParameter) where
   convertOption _ _ = map paramize <<< mm
 
-instance change_convertSinOscOnOff ::  MM a (Maybe OnOff) => ConvertOption SinOsc "onOff" a (Maybe OnOff) where
-  convertOption _ _ = mm
+instance change_convertSinOscAPOnOff :: (OnOffable b, MM a (Maybe b)) => ConvertOption SinOsc "onOff" a (Maybe APOnOff) where
+  convertOption _ _ = map onOffIze <<< mm
 
 type SinOscOptional
-  = ( onOff :: OnOff )
+  = ( onOff :: APOnOff )
 
 type SinOscAll
   = ( freq :: AudioParameter
@@ -704,7 +706,7 @@ type SinOscAll
     )
 
 defaultSinOsc :: { | SinOscOptional }
-defaultSinOsc = { onOff: On }
+defaultSinOsc = { onOff: pure On }
 
 class SinOscCtor i o | i -> o where
   -- | Change a sinOsc value
@@ -717,16 +719,16 @@ class SinOscCtor i o | i -> o where
 instance change_sinOscCtor1 ::
   ( ConvertOptionsWithDefaults SinOsc { | SinOscOptional } { | provided } { | SinOscAll }
     ) =>
-  SinOscCtor { | provided } (CTOR.SinOsc OnOff AudioParameter /\ {}) where
+  SinOscCtor { | provided } (CTOR.SinOsc APOnOff AudioParameter /\ {}) where
   sinOsc provided = CTOR.SinOsc all.onOff all.freq /\ {}
     where
     all :: { | SinOscAll }
     all = convertOptionsWithDefaults SinOsc defaultSinOsc provided
-else instance change_sinOscCtor2 :: Paramable a => SinOscCtor a (CTOR.SinOsc OnOff AudioParameter /\ {}) where
+else instance change_sinOscCtor2 :: Paramable a => SinOscCtor a (CTOR.SinOsc APOnOff AudioParameter /\ {}) where
   sinOsc a = CTOR.SinOsc defaultSinOsc.onOff (paramize a) /\ {}
 
 type DSinOsc
-  = CTOR.SinOsc (Maybe OnOff) (Maybe AudioParameter)
+  = CTOR.SinOsc (Maybe APOnOff) (Maybe AudioParameter)
 
 ------
 data SquareOsc
@@ -735,11 +737,11 @@ data SquareOsc
 instance change_convertSquareOscFrequency :: (Paramable b, MM a (Maybe b)) => ConvertOption SquareOsc "freq" a (Maybe AudioParameter) where
   convertOption _ _ = map paramize <<< mm
 
-instance change_convertSquareOscOnOff ::  MM a (Maybe OnOff) => ConvertOption SquareOsc "onOff" a (Maybe OnOff) where
-  convertOption _ _ = mm
+instance change_convertSquareOscAPOnOff :: (OnOffable b, MM a (Maybe b)) => ConvertOption SquareOsc "onOff" a (Maybe APOnOff) where
+  convertOption _ _ = map onOffIze <<< mm
 
 type SquareOscOptional
-  = ( onOff :: OnOff )
+  = ( onOff :: APOnOff )
 
 type SquareOscAll
   = ( freq :: AudioParameter
@@ -747,7 +749,7 @@ type SquareOscAll
     )
 
 defaultSquareOsc :: { | SquareOscOptional }
-defaultSquareOsc = { onOff: On }
+defaultSquareOsc = { onOff: pure On }
 
 class SquareOscCtor i o | i -> o where
   -- | Change a squareOsc value
@@ -760,16 +762,16 @@ class SquareOscCtor i o | i -> o where
 instance change_squareOscCtor1 ::
   ( ConvertOptionsWithDefaults SquareOsc { | SquareOscOptional } { | provided } { | SquareOscAll }
     ) =>
-  SquareOscCtor { | provided } (CTOR.SquareOsc OnOff AudioParameter /\ {}) where
+  SquareOscCtor { | provided } (CTOR.SquareOsc APOnOff AudioParameter /\ {}) where
   squareOsc provided = CTOR.SquareOsc all.onOff all.freq /\ {}
     where
     all :: { | SquareOscAll }
     all = convertOptionsWithDefaults SquareOsc defaultSquareOsc provided
-else instance change_squareOscCtor2 :: Paramable a => SquareOscCtor a (CTOR.SquareOsc OnOff AudioParameter /\ {}) where
+else instance change_squareOscCtor2 :: Paramable a => SquareOscCtor a (CTOR.SquareOsc APOnOff AudioParameter /\ {}) where
   squareOsc a = CTOR.SquareOsc defaultSquareOsc.onOff (paramize a) /\ {}
 
 type DSquareOsc
-  = CTOR.SquareOsc (Maybe OnOff) (Maybe AudioParameter)
+  = CTOR.SquareOsc (Maybe APOnOff) (Maybe AudioParameter)
 
 ------
 -- | Pan audio.
@@ -794,11 +796,11 @@ data TriangleOsc
 instance change_convertTriangleOscFrequency :: (Paramable b, MM a (Maybe b)) => ConvertOption TriangleOsc "freq" a (Maybe AudioParameter) where
   convertOption _ _ = map paramize <<< mm
 
-instance change_convertTriangleOscOnOff :: MM a (Maybe OnOff) => ConvertOption TriangleOsc "onOff" a (Maybe OnOff) where
-  convertOption _ _ = mm
+instance change_convertTriangleOscAPOnOff :: (OnOffable b, MM a (Maybe b)) => ConvertOption TriangleOsc "onOff" a (Maybe APOnOff) where
+  convertOption _ _ = map onOffIze <<< mm
 
 type TriangleOscOptional
-  = ( onOff :: OnOff )
+  = ( onOff :: APOnOff )
 
 type TriangleOscAll
   = ( freq :: AudioParameter
@@ -806,7 +808,7 @@ type TriangleOscAll
     )
 
 defaultTriangleOsc :: { | TriangleOscOptional }
-defaultTriangleOsc = { onOff: On }
+defaultTriangleOsc = { onOff: pure On }
 
 class TriangleOscCtor i o | i -> o where
   -- | Change a triangleOsc value
@@ -819,13 +821,13 @@ class TriangleOscCtor i o | i -> o where
 instance change_triangleOscCtor1 ::
   ( ConvertOptionsWithDefaults TriangleOsc { | TriangleOscOptional } { | provided } { | TriangleOscAll }
     ) =>
-  TriangleOscCtor { | provided } (CTOR.TriangleOsc OnOff AudioParameter /\ {}) where
+  TriangleOscCtor { | provided } (CTOR.TriangleOsc APOnOff AudioParameter /\ {}) where
   triangleOsc provided = CTOR.TriangleOsc all.onOff all.freq /\ {}
     where
     all :: { | TriangleOscAll }
     all = convertOptionsWithDefaults TriangleOsc defaultTriangleOsc provided
-else instance change_triangleOscCtor2 :: Paramable a => TriangleOscCtor a (CTOR.TriangleOsc OnOff AudioParameter /\ {}) where
+else instance change_triangleOscCtor2 :: Paramable a => TriangleOscCtor a (CTOR.TriangleOsc APOnOff AudioParameter /\ {}) where
   triangleOsc a = CTOR.TriangleOsc defaultTriangleOsc.onOff (paramize a) /\ {}
 
 type DTriangleOsc
-  = CTOR.TriangleOsc (Maybe OnOff) (Maybe AudioParameter)
+  = CTOR.TriangleOsc (Maybe APOnOff) (Maybe AudioParameter)

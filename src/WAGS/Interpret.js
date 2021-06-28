@@ -866,57 +866,85 @@ var applyResumeClosure = function (i) {
   }
 };
 
-exports.setOn_ = function (ptr) {
-  return function (state) {
-    return function () {
-      if (state.units[ptr].onOff) {
-        return;
-      }
-      state.units[ptr].onOff = true;
-      if (state.units[ptr].resumeClosure) {
-        applyResumeClosure(state.units[ptr]);
-      }
-      if (state.units[ptr].bufferOffset) {
-        state.units[ptr].main.start(undefined, state.units[ptr].bufferOffset);
-      } else {
-        state.units[ptr].main.start();
-      }
+exports.setOnOff_ = function (ptr) {
+  return function (onOff) {
+    return function (state) {
+      return function () {
+        if (onOff.param === "on") {
+          setOn_(ptr)(onOff)(state)();
+        } else if (onOff.param === "off") {
+          setOff_(ptr)(onOff)(state)();
+        } else if (onOff.param === "offOn") {
+          setOff_(ptr)({param: "off", timeOffset: 0.0})(state)();
+          setOn_(ptr)({param: "on", timeOffset: onOff.timeOffset})(state)();
+        }
+      };
     };
   };
 };
-exports.setOff_ = function (ptr) {
-  return function (state) {
-    return function () {
-      if (!state.units[ptr].onOff) {
-        return;
-      }
-      state.units[ptr].onOff = false;
-      state.units[ptr].main.stop();
-      for (var i = 0; i < state.units[ptr].outgoing.length; i++) {
-        state.units[ptr].main.disconnect(
-          state.units[state.units[ptr].outgoing[i]].main
-        );
-        if (state.units[state.units[ptr].outgoing[i]].se) {
+
+var setOn_ = function (ptr) {
+  return function (onOffInstr) {
+    return function (state) {
+      return function () {
+        if (state.units[ptr].onOff) {
+          return;
+        }
+        state.units[ptr].onOff = true;
+        if (state.units[ptr].resumeClosure) {
+          applyResumeClosure(state.units[ptr]);
+        }
+        if (state.units[ptr].bufferOffset) {
+          state.units[ptr].main.start(
+            state.writeHead + onOffInstr.timeOffset,
+            state.units[ptr].bufferOffset
+          );
+        } else {
+          state.units[ptr].main.start(state.writeHead + onOffInstr.timeOffset);
+        }
+      };
+    };
+  };
+};
+
+var setOff_ = function (ptr) {
+  return function (onOffInstr) {
+    return function (state) {
+      return function () {
+        if (!state.units[ptr].onOff) {
+          return;
+        }
+        state.units[ptr].onOff = false;
+        // for now, we stop immediately
+        // in the future, we can try to take the stop time into account
+        state.units[ptr].main.stop();
+        for (var i = 0; i < state.units[ptr].outgoing.length; i++) {
           state.units[ptr].main.disconnect(
-            state.units[state.units[ptr].outgoing[i]].se
+            state.units[state.units[ptr].outgoing[i]].main
           );
+          if (state.units[state.units[ptr].outgoing[i]].se) {
+            state.units[ptr].main.disconnect(
+              state.units[state.units[ptr].outgoing[i]].se
+            );
+          }
         }
-      }
-      delete state.units[ptr].main;
-      state.units[ptr].main = state.units[ptr].createFunction();
-      for (var i = 0; i < state.units[ptr].outgoing.length; i++) {
-        state.units[ptr].main.connect(
-          state.units[state.units[ptr].outgoing[i]].main
-        );
-        if (state.units[state.units[ptr].outgoing[i]].se) {
+        delete state.units[ptr].main;
+        state.units[ptr].main = state.units[ptr].createFunction();
+        for (var i = 0; i < state.units[ptr].outgoing.length; i++) {
           state.units[ptr].main.connect(
-            state.units[state.units[ptr].outgoing[i]].se
+            state.units[state.units[ptr].outgoing[i]].main
           );
+          if (state.units[state.units[ptr].outgoing[i]].se) {
+            state.units[ptr].main.connect(
+              state.units[state.units[ptr].outgoing[i]].se
+            );
+          }
         }
-      }
+      };
     };
   };
 };
+
 exports.setLoopStart_ = function (ptr) {
   return function (a) {
     return function (state) {

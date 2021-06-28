@@ -7,10 +7,10 @@ module WAGS.Rendered where
 import Prelude
 
 import Data.Either (Either)
-import Data.Tuple.Nested(type (/\))
 import Data.Generic.Rep (class Generic)
 import Data.Show.Generic (genericShow)
-import WAGS.Graph.AudioUnit (OnOff)
+import Data.Tuple.Nested (type (/\))
+import WAGS.Graph.AudioUnit (APOnOff)
 import WAGS.Graph.Parameter (AudioParameter)
 
 -- An audio rendering instruction. These instructions are used
@@ -22,14 +22,14 @@ data Instruction
   | DestroyUnit String
   | MakeAllpass String AudioParameter AudioParameter
   | MakeBandpass String AudioParameter AudioParameter
-  | MakeConstant String OnOff AudioParameter
+  | MakeConstant String APOnOff AudioParameter
   | MakeConvolver String String
   | MakeDelay String AudioParameter
   | MakeDynamicsCompressor String AudioParameter AudioParameter AudioParameter AudioParameter AudioParameter
   | MakeGain String AudioParameter
   | MakeHighpass String AudioParameter AudioParameter
   | MakeHighshelf String AudioParameter AudioParameter
-  | MakeLoopBuf String String OnOff AudioParameter Number Number
+  | MakeLoopBuf String String APOnOff AudioParameter Number Number
   | MakeLoopBufWithDeferredBuffer String
   | MakeLowpass String AudioParameter AudioParameter
   | MakeLowshelf String AudioParameter AudioParameter
@@ -37,21 +37,20 @@ data Instruction
   | MakeNotch String AudioParameter AudioParameter
   | MakePeaking String AudioParameter AudioParameter AudioParameter
   | MakePeriodicOscWithDeferredOsc String
-  | MakePeriodicOsc String (Either String (Array Number /\ Array Number)) OnOff AudioParameter
-  | MakePlayBuf String String Number OnOff AudioParameter
+  | MakePeriodicOsc String (Either String (Array Number /\ Array Number)) APOnOff AudioParameter
+  | MakePlayBuf String String Number APOnOff AudioParameter
   | MakePlayBufWithDeferredBuffer String
   | MakeRecorder String String
-  | MakeSawtoothOsc String OnOff AudioParameter
-  | MakeSinOsc String OnOff AudioParameter
-  | MakeSquareOsc String OnOff AudioParameter
+  | MakeSawtoothOsc String APOnOff AudioParameter
+  | MakeSinOsc String APOnOff AudioParameter
+  | MakeSquareOsc String APOnOff AudioParameter
   | MakeSpeaker
   | MakeStereoPanner String AudioParameter
-  | MakeTriangleOsc String OnOff AudioParameter
+  | MakeTriangleOsc String APOnOff AudioParameter
   | MakeWaveShaper String String Oversample
   | SetBuffer String String
   | SetPeriodicOsc String (Either String (Array Number /\ Array Number))
-  | SetOn String
-  | SetOff String
+  | SetOnOff String APOnOff
   | SetBufferOffset String Number
   | SetLoopStart String Number
   | SetLoopEnd String Number

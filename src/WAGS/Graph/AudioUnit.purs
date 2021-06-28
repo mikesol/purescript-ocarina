@@ -1,6 +1,7 @@
 module WAGS.Graph.AudioUnit where
 
 import Prelude
+
 import Data.Generic.Rep (class Generic)
 import Data.Show.Generic (genericShow)
 import Data.Symbol (class IsSymbol)
@@ -11,6 +12,7 @@ import Prim.Row as R
 import Record as Record
 import Type.Proxy (Proxy(..))
 import WAGS.Edgeable (class Edgeable, withEdge)
+import WAGS.Graph.Parameter (AudioParameter_)
 
 -- | Term-level constructor for an allpass filter.
 -- | - `frequency` - the frequency where the phase transition occurs.
@@ -170,6 +172,12 @@ data WaveShaper (floatArray :: Symbol) oversample
 data OnOff
   = On
   | Off
+  -- turns off immediately and then on, good for loops.
+  -- todo: because of the way audioParameter works, this
+  -- is forced to stop immediately
+  -- this almost always is fine, but for more fine-grained control
+  -- we'll need a different abstraction
+  | OffOn
 
 derive instance eqOnOff :: Eq OnOff
 
@@ -177,6 +185,8 @@ derive instance genericOnOff :: Generic OnOff _
 
 instance showOnOff :: Show OnOff where
   show = genericShow
+
+type APOnOff = AudioParameter_ OnOff
 
 -- | Type-level oversample none for a wave shaper. This is at the type-level and not the term-level via an ADT because we need make sure to construct an entirely new wave shaper if the value changes.
 data OversampleNone

@@ -81,7 +81,7 @@ testInstructions = do
         [ MakeSpeaker
         , MakeGain "mix" (pure 1.0)
         , MakeHighpass "highpass" (pure 330.0) (pure 1.0)
-        , MakeSinOsc "sinOsc" On (pure 440.0)
+        , MakeSinOsc "sinOsc" (pure On) (pure 440.0)
         , ConnectXToY "mix" "speaker"
         , ConnectXToY "highpass" "mix"
         , ConnectXToY "mix" "mix"
@@ -118,7 +118,7 @@ testInstructions = do
         [ MakeSpeaker
         , MakeGain "mix" (pure 1.0)
         , MakeHighpass "highpass" (pure 330.0) (pure 1.0)
-        , MakeSinOsc "sinOsc" On (pure 440.0)
+        , MakeSinOsc "sinOsc" (pure On) (pure 440.0)
         , ConnectXToY "mix" "speaker"
         , ConnectXToY "highpass" "mix"
         , ConnectXToY "mix" "mix"
@@ -161,7 +161,7 @@ testInstructions = do
         [ MakeSpeaker
         , MakeGain "mix" (pure 1.0)
         , MakeHighpass "highpass" (pure 330.0) (pure 1.0)
-        , MakeSinOsc "sinOsc" On (pure 440.0)
+        , MakeSinOsc "sinOsc" (pure On) (pure 440.0)
         , ConnectXToY "mix" "speaker"
         , ConnectXToY "highpass" "mix"
         , ConnectXToY "mix" "mix"
@@ -209,7 +209,7 @@ testInstructions = do
         [ MakeSpeaker
         , MakeGain "mix" (pure 1.0)
         , MakeHighpass "highpass" (pure 330.0) (pure 1.0)
-        , MakeSinOsc "sinOsc" On (pure 440.0)
+        , MakeSinOsc "sinOsc" (pure On) (pure 440.0)
         , ConnectXToY "mix" "speaker"
         , ConnectXToY "highpass" "mix"
         , ConnectXToY "mix" "mix"
@@ -255,7 +255,7 @@ testInstructions = do
         [ MakeSpeaker
         , MakeGain "mix" (pure 1.0)
         , MakeHighpass "highpass" (pure 330.0) (pure 1.0)
-        , MakeSinOsc "sinOsc" On (pure 440.0)
+        , MakeSinOsc "sinOsc" (pure On) (pure 440.0)
         , ConnectXToY "mix" "speaker"
         , ConnectXToY "highpass" "mix"
         , ConnectXToY "mix" "mix"
