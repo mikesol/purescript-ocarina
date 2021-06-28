@@ -11,7 +11,6 @@ import Prim.RowList as RL
 import Data.Tuple.Nested(type(/\))
 import WAGS.Connect (class ConnectT)
 import WAGS.Edgeable (class EdgeableT)
-import WAGS.Graph.AudioUnit (OnOff)
 import WAGS.Graph.AudioUnit as CTOR
 import WAGS.Graph.Graph (Graph)
 import WAGS.Graph.Node (NodeC)
@@ -97,7 +96,7 @@ instance createTConstant ::
   ) =>
   CreateT'
     ptr
-    (CTOR.Constant OnOff argA)
+    (CTOR.Constant onOff argA)
     graphi
     grapho
 
@@ -167,7 +166,7 @@ instance createTLoopBuf ::
   ) =>
   CreateT'
     ptr
-    (CTOR.LoopBuf String OnOff argA Number Number)
+    (CTOR.LoopBuf String onOff argA Number Number)
     graphi
     grapho
 
@@ -227,7 +226,7 @@ instance createTPeriodicOsc ::
   ) =>
   CreateT'
     ptr
-    (CTOR.PeriodicOsc String OnOff argA)
+    (CTOR.PeriodicOsc String onOff argA)
     graphi
     grapho
 
@@ -237,7 +236,7 @@ instance createTPeriodicOsc2 ::
   ) =>
   CreateT'
     ptr
-    (CTOR.PeriodicOsc (V.Vec a Number /\ V.Vec a Number) OnOff argA)
+    (CTOR.PeriodicOsc (V.Vec a Number /\ V.Vec a Number) onOff argA)
     graphi
     grapho
 
@@ -247,7 +246,7 @@ instance createTPlayBuf ::
   ) =>
   CreateT'
     ptr
-    (CTOR.PlayBuf String Number OnOff argA)
+    (CTOR.PlayBuf String Number onOff argA)
     graphi
     grapho
 instance createTRecorder ::
@@ -266,7 +265,7 @@ instance createTSawtoothOsc ::
   ) =>
   CreateT'
     ptr
-    (CTOR.SawtoothOsc OnOff argA)
+    (CTOR.SawtoothOsc onOff argA)
     graphi
     grapho
 
@@ -276,7 +275,7 @@ instance createTSinOsc ::
   ) =>
   CreateT'
     ptr
-    (CTOR.SinOsc OnOff argA)
+    (CTOR.SinOsc onOff argA)
     graphi
     grapho
 
@@ -296,7 +295,7 @@ instance createTSquareOsc ::
   ) =>
   CreateT'
     ptr
-    (CTOR.SquareOsc OnOff argA)
+    (CTOR.SquareOsc onOff argA)
     graphi
     grapho
 
@@ -316,7 +315,7 @@ instance createTTriangleOsc ::
   ) =>
   CreateT'
     ptr
-    (CTOR.TriangleOsc OnOff argA)
+    (CTOR.TriangleOsc onOff argA)
     graphi
     grapho
 
