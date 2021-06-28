@@ -187,6 +187,13 @@ exports.makeConvolver_ = function (ptr) {
           incoming: [],
           main: state.context.createConvolver(),
         };
+        if (!state.buffers[a]) {
+          console.error(
+            "Convolver buffer does not exist for key " +
+              a +
+              ". Using a dummy buffer. Check your code!"
+          );
+        }
         state.units[ptr].main.buffer = state.buffers[a];
       };
     };
@@ -333,6 +340,13 @@ exports.makeLoopBuf_ = function (ptr) {
                 };
                 applyResumeClosure(state.units[ptr]);
                 if (onOff) {
+                  if (!state.buffers[a]) {
+                    console.error(
+                      "Looping buffer does not exist for key " +
+                        a +
+                        ". Using a dummy buffer. Check your code!"
+                    );
+                  }
                   state.units[ptr].main.buffer = state.buffers[a];
                   state.units[ptr].main.start(
                     state.writeHead + b.timeOffset,
@@ -473,7 +487,15 @@ exports.makePeriodicOsc_ = function (ptr) {
                   genericStarter(i, "frequency", b);
                 },
                 periodicOsc: function (i) {
-                  i.setPeriodicWave(state.periodicWaves[a]);
+                  if (state.periodicWaves[a]) {
+                    i.setPeriodicWave(state.periodicWaves[a]);
+                  } else {
+                    console.error(
+                      "Periodic wave does not exist for key " +
+                        a +
+                        ". Setting wave to null. Check your code!"
+                    );
+                  }
                 },
               },
               main: createFunction(),
@@ -569,6 +591,13 @@ exports.makePlayBuf_ = function (ptr) {
               };
               applyResumeClosure(state.units[ptr]);
               if (onOff) {
+                if (!state.buffers[a]) {
+                  console.error(
+                    "Buffer does not exist for key " +
+                      a +
+                      ". Using a dummy buffer. Check your code!"
+                  );
+                }
                 state.units[ptr].main.buffer = state.buffers[a];
                 state.units[ptr].main.start(state.writeHead + c.timeOffset, b);
               }
@@ -585,6 +614,16 @@ exports.makeRecorder_ = function (ptr) {
     return function (state) {
       return function () {
         var mediaRecorderSideEffectFn = state.recorders[a];
+        if (!mediaRecorderSideEffectFn) {
+          console.error(
+            "Media recorder side effect function does not exist for key " +
+              a +
+              ". Using a dummy function. Check your code!"
+          );
+          mediaRecorderSideEffectFn = function () {
+            return function () {};
+          };
+        }
         var dest = state.context.createMediaStreamDestination();
         var mediaRecorder = new MediaRecorder(dest.stream);
         mediaRecorderSideEffectFn(mediaRecorder)();
@@ -771,6 +810,13 @@ exports.setBuffer_ = function (ptr) {
     return function (state) {
       return function () {
         state.units[ptr].resumeClosure.buffer = function (i) {
+          if (!state.buffers[buffer]) {
+            console.error(
+              "Buffer does not exist for key " +
+                buffer +
+                ". Using a dummy buffer. Check your code!"
+            );
+          }
           i.buffer = state.buffers[buffer];
         };
       };
@@ -783,7 +829,15 @@ exports.setPeriodicOsc_ = function (ptr) {
     return function (state) {
       return function () {
         state.units[ptr].resumeClosure.periodicOsc = function (i) {
-          i.setPeriodicWave(state.periodicWaves[periodicOsc]);
+          if (state.periodicWaves[periodicOsc]) {
+            i.setPeriodicWave(state.periodicWaves[periodicOsc]);
+          } else {
+            console.error(
+              "Periodic wave does not exist for key " +
+                periodicOsc +
+                ". Setting wave to null. Check your code!"
+            );
+          }
         };
       };
     };

@@ -1,78 +1,99 @@
 module WAGS.Example.Failure where
 
 import Prelude
-
+import Control.Applicative.Indexed (ipure, (:*>))
 import Control.Comonad.Cofree (Cofree, mkCofree)
+import Data.Array ((..))
+import Data.Either (Either(..))
+import Data.Tuple.Nested ((/\), type (/\))
 import Data.Foldable (for_)
-import Data.Functor.Indexed (ivoid)
+import Data.Int (toNumber)
 import Data.Maybe (Maybe(..))
-import Data.Tuple.Nested (type (/\))
+import Data.Ord (abs)
+import Data.Vec ((+>))
+import Data.Vec as V
 import Effect (Effect)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect)
 import FRP.Event (subscribe)
+import Foreign.Object as O
+import Halogen (SubscriptionId)
 import Halogen as H
 import Halogen.Aff (awaitBody, runHalogenAff)
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
+import Halogen.Subscription as HS
 import Halogen.VDom.Driver (runUI)
-import Math (pi, sin)
+import Math ((%), pi)
 import WAGS.Change (ichange)
-import WAGS.Control.Functions.Validated (iloop, (@!>))
-import WAGS.Control.Types (Frame0, Scene)
-import WAGS.Create (icreate)
-import WAGS.Create.Optionals (CGain, CLoopBuf, CSpeaker, gain, loopBuf, speaker)
-import WAGS.Graph.AudioUnit (TGain, TLoopBuf, TSpeaker)
-import WAGS.Interpret (AudioContext, FFIAudio(..), close, context, defaultFFIAudio, makeUnitCache)
+import WAGS.Control.Functions (icont)
+import WAGS.Control.Functions.Validated (ibranch, (@!>))
+import WAGS.Control.Types (Frame0, Scene, WAG)
+import WAGS.Example.KitchenSink (fetchBuffer)
+import WAGS.Graph.AudioUnit (OnOff(..), OversampleTwoX, TConvolver, TPeriodicOsc, TPlayBuf, TRecorder, TSpeaker, TWaveShaper)
+import WAGS.Interpret (AudioContext, FFIAudio(..), close, context, defaultFFIAudio, makeFloatArray, makePeriodicWave, makeUnitCache, mediaRecorderToUrl)
+import WAGS.Patch (ipatch)
 import WAGS.Run (RunAudio, SceneI, RunEngine, run)
 
-vol = 1.4 :: Number
-
-type SceneTemplate
-  = CSpeaker
-      { gain0 :: CGain { loop0 :: CLoopBuf }
-      , gain1 :: CGain { loop1 :: CLoopBuf }
-      , gain2 :: CGain { loop2 :: CLoopBuf }
-      }
-
-type SceneType
-  = { speaker :: TSpeaker /\ { gain0 :: Unit, gain1 :: Unit, gain2 :: Unit }
-    , gain0 :: TGain /\ { loop0 :: Unit }
-    , loop0 :: TLoopBuf /\ {}
-    , gain1 :: TGain /\ { loop1 :: Unit }
-    , loop1 :: TLoopBuf /\ {}
-    , gain2 :: TGain /\ { loop2 :: Unit }
-    , loop2 :: TLoopBuf /\ {}
+type ShouldFail
+  = { speaker :: TSpeaker /\ { badWshape :: Unit, badPosc :: Unit }
+    , badWshape :: TWaveShaper "fail" OversampleTwoX /\ { badConv :: Unit }
+    , badConv :: TConvolver "fail" /\ { badRec :: Unit }
+    , badRec :: TRecorder "fail" /\ { badBuf :: Unit }
+    , badBuf :: TPlayBuf /\ {}
+    , badPosc :: TPeriodicOsc /\ {}
     }
 
-scene :: Number -> SceneTemplate
-scene time =
-  let
-    rad = pi * time
-  in
-    speaker
-      { gain0:
-          gain (0.3 * vol)
-            { loop0: loopBuf { playbackRate: 1.0 + 0.1 * sin rad } "atar"
-            }
-      , gain1:
-          gain (0.15 * vol)
-            { loop1:
-                loopBuf
-                  { playbackRate: 1.5 + 0.1 * sin (2.0 * rad)
-                  , loopStart: 0.1 + 0.1 * sin rad
-                  , loopEnd: 0.5 + 0.25 * sin (2.0 * rad)
-                  }
-                  "atar"
-            }
-      , gain2:
-          gain (0.3 * vol)
-            { loop2: loopBuf { playbackRate: 0.25 } "atar"
-            }
-      }
+type ShouldSucceed
+  = { speaker :: TSpeaker /\ { wshape :: Unit, posc :: Unit }
+    , wshape :: TWaveShaper "success" OversampleTwoX /\ { conv :: Unit }
+    , conv :: TConvolver "success" /\ { rec :: Unit }
+    , rec :: TRecorder "success" /\ { buf :: Unit }
+    , buf :: TPlayBuf /\ {}
+    , posc :: TPeriodicOsc /\ {}
+    }
+
+shouldFail :: forall proof. WAG RunAudio RunEngine proof Unit ShouldFail Unit -> Scene (SceneI Unit Unit) RunAudio RunEngine proof Unit
+shouldFail =
+  ibranch \e a ->
+    if e.time % 4.0 < 2.0 then
+      Right $ ipure unit
+    else
+      Left
+        $ icont shouldSucceed
+            ( ipatch
+                :*> ichange
+                    { posc: { waveform: "myWavetable", onOff: On }
+                    , buf: { buffer: "myBuffer", onOff: On }
+                    }
+            )
+
+shouldSucceed :: forall proof. WAG RunAudio RunEngine proof Unit ShouldSucceed Unit -> Scene (SceneI Unit Unit) RunAudio RunEngine proof Unit
+shouldSucceed =
+  ibranch \e a ->
+    if e.time % 4.0 > 2.0 then
+      Right $ ipure unit
+    else
+      Left
+        $ icont shouldFail
+            ( ipatch
+                :*> ichange
+                    { badPosc: { waveform: "?!?#$@#$", onOff: On }
+                    , badBuf: { buffer: "sjdgfkfbg", onOff: On }
+                    }
+            )
 
 piece :: Scene (SceneI Unit Unit) RunAudio RunEngine Frame0 Unit
-piece = (_.time >>> scene >>> icreate) @!> iloop \{ time } _ -> ivoid $ ichange (scene time)
+piece =
+  ( const
+      ( ipatch
+          :*> ichange
+              { badPosc: { waveform: "?!?#$@#$", onOff: On }
+              , badBuf: { buffer: "sjdgfkfbg", onOff: On }
+              }
+      )
+  )
+    @!> shouldFail
 
 easingAlgorithm :: Cofree ((->) Int) Int
 easingAlgorithm =
@@ -88,13 +109,32 @@ main =
     runUI component unit body
 
 type State
-  = { unsubscribe :: Effect Unit
+  = { unsubscribeFromWAGS :: Effect Unit
+    , unsubscribeFromHalogen :: Maybe SubscriptionId
     , audioCtx :: Maybe AudioContext
+    , graph :: Maybe String
+    , audioSrc :: Maybe String
     }
+
+makeDistortionCurve :: Number -> Array Number
+makeDistortionCurve k =
+  map
+    ( \i ->
+        let
+          x = (toNumber i * 2.0 / toNumber n_samples) - 1.0
+        in
+          (3.0 + k) * x * 20.0 * deg / (pi + (k * abs x))
+    )
+    (0 .. (n_samples - 1))
+  where
+  n_samples = 44100
+
+  deg = pi / 180.0
 
 data Action
   = StartAudio
   | StopAudio
+  | HydrateRecording String
 
 component :: forall query input output m. MonadEffect m => MonadAff m => H.Component query input output m
 component =
@@ -106,15 +146,19 @@ component =
 
 initialState :: forall input. input -> State
 initialState _ =
-  { unsubscribe: pure unit
+  { unsubscribeFromWAGS: pure unit
+  , unsubscribeFromHalogen: Nothing
   , audioCtx: Nothing
+  , graph: Nothing
+  , audioSrc: Nothing
   }
 
 render :: forall m. State -> H.ComponentHTML Action () m
 render state = do
   HH.div_
     [ HH.h1_
-        [ HH.text "Atari speaks" ]
+        [ HH.text "Resilient failure" ]
+    , HH.p_ [ HH.text "Check the logs to see failure handled (sort of) gracefully." ]
     , HH.button
         [ HE.onClick \_ -> StartAudio ]
         [ HH.text "Start audio" ]
@@ -125,19 +169,56 @@ render state = do
 
 handleAction :: forall output m. MonadEffect m => MonadAff m => Action -> H.HalogenM State Action () output m Unit
 handleAction = case _ of
+  HydrateRecording rec -> H.modify_ (_ { audioSrc = pure $ rec })
   StartAudio -> do
+    handleAction StopAudio
+    { emitter, listener } <- H.liftEffect HS.create
+    unsubscribeFromHalogen <- H.subscribe emitter
     audioCtx <- H.liftEffect context
     unitCache <- H.liftEffect makeUnitCache
+    myWave <-
+      H.liftEffect
+        $ makePeriodicWave audioCtx (0.0 +> -0.1 +> V.empty) (0.0 +> 0.05 +> V.empty)
+    wicked <- H.liftEffect $ makeFloatArray (makeDistortionCurve 400.0)
     let
-      ffiAudio = defaultFFIAudio audioCtx unitCache
-    unsubscribe <-
+      recorder =
+        mediaRecorderToUrl
+          "audio/ogg; codecs=opus"
+          (HS.notify listener <<< HydrateRecording)
+    myBuffer <- fetchBuffer audioCtx "https://freesound.org/data/previews/353/353194_5121236-hq.mp3"
+    success <- fetchBuffer audioCtx "https://freesound.org/data/previews/555/555786_10147844-hq.mp3"
+    let
+      ffiAudio =
+        (defaultFFIAudio audioCtx unitCache)
+          { periodicWaves = O.fromFoldable [ "myWavetable" /\ myWave ]
+          , buffers =
+            O.fromFoldable
+              [ "myBuffer" /\ myBuffer
+              , "success" /\ success
+              ]
+          , floatArrays = O.singleton "success" wicked
+          , recorders = O.singleton "success" recorder
+          }
+    unsubscribeFromWAGS <-
       H.liftEffect
         $ subscribe
-            (run (pure unit) (pure unit) { easingAlgorithm } (FFIAudio ffiAudio) piece)
+            ( run
+                (pure unit)
+                (pure unit)
+                { easingAlgorithm }
+                (FFIAudio ffiAudio)
+                piece
+            )
             (const $ pure unit)
-    H.modify_ _ { unsubscribe = unsubscribe, audioCtx = Just audioCtx }
+    H.modify_
+      _
+        { unsubscribeFromWAGS = unsubscribeFromWAGS
+        , unsubscribeFromHalogen = pure unsubscribeFromHalogen
+        , audioCtx = Just audioCtx
+        }
   StopAudio -> do
-    { unsubscribe, audioCtx } <- H.get
-    H.liftEffect unsubscribe
+    { unsubscribeFromWAGS, unsubscribeFromHalogen, audioCtx } <- H.get
+    H.liftEffect unsubscribeFromWAGS
     for_ audioCtx (H.liftEffect <<< close)
-    H.modify_ _ { unsubscribe = pure unit, audioCtx = Nothing }
+    for_ unsubscribeFromHalogen H.unsubscribe
+    H.modify_ _ { unsubscribeFromWAGS = pure unit, audioCtx = Nothing }
