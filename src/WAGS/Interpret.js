@@ -866,57 +866,77 @@ var applyResumeClosure = function (i) {
   }
 };
 
-exports.setOn_ = function (ptr) {
-  return function (state) {
-    return function () {
-      if (state.units[ptr].onOff) {
-        return;
-      }
-      state.units[ptr].onOff = true;
-      if (state.units[ptr].resumeClosure) {
-        applyResumeClosure(state.units[ptr]);
-      }
-      if (state.units[ptr].bufferOffset) {
-        state.units[ptr].main.start(undefined, state.units[ptr].bufferOffset);
-      } else {
-        state.units[ptr].main.start();
-      }
+exports.setOnOff_ = function (ptr) {
+  return function (onOff) {
+    return function (state) {
+      return function () {
+        if (onOff.param) {
+          setOn_(ptr)(onOff)(state)();
+        } else {
+          setOff_(ptr)(onOff)(state)();
+        }
+      };
     };
   };
 };
-exports.setOff_ = function (ptr) {
-  return function (state) {
-    return function () {
-      if (!state.units[ptr].onOff) {
-        return;
-      }
-      state.units[ptr].onOff = false;
-      state.units[ptr].main.stop();
-      for (var i = 0; i < state.units[ptr].outgoing.length; i++) {
-        state.units[ptr].main.disconnect(
-          state.units[state.units[ptr].outgoing[i]].main
-        );
-        if (state.units[state.units[ptr].outgoing[i]].se) {
+
+var setOn_ = function (ptr) {
+  return function (onOffInstr) {
+    return function (state) {
+      return function () {
+        if (state.units[ptr].onOff) {
+          return;
+        }
+        state.units[ptr].onOff = true;
+        if (state.units[ptr].resumeClosure) {
+          applyResumeClosure(state.units[ptr]);
+        }
+        if (state.units[ptr].bufferOffset) {
+          state.units[ptr].main.start(undefined, state.units[ptr].bufferOffset);
+        } else {
+          state.units[ptr].main.start();
+        }
+      };
+    };
+  };
+};
+
+var setOff_ = function (ptr) {
+  return function (onOffInstr) {
+    return function (state) {
+      return function () {
+        if (!state.units[ptr].onOff) {
+          return;
+        }
+        state.units[ptr].onOff = false;
+        state.units[ptr].main.stop();
+        for (var i = 0; i < state.units[ptr].outgoing.length; i++) {
           state.units[ptr].main.disconnect(
-            state.units[state.units[ptr].outgoing[i]].se
+            state.units[state.units[ptr].outgoing[i]].main
           );
+          if (state.units[state.units[ptr].outgoing[i]].se) {
+            state.units[ptr].main.disconnect(
+              state.units[state.units[ptr].outgoing[i]].se
+            );
+          }
         }
-      }
-      delete state.units[ptr].main;
-      state.units[ptr].main = state.units[ptr].createFunction();
-      for (var i = 0; i < state.units[ptr].outgoing.length; i++) {
-        state.units[ptr].main.connect(
-          state.units[state.units[ptr].outgoing[i]].main
-        );
-        if (state.units[state.units[ptr].outgoing[i]].se) {
+        delete state.units[ptr].main;
+        state.units[ptr].main = state.units[ptr].createFunction();
+        for (var i = 0; i < state.units[ptr].outgoing.length; i++) {
           state.units[ptr].main.connect(
-            state.units[state.units[ptr].outgoing[i]].se
+            state.units[state.units[ptr].outgoing[i]].main
           );
+          if (state.units[state.units[ptr].outgoing[i]].se) {
+            state.units[ptr].main.connect(
+              state.units[state.units[ptr].outgoing[i]].se
+            );
+          }
         }
-      }
+      };
     };
   };
 };
+
 exports.setLoopStart_ = function (ptr) {
   return function (a) {
     return function (state) {
