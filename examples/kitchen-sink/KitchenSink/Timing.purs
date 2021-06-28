@@ -19,6 +19,7 @@ type KitchenSinkTiming' a
     , ksSquareOsc :: a
     , ksPeriodicOsc :: a
     , ksSawtoothOsc :: a
+    , ksConvolver :: a
     , ksAllpass :: a
     , ksLowpass :: a
     , ksHighshelf :: a
@@ -59,6 +60,7 @@ timing =
           , ksSquareOsc: _
           , ksPeriodicOsc: _
           , ksSawtoothOsc: _
+          , ksConvolver: _
           , ksAllpass: _
           , ksLowpass: _
           , ksHighshelf: _
@@ -81,6 +83,7 @@ timing =
             <*> integrate 5.0 -- ksSquareOsc
             <*> integrate 5.0 -- ksPeriodicOsc
             <*> integrate 5.0 -- ksSawtoothOsc
+            <*> integrate 6.0 -- ksConvolver
             <*> integrate 6.0 -- ksAllpass
             <*> integrate 6.0 -- ksLowpass
             <*> integrate 6.0 -- ksHighshelf

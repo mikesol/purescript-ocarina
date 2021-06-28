@@ -130,11 +130,17 @@ handleAction = case _ of
     { microphone } <- H.liftAff $ getMicrophoneAndCamera true false
     chimes <- fetchBuffer audioCtx "https://freesound.org/data/previews/353/353194_5121236-hq.mp3"
     shruti <- fetchBuffer audioCtx "https://freesound.org/data/previews/513/513742_153257-hq.mp3"
+    reverb <- fetchBuffer audioCtx "https://freesound.org/data/previews/555/555786_10147844-hq.mp3"
     let
       ffiAudio =
         (defaultFFIAudio audioCtx unitCache)
           { periodicWaves = O.fromFoldable [ "my-wave" /\ myWave ]
-          , buffers = O.fromFoldable [ "my-buffer" /\ chimes, "shruti" /\ shruti ]
+          , buffers =
+            O.fromFoldable
+              [ "my-buffer" /\ chimes
+              , "shruti" /\ shruti
+              , "reverb" /\ reverb
+              ]
           , floatArrays = O.singleton "my-waveshaper" wicked
           , recorders = O.singleton "my-recorder" recorder
           , microphone = toNullable microphone
