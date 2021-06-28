@@ -170,6 +170,12 @@ data WaveShaper (floatArray :: Symbol) oversample
 data OnOff
   = On
   | Off
+  -- turns off immediately and then on, good for loops.
+  -- todo: because of the way audioParameter works, this
+  -- is forced to stop immediately
+  -- this almost always is fine, but for more fine-grained control
+  -- we'll need a different abstraction
+  | OffOn
 
 derive instance eqOnOff :: Eq OnOff
 

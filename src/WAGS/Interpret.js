@@ -870,10 +870,13 @@ exports.setOnOff_ = function (ptr) {
   return function (onOff) {
     return function (state) {
       return function () {
-        if (onOff.param) {
+        if (onOff.param === "on") {
           setOn_(ptr)(onOff)(state)();
-        } else {
+        } else if (onOff.param === "off") {
           setOff_(ptr)(onOff)(state)();
+        } else if (onOff.param === "offOn") {
+          setOff_(ptr)({param: "off", timeOffset: 0.0})(state)();
+          setOn_(ptr)({param: "on", timeOffset: onOff.timeOffset})(state)();
         }
       };
     };
@@ -892,9 +895,12 @@ var setOn_ = function (ptr) {
           applyResumeClosure(state.units[ptr]);
         }
         if (state.units[ptr].bufferOffset) {
-          state.units[ptr].main.start(undefined, state.units[ptr].bufferOffset);
+          state.units[ptr].main.start(
+            state.writeHead + onOffInstr.timeOffset,
+            state.units[ptr].bufferOffset
+          );
         } else {
-          state.units[ptr].main.start();
+          state.units[ptr].main.start(state.writeHead + onOffInstr.timeOffset);
         }
       };
     };
@@ -909,7 +915,7 @@ var setOff_ = function (ptr) {
           return;
         }
         state.units[ptr].onOff = false;
-        state.units[ptr].main.stop();
+        state.units[ptr].main.stop(state.writeHead + onOffInstr.timeOffset);
         for (var i = 0; i < state.units[ptr].outgoing.length; i++) {
           state.units[ptr].main.disconnect(
             state.units[state.units[ptr].outgoing[i]].main

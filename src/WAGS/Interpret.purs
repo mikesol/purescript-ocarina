@@ -491,7 +491,7 @@ foreign import makeTriangleOsc_ :: String -> Boolean -> FFINumericAudioParameter
 
 foreign import makeWaveShaper_ :: String -> String -> String -> FFIAudio' -> Effect Unit
 
-foreign import setOnOff_ :: String -> FFIBooleanAudioParameter -> FFIAudio' -> Effect Unit
+foreign import setOnOff_ :: String -> FFIStringAudioParameter -> FFIAudio' -> Effect Unit
 
 foreign import setBufferOffset_ :: String -> Number -> FFIAudio' -> Effect Unit
 
@@ -604,11 +604,6 @@ instance safeToFFI_Oversample :: SafeToFFI Oversample String where
     TwoX -> "2x"
     FourX -> "4x"
 
-instance safeToFFI_OnOff :: SafeToFFI OnOff Boolean where
-  safeToFFI = case _ of
-    On -> true
-    Off -> false
-
 instance safeToFFI_FFIAudio :: SafeToFFI FFIAudio FFIAudio' where
   safeToFFI (FFIAudio x) = x
 
@@ -630,21 +625,22 @@ instance safeToFFI_AudioParameter ::
     }
 
 -- | An AudioParameter with the `transition` field stringly-typed for easier rendering in the FFI and cancelation as a boolean
-type FFIBooleanAudioParameter
-  = { param :: Boolean
+type FFIStringAudioParameter
+  = { param :: String
     , timeOffset :: Number
     , transition :: String
     , cancel :: Boolean
     }
 
 instance safeToFFI_AudioParameterBoolean ::
-  SafeToFFI (AudioParameter_ OnOff) FFIBooleanAudioParameter where
+  SafeToFFI (AudioParameter_ OnOff) FFIStringAudioParameter where
   safeToFFI (AudioParameter { param, timeOffset, transition }) =
     { param:
-        maybe false
+        maybe "off"
           ( case _ of
-              On -> true
-              Off -> false
+              On -> "on"
+              Off -> "off"
+              OffOn -> "offOn"
           )
           param
     , timeOffset
