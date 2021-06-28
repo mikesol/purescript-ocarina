@@ -3,7 +3,6 @@ module WAGS.Example.Failure where
 import Prelude
 
 import Control.Comonad.Cofree (Cofree, mkCofree)
-import Control.Promise (toAffE)
 import Data.Foldable (for_)
 import Data.Functor.Indexed (ivoid)
 import Data.Maybe (Maybe(..))
@@ -12,7 +11,6 @@ import Effect (Effect)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect)
 import FRP.Event (subscribe)
-import Foreign.Object as O
 import Halogen as H
 import Halogen.Aff (awaitBody, runHalogenAff)
 import Halogen.HTML as HH
@@ -25,7 +23,7 @@ import WAGS.Control.Types (Frame0, Scene)
 import WAGS.Create (icreate)
 import WAGS.Create.Optionals (CGain, CLoopBuf, CSpeaker, gain, loopBuf, speaker)
 import WAGS.Graph.AudioUnit (TGain, TLoopBuf, TSpeaker)
-import WAGS.Interpret (AudioContext, FFIAudio(..), close, context, decodeAudioDataFromUri, defaultFFIAudio, makeUnitCache)
+import WAGS.Interpret (AudioContext, FFIAudio(..), close, context, defaultFFIAudio, makeUnitCache)
 import WAGS.Run (RunAudio, SceneI, RunEngine, run)
 
 vol = 1.4 :: Number
@@ -130,13 +128,8 @@ handleAction = case _ of
   StartAudio -> do
     audioCtx <- H.liftEffect context
     unitCache <- H.liftEffect makeUnitCache
-    atar <-
-      H.liftAff $ toAffE
-        $ decodeAudioDataFromUri
-            audioCtx
-            "https://freesound.org/data/previews/100/100981_1234256-lq.mp3"
     let
-      ffiAudio = (defaultFFIAudio audioCtx unitCache) { buffers = O.singleton "atar" atar }
+      ffiAudio = defaultFFIAudio audioCtx unitCache
     unsubscribe <-
       H.liftEffect
         $ subscribe
