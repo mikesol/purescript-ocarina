@@ -37,4 +37,4 @@ spago -x examples.dhall bundle-app \
   --to examples/hello-world/index.js
 ```
 
-Other examples will work the same way, with the directory and module name changing.
+Other examples will work the same way, with the directory and module name changing. Then, to access the example, you can run a http server from the directory and navigate to the url, ie `cd examples/hello-world && python -m http.server` and then navigate to localhost:8000.
