@@ -136,7 +136,7 @@ handleAction = case _ of
             audioCtx
             "https://freesound.org/data/previews/100/100981_1234256-lq.mp3"
     let
-      ffiAudio = (defaultFFIAudio audioCtx unitCache) { buffers = O.singleton "atar" atar }
+      ffiAudio = (defaultFFIAudio audioCtx unitCache) { buffers = pure $ O.singleton "atar" atar }
     unsubscribe <-
       H.liftEffect
         $ subscribe

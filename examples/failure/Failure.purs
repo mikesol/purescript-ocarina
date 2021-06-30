@@ -190,14 +190,15 @@ handleAction = case _ of
     let
       ffiAudio =
         (defaultFFIAudio audioCtx unitCache)
-          { periodicWaves = O.fromFoldable [ "myWavetable" /\ myWave ]
+          { periodicWaves = pure $ O.fromFoldable [ "myWavetable" /\ myWave ]
           , buffers =
-            O.fromFoldable
-              [ "myBuffer" /\ myBuffer
-              , "success" /\ success
-              ]
-          , floatArrays = O.singleton "success" wicked
-          , recorders = O.singleton "success" recorder
+            pure
+              $ O.fromFoldable
+                  [ "myBuffer" /\ myBuffer
+                  , "success" /\ success
+                  ]
+          , floatArrays = pure $ O.singleton "success" wicked
+          , recorders = pure $ O.singleton "success" recorder
           }
     unsubscribeFromWAGS <-
       H.liftEffect

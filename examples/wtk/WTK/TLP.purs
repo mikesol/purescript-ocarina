@@ -146,7 +146,7 @@ createFrame _ =
 piece :: { makeRenderingEnv :: MakeRenderingEnv } -> Scene (SceneI Trigger Unit) RunAudio RunEngine Frame0 Unit
 piece { makeRenderingEnv } =
   createFrame
-    @!> iloop \{ time, trigger, active } { currentKeys, availableKeys } -> Ix.do
+    @!> iloop \{ time, trigger } { currentKeys, availableKeys } -> Ix.do
         let
           { notesOff
           , onsets
@@ -154,7 +154,7 @@ piece { makeRenderingEnv } =
           , newAvailableKeys
           , futureCurrentKeys
           , futureAvailableKeys
-          } = makeRenderingEnv active trigger time availableKeys currentKeys
+          } = makeRenderingEnv trigger time availableKeys currentKeys
         ( playKeys
             { currentTime: time
             , notesOff

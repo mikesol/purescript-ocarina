@@ -3,13 +3,14 @@ module WAGS.Example.WTK.RenderingEnv where
 import Prelude
 import Data.Int (toNumber)
 import Data.List (List(..), (:), filter, length, drop, zipWith)
+import Data.Maybe (maybe)
 import Data.Set as S
 import Data.Tuple.Nested ((/\), type (/\))
 import FRP.Event.MIDI (MIDIEvent(..))
 import Math (pow)
-import WAGS.Math (calcSlope)
 import WAGS.Example.WTK.Types (KeyUnit, MakeRenderingEnv)
 import WAGS.Graph.AudioUnit (OnOff(..))
+import WAGS.Math (calcSlope)
 
 keyDur :: Number
 keyDur = 1.6
@@ -60,7 +61,7 @@ midiEventsToOnsets = go Nil Nil
   go accOn accOff (_ : b) = go accOn accOff b
 
 makeRenderingEnv :: MakeRenderingEnv
-makeRenderingEnv active trigger time availableKeys currentKeys =
+makeRenderingEnv trigger time availableKeys currentKeys =
   { notesOff
   , onsets
   , newCurrentKeys
@@ -71,7 +72,7 @@ makeRenderingEnv active trigger time availableKeys currentKeys =
   where
   notesOn /\ notesOffAsList =
     midiEventsToOnsets
-      (if active then (map _.value.event trigger) else Nil)
+      (maybe Nil (map _.value.event) trigger)
 
   notesOff = S.fromFoldable notesOffAsList
 

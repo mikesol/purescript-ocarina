@@ -1,17 +1,22 @@
 module WAGS.Example.DrumMachine where
 
 import Prelude
-import Control.Comonad.Cofree (Cofree, mkCofree)
+import Control.Comonad.Cofree (Cofree, deferCofree, head, mkCofree, tail)
 import Control.Promise (toAffE)
 import Data.Foldable (for_)
+import Data.Identity (Identity(..))
 import Data.Int (floor, toNumber)
 import Data.Maybe (Maybe(..))
-import Data.Tuple.Nested (type (/\))
+import Data.Newtype (unwrap)
+import Data.Tuple.Nested ((/\), type (/\))
 import Effect (Effect)
+import Effect.Aff (launchAff_)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect)
-import Effect.Class.Console as Log
-import FRP.Event (subscribe)
+import Effect.Ref as Ref
+import FRP.Behavior (behavior)
+import FRP.Event (makeEvent, subscribe)
+import FRP.Event.Time (interval)
 import Foreign.Object as O
 import Halogen as H
 import Halogen.Aff (awaitBody, runHalogenAff)
@@ -69,7 +74,9 @@ piece =
           tgFloor = floor (e.time / gap)
 
           crossingDivide = tgFloor /= floor ((e.time + 0.06) / gap)
+
           crossDiff = e.time - lastCrossing
+
           shouldReset = crossingDivide && crossDiff > 0.2
         in
           ichange (scene shouldReset e) $> (if shouldReset then e.time else lastCrossing)
@@ -123,24 +130,75 @@ render state = do
         [ HH.text "Stop audio" ]
     ]
 
+drumCf :: Cofree Identity String
+drumCf =
+  deferCofree \_ ->
+    "https://freesound.org/data/previews/321/321132_1337335-hq.mp3"
+      /\ Identity
+          ( deferCofree \_ ->
+              "https://freesound.org/data/previews/331/331589_5820980-hq.mp3"
+                /\ Identity
+                    ( deferCofree \_ ->
+                        "https://freesound.org/data/previews/84/84478_377011-hq.mp3"
+                          /\ Identity
+                              ( deferCofree \_ ->
+                                  "https://freesound.org/data/previews/270/270156_1125482-hq.mp3"
+                                    /\ Identity
+                                        ( deferCofree \_ ->
+                                            "https://freesound.org/data/previews/207/207956_19852-hq.mp3"
+                                              /\ Identity drumCf
+                                        )
+                              )
+                    )
+          )
+
 handleAction :: forall output m. MonadEffect m => MonadAff m => Action -> H.HalogenM State Action () output m Unit
 handleAction = case _ of
   StartAudio -> do
     audioCtx <- H.liftEffect context
     unitCache <- H.liftEffect makeUnitCache
-    snare <-
+    ibuf <-
       H.liftAff $ toAffE
         $ decodeAudioDataFromUri
             audioCtx
-            "https://freesound.org/data/previews/270/270156_1125482-hq.mp3"
+            (head drumCf)
+    rf <- H.liftEffect (Ref.new (unwrap (tail drumCf)))
+    bf <- H.liftEffect (Ref.new ibuf)
+    ivlsub <-
+      H.liftEffect
+        $ subscribe (interval 1000) \_ -> do
+            cf <- Ref.read rf
+            Ref.write (unwrap (tail cf)) rf
+            launchAff_ do
+              buf <-
+                toAffE
+                  $ decodeAudioDataFromUri
+                      audioCtx
+                      (head cf)
+              H.liftEffect $ Ref.write buf bf
     let
-      ffiAudio = (defaultFFIAudio audioCtx unitCache) { buffers = O.singleton "snare" snare }
+      ffiAudio =
+        (defaultFFIAudio audioCtx unitCache)
+          { buffers =
+            O.singleton "snare"
+              <$> ( behavior \eAToB ->
+                    makeEvent \fB ->
+                      subscribe eAToB \aToB -> Ref.read bf >>= fB <<< aToB
+                )
+          }
     unsubscribe <-
       H.liftEffect
         $ subscribe
             (run (pure unit) (pure unit) { easingAlgorithm } (FFIAudio ffiAudio) piece)
-            (Log.info <<< show)
-    H.modify_ _ { unsubscribe = unsubscribe, audioCtx = Just audioCtx }
+            (const (pure unit)) -- (Log.info <<< show)
+    H.modify_
+      _
+        { unsubscribe =
+          do
+            unsubscribe
+            ivlsub
+        , audioCtx = Just audioCtx
+        }
   StopAudio -> do
     { unsubscribe, audioCtx } <- H.get
     H.liftEffect unsubscribe
