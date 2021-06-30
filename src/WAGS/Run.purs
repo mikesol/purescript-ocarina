@@ -18,6 +18,7 @@ import Data.Foldable (for_)
 import Data.Int (floor, toNumber)
 import Data.List (List(..))
 import Data.Maybe (Maybe(..), isNothing)
+import Data.Nullable (Nullable)
 import Data.Time.Duration (Milliseconds)
 import Data.Tuple (fst, snd)
 import Data.Tuple.Nested ((/\), type (/\))
@@ -28,13 +29,14 @@ import FRP.Behavior (Behavior, sampleBy, sample_)
 import FRP.Behavior.Time (instant)
 import FRP.Event (Event, makeEvent, subscribe)
 import FRP.Event.Time (withTime, delay)
-import Record as R
+import Foreign (Foreign)
+import Foreign.Object (Object)
 import WAGS.Control.Types (Frame0, Scene, oneFrame)
-import WAGS.Interpret (FFIAudio(..), FFIAudio', getAudioClockTime, renderAudio)
+import WAGS.Interpret (AudioContext, BrowserAudioBuffer, BrowserFloatArray, BrowserMicrophone, BrowserPeriodicWave, FFIAudio(..), FFIAudioSnapshot(..), MediaRecorder, getAudioClockTime, renderAudio)
 import WAGS.Rendered (Instruction)
 
 type RunAudio
-  = Unit /\ FFIAudio
+  = Unit /\ FFIAudioSnapshot
 
 type RunEngine
   = Instruction /\ Effect Unit
@@ -55,19 +57,40 @@ run ::
   FFIAudio ->
   Scene
     (SceneI trigger world)
-    (Unit /\ FFIAudio)
-    (Instruction /\ Effect Unit)
+    RunAudio
+    RunEngine
     Frame0
     res ->
   Event (Run res)
-run trigger world' engineInfo (FFIAudio audio') scene =
+run trigger world' engineInfo (FFIAudio audioWithBehaviors) scene =
   makeEvent \k -> do
-    audioClockStart <- getAudioClockTime audio'.context
+    audioClockStart <- getAudioClockTime audioWithBehaviors.context
     currentTimeoutCanceler <- Ref.new (pure unit :: Effect Unit)
     currentScene <- Ref.new scene
     currentEasingAlg <- Ref.new engineInfo.easingAlgorithm
     let
-      eventAndEnv = sampleBy (\{ world, sysTime } b -> { trigger: b, world, sysTime, active: true }) newWorld trigger
+      eventAndEnv =
+        sampleBy
+          ( \{ world
+            , sysTime
+            , microphone
+            , recorders
+            , buffers
+            , floatArrays
+            , periodicWaves
+            } b ->
+              { trigger: Just b
+              , world
+              , sysTime
+              , microphone
+              , recorders
+              , buffers
+              , floatArrays
+              , periodicWaves
+              }
+          )
+          newWorld
+          trigger
     unsubscribe <-
       subscribe eventAndEnv \ee -> do
         cancelTimeout <- Ref.read currentTimeoutCanceler
@@ -79,14 +102,32 @@ run trigger world' engineInfo (FFIAudio audio') scene =
           currentTimeoutCanceler
           currentEasingAlg
           currentScene
-          audio'
+          { context: audioWithBehaviors.context
+          , units: audioWithBehaviors.units
+          , writeHead: audioWithBehaviors.writeHead
+          }
           k
     pure do
       cancelTimeout <- Ref.read currentTimeoutCanceler
       cancelTimeout
       unsubscribe
   where
-  newWorld = (\world sysTime -> { world, sysTime }) <$> world' <*> (map unInstant instant)
+  newWorld =
+    { world: _
+    , sysTime: _
+    , microphone: _
+    , recorders: _
+    , buffers: _
+    , floatArrays: _
+    , periodicWaves: _
+    }
+      <$> world'
+      <*> (map unInstant instant)
+      <*> audioWithBehaviors.microphone
+      <*> audioWithBehaviors.recorders
+      <*> audioWithBehaviors.buffers
+      <*> audioWithBehaviors.floatArrays
+      <*> audioWithBehaviors.periodicWaves
 
 -- | The information provided to `run` that tells the engine how to make certain rendering tradeoffs.
 type EngineInfo
@@ -109,6 +150,12 @@ type EngineInfo
 type EasingAlgorithm
   = Cofree ((->) Int) Int
 
+type NonBehavioralFFIInfo
+  = { context :: AudioContext
+    , writeHead :: Number
+    , units :: Foreign
+    }
+
 type Run res
   = { instructions :: Array Instruction
     , res :: res
@@ -116,18 +163,16 @@ type Run res
 
 -- | The input type to a scene that is handled by `run`. Given `Event trigger` and `Behavior world`, the scene will receive:
 -- |
--- | `trigger` - the trigger.
+-- | `trigger` - the trigger. If none exists (meaning we are polling) it will be Nothing.
 -- | `world` - the world.
 -- | `time` - the time of the audio context.
 -- | `sysTime` - the time provided by `new Date().getTime()`
--- | `active` - whether this event was caused by a trigger or is a measurement of the world. This is useful to not repeat onsets from the trigger.
 -- | `headroom` - the amount of lookahead time. If you are programming a precise rhythmic event and need the onset to occur at a specific moment, you can use `headroom` to determine if the apex should happen now or later.
 type SceneI trigger world
-  = { trigger :: trigger
+  = { trigger :: Maybe trigger
     , world :: world
     , time :: Number
     , sysTime :: Milliseconds
-    , active :: Boolean
     , headroom :: Int
     }
 
@@ -183,28 +228,40 @@ runInternal ::
   Monoid res =>
   Number ->
   { world :: world
-  , trigger :: trigger
+  , trigger :: Maybe trigger
   , sysTime :: Milliseconds
-  , active :: Boolean
+  , microphone :: Nullable BrowserMicrophone
+  , recorders :: Object (MediaRecorder -> Effect Unit)
+  , buffers :: Object BrowserAudioBuffer
+  , floatArrays :: Object BrowserFloatArray
+  , periodicWaves :: Object BrowserPeriodicWave
   } ->
-  Behavior { world :: world, sysTime :: Milliseconds } ->
+  Behavior
+    { world :: world
+    , sysTime :: Milliseconds
+    , microphone :: Nullable BrowserMicrophone
+    , recorders :: Object (MediaRecorder -> Effect Unit)
+    , buffers :: Object BrowserAudioBuffer
+    , floatArrays :: Object BrowserFloatArray
+    , periodicWaves :: Object BrowserPeriodicWave
+    } ->
   Ref.Ref (Effect Unit) ->
   Ref.Ref EasingAlgorithm ->
   Ref.Ref
     ( Scene
         (SceneI trigger world)
-        (Unit /\ FFIAudio)
-        (Instruction /\ Effect Unit)
+        RunAudio
+        RunEngine
         Frame0
         res
     ) ->
-  FFIAudio' ->
+  NonBehavioralFFIInfo ->
   (Run res -> Effect Unit) ->
   Effect Unit
-runInternal audioClockStart worldAndTrigger world' currentTimeoutCanceler currentEasingAlg currentScene audio' reporter = do
+runInternal audioClockStart fromEvents world' currentTimeoutCanceler currentEasingAlg currentScene nonBehavioralFFIInfo reporter = do
   easingAlgNow <- Ref.read currentEasingAlg
   sceneNow <- Ref.read currentScene
-  audioClockPriorToComputation <- getAudioClockTime audio'.context
+  audioClockPriorToComputation <- getAudioClockTime nonBehavioralFFIInfo.context
   let
     -- this is how far in the future we are telling the
     -- algorithm to calculate with respect to the audio clock
@@ -216,14 +273,28 @@ runInternal audioClockStart worldAndTrigger world' currentTimeoutCanceler curren
 
     time = (audioClockPriorToComputation - audioClockStart) + headroomInSeconds
 
-    fromScene = oneFrame sceneNow (R.union worldAndTrigger { time, headroom })
-  audioClockAfterComputation <- getAudioClockTime audio'.context
+    fromScene =
+      oneFrame sceneNow
+        ( { world: fromEvents.world
+          , trigger: fromEvents.trigger
+          , sysTime: fromEvents.sysTime
+          , time
+          , headroom
+          }
+        )
+  audioClockAfterComputation <- getAudioClockTime nonBehavioralFFIInfo.context
   let
     ffi =
-      FFIAudio
-        $ audio'
-            { writeHead = max audioClockAfterComputation (audioClockPriorToComputation + headroomInSeconds)
-            }
+      FFIAudioSnapshot
+        { context: nonBehavioralFFIInfo.context
+        , writeHead: max audioClockAfterComputation (audioClockPriorToComputation + headroomInSeconds)
+        , units: nonBehavioralFFIInfo.units
+        , microphone: fromEvents.microphone
+        , recorders: fromEvents.recorders
+        , buffers: fromEvents.buffers
+        , floatArrays: fromEvents.floatArrays
+        , periodicWaves: fromEvents.periodicWaves
+        }
 
     applied = map (\f -> f (unit /\ ffi)) fromScene.instructions
   renderAudio (map snd applied)
@@ -236,8 +307,30 @@ runInternal audioClockStart worldAndTrigger world' currentTimeoutCanceler curren
   reporter { instructions: map fst applied, res: fromScene.res }
   -- we thunk the world and move on to the next event
   -- note that if we did not allocate enough time, we still
-  -- set a timeout of 1 so that th canceler can run in case it needs to
+  -- set a timeout of 1 so that the canceler can run in case it needs to
   canceler <-
-    subscribe (sample_ world' (delay (max 1 remainingTimeInMs) (pure unit))) \{ world, sysTime } ->
-      runInternal audioClockStart { world, sysTime, trigger: worldAndTrigger.trigger, active: false } world' currentTimeoutCanceler currentEasingAlg currentScene audio' reporter
+    subscribe (sample_ world' (delay (max 1 remainingTimeInMs) (pure unit))) \{ world
+    , sysTime
+    , microphone
+    , recorders
+    , buffers
+    , floatArrays
+    , periodicWaves
+    } ->
+      runInternal audioClockStart
+        { world
+        , sysTime
+        , trigger: Nothing
+        , microphone
+        , recorders
+        , buffers
+        , floatArrays
+        , periodicWaves
+        }
+        world'
+        currentTimeoutCanceler
+        currentEasingAlg
+        currentScene
+        nonBehavioralFFIInfo
+        reporter
   Ref.write canceler currentTimeoutCanceler

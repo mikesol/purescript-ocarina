@@ -17,7 +17,7 @@ There are some other examples to get you started:
 - **Kitchen sink** ([code](./examples/kitchen-sink) | [sound](https://purescript-wags-kitchen-sink.surge.sh/))
 - **The Well-Typed Klavier** ([code](./examples/wtk) | [sound](https://twitter.com/stronglynormal/status/1382221415802408960))
 
-The **Atari speaks** and **Kitchen sink** examples show how to use `purescript-wags` in a [Halogen](https://github.com/purescript-halogen/purescript-halogen) app.
+The examples also show how to use `purescript-wags` in a [Halogen](https://github.com/purescript-halogen/purescript-halogen) app.
 
 ## Documentation
 

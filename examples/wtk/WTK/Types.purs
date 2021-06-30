@@ -1,13 +1,15 @@
 module WAGS.Example.WTK.Types where
 
 import Prelude
+
 import Data.DateTime.Instant (Instant)
 import Data.List (List)
+import Data.Maybe (Maybe)
 import Data.Set as S
 import Data.Tuple.Nested (type (/\))
 import FRP.Event.MIDI (MIDIEventInTime)
-import WAGS.Graph.AudioUnit (OnOff(..), TGain, TSinOsc, TSpeaker)
 import WAGS.Create.Optionals (CGain, CSinOsc, CSpeaker, gain, sinOsc, speaker)
+import WAGS.Graph.AudioUnit (OnOff(..), TGain, TSinOsc, TSpeaker)
 
 data Key
   = K0
@@ -99,8 +101,7 @@ type KeyInfo
     }
 
 type MakeRenderingEnv
-  = Boolean ->
-    Trigger ->
+  = Maybe Trigger ->
     Number ->
     List Key ->
     List KeyInfo ->

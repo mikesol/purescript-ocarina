@@ -323,7 +323,6 @@ exports.makeLoopBuf_ = function (ptr) {
                 state.units[ptr] = {
                   outgoing: [],
                   incoming: [],
-                  buffer: a,
                   createFunction: createFunction,
                   resumeClosure: {
                     playbackRate: function (i) {
@@ -335,19 +334,21 @@ exports.makeLoopBuf_ = function (ptr) {
                     loopEnd: function (i) {
                       i.loopEnd = d;
                     },
+                    buffer: function (i) {
+                      if (!state.buffers[a]) {
+                        console.error(
+                          "Buffer does not exist for key " +
+                            a +
+                            ". Using a dummy buffer. Check your code!"
+                        );
+                      }
+                      i.buffer = state.buffers[a];
+                    },
                   },
                   main: createFunction(),
                 };
                 applyResumeClosure(state.units[ptr]);
                 if (onOff) {
-                  if (!state.buffers[a]) {
-                    console.error(
-                      "Looping buffer does not exist for key " +
-                        a +
-                        ". Using a dummy buffer. Check your code!"
-                    );
-                  }
-                  state.units[ptr].main.buffer = state.buffers[a];
                   state.units[ptr].main.start(
                     state.writeHead + b.timeOffset,
                     c
@@ -579,12 +580,21 @@ exports.makePlayBuf_ = function (ptr) {
               state.units[ptr] = {
                 outgoing: [],
                 incoming: [],
-                buffer: a,
                 bufferOffset: b,
                 createFunction: createFunction,
                 resumeClosure: {
                   playbackRate: function (i) {
                     genericStarter(i, "playbackRate", c);
+                  },
+                  buffer: function (i) {
+                    if (!state.buffers[a]) {
+                      console.error(
+                        "Buffer does not exist for key " +
+                          a +
+                          ". Using a dummy buffer. Check your code!"
+                      );
+                    }
+                    i.buffer = state.buffers[a];
                   },
                 },
                 main: createFunction(),
@@ -598,7 +608,6 @@ exports.makePlayBuf_ = function (ptr) {
                       ". Using a dummy buffer. Check your code!"
                   );
                 }
-                state.units[ptr].main.buffer = state.buffers[a];
                 state.units[ptr].main.start(state.writeHead + c.timeOffset, b);
               }
               state.units[ptr].onOff = onOff;
@@ -875,8 +884,8 @@ exports.setOnOff_ = function (ptr) {
         } else if (onOff.param === "off") {
           setOff_(ptr)(onOff)(state)();
         } else if (onOff.param === "offOn") {
-          setOff_(ptr)({param: "off", timeOffset: 0.0})(state)();
-          setOn_(ptr)({param: "on", timeOffset: onOff.timeOffset})(state)();
+          setOff_(ptr)({ param: "off", timeOffset: 0.0 })(state)();
+          setOn_(ptr)({ param: "on", timeOffset: onOff.timeOffset })(state)();
         }
       };
     };

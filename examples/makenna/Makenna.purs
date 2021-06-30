@@ -232,7 +232,7 @@ handleAction = case _ of
         let
           ffiAudio =
             (defaultFFIAudio audioCtx unitCache)
-              { periodicWaves = O.singleton "bday" bday
+              { periodicWaves = pure (O.singleton "bday" bday)
               }
         unsubscribe <-
           subscribe
