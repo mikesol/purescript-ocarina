@@ -1,6 +1,6 @@
 {
   "name": "purescript-wags",
-  "version": "0.3.5",
+  "version": "0.3.6",
   "description": "Web Audio Graphs as a Stream",
   "scripts": {
     "build": "spago build",

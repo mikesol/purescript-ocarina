@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.6] - 2021-06-30
+
+### Added
+
+- Microphones, buffers, float arrays, wavetables and recorders are now behaviors instead of static objects. This means that it is possible to make and use new buffers mid-flight! Note that this is a _breaking change_, meaning that all microphones, buffers, float arrays, wavetables and recorders will need to become behaviors. This can be done by prepending existing ones with `pure`.
+- The `active` field no longer exists on `SceneI`. Instead, the event is a `Maybe`, with `Nothing` representing an inactive state. This is also a _breaking change_.
+
 ## [0.3.5] - 2021-06-28
 
 ### Fixed
