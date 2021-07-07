@@ -1,6 +1,7 @@
 module WAGS.Example.KitchenSink.TLP.TriangleOsc where
 
 import Prelude
+
 import Control.Applicative.Indexed (ipure)
 import Control.Monad.Indexed.Qualified as Ix
 import Data.Either (Either(..))
@@ -19,10 +20,11 @@ import WAGS.Example.KitchenSink.Types.Empty (cursorGain)
 import WAGS.Example.KitchenSink.Types.SquareOsc (ksSquareOscCreate)
 import WAGS.Example.KitchenSink.Types.TriangleOsc (TriangleOscGraph, deltaKsTriangleOsc)
 import WAGS.Patch (ipatch)
+import WAGS.Run (SceneI(..))
 
 doTriangleOsc :: forall proof. StepSig TriangleOscGraph proof
 doTriangleOsc =
-  ibranch \{ time } lsig ->
+  ibranch \(SceneI { time }) lsig ->
     if time % pieceTime < timing.ksTriangleOsc.end then
       Right (deltaKsTriangleOsc time $> lsig)
     else

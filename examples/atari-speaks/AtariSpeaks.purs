@@ -7,6 +7,7 @@ import Control.Promise (toAffE)
 import Data.Foldable (for_)
 import Data.Functor.Indexed (ivoid)
 import Data.Maybe (Maybe(..))
+import Data.Newtype (unwrap)
 import Data.Tuple.Nested (type (/\))
 import Effect (Effect)
 import Effect.Aff.Class (class MonadAff)
@@ -26,7 +27,7 @@ import WAGS.Create (icreate)
 import WAGS.Create.Optionals (CGain, CLoopBuf, CSpeaker, gain, loopBuf, speaker)
 import WAGS.Graph.AudioUnit (TGain, TLoopBuf, TSpeaker)
 import WAGS.Interpret (AudioContext, FFIAudio(..), close, context, decodeAudioDataFromUri, defaultFFIAudio, makeUnitCache)
-import WAGS.Run (RunAudio, SceneI, RunEngine, run)
+import WAGS.Run (RunAudio, RunEngine, SceneI(..), run)
 
 vol = 1.4 :: Number
 
@@ -74,7 +75,7 @@ scene time =
       }
 
 piece :: Scene (SceneI Unit Unit) RunAudio RunEngine Frame0 Unit
-piece = (_.time >>> scene >>> icreate) @!> iloop \{ time } _ -> ivoid $ ichange (scene time)
+piece = (unwrap >>> _.time >>> scene >>> icreate) @!> iloop \(SceneI { time }) _ -> ivoid $ ichange (scene time)
 
 easingAlgorithm :: Cofree ((->) Int) Int
 easingAlgorithm =

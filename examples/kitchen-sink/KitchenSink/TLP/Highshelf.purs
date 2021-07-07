@@ -1,6 +1,7 @@
 module WAGS.Example.KitchenSink.TLP.Highshelf where
 
 import Prelude
+
 import Control.Applicative.Indexed (ipure)
 import Control.Monad.Indexed.Qualified as Ix
 import Data.Either (Either(..))
@@ -17,10 +18,11 @@ import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
 import WAGS.Example.KitchenSink.Types.Empty (cursorGain)
 import WAGS.Example.KitchenSink.Types.Highshelf (HighshelfGraph, deltaKsHighshelf)
 import WAGS.Example.KitchenSink.Types.Lowshelf (ksLowshelfCreate)
+import WAGS.Run (SceneI(..))
 
 doHighshelf :: forall proof. StepSig HighshelfGraph proof
 doHighshelf =
-  ibranch \{ time } lsig ->
+  ibranch \(SceneI { time }) lsig ->
     if time % pieceTime < timing.ksHighshelf.end then
       Right (deltaKsHighshelf time $> lsig)
     else

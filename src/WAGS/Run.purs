@@ -3,7 +3,7 @@ module WAGS.Run
   ( EasingAlgorithm
   , EngineInfo
   , Run
-  , SceneI
+  , SceneI(..)
   , RunAudio
   , RunEngine
   , bufferToList
@@ -18,6 +18,7 @@ import Data.Foldable (for_)
 import Data.Int (floor, toNumber)
 import Data.List (List(..))
 import Data.Maybe (Maybe(..), isNothing)
+import Data.Newtype (class Newtype)
 import Data.Nullable (Nullable)
 import Data.Time.Duration (Milliseconds)
 import Data.Tuple (fst, snd)
@@ -31,6 +32,7 @@ import FRP.Event (Event, makeEvent, subscribe)
 import FRP.Event.Time (withTime, delay)
 import Foreign (Foreign)
 import Foreign.Object (Object)
+import Safe.Coerce (coerce)
 import WAGS.Control.Types (Frame0, Scene, oneFrame)
 import WAGS.Interpret (AudioContext, BrowserAudioBuffer, BrowserFloatArray, BrowserMicrophone, BrowserPeriodicWave, FFIAudio(..), FFIAudioSnapshot(..), MediaRecorder, getAudioClockTime, renderAudio)
 import WAGS.Rendered (Instruction)
@@ -168,13 +170,15 @@ type Run res
 -- | `time` - the time of the audio context.
 -- | `sysTime` - the time provided by `new Date().getTime()`
 -- | `headroom` - the amount of lookahead time. If you are programming a precise rhythmic event and need the onset to occur at a specific moment, you can use `headroom` to determine if the apex should happen now or later.
-type SceneI trigger world
-  = { trigger :: Maybe trigger
+newtype SceneI trigger world
+  = SceneI { trigger :: Maybe trigger
     , world :: world
     , time :: Number
     , sysTime :: Milliseconds
     , headroom :: Int
     }
+
+derive instance newtypeSceneI :: Newtype (SceneI trigger world) _
 
 -- | Given a buffering window and an event, return a list of events that occur within that window.
 -- | - `timeToCollect` - the buffering window
@@ -275,7 +279,7 @@ runInternal audioClockStart fromEvents world' currentTimeoutCanceler currentEasi
 
     fromScene =
       oneFrame sceneNow
-        ( { world: fromEvents.world
+        ( coerce { world: fromEvents.world
           , trigger: fromEvents.trigger
           , sysTime: fromEvents.sysTime
           , time

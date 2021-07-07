@@ -1,6 +1,7 @@
 module WAGS.Example.KitchenSink.TLP.Delay where
 
 import Prelude
+
 import Control.Applicative.Indexed (ipure)
 import Control.Monad.Indexed.Qualified as Ix
 import Data.Either (Either(..))
@@ -17,10 +18,11 @@ import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
 import WAGS.Example.KitchenSink.Types.Delay (DelayGraph, deltaKsDelay)
 import WAGS.Example.KitchenSink.Types.Empty (cursorGain)
 import WAGS.Example.KitchenSink.Types.Feedback (ksFeedbackCreate)
+import WAGS.Run (SceneI(..))
 
 doDelay :: forall proof. StepSig DelayGraph proof
 doDelay =
-  ibranch \{ time } lsig ->
+  ibranch \(SceneI { time })lsig ->
     if time % pieceTime < timing.ksDelay.end then
       Right (deltaKsDelay time $> lsig)
     else

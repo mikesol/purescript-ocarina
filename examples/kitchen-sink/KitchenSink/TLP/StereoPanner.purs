@@ -18,10 +18,11 @@ import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
 import WAGS.Example.KitchenSink.Types.Constant (ksConstantCreate)
 import WAGS.Example.KitchenSink.Types.Empty (cursorGain)
 import WAGS.Example.KitchenSink.Types.StereoPanner (StereoPannerGraph, deltaKsStereoPanner)
+import WAGS.Run (SceneI(..))
 
 doStereoPanner :: forall proof. StepSig StereoPannerGraph proof
 doStereoPanner =
-  ibranch \{ time } lsig ->
+  ibranch \(SceneI { time }) lsig ->
     if time % pieceTime < timing.ksStereoPanner.end then
       Right (deltaKsStereoPanner time $> lsig)
     else

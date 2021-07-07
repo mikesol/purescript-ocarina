@@ -19,10 +19,11 @@ import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
 import WAGS.Example.KitchenSink.Types.Empty (cursorGain)
 import WAGS.Example.KitchenSink.Types.Feedback (FeedbackGraph, deltaKsFeedback)
 import WAGS.Example.KitchenSink.Types.LoopBuf (ksLoopBufCreate)
+import WAGS.Run (SceneI(..))
 
 doFeedback :: forall proof. StepSig FeedbackGraph proof
 doFeedback =
-  ibranch \{ time } lsig ->
+  ibranch \(SceneI { time })lsig ->
     if time % pieceTime < timing.ksFeedback.end then
       Right (deltaKsFeedback time $> lsig)
     else

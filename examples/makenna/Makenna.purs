@@ -1,6 +1,7 @@
 module WAGS.Example.Makenna where
 
 import Prelude
+
 import Control.Applicative.Indexed (ipure)
 import Control.Comonad.Cofree (Cofree, mkCofree)
 import Control.Plus (empty)
@@ -37,7 +38,7 @@ import WAGS.Graph.AudioUnit (TGain, TPeriodicOsc, TSpeaker)
 import WAGS.Graph.Parameter (ff)
 import WAGS.Interpret (AudioContext, FFIAudio(..), close, context, defaultFFIAudio, makePeriodicWave, makeUnitCache)
 import WAGS.Math (calcSlope)
-import WAGS.Run (RunAudio, SceneI, RunEngine, run)
+import WAGS.Run (RunAudio, RunEngine, SceneI(..), run)
 
 type Note
   = Number /\ Maybe Number
@@ -148,12 +149,12 @@ scene time ({ start, dur } /\ pitch) to =
     }
 
 createFrame :: IxFrame (SceneI Unit Unit) RunAudio RunEngine Frame0 Unit {} SceneType (List EnrichedNote)
-createFrame { time } = icreate (scene time (inTempo rest0) 0.0) $> L.fromFoldable score''
+createFrame (SceneI { time }) = icreate (scene time (inTempo rest0) 0.0) $> L.fromFoldable score''
 
 piece :: Scene (SceneI Unit Unit) RunAudio RunEngine Frame0 Unit
 piece =
   createFrame
-    @!> iloop \{ time } l ->
+    @!> iloop \(SceneI { time }) l ->
         let
           f = case _ of
             Nil -> ipure Nil

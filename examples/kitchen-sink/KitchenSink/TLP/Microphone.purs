@@ -1,6 +1,7 @@
 module WAGS.Example.KitchenSink.TLP.Microphone where
 
 import Prelude
+
 import Control.Applicative.Indexed (ipure)
 import Control.Monad.Indexed.Qualified as Ix
 import Data.Either (Either(..))
@@ -17,10 +18,11 @@ import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
 import WAGS.Example.KitchenSink.Types.Empty (cursorGain)
 import WAGS.Example.KitchenSink.Types.Microphone (MicrophoneGraph, deltaKsMicrophone)
 import WAGS.Example.KitchenSink.Types.WaveShaper (ksWaveShaperCreate)
+import WAGS.Run (SceneI(..))
 
 doMicrophone :: forall proof. StepSig MicrophoneGraph proof
 doMicrophone =
-  ibranch \{ time } lsig ->
+  ibranch \(SceneI { time }) lsig ->
     if time % pieceTime < timing.ksMicrophone.end then
       Right (deltaKsMicrophone time $> lsig)
     else

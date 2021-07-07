@@ -13,7 +13,7 @@ import WAGS.Control.Types (Frame0, Scene)
 import WAGS.Create (icreate)
 import WAGS.Example.WTK.Types (Key(..), KeyInfo, MakeRenderingEnv, Trigger, KlavierType, fullKeyboard)
 import WAGS.Interpret (class AudioInterpret)
-import WAGS.Run (RunAudio, SceneI, RunEngine)
+import WAGS.Run (RunAudio, RunEngine, SceneI(..))
 
 playKeys ::
   forall audio engine proof res.
@@ -146,7 +146,7 @@ createFrame _ =
 piece :: { makeRenderingEnv :: MakeRenderingEnv } -> Scene (SceneI Trigger Unit) RunAudio RunEngine Frame0 Unit
 piece { makeRenderingEnv } =
   createFrame
-    @!> iloop \{ time, trigger } { currentKeys, availableKeys } -> Ix.do
+    @!> iloop \(SceneI { time, trigger }) { currentKeys, availableKeys } -> Ix.do
         let
           { notesOff
           , onsets

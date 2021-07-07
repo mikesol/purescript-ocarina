@@ -1,6 +1,7 @@
 module WAGS.Example.KitchenSink.TLP.LoopBuf where
 
 import Prelude
+
 import Control.Applicative.Indexed (ipure)
 import Control.Monad.Indexed.Qualified as Ix
 import Data.Either (Either(..))
@@ -17,10 +18,11 @@ import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
 import WAGS.Example.KitchenSink.Types.Empty (cursorGain)
 import WAGS.Example.KitchenSink.Types.LoopBuf (LoopBufGraph, deltaKsLoopBuf)
 import WAGS.Example.KitchenSink.Types.StereoPanner (ksStereoPannerCreate)
+import WAGS.Run (SceneI(..))
 
 doLoopBuf :: forall proof. StepSig LoopBufGraph proof
 doLoopBuf =
-  ibranch \{ time } lsig ->
+  ibranch \(SceneI { time }) lsig ->
     if time % pieceTime < timing.ksLoopBuf.end then
       Right (deltaKsLoopBuf time $> lsig)
     else

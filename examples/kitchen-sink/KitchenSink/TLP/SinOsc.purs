@@ -1,6 +1,7 @@
 module WAGS.Example.KitchenSink.TLP.SinOsc where
 
 import Prelude
+
 import Control.Applicative.Indexed (ipure)
 import Control.Monad.Indexed.Qualified as Ix
 import Data.Either (Either(..))
@@ -17,10 +18,11 @@ import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
 import WAGS.Example.KitchenSink.Types.Empty (cursorGain)
 import WAGS.Example.KitchenSink.Types.SinOsc (SinOscGraph, deltaKsSinOsc)
 import WAGS.Example.KitchenSink.Types.TriangleOsc (ksTriangleOscCreate)
+import WAGS.Run (SceneI(..))
 
 doSinOsc :: forall proof. StepSig SinOscGraph proof
 doSinOsc =
-  ibranch \{ time } lsig ->
+  ibranch \(SceneI { time }) lsig ->
     if time % pieceTime < timing.ksSinOsc.end then
       Right (deltaKsSinOsc time $> lsig)
     else

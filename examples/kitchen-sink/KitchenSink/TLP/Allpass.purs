@@ -1,6 +1,7 @@
 module WAGS.Example.KitchenSink.TLP.Allpass where
 
 import Prelude
+
 import Control.Applicative.Indexed (ipure)
 import Control.Monad.Indexed.Qualified as Ix
 import Data.Either (Either(..))
@@ -19,10 +20,11 @@ import WAGS.Example.KitchenSink.Types.Allpass (AllpassGraph, deltaKsAllpass)
 import WAGS.Example.KitchenSink.Types.Empty (cursorGain)
 import WAGS.Example.KitchenSink.Types.Lowpass (ksLowpassCreate)
 import WAGS.Patch (ipatch)
+import WAGS.Run (SceneI(..))
 
 doAllpass :: forall proof. StepSig AllpassGraph proof
 doAllpass =
-  ibranch \{ time } lsig ->
+  ibranch \(SceneI { time }) lsig ->
     if time % pieceTime < timing.ksAllpass.end then
       Right (deltaKsAllpass time $> lsig)
     else if lsig.iteration `mod` 2 == 0 then

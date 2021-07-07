@@ -1,6 +1,7 @@
 module WAGS.CheatSheet.Branching where
 
 import Prelude
+
 import Data.Either (Either(..))
 import Data.Tuple.Nested (type (/\))
 import Math ((%))
@@ -11,7 +12,7 @@ import WAGS.Control.Indexed (IxWAG)
 import WAGS.Control.Types (Frame0, Scene, WAG)
 import WAGS.Graph.AudioUnit as AU
 import WAGS.Patch (ipatch)
-import WAGS.Run (RunAudio, RunEngine, SceneI)
+import WAGS.Run (RunAudio, RunEngine, SceneI(..))
 
 type MyGraph1
   = ( speaker :: AU.TSpeaker /\ { gain :: Unit }
@@ -33,7 +34,7 @@ branch1 ::
   WAG RunAudio RunEngine proof Unit { | MyGraph1 } Number ->
   Scene (SceneI Unit Unit) RunAudio RunEngine proof Unit
 branch1 =
-  ibranch \e a ->
+  ibranch \(SceneI e) a ->
     if e.time % 2.0 < 1.0 then
       Right $ ichange { osc: 330.0 } $> a
     else
@@ -44,7 +45,7 @@ branch2 ::
   WAG RunAudio RunEngine proof Unit { | MyGraph2 } String ->
   Scene (SceneI Unit Unit) RunAudio RunEngine proof Unit
 branch2 =
-  ibranch \e a ->
+  ibranch \(SceneI e) a ->
     if e.time % 2.0 > 1.0 then
       Right $ ichange { buf: 10.0 } $> a
     else

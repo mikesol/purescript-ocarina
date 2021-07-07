@@ -1,6 +1,7 @@
 module WAGS.Example.KitchenSink.TLP.Peaking where
 
 import Prelude
+
 import Control.Monad.Indexed (ipure, (:*>))
 import Control.Monad.Indexed.Qualified as Ix
 import Data.Either (Either(..))
@@ -17,10 +18,11 @@ import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
 import WAGS.Example.KitchenSink.Types.Empty (cursorGain)
 import WAGS.Example.KitchenSink.Types.Highpass (ksHighpassCreate)
 import WAGS.Example.KitchenSink.Types.Peaking (PeakingGraph, deltaKsPeaking)
+import WAGS.Run (SceneI(..))
 
 doPeaking :: forall proof. StepSig PeakingGraph proof
 doPeaking =
-  ibranch \{ time } lsig ->
+  ibranch \(SceneI { time }) lsig ->
     if time % pieceTime < timing.ksPeaking.end then
       Right
         $ imodifyRes (const $ "Using a peaking filter")

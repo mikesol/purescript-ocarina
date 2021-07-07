@@ -1,6 +1,7 @@
 module WAGS.Example.DrumMachine where
 
 import Prelude
+
 import Control.Comonad.Cofree (Cofree, deferCofree, head, mkCofree, tail)
 import Control.Promise (toAffE)
 import Data.Foldable (for_)
@@ -31,7 +32,7 @@ import WAGS.Create.Optionals (CGain, CSpeaker, CPlayBuf, gain, speaker, playBuf)
 import WAGS.Graph.AudioUnit (OnOff(..), TGain, TLoopBuf, TSpeaker)
 import WAGS.Graph.Parameter (ff)
 import WAGS.Interpret (AudioContext, FFIAudio(..), close, context, decodeAudioDataFromUri, defaultFFIAudio, makeUnitCache)
-import WAGS.Run (RunAudio, SceneI, RunEngine, run)
+import WAGS.Run (RunAudio, RunEngine, SceneI(..), run)
 
 type SceneTemplate
   = CSpeaker
@@ -47,7 +48,7 @@ type SceneType
 gap = 0.27 :: Number
 
 scene :: Boolean -> SceneI Unit Unit -> SceneTemplate
-scene shouldReset { time } =
+scene shouldReset (SceneI { time }) =
   let
     tgFloor = floor (time / gap)
   in
@@ -69,7 +70,7 @@ scene shouldReset { time } =
 piece :: Scene (SceneI Unit Unit) RunAudio RunEngine Frame0 Unit
 piece =
   (\e -> icreate (scene false e) $> 0.0)
-    @!> iloop \e lastCrossing ->
+    @!> iloop \(SceneI e) lastCrossing ->
         let
           tgFloor = floor (e.time / gap)
 
@@ -79,7 +80,7 @@ piece =
 
           shouldReset = crossingDivide && crossDiff > 0.2
         in
-          ichange (scene shouldReset e) $> (if shouldReset then e.time else lastCrossing)
+          ichange (scene shouldReset (SceneI e)) $> (if shouldReset then e.time else lastCrossing)
 
 easingAlgorithm :: Cofree ((->) Int) Int
 easingAlgorithm =

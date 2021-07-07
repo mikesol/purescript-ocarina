@@ -58,7 +58,7 @@ import WAGS.Control.Indexed (IxWAG)
 import WAGS.Control.Types (Frame0, Scene)
 import WAGS.Graph.AudioUnit as AU
 import WAGS.Patch (ipatch)
-import WAGS.Run (RunAudio, RunEngine, SceneI)
+import WAGS.Run (RunAudio, RunEngine, SceneI(..))
 
 type MyGraph
   = ( speaker :: AU.TSpeaker /\ { gain :: Unit }
@@ -72,7 +72,7 @@ initialFrame = ipatch
 piece :: Scene (SceneI Unit Unit) RunAudio RunEngine Frame0 Unit
 piece =
   (const initialFrame)
-    @!> iloop \{ time } _ -> ichange { gain: 0.2, osc: 440.0 + ((time * 15.0) % 30.0) }
+    @!> iloop \(SceneI { time }) _ -> ichange { gain: 0.2, osc: 440.0 + ((time * 15.0) % 30.0) }
 ```
 
 ## Branching
@@ -109,7 +109,7 @@ branch1 ::
   WAG RunAudio RunEngine proof Unit { | MyGraph1 } Number ->
   Scene (SceneI Unit Unit) RunAudio RunEngine proof Unit
 branch1 =
-  ibranch \e a ->
+  ibranch \(SceneI e) a ->
     if e.time % 2.0 < 1.0 then
       Right $ ichange { osc: 330.0 } $> a
     else
@@ -120,7 +120,7 @@ branch2 ::
   WAG RunAudio RunEngine proof Unit { | MyGraph2 } String ->
   Scene (SceneI Unit Unit) RunAudio RunEngine proof Unit
 branch2 =
-  ibranch \e a ->
+  ibranch \(SceneI e) a ->
     if e.time % 2.0 > 1.0 then
       Right $ ichange { buf: 10.0 } $> a
     else

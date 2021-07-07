@@ -1,6 +1,7 @@
 module WAGS.Example.KitchenSink.TLP.Lowpass where
 
 import Prelude
+
 import Control.Applicative.Indexed (ipure)
 import Control.Monad.Indexed.Qualified as Ix
 import Data.Either (Either(..))
@@ -17,10 +18,11 @@ import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
 import WAGS.Example.KitchenSink.Types.Empty (cursorGain)
 import WAGS.Example.KitchenSink.Types.Highshelf (ksHighshelfCreate)
 import WAGS.Example.KitchenSink.Types.Lowpass (LowpassGraph, deltaKsLowpass)
+import WAGS.Run (SceneI(..))
 
 doLowpass :: forall proof. StepSig LowpassGraph proof
 doLowpass =
-  ibranch \{ time } lsig ->
+  ibranch \(SceneI { time }) lsig ->
     if time % pieceTime < timing.ksLowpass.end then
       Right (deltaKsLowpass time $> lsig)
     else

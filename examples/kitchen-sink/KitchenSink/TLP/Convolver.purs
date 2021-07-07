@@ -13,10 +13,11 @@ import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
 import WAGS.Example.KitchenSink.Types.Allpass (ksAllpassCreate)
 import WAGS.Example.KitchenSink.Types.Convolver (ConvolverGraph)
 import WAGS.Patch (ipatch)
+import WAGS.Run (SceneI(..))
 
 doConvolver :: forall proof. StepSig ConvolverGraph proof
 doConvolver =
-  ibranch \{ time } lsig ->
+  ibranch \(SceneI { time }) lsig ->
     if time % pieceTime < timing.ksConvolver.end then
       Right (ipure lsig)
     else

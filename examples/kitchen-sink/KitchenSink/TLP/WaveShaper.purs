@@ -1,6 +1,7 @@
 module WAGS.Example.KitchenSink.TLP.WaveShaper where
 
 import Prelude
+
 import Control.Applicative.Indexed (ipure)
 import Control.Monad.Indexed.Qualified as Ix
 import Data.Either (Either(..))
@@ -17,10 +18,11 @@ import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
 import WAGS.Example.KitchenSink.Types.Delay (ksDelayCreate)
 import WAGS.Example.KitchenSink.Types.Empty (cursorGain)
 import WAGS.Example.KitchenSink.Types.WaveShaper (WaveShaperGraph, deltaKsWaveShaper)
+import WAGS.Run (SceneI(..))
 
 doWaveShaper :: forall proof. StepSig WaveShaperGraph proof
 doWaveShaper =
-  ibranch \{ time } lsig ->
+  ibranch \(SceneI { time }) lsig ->
     if time % pieceTime < timing.ksWaveShaper.end then
       Right (deltaKsWaveShaper time $> lsig)
     else

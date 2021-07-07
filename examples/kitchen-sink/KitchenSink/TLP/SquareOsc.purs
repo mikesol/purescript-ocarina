@@ -1,6 +1,7 @@
 module WAGS.Example.KitchenSink.TLP.SquareOsc where
 
 import Prelude
+
 import Control.Monad.Indexed (ipure, (:*>))
 import Control.Monad.Indexed.Qualified as Ix
 import Data.Either (Either(..))
@@ -17,10 +18,11 @@ import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
 import WAGS.Example.KitchenSink.Types.Empty (cursorGain)
 import WAGS.Example.KitchenSink.Types.PeriodicOsc (ksPeriodicOscCreate)
 import WAGS.Example.KitchenSink.Types.SquareOsc (SquareOscGraph, deltaKsSquareOsc)
+import WAGS.Run (SceneI(..))
 
 doSquareOsc :: forall proof. StepSig SquareOscGraph proof
 doSquareOsc =
-  ibranch \{ time } lsig ->
+  ibranch \(SceneI { time }) lsig ->
     if time % pieceTime < timing.ksSquareOsc.end then
       Right
         ( imodifyRes (const "Playing a square osc")

@@ -1,6 +1,7 @@
 module WAGS.Example.KitchenSink.TLP.DynamicsCompressor where
 
 import Prelude
+
 import Control.Applicative.Indexed (ipure)
 import Control.Monad.Indexed.Qualified as Ix
 import Data.Either (Either(..))
@@ -16,10 +17,11 @@ import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
 import WAGS.Example.KitchenSink.Types.DynamicsCompressor (DynamicsCompressorGraph, deltaKsDynamicsCompressor)
 import WAGS.Example.KitchenSink.Types.Empty (cursorGain)
 import WAGS.Example.KitchenSink.Types.SinOsc (ksSinOscCreate)
+import WAGS.Run (SceneI(..))
 
 doDynamicsCompressor :: forall proof. StepSig DynamicsCompressorGraph proof
 doDynamicsCompressor =
-  ibranch \{ time } l@{ loop: LoopSig lsig, iteration } ->
+  ibranch \(SceneI { time }) l@{ loop: LoopSig lsig, iteration } ->
     if time % pieceTime < timing.ksDynamicsCompressor.begin then
       Left
         $ icont lsig Ix.do

@@ -1,15 +1,16 @@
 module WAGS.Example.Failure where
 
 import Prelude
+
 import Control.Applicative.Indexed (ipure, (:*>))
 import Control.Comonad.Cofree (Cofree, mkCofree)
 import Data.Array ((..))
 import Data.Either (Either(..))
-import Data.Tuple.Nested ((/\), type (/\))
 import Data.Foldable (for_)
 import Data.Int (toNumber)
 import Data.Maybe (Maybe(..))
 import Data.Ord (abs)
+import Data.Tuple.Nested ((/\), type (/\))
 import Data.Vec ((+>))
 import Data.Vec as V
 import Effect (Effect)
@@ -33,7 +34,7 @@ import WAGS.Example.KitchenSink (fetchBuffer)
 import WAGS.Graph.AudioUnit (OnOff(..), OversampleTwoX, TConvolver, TPeriodicOsc, TPlayBuf, TRecorder, TSpeaker, TWaveShaper)
 import WAGS.Interpret (AudioContext, FFIAudio(..), close, context, defaultFFIAudio, makeFloatArray, makePeriodicWave, makeUnitCache, mediaRecorderToUrl)
 import WAGS.Patch (ipatch)
-import WAGS.Run (RunAudio, SceneI, RunEngine, run)
+import WAGS.Run (RunAudio, RunEngine, SceneI(..), run)
 
 type ShouldFail
   = { speaker :: TSpeaker /\ { badWshape :: Unit, badPosc :: Unit }
@@ -55,7 +56,7 @@ type ShouldSucceed
 
 shouldFail :: forall proof. WAG RunAudio RunEngine proof Unit ShouldFail Unit -> Scene (SceneI Unit Unit) RunAudio RunEngine proof Unit
 shouldFail =
-  ibranch \e a ->
+  ibranch \(SceneI e) a ->
     if e.time % 4.0 < 2.0 then
       Right $ ipure unit
     else
@@ -70,7 +71,7 @@ shouldFail =
 
 shouldSucceed :: forall proof. WAG RunAudio RunEngine proof Unit ShouldSucceed Unit -> Scene (SceneI Unit Unit) RunAudio RunEngine proof Unit
 shouldSucceed =
-  ibranch \e a ->
+  ibranch \(SceneI e) a ->
     if e.time % 4.0 > 2.0 then
       Right $ ipure unit
     else

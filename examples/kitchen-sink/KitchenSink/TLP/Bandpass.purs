@@ -1,6 +1,7 @@
 module WAGS.Example.KitchenSink.TLP.Bandpass where
 
 import Prelude
+
 import Control.Applicative.Indexed (ipure)
 import Control.Monad.Indexed.Qualified as Ix
 import Data.Either (Either(..))
@@ -17,10 +18,11 @@ import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
 import WAGS.Example.KitchenSink.Types.Bandpass (BandpassGraph, deltaKsBandpass)
 import WAGS.Example.KitchenSink.Types.Empty (cursorGain)
 import WAGS.Example.KitchenSink.Types.Notch (ksNotchCreate)
+import WAGS.Run (SceneI(..))
 
 doBandpass :: forall proof. StepSig BandpassGraph proof
 doBandpass =
-  ibranch \{ time } lsig ->
+  ibranch \(SceneI { time }) lsig ->
     if time % pieceTime < timing.ksBandpass.end then
       Right (deltaKsBandpass time $> lsig)
     else

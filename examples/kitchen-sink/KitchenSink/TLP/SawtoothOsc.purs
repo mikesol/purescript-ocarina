@@ -16,10 +16,11 @@ import WAGS.Example.KitchenSink.Types.SawtoothOsc (SawtoothOscGraph)
 import WAGS.Graph.AudioUnit (OnOff(..))
 import WAGS.Graph.Parameter (AudioParameter_)
 import WAGS.Patch (ipatch)
+import WAGS.Run (SceneI(..))
 
 doSawtoothOsc :: forall proof. StepSig SawtoothOscGraph proof
 doSawtoothOsc =
-  ibranch \{ time } lsig ->
+  ibranch \(SceneI { time }) lsig ->
     if time % pieceTime < timing.ksSawtoothOsc.end then
       Right Ix.do
         -- tests cancel
