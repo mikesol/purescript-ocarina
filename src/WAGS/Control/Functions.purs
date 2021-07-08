@@ -1,6 +1,7 @@
 module WAGS.Control.Functions
   ( start
   , istart
+  , startUsing
   , modifyRes
   , imodifyRes
   , makeScene
@@ -25,11 +26,13 @@ module WAGS.Control.Functions
   ) where
 
 import Prelude
+
 import Control.Comonad (extract)
 import Data.Either (Either(..))
 import WAGS.Control.Indexed (IxWAG(..), IxFrame)
 import WAGS.Control.Types (AudioState', EFrame, Frame, Frame0, InitialWAG, Scene(..), Scene', WAG, oneFrame, unsafeUnWAG, unsafeWAG)
 import WAGS.Interpret (class AudioInterpret)
+import WAGS.Patch (class Patch, ipatch)
 
 -- | The initial `Frame` that is needed to begin any `Scene`.
 -- |
@@ -123,6 +126,17 @@ istart ::
 istart m = makeSceneR (\e -> let IxWAG f = m e in f start)
 
 infixr 6 istart as @!>
+
+startUsing ::
+  forall env audio engine res graph control.
+  Monoid res =>
+  AudioInterpret audio engine =>
+  Patch () graph =>
+  control ->
+  (forall proofA. WAG audio engine proofA res { | graph } control ->
+  Scene env audio engine proofA res) ->
+  Scene env audio engine Frame0 res
+startUsing control next = const (ipatch $> control) @!> next
 
 -- | Loops audio.
 -- |

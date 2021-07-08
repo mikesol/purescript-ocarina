@@ -6,6 +6,7 @@ module WAGS.Control.Functions.Validated
   , makeSceneRFlipped
   , makeSceneR'
   , makeSceneR'Flipped
+  , startUsing
   , loop
   , iloop
   , branch
@@ -22,11 +23,13 @@ module WAGS.Control.Functions.Validated
   ) where
 
 import Prelude
+
 import Data.Either (Either)
 import WAGS.Control.Functions as Functions
 import WAGS.Control.Indexed (IxWAG, IxFrame)
 import WAGS.Control.Types (EFrame, Frame, Frame0, Scene, WAG)
 import WAGS.Interpret (class AudioInterpret)
+import WAGS.Patch (class Patch)
 import WAGS.Validation (class GraphIsRenderable)
 
 makeScene ::
@@ -145,6 +148,18 @@ istart ::
 istart = Functions.istart
 
 infixr 6 istart as @!>
+
+startUsing ::
+  forall env audio engine res graph control.
+  Monoid res =>
+  AudioInterpret audio engine =>
+  GraphIsRenderable graph =>
+  Patch () graph =>
+  control ->
+  (forall proofA. WAG audio engine proofA res { | graph } control ->
+  Scene env audio engine proofA res) ->
+  Scene env audio engine Frame0 res
+startUsing = Functions.startUsing
 
 freeze ::
   forall env audio engine proof res graph x.
