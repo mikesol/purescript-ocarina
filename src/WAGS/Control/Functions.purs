@@ -2,6 +2,7 @@ module WAGS.Control.Functions
   ( start
   , istart
   , startUsing
+  , startUsingWithHint
   , modifyRes
   , imodifyRes
   , makeScene
@@ -23,14 +24,15 @@ module WAGS.Control.Functions
   , (<@)
   , (<|@)
   , (<||@)
+  , class GraphHint
   ) where
 
 import Prelude
-
 import Control.Comonad (extract)
 import Data.Either (Either(..))
 import WAGS.Control.Indexed (IxWAG(..), IxFrame)
 import WAGS.Control.Types (AudioState', EFrame, Frame, Frame0, InitialWAG, Scene(..), Scene', WAG, oneFrame, unsafeUnWAG, unsafeWAG)
+import WAGS.CreateT (class CreateT)
 import WAGS.Interpret (class AudioInterpret)
 import WAGS.Patch (class Patch, ipatch)
 
@@ -133,10 +135,34 @@ startUsing ::
   AudioInterpret audio engine =>
   Patch () graph =>
   control ->
-  (forall proofA. WAG audio engine proofA res { | graph } control ->
-  Scene env audio engine proofA res) ->
+  ( forall proofA.
+    WAG audio engine proofA res { | graph } control ->
+    Scene env audio engine proofA res
+  ) ->
   Scene env audio engine Frame0 res
 startUsing control next = const (ipatch $> control) @!> next
+
+class GraphHint (i :: Type) (o :: Row Type) | i -> o
+
+instance graphHintRec :: GraphHint { | o } o
+
+instance graphHintF :: GraphHint x o => GraphHint (y -> x) o
+
+startUsingWithHint ::
+  forall env audio engine res hintable hint graph control.
+  Monoid res =>
+  AudioInterpret audio engine =>
+  GraphHint hintable hint =>
+  CreateT hint () graph =>
+  Patch () graph =>
+  hintable ->
+  control ->
+  ( forall proofA.
+    WAG audio engine proofA res { | graph } control ->
+    Scene env audio engine proofA res
+  ) ->
+  Scene env audio engine Frame0 res
+startUsingWithHint hint control next = const (ipatch $> control) @!> next
 
 -- | Loops audio.
 -- |
