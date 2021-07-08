@@ -677,6 +677,9 @@ instance convertPlayBufOnOff :: ConvertOption PlayBuf "onOff" OnOff APOnOff wher
 instance convertPlayBufAPOnOff :: ConvertOption PlayBuf "onOff" APOnOff APOnOff where
   convertOption _ _ = identity
 
+instance convertPlayBufAPBufferOffset :: ConvertOption PlayBuf "bufferOffset" Number Number where
+  convertOption _ _ = identity
+
 type PlayBufOptional
   = ( playbackRate :: AudioParameter, onOff :: APOnOff, bufferOffset :: Number )
 
