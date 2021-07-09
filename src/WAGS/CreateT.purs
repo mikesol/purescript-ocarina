@@ -16,22 +16,22 @@ import WAGS.Graph.Graph (Graph)
 import WAGS.Graph.Node (NodeC)
 import WAGS.Graph.Oversample (class IsOversampleT)
 
-class CreateStepT (r :: Row Type) (inGraph :: Graph) (outGraph :: Graph) | r inGraph -> outGraph
+class CreateStepT (suffix :: Symbol) (map :: Type) (r :: Row Type) (inGraph :: Graph) (outGraph :: Graph) | r inGraph -> outGraph
 
-class CreateStepRLT (rl :: RL.RowList Type) (r :: Row Type) (inGraph :: Graph) (outGraph :: Graph) | rl r inGraph -> outGraph
+class CreateStepRLT (rl :: RL.RowList Type) (suffix :: Symbol) (map :: Type) (r :: Row Type) (inGraph :: Graph) (outGraph :: Graph) | rl r inGraph -> outGraph
 
-instance createStepTAll :: (RL.RowToList r rl, CreateStepRLT rl r inGraph outGraph) => CreateStepT r inGraph outGraph
+instance createStepTAll :: (RL.RowToList r rl, CreateStepRLT rl suffix map r inGraph outGraph) => CreateStepT suffix map r inGraph outGraph
 
-instance createStepRLTNil :: CreateStepRLT RL.Nil r inGraph inGraph
+instance createStepRLTNil :: CreateStepRLT RL.Nil suffix map r inGraph inGraph
 
 instance createStepRLTCons ::
   ( R.Cons key val ignore r
   , EdgeableT val (node /\ { | edges })
   , CreateT' key node graph0 graph1
-  , CreateStepT edges graph1 graph2
-  , CreateStepRLT rest r graph2 graph3
+  , CreateStepT suffix map edges graph1 graph2
+  , CreateStepRLT rest suffix map r graph2 graph3
   ) =>
-  CreateStepRLT (RL.Cons key val rest) r graph0 graph3
+  CreateStepRLT (RL.Cons key val rest) suffix map r graph0 graph3
 
 class ConnectEdgesToNodeT (sources :: RL.RowList Type) (dest :: Symbol) (inGraph :: Graph) (outGraph :: Graph) | sources dest inGraph -> outGraph
 
@@ -39,25 +39,25 @@ instance connectEdgesToNodeTNil :: ConnectEdgesToNodeT RL.Nil dest inGraph inGra
 
 instance connectEdgesToNodeTCons :: (ConnectT key dest inGraph midGraph, ConnectEdgesToNodeT rest dest midGraph outGraph) => ConnectEdgesToNodeT (RL.Cons key ignore rest) dest inGraph outGraph
 
-class ConnectAfterCreateT (rl :: RL.RowList Type) (inGraph :: Graph) (outGraph :: Graph) | rl inGraph -> outGraph
+class ConnectAfterCreateT (suffix :: Symbol) (map :: Type)  (rl :: RL.RowList Type) (inGraph :: Graph) (outGraph :: Graph) | rl inGraph -> outGraph
 
-instance connectAfterCreateTNil :: ConnectAfterCreateT RL.Nil graph0 graph0
+instance connectAfterCreateTNil :: ConnectAfterCreateT suffix map RL.Nil graph0 graph0
 
 instance connectAfterCreateTCons ::
   ( EdgeableT node' (Tuple node { | edges })
   , RL.RowToList edges edgesList
   , ConnectEdgesToNodeT edgesList sym graph0 graph1
-  , ConnectAfterCreateT edgesList graph1 graph2
-  , ConnectAfterCreateT rest graph2 graph3
+  , ConnectAfterCreateT suffix map edgesList graph1 graph2
+  , ConnectAfterCreateT suffix map rest graph2 graph3
   ) =>
-  ConnectAfterCreateT (RL.Cons sym node' rest) graph0 graph3
+  ConnectAfterCreateT suffix map (RL.Cons sym node' rest) graph0 graph3
 
 class CreateInternalT (suffix :: Symbol) (map :: Type) (r :: Row Type) (inGraph :: Graph) (outGraph :: Graph) | suffix map r inGraph -> outGraph
 
 instance createInternalTAll ::
-  ( CreateStepT r inGraph midGraph
+  ( CreateStepT suffix map r inGraph midGraph
   , RL.RowToList r rl
-  , ConnectAfterCreateT rl midGraph outGraph
+  , ConnectAfterCreateT suffix map rl midGraph outGraph
   ) =>
   CreateInternalT suffix map r inGraph outGraph
 

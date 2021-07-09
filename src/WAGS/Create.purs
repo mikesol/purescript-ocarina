@@ -24,10 +24,10 @@ import WAGS.Graph.Paramable (class Paramable, paramize, class OnOffable, onOffIz
 import WAGS.Interpret (class AudioInterpret, makeAllpass, makeBandpass, makeConstant, makeConvolver, makeDelay, makeDynamicsCompressor, makeGain, makeHighpass, makeHighshelf, makeLoopBuf, makeLowpass, makeLowshelf, makeMicrophone, makeNotch, makePeaking, makePeriodicOsc, makePeriodicOscV, makePlayBuf, makeRecorder, makeSawtoothOsc, makeSinOsc, makeSpeaker, makeSquareOsc, makeStereoPanner, makeTriangleOsc, makeWaveShaper)
 import WAGS.Util (tmap)
 
-class CreateStep (r :: Row Type) (inGraph :: Graph) (outGraph :: Graph) | r inGraph -> outGraph where
-  createStep ::
-    forall audio engine proof res.
+type CreateStepSig (suffix :: Symbol) (map :: Type) (r :: Row Type) (inGraph :: Graph) (outGraph :: Graph) = forall proxySuffix proxyMap audio engine proof res.
     AudioInterpret audio engine =>
+    proxySuffix suffix ->
+    proxyMap map ->
     WAG
       audio
       engine
@@ -43,11 +43,14 @@ class CreateStep (r :: Row Type) (inGraph :: Graph) (outGraph :: Graph) | r inGr
       { | outGraph }
       Unit
 
-class CreateStepRL (rl :: RL.RowList Type) (r :: Row Type) (inGraph :: Graph) (outGraph :: Graph) | rl r inGraph -> outGraph where
-  createStepRL ::
-    forall proxy audio engine proof res.
+class CreateStep (suffix :: Symbol) (map :: Type) (r :: Row Type) (inGraph :: Graph) (outGraph :: Graph) | suffix map r inGraph -> outGraph where
+  createStep :: CreateStepSig suffix map r inGraph outGraph
+
+type CreateStepRLSig (rl :: RL.RowList Type) (suffix :: Symbol) (map :: Type) (r :: Row Type) (inGraph :: Graph) (outGraph :: Graph) = forall proxySuffix proxyMap proxyRL audio engine proof res.
     AudioInterpret audio engine =>
-    proxy rl ->
+    proxyRL rl ->
+    proxySuffix suffix ->
+    proxyMap map ->
     WAG
       audio
       engine
@@ -63,22 +66,25 @@ class CreateStepRL (rl :: RL.RowList Type) (r :: Row Type) (inGraph :: Graph) (o
       { | outGraph }
       Unit
 
-instance createStepAll :: (RL.RowToList r rl, CreateStepRL rl r inGraph outGraph) => CreateStep r inGraph outGraph where
+class CreateStepRL (rl :: RL.RowList Type) (suffix :: Symbol) (map :: Type) (r :: Row Type) (inGraph :: Graph) (outGraph :: Graph) | rl r inGraph -> outGraph where
+  createStepRL :: CreateStepRLSig rl suffix map r inGraph outGraph
+
+instance createStepAll :: (RL.RowToList r rl, CreateStepRL rl suffix map r inGraph outGraph) => CreateStep suffix map r inGraph outGraph where
   createStep = createStepRL (Proxy :: _ rl)
 
-instance createStepRLNil :: CreateStepRL RL.Nil r inGraph inGraph where
-  createStepRL _ r = r $> unit
+instance createStepRLNil :: CreateStepRL RL.Nil suffix map r inGraph inGraph where
+  createStepRL _ _ _ r = r $> unit
 
 instance createStepRLCons ::
   ( IsSymbol key
   , R.Cons key val ignore r
   , Edgeable val (node /\ { | edges })
   , Create' key node graph0 graph1
-  , CreateStep edges graph1 graph2
-  , CreateStepRL rest r graph2 graph3
+  , CreateStep suffix map edges graph1 graph2
+  , CreateStepRL rest suffix map r graph2 graph3
   ) =>
-  CreateStepRL (RL.Cons key val rest) r graph0 graph3 where
-  createStepRL _ r = step3
+  CreateStepRL (RL.Cons key val rest) suffix map r graph0 graph3 where
+  createStepRL _ _ _ r = step3
     where
     rx = extract r
 
@@ -87,27 +93,10 @@ instance createStepRLCons ::
     step1 = create' (Proxy :: _ key) (r $> node)
 
     step2 =
-      ( createStep ::
-          forall audio engine proof res.
-          AudioInterpret audio engine =>
-          WAG
-            audio
-            engine
-            proof
-            res
-            { | graph1 }
-            { | edges } ->
-          WAG
-            audio
-            engine
-            proof
-            res
-            { | graph2 }
-            Unit
-      )
+      ( createStep :: CreateStepSig suffix map edges graph1 graph2) Proxy Proxy
         (step1 $> edges)
 
-    step3 = createStepRL (Proxy :: _ rest) (step2 $> rx)
+    step3 = createStepRL (Proxy :: _ rest) (Proxy :: _ suffix) (Proxy :: _ map) (step2 $> rx)
 
 class ConnectEdgesToNode (sources :: RL.RowList Type) (dest :: Symbol) (inGraph :: Graph) (outGraph :: Graph) | sources dest inGraph -> outGraph where
   connectEdgesToNode ::
@@ -139,10 +128,10 @@ instance connectEdgesToNodeCons :: (Connect key dest inGraph midGraph, ConnectEd
 
     step2 = connectEdgesToNode (Proxy :: _ rest) (step1 $> (extract w))
 
-class ConnectAfterCreate (rl :: RL.RowList Type) (inGraph :: Graph) (outGraph :: Graph) | rl inGraph -> outGraph where
-  connectAfterCreate ::
-    forall audio engine proof res.
+type ConnectAfterCreateSig (suffix :: Symbol) (map :: Type) (rl :: RL.RowList Type) (inGraph :: Graph) (outGraph :: Graph) = forall proxySuffix proxyMap audio engine proof res.
     AudioInterpret audio engine =>
+    proxySuffix suffix ->
+    proxyMap map ->
     WAG
       audio
       engine
@@ -158,24 +147,28 @@ class ConnectAfterCreate (rl :: RL.RowList Type) (inGraph :: Graph) (outGraph ::
       { | outGraph }
       Unit
 
-instance connectAfterCreateNil :: ConnectAfterCreate RL.Nil graph0 graph0 where
-  connectAfterCreate w = w $> unit
+class ConnectAfterCreate (suffix :: Symbol) (map :: Type) (rl :: RL.RowList Type) (inGraph :: Graph) (outGraph :: Graph) | suffix map rl inGraph -> outGraph where
+  connectAfterCreate ::ConnectAfterCreateSig suffix map rl inGraph outGraph
+    
+
+instance connectAfterCreateNil :: ConnectAfterCreate suffix map RL.Nil graph0 graph0 where
+  connectAfterCreate _ _ w = w $> unit
 
 instance connectAfterCreateCons ::
   ( Edgeable node' (Tuple node { | edges })
   , RL.RowToList edges edgesList
   , ConnectEdgesToNode edgesList sym graph0 graph1
-  , ConnectAfterCreate edgesList graph1 graph2
-  , ConnectAfterCreate rest graph2 graph3
+  , ConnectAfterCreate suffix map edgesList graph1 graph2
+  , ConnectAfterCreate suffix map rest graph2 graph3
   ) =>
-  ConnectAfterCreate (RL.Cons sym node' rest) graph0 graph3 where
-  connectAfterCreate w = step3
+  ConnectAfterCreate suffix map (RL.Cons sym node' rest) graph0 graph3 where
+  connectAfterCreate _ _ w = step3
     where
     step1 = connectEdgesToNode (Proxy :: _ edgesList) (w $> (Proxy :: _ sym))
 
-    step2 = connectAfterCreate (step1 $> (Proxy :: _ edgesList))
+    step2 = connectAfterCreate (Proxy :: _ suffix) (Proxy :: _ map) (step1 $> (Proxy :: _ edgesList))
 
-    step3 = connectAfterCreate (step2 $> (Proxy :: _ rest))
+    step3 = connectAfterCreate (Proxy :: _ suffix) (Proxy :: _ map) (step2 $> (Proxy :: _ rest))
 
 type CreateInternalSig (suffix :: Symbol) (map :: Type) (r :: Row Type) (inGraph :: Graph) (outGraph :: Graph) = forall proxySuffix proxyMap audio engine proof res.
     AudioInterpret audio engine =>
@@ -200,16 +193,16 @@ class CreateInternal (suffix :: Symbol) (map :: Type) (r :: Row Type) (inGraph :
   createInternal :: CreateInternalSig suffix map r inGraph outGraph
 
 instance createInternalAll ::
-  ( CreateStep r inGraph midGraph
+  ( CreateStep suffix map r inGraph midGraph
   , RL.RowToList r rl
-  , ConnectAfterCreate rl midGraph outGraph
+  , ConnectAfterCreate suffix map rl midGraph outGraph
   ) =>
-  CreateInternal proxy suffix r inGraph outGraph where
+  CreateInternal suffix map r inGraph outGraph where
   createInternal _ _ r = step1
     where
-    step0 = createStep r
+    step0 = createStep (Proxy :: _ suffix) (Proxy :: _ map) r
 
-    step1 = connectAfterCreate (step0 $> (Proxy :: _ rl))
+    step1 = connectAfterCreate (Proxy :: _ suffix) (Proxy :: _ map) (step0 $> (Proxy :: _ rl))
 
 class Create (r :: Row Type) (inGraph :: Graph) (outGraph :: Graph) | r inGraph -> outGraph where
   create ::
