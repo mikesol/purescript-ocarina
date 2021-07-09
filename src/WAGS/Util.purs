@@ -2,9 +2,9 @@
 module WAGS.Util where
 
 import Prelude hiding (Ordering(..))
-
+import Data.Tuple.Nested ((/\), type (/\))
 import Data.Typelevel.Bool (True, False)
-import Data.Tuple.Nested((/\), type (/\))
+import Data.Typelevel.Num (class Nat, class Succ, D0)
 import Prim.Ordering (Ordering, LT, GT, EQ)
 import Prim.RowList (RowList)
 import Prim.RowList as RL
@@ -88,3 +88,9 @@ instance rowListEmptyCons :: RowListEmpty (RL.Cons a b c) False
 
 tmap :: forall a b. (a -> b) -> a /\ a -> b /\ b
 tmap f (a0 /\ a1) = f a0 /\ f a1
+
+class Nat val <= AutoIncrementingInsert (key :: Type) (imap :: Type) (val :: Type) (omap :: Type) | key imap -> val omap
+
+instance autoIncrementingInsertUnit :: AutoIncrementingInsert key Unit D0 ((key /\ D0) /\ Unit)
+else instance autoIncrementingInsertTupleHit :: Succ val valP1 => AutoIncrementingInsert key ((key /\ val) /\ rest) valP1 ((key /\ valP1) /\ rest)
+else instance autoIncrementingInsertTupleMiss :: AutoIncrementingInsert key rest val out => AutoIncrementingInsert key x val out
