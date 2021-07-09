@@ -35,4 +35,16 @@ else instance constructEdgesRest :: ConstructEdges suffix map a suffix map (a /\
 class ConstructEdgesT (suffix :: Symbol) (map :: Type) (a :: Type) (newSuffix :: Symbol) (newMap :: Type) (b :: Type) | suffix map a -> newSuffix newMap b
 
 instance constructEdgesTTuple :: ConstructEdgesT suffix map (a /\ { | b }) "" Unit (a /\ { | b })
+else instance constructEdgesTNormVal ::
+  ( TypeToSym b bSym
+  , AutoIncrementingInsert b map val newMap
+  , NatToSym val valSym
+  , Sym.Append suffix "_" step0
+  , Sym.Append step0 bSym step1
+  , Sym.Append step1 "_" step2
+  , Sym.Append step2 valSym newSym
+  , Row.Lacks newSym ()
+  , Row.Cons newSym b () c
+  ) =>
+  ConstructEdgesT suffix map (a /\ b) suffix newMap (a /\ { | c })
 else instance constructEdgesTRest :: ConstructEdgesT suffix map a suffix map (a /\ {})
