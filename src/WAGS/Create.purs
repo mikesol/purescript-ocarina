@@ -1,6 +1,7 @@
 module WAGS.Create where
 
 import Prelude
+
 import Control.Comonad (extract)
 import Data.Either (Either(..))
 import Data.Functor (voidRight)
@@ -10,9 +11,11 @@ import Data.Tuple.Nested ((/\), type (/\))
 import Data.Vec as V
 import Prim.Row as R
 import Prim.RowList as RL
+import Prim.Symbol as Sym
 import Record as Record
 import Type.Proxy (Proxy(..))
 import WAGS.Connect (class Connect, connect)
+import WAGS.ConstructEdges (class ConstructEdges, constructEdges)
 import WAGS.Control.Indexed (IxWAG(..))
 import WAGS.Control.Types (WAG, unsafeUnWAG, unsafeWAG)
 import WAGS.Edgeable (class Edgeable, withEdge)
@@ -78,9 +81,12 @@ instance createStepRLNil :: CreateStepRL RL.Nil suffix map r inGraph inGraph whe
 instance createStepRLCons ::
   ( IsSymbol key
   , R.Cons key val ignore r
-  , Edgeable val (node /\ { | edges })
-  , Create' key node graph0 graph1
-  , CreateStep suffix map edges graph1 graph2
+  , ConstructEdges suffix map val newSuffix newMap (node /\ { | edges })
+  , Sym.Append suffix key newKey
+  , Create' newKey node graph0 graph1
+  -- push the new suffix and new map down to the edges
+  , CreateStep newSuffix newMap edges graph1 graph2
+  -- on this level, we keep the old stuff
   , CreateStepRL rest suffix map r graph2 graph3
   ) =>
   CreateStepRL (RL.Cons key val rest) suffix map r graph0 graph3 where
@@ -88,12 +94,12 @@ instance createStepRLCons ::
     where
     rx = extract r
 
-    node /\ edges = withEdge (Record.get (Proxy :: _ key) rx)
+    (_ /\ _ /\ (node /\ edges)) = constructEdges (Proxy :: _ suffix) (Proxy :: _ map) (Record.get (Proxy :: _ key) rx)
 
-    step1 = create' (Proxy :: _ key) (r $> node)
+    step1 = create' (Proxy :: _ newKey) (r $> node)
 
     step2 =
-      ( createStep :: CreateStepSig suffix map edges graph1 graph2) Proxy Proxy
+      ( createStep :: CreateStepSig newSuffix newMap edges graph1 graph2) Proxy Proxy
         (step1 $> edges)
 
     step3 = createStepRL (Proxy :: _ rest) (Proxy :: _ suffix) (Proxy :: _ map) (step2 $> rx)
