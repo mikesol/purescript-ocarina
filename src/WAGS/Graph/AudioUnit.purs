@@ -1,7 +1,6 @@
 module WAGS.Graph.AudioUnit where
 
 import Prelude
-
 import Data.Generic.Rep (class Generic)
 import Data.Show.Generic (genericShow)
 import Data.Symbol (class IsSymbol)
@@ -10,6 +9,7 @@ import Heterogeneous.Folding (class FoldingWithIndex, class HFoldlWithIndex, hfo
 import Heterogeneous.Mapping (class HMap, class Mapping, hmap)
 import Prim.Row as R
 import Record as Record
+import Prim.Symbol as Sym
 import Type.Proxy (Proxy(..))
 import WAGS.Edgeable (class Edgeable, withEdge)
 import WAGS.Graph.Parameter (AudioParameter_)
@@ -37,12 +37,10 @@ data Constant onOff offset
 data Convolver (buffer :: Symbol)
   = Convolver (Proxy buffer)
 
-
 -- | Term-level constructor for a delay unit.
 -- | - `delay` - the delay to apply.
 data Delay delay
   = Delay delay
-
 
 -- | Term-level constructor for a compressor.
 -- | - `threshold` - The threshold under which compression kicks in.
@@ -63,7 +61,6 @@ data Gain volume
 -- | - `q` - the width of the filter.
 data Highpass frequency q
   = Highpass frequency q
-
 
 -- | Term-level constructor for a highshelf filter.
 -- | - `frequency` - the frequency above which we start to filter.
@@ -186,7 +183,8 @@ derive instance genericOnOff :: Generic OnOff _
 instance showOnOff :: Show OnOff where
   show = genericShow
 
-type APOnOff = AudioParameter_ OnOff
+type APOnOff
+  = AudioParameter_ OnOff
 
 -- | Type-level oversample none for a wave shaper. This is at the type-level and not the term-level via an ADT because we need make sure to construct an entirely new wave shaper if the value changes.
 data OversampleNone
@@ -221,9 +219,13 @@ instance monoidOversampleFourX :: Monoid OversampleFourX where
 class ReifyAU a b | a -> b where
   reifyAU :: a -> b
 
+class TypeToSym (a :: Type) (b :: Symbol) | a -> b
+
 -- | Type-level constructor for an allpass filter.
 data TAllpass
   = TAllpass
+
+instance typeToSymTAllpass :: TypeToSym TAllpass "TAllpass"
 
 instance semigroupTAllpass :: Semigroup TAllpass where
   append _ _ = TAllpass
@@ -238,6 +240,8 @@ instance reifyTAllpass :: ReifyAU (Allpass a b) TAllpass where
 data TBandpass
   = TBandpass
 
+instance typeToSymTBandpass :: TypeToSym TBandpass "TBandpass"
+
 instance semigroupTBandpass :: Semigroup TBandpass where
   append _ _ = TBandpass
 
@@ -250,6 +254,8 @@ instance reifyTBandpass :: ReifyAU (Bandpass a b) TBandpass where
 -- | Type-level constructor for a constant value.
 data TConstant
   = TConstant
+
+instance typeToSymTConstant :: TypeToSym TConstant "TConstant"
 
 instance semigroupTConstant :: Semigroup TConstant where
   append _ _ = TConstant
@@ -264,6 +270,8 @@ instance reifyTConstant :: ReifyAU (Constant a b) TConstant where
 data TConvolver (sym :: Symbol)
   = TConvolver (Proxy sym)
 
+instance typeToSymTConvolver :: Sym.Append "TConvolver_" sym o => TypeToSym (TConvolver sym) o
+
 instance semigroupTConvolver :: Semigroup (TConvolver sym) where
   append _ _ = TConvolver (Proxy :: _ sym)
 
@@ -276,6 +284,8 @@ instance reifyTConvolver :: ReifyAU (Convolver sym) (TConvolver sym) where
 -- | Type-level constructor for a delay unit.
 data TDelay
   = TDelay
+
+instance typeToSymTDelay :: TypeToSym TDelay "TDelay"
 
 instance semigroupTDelay :: Semigroup TDelay where
   append _ _ = TDelay
@@ -290,6 +300,8 @@ instance reifyTDelay :: ReifyAU (Delay a) TDelay where
 data TDynamicsCompressor
   = TDynamicsCompressor
 
+instance typeToSymTDynamicsCompressor :: TypeToSym TDynamicsCompressor "TDynamicsCompressor"
+
 instance semigroupTDynamicsCompressor :: Semigroup TDynamicsCompressor where
   append _ _ = TDynamicsCompressor
 
@@ -302,6 +314,8 @@ instance reifyTDynamicsCompressor :: ReifyAU (DynamicsCompressor a b c d e) TDyn
 -- | Type-level constructor for a gain unit.
 data TGain
   = TGain
+
+instance typeToSymTGain :: TypeToSym TGain "TGain"
 
 instance semigroupTGain :: Semigroup TGain where
   append _ _ = TGain
@@ -316,6 +330,8 @@ instance reifyTGain :: ReifyAU (Gain a) TGain where
 data THighpass
   = THighpass
 
+instance typeToSymTHighpass :: TypeToSym THighpass "THighpass"
+
 instance semigroupTHighpass :: Semigroup THighpass where
   append _ _ = THighpass
 
@@ -328,6 +344,8 @@ instance reifyTHighpass :: ReifyAU (Highpass a b) THighpass where
 -- | Type-level constructor for a highshelf filter.
 data THighshelf
   = THighshelf
+
+instance typeToSymTHighshelf :: TypeToSym THighshelf "THighshelf"
 
 instance semigroupTHighshelf :: Semigroup THighshelf where
   append _ _ = THighshelf
@@ -342,6 +360,8 @@ instance reifyTHighshelf :: ReifyAU (Highshelf a b) THighshelf where
 data TLoopBuf
   = TLoopBuf
 
+instance typeToSymTLoopBuf :: TypeToSym TLoopBuf "TLoopBuf"
+
 instance semigroupTLoopBuf :: Semigroup TLoopBuf where
   append _ _ = TLoopBuf
 
@@ -354,6 +374,8 @@ instance reifyTLoopBuf :: ReifyAU (LoopBuf a b c d e) TLoopBuf where
 -- | Type-level constructor for a lowpass filter.
 data TLowpass
   = TLowpass
+
+instance typeToSymTLowpass :: TypeToSym TLowpass "TLowpass"
 
 instance semigroupTLowpass :: Semigroup TLowpass where
   append _ _ = TLowpass
@@ -368,6 +390,8 @@ instance reifyTLowpass :: ReifyAU (Lowpass a b) TLowpass where
 data TLowshelf
   = TLowshelf
 
+instance typeToSymTLowshelf :: TypeToSym TLowshelf "TLowshelf"
+
 instance semigroupTLowshelf :: Semigroup TLowshelf where
   append _ _ = TLowshelf
 
@@ -380,6 +404,8 @@ instance reifyTLowshelf :: ReifyAU (Lowshelf a b) TLowshelf where
 -- | Type-level constructor for a microphone.
 data TMicrophone
   = TMicrophone
+
+instance typeToSymTMicrophone :: TypeToSym TMicrophone "TMicrophone"
 
 instance semigroupTMicrophone :: Semigroup TMicrophone where
   append _ _ = TMicrophone
@@ -394,6 +420,8 @@ instance reifyTMicrophone :: ReifyAU Microphone TMicrophone where
 data TNotch
   = TNotch
 
+instance typeToSymTNotch :: TypeToSym TNotch "TNotch"
+
 instance semigroupTNotch :: Semigroup TNotch where
   append _ _ = TNotch
 
@@ -406,6 +434,8 @@ instance reifyTNotch :: ReifyAU (Notch a b) TNotch where
 -- | Type-level constructor for a peaking filter.
 data TPeaking
   = TPeaking
+
+instance typeToSymTPeaking :: TypeToSym TPeaking "TPeaking"
 
 instance semigroupTPeaking :: Semigroup TPeaking where
   append _ _ = TPeaking
@@ -420,6 +450,8 @@ instance reifyTPeaking :: ReifyAU (Peaking a b c) TPeaking where
 data TPeriodicOsc
   = TPeriodicOsc
 
+instance typeToSymTPeriodicOsc :: TypeToSym TPeriodicOsc "TPeriodicOsc"
+
 instance semigroupTPeriodicOsc :: Semigroup TPeriodicOsc where
   append _ _ = TPeriodicOsc
 
@@ -432,6 +464,8 @@ instance reifyTPeriodicOsc :: ReifyAU (PeriodicOsc a b c) TPeriodicOsc where
 -- | Type-level constructor for playback from a buffer.
 data TPlayBuf
   = TPlayBuf
+
+instance typeToSymTPlayBuf :: TypeToSym TPlayBuf "TPlayBuf"
 
 instance semigroupTPlayBuf :: Semigroup TPlayBuf where
   append _ _ = TPlayBuf
@@ -446,6 +480,8 @@ instance reifyTPlayBuf :: ReifyAU (PlayBuf a b c d) TPlayBuf where
 data TRecorder (sym :: Symbol)
   = TRecorder (Proxy sym)
 
+instance typeToSymTRecorder :: Sym.Append "TRecorder_" sym o => TypeToSym (TRecorder sym) o
+
 instance semigroupTRecorder :: Semigroup (TRecorder sym) where
   append _ _ = TRecorder (Proxy :: _ sym)
 
@@ -458,6 +494,8 @@ instance reifyTRecorder :: ReifyAU (Recorder sym) (TRecorder sym) where
 -- | Type-level constructor for a sawtooth oscillator.
 data TSawtoothOsc
   = TSawtoothOsc
+
+instance typeToSymTSawtoothOsc :: TypeToSym TSawtoothOsc "TSawtoothOsc"
 
 instance semigroupTSawtoothOsc :: Semigroup TSawtoothOsc where
   append _ _ = TSawtoothOsc
@@ -472,6 +510,8 @@ instance reifyTSawtoothOsc :: ReifyAU (SawtoothOsc a b) TSawtoothOsc where
 data TSinOsc
   = TSinOsc
 
+instance typeToSymTSinOsc :: TypeToSym TSinOsc "TSinOsc"
+
 instance semigroupTSinOsc :: Semigroup TSinOsc where
   append _ _ = TSinOsc
 
@@ -484,6 +524,8 @@ instance reifyTSinOsc :: ReifyAU (SinOsc a b) TSinOsc where
 -- | Type-level constructor for a loudspeaker.
 data TSpeaker
   = TSpeaker
+
+instance typeToSymTSpeaker :: TypeToSym TSpeaker "TSpeaker"
 
 instance semigroupTSpeaker :: Semigroup TSpeaker where
   append _ _ = TSpeaker
@@ -498,6 +540,8 @@ instance reifyTSpeaker :: ReifyAU Speaker TSpeaker where
 data TSquareOsc
   = TSquareOsc
 
+instance typeToSymTSquareOsc :: TypeToSym TSquareOsc "TSquareOsc"
+
 instance semigroupTSquareOsc :: Semigroup TSquareOsc where
   append _ _ = TSquareOsc
 
@@ -510,6 +554,8 @@ instance reifyTSquareOsc :: ReifyAU (SquareOsc a b) TSquareOsc where
 -- | Type-level constructor for a stereo panner.
 data TStereoPanner
   = TStereoPanner
+
+instance typeToSymTStereoPanner :: TypeToSym TStereoPanner "TStereoPanner"
 
 instance semigroupTStereoPanner :: Semigroup TStereoPanner where
   append _ _ = TStereoPanner
@@ -524,6 +570,8 @@ instance reifyTStereoPanner :: ReifyAU (StereoPanner a) TStereoPanner where
 data TTriangleOsc
   = TTriangleOsc
 
+instance typeToSymTTriangleOsc :: TypeToSym TTriangleOsc "TTriangleOsc"
+
 instance semigroupTTriangleOsc :: Semigroup TTriangleOsc where
   append _ _ = TTriangleOsc
 
@@ -536,6 +584,12 @@ instance reifyTTriangleOsc :: ReifyAU (TriangleOsc a b) TTriangleOsc where
 -- | Type-level constructor for a wave shaper.
 data TWaveShaper (sym :: Symbol) (oversample :: Type)
   = TWaveShaper (Proxy sym) oversample
+
+instance typeToSymTWaveshaper2x :: Sym.Append "TWaveShaper_OversampleTwoX_" sym o => TypeToSym (TWaveShaper sym OversampleTwoX) o
+
+instance typeToSymTWaveshaper4x :: Sym.Append "TWaveShaper_OversampleFourX_" sym o => TypeToSym (TWaveShaper sym OversampleFourX) o
+
+instance typeToSymTWaveshaperNone :: Sym.Append "TWaveShaper_OversampleNone_" sym o => TypeToSym (TWaveShaper sym OversampleNone) o
 
 instance semigroupTWaveShaper :: Monoid b => Semigroup (TWaveShaper a b) where
   append _ _ = TWaveShaper (Proxy :: _ a) mempty

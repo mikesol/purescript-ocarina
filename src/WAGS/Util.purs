@@ -2,9 +2,10 @@
 module WAGS.Util where
 
 import Prelude hiding (Ordering(..))
+
 import Data.Tuple.Nested ((/\), type (/\))
 import Data.Typelevel.Bool (True, False)
-import Data.Typelevel.Num (class Nat, class Succ, D0)
+import Data.Typelevel.Num (class Nat, class Succ, D0, D1, D2, D3, D4, D5, D6, D7, D8, D9, type (:*))
 import Prim.Ordering (Ordering, LT, GT, EQ)
 import Prim.RowList (RowList)
 import Prim.RowList as RL
@@ -94,3 +95,27 @@ class Nat val <= AutoIncrementingInsert (key :: Type) (imap :: Type) (val :: Typ
 instance autoIncrementingInsertUnit :: AutoIncrementingInsert key Unit D0 ((key /\ D0) /\ Unit)
 else instance autoIncrementingInsertTupleHit :: Succ val valP1 => AutoIncrementingInsert key ((key /\ val) /\ rest) valP1 ((key /\ valP1) /\ rest)
 else instance autoIncrementingInsertTupleMiss :: AutoIncrementingInsert key rest val out => AutoIncrementingInsert key x val out
+
+class Nat n <= NatToSym (n :: Type) (s :: Symbol) | n -> s
+
+instance natToSymD0 :: NatToSym D0 "D0"
+
+instance natToSymD1 :: NatToSym D1 "D1"
+
+instance natToSymD2 :: NatToSym D2 "D2"
+
+instance natToSymD3 :: NatToSym D3 "D3"
+
+instance natToSymD4 :: NatToSym D4 "D4"
+
+instance natToSymD5 :: NatToSym D5 "D5"
+
+instance natToSymD6 :: NatToSym D6 "D6"
+
+instance natToSymD7 :: NatToSym D7 "D7"
+
+instance natToSymD8 :: NatToSym D8 "D8"
+
+instance natToSymD9 :: NatToSym D9 "D9"
+
+instance natToSymDCons :: (Nat (x :* y), NatToSym x sx, NatToSym y sy, Sym.Append sx "_" s0, Sym.Append s0 sy o) => NatToSym (x :* y) o
