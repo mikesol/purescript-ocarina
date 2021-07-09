@@ -4,12 +4,15 @@
 module WAGS.CreateT where
 
 import Prelude
+
+import Prim.Symbol as Sym
 import Data.Tuple (Tuple)
+import Data.Tuple.Nested (type (/\))
 import Data.Vec as V
 import Prim.Row as R
 import Prim.RowList as RL
-import Data.Tuple.Nested(type(/\))
 import WAGS.Connect (class ConnectT)
+import WAGS.ConstructEdges (class ConstructEdgesT)
 import WAGS.Edgeable (class EdgeableT)
 import WAGS.Graph.AudioUnit as CTOR
 import WAGS.Graph.Graph (Graph)
@@ -26,9 +29,12 @@ instance createStepRLTNil :: CreateStepRLT RL.Nil suffix map r inGraph inGraph
 
 instance createStepRLTCons ::
   ( R.Cons key val ignore r
-  , EdgeableT val (node /\ { | edges })
-  , CreateT' key node graph0 graph1
-  , CreateStepT suffix map edges graph1 graph2
+  , ConstructEdgesT suffix map val newSuffix newMap (node /\ { | edges })
+  , Sym.Append suffix key newKey
+  , CreateT' newKey node graph0 graph1
+  -- push the new suffix and new map down to the edges
+  , CreateStepT newSuffix newMap edges graph1 graph2
+  -- on this level, we keep the old stuff
   , CreateStepRLT rest suffix map r graph2 graph3
   ) =>
   CreateStepRLT (RL.Cons key val rest) suffix map r graph0 graph3
