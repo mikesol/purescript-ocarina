@@ -52,12 +52,19 @@ instance connectAfterCreateTCons ::
   ) =>
   ConnectAfterCreateT (RL.Cons sym node' rest) graph0 graph3
 
-class CreateT (r :: Row Type) (inGraph :: Graph) (outGraph :: Graph) | r inGraph -> outGraph
+class CreateInternalT (suffix :: Symbol) (map :: Type) (r :: Row Type) (inGraph :: Graph) (outGraph :: Graph) | suffix map r inGraph -> outGraph
 
-instance createTAll ::
+instance createInternalTAll ::
   ( CreateStepT r inGraph midGraph
   , RL.RowToList r rl
   , ConnectAfterCreateT rl midGraph outGraph
+  ) =>
+  CreateInternalT suffix map r inGraph outGraph
+
+class CreateT (r :: Row Type) (inGraph :: Graph) (outGraph :: Graph) | r inGraph -> outGraph
+
+instance createTAll ::
+  ( CreateInternalT "" Unit r inGraph outGraph
   ) =>
   CreateT r inGraph outGraph
 

@@ -177,6 +177,40 @@ instance connectAfterCreateCons ::
 
     step3 = connectAfterCreate (step2 $> (Proxy :: _ rest))
 
+type CreateInternalSig (suffix :: Symbol) (map :: Type) (r :: Row Type) (inGraph :: Graph) (outGraph :: Graph) = forall proxySuffix proxyMap audio engine proof res.
+    AudioInterpret audio engine =>
+    proxySuffix suffix ->
+    proxyMap map ->
+    WAG
+      audio
+      engine
+      proof
+      res
+      { | inGraph }
+      { | r } ->
+    WAG
+      audio
+      engine
+      proof
+      res
+      { | outGraph }
+      Unit
+
+class CreateInternal (suffix :: Symbol) (map :: Type) (r :: Row Type) (inGraph :: Graph) (outGraph :: Graph) | suffix map r inGraph -> outGraph where
+  createInternal :: CreateInternalSig suffix map r inGraph outGraph
+
+instance createInternalAll ::
+  ( CreateStep r inGraph midGraph
+  , RL.RowToList r rl
+  , ConnectAfterCreate rl midGraph outGraph
+  ) =>
+  CreateInternal proxy suffix r inGraph outGraph where
+  createInternal _ _ r = step1
+    where
+    step0 = createStep r
+
+    step1 = connectAfterCreate (step0 $> (Proxy :: _ rl))
+
 class Create (r :: Row Type) (inGraph :: Graph) (outGraph :: Graph) | r inGraph -> outGraph where
   create ::
     forall audio engine proof res.
@@ -197,16 +231,12 @@ class Create (r :: Row Type) (inGraph :: Graph) (outGraph :: Graph) | r inGraph 
       Unit
 
 instance createAll ::
-  ( CreateStep r inGraph midGraph
-  , RL.RowToList r rl
-  , ConnectAfterCreate rl midGraph outGraph
-  ) =>
+  CreateInternal "" Unit r inGraph outGraph =>
   Create r inGraph outGraph where
-  create r = step1
-    where
-    step0 = createStep r
-
-    step1 = connectAfterCreate (step0 $> (Proxy :: _ rl))
+  create =
+    ( createInternal :: CreateInternalSig "" Unit r inGraph outGraph)
+      Proxy
+      Proxy
 
 icreate ::
   forall r audio engine proof res inGraph outGraph.
