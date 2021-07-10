@@ -110,7 +110,7 @@ testC2Cr ::
   forall (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type).
   AudioInterpret audio engine =>
   IxWAG audio engine proof res {} { | C2 } Unit
-testC2Cr = icreate (speaker (highpass 440.0 (highpass 440.0 (sinOsc 440.0))))
+testC2Cr = icreate (speaker (highpass 440.0 (highpass 440.0(sinOsc 440.0))))
 
 testC2CrT ::
   forall r (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type).
@@ -125,15 +125,16 @@ testC2CrT' ::
   forall (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type).
   AudioInterpret audio engine =>
   IxWAG audio engine proof res {} { | C2 } Unit
-testC2CrT' = testC2CrT (speaker (highpass 440.0 (highpass 440.0 (sinOsc 440.0))))
+testC2CrT' = testC2CrT (speaker (highpass 440.0 (highpass 440.0(sinOsc 440.0))))
 
 testC2Ch ::
   forall (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type).
   AudioInterpret audio engine =>
   IxWAG audio engine proof res { | C2 } { | C2 } Unit
-testC2Ch = ichange (speaker (highpass 440.0 (highpass 440.0 (sinOsc 440.0))))
+testC2Ch = ichange (speaker (highpass 440.0 (highpass 440.0(sinOsc 440.0))))
 
 ---
+
 -----
 type C3
   = ( speaker :: TSpeaker /\ { hello :: Unit, world :: Unit }
@@ -145,7 +146,7 @@ testC3Cr ::
   forall (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type).
   AudioInterpret audio engine =>
   IxWAG audio engine proof res {} { | C3 } Unit
-testC3Cr = icreate (speaker { hello: sinOsc 440.0, world: sinOsc 440.0 })
+testC3Cr = icreate (speaker { hello: sinOsc 440.0, world: sinOsc 440.0 } )
 
 testC3CrT ::
   forall r (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type).
@@ -180,7 +181,7 @@ testC4Cr ::
   forall (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type).
   AudioInterpret audio engine =>
   IxWAG audio engine proof res {} { | C4 } Unit
-testC4Cr = icreate (speaker { hello: (highpass 440.0 (sinOsc 440.0)), world: sinOsc 440.0 })
+testC4Cr = icreate (speaker { hello: (highpass 440.0 (sinOsc 440.0)), world: sinOsc 440.0 } )
 
 testC4CrT ::
   forall r (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type).
