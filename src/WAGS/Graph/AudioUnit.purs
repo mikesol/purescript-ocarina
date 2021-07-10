@@ -14,11 +14,17 @@ import Type.Proxy (Proxy(..))
 import WAGS.Edgeable (class Edgeable, withEdge)
 import WAGS.Graph.Parameter (AudioParameter_)
 
+class TypeToSym (a :: Type) (b :: Symbol) | a -> b
+
+instance typeToSymTup :: TypeToSym a c => TypeToSym (a /\ b) c
+
 -- | Term-level constructor for an allpass filter.
 -- | - `frequency` - the frequency where the phase transition occurs.
 -- | - `q` - the width of the filter.
 data Allpass frequency q
   = Allpass frequency q
+
+instance typeToSymAllpass :: TypeToSym (Allpass frequency q) "Allpass"
 
 -- | Term-level constructor for a bandpass filter.
 -- | - `frequency` - the frequency of the isolated band.
@@ -26,21 +32,29 @@ data Allpass frequency q
 data Bandpass frequency q
   = Bandpass frequency q
 
+instance typeToSymBandpass :: TypeToSym (Bandpass frequency q) "Bandpass"
+
 -- | Term-level constructor for a constant value, aka DC offset.
 -- | - `onOff` - whether the generator is on or off.
 -- | - `offset` - the amount of DC offset.
 data Constant onOff offset
   = Constant onOff offset
 
+instance typeToSymConstant :: TypeToSym (Constant onOff offset) "Constant"
+
 -- | Term-level constructor for a convolver, aka reverb.
 -- | - `buffer` - the buffer of the impulse response of the space.
 data Convolver (buffer :: Symbol)
   = Convolver (Proxy buffer)
 
+instance typeToSymConvolver :: Sym.Append "Convolver_" sym o => TypeToSym (Convolver sym) o
+
 -- | Term-level constructor for a delay unit.
 -- | - `delay` - the delay to apply.
 data Delay delay
   = Delay delay
+
+instance typeToSymDelay :: TypeToSym (Delay delay) "Delay"
 
 -- | Term-level constructor for a compressor.
 -- | - `threshold` - The threshold under which compression kicks in.
@@ -51,10 +65,14 @@ data Delay delay
 data DynamicsCompressor threshold knee ratio attack release
   = DynamicsCompressor threshold knee ratio attack release
 
+instance typeToSymDynamicsCompressor :: TypeToSym (DynamicsCompressor threshold knee ratio attack release) "DynamicsCompressor"
+
 -- | Term-level constructor for a gain unit.
 -- | - `volume` - the volume of the gain from 0 to 1.
 data Gain volume
   = Gain volume
+
+instance typeToSymGain :: TypeToSym (Gain volume) "Gain"
 
 -- | Term-level constructor for a highpass filter.
 -- | - `frequency` - the frequency below which we start to filter.
@@ -62,11 +80,15 @@ data Gain volume
 data Highpass frequency q
   = Highpass frequency q
 
+instance typeToSymHighpass :: TypeToSym (Highpass frequency q) "Highpass"
+
 -- | Term-level constructor for a highshelf filter.
 -- | - `frequency` - the frequency above which we start to filter.
 -- | - `gain` - the boost or the amount of attenuation to apply.
 data Highshelf frequency gain
   = Highshelf frequency gain
+
+instance typeToSymHighshelf :: TypeToSym (Highshelf frequency gain) "Highshelf"
 
 -- | Term-level constructor for a looping buffer.
 -- | - `buffer` - a string representing the buffer to use. Note that this string, when reset, will only reset the buffer when it is stopped.
@@ -77,11 +99,15 @@ data Highshelf frequency gain
 data LoopBuf buffer onOff playbackRate loopStart loopEnd
   = LoopBuf buffer onOff playbackRate loopStart loopEnd
 
+instance typeToSymLoopBuf :: TypeToSym (LoopBuf buffer onOff playbackRate loopStart loopEnd) "LoopBuf"
+
 -- | Term-level constructor for a lowpass filter.
 -- | - `frequency` - the frequency above which we start to filter.
 -- | - `q` - the width of the filter.
 data Lowpass frequency q
   = Lowpass frequency q
+
+instance typeToSymLowpass :: TypeToSym (Lowpass frequency q) "Lowpass"
 
 -- | Term-level constructor for a lowshelf filter.
 -- | - `frequency` - the frequency below which we start to filter.
@@ -89,15 +115,21 @@ data Lowpass frequency q
 data Lowshelf frequency gain
   = Lowshelf frequency gain
 
+instance typeToSymLowshelf :: TypeToSym (Lowshelf frequency gain) "Lowshelf"
+
 -- | Term-level constructor for a microphone
 data Microphone
   = Microphone
+
+instance typeToSymMicrophone :: TypeToSym Microphone "Microphone"
 
 -- | Term-level constructor for a notch (aka band-reject) filter.
 -- | - `frequency` - the frequency we are rejecting.
 -- | - `q` - the width of the filter.
 data Notch frequency q
   = Notch frequency q
+
+instance typeToSymNotch :: TypeToSym (Notch frequency q) "Notch"
 
 -- | Term-level constructor for a peaking filter. A peaking filter is a combination of bandpass and notch where the gain parameter modulates whether we are reinforcing or attenuating a frequency.
 -- | - `frequency` - the frequency we are emphasizing _or_ rejecting.
@@ -106,12 +138,16 @@ data Notch frequency q
 data Peaking frequency q gain
   = Peaking frequency q gain
 
+instance typeToSymPeaking :: TypeToSym (Peaking frequency q gain) "Peaking"
+
 -- | Term-level constructor for a periodic oscillator.
 -- | - `periodicOsc` - the name of the wave table we'll be using. Note that, for a chance to take effect, the periodic oscillator must be stopped.
 -- | - `onOff` - whether the generator is on or off.
 -- | - `frequency` - the frequency of the oscillator.
 data PeriodicOsc periodicOsc onOff frequency
   = PeriodicOsc periodicOsc onOff frequency
+
+instance typeToSymPeriodicOsc :: TypeToSym (PeriodicOsc periodicOsc onOff frequency) "PeriodicOsc"
 
 -- | Term-level constructor for a playback buffer.
 -- | - `buffer` - a string representing the buffer to use. Note that this string, when reset, will only reset the buffer when it is stopped.
@@ -121,10 +157,14 @@ data PeriodicOsc periodicOsc onOff frequency
 data PlayBuf buffer offset onOff playbackRate
   = PlayBuf buffer offset onOff playbackRate
 
+instance typeToSymPlayBuf :: TypeToSym (PlayBuf buffer offset onOff playbackRate) "PlayBuf"
+
 -- | Term-level constructor for a recorder.
 -- | - `recorder` - the recorder to which we write data.
 data Recorder (recorder :: Symbol)
   = Recorder (Proxy recorder)
+
+instance typeToSymRecorder :: Sym.Append "Recorder_" sym o => TypeToSym (Recorder sym) o
 
 -- | Term-level constructor for a sawtooth oscillator.
 -- | - `onOff` - whether the generator is on or off.
@@ -132,15 +172,21 @@ data Recorder (recorder :: Symbol)
 data SawtoothOsc onOff frequency
   = SawtoothOsc onOff frequency
 
+instance typeToSymSawtoothOsc :: TypeToSym (SawtoothOsc onOff frequency) "SawtoothOsc"
+
 -- | Term-level constructor for a sine-wave oscillator.
 -- | - `onOff` - whether the generator is on or off.
 -- | - `frequency` - the frequency of the oscillator.
 data SinOsc onOff frequency
   = SinOsc onOff frequency
 
+instance typeToSymSinOsc :: TypeToSym (SinOsc onOff frequency) "SinOsc"
+
 -- | Term-level constructor for a loudspeaker.
 data Speaker
   = Speaker
+
+instance typeToSymSpeaker:: TypeToSym Speaker "Speaker"
 
 -- | Term-level constructor for a square-wave oscillator.
 -- | - `onOff` - whether the generator is on or off.
@@ -148,10 +194,14 @@ data Speaker
 data SquareOsc onOff frequency
   = SquareOsc onOff frequency
 
+instance typeToSymSquareOsc :: TypeToSym (SquareOsc onOff frequency) "SquareOsc"
+
 -- | Term-level constructor for a stereo panner.
 -- | - `pan` - the amount of pan to apply, where -1.0 is fully to the left and 1.0 is fully to the right.
 data StereoPanner pan
   = StereoPanner pan
+
+instance typeToSymStereoPanner :: TypeToSym (StereoPanner pan) "StereoPanner"
 
 -- | Term-level constructor for a triangle oscillator.
 -- | - `onOff` - whether the generator is on or off.
@@ -159,11 +209,15 @@ data StereoPanner pan
 data TriangleOsc onOff frequency
   = TriangleOsc onOff frequency
 
+instance typeToSymTriangleOsc :: TypeToSym (TriangleOsc onOff frequency) "TriangleOsc"
+
 -- | Term-level constructor for a WaveShaper, aka distortion.
 -- | - `floatArray` - the shape of the distortion.
 -- | - `oversample` - how much to oversample - none, 2x or 4x. Once set, this cannot change without destroying and remaking the audio unit.
 data WaveShaper (floatArray :: Symbol) oversample
   = WaveShaper (Proxy floatArray) oversample
+
+instance typeToSymWaveShaper2x :: Sym.Append "WaveShaper_" sym o => TypeToSym (WaveShaper sym oversample) o
 
 -- | Term-level constructor for a generator being on or off
 data OnOff
@@ -218,8 +272,6 @@ instance monoidOversampleFourX :: Monoid OversampleFourX where
 
 class ReifyAU a b | a -> b where
   reifyAU :: a -> b
-
-class TypeToSym (a :: Type) (b :: Symbol) | a -> b
 
 -- | Type-level constructor for an allpass filter.
 data TAllpass

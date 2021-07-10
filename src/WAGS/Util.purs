@@ -11,6 +11,7 @@ import Prim.RowList (RowList)
 import Prim.RowList as RL
 import Prim.Symbol as Sym
 import Type.Data.Peano (Nat, Succ, Z)
+import Type.Proxy (Proxy)
 
 -- | A gate that outputs `l` as `o` if `tf` is `True` and `r` as `o`
   -- | if `tf` is `False`.
@@ -94,7 +95,7 @@ class Nat val <= AutoIncrementingInsert (key :: Type) (imap :: Type) (val :: Typ
 
 instance autoIncrementingInsertUnit :: AutoIncrementingInsert key Unit D0 ((key /\ D0) /\ Unit)
 else instance autoIncrementingInsertTupleHit :: Succ val valP1 => AutoIncrementingInsert key ((key /\ val) /\ rest) valP1 ((key /\ valP1) /\ rest)
-else instance autoIncrementingInsertTupleMiss :: AutoIncrementingInsert key rest val out => AutoIncrementingInsert key x val out
+else instance autoIncrementingInsertTupleMiss :: AutoIncrementingInsert key rest val out => AutoIncrementingInsert key (x /\ rest) val (x /\ out)
 
 class Nat n <= NatToSym (n :: Type) (s :: Symbol) | n -> s
 
@@ -119,3 +120,23 @@ instance natToSymD8 :: NatToSym D8 "D8"
 instance natToSymD9 :: NatToSym D9 "D9"
 
 instance natToSymDCons :: (Nat (x :* y), NatToSym x sx, NatToSym y sy, Sym.Append sx "_" s0, Sym.Append s0 sy o) => NatToSym (x :* y) o
+
+class MakePrefixIfNeeded (s :: Symbol) (i :: Type) (o :: Symbol) | s i -> o
+
+instance symOrBustProxy :: MakePrefixIfNeeded s (Proxy sym) sym
+
+instance symOrBustUnit :: Sym.Append s "_" o => MakePrefixIfNeeded s Unit o
+
+class CoercePrefixToString (i :: Type) (o :: Symbol) | i -> o
+
+instance symOrBust2Proxy :: CoercePrefixToString (Proxy sym) sym
+
+instance symOrBust2Unit :: CoercePrefixToString Unit ""
+
+class AddPrefixToRowList (s :: Type) (i :: RowList Type) (o :: RowList Type) | s i -> o
+
+instance sddPrefixToRowListCons :: (AddPrefixToRowList (Proxy sym) c x, Sym.Append sym a symA) => AddPrefixToRowList (Proxy sym) (RL.Cons a b c) (RL.Cons symA b x)
+
+instance sddPrefixToRowListNil :: AddPrefixToRowList (Proxy sym) RL.Nil RL.Nil
+
+instance addPrefixToRowListUnit :: AddPrefixToRowList Unit i i
