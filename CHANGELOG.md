@@ -5,13 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.3.9] - 2021-08-07
+## [0.3.10] - 2021-07-10
+
+### Added
+
+- unnamed units are now possible in create and change commands. When they exist, a name will be chosen by the compiler. The compiler tries to optimize for maximal reuse of audio units to avoid disjunction.
+
+## [0.3.9] - 2021-07-08
 
 ### Added
 
 - `startUsingWithHint` allows the quick bootstrapping of audio graphs at the beginning of a scene for instances where a fully-determined graph type is not present but a term or function producing that graph is.
 
-## [0.3.8] - 2021-08-07
+## [0.3.8] - 2021-07-08
 
 ### Added
 
