@@ -1,6 +1,7 @@
 module WAGS.Change where
 
 import Prelude
+
 import Control.Comonad (extract)
 import Data.Maybe (Maybe(..), maybe)
 import Data.Symbol (class IsSymbol, reflectSymbol)
@@ -8,11 +9,12 @@ import Data.Tuple.Nested ((/\), type (/\))
 import Data.Vec as V
 import Prim.Row as R
 import Prim.RowList as RL
+import Prim.Symbol as Sym
 import Record as Record
 import Type.Proxy (Proxy(..))
+import WAGS.ConstructEdges (class ConstructEdges, constructEdges)
 import WAGS.Control.Indexed (IxWAG(..))
 import WAGS.Control.Types (WAG, unsafeUnWAG, unsafeWAG)
-import WAGS.Edgeable (class Edgeable, withEdge)
 import WAGS.Graph.AudioUnit (OnOff, APOnOff)
 import WAGS.Graph.AudioUnit as CTOR
 import WAGS.Graph.Graph (Graph)
@@ -20,6 +22,7 @@ import WAGS.Graph.Node (NodeC)
 import WAGS.Graph.Paramable (class Paramable, paramize, class OnOffable, onOffIze)
 import WAGS.Graph.Parameter (class MM, AudioParameter, AudioParameter_, mm)
 import WAGS.Interpret (class AudioInterpret, setAttack, setBuffer, setBufferOffset, setDelay, setFrequency, setGain, setKnee, setLoopEnd, setLoopStart, setOffset, setOnOff, setPan, setPeriodicOsc, setPeriodicOscV, setPlaybackRate, setQ, setRatio, setRelease, setThreshold)
+import WAGS.Util (class MakePrefixIfNeeded, class CoercePrefixToString)
 
 apure = pure :: forall a. a -> AudioParameter_ a
 
@@ -108,11 +111,11 @@ class Change (r :: Row Type) (graph :: Graph) where
       { | graph }
       Unit
 
-class ChangeRL (rl :: RL.RowList Type) (r :: Row Type) (graph :: Graph) where
-  changeRL ::
-    forall proxy audio engine proof res.
+type ChangeInternalSig (prefix :: Type) (map :: Type) (r :: Row Type) (graph :: Graph)
+  = forall proxyPrefix proxyMap audio engine proof res.
     AudioInterpret audio engine =>
-    proxy rl ->
+    proxyPrefix prefix ->
+    proxyMap map ->
     WAG
       audio
       engine
@@ -128,53 +131,67 @@ class ChangeRL (rl :: RL.RowList Type) (r :: Row Type) (graph :: Graph) where
       { | graph }
       Unit
 
-instance changeAll :: (RL.RowToList r rl, ChangeRL rl r graph) => Change r graph where
-  change = changeRL (Proxy :: _ rl)
+class ChangeInternal (prefix :: Type) (map :: Type) (r :: Row Type) (graph :: Graph) where
+  changeInternal :: ChangeInternalSig prefix map r graph
 
-instance changeRLNil :: ChangeRL RL.Nil r graph where
-  changeRL _ r = r $> unit
+class ChangeRL (rl :: RL.RowList Type) (prefix :: Type) (map :: Type) (r :: Row Type) (graph :: Graph) where
+  changeRL ::
+    forall proxyPrefix proxyMap proxy audio engine proof res.
+    AudioInterpret audio engine =>
+    proxy rl ->
+    proxyPrefix prefix ->
+    proxyMap map ->
+    WAG
+      audio
+      engine
+      proof
+      res
+      { | graph }
+      { | r } ->
+    WAG
+      audio
+      engine
+      proof
+      res
+      { | graph }
+      Unit
 
-instance changeRLConsU :: ChangeRL (RL.Cons key Unit rest) r graph where
-  changeRL _ r = r $> unit
+instance changeInternalAll :: (RL.RowToList r rl, ChangeRL rl prefix map r graph) => ChangeInternal prefix map r graph where
+  changeInternal = changeRL (Proxy :: _ rl)
+
+instance changeAll :: ChangeInternal Unit Unit r graph => Change r graph where
+  change = changeInternal (Proxy :: _ Unit) (Proxy :: _ Unit)
+
+instance changeRLNil :: ChangeRL RL.Nil prefix map r graph where
+  changeRL _ _ _ r = r $> unit
+
+instance changeRLConsU :: ChangeRL (RL.Cons key Unit rest) prefix map r graph where
+  changeRL _ _ _ r = r $> unit
 else instance changeRLCons ::
   ( IsSymbol key
   , R.Cons key val ignore r
-  , Edgeable val (node /\ { | edges })
-  , Change' key node graph
-  , Change edges graph
-  , ChangeRL rest r graph
+  , MakePrefixIfNeeded key prefix prefix'
+  , ConstructEdges prefix' map val newPrefix newMap (node /\ { | edges })
+  , CoercePrefixToString prefix realPrefix
+  , Sym.Append realPrefix key newKey
+  , Change' newKey node graph
+  , ChangeInternal newPrefix newMap edges graph
+  , ChangeRL rest prefix map r graph
   ) =>
-  ChangeRL (RL.Cons key val rest) r graph where
-  changeRL _ r = step3
+  ChangeRL (RL.Cons key val rest) prefix map r graph where
+  changeRL _ _ _ r = step3
     where
     rx = extract r
 
-    node /\ edges = withEdge (Record.get (Proxy :: _ key) rx)
+    _ /\ _ /\ (node /\ edges) = constructEdges (Proxy :: _ prefix') (Proxy :: _ map) (Record.get (Proxy :: _ key) rx)
 
-    step1 = change' (Proxy :: _ key) (r $> node)
+    step1 = change' (Proxy :: _ newKey) (r $> node)
 
     step2 =
-      ( change ::
-          forall audio engine proof res.
-          AudioInterpret audio engine =>
-          WAG
-            audio
-            engine
-            proof
-            res
-            { | graph }
-            { | edges } ->
-          WAG
-            audio
-            engine
-            proof
-            res
-            { | graph }
-            Unit
-      )
+      (changeInternal :: ChangeInternalSig newPrefix newMap edges graph) Proxy Proxy
         (step1 $> edges)
 
-    step3 = changeRL (Proxy :: _ rest) (step2 $> rx)
+    step3 = changeRL (Proxy :: _ rest) (Proxy :: _ prefix) (Proxy :: _ map) (step2 $> rx)
 
 ichange ::
   forall r audio engine proof res inGraph.

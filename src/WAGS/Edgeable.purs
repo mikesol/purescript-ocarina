@@ -1,17 +1,21 @@
 module WAGS.Edgeable where
 
 import Prelude
-import Data.Tuple (Tuple(..))
+import Data.Tuple.Nested (type (/\), (/\))
+import Prim.Row as Row
+import Prim.Symbol as Sym
+import Type.Proxy (Proxy(..))
+import WAGS.Util (class AutoIncrementingInsert)
 
 class Edgeable a b | a -> b where
   withEdge :: a -> b
 
-instance edgeableTuple :: Edgeable (Tuple a b) (Tuple a b) where
+instance edgeableTuple :: Edgeable (a /\ b) (a /\ b) where
   withEdge = identity
-else instance edgeableRest :: Edgeable a (Tuple a {}) where
-  withEdge = flip Tuple {}
+else instance edgeableRest :: Edgeable a (a /\ {}) where
+  withEdge = flip (/\) {}
 
 class EdgeableT (a :: Type) (b :: Type) | a -> b
 
-instance edgeableTTuple :: EdgeableT (Tuple a b) (Tuple a b)
-else instance edgeableTRest :: EdgeableT a (Tuple a {})
+instance edgeableTTuple :: EdgeableT (a /\ b) (a /\ b)
+else instance edgeableTRest :: EdgeableT a (a /\ {})

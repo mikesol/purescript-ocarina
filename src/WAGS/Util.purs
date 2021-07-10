@@ -3,13 +3,15 @@ module WAGS.Util where
 
 import Prelude hiding (Ordering(..))
 
+import Data.Tuple.Nested ((/\), type (/\))
 import Data.Typelevel.Bool (True, False)
-import Data.Tuple.Nested((/\), type (/\))
+import Data.Typelevel.Num (class Nat, class Succ, D0, D1, D2, D3, D4, D5, D6, D7, D8, D9, type (:*))
 import Prim.Ordering (Ordering, LT, GT, EQ)
 import Prim.RowList (RowList)
 import Prim.RowList as RL
 import Prim.Symbol as Sym
 import Type.Data.Peano (Nat, Succ, Z)
+import Type.Proxy (Proxy)
 
 -- | A gate that outputs `l` as `o` if `tf` is `True` and `r` as `o`
   -- | if `tf` is `False`.
@@ -88,3 +90,53 @@ instance rowListEmptyCons :: RowListEmpty (RL.Cons a b c) False
 
 tmap :: forall a b. (a -> b) -> a /\ a -> b /\ b
 tmap f (a0 /\ a1) = f a0 /\ f a1
+
+class Nat val <= AutoIncrementingInsert (key :: Type) (imap :: Type) (val :: Type) (omap :: Type) | key imap -> val omap
+
+instance autoIncrementingInsertUnit :: AutoIncrementingInsert key Unit D0 ((key /\ D0) /\ Unit)
+else instance autoIncrementingInsertTupleHit :: Succ val valP1 => AutoIncrementingInsert key ((key /\ val) /\ rest) valP1 ((key /\ valP1) /\ rest)
+else instance autoIncrementingInsertTupleMiss :: AutoIncrementingInsert key rest val out => AutoIncrementingInsert key (x /\ rest) val (x /\ out)
+
+class Nat n <= NatToSym (n :: Type) (s :: Symbol) | n -> s
+
+instance natToSymD0 :: NatToSym D0 "D0"
+
+instance natToSymD1 :: NatToSym D1 "D1"
+
+instance natToSymD2 :: NatToSym D2 "D2"
+
+instance natToSymD3 :: NatToSym D3 "D3"
+
+instance natToSymD4 :: NatToSym D4 "D4"
+
+instance natToSymD5 :: NatToSym D5 "D5"
+
+instance natToSymD6 :: NatToSym D6 "D6"
+
+instance natToSymD7 :: NatToSym D7 "D7"
+
+instance natToSymD8 :: NatToSym D8 "D8"
+
+instance natToSymD9 :: NatToSym D9 "D9"
+
+instance natToSymDCons :: (Nat (x :* y), NatToSym x sx, NatToSym y sy, Sym.Append sx "_" s0, Sym.Append s0 sy o) => NatToSym (x :* y) o
+
+class MakePrefixIfNeeded (s :: Symbol) (i :: Type) (o :: Symbol) | s i -> o
+
+instance symOrBustProxy :: MakePrefixIfNeeded s (Proxy sym) sym
+
+instance symOrBustUnit :: Sym.Append s "_" o => MakePrefixIfNeeded s Unit o
+
+class CoercePrefixToString (i :: Type) (o :: Symbol) | i -> o
+
+instance symOrBust2Proxy :: CoercePrefixToString (Proxy sym) sym
+
+instance symOrBust2Unit :: CoercePrefixToString Unit ""
+
+class AddPrefixToRowList (s :: Type) (i :: RowList Type) (o :: RowList Type) | s i -> o
+
+instance sddPrefixToRowListCons :: (AddPrefixToRowList (Proxy sym) c x, Sym.Append sym a symA) => AddPrefixToRowList (Proxy sym) (RL.Cons a b c) (RL.Cons symA b x)
+
+instance sddPrefixToRowListNil :: AddPrefixToRowList (Proxy sym) RL.Nil RL.Nil
+
+instance addPrefixToRowListUnit :: AddPrefixToRowList Unit i i

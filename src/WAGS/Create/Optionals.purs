@@ -2,7 +2,6 @@
 module WAGS.Create.Optionals where
 
 import Prelude
-
 import ConvertableOptions (class ConvertOption, class ConvertOptionsWithDefaults, convertOptionsWithDefaults)
 import Data.Symbol (class IsSymbol)
 import Data.Tuple (Tuple(..))
@@ -509,6 +508,9 @@ type CLowshelf a
   = CTOR.Lowshelf AudioParameter AudioParameter /\ a
 
 --------
+microphone_ :: { microphone :: CTOR.Microphone /\ {} }
+microphone_ = { microphone: CTOR.Microphone /\ {} }
+
 microphone :: CTOR.Microphone /\ {}
 microphone = CTOR.Microphone /\ {}
 

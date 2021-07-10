@@ -4,34 +4,42 @@
 module WAGS.CreateT where
 
 import Prelude
+
 import Data.Tuple (Tuple)
+import Data.Tuple.Nested (type (/\))
 import Data.Vec as V
 import Prim.Row as R
 import Prim.RowList as RL
-import Data.Tuple.Nested(type(/\))
+import Prim.Symbol as Sym
 import WAGS.Connect (class ConnectT)
-import WAGS.Edgeable (class EdgeableT)
+import WAGS.ConstructEdges (class ConstructEdgesT)
 import WAGS.Graph.AudioUnit as CTOR
 import WAGS.Graph.Graph (Graph)
 import WAGS.Graph.Node (NodeC)
 import WAGS.Graph.Oversample (class IsOversampleT)
+import WAGS.Util (class AddPrefixToRowList, class CoercePrefixToString, class MakePrefixIfNeeded)
 
-class CreateStepT (r :: Row Type) (inGraph :: Graph) (outGraph :: Graph) | r inGraph -> outGraph
+class CreateStepT (prefix :: Type) (map :: Type) (r :: Row Type) (inGraph :: Graph) (outGraph :: Graph) | r inGraph -> outGraph
 
-class CreateStepRLT (rl :: RL.RowList Type) (r :: Row Type) (inGraph :: Graph) (outGraph :: Graph) | rl r inGraph -> outGraph
+class CreateStepRLT (rl :: RL.RowList Type) (prefix :: Type) (map :: Type) (r :: Row Type) (inGraph :: Graph) (outGraph :: Graph) | rl r inGraph -> outGraph
 
-instance createStepTAll :: (RL.RowToList r rl, CreateStepRLT rl r inGraph outGraph) => CreateStepT r inGraph outGraph
+instance createStepTAll :: (RL.RowToList r rl, CreateStepRLT rl prefix map r inGraph outGraph) => CreateStepT prefix map r inGraph outGraph
 
-instance createStepRLTNil :: CreateStepRLT RL.Nil r inGraph inGraph
+instance createStepRLTNil :: CreateStepRLT RL.Nil prefix map r inGraph inGraph
 
 instance createStepRLTCons ::
   ( R.Cons key val ignore r
-  , EdgeableT val (node /\ { | edges })
-  , CreateT' key node graph0 graph1
-  , CreateStepT edges graph1 graph2
-  , CreateStepRLT rest r graph2 graph3
+  , MakePrefixIfNeeded key prefix prefix'
+  , ConstructEdgesT prefix' map val newPrefix newMap (node /\ { | edges })
+  , CoercePrefixToString prefix realPrefix
+  , Sym.Append realPrefix key newKey
+  , CreateT' newKey node graph0 graph1
+  -- push the new prefix and new map down to the edges
+  , CreateStepT newPrefix newMap edges graph1 graph2
+  -- on this level, we keep the old stuff
+  , CreateStepRLT rest prefix map r graph2 graph3
   ) =>
-  CreateStepRLT (RL.Cons key val rest) r graph0 graph3
+  CreateStepRLT (RL.Cons key val rest) prefix map r graph0 graph3
 
 class ConnectEdgesToNodeT (sources :: RL.RowList Type) (dest :: Symbol) (inGraph :: Graph) (outGraph :: Graph) | sources dest inGraph -> outGraph
 
@@ -39,25 +47,36 @@ instance connectEdgesToNodeTNil :: ConnectEdgesToNodeT RL.Nil dest inGraph inGra
 
 instance connectEdgesToNodeTCons :: (ConnectT key dest inGraph midGraph, ConnectEdgesToNodeT rest dest midGraph outGraph) => ConnectEdgesToNodeT (RL.Cons key ignore rest) dest inGraph outGraph
 
-class ConnectAfterCreateT (rl :: RL.RowList Type) (inGraph :: Graph) (outGraph :: Graph) | rl inGraph -> outGraph
+class ConnectAfterCreateT (prefix :: Type) (map :: Type)  (rl :: RL.RowList Type) (inGraph :: Graph) (outGraph :: Graph) | rl inGraph -> outGraph
 
-instance connectAfterCreateTNil :: ConnectAfterCreateT RL.Nil graph0 graph0
+instance connectAfterCreateTNil :: ConnectAfterCreateT prefix map RL.Nil graph0 graph0
 
 instance connectAfterCreateTCons ::
-  ( EdgeableT node' (Tuple node { | edges })
+  ( MakePrefixIfNeeded sym prefix prefix'
+  , ConstructEdgesT prefix' map node' newPrefix newMap (Tuple node { | edges })
   , RL.RowToList edges edgesList
-  , ConnectEdgesToNodeT edgesList sym graph0 graph1
-  , ConnectAfterCreateT edgesList graph1 graph2
-  , ConnectAfterCreateT rest graph2 graph3
+  , CoercePrefixToString prefix realPrefix
+  , Sym.Append realPrefix sym newKey
+  , AddPrefixToRowList newPrefix edgesList oel
+  , ConnectEdgesToNodeT oel newKey graph0 graph1
+  , ConnectAfterCreateT newPrefix newMap edgesList graph1 graph2
+  , ConnectAfterCreateT prefix map rest graph2 graph3
   ) =>
-  ConnectAfterCreateT (RL.Cons sym node' rest) graph0 graph3
+  ConnectAfterCreateT prefix map (RL.Cons sym node' rest) graph0 graph3
+
+class CreateInternalT (prefix :: Type) (map :: Type) (r :: Row Type) (inGraph :: Graph) (outGraph :: Graph) | prefix map r inGraph -> outGraph
+
+instance createInternalTAll ::
+  ( CreateStepT prefix map r inGraph midGraph
+  , RL.RowToList r rl
+  , ConnectAfterCreateT prefix map rl midGraph outGraph
+  ) =>
+  CreateInternalT prefix map r inGraph outGraph
 
 class CreateT (r :: Row Type) (inGraph :: Graph) (outGraph :: Graph) | r inGraph -> outGraph
 
 instance createTAll ::
-  ( CreateStepT r inGraph midGraph
-  , RL.RowToList r rl
-  , ConnectAfterCreateT rl midGraph outGraph
+  ( CreateInternalT Unit Unit r inGraph outGraph
   ) =>
   CreateT r inGraph outGraph
 
