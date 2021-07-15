@@ -110,7 +110,7 @@ testC2Cr ::
   forall (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type).
   AudioInterpret audio engine =>
   IxWAG audio engine proof res {} { | C2 } Unit
-testC2Cr = icreate (speaker (highpass 440.0 (highpass 440.0(sinOsc 440.0))))
+testC2Cr = icreate (speaker (highpass 440.0 (highpass 440.0 (sinOsc 440.0))))
 
 testC2CrT ::
   forall r (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type).
@@ -125,16 +125,15 @@ testC2CrT' ::
   forall (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type).
   AudioInterpret audio engine =>
   IxWAG audio engine proof res {} { | C2 } Unit
-testC2CrT' = testC2CrT (speaker (highpass 440.0 (highpass 440.0(sinOsc 440.0))))
+testC2CrT' = testC2CrT (speaker (highpass 440.0 (highpass 440.0 (sinOsc 440.0))))
 
 testC2Ch ::
   forall (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type).
   AudioInterpret audio engine =>
   IxWAG audio engine proof res { | C2 } { | C2 } Unit
-testC2Ch = ichange (speaker (highpass 440.0 (highpass 440.0(sinOsc 440.0))))
+testC2Ch = ichange (speaker (highpass 440.0 (highpass 440.0 (sinOsc 440.0))))
 
 ---
-
 -----
 type C3
   = ( speaker :: TSpeaker /\ { hello :: Unit, world :: Unit }
@@ -146,7 +145,7 @@ testC3Cr ::
   forall (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type).
   AudioInterpret audio engine =>
   IxWAG audio engine proof res {} { | C3 } Unit
-testC3Cr = icreate (speaker { hello: sinOsc 440.0, world: sinOsc 440.0 } )
+testC3Cr = icreate (speaker { hello: sinOsc 440.0, world: sinOsc 440.0 })
 
 testC3CrT ::
   forall r (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type).
@@ -181,7 +180,7 @@ testC4Cr ::
   forall (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type).
   AudioInterpret audio engine =>
   IxWAG audio engine proof res {} { | C4 } Unit
-testC4Cr = icreate (speaker { hello: (highpass 440.0 (sinOsc 440.0)), world: sinOsc 440.0 } )
+testC4Cr = icreate (speaker { hello: (highpass 440.0 (sinOsc 440.0)), world: sinOsc 440.0 })
 
 testC4CrT ::
   forall r (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type).
@@ -206,30 +205,30 @@ testC4Ch = ichange (speaker { hello: (highpass 440.0 (sinOsc 440.0)), world: sin
 
 ----
 type C5
-  = ( busFor_D1hello ::
+  = ( busFor_D1_hello ::
         TGain
-          /\ { busFor_D1hello_PlayBuf_D0 :: Unit
+          /\ { busFor_D1_hello_PlayBuf_D0 :: Unit
           }
-    , busFor_D1hello_PlayBuf_D0 :: TPlayBuf /\ {}
-    , busFor_D2hello ::
+    , busFor_D1_hello_PlayBuf_D0 :: TPlayBuf /\ {}
+    , busFor_D2_hello ::
         TGain
-          /\ { busFor_D2hello_PlayBuf_D0 :: Unit
+          /\ { busFor_D2_hello_PlayBuf_D0 :: Unit
           }
-    , busFor_D2hello_PlayBuf_D0 :: TPlayBuf /\ {}
-    , busFor_D3hello ::
+    , busFor_D2_hello_PlayBuf_D0 :: TPlayBuf /\ {}
+    , busFor_D3_hello ::
         TGain
-          /\ { busFor_D3hello_PlayBuf_D0 :: Unit
+          /\ { busFor_D3_hello_PlayBuf_D0 :: Unit
           }
-    , busFor_D3hello_PlayBuf_D0 :: TPlayBuf /\ {}
+    , busFor_D3_hello_PlayBuf_D0 :: TPlayBuf /\ {}
     , speaker ::
         TSpeaker
           /\ { speaker_Gain_D0 :: Unit
           }
     , speaker_Gain_D0 ::
         TGain
-          /\ { busFor_D1hello :: Unit
-          , busFor_D2hello :: Unit
-          , busFor_D3hello :: Unit
+          /\ { busFor_D1_hello :: Unit
+          , busFor_D2_hello :: Unit
+          , busFor_D3_hello :: Unit
           }
     )
 
@@ -284,6 +283,95 @@ testC5Ch =
   ichange
     $ speaker
         ( fromTemplate (Proxy :: _ "hello") ((Vec.fill (const unit)) :: Vec.Vec D3 Unit) \_ ipt ->
+            gain 0.0
+              ( playBuf
+                  { playbackRate: 1.0
+                  , onOff: On
+                  }
+                  "hi-hat"
+              )
+        )
+
+-----
+type C6
+  = ( busFor_foo_hello ::
+        TGain
+          /\ { busFor_foo_hello_PlayBuf_D0 :: Unit
+          }
+    , busFor_foo_hello_PlayBuf_D0 :: TPlayBuf /\ {}
+    , busFor_bar_hello ::
+        TGain
+          /\ { busFor_bar_hello_PlayBuf_D0 :: Unit
+          }
+    , busFor_bar_hello_PlayBuf_D0 :: TPlayBuf /\ {}
+    , busFor_baz_hello ::
+        TGain
+          /\ { busFor_baz_hello_PlayBuf_D0 :: Unit
+          }
+    , busFor_baz_hello_PlayBuf_D0 :: TPlayBuf /\ {}
+    , speaker ::
+        TSpeaker
+          /\ { speaker_Gain_D0 :: Unit
+          }
+    , speaker_Gain_D0 ::
+        TGain
+          /\ { busFor_foo_hello :: Unit
+          , busFor_bar_hello :: Unit
+          , busFor_baz_hello :: Unit
+          }
+    )
+
+testC6Cr ::
+  forall (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type).
+  AudioInterpret audio engine =>
+  IxWAG audio engine proof res {} { | C6 } Unit
+testC6Cr =
+  icreate
+    $ speaker
+        ( fromTemplate (Proxy :: _ "hello") { foo: unit, bar: unit, baz: unit } \_ ipt ->
+            gain 0.0
+              ( playBuf
+                  { playbackRate: 1.0
+                  , onOff: On
+                  }
+                  "hi-hat"
+              )
+        )
+
+testC6CrT ::
+  forall r (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type).
+  AudioInterpret audio engine =>
+  CreateT r () C6 =>
+  Patch () C6 =>
+  { | r } ->
+  IxWAG audio engine proof res {} { | C6 } Unit
+testC6CrT _ = ipatch
+
+testC6CrT' ::
+  forall (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type).
+  AudioInterpret audio engine =>
+  IxWAG audio engine proof res {} { | C6 } Unit
+testC6CrT' =
+  testC6CrT
+    $ speaker
+        ( fromTemplate (Proxy :: _ "hello") { foo: unit, bar: unit, baz: unit } \_ ipt ->
+            gain 0.0
+              ( playBuf
+                  { playbackRate: 1.0
+                  , onOff: On
+                  }
+                  "hi-hat"
+              )
+        )
+
+testC6Ch ::
+  forall (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type).
+  AudioInterpret audio engine =>
+  IxWAG audio engine proof res { | C6 } { | C6 } Unit
+testC6Ch =
+  ichange
+    $ speaker
+        ( fromTemplate (Proxy :: _ "hello") { foo: unit, bar: unit, baz: unit } \_ ipt ->
             gain 0.0
               ( playBuf
                   { playbackRate: 1.0
