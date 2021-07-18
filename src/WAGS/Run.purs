@@ -176,6 +176,7 @@ newtype SceneI trigger world
     , time :: Number
     , sysTime :: Milliseconds
     , headroom :: Int
+    , headroomInSeconds :: Number
     }
 
 derive instance newtypeSceneI :: Newtype (SceneI trigger world) _
@@ -284,6 +285,7 @@ runInternal audioClockStart fromEvents world' currentTimeoutCanceler currentEasi
           , sysTime: fromEvents.sysTime
           , time
           , headroom
+          , headroomInSeconds
           }
         )
   audioClockAfterComputation <- getAudioClockTime nonBehavioralFFIInfo.context
