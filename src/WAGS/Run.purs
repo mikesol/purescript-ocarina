@@ -161,6 +161,10 @@ type NonBehavioralFFIInfo
 type Run res
   = { instructions :: Array Instruction
     , res :: res
+    , remainingTimeInSeconds :: Number
+    , remainingTime :: Int
+    , headroomInSeconds :: Number
+    , headroom :: Int
     }
 
 -- | The input type to a scene that is handled by `run`. Given `Event trigger` and `Behavior world`, the scene will receive:
@@ -305,17 +309,19 @@ runInternal audioClockStart fromEvents world' currentTimeoutCanceler currentEasi
     applied = map (\f -> f (unit /\ ffi)) fromScene.instructions
   renderAudio (map snd applied)
   let
-    remainingTimeInMs = floor $ 1000.0 * (audioClockPriorToComputation + headroomInSeconds - audioClockAfterComputation)
-  Ref.write (tail easingAlgNow remainingTimeInMs) currentEasingAlg
+    remainingTimeInSeconds = audioClockPriorToComputation + headroomInSeconds - audioClockAfterComputation
+    remainingTime = floor $ 1000.0 * remainingTimeInSeconds
+  Ref.write (tail easingAlgNow remainingTime) currentEasingAlg
   Ref.write
     fromScene.next
     currentScene
-  reporter { instructions: map fst applied, res: fromScene.res }
+  reporter { instructions: map fst applied
+   , res: fromScene.res, remainingTimeInSeconds, remainingTime, headroom, headroomInSeconds }
   -- we thunk the world and move on to the next event
   -- note that if we did not allocate enough time, we still
   -- set a timeout of 1 so that the canceler can run in case it needs to
   canceler <-
-    subscribe (sample_ world' (delay (max 1 remainingTimeInMs) (pure unit))) \{ world
+    subscribe (sample_ world' (delay (max 1 remainingTime) (pure unit))) \{ world
     , sysTime
     , microphone
     , recorders
