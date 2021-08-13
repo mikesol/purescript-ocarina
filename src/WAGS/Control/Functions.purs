@@ -28,6 +28,7 @@ module WAGS.Control.Functions
   ) where
 
 import Prelude
+import Data.Tuple.Nested (type (/\))
 import Control.Comonad (extract)
 import Data.Either (Either(..))
 import WAGS.Control.Indexed (IxWAG(..), IxFrame)
@@ -145,6 +146,8 @@ startUsing control next = const (ipatch $> control) @!> next
 class GraphHint (i :: Type) (o :: Row Type) | i -> o
 
 instance graphHintRec :: GraphHint { | o } o
+
+instance graphHintTuple :: GraphHint right o => GraphHint (left /\ right) o
 
 instance graphHintF :: GraphHint x o => GraphHint (y -> x) o
 
