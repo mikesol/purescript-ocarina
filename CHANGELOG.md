@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.13] - 2021-08-13
+
+### Added
+
+- hints of a graph can now include be derived from a tuple were the graph is in the functorial position
+
 ## [0.3.12] - 2021-07-18
 
 ### Added
