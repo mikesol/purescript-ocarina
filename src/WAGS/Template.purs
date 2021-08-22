@@ -57,10 +57,10 @@ instance assertHomogeneousNil :: AssertHomogeneous RowList.Nil Void
 instance assertHomogeneousCons :: AssertHomogeneous (RowList.Cons a b c) b
 
 class PoolWithTemplateVec (suffix :: Symbol) (n :: Type) (a :: Type) (g :: Type) (o :: Row Type) | suffix n a g -> o where
-  fromTemplateVec :: forall proxy. proxy suffix -> V.Vec n a -> (Int -> a -> g) -> { | o }
+  fromTemplateVec :: forall proxy. Int -> proxy suffix -> V.Vec n a -> (Int -> a -> g) -> { | o }
 
 instance poolWithTemplateVecD0 :: PoolWithTemplateVec suffix D0 a g () where
-  fromTemplateVec _ _ _ = {}
+  fromTemplateVec _ _ _ _ = {}
 else instance poolWithTemplateVecD ::
   ( Pred n n'
   , PoolWithTemplateVec suffix n' a g x
@@ -76,13 +76,13 @@ else instance poolWithTemplateVecD ::
   , IsSymbol sym
   ) =>
   PoolWithTemplateVec suffix n a g o where
-  fromTemplateVec px v fa =
+  fromTemplateVec total px v fa =
     let
       uc = V.uncons v
     in
       Record.insert (Proxy :: _ sym)
-        (suffixizeRec (Proxy :: _ sym') (fa (toInt' (Proxy :: _ n)) uc.head))
-        (fromTemplateVec px uc.tail fa)
+        (suffixizeRec (Proxy :: _ sym') (fa (total - (toInt' (Proxy :: _ n))) uc.head))
+        (fromTemplateVec total px uc.tail fa)
 
 class PoolWithTemplateRec (suffix :: Symbol) (rl :: RowList Type) (r :: Row Type) (a :: Type) (g :: Type) (o :: Row Type) | suffix rl r a g -> o where
   fromTemplateRec :: forall proxyS proxyRL. proxyS suffix -> proxyRL rl -> { | r } -> (String -> a -> g) -> { | o }
@@ -113,7 +113,7 @@ class PoolWithTemplate (suffix :: Symbol) (v :: Type) (g :: Type) (i :: Type) (a
   fromTemplate :: forall proxy. proxy suffix -> v -> (i -> a -> g) -> o
 
 instance poolWithTemplateVec :: (Pos n, PoolWithTemplateVec suffix n a g o) => PoolWithTemplate suffix (V.Vec n a) g Int a (Gain AudioParameter /\ { | o }) where
-  fromTemplate a b c = gain 1.0 (fromTemplateVec a b c)
+  fromTemplate a b c = gain 1.0 (fromTemplateVec (toInt' (Proxy :: _ n)) a b c)
 
 instance poolWithTemplateRec :: (RowToList r rl, AssertHomogeneous rl a, PoolWithTemplateRec suffix rl r a g o) => PoolWithTemplate suffix { | r } g String a (Gain AudioParameter /\ { | o }) where
   fromTemplate a b c = gain 1.0 (fromTemplateRec a (Proxy :: _ rl) b c)
