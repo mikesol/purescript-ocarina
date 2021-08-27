@@ -602,17 +602,17 @@ instance toGraphEffectsMakeWaveShaper :: (IsSymbol ptr, IsSymbol sym, IsOversamp
     oversample' = reflectOversample (mempty :: oversample)
 
 ipatch ::
-  forall audio engine proof res g0 g1.
+  forall assets audio engine proof res g0 g1.
   Patch g0 g1 =>
   AudioInterpret audio engine =>
-  IxWAG audio engine proof res { | g0 } { | g1 } Unit
+  IxWAG assets audio engine proof res { | g0 } { | g1 } Unit
 ipatch = IxWAG \i -> patch (i $> unit)
 
 class Patch g0 g1 where
   -- | Take any frame from `g0` to `g1`. The compiler automatically determines the necessary operations to perform the transformation.
   patch ::
-    forall audio engine proof res a.
-    AudioInterpret audio engine => WAG audio engine proof res { | g0 } a -> WAG audio engine proof res { | g1 } a
+    forall assets audio engine proof res a.
+    AudioInterpret audio engine => WAG assets audio engine proof res { | g0 } a -> WAG assets audio engine proof res { | g1 } a
 
 instance patchAll ::
   ( RowToList old oldList

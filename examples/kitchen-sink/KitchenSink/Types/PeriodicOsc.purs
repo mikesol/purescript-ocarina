@@ -1,24 +1,26 @@
 module WAGS.Example.KitchenSink.Types.PeriodicOsc where
 
 import Prelude
+
 import Data.Tuple.Nested (type (/\), (/\))
-import Data.Vec as V
 import Data.Vec ((+>))
+import Data.Vec as V
 import Math (cos, pi, pow, sin, (%))
+import Type.Proxy (Proxy(..))
 import WAGS.Change (ichange)
+import WAGS.Create.Optionals (CPeriodicOsc, periodicOsc)
 import WAGS.Example.KitchenSink.TLP.LoopSig (IxWAGSig')
 import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
 import WAGS.Example.KitchenSink.Types.Empty (TopWith)
 import WAGS.Graph.AudioUnit (OnOff(..), TPeriodicOsc)
-import WAGS.Create.Optionals (CPeriodicOsc, periodicOsc)
 
 type PeriodicOscGraph
   = TopWith { periodicOsc :: Unit }
       ( periodicOsc :: TPeriodicOsc /\ {}
       )
 
-ksPeriodicOscCreate :: { periodicOsc :: CPeriodicOsc String }
-ksPeriodicOscCreate = { periodicOsc: periodicOsc "my-wave" 440.0 }
+ksPeriodicOscCreate :: { periodicOsc :: CPeriodicOsc (Proxy "my-wave") }
+ksPeriodicOscCreate = { periodicOsc: periodicOsc (Proxy :: _ "my-wave") 440.0 }
 
 deltaKsPeriodicOsc :: forall proof. Number -> IxWAGSig' PeriodicOscGraph PeriodicOscGraph proof Unit
 deltaKsPeriodicOsc =
@@ -37,7 +39,7 @@ deltaKsPeriodicOsc =
             ichange
               { mix: 0.1 - 0.1 * (cos time)
               , periodicOsc:
-                  { waveform: "my-wave"
+                  { waveform: (Proxy :: _ "my-wave")
                   , onOff: if switchOO then On else Off
                   , freq: 440.0 + 50.0 * ((sin (rad * 1.5)) `pow` 2.0)
                   }

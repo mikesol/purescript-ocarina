@@ -91,7 +91,7 @@ data Highshelf frequency gain
 instance typeToSymHighshelf :: TypeToSym (Highshelf frequency gain) "Highshelf"
 
 -- | Term-level constructor for a looping buffer.
--- | - `buffer` - a string representing the buffer to use. Note that this string, when reset, will only reset the buffer when it is stopped.
+-- | - `buffer` - a symbol representing the buffer to use. Note that this symbol, when reset, will only reset the buffer when it is stopped.
 -- | - `onOff` - whether or not the generator is on or off.
 -- | - `playbackRate` - the playback rate.
 -- | - `loopStart` - where in the file the loop should start.
@@ -150,7 +150,7 @@ data PeriodicOsc periodicOsc onOff frequency
 instance typeToSymPeriodicOsc :: TypeToSym (PeriodicOsc periodicOsc onOff frequency) "PeriodicOsc"
 
 -- | Term-level constructor for a playback buffer.
--- | - `buffer` - a string representing the buffer to use. Note that this string, when reset, will only reset the buffer when it is stopped.
+-- | - `buffer` - a symbol representing the buffer to use. Note that this symbol, when reset, will only reset the buffer when it is stopped.
 -- | - `offset` - where in the file the playback should start.
 -- | - `onOff` - whether or not the generator is on or off.
 -- | - `playbackRate` - the playback rate.

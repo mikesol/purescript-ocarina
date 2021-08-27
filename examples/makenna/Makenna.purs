@@ -1,7 +1,6 @@
 module WAGS.Example.Makenna where
 
 import Prelude
-
 import Control.Applicative.Indexed (ipure)
 import Control.Comonad.Cofree (Cofree, mkCofree)
 import Control.Plus (empty)
@@ -28,6 +27,8 @@ import Halogen.HTML.Properties as HP
 import Halogen.VDom.Driver (runUI)
 import Heterogeneous.Mapping (hmap)
 import Math (pow)
+import Record as Record
+import Type.Proxy (Proxy(..))
 import WAGS.Change (ichange)
 import WAGS.Control.Functions.Validated (iloop, (@!>))
 import WAGS.Control.Indexed (IxFrame)
@@ -36,9 +37,16 @@ import WAGS.Create (icreate)
 import WAGS.Create.Optionals (CPeriodicOsc, CSpeaker, CGain, gain, periodicOsc, speaker)
 import WAGS.Graph.AudioUnit (TGain, TPeriodicOsc, TSpeaker)
 import WAGS.Graph.Parameter (ff)
-import WAGS.Interpret (AudioContext, FFIAudio(..), close, context, defaultFFIAudio, makePeriodicWave, makeUnitCache)
+import WAGS.Interpret (AudioContext, BrowserPeriodicWave, close, context, defaultFFIAudio, makePeriodicWave, makeUnitCache)
 import WAGS.Math (calcSlope)
 import WAGS.Run (RunAudio, RunEngine, SceneI(..), run)
+
+type Assets
+  = ( periodicWaves :: { bday :: BrowserPeriodicWave }
+    , buffers :: {}
+    , floatArrays :: {}
+    , recorders :: {}
+    )
 
 type Note
   = Number /\ Maybe Number
@@ -130,7 +138,7 @@ asdr t d
 
 type SceneTemplate
   = CSpeaker
-      { gain :: CGain { osc :: CPeriodicOsc String }
+      { gain :: CGain { osc :: CPeriodicOsc (Proxy "bday") }
       }
 
 type SceneType
@@ -145,13 +153,13 @@ scene time ({ start, dur } /\ pitch) to =
     { gain:
         gain
           (ff to $ pure (maybe 0.0 (const $ asdr (time - start) dur) pitch))
-          { osc: periodicOsc "bday" (ff to $ pure (midiToCps (fromMaybe 60.0 pitch))) }
+          { osc: periodicOsc (Proxy :: _ "bday") (ff to $ pure (midiToCps (fromMaybe 60.0 pitch))) }
     }
 
-createFrame :: IxFrame (SceneI Unit Unit) RunAudio RunEngine Frame0 Unit {} SceneType (List EnrichedNote)
+createFrame :: IxFrame (SceneI Unit Unit) Assets RunAudio RunEngine Frame0 Unit {} SceneType (List EnrichedNote)
 createFrame (SceneI { time }) = icreate (scene time (inTempo rest0) 0.0) $> L.fromFoldable score''
 
-piece :: Scene (SceneI Unit Unit) RunAudio RunEngine Frame0 Unit
+piece :: Scene (SceneI Unit Unit) Assets RunAudio RunEngine Frame0 Unit
 piece =
   createFrame
     @!> iloop \(SceneI { time }) l ->
@@ -231,16 +239,10 @@ handleAction = case _ of
             (0.02 +> 0.3 +> -0.1 +> -0.25 +> V.empty)
             (-0.03 +> -0.25 +> 0.05 +> 0.2 +> V.empty)
         let
-          ffiAudio =
-            (defaultFFIAudio audioCtx unitCache)
-              { periodicWaves = pure (O.singleton "bday" bday)
-              }
+          ffiAudio = Record.set (Proxy :: _ "periodicWaves") (pure { bday }) (defaultFFIAudio audioCtx unitCache)
         unsubscribe <-
           subscribe
-            ( run (pure unit) (pure unit) { easingAlgorithm }
-                (FFIAudio ffiAudio)
-                piece
-            )
+            (run (pure unit) (pure unit) { easingAlgorithm } ffiAudio piece)
             (const $ pure unit)
         pure { unsubscribe, audioCtx }
     H.modify_ _ { unsubscribe = unsubscribe, audioCtx = Just audioCtx }

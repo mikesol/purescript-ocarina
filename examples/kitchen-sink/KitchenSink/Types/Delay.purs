@@ -3,6 +3,8 @@ module WAGS.Example.KitchenSink.Types.Delay where
 import Prelude
 import Data.Tuple.Nested (type (/\))
 import Math ((%))
+import Record as Record
+import Type.Proxy (Proxy(..))
 import WAGS.Change (ichange)
 import WAGS.Create.Optionals (CDelay, CGain, CPlayBuf, Ref, delay, gain, playBuf, ref)
 import WAGS.Example.KitchenSink.TLP.LoopSig (IxWAGSig')
@@ -18,11 +20,11 @@ type DelayGraph
       , buf :: TPlayBuf /\ {}
       )
 
-ksDelayCreate :: { dmix :: CGain { delay :: CDelay { buf :: CPlayBuf }, buf :: Ref } }
+ksDelayCreate :: { dmix :: CGain { delay :: CDelay { buf :: CPlayBuf "my-buffer" }, buf :: Ref } }
 ksDelayCreate =
   { dmix:
       gain 1.0
-        { delay: delay 0.3 { buf: playBuf "my-buffer" }
+        { delay: delay 0.3 { buf: playBuf (Proxy :: _ "my-buffer") }
         , buf: ref
         }
   }
@@ -37,9 +39,19 @@ deltaKsDelay =
           switchOO = time % 2.0 < 1.0
 
           switchW = time % 4.0 < 2.0
-        in
-          ichange
+
+          changes =
             { mix: if time > (timing.ksDelay.dur - 1.0) then 0.0 else 1.0
             , delay: calcSlope 0.0 0.3 timing.ksDelay.dur 0.6 time
-            , buf: { onOff: if switchOO then On else Off, buffer: if switchW then "my-buffer" else "shruti" }
             }
+        in
+          if switchW then
+            ichange
+              $ Record.union changes
+                  { buf: { onOff: if switchOO then On else Off, buffer: Proxy :: _ "my-buffer" }
+                  }
+          else
+            ichange
+              $ Record.union changes
+                  { buf: { onOff: if switchOO then On else Off, buffer: Proxy :: _ "shruti" }
+                  }

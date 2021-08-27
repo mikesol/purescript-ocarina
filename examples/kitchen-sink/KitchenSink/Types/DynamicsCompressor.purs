@@ -3,6 +3,8 @@ module WAGS.Example.KitchenSink.Types.DynamicsCompressor where
 import Prelude
 import Data.Tuple.Nested (type (/\))
 import Math ((%))
+import Record as Record
+import Type.Proxy (Proxy(..))
 import WAGS.Change (ichange)
 import WAGS.Create.Optionals (CDynamicsCompressor, CPlayBuf, compressor, playBuf)
 import WAGS.Example.KitchenSink.TLP.LoopSig (IxWAGSig')
@@ -16,8 +18,8 @@ type DynamicsCompressorGraph
       , buf :: TPlayBuf /\ {}
       )
 
-ksDynamicsCompressorCreate :: { compressor :: CDynamicsCompressor { buf :: CPlayBuf } }
-ksDynamicsCompressorCreate = { compressor: compressor {} { buf: playBuf "my-buffer" } }
+ksDynamicsCompressorCreate :: { compressor :: CDynamicsCompressor { buf :: CPlayBuf "my-buffer" } }
+ksDynamicsCompressorCreate = { compressor: compressor {} { buf: playBuf (Proxy :: _ "my-buffer") } }
 
 deltaKsDynamicsCompressor :: forall proof. Number -> IxWAGSig' DynamicsCompressorGraph DynamicsCompressorGraph proof Unit
 deltaKsDynamicsCompressor =
@@ -29,8 +31,8 @@ deltaKsDynamicsCompressor =
           switchOO = time % 2.0 < 1.0
 
           switchW = time % 4.0 < 2.0
-        in
-          ichange
+
+          changes =
             { mix: if time > (timing.ksDynamicsCompressor.dur - 1.0) then 0.0 else 1.0
             , compressor:
                 { threshold: if time > (dur / 2.0) then -50.0 else -40.0
@@ -39,7 +41,18 @@ deltaKsDynamicsCompressor =
                 , attack: if time > (dur / 5.0) then 0.003 else 0.005
                 , release: if time > (dur / 6.0) then 0.25 else 0.5
                 }
-            , buf: { onOff: if switchOO then On else Off, buffer: if switchW then "my-buffer" else "shruti" }
             }
+        in
+          if switchW then
+            ichange
+              $ Record.union
+                  changes
+                  { buf: { onOff: if switchOO then On else Off, buffer: Proxy :: _ "my-buffer" }
+                  }
+          else
+            ichange
+              $ Record.union changes
+                  { buf: { onOff: if switchOO then On else Off, buffer: Proxy :: _ "shruti" }
+                  }
   where
   dur = timing.ksDynamicsCompressor.dur

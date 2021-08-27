@@ -7,6 +7,7 @@ import Control.Monad.Indexed.Qualified as Ix
 import Control.Plus (empty)
 import Data.Either (Either(..))
 import Math ((%))
+import Type.Proxy (Proxy(..))
 import WAGS.Change (ichange)
 import WAGS.Control.Functions (ibranch, icont)
 import WAGS.Example.KitchenSink.TLP.Convolver (doConvolver)
@@ -29,4 +30,4 @@ doSawtoothOsc =
         ipure lsig
     else
       Left
-        $ icont doConvolver (ipatch :*> ichange { buf: {buffer: "my-buffer", onOff: On } } $> lsig)
+        $ icont doConvolver (ipatch :*> ichange { buf: {buffer: (Proxy :: _ "my-buffer"), onOff: On } } $> lsig)

@@ -6,7 +6,6 @@ import Control.Promise (toAffE)
 import Data.Array ((..))
 import Data.Foldable (for_)
 import Data.Int (toNumber)
-import Data.Tuple.Nested ((/\))
 import Data.Maybe (Maybe(..), maybe)
 import Data.Nullable (toNullable)
 import Data.Vec ((+>), empty)
@@ -14,7 +13,6 @@ import Effect (Effect)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect)
 import FRP.Event (subscribe)
-import Foreign.Object as O
 import Halogen (SubscriptionId)
 import Halogen as H
 import Halogen.Aff (awaitBody, runHalogenAff)
@@ -25,7 +23,7 @@ import Halogen.Subscription as HS
 import Halogen.VDom.Driver (runUI)
 import Math (abs, pi)
 import WAGS.Example.KitchenSink.Piece (piece)
-import WAGS.Interpret (AudioContext, BrowserAudioBuffer, FFIAudio(..), close, context, decodeAudioDataFromUri, defaultFFIAudio, getMicrophoneAndCamera, makeFloatArray, makePeriodicWave, makeUnitCache, mediaRecorderToUrl)
+import WAGS.Interpret (AudioContext, BrowserAudioBuffer, close, context, decodeAudioDataFromUri, getMicrophoneAndCamera, makeFloatArray, makePeriodicWave, makeUnitCache, mediaRecorderToUrl)
 import WAGS.Run (Run, run)
 
 makeDistortionCurve :: Number -> Array Number
@@ -133,19 +131,20 @@ handleAction = case _ of
     reverb <- fetchBuffer audioCtx "https://freesound.org/data/previews/555/555786_10147844-hq.mp3"
     let
       ffiAudio =
-        (defaultFFIAudio audioCtx unitCache)
-          { periodicWaves = pure $ O.fromFoldable [ "my-wave" /\ myWave ]
-          , buffers =
+        { context: audioCtx
+        , writeHead: 0.0
+        , units: unitCache
+        , microphone: pure $ toNullable microphone
+        , recorders: pure { "my-recorder": recorder }
+        , buffers:
             pure
-              $ O.fromFoldable
-                  [ "my-buffer" /\ chimes
-                  , "shruti" /\ shruti
-                  , "reverb" /\ reverb
-                  ]
-          , floatArrays = pure $ O.singleton "my-waveshaper" wicked
-          , recorders = pure $ O.singleton "my-recorder" recorder
-          , microphone = pure $ toNullable microphone
-          }
+              { "my-buffer": chimes
+              , "shruti": shruti
+              , "reverb": reverb
+              }
+        , floatArrays: pure { "my-waveshaper": wicked }
+        , periodicWaves: pure { "my-wave": myWave }
+        }
     unsubscribeFromWAGS <-
       H.liftEffect
         $ subscribe
@@ -153,7 +152,7 @@ handleAction = case _ of
                 (pure unit)
                 (pure unit)
                 { easingAlgorithm }
-                (FFIAudio ffiAudio)
+                (ffiAudio)
                 piece
             )
             (HS.notify listener <<< ReportGraph)

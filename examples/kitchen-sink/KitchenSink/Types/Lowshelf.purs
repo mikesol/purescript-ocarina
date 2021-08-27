@@ -1,8 +1,10 @@
 module WAGS.Example.KitchenSink.Types.Lowshelf where
 
 import Prelude
+
 import Data.Tuple.Nested (type (/\))
 import Math ((%))
+import Type.Proxy (Proxy(..))
 import WAGS.Change (ichange)
 import WAGS.Create.Optionals (CLowshelf, CPlayBuf, lowshelf, playBuf)
 import WAGS.Example.KitchenSink.TLP.LoopSig (IxWAGSig')
@@ -17,8 +19,8 @@ type LowshelfGraph
       , buf :: TPlayBuf /\ {}
       )
 
-ksLowshelfCreate :: { lowshelf :: CLowshelf { buf :: CPlayBuf } }
-ksLowshelfCreate = { lowshelf: lowshelf { freq: 300.0 } { buf: playBuf "my-buffer" } }
+ksLowshelfCreate :: { lowshelf :: CLowshelf { buf :: CPlayBuf "my-buffer" } }
+ksLowshelfCreate = { lowshelf: lowshelf { freq: 300.0 } { buf: playBuf (Proxy :: _ "my-buffer") } }
 
 deltaKsLowshelf :: forall proof. Number -> IxWAGSig' LowshelfGraph LowshelfGraph proof Unit
 deltaKsLowshelf =
@@ -30,9 +32,18 @@ deltaKsLowshelf =
           switchOO = time % 2.0 < 1.0
 
           switchW = time % 4.0 < 2.0
+
+          mix = if time > (timing.ksLowshelf.dur - 1.0) then 0.0 else 1.0
+
+          lowshelf = calcSlope 0.0 300.0 timing.ksLowshelf.dur 2000.0 time
+
+          onOff = if switchOO then On else Off
         in
-          ichange
-            { mix: if time > (timing.ksLowshelf.dur - 1.0) then 0.0 else 1.0
-            , lowshelf: calcSlope 0.0 300.0 timing.ksLowshelf.dur 2000.0 time
-            , buf: { onOff: if switchOO then On else Off, buffer: if switchW then "my-buffer" else "shruti" }
-            }
+          if switchW then
+            ichange
+              { mix, lowshelf, buf: { onOff, buffer: Proxy :: _ "my-buffer" }
+              }
+          else
+            ichange
+              { mix, lowshelf, buf: { onOff, buffer: Proxy :: _ "shruti" }
+              }

@@ -17,8 +17,8 @@ testPatch = do
       let
         simpleFrame =
           ( patch ::
-              WAG Unit Instruction Frame0 Unit {} Unit ->
-              WAG Unit Instruction Frame0 Unit
+              WAG () Unit Instruction Frame0 Unit {} Unit ->
+              WAG () Unit Instruction Frame0 Unit
                 { speaker :: TSpeaker /\ { sinOsc :: Unit }
                 , sinOsc :: TSinOsc /\ {}
                 }
@@ -33,8 +33,8 @@ testPatch = do
       let
         startingFrame =
           ( patch ::
-              WAG Unit Instruction Frame0 Unit {} Unit ->
-              WAG Unit Instruction Frame0 Unit
+              WAG () Unit Instruction Frame0 Unit {} Unit ->
+              WAG () Unit Instruction Frame0 Unit
                 { speaker :: TSpeaker /\ { highpass :: Unit }
                 , highpass :: THighpass /\ { sinOsc :: Unit }
                 , sinOsc :: TSinOsc /\ {}
@@ -45,13 +45,13 @@ testPatch = do
         simpleFrame =
           ( patch ::
               forall proof.
-              WAG Unit Instruction proof Unit
+              WAG () Unit Instruction proof Unit
                 { speaker :: TSpeaker /\ { highpass :: Unit }
                 , highpass :: THighpass /\ { sinOsc :: Unit }
                 , sinOsc :: TSinOsc /\ {}
                 }
                 Unit ->
-              WAG Unit Instruction proof Unit
+              WAG () Unit Instruction proof Unit
                 { speaker :: TSpeaker /\ { highpass :: Unit }
                 , highpass :: THighpass /\ { sinOsc :: Unit }
                 , sinOsc :: TSinOsc /\ {}
@@ -74,8 +74,8 @@ testPatch = do
       let
         startingFrame =
           ( patch ::
-              WAG Unit Instruction Frame0 Unit {} Unit ->
-              WAG Unit Instruction Frame0 Unit
+              WAG () Unit Instruction Frame0 Unit {} Unit ->
+              WAG () Unit Instruction Frame0 Unit
                 { speaker :: TSpeaker /\ { highpass :: Unit, sinOsc :: Unit }
                 , highpass :: THighpass /\ { sinOsc :: Unit }
                 , sinOsc :: TSinOsc /\ {}
@@ -86,13 +86,13 @@ testPatch = do
         simpleFrame =
           ( patch ::
               forall proof.
-              WAG Unit Instruction proof Unit
+              WAG () Unit Instruction proof Unit
                 { speaker :: TSpeaker /\ { highpass :: Unit, sinOsc :: Unit }
                 , highpass :: THighpass /\ { sinOsc :: Unit }
                 , sinOsc :: TSinOsc /\ {}
                 }
                 Unit ->
-              WAG Unit Instruction proof Unit
+              WAG () Unit Instruction proof Unit
                 { speaker :: TSpeaker /\ { highpass :: Unit }
                 , highpass :: THighpass /\ { sinOsc :: Unit }
                 , sinOsc :: TSinOsc /\ {}
@@ -115,10 +115,10 @@ testPatch = do
       let
         startingFrame =
           ( patch ::
-              WAG Unit Instruction Frame0 Unit
+              WAG () Unit Instruction Frame0 Unit
                 {}
                 Unit ->
-              WAG Unit Instruction Frame0 Unit
+              WAG () Unit Instruction Frame0 Unit
                 { speaker :: TSpeaker /\ { highpass :: Unit, sinOsc :: Unit }
                 , highpass :: THighpass /\ { sinOsc :: Unit }
                 , sinOsc :: TSinOsc /\ {}
@@ -129,13 +129,13 @@ testPatch = do
         simpleFrame =
           ( patch ::
               forall proof.
-              WAG Unit Instruction proof Unit
+              WAG () Unit Instruction proof Unit
                 { speaker :: TSpeaker /\ { highpass :: Unit, sinOsc :: Unit }
                 , highpass :: THighpass /\ { sinOsc :: Unit }
                 , sinOsc :: TSinOsc /\ {}
                 }
                 Unit ->
-              WAG Unit Instruction proof Unit
+              WAG () Unit Instruction proof Unit
                 { speaker :: TSpeaker /\ { anotherOsc :: Unit }
                 , anotherOsc :: TSinOsc /\ {}
                 }
@@ -157,10 +157,10 @@ testPatch = do
       let
         startingFrame =
           ( patch ::
-              WAG Unit Instruction Frame0 Unit
+              WAG () Unit Instruction Frame0 Unit
                 {}
                 Unit ->
-              WAG Unit Instruction Frame0 Unit
+              WAG () Unit Instruction Frame0 Unit
                 { speaker :: TSpeaker /\ { highpass :: Unit, sinOsc :: Unit, lowpass :: Unit }
                 , highpass :: THighpass /\ { sinOsc :: Unit }
                 , sinOsc :: TSinOsc /\ {}
@@ -173,7 +173,7 @@ testPatch = do
         simpleFrame =
           ( patch ::
               forall proof.
-              WAG Unit Instruction proof Unit
+              WAG () Unit Instruction proof Unit
                 { speaker :: TSpeaker /\ { highpass :: Unit, sinOsc :: Unit, lowpass :: Unit }
                 , highpass :: THighpass /\ { sinOsc :: Unit }
                 , sinOsc :: TSinOsc /\ {}
@@ -181,7 +181,7 @@ testPatch = do
                 , sawtoothOsc :: TSawtoothOsc /\ {}
                 }
                 Unit ->
-              WAG Unit Instruction proof Unit
+              WAG () Unit Instruction proof Unit
                 { speaker :: TSpeaker /\ { anotherOsc :: Unit, lowpass :: Unit }
                 , anotherOsc :: TSinOsc /\ {}
                 , lowpass :: TLowpass /\ { sawtoothOsc :: Unit }

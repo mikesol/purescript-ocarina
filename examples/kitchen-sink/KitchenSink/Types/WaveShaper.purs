@@ -17,12 +17,12 @@ type WaveShaperGraph
       , buf :: TPlayBuf /\ {}
       )
 
-ksWaveShaperCreate :: { waveShaper :: CWaveShaper "my-waveshaper" OversampleTwoX { buf :: CPlayBuf } }
+ksWaveShaperCreate :: { waveShaper :: CWaveShaper "my-waveshaper" OversampleTwoX { buf :: CPlayBuf "my-buffer" } }
 ksWaveShaperCreate =
   { waveShaper:
       waveShaper (Proxy :: _ "my-waveshaper")
         OversampleTwoX
-        { buf: playBuf "my-buffer" }
+        { buf: playBuf (Proxy :: _ "my-buffer") }
   }
 
 deltaKsWaveShaper :: forall proof. Number -> IxWAGSig' WaveShaperGraph WaveShaperGraph proof Unit
@@ -35,8 +35,18 @@ deltaKsWaveShaper =
           switchOO = time % 2.0 < 1.0
 
           switchW = time % 4.0 < 2.0
+
+          mix = if time > (timing.ksWaveShaper.dur - 1.0) then 0.0 else 1.0
+
+          onOff = if switchOO then On else Off
         in
-          ichange
-            { mix: if time > (timing.ksWaveShaper.dur - 1.0) then 0.0 else 1.0
-            , buf: { onOff: if switchOO then On else Off, buffer: if switchW then "my-buffer" else "shruti" }
-            }
+          if switchW then
+            ichange
+              { mix
+              , buf: { onOff, buffer: Proxy :: _ "my-buffer" }
+              }
+          else
+            ichange
+              { mix
+              , buf: { onOff, buffer: Proxy :: _ "shruti" }
+              }

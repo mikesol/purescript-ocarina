@@ -7,6 +7,7 @@ import ConvertableOptions (class ConvertOption, class ConvertOptionsWithDefaults
 import Data.Maybe (Maybe(..))
 import Data.Tuple.Nested ((/\), type (/\))
 import Data.Vec as V
+import Type.Proxy (Proxy)
 import WAGS.Graph.AudioUnit (APOnOff, OnOff(..))
 import WAGS.Graph.AudioUnit as CTOR
 import WAGS.Graph.Paramable (class Paramable, paramize, class OnOffable, onOffIze)
@@ -324,7 +325,7 @@ type DHighshelf
 data LoopBuf
   = LoopBuf
 
-instance change_convertLoopBufBuffer :: (MM a (Maybe String)) => ConvertOption LoopBuf "buffer" a (Maybe String) where
+instance change_convertLoopBufBuffer :: (MM a (Maybe (Proxy sym))) => ConvertOption LoopBuf "buffer" a (Maybe (Proxy sym)) where
   convertOption _ _ = mm
 
 instance change_convertLoopBufPlaybackRate :: (Paramable b, MM a (Maybe b)) => ConvertOption LoopBuf "playbackRate" a (Maybe AudioParameter) where
@@ -339,18 +340,18 @@ instance change_convertLoopBufStart :: (MM a (Maybe Number)) => ConvertOption Lo
 instance change_convertLoopBufEnd :: (MM a (Maybe Number)) => ConvertOption LoopBuf "loopEnd" a (Maybe Number) where
   convertOption _ _ = mm
 
-type LoopBufOptional
-  = ( buffer :: Maybe String
+type LoopBufOptional (sym :: Symbol)
+  = ( buffer :: Maybe (Proxy sym)
     , playbackRate :: Maybe AudioParameter
     , onOff :: Maybe APOnOff
     , loopStart :: Maybe Number
     , loopEnd :: Maybe Number
     )
 
-type LoopBufAll
-  = ( | LoopBufOptional )
+type LoopBufAll sym
+  = ( | LoopBufOptional sym )
 
-defaultLoopBuf :: { | LoopBufOptional }
+defaultLoopBuf :: forall sym. { | LoopBufOptional sym }
 defaultLoopBuf = { buffer: Nothing, playbackRate: Nothing, onOff: Nothing, loopStart: Nothing, loopEnd: Nothing }
 
 class LoopBufCtor i loopBuf | i -> loopBuf where
@@ -364,14 +365,14 @@ class LoopBufCtor i loopBuf | i -> loopBuf where
   loopBuf :: i -> loopBuf
 
 instance change_loopBufCtor1 ::
-  ( ConvertOptionsWithDefaults LoopBuf { | LoopBufOptional } { | provided } { | LoopBufAll }
+  ( ConvertOptionsWithDefaults LoopBuf { | LoopBufOptional sym } { | provided } { | LoopBufAll sym }
     ) =>
-  LoopBufCtor { | provided } (CTOR.LoopBuf (Maybe String) (Maybe APOnOff) (Maybe AudioParameter) (Maybe Number) (Maybe Number)) where
+  LoopBufCtor { | provided } (CTOR.LoopBuf (Maybe (Proxy sym)) (Maybe APOnOff) (Maybe AudioParameter) (Maybe Number) (Maybe Number)) where
   loopBuf provided = CTOR.LoopBuf all.buffer all.onOff all.playbackRate all.loopStart all.loopEnd
     where
-    all :: { | LoopBufAll }
+    all :: { | LoopBufAll sym }
     all = convertOptionsWithDefaults LoopBuf defaultLoopBuf provided
-else instance change_loopBufCtor2 :: (Paramable b, MM a (Maybe b)) => LoopBufCtor a (CTOR.LoopBuf (Maybe String) (Maybe APOnOff) (Maybe AudioParameter) (Maybe Number) (Maybe Number)) where
+else instance change_loopBufCtor2 :: (Paramable b, MM a (Maybe b)) => LoopBufCtor a (CTOR.LoopBuf (Maybe (Proxy sym)) (Maybe APOnOff) (Maybe AudioParameter) (Maybe Number) (Maybe Number)) where
   loopBuf rate =
     CTOR.LoopBuf
       defaultLoopBuf.buffer
@@ -380,8 +381,8 @@ else instance change_loopBufCtor2 :: (Paramable b, MM a (Maybe b)) => LoopBufCto
       defaultLoopBuf.loopStart
       defaultLoopBuf.loopEnd
 
-type DLoopBuf
-  = CTOR.LoopBuf String (Maybe APOnOff) (Maybe AudioParameter) Number Number
+type DLoopBuf (sym :: Symbol)
+  = CTOR.LoopBuf (Proxy sym) (Maybe APOnOff) (Maybe AudioParameter) Number Number
 
 -----
 data Lowpass
@@ -562,7 +563,7 @@ type DPeaking
 ------
 class CanBeCoercedToPeriodicOsc (canBeCoercedToPeriodicOsc :: Type)
 
-instance change_canBeCoercedToPeriodicOscString :: CanBeCoercedToPeriodicOsc String
+instance change_canBeCoercedToPeriodicOscString :: CanBeCoercedToPeriodicOsc (Proxy sym)
 
 instance change_canBeCoercedToPeriodicOscV :: CanBeCoercedToPeriodicOsc (V.Vec size Number /\ V.Vec size Number)
 
@@ -616,7 +617,7 @@ type DPeriodicOsc periodicOsc
 data PlayBuf
   = PlayBuf
 
-instance change_convertPlayBufBuffer :: (MM a (Maybe String)) => ConvertOption PlayBuf "buffer" a (Maybe String) where
+instance change_convertPlayBufBuffer :: (MM a (Maybe (Proxy sym))) => ConvertOption PlayBuf "buffer" a (Maybe (Proxy sym)) where
   convertOption _ _ = mm
 
 instance change_convertPlayBufPlaybackRate :: (Paramable b, MM a (Maybe b)) => ConvertOption PlayBuf "playbackRate" a (Maybe AudioParameter) where
@@ -628,13 +629,13 @@ instance change_convertPlayBufAPOnOff :: (MM mAPOnOff (Maybe APOnOff)) => Conver
 instance change_convertPlayBufBufferOffset :: (MM mOffset (Maybe Number)) => ConvertOption PlayBuf "bufferOffset" mOffset (Maybe Number) where
   convertOption _ _ = mm
 
-type PlayBufOptional
-  = ( buffer :: Maybe String, playbackRate :: Maybe AudioParameter, onOff :: Maybe APOnOff, bufferOffset :: Maybe Number )
+type PlayBufOptional (sym :: Symbol)
+  = ( buffer :: Maybe (Proxy sym), playbackRate :: Maybe AudioParameter, onOff :: Maybe APOnOff, bufferOffset :: Maybe Number )
 
-type PlayBufAll
-  = ( | PlayBufOptional )
+type PlayBufAll (sym :: Symbol)
+  = ( | PlayBufOptional sym )
 
-defaultPlayBuf :: { | PlayBufOptional }
+defaultPlayBuf :: forall sym. { | PlayBufOptional sym }
 defaultPlayBuf = { buffer: Nothing, playbackRate: Nothing, onOff: Nothing, bufferOffset: Nothing }
 
 class PlayBufCtor i playBuf | i -> playBuf where
@@ -648,13 +649,13 @@ class PlayBufCtor i playBuf | i -> playBuf where
   playBuf :: i -> playBuf
 
 instance change_playBufCtor1 ::
-  ConvertOptionsWithDefaults PlayBuf { | PlayBufOptional } { | provided } { | PlayBufAll } =>
-  PlayBufCtor { | provided } (CTOR.PlayBuf (Maybe String) (Maybe Number) (Maybe APOnOff) (Maybe AudioParameter)) where
+  ConvertOptionsWithDefaults PlayBuf { | PlayBufOptional sym } { | provided } { | PlayBufAll sym } =>
+  PlayBufCtor { | provided } (CTOR.PlayBuf (Maybe (Proxy sym)) (Maybe Number) (Maybe APOnOff) (Maybe AudioParameter)) where
   playBuf provided = CTOR.PlayBuf all.buffer all.bufferOffset all.onOff all.playbackRate
     where
-    all :: { | PlayBufAll }
+    all :: { | PlayBufAll sym }
     all = convertOptionsWithDefaults PlayBuf defaultPlayBuf provided
-else instance change_playBufCtor2 :: (Paramable b, MM a (Maybe b)) => PlayBufCtor a (CTOR.PlayBuf (Maybe String) (Maybe Number) (Maybe APOnOff) (Maybe AudioParameter)) where
+else instance change_playBufCtor2 :: (Paramable b, MM a (Maybe b)) => PlayBufCtor a (CTOR.PlayBuf (Maybe (Proxy sym)) (Maybe Number) (Maybe APOnOff) (Maybe AudioParameter)) where
   playBuf rate =
     CTOR.PlayBuf
       defaultPlayBuf.buffer
@@ -662,8 +663,8 @@ else instance change_playBufCtor2 :: (Paramable b, MM a (Maybe b)) => PlayBufCto
       defaultPlayBuf.onOff
       (paramize <$> mm rate)
 
-type DPlayBuf
-  = CTOR.PlayBuf String Number (Maybe APOnOff) (Maybe AudioParameter)
+type DPlayBuf (sym :: Symbol)
+  = CTOR.PlayBuf (Proxy sym) Number (Maybe APOnOff) (Maybe AudioParameter)
 
 ------
 class SawtoothOscCtor i o | i -> o where

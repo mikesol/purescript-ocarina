@@ -16,7 +16,7 @@ import WAGS.Interpret (class AudioInterpret)
 import WAGS.Run (RunAudio, RunEngine, SceneI(..))
 
 playKeys ::
-  forall audio engine proof res.
+  forall assets audio engine proof res.
   Monoid res =>
   AudioInterpret audio engine =>
   { currentTime :: Number
@@ -24,7 +24,7 @@ playKeys ::
   } ->
   List KeyInfo ->
   List KeyInfo ->
-  IxWAG audio engine proof res KlavierType KlavierType Unit
+  IxWAG assets audio engine proof res KlavierType KlavierType Unit
 playKeys rec Nil Nil = ipure unit
 
 playKeys rec@{ currentTime, notesOff } Nil (a : b) = case a.k of
@@ -136,14 +136,14 @@ type Accumulator
     , availableKeys :: List Key
     }
 
-createFrame :: IxFrame (SceneI Trigger Unit) RunAudio RunEngine Frame0 Unit {} KlavierType Accumulator
+createFrame :: forall assets. IxFrame (SceneI Trigger Unit) assets RunAudio RunEngine Frame0 Unit {} KlavierType Accumulator
 createFrame _ =
   icreate fullKeyboard
     $> { currentKeys: Nil
       , availableKeys: K0 : K1 : K2 : K3 : K4 : K5 : K6 : K7 : K8 : K9 : Nil
       }
 
-piece :: { makeRenderingEnv :: MakeRenderingEnv } -> Scene (SceneI Trigger Unit) RunAudio RunEngine Frame0 Unit
+piece :: forall assets. { makeRenderingEnv :: MakeRenderingEnv } -> Scene (SceneI Trigger Unit) assets RunAudio RunEngine Frame0 Unit
 piece { makeRenderingEnv } =
   createFrame
     @!> iloop \(SceneI { time, trigger }) { currentKeys, availableKeys } -> Ix.do
