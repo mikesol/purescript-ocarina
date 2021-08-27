@@ -3,6 +3,8 @@ module WAGS.Example.KitchenSink.Types.Bandpass where
 import Prelude
 import Data.Tuple.Nested (type (/\))
 import Math ((%))
+import Record as Record
+import Type.Proxy (Proxy(..))
 import WAGS.Change (ichange)
 import WAGS.Create.Optionals (CBandpass, CPlayBuf, bandpass, playBuf)
 import WAGS.Example.KitchenSink.TLP.LoopSig (IxWAGSig')
@@ -17,8 +19,8 @@ type BandpassGraph
       , buf :: TPlayBuf /\ {}
       )
 
-ksBandpassCreate :: { bandpass :: CBandpass { buf :: CPlayBuf } }
-ksBandpassCreate = { bandpass: bandpass { freq: 300.0 } { buf: playBuf "my-buffer" } }
+ksBandpassCreate :: { bandpass :: CBandpass { buf :: CPlayBuf "my-buffer" } }
+ksBandpassCreate = { bandpass: bandpass { freq: 300.0 } { buf: playBuf (Proxy :: _ "my-buffer") } }
 
 deltaKsBandpass :: forall proof. Number -> IxWAGSig' BandpassGraph BandpassGraph proof Unit
 deltaKsBandpass =
@@ -30,9 +32,23 @@ deltaKsBandpass =
           switchOO = time % 2.0 < 1.0
 
           switchW = time % 4.0 < 2.0
-        in
-          ichange
+
+          onOff = if switchOO then On else Off
+
+          changes =
             { mix: if time > (timing.ksBandpass.dur - 1.0) then 0.0 else 1.0
             , bandpass: calcSlope 0.0 300.0 timing.ksBandpass.dur 2000.0 time
-            , buf: { onOff: if switchOO then On else Off, buffer: if switchW then "my-buffer" else "shruti" }
             }
+        in
+          if switchW then
+            ichange
+              $ Record.union
+                  changes
+                  { buf: { onOff, buffer: Proxy :: _ "my-buffer" }
+                  }
+          else
+            ichange
+              $ Record.union
+                  changes
+                  { buf: { onOff, buffer: Proxy :: _ "shruti" }
+                  }

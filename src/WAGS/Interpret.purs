@@ -6,13 +6,11 @@ module WAGS.Interpret
   , class SafeToFFI
   , AudioBuffer
   , AudioContext
-  , FFIAudioWithBehaviors
   , BrowserAudioBuffer
   , BrowserCamera
   , BrowserFloatArray
   , BrowserMicrophone
   , BrowserPeriodicWave
-  , FFIAudio(..)
   , FFIAudioSnapshot'
   , FFIAudioSnapshot(..)
   , FFINumericAudioParameter
@@ -89,7 +87,6 @@ module WAGS.Interpret
   ) where
 
 import Prelude
-
 import Control.Plus (empty)
 import Control.Promise (Promise, toAffE)
 import Data.Either (Either(..))
@@ -104,7 +101,6 @@ import Effect.Aff (Aff)
 import FRP.Behavior (Behavior)
 import Foreign (Foreign)
 import Foreign.Object (Object)
-import Foreign.Object as O
 import Unsafe.Coerce (unsafeCoerce)
 import WAGS.Graph.AudioUnit (OnOff(..), APOnOff)
 import WAGS.Graph.Parameter (AudioParameter, AudioParameter_(..))
@@ -251,6 +247,8 @@ type FFIAudioSnapshot'
     , periodicWaves :: Object BrowserPeriodicWave
     }
 
+
+{-
 type FFIAudioWithBehaviors
   = { context :: AudioContext
     , writeHead :: Number
@@ -261,26 +259,33 @@ type FFIAudioWithBehaviors
     , floatArrays :: Behavior (Object BrowserFloatArray)
     , periodicWaves :: Behavior (Object BrowserPeriodicWave)
     }
+-}
+type DefaultFFIAudioWithBehaviors
+  = { context :: AudioContext
+    , writeHead :: Number
+    , units :: Foreign
+    , microphone :: Behavior (Nullable BrowserMicrophone)
+    , recorders :: Behavior {}
+    , buffers :: Behavior {}
+    , floatArrays :: Behavior {}
+    , periodicWaves :: Behavior {}
+    }
 
 -- A default FFI audio with empty objects (ie no buffers, no microphone, etc).
-defaultFFIAudio :: AudioContext -> Foreign -> FFIAudioWithBehaviors
+defaultFFIAudio :: AudioContext -> Foreign -> DefaultFFIAudioWithBehaviors
 defaultFFIAudio audioCtx unitCache =
   { context: audioCtx
   , writeHead: 0.0
   , units: unitCache
   , microphone: pure null
-  , recorders: pure O.empty
-  , buffers: pure O.empty
-  , floatArrays: pure O.empty
-  , periodicWaves: pure O.empty
+  , recorders: pure {}
+  , buffers: pure {}
+  , floatArrays: pure {}
+  , periodicWaves: pure {}
   }
 
 -- FFIAudio as a newtype in order to use it in typeclass instances.
-newtype FFIAudio
-  = FFIAudio FFIAudioWithBehaviors
-
--- FFIAudio as a newtype in order to use it in typeclass instances.
-newtype FFIAudioSnapshot 
+newtype FFIAudioSnapshot
   = FFIAudioSnapshot FFIAudioSnapshot'
 
 -- | A class with all possible instructions for interpreting audio.

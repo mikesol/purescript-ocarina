@@ -33,6 +33,7 @@
   , "tuples"
   , "typelevel"
   , "typelevel-peano"
+  , "typelevel-prelude"
   , "unsafe-coerce"
   , "web-events"
   ]

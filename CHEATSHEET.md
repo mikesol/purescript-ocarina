@@ -18,8 +18,8 @@ import WAGS.Create.Optionals as W
 graph time = W.speaker {
   mainBus: W.gain 1.0 {
      vocals: W.gain 0.5 W.microphone_,
-     loop0: W.gain 0.2 (W.loopBuf { loopStart: 0.1, loopEnd: 0.5 } "myBuf0"),
-     loop1: W.gain 0.5 (W.highpass 2000.0 (W.loopBuf { loopStart: 0.2, loopEnd: 1.5 } "myBuf1")),
+     loop0: W.gain 0.2 (W.loopBuf { loopStart: 0.1, loopEnd: 0.5 } (Proxy :: _ "myBuf0")),
+     loop1: W.gain 0.5 (W.highpass 2000.0 (W.loopBuf { loopStart: 0.2, loopEnd: 1.5 } (Proxy :: _ "myBuf1"))),
      pad: W.gain 0.12 {
        osc0: W.sinOsc $ 220.0 + sin (pi * time * 3.0) * 10.0,
        osc1: W.sinOsc $ 350.0 + cos (pi * time * 1.3) * 20.0,
@@ -66,10 +66,10 @@ type MyGraph
     , osc :: AU.TSinOsc /\ {}
     )
 
-initialFrame :: IxWAG RunAudio RunEngine Frame0 Unit {} { | MyGraph } Unit
+initialFrame :: IxWAG () RunAudio RunEngine Frame0 Unit {} { | MyGraph } Unit
 initialFrame = ipatch
 
-piece :: Scene (SceneI Unit Unit) RunAudio RunEngine Frame0 Unit
+piece :: Scene (SceneI Unit Unit) () RunAudio RunEngine Frame0 Unit
 piece =
   (const initialFrame)
     @!> iloop \(SceneI { time }) _ -> ichange { gain: 0.2, osc: 440.0 + ((time * 15.0) % 30.0) }
@@ -80,14 +80,26 @@ piece =
 Large-scale works often need to branch between many different potential outcomes based on input like the current time, mouse clicks or MIDI instruments. Wags allows for type-safe branching using `ibranch`. Check out the `kitchen-sink` example, which makes extensive use of branching.
 
 ```purescript
+module WAGS.CheatSheet.Branching where
+
+import Prelude
+import Control.Apply.Indexed ((:*>))
+import Data.Either (Either(..))
+import Data.Tuple.Nested (type (/\))
+import Math ((%))
+import Type.Proxy (Proxy(..))
 import WAGS.Change (ichange)
 import WAGS.Control.Functions (icont)
 import WAGS.Control.Functions.Validated (ibranch, (@!>))
 import WAGS.Control.Indexed (IxWAG)
 import WAGS.Control.Types (Frame0, Scene, WAG)
 import WAGS.Graph.AudioUnit as AU
+import WAGS.Interpret (BrowserAudioBuffer)
 import WAGS.Patch (ipatch)
-import WAGS.Run (RunAudio, RunEngine, SceneI)
+import WAGS.Run (RunAudio, RunEngine, SceneI(..))
+
+type Assets
+  = ( buffers :: { "my-buffer" :: BrowserAudioBuffer } )
 
 type MyGraph1
   = ( speaker :: AU.TSpeaker /\ { gain :: Unit }
@@ -101,32 +113,39 @@ type MyGraph2
     , buf :: AU.TLoopBuf /\ {}
     )
 
-initialFrame :: IxWAG RunAudio RunEngine Frame0 Unit {} { | MyGraph1 } Number
+initialFrame :: IxWAG Assets RunAudio RunEngine Frame0 Unit {} { | MyGraph1 } Number
 initialFrame = ipatch $> 42.0
 
 branch1 ::
   forall proof.
-  WAG RunAudio RunEngine proof Unit { | MyGraph1 } Number ->
-  Scene (SceneI Unit Unit) RunAudio RunEngine proof Unit
+  WAG Assets RunAudio RunEngine proof Unit { | MyGraph1 } Number ->
+  Scene (SceneI Unit Unit) Assets RunAudio RunEngine proof Unit
 branch1 =
   ibranch \(SceneI e) a ->
     if e.time % 2.0 < 1.0 then
       Right $ ichange { osc: 330.0 } $> a
     else
-      Left $ icont branch2 (ipatch $> "hello")
+      Left $ icont branch2 (ipatch :*> ichange { buf: Proxy :: _ "my-buffer" } $> "hello")
 
 branch2 ::
   forall proof.
-  WAG RunAudio RunEngine proof Unit { | MyGraph2 } String ->
-  Scene (SceneI Unit Unit) RunAudio RunEngine proof Unit
+  WAG Assets RunAudio RunEngine proof Unit { | MyGraph2 } String ->
+  Scene (SceneI Unit Unit) Assets RunAudio RunEngine proof Unit
 branch2 =
   ibranch \(SceneI e) a ->
     if e.time % 2.0 > 1.0 then
-      Right $ ichange { buf: 10.0 } $> a
+      Right
+        $ ichange
+            { buf:
+                { playbackRate: 2.1
+                , buffer: Proxy :: _ "my-buffer"
+                }
+            }
+        $> a
     else
       Left $ icont branch1 (ipatch $> 42.0)
 
-piece :: Scene (SceneI Unit Unit) RunAudio RunEngine Frame0 Unit
+piece :: Scene (SceneI Unit Unit) Assets RunAudio RunEngine Frame0 Unit
 piece = const initialFrame @!> branch1
 ```
 
@@ -154,10 +173,10 @@ You can stock all of your audio buffers, wavetables, recorders and other assets 
     let
       ffiAudio =
         (defaultFFIAudio audioCtx unitCache)
-          { periodicWaves = O.fromFoldable [ "my-wave" /\ myWave ]
-          , buffers = O.fromFoldable [ "my-buffer" /\ chimes, "shruti" /\ shruti ]
-          , floatArrays = O.singleton "my-waveshaper" wicked
-          , recorders = O.singleton "my-recorder" recorder
+          { periodicWaves = { "my-wave": myWave }
+          , buffers = { "my-buffer": chimes, "shruti": shruti }
+          , floatArrays = { "my-waveshaper": wicked }
+          , recorders = { "my-recorder": recorder }
           , microphone = toNullable microphone
           }
 ```

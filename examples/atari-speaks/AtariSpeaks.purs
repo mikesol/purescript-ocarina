@@ -8,34 +8,42 @@ import Data.Foldable (for_)
 import Data.Functor.Indexed (ivoid)
 import Data.Maybe (Maybe(..))
 import Data.Newtype (unwrap)
+import Data.Nullable (null)
 import Data.Tuple.Nested (type (/\))
 import Effect (Effect)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect)
 import FRP.Event (subscribe)
-import Foreign.Object as O
 import Halogen as H
 import Halogen.Aff (awaitBody, runHalogenAff)
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.VDom.Driver (runUI)
 import Math (pi, sin)
+import Type.Proxy (Proxy(..))
 import WAGS.Change (ichange)
 import WAGS.Control.Functions.Validated (iloop, (@!>))
 import WAGS.Control.Types (Frame0, Scene)
 import WAGS.Create (icreate)
 import WAGS.Create.Optionals (CGain, CLoopBuf, CSpeaker, gain, loopBuf, speaker)
 import WAGS.Graph.AudioUnit (TGain, TLoopBuf, TSpeaker)
-import WAGS.Interpret (AudioContext, FFIAudio(..), close, context, decodeAudioDataFromUri, defaultFFIAudio, makeUnitCache)
+import WAGS.Interpret (AudioContext, BrowserAudioBuffer, close, context, decodeAudioDataFromUri, makeUnitCache)
 import WAGS.Run (RunAudio, RunEngine, SceneI(..), run)
+
+type Assets
+  = ( buffers :: { atar :: BrowserAudioBuffer }
+    , periodicWaves :: {}
+    , floatArrays :: {}
+    , recorders :: {}
+    )
 
 vol = 1.4 :: Number
 
 type SceneTemplate
   = CSpeaker
-      { gain0 :: CGain { loop0 :: CLoopBuf }
-      , gain1 :: CGain { loop1 :: CLoopBuf }
-      , gain2 :: CGain { loop2 :: CLoopBuf }
+      { gain0 :: CGain { loop0 :: CLoopBuf "atar" }
+      , gain1 :: CGain { loop1 :: CLoopBuf "atar" }
+      , gain2 :: CGain { loop2 :: CLoopBuf "atar" }
       }
 
 type SceneType
@@ -56,7 +64,7 @@ scene time =
     speaker
       { gain0:
           gain (0.3 * vol)
-            { loop0: loopBuf { playbackRate: 1.0 + 0.1 * sin rad } "atar"
+            { loop0: loopBuf { playbackRate: 1.0 + 0.1 * sin rad } (Proxy :: _ "atar")
             }
       , gain1:
           gain (0.15 * vol)
@@ -66,15 +74,15 @@ scene time =
                   , loopStart: 0.1 + 0.1 * sin rad
                   , loopEnd: 0.5 + 0.25 * sin (2.0 * rad)
                   }
-                  "atar"
+                  (Proxy :: _ "atar")
             }
       , gain2:
           gain (0.3 * vol)
-            { loop2: loopBuf { playbackRate: 0.25 } "atar"
+            { loop2: loopBuf { playbackRate: 0.25 } (Proxy :: _ "atar")
             }
       }
 
-piece :: Scene (SceneI Unit Unit) RunAudio RunEngine Frame0 Unit
+piece :: Scene (SceneI Unit Unit) Assets RunAudio RunEngine Frame0 Unit
 piece = (unwrap >>> _.time >>> scene >>> icreate) @!> iloop \(SceneI { time }) _ -> ivoid $ ichange (scene time)
 
 easingAlgorithm :: Cofree ((->) Int) Int
@@ -114,7 +122,7 @@ initialState _ =
   }
 
 render :: forall m. State -> H.ComponentHTML Action () m
-render state = do
+render _ = do
   HH.div_
     [ HH.h1_
         [ HH.text "Atari speaks" ]
@@ -137,11 +145,20 @@ handleAction = case _ of
             audioCtx
             "https://freesound.org/data/previews/100/100981_1234256-lq.mp3"
     let
-      ffiAudio = (defaultFFIAudio audioCtx unitCache) { buffers = pure $ O.singleton "atar" atar }
+      ffiAudio =
+        { context: audioCtx
+        , writeHead: 0.0
+        , units: unitCache
+        , microphone: pure null
+        , recorders: pure {}
+        , buffers: pure { atar }
+        , floatArrays: pure {}
+        , periodicWaves: pure {}
+        }
     unsubscribe <-
       H.liftEffect
         $ subscribe
-            (run (pure unit) (pure unit) { easingAlgorithm } (FFIAudio ffiAudio) piece)
+            (run (pure unit) (pure unit) { easingAlgorithm } (ffiAudio) piece)
             (const $ pure unit)
     H.modify_ _ { unsubscribe = unsubscribe, audioCtx = Just audioCtx }
   StopAudio -> do

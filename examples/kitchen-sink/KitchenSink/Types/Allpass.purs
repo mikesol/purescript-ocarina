@@ -3,6 +3,8 @@ module WAGS.Example.KitchenSink.Types.Allpass where
 import Prelude
 import Data.Tuple.Nested (type (/\))
 import Math ((%))
+import Record as Record
+import Type.Proxy (Proxy(..))
 import WAGS.Change (ichange)
 import WAGS.Create.Optionals (CAllpass, CPlayBuf, allpass, playBuf)
 import WAGS.Example.KitchenSink.TLP.LoopSig (IxWAGSig')
@@ -17,8 +19,8 @@ type AllpassGraph
       , buf :: TPlayBuf /\ {}
       )
 
-ksAllpassCreate :: { allpass :: CAllpass { buf :: CPlayBuf } }
-ksAllpassCreate = { allpass: allpass { freq: 300.0 } { buf: playBuf "my-buffer" } }
+ksAllpassCreate :: { allpass :: CAllpass { buf :: CPlayBuf "my-buffer"  } }
+ksAllpassCreate = { allpass: allpass { freq: 300.0 } { buf: playBuf (Proxy :: _ "my-buffer") } }
 
 deltaKsAllpass :: forall proof. Number -> IxWAGSig' AllpassGraph AllpassGraph proof Unit
 deltaKsAllpass =
@@ -30,9 +32,23 @@ deltaKsAllpass =
           switchOO = time % 2.0 < 1.0
 
           switchW = time % 4.0 < 2.0
-        in
-          ichange
+
+          changes =
             { mix: if time > (timing.ksAllpass.dur - 1.0) then 0.0 else 1.0
             , allpass: calcSlope 0.0 300.0 timing.ksAllpass.dur 2000.0 time
-            , buf: { onOff: if switchOO then On else Off, buffer: if switchW then "my-buffer" else "shruti" }
             }
+
+          onOff = if switchOO then On else Off
+        in
+          if switchW then
+            ichange
+              $ Record.union
+                  changes
+                  { buf: { onOff, buffer: Proxy :: _ "my-buffer" }
+                  }
+          else
+            ichange
+              $ Record.union
+                  changes
+                  { buf: { onOff, buffer: Proxy :: _ "shruti" }
+                  }

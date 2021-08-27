@@ -47,6 +47,6 @@ doAllpass =
             ipatch
             ichange
               { lowpass: 300.0
-              , buf: "my-buffer"
+              , buf: Proxy :: _ "my-buffer"
               }
             ipure lsig

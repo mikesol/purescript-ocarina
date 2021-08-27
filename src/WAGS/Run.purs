@@ -11,7 +11,6 @@ module WAGS.Run
   ) where
 
 import Prelude
-
 import Control.Comonad.Cofree (Cofree, head, tail)
 import Data.DateTime.Instant (Instant, unInstant)
 import Data.Foldable (for_)
@@ -31,10 +30,11 @@ import FRP.Behavior.Time (instant)
 import FRP.Event (Event, makeEvent, subscribe)
 import FRP.Event.Time (withTime, delay)
 import Foreign (Foreign)
-import Foreign.Object (Object)
+import Foreign.Object (Object, fromHomogeneous)
 import Safe.Coerce (coerce)
+import Type.Row.Homogeneous (class Homogeneous)
 import WAGS.Control.Types (Frame0, Scene, oneFrame)
-import WAGS.Interpret (AudioContext, BrowserAudioBuffer, BrowserFloatArray, BrowserMicrophone, BrowserPeriodicWave, FFIAudio(..), FFIAudioSnapshot(..), MediaRecorder, getAudioClockTime, renderAudio)
+import WAGS.Interpret (AudioContext, BrowserAudioBuffer, BrowserFloatArray, BrowserMicrophone, BrowserPeriodicWave, FFIAudioSnapshot(..), MediaRecorder, getAudioClockTime, renderAudio)
 import WAGS.Rendered (Instruction)
 
 type RunAudio
@@ -51,20 +51,36 @@ type RunEngine
 -- | - `FFIAudio` is the audio state needed for rendering
 -- | - `Scene` is the scene to render. See `SceneI` to understand how `trigger` and `world` are blended into the inptu environment going to `Scene`.
 run ::
-  forall trigger world res.
+  forall recorders buffers floatArrays periodicWaves trigger world res.
+  Homogeneous recorders (MediaRecorder -> Effect Unit) =>
+  Homogeneous buffers BrowserAudioBuffer =>
+  Homogeneous floatArrays BrowserFloatArray =>
+  Homogeneous periodicWaves BrowserPeriodicWave =>
   Monoid res =>
   Event trigger ->
   Behavior world ->
   EngineInfo ->
-  FFIAudio ->
-  Scene
-    (SceneI trigger world)
+  { context :: AudioContext
+  , writeHead :: Number
+  , units :: Foreign
+  , microphone :: Behavior (Nullable BrowserMicrophone)
+  , recorders :: Behavior { | recorders }
+  , buffers :: Behavior { | buffers }
+  , floatArrays :: Behavior { | floatArrays }
+  , periodicWaves :: Behavior { | periodicWaves }
+  } ->
+  Scene (SceneI trigger world)
+    ( buffers :: { | buffers }
+    , recorders :: { | recorders }
+    , floatArrays :: { | floatArrays }
+    , periodicWaves :: { | periodicWaves }
+    )
     RunAudio
     RunEngine
     Frame0
     res ->
   Event (Run res)
-run trigger world' engineInfo (FFIAudio audioWithBehaviors) scene =
+run trigger world' engineInfo audioWithBehaviors scene =
   makeEvent \k -> do
     audioClockStart <- getAudioClockTime audioWithBehaviors.context
     currentTimeoutCanceler <- Ref.new (pure unit :: Effect Unit)
@@ -124,12 +140,12 @@ run trigger world' engineInfo (FFIAudio audioWithBehaviors) scene =
     , periodicWaves: _
     }
       <$> world'
-      <*> (map unInstant instant)
+      <*> map unInstant instant
       <*> audioWithBehaviors.microphone
-      <*> audioWithBehaviors.recorders
-      <*> audioWithBehaviors.buffers
-      <*> audioWithBehaviors.floatArrays
-      <*> audioWithBehaviors.periodicWaves
+      <*> map fromHomogeneous audioWithBehaviors.recorders
+      <*> map fromHomogeneous audioWithBehaviors.buffers
+      <*> map fromHomogeneous audioWithBehaviors.floatArrays
+      <*> map fromHomogeneous audioWithBehaviors.periodicWaves
 
 -- | The information provided to `run` that tells the engine how to make certain rendering tradeoffs.
 type EngineInfo
@@ -175,13 +191,14 @@ type Run res
 -- | `sysTime` - the time provided by `new Date().getTime()`
 -- | `headroom` - the amount of lookahead time. If you are programming a precise rhythmic event and need the onset to occur at a specific moment, you can use `headroom` to determine if the apex should happen now or later.
 newtype SceneI trigger world
-  = SceneI { trigger :: Maybe trigger
-    , world :: world
-    , time :: Number
-    , sysTime :: Milliseconds
-    , headroom :: Int
-    , headroomInSeconds :: Number
-    }
+  = SceneI
+  { trigger :: Maybe trigger
+  , world :: world
+  , time :: Number
+  , sysTime :: Milliseconds
+  , headroom :: Int
+  , headroomInSeconds :: Number
+  }
 
 derive instance newtypeSceneI :: Newtype (SceneI trigger world) _
 
@@ -233,7 +250,7 @@ bufferToList timeToCollect incomingEvent =
   timed = withTime incomingEvent
 
 runInternal ::
-  forall trigger world res.
+  forall assets trigger world res.
   Monoid res =>
   Number ->
   { world :: world
@@ -256,14 +273,7 @@ runInternal ::
     } ->
   Ref.Ref (Effect Unit) ->
   Ref.Ref EasingAlgorithm ->
-  Ref.Ref
-    ( Scene
-        (SceneI trigger world)
-        RunAudio
-        RunEngine
-        Frame0
-        res
-    ) ->
+  Ref.Ref (Scene (SceneI trigger world) assets RunAudio RunEngine Frame0 res) ->
   NonBehavioralFFIInfo ->
   (Run res -> Effect Unit) ->
   Effect Unit
@@ -284,13 +294,14 @@ runInternal audioClockStart fromEvents world' currentTimeoutCanceler currentEasi
 
     fromScene =
       oneFrame sceneNow
-        ( coerce { world: fromEvents.world
-          , trigger: fromEvents.trigger
-          , sysTime: fromEvents.sysTime
-          , time
-          , headroom
-          , headroomInSeconds
-          }
+        ( coerce
+            { world: fromEvents.world
+            , trigger: fromEvents.trigger
+            , sysTime: fromEvents.sysTime
+            , time
+            , headroom
+            , headroomInSeconds
+            }
         )
   audioClockAfterComputation <- getAudioClockTime nonBehavioralFFIInfo.context
   let
@@ -310,13 +321,20 @@ runInternal audioClockStart fromEvents world' currentTimeoutCanceler currentEasi
   renderAudio (map snd applied)
   let
     remainingTimeInSeconds = audioClockPriorToComputation + headroomInSeconds - audioClockAfterComputation
+
     remainingTime = floor $ 1000.0 * remainingTimeInSeconds
   Ref.write (tail easingAlgNow remainingTime) currentEasingAlg
   Ref.write
     fromScene.next
     currentScene
-  reporter { instructions: map fst applied
-   , res: fromScene.res, remainingTimeInSeconds, remainingTime, headroom, headroomInSeconds }
+  reporter
+    { instructions: map fst applied
+    , res: fromScene.res
+    , remainingTimeInSeconds
+    , remainingTime
+    , headroom
+    , headroomInSeconds
+    }
   -- we thunk the world and move on to the next event
   -- note that if we did not allocate enough time, we still
   -- set a timeout of 1 so that the canceler can run in case it needs to

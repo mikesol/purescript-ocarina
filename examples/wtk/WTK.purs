@@ -20,7 +20,7 @@ import Halogen.HTML.Events as HE
 import Halogen.VDom.Driver (runUI)
 import WAGS.Example.WTK.RenderingEnv (makeRenderingEnv)
 import WAGS.Example.WTK.TLP (piece)
-import WAGS.Interpret (AudioContext, FFIAudio(..), close, context, defaultFFIAudio, makeUnitCache)
+import WAGS.Interpret (AudioContext, close, context, defaultFFIAudio, makeUnitCache)
 import WAGS.Run (bufferToList, run)
 
 easingAlgorithm :: Cofree ((->) Int) Int
@@ -86,7 +86,7 @@ handleAction = case _ of
                 trigger
                 (pure unit)
                 { easingAlgorithm }
-                (FFIAudio ffiAudio)
+                (ffiAudio)
                 (piece { makeRenderingEnv })
             )
             (const $ pure unit)

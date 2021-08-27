@@ -399,12 +399,12 @@ class LoopBufCtor i loopBuf | i -> loopBuf where
 instance loopBufCtor1 ::
   ( ConvertOptionsWithDefaults LoopBuf { | LoopBufOptional } { | provided } { | LoopBufAll }
     ) =>
-  LoopBufCtor { | provided } (String -> CTOR.LoopBuf String APOnOff AudioParameter Number Number /\ {}) where
+  LoopBufCtor { | provided } ((Proxy sym) -> CTOR.LoopBuf (Proxy sym) APOnOff AudioParameter Number Number /\ {}) where
   loopBuf provided proxy = CTOR.LoopBuf proxy all.onOff all.playbackRate all.loopStart all.loopEnd /\ {}
     where
     all :: { | LoopBufAll }
     all = convertOptionsWithDefaults LoopBuf defaultLoopBuf provided
-else instance loopBufCtor2 :: LoopBufCtor String (CTOR.LoopBuf String APOnOff AudioParameter Number Number /\ {}) where
+else instance loopBufCtor2 :: LoopBufCtor (Proxy sym) (CTOR.LoopBuf (Proxy sym) APOnOff AudioParameter Number Number /\ {}) where
   loopBuf name =
     CTOR.LoopBuf
       name
@@ -414,8 +414,8 @@ else instance loopBufCtor2 :: LoopBufCtor String (CTOR.LoopBuf String APOnOff Au
       defaultLoopBuf.loopEnd
       /\ {}
 
-type CLoopBuf
-  = CTOR.LoopBuf String APOnOff AudioParameter Number Number /\ {}
+type CLoopBuf (sym :: Symbol)
+  = CTOR.LoopBuf (Proxy sym) APOnOff AudioParameter Number Number /\ {}
 
 -----
 data Lowpass
@@ -613,7 +613,7 @@ type CPeaking a
 ------
 class CanBeCoercedToPeriodicOsc (canBeCoercedToPeriodicOsc :: Type)
 
-instance canBeCoercedToPeriodicOscString :: CanBeCoercedToPeriodicOsc String
+instance canBeCoercedToPeriodicOscProxy :: CanBeCoercedToPeriodicOsc (Proxy sym)
 
 instance canBeCoercedToPeriodicOscV :: CanBeCoercedToPeriodicOsc (V.Vec size Number /\ V.Vec size Number)
 
@@ -703,12 +703,12 @@ class PlayBufCtor i playBuf | i -> playBuf where
 
 instance playBufCtor1 ::
   ConvertOptionsWithDefaults PlayBuf { | PlayBufOptional } { | provided } { | PlayBufAll } =>
-  PlayBufCtor { | provided } (String -> CTOR.PlayBuf String Number APOnOff AudioParameter /\ {}) where
+  PlayBufCtor { | provided } ((Proxy sym) -> CTOR.PlayBuf (Proxy sym) Number APOnOff AudioParameter /\ {}) where
   playBuf provided proxy = CTOR.PlayBuf proxy all.bufferOffset all.onOff all.playbackRate /\ {}
     where
     all :: { | PlayBufAll }
     all = convertOptionsWithDefaults PlayBuf defaultPlayBuf provided
-else instance playBufCtor2 :: PlayBufCtor String (CTOR.PlayBuf String Number APOnOff AudioParameter /\ {}) where
+else instance playBufCtor2 :: PlayBufCtor (Proxy sym) (CTOR.PlayBuf (Proxy sym) Number APOnOff AudioParameter /\ {}) where
   playBuf str =
     CTOR.PlayBuf
       str
@@ -717,8 +717,8 @@ else instance playBufCtor2 :: PlayBufCtor String (CTOR.PlayBuf String Number APO
       defaultPlayBuf.playbackRate
       /\ {}
 
-type CPlayBuf
-  = CTOR.PlayBuf String Number APOnOff AudioParameter /\ {}
+type CPlayBuf (sym :: Symbol)
+  = CTOR.PlayBuf (Proxy sym) Number APOnOff AudioParameter /\ {}
 
 ------
 -- | Make a recorder.

@@ -1,8 +1,10 @@
 module WAGS.Example.KitchenSink.Types.StereoPanner where
 
 import Prelude
+
 import Data.Tuple.Nested (type (/\))
 import Math (sin, (%), pi)
+import Type.Proxy (Proxy(..))
 import WAGS.Change (ichange)
 import WAGS.Create.Optionals (CStereoPanner, CPlayBuf, pan, playBuf)
 import WAGS.Example.KitchenSink.TLP.LoopSig (IxWAGSig')
@@ -16,8 +18,8 @@ type StereoPannerGraph
       , buf :: TPlayBuf /\ {}
       )
 
-ksStereoPannerCreate :: { pan :: CStereoPanner { buf :: CPlayBuf } }
-ksStereoPannerCreate = { pan: pan 0.0 { buf: playBuf "my-buffer" } }
+ksStereoPannerCreate :: { pan :: CStereoPanner { buf :: CPlayBuf "my-buffer" } }
+ksStereoPannerCreate = { pan: pan 0.0 { buf: playBuf (Proxy :: _ "my-buffer" )} }
 
 deltaKsStereoPanner :: forall proof. Number -> IxWAGSig' StereoPannerGraph StereoPannerGraph proof Unit
 deltaKsStereoPanner =
@@ -29,9 +31,22 @@ deltaKsStereoPanner =
           switchOO = time % 2.0 < 1.0
 
           switchW = time % 4.0 < 2.0
+
+          mix = if time > (timing.ksStereoPanner.dur - 1.0) then 0.0 else 1.0
+
+          onOff = if switchOO then On else Off
+
+          pan = sin (time * pi)
         in
-          ichange
-            { mix: if time > (timing.ksStereoPanner.dur - 1.0) then 0.0 else 1.0
-            , pan: sin (time * pi)
-            , buf: { onOff: if switchOO then On else Off, buffer: if switchW then "my-buffer" else "shruti" }
-            }
+          if switchW then
+            ichange
+              { mix
+              , pan
+              , buf: { onOff, buffer: Proxy :: _ "my-buffer" }
+              }
+          else
+            ichange
+              { mix
+              , pan
+              , buf: { onOff, buffer: Proxy :: _ "shruti" }
+              }

@@ -9,6 +9,7 @@ import Data.Identity (Identity(..))
 import Data.Int (floor, toNumber)
 import Data.Maybe (Maybe(..))
 import Data.Newtype (unwrap)
+import Data.Nullable (null)
 import Data.Tuple.Nested ((/\), type (/\))
 import Effect (Effect)
 import Effect.Aff (launchAff_)
@@ -18,12 +19,12 @@ import Effect.Ref as Ref
 import FRP.Behavior (behavior)
 import FRP.Event (makeEvent, subscribe)
 import FRP.Event.Time (interval)
-import Foreign.Object as O
 import Halogen as H
 import Halogen.Aff (awaitBody, runHalogenAff)
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.VDom.Driver (runUI)
+import Type.Proxy (Proxy(..))
 import WAGS.Change (ichange)
 import WAGS.Control.Functions.Validated (iloop, (@!>))
 import WAGS.Control.Types (Frame0, Scene)
@@ -31,12 +32,19 @@ import WAGS.Create (icreate)
 import WAGS.Create.Optionals (CGain, CSpeaker, CPlayBuf, gain, speaker, playBuf)
 import WAGS.Graph.AudioUnit (OnOff(..), TGain, TLoopBuf, TSpeaker)
 import WAGS.Graph.Parameter (ff)
-import WAGS.Interpret (AudioContext, FFIAudio(..), close, context, decodeAudioDataFromUri, defaultFFIAudio, makeUnitCache)
+import WAGS.Interpret (AudioContext, BrowserAudioBuffer, close, context, decodeAudioDataFromUri, makeUnitCache)
 import WAGS.Run (RunAudio, RunEngine, SceneI(..), run)
+
+type Assets
+  = ( buffers :: { snare :: BrowserAudioBuffer }
+    , periodicWaves :: {}
+    , floatArrays :: {}
+    , recorders :: {}
+    )
 
 type SceneTemplate
   = CSpeaker
-      { gain0 :: CGain { play0 :: CPlayBuf }
+      { gain0 :: CGain { play0 :: CPlayBuf "snare" }
       }
 
 type SceneType
@@ -63,11 +71,11 @@ scene shouldReset (SceneI { time }) =
                       else
                         ff ((toNumber (tgFloor + 1) * gap) - time) (pure OffOn)
                   }
-                  "snare"
+                  (Proxy :: _ "snare")
             }
       }
 
-piece :: Scene (SceneI Unit Unit) RunAudio RunEngine Frame0 Unit
+piece :: Scene (SceneI Unit Unit) Assets RunAudio RunEngine Frame0 Unit
 piece =
   (\e -> icreate (scene false e) $> 0.0)
     @!> iloop \(SceneI e) lastCrossing ->
@@ -119,7 +127,7 @@ initialState _ =
   }
 
 render :: forall m. State -> H.ComponentHTML Action () m
-render state = do
+render _ = do
   HH.div_
     [ HH.h1_
         [ HH.text "Drum Machine" ]
@@ -179,18 +187,23 @@ handleAction = case _ of
               H.liftEffect $ Ref.write buf bf
     let
       ffiAudio =
-        (defaultFFIAudio audioCtx unitCache)
-          { buffers =
-            O.singleton "snare"
-              <$> ( behavior \eAToB ->
-                    makeEvent \fB ->
-                      subscribe eAToB \aToB -> Ref.read bf >>= fB <<< aToB
-                )
-          }
+        { context: audioCtx
+        , writeHead: 0.0
+        , units: unitCache
+        , microphone: pure null
+        , recorders: pure {}
+        , buffers:
+            { snare: _ }
+              <$> behavior \eAToB ->
+                  makeEvent \fB ->
+                    subscribe eAToB \aToB -> Ref.read bf >>= fB <<< aToB
+        , floatArrays: pure {}
+        , periodicWaves: pure {}
+        }
     unsubscribe <-
       H.liftEffect
         $ subscribe
-            (run (pure unit) (pure unit) { easingAlgorithm } (FFIAudio ffiAudio) piece)
+            (run (pure unit) (pure unit) { easingAlgorithm } (ffiAudio) piece)
             (const (pure unit)) -- (Log.info <<< show)
     H.modify_
       _

@@ -24,7 +24,7 @@ import WAGS.Control.Types (Frame0, Scene)
 import WAGS.Create (icreate)
 import WAGS.Create.Optionals (CGain, CSpeaker, CSinOsc, gain, sinOsc, speaker)
 import WAGS.Graph.AudioUnit (TGain, TSinOsc, TSpeaker)
-import WAGS.Interpret (AudioContext, FFIAudio(..), close, context, defaultFFIAudio, makeUnitCache)
+import WAGS.Interpret (AudioContext, close, context, defaultFFIAudio, makeUnitCache)
 import WAGS.Run (RunAudio, RunEngine, SceneI(..), run)
 
 type SceneTemplate
@@ -59,7 +59,7 @@ scene time =
       , gain3: gain 0.1 { sin3: sinOsc (530.0 + (19.0 * (5.0 * sin rad))) }
       }
 
-piece :: Scene (SceneI Unit Unit) RunAudio RunEngine Frame0 Unit
+piece :: forall assets. Scene (SceneI Unit Unit) assets RunAudio RunEngine Frame0 Unit
 piece = (unwrap >>> _.time >>> scene >>> icreate) @!> iloop \(SceneI { time }) _ -> ivoid $ ichange (scene time)
 
 easingAlgorithm :: Cofree ((->) Int) Int
@@ -99,7 +99,7 @@ initialState _ =
   }
 
 render :: forall m. State -> H.ComponentHTML Action () m
-render state = do
+render _ = do
   HH.div_
     [ HH.h1_
         [ HH.text "Hello world" ]
@@ -121,7 +121,7 @@ handleAction = case _ of
     unsubscribe <-
       H.liftEffect
         $ subscribe
-            (run (pure unit) (pure unit) { easingAlgorithm } (FFIAudio ffiAudio) piece)
+            (run (pure unit) (pure unit) { easingAlgorithm } ffiAudio piece)
             (const $ pure unit)
     H.modify_ _ { unsubscribe = unsubscribe, audioCtx = Just audioCtx }
   StopAudio -> do
