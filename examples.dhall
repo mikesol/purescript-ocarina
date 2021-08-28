@@ -6,9 +6,11 @@ in      conf
               conf.dependencies
             # [ "halogen"
               , "arrays"
+              , "arraybuffer"
               , "halogen-subscriptions"
               , "identity"
-              , "profunctor-lenses"
+              , "stringutils"
               , "transformers"
+              , "uint"
               ]
         }

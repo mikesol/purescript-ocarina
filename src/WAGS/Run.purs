@@ -6,6 +6,9 @@ module WAGS.Run
   , SceneI(..)
   , RunAudio
   , RunEngine
+  , class WorkWithAnalysers
+  , initializeAnalysers
+  , makeAnalyserUpdaters
   , bufferToList
   , run
   ) where
@@ -15,26 +18,36 @@ import Control.Comonad.Cofree (Cofree, head, tail)
 import Data.DateTime.Instant (Instant, unInstant)
 import Data.Foldable (for_)
 import Data.Int (floor, toNumber)
+import Data.Lens as Lens
+import Data.Lens.Record (prop)
 import Data.List (List(..))
 import Data.Maybe (Maybe(..), isNothing)
 import Data.Newtype (class Newtype)
 import Data.Nullable (Nullable)
+import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.Time.Duration (Milliseconds)
 import Data.Tuple (fst, snd)
 import Data.Tuple.Nested ((/\), type (/\))
 import Effect (Effect)
 import Effect.Ref as Ref
 import Effect.Timer (TimeoutId, clearTimeout, setTimeout)
-import FRP.Behavior (Behavior, sampleBy, sample_)
+import FRP.Behavior (Behavior, behavior, sampleBy, sample_)
 import FRP.Behavior.Time (instant)
 import FRP.Event (Event, makeEvent, subscribe)
 import FRP.Event.Time (withTime, delay)
 import Foreign (Foreign)
-import Foreign.Object (Object, fromHomogeneous)
+import Foreign.Object as O
+import Prim.Row (class Lacks)
+import Prim.Row as Row
+import Prim.RowList (class RowToList, RowList)
+import Prim.RowList as RL
+import Record as Record
 import Safe.Coerce (coerce)
+import Type.Proxy (Proxy(..))
 import Type.Row.Homogeneous (class Homogeneous)
+import Unsafe.Coerce (unsafeCoerce)
 import WAGS.Control.Types (Frame0, Scene, oneFrame)
-import WAGS.Interpret (AudioContext, BrowserAudioBuffer, BrowserFloatArray, BrowserMicrophone, BrowserPeriodicWave, FFIAudioSnapshot(..), MediaRecorder, getAudioClockTime, renderAudio)
+import WAGS.Interpret (AnalyserNode, AudioContext, BrowserAudioBuffer, BrowserFloatArray, BrowserMicrophone, BrowserPeriodicWave, FFIAudioSnapshot(..), MediaRecorder, getAudioClockTime, renderAudio)
 import WAGS.Rendered (Instruction)
 
 type RunAudio
@@ -42,6 +55,38 @@ type RunAudio
 
 type RunEngine
   = Instruction /\ Effect Unit
+
+class WorkWithAnalysers (analysersRL :: RowList Type) initializedAnalysers | analysersRL -> initializedAnalysers where
+  initializeAnalysers :: forall proxy. proxy analysersRL -> { | initializedAnalysers }
+  makeAnalyserUpdaters :: forall proxy. proxy analysersRL -> Ref.Ref { | initializedAnalysers } -> O.Object (AnalyserNode -> Effect (Effect Unit))
+
+instance workWithAnalysersNil :: WorkWithAnalysers RL.Nil () where
+  initializeAnalysers _ = {}
+  makeAnalyserUpdaters _ _ = O.empty
+
+instance workWithAnalysersCons ::
+  ( IsSymbol key
+  , Row.Cons key (Maybe AnalyserNode) initializedAnalysers' initializedAnalysers
+  , Lacks key initializedAnalysers'
+  , WorkWithAnalysers rest initializedAnalysers'
+  ) =>
+  WorkWithAnalysers (RL.Cons key (Maybe AnalyserNode) rest) initializedAnalysers where
+  initializeAnalysers _ = Record.insert (Proxy :: _ key) Nothing (initializeAnalysers (Proxy :: _ rest))
+  makeAnalyserUpdaters _ initializedAnalysers =
+    O.insert
+      (reflectSymbol (Proxy :: _ key))
+      f
+      -- unsafeCoerce safe here because use of unsafeSet in prop, which iterates over whole record
+      -- TODO: find better way to handle this?
+      (makeAnalyserUpdaters (Proxy :: _ rest) (unsafeCoerce initializedAnalysers))
+    where
+    f :: AnalyserNode -> Effect (Effect Unit)
+    f node = do
+      void $ Ref.modify (Lens.set (prop (Proxy :: _ key)) (Just node)) initializedAnalysers
+      pure (void $ Ref.modify (Lens.set (prop (Proxy :: _ key)) Nothing) initializedAnalysers)
+
+refToBehavior :: Ref.Ref ~> Behavior
+refToBehavior r = behavior \e -> makeEvent \k -> subscribe e \f -> Ref.read r >>= (k <<< f)
 
 -- | Run a scene.
 -- |
@@ -51,11 +96,13 @@ type RunEngine
 -- | - `FFIAudio` is the audio state needed for rendering
 -- | - `Scene` is the scene to render. See `SceneI` to understand how `trigger` and `world` are blended into the inptu environment going to `Scene`.
 run ::
-  forall recorders buffers floatArrays periodicWaves trigger world res.
+  forall analysersRL analysers recorders buffers floatArrays periodicWaves trigger world res.
   Homogeneous recorders (MediaRecorder -> Effect Unit) =>
   Homogeneous buffers BrowserAudioBuffer =>
   Homogeneous floatArrays BrowserFloatArray =>
   Homogeneous periodicWaves BrowserPeriodicWave =>
+  RowToList analysers analysersRL =>
+  WorkWithAnalysers analysersRL analysers =>
   Monoid res =>
   Event trigger ->
   Behavior world ->
@@ -74,24 +121,46 @@ run ::
     , recorders :: { | recorders }
     , floatArrays :: { | floatArrays }
     , periodicWaves :: { | periodicWaves }
+    , analysers :: { | analysers }
     )
     RunAudio
     RunEngine
     Frame0
     res ->
-  Event (Run res)
+  Event (Run res analysers)
 run trigger world' engineInfo audioWithBehaviors scene =
   makeEvent \k -> do
+    refForAnalysers <- Ref.new (initializeAnalysers (Proxy :: _ analysersRL))
     audioClockStart <- getAudioClockTime audioWithBehaviors.context
     currentTimeoutCanceler <- Ref.new (pure unit :: Effect Unit)
     currentScene <- Ref.new scene
     currentEasingAlg <- Ref.new engineInfo.easingAlgorithm
     let
+      newWorld =
+        { world: _
+        , sysTime: _
+        , microphone: _
+        , analysers: _
+        , recorders: _
+        , buffers: _
+        , floatArrays: _
+        , periodicWaves: _
+        }
+          <$> world'
+          <*> map unInstant instant
+          <*> audioWithBehaviors.microphone
+          <*> refToBehavior refForAnalysers
+          <*> map O.fromHomogeneous audioWithBehaviors.recorders
+          <*> map O.fromHomogeneous audioWithBehaviors.buffers
+          <*> map O.fromHomogeneous audioWithBehaviors.floatArrays
+          <*> map O.fromHomogeneous audioWithBehaviors.periodicWaves
+
       eventAndEnv =
         sampleBy
           ( \{ world
             , sysTime
             , microphone
+            , analysers
             , recorders
             , buffers
             , floatArrays
@@ -101,6 +170,7 @@ run trigger world' engineInfo audioWithBehaviors scene =
               , world
               , sysTime
               , microphone
+              , analysers
               , recorders
               , buffers
               , floatArrays
@@ -120,6 +190,7 @@ run trigger world' engineInfo audioWithBehaviors scene =
           currentTimeoutCanceler
           currentEasingAlg
           currentScene
+          (makeAnalyserUpdaters (Proxy :: _ analysersRL) refForAnalysers)
           { context: audioWithBehaviors.context
           , units: audioWithBehaviors.units
           , writeHead: audioWithBehaviors.writeHead
@@ -129,23 +200,6 @@ run trigger world' engineInfo audioWithBehaviors scene =
       cancelTimeout <- Ref.read currentTimeoutCanceler
       cancelTimeout
       unsubscribe
-  where
-  newWorld =
-    { world: _
-    , sysTime: _
-    , microphone: _
-    , recorders: _
-    , buffers: _
-    , floatArrays: _
-    , periodicWaves: _
-    }
-      <$> world'
-      <*> map unInstant instant
-      <*> audioWithBehaviors.microphone
-      <*> map fromHomogeneous audioWithBehaviors.recorders
-      <*> map fromHomogeneous audioWithBehaviors.buffers
-      <*> map fromHomogeneous audioWithBehaviors.floatArrays
-      <*> map fromHomogeneous audioWithBehaviors.periodicWaves
 
 -- | The information provided to `run` that tells the engine how to make certain rendering tradeoffs.
 type EngineInfo
@@ -174,13 +228,14 @@ type NonBehavioralFFIInfo
     , units :: Foreign
     }
 
-type Run res
+type Run res analysers
   = { instructions :: Array Instruction
     , res :: res
     , remainingTimeInSeconds :: Number
     , remainingTime :: Int
     , headroomInSeconds :: Number
     , headroom :: Int
+    , analysers :: { | analysers }
     }
 
 -- | The input type to a scene that is handled by `run`. Given `Event trigger` and `Behavior world`, the scene will receive:
@@ -250,34 +305,37 @@ bufferToList timeToCollect incomingEvent =
   timed = withTime incomingEvent
 
 runInternal ::
-  forall assets trigger world res.
+  forall analysers assets trigger world res.
   Monoid res =>
   Number ->
   { world :: world
   , trigger :: Maybe trigger
   , sysTime :: Milliseconds
   , microphone :: Nullable BrowserMicrophone
-  , recorders :: Object (MediaRecorder -> Effect Unit)
-  , buffers :: Object BrowserAudioBuffer
-  , floatArrays :: Object BrowserFloatArray
-  , periodicWaves :: Object BrowserPeriodicWave
+  , analysers :: { | analysers }
+  , recorders :: O.Object (MediaRecorder -> Effect Unit)
+  , buffers :: O.Object BrowserAudioBuffer
+  , floatArrays :: O.Object BrowserFloatArray
+  , periodicWaves :: O.Object BrowserPeriodicWave
   } ->
   Behavior
     { world :: world
     , sysTime :: Milliseconds
     , microphone :: Nullable BrowserMicrophone
-    , recorders :: Object (MediaRecorder -> Effect Unit)
-    , buffers :: Object BrowserAudioBuffer
-    , floatArrays :: Object BrowserFloatArray
-    , periodicWaves :: Object BrowserPeriodicWave
+    , analysers :: { | analysers }
+    , recorders :: O.Object (MediaRecorder -> Effect Unit)
+    , buffers :: O.Object BrowserAudioBuffer
+    , floatArrays :: O.Object BrowserFloatArray
+    , periodicWaves :: O.Object BrowserPeriodicWave
     } ->
   Ref.Ref (Effect Unit) ->
   Ref.Ref EasingAlgorithm ->
   Ref.Ref (Scene (SceneI trigger world) assets RunAudio RunEngine Frame0 res) ->
+  O.Object (AnalyserNode -> Effect (Effect Unit)) ->
   NonBehavioralFFIInfo ->
-  (Run res -> Effect Unit) ->
+  (Run res analysers -> Effect Unit) ->
   Effect Unit
-runInternal audioClockStart fromEvents world' currentTimeoutCanceler currentEasingAlg currentScene nonBehavioralFFIInfo reporter = do
+runInternal audioClockStart fromEvents world' currentTimeoutCanceler currentEasingAlg currentScene analyserRefs nonBehavioralFFIInfo reporter = do
   easingAlgNow <- Ref.read currentEasingAlg
   sceneNow <- Ref.read currentScene
   audioClockPriorToComputation <- getAudioClockTime nonBehavioralFFIInfo.context
@@ -311,6 +369,7 @@ runInternal audioClockStart fromEvents world' currentTimeoutCanceler currentEasi
         , writeHead: max audioClockAfterComputation (audioClockPriorToComputation + headroomInSeconds)
         , units: nonBehavioralFFIInfo.units
         , microphone: fromEvents.microphone
+        , analysers: analyserRefs
         , recorders: fromEvents.recorders
         , buffers: fromEvents.buffers
         , floatArrays: fromEvents.floatArrays
@@ -334,6 +393,7 @@ runInternal audioClockStart fromEvents world' currentTimeoutCanceler currentEasi
     , remainingTime
     , headroom
     , headroomInSeconds
+    , analysers: fromEvents.analysers
     }
   -- we thunk the world and move on to the next event
   -- note that if we did not allocate enough time, we still
@@ -342,6 +402,7 @@ runInternal audioClockStart fromEvents world' currentTimeoutCanceler currentEasi
     subscribe (sample_ world' (delay (max 1 remainingTime) (pure unit))) \{ world
     , sysTime
     , microphone
+    , analysers
     , recorders
     , buffers
     , floatArrays
@@ -352,6 +413,7 @@ runInternal audioClockStart fromEvents world' currentTimeoutCanceler currentEasi
         , sysTime
         , trigger: Nothing
         , microphone
+        , analysers
         , recorders
         , buffers
         , floatArrays
@@ -361,6 +423,7 @@ runInternal audioClockStart fromEvents world' currentTimeoutCanceler currentEasi
         currentTimeoutCanceler
         currentEasingAlg
         currentScene
+        analyserRefs
         nonBehavioralFFIInfo
         reporter
   Ref.write canceler currentTimeoutCanceler

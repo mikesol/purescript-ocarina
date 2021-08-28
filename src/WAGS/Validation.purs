@@ -6,7 +6,6 @@
 module WAGS.Validation where
 
 import Prelude hiding (Ordering(..))
-
 import Data.Typelevel.Bool (False, True)
 import Prim.Row (class Nub)
 import Prim.Row as R
@@ -174,6 +173,12 @@ instance allNodesAreSaturatedConsTAllpass ::
   , AllNodesAreSaturatedNL tail
   ) =>
   AllNodesAreSaturatedNL (RL.Cons iSym (NodeC (CTOR.TAllpass) { | r }) tail)
+
+instance allNodesAreSaturatedConsTAnalyser ::
+  ( RowToList r (RL.Cons aSym aVal RL.Nil)
+  , AllNodesAreSaturatedNL tail
+  ) =>
+  AllNodesAreSaturatedNL (RL.Cons iSym (NodeC (CTOR.TAnalyser p0) { | r }) tail)
 
 instance allNodesAreSaturatedConsTBandpass ::
   ( RowToList r (RL.Cons aSym aVal RL.Nil)

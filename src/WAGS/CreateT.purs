@@ -12,7 +12,7 @@ import Prim.Row as R
 import Prim.RowList as RL
 import Prim.Symbol as Sym
 import Type.Proxy (Proxy)
-import WAGS.Assets (class AssetsHave, Buffers, PeriodicWaves, Recorders, FloatArrays)
+import WAGS.Assets (class AssetsHave, Buffers, FloatArrays, PeriodicWaves, Recorders, Analysers)
 import WAGS.Connect (class ConnectT)
 import WAGS.ConstructEdges (class ConstructEdgesT)
 import WAGS.Graph.AudioUnit as CTOR
@@ -93,6 +93,13 @@ instance createTAllpass ::
   , R.Cons ptr (NodeC CTOR.TAllpass {}) graphi grapho
   ) =>
   CreateT' assets ptr (CTOR.Allpass argA argB) graphi grapho
+
+instance createTAnalyser ::
+  ( R.Lacks ptr graphi
+  , AssetsHave Analysers recorder assets
+  , R.Cons ptr (NodeC (CTOR.TAnalyser recorder) {}) graphi grapho
+  ) =>
+  CreateT' assets ptr (CTOR.Analyser recorder) graphi grapho
 
 instance createTBandpass ::
   ( R.Lacks ptr graphi

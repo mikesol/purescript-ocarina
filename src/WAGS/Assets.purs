@@ -2,6 +2,9 @@ module WAGS.Assets where
 
 import Prim.Row (class Cons)
 
+type Analysers
+  = "analysers"
+
 type Buffers
   = "buffers"
 
@@ -15,6 +18,12 @@ type FloatArrays
   = "floatArrays"
 
 class AssetsHave (key :: Symbol) (sym :: Symbol) (assets :: Row Type)
+
+instance assetsHaveAnalyser ::
+  ( Cons Analysers { | analysers } assets' assets
+  , Cons sym v analysers' analysers
+  ) =>
+  AssetsHave Analysers sym assets
 
 instance assetsHaveBuffer ::
   ( Cons Buffers { | buffers } assets' assets

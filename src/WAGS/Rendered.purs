@@ -21,6 +21,7 @@ data Instruction
   | DisconnectXFromY String String
   | DestroyUnit String
   | MakeAllpass String AudioParameter AudioParameter
+  | MakeAnalyser String String
   | MakeBandpass String AudioParameter AudioParameter
   | MakeConstant String APOnOff AudioParameter
   | MakeConvolver String String

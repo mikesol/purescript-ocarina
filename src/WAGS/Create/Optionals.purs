@@ -60,6 +60,21 @@ type CAllpass a
   = CTOR.Allpass AudioParameter AudioParameter /\ a
 
 ------
+-- | Make an analyser.
+-- |
+-- | ```purescript
+-- | analyser "track"
+-- | ```
+analyser ::
+  forall a b.
+  IsSymbol a =>
+  Proxy a -> b -> CTOR.Analyser a /\ b
+
+analyser = Tuple <<< CTOR.Analyser
+
+type CAnalyser a b
+  = CTOR.Analyser a /\ b
+------
 data Bandpass
   = Bandpass
 
