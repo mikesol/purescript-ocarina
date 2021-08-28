@@ -33,13 +33,14 @@ import WAGS.Create.Optionals (CGain, CSpeaker, CPlayBuf, gain, speaker, playBuf)
 import WAGS.Graph.AudioUnit (OnOff(..), TGain, TLoopBuf, TSpeaker)
 import WAGS.Graph.Parameter (ff)
 import WAGS.Interpret (AudioContext, BrowserAudioBuffer, close, context, decodeAudioDataFromUri, makeUnitCache)
-import WAGS.Run (RunAudio, RunEngine, SceneI(..), run)
+import WAGS.Run (RunAudio, RunEngine, SceneI(..), Run, run)
 
 type Assets
   = ( buffers :: { snare :: BrowserAudioBuffer }
     , periodicWaves :: {}
     , floatArrays :: {}
     , recorders :: {}
+    , analysers :: {}
     )
 
 type SceneTemplate
@@ -204,7 +205,7 @@ handleAction = case _ of
       H.liftEffect
         $ subscribe
             (run (pure unit) (pure unit) { easingAlgorithm } (ffiAudio) piece)
-            (const (pure unit)) -- (Log.info <<< show)
+            (const $ pure unit)
     H.modify_
       _
         { unsubscribe =

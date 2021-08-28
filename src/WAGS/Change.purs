@@ -816,6 +816,13 @@ instance canBeChangedRelease ::
         , value: unit
         }
 
+instance changeAnalyser ::
+  ( IsSymbol ptr, R.Cons ptr (NodeC (CTOR.TAnalyser sym) edges) ignore graph
+  ) =>
+  Change' assets ptr (CTOR.Analyser sym) graph where
+  change' _ w = w $> unit
+
+
 instance oneShotChangeAllpass :: OneShotChange assets CTOR.TAllpass AudioParameter (CTOR.Allpass (Maybe AudioParameter) (Maybe AudioParameter)) where
   oneShotChange _ _ freq = CTOR.Allpass (Just freq) Nothing
 

@@ -39,13 +39,14 @@ import WAGS.Graph.AudioUnit (TGain, TPeriodicOsc, TSpeaker)
 import WAGS.Graph.Parameter (ff)
 import WAGS.Interpret (AudioContext, BrowserPeriodicWave, close, context, defaultFFIAudio, makePeriodicWave, makeUnitCache)
 import WAGS.Math (calcSlope)
-import WAGS.Run (RunAudio, RunEngine, SceneI(..), run)
+import WAGS.Run (RunAudio, RunEngine, SceneI(..), Run, run)
 
 type Assets
   = ( periodicWaves :: { bday :: BrowserPeriodicWave }
     , buffers :: {}
     , floatArrays :: {}
     , recorders :: {}
+    , analysers :: {}
     )
 
 type Note

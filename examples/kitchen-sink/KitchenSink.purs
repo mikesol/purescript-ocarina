@@ -60,7 +60,7 @@ type State
 
 data Action
   = StartAudio
-  | ReportGraph (Run String)
+  | ReportGraph (Run String ())
   | HydrateRecording String
   | StopAudio
 

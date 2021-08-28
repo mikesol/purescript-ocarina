@@ -20,6 +20,7 @@ type Assets
         }
     , floatArrays :: { "my-waveshaper" :: BrowserFloatArray }
     , periodicWaves :: { "my-wave" :: BrowserPeriodicWave }
+    , analysers :: {}
     )
 
 type SceneSig :: forall k. k -> Type

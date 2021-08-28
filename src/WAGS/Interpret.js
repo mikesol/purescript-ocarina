@@ -27,10 +27,10 @@ var genericSetter = function (unit, name, timeToSet, param) {
         param.transition === "NoRamp"
           ? "setValueAtTime"
           : param.transition === "LinearRamp"
-          ? "linearRampToValueAtTime"
-          : param.transition === "ExponentialRamp"
-          ? "exponentialRampToValueAtTime"
-          : "linearRampToValueAtTime"
+            ? "linearRampToValueAtTime"
+            : param.transition === "ExponentialRamp"
+              ? "exponentialRampToValueAtTime"
+              : "linearRampToValueAtTime"
       ](param.param, timeToSet + param.timeOffset);
     }
   }
@@ -75,6 +75,11 @@ exports.destroyUnit_ = function (ptr) {
       // hack for recorder
       if (state.units[ptr].recorder) {
         state.units[ptr].recorder.stop();
+      }
+      // hack for analyser
+      if (state.units[ptr].analyser) {
+        // effectful unsubscribe
+        state.units[ptr].analyser();
       }
       delete state.units[ptr];
     };
@@ -125,6 +130,37 @@ exports.makeAllpass_ = function (ptr) {
           state.units[ptr].main.type = "allpass";
           genericStarter(state.units[ptr].main, "frequency", a);
           genericStarter(state.units[ptr].main, "Q", b);
+        };
+      };
+    };
+  };
+};
+exports.makeAnalyser_ = function (ptr) {
+  return function (a) {
+    return function (state) {
+      return function () {
+        var analyserSideEffectFunction = state.analysers[a];
+        if (!analyserSideEffectFunction) {
+          console.error(
+            "Analyser side effect function does not exist for key " +
+            a +
+            ". Using a dummy function. Check your code!"
+          );
+          analyserSideEffectFunction = function () {
+            return function () { };
+          };
+        }
+        var dest = state.context.createAnalyser();
+        // todo - unhardcode?
+        dest.fftSize = 2048;
+        // unsubscribe is effect unit
+        var unsubscribe = analyserSideEffectFunction(dest)();
+        state.units[ptr] = {
+          outgoing: [],
+          incoming: [],
+          analyser: unsubscribe,
+          main: state.context.createGain(),
+          se: dest,
         };
       };
     };
@@ -190,8 +226,8 @@ exports.makeConvolver_ = function (ptr) {
         if (!state.buffers[a]) {
           console.error(
             "Convolver buffer does not exist for key " +
-              a +
-              ". Using a dummy buffer. Check your code!"
+            a +
+            ". Using a dummy buffer. Check your code!"
           );
         }
         state.units[ptr].main.buffer = state.buffers[a];
@@ -338,8 +374,8 @@ exports.makeLoopBuf_ = function (ptr) {
                       if (!state.buffers[a]) {
                         console.error(
                           "Buffer does not exist for key " +
-                            a +
-                            ". Using a dummy buffer. Check your code!"
+                          a +
+                          ". Using a dummy buffer. Check your code!"
                         );
                       }
                       i.buffer = state.buffers[a];
@@ -493,8 +529,8 @@ exports.makePeriodicOsc_ = function (ptr) {
                   } else {
                     console.error(
                       "Periodic wave does not exist for key " +
-                        a +
-                        ". Setting wave to null. Check your code!"
+                      a +
+                      ". Setting wave to null. Check your code!"
                     );
                   }
                 },
@@ -590,8 +626,8 @@ exports.makePlayBuf_ = function (ptr) {
                     if (!state.buffers[a]) {
                       console.error(
                         "Buffer does not exist for key " +
-                          a +
-                          ". Using a dummy buffer. Check your code!"
+                        a +
+                        ". Using a dummy buffer. Check your code!"
                       );
                     }
                     i.buffer = state.buffers[a];
@@ -604,8 +640,8 @@ exports.makePlayBuf_ = function (ptr) {
                 if (!state.buffers[a]) {
                   console.error(
                     "Buffer does not exist for key " +
-                      a +
-                      ". Using a dummy buffer. Check your code!"
+                    a +
+                    ". Using a dummy buffer. Check your code!"
                   );
                 }
                 state.units[ptr].main.start(state.writeHead + c.timeOffset, b);
@@ -626,11 +662,11 @@ exports.makeRecorder_ = function (ptr) {
         if (!mediaRecorderSideEffectFn) {
           console.error(
             "Media recorder side effect function does not exist for key " +
-              a +
-              ". Using a dummy function. Check your code!"
+            a +
+            ". Using a dummy function. Check your code!"
           );
           mediaRecorderSideEffectFn = function () {
-            return function () {};
+            return function () { };
           };
         }
         var dest = state.context.createMediaStreamDestination();
@@ -822,8 +858,8 @@ exports.setBuffer_ = function (ptr) {
           if (!state.buffers[buffer]) {
             console.error(
               "Buffer does not exist for key " +
-                buffer +
-                ". Using a dummy buffer. Check your code!"
+              buffer +
+              ". Using a dummy buffer. Check your code!"
             );
           }
           i.buffer = state.buffers[buffer];
@@ -843,8 +879,8 @@ exports.setPeriodicOsc_ = function (ptr) {
           } else {
             console.error(
               "Periodic wave does not exist for key " +
-                periodicOsc +
-                ". Setting wave to null. Check your code!"
+              periodicOsc +
+              ". Setting wave to null. Check your code!"
             );
           }
         };
@@ -1249,3 +1285,101 @@ exports.getBrowserMediaStreamImpl = function (audio) {
     };
   };
 };
+
+exports.getFFTSize = function (analyserNode) {
+  return function () {
+    return analyserNode.fftSize;
+  }
+}
+
+exports.setFFTSize = function (analyserNode) {
+  return function (fftSize) {
+    return function () {
+      analyserNode.fftSize = fftSize;
+    }
+  }
+}
+
+exports.getSmoothingTimeConstant = function (analyserNode) {
+  return function () {
+    return analyserNode.smoothingTimeConstant;
+  }
+}
+
+exports.setSmoothingTimeConstant = function (analyserNode) {
+  return function (smoothingTimeConstant) {
+    return function () {
+      analyserNode.smoothingTimeConstant = smoothingTimeConstant;
+    }
+  }
+}
+
+exports.getMinDecibels = function (analyserNode) {
+  return function () {
+    return analyserNode.minDecibels;
+  }
+}
+
+exports.setMinDecibels = function (analyserNode) {
+  return function (minDecibels) {
+    return function () {
+      analyserNode.minDecibels = minDecibels;
+    }
+  }
+}
+
+exports.getMaxDecibels = function (analyserNode) {
+  return function () {
+    return analyserNode.maxDecibels;
+  }
+}
+
+exports.setMaxDecibels = function (analyserNode) {
+  return function (maxDecibels) {
+    return function () {
+      analyserNode.maxDecibels = maxDecibels;
+    }
+  }
+}
+
+exports.getFrequencyBinCount = function (analyserNode) {
+  return function () {
+    return analyserNode.frequencyBinCount;
+  }
+}
+
+// https://developer.mozilla.org/en-US/docs/Web/API/AnalyserNode/getFloatTimeDomainData
+exports.getFloatTimeDomainData = function (analyserNode) {
+  return function () {
+    var dataArray = new Float32Array(analyserNode.fftSize);
+    analyserNode.getFloatTimeDomainData(dataArray); 
+    return dataArray;
+   }
+}
+
+// https://developer.mozilla.org/en-US/docs/Web/API/AnalyserNode/getFloatFrequencyData
+exports.getFloatFrequencyData = function (analyserNode) {
+  return function () {
+    var dataArray = new Float32Array(analyserNode.frequencyBinCount);
+    analyserNode.getFloatFrequencyData(dataArray); 
+    return dataArray;
+   }
+}
+
+// https://developer.mozilla.org/en-US/docs/Web/API/AnalyserNode/getByteTimeDomainData
+exports.getByteTimeDomainData = function (analyserNode) {
+  return function () {
+    var dataArray = new Uint8Array(analyserNode.fftSize);
+    analyserNode.getByteTimeDomainData(dataArray); 
+    return dataArray;
+   }
+}
+
+// https://developer.mozilla.org/en-US/docs/Web/API/AnalyserNode/getByteFrequencyData
+exports.getByteFrequencyData = function (analyserNode) {
+  return function () {
+    var dataArray = new Uint8Array(analyserNode.frequencyBinCount);
+    analyserNode.getByteFrequencyData(dataArray); 
+    return dataArray;
+   }
+}

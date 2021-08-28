@@ -1,6 +1,7 @@
 module WAGS.Patch where
 
 import Prelude hiding (Ordering(..))
+
 import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.Tuple.Nested (type (/\))
 import Data.Typelevel.Bool (False, True)
@@ -14,7 +15,7 @@ import WAGS.Control.Types (WAG, unsafeUnWAG, unsafeWAG)
 import WAGS.Graph.AudioUnit (OnOff(..))
 import WAGS.Graph.AudioUnit as AU
 import WAGS.Graph.Oversample (class IsOversample, reflectOversample)
-import WAGS.Interpret (class AudioInterpret, connectXToY, destroyUnit, disconnectXFromY, makeAllpass, makeBandpass, makeConstant, makeConvolver, makeDelay, makeDynamicsCompressor, makeGain, makeHighpass, makeHighshelf, makeLoopBufWithDeferredBuffer, makeLowpass, makeLowshelf, makeMicrophone, makeNotch, makePeaking, makePeriodicOscWithDeferredOsc, makePlayBufWithDeferredBuffer, makeRecorder, makeSawtoothOsc, makeSinOsc, makeSpeaker, makeSquareOsc, makeStereoPanner, makeTriangleOsc, makeWaveShaper)
+import WAGS.Interpret (class AudioInterpret, connectXToY, destroyUnit, disconnectXFromY, makeAllpass, makeAnalyser, makeBandpass, makeConstant, makeConvolver, makeDelay, makeDynamicsCompressor, makeGain, makeHighpass, makeHighshelf, makeLoopBufWithDeferredBuffer, makeLowpass, makeLowshelf, makeMicrophone, makeNotch, makePeaking, makePeriodicOscWithDeferredOsc, makePlayBufWithDeferredBuffer, makeRecorder, makeSawtoothOsc, makeSinOsc, makeSpeaker, makeSquareOsc, makeStereoPanner, makeTriangleOsc, makeWaveShaper)
 import WAGS.Util (class TypeEqualTF)
 
 data ConnectXToY (x :: Symbol) (y :: Symbol)
@@ -28,6 +29,8 @@ data DestroyUnit (x :: Symbol)
 
 data MakeAllpass (ptr :: Symbol)
   = MakeAllpass (Proxy ptr)
+data MakeAnalyser (ptr :: Symbol) (sym :: Symbol)
+  = MakeAnalyser (Proxy ptr) (Proxy sym)
 
 data MakeBandpass (ptr :: Symbol)
   = MakeBandpass (Proxy ptr)
@@ -146,6 +149,7 @@ instance hListAppendUnit :: HListAppend Unit c c
 class DoCreate (sym :: Symbol) (i :: Type) (o :: Type) | sym i -> o
 
 instance doCreateMakeAllpass :: DoCreate ptr AU.TAllpass (MakeAllpass ptr)
+instance doCreateMakeAnalyser :: DoCreate ptr (AU.TAnalyser sym) (MakeAnalyser ptr sym)
 
 instance doCreateMakeBandpass :: DoCreate ptr AU.TBandpass (MakeBandpass ptr)
 
@@ -356,6 +360,17 @@ instance toGraphEffectsMakeAllpass :: (IsSymbol ptr, ToGraphEffects rest) => ToG
       )
     where
     ptr' = reflectSymbol (Proxy :: _ ptr)
+instance toGraphEffectsMakeAnalyser :: (IsSymbol ptr, IsSymbol sym, ToGraphEffects rest) => ToGraphEffects (MakeAnalyser ptr sym /\ rest) where
+  toGraphEffects _ i =
+    toGraphEffects (Proxy :: _ rest)
+      ( i
+          { instructions = i.instructions <> [ makeAnalyser ptr' sym' ]
+          }
+      )
+    where
+    ptr' = reflectSymbol (Proxy :: _ ptr)
+
+    sym' = reflectSymbol (Proxy :: _ sym)
 
 instance toGraphEffectsMakeBandpass :: (IsSymbol ptr, ToGraphEffects rest) => ToGraphEffects (MakeBandpass ptr /\ rest) where
   toGraphEffects _ i =

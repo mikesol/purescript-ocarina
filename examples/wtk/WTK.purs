@@ -21,7 +21,7 @@ import Halogen.VDom.Driver (runUI)
 import WAGS.Example.WTK.RenderingEnv (makeRenderingEnv)
 import WAGS.Example.WTK.TLP (piece)
 import WAGS.Interpret (AudioContext, close, context, defaultFFIAudio, makeUnitCache)
-import WAGS.Run (bufferToList, run)
+import WAGS.Run (Run, bufferToList, run)
 
 easingAlgorithm :: Cofree ((->) Int) Int
 easingAlgorithm = let fOf initialTime = mkCofree initialTime \adj -> fOf $ max 10 (initialTime - adj) in fOf 20
@@ -89,7 +89,7 @@ handleAction = case _ of
                 (ffiAudio)
                 (piece { makeRenderingEnv })
             )
-            (const $ pure unit)
+            (\(_ :: Run Unit ()) -> pure unit)
     H.modify_ _ { unsubscribe = unsubscribe, audioCtx = Just audioCtx }
   StopAudio -> do
     { unsubscribe, audioCtx } <- H.get

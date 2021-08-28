@@ -26,6 +26,13 @@ data Allpass frequency q
 
 instance typeToSymAllpass :: TypeToSym (Allpass frequency q) "Allpass"
 
+-- | Term-level constructor for a analyser.
+-- | - `analyser` - the analyser to which we write data.
+data Analyser (analyser :: Symbol)
+  = Analyser (Proxy analyser)
+
+instance typeToSymAnalyser :: Sym.Append "Analyser_" sym o => TypeToSym (Analyser sym) o
+
 -- | Term-level constructor for a bandpass filter.
 -- | - `frequency` - the frequency of the isolated band.
 -- | - `q` - the width of the filter.
@@ -286,6 +293,21 @@ instance monoidTAllpass :: Monoid TAllpass where
   mempty = TAllpass
 
 instance reifyTAllpass :: ReifyAU (Allpass a b) TAllpass where
+  reifyAU = const mempty
+
+-- | Type-level constructor for an analyser.
+data TAnalyser (sym :: Symbol)
+  = TAnalyser (Proxy sym)
+
+instance typeToSymTAnalyser :: Sym.Append "TAnalyser_" sym o => TypeToSym (TAnalyser sym) o
+
+instance semigroupTAnalyser :: Semigroup (TAnalyser sym) where
+  append _ _ = TAnalyser (Proxy :: _ sym)
+
+instance monoidTAnalyser :: Monoid (TAnalyser sym) where
+  mempty = TAnalyser (Proxy :: _ sym)
+
+instance reifyTAnalyser :: ReifyAU (Analyser sym) (TAnalyser sym) where
   reifyAU = const mempty
 
 -- | Type-level constructor for a bandpass filter.

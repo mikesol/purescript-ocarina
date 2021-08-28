@@ -13,7 +13,7 @@ import Prim.RowList as RL
 import Prim.Symbol as Sym
 import Record as Record
 import Type.Proxy (Proxy(..))
-import WAGS.Assets (class AssetsHave, Buffers, PeriodicWaves, Recorders, FloatArrays)
+import WAGS.Assets (class AssetsHave, Buffers, FloatArrays, PeriodicWaves, Recorders, Analysers)
 import WAGS.Connect (class Connect, connect)
 import WAGS.ConstructEdges (class ConstructEdges, class ConstructEdgesT, constructEdges)
 import WAGS.Control.Indexed (IxWAG(..))
@@ -23,7 +23,7 @@ import WAGS.Graph.Graph (Graph)
 import WAGS.Graph.Node (NodeC)
 import WAGS.Graph.Oversample (class IsOversample, reflectOversample)
 import WAGS.Graph.Paramable (class Paramable, paramize, class OnOffable, onOffIze)
-import WAGS.Interpret (class AudioInterpret, makeAllpass, makeBandpass, makeConstant, makeConvolver, makeDelay, makeDynamicsCompressor, makeGain, makeHighpass, makeHighshelf, makeLoopBuf, makeLowpass, makeLowshelf, makeMicrophone, makeNotch, makePeaking, makePeriodicOsc, makePeriodicOscV, makePlayBuf, makeRecorder, makeSawtoothOsc, makeSinOsc, makeSpeaker, makeSquareOsc, makeStereoPanner, makeTriangleOsc, makeWaveShaper)
+import WAGS.Interpret (class AudioInterpret, makeAllpass, makeAnalyser, makeBandpass, makeConstant, makeConvolver, makeDelay, makeDynamicsCompressor, makeGain, makeHighpass, makeHighshelf, makeLoopBuf, makeLowpass, makeLowshelf, makeMicrophone, makeNotch, makePeaking, makePeriodicOsc, makePeriodicOscV, makePlayBuf, makeRecorder, makeSawtoothOsc, makeSinOsc, makeSpeaker, makeSquareOsc, makeStereoPanner, makeTriangleOsc, makeWaveShaper)
 import WAGS.Util (class AddPrefixToRowList, class CoercePrefixToString, class MakePrefixIfNeeded)
 
 type CreateStepRLSig (rl :: RL.RowList Type) (prefix :: Type) (map :: Type) (assets :: Row Type) (r :: Row Type) (inGraph :: Graph) (outGraph :: Graph)
@@ -189,6 +189,32 @@ icreate' ptr node = IxWAG (create' ptr <<< voidRight node)
 instance createUnit ::
   Create' assets ptr Unit graphi graphi where
   create' _ w = w
+
+instance createAnalyser ::
+  ( IsSymbol ptr
+  , IsSymbol recorder
+  , R.Lacks ptr graphi
+  , AssetsHave Analysers recorder assets
+  , R.Cons ptr (NodeC (CTOR.TAnalyser recorder) {}) graphi grapho
+  ) =>
+  Create' assets ptr (CTOR.Analyser recorder) graphi grapho where
+  create' ptr w = o
+    where
+    { context: i, value: (CTOR.Analyser sym) } = unsafeUnWAG w
+
+    nn = reflectSymbol ptr
+
+    recorder = reflectSymbol sym
+
+    o =
+      unsafeWAG
+        { context:
+            i
+              { instructions = i.instructions <> [ makeAnalyser nn recorder ]
+              }
+        , value: unit
+        }
+
 
 instance createAllpass ::
   ( IsSymbol ptr

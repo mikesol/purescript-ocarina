@@ -4,6 +4,7 @@
 module WAGS.Interpret
   ( class AudioInterpret
   , class SafeToFFI
+  , AnalyserNode
   , AudioBuffer
   , AudioContext
   , BrowserAudioBuffer
@@ -28,7 +29,21 @@ module WAGS.Interpret
   , getAudioClockTime
   , getMicrophoneAndCamera
   , isTypeSupported
+  , getFFTSize
+  , setFFTSize
+  , getFrequencyBinCount
+  , getSmoothingTimeConstant
+  , setSmoothingTimeConstant
+  , getMinDecibels
+  , setMinDecibels
+  , getMaxDecibels
+  , setMaxDecibels
+  , getFloatTimeDomainData
+  , getFloatFrequencyData
+  , getByteTimeDomainData
+  , getByteFrequencyData
   , makeAllpass
+  , makeAnalyser
   , makeAudioBuffer
   , makeBandpass
   , makeConstant
@@ -89,6 +104,7 @@ module WAGS.Interpret
 import Prelude
 import Control.Plus (empty)
 import Control.Promise (Promise, toAffE)
+import Data.ArrayBuffer.Types (Float32Array, Uint8Array)
 import Data.Either (Either(..))
 import Data.Maybe (Maybe, fromMaybe, isNothing, maybe)
 import Data.Nullable (Nullable, null)
@@ -106,6 +122,35 @@ import WAGS.Graph.AudioUnit (OnOff(..), APOnOff)
 import WAGS.Graph.Parameter (AudioParameter, AudioParameter_(..))
 import WAGS.Rendered (Instruction(..), Oversample(..))
 import WAGS.Util (tmap)
+
+-- | An [AnalyserNode](https://developer.mozilla.org/en-US/docs/Web/API/AnalyserNode)
+foreign import data AnalyserNode :: Type
+
+foreign import getFFTSize :: AnalyserNode -> Effect Int
+
+foreign import setFFTSize :: AnalyserNode -> Int -> Effect Unit
+
+foreign import getFrequencyBinCount :: AnalyserNode -> Effect Int
+
+foreign import getSmoothingTimeConstant :: AnalyserNode -> Effect Number
+
+foreign import setSmoothingTimeConstant :: AnalyserNode -> Number -> Effect Unit
+
+foreign import getMinDecibels :: AnalyserNode -> Effect Number
+
+foreign import setMinDecibels :: AnalyserNode -> Number -> Effect Unit
+
+foreign import getMaxDecibels :: AnalyserNode -> Effect Number
+
+foreign import setMaxDecibels :: AnalyserNode -> Number -> Effect Unit
+
+foreign import getFloatTimeDomainData :: AnalyserNode -> Effect Float32Array
+
+foreign import getFloatFrequencyData :: AnalyserNode -> Effect Float32Array
+
+foreign import getByteTimeDomainData :: AnalyserNode -> Effect Uint8Array
+
+foreign import getByteFrequencyData :: AnalyserNode -> Effect Uint8Array
 
 -- | A [MediaRecorder](https://developer.mozilla.org/en-US/docs/Web/API/MediaRecorder).
 foreign import data MediaRecorder :: Type
@@ -241,25 +286,13 @@ type FFIAudioSnapshot'
     , writeHead :: Number
     , units :: Foreign
     , microphone :: Nullable BrowserMicrophone
+    , analysers :: Object (AnalyserNode -> Effect (Effect Unit))
     , recorders :: Object (MediaRecorder -> Effect Unit)
     , buffers :: Object BrowserAudioBuffer
     , floatArrays :: Object BrowserFloatArray
     , periodicWaves :: Object BrowserPeriodicWave
     }
 
-
-{-
-type FFIAudioWithBehaviors
-  = { context :: AudioContext
-    , writeHead :: Number
-    , units :: Foreign
-    , microphone :: Behavior (Nullable BrowserMicrophone)
-    , recorders :: Behavior (Object (MediaRecorder -> Effect Unit))
-    , buffers :: Behavior (Object BrowserAudioBuffer)
-    , floatArrays :: Behavior (Object BrowserFloatArray)
-    , periodicWaves :: Behavior (Object BrowserPeriodicWave)
-    }
--}
 type DefaultFFIAudioWithBehaviors
   = { context :: AudioContext
     , writeHead :: Number
@@ -301,6 +334,8 @@ class AudioInterpret audio engine where
   destroyUnit :: String -> audio -> engine
   -- | Make an allpass filter.
   makeAllpass :: String -> AudioParameter -> AudioParameter -> audio -> engine
+  -- | Make an analyser.
+  makeAnalyser :: String -> String -> audio -> engine
   -- | Make a bandpass filter.
   makeBandpass :: String -> AudioParameter -> AudioParameter -> audio -> engine
   -- | Make a constant source, ie a stream of 0s.
@@ -401,6 +436,7 @@ instance freeAudioInterpret :: AudioInterpret Unit Instruction where
   disconnectXFromY a b = const $ DisconnectXFromY a b
   destroyUnit a = const $ DestroyUnit a
   makeAllpass a b c = const $ MakeAllpass a b c
+  makeAnalyser a b = const $ MakeAnalyser a b
   makeBandpass a b c = const $ MakeBandpass a b c
   makeConstant a b c = const $ MakeConstant a b c
   makeConvolver a b = const $ MakeConvolver a b
@@ -458,6 +494,8 @@ foreign import destroyUnit_ :: String -> FFIAudioSnapshot' -> Effect Unit
 foreign import rebaseAllUnits_ :: Array { from :: String, to :: String } -> FFIAudioSnapshot' -> Effect Unit
 
 foreign import makeAllpass_ :: String -> FFINumericAudioParameter -> FFINumericAudioParameter -> FFIAudioSnapshot' -> Effect Unit
+
+foreign import makeAnalyser_ :: String -> String -> FFIAudioSnapshot' -> Effect Unit
 
 foreign import makeBandpass_ :: String -> FFINumericAudioParameter -> FFINumericAudioParameter -> FFIAudioSnapshot' -> Effect Unit
 
@@ -558,6 +596,7 @@ instance effectfulAudioInterpret :: AudioInterpret FFIAudioSnapshot (Effect Unit
   disconnectXFromY a b c = disconnectXFromY_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
   destroyUnit a b = destroyUnit_ (safeToFFI a) (safeToFFI b)
   makeAllpass a b c d = makeAllpass_ (safeToFFI a) (safeToFFI b) (safeToFFI c) (safeToFFI d)
+  makeAnalyser a b c = makeAnalyser_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
   makeBandpass a b c d = makeBandpass_ (safeToFFI a) (safeToFFI b) (safeToFFI c) (safeToFFI d)
   makeConstant a b c d = makeConstant_ (safeToFFI a) (safeToFFI b) (safeToFFI c) (safeToFFI d)
   makeConvolver a b c = makeConvolver_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
@@ -677,6 +716,7 @@ instance mixedAudioInterpret :: (AudioInterpret a c, AudioInterpret b d) => Audi
   disconnectXFromY a b (x /\ y) = disconnectXFromY a b x /\ disconnectXFromY a b y
   destroyUnit a (x /\ y) = destroyUnit a x /\ destroyUnit a y
   makeAllpass a b c (x /\ y) = makeAllpass a b c x /\ makeAllpass a b c y
+  makeAnalyser a b (x /\ y) = makeAnalyser a b x /\ makeAnalyser a b y
   makeBandpass a b c (x /\ y) = makeBandpass a b c x /\ makeBandpass a b c y
   makeConstant a b c (x /\ y) = makeConstant a b c x /\ makeConstant a b c y
   makeConvolver a b (x /\ y) = makeConvolver a b x /\ makeConvolver a b y
