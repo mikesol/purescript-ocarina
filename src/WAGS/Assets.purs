@@ -17,34 +17,47 @@ type Recorders
 type FloatArrays
   = "floatArrays"
 
+type Worklets
+  = "worklets"
+
+class AssetsHaveCons (key :: Symbol) (sym :: Symbol) (assets :: Row Type) (v :: Type) | key sym assets -> v
+
 class AssetsHave (key :: Symbol) (sym :: Symbol) (assets :: Row Type)
+
+instance assetsHaveAll :: AssetsHaveCons key sym assets v => AssetsHave key sym assets
 
 instance assetsHaveAnalyser ::
   ( Cons Analysers { | analysers } assets' assets
   , Cons sym v analysers' analysers
   ) =>
-  AssetsHave Analysers sym assets
+  AssetsHaveCons Analysers sym assets v
 
 instance assetsHaveBuffer ::
   ( Cons Buffers { | buffers } assets' assets
   , Cons sym v buffers' buffers
   ) =>
-  AssetsHave Buffers sym assets
+  AssetsHaveCons Buffers sym assets v
 
 instance assetsHavePeriodicWave ::
   ( Cons PeriodicWaves { | periodicWaves } assets' assets
   , Cons sym v periodicWaves' periodicWaves
   ) =>
-  AssetsHave PeriodicWaves sym assets
+  AssetsHaveCons PeriodicWaves sym assets v
 
 instance assetsHaveRecorder ::
   ( Cons Recorders { | recorders } assets' assets
   , Cons sym v recorders' recorders
   ) =>
-  AssetsHave Recorders sym assets
+  AssetsHaveCons Recorders sym assets v
 
 instance assetsHaveFloatArray ::
   ( Cons FloatArrays { | floatArrays } assets' assets
   , Cons sym v floatArrays' floatArrays
   ) =>
-  AssetsHave FloatArrays sym assets
+  AssetsHaveCons FloatArrays sym assets v
+
+instance assetsHaveWorklets ::
+  ( Cons Worklets { | worklets } assets' assets
+  , Cons sym v worklets' worklets
+  ) =>
+  AssetsHaveCons Worklets sym assets v

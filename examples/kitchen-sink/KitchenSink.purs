@@ -136,6 +136,7 @@ handleAction = case _ of
         , units: unitCache
         , microphone: pure $ toNullable microphone
         , recorders: pure { "my-recorder": recorder }
+        , worklets: {}
         , buffers:
             pure
               { "my-buffer": chimes

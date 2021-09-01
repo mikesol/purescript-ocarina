@@ -38,6 +38,7 @@ type Assets
     , periodicWaves :: {}
     , floatArrays :: {}
     , recorders :: {}
+    , worklets :: {}
     , analysers :: { myAnalyser :: Maybe AnalyserNode }
     )
 
@@ -173,6 +174,7 @@ handleAction = case _ of
         { context: audioCtx
         , writeHead: 0.0
         , units: unitCache
+        , worklets: {}
         , microphone: pure null
         , recorders: pure {}
         , buffers: pure { atar }

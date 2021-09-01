@@ -87,10 +87,11 @@ instance euclideanRingAudioParameter :: EuclideanRing a => EuclideanRing (AudioP
 -- | `timeOffset`: How far ahead of the current playhead to set the parameter. This can be used in conjunction with the `headroom` parameter in `run` to execute precisely-timed events. For example, if the `headroom` is `20ms` and an attack should happen in `10ms`, use `timeOffset: 10.0` to make sure that the taret parameter happens exactly at the point of attack.
 -- | `transition`: Transition between two points in time.
 type AudioParameter_' a
-  = { param :: Maybe a
-    , timeOffset :: Number
-    , transition :: AudioParameterTransition
-    }
+  =
+  { param :: Maybe a
+  , timeOffset :: Number
+  , transition :: AudioParameterTransition
+  }
 
 type AudioParameter'
   = AudioParameter_' Number
@@ -156,8 +157,6 @@ immediately = modRamp (const Immediately)
 -- | defaultParam = { param: 0.0, timeOffset: 0.0, transition: LinearRamp }
 defaultParam :: AudioParameter'
 defaultParam = { param: Just 0.0, timeOffset: 0.0, transition: LinearRamp }
-
-
 
 class MM a b | a -> b where
   mm :: a -> b

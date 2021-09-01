@@ -6,7 +6,9 @@
 module WAGS.Validation where
 
 import Prelude hiding (Ordering(..))
+
 import Data.Typelevel.Bool (False, True)
+import Data.Typelevel.Num (class Pred, D0)
 import Prim.Row (class Nub)
 import Prim.Row as R
 import Prim.RowList (class RowToList, RowList)
@@ -47,7 +49,8 @@ instance graphIsRenderable ::
 class TerminalNodeC (g :: Graph) (ptr :: Symbol) | g -> ptr
 
 instance terminalNodeC ::
-  (UniqueTerminus g sym t) =>
+  ( UniqueTerminus g sym t
+  ) =>
   TerminalNodeC g sym
 
 class NoNodesAreDuplicated (graph :: Graph)
@@ -180,7 +183,19 @@ instance allNodesAreSaturatedConsTAnalyser ::
   ) =>
   AllNodesAreSaturatedNL (RL.Cons iSym (NodeC (CTOR.TAnalyser p0) { | r }) tail)
 
-instance allNodesAreSaturatedConsTBandpass ::
+class Length (rl :: RowList Type) (n :: Type) | rl -> n
+
+instance length0 :: Length RL.Nil D0
+else instance lengthN :: (Pred n nMinus1, Length rest nMinus1) => Length (RL.Cons a b rest) nMinus1
+
+instance allNodesAreSaturatedConsTAudioWorkletNode0 ::
+  ( RowToList r rl
+  , Length rl numberOfInputs
+  , AllNodesAreSaturatedNL tail
+  ) =>
+  AllNodesAreSaturatedNL (RL.Cons iSym (NodeC (CTOR.TAudioWorkletNode sym numberOfInputs numberOfOutputs outputChannelCount parameterData processorOptions) { | r }) tail)
+
+instance allNodesAreSaturatedConsTBandpass2 ::
   ( RowToList r (RL.Cons aSym aVal RL.Nil)
   , AllNodesAreSaturatedNL tail
   ) =>

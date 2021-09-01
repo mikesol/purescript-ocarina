@@ -12,6 +12,30 @@ exports.close = function (audioCtx) {
 var genericStarter = function (unit, name, param) {
   unit[name].value = param.param;
 };
+// todo: merge two setters?
+var workletSetter = function (unit, paramName, timeToSet, param) {
+  if (param.transition === "Immediately") {
+    if (param.cancel) {
+      unit.parameters.get(paramName).cancelScheduledValues();
+    } else {
+      unit.parameters.get(paramName).value = param.param;
+    }
+  } else {
+    if (param.cancel) {
+      unit.parameters.get(paramName).cancelScheduledValues(timeToSet + param.timeOffset);
+    } else {
+      unit.parameters.get(paramName)[
+        param.transition === "NoRamp"
+          ? "setValueAtTime"
+          : param.transition === "LinearRamp"
+            ? "linearRampToValueAtTime"
+            : param.transition === "ExponentialRamp"
+              ? "exponentialRampToValueAtTime"
+              : "linearRampToValueAtTime"
+      ](param.param, timeToSet + param.timeOffset);
+    }
+  }
+};
 var genericSetter = function (unit, name, timeToSet, param) {
   if (param.transition === "Immediately") {
     if (param.cancel) {
@@ -111,7 +135,6 @@ exports.renderAudio = function (arrayToApply) {
     }
   };
 };
-
 exports.getAudioClockTime = function (ctx) {
   return function () {
     return ctx.currentTime;
@@ -165,6 +188,21 @@ exports.makeAnalyser_ = function (ptr) {
       };
     };
   };
+};
+exports.makeAudioWorkletNode_ = function (ptr) {
+  return function (a) {
+    return function (b) {
+      return function (state) {
+        return function () {
+          state.units[ptr] = {
+            outgoing: [],
+            incoming: [],
+            main: new AudioWorkletNode(state.context, a, b),
+          };
+        };
+      };
+    };
+  }
 };
 exports.makeBandpass_ = function (ptr) {
   return function (a) {
@@ -1053,6 +1091,17 @@ exports.setAttack_ = function (ptr) {
     };
   };
 };
+exports.setAudioWorkletParameter_ = function (ptr) {
+  return function (a) {
+    return function (b) {
+      return function (state) {
+        return function () {
+          workletSetter(state.units[ptr].main, a, state.writeHead, b);
+        };
+      };
+    };
+  }
+};
 exports.setGain_ = function (ptr) {
   return function (a) {
     return function (state) {
@@ -1183,7 +1232,7 @@ exports.decodeAudioDataFromUri = function (ctx) {
     };
   };
 };
-exports.audioWorkletAddModule = function (ctx) {
+exports.audioWorkletAddModule_ = function (ctx) {
   return function (s) {
     return function () {
       {
@@ -1352,34 +1401,34 @@ exports.getFrequencyBinCount = function (analyserNode) {
 exports.getFloatTimeDomainData = function (analyserNode) {
   return function () {
     var dataArray = new Float32Array(analyserNode.fftSize);
-    analyserNode.getFloatTimeDomainData(dataArray); 
+    analyserNode.getFloatTimeDomainData(dataArray);
     return dataArray;
-   }
+  }
 }
 
 // https://developer.mozilla.org/en-US/docs/Web/API/AnalyserNode/getFloatFrequencyData
 exports.getFloatFrequencyData = function (analyserNode) {
   return function () {
     var dataArray = new Float32Array(analyserNode.frequencyBinCount);
-    analyserNode.getFloatFrequencyData(dataArray); 
+    analyserNode.getFloatFrequencyData(dataArray);
     return dataArray;
-   }
+  }
 }
 
 // https://developer.mozilla.org/en-US/docs/Web/API/AnalyserNode/getByteTimeDomainData
 exports.getByteTimeDomainData = function (analyserNode) {
   return function () {
     var dataArray = new Uint8Array(analyserNode.fftSize);
-    analyserNode.getByteTimeDomainData(dataArray); 
+    analyserNode.getByteTimeDomainData(dataArray);
     return dataArray;
-   }
+  }
 }
 
 // https://developer.mozilla.org/en-US/docs/Web/API/AnalyserNode/getByteFrequencyData
 exports.getByteFrequencyData = function (analyserNode) {
   return function () {
     var dataArray = new Uint8Array(analyserNode.frequencyBinCount);
-    analyserNode.getByteFrequencyData(dataArray); 
+    analyserNode.getByteFrequencyData(dataArray);
     return dataArray;
-   }
+  }
 }

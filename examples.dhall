@@ -12,5 +12,7 @@ in      conf
               , "stringutils"
               , "transformers"
               , "uint"
+              , "media-types"
+              , "web-file"
               ]
         }

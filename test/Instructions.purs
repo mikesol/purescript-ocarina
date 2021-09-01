@@ -20,20 +20,21 @@ type Time
 
 type SceneTemplate
   = CSpeaker
-      { mix ::
-          CGain
-            { highpass ::
-                CHighpass { sinOsc :: CSinOsc }
-            , mix :: Ref
-            }
-      }
+  { mix ::
+      CGain
+        { highpass ::
+            CHighpass { sinOsc :: CSinOsc }
+        , mix :: Ref
+        }
+  }
 
 type SceneType
-  = { speaker :: TSpeaker /\ { mix :: Unit }
-    , mix :: TGain /\ { mix :: Unit, highpass :: Unit }
-    , highpass :: THighpass /\ { sinOsc :: Unit }
-    , sinOsc :: TSinOsc /\ {}
-    }
+  =
+  { speaker :: TSpeaker /\ { mix :: Unit }
+  , mix :: TGain /\ { mix :: Unit, highpass :: Unit }
+  , highpass :: THighpass /\ { sinOsc :: Unit }
+  , sinOsc :: TSinOsc /\ {}
+  }
 
 scene0 :: Time -> SceneTemplate
 scene0 { time: time' } =
@@ -101,8 +102,8 @@ testInstructions = do
       simpleScene =
         simpleFrame
           @|> loop \fr -> do
-              e <- ask
-              pure $ change (fr $> { sinOsc: 440.0 + e.time * 50.0 })
+            e <- ask
+            pure $ change (fr $> { sinOsc: 440.0 + e.time * 50.0 })
 
       (frame0Instr /\ _ /\ frame1) = oneFrame' simpleScene { time: 0.0 }
 
@@ -138,12 +139,13 @@ testInstructions = do
       simpleScene =
         simpleFrame
           @|> loop \fr -> do
-              e <- ask
-              pure
-                $ void
-                $ change
-                $ fr
-                $> { sinOsc: 440.0 + e.time * 50.0
+            e <- ask
+            pure
+              $ void
+              $ change
+              $ fr
+                $>
+                  { sinOsc: 440.0 + e.time * 50.0
                   , highpass: 330.0 + e.time * 10.0
                   }
 
@@ -181,19 +183,21 @@ testInstructions = do
       simpleScene =
         simpleFrame
           @|> branch \fr -> do
-              { time } <- ask
-              pure
-                $ if time < 0.3 then
-                    Right $ change $ fr $> { highpass: 330.0 + time * 10.0 }
-                  else
-                    Left
-                      ( fr
-                          # loop \fr' e ->
-                              change
-                                $ fr'
-                                $> { highpass: 330.0 + e.time * 50.0
-                                  }
-                      )
+            { time } <- ask
+            pure
+              $
+                if time < 0.3 then
+                  Right $ change $ fr $> { highpass: 330.0 + time * 10.0 }
+                else
+                  Left
+                    ( fr
+                        # loop \fr' e ->
+                          change
+                            $ fr'
+                              $>
+                                { highpass: 330.0 + e.time * 50.0
+                                }
+                    )
 
       (frame0Instr /\ _ /\ frame1) = oneFrame' simpleScene { time: 0.0 }
 
@@ -233,13 +237,13 @@ testInstructions = do
       simpleScene =
         simpleFrame
           @|> ibranch \{ time } _ ->
-              if time < 0.3 then
-                Right $ ichange { highpass: 330.0 + time * 10.0 }
-              else
-                Left
-                  $ icont
-                      (iloop \e -> const $ ichange { highpass: { freq: 330.0 + e.time * 50.0, q: e.time } })
-                      (ipure unit)
+            if time < 0.3 then
+              Right $ ichange { highpass: 330.0 + time * 10.0 }
+            else
+              Left
+                $ icont
+                  (iloop \e -> const $ ichange { highpass: { freq: 330.0 + e.time * 50.0, q: e.time } })
+                  (ipure unit)
 
       (frame0Instr /\ _ /\ frame1) = oneFrame' simpleScene { time: 0.0 }
 

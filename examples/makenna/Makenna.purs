@@ -18,7 +18,6 @@ import Effect (Effect)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect)
 import FRP.Event (subscribe)
-import Foreign.Object as O
 import Halogen as H
 import Halogen.Aff (awaitBody, runHalogenAff)
 import Halogen.HTML as HH
@@ -39,7 +38,7 @@ import WAGS.Graph.AudioUnit (TGain, TPeriodicOsc, TSpeaker)
 import WAGS.Graph.Parameter (ff)
 import WAGS.Interpret (AudioContext, BrowserPeriodicWave, close, context, defaultFFIAudio, makePeriodicWave, makeUnitCache)
 import WAGS.Math (calcSlope)
-import WAGS.Run (RunAudio, RunEngine, SceneI(..), Run, run)
+import WAGS.Run (RunAudio, RunEngine, SceneI(..), run)
 
 type Assets
   = ( periodicWaves :: { bday :: BrowserPeriodicWave }
@@ -47,6 +46,7 @@ type Assets
     , floatArrays :: {}
     , recorders :: {}
     , analysers :: {}
+    , worklets :: {}
     )
 
 type Note
@@ -240,7 +240,7 @@ handleAction = case _ of
             (0.02 +> 0.3 +> -0.1 +> -0.25 +> V.empty)
             (-0.03 +> -0.25 +> 0.05 +> 0.2 +> V.empty)
         let
-          ffiAudio = Record.set (Proxy :: _ "periodicWaves") (pure { bday }) (defaultFFIAudio audioCtx unitCache)
+          ffiAudio = Record.set (Proxy :: Proxy "periodicWaves") (pure { bday }) (defaultFFIAudio audioCtx unitCache)
         unsubscribe <-
           subscribe
             (run (pure unit) (pure unit) { easingAlgorithm } ffiAudio piece)

@@ -24,10 +24,10 @@ instance change_convertAllpassQ :: (Paramable b, MM a (Maybe b)) => ConvertOptio
   convertOption _ _ = map paramize <<< mm
 
 type AllpassOptional
-  = ( q :: Maybe AudioParameter, freq :: Maybe AudioParameter )
+  = (q :: Maybe AudioParameter, freq :: Maybe AudioParameter)
 
 type AllpassAll
-  = ( | AllpassOptional )
+  = (| AllpassOptional)
 
 defaultAllpass :: { | AllpassOptional }
 defaultAllpass = { freq: Nothing, q: Nothing }
@@ -44,7 +44,7 @@ class AllpassCtor i allpass | i -> allpass where
 
 instance change_allpassCtor1 ::
   ( ConvertOptionsWithDefaults Allpass { | AllpassOptional } { | provided } { | AllpassAll }
-    ) =>
+  ) =>
   AllpassCtor { | provided } (CTOR.Allpass (Maybe AudioParameter) (Maybe AudioParameter)) where
   allpass provided = CTOR.Allpass all.freq all.q
     where
@@ -67,10 +67,10 @@ instance change_convertBandpassQ :: (Paramable b, MM a (Maybe b)) => ConvertOpti
   convertOption _ _ = map paramize <<< mm
 
 type BandpassOptional
-  = ( freq :: Maybe AudioParameter, q :: Maybe AudioParameter )
+  = (freq :: Maybe AudioParameter, q :: Maybe AudioParameter)
 
 type BandpassAll
-  = ( | BandpassOptional )
+  = (| BandpassOptional)
 
 defaultBandpass :: { | BandpassOptional }
 defaultBandpass = { freq: Nothing, q: Nothing }
@@ -87,7 +87,7 @@ class BandpassCtor i bandpass | i -> bandpass where
 
 instance change_bandpassCtor1 ::
   ( ConvertOptionsWithDefaults Bandpass { | BandpassOptional } { | provided } { | BandpassAll }
-    ) =>
+  ) =>
   BandpassCtor { | provided } (CTOR.Bandpass (Maybe AudioParameter) (Maybe AudioParameter)) where
   bandpass provided = CTOR.Bandpass all.freq all.q
     where
@@ -110,12 +110,13 @@ instance change_convertConstantAPOnOff :: (OnOffable b, MM a (Maybe b)) => Conve
   convertOption _ _ = map onOffIze <<< mm
 
 type ConstantOptional
-  = ( onOff :: APOnOff )
+  = (onOff :: APOnOff)
 
 type ConstantAll
-  = ( offset :: AudioParameter
-    | ConstantOptional
-    )
+  =
+  ( offset :: AudioParameter
+  | ConstantOptional
+  )
 
 defaultConstant :: { | ConstantOptional }
 defaultConstant = { onOff: pure On }
@@ -130,7 +131,7 @@ class ConstantCtor i o | i -> o where
 
 instance change_constantCtor1 ::
   ( ConvertOptionsWithDefaults Constant { | ConstantOptional } { | provided } { | ConstantAll }
-    ) =>
+  ) =>
   ConstantCtor { | provided } (CTOR.Constant APOnOff AudioParameter /\ {}) where
   constant provided = CTOR.Constant all.onOff all.offset /\ {}
     where
@@ -148,11 +149,12 @@ type DConstant
 -- | ```purescript
 -- | delay 0.5 (playBuf "track")
 -- | ```
-delay ::
-  forall a b.
-  Paramable b =>
-  MM a (Maybe b) =>
-  a -> CTOR.Delay (Maybe AudioParameter)
+delay
+  :: forall a b
+   . Paramable b
+  => MM a (Maybe b)
+  => a
+  -> CTOR.Delay (Maybe AudioParameter)
 delay gvsv = CTOR.Delay (paramize <$> (mm gvsv))
 
 type DDelay
@@ -178,15 +180,16 @@ instance change_convertDynamicsCompressorRelease :: (Paramable b, MM a (Maybe b)
   convertOption _ _ = map paramize <<< mm
 
 type DynamicsCompressorOptional
-  = ( threshold :: Maybe AudioParameter
-    , knee :: Maybe AudioParameter
-    , ratio :: Maybe AudioParameter
-    , attack :: Maybe AudioParameter
-    , release :: Maybe AudioParameter
-    )
+  =
+  ( threshold :: Maybe AudioParameter
+  , knee :: Maybe AudioParameter
+  , ratio :: Maybe AudioParameter
+  , attack :: Maybe AudioParameter
+  , release :: Maybe AudioParameter
+  )
 
 type DynamicsCompressorAll
-  = ( | DynamicsCompressorOptional )
+  = (| DynamicsCompressorOptional)
 
 defaultDynamicsCompressor :: { | DynamicsCompressorOptional }
 defaultDynamicsCompressor =
@@ -209,7 +212,7 @@ class DynamicsCompressorCtor i compressor | i -> compressor where
 
 instance change_compressorCTor ::
   ( ConvertOptionsWithDefaults DynamicsCompressor { | DynamicsCompressorOptional } { | provided } { | DynamicsCompressorAll }
-    ) =>
+  ) =>
   DynamicsCompressorCtor { | provided } (CTOR.DynamicsCompressor (Maybe AudioParameter) (Maybe AudioParameter) (Maybe AudioParameter) (Maybe AudioParameter) (Maybe AudioParameter)) where
   compressor provided =
     CTOR.DynamicsCompressor
@@ -246,10 +249,10 @@ instance change_convertHighpassQ :: (Paramable b, MM a (Maybe b)) => ConvertOpti
   convertOption _ _ = map paramize <<< mm
 
 type HighpassOptional
-  = ( freq :: Maybe AudioParameter, q :: Maybe AudioParameter )
+  = (freq :: Maybe AudioParameter, q :: Maybe AudioParameter)
 
 type HighpassAll
-  = ( | HighpassOptional )
+  = (| HighpassOptional)
 
 defaultHighpass :: { | HighpassOptional }
 defaultHighpass = { freq: Nothing, q: Nothing }
@@ -266,7 +269,7 @@ class HighpassCtor i highpass | i -> highpass where
 
 instance change_highpassCtor1 ::
   ( ConvertOptionsWithDefaults Highpass { | HighpassOptional } { | provided } { | HighpassAll }
-    ) =>
+  ) =>
   HighpassCtor { | provided } (CTOR.Highpass (Maybe AudioParameter) (Maybe AudioParameter)) where
   highpass provided = CTOR.Highpass all.freq all.q
     where
@@ -289,10 +292,10 @@ instance change_convertHighshelfQ :: (Paramable b, MM a (Maybe b)) => ConvertOpt
   convertOption _ _ = map paramize <<< mm
 
 type HighshelfOptional
-  = ( freq :: Maybe AudioParameter, gain :: Maybe AudioParameter )
+  = (freq :: Maybe AudioParameter, gain :: Maybe AudioParameter)
 
 type HighshelfAll
-  = ( | HighshelfOptional )
+  = (| HighshelfOptional)
 
 defaultHighshelf :: { | HighshelfOptional }
 defaultHighshelf = { freq: Nothing, gain: Nothing }
@@ -309,7 +312,7 @@ class HighshelfCtor i highshelf | i -> highshelf where
 
 instance change_highshelfCtor1 ::
   ( ConvertOptionsWithDefaults Highshelf { | HighshelfOptional } { | provided } { | HighshelfAll }
-    ) =>
+  ) =>
   HighshelfCtor { | provided } (CTOR.Highshelf (Maybe AudioParameter) (Maybe AudioParameter)) where
   highshelf provided = CTOR.Highshelf all.freq all.gain
     where
@@ -341,15 +344,16 @@ instance change_convertLoopBufEnd :: (MM a (Maybe Number)) => ConvertOption Loop
   convertOption _ _ = mm
 
 type LoopBufOptional (sym :: Symbol)
-  = ( buffer :: Maybe (Proxy sym)
-    , playbackRate :: Maybe AudioParameter
-    , onOff :: Maybe APOnOff
-    , loopStart :: Maybe Number
-    , loopEnd :: Maybe Number
-    )
+  =
+  ( buffer :: Maybe (Proxy sym)
+  , playbackRate :: Maybe AudioParameter
+  , onOff :: Maybe APOnOff
+  , loopStart :: Maybe Number
+  , loopEnd :: Maybe Number
+  )
 
 type LoopBufAll sym
-  = ( | LoopBufOptional sym )
+  = (| LoopBufOptional sym)
 
 defaultLoopBuf :: forall sym. { | LoopBufOptional sym }
 defaultLoopBuf = { buffer: Nothing, playbackRate: Nothing, onOff: Nothing, loopStart: Nothing, loopEnd: Nothing }
@@ -366,7 +370,7 @@ class LoopBufCtor i loopBuf | i -> loopBuf where
 
 instance change_loopBufCtor1 ::
   ( ConvertOptionsWithDefaults LoopBuf { | LoopBufOptional sym } { | provided } { | LoopBufAll sym }
-    ) =>
+  ) =>
   LoopBufCtor { | provided } (CTOR.LoopBuf (Maybe (Proxy sym)) (Maybe APOnOff) (Maybe AudioParameter) (Maybe Number) (Maybe Number)) where
   loopBuf provided = CTOR.LoopBuf all.buffer all.onOff all.playbackRate all.loopStart all.loopEnd
     where
@@ -395,10 +399,10 @@ instance change_convertLowpassQ :: (Paramable b, MM a (Maybe b)) => ConvertOptio
   convertOption _ _ = map paramize <<< mm
 
 type LowpassOptional
-  = ( q :: Maybe AudioParameter, freq :: Maybe AudioParameter )
+  = (q :: Maybe AudioParameter, freq :: Maybe AudioParameter)
 
 type LowpassAll
-  = ( | LowpassOptional )
+  = (| LowpassOptional)
 
 defaultLowpass :: { | LowpassOptional }
 defaultLowpass = { freq: Nothing, q: Nothing }
@@ -415,7 +419,7 @@ class LowpassCtor i lowpass | i -> lowpass where
 
 instance change_lowpassCtor1 ::
   ( ConvertOptionsWithDefaults Lowpass { | LowpassOptional } { | provided } { | LowpassAll }
-    ) =>
+  ) =>
   LowpassCtor { | provided } (CTOR.Lowpass (Maybe AudioParameter) (Maybe AudioParameter)) where
   lowpass provided = CTOR.Lowpass all.freq all.q
     where
@@ -438,10 +442,10 @@ instance change_convertLowshelfQ :: (Paramable b, MM a (Maybe b)) => ConvertOpti
   convertOption _ _ = map paramize <<< mm
 
 type LowshelfOptional
-  = ( freq :: Maybe AudioParameter, gain :: Maybe AudioParameter )
+  = (freq :: Maybe AudioParameter, gain :: Maybe AudioParameter)
 
 type LowshelfAll
-  = ( | LowshelfOptional )
+  = (| LowshelfOptional)
 
 defaultLowshelf :: { | LowshelfOptional }
 defaultLowshelf = { freq: Nothing, gain: Nothing }
@@ -458,7 +462,7 @@ class LowshelfCtor i lowshelf | i -> lowshelf where
 
 instance change_lowshelfCtor1 ::
   ( ConvertOptionsWithDefaults Lowshelf { | LowshelfOptional } { | provided } { | LowshelfAll }
-    ) =>
+  ) =>
   LowshelfCtor { | provided } (CTOR.Lowshelf (Maybe AudioParameter) (Maybe AudioParameter)) where
   lowshelf provided = CTOR.Lowshelf all.freq all.gain
     where
@@ -481,10 +485,10 @@ instance change_convertNotchQ :: (Paramable b, MM a (Maybe b)) => ConvertOption 
   convertOption _ _ = map paramize <<< mm
 
 type NotchOptional
-  = ( q :: Maybe AudioParameter, freq :: Maybe AudioParameter )
+  = (q :: Maybe AudioParameter, freq :: Maybe AudioParameter)
 
 type NotchAll
-  = ( | NotchOptional )
+  = (| NotchOptional)
 
 defaultNotch :: { | NotchOptional }
 defaultNotch = { freq: Nothing, q: Nothing }
@@ -501,7 +505,7 @@ class NotchCtor i notch | i -> notch where
 
 instance change_notchCtor1 ::
   ( ConvertOptionsWithDefaults Notch { | NotchOptional } { | provided } { | NotchAll }
-    ) =>
+  ) =>
   NotchCtor { | provided } (CTOR.Notch (Maybe AudioParameter) (Maybe AudioParameter)) where
   notch provided = CTOR.Notch all.freq all.q
     where
@@ -527,10 +531,10 @@ instance change_convertPeakingGain :: (Paramable b, MM a (Maybe b)) => ConvertOp
   convertOption _ _ = map paramize <<< mm
 
 type PeakingOptional
-  = ( q :: Maybe AudioParameter, gain :: Maybe AudioParameter, freq :: Maybe AudioParameter )
+  = (q :: Maybe AudioParameter, gain :: Maybe AudioParameter, freq :: Maybe AudioParameter)
 
 type PeakingAll
-  = ( | PeakingOptional )
+  = (| PeakingOptional)
 
 defaultPeaking :: { | PeakingOptional }
 defaultPeaking = { freq: Nothing, q: Nothing, gain: Nothing }
@@ -547,7 +551,7 @@ class PeakingCtor i peaking | i -> peaking where
 
 instance change_peakingCtor1 ::
   ( ConvertOptionsWithDefaults Peaking { | PeakingOptional } { | provided } { | PeakingAll }
-    ) =>
+  ) =>
   PeakingCtor { | provided } (CTOR.Peaking (Maybe AudioParameter) (Maybe AudioParameter) (Maybe AudioParameter)) where
   peaking provided = (CTOR.Peaking all.freq all.q all.gain)
     where
@@ -580,13 +584,14 @@ instance change_convertPeriodicOscWave :: (MM mWave (Maybe wave), CanBeCoercedTo
   convertOption _ _ = mm
 
 type PeriodicOscOptional wave
-  = ( onOff :: Maybe APOnOff
-    , freq :: Maybe AudioParameter
-    , wave :: Maybe wave
-    )
+  =
+  ( onOff :: Maybe APOnOff
+  , freq :: Maybe AudioParameter
+  , wave :: Maybe wave
+  )
 
 type PeriodicOscAll wave
-  = ( | PeriodicOscOptional wave )
+  = (| PeriodicOscOptional wave)
 
 defaultPeriodicOsc :: forall wave. { | PeriodicOscOptional wave }
 defaultPeriodicOsc = { onOff: Nothing, freq: Nothing, wave: Nothing }
@@ -601,7 +606,7 @@ class PeriodicOscCtor i o | i -> o where
 
 instance change_periodicOscCtor1 ::
   ( ConvertOptionsWithDefaults PeriodicOsc { | PeriodicOscOptional wave } { | provided } { | PeriodicOscAll wave }
-    ) =>
+  ) =>
   PeriodicOscCtor { | provided } (CTOR.PeriodicOsc (Maybe wave) (Maybe APOnOff) (Maybe AudioParameter)) where
   periodicOsc provided = CTOR.PeriodicOsc all.wave all.onOff all.freq
     where
@@ -630,10 +635,10 @@ instance change_convertPlayBufBufferOffset :: (MM mOffset (Maybe Number)) => Con
   convertOption _ _ = mm
 
 type PlayBufOptional (sym :: Symbol)
-  = ( buffer :: Maybe (Proxy sym), playbackRate :: Maybe AudioParameter, onOff :: Maybe APOnOff, bufferOffset :: Maybe Number )
+  = (buffer :: Maybe (Proxy sym), playbackRate :: Maybe AudioParameter, onOff :: Maybe APOnOff, bufferOffset :: Maybe Number)
 
 type PlayBufAll (sym :: Symbol)
-  = ( | PlayBufOptional sym )
+  = (| PlayBufOptional sym)
 
 defaultPlayBuf :: forall sym. { | PlayBufOptional sym }
 defaultPlayBuf = { buffer: Nothing, playbackRate: Nothing, onOff: Nothing, bufferOffset: Nothing }
@@ -677,11 +682,16 @@ class SawtoothOscCtor i o | i -> o where
   sawtoothOsc :: i -> o
 
 instance change_sawtoothOsc2 ::
-  (MM mAPOnOff (Maybe APOnOff), Paramable b, MM a (Maybe b)) =>
+  ( MM mAPOnOff (Maybe APOnOff)
+  , Paramable b
+  , MM a (Maybe b)
+  ) =>
   SawtoothOscCtor mAPOnOff (a -> CTOR.SawtoothOsc (Maybe APOnOff) (Maybe AudioParameter)) where
   sawtoothOsc oo gvsv = CTOR.SawtoothOsc (mm oo) (paramize <$> (mm gvsv))
 else instance change_sawtoothOsc1 ::
-  (Paramable b, MM a (Maybe b)) =>
+  ( Paramable b
+  , MM a (Maybe b)
+  ) =>
   SawtoothOscCtor a (CTOR.SawtoothOsc (Maybe APOnOff) (Maybe AudioParameter)) where
   sawtoothOsc gvsv = CTOR.SawtoothOsc Nothing (paramize <$> (mm gvsv))
 
@@ -699,12 +709,13 @@ instance change_convertSinOscAPOnOff :: (OnOffable b, MM a (Maybe b)) => Convert
   convertOption _ _ = map onOffIze <<< mm
 
 type SinOscOptional
-  = ( onOff :: APOnOff )
+  = (onOff :: APOnOff)
 
 type SinOscAll
-  = ( freq :: AudioParameter
-    | SinOscOptional
-    )
+  =
+  ( freq :: AudioParameter
+  | SinOscOptional
+  )
 
 defaultSinOsc :: { | SinOscOptional }
 defaultSinOsc = { onOff: pure On }
@@ -719,7 +730,7 @@ class SinOscCtor i o | i -> o where
 
 instance change_sinOscCtor1 ::
   ( ConvertOptionsWithDefaults SinOsc { | SinOscOptional } { | provided } { | SinOscAll }
-    ) =>
+  ) =>
   SinOscCtor { | provided } (CTOR.SinOsc APOnOff AudioParameter /\ {}) where
   sinOsc provided = CTOR.SinOsc all.onOff all.freq /\ {}
     where
@@ -742,12 +753,13 @@ instance change_convertSquareOscAPOnOff :: (OnOffable b, MM a (Maybe b)) => Conv
   convertOption _ _ = map onOffIze <<< mm
 
 type SquareOscOptional
-  = ( onOff :: APOnOff )
+  = (onOff :: APOnOff)
 
 type SquareOscAll
-  = ( freq :: AudioParameter
-    | SquareOscOptional
-    )
+  =
+  ( freq :: AudioParameter
+  | SquareOscOptional
+  )
 
 defaultSquareOsc :: { | SquareOscOptional }
 defaultSquareOsc = { onOff: pure On }
@@ -762,7 +774,7 @@ class SquareOscCtor i o | i -> o where
 
 instance change_squareOscCtor1 ::
   ( ConvertOptionsWithDefaults SquareOsc { | SquareOscOptional } { | provided } { | SquareOscAll }
-    ) =>
+  ) =>
   SquareOscCtor { | provided } (CTOR.SquareOsc APOnOff AudioParameter /\ {}) where
   squareOsc provided = CTOR.SquareOsc all.onOff all.freq /\ {}
     where
@@ -780,11 +792,12 @@ type DSquareOsc
 -- | ```purescript
 -- | pan 0.5 { buf: playBuf "my-track" }
 -- | ```
-pan ::
-  forall a b.
-  Paramable b =>
-  MM a (Maybe b) =>
-  a -> CTOR.StereoPanner (Maybe AudioParameter)
+pan
+  :: forall a b
+   . Paramable b
+  => MM a (Maybe b)
+  => a
+  -> CTOR.StereoPanner (Maybe AudioParameter)
 pan gvsv = CTOR.StereoPanner (paramize <$> (mm gvsv))
 
 type DStereoPanner
@@ -801,12 +814,13 @@ instance change_convertTriangleOscAPOnOff :: (OnOffable b, MM a (Maybe b)) => Co
   convertOption _ _ = map onOffIze <<< mm
 
 type TriangleOscOptional
-  = ( onOff :: APOnOff )
+  = (onOff :: APOnOff)
 
 type TriangleOscAll
-  = ( freq :: AudioParameter
-    | TriangleOscOptional
-    )
+  =
+  ( freq :: AudioParameter
+  | TriangleOscOptional
+  )
 
 defaultTriangleOsc :: { | TriangleOscOptional }
 defaultTriangleOsc = { onOff: pure On }
@@ -821,7 +835,7 @@ class TriangleOscCtor i o | i -> o where
 
 instance change_triangleOscCtor1 ::
   ( ConvertOptionsWithDefaults TriangleOsc { | TriangleOscOptional } { | provided } { | TriangleOscAll }
-    ) =>
+  ) =>
   TriangleOscCtor { | provided } (CTOR.TriangleOsc APOnOff AudioParameter /\ {}) where
   triangleOsc provided = CTOR.TriangleOsc all.onOff all.freq /\ {}
     where

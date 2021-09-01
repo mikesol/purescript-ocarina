@@ -14,6 +14,6 @@ main :: Effect Unit
 main = do
   launchAff_
     $ runSpec [ consoleReporter ] do
-        testInstructions
-        testFRP
-        testPatch
+      testInstructions
+      testFRP
+      testPatch
