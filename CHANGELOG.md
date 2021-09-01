@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2021-09-1
+
+### Added
+
+- `AudioWorkletNode`
+- `AnalyserNode`
+- type-safe asset cache. **This is a breaking change**! `Scene`, `Frame`, `WAG` and `IxWAG` all take an `asset` type with the current asset cache and fail the build if it is not coherent with the asset being used (ie if a buffer or recorder is used that is not in the cache).
+
 ## [0.3.15] - 2021-08-25
 
 ### Fixed
