@@ -1,6 +1,7 @@
 module WAGS.Graph.AudioUnit where
 
 import Prelude
+
 import Data.Generic.Rep (class Generic)
 import Data.Show.Generic (genericShow)
 import Data.Symbol (class IsSymbol)
@@ -8,8 +9,8 @@ import Data.Tuple.Nested (type (/\), (/\))
 import Heterogeneous.Folding (class FoldingWithIndex, class HFoldlWithIndex, hfoldlWithIndex)
 import Heterogeneous.Mapping (class HMap, class Mapping, hmap)
 import Prim.Row as R
-import Record as Record
 import Prim.Symbol as Sym
+import Record as Record
 import Type.Proxy (Proxy(..))
 import WAGS.Edgeable (class Edgeable, withEdge)
 import WAGS.Graph.Parameter (AudioParameter_)
@@ -32,6 +33,26 @@ data Analyser (analyser :: Symbol)
   = Analyser (Proxy analyser)
 
 instance typeToSymAnalyser :: Sym.Append "Analyser_" sym o => TypeToSym (Analyser sym) o
+
+type AudioWorkletNodeOptions' (numberOfInputs :: Type) (numberOfOutputs :: Type) (outputChannelCount :: Type) (parameterData :: Row Type) (processorOptions :: Row Type) =
+  ( numberOfInputs :: numberOfInputs
+  , numberOfOutputs :: numberOfOutputs
+  , outputChannelCount :: outputChannelCount
+  , parameterData :: { | parameterData }
+  , processorOptions :: { | processorOptions }
+  )
+
+newtype AudioWorkletNodeOptions (numberOfInputs :: Type) (numberOfOutputs :: Type) (outputChannelCount :: Type) (parameterData :: Row Type) (processorOptions :: Row Type) = AudioWorkletNodeOptions
+  {
+  | AudioWorkletNodeOptions' numberOfInputs numberOfOutputs outputChannelCount parameterData processorOptions
+  }
+-- | Term-level constructor for an audio worklet node.
+-- | - `node` - the name of the node.
+-- | - `options` - initialization options
+data AudioWorkletNode (node :: Symbol) (numberOfInputs :: Type) (numberOfOutputs :: Type) (outputChannelCount :: Type) (parameterData :: Row Type) (processorOptions :: Row Type)
+  = AudioWorkletNode (Proxy node) (AudioWorkletNodeOptions numberOfInputs numberOfOutputs outputChannelCount parameterData processorOptions)
+
+instance typeToSymAudioWorkletNode :: Sym.Append "AudioWorkletNode" sym o => TypeToSym (AudioWorkletNode sym numberOfInputs numberOfOutputs outputChannelCount parameterData processorOptions) o
 
 -- | Term-level constructor for a bandpass filter.
 -- | - `frequency` - the frequency of the isolated band.
@@ -193,7 +214,7 @@ instance typeToSymSinOsc :: TypeToSym (SinOsc onOff frequency) "SinOsc"
 data Speaker
   = Speaker
 
-instance typeToSymSpeaker:: TypeToSym Speaker "Speaker"
+instance typeToSymSpeaker :: TypeToSym Speaker "Speaker"
 
 -- | Term-level constructor for a square-wave oscillator.
 -- | - `onOff` - whether the generator is on or off.
@@ -308,6 +329,21 @@ instance monoidTAnalyser :: Monoid (TAnalyser sym) where
   mempty = TAnalyser (Proxy :: _ sym)
 
 instance reifyTAnalyser :: ReifyAU (Analyser sym) (TAnalyser sym) where
+  reifyAU = const mempty
+
+-- | Type-level constructor for an audio worklet node.
+data TAudioWorkletNode (sym :: Symbol) (numberOfInputs :: Type) (numberOfOutputs :: Type) (outputChannelCount :: Type) (parameterData :: Row Type) (processorOptions :: Row Type) 
+  = TAudioWorkletNode (Proxy sym) (Proxy numberOfInputs) (Proxy numberOfOutputs) (Proxy outputChannelCount) (Proxy parameterData) (Proxy processorOptions) 
+
+instance typeToSymTAudioWorkletNode :: Sym.Append "TAudioWorkletNode_" sym o => TypeToSym (TAudioWorkletNode sym numberOfInputs numberOfOutputs outputChannelCount parameterData processorOptions) o
+
+instance semigroupTAudioWorkletNode :: Semigroup (TAudioWorkletNode sym numberOfInputs numberOfOutputs outputChannelCount parameterData processorOptions) where
+  append _ _ = TAudioWorkletNode (Proxy :: _ sym) (Proxy :: _ numberOfInputs) (Proxy :: _ numberOfOutputs) (Proxy :: _ outputChannelCount) (Proxy :: _ parameterData) (Proxy :: _ processorOptions) 
+
+instance monoidTAudioWorkletNode :: Monoid (TAudioWorkletNode sym numberOfInputs numberOfOutputs outputChannelCount parameterData processorOptions) where
+  mempty = TAudioWorkletNode (Proxy :: _ sym) (Proxy :: _ numberOfInputs) (Proxy :: _ numberOfOutputs) (Proxy :: _ outputChannelCount) (Proxy :: _ parameterData) (Proxy :: _ processorOptions) 
+
+instance reifyTAudioWorkletNode :: ReifyAU (AudioWorkletNode sym numberOfInputs numberOfOutputs outputChannelCount parameterData processorOptions) (TAudioWorkletNode sym numberOfInputs numberOfOutputs outputChannelCount parameterData processorOptions) where
   reifyAU = const mempty
 
 -- | Type-level constructor for a bandpass filter.
@@ -724,12 +760,13 @@ type ReifyAUs r
   = forall rr. HFoldlWithIndex ReifyAUFoldingWithIndex {} r rr => rr
 
 -- | Reify many audio units.
-reifyAUs ::
-  forall r rr.
-  HFoldlWithIndex
-    ReifyAUFoldingWithIndex
-    {}
-    r
-    rr =>
-  r -> rr
+reifyAUs
+  :: forall r rr
+   . HFoldlWithIndex
+       ReifyAUFoldingWithIndex
+       {}
+       r
+       rr
+  => r
+  -> rr
 reifyAUs = hfoldlWithIndex ReifyAUFoldingWithIndex {}

@@ -19,6 +19,7 @@ import WAGS.Graph.AudioUnit as CTOR
 import WAGS.Graph.Graph (Graph)
 import WAGS.Graph.Node (NodeC)
 import WAGS.Graph.Oversample (class IsOversampleT)
+import WAGS.Graph.Parameter (AudioParameter)
 import WAGS.Util (class AddPrefixToRowList, class CoercePrefixToString, class MakePrefixIfNeeded)
 
 class CreateStepT (prefix :: Type) (map :: Type) (assets :: Row Type) (r :: Row Type) (inGraph :: Graph) (outGraph :: Graph) | r inGraph -> outGraph
@@ -79,7 +80,7 @@ class CreateT (assets :: Row Type) (r :: Row Type) (inGraph :: Graph) (outGraph 
 
 instance createTAll ::
   ( CreateInternalT Unit Unit assets r inGraph outGraph
-    ) =>
+  ) =>
   CreateT assets r inGraph outGraph
 
 -- | Create an audio unit `node` in `igraph` with index `ptr`, resulting in `ograph`.
@@ -100,6 +101,37 @@ instance createTAnalyser ::
   , R.Cons ptr (NodeC (CTOR.TAnalyser recorder) {}) graphi grapho
   ) =>
   CreateT' assets ptr (CTOR.Analyser recorder) graphi grapho
+
+
+class CreateParametersT (parameterRL :: RL.RowList Type) (parameterData :: Row Type)
+
+instance createParametersTNil :: CreateParametersT RL.Nil parameterData 
+
+instance createParametersTCons ::
+  ( R.Cons key AudioParameter parameters' parameterData
+  , CreateParametersT rest parameterData
+  ) =>
+  CreateParametersT (RL.Cons key AudioParameter rest) parameterData
+
+instance createAudioWorkletNode ::
+  ( R.Lacks ptr graphi
+  , R.Cons ptr (NodeC (CTOR.TAudioWorkletNode name numberOfInputs numberOfOutputs outputChannelCount parameterData processorOptions) {}) graphi grapho
+  , RL.RowToList parameterData parameterDataRL
+  , CreateParametersT parameterDataRL parameterData
+  -- ugh, no way to have monoid on the type level without term gunk
+  -- , Monoid { | processorOptions }
+  -- no way to have nat on the type level either without term gunk
+  -- , Nat numberOfInputs
+  -- , Pos numberOfOutputs
+  -- , ValidateOutputChannelCount numberOfOutputs outputChannelCount
+  -- same, no way to have the JSON instances here
+  -- , JSON.WriteForeign { | processorOptions }
+  ) =>
+  CreateT' assets
+    ptr
+    (CTOR.AudioWorkletNode sym numberOfInputs numberOfOutputs outputChannelCount parameterData processorOptions)
+    graphi
+    grapho
 
 instance createTBandpass ::
   ( R.Lacks ptr graphi

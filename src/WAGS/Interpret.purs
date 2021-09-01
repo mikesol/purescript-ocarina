@@ -6,6 +6,8 @@ module WAGS.Interpret
   , class SafeToFFI
   , AnalyserNode
   , AudioBuffer
+  , AudioWorkletNode
+  , AudioWorkletNodeProxy
   , AudioContext
   , BrowserAudioBuffer
   , BrowserCamera
@@ -45,6 +47,7 @@ module WAGS.Interpret
   , makeAllpass
   , makeAnalyser
   , makeAudioBuffer
+  , makeAudioWorkletNode
   , makeBandpass
   , makeConstant
   , makeConvolver
@@ -79,6 +82,7 @@ module WAGS.Interpret
   , mediaRecorderToUrl
   , renderAudio
   , safeToFFI
+  , setAudioWorkletParameter
   , setBuffer
   , setPeriodicOsc
   , setPeriodicOscV
@@ -102,14 +106,17 @@ module WAGS.Interpret
   ) where
 
 import Prelude
+
 import Control.Plus (empty)
 import Control.Promise (Promise, toAffE)
 import Data.ArrayBuffer.Types (Float32Array, Uint8Array)
 import Data.Either (Either(..))
 import Data.Maybe (Maybe, fromMaybe, isNothing, maybe)
+import Data.Newtype (wrap)
 import Data.Nullable (Nullable, null)
+import Data.Symbol (class IsSymbol)
 import Data.Tuple.Nested (type (/\), (/\))
-import Data.Typelevel.Num (class Pos)
+import Data.Typelevel.Num (class Nat, class Pos)
 import Data.Vec (Vec)
 import Data.Vec as V
 import Effect (Effect)
@@ -117,14 +124,21 @@ import Effect.Aff (Aff)
 import FRP.Behavior (Behavior)
 import Foreign (Foreign)
 import Foreign.Object (Object)
+import Simple.JSON as JSON
+import Type.Proxy (Proxy)
+import Type.Row.Homogeneous (class Homogeneous)
 import Unsafe.Coerce (unsafeCoerce)
-import WAGS.Graph.AudioUnit (OnOff(..), APOnOff)
-import WAGS.Graph.Parameter (AudioParameter, AudioParameter_(..))
+import WAGS.Graph.AudioUnit (APOnOff, OnOff(..))
+import WAGS.Graph.AudioUnit as CTOR
+import WAGS.Graph.Parameter (AudioParameter_(..), AudioParameter)
 import WAGS.Rendered (Instruction(..), Oversample(..))
-import WAGS.Util (tmap)
+import WAGS.Util (class ValidateOutputChannelCount, tmap)
 
 -- | An [AnalyserNode](https://developer.mozilla.org/en-US/docs/Web/API/AnalyserNode)
 foreign import data AnalyserNode :: Type
+
+-- | An [AudioWorkletNode](https://developer.mozilla.org/en-US/docs/Web/API/AudioWorkletNode)
+foreign import data AudioWorkletNode :: Symbol -> Row Type -> Type
 
 foreign import getFFTSize :: AnalyserNode -> Effect Int
 
@@ -151,6 +165,9 @@ foreign import getFloatFrequencyData :: AnalyserNode -> Effect Float32Array
 foreign import getByteTimeDomainData :: AnalyserNode -> Effect Uint8Array
 
 foreign import getByteFrequencyData :: AnalyserNode -> Effect Uint8Array
+
+-- | For a given audio context, add the audio worklet module at a given URI.
+foreign import audioWorkletAddModule_ :: AudioContext -> String -> Effect (Promise Unit)
 
 -- | A [MediaRecorder](https://developer.mozilla.org/en-US/docs/Web/API/MediaRecorder).
 foreign import data MediaRecorder :: Type
@@ -195,9 +212,6 @@ foreign import decodeAudioDataFromUri :: AudioContext -> String -> Effect (Promi
 -- | Given an audio context and a base-64-encoded audio file, decode the content of the string to an audio buffer.
 foreign import decodeAudioDataFromBase64EncodedString :: AudioContext -> String -> Effect (Promise BrowserAudioBuffer)
 
--- | For a given audio context, add the audio worklet module at a given URI.
-foreign import audioWorkletAddModule :: AudioContext -> String -> Effect (Promise Unit)
-
 foreign import makePeriodicWaveImpl :: AudioContext -> Array Number -> Array Number -> Effect BrowserPeriodicWave
 
 -- | For a given audio context, use an audio buffer to create a browser audio buffer. This is useful when doing DSP in the browser.  Note that `AudioBuffer` is a purescript type whereas `BrowserAudioBuffer` is an optimized browser-based type. That means that, once you write to `BrowserAudioBuffer`, it is effectively a blob and its contents cannot be retrieved using the WAGS API.
@@ -215,6 +229,52 @@ foreign import close :: AudioContext -> Effect Unit
 foreign import data BrowserMediaStream :: Type
 
 foreign import getBrowserMediaStreamImpl :: Boolean -> Boolean -> Effect (Promise BrowserMediaStream)
+
+data Audio
+
+data AudioWorkletNodeProxy (audioWorkletNode :: Type) = AudioWorkletNodeProxy
+
+audioWorkletAddModule
+  :: forall node numberOfInputs numberOfOutputs outputChannelCount parameterData processorOptions
+   . IsSymbol node
+  => Nat numberOfInputs
+  => Pos numberOfOutputs
+  => ValidateOutputChannelCount numberOfOutputs outputChannelCount
+  => Homogeneous parameterData AudioParameter
+  => JSON.WriteForeign { | processorOptions }
+  => AudioContext
+  -> String
+  -> Proxy
+       ( CTOR.AudioWorkletNode node numberOfInputs
+           numberOfOutputs
+           outputChannelCount
+           parameterData
+           processorOptions
+
+       )
+  -> Aff
+       ( AudioWorkletNodeProxy
+           ( CTOR.AudioWorkletNode node numberOfInputs
+               numberOfOutputs
+               outputChannelCount
+               parameterData
+               processorOptions
+
+           )
+       )
+audioWorkletAddModule c px _ =
+  (toAffE $ audioWorkletAddModule_ c px) $>
+    ( AudioWorkletNodeProxy
+        :: _
+          ( CTOR.AudioWorkletNode node
+              numberOfInputs
+              numberOfOutputs
+              outputChannelCount
+              parameterData
+              processorOptions
+
+          )
+    )
 
 browserMediaStreamToBrowserMicrophone :: BrowserMediaStream -> BrowserMicrophone
 browserMediaStreamToBrowserMicrophone = unsafeCoerce
@@ -243,13 +303,13 @@ foreign import renderAudio :: Array (Effect Unit) -> Effect Unit
 -- | Make a browser periodic wave. A PureScript-ified version of the periodic wave constructor
 -- | from the [Web Audio API](https://developer.mozilla.org/en-US/docs/Web/API/PeriodicWave/PeriodicWave).
 -- | Given an audio context, a vector of real parts of complex numbers, and a vector of imaginary parts of complex numbers, build a periodic wave interpretable by the Web Audio API.
-makePeriodicWave ::
-  forall len.
-  Pos len =>
-  AudioContext ->
-  Vec len Number ->
-  Vec len Number ->
-  Effect BrowserPeriodicWave
+makePeriodicWave
+  :: forall len
+   . Pos len
+  => AudioContext
+  -> Vec len Number
+  -> Vec len Number
+  -> Effect BrowserPeriodicWave
 makePeriodicWave ctx a b = makePeriodicWaveImpl ctx (V.toArray a) (V.toArray b)
 
 -- | A multi-channel audio buffer.
@@ -262,13 +322,13 @@ instance showAudioBuffer :: Show AudioBuffer where
 derive instance eqAudioBuffer :: Eq AudioBuffer
 
 -- | Make a multi-channel audio buffer. Each vector into the multi-channel buffer must be the same length.
-audioBuffer ::
-  forall bch blen.
-  Pos bch =>
-  Pos blen =>
-  Int ->
-  Vec bch (Vec blen Number) ->
-  AudioBuffer
+audioBuffer
+  :: forall bch blen
+   . Pos bch
+  => Pos blen
+  => Int
+  -> Vec bch (Vec blen Number)
+  -> AudioBuffer
 audioBuffer i v = AudioBuffer i (map V.toArray $ V.toArray v)
 
 -- | The audio information that goes to the ffi during rendering.
@@ -282,27 +342,30 @@ audioBuffer i v = AudioBuffer i (map V.toArray $ V.toArray v)
 -- | - `floatArrays` - arrays of 32=bit floats used for wave shaping.
 -- | - `periodicWaves` - array of periodic waves used for creating oscillator nodes.
 type FFIAudioSnapshot'
-  = { context :: AudioContext
-    , writeHead :: Number
-    , units :: Foreign
-    , microphone :: Nullable BrowserMicrophone
-    , analysers :: Object (AnalyserNode -> Effect (Effect Unit))
-    , recorders :: Object (MediaRecorder -> Effect Unit)
-    , buffers :: Object BrowserAudioBuffer
-    , floatArrays :: Object BrowserFloatArray
-    , periodicWaves :: Object BrowserPeriodicWave
-    }
+  =
+  { context :: AudioContext
+  , writeHead :: Number
+  , units :: Foreign
+  , microphone :: Nullable BrowserMicrophone
+  , analysers :: Object (AnalyserNode -> Effect (Effect Unit))
+  , recorders :: Object (MediaRecorder -> Effect Unit)
+  , buffers :: Object BrowserAudioBuffer
+  , floatArrays :: Object BrowserFloatArray
+  , periodicWaves :: Object BrowserPeriodicWave
+  }
 
 type DefaultFFIAudioWithBehaviors
-  = { context :: AudioContext
-    , writeHead :: Number
-    , units :: Foreign
-    , microphone :: Behavior (Nullable BrowserMicrophone)
-    , recorders :: Behavior {}
-    , buffers :: Behavior {}
-    , floatArrays :: Behavior {}
-    , periodicWaves :: Behavior {}
-    }
+  =
+  { context :: AudioContext
+  , writeHead :: Number
+  , units :: Foreign
+  , microphone :: Behavior (Nullable BrowserMicrophone)
+  , worklets :: {}
+  , recorders :: Behavior {}
+  , buffers :: Behavior {}
+  , floatArrays :: Behavior {}
+  , periodicWaves :: Behavior {}
+  }
 
 -- A default FFI audio with empty objects (ie no buffers, no microphone, etc).
 defaultFFIAudio :: AudioContext -> Foreign -> DefaultFFIAudioWithBehaviors
@@ -311,6 +374,7 @@ defaultFFIAudio audioCtx unitCache =
   , writeHead: 0.0
   , units: unitCache
   , microphone: pure null
+  , worklets: {}
   , recorders: pure {}
   , buffers: pure {}
   , floatArrays: pure {}
@@ -336,6 +400,8 @@ class AudioInterpret audio engine where
   makeAllpass :: String -> AudioParameter -> AudioParameter -> audio -> engine
   -- | Make an analyser.
   makeAnalyser :: String -> String -> audio -> engine
+  -- | Make an audio worklet node.
+  makeAudioWorkletNode :: String -> String -> Foreign -> audio -> engine
   -- | Make a bandpass filter.
   makeBandpass :: String -> AudioParameter -> AudioParameter -> audio -> engine
   -- | Make a constant source, ie a stream of 0s.
@@ -392,6 +458,8 @@ class AudioInterpret audio engine where
   makeTriangleOsc :: String -> APOnOff -> AudioParameter -> audio -> engine
   -- | Make a wave shaper.
   makeWaveShaper :: String -> String -> Oversample -> audio -> engine
+  -- | Sets a custom parameter for an audio worklet node
+  setAudioWorkletParameter :: String -> String -> AudioParameter -> audio -> engine
   -- | Sets the buffer to read from in a playBuf or loopBuf
   setBuffer :: String -> String -> audio -> engine
   -- | Sets the periodic oscillator to read from in a periodicOsc
@@ -437,6 +505,7 @@ instance freeAudioInterpret :: AudioInterpret Unit Instruction where
   destroyUnit a = const $ DestroyUnit a
   makeAllpass a b c = const $ MakeAllpass a b c
   makeAnalyser a b = const $ MakeAnalyser a b
+  makeAudioWorkletNode a b c = const $ MakeAudioWorkletNode a b (wrap c)
   makeBandpass a b c = const $ MakeBandpass a b c
   makeConstant a b c = const $ MakeConstant a b c
   makeConvolver a b = const $ MakeConvolver a b
@@ -465,6 +534,7 @@ instance freeAudioInterpret :: AudioInterpret Unit Instruction where
   makeStereoPanner a b = const $ MakeStereoPanner a b
   makeTriangleOsc a b c = const $ MakeTriangleOsc a b c
   makeWaveShaper a b c = const $ MakeWaveShaper a b c
+  setAudioWorkletParameter a b c = const $ SetAudioWorkletParameter a b c
   setBuffer a b = const $ SetBuffer a b
   setPeriodicOsc a b = const $ SetPeriodicOsc a (Left b)
   setPeriodicOscV a b = const $ SetPeriodicOsc a (Right (tmap V.toArray b))
@@ -496,6 +566,8 @@ foreign import rebaseAllUnits_ :: Array { from :: String, to :: String } -> FFIA
 foreign import makeAllpass_ :: String -> FFINumericAudioParameter -> FFINumericAudioParameter -> FFIAudioSnapshot' -> Effect Unit
 
 foreign import makeAnalyser_ :: String -> String -> FFIAudioSnapshot' -> Effect Unit
+
+foreign import makeAudioWorkletNode_ :: String -> String -> Foreign -> FFIAudioSnapshot' -> Effect Unit
 
 foreign import makeBandpass_ :: String -> FFINumericAudioParameter -> FFINumericAudioParameter -> FFIAudioSnapshot' -> Effect Unit
 
@@ -553,6 +625,8 @@ foreign import makeTriangleOsc_ :: String -> FFIStringAudioParameter -> FFINumer
 
 foreign import makeWaveShaper_ :: String -> String -> String -> FFIAudioSnapshot' -> Effect Unit
 
+foreign import setAudioWorkletParameter_ :: String -> String -> FFINumericAudioParameter -> FFIAudioSnapshot' -> Effect Unit
+
 foreign import setOnOff_ :: String -> FFIStringAudioParameter -> FFIAudioSnapshot' -> Effect Unit
 
 foreign import setBufferOffset_ :: String -> Number -> FFIAudioSnapshot' -> Effect Unit
@@ -597,6 +671,7 @@ instance effectfulAudioInterpret :: AudioInterpret FFIAudioSnapshot (Effect Unit
   destroyUnit a b = destroyUnit_ (safeToFFI a) (safeToFFI b)
   makeAllpass a b c d = makeAllpass_ (safeToFFI a) (safeToFFI b) (safeToFFI c) (safeToFFI d)
   makeAnalyser a b c = makeAnalyser_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
+  makeAudioWorkletNode a b c d = makeAudioWorkletNode_ (safeToFFI a) (safeToFFI b) (safeToFFI c) (safeToFFI d)
   makeBandpass a b c d = makeBandpass_ (safeToFFI a) (safeToFFI b) (safeToFFI c) (safeToFFI d)
   makeConstant a b c d = makeConstant_ (safeToFFI a) (safeToFFI b) (safeToFFI c) (safeToFFI d)
   makeConvolver a b c = makeConvolver_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
@@ -625,6 +700,7 @@ instance effectfulAudioInterpret :: AudioInterpret FFIAudioSnapshot (Effect Unit
   makeStereoPanner a b c = makeStereoPanner_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
   makeTriangleOsc a b c d = makeTriangleOsc_ (safeToFFI a) (safeToFFI b) (safeToFFI c) (safeToFFI d)
   makeWaveShaper a b c d = makeWaveShaper_ (safeToFFI a) (safeToFFI b) (safeToFFI c) (safeToFFI d)
+  setAudioWorkletParameter a b c d = setAudioWorkletParameter_ (safeToFFI a) (safeToFFI b) (safeToFFI c) (safeToFFI d)
   setBuffer a b c = setBuffer_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
   setPeriodicOsc a b c = setPeriodicOsc_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
   setPeriodicOscV a b c = setPeriodicOscV_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
@@ -655,6 +731,9 @@ instance safeToFFI_Int :: SafeToFFI Int Int where
 instance safeToFFI_Number :: SafeToFFI Number Number where
   safeToFFI = identity
 
+instance safeToFFI_Foreign :: SafeToFFI Foreign Foreign where
+  safeToFFI = identity
+
 instance safeToFFI_VecNumber :: SafeToFFI (V.Vec a Number /\ V.Vec a Number) (Array (Array Number)) where
   safeToFFI (a /\ b) = [ V.toArray a, V.toArray b ]
 
@@ -672,11 +751,12 @@ instance safeToFFI_FFIAudio :: SafeToFFI FFIAudioSnapshot FFIAudioSnapshot' wher
 
 -- | An AudioParameter with the `transition` field stringly-typed for easier rendering in the FFI and cancelation as a boolean
 type FFINumericAudioParameter
-  = { param :: Number
-    , timeOffset :: Number
-    , transition :: String
-    , cancel :: Boolean
-    }
+  =
+  { param :: Number
+  , timeOffset :: Number
+  , transition :: String
+  , cancel :: Boolean
+  }
 
 instance safeToFFI_AudioParameter ::
   SafeToFFI (AudioParameter_ Number) FFINumericAudioParameter where
@@ -689,11 +769,12 @@ instance safeToFFI_AudioParameter ::
 
 -- | An AudioParameter with the `transition` field stringly-typed for easier rendering in the FFI and cancelation as a boolean
 type FFIStringAudioParameter
-  = { param :: String
-    , timeOffset :: Number
-    , transition :: String
-    , cancel :: Boolean
-    }
+  =
+  { param :: String
+  , timeOffset :: Number
+  , transition :: String
+  , cancel :: Boolean
+  }
 
 instance safeToFFI_AudioParameterString ::
   SafeToFFI (AudioParameter_ OnOff) FFIStringAudioParameter where
@@ -717,6 +798,7 @@ instance mixedAudioInterpret :: (AudioInterpret a c, AudioInterpret b d) => Audi
   destroyUnit a (x /\ y) = destroyUnit a x /\ destroyUnit a y
   makeAllpass a b c (x /\ y) = makeAllpass a b c x /\ makeAllpass a b c y
   makeAnalyser a b (x /\ y) = makeAnalyser a b x /\ makeAnalyser a b y
+  makeAudioWorkletNode a b c (x /\ y) = makeAudioWorkletNode a b c x /\ makeAudioWorkletNode a b c y
   makeBandpass a b c (x /\ y) = makeBandpass a b c x /\ makeBandpass a b c y
   makeConstant a b c (x /\ y) = makeConstant a b c x /\ makeConstant a b c y
   makeConvolver a b (x /\ y) = makeConvolver a b x /\ makeConvolver a b y
@@ -745,6 +827,7 @@ instance mixedAudioInterpret :: (AudioInterpret a c, AudioInterpret b d) => Audi
   makeStereoPanner a b (x /\ y) = makeStereoPanner a b x /\ makeStereoPanner a b y
   makeTriangleOsc a b c (x /\ y) = makeTriangleOsc a b c x /\ makeTriangleOsc a b c y
   makeWaveShaper a b c (x /\ y) = makeWaveShaper a b c x /\ makeWaveShaper a b c y
+  setAudioWorkletParameter a b c (x /\ y) = setAudioWorkletParameter a b c x /\ setAudioWorkletParameter a b c y
   setBuffer a b (x /\ y) = setBuffer a b x /\ setBuffer a b y
   setPeriodicOsc a b (x /\ y) = setPeriodicOsc a b x /\ setPeriodicOsc a b y
   setPeriodicOscV a b (x /\ y) = setPeriodicOscV a b x /\ setPeriodicOscV a b y

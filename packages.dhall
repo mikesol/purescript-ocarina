@@ -136,6 +136,19 @@ let additions =
         , repo = "https://github.com/mikesol/purescript-event.git"
         , version = "v1.4.1"
         }
+      , typelevel-eval =
+        { dependencies =
+          [ "effect"
+          , "leibniz"
+          , "prelude"
+          , "psci-support"
+          , "tuples"
+          , "typelevel-prelude"
+          , "unsafe-coerce"
+          ]
+        , repo = "https://github.com/mikesol/purescript-typelevel-eval.git"
+        , version = "mikesol"
+        }
       , behaviors =
         { dependencies =
           [ "psci-support"

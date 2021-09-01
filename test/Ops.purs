@@ -13,87 +13,89 @@ import WAGS.Disconnect (disconnect)
 import WAGS.Graph.AudioUnit (OnOff(..), TGain, THighpass, TSinOsc, TSpeaker)
 import WAGS.Interpret (class AudioInterpret)
 
-opsTest0 ::
-  forall assets audio engine.
-  AudioInterpret audio engine =>
-  WAG assets audio engine Frame0 Unit
-    { sinOsc :: TSinOsc /\ {}
-    , gain :: TGain /\ { highpass :: Unit, sinOsc :: Unit }
-    , highpass :: THighpass /\ { sinOsc :: Unit }
-    }
-    Unit
+opsTest0
+  :: forall assets audio engine
+   . AudioInterpret audio engine
+  => WAG assets audio engine Frame0 Unit
+       { sinOsc :: TSinOsc /\ {}
+       , gain :: TGain /\ { highpass :: Unit, sinOsc :: Unit }
+       , highpass :: THighpass /\ { sinOsc :: Unit }
+       }
+       Unit
 opsTest0 =
   start
-    $> { sinOsc: sinOsc 440.0
+    $>
+      { sinOsc: sinOsc 440.0
       , gain: gain 1.0 { highpass: ref, sinOsc: ref }
       , highpass: highpass 330.0 { sinOsc: ref }
       }
     # create
 
-opsTest1 ::
-  forall assets audio engine.
-  AudioInterpret audio engine =>
-  WAG assets audio engine Frame0 Unit
-    { sinOsc :: TSinOsc /\ {}
-    , gain :: TGain /\ { highpass :: Unit, sinOsc :: Unit }
-    , highpass :: THighpass /\ { sinOsc :: Unit }
-    , speaker :: TSpeaker /\ { gain :: Unit }
-    }
-    Unit
+opsTest1
+  :: forall assets audio engine
+   . AudioInterpret audio engine
+  => WAG assets audio engine Frame0 Unit
+       { sinOsc :: TSinOsc /\ {}
+       , gain :: TGain /\ { highpass :: Unit, sinOsc :: Unit }
+       , highpass :: THighpass /\ { sinOsc :: Unit }
+       , speaker :: TSpeaker /\ { gain :: Unit }
+       }
+       Unit
 opsTest1 =
   start
-    $> { sinOsc: sinOsc 440.0
+    $>
+      { sinOsc: sinOsc 440.0
       , gain: gain 1.0 { highpass: ref, sinOsc: ref }
       , highpass: highpass 330.0 { sinOsc: ref }
       , speaker: speaker' { gain: ref }
       }
     # create
 
-opsTest2 ::
-  forall assets audio engine.
-  AudioInterpret audio engine =>
-  WAG assets audio engine Frame0 Unit
-    { mySine :: TSinOsc /\ {}
-    , gain :: TGain /\ { highpass :: Unit, mySine :: Unit }
-    , highpass :: THighpass /\ { mySine :: Unit }
-    , speaker :: TSpeaker /\ { gain :: Unit }
-    }
-    Unit
+opsTest2
+  :: forall assets audio engine
+   . AudioInterpret audio engine
+  => WAG assets audio engine Frame0 Unit
+       { mySine :: TSinOsc /\ {}
+       , gain :: TGain /\ { highpass :: Unit, mySine :: Unit }
+       , highpass :: THighpass /\ { mySine :: Unit }
+       , speaker :: TSpeaker /\ { gain :: Unit }
+       }
+       Unit
 opsTest2 =
   start
     $> speaker
-        { gain:
-            gain 1.0
-              { highpass:
-                  highpass 330.0 { mySine: ref }
-              , mySine: sinOsc 440.0
-              }
-        }
+      { gain:
+          gain 1.0
+            { highpass:
+                highpass 330.0 { mySine: ref }
+            , mySine: sinOsc 440.0
+            }
+      }
     # create
 
-opsTest3 ::
-  forall assets audio engine.
-  AudioInterpret audio engine =>
-  WAG assets audio engine Frame0 Unit
-    { mySine :: TSinOsc /\ {}
-    , gain :: TGain /\ { highpass :: Unit, mySine :: Unit }
-    , highpass :: THighpass /\ { mySine :: Unit }
-    , speaker :: TSpeaker /\ { gain :: Unit }
-    }
-    Unit
+opsTest3
+  :: forall assets audio engine
+   . AudioInterpret audio engine
+  => WAG assets audio engine Frame0 Unit
+       { mySine :: TSinOsc /\ {}
+       , gain :: TGain /\ { highpass :: Unit, mySine :: Unit }
+       , highpass :: THighpass /\ { mySine :: Unit }
+       , speaker :: TSpeaker /\ { gain :: Unit }
+       }
+       Unit
 opsTest3 =
   start
     $> speaker
-        { gain:
-            gain 1.0
-              { highpass:
-                  highpass 330.0 { mySine: ref }
-              , mySine: sinOsc 440.0
-              }
-        }
+      { gain:
+          gain 1.0
+            { highpass:
+                highpass 330.0 { mySine: ref }
+            , mySine: sinOsc 440.0
+            }
+      }
     # create
     -- test various changes to make sure they compile
-    
+
     # (<$) { highpass: 400.0 }
     # change
     # (<$) { highpass: { freq: 400.0 } }
@@ -109,18 +111,19 @@ opsTest3 =
     # (<$) { mySine: { freq: 550.0, onOff: On } }
     # change
 
-opsTest6 ::
-  forall assets audio engine.
-  AudioInterpret audio engine =>
-  WAG assets audio engine Frame0 Unit
-    { sinOsc :: TSinOsc /\ {}
-    , gain :: TGain /\ { highpass :: Unit, sinOsc :: Unit }
-    , highpass :: THighpass /\ {}
-    }
-    Unit
+opsTest6
+  :: forall assets audio engine
+   . AudioInterpret audio engine
+  => WAG assets audio engine Frame0 Unit
+       { sinOsc :: TSinOsc /\ {}
+       , gain :: TGain /\ { highpass :: Unit, sinOsc :: Unit }
+       , highpass :: THighpass /\ {}
+       }
+       Unit
 opsTest6 =
   start
-    $> { gain:
+    $>
+      { gain:
           gain 1.0
             { highpass:
                 highpass 330.0
@@ -132,18 +135,19 @@ opsTest6 =
     # (<$) { source: Proxy :: _ "sinOsc", dest: Proxy :: _ "highpass" }
     # disconnect
 
-opsTest7 ::
-  forall assets audio engine.
-  AudioInterpret audio engine =>
-  WAG assets audio engine Frame0 Unit
-    { sinOsc :: TSinOsc /\ {}
-    , gain :: TGain /\ { sinOsc :: Unit }
-    , highpass :: THighpass /\ {}
-    }
-    Unit
+opsTest7
+  :: forall assets audio engine
+   . AudioInterpret audio engine
+  => WAG assets audio engine Frame0 Unit
+       { sinOsc :: TSinOsc /\ {}
+       , gain :: TGain /\ { sinOsc :: Unit }
+       , highpass :: THighpass /\ {}
+       }
+       Unit
 opsTest7 =
   start
-    $> { sinOsc: sinOsc 440.0
+    $>
+      { sinOsc: sinOsc 440.0
       , gain: gain 1.0 { highpass: ref, sinOsc: ref }
       , highpass: highpass 330.0 { sinOsc: ref }
       }
@@ -153,17 +157,18 @@ opsTest7 =
     # (<$) { source: Proxy :: _ "highpass", dest: Proxy :: _ "gain" }
     # disconnect
 
-opsTest8 ::
-  forall assets audio engine.
-  AudioInterpret audio engine =>
-  WAG assets audio engine Frame0 Unit
-    { sinOsc :: TSinOsc /\ {}
-    , gain :: TGain /\ { sinOsc :: Unit }
-    }
-    Unit
+opsTest8
+  :: forall assets audio engine
+   . AudioInterpret audio engine
+  => WAG assets audio engine Frame0 Unit
+       { sinOsc :: TSinOsc /\ {}
+       , gain :: TGain /\ { sinOsc :: Unit }
+       }
+       Unit
 opsTest8 =
   start
-    $> { sinOsc: sinOsc 440.0
+    $>
+      { sinOsc: sinOsc 440.0
       , gain: gain 1.0 { highpass: ref, sinOsc: ref }
       , highpass: highpass 330.0 { sinOsc: ref }
       }

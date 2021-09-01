@@ -13,21 +13,21 @@ import WAGS.Graph.Graph (Graph)
 import WAGS.Graph.Node (NodeC, NodeList)
 import WAGS.Interpret (class AudioInterpret, destroyUnit)
 
-idestroy ::
-  forall proxy ptr assets audio engine proof res i o.
-  AudioInterpret audio engine =>
-  Destroy ptr i o =>
-  proxy ptr ->
-  IxWAG assets audio engine proof res { | i } { | o } Unit
+idestroy
+  :: forall proxy ptr assets audio engine proof res i o
+   . AudioInterpret audio engine
+  => Destroy ptr i o
+  => proxy ptr
+  -> IxWAG assets audio engine proof res { | i } { | o } Unit
 idestroy ptr = IxWAG (destroy <<< voidRight ptr)
 
 -- | Destroy node `ptr` in graph `i`, resulting in graph `o`. Note that, to destroy a node, it must have no outgoing or incoming edges. This is achieved via use of `disconnect`. Failure to disconnect nodes before destroying will result in a compile-time error during graph validation.
 class Destroy (ptr :: Symbol) (i :: Graph) (o :: Graph) | ptr i -> o where
-  destroy ::
-    forall proxy assets audio engine proof res.
-    AudioInterpret audio engine =>
-    WAG assets audio engine proof res { | i } (proxy ptr) ->
-    WAG assets audio engine proof res { | o } Unit
+  destroy
+    :: forall proxy assets audio engine proof res
+     . AudioInterpret audio engine
+    => WAG assets audio engine proof res { | i } (proxy ptr)
+    -> WAG assets audio engine proof res { | o } Unit
 
 instance destroyer ::
   ( IsSymbol ptr
@@ -38,7 +38,8 @@ instance destroyer ::
   Destroy ptr graphi grapho where
   destroy w =
     unsafeWAG
-      $ { context:
+      $
+        { context:
             i
               { instructions = i.instructions <> [ destroyUnit ptrI ]
               }

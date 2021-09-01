@@ -5,16 +5,16 @@ import Prelude hiding (Ordering(..))
 
 import Data.Tuple.Nested ((/\), type (/\))
 import Data.Typelevel.Bool (True, False)
-import Data.Typelevel.Num (class Nat, class Succ, D0, D1, D2, D3, D4, D5, D6, D7, D8, D9, type (:*))
+import Data.Typelevel.Num (class Nat, class Pos, class Pred, class Succ, type (:*), D0, D1, D2, D3, D4, D5, D6, D7, D8, D9, toInt')
 import Prim.Ordering (Ordering, LT, GT, EQ)
 import Prim.RowList (RowList)
 import Prim.RowList as RL
 import Prim.Symbol as Sym
 import Type.Data.Peano (Nat, Succ, Z)
-import Type.Proxy (Proxy)
+import Type.Proxy (Proxy(..))
 
 -- | A gate that outputs `l` as `o` if `tf` is `True` and `r` as `o`
-  -- | if `tf` is `False`.
+-- | if `tf` is `False`.
 class Gate :: forall k1. Type -> k1 -> k1 -> k1 -> Constraint
 class Gate tf l r o | tf l r -> o
 
@@ -23,7 +23,7 @@ instance gateTrue :: Gate True l r l
 instance gateFalse :: Gate False l r r
 
 -- | A gate that outputs `l` as `o` if `ord` is `EQ` and `r` as `o`
-  -- | if `ord` is `LT` or `GT`.
+-- | if `ord` is `LT` or `GT`.
 class OGate :: forall k1. Ordering -> k1 -> k1 -> k1 -> Constraint
 class OGate tf l r o | tf l r -> o
 
@@ -140,3 +140,11 @@ instance sddPrefixToRowListCons :: (AddPrefixToRowList (Proxy sym) c x, Sym.Appe
 instance sddPrefixToRowListNil :: AddPrefixToRowList (Proxy sym) RL.Nil RL.Nil
 
 instance addPrefixToRowListUnit :: AddPrefixToRowList Unit i i
+
+class ValidateOutputChannelCount (numberOfOutputs :: Type) (outputChannelCount :: Type) where
+  toOutputChannelCount :: forall proxy. proxy numberOfOutputs -> proxy outputChannelCount -> Array Int
+
+instance validateOutputChannelCountD1 :: Pos n => ValidateOutputChannelCount D1 n where
+  toOutputChannelCount _ _ = [toInt' (Proxy :: _ n)]
+else instance validateOutputChannelCountN :: (Pred x xMinus1, Pos n, ValidateOutputChannelCount xMinus1 r) => ValidateOutputChannelCount x (n /\ r) where
+  toOutputChannelCount _ _ = [toInt' (Proxy :: _ n)] <> toOutputChannelCount (Proxy :: _ xMinus1) (Proxy :: _ r)

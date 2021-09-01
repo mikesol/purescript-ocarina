@@ -41,6 +41,7 @@ type Assets
     , floatArrays :: {}
     , recorders :: {}
     , analysers :: {}
+    , worklets :: {}
     )
 
 type SceneTemplate
@@ -191,6 +192,7 @@ handleAction = case _ of
         { context: audioCtx
         , writeHead: 0.0
         , units: unitCache
+        , worklets: {}
         , microphone: pure null
         , recorders: pure {}
         , buffers:

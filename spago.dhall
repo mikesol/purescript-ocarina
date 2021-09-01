@@ -30,6 +30,7 @@
   , "record"
   , "refs"
   , "safe-coerce"
+  , "simple-json"
   , "sized-vectors"
   , "tuples"
   , "typelevel"

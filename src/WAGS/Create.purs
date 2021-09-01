@@ -4,36 +4,44 @@ import Prelude
 
 import Control.Comonad (extract)
 import Data.Functor (voidRight)
+import Data.Maybe (maybe)
 import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.Tuple (Tuple)
 import Data.Tuple.Nested ((/\), type (/\))
+import Data.Typelevel.Num (class Nat, class Pos, toInt')
 import Data.Vec as V
+import Foreign.Object (Object)
+import Foreign.Object as Object
 import Prim.Row as R
 import Prim.RowList as RL
 import Prim.Symbol as Sym
 import Record as Record
+import Simple.JSON as JSON
 import Type.Proxy (Proxy(..))
 import WAGS.Assets (class AssetsHave, Buffers, FloatArrays, PeriodicWaves, Recorders, Analysers)
 import WAGS.Connect (class Connect, connect)
 import WAGS.ConstructEdges (class ConstructEdges, class ConstructEdgesT, constructEdges)
 import WAGS.Control.Indexed (IxWAG(..))
 import WAGS.Control.Types (WAG, unsafeUnWAG, unsafeWAG)
+import WAGS.Graph.AudioUnit (AudioWorkletNodeOptions(..))
 import WAGS.Graph.AudioUnit as CTOR
 import WAGS.Graph.Graph (Graph)
 import WAGS.Graph.Node (NodeC)
 import WAGS.Graph.Oversample (class IsOversample, reflectOversample)
 import WAGS.Graph.Paramable (class Paramable, paramize, class OnOffable, onOffIze)
-import WAGS.Interpret (class AudioInterpret, makeAllpass, makeAnalyser, makeBandpass, makeConstant, makeConvolver, makeDelay, makeDynamicsCompressor, makeGain, makeHighpass, makeHighshelf, makeLoopBuf, makeLowpass, makeLowshelf, makeMicrophone, makeNotch, makePeaking, makePeriodicOsc, makePeriodicOscV, makePlayBuf, makeRecorder, makeSawtoothOsc, makeSinOsc, makeSpeaker, makeSquareOsc, makeStereoPanner, makeTriangleOsc, makeWaveShaper)
-import WAGS.Util (class AddPrefixToRowList, class CoercePrefixToString, class MakePrefixIfNeeded)
+import WAGS.Graph.Parameter (AudioParameter, AudioParameter_(..))
+import WAGS.Interpret (class AudioInterpret, makeAllpass, makeAnalyser, makeAudioWorkletNode, makeBandpass, makeConstant, makeConvolver, makeDelay, makeDynamicsCompressor, makeGain, makeHighpass, makeHighshelf, makeLoopBuf, makeLowpass, makeLowshelf, makeMicrophone, makeNotch, makePeaking, makePeriodicOsc, makePeriodicOscV, makePlayBuf, makeRecorder, makeSawtoothOsc, makeSinOsc, makeSpeaker, makeSquareOsc, makeStereoPanner, makeTriangleOsc, makeWaveShaper)
+import WAGS.Util (class AddPrefixToRowList, class CoercePrefixToString, class MakePrefixIfNeeded, class ValidateOutputChannelCount, toOutputChannelCount)
 
 type CreateStepRLSig (rl :: RL.RowList Type) (prefix :: Type) (map :: Type) (assets :: Row Type) (r :: Row Type) (inGraph :: Graph) (outGraph :: Graph)
-  = forall proxyPrefix proxyMap proxyRL audio engine proof res.
-    AudioInterpret audio engine =>
-    proxyRL rl ->
-    proxyPrefix prefix ->
-    proxyMap map ->
-    WAG assets audio engine proof res { | inGraph } { | r } ->
-    WAG assets audio engine proof res { | outGraph } Unit
+  =
+  forall proxyPrefix proxyMap proxyRL audio engine proof res
+   . AudioInterpret audio engine
+  => proxyRL rl
+  -> proxyPrefix prefix
+  -> proxyMap map
+  -> WAG assets audio engine proof res { | inGraph } { | r }
+  -> WAG assets audio engine proof res { | outGraph } Unit
 
 class CreateStepRL (rl :: RL.RowList Type) (prefix :: Type) (map :: Type) (assets :: Row Type) (r :: Row Type) (inGraph :: Graph) (outGraph :: Graph) | rl prefix map r inGraph -> outGraph where
   createStepRL :: CreateStepRLSig rl prefix map assets r inGraph outGraph
@@ -71,12 +79,12 @@ instance createStepRLCons ::
     step3 = createStepRL (Proxy :: _ rest) (Proxy :: _ prefix) (Proxy :: _ map) (step2 $> rx)
 
 class ConnectEdgesToNode (sources :: RL.RowList Type) (dest :: Symbol) (inGraph :: Graph) (outGraph :: Graph) | sources dest inGraph -> outGraph where
-  connectEdgesToNode ::
-    forall proxyRL proxyS assets audio engine proof res.
-    AudioInterpret audio engine =>
-    proxyRL sources ->
-    WAG assets audio engine proof res { | inGraph } (proxyS dest) ->
-    WAG assets audio engine proof res { | outGraph } (proxyS dest)
+  connectEdgesToNode
+    :: forall proxyRL proxyS assets audio engine proof res
+     . AudioInterpret audio engine
+    => proxyRL sources
+    -> WAG assets audio engine proof res { | inGraph } (proxyS dest)
+    -> WAG assets audio engine proof res { | outGraph } (proxyS dest)
 
 instance connectEdgesToNodeNil :: ConnectEdgesToNode RL.Nil dest inGraph inGraph where
   connectEdgesToNode _ w = w
@@ -89,12 +97,13 @@ instance connectEdgesToNodeCons :: (Connect key dest inGraph midGraph, ConnectEd
     step2 = connectEdgesToNode (Proxy :: _ rest) (step1 $> (extract w))
 
 type ConnectAfterCreateSig (prefix :: Type) (map :: Type) (rl :: RL.RowList Type) (inGraph :: Graph) (outGraph :: Graph)
-  = forall proxyPrefix proxyMap assets audio engine proof res.
-    AudioInterpret audio engine =>
-    proxyPrefix prefix ->
-    proxyMap map ->
-    WAG assets audio engine proof res { | inGraph } (Proxy rl) ->
-    WAG assets audio engine proof res { | outGraph } Unit
+  =
+  forall proxyPrefix proxyMap assets audio engine proof res
+   . AudioInterpret audio engine
+  => proxyPrefix prefix
+  -> proxyMap map
+  -> WAG assets audio engine proof res { | inGraph } (Proxy rl)
+  -> WAG assets audio engine proof res { | outGraph } Unit
 
 class ConnectAfterCreate (prefix :: Type) (map :: Type) (rl :: RL.RowList Type) (inGraph :: Graph) (outGraph :: Graph) | prefix map rl inGraph -> outGraph where
   connectAfterCreate :: ConnectAfterCreateSig prefix map rl inGraph outGraph
@@ -123,12 +132,13 @@ instance connectAfterCreateCons ::
     step3 = connectAfterCreate (Proxy :: _ prefix) (Proxy :: _ map) (step2 $> (Proxy :: _ rest))
 
 type CreateInternalSig (prefix :: Type) (map :: Type) (assets :: Row Type) (r :: Row Type) (inGraph :: Graph) (outGraph :: Graph)
-  = forall proxyPrefix proxyMap audio engine proof res.
-    AudioInterpret audio engine =>
-    proxyPrefix prefix ->
-    proxyMap map ->
-    WAG assets audio engine proof res { | inGraph } { | r } ->
-    WAG assets audio engine proof res { | outGraph } Unit
+  =
+  forall proxyPrefix proxyMap audio engine proof res
+   . AudioInterpret audio engine
+  => proxyPrefix prefix
+  -> proxyMap map
+  -> WAG assets audio engine proof res { | inGraph } { | r }
+  -> WAG assets audio engine proof res { | outGraph } Unit
 
 class CreateInternal (prefix :: Type) (map :: Type) (assets :: Row Type) (r :: Row Type) (inGraph :: Graph) (outGraph :: Graph) | prefix map r inGraph -> outGraph where
   createInternal :: CreateInternalSig prefix map assets r inGraph outGraph
@@ -146,11 +156,11 @@ instance createInternalAll ::
     step1 = connectAfterCreate (Proxy :: _ prefix) (Proxy :: _ map) (step0 $> (Proxy :: _ rl))
 
 class Create (assets :: Row Type) (r :: Row Type) (inGraph :: Graph) (outGraph :: Graph) | r inGraph -> outGraph where
-  create ::
-    forall audio engine proof res.
-    AudioInterpret audio engine =>
-    WAG assets audio engine proof res { | inGraph } { | r } ->
-    WAG assets audio engine proof res { | outGraph } Unit
+  create
+    :: forall audio engine proof res
+     . AudioInterpret audio engine
+    => WAG assets audio engine proof res { | inGraph } { | r }
+    -> WAG assets audio engine proof res { | outGraph } Unit
 
 instance createAll ::
   CreateInternal Unit Unit assets r inGraph outGraph =>
@@ -160,30 +170,30 @@ instance createAll ::
       Proxy
       Proxy
 
-icreate ::
-  forall r assets audio engine proof res inGraph outGraph.
-  AudioInterpret audio engine =>
-  Create assets r inGraph outGraph =>
-  { | r } ->
-  IxWAG assets audio engine proof res { | inGraph } { | outGraph } Unit
+icreate
+  :: forall r assets audio engine proof res inGraph outGraph
+   . AudioInterpret audio engine
+  => Create assets r inGraph outGraph
+  => { | r }
+  -> IxWAG assets audio engine proof res { | inGraph } { | outGraph } Unit
 icreate r = IxWAG (create <<< voidRight r)
 
 -- | Create an audio unit `node` in `igraph` with index `ptr`, resulting in `ograph`.
 class Create' (assets :: Row Type) (ptr :: Symbol) (node :: Type) (inGraph :: Graph) (outGraph :: Graph) | ptr node inGraph -> outGraph where
-  create' ::
-    forall proxy audio engine proof res.
-    AudioInterpret audio engine =>
-    proxy ptr ->
-    WAG assets audio engine proof res { | inGraph } node ->
-    WAG assets audio engine proof res { | outGraph } Unit
+  create'
+    :: forall proxy audio engine proof res
+     . AudioInterpret audio engine
+    => proxy ptr
+    -> WAG assets audio engine proof res { | inGraph } node
+    -> WAG assets audio engine proof res { | outGraph } Unit
 
-icreate' ::
-  forall proxy ptr node assets audio engine proof res i o.
-  AudioInterpret audio engine =>
-  Create' assets ptr node i o =>
-  proxy ptr ->
-  node ->
-  IxWAG assets audio engine proof res { | i } { | o } Unit
+icreate'
+  :: forall proxy ptr node assets audio engine proof res i o
+   . AudioInterpret audio engine
+  => Create' assets ptr node i o
+  => proxy ptr
+  -> node
+  -> IxWAG assets audio engine proof res { | i } { | o } Unit
 icreate' ptr node = IxWAG (create' ptr <<< voidRight node)
 
 instance createUnit ::
@@ -215,7 +225,6 @@ instance createAnalyser ::
         , value: unit
         }
 
-
 instance createAllpass ::
   ( IsSymbol ptr
   , Paramable argA
@@ -239,6 +248,71 @@ instance createAllpass ::
         { context:
             i
               { instructions = i.instructions <> [ makeAllpass nn argA_iv' argB_iv' ]
+              }
+        , value: unit
+        }
+
+class CreateParameters (parameterRL :: RL.RowList Type) (parameterData :: Row Type) where
+  createParameters
+    :: forall proxyRL
+     . proxyRL parameterRL
+    -> { | parameterData }
+    -> Object Number
+
+instance createParametersNil :: CreateParameters RL.Nil parameterData where
+  createParameters _ _ = Object.empty
+
+instance createParametersCons ::
+  ( IsSymbol key
+  , R.Cons key AudioParameter parameters' parameterData
+  , CreateParameters rest parameterData
+  ) =>
+  CreateParameters (RL.Cons key AudioParameter rest) parameterData where
+  createParameters _ p =
+    let
+      px = Proxy :: _ key
+      AudioParameter param = Record.get px p
+      rest = createParameters (Proxy :: _ rest) p
+    in
+      maybe rest (flip (Object.insert (reflectSymbol px)) rest) param.param
+
+instance createAudioWorkletNode ::
+  ( IsSymbol ptr
+  , IsSymbol sym
+  , R.Lacks ptr graphi
+  , R.Cons ptr (NodeC (CTOR.TAudioWorkletNode name numberOfInputs numberOfOutputs outputChannelCount parameterData processorOptions) {}) graphi grapho
+  , RL.RowToList parameterData parameterDataRL
+  , CreateParameters parameterDataRL parameterData
+  , Monoid { | processorOptions }
+  , Nat numberOfInputs
+  , Pos numberOfOutputs
+  , ValidateOutputChannelCount numberOfOutputs outputChannelCount
+  , JSON.WriteForeign { | processorOptions }
+  ) =>
+  Create' assets
+    ptr
+    (CTOR.AudioWorkletNode sym numberOfInputs numberOfOutputs outputChannelCount parameterData processorOptions)
+    graphi
+    grapho where
+  create' ptr w = o
+    where
+    { context: i, value: (CTOR.AudioWorkletNode _ (AudioWorkletNodeOptions options)) } = unsafeUnWAG w
+
+    nn = reflectSymbol ptr
+
+    o =
+      unsafeWAG
+        { context:
+            i
+              { instructions = i.instructions <>
+                  [ makeAudioWorkletNode nn (reflectSymbol (Proxy :: _ sym)) $ JSON.writeImpl
+                      { numberOfInputs: toInt' (Proxy :: _ numberOfInputs)
+                      , numberOfOutputs: toInt' (Proxy :: _ numberOfOutputs)
+                      , outputChannelCount: toOutputChannelCount (Proxy :: _ numberOfOutputs) (Proxy :: _ outputChannelCount)
+                      , parameterData: JSON.writeImpl (createParameters (Proxy :: _ parameterDataRL) options.parameterData)
+                      , processorOptions: JSON.writeImpl (mempty :: { | processorOptions })
+                      }
+                  ] --(createParameters nn (Proxy :: _ parameterData) (Proxy :: _ parametersRL) parameters)
               }
         , value: unit
         }

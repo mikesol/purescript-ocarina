@@ -8,10 +8,23 @@ import Prelude
 
 import Data.Either (Either)
 import Data.Generic.Rep (class Generic)
+import Data.Newtype (class Newtype, unwrap)
 import Data.Show.Generic (genericShow)
 import Data.Tuple.Nested (type (/\))
+import Foreign (Foreign)
+import Simple.JSON as JSON
 import WAGS.Graph.AudioUnit (APOnOff)
 import WAGS.Graph.Parameter (AudioParameter)
+
+newtype AudioWorkletNodeOptions_ = AudioWorkletNodeOptions_ Foreign
+
+derive instance newtypeAudioWorkletNodeOptions_ :: Newtype AudioWorkletNodeOptions_ _
+
+instance eqAudioWorkletNodeOptions_ :: Eq AudioWorkletNodeOptions_ where
+  eq a b = JSON.writeJSON (unwrap a) == JSON.writeJSON (unwrap b)
+
+instance showAudioWorkletNodeOptions_ :: Show AudioWorkletNodeOptions_ where
+  show = JSON.writeJSON <<< unwrap
 
 -- An audio rendering instruction. These instructions are used
 -- for testing purposes during "dry run" simulations of audio rendering.
@@ -22,6 +35,7 @@ data Instruction
   | DestroyUnit String
   | MakeAllpass String AudioParameter AudioParameter
   | MakeAnalyser String String
+  | MakeAudioWorkletNode String String AudioWorkletNodeOptions_
   | MakeBandpass String AudioParameter AudioParameter
   | MakeConstant String APOnOff AudioParameter
   | MakeConvolver String String
@@ -49,6 +63,7 @@ data Instruction
   | MakeStereoPanner String AudioParameter
   | MakeTriangleOsc String APOnOff AudioParameter
   | MakeWaveShaper String String Oversample
+  | SetAudioWorkletParameter String String AudioParameter
   | SetBuffer String String
   | SetPeriodicOsc String (Either String (Array Number /\ Array Number))
   | SetOnOff String APOnOff
