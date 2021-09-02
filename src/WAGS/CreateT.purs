@@ -12,7 +12,6 @@ import Prim.Row as R
 import Prim.RowList as RL
 import Prim.Symbol as Sym
 import Type.Proxy (Proxy)
-import WAGS.Assets (class AssetsHave, Buffers, FloatArrays, PeriodicWaves, Recorders, Analysers)
 import WAGS.Connect (class ConnectT)
 import WAGS.ConstructEdges (class ConstructEdgesT)
 import WAGS.Graph.AudioUnit as CTOR

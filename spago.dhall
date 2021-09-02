@@ -37,6 +37,7 @@
   , "typelevel-peano"
   , "typelevel-prelude"
   , "unsafe-coerce"
+  , "unsafe-reference"
   , "web-events"
   ]
 , packages = ./packages.dhall

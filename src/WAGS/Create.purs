@@ -18,7 +18,6 @@ import Prim.Symbol as Sym
 import Record as Record
 import Simple.JSON as JSON
 import Type.Proxy (Proxy(..))
-import WAGS.Assets (class AssetsHave, Buffers, FloatArrays, PeriodicWaves, Recorders, Analysers)
 import WAGS.Connect (class Connect, connect)
 import WAGS.ConstructEdges (class ConstructEdges, class ConstructEdgesT, constructEdges)
 import WAGS.Control.Indexed (IxWAG(..))

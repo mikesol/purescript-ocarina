@@ -29,10 +29,10 @@ instance typeToSymAllpass :: TypeToSym (Allpass frequency q) "Allpass"
 
 -- | Term-level constructor for a analyser.
 -- | - `analyser` - the analyser to which we write data.
-data Analyser (analyser :: Symbol)
-  = Analyser (Proxy analyser)
+data Analyser callback
+  = Analyser callback
 
-instance typeToSymAnalyser :: Sym.Append "Analyser_" sym o => TypeToSym (Analyser sym) o
+instance typeToSymAnalyser :: TypeToSym (Analyser callback) "Analyser"
 
 type AudioWorkletNodeOptions' (numberOfInputs :: Type) (numberOfOutputs :: Type) (outputChannelCount :: Type) (parameterData :: Row Type) (processorOptions :: Row Type) =
   ( numberOfInputs :: numberOfInputs
@@ -49,8 +49,13 @@ newtype AudioWorkletNodeOptions (numberOfInputs :: Type) (numberOfOutputs :: Typ
 -- | Term-level constructor for an audio worklet node.
 -- | - `node` - the name of the node.
 -- | - `options` - initialization options
+
+data AudioWorkletNodeRequest (node :: Symbol) (numberOfInputs :: Type) (numberOfOutputs :: Type) (outputChannelCount :: Type) (parameterData :: Row Type) (processorOptions :: Row Type) = AudioWorkletNodeRequest
+
+data AudioWorkletNodeResponse (node :: Symbol) (numberOfInputs :: Type) (numberOfOutputs :: Type) (outputChannelCount :: Type) (parameterData :: Row Type) (processorOptions :: Row Type)
+
 data AudioWorkletNode (node :: Symbol) (numberOfInputs :: Type) (numberOfOutputs :: Type) (outputChannelCount :: Type) (parameterData :: Row Type) (processorOptions :: Row Type)
-  = AudioWorkletNode (Proxy node) (AudioWorkletNodeOptions numberOfInputs numberOfOutputs outputChannelCount parameterData processorOptions)
+  = AudioWorkletNode (AudioWorkletNodeResponse node numberOfInputs numberOfOutputs outputChannelCount parameterData processorOptions) (AudioWorkletNodeOptions numberOfInputs numberOfOutputs outputChannelCount parameterData processorOptions)
 
 instance typeToSymAudioWorkletNode :: Sym.Append "AudioWorkletNode" sym o => TypeToSym (AudioWorkletNode sym numberOfInputs numberOfOutputs outputChannelCount parameterData processorOptions) o
 
@@ -72,10 +77,10 @@ instance typeToSymConstant :: TypeToSym (Constant onOff offset) "Constant"
 
 -- | Term-level constructor for a convolver, aka reverb.
 -- | - `buffer` - the buffer of the impulse response of the space.
-data Convolver (buffer :: Symbol)
-  = Convolver (Proxy buffer)
+data Convolver (buffer :: Type)
+  = Convolver buffer
 
-instance typeToSymConvolver :: Sym.Append "Convolver_" sym o => TypeToSym (Convolver sym) o
+instance typeToSymConvolver :: TypeToSym (Convolver buffer) "Convolver"
 
 -- | Term-level constructor for a delay unit.
 -- | - `delay` - the delay to apply.
@@ -189,10 +194,10 @@ instance typeToSymPlayBuf :: TypeToSym (PlayBuf buffer offset onOff playbackRate
 
 -- | Term-level constructor for a recorder.
 -- | - `recorder` - the recorder to which we write data.
-data Recorder (recorder :: Symbol)
-  = Recorder (Proxy recorder)
+data Recorder (recorder :: Type)
+  = Recorder recorder
 
-instance typeToSymRecorder :: Sym.Append "Recorder_" sym o => TypeToSym (Recorder sym) o
+instance typeToSymRecorder :: TypeToSym (Recorder recorder) "Recorder"
 
 -- | Term-level constructor for a sawtooth oscillator.
 -- | - `onOff` - whether the generator is on or off.
@@ -242,10 +247,10 @@ instance typeToSymTriangleOsc :: TypeToSym (TriangleOsc onOff frequency) "Triang
 -- | Term-level constructor for a WaveShaper, aka distortion.
 -- | - `floatArray` - the shape of the distortion.
 -- | - `oversample` - how much to oversample - none, 2x or 4x. Once set, this cannot change without destroying and remaking the audio unit.
-data WaveShaper (floatArray :: Symbol) oversample
-  = WaveShaper (Proxy floatArray) oversample
+data WaveShaper (floatArray :: Type) oversample
+  = WaveShaper floatArray oversample
 
-instance typeToSymWaveShaper2x :: Sym.Append "WaveShaper_" sym o => TypeToSym (WaveShaper sym oversample) o
+instance typeToSymWaveShaper2x :: TypeToSym (WaveShaper sym oversample) "WaveShaper"
 
 -- | Term-level constructor for a generator being on or off
 data OnOff
@@ -317,31 +322,31 @@ instance reifyTAllpass :: ReifyAU (Allpass a b) TAllpass where
   reifyAU = const mempty
 
 -- | Type-level constructor for an analyser.
-data TAnalyser (sym :: Symbol)
-  = TAnalyser (Proxy sym)
+data TAnalyser
+  = TAnalyser
 
-instance typeToSymTAnalyser :: Sym.Append "TAnalyser_" sym o => TypeToSym (TAnalyser sym) o
+instance typeToSymTAnalyser :: TypeToSym TAnalyser "TAllpass"
 
-instance semigroupTAnalyser :: Semigroup (TAnalyser sym) where
-  append _ _ = TAnalyser (Proxy :: _ sym)
+instance semigroupTAnalyser :: Semigroup TAnalyser where
+  append _ _ = TAnalyser
 
-instance monoidTAnalyser :: Monoid (TAnalyser sym) where
-  mempty = TAnalyser (Proxy :: _ sym)
+instance monoidTAnalyser :: Monoid TAnalyser where
+  mempty = TAnalyser
 
-instance reifyTAnalyser :: ReifyAU (Analyser sym) (TAnalyser sym) where
+instance reifyTAnalyser :: ReifyAU (Analyser callback) TAnalyser where
   reifyAU = const mempty
 
 -- | Type-level constructor for an audio worklet node.
-data TAudioWorkletNode (sym :: Symbol) (numberOfInputs :: Type) (numberOfOutputs :: Type) (outputChannelCount :: Type) (parameterData :: Row Type) (processorOptions :: Row Type) 
-  = TAudioWorkletNode (Proxy sym) (Proxy numberOfInputs) (Proxy numberOfOutputs) (Proxy outputChannelCount) (Proxy parameterData) (Proxy processorOptions) 
+data TAudioWorkletNode (sym :: Symbol) (numberOfInputs :: Type) (numberOfOutputs :: Type) (outputChannelCount :: Type) (parameterData :: Row Type) (processorOptions :: Row Type)
+  = TAudioWorkletNode (Proxy sym) (Proxy numberOfInputs) (Proxy numberOfOutputs) (Proxy outputChannelCount) (Proxy parameterData) (Proxy processorOptions)
 
 instance typeToSymTAudioWorkletNode :: Sym.Append "TAudioWorkletNode_" sym o => TypeToSym (TAudioWorkletNode sym numberOfInputs numberOfOutputs outputChannelCount parameterData processorOptions) o
 
 instance semigroupTAudioWorkletNode :: Semigroup (TAudioWorkletNode sym numberOfInputs numberOfOutputs outputChannelCount parameterData processorOptions) where
-  append _ _ = TAudioWorkletNode (Proxy :: _ sym) (Proxy :: _ numberOfInputs) (Proxy :: _ numberOfOutputs) (Proxy :: _ outputChannelCount) (Proxy :: _ parameterData) (Proxy :: _ processorOptions) 
+  append _ _ = TAudioWorkletNode (Proxy :: _ sym) (Proxy :: _ numberOfInputs) (Proxy :: _ numberOfOutputs) (Proxy :: _ outputChannelCount) (Proxy :: _ parameterData) (Proxy :: _ processorOptions)
 
 instance monoidTAudioWorkletNode :: Monoid (TAudioWorkletNode sym numberOfInputs numberOfOutputs outputChannelCount parameterData processorOptions) where
-  mempty = TAudioWorkletNode (Proxy :: _ sym) (Proxy :: _ numberOfInputs) (Proxy :: _ numberOfOutputs) (Proxy :: _ outputChannelCount) (Proxy :: _ parameterData) (Proxy :: _ processorOptions) 
+  mempty = TAudioWorkletNode (Proxy :: _ sym) (Proxy :: _ numberOfInputs) (Proxy :: _ numberOfOutputs) (Proxy :: _ outputChannelCount) (Proxy :: _ parameterData) (Proxy :: _ processorOptions)
 
 instance reifyTAudioWorkletNode :: ReifyAU (AudioWorkletNode sym numberOfInputs numberOfOutputs outputChannelCount parameterData processorOptions) (TAudioWorkletNode sym numberOfInputs numberOfOutputs outputChannelCount parameterData processorOptions) where
   reifyAU = const mempty
@@ -377,18 +382,18 @@ instance reifyTConstant :: ReifyAU (Constant a b) TConstant where
   reifyAU = const mempty
 
 -- | Type-level constructor for a convolver, aka reverb.
-data TConvolver (sym :: Symbol)
-  = TConvolver (Proxy sym)
+data TConvolver
+  = TConvolver
 
-instance typeToSymTConvolver :: Sym.Append "TConvolver_" sym o => TypeToSym (TConvolver sym) o
+instance typeToSymTConvolver :: TypeToSym TConvolver "TConvolver"
 
-instance semigroupTConvolver :: Semigroup (TConvolver sym) where
-  append _ _ = TConvolver (Proxy :: _ sym)
+instance semigroupTConvolver :: Semigroup TConvolver where
+  append _ _ = TConvolver
 
-instance monoidTConvolver :: Monoid (TConvolver sym) where
-  mempty = TConvolver (Proxy :: _ sym)
+instance monoidTConvolver :: Monoid TConvolver where
+  mempty = TConvolver
 
-instance reifyTConvolver :: ReifyAU (Convolver sym) (TConvolver sym) where
+instance reifyTConvolver :: ReifyAU (Convolver buffer) TConvolver where
   reifyAU = const mempty
 
 -- | Type-level constructor for a delay unit.
@@ -587,18 +592,18 @@ instance reifyTPlayBuf :: ReifyAU (PlayBuf a b c d) TPlayBuf where
   reifyAU = const mempty
 
 -- | Type-level constructor for a recorder.
-data TRecorder (sym :: Symbol)
-  = TRecorder (Proxy sym)
+data TRecorder
+  = TRecorder
 
-instance typeToSymTRecorder :: Sym.Append "TRecorder_" sym o => TypeToSym (TRecorder sym) o
+instance typeToSymTRecorder :: TypeToSym TRecorder "TRecorder"
 
-instance semigroupTRecorder :: Semigroup (TRecorder sym) where
-  append _ _ = TRecorder (Proxy :: _ sym)
+instance semigroupTRecorder :: Semigroup TRecorder where
+  append _ _ = TRecorder
 
-instance monoidTRecorder :: Monoid (TRecorder sym) where
-  mempty = TRecorder (Proxy :: _ sym)
+instance monoidTRecorder :: Monoid TRecorder where
+  mempty = TRecorder
 
-instance reifyTRecorder :: ReifyAU (Recorder sym) (TRecorder sym) where
+instance reifyTRecorder :: ReifyAU (Recorder recorder) TRecorder where
   reifyAU = const mempty
 
 -- | Type-level constructor for a sawtooth oscillator.
@@ -692,22 +697,22 @@ instance reifyTTriangleOsc :: ReifyAU (TriangleOsc a b) TTriangleOsc where
   reifyAU = const mempty
 
 -- | Type-level constructor for a wave shaper.
-data TWaveShaper (sym :: Symbol) (oversample :: Type)
-  = TWaveShaper (Proxy sym) oversample
+data TWaveShaper (oversample :: Type)
+  = TWaveShaper oversample
 
-instance typeToSymTWaveshaper2x :: Sym.Append "TWaveShaper_OversampleTwoX_" sym o => TypeToSym (TWaveShaper sym OversampleTwoX) o
+instance typeToSymTWaveshaper2x :: TypeToSym (TWaveShaper OversampleTwoX) "TWaveShaper_OversampleTwoX"
 
-instance typeToSymTWaveshaper4x :: Sym.Append "TWaveShaper_OversampleFourX_" sym o => TypeToSym (TWaveShaper sym OversampleFourX) o
+instance typeToSymTWaveshaper4x :: TypeToSym (TWaveShaper OversampleFourX) "TWaveShaper_OversampleFourX"
 
-instance typeToSymTWaveshaperNone :: Sym.Append "TWaveShaper_OversampleNone_" sym o => TypeToSym (TWaveShaper sym OversampleNone) o
+instance typeToSymTWaveshaperNone :: TypeToSym (TWaveShaper OversampleNone) "TWaveShaper_OversampleNone"
 
-instance semigroupTWaveShaper :: Monoid b => Semigroup (TWaveShaper a b) where
-  append _ _ = TWaveShaper (Proxy :: _ a) mempty
+instance semigroupTWaveShaper :: Monoid a => Semigroup (TWaveShaper a) where
+  append _ _ = TWaveShaper mempty
 
-instance monoidTWaveShaper :: Monoid b => Monoid (TWaveShaper a b) where
-  mempty = TWaveShaper (Proxy :: _ a) mempty
+instance monoidTWaveShaper :: Monoid a => Monoid (TWaveShaper a) where
+  mempty = TWaveShaper mempty
 
-instance reifyTWaveShaper :: Monoid b => ReifyAU (WaveShaper a b) (TWaveShaper a b) where
+instance reifyTWaveShaper :: Monoid b => ReifyAU (WaveShaper a b) (TWaveShaper b) where
   reifyAU = const mempty
 
 data Obliterate

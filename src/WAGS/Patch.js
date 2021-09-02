@@ -1,0 +1,1 @@
+exports.emptyFloatArray = Float32Array.from([0.0, 0.0, 0.0, 0.0]);

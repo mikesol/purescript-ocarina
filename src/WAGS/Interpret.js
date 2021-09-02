@@ -162,7 +162,7 @@ exports.makeAnalyser_ = function (ptr) {
   return function (a) {
     return function (state) {
       return function () {
-        var analyserSideEffectFunction = state.analysers[a];
+        var analyserSideEffectFunction = a;
         if (!analyserSideEffectFunction) {
           console.error(
             "Analyser side effect function does not exist for key " +
@@ -261,14 +261,18 @@ exports.makeConvolver_ = function (ptr) {
           incoming: [],
           main: state.context.createConvolver(),
         };
-        if (!state.buffers[a]) {
-          console.error(
-            "Convolver buffer does not exist for key " +
-            a +
-            ". Using a dummy buffer. Check your code!"
-          );
-        }
-        state.units[ptr].main.buffer = state.buffers[a];
+        state.units[ptr].main.buffer = a;
+      };
+    };
+  };
+};
+exports.makePassthroughConvolver_ = function (ptr) {
+  return function (state) {
+    return function () {
+      state.units[ptr] = {
+        outgoing: [],
+        incoming: [],
+        main: state.context.createConvolver(),
       };
     };
   };
@@ -409,14 +413,7 @@ exports.makeLoopBuf_ = function (ptr) {
                       i.loopEnd = d;
                     },
                     buffer: function (i) {
-                      if (!state.buffers[a]) {
-                        console.error(
-                          "Buffer does not exist for key " +
-                          a +
-                          ". Using a dummy buffer. Check your code!"
-                        );
-                      }
-                      i.buffer = state.buffers[a];
+                      i.buffer = a
                     },
                   },
                   main: createFunction(),
@@ -474,18 +471,16 @@ exports.makeLowshelf_ = function (ptr) {
   };
 };
 exports.makeMicrophone_ = function (state) {
-  return function () {
-    if (state.microphone === null) {
-      throw "Trying to use a microphone when no microphone is available.";
-    }
-    state.units["microphone"] = {
-      main: state.context.createMediaStreamSource(state.microphone),
-      outgoing: [],
-      incoming: [],
+  return function(microphone) {
+    return function () {     
+      state.units["microphone"] = {
+        main: state.context.createMediaStreamSource(microphone),
+        outgoing: [],
+        incoming: [],
+      };
     };
   };
 };
-
 exports.makeNotch_ = function (ptr) {
   return function (a) {
     return function (b) {
@@ -562,15 +557,7 @@ exports.makePeriodicOsc_ = function (ptr) {
                   genericStarter(i, "frequency", b);
                 },
                 periodicOsc: function (i) {
-                  if (state.periodicWaves[a]) {
-                    i.setPeriodicWave(state.periodicWaves[a]);
-                  } else {
-                    console.error(
-                      "Periodic wave does not exist for key " +
-                      a +
-                      ". Setting wave to null. Check your code!"
-                    );
-                  }
+                  i.setPeriodicWave(a);
                 },
               },
               main: createFunction(),
@@ -661,27 +648,13 @@ exports.makePlayBuf_ = function (ptr) {
                     genericStarter(i, "playbackRate", c);
                   },
                   buffer: function (i) {
-                    if (!state.buffers[a]) {
-                      console.error(
-                        "Buffer does not exist for key " +
-                        a +
-                        ". Using a dummy buffer. Check your code!"
-                      );
-                    }
-                    i.buffer = state.buffers[a];
+                    i.buffer = a;
                   },
                 },
                 main: createFunction(),
               };
               applyResumeClosure(state.units[ptr]);
               if (onOff) {
-                if (!state.buffers[a]) {
-                  console.error(
-                    "Buffer does not exist for key " +
-                    a +
-                    ". Using a dummy buffer. Check your code!"
-                  );
-                }
                 state.units[ptr].main.start(state.writeHead + c.timeOffset, b);
               }
               state.units[ptr].onOff = onOff;
@@ -696,17 +669,7 @@ exports.makeRecorder_ = function (ptr) {
   return function (a) {
     return function (state) {
       return function () {
-        var mediaRecorderSideEffectFn = state.recorders[a];
-        if (!mediaRecorderSideEffectFn) {
-          console.error(
-            "Media recorder side effect function does not exist for key " +
-            a +
-            ". Using a dummy function. Check your code!"
-          );
-          mediaRecorderSideEffectFn = function () {
-            return function () { };
-          };
-        }
+        var mediaRecorderSideEffectFn = a;
         var dest = state.context.createMediaStreamDestination();
         var mediaRecorder = new MediaRecorder(dest.stream);
         mediaRecorderSideEffectFn(mediaRecorder)();
@@ -881,7 +844,7 @@ exports.makeWaveShaper_ = function (ptr) {
             incoming: [],
             main: state.context.createWaveShaper(),
           };
-          state.units[ptr].main.curve = state.floatArrays[a];
+          state.units[ptr].main.curve = a;
           state.units[ptr].main.oversample = b;
         };
       };
@@ -893,14 +856,7 @@ exports.setBuffer_ = function (ptr) {
     return function (state) {
       return function () {
         state.units[ptr].resumeClosure.buffer = function (i) {
-          if (!state.buffers[buffer]) {
-            console.error(
-              "Buffer does not exist for key " +
-              buffer +
-              ". Using a dummy buffer. Check your code!"
-            );
-          }
-          i.buffer = state.buffers[buffer];
+          i.buffer = buffer
         };
       };
     };
@@ -912,15 +868,7 @@ exports.setPeriodicOsc_ = function (ptr) {
     return function (state) {
       return function () {
         state.units[ptr].resumeClosure.periodicOsc = function (i) {
-          if (state.periodicWaves[periodicOsc]) {
-            i.setPeriodicWave(state.periodicWaves[periodicOsc]);
-          } else {
-            console.error(
-              "Periodic wave does not exist for key " +
-              periodicOsc +
-              ". Setting wave to null. Check your code!"
-            );
-          }
+          i.setPeriodicWave(periodicOsc);
         };
       };
     };

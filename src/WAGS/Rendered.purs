@@ -15,6 +15,7 @@ import Foreign (Foreign)
 import Simple.JSON as JSON
 import WAGS.Graph.AudioUnit (APOnOff)
 import WAGS.Graph.Parameter (AudioParameter)
+import WAGS.WebAPI (AnalyserNodeCb, BrowserAudioBuffer, BrowserFloatArray, BrowserMicrophone, BrowserPeriodicWave, MediaRecorderCb)
 
 newtype AudioWorkletNodeOptions_ = AudioWorkletNodeOptions_ Foreign
 
@@ -34,38 +35,39 @@ data Instruction
   | DisconnectXFromY String String
   | DestroyUnit String
   | MakeAllpass String AudioParameter AudioParameter
-  | MakeAnalyser String String
+  | MakeAnalyser String AnalyserNodeCb
   | MakeAudioWorkletNode String String AudioWorkletNodeOptions_
   | MakeBandpass String AudioParameter AudioParameter
   | MakeConstant String APOnOff AudioParameter
-  | MakeConvolver String String
+  | MakePassthroughConvolver String
+  | MakeConvolver String BrowserAudioBuffer
   | MakeDelay String AudioParameter
   | MakeDynamicsCompressor String AudioParameter AudioParameter AudioParameter AudioParameter AudioParameter
   | MakeGain String AudioParameter
   | MakeHighpass String AudioParameter AudioParameter
   | MakeHighshelf String AudioParameter AudioParameter
-  | MakeLoopBuf String String APOnOff AudioParameter Number Number
+  | MakeLoopBuf String BrowserAudioBuffer APOnOff AudioParameter Number Number
   | MakeLoopBufWithDeferredBuffer String
   | MakeLowpass String AudioParameter AudioParameter
   | MakeLowshelf String AudioParameter AudioParameter
-  | MakeMicrophone
+  | MakeMicrophone BrowserMicrophone
   | MakeNotch String AudioParameter AudioParameter
   | MakePeaking String AudioParameter AudioParameter AudioParameter
   | MakePeriodicOscWithDeferredOsc String
-  | MakePeriodicOsc String (Either String (Array Number /\ Array Number)) APOnOff AudioParameter
-  | MakePlayBuf String String Number APOnOff AudioParameter
+  | MakePeriodicOsc String (Either BrowserPeriodicWave (Array Number /\ Array Number)) APOnOff AudioParameter
+  | MakePlayBuf String BrowserAudioBuffer Number APOnOff AudioParameter
   | MakePlayBufWithDeferredBuffer String
-  | MakeRecorder String String
+  | MakeRecorder String MediaRecorderCb 
   | MakeSawtoothOsc String APOnOff AudioParameter
   | MakeSinOsc String APOnOff AudioParameter
   | MakeSquareOsc String APOnOff AudioParameter
   | MakeSpeaker
   | MakeStereoPanner String AudioParameter
   | MakeTriangleOsc String APOnOff AudioParameter
-  | MakeWaveShaper String String Oversample
+  | MakeWaveShaper String BrowserFloatArray Oversample
   | SetAudioWorkletParameter String String AudioParameter
-  | SetBuffer String String
-  | SetPeriodicOsc String (Either String (Array Number /\ Array Number))
+  | SetBuffer String BrowserAudioBuffer
+  | SetPeriodicOsc String (Either BrowserPeriodicWave (Array Number /\ Array Number))
   | SetOnOff String APOnOff
   | SetBufferOffset String Number
   | SetLoopStart String Number
