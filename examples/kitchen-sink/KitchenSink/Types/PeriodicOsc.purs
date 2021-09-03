@@ -6,24 +6,24 @@ import Data.Tuple.Nested (type (/\), (/\))
 import Data.Vec ((+>))
 import Data.Vec as V
 import Math (cos, pi, pow, sin, (%))
-import Type.Proxy (Proxy(..))
 import WAGS.Change (ichange)
 import WAGS.Create.Optionals (CPeriodicOsc, periodicOsc)
-import WAGS.Example.KitchenSink.TLP.LoopSig (IxWAGSig')
+import WAGS.Example.KitchenSink.TLP.LoopSig (IxWAGSig', World)
 import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
 import WAGS.Example.KitchenSink.Types.Empty (TopWith)
 import WAGS.Graph.AudioUnit (OnOff(..), TPeriodicOsc)
+import WAGS.WebAPI (BrowserPeriodicWave)
 
 type PeriodicOscGraph
   = TopWith { periodicOsc :: Unit }
       ( periodicOsc :: TPeriodicOsc /\ {}
       )
 
-ksPeriodicOscCreate :: { periodicOsc :: CPeriodicOsc (Proxy "my-wave") }
-ksPeriodicOscCreate = { periodicOsc: periodicOsc (Proxy :: _ "my-wave") 440.0 }
+ksPeriodicOscCreate :: World -> { periodicOsc :: CPeriodicOsc BrowserPeriodicWave }
+ksPeriodicOscCreate {periodicWaves : { "my-wave" : myWave }} = { periodicOsc: periodicOsc  myWave 440.0 }
 
-deltaKsPeriodicOsc :: forall proof. Number -> IxWAGSig' PeriodicOscGraph PeriodicOscGraph proof Unit
-deltaKsPeriodicOsc =
+deltaKsPeriodicOsc :: forall proof. World -> Number -> IxWAGSig' PeriodicOscGraph PeriodicOscGraph proof Unit
+deltaKsPeriodicOsc {periodicWaves : { "my-wave" : myWave }} =
   (_ % pieceTime)
     >>> (_ - timing.ksPeriodicOsc.begin)
     >>> (max 0.0)
@@ -39,7 +39,7 @@ deltaKsPeriodicOsc =
             ichange
               { mix: 0.1 - 0.1 * (cos time)
               , periodicOsc:
-                  { waveform: (Proxy :: _ "my-wave")
+                  { waveform: myWave
                   , onOff: if switchOO then On else Off
                   , freq: 440.0 + 50.0 * ((sin (rad * 1.5)) `pow` 2.0)
                   }

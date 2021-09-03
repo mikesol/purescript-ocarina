@@ -20,8 +20,9 @@ import Halogen.HTML.Events as HE
 import Halogen.VDom.Driver (runUI)
 import WAGS.Example.WTK.RenderingEnv (makeRenderingEnv)
 import WAGS.Example.WTK.TLP (piece)
-import WAGS.Interpret (AudioContext, close, context, defaultFFIAudio, makeUnitCache)
+import WAGS.Interpret (close, context, defaultFFIAudio, makeUnitCache)
 import WAGS.Run (Run, bufferToList, run)
+import WAGS.WebAPI (AudioContext)
 
 easingAlgorithm :: Cofree ((->) Int) Int
 easingAlgorithm = let fOf initialTime = mkCofree initialTime \adj -> fOf $ max 10 (initialTime - adj) in fOf 20
@@ -56,7 +57,7 @@ initialState _ =
   }
 
 render :: forall m. State -> H.ComponentHTML Action () m
-render state = do
+render _ = do
   HH.div_
     [ HH.h1_
         [ HH.text "The Well-Typed Klavier" ]

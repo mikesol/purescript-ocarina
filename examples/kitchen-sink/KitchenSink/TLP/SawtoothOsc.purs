@@ -6,8 +6,8 @@ import Control.Applicative.Indexed (ipure, (:*>))
 import Control.Monad.Indexed.Qualified as Ix
 import Control.Plus (empty)
 import Data.Either (Either(..))
+import Data.Maybe (Maybe(..))
 import Math ((%))
-import Type.Proxy (Proxy(..))
 import WAGS.Change (ichange)
 import WAGS.Control.Functions (ibranch, icont)
 import WAGS.Example.KitchenSink.TLP.Convolver (doConvolver)
@@ -21,7 +21,7 @@ import WAGS.Run (SceneI(..))
 
 doSawtoothOsc :: forall proof. StepSig SawtoothOscGraph proof
 doSawtoothOsc =
-  ibranch \(SceneI { time }) lsig ->
+  ibranch \(SceneI { time, world: { buffers: { "my-buffer": myBuffer } } }) lsig ->
     if time % pieceTime < timing.ksSawtoothOsc.end then
       Right Ix.do
         -- tests cancel
@@ -30,4 +30,4 @@ doSawtoothOsc =
         ipure lsig
     else
       Left
-        $ icont doConvolver (ipatch :*> ichange { buf: {buffer: (Proxy :: _ "my-buffer"), onOff: On } } $> lsig)
+        $ icont doConvolver (ipatch { microphone: Nothing } :*> ichange { buf: { buffer: myBuffer, onOff: On } } $> lsig)

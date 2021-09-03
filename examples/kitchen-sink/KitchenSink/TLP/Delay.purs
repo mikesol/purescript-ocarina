@@ -22,9 +22,9 @@ import WAGS.Run (SceneI(..))
 
 doDelay :: forall proof. StepSig DelayGraph proof
 doDelay =
-  ibranch \(SceneI { time })lsig ->
+  ibranch \(SceneI { time, world })lsig ->
     if time % pieceTime < timing.ksDelay.end then
-      Right (deltaKsDelay time $> lsig)
+      Right (deltaKsDelay world time $> lsig)
     else
       Left
         $ icont doFeedback Ix.do
@@ -41,6 +41,6 @@ doDelay =
             idestroy cursorBuf
             idestroy cursorDelay
             idestroy cursorDMix
-            icreate ksFeedbackCreate
+            icreate (ksFeedbackCreate world)
             iconnect { source: Proxy :: _ "dmix", dest: cursorGain }
             ipure lsig

@@ -22,9 +22,9 @@ import WAGS.Run (SceneI(..))
 
 doStereoPanner :: forall proof. StepSig StereoPannerGraph proof
 doStereoPanner =
-  ibranch \(SceneI { time }) lsig ->
+  ibranch \(SceneI { time, world }) lsig ->
     if time % pieceTime < timing.ksStereoPanner.end then
-      Right (deltaKsStereoPanner time $> lsig)
+      Right (deltaKsStereoPanner world time $> lsig)
     else
       Left
         $ icont doConstant Ix.do

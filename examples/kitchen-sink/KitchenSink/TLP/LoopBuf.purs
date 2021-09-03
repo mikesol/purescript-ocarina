@@ -22,9 +22,9 @@ import WAGS.Run (SceneI(..))
 
 doLoopBuf :: forall proof. StepSig LoopBufGraph proof
 doLoopBuf =
-  ibranch \(SceneI { time }) lsig ->
+  ibranch \(SceneI { time, world }) lsig ->
     if time % pieceTime < timing.ksLoopBuf.end then
-      Right (deltaKsLoopBuf time $> lsig)
+      Right (deltaKsLoopBuf world time $> lsig)
     else
       Left
         $ icont doStereoPanner Ix.do
@@ -32,6 +32,6 @@ doLoopBuf =
               cursorLoopBuf = Proxy :: _ "loopBuf"
             idisconnect { source: cursorLoopBuf, dest: cursorGain }
             idestroy cursorLoopBuf
-            icreate ksStereoPannerCreate
+            icreate (ksStereoPannerCreate world)
             iconnect { source: Proxy :: _ "pan", dest: cursorGain }
             ipure lsig

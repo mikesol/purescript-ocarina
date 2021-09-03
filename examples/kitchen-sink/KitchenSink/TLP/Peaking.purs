@@ -22,11 +22,11 @@ import WAGS.Run (SceneI(..))
 
 doPeaking :: forall proof. StepSig PeakingGraph proof
 doPeaking =
-  ibranch \(SceneI { time }) lsig ->
+  ibranch \(SceneI { time, world }) lsig ->
     if time % pieceTime < timing.ksPeaking.end then
       Right
         $ imodifyRes (const $ "Using a peaking filter")
-        :*> deltaKsPeaking time
+        :*> deltaKsPeaking world time
         $> lsig
     else
       Left
@@ -39,6 +39,6 @@ doPeaking =
             idisconnect { source: cursorPeaking, dest: cursorGain }
             idestroy cursorPeaking
             idestroy cursorPlayBuf
-            icreate ksHighpassCreate
+            icreate (ksHighpassCreate world)
             iconnect { source: Proxy :: _ "highpass", dest: cursorGain }
             ipure lsig

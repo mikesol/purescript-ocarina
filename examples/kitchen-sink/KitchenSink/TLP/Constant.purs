@@ -22,7 +22,7 @@ import WAGS.Run (SceneI(..))
 
 doConstant :: forall proof. StepSig ConstantGraph proof
 doConstant =
-  ibranch \(SceneI { time }) lsig ->
+  ibranch \(SceneI { time, world }) lsig ->
     if time % pieceTime < timing.ksConstant.end then
       Right (deltaKsConstant time $> lsig)
     else
@@ -32,6 +32,6 @@ doConstant =
               cursorConstant = Proxy :: _ "constant"
             idisconnect { source: cursorConstant, dest: cursorGain }
             idestroy cursorConstant
-            icreate ksDynamicsCompressorCreate
+            icreate (ksDynamicsCompressorCreate world)
             iconnect { source: Proxy :: _ "compressor", dest: cursorGain }
             ipure lsig

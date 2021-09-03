@@ -22,7 +22,7 @@ import WAGS.Run (SceneI(..))
 
 doSinOsc :: forall proof. StepSig SinOscGraph proof
 doSinOsc =
-  ibranch \(SceneI { time }) lsig ->
+  ibranch \(SceneI { time, world }) lsig ->
     if time % pieceTime < timing.ksSinOsc.end then
       Right (deltaKsSinOsc time $> lsig)
     else
@@ -32,6 +32,6 @@ doSinOsc =
               cursorSinOsc = Proxy :: _ "sinOsc"
             idisconnect { source: cursorSinOsc, dest: cursorGain }
             idestroy cursorSinOsc
-            icreate ksTriangleOscCreate
+            icreate (ksTriangleOscCreate world)
             iconnect { source: Proxy :: _ "recorder", dest: cursorGain }
             ipure lsig

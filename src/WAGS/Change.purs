@@ -20,9 +20,11 @@ import WAGS.Graph.AudioUnit (APOnOff, AudioWorkletNodeOptions(..), OnOff)
 import WAGS.Graph.AudioUnit as CTOR
 import WAGS.Graph.Graph (Graph)
 import WAGS.Graph.Node (NodeC)
+import WAGS.Graph.Oversample (class IsOversample, reflectOversample)
 import WAGS.Graph.Paramable (class Paramable, paramize, class OnOffable, onOffIze)
 import WAGS.Graph.Parameter (class MM, AudioParameter_, AudioParameter, mm)
 import WAGS.Interpret (class AudioInterpret, setAnalyserNodeCb, setAttack, setAudioWorkletParameter, setBuffer, setBufferOffset, setDelay, setFrequency, setGain, setKnee, setLoopEnd, setLoopStart, setMediaRecorderCb, setOffset, setOnOff, setPan, setPeriodicOsc, setPeriodicOscV, setPlaybackRate, setQ, setRatio, setRelease, setThreshold, setWaveShaperCurve)
+import WAGS.Rendered (Oversample)
 import WAGS.Util (class MakePrefixIfNeeded, class CoercePrefixToString)
 import WAGS.WebAPI (AnalyserNodeCb, BrowserAudioBuffer, BrowserFloatArray, BrowserMicrophone, BrowserPeriodicWave, MediaRecorderCb)
 
@@ -199,6 +201,16 @@ instance changeOnOff ::
   Change' ptr OnOff graph where
   change' px w = change' px (map apure w)
 
+instance changeBrowserAudioBuffer ::
+  ( R.Cons ptr tau' ignore graph
+  , Detup tau' tau
+  , Monoid tau
+  , OneShotChange tau BrowserAudioBuffer au
+  , Change' ptr au graph
+  ) =>
+  Change' ptr BrowserAudioBuffer graph where
+  change' px w = change' px (oneShotChange (mempty :: tau) <$> w)
+
 instance changeAudioParameter ::
   ( R.Cons ptr tau' ignore graph
   , Detup tau' tau
@@ -207,6 +219,36 @@ instance changeAudioParameter ::
   , Change' ptr au graph
   ) =>
   Change' ptr (AudioParameter_ param) graph where
+  change' px w = change' px (oneShotChange (mempty :: tau) <$> w)
+
+instance changeBrowerPeriodicWave ::
+  ( R.Cons ptr tau' ignore graph
+  , Detup tau' tau
+  , Monoid tau
+  , OneShotChange tau BrowserPeriodicWave au
+  , Change' ptr au graph
+  ) =>
+  Change' ptr BrowserPeriodicWave graph where
+  change' px w = change' px (oneShotChange (mempty :: tau) <$> w)
+
+instance changeBrowserFloatArray ::
+  ( R.Cons ptr tau' ignore graph
+  , Detup tau' tau
+  , Monoid tau
+  , OneShotChange tau BrowserFloatArray au
+  , Change' ptr au graph
+  ) =>
+  Change' ptr BrowserFloatArray graph where
+  change' px w = change' px (oneShotChange (mempty :: tau) <$> w)
+
+instance changeBrowserMicrophone ::
+  ( R.Cons ptr tau' ignore graph
+  , Detup tau' tau
+  , Monoid tau
+  , OneShotChange tau BrowserMicrophone au
+  , Change' ptr au graph
+  ) =>
+  Change' ptr BrowserMicrophone graph where
   change' px w = change' px (oneShotChange (mempty :: tau) <$> w)
 
 instance changeVec ::
@@ -1003,6 +1045,25 @@ instance changeConstant ::
         , value: unit
         }
 
+instance oneShotChangeConvolver :: OneShotChange CTOR.TDelay BrowserAudioBuffer (CTOR.Delay BrowserAudioBuffer) where
+  oneShotChange _ bab = CTOR.Delay bab
+
+instance changeConvolver ::
+  ( IsSymbol ptr
+  , R.Cons ptr (NodeC CTOR.TConvolver edges) ignore graph
+  ) =>
+  Change' ptr (CTOR.Convolver BrowserAudioBuffer) graph where
+  change' ptr w = o
+    where
+    { context: i, value: (CTOR.Convolver buffer) } = unsafeUnWAG w
+
+    nn = reflectSymbol ptr
+    o =
+      unsafeWAG
+        { context: i { instructions = i.instructions <> [ setBuffer nn buffer ] }
+        , value: unit
+        }
+
 instance oneShotChangeDelay :: OneShotChange CTOR.TDelay AudioParameter (CTOR.Delay (Maybe AudioParameter)) where
   oneShotChange _ delay = CTOR.Delay (Just delay)
 
@@ -1700,6 +1761,9 @@ instance changeTriangleOsc ::
               }
         , value: unit
         }
+
+instance oneShotChangeWaveshaper :: (IsOversample oversample, Monoid oversample) => OneShotChange (CTOR.TWaveShaper oversample) BrowserFloatArray (CTOR.WaveShaper BrowserFloatArray Oversample) where
+  oneShotChange _ bfa = CTOR.WaveShaper bfa (reflectOversample (mempty :: oversample))
 
 instance changeWaveShaper ::
   ( IsSymbol ptr

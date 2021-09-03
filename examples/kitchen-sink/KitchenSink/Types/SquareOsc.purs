@@ -26,10 +26,7 @@ deltaKsSquareOsc =
     >>> \time ->
         let
           rad = pi * time
-
           switchOO = time % 2.0 < 1.0
-
-          switchW = time % 4.0 < 2.0
         in
           ichange
             { mix: 0.1 - 0.1 * (cos time)

@@ -4,6 +4,7 @@ import Prelude
 
 import Control.Applicative.Indexed (ipure, (:*>))
 import Data.Either (Either(..))
+import Data.Maybe (Maybe(..))
 import Math ((%))
 import WAGS.Change (ichange)
 import WAGS.Control.Functions (ibranch, icont)
@@ -17,9 +18,9 @@ import WAGS.Run (SceneI(..))
 
 doConvolver :: forall proof. StepSig ConvolverGraph proof
 doConvolver =
-  ibranch \(SceneI { time }) lsig ->
+  ibranch \(SceneI { time, world }) lsig ->
     if time % pieceTime < timing.ksConvolver.end then
       Right (ipure lsig)
     else
       Left
-        $ icont doAllpass (ipatch :*> ichange ksAllpassCreate $> lsig)
+        $ icont doAllpass (ipatch { microphone: Nothing } :*> ichange (ksAllpassCreate world) $> lsig)

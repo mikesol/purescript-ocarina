@@ -23,9 +23,9 @@ import WAGS.Run (SceneI(..))
 
 doFeedback :: forall proof. StepSig FeedbackGraph proof
 doFeedback =
-  ibranch \(SceneI { time })lsig ->
+  ibranch \(SceneI { time, world })lsig ->
     if time % pieceTime < timing.ksFeedback.end then
-      Right (deltaKsFeedback time $> lsig)
+      Right (deltaKsFeedback world time $> lsig)
     else
       Left
         $ icont doLoopBuf Ix.do
@@ -46,7 +46,7 @@ doFeedback =
             idestroy cursorDmix
             idestroy cursorDelay
             idestroy cursorHighpass
-            icreate ksLoopBufCreate
+            icreate (ksLoopBufCreate world)
             iconnect { source: Proxy :: _ "loopBuf", dest: cursorGain }
             ichange { mix: 1.0 }
             ipure lsig

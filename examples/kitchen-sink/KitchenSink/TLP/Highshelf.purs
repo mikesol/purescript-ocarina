@@ -22,9 +22,9 @@ import WAGS.Run (SceneI(..))
 
 doHighshelf :: forall proof. StepSig HighshelfGraph proof
 doHighshelf =
-  ibranch \(SceneI { time }) lsig ->
+  ibranch \(SceneI { time, world }) lsig ->
     if time % pieceTime < timing.ksHighshelf.end then
-      Right (deltaKsHighshelf time $> lsig)
+      Right (deltaKsHighshelf world time $> lsig)
     else
       Left
         $ icont doLowshelf Ix.do
@@ -36,6 +36,6 @@ doHighshelf =
             idisconnect { source: cursorHighshelf, dest: cursorGain }
             idestroy cursorHighshelf
             idestroy cursorPlayBuf
-            icreate ksLowshelfCreate
+            icreate (ksLowshelfCreate world)
             iconnect { source: Proxy :: _ "lowshelf", dest: cursorGain }
             ipure lsig

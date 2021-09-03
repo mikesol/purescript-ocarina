@@ -5,6 +5,7 @@ import Prelude
 import Control.Applicative.Indexed (ipure)
 import Control.Monad.Indexed.Qualified as Ix
 import Data.Either (Either(..))
+import Data.Maybe (Maybe(..))
 import Math ((%))
 import Type.Proxy (Proxy(..))
 import WAGS.Change (ichange)
@@ -31,7 +32,7 @@ doTriangleOsc =
       Left
         $ icont doSquareOsc
             if lsig.iteration `mod` 2 == 0 then Ix.do
-              ipatch
+              ipatch { microphone: Nothing }
               ichange { squareOsc: 220.0 }
               ipure lsig
             else Ix.do

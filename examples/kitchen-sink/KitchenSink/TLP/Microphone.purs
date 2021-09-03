@@ -22,7 +22,7 @@ import WAGS.Run (SceneI(..))
 
 doMicrophone :: forall proof. StepSig MicrophoneGraph proof
 doMicrophone =
-  ibranch \(SceneI { time }) lsig ->
+  ibranch \(SceneI { time, world }) lsig ->
     if time % pieceTime < timing.ksMicrophone.end then
       Right (deltaKsMicrophone time $> lsig)
     else
@@ -32,6 +32,6 @@ doMicrophone =
               cursorMicrophone = Proxy :: _ "microphone"
             idisconnect { source: cursorMicrophone, dest: cursorGain }
             idestroy cursorMicrophone
-            icreate ksWaveShaperCreate
+            icreate (ksWaveShaperCreate world)
             iconnect { source: Proxy :: _ "waveShaper", dest: cursorGain }
             ipure lsig

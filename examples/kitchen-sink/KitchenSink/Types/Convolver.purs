@@ -7,6 +7,6 @@ import WAGS.Graph.AudioUnit (TConvolver, TPlayBuf)
 
 type ConvolverGraph
   = TopWith { convolver :: Unit }
-      ( convolver :: TConvolver "reverb" /\ { buf :: Unit }
-      , buf :: TPlayBuf /\ {}
-      )
+  ( convolver :: TConvolver /\ { buf :: Unit }
+  , buf :: TPlayBuf /\ {}
+  )

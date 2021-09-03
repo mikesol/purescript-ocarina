@@ -1,6 +1,7 @@
 module WAGS.Example.Makenna where
 
 import Prelude
+
 import Control.Applicative.Indexed (ipure)
 import Control.Comonad.Cofree (Cofree, mkCofree)
 import Control.Plus (empty)
@@ -36,18 +37,10 @@ import WAGS.Create (icreate)
 import WAGS.Create.Optionals (CPeriodicOsc, CSpeaker, CGain, gain, periodicOsc, speaker)
 import WAGS.Graph.AudioUnit (TGain, TPeriodicOsc, TSpeaker)
 import WAGS.Graph.Parameter (ff)
-import WAGS.Interpret (AudioContext, BrowserPeriodicWave, close, context, defaultFFIAudio, makePeriodicWave, makeUnitCache)
+import WAGS.Interpret (close, context, defaultFFIAudio, makePeriodicWave, makeUnitCache)
 import WAGS.Math (calcSlope)
-import WAGS.Run (RunAudio, RunEngine, SceneI(..), run)
-
-type Assets
-  = ( periodicWaves :: { bday :: BrowserPeriodicWave }
-    , buffers :: {}
-    , floatArrays :: {}
-    , recorders :: {}
-    , analysers :: {}
-    , worklets :: {}
-    )
+import WAGS.Run (RunAudio, RunEngine, SceneI(..), Run, run)
+import WAGS.WebAPI (AudioContext, BrowserPeriodicWave)
 
 type Note
   = Number /\ Maybe Number
@@ -139,39 +132,42 @@ asdr t d
 
 type SceneTemplate
   = CSpeaker
-      { gain :: CGain { osc :: CPeriodicOsc (Proxy "bday") }
-      }
+  { gain :: CGain { osc :: CPeriodicOsc BrowserPeriodicWave }
+  }
 
 type SceneType
-  = { speaker :: TSpeaker /\ { gain :: Unit }
-    , gain :: TGain /\ { osc :: Unit }
-    , osc :: TPeriodicOsc /\ {}
-    }
+  =
+  { speaker :: TSpeaker /\ { gain :: Unit }
+  , gain :: TGain /\ { osc :: Unit }
+  , osc :: TPeriodicOsc /\ {}
+  }
 
-scene :: Number -> EnrichedNote -> Number -> SceneTemplate
-scene time ({ start, dur } /\ pitch) to =
+scene :: (SceneI Unit World ()) -> EnrichedNote -> Number -> SceneTemplate
+scene (SceneI { time, world: { bday } }) ({ start, dur } /\ pitch) to =
   speaker
     { gain:
         gain
           (ff to $ pure (maybe 0.0 (const $ asdr (time - start) dur) pitch))
-          { osc: periodicOsc (Proxy :: _ "bday") (ff to $ pure (midiToCps (fromMaybe 60.0 pitch))) }
+          { osc: periodicOsc bday (ff to $ pure (midiToCps (fromMaybe 60.0 pitch))) }
     }
 
-createFrame :: IxFrame (SceneI Unit Unit) Assets RunAudio RunEngine Frame0 Unit {} SceneType (List EnrichedNote)
-createFrame (SceneI { time }) = icreate (scene time (inTempo rest0) 0.0) $> L.fromFoldable score''
+type World = { bday :: BrowserPeriodicWave }
 
-piece :: Scene (SceneI Unit Unit) Assets RunAudio RunEngine Frame0 Unit
+createFrame :: IxFrame (SceneI Unit World ()) RunAudio RunEngine Frame0 Unit {} SceneType (List EnrichedNote)
+createFrame e = icreate (scene e (inTempo rest0) 0.0) $> L.fromFoldable score''
+
+piece :: Scene (SceneI Unit World ()) RunAudio RunEngine Frame0 Unit
 piece =
   createFrame
-    @!> iloop \(SceneI { time }) l ->
-        let
-          f = case _ of
-            Nil -> ipure Nil
-            (a : b)
-              | time > (fst a).end -> f b
-              | otherwise -> ichange (scene time a 0.05) $> (a : b)
-        in
-          f l
+    @!> iloop \e@(SceneI { time, world: { bday } }) l ->
+      let
+        f = case _ of
+          Nil -> ipure Nil
+          (a : b)
+            | time > (fst a).end -> f b
+            | otherwise -> ichange (scene e a 0.05) $> (a : b)
+      in
+        f l
 
 easingAlgorithm :: Cofree ((->) Int) Int
 easingAlgorithm =
@@ -187,9 +183,10 @@ main =
     runUI component unit body
 
 type State
-  = { unsubscribe :: Effect Unit
-    , audioCtx :: Maybe AudioContext
-    }
+  =
+  { unsubscribe :: Effect Unit
+  , audioCtx :: Maybe AudioContext
+  }
 
 data Action
   = StartAudio
@@ -209,7 +206,7 @@ initialState _ =
   , audioCtx: Nothing
   }
 
-buttonStyle :: forall r i. HP.IProp ( style :: String | r ) i
+buttonStyle :: forall r i. HP.IProp (style :: String | r) i
 buttonStyle = HP.style "padding: 3px; margin: 5px"
 
 render :: forall m. State -> H.ComponentHTML Action () m
@@ -240,11 +237,11 @@ handleAction = case _ of
             (0.02 +> 0.3 +> -0.1 +> -0.25 +> V.empty)
             (-0.03 +> -0.25 +> 0.05 +> 0.2 +> V.empty)
         let
-          ffiAudio = Record.set (Proxy :: Proxy "periodicWaves") (pure { bday }) (defaultFFIAudio audioCtx unitCache)
+          ffiAudio = defaultFFIAudio audioCtx unitCache
         unsubscribe <-
           subscribe
-            (run (pure unit) (pure unit) { easingAlgorithm } ffiAudio piece)
-            (const $ pure unit)
+            (run (pure unit) (pure { bday }) { easingAlgorithm } ffiAudio piece)
+            (\(_ :: Run Unit ()) -> pure unit)
         pure { unsubscribe, audioCtx }
     H.modify_ _ { unsubscribe = unsubscribe, audioCtx = Just audioCtx }
   StopAudio -> do

@@ -22,9 +22,9 @@ import WAGS.Run (SceneI(..))
 
 doNotch :: forall proof. StepSig NotchGraph proof
 doNotch =
-  ibranch \(SceneI { time }) lsig ->
+  ibranch \(SceneI { time, world }) lsig ->
     if time % pieceTime < timing.ksNotch.end then
-      Right (deltaKsNotch time $> lsig)
+      Right (deltaKsNotch world time $> lsig)
     else
       Left
         $ icont doPeaking Ix.do
@@ -36,6 +36,6 @@ doNotch =
             idisconnect { source: cursorNotch, dest: cursorGain }
             idestroy cursorNotch
             idestroy cursorPlayBuf
-            icreate ksPeakingCreate
+            icreate (ksPeakingCreate world)
             iconnect { source: Proxy :: _ "peaking", dest: cursorGain }
             ipure lsig

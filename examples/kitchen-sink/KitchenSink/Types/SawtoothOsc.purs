@@ -16,9 +16,7 @@ import WAGS.Graph.AudioUnit (TSawtoothOsc)
 import WAGS.Graph.Parameter (modTime)
 
 type SawtoothOscGraph
-  = TopWith { sawtoothOsc :: Unit }
-      ( sawtoothOsc :: TSawtoothOsc /\ {}
-      )
+  = TopWith { sawtoothOsc :: Unit } (sawtoothOsc :: TSawtoothOsc /\ {})
 
 ksSawtoothOscCreate :: { sawtoothOsc :: CSawtoothOsc }
 ksSawtoothOscCreate = { sawtoothOsc: sawtoothOsc 440.0 }

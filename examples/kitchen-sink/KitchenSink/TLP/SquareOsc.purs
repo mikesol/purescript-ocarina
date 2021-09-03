@@ -22,7 +22,7 @@ import WAGS.Run (SceneI(..))
 
 doSquareOsc :: forall proof. StepSig SquareOscGraph proof
 doSquareOsc =
-  ibranch \(SceneI { time }) lsig ->
+  ibranch \(SceneI { time, world }) lsig ->
     if time % pieceTime < timing.ksSquareOsc.end then
       Right
         ( imodifyRes (const "Playing a square osc")
@@ -36,6 +36,6 @@ doSquareOsc =
               cursorSquareOsc = Proxy :: _ "squareOsc"
             idisconnect { source: cursorSquareOsc, dest: cursorGain }
             idestroy cursorSquareOsc
-            icreate ksPeriodicOscCreate
+            icreate (ksPeriodicOscCreate world)
             iconnect { source: Proxy :: _ "periodicOsc", dest: cursorGain }
             ipure lsig

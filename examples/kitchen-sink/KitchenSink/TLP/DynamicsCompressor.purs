@@ -21,7 +21,7 @@ import WAGS.Run (SceneI(..))
 
 doDynamicsCompressor :: forall proof. StepSig DynamicsCompressorGraph proof
 doDynamicsCompressor =
-  ibranch \(SceneI { time }) l@{ loop: LoopSig lsig, iteration } ->
+  ibranch \(SceneI { world, time }) l@{ loop: LoopSig lsig, iteration } ->
     if time % pieceTime < timing.ksDynamicsCompressor.begin then
       Left
         $ icont lsig Ix.do
@@ -37,4 +37,4 @@ doDynamicsCompressor =
             iconnect { source: Proxy :: _ "sinOsc", dest: cursorGain }
             ipure $ l { iteration = iteration + 1 }
     else
-      Right (deltaKsDynamicsCompressor time $> l)
+      Right (deltaKsDynamicsCompressor world time $> l)

@@ -22,9 +22,9 @@ import WAGS.Run (SceneI(..))
 
 doHighpass :: forall proof. StepSig HighpassGraph proof
 doHighpass =
-  ibranch \(SceneI { time }) lsig ->
+  ibranch \(SceneI { time, world }) lsig ->
     if time % pieceTime < timing.ksHighpass.end then
-      Right (deltaKsHighpass time $> lsig)
+      Right (deltaKsHighpass world time $> lsig)
     else
       Left
         $ icont doMicrophone Ix.do
@@ -36,6 +36,6 @@ doHighpass =
             idisconnect { source: cursorHighpass, dest: cursorGain }
             idestroy cursorHighpass
             idestroy cursorPlayBuf
-            icreate ksMicrophoneCreate
+            icreate (ksMicrophoneCreate world)
             iconnect { source: Proxy :: _ "microphone", dest: cursorGain }
             ipure lsig

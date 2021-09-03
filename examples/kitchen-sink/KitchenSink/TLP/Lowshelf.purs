@@ -22,9 +22,9 @@ import WAGS.Run (SceneI(..))
 
 doLowshelf :: forall proof. StepSig LowshelfGraph proof
 doLowshelf =
-  ibranch \(SceneI { time }) lsig ->
+  ibranch \(SceneI { time, world }) lsig ->
     if time % pieceTime < timing.ksLowshelf.end then
-      Right (deltaKsLowshelf time $> lsig)
+      Right (deltaKsLowshelf world time $> lsig)
     else
       Left
         $ icont doBandpass Ix.do
@@ -36,6 +36,6 @@ doLowshelf =
             idisconnect { source: cursorLowshelf, dest: cursorGain }
             idestroy cursorLowshelf
             idestroy cursorPlayBuf
-            icreate ksBandpassCreate
+            icreate (ksBandpassCreate world)
             iconnect { source: Proxy :: _ "bandpass", dest: cursorGain }
             ipure lsig

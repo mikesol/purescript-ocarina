@@ -18,7 +18,7 @@ import WAGS.Graph.Paramable (class Paramable, paramize)
 import WAGS.Graph.Parameter (AudioParameter)
 import WAGS.Graph.Worklet (AudioWorkletNodeResponse)
 import WAGS.Util (class ValidateOutputChannelCount)
-import WAGS.WebAPI (AnalyserNodeCb, BrowserAudioBuffer, BrowserMicrophone, BrowserPeriodicWave)
+import WAGS.WebAPI (AnalyserNodeCb, BrowserAudioBuffer, BrowserFloatArray, BrowserMicrophone, BrowserPeriodicWave, MediaRecorderCb)
 
 -----------
 data Allpass
@@ -790,8 +790,8 @@ recorder
   -> CTOR.Recorder a /\ b
 recorder = Tuple <<< CTOR.Recorder
 
-type CRecorder a b
-  = CTOR.Recorder a /\ b
+type CRecorder b
+  = CTOR.Recorder MediaRecorderCb /\ b
 
 ------
 data SawtoothOsc
@@ -1029,8 +1029,8 @@ waveShaper
   -> CTOR.WaveShaper a b /\ c
 waveShaper a = Tuple <<< CTOR.WaveShaper a
 
-type CWaveShaper a b c
-  = CTOR.WaveShaper a b /\ c
+type CWaveShaper b c
+  = CTOR.WaveShaper BrowserFloatArray b /\ c
 
 ---------------
 -- | A reference to a node in a graph.

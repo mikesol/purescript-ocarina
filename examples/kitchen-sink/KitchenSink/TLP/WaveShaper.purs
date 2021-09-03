@@ -22,7 +22,7 @@ import WAGS.Run (SceneI(..))
 
 doWaveShaper :: forall proof. StepSig WaveShaperGraph proof
 doWaveShaper =
-  ibranch \(SceneI { time }) lsig ->
+  ibranch \(SceneI { time, world }) lsig ->
     if time % pieceTime < timing.ksWaveShaper.end then
       Right (deltaKsWaveShaper time $> lsig)
     else
@@ -36,6 +36,6 @@ doWaveShaper =
             idisconnect { source: cursorWaveShaper, dest: cursorGain }
             idestroy cursorPlayBuf
             idestroy cursorWaveShaper
-            icreate ksDelayCreate
+            icreate (ksDelayCreate world)
             iconnect { source: Proxy :: _ "dmix", dest: cursorGain }
             ipure lsig

@@ -5,6 +5,7 @@ import Prelude
 import Control.Applicative.Indexed (ipure)
 import Control.Monad.Indexed.Qualified as Ix
 import Data.Either (Either(..))
+import Data.Maybe (Maybe(..))
 import Math ((%))
 import Type.Proxy (Proxy(..))
 import WAGS.Change (ichange)
@@ -24,29 +25,28 @@ import WAGS.Run (SceneI(..))
 
 doAllpass :: forall proof. StepSig AllpassGraph proof
 doAllpass =
-  ibranch \(SceneI { time }) lsig ->
+  ibranch \(SceneI { time, world: world@{ buffers: { "my-buffer": myBuffer } } }) lsig ->
     if time % pieceTime < timing.ksAllpass.end then
-      Right (deltaKsAllpass time $> lsig)
+      Right (deltaKsAllpass world time $> lsig)
     else if lsig.iteration `mod` 2 == 0 then
       Left
         $ icont doLowpass Ix.do
-            let
-              cursorAllpass = Proxy :: _ "allpass"
-
-              cursorPlayBuf = Proxy :: _ "buf"
-            idisconnect { source: cursorPlayBuf, dest: cursorAllpass }
-            idisconnect { source: cursorAllpass, dest: cursorGain }
-            idestroy cursorAllpass
-            idestroy cursorPlayBuf
-            icreate ksLowpassCreate
-            iconnect { source: Proxy :: _ "lowpass", dest: cursorGain }
-            ipure lsig
+          let
+            cursorAllpass = Proxy :: _ "allpass"
+            cursorPlayBuf = Proxy :: _ "buf"
+          idisconnect { source: cursorPlayBuf, dest: cursorAllpass }
+          idisconnect { source: cursorAllpass, dest: cursorGain }
+          idestroy cursorAllpass
+          idestroy cursorPlayBuf
+          icreate (ksLowpassCreate world)
+          iconnect { source: Proxy :: _ "lowpass", dest: cursorGain }
+          ipure lsig
     else
       Left
         $ icont doLowpass Ix.do
-            ipatch
-            ichange
-              { lowpass: 300.0
-              , buf: Proxy :: _ "my-buffer"
-              }
-            ipure lsig
+          ipatch { microphone: Nothing }
+          ichange
+            { lowpass: 300.0
+            , buf: myBuffer
+            }
+          ipure lsig

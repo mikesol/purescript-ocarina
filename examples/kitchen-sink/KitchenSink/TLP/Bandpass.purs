@@ -22,9 +22,9 @@ import WAGS.Run (SceneI(..))
 
 doBandpass :: forall proof. StepSig BandpassGraph proof
 doBandpass =
-  ibranch \(SceneI { time }) lsig ->
+  ibranch \(SceneI { time, world }) lsig ->
     if time % pieceTime < timing.ksBandpass.end then
-      Right (deltaKsBandpass time $> lsig)
+      Right (deltaKsBandpass world time $> lsig)
     else
       Left
         $ icont doNotch Ix.do
@@ -36,6 +36,6 @@ doBandpass =
             idisconnect { source: cursorBandpass, dest: cursorGain }
             idestroy cursorBandpass
             idestroy cursorPlayBuf
-            icreate ksNotchCreate
+            icreate (ksNotchCreate world)
             iconnect { source: Proxy :: _ "notch", dest: cursorGain }
             ipure lsig

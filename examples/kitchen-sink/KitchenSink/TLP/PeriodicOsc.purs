@@ -22,9 +22,9 @@ import WAGS.Run (SceneI(..))
 
 doPeriodicOsc :: forall proof. StepSig PeriodicOscGraph proof
 doPeriodicOsc =
-  ibranch \(SceneI { time }) lsig ->
+  ibranch \(SceneI { time, world }) lsig ->
     if time % pieceTime < timing.ksPeriodicOsc.end then
-      Right (deltaKsPeriodicOsc time $> lsig)
+      Right (deltaKsPeriodicOsc world time $> lsig)
     else
       Left
         $ icont doSawtoothOsc Ix.do
