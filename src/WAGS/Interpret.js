@@ -152,6 +152,7 @@ exports.makeAnalyser_ = function (ptr) {
         state.units[ptr] = {
           outgoing: [],
           incoming: [],
+          analyserOrig: analyserSideEffectFunction,
           analyser: unsubscribe,
           main: state.context.createGain(),
           se: dest,
@@ -164,8 +165,11 @@ exports.setAnalyserNodeCb_ = function (ptr) {
   return function (a) {
     return function (state) {
       return function () {
-        state.units[ptr].analyser && state.units[ptr].analyser.unsubscribe();
+        if (state.units[ptr].analyserOrig === a) {return;}
+        // first, unsubscribe
+        state.units[ptr].analyser && state.units[ptr].analyser();
         state.units[ptr].analyser = a(state.units[ptr].se)();
+        state.units[ptr].analyserOrig = a;
       };
     };
   };
