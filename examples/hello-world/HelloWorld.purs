@@ -24,7 +24,7 @@ import WAGS.Control.Types (Frame0, Scene)
 import WAGS.Create (icreate)
 import WAGS.Create.Optionals (CGain, CSpeaker, CSinOsc, gain, sinOsc, speaker)
 import WAGS.Graph.AudioUnit (TGain, TSinOsc, TSpeaker)
-import WAGS.Interpret (AudioContext, close, context, defaultFFIAudio, makeUnitCache)
+import WAGS.Interpret (close, context, defaultFFIAudio, makeUnitCache)
 import WAGS.Run (RunAudio, RunEngine, SceneI(..), Run, run)
 
 type SceneTemplate

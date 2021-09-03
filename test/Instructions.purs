@@ -67,7 +67,7 @@ testInstructions :: Spec Unit
 testInstructions = do
   describe "a simple scene that doesn't change" do
     let
-      simpleFrame :: Frame Time () Unit Instruction Frame0 Unit SceneType Unit
+      simpleFrame :: Frame Time Unit Instruction Frame0 Unit SceneType Unit
       simpleFrame e = create (start $> scene0 e)
 
       simpleScene = simpleFrame @|> freeze
@@ -96,7 +96,7 @@ testInstructions = do
       resolveInstructions frame2Instr `shouldEqual` []
   describe "a simple scene that changes only the sine wave osc as a function of time" do
     let
-      simpleFrame :: Frame Time () Unit Instruction Frame0 Unit SceneType Unit
+      simpleFrame :: Frame Time Unit Instruction Frame0 Unit SceneType Unit
       simpleFrame e = create (start $> scene0 e)
 
       simpleScene =
@@ -133,7 +133,7 @@ testInstructions = do
       resolveInstructions frame2Instr `shouldEqual` [ SetFrequency "sinOsc" $ pure 450.0 ]
   describe "a simple scene that changes several elements as a function of time" do
     let
-      simpleFrame :: Frame Time () Unit Instruction Frame0 Unit SceneType Unit
+      simpleFrame :: Frame Time Unit Instruction Frame0 Unit SceneType Unit
       simpleFrame e = create (start $> scene0 e)
 
       simpleScene =
@@ -177,7 +177,7 @@ testInstructions = do
       resolveInstructions frame2Instr `shouldEqual` [ SetFrequency "highpass" $ pure 332.0, SetFrequency "sinOsc" $ pure 450.0 ]
   describe "a scene that forks at 0.3 seconds" do
     let
-      simpleFrame :: Frame Time () Unit Instruction Frame0 Unit SceneType Unit
+      simpleFrame :: Frame Time Unit Instruction Frame0 Unit SceneType Unit
       simpleFrame e = create (start $> scene0 e)
 
       simpleScene =
@@ -231,7 +231,7 @@ testInstructions = do
       resolveInstructions frame4Instr `shouldEqual` [ SetFrequency "highpass" $ pure 350.0 ]
   describe "a scene that forks at 0.3 seconds with ibranch" do
     let
-      simpleFrame :: Frame Time () Unit Instruction Frame0 Unit SceneType Unit
+      simpleFrame :: Frame Time Unit Instruction Frame0 Unit SceneType Unit
       simpleFrame e = create (start $> scene0 e)
 
       simpleScene =

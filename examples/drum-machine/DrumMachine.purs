@@ -32,33 +32,28 @@ import WAGS.Create (icreate)
 import WAGS.Create.Optionals (CGain, CSpeaker, CPlayBuf, gain, speaker, playBuf)
 import WAGS.Graph.AudioUnit (OnOff(..), TGain, TLoopBuf, TSpeaker)
 import WAGS.Graph.Parameter (ff)
-import WAGS.Interpret (AudioContext, BrowserAudioBuffer, close, context, decodeAudioDataFromUri, makeUnitCache)
+import WAGS.Interpret (close, context, decodeAudioDataFromUri, makeUnitCache)
 import WAGS.Run (RunAudio, RunEngine, SceneI(..), Run, run)
-
-type Assets
-  = ( buffers :: { snare :: BrowserAudioBuffer }
-    , periodicWaves :: {}
-    , floatArrays :: {}
-    , recorders :: {}
-    , analysers :: {}
-    , worklets :: {}
-    )
+import WAGS.WebAPI (AudioContext, BrowserAudioBuffer)
 
 type SceneTemplate
   = CSpeaker
-      { gain0 :: CGain { play0 :: CPlayBuf "snare" }
-      }
+  { gain0 :: CGain { play0 :: CPlayBuf }
+  }
 
 type SceneType
-  = { speaker :: TSpeaker /\ { gain0 :: Unit }
-    , gain0 :: TGain /\ { play0 :: Unit }
-    , play0 :: TLoopBuf /\ {}
-    }
+  =
+  { speaker :: TSpeaker /\ { gain0 :: Unit }
+  , gain0 :: TGain /\ { play0 :: Unit }
+  , play0 :: TLoopBuf /\ {}
+  }
 
 gap = 0.27 :: Number
 
-scene :: Boolean -> SceneI Unit Unit -> SceneTemplate
-scene shouldReset (SceneI { time }) =
+type World = { snare :: BrowserAudioBuffer }
+
+scene :: Boolean -> SceneI Unit World () -> SceneTemplate
+scene shouldReset (SceneI { time, world: { snare } }) =
   let
     tgFloor = floor (time / gap)
   in
@@ -73,24 +68,24 @@ scene shouldReset (SceneI { time }) =
                       else
                         ff ((toNumber (tgFloor + 1) * gap) - time) (pure OffOn)
                   }
-                  (Proxy :: _ "snare")
+                  snare
             }
       }
 
-piece :: Scene (SceneI Unit Unit) Assets RunAudio RunEngine Frame0 Unit
+piece :: Scene (SceneI Unit World ()) RunAudio RunEngine Frame0 Unit
 piece =
   (\e -> icreate (scene false e) $> 0.0)
     @!> iloop \(SceneI e) lastCrossing ->
-        let
-          tgFloor = floor (e.time / gap)
+      let
+        tgFloor = floor (e.time / gap)
 
-          crossingDivide = tgFloor /= floor ((e.time + 0.06) / gap)
+        crossingDivide = tgFloor /= floor ((e.time + 0.06) / gap)
 
-          crossDiff = e.time - lastCrossing
+        crossDiff = e.time - lastCrossing
 
-          shouldReset = crossingDivide && crossDiff > 0.2
-        in
-          ichange (scene shouldReset (SceneI e)) $> (if shouldReset then e.time else lastCrossing)
+        shouldReset = crossingDivide && crossDiff > 0.2
+      in
+        ichange (scene shouldReset (SceneI e)) $> (if shouldReset then e.time else lastCrossing)
 
 easingAlgorithm :: Cofree ((->) Int) Int
 easingAlgorithm =
@@ -106,9 +101,10 @@ main =
     runUI component unit body
 
 type State
-  = { unsubscribe :: Effect Unit
-    , audioCtx :: Maybe AudioContext
-    }
+  =
+  { unsubscribe :: Effect Unit
+  , audioCtx :: Maybe AudioContext
+  }
 
 data Action
   = StartAudio
@@ -146,22 +142,22 @@ drumCf =
   deferCofree \_ ->
     "https://freesound.org/data/previews/321/321132_1337335-hq.mp3"
       /\ Identity
-          ( deferCofree \_ ->
-              "https://freesound.org/data/previews/331/331589_5820980-hq.mp3"
-                /\ Identity
-                    ( deferCofree \_ ->
-                        "https://freesound.org/data/previews/84/84478_377011-hq.mp3"
-                          /\ Identity
-                              ( deferCofree \_ ->
-                                  "https://freesound.org/data/previews/270/270156_1125482-hq.mp3"
-                                    /\ Identity
-                                        ( deferCofree \_ ->
-                                            "https://freesound.org/data/previews/207/207956_19852-hq.mp3"
-                                              /\ Identity drumCf
-                                        )
-                              )
-                    )
-          )
+        ( deferCofree \_ ->
+            "https://freesound.org/data/previews/331/331589_5820980-hq.mp3"
+              /\ Identity
+                ( deferCofree \_ ->
+                    "https://freesound.org/data/previews/84/84478_377011-hq.mp3"
+                      /\ Identity
+                        ( deferCofree \_ ->
+                            "https://freesound.org/data/previews/270/270156_1125482-hq.mp3"
+                              /\ Identity
+                                ( deferCofree \_ ->
+                                    "https://freesound.org/data/previews/207/207956_19852-hq.mp3"
+                                      /\ Identity drumCf
+                                )
+                        )
+                )
+        )
 
 handleAction :: forall output m. MonadEffect m => MonadAff m => Action -> H.HalogenM State Action () output m Unit
 handleAction = case _ of
@@ -171,49 +167,48 @@ handleAction = case _ of
     ibuf <-
       H.liftAff $ toAffE
         $ decodeAudioDataFromUri
-            audioCtx
-            (head drumCf)
+          audioCtx
+          (head drumCf)
     rf <- H.liftEffect (Ref.new (unwrap (tail drumCf)))
     bf <- H.liftEffect (Ref.new ibuf)
     ivlsub <-
       H.liftEffect
         $ subscribe (interval 1000) \_ -> do
-            cf <- Ref.read rf
-            Ref.write (unwrap (tail cf)) rf
-            launchAff_ do
-              buf <-
-                toAffE
-                  $ decodeAudioDataFromUri
-                      audioCtx
-                      (head cf)
-              H.liftEffect $ Ref.write buf bf
+          cf <- Ref.read rf
+          Ref.write (unwrap (tail cf)) rf
+          launchAff_ do
+            buf <-
+              toAffE
+                $ decodeAudioDataFromUri
+                  audioCtx
+                  (head cf)
+            H.liftEffect $ Ref.write buf bf
     let
       ffiAudio =
         { context: audioCtx
         , writeHead: 0.0
         , units: unitCache
-        , worklets: {}
-        , microphone: pure null
-        , recorders: pure {}
-        , buffers:
-            { snare: _ }
-              <$> behavior \eAToB ->
-                  makeEvent \fB ->
-                    subscribe eAToB \aToB -> Ref.read bf >>= fB <<< aToB
-        , floatArrays: pure {}
-        , periodicWaves: pure {}
         }
     unsubscribe <-
       H.liftEffect
         $ subscribe
-            (run (pure unit) (pure unit) { easingAlgorithm } (ffiAudio) piece)
-            (const $ pure unit)
+          ( run (pure unit)
+              ( { snare: _ }
+                  <$> behavior \eAToB ->
+                    makeEvent \fB ->
+                      subscribe eAToB \aToB -> Ref.read bf >>= fB <<< aToB
+              )
+              { easingAlgorithm }
+              (ffiAudio)
+              piece
+          )
+          (\(_ :: Run Unit ()) -> pure unit)
     H.modify_
       _
         { unsubscribe =
-          do
-            unsubscribe
-            ivlsub
+            do
+              unsubscribe
+              ivlsub
         , audioCtx = Just audioCtx
         }
   StopAudio -> do

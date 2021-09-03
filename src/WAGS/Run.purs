@@ -8,6 +8,10 @@ module WAGS.Run
   , RunEngine
   , class MakeAnalyserCallbacks
   , makeAnalyserCallbacks
+  , class AnalyserRefs
+  , makeAnalyserRefs
+  , class Analysers
+  , getAnalysers
   , bufferToList
   , run
   ) where
@@ -25,7 +29,6 @@ import Data.Symbol (class IsSymbol)
 import Data.Time.Duration (Milliseconds)
 import Data.Tuple (fst, snd)
 import Data.Tuple.Nested ((/\), type (/\))
-import Data.Typelevel.Num (class Nat, class Pos)
 import Effect (Effect)
 import Effect.Ref as Ref
 import Effect.Timer (TimeoutId, clearTimeout, setTimeout)
@@ -39,15 +42,10 @@ import Prim.Row as Row
 import Prim.RowList as RL
 import Record as Record
 import Safe.Coerce (coerce)
-import Simple.JSON as JSON
 import Type.Proxy (Proxy(..))
-import Type.Row.Homogeneous (class Homogeneous)
 import WAGS.Control.Types (Frame0, Scene, oneFrame)
-import WAGS.Graph.AudioUnit (AudioWorkletNode)
-import WAGS.Graph.Parameter (AudioParameter)
-import WAGS.Interpret (FFIAudioSnapshot(..), getAudioClockTime, makeAnalyser, renderAudio)
+import WAGS.Interpret (FFIAudioSnapshot(..), getAudioClockTime, renderAudio)
 import WAGS.Rendered (Instruction)
-import WAGS.Util (class ValidateOutputChannelCount)
 import WAGS.WebAPI as WebAPI
 
 type RunAudio
@@ -60,7 +58,7 @@ class Analysers (analysersRL :: RL.RowList Type) analyserRefs analysers | analys
   getAnalysers :: forall proxy. proxy analysersRL -> { | analyserRefs } -> Effect { | analysers }
 
 instance getAnalysersNil :: Analysers RL.Nil analyserRefs () where
-  getAnalysers _ = {}
+  getAnalysers _ _ = pure {}
 
 instance getAnalysersCons ::
   ( IsSymbol key
@@ -79,7 +77,7 @@ class AnalyserRefs (analysersRL :: RL.RowList Type) analyserRefs | analysersRL -
   makeAnalyserRefs :: forall proxy. proxy analysersRL -> Effect { | analyserRefs }
 
 instance analyserRefsNil :: AnalyserRefs RL.Nil () where
-  makeAnalyserRefs _ = {}
+  makeAnalyserRefs _ = pure {}
 
 instance analyserRefsCons ::
   ( IsSymbol key
@@ -92,12 +90,11 @@ instance analyserRefsCons ::
     ref <- Ref.new Nothing
     Record.insert (Proxy :: _ key) ref <$> (makeAnalyserRefs (Proxy :: _ rest))
 
-
 class MakeAnalyserCallbacks (analysersRL :: RL.RowList Type) analyserRefs analyserCallbacks | analysersRL analyserRefs -> analyserCallbacks where
   makeAnalyserCallbacks :: forall proxy. proxy analysersRL -> { | analyserRefs } -> { | analyserCallbacks }
 
 instance workWithAnalysersNil :: MakeAnalyserCallbacks RL.Nil analyserRefs () where
-  makeAnalyserCallbacks _ _ = pure {}
+  makeAnalyserCallbacks _ _ = {}
 
 instance workWithAnalysersCons ::
   ( IsSymbol key
@@ -108,8 +105,10 @@ instance workWithAnalysersCons ::
   , MakeAnalyserCallbacks rest analyserRefs analyserCallbacks'
   ) =>
   MakeAnalyserCallbacks (RL.Cons key (Maybe WebAPI.AnalyserNode) rest) analyserRefs analyserCallbacks where
-  makeAnalyserCallbacks _ refs = Record.insert 
-    (Proxy :: _ key) (WebAPI.AnalyserNodeCb f) (makeAnalyserCallbacks (Proxy :: _ rest))
+  makeAnalyserCallbacks _ refs = Record.insert
+    (Proxy :: _ key)
+    (WebAPI.AnalyserNodeCb f)
+    (makeAnalyserCallbacks (Proxy :: _ rest) refs)
     where
     ref = Record.get (Proxy :: _ key) refs
     f :: WebAPI.AnalyserNode -> Effect (Effect Unit)
@@ -144,10 +143,9 @@ run
        Frame0
        res
   -> Event (Run res analysers)
-run trigger world' engineInfo audioInfo scene =
+run trigger inWorld engineInfo audioInfo scene =
   makeEvent \k -> do
     refsForAnalysers <- makeAnalyserRefs (Proxy :: _ analysersRL)
-    callbacksForAnalysers <- makeAnalyserCallbacks (Proxy :: _ analysersRL) refsForAnalysers
     audioClockStart <- getAudioClockTime audioInfo.context
     currentTimeoutCanceler <- Ref.new (pure unit :: Effect Unit)
     currentScene <- Ref.new scene
@@ -157,7 +155,7 @@ run trigger world' engineInfo audioInfo scene =
         { world: _
         , sysTime: _
         }
-          <$> world'
+          <$> inWorld
           <*> map unInstant instant
       eventAndEnv =
         sampleBy
@@ -187,7 +185,7 @@ run trigger world' engineInfo audioInfo scene =
           , units: audioInfo.units
           , writeHead: audioInfo.writeHead
           }
-          callbacksForAnalysers
+          (makeAnalyserCallbacks (Proxy :: _ analysersRL) refsForAnalysers)
           refsForAnalysers
           k
     pure do
@@ -198,13 +196,13 @@ run trigger world' engineInfo audioInfo scene =
   runInternal
     :: Number
     -> { world :: world
-      , trigger :: Maybe trigger
-      , sysTime :: Milliseconds
-      }
+       , trigger :: Maybe trigger
+       , sysTime :: Milliseconds
+       }
     -> Behavior
-        { world :: world
-        , sysTime :: Milliseconds
-        }
+         { world :: world
+         , sysTime :: Milliseconds
+         }
     -> Ref.Ref (Effect Unit)
     -> Ref.Ref EasingAlgorithm
     -> Ref.Ref (Scene (SceneI trigger world analyserCallbacks) RunAudio RunEngine Frame0 res)
@@ -275,8 +273,8 @@ run trigger world' engineInfo audioInfo scene =
     canceler <-
       subscribe (sample_ world' (delay (max 1 remainingTime) (pure unit)))
         \{ world
-        , sysTime
-        } ->
+         , sysTime
+         } ->
           runInternal audioClockStart
             { world
             , sysTime
@@ -287,7 +285,8 @@ run trigger world' engineInfo audioInfo scene =
             currentEasingAlg
             currentScene
             nonBehavioralFFIInfo
-            analysers
+            analyserCallbacks
+            analyserRefs
             reporter
     Ref.write canceler currentTimeoutCanceler
 -- | The information provided to `run` that tells the engine how to make certain rendering tradeoffs.
@@ -344,10 +343,10 @@ newtype SceneI trigger world analyserCallbacks
   , sysTime :: Milliseconds
   , headroom :: Int
   , headroomInSeconds :: Number
-  , analyserCallbacks :: analyserCallbacks
+  , analyserCallbacks :: { | analyserCallbacks }
   }
 
-derive instance newtypeSceneI :: Newtype (SceneI trigger world) _
+derive instance newtypeSceneI :: Newtype (SceneI trigger world analyserCallbacks) _
 
 -- | Given a buffering window and an event, return a list of events that occur within that window.
 -- | - `timeToCollect` - the buffering window

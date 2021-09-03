@@ -1,20 +1,27 @@
 module Test.TLP where
 
 import Prelude
+
+import Data.Maybe (Maybe(..))
 import Data.Tuple.Nested (type (/\))
 import Data.Typelevel.Num (D0, D1, D3)
 import Data.Vec as Vec
 import Type.Proxy (Proxy(..))
+import Unsafe.Coerce (unsafeCoerce)
 import WAGS.Change (ichange)
 import WAGS.Control.Indexed (IxWAG)
 import WAGS.Create (icreate)
 import WAGS.Create.Optionals (speaker, sinOsc, highpass, playBuf, gain)
 import WAGS.CreateT (class CreateT)
 import WAGS.Graph.AudioUnit (OnOff(..), TGain, THighpass, TPlayBuf, TSinOsc, TSpeaker)
-import WAGS.Interpret (class AudioInterpret, BrowserAudioBuffer)
+import WAGS.Interpret (class AudioInterpret)
 import WAGS.Patch (class Patch, ipatch)
 import WAGS.Template (fromTemplate)
 import WAGS.Util (class AutoIncrementingInsert)
+import WAGS.WebAPI (BrowserAudioBuffer)
+
+unsafeBuffer :: BrowserAudioBuffer
+unsafeBuffer = unsafeCoerce unit
 
 testAII0 :: Proxy (D0 /\ ((TSinOsc /\ D0) /\ Unit))
 testAII0 = Proxy :: forall val omap. AutoIncrementingInsert TSinOsc Unit val omap => Proxy (val /\ omap)
@@ -39,30 +46,30 @@ type C0
   )
 
 testC0Cr
-  :: forall (assets :: Row Type) (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type)
+  :: forall (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type)
    . AudioInterpret audio engine
-  => IxWAG assets audio engine proof res {} { | C0 } Unit
+  => IxWAG audio engine proof res {} { | C0 } Unit
 testC0Cr = icreate (speaker (sinOsc 440.0))
 
 testC0CrT
-  :: forall r (assets :: Row Type) (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type)
+  :: forall r (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type)
    . AudioInterpret audio engine
-  => CreateT assets r () C0
+  => CreateT r () C0
   => Patch () C0
   => { | r }
-  -> IxWAG assets audio engine proof res {} { | C0 } Unit
-testC0CrT _ = ipatch
+  -> IxWAG audio engine proof res {} { | C0 } Unit
+testC0CrT _ = ipatch { microphone: Nothing }
 
 testC0CrT'
-  :: forall (assets :: Row Type) (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type)
+  :: forall (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type)
    . AudioInterpret audio engine
-  => IxWAG assets audio engine proof res {} { | C0 } Unit
+  => IxWAG audio engine proof res {} { | C0 } Unit
 testC0CrT' = testC0CrT (speaker (sinOsc 440.0))
 
 testC0Ch
-  :: forall (assets :: Row Type) (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type)
+  :: forall (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type)
    . AudioInterpret audio engine
-  => IxWAG assets audio engine proof res { | C0 } { | C0 } Unit
+  => IxWAG audio engine proof res { | C0 } { | C0 } Unit
 testC0Ch = ichange (speaker (sinOsc 440.0))
 
 -----
@@ -74,30 +81,30 @@ type C1
   )
 
 testC1Cr
-  :: forall (assets :: Row Type) (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type)
+  :: forall (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type)
    . AudioInterpret audio engine
-  => IxWAG assets audio engine proof res {} { | C1 } Unit
+  => IxWAG audio engine proof res {} { | C1 } Unit
 testC1Cr = icreate (speaker (highpass 440.0 (sinOsc 440.0)))
 
 testC1CrT
-  :: forall r (assets :: Row Type) (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type)
+  :: forall r (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type)
    . AudioInterpret audio engine
-  => CreateT assets r () C1
+  => CreateT r () C1
   => Patch () C1
   => { | r }
-  -> IxWAG assets audio engine proof res {} { | C1 } Unit
-testC1CrT _ = ipatch
+  -> IxWAG audio engine proof res {} { | C1 } Unit
+testC1CrT _ = ipatch { microphone: Nothing }
 
 testC1CrT'
-  :: forall (assets :: Row Type) (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type)
+  :: forall (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type)
    . AudioInterpret audio engine
-  => IxWAG assets audio engine proof res {} { | C1 } Unit
+  => IxWAG audio engine proof res {} { | C1 } Unit
 testC1CrT' = testC1CrT (speaker (highpass 440.0 (sinOsc 440.0)))
 
 testC1Ch
-  :: forall (assets :: Row Type) (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type)
+  :: forall (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type)
    . AudioInterpret audio engine
-  => IxWAG assets audio engine proof res { | C1 } { | C1 } Unit
+  => IxWAG audio engine proof res { | C1 } { | C1 } Unit
 testC1Ch = ichange (speaker (highpass 440.0 (sinOsc 440.0)))
 
 -----
@@ -110,30 +117,30 @@ type C2
   )
 
 testC2Cr
-  :: forall (assets :: Row Type) (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type)
+  :: forall (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type)
    . AudioInterpret audio engine
-  => IxWAG assets audio engine proof res {} { | C2 } Unit
+  => IxWAG audio engine proof res {} { | C2 } Unit
 testC2Cr = icreate (speaker (highpass 440.0 (highpass 440.0 (sinOsc 440.0))))
 
 testC2CrT
-  :: forall r (assets :: Row Type) (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type)
+  :: forall r (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type)
    . AudioInterpret audio engine
-  => CreateT assets r () C2
+  => CreateT r () C2
   => Patch () C2
   => { | r }
-  -> IxWAG assets audio engine proof res {} { | C2 } Unit
-testC2CrT _ = ipatch
+  -> IxWAG audio engine proof res {} { | C2 } Unit
+testC2CrT _ = ipatch { microphone: Nothing }
 
 testC2CrT'
-  :: forall (assets :: Row Type) (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type)
+  :: forall (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type)
    . AudioInterpret audio engine
-  => IxWAG assets audio engine proof res {} { | C2 } Unit
+  => IxWAG audio engine proof res {} { | C2 } Unit
 testC2CrT' = testC2CrT (speaker (highpass 440.0 (highpass 440.0 (sinOsc 440.0))))
 
 testC2Ch
-  :: forall (assets :: Row Type) (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type)
+  :: forall (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type)
    . AudioInterpret audio engine
-  => IxWAG assets audio engine proof res { | C2 } { | C2 } Unit
+  => IxWAG audio engine proof res { | C2 } { | C2 } Unit
 testC2Ch = ichange (speaker (highpass 440.0 (highpass 440.0 (sinOsc 440.0))))
 
 ---
@@ -146,30 +153,30 @@ type C3
   )
 
 testC3Cr
-  :: forall (assets :: Row Type) (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type)
+  :: forall (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type)
    . AudioInterpret audio engine
-  => IxWAG assets audio engine proof res {} { | C3 } Unit
+  => IxWAG audio engine proof res {} { | C3 } Unit
 testC3Cr = icreate (speaker { hello: sinOsc 440.0, world: sinOsc 440.0 })
 
 testC3CrT
-  :: forall r (assets :: Row Type) (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type)
+  :: forall r (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type)
    . AudioInterpret audio engine
-  => CreateT assets r () C3
+  => CreateT r () C3
   => Patch () C3
   => { | r }
-  -> IxWAG assets audio engine proof res {} { | C3 } Unit
-testC3CrT _ = ipatch
+  -> IxWAG audio engine proof res {} { | C3 } Unit
+testC3CrT _ = ipatch { microphone: Nothing }
 
 testC3CrT'
-  :: forall (assets :: Row Type) (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type)
+  :: forall (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type)
    . AudioInterpret audio engine
-  => IxWAG assets audio engine proof res {} { | C3 } Unit
+  => IxWAG audio engine proof res {} { | C3 } Unit
 testC3CrT' = testC3CrT (speaker { hello: sinOsc 440.0, world: sinOsc 440.0 })
 
 testC3Ch
-  :: forall (assets :: Row Type) (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type)
+  :: forall (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type)
    . AudioInterpret audio engine
-  => IxWAG assets audio engine proof res { | C3 } { | C3 } Unit
+  => IxWAG audio engine proof res { | C3 } { | C3 } Unit
 testC3Ch = ichange (speaker { hello: sinOsc 440.0, world: sinOsc 440.0 })
 
 -----
@@ -182,30 +189,30 @@ type C4
   )
 
 testC4Cr
-  :: forall (assets :: Row Type) (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type)
+  :: forall (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type)
    . AudioInterpret audio engine
-  => IxWAG assets audio engine proof res {} { | C4 } Unit
+  => IxWAG audio engine proof res {} { | C4 } Unit
 testC4Cr = icreate (speaker { hello: (highpass 440.0 (sinOsc 440.0)), world: sinOsc 440.0 })
 
 testC4CrT
-  :: forall r (assets :: Row Type) (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type)
+  :: forall r (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type)
    . AudioInterpret audio engine
-  => CreateT assets r () C4
+  => CreateT r () C4
   => Patch () C4
   => { | r }
-  -> IxWAG assets audio engine proof res {} { | C4 } Unit
-testC4CrT _ = ipatch
+  -> IxWAG audio engine proof res {} { | C4 } Unit
+testC4CrT _ = ipatch { microphone: Nothing }
 
 testC4CrT'
-  :: forall (assets :: Row Type) (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type)
+  :: forall (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type)
    . AudioInterpret audio engine
-  => IxWAG assets audio engine proof res {} { | C4 } Unit
+  => IxWAG audio engine proof res {} { | C4 } Unit
 testC4CrT' = testC4CrT (speaker { hello: (highpass 440.0 (sinOsc 440.0)), world: sinOsc 440.0 })
 
 testC4Ch
-  :: forall (assets :: Row Type) (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type)
+  :: forall (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type)
    . AudioInterpret audio engine
-  => IxWAG assets audio engine proof res { | C4 } { | C4 } Unit
+  => IxWAG audio engine proof res { | C4 } { | C4 } Unit
 testC4Ch = ichange (speaker { hello: (highpass 440.0 (sinOsc 440.0)), world: sinOsc 440.0 })
 
 ----
@@ -246,7 +253,7 @@ type C5
 testC5Cr
   :: forall (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type)
    . AudioInterpret audio engine
-  => IxWAG (buffers :: { "hi-hat" :: BrowserAudioBuffer }) audio engine proof res {} { | C5 } Unit
+  => IxWAG audio engine proof res {} { | C5 } Unit
 testC5Cr =
   icreate
     $ speaker
@@ -256,23 +263,23 @@ testC5Cr =
                 { playbackRate: 1.0
                 , onOff: On
                 }
-                (Proxy :: _ "hi-hat")
+                unsafeBuffer
             )
       )
 
 testC5CrT
   :: forall r (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type)
    . AudioInterpret audio engine
-  => CreateT (buffers :: { "hi-hat" :: BrowserAudioBuffer }) r () C5
+  => CreateT r () C5
   => Patch () C5
   => { | r }
-  -> IxWAG (buffers :: { "hi-hat" :: BrowserAudioBuffer }) audio engine proof res {} { | C5 } Unit
-testC5CrT _ = ipatch
+  -> IxWAG audio engine proof res {} { | C5 } Unit
+testC5CrT _ = ipatch { microphone: Nothing }
 
 testC5CrT'
   :: forall (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type)
    . AudioInterpret audio engine
-  => IxWAG (buffers :: { "hi-hat" :: BrowserAudioBuffer }) audio engine proof res {} { | C5 } Unit
+  => IxWAG audio engine proof res {} { | C5 } Unit
 testC5CrT' =
   testC5CrT
     $ speaker
@@ -282,14 +289,14 @@ testC5CrT' =
                 { playbackRate: 1.0
                 , onOff: On
                 }
-                (Proxy :: _ "hi-hat")
+                unsafeBuffer
             )
       )
 
 testC5Ch
   :: forall (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type)
    . AudioInterpret audio engine
-  => IxWAG (buffers :: { "hi-hat" :: BrowserAudioBuffer }) audio engine proof res { | C5 } { | C5 } Unit
+  => IxWAG audio engine proof res { | C5 } { | C5 } Unit
 testC5Ch =
   ichange
     $ speaker
@@ -299,7 +306,7 @@ testC5Ch =
                 { playbackRate: 1.0
                 , onOff: On
                 }
-                (Proxy :: _ "hi-hat")
+                unsafeBuffer
             )
       )
 
@@ -341,7 +348,7 @@ type C6
 testC6Cr
   :: forall (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type)
    . AudioInterpret audio engine
-  => IxWAG (buffers :: { "hi-hat" :: BrowserAudioBuffer }) audio engine proof res {} { | C6 } Unit
+  => IxWAG audio engine proof res {} { | C6 } Unit
 testC6Cr =
   icreate
     $ speaker
@@ -351,23 +358,23 @@ testC6Cr =
                 { playbackRate: 1.0
                 , onOff: On
                 }
-                (Proxy :: _ "hi-hat")
+                unsafeBuffer
             )
       )
 
 testC6CrT
   :: forall r (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type)
    . AudioInterpret audio engine
-  => CreateT (buffers :: { "hi-haaaaat" :: BrowserAudioBuffer }) r () C6
+  => CreateT r () C6
   => Patch () C6
   => { | r }
-  -> IxWAG (buffers :: { "hi-haaaaat" :: BrowserAudioBuffer }) audio engine proof res {} { | C6 } Unit
-testC6CrT _ = ipatch
+  -> IxWAG audio engine proof res {} { | C6 } Unit
+testC6CrT _ = ipatch { microphone: Nothing }
 
 testC6CrT'
   :: forall (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type)
    . AudioInterpret audio engine
-  => IxWAG (buffers :: { "hi-haaaaat" :: BrowserAudioBuffer }) audio engine proof res {} { | C6 } Unit
+  => IxWAG audio engine proof res {} { | C6 } Unit
 testC6CrT' =
   testC6CrT
     $ speaker
@@ -377,14 +384,14 @@ testC6CrT' =
                 { playbackRate: 1.0
                 , onOff: On
                 }
-                (Proxy :: _ "hi-haaaaat")
+                unsafeBuffer
             )
       )
 
 testC6Ch
   :: forall (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type)
    . AudioInterpret audio engine
-  => IxWAG (buffers :: { "hi-hat" :: BrowserAudioBuffer }) audio engine proof res { | C6 } { | C6 } Unit
+  => IxWAG audio engine proof res { | C6 } { | C6 } Unit
 testC6Ch =
   ichange
     $ speaker
@@ -394,6 +401,6 @@ testC6Ch =
                 { playbackRate: 1.0
                 , onOff: On
                 }
-                (Proxy :: _ "hi-hat")
+                unsafeBuffer
             )
       )

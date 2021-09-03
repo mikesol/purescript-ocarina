@@ -16,15 +16,15 @@ import Type.Proxy (Proxy(..))
 import WAGS.ConstructEdges (class ConstructEdges, constructEdges)
 import WAGS.Control.Indexed (IxWAG(..))
 import WAGS.Control.Types (WAG, unsafeUnWAG, unsafeWAG)
-import WAGS.Graph.AudioUnit (APOnOff, AudioWorkletNode, AudioWorkletNodeOptions(..), OnOff)
+import WAGS.Graph.AudioUnit (APOnOff, AudioWorkletNodeOptions(..), OnOff)
 import WAGS.Graph.AudioUnit as CTOR
 import WAGS.Graph.Graph (Graph)
 import WAGS.Graph.Node (NodeC)
 import WAGS.Graph.Paramable (class Paramable, paramize, class OnOffable, onOffIze)
 import WAGS.Graph.Parameter (class MM, AudioParameter_, AudioParameter, mm)
-import WAGS.Interpret (class AudioInterpret, AudioWorkletNodeProxy, setAttack, setAudioWorkletParameter, setBuffer, setBufferOffset, setDelay, setFrequency, setGain, setKnee, setLoopEnd, setLoopStart, setOffset, setOnOff, setPan, setPeriodicOsc, setPeriodicOscV, setPlaybackRate, setQ, setRatio, setRelease, setThreshold)
+import WAGS.Interpret (class AudioInterpret, setAnalyserNodeCb, setAttack, setAudioWorkletParameter, setBuffer, setBufferOffset, setDelay, setFrequency, setGain, setKnee, setLoopEnd, setLoopStart, setMediaRecorderCb, setOffset, setOnOff, setPan, setPeriodicOsc, setPeriodicOscV, setPlaybackRate, setQ, setRatio, setRelease, setThreshold, setWaveShaperCurve)
 import WAGS.Util (class MakePrefixIfNeeded, class CoercePrefixToString)
-import WAGS.WebAPI (BrowserPeriodicWave)
+import WAGS.WebAPI (AnalyserNodeCb, BrowserAudioBuffer, BrowserFloatArray, BrowserMicrophone, BrowserPeriodicWave, MediaRecorderCb)
 
 apure = pure :: forall a. a -> AudioParameter_ a
 
@@ -187,7 +187,7 @@ class
   Monoid tau <=
   OneShotChange tau p au
   | tau p -> au where
-  oneShotChange :: forall proxy. proxy -> tau -> p -> au
+  oneShotChange :: tau -> p -> au
 
 instance changeNumber ::
   Change' ptr AudioParameter graph =>
@@ -207,17 +207,7 @@ instance changeAudioParameter ::
   , Change' ptr au graph
   ) =>
   Change' ptr (AudioParameter_ param) graph where
-  change' px w = change' px (oneShotChange  (mempty :: tau) <$> w)
-
-instance changeProxy ::
-  ( R.Cons ptr tau' ignore graph
-  , Detup tau' tau
-  , Monoid tau
-  , OneShotChange tau (Proxy sym) au
-  , Change' ptr au graph
-  ) =>
-  Change' ptr (Proxy sym) graph where
-  change' px w = change' px (oneShotChange  (mempty :: tau) <$> w)
+  change' px w = change' px (oneShotChange (mempty :: tau) <$> w)
 
 instance changeVec ::
   ( R.Cons ptr tau' ignore graph
@@ -227,7 +217,7 @@ instance changeVec ::
   , Change' ptr au graph
   ) =>
   Change' ptr (V.Vec size Number /\ V.Vec size Number) graph where
-  change' px w = change' px (oneShotChange  (mempty :: tau) <$> w)
+  change' px w = change' px (oneShotChange (mempty :: tau) <$> w)
 
 instance changeRec ::
   ( RL.RowToList r rl'
@@ -590,19 +580,18 @@ instance bufferablePlayBuf :: Bufferable CTOR.TPlayBuf
 
 instance canBeChangedBuffer ::
   ( IsSymbol ptr
-  , IsSymbol sym
   , R.Cons ptr tau' ignore graph
   , Detup tau' tau
   , Bufferable tau
   ) =>
-  CanBeChanged "buffer" (Proxy sym) ptr graph where
+  CanBeChanged "buffer" BrowserAudioBuffer ptr graph where
   canBeChanged _ val ptr w = o
     where
     { context: i } = unsafeUnWAG w
 
     nn = reflectSymbol ptr
 
-    argA_Changes = [ setBuffer nn (reflectSymbol val) ]
+    argA_Changes = [ setBuffer nn val ]
 
     o =
       unsafeWAG
@@ -619,7 +608,6 @@ instance waveformablePeriodicOsc :: Waveformable CTOR.TPeriodicOsc
 
 instance canBeChangedWaveform ::
   ( IsSymbol ptr
-  , IsSymbol sym
   , R.Cons ptr tau' ignore graph
   , Detup tau' tau
   , Waveformable tau
@@ -631,7 +619,7 @@ instance canBeChangedWaveform ::
 
     nn = reflectSymbol ptr
 
-    argA_Changes = [ setPeriodicOsc nn (reflectSymbol val) ]
+    argA_Changes = [ setPeriodicOsc nn val ]
 
     o =
       unsafeWAG
@@ -838,13 +826,26 @@ instance canBeChangedRelease ::
 
 instance changeAnalyser ::
   ( IsSymbol ptr
-  , R.Cons ptr (NodeC (CTOR.TAnalyser sym) edges) ignore graph
+  , R.Cons ptr (NodeC CTOR.TAnalyser edges) ignore graph
   ) =>
-  Change' ptr (CTOR.Analyser sym) graph where
-  change' _ w = w $> unit
+  Change' ptr (CTOR.Analyser AnalyserNodeCb) graph where
+  change' ptr w = o
+    where
+    { context: i, value: (CTOR.Analyser cb) } = unsafeUnWAG w
+
+    nn = reflectSymbol ptr
+
+    o =
+      unsafeWAG
+        { context:
+            i
+              { instructions = i.instructions <> [ setAnalyserNodeCb nn cb ]
+              }
+        , value: unit
+        }
 
 instance oneShotChangeAllpass :: OneShotChange CTOR.TAllpass AudioParameter (CTOR.Allpass (Maybe AudioParameter) (Maybe AudioParameter)) where
-  oneShotChange _ _ freq = CTOR.Allpass (Just freq) Nothing
+  oneShotChange _ freq = CTOR.Allpass (Just freq) Nothing
 
 instance changeAllpass ::
   ( IsSymbol ptr
@@ -907,7 +908,6 @@ instance interpretParametersCons ::
 
 instance changeAudioWorkletNode ::
   ( IsSymbol ptr
-  , AssetsHaveCons Worklets node (AudioWorkletNodeProxy (AudioWorkletNode node numberOfInputs numberOfOutputs outputChannelCount parameterData processorOptions))
   , RowToList parameterData parameterDataRL
   , InterpretParameters optionsParamaterData parameterDataRL parameterData
   , R.Cons ptr (NodeC (CTOR.TAudioWorkletNode node numberOfInputs numberOfOutputs outputChannelCount parameterData processorOptions) edges) ignore graph
@@ -933,7 +933,7 @@ instance changeAudioWorkletNode ::
         }
 
 instance oneShotChangeBandpass :: OneShotChange CTOR.TBandpass AudioParameter (CTOR.Bandpass (Maybe AudioParameter) (Maybe AudioParameter)) where
-  oneShotChange _ _ freq = CTOR.Bandpass (Just freq) Nothing
+  oneShotChange _ freq = CTOR.Bandpass (Just freq) Nothing
 
 instance changeBandpass ::
   ( IsSymbol ptr
@@ -968,10 +968,10 @@ instance changeBandpass ::
         }
 
 instance oneShotChangeConstant :: OneShotChange CTOR.TConstant AudioParameter (CTOR.Constant (Maybe APOnOff) (Maybe AudioParameter)) where
-  oneShotChange _ _ offset = CTOR.Constant Nothing (Just offset)
+  oneShotChange _ offset = CTOR.Constant Nothing (Just offset)
 
 instance oneShotChangeConstantOO :: OneShotChange CTOR.TConstant APOnOff (CTOR.Constant (Maybe APOnOff) (Maybe AudioParameter)) where
-  oneShotChange _ _ oo = CTOR.Constant (Just oo) Nothing
+  oneShotChange _ oo = CTOR.Constant (Just oo) Nothing
 
 instance changeConstant ::
   ( IsSymbol ptr
@@ -1004,7 +1004,7 @@ instance changeConstant ::
         }
 
 instance oneShotChangeDelay :: OneShotChange CTOR.TDelay AudioParameter (CTOR.Delay (Maybe AudioParameter)) where
-  oneShotChange _ _ delay = CTOR.Delay (Just delay)
+  oneShotChange _ delay = CTOR.Delay (Just delay)
 
 instance changeDelay ::
   ( IsSymbol ptr
@@ -1089,7 +1089,7 @@ instance changeDynamicsCompressor ::
         }
 
 instance oneShotChangeGain :: OneShotChange CTOR.TGain AudioParameter (CTOR.Gain (Maybe AudioParameter)) where
-  oneShotChange _ _ gain = CTOR.Gain (Just gain)
+  oneShotChange _ gain = CTOR.Gain (Just gain)
 
 instance changeGain ::
   ( IsSymbol ptr
@@ -1118,7 +1118,7 @@ instance changeGain ::
         }
 
 instance oneShotChangeHighpass :: OneShotChange CTOR.THighpass AudioParameter (CTOR.Highpass (Maybe AudioParameter) (Maybe AudioParameter)) where
-  oneShotChange _ _ freq = CTOR.Highpass (Just freq) Nothing
+  oneShotChange _ freq = CTOR.Highpass (Just freq) Nothing
 
 instance changeHighpass ::
   ( IsSymbol ptr
@@ -1153,7 +1153,7 @@ instance changeHighpass ::
         }
 
 instance oneShotChangeHighshelf :: OneShotChange CTOR.THighshelf AudioParameter (CTOR.Highshelf (Maybe AudioParameter) (Maybe AudioParameter)) where
-  oneShotChange _ _ freq = CTOR.Highshelf (Just freq) Nothing
+  oneShotChange _ freq = CTOR.Highshelf (Just freq) Nothing
 
 instance changeHighshelf ::
   ( IsSymbol ptr
@@ -1187,20 +1187,18 @@ instance changeHighshelf ::
         , value: unit
         }
 
-instance oneShotChangeLoopBuf :: OneShotChange CTOR.TLoopBuf AudioParameter (CTOR.LoopBuf (Maybe (Proxy sym)) (Maybe APOnOff) (Maybe AudioParameter) (Maybe Number) (Maybe Number)) where
-  oneShotChange _ _ rate = CTOR.LoopBuf Nothing Nothing (Just rate) Nothing Nothing
+instance oneShotChangeLoopBuf :: OneShotChange CTOR.TLoopBuf AudioParameter (CTOR.LoopBuf (Maybe BrowserAudioBuffer) (Maybe APOnOff) (Maybe AudioParameter) (Maybe Number) (Maybe Number)) where
+  oneShotChange _ rate = CTOR.LoopBuf Nothing Nothing (Just rate) Nothing Nothing
 
-instance oneShotChangeLoopBufOO :: OneShotChange CTOR.TLoopBuf APOnOff (CTOR.LoopBuf (Maybe (Proxy sym)) (Maybe APOnOff) (Maybe AudioParameter) (Maybe Number) (Maybe Number)) where
-  oneShotChange _ _ onOff = CTOR.LoopBuf Nothing (Just onOff) Nothing Nothing Nothing
+instance oneShotChangeLoopBufOO :: OneShotChange CTOR.TLoopBuf APOnOff (CTOR.LoopBuf (Maybe BrowserAudioBuffer) (Maybe APOnOff) (Maybe AudioParameter) (Maybe Number) (Maybe Number)) where
+  oneShotChange _ onOff = CTOR.LoopBuf Nothing (Just onOff) Nothing Nothing Nothing
 
-instance oneShotChangeLoopBufProxy :: (IsSymbol sym, AssetsHave Buffers sym assets) => OneShotChange CTOR.TLoopBuf (Proxy sym) (CTOR.LoopBuf (Maybe (Proxy sym)) (Maybe APOnOff) (Maybe AudioParameter) (Maybe Number) (Maybe Number)) where
-  oneShotChange _ _ buffer = CTOR.LoopBuf (Just buffer) Nothing Nothing Nothing Nothing
+instance oneShotChangeLoopBufProxy :: OneShotChange CTOR.TLoopBuf BrowserAudioBuffer (CTOR.LoopBuf (Maybe BrowserAudioBuffer) (Maybe APOnOff) (Maybe AudioParameter) (Maybe Number) (Maybe Number)) where
+  oneShotChange _ buffer = CTOR.LoopBuf (Just buffer) Nothing Nothing Nothing Nothing
 
 instance changeLoopBuf ::
   ( IsSymbol ptr
-  , IsSymbol sym
-  , AssetsHave Buffers sym assets
-  , MM mBuffer (Maybe (Proxy sym))
+  , MM mBuffer (Maybe BrowserAudioBuffer)
   , MM mAPOnOff (Maybe onOff)
   , OnOffable onOff
   , MM mArgA (Maybe argA)
@@ -1216,7 +1214,7 @@ instance changeLoopBuf ::
 
     nn = reflectSymbol ptr
 
-    buffer_Changes = maybe [] (\buffer' -> [ setBuffer nn buffer' ]) (reflectSymbol <$> (mm buffer))
+    buffer_Changes = maybe [] (\buffer' -> [ setBuffer nn buffer' ]) (mm buffer)
 
     oo_Changes = maybe [] (\onOff' -> [ setOnOff nn (onOffIze onOff') ]) (mm onOff)
 
@@ -1244,7 +1242,7 @@ instance changeLoopBuf ::
         }
 
 instance oneShotChangeLowpass :: OneShotChange CTOR.TLowpass AudioParameter (CTOR.Lowpass (Maybe AudioParameter) (Maybe AudioParameter)) where
-  oneShotChange _ _ freq = CTOR.Lowpass (Just freq) Nothing
+  oneShotChange _ freq = CTOR.Lowpass (Just freq) Nothing
 
 instance changeLowpass ::
   ( IsSymbol ptr
@@ -1279,7 +1277,7 @@ instance changeLowpass ::
         }
 
 instance oneShotChangeLowshelf :: OneShotChange CTOR.TLowshelf AudioParameter (CTOR.Lowshelf (Maybe AudioParameter) (Maybe AudioParameter)) where
-  oneShotChange _ _ freq = CTOR.Lowshelf (Just freq) Nothing
+  oneShotChange _ freq = CTOR.Lowshelf (Just freq) Nothing
 
 instance changeLowshelf ::
   ( IsSymbol ptr
@@ -1316,11 +1314,15 @@ instance changeLowshelf ::
 instance changeMicrophone ::
   ( R.Cons "microphone" (NodeC CTOR.TMicrophone edges) ignore graph
   ) =>
-  Change' "microphone" CTOR.Microphone graph where
+  Change' "microphone" (CTOR.Microphone BrowserMicrophone) graph where
+  -- for now, we make this a no-op as it does not make sense in the
+  -- web api to change the microphone
+  -- in future iterations, we can look into expanding this once changing
+  -- the microphone has semantic meaning
   change' _ w = w $> unit
 
 instance oneShotChangeNotch :: OneShotChange CTOR.TNotch AudioParameter (CTOR.Notch (Maybe AudioParameter) (Maybe AudioParameter)) where
-  oneShotChange _ _ freq = CTOR.Notch (Just freq) Nothing
+  oneShotChange _ freq = CTOR.Notch (Just freq) Nothing
 
 instance changeNotch ::
   ( IsSymbol ptr
@@ -1355,7 +1357,7 @@ instance changeNotch ::
         }
 
 instance oneShotChangePeaking :: OneShotChange CTOR.TPeaking AudioParameter (CTOR.Peaking (Maybe AudioParameter) (Maybe AudioParameter) (Maybe AudioParameter)) where
-  oneShotChange _ _ freq = CTOR.Peaking (Just freq) Nothing Nothing
+  oneShotChange _ freq = CTOR.Peaking (Just freq) Nothing Nothing
 
 instance changePeaking ::
   ( IsSymbol ptr
@@ -1395,26 +1397,26 @@ instance changePeaking ::
         , value: unit
         }
 
-instance oneShotChangePeriodicOsc :: OneShotChange CTOR.TPeriodicOsc AudioParameter (CTOR.PeriodicOsc (Maybe (Proxy sym)) (Maybe APOnOff) (Maybe AudioParameter)) where
-  oneShotChange _ _ freq = CTOR.PeriodicOsc Nothing Nothing (Just freq)
+instance oneShotChangePeriodicOsc :: OneShotChange CTOR.TPeriodicOsc AudioParameter (CTOR.PeriodicOsc (Maybe BrowserPeriodicWave) (Maybe APOnOff) (Maybe AudioParameter)) where
+  oneShotChange _ freq = CTOR.PeriodicOsc Nothing Nothing (Just freq)
 
-instance oneShotChangePeriodicOscOO :: OneShotChange CTOR.TPeriodicOsc APOnOff (CTOR.PeriodicOsc (Maybe (Proxy sym)) (Maybe APOnOff) (Maybe AudioParameter)) where
-  oneShotChange _ _ oo = CTOR.PeriodicOsc Nothing (Just oo) Nothing
+instance oneShotChangePeriodicOscOO :: OneShotChange CTOR.TPeriodicOsc APOnOff (CTOR.PeriodicOsc (Maybe BrowserPeriodicWave) (Maybe APOnOff) (Maybe AudioParameter)) where
+  oneShotChange _ oo = CTOR.PeriodicOsc Nothing (Just oo) Nothing
 
-instance oneShotChangePeriodicOscProxy :: OneShotChange CTOR.TPeriodicOsc (Proxy sym) (CTOR.PeriodicOsc (Maybe (Proxy sym)) (Maybe APOnOff) (Maybe AudioParameter)) where
-  oneShotChange _ _ osc = CTOR.PeriodicOsc (Just osc) Nothing Nothing
+instance oneShotChangePeriodicOscProxy :: OneShotChange CTOR.TPeriodicOsc BrowserPeriodicWave (CTOR.PeriodicOsc (Maybe BrowserPeriodicWave) (Maybe APOnOff) (Maybe AudioParameter)) where
+  oneShotChange _ osc = CTOR.PeriodicOsc (Just osc) Nothing Nothing
 
 instance oneShotChangePeriodicOscVec :: OneShotChange CTOR.TPeriodicOsc (V.Vec size Number /\ V.Vec size Number) (CTOR.PeriodicOsc (Maybe (V.Vec size Number /\ V.Vec size Number)) (Maybe APOnOff) (Maybe AudioParameter)) where
-  oneShotChange _ _ osc = CTOR.PeriodicOsc (Just osc) Nothing Nothing
+  oneShotChange _ osc = CTOR.PeriodicOsc (Just osc) Nothing Nothing
 
 class ChangePeriodicOsc a where
-  setPosc :: forall proxy audio engine. AudioInterpret audio engine => proxy -> String -> a -> audio -> engine
+  setPosc :: forall audio engine. AudioInterpret audio engine => String -> a -> audio -> engine
 
 instance changePeriodicOscV :: ChangePeriodicOsc (V.Vec size Number /\ V.Vec size Number) where
-  setPosc _ = setPeriodicOscV
+  setPosc = setPeriodicOscV
 
-instance changePeriodicOscS :: (IsSymbol sym, AssetsHave PeriodicWaves sym assets) => ChangePeriodicOsc (Proxy sym) where
-  setPosc _ s = setPeriodicOsc s <<< reflectSymbol
+instance changePeriodicOscS :: ChangePeriodicOsc BrowserPeriodicWave where
+  setPosc = setPeriodicOsc
 
 instance changePeriodicOsc ::
   ( IsSymbol ptr
@@ -1433,7 +1435,7 @@ instance changePeriodicOsc ::
 
     nn = reflectSymbol ptr
 
-    pw_Changes = maybe [] (\periodicWave' -> [ setPosc  nn periodicWave' ]) (mm periodicWave)
+    pw_Changes = maybe [] (\periodicWave' -> [ setPosc nn periodicWave' ]) (mm periodicWave)
 
     oo_Changes = maybe [] (\onOff' -> [ setOnOff nn (onOffIze onOff') ]) (mm onOff)
 
@@ -1450,20 +1452,18 @@ instance changePeriodicOsc ::
         , value: unit
         }
 
-instance oneShotChangePlayBuf :: OneShotChange CTOR.TPlayBuf AudioParameter (CTOR.PlayBuf (Maybe (Proxy sym)) (Maybe Number) (Maybe APOnOff) (Maybe AudioParameter)) where
-  oneShotChange _ _ rate = CTOR.PlayBuf Nothing Nothing Nothing (Just rate)
+instance oneShotChangePlayBuf :: OneShotChange CTOR.TPlayBuf AudioParameter (CTOR.PlayBuf (Maybe BrowserAudioBuffer) (Maybe Number) (Maybe APOnOff) (Maybe AudioParameter)) where
+  oneShotChange _ rate = CTOR.PlayBuf Nothing Nothing Nothing (Just rate)
 
-instance oneShotChangePlayBufOO :: OneShotChange CTOR.TPlayBuf APOnOff (CTOR.PlayBuf (Maybe (Proxy sym)) (Maybe Number) (Maybe APOnOff) (Maybe AudioParameter)) where
-  oneShotChange _ _ oo = CTOR.PlayBuf Nothing Nothing (Just oo) Nothing
+instance oneShotChangePlayBufOO :: OneShotChange CTOR.TPlayBuf APOnOff (CTOR.PlayBuf (Maybe BrowserAudioBuffer) (Maybe Number) (Maybe APOnOff) (Maybe AudioParameter)) where
+  oneShotChange _ oo = CTOR.PlayBuf Nothing Nothing (Just oo) Nothing
 
-instance oneShotChangePlayBufProxy :: (IsSymbol sym, AssetsHave Buffers sym assets) => OneShotChange CTOR.TPlayBuf (Proxy sym) (CTOR.PlayBuf (Maybe (Proxy sym)) (Maybe Number) (Maybe APOnOff) (Maybe AudioParameter)) where
-  oneShotChange _ _ buffer = CTOR.PlayBuf (Just buffer) Nothing Nothing Nothing
+instance oneShotChangePlayBufProxy :: OneShotChange CTOR.TPlayBuf BrowserAudioBuffer (CTOR.PlayBuf (Maybe BrowserAudioBuffer) (Maybe Number) (Maybe APOnOff) (Maybe AudioParameter)) where
+  oneShotChange _ buffer = CTOR.PlayBuf (Just buffer) Nothing Nothing Nothing
 
 instance changePlayBuf ::
   ( IsSymbol ptr
-  , IsSymbol sym
-  , AssetsHave Buffers sym assets
-  , MM mBuffer (Maybe (Proxy sym))
+  , MM mBuffer (Maybe BrowserAudioBuffer)
   , MM mOffset (Maybe Number)
   , MM mAPOnOff (Maybe onOff)
   , OnOffable onOff
@@ -1478,7 +1478,7 @@ instance changePlayBuf ::
 
     nn = reflectSymbol ptr
 
-    buffer_Changes = maybe [] (\buffer' -> [ setBuffer nn buffer' ]) (reflectSymbol <$> (mm buffer))
+    buffer_Changes = maybe [] (\buffer' -> [ setBuffer nn buffer' ]) (mm buffer)
 
     offset_Changes = maybe [] (\offset' -> [ setBufferOffset nn offset' ]) (mm offset)
 
@@ -1504,16 +1504,29 @@ instance changePlayBuf ::
 
 instance changeRecorder ::
   ( IsSymbol ptr
-  , R.Cons ptr (NodeC (CTOR.TRecorder sym) edges) ignore graph
+  , R.Cons ptr (NodeC CTOR.TRecorder edges) ignore graph
   ) =>
-  Change' ptr (CTOR.Recorder sym) graph where
-  change' _ w = w $> unit
+  Change' ptr (CTOR.Recorder MediaRecorderCb) graph where
+  change' ptr w = o
+    where
+    { context: i, value: (CTOR.Recorder cb) } = unsafeUnWAG w
+
+    nn = reflectSymbol ptr
+
+    o =
+      unsafeWAG
+        { context:
+            i
+              { instructions = i.instructions <> [ setMediaRecorderCb nn cb ]
+              }
+        , value: unit
+        }
 
 instance oneShotChangeSawtoothOsc :: OneShotChange CTOR.TSawtoothOsc AudioParameter (CTOR.SawtoothOsc (Maybe APOnOff) (Maybe AudioParameter)) where
-  oneShotChange _ _ freq = CTOR.SawtoothOsc Nothing (Just freq)
+  oneShotChange _ freq = CTOR.SawtoothOsc Nothing (Just freq)
 
 instance oneShotChangeSawtoothOscOO :: OneShotChange CTOR.TSawtoothOsc APOnOff (CTOR.SawtoothOsc (Maybe APOnOff) (Maybe AudioParameter)) where
-  oneShotChange _ _ oo = CTOR.SawtoothOsc (Just oo) Nothing
+  oneShotChange _ oo = CTOR.SawtoothOsc (Just oo) Nothing
 
 instance changeSawtoothOsc ::
   ( IsSymbol ptr
@@ -1546,10 +1559,10 @@ instance changeSawtoothOsc ::
         }
 
 instance oneShotChangeSinOsc :: OneShotChange CTOR.TSinOsc AudioParameter (CTOR.SinOsc (Maybe APOnOff) (Maybe AudioParameter)) where
-  oneShotChange _ _ freq = CTOR.SinOsc Nothing (Just freq)
+  oneShotChange _ freq = CTOR.SinOsc Nothing (Just freq)
 
 instance oneShotChangeSinOscOO :: OneShotChange CTOR.TSinOsc APOnOff (CTOR.SinOsc (Maybe APOnOff) (Maybe AudioParameter)) where
-  oneShotChange _ _ oo = CTOR.SinOsc (Just oo) Nothing
+  oneShotChange _ oo = CTOR.SinOsc (Just oo) Nothing
 
 instance changeSinOsc ::
   ( IsSymbol ptr
@@ -1588,10 +1601,10 @@ instance changeSpeaker ::
   change' _ w = w $> unit
 
 instance oneShotChangeSquareOsc :: OneShotChange CTOR.TSquareOsc AudioParameter (CTOR.SquareOsc (Maybe APOnOff) (Maybe AudioParameter)) where
-  oneShotChange _ _ freq = CTOR.SquareOsc Nothing (Just freq)
+  oneShotChange _ freq = CTOR.SquareOsc Nothing (Just freq)
 
 instance oneShotChangeSquareOscOO :: OneShotChange CTOR.TSquareOsc APOnOff (CTOR.SquareOsc (Maybe APOnOff) (Maybe AudioParameter)) where
-  oneShotChange _ _ oo = CTOR.SquareOsc (Just oo) Nothing
+  oneShotChange _ oo = CTOR.SquareOsc (Just oo) Nothing
 
 instance changeSquareOsc ::
   ( IsSymbol ptr
@@ -1624,7 +1637,7 @@ instance changeSquareOsc ::
         }
 
 instance oneShotChangeStereoPanner :: OneShotChange CTOR.TStereoPanner AudioParameter (CTOR.StereoPanner (Maybe AudioParameter)) where
-  oneShotChange _ _ pan = CTOR.StereoPanner (Just pan)
+  oneShotChange _ pan = CTOR.StereoPanner (Just pan)
 
 instance changeStereoPanner ::
   ( IsSymbol ptr
@@ -1653,10 +1666,10 @@ instance changeStereoPanner ::
         }
 
 instance oneShotChangeTriangleOsc :: OneShotChange CTOR.TTriangleOsc AudioParameter (CTOR.TriangleOsc (Maybe APOnOff) (Maybe AudioParameter)) where
-  oneShotChange _ _ freq = CTOR.TriangleOsc Nothing (Just freq)
+  oneShotChange _ freq = CTOR.TriangleOsc Nothing (Just freq)
 
 instance oneShotChangeTriangleOscOO :: OneShotChange CTOR.TTriangleOsc APOnOff (CTOR.TriangleOsc (Maybe APOnOff) (Maybe AudioParameter)) where
-  oneShotChange _ _ oo = CTOR.TriangleOsc (Just oo) Nothing
+  oneShotChange _ oo = CTOR.TriangleOsc (Just oo) Nothing
 
 instance changeTriangleOsc ::
   ( IsSymbol ptr
@@ -1690,7 +1703,20 @@ instance changeTriangleOsc ::
 
 instance changeWaveShaper ::
   ( IsSymbol ptr
-  , R.Cons ptr (NodeC (CTOR.TWaveShaper a b) edges) ignore graph
+  , R.Cons ptr (NodeC (CTOR.TWaveShaper a) edges) ignore graph
   ) =>
-  Change' ptr (CTOR.WaveShaper a b) graph where
-  change' _ w = w $> unit
+  Change' ptr (CTOR.WaveShaper BrowserFloatArray b) graph where
+  change' ptr w = o
+    where
+    { context: i, value: (CTOR.WaveShaper fa _) } = unsafeUnWAG w
+
+    nn = reflectSymbol ptr
+
+    o =
+      unsafeWAG
+        { context:
+            i
+              { instructions = i.instructions <> [ setWaveShaperCurve nn fa ]
+              }
+        , value: unit
+        }

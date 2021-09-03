@@ -3,9 +3,12 @@ module Test.Computed where
 import Prelude
 
 import Data.Tuple.Nested (type (/\))
-import Type.Proxy (Proxy(..))
+import Unsafe.Coerce (unsafeCoerce)
 import WAGS.Create.Optionals (gain, loopBuf, speaker)
 import WAGS.Graph.AudioUnit (TGain, TLoopBuf, TSpeaker, reifyAUs)
+import WAGS.WebAPI (BrowserAudioBuffer)
+
+unsafeBuffer = unsafeCoerce unit :: BrowserAudioBuffer
 
 type SceneType
   =
@@ -24,7 +27,7 @@ testReifyAUs =
     $ speaker
       { gain0:
           gain (0.3)
-            { loop0: loopBuf { playbackRate: 1.0 + 0.1 } (Proxy :: _ "atar") }
+            { loop0: loopBuf { playbackRate: 1.0 + 0.1 } unsafeBuffer }
       , gain1:
           gain (0.15)
             { loop1:
@@ -33,9 +36,9 @@ testReifyAUs =
                   , loopStart: 0.1 + 0.1
                   , loopEnd: 0.5 + 0.25
                   }
-                  (Proxy :: _ "atar")
+                  unsafeBuffer
             }
       , gain2:
           gain (0.3)
-            { loop2: loopBuf { playbackRate: 0.25 } (Proxy :: _ "atar") }
+            { loop2: loopBuf { playbackRate: 0.25 } unsafeBuffer }
       }

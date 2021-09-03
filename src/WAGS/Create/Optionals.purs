@@ -10,14 +10,15 @@ import Data.Tuple.Nested ((/\), type (/\))
 import Data.Typelevel.Num (class Nat, class Pos)
 import Data.Vec as V
 import Simple.JSON as JSON
-import Type.Proxy (Proxy)
 import Type.Row.Homogeneous (class Homogeneous)
 import WAGS.Graph.AudioUnit (APOnOff, AudioWorkletNodeOptions, OnOff(..))
 import WAGS.Graph.AudioUnit as CTOR
 import WAGS.Graph.Oversample (class IsOversample)
 import WAGS.Graph.Paramable (class Paramable, paramize)
 import WAGS.Graph.Parameter (AudioParameter)
+import WAGS.Graph.Worklet (AudioWorkletNodeResponse)
 import WAGS.Util (class ValidateOutputChannelCount)
+import WAGS.WebAPI (AnalyserNodeCb, BrowserAudioBuffer, BrowserMicrophone, BrowserPeriodicWave)
 
 -----------
 data Allpass
@@ -73,14 +74,13 @@ type CAllpass a
 -- | ```
 analyser
   :: forall a b
-   . IsSymbol a
-  => Proxy a
+   . a
   -> b
   -> CTOR.Analyser a /\ b
 analyser = Tuple <<< CTOR.Analyser
 
-type CAnalyser a b
-  = CTOR.Analyser a /\ b
+type CAnalyser a 
+  = CTOR.Analyser AnalyserNodeCb /\ a
 
 ------
 -- | Make an audio worklet node.
@@ -93,7 +93,7 @@ audioWorkletNode
   => ValidateOutputChannelCount numberOfOutputs outputChannelCount
   => Homogeneous parameterData AudioParameter
   => JSON.WriteForeign { | processorOptions }
-  => Proxy sym
+  => AudioWorkletNodeResponse sym numberOfInputs numberOfOutputs outputChannelCount parameterData processorOptions 
   -> AudioWorkletNodeOptions numberOfInputs numberOfOutputs outputChannelCount parameterData processorOptions
   -> b
   -> (CTOR.AudioWorkletNode sym numberOfInputs numberOfOutputs outputChannelCount parameterData processorOptions) /\ b
@@ -203,8 +203,7 @@ type CConstant
 -- | ```
 convolver
   :: forall s b
-   . IsSymbol s
-  => Proxy s
+   . s
   -> b
   -> CTOR.Convolver s /\ b
 convolver = Tuple <<< CTOR.Convolver
@@ -452,12 +451,12 @@ class LoopBufCtor i loopBuf | i -> loopBuf where
 instance loopBufCtor1 ::
   ( ConvertOptionsWithDefaults LoopBuf { | LoopBufOptional } { | provided } { | LoopBufAll }
   ) =>
-  LoopBufCtor { | provided } ((Proxy sym) -> CTOR.LoopBuf (Proxy sym) APOnOff AudioParameter Number Number /\ {}) where
+  LoopBufCtor { | provided } (BrowserAudioBuffer -> CTOR.LoopBuf BrowserAudioBuffer APOnOff AudioParameter Number Number /\ {}) where
   loopBuf provided proxy = CTOR.LoopBuf proxy all.onOff all.playbackRate all.loopStart all.loopEnd /\ {}
     where
     all :: { | LoopBufAll }
     all = convertOptionsWithDefaults LoopBuf defaultLoopBuf provided
-else instance loopBufCtor2 :: LoopBufCtor (Proxy sym) (CTOR.LoopBuf (Proxy sym) APOnOff AudioParameter Number Number /\ {}) where
+else instance loopBufCtor2 :: LoopBufCtor BrowserAudioBuffer (CTOR.LoopBuf BrowserAudioBuffer APOnOff AudioParameter Number Number /\ {}) where
   loopBuf name =
     CTOR.LoopBuf
       name
@@ -467,8 +466,8 @@ else instance loopBufCtor2 :: LoopBufCtor (Proxy sym) (CTOR.LoopBuf (Proxy sym) 
       defaultLoopBuf.loopEnd
       /\ {}
 
-type CLoopBuf (sym :: Symbol)
-  = CTOR.LoopBuf (Proxy sym) APOnOff AudioParameter Number Number /\ {}
+type CLoopBuf
+  = CTOR.LoopBuf BrowserAudioBuffer APOnOff AudioParameter Number Number /\ {}
 
 -----
 data Lowpass
@@ -563,14 +562,14 @@ type CLowshelf a
   = CTOR.Lowshelf AudioParameter AudioParameter /\ a
 
 --------
-microphone_ :: { microphone :: CTOR.Microphone /\ {} }
-microphone_ = { microphone: CTOR.Microphone /\ {} }
+microphone_ :: BrowserMicrophone -> { microphone :: CTOR.Microphone BrowserMicrophone /\ {} }
+microphone_ = { microphone: _ } <<< microphone
 
-microphone :: CTOR.Microphone /\ {}
-microphone = CTOR.Microphone /\ {}
+microphone :: BrowserMicrophone -> CTOR.Microphone BrowserMicrophone /\ {}
+microphone = flip (/\) {} <<< CTOR.Microphone
 
 type CMicrophone
-  = CTOR.Microphone /\ {}
+  = CTOR.Microphone BrowserMicrophone /\ {}
 
 --------
 data Notch
@@ -670,7 +669,7 @@ type CPeaking a
 ------
 class CanBeCoercedToPeriodicOsc (canBeCoercedToPeriodicOsc :: Type)
 
-instance canBeCoercedToPeriodicOscProxy :: CanBeCoercedToPeriodicOsc (Proxy sym)
+instance canBeCoercedToPeriodicOscProxy :: CanBeCoercedToPeriodicOsc BrowserPeriodicWave
 
 instance canBeCoercedToPeriodicOscV :: CanBeCoercedToPeriodicOsc (V.Vec size Number /\ V.Vec size Number)
 
@@ -761,12 +760,12 @@ class PlayBufCtor i playBuf | i -> playBuf where
 
 instance playBufCtor1 ::
   ConvertOptionsWithDefaults PlayBuf { | PlayBufOptional } { | provided } { | PlayBufAll } =>
-  PlayBufCtor { | provided } ((Proxy sym) -> CTOR.PlayBuf (Proxy sym) Number APOnOff AudioParameter /\ {}) where
+  PlayBufCtor { | provided } (BrowserAudioBuffer -> CTOR.PlayBuf BrowserAudioBuffer Number APOnOff AudioParameter /\ {}) where
   playBuf provided proxy = CTOR.PlayBuf proxy all.bufferOffset all.onOff all.playbackRate /\ {}
     where
     all :: { | PlayBufAll }
     all = convertOptionsWithDefaults PlayBuf defaultPlayBuf provided
-else instance playBufCtor2 :: PlayBufCtor (Proxy sym) (CTOR.PlayBuf (Proxy sym) Number APOnOff AudioParameter /\ {}) where
+else instance playBufCtor2 :: PlayBufCtor BrowserAudioBuffer (CTOR.PlayBuf BrowserAudioBuffer Number APOnOff AudioParameter /\ {}) where
   playBuf str =
     CTOR.PlayBuf
       str
@@ -775,8 +774,8 @@ else instance playBufCtor2 :: PlayBufCtor (Proxy sym) (CTOR.PlayBuf (Proxy sym) 
       defaultPlayBuf.playbackRate
       /\ {}
 
-type CPlayBuf (sym :: Symbol)
-  = CTOR.PlayBuf (Proxy sym) Number APOnOff AudioParameter /\ {}
+type CPlayBuf
+  = CTOR.PlayBuf BrowserAudioBuffer Number APOnOff AudioParameter /\ {}
 
 ------
 -- | Make a recorder.
@@ -786,8 +785,7 @@ type CPlayBuf (sym :: Symbol)
 -- | ```
 recorder
   :: forall a b
-   . IsSymbol a
-  => Proxy a
+   . a
   -> b
   -> CTOR.Recorder a /\ b
 recorder = Tuple <<< CTOR.Recorder
@@ -1024,9 +1022,8 @@ type CTriangleOsc
 -- | ```
 waveShaper
   :: forall a b c
-   . IsSymbol a
-  => IsOversample b
-  => Proxy a
+   . IsOversample b
+  => a
   -> b
   -> c
   -> CTOR.WaveShaper a b /\ c

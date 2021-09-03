@@ -181,7 +181,7 @@ instance allNodesAreSaturatedConsTAnalyser ::
   ( RowToList r (RL.Cons aSym aVal RL.Nil)
   , AllNodesAreSaturatedNL tail
   ) =>
-  AllNodesAreSaturatedNL (RL.Cons iSym (NodeC (CTOR.TAnalyser p0) { | r }) tail)
+  AllNodesAreSaturatedNL (RL.Cons iSym (NodeC (CTOR.TAnalyser) { | r }) tail)
 
 class Length (rl :: RowList Type) (n :: Type) | rl -> n
 
@@ -211,7 +211,7 @@ instance allNodesAreSaturatedConsTConvolver ::
   ( RowToList r (RL.Cons aSym aVal RL.Nil)
   , AllNodesAreSaturatedNL tail
   ) =>
-  AllNodesAreSaturatedNL (RL.Cons iSym (NodeC (CTOR.TConvolver p0) { | r }) tail)
+  AllNodesAreSaturatedNL (RL.Cons iSym (NodeC (CTOR.TConvolver) { | r }) tail)
 
 instance allNodesAreSaturatedConsTDelay ::
   ( RowToList r (RL.Cons aSym aVal RL.Nil)
@@ -295,7 +295,7 @@ instance allNodesAreSaturatedConsTRecorder ::
   ( RowToList r (RL.Cons aSym aVal RL.Nil)
   , AllNodesAreSaturatedNL tail
   ) =>
-  AllNodesAreSaturatedNL (RL.Cons iSym (NodeC (CTOR.TRecorder p0) { | r }) tail)
+  AllNodesAreSaturatedNL (RL.Cons iSym (NodeC (CTOR.TRecorder) { | r }) tail)
 
 instance allNodesAreSaturatedConsTSawtoothOsc ::
   ( RowToList r RL.Nil
@@ -337,7 +337,7 @@ instance allNodesAreSaturatedConsTWaveShaper ::
   ( RowToList r (RL.Cons aSym aVal RL.Nil)
   , AllNodesAreSaturatedNL tail
   ) =>
-  AllNodesAreSaturatedNL (RL.Cons iSym (NodeC (CTOR.TWaveShaper p0 p1) { | r }) tail)
+  AllNodesAreSaturatedNL (RL.Cons iSym (NodeC (CTOR.TWaveShaper p0) { | r }) tail)
 
 -- | Asserts that all nodes in `graph` are saturated. This is
 -- | the same as the node-list algorithm, but for a graph.
@@ -351,4 +351,4 @@ class NodeIsOutputDevice (node :: Type)
 
 instance nodeIsOutputDeviceTSpeaker :: NodeIsOutputDevice (NodeC (CTOR.TSpeaker) x)
 
-instance nodeIsOutputDeviceTRecorder :: NodeIsOutputDevice (NodeC (CTOR.TRecorder name) x)
+instance nodeIsOutputDeviceTRecorder :: NodeIsOutputDevice (NodeC (CTOR.TRecorder) x)

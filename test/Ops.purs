@@ -14,9 +14,9 @@ import WAGS.Graph.AudioUnit (OnOff(..), TGain, THighpass, TSinOsc, TSpeaker)
 import WAGS.Interpret (class AudioInterpret)
 
 opsTest0
-  :: forall assets audio engine
+  :: forall audio engine
    . AudioInterpret audio engine
-  => WAG assets audio engine Frame0 Unit
+  => WAG audio engine Frame0 Unit
        { sinOsc :: TSinOsc /\ {}
        , gain :: TGain /\ { highpass :: Unit, sinOsc :: Unit }
        , highpass :: THighpass /\ { sinOsc :: Unit }
@@ -32,9 +32,9 @@ opsTest0 =
     # create
 
 opsTest1
-  :: forall assets audio engine
+  :: forall audio engine
    . AudioInterpret audio engine
-  => WAG assets audio engine Frame0 Unit
+  => WAG audio engine Frame0 Unit
        { sinOsc :: TSinOsc /\ {}
        , gain :: TGain /\ { highpass :: Unit, sinOsc :: Unit }
        , highpass :: THighpass /\ { sinOsc :: Unit }
@@ -52,9 +52,9 @@ opsTest1 =
     # create
 
 opsTest2
-  :: forall assets audio engine
+  :: forall audio engine
    . AudioInterpret audio engine
-  => WAG assets audio engine Frame0 Unit
+  => WAG audio engine Frame0 Unit
        { mySine :: TSinOsc /\ {}
        , gain :: TGain /\ { highpass :: Unit, mySine :: Unit }
        , highpass :: THighpass /\ { mySine :: Unit }
@@ -74,9 +74,9 @@ opsTest2 =
     # create
 
 opsTest3
-  :: forall assets audio engine
+  :: forall audio engine
    . AudioInterpret audio engine
-  => WAG assets audio engine Frame0 Unit
+  => WAG audio engine Frame0 Unit
        { mySine :: TSinOsc /\ {}
        , gain :: TGain /\ { highpass :: Unit, mySine :: Unit }
        , highpass :: THighpass /\ { mySine :: Unit }
@@ -112,9 +112,9 @@ opsTest3 =
     # change
 
 opsTest6
-  :: forall assets audio engine
+  :: forall audio engine
    . AudioInterpret audio engine
-  => WAG assets audio engine Frame0 Unit
+  => WAG audio engine Frame0 Unit
        { sinOsc :: TSinOsc /\ {}
        , gain :: TGain /\ { highpass :: Unit, sinOsc :: Unit }
        , highpass :: THighpass /\ {}
@@ -136,9 +136,9 @@ opsTest6 =
     # disconnect
 
 opsTest7
-  :: forall assets audio engine
+  :: forall audio engine
    . AudioInterpret audio engine
-  => WAG assets audio engine Frame0 Unit
+  => WAG audio engine Frame0 Unit
        { sinOsc :: TSinOsc /\ {}
        , gain :: TGain /\ { sinOsc :: Unit }
        , highpass :: THighpass /\ {}
@@ -158,9 +158,9 @@ opsTest7 =
     # disconnect
 
 opsTest8
-  :: forall assets audio engine
+  :: forall audio engine
    . AudioInterpret audio engine
-  => WAG assets audio engine Frame0 Unit
+  => WAG audio engine Frame0 Unit
        { sinOsc :: TSinOsc /\ {}
        , gain :: TGain /\ { sinOsc :: Unit }
        }

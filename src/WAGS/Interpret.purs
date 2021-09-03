@@ -73,6 +73,8 @@ module WAGS.Interpret
   , mediaRecorderToUrl
   , renderAudio
   , safeToFFI
+  , setAnalyserNodeCb
+  , setMediaRecorderCb
   , setAudioWorkletParameter
   , setBuffer
   , setPeriodicOsc
@@ -93,6 +95,7 @@ module WAGS.Interpret
   , setRatio
   , setRelease
   , setThreshold
+  , setWaveShaperCurve
   , stopMediaRecorder
   ) where
 
@@ -117,8 +120,8 @@ import Simple.JSON as JSON
 import Type.Row.Homogeneous (class Homogeneous)
 import Unsafe.Coerce (unsafeCoerce)
 import WAGS.Graph.AudioUnit (APOnOff, OnOff(..))
-import WAGS.Graph.AudioUnit as CTOR
 import WAGS.Graph.Parameter (AudioParameter_(..), AudioParameter)
+import WAGS.Graph.Worklet (AudioWorkletNodeRequest, AudioWorkletNodeResponse)
 import WAGS.Rendered (Instruction(..), Oversample(..))
 import WAGS.Util (class ValidateOutputChannelCount, tmap)
 import WAGS.WebAPI (AnalyserNode, AnalyserNodeCb, BrowserAudioBuffer, BrowserFloatArray, BrowserMicrophone, BrowserPeriodicWave, MediaRecorder, MediaRecorderCb)
@@ -205,7 +208,7 @@ audioWorkletAddModule
   => JSON.WriteForeign { | processorOptions }
   => WebAPI.AudioContext
   -> String
-  -> ( CTOR.AudioWorkletNodeRequest node numberOfInputs
+  -> ( AudioWorkletNodeRequest node numberOfInputs
          numberOfOutputs
          outputChannelCount
          parameterData
@@ -213,7 +216,7 @@ audioWorkletAddModule
 
      )
   -> Aff
-       ( CTOR.AudioWorkletNodeResponse node numberOfInputs
+       ( AudioWorkletNodeResponse node numberOfInputs
            numberOfOutputs
            outputChannelCount
            parameterData
@@ -299,7 +302,6 @@ type DefaultFFIAudioWithBehaviors
   { context :: WebAPI.AudioContext
   , writeHead :: Number
   , units :: Foreign
-  , worklets :: {}
   }
 
 -- A default FFI audio with empty objects (ie no buffers, no microphone, etc).
@@ -308,7 +310,6 @@ defaultFFIAudio audioCtx unitCache =
   { context: audioCtx
   , writeHead: 0.0
   , units: unitCache
-  , worklets: {}
   }
 
 -- FFIAudio as a newtype in order to use it in typeclass instances.
@@ -390,6 +391,12 @@ class AudioInterpret audio engine where
   makeTriangleOsc :: String -> APOnOff -> AudioParameter -> audio -> engine
   -- | Make a wave shaper.
   makeWaveShaper :: String -> BrowserFloatArray -> Oversample -> audio -> engine
+  -- | Sets the callback used by an analyser node
+  setAnalyserNodeCb :: String -> AnalyserNodeCb -> audio -> engine
+  -- | Sets the callback used by a recorder node
+  setMediaRecorderCb :: String -> MediaRecorderCb -> audio -> engine
+  -- | Sets the waveshaper curve float array
+  setWaveShaperCurve :: String -> BrowserFloatArray -> audio -> engine
   -- | Sets a custom parameter for an audio worklet node
   setAudioWorkletParameter :: String -> String -> AudioParameter -> audio -> engine
   -- | Sets the buffer to read from in a playBuf or loopBuf
@@ -472,6 +479,8 @@ instance freeAudioInterpret :: AudioInterpret Unit Instruction where
   setPeriodicOsc a b = const $ SetPeriodicOsc a (Left b)
   setPeriodicOscV a b = const $ SetPeriodicOsc a (Right (tmap V.toArray b))
   setOnOff a b = const $ SetOnOff a b
+  setMediaRecorderCb a b = const $ SetMediaRecorderCb a b
+  setAnalyserNodeCb a b = const $ SetAnalyserNodeCb a b
   setBufferOffset a b = const $ SetBufferOffset a b
   setLoopStart a b = const $ SetLoopStart a b
   setLoopEnd a b = const $ SetLoopEnd a b
@@ -487,14 +496,13 @@ instance freeAudioInterpret :: AudioInterpret Unit Instruction where
   setDelay a b = const $ SetDelay a b
   setPlaybackRate a b = const $ SetPlaybackRate a b
   setFrequency a b = const $ SetFrequency a b
+  setWaveShaperCurve a b = const $ SetWaveShaperCurve a b
 
 foreign import connectXToY_ :: String -> String -> FFIAudioSnapshot' -> Effect Unit
 
 foreign import disconnectXFromY_ :: String -> String -> FFIAudioSnapshot' -> Effect Unit
 
 foreign import destroyUnit_ :: String -> FFIAudioSnapshot' -> Effect Unit
-
-foreign import rebaseAllUnits_ :: Array { from :: String, to :: String } -> FFIAudioSnapshot' -> Effect Unit
 
 foreign import makeAllpass_ :: String -> FFINumericAudioParameter -> FFINumericAudioParameter -> FFIAudioSnapshot' -> Effect Unit
 
@@ -600,6 +608,12 @@ foreign import setPeriodicOsc_ :: String -> BrowserPeriodicWave -> FFIAudioSnaps
 
 foreign import setPeriodicOscV_ :: String -> Array (Array Number) -> FFIAudioSnapshot' -> Effect Unit
 
+foreign import setAnalyserNodeCb_ :: String -> (AnalyserNode -> Effect (Effect Unit)) -> FFIAudioSnapshot' -> Effect Unit
+
+foreign import setMediaRecorderCb_ :: String -> (MediaRecorder ->  Effect Unit) -> FFIAudioSnapshot' -> Effect Unit
+
+foreign import setWaveShaperCurve_ :: String -> BrowserFloatArray -> FFIAudioSnapshot' -> Effect Unit
+
 instance effectfulAudioInterpret :: AudioInterpret FFIAudioSnapshot (Effect Unit) where
   connectXToY a b c = connectXToY_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
   disconnectXFromY a b c = disconnectXFromY_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
@@ -637,6 +651,8 @@ instance effectfulAudioInterpret :: AudioInterpret FFIAudioSnapshot (Effect Unit
   makeTriangleOsc a b c d = makeTriangleOsc_ (safeToFFI a) (safeToFFI b) (safeToFFI c) (safeToFFI d)
   makeWaveShaper a b c d = makeWaveShaper_ (safeToFFI a) (safeToFFI b) (safeToFFI c) (safeToFFI d)
   setAudioWorkletParameter a b c d = setAudioWorkletParameter_ (safeToFFI a) (safeToFFI b) (safeToFFI c) (safeToFFI d)
+  setAnalyserNodeCb a b c = setAnalyserNodeCb_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
+  setMediaRecorderCb a b c = setMediaRecorderCb_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
   setBuffer a b c = setBuffer_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
   setPeriodicOsc a b c = setPeriodicOsc_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
   setPeriodicOscV a b c = setPeriodicOscV_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
@@ -656,6 +672,7 @@ instance effectfulAudioInterpret :: AudioInterpret FFIAudioSnapshot (Effect Unit
   setDelay a b c = setDelay_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
   setPlaybackRate a b c = setPlaybackRate_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
   setFrequency a b c = setFrequency_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
+  setWaveShaperCurve a b c = setWaveShaperCurve_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
 
 -- A utility typeclass used to convert PS arguments to arguments that are understood by the Web Audio API.
 class SafeToFFI a b | a -> b where
@@ -783,6 +800,8 @@ instance mixedAudioInterpret :: (AudioInterpret a c, AudioInterpret b d) => Audi
   makeTriangleOsc a b c (x /\ y) = makeTriangleOsc a b c x /\ makeTriangleOsc a b c y
   makeWaveShaper a b c (x /\ y) = makeWaveShaper a b c x /\ makeWaveShaper a b c y
   setAudioWorkletParameter a b c (x /\ y) = setAudioWorkletParameter a b c x /\ setAudioWorkletParameter a b c y
+  setAnalyserNodeCb a b (x /\ y) = setAnalyserNodeCb a b x /\ setAnalyserNodeCb a b y
+  setMediaRecorderCb a b (x /\ y) = setMediaRecorderCb a b x /\ setMediaRecorderCb a b y
   setBuffer a b (x /\ y) = setBuffer a b x /\ setBuffer a b y
   setPeriodicOsc a b (x /\ y) = setPeriodicOsc a b x /\ setPeriodicOsc a b y
   setPeriodicOscV a b (x /\ y) = setPeriodicOscV a b x /\ setPeriodicOscV a b y
@@ -802,3 +821,4 @@ instance mixedAudioInterpret :: (AudioInterpret a c, AudioInterpret b d) => Audi
   setDelay a b (x /\ y) = setDelay a b x /\ setDelay a b y
   setPlaybackRate a b (x /\ y) = setPlaybackRate a b x /\ setPlaybackRate a b y
   setFrequency a b (x /\ y) = setFrequency a b x /\ setFrequency a b y
+  setWaveShaperCurve a b (x /\ y) = setWaveShaperCurve a b x /\ setWaveShaperCurve a b y

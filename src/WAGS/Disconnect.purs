@@ -11,20 +11,20 @@ import WAGS.Graph.Node (NodeC)
 import WAGS.Interpret (class AudioInterpret, disconnectXFromY)
 
 idisconnect
-  :: forall proxy source dest assets audio engine proof res i o
+  :: forall proxy source dest audio engine proof res i o
    . AudioInterpret audio engine
   => Disconnect source dest i o
   => { source :: proxy source, dest :: proxy dest }
-  -> IxWAG assets audio engine proof res { | i } { | o } Unit
+  -> IxWAG audio engine proof res { | i } { | o } Unit
 idisconnect ptrs = IxWAG (disconnect <<< voidRight ptrs)
 
 -- | Disconnect node `source` from node `dest` in graph `i`, resulting in output graph `o`.
 class Disconnect (source :: Symbol) (dest :: Symbol) (i :: Graph) (o :: Graph) | source dest i -> o where
   disconnect
-    :: forall proxy assets audio engine proof res
+    :: forall proxy audio engine proof res
      . AudioInterpret audio engine
-    => WAG assets audio engine proof res { | i } { source :: proxy source, dest :: proxy dest }
-    -> WAG assets audio engine proof res { | o } Unit
+    => WAG audio engine proof res { | i } { source :: proxy source, dest :: proxy dest }
+    -> WAG audio engine proof res { | o } Unit
 
 instance disconnector ::
   ( IsSymbol from

@@ -109,25 +109,6 @@ exports.destroyUnit_ = function (ptr) {
     };
   };
 };
-exports.rebaseAllUnits_ = function (toRebase) {
-  return function (state) {
-    return function () {
-      var newCache = {};
-      for (var i = 0; i < toRebase.length; i++) {
-        var trb = toRebase[i];
-        newCache[trb.to] = state.units[trb.from];
-      }
-      var propsO = Object.getOwnPropertyNames(state.units);
-      for (var i = 0; i < propsO.length; i++) {
-        delete state.units[propsO[i]];
-      }
-      var propsN = Object.getOwnPropertyNames(newCache);
-      for (var i = 0; i < propsN.length; i++) {
-        state.units[propsN[i]] = newCache[propsN[i]];
-      }
-    };
-  };
-};
 exports.renderAudio = function (arrayToApply) {
   return function () {
     for (var i = 0; i < arrayToApply.length; i++) {
@@ -163,16 +144,6 @@ exports.makeAnalyser_ = function (ptr) {
     return function (state) {
       return function () {
         var analyserSideEffectFunction = a;
-        if (!analyserSideEffectFunction) {
-          console.error(
-            "Analyser side effect function does not exist for key " +
-            a +
-            ". Using a dummy function. Check your code!"
-          );
-          analyserSideEffectFunction = function () {
-            return function () { };
-          };
-        }
         var dest = state.context.createAnalyser();
         // todo - unhardcode?
         dest.fftSize = 2048;
@@ -185,6 +156,16 @@ exports.makeAnalyser_ = function (ptr) {
           main: state.context.createGain(),
           se: dest,
         };
+      };
+    };
+  };
+};
+exports.setAnalyserNodeCb_ = function (ptr) {
+  return function (a) {
+    return function (state) {
+      return function () {
+        state.units[ptr].analyser && state.units[ptr].analyser.unsubscribe();
+        state.units[ptr].analyser = a(state.units[ptr].se)();
       };
     };
   };
@@ -685,6 +666,20 @@ exports.makeRecorder_ = function (ptr) {
     };
   };
 };
+// setting makes us stop the previous one if it exists
+exports.setMediaRecorderCb_ = function (ptr) {
+  return function (a) {
+    return function (state) {
+      return function () {
+        state.units[ptr].recorder && state.units[ptr].recorder.stop();
+        var mediaRecorderSideEffectFn = a;
+        var mediaRecorder = new MediaRecorder(state.units[ptr].se);
+        mediaRecorderSideEffectFn(mediaRecorder)();
+        mediaRecorder.start();
+      };
+    };
+  };
+};
 exports.makeSawtoothOsc_ = function (ptr) {
   return function (onOff) {
     return function (a) {
@@ -847,6 +842,15 @@ exports.makeWaveShaper_ = function (ptr) {
           state.units[ptr].main.curve = a;
           state.units[ptr].main.oversample = b;
         };
+      };
+    };
+  };
+};
+exports.setWaveShaperCurve_ = function (ptr) {
+  return function (a) {
+    return function (state) {
+      return function () {
+        state.units[ptr].main.curve = a;
       };
     };
   };
@@ -1253,12 +1257,19 @@ exports.isTypeSupported = function (mimeType) {
     return MediaRecorder.isTypeSupported(mimeType);
   };
 };
-
+// currently, there is no unsubscription logic to the media recorder
+// in the case where a second subscriber is called, it will simply
+// overwrite the first subscriber
+// because of this, care needs to be taken in calling the "setMediaRecorderCb" function
+// it will unset the previous one, which will result in the recording starting from the moment
+// of being set
+// if it is set in a loop, then there will effectively be no recording, as it will only capture the
+// last couple milliseconds of the loop
 exports.mediaRecorderToUrl = function (mimeType) {
   return function (handler) {
     return function (mediaRecorder) {
-      var chunks = [];
       return function () {
+        var chunks = [];
         mediaRecorder.ondataavailable = function (evt) {
           chunks.push(evt.data);
         };

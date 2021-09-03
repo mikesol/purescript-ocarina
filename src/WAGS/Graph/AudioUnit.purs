@@ -14,6 +14,7 @@ import Record as Record
 import Type.Proxy (Proxy(..))
 import WAGS.Edgeable (class Edgeable, withEdge)
 import WAGS.Graph.Parameter (AudioParameter_)
+import WAGS.Graph.Worklet (AudioWorkletNodeResponse)
 
 class TypeToSym (a :: Type) (b :: Symbol) | a -> b
 
@@ -49,11 +50,6 @@ newtype AudioWorkletNodeOptions (numberOfInputs :: Type) (numberOfOutputs :: Typ
 -- | Term-level constructor for an audio worklet node.
 -- | - `node` - the name of the node.
 -- | - `options` - initialization options
-
-data AudioWorkletNodeRequest (node :: Symbol) (numberOfInputs :: Type) (numberOfOutputs :: Type) (outputChannelCount :: Type) (parameterData :: Row Type) (processorOptions :: Row Type) = AudioWorkletNodeRequest
-
-data AudioWorkletNodeResponse (node :: Symbol) (numberOfInputs :: Type) (numberOfOutputs :: Type) (outputChannelCount :: Type) (parameterData :: Row Type) (processorOptions :: Row Type)
-
 data AudioWorkletNode (node :: Symbol) (numberOfInputs :: Type) (numberOfOutputs :: Type) (outputChannelCount :: Type) (parameterData :: Row Type) (processorOptions :: Row Type)
   = AudioWorkletNode (AudioWorkletNodeResponse node numberOfInputs numberOfOutputs outputChannelCount parameterData processorOptions) (AudioWorkletNodeOptions numberOfInputs numberOfOutputs outputChannelCount parameterData processorOptions)
 
@@ -151,10 +147,10 @@ data Lowshelf frequency gain
 instance typeToSymLowshelf :: TypeToSym (Lowshelf frequency gain) "Lowshelf"
 
 -- | Term-level constructor for a microphone
-data Microphone
-  = Microphone
+data Microphone microphone
+  = Microphone microphone
 
-instance typeToSymMicrophone :: TypeToSym Microphone "Microphone"
+instance typeToSymMicrophone :: TypeToSym (Microphone microphone) "Microphone"
 
 -- | Term-level constructor for a notch (aka band-reject) filter.
 -- | - `frequency` - the frequency we are rejecting.
@@ -528,7 +524,7 @@ instance semigroupTMicrophone :: Semigroup TMicrophone where
 instance monoidTMicrophone :: Monoid TMicrophone where
   mempty = TMicrophone
 
-instance reifyTMicrophone :: ReifyAU Microphone TMicrophone where
+instance reifyTMicrophone :: ReifyAU (Microphone microphone) TMicrophone where
   reifyAU = const mempty
 
 -- | Type-level constructor for a notch filter.

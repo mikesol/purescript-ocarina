@@ -65,6 +65,8 @@ data Instruction
   | MakeStereoPanner String AudioParameter
   | MakeTriangleOsc String APOnOff AudioParameter
   | MakeWaveShaper String BrowserFloatArray Oversample
+  | SetAnalyserNodeCb String AnalyserNodeCb
+  | SetMediaRecorderCb String MediaRecorderCb
   | SetAudioWorkletParameter String String AudioParameter
   | SetBuffer String BrowserAudioBuffer
   | SetPeriodicOsc String (Either BrowserPeriodicWave (Array Number /\ Array Number))
@@ -84,6 +86,7 @@ data Instruction
   | SetDelay String AudioParameter
   | SetPlaybackRate String AudioParameter
   | SetFrequency String AudioParameter
+  | SetWaveShaperCurve String BrowserFloatArray
 
 derive instance eqInstruction :: Eq Instruction
 

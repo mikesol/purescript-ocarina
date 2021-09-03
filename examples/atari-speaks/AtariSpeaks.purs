@@ -1,14 +1,13 @@
 module WAGS.Example.AtariSpeaks where
 
 import Prelude
+
 import Control.Comonad.Cofree (Cofree, mkCofree)
 import Control.Promise (toAffE)
 import Data.ArrayBuffer.Typed (toArray)
-import Data.Foldable (for_, intercalate)
+import Data.Foldable (for_)
 import Data.Functor.Indexed (ivoid)
 import Data.Maybe (Maybe(..))
-import Data.Newtype (unwrap)
-import Data.Nullable (null)
 import Data.String.Utils (unsafeRepeat)
 import Data.Tuple.Nested (type (/\))
 import Data.UInt (toInt)
@@ -23,65 +22,61 @@ import Halogen.HTML.Events as HE
 import Halogen.Subscription as HS
 import Halogen.VDom.Driver (runUI)
 import Math (pi, sin)
-import Type.Proxy (Proxy(..))
 import WAGS.Change (ichange)
 import WAGS.Control.Functions.Validated (iloop, (@!>))
 import WAGS.Control.Types (Frame0, Scene)
 import WAGS.Create (icreate)
 import WAGS.Create.Optionals (CGain, CLoopBuf, CSpeaker, CAnalyser, analyser, gain, loopBuf, speaker)
 import WAGS.Graph.AudioUnit (TAnalyser, TGain, TLoopBuf, TSpeaker)
-import WAGS.Interpret (AnalyserNode, AudioContext, BrowserAudioBuffer, close, context, decodeAudioDataFromUri, getByteFrequencyData, makeUnitCache)
-import WAGS.Run (RunAudio, RunEngine, SceneI(..), Run, run)
-
-type Assets
-  = ( buffers :: { atar :: BrowserAudioBuffer }
-    , periodicWaves :: {}
-    , floatArrays :: {}
-    , recorders :: {}
-    , worklets :: {}
-    , analysers :: { myAnalyser :: Maybe AnalyserNode }
-    )
+import WAGS.Interpret (close, context, decodeAudioDataFromUri, getByteFrequencyData, makeUnitCache)
+import WAGS.Run (Run, RunAudio, RunEngine, SceneI(..), run)
+import WAGS.WebAPI (AnalyserNode, AnalyserNodeCb, AudioContext, BrowserAudioBuffer)
 
 vol = 1.4 :: Number
 
+type World = { atar :: BrowserAudioBuffer }
+type Analysers = ( myAnalyser :: Maybe AnalyserNode )
+type AnalysersCb = ( myAnalyser :: AnalyserNodeCb )
+
 type SceneTemplate
   = CSpeaker
-      { analyse ::
-          CAnalyser "myAnalyser"
-            { analysed ::
-                CGain
-                  { gain0 :: CGain { loop0 :: CLoopBuf "atar" }
-                  , gain1 :: CGain { loop1 :: CLoopBuf "atar" }
-                  , gain2 :: CGain { loop2 :: CLoopBuf "atar" }
-                  }
-            }
-      }
+  { analyse ::
+      CAnalyser
+        { analysed ::
+            CGain
+              { gain0 :: CGain { loop0 :: CLoopBuf }
+              , gain1 :: CGain { loop1 :: CLoopBuf }
+              , gain2 :: CGain { loop2 :: CLoopBuf }
+              }
+        }
+  }
 
 type SceneType
-  = { speaker :: TSpeaker /\ { analyser :: Unit }
-    , analyser :: TAnalyser "myAnalyser" /\ { analysed :: Unit }
-    , analysed :: TGain /\ { gain0 :: Unit, gain1 :: Unit, gain2 :: Unit }
-    , gain0 :: TGain /\ { loop0 :: Unit }
-    , loop0 :: TLoopBuf /\ {}
-    , gain1 :: TGain /\ { loop1 :: Unit }
-    , loop1 :: TLoopBuf /\ {}
-    , gain2 :: TGain /\ { loop2 :: Unit }
-    , loop2 :: TLoopBuf /\ {}
-    }
+  =
+  { speaker :: TSpeaker /\ { analyser :: Unit }
+  , analyser :: TAnalyser /\ { analysed :: Unit }
+  , analysed :: TGain /\ { gain0 :: Unit, gain1 :: Unit, gain2 :: Unit }
+  , gain0 :: TGain /\ { loop0 :: Unit }
+  , loop0 :: TLoopBuf /\ {}
+  , gain1 :: TGain /\ { loop1 :: Unit }
+  , loop1 :: TLoopBuf /\ {}
+  , gain2 :: TGain /\ { loop2 :: Unit }
+  , loop2 :: TLoopBuf /\ {}
+  }
 
-scene :: Number -> SceneTemplate
-scene time =
+scene :: SceneI Unit World AnalysersCb -> SceneTemplate
+scene (SceneI { time, world: { atar }, analyserCallbacks: { myAnalyser } }) =
   let
     rad = pi * time
   in
     speaker
       { analyse:
-          analyser (Proxy :: _ "myAnalyser")
+          analyser myAnalyser
             { analysed:
                 gain 1.0
                   { gain0:
                       gain (0.3 * vol)
-                        { loop0: loopBuf { playbackRate: 1.0 + 0.1 * sin rad } (Proxy :: _ "atar")
+                        { loop0: loopBuf { playbackRate: 1.0 + 0.1 * sin rad } atar
                         }
                   , gain1:
                       gain (0.15 * vol)
@@ -91,18 +86,18 @@ scene time =
                               , loopStart: 0.1 + 0.1 * sin rad
                               , loopEnd: 0.5 + 0.25 * sin (2.0 * rad)
                               }
-                              (Proxy :: _ "atar")
+                              atar
                         }
                   , gain2:
                       gain (0.3 * vol)
-                        { loop2: loopBuf { playbackRate: 0.25 } (Proxy :: _ "atar")
+                        { loop2: loopBuf { playbackRate: 0.25 } atar
                         }
                   }
             }
       }
 
-piece :: Scene (SceneI Unit Unit) Assets RunAudio RunEngine Frame0 Unit
-piece = (unwrap >>> _.time >>> scene >>> icreate) @!> iloop \(SceneI { time }) _ -> ivoid $ ichange (scene time)
+piece :: Scene (SceneI Unit World AnalysersCb) RunAudio RunEngine Frame0 Unit
+piece = (scene >>> icreate) @!> iloop \e _ -> ivoid $ ichange (scene e)
 
 easingAlgorithm :: Cofree ((->) Int) Int
 easingAlgorithm =
@@ -118,10 +113,11 @@ main =
     runUI component unit body
 
 type State
-  = { unsubscribe :: Effect Unit
-    , audioCtx :: Maybe AudioContext
-    , freqz :: Array String
-    }
+  =
+  { unsubscribe :: Effect Unit
+  , audioCtx :: Maybe AudioContext
+  , freqz :: Array String
+  }
 
 data Action
   = StartAudio
@@ -146,7 +142,8 @@ initialState _ =
 render :: forall m. State -> H.ComponentHTML Action () m
 render { freqz } = do
   HH.div_
-    $ [ HH.h1_
+    $
+      [ HH.h1_
           [ HH.text "Atari speaks" ]
       , HH.button
           [ HE.onClick \_ -> StartAudio ]
@@ -155,7 +152,7 @@ render { freqz } = do
           [ HE.onClick \_ -> StopAudio ]
           [ HH.text "Stop audio" ]
       ]
-    <> map (\freq -> HH.p [] [ HH.text freq ]) freqz
+        <> map (\freq -> HH.p [] [ HH.text freq ]) freqz
 
 handleAction :: forall output m. MonadEffect m => MonadAff m => Action -> H.HalogenM State Action () output m Unit
 handleAction = case _ of
@@ -167,31 +164,25 @@ handleAction = case _ of
     atar <-
       H.liftAff $ toAffE
         $ decodeAudioDataFromUri
-            audioCtx
-            "https://freesound.org/data/previews/100/100981_1234256-lq.mp3"
+          audioCtx
+          "https://freesound.org/data/previews/100/100981_1234256-lq.mp3"
     let
       ffiAudio =
         { context: audioCtx
         , writeHead: 0.0
         , units: unitCache
-        , worklets: {}
-        , microphone: pure null
-        , recorders: pure {}
-        , buffers: pure { atar }
-        , floatArrays: pure {}
-        , periodicWaves: pure {}
         }
     unsubscribe <-
       H.liftEffect
         $ subscribe
-            (run (pure unit) (pure unit) { easingAlgorithm } (ffiAudio) piece)
-            ( \{ analysers: { myAnalyser } } ->
-                for_ myAnalyser \myAnalyser' -> do
-                  frequencyData <- getByteFrequencyData myAnalyser'
-                  arr <- toArray frequencyData
-                  HS.notify listener (Freqz ((map (\i -> unsafeRepeat (toInt i + 1) ">") arr)))
-                  pure unit
-            )
+          (run (pure unit) (pure { atar }) { easingAlgorithm } (ffiAudio) piece)
+          ( \({ analysers: { myAnalyser } } :: Run Unit Analysers) ->
+              for_ myAnalyser \myAnalyser' -> do
+                frequencyData <- getByteFrequencyData myAnalyser'
+                arr <- toArray frequencyData
+                HS.notify listener (Freqz ((map (\i -> unsafeRepeat (toInt i + 1) ">") arr)))
+                pure unit
+          )
     H.modify_ _ { unsubscribe = unsubscribe, audioCtx = Just audioCtx }
   Freqz freqz -> H.modify_ _ { freqz = freqz }
   StopAudio -> do

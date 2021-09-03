@@ -12,20 +12,20 @@ import WAGS.Graph.Node (NodeC)
 import WAGS.Interpret (class AudioInterpret, connectXToY)
 
 iconnect
-  :: forall proxy source dest assets audio engine proof res i o
+  :: forall proxy source dest audio engine proof res i o
    . AudioInterpret audio engine
   => Connect source dest i o
   => { source :: proxy source, dest :: proxy dest }
-  -> IxWAG assets audio engine proof res { | i } { | o } Unit
+  -> IxWAG audio engine proof res { | i } { | o } Unit
 iconnect ptrs = IxWAG (connect <<< voidRight ptrs)
 
 -- | Connect node `source` from node `dest` in graph `i`, resulting in output graph `o`.
 class Connect (source :: Symbol) (dest :: Symbol) (i :: Graph) (o :: Graph) | source dest i -> o where
   connect
-    :: forall proxy assets audio engine proof res
+    :: forall proxy audio engine proof res
      . AudioInterpret audio engine
-    => WAG assets audio engine proof res { | i } { source :: proxy source, dest :: proxy dest }
-    -> WAG assets audio engine proof res { | o } Unit
+    => WAG audio engine proof res { | i } { source :: proxy source, dest :: proxy dest }
+    -> WAG audio engine proof res { | o } Unit
 
 instance connectInstance ::
   ( IsSymbol from

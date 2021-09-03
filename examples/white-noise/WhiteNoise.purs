@@ -19,8 +19,6 @@ import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Halogen.VDom.Driver (runUI)
 import Math (sin, pi)
-import Record as Record
-import Type.Proxy (Proxy(..))
 import WAGS.Change (ichange)
 import WAGS.Control.Functions.Validated (iloop, (@!>))
 import WAGS.Control.Indexed (IxFrame)
@@ -29,8 +27,10 @@ import WAGS.Create (icreate)
 import WAGS.Create.Optionals (CAudioWorkletNode, CSpeaker, audioWorkletNode, speaker)
 import WAGS.Graph.AudioUnit (AudioWorkletNode, AudioWorkletNodeOptions(..), TAudioWorkletNode, TSpeaker)
 import WAGS.Graph.Parameter (AudioParameter, ff)
-import WAGS.Interpret (AudioContext, AudioWorkletNodeProxy, audioWorkletAddModule, close, context, defaultFFIAudio, makeUnitCache)
-import WAGS.Run (RunAudio, RunEngine, SceneI(..), run)
+import WAGS.Graph.Worklet (AudioWorkletNodeRequest(..), AudioWorkletNodeResponse)
+import WAGS.Interpret (audioWorkletAddModule, close, context, defaultFFIAudio, makeUnitCache)
+import WAGS.Run (RunAudio, RunEngine, SceneI(..), Run, run)
+import WAGS.WebAPI (AudioContext)
 import Web.File.Blob as Blob
 import Web.File.Url (createObjectURL)
 
@@ -41,17 +41,21 @@ type WhiteNoise = AudioWorkletNode "white-noise-processor"
   (customGain :: AudioParameter)
   ()
 
-type Assets
-  =
-  ( periodicWaves :: {}
-  , buffers :: {}
-  , floatArrays :: {}
-  , recorders :: {}
-  , analysers :: {}
-  , worklets ::
-      { "white-noise-processor" :: AudioWorkletNodeProxy WhiteNoise
-      }
-  )
+type WhiteNoiseResponse = AudioWorkletNodeResponse "white-noise-processor"
+  D0
+  D1
+  D1
+  (customGain :: AudioParameter)
+  ()
+
+type WhiteNoiseRequest = AudioWorkletNodeRequest "white-noise-processor"
+  D0
+  D1
+  D1
+  (customGain :: AudioParameter)
+  ()
+
+type World = { noiseUnit :: WhiteNoiseResponse }
 
 type SceneTemplate
   = CSpeaker
@@ -64,11 +68,11 @@ type SceneType
   , whiteNoise :: TAudioWorkletNode "white-noise-processor" D0 D1 D1 (customGain :: AudioParameter) () /\ {}
   }
 
-scene :: Number -> SceneTemplate
-scene time =
+scene :: WhiteNoiseResponse -> Number -> SceneTemplate
+scene wnr time =
   speaker
     { whiteNoise:
-        audioWorkletNode (Proxy :: _ "white-noise-processor")
+        audioWorkletNode wnr
           ( AudioWorkletNodeOptions
               { numberOfInputs: d0
               , numberOfOutputs: d1
@@ -80,11 +84,11 @@ scene time =
           {}
     }
 
-createFrame :: IxFrame (SceneI Unit Unit) Assets RunAudio RunEngine Frame0 Unit {} SceneType Unit
-createFrame (SceneI { time }) = icreate (scene time)
+createFrame :: IxFrame (SceneI Unit World ()) RunAudio RunEngine Frame0 Unit {} SceneType Unit
+createFrame (SceneI { time, world: { noiseUnit } }) = icreate (scene noiseUnit time)
 
-piece :: Scene (SceneI Unit Unit) Assets RunAudio RunEngine Frame0 Unit
-piece = createFrame @!> iloop \(SceneI { time }) _ -> ichange (scene time)
+piece :: Scene (SceneI Unit World ()) RunAudio RunEngine Frame0 Unit
+piece = createFrame @!> iloop \(SceneI { time, world: { noiseUnit } }) _ -> ichange (scene noiseUnit time)
 
 easingAlgorithm :: Cofree ((->) Int) Int
 easingAlgorithm =
@@ -147,8 +151,8 @@ handleAction = case _ of
     { unsubscribe, audioCtx } <- do
       audioCtx <- H.liftEffect context
       objUrl <- H.liftEffect $ createObjectURL
-          ( Blob.fromArray
-              [ """// white-noise-processor.js
+        ( Blob.fromArray
+            [ """// white-noise-processor.js
 class WhiteNoiseProcessor extends AudioWorkletProcessor {
   static get parameterDescriptors () {
     return [{
@@ -176,18 +180,18 @@ class WhiteNoiseProcessor extends AudioWorkletProcessor {
 }
 
 registerProcessor('white-noise-processor', WhiteNoiseProcessor)"""
-              ]
-              applicationJavascript
-          )
-      whiteNoise <- H.liftAff $ audioWorkletAddModule audioCtx objUrl (Proxy :: _ WhiteNoise)
+            ]
+            applicationJavascript
+        )
+      noiseUnit <- H.liftAff $ audioWorkletAddModule audioCtx objUrl (AudioWorkletNodeRequest :: WhiteNoiseRequest)
       H.liftEffect do
         unitCache <- makeUnitCache
         let
-          ffiAudio = Record.set (Proxy :: _ "worklets") { "white-noise-processor": whiteNoise } (defaultFFIAudio audioCtx unitCache)
+          ffiAudio = defaultFFIAudio audioCtx unitCache
         unsubscribe <-
           subscribe
-            (run (pure unit) (pure unit) { easingAlgorithm } ffiAudio piece)
-            (const $ pure unit)
+            (run (pure unit) (pure { noiseUnit }) { easingAlgorithm } ffiAudio piece)
+            (\(_ :: Run Unit ()) -> pure unit)
         pure { unsubscribe, audioCtx }
     H.modify_ _ { unsubscribe = unsubscribe, audioCtx = Just audioCtx }
   StopAudio -> do

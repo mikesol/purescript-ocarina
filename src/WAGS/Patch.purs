@@ -194,7 +194,7 @@ instance doCreateMakePeriodicOsc :: DoCreate ptr AU.TPeriodicOsc (MakePeriodicOs
 
 instance doCreateMakePlayBuf :: DoCreate ptr AU.TPlayBuf (MakePlayBuf ptr)
 
-instance doCreateMakeRecorder :: DoCreate ptr AU.TRecorder(MakeRecorder ptr)
+instance doCreateMakeRecorder :: DoCreate ptr AU.TRecorder (MakeRecorder ptr)
 
 instance doCreateMakeSawtoothOsc :: DoCreate ptr AU.TSawtoothOsc (MakeSawtoothOsc ptr)
 
@@ -449,7 +449,6 @@ instance toGraphEffectsMakeConvolver :: (IsSymbol ptr, ToGraphEffects rest) => T
     where
     ptr' = reflectSymbol (Proxy :: _ ptr)
 
-
 instance toGraphEffectsMakeDelay :: (IsSymbol ptr, ToGraphEffects rest) => ToGraphEffects (MakeDelay ptr /\ rest) where
   toGraphEffects _ cache i =
     toGraphEffects (Proxy :: _ rest) cache
@@ -667,8 +666,24 @@ ipatch
   :: forall audio engine proof res g0 g1
    . Patch g0 g1
   => AudioInterpret audio engine
-  => { microphone :: Maybe BrowserMicrophone } -> IxWAG audio engine proof res { | g0 } { | g1 } Unit
+  => { microphone :: Maybe BrowserMicrophone }
+  -> IxWAG audio engine proof res { | g0 } { | g1 } Unit
 ipatch cache = IxWAG \i -> patch cache (i $> unit)
+
+type PatchSig g0 g1 =
+  forall audio engine proof res a
+   . AudioInterpret audio engine
+  => { microphone :: Maybe BrowserMicrophone }
+  -> WAG audio engine proof res { | g0 } a
+  -> WAG audio engine proof res { | g1 } a
+
+type PatchSigRes g0 g1 res =
+  forall audio engine proof a
+   . AudioInterpret audio engine
+  => Monoid res
+  => { microphone :: Maybe BrowserMicrophone }
+  -> WAG audio engine proof res { | g0 } a
+  -> WAG audio engine proof res { | g1 } a
 
 class Patch g0 g1 where
   -- | Take any frame from `g0` to `g1`. The compiler automatically determines the necessary operations to perform the transformation.

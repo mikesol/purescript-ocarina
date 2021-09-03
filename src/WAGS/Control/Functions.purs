@@ -28,14 +28,17 @@ module WAGS.Control.Functions
   ) where
 
 import Prelude
-import Data.Tuple.Nested (type (/\))
+
 import Control.Comonad (extract)
 import Data.Either (Either(..))
+import Data.Maybe (Maybe)
+import Data.Tuple.Nested (type (/\))
 import WAGS.Control.Indexed (IxWAG(..), IxFrame)
 import WAGS.Control.Types (AudioState', EFrame, Frame, Frame0, InitialWAG, Scene(..), Scene', WAG, oneFrame, unsafeUnWAG, unsafeWAG)
 import WAGS.CreateT (class CreateT)
 import WAGS.Interpret (class AudioInterpret)
 import WAGS.Patch (class Patch, ipatch)
+import WAGS.WebAPI (BrowserMicrophone)
 
 -- | The initial `Frame` that is needed to begin any `Scene`.
 -- |
@@ -135,13 +138,14 @@ startUsing
    . Monoid res
   => AudioInterpret audio engine
   => Patch () graph
-  => control
+  => { microphone :: Maybe BrowserMicrophone }
+  -> control
   -> ( forall proofA
         . WAG audio engine proofA res { | graph } control
        -> Scene env audio engine proofA res
      )
   -> Scene env audio engine Frame0 res
-startUsing control next = const (ipatch $> control) @!> next
+startUsing patchInfo control next = const (ipatch patchInfo $> control) @!> next
 
 class GraphHint (i :: Type) (o :: Row Type) | i -> o
 
@@ -159,13 +163,14 @@ startUsingWithHint
   => CreateT hint () graph
   => Patch () graph
   => hintable
+  -> { microphone :: Maybe BrowserMicrophone }
   -> control
   -> ( forall proofA
         . WAG audio engine proofA res { | graph } control
        -> Scene env audio engine proofA res
      )
   -> Scene env audio engine Frame0 res
-startUsingWithHint _ control next = const (ipatch $> control) @!> next
+startUsingWithHint _ patchInfo control next = const (ipatch patchInfo $> control) @!> next
 
 -- | Loops audio.
 -- |
