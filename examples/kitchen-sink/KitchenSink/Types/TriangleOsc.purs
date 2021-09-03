@@ -28,7 +28,6 @@ deltaKsTriangleOsc =
     >>> \time ->
       let
         rad = pi * time
-
         switchOO = time % 2.0 < 1.0
       in
         ichange
