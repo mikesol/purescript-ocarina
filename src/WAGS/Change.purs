@@ -23,7 +23,7 @@ import WAGS.Graph.Node (NodeC)
 import WAGS.Graph.Oversample (class IsOversample, reflectOversample)
 import WAGS.Graph.Paramable (class Paramable, paramize, class OnOffable, onOffIze)
 import WAGS.Graph.Parameter (class MM, AudioParameter_, AudioParameter, mm)
-import WAGS.Interpret (class AudioInterpret, setAnalyserNodeCb, setAttack, setAudioWorkletParameter, setBuffer, setBufferOffset, setDelay, setFrequency, setGain, setKnee, setLoopEnd, setLoopStart, setMediaRecorderCb, setOffset, setOnOff, setPan, setPeriodicOsc, setPeriodicOscV, setPlaybackRate, setQ, setRatio, setRelease, setThreshold, setWaveShaperCurve)
+import WAGS.Interpret (class AudioInterpret, setAnalyserNodeCb, setAttack, setAudioWorkletParameter, setBuffer, setBufferOffset, setConvolverBuffer, setDelay, setFrequency, setGain, setKnee, setLoopEnd, setLoopStart, setMediaRecorderCb, setOffset, setOnOff, setPan, setPeriodicOsc, setPeriodicOscV, setPlaybackRate, setQ, setRatio, setRelease, setThreshold, setWaveShaperCurve)
 import WAGS.Rendered (Oversample)
 import WAGS.Util (class MakePrefixIfNeeded, class CoercePrefixToString)
 import WAGS.WebAPI (AnalyserNodeCb, BrowserAudioBuffer, BrowserFloatArray, BrowserMicrophone, BrowserPeriodicWave, MediaRecorderCb)
@@ -1045,8 +1045,8 @@ instance changeConstant ::
         , value: unit
         }
 
-instance oneShotChangeConvolver :: OneShotChange CTOR.TDelay BrowserAudioBuffer (CTOR.Delay BrowserAudioBuffer) where
-  oneShotChange _ bab = CTOR.Delay bab
+instance oneShotChangeConvolver :: OneShotChange CTOR.TConvolver BrowserAudioBuffer (CTOR.Convolver BrowserAudioBuffer) where
+  oneShotChange _ bab = CTOR.Convolver bab
 
 instance changeConvolver ::
   ( IsSymbol ptr
@@ -1060,7 +1060,7 @@ instance changeConvolver ::
     nn = reflectSymbol ptr
     o =
       unsafeWAG
-        { context: i { instructions = i.instructions <> [ setBuffer nn buffer ] }
+        { context: i { instructions = i.instructions <> [ setConvolverBuffer nn buffer ] }
         , value: unit
         }
 

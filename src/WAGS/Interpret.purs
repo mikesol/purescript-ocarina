@@ -77,6 +77,7 @@ module WAGS.Interpret
   , setMediaRecorderCb
   , setAudioWorkletParameter
   , setBuffer
+  , setConvolverBuffer
   , setPeriodicOsc
   , setPeriodicOscV
   , setAttack
@@ -401,6 +402,8 @@ class AudioInterpret audio engine where
   setAudioWorkletParameter :: String -> String -> AudioParameter -> audio -> engine
   -- | Sets the buffer to read from in a playBuf or loopBuf
   setBuffer :: String -> BrowserAudioBuffer -> audio -> engine
+  -- | Sets the buffer to read from in a convolver
+  setConvolverBuffer :: String -> BrowserAudioBuffer -> audio -> engine
   -- | Sets the periodic oscillator to read from in a periodicOsc
   setPeriodicOsc :: String -> BrowserPeriodicWave -> audio -> engine
   -- | Sets the periodic oscillator to read from in a periodicOsc
@@ -476,6 +479,7 @@ instance freeAudioInterpret :: AudioInterpret Unit Instruction where
   makeWaveShaper a b c = const $ MakeWaveShaper a b c
   setAudioWorkletParameter a b c = const $ SetAudioWorkletParameter a b c
   setBuffer a b = const $ SetBuffer a b
+  setConvolverBuffer a b = const $ SetConvolverBuffer a b
   setPeriodicOsc a b = const $ SetPeriodicOsc a (Left b)
   setPeriodicOscV a b = const $ SetPeriodicOsc a (Right (tmap V.toArray b))
   setOnOff a b = const $ SetOnOff a b
@@ -604,6 +608,8 @@ foreign import setFrequency_ :: String -> FFINumericAudioParameter -> FFIAudioSn
 
 foreign import setBuffer_ :: String -> BrowserAudioBuffer -> FFIAudioSnapshot' -> Effect Unit
 
+foreign import setConvolverBuffer_ :: String -> BrowserAudioBuffer -> FFIAudioSnapshot' -> Effect Unit
+
 foreign import setPeriodicOsc_ :: String -> BrowserPeriodicWave -> FFIAudioSnapshot' -> Effect Unit
 
 foreign import setPeriodicOscV_ :: String -> Array (Array Number) -> FFIAudioSnapshot' -> Effect Unit
@@ -653,6 +659,7 @@ instance effectfulAudioInterpret :: AudioInterpret FFIAudioSnapshot (Effect Unit
   setAudioWorkletParameter a b c d = setAudioWorkletParameter_ (safeToFFI a) (safeToFFI b) (safeToFFI c) (safeToFFI d)
   setAnalyserNodeCb a b c = setAnalyserNodeCb_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
   setMediaRecorderCb a b c = setMediaRecorderCb_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
+  setConvolverBuffer a b c = setConvolverBuffer_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
   setBuffer a b c = setBuffer_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
   setPeriodicOsc a b c = setPeriodicOsc_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
   setPeriodicOscV a b c = setPeriodicOscV_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
@@ -803,6 +810,7 @@ instance mixedAudioInterpret :: (AudioInterpret a c, AudioInterpret b d) => Audi
   setAnalyserNodeCb a b (x /\ y) = setAnalyserNodeCb a b x /\ setAnalyserNodeCb a b y
   setMediaRecorderCb a b (x /\ y) = setMediaRecorderCb a b x /\ setMediaRecorderCb a b y
   setBuffer a b (x /\ y) = setBuffer a b x /\ setBuffer a b y
+  setConvolverBuffer a b (x /\ y) = setConvolverBuffer a b x /\ setConvolverBuffer a b y
   setPeriodicOsc a b (x /\ y) = setPeriodicOsc a b x /\ setPeriodicOsc a b y
   setPeriodicOscV a b (x /\ y) = setPeriodicOscV a b x /\ setPeriodicOscV a b y
   setOnOff a b (x /\ y) = setOnOff a b x /\ setOnOff a b y

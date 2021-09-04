@@ -69,6 +69,7 @@ data Instruction
   | SetMediaRecorderCb String MediaRecorderCb
   | SetAudioWorkletParameter String String AudioParameter
   | SetBuffer String BrowserAudioBuffer
+  | SetConvolverBuffer String BrowserAudioBuffer
   | SetPeriodicOsc String (Either BrowserPeriodicWave (Array Number /\ Array Number))
   | SetOnOff String APOnOff
   | SetBufferOffset String Number

@@ -455,8 +455,8 @@ exports.makeLowshelf_ = function (ptr) {
     };
   };
 };
-exports.makeMicrophone_ = function (state) {
-  return function(microphone) {
+exports.makeMicrophone_ = function (microphone) {
+  return function(state) {
     return function () {     
       state.units["microphone"] = {
         main: state.context.createMediaStreamSource(microphone),
@@ -662,6 +662,7 @@ exports.makeRecorder_ = function (ptr) {
         state.units[ptr] = {
           outgoing: [],
           incoming: [],
+          recorderOrig: mediaRecorderSideEffectFn,
           recorder: mediaRecorder,
           main: state.context.createGain(),
           se: dest,
@@ -675,8 +676,10 @@ exports.setMediaRecorderCb_ = function (ptr) {
   return function (a) {
     return function (state) {
       return function () {
+        if (state.units[ptr].recorderOrig === a) {return;}
         state.units[ptr].recorder && state.units[ptr].recorder.stop();
         var mediaRecorderSideEffectFn = a;
+        state.units[ptr].recorderOrig = a;
         var mediaRecorder = new MediaRecorder(state.units[ptr].se);
         mediaRecorderSideEffectFn(mediaRecorder)();
         mediaRecorder.start();
@@ -870,7 +873,15 @@ exports.setBuffer_ = function (ptr) {
     };
   };
 };
-
+exports.setConvolverBuffer_ = function (ptr) {
+  return function (buffer) {
+    return function (state) {
+      return function () {
+        state.units[ptr].main.buffer = buffer;
+      };
+    };
+  };
+};
 exports.setPeriodicOsc_ = function (ptr) {
   return function (periodicOsc) {
     return function (state) {

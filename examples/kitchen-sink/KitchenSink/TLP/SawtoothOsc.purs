@@ -21,7 +21,7 @@ import WAGS.Run (SceneI(..))
 
 doSawtoothOsc :: forall proof. StepSig SawtoothOscGraph proof
 doSawtoothOsc =
-  ibranch \(SceneI { time, world: { buffers: { "my-buffer": myBuffer } } }) lsig ->
+  ibranch \(SceneI { time, world: { buffers: { "my-buffer": myBuffer, reverb } } }) lsig ->
     if time % pieceTime < timing.ksSawtoothOsc.end then
       Right Ix.do
         -- tests cancel
@@ -30,4 +30,4 @@ doSawtoothOsc =
         ipure lsig
     else
       Left
-        $ icont doConvolver (ipatch { microphone: Nothing } :*> ichange { buf: { buffer: myBuffer, onOff: On } } $> lsig)
+        $ icont doConvolver (ipatch { microphone: Nothing } :*> ichange { buf: { buffer: myBuffer, onOff: On }, convolver: reverb } $> lsig)
