@@ -965,9 +965,7 @@ var setOff_ = function (ptr) {
           return;
         }
         state.units[ptr].onOff = false;
-        // for now, we stop immediately
-        // in the future, we can try to take the stop time into account
-        state.units[ptr].main.stop();
+        state.units[ptr].main.stop(state.writeHead + onOffInstr.timeOffset);
         for (var i = 0; i < state.units[ptr].outgoing.length; i++) {
           state.units[ptr].main.disconnect(
             state.units[state.units[ptr].outgoing[i]].main
@@ -1011,7 +1009,7 @@ exports.setBufferOffset_ = function (ptr) {
   return function (a) {
     return function (state) {
       return function () {
-        state.units[ptr].main.bufferOffset = a;
+        state.units[ptr].bufferOffset = a;
       };
     };
   };
@@ -1406,3 +1404,7 @@ exports.getByteFrequencyData = function (analyserNode) {
     return dataArray;
   }
 }
+exports.bufferSampleRate = function(buffer) { return buffer.sampleRate }
+exports.bufferLength = function(buffer) { return buffer.length }
+exports.bufferDuration = function(buffer) { return buffer.duration }
+exports.bufferNumberOfChannels = function(buffer) { return buffer.numberOfChannels }

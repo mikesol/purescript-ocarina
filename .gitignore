@@ -8,11 +8,5 @@
 /.purs*
 /.psa*
 /.spago
-/examples/drum-machine/index.js
-/examples/makenna/index.js
-/examples/atari-speaks/index.js
-/examples/hello-world/index.js
-/examples/kitchen-sink/index.js
-/examples/white-noise/index.js
-/examples/wtk/index.js
+/examples/**/index.js
 packages.json

@@ -98,6 +98,10 @@ module WAGS.Interpret
   , setThreshold
   , setWaveShaperCurve
   , stopMediaRecorder
+  , bufferSampleRate
+  , bufferLength
+  , bufferDuration 
+  , bufferNumberOfChannels
   ) where
 
 import Prelude
@@ -280,6 +284,11 @@ audioBuffer
   -> Vec bch (Vec blen Number)
   -> AudioBuffer
 audioBuffer i v = AudioBuffer i (map V.toArray $ V.toArray v)
+
+foreign import bufferSampleRate :: BrowserAudioBuffer -> Number
+foreign import bufferLength :: BrowserAudioBuffer -> Int
+foreign import bufferDuration :: BrowserAudioBuffer -> Number
+foreign import bufferNumberOfChannels :: BrowserAudioBuffer -> Int
 
 -- | The audio information that goes to the ffi during rendering.
 -- |
