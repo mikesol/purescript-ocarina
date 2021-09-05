@@ -9,6 +9,7 @@ in      conf
               , "arraybuffer"
               , "halogen-subscriptions"
               , "identity"
+              , "nonempty"
               , "stringutils"
               , "transformers"
               , "uint"
