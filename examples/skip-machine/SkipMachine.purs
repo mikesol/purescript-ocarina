@@ -38,9 +38,6 @@ vol = 1.4 :: Number
 
 type World = { hamlet :: BrowserAudioBuffer }
 
-type SceneTemplate
-  = CSpeaker { buf :: CPlayBuf }
-
 type SceneType
   =
   ( speaker :: TSpeaker /\ { buf :: Unit }
@@ -60,7 +57,7 @@ myChange (SceneI { time, world: { hamlet }}) fcf =
   hd = extract actualized
 
 order :: NonEmpty Array Int
-order = NonEmpty 0 [3,2,4,1,5,7,6]
+order = NonEmpty 0 [9,11,4,1,12,7,6,15,8,13,10,2,5,3,14]
 
 mxordr = foldl max 0 order :: Int
 
@@ -77,7 +74,7 @@ cf nea len = f nea 0.0
   where 
   maxnea = (foldl max 0 nea) + 1
   section = len / toNumber maxnea
-  f ct x n = let hit = n + 0.04 > x in mkCofree (if hit then Just (hnea ct) else Nothing) (f (if hit then (rotate nea) else ct) (if hit then x + section else x))
+  f ct x n = let hit = n + 0.04 > x in mkCofree (if hit then Just (hnea ct) else Nothing) (f (if hit then (rotate ct) else ct) (if hit then x + section else x))
 
 piece :: Scene (SceneI Unit World ()) RunAudio RunEngine Frame0 Unit
 piece = (\e@(SceneI { world: { hamlet  } }) -> ipatch { microphone: empty } :*> myChange e (cf order (bufferDuration hamlet) )) @!> iloop myChange

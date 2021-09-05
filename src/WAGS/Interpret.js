@@ -1009,7 +1009,7 @@ exports.setBufferOffset_ = function (ptr) {
   return function (a) {
     return function (state) {
       return function () {
-        state.units[ptr].main.bufferOffset = a;
+        state.units[ptr].bufferOffset = a;
       };
     };
   };
