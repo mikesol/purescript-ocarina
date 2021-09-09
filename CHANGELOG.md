@@ -5,20 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.4.2] - 2021-09-4
+## [0.4.3] - 2021-09-09
+
+### Added
+
+- `Bind` and `Monad` instances for `IxWAG` where the graphs are equal.
+
+## [0.4.2] - 2021-09-04
 
 ### Added
 
 - `stop()` on generators is now sensitive to `AudioParamter` offset.
 - all read-only properties of `BrowserAudioBuffer` are now accessible
 
-## [0.4.1] - 2021-09-4
+## [0.4.1] - 2021-09-04
 
 ### Fixed
 
 - Assets, environment and behaviors have been merged into just environment.
 
-## [0.4.0] - 2021-09-1
+## [0.4.0] - 2021-09-01
 
 ### Added
 
