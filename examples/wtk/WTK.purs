@@ -34,9 +34,10 @@ main =
     runUI component unit body
 
 type State
-  = { unsubscribe :: Effect Unit
-    , audioCtx :: Maybe AudioContext
-    }
+  =
+  { unsubscribe :: Effect Unit
+  , audioCtx :: Maybe AudioContext
+  }
 
 data Action
   = StartAudio
@@ -83,14 +84,14 @@ handleAction = case _ of
     unsubscribe <-
       H.liftEffect
         $ subscribe
-            ( run
-                trigger
-                (pure unit)
-                { easingAlgorithm }
-                (ffiAudio)
-                (piece { makeRenderingEnv })
-            )
-            (\(_ :: Run Unit ()) -> pure unit)
+          ( run
+              trigger
+              (pure unit)
+              { easingAlgorithm }
+              (ffiAudio)
+              (piece { makeRenderingEnv })
+          )
+          (\(_ :: Run Unit ()) -> pure unit)
     H.modify_ _ { unsubscribe = unsubscribe, audioCtx = Just audioCtx }
   StopAudio -> do
     { unsubscribe, audioCtx } <- H.get

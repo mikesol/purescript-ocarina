@@ -21,7 +21,7 @@ import Control.Extend (class Extend)
 import Data.Either (Either)
 import Data.Tuple.Nested ((/\), type (/\))
 
-newtype WAG (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type) (graph :: Type) (a :: Type)
+newtype WAG (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type) (graph :: Row Type) (a :: Type)
   = WAG { context :: AudioState' audio engine res, value :: a }
 
 derive instance functorWAG :: Functor (WAG audio engine proof res graph)
@@ -42,18 +42,19 @@ instance comonadWAG :: Comonad (WAG audio engine proof res graph) where
 -- | - `graph`: The `Graph`, meaning the current audio graph of the frame.
 -- | - `a`: The term within the frame. This is often some form of accumulator that represents an evolving state over time.
 -- |
-type Frame (env :: Type) (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type) (graph :: Type) (a :: Type)
+type Frame (env :: Type) (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type) (graph :: Row Type) (a :: Type)
   = env -> WAG audio engine proof res graph a
 
-type EFrame (env :: Type) (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type) (graph :: Type) (a :: Type)
+type EFrame (env :: Type) (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type) (graph :: Row Type) (a :: Type)
   = env -> Either (Scene env audio engine proof res) (WAG audio engine proof res graph a)
 
 -- | A `proof` term for the initial frame.
 data Frame0
 
 -- | The `Graph` at which any scene starts.
+type InitialGraph :: forall k. Row k
 type InitialGraph
-  = {}
+  = ()
 
 type InitialWAG audio engine res a
   = WAG audio engine Frame0 res InitialGraph a

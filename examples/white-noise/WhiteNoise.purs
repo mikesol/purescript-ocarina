@@ -64,9 +64,9 @@ type SceneTemplate
 
 type SceneType
   =
-  { speaker :: TSpeaker /\ { whiteNoise :: Unit }
+  ( speaker :: TSpeaker /\ { whiteNoise :: Unit }
   , whiteNoise :: TAudioWorkletNode "white-noise-processor" D0 D1 D1 (customGain :: AudioParameter) () /\ {}
-  }
+  )
 
 scene :: WhiteNoiseResponse -> Number -> SceneTemplate
 scene wnr time =
@@ -84,7 +84,7 @@ scene wnr time =
           {}
     }
 
-createFrame :: IxFrame (SceneI Unit World ()) RunAudio RunEngine Frame0 Unit {} SceneType Unit
+createFrame :: IxFrame (SceneI Unit World ()) RunAudio RunEngine Frame0 Unit () SceneType Unit
 createFrame (SceneI { time, world: { noiseUnit } }) = icreate (scene noiseUnit time)
 
 piece :: Scene (SceneI Unit World ()) RunAudio RunEngine Frame0 Unit

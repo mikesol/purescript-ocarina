@@ -10,7 +10,7 @@ import Data.Functor (voidRight)
 import Data.Functor.Indexed (class IxFunctor)
 import WAGS.Control.Types (WAG)
 
-newtype IxWAG (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type) (graphi :: Type) (grapho :: Type) (a :: Type)
+newtype IxWAG (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type) (graphi :: Row Type) (grapho :: Row Type) (a :: Type)
   = IxWAG (forall q. WAG audio engine proof res graphi q -> WAG audio engine proof res grapho a)
 
 instance functorIxWAG :: Functor (IxWAG audio engine proof res graphi grapho) where
@@ -53,5 +53,5 @@ instance ixMonadIxWAG :: IxMonad (IxWAG audio engine proof res)
 
 instance monadIxWag :: Monad (IxWAG audio engine proof res graph graph)
 
-type IxFrame (env :: Type) (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type) (graphi :: Type) (grapho :: Type) (a :: Type)
+type IxFrame (env :: Type) (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type) (graphi :: Row Type) (grapho :: Row Type) (a :: Type)
   = env -> IxWAG audio engine proof res graphi grapho a

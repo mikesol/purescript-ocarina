@@ -21,11 +21,11 @@ testPatch = do
         simpleFrame =
           ( patch
               :: { microphone :: Maybe BrowserMicrophone }
-              -> WAG Unit Instruction Frame0 Unit {} Unit
+              -> WAG Unit Instruction Frame0 Unit () Unit
               -> WAG Unit Instruction Frame0 Unit
-                   { speaker :: TSpeaker /\ { sinOsc :: Unit }
+                   ( speaker :: TSpeaker /\ { sinOsc :: Unit }
                    , sinOsc :: TSinOsc /\ {}
-                   }
+                   )
                    Unit
           ) { microphone: Nothing }
 
@@ -38,12 +38,12 @@ testPatch = do
         startingFrame =
           ( patch
               :: { microphone :: Maybe BrowserMicrophone }
-              -> WAG Unit Instruction Frame0 Unit {} Unit
+              -> WAG Unit Instruction Frame0 Unit () Unit
               -> WAG Unit Instruction Frame0 Unit
-                   { speaker :: TSpeaker /\ { highpass :: Unit }
+                   ( speaker :: TSpeaker /\ { highpass :: Unit }
                    , highpass :: THighpass /\ { sinOsc :: Unit }
                    , sinOsc :: TSinOsc /\ {}
-                   }
+                   )
                    Unit
           ) { microphone: Nothing }
 
@@ -52,16 +52,16 @@ testPatch = do
               :: forall proof
                . { microphone :: Maybe BrowserMicrophone }
               -> WAG Unit Instruction proof Unit
-                   { speaker :: TSpeaker /\ { highpass :: Unit }
+                   ( speaker :: TSpeaker /\ { highpass :: Unit }
                    , highpass :: THighpass /\ { sinOsc :: Unit }
                    , sinOsc :: TSinOsc /\ {}
-                   }
+                   )
                    Unit
               -> WAG Unit Instruction proof Unit
-                   { speaker :: TSpeaker /\ { highpass :: Unit }
+                   ( speaker :: TSpeaker /\ { highpass :: Unit }
                    , highpass :: THighpass /\ { sinOsc :: Unit }
                    , sinOsc :: TSinOsc /\ {}
-                   }
+                   )
                    Unit
           ) { microphone: Nothing }
 
@@ -82,12 +82,12 @@ testPatch = do
         startingFrame =
           ( patch
               :: { microphone :: Maybe BrowserMicrophone }
-              -> WAG Unit Instruction Frame0 Unit {} Unit
+              -> WAG Unit Instruction Frame0 Unit () Unit
               -> WAG Unit Instruction Frame0 Unit
-                   { speaker :: TSpeaker /\ { highpass :: Unit, sinOsc :: Unit }
+                   ( speaker :: TSpeaker /\ { highpass :: Unit, sinOsc :: Unit }
                    , highpass :: THighpass /\ { sinOsc :: Unit }
                    , sinOsc :: TSinOsc /\ {}
-                   }
+                   )
                    Unit
           ) { microphone: Nothing }
 
@@ -96,16 +96,16 @@ testPatch = do
               :: forall proof
                . { microphone :: Maybe BrowserMicrophone }
               -> WAG Unit Instruction proof Unit
-                   { speaker :: TSpeaker /\ { highpass :: Unit, sinOsc :: Unit }
+                   ( speaker :: TSpeaker /\ { highpass :: Unit, sinOsc :: Unit }
                    , highpass :: THighpass /\ { sinOsc :: Unit }
                    , sinOsc :: TSinOsc /\ {}
-                   }
+                   )
                    Unit
               -> WAG Unit Instruction proof Unit
-                   { speaker :: TSpeaker /\ { highpass :: Unit }
+                   ( speaker :: TSpeaker /\ { highpass :: Unit }
                    , highpass :: THighpass /\ { sinOsc :: Unit }
                    , sinOsc :: TSinOsc /\ {}
-                   }
+                   )
                    Unit
           ) { microphone: Nothing }
 
@@ -127,13 +127,13 @@ testPatch = do
           ( patch
               :: { microphone :: Maybe BrowserMicrophone }
               -> WAG Unit Instruction Frame0 Unit
-                   {}
+                   ()
                    Unit
               -> WAG Unit Instruction Frame0 Unit
-                   { speaker :: TSpeaker /\ { highpass :: Unit, sinOsc :: Unit }
+                   ( speaker :: TSpeaker /\ { highpass :: Unit, sinOsc :: Unit }
                    , highpass :: THighpass /\ { sinOsc :: Unit }
                    , sinOsc :: TSinOsc /\ {}
-                   }
+                   )
                    Unit
           ) { microphone: Nothing }
 
@@ -142,15 +142,15 @@ testPatch = do
               :: forall proof
                . { microphone :: Maybe BrowserMicrophone }
               -> WAG Unit Instruction proof Unit
-                   { speaker :: TSpeaker /\ { highpass :: Unit, sinOsc :: Unit }
+                   ( speaker :: TSpeaker /\ { highpass :: Unit, sinOsc :: Unit }
                    , highpass :: THighpass /\ { sinOsc :: Unit }
                    , sinOsc :: TSinOsc /\ {}
-                   }
+                   )
                    Unit
               -> WAG Unit Instruction proof Unit
-                   { speaker :: TSpeaker /\ { anotherOsc :: Unit }
+                   ( speaker :: TSpeaker /\ { anotherOsc :: Unit }
                    , anotherOsc :: TSinOsc /\ {}
-                   }
+                   )
                    Unit
           ) { microphone: Nothing }
 
@@ -172,15 +172,15 @@ testPatch = do
           ( patch
               :: { microphone :: Maybe BrowserMicrophone }
               -> WAG Unit Instruction Frame0 Unit
-                   {}
+                   ()
                    Unit
               -> WAG Unit Instruction Frame0 Unit
-                   { speaker :: TSpeaker /\ { highpass :: Unit, sinOsc :: Unit, lowpass :: Unit }
+                   ( speaker :: TSpeaker /\ { highpass :: Unit, sinOsc :: Unit, lowpass :: Unit }
                    , highpass :: THighpass /\ { sinOsc :: Unit }
                    , sinOsc :: TSinOsc /\ {}
                    , lowpass :: TLowpass /\ { sawtoothOsc :: Unit }
                    , sawtoothOsc :: TSawtoothOsc /\ {}
-                   }
+                   )
                    Unit
           ) { microphone: Nothing }
 
@@ -189,19 +189,19 @@ testPatch = do
               :: forall proof
                . { microphone :: Maybe BrowserMicrophone }
               -> WAG Unit Instruction proof Unit
-                   { speaker :: TSpeaker /\ { highpass :: Unit, sinOsc :: Unit, lowpass :: Unit }
+                   ( speaker :: TSpeaker /\ { highpass :: Unit, sinOsc :: Unit, lowpass :: Unit }
                    , highpass :: THighpass /\ { sinOsc :: Unit }
                    , sinOsc :: TSinOsc /\ {}
                    , lowpass :: TLowpass /\ { sawtoothOsc :: Unit }
                    , sawtoothOsc :: TSawtoothOsc /\ {}
-                   }
+                   )
                    Unit
               -> WAG Unit Instruction proof Unit
-                   { speaker :: TSpeaker /\ { anotherOsc :: Unit, lowpass :: Unit }
+                   ( speaker :: TSpeaker /\ { anotherOsc :: Unit, lowpass :: Unit }
                    , anotherOsc :: TSinOsc /\ {}
                    , lowpass :: TLowpass /\ { sawtoothOsc :: Unit }
                    , sawtoothOsc :: TSawtoothOsc /\ {}
-                   }
+                   )
                    Unit
           ) { microphone: Nothing }
 

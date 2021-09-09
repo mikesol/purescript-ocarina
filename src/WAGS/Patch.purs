@@ -667,23 +667,23 @@ ipatch
    . Patch g0 g1
   => AudioInterpret audio engine
   => { microphone :: Maybe BrowserMicrophone }
-  -> IxWAG audio engine proof res { | g0 } { | g1 } Unit
+  -> IxWAG audio engine proof res g0 g1 Unit
 ipatch cache = IxWAG \i -> patch cache (i $> unit)
 
 type PatchSig g0 g1 =
   forall audio engine proof res a
    . AudioInterpret audio engine
   => { microphone :: Maybe BrowserMicrophone }
-  -> WAG audio engine proof res { | g0 } a
-  -> WAG audio engine proof res { | g1 } a
+  -> WAG audio engine proof res g0 a
+  -> WAG audio engine proof res g1 a
 
 type PatchSigRes g0 g1 res =
   forall audio engine proof a
    . AudioInterpret audio engine
   => Monoid res
   => { microphone :: Maybe BrowserMicrophone }
-  -> WAG audio engine proof res { | g0 } a
-  -> WAG audio engine proof res { | g1 } a
+  -> WAG audio engine proof res g0 a
+  -> WAG audio engine proof res g1 a
 
 class Patch g0 g1 where
   -- | Take any frame from `g0` to `g1`. The compiler automatically determines the necessary operations to perform the transformation.
@@ -691,8 +691,8 @@ class Patch g0 g1 where
     :: forall audio engine proof res a
      . AudioInterpret audio engine
     => { microphone :: Maybe BrowserMicrophone }
-    -> WAG audio engine proof res { | g0 } a
-    -> WAG audio engine proof res { | g1 } a
+    -> WAG audio engine proof res g0 a
+    -> WAG audio engine proof res g1 a
 
 instance patchAll ::
   ( RowToList old oldList

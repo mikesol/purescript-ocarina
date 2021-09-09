@@ -40,8 +40,8 @@ type CreateStepRLSig (rl :: RL.RowList Type) (prefix :: Type) (map :: Type) (r :
   => proxyRL rl
   -> proxyPrefix prefix
   -> proxyMap map
-  -> WAG audio engine proof res { | inGraph } { | r }
-  -> WAG audio engine proof res { | outGraph } Unit
+  -> WAG audio engine proof res inGraph { | r }
+  -> WAG audio engine proof res outGraph Unit
 
 class CreateStepRL (rl :: RL.RowList Type) (prefix :: Type) (map :: Type) (r :: Row Type) (inGraph :: Graph) (outGraph :: Graph) | rl prefix map r inGraph -> outGraph where
   createStepRL :: CreateStepRLSig rl prefix map r inGraph outGraph
@@ -83,8 +83,8 @@ class ConnectEdgesToNode (sources :: RL.RowList Type) (dest :: Symbol) (inGraph 
     :: forall proxyRL proxyS audio engine proof res
      . AudioInterpret audio engine
     => proxyRL sources
-    -> WAG audio engine proof res { | inGraph } (proxyS dest)
-    -> WAG audio engine proof res { | outGraph } (proxyS dest)
+    -> WAG audio engine proof res inGraph (proxyS dest)
+    -> WAG audio engine proof res outGraph (proxyS dest)
 
 instance connectEdgesToNodeNil :: ConnectEdgesToNode RL.Nil dest inGraph inGraph where
   connectEdgesToNode _ w = w
@@ -102,8 +102,8 @@ type ConnectAfterCreateSig (prefix :: Type) (map :: Type) (rl :: RL.RowList Type
    . AudioInterpret audio engine
   => proxyPrefix prefix
   -> proxyMap map
-  -> WAG audio engine proof res { | inGraph } (Proxy rl)
-  -> WAG audio engine proof res { | outGraph } Unit
+  -> WAG audio engine proof res inGraph (Proxy rl)
+  -> WAG audio engine proof res outGraph Unit
 
 class ConnectAfterCreate (prefix :: Type) (map :: Type) (rl :: RL.RowList Type) (inGraph :: Graph) (outGraph :: Graph) | prefix map rl inGraph -> outGraph where
   connectAfterCreate :: ConnectAfterCreateSig prefix map rl inGraph outGraph
@@ -137,8 +137,8 @@ type CreateInternalSig (prefix :: Type) (map :: Type) (r :: Row Type) (inGraph :
    . AudioInterpret audio engine
   => proxyPrefix prefix
   -> proxyMap map
-  -> WAG audio engine proof res { | inGraph } { | r }
-  -> WAG audio engine proof res { | outGraph } Unit
+  -> WAG audio engine proof res inGraph { | r }
+  -> WAG audio engine proof res outGraph Unit
 
 class CreateInternal (prefix :: Type) (map :: Type) (r :: Row Type) (inGraph :: Graph) (outGraph :: Graph) | prefix map r inGraph -> outGraph where
   createInternal :: CreateInternalSig prefix map r inGraph outGraph
@@ -159,8 +159,8 @@ class Create (r :: Row Type) (inGraph :: Graph) (outGraph :: Graph) | r inGraph 
   create
     :: forall audio engine proof res
      . AudioInterpret audio engine
-    => WAG audio engine proof res { | inGraph } { | r }
-    -> WAG audio engine proof res { | outGraph } Unit
+    => WAG audio engine proof res inGraph { | r }
+    -> WAG audio engine proof res outGraph Unit
 
 instance createAll ::
   CreateInternal Unit Unit r inGraph outGraph =>
@@ -175,7 +175,7 @@ icreate
    . AudioInterpret audio engine
   => Create r inGraph outGraph
   => { | r }
-  -> IxWAG audio engine proof res { | inGraph } { | outGraph } Unit
+  -> IxWAG audio engine proof res inGraph outGraph Unit
 icreate r = IxWAG (create <<< voidRight r)
 
 -- | Create an audio unit `node` in `igraph` with index `ptr`, resulting in `ograph`.
@@ -184,8 +184,8 @@ class Create' (ptr :: Symbol) (node :: Type) (inGraph :: Graph) (outGraph :: Gra
     :: forall proxy audio engine proof res
      . AudioInterpret audio engine
     => proxy ptr
-    -> WAG audio engine proof res { | inGraph } node
-    -> WAG audio engine proof res { | outGraph } Unit
+    -> WAG audio engine proof res inGraph node
+    -> WAG audio engine proof res outGraph Unit
 
 icreate'
   :: forall proxy ptr node audio engine proof res i o
@@ -193,7 +193,7 @@ icreate'
   => Create' ptr node i o
   => proxy ptr
   -> node
-  -> IxWAG audio engine proof res { | i } { | o } Unit
+  -> IxWAG audio engine proof res i o Unit
 icreate' ptr node = IxWAG (create' ptr <<< voidRight node)
 
 instance createUnit ::

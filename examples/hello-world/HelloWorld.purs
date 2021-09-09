@@ -30,23 +30,24 @@ import WAGS.WebAPI (AudioContext)
 
 type SceneTemplate
   = CSpeaker
-      { gain0 :: CGain { sin0 :: CSinOsc }
-      , gain1 :: CGain { sin1 :: CSinOsc }
-      , gain2 :: CGain { sin2 :: CSinOsc }
-      , gain3 :: CGain { sin3 :: CSinOsc }
-      }
+  { gain0 :: CGain { sin0 :: CSinOsc }
+  , gain1 :: CGain { sin1 :: CSinOsc }
+  , gain2 :: CGain { sin2 :: CSinOsc }
+  , gain3 :: CGain { sin3 :: CSinOsc }
+  }
 
 type SceneType
-  = { speaker :: TSpeaker /\ { gain0 :: Unit, gain1 :: Unit, gain2 :: Unit, gain3 :: Unit }
-    , gain0 :: TGain /\ { sin0 :: Unit }
-    , sin0 :: TSinOsc /\ {}
-    , gain1 :: TGain /\ { sin1 :: Unit }
-    , sin1 :: TSinOsc /\ {}
-    , gain2 :: TGain /\ { sin2 :: Unit }
-    , sin2 :: TSinOsc /\ {}
-    , gain3 :: TGain /\ { sin3 :: Unit }
-    , sin3 :: TSinOsc /\ {}
-    }
+  =
+  { speaker :: TSpeaker /\ { gain0 :: Unit, gain1 :: Unit, gain2 :: Unit, gain3 :: Unit }
+  , gain0 :: TGain /\ { sin0 :: Unit }
+  , sin0 :: TSinOsc /\ {}
+  , gain1 :: TGain /\ { sin1 :: Unit }
+  , sin1 :: TSinOsc /\ {}
+  , gain2 :: TGain /\ { sin2 :: Unit }
+  , sin2 :: TSinOsc /\ {}
+  , gain3 :: TGain /\ { sin3 :: Unit }
+  , sin3 :: TSinOsc /\ {}
+  }
 
 scene :: Number -> SceneTemplate
 scene time =
@@ -77,9 +78,10 @@ main =
     runUI component unit body
 
 type State
-  = { unsubscribe :: Effect Unit
-    , audioCtx :: Maybe AudioContext
-    }
+  =
+  { unsubscribe :: Effect Unit
+  , audioCtx :: Maybe AudioContext
+  }
 
 data Action
   = StartAudio
@@ -122,8 +124,8 @@ handleAction = case _ of
     unsubscribe <-
       H.liftEffect
         $ subscribe
-            (run (pure unit) (pure unit) { easingAlgorithm } ffiAudio piece)
-            (\(_ :: Run Unit ()) -> pure unit)
+          (run (pure unit) (pure unit) { easingAlgorithm } ffiAudio piece)
+          (\(_ :: Run Unit ()) -> pure unit)
     H.modify_ _ { unsubscribe = unsubscribe, audioCtx = Just audioCtx }
   StopAudio -> do
     { unsubscribe, audioCtx } <- H.get

@@ -47,17 +47,28 @@ type SceneType
 type Cf = Cofree ((->) Number) (Maybe Int)
 type FCf = Number -> Cf
 
-myChange :: forall trigger analyserCb audio engine proof res. 
-  AudioInterpret audio engine => SceneI trigger World analyserCb -> FCf -> IxWAG audio engine proof res { | SceneType } { | SceneType } FCf
-myChange (SceneI { time, world: { hamlet }}) fcf =
-   maybe (ipure unit) (\v -> ichange (speaker { buf:
-     playBuf { onOff: OffOn, bufferOffset: bufferDuration hamlet * (toNumber v) / (toNumber mxordr)  } hamlet })) hd $> unwrapCofree actualized
+myChange
+  :: forall trigger analyserCb audio engine proof res
+   . AudioInterpret audio engine
+  => SceneI trigger World analyserCb
+  -> FCf
+  -> IxWAG audio engine proof res SceneType SceneType FCf
+myChange (SceneI { time, world: { hamlet } }) fcf =
+  maybe (ipure unit)
+    ( \v -> ichange
+        ( speaker
+            { buf:
+                playBuf { onOff: OffOn, bufferOffset: bufferDuration hamlet * (toNumber v) / (toNumber mxordr) } hamlet
+            }
+        )
+    )
+    hd $> unwrapCofree actualized
   where
   actualized = fcf time
   hd = extract actualized
 
 order :: NonEmpty Array Int
-order = NonEmpty 0 [9,11,4,1,12,7,6,15,8,13,10,2,5,3,14]
+order = NonEmpty 0 [ 9, 11, 4, 1, 12, 7, 6, 15, 8, 13, 10, 2, 5, 3, 14 ]
 
 mxordr = foldl max 0 order :: Int
 
@@ -65,19 +76,19 @@ hnea :: forall a. NonEmpty Array a -> a
 hnea (NonEmpty a _) = a
 
 rotate :: forall a. NonEmpty Array a -> NonEmpty Array a
-rotate (NonEmpty a b) = NonEmpty (fromMaybe a $ Array.head arr) (fromMaybe [] $ Array.tail arr) 
+rotate (NonEmpty a b) = NonEmpty (fromMaybe a $ Array.head arr) (fromMaybe [] $ Array.tail arr)
   where
-  arr = b <> [a]
+  arr = b <> [ a ]
 
 cf :: NonEmpty Array Int -> Number -> FCf
 cf nea len = f nea 0.0
-  where 
+  where
   maxnea = (foldl max 0 nea) + 1
   section = len / toNumber maxnea
   f ct x n = let hit = n + 0.04 > x in mkCofree (if hit then Just (hnea ct) else Nothing) (f (if hit then (rotate ct) else ct) (if hit then x + section else x))
 
 piece :: Scene (SceneI Unit World ()) RunAudio RunEngine Frame0 Unit
-piece = (\e@(SceneI { world: { hamlet  } }) -> ipatch { microphone: empty } :*> myChange e (cf order (bufferDuration hamlet) )) @!> iloop myChange
+piece = (\e@(SceneI { world: { hamlet } }) -> ipatch { microphone: empty } :*> myChange e (cf order (bufferDuration hamlet))) @!> iloop myChange
 
 easingAlgorithm :: Cofree ((->) Int) Int
 easingAlgorithm =
@@ -154,7 +165,7 @@ handleAction = case _ of
       H.liftEffect
         $ subscribe
           (run (pure unit) (pure { hamlet }) { easingAlgorithm } (ffiAudio) piece)
-          ( \(_ :: Run Unit ()) -> pure unit )
+          (\(_ :: Run Unit ()) -> pure unit)
     H.modify_ _ { unsubscribe = unsubscribe, audioCtx = Just audioCtx }
   Freqz freqz -> H.modify_ _ { freqz = freqz }
   StopAudio -> do
