@@ -136,7 +136,7 @@ type Accumulator
     , availableKeys :: List Key
     }
 
-createFrame :: IxFrame (SceneI Trigger Unit ()) RunAudio RunEngine Frame0 Unit {} KlavierType Accumulator
+createFrame :: IxFrame (SceneI Trigger Unit ()) RunAudio RunEngine Frame0 Unit () KlavierType Accumulator
 createFrame _ =
   icreate fullKeyboard
     $> { currentKeys: Nil

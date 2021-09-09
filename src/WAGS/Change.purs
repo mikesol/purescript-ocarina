@@ -35,8 +35,8 @@ type Change'Type (ptr :: Symbol) (a :: Type) (graph :: Graph)
   forall proxy audio engine proof res
    . AudioInterpret audio engine
   => proxy ptr
-  -> WAG audio engine proof res { | graph } a
-  -> WAG audio engine proof res { | graph } Unit
+  -> WAG audio engine proof res graph a
+  -> WAG audio engine proof res graph Unit
 
 -- | Change an audio unit `node` in `igraph` with index `ptr`, outputting the changed node.
 class Change' (ptr :: Symbol) (a :: Type) (graph :: Graph) where
@@ -49,8 +49,8 @@ type CanBeChangedType (sym :: Symbol) (val :: Type) (ptr :: Symbol) (graph :: Gr
   => proxy sym
   -> val
   -> proxy ptr
-  -> WAG audio engine proof res { | graph } Unit
-  -> WAG audio engine proof res { | graph } Unit
+  -> WAG audio engine proof res graph Unit
+  -> WAG audio engine proof res graph Unit
 
 class CanBeChanged (sym :: Symbol) (val :: Type) (ptr :: Symbol) (graph :: Graph) where
   canBeChanged :: CanBeChangedType sym val ptr graph
@@ -61,8 +61,8 @@ type Change''Type (rl :: RL.RowList Type) (ptr :: Symbol) (a :: Row Type) (graph
    . AudioInterpret audio engine
   => proxyA rl
   -> proxyB ptr
-  -> WAG audio engine proof res { | graph } { | a }
-  -> WAG audio engine proof res { | graph } Unit
+  -> WAG audio engine proof res graph { | a }
+  -> WAG audio engine proof res graph Unit
 
 -- | Change an audio unit `node` in `igraph` with index `ptr`, outputting the changed node.
 class Change'' (rl :: RL.RowList Type) (ptr :: Symbol) (a :: Row Type) (graph :: Graph) where
@@ -95,7 +95,7 @@ ichange'
   => Change' ptr a i
   => proxy ptr
   -> a
-  -> IxWAG audio engine proof res { | i } { | i } Unit
+  -> IxWAG audio engine proof res i i Unit
 ichange' ptr a = IxWAG (change' ptr <<< (<$) a)
 
 -- | Similar to `change'`, but accepts a record with multiple units to change.
@@ -103,8 +103,8 @@ class Change (r :: Row Type) (graph :: Graph) where
   change
     :: forall audio engine proof res
      . AudioInterpret audio engine
-    => WAG audio engine proof res { | graph } { | r }
-    -> WAG audio engine proof res { | graph } Unit
+    => WAG audio engine proof res graph { | r }
+    -> WAG audio engine proof res graph Unit
 
 type ChangeInternalSig (prefix :: Type) (map :: Type) (r :: Row Type) (graph :: Graph)
   =
@@ -112,8 +112,8 @@ type ChangeInternalSig (prefix :: Type) (map :: Type) (r :: Row Type) (graph :: 
    . AudioInterpret audio engine
   => proxyPrefix prefix
   -> proxyMap map
-  -> WAG audio engine proof res { | graph } { | r }
-  -> WAG audio engine proof res { | graph } Unit
+  -> WAG audio engine proof res graph { | r }
+  -> WAG audio engine proof res graph Unit
 
 class ChangeInternal (prefix :: Type) (map :: Type) (r :: Row Type) (graph :: Graph) where
   changeInternal :: ChangeInternalSig prefix map r graph
@@ -125,8 +125,8 @@ class ChangeRL (rl :: RL.RowList Type) (prefix :: Type) (map :: Type) (r :: Row 
     => proxy rl
     -> proxyPrefix prefix
     -> proxyMap map
-    -> WAG audio engine proof res { | graph } { | r }
-    -> WAG audio engine proof res { | graph } Unit
+    -> WAG audio engine proof res graph { | r }
+    -> WAG audio engine proof res graph Unit
 
 instance changeInternalAll :: (RL.RowToList r rl, ChangeRL rl prefix map r graph) => ChangeInternal prefix map r graph where
   changeInternal = changeRL (Proxy :: _ rl)
@@ -170,7 +170,7 @@ ichange
    . AudioInterpret audio engine
   => Change r inGraph
   => { | r }
-  -> IxWAG audio engine proof res { | inGraph } { | inGraph } Unit
+  -> IxWAG audio engine proof res inGraph inGraph Unit
 ichange r = IxWAG (change <<< (<$) r)
 
 class PushAPOnOffToEnd (i :: RL.RowList Type) (o :: RL.RowList Type) | i -> o

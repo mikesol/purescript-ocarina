@@ -17,10 +17,10 @@ opsTest0
   :: forall audio engine
    . AudioInterpret audio engine
   => WAG audio engine Frame0 Unit
-       { sinOsc :: TSinOsc /\ {}
+       ( sinOsc :: TSinOsc /\ {}
        , gain :: TGain /\ { highpass :: Unit, sinOsc :: Unit }
        , highpass :: THighpass /\ { sinOsc :: Unit }
-       }
+       )
        Unit
 opsTest0 =
   start
@@ -35,11 +35,11 @@ opsTest1
   :: forall audio engine
    . AudioInterpret audio engine
   => WAG audio engine Frame0 Unit
-       { sinOsc :: TSinOsc /\ {}
+       ( sinOsc :: TSinOsc /\ {}
        , gain :: TGain /\ { highpass :: Unit, sinOsc :: Unit }
        , highpass :: THighpass /\ { sinOsc :: Unit }
        , speaker :: TSpeaker /\ { gain :: Unit }
-       }
+       )
        Unit
 opsTest1 =
   start
@@ -55,11 +55,11 @@ opsTest2
   :: forall audio engine
    . AudioInterpret audio engine
   => WAG audio engine Frame0 Unit
-       { mySine :: TSinOsc /\ {}
+       ( mySine :: TSinOsc /\ {}
        , gain :: TGain /\ { highpass :: Unit, mySine :: Unit }
        , highpass :: THighpass /\ { mySine :: Unit }
        , speaker :: TSpeaker /\ { gain :: Unit }
-       }
+       )
        Unit
 opsTest2 =
   start
@@ -77,11 +77,11 @@ opsTest3
   :: forall audio engine
    . AudioInterpret audio engine
   => WAG audio engine Frame0 Unit
-       { mySine :: TSinOsc /\ {}
+       ( mySine :: TSinOsc /\ {}
        , gain :: TGain /\ { highpass :: Unit, mySine :: Unit }
        , highpass :: THighpass /\ { mySine :: Unit }
        , speaker :: TSpeaker /\ { gain :: Unit }
-       }
+       )
        Unit
 opsTest3 =
   start
@@ -115,10 +115,10 @@ opsTest6
   :: forall audio engine
    . AudioInterpret audio engine
   => WAG audio engine Frame0 Unit
-       { sinOsc :: TSinOsc /\ {}
+       ( sinOsc :: TSinOsc /\ {}
        , gain :: TGain /\ { highpass :: Unit, sinOsc :: Unit }
        , highpass :: THighpass /\ {}
-       }
+       )
        Unit
 opsTest6 =
   start
@@ -139,10 +139,10 @@ opsTest7
   :: forall audio engine
    . AudioInterpret audio engine
   => WAG audio engine Frame0 Unit
-       { sinOsc :: TSinOsc /\ {}
+       ( sinOsc :: TSinOsc /\ {}
        , gain :: TGain /\ { sinOsc :: Unit }
        , highpass :: THighpass /\ {}
-       }
+       )
        Unit
 opsTest7 =
   start
@@ -161,9 +161,9 @@ opsTest8
   :: forall audio engine
    . AudioInterpret audio engine
   => WAG audio engine Frame0 Unit
-       { sinOsc :: TSinOsc /\ {}
+       ( sinOsc :: TSinOsc /\ {}
        , gain :: TGain /\ { sinOsc :: Unit }
-       }
+       )
        Unit
 opsTest8 =
   start

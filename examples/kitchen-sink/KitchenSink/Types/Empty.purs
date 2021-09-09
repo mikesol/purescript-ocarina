@@ -6,9 +6,10 @@ import Type.Proxy (Proxy(..))
 import WAGS.Graph.AudioUnit (TGain, TSpeaker)
 
 type TopWith a b
-  = { speaker :: TSpeaker /\ { mix :: Unit }
-    , mix :: TGain /\ a
-    | b
-    }
+  =
+  ( speaker :: TSpeaker /\ { mix :: Unit }
+  , mix :: TGain /\ a
+  | b
+  )
 
 cursorGain = Proxy :: Proxy "mix"

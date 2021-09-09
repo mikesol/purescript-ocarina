@@ -137,10 +137,10 @@ type SceneTemplate
 
 type SceneType
   =
-  { speaker :: TSpeaker /\ { gain :: Unit }
+  ( speaker :: TSpeaker /\ { gain :: Unit }
   , gain :: TGain /\ { osc :: Unit }
   , osc :: TPeriodicOsc /\ {}
-  }
+  )
 
 scene :: (SceneI Unit World ()) -> EnrichedNote -> Number -> SceneTemplate
 scene (SceneI { time, world: { bday } }) ({ start, dur } /\ pitch) to =
@@ -153,7 +153,7 @@ scene (SceneI { time, world: { bday } }) ({ start, dur } /\ pitch) to =
 
 type World = { bday :: BrowserPeriodicWave }
 
-createFrame :: IxFrame (SceneI Unit World ()) RunAudio RunEngine Frame0 Unit {} SceneType (List EnrichedNote)
+createFrame :: IxFrame (SceneI Unit World ()) RunAudio RunEngine Frame0 Unit () SceneType (List EnrichedNote)
 createFrame e = icreate (scene e (inTempo rest0) 0.0) $> L.fromFoldable score''
 
 piece :: Scene (SceneI Unit World ()) RunAudio RunEngine Frame0 Unit

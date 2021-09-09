@@ -30,11 +30,11 @@ type SceneTemplate
 
 type SceneType
   =
-  { speaker :: TSpeaker /\ { mix :: Unit }
+  ( speaker :: TSpeaker /\ { mix :: Unit }
   , mix :: TGain /\ { mix :: Unit, highpass :: Unit }
   , highpass :: THighpass /\ { sinOsc :: Unit }
   , sinOsc :: TSinOsc /\ {}
-  }
+  )
 
 scene0 :: Time -> SceneTemplate
 scene0 { time: time' } =

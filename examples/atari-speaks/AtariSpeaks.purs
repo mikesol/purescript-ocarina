@@ -35,8 +35,8 @@ import WAGS.WebAPI (AnalyserNode, AnalyserNodeCb, AudioContext, BrowserAudioBuff
 vol = 1.4 :: Number
 
 type World = { atar :: BrowserAudioBuffer }
-type Analysers = ( myAnalyser :: Maybe AnalyserNode )
-type AnalysersCb = ( myAnalyser :: AnalyserNodeCb )
+type Analysers = (myAnalyser :: Maybe AnalyserNode)
+type AnalysersCb = (myAnalyser :: AnalyserNodeCb)
 
 type SceneTemplate
   = CSpeaker

@@ -42,9 +42,9 @@ makeScene
    . Monoid res
   => AudioInterpret audio engine
   => GraphIsRenderable graph
-  => EFrame env audio engine proofA res { | graph } a
+  => EFrame env audio engine proofA res graph a
   -> ( forall proofB
-        . WAG audio engine proofB res { | graph } a
+        . WAG audio engine proofB res graph a
        -> Scene env audio engine proofB res
      )
   -> Scene env audio engine proofA res
@@ -58,10 +58,10 @@ makeSceneFlipped
   => AudioInterpret audio engine
   => GraphIsRenderable graph
   => ( forall proofB
-        . WAG audio engine proofB res { | graph } a
+        . WAG audio engine proofB res graph a
        -> Scene env audio engine proofB res
      )
-  -> EFrame env audio engine proofA res { | graph } a
+  -> EFrame env audio engine proofA res graph a
   -> Scene env audio engine proofA res
 makeSceneFlipped = Functions.makeSceneFlipped
 
@@ -91,10 +91,10 @@ loop
   => GraphIsRenderable graph
   => AudioInterpret audio engine
   => ( forall proofB
-        . WAG audio engine proofB res { | graph } a
-       -> Frame env audio engine proofB res { | graph } a
+        . WAG audio engine proofB res graph a
+       -> Frame env audio engine proofB res graph a
      )
-  -> WAG audio engine proofA res { | graph } a
+  -> WAG audio engine proofA res graph a
   -> Scene env audio engine proofA res
 loop = Functions.loop
 
@@ -106,9 +106,9 @@ iloop
   => ( forall proofB
         . env
        -> a
-       -> IxWAG audio engine proofB res { | graph } { | graph } a
+       -> IxWAG audio engine proofB res graph graph a
      )
-  -> WAG audio engine proofA res { | graph } a
+  -> WAG audio engine proofA res graph a
   -> Scene env audio engine proofA res
 iloop = Functions.iloop
 
@@ -118,10 +118,10 @@ branch
   => GraphIsRenderable graph
   => AudioInterpret audio engine
   => ( forall proofB
-        . WAG audio engine proofB res { | graph } a
-       -> EFrame env audio engine proofB res { | graph } a
+        . WAG audio engine proofB res graph a
+       -> EFrame env audio engine proofB res graph a
      )
-  -> WAG audio engine proofA res { | graph } a
+  -> WAG audio engine proofA res graph a
   -> Scene env audio engine proofA res
 branch = Functions.branch
 
@@ -134,10 +134,10 @@ ibranch
         . env
        -> a
        -> Either
-            (WAG audio engine proofB res { | graph } a -> Scene env audio engine proofB res)
-            (IxWAG audio engine proofB res { | graph } { | graph } a)
+            (WAG audio engine proofB res graph a -> Scene env audio engine proofB res)
+            (IxWAG audio engine proofB res graph graph a)
      )
-  -> WAG audio engine proofA res { | graph } a
+  -> WAG audio engine proofA res graph a
   -> Scene env audio engine proofA res
 ibranch = Functions.ibranch
 
@@ -146,9 +146,9 @@ istart
    . GraphIsRenderable graph
   => Monoid res
   => AudioInterpret audio engine
-  => IxFrame env audio engine Frame0 res {} { | graph } a
+  => IxFrame env audio engine Frame0 res () graph a
   -> ( forall proofB
-        . WAG audio engine proofB res { | graph } a
+        . WAG audio engine proofB res graph a
        -> Scene env audio engine proofB res
      )
   -> Scene env audio engine Frame0 res
@@ -165,7 +165,7 @@ startUsing
   => { microphone :: Maybe BrowserMicrophone }
   -> control
   -> ( forall proofA
-        . WAG audio engine proofA res { | graph } control
+        . WAG audio engine proofA res graph control
        -> Scene env audio engine proofA res
      )
   -> Scene env audio engine Frame0 res
@@ -183,7 +183,7 @@ startUsingWithHint
   -> { microphone :: Maybe BrowserMicrophone }
   -> control
   -> ( forall proofA
-        . WAG audio engine proofA res { | graph } control
+        . WAG audio engine proofA res graph control
        -> Scene env audio engine proofA res
      )
   -> Scene env audio engine Frame0 res
@@ -194,7 +194,7 @@ freeze
    . Monoid res
   => GraphIsRenderable graph
   => AudioInterpret audio engine
-  => WAG audio engine proof res { | graph } x
+  => WAG audio engine proof res graph x
   -> Scene env audio engine proof res
 freeze = Functions.freeze
 
@@ -203,9 +203,9 @@ makeSceneR
    . Monoid res
   => GraphIsRenderable graph
   => AudioInterpret audio engine
-  => Frame env audio engine proofA res { | graph } a
+  => Frame env audio engine proofA res graph a
   -> ( forall proofB
-        . WAG audio engine proofB res { | graph } a
+        . WAG audio engine proofB res graph a
        -> Scene env audio engine proofB res
      )
   -> Scene env audio engine proofA res
@@ -219,10 +219,10 @@ makeSceneRFlipped
   => GraphIsRenderable graph
   => AudioInterpret audio engine
   => ( forall proofB
-        . WAG audio engine proofB res { | graph } a
+        . WAG audio engine proofB res graph a
        -> Scene env audio engine proofB res
      )
-  -> Frame env audio engine proofA res { | graph } a
+  -> Frame env audio engine proofA res graph a
   -> Scene env audio engine proofA res
 makeSceneRFlipped = Functions.makeSceneRFlipped
 
@@ -233,9 +233,9 @@ makeSceneR'
    . Monoid res
   => GraphIsRenderable graph
   => AudioInterpret audio engine
-  => WAG audio engine proofA res { | graph } a
+  => WAG audio engine proofA res graph a
   -> ( forall proofB
-        . WAG audio engine proofB res { | graph } a
+        . WAG audio engine proofB res graph a
        -> Scene env audio engine proofB res
      )
   -> Scene env audio engine proofA res
@@ -249,10 +249,10 @@ makeSceneR'Flipped
   => GraphIsRenderable graph
   => AudioInterpret audio engine
   => ( forall proofB
-        . WAG audio engine proofB res { | graph } a
+        . WAG audio engine proofB res graph a
        -> Scene env audio engine proofB res
      )
-  -> WAG audio engine proofA res { | graph } a
+  -> WAG audio engine proofA res graph a
   -> Scene env audio engine proofA res
 makeSceneR'Flipped = Functions.makeSceneR'Flipped
 
