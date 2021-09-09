@@ -3,7 +3,7 @@ module WAGS.Control.Indexed where
 import Prelude
 
 import Control.Applicative.Indexed (class IxApplicative, class IxApply, iapply, ipure)
-import Control.Bind.Indexed (class IxBind)
+import Control.Bind.Indexed (class IxBind, ibind)
 import Control.Comonad (extract)
 import Control.Monad.Indexed (class IxMonad)
 import Data.Functor (voidRight)
@@ -24,7 +24,6 @@ instance ixApplyIxWAG :: IxApply (IxWAG audio engine proof res) where
     IxWAG \i ->
       let
         fab = fab' i
-
         a = a' fab
       in
         a $> ((extract fab) (extract a))
@@ -43,12 +42,16 @@ instance ixBindIxWAG :: IxBind (IxWAG audio engine proof res) where
     IxWAG \i ->
       let
         ma = ma' i
-
         IxWAG b = aToB (extract ma)
       in
         b ma
 
+instance bindIxWag :: Bind (IxWAG audio engine proof res graph graph) where
+  bind = ibind
+
 instance ixMonadIxWAG :: IxMonad (IxWAG audio engine proof res)
+
+instance monadIxWag :: Monad (IxWAG audio engine proof res graph graph)
 
 type IxFrame (env :: Type) (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type) (graphi :: Type) (grapho :: Type) (a :: Type)
   = env -> IxWAG audio engine proof res graphi grapho a
