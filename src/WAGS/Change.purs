@@ -552,7 +552,7 @@ instance canBeChangedLoopEnd ::
 
 class BufferOffsetable (tau :: Type)
 
-instance bufferOffsetableLoopBuf :: BufferOffsetable CTOR.TLoopBuf
+instance bufferOffsetablePlayBuf :: BufferOffsetable CTOR.TPlayBuf
 
 instance canBeChangedBufferOffset ::
   ( IsSymbol ptr
