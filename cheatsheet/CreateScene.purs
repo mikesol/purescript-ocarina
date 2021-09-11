@@ -2,6 +2,7 @@ module WAGS.CheatSheet.CreateScene where
 
 import Prelude
 
+import Control.Plus (empty)
 import Data.Tuple.Nested (type (/\))
 import Math ((%))
 import WAGS.Change (ichange)
@@ -18,10 +19,10 @@ type MyGraph
     , osc :: AU.TSinOsc /\ {}
     )
 
-initialFrame :: IxWAG () RunAudio RunEngine Frame0 Unit {} { | MyGraph } Unit
-initialFrame = ipatch
+initialFrame :: IxWAG RunAudio RunEngine Frame0 Unit () MyGraph Unit
+initialFrame = ipatch { microphone: empty }
 
-piece :: Scene (SceneI Unit Unit) () RunAudio RunEngine Frame0 Unit
+piece :: Scene (SceneI Unit Unit ()) RunAudio RunEngine Frame0 Unit
 piece =
   (const initialFrame)
     @!> iloop \(SceneI { time }) _ -> ichange { gain: 0.2, osc: 440.0 + ((time * 15.0) % 30.0) }

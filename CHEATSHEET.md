@@ -13,13 +13,19 @@ graph = W.speaker { myGain: W.gain 0.1 { myOsc: W.sinOsc 440.0 } }
 ## Creating a more complex graph
 
 ```purescript
+module WAGS.CheatSheet.ComplexGraph where
+
+import Prelude
+
+import Math (sin, cos, pi)
+import Type.Proxy (Proxy(..))
 import WAGS.Create.Optionals as W
 
-graph time = W.speaker {
+graph time myBuf = W.speaker {
   mainBus: W.gain 1.0 {
      vocals: W.gain 0.5 W.microphone_,
-     loop0: W.gain 0.2 (W.loopBuf { loopStart: 0.1, loopEnd: 0.5 } (Proxy :: _ "myBuf0")),
-     loop1: W.gain 0.5 (W.highpass 2000.0 (W.loopBuf { loopStart: 0.2, loopEnd: 1.5 } (Proxy :: _ "myBuf1"))),
+     loop0: W.gain 0.2 (W.loopBuf { loopStart: 0.1, loopEnd: 0.5 } myBuf),
+     loop1: W.gain 0.5 (W.highpass 2000.0 (W.loopBuf { loopStart: 0.2, loopEnd: 1.5 } myBuf)),
      pad: W.gain 0.12 {
        osc0: W.sinOsc $ 220.0 + sin (pi * time * 3.0) * 10.0,
        osc1: W.sinOsc $ 350.0 + cos (pi * time * 1.3) * 20.0,
@@ -83,7 +89,9 @@ Large-scale works often need to branch between many different potential outcomes
 module WAGS.CheatSheet.Branching where
 
 import Prelude
+
 import Control.Apply.Indexed ((:*>))
+import Control.Plus (empty)
 import Data.Either (Either(..))
 import Data.Tuple.Nested (type (/\))
 import Math ((%))
@@ -94,58 +102,60 @@ import WAGS.Control.Functions.Validated (ibranch, (@!>))
 import WAGS.Control.Indexed (IxWAG)
 import WAGS.Control.Types (Frame0, Scene, WAG)
 import WAGS.Graph.AudioUnit as AU
-import WAGS.Interpret (BrowserAudioBuffer)
 import WAGS.Patch (ipatch)
 import WAGS.Run (RunAudio, RunEngine, SceneI(..))
+import WAGS.WebAPI (BrowserAudioBuffer)
 
-type Assets
-  = ( buffers :: { "my-buffer" :: BrowserAudioBuffer } )
+type World = { myBuffer :: BrowserAudioBuffer }
 
 type MyGraph1
-  = ( speaker :: AU.TSpeaker /\ { gain :: Unit }
-    , gain :: AU.TGain /\ { osc :: Unit }
-    , osc :: AU.TSinOsc /\ {}
-    )
+  =
+  ( speaker :: AU.TSpeaker /\ { gain :: Unit }
+  , gain :: AU.TGain /\ { osc :: Unit }
+  , osc :: AU.TSinOsc /\ {}
+  )
 
 type MyGraph2
-  = ( speaker :: AU.TSpeaker /\ { gain :: Unit }
-    , gain :: AU.TGain /\ { buf :: Unit }
-    , buf :: AU.TLoopBuf /\ {}
-    )
+  =
+  ( speaker :: AU.TSpeaker /\ { gain :: Unit }
+  , gain :: AU.TGain /\ { buf :: Unit }
+  , buf :: AU.TLoopBuf /\ {}
+  )
 
-initialFrame :: IxWAG Assets RunAudio RunEngine Frame0 Unit {} { | MyGraph1 } Number
-initialFrame = ipatch $> 42.0
+initialFrame :: IxWAG RunAudio RunEngine Frame0 Unit () MyGraph1 Number
+initialFrame = ipatch { microphone: empty } $> 42.0
 
-branch1 ::
-  forall proof.
-  WAG Assets RunAudio RunEngine proof Unit { | MyGraph1 } Number ->
-  Scene (SceneI Unit Unit) Assets RunAudio RunEngine proof Unit
+branch1
+  :: forall proof
+   . WAG RunAudio RunEngine proof Unit MyGraph1 Number
+  -> Scene (SceneI Unit World ()) RunAudio RunEngine proof Unit
 branch1 =
   ibranch \(SceneI e) a ->
     if e.time % 2.0 < 1.0 then
       Right $ ichange { osc: 330.0 } $> a
     else
-      Left $ icont branch2 (ipatch :*> ichange { buf: Proxy :: _ "my-buffer" } $> "hello")
+      Left $ icont branch2 (ipatch { microphone: empty } :*> ichange { buf: e.world.myBuffer } $> "hello")
 
-branch2 ::
-  forall proof.
-  WAG Assets RunAudio RunEngine proof Unit { | MyGraph2 } String ->
-  Scene (SceneI Unit Unit) Assets RunAudio RunEngine proof Unit
+branch2
+  :: forall proof
+   . WAG RunAudio RunEngine proof Unit MyGraph2 String
+  -> Scene (SceneI Unit World ()) RunAudio RunEngine proof Unit
 branch2 =
   ibranch \(SceneI e) a ->
     if e.time % 2.0 > 1.0 then
       Right
-        $ ichange
+        $
+          ichange
             { buf:
                 { playbackRate: 2.1
-                , buffer: Proxy :: _ "my-buffer"
+                , buffer: e.world.myBuffer
                 }
             }
-        $> a
+            $> a
     else
-      Left $ icont branch1 (ipatch $> 42.0)
+      Left $ icont branch1 (ipatch { microphone: empty } $> 42.0)
 
-piece :: Scene (SceneI Unit Unit) Assets RunAudio RunEngine Frame0 Unit
+piece :: Scene (SceneI Unit World ()) RunAudio RunEngine Frame0 Unit
 piece = const initialFrame @!> branch1
 ```
 
