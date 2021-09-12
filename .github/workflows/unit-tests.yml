@@ -17,5 +17,7 @@ jobs:
         run: npx spago -x test.dhall build
       - name: Spago build examples
         run: npx spago -x examples.dhall build
+      - name: Spago build cheatsheet
+        run: npx spago -x cheatsheet.dhall build
       - name: Spago test
         run: npx spago -x test.dhall test

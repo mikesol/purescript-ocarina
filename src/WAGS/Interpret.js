@@ -165,7 +165,7 @@ exports.setAnalyserNodeCb_ = function (ptr) {
   return function (a) {
     return function (state) {
       return function () {
-        if (state.units[ptr].analyserOrig === a) {return;}
+        if (state.units[ptr].analyserOrig === a) { return; }
         // first, unsubscribe
         state.units[ptr].analyser && state.units[ptr].analyser();
         state.units[ptr].analyser = a(state.units[ptr].se)();
@@ -456,8 +456,8 @@ exports.makeLowshelf_ = function (ptr) {
   };
 };
 exports.makeMicrophone_ = function (microphone) {
-  return function(state) {
-    return function () {     
+  return function (state) {
+    return function () {
       state.units["microphone"] = {
         main: state.context.createMediaStreamSource(microphone),
         outgoing: [],
@@ -676,7 +676,7 @@ exports.setMediaRecorderCb_ = function (ptr) {
   return function (a) {
     return function (state) {
       return function () {
-        if (state.units[ptr].recorderOrig === a) {return;}
+        if (state.units[ptr].recorderOrig === a) { return; }
         state.units[ptr].recorder && state.units[ptr].recorder.stop();
         var mediaRecorderSideEffectFn = a;
         state.units[ptr].recorderOrig = a;
@@ -965,18 +965,29 @@ var setOff_ = function (ptr) {
           return;
         }
         state.units[ptr].onOff = false;
-        state.units[ptr].main.stop(state.writeHead + onOffInstr.timeOffset);
-        for (var i = 0; i < state.units[ptr].outgoing.length; i++) {
-          state.units[ptr].main.disconnect(
-            state.units[state.units[ptr].outgoing[i]].main
-          );
-          if (state.units[state.units[ptr].outgoing[i]].se) {
-            state.units[ptr].main.disconnect(
-              state.units[state.units[ptr].outgoing[i]].se
-            );
+        var oldMain = state.units[ptr].main;
+        var oldOutgoing = state.units[ptr].outgoing.slice();
+        oldMain.stop(state.writeHead + onOffInstr.timeOffset);
+        // defer disconnection until stop has happened
+        setTimeout(() => {
+          for (var i = 0; i < oldOutgoing.length; i++) {
+            try {
+              oldMain.disconnect(
+                state.units[oldOutgoing[i]].main
+              );
+              if (state.units[oldOutgoing[i]].se) {
+                oldMain.disconnect(
+                  state.units[oldOutgoing[i]].se
+                );
+              }
+            } catch (e) {
+              console.log(e);
+              // fail silently, as it means the unit is no longer available, but
+              // as we are disconnecting it doesn't matter
+              continue;
+            }
           }
-        }
-        delete state.units[ptr].main;
+        }, 1000.0 * (state.writeHead + onOffInstr.timeOffset + 0.2 - state.context.currentTime));
         state.units[ptr].main = state.units[ptr].createFunction();
         for (var i = 0; i < state.units[ptr].outgoing.length; i++) {
           state.units[ptr].main.connect(
@@ -1404,7 +1415,7 @@ exports.getByteFrequencyData = function (analyserNode) {
     return dataArray;
   }
 }
-exports.bufferSampleRate = function(buffer) { return buffer.sampleRate }
-exports.bufferLength = function(buffer) { return buffer.length }
-exports.bufferDuration = function(buffer) { return buffer.duration }
-exports.bufferNumberOfChannels = function(buffer) { return buffer.numberOfChannels }
+exports.bufferSampleRate = function (buffer) { return buffer.sampleRate }
+exports.bufferLength = function (buffer) { return buffer.length }
+exports.bufferDuration = function (buffer) { return buffer.duration }
+exports.bufferNumberOfChannels = function (buffer) { return buffer.numberOfChannels }
