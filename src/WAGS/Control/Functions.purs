@@ -321,8 +321,7 @@ infixr 6 makeSceneR'Flipped as <||@
 -- | for `res` is returned to the scene.
 modifyRes
   :: forall audio engine proof res i a
-   . AudioInterpret audio engine
-  => (res -> res)
+   . (res -> res)
   -> WAG audio engine proof res i a
   -> WAG audio engine proof res i res
 modifyRes f w = unsafeWAG { context: (context { res = res' }), value: res' }
@@ -336,7 +335,6 @@ modifyRes f w = unsafeWAG { context: (context { res = res' }), value: res' }
 -- | for `res` is returned to the scene.
 imodifyRes
   :: forall audio engine proof res i
-   . AudioInterpret audio engine
-  => (res -> res)
+   . (res -> res)
   -> IxWAG audio engine proof res i i res
 imodifyRes f = IxWAG (modifyRes f)
