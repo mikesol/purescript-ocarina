@@ -3,6 +3,7 @@ module WAGS.Control.Functions
   , istart
   , startUsing
   , startUsingWithHint
+  , loopUsingScene
   , modifyRes
   , imodifyRes
   , makeScene
@@ -33,8 +34,10 @@ import Control.Comonad (extract)
 import Data.Either (Either(..))
 import Data.Maybe (Maybe)
 import Data.Tuple.Nested (type (/\))
+import WAGS.Change (class Change, ichange)
 import WAGS.Control.Indexed (IxWAG(..), IxFrame)
 import WAGS.Control.Types (AudioState', EFrame, Frame, Frame0, InitialWAG, Scene(..), Scene', WAG, oneFrame, unsafeUnWAG, unsafeWAG)
+import WAGS.Create (class Create, icreate)
 import WAGS.CreateT (class CreateT)
 import WAGS.Interpret (class AudioInterpret)
 import WAGS.Patch (class Patch, ipatch)
@@ -172,6 +175,19 @@ startUsingWithHint
   -> Scene env audio engine Frame0 res
 startUsingWithHint _ patchInfo control next = const (ipatch patchInfo $> control) @!> next
 
+loopUsingScene
+  :: forall env audio engine res scene graph control
+   . Monoid res
+  => AudioInterpret audio engine
+  => Create scene () graph
+  => Change scene graph
+  => (env -> control -> { scene :: { | scene }, control :: control })
+  -> control
+  -> Scene env audio engine Frame0 res
+loopUsingScene sceneF initialControl =
+  (\env -> let { scene, control } = sceneF env initialControl in icreate scene $> control) @!>
+    iloop \env icontrol ->
+      let { scene, control } = sceneF env icontrol in ichange scene $> control
 -- | Loops audio.
 -- |
 -- | The first argument is the loop and the second argument is the incoming graph that gets rendered before the loop.

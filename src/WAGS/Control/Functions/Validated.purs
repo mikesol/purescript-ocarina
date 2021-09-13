@@ -8,6 +8,7 @@ module WAGS.Control.Functions.Validated
   , makeSceneR'Flipped
   , startUsing
   , startUsingWithHint
+  , loopUsingScene
   , loop
   , iloop
   , branch
@@ -27,10 +28,12 @@ import Prelude
 
 import Data.Either (Either)
 import Data.Maybe (Maybe)
+import WAGS.Change (class Change)
 import WAGS.Control.Functions (class GraphHint)
 import WAGS.Control.Functions as Functions
 import WAGS.Control.Indexed (IxWAG, IxFrame)
 import WAGS.Control.Types (EFrame, Frame, Frame0, Scene, WAG)
+import WAGS.Create (class Create)
 import WAGS.CreateT (class CreateT)
 import WAGS.Interpret (class AudioInterpret)
 import WAGS.Patch (class Patch)
@@ -188,6 +191,18 @@ startUsingWithHint
      )
   -> Scene env audio engine Frame0 res
 startUsingWithHint = Functions.startUsingWithHint
+
+loopUsingScene
+  :: forall env audio engine res scene graph control
+   . Monoid res
+  => AudioInterpret audio engine
+  => Create scene () graph
+  => Change scene graph
+  => GraphIsRenderable graph
+  => (env -> control -> { scene :: { | scene }, control :: control })
+  -> control
+  -> Scene env audio engine Frame0 res
+loopUsingScene = Functions.loopUsingScene
 
 freeze
   :: forall env audio engine proof res graph x
