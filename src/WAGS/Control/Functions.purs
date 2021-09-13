@@ -188,6 +188,7 @@ loopUsingScene sceneF initialControl =
   (\env -> let { scene, control } = sceneF env initialControl in icreate scene $> control) @!>
     iloop \env icontrol ->
       let { scene, control } = sceneF env icontrol in ichange scene $> control
+
 -- | Loops audio.
 -- |
 -- | The first argument is the loop and the second argument is the incoming graph that gets rendered before the loop.

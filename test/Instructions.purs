@@ -1,6 +1,7 @@
 module Test.Instructions where
 
 import Prelude
+
 import Control.Applicative.Indexed (ipure)
 import Control.Monad.Reader (ask)
 import Data.Either (Either(..))
@@ -8,8 +9,8 @@ import Data.Tuple.Nested ((/\), type (/\))
 import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (shouldEqual)
 import WAGS.Change (change, ichange)
-import WAGS.Control.Functions (branch, freeze, ibranch, icont, iloop, loop, start, (@|>))
-import WAGS.Control.Types (Frame, Frame0, oneFrame')
+import WAGS.Control.Functions (branch, freeze, ibranch, icont, iloop, loop, loopUsingScene, start, (@|>))
+import WAGS.Control.Types (Frame, Frame0, Scene, oneFrame')
 import WAGS.Create (create)
 import WAGS.Create.Optionals (CGain, CHighpass, CSinOsc, CSpeaker, Ref, gain, highpass, ref, sinOsc, speaker)
 import WAGS.Graph.AudioUnit (OnOff(..), TGain, THighpass, TSinOsc, TSpeaker)
@@ -94,6 +95,45 @@ testInstructions = do
       resolveInstructions frame1Instr `shouldEqual` []
     it "is coherent at frame2Instr" do
       resolveInstructions frame2Instr `shouldEqual` []
+  describe "a simple scene using a utility function" do
+    let
+      scene :: Scene Unit Unit Instruction Frame0 Unit
+      scene = loopUsingScene
+        ( const $ const $
+            { control: unit
+            , scene: speaker
+                { mix:
+                    gain 0.7 { sinOsc: sinOsc 441.0 }
+
+                }
+            }
+        )
+        unit
+      (frame0Instr /\ _ /\ frame1) = oneFrame' scene unit
+
+      (frame1Instr /\ _ /\ frame2) = oneFrame' frame1 unit
+
+      (frame2Instr /\ _ /\ _) = oneFrame' frame2 unit
+
+      createAssertion =
+        [ MakeSpeaker
+        , MakeGain "mix" (pure 0.7)
+        , MakeSinOsc "sinOsc" (pure On) (pure 441.0)
+        , ConnectXToY "mix" "speaker"
+        , ConnectXToY "sinOsc" "mix"
+        ]
+      setAssertion =
+        [ (SetGain "mix" (pure 0.7))
+        , (SetOnOff "sinOsc" (pure On))
+        , (SetFrequency "sinOsc" (pure 441.0))
+        ]
+    it "is coherent at frame0Instr" do
+      resolveInstructions frame0Instr `shouldEqual` createAssertion
+    it "is coherent at frame1Instr" do
+      resolveInstructions frame1Instr `shouldEqual` setAssertion
+    it "is coherent at frame2Instr" do
+      resolveInstructions frame2Instr `shouldEqual` setAssertion
+    pure unit
   describe "a simple scene that changes only the sine wave osc as a function of time" do
     let
       simpleFrame :: Frame Time Unit Instruction Frame0 Unit SceneType Unit
