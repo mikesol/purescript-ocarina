@@ -382,7 +382,7 @@ bufferToList timeToCollect incomingEvent =
   makeEvent \k -> do
     currentTimeoutId <- Ref.new (Nothing :: Maybe TimeoutId)
     currentEventList <- Ref.new (Nil :: List { time :: Instant, value :: a })
-    subscribe timed \a -> do
+    unsub <- subscribe timed \a -> do
       Ref.modify_ (Cons a) currentEventList
       inTimeout <- Ref.read currentTimeoutId
       when (isNothing inTimeout) $ (flip Ref.write currentTimeoutId <<< Just)
@@ -391,6 +391,8 @@ bufferToList timeToCollect incomingEvent =
           Ref.write Nil currentEventList
           Ref.write Nothing currentTimeoutId
           k cil
-      pure $ Ref.read currentTimeoutId >>= flip for_ clearTimeout
+    pure do
+      Ref.read currentTimeoutId >>= flip for_ clearTimeout
+      unsub
   where
   timed = withTime incomingEvent
