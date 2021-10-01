@@ -61,38 +61,54 @@ var genericSetter = function (unit, name, timeToSet, param) {
 };
 var connectXToY = function (x) {
   return function (y) {
-    return function (state) {
-      return function () {
-        state.units[x].main.connect(state.units[y].main);
-        state.units[x].outgoing.push(y);
-        state.units[y].incoming.push(x);
-        if (state.units[y].se) {
-          state.units[x].main.connect(state.units[y].se);
-        }
+    return function (stateX) {
+      return function (stateY) {
+        return function () {
+          stateX.units[x].main.connect(stateY.units[y].main);
+          stateX.units[x].outgoing.push({ unit: y, state: stateY });
+          stateY.units[y].incoming.push({ unit: x, state: stateX });
+          if (stateY.units[y].se) {
+            stateX.units[x].main.connect(stateY.units[y].se);
+          }
+        };
       };
-    };
+    }
   };
 };
-exports.connectXToY_ = connectXToY;
-var disconnectXFromY = function (x) {
+exports.connectXToY_ = function (x) {
   return function (y) {
     return function (state) {
-      return function () {
-        state.units[x].main.disconnect(state.units[y].main);
-        state.units[x].outgoing = state.units[x].outgoing.filter(function (i) {
-          i !== y;
-        });
-        state.units[y].incoming = state.units[y].incoming.filter(function (i) {
-          i !== x;
-        });
-        if (state.units[y].se) {
-          state.units[x].main.disconnect(state.units[y].se);
-        }
-      };
+      return connectXToY(x)(y)(state)(state);
+    }
+  }
+};
+var disconnectXFromY = function (x) {
+  return function (y) {
+    return function (stateX) {
+      return function (stateY) {
+        return function () {
+          stateX.units[x].main.disconnect(stateY.units[y].main);
+          stateX.units[x].outgoing = stateX.units[x].outgoing.filter(function (i) {
+            !(i.unit === y && i.state === stateY);
+          });
+          stateY.units[y].incoming = stateY.units[y].incoming.filter(function (i) {
+            !(i.unit === x && i.state === stateX);
+          });
+          if (stateY.units[y].se) {
+            stateX.units[x].main.disconnect(stateY.units[y].se);
+          }
+        };
+      }
     };
   };
 };
-exports.disconnectXFromY_ = disconnectXFromY;
+exports.disconnectXFromY_ = function (x) {
+  return function (y) {
+    return function (state) {
+      return disconnectXFromY(x)(y)(state)(state);
+    }
+  }
+};
 exports.destroyUnit_ = function (ptr) {
   return function (state) {
     return function () {
@@ -228,10 +244,10 @@ exports.makeConstant_ = function (ptr) {
             main: createFunction(),
           };
           applyResumeClosure(state.units[ptr]);
-          if (onOff) {
-            state.units[ptr].main.start();
+          if (onOff.param === "on") {
+            state.units[ptr].main.start(state.writeHead + onOff.timeOffset);
           }
-          state.units[ptr].onOff = onOff;
+          state.units[ptr].onOff = onOff.param === "on";
         };
       };
     };
@@ -403,14 +419,11 @@ exports.makeLoopBuf_ = function (ptr) {
                   },
                   main: createFunction(),
                 };
-                applyResumeClosure(state.units[ptr]);
-                if (onOff) {
-                  state.units[ptr].main.start(
-                    state.writeHead + b.timeOffset,
-                    c
-                  );
+                if (onOff.param === "on") {
+                  applyResumeClosure(state.units[ptr]);
+                  state.units[ptr].main.start(state.writeHead + onOff.timeOffset, c);
                 }
-                state.units[ptr].onOff = onOff;
+                state.units[ptr].onOff = onOff.param === "on";
               };
             };
           };
@@ -548,10 +561,10 @@ exports.makePeriodicOsc_ = function (ptr) {
               main: createFunction(),
             };
             applyResumeClosure(state.units[ptr]);
-            if (onOff) {
-              state.units[ptr].main.start(state.writeHead + b.timeOffset);
+            if (onOff.param === "on") {
+              state.units[ptr].main.start(state.writeHead + onOff.timeOffset);
             }
-            state.units[ptr].onOff = onOff;
+            state.units[ptr].onOff = onOff.param === "on";
           };
         };
       };
@@ -585,10 +598,10 @@ exports.makePeriodicOscV_ = function (ptr) {
               main: createFunction(),
             };
             applyResumeClosure(state.units[ptr]);
-            if (onOff) {
-              state.units[ptr].main.start(state.writeHead + b.timeOffset);
+            if (onOff.param === "on") {
+              state.units[ptr].main.start(state.writeHead + onOff.timeOffset);
             }
-            state.units[ptr].onOff = onOff;
+            state.units[ptr].onOff = onOff.param === "on";
           };
         };
       };
@@ -611,6 +624,87 @@ exports.makePlayBufWithDeferredBuffer_ = function (ptr) {
       };
     };
   };
+};
+exports.makeInputWithDeferredInput_ = function (ptr) {
+  return function (state) {
+    return function () {
+      state.units[ptr] = {
+        outgoing: [],
+        incoming: [],
+        main: state.context.createGain(),
+      };
+      state.units[ptr].main.gain = 1.0;
+    };
+  };
+};
+exports.makeInput_ = function (ptr) {
+  return function (a) {
+    return function (state) {
+      return function () {
+        state.units[ptr] = {
+          outgoing: [],
+          incoming: [],
+          main: state.context.createGain(),
+          input: a,
+        };
+        connectXToY(a)(ptr)(state.parent)(state)();
+        state.units[ptr].main.gain = 1.0;
+      };
+    };
+  }
+};
+exports.makeSubgraphWithDeferredScene_ = function () {
+  return function () {
+    return function () {
+      // this is a no-op for now, consider removing
+    };
+  };
+};
+exports.makeSubgraph_ = function (ptr) {
+  return function (terminalPtr) {
+    return function (vek) {
+      return function (sceneM) {
+        return function (envM) {
+          return function (funk) {
+            return function (state) {
+              return function () {
+                var children = [];
+                var scenes = [];
+                for (var i = 0; i < vek.length; i++) {
+                  children[i] = {
+                    context: state.context
+                    , writeHead: state.writeHead
+                    , units: {}
+                    , parent: state
+                  }
+                  scenes[i] = sceneM(i)(vek[i]);
+                }
+                state.units[ptr] = {
+                  outgoing: [],
+                  incoming: [],
+                  main: state.context.createGain(),
+                  children: children,
+                  scenes: scenes
+                };
+                state.units[ptr].main.gain = 1.0;
+                for (var i = 0; i < scenes.length; i++) {
+                  var applied = funk(envM(i)(vek[i]))(scenes[i]);
+                  for (var j = 0; j < applied.instructions.length; j++) {
+                    // thunk
+                    applied.instructions[j](children[i])();
+                  }
+                  scenes[i] = applied.nextScene;
+                }
+                for (var i = 0; i < children.length; i++) {
+                  connectXToY(terminalPtr)(ptr)(children[i])(state)();
+                }
+              };
+            };
+          };
+        };
+      };
+    }
+  }
 };
 exports.makePlayBuf_ = function (ptr) {
   return function (a) {
@@ -638,11 +732,11 @@ exports.makePlayBuf_ = function (ptr) {
                 },
                 main: createFunction(),
               };
-              applyResumeClosure(state.units[ptr]);
-              if (onOff) {
-                state.units[ptr].main.start(state.writeHead + c.timeOffset, b);
+              if (onOff.param === "on") {
+                applyResumeClosure(state.units[ptr]);
+                state.units[ptr].main.start(state.writeHead + onOff.timeOffset, b);
               }
-              state.units[ptr].onOff = onOff;
+              state.units[ptr].onOff = onOff.param === "on";
             };
           };
         };
@@ -709,10 +803,10 @@ exports.makeSawtoothOsc_ = function (ptr) {
             main: createFunction(),
           };
           applyResumeClosure(state.units[ptr]);
-          if (onOff) {
-            state.units[ptr].main.start(state.writeHead + a.timeOffset);
+          if (onOff.param === "on") {
+            state.units[ptr].main.start(state.writeHead + onOff.timeOffset);
           }
-          state.units[ptr].onOff = onOff;
+          state.units[ptr].onOff = onOff.param === "on";
         };
       };
     };
@@ -740,10 +834,10 @@ exports.makeSinOsc_ = function (ptr) {
             main: createFunction(),
           };
           applyResumeClosure(state.units[ptr]);
-          if (onOff) {
-            state.units[ptr].main.start(state.writeHead + a.timeOffset);
+          if (onOff.param === "on") {
+            state.units[ptr].main.start(state.writeHead + onOff.timeOffset);
           }
-          state.units[ptr].onOff = onOff;
+          state.units[ptr].onOff = onOff.param === "on";
         };
       };
     };
@@ -782,10 +876,10 @@ exports.makeSquareOsc_ = function (ptr) {
             main: createFunction(),
           };
           applyResumeClosure(state.units[ptr]);
-          if (onOff) {
-            state.units[ptr].main.start(state.writeHead + a.timeOffset);
+          if (onOff.param === "on") {
+            state.units[ptr].main.start(state.writeHead + onOff.timeOffset);
           }
-          state.units[ptr].onOff = onOff;
+          state.units[ptr].onOff = onOff.param === "on";
         };
       };
     };
@@ -827,10 +921,10 @@ exports.makeTriangleOsc_ = function (ptr) {
             main: createFunction(),
           };
           applyResumeClosure(state.units[ptr]);
-          if (onOff) {
-            state.units[ptr].main.start(state.writeHead + a.timeOffset);
+          if (onOff.param === "on") {
+            state.units[ptr].main.start(state.writeHead + onOff.timeOffset);
           }
-          state.units[ptr].onOff = onOff;
+          state.units[ptr].onOff = onOff.param === "on";
         };
       };
     };
@@ -872,6 +966,79 @@ exports.setBuffer_ = function (ptr) {
       };
     };
   };
+};
+exports.setInput_ = function (ptr) {
+  return function (a) {
+    return function (state) {
+      return function () {
+        if (state.units[ptr].input && state.units[ptr].input === a) {
+          return;
+        }
+        if (state.units[ptr].input) {
+          disconnectXFromY(state.units[ptr].input, ptr, state.parent, state);
+        }
+        state.units[ptr].input = a;
+        connectXToY(a)(ptr)(state.parent)(state)();
+        state.units[ptr].main.gain = 1.0;
+      };
+    };
+  }
+};
+exports.setSubgraph_ = function (ptr) {
+  return function (terminalPtr) {
+    return function (vek) {
+      return function (sceneM) {
+        return function (envM) {
+          return function (funk) {
+            return function (state) {
+              return function () {
+                var needsCreation = !(state.units[ptr] && state.units[ptr].children && state.units[ptr].scenes);
+                if (needsCreation) {
+                  var children = [];
+                  var scenes = [];
+                  for (var i = 0; i < vek.length; i++) {
+                    children[i] = {
+                      context: state.context
+                      , writeHead: state.writeHead
+                      , units: {}
+                      , parent: state
+                    }
+                    scenes[i] = sceneM(i)(vek[i]);
+                  }
+                  state.units[ptr] = {
+                    outgoing: [],
+                    incoming: [],
+                    main: state.context.createGain(),
+                    children: children,
+                    scenes: scenes
+                  };
+                } else {
+                  for (var i = 0; i < vek.length; i++) {
+                    state.units[ptr].children[i].writeHead = state.writeHead;
+                  }
+                }
+                var scenes = state.units[ptr].scenes;
+                var children = state.units[ptr].children;
+                for (var i = 0; i < scenes.length; i++) {
+                  var applied = funk(envM(i)(vek[i]))(scenes[i]);
+                  for (var j = 0; j < applied.instructions.length; j++) {
+                    // thunk
+                    applied.instructions[j](children[i])();
+                  }
+                  scenes[i] = applied.nextScene;
+                }
+                if (needsCreation) {
+                  for (var i = 0; i < children.length; i++) {
+                    connectXToY(terminalPtr)(ptr)(children[i])(state)();
+                  }
+                }
+              };
+            };
+          };
+        };
+      };
+    }
+  }
 };
 exports.setConvolverBuffer_ = function (ptr) {
   return function (buffer) {
@@ -971,13 +1138,14 @@ var setOff_ = function (ptr) {
         // defer disconnection until stop has happened
         setTimeout(() => {
           for (var i = 0; i < oldOutgoing.length; i++) {
+            var oogi = oldOutgoing[i];
             try {
               oldMain.disconnect(
-                state.units[oldOutgoing[i]].main
+                oogi.state.units[oogi.unit].main
               );
-              if (state.units[oldOutgoing[i]].se) {
+              if (oogi.state.units[oogi.unit].se) {
                 oldMain.disconnect(
-                  state.units[oldOutgoing[i]].se
+                  oogi.state.units[oogi.unit].se
                 );
               }
             } catch (e) {
@@ -990,12 +1158,13 @@ var setOff_ = function (ptr) {
         }, 1000.0 * (state.writeHead + onOffInstr.timeOffset + 0.2 - state.context.currentTime));
         state.units[ptr].main = state.units[ptr].createFunction();
         for (var i = 0; i < state.units[ptr].outgoing.length; i++) {
+          var ogi = state.units[ptr].outgoing[i];
           state.units[ptr].main.connect(
-            state.units[state.units[ptr].outgoing[i]].main
+            ogi.state.units[ogi.unit].main
           );
-          if (state.units[state.units[ptr].outgoing[i]].se) {
+          if (ogi.state.units[ogi.unit].se) {
             state.units[ptr].main.connect(
-              state.units[state.units[ptr].outgoing[i]].se
+              ogi.state.units[ogi.unit].se
             );
           }
         }
@@ -1003,7 +1172,6 @@ var setOff_ = function (ptr) {
     };
   };
 };
-
 exports.setLoopStart_ = function (ptr) {
   return function (a) {
     return function (state) {

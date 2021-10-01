@@ -20,8 +20,8 @@ import Halogen.HTML.Properties as HP
 import Halogen.VDom.Driver (runUI)
 import Math (sin, pi)
 import WAGS.Change (ichange)
-import WAGS.Control.Functions.Validated (iloop, (@!>))
-import WAGS.Control.Indexed (IxFrame)
+import WAGS.Control.Functions.Graph (iloop, (@!>))
+import WAGS.Control.Indexed (IxWAG)
 import WAGS.Control.Types (Frame0, Scene)
 import WAGS.Create (icreate)
 import WAGS.Create.Optionals (CAudioWorkletNode, CSpeaker, audioWorkletNode, speaker)
@@ -84,7 +84,7 @@ scene wnr time =
           {}
     }
 
-createFrame :: IxFrame (SceneI Unit World ()) RunAudio RunEngine Frame0 Unit () SceneType Unit
+createFrame :: SceneI Unit World () -> IxWAG RunAudio RunEngine Frame0 Unit () SceneType Unit
 createFrame (SceneI { time, world: { noiseUnit } }) = icreate (scene noiseUnit time)
 
 piece :: Scene (SceneI Unit World ()) RunAudio RunEngine Frame0 Unit

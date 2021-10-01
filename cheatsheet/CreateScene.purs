@@ -6,7 +6,7 @@ import Control.Plus (empty)
 import Data.Tuple.Nested (type (/\))
 import Math ((%))
 import WAGS.Change (ichange)
-import WAGS.Control.Functions.Validated (iloop, (@!>))
+import WAGS.Control.Functions.Graph (iloop, (@!>))
 import WAGS.Control.Indexed (IxWAG)
 import WAGS.Control.Types (Frame0, Scene)
 import WAGS.Graph.AudioUnit as AU

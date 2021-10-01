@@ -52,6 +52,3 @@ instance bindIxWag :: Bind (IxWAG audio engine proof res graph graph) where
 instance ixMonadIxWAG :: IxMonad (IxWAG audio engine proof res)
 
 instance monadIxWag :: Monad (IxWAG audio engine proof res graph graph)
-
-type IxFrame (env :: Type) (audio :: Type) (engine :: Type) (proof :: Type) (res :: Type) (graphi :: Row Type) (grapho :: Row Type) (a :: Type)
-  = env -> IxWAG audio engine proof res graphi grapho a

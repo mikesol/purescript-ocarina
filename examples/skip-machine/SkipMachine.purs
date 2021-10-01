@@ -24,7 +24,7 @@ import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.VDom.Driver (runUI)
 import WAGS.Change (ichange)
-import WAGS.Control.Functions.Validated (iloop, (@!>))
+import WAGS.Control.Functions.Graph (iloop, (@!>))
 import WAGS.Control.Indexed (IxWAG)
 import WAGS.Control.Types (Frame0, Scene)
 import WAGS.Create.Optionals (playBuf, speaker)

@@ -8,6 +8,8 @@ module WAGS.Interpret
   , FFIAudioSnapshot'
   , FFIAudioSnapshot(..)
   , FFINumericAudioParameter
+  , unAsSubGraph
+  , AsSubgraph(..)
   , audioBuffer
   , audioWorkletAddModule
   , close
@@ -71,6 +73,9 @@ module WAGS.Interpret
   , makeUnitCache
   , makeWaveShaper
   , mediaRecorderToUrl
+  , makeInputWithDeferredInput
+  , makeInput
+  , setInput
   , renderAudio
   , safeToFFI
   , setAnalyserNodeCb
@@ -100,8 +105,11 @@ module WAGS.Interpret
   , stopMediaRecorder
   , bufferSampleRate
   , bufferLength
-  , bufferDuration 
+  , bufferDuration
   , bufferNumberOfChannels
+  , makeSubgraphWithDeferredScene
+  , makeSubgraph
+  , setSubgraph
   ) where
 
 import Prelude
@@ -112,11 +120,13 @@ import Data.ArrayBuffer.Types (Float32Array, Uint8Array)
 import Data.Either (Either(..))
 import Data.Maybe (Maybe, fromMaybe, isNothing, maybe)
 import Data.Newtype (wrap)
-import Data.Symbol (class IsSymbol)
+import Data.Symbol (class IsSymbol, reflectSymbol)
+import Data.Tuple (snd)
 import Data.Tuple.Nested (type (/\), (/\))
 import Data.Typelevel.Num (class Nat, class Pos)
 import Data.Vec (Vec)
 import Data.Vec as V
+import Data.Vec as Vec
 import Effect (Effect)
 import Effect.Aff (Aff)
 import Foreign (Foreign)
@@ -124,6 +134,7 @@ import Safe.Coerce (coerce)
 import Simple.JSON as JSON
 import Type.Row.Homogeneous (class Homogeneous)
 import Unsafe.Coerce (unsafeCoerce)
+import WAGS.Control.Types (Frame0, SubScene(..), oneSubFrame)
 import WAGS.Graph.AudioUnit (APOnOff, OnOff(..))
 import WAGS.Graph.Parameter (AudioParameter_(..), AudioParameter)
 import WAGS.Graph.Worklet (AudioWorkletNodeRequest, AudioWorkletNodeResponse)
@@ -326,6 +337,25 @@ defaultFFIAudio audioCtx unitCache =
 newtype FFIAudioSnapshot
   = FFIAudioSnapshot FFIAudioSnapshot'
 
+newtype AsSubgraph terminus inputs info env = AsSubgraph
+  ( forall audio engine
+     . AudioInterpret audio engine
+    => Int
+    -> info
+    -> SubScene terminus inputs env audio engine Frame0 Unit
+  )
+
+unAsSubGraph
+  :: forall terminus inputs info env
+   . AsSubgraph terminus inputs info env
+  -> ( forall audio engine
+        . AudioInterpret audio engine
+       => Int
+       -> info
+       -> SubScene terminus inputs env audio engine Frame0 Unit
+     )
+unAsSubGraph (AsSubgraph subgraph) = subgraph
+
 -- | A class with all possible instructions for interpreting audio.
 -- | The class is paramaterized by two types:
 -- | - `audio`: an audio context, which could be nothing (ie `Unit`) if there is audio or `FFIAudio` if there is audio.
@@ -385,6 +415,24 @@ class AudioInterpret audio engine where
   makePlayBufWithDeferredBuffer :: String -> audio -> engine
   -- | Make an audio buffer node.
   makePlayBuf :: String -> BrowserAudioBuffer -> Number -> APOnOff -> AudioParameter -> audio -> engine
+  -- | Make input with dferred input.
+  makeInputWithDeferredInput :: String -> audio -> engine
+  -- | Make input.
+  makeInput :: String -> String -> audio -> engine
+  -- | Make subgraph with deferred scene.
+  makeSubgraphWithDeferredScene :: String -> audio -> engine
+  -- | Make sugbraph.
+  makeSubgraph
+    :: forall proxy terminus inputs env n a
+     . IsSymbol terminus
+    => Pos n
+    => String
+    -> proxy terminus
+    -> V.Vec n a
+    -> (Int -> a -> env)
+    -> (Int -> a -> SubScene terminus inputs env audio engine Frame0 Unit)
+    -> audio
+    -> engine
   -- | Make a recorder.
   makeRecorder :: String -> MediaRecorderCb -> audio -> engine
   -- | Make a sawtooth oscillator.
@@ -449,6 +497,20 @@ class AudioInterpret audio engine where
   setPlaybackRate :: String -> AudioParameter -> audio -> engine
   -- | Set the frequency of an oscillator or filter.
   setFrequency :: String -> AudioParameter -> audio -> engine
+  -- | Set input
+  setInput :: String -> String -> audio -> engine
+  -- | Set subgraph.
+  setSubgraph
+    :: forall proxy terminus inputs env res n a
+     . IsSymbol terminus
+    => Pos n
+    => String
+    -> proxy terminus
+    -> V.Vec n a
+    -> (Int -> a -> env)
+    -> (Int -> a -> SubScene terminus inputs env audio engine Frame0 res)
+    -> audio
+    -> engine
 
 instance freeAudioInterpret :: AudioInterpret Unit Instruction where
   connectXToY a b = const $ ConnectXToY a b
@@ -462,6 +524,10 @@ instance freeAudioInterpret :: AudioInterpret Unit Instruction where
   makePassthroughConvolver a = const $ MakePassthroughConvolver a
   makeConvolver a b = const $ MakeConvolver a b
   makeDelay a b = const $ MakeDelay a b
+  makeInput a b = const $ MakeInput a b
+  makeInputWithDeferredInput a = const $ MakeInputWithDeferredInput a
+  makeSubgraph a _ _ _ _ = const $ MakeSubgraph a
+  makeSubgraphWithDeferredScene a = const $ MakeInputWithDeferredInput a
   makeDynamicsCompressor a b c d e f = const $ MakeDynamicsCompressor a b c d e f
   makeGain a b = const $ MakeGain a b
   makeHighpass a b c = const $ MakeHighpass a b c
@@ -510,6 +576,8 @@ instance freeAudioInterpret :: AudioInterpret Unit Instruction where
   setPlaybackRate a b = const $ SetPlaybackRate a b
   setFrequency a b = const $ SetFrequency a b
   setWaveShaperCurve a b = const $ SetWaveShaperCurve a b
+  setInput a b = const $ SetInput a b
+  setSubgraph a _ _ _ _ = const $ SetSubgraph a
 
 foreign import connectXToY_ :: String -> String -> FFIAudioSnapshot' -> Effect Unit
 
@@ -581,6 +649,23 @@ foreign import makeTriangleOsc_ :: String -> FFIStringAudioParameter -> FFINumer
 
 foreign import makeWaveShaper_ :: String -> BrowserFloatArray -> String -> FFIAudioSnapshot' -> Effect Unit
 
+foreign import makeInput_ :: String -> String -> FFIAudioSnapshot' -> Effect Unit
+
+foreign import makeInputWithDeferredInput_ :: String -> FFIAudioSnapshot' -> Effect Unit
+
+foreign import makeSubgraphWithDeferredScene_ :: String -> FFIAudioSnapshot' -> Effect Unit
+
+foreign import makeSubgraph_
+  :: forall a env scene
+   . String
+  -> String
+  -> Array a
+  -> (Int -> a -> scene)
+  -> (Int -> a -> env)
+  -> (env -> scene -> { instructions :: Array (FFIAudioSnapshot -> Effect Unit), nextScene :: scene })
+  -> FFIAudioSnapshot'
+  -> Effect Unit
+
 foreign import setAudioWorkletParameter_ :: String -> String -> FFINumericAudioParameter -> FFIAudioSnapshot' -> Effect Unit
 
 foreign import setOnOff_ :: String -> FFIStringAudioParameter -> FFIAudioSnapshot' -> Effect Unit
@@ -625,14 +710,29 @@ foreign import setPeriodicOscV_ :: String -> Array (Array Number) -> FFIAudioSna
 
 foreign import setAnalyserNodeCb_ :: String -> (AnalyserNode -> Effect (Effect Unit)) -> FFIAudioSnapshot' -> Effect Unit
 
-foreign import setMediaRecorderCb_ :: String -> (MediaRecorder ->  Effect Unit) -> FFIAudioSnapshot' -> Effect Unit
+foreign import setMediaRecorderCb_ :: String -> (MediaRecorder -> Effect Unit) -> FFIAudioSnapshot' -> Effect Unit
 
 foreign import setWaveShaperCurve_ :: String -> BrowserFloatArray -> FFIAudioSnapshot' -> Effect Unit
+
+foreign import setInput_ :: String -> String -> FFIAudioSnapshot' -> Effect Unit
+
+foreign import setSubgraph_
+  :: forall a env scene
+   . String
+  -> String
+  -> Array a
+  -> (Int -> a -> scene)
+  -> (Int -> a -> env)
+  -> (env -> scene -> { instructions :: Array (FFIAudioSnapshot -> Effect Unit), nextScene :: scene })
+  -> FFIAudioSnapshot'
+  -> Effect Unit
 
 instance effectfulAudioInterpret :: AudioInterpret FFIAudioSnapshot (Effect Unit) where
   connectXToY a b c = connectXToY_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
   disconnectXFromY a b c = disconnectXFromY_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
   destroyUnit a b = destroyUnit_ (safeToFFI a) (safeToFFI b)
+  makeInput a b c = makeInput_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
+  makeInputWithDeferredInput a b = makeInputWithDeferredInput_ (safeToFFI a) (safeToFFI b)
   makeAllpass a b c d = makeAllpass_ (safeToFFI a) (safeToFFI b) (safeToFFI c) (safeToFFI d)
   makeAnalyser a b c = makeAnalyser_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
   makeAudioWorkletNode a b c d = makeAudioWorkletNode_ (safeToFFI a) (safeToFFI b) (safeToFFI c) (safeToFFI d)
@@ -663,6 +763,8 @@ instance effectfulAudioInterpret :: AudioInterpret FFIAudioSnapshot (Effect Unit
   makeSpeaker a = makeSpeaker_ (safeToFFI a)
   makeSquareOsc a b c d = makeSquareOsc_ (safeToFFI a) (safeToFFI b) (safeToFFI c) (safeToFFI d)
   makeStereoPanner a b c = makeStereoPanner_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
+  makeSubgraph ptr pxy vek envM sceneM audio = makeSubgraph_ ptr (reflectSymbol pxy) (Vec.toArray vek) sceneM envM (\env scene -> let res = oneSubFrame scene env in { instructions: res.instructions, nextScene: res.next }) (safeToFFI audio)
+  makeSubgraphWithDeferredScene a b = makeSubgraphWithDeferredScene_ a (safeToFFI b)
   makeTriangleOsc a b c d = makeTriangleOsc_ (safeToFFI a) (safeToFFI b) (safeToFFI c) (safeToFFI d)
   makeWaveShaper a b c d = makeWaveShaper_ (safeToFFI a) (safeToFFI b) (safeToFFI c) (safeToFFI d)
   setAudioWorkletParameter a b c d = setAudioWorkletParameter_ (safeToFFI a) (safeToFFI b) (safeToFFI c) (safeToFFI d)
@@ -689,6 +791,8 @@ instance effectfulAudioInterpret :: AudioInterpret FFIAudioSnapshot (Effect Unit
   setPlaybackRate a b c = setPlaybackRate_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
   setFrequency a b c = setFrequency_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
   setWaveShaperCurve a b c = setWaveShaperCurve_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
+  setInput a b c = setInput_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
+  setSubgraph ptr pxy vek envM sceneM audio = setSubgraph_ ptr (reflectSymbol pxy) (Vec.toArray vek) sceneM envM (\env scene -> let res = oneSubFrame scene env in { instructions: res.instructions, nextScene: res.next }) (safeToFFI audio)
 
 -- A utility typeclass used to convert PS arguments to arguments that are understood by the Web Audio API.
 class SafeToFFI a b | a -> b where
@@ -779,10 +883,26 @@ instance safeToFFI_AudioParameterString ::
     , cancel: isNothing param
     }
 
-instance mixedAudioInterpret :: (AudioInterpret a c, AudioInterpret b d) => AudioInterpret (a /\ b) (c /\ d) where
+deflateAudioEngine :: forall terminus inputs env proof res. SubScene terminus inputs env (Unit /\ FFIAudioSnapshot) (Instruction /\ Effect Unit) proof res -> SubScene terminus inputs env FFIAudioSnapshot (Effect Unit) proof res
+deflateAudioEngine (SubScene sceneA) = SubScene
+  ( \env ->
+      let
+        eaA = sceneA env
+      in
+        { instructions: map (\f bSide -> snd $ f (unit /\ bSide)) eaA.instructions
+        , res: eaA.res
+        , next: deflateAudioEngine eaA.next
+        }
+  )
+
+instance mixedAudioInterpret :: AudioInterpret (Unit /\ FFIAudioSnapshot) (Instruction /\ Effect Unit) where
   connectXToY a b (x /\ y) = connectXToY a b x /\ connectXToY a b y
   disconnectXFromY a b (x /\ y) = disconnectXFromY a b x /\ disconnectXFromY a b y
   destroyUnit a (x /\ y) = destroyUnit a x /\ destroyUnit a y
+  makeSubgraph a b c d e (_ /\ y) = MakeSubgraph a /\ makeSubgraph a b c d ((map <<< map) deflateAudioEngine e) y
+  makeSubgraphWithDeferredScene a (x /\ y) = makeSubgraphWithDeferredScene a x /\ makeSubgraphWithDeferredScene a y
+  makeInput a b (x /\ y) = makeInput a b x /\ makeInput a b y
+  makeInputWithDeferredInput a (x /\ y) = makeInputWithDeferredInput a x /\ makeInputWithDeferredInput a y
   makeAllpass a b c (x /\ y) = makeAllpass a b c x /\ makeAllpass a b c y
   makeAnalyser a b (x /\ y) = makeAnalyser a b x /\ makeAnalyser a b y
   makeAudioWorkletNode a b c (x /\ y) = makeAudioWorkletNode a b c x /\ makeAudioWorkletNode a b c y
@@ -839,3 +959,5 @@ instance mixedAudioInterpret :: (AudioInterpret a c, AudioInterpret b d) => Audi
   setPlaybackRate a b (x /\ y) = setPlaybackRate a b x /\ setPlaybackRate a b y
   setFrequency a b (x /\ y) = setFrequency a b x /\ setFrequency a b y
   setWaveShaperCurve a b (x /\ y) = setWaveShaperCurve a b x /\ setWaveShaperCurve a b y
+  setInput a b (x /\ y) = setInput a b x /\ setInput a b y
+  setSubgraph a b c d e (_ /\ y) = SetSubgraph a /\ setSubgraph a b c d ((map <<< map) deflateAudioEngine e) y

@@ -7,8 +7,8 @@ import Control.Monad.Indexed.Qualified as Ix
 import Data.List (List(..), (:))
 import Data.Set as S
 import WAGS.Change (ichange)
-import WAGS.Control.Functions.Validated ((@!>), iloop)
-import WAGS.Control.Indexed (IxWAG, IxFrame)
+import WAGS.Control.Functions.Graph ((@!>), iloop)
+import WAGS.Control.Indexed (IxWAG)
 import WAGS.Control.Types (Frame0, Scene)
 import WAGS.Create (icreate)
 import WAGS.Example.WTK.Types (Key(..), KeyInfo, MakeRenderingEnv, Trigger, KlavierType, fullKeyboard)
@@ -136,7 +136,7 @@ type Accumulator
     , availableKeys :: List Key
     }
 
-createFrame :: IxFrame (SceneI Trigger Unit ()) RunAudio RunEngine Frame0 Unit () KlavierType Accumulator
+createFrame :: SceneI Trigger Unit () -> IxWAG RunAudio RunEngine Frame0 Unit () KlavierType Accumulator
 createFrame _ =
   icreate fullKeyboard
     $> { currentKeys: Nil

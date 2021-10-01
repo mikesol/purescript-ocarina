@@ -9,7 +9,7 @@ import Prelude hiding (Ordering(..))
 
 import Data.Typelevel.Bool (False, True)
 import Data.Typelevel.Num (class Pred, D0)
-import Prim.Row (class Nub)
+import Prim.Row (class Cons, class Nub)
 import Prim.Row as R
 import Prim.RowList (class RowToList, RowList)
 import Prim.RowList as RL
@@ -41,6 +41,24 @@ instance graphIsRenderable ::
   , AllNodesAreSaturated graph
   ) =>
   GraphIsRenderable graph
+
+-- | Asserts that a subgraph is renderable.
+-- |
+-- | Subgraphs are exactly like graphs with the exception that the node _cannot_ be a
+-- | speaker.
+
+class SubgraphIsRenderable (terminusName :: Symbol) (inputs :: Row Type) (graph :: Graph)
+
+instance subgraphIsRenderable ::
+  ( NoNodesAreDuplicated graph
+  , AllEdgesPointToNodes graph
+  , NoParallelEdges graph
+  , HasSourceNodes graph
+  , UniqueTerminus graph name terminus
+  , InputsAreInInputList inputs graph
+  , AllNodesAreSaturated graph
+  ) =>
+  SubgraphIsRenderable name inputs graph
 
 -- | Retrieves the terminal node from an audio grpah. This is
 -- | almost always a speaker or recording, but if the graph is
@@ -243,6 +261,12 @@ instance allNodesAreSaturatedConsTHighshelf ::
   ) =>
   AllNodesAreSaturatedNL (RL.Cons iSym (NodeC (CTOR.THighshelf) { | r }) tail)
 
+instance allNodesAreSaturatedConsTInput ::
+  ( RowToList r RL.Nil
+  , AllNodesAreSaturatedNL tail
+  ) =>
+  AllNodesAreSaturatedNL (RL.Cons iSym (NodeC (CTOR.TInput ipt) { | r }) tail)
+
 instance allNodesAreSaturatedConsTLoopBuf ::
   ( RowToList r RL.Nil
   , AllNodesAreSaturatedNL tail
@@ -327,6 +351,20 @@ instance allNodesAreSaturatedConsTStereoPanner ::
   ) =>
   AllNodesAreSaturatedNL (RL.Cons iSym (NodeC (CTOR.TStereoPanner) { | r }) tail)
 
+class RowListInRow :: forall k1 k2. RowList k1 -> Row k2 -> Constraint
+class RowListInRow rl r
+
+instance rowListInRowNil :: RowListInRow RL.Nil r
+
+instance rowListInRowCons :: (RowListInRow c r, Cons a x y r) => RowListInRow (RL.Cons a b c) r
+
+instance allNodesAreSaturatedCons_TSubgraph ::
+  ( RowToList subgraph subgraphRL
+  , RowListInRow subgraphRL r
+  , AllNodesAreSaturatedNL tail
+  ) =>
+  AllNodesAreSaturatedNL (RL.Cons iSym (NodeC (CTOR.TSubgraph arity terminus subgraph env) { | r }) tail)
+
 instance allNodesAreSaturatedConsTTriangleOsc ::
   ( RowToList r RL.Nil
   , AllNodesAreSaturatedNL tail
@@ -352,3 +390,24 @@ class NodeIsOutputDevice (node :: Type)
 instance nodeIsOutputDeviceTSpeaker :: NodeIsOutputDevice (NodeC (CTOR.TSpeaker) x)
 
 instance nodeIsOutputDeviceTRecorder :: NodeIsOutputDevice (NodeC (CTOR.TRecorder) x)
+
+class InputsAreInInputList' (inputs :: Row Type) (graph :: RowList Type)
+
+instance inputsAreInInputListNil :: InputsAreInInputList' q RL.Nil
+
+instance inputsAreInInputListCons ::
+  ( Cons i ii iii r
+  , InputsAreInInputList' r z
+  ) =>
+  InputsAreInInputList' r (RL.Cons a (NodeC (CTOR.TInput i) f) z)
+else instance inputsAreInInputListCons2 ::
+  InputsAreInInputList' r z =>
+  InputsAreInInputList' r (RL.Cons a (NodeC ignoreMe f) z)
+
+class InputsAreInInputList (inputs :: Row Type) (graph :: Row Type)
+
+instance inputsAreInInputListAll ::
+  ( RowToList graph graphR
+  , InputsAreInInputList' inputs graphR
+  ) =>
+  InputsAreInInputList inputs graph

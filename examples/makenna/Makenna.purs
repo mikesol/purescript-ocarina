@@ -30,8 +30,8 @@ import Math (pow)
 import Record as Record
 import Type.Proxy (Proxy(..))
 import WAGS.Change (ichange)
-import WAGS.Control.Functions.Validated (iloop, (@!>))
-import WAGS.Control.Indexed (IxFrame)
+import WAGS.Control.Functions.Graph (iloop, (@!>))
+import WAGS.Control.Indexed (IxWAG)
 import WAGS.Control.Types (Frame0, Scene)
 import WAGS.Create (icreate)
 import WAGS.Create.Optionals (CPeriodicOsc, CSpeaker, CGain, gain, periodicOsc, speaker)
@@ -153,7 +153,7 @@ scene (SceneI { time, world: { bday } }) ({ start, dur } /\ pitch) to =
 
 type World = { bday :: BrowserPeriodicWave }
 
-createFrame :: IxFrame (SceneI Unit World ()) RunAudio RunEngine Frame0 Unit () SceneType (List EnrichedNote)
+createFrame :: SceneI Unit World () -> IxWAG RunAudio RunEngine Frame0 Unit () SceneType (List EnrichedNote)
 createFrame e = icreate (scene e (inTempo rest0) 0.0) $> L.fromFoldable score''
 
 piece :: Scene (SceneI Unit World ()) RunAudio RunEngine Frame0 Unit

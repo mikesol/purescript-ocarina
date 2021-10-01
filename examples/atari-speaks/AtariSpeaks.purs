@@ -23,7 +23,7 @@ import Halogen.Subscription as HS
 import Halogen.VDom.Driver (runUI)
 import Math (pi, sin)
 import WAGS.Change (ichange)
-import WAGS.Control.Functions.Validated (iloop, (@!>))
+import WAGS.Control.Functions.Graph (iloop, (@!>))
 import WAGS.Control.Types (Frame0, Scene)
 import WAGS.Create (icreate)
 import WAGS.Create.Optionals (CGain, CLoopBuf, CSpeaker, CAnalyser, analyser, gain, loopBuf, speaker)

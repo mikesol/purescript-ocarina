@@ -15,6 +15,7 @@ import Foreign.Object as Object
 import Prim.Row as R
 import Prim.RowList as RL
 import Prim.Symbol as Sym
+import WAGS.Debug (type (^^))
 import Record as Record
 import Simple.JSON as JSON
 import Type.Proxy (Proxy(..))
@@ -29,7 +30,7 @@ import WAGS.Graph.Node (NodeC)
 import WAGS.Graph.Oversample (class IsOversample, reflectOversample)
 import WAGS.Graph.Paramable (class Paramable, paramize, class OnOffable, onOffIze)
 import WAGS.Graph.Parameter (AudioParameter, AudioParameter_(..))
-import WAGS.Interpret (class AudioInterpret, makeAllpass, makeAnalyser, makeAudioWorkletNode, makeBandpass, makeConstant, makeConvolver, makeDelay, makeDynamicsCompressor, makeGain, makeHighpass, makeHighshelf, makeLoopBuf, makeLowpass, makeLowshelf, makeMicrophone, makeNotch, makePeaking, makePeriodicOsc, makePeriodicOscV, makePlayBuf, makeRecorder, makeSawtoothOsc, makeSinOsc, makeSpeaker, makeSquareOsc, makeStereoPanner, makeTriangleOsc, makeWaveShaper)
+import WAGS.Interpret (class AudioInterpret, AsSubgraph, makeAllpass, makeAnalyser, makeAudioWorkletNode, makeBandpass, makeConstant, makeConvolver, makeDelay, makeDynamicsCompressor, makeGain, makeHighpass, makeHighshelf, makeInput, makeLoopBuf, makeLowpass, makeLowshelf, makeMicrophone, makeNotch, makePeaking, makePeriodicOsc, makePeriodicOscV, makePlayBuf, makeRecorder, makeSawtoothOsc, makeSinOsc, makeSpeaker, makeSquareOsc, makeStereoPanner, makeSubgraph, makeTriangleOsc, makeWaveShaper, unAsSubGraph)
 import WAGS.Util (class AddPrefixToRowList, class CoercePrefixToString, class MakePrefixIfNeeded, class ValidateOutputChannelCount, toOutputChannelCount)
 import WAGS.WebAPI (AnalyserNodeCb, BrowserAudioBuffer, BrowserFloatArray, BrowserMicrophone, BrowserPeriodicWave, MediaRecorderCb)
 
@@ -525,6 +526,28 @@ instance createHighshelf ::
         , value: unit
         }
 
+instance createInput ::
+  ( IsSymbol ptr
+  , IsSymbol sym
+  , R.Lacks ptr graphi
+  , R.Cons ptr (NodeC (CTOR.TInput sym) {}) graphi grapho
+  ) =>
+  Create' ptr (CTOR.Input sym) graphi grapho where
+  create' ptr w = o
+    where
+    { context: i, value: CTOR.Input } = unsafeUnWAG w
+
+    nn = reflectSymbol ptr
+
+    o =
+      unsafeWAG
+        { context:
+            i
+              { instructions = i.instructions <> [ makeInput nn (reflectSymbol (Proxy :: _ sym)) ]
+              }
+        , value: unit
+        }
+
 instance createLoopBuf ::
   ( IsSymbol ptr
   , Paramable argA
@@ -766,7 +789,6 @@ instance createRecorder ::
 
     nn = reflectSymbol ptr
 
-
     o =
       unsafeWAG
         { context:
@@ -889,6 +911,30 @@ instance createStereoPanner ::
         { context:
             i
               { instructions = i.instructions <> [ makeStereoPanner nn argA_iv' ]
+              }
+        , value: unit
+        }
+
+instance createSubgraph ::
+  ( IsSymbol ptr
+  , IsSymbol terminus
+  , Pos n
+  , R.Lacks ptr graphi
+  , R.Cons ptr (NodeC (CTOR.TSubgraph n terminus inputs env) {}) graphi grapho
+  ) =>
+  Create' ptr (CTOR.Subgraph inputs (V.Vec n info) (AsSubgraph terminus inputs info env) (Int -> info -> env)) graphi grapho where
+  create' ptr w = o
+    where
+    { context: i, value: (CTOR.Subgraph vec asSub env) } = unsafeUnWAG w
+
+    nn = reflectSymbol ptr
+
+    o =
+      unsafeWAG
+        { context:
+            i
+              { instructions = i.instructions <>
+                  [ makeSubgraph nn (Proxy :: _ terminus) vec env (unAsSubGraph asSub) ]
               }
         , value: unit
         }

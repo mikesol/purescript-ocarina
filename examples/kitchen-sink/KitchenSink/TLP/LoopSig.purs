@@ -3,7 +3,7 @@ module WAGS.Example.KitchenSink.TLP.LoopSig where
 import Prelude
 
 import WAGS.Control.Indexed (IxWAG)
-import WAGS.Control.Types (Frame, Scene, WAG)
+import WAGS.Control.Types (Scene, WAG)
 import WAGS.Example.KitchenSink.Types.StartGraph (StartGraph)
 import WAGS.Run (RunEngine, SceneI, RunAudio)
 import WAGS.WebAPI (BrowserAudioBuffer, BrowserFloatArray, BrowserMicrophone, BrowserPeriodicWave, MediaRecorderCb)
@@ -28,7 +28,7 @@ type SceneSig proof
   = Scene (SceneI Unit World ()) RunAudio RunEngine proof Res
 
 type FrameSig' step proof a
-  = Frame (SceneI Unit World ()) RunAudio RunEngine proof Res step a
+  = SceneI Unit World () -> WAG RunAudio RunEngine proof Res step a
 
 type FrameSig step proof
   = FrameSig' step proof { loop :: LoopSig, iteration :: Int }

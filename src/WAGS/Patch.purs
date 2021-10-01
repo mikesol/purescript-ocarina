@@ -18,7 +18,7 @@ import WAGS.Control.Types (WAG, unsafeUnWAG, unsafeWAG)
 import WAGS.Graph.AudioUnit (OnOff(..))
 import WAGS.Graph.AudioUnit as AU
 import WAGS.Graph.Oversample (class IsOversample, reflectOversample)
-import WAGS.Interpret (class AudioInterpret, connectXToY, destroyUnit, disconnectXFromY, makeAllpass, makeAnalyser, makeAudioWorkletNode, makeBandpass, makeConstant, makeDelay, makeDynamicsCompressor, makeGain, makeHighpass, makeHighshelf, makeLoopBufWithDeferredBuffer, makeLowpass, makeLowshelf, makeMicrophone, makeNotch, makePassthroughConvolver, makePeaking, makePeriodicOscWithDeferredOsc, makePlayBufWithDeferredBuffer, makeRecorder, makeSawtoothOsc, makeSinOsc, makeSpeaker, makeSquareOsc, makeStereoPanner, makeTriangleOsc, makeWaveShaper)
+import WAGS.Interpret (class AudioInterpret, connectXToY, destroyUnit, disconnectXFromY, makeAllpass, makeAnalyser, makeAudioWorkletNode, makeBandpass, makeConstant, makeDelay, makeDynamicsCompressor, makeGain, makeHighpass, makeHighshelf, makeInputWithDeferredInput, makeLoopBufWithDeferredBuffer, makeLowpass, makeLowshelf, makeMicrophone, makeNotch, makePassthroughConvolver, makePeaking, makePeriodicOscWithDeferredOsc, makePlayBufWithDeferredBuffer, makeRecorder, makeSawtoothOsc, makeSinOsc, makeSpeaker, makeSquareOsc, makeStereoPanner, makeSubgraphWithDeferredScene, makeTriangleOsc, makeWaveShaper)
 import WAGS.Util (class TypeEqualTF, class ValidateOutputChannelCount, toOutputChannelCount)
 import WAGS.WebAPI (AnalyserNodeCb(..), BrowserFloatArray, BrowserMicrophone, MediaRecorderCb(..))
 
@@ -64,6 +64,9 @@ data MakeHighpass (ptr :: Symbol)
 data MakeHighshelf (ptr :: Symbol)
   = MakeHighshelf (Proxy ptr)
 
+data MakeInput (ptr :: Symbol)
+  = MakeInput (Proxy ptr)
+
 data MakeLoopBuf (ptr :: Symbol)
   = MakeLoopBuf (Proxy ptr)
 
@@ -105,6 +108,9 @@ data MakeSpeaker
 
 data MakeStereoPanner (ptr :: Symbol)
   = MakeStereoPanner (Proxy ptr)
+
+data MakeSubgraph (ptr :: Symbol)
+  = MakeSubgraph (Proxy ptr)
 
 data MakeTriangleOsc (ptr :: Symbol)
   = MakeTriangleOsc (Proxy ptr)
@@ -178,6 +184,8 @@ instance doCreateMakeHighpass :: DoCreate ptr AU.THighpass (MakeHighpass ptr)
 
 instance doCreateMakeHighshelf :: DoCreate ptr AU.THighshelf (MakeHighshelf ptr)
 
+instance doCreateMakeInput :: DoCreate ptr (AU.TInput input) (MakeInput ptr)
+
 instance doCreateMakeLoopBuf :: DoCreate ptr AU.TLoopBuf (MakeLoopBuf ptr)
 
 instance doCreateMakeLowpass :: DoCreate ptr AU.TLowpass (MakeLowpass ptr)
@@ -205,6 +213,8 @@ instance doCreateMakeSquareOsc :: DoCreate ptr AU.TSquareOsc (MakeSquareOsc ptr)
 instance doCreateMakeSpeaker :: DoCreate "speaker" AU.TSpeaker MakeSpeaker
 
 instance doCreateMakeStereoPanner :: DoCreate ptr AU.TStereoPanner (MakeStereoPanner ptr)
+
+instance doCreateMakeSubgraph :: DoCreate ptr (AU.TSubgraph arity terminus inputs env) (MakeSubgraph ptr)
 
 instance doCreateMakeTriangleOsc :: DoCreate ptr AU.TTriangleOsc (MakeTriangleOsc ptr)
 
@@ -499,6 +509,17 @@ instance toGraphEffectsMakeHighshelf :: (IsSymbol ptr, ToGraphEffects rest) => T
     where
     ptr' = reflectSymbol (Proxy :: _ ptr)
 
+
+instance toGraphEffectsMakeInput :: (IsSymbol ptr, ToGraphEffects rest) => ToGraphEffects (MakeInput ptr /\ rest) where
+  toGraphEffects _ cache i =
+    toGraphEffects (Proxy :: _ rest) cache
+      ( i
+          { instructions = i.instructions <> [ makeInputWithDeferredInput ptr' ]
+          }
+      )
+    where
+    ptr' = reflectSymbol (Proxy :: _ ptr)
+
 instance toGraphEffectsMakeLoopBuf :: (IsSymbol ptr, ToGraphEffects rest) => ToGraphEffects (MakeLoopBuf ptr /\ rest) where
   toGraphEffects _ cache i =
     toGraphEffects (Proxy :: _ rest) cache
@@ -637,6 +658,17 @@ instance toGraphEffectsMakeStereoPanner :: (IsSymbol ptr, ToGraphEffects rest) =
       )
     where
     ptr' = reflectSymbol (Proxy :: _ ptr)
+
+instance toGraphEffectsMakeSubgraph :: (IsSymbol ptr, ToGraphEffects rest) => ToGraphEffects (MakeSubgraph ptr /\ rest) where
+  toGraphEffects _ cache i =
+    toGraphEffects (Proxy :: _ rest) cache
+      ( i
+          { instructions = i.instructions <> [ makeSubgraphWithDeferredScene ptr' ]
+          }
+      )
+    where
+    ptr' = reflectSymbol (Proxy :: _ ptr)
+
 
 instance toGraphEffectsMakeTriangleOsc :: (IsSymbol ptr, ToGraphEffects rest) => ToGraphEffects (MakeTriangleOsc ptr /\ rest) where
   toGraphEffects _ cache i =
