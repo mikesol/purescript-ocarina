@@ -18,7 +18,7 @@ import WAGS.Control.Types (WAG, unsafeUnWAG, unsafeWAG)
 import WAGS.Graph.AudioUnit (OnOff(..))
 import WAGS.Graph.AudioUnit as AU
 import WAGS.Graph.Oversample (class IsOversample, reflectOversample)
-import WAGS.Interpret (class AudioInterpret, connectXToY, destroyUnit, disconnectXFromY, makeAllpass, makeAnalyser, makeAudioWorkletNode, makeBandpass, makeConstant, makeDelay, makeDynamicsCompressor, makeGain, makeHighpass, makeHighshelf, makeInputWithDeferredInput, makeLoopBufWithDeferredBuffer, makeLowpass, makeLowshelf, makeMicrophone, makeNotch, makePassthroughConvolver, makePeaking, makePeriodicOscWithDeferredOsc, makePlayBufWithDeferredBuffer, makeRecorder, makeSawtoothOsc, makeSinOsc, makeSpeaker, makeSquareOsc, makeStereoPanner, makeSubgraphWithDeferredScene, makeTriangleOsc, makeWaveShaper)
+import WAGS.Interpret (class AudioInterpret, connectXToY, destroyUnit, disconnectXFromY, makeAllpass, makeAnalyser, makeAudioWorkletNode, makeBandpass, makeConstant, makeDelay, makeDynamicsCompressor, makeGain, makeHighpass, makeHighshelf, makeInput, makeLoopBufWithDeferredBuffer, makeLowpass, makeLowshelf, makeMicrophone, makeNotch, makePassthroughConvolver, makePeaking, makePeriodicOscWithDeferredOsc, makePlayBufWithDeferredBuffer, makeRecorder, makeSawtoothOsc, makeSinOsc, makeSpeaker, makeSquareOsc, makeStereoPanner, makeSubgraphWithDeferredScene, makeTriangleOsc, makeWaveShaper)
 import WAGS.Util (class TypeEqualTF, class ValidateOutputChannelCount, toOutputChannelCount)
 import WAGS.WebAPI (AnalyserNodeCb(..), BrowserFloatArray, BrowserMicrophone, MediaRecorderCb(..))
 
@@ -64,8 +64,8 @@ data MakeHighpass (ptr :: Symbol)
 data MakeHighshelf (ptr :: Symbol)
   = MakeHighshelf (Proxy ptr)
 
-data MakeInput (ptr :: Symbol)
-  = MakeInput (Proxy ptr)
+data MakeInput (ptr :: Symbol) (terminus :: Symbol)
+  = MakeInput (Proxy ptr) (Proxy terminus)
 
 data MakeLoopBuf (ptr :: Symbol)
   = MakeLoopBuf (Proxy ptr)
@@ -126,6 +126,8 @@ else instance compInstrCoL :: CompInstr (ConnectXToY x y) z GT
 else instance compInstrCoR :: CompInstr z (ConnectXToY x y) LT
 else instance compInstrDsL :: CompInstr (DestroyUnit x) z LT
 else instance compInstrDsR :: CompInstr z (DestroyUnit x) GT
+else instance compInstrCreateSubgL :: CompInstr z (MakeSubgraph ptr) LT
+else instance compInstrCreateSubgR :: CompInstr (MakeSubgraph ptr) z GT
 else instance compEq :: CompInstr a b EQ
 
 class GetLR (a :: Type) (b :: Type) (l :: Type) (r :: Type) | a b -> l r
@@ -184,7 +186,7 @@ instance doCreateMakeHighpass :: DoCreate ptr AU.THighpass (MakeHighpass ptr)
 
 instance doCreateMakeHighshelf :: DoCreate ptr AU.THighshelf (MakeHighshelf ptr)
 
-instance doCreateMakeInput :: DoCreate ptr (AU.TInput input) (MakeInput ptr)
+instance doCreateMakeInput :: DoCreate ptr (AU.TInput input) (MakeInput ptr input)
 
 instance doCreateMakeLoopBuf :: DoCreate ptr AU.TLoopBuf (MakeLoopBuf ptr)
 
@@ -510,15 +512,16 @@ instance toGraphEffectsMakeHighshelf :: (IsSymbol ptr, ToGraphEffects rest) => T
     ptr' = reflectSymbol (Proxy :: _ ptr)
 
 
-instance toGraphEffectsMakeInput :: (IsSymbol ptr, ToGraphEffects rest) => ToGraphEffects (MakeInput ptr /\ rest) where
+instance toGraphEffectsMakeInput :: (IsSymbol ptr, IsSymbol sym, ToGraphEffects rest) => ToGraphEffects (MakeInput ptr sym /\ rest) where
   toGraphEffects _ cache i =
     toGraphEffects (Proxy :: _ rest) cache
       ( i
-          { instructions = i.instructions <> [ makeInputWithDeferredInput ptr' ]
+          { instructions = i.instructions <> [ makeInput ptr' sym' ]
           }
       )
     where
     ptr' = reflectSymbol (Proxy :: _ ptr)
+    sym' = reflectSymbol (Proxy :: _ sym)
 
 instance toGraphEffectsMakeLoopBuf :: (IsSymbol ptr, ToGraphEffects rest) => ToGraphEffects (MakeLoopBuf ptr /\ rest) where
   toGraphEffects _ cache i =

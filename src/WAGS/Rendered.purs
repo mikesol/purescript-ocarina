@@ -47,7 +47,6 @@ data Instruction
   | MakeHighpass String AudioParameter AudioParameter
   | MakeHighshelf String AudioParameter AudioParameter
   | MakeInput String String
-  | MakeInputWithDeferredInput String
   | MakeLoopBuf String BrowserAudioBuffer APOnOff AudioParameter Number Number
   | MakeLoopBufWithDeferredBuffer String
   | MakeLowpass String AudioParameter AudioParameter

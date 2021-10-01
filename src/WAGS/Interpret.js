@@ -631,18 +631,6 @@ exports.makePlayBufWithDeferredBuffer_ = function (ptr) {
     };
   };
 };
-exports.makeInputWithDeferredInput_ = function (ptr) {
-  return function (state) {
-    return function () {
-      state.units[ptr] = {
-        outgoing: [],
-        incoming: [],
-        main: state.context.createGain(),
-      };
-      state.units[ptr].main.gain = 1.0;
-    };
-  };
-};
 exports.makeInput_ = function (ptr) {
   return function (a) {
     return function (state) {
@@ -659,10 +647,15 @@ exports.makeInput_ = function (ptr) {
     };
   }
 };
-exports.makeSubgraphWithDeferredScene_ = function () {
-  return function () {
+exports.makeSubgraphWithDeferredScene_ = function (ptr) {
+  return function (state) {
     return function () {
-      // this is a no-op for now, consider removing
+      state.units[ptr] = {
+        outgoing: [],
+        incoming: [],
+        main: state.context.createGain(),
+        isSubgraph: true
+      };
     };
   };
 };
@@ -1012,14 +1005,11 @@ exports.setSubgraph_ = function (ptr) {
                     }
                     scenes[i] = sceneM(i)(vek[i]);
                   }
-                  state.units[ptr] = {
-                    outgoing: [],
-                    incoming: [],
-                    main: state.context.createGain(),
-                    children: children,
-                    isSubgraph: true,
-                    scenes: scenes
-                  };
+                  state.units[ptr].incoming =[];
+                  state.units[ptr].outgoing =[];
+                  state.units[ptr].children= children;
+                  state.units[ptr].scenes= scenes;
+                  state.units[ptr].isSubgraph= true;
                 } else {
                   for (var i = 0; i < vek.length; i++) {
                     state.units[ptr].children[i].writeHead = state.writeHead;

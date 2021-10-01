@@ -73,7 +73,6 @@ module WAGS.Interpret
   , makeUnitCache
   , makeWaveShaper
   , mediaRecorderToUrl
-  , makeInputWithDeferredInput
   , makeInput
   , setInput
   , renderAudio
@@ -415,8 +414,6 @@ class AudioInterpret audio engine where
   makePlayBufWithDeferredBuffer :: String -> audio -> engine
   -- | Make an audio buffer node.
   makePlayBuf :: String -> BrowserAudioBuffer -> Number -> APOnOff -> AudioParameter -> audio -> engine
-  -- | Make input with dferred input.
-  makeInputWithDeferredInput :: String -> audio -> engine
   -- | Make input.
   makeInput :: String -> String -> audio -> engine
   -- | Make subgraph with deferred scene.
@@ -525,9 +522,8 @@ instance freeAudioInterpret :: AudioInterpret Unit Instruction where
   makeConvolver a b = const $ MakeConvolver a b
   makeDelay a b = const $ MakeDelay a b
   makeInput a b = const $ MakeInput a b
-  makeInputWithDeferredInput a = const $ MakeInputWithDeferredInput a
   makeSubgraph a _ _ _ _ = const $ MakeSubgraph a
-  makeSubgraphWithDeferredScene a = const $ MakeInputWithDeferredInput a
+  makeSubgraphWithDeferredScene a = const $ MakeSubgraphWithDeferredScene a
   makeDynamicsCompressor a b c d e f = const $ MakeDynamicsCompressor a b c d e f
   makeGain a b = const $ MakeGain a b
   makeHighpass a b c = const $ MakeHighpass a b c
@@ -651,8 +647,6 @@ foreign import makeWaveShaper_ :: String -> BrowserFloatArray -> String -> FFIAu
 
 foreign import makeInput_ :: String -> String -> FFIAudioSnapshot' -> Effect Unit
 
-foreign import makeInputWithDeferredInput_ :: String -> FFIAudioSnapshot' -> Effect Unit
-
 foreign import makeSubgraphWithDeferredScene_ :: String -> FFIAudioSnapshot' -> Effect Unit
 
 foreign import makeSubgraph_
@@ -732,7 +726,6 @@ instance effectfulAudioInterpret :: AudioInterpret FFIAudioSnapshot (Effect Unit
   disconnectXFromY a b c = disconnectXFromY_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
   destroyUnit a b = destroyUnit_ (safeToFFI a) (safeToFFI b)
   makeInput a b c = makeInput_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
-  makeInputWithDeferredInput a b = makeInputWithDeferredInput_ (safeToFFI a) (safeToFFI b)
   makeAllpass a b c d = makeAllpass_ (safeToFFI a) (safeToFFI b) (safeToFFI c) (safeToFFI d)
   makeAnalyser a b c = makeAnalyser_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
   makeAudioWorkletNode a b c d = makeAudioWorkletNode_ (safeToFFI a) (safeToFFI b) (safeToFFI c) (safeToFFI d)
@@ -902,7 +895,6 @@ instance mixedAudioInterpret :: AudioInterpret (Unit /\ FFIAudioSnapshot) (Instr
   makeSubgraph a b c d e (_ /\ y) = MakeSubgraph a /\ makeSubgraph a b c d ((map <<< map) deflateAudioEngine e) y
   makeSubgraphWithDeferredScene a (x /\ y) = makeSubgraphWithDeferredScene a x /\ makeSubgraphWithDeferredScene a y
   makeInput a b (x /\ y) = makeInput a b x /\ makeInput a b y
-  makeInputWithDeferredInput a (x /\ y) = makeInputWithDeferredInput a x /\ makeInputWithDeferredInput a y
   makeAllpass a b c (x /\ y) = makeAllpass a b c x /\ makeAllpass a b c y
   makeAnalyser a b (x /\ y) = makeAnalyser a b x /\ makeAnalyser a b y
   makeAudioWorkletNode a b c (x /\ y) = makeAudioWorkletNode a b c x /\ makeAudioWorkletNode a b c y
