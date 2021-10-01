@@ -59,54 +59,59 @@ var genericSetter = function (unit, name, timeToSet, param) {
     }
   }
 };
-var connectXToY = function (x) {
-  return function (y) {
-    return function (stateX) {
-      return function (stateY) {
-        return function () {
-          console.log(x,y, Object.keys(stateX.units), Object.keys(stateY.units))
-          stateX.units[x].main.connect(stateY.units[y].main);
-          stateX.units[x].outgoing.push({ unit: y, state: stateY });
-          stateY.units[y].incoming.push({ unit: x, state: stateX });
-          if (stateY.units[y].se) {
-            stateX.units[x].main.connect(stateY.units[y].se);
-          }
+var connectXToY = function (calledExternally) {
+  return function (x) {
+    return function (y) {
+      return function (stateX) {
+        return function (stateY) {
+          return function () {
+            if (calledExternally && stateY.units[y].isSubgraph) { return; }
+            stateX.units[x].main.connect(stateY.units[y].main);
+            stateX.units[x].outgoing.push({ unit: y, state: stateY });
+            stateY.units[y].incoming.push({ unit: x, state: stateX });
+            if (stateY.units[y].se) {
+              stateX.units[x].main.connect(stateY.units[y].se);
+            }
+          };
         };
-      };
+      }
     }
   };
 };
 exports.connectXToY_ = function (x) {
   return function (y) {
     return function (state) {
-      return connectXToY(x)(y)(state)(state);
+      return connectXToY(true)(x)(y)(state)(state);
     }
   }
 };
-var disconnectXFromY = function (x) {
-  return function (y) {
-    return function (stateX) {
-      return function (stateY) {
-        return function () {
-          stateX.units[x].main.disconnect(stateY.units[y].main);
-          stateX.units[x].outgoing = stateX.units[x].outgoing.filter(function (i) {
-            !(i.unit === y && i.state === stateY);
-          });
-          stateY.units[y].incoming = stateY.units[y].incoming.filter(function (i) {
-            !(i.unit === x && i.state === stateX);
-          });
-          if (stateY.units[y].se) {
-            stateX.units[x].main.disconnect(stateY.units[y].se);
-          }
-        };
-      }
-    };
+var disconnectXFromY = function (calledExternally) {
+  return function (x) {
+    return function (y) {
+      return function (stateX) {
+        return function (stateY) {
+          return function () {
+            if (calledExternally && stateY.units[y].isSubgraph) { return; }
+            stateX.units[x].main.disconnect(stateY.units[y].main);
+            stateX.units[x].outgoing = stateX.units[x].outgoing.filter(function (i) {
+              !(i.unit === y && i.state === stateY);
+            });
+            stateY.units[y].incoming = stateY.units[y].incoming.filter(function (i) {
+              !(i.unit === x && i.state === stateX);
+            });
+            if (stateY.units[y].se) {
+              stateX.units[x].main.disconnect(stateY.units[y].se);
+            }
+          };
+        }
+      };
+    }
   };
 };
 exports.disconnectXFromY_ = function (x) {
   return function (y) {
     return function (state) {
-      return disconnectXFromY(x)(y)(state)(state);
+      return disconnectXFromY(true)(x)(y)(state)(state);
     }
   }
 };
@@ -648,7 +653,7 @@ exports.makeInput_ = function (ptr) {
           main: state.context.createGain(),
           input: a,
         };
-        connectXToY(a)(ptr)(state.parent)(state)();
+        connectXToY(false)(a)(ptr)(state.parent)(state)();
         state.units[ptr].main.gain = 1.0;
       };
     };
@@ -669,7 +674,6 @@ exports.makeSubgraph_ = function (ptr) {
           return function (funk) {
             return function (state) {
               return function () {
-                console.log("making subgraph");
                 var children = [];
                 var scenes = [];
                 for (var i = 0; i < vek.length; i++) {
@@ -686,6 +690,7 @@ exports.makeSubgraph_ = function (ptr) {
                   incoming: [],
                   main: state.context.createGain(),
                   children: children,
+                  isSubgraph: true,
                   scenes: scenes
                 };
                 state.units[ptr].main.gain = 1.0;
@@ -698,7 +703,7 @@ exports.makeSubgraph_ = function (ptr) {
                   scenes[i] = applied.nextScene;
                 }
                 for (var i = 0; i < children.length; i++) {
-                  connectXToY(terminalPtr)(ptr)(children[i])(state)();
+                  connectXToY(false)(terminalPtr)(ptr)(children[i])(state)();
                 }
               };
             };
@@ -819,7 +824,6 @@ exports.makeSinOsc_ = function (ptr) {
     return function (a) {
       return function (state) {
         return function () {
-          console.log("making sinosc");
           var createFunction = function () {
             var unit = state.context.createOscillator();
             unit.type = "sine";
@@ -978,10 +982,10 @@ exports.setInput_ = function (ptr) {
           return;
         }
         if (state.units[ptr].input) {
-          disconnectXFromY(state.units[ptr].input, ptr, state.parent, state);
+          disconnectXFromY(false)(state.units[ptr].input, ptr, state.parent, state);
         }
         state.units[ptr].input = a;
-        connectXToY(a)(ptr)(state.parent)(state)();
+        connectXToY(false)(a)(ptr)(state.parent)(state)();
         state.units[ptr].main.gain = 1.0;
       };
     };
@@ -1013,6 +1017,7 @@ exports.setSubgraph_ = function (ptr) {
                     incoming: [],
                     main: state.context.createGain(),
                     children: children,
+                    isSubgraph: true,
                     scenes: scenes
                   };
                 } else {
@@ -1032,7 +1037,7 @@ exports.setSubgraph_ = function (ptr) {
                 }
                 if (needsCreation) {
                   for (var i = 0; i < children.length; i++) {
-                    connectXToY(terminalPtr)(ptr)(children[i])(state)();
+                    connectXToY(false)(terminalPtr)(ptr)(children[i])(state)();
                   }
                 }
               };

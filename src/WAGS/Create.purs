@@ -48,7 +48,31 @@ class CreateStepRL (rl :: RL.RowList Type) (prefix :: Type) (map :: Type) (r :: 
 
 instance createStepRLNil :: CreateStepRL RL.Nil prefix map r inGraph inGraph where
   createStepRL _ _ _ r = r $> unit
-instance createStepRLCons ::
+instance createStepRLConsB ::
+  ( IsSymbol key
+  , R.Cons key (Tuple (CTOR.Subgraph inputs subgraphGenerator subgraphMaker env) ignoreMe) ignore r
+  , MakePrefixIfNeeded key prefix prefix'
+  , ConstructEdges prefix' map (Tuple (CTOR.Subgraph inputs subgraphGenerator subgraphMaker env) ignoreMe) newPrefix newMap (node /\ { | edges })
+  , CoercePrefixToString prefix realPrefix
+  , Sym.Append realPrefix key newKey
+  , RL.RowToList edges edgesRL
+  -- push the new prefix and new map down to the edges
+  , CreateStepRL edgesRL newPrefix newMap edges graph0 graph1
+  -- on this level, we keep the old stuff
+  , CreateStepRL rest prefix map r graph1 graph2
+  , Create' newKey node graph2 graph3
+  ) =>
+  CreateStepRL (RL.Cons key (Tuple (CTOR.Subgraph inputs subgraphGenerator subgraphMaker env) ignoreMe) rest) prefix map r graph0 graph3 where
+  createStepRL _ _ _ r = step3
+    where
+    rx = extract r
+    (_ /\ _ /\ (node /\ edges)) = constructEdges (Proxy :: _ prefix') (Proxy :: _ map) (Record.get (Proxy :: _ key) rx)
+    step1 =
+      (createStepRL :: CreateStepRLSig edgesRL newPrefix newMap edges graph0 graph1) Proxy Proxy Proxy
+        (r $> edges)
+    step2 = createStepRL (Proxy :: _ rest) (Proxy :: _ prefix) (Proxy :: _ map) (step1 $> rx)
+    step3 = create' (Proxy :: _ newKey) (step2 $> node)
+else instance createStepRLCons ::
   ( IsSymbol key
   , R.Cons key val ignore r
   , MakePrefixIfNeeded key prefix prefix'
