@@ -46,6 +46,8 @@ data Instruction
   | MakeGain String AudioParameter
   | MakeHighpass String AudioParameter AudioParameter
   | MakeHighshelf String AudioParameter AudioParameter
+  | MakeInput String String
+  | MakeInputWithDeferredInput String
   | MakeLoopBuf String BrowserAudioBuffer APOnOff AudioParameter Number Number
   | MakeLoopBufWithDeferredBuffer String
   | MakeLowpass String AudioParameter AudioParameter
@@ -63,6 +65,10 @@ data Instruction
   | MakeSquareOsc String APOnOff AudioParameter
   | MakeSpeaker
   | MakeStereoPanner String AudioParameter
+  -- for now, MakeSubgraph intentionally leaves off the scene part
+  | MakeSubgraph String
+  -- for now, MakeSubgraphWithDeferredScene intentionally leaves off the scene part
+  | MakeSubgraphWithDeferredScene String
   | MakeTriangleOsc String APOnOff AudioParameter
   | MakeWaveShaper String BrowserFloatArray Oversample
   | SetAnalyserNodeCb String AnalyserNodeCb
@@ -88,6 +94,9 @@ data Instruction
   | SetPlaybackRate String AudioParameter
   | SetFrequency String AudioParameter
   | SetWaveShaperCurve String BrowserFloatArray
+  | SetInput String String
+  -- for now, SetSubgraph intentionally leaves off the scene part
+  | SetSubgraph String
 
 derive instance eqInstruction :: Eq Instruction
 

@@ -6,6 +6,7 @@ import Control.Comonad (extract)
 import Data.Maybe (Maybe(..), maybe)
 import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.Tuple.Nested ((/\), type (/\))
+import Data.Typelevel.Num (class Pos)
 import Data.Vec as V
 import Prim.Row as R
 import Prim.RowList (class RowToList, RowList)
@@ -23,7 +24,7 @@ import WAGS.Graph.Node (NodeC)
 import WAGS.Graph.Oversample (class IsOversample, reflectOversample)
 import WAGS.Graph.Paramable (class Paramable, paramize, class OnOffable, onOffIze)
 import WAGS.Graph.Parameter (class MM, AudioParameter_, AudioParameter, mm)
-import WAGS.Interpret (class AudioInterpret, setAnalyserNodeCb, setAttack, setAudioWorkletParameter, setBuffer, setBufferOffset, setConvolverBuffer, setDelay, setFrequency, setGain, setKnee, setLoopEnd, setLoopStart, setMediaRecorderCb, setOffset, setOnOff, setPan, setPeriodicOsc, setPeriodicOscV, setPlaybackRate, setQ, setRatio, setRelease, setThreshold, setWaveShaperCurve)
+import WAGS.Interpret (class AudioInterpret, AsSubgraph, setAnalyserNodeCb, setAttack, setAudioWorkletParameter, setBuffer, setBufferOffset, setConvolverBuffer, setDelay, setFrequency, setGain, setInput, setKnee, setLoopEnd, setLoopStart, setMediaRecorderCb, setOffset, setOnOff, setPan, setPeriodicOsc, setPeriodicOscV, setPlaybackRate, setQ, setRatio, setRelease, setSubgraph, setThreshold, setWaveShaperCurve, unAsSubGraph)
 import WAGS.Rendered (Oversample)
 import WAGS.Util (class MakePrefixIfNeeded, class CoercePrefixToString)
 import WAGS.WebAPI (AnalyserNodeCb, BrowserAudioBuffer, BrowserFloatArray, BrowserMicrophone, BrowserPeriodicWave, MediaRecorderCb)
@@ -568,6 +569,35 @@ instance canBeChangedBufferOffset ::
     nn = reflectSymbol ptr
 
     argA_Changes = [ setBufferOffset nn val ]
+
+    o =
+      unsafeWAG
+        { context:
+            i
+              { instructions = i.instructions <> argA_Changes
+              }
+        , value: unit
+        }
+
+class WebAudioInputable (tau :: Type)
+
+instance webAudioInputableInput :: WebAudioInputable (CTOR.TInput input)
+
+instance canBeChangedWebAudioInput ::
+  ( IsSymbol ptr
+  , IsSymbol input
+  , R.Cons ptr tau' ignore graph
+  , Detup tau' tau
+  , WebAudioInputable tau
+  ) =>
+  CanBeChanged "input" (Proxy input) ptr graph where
+  canBeChanged _ val ptr w = o
+    where
+    { context: i } = unsafeUnWAG w
+
+    nn = reflectSymbol ptr
+
+    argA_Changes = [ setInput nn (reflectSymbol val) ]
 
     o =
       unsafeWAG
@@ -1248,6 +1278,17 @@ instance changeHighshelf ::
         , value: unit
         }
 
+instance oneShotChangeInput :: OneShotChange (CTOR.TInput input) (Proxy input) (CTOR.Input input) where
+  oneShotChange _ _ = CTOR.Input
+
+instance changeInput ::
+  ( IsSymbol ptr
+  , MM (Proxy input) (Maybe (Proxy input))
+  , R.Cons ptr (NodeC (CTOR.TInput input) edges) ignore graph
+  ) =>
+  Change' ptr (CTOR.Input input) graph where
+  change' _ w = w $> unit
+
 instance oneShotChangeLoopBuf :: OneShotChange CTOR.TLoopBuf AudioParameter (CTOR.LoopBuf (Maybe BrowserAudioBuffer) (Maybe APOnOff) (Maybe AudioParameter) (Maybe Number) (Maybe Number)) where
   oneShotChange _ rate = CTOR.LoopBuf Nothing Nothing (Just rate) Nothing Nothing
 
@@ -1722,6 +1763,29 @@ instance changeStereoPanner ::
         { context:
             i
               { instructions = i.instructions <> argA_Changes
+              }
+        , value: unit
+        }
+
+instance createSubgraph ::
+  ( IsSymbol ptr
+  , IsSymbol terminus
+  , Pos n
+  , R.Cons ptr (NodeC (CTOR.TSubgraph n terminus inputs env) {}) ignore graph
+  ) =>
+  Change' ptr (CTOR.Subgraph inputs (V.Vec n info) (AsSubgraph terminus inputs info env) (Int -> info -> env)) graph where
+  change' ptr w = o
+    where
+    { context: i, value: (CTOR.Subgraph vec asSub env) } = unsafeUnWAG w
+
+    nn = reflectSymbol ptr
+
+    o =
+      unsafeWAG
+        { context:
+            i
+              { instructions = i.instructions <>
+                  [ setSubgraph nn (Proxy :: _ terminus) vec env (unAsSubGraph asSub) ]
               }
         , value: unit
         }

@@ -59,7 +59,7 @@ Here's a basic loop constructed using `ipatch` and `iloop` that creates an upwar
 
 ```purescript
 import WAGS.Change (ichange)
-import WAGS.Control.Functions.Validated (iloop, (@!>))
+import WAGS.Control.Functions.Graph (iloop, (@!>))
 import WAGS.Control.Indexed (IxWAG)
 import WAGS.Control.Types (Frame0, Scene)
 import WAGS.Graph.AudioUnit as AU
@@ -98,7 +98,7 @@ import Math ((%))
 import Type.Proxy (Proxy(..))
 import WAGS.Change (ichange)
 import WAGS.Control.Functions (icont)
-import WAGS.Control.Functions.Validated (ibranch, (@!>))
+import WAGS.Control.Functions.Graph (ibranch, (@!>))
 import WAGS.Control.Indexed (IxWAG)
 import WAGS.Control.Types (Frame0, Scene, WAG)
 import WAGS.Graph.AudioUnit as AU

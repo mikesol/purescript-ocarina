@@ -18,6 +18,7 @@ import WAGS.Graph.Graph (Graph)
 import WAGS.Graph.Node (NodeC)
 import WAGS.Graph.Oversample (class IsOversampleT)
 import WAGS.Graph.Parameter (AudioParameter)
+import WAGS.Interpret (AsSubgraph)
 import WAGS.Util (class AddPrefixToRowList, class CoercePrefixToString, class MakePrefixIfNeeded)
 import WAGS.WebAPI (AnalyserNodeCb, BrowserAudioBuffer, BrowserFloatArray, BrowserPeriodicWave, MediaRecorderCb)
 
@@ -171,6 +172,12 @@ instance createTHighshelf ::
   ) =>
   CreateT' ptr (CTOR.Highshelf argA argB) graphi grapho
 
+instance createTInput ::
+  ( R.Lacks ptr graphi
+  , R.Cons ptr (NodeC (CTOR.TInput proxy) {}) graphi grapho
+  ) =>
+  CreateT' ptr (CTOR.Input proxy) graphi grapho
+
 instance createTLoopBuf ::
   ( R.Lacks ptr graphi
   , R.Cons ptr (NodeC CTOR.TLoopBuf {}) graphi grapho
@@ -260,6 +267,12 @@ instance createTStereoPanner ::
   , R.Cons ptr (NodeC CTOR.TStereoPanner {}) graphi grapho
   ) =>
   CreateT' ptr (CTOR.StereoPanner argA) graphi grapho
+
+instance createSubgraph ::
+  ( R.Lacks ptr graphi
+  , R.Cons ptr (NodeC (CTOR.TSubgraph n terminus inputs env) {}) graphi grapho
+  ) =>
+  CreateT' ptr (CTOR.Subgraph inputs (V.Vec n info) (AsSubgraph terminus inputs info env) (Int -> info -> env)) graphi grapho
 
 instance createTTriangleOsc ::
   ( R.Lacks ptr graphi

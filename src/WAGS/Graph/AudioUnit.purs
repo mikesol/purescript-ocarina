@@ -119,8 +119,15 @@ data Highshelf frequency gain
 
 instance typeToSymHighshelf :: TypeToSym (Highshelf frequency gain) "Highshelf"
 
+-- | Term-level constructor for arbitrary input (ie from another audio graph)
+-- | - `input` - the input to use.
+data Input (input :: Symbol)
+  = Input
+
+instance typeToSymInput :: TypeToSym (Input input) "Input"
+
 -- | Term-level constructor for a looping buffer.
--- | - `buffer` - a symbol representing the buffer to use. Note that this symbol, when reset, will only reset the buffer when it is stopped.
+-- | - `buffer` - the buffer to use. Note that this symbol, when reset, will only reset the buffer when it is stopped.
 -- | - `onOff` - whether or not the generator is on or off.
 -- | - `playbackRate` - the playback rate.
 -- | - `loopStart` - where in the file the loop should start.
@@ -179,7 +186,7 @@ data PeriodicOsc periodicOsc onOff frequency
 instance typeToSymPeriodicOsc :: TypeToSym (PeriodicOsc periodicOsc onOff frequency) "PeriodicOsc"
 
 -- | Term-level constructor for a playback buffer.
--- | - `buffer` - a symbol representing the buffer to use. Note that this symbol, when reset, will only reset the buffer when it is stopped.
+-- | - `buffer` - the buffer to use. Note that this symbol, when reset, will only reset the buffer when it is stopped.
 -- | - `offset` - where in the file the playback should start.
 -- | - `onOff` - whether or not the generator is on or off.
 -- | - `playbackRate` - the playback rate.
@@ -231,6 +238,16 @@ data StereoPanner pan
   = StereoPanner pan
 
 instance typeToSymStereoPanner :: TypeToSym (StereoPanner pan) "StereoPanner"
+
+-- | Term-level constructor for a subgraph
+-- | - `inputs` - the inputs to the subgraph
+-- | - `subgraphGenerator` - the generating vector for the subgraph
+-- | - `subgraphMaker` - the scene that makes the subgraph
+-- | - `enc` - the scene that makes the subgraph
+data Subgraph (inputs :: Row Type) subgraphGenerator subgraphMaker env
+  = Subgraph subgraphGenerator subgraphMaker env
+
+instance typeToSymSubgraph :: TypeToSym (Subgraph inputs subgraphGenerator subgraphMaker env) "Subgraph"
 
 -- | Term-level constructor for a triangle oscillator.
 -- | - `onOff` - whether the generator is on or off.
@@ -467,6 +484,21 @@ instance monoidTHighshelf :: Monoid THighshelf where
 instance reifyTHighshelf :: ReifyAU (Highshelf a b) THighshelf where
   reifyAU = const mempty
 
+-- | Type-level constructor for arbitrary input
+data TInput (input :: Symbol)
+  = TInput
+
+instance typeToSymTInput :: TypeToSym (TInput input) "TInput"
+
+instance semigroupTInput :: Semigroup (TInput input) where
+  append _ _ = TInput
+
+instance monoidTInput :: Monoid (TInput input) where
+  mempty = TInput
+
+instance reifyTInput :: ReifyAU (Input a) (TInput a) where
+  reifyAU = const mempty
+
 -- | Type-level constructor for a looping buffer.
 data TLoopBuf
   = TLoopBuf
@@ -675,6 +707,21 @@ instance monoidTStereoPanner :: Monoid TStereoPanner where
   mempty = TStereoPanner
 
 instance reifyTStereoPanner :: ReifyAU (StereoPanner a) TStereoPanner where
+  reifyAU = const mempty
+
+-- | Type-level constructor for a subgraph.
+data TSubgraph (arity :: Type) (terminus :: Symbol) (inputs :: Row Type) (env :: Type)
+  = TSubgraph
+
+instance typeToSymTSubgraph :: TypeToSym (TSubgraph arity terminus inputs env) "TSubgraph"
+
+instance semigroupTSubgraph :: Semigroup (TSubgraph arity terminus inputs env) where
+  append _ _ = TSubgraph
+
+instance monoidTSubgraph :: Monoid (TSubgraph arity terminus inputs env) where
+  mempty = TSubgraph
+
+instance reifyTSubgraph :: ReifyAU (Subgraph a b c d) (TSubgraph w x y z) where
   reifyAU = const mempty
 
 -- | Type-level constructor for a triangle oscillator.

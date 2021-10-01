@@ -11,12 +11,14 @@ import Data.Typelevel.Num (class Nat, class Pos)
 import Data.Vec as V
 import Simple.JSON as JSON
 import Type.Row.Homogeneous (class Homogeneous)
+import WAGS.Control.Types (Frame0, SubScene)
 import WAGS.Graph.AudioUnit (APOnOff, AudioWorkletNodeOptions, OnOff(..))
 import WAGS.Graph.AudioUnit as CTOR
 import WAGS.Graph.Oversample (class IsOversample)
 import WAGS.Graph.Paramable (class Paramable, paramize)
 import WAGS.Graph.Parameter (AudioParameter)
 import WAGS.Graph.Worklet (AudioWorkletNodeResponse)
+import WAGS.Interpret (class AudioInterpret, AsSubgraph(..))
 import WAGS.Util (class ValidateOutputChannelCount)
 import WAGS.WebAPI (AnalyserNodeCb, BrowserAudioBuffer, BrowserFloatArray, BrowserMicrophone, BrowserPeriodicWave, MediaRecorderCb)
 
@@ -79,7 +81,7 @@ analyser
   -> CTOR.Analyser a /\ b
 analyser = Tuple <<< CTOR.Analyser
 
-type CAnalyser a 
+type CAnalyser a
   = CTOR.Analyser AnalyserNodeCb /\ a
 
 ------
@@ -93,7 +95,7 @@ audioWorkletNode
   => ValidateOutputChannelCount numberOfOutputs outputChannelCount
   => Homogeneous parameterData AudioParameter
   => JSON.WriteForeign { | processorOptions }
-  => AudioWorkletNodeResponse sym numberOfInputs numberOfOutputs outputChannelCount parameterData processorOptions 
+  => AudioWorkletNodeResponse sym numberOfInputs numberOfOutputs outputChannelCount parameterData processorOptions
   -> AudioWorkletNodeOptions numberOfInputs numberOfOutputs outputChannelCount parameterData processorOptions
   -> b
   -> (CTOR.AudioWorkletNode sym numberOfInputs numberOfOutputs outputChannelCount parameterData processorOptions) /\ b
@@ -409,6 +411,22 @@ else instance highshelfCtor2 :: Paramable a => HighshelfCtor a (b -> CTOR.Highsh
 
 type CHighshelf a
   = CTOR.Highshelf AudioParameter AudioParameter /\ a
+
+----
+-- | Make an input
+-- |
+-- | ```purescript
+-- | input myInput
+-- | ```
+input
+  :: forall proxy sym
+   . IsSymbol sym
+  => proxy sym
+  -> CTOR.Input sym /\ {}
+input _ = Tuple (CTOR.Input) {}
+
+type CInput px
+  = CTOR.Input px /\ {}
 
 ----
 data LoopBuf
@@ -966,6 +984,31 @@ pan gvsv = Tuple (CTOR.StereoPanner (paramize gvsv))
 
 type CStereoPanner a
   = CTOR.StereoPanner AudioParameter /\ a
+
+----
+-- | Make a subgraph
+-- |
+-- | ```purescript
+-- | input myInput
+-- | ```
+-- | the validity of inputs with respect to r is validated higher upstream (at the scene construction level)
+subgraph
+  :: forall n inputs info terminus env r
+   . Pos n
+  => V.Vec n info
+  -> ( forall audio engine
+        . AudioInterpret audio engine
+       => Int
+       -> info
+       -> SubScene terminus inputs env audio engine Frame0 Unit
+     )
+  -> (Int -> info -> env)
+  -> r
+  -> (CTOR.Subgraph inputs (V.Vec n info) (AsSubgraph terminus inputs info env) (Int -> info -> env)) /\ r
+subgraph vec sg ev = Tuple (CTOR.Subgraph vec (AsSubgraph sg) ev)
+
+type CSubgraph (n :: Type) info terminus inputs env r
+  = (CTOR.Subgraph inputs (V.Vec n info) (AsSubgraph terminus inputs info env) (Int -> info -> env)) /\ r
 
 ------
 data TriangleOsc

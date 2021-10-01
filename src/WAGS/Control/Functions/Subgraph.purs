@@ -1,5 +1,5 @@
--- | These functions uses the `GraphIsRenderable` typeclass to assert that an audio graph is renderable by the web audio engine. This means, amongst other things, that it has a unique output device (ie speaker), that it does not have any dangling units not connected to a loudspeaker, etc.
-module WAGS.Control.Functions.Validated
+-- | These functions uses the `SubgraphIsRenderable` typeclass to assert that an audio graph is renderable by the web audio engine. This means, amongst other things, that it has a unique output device (ie speaker), that it does not have any dangling units not connected to a loudspeaker, etc.
+module WAGS.Control.Functions.Subgraph
   ( makeScene
   , makeSceneFlipped
   , makeSceneR
@@ -31,41 +31,41 @@ import Data.Maybe (Maybe)
 import WAGS.Change (class Change)
 import WAGS.Control.Functions (class GraphHint)
 import WAGS.Control.Functions as Functions
-import WAGS.Control.Indexed (IxWAG, IxFrame)
-import WAGS.Control.Types (EFrame, Frame, Frame0, Scene, WAG)
+import WAGS.Control.Indexed (IxWAG)
+import WAGS.Control.Types (Frame0, SubScene, WAG)
 import WAGS.Create (class Create)
 import WAGS.CreateT (class CreateT)
 import WAGS.Interpret (class AudioInterpret)
 import WAGS.Patch (class Patch)
-import WAGS.Validation (class GraphIsRenderable)
+import WAGS.Validation (class SubgraphIsRenderable)
 import WAGS.WebAPI (BrowserMicrophone)
 
 makeScene
-  :: forall env audio engine proofA res graph a
+  :: forall terminus inputs env audio engine proofA res graph a
    . Monoid res
   => AudioInterpret audio engine
-  => GraphIsRenderable graph
-  => EFrame env audio engine proofA res graph a
+  => SubgraphIsRenderable terminus inputs graph
+  => (env -> Either (SubScene terminus inputs env audio engine proofA res) (WAG audio engine proofA res graph a))
   -> ( forall proofB
         . WAG audio engine proofB res graph a
-       -> Scene env audio engine proofB res
+       -> SubScene terminus inputs env audio engine proofB res
      )
-  -> Scene env audio engine proofA res
+  -> SubScene terminus inputs env audio engine proofA res
 makeScene = Functions.makeScene
 
 infixr 6 makeScene as @>
 
 makeSceneFlipped
-  :: forall env audio engine proofA res graph a
+  :: forall terminus inputs env audio engine proofA res graph a
    . Monoid res
   => AudioInterpret audio engine
-  => GraphIsRenderable graph
+  => SubgraphIsRenderable terminus inputs graph
   => ( forall proofB
         . WAG audio engine proofB res graph a
-       -> Scene env audio engine proofB res
+       -> SubScene terminus inputs env audio engine proofB res
      )
-  -> EFrame env audio engine proofA res graph a
-  -> Scene env audio engine proofA res
+  -> (env -> Either (SubScene terminus inputs env audio engine proofA res) (WAG audio engine proofA res graph a))
+  -> SubScene terminus inputs env audio engine proofA res
 makeSceneFlipped = Functions.makeSceneFlipped
 
 infixr 6 makeSceneFlipped as <@
@@ -89,22 +89,23 @@ infixr 6 makeSceneFlipped as <@
 -- |         )
 -- | ```
 loop
-  :: forall env audio engine proofA res graph a
+  :: forall terminus inputs env audio engine proofA res graph a
    . Monoid res
-  => GraphIsRenderable graph
+  => SubgraphIsRenderable terminus inputs graph
   => AudioInterpret audio engine
   => ( forall proofB
         . WAG audio engine proofB res graph a
-       -> Frame env audio engine proofB res graph a
+       -> env
+       -> WAG audio engine proofB res graph a
      )
   -> WAG audio engine proofA res graph a
-  -> Scene env audio engine proofA res
+  -> SubScene terminus inputs env audio engine proofA res
 loop = Functions.loop
 
 iloop
-  :: forall env audio engine proofA res graph a
+  :: forall terminus inputs env audio engine proofA res graph a
    . Monoid res
-  => GraphIsRenderable graph
+  => SubgraphIsRenderable terminus inputs graph
   => AudioInterpret audio engine
   => ( forall proofB
         . env
@@ -112,73 +113,74 @@ iloop
        -> IxWAG audio engine proofB res graph graph a
      )
   -> WAG audio engine proofA res graph a
-  -> Scene env audio engine proofA res
+  -> SubScene terminus inputs env audio engine proofA res
 iloop = Functions.iloop
 
 branch
-  :: forall env audio engine proofA res graph a
+  :: forall terminus inputs env audio engine proofA res graph a
    . Monoid res
-  => GraphIsRenderable graph
+  => SubgraphIsRenderable terminus inputs graph
   => AudioInterpret audio engine
   => ( forall proofB
         . WAG audio engine proofB res graph a
-       -> EFrame env audio engine proofB res graph a
+       -> env
+       -> Either (SubScene terminus inputs env audio engine proofB res) (WAG audio engine proofB res graph a)
      )
   -> WAG audio engine proofA res graph a
-  -> Scene env audio engine proofA res
+  -> SubScene terminus inputs env audio engine proofA res
 branch = Functions.branch
 
 ibranch
-  :: forall env audio engine proofA res graph a
+  :: forall terminus inputs env audio engine proofA res graph a
    . Monoid res
-  => GraphIsRenderable graph
+  => SubgraphIsRenderable terminus inputs graph
   => AudioInterpret audio engine
   => ( forall proofB
         . env
        -> a
        -> Either
-            (WAG audio engine proofB res graph a -> Scene env audio engine proofB res)
+            (WAG audio engine proofB res graph a -> SubScene terminus inputs env audio engine proofB res)
             (IxWAG audio engine proofB res graph graph a)
      )
   -> WAG audio engine proofA res graph a
-  -> Scene env audio engine proofA res
+  -> SubScene terminus inputs env audio engine proofA res
 ibranch = Functions.ibranch
 
 istart
-  :: forall env audio engine res graph a
-   . GraphIsRenderable graph
+  :: forall terminus inputs env audio engine res graph a
+   . SubgraphIsRenderable terminus inputs graph
   => Monoid res
   => AudioInterpret audio engine
-  => IxFrame env audio engine Frame0 res () graph a
+  => (env -> IxWAG audio engine Frame0 res () graph a)
   -> ( forall proofB
         . WAG audio engine proofB res graph a
-       -> Scene env audio engine proofB res
+       -> SubScene terminus inputs env audio engine proofB res
      )
-  -> Scene env audio engine Frame0 res
+  -> SubScene terminus inputs env audio engine Frame0 res
 istart = Functions.istart
 
 infixr 6 istart as @!>
 
 startUsing
-  :: forall env audio engine res graph control
+  :: forall terminus inputs env audio engine res graph control
    . Monoid res
   => AudioInterpret audio engine
-  => GraphIsRenderable graph
+  => SubgraphIsRenderable terminus inputs graph
   => Patch () graph
   => { microphone :: Maybe BrowserMicrophone }
   -> control
   -> ( forall proofA
         . WAG audio engine proofA res graph control
-       -> Scene env audio engine proofA res
+       -> SubScene terminus inputs env audio engine proofA res
      )
-  -> Scene env audio engine Frame0 res
+  -> SubScene terminus inputs env audio engine Frame0 res
 startUsing = Functions.startUsing
 
 startUsingWithHint
-  :: forall env audio engine res hintable hint graph control
+  :: forall terminus inputs env audio engine res hintable hint graph control
    . Monoid res
   => AudioInterpret audio engine
-  => GraphIsRenderable graph
+  => SubgraphIsRenderable terminus inputs graph
   => GraphHint hintable hint
   => CreateT hint () graph
   => Patch () graph
@@ -187,88 +189,88 @@ startUsingWithHint
   -> control
   -> ( forall proofA
         . WAG audio engine proofA res graph control
-       -> Scene env audio engine proofA res
+       -> SubScene terminus inputs env audio engine proofA res
      )
-  -> Scene env audio engine Frame0 res
+  -> SubScene terminus inputs env audio engine Frame0 res
 startUsingWithHint = Functions.startUsingWithHint
 
 loopUsingScene
-  :: forall env audio engine res scene graph control
+  :: forall terminus inputs env audio engine res scene graph control
    . Monoid res
   => AudioInterpret audio engine
   => Create scene () graph
   => Change scene graph
-  => GraphIsRenderable graph
+  => SubgraphIsRenderable terminus inputs graph
   => (env -> control -> { scene :: { | scene }, control :: control })
   -> control
-  -> Scene env audio engine Frame0 res
+  -> SubScene terminus inputs env audio engine Frame0 res
 loopUsingScene = Functions.loopUsingScene
 
 freeze
-  :: forall env audio engine proof res graph x
+  :: forall terminus inputs env audio engine proof res graph x
    . Monoid res
-  => GraphIsRenderable graph
+  => SubgraphIsRenderable terminus inputs graph
   => AudioInterpret audio engine
   => WAG audio engine proof res graph x
-  -> Scene env audio engine proof res
+  -> SubScene terminus inputs env audio engine proof res
 freeze = Functions.freeze
 
 makeSceneR
-  :: forall env audio engine proofA res graph a
+  :: forall terminus inputs env audio engine proofA res graph a
    . Monoid res
-  => GraphIsRenderable graph
+  => SubgraphIsRenderable terminus inputs graph
   => AudioInterpret audio engine
-  => Frame env audio engine proofA res graph a
+  => (env -> WAG audio engine proofA res graph a)
   -> ( forall proofB
         . WAG audio engine proofB res graph a
-       -> Scene env audio engine proofB res
+       -> SubScene terminus inputs env audio engine proofB res
      )
-  -> Scene env audio engine proofA res
+  -> SubScene terminus inputs env audio engine proofA res
 makeSceneR = Functions.makeSceneR
 
 infixr 6 makeSceneR as @|>
 
 makeSceneRFlipped
-  :: forall env audio engine proofA res graph a
+  :: forall terminus inputs env audio engine proofA res graph a
    . Monoid res
-  => GraphIsRenderable graph
+  => SubgraphIsRenderable terminus inputs graph
   => AudioInterpret audio engine
   => ( forall proofB
         . WAG audio engine proofB res graph a
-       -> Scene env audio engine proofB res
+       -> SubScene terminus inputs env audio engine proofB res
      )
-  -> Frame env audio engine proofA res graph a
-  -> Scene env audio engine proofA res
+  -> (env -> WAG audio engine proofA res graph a)
+  -> SubScene terminus inputs env audio engine proofA res
 makeSceneRFlipped = Functions.makeSceneRFlipped
 
 infixr 6 makeSceneRFlipped as <|@
 
 makeSceneR'
-  :: forall env audio engine proofA res graph a
+  :: forall terminus inputs env audio engine proofA res graph a
    . Monoid res
-  => GraphIsRenderable graph
+  => SubgraphIsRenderable terminus inputs graph
   => AudioInterpret audio engine
   => WAG audio engine proofA res graph a
   -> ( forall proofB
         . WAG audio engine proofB res graph a
-       -> Scene env audio engine proofB res
+       -> SubScene terminus inputs env audio engine proofB res
      )
-  -> Scene env audio engine proofA res
+  -> SubScene terminus inputs env audio engine proofA res
 makeSceneR' = Functions.makeSceneR'
 
 infixr 6 makeSceneR' as @||>
 
 makeSceneR'Flipped
-  :: forall env audio engine proofA res graph a
+  :: forall terminus inputs env audio engine proofA res graph a
    . Monoid res
-  => GraphIsRenderable graph
+  => SubgraphIsRenderable terminus inputs graph
   => AudioInterpret audio engine
   => ( forall proofB
         . WAG audio engine proofB res graph a
-       -> Scene env audio engine proofB res
+       -> SubScene terminus inputs env audio engine proofB res
      )
   -> WAG audio engine proofA res graph a
-  -> Scene env audio engine proofA res
+  -> SubScene terminus inputs env audio engine proofA res
 makeSceneR'Flipped = Functions.makeSceneR'Flipped
 
 infixr 6 makeSceneR'Flipped as <||@

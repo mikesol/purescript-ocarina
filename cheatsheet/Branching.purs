@@ -10,7 +10,7 @@ import Math ((%))
 import Type.Proxy (Proxy(..))
 import WAGS.Change (ichange)
 import WAGS.Control.Functions (icont)
-import WAGS.Control.Functions.Validated (ibranch, (@!>))
+import WAGS.Control.Functions.Graph (ibranch, (@!>))
 import WAGS.Control.Indexed (IxWAG)
 import WAGS.Control.Types (Frame0, Scene, WAG)
 import WAGS.Graph.AudioUnit as AU
