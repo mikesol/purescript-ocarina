@@ -55,7 +55,7 @@ subPiece1 i = unit # SG.loopUsingScene \(SGWorld time) _ ->
   { control: unit
   , scene:
       { gnn: gain
-          (if time >= toNumber (i * 2) + 1.0 && time < toNumber (i * 2) + 1.23 then 0.05 else 0.0)
+          (if time >= toNumber (i * 2) + 1.0 && time < toNumber (i * 2) + 1.2 then 0.10 else 0.0)
           (input (Proxy :: _ "beep"))
       }
   }
@@ -69,6 +69,10 @@ piece = unit # loopUsingScene \(SceneI env) _ ->
               (\i _ -> subPiece0 i env.world.atar)
               (const $ const $ SGWorld env.time)
               {}
+            , sg2: subgraph vec
+              (\i _ -> subPiece1 i)
+              (const $ const $ SGWorld env.time)
+              { beep: sinOsc 440.0 }
           }
       }
   }

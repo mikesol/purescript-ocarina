@@ -64,6 +64,7 @@ var connectXToY = function (x) {
     return function (stateX) {
       return function (stateY) {
         return function () {
+          console.log(x,y, Object.keys(stateX.units), Object.keys(stateY.units))
           stateX.units[x].main.connect(stateY.units[y].main);
           stateX.units[x].outgoing.push({ unit: y, state: stateY });
           stateY.units[y].incoming.push({ unit: x, state: stateX });
@@ -668,6 +669,7 @@ exports.makeSubgraph_ = function (ptr) {
           return function (funk) {
             return function (state) {
               return function () {
+                console.log("making subgraph");
                 var children = [];
                 var scenes = [];
                 for (var i = 0; i < vek.length; i++) {
@@ -817,6 +819,7 @@ exports.makeSinOsc_ = function (ptr) {
     return function (a) {
       return function (state) {
         return function () {
+          console.log("making sinosc");
           var createFunction = function () {
             var unit = state.context.createOscillator();
             unit.type = "sine";

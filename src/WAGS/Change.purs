@@ -1767,11 +1767,11 @@ instance changeStereoPanner ::
         , value: unit
         }
 
-instance createSubgraph ::
+instance changeSubgraph ::
   ( IsSymbol ptr
   , IsSymbol terminus
   , Pos n
-  , R.Cons ptr (NodeC (CTOR.TSubgraph n terminus inputs env) {}) ignore graph
+  , R.Cons ptr (NodeC (CTOR.TSubgraph n terminus inputs env) edges) ignore graph
   ) =>
   Change' ptr (CTOR.Subgraph inputs (V.Vec n info) (AsSubgraph terminus inputs info env) (Int -> info -> env)) graph where
   change' ptr w = o

@@ -15,7 +15,6 @@ import Foreign.Object as Object
 import Prim.Row as R
 import Prim.RowList as RL
 import Prim.Symbol as Sym
-import WAGS.Debug (type (^^))
 import Record as Record
 import Simple.JSON as JSON
 import Type.Proxy (Proxy(..))
@@ -49,7 +48,6 @@ class CreateStepRL (rl :: RL.RowList Type) (prefix :: Type) (map :: Type) (r :: 
 
 instance createStepRLNil :: CreateStepRL RL.Nil prefix map r inGraph inGraph where
   createStepRL _ _ _ r = r $> unit
-
 instance createStepRLCons ::
   ( IsSymbol key
   , R.Cons key val ignore r
@@ -68,15 +66,11 @@ instance createStepRLCons ::
   createStepRL _ _ _ r = step3
     where
     rx = extract r
-
     (_ /\ _ /\ (node /\ edges)) = constructEdges (Proxy :: _ prefix') (Proxy :: _ map) (Record.get (Proxy :: _ key) rx)
-
     step1 = create' (Proxy :: _ newKey) (r $> node)
-
     step2 =
       (createStepRL :: CreateStepRLSig edgesRL newPrefix newMap edges graph1 graph2) Proxy Proxy Proxy
         (step1 $> edges)
-
     step3 = createStepRL (Proxy :: _ rest) (Proxy :: _ prefix) (Proxy :: _ map) (step2 $> rx)
 
 class ConnectEdgesToNode (sources :: RL.RowList Type) (dest :: Symbol) (inGraph :: Graph) (outGraph :: Graph) | sources dest inGraph -> outGraph where
@@ -838,12 +832,11 @@ instance createSinOsc ::
     nn = reflectSymbol ptr
 
     argA_iv' = paramize argA
-
     o =
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makeSinOsc nn (onOffIze onOff) argA_iv' ]
+              { instructions =  i.instructions <> [ makeSinOsc nn (onOffIze onOff) argA_iv' ]
               }
         , value: unit
         }
@@ -856,7 +849,6 @@ instance createSpeaker ::
   create' _ w = o
     where
     { context: i } = unsafeUnWAG w
-
     o =
       unsafeWAG
         { context:
@@ -926,9 +918,7 @@ instance createSubgraph ::
   create' ptr w = o
     where
     { context: i, value: (CTOR.Subgraph vec asSub env) } = unsafeUnWAG w
-
     nn = reflectSymbol ptr
-
     o =
       unsafeWAG
         { context:

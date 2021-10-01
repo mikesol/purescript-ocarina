@@ -7,6 +7,7 @@
   , "control"
   , "convertable-options"
   , "datetime"
+  , "debug"
   , "effect"
   , "either"
   , "event"
