@@ -18,6 +18,7 @@
   , "indexed-monad"
   , "integers"
   , "js-timers"
+  , "lazy"
   , "lists"
   , "math"
   , "maybe"
