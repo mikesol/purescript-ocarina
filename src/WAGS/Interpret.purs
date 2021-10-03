@@ -117,12 +117,15 @@ import Control.Plus (empty)
 import Control.Promise (Promise, toAffE)
 import Data.ArrayBuffer.Types (Float32Array, Uint8Array)
 import Data.Either (Either(..))
+import Data.FunctorWithIndex (mapWithIndex)
+import Data.Lazy (defer)
 import Data.Maybe (Maybe, fromMaybe, isNothing, maybe)
 import Data.Newtype (wrap)
 import Data.Symbol (class IsSymbol, reflectSymbol)
-import Data.Tuple (snd)
+import Data.Tuple (fst, snd)
 import Data.Tuple.Nested (type (/\), (/\))
 import Data.Typelevel.Num (class Nat, class Pos)
+import Data.Typelevel.Undefined (undefined)
 import Data.Vec (Vec)
 import Data.Vec as V
 import Data.Vec as Vec
@@ -522,7 +525,16 @@ instance freeAudioInterpret :: AudioInterpret Unit Instruction where
   makeConvolver a b = const $ MakeConvolver a b
   makeDelay a b = const $ MakeDelay a b
   makeInput a b = const $ MakeInput a b
-  makeSubgraph a _ _ _ _ = const $ MakeSubgraph a
+  makeSubgraph ptr _ vc iae ias =
+    const $ MakeSubgraph ptr
+      ( defer \_ ->
+          let
+            envs = mapWithIndex iae vc
+            subs = mapWithIndex ias vc
+            frames = V.zipWithE oneSubFrame subs envs
+          in
+            (map <<< map) ((#) unit) (map _.instructions (V.toArray frames))
+      )
   makeSubgraphWithDeferredScene a = const $ MakeSubgraphWithDeferredScene a
   makeDynamicsCompressor a b c d e f = const $ MakeDynamicsCompressor a b c d e f
   makeGain a b = const $ MakeGain a b
@@ -573,7 +585,16 @@ instance freeAudioInterpret :: AudioInterpret Unit Instruction where
   setFrequency a b = const $ SetFrequency a b
   setWaveShaperCurve a b = const $ SetWaveShaperCurve a b
   setInput a b = const $ SetInput a b
-  setSubgraph a _ _ _ _ = const $ SetSubgraph a
+  setSubgraph ptr _ vc iae ias =
+    const $ SetSubgraph ptr
+      ( defer \_ ->
+          let
+            envs = mapWithIndex iae vc
+            subs = mapWithIndex ias vc
+            frames = V.zipWithE oneSubFrame subs envs
+          in
+            (map <<< map) ((#) unit) (map _.instructions (V.toArray frames))
+      )
 
 foreign import connectXToY_ :: String -> String -> FFIAudioSnapshot' -> Effect Unit
 
@@ -876,15 +897,29 @@ instance safeToFFI_AudioParameterString ::
     , cancel: isNothing param
     }
 
-deflateAudioEngine :: forall terminus inputs env proof res. SubScene terminus inputs env (Unit /\ FFIAudioSnapshot) (Instruction /\ Effect Unit) proof res -> SubScene terminus inputs env FFIAudioSnapshot (Effect Unit) proof res
-deflateAudioEngine (SubScene sceneA) = SubScene
+audioEngine1st :: forall terminus inputs env proof res. SubScene terminus inputs env (Unit /\ FFIAudioSnapshot) (Instruction /\ Effect Unit) proof res -> SubScene terminus inputs env Unit Instruction proof res
+audioEngine1st (SubScene sceneA) = SubScene
+  ( \env ->
+      let
+        eaA = sceneA env
+      in
+        -- highly unsafe. only works because the result is effectful and we don't have any form of currying in the
+        -- ffi, so the effect won't be triggered and the `undefined` won't be used
+        { instructions: map (\f aSide -> fst $ f (aSide /\ (unsafeCoerce undefined))) eaA.instructions
+        , res: eaA.res
+        , next: audioEngine1st eaA.next
+        }
+  )
+
+audioEngine2nd :: forall terminus inputs env proof res. SubScene terminus inputs env (Unit /\ FFIAudioSnapshot) (Instruction /\ Effect Unit) proof res -> SubScene terminus inputs env FFIAudioSnapshot (Effect Unit) proof res
+audioEngine2nd (SubScene sceneA) = SubScene
   ( \env ->
       let
         eaA = sceneA env
       in
         { instructions: map (\f bSide -> snd $ f (unit /\ bSide)) eaA.instructions
         , res: eaA.res
-        , next: deflateAudioEngine eaA.next
+        , next: audioEngine2nd eaA.next
         }
   )
 
@@ -892,7 +927,7 @@ instance mixedAudioInterpret :: AudioInterpret (Unit /\ FFIAudioSnapshot) (Instr
   connectXToY a b (x /\ y) = connectXToY a b x /\ connectXToY a b y
   disconnectXFromY a b (x /\ y) = disconnectXFromY a b x /\ disconnectXFromY a b y
   destroyUnit a (x /\ y) = destroyUnit a x /\ destroyUnit a y
-  makeSubgraph a b c d e (_ /\ y) = MakeSubgraph a /\ makeSubgraph a b c d ((map <<< map) deflateAudioEngine e) y
+  makeSubgraph a b c d e (x /\ y) = makeSubgraph a b c d ((map <<< map) audioEngine1st e) x /\ makeSubgraph a b c d ((map <<< map) audioEngine2nd e) y
   makeSubgraphWithDeferredScene a (x /\ y) = makeSubgraphWithDeferredScene a x /\ makeSubgraphWithDeferredScene a y
   makeInput a b (x /\ y) = makeInput a b x /\ makeInput a b y
   makeAllpass a b c (x /\ y) = makeAllpass a b c x /\ makeAllpass a b c y
@@ -952,4 +987,4 @@ instance mixedAudioInterpret :: AudioInterpret (Unit /\ FFIAudioSnapshot) (Instr
   setFrequency a b (x /\ y) = setFrequency a b x /\ setFrequency a b y
   setWaveShaperCurve a b (x /\ y) = setWaveShaperCurve a b x /\ setWaveShaperCurve a b y
   setInput a b (x /\ y) = setInput a b x /\ setInput a b y
-  setSubgraph a b c d e (_ /\ y) = SetSubgraph a /\ setSubgraph a b c d ((map <<< map) deflateAudioEngine e) y
+  setSubgraph a b c d e (x /\ y) = setSubgraph a b c d ((map <<< map) audioEngine1st e) x /\ setSubgraph a b c d ((map <<< map) audioEngine2nd e) y

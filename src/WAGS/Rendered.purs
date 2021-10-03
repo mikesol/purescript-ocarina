@@ -8,6 +8,7 @@ import Prelude
 
 import Data.Either (Either)
 import Data.Generic.Rep (class Generic)
+import Data.Lazy (Lazy)
 import Data.Newtype (class Newtype, unwrap)
 import Data.Show.Generic (genericShow)
 import Data.Tuple.Nested (type (/\))
@@ -64,9 +65,7 @@ data Instruction
   | MakeSquareOsc String APOnOff AudioParameter
   | MakeSpeaker
   | MakeStereoPanner String AudioParameter
-  -- for now, MakeSubgraph intentionally leaves off the scene part
-  | MakeSubgraph String
-  -- for now, MakeSubgraphWithDeferredScene intentionally leaves off the scene part
+  | MakeSubgraph String (Lazy (Array (Array Instruction)))
   | MakeSubgraphWithDeferredScene String
   | MakeTriangleOsc String APOnOff AudioParameter
   | MakeWaveShaper String BrowserFloatArray Oversample
@@ -95,14 +94,14 @@ data Instruction
   | SetWaveShaperCurve String BrowserFloatArray
   | SetInput String String
   -- for now, SetSubgraph intentionally leaves off the scene part
-  | SetSubgraph String
+  | SetSubgraph String (Lazy (Array (Array Instruction)))
 
 derive instance eqInstruction :: Eq Instruction
 
 derive instance genericInstruction :: Generic Instruction _
 
 instance showInstruction :: Show Instruction where
-  show = genericShow
+  show x = genericShow x
 
 -- | The amount a [WaveShaperNode](https://developer.mozilla.org/en-US/docs/Web/API/WaveShaperNode) should oversample.
 data Oversample
