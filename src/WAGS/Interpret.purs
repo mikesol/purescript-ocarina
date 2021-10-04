@@ -393,6 +393,8 @@ class AudioInterpret audio engine where
   makeHighpass :: String -> AudioParameter -> AudioParameter -> audio -> engine
   -- | Make a highshelf filter.
   makeHighshelf :: String -> AudioParameter -> AudioParameter -> audio -> engine
+  -- | Make input.
+  makeInput :: String -> String -> audio -> engine
   -- | Make a looping audio buffer node with a deferred buffer.
   makeLoopBufWithDeferredBuffer :: String -> audio -> engine
   -- | Make a looping audio buffer node.
@@ -417,8 +419,18 @@ class AudioInterpret audio engine where
   makePlayBufWithDeferredBuffer :: String -> audio -> engine
   -- | Make an audio buffer node.
   makePlayBuf :: String -> BrowserAudioBuffer -> Number -> APOnOff -> AudioParameter -> audio -> engine
-  -- | Make input.
-  makeInput :: String -> String -> audio -> engine
+  -- | Make a recorder.
+  makeRecorder :: String -> MediaRecorderCb -> audio -> engine
+  -- | Make a sawtooth oscillator.
+  makeSawtoothOsc :: String -> APOnOff -> AudioParameter -> audio -> engine
+  -- | Make a sine-wave oscillator.
+  makeSinOsc :: String -> APOnOff -> AudioParameter -> audio -> engine
+  -- | Make a node representing the loudspeaker. For sound to be rendered, it must go to a loudspeaker.
+  makeSpeaker :: audio -> engine
+  -- | Make a square-wave oscillator.
+  makeSquareOsc :: String -> APOnOff -> AudioParameter -> audio -> engine
+  -- | Make a stereo panner
+  makeStereoPanner :: String -> AudioParameter -> audio -> engine
   -- | Make subgraph with deferred scene.
   makeSubgraphWithDeferredScene :: String -> audio -> engine
   -- | Make sugbraph.
@@ -433,20 +445,22 @@ class AudioInterpret audio engine where
     -> (Int -> a -> SubScene terminus inputs env audio engine Frame0 Unit)
     -> audio
     -> engine
-  -- | Make a recorder.
-  makeRecorder :: String -> MediaRecorderCb -> audio -> engine
-  -- | Make a sawtooth oscillator.
-  makeSawtoothOsc :: String -> APOnOff -> AudioParameter -> audio -> engine
-  -- | Make a sine-wave oscillator.
-  makeSinOsc :: String -> APOnOff -> AudioParameter -> audio -> engine
-  -- | Make a node representing the loudspeaker. For sound to be rendered, it must go to a loudspeaker.
-  makeSpeaker :: audio -> engine
-  -- | Make a square-wave oscillator.
-  makeSquareOsc :: String -> APOnOff -> AudioParameter -> audio -> engine
-  -- | Make a stereo panner
-  makeStereoPanner :: String -> AudioParameter -> audio -> engine
   -- | Make a triangle-wave oscillator.
   makeTriangleOsc :: String -> APOnOff -> AudioParameter -> audio -> engine
+  -- | Make subgraph with deferred scene.
+  makeTumultWithDeferredGraph :: String -> audio -> engine
+  -- | Make sugbraph.
+  makeTumult
+    :: forall proxy terminus inputs env n a
+     . IsSymbol terminus
+    => Pos n
+    => String
+    -> proxy terminus
+    -> V.Vec n a
+    -> (Int -> a -> env)
+    -> (Int -> a -> SubScene terminus inputs env audio engine Frame0 Unit)
+    -> audio
+    -> engine
   -- | Make a wave shaper.
   makeWaveShaper :: String -> BrowserFloatArray -> Oversample -> audio -> engine
   -- | Sets the callback used by an analyser node

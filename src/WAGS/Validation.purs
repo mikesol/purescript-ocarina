@@ -371,6 +371,13 @@ instance allNodesAreSaturatedConsTTriangleOsc ::
   ) =>
   AllNodesAreSaturatedNL (RL.Cons iSym (NodeC (CTOR.TTriangleOsc) { | r }) tail)
 
+instance allNodesAreSaturatedCons_TTumult::
+  ( RowToList subgraph subgraphRL
+  , RowListInRow subgraphRL r
+  , AllNodesAreSaturatedNL tail
+  ) =>
+  AllNodesAreSaturatedNL (RL.Cons iSym (NodeC (CTOR.TTumult arity terminus subgraph env) { | r }) tail)
+
 instance allNodesAreSaturatedConsTWaveShaper ::
   ( RowToList r (RL.Cons aSym aVal RL.Nil)
   , AllNodesAreSaturatedNL tail
