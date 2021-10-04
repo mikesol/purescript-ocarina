@@ -13,6 +13,7 @@ import Prim.Row (class Cons, class Nub)
 import Prim.Row as R
 import Prim.RowList (class RowToList, RowList)
 import Prim.RowList as RL
+import Prim.TypeError (class Fail, Text)
 import WAGS.Graph.AudioUnit as CTOR
 import WAGS.Graph.Edge (EdgeList)
 import WAGS.Graph.Graph (Graph)
@@ -371,12 +372,12 @@ instance allNodesAreSaturatedConsTTriangleOsc ::
   ) =>
   AllNodesAreSaturatedNL (RL.Cons iSym (NodeC (CTOR.TTriangleOsc) { | r }) tail)
 
-instance allNodesAreSaturatedCons_TTumult::
+instance allNodesAreSaturatedCons_TTumult ::
   ( RowToList subgraph subgraphRL
   , RowListInRow subgraphRL r
   , AllNodesAreSaturatedNL tail
   ) =>
-  AllNodesAreSaturatedNL (RL.Cons iSym (NodeC (CTOR.TTumult arity terminus subgraph env) { | r }) tail)
+  AllNodesAreSaturatedNL (RL.Cons iSym (NodeC (CTOR.TTumult arity terminus subgraph) { | r }) tail)
 
 instance allNodesAreSaturatedConsTWaveShaper ::
   ( RowToList r (RL.Cons aSym aVal RL.Nil)
@@ -418,3 +419,18 @@ instance inputsAreInInputListAll ::
   , InputsAreInInputList' inputs graphR
   ) =>
   InputsAreInInputList inputs graph
+
+class NodeCanBeTumultuous (node :: Type)
+
+instance nodeCanBeTumultuousSubgraph :: Fail (Text "Subgraph cannot be tumultuous") => NodeCanBeTumultuous (CTOR.TSubgraph a b c d)
+else instance nodeCanBeTumultuousTumult :: Fail (Text "Tumult cannot be tumultuous") => NodeCanBeTumultuous (CTOR.TTumult a b c)
+else instance nodeCanBeTumultuousTumultAll :: NodeCanBeTumultuous node
+
+class NodesCanBeTumultuous (rl :: RowList Type)
+
+instance nodesCanBeTumultuousNil :: NodesCanBeTumultuous RL.Nil
+instance nodesCanBeTumultuousCons ::
+  ( NodeCanBeTumultuous node
+  , NodesCanBeTumultuous rest
+  ) =>
+  NodesCanBeTumultuous (RL.Cons sym (NodeC node { | edges }) rest)

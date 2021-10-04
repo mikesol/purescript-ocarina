@@ -647,6 +647,18 @@ exports.makeInput_ = function (ptr) {
     };
   }
 };
+exports.makeTumultWithDeferredGraph_ = function (ptr) {
+  return function (state) {
+    return function () {
+      state.units[ptr] = {
+        outgoing: [],
+        incoming: [],
+        main: state.context.createGain(),
+        isTumult: true
+      };
+    };
+  };
+};
 exports.makeSubgraphWithDeferredScene_ = function (ptr) {
   return function (state) {
     return function () {
@@ -706,54 +718,60 @@ exports.makeSubgraph_ = function (ptr) {
     }
   }
 };
-exports.makeTumultWithDeferredScene_ = function (ptr) {
-  return function (state) {
-    return function () {
-      state.units[ptr] = {
-        outgoing: [],
-        incoming: [],
-        main: state.context.createGain(),
-        isTumult: true
-      };
-    };
-  };
-};
+/**
+ * 
+ * String
+  -> String
+  -> Array (Set Instruction)
+  -> Maybe (Set Instruction)
+  -> (Set Instruction -> Maybe (Set Instruction))
+  -> (Set Instruction -> Maybe (Set Instruction) -> Array (FFIAudioSnapshot' -> Effect Unit))
+  -> FFIAudioSnapshot'
+  -> Effect Unit
+ */
 exports.makeTumult_ = function (ptr) {
   return function (terminalPtr) {
     return function (scenes) {
-      return function (state) {
+      return function (nothing) {
         return function () {
-          var children = [];
-          for (var i = 0; i < scenes.length; i++) {
-            children[i] = {
-              context: state.context
-              , writeHead: state.writeHead
-              , units: {}
-              , parent: state
-            }
-          }
-          state.units[ptr] = {
-            outgoing: [],
-            incoming: [],
-            main: state.context.createGain(),
-            children: children,
-            isTumult: true
+            return function (arrMaker) {
+              return function (state) {
+                return function () {
+                  var children = [];
+                  for (var i = 0; i < scenes.length; i++) {
+                    children[i] = {
+                      context: state.context
+                      , writeHead: state.writeHead
+                      , units: {}
+                      , parent: state
+                    }
+                  }
+                  state.units[ptr] = {
+                    outgoing: [],
+                    incoming: [],
+                    main: state.context.createGain(),
+                    children: children,
+                    isTumult: true,
+                    scenes: scenes
+                  };
+                  state.units[ptr].main.gain = 1.0;
+                  for (var i = 0; i < scenes.length; i++) {
+                    var curScene = arrMaker(scenes[i])(nothing);
+                    for (var j = 0; j < curScene.length; j++) {
+                      // thunk
+                      curScene[j](children[i])();
+                    }
+                  }
+                  for (var i = 0; i < children.length; i++) {
+                    connectXToY(false)(terminalPtr)(ptr)(children[i])(state)();
+                  }
+                }
+              };
+            };
           };
-          state.units[ptr].main.gain = 1.0;
-          for (var i = 0; i < scenes.length; i++) {
-            var curScene = scenes[i];
-            for (var j = 0; j < curScene.length; j++) {
-              // thunk
-              curScene[j](children[i])();
-            }
-          }
-          for (var i = 0; i < children.length; i++) {
-            connectXToY(false)(terminalPtr)(ptr)(children[i])(state)();
-          }
         };
-      };
-    };
-  };
+    }
+  }
 };
 exports.makePlayBuf_ = function (ptr) {
   return function (a) {
@@ -1090,43 +1108,52 @@ exports.setSubgraph_ = function (ptr) {
 exports.setTumult_ = function (ptr) {
   return function (terminalPtr) {
     return function (scenes) {
-      return function (state) {
-        return function () {
-          var needsCreation = !(state.units[ptr] && state.units[ptr].children && state.units[ptr].scenes);
-          if (needsCreation) {
-            var children = [];
-            for (var i = 0; i < vek.length; i++) {
-              children[i] = {
-                context: state.context
-                , writeHead: state.writeHead
-                , units: {}
-                , parent: state
-              }
-            }
-            state.units[ptr].incoming = [];
-            state.units[ptr].outgoing = [];
-            state.units[ptr].children = children;
-            state.units[ptr].isTumult = true;
-          } else {
-            for (var i = 0; i < vek.length; i++) {
-              state.units[ptr].children[i].writeHead = state.writeHead;
+      return function (nothing) {
+        return function (just) {
+            return function (arrMaker) {
+              return function (state) {
+                return function () {
+                  var needsCreation = !(state.units[ptr] && state.units[ptr].children && state.units[ptr].scenes);
+                  if (needsCreation) {
+                    var children = [];
+                    for (var i = 0; i < vek.length; i++) {
+                      children[i] = {
+                        context: state.context
+                        , writeHead: state.writeHead
+                        , units: {}
+                        , parent: state
+                      }
+                    }
+                    state.units[ptr].incoming = [];
+                    state.units[ptr].outgoing = [];
+                    state.units[ptr].children = children;
+                    state.units[ptr].isTumult = true;
+                  } else {
+                    for (var i = 0; i < vek.length; i++) {
+                      state.units[ptr].children[i].writeHead = state.writeHead;
+                    }
+                  }
+                  var oldScenes = state.units[ptr].scenes;
+                  var children = state.units[ptr].children;
+                  for (var i = 0; i < scenes.length; i++) {
+                    var oldScene = oldScenes && oldScenes[i] ? just(oldScenes[i]) : nothing;
+                    var curScene = arrMaker(scenes[i])(oldScene);
+                    for (var j = 0; j < curScene.length; j++) {
+                      // thunk
+                      curScene[j](children[i])();
+                    }
+                  }
+                  state.units[ptr].scenes = scenes;
+                  if (needsCreation) {
+                    for (var i = 0; i < children.length; i++) {
+                      connectXToY(false)(terminalPtr)(ptr)(children[i])(state)();
+                    }
+                  }
+                };
+              };
             }
           }
-          var children = state.units[ptr].children;
-          for (var i = 0; i < scenes.length; i++) {
-            var curScene = scenes[i];
-            for (var j = 0; j < curScene.length; j++) {
-              // thunk
-              curScene[j](children[i])();
-            }
-          }
-          if (needsCreation) {
-            for (var i = 0; i < children.length; i++) {
-              connectXToY(false)(terminalPtr)(ptr)(children[i])(state)();
-            }
-          }
-        };
-      };
+      }
     };
   };
 };

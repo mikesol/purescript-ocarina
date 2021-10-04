@@ -259,13 +259,13 @@ instance typeToSymTriangleOsc :: TypeToSym (TriangleOsc onOff frequency) "Triang
 
 -- | Term-level constructor for a tumultuous subgraph
 -- | - `inputs` - the inputs to the subgraph
--- | - `subgraphGenerator` - the generating vector for the subgraph
--- | - `subgraphMaker` - the scene that makes the subgraph
+-- | - `subgraphGenerator` - the generating number for the subgraph
+-- | - `scene` - the scene that makes the subgraph
 -- | - `enc` - the scene that makes the subgraph
-data Tumult (inputs :: Row Type) subgraphGenerator subgraphMaker env
-  = Tumult subgraphGenerator subgraphMaker env
+data Tumult (inputs :: Row Type) (nSubgraphs :: Type) scene
+  = Tumult scene
 
-instance typeToSymTumult :: TypeToSym (Tumult inputs subgraphGenerator subgraphMaker env) "Tumult"
+instance typeToSymTumult :: TypeToSym (Tumult inputs nSubgraphs scene) "Tumult"
 
 -- | Term-level constructor for a WaveShaper, aka distortion.
 -- | - `floatArray` - the shape of the distortion.
@@ -752,18 +752,18 @@ instance reifyTTriangleOsc :: ReifyAU (TriangleOsc a b) TTriangleOsc where
   reifyAU = const mempty
 
 -- | Type-level constructor for a subgraph.
-data TTumult (arity :: Type) (terminus :: Symbol) (inputs :: Row Type) (env :: Type)
+data TTumult (arity :: Type) (terminus :: Symbol) (inputs :: Row Type)
   = TTumult
 
-instance typeToSymTTumult :: TypeToSym (TTumult arity terminus inputs env) "TTumult"
+instance typeToSymTTumult :: TypeToSym (TTumult arity terminus inputs) "TTumult"
 
-instance semigroupTTumult :: Semigroup (TTumult arity terminus inputs env) where
+instance semigroupTTumult :: Semigroup (TTumult arity terminus inputs) where
   append _ _ = TTumult
 
-instance monoidTTumult :: Monoid (TTumult arity terminus inputs env) where
+instance monoidTTumult :: Monoid (TTumult arity terminus inputs) where
   mempty = TTumult
 
-instance reifyTTumult :: ReifyAU (Tumult a b c d) (TTumult w x y z) where
+instance reifyTTumult :: ReifyAU (Tumult a b c) (TTumult w x y) where
   reifyAU = const mempty
 
 -- | Type-level constructor for a wave shaper.

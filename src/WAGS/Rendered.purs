@@ -11,6 +11,7 @@ import Data.Function (on)
 import Data.Generic.Rep (class Generic)
 import Data.Lazy (Lazy)
 import Data.Newtype (class Newtype, unwrap)
+import Data.Set (Set)
 import Data.Show.Generic (genericShow)
 import Data.Tuple.Nested (type (/\))
 import Foreign (Foreign)
@@ -127,7 +128,7 @@ data Instruction
   | MakeWaveShaper String BrowserFloatArray Oversample
   | MakeSubgraph String (Lazy (Array (Array Instruction)))
   | MakeSubgraphWithDeferredScene String
-  | MakeTumult String (Array (Array Instruction))
+  | MakeTumult String String (Array (Set Instruction))
   | MakeTumultWithDeferredGraph String
   | ConnectXToY String String
   | SetAnalyserNodeCb String AnalyserNodeCb
@@ -155,7 +156,7 @@ data Instruction
   | SetWaveShaperCurve String BrowserFloatArray
   | SetInput String String
   | SetSubgraph String (Lazy (Array (Array Instruction)))
-  | SetTumult String (Array (Array Instruction))
+  | SetTumult String String (Array (Set Instruction))
 
 derive instance eqInstruction :: Eq Instruction
 
