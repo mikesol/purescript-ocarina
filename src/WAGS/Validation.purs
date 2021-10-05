@@ -9,7 +9,7 @@ import Prelude hiding (Ordering(..))
 
 import Data.Typelevel.Bool (False, True)
 import Data.Typelevel.Num (class Pred, D0)
-import Prim.Row (class Cons, class Lacks, class Nub)
+import Prim.Row (class Cons, class Nub)
 import Prim.Row as R
 import Prim.RowList (class RowToList, RowList)
 import Prim.RowList as RL
@@ -404,7 +404,6 @@ class GetInputList' (graph :: RowList Type) (inputs :: Row Type) | graph -> inpu
 instance inputsAreInInputListNil :: GetInputList' RL.Nil ()
 instance inputsAreInInputListCons ::
   ( Cons i Unit iii r
-  , Lacks i iii
   , GetInputList' z iii
   ) =>
   GetInputList' (RL.Cons a (NodeC (CTOR.TInput i) f) z) r
@@ -416,7 +415,8 @@ class GetInputList (graph :: Row Type) (inputs :: Row Type) | graph -> inputs
 
 instance inputsAreInInputListAll ::
   ( RowToList graph graphR
-  , GetInputList' graphR inputs
+  , GetInputList' graphR inputs'
+  , Nub inputs' inputs
   ) =>
   GetInputList graph inputs
 

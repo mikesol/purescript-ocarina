@@ -48,20 +48,27 @@ subPiece1 _ = unit # SG.loopUsingScene \(SGWorld time) _ ->
   { control: unit
   , scene:
       { gnn: tumult
-              ( let
-                  sweep =
-                    { freq: globalFF $ pure $ 3000.0 + sin (pi * time * 0.2) * 2990.0
-                    , q: globalFF $ pure $ 1.0
-                    }
-                  tmod = time % 10.0
-                  tumult
-                    | tmod < 2.0 = tumultuously ({ output: input (Proxy :: _ "shruti") } +> V.empty)
-                    | tmod < 6.0 = tumultuously ({ output: bandpass sweep (input (Proxy :: _ "shruti")) } +> V.empty)
-                    | otherwise = tumultuously ({ output: highpass sweep (input (Proxy :: _ "shruti")) } +> V.empty)
-                in
-                  tumult
-              ) { shruti: input (Proxy :: _ "beep") }
-              
+          ( let
+              sweep =
+                { freq: globalFF $ pure $ 3000.0 + sin (pi * time * 0.2) * 2990.0
+                , q: globalFF $ pure $ 1.0
+                }
+              tmod = time % 10.0
+              tumult
+                | tmod < 2.0 = tumultuously ({ output: input (Proxy :: _ "shruti") } +> V.empty)
+                | tmod < 6.0 = tumultuously ({ output: highpass sweep (input (Proxy :: _ "shruti")) } +> V.empty)
+                | otherwise = tumultuously
+                    ( { output: gain 1.0
+                          { hpf: bandpass sweep (input (Proxy :: _ "shruti"))
+                          , bpf: bandpass { freq: 200.0 } (input (Proxy :: _ "shruti"))
+                          }
+                      } +> V.empty
+                    )
+            in
+              tumult
+          )
+          { shruti: input (Proxy :: _ "beep") }
+
       }
   }
 
@@ -70,7 +77,7 @@ piece = unit # loopUsingScene \(SceneI env) _ ->
   { control: unit
   , scene: speaker
       { gn: gain 1.0
-          {  sg2: subgraph vec
+          { sg2: subgraph vec
               (\i _ -> subPiece1 i)
               (const $ const $ SGWorld env.time)
               { beep: loopBuf env.world.shruti }
