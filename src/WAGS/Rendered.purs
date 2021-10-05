@@ -7,37 +7,96 @@ module WAGS.Rendered where
 import Prelude
 
 import Data.Either (Either)
+import Data.Function (on)
 import Data.Generic.Rep (class Generic)
 import Data.Lazy (Lazy)
 import Data.Newtype (class Newtype, unwrap)
+import Data.Set (Set)
 import Data.Show.Generic (genericShow)
 import Data.Tuple.Nested (type (/\))
 import Foreign (Foreign)
+import Foreign.Object (Object)
 import Simple.JSON as JSON
 import WAGS.Graph.AudioUnit (APOnOff)
 import WAGS.Graph.Parameter (AudioParameter)
 import WAGS.WebAPI (AnalyserNodeCb, BrowserAudioBuffer, BrowserFloatArray, BrowserMicrophone, BrowserPeriodicWave, MediaRecorderCb)
 
-newtype AudioWorkletNodeOptions_ = AudioWorkletNodeOptions_ Foreign
+type AudioWorkletNodeOptions_' =
+  { name :: String
+  , numberOfInputs :: Int
+  , numberOfOutputs :: Int
+  , outputChannelCount :: Array Int
+  , parameterData :: Object AudioParameter
+  , processorOptions :: Foreign
+  }
+
+type AudioWorkletNodeOptions_S' =
+  { name :: String
+  , numberOfInputs :: Int
+  , numberOfOutputs :: Int
+  , outputChannelCount :: Array Int
+  , parameterData :: Object AudioParameter
+  , processorOptions :: String
+  }
+
+audioWorkletNodeOptionsForInstances :: AudioWorkletNodeOptions_' -> AudioWorkletNodeOptions_S'
+audioWorkletNodeOptionsForInstances
+  { name
+  , numberOfInputs
+  , numberOfOutputs
+  , outputChannelCount
+  , parameterData
+  , processorOptions
+  } =
+  { name
+  , numberOfInputs
+  , numberOfOutputs
+  , outputChannelCount
+  , parameterData
+  , processorOptions: JSON.writeJSON processorOptions
+  }
+
+newtype AudioWorkletNodeOptions_ = AudioWorkletNodeOptions_
+  { name :: String
+  , numberOfInputs :: Int
+  , numberOfOutputs :: Int
+  , outputChannelCount :: Array Int
+  , parameterData :: Object AudioParameter
+  , processorOptions :: Foreign
+  }
 
 derive instance newtypeAudioWorkletNodeOptions_ :: Newtype AudioWorkletNodeOptions_ _
 
 instance eqAudioWorkletNodeOptions_ :: Eq AudioWorkletNodeOptions_ where
-  eq a b = JSON.writeJSON (unwrap a) == JSON.writeJSON (unwrap b)
+  eq = eq `on` (unwrap >>> audioWorkletNodeOptionsForInstances)
+
+instance ordAudioWorkletNodeOptions_ :: Ord AudioWorkletNodeOptions_ where
+  compare = compare `on` (unwrap >>> audioWorkletNodeOptionsForInstances)
 
 instance showAudioWorkletNodeOptions_ :: Show AudioWorkletNodeOptions_ where
-  show = JSON.writeJSON <<< unwrap
+  show (AudioWorkletNodeOptions_ a) = "AudioWorkletNodeOptions < "
+    <> a.name
+    <> ", "
+    <> show a.numberOfInputs
+    <> ", "
+    <> show a.numberOfOutputs
+    <> ", "
+    <> show a.outputChannelCount
+    <> ", "
+    <> show a.parameterData
+    <> ", "
+    <> JSON.writeJSON a.numberOfInputs
+    <> " >"
 
 -- An audio rendering instruction. These instructions are used
 -- for testing purposes during "dry run" simulations of audio rendering.
 -- `Instruction` can also be used if web-audio is being used to control other audio units.
 data Instruction
-  = ConnectXToY String String
-  | DisconnectXFromY String String
+  = DisconnectXFromY String String
   | DestroyUnit String
   | MakeAllpass String AudioParameter AudioParameter
   | MakeAnalyser String AnalyserNodeCb
-  | MakeAudioWorkletNode String String AudioWorkletNodeOptions_
+  | MakeAudioWorkletNode String AudioWorkletNodeOptions_
   | MakeBandpass String AudioParameter AudioParameter
   | MakeConstant String APOnOff AudioParameter
   | MakePassthroughConvolver String
@@ -59,16 +118,19 @@ data Instruction
   | MakePeriodicOsc String (Either BrowserPeriodicWave (Array Number /\ Array Number)) APOnOff AudioParameter
   | MakePlayBuf String BrowserAudioBuffer Number APOnOff AudioParameter
   | MakePlayBufWithDeferredBuffer String
-  | MakeRecorder String MediaRecorderCb 
+  | MakeRecorder String MediaRecorderCb
   | MakeSawtoothOsc String APOnOff AudioParameter
   | MakeSinOsc String APOnOff AudioParameter
   | MakeSquareOsc String APOnOff AudioParameter
   | MakeSpeaker
   | MakeStereoPanner String AudioParameter
-  | MakeSubgraph String (Lazy (Array (Array Instruction)))
-  | MakeSubgraphWithDeferredScene String
   | MakeTriangleOsc String APOnOff AudioParameter
   | MakeWaveShaper String BrowserFloatArray Oversample
+  | MakeSubgraph String (Lazy (Array (Array Instruction)))
+  | MakeSubgraphWithDeferredScene String
+  | MakeTumult String String (Array (Set Instruction))
+  | MakeTumultWithDeferredGraph String
+  | ConnectXToY String String
   | SetAnalyserNodeCb String AnalyserNodeCb
   | SetMediaRecorderCb String MediaRecorderCb
   | SetAudioWorkletParameter String String AudioParameter
@@ -93,10 +155,12 @@ data Instruction
   | SetFrequency String AudioParameter
   | SetWaveShaperCurve String BrowserFloatArray
   | SetInput String String
-  -- for now, SetSubgraph intentionally leaves off the scene part
   | SetSubgraph String (Lazy (Array (Array Instruction)))
+  | SetTumult String String (Array (Set Instruction))
 
 derive instance eqInstruction :: Eq Instruction
+
+derive instance ordInstruction :: Ord Instruction
 
 derive instance genericInstruction :: Generic Instruction _
 
@@ -110,6 +174,8 @@ data Oversample
   | FourX
 
 derive instance eqOversample :: Eq Oversample
+
+derive instance ordOversample :: Ord Oversample
 
 derive instance genericOversample :: Generic Oversample _
 

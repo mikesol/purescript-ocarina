@@ -9,10 +9,11 @@ import Prelude hiding (Ordering(..))
 
 import Data.Typelevel.Bool (False, True)
 import Data.Typelevel.Num (class Pred, D0)
-import Prim.Row (class Cons, class Nub)
+import Prim.Row (class Cons, class Lacks, class Nub)
 import Prim.Row as R
 import Prim.RowList (class RowToList, RowList)
 import Prim.RowList as RL
+import Prim.TypeError (class Fail, Text)
 import WAGS.Graph.AudioUnit as CTOR
 import WAGS.Graph.Edge (EdgeList)
 import WAGS.Graph.Graph (Graph)
@@ -47,7 +48,7 @@ instance graphIsRenderable ::
 -- | Subgraphs are exactly like graphs with the exception that the node _cannot_ be a
 -- | speaker.
 
-class SubgraphIsRenderable (terminusName :: Symbol) (inputs :: Row Type) (graph :: Graph)
+class SubgraphIsRenderable (graph :: Graph) (terminusName :: Symbol) (inputs :: Row Type) | graph -> terminusName inputs
 
 instance subgraphIsRenderable ::
   ( NoNodesAreDuplicated graph
@@ -55,10 +56,10 @@ instance subgraphIsRenderable ::
   , NoParallelEdges graph
   , HasSourceNodes graph
   , UniqueTerminus graph name terminus
-  , InputsAreInInputList inputs graph
+  , GetInputList graph inputs
   , AllNodesAreSaturated graph
   ) =>
-  SubgraphIsRenderable name inputs graph
+  SubgraphIsRenderable graph name inputs
 
 -- | Retrieves the terminal node from an audio grpah. This is
 -- | almost always a speaker or recording, but if the graph is
@@ -359,17 +360,24 @@ instance rowListInRowNil :: RowListInRow RL.Nil r
 instance rowListInRowCons :: (RowListInRow c r, Cons a x y r) => RowListInRow (RL.Cons a b c) r
 
 instance allNodesAreSaturatedCons_TSubgraph ::
-  ( RowToList subgraph subgraphRL
-  , RowListInRow subgraphRL r
+  ( RowToList inputs inputsRL
+  , RowListInRow inputsRL r
   , AllNodesAreSaturatedNL tail
   ) =>
-  AllNodesAreSaturatedNL (RL.Cons iSym (NodeC (CTOR.TSubgraph arity terminus subgraph env) { | r }) tail)
+  AllNodesAreSaturatedNL (RL.Cons iSym (NodeC (CTOR.TSubgraph arity terminus inputs env) { | r }) tail)
 
 instance allNodesAreSaturatedConsTTriangleOsc ::
   ( RowToList r RL.Nil
   , AllNodesAreSaturatedNL tail
   ) =>
   AllNodesAreSaturatedNL (RL.Cons iSym (NodeC (CTOR.TTriangleOsc) { | r }) tail)
+
+instance allNodesAreSaturatedCons_TTumult ::
+  ( RowToList inputs inputsRL
+  , RowListInRow inputsRL r
+  , AllNodesAreSaturatedNL tail
+  ) =>
+  AllNodesAreSaturatedNL (RL.Cons iSym (NodeC (CTOR.TTumult arity terminus inputs) { | r }) tail)
 
 instance allNodesAreSaturatedConsTWaveShaper ::
   ( RowToList r (RL.Cons aSym aVal RL.Nil)
@@ -391,23 +399,38 @@ instance nodeIsOutputDeviceTSpeaker :: NodeIsOutputDevice (NodeC (CTOR.TSpeaker)
 
 instance nodeIsOutputDeviceTRecorder :: NodeIsOutputDevice (NodeC (CTOR.TRecorder) x)
 
-class InputsAreInInputList' (inputs :: Row Type) (graph :: RowList Type)
+class GetInputList' (graph :: RowList Type) (inputs :: Row Type) | graph -> inputs
 
-instance inputsAreInInputListNil :: InputsAreInInputList' q RL.Nil
-
+instance inputsAreInInputListNil :: GetInputList' RL.Nil ()
 instance inputsAreInInputListCons ::
-  ( Cons i ii iii r
-  , InputsAreInInputList' r z
+  ( Cons i Unit iii r
+  , Lacks i iii
+  , GetInputList' z iii
   ) =>
-  InputsAreInInputList' r (RL.Cons a (NodeC (CTOR.TInput i) f) z)
+  GetInputList' (RL.Cons a (NodeC (CTOR.TInput i) f) z) r
 else instance inputsAreInInputListCons2 ::
-  InputsAreInInputList' r z =>
-  InputsAreInInputList' r (RL.Cons a (NodeC ignoreMe f) z)
+  GetInputList' z r =>
+  GetInputList' (RL.Cons a (NodeC ignoreMe f) z) r
 
-class InputsAreInInputList (inputs :: Row Type) (graph :: Row Type)
+class GetInputList (graph :: Row Type) (inputs :: Row Type) | graph -> inputs
 
 instance inputsAreInInputListAll ::
   ( RowToList graph graphR
-  , InputsAreInInputList' inputs graphR
+  , GetInputList' graphR inputs
   ) =>
-  InputsAreInInputList inputs graph
+  GetInputList graph inputs
+
+class NodeCanBeTumultuous (node :: Type)
+
+instance nodeCanBeTumultuousSubgraph :: Fail (Text "Subgraph cannot be tumultuous") => NodeCanBeTumultuous (CTOR.TSubgraph a b c d)
+else instance nodeCanBeTumultuousTumult :: Fail (Text "Tumult cannot be tumultuous") => NodeCanBeTumultuous (CTOR.TTumult a b c)
+else instance nodeCanBeTumultuousTumultAll :: NodeCanBeTumultuous node
+
+class NodesCanBeTumultuous (rl :: RowList Type)
+
+instance nodesCanBeTumultuousNil :: NodesCanBeTumultuous RL.Nil
+instance nodesCanBeTumultuousCons ::
+  ( NodeCanBeTumultuous node
+  , NodesCanBeTumultuous rest
+  ) =>
+  NodesCanBeTumultuous (RL.Cons sym (NodeC node { | edges }) rest)

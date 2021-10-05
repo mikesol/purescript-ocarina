@@ -4,9 +4,10 @@ import Prelude
 
 import Control.Comonad (extract)
 import Data.Functor (voidRight)
-import Data.Maybe (maybe)
+import Data.Lens (Grate, over)
+import Data.Lens.Grate (grate)
 import Data.Symbol (class IsSymbol, reflectSymbol)
-import Data.Tuple (Tuple)
+import Data.Tuple (Tuple, fst, snd)
 import Data.Tuple.Nested ((/\), type (/\))
 import Data.Typelevel.Num (class Nat, class Pos, toInt')
 import Data.Vec as V
@@ -28,8 +29,10 @@ import WAGS.Graph.Graph (Graph)
 import WAGS.Graph.Node (NodeC)
 import WAGS.Graph.Oversample (class IsOversample, reflectOversample)
 import WAGS.Graph.Paramable (class Paramable, paramize, class OnOffable, onOffIze)
-import WAGS.Graph.Parameter (AudioParameter, AudioParameter_(..))
-import WAGS.Interpret (class AudioInterpret, AsSubgraph, makeAllpass, makeAnalyser, makeAudioWorkletNode, makeBandpass, makeConstant, makeConvolver, makeDelay, makeDynamicsCompressor, makeGain, makeHighpass, makeHighshelf, makeInput, makeLoopBuf, makeLowpass, makeLowshelf, makeMicrophone, makeNotch, makePeaking, makePeriodicOsc, makePeriodicOscV, makePlayBuf, makeRecorder, makeSawtoothOsc, makeSinOsc, makeSpeaker, makeSquareOsc, makeStereoPanner, makeSubgraph, makeTriangleOsc, makeWaveShaper, unAsSubGraph)
+import WAGS.Graph.Parameter (AudioParameter)
+import WAGS.Interpret (class AudioInterpret, AsSubgraph, makeAllpass, makeAnalyser, makeAudioWorkletNode, makeBandpass, makeConstant, makeConvolver, makeDelay, makeDynamicsCompressor, makeGain, makeHighpass, makeHighshelf, makeInput, makeLoopBuf, makeLowpass, makeLowshelf, makeMicrophone, makeNotch, makePeaking, makePeriodicOsc, makePeriodicOscV, makePlayBuf, makeRecorder, makeSawtoothOsc, makeSinOsc, makeSpeaker, makeSquareOsc, makeStereoPanner, makeSubgraph, makeTriangleOsc, makeTumult, makeWaveShaper, unAsSubGraph)
+import WAGS.Rendered (AudioWorkletNodeOptions_(..))
+import WAGS.Tumult (Tumultuous, safeUntumult)
 import WAGS.Util (class AddPrefixToRowList, class CoercePrefixToString, class MakePrefixIfNeeded, class ValidateOutputChannelCount, toOutputChannelCount)
 import WAGS.WebAPI (AnalyserNodeCb, BrowserAudioBuffer, BrowserFloatArray, BrowserMicrophone, BrowserPeriodicWave, MediaRecorderCb)
 
@@ -63,6 +66,30 @@ instance createStepRLConsB ::
   , Create' newKey node graph2 graph3
   ) =>
   CreateStepRL (RL.Cons key (Tuple (CTOR.Subgraph inputs subgraphGenerator subgraphMaker env) ignoreMe) rest) prefix map r graph0 graph3 where
+  createStepRL _ _ _ r = step3
+    where
+    rx = extract r
+    (_ /\ _ /\ (node /\ edges)) = constructEdges (Proxy :: _ prefix') (Proxy :: _ map) (Record.get (Proxy :: _ key) rx)
+    step1 =
+      (createStepRL :: CreateStepRLSig edgesRL newPrefix newMap edges graph0 graph1) Proxy Proxy Proxy
+        (r $> edges)
+    step2 = createStepRL (Proxy :: _ rest) (Proxy :: _ prefix) (Proxy :: _ map) (step1 $> rx)
+    step3 = create' (Proxy :: _ newKey) (step2 $> node)
+else instance createStepRLConsC ::
+  ( IsSymbol key
+  , R.Cons key (Tuple (CTOR.Tumult tumult) ignoreMe) ignore r
+  , MakePrefixIfNeeded key prefix prefix'
+  , ConstructEdges prefix' map (Tuple (CTOR.Tumult tumult) ignoreMe) newPrefix newMap (node /\ { | edges })
+  , CoercePrefixToString prefix realPrefix
+  , Sym.Append realPrefix key newKey
+  , RL.RowToList edges edgesRL
+  -- push the new prefix and new map down to the edges
+  , CreateStepRL edgesRL newPrefix newMap edges graph0 graph1
+  -- on this level, we keep the old stuff
+  , CreateStepRL rest prefix map r graph1 graph2
+  , Create' newKey node graph2 graph3
+  ) =>
+  CreateStepRL (RL.Cons key (Tuple (CTOR.Tumult tumult) ignoreMe) rest) prefix map r graph0 graph3 where
   createStepRL _ _ _ r = step3
     where
     rx = extract r
@@ -272,7 +299,7 @@ class CreateParameters (parameterRL :: RL.RowList Type) (parameterData :: Row Ty
     :: forall proxyRL
      . proxyRL parameterRL
     -> { | parameterData }
-    -> Object Number
+    -> Object AudioParameter
 
 instance createParametersNil :: CreateParameters RL.Nil parameterData where
   createParameters _ _ = Object.empty
@@ -286,10 +313,10 @@ instance createParametersCons ::
   createParameters _ p =
     let
       px = Proxy :: _ key
-      AudioParameter param = Record.get px p
+      param = Record.get px p
       rest = createParameters (Proxy :: _ rest) p
     in
-      maybe rest (flip (Object.insert (reflectSymbol px)) rest) param.param
+      Object.insert (reflectSymbol px) param rest
 
 instance createAudioWorkletNode ::
   ( IsSymbol ptr
@@ -320,11 +347,12 @@ instance createAudioWorkletNode ::
         { context:
             i
               { instructions = i.instructions <>
-                  [ makeAudioWorkletNode nn (reflectSymbol (Proxy :: _ sym)) $ JSON.writeImpl
-                      { numberOfInputs: toInt' (Proxy :: _ numberOfInputs)
+                  [ makeAudioWorkletNode nn  $ AudioWorkletNodeOptions_
+                      { name: reflectSymbol (Proxy :: _ sym)
+                      , numberOfInputs: toInt' (Proxy :: _ numberOfInputs)
                       , numberOfOutputs: toInt' (Proxy :: _ numberOfOutputs)
                       , outputChannelCount: toOutputChannelCount (Proxy :: _ numberOfOutputs) (Proxy :: _ outputChannelCount)
-                      , parameterData: JSON.writeImpl (createParameters (Proxy :: _ parameterDataRL) options.parameterData)
+                      , parameterData: createParameters (Proxy :: _ parameterDataRL) options.parameterData
                       , processorOptions: JSON.writeImpl (mempty :: { | processorOptions })
                       }
                   ] --(createParameters nn (Proxy :: _ parameterData) (Proxy :: _ parametersRL) parameters)
@@ -745,6 +773,9 @@ instance createPeriodicOsc ::
         , value: unit
         }
 
+tGrate :: forall a b. Grate (Tuple a a) (Tuple b b) a b
+tGrate = grate \f -> (f fst) /\ (f snd)
+
 instance createPeriodicOsc2 ::
   ( IsSymbol ptr
   , Paramable argA
@@ -760,12 +791,12 @@ instance createPeriodicOsc2 ::
     nn = reflectSymbol ptr
 
     argA_iv' = paramize argA
-
+    
     o =
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makePeriodicOscV nn oscSpec (onOffIze onOff) argA_iv' ]
+              { instructions = i.instructions <> [ makePeriodicOscV nn (over tGrate V.toArray oscSpec) (onOffIze onOff) argA_iv' ]
               }
         , value: unit
         }
@@ -949,6 +980,29 @@ instance createSubgraph ::
             i
               { instructions = i.instructions <>
                   [ makeSubgraph nn (Proxy :: _ terminus) vec env (unAsSubGraph asSub) ]
+              }
+        , value: unit
+        }
+
+instance createTumult ::
+  ( IsSymbol ptr
+  , IsSymbol terminus
+  , Pos n
+  , R.Lacks ptr graphi
+  , R.Cons ptr (NodeC (CTOR.TTumult n terminus inputs) {}) graphi grapho
+  ) =>
+  Create' ptr (CTOR.Tumult (Tumultuous n terminus inputs)) graphi grapho where
+  create' ptr w = o
+    where
+    { context: i, value: (CTOR.Tumult tummy) } = unsafeUnWAG w
+    nn = reflectSymbol ptr
+    pt = reflectSymbol (Proxy :: _ terminus)
+    o =
+      unsafeWAG
+        { context:
+            i
+              { instructions = i.instructions <>
+                  [ makeTumult nn pt $ safeUntumult tummy ]
               }
         , value: unit
         }

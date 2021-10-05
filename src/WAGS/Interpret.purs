@@ -74,6 +74,8 @@ module WAGS.Interpret
   , makeWaveShaper
   , mediaRecorderToUrl
   , makeInput
+  , makeTumultWithDeferredGraph
+  , makeTumult
   , setInput
   , renderAudio
   , safeToFFI
@@ -109,18 +111,22 @@ module WAGS.Interpret
   , makeSubgraphWithDeferredScene
   , makeSubgraph
   , setSubgraph
+  , setTumult
   ) where
 
 import Prelude
 
 import Control.Plus (empty)
 import Control.Promise (Promise, toAffE)
+import Data.Array as Array
 import Data.ArrayBuffer.Types (Float32Array, Uint8Array)
 import Data.Either (Either(..))
 import Data.FunctorWithIndex (mapWithIndex)
 import Data.Lazy (defer)
-import Data.Maybe (Maybe, fromMaybe, isNothing, maybe)
-import Data.Newtype (wrap)
+import Data.Maybe (Maybe(..), fromMaybe, isJust, isNothing, maybe)
+import Data.Newtype (class Newtype, wrap)
+import Data.Profunctor (lcmap)
+import Data.Set (Set)
 import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.Tuple (fst, snd)
 import Data.Tuple.Nested (type (/\), (/\))
@@ -132,6 +138,7 @@ import Data.Vec as Vec
 import Effect (Effect)
 import Effect.Aff (Aff)
 import Foreign (Foreign)
+import Foreign.Object (Object)
 import Safe.Coerce (coerce)
 import Simple.JSON as JSON
 import Type.Row.Homogeneous (class Homogeneous)
@@ -140,8 +147,9 @@ import WAGS.Control.Types (Frame0, SubScene(..), oneSubFrame)
 import WAGS.Graph.AudioUnit (APOnOff, OnOff(..))
 import WAGS.Graph.Parameter (AudioParameter_(..), AudioParameter)
 import WAGS.Graph.Worklet (AudioWorkletNodeRequest, AudioWorkletNodeResponse)
-import WAGS.Rendered (Instruction(..), Oversample(..))
-import WAGS.Util (class ValidateOutputChannelCount, tmap)
+import WAGS.Rendered (AudioWorkletNodeOptions_(..), Instruction(..), Oversample(..))
+import WAGS.Tumult.Reconciliation (reconcileTumult)
+import WAGS.Util (class ValidateOutputChannelCount)
 import WAGS.WebAPI (AnalyserNode, AnalyserNodeCb, BrowserAudioBuffer, BrowserFloatArray, BrowserMicrophone, BrowserPeriodicWave, MediaRecorder, MediaRecorderCb)
 import WAGS.WebAPI as WebAPI
 
@@ -339,6 +347,8 @@ defaultFFIAudio audioCtx unitCache =
 newtype FFIAudioSnapshot
   = FFIAudioSnapshot FFIAudioSnapshot'
 
+derive instance newtypeFFIAudioSnapshot :: Newtype FFIAudioSnapshot _
+
 newtype AsSubgraph terminus inputs info env = AsSubgraph
   ( forall audio engine
      . AudioInterpret audio engine
@@ -374,7 +384,7 @@ class AudioInterpret audio engine where
   -- | Make an analyser.
   makeAnalyser :: String -> AnalyserNodeCb -> audio -> engine
   -- | Make an audio worklet node.
-  makeAudioWorkletNode :: String -> String -> Foreign -> audio -> engine
+  makeAudioWorkletNode :: String -> AudioWorkletNodeOptions_ -> audio -> engine
   -- | Make a bandpass filter.
   makeBandpass :: String -> AudioParameter -> AudioParameter -> audio -> engine
   -- | Make a constant source, ie a stream of 0s.
@@ -393,6 +403,8 @@ class AudioInterpret audio engine where
   makeHighpass :: String -> AudioParameter -> AudioParameter -> audio -> engine
   -- | Make a highshelf filter.
   makeHighshelf :: String -> AudioParameter -> AudioParameter -> audio -> engine
+  -- | Make input.
+  makeInput :: String -> String -> audio -> engine
   -- | Make a looping audio buffer node with a deferred buffer.
   makeLoopBufWithDeferredBuffer :: String -> audio -> engine
   -- | Make a looping audio buffer node.
@@ -412,13 +424,23 @@ class AudioInterpret audio engine where
   -- | Make a periodic oscillator.
   makePeriodicOsc :: String -> BrowserPeriodicWave -> APOnOff -> AudioParameter -> audio -> engine
   -- | Make a periodic oscillator
-  makePeriodicOscV :: forall (a :: Type). String -> V.Vec a Number /\ V.Vec a Number -> APOnOff -> AudioParameter -> audio -> engine
+  makePeriodicOscV :: String -> (Array Number /\ Array Number) -> APOnOff -> AudioParameter -> audio -> engine
   -- | Make an audio buffer node with a deferred buffer.
   makePlayBufWithDeferredBuffer :: String -> audio -> engine
   -- | Make an audio buffer node.
   makePlayBuf :: String -> BrowserAudioBuffer -> Number -> APOnOff -> AudioParameter -> audio -> engine
-  -- | Make input.
-  makeInput :: String -> String -> audio -> engine
+  -- | Make a recorder.
+  makeRecorder :: String -> MediaRecorderCb -> audio -> engine
+  -- | Make a sawtooth oscillator.
+  makeSawtoothOsc :: String -> APOnOff -> AudioParameter -> audio -> engine
+  -- | Make a sine-wave oscillator.
+  makeSinOsc :: String -> APOnOff -> AudioParameter -> audio -> engine
+  -- | Make a node representing the loudspeaker. For sound to be rendered, it must go to a loudspeaker.
+  makeSpeaker :: audio -> engine
+  -- | Make a square-wave oscillator.
+  makeSquareOsc :: String -> APOnOff -> AudioParameter -> audio -> engine
+  -- | Make a stereo panner
+  makeStereoPanner :: String -> AudioParameter -> audio -> engine
   -- | Make subgraph with deferred scene.
   makeSubgraphWithDeferredScene :: String -> audio -> engine
   -- | Make sugbraph.
@@ -433,20 +455,17 @@ class AudioInterpret audio engine where
     -> (Int -> a -> SubScene terminus inputs env audio engine Frame0 Unit)
     -> audio
     -> engine
-  -- | Make a recorder.
-  makeRecorder :: String -> MediaRecorderCb -> audio -> engine
-  -- | Make a sawtooth oscillator.
-  makeSawtoothOsc :: String -> APOnOff -> AudioParameter -> audio -> engine
-  -- | Make a sine-wave oscillator.
-  makeSinOsc :: String -> APOnOff -> AudioParameter -> audio -> engine
-  -- | Make a node representing the loudspeaker. For sound to be rendered, it must go to a loudspeaker.
-  makeSpeaker :: audio -> engine
-  -- | Make a square-wave oscillator.
-  makeSquareOsc :: String -> APOnOff -> AudioParameter -> audio -> engine
-  -- | Make a stereo panner
-  makeStereoPanner :: String -> AudioParameter -> audio -> engine
   -- | Make a triangle-wave oscillator.
   makeTriangleOsc :: String -> APOnOff -> AudioParameter -> audio -> engine
+  -- | Make subgraph with deferred scene.
+  makeTumultWithDeferredGraph :: String -> audio -> engine
+  -- | Make sugbraph.
+  makeTumult
+    :: String
+    -> String
+    -> Array (Set Instruction)
+    -> audio
+    -> engine
   -- | Make a wave shaper.
   makeWaveShaper :: String -> BrowserFloatArray -> Oversample -> audio -> engine
   -- | Sets the callback used by an analyser node
@@ -464,7 +483,7 @@ class AudioInterpret audio engine where
   -- | Sets the periodic oscillator to read from in a periodicOsc
   setPeriodicOsc :: String -> BrowserPeriodicWave -> audio -> engine
   -- | Sets the periodic oscillator to read from in a periodicOsc
-  setPeriodicOscV :: forall (a :: Type). String -> V.Vec a Number /\ V.Vec a Number -> audio -> engine
+  setPeriodicOscV :: String -> Array Number /\ Array Number -> audio -> engine
   -- | Turn on or off a generator (an oscillator or playback node).
   setOnOff :: String -> APOnOff -> audio -> engine
   -- | Set the offset for a playbuf
@@ -511,6 +530,12 @@ class AudioInterpret audio engine where
     -> (Int -> a -> SubScene terminus inputs env audio engine Frame0 res)
     -> audio
     -> engine
+  setTumult
+    :: String
+    -> String
+    -> Array (Set Instruction)
+    -> audio
+    -> engine
 
 instance freeAudioInterpret :: AudioInterpret Unit Instruction where
   connectXToY a b = const $ ConnectXToY a b
@@ -518,13 +543,15 @@ instance freeAudioInterpret :: AudioInterpret Unit Instruction where
   destroyUnit a = const $ DestroyUnit a
   makeAllpass a b c = const $ MakeAllpass a b c
   makeAnalyser a b = const $ MakeAnalyser a b
-  makeAudioWorkletNode a b c = const $ MakeAudioWorkletNode a b (wrap c)
+  makeAudioWorkletNode a b = const $ MakeAudioWorkletNode a b
   makeBandpass a b c = const $ MakeBandpass a b c
   makeConstant a b c = const $ MakeConstant a b c
   makePassthroughConvolver a = const $ MakePassthroughConvolver a
   makeConvolver a b = const $ MakeConvolver a b
   makeDelay a b = const $ MakeDelay a b
   makeInput a b = const $ MakeInput a b
+  makeTumult a b c = const $ MakeTumult a b c
+  makeTumultWithDeferredGraph a = const $ MakeTumultWithDeferredGraph a
   makeSubgraph ptr _ vc iae ias =
     const $ MakeSubgraph ptr
       ( defer \_ ->
@@ -548,7 +575,7 @@ instance freeAudioInterpret :: AudioInterpret Unit Instruction where
   makeNotch a b c = const $ MakeNotch a b c
   makePeaking a b c d = const $ MakePeaking a b c d
   makePeriodicOsc a b c d = const $ MakePeriodicOsc a (Left b) c d
-  makePeriodicOscV a b c d = const $ MakePeriodicOsc a (Right (tmap V.toArray b)) c d
+  makePeriodicOscV a b c d = const $ MakePeriodicOsc a (Right b) c d
   makePeriodicOscWithDeferredOsc a = const $ MakePeriodicOscWithDeferredOsc a
   makePlayBufWithDeferredBuffer a = const $ MakePlayBufWithDeferredBuffer a
   makePlayBuf a b c d e = const $ MakePlayBuf a b c d e
@@ -564,7 +591,7 @@ instance freeAudioInterpret :: AudioInterpret Unit Instruction where
   setBuffer a b = const $ SetBuffer a b
   setConvolverBuffer a b = const $ SetConvolverBuffer a b
   setPeriodicOsc a b = const $ SetPeriodicOsc a (Left b)
-  setPeriodicOscV a b = const $ SetPeriodicOsc a (Right (tmap V.toArray b))
+  setPeriodicOscV a b = const $ SetPeriodicOsc a (Right b)
   setOnOff a b = const $ SetOnOff a b
   setMediaRecorderCb a b = const $ SetMediaRecorderCb a b
   setAnalyserNodeCb a b = const $ SetAnalyserNodeCb a b
@@ -595,6 +622,7 @@ instance freeAudioInterpret :: AudioInterpret Unit Instruction where
           in
             (map <<< map) ((#) unit) (map _.instructions (V.toArray frames))
       )
+  setTumult a b c = const $ SetTumult a b c
 
 foreign import connectXToY_ :: String -> String -> FFIAudioSnapshot' -> Effect Unit
 
@@ -606,7 +634,7 @@ foreign import makeAllpass_ :: String -> FFINumericAudioParameter -> FFINumericA
 
 foreign import makeAnalyser_ :: String -> (AnalyserNode -> Effect (Effect Unit)) -> FFIAudioSnapshot' -> Effect Unit
 
-foreign import makeAudioWorkletNode_ :: String -> String -> Foreign -> FFIAudioSnapshot' -> Effect Unit
+foreign import makeAudioWorkletNode_ :: String -> AudioWorkletNodeOptionsFFI_ -> FFIAudioSnapshot' -> Effect Unit
 
 foreign import makeBandpass_ :: String -> FFINumericAudioParameter -> FFINumericAudioParameter -> FFIAudioSnapshot' -> Effect Unit
 
@@ -681,6 +709,28 @@ foreign import makeSubgraph_
   -> FFIAudioSnapshot'
   -> Effect Unit
 
+foreign import makeTumultWithDeferredGraph_ :: String -> FFIAudioSnapshot' -> Effect Unit
+
+foreign import makeTumult_
+  :: String
+  -> String
+  -> Array (Set Instruction)
+  -> Maybe (Set Instruction)
+  -> (Set Instruction -> Maybe (Set Instruction))
+  -> (Set Instruction -> Maybe (Set Instruction) -> Array (FFIAudioSnapshot' -> Effect Unit))
+  -> FFIAudioSnapshot'
+  -> Effect Unit
+
+foreign import setTumult_
+  :: String
+  -> String
+  -> Array (Set Instruction)
+  -> Maybe (Set Instruction)
+  -> (Set Instruction -> Maybe (Set Instruction))
+  -> (Set Instruction -> Maybe (Set Instruction) -> Array (FFIAudioSnapshot' -> Effect Unit))
+  -> FFIAudioSnapshot'
+  -> Effect Unit
+
 foreign import setAudioWorkletParameter_ :: String -> String -> FFINumericAudioParameter -> FFIAudioSnapshot' -> Effect Unit
 
 foreign import setOnOff_ :: String -> FFIStringAudioParameter -> FFIAudioSnapshot' -> Effect Unit
@@ -742,6 +792,94 @@ foreign import setSubgraph_
   -> FFIAudioSnapshot'
   -> Effect Unit
 
+interpretInstruction :: forall audio engine. AudioInterpret audio engine => Instruction -> audio -> engine
+interpretInstruction = case _ of
+  DisconnectXFromY x y -> disconnectXFromY x y
+  DestroyUnit x -> destroyUnit x
+  MakeAllpass ptr a b -> makeAllpass ptr a b
+  MakeAnalyser ptr a -> makeAnalyser ptr a
+  MakeAudioWorkletNode ptr a -> makeAudioWorkletNode ptr a
+  MakeBandpass ptr a b -> makeBandpass ptr a b
+  MakeConstant ptr a b -> makeConstant ptr a b
+  MakePassthroughConvolver ptr -> makePassthroughConvolver ptr
+  MakeConvolver ptr a -> makeConvolver ptr a
+  MakeDelay ptr a -> makeDelay ptr a
+  MakeDynamicsCompressor ptr a b c d e -> makeDynamicsCompressor ptr a b c d e
+  MakeGain ptr a -> makeGain ptr a
+  MakeHighpass ptr a b -> makeHighpass ptr a b
+  MakeHighshelf ptr a b -> makeHighshelf ptr a b
+  MakeInput ptr a -> makeInput ptr a
+  MakeLoopBuf ptr a b c d e -> makeLoopBuf ptr a b c d e
+  MakeLoopBufWithDeferredBuffer ptr -> makeLoopBufWithDeferredBuffer ptr
+  MakeLowpass ptr a b -> makeLowpass ptr a b
+  MakeLowshelf ptr a b -> makeLowshelf ptr a b
+  MakeMicrophone a -> makeMicrophone a
+  MakeNotch ptr a b -> makeNotch ptr a b
+  MakePeaking ptr a b c -> makePeaking ptr a b c
+  MakePeriodicOscWithDeferredOsc ptr -> makePeriodicOscWithDeferredOsc ptr
+  MakePeriodicOsc ptr a b c -> case a of
+    Left a' -> makePeriodicOsc ptr a' b c
+    Right a' -> makePeriodicOscV ptr a' b c
+  MakePlayBuf ptr a b c d -> makePlayBuf ptr a b c d
+  MakePlayBufWithDeferredBuffer ptr -> makePlayBufWithDeferredBuffer ptr
+  MakeRecorder ptr a -> makeRecorder ptr a
+  MakeSawtoothOsc ptr a b -> makeSawtoothOsc ptr a b
+  MakeSinOsc ptr a b -> makeSinOsc ptr a b
+  MakeSquareOsc ptr a b -> makeSquareOsc ptr a b
+  MakeSpeaker -> makeSpeaker
+  MakeStereoPanner ptr a -> makeStereoPanner ptr a
+  MakeTriangleOsc ptr a b -> makeTriangleOsc ptr a b
+  MakeWaveShaper ptr a b -> makeWaveShaper ptr a b
+  -----------------------------------
+  -- for now, we cannot get back tumult and subgraph
+  -- add dummies
+  -- maybe figure this out in the future
+  MakeSubgraph ptr _ -> makeGain ptr (pure 1.0)
+  MakeSubgraphWithDeferredScene ptr -> makeGain ptr (pure 1.0)
+  MakeTumult ptr _ _ -> makeGain ptr (pure 1.0)
+  MakeTumultWithDeferredGraph ptr -> makeGain ptr (pure 1.0)
+  -----------------------------------
+  ConnectXToY x y -> connectXToY x y
+  SetAnalyserNodeCb ptr a -> setAnalyserNodeCb ptr a
+  SetMediaRecorderCb ptr a -> setMediaRecorderCb ptr a
+  SetAudioWorkletParameter ptr a b -> setAudioWorkletParameter ptr a b
+  SetBuffer ptr a -> setBuffer ptr a
+  SetConvolverBuffer ptr a -> setConvolverBuffer ptr a
+  SetPeriodicOsc ptr a -> case a of
+    Left a'  -> setPeriodicOsc ptr a'
+    Right a'  -> setPeriodicOscV ptr a'
+  SetOnOff ptr a -> setOnOff ptr a
+  SetBufferOffset ptr a -> setBufferOffset ptr a
+  SetLoopStart ptr a -> setLoopStart ptr a
+  SetLoopEnd ptr a -> setLoopEnd ptr a
+  SetRatio ptr a -> setRatio ptr a
+  SetOffset ptr a -> setOffset ptr a
+  SetAttack ptr a -> setAttack ptr a
+  SetGain ptr a -> setGain ptr a
+  SetQ ptr a -> setQ ptr a
+  SetPan ptr a -> setPan ptr a
+  SetThreshold ptr a -> setThreshold ptr a
+  SetRelease ptr a -> setRelease ptr a
+  SetKnee ptr a -> setKnee ptr a
+  SetDelay ptr a -> setDelay ptr a
+  SetPlaybackRate ptr a -> setPlaybackRate ptr a
+  SetFrequency ptr a -> setFrequency ptr a
+  SetWaveShaperCurve ptr a -> setWaveShaperCurve ptr a
+  SetInput ptr a -> setInput ptr a
+  -----------------------------------
+  -- for now, we cannot get back tumult and subgraph
+  -- add dummies
+  -- maybe figure this out in the future
+  SetSubgraph ptr _ -> setGain ptr (pure 1.0)
+  SetTumult ptr _ _ -> setGain ptr (pure 1.0)
+
+makeInstructionsEffectful :: Set Instruction -> Maybe (Set Instruction) -> Array (FFIAudioSnapshot' -> Effect Unit)
+makeInstructionsEffectful a = case _ of
+  Nothing -> map (lcmap wrapFAS <<< interpretInstruction) (Array.fromFoldable a)
+  Just b -> map (lcmap wrapFAS <<< interpretInstruction) (Array.fromFoldable (reconcileTumult a b))
+  where
+  wrapFAS = wrap :: FFIAudioSnapshot' -> FFIAudioSnapshot
+
 instance effectfulAudioInterpret :: AudioInterpret FFIAudioSnapshot (Effect Unit) where
   connectXToY a b c = connectXToY_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
   disconnectXFromY a b c = disconnectXFromY_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
@@ -749,7 +887,7 @@ instance effectfulAudioInterpret :: AudioInterpret FFIAudioSnapshot (Effect Unit
   makeInput a b c = makeInput_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
   makeAllpass a b c d = makeAllpass_ (safeToFFI a) (safeToFFI b) (safeToFFI c) (safeToFFI d)
   makeAnalyser a b c = makeAnalyser_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
-  makeAudioWorkletNode a b c d = makeAudioWorkletNode_ (safeToFFI a) (safeToFFI b) (safeToFFI c) (safeToFFI d)
+  makeAudioWorkletNode a b c = makeAudioWorkletNode_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
   makeBandpass a b c d = makeBandpass_ (safeToFFI a) (safeToFFI b) (safeToFFI c) (safeToFFI d)
   makeConstant a b c d = makeConstant_ (safeToFFI a) (safeToFFI b) (safeToFFI c) (safeToFFI d)
   makeConvolver a b c = makeConvolver_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
@@ -779,6 +917,8 @@ instance effectfulAudioInterpret :: AudioInterpret FFIAudioSnapshot (Effect Unit
   makeStereoPanner a b c = makeStereoPanner_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
   makeSubgraph ptr pxy vek envM sceneM audio = makeSubgraph_ ptr (reflectSymbol pxy) (Vec.toArray vek) sceneM envM (\env scene -> let res = oneSubFrame scene env in { instructions: res.instructions, nextScene: res.next }) (safeToFFI audio)
   makeSubgraphWithDeferredScene a b = makeSubgraphWithDeferredScene_ a (safeToFFI b)
+  makeTumult ptr terminus instr toFFI = makeTumult_ ptr terminus instr Nothing Just makeInstructionsEffectful (safeToFFI toFFI)
+  makeTumultWithDeferredGraph a b = makeTumultWithDeferredGraph_ a (safeToFFI b)
   makeTriangleOsc a b c d = makeTriangleOsc_ (safeToFFI a) (safeToFFI b) (safeToFFI c) (safeToFFI d)
   makeWaveShaper a b c d = makeWaveShaper_ (safeToFFI a) (safeToFFI b) (safeToFFI c) (safeToFFI d)
   setAudioWorkletParameter a b c d = setAudioWorkletParameter_ (safeToFFI a) (safeToFFI b) (safeToFFI c) (safeToFFI d)
@@ -807,6 +947,7 @@ instance effectfulAudioInterpret :: AudioInterpret FFIAudioSnapshot (Effect Unit
   setWaveShaperCurve a b c = setWaveShaperCurve_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
   setInput a b c = setInput_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
   setSubgraph ptr pxy vek envM sceneM audio = setSubgraph_ ptr (reflectSymbol pxy) (Vec.toArray vek) sceneM envM (\env scene -> let res = oneSubFrame scene env in { instructions: res.instructions, nextScene: res.next }) (safeToFFI audio)
+  setTumult ptr terminus instr toFFI = setTumult_ ptr terminus instr Nothing Just makeInstructionsEffectful (safeToFFI toFFI)
 
 -- A utility typeclass used to convert PS arguments to arguments that are understood by the Web Audio API.
 class SafeToFFI a b | a -> b where
@@ -839,8 +980,8 @@ instance safeToFFI_Number :: SafeToFFI Number Number where
 instance safeToFFI_Foreign :: SafeToFFI Foreign Foreign where
   safeToFFI = identity
 
-instance safeToFFI_VecNumber :: SafeToFFI (V.Vec a Number /\ V.Vec a Number) (Array (Array Number)) where
-  safeToFFI (a /\ b) = [ V.toArray a, V.toArray b ]
+instance safeToFFI_VecNumber :: SafeToFFI (Array Number /\ Array Number) (Array (Array Number)) where
+  safeToFFI (a /\ b) = [ a, b ]
 
 instance safeToFFI_String :: SafeToFFI String String where
   safeToFFI = identity
@@ -854,10 +995,23 @@ instance safeToFFI_Oversample :: SafeToFFI Oversample String where
 instance safeToFFI_FFIAudio :: SafeToFFI FFIAudioSnapshot FFIAudioSnapshot' where
   safeToFFI (FFIAudioSnapshot x) = x
 
+type AudioWorkletNodeOptionsFFI_ = { name :: String
+    , numberOfInputs :: Int
+    , numberOfOutputs :: Int
+    , outputChannelCount :: Array Int
+    , parameterData :: Object FFINumericAudioParameter
+    , processorOptions :: Foreign
+    }
+
+instance safeToFFI_AudioWorkletNodeOptions_ ::
+  SafeToFFI AudioWorkletNodeOptions_ AudioWorkletNodeOptionsFFI_ where
+  safeToFFI (AudioWorkletNodeOptions_ { name, numberOfInputs, numberOfOutputs, outputChannelCount, parameterData, processorOptions }) = { name, numberOfInputs, numberOfOutputs, outputChannelCount, parameterData: map safeToFFI parameterData, processorOptions }
+
 -- | An AudioParameter with the `transition` field stringly-typed for easier rendering in the FFI and cancelation as a boolean
 type FFINumericAudioParameter
   =
   { param :: Number
+  , isJust :: Boolean
   , timeOffset :: Number
   , transition :: String
   , cancel :: Boolean
@@ -867,6 +1021,7 @@ instance safeToFFI_AudioParameter ::
   SafeToFFI (AudioParameter_ Number) FFINumericAudioParameter where
   safeToFFI (AudioParameter { param, timeOffset, transition }) =
     { param: fromMaybe 0.0 param
+    , isJust: isJust param
     , timeOffset
     , transition: show transition
     , cancel: isNothing param
@@ -932,7 +1087,7 @@ instance mixedAudioInterpret :: AudioInterpret (Unit /\ FFIAudioSnapshot) (Instr
   makeInput a b (x /\ y) = makeInput a b x /\ makeInput a b y
   makeAllpass a b c (x /\ y) = makeAllpass a b c x /\ makeAllpass a b c y
   makeAnalyser a b (x /\ y) = makeAnalyser a b x /\ makeAnalyser a b y
-  makeAudioWorkletNode a b c (x /\ y) = makeAudioWorkletNode a b c x /\ makeAudioWorkletNode a b c y
+  makeAudioWorkletNode a b (x /\ y) = makeAudioWorkletNode a b x /\ makeAudioWorkletNode a b y
   makeBandpass a b c (x /\ y) = makeBandpass a b c x /\ makeBandpass a b c y
   makeConstant a b c (x /\ y) = makeConstant a b c x /\ makeConstant a b c y
   makePassthroughConvolver a (x /\ y) = makePassthroughConvolver a x /\ makePassthroughConvolver a y
@@ -962,6 +1117,8 @@ instance mixedAudioInterpret :: AudioInterpret (Unit /\ FFIAudioSnapshot) (Instr
   makeStereoPanner a b (x /\ y) = makeStereoPanner a b x /\ makeStereoPanner a b y
   makeTriangleOsc a b c (x /\ y) = makeTriangleOsc a b c x /\ makeTriangleOsc a b c y
   makeWaveShaper a b c (x /\ y) = makeWaveShaper a b c x /\ makeWaveShaper a b c y
+  makeTumult aaa bbb ccc (x /\ y) = makeTumult aaa bbb ccc x /\ makeTumult aaa bbb ccc y
+  makeTumultWithDeferredGraph a (x /\ y) = makeTumultWithDeferredGraph a x /\ makeTumultWithDeferredGraph a y
   setAudioWorkletParameter a b c (x /\ y) = setAudioWorkletParameter a b c x /\ setAudioWorkletParameter a b c y
   setAnalyserNodeCb a b (x /\ y) = setAnalyserNodeCb a b x /\ setAnalyserNodeCb a b y
   setMediaRecorderCb a b (x /\ y) = setMediaRecorderCb a b x /\ setMediaRecorderCb a b y
@@ -988,3 +1145,4 @@ instance mixedAudioInterpret :: AudioInterpret (Unit /\ FFIAudioSnapshot) (Instr
   setWaveShaperCurve a b (x /\ y) = setWaveShaperCurve a b x /\ setWaveShaperCurve a b y
   setInput a b (x /\ y) = setInput a b x /\ setInput a b y
   setSubgraph a b c d e (x /\ y) = setSubgraph a b c d ((map <<< map) audioEngine1st e) x /\ setSubgraph a b c d ((map <<< map) audioEngine2nd e) y
+  setTumult aaa bbb ccc (x /\ y) = setTumult aaa bbb ccc x /\ setTumult aaa bbb ccc y

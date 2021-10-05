@@ -18,7 +18,7 @@ import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Halogen.VDom.Driver (runUI)
-import Math (sin, pi)
+import Math (cos, pi)
 import WAGS.Change (ichange)
 import WAGS.Control.Functions.Graph (iloop, (@!>))
 import WAGS.Control.Indexed (IxWAG)
@@ -77,7 +77,7 @@ scene wnr time =
               { numberOfInputs: d0
               , numberOfOutputs: d1
               , outputChannelCount: d1
-              , parameterData: { customGain: ff 0.06 $ pure $ 0.02 + sin (pi * time) * 0.01 }
+              , parameterData: { customGain: let tsilence = 0.33 in if time < tsilence then pure 0.0 else ff 0.06 $ pure $ 0.02 - cos (pi * (time - tsilence) * 0.2) * 0.01 }
               , processorOptions: {}
               }
           )

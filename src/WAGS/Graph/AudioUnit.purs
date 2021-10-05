@@ -257,6 +257,13 @@ data TriangleOsc onOff frequency
 
 instance typeToSymTriangleOsc :: TypeToSym (TriangleOsc onOff frequency) "TriangleOsc"
 
+-- | Term-level constructor for a tumultuous subgraph
+-- | - `tumult` - the tumult
+data Tumult tumult
+  = Tumult tumult
+
+instance typeToSymTumult :: TypeToSym (Tumult tumult) "Tumult"
+
 -- | Term-level constructor for a WaveShaper, aka distortion.
 -- | - `floatArray` - the shape of the distortion.
 -- | - `oversample` - how much to oversample - none, 2x or 4x. Once set, this cannot change without destroying and remaking the audio unit.
@@ -277,6 +284,8 @@ data OnOff
   | OffOn
 
 derive instance eqOnOff :: Eq OnOff
+
+derive instance ordOnOff :: Ord OnOff
 
 derive instance genericOnOff :: Generic OnOff _
 
@@ -737,6 +746,21 @@ instance monoidTTriangleOsc :: Monoid TTriangleOsc where
   mempty = TTriangleOsc
 
 instance reifyTTriangleOsc :: ReifyAU (TriangleOsc a b) TTriangleOsc where
+  reifyAU = const mempty
+
+-- | Type-level constructor for a subgraph.
+data TTumult (arity :: Type) (terminus :: Symbol) (inputs :: Row Type)
+  = TTumult
+
+instance typeToSymTTumult :: TypeToSym (TTumult arity terminus inputs) "TTumult"
+
+instance semigroupTTumult :: Semigroup (TTumult arity terminus inputs) where
+  append _ _ = TTumult
+
+instance monoidTTumult :: Monoid (TTumult arity terminus inputs) where
+  mempty = TTumult
+
+instance reifyTTumult :: ReifyAU (Tumult tumult) (TTumult w x y) where
   reifyAU = const mempty
 
 -- | Type-level constructor for a wave shaper.
