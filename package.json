@@ -6,7 +6,7 @@
     "build": "spago build",
     "pulp-publish": "pulp publish",
     "docs": "pulp docs",
-    "test": "spago -x test.dhall test"
+    "test": "spago -x test.dhall test && npx spago -x examples.dhall build && npx spago -x cheatsheet.dhall build"
   },
   "keywords": [],
   "author": "",

@@ -123,7 +123,7 @@ import Data.ArrayBuffer.Types (Float32Array, Uint8Array)
 import Data.Either (Either(..))
 import Data.FunctorWithIndex (mapWithIndex)
 import Data.Lazy (defer)
-import Data.Maybe (Maybe(..), fromMaybe, isNothing, maybe)
+import Data.Maybe (Maybe(..), fromMaybe, isJust, isNothing, maybe)
 import Data.Newtype (class Newtype, wrap)
 import Data.Profunctor (lcmap)
 import Data.Set (Set)
@@ -1011,6 +1011,7 @@ instance safeToFFI_AudioWorkletNodeOptions_ ::
 type FFINumericAudioParameter
   =
   { param :: Number
+  , isJust :: Boolean
   , timeOffset :: Number
   , transition :: String
   , cancel :: Boolean
@@ -1020,6 +1021,7 @@ instance safeToFFI_AudioParameter ::
   SafeToFFI (AudioParameter_ Number) FFINumericAudioParameter where
   safeToFFI (AudioParameter { param, timeOffset, transition }) =
     { param: fromMaybe 0.0 param
+    , isJust: isJust param
     , timeOffset
     , transition: show transition
     , cancel: isNothing param

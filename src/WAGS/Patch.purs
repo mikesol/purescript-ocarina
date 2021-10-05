@@ -7,6 +7,7 @@ import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.Tuple.Nested (type (/\))
 import Data.Typelevel.Bool (False, True)
 import Data.Typelevel.Num (class Nat, class Pos, toInt')
+import Foreign.Object as Object
 import Prim.Ordering (Ordering, LT, GT, EQ)
 import Prim.RowList (class RowToList)
 import Prim.RowList as RL
@@ -18,7 +19,8 @@ import WAGS.Control.Types (WAG, unsafeUnWAG, unsafeWAG)
 import WAGS.Graph.AudioUnit (OnOff(..))
 import WAGS.Graph.AudioUnit as AU
 import WAGS.Graph.Oversample (class IsOversample, reflectOversample)
-import WAGS.Interpret (class AudioInterpret, connectXToY, destroyUnit, disconnectXFromY, makeAllpass, makeAnalyser, makeAudioWorkletNode, makeBandpass, makeConstant, makeDelay, makeDynamicsCompressor, makeGain, makeHighpass, makeHighshelf, makeInput, makeLoopBufWithDeferredBuffer, makeLowpass, makeLowshelf, makeMicrophone, makeNotch, makePassthroughConvolver, makePeaking, makePeriodicOscWithDeferredOsc, makePlayBufWithDeferredBuffer, makeRecorder, makeSawtoothOsc, makeSinOsc, makeSpeaker, makeSquareOsc, makeStereoPanner, makeSubgraphWithDeferredScene, makeTriangleOsc, makeWaveShaper)
+import WAGS.Interpret (class AudioInterpret, connectXToY, destroyUnit, disconnectXFromY, makeAllpass, makeAnalyser, makeAudioWorkletNode, makeBandpass, makeConstant, makeDelay, makeDynamicsCompressor, makeGain, makeHighpass, makeHighshelf, makeInput, makeLoopBufWithDeferredBuffer, makeLowpass, makeLowshelf, makeMicrophone, makeNotch, makePassthroughConvolver, makePeaking, makePeriodicOscWithDeferredOsc, makePlayBufWithDeferredBuffer, makeRecorder, makeSawtoothOsc, makeSinOsc, makeSpeaker, makeSquareOsc, makeStereoPanner, makeSubgraphWithDeferredScene, makeTriangleOsc, makeTumultWithDeferredGraph, makeWaveShaper)
+import WAGS.Rendered (AudioWorkletNodeOptions_(..))
 import WAGS.Util (class TypeEqualTF, class ValidateOutputChannelCount, toOutputChannelCount)
 import WAGS.WebAPI (AnalyserNodeCb(..), BrowserFloatArray, BrowserMicrophone, MediaRecorderCb(..))
 
@@ -115,6 +117,9 @@ data MakeSubgraph (ptr :: Symbol)
 data MakeTriangleOsc (ptr :: Symbol)
   = MakeTriangleOsc (Proxy ptr)
 
+data MakeTumult (ptr :: Symbol)
+  = MakeTumult (Proxy ptr)
+
 data MakeWaveShaper (ptr :: Symbol) (oversample :: Type)
   = MakeWaveShaper (Proxy ptr) oversample
 
@@ -126,8 +131,10 @@ else instance compInstrCoL :: CompInstr (ConnectXToY x y) z GT
 else instance compInstrCoR :: CompInstr z (ConnectXToY x y) LT
 else instance compInstrDsL :: CompInstr (DestroyUnit x) z LT
 else instance compInstrDsR :: CompInstr z (DestroyUnit x) GT
-else instance compInstrCreateSubgL :: CompInstr z (MakeSubgraph ptr) LT
-else instance compInstrCreateSubgR :: CompInstr (MakeSubgraph ptr) z GT
+else instance compInstrCreateSubgraphL :: CompInstr z (MakeSubgraph ptr) LT
+else instance compInstrCreateSubgraphR :: CompInstr (MakeSubgraph ptr) z GT
+else instance compInstrCreateTumultL :: CompInstr z (MakeTumult ptr) LT
+else instance compInstrCreateTumultR :: CompInstr (MakeTumult ptr) z GT
 else instance compEq :: CompInstr a b EQ
 
 class GetLR (a :: Type) (b :: Type) (l :: Type) (r :: Type) | a b -> l r
@@ -219,6 +226,8 @@ instance doCreateMakeStereoPanner :: DoCreate ptr AU.TStereoPanner (MakeStereoPa
 instance doCreateMakeSubgraph :: DoCreate ptr (AU.TSubgraph arity terminus inputs env) (MakeSubgraph ptr)
 
 instance doCreateMakeTriangleOsc :: DoCreate ptr AU.TTriangleOsc (MakeTriangleOsc ptr)
+
+instance doCreateMakeTumult :: DoCreate ptr (AU.TTumult arity terminus inputs) (MakeTumult ptr)
 
 instance doCreateMakeWaveShaper :: DoCreate ptr (AU.TWaveShaper overdrive) (MakeWaveShaper ptr overdrive)
 
@@ -416,11 +425,12 @@ instance toGraphEffectsMakeAudioWorkletNode ::
     toGraphEffects (Proxy :: _ rest) cache
       ( i
           { instructions = i.instructions <>
-              [ makeAudioWorkletNode ptr' sym' $ JSON.writeImpl
-                  { numberOfInputs: toInt' (Proxy :: _ numberOfInputs)
+              [ makeAudioWorkletNode ptr'
+                  $ AudioWorkletNodeOptions_ { name: sym'
+                  , numberOfInputs: toInt' (Proxy :: _ numberOfInputs)
                   , numberOfOutputs: toInt' (Proxy :: _ numberOfOutputs)
                   , outputChannelCount: toOutputChannelCount (Proxy :: _ numberOfOutputs) (Proxy :: _ outputChannelCount)
-                  , parameterData: JSON.writeImpl {}
+                  , parameterData: Object.empty
                   , processorOptions: JSON.writeImpl (mempty :: { | processorOptions })
                   }
               ]
@@ -678,6 +688,16 @@ instance toGraphEffectsMakeTriangleOsc :: (IsSymbol ptr, ToGraphEffects rest) =>
     toGraphEffects (Proxy :: _ rest) cache
       ( i
           { instructions = i.instructions <> [ makeTriangleOsc ptr' (pure Off) (pure 440.0) ]
+          }
+      )
+    where
+    ptr' = reflectSymbol (Proxy :: _ ptr)
+
+instance toGraphEffectsMakeTumult :: (IsSymbol ptr, ToGraphEffects rest) => ToGraphEffects (MakeTumult ptr /\ rest) where
+  toGraphEffects _ cache i =
+    toGraphEffects (Proxy :: _ rest) cache
+      ( i
+          { instructions = i.instructions <> [ makeTumultWithDeferredGraph ptr' ]
           }
       )
     where

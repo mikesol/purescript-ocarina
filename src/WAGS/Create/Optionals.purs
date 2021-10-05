@@ -19,6 +19,7 @@ import WAGS.Graph.Paramable (class Paramable, paramize)
 import WAGS.Graph.Parameter (AudioParameter)
 import WAGS.Graph.Worklet (AudioWorkletNodeResponse)
 import WAGS.Interpret (class AudioInterpret, AsSubgraph(..))
+import WAGS.Tumult (Tumultuous)
 import WAGS.Util (class ValidateOutputChannelCount)
 import WAGS.WebAPI (AnalyserNodeCb, BrowserAudioBuffer, BrowserFloatArray, BrowserMicrophone, BrowserPeriodicWave, MediaRecorderCb)
 
@@ -1056,6 +1057,24 @@ else instance triangleOscCtor2 :: Paramable a => TriangleOscCtor a (CTOR.Triangl
 
 type CTriangleOsc
   = CTOR.TriangleOsc APOnOff AudioParameter /\ {}
+
+--------
+----
+-- | Make tumult
+-- |
+-- | the validity of inputs with respect to r is validated higher upstream (at the scene construction level)
+tumult
+  :: forall n terminus inputs r
+   . Pos n
+  => Tumultuous n terminus inputs
+  -> r
+  -> (CTOR.Tumult (Tumultuous n terminus inputs)) /\ r
+tumult tmt = Tuple (CTOR.Tumult tmt)
+
+type CTumult :: forall k1 k2. Type -> k1 -> k2 -> Type -> Type
+type CTumult (n :: Type) terminus inputs r
+  = (CTOR.Tumult (Tumultuous n terminus inputs)) /\ r
+
 
 ----------
 -- | Apply distorion to audio

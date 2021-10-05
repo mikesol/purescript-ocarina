@@ -258,14 +258,11 @@ data TriangleOsc onOff frequency
 instance typeToSymTriangleOsc :: TypeToSym (TriangleOsc onOff frequency) "TriangleOsc"
 
 -- | Term-level constructor for a tumultuous subgraph
--- | - `inputs` - the inputs to the subgraph
--- | - `subgraphGenerator` - the generating number for the subgraph
--- | - `scene` - the scene that makes the subgraph
--- | - `enc` - the scene that makes the subgraph
-data Tumult (inputs :: Row Type) (nSubgraphs :: Type) scene
-  = Tumult scene
+-- | - `tumult` - the tumult
+data Tumult tumult
+  = Tumult tumult
 
-instance typeToSymTumult :: TypeToSym (Tumult inputs nSubgraphs scene) "Tumult"
+instance typeToSymTumult :: TypeToSym (Tumult tumult) "Tumult"
 
 -- | Term-level constructor for a WaveShaper, aka distortion.
 -- | - `floatArray` - the shape of the distortion.
@@ -763,7 +760,7 @@ instance semigroupTTumult :: Semigroup (TTumult arity terminus inputs) where
 instance monoidTTumult :: Monoid (TTumult arity terminus inputs) where
   mempty = TTumult
 
-instance reifyTTumult :: ReifyAU (Tumult a b c) (TTumult w x y) where
+instance reifyTTumult :: ReifyAU (Tumult tumult) (TTumult w x y) where
   reifyAU = const mempty
 
 -- | Type-level constructor for a wave shaper.

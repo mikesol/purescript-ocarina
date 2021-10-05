@@ -3,8 +3,11 @@ module WAGS.Change where
 import Prelude
 
 import Control.Comonad (extract)
+import Data.Lens (Grate, over)
+import Data.Lens.Grate (grate)
 import Data.Maybe (Maybe(..), maybe)
 import Data.Symbol (class IsSymbol, reflectSymbol)
+import Data.Tuple (fst, snd)
 import Data.Tuple.Nested ((/\), type (/\))
 import Data.Typelevel.Num (class Pos)
 import Data.Vec as V
@@ -24,8 +27,9 @@ import WAGS.Graph.Node (NodeC)
 import WAGS.Graph.Oversample (class IsOversample, reflectOversample)
 import WAGS.Graph.Paramable (class Paramable, paramize, class OnOffable, onOffIze)
 import WAGS.Graph.Parameter (class MM, AudioParameter_, AudioParameter, mm)
-import WAGS.Interpret (class AudioInterpret, AsSubgraph, setAnalyserNodeCb, setAttack, setAudioWorkletParameter, setBuffer, setBufferOffset, setConvolverBuffer, setDelay, setFrequency, setGain, setInput, setKnee, setLoopEnd, setLoopStart, setMediaRecorderCb, setOffset, setOnOff, setPan, setPeriodicOsc, setPeriodicOscV, setPlaybackRate, setQ, setRatio, setRelease, setSubgraph, setThreshold, setWaveShaperCurve, unAsSubGraph)
+import WAGS.Interpret (class AudioInterpret, AsSubgraph, setAnalyserNodeCb, setAttack, setAudioWorkletParameter, setBuffer, setBufferOffset, setConvolverBuffer, setDelay, setFrequency, setGain, setInput, setKnee, setLoopEnd, setLoopStart, setMediaRecorderCb, setOffset, setOnOff, setPan, setPeriodicOsc, setPeriodicOscV, setPlaybackRate, setQ, setRatio, setRelease, setSubgraph, setThreshold, setTumult, setWaveShaperCurve, unAsSubGraph)
 import WAGS.Rendered (Oversample)
+import WAGS.Tumult (Tumultuous, safeUntumult)
 import WAGS.Util (class MakePrefixIfNeeded, class CoercePrefixToString)
 import WAGS.WebAPI (AnalyserNodeCb, BrowserAudioBuffer, BrowserFloatArray, BrowserMicrophone, BrowserPeriodicWave, MediaRecorderCb)
 
@@ -211,6 +215,17 @@ instance changeBrowserAudioBuffer ::
   ) =>
   Change' ptr BrowserAudioBuffer graph where
   change' px w = change' px (oneShotChange (mempty :: tau) <$> w)
+
+instance changeTumultC ::
+  ( R.Cons ptr tau' ignore graph
+  , Detup tau' tau
+  , Monoid tau
+  , OneShotChange tau (Tumultuous n terminus inputs) au
+  , Change' ptr au graph
+  ) =>
+  Change' ptr (Tumultuous n terminus inputs) graph where
+  change' px w = change' px (oneShotChange (mempty :: tau) <$> w)
+
 
 instance changeAudioParameter ::
   ( R.Cons ptr tau' ignore graph
@@ -715,7 +730,7 @@ instance canBeChangedWaveformV ::
 
     nn = reflectSymbol ptr
 
-    argA_Changes = [ setPeriodicOscV nn val ]
+    argA_Changes = [ setPeriodicOscV nn (over tGrate V.toArray val) ]
 
     o =
       unsafeWAG
@@ -1514,8 +1529,11 @@ instance oneShotChangePeriodicOscVec :: OneShotChange CTOR.TPeriodicOsc (V.Vec s
 class ChangePeriodicOsc a where
   setPosc :: forall audio engine. AudioInterpret audio engine => String -> a -> audio -> engine
 
+tGrate :: forall a b. Grate (a /\ a) (b /\ b) a b
+tGrate = grate \f -> (f fst) /\ (f snd)
+
 instance changePeriodicOscV :: ChangePeriodicOsc (V.Vec size Number /\ V.Vec size Number) where
-  setPosc = setPeriodicOscV
+  setPosc s a = setPeriodicOscV s (over tGrate V.toArray a)
 
 instance changePeriodicOscS :: ChangePeriodicOsc BrowserPeriodicWave where
   setPosc = setPeriodicOsc
@@ -1825,6 +1843,31 @@ instance changeTriangleOsc ::
               }
         , value: unit
         }
+
+instance oneShotChangeTumult :: (IsOversample oversample, Monoid oversample) => OneShotChange (CTOR.TTumult nSubgraphs terminus inputs) (Tumultuous nSubgraphs terminus inputs) (CTOR.Tumult (Tumultuous nSubgraphs terminus inputs)) where
+  oneShotChange _ tummy = CTOR.Tumult tummy
+
+instance changeTumult ::
+  ( IsSymbol ptr
+  , IsSymbol terminus
+  , Pos n
+  , R.Cons ptr (NodeC (CTOR.TTumult n terminus inputs) edges) ignore graph
+  ) =>
+  Change' ptr (CTOR.Tumult (Tumultuous n terminus inputs)) graph where
+  change' ptr w = o
+    where
+    { context: i, value: (CTOR.Tumult tummy) } = unsafeUnWAG w
+    nn = reflectSymbol ptr
+    tms = reflectSymbol (Proxy :: _ terminus)
+    o =
+      unsafeWAG
+        { context:
+            i
+              { instructions = i.instructions <> [ setTumult nn tms (safeUntumult tummy) ]
+              }
+        , value: unit
+        }
+
 
 instance oneShotChangeWaveshaper :: (IsOversample oversample, Monoid oversample) => OneShotChange (CTOR.TWaveShaper oversample) BrowserFloatArray (CTOR.WaveShaper BrowserFloatArray Oversample) where
   oneShotChange _ bfa = CTOR.WaveShaper bfa (reflectOversample (mempty :: oversample))
