@@ -6,6 +6,7 @@ import Control.Comonad.Cofree (Cofree, mkCofree)
 import Control.Promise (toAffE)
 import Data.Foldable (for_)
 import Data.Maybe (Maybe(..))
+import Data.Typelevel.Num (D1)
 import Data.Vec ((+>))
 import Data.Vec as V
 import Effect (Effect)
@@ -20,10 +21,11 @@ import Halogen.VDom.Driver (runUI)
 import Math (pi, sin, (%))
 import Type.Proxy (Proxy(..))
 import WAGS.Control.Functions.Graph (loopUsingScene)
-import WAGS.Control.Types (Frame0, Scene)
-import WAGS.Create.Optionals (bandpass, gain, highpass, input, loopBuf, lowpass, speaker, tumult)
+import WAGS.Control.Functions.Subgraph as SG
+import WAGS.Control.Types (Frame0, Scene, SubScene)
+import WAGS.Create.Optionals (bandpass, gain, highpass, input, loopBuf, speaker, subgraph, tumult)
 import WAGS.Graph.Parameter (AudioParameter, ff)
-import WAGS.Interpret (close, context, decodeAudioDataFromUri, makeUnitCache)
+import WAGS.Interpret (class AudioInterpret, close, context, decodeAudioDataFromUri, makeUnitCache)
 import WAGS.Run (Run, RunAudio, RunEngine, SceneI(..), run)
 import WAGS.Tumult.Make (tumultuously)
 import WAGS.WebAPI (AudioContext, BrowserAudioBuffer)
@@ -34,27 +36,44 @@ newtype SGWorld = SGWorld Number
 
 globalFF = ff 0.06 :: AudioParameter -> AudioParameter
 
+vec :: V.Vec D1 Unit
+vec = V.fill (const unit)
+
+subPiece1
+  :: forall audio engine
+   . AudioInterpret audio engine
+  => Int
+  -> SubScene "gnn" (beep :: Unit) SGWorld audio engine Frame0 Unit
+subPiece1 _ = unit # SG.loopUsingScene \(SGWorld time) _ ->
+  { control: unit
+  , scene:
+      { gnn: tumult
+              ( let
+                  sweep =
+                    { freq: globalFF $ pure $ 3000.0 + sin (pi * time * 0.2) * 2990.0
+                    , q: globalFF $ pure $ 1.0
+                    }
+                  tmod = time % 10.0
+                  tumult
+                    | tmod < 2.0 = tumultuously ({ output: input (Proxy :: _ "shruti") } +> V.empty)
+                    | tmod < 6.0 = tumultuously ({ output: bandpass sweep (input (Proxy :: _ "shruti")) } +> V.empty)
+                    | otherwise = tumultuously ({ output: highpass sweep (input (Proxy :: _ "shruti")) } +> V.empty)
+                in
+                  tumult
+              ) { shruti: input (Proxy :: _ "beep") }
+              
+      }
+  }
+
 piece :: Scene (SceneI Unit World ()) RunAudio RunEngine Frame0 Unit
 piece = unit # loopUsingScene \(SceneI env) _ ->
   { control: unit
   , scene: speaker
       { gn: gain 1.0
-          { tumult: tumult
-              ( let
-                  sweep =
-                    { freq: globalFF $ pure $ 2000.0 + sin (pi * env.time * 0.2) * 1990.0
-                    , q: globalFF $ pure $ 1.0
-                    }
-                  tmod = env.time % 4.0
-                  tumult
-                    | tmod < 1.0 = tumultuously ({ output: input (Proxy :: _ "shruti") } +> V.empty)
-                    | tmod < 2.0 = tumultuously ({ output: highpass sweep (input (Proxy :: _ "shruti")) } +> V.empty)
-                    | tmod < 3.0 = tumultuously ({ output: lowpass sweep (input (Proxy :: _ "shruti")) } +> V.empty)
-                    | otherwise = tumultuously ({ output: bandpass sweep (input (Proxy :: _ "shruti")) } +> V.empty)
-                in
-                  tumult
-              )
-              { shruti: loopBuf env.world.shruti }
+          {  sg2: subgraph vec
+              (\i _ -> subPiece1 i)
+              (const $ const $ SGWorld env.time)
+              { beep: loopBuf env.world.shruti }
           }
       }
   }

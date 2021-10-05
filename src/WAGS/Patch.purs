@@ -354,7 +354,7 @@ instance toGraphEffectsConnectXToY :: (IsSymbol from, IsSymbol to, ToGraphEffect
   toGraphEffects _ cache i =
     toGraphEffects (Proxy :: _ rest) cache
       ( i
-          { instructions = i.instructions <> [ connectXToY from' to' ]
+          { instructions = i.instructions <> [ connectXToY from' "PATCH" to' "PATCH" ]
           }
       )
     where
@@ -366,7 +366,7 @@ instance toGraphEffectsDisconnectXFromY :: (IsSymbol from, IsSymbol to, ToGraphE
   toGraphEffects _ cache i =
     toGraphEffects (Proxy :: _ rest) cache
       ( i
-          { instructions = i.instructions <> [ disconnectXFromY from' to' ]
+          { instructions = i.instructions <> [ disconnectXFromY from' "PATCH" to' "PATCH" ]
           }
       )
     where
@@ -378,7 +378,7 @@ instance toGraphEffectsDestroyUnit :: (IsSymbol ptr, ToGraphEffects rest) => ToG
   toGraphEffects _ cache i =
     toGraphEffects (Proxy :: _ rest) cache
       ( i
-          { instructions = i.instructions <> [ destroyUnit ptr' ]
+          { instructions = i.instructions <> [ destroyUnit ptr' "PATCH" ]
           }
       )
     where

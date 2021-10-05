@@ -374,11 +374,11 @@ unAsSubGraph (AsSubgraph subgraph) = subgraph
 -- | - `engine`: the output of the engine. For real audio, this is `Effect Unit`, as playing something from a loudspeaker is a side effect that doesn't return anything. For testing, this is the `Instruction` type, which is an ADT representation of instructions to an audio engine.
 class AudioInterpret audio engine where
   -- | Connect pointer x to pointer y. For example, connect a sine wave oscillator to a highpass filter.
-  connectXToY :: String -> String -> audio -> engine
+  connectXToY :: String -> String -> String -> String -> audio -> engine
   -- | Disconnect pointer x from pointer y. For example, disconnect a sine wave oscillator from a gain unit.
-  disconnectXFromY :: String -> String -> audio -> engine
+  disconnectXFromY :: String -> String -> String -> String -> audio -> engine
   -- | Destroy pointer x. For example, drop a sine wave oscillator from an audio graph. Note that this does not invoke garbage collection - it just removes the reference to the node, allowing it to be garbage collected.
-  destroyUnit :: String -> audio -> engine
+  destroyUnit :: String -> String -> audio -> engine
   -- | Make an allpass filter.
   makeAllpass :: String -> AudioParameter -> AudioParameter -> audio -> engine
   -- | Make an analyser.
@@ -538,9 +538,9 @@ class AudioInterpret audio engine where
     -> engine
 
 instance freeAudioInterpret :: AudioInterpret Unit Instruction where
-  connectXToY a b = const $ ConnectXToY a b
-  disconnectXFromY a b = const $ DisconnectXFromY a b
-  destroyUnit a = const $ DestroyUnit a
+  connectXToY a aName b bName = const $ ConnectXToY a aName b bName
+  disconnectXFromY a aName b bName = const $ DisconnectXFromY a aName b bName
+  destroyUnit a aName = const $ DestroyUnit a aName
   makeAllpass a b c = const $ MakeAllpass a b c
   makeAnalyser a b = const $ MakeAnalyser a b
   makeAudioWorkletNode a b = const $ MakeAudioWorkletNode a b
@@ -794,8 +794,8 @@ foreign import setSubgraph_
 
 interpretInstruction :: forall audio engine. AudioInterpret audio engine => Instruction -> audio -> engine
 interpretInstruction = case _ of
-  DisconnectXFromY x y -> disconnectXFromY x y
-  DestroyUnit x -> destroyUnit x
+  DisconnectXFromY x xName y yName -> disconnectXFromY x xName y yName
+  DestroyUnit x xName -> destroyUnit x xName
   MakeAllpass ptr a b -> makeAllpass ptr a b
   MakeAnalyser ptr a -> makeAnalyser ptr a
   MakeAudioWorkletNode ptr a -> makeAudioWorkletNode ptr a
@@ -839,7 +839,7 @@ interpretInstruction = case _ of
   MakeTumult ptr _ _ -> makeGain ptr (pure 1.0)
   MakeTumultWithDeferredGraph ptr -> makeGain ptr (pure 1.0)
   -----------------------------------
-  ConnectXToY x y -> connectXToY x y
+  ConnectXToY x xName y yName -> connectXToY x xName y yName
   SetAnalyserNodeCb ptr a -> setAnalyserNodeCb ptr a
   SetMediaRecorderCb ptr a -> setMediaRecorderCb ptr a
   SetAudioWorkletParameter ptr a b -> setAudioWorkletParameter ptr a b
@@ -881,9 +881,9 @@ makeInstructionsEffectful a = case _ of
   wrapFAS = wrap :: FFIAudioSnapshot' -> FFIAudioSnapshot
 
 instance effectfulAudioInterpret :: AudioInterpret FFIAudioSnapshot (Effect Unit) where
-  connectXToY a b c = connectXToY_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
-  disconnectXFromY a b c = disconnectXFromY_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
-  destroyUnit a b = destroyUnit_ (safeToFFI a) (safeToFFI b)
+  connectXToY a _ b _ c = connectXToY_ a b (safeToFFI c)
+  disconnectXFromY a _ b _ c = disconnectXFromY_ a b (safeToFFI c)
+  destroyUnit a _ b = destroyUnit_ a (safeToFFI b)
   makeInput a b c = makeInput_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
   makeAllpass a b c d = makeAllpass_ (safeToFFI a) (safeToFFI b) (safeToFFI c) (safeToFFI d)
   makeAnalyser a b c = makeAnalyser_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
@@ -1079,9 +1079,9 @@ audioEngine2nd (SubScene sceneA) = SubScene
   )
 
 instance mixedAudioInterpret :: AudioInterpret (Unit /\ FFIAudioSnapshot) (Instruction /\ Effect Unit) where
-  connectXToY a b (x /\ y) = connectXToY a b x /\ connectXToY a b y
-  disconnectXFromY a b (x /\ y) = disconnectXFromY a b x /\ disconnectXFromY a b y
-  destroyUnit a (x /\ y) = destroyUnit a x /\ destroyUnit a y
+  connectXToY a b c d (x /\ y) = connectXToY a b c d x /\ connectXToY a b c d y
+  disconnectXFromY a b c d (x /\ y) = disconnectXFromY a b c d x /\ disconnectXFromY a b c d y
+  destroyUnit a b (x /\ y) = destroyUnit a b x /\ destroyUnit a b y
   makeSubgraph a b c d e (x /\ y) = makeSubgraph a b c d ((map <<< map) audioEngine1st e) x /\ makeSubgraph a b c d ((map <<< map) audioEngine2nd e) y
   makeSubgraphWithDeferredScene a (x /\ y) = makeSubgraphWithDeferredScene a x /\ makeSubgraphWithDeferredScene a y
   makeInput a b (x /\ y) = makeInput a b x /\ makeInput a b y

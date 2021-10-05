@@ -5,8 +5,10 @@ import Prelude hiding (Ordering(..))
 import Data.Functor (voidRight)
 import Data.Symbol (class IsSymbol, reflectSymbol)
 import Prim.Row as R
+import Type.Proxy (Proxy(..))
 import WAGS.Control.Indexed (IxWAG(..))
 import WAGS.Control.Types (WAG, unsafeUnWAG, unsafeWAG)
+import WAGS.Graph.AudioUnit (class TypeToSym)
 import WAGS.Graph.Graph (Graph)
 import WAGS.Graph.Node (NodeC)
 import WAGS.Interpret (class AudioInterpret, connectXToY)
@@ -30,18 +32,28 @@ class Connect (source :: Symbol) (dest :: Symbol) (i :: Graph) (o :: Graph) | so
 instance connectInstance ::
   ( IsSymbol from
   , IsSymbol to
-  , R.Cons from ignore0 ignore1 graphi
-  , R.Cons to (NodeC n { | e }) newg graphi
+  , TypeToSym fromN fromSym
+  , TypeToSym toN toSym
+  , IsSymbol fromSym
+  , IsSymbol toSym
+  , R.Cons from (NodeC fromN ignoreEdges) ignore1 graphi
+  , R.Cons to (NodeC toN { | e }) newg graphi
   , R.Lacks from e
   , R.Cons from Unit e e'
-  , R.Cons to (NodeC n { | e' }) newg grapho
+  , R.Cons to (NodeC toN { | e' }) newg grapho
   ) =>
   Connect from to graphi grapho where
   connect w =
     unsafeWAG
       { context:
           i
-            { instructions = i.instructions <> [ connectXToY fromI toI ]
+            { instructions = i.instructions <>
+                [ connectXToY
+                    fromI
+                    (reflectSymbol (Proxy :: _ fromSym))
+                    toI
+                    (reflectSymbol (Proxy :: _ toSym))
+                ]
             }
       , value: unit
       }

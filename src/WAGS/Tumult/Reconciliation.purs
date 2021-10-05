@@ -19,33 +19,39 @@ reconcileTumult new old = result
   secondus = List.fromFoldable old
   go :: List Instruction -> List Instruction -> Set Instruction -> Set Instruction
   go Nil Nil set = set
-  go l0@(ConnectXToY x0 y0 : rest0) l1@(ConnectXToY x1 y1 : rest1) set
-    | x0 < x1 = go rest0 l1 $ Set.insert (ConnectXToY x0 y0) set
-    | x0 > x1 = go l0 rest1 $ Set.insert (DisconnectXFromY x1 y1) set
-    | y0 < y1 = go rest0 l1 $ Set.insert (ConnectXToY x0 y0) set
-    | y0 > y1 = go l0 rest1 $ Set.insert (DisconnectXFromY x1 y1) set
+  go l0@(ConnectXToY x0 x0Unit y0 y0Unit : rest0) l1@(ConnectXToY x1 x1Unit y1 y1Unit : rest1) set
+    | x0 < x1 = go rest0 l1 $ Set.insert (ConnectXToY x0 x0Unit y0 y0Unit) set
+    | x0 > x1 = go l0 rest1 $ Set.insert (DisconnectXFromY x1 x1Unit y1 y1Unit) set
+    | y0 < y1 = go rest0 l1 $ Set.insert (ConnectXToY x0 x0Unit y0 y0Unit) set
+    | y0 > y1 = go l0 rest1 $ Set.insert (DisconnectXFromY x1 x1Unit y1 y1Unit) set
+    | x0Unit /= x1Unit = go l0 rest1
+        $ Set.insert (DisconnectXFromY x1 x1Unit y1 y1Unit)
+        $ Set.insert (ConnectXToY x0 x0Unit y0 y0Unit) set
+    | y0Unit /= y1Unit = go l0 rest1
+        $ Set.insert (DisconnectXFromY x1 x1Unit y1 y1Unit)
+        $ Set.insert (ConnectXToY x0 x0Unit y0 y0Unit) set
     | otherwise = go rest0 rest1 set
-  go (ConnectXToY x0 y0 : rest0) l1 set = go rest0 l1 $ Set.insert (ConnectXToY x0 y0) set
-  go l0 (ConnectXToY x1 y1 : rest1) set = go l0 rest1 $ Set.insert (DisconnectXFromY x1 y1) set
+  go (ConnectXToY x0 x0Unit y0 y0Unit : rest0) l1 set = go rest0 l1 $ Set.insert (ConnectXToY x0 x0Unit y0 y0Unit) set
+  go l0 (ConnectXToY x1 x1Unit y1 y1Unit : rest1) set = go l0 rest1 $ Set.insert (DisconnectXFromY x1 x1Unit y1 y1Unit) set
   go l0@(vA@(MakeAllpass ptr0 valA0 valB0) : rest0) l1@(MakeAllpass ptr1 _ _ : rest1) set
     | ptr0 < ptr1 = go rest0 l1 (Set.insert vA set)
-    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1) set)
+    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1 "Allpass") set)
     | otherwise = go rest0 rest1 (Set.insert (SetFrequency ptr0 valA0) $ Set.insert (SetQ ptr0 valB0) set)
   go (vA@(MakeAllpass _ _ _) : rest0) l1 set =
     go rest0 l1 (Set.insert vA set)
   go l0 (MakeAllpass ptr1 _ _ : rest1) set =
-    go l0 rest1 (Set.insert (DestroyUnit ptr1) set)
+    go l0 rest1 (Set.insert (DestroyUnit ptr1 "Allpass") set)
   go l0@(vA@(MakeAnalyser ptr0 valA0) : rest0) l1@(MakeAnalyser ptr1 _ : rest1) set
     | ptr0 < ptr1 = go rest0 l1 (Set.insert vA set)
-    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1) set)
+    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1 "Analyser") set)
     | otherwise = go rest0 rest1 (Set.insert (SetAnalyserNodeCb ptr0 valA0) set)
   go (vA@(MakeAnalyser _ _) : rest0) rest1 set =
     go rest0 rest1 (Set.insert vA set)
   go rest0 (MakeAnalyser ptr1 _ : rest1) set =
-    go rest0 rest1 (Set.insert (DestroyUnit ptr1) set)
+    go rest0 rest1 (Set.insert (DestroyUnit ptr1 "Analyser") set)
   go l0@(vA@(MakeAudioWorkletNode ptr0 valA0) : rest0) l1@(MakeAudioWorkletNode ptr1 _ : rest1) set
     | ptr0 < ptr1 = go rest0 l1 (Set.insert vA set)
-    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1) set)
+    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1 "AudioWorkletNode") set)
     | otherwise =
         let
           fn = uncurry $ SetAudioWorkletParameter ptr0
@@ -61,50 +67,50 @@ reconcileTumult new old = result
   go (vA@(MakeAudioWorkletNode _ _) : rest0) rest1 set =
     go rest0 rest1 (Set.insert vA set)
   go rest0 (MakeAudioWorkletNode ptr1 _ : rest1) set =
-    go rest0 rest1 (Set.insert (DestroyUnit ptr1) set)
+    go rest0 rest1 (Set.insert (DestroyUnit ptr1 "AudioWorkletNode") set)
   go l0@(vA@(MakeBandpass ptr0 valA0 valB0) : rest0) l1@(MakeBandpass ptr1 _ _ : rest1) set
     | ptr0 < ptr1 = go rest0 l1 (Set.insert vA set)
-    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1) set)
+    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1 "Bandpass") set)
     | otherwise = go rest0 rest1 (Set.insert (SetFrequency ptr0 valA0) $ Set.insert (SetQ ptr0 valB0) set)
   go (vA@(MakeBandpass _ _ _) : rest0) l1 set =
     go rest0 l1 (Set.insert vA set)
   go l0 (MakeBandpass ptr1 _ _ : rest1) set =
-    go l0 rest1 (Set.insert (DestroyUnit ptr1) set)
+    go l0 rest1 (Set.insert (DestroyUnit ptr1 "Bandpass") set)
   go l0@(vA@(MakeConstant ptr0 valA0 valB0) : rest0) l1@(MakeConstant ptr1 _ _ : rest1) set
     | ptr0 < ptr1 = go rest0 l1 (Set.insert vA set)
-    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1) set)
+    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1 "Constant") set)
     | otherwise = go rest0 rest1 (Set.insert (SetOnOff ptr0 valA0) $ Set.insert (SetOffset ptr0 valB0) set)
   go (vA@(MakeConstant _ _ _) : rest0) l1 set =
     go rest0 l1 (Set.insert vA set)
   go l0 (MakeConstant ptr1 _ _ : rest1) set =
-    go l0 rest1 (Set.insert (DestroyUnit ptr1) set)
+    go l0 rest1 (Set.insert (DestroyUnit ptr1 "Constant") set)
   go l0@(vA@(MakePassthroughConvolver ptr0) : rest0) l1@(MakePassthroughConvolver ptr1 : rest1) set
     | ptr0 < ptr1 = go rest0 l1 (Set.insert vA set)
-    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1) set)
+    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1 "Convolver") set)
     | otherwise = go rest0 rest1 set
   go (vA@(MakePassthroughConvolver _) : rest0) l1 set =
     go rest0 l1 (Set.insert vA set)
   go l0 (MakePassthroughConvolver ptr1 : rest1) set =
-    go l0 rest1 (Set.insert (DestroyUnit ptr1) set)
+    go l0 rest1 (Set.insert (DestroyUnit ptr1 "Convolver") set)
   go l0@(vA@(MakeConvolver ptr0 _) : rest0) l1@(MakeConvolver ptr1 _ : rest1) set
     | ptr0 < ptr1 = go rest0 l1 (Set.insert vA set)
-    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1) set)
+    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1 "Convolver") set)
     | otherwise = go rest0 rest1 set
   go (vA@(MakeConvolver _ _) : rest0) l1 set =
     go rest0 l1 (Set.insert vA set)
   go l0 (MakeConvolver ptr1 _ : rest1) set =
-    go l0 rest1 (Set.insert (DestroyUnit ptr1) set)
+    go l0 rest1 (Set.insert (DestroyUnit ptr1 "Convolver") set)
   go l0@(vA@(MakeDelay ptr0 valA0) : rest0) l1@(MakeDelay ptr1 _ : rest1) set
     | ptr0 < ptr1 = go rest0 l1 (Set.insert vA set)
-    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1) set)
+    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1 "Delay") set)
     | otherwise = go rest0 rest1 (Set.insert (SetDelay ptr0 valA0) set)
   go (vA@(MakeDelay _ _) : rest0) l1 set =
     go rest0 l1 (Set.insert vA set)
   go l0 (MakeDelay ptr1 _ : rest1) set =
-    go l0 rest1 (Set.insert (DestroyUnit ptr1) set)
+    go l0 rest1 (Set.insert (DestroyUnit ptr1 "Delay") set)
   go l0@(vA@(MakeDynamicsCompressor ptr0 valA0 valB0 valC0 valD0 valE0) : rest0) l1@(MakeDynamicsCompressor ptr1 _ _ _ _ _ : rest1) set
     | ptr0 < ptr1 = go rest0 l1 (Set.insert vA set)
-    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1) set)
+    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1 "DynamicsCompressor") set)
     | otherwise = go rest0 rest1
         $ Set.insert (SetThreshold ptr0 valA0)
         $ Set.insert (SetKnee ptr0 valB0)
@@ -114,42 +120,42 @@ reconcileTumult new old = result
   go (vA@(MakeDynamicsCompressor _ _ _ _ _ _) : rest0) l1 set =
     go rest0 l1 (Set.insert vA set)
   go l0 (MakeDynamicsCompressor ptr1 _ _ _ _ _ : rest1) set =
-    go l0 rest1 (Set.insert (DestroyUnit ptr1) set)
+    go l0 rest1 (Set.insert (DestroyUnit ptr1 "DynamicsCompressor") set)
   go l0@(vA@(MakeGain ptr0 valA0) : rest0) l1@(MakeGain ptr1 _ : rest1) set
     | ptr0 < ptr1 = go rest0 l1 (Set.insert vA set)
-    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1) set)
+    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1 "Gain") set)
     | otherwise = go rest0 rest1 (Set.insert (SetGain ptr0 valA0) set)
   go (vA@(MakeGain _ _) : rest0) l1 set =
     go rest0 l1 (Set.insert vA set)
   go l0 (MakeGain ptr1 _ : rest1) set =
-    go l0 rest1 (Set.insert (DestroyUnit ptr1) set)
+    go l0 rest1 (Set.insert (DestroyUnit ptr1 "Gain") set)
   go l0@(vA@(MakeHighpass ptr0 valA0 valB0) : rest0) l1@(MakeHighpass ptr1 _ _ : rest1) set
     | ptr0 < ptr1 = go rest0 l1 (Set.insert vA set)
-    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1) set)
+    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1 "Highpass") set)
     | otherwise = go rest0 rest1 (Set.insert (SetFrequency ptr0 valA0) $ Set.insert (SetQ ptr0 valB0) set)
   go (vA@(MakeHighpass _ _ _) : rest0) l1 set =
     go rest0 l1 (Set.insert vA set)
   go l0 (MakeHighpass ptr1 _ _ : rest1) set =
-    go l0 rest1 (Set.insert (DestroyUnit ptr1) set)
+    go l0 rest1 (Set.insert (DestroyUnit ptr1 "Highpass") set)
   go l0@(vA@(MakeHighshelf ptr0 valA0 valB0) : rest0) l1@(MakeHighshelf ptr1 _ _ : rest1) set
     | ptr0 < ptr1 = go rest0 l1 (Set.insert vA set)
-    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1) set)
+    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1 "Highshelf") set)
     | otherwise = go rest0 rest1 (Set.insert (SetFrequency ptr0 valA0) $ Set.insert (SetGain ptr0 valB0) set)
   go (vA@(MakeHighshelf _ _ _) : rest0) l1 set =
     go rest0 l1 (Set.insert vA set)
   go l0 (MakeHighshelf ptr1 _ _ : rest1) set =
-    go l0 rest1 (Set.insert (DestroyUnit ptr1) set)
+    go l0 rest1 (Set.insert (DestroyUnit ptr1 "Highshelf") set)
   go l0@(vA@(MakeInput ptr0 _) : rest0) l1@(MakeInput ptr1 _ : rest1) set
     | ptr0 < ptr1 = go rest0 l1 (Set.insert vA set)
-    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1) set)
+    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1 "Input") set)
     | otherwise = go rest0 rest1 set
   go (vA@(MakeInput _ _) : rest0) l1 set =
     go rest0 l1 (Set.insert vA set)
   go l0 (MakeInput ptr1 _ : rest1) set =
-    go l0 rest1 (Set.insert (DestroyUnit ptr1) set)
+    go l0 rest1 (Set.insert (DestroyUnit ptr1 "Input") set)
   go l0@(vA@(MakeLoopBuf ptr0 valA0 valB0 valC0 valD0 valE0) : rest0) l1@(MakeLoopBuf ptr1 _ _ _ _ _ : rest1) set
     | ptr0 < ptr1 = go rest0 l1 (Set.insert vA set)
-    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1) set)
+    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1 "LoopBuf") set)
     | otherwise = go rest0 rest1
         $ Set.insert (SetBuffer ptr0 valA0)
         $ Set.insert (SetOnOff ptr0 valB0)
@@ -159,47 +165,47 @@ reconcileTumult new old = result
   go (vA@(MakeLoopBuf _ _ _ _ _ _) : rest0) l1 set =
     go rest0 l1 (Set.insert vA set)
   go l0 (MakeLoopBuf ptr1 _ _ _ _ _ : rest1) set =
-    go l0 rest1 (Set.insert (DestroyUnit ptr1) set)
+    go l0 rest1 (Set.insert (DestroyUnit ptr1 "LoopBuf") set)
   go l0@(vA@(MakeLoopBufWithDeferredBuffer ptr0) : rest0) l1@(MakeLoopBufWithDeferredBuffer ptr1 : rest1) set
     | ptr0 < ptr1 = go rest0 l1 (Set.insert vA set)
-    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1) set)
+    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1 "LoopBuf") set)
     | otherwise = go rest0 rest1 set
   go (vA@(MakeLoopBufWithDeferredBuffer _) : rest0) l1 set =
     go rest0 l1 (Set.insert vA set)
   go l0 (MakeLoopBufWithDeferredBuffer ptr1 : rest1) set =
-    go l0 rest1 (Set.insert (DestroyUnit ptr1) set)
+    go l0 rest1 (Set.insert (DestroyUnit ptr1 "LoopBuf") set)
   go l0@(vA@(MakeLowpass ptr0 valA0 valB0) : rest0) l1@(MakeLowpass ptr1 _ _ : rest1) set
     | ptr0 < ptr1 = go rest0 l1 (Set.insert vA set)
-    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1) set)
+    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1 "Lowpass") set)
     | otherwise = go rest0 rest1 (Set.insert (SetFrequency ptr0 valA0) $ Set.insert (SetQ ptr0 valB0) set)
   go (vA@(MakeLowpass _ _ _) : rest0) l1 set =
     go rest0 l1 (Set.insert vA set)
   go l0 (MakeLowpass ptr1 _ _ : rest1) set =
-    go l0 rest1 (Set.insert (DestroyUnit ptr1) set)
+    go l0 rest1 (Set.insert (DestroyUnit ptr1 "Lowpass") set)
   go l0@(vA@(MakeLowshelf ptr0 valA0 valB0) : rest0) l1@(MakeLowshelf ptr1 _ _ : rest1) set
     | ptr0 < ptr1 = go rest0 l1 (Set.insert vA set)
-    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1) set)
+    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1 "Lowshelf") set)
     | otherwise = go rest0 rest1 (Set.insert (SetFrequency ptr0 valA0) $ Set.insert (SetGain ptr0 valB0) set)
   go (vA@(MakeLowshelf _ _ _) : rest0) l1 set =
     go rest0 l1 (Set.insert vA set)
   go l0 (MakeLowshelf ptr1 _ _ : rest1) set =
-    go l0 rest1 (Set.insert (DestroyUnit ptr1) set)
+    go l0 rest1 (Set.insert (DestroyUnit ptr1 "Lowshelf") set)
   go (MakeMicrophone _ : rest0) (MakeMicrophone _ : rest1) set = go rest0 rest1 set
   go (vA@(MakeMicrophone _) : rest0) l1 set =
     go rest0 l1 (Set.insert vA set)
   go l0 (MakeMicrophone _ : rest1) set =
-    go l0 rest1 (Set.insert (DestroyUnit "microphone") set)
+    go l0 rest1 (Set.insert (DestroyUnit "microphone" "Microphone") set)
   go l0@(vA@(MakeNotch ptr0 valA0 valB0) : rest0) l1@(MakeNotch ptr1 _ _ : rest1) set
     | ptr0 < ptr1 = go rest0 l1 (Set.insert vA set)
-    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1) set)
+    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1 "Notch") set)
     | otherwise = go rest0 rest1 (Set.insert (SetFrequency ptr0 valA0) $ Set.insert (SetQ ptr0 valB0) set)
   go (vA@(MakeNotch _ _ _) : rest0) l1 set =
     go rest0 l1 (Set.insert vA set)
   go l0 (MakeNotch ptr1 _ _ : rest1) set =
-    go l0 rest1 (Set.insert (DestroyUnit ptr1) set)
+    go l0 rest1 (Set.insert (DestroyUnit ptr1 "Notch") set)
   go l0@(vA@(MakePeaking ptr0 valA0 valB0 valC0) : rest0) l1@(MakePeaking ptr1 _ _ _ : rest1) set
     | ptr0 < ptr1 = go rest0 l1 (Set.insert vA set)
-    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1) set)
+    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1 "Peaking") set)
     | otherwise = go rest0 rest1
         $ Set.insert (SetFrequency ptr0 valA0)
         $ Set.insert (SetQ ptr0 valB0)
@@ -207,26 +213,26 @@ reconcileTumult new old = result
   go (vA@(MakePeaking _ _ _ _) : rest0) l1 set =
     go rest0 l1 (Set.insert vA set)
   go l0 (MakePeaking ptr1 _ _ _ : rest1) set =
-    go l0 rest1 (Set.insert (DestroyUnit ptr1) set)
+    go l0 rest1 (Set.insert (DestroyUnit ptr1 "Peaking") set)
   go l0@(vA@(MakePeriodicOscWithDeferredOsc ptr0) : rest0) l1@(MakePeriodicOscWithDeferredOsc ptr1 : rest1) set
     | ptr0 < ptr1 = go rest0 l1 (Set.insert vA set)
-    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1) set)
+    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1 "PeriodicOsc") set)
     | otherwise = go rest0 rest1 set
   go (vA@(MakePeriodicOscWithDeferredOsc _) : rest0) l1 set =
     go rest0 l1 (Set.insert vA set)
   go l0 (MakePeriodicOscWithDeferredOsc ptr1 : rest1) set =
-    go l0 rest1 (Set.insert (DestroyUnit ptr1) set)
+    go l0 rest1 (Set.insert (DestroyUnit ptr1 "PeriodicOsc") set)
   go l0@(vA@(MakePeriodicOsc ptr0 valA0 valB0 valC0) : rest0) l1@(MakePeriodicOsc ptr1 _ _ _ : rest1) set
     | ptr0 < ptr1 = go rest0 l1 (Set.insert vA set)
-    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1) set)
+    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1 "PeriodicOsc") set)
     | otherwise = go rest0 rest1 $ Set.insert (SetPeriodicOsc ptr0 valA0) $ Set.insert (SetOnOff ptr0 valB0) $ Set.insert (SetFrequency ptr0 valC0) set
   go (vA@(MakePeriodicOsc _ _ _ _) : rest0) l1 set =
     go rest0 l1 (Set.insert vA set)
   go l0 (MakePeriodicOsc ptr1 _ _ _ : rest1) set =
-    go l0 rest1 (Set.insert (DestroyUnit ptr1) set)
+    go l0 rest1 (Set.insert (DestroyUnit ptr1 "PeriodicOsc") set)
   go l0@(vA@(MakePlayBuf ptr0 valA0 valB0 valC0 valD0) : rest0) l1@(MakePlayBuf ptr1 _ _ _ _ : rest1) set
     | ptr0 < ptr1 = go rest0 l1 (Set.insert vA set)
-    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1) set)
+    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1 "PlayBuf") set)
     | otherwise = go rest0 rest1
         $ Set.insert (SetBuffer ptr0 valA0)
         $ Set.insert (SetBufferOffset ptr0 valB0)
@@ -235,116 +241,116 @@ reconcileTumult new old = result
   go (vA@(MakePlayBuf _ _ _ _ _) : rest0) l1 set =
     go rest0 l1 (Set.insert vA set)
   go l0 (MakePlayBuf ptr1 _ _ _ _ : rest1) set =
-    go l0 rest1 (Set.insert (DestroyUnit ptr1) set)
+    go l0 rest1 (Set.insert (DestroyUnit ptr1 "PlayBuf") set)
   go l0@(vA@(MakePlayBufWithDeferredBuffer ptr0) : rest0) l1@(MakePlayBufWithDeferredBuffer ptr1 : rest1) set
     | ptr0 < ptr1 = go rest0 l1 (Set.insert vA set)
-    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1) set)
+    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1 "PlayBuf") set)
     | otherwise = go rest0 rest1 set
   go (vA@(MakePlayBufWithDeferredBuffer _) : rest0) l1 set =
     go rest0 l1 (Set.insert vA set)
   go l0 (MakePlayBufWithDeferredBuffer ptr1 : rest1) set =
-    go l0 rest1 (Set.insert (DestroyUnit ptr1) set)
+    go l0 rest1 (Set.insert (DestroyUnit ptr1 "PlayBuf") set)
   go l0@(vA@(MakeRecorder ptr0 _) : rest0) l1@(MakeRecorder ptr1 _ : rest1) set
     | ptr0 < ptr1 = go rest0 l1 (Set.insert vA set)
-    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1) set)
+    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1 "Recorder") set)
     | otherwise = go rest0 rest1 set
   go (vA@(MakeRecorder _ _) : rest0) l1 set =
     go rest0 l1 (Set.insert vA set)
   go l0 (MakeRecorder ptr1 _ : rest1) set =
-    go l0 rest1 (Set.insert (DestroyUnit ptr1) set)
+    go l0 rest1 (Set.insert (DestroyUnit ptr1 "Recorder") set)
   go l0@(vA@(MakeSawtoothOsc ptr0 valA0 valB0) : rest0) l1@(MakeSawtoothOsc ptr1 _ _ : rest1) set
     | ptr0 < ptr1 = go rest0 l1 (Set.insert vA set)
-    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1) set)
+    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1 "SawtoothOsc") set)
     | otherwise = go rest0 rest1 $ Set.insert (SetOnOff ptr0 valA0) $ Set.insert (SetFrequency ptr0 valB0) set
   go (vA@(MakeSawtoothOsc _ _ _) : rest0) l1 set =
     go rest0 l1 (Set.insert vA set)
   go l0 (MakeSawtoothOsc ptr1 _ _ : rest1) set =
-    go l0 rest1 (Set.insert (DestroyUnit ptr1) set)
+    go l0 rest1 (Set.insert (DestroyUnit ptr1 "SawtoothOsc") set)
   go l0@(vA@(MakeSinOsc ptr0 valA0 valB0) : rest0) l1@(MakeSinOsc ptr1 _ _ : rest1) set
     | ptr0 < ptr1 = go rest0 l1 (Set.insert vA set)
-    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1) set)
+    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1 "SinOsc") set)
     | otherwise = go rest0 rest1 $ Set.insert (SetOnOff ptr0 valA0) $ Set.insert (SetFrequency ptr0 valB0) set
   go (vA@(MakeSinOsc _ _ _) : rest0) l1 set =
     go rest0 l1 (Set.insert vA set)
   go l0 (MakeSinOsc ptr1 _ _ : rest1) set =
-    go l0 rest1 (Set.insert (DestroyUnit ptr1) set)
+    go l0 rest1 (Set.insert (DestroyUnit ptr1 "SinOsc") set)
   go l0@(vA@(MakeSquareOsc ptr0 valA0 valB0) : rest0) l1@(MakeSquareOsc ptr1 _ _ : rest1) set
     | ptr0 < ptr1 = go rest0 l1 (Set.insert vA set)
-    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1) set)
+    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1 "SquareOsc") set)
     | otherwise = go rest0 rest1 $ Set.insert (SetOnOff ptr0 valA0) $ Set.insert (SetFrequency ptr0 valB0) set
   go (vA@(MakeSquareOsc _ _ _) : rest0) l1 set =
     go rest0 l1 (Set.insert vA set)
   go l0 (MakeSquareOsc ptr1 _ _ : rest1) set =
-    go l0 rest1 (Set.insert (DestroyUnit ptr1) set)
+    go l0 rest1 (Set.insert (DestroyUnit ptr1 "SquareOsc") set)
   go (MakeSpeaker : rest0) (MakeSpeaker : rest1) set = go rest0 rest1 set
   go (vA@(MakeSpeaker) : rest0) l1 set =
     go rest0 l1 (Set.insert vA set)
   go l0 (MakeSpeaker : rest1) set =
-    go l0 rest1 (Set.insert (DestroyUnit "speaker") set)
+    go l0 rest1 (Set.insert (DestroyUnit "speaker" "Speaker") set)
   go l0@(vA@(MakeStereoPanner ptr0 valA0) : rest0) l1@(MakeStereoPanner ptr1 _ : rest1) set
     | ptr0 < ptr1 = go rest0 l1 (Set.insert vA set)
-    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1) set)
+    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1 "StereoPanner") set)
     | otherwise = go rest0 rest1 (Set.insert (SetPan ptr0 valA0) set)
   go (vA@(MakeStereoPanner _ _) : rest0) l1 set =
     go rest0 l1 (Set.insert vA set)
   go l0 (MakeStereoPanner ptr1 _ : rest1) set =
-    go l0 rest1 (Set.insert (DestroyUnit ptr1) set)
+    go l0 rest1 (Set.insert (DestroyUnit ptr1 "StereoPanner") set)
   go l0@(vA@(MakeTriangleOsc ptr0 valA0 valB0) : rest0) l1@(MakeTriangleOsc ptr1 _ _ : rest1) set
     | ptr0 < ptr1 = go rest0 l1 (Set.insert vA set)
-    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1) set)
+    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1 "TriangleOsc") set)
     | otherwise = go rest0 rest1 $ Set.insert (SetOnOff ptr0 valA0) $ Set.insert (SetFrequency ptr0 valB0) set
   go (vA@(MakeTriangleOsc _ _ _) : rest0) l1 set =
     go rest0 l1 (Set.insert vA set)
   go l0 (MakeTriangleOsc ptr1 _ _ : rest1) set =
-    go l0 rest1 (Set.insert (DestroyUnit ptr1) set)
+    go l0 rest1 (Set.insert (DestroyUnit ptr1 "TriangleOsc") set)
   go l0@(vA@(MakeWaveShaper ptr0 _ _) : rest0) l1@(MakeWaveShaper ptr1 _ _ : rest1) set
     | ptr0 < ptr1 = go rest0 l1 (Set.insert vA set)
-    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1) set)
+    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1 "WaveShaper") set)
     | otherwise = go rest0 rest1 set
   go (vA@(MakeWaveShaper _ _ _) : rest0) l1 set =
     go rest0 l1 (Set.insert vA set)
   go l0 (MakeWaveShaper ptr1 _ _ : rest1) set =
-    go l0 rest1 (Set.insert (DestroyUnit ptr1) set)
+    go l0 rest1 (Set.insert (DestroyUnit ptr1 "WaveShaper") set)
   -- todo: find implementation for subgraph and tumult
   -- issue is that, because we are building a flat list, we cannot adequately
   -- create the nesting necessary for subgraphs
   -- need to change the data structure
   go l0@(vA@(MakeSubgraph ptr0 _) : rest0) l1@(MakeSubgraph ptr1 _ : rest1) set
     | ptr0 < ptr1 = go rest0 l1 (Set.insert vA set)
-    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1) set)
+    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1 "Subgraph") set)
     | otherwise = go rest0 rest1 set
   go (vA@(MakeSubgraph _ _) : rest0) l1 set =
     go rest0 l1 (Set.insert vA set)
   go l0 (MakeSubgraph ptr1 _ : rest1) set =
-    go l0 rest1 (Set.insert (DestroyUnit ptr1) set)
+    go l0 rest1 (Set.insert (DestroyUnit ptr1 "Subgraph") set)
   go l0@(vA@(MakeSubgraphWithDeferredScene ptr0) : rest0) l1@(MakeSubgraphWithDeferredScene ptr1 : rest1) set
     | ptr0 < ptr1 = go rest0 l1 (Set.insert vA set)
-    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1) set)
+    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1 "Subgraph") set)
     | otherwise = go rest0 rest1 set
   go (vA@(MakeSubgraphWithDeferredScene _) : rest0) l1 set =
     go rest0 l1 (Set.insert vA set)
   go l0 (MakeSubgraphWithDeferredScene ptr1 : rest1) set =
-    go l0 rest1 (Set.insert (DestroyUnit ptr1) set)
+    go l0 rest1 (Set.insert (DestroyUnit ptr1 "Subgraph") set)
   go l0@(vA@(MakeTumult ptr0 _ _) : rest0) l1@(MakeTumult ptr1 _ _ : rest1) set
     | ptr0 < ptr1 = go rest0 l1 (Set.insert vA set)
-    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1) set)
+    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1 "Tumult") set)
     | otherwise = go rest0 rest1 set
   go (vA@(MakeTumult _ _ _) : rest0) l1 set =
     go rest0 l1 (Set.insert vA set)
   go l0 (MakeTumult ptr1 _ _ : rest1) set =
-    go l0 rest1 (Set.insert (DestroyUnit ptr1) set)
+    go l0 rest1 (Set.insert (DestroyUnit ptr1 "Tumult") set)
   go l0@(vA@(MakeTumultWithDeferredGraph ptr0) : rest0) l1@(MakeTumultWithDeferredGraph ptr1 : rest1) set
     | ptr0 < ptr1 = go rest0 l1 (Set.insert vA set)
-    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1) set)
+    | ptr1 < ptr0 = go l0 rest1 (Set.insert (DestroyUnit ptr1 "Tumult") set)
     | otherwise = go rest0 rest1 set
   go (vA@(MakeTumultWithDeferredGraph _) : rest0) l1 set =
     go rest0 l1 (Set.insert vA set)
   go l0 (MakeTumultWithDeferredGraph ptr1 : rest1) set =
-    go l0 rest1 (Set.insert (DestroyUnit ptr1) set)
-  go (DestroyUnit x0 : rest0) l1 set = go rest0 l1 $ Set.insert (DestroyUnit x0) set
-  go l0 (DestroyUnit _ : rest1) set = go l0 rest1 set
-  go (DisconnectXFromY x0 y0 : rest0) l1 set = go rest0 l1 $ Set.insert (DisconnectXFromY x0 y0) set
-  go l0 (DisconnectXFromY _ _ : rest1) set = go l0 rest1 set
+    go l0 rest1 (Set.insert (DestroyUnit ptr1 "Tumult") set)
+  go (DestroyUnit x0 xName : rest0) l1 set = go rest0 l1 $ Set.insert (DestroyUnit x0 xName) set
+  go l0 (DestroyUnit _ _ : rest1) set = go l0 rest1 set
+  go (DisconnectXFromY x0 xName y0 yName : rest0) l1 set = go rest0 l1 $ Set.insert (DisconnectXFromY x0 xName y0 yName) set
+  go l0 (DisconnectXFromY _ _ _ _ : rest1) set = go l0 rest1 set
   go (SetAnalyserNodeCb x0 y0 : rest0) l1 set = go rest0 l1 $ Set.insert (SetAnalyserNodeCb x0 y0) set
   go l0 (SetAnalyserNodeCb _ _ : rest1) set = go l0 rest1 set
   go (SetMediaRecorderCb x0 y0 : rest0) l1 set = go rest0 l1 $ Set.insert (SetMediaRecorderCb x0 y0) set

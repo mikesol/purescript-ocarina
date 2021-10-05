@@ -92,8 +92,8 @@ instance showAudioWorkletNodeOptions_ :: Show AudioWorkletNodeOptions_ where
 -- for testing purposes during "dry run" simulations of audio rendering.
 -- `Instruction` can also be used if web-audio is being used to control other audio units.
 data Instruction
-  = DisconnectXFromY String String
-  | DestroyUnit String
+  = DisconnectXFromY String String String String
+  | DestroyUnit String String
   | MakeAllpass String AudioParameter AudioParameter
   | MakeAnalyser String AnalyserNodeCb
   | MakeAudioWorkletNode String AudioWorkletNodeOptions_
@@ -130,7 +130,7 @@ data Instruction
   | MakeSubgraphWithDeferredScene String
   | MakeTumult String String (Array (Set Instruction))
   | MakeTumultWithDeferredGraph String
-  | ConnectXToY String String
+  | ConnectXToY String String String String
   | SetAnalyserNodeCb String AnalyserNodeCb
   | SetMediaRecorderCb String MediaRecorderCb
   | SetAudioWorkletParameter String String AudioParameter

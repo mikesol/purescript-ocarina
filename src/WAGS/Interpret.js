@@ -127,6 +127,10 @@ exports.destroyUnit_ = function (ptr) {
         // effectful unsubscribe
         state.units[ptr].analyser();
       }
+      if (state.units[ptr].input) {
+        // input sources are never disconnected on disconnect, so we have to manually trigger this
+        disconnectXFromY(false)(state.units[ptr].input)(ptr)(state.units[ptr].parent)(state)();
+      }
       delete state.units[ptr];
     };
   };
@@ -650,6 +654,7 @@ exports.makeInput_ = function (ptr) {
           outgoing: [],
           incoming: [],
           main: state.context.createGain(),
+          parent: state.parent,
           input: a,
         };
         connectXToY(false)(a)(ptr)(state.parent)(state)();
@@ -773,6 +778,11 @@ exports.makeTumult_ = function (ptr) {
                     curScene[j](children[i])();
                   }
                 }
+                var heads = [];
+                for (var i = 0; i < children.length; i++) {
+                  heads[i] = children[i].units[terminalPtr];
+                }
+                state.units[ptr].heads = heads;
                 for (var i = 0; i < children.length; i++) {
                   connectXToY(false)(terminalPtr)(ptr)(children[i])(state)();
                 }
@@ -1155,6 +1165,18 @@ exports.setTumult_ = function (ptr) {
                   }
                 }
                 state.units[ptr].scenes = scenes;
+                // todo - add this logic to subgraph
+                var heads = [];
+                for (var i = 0; i < children.length; i++) {
+                  heads[i] = children[i].units[terminalPtr];
+                  if (state.units[ptr].heads[i] !== heads[i]) {
+                    var tmp = {units:{}};
+                    tmp.units[terminalPtr] = state.units[ptr].heads[i];
+                    disconnectXFromY(false)(terminalPtr)(ptr)(tmp)(state)();
+                    connectXToY(false)(terminalPtr)(ptr)(children[i])(state)();
+                  }
+                }
+                state.units[ptr].heads = heads;
                 if (needsCreation) {
                   for (var i = 0; i < children.length; i++) {
                     connectXToY(false)(terminalPtr)(ptr)(children[i])(state)();

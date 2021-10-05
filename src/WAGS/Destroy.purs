@@ -1,14 +1,17 @@
 module WAGS.Destroy where
 
 import Prelude
+
 import Data.Functor (voidRight)
 import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.Tuple.Nested (type (/\))
 import Prim.Row as R
 import Prim.RowList (class RowToList)
 import Prim.RowList as RL
+import Type.Proxy (Proxy(..))
 import WAGS.Control.Indexed (IxWAG(..))
 import WAGS.Control.Types (WAG, unsafeUnWAG, unsafeWAG)
+import WAGS.Graph.AudioUnit (class TypeToSym)
 import WAGS.Graph.Graph (Graph)
 import WAGS.Graph.Node (NodeC, NodeList)
 import WAGS.Interpret (class AudioInterpret, destroyUnit)
@@ -31,6 +34,8 @@ class Destroy (ptr :: Symbol) (i :: Graph) (o :: Graph) | ptr i -> o where
 
 instance destroyer ::
   ( IsSymbol ptr
+  , TypeToSym node nodeSym
+  , IsSymbol nodeSym
   , R.Cons ptr (node /\ {}) grapho graphi
   , RowToList graphi nodeListI
   , PointerNotPresentInAnyEdgeList ptr nodeListI
@@ -41,7 +46,7 @@ instance destroyer ::
       $
         { context:
             i
-              { instructions = i.instructions <> [ destroyUnit ptrI ]
+              { instructions = i.instructions <> [ destroyUnit ptrI (reflectSymbol (Proxy :: _ nodeSym)) ]
               }
         , value: unit
         }
