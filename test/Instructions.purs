@@ -84,10 +84,10 @@ testInstructions = do
         , MakeGain "mix" (pure 1.0)
         , MakeHighpass "highpass" (pure 330.0) (pure 1.0)
         , MakeSinOsc "sinOsc" (pure On) (pure 440.0)
-        , ConnectXToY "mix" "speaker"
-        , ConnectXToY "highpass" "mix"
-        , ConnectXToY "mix" "mix"
-        , ConnectXToY "sinOsc" "highpass"
+        , ConnectXToY "mix" "TGain" "speaker" "TSpeaker"
+        , ConnectXToY "highpass" "THighpass" "mix" "TGain"
+        , ConnectXToY "mix" "TGain" "mix" "TGain"
+        , ConnectXToY "sinOsc" "TSinOsc" "highpass" "THighpass"
         ]
     it "is coherent at frame0Instr" do
       resolveInstructions frame0Instr `shouldEqual` instructionAssertion
@@ -119,8 +119,8 @@ testInstructions = do
         [ MakeSpeaker
         , MakeGain "mix" (pure 0.7)
         , MakeSinOsc "sinOsc" (pure On) (pure 441.0)
-        , ConnectXToY "mix" "speaker"
-        , ConnectXToY "sinOsc" "mix"
+        , ConnectXToY "mix" "TGain" "speaker" "TSpeaker"
+        , ConnectXToY "sinOsc" "TSinOsc" "mix" "TGain"
         ]
       setAssertion =
         [ (SetGain "mix" (pure 0.7))
@@ -160,10 +160,10 @@ testInstructions = do
         , MakeGain "mix" (pure 1.0)
         , MakeHighpass "highpass" (pure 330.0) (pure 1.0)
         , MakeSinOsc "sinOsc" (pure On) (pure 440.0)
-        , ConnectXToY "mix" "speaker"
-        , ConnectXToY "highpass" "mix"
-        , ConnectXToY "mix" "mix"
-        , ConnectXToY "sinOsc" "highpass"
+        , ConnectXToY "mix" "TGain" "speaker" "TSpeaker"
+        , ConnectXToY "highpass" "THighpass" "mix" "TGain"
+        , ConnectXToY "mix" "TGain" "mix" "TGain"
+        , ConnectXToY "sinOsc" "TSinOsc" "highpass" "THighpass"
         ]
     it "is coherent after frame0Instr" do
       resolveInstructions frame0Instr `shouldEqual` instructionAssertion
@@ -204,10 +204,10 @@ testInstructions = do
         , MakeGain "mix" (pure 1.0)
         , MakeHighpass "highpass" (pure 330.0) (pure 1.0)
         , MakeSinOsc "sinOsc" (pure On) (pure 440.0)
-        , ConnectXToY "mix" "speaker"
-        , ConnectXToY "highpass" "mix"
-        , ConnectXToY "mix" "mix"
-        , ConnectXToY "sinOsc" "highpass"
+        , ConnectXToY "mix" "TGain" "speaker" "TSpeaker"
+        , ConnectXToY "highpass" "THighpass" "mix" "TGain"
+        , ConnectXToY "mix" "TGain" "mix" "TGain"
+        , ConnectXToY "sinOsc" "TSinOsc" "highpass" "THighpass"
         ]
     it "is coherent after frame0Instr" do
       resolveInstructions frame0Instr `shouldEqual` instructionAssertion
@@ -254,10 +254,10 @@ testInstructions = do
         , MakeGain "mix" (pure 1.0)
         , MakeHighpass "highpass" (pure 330.0) (pure 1.0)
         , MakeSinOsc "sinOsc" (pure On) (pure 440.0)
-        , ConnectXToY "mix" "speaker"
-        , ConnectXToY "highpass" "mix"
-        , ConnectXToY "mix" "mix"
-        , ConnectXToY "sinOsc" "highpass"
+        , ConnectXToY "mix" "TGain" "speaker" "TSpeaker"
+        , ConnectXToY "highpass" "THighpass" "mix" "TGain"
+        , ConnectXToY "mix" "TGain" "mix" "TGain"
+        , ConnectXToY "sinOsc" "TSinOsc" "highpass" "THighpass"
         ]
     it "branches at frame0Instr" do
       resolveInstructions frame0Instr `shouldEqual` instructionAssertion
@@ -300,10 +300,10 @@ testInstructions = do
         , MakeGain "mix" (pure 1.0)
         , MakeHighpass "highpass" (pure 330.0) (pure 1.0)
         , MakeSinOsc "sinOsc" (pure On) (pure 440.0)
-        , ConnectXToY "mix" "speaker"
-        , ConnectXToY "highpass" "mix"
-        , ConnectXToY "mix" "mix"
-        , ConnectXToY "sinOsc" "highpass"
+        , ConnectXToY "mix" "TGain" "speaker" "TSpeaker"
+        , ConnectXToY "highpass" "THighpass" "mix" "TGain"
+        , ConnectXToY "mix" "TGain" "mix" "TGain"
+        , ConnectXToY "sinOsc" "TSinOsc" "highpass" "THighpass"
         ]
     it "branches at frame0Instr" do
       resolveInstructions frame0Instr `shouldEqual` instructionAssertion

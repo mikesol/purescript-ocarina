@@ -32,7 +32,11 @@ testPatch = do
         simpleScene = simpleFrame start @||> freeze
 
         (frame0Instr /\ _ /\ _) = oneFrame' simpleScene unit
-      (map ((#) unit) frame0Instr) `shouldEqual` [ MakeSpeaker, MakeSinOsc "sinOsc" (pure Off) (pure 440.0), ConnectXToY "sinOsc" "speaker" ]
+      (map ((#) unit) frame0Instr) `shouldEqual`
+        [ MakeSpeaker
+        , MakeSinOsc "sinOsc" (pure Off) (pure 440.0)
+        , ConnectXToY "sinOsc" "PATCH" "speaker" "PATCH"
+        ]
     it "makes a no op a no op" do
       let
         startingFrame =
@@ -120,7 +124,7 @@ testPatch = do
         (_ /\ _ /\ frame1) = oneFrame' simpleScene unit
 
         (frame1Instr /\ _ /\ _) = oneFrame' frame1 unit
-      (map ((#) unit) frame1Instr) `shouldEqual` [ DisconnectXFromY "sinOsc" "speaker" ]
+      (map ((#) unit) frame1Instr) `shouldEqual` [ DisconnectXFromY "sinOsc" "PATCH" "speaker" "PATCH" ]
     it "correctly handles complex graph" do
       let
         startingFrame =
@@ -165,7 +169,15 @@ testPatch = do
         (_ /\ _ /\ frame1) = oneFrame' simpleScene unit
 
         (frame1Instr /\ _ /\ _) = oneFrame' frame1 unit
-      (map ((#) unit) frame1Instr) `shouldEqual` [ (DisconnectXFromY "sinOsc" "highpass"), (DisconnectXFromY "highpass" "speaker"), (DisconnectXFromY "sinOsc" "speaker"), (DestroyUnit "highpass"), (DestroyUnit "sinOsc"), (MakeSinOsc "anotherOsc" (pure Off) (pure 440.0)), (ConnectXToY "anotherOsc" "speaker") ]
+      (map ((#) unit) frame1Instr) `shouldEqual`
+        [ (DisconnectXFromY "sinOsc" "PATCH" "highpass" "PATCH")
+        , (DisconnectXFromY "highpass" "PATCH" "speaker" "PATCH")
+        , (DisconnectXFromY "sinOsc" "PATCH" "speaker" "PATCH")
+        , (DestroyUnit "highpass" "PATCH")
+        , (DestroyUnit "sinOsc" "PATCH")
+        , (MakeSinOsc "anotherOsc" (pure Off) (pure 440.0))
+        , (ConnectXToY "anotherOsc" "PATCH" "speaker" "PATCH")
+        ]
     it "leaves noop in complex graph" do
       let
         startingFrame =
@@ -216,4 +228,12 @@ testPatch = do
         (_ /\ _ /\ frame1) = oneFrame' simpleScene unit
 
         (frame1Instr /\ _ /\ _) = oneFrame' frame1 unit
-      (map ((#) unit) frame1Instr) `shouldEqual` [ (DisconnectXFromY "sinOsc" "highpass"), (DisconnectXFromY "highpass" "speaker"), (DisconnectXFromY "sinOsc" "speaker"), (DestroyUnit "highpass"), (DestroyUnit "sinOsc"), (MakeSinOsc "anotherOsc" (pure Off) (pure 440.0)), (ConnectXToY "anotherOsc" "speaker") ]
+      (map ((#) unit) frame1Instr) `shouldEqual`
+        [ (DisconnectXFromY "sinOsc" "PATCH" "highpass" "PATCH")
+        , (DisconnectXFromY "highpass" "PATCH" "speaker" "PATCH")
+        , (DisconnectXFromY "sinOsc" "PATCH" "speaker" "PATCH")
+        , (DestroyUnit "highpass" "PATCH")
+        , (DestroyUnit "sinOsc" "PATCH")
+        , (MakeSinOsc "anotherOsc" (pure Off) (pure 440.0))
+        , (ConnectXToY "anotherOsc" "PATCH" "speaker" "PATCH")
+        ]
