@@ -1,13 +1,12 @@
-module WAGS.Example.Subgraph where
+module WAGS.Example.Tumult where
 
 import Prelude
 
 import Control.Comonad.Cofree (Cofree, mkCofree)
 import Control.Promise (toAffE)
 import Data.Foldable (for_)
-import Data.Int (toNumber)
 import Data.Maybe (Maybe(..))
-import Data.Typelevel.Num (D40)
+import Data.Vec ((+>))
 import Data.Vec as V
 import Effect (Effect)
 import Effect.Aff.Class (class MonadAff)
@@ -18,61 +17,44 @@ import Halogen.Aff (awaitBody, runHalogenAff)
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.VDom.Driver (runUI)
+import Math (pi, sin, (%))
 import Type.Proxy (Proxy(..))
 import WAGS.Control.Functions.Graph (loopUsingScene)
-import WAGS.Control.Functions.Subgraph as SG
-import WAGS.Control.Types (Frame0, Scene, SubScene)
-import WAGS.Create.Optionals (gain, input, playBuf, sinOsc, speaker, subgraph)
-import WAGS.Graph.AudioUnit (OnOff(..))
-import WAGS.Interpret (class AudioInterpret, close, context, decodeAudioDataFromUri, makeUnitCache)
+import WAGS.Control.Types (Frame0, Scene)
+import WAGS.Create.Optionals (bandpass, gain, highpass, input, loopBuf, lowpass, speaker, tumult)
+import WAGS.Graph.Parameter (AudioParameter, ff)
+import WAGS.Interpret (close, context, decodeAudioDataFromUri, makeUnitCache)
 import WAGS.Run (Run, RunAudio, RunEngine, SceneI(..), run)
+import WAGS.Tumult.Make (tumultuously)
 import WAGS.WebAPI (AudioContext, BrowserAudioBuffer)
 
-type World = { atar :: BrowserAudioBuffer }
+type World = { shruti :: BrowserAudioBuffer }
 
 newtype SGWorld = SGWorld Number
 
-vec :: V.Vec D40 Unit
-vec = V.fill (const unit)
-
-subPiece0
-  :: forall audio engine
-   . AudioInterpret audio engine
-  => Int
-  -> BrowserAudioBuffer
-  -> SubScene "buffy" () SGWorld audio engine Frame0 Unit
-subPiece0 i atar = unit # SG.loopUsingScene \(SGWorld time) _ ->
-  { control: unit
-  , scene: { buffy: playBuf { onOff: if time < toNumber (i * 2) + 1.0 then Off else On } atar }
-  }
-
-subPiece1
-  :: forall audio engine
-   . AudioInterpret audio engine
-  => Int
-  -> SubScene "gnn" (beep :: Unit) SGWorld audio engine Frame0 Unit
-subPiece1 i = unit # SG.loopUsingScene \(SGWorld time) _ ->
-  { control: unit
-  , scene:
-      { gnn: gain
-          (if time >= toNumber (i * 2) + 1.0 && time < toNumber (i * 2) + 1.2 then 0.10 else 0.0)
-          (input (Proxy :: _ "beep"))
-      }
-  }
+globalFF = ff 0.06 :: AudioParameter -> AudioParameter
 
 piece :: Scene (SceneI Unit World ()) RunAudio RunEngine Frame0 Unit
 piece = unit # loopUsingScene \(SceneI env) _ ->
   { control: unit
   , scene: speaker
       { gn: gain 1.0
-          { sg: subgraph vec
-              (\i _ -> subPiece0 i env.world.atar)
-              (const $ const $ SGWorld env.time)
-              {}
-            , sg2: subgraph vec
-              (\i _ -> subPiece1 i)
-              (const $ const $ SGWorld env.time)
-              { beep: sinOsc 440.0 }
+          { tumult: tumult
+              ( let
+                  sweep =
+                    { freq: globalFF $ pure $ 2000.0 + sin (pi * env.time * 0.2) * 1990.0
+                    , q: globalFF $ pure $ 1.0
+                    }
+                  tmod = env.time % 4.0
+                  tumult
+                    | tmod < 1.0 = tumultuously ({ output: input (Proxy :: _ "shruti") } +> V.empty)
+                    | tmod < 2.0 = tumultuously ({ output: highpass sweep (input (Proxy :: _ "shruti")) } +> V.empty)
+                    | tmod < 3.0 = tumultuously ({ output: lowpass sweep (input (Proxy :: _ "shruti")) } +> V.empty)
+                    | otherwise = tumultuously ({ output: bandpass sweep (input (Proxy :: _ "shruti")) } +> V.empty)
+                in
+                  tumult
+              )
+              { shruti: loopBuf env.world.shruti }
           }
       }
   }
@@ -121,7 +103,7 @@ render { freqz } = do
   HH.div_
     $
       [ HH.h1_
-          [ HH.text "Subgraph test" ]
+          [ HH.text "Tumult test" ]
       , HH.button
           [ HE.onClick \_ -> StartAudio ]
           [ HH.text "Start audio" ]
@@ -136,11 +118,11 @@ handleAction = case _ of
   StartAudio -> do
     audioCtx <- H.liftEffect context
     unitCache <- H.liftEffect makeUnitCache
-    atar <-
+    shruti <-
       H.liftAff $ toAffE
         $ decodeAudioDataFromUri
           audioCtx
-          "https://freesound.org/data/previews/100/100981_1234256-lq.mp3"
+          "https://freesound.org/data/previews/513/513742_153257-hq.mp3"
     let
       ffiAudio =
         { context: audioCtx
@@ -150,7 +132,7 @@ handleAction = case _ of
     unsubscribe <-
       H.liftEffect
         $ subscribe
-          (run (pure unit) (pure { atar }) { easingAlgorithm } (ffiAudio) piece)
+          (run (pure unit) (pure { shruti }) { easingAlgorithm } (ffiAudio) piece)
           (\(_ :: Run Unit ()) -> pure unit)
     H.modify_ _ { unsubscribe = unsubscribe, audioCtx = Just audioCtx }
   StopAudio -> do

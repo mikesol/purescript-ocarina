@@ -15,7 +15,7 @@ import WAGS.Rendered (Instruction)
 import WAGS.Tumult (Tumultuous, unsafeTumult)
 import WAGS.Validation (class NodesCanBeTumultuous, class SubgraphIsRenderable)
 
-makeTumult
+tumultuously
   :: forall n terminus inputs scene graph graphRL
    . Pos n
   => RowToList graph graphRL
@@ -24,7 +24,7 @@ makeTumult
   => NodesCanBeTumultuous graphRL
   => Vec n { | scene }
   -> Tumultuous n terminus inputs
-makeTumult scenes = unsafeTumult (map go (toArray scenes))
+tumultuously scenes = unsafeTumult (map go (toArray scenes))
   where
   go :: { | scene } -> Set Instruction
   go scene = Set.fromFoldable $ map ((#) unit) tmt

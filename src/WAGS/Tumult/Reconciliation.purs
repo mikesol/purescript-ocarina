@@ -5,15 +5,16 @@ import Prelude
 import Data.List (List(..), (:))
 import Data.List as List
 import Data.Newtype (unwrap)
-import Data.Tuple (uncurry)
-import WAGS.Rendered (Instruction(..))
-import Foreign.Object as Object
 import Data.Set (Set)
 import Data.Set as Set
+import Data.Tuple (uncurry)
+import Foreign.Object as Object
+import WAGS.Rendered (Instruction(..))
 
 reconcileTumult :: Set Instruction -> Set Instruction -> Set Instruction
-reconcileTumult new old = go primus secondus Set.empty
+reconcileTumult new old = result
   where
+  result = go primus secondus Set.empty
   primus = List.fromFoldable new
   secondus = List.fromFoldable old
   go :: List Instruction -> List Instruction -> Set Instruction -> Set Instruction

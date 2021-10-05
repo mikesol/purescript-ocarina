@@ -1127,7 +1127,7 @@ exports.setTumult_ = function (ptr) {
                 var needsCreation = !(state.units[ptr] && state.units[ptr].children && state.units[ptr].scenes);
                 if (needsCreation) {
                   var children = [];
-                  for (var i = 0; i < vek.length; i++) {
+                  for (var i = 0; i < scenes.length; i++) {
                     children[i] = {
                       context: state.context
                       , writeHead: state.writeHead
@@ -1140,7 +1140,7 @@ exports.setTumult_ = function (ptr) {
                   state.units[ptr].children = children;
                   state.units[ptr].isTumult = true;
                 } else {
-                  for (var i = 0; i < vek.length; i++) {
+                  for (var i = 0; i < scenes.length; i++) {
                     state.units[ptr].children[i].writeHead = state.writeHead;
                   }
                 }
