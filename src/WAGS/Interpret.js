@@ -22,17 +22,21 @@ var workletSetter = function (unit, paramName, timeToSet, param) {
     }
   } else {
     if (param.cancel) {
-      unit.parameters.get(paramName).cancelScheduledValues(timeToSet + param.timeOffset);
+      unit.parameters
+        .get(paramName)
+        .cancelScheduledValues(timeToSet + param.timeOffset);
     } else {
-      unit.parameters.get(paramName)[
-        param.transition === "NoRamp"
-          ? "setValueAtTime"
-          : param.transition === "LinearRamp"
+      unit.parameters
+        .get(paramName)
+        [
+          param.transition === "NoRamp"
+            ? "setValueAtTime"
+            : param.transition === "LinearRamp"
             ? "linearRampToValueAtTime"
             : param.transition === "ExponentialRamp"
-              ? "exponentialRampToValueAtTime"
-              : "linearRampToValueAtTime"
-      ](param.param, timeToSet + param.timeOffset);
+            ? "exponentialRampToValueAtTime"
+            : "linearRampToValueAtTime"
+        ](param.param, timeToSet + param.timeOffset);
     }
   }
 };
@@ -51,10 +55,10 @@ var genericSetter = function (unit, name, timeToSet, param) {
         param.transition === "NoRamp"
           ? "setValueAtTime"
           : param.transition === "LinearRamp"
-            ? "linearRampToValueAtTime"
-            : param.transition === "ExponentialRamp"
-              ? "exponentialRampToValueAtTime"
-              : "linearRampToValueAtTime"
+          ? "linearRampToValueAtTime"
+          : param.transition === "ExponentialRamp"
+          ? "exponentialRampToValueAtTime"
+          : "linearRampToValueAtTime"
       ](param.param, timeToSet + param.timeOffset);
     }
   }
@@ -65,7 +69,12 @@ var connectXToY = function (calledExternally) {
       return function (stateX) {
         return function (stateY) {
           return function () {
-            if (calledExternally && (stateY.units[y].isSubgraph || stateY.units[y].isTumult)) { return; }
+            if (
+              calledExternally &&
+              (stateY.units[y].isSubgraph || stateY.units[y].isTumult)
+            ) {
+              return;
+            }
             stateX.units[x].main.connect(stateY.units[y].main);
             stateX.units[x].outgoing.push({ unit: y, state: stateY });
             stateY.units[y].incoming.push({ unit: x, state: stateX });
@@ -74,16 +83,16 @@ var connectXToY = function (calledExternally) {
             }
           };
         };
-      }
-    }
+      };
+    };
   };
 };
 exports.connectXToY_ = function (x) {
   return function (y) {
     return function (state) {
       return connectXToY(true)(x)(y)(state)(state);
-    }
-  }
+    };
+  };
 };
 var disconnectXFromY = function (calledExternally) {
   return function (x) {
@@ -91,29 +100,38 @@ var disconnectXFromY = function (calledExternally) {
       return function (stateX) {
         return function (stateY) {
           return function () {
-            if (calledExternally && (stateY.units[y].isSubgraph || stateY.units[y].isTumult)) { return; }
+            if (
+              calledExternally &&
+              (stateY.units[y].isSubgraph || stateY.units[y].isTumult)
+            ) {
+              return;
+            }
             stateX.units[x].main.disconnect(stateY.units[y].main);
-            stateX.units[x].outgoing = stateX.units[x].outgoing.filter(function (i) {
-              !(i.unit === y && i.state === stateY);
-            });
-            stateY.units[y].incoming = stateY.units[y].incoming.filter(function (i) {
-              !(i.unit === x && i.state === stateX);
-            });
+            stateX.units[x].outgoing = stateX.units[x].outgoing.filter(
+              function (i) {
+                !(i.unit === y && i.state === stateY);
+              }
+            );
+            stateY.units[y].incoming = stateY.units[y].incoming.filter(
+              function (i) {
+                !(i.unit === x && i.state === stateX);
+              }
+            );
             if (stateY.units[y].se) {
               stateX.units[x].main.disconnect(stateY.units[y].se);
             }
           };
-        }
+        };
       };
-    }
+    };
   };
 };
 exports.disconnectXFromY_ = function (x) {
   return function (y) {
     return function (state) {
       return disconnectXFromY(true)(x)(y)(state)(state);
-    }
-  }
+    };
+  };
 };
 exports.destroyUnit_ = function (ptr) {
   return function (state) {
@@ -129,7 +147,9 @@ exports.destroyUnit_ = function (ptr) {
       }
       if (state.units[ptr].input) {
         // input sources are never disconnected on disconnect, so we have to manually trigger this
-        disconnectXFromY(false)(state.units[ptr].input)(ptr)(state.units[ptr].parent)(state)();
+        disconnectXFromY(false)(state.units[ptr].input)(ptr)(
+          state.units[ptr].parent
+        )(state)();
       }
       delete state.units[ptr];
     };
@@ -191,7 +211,9 @@ exports.setAnalyserNodeCb_ = function (ptr) {
   return function (a) {
     return function (state) {
       return function () {
-        if (state.units[ptr].analyserOrig === a) { return; }
+        if (state.units[ptr].analyserOrig === a) {
+          return;
+        }
         // first, unsubscribe
         state.units[ptr].analyser && state.units[ptr].analyser();
         state.units[ptr].analyser = a(state.units[ptr].se)();
@@ -204,27 +226,27 @@ exports.makeAudioWorkletNode_ = function (ptr) {
   return function (a) {
     return function (state) {
       return function () {
-        var parameterData = {}
+        var parameterData = {};
         var keys = Object.keys(a.parameterData);
         for (var i = 0; i < keys.length; i++) {
           if (a.parameterData[keys[i]].isJust) {
-            parameterData[keys[i]] = a.parameterData[keys[i]].param
+            parameterData[keys[i]] = a.parameterData[keys[i]].param;
           }
         }
         state.units[ptr] = {
           outgoing: [],
           incoming: [],
           main: new AudioWorkletNode(state.context, a.name, {
-            numberOfInputs: a.numberOfInputs
-            , numberOfOutputs: a.numberOfOutputs
-            , outputChannelCount: a.outputChannelCount
-            , parameterData: parameterData
-            , processorOptions: a.processorOptions
+            numberOfInputs: a.numberOfInputs,
+            numberOfOutputs: a.numberOfOutputs,
+            outputChannelCount: a.outputChannelCount,
+            parameterData: parameterData,
+            processorOptions: a.processorOptions,
           }),
         };
       };
     };
-  }
+  };
 };
 exports.makeBandpass_ = function (ptr) {
   return function (a) {
@@ -435,14 +457,17 @@ exports.makeLoopBuf_ = function (ptr) {
                       i.loopEnd = d;
                     },
                     buffer: function (i) {
-                      i.buffer = a
+                      i.buffer = a;
                     },
                   },
                   main: createFunction(),
                 };
                 if (onOff.param === "on") {
                   applyResumeClosure(state.units[ptr]);
-                  state.units[ptr].main.start(state.writeHead + onOff.timeOffset, c);
+                  state.units[ptr].main.start(
+                    state.writeHead + onOff.timeOffset,
+                    c
+                  );
                 }
                 state.units[ptr].onOff = onOff.param === "on";
               };
@@ -661,7 +686,7 @@ exports.makeInput_ = function (ptr) {
         state.units[ptr].main.gain = 1.0;
       };
     };
-  }
+  };
 };
 exports.makeTumultWithDeferredGraph_ = function (ptr) {
   return function (state) {
@@ -670,7 +695,7 @@ exports.makeTumultWithDeferredGraph_ = function (ptr) {
         outgoing: [],
         incoming: [],
         main: state.context.createGain(),
-        isTumult: true
+        isTumult: true,
       };
     };
   };
@@ -682,7 +707,7 @@ exports.makeSubgraphWithDeferredScene_ = function (ptr) {
         outgoing: [],
         incoming: [],
         main: state.context.createGain(),
-        isSubgraph: true
+        isSubgraph: true,
       };
     };
   };
@@ -699,11 +724,11 @@ exports.makeSubgraph_ = function (ptr) {
                 var scenes = [];
                 for (var i = 0; i < vek.length; i++) {
                   children[i] = {
-                    context: state.context
-                    , writeHead: state.writeHead
-                    , units: {}
-                    , parent: state
-                  }
+                    context: state.context,
+                    writeHead: state.writeHead,
+                    units: {},
+                    parent: state,
+                  };
                   scenes[i] = sceneM(i)(vek[i]);
                 }
                 state.units[ptr] = {
@@ -712,7 +737,7 @@ exports.makeSubgraph_ = function (ptr) {
                   main: state.context.createGain(),
                   children: children,
                   isSubgraph: true,
-                  scenes: scenes
+                  scenes: scenes,
                 };
                 state.units[ptr].main.gain = 1.0;
                 for (var i = 0; i < scenes.length; i++) {
@@ -731,8 +756,8 @@ exports.makeSubgraph_ = function (ptr) {
           };
         };
       };
-    }
-  }
+    };
+  };
 };
 /**
  * 
@@ -756,11 +781,11 @@ exports.makeTumult_ = function (ptr) {
                 var children = [];
                 for (var i = 0; i < scenes.length; i++) {
                   children[i] = {
-                    context: state.context
-                    , writeHead: state.writeHead
-                    , units: {}
-                    , parent: state
-                  }
+                    context: state.context,
+                    writeHead: state.writeHead,
+                    units: {},
+                    parent: state,
+                  };
                 }
                 state.units[ptr] = {
                   outgoing: [],
@@ -768,7 +793,7 @@ exports.makeTumult_ = function (ptr) {
                   main: state.context.createGain(),
                   children: children,
                   isTumult: true,
-                  scenes: scenes
+                  scenes: scenes,
                 };
                 state.units[ptr].main.gain = 1.0;
                 for (var i = 0; i < scenes.length; i++) {
@@ -786,13 +811,13 @@ exports.makeTumult_ = function (ptr) {
                 for (var i = 0; i < children.length; i++) {
                   connectXToY(false)(terminalPtr)(ptr)(children[i])(state)();
                 }
-              }
+              };
             };
           };
         };
       };
-    }
-  }
+    };
+  };
 };
 exports.makePlayBuf_ = function (ptr) {
   return function (a) {
@@ -822,7 +847,10 @@ exports.makePlayBuf_ = function (ptr) {
               };
               if (onOff.param === "on") {
                 applyResumeClosure(state.units[ptr]);
-                state.units[ptr].main.start(state.writeHead + onOff.timeOffset, b);
+                state.units[ptr].main.start(
+                  state.writeHead + onOff.timeOffset,
+                  b
+                );
               }
               state.units[ptr].onOff = onOff.param === "on";
             };
@@ -858,7 +886,9 @@ exports.setMediaRecorderCb_ = function (ptr) {
   return function (a) {
     return function (state) {
       return function () {
-        if (state.units[ptr].recorderOrig === a) { return; }
+        if (state.units[ptr].recorderOrig === a) {
+          return;
+        }
         state.units[ptr].recorder && state.units[ptr].recorder.stop();
         var mediaRecorderSideEffectFn = a;
         state.units[ptr].recorderOrig = a;
@@ -1049,7 +1079,7 @@ exports.setBuffer_ = function (ptr) {
     return function (state) {
       return function () {
         state.units[ptr].resumeClosure.buffer = function (i) {
-          i.buffer = buffer
+          i.buffer = buffer;
         };
       };
     };
@@ -1063,14 +1093,19 @@ exports.setInput_ = function (ptr) {
           return;
         }
         if (state.units[ptr].input) {
-          disconnectXFromY(false)(state.units[ptr].input, ptr, state.parent, state);
+          disconnectXFromY(false)(
+            state.units[ptr].input,
+            ptr,
+            state.parent,
+            state
+          );
         }
         state.units[ptr].input = a;
         connectXToY(false)(a)(ptr)(state.parent)(state)();
         state.units[ptr].main.gain = 1.0;
       };
     };
-  }
+  };
 };
 exports.setSubgraph_ = function (ptr) {
   return function (terminalPtr) {
@@ -1080,17 +1115,21 @@ exports.setSubgraph_ = function (ptr) {
           return function (funk) {
             return function (state) {
               return function () {
-                var needsCreation = !(state.units[ptr] && state.units[ptr].children && state.units[ptr].scenes);
+                var needsCreation = !(
+                  state.units[ptr] &&
+                  state.units[ptr].children &&
+                  state.units[ptr].scenes
+                );
                 if (needsCreation) {
                   var children = [];
                   var scenes = [];
                   for (var i = 0; i < vek.length; i++) {
                     children[i] = {
-                      context: state.context
-                      , writeHead: state.writeHead
-                      , units: {}
-                      , parent: state
-                    }
+                      context: state.context,
+                      writeHead: state.writeHead,
+                      units: {},
+                      parent: state,
+                    };
                     scenes[i] = sceneM(i)(vek[i]);
                   }
                   state.units[ptr].incoming = [];
@@ -1123,8 +1162,8 @@ exports.setSubgraph_ = function (ptr) {
           };
         };
       };
-    }
-  }
+    };
+  };
 };
 exports.setTumult_ = function (ptr) {
   return function (terminalPtr) {
@@ -1134,16 +1173,20 @@ exports.setTumult_ = function (ptr) {
           return function (arrMaker) {
             return function (state) {
               return function () {
-                var needsCreation = !(state.units[ptr] && state.units[ptr].children && state.units[ptr].scenes);
+                var needsCreation = !(
+                  state.units[ptr] &&
+                  state.units[ptr].children &&
+                  state.units[ptr].scenes
+                );
                 if (needsCreation) {
                   var children = [];
                   for (var i = 0; i < scenes.length; i++) {
                     children[i] = {
-                      context: state.context
-                      , writeHead: state.writeHead
-                      , units: {}
-                      , parent: state
-                    }
+                      context: state.context,
+                      writeHead: state.writeHead,
+                      units: {},
+                      parent: state,
+                    };
                   }
                   state.units[ptr].incoming = [];
                   state.units[ptr].outgoing = [];
@@ -1157,7 +1200,8 @@ exports.setTumult_ = function (ptr) {
                 var oldScenes = state.units[ptr].scenes;
                 var children = state.units[ptr].children;
                 for (var i = 0; i < scenes.length; i++) {
-                  var oldScene = oldScenes && oldScenes[i] ? just(oldScenes[i]) : nothing;
+                  var oldScene =
+                    oldScenes && oldScenes[i] ? just(oldScenes[i]) : nothing;
                   var curScene = arrMaker(scenes[i])(oldScene);
                   for (var j = 0; j < curScene.length; j++) {
                     // thunk
@@ -1170,7 +1214,7 @@ exports.setTumult_ = function (ptr) {
                 for (var i = 0; i < children.length; i++) {
                   heads[i] = children[i].units[terminalPtr];
                   if (state.units[ptr].heads[i] !== heads[i]) {
-                    var tmp = {units:{}};
+                    var tmp = { units: {} };
                     tmp.units[terminalPtr] = state.units[ptr].heads[i];
                     disconnectXFromY(false)(terminalPtr)(ptr)(tmp)(state)();
                     connectXToY(false)(terminalPtr)(ptr)(children[i])(state)();
@@ -1184,9 +1228,9 @@ exports.setTumult_ = function (ptr) {
                 }
               };
             };
-          }
-        }
-      }
+          };
+        };
+      };
     };
   };
 };
@@ -1290,13 +1334,9 @@ var setOff_ = function (ptr) {
           for (var i = 0; i < oldOutgoing.length; i++) {
             var oogi = oldOutgoing[i];
             try {
-              oldMain.disconnect(
-                oogi.state.units[oogi.unit].main
-              );
+              oldMain.disconnect(oogi.state.units[oogi.unit].main);
               if (oogi.state.units[oogi.unit].se) {
-                oldMain.disconnect(
-                  oogi.state.units[oogi.unit].se
-                );
+                oldMain.disconnect(oogi.state.units[oogi.unit].se);
               }
             } catch (e) {
               console.log(e);
@@ -1309,13 +1349,9 @@ var setOff_ = function (ptr) {
         state.units[ptr].main = state.units[ptr].createFunction();
         for (var i = 0; i < state.units[ptr].outgoing.length; i++) {
           var ogi = state.units[ptr].outgoing[i];
-          state.units[ptr].main.connect(
-            ogi.state.units[ogi.unit].main
-          );
+          state.units[ptr].main.connect(ogi.state.units[ogi.unit].main);
           if (ogi.state.units[ogi.unit].se) {
-            state.units[ptr].main.connect(
-              ogi.state.units[ogi.unit].se
-            );
+            state.units[ptr].main.connect(ogi.state.units[ogi.unit].se);
           }
         }
       };
@@ -1394,7 +1430,7 @@ exports.setAudioWorkletParameter_ = function (ptr) {
         };
       };
     };
-  }
+  };
 };
 exports.setGain_ = function (ptr) {
   return function (a) {
@@ -1516,12 +1552,24 @@ exports.decodeAudioDataFromUri = function (ctx) {
     return function () {
       {
         return fetch(s)
-          .then(function (b) {
-            return b.arrayBuffer();
-          })
-          .then(function (b) {
-            return ctx.decodeAudioData(b);
-          });
+          .then(
+            function (b) {
+              return b.arrayBuffer();
+            },
+            function (e) {
+              console.error("Error fetching buffer", e);
+              return Promise.reject(e);
+            }
+          )
+          .then(
+            function (b) {
+              return ctx.decodeAudioData(b);
+            },
+            function (e) {
+              console.error("Error decoding buffer", e);
+              return Promise.reject(e);
+            }
+          );
       }
     };
   };
@@ -1639,64 +1687,64 @@ exports.getBrowserMediaStreamImpl = function (audio) {
 exports.getFFTSize = function (analyserNode) {
   return function () {
     return analyserNode.fftSize;
-  }
-}
+  };
+};
 
 exports.setFFTSize = function (analyserNode) {
   return function (fftSize) {
     return function () {
       analyserNode.fftSize = fftSize;
-    }
-  }
-}
+    };
+  };
+};
 
 exports.getSmoothingTimeConstant = function (analyserNode) {
   return function () {
     return analyserNode.smoothingTimeConstant;
-  }
-}
+  };
+};
 
 exports.setSmoothingTimeConstant = function (analyserNode) {
   return function (smoothingTimeConstant) {
     return function () {
       analyserNode.smoothingTimeConstant = smoothingTimeConstant;
-    }
-  }
-}
+    };
+  };
+};
 
 exports.getMinDecibels = function (analyserNode) {
   return function () {
     return analyserNode.minDecibels;
-  }
-}
+  };
+};
 
 exports.setMinDecibels = function (analyserNode) {
   return function (minDecibels) {
     return function () {
       analyserNode.minDecibels = minDecibels;
-    }
-  }
-}
+    };
+  };
+};
 
 exports.getMaxDecibels = function (analyserNode) {
   return function () {
     return analyserNode.maxDecibels;
-  }
-}
+  };
+};
 
 exports.setMaxDecibels = function (analyserNode) {
   return function (maxDecibels) {
     return function () {
       analyserNode.maxDecibels = maxDecibels;
-    }
-  }
-}
+    };
+  };
+};
 
 exports.getFrequencyBinCount = function (analyserNode) {
   return function () {
     return analyserNode.frequencyBinCount;
-  }
-}
+  };
+};
 
 // https://developer.mozilla.org/en-US/docs/Web/API/AnalyserNode/getFloatTimeDomainData
 exports.getFloatTimeDomainData = function (analyserNode) {
@@ -1704,8 +1752,8 @@ exports.getFloatTimeDomainData = function (analyserNode) {
     var dataArray = new Float32Array(analyserNode.fftSize);
     analyserNode.getFloatTimeDomainData(dataArray);
     return dataArray;
-  }
-}
+  };
+};
 
 // https://developer.mozilla.org/en-US/docs/Web/API/AnalyserNode/getFloatFrequencyData
 exports.getFloatFrequencyData = function (analyserNode) {
@@ -1713,8 +1761,8 @@ exports.getFloatFrequencyData = function (analyserNode) {
     var dataArray = new Float32Array(analyserNode.frequencyBinCount);
     analyserNode.getFloatFrequencyData(dataArray);
     return dataArray;
-  }
-}
+  };
+};
 
 // https://developer.mozilla.org/en-US/docs/Web/API/AnalyserNode/getByteTimeDomainData
 exports.getByteTimeDomainData = function (analyserNode) {
@@ -1722,8 +1770,8 @@ exports.getByteTimeDomainData = function (analyserNode) {
     var dataArray = new Uint8Array(analyserNode.fftSize);
     analyserNode.getByteTimeDomainData(dataArray);
     return dataArray;
-  }
-}
+  };
+};
 
 // https://developer.mozilla.org/en-US/docs/Web/API/AnalyserNode/getByteFrequencyData
 exports.getByteFrequencyData = function (analyserNode) {
@@ -1731,9 +1779,17 @@ exports.getByteFrequencyData = function (analyserNode) {
     var dataArray = new Uint8Array(analyserNode.frequencyBinCount);
     analyserNode.getByteFrequencyData(dataArray);
     return dataArray;
-  }
-}
-exports.bufferSampleRate = function (buffer) { return buffer.sampleRate }
-exports.bufferLength = function (buffer) { return buffer.length }
-exports.bufferDuration = function (buffer) { return buffer.duration }
-exports.bufferNumberOfChannels = function (buffer) { return buffer.numberOfChannels }
+  };
+};
+exports.bufferSampleRate = function (buffer) {
+  return buffer.sampleRate;
+};
+exports.bufferLength = function (buffer) {
+  return buffer.length;
+};
+exports.bufferDuration = function (buffer) {
+  return buffer.duration;
+};
+exports.bufferNumberOfChannels = function (buffer) {
+  return buffer.numberOfChannels;
+};
