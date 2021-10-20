@@ -15,6 +15,8 @@ module WAGS.Interpret
   , close
   , connectXToY
   , context
+  , contextState
+  , contextResume
   , decodeAudioDataFromBase64EncodedString
   , decodeAudioDataFromUri
   , defaultFFIAudio
@@ -214,6 +216,12 @@ foreign import makeFloatArray :: Array Number -> Effect WebAPI.BrowserFloatArray
 
 -- | Make a new audio context.
 foreign import context :: Effect WebAPI.AudioContext
+
+-- | Get the state of the context
+foreign import contextState :: WebAPI.AudioContext -> Effect String
+
+-- | Get the state of the context
+foreign import contextResume :: WebAPI.AudioContext -> Effect (Promise Unit)
 
 -- | Close an audio context.
 foreign import close :: WebAPI.AudioContext -> Effect Unit

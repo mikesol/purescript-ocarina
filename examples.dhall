@@ -7,6 +7,7 @@ in      conf
             # [ "halogen"
               , "arrays"
               , "arraybuffer"
+              , "console"
               , "halogen-subscriptions"
               , "identity"
               , "nonempty"

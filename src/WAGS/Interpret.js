@@ -1,6 +1,16 @@
 exports.context = function () {
   return new (window.AudioContext || window.webkitAudioContext)();
 };
+exports.contextState = function(audioCtx) {
+  return function() {
+    return audioCtx.state;
+  }
+}
+exports.contextResume = function(audioCtx) {
+  return function() {
+    return audioCtx.resume();
+  }
+}
 exports.makeUnitCache = function () {
   return {};
 };

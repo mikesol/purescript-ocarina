@@ -14,6 +14,7 @@ import Data.UInt (toInt)
 import Effect (Effect)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect)
+import Effect.Console as Log
 import FRP.Event (subscribe)
 import Halogen as H
 import Halogen.Aff (awaitBody, runHalogenAff)
@@ -28,7 +29,7 @@ import WAGS.Control.Types (Frame0, Scene)
 import WAGS.Create (icreate)
 import WAGS.Create.Optionals (CGain, CLoopBuf, CSpeaker, CAnalyser, analyser, gain, loopBuf, speaker)
 import WAGS.Graph.AudioUnit (TAnalyser, TGain, TLoopBuf, TSpeaker)
-import WAGS.Interpret (close, context, decodeAudioDataFromUri, getByteFrequencyData, makeUnitCache)
+import WAGS.Interpret (close, context, contextState, contextResume, decodeAudioDataFromUri, getByteFrequencyData, makeUnitCache)
 import WAGS.Run (Run, RunAudio, RunEngine, SceneI(..), run)
 import WAGS.WebAPI (AnalyserNode, AnalyserNodeCb, AudioContext, BrowserAudioBuffer)
 
@@ -115,6 +116,7 @@ main =
 type State
   =
   { unsubscribe :: Effect Unit
+  , unsubscribeFromHalogen :: Maybe H.SubscriptionId
   , audioCtx :: Maybe AudioContext
   , freqz :: Array String
   }
@@ -136,6 +138,7 @@ initialState :: forall input. input -> State
 initialState _ =
   { unsubscribe: pure unit
   , audioCtx: Nothing
+  , unsubscribeFromHalogen: Nothing
   , freqz: []
   }
 
@@ -160,6 +163,9 @@ handleAction = case _ of
     { emitter, listener } <- H.liftEffect HS.create
     unsubscribeFromHalogen <- H.subscribe emitter
     audioCtx <- H.liftEffect context
+    -- just for kicks
+    H.liftEffect $ contextState audioCtx >>= Log.info
+    H.liftAff $ toAffE $ contextResume audioCtx
     unitCache <- H.liftEffect makeUnitCache
     atar <-
       H.liftAff $ toAffE
@@ -183,10 +189,11 @@ handleAction = case _ of
                 HS.notify listener (Freqz ((map (\i -> unsafeRepeat (toInt i + 1) ">") arr)))
                 pure unit
           )
-    H.modify_ _ { unsubscribe = unsubscribe, audioCtx = Just audioCtx }
+    H.modify_ _ { unsubscribe = unsubscribe, unsubscribeFromHalogen = Just unsubscribeFromHalogen, audioCtx = Just audioCtx }
   Freqz freqz -> H.modify_ _ { freqz = freqz }
   StopAudio -> do
-    { unsubscribe, audioCtx } <- H.get
+    { unsubscribe, unsubscribeFromHalogen, audioCtx } <- H.get
     H.liftEffect unsubscribe
+    for_ unsubscribeFromHalogen H.unsubscribe
     for_ audioCtx (H.liftEffect <<< close)
     H.modify_ _ { unsubscribe = pure unit, audioCtx = Nothing }
