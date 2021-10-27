@@ -13,6 +13,7 @@ module WAGS.Interpret
   , audioBuffer
   , audioWorkletAddModule
   , close
+  , constant0Hack
   , connectXToY
   , context
   , contextState
@@ -216,6 +217,9 @@ foreign import makeFloatArray :: Array Number -> Effect WebAPI.BrowserFloatArray
 
 -- | Make a new audio context.
 foreign import context :: Effect WebAPI.AudioContext
+
+-- | Send 0s from a context immediately. This is useful on iOS so that the context doesn't switch to a suspended state.
+foreign import constant0Hack :: WebAPI.AudioContext -> Effect (Effect Unit)
 
 -- | Get the state of the context
 foreign import contextState :: WebAPI.AudioContext -> Effect String

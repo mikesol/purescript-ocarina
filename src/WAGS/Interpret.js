@@ -1803,3 +1803,15 @@ exports.bufferDuration = function (buffer) {
 exports.bufferNumberOfChannels = function (buffer) {
   return buffer.numberOfChannels;
 };
+exports.constant0Hack = function (context) {
+  return function() {
+    var constant = context.createConstantSource();
+    constant.offset.value = 0.0;
+    constant.connect(context.destination);
+    constant.start();
+    return function() {
+      constant.stop();
+      constant.disconnect(context.destination);
+    }
+  }
+}
