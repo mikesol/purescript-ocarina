@@ -119,12 +119,12 @@ var disconnectXFromY = function (calledExternally) {
             stateX.units[x].main.disconnect(stateY.units[y].main);
             stateX.units[x].outgoing = stateX.units[x].outgoing.filter(
               function (i) {
-                !(i.unit === y && i.state === stateY);
+                return !(i.unit === y && i.state === stateY);
               }
             );
             stateY.units[y].incoming = stateY.units[y].incoming.filter(
               function (i) {
-                !(i.unit === x && i.state === stateX);
+                return !(i.unit === x && i.state === stateX);
               }
             );
             if (stateY.units[y].se) {
