@@ -1,13 +1,13 @@
 exports.context = function () {
   return new (window.AudioContext || window.webkitAudioContext)();
 };
-exports.contextState = function(audioCtx) {
-  return function() {
+exports.contextState = function (audioCtx) {
+  return function () {
     return audioCtx.state;
   }
 }
-exports.contextResume = function(audioCtx) {
-  return function() {
+exports.contextResume = function (audioCtx) {
+  return function () {
     return audioCtx.resume();
   }
 }
@@ -38,15 +38,15 @@ var workletSetter = function (unit, paramName, timeToSet, param) {
     } else {
       unit.parameters
         .get(paramName)
-        [
-          param.transition === "NoRamp"
-            ? "setValueAtTime"
-            : param.transition === "LinearRamp"
+      [
+        param.transition === "NoRamp"
+          ? "setValueAtTime"
+          : param.transition === "LinearRamp"
             ? "linearRampToValueAtTime"
             : param.transition === "ExponentialRamp"
-            ? "exponentialRampToValueAtTime"
-            : "linearRampToValueAtTime"
-        ](param.param, timeToSet + param.timeOffset);
+              ? "exponentialRampToValueAtTime"
+              : "linearRampToValueAtTime"
+      ](param.param, timeToSet + param.timeOffset);
     }
   }
 };
@@ -65,10 +65,10 @@ var genericSetter = function (unit, name, timeToSet, param) {
         param.transition === "NoRamp"
           ? "setValueAtTime"
           : param.transition === "LinearRamp"
-          ? "linearRampToValueAtTime"
-          : param.transition === "ExponentialRamp"
-          ? "exponentialRampToValueAtTime"
-          : "linearRampToValueAtTime"
+            ? "linearRampToValueAtTime"
+            : param.transition === "ExponentialRamp"
+              ? "exponentialRampToValueAtTime"
+              : "linearRampToValueAtTime"
       ](param.param, timeToSet + param.timeOffset);
     }
   }
@@ -1557,32 +1557,28 @@ exports.decodeAudioDataFromBase64EncodedString = function (ctx) {
     };
   };
 };
-exports.decodeAudioDataFromUri = function (ctx) {
-  return function (s) {
-    return function () {
-      {
-        return fetch(s)
-          .then(
-            function (b) {
-              return b.arrayBuffer();
-            },
-            function (e) {
-              console.error("Error fetching buffer", e);
-              return Promise.reject(e);
-            }
-          )
-          .then(
-            function (b) {
-              return ctx.decodeAudioData(b);
-            },
-            function (e) {
-              console.error("Error decoding buffer", e);
-              return Promise.reject(e);
-            }
-          );
-      }
-    };
+exports.fetchArrayBuffer = function (s) {
+  return function () {
+    {
+      return fetch(s)
+        .then(
+          function (b) {
+            return b.arrayBuffer();
+          },
+          function (e) {
+            console.error("Error fetching buffer", e);
+            return Promise.reject(e);
+          }
+        )
+    }
   };
+};
+exports.decodeAudioDataFromArrayBuffer = function (ctx) {
+  return function (b) {
+    return function () {
+      return ctx.decodeAudioData(b);
+    }
+  }
 };
 exports.audioWorkletAddModule_ = function (ctx) {
   return function (s) {
@@ -1804,12 +1800,12 @@ exports.bufferNumberOfChannels = function (buffer) {
   return buffer.numberOfChannels;
 };
 exports.constant0Hack = function (context) {
-  return function() {
+  return function () {
     var constant = context.createConstantSource();
     constant.offset.value = 0.0;
     constant.connect(context.destination);
     constant.start();
-    return function() {
+    return function () {
       constant.stop();
       constant.disconnect(context.destination);
     }

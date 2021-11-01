@@ -3,7 +3,6 @@ module WAGS.Example.Tumult where
 import Prelude
 
 import Control.Comonad.Cofree (Cofree, mkCofree)
-import Control.Promise (toAffE)
 import Data.Foldable (for_)
 import Data.Maybe (Maybe(..))
 import Data.Typelevel.Num (D1)
@@ -146,8 +145,7 @@ handleAction = case _ of
     audioCtx <- H.liftEffect context
     unitCache <- H.liftEffect makeUnitCache
     shruti <-
-      H.liftAff $ toAffE
-        $ decodeAudioDataFromUri
+      H.liftAff $ decodeAudioDataFromUri
           audioCtx
           "https://freesound.org/data/previews/513/513742_153257-hq.mp3"
     let

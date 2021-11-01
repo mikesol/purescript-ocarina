@@ -168,8 +168,7 @@ handleAction = case _ of
     H.liftAff $ toAffE $ contextResume audioCtx
     unitCache <- H.liftEffect makeUnitCache
     atar <-
-      H.liftAff $ toAffE
-        $ decodeAudioDataFromUri
+      H.liftAff $ decodeAudioDataFromUri
           audioCtx
           "https://freesound.org/data/previews/100/100981_1234256-lq.mp3"
     let

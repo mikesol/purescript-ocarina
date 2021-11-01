@@ -3,13 +3,11 @@ module WAGS.Example.DrumMachine where
 import Prelude
 
 import Control.Comonad.Cofree (Cofree, deferCofree, head, mkCofree, tail)
-import Control.Promise (toAffE)
 import Data.Foldable (for_)
 import Data.Identity (Identity(..))
 import Data.Int (floor, toNumber)
 import Data.Maybe (Maybe(..))
 import Data.Newtype (unwrap)
-import Data.Nullable (null)
 import Data.Tuple.Nested ((/\), type (/\))
 import Effect (Effect)
 import Effect.Aff (launchAff_)
@@ -24,7 +22,6 @@ import Halogen.Aff (awaitBody, runHalogenAff)
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.VDom.Driver (runUI)
-import Type.Proxy (Proxy(..))
 import WAGS.Change (ichange)
 import WAGS.Control.Functions.Graph (iloop, (@!>))
 import WAGS.Control.Types (Frame0, Scene)
@@ -165,10 +162,9 @@ handleAction = case _ of
     audioCtx <- H.liftEffect context
     unitCache <- H.liftEffect makeUnitCache
     ibuf <-
-      H.liftAff $ toAffE
-        $ decodeAudioDataFromUri
-          audioCtx
-          (head drumCf)
+      H.liftAff $ decodeAudioDataFromUri
+        audioCtx
+        (head drumCf)
     rf <- H.liftEffect (Ref.new (unwrap (tail drumCf)))
     bf <- H.liftEffect (Ref.new ibuf)
     ivlsub <-
@@ -177,11 +173,7 @@ handleAction = case _ of
           cf <- Ref.read rf
           Ref.write (unwrap (tail cf)) rf
           launchAff_ do
-            buf <-
-              toAffE
-                $ decodeAudioDataFromUri
-                  audioCtx
-                  (head cf)
+            buf <- decodeAudioDataFromUri audioCtx (head cf)
             H.liftEffect $ Ref.write buf bf
     let
       ffiAudio =

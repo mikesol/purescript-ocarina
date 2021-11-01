@@ -17,7 +17,6 @@ in      conf
               , "media-types"
               , "web-file"
               , "exceptions"
-              , "nullable"
               , "profunctor-lenses"
               ]
         }

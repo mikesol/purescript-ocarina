@@ -4,7 +4,6 @@ import Prelude
 
 import Control.Comonad.Cofree (Cofree, mkCofree)
 import Control.Monad.Error.Class (class MonadThrow, throwError)
-import Control.Promise (toAffE)
 import Data.Array ((..))
 import Data.Foldable (for_)
 import Data.Int (toNumber)
@@ -106,10 +105,7 @@ render state = do
 
 fetchBuffer :: ∀ (m ∷ Type -> Type). MonadAff m ⇒ AudioContext → String → m BrowserAudioBuffer
 fetchBuffer audioCtx addr =
-  H.liftAff $ toAffE
-    $ decodeAudioDataFromUri
-      audioCtx
-      addr
+  H.liftAff $ decodeAudioDataFromUri audioCtx addr
 
 handleAction :: forall output m. MonadThrow Error m => MonadEffect m => MonadAff m => Action -> H.HalogenM State Action () output m Unit
 handleAction = case _ of

@@ -20,6 +20,8 @@ module WAGS.Interpret
   , contextResume
   , decodeAudioDataFromBase64EncodedString
   , decodeAudioDataFromUri
+  , fetchArrayBuffer
+  , decodeAudioDataFromArrayBuffer
   , defaultFFIAudio
   , destroyUnit
   , disconnectXFromY
@@ -122,7 +124,7 @@ import Prelude
 import Control.Plus (empty)
 import Control.Promise (Promise, toAffE)
 import Data.Array as Array
-import Data.ArrayBuffer.Types (Float32Array, Uint8Array)
+import Data.ArrayBuffer.Types (Float32Array, Uint8Array, ArrayBuffer)
 import Data.Either (Either(..))
 import Data.FunctorWithIndex (mapWithIndex)
 import Data.Lazy (defer)
@@ -202,7 +204,13 @@ foreign import mediaRecorderToUrl :: String -> (String -> Effect Unit) -> WebAPI
 foreign import isTypeSupported :: String -> Effect Boolean
 
 -- | Given an audio context and a URI, decode the content of the URI to an audio buffer.
-foreign import decodeAudioDataFromUri :: WebAPI.AudioContext -> String -> Effect (Promise WebAPI.BrowserAudioBuffer)
+decodeAudioDataFromUri :: WebAPI.AudioContext -> String -> Aff WebAPI.BrowserAudioBuffer
+decodeAudioDataFromUri ctx s =
+  toAffE (fetchArrayBuffer s) >>= (toAffE <<< decodeAudioDataFromArrayBuffer ctx)
+
+foreign import fetchArrayBuffer :: String -> Effect (Promise ArrayBuffer)
+
+foreign import decodeAudioDataFromArrayBuffer :: WebAPI.AudioContext -> ArrayBuffer -> Effect (Promise WebAPI.BrowserAudioBuffer)
 
 -- | Given an audio context and a base-64-encoded audio file, decode the content of the string to an audio buffer.
 foreign import decodeAudioDataFromBase64EncodedString :: WebAPI.AudioContext -> String -> Effect (Promise WebAPI.BrowserAudioBuffer)
@@ -858,8 +866,8 @@ interpretInstruction = case _ of
   SetBuffer ptr a -> setBuffer ptr a
   SetConvolverBuffer ptr a -> setConvolverBuffer ptr a
   SetPeriodicOsc ptr a -> case a of
-    Left a'  -> setPeriodicOsc ptr a'
-    Right a'  -> setPeriodicOscV ptr a'
+    Left a' -> setPeriodicOsc ptr a'
+    Right a' -> setPeriodicOscV ptr a'
   SetOnOff ptr a -> setOnOff ptr a
   SetBufferOffset ptr a -> setBufferOffset ptr a
   SetLoopStart ptr a -> setLoopStart ptr a
@@ -1007,13 +1015,14 @@ instance safeToFFI_Oversample :: SafeToFFI Oversample String where
 instance safeToFFI_FFIAudio :: SafeToFFI FFIAudioSnapshot FFIAudioSnapshot' where
   safeToFFI (FFIAudioSnapshot x) = x
 
-type AudioWorkletNodeOptionsFFI_ = { name :: String
-    , numberOfInputs :: Int
-    , numberOfOutputs :: Int
-    , outputChannelCount :: Array Int
-    , parameterData :: Object FFINumericAudioParameter
-    , processorOptions :: Foreign
-    }
+type AudioWorkletNodeOptionsFFI_ =
+  { name :: String
+  , numberOfInputs :: Int
+  , numberOfOutputs :: Int
+  , outputChannelCount :: Array Int
+  , parameterData :: Object FFINumericAudioParameter
+  , processorOptions :: Foreign
+  }
 
 instance safeToFFI_AudioWorkletNodeOptions_ ::
   SafeToFFI AudioWorkletNodeOptions_ AudioWorkletNodeOptionsFFI_ where
