@@ -15,7 +15,6 @@
   , "foreign"
   , "foreign-object"
   , "free"
-  , "heterogeneous"
   , "indexed-monad"
   , "integers"
   , "js-timers"
