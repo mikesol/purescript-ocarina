@@ -9,6 +9,7 @@ in      conf
               , "arraybuffer"
               , "console"
               , "halogen-subscriptions"
+              , "heterogeneous"
               , "identity"
               , "nonempty"
               , "stringutils"
