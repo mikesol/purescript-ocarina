@@ -145,6 +145,6 @@ class ValidateOutputChannelCount (numberOfOutputs :: Type) (outputChannelCount :
   toOutputChannelCount :: forall proxy. proxy numberOfOutputs -> proxy outputChannelCount -> Array Int
 
 instance validateOutputChannelCountD1 :: Pos n => ValidateOutputChannelCount D1 n where
-  toOutputChannelCount _ _ = [toInt' (Proxy :: _ n)]
+  toOutputChannelCount _ _ = [ toInt' (Proxy :: _ n) ]
 else instance validateOutputChannelCountN :: (Pred x xMinus1, Pos n, ValidateOutputChannelCount xMinus1 r) => ValidateOutputChannelCount x (n /\ r) where
-  toOutputChannelCount _ _ = [toInt' (Proxy :: _ n)] <> toOutputChannelCount (Proxy :: _ xMinus1) (Proxy :: _ r)
+  toOutputChannelCount _ _ = [ toInt' (Proxy :: _ n) ] <> toOutputChannelCount (Proxy :: _ xMinus1) (Proxy :: _ r)

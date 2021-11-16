@@ -347,7 +347,7 @@ instance createAudioWorkletNode ::
         { context:
             i
               { instructions = i.instructions <>
-                  [ makeAudioWorkletNode nn  $ AudioWorkletNodeOptions_
+                  [ makeAudioWorkletNode nn $ AudioWorkletNodeOptions_
                       { name: reflectSymbol (Proxy :: _ sym)
                       , numberOfInputs: toInt' (Proxy :: _ numberOfInputs)
                       , numberOfOutputs: toInt' (Proxy :: _ numberOfOutputs)
@@ -791,7 +791,7 @@ instance createPeriodicOsc2 ::
     nn = reflectSymbol ptr
 
     argA_iv' = paramize argA
-    
+
     o =
       unsafeWAG
         { context:
@@ -891,7 +891,7 @@ instance createSinOsc ::
       unsafeWAG
         { context:
             i
-              { instructions =  i.instructions <> [ makeSinOsc nn (onOffIze onOff) argA_iv' ]
+              { instructions = i.instructions <> [ makeSinOsc nn (onOffIze onOff) argA_iv' ]
               }
         , value: unit
         }

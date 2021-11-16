@@ -426,13 +426,14 @@ instance toGraphEffectsMakeAudioWorkletNode ::
       ( i
           { instructions = i.instructions <>
               [ makeAudioWorkletNode ptr'
-                  $ AudioWorkletNodeOptions_ { name: sym'
-                  , numberOfInputs: toInt' (Proxy :: _ numberOfInputs)
-                  , numberOfOutputs: toInt' (Proxy :: _ numberOfOutputs)
-                  , outputChannelCount: toOutputChannelCount (Proxy :: _ numberOfOutputs) (Proxy :: _ outputChannelCount)
-                  , parameterData: Object.empty
-                  , processorOptions: JSON.writeImpl (mempty :: { | processorOptions })
-                  }
+                  $ AudioWorkletNodeOptions_
+                    { name: sym'
+                    , numberOfInputs: toInt' (Proxy :: _ numberOfInputs)
+                    , numberOfOutputs: toInt' (Proxy :: _ numberOfOutputs)
+                    , outputChannelCount: toOutputChannelCount (Proxy :: _ numberOfOutputs) (Proxy :: _ outputChannelCount)
+                    , parameterData: Object.empty
+                    , processorOptions: JSON.writeImpl (mempty :: { | processorOptions })
+                    }
               ]
           }
       )
@@ -520,7 +521,6 @@ instance toGraphEffectsMakeHighshelf :: (IsSymbol ptr, ToGraphEffects rest) => T
       )
     where
     ptr' = reflectSymbol (Proxy :: _ ptr)
-
 
 instance toGraphEffectsMakeInput :: (IsSymbol ptr, IsSymbol sym, ToGraphEffects rest) => ToGraphEffects (MakeInput ptr sym /\ rest) where
   toGraphEffects _ cache i =
@@ -681,7 +681,6 @@ instance toGraphEffectsMakeSubgraph :: (IsSymbol ptr, ToGraphEffects rest) => To
       )
     where
     ptr' = reflectSymbol (Proxy :: _ ptr)
-
 
 instance toGraphEffectsMakeTriangleOsc :: (IsSymbol ptr, ToGraphEffects rest) => ToGraphEffects (MakeTriangleOsc ptr /\ rest) where
   toGraphEffects _ cache i =

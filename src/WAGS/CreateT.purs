@@ -101,10 +101,9 @@ instance createTAnalyser ::
   ) =>
   CreateT' ptr (CTOR.Analyser AnalyserNodeCb) graphi grapho
 
-
 class CreateParametersT (parameterRL :: RL.RowList Type) (parameterData :: Row Type)
 
-instance createParametersTNil :: CreateParametersT RL.Nil parameterData 
+instance createParametersTNil :: CreateParametersT RL.Nil parameterData
 
 instance createParametersTCons ::
   ( R.Cons key AudioParameter parameters' parameterData

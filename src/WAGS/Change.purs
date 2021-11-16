@@ -226,7 +226,6 @@ instance changeTumultC ::
   Change' ptr (Tumultuous n terminus inputs) graph where
   change' px w = change' px (oneShotChange (mempty :: tau) <$> w)
 
-
 instance changeAudioParameter ::
   ( R.Cons ptr tau' ignore graph
   , Detup tau' tau
@@ -1867,7 +1866,6 @@ instance changeTumult ::
               }
         , value: unit
         }
-
 
 instance oneShotChangeWaveshaper :: (IsOversample oversample, Monoid oversample) => OneShotChange (CTOR.TWaveShaper oversample) BrowserFloatArray (CTOR.WaveShaper BrowserFloatArray Oversample) where
   oneShotChange _ bfa = CTOR.WaveShaper bfa (reflectOversample (mempty :: oversample))
