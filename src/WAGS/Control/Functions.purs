@@ -193,12 +193,9 @@ loopUsingScene
   => (env -> control -> { scene :: { | sn }, control :: control })
   -> control
   -> scene env audio engine Frame0 res
-loopUsingScene = (loopUsingSceneWithRes :: (env -> control -> { scene :: { | sn }, control :: control, res :: res })
-  -> control
-  -> scene env audio engine Frame0 res) <<< (map <<< map) (R.union { res })
+loopUsingScene = loopUsingSceneWithRes <<< f
   where
-  res :: res
-  res = mempty
+  f = (map <<< map) (R.union { res: mempty :: res })
 
 loopUsingSceneWithRes
   :: forall scene env audio engine res sn graph control
@@ -211,9 +208,9 @@ loopUsingSceneWithRes
   -> control
   -> scene env audio engine Frame0 res
 loopUsingSceneWithRes sceneF initialControl =
-  (\env -> let { scene, control, res } = sceneF env initialControl in icreate scene :*> imodifyRes (const res) $> control) @!> 
+  (\env -> let { scene, control, res } = sceneF env initialControl in icreate scene :*> imodifyRes (const res) $> control) @!>
     iloop \env icontrol ->
-      let { scene, control, res } = sceneF env icontrol in ichange scene *> imodifyRes (const res)  $> control
+      let { scene, control, res } = sceneF env icontrol in ichange scene *> imodifyRes (const res) $> control
 
 -- | Loops audio.
 -- |
