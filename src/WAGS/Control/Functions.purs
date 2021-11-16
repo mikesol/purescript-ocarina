@@ -4,6 +4,7 @@ module WAGS.Control.Functions
   , startUsing
   , startUsingWithHint
   , loopUsingScene
+  , loopUsingSceneWithRes
   , modifyRes
   , imodifyRes
   , makeScene
@@ -30,10 +31,12 @@ module WAGS.Control.Functions
 
 import Prelude
 
+import Control.Apply.Indexed ((:*>))
 import Control.Comonad (extract)
 import Data.Either (Either(..))
 import Data.Maybe (Maybe)
 import Data.Tuple.Nested (type (/\))
+import Record as R
 import WAGS.Change (class Change, ichange)
 import WAGS.Control.Indexed (IxWAG(..))
 import WAGS.Control.Types (class IsScene, AudioState', Frame0, InitialWAG, Scene', WAG, getFrame, unFrame, unsafeUnWAG, unsafeWAG)
@@ -190,10 +193,27 @@ loopUsingScene
   => (env -> control -> { scene :: { | sn }, control :: control })
   -> control
   -> scene env audio engine Frame0 res
-loopUsingScene sceneF initialControl =
-  (\env -> let { scene, control } = sceneF env initialControl in icreate scene $> control) @!>
+loopUsingScene = (loopUsingSceneWithRes :: (env -> control -> { scene :: { | sn }, control :: control, res :: res })
+  -> control
+  -> scene env audio engine Frame0 res) <<< (map <<< map) (R.union { res })
+  where
+  res :: res
+  res = mempty
+
+loopUsingSceneWithRes
+  :: forall scene env audio engine res sn graph control
+   . Monoid res
+  => AudioInterpret audio engine
+  => IsScene scene
+  => Create sn () graph
+  => Change sn graph
+  => (env -> control -> { scene :: { | sn }, control :: control, res :: res })
+  -> control
+  -> scene env audio engine Frame0 res
+loopUsingSceneWithRes sceneF initialControl =
+  (\env -> let { scene, control, res } = sceneF env initialControl in icreate scene :*> imodifyRes (const res) $> control) @!> 
     iloop \env icontrol ->
-      let { scene, control } = sceneF env icontrol in ichange scene $> control
+      let { scene, control, res } = sceneF env icontrol in ichange scene *> imodifyRes (const res)  $> control
 
 -- | Loops audio.
 -- |

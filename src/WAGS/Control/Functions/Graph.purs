@@ -9,6 +9,7 @@ module WAGS.Control.Functions.Graph
   , startUsing
   , startUsingWithHint
   , loopUsingScene
+  , loopUsingSceneWithRes
   , loop
   , iloop
   , branch
@@ -205,6 +206,18 @@ loopUsingScene
   -> control
   -> Scene env audio engine Frame0 res
 loopUsingScene = Functions.loopUsingScene
+
+loopUsingSceneWithRes
+  :: forall env audio engine res scene graph control
+   . Monoid res
+  => AudioInterpret audio engine
+  => Create scene () graph
+  => Change scene graph
+  => GraphIsRenderable graph
+  => (env -> control -> { scene :: { | scene }, control :: control, res :: res })
+  -> control
+  -> Scene env audio engine Frame0 res
+loopUsingSceneWithRes = Functions.loopUsingSceneWithRes
 
 freeze
   :: forall env audio engine proof res graph x

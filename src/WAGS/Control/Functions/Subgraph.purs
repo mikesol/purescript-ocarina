@@ -9,6 +9,7 @@ module WAGS.Control.Functions.Subgraph
   , startUsing
   , startUsingWithHint
   , loopUsingScene
+  , loopUsingSceneWithRes
   , loop
   , iloop
   , branch
@@ -205,6 +206,18 @@ loopUsingScene
   -> control
   -> SubScene terminus inputs env audio engine Frame0 res
 loopUsingScene = Functions.loopUsingScene
+
+loopUsingSceneWithRes
+  :: forall terminus inputs env audio engine res scene graph control
+   . Monoid res
+  => AudioInterpret audio engine
+  => Create scene () graph
+  => Change scene graph
+  => SubgraphIsRenderable graph terminus inputs
+  => (env -> control -> { scene :: { | scene }, control :: control, res :: res })
+  -> control
+  -> SubScene terminus inputs env audio engine Frame0 res
+loopUsingSceneWithRes = Functions.loopUsingSceneWithRes
 
 freeze
   :: forall terminus inputs env audio engine proof res graph x
