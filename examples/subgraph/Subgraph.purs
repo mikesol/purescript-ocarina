@@ -3,7 +3,6 @@ module WAGS.Example.Subgraph where
 import Prelude
 
 import Control.Comonad.Cofree (Cofree, mkCofree)
-import Control.Promise (toAffE)
 import Data.Foldable (for_)
 import Data.Int (toNumber)
 import Data.Maybe (Maybe(..))
@@ -137,8 +136,7 @@ handleAction = case _ of
     audioCtx <- H.liftEffect context
     unitCache <- H.liftEffect makeUnitCache
     atar <-
-      H.liftAff $ toAffE
-        $ decodeAudioDataFromUri
+      H.liftAff $ decodeAudioDataFromUri
           audioCtx
           "https://freesound.org/data/previews/100/100981_1234256-lq.mp3"
     let

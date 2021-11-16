@@ -19,11 +19,9 @@ There are some other examples to get you started:
 
 The examples also show how to use `purescript-wags` in a [Halogen](https://github.com/purescript-halogen/purescript-halogen) app.
 
-## Documentation
+## In the wild
 
-Module documentation is [published on Pursuit](https://pursuit.purescript.org/packages/purescript-wags/).
-
-As the Pursuit documentation is quite volumnous, there's also a [cheat sheet](./CHEATSHEET.md) that you can use :100:.
+The blog [Soundly functional](https://mikesol.github.io/sf) is powered by wags, as is the [wagsi](https://github.com/mikesol/wagsi) project.
 
 ## Bundling on your site
 

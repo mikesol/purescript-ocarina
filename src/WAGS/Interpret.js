@@ -1,13 +1,13 @@
 exports.context = function () {
   return new (window.AudioContext || window.webkitAudioContext)();
 };
-exports.contextState = function(audioCtx) {
-  return function() {
+exports.contextState = function (audioCtx) {
+  return function () {
     return audioCtx.state;
   }
 }
-exports.contextResume = function(audioCtx) {
-  return function() {
+exports.contextResume = function (audioCtx) {
+  return function () {
     return audioCtx.resume();
   }
 }
@@ -38,15 +38,15 @@ var workletSetter = function (unit, paramName, timeToSet, param) {
     } else {
       unit.parameters
         .get(paramName)
-        [
-          param.transition === "NoRamp"
-            ? "setValueAtTime"
-            : param.transition === "LinearRamp"
+      [
+        param.transition === "NoRamp"
+          ? "setValueAtTime"
+          : param.transition === "LinearRamp"
             ? "linearRampToValueAtTime"
             : param.transition === "ExponentialRamp"
-            ? "exponentialRampToValueAtTime"
-            : "linearRampToValueAtTime"
-        ](param.param, timeToSet + param.timeOffset);
+              ? "exponentialRampToValueAtTime"
+              : "linearRampToValueAtTime"
+      ](param.param, timeToSet + param.timeOffset);
     }
   }
 };
@@ -65,10 +65,10 @@ var genericSetter = function (unit, name, timeToSet, param) {
         param.transition === "NoRamp"
           ? "setValueAtTime"
           : param.transition === "LinearRamp"
-          ? "linearRampToValueAtTime"
-          : param.transition === "ExponentialRamp"
-          ? "exponentialRampToValueAtTime"
-          : "linearRampToValueAtTime"
+            ? "linearRampToValueAtTime"
+            : param.transition === "ExponentialRamp"
+              ? "exponentialRampToValueAtTime"
+              : "linearRampToValueAtTime"
       ](param.param, timeToSet + param.timeOffset);
     }
   }
@@ -119,12 +119,12 @@ var disconnectXFromY = function (calledExternally) {
             stateX.units[x].main.disconnect(stateY.units[y].main);
             stateX.units[x].outgoing = stateX.units[x].outgoing.filter(
               function (i) {
-                !(i.unit === y && i.state === stateY);
+                return !(i.unit === y && i.state === stateY);
               }
             );
             stateY.units[y].incoming = stateY.units[y].incoming.filter(
               function (i) {
-                !(i.unit === x && i.state === stateX);
+                return !(i.unit === x && i.state === stateX);
               }
             );
             if (stateY.units[y].se) {
@@ -693,7 +693,7 @@ exports.makeInput_ = function (ptr) {
           input: a,
         };
         connectXToY(false)(a)(ptr)(state.parent)(state)();
-        state.units[ptr].main.gain = 1.0;
+        state.units[ptr].main.gain.value = 1.0;
       };
     };
   };
@@ -749,7 +749,7 @@ exports.makeSubgraph_ = function (ptr) {
                   isSubgraph: true,
                   scenes: scenes,
                 };
-                state.units[ptr].main.gain = 1.0;
+                state.units[ptr].main.gain.value = 1.0;
                 for (var i = 0; i < scenes.length; i++) {
                   var applied = funk(envM(i)(vek[i]))(scenes[i]);
                   for (var j = 0; j < applied.instructions.length; j++) {
@@ -805,7 +805,7 @@ exports.makeTumult_ = function (ptr) {
                   isTumult: true,
                   scenes: scenes,
                 };
-                state.units[ptr].main.gain = 1.0;
+                state.units[ptr].main.gain.value = 1.0;
                 for (var i = 0; i < scenes.length; i++) {
                   var curScene = arrMaker(scenes[i])(nothing);
                   for (var j = 0; j < curScene.length; j++) {
@@ -1112,7 +1112,7 @@ exports.setInput_ = function (ptr) {
         }
         state.units[ptr].input = a;
         connectXToY(false)(a)(ptr)(state.parent)(state)();
-        state.units[ptr].main.gain = 1.0;
+        state.units[ptr].main.gain.value = 1.0;
       };
     };
   };
@@ -1557,32 +1557,28 @@ exports.decodeAudioDataFromBase64EncodedString = function (ctx) {
     };
   };
 };
-exports.decodeAudioDataFromUri = function (ctx) {
-  return function (s) {
-    return function () {
-      {
-        return fetch(s)
-          .then(
-            function (b) {
-              return b.arrayBuffer();
-            },
-            function (e) {
-              console.error("Error fetching buffer", e);
-              return Promise.reject(e);
-            }
-          )
-          .then(
-            function (b) {
-              return ctx.decodeAudioData(b);
-            },
-            function (e) {
-              console.error("Error decoding buffer", e);
-              return Promise.reject(e);
-            }
-          );
-      }
-    };
+exports.fetchArrayBuffer = function (s) {
+  return function () {
+    {
+      return fetch(s)
+        .then(
+          function (b) {
+            return b.arrayBuffer();
+          },
+          function (e) {
+            console.error("Error fetching buffer", e);
+            return Promise.reject(e);
+          }
+        )
+    }
   };
+};
+exports.decodeAudioDataFromArrayBuffer = function (ctx) {
+  return function (b) {
+    return function () {
+      return ctx.decodeAudioData(b);
+    }
+  }
 };
 exports.audioWorkletAddModule_ = function (ctx) {
   return function (s) {
@@ -1803,3 +1799,15 @@ exports.bufferDuration = function (buffer) {
 exports.bufferNumberOfChannels = function (buffer) {
   return buffer.numberOfChannels;
 };
+exports.constant0Hack = function (context) {
+  return function () {
+    var constant = context.createConstantSource();
+    constant.offset.value = 0.0;
+    constant.connect(context.destination);
+    constant.start();
+    return function () {
+      constant.stop();
+      constant.disconnect(context.destination);
+    }
+  }
+}

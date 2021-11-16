@@ -3,7 +3,6 @@ module WAGS.Example.Tumult where
 import Prelude
 
 import Control.Comonad.Cofree (Cofree, mkCofree)
-import Control.Promise (toAffE)
 import Data.Foldable (for_)
 import Data.Maybe (Maybe(..))
 import Data.Typelevel.Num (D1)
@@ -23,7 +22,7 @@ import Type.Proxy (Proxy(..))
 import WAGS.Control.Functions.Graph (loopUsingScene)
 import WAGS.Control.Functions.Subgraph as SG
 import WAGS.Control.Types (Frame0, Scene, SubScene)
-import WAGS.Create.Optionals (bandpass, gain, highpass, input, loopBuf, speaker, subgraph, tumult)
+import WAGS.Create.Optionals (bandpass, gain, highpass, input, loopBuf, sinOsc, speaker, subgraph, tumult)
 import WAGS.Graph.Parameter (AudioParameter, ff)
 import WAGS.Interpret (class AudioInterpret, close, context, decodeAudioDataFromUri, makeUnitCache)
 import WAGS.Run (Run, RunAudio, RunEngine, SceneI(..), run)
@@ -61,6 +60,7 @@ subPiece1 _ = unit # SG.loopUsingScene \(SGWorld time) _ ->
                     ( { output: gain 1.0
                           { hpf: bandpass sweep (input (Proxy :: _ "shruti"))
                           , bpf: bandpass { freq: 200.0 } (input (Proxy :: _ "shruti"))
+                          , beep: gain (sin (time * pi * 10.0) * 0.2 + 0.1) { sosc: sinOsc 440.0 }
                           }
                       } +> V.empty
                     )
@@ -145,8 +145,7 @@ handleAction = case _ of
     audioCtx <- H.liftEffect context
     unitCache <- H.liftEffect makeUnitCache
     shruti <-
-      H.liftAff $ toAffE
-        $ decodeAudioDataFromUri
+      H.liftAff $ decodeAudioDataFromUri
           audioCtx
           "https://freesound.org/data/previews/513/513742_153257-hq.mp3"
     let

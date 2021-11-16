@@ -5,6 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.10] - 2021-11-03
+
+### Chore
+
+- removes unused libs, codegen & tests
+
+## [0.5.9] - 2021-11-01
+
+### Added
+
+- splits `decodeAudioBufferFromUri` into two separate functions and changes the signature from Promise to Aff.
+
+### Fixed
+
+- upgrades to `arraybuffer` 12.0.0 to avoid breaking polyfill.
+
+## [0.5.8] - 2021-10-29
+
+### Fixed
+
+- returns correct value from filter in `Interpret.js`.
+
+## [0.5.7] - 2021-10-27
+
+### Added
+
+- adds a hack that spews 0s to a context.
+
+## [0.5.6] - 2021-10-27
+
+### Fixed
+
+- sets value instead of main for `gain`.
+
 ## [0.5.5] - 2021-10-20
 
 ### Added

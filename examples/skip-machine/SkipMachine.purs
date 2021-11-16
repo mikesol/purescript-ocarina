@@ -7,7 +7,6 @@ import Control.Comonad (extract)
 import Control.Comonad.Cofree (Cofree, mkCofree)
 import Control.Comonad.Cofree.Class (unwrapCofree)
 import Control.Plus (empty)
-import Control.Promise (toAffE)
 import Data.Array as Array
 import Data.Foldable (foldl, for_)
 import Data.Int (toNumber)
@@ -151,8 +150,7 @@ handleAction = case _ of
     audioCtx <- H.liftEffect context
     unitCache <- H.liftEffect makeUnitCache
     hamlet <-
-      H.liftAff $ toAffE
-        $ decodeAudioDataFromUri
+      H.liftAff $ decodeAudioDataFromUri
           audioCtx
           "https://freesound.org/data/previews/50/50843_489520-hq.mp3"
     let

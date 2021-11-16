@@ -9,6 +9,7 @@ in      conf
               , "arraybuffer"
               , "console"
               , "halogen-subscriptions"
+              , "heterogeneous"
               , "identity"
               , "nonempty"
               , "stringutils"
@@ -17,7 +18,6 @@ in      conf
               , "media-types"
               , "web-file"
               , "exceptions"
-              , "nullable"
               , "profunctor-lenses"
               ]
         }

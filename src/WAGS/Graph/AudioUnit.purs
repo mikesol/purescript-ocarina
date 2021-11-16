@@ -4,15 +4,9 @@ import Prelude
 
 import Data.Generic.Rep (class Generic)
 import Data.Show.Generic (genericShow)
-import Data.Symbol (class IsSymbol)
-import Data.Tuple.Nested (type (/\), (/\))
-import Heterogeneous.Folding (class FoldingWithIndex, class HFoldlWithIndex, hfoldlWithIndex)
-import Heterogeneous.Mapping (class HMap, class Mapping, hmap)
-import Prim.Row as R
+import Data.Tuple.Nested (type (/\))
 import Prim.Symbol as Sym
-import Record as Record
 import Type.Proxy (Proxy(..))
-import WAGS.Edgeable (class Edgeable, withEdge)
 import WAGS.Graph.Parameter (AudioParameter_)
 import WAGS.Graph.Worklet (AudioWorkletNodeResponse)
 
@@ -781,64 +775,3 @@ instance monoidTWaveShaper :: Monoid a => Monoid (TWaveShaper a) where
 
 instance reifyTWaveShaper :: Monoid b => ReifyAU (WaveShaper a b) (TWaveShaper b) where
   reifyAU = const mempty
-
-data Obliterate
-  = Obliterate
-
-instance mappingObliterate :: Mapping Obliterate a Unit where
-  mapping Obliterate = const unit
-
-data ReifyAUFoldingWithIndex
-  = ReifyAUFoldingWithIndex
-
-instance reifyAUFoldingWithIndexUnit ::
-  FoldingWithIndex
-    ReifyAUFoldingWithIndex
-    (proxy sym)
-    { | inRecord }
-    Unit
-    { | inRecord } where
-  foldingWithIndex ReifyAUFoldingWithIndex _ i = const i
-else instance reifyAUFoldingWithIndex ::
-  ( Edgeable node' (node /\ edges)
-  , ReifyAU node asType
-  , IsSymbol sym
-  , R.Lacks sym inRecord
-  , HMap Obliterate edges obliterated
-  , R.Cons sym (asType /\ obliterated) inRecord midRecord
-  , HFoldlWithIndex
-      ReifyAUFoldingWithIndex
-      { | midRecord }
-      edges
-      { | outRecord }
-  ) =>
-  FoldingWithIndex
-    ReifyAUFoldingWithIndex
-    (proxy sym)
-    { | inRecord }
-    node'
-    { | outRecord } where
-  foldingWithIndex ReifyAUFoldingWithIndex prop ir node' = out
-    where
-    node /\ edges = withEdge node'
-
-    au = reifyAU node
-
-    edg = hmap Obliterate edges
-
-    out = hfoldlWithIndex ReifyAUFoldingWithIndex (Record.insert prop (au /\ edg) ir) edges
-
-type ReifyAUs r
-  = forall rr. HFoldlWithIndex ReifyAUFoldingWithIndex {} r rr => rr
-
--- | Reify many audio units.
-reifyAUs
-  :: forall r rr
-   . HFoldlWithIndex
-       ReifyAUFoldingWithIndex
-       {}
-       r
-       rr
-  => r
-  -> rr
-reifyAUs = hfoldlWithIndex ReifyAUFoldingWithIndex {}
