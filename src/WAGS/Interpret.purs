@@ -125,18 +125,18 @@ import Control.Plus (empty)
 import Control.Promise (Promise, toAffE)
 import Data.Array as Array
 import Data.ArrayBuffer.Types (Float32Array, Uint8Array, ArrayBuffer)
-import Data.Either (Either(..))
 import Data.FunctorWithIndex (mapWithIndex)
 import Data.Lazy (defer)
 import Data.Maybe (Maybe(..), fromMaybe, isJust, isNothing, maybe)
-import Data.Newtype (class Newtype, wrap)
+import Data.Newtype (class Newtype, unwrap, wrap)
 import Data.Profunctor (lcmap)
-import Data.Set (Set)
+import Data.Set as Set
 import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.Tuple (fst, snd)
 import Data.Tuple.Nested (type (/\), (/\))
 import Data.Typelevel.Num (class Nat, class Pos)
 import Data.Typelevel.Undefined (undefined)
+import Data.Variant (match)
 import Data.Vec (Vec)
 import Data.Vec as V
 import Data.Vec as Vec
@@ -152,7 +152,8 @@ import WAGS.Control.Types (Frame0, SubScene(..), oneSubFrame)
 import WAGS.Graph.AudioUnit (APOnOff, OnOff(..))
 import WAGS.Graph.Parameter (AudioParameter_(..), AudioParameter)
 import WAGS.Graph.Worklet (AudioWorkletNodeRequest, AudioWorkletNodeResponse)
-import WAGS.Rendered (AudioWorkletNodeOptions_(..), Instruction(..), Oversample(..))
+import WAGS.Rendered (AudioWorkletNodeOptions_(..), Instruction, Oversample)
+import WAGS.Rendered as R
 import WAGS.Tumult.Reconciliation (reconcileTumult)
 import WAGS.Util (class ValidateOutputChannelCount)
 import WAGS.WebAPI (AnalyserNode, AnalyserNodeCb, BrowserAudioBuffer, BrowserFloatArray, BrowserMicrophone, BrowserPeriodicWave, MediaRecorder, MediaRecorderCb)
@@ -388,261 +389,278 @@ unAsSubGraph
      )
 unAsSubGraph (AsSubgraph subgraph) = subgraph
 
+type SubgraphInput :: forall k. (Symbol -> Type) -> Symbol -> Row Type -> k -> Type -> Type -> Type -> Type -> Type
+type SubgraphInput proxy terminus inputs n a env audio engine =
+  { id :: String
+  , terminus :: proxy terminus
+  , controls :: V.Vec n a
+  , envs :: Int -> a -> env
+  , scenes ::
+      Int
+      -> a
+      -> SubScene terminus inputs env audio engine Frame0 Unit
+  }
+
+type MakePeriodicOscW =
+  { id :: String
+  , wave :: BrowserPeriodicWave
+  , onOff :: APOnOff
+  , freq :: AudioParameter
+  }
+
+type SetPeriodicOscW =
+  { id :: String
+  , wave :: BrowserPeriodicWave
+  }
+
+type MakePeriodicOscV =
+  { id :: String
+  , realImg :: Array Number /\ Array Number
+  , onOff :: APOnOff
+  , freq :: AudioParameter
+  }
+
+type SetPeriodicOscV =
+  { id :: String
+  , realImg :: Array Number /\ Array Number
+  }
 -- | A class with all possible instructions for interpreting audio.
 -- | The class is paramaterized by two types:
 -- | - `audio`: an audio context, which could be nothing (ie `Unit`) if there is audio or `FFIAudio` if there is audio.
 -- | - `engine`: the output of the engine. For real audio, this is `Effect Unit`, as playing something from a loudspeaker is a side effect that doesn't return anything. For testing, this is the `Instruction` type, which is an ADT representation of instructions to an audio engine.
 class AudioInterpret audio engine where
   -- | Connect pointer x to pointer y. For example, connect a sine wave oscillator to a highpass filter.
-  connectXToY :: String -> String -> String -> String -> audio -> engine
+  connectXToY :: R.ConnectXToY -> audio -> engine
   -- | Disconnect pointer x from pointer y. For example, disconnect a sine wave oscillator from a gain unit.
-  disconnectXFromY :: String -> String -> String -> String -> audio -> engine
+  disconnectXFromY :: R.DisconnectXFromY -> audio -> engine
   -- | Destroy pointer x. For example, drop a sine wave oscillator from an audio graph. Note that this does not invoke garbage collection - it just removes the reference to the node, allowing it to be garbage collected.
-  destroyUnit :: String -> String -> audio -> engine
+  destroyUnit :: R.DestroyUnit -> audio -> engine
   -- | Make an allpass filter.
-  makeAllpass :: String -> AudioParameter -> AudioParameter -> audio -> engine
+  makeAllpass :: R.MakeAllpass -> audio -> engine
   -- | Make an analyser.
-  makeAnalyser :: String -> AnalyserNodeCb -> audio -> engine
+  makeAnalyser :: R.MakeAnalyser -> audio -> engine
   -- | Make an audio worklet node.
-  makeAudioWorkletNode :: String -> AudioWorkletNodeOptions_ -> audio -> engine
+  makeAudioWorkletNode :: R.MakeAudioWorkletNode -> audio -> engine
   -- | Make a bandpass filter.
-  makeBandpass :: String -> AudioParameter -> AudioParameter -> audio -> engine
+  makeBandpass :: R.MakeBandpass -> audio -> engine
   -- | Make a constant source, ie a stream of 0s.
-  makeConstant :: String -> APOnOff -> AudioParameter -> audio -> engine
+  makeConstant :: R.MakeConstant -> audio -> engine
   -- | Make a "passthrough" convolver where the buffer will be set later.
-  makePassthroughConvolver :: String -> audio -> engine
+  makePassthroughConvolver :: R.MakePassthroughConvolver -> audio -> engine
   -- | Make a convolution unit, aka reverb.
-  makeConvolver :: String -> BrowserAudioBuffer -> audio -> engine
+  makeConvolver :: R.MakeConvolver -> audio -> engine
   -- | Make a delay unit.
-  makeDelay :: String -> AudioParameter -> audio -> engine
+  makeDelay :: R.MakeDelay -> audio -> engine
   -- | Make a compressor/expander.
-  makeDynamicsCompressor :: String -> AudioParameter -> AudioParameter -> AudioParameter -> AudioParameter -> AudioParameter -> audio -> engine
+  makeDynamicsCompressor :: R.MakeDynamicsCompressor -> audio -> engine
   -- | Make a gain unit.
-  makeGain :: String -> AudioParameter -> audio -> engine
+  makeGain :: R.MakeGain -> audio -> engine
   -- | Make a highpass filter.
-  makeHighpass :: String -> AudioParameter -> AudioParameter -> audio -> engine
+  makeHighpass :: R.MakeHighpass -> audio -> engine
   -- | Make a highshelf filter.
-  makeHighshelf :: String -> AudioParameter -> AudioParameter -> audio -> engine
+  makeHighshelf :: R.MakeHighshelf -> audio -> engine
   -- | Make input.
-  makeInput :: String -> String -> audio -> engine
+  makeInput :: R.MakeInput -> audio -> engine
   -- | Make a looping audio buffer node with a deferred buffer.
-  makeLoopBufWithDeferredBuffer :: String -> audio -> engine
+  makeLoopBufWithDeferredBuffer :: R.MakeLoopBufWithDeferredBuffer -> audio -> engine
   -- | Make a looping audio buffer node.
-  makeLoopBuf :: String -> BrowserAudioBuffer -> APOnOff -> AudioParameter -> Number -> Number -> audio -> engine
+  makeLoopBuf :: R.MakeLoopBuf -> audio -> engine
   -- | Make a lowpass filter.
-  makeLowpass :: String -> AudioParameter -> AudioParameter -> audio -> engine
+  makeLowpass :: R.MakeLowpass -> audio -> engine
   -- | Make a lowshelf filter.
-  makeLowshelf :: String -> AudioParameter -> AudioParameter -> audio -> engine
+  makeLowshelf :: R.MakeLowshelf -> audio -> engine
   -- | Make a microphone.
-  makeMicrophone :: BrowserMicrophone -> audio -> engine
+  makeMicrophone :: R.MakeMicrophone -> audio -> engine
   -- | Make a notch filter.
-  makeNotch :: String -> AudioParameter -> AudioParameter -> audio -> engine
+  makeNotch :: R.MakeNotch -> audio -> engine
   -- | Make a peaking filter.
-  makePeaking :: String -> AudioParameter -> AudioParameter -> AudioParameter -> audio -> engine
+  makePeaking :: R.MakePeaking -> audio -> engine
   -- | Make a periodic oscillator.
-  makePeriodicOscWithDeferredOsc :: String -> audio -> engine
+  makePeriodicOscWithDeferredOsc :: R.MakePeriodicOscWithDeferredOsc -> audio -> engine
   -- | Make a periodic oscillator.
-  makePeriodicOsc :: String -> BrowserPeriodicWave -> APOnOff -> AudioParameter -> audio -> engine
+  makePeriodicOsc :: MakePeriodicOscW -> audio -> engine
   -- | Make a periodic oscillator
-  makePeriodicOscV :: String -> (Array Number /\ Array Number) -> APOnOff -> AudioParameter -> audio -> engine
+  makePeriodicOscV :: MakePeriodicOscV -> audio -> engine
   -- | Make an audio buffer node with a deferred buffer.
-  makePlayBufWithDeferredBuffer :: String -> audio -> engine
+  makePlayBufWithDeferredBuffer :: R.MakePlayBufWithDeferredBuffer -> audio -> engine
   -- | Make an audio buffer node.
-  makePlayBuf :: String -> BrowserAudioBuffer -> Number -> APOnOff -> AudioParameter -> audio -> engine
+  makePlayBuf :: R.MakePlayBuf -> audio -> engine
   -- | Make a recorder.
-  makeRecorder :: String -> MediaRecorderCb -> audio -> engine
+  makeRecorder :: R.MakeRecorder -> audio -> engine
   -- | Make a sawtooth oscillator.
-  makeSawtoothOsc :: String -> APOnOff -> AudioParameter -> audio -> engine
+  makeSawtoothOsc :: R.MakeSawtoothOsc -> audio -> engine
   -- | Make a sine-wave oscillator.
-  makeSinOsc :: String -> APOnOff -> AudioParameter -> audio -> engine
+  makeSinOsc :: R.MakeSinOsc -> audio -> engine
   -- | Make a node representing the loudspeaker. For sound to be rendered, it must go to a loudspeaker.
   makeSpeaker :: audio -> engine
   -- | Make a square-wave oscillator.
-  makeSquareOsc :: String -> APOnOff -> AudioParameter -> audio -> engine
+  makeSquareOsc :: R.MakeSquareOsc -> audio -> engine
   -- | Make a stereo panner
-  makeStereoPanner :: String -> AudioParameter -> audio -> engine
+  makeStereoPanner :: R.MakeStereoPanner -> audio -> engine
   -- | Make subgraph with deferred scene.
-  makeSubgraphWithDeferredScene :: String -> audio -> engine
+  makeSubgraphWithDeferredScene :: R.MakeSubgraphWithDeferredScene -> audio -> engine
   -- | Make sugbraph.
   makeSubgraph
     :: forall proxy terminus inputs env n a
      . IsSymbol terminus
     => Pos n
-    => String
-    -> proxy terminus
-    -> V.Vec n a
-    -> (Int -> a -> env)
-    -> (Int -> a -> SubScene terminus inputs env audio engine Frame0 Unit)
+    => SubgraphInput proxy terminus inputs n a env audio engine
     -> audio
     -> engine
   -- | Make a triangle-wave oscillator.
-  makeTriangleOsc :: String -> APOnOff -> AudioParameter -> audio -> engine
+  makeTriangleOsc :: R.MakeTriangleOsc -> audio -> engine
   -- | Make subgraph with deferred scene.
-  makeTumultWithDeferredGraph :: String -> audio -> engine
+  makeTumultWithDeferredGraph :: R.MakeTumultWithDeferredGraph -> audio -> engine
   -- | Make sugbraph.
-  makeTumult
-    :: String
-    -> String
-    -> Array (Set Instruction)
-    -> audio
-    -> engine
+  makeTumult :: R.MakeTumult -> audio -> engine
   -- | Make a wave shaper.
-  makeWaveShaper :: String -> BrowserFloatArray -> Oversample -> audio -> engine
+  makeWaveShaper :: R.MakeWaveShaper -> audio -> engine
   -- | Sets the callback used by an analyser node
-  setAnalyserNodeCb :: String -> AnalyserNodeCb -> audio -> engine
+  setAnalyserNodeCb :: R.SetAnalyserNodeCb -> audio -> engine
   -- | Sets the callback used by a recorder node
-  setMediaRecorderCb :: String -> MediaRecorderCb -> audio -> engine
+  setMediaRecorderCb :: R.SetMediaRecorderCb -> audio -> engine
   -- | Sets the waveshaper curve float array
-  setWaveShaperCurve :: String -> BrowserFloatArray -> audio -> engine
+  setWaveShaperCurve :: R.SetWaveShaperCurve -> audio -> engine
   -- | Sets a custom parameter for an audio worklet node
-  setAudioWorkletParameter :: String -> String -> AudioParameter -> audio -> engine
+  setAudioWorkletParameter :: R.SetAudioWorkletParameter -> audio -> engine
   -- | Sets the buffer to read from in a playBuf or loopBuf
-  setBuffer :: String -> BrowserAudioBuffer -> audio -> engine
+  setBuffer :: R.SetBuffer -> audio -> engine
   -- | Sets the buffer to read from in a convolver
-  setConvolverBuffer :: String -> BrowserAudioBuffer -> audio -> engine
+  setConvolverBuffer :: R.SetConvolverBuffer -> audio -> engine
   -- | Sets the periodic oscillator to read from in a periodicOsc
-  setPeriodicOsc :: String -> BrowserPeriodicWave -> audio -> engine
+  setPeriodicOsc :: SetPeriodicOscW -> audio -> engine
   -- | Sets the periodic oscillator to read from in a periodicOsc
-  setPeriodicOscV :: String -> Array Number /\ Array Number -> audio -> engine
+  setPeriodicOscV :: SetPeriodicOscV -> audio -> engine
   -- | Turn on or off a generator (an oscillator or playback node).
-  setOnOff :: String -> APOnOff -> audio -> engine
+  setOnOff :: R.SetOnOff -> audio -> engine
   -- | Set the offset for a playbuf
-  setBufferOffset :: String -> Number -> audio -> engine
+  setBufferOffset :: R.SetBufferOffset -> audio -> engine
   -- | Set the start position of a looping audio buffer node.
-  setLoopStart :: String -> Number -> audio -> engine
+  setLoopStart :: R.SetLoopStart -> audio -> engine
   -- | Set the end position of a looping audio buffer node.
-  setLoopEnd :: String -> Number -> audio -> engine
+  setLoopEnd :: R.SetLoopEnd -> audio -> engine
   -- | Set the ratio of a compressor.
-  setRatio :: String -> AudioParameter -> audio -> engine
+  setRatio :: R.SetRatio -> audio -> engine
   -- | Set the offset of a constant source node.
-  setOffset :: String -> AudioParameter -> audio -> engine
+  setOffset :: R.SetOffset -> audio -> engine
   -- | Set the attack of a compressor.
-  setAttack :: String -> AudioParameter -> audio -> engine
+  setAttack :: R.SetAttack -> audio -> engine
   -- | Set the gain of a gain node or filter.
-  setGain :: String -> AudioParameter -> audio -> engine
+  setGain :: R.SetGain -> audio -> engine
   -- | Set the q of a biquad filter.
-  setQ :: String -> AudioParameter -> audio -> engine
+  setQ :: R.SetQ -> audio -> engine
   -- | Set the pan of a stereo panner.
-  setPan :: String -> AudioParameter -> audio -> engine
+  setPan :: R.SetPan -> audio -> engine
   -- | Set the threshold of a compressor.
-  setThreshold :: String -> AudioParameter -> audio -> engine
+  setThreshold :: R.SetThreshold -> audio -> engine
   -- | Set the release of a compressor.
-  setRelease :: String -> AudioParameter -> audio -> engine
+  setRelease :: R.SetRelease -> audio -> engine
   -- | Set the knee of a compressor.
-  setKnee :: String -> AudioParameter -> audio -> engine
+  setKnee :: R.SetKnee -> audio -> engine
   -- | Set the delay of a delay node.
-  setDelay :: String -> AudioParameter -> audio -> engine
+  setDelay :: R.SetDelay -> audio -> engine
   -- | Set the playback rate of an audio node buffer or loop buffer.
-  setPlaybackRate :: String -> AudioParameter -> audio -> engine
+  setPlaybackRate :: R.SetPlaybackRate -> audio -> engine
   -- | Set the frequency of an oscillator or filter.
-  setFrequency :: String -> AudioParameter -> audio -> engine
+  setFrequency :: R.SetFrequency -> audio -> engine
   -- | Set input
-  setInput :: String -> String -> audio -> engine
+  setInput :: R.SetInput -> audio -> engine
   -- | Set subgraph.
   setSubgraph
-    :: forall proxy terminus inputs env res n a
+    :: forall proxy terminus inputs env n a
      . IsSymbol terminus
     => Pos n
-    => String
-    -> proxy terminus
-    -> V.Vec n a
-    -> (Int -> a -> env)
-    -> (Int -> a -> SubScene terminus inputs env audio engine Frame0 res)
+    => SubgraphInput proxy terminus inputs n a env audio engine
     -> audio
     -> engine
-  setTumult
-    :: String
-    -> String
-    -> Array (Set Instruction)
-    -> audio
-    -> engine
+  setTumult :: R.SetTumult -> audio -> engine
+
+handleSubgraph
+  :: forall proxy terminus inputs env n a
+   . (R.MakeSubgraph -> Instruction)
+  -> SubgraphInput proxy terminus inputs n a env Unit Instruction
+  -> Unit
+  -> Instruction
+handleSubgraph f { id, controls, envs, scenes } = const $ f
+  { id
+  , instructions:
+      defer \_ ->
+        let
+          allEnvs = mapWithIndex envs controls
+          subs = mapWithIndex scenes controls
+          frames = V.zipWithE oneSubFrame subs allEnvs
+        in
+          (map <<< map) ((#) unit) (map _.instructions (V.toArray frames))
+  }
 
 instance freeAudioInterpret :: AudioInterpret Unit Instruction where
-  connectXToY a aName b bName = const $ ConnectXToY a aName b bName
-  disconnectXFromY a aName b bName = const $ DisconnectXFromY a aName b bName
-  destroyUnit a aName = const $ DestroyUnit a aName
-  makeAllpass a b c = const $ MakeAllpass a b c
-  makeAnalyser a b = const $ MakeAnalyser a b
-  makeAudioWorkletNode a b = const $ MakeAudioWorkletNode a b
-  makeBandpass a b c = const $ MakeBandpass a b c
-  makeConstant a b c = const $ MakeConstant a b c
-  makePassthroughConvolver a = const $ MakePassthroughConvolver a
-  makeConvolver a b = const $ MakeConvolver a b
-  makeDelay a b = const $ MakeDelay a b
-  makeInput a b = const $ MakeInput a b
-  makeTumult a b c = const $ MakeTumult a b c
-  makeTumultWithDeferredGraph a = const $ MakeTumultWithDeferredGraph a
-  makeSubgraph ptr _ vc iae ias =
-    const $ MakeSubgraph ptr
-      ( defer \_ ->
-          let
-            envs = mapWithIndex iae vc
-            subs = mapWithIndex ias vc
-            frames = V.zipWithE oneSubFrame subs envs
-          in
-            (map <<< map) ((#) unit) (map _.instructions (V.toArray frames))
-      )
-  makeSubgraphWithDeferredScene a = const $ MakeSubgraphWithDeferredScene a
-  makeDynamicsCompressor a b c d e f = const $ MakeDynamicsCompressor a b c d e f
-  makeGain a b = const $ MakeGain a b
-  makeHighpass a b c = const $ MakeHighpass a b c
-  makeHighshelf a b c = const $ MakeHighshelf a b c
-  makeLoopBufWithDeferredBuffer a = const $ MakeLoopBufWithDeferredBuffer a
-  makeLoopBuf a b c d e f = const $ MakeLoopBuf a b c d e f
-  makeLowpass a b c = const $ MakeLowpass a b c
-  makeLowshelf a b c = const $ MakeLowshelf a b c
-  makeMicrophone a = const $ MakeMicrophone a
-  makeNotch a b c = const $ MakeNotch a b c
-  makePeaking a b c d = const $ MakePeaking a b c d
-  makePeriodicOsc a b c d = const $ MakePeriodicOsc a (Left b) c d
-  makePeriodicOscV a b c d = const $ MakePeriodicOsc a (Right b) c d
-  makePeriodicOscWithDeferredOsc a = const $ MakePeriodicOscWithDeferredOsc a
-  makePlayBufWithDeferredBuffer a = const $ MakePlayBufWithDeferredBuffer a
-  makePlayBuf a b c d e = const $ MakePlayBuf a b c d e
-  makeRecorder a b = const $ MakeRecorder a b
-  makeSawtoothOsc a b c = const $ MakeSawtoothOsc a b c
-  makeSinOsc a b c = const $ MakeSinOsc a b c
-  makeSpeaker = const $ MakeSpeaker
-  makeSquareOsc a b c = const $ MakeSquareOsc a b c
-  makeStereoPanner a b = const $ MakeStereoPanner a b
-  makeTriangleOsc a b c = const $ MakeTriangleOsc a b c
-  makeWaveShaper a b c = const $ MakeWaveShaper a b c
-  setAudioWorkletParameter a b c = const $ SetAudioWorkletParameter a b c
-  setBuffer a b = const $ SetBuffer a b
-  setConvolverBuffer a b = const $ SetConvolverBuffer a b
-  setPeriodicOsc a b = const $ SetPeriodicOsc a (Left b)
-  setPeriodicOscV a b = const $ SetPeriodicOsc a (Right b)
-  setOnOff a b = const $ SetOnOff a b
-  setMediaRecorderCb a b = const $ SetMediaRecorderCb a b
-  setAnalyserNodeCb a b = const $ SetAnalyserNodeCb a b
-  setBufferOffset a b = const $ SetBufferOffset a b
-  setLoopStart a b = const $ SetLoopStart a b
-  setLoopEnd a b = const $ SetLoopEnd a b
-  setRatio a b = const $ SetRatio a b
-  setOffset a b = const $ SetOffset a b
-  setAttack a b = const $ SetAttack a b
-  setGain a b = const $ SetGain a b
-  setQ a b = const $ SetQ a b
-  setPan a b = const $ SetPan a b
-  setThreshold a b = const $ SetThreshold a b
-  setRelease a b = const $ SetRelease a b
-  setKnee a b = const $ SetKnee a b
-  setDelay a b = const $ SetDelay a b
-  setPlaybackRate a b = const $ SetPlaybackRate a b
-  setFrequency a b = const $ SetFrequency a b
-  setWaveShaperCurve a b = const $ SetWaveShaperCurve a b
-  setInput a b = const $ SetInput a b
-  setSubgraph ptr _ vc iae ias =
-    const $ SetSubgraph ptr
-      ( defer \_ ->
-          let
-            envs = mapWithIndex iae vc
-            subs = mapWithIndex ias vc
-            frames = V.zipWithE oneSubFrame subs envs
-          in
-            (map <<< map) ((#) unit) (map _.instructions (V.toArray frames))
-      )
-  setTumult a b c = const $ SetTumult a b c
+  connectXToY = const <<< R.iConnectXToY
+  disconnectXFromY = const <<< R.iDisconnectXFromY
+  destroyUnit = const <<< R.iDestroyUnit
+  makeAllpass = const <<< R.iMakeAllpass
+  makeAnalyser = const <<< R.iMakeAnalyser
+  makeAudioWorkletNode = const <<< R.iMakeAudioWorkletNode
+  makeBandpass = const <<< R.iMakeBandpass
+  makeConstant = const <<< R.iMakeConstant
+  makePassthroughConvolver = const <<< R.iMakePassthroughConvolver
+  makeConvolver = const <<< R.iMakeConvolver
+  makeDelay = const <<< R.iMakeDelay
+  makeInput = const <<< R.iMakeInput
+  makeTumult = const <<< R.iMakeTumult
+  makeTumultWithDeferredGraph = const <<< R.iMakeTumultWithDeferredGraph
+  makeSubgraph = handleSubgraph R.iMakeSubgraph
+  makeSubgraphWithDeferredScene = const <<< R.iMakeSubgraphWithDeferredScene
+  makeDynamicsCompressor = const <<< R.iMakeDynamicsCompressor
+  makeGain = const <<< R.iMakeGain
+  makeHighpass = const <<< R.iMakeHighpass
+  makeHighshelf = const <<< R.iMakeHighshelf
+  makeLoopBufWithDeferredBuffer = const <<< R.iMakeLoopBufWithDeferredBuffer
+  makeLoopBuf = const <<< R.iMakeLoopBuf
+  makeLowpass = const <<< R.iMakeLowpass
+  makeLowshelf = const <<< R.iMakeLowshelf
+  makeMicrophone = const <<< R.iMakeMicrophone
+  makeNotch = const <<< R.iMakeNotch
+  makePeaking = const <<< R.iMakePeaking
+  makePeriodicOsc { id, onOff, wave, freq } = const $ R.iMakePeriodicOsc { id, onOff, spec: R.iWave wave, freq }
+  makePeriodicOscV { id, onOff, realImg, freq } = const $ R.iMakePeriodicOsc { id, onOff, spec: R.iRealImg realImg, freq }
+  makePeriodicOscWithDeferredOsc = const <<< R.iMakePeriodicOscWithDeferredOsc
+  makePlayBufWithDeferredBuffer = const <<< R.iMakePlayBufWithDeferredBuffer
+  makePlayBuf = const <<< R.iMakePlayBuf
+  makeRecorder = const <<< R.iMakeRecorder
+  makeSawtoothOsc = const <<< R.iMakeSawtoothOsc
+  makeSinOsc = const <<< R.iMakeSinOsc
+  makeSpeaker = const R.iMakeSpeaker
+  makeSquareOsc = const <<< R.iMakeSquareOsc
+  makeStereoPanner = const <<< R.iMakeStereoPanner
+  makeTriangleOsc = const <<< R.iMakeTriangleOsc
+  makeWaveShaper = const <<< R.iMakeWaveShaper
+  setAudioWorkletParameter = const <<< R.iSetAudioWorkletParameter
+  setBuffer = const <<< R.iSetBuffer
+  setConvolverBuffer = const <<< R.iSetConvolverBuffer
+  setPeriodicOsc { id, wave } = const $ R.iSetPeriodicOsc { id, periodicOsc: R.iWave wave }
+  setPeriodicOscV { id, realImg } = const $ R.iSetPeriodicOsc { id, periodicOsc: R.iRealImg realImg }
+  setOnOff = const <<< R.iSetOnOff
+  setMediaRecorderCb = const <<< R.iSetMediaRecorderCb
+  setAnalyserNodeCb = const <<< R.iSetAnalyserNodeCb
+  setBufferOffset = const <<< R.iSetBufferOffset
+  setLoopStart = const <<< R.iSetLoopStart
+  setLoopEnd = const <<< R.iSetLoopEnd
+  setRatio = const <<< R.iSetRatio
+  setOffset = const <<< R.iSetOffset
+  setAttack = const <<< R.iSetAttack
+  setGain = const <<< R.iSetGain
+  setQ = const <<< R.iSetQ
+  setPan = const <<< R.iSetPan
+  setThreshold = const <<< R.iSetThreshold
+  setRelease = const <<< R.iSetRelease
+  setKnee = const <<< R.iSetKnee
+  setDelay = const <<< R.iSetDelay
+  setPlaybackRate = const <<< R.iSetPlaybackRate
+  setFrequency = const <<< R.iSetFrequency
+  setWaveShaperCurve = const <<< R.iSetWaveShaperCurve
+  setInput = const <<< R.iSetInput
+  setSubgraph = handleSubgraph R.iSetSubgraph
+  setTumult = const <<< R.iSetTumult
 
 foreign import connectXToY_ :: String -> String -> FFIAudioSnapshot' -> Effect Unit
 
@@ -734,20 +752,20 @@ foreign import makeTumultWithDeferredGraph_ :: String -> FFIAudioSnapshot' -> Ef
 foreign import makeTumult_
   :: String
   -> String
-  -> Array (Set Instruction)
-  -> Maybe (Set Instruction)
-  -> (Set Instruction -> Maybe (Set Instruction))
-  -> (Set Instruction -> Maybe (Set Instruction) -> Array (FFIAudioSnapshot' -> Effect Unit))
+  -> Array (Array Instruction)
+  -> Maybe (Array Instruction)
+  -> (Array Instruction -> Maybe (Array Instruction))
+  -> (Array Instruction -> Maybe (Array Instruction) -> Array (FFIAudioSnapshot' -> Effect Unit))
   -> FFIAudioSnapshot'
   -> Effect Unit
 
 foreign import setTumult_
   :: String
   -> String
-  -> Array (Set Instruction)
-  -> Maybe (Set Instruction)
-  -> (Set Instruction -> Maybe (Set Instruction))
-  -> (Set Instruction -> Maybe (Set Instruction) -> Array (FFIAudioSnapshot' -> Effect Unit))
+  -> Array (Array Instruction)
+  -> Maybe (Array Instruction)
+  -> (Array Instruction -> Maybe (Array Instruction))
+  -> (Array Instruction -> Maybe (Array Instruction) -> Array (FFIAudioSnapshot' -> Effect Unit))
   -> FFIAudioSnapshot'
   -> Effect Unit
 
@@ -813,161 +831,161 @@ foreign import setSubgraph_
   -> Effect Unit
 
 interpretInstruction :: forall audio engine. AudioInterpret audio engine => Instruction -> audio -> engine
-interpretInstruction = case _ of
-  DisconnectXFromY x xName y yName -> disconnectXFromY x xName y yName
-  DestroyUnit x xName -> destroyUnit x xName
-  MakeAllpass ptr a b -> makeAllpass ptr a b
-  MakeAnalyser ptr a -> makeAnalyser ptr a
-  MakeAudioWorkletNode ptr a -> makeAudioWorkletNode ptr a
-  MakeBandpass ptr a b -> makeBandpass ptr a b
-  MakeConstant ptr a b -> makeConstant ptr a b
-  MakePassthroughConvolver ptr -> makePassthroughConvolver ptr
-  MakeConvolver ptr a -> makeConvolver ptr a
-  MakeDelay ptr a -> makeDelay ptr a
-  MakeDynamicsCompressor ptr a b c d e -> makeDynamicsCompressor ptr a b c d e
-  MakeGain ptr a -> makeGain ptr a
-  MakeHighpass ptr a b -> makeHighpass ptr a b
-  MakeHighshelf ptr a b -> makeHighshelf ptr a b
-  MakeInput ptr a -> makeInput ptr a
-  MakeLoopBuf ptr a b c d e -> makeLoopBuf ptr a b c d e
-  MakeLoopBufWithDeferredBuffer ptr -> makeLoopBufWithDeferredBuffer ptr
-  MakeLowpass ptr a b -> makeLowpass ptr a b
-  MakeLowshelf ptr a b -> makeLowshelf ptr a b
-  MakeMicrophone a -> makeMicrophone a
-  MakeNotch ptr a b -> makeNotch ptr a b
-  MakePeaking ptr a b c -> makePeaking ptr a b c
-  MakePeriodicOscWithDeferredOsc ptr -> makePeriodicOscWithDeferredOsc ptr
-  MakePeriodicOsc ptr a b c -> case a of
-    Left a' -> makePeriodicOsc ptr a' b c
-    Right a' -> makePeriodicOscV ptr a' b c
-  MakePlayBuf ptr a b c d -> makePlayBuf ptr a b c d
-  MakePlayBufWithDeferredBuffer ptr -> makePlayBufWithDeferredBuffer ptr
-  MakeRecorder ptr a -> makeRecorder ptr a
-  MakeSawtoothOsc ptr a b -> makeSawtoothOsc ptr a b
-  MakeSinOsc ptr a b -> makeSinOsc ptr a b
-  MakeSquareOsc ptr a b -> makeSquareOsc ptr a b
-  MakeSpeaker -> makeSpeaker
-  MakeStereoPanner ptr a -> makeStereoPanner ptr a
-  MakeTriangleOsc ptr a b -> makeTriangleOsc ptr a b
-  MakeWaveShaper ptr a b -> makeWaveShaper ptr a b
+interpretInstruction = unwrap >>> match
+  { disconnectXFromY: \a -> disconnectXFromY a
+  , destroyUnit: \a -> destroyUnit a
+  , makeAllpass: \a -> makeAllpass a
+  , makeAnalyser: \a -> makeAnalyser a
+  , makeAudioWorkletNode: \a -> makeAudioWorkletNode a
+  , makeBandpass: \a -> makeBandpass a
+  , makeConstant: \a -> makeConstant a
+  , makePassthroughConvolver: \a -> makePassthroughConvolver a
+  , makeConvolver: \a -> makeConvolver a
+  , makeDelay: \a -> makeDelay a
+  , makeDynamicsCompressor: \a -> makeDynamicsCompressor a
+  , makeGain: \a -> makeGain a
+  , makeHighpass: \a -> makeHighpass a
+  , makeHighshelf: \a -> makeHighshelf a
+  , makeInput: \a -> makeInput a
+  , makeLoopBuf: \a -> makeLoopBuf a
+  , makeLoopBufWithDeferredBuffer: \a -> makeLoopBufWithDeferredBuffer a
+  , makeLowpass: \a -> makeLowpass a
+  , makeLowshelf: \a -> makeLowshelf a
+  , makeMicrophone: \a -> makeMicrophone a
+  , makeNotch: \a -> makeNotch a
+  , makePeaking: \a -> makePeaking a
+  , makePeriodicOscWithDeferredOsc: \a -> makePeriodicOscWithDeferredOsc a
+  , makePeriodicOsc: \{ id, spec, onOff, freq } -> (unwrap spec) # match
+      { wave: \wave -> makePeriodicOsc { id, wave, onOff, freq }
+      , realImg: \realImg -> makePeriodicOscV { id, realImg, onOff, freq }
+      }
+  , makePlayBuf: \a -> makePlayBuf a
+  , makePlayBufWithDeferredBuffer: \a -> makePlayBufWithDeferredBuffer a
+  , makeRecorder: \a -> makeRecorder a
+  , makeSawtoothOsc: \a -> makeSawtoothOsc a
+  , makeSinOsc: \a -> makeSinOsc a
+  , makeSquareOsc: \a -> makeSquareOsc a
+  , makeSpeaker: const $ makeSpeaker
+  , makeStereoPanner: \a -> makeStereoPanner a
+  , makeTriangleOsc: \a -> makeTriangleOsc a
+  , makeWaveShaper: \a -> makeWaveShaper a
   -----------------------------------
   -- for now, we cannot get back tumult and subgraph
   -- add dummies
   -- maybe figure this out in the future
-  MakeSubgraph ptr _ -> makeGain ptr (pure 1.0)
-  MakeSubgraphWithDeferredScene ptr -> makeGain ptr (pure 1.0)
-  MakeTumult ptr _ _ -> makeGain ptr (pure 1.0)
-  MakeTumultWithDeferredGraph ptr -> makeGain ptr (pure 1.0)
+  , makeSubgraph: \{ id } -> makeGain { id, gain: pure 1.0 }
+  , makeSubgraphWithDeferredScene: \{ id } -> makeGain { id, gain: pure 1.0 }
+  , makeTumult: \{ id } -> makeGain { id, gain: pure 1.0 }
+  , makeTumultWithDeferredGraph: \{ id } -> makeGain { id, gain: pure 1.0 }
   -----------------------------------
-  ConnectXToY x xName y yName -> connectXToY x xName y yName
-  SetAnalyserNodeCb ptr a -> setAnalyserNodeCb ptr a
-  SetMediaRecorderCb ptr a -> setMediaRecorderCb ptr a
-  SetAudioWorkletParameter ptr a b -> setAudioWorkletParameter ptr a b
-  SetBuffer ptr a -> setBuffer ptr a
-  SetConvolverBuffer ptr a -> setConvolverBuffer ptr a
-  SetPeriodicOsc ptr a -> case a of
-    Left a' -> setPeriodicOsc ptr a'
-    Right a' -> setPeriodicOscV ptr a'
-  SetOnOff ptr a -> setOnOff ptr a
-  SetBufferOffset ptr a -> setBufferOffset ptr a
-  SetLoopStart ptr a -> setLoopStart ptr a
-  SetLoopEnd ptr a -> setLoopEnd ptr a
-  SetRatio ptr a -> setRatio ptr a
-  SetOffset ptr a -> setOffset ptr a
-  SetAttack ptr a -> setAttack ptr a
-  SetGain ptr a -> setGain ptr a
-  SetQ ptr a -> setQ ptr a
-  SetPan ptr a -> setPan ptr a
-  SetThreshold ptr a -> setThreshold ptr a
-  SetRelease ptr a -> setRelease ptr a
-  SetKnee ptr a -> setKnee ptr a
-  SetDelay ptr a -> setDelay ptr a
-  SetPlaybackRate ptr a -> setPlaybackRate ptr a
-  SetFrequency ptr a -> setFrequency ptr a
-  SetWaveShaperCurve ptr a -> setWaveShaperCurve ptr a
-  SetInput ptr a -> setInput ptr a
-  -----------------------------------
-  -- for now, we cannot get back tumult and subgraph
-  -- add dummies
-  -- maybe figure this out in the future
-  SetSubgraph ptr _ -> setGain ptr (pure 1.0)
-  SetTumult ptr _ _ -> setGain ptr (pure 1.0)
+  , connectXToY: \a -> connectXToY a
+  , setAnalyserNodeCb: \a -> setAnalyserNodeCb a
+  , setMediaRecorderCb: \a -> setMediaRecorderCb a
+  , setAudioWorkletParameter: \a -> setAudioWorkletParameter a
+  , setBuffer: \a -> setBuffer a
+  , setConvolverBuffer: \a -> setConvolverBuffer a
+  , setPeriodicOsc: \{ id, periodicOsc } -> (unwrap periodicOsc) # match
+      { wave: \wave -> setPeriodicOsc { id, wave }
+      , realImg: \realImg -> setPeriodicOscV { id, realImg }
+      }
+  , setOnOff: \a -> setOnOff a
+  , setBufferOffset: \a -> setBufferOffset a
+  , setLoopStart: \a -> setLoopStart a
+  , setLoopEnd: \a -> setLoopEnd a
+  , setRatio: \a -> setRatio a
+  , setOffset: \a -> setOffset a
+  , setAttack: \a -> setAttack a
+  , setGain: \a -> setGain a
+  , setQ: \a -> setQ a
+  , setPan: \a -> setPan a
+  , setThreshold: \a -> setThreshold a
+  , setRelease: \a -> setRelease a
+  , setKnee: \a -> setKnee a
+  , setDelay: \a -> setDelay a
+  , setPlaybackRate: \a -> setPlaybackRate a
+  , setFrequency: \a -> setFrequency a
+  , setWaveShaperCurve: \a -> setWaveShaperCurve a
+  , setInput: \a -> setInput a
+  , setSubgraph: \{ id } -> setGain { id, gain: pure 1.0 }
+  , setTumult: \{ id } -> setGain { id, gain: pure 1.0 }
+  }
 
-makeInstructionsEffectful :: Set Instruction -> Maybe (Set Instruction) -> Array (FFIAudioSnapshot' -> Effect Unit)
+makeInstructionsEffectful :: Array Instruction -> Maybe (Array Instruction) -> Array (FFIAudioSnapshot' -> Effect Unit)
 makeInstructionsEffectful a = case _ of
-  Nothing -> map (lcmap wrapFAS <<< interpretInstruction) (Array.fromFoldable a)
-  Just b -> map (lcmap wrapFAS <<< interpretInstruction) (Array.fromFoldable (reconcileTumult a b))
+  Nothing -> map (lcmap wrapFAS <<< interpretInstruction) a
+  Just b -> map (lcmap wrapFAS <<< interpretInstruction)
+    (Array.fromFoldable $ reconcileTumult (Set.fromFoldable a) (Set.fromFoldable b))
   where
   wrapFAS = wrap :: FFIAudioSnapshot' -> FFIAudioSnapshot
 
 instance effectfulAudioInterpret :: AudioInterpret FFIAudioSnapshot (Effect Unit) where
-  connectXToY a _ b _ c = connectXToY_ a b (safeToFFI c)
-  disconnectXFromY a _ b _ c = disconnectXFromY_ a b (safeToFFI c)
-  destroyUnit a _ b = destroyUnit_ a (safeToFFI b)
-  makeInput a b c = makeInput_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
-  makeAllpass a b c d = makeAllpass_ (safeToFFI a) (safeToFFI b) (safeToFFI c) (safeToFFI d)
-  makeAnalyser a b c = makeAnalyser_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
-  makeAudioWorkletNode a b c = makeAudioWorkletNode_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
-  makeBandpass a b c d = makeBandpass_ (safeToFFI a) (safeToFFI b) (safeToFFI c) (safeToFFI d)
-  makeConstant a b c d = makeConstant_ (safeToFFI a) (safeToFFI b) (safeToFFI c) (safeToFFI d)
-  makeConvolver a b c = makeConvolver_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
-  makePassthroughConvolver a b = makePassthroughConvolver_ (safeToFFI a) (safeToFFI b)
-  makeDelay a b c = makeDelay_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
-  makeDynamicsCompressor a b c d e f g = makeDynamicsCompressor_ (safeToFFI a) (safeToFFI b) (safeToFFI c) (safeToFFI d) (safeToFFI e) (safeToFFI f) (safeToFFI g)
-  makeGain a b c = makeGain_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
-  makeHighpass a b c d = makeHighpass_ (safeToFFI a) (safeToFFI b) (safeToFFI c) (safeToFFI d)
-  makeHighshelf a b c d = makeHighshelf_ (safeToFFI a) (safeToFFI b) (safeToFFI c) (safeToFFI d)
-  makeLoopBufWithDeferredBuffer a b = makeLoopBufWithDeferredBuffer_ (safeToFFI a) (safeToFFI b)
-  makeLoopBuf a b c d e f g = makeLoopBuf_ (safeToFFI a) (safeToFFI b) (safeToFFI c) (safeToFFI d) (safeToFFI e) (safeToFFI f) (safeToFFI g)
-  makeLowpass a b c d = makeLowpass_ (safeToFFI a) (safeToFFI b) (safeToFFI c) (safeToFFI d)
-  makeLowshelf a b c d = makeLowshelf_ (safeToFFI a) (safeToFFI b) (safeToFFI c) (safeToFFI d)
-  makeMicrophone a b = makeMicrophone_ (safeToFFI a) (safeToFFI b)
-  makeNotch a b c d = makeNotch_ (safeToFFI a) (safeToFFI b) (safeToFFI c) (safeToFFI d)
-  makePeaking a b c d e = makePeaking_ (safeToFFI a) (safeToFFI b) (safeToFFI c) (safeToFFI d) (safeToFFI e)
-  makePeriodicOscWithDeferredOsc a b = makePeriodicOscWithDeferredOsc_ (safeToFFI a) (safeToFFI b)
-  makePeriodicOsc a b c d e = makePeriodicOsc_ (safeToFFI a) (safeToFFI b) (safeToFFI c) (safeToFFI d) (safeToFFI e)
-  makePeriodicOscV a b c d e = makePeriodicOscV_ (safeToFFI a) (safeToFFI b) (safeToFFI c) (safeToFFI d) (safeToFFI e)
-  makePlayBufWithDeferredBuffer a b = makePlayBufWithDeferredBuffer_ (safeToFFI a) (safeToFFI b)
-  makePlayBuf a b c d e f = makePlayBuf_ (safeToFFI a) (safeToFFI b) (safeToFFI c) (safeToFFI d) (safeToFFI e) (safeToFFI f)
-  makeRecorder a b c = makeRecorder_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
-  makeSawtoothOsc a b c d = makeSawtoothOsc_ (safeToFFI a) (safeToFFI b) (safeToFFI c) (safeToFFI d)
-  makeSinOsc a b c d = makeSinOsc_ (safeToFFI a) (safeToFFI b) (safeToFFI c) (safeToFFI d)
+  connectXToY { fromId, toId } c = connectXToY_ fromId toId (safeToFFI c)
+  disconnectXFromY { fromId, toId } c = disconnectXFromY_ fromId toId (safeToFFI c)
+  destroyUnit { id } b = destroyUnit_ id (safeToFFI b)
+  makeInput { id, input } c = makeInput_ (safeToFFI id) (safeToFFI input) (safeToFFI c)
+  makeAllpass { id, freq, q } d = makeAllpass_ (safeToFFI id) (safeToFFI freq) (safeToFFI q) (safeToFFI d)
+  makeAnalyser { id, cb } c = makeAnalyser_ (safeToFFI id) (safeToFFI cb) (safeToFFI c)
+  makeAudioWorkletNode { id, options } c = makeAudioWorkletNode_ (safeToFFI id) (safeToFFI options) (safeToFFI c)
+  makeBandpass { id, freq, q } d = makeBandpass_ (safeToFFI id) (safeToFFI freq) (safeToFFI q) (safeToFFI d)
+  makeConstant { id, onOff, offset } d = makeConstant_ (safeToFFI id) (safeToFFI onOff) (safeToFFI offset) (safeToFFI d)
+  makeConvolver { id, buffer } c = makeConvolver_ (safeToFFI id) (safeToFFI buffer) (safeToFFI c)
+  makePassthroughConvolver { id } b = makePassthroughConvolver_ (safeToFFI id) (safeToFFI b)
+  makeDelay { id, delayTime } c = makeDelay_ (safeToFFI id) (safeToFFI delayTime) (safeToFFI c)
+  makeDynamicsCompressor { id, threshold, knee, ratio, attack, release } g = makeDynamicsCompressor_ (safeToFFI id) (safeToFFI threshold) (safeToFFI knee) (safeToFFI ratio) (safeToFFI attack) (safeToFFI release) (safeToFFI g)
+  makeGain { id, gain } c = makeGain_ (safeToFFI id) (safeToFFI gain) (safeToFFI c)
+  makeHighpass { id, freq, q } d = makeHighpass_ (safeToFFI id) (safeToFFI freq) (safeToFFI q) (safeToFFI d)
+  makeHighshelf { id, freq, gain } d = makeHighshelf_ (safeToFFI id) (safeToFFI freq) (safeToFFI gain) (safeToFFI d)
+  makeLoopBufWithDeferredBuffer { id } b = makeLoopBufWithDeferredBuffer_ (safeToFFI id) (safeToFFI b)
+  makeLoopBuf { id, buffer, onOff, playbackRate, loopStart, loopEnd } g = makeLoopBuf_ (safeToFFI id) (safeToFFI buffer) (safeToFFI onOff) (safeToFFI playbackRate) (safeToFFI loopStart) (safeToFFI loopEnd) (safeToFFI g)
+  makeLowpass { id, freq, q } d = makeLowpass_ (safeToFFI id) (safeToFFI freq) (safeToFFI q) (safeToFFI d)
+  makeLowshelf { id, freq, gain } d = makeLowshelf_ (safeToFFI id) (safeToFFI freq) (safeToFFI gain) (safeToFFI d)
+  makeMicrophone { microphone } b = makeMicrophone_ (safeToFFI microphone) (safeToFFI b)
+  makeNotch { id, freq, q } d = makeNotch_ (safeToFFI id) (safeToFFI freq) (safeToFFI q) (safeToFFI d)
+  makePeaking { id, freq, q, gain } e = makePeaking_ (safeToFFI id) (safeToFFI freq) (safeToFFI q) (safeToFFI gain) (safeToFFI e)
+  makePeriodicOscWithDeferredOsc { id } b = makePeriodicOscWithDeferredOsc_ (safeToFFI id) (safeToFFI b)
+  makePeriodicOsc { id, wave, onOff, freq } e = makePeriodicOsc_ (safeToFFI id) (safeToFFI wave) (safeToFFI onOff) (safeToFFI freq) (safeToFFI e)
+  makePeriodicOscV { id, realImg, onOff, freq } e = makePeriodicOscV_ (safeToFFI id) (safeToFFI realImg) (safeToFFI onOff) (safeToFFI freq) (safeToFFI e)
+  makePlayBufWithDeferredBuffer { id } b = makePlayBufWithDeferredBuffer_ (safeToFFI id) (safeToFFI b)
+  makePlayBuf { id, buffer, bufferOffset, onOff, playbackRate } f = makePlayBuf_ (safeToFFI id) (safeToFFI buffer) (safeToFFI bufferOffset) (safeToFFI onOff) (safeToFFI playbackRate) (safeToFFI f)
+  makeRecorder { id, cb } c = makeRecorder_ (safeToFFI id) (safeToFFI cb) (safeToFFI c)
+  makeSawtoothOsc { id, onOff, freq } d = makeSawtoothOsc_ (safeToFFI id) (safeToFFI onOff) (safeToFFI freq) (safeToFFI d)
+  makeSinOsc { id, onOff, freq } d = makeSinOsc_ (safeToFFI id) (safeToFFI onOff) (safeToFFI freq) (safeToFFI d)
   makeSpeaker a = makeSpeaker_ (safeToFFI a)
-  makeSquareOsc a b c d = makeSquareOsc_ (safeToFFI a) (safeToFFI b) (safeToFFI c) (safeToFFI d)
-  makeStereoPanner a b c = makeStereoPanner_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
-  makeSubgraph ptr pxy vek envM sceneM audio = makeSubgraph_ ptr (reflectSymbol pxy) (Vec.toArray vek) sceneM envM (\env scene -> let res = oneSubFrame scene env in { instructions: res.instructions, nextScene: res.next }) (safeToFFI audio)
-  makeSubgraphWithDeferredScene a b = makeSubgraphWithDeferredScene_ a (safeToFFI b)
-  makeTumult ptr terminus instr toFFI = makeTumult_ ptr terminus instr Nothing Just makeInstructionsEffectful (safeToFFI toFFI)
-  makeTumultWithDeferredGraph a b = makeTumultWithDeferredGraph_ a (safeToFFI b)
-  makeTriangleOsc a b c d = makeTriangleOsc_ (safeToFFI a) (safeToFFI b) (safeToFFI c) (safeToFFI d)
-  makeWaveShaper a b c d = makeWaveShaper_ (safeToFFI a) (safeToFFI b) (safeToFFI c) (safeToFFI d)
-  setAudioWorkletParameter a b c d = setAudioWorkletParameter_ (safeToFFI a) (safeToFFI b) (safeToFFI c) (safeToFFI d)
-  setAnalyserNodeCb a b c = setAnalyserNodeCb_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
-  setMediaRecorderCb a b c = setMediaRecorderCb_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
-  setConvolverBuffer a b c = setConvolverBuffer_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
-  setBuffer a b c = setBuffer_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
-  setPeriodicOsc a b c = setPeriodicOsc_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
-  setPeriodicOscV a b c = setPeriodicOscV_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
-  setOnOff a b c = setOnOff_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
-  setBufferOffset a b c = setBufferOffset_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
-  setLoopStart a b c = setLoopStart_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
-  setLoopEnd a b c = setLoopEnd_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
-  setRatio a b c = setRatio_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
-  setOffset a b c = setOffset_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
-  setAttack a b c = setAttack_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
-  setGain a b c = setGain_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
-  setQ a b c = setQ_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
-  setPan a b c = setPan_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
-  setThreshold a b c = setThreshold_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
-  setRelease a b c = setRelease_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
-  setKnee a b c = setKnee_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
-  setDelay a b c = setDelay_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
-  setPlaybackRate a b c = setPlaybackRate_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
-  setFrequency a b c = setFrequency_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
-  setWaveShaperCurve a b c = setWaveShaperCurve_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
-  setInput a b c = setInput_ (safeToFFI a) (safeToFFI b) (safeToFFI c)
-  setSubgraph ptr pxy vek envM sceneM audio = setSubgraph_ ptr (reflectSymbol pxy) (Vec.toArray vek) sceneM envM (\env scene -> let res = oneSubFrame scene env in { instructions: res.instructions, nextScene: res.next }) (safeToFFI audio)
-  setTumult ptr terminus instr toFFI = setTumult_ ptr terminus instr Nothing Just makeInstructionsEffectful (safeToFFI toFFI)
+  makeSquareOsc { id, onOff, freq } d = makeSquareOsc_ (safeToFFI id) (safeToFFI onOff) (safeToFFI freq) (safeToFFI d)
+  makeStereoPanner { id, pan } c = makeStereoPanner_ (safeToFFI id) (safeToFFI pan) (safeToFFI c)
+  makeSubgraph { id, terminus, controls, envs, scenes } audio = makeSubgraph_ id (reflectSymbol terminus) (Vec.toArray controls) scenes envs (\env scene -> let res = oneSubFrame scene env in { instructions: res.instructions, nextScene: res.next }) (safeToFFI audio)
+  makeSubgraphWithDeferredScene { id } b = makeSubgraphWithDeferredScene_ id (safeToFFI b)
+  makeTumult { id, terminus, instructions } toFFI = makeTumult_ id terminus instructions Nothing Just makeInstructionsEffectful (safeToFFI toFFI)
+  makeTumultWithDeferredGraph { id } b = makeTumultWithDeferredGraph_ id (safeToFFI b)
+  makeTriangleOsc { id, onOff, freq } d = makeTriangleOsc_ (safeToFFI id) (safeToFFI onOff) (safeToFFI freq) (safeToFFI d)
+  makeWaveShaper { id, curve, oversample } d = makeWaveShaper_ (safeToFFI id) (safeToFFI curve) (safeToFFI oversample) (safeToFFI d)
+  setAudioWorkletParameter { id, paramName, paramValue } d = setAudioWorkletParameter_ (safeToFFI id) (safeToFFI paramName) (safeToFFI paramValue) (safeToFFI d)
+  setAnalyserNodeCb { id, cb } c = setAnalyserNodeCb_ (safeToFFI id) (safeToFFI cb) (safeToFFI c)
+  setMediaRecorderCb { id, cb } c = setMediaRecorderCb_ (safeToFFI id) (safeToFFI cb) (safeToFFI c)
+  setConvolverBuffer { id, buffer } c = setConvolverBuffer_ (safeToFFI id) (safeToFFI buffer) (safeToFFI c)
+  setBuffer { id, buffer } c = setBuffer_ (safeToFFI id) (safeToFFI buffer) (safeToFFI c)
+  setPeriodicOsc { id, wave } c = setPeriodicOsc_ (safeToFFI id) (safeToFFI wave) (safeToFFI c)
+  setPeriodicOscV { id, realImg } c = setPeriodicOscV_ (safeToFFI id) (safeToFFI realImg) (safeToFFI c)
+  setOnOff { id, onOff } c = setOnOff_ (safeToFFI id) (safeToFFI onOff) (safeToFFI c)
+  setBufferOffset { id, bufferOffset } c = setBufferOffset_ (safeToFFI id) (safeToFFI bufferOffset) (safeToFFI c)
+  setLoopStart { id, loopStart } c = setLoopStart_ (safeToFFI id) (safeToFFI loopStart) (safeToFFI c)
+  setLoopEnd { id, loopEnd } c = setLoopEnd_ (safeToFFI id) (safeToFFI loopEnd) (safeToFFI c)
+  setRatio { id, ratio } c = setRatio_ (safeToFFI id) (safeToFFI ratio) (safeToFFI c)
+  setOffset { id, offset } c = setOffset_ (safeToFFI id) (safeToFFI offset) (safeToFFI c)
+  setAttack { id, attack } c = setAttack_ (safeToFFI id) (safeToFFI attack) (safeToFFI c)
+  setGain { id, gain } c = setGain_ (safeToFFI id) (safeToFFI gain) (safeToFFI c)
+  setQ { id, q } c = setQ_ (safeToFFI id) (safeToFFI q) (safeToFFI c)
+  setPan { id, pan } c = setPan_ (safeToFFI id) (safeToFFI pan) (safeToFFI c)
+  setThreshold { id, threshold } c = setThreshold_ (safeToFFI id) (safeToFFI threshold) (safeToFFI c)
+  setRelease { id, release } c = setRelease_ (safeToFFI id) (safeToFFI release) (safeToFFI c)
+  setKnee { id, knee } c = setKnee_ (safeToFFI id) (safeToFFI knee) (safeToFFI c)
+  setDelay { id, delay } c = setDelay_ (safeToFFI id) (safeToFFI delay) (safeToFFI c)
+  setPlaybackRate { id, playbackRate } c = setPlaybackRate_ (safeToFFI id) (safeToFFI playbackRate) (safeToFFI c)
+  setFrequency { id, frequency } c = setFrequency_ (safeToFFI id) (safeToFFI frequency) (safeToFFI c)
+  setWaveShaperCurve { id, curve } c = setWaveShaperCurve_ (safeToFFI id) (safeToFFI curve) (safeToFFI c)
+  setInput { id, source } c = setInput_ (safeToFFI id) (safeToFFI source) (safeToFFI c)
+  setSubgraph { id, terminus, controls, envs, scenes } audio = setSubgraph_ id (reflectSymbol terminus) (Vec.toArray controls) scenes envs (\env scene -> let res = oneSubFrame scene env in { instructions: res.instructions, nextScene: res.next }) (safeToFFI audio)
+  setTumult { id, terminus, instructions } toFFI = setTumult_ id terminus instructions Nothing Just makeInstructionsEffectful (safeToFFI toFFI)
 
 -- A utility typeclass used to convert PS arguments to arguments that are understood by the Web Audio API.
 class SafeToFFI a b | a -> b where
@@ -1007,10 +1025,11 @@ instance safeToFFI_String :: SafeToFFI String String where
   safeToFFI = identity
 
 instance safeToFFI_Oversample :: SafeToFFI Oversample String where
-  safeToFFI = case _ of
-    None -> "none"
-    TwoX -> "2x"
-    FourX -> "4x"
+  safeToFFI = unwrap >>> match
+    { none: const "none"
+    , twoX: const "2x"
+    , fourX: const "4x"
+    }
 
 instance safeToFFI_FFIAudio :: SafeToFFI FFIAudioSnapshot FFIAudioSnapshot' where
   safeToFFI (FFIAudioSnapshot x) = x
@@ -1100,70 +1119,70 @@ audioEngine2nd (SubScene sceneA) = SubScene
   )
 
 instance mixedAudioInterpret :: AudioInterpret (Unit /\ FFIAudioSnapshot) (Instruction /\ Effect Unit) where
-  connectXToY a b c d (x /\ y) = connectXToY a b c d x /\ connectXToY a b c d y
-  disconnectXFromY a b c d (x /\ y) = disconnectXFromY a b c d x /\ disconnectXFromY a b c d y
-  destroyUnit a b (x /\ y) = destroyUnit a b x /\ destroyUnit a b y
-  makeSubgraph a b c d e (x /\ y) = makeSubgraph a b c d ((map <<< map) audioEngine1st e) x /\ makeSubgraph a b c d ((map <<< map) audioEngine2nd e) y
+  connectXToY a (x /\ y) = connectXToY a x /\ connectXToY a y
+  disconnectXFromY a (x /\ y) = disconnectXFromY a x /\ disconnectXFromY a y
+  destroyUnit a (x /\ y) = destroyUnit a x /\ destroyUnit a y
+  makeSubgraph { id, terminus, controls, envs, scenes } (x /\ y) = makeSubgraph { id, terminus, controls, envs, scenes: (map <<< map) audioEngine1st scenes } x /\ makeSubgraph { id, terminus, controls, envs, scenes: (map <<< map) audioEngine2nd scenes } y
   makeSubgraphWithDeferredScene a (x /\ y) = makeSubgraphWithDeferredScene a x /\ makeSubgraphWithDeferredScene a y
-  makeInput a b (x /\ y) = makeInput a b x /\ makeInput a b y
-  makeAllpass a b c (x /\ y) = makeAllpass a b c x /\ makeAllpass a b c y
-  makeAnalyser a b (x /\ y) = makeAnalyser a b x /\ makeAnalyser a b y
-  makeAudioWorkletNode a b (x /\ y) = makeAudioWorkletNode a b x /\ makeAudioWorkletNode a b y
-  makeBandpass a b c (x /\ y) = makeBandpass a b c x /\ makeBandpass a b c y
-  makeConstant a b c (x /\ y) = makeConstant a b c x /\ makeConstant a b c y
+  makeInput a (x /\ y) = makeInput a x /\ makeInput a y
+  makeAllpass a (x /\ y) = makeAllpass a x /\ makeAllpass a y
+  makeAnalyser a (x /\ y) = makeAnalyser a x /\ makeAnalyser a y
+  makeAudioWorkletNode a (x /\ y) = makeAudioWorkletNode a x /\ makeAudioWorkletNode a y
+  makeBandpass a (x /\ y) = makeBandpass a x /\ makeBandpass a y
+  makeConstant a (x /\ y) = makeConstant a x /\ makeConstant a y
   makePassthroughConvolver a (x /\ y) = makePassthroughConvolver a x /\ makePassthroughConvolver a y
-  makeConvolver a b (x /\ y) = makeConvolver a b x /\ makeConvolver a b y
-  makeDelay a b (x /\ y) = makeDelay a b x /\ makeDelay a b y
-  makeDynamicsCompressor a b c d e f (x /\ y) = makeDynamicsCompressor a b c d e f x /\ makeDynamicsCompressor a b c d e f y
-  makeGain a b (x /\ y) = makeGain a b x /\ makeGain a b y
-  makeHighpass a b c (x /\ y) = makeHighpass a b c x /\ makeHighpass a b c y
-  makeHighshelf a b c (x /\ y) = makeHighshelf a b c x /\ makeHighshelf a b c y
+  makeConvolver a (x /\ y) = makeConvolver a x /\ makeConvolver a y
+  makeDelay a (x /\ y) = makeDelay a x /\ makeDelay a y
+  makeDynamicsCompressor a (x /\ y) = makeDynamicsCompressor a x /\ makeDynamicsCompressor a y
+  makeGain a (x /\ y) = makeGain a x /\ makeGain a y
+  makeHighpass a (x /\ y) = makeHighpass a x /\ makeHighpass a y
+  makeHighshelf a (x /\ y) = makeHighshelf a x /\ makeHighshelf a y
   makeLoopBufWithDeferredBuffer a (x /\ y) = makeLoopBufWithDeferredBuffer a x /\ makeLoopBufWithDeferredBuffer a y
-  makeLoopBuf a b c d e f (x /\ y) = makeLoopBuf a b c d e f x /\ makeLoopBuf a b c d e f y
-  makeLowpass a b c (x /\ y) = makeLowpass a b c x /\ makeLowpass a b c y
-  makeLowshelf a b c (x /\ y) = makeLowshelf a b c x /\ makeLowshelf a b c y
+  makeLoopBuf a (x /\ y) = makeLoopBuf a x /\ makeLoopBuf a y
+  makeLowpass a (x /\ y) = makeLowpass a x /\ makeLowpass a y
+  makeLowshelf a (x /\ y) = makeLowshelf a x /\ makeLowshelf a y
   makeMicrophone a (x /\ y) = makeMicrophone a x /\ makeMicrophone a y
-  makeNotch a b c (x /\ y) = makeNotch a b c x /\ makeNotch a b c y
-  makePeaking a b c d (x /\ y) = makePeaking a b c d x /\ makePeaking a b c d y
-  makePeriodicOsc a b c d (x /\ y) = makePeriodicOsc a b c d x /\ makePeriodicOsc a b c d y
-  makePeriodicOscV a b c d (x /\ y) = makePeriodicOscV a b c d x /\ makePeriodicOscV a b c d y
+  makeNotch a (x /\ y) = makeNotch a x /\ makeNotch a y
+  makePeaking a (x /\ y) = makePeaking a x /\ makePeaking a y
+  makePeriodicOsc a (x /\ y) = makePeriodicOsc a x /\ makePeriodicOsc a y
+  makePeriodicOscV a (x /\ y) = makePeriodicOscV a x /\ makePeriodicOscV a y
   makePeriodicOscWithDeferredOsc a (x /\ y) = makePeriodicOscWithDeferredOsc a x /\ makePeriodicOscWithDeferredOsc a y
   makePlayBufWithDeferredBuffer a (x /\ y) = makePlayBufWithDeferredBuffer a x /\ makePlayBufWithDeferredBuffer a y
-  makePlayBuf a b c d e (x /\ y) = makePlayBuf a b c d e x /\ makePlayBuf a b c d e y
-  makeRecorder a b (x /\ y) = makeRecorder a b x /\ makeRecorder a b y
-  makeSawtoothOsc a b c (x /\ y) = makeSawtoothOsc a b c x /\ makeSawtoothOsc a b c y
-  makeSinOsc a b c (x /\ y) = makeSinOsc a b c x /\ makeSinOsc a b c y
+  makePlayBuf a (x /\ y) = makePlayBuf a x /\ makePlayBuf a y
+  makeRecorder a (x /\ y) = makeRecorder a x /\ makeRecorder a y
+  makeSawtoothOsc a (x /\ y) = makeSawtoothOsc a x /\ makeSawtoothOsc a y
+  makeSinOsc a (x /\ y) = makeSinOsc a x /\ makeSinOsc a y
   makeSpeaker (x /\ y) = makeSpeaker x /\ makeSpeaker y
-  makeSquareOsc a b c (x /\ y) = makeSquareOsc a b c x /\ makeSquareOsc a b c y
-  makeStereoPanner a b (x /\ y) = makeStereoPanner a b x /\ makeStereoPanner a b y
-  makeTriangleOsc a b c (x /\ y) = makeTriangleOsc a b c x /\ makeTriangleOsc a b c y
-  makeWaveShaper a b c (x /\ y) = makeWaveShaper a b c x /\ makeWaveShaper a b c y
-  makeTumult aaa bbb ccc (x /\ y) = makeTumult aaa bbb ccc x /\ makeTumult aaa bbb ccc y
+  makeSquareOsc a (x /\ y) = makeSquareOsc a x /\ makeSquareOsc a y
+  makeStereoPanner a (x /\ y) = makeStereoPanner a x /\ makeStereoPanner a y
+  makeTriangleOsc a (x /\ y) = makeTriangleOsc a x /\ makeTriangleOsc a y
+  makeWaveShaper a (x /\ y) = makeWaveShaper a x /\ makeWaveShaper a y
+  makeTumult a (x /\ y) = makeTumult a x /\ makeTumult a y
   makeTumultWithDeferredGraph a (x /\ y) = makeTumultWithDeferredGraph a x /\ makeTumultWithDeferredGraph a y
-  setAudioWorkletParameter a b c (x /\ y) = setAudioWorkletParameter a b c x /\ setAudioWorkletParameter a b c y
-  setAnalyserNodeCb a b (x /\ y) = setAnalyserNodeCb a b x /\ setAnalyserNodeCb a b y
-  setMediaRecorderCb a b (x /\ y) = setMediaRecorderCb a b x /\ setMediaRecorderCb a b y
-  setBuffer a b (x /\ y) = setBuffer a b x /\ setBuffer a b y
-  setConvolverBuffer a b (x /\ y) = setConvolverBuffer a b x /\ setConvolverBuffer a b y
-  setPeriodicOsc a b (x /\ y) = setPeriodicOsc a b x /\ setPeriodicOsc a b y
-  setPeriodicOscV a b (x /\ y) = setPeriodicOscV a b x /\ setPeriodicOscV a b y
-  setOnOff a b (x /\ y) = setOnOff a b x /\ setOnOff a b y
-  setBufferOffset a b (x /\ y) = setBufferOffset a b x /\ setBufferOffset a b y
-  setLoopStart a b (x /\ y) = setLoopStart a b x /\ setLoopStart a b y
-  setLoopEnd a b (x /\ y) = setLoopEnd a b x /\ setLoopEnd a b y
-  setRatio a b (x /\ y) = setRatio a b x /\ setRatio a b y
-  setOffset a b (x /\ y) = setOffset a b x /\ setOffset a b y
-  setAttack a b (x /\ y) = setAttack a b x /\ setAttack a b y
-  setGain a b (x /\ y) = setGain a b x /\ setGain a b y
-  setQ a b (x /\ y) = setQ a b x /\ setQ a b y
-  setPan a b (x /\ y) = setPan a b x /\ setPan a b y
-  setThreshold a b (x /\ y) = setThreshold a b x /\ setThreshold a b y
-  setRelease a b (x /\ y) = setRelease a b x /\ setRelease a b y
-  setKnee a b (x /\ y) = setKnee a b x /\ setKnee a b y
-  setDelay a b (x /\ y) = setDelay a b x /\ setDelay a b y
-  setPlaybackRate a b (x /\ y) = setPlaybackRate a b x /\ setPlaybackRate a b y
-  setFrequency a b (x /\ y) = setFrequency a b x /\ setFrequency a b y
-  setWaveShaperCurve a b (x /\ y) = setWaveShaperCurve a b x /\ setWaveShaperCurve a b y
-  setInput a b (x /\ y) = setInput a b x /\ setInput a b y
-  setSubgraph a b c d e (x /\ y) = setSubgraph a b c d ((map <<< map) audioEngine1st e) x /\ setSubgraph a b c d ((map <<< map) audioEngine2nd e) y
-  setTumult aaa bbb ccc (x /\ y) = setTumult aaa bbb ccc x /\ setTumult aaa bbb ccc y
+  setAudioWorkletParameter a (x /\ y) = setAudioWorkletParameter a x /\ setAudioWorkletParameter a y
+  setAnalyserNodeCb a (x /\ y) = setAnalyserNodeCb a x /\ setAnalyserNodeCb a y
+  setMediaRecorderCb a (x /\ y) = setMediaRecorderCb a x /\ setMediaRecorderCb a y
+  setBuffer a (x /\ y) = setBuffer a x /\ setBuffer a y
+  setConvolverBuffer a (x /\ y) = setConvolverBuffer a x /\ setConvolverBuffer a y
+  setPeriodicOsc a (x /\ y) = setPeriodicOsc a x /\ setPeriodicOsc a y
+  setPeriodicOscV a (x /\ y) = setPeriodicOscV a x /\ setPeriodicOscV a y
+  setOnOff a (x /\ y) = setOnOff a x /\ setOnOff a y
+  setBufferOffset a (x /\ y) = setBufferOffset a x /\ setBufferOffset a y
+  setLoopStart a (x /\ y) = setLoopStart a x /\ setLoopStart a y
+  setLoopEnd a (x /\ y) = setLoopEnd a x /\ setLoopEnd a y
+  setRatio a (x /\ y) = setRatio a x /\ setRatio a y
+  setOffset a (x /\ y) = setOffset a x /\ setOffset a y
+  setAttack a (x /\ y) = setAttack a x /\ setAttack a y
+  setGain a (x /\ y) = setGain a x /\ setGain a y
+  setQ a (x /\ y) = setQ a x /\ setQ a y
+  setPan a (x /\ y) = setPan a x /\ setPan a y
+  setThreshold a (x /\ y) = setThreshold a x /\ setThreshold a y
+  setRelease a (x /\ y) = setRelease a x /\ setRelease a y
+  setKnee a (x /\ y) = setKnee a x /\ setKnee a y
+  setDelay a (x /\ y) = setDelay a x /\ setDelay a y
+  setPlaybackRate a (x /\ y) = setPlaybackRate a x /\ setPlaybackRate a y
+  setFrequency a (x /\ y) = setFrequency a x /\ setFrequency a y
+  setWaveShaperCurve a (x /\ y) = setWaveShaperCurve a x /\ setWaveShaperCurve a y
+  setInput a (x /\ y) = setInput a x /\ setInput a y
+  setSubgraph { id, terminus, controls, envs, scenes } (x /\ y) = setSubgraph { id, terminus, controls, envs, scenes: (map <<< map) audioEngine1st scenes } x /\ setSubgraph { id, terminus, controls, envs, scenes: (map <<< map) audioEngine2nd scenes } y
+  setTumult a (x /\ y) = setTumult a x /\ setTumult a y
