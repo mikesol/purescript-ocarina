@@ -8,7 +8,7 @@ import Data.Newtype (unwrap)
 import Data.Set (Set)
 import Data.Set as Set
 import Data.Tuple (uncurry)
-import Data.Variant (Variant, default, match, on)
+import Data.Variant (Variant, match, on)
 import Foreign.Object as Object
 import Type.Proxy (Proxy(..))
 import WAGS.Rendered (Instruction(..))
@@ -24,8 +24,8 @@ du u = Set.insert <<< R.iDestroyUnit <<< { unit: u, id: _ } <<< _.id
 
 derogative :: Instruction -> Set Instruction -> Set Instruction
 derogative = unwrap >>> match
-  { disconnectXFromY: const $ identity
-  , destroyUnit: const $ identity
+  { disconnectXFromY: const identity
+  , destroyUnit: const identity
   , makeAllpass: du "Allpass"
   , makeAnalyser: du "Analyser"
   , makeAudioWorkletNode: du "AudioWorkletNode"
@@ -43,7 +43,7 @@ derogative = unwrap >>> match
   , makeLoopBufWithDeferredBuffer: du "LoopBuf"
   , makeLowpass: du "Lowpass"
   , makeLowshelf: du "Lowshelf"
-  , makeMicrophone: const $ Set.insert $ R.iDestroyUnit { id: "microphone", unit: "Microphone" }
+  , makeMicrophone: \_ -> Set.insert $ R.iDestroyUnit { id: "microphone", unit: "Microphone" }
   , makeNotch: du "Notch"
   , makePeaking: du "Peaking"
   , makePeriodicOscWithDeferredOsc: du "PeriodicOsc"
@@ -54,7 +54,7 @@ derogative = unwrap >>> match
   , makeSawtoothOsc: du "SawtoothOsc"
   , makeSinOsc: du "SinOsc"
   , makeSquareOsc: du "SquareOsc"
-  , makeSpeaker: const $ Set.insert $ R.iDestroyUnit { id: "speaker", unit: "Microphone" }
+  , makeSpeaker: \_ -> Set.insert $ R.iDestroyUnit { id: "speaker", unit: "Microphone" }
   , makeStereoPanner: du "StereoPanner"
   , makeTriangleOsc: du "TriangleOsc"
   , makeWaveShaper: du "WaveShaper"
@@ -108,12 +108,11 @@ reconcileTumult new old = result
     -> Set Instruction
     -> Variant v
     -> Set Instruction
-  usingDefault l0 h0 t0 l1 h1 t1 set = default
-    ( case compare h0 h1 of
+  usingDefault l0 h0 t0 l1 h1 t1 set _ =
+      case compare h0 h1 of
         LT -> go t0 l1 $ Set.insert h0 set
         GT -> go l0 t1 $ derogative h1 set
         EQ -> go t0 t1 set
-    )
   comparable
     :: forall r0 r1
      . { id :: String
@@ -139,306 +138,308 @@ reconcileTumult new old = result
   go Nil Nil set = set
   go (h0 : t0) Nil set = go t0 Nil (Set.insert h0 set)
   go Nil (h1 : t1) set = go Nil t1 (derogative h1 set)
-  go l0@(h0@(Instruction i0) : t0) l1@(h1@(Instruction i1) : t1) set = i0 # match
-    { connectXToY: \a -> i1 #
-        ( usingDefault l0 h0 t0 l1 h1 t1 set
-            # on (Proxy :: _ "connectXToY") \b ->
-              let
-                o
-                  | a.fromId < b.fromId = go t0 l1 $ Set.insert (R.iConnectXToY a) set
-                  | a.fromId > b.fromId = go l0 t1 $ Set.insert (R.iDisconnectXFromY b) set
-                  | a.toId < b.toId = go t0 l1 $ Set.insert (R.iConnectXToY a) set
-                  | a.toId > b.fromId = go l0 t1 $ Set.insert (R.iDisconnectXFromY b) set
-                  | a.fromUnit /= b.fromUnit = go l0 t1
-                      $ Set.insert (R.iDisconnectXFromY b)
-                      $ Set.insert (R.iConnectXToY a) set
-                  | a.toUnit /= b.toUnit = go l0 t1
-                      $ Set.insert (R.iDisconnectXFromY b)
-                      $ Set.insert (R.iConnectXToY a) set
-                  | otherwise = go t0 t1 set
-              in
-                o
-        )
-    , makeAllpass: \a -> i1 #
-        ( usingDefault l0 h0 t0 l1 h1 t1 set
-            # on (Proxy :: _ "makeAllpass") \b ->
-              comparable a b l0 h0 t0 l1 h1 t1 set
-                ( Set.insert (R.iSetFrequency { id: a.id, frequency: a.freq })
-                    <<< Set.insert (R.iSetQ { id: a.id, q: a.q })
-                )
-        )
-    , makeAnalyser: \a -> i1 #
-        ( usingDefault l0 h0 t0 l1 h1 t1 set
-            # on (Proxy :: _ "makeAllpass") \b ->
-              comparable a b l0 h0 t0 l1 h1 t1 set
-                (Set.insert (R.iSetAnalyserNodeCb { id: a.id, cb: a.cb }))
-        )
-    , disconnectXFromY: const $ i1 # usingDefault l0 h0 t0 l1 h1 t1 set
-    , destroyUnit: const $ i1 # usingDefault l0 h0 t0 l1 h1 t1 set
-    , makeAudioWorkletNode: \a -> i1 #
-        ( usingDefault l0 h0 t0 l1 h1 t1 set
-            # on (Proxy :: _ "makeAudioWorkletNode") \b ->
-              comparable a b l0 h0 t0 l1 h1 t1 set
-                ( let
-                    fn = uncurry $
-                      ( \paramName paramValue ->
-                          R.iSetAudioWorkletParameter { id: a.id, paramName, paramValue }
-                      )
+  go l0@(h0@(Instruction i0) : t0) l1@(h1@(Instruction i1) : t1) set =
+    i0 # match
+      { connectXToY: \a -> i1 #
+          ( usingDefault l0 h0 t0 l1 h1 t1 set
+              # on (Proxy :: _ "connectXToY") \b ->
+                  let
+                    o
+                      | a.fromId < b.fromId = go t0 l1 $ Set.insert (R.iConnectXToY a) set
+                      | a.fromId > b.fromId = go l0 t1 $ Set.insert (R.iDisconnectXFromY b) set
+                      | a.toId < b.toId = go t0 l1 $ Set.insert (R.iConnectXToY a) set
+                      | a.toId > b.toId = go l0 t1 $ Set.insert (R.iDisconnectXFromY b) set
+                      | a.fromUnit /= b.fromUnit = go l0 t1
+                          $ Set.insert (R.iDisconnectXFromY b)
+                          $ Set.insert (R.iConnectXToY a) set
+                      | a.toUnit /= b.toUnit = go l0 t1
+                          $ Set.insert (R.iDisconnectXFromY b)
+                          $ Set.insert (R.iConnectXToY a) set
+                      | otherwise = go t0 t1 set
                   in
-                    Set.union
-                      ( Set.fromFoldable
-                          $ (identity :: Array ~> Array)
-                          $ map fn
-                          $ Object.toUnfoldable (unwrap a.options).parameterData
-                      )
-                )
-        )
-    , makeBandpass: \a -> i1 #
-        ( usingDefault l0 h0 t0 l1 h1 t1 set
-            # on (Proxy :: _ "makeBandpass") \b ->
-              comparable a b l0 h0 t0 l1 h1 t1 set
-                ( Set.insert (R.iSetFrequency { id: a.id, frequency: a.freq })
-                    <<< Set.insert (R.iSetQ { id: a.id, q: a.q })
-                )
-        )
-    , makeConstant: \a -> i1 #
-        ( usingDefault l0 h0 t0 l1 h1 t1 set
-            # on (Proxy :: _ "makeConstant") \b ->
-              comparable a b l0 h0 t0 l1 h1 t1 set
-                ( Set.insert (R.iSetOffset { id: a.id, offset: a.offset })
-                )
-        )
-    , makePassthroughConvolver: \a -> i1 #
-        ( usingDefault l0 h0 t0 l1 h1 t1 set
-            # on (Proxy :: _ "makeConvolver") \b ->
-              comparable a b l0 h0 t0 l1 h1 t1 set identity
-        )
-    , makeConvolver: \a -> i1 #
-        ( usingDefault l0 h0 t0 l1 h1 t1 set
-            # on (Proxy :: _ "makeConvolver") \b ->
-              comparable a b l0 h0 t0 l1 h1 t1 set identity
-        )
-    , makeDelay: \a -> i1 #
-        ( usingDefault l0 h0 t0 l1 h1 t1 set
-            # on (Proxy :: _ "makeDelay") \b ->
-              comparable a b l0 h0 t0 l1 h1 t1 set
-                ( Set.insert (R.iSetDelay { id: a.id, delay: a.delayTime })
-                )
-        )
-    , makeDynamicsCompressor: \a -> i1 #
-        ( usingDefault l0 h0 t0 l1 h1 t1 set
-            # on (Proxy :: _ "makeDynamicsCompressor") \b ->
-              comparable a b l0 h0 t0 l1 h1 t1 set
-                ( Set.insert (R.iSetAttack { id: a.id, attack: a.attack })
-                    <<< Set.insert (R.iSetRelease { id: a.id, release: a.release })
-                    <<< Set.insert (R.iSetThreshold { id: a.id, threshold: a.threshold })
-                    <<< Set.insert (R.iSetRatio { id: a.id, ratio: a.ratio })
-                    <<< Set.insert (R.iSetKnee { id: a.id, knee: a.knee })
-                )
-        )
-    , makeGain: \a -> i1 #
-        ( usingDefault l0 h0 t0 l1 h1 t1 set
-            # on (Proxy :: _ "makeGain") \b ->
-              comparable a b l0 h0 t0 l1 h1 t1 set
-                ( Set.insert (R.iSetGain { id: a.id, gain: a.gain })
-                )
-        )
-    , makeHighpass: \a -> i1 #
-        ( usingDefault l0 h0 t0 l1 h1 t1 set
-            # on (Proxy :: _ "makeHighpass") \b ->
-              comparable a b l0 h0 t0 l1 h1 t1 set
-                ( Set.insert (R.iSetFrequency { id: a.id, frequency: a.freq })
-                    <<< Set.insert (R.iSetQ { id: a.id, q: a.q })
-                )
-        )
-    , makeHighshelf: \a -> i1 #
-        ( usingDefault l0 h0 t0 l1 h1 t1 set
-            # on (Proxy :: _ "makeHighshelf") \b ->
-              comparable a b l0 h0 t0 l1 h1 t1 set
-                ( Set.insert (R.iSetFrequency { id: a.id, frequency: a.freq })
-                    <<< Set.insert (R.iSetGain { id: a.id, gain: a.gain })
-                )
-        )
-    , makeInput: \a -> i1 #
-        ( usingDefault l0 h0 t0 l1 h1 t1 set
-            # on (Proxy :: _ "makeInput") \b ->
-              comparable a b l0 h0 t0 l1 h1 t1 set identity -- todo: should this be identity?
-        )
-    , makeLoopBuf: \a -> i1 #
-        ( usingDefault l0 h0 t0 l1 h1 t1 set
-            # on (Proxy :: _ "makeLoopBuf") \b ->
-              comparable a b l0 h0 t0 l1 h1 t1 set
-                ( Set.insert (R.iSetBuffer { id: a.id, buffer: a.buffer })
-                    <<< Set.insert (R.iSetOnOff { id: a.id, onOff: a.onOff })
-                    <<< Set.insert (R.iSetPlaybackRate { id: a.id, playbackRate: a.playbackRate })
-                    <<< Set.insert (R.iSetLoopStart { id: a.id, loopStart: a.loopStart })
-                    <<< Set.insert (R.iSetLoopEnd { id: a.id, loopEnd: a.loopEnd })
-                )
-        )
-    , makeLoopBufWithDeferredBuffer: \a -> i1 #
-        ( usingDefault l0 h0 t0 l1 h1 t1 set
-            # on (Proxy :: _ "makeLoopBufWithDeferredBuffer") \b ->
-              comparable a b l0 h0 t0 l1 h1 t1 set identity
-        )
-    , makeLowpass: \a -> i1 #
-        ( usingDefault l0 h0 t0 l1 h1 t1 set
-            # on (Proxy :: _ "makeLowpass") \b ->
-              comparable a b l0 h0 t0 l1 h1 t1 set
-                ( Set.insert (R.iSetFrequency { id: a.id, frequency: a.freq })
-                    <<< Set.insert (R.iSetQ { id: a.id, q: a.q })
-                )
-        )
-    , makeLowshelf: \a -> i1 #
-        ( usingDefault l0 h0 t0 l1 h1 t1 set
-            # on (Proxy :: _ "makeLowshelf") \b ->
-              comparable a b l0 h0 t0 l1 h1 t1 set
-                ( Set.insert (R.iSetFrequency { id: a.id, frequency: a.freq })
-                    <<< Set.insert (R.iSetGain { id: a.id, gain: a.gain })
-                )
-        )
-    , makeMicrophone: const $ i1 # usingDefault l0 h0 t0 l1 h1 t1 set
-    , makePeaking: \a -> i1 #
-        ( usingDefault l0 h0 t0 l1 h1 t1 set
-            # on (Proxy :: _ "makeNotch") \b ->
-              comparable a b l0 h0 t0 l1 h1 t1 set
-                ( Set.insert (R.iSetFrequency { id: a.id, frequency: a.freq })
-                    <<< Set.insert (R.iSetQ { id: a.id, q: a.q })
-                    <<< Set.insert (R.iSetGain { id: a.id, gain: a.gain })
-                )
-        )
-    , makeNotch: \a -> i1 #
-        ( usingDefault l0 h0 t0 l1 h1 t1 set
-            # on (Proxy :: _ "makeNotch") \b ->
-              comparable a b l0 h0 t0 l1 h1 t1 set
-                ( Set.insert (R.iSetFrequency { id: a.id, frequency: a.freq })
-                    <<< Set.insert (R.iSetQ { id: a.id, q: a.q })
-                )
-        )
-    , makePeriodicOscWithDeferredOsc: \a -> i1 #
-        ( usingDefault l0 h0 t0 l1 h1 t1 set
-            # on (Proxy :: _ "makePeriodicOscWithDeferredOsc") \b ->
-              comparable a b l0 h0 t0 l1 h1 t1 set identity
-        )
-    , makePeriodicOsc: \a -> i1 #
-        ( usingDefault l0 h0 t0 l1 h1 t1 set
-            # on (Proxy :: _ "makePeriodicOsc") \b ->
-              comparable a b l0 h0 t0 l1 h1 t1 set
-                ( Set.insert (R.iSetPeriodicOsc { id: a.id, periodicOsc: a.spec })
-                    <<< Set.insert (R.iSetOnOff { id: a.id, onOff: a.onOff })
-                    <<< Set.insert (R.iSetFrequency { id: a.id, frequency: a.freq })
-                )
-        )
-    , makePlayBuf: \a -> i1 #
-        ( usingDefault l0 h0 t0 l1 h1 t1 set
-            # on (Proxy :: _ "makePlayBuf") \b ->
-              comparable a b l0 h0 t0 l1 h1 t1 set
-                ( Set.insert (R.iSetBuffer { id: a.id, buffer: a.buffer })
-                    <<< Set.insert (R.iSetOnOff { id: a.id, onOff: a.onOff })
-                    <<< Set.insert (R.iSetPlaybackRate { id: a.id, playbackRate: a.playbackRate })
-                    <<< Set.insert (R.iSetBufferOffset { id: a.id, bufferOffset: a.bufferOffset })
-                )
-        )
-    , makePlayBufWithDeferredBuffer: \a -> i1 #
-        ( usingDefault l0 h0 t0 l1 h1 t1 set
-            # on (Proxy :: _ "makePlayBufWithDeferredBuffer") \b ->
-              comparable a b l0 h0 t0 l1 h1 t1 set identity
-        )
-    , makeRecorder: \a -> i1 #
-        ( usingDefault l0 h0 t0 l1 h1 t1 set
-            # on (Proxy :: _ "makeRecorder") \b ->
-              comparable a b l0 h0 t0 l1 h1 t1 set identity
-        )
-    , makeSawtoothOsc: \a -> i1 #
-        ( usingDefault l0 h0 t0 l1 h1 t1 set
-            # on (Proxy :: _ "makeSawtoothOsc") \b ->
-              comparable a b l0 h0 t0 l1 h1 t1 set
-                ( Set.insert (R.iSetOnOff { id: a.id, onOff: a.onOff })
-                    <<< Set.insert (R.iSetFrequency { id: a.id, frequency: a.freq })
-                )
-        )
-    , makeSinOsc: \a -> i1 #
-        ( usingDefault l0 h0 t0 l1 h1 t1 set
-            # on (Proxy :: _ "makeSinOsc") \b ->
-              comparable a b l0 h0 t0 l1 h1 t1 set
-                ( Set.insert (R.iSetOnOff { id: a.id, onOff: a.onOff })
-                    <<< Set.insert (R.iSetFrequency { id: a.id, frequency: a.freq })
-                )
-        )
-    , makeSquareOsc: \a -> i1 #
-        ( usingDefault l0 h0 t0 l1 h1 t1 set
-            # on (Proxy :: _ "makeSquareOsc") \b ->
-              comparable a b l0 h0 t0 l1 h1 t1 set
-                ( Set.insert (R.iSetOnOff { id: a.id, onOff: a.onOff })
-                    <<< Set.insert (R.iSetFrequency { id: a.id, frequency: a.freq })
-                )
-        )
-    , makeSpeaker: const $ i1 # usingDefault l0 h0 t0 l1 h1 t1 set
-    , makeStereoPanner: \a -> i1 #
-        ( usingDefault l0 h0 t0 l1 h1 t1 set
-            # on (Proxy :: _ "makeStereoPanner") \b ->
-              comparable a b l0 h0 t0 l1 h1 t1 set
-                (Set.insert (R.iSetPan { id: a.id, pan: a.pan }))
-        )
-    , makeTriangleOsc: \a -> i1 #
-        ( usingDefault l0 h0 t0 l1 h1 t1 set
-            # on (Proxy :: _ "makeTriangleOsc") \b ->
-              comparable a b l0 h0 t0 l1 h1 t1 set
-                ( Set.insert (R.iSetOnOff { id: a.id, onOff: a.onOff })
-                    <<< Set.insert (R.iSetFrequency { id: a.id, frequency: a.freq })
-                )
-        )
-    , makeWaveShaper: \a -> i1 #
-        ( usingDefault l0 h0 t0 l1 h1 t1 set
-            # on (Proxy :: _ "makeWaveShaper") \b ->
-              comparable a b l0 h0 t0 l1 h1 t1 set identity
-        )
-    , makeSubgraph: \a -> i1 #
-        ( usingDefault l0 h0 t0 l1 h1 t1 set
-            # on (Proxy :: _ "makeSubgraph") \b ->
-              comparable a b l0 h0 t0 l1 h1 t1 set identity
-        )
-    , makeSubgraphWithDeferredScene: \a -> i1 #
-        ( usingDefault l0 h0 t0 l1 h1 t1 set
-            # on (Proxy :: _ "makeSubgraphWithDeferredScene") \b ->
-              comparable a b l0 h0 t0 l1 h1 t1 set identity
-        )
-    , makeTumult: \a -> i1 #
-        ( usingDefault l0 h0 t0 l1 h1 t1 set
-            # on (Proxy :: _ "makeTumult") \b ->
-              comparable a b l0 h0 t0 l1 h1 t1 set identity
-        )
-    , makeTumultWithDeferredGraph: \a -> i1 #
-        ( usingDefault l0 h0 t0 l1 h1 t1 set
-            # on (Proxy :: _ "makeTumultWithDeferredGraph") \b ->
-              comparable a b l0 h0 t0 l1 h1 t1 set identity
-        )
-    , setAnalyserNodeCb: const $ i1 # usingDefault l0 h0 t0 l1 h1 t1 set
-    , setMediaRecorderCb: const $ i1 # usingDefault l0 h0 t0 l1 h1 t1 set
-    , setAudioWorkletParameter: const $ i1 # usingDefault l0 h0 t0 l1 h1 t1 set
-    , setBuffer: const $ i1 # usingDefault l0 h0 t0 l1 h1 t1 set
-    , setConvolverBuffer: const $ i1 # usingDefault l0 h0 t0 l1 h1 t1 set
-    , setPeriodicOsc: const $ i1 # usingDefault l0 h0 t0 l1 h1 t1 set
-    , setOnOff: const $ i1 # usingDefault l0 h0 t0 l1 h1 t1 set
-    , setBufferOffset: const $ i1 # usingDefault l0 h0 t0 l1 h1 t1 set
-    , setLoopStart: const $ i1 # usingDefault l0 h0 t0 l1 h1 t1 set
-    , setLoopEnd: const $ i1 # usingDefault l0 h0 t0 l1 h1 t1 set
-    , setRatio: const $ i1 # usingDefault l0 h0 t0 l1 h1 t1 set
-    , setOffset: const $ i1 # usingDefault l0 h0 t0 l1 h1 t1 set
-    , setAttack: const $ i1 # usingDefault l0 h0 t0 l1 h1 t1 set
-    , setGain: const $ i1 # usingDefault l0 h0 t0 l1 h1 t1 set
-    , setQ: const $ i1 # usingDefault l0 h0 t0 l1 h1 t1 set
-    , setPan: const $ i1 # usingDefault l0 h0 t0 l1 h1 t1 set
-    , setThreshold: const $ i1 # usingDefault l0 h0 t0 l1 h1 t1 set
-    , setRelease: const $ i1 # usingDefault l0 h0 t0 l1 h1 t1 set
-    , setKnee: const $ i1 # usingDefault l0 h0 t0 l1 h1 t1 set
-    , setDelay: const $ i1 # usingDefault l0 h0 t0 l1 h1 t1 set
-    , setPlaybackRate: const $ i1 # usingDefault l0 h0 t0 l1 h1 t1 set
-    , setFrequency: const $ i1 # usingDefault l0 h0 t0 l1 h1 t1 set
-    , setWaveShaperCurve: const $ i1 # usingDefault l0 h0 t0 l1 h1 t1 set
-    , setInput: const $ i1 # usingDefault l0 h0 t0 l1 h1 t1 set
-    , setSubgraph: const $ i1 # usingDefault l0 h0 t0 l1 h1 t1 set
-    , setTumult: const $ i1 # usingDefault l0 h0 t0 l1 h1 t1 set
-    }
+                    o
+          )
+      , makeAllpass: \a -> i1 #
+          ( usingDefault l0 h0 t0 l1 h1 t1 set
+              # on (Proxy :: _ "makeAllpass") \b ->
+                comparable a b l0 h0 t0 l1 h1 t1 set
+                  ( Set.insert (R.iSetFrequency { id: a.id, frequency: a.freq })
+                      <<< Set.insert (R.iSetQ { id: a.id, q: a.q })
+                  )
+          )
+      , makeAnalyser: \a -> i1 #
+          ( usingDefault l0 h0 t0 l1 h1 t1 set
+              # on (Proxy :: _ "makeAllpass") \b ->
+                comparable a b l0 h0 t0 l1 h1 t1 set
+                  (Set.insert (R.iSetAnalyserNodeCb { id: a.id, cb: a.cb }))
+          )
+      , disconnectXFromY: \_ -> i1 # usingDefault l0 h0 t0 l1 h1 t1 set
+      , destroyUnit: \_ -> i1 # usingDefault l0 h0 t0 l1 h1 t1 set
+      , makeAudioWorkletNode: \a -> i1 #
+          ( usingDefault l0 h0 t0 l1 h1 t1 set
+              # on (Proxy :: _ "makeAudioWorkletNode") \b ->
+                comparable a b l0 h0 t0 l1 h1 t1 set
+                  ( let
+                      fn = uncurry $
+                        ( \paramName paramValue ->
+                            R.iSetAudioWorkletParameter { id: a.id, paramName, paramValue }
+                        )
+                    in
+                      Set.union
+                        ( Set.fromFoldable
+                            $ (identity :: Array ~> Array)
+                            $ map fn
+                            $ Object.toUnfoldable (unwrap a.options).parameterData
+                        )
+                  )
+          )
+      , makeBandpass: \a -> i1 #
+          ( usingDefault l0 h0 t0 l1 h1 t1 set
+              # on (Proxy :: _ "makeBandpass") \b ->
+                comparable a b l0 h0 t0 l1 h1 t1 set
+                  ( Set.insert (R.iSetFrequency { id: a.id, frequency: a.freq })
+                      <<< Set.insert (R.iSetQ { id: a.id, q: a.q })
+                  )
+          )
+      , makeConstant: \a -> i1 #
+          ( usingDefault l0 h0 t0 l1 h1 t1 set
+              # on (Proxy :: _ "makeConstant") \b ->
+                comparable a b l0 h0 t0 l1 h1 t1 set
+                  ( Set.insert (R.iSetOffset { id: a.id, offset: a.offset })
+                  )
+          )
+      , makePassthroughConvolver: \a -> i1 #
+          ( usingDefault l0 h0 t0 l1 h1 t1 set
+              # on (Proxy :: _ "makeConvolver") \b ->
+                comparable a b l0 h0 t0 l1 h1 t1 set identity
+          )
+      , makeConvolver: \a -> i1 #
+          ( usingDefault l0 h0 t0 l1 h1 t1 set
+              # on (Proxy :: _ "makeConvolver") \b ->
+                comparable a b l0 h0 t0 l1 h1 t1 set identity
+          )
+      , makeDelay: \a -> i1 #
+          ( usingDefault l0 h0 t0 l1 h1 t1 set
+              # on (Proxy :: _ "makeDelay") \b ->
+                comparable a b l0 h0 t0 l1 h1 t1 set
+                  ( Set.insert (R.iSetDelay { id: a.id, delay: a.delayTime })
+                  )
+          )
+      , makeDynamicsCompressor: \a -> i1 #
+          ( usingDefault l0 h0 t0 l1 h1 t1 set
+              # on (Proxy :: _ "makeDynamicsCompressor") \b ->
+                comparable a b l0 h0 t0 l1 h1 t1 set
+                  ( Set.insert (R.iSetAttack { id: a.id, attack: a.attack })
+                      <<< Set.insert (R.iSetRelease { id: a.id, release: a.release })
+                      <<< Set.insert (R.iSetThreshold { id: a.id, threshold: a.threshold })
+                      <<< Set.insert (R.iSetRatio { id: a.id, ratio: a.ratio })
+                      <<< Set.insert (R.iSetKnee { id: a.id, knee: a.knee })
+                  )
+          )
+      , makeGain: \a -> i1 #
+          ( usingDefault l0 h0 t0 l1 h1 t1 set
+              # on (Proxy :: _ "makeGain") \b ->
+                comparable a b l0 h0 t0 l1 h1 t1 set
+                  ( Set.insert (R.iSetGain { id: a.id, gain: a.gain })
+                  )
+          )
+      , makeHighpass: \a -> i1 #
+          ( usingDefault l0 h0 t0 l1 h1 t1 set
+              # on (Proxy :: _ "makeHighpass") \b ->
+                comparable a b l0 h0 t0 l1 h1 t1 set
+                  ( Set.insert (R.iSetFrequency { id: a.id, frequency: a.freq })
+                      <<< Set.insert (R.iSetQ { id: a.id, q: a.q })
+                  )
+          )
+      , makeHighshelf: \a -> i1 #
+          ( usingDefault l0 h0 t0 l1 h1 t1 set
+              # on (Proxy :: _ "makeHighshelf") \b ->
+                comparable a b l0 h0 t0 l1 h1 t1 set
+                  ( Set.insert (R.iSetFrequency { id: a.id, frequency: a.freq })
+                      <<< Set.insert (R.iSetGain { id: a.id, gain: a.gain })
+                  )
+          )
+      , makeInput: \a ->
+            i1 #
+              ( usingDefault l0 h0 t0 l1 h1 t1 set
+                  # on (Proxy :: _ "makeInput") \b ->
+                    comparable a b l0 h0 t0 l1 h1 t1 set identity -- todo: should this be identity?
+              )
+      , makeLoopBuf: \a -> i1 #
+          ( usingDefault l0 h0 t0 l1 h1 t1 set
+              # on (Proxy :: _ "makeLoopBuf") \b ->
+                comparable a b l0 h0 t0 l1 h1 t1 set
+                  ( Set.insert (R.iSetBuffer { id: a.id, buffer: a.buffer })
+                      <<< Set.insert (R.iSetOnOff { id: a.id, onOff: a.onOff })
+                      <<< Set.insert (R.iSetPlaybackRate { id: a.id, playbackRate: a.playbackRate })
+                      <<< Set.insert (R.iSetLoopStart { id: a.id, loopStart: a.loopStart })
+                      <<< Set.insert (R.iSetLoopEnd { id: a.id, loopEnd: a.loopEnd })
+                  )
+          )
+      , makeLoopBufWithDeferredBuffer: \a -> i1 #
+          ( usingDefault l0 h0 t0 l1 h1 t1 set
+              # on (Proxy :: _ "makeLoopBufWithDeferredBuffer") \b ->
+                comparable a b l0 h0 t0 l1 h1 t1 set identity
+          )
+      , makeLowpass: \a -> i1 #
+          ( usingDefault l0 h0 t0 l1 h1 t1 set
+              # on (Proxy :: _ "makeLowpass") \b ->
+                comparable a b l0 h0 t0 l1 h1 t1 set
+                  ( Set.insert (R.iSetFrequency { id: a.id, frequency: a.freq })
+                      <<< Set.insert (R.iSetQ { id: a.id, q: a.q })
+                  )
+          )
+      , makeLowshelf: \a -> i1 #
+          ( usingDefault l0 h0 t0 l1 h1 t1 set
+              # on (Proxy :: _ "makeLowshelf") \b ->
+                comparable a b l0 h0 t0 l1 h1 t1 set
+                  ( Set.insert (R.iSetFrequency { id: a.id, frequency: a.freq })
+                      <<< Set.insert (R.iSetGain { id: a.id, gain: a.gain })
+                  )
+          )
+      , makeMicrophone: \_ -> i1 # usingDefault l0 h0 t0 l1 h1 t1 set
+      , makePeaking: \a -> i1 #
+          ( usingDefault l0 h0 t0 l1 h1 t1 set
+              # on (Proxy :: _ "makeNotch") \b ->
+                comparable a b l0 h0 t0 l1 h1 t1 set
+                  ( Set.insert (R.iSetFrequency { id: a.id, frequency: a.freq })
+                      <<< Set.insert (R.iSetQ { id: a.id, q: a.q })
+                      <<< Set.insert (R.iSetGain { id: a.id, gain: a.gain })
+                  )
+          )
+      , makeNotch: \a -> i1 #
+          ( usingDefault l0 h0 t0 l1 h1 t1 set
+              # on (Proxy :: _ "makeNotch") \b ->
+                comparable a b l0 h0 t0 l1 h1 t1 set
+                  ( Set.insert (R.iSetFrequency { id: a.id, frequency: a.freq })
+                      <<< Set.insert (R.iSetQ { id: a.id, q: a.q })
+                  )
+          )
+      , makePeriodicOscWithDeferredOsc: \a -> i1 #
+          ( usingDefault l0 h0 t0 l1 h1 t1 set
+              # on (Proxy :: _ "makePeriodicOscWithDeferredOsc") \b ->
+                comparable a b l0 h0 t0 l1 h1 t1 set identity
+          )
+      , makePeriodicOsc: \a -> i1 #
+          ( usingDefault l0 h0 t0 l1 h1 t1 set
+              # on (Proxy :: _ "makePeriodicOsc") \b ->
+                comparable a b l0 h0 t0 l1 h1 t1 set
+                  ( Set.insert (R.iSetPeriodicOsc { id: a.id, periodicOsc: a.spec })
+                      <<< Set.insert (R.iSetOnOff { id: a.id, onOff: a.onOff })
+                      <<< Set.insert (R.iSetFrequency { id: a.id, frequency: a.freq })
+                  )
+          )
+      , makePlayBuf: \a -> i1 #
+          ( usingDefault l0 h0 t0 l1 h1 t1 set
+              # on (Proxy :: _ "makePlayBuf") \b ->
+                comparable a b l0 h0 t0 l1 h1 t1 set
+                  ( Set.insert (R.iSetBuffer { id: a.id, buffer: a.buffer })
+                      <<< Set.insert (R.iSetOnOff { id: a.id, onOff: a.onOff })
+                      <<< Set.insert (R.iSetPlaybackRate { id: a.id, playbackRate: a.playbackRate })
+                      <<< Set.insert (R.iSetBufferOffset { id: a.id, bufferOffset: a.bufferOffset })
+                  )
+          )
+      , makePlayBufWithDeferredBuffer: \a -> i1 #
+          ( usingDefault l0 h0 t0 l1 h1 t1 set
+              # on (Proxy :: _ "makePlayBufWithDeferredBuffer") \b ->
+                comparable a b l0 h0 t0 l1 h1 t1 set identity
+          )
+      , makeRecorder: \a -> i1 #
+          ( usingDefault l0 h0 t0 l1 h1 t1 set
+              # on (Proxy :: _ "makeRecorder") \b ->
+                comparable a b l0 h0 t0 l1 h1 t1 set identity
+          )
+      , makeSawtoothOsc: \a -> i1 #
+          ( usingDefault l0 h0 t0 l1 h1 t1 set
+              # on (Proxy :: _ "makeSawtoothOsc") \b ->
+                comparable a b l0 h0 t0 l1 h1 t1 set
+                  ( Set.insert (R.iSetOnOff { id: a.id, onOff: a.onOff })
+                      <<< Set.insert (R.iSetFrequency { id: a.id, frequency: a.freq })
+                  )
+          )
+      , makeSinOsc: \a -> i1 #
+          ( usingDefault l0 h0 t0 l1 h1 t1 set
+              # on (Proxy :: _ "makeSinOsc") \b ->
+                comparable a b l0 h0 t0 l1 h1 t1 set
+                  ( Set.insert (R.iSetOnOff { id: a.id, onOff: a.onOff })
+                      <<< Set.insert (R.iSetFrequency { id: a.id, frequency: a.freq })
+                  )
+          )
+      , makeSquareOsc: \a -> i1 #
+          ( usingDefault l0 h0 t0 l1 h1 t1 set
+              # on (Proxy :: _ "makeSquareOsc") \b ->
+                comparable a b l0 h0 t0 l1 h1 t1 set
+                  ( Set.insert (R.iSetOnOff { id: a.id, onOff: a.onOff })
+                      <<< Set.insert (R.iSetFrequency { id: a.id, frequency: a.freq })
+                  )
+          )
+      , makeSpeaker: \_ -> i1 # usingDefault l0 h0 t0 l1 h1 t1 set
+      , makeStereoPanner: \a -> i1 #
+          ( usingDefault l0 h0 t0 l1 h1 t1 set
+              # on (Proxy :: _ "makeStereoPanner") \b ->
+                comparable a b l0 h0 t0 l1 h1 t1 set
+                  (Set.insert (R.iSetPan { id: a.id, pan: a.pan }))
+          )
+      , makeTriangleOsc: \a -> i1 #
+          ( usingDefault l0 h0 t0 l1 h1 t1 set
+              # on (Proxy :: _ "makeTriangleOsc") \b ->
+                comparable a b l0 h0 t0 l1 h1 t1 set
+                  ( Set.insert (R.iSetOnOff { id: a.id, onOff: a.onOff })
+                      <<< Set.insert (R.iSetFrequency { id: a.id, frequency: a.freq })
+                  )
+          )
+      , makeWaveShaper: \a -> i1 #
+          ( usingDefault l0 h0 t0 l1 h1 t1 set
+              # on (Proxy :: _ "makeWaveShaper") \b ->
+                comparable a b l0 h0 t0 l1 h1 t1 set identity
+          )
+      , makeSubgraph: \a -> i1 #
+          ( usingDefault l0 h0 t0 l1 h1 t1 set
+              # on (Proxy :: _ "makeSubgraph") \b ->
+                comparable a b l0 h0 t0 l1 h1 t1 set identity
+          )
+      , makeSubgraphWithDeferredScene: \a -> i1 #
+          ( usingDefault l0 h0 t0 l1 h1 t1 set
+              # on (Proxy :: _ "makeSubgraphWithDeferredScene") \b ->
+                comparable a b l0 h0 t0 l1 h1 t1 set identity
+          )
+      , makeTumult: \a -> i1 #
+          ( usingDefault l0 h0 t0 l1 h1 t1 set
+              # on (Proxy :: _ "makeTumult") \b ->
+                comparable a b l0 h0 t0 l1 h1 t1 set identity
+          )
+      , makeTumultWithDeferredGraph: \a -> i1 #
+          ( usingDefault l0 h0 t0 l1 h1 t1 set
+              # on (Proxy :: _ "makeTumultWithDeferredGraph") \b ->
+                comparable a b l0 h0 t0 l1 h1 t1 set identity
+          )
+      , setAnalyserNodeCb: \_ -> i1 # usingDefault l0 h0 t0 l1 h1 t1 set
+      , setMediaRecorderCb: \_ -> i1 # usingDefault l0 h0 t0 l1 h1 t1 set
+      , setAudioWorkletParameter: \_ -> i1 # usingDefault l0 h0 t0 l1 h1 t1 set
+      , setBuffer: \_ -> i1 # usingDefault l0 h0 t0 l1 h1 t1 set
+      , setConvolverBuffer: \_ -> i1 # usingDefault l0 h0 t0 l1 h1 t1 set
+      , setPeriodicOsc: \_ -> i1 # usingDefault l0 h0 t0 l1 h1 t1 set
+      , setOnOff: \_ -> i1 # usingDefault l0 h0 t0 l1 h1 t1 set
+      , setBufferOffset: \_ -> i1 # usingDefault l0 h0 t0 l1 h1 t1 set
+      , setLoopStart: \_ -> i1 # usingDefault l0 h0 t0 l1 h1 t1 set
+      , setLoopEnd: \_ -> i1 # usingDefault l0 h0 t0 l1 h1 t1 set
+      , setRatio: \_ -> i1 # usingDefault l0 h0 t0 l1 h1 t1 set
+      , setOffset: \_ -> i1 # usingDefault l0 h0 t0 l1 h1 t1 set
+      , setAttack: \_ -> i1 # usingDefault l0 h0 t0 l1 h1 t1 set
+      , setGain: \_ -> i1 # usingDefault l0 h0 t0 l1 h1 t1 set
+      , setQ: \_ -> i1 # usingDefault l0 h0 t0 l1 h1 t1 set
+      , setPan: \_ -> i1 # usingDefault l0 h0 t0 l1 h1 t1 set
+      , setThreshold: \_ -> i1 # usingDefault l0 h0 t0 l1 h1 t1 set
+      , setRelease: \_ -> i1 # usingDefault l0 h0 t0 l1 h1 t1 set
+      , setKnee: \_ -> i1 # usingDefault l0 h0 t0 l1 h1 t1 set
+      , setDelay: \_ -> i1 # usingDefault l0 h0 t0 l1 h1 t1 set
+      , setPlaybackRate: \_ -> i1 # usingDefault l0 h0 t0 l1 h1 t1 set
+      , setFrequency: \_ -> i1 # usingDefault l0 h0 t0 l1 h1 t1 set
+      , setWaveShaperCurve: \_ -> i1 # usingDefault l0 h0 t0 l1 h1 t1 set
+      , setInput: \_ -> i1 # usingDefault l0 h0 t0 l1 h1 t1 set
+      , setSubgraph: \_ -> i1 # usingDefault l0 h0 t0 l1 h1 t1 set
+      , setTumult: \_ -> i1 # usingDefault l0 h0 t0 l1 h1 t1 set
+      }
 
 {-
     go l0@(vA@(MakeAudioWorkletNode ptr0 valA0) : t0) l1@(MakeAudioWorkletNode ptr1 _ : t1) set

@@ -25,7 +25,6 @@
   , "newtype"
   , "ordered-collections"
   , "prelude"
-  , "profunctor"
   , "psci-support"
   , "record"
   , "refs"

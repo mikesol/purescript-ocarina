@@ -24,7 +24,7 @@ import Halogen.Subscription as HS
 import Halogen.VDom.Driver (runUI)
 import Math (abs, pi)
 import WAGS.Example.KitchenSink.Piece (piece)
-import WAGS.Interpret (close, context, decodeAudioDataFromUri, getMicrophoneAndCamera, makeFloatArray, makePeriodicWave, makeUnitCache, mediaRecorderToUrl)
+import WAGS.Interpret (close, context, decodeAudioDataFromUri, getMicrophoneAndCamera, makeFFIAudioSnapshot, makeFloatArray, makePeriodicWave, mediaRecorderToUrl)
 import WAGS.Run (Run, run)
 import WAGS.WebAPI (AudioContext, BrowserAudioBuffer, MediaRecorderCb(..))
 
@@ -116,7 +116,7 @@ handleAction = case _ of
     { emitter, listener } <- H.liftEffect HS.create
     unsubscribeFromHalogen <- H.subscribe emitter
     audioCtx <- H.liftEffect context
-    unitCache <- H.liftEffect makeUnitCache
+    ffiAudio <- H.liftEffect $  makeFFIAudioSnapshot audioCtx
     myWave <-
       H.liftEffect
         $ makePeriodicWave audioCtx (0.0 +> -0.1 +> empty) (0.0 +> 0.05 +> empty)
@@ -131,12 +131,6 @@ handleAction = case _ of
     chimes <- fetchBuffer audioCtx "https://freesound.org/data/previews/353/353194_5121236-hq.mp3"
     shruti <- fetchBuffer audioCtx "https://freesound.org/data/previews/513/513742_153257-hq.mp3"
     reverb <- fetchBuffer audioCtx "https://freesound.org/data/previews/555/555786_10147844-hq.mp3"
-    let
-      ffiAudio =
-        { context: audioCtx
-        , writeHead: 0.0
-        , units: unitCache
-        }
     unsubscribeFromWAGS <-
       H.liftEffect
         $ subscribe

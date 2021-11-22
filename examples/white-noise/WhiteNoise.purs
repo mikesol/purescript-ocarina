@@ -28,7 +28,7 @@ import WAGS.Create.Optionals (CAudioWorkletNode, CSpeaker, audioWorkletNode, spe
 import WAGS.Graph.AudioUnit (AudioWorkletNode, AudioWorkletNodeOptions(..), TAudioWorkletNode, TSpeaker)
 import WAGS.Graph.Parameter (AudioParameter, ff)
 import WAGS.Graph.Worklet (AudioWorkletNodeRequest(..), AudioWorkletNodeResponse)
-import WAGS.Interpret (audioWorkletAddModule, close, context, defaultFFIAudio, makeUnitCache)
+import WAGS.Interpret (audioWorkletAddModule, close, context, makeFFIAudioSnapshot)
 import WAGS.Run (RunAudio, RunEngine, SceneI(..), Run, run)
 import WAGS.WebAPI (AudioContext)
 import Web.File.Blob as Blob
@@ -185,9 +185,7 @@ registerProcessor('white-noise-processor', WhiteNoiseProcessor)"""
         )
       noiseUnit <- H.liftAff $ audioWorkletAddModule audioCtx objUrl (AudioWorkletNodeRequest :: WhiteNoiseRequest)
       H.liftEffect do
-        unitCache <- makeUnitCache
-        let
-          ffiAudio = defaultFFIAudio audioCtx unitCache
+        ffiAudio <- makeFFIAudioSnapshot audioCtx
         unsubscribe <-
           subscribe
             (run (pure unit) (pure { noiseUnit }) { easingAlgorithm } ffiAudio piece)

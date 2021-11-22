@@ -5,11 +5,13 @@ module WAGS.Interpret
   ( class AudioInterpret
   , class SafeToFFI
   , AudioBuffer
-  , FFIAudioSnapshot'
-  , FFIAudioSnapshot(..)
+  , FFIAudioSnapshot
   , FFINumericAudioParameter
   , unAsSubGraph
   , AsSubgraph(..)
+  , makeFFIAudioSnapshot
+  , contextFromSnapshot
+  , advanceWriteHead
   , audioBuffer
   , audioWorkletAddModule
   , close
@@ -22,7 +24,6 @@ module WAGS.Interpret
   , decodeAudioDataFromUri
   , fetchArrayBuffer
   , decodeAudioDataFromArrayBuffer
-  , defaultFFIAudio
   , destroyUnit
   , disconnectXFromY
   , getAudioClockTime
@@ -75,7 +76,6 @@ module WAGS.Interpret
   , makeSquareOsc
   , makeStereoPanner
   , makeTriangleOsc
-  , makeUnitCache
   , makeWaveShaper
   , mediaRecorderToUrl
   , makeInput
@@ -128,8 +128,7 @@ import Data.ArrayBuffer.Types (Float32Array, Uint8Array, ArrayBuffer)
 import Data.FunctorWithIndex (mapWithIndex)
 import Data.Lazy (defer)
 import Data.Maybe (Maybe(..))
-import Data.Newtype (class Newtype, unwrap, wrap)
-import Data.Profunctor (lcmap)
+import Data.Newtype (unwrap)
 import Data.Set as Set
 import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.Tuple (fst, snd)
@@ -288,7 +287,9 @@ getMicrophoneAndCamera audio video =
     <$> toAffE (getBrowserMediaStreamImpl audio video)
 
 -- | Create a unit cache. This returns a fresh empty object `{}` that is used to cache audio units.
-foreign import makeUnitCache :: Effect Foreign
+foreign import makeFFIAudioSnapshot :: WebAPI.AudioContext -> Effect FFIAudioSnapshot
+foreign import contextFromSnapshot :: FFIAudioSnapshot -> WebAPI.AudioContext
+foreign import advanceWriteHead :: FFIAudioSnapshot -> Number -> FFIAudioSnapshot
 
 -- | Render audio from an array of audio rendering instructions. This is conceptually the same as
 -- | taking `Array Effect Unit -> Effect Unit` and doing `map fold <<< sequence`.
@@ -332,43 +333,7 @@ foreign import bufferLength :: BrowserAudioBuffer -> Int
 foreign import bufferDuration :: BrowserAudioBuffer -> Number
 foreign import bufferNumberOfChannels :: BrowserAudioBuffer -> Int
 
--- | The audio information that goes to the ffi during rendering.
--- |
--- | - `context` - the audio context. To create an `WebAPI.AudioContext`, use `context`.
--- | - `writeHead` - the moment in time in the audio context at which we are writing. The easing algorithm provided to run makes sure that this is always slightly ahead of the actual audio context time. When starting a scene, this should be set to `0.0`.
--- | - `units` - an object in which audio units are cached and retrieved. To create this, use `makeUnitCache`.
--- | - `microphone` - the browser microphone or `null` if we do not have one.
--- | - `recorders` - an object recorder rendering functions. Because media recorders do not yet exist when a scene starts, we provide rendering functions and then fill in the actual recorders once the rendering starts.
--- | - `buffers` - an object containing named audio buffers for playback using `PlayBuf` or `LoopBuf`. See the `atari-speaks` example to see how a buffer is used.
--- | - `floatArrays` - arrays of 32=bit floats used for wave shaping.
--- | - `periodicWaves` - array of periodic waves used for creating oscillator nodes.
-type FFIAudioSnapshot'
-  =
-  { context :: WebAPI.AudioContext
-  , writeHead :: Number
-  , units :: Foreign
-  }
-
-type DefaultFFIAudioWithBehaviors
-  =
-  { context :: WebAPI.AudioContext
-  , writeHead :: Number
-  , units :: Foreign
-  }
-
--- A default FFI audio with empty objects (ie no buffers, no microphone, etc).
-defaultFFIAudio :: WebAPI.AudioContext -> Foreign -> DefaultFFIAudioWithBehaviors
-defaultFFIAudio audioCtx unitCache =
-  { context: audioCtx
-  , writeHead: 0.0
-  , units: unitCache
-  }
-
--- FFIAudio as a newtype in order to use it in typeclass instances.
-newtype FFIAudioSnapshot
-  = FFIAudioSnapshot FFIAudioSnapshot'
-
-derive instance newtypeFFIAudioSnapshot :: Newtype FFIAudioSnapshot _
+data FFIAudioSnapshot
 
 newtype AsSubgraph terminus inputs info env = AsSubgraph
   ( forall audio engine
@@ -662,79 +627,79 @@ instance freeAudioInterpret :: AudioInterpret Unit Instruction where
   setSubgraph = handleSubgraph R.iSetSubgraph
   setTumult = const <<< R.iSetTumult
 
-foreign import connectXToY_ :: String -> String -> FFIAudioSnapshot' -> Effect Unit
+foreign import connectXToY_ :: String -> String -> FFIAudioSnapshot -> Effect Unit
 
-foreign import disconnectXFromY_ :: String -> String -> FFIAudioSnapshot' -> Effect Unit
+foreign import disconnectXFromY_ :: String -> String -> FFIAudioSnapshot -> Effect Unit
 
-foreign import destroyUnit_ :: String -> FFIAudioSnapshot' -> Effect Unit
+foreign import destroyUnit_ :: String -> FFIAudioSnapshot -> Effect Unit
 
-foreign import makeAllpass_ :: String -> FFINumericAudioParameter -> FFINumericAudioParameter -> FFIAudioSnapshot' -> Effect Unit
+foreign import makeAllpass_ :: String -> FFINumericAudioParameter -> FFINumericAudioParameter -> FFIAudioSnapshot -> Effect Unit
 
-foreign import makeAnalyser_ :: String -> (AnalyserNode -> Effect (Effect Unit)) -> FFIAudioSnapshot' -> Effect Unit
+foreign import makeAnalyser_ :: String -> (AnalyserNode -> Effect (Effect Unit)) -> FFIAudioSnapshot -> Effect Unit
 
-foreign import makeAudioWorkletNode_ :: String -> AudioWorkletNodeOptionsFFI_ -> FFIAudioSnapshot' -> Effect Unit
+foreign import makeAudioWorkletNode_ :: String -> AudioWorkletNodeOptionsFFI_ -> FFIAudioSnapshot -> Effect Unit
 
-foreign import makeBandpass_ :: String -> FFINumericAudioParameter -> FFINumericAudioParameter -> FFIAudioSnapshot' -> Effect Unit
+foreign import makeBandpass_ :: String -> FFINumericAudioParameter -> FFINumericAudioParameter -> FFIAudioSnapshot -> Effect Unit
 
-foreign import makeConstant_ :: String -> FFIStringAudioParameter -> FFINumericAudioParameter -> FFIAudioSnapshot' -> Effect Unit
+foreign import makeConstant_ :: String -> FFIStringAudioParameter -> FFINumericAudioParameter -> FFIAudioSnapshot -> Effect Unit
 
-foreign import makeConvolver_ :: String -> BrowserAudioBuffer -> FFIAudioSnapshot' -> Effect Unit
+foreign import makeConvolver_ :: String -> BrowserAudioBuffer -> FFIAudioSnapshot -> Effect Unit
 
-foreign import makePassthroughConvolver_ :: String -> FFIAudioSnapshot' -> Effect Unit
+foreign import makePassthroughConvolver_ :: String -> FFIAudioSnapshot -> Effect Unit
 
-foreign import makeDelay_ :: String -> FFINumericAudioParameter -> FFIAudioSnapshot' -> Effect Unit
+foreign import makeDelay_ :: String -> FFINumericAudioParameter -> FFIAudioSnapshot -> Effect Unit
 
-foreign import makeDynamicsCompressor_ :: String -> FFINumericAudioParameter -> FFINumericAudioParameter -> FFINumericAudioParameter -> FFINumericAudioParameter -> FFINumericAudioParameter -> FFIAudioSnapshot' -> Effect Unit
+foreign import makeDynamicsCompressor_ :: String -> FFINumericAudioParameter -> FFINumericAudioParameter -> FFINumericAudioParameter -> FFINumericAudioParameter -> FFINumericAudioParameter -> FFIAudioSnapshot -> Effect Unit
 
-foreign import makeGain_ :: String -> FFINumericAudioParameter -> FFIAudioSnapshot' -> Effect Unit
+foreign import makeGain_ :: String -> FFINumericAudioParameter -> FFIAudioSnapshot -> Effect Unit
 
-foreign import makeHighpass_ :: String -> FFINumericAudioParameter -> FFINumericAudioParameter -> FFIAudioSnapshot' -> Effect Unit
+foreign import makeHighpass_ :: String -> FFINumericAudioParameter -> FFINumericAudioParameter -> FFIAudioSnapshot -> Effect Unit
 
-foreign import makeHighshelf_ :: String -> FFINumericAudioParameter -> FFINumericAudioParameter -> FFIAudioSnapshot' -> Effect Unit
+foreign import makeHighshelf_ :: String -> FFINumericAudioParameter -> FFINumericAudioParameter -> FFIAudioSnapshot -> Effect Unit
 
-foreign import makeLoopBufWithDeferredBuffer_ :: String -> FFIAudioSnapshot' -> Effect Unit
+foreign import makeLoopBufWithDeferredBuffer_ :: String -> FFIAudioSnapshot -> Effect Unit
 
-foreign import makeLoopBuf_ :: String -> BrowserAudioBuffer -> FFIStringAudioParameter -> FFINumericAudioParameter -> Number -> Number -> FFIAudioSnapshot' -> Effect Unit
+foreign import makeLoopBuf_ :: String -> BrowserAudioBuffer -> FFIStringAudioParameter -> FFINumericAudioParameter -> Number -> Number -> FFIAudioSnapshot -> Effect Unit
 
-foreign import makeLowpass_ :: String -> FFINumericAudioParameter -> FFINumericAudioParameter -> FFIAudioSnapshot' -> Effect Unit
+foreign import makeLowpass_ :: String -> FFINumericAudioParameter -> FFINumericAudioParameter -> FFIAudioSnapshot -> Effect Unit
 
-foreign import makeLowshelf_ :: String -> FFINumericAudioParameter -> FFINumericAudioParameter -> FFIAudioSnapshot' -> Effect Unit
+foreign import makeLowshelf_ :: String -> FFINumericAudioParameter -> FFINumericAudioParameter -> FFIAudioSnapshot -> Effect Unit
 
-foreign import makeMicrophone_ :: BrowserMicrophone -> FFIAudioSnapshot' -> Effect Unit
+foreign import makeMicrophone_ :: BrowserMicrophone -> FFIAudioSnapshot -> Effect Unit
 
-foreign import makeNotch_ :: String -> FFINumericAudioParameter -> FFINumericAudioParameter -> FFIAudioSnapshot' -> Effect Unit
+foreign import makeNotch_ :: String -> FFINumericAudioParameter -> FFINumericAudioParameter -> FFIAudioSnapshot -> Effect Unit
 
-foreign import makePeaking_ :: String -> FFINumericAudioParameter -> FFINumericAudioParameter -> FFINumericAudioParameter -> FFIAudioSnapshot' -> Effect Unit
+foreign import makePeaking_ :: String -> FFINumericAudioParameter -> FFINumericAudioParameter -> FFINumericAudioParameter -> FFIAudioSnapshot -> Effect Unit
 
-foreign import makePeriodicOscWithDeferredOsc_ :: String -> FFIAudioSnapshot' -> Effect Unit
+foreign import makePeriodicOscWithDeferredOsc_ :: String -> FFIAudioSnapshot -> Effect Unit
 
-foreign import makePeriodicOsc_ :: String -> BrowserPeriodicWave -> FFIStringAudioParameter -> FFINumericAudioParameter -> FFIAudioSnapshot' -> Effect Unit
+foreign import makePeriodicOsc_ :: String -> BrowserPeriodicWave -> FFIStringAudioParameter -> FFINumericAudioParameter -> FFIAudioSnapshot -> Effect Unit
 
-foreign import makePeriodicOscV_ :: String -> (Array (Array Number)) -> FFIStringAudioParameter -> FFINumericAudioParameter -> FFIAudioSnapshot' -> Effect Unit
+foreign import makePeriodicOscV_ :: String -> (Array (Array Number)) -> FFIStringAudioParameter -> FFINumericAudioParameter -> FFIAudioSnapshot -> Effect Unit
 
-foreign import makePlayBufWithDeferredBuffer_ :: String -> FFIAudioSnapshot' -> Effect Unit
+foreign import makePlayBufWithDeferredBuffer_ :: String -> FFIAudioSnapshot -> Effect Unit
 
-foreign import makePlayBuf_ :: String -> BrowserAudioBuffer -> Number -> FFIStringAudioParameter -> FFINumericAudioParameter -> FFIAudioSnapshot' -> Effect Unit
+foreign import makePlayBuf_ :: String -> BrowserAudioBuffer -> Number -> FFIStringAudioParameter -> FFINumericAudioParameter -> FFIAudioSnapshot -> Effect Unit
 
-foreign import makeRecorder_ :: String -> (MediaRecorder -> Effect Unit) -> FFIAudioSnapshot' -> Effect Unit
+foreign import makeRecorder_ :: String -> (MediaRecorder -> Effect Unit) -> FFIAudioSnapshot -> Effect Unit
 
-foreign import makeSawtoothOsc_ :: String -> FFIStringAudioParameter -> FFINumericAudioParameter -> FFIAudioSnapshot' -> Effect Unit
+foreign import makeSawtoothOsc_ :: String -> FFIStringAudioParameter -> FFINumericAudioParameter -> FFIAudioSnapshot -> Effect Unit
 
-foreign import makeSinOsc_ :: String -> FFIStringAudioParameter -> FFINumericAudioParameter -> FFIAudioSnapshot' -> Effect Unit
+foreign import makeSinOsc_ :: String -> FFIStringAudioParameter -> FFINumericAudioParameter -> FFIAudioSnapshot -> Effect Unit
 
-foreign import makeSpeaker_ :: FFIAudioSnapshot' -> Effect Unit
+foreign import makeSpeaker_ :: FFIAudioSnapshot -> Effect Unit
 
-foreign import makeSquareOsc_ :: String -> FFIStringAudioParameter -> FFINumericAudioParameter -> FFIAudioSnapshot' -> Effect Unit
+foreign import makeSquareOsc_ :: String -> FFIStringAudioParameter -> FFINumericAudioParameter -> FFIAudioSnapshot -> Effect Unit
 
-foreign import makeStereoPanner_ :: String -> FFINumericAudioParameter -> FFIAudioSnapshot' -> Effect Unit
+foreign import makeStereoPanner_ :: String -> FFINumericAudioParameter -> FFIAudioSnapshot -> Effect Unit
 
-foreign import makeTriangleOsc_ :: String -> FFIStringAudioParameter -> FFINumericAudioParameter -> FFIAudioSnapshot' -> Effect Unit
+foreign import makeTriangleOsc_ :: String -> FFIStringAudioParameter -> FFINumericAudioParameter -> FFIAudioSnapshot -> Effect Unit
 
-foreign import makeWaveShaper_ :: String -> BrowserFloatArray -> String -> FFIAudioSnapshot' -> Effect Unit
+foreign import makeWaveShaper_ :: String -> BrowserFloatArray -> String -> FFIAudioSnapshot -> Effect Unit
 
-foreign import makeInput_ :: String -> String -> FFIAudioSnapshot' -> Effect Unit
+foreign import makeInput_ :: String -> String -> FFIAudioSnapshot -> Effect Unit
 
-foreign import makeSubgraphWithDeferredScene_ :: String -> FFIAudioSnapshot' -> Effect Unit
+foreign import makeSubgraphWithDeferredScene_ :: String -> FFIAudioSnapshot -> Effect Unit
 
 foreign import makeSubgraph_
   :: forall a env scene
@@ -744,10 +709,10 @@ foreign import makeSubgraph_
   -> (Int -> a -> scene)
   -> (Int -> a -> env)
   -> (env -> scene -> { instructions :: Array (FFIAudioSnapshot -> Effect Unit), nextScene :: scene })
-  -> FFIAudioSnapshot'
+  -> FFIAudioSnapshot
   -> Effect Unit
 
-foreign import makeTumultWithDeferredGraph_ :: String -> FFIAudioSnapshot' -> Effect Unit
+foreign import makeTumultWithDeferredGraph_ :: String -> FFIAudioSnapshot -> Effect Unit
 
 foreign import makeTumult_
   :: String
@@ -755,8 +720,8 @@ foreign import makeTumult_
   -> Array (Array Instruction)
   -> Maybe (Array Instruction)
   -> (Array Instruction -> Maybe (Array Instruction))
-  -> (Array Instruction -> Maybe (Array Instruction) -> Array (FFIAudioSnapshot' -> Effect Unit))
-  -> FFIAudioSnapshot'
+  -> (Array Instruction -> Maybe (Array Instruction) -> Array (FFIAudioSnapshot -> Effect Unit))
+  -> FFIAudioSnapshot
   -> Effect Unit
 
 foreign import setTumult_
@@ -765,59 +730,59 @@ foreign import setTumult_
   -> Array (Array Instruction)
   -> Maybe (Array Instruction)
   -> (Array Instruction -> Maybe (Array Instruction))
-  -> (Array Instruction -> Maybe (Array Instruction) -> Array (FFIAudioSnapshot' -> Effect Unit))
-  -> FFIAudioSnapshot'
+  -> (Array Instruction -> Maybe (Array Instruction) -> Array (FFIAudioSnapshot -> Effect Unit))
+  -> FFIAudioSnapshot
   -> Effect Unit
 
-foreign import setAudioWorkletParameter_ :: String -> String -> FFINumericAudioParameter -> FFIAudioSnapshot' -> Effect Unit
+foreign import setAudioWorkletParameter_ :: String -> String -> FFINumericAudioParameter -> FFIAudioSnapshot -> Effect Unit
 
-foreign import setOnOff_ :: String -> FFIStringAudioParameter -> FFIAudioSnapshot' -> Effect Unit
+foreign import setOnOff_ :: String -> FFIStringAudioParameter -> FFIAudioSnapshot -> Effect Unit
 
-foreign import setBufferOffset_ :: String -> Number -> FFIAudioSnapshot' -> Effect Unit
+foreign import setBufferOffset_ :: String -> Number -> FFIAudioSnapshot -> Effect Unit
 
-foreign import setLoopStart_ :: String -> Number -> FFIAudioSnapshot' -> Effect Unit
+foreign import setLoopStart_ :: String -> Number -> FFIAudioSnapshot -> Effect Unit
 
-foreign import setLoopEnd_ :: String -> Number -> FFIAudioSnapshot' -> Effect Unit
+foreign import setLoopEnd_ :: String -> Number -> FFIAudioSnapshot -> Effect Unit
 
-foreign import setRatio_ :: String -> FFINumericAudioParameter -> FFIAudioSnapshot' -> Effect Unit
+foreign import setRatio_ :: String -> FFINumericAudioParameter -> FFIAudioSnapshot -> Effect Unit
 
-foreign import setOffset_ :: String -> FFINumericAudioParameter -> FFIAudioSnapshot' -> Effect Unit
+foreign import setOffset_ :: String -> FFINumericAudioParameter -> FFIAudioSnapshot -> Effect Unit
 
-foreign import setAttack_ :: String -> FFINumericAudioParameter -> FFIAudioSnapshot' -> Effect Unit
+foreign import setAttack_ :: String -> FFINumericAudioParameter -> FFIAudioSnapshot -> Effect Unit
 
-foreign import setGain_ :: String -> FFINumericAudioParameter -> FFIAudioSnapshot' -> Effect Unit
+foreign import setGain_ :: String -> FFINumericAudioParameter -> FFIAudioSnapshot -> Effect Unit
 
-foreign import setQ_ :: String -> FFINumericAudioParameter -> FFIAudioSnapshot' -> Effect Unit
+foreign import setQ_ :: String -> FFINumericAudioParameter -> FFIAudioSnapshot -> Effect Unit
 
-foreign import setPan_ :: String -> FFINumericAudioParameter -> FFIAudioSnapshot' -> Effect Unit
+foreign import setPan_ :: String -> FFINumericAudioParameter -> FFIAudioSnapshot -> Effect Unit
 
-foreign import setThreshold_ :: String -> FFINumericAudioParameter -> FFIAudioSnapshot' -> Effect Unit
+foreign import setThreshold_ :: String -> FFINumericAudioParameter -> FFIAudioSnapshot -> Effect Unit
 
-foreign import setRelease_ :: String -> FFINumericAudioParameter -> FFIAudioSnapshot' -> Effect Unit
+foreign import setRelease_ :: String -> FFINumericAudioParameter -> FFIAudioSnapshot -> Effect Unit
 
-foreign import setKnee_ :: String -> FFINumericAudioParameter -> FFIAudioSnapshot' -> Effect Unit
+foreign import setKnee_ :: String -> FFINumericAudioParameter -> FFIAudioSnapshot -> Effect Unit
 
-foreign import setDelay_ :: String -> FFINumericAudioParameter -> FFIAudioSnapshot' -> Effect Unit
+foreign import setDelay_ :: String -> FFINumericAudioParameter -> FFIAudioSnapshot -> Effect Unit
 
-foreign import setPlaybackRate_ :: String -> FFINumericAudioParameter -> FFIAudioSnapshot' -> Effect Unit
+foreign import setPlaybackRate_ :: String -> FFINumericAudioParameter -> FFIAudioSnapshot -> Effect Unit
 
-foreign import setFrequency_ :: String -> FFINumericAudioParameter -> FFIAudioSnapshot' -> Effect Unit
+foreign import setFrequency_ :: String -> FFINumericAudioParameter -> FFIAudioSnapshot -> Effect Unit
 
-foreign import setBuffer_ :: String -> BrowserAudioBuffer -> FFIAudioSnapshot' -> Effect Unit
+foreign import setBuffer_ :: String -> BrowserAudioBuffer -> FFIAudioSnapshot -> Effect Unit
 
-foreign import setConvolverBuffer_ :: String -> BrowserAudioBuffer -> FFIAudioSnapshot' -> Effect Unit
+foreign import setConvolverBuffer_ :: String -> BrowserAudioBuffer -> FFIAudioSnapshot -> Effect Unit
 
-foreign import setPeriodicOsc_ :: String -> BrowserPeriodicWave -> FFIAudioSnapshot' -> Effect Unit
+foreign import setPeriodicOsc_ :: String -> BrowserPeriodicWave -> FFIAudioSnapshot -> Effect Unit
 
-foreign import setPeriodicOscV_ :: String -> Array (Array Number) -> FFIAudioSnapshot' -> Effect Unit
+foreign import setPeriodicOscV_ :: String -> Array (Array Number) -> FFIAudioSnapshot -> Effect Unit
 
-foreign import setAnalyserNodeCb_ :: String -> (AnalyserNode -> Effect (Effect Unit)) -> FFIAudioSnapshot' -> Effect Unit
+foreign import setAnalyserNodeCb_ :: String -> (AnalyserNode -> Effect (Effect Unit)) -> FFIAudioSnapshot -> Effect Unit
 
-foreign import setMediaRecorderCb_ :: String -> (MediaRecorder -> Effect Unit) -> FFIAudioSnapshot' -> Effect Unit
+foreign import setMediaRecorderCb_ :: String -> (MediaRecorder -> Effect Unit) -> FFIAudioSnapshot -> Effect Unit
 
-foreign import setWaveShaperCurve_ :: String -> BrowserFloatArray -> FFIAudioSnapshot' -> Effect Unit
+foreign import setWaveShaperCurve_ :: String -> BrowserFloatArray -> FFIAudioSnapshot -> Effect Unit
 
-foreign import setInput_ :: String -> String -> FFIAudioSnapshot' -> Effect Unit
+foreign import setInput_ :: String -> String -> FFIAudioSnapshot -> Effect Unit
 
 foreign import setSubgraph_
   :: forall a env scene
@@ -827,7 +792,7 @@ foreign import setSubgraph_
   -> (Int -> a -> scene)
   -> (Int -> a -> env)
   -> (env -> scene -> { instructions :: Array (FFIAudioSnapshot -> Effect Unit), nextScene :: scene })
-  -> FFIAudioSnapshot'
+  -> FFIAudioSnapshot
   -> Effect Unit
 
 interpretInstruction :: forall audio engine. AudioInterpret audio engine => Instruction -> audio -> engine
@@ -910,13 +875,11 @@ interpretInstruction = unwrap >>> match
   , setTumult: \{ id } -> setGain { id, gain: pure 1.0 }
   }
 
-makeInstructionsEffectful :: Array Instruction -> Maybe (Array Instruction) -> Array (FFIAudioSnapshot' -> Effect Unit)
+makeInstructionsEffectful :: Array Instruction -> Maybe (Array Instruction) -> Array (FFIAudioSnapshot -> Effect Unit)
 makeInstructionsEffectful a = case _ of
-  Nothing -> map (lcmap wrapFAS <<< interpretInstruction) a
-  Just b -> map (lcmap wrapFAS <<< interpretInstruction)
+  Nothing -> map (interpretInstruction) a
+  Just b -> map (interpretInstruction)
     (Array.fromFoldable $ reconcileTumult (Set.fromFoldable a) (Set.fromFoldable b))
-  where
-  wrapFAS = wrap :: FFIAudioSnapshot' -> FFIAudioSnapshot
 
 instance effectfulAudioInterpret :: AudioInterpret FFIAudioSnapshot (Effect Unit) where
   connectXToY { fromId, toId } c = connectXToY_ fromId toId (safeToFFI c)
@@ -1031,8 +994,8 @@ instance safeToFFI_Oversample :: SafeToFFI Oversample String where
     , fourX: const "4x"
     }
 
-instance safeToFFI_FFIAudio :: SafeToFFI FFIAudioSnapshot FFIAudioSnapshot' where
-  safeToFFI (FFIAudioSnapshot x) = x
+instance safeToFFI_FFIAudio :: SafeToFFI FFIAudioSnapshot FFIAudioSnapshot where
+  safeToFFI = identity
 
 type AudioWorkletNodeOptionsFFI_ =
   { name :: String

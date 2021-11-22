@@ -29,7 +29,7 @@ import WAGS.Create (icreate)
 import WAGS.Create.Optionals (CGain, CSpeaker, CPlayBuf, gain, speaker, playBuf)
 import WAGS.Graph.AudioUnit (TGain, TLoopBuf, TSpeaker, _offOn, _on)
 import WAGS.Graph.Parameter (ff)
-import WAGS.Interpret (close, context, decodeAudioDataFromUri, makeUnitCache)
+import WAGS.Interpret (close, context, decodeAudioDataFromUri, makeFFIAudioSnapshot)
 import WAGS.Run (RunAudio, RunEngine, SceneI(..), Run, run)
 import WAGS.WebAPI (AudioContext, BrowserAudioBuffer)
 
@@ -160,7 +160,7 @@ handleAction :: forall output m. MonadEffect m => MonadAff m => Action -> H.Halo
 handleAction = case _ of
   StartAudio -> do
     audioCtx <- H.liftEffect context
-    unitCache <- H.liftEffect makeUnitCache
+    ffiAudio <- H.liftEffect $ makeFFIAudioSnapshot audioCtx
     ibuf <-
       H.liftAff $ decodeAudioDataFromUri
         audioCtx
@@ -175,12 +175,6 @@ handleAction = case _ of
           launchAff_ do
             buf <- decodeAudioDataFromUri audioCtx (head cf)
             H.liftEffect $ Ref.write buf bf
-    let
-      ffiAudio =
-        { context: audioCtx
-        , writeHead: 0.0
-        , units: unitCache
-        }
     unsubscribe <-
       H.liftEffect
         $ subscribe

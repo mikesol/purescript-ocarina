@@ -336,15 +336,90 @@ instructionWeight (Instruction v) = v # match
   , setTumult: const 8
   }
 
+instructionId :: Instruction -> String
+instructionId (Instruction v) = v # match
+  { disconnectXFromY: _.fromId
+  , destroyUnit: _.id
+  , makeAllpass: _.id
+  , makeAnalyser: _.id
+  , makeAudioWorkletNode: _.id
+  , makeBandpass: _.id
+  , makeConstant: _.id
+  , makePassthroughConvolver: _.id
+  , makeConvolver: _.id
+  , makeDelay: _.id
+  , makeDynamicsCompressor: _.id
+  , makeGain: _.id
+  , makeHighpass: _.id
+  , makeHighshelf: _.id
+  , makeInput: _.id
+  , makeLoopBuf: _.id
+  , makeLoopBufWithDeferredBuffer: _.id
+  , makeLowpass: _.id
+  , makeLowshelf: _.id
+  , makeMicrophone: const "microphone"
+  , makeNotch: _.id
+  , makePeaking: _.id
+  , makePeriodicOscWithDeferredOsc: _.id
+  , makePeriodicOsc: _.id
+  , makePlayBuf: _.id
+  , makePlayBufWithDeferredBuffer: _.id
+  , makeRecorder: _.id
+  , makeSawtoothOsc: _.id
+  , makeSinOsc: _.id
+  , makeSquareOsc: _.id
+  , makeSpeaker: const "speaker"
+  , makeStereoPanner: _.id
+  , makeTriangleOsc: _.id
+  , makeWaveShaper: _.id
+  , makeSubgraph: _.id
+  , makeSubgraphWithDeferredScene: _.id
+  , makeTumult: _.id
+  , makeTumultWithDeferredGraph: _.id
+  , connectXToY: _.fromId
+  , setAnalyserNodeCb: _.id
+  , setMediaRecorderCb: _.id
+  , setAudioWorkletParameter: _.id
+  , setBuffer: _.id
+  , setConvolverBuffer: _.id
+  , setPeriodicOsc: _.id
+  , setOnOff: _.id
+  , setBufferOffset: _.id
+  , setLoopStart: _.id
+  , setLoopEnd: _.id
+  , setRatio: _.id
+  , setOffset: _.id
+  , setAttack: _.id
+  , setGain: _.id
+  , setQ: _.id
+  , setPan: _.id
+  , setThreshold: _.id
+  , setRelease: _.id
+  , setKnee: _.id
+  , setDelay: _.id
+  , setPlaybackRate: _.id
+  , setFrequency: _.id
+  , setWaveShaperCurve: _.id
+  , setInput: _.id
+  , setSubgraph: _.id
+  , setTumult: _.id
+  }
+
 derive instance newtypeInstruction :: Newtype Instruction _
 derive instance eqInstruction :: Eq Instruction
 instance ordInstruction :: Ord Instruction where
   compare v1@(Instruction v1') v2@(Instruction v2') = case compare w1 w2 of
-    EQ -> compare v1' v2'
+    EQ -> c2 unit
     x -> x
     where
     w1 = instructionWeight v1
     w2 = instructionWeight v2
+    c2 _ = case compare i1 i2 of
+      EQ -> compare v1' v2'
+      x -> x
+      where
+      i1 = instructionId v1
+      i2 = instructionId v2
 
 instance showInstruction :: Show Instruction where
   show (Instruction i) = show i

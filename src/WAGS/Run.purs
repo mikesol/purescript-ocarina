@@ -36,7 +36,6 @@ import FRP.Behavior (Behavior, sampleBy, sample_)
 import FRP.Behavior.Time (instant)
 import FRP.Event (Event, makeEvent, subscribe)
 import FRP.Event.Time (withTime, delay)
-import Foreign (Foreign)
 import Prim.Row (class Lacks)
 import Prim.Row as Row
 import Prim.RowList as RL
@@ -44,7 +43,7 @@ import Record as Record
 import Safe.Coerce (coerce)
 import Type.Proxy (Proxy(..))
 import WAGS.Control.Types (Frame0, Scene, oneFrame)
-import WAGS.Interpret (FFIAudioSnapshot(..), getAudioClockTime, renderAudio)
+import WAGS.Interpret (FFIAudioSnapshot, advanceWriteHead, contextFromSnapshot, getAudioClockTime, renderAudio)
 import WAGS.Rendered (Instruction)
 import WAGS.WebAPI as WebAPI
 
@@ -133,10 +132,7 @@ run
   => Event trigger
   -> Behavior world
   -> EngineInfo
-  -> { context :: WebAPI.AudioContext
-     , writeHead :: Number
-     , units :: Foreign
-     }
+  -> FFIAudioSnapshot
   -> Scene (SceneI trigger world analyserCallbacks)
        RunAudio
        RunEngine
@@ -146,7 +142,7 @@ run
 run trigger inWorld engineInfo audioInfo scene =
   makeEvent \k -> do
     refsForAnalysers <- makeAnalyserRefs (Proxy :: _ analysersRL)
-    audioClockStart <- getAudioClockTime audioInfo.context
+    audioClockStart <- getAudioClockTime (contextFromSnapshot audioInfo)
     currentTimeoutCanceler <- Ref.new (pure unit :: Effect Unit)
     currentScene <- Ref.new scene
     currentEasingAlg <- Ref.new engineInfo.easingAlgorithm
@@ -181,10 +177,7 @@ run trigger inWorld engineInfo audioInfo scene =
           currentTimeoutCanceler
           currentEasingAlg
           currentScene
-          { context: audioInfo.context
-          , units: audioInfo.units
-          , writeHead: audioInfo.writeHead
-          }
+          audioInfo
           (makeAnalyserCallbacks (Proxy :: _ analysersRL) refsForAnalysers)
           refsForAnalysers
           k
@@ -206,15 +199,16 @@ run trigger inWorld engineInfo audioInfo scene =
     -> Ref.Ref (Effect Unit)
     -> Ref.Ref EasingAlgorithm
     -> Ref.Ref (Scene (SceneI trigger world analyserCallbacks) RunAudio RunEngine Frame0 res)
-    -> NonBehavioralFFIInfo
+    -> FFIAudioSnapshot
     -> { | analyserCallbacks }
     -> { | analyserRefs }
     -> (Run res analysers -> Effect Unit)
     -> Effect Unit
-  runInternal audioClockStart fromEvents world' currentTimeoutCanceler currentEasingAlg currentScene nonBehavioralFFIInfo analyserCallbacks analyserRefs reporter = do
+  runInternal audioClockStart fromEvents world' currentTimeoutCanceler currentEasingAlg currentScene ffiSnapshot analyserCallbacks analyserRefs reporter = do
     easingAlgNow <- Ref.read currentEasingAlg
     sceneNow <- Ref.read currentScene
-    audioClockPriorToComputation <- getAudioClockTime nonBehavioralFFIInfo.context
+    let ctx = contextFromSnapshot ffiSnapshot
+    audioClockPriorToComputation <- getAudioClockTime ctx
     let
       -- this is how far in the future we are telling the
       -- algorithm to calculate with respect to the audio clock
@@ -238,14 +232,9 @@ run trigger inWorld engineInfo audioInfo scene =
               , analyserCallbacks
               }
           )
-    audioClockAfterComputation <- getAudioClockTime nonBehavioralFFIInfo.context
+    audioClockAfterComputation <- getAudioClockTime ctx
     let
-      ffi =
-        FFIAudioSnapshot
-          { context: nonBehavioralFFIInfo.context
-          , writeHead: max audioClockAfterComputation (audioClockPriorToComputation + headroomInSeconds)
-          , units: nonBehavioralFFIInfo.units
-          }
+      ffi = advanceWriteHead ffiSnapshot $ max audioClockAfterComputation (audioClockPriorToComputation + headroomInSeconds)
 
       applied = map (\f -> f (unit /\ ffi)) fromScene.instructions
     renderAudio (map snd applied)
@@ -284,7 +273,7 @@ run trigger inWorld engineInfo audioInfo scene =
             currentTimeoutCanceler
             currentEasingAlg
             currentScene
-            nonBehavioralFFIInfo
+            ffiSnapshot
             analyserCallbacks
             analyserRefs
             reporter
@@ -309,13 +298,6 @@ type EngineInfo
 -- | This easing algorithm always provides at least 20ms of headroom to the algorithm, but adjusts upwards in case deadlines are being missed.
 type EasingAlgorithm
   = Cofree ((->) Int) Int
-
-type NonBehavioralFFIInfo
-  =
-  { context :: WebAPI.AudioContext
-  , writeHead :: Number
-  , units :: Foreign
-  }
 
 type Run res analysers
   =
