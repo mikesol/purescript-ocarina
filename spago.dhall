@@ -17,6 +17,7 @@
   , "free"
   , "indexed-monad"
   , "integers"
+  , "invariant"
   , "js-timers"
   , "lazy"
   , "lists"

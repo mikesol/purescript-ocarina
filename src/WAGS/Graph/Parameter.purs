@@ -3,11 +3,22 @@ module WAGS.Graph.Parameter where
 import Prelude hiding (apply)
 
 import Control.Alt (class Alt)
+import Control.Alternative (class Alternative)
+import Control.Extend (class Extend)
+import Control.MonadZero (class MonadZero)
 import Control.Plus (class Plus)
+import Data.Eq (class Eq1)
+import Data.Foldable (class Foldable, foldMapDefaultL)
+import Data.FoldableWithIndex (class FoldableWithIndex, foldMapWithIndexDefaultL)
 import Data.Function (apply)
+import Data.Functor.Invariant (class Invariant)
+import Data.FunctorWithIndex (class FunctorWithIndex)
 import Data.Generic.Rep (class Generic)
 import Data.Newtype (class Newtype, unwrap)
+import Data.Ord (class Ord1)
 import Data.Show.Generic (genericShow)
+import Data.Traversable (class Traversable, sequenceDefault)
+import Data.TraversableWithIndex (class TraversableWithIndex)
 import Data.Variant (Variant, default, inj, match, on)
 import Record as R
 import Type.Proxy (Proxy(..))
@@ -118,6 +129,12 @@ _isJust = unwrap >>>
 _maybe :: forall a b. b -> (a -> b) -> Maybe' a -> b
 _maybe b f (Maybe' v) = (default b # _onJust f) v
 
+_maybe' :: forall a b. (Unit -> b) -> (a -> b) -> Maybe' a -> b
+_maybe' fb f (Maybe' v) = v # match
+  { just: f
+  , nothing: fb
+  }
+
 _fromMaybe :: forall a. a -> Maybe' a -> a
 _fromMaybe a (Maybe' v) = v # match
   { just: \b -> b
@@ -126,6 +143,49 @@ _fromMaybe a (Maybe' v) = v # match
 
 derive instance newtypeMaybe' :: Newtype (Maybe' a) _
 derive instance eqMaybe' :: Eq a => Eq (Maybe' a)
+instance eq1Maybe' :: Eq1 Maybe' where
+  eq1 a b = _isNothing a == _isNothing b
+instance ord1Maybe' :: Ord1 Maybe' where
+  compare1 a b = compare (_isJust a) (_isJust b)
+instance boundedMaybe' :: Bounded a => Bounded (Maybe' a) where
+  top = _just top
+  bottom = _just bottom
+instance foldableMaybe' :: Foldable Maybe' where
+  foldl f b (Maybe' a) = a # match
+    { just: \a' -> f b a'
+    , nothing: \_ -> b
+    }
+  foldr f b (Maybe' a) = a # match
+    { just: \a' -> f a' b
+    , nothing: \_ -> b
+    }
+  foldMap = foldMapDefaultL
+instance foldableWithIndexMaybe' :: FoldableWithIndex Unit Maybe' where
+  foldlWithIndex f b (Maybe' a) = a # match
+    { just: \a' -> f unit b a'
+    , nothing: \_ -> b
+    }
+  foldrWithIndex f b (Maybe' a) = a # match
+    { just: \a' -> f unit a' b
+    , nothing: \_ -> b
+    }
+  foldMapWithIndex = foldMapWithIndexDefaultL
+instance traversableMaybe :: Traversable Maybe' where
+  traverse f (Maybe' a) = a # match
+    { just: \a' -> _just <$> f a'
+    , nothing: \_ -> pure _nothing
+    }
+  sequence = sequenceDefault
+instance traversableWithIndexMaybe :: TraversableWithIndex Unit Maybe' where
+  traverseWithIndex f (Maybe' a) = a # match
+    { just: \a' -> _just <$> f unit a'
+    , nothing: \_ -> pure _nothing
+    }
+instance functorWithIndexMaybe' :: FunctorWithIndex Unit Maybe' where
+  mapWithIndex f (Maybe' a) = a # match
+    { just: \a' -> _just (f unit a')
+    , nothing: \_ -> _nothing
+    }
 derive instance ordMaybe' :: Ord a => Ord (Maybe' a)
 instance functorMaybe' :: Functor Maybe' where
   map f (Maybe' v) = v # match
@@ -141,13 +201,40 @@ instance applyMaybe' :: Apply Maybe' where
     , nothing: const _nothing
     }
     fa
-
 instance applicativeMaybe' :: Applicative Maybe' where
   pure = _just
-
 instance bindMaybe' :: Bind Maybe' where
   bind (Maybe' ma) f = (default _nothing # _onJust f) ma
-
+instance monadMaybe' :: Monad Maybe'
+instance altMaybe' :: Alt Maybe' where
+  alt a b
+    | _isJust a = a
+    | _isJust b = b
+    | otherwise = a
+instance plusMaybe' :: Plus Maybe' where
+  empty = _nothing
+instance alternativeMaybe' :: Alternative Maybe'
+instance monadZero' :: MonadZero Maybe'
+instance extendMaybe' :: Extend Maybe' where
+  extend f x = _just (f x)
+instance invariantMaybe :: Invariant Maybe' where
+  imap f _ (Maybe' v) = v # match
+    { just: \a -> _just $ f a
+    , nothing: \_ -> _nothing
+    }
+instance semigroupMaybe :: Semigroup a => Semigroup (Maybe' a) where
+  append _a@(Maybe' ax) _b@(Maybe' bx) = ax # match
+    { just: \a -> bx # match
+        { just: \b -> _just (a <> b)
+        , nothing: \_ -> _a
+        }
+    , nothing: \_ -> bx # match
+        { just: \_ -> _b
+        , nothing: \_ -> _nothing
+        }
+    }
+instance monoidMaybe :: Monoid a => Monoid (Maybe' a) where
+  mempty = _nothing
 derive newtype instance showMaybe' :: Show a => Show (Maybe' a)
 
 type AudioParameter_' a
