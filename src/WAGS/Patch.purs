@@ -16,7 +16,7 @@ import Simple.JSON as JSON
 import Type.Proxy (Proxy(..))
 import WAGS.Control.Indexed (IxWAG(..))
 import WAGS.Control.Types (WAG, unsafeUnWAG, unsafeWAG)
-import WAGS.Graph.AudioUnit (OnOff(..))
+import WAGS.Graph.AudioUnit (_off, _on)
 import WAGS.Graph.AudioUnit as AU
 import WAGS.Graph.Oversample (class IsOversample, reflectOversample)
 import WAGS.Interpret (class AudioInterpret, connectXToY, destroyUnit, disconnectXFromY, makeAllpass, makeAnalyser, makeAudioWorkletNode, makeBandpass, makeConstant, makeDelay, makeDynamicsCompressor, makeGain, makeHighpass, makeHighshelf, makeInput, makeLoopBufWithDeferredBuffer, makeLowpass, makeLowshelf, makeMicrophone, makeNotch, makePassthroughConvolver, makePeaking, makePeriodicOscWithDeferredOsc, makePlayBufWithDeferredBuffer, makeRecorder, makeSawtoothOsc, makeSinOsc, makeSpeaker, makeSquareOsc, makeStereoPanner, makeSubgraphWithDeferredScene, makeTriangleOsc, makeTumultWithDeferredGraph, makeWaveShaper)
@@ -354,45 +354,46 @@ instance toGraphEffectsConnectXToY :: (IsSymbol from, IsSymbol to, ToGraphEffect
   toGraphEffects _ cache i =
     toGraphEffects (Proxy :: _ rest) cache
       ( i
-          { instructions = i.instructions <> [ connectXToY from' "PATCH" to' "PATCH" ]
+          { instructions = i.instructions <> [ connectXToY { fromId, fromUnit, toId, toUnit } ]
           }
       )
     where
-    from' = reflectSymbol (Proxy :: _ from)
-
-    to' = reflectSymbol (Proxy :: _ to)
-
+    fromId = reflectSymbol (Proxy :: _ from)
+    fromUnit = "PATCH"
+    toId = reflectSymbol (Proxy :: _ to)
+    toUnit = "PATCH"
 instance toGraphEffectsDisconnectXFromY :: (IsSymbol from, IsSymbol to, ToGraphEffects rest) => ToGraphEffects (DisconnectXFromY from to /\ rest) where
   toGraphEffects _ cache i =
     toGraphEffects (Proxy :: _ rest) cache
       ( i
-          { instructions = i.instructions <> [ disconnectXFromY from' "PATCH" to' "PATCH" ]
+          { instructions = i.instructions <> [ disconnectXFromY { fromId, fromUnit, toId, toUnit } ]
           }
       )
     where
-    from' = reflectSymbol (Proxy :: _ from)
-
-    to' = reflectSymbol (Proxy :: _ to)
-
+    fromId = reflectSymbol (Proxy :: _ from)
+    fromUnit = "PATCH"
+    toId = reflectSymbol (Proxy :: _ to)
+    toUnit = "PATCH"
 instance toGraphEffectsDestroyUnit :: (IsSymbol ptr, ToGraphEffects rest) => ToGraphEffects (DestroyUnit ptr /\ rest) where
   toGraphEffects _ cache i =
     toGraphEffects (Proxy :: _ rest) cache
       ( i
-          { instructions = i.instructions <> [ destroyUnit ptr' "PATCH" ]
+          { instructions = i.instructions <> [ destroyUnit { id, unit: u } ]
           }
       )
     where
-    ptr' = reflectSymbol (Proxy :: _ ptr)
+    id = reflectSymbol (Proxy :: _ ptr)
+    u = "PATCH"
 
 instance toGraphEffectsMakeAllpass :: (IsSymbol ptr, ToGraphEffects rest) => ToGraphEffects (MakeAllpass ptr /\ rest) where
   toGraphEffects _ cache i =
     toGraphEffects (Proxy :: _ rest) cache
       ( i
-          { instructions = i.instructions <> [ makeAllpass ptr' (pure 440.0) (pure 1.0) ]
+          { instructions = i.instructions <> [ makeAllpass { id, freq: pure 440.0, q: pure 1.0 } ]
           }
       )
     where
-    ptr' = reflectSymbol (Proxy :: _ ptr)
+    id = reflectSymbol (Proxy :: _ ptr)
 
 instance toGraphEffectsMakeAnalyser :: (IsSymbol ptr, ToGraphEffects rest) => ToGraphEffects (MakeAnalyser ptr /\ rest) where
   toGraphEffects _ cache i =
@@ -401,12 +402,12 @@ instance toGraphEffectsMakeAnalyser :: (IsSymbol ptr, ToGraphEffects rest) => To
           ---------------------------------- same goes for worklet
           ---------------------------------- the two present two different cases
           ----------------------------------------------- for analyser, we can set the callback after the fact
-          ----------------------------------------------- for a custom audio worklet, we're 
-          { instructions = i.instructions <> [ makeAnalyser ptr' (AnalyserNodeCb \_ -> pure (pure unit)) ]
+          ----------------------------------------------- for a custom audio worklet, we're
+          { instructions = i.instructions <> [ makeAnalyser { id, cb: AnalyserNodeCb \_ -> pure (pure unit) } ]
           }
       )
     where
-    ptr' = reflectSymbol (Proxy :: _ ptr)
+    id = reflectSymbol (Proxy :: _ ptr)
 
 class FillWithNothing
 
@@ -425,20 +426,23 @@ instance toGraphEffectsMakeAudioWorkletNode ::
     toGraphEffects (Proxy :: _ rest) cache
       ( i
           { instructions = i.instructions <>
-              [ makeAudioWorkletNode ptr'
-                  $ AudioWorkletNodeOptions_
-                    { name: sym'
-                    , numberOfInputs: toInt' (Proxy :: _ numberOfInputs)
-                    , numberOfOutputs: toInt' (Proxy :: _ numberOfOutputs)
-                    , outputChannelCount: toOutputChannelCount (Proxy :: _ numberOfOutputs) (Proxy :: _ outputChannelCount)
-                    , parameterData: Object.empty
-                    , processorOptions: JSON.writeImpl (mempty :: { | processorOptions })
-                    }
+              [ makeAudioWorkletNode
+                  { id
+                  , options:
+                      AudioWorkletNodeOptions_
+                        { name: sym'
+                        , numberOfInputs: toInt' (Proxy :: _ numberOfInputs)
+                        , numberOfOutputs: toInt' (Proxy :: _ numberOfOutputs)
+                        , outputChannelCount: toOutputChannelCount (Proxy :: _ numberOfOutputs) (Proxy :: _ outputChannelCount)
+                        , parameterData: Object.empty
+                        , processorOptions: JSON.writeImpl (mempty :: { | processorOptions })
+                        }
+                  }
               ]
           }
       )
     where
-    ptr' = reflectSymbol (Proxy :: _ ptr)
+    id = reflectSymbol (Proxy :: _ ptr)
 
     sym' = reflectSymbol (Proxy :: _ sym)
 
@@ -446,131 +450,131 @@ instance toGraphEffectsMakeBandpass :: (IsSymbol ptr, ToGraphEffects rest) => To
   toGraphEffects _ cache i =
     toGraphEffects (Proxy :: _ rest) cache
       ( i
-          { instructions = i.instructions <> [ makeBandpass ptr' (pure 440.0) (pure 1.0) ]
+          { instructions = i.instructions <> [ makeBandpass { id, freq: pure 440.0, q: pure 1.0 } ]
           }
       )
     where
-    ptr' = reflectSymbol (Proxy :: _ ptr)
+    id = reflectSymbol (Proxy :: _ ptr)
 
 instance toGraphEffectsMakeConstant :: (IsSymbol ptr, ToGraphEffects rest) => ToGraphEffects (MakeConstant ptr /\ rest) where
   toGraphEffects _ cache i =
     toGraphEffects (Proxy :: _ rest) cache
       ( i
-          { instructions = i.instructions <> [ makeConstant ptr' (pure Off) (pure 0.0) ]
+          { instructions = i.instructions <> [ makeConstant { id, onOff: pure _off, offset: pure 0.0 } ]
           }
       )
     where
-    ptr' = reflectSymbol (Proxy :: _ ptr)
+    id = reflectSymbol (Proxy :: _ ptr)
 
 instance toGraphEffectsMakeConvolver :: (IsSymbol ptr, ToGraphEffects rest) => ToGraphEffects (MakeConvolver ptr /\ rest) where
   toGraphEffects _ cache i =
     toGraphEffects (Proxy :: _ rest) cache
       ( i
-          { instructions = i.instructions <> [ makePassthroughConvolver ptr' ]
+          { instructions = i.instructions <> [ makePassthroughConvolver { id } ]
           }
       )
     where
-    ptr' = reflectSymbol (Proxy :: _ ptr)
+    id = reflectSymbol (Proxy :: _ ptr)
 
 instance toGraphEffectsMakeDelay :: (IsSymbol ptr, ToGraphEffects rest) => ToGraphEffects (MakeDelay ptr /\ rest) where
   toGraphEffects _ cache i =
     toGraphEffects (Proxy :: _ rest) cache
       ( i
-          { instructions = i.instructions <> [ makeDelay ptr' (pure 1.0) ]
+          { instructions = i.instructions <> [ makeDelay { id, delayTime: pure 1.0 } ]
           }
       )
     where
-    ptr' = reflectSymbol (Proxy :: _ ptr)
+    id = reflectSymbol (Proxy :: _ ptr)
 
 instance toGraphEffectsMakeDynamicsCompressor :: (IsSymbol ptr, ToGraphEffects rest) => ToGraphEffects (MakeDynamicsCompressor ptr /\ rest) where
   toGraphEffects _ cache i =
     toGraphEffects (Proxy :: _ rest) cache
       ( i
-          { instructions = i.instructions <> [ makeDynamicsCompressor ptr' (pure (-24.0)) (pure 30.0) (pure 12.0) (pure 0.003) (pure 0.25) ]
+          { instructions = i.instructions <> [ makeDynamicsCompressor { id, threshold: pure (-24.0), knee: pure 30.0, ratio: pure 12.0, attack: pure 0.003, release: pure 0.25 } ]
           }
       )
     where
-    ptr' = reflectSymbol (Proxy :: _ ptr)
+    id = reflectSymbol (Proxy :: _ ptr)
 
 instance toGraphEffectsMakeGain :: (IsSymbol ptr, ToGraphEffects rest) => ToGraphEffects (MakeGain ptr /\ rest) where
   toGraphEffects _ cache i =
     toGraphEffects (Proxy :: _ rest) cache
       ( i
-          { instructions = i.instructions <> [ makeGain ptr' (pure 0.0) ]
+          { instructions = i.instructions <> [ makeGain { id, gain: pure 0.0 } ]
           }
       )
     where
-    ptr' = reflectSymbol (Proxy :: _ ptr)
+    id = reflectSymbol (Proxy :: _ ptr)
 
 instance toGraphEffectsMakeHighpass :: (IsSymbol ptr, ToGraphEffects rest) => ToGraphEffects (MakeHighpass ptr /\ rest) where
   toGraphEffects _ cache i =
     toGraphEffects (Proxy :: _ rest) cache
       ( i
-          { instructions = i.instructions <> [ makeHighpass ptr' (pure 440.0) (pure 1.0) ]
+          { instructions = i.instructions <> [ makeHighpass { id, freq: pure 440.0, q: pure 1.0 } ]
           }
       )
     where
-    ptr' = reflectSymbol (Proxy :: _ ptr)
+    id = reflectSymbol (Proxy :: _ ptr)
 
 instance toGraphEffectsMakeHighshelf :: (IsSymbol ptr, ToGraphEffects rest) => ToGraphEffects (MakeHighshelf ptr /\ rest) where
   toGraphEffects _ cache i =
     toGraphEffects (Proxy :: _ rest) cache
       ( i
-          { instructions = i.instructions <> [ makeHighshelf ptr' (pure 440.0) (pure 0.0) ]
+          { instructions = i.instructions <> [ makeHighshelf { id, freq: pure 440.0, gain: pure 0.0 } ]
           }
       )
     where
-    ptr' = reflectSymbol (Proxy :: _ ptr)
+    id = reflectSymbol (Proxy :: _ ptr)
 
 instance toGraphEffectsMakeInput :: (IsSymbol ptr, IsSymbol sym, ToGraphEffects rest) => ToGraphEffects (MakeInput ptr sym /\ rest) where
   toGraphEffects _ cache i =
     toGraphEffects (Proxy :: _ rest) cache
       ( i
-          { instructions = i.instructions <> [ makeInput ptr' sym' ]
+          { instructions = i.instructions <> [ makeInput { id, input } ]
           }
       )
     where
-    ptr' = reflectSymbol (Proxy :: _ ptr)
-    sym' = reflectSymbol (Proxy :: _ sym)
+    id = reflectSymbol (Proxy :: _ ptr)
+    input = reflectSymbol (Proxy :: _ sym)
 
 instance toGraphEffectsMakeLoopBuf :: (IsSymbol ptr, ToGraphEffects rest) => ToGraphEffects (MakeLoopBuf ptr /\ rest) where
   toGraphEffects _ cache i =
     toGraphEffects (Proxy :: _ rest) cache
       ( i
-          { instructions = i.instructions <> [ makeLoopBufWithDeferredBuffer ptr' ]
+          { instructions = i.instructions <> [ makeLoopBufWithDeferredBuffer { id } ]
           }
       )
     where
-    ptr' = reflectSymbol (Proxy :: _ ptr)
+    id = reflectSymbol (Proxy :: _ ptr)
 
 instance toGraphEffectsMakeLowpass :: (IsSymbol ptr, ToGraphEffects rest) => ToGraphEffects (MakeLowpass ptr /\ rest) where
   toGraphEffects _ cache i =
     toGraphEffects (Proxy :: _ rest) cache
       ( i
-          { instructions = i.instructions <> [ makeLowpass ptr' (pure 440.0) (pure 1.0) ]
+          { instructions = i.instructions <> [ makeLowpass { id, freq: pure 440.0, q: pure 1.0 } ]
           }
       )
     where
-    ptr' = reflectSymbol (Proxy :: _ ptr)
+    id = reflectSymbol (Proxy :: _ ptr)
 
 instance toGraphEffectsMakeLowshelf :: (IsSymbol ptr, ToGraphEffects rest) => ToGraphEffects (MakeLowshelf ptr /\ rest) where
   toGraphEffects _ cache i =
     toGraphEffects (Proxy :: _ rest) cache
       ( i
-          { instructions = i.instructions <> [ makeLowshelf ptr' (pure 440.0) (pure 0.0) ]
+          { instructions = i.instructions <> [ makeLowshelf { id, freq: pure 440.0, gain: pure 0.0 } ]
           }
       )
     where
-    ptr' = reflectSymbol (Proxy :: _ ptr)
+    id = reflectSymbol (Proxy :: _ ptr)
 
 constantNothing :: forall audio engine. AudioInterpret audio engine => audio -> engine
-constantNothing = makeConstant "microphone" (pure On) (pure 0.0)
+constantNothing = makeConstant { id: "microphone", onOff: pure _on, offset: pure 0.0 }
 
 instance toGraphEffectsMakeMicrophone :: ToGraphEffects rest => ToGraphEffects (MakeMicrophone /\ rest) where
   toGraphEffects _ cache i =
     toGraphEffects (Proxy :: _ rest) cache
       ( i
-          { instructions = i.instructions <> [ maybe constantNothing makeMicrophone cache.microphone ]
+          { instructions = i.instructions <> [ maybe constantNothing (makeMicrophone <<< { microphone: _ }) cache.microphone ]
           }
       )
 
@@ -578,81 +582,81 @@ instance toGraphEffectsMakeNotch :: (IsSymbol ptr, ToGraphEffects rest) => ToGra
   toGraphEffects _ cache i =
     toGraphEffects (Proxy :: _ rest) cache
       ( i
-          { instructions = i.instructions <> [ makeNotch ptr' (pure 440.0) (pure 1.0) ]
+          { instructions = i.instructions <> [ makeNotch { id, freq: pure 440.0, q: pure 1.0 } ]
           }
       )
     where
-    ptr' = reflectSymbol (Proxy :: _ ptr)
+    id = reflectSymbol (Proxy :: _ ptr)
 
 instance toGraphEffectsMakePeaking :: (IsSymbol ptr, ToGraphEffects rest) => ToGraphEffects (MakePeaking ptr /\ rest) where
   toGraphEffects _ cache i =
     toGraphEffects (Proxy :: _ rest) cache
       ( i
-          { instructions = i.instructions <> [ makePeaking ptr' (pure 440.0) (pure 1.0) (pure 0.0) ]
+          { instructions = i.instructions <> [ makePeaking { id, freq: pure 440.0, q: pure 1.0, gain: pure 0.0 } ]
           }
       )
     where
-    ptr' = reflectSymbol (Proxy :: _ ptr)
+    id = reflectSymbol (Proxy :: _ ptr)
 
 instance toGraphEffectsMakePeriodicOsc :: (IsSymbol ptr, ToGraphEffects rest) => ToGraphEffects (MakePeriodicOsc ptr /\ rest) where
   toGraphEffects _ cache i =
     toGraphEffects (Proxy :: _ rest) cache
       ( i
-          { instructions = i.instructions <> [ makePeriodicOscWithDeferredOsc ptr' ]
+          { instructions = i.instructions <> [ makePeriodicOscWithDeferredOsc { id } ]
           }
       )
     where
-    ptr' = reflectSymbol (Proxy :: _ ptr)
+    id = reflectSymbol (Proxy :: _ ptr)
 
 instance toGraphEffectsMakePlayBuf :: (IsSymbol ptr, ToGraphEffects rest) => ToGraphEffects (MakePlayBuf ptr /\ rest) where
   toGraphEffects _ cache i =
     toGraphEffects (Proxy :: _ rest) cache
       ( i
-          { instructions = i.instructions <> [ makePlayBufWithDeferredBuffer ptr' ]
+          { instructions = i.instructions <> [ makePlayBufWithDeferredBuffer { id } ]
           }
       )
     where
-    ptr' = reflectSymbol (Proxy :: _ ptr)
+    id = reflectSymbol (Proxy :: _ ptr)
 
 instance toGraphEffectsMakeRecorder :: (IsSymbol ptr, ToGraphEffects rest) => ToGraphEffects (MakeRecorder ptr /\ rest) where
   toGraphEffects _ cache i =
     toGraphEffects (Proxy :: _ rest) cache
       ( i
-          { instructions = i.instructions <> [ makeRecorder ptr' (MediaRecorderCb \_ -> pure unit) ]
+          { instructions = i.instructions <> [ makeRecorder { id, cb: MediaRecorderCb \_ -> pure unit } ]
           }
       )
     where
-    ptr' = reflectSymbol (Proxy :: _ ptr)
+    id = reflectSymbol (Proxy :: _ ptr)
 
 instance toGraphEffectsMakeSawtoothOsc :: (IsSymbol ptr, ToGraphEffects rest) => ToGraphEffects (MakeSawtoothOsc ptr /\ rest) where
   toGraphEffects _ cache i =
     toGraphEffects (Proxy :: _ rest) cache
       ( i
-          { instructions = i.instructions <> [ makeSawtoothOsc ptr' (pure Off) (pure 440.0) ]
+          { instructions = i.instructions <> [ makeSawtoothOsc { id, onOff: pure _off, freq: pure 440.0 } ]
           }
       )
     where
-    ptr' = reflectSymbol (Proxy :: _ ptr)
+    id = reflectSymbol (Proxy :: _ ptr)
 
 instance toGraphEffectsMakeSinOsc :: (IsSymbol ptr, ToGraphEffects rest) => ToGraphEffects (MakeSinOsc ptr /\ rest) where
   toGraphEffects _ cache i =
     toGraphEffects (Proxy :: _ rest) cache
       ( i
-          { instructions = i.instructions <> [ makeSinOsc ptr' (pure Off) (pure 440.0) ]
+          { instructions = i.instructions <> [ makeSinOsc { id, onOff: pure _off, freq: pure 440.0 } ]
           }
       )
     where
-    ptr' = reflectSymbol (Proxy :: _ ptr)
+    id = reflectSymbol (Proxy :: _ ptr)
 
 instance toGraphEffectsMakeSquareOsc :: (IsSymbol ptr, ToGraphEffects rest) => ToGraphEffects (MakeSquareOsc ptr /\ rest) where
   toGraphEffects _ cache i =
     toGraphEffects (Proxy :: _ rest) cache
       ( i
-          { instructions = i.instructions <> [ makeSquareOsc ptr' (pure Off) (pure 440.0) ]
+          { instructions = i.instructions <> [ makeSquareOsc { id, onOff: pure _off, freq: pure 440.0 } ]
           }
       )
     where
-    ptr' = reflectSymbol (Proxy :: _ ptr)
+    id = reflectSymbol (Proxy :: _ ptr)
 
 instance toGraphEffectsMakeSpeaker :: (ToGraphEffects rest) => ToGraphEffects (MakeSpeaker /\ rest) where
   toGraphEffects _ cache i =
@@ -666,41 +670,41 @@ instance toGraphEffectsMakeStereoPanner :: (IsSymbol ptr, ToGraphEffects rest) =
   toGraphEffects _ cache i =
     toGraphEffects (Proxy :: _ rest) cache
       ( i
-          { instructions = i.instructions <> [ makeStereoPanner ptr' (pure 0.0) ]
+          { instructions = i.instructions <> [ makeStereoPanner { id, pan: pure 0.0 } ]
           }
       )
     where
-    ptr' = reflectSymbol (Proxy :: _ ptr)
+    id = reflectSymbol (Proxy :: _ ptr)
 
 instance toGraphEffectsMakeSubgraph :: (IsSymbol ptr, ToGraphEffects rest) => ToGraphEffects (MakeSubgraph ptr /\ rest) where
   toGraphEffects _ cache i =
     toGraphEffects (Proxy :: _ rest) cache
       ( i
-          { instructions = i.instructions <> [ makeSubgraphWithDeferredScene ptr' ]
+          { instructions = i.instructions <> [ makeSubgraphWithDeferredScene { id } ]
           }
       )
     where
-    ptr' = reflectSymbol (Proxy :: _ ptr)
+    id = reflectSymbol (Proxy :: _ ptr)
 
 instance toGraphEffectsMakeTriangleOsc :: (IsSymbol ptr, ToGraphEffects rest) => ToGraphEffects (MakeTriangleOsc ptr /\ rest) where
   toGraphEffects _ cache i =
     toGraphEffects (Proxy :: _ rest) cache
       ( i
-          { instructions = i.instructions <> [ makeTriangleOsc ptr' (pure Off) (pure 440.0) ]
+          { instructions = i.instructions <> [ makeTriangleOsc { id, onOff: pure _off, freq: pure 440.0 } ]
           }
       )
     where
-    ptr' = reflectSymbol (Proxy :: _ ptr)
+    id = reflectSymbol (Proxy :: _ ptr)
 
 instance toGraphEffectsMakeTumult :: (IsSymbol ptr, ToGraphEffects rest) => ToGraphEffects (MakeTumult ptr /\ rest) where
   toGraphEffects _ cache i =
     toGraphEffects (Proxy :: _ rest) cache
       ( i
-          { instructions = i.instructions <> [ makeTumultWithDeferredGraph ptr' ]
+          { instructions = i.instructions <> [ makeTumultWithDeferredGraph { id } ]
           }
       )
     where
-    ptr' = reflectSymbol (Proxy :: _ ptr)
+    id = reflectSymbol (Proxy :: _ ptr)
 
 foreign import emptyFloatArray :: BrowserFloatArray
 
@@ -708,11 +712,11 @@ instance toGraphEffectsMakeWaveShaper :: (IsSymbol ptr, IsOversample oversample,
   toGraphEffects _ cache i =
     toGraphEffects (Proxy :: _ rest) cache
       ( i
-          { instructions = i.instructions <> [ makeWaveShaper ptr' emptyFloatArray oversample' ]
+          { instructions = i.instructions <> [ makeWaveShaper { id, curve: emptyFloatArray, oversample: oversample' } ]
           }
       )
     where
-    ptr' = reflectSymbol (Proxy :: _ ptr)
+    id = reflectSymbol (Proxy :: _ ptr)
 
     oversample' = reflectOversample (mempty :: oversample)
 

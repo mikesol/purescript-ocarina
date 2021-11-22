@@ -9,7 +9,7 @@ import WAGS.Create.Optionals (CPlayBuf, CWaveShaper, playBuf, waveShaper)
 import WAGS.Example.KitchenSink.TLP.LoopSig (IxWAGSig', World)
 import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
 import WAGS.Example.KitchenSink.Types.Empty (TopWith)
-import WAGS.Graph.AudioUnit (OnOff(..), OversampleTwoX(..), TPlayBuf, TWaveShaper)
+import WAGS.Graph.AudioUnit (OversampleTwoX(..), TPlayBuf, TWaveShaper, _off, _on)
 
 type WaveShaperGraph
   = TopWith { waveShaper :: Unit }
@@ -37,7 +37,6 @@ deltaKsWaveShaper =
       let
         switchOO = time % 2.0 < 1.0
         mix = if time > (timing.ksWaveShaper.dur - 1.0) then 0.0 else 1.0
-        onOff = if switchOO then On else Off
+        onOff = if switchOO then _on else _off
       in
         ichange { mix, buf: { onOff } }
-

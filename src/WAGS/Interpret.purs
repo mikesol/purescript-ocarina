@@ -127,7 +127,7 @@ import Data.Array as Array
 import Data.ArrayBuffer.Types (Float32Array, Uint8Array, ArrayBuffer)
 import Data.FunctorWithIndex (mapWithIndex)
 import Data.Lazy (defer)
-import Data.Maybe (Maybe(..), fromMaybe, isJust, isNothing, maybe)
+import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype, unwrap, wrap)
 import Data.Profunctor (lcmap)
 import Data.Set as Set
@@ -149,10 +149,10 @@ import Simple.JSON as JSON
 import Type.Row.Homogeneous (class Homogeneous)
 import Unsafe.Coerce (unsafeCoerce)
 import WAGS.Control.Types (Frame0, SubScene(..), oneSubFrame)
-import WAGS.Graph.AudioUnit (APOnOff, OnOff(..))
-import WAGS.Graph.Parameter (AudioParameter_(..), AudioParameter)
+import WAGS.Graph.AudioUnit (APOnOff, OnOff)
+import WAGS.Graph.Parameter (AudioParameter, AudioParameter_(..), _fromMaybe, _isJust, _isNothing, _maybe)
 import WAGS.Graph.Worklet (AudioWorkletNodeRequest, AudioWorkletNodeResponse)
-import WAGS.Rendered (AudioWorkletNodeOptions_(..), Instruction, Oversample)
+import WAGS.Rendered (AudioWorkletNodeOptions_(..), Instruction, Oversample, RealImg(..))
 import WAGS.Rendered as R
 import WAGS.Tumult.Reconciliation (reconcileTumult)
 import WAGS.Util (class ValidateOutputChannelCount)
@@ -415,14 +415,14 @@ type SetPeriodicOscW =
 
 type MakePeriodicOscV =
   { id :: String
-  , realImg :: Array Number /\ Array Number
+  , realImg :: RealImg
   , onOff :: APOnOff
   , freq :: AudioParameter
   }
 
 type SetPeriodicOscV =
   { id :: String
-  , realImg :: Array Number /\ Array Number
+  , realImg :: RealImg
   }
 -- | A class with all possible instructions for interpreting audio.
 -- | The class is paramaterized by two types:
@@ -1018,8 +1018,8 @@ instance safeToFFI_Number :: SafeToFFI Number Number where
 instance safeToFFI_Foreign :: SafeToFFI Foreign Foreign where
   safeToFFI = identity
 
-instance safeToFFI_VecNumber :: SafeToFFI (Array Number /\ Array Number) (Array (Array Number)) where
-  safeToFFI (a /\ b) = [ a, b ]
+instance safeToFFI_VecNumber :: SafeToFFI RealImg (Array (Array Number)) where
+  safeToFFI (RealImg { real, img }) = [ real, img ]
 
 instance safeToFFI_String :: SafeToFFI String String where
   safeToFFI = identity
@@ -1060,11 +1060,11 @@ type FFINumericAudioParameter
 instance safeToFFI_AudioParameter ::
   SafeToFFI (AudioParameter_ Number) FFINumericAudioParameter where
   safeToFFI (AudioParameter { param, timeOffset, transition }) =
-    { param: fromMaybe 0.0 param
-    , isJust: isJust param
+    { param: _fromMaybe 0.0 param
+    , isJust: _isJust param
     , timeOffset
     , transition: show transition
-    , cancel: isNothing param
+    , cancel: _isNothing param
     }
 
 -- | An AudioParameter with the `transition` field stringly-typed for easier rendering in the FFI and cancelation as a boolean
@@ -1080,16 +1080,17 @@ instance safeToFFI_AudioParameterString ::
   SafeToFFI (AudioParameter_ OnOff) FFIStringAudioParameter where
   safeToFFI (AudioParameter { param, timeOffset, transition }) =
     { param:
-        maybe "off"
-          ( case _ of
-              On -> "on"
-              Off -> "off"
-              OffOn -> "offOn"
+        _maybe "off"
+          ( unwrap >>> match
+              { on: const "on"
+              , off: const "off"
+              , offOn: const "offOn"
+              }
           )
           param
     , timeOffset
     , transition: show transition
-    , cancel: isNothing param
+    , cancel: _isNothing param
     }
 
 audioEngine1st :: forall terminus inputs env proof res. SubScene terminus inputs env (Unit /\ FFIAudioSnapshot) (Instruction /\ Effect Unit) proof res -> SubScene terminus inputs env Unit Instruction proof res

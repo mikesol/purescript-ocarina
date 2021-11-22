@@ -9,7 +9,7 @@ import WAGS.Create.Optionals (CLoopBuf, loopBuf)
 import WAGS.Example.KitchenSink.TLP.LoopSig (IxWAGSig', World)
 import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
 import WAGS.Example.KitchenSink.Types.Empty (TopWith)
-import WAGS.Graph.AudioUnit (OnOff(..), TLoopBuf)
+import WAGS.Graph.AudioUnit (TLoopBuf, _off, _on)
 
 type LoopBufGraph
   = TopWith { loopBuf :: Unit }
@@ -30,7 +30,7 @@ deltaKsLoopBuf { buffers: { "my-buffer": myBuffer, shruti } } =
         switchOO = time % 2.0 < 1.0
         switchW = time % 4.0 < 2.0
         changeRec =
-          { onOff: if switchOO then On else Off
+          { onOff: if switchOO then _on else _off
           , playbackRate: 1.0 + (0.1 * sin rad)
           , loopStart: 1.0
           , loopEnd: 1.4 + 0.2 * (sin rad)

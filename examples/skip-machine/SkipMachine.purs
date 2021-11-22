@@ -27,7 +27,7 @@ import WAGS.Control.Functions.Graph (iloop, (@!>))
 import WAGS.Control.Indexed (IxWAG)
 import WAGS.Control.Types (Frame0, Scene)
 import WAGS.Create.Optionals (playBuf, speaker)
-import WAGS.Graph.AudioUnit (OnOff(..), TPlayBuf, TSpeaker)
+import WAGS.Graph.AudioUnit (TPlayBuf, TSpeaker, _offOn)
 import WAGS.Interpret (class AudioInterpret, bufferDuration, close, context, decodeAudioDataFromUri, makeUnitCache)
 import WAGS.Patch (ipatch)
 import WAGS.Run (Run, RunAudio, RunEngine, SceneI(..), run)
@@ -57,7 +57,7 @@ myChange (SceneI { time, world: { hamlet } }) fcf =
     ( \v -> ichange
         ( speaker
             { buf:
-                playBuf { onOff: OffOn, bufferOffset: bufferDuration hamlet * (toNumber v) / (toNumber mxordr) } hamlet
+                playBuf { onOff: _offOn, bufferOffset: bufferDuration hamlet * (toNumber v) / (toNumber mxordr) } hamlet
             }
         )
     )
@@ -151,8 +151,8 @@ handleAction = case _ of
     unitCache <- H.liftEffect makeUnitCache
     hamlet <-
       H.liftAff $ decodeAudioDataFromUri
-          audioCtx
-          "https://freesound.org/data/previews/50/50843_489520-hq.mp3"
+        audioCtx
+        "https://freesound.org/data/previews/50/50843_489520-hq.mp3"
     let
       ffiAudio =
         { context: audioCtx

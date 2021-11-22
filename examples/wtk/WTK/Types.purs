@@ -9,7 +9,7 @@ import Data.Set as S
 import Data.Tuple.Nested (type (/\))
 import FRP.Event.MIDI (MIDIEventInTime)
 import WAGS.Create.Optionals (CGain, CSinOsc, CSpeaker, gain, sinOsc, speaker)
-import WAGS.Graph.AudioUnit (OnOff(..), TGain, TSinOsc, TSpeaker)
+import WAGS.Graph.AudioUnit (OnOff, TGain, TSinOsc, TSpeaker, _off)
 
 data Key
   = K0
@@ -71,16 +71,16 @@ fullKeyboard =
   speaker
     { mix:
         gain 1.0
-          { k0: gain 0.0 { osc0: sinOsc { onOff: Off, freq: 440.0 } }
-          , k1: gain 0.0 { osc1: sinOsc { onOff: Off, freq: 440.0 } }
-          , k2: gain 0.0 { osc2: sinOsc { onOff: Off, freq: 440.0 } }
-          , k3: gain 0.0 { osc3: sinOsc { onOff: Off, freq: 440.0 } }
-          , k4: gain 0.0 { osc4: sinOsc { onOff: Off, freq: 440.0 } }
-          , k5: gain 0.0 { osc5: sinOsc { onOff: Off, freq: 440.0 } }
-          , k6: gain 0.0 { osc6: sinOsc { onOff: Off, freq: 440.0 } }
-          , k7: gain 0.0 { osc7: sinOsc { onOff: Off, freq: 440.0 } }
-          , k8: gain 0.0 { osc8: sinOsc { onOff: Off, freq: 440.0 } }
-          , k9: gain 0.0 { osc9: sinOsc { onOff: Off, freq: 440.0 } }
+          { k0: gain 0.0 { osc0: sinOsc { onOff: _off, freq: 440.0 } }
+          , k1: gain 0.0 { osc1: sinOsc { onOff: _off, freq: 440.0 } }
+          , k2: gain 0.0 { osc2: sinOsc { onOff: _off, freq: 440.0 } }
+          , k3: gain 0.0 { osc3: sinOsc { onOff: _off, freq: 440.0 } }
+          , k4: gain 0.0 { osc4: sinOsc { onOff: _off, freq: 440.0 } }
+          , k5: gain 0.0 { osc5: sinOsc { onOff: _off, freq: 440.0 } }
+          , k6: gain 0.0 { osc6: sinOsc { onOff: _off, freq: 440.0 } }
+          , k7: gain 0.0 { osc7: sinOsc { onOff: _off, freq: 440.0 } }
+          , k8: gain 0.0 { osc8: sinOsc { onOff: _off, freq: 440.0 } }
+          , k9: gain 0.0 { osc9: sinOsc { onOff: _off, freq: 440.0 } }
           }
     }
 

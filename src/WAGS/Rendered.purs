@@ -11,7 +11,6 @@ import Data.Generic.Rep (class Generic)
 import Data.Lazy (Lazy)
 import Data.Newtype (class Newtype, unwrap)
 import Data.Show.Generic (genericShow)
-import Data.Tuple.Nested (type (/\))
 import Data.Variant (Variant, inj, match)
 import Foreign (Foreign)
 import Foreign.Object (Object)
@@ -125,17 +124,22 @@ type MakeMicrophone = { microphone :: BrowserMicrophone }
 type MakeNotch = { id :: String, freq :: AudioParameter, q :: AudioParameter }
 type MakePeaking = { id :: String, freq :: AudioParameter, q :: AudioParameter, gain :: AudioParameter }
 type MakePeriodicOscWithDeferredOsc = { id :: String }
+newtype RealImg = RealImg { real :: Array Number, img :: Array Number }
+derive instance newtypeRealImg :: Newtype RealImg _
+derive instance eqRealImg :: Eq RealImg
+derive instance ordRealImg :: Ord RealImg
+derive newtype instance showRealImg :: Show RealImg
 newtype PeriodicOscSpec = PeriodicOscSpec
   ( Variant
       ( wave :: BrowserPeriodicWave
-      , realImg :: Array Number /\ Array Number
+      , realImg :: RealImg
       )
   )
 
 iWave :: BrowserPeriodicWave -> PeriodicOscSpec
 iWave = PeriodicOscSpec <<< inj (Proxy :: Proxy "wave")
 
-iRealImg :: Array Number /\ Array Number -> PeriodicOscSpec
+iRealImg :: RealImg -> PeriodicOscSpec
 iRealImg = PeriodicOscSpec <<< inj (Proxy :: Proxy "realImg")
 
 derive instance newtypePeriodicOscSpec :: Newtype PeriodicOscSpec _

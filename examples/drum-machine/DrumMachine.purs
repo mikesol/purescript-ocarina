@@ -27,7 +27,7 @@ import WAGS.Control.Functions.Graph (iloop, (@!>))
 import WAGS.Control.Types (Frame0, Scene)
 import WAGS.Create (icreate)
 import WAGS.Create.Optionals (CGain, CSpeaker, CPlayBuf, gain, speaker, playBuf)
-import WAGS.Graph.AudioUnit (OnOff(..), TGain, TLoopBuf, TSpeaker)
+import WAGS.Graph.AudioUnit (TGain, TLoopBuf, TSpeaker, _offOn, _on)
 import WAGS.Graph.Parameter (ff)
 import WAGS.Interpret (close, context, decodeAudioDataFromUri, makeUnitCache)
 import WAGS.Run (RunAudio, RunEngine, SceneI(..), Run, run)
@@ -61,9 +61,9 @@ scene shouldReset (SceneI { time, world: { snare } }) =
                 playBuf
                   { onOff:
                       if (not shouldReset) then
-                        pure On
+                        pure _on
                       else
-                        ff ((toNumber (tgFloor + 1) * gap) - time) (pure OffOn)
+                        ff ((toNumber (tgFloor + 1) * gap) - time) (pure _offOn)
                   }
                   snare
             }

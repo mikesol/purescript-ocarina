@@ -9,7 +9,7 @@ import WAGS.Create.Optionals (CBandpass, CPlayBuf, bandpass, playBuf)
 import WAGS.Example.KitchenSink.TLP.LoopSig (IxWAGSig', World)
 import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
 import WAGS.Example.KitchenSink.Types.Empty (TopWith)
-import WAGS.Graph.AudioUnit (OnOff(..), TBandpass, TPlayBuf)
+import WAGS.Graph.AudioUnit (TBandpass, TPlayBuf, _off, _on)
 import WAGS.Math (calcSlope)
 
 type BandpassGraph
@@ -30,7 +30,7 @@ deltaKsBandpass { buffers: { "my-buffer": myBuffer, shruti } } =
       let
         switchOO = time % 2.0 < 1.0
         switchW = time % 4.0 < 2.0
-        onOff = if switchOO then On else Off
+        onOff = if switchOO then _on else _off
         buffer = if switchW then myBuffer else shruti
         changes =
           { mix: if time > (timing.ksBandpass.dur - 1.0) then 0.0 else 1.0

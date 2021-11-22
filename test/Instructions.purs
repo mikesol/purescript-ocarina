@@ -13,8 +13,9 @@ import WAGS.Control.Functions (branch, freeze, ibranch, icont, iloop, loop, loop
 import WAGS.Control.Types (Frame0, Scene, WAG, oneFrame')
 import WAGS.Create (create)
 import WAGS.Create.Optionals (CGain, CHighpass, CSinOsc, CSpeaker, Ref, gain, highpass, ref, sinOsc, speaker)
-import WAGS.Graph.AudioUnit (OnOff(..), TGain, THighpass, TSinOsc, TSpeaker)
-import WAGS.Rendered (Instruction(..))
+import WAGS.Graph.AudioUnit (TGain, THighpass, TSinOsc, TSpeaker, _on)
+import WAGS.Rendered (Instruction)
+import WAGS.Rendered as R
 
 type Time
   = { time :: Number }
@@ -80,14 +81,14 @@ testInstructions = do
       (frame2Instr /\ _ /\ _) = oneFrame' frame2 { time: 0.2 }
 
       instructionAssertion =
-        [ MakeSpeaker
-        , MakeGain "mix" (pure 1.0)
-        , MakeHighpass "highpass" (pure 330.0) (pure 1.0)
-        , MakeSinOsc "sinOsc" (pure On) (pure 440.0)
-        , ConnectXToY "mix" "TGain" "speaker" "TSpeaker"
-        , ConnectXToY "highpass" "THighpass" "mix" "TGain"
-        , ConnectXToY "mix" "TGain" "mix" "TGain"
-        , ConnectXToY "sinOsc" "TSinOsc" "highpass" "THighpass"
+        [ R.iMakeSpeaker
+        , R.iMakeGain { id: "mix", gain: pure 1.0 }
+        , R.iMakeHighpass { id: "highpass", freq: pure 330.0, q: pure 1.0 }
+        , R.iMakeSinOsc { id: "sinOsc", onOff: pure _on, freq: pure 440.0 }
+        , R.iConnectXToY { fromId: "mix", fromUnit: "TGain", toId: "speaker", toUnit: "TSpeaker" }
+        , R.iConnectXToY { fromId: "highpass", fromUnit: "THighpass", toId: "mix", toUnit: "TGain" }
+        , R.iConnectXToY { fromId: "mix", fromUnit: "TGain", toId: "mix", toUnit: "TGain" }
+        , R.iConnectXToY { fromId: "sinOsc", fromUnit: "TSinOsc", toId: "highpass", toUnit: "THighpass" }
         ]
     it "is coherent at frame0Instr" do
       resolveInstructions frame0Instr `shouldEqual` instructionAssertion
@@ -116,16 +117,16 @@ testInstructions = do
       (frame2Instr /\ _ /\ _) = oneFrame' frame2 unit
 
       createAssertion =
-        [ MakeSpeaker
-        , MakeGain "mix" (pure 0.7)
-        , MakeSinOsc "sinOsc" (pure On) (pure 441.0)
-        , ConnectXToY "mix" "TGain" "speaker" "TSpeaker"
-        , ConnectXToY "sinOsc" "TSinOsc" "mix" "TGain"
+        [ R.iMakeSpeaker
+        , R.iMakeGain { id: "mix", gain: (pure 0.7) }
+        , R.iMakeSinOsc { id: "sinOsc", onOff: (pure _on), freq: (pure 441.0) }
+        , R.iConnectXToY { fromId: "mix", fromUnit: "TGain", toId: "speaker", toUnit: "TSpeaker" }
+        , R.iConnectXToY { fromId: "sinOsc", fromUnit: "TSinOsc", toId: "mix", toUnit: "TGain" }
         ]
       setAssertion =
-        [ (SetGain "mix" (pure 0.7))
-        , (SetOnOff "sinOsc" (pure On))
-        , (SetFrequency "sinOsc" (pure 441.0))
+        [ R.iSetGain { id: "mix", gain: pure 0.7 }
+        , R.iSetOnOff { id: "sinOsc", onOff: pure _on }
+        , R.iSetFrequency { id: "sinOsc", frequency: pure 441.0 }
         ]
     it "is coherent at frame0Instr" do
       resolveInstructions frame0Instr `shouldEqual` createAssertion
@@ -156,21 +157,21 @@ testInstructions = do
       (_ /\ _ /\ _) = oneFrame' frame4 { time: 0.4 }
 
       instructionAssertion =
-        [ MakeSpeaker
-        , MakeGain "mix" (pure 1.0)
-        , MakeHighpass "highpass" (pure 330.0) (pure 1.0)
-        , MakeSinOsc "sinOsc" (pure On) (pure 440.0)
-        , ConnectXToY "mix" "TGain" "speaker" "TSpeaker"
-        , ConnectXToY "highpass" "THighpass" "mix" "TGain"
-        , ConnectXToY "mix" "TGain" "mix" "TGain"
-        , ConnectXToY "sinOsc" "TSinOsc" "highpass" "THighpass"
+        [ R.iMakeSpeaker
+        , R.iMakeGain { id: "mix", gain: pure 1.0 }
+        , R.iMakeHighpass { id: "highpass", freq: pure 330.0, q: pure 1.0 }
+        , R.iMakeSinOsc { id: "sinOsc", onOff: pure _on, freq: pure 440.0 }
+        , R.iConnectXToY { fromId: "mix", fromUnit: "TGain", toId: "speaker", toUnit: "TSpeaker" }
+        , R.iConnectXToY { fromId: "highpass", fromUnit: "THighpass", toId: "mix", toUnit: "TGain" }
+        , R.iConnectXToY { fromId: "mix", fromUnit: "TGain", toId: "mix", toUnit: "TGain" }
+        , R.iConnectXToY { fromId: "sinOsc", fromUnit: "TSinOsc", toId: "highpass", toUnit: "THighpass" }
         ]
     it "is coherent after frame0Instr" do
       resolveInstructions frame0Instr `shouldEqual` instructionAssertion
     it "is coherent after frame1Instr" do
-      resolveInstructions frame1Instr `shouldEqual` [ SetFrequency "sinOsc" $ pure 445.0 ]
+      resolveInstructions frame1Instr `shouldEqual` [ R.iSetFrequency { id: "sinOsc", frequency: pure 445.0 } ]
     it "is coherent after frame2Instr" do
-      resolveInstructions frame2Instr `shouldEqual` [ SetFrequency "sinOsc" $ pure 450.0 ]
+      resolveInstructions frame2Instr `shouldEqual` [ R.iSetFrequency { id: "sinOsc", frequency: pure 450.0 } ]
   describe "a simple scene that changes several elements as a function of time" do
     let
       simpleFrame :: Time -> WAG Unit Instruction Frame0 Unit SceneType Unit
@@ -200,21 +201,21 @@ testInstructions = do
       (_ /\ _ /\ _) = oneFrame' frame4 { time: 0.4 }
 
       instructionAssertion =
-        [ MakeSpeaker
-        , MakeGain "mix" (pure 1.0)
-        , MakeHighpass "highpass" (pure 330.0) (pure 1.0)
-        , MakeSinOsc "sinOsc" (pure On) (pure 440.0)
-        , ConnectXToY "mix" "TGain" "speaker" "TSpeaker"
-        , ConnectXToY "highpass" "THighpass" "mix" "TGain"
-        , ConnectXToY "mix" "TGain" "mix" "TGain"
-        , ConnectXToY "sinOsc" "TSinOsc" "highpass" "THighpass"
+        [ R.iMakeSpeaker
+        , R.iMakeGain { id: "mix", gain: pure 1.0 }
+        , R.iMakeHighpass { id: "highpass", freq: pure 330.0, q: pure 1.0 }
+        , R.iMakeSinOsc { id: "sinOsc", onOff: pure _on, freq: pure 440.0 }
+        , R.iConnectXToY { fromId: "mix", fromUnit: "TGain", toId: "speaker", toUnit: "TSpeaker" }
+        , R.iConnectXToY { fromId: "highpass", fromUnit: "THighpass", toId: "mix", toUnit: "TGain" }
+        , R.iConnectXToY { fromId: "mix", fromUnit: "TGain", toId: "mix", toUnit: "TGain" }
+        , R.iConnectXToY { fromId: "sinOsc", fromUnit: "TSinOsc", toId: "highpass", toUnit: "THighpass" }
         ]
     it "is coherent after frame0Instr" do
       resolveInstructions frame0Instr `shouldEqual` instructionAssertion
     it "is coherent after frame1Instr" do
-      resolveInstructions frame1Instr `shouldEqual` [ SetFrequency "highpass" $ pure 331.0, SetFrequency "sinOsc" $ pure 445.0 ]
+      resolveInstructions frame1Instr `shouldEqual` [ R.iSetFrequency { id: "highpass", frequency: pure 331.0 }, R.iSetFrequency { id: "sinOsc", frequency: pure 445.0 } ]
     it "is coherent after frame2Instr" do
-      resolveInstructions frame2Instr `shouldEqual` [ SetFrequency "highpass" $ pure 332.0, SetFrequency "sinOsc" $ pure 450.0 ]
+      resolveInstructions frame2Instr `shouldEqual` [ R.iSetFrequency { id: "highpass", frequency: pure 332.0 }, R.iSetFrequency { id: "sinOsc", frequency: pure 450.0 } ]
   describe "a scene that forks at 0.3 seconds" do
     let
       simpleFrame :: Time -> WAG Unit Instruction Frame0 Unit SceneType Unit
@@ -250,25 +251,25 @@ testInstructions = do
       (frame4Instr /\ _ /\ _) = oneFrame' frame4 { time: 0.4 }
 
       instructionAssertion =
-        [ MakeSpeaker
-        , MakeGain "mix" (pure 1.0)
-        , MakeHighpass "highpass" (pure 330.0) (pure 1.0)
-        , MakeSinOsc "sinOsc" (pure On) (pure 440.0)
-        , ConnectXToY "mix" "TGain" "speaker" "TSpeaker"
-        , ConnectXToY "highpass" "THighpass" "mix" "TGain"
-        , ConnectXToY "mix" "TGain" "mix" "TGain"
-        , ConnectXToY "sinOsc" "TSinOsc" "highpass" "THighpass"
+        [ R.iMakeSpeaker
+        , R.iMakeGain { id: "mix", gain: pure 1.0 }
+        , R.iMakeHighpass { id: "highpass", freq: pure 330.0, q: pure 1.0 }
+        , R.iMakeSinOsc { id: "sinOsc", onOff: pure _on, freq: pure 440.0 }
+        , R.iConnectXToY { fromId: "mix", fromUnit: "TGain", toId: "speaker", toUnit: "TSpeaker" }
+        , R.iConnectXToY { fromId: "highpass", fromUnit: "THighpass", toId: "mix", toUnit: "TGain" }
+        , R.iConnectXToY { fromId: "mix", fromUnit: "TGain", toId: "mix", toUnit: "TGain" }
+        , R.iConnectXToY { fromId: "sinOsc", fromUnit: "TSinOsc", toId: "highpass", toUnit: "THighpass" }
         ]
     it "branches at frame0Instr" do
       resolveInstructions frame0Instr `shouldEqual` instructionAssertion
     it "branches at frame1Instr" do
-      resolveInstructions frame1Instr `shouldEqual` [ SetFrequency "highpass" $ pure 331.0 ]
+      resolveInstructions frame1Instr `shouldEqual` [ R.iSetFrequency { id: "highpass", frequency: pure 331.0 } ]
     it "branches at frame2Instr" do
-      resolveInstructions frame2Instr `shouldEqual` [ SetFrequency "highpass" $ pure 332.0 ]
+      resolveInstructions frame2Instr `shouldEqual` [ R.iSetFrequency { id: "highpass", frequency: pure 332.0 } ]
     it "branches at frame3Instr" do
-      resolveInstructions frame3Instr `shouldEqual` [ SetFrequency "highpass" $ pure 345.0 ]
+      resolveInstructions frame3Instr `shouldEqual` [ R.iSetFrequency { id: "highpass", frequency: pure 345.0 } ]
     it "branches at frame4Instr" do
-      resolveInstructions frame4Instr `shouldEqual` [ SetFrequency "highpass" $ pure 350.0 ]
+      resolveInstructions frame4Instr `shouldEqual` [ R.iSetFrequency { id: "highpass", frequency: pure 350.0 } ]
   describe "a scene that forks at 0.3 seconds with ibranch" do
     let
       simpleFrame :: Time -> WAG Unit Instruction Frame0 Unit SceneType Unit
@@ -296,22 +297,22 @@ testInstructions = do
       (frame4Instr /\ _ /\ _) = oneFrame' frame4 { time: 0.4 }
 
       instructionAssertion =
-        [ MakeSpeaker
-        , MakeGain "mix" (pure 1.0)
-        , MakeHighpass "highpass" (pure 330.0) (pure 1.0)
-        , MakeSinOsc "sinOsc" (pure On) (pure 440.0)
-        , ConnectXToY "mix" "TGain" "speaker" "TSpeaker"
-        , ConnectXToY "highpass" "THighpass" "mix" "TGain"
-        , ConnectXToY "mix" "TGain" "mix" "TGain"
-        , ConnectXToY "sinOsc" "TSinOsc" "highpass" "THighpass"
+        [ R.iMakeSpeaker
+        , R.iMakeGain { id: "mix", gain: pure 1.0 }
+        , R.iMakeHighpass { id: "highpass", freq: pure 330.0, q: pure 1.0 }
+        , R.iMakeSinOsc { id: "sinOsc", onOff: pure _on, freq: pure 440.0 }
+        , R.iConnectXToY { fromId: "mix", fromUnit: "TGain", toId: "speaker", toUnit: "TSpeaker" }
+        , R.iConnectXToY { fromId: "highpass", fromUnit: "THighpass", toId: "mix", toUnit: "TGain" }
+        , R.iConnectXToY { fromId: "mix", fromUnit: "TGain", toId: "mix", toUnit: "TGain" }
+        , R.iConnectXToY { fromId: "sinOsc", fromUnit: "TSinOsc", toId: "highpass", toUnit: "THighpass" }
         ]
     it "branches at frame0Instr" do
       resolveInstructions frame0Instr `shouldEqual` instructionAssertion
     it "branches at frame1Instr" do
-      resolveInstructions frame1Instr `shouldEqual` [ SetFrequency "highpass" $ pure 331.0 ]
+      resolveInstructions frame1Instr `shouldEqual` [ R.iSetFrequency { id: "highpass", frequency: pure 331.0 } ]
     it "branches at frame2Instr" do
-      resolveInstructions frame2Instr `shouldEqual` [ SetFrequency "highpass" $ pure 332.0 ]
+      resolveInstructions frame2Instr `shouldEqual` [ R.iSetFrequency { id: "highpass", frequency: pure 332.0 } ]
     it "branches at frame3Instr" do
-      resolveInstructions frame3Instr `shouldEqual` [ SetFrequency "highpass" $ pure 345.0, SetQ "highpass" $ pure 0.3 ]
+      resolveInstructions frame3Instr `shouldEqual` [ R.iSetFrequency { id: "highpass", frequency: pure 345.0 }, R.iSetQ { id: "highpass", q: pure 0.3 } ]
     it "branches at frame4Instr" do
-      resolveInstructions frame4Instr `shouldEqual` [ SetFrequency "highpass" $ pure 350.0, SetQ "highpass" $ pure 0.4 ]
+      resolveInstructions frame4Instr `shouldEqual` [ R.iSetFrequency { id: "highpass", frequency: pure 350.0 }, R.iSetQ { id: "highpass", q: pure 0.4 } ]

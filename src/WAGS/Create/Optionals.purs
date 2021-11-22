@@ -12,7 +12,7 @@ import Data.Vec as V
 import Simple.JSON as JSON
 import Type.Row.Homogeneous (class Homogeneous)
 import WAGS.Control.Types (Frame0, SubScene)
-import WAGS.Graph.AudioUnit (APOnOff, AudioWorkletNodeOptions, OnOff(..))
+import WAGS.Graph.AudioUnit (APOnOff, AudioWorkletNodeOptions, OnOff, _on)
 import WAGS.Graph.AudioUnit as CTOR
 import WAGS.Graph.Oversample (class IsOversample)
 import WAGS.Graph.Paramable (class Paramable, paramize)
@@ -174,7 +174,7 @@ type ConstantAll
   )
 
 defaultConstant :: { | ConstantOptional }
-defaultConstant = { onOff: pure On }
+defaultConstant = { onOff: pure _on }
 
 class ConstantCtor i o | i -> o where
   -- | Make a constant value
@@ -455,7 +455,7 @@ type LoopBufAll
   = (| LoopBufOptional)
 
 defaultLoopBuf :: { | LoopBufOptional }
-defaultLoopBuf = { playbackRate: pure 1.0, onOff: pure On, loopStart: 0.0, loopEnd: 0.0 }
+defaultLoopBuf = { playbackRate: pure 1.0, onOff: pure _on, loopStart: 0.0, loopEnd: 0.0 }
 
 class LoopBufCtor i loopBuf | i -> loopBuf where
   -- | Make a looping buffer.
@@ -718,7 +718,7 @@ type PeriodicOscAll wave
   )
 
 defaultPeriodicOsc :: { | PeriodicOscOptional }
-defaultPeriodicOsc = { onOff: pure On }
+defaultPeriodicOsc = { onOff: pure _on }
 
 class PeriodicOscCtor i o | i -> o where
   -- | Make a periodicOsc value
@@ -765,7 +765,7 @@ type PlayBufAll
   = (| PlayBufOptional)
 
 defaultPlayBuf :: { | PlayBufOptional }
-defaultPlayBuf = { playbackRate: pure 1.0, onOff: pure On, bufferOffset: 0.0 }
+defaultPlayBuf = { playbackRate: pure 1.0, onOff: pure _on, bufferOffset: 0.0 }
 
 class PlayBufCtor i playBuf | i -> playBuf where
   -- | Make a unit that plays from a buffer.
@@ -835,7 +835,7 @@ type SawtoothOscAll
   )
 
 defaultSawtoothOsc :: { | SawtoothOscOptional }
-defaultSawtoothOsc = { onOff: pure On }
+defaultSawtoothOsc = { onOff: pure _on }
 
 class SawtoothOscCtor i o | i -> o where
   -- | Make a sawtoothOsc value
@@ -882,7 +882,7 @@ type SinOscAll
   )
 
 defaultSinOsc :: { | SinOscOptional }
-defaultSinOsc = { onOff: pure On }
+defaultSinOsc = { onOff: pure _on }
 
 class SinOscCtor i o | i -> o where
   -- | Make a sinOsc value
@@ -945,7 +945,7 @@ type SquareOscAll
   )
 
 defaultSquareOsc :: { | SquareOscOptional }
-defaultSquareOsc = { onOff: pure On }
+defaultSquareOsc = { onOff: pure _on }
 
 class SquareOscCtor i o | i -> o where
   -- | Make a squareOsc value
@@ -1034,7 +1034,7 @@ type TriangleOscAll
   )
 
 defaultTriangleOsc :: { | TriangleOscOptional }
-defaultTriangleOsc = { onOff: pure On }
+defaultTriangleOsc = { onOff: pure _on }
 
 class TriangleOscCtor i o | i -> o where
   -- | Make a triangleOsc value
@@ -1074,7 +1074,6 @@ tumult tmt = Tuple (CTOR.Tumult tmt)
 type CTumult :: forall k1 k2. Type -> k1 -> k2 -> Type -> Type
 type CTumult (n :: Type) terminus inputs r
   = (CTOR.Tumult (Tumultuous n terminus inputs)) /\ r
-
 
 ----------
 -- | Apply distorion to audio

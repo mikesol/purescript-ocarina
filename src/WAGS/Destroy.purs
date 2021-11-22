@@ -46,14 +46,14 @@ instance destroyer ::
       $
         { context:
             i
-              { instructions = i.instructions <> [ destroyUnit ptrI (reflectSymbol (Proxy :: _ nodeSym)) ]
+              { instructions = i.instructions <> [ destroyUnit { id, unit: reflectSymbol (Proxy :: _ nodeSym) } ]
               }
         , value: unit
         }
     where
     { context: i, value: ptrI' } = unsafeUnWAG w
 
-    ptrI = reflectSymbol ptrI'
+    id = reflectSymbol ptrI'
 
 -- | Internal helper class used for destroing audio nodes.
 class PointerNotPresentInAnyEdgeList (ptr :: Symbol) (i :: NodeList)
