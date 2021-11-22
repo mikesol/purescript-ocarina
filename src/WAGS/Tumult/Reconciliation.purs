@@ -139,9 +139,12 @@ reconcileTumult new old = result
   go (h0 : t0) Nil set = go t0 Nil (Set.insert h0 set)
   go Nil (h1 : t1) set = go Nil t1 (derogative h1 set)
   go l0@(h0@(Instruction i0) : t0) l1@(h1@(Instruction i1) : t1) set =
+    let
+      udef :: forall v. Variant v -> Set Instruction
+      udef = usingDefault l0 h0 t0 l1 h1 t1 set in
     i0 # match
       { connectXToY: \a -> i1 #
-          ( usingDefault l0 h0 t0 l1 h1 t1 set
+          ( udef
               # on (Proxy :: _ "connectXToY") \b ->
                   let
                     o
@@ -160,7 +163,7 @@ reconcileTumult new old = result
                     o
           )
       , makeAllpass: \a -> i1 #
-          ( usingDefault l0 h0 t0 l1 h1 t1 set
+          ( udef
               # on (Proxy :: _ "makeAllpass") \b ->
                 comparable a b l0 h0 t0 l1 h1 t1 set
                   ( Set.insert (R.iSetFrequency { id: a.id, frequency: a.freq })
@@ -168,15 +171,15 @@ reconcileTumult new old = result
                   )
           )
       , makeAnalyser: \a -> i1 #
-          ( usingDefault l0 h0 t0 l1 h1 t1 set
+          ( udef
               # on (Proxy :: _ "makeAllpass") \b ->
                 comparable a b l0 h0 t0 l1 h1 t1 set
                   (Set.insert (R.iSetAnalyserNodeCb { id: a.id, cb: a.cb }))
           )
-      , disconnectXFromY: \_ -> i1 # usingDefault l0 h0 t0 l1 h1 t1 set
-      , destroyUnit: \_ -> i1 # usingDefault l0 h0 t0 l1 h1 t1 set
+      , disconnectXFromY: \_ -> i1 # udef
+      , destroyUnit: \_ -> i1 # udef
       , makeAudioWorkletNode: \a -> i1 #
-          ( usingDefault l0 h0 t0 l1 h1 t1 set
+          ( udef
               # on (Proxy :: _ "makeAudioWorkletNode") \b ->
                 comparable a b l0 h0 t0 l1 h1 t1 set
                   ( let
@@ -194,7 +197,7 @@ reconcileTumult new old = result
                   )
           )
       , makeBandpass: \a -> i1 #
-          ( usingDefault l0 h0 t0 l1 h1 t1 set
+          ( udef
               # on (Proxy :: _ "makeBandpass") \b ->
                 comparable a b l0 h0 t0 l1 h1 t1 set
                   ( Set.insert (R.iSetFrequency { id: a.id, frequency: a.freq })
@@ -202,31 +205,31 @@ reconcileTumult new old = result
                   )
           )
       , makeConstant: \a -> i1 #
-          ( usingDefault l0 h0 t0 l1 h1 t1 set
+          ( udef
               # on (Proxy :: _ "makeConstant") \b ->
                 comparable a b l0 h0 t0 l1 h1 t1 set
                   ( Set.insert (R.iSetOffset { id: a.id, offset: a.offset })
                   )
           )
       , makePassthroughConvolver: \a -> i1 #
-          ( usingDefault l0 h0 t0 l1 h1 t1 set
+          ( udef
               # on (Proxy :: _ "makeConvolver") \b ->
                 comparable a b l0 h0 t0 l1 h1 t1 set identity
           )
       , makeConvolver: \a -> i1 #
-          ( usingDefault l0 h0 t0 l1 h1 t1 set
+          ( udef
               # on (Proxy :: _ "makeConvolver") \b ->
                 comparable a b l0 h0 t0 l1 h1 t1 set identity
           )
       , makeDelay: \a -> i1 #
-          ( usingDefault l0 h0 t0 l1 h1 t1 set
+          ( udef
               # on (Proxy :: _ "makeDelay") \b ->
                 comparable a b l0 h0 t0 l1 h1 t1 set
                   ( Set.insert (R.iSetDelay { id: a.id, delay: a.delayTime })
                   )
           )
       , makeDynamicsCompressor: \a -> i1 #
-          ( usingDefault l0 h0 t0 l1 h1 t1 set
+          ( udef
               # on (Proxy :: _ "makeDynamicsCompressor") \b ->
                 comparable a b l0 h0 t0 l1 h1 t1 set
                   ( Set.insert (R.iSetAttack { id: a.id, attack: a.attack })
@@ -237,14 +240,14 @@ reconcileTumult new old = result
                   )
           )
       , makeGain: \a -> i1 #
-          ( usingDefault l0 h0 t0 l1 h1 t1 set
+          ( udef
               # on (Proxy :: _ "makeGain") \b ->
                 comparable a b l0 h0 t0 l1 h1 t1 set
                   ( Set.insert (R.iSetGain { id: a.id, gain: a.gain })
                   )
           )
       , makeHighpass: \a -> i1 #
-          ( usingDefault l0 h0 t0 l1 h1 t1 set
+          ( udef
               # on (Proxy :: _ "makeHighpass") \b ->
                 comparable a b l0 h0 t0 l1 h1 t1 set
                   ( Set.insert (R.iSetFrequency { id: a.id, frequency: a.freq })
@@ -252,7 +255,7 @@ reconcileTumult new old = result
                   )
           )
       , makeHighshelf: \a -> i1 #
-          ( usingDefault l0 h0 t0 l1 h1 t1 set
+          ( udef
               # on (Proxy :: _ "makeHighshelf") \b ->
                 comparable a b l0 h0 t0 l1 h1 t1 set
                   ( Set.insert (R.iSetFrequency { id: a.id, frequency: a.freq })
@@ -261,12 +264,12 @@ reconcileTumult new old = result
           )
       , makeInput: \a ->
             i1 #
-              ( usingDefault l0 h0 t0 l1 h1 t1 set
+              ( udef
                   # on (Proxy :: _ "makeInput") \b ->
                     comparable a b l0 h0 t0 l1 h1 t1 set identity -- todo: should this be identity?
               )
       , makeLoopBuf: \a -> i1 #
-          ( usingDefault l0 h0 t0 l1 h1 t1 set
+          ( udef
               # on (Proxy :: _ "makeLoopBuf") \b ->
                 comparable a b l0 h0 t0 l1 h1 t1 set
                   ( Set.insert (R.iSetBuffer { id: a.id, buffer: a.buffer })
@@ -277,12 +280,12 @@ reconcileTumult new old = result
                   )
           )
       , makeLoopBufWithDeferredBuffer: \a -> i1 #
-          ( usingDefault l0 h0 t0 l1 h1 t1 set
+          ( udef
               # on (Proxy :: _ "makeLoopBufWithDeferredBuffer") \b ->
                 comparable a b l0 h0 t0 l1 h1 t1 set identity
           )
       , makeLowpass: \a -> i1 #
-          ( usingDefault l0 h0 t0 l1 h1 t1 set
+          ( udef
               # on (Proxy :: _ "makeLowpass") \b ->
                 comparable a b l0 h0 t0 l1 h1 t1 set
                   ( Set.insert (R.iSetFrequency { id: a.id, frequency: a.freq })
@@ -290,16 +293,16 @@ reconcileTumult new old = result
                   )
           )
       , makeLowshelf: \a -> i1 #
-          ( usingDefault l0 h0 t0 l1 h1 t1 set
+          ( udef
               # on (Proxy :: _ "makeLowshelf") \b ->
                 comparable a b l0 h0 t0 l1 h1 t1 set
                   ( Set.insert (R.iSetFrequency { id: a.id, frequency: a.freq })
                       <<< Set.insert (R.iSetGain { id: a.id, gain: a.gain })
                   )
           )
-      , makeMicrophone: \_ -> i1 # usingDefault l0 h0 t0 l1 h1 t1 set
+      , makeMicrophone: \_ -> i1 # udef
       , makePeaking: \a -> i1 #
-          ( usingDefault l0 h0 t0 l1 h1 t1 set
+          ( udef
               # on (Proxy :: _ "makeNotch") \b ->
                 comparable a b l0 h0 t0 l1 h1 t1 set
                   ( Set.insert (R.iSetFrequency { id: a.id, frequency: a.freq })
@@ -308,7 +311,7 @@ reconcileTumult new old = result
                   )
           )
       , makeNotch: \a -> i1 #
-          ( usingDefault l0 h0 t0 l1 h1 t1 set
+          ( udef
               # on (Proxy :: _ "makeNotch") \b ->
                 comparable a b l0 h0 t0 l1 h1 t1 set
                   ( Set.insert (R.iSetFrequency { id: a.id, frequency: a.freq })
@@ -316,12 +319,12 @@ reconcileTumult new old = result
                   )
           )
       , makePeriodicOscWithDeferredOsc: \a -> i1 #
-          ( usingDefault l0 h0 t0 l1 h1 t1 set
+          ( udef
               # on (Proxy :: _ "makePeriodicOscWithDeferredOsc") \b ->
                 comparable a b l0 h0 t0 l1 h1 t1 set identity
           )
       , makePeriodicOsc: \a -> i1 #
-          ( usingDefault l0 h0 t0 l1 h1 t1 set
+          ( udef
               # on (Proxy :: _ "makePeriodicOsc") \b ->
                 comparable a b l0 h0 t0 l1 h1 t1 set
                   ( Set.insert (R.iSetPeriodicOsc { id: a.id, periodicOsc: a.spec })
@@ -330,7 +333,7 @@ reconcileTumult new old = result
                   )
           )
       , makePlayBuf: \a -> i1 #
-          ( usingDefault l0 h0 t0 l1 h1 t1 set
+          ( udef
               # on (Proxy :: _ "makePlayBuf") \b ->
                 comparable a b l0 h0 t0 l1 h1 t1 set
                   ( Set.insert (R.iSetBuffer { id: a.id, buffer: a.buffer })
@@ -340,17 +343,17 @@ reconcileTumult new old = result
                   )
           )
       , makePlayBufWithDeferredBuffer: \a -> i1 #
-          ( usingDefault l0 h0 t0 l1 h1 t1 set
+          ( udef
               # on (Proxy :: _ "makePlayBufWithDeferredBuffer") \b ->
                 comparable a b l0 h0 t0 l1 h1 t1 set identity
           )
       , makeRecorder: \a -> i1 #
-          ( usingDefault l0 h0 t0 l1 h1 t1 set
+          ( udef
               # on (Proxy :: _ "makeRecorder") \b ->
                 comparable a b l0 h0 t0 l1 h1 t1 set identity
           )
       , makeSawtoothOsc: \a -> i1 #
-          ( usingDefault l0 h0 t0 l1 h1 t1 set
+          ( udef
               # on (Proxy :: _ "makeSawtoothOsc") \b ->
                 comparable a b l0 h0 t0 l1 h1 t1 set
                   ( Set.insert (R.iSetOnOff { id: a.id, onOff: a.onOff })
@@ -358,7 +361,7 @@ reconcileTumult new old = result
                   )
           )
       , makeSinOsc: \a -> i1 #
-          ( usingDefault l0 h0 t0 l1 h1 t1 set
+          ( udef
               # on (Proxy :: _ "makeSinOsc") \b ->
                 comparable a b l0 h0 t0 l1 h1 t1 set
                   ( Set.insert (R.iSetOnOff { id: a.id, onOff: a.onOff })
@@ -366,22 +369,22 @@ reconcileTumult new old = result
                   )
           )
       , makeSquareOsc: \a -> i1 #
-          ( usingDefault l0 h0 t0 l1 h1 t1 set
+          ( udef
               # on (Proxy :: _ "makeSquareOsc") \b ->
                 comparable a b l0 h0 t0 l1 h1 t1 set
                   ( Set.insert (R.iSetOnOff { id: a.id, onOff: a.onOff })
                       <<< Set.insert (R.iSetFrequency { id: a.id, frequency: a.freq })
                   )
           )
-      , makeSpeaker: \_ -> i1 # usingDefault l0 h0 t0 l1 h1 t1 set
+      , makeSpeaker: \_ -> i1 # udef
       , makeStereoPanner: \a -> i1 #
-          ( usingDefault l0 h0 t0 l1 h1 t1 set
+          ( udef
               # on (Proxy :: _ "makeStereoPanner") \b ->
                 comparable a b l0 h0 t0 l1 h1 t1 set
                   (Set.insert (R.iSetPan { id: a.id, pan: a.pan }))
           )
       , makeTriangleOsc: \a -> i1 #
-          ( usingDefault l0 h0 t0 l1 h1 t1 set
+          ( udef
               # on (Proxy :: _ "makeTriangleOsc") \b ->
                 comparable a b l0 h0 t0 l1 h1 t1 set
                   ( Set.insert (R.iSetOnOff { id: a.id, onOff: a.onOff })
@@ -389,54 +392,54 @@ reconcileTumult new old = result
                   )
           )
       , makeWaveShaper: \a -> i1 #
-          ( usingDefault l0 h0 t0 l1 h1 t1 set
+          ( udef
               # on (Proxy :: _ "makeWaveShaper") \b ->
                 comparable a b l0 h0 t0 l1 h1 t1 set identity
           )
       , makeSubgraph: \a -> i1 #
-          ( usingDefault l0 h0 t0 l1 h1 t1 set
+          ( udef
               # on (Proxy :: _ "makeSubgraph") \b ->
                 comparable a b l0 h0 t0 l1 h1 t1 set identity
           )
       , makeSubgraphWithDeferredScene: \a -> i1 #
-          ( usingDefault l0 h0 t0 l1 h1 t1 set
+          ( udef
               # on (Proxy :: _ "makeSubgraphWithDeferredScene") \b ->
                 comparable a b l0 h0 t0 l1 h1 t1 set identity
           )
       , makeTumult: \a -> i1 #
-          ( usingDefault l0 h0 t0 l1 h1 t1 set
+          ( udef
               # on (Proxy :: _ "makeTumult") \b ->
                 comparable a b l0 h0 t0 l1 h1 t1 set identity
           )
       , makeTumultWithDeferredGraph: \a -> i1 #
-          ( usingDefault l0 h0 t0 l1 h1 t1 set
+          ( udef
               # on (Proxy :: _ "makeTumultWithDeferredGraph") \b ->
                 comparable a b l0 h0 t0 l1 h1 t1 set identity
           )
-      , setAnalyserNodeCb: \_ -> i1 # usingDefault l0 h0 t0 l1 h1 t1 set
-      , setMediaRecorderCb: \_ -> i1 # usingDefault l0 h0 t0 l1 h1 t1 set
-      , setAudioWorkletParameter: \_ -> i1 # usingDefault l0 h0 t0 l1 h1 t1 set
-      , setBuffer: \_ -> i1 # usingDefault l0 h0 t0 l1 h1 t1 set
-      , setConvolverBuffer: \_ -> i1 # usingDefault l0 h0 t0 l1 h1 t1 set
-      , setPeriodicOsc: \_ -> i1 # usingDefault l0 h0 t0 l1 h1 t1 set
-      , setOnOff: \_ -> i1 # usingDefault l0 h0 t0 l1 h1 t1 set
-      , setBufferOffset: \_ -> i1 # usingDefault l0 h0 t0 l1 h1 t1 set
-      , setLoopStart: \_ -> i1 # usingDefault l0 h0 t0 l1 h1 t1 set
-      , setLoopEnd: \_ -> i1 # usingDefault l0 h0 t0 l1 h1 t1 set
-      , setRatio: \_ -> i1 # usingDefault l0 h0 t0 l1 h1 t1 set
-      , setOffset: \_ -> i1 # usingDefault l0 h0 t0 l1 h1 t1 set
-      , setAttack: \_ -> i1 # usingDefault l0 h0 t0 l1 h1 t1 set
-      , setGain: \_ -> i1 # usingDefault l0 h0 t0 l1 h1 t1 set
-      , setQ: \_ -> i1 # usingDefault l0 h0 t0 l1 h1 t1 set
-      , setPan: \_ -> i1 # usingDefault l0 h0 t0 l1 h1 t1 set
-      , setThreshold: \_ -> i1 # usingDefault l0 h0 t0 l1 h1 t1 set
-      , setRelease: \_ -> i1 # usingDefault l0 h0 t0 l1 h1 t1 set
-      , setKnee: \_ -> i1 # usingDefault l0 h0 t0 l1 h1 t1 set
-      , setDelay: \_ -> i1 # usingDefault l0 h0 t0 l1 h1 t1 set
-      , setPlaybackRate: \_ -> i1 # usingDefault l0 h0 t0 l1 h1 t1 set
-      , setFrequency: \_ -> i1 # usingDefault l0 h0 t0 l1 h1 t1 set
-      , setWaveShaperCurve: \_ -> i1 # usingDefault l0 h0 t0 l1 h1 t1 set
-      , setInput: \_ -> i1 # usingDefault l0 h0 t0 l1 h1 t1 set
-      , setSubgraph: \_ -> i1 # usingDefault l0 h0 t0 l1 h1 t1 set
-      , setTumult: \_ -> i1 # usingDefault l0 h0 t0 l1 h1 t1 set
+      , setAnalyserNodeCb: \_ -> i1 # udef
+      , setMediaRecorderCb: \_ -> i1 # udef
+      , setAudioWorkletParameter: \_ -> i1 # udef
+      , setBuffer: \_ -> i1 # udef
+      , setConvolverBuffer: \_ -> i1 # udef
+      , setPeriodicOsc: \_ -> i1 # udef
+      , setOnOff: \_ -> i1 # udef
+      , setBufferOffset: \_ -> i1 # udef
+      , setLoopStart: \_ -> i1 # udef
+      , setLoopEnd: \_ -> i1 # udef
+      , setRatio: \_ -> i1 # udef
+      , setOffset: \_ -> i1 # udef
+      , setAttack: \_ -> i1 # udef
+      , setGain: \_ -> i1 # udef
+      , setQ: \_ -> i1 # udef
+      , setPan: \_ -> i1 # udef
+      , setThreshold: \_ -> i1 # udef
+      , setRelease: \_ -> i1 # udef
+      , setKnee: \_ -> i1 # udef
+      , setDelay: \_ -> i1 # udef
+      , setPlaybackRate: \_ -> i1 # udef
+      , setFrequency: \_ -> i1 # udef
+      , setWaveShaperCurve: \_ -> i1 # udef
+      , setInput: \_ -> i1 # udef
+      , setSubgraph: \_ -> i1 # udef
+      , setTumult: \_ -> i1 # udef
       }
