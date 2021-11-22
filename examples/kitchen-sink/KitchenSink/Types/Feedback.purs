@@ -9,7 +9,7 @@ import WAGS.Create.Optionals (CDelay, CGain, CPlayBuf, Ref, CHighpass, delay, ga
 import WAGS.Example.KitchenSink.TLP.LoopSig (IxWAGSig', World)
 import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
 import WAGS.Example.KitchenSink.Types.Empty (TopWith)
-import WAGS.Graph.AudioUnit (OnOff(..), TDelay, TGain, THighpass, TPlayBuf)
+import WAGS.Graph.AudioUnit (TDelay, TGain, THighpass, TPlayBuf, _off, _on)
 import WAGS.Math (calcSlope)
 
 type FeedbackGraph
@@ -47,8 +47,7 @@ deltaKsFeedback { buffers: { "my-buffer": myBuffer, shruti } } =
         switchW = time % 4.0 < 2.0
         mix = if time > (timing.ksFeedback.dur - 1.0) then 0.0 else 1.0
         delay = calcSlope 0.0 0.3 timing.ksFeedback.dur 0.6 time
-        onOff = if switchOO then On else Off
+        onOff = if switchOO then _on else _off
         buffer = if switchW then myBuffer else shruti
       in
         ichange { mix, delay, buf: { onOff, buffer } }
-

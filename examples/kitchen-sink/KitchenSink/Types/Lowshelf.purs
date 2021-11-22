@@ -9,7 +9,7 @@ import WAGS.Create.Optionals (CLowshelf, CPlayBuf, lowshelf, playBuf)
 import WAGS.Example.KitchenSink.TLP.LoopSig (IxWAGSig', World)
 import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
 import WAGS.Example.KitchenSink.Types.Empty (TopWith)
-import WAGS.Graph.AudioUnit (OnOff(..), TLowshelf, TPlayBuf)
+import WAGS.Graph.AudioUnit (TLowshelf, TPlayBuf, _off, _on)
 import WAGS.Math (calcSlope)
 
 type LowshelfGraph
@@ -32,7 +32,7 @@ deltaKsLowshelf { buffers: { "my-buffer": myBuffer, shruti } } =
         switchW = time % 4.0 < 2.0
         mix = if time > (timing.ksLowshelf.dur - 1.0) then 0.0 else 1.0
         lowshelf = calcSlope 0.0 300.0 timing.ksLowshelf.dur 2000.0 time
-        onOff = if switchOO then On else Off
+        onOff = if switchOO then _on else _off
         buffer = if switchW then myBuffer else shruti
       in
         ichange { mix, lowshelf, buf: { onOff, buffer } }

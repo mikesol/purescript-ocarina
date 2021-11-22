@@ -27,8 +27,6 @@ import Halogen.HTML.Properties as HP
 import Halogen.VDom.Driver (runUI)
 import Heterogeneous.Mapping (hmap)
 import Math (pow)
-import Record as Record
-import Type.Proxy (Proxy(..))
 import WAGS.Change (ichange)
 import WAGS.Control.Functions.Graph (iloop, (@!>))
 import WAGS.Control.Indexed (IxWAG)
@@ -37,7 +35,7 @@ import WAGS.Create (icreate)
 import WAGS.Create.Optionals (CPeriodicOsc, CSpeaker, CGain, gain, periodicOsc, speaker)
 import WAGS.Graph.AudioUnit (TGain, TPeriodicOsc, TSpeaker)
 import WAGS.Graph.Parameter (ff)
-import WAGS.Interpret (close, context, defaultFFIAudio, makePeriodicWave, makeUnitCache)
+import WAGS.Interpret (close, context, makeFFIAudioSnapshot, makePeriodicWave)
 import WAGS.Math (calcSlope)
 import WAGS.Run (RunAudio, RunEngine, SceneI(..), Run, run)
 import WAGS.WebAPI (AudioContext, BrowserPeriodicWave)
@@ -159,7 +157,7 @@ createFrame e = icreate (scene e (inTempo rest0) 0.0) $> L.fromFoldable score''
 piece :: Scene (SceneI Unit World ()) RunAudio RunEngine Frame0 Unit
 piece =
   createFrame
-    @!> iloop \e@(SceneI { time, world: { bday } }) l ->
+    @!> iloop \e@(SceneI { time }) l ->
       let
         f = case _ of
           Nil -> ipure Nil
@@ -230,14 +228,12 @@ handleAction = case _ of
     { unsubscribe, audioCtx } <-
       H.liftEffect do
         audioCtx <- context
-        unitCache <- makeUnitCache
+        ffiAudio <- makeFFIAudioSnapshot audioCtx
         bday <-
           makePeriodicWave
             audioCtx
             (0.02 +> 0.3 +> -0.1 +> -0.25 +> V.empty)
             (-0.03 +> -0.25 +> 0.05 +> 0.2 +> V.empty)
-        let
-          ffiAudio = defaultFFIAudio audioCtx unitCache
         unsubscribe <-
           subscribe
             (run (pure unit) (pure { bday }) { easingAlgorithm } ffiAudio piece)

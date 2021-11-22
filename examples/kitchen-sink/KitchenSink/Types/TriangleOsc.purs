@@ -9,7 +9,7 @@ import WAGS.Create.Optionals (CRecorder, CTriangleOsc, recorder, triangleOsc)
 import WAGS.Example.KitchenSink.TLP.LoopSig (IxWAGSig', World)
 import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
 import WAGS.Example.KitchenSink.Types.Empty (TopWith)
-import WAGS.Graph.AudioUnit (OnOff(..), TRecorder, TTriangleOsc)
+import WAGS.Graph.AudioUnit (TRecorder, TTriangleOsc, _off, _on)
 
 type TriangleOscGraph
   = TopWith { recorder :: Unit }
@@ -33,7 +33,7 @@ deltaKsTriangleOsc =
         ichange
           { mix: 0.1 - 0.1 * (cos time)
           , triangleOsc:
-              { onOff: if switchOO then On else Off
+              { onOff: if switchOO then _on else _off
               , freq: 440.0 + 50.0 * ((sin (rad * 1.5)) `pow` 2.0)
               }
           }

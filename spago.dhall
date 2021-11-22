@@ -25,8 +25,6 @@
   , "newtype"
   , "ordered-collections"
   , "prelude"
-  , "profunctor"
-  , "profunctor-lenses"
   , "psci-support"
   , "record"
   , "refs"
@@ -39,6 +37,7 @@
   , "typelevel-prelude"
   , "unsafe-coerce"
   , "unsafe-reference"
+  , "variant"
   , "web-events"
   ]
 , packages = ./packages.dhall

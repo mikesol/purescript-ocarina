@@ -10,7 +10,7 @@ import WAGS.Create (create)
 import WAGS.Create.Optionals (gain, highpass, ref, sinOsc, speaker, speaker')
 import WAGS.Destroy (destroy)
 import WAGS.Disconnect (disconnect)
-import WAGS.Graph.AudioUnit (OnOff(..), TGain, THighpass, TSinOsc, TSpeaker)
+import WAGS.Graph.AudioUnit (TGain, THighpass, TSinOsc, TSpeaker, _on)
 import WAGS.Interpret (class AudioInterpret)
 
 opsTest0
@@ -104,11 +104,11 @@ opsTest3 =
     # change
     # (<$) { mySine: 330.0 }
     # change
-    # (<$) { mySine: On }
+    # (<$) { mySine: _on }
     # change
     # (<$) { mySine: { freq: 550.0 } }
     # change
-    # (<$) { mySine: { freq: 550.0, onOff: On } }
+    # (<$) { mySine: { freq: 550.0, onOff: _on } }
     # change
 
 opsTest6

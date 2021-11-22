@@ -29,7 +29,7 @@ import WAGS.Control.Types (Frame0, Scene)
 import WAGS.Create (icreate)
 import WAGS.Create.Optionals (CGain, CLoopBuf, CSpeaker, CAnalyser, analyser, gain, loopBuf, speaker)
 import WAGS.Graph.AudioUnit (TAnalyser, TGain, TLoopBuf, TSpeaker)
-import WAGS.Interpret (close, context, contextState, contextResume, decodeAudioDataFromUri, getByteFrequencyData, makeUnitCache)
+import WAGS.Interpret (close, context, contextResume, contextState, decodeAudioDataFromUri, getByteFrequencyData, makeFFIAudioSnapshot)
 import WAGS.Run (Run, RunAudio, RunEngine, SceneI(..), run)
 import WAGS.WebAPI (AnalyserNode, AnalyserNodeCb, AudioContext, BrowserAudioBuffer)
 
@@ -166,17 +166,11 @@ handleAction = case _ of
     -- just for kicks
     H.liftEffect $ contextState audioCtx >>= Log.info
     H.liftAff $ toAffE $ contextResume audioCtx
-    unitCache <- H.liftEffect makeUnitCache
+    ffiAudio <- H.liftEffect $ makeFFIAudioSnapshot audioCtx
     atar <-
       H.liftAff $ decodeAudioDataFromUri
           audioCtx
           "https://freesound.org/data/previews/100/100981_1234256-lq.mp3"
-    let
-      ffiAudio =
-        { context: audioCtx
-        , writeHead: 0.0
-        , units: unitCache
-        }
     unsubscribe <-
       H.liftEffect
         $ subscribe

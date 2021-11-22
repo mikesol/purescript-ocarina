@@ -4,10 +4,8 @@ import Prelude
 
 import Control.Comonad (extract)
 import Data.Functor (voidRight)
-import Data.Lens (Grate, over)
-import Data.Lens.Grate (grate)
 import Data.Symbol (class IsSymbol, reflectSymbol)
-import Data.Tuple (Tuple, fst, snd)
+import Data.Tuple (Tuple)
 import Data.Tuple.Nested ((/\), type (/\))
 import Data.Typelevel.Num (class Nat, class Pos, toInt')
 import Data.Vec as V
@@ -31,7 +29,7 @@ import WAGS.Graph.Oversample (class IsOversample, reflectOversample)
 import WAGS.Graph.Paramable (class Paramable, paramize, class OnOffable, onOffIze)
 import WAGS.Graph.Parameter (AudioParameter)
 import WAGS.Interpret (class AudioInterpret, AsSubgraph, makeAllpass, makeAnalyser, makeAudioWorkletNode, makeBandpass, makeConstant, makeConvolver, makeDelay, makeDynamicsCompressor, makeGain, makeHighpass, makeHighshelf, makeInput, makeLoopBuf, makeLowpass, makeLowshelf, makeMicrophone, makeNotch, makePeaking, makePeriodicOsc, makePeriodicOscV, makePlayBuf, makeRecorder, makeSawtoothOsc, makeSinOsc, makeSpeaker, makeSquareOsc, makeStereoPanner, makeSubgraph, makeTriangleOsc, makeTumult, makeWaveShaper, unAsSubGraph)
-import WAGS.Rendered (AudioWorkletNodeOptions_(..))
+import WAGS.Rendered (AudioWorkletNodeOptions_(..), RealImg(..))
 import WAGS.Tumult (Tumultuous, safeUntumult)
 import WAGS.Util (class AddPrefixToRowList, class CoercePrefixToString, class MakePrefixIfNeeded, class ValidateOutputChannelCount, toOutputChannelCount)
 import WAGS.WebAPI (AnalyserNodeCb, BrowserAudioBuffer, BrowserFloatArray, BrowserMicrophone, BrowserPeriodicWave, MediaRecorderCb)
@@ -262,7 +260,7 @@ instance createAnalyser ::
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makeAnalyser nn cb ]
+              { instructions = i.instructions <> [ makeAnalyser { id: nn, cb } ]
               }
         , value: unit
         }
@@ -289,7 +287,7 @@ instance createAllpass ::
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makeAllpass nn argA_iv' argB_iv' ]
+              { instructions = i.instructions <> [ makeAllpass { id: nn, freq: argA_iv', q: argB_iv' } ]
               }
         , value: unit
         }
@@ -347,13 +345,16 @@ instance createAudioWorkletNode ::
         { context:
             i
               { instructions = i.instructions <>
-                  [ makeAudioWorkletNode nn $ AudioWorkletNodeOptions_
-                      { name: reflectSymbol (Proxy :: _ sym)
-                      , numberOfInputs: toInt' (Proxy :: _ numberOfInputs)
-                      , numberOfOutputs: toInt' (Proxy :: _ numberOfOutputs)
-                      , outputChannelCount: toOutputChannelCount (Proxy :: _ numberOfOutputs) (Proxy :: _ outputChannelCount)
-                      , parameterData: createParameters (Proxy :: _ parameterDataRL) options.parameterData
-                      , processorOptions: JSON.writeImpl (mempty :: { | processorOptions })
+                  [ makeAudioWorkletNode
+                      { id: nn
+                      , options: AudioWorkletNodeOptions_
+                          { name: reflectSymbol (Proxy :: _ sym)
+                          , numberOfInputs: toInt' (Proxy :: _ numberOfInputs)
+                          , numberOfOutputs: toInt' (Proxy :: _ numberOfOutputs)
+                          , outputChannelCount: toOutputChannelCount (Proxy :: _ numberOfOutputs) (Proxy :: _ outputChannelCount)
+                          , parameterData: createParameters (Proxy :: _ parameterDataRL) options.parameterData
+                          , processorOptions: JSON.writeImpl (mempty :: { | processorOptions })
+                          }
                       }
                   ] --(createParameters nn (Proxy :: _ parameterData) (Proxy :: _ parametersRL) parameters)
               }
@@ -382,7 +383,7 @@ instance createBandpass ::
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makeBandpass nn argA_iv' argB_iv' ]
+              { instructions = i.instructions <> [ makeBandpass { id: nn, freq: argA_iv', q: argB_iv' } ]
               }
         , value: unit
         }
@@ -408,7 +409,7 @@ instance createConstant ::
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makeConstant nn (onOffIze onOff) argA_iv' ]
+              { instructions = i.instructions <> [ makeConstant { id: nn, onOff: (onOffIze onOff), offset: argA_iv' } ]
               }
         , value: unit
         }
@@ -429,7 +430,7 @@ instance createConvolver ::
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makeConvolver nn buffer ]
+              { instructions = i.instructions <> [ makeConvolver { id: nn, buffer } ]
               }
         , value: unit
         }
@@ -453,7 +454,7 @@ instance createDelay ::
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makeDelay nn argA_iv' ]
+              { instructions = i.instructions <> [ makeDelay { id: nn, delayTime: argA_iv' } ]
               }
         , value: unit
         }
@@ -489,7 +490,7 @@ instance createDynamicsCompressor ::
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makeDynamicsCompressor nn argA_iv' argB_iv' argC_iv' argD_iv' argE_iv' ]
+              { instructions = i.instructions <> [ makeDynamicsCompressor { id: nn, threshold: argA_iv', knee: argB_iv', ratio: argC_iv', attack: argD_iv', release: argE_iv' } ]
               }
         , value: unit
         }
@@ -513,7 +514,7 @@ instance createGain ::
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makeGain nn argA_iv' ]
+              { instructions = i.instructions <> [ makeGain { id: nn, gain: argA_iv' } ]
               }
         , value: unit
         }
@@ -540,7 +541,7 @@ instance createHighpass ::
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makeHighpass nn argA_iv' argB_iv' ]
+              { instructions = i.instructions <> [ makeHighpass { id: nn, freq: argA_iv', q: argB_iv' } ]
               }
         , value: unit
         }
@@ -567,7 +568,7 @@ instance createHighshelf ::
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makeHighshelf nn argA_iv' argB_iv' ]
+              { instructions = i.instructions <> [ makeHighshelf { id: nn, freq: argA_iv', gain: argB_iv' } ]
               }
         , value: unit
         }
@@ -589,7 +590,7 @@ instance createInput ::
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makeInput nn (reflectSymbol (Proxy :: _ sym)) ]
+              { instructions = i.instructions <> [ makeInput { id: nn, input: (reflectSymbol (Proxy :: _ sym)) } ]
               }
         , value: unit
         }
@@ -614,7 +615,7 @@ instance createLoopBuf ::
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makeLoopBuf nn buffer (onOffIze onOff) argA_iv' loopStart loopEnd ]
+              { instructions = i.instructions <> [ makeLoopBuf { id: nn, buffer, onOff: (onOffIze onOff), playbackRate: argA_iv', loopStart, loopEnd } ]
               }
         , value: unit
         }
@@ -641,7 +642,7 @@ instance createLowpass ::
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makeLowpass nn argA_iv' argB_iv' ]
+              { instructions = i.instructions <> [ makeLowpass { id: nn, freq: argA_iv', q: argB_iv' } ]
               }
         , value: unit
         }
@@ -668,7 +669,7 @@ instance createLowshelf ::
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makeLowshelf nn argA_iv' argB_iv' ]
+              { instructions = i.instructions <> [ makeLowshelf { id: nn, freq: argA_iv', gain: argB_iv' } ]
               }
         , value: unit
         }
@@ -686,7 +687,7 @@ instance createMicrophone ::
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makeMicrophone microphone ]
+              { instructions = i.instructions <> [ makeMicrophone { microphone } ]
               }
         , value: unit
         }
@@ -713,7 +714,7 @@ instance createNotch ::
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makeNotch nn argA_iv' argB_iv' ]
+              { instructions = i.instructions <> [ makeNotch { id: nn, freq: argA_iv', q: argB_iv' } ]
               }
         , value: unit
         }
@@ -743,7 +744,7 @@ instance createPeaking ::
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makePeaking nn argA_iv' argB_iv' argC_iv' ]
+              { instructions = i.instructions <> [ makePeaking { id: nn, freq: argA_iv', q: argB_iv', gain: argC_iv' } ]
               }
         , value: unit
         }
@@ -768,13 +769,10 @@ instance createPeriodicOsc ::
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makePeriodicOsc nn oscWave (onOffIze onOff) argA_iv' ]
+              { instructions = i.instructions <> [ makePeriodicOsc { id: nn, wave: oscWave, onOff: (onOffIze onOff), freq: argA_iv' } ]
               }
         , value: unit
         }
-
-tGrate :: forall a b. Grate (Tuple a a) (Tuple b b) a b
-tGrate = grate \f -> (f fst) /\ (f snd)
 
 instance createPeriodicOsc2 ::
   ( IsSymbol ptr
@@ -796,7 +794,7 @@ instance createPeriodicOsc2 ::
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makePeriodicOscV nn (over tGrate V.toArray oscSpec) (onOffIze onOff) argA_iv' ]
+              { instructions = i.instructions <> [ makePeriodicOscV { id: nn, realImg: oscSpec # \(real /\ img) -> RealImg { real: V.toArray real, img: V.toArray img }, onOff: (onOffIze onOff), freq: argA_iv' } ]
               }
         , value: unit
         }
@@ -821,7 +819,7 @@ instance createPlayBuf ::
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makePlayBuf nn buffer offset (onOffIze onOff) argA_iv' ]
+              { instructions = i.instructions <> [ makePlayBuf { id: nn, buffer, bufferOffset: offset, onOff: (onOffIze onOff), playbackRate: argA_iv' } ]
               }
         , value: unit
         }
@@ -842,7 +840,7 @@ instance createRecorder ::
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makeRecorder nn cb ]
+              { instructions = i.instructions <> [ makeRecorder { id: nn, cb } ]
               }
         , value: unit
         }
@@ -867,7 +865,7 @@ instance createSawtoothOsc ::
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makeSawtoothOsc nn (onOffIze onOff) argA_iv' ]
+              { instructions = i.instructions <> [ makeSawtoothOsc { id: nn, onOff: onOffIze onOff, freq: argA_iv' } ]
               }
         , value: unit
         }
@@ -891,7 +889,7 @@ instance createSinOsc ::
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makeSinOsc nn (onOffIze onOff) argA_iv' ]
+              { instructions = i.instructions <> [ makeSinOsc { id: nn, onOff: onOffIze onOff, freq: argA_iv' } ]
               }
         , value: unit
         }
@@ -933,7 +931,7 @@ instance createSquareOsc ::
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makeSquareOsc nn (onOffIze onOff) argA_iv' ]
+              { instructions = i.instructions <> [ makeSquareOsc { id: nn, onOff: onOffIze onOff, freq: argA_iv' } ]
               }
         , value: unit
         }
@@ -957,7 +955,7 @@ instance createStereoPanner ::
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makeStereoPanner nn argA_iv' ]
+              { instructions = i.instructions <> [ makeStereoPanner { id: nn, pan: argA_iv' } ]
               }
         , value: unit
         }
@@ -979,7 +977,7 @@ instance createSubgraph ::
         { context:
             i
               { instructions = i.instructions <>
-                  [ makeSubgraph nn (Proxy :: _ terminus) vec env (unAsSubGraph asSub) ]
+                  [ makeSubgraph { id: nn, terminus: Proxy :: _ terminus, controls: vec, envs: env, scenes: unAsSubGraph asSub } ]
               }
         , value: unit
         }
@@ -1002,7 +1000,7 @@ instance createTumult ::
         { context:
             i
               { instructions = i.instructions <>
-                  [ makeTumult nn pt $ safeUntumult tummy ]
+                  [ makeTumult { id: nn, terminus: pt, instructions: safeUntumult tummy } ]
               }
         , value: unit
         }
@@ -1027,7 +1025,7 @@ instance createTriangleOsc ::
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makeTriangleOsc nn (onOffIze onOff) argA_iv' ]
+              { instructions = i.instructions <> [ makeTriangleOsc { id: nn, onOff: onOffIze onOff, freq: argA_iv' } ]
               }
         , value: unit
         }
@@ -1051,7 +1049,7 @@ instance createWaveShaper ::
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makeWaveShaper nn floatArray oversample ]
+              { instructions = i.instructions <> [ makeWaveShaper { id: nn, curve: floatArray, oversample } ]
               }
         , value: unit
         }

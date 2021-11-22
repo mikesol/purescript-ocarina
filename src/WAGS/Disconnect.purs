@@ -49,10 +49,11 @@ instance disconnector ::
           i
             { instructions = i.instructions <>
                 [ disconnectXFromY
-                    fromI
-                    (reflectSymbol (Proxy :: _ fromSym))
-                    toI
-                    (reflectSymbol (Proxy :: _ toSym))
+                    { fromId
+                    , fromUnit: reflectSymbol (Proxy :: _ fromSym)
+                    , toId
+                    , toUnit: reflectSymbol (Proxy :: _ toSym)
+                    }
                 ]
             }
       , value: unit
@@ -60,6 +61,6 @@ instance disconnector ::
     where
     { context: i, value: { source: fromI', dest: toI' } } = unsafeUnWAG w
 
-    fromI = reflectSymbol fromI'
+    fromId = reflectSymbol fromI'
 
-    toI = reflectSymbol toI'
+    toId = reflectSymbol toI'

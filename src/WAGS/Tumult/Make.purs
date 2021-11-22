@@ -2,8 +2,6 @@ module WAGS.Tumult.Make where
 
 import Prelude
 
-import Data.Set (Set)
-import Data.Set as Set
 import Data.Typelevel.Num (class Pos)
 import Data.Vec (Vec, toArray)
 import Prim.RowList (class RowToList)
@@ -26,8 +24,8 @@ tumultuously
   -> Tumultuous n terminus inputs
 tumultuously scenes = unsafeTumult (map go (toArray scenes))
   where
-  go :: { | scene } -> Set Instruction
-  go scene = Set.fromFoldable $ map ((#) unit) tmt
+  go :: { | scene } -> Array Instruction
+  go scene = map ((#) unit) tmt
     where
     init :: WAG Unit Instruction Frame0 Unit graph Unit
     init = create (start $> scene)
@@ -35,5 +33,3 @@ tumultuously scenes = unsafeTumult (map go (toArray scenes))
     subscene = init @||> freeze
     frame = oneSubFrame subscene unit
     tmt = frame.instructions
-
-

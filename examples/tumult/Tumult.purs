@@ -24,7 +24,7 @@ import WAGS.Control.Functions.Subgraph as SG
 import WAGS.Control.Types (Frame0, Scene, SubScene)
 import WAGS.Create.Optionals (bandpass, gain, highpass, input, loopBuf, sinOsc, speaker, subgraph, tumult)
 import WAGS.Graph.Parameter (AudioParameter, ff)
-import WAGS.Interpret (class AudioInterpret, close, context, decodeAudioDataFromUri, makeUnitCache)
+import WAGS.Interpret (class AudioInterpret, close, context, decodeAudioDataFromUri, makeFFIAudioSnapshot)
 import WAGS.Run (Run, RunAudio, RunEngine, SceneI(..), run)
 import WAGS.Tumult.Make (tumultuously)
 import WAGS.WebAPI (AudioContext, BrowserAudioBuffer)
@@ -143,17 +143,11 @@ handleAction :: forall output m. MonadEffect m => MonadAff m => Action -> H.Halo
 handleAction = case _ of
   StartAudio -> do
     audioCtx <- H.liftEffect context
-    unitCache <- H.liftEffect makeUnitCache
+    ffiAudio <- H.liftEffect $ makeFFIAudioSnapshot audioCtx
     shruti <-
       H.liftAff $ decodeAudioDataFromUri
           audioCtx
           "https://freesound.org/data/previews/513/513742_153257-hq.mp3"
-    let
-      ffiAudio =
-        { context: audioCtx
-        , writeHead: 0.0
-        , units: unitCache
-        }
     unsubscribe <-
       H.liftEffect
         $ subscribe

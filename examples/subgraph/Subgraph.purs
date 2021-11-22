@@ -22,8 +22,8 @@ import WAGS.Control.Functions.Graph (loopUsingScene)
 import WAGS.Control.Functions.Subgraph as SG
 import WAGS.Control.Types (Frame0, Scene, SubScene)
 import WAGS.Create.Optionals (gain, input, playBuf, sinOsc, speaker, subgraph)
-import WAGS.Graph.AudioUnit (OnOff(..))
-import WAGS.Interpret (class AudioInterpret, close, context, decodeAudioDataFromUri, makeUnitCache)
+import WAGS.Graph.AudioUnit (_off, _on)
+import WAGS.Interpret (class AudioInterpret, close, context, decodeAudioDataFromUri, makeFFIAudioSnapshot)
 import WAGS.Run (Run, RunAudio, RunEngine, SceneI(..), run)
 import WAGS.WebAPI (AudioContext, BrowserAudioBuffer)
 
@@ -42,7 +42,7 @@ subPiece0
   -> SubScene "buffy" () SGWorld audio engine Frame0 Unit
 subPiece0 i atar = unit # SG.loopUsingScene \(SGWorld time) _ ->
   { control: unit
-  , scene: { buffy: playBuf { onOff: if time < toNumber (i * 2) + 1.0 then Off else On } atar }
+  , scene: { buffy: playBuf { onOff: if time < toNumber (i * 2) + 1.0 then _off else _on } atar }
   }
 
 subPiece1
@@ -68,7 +68,7 @@ piece = unit # loopUsingScene \(SceneI env) _ ->
               (\i _ -> subPiece0 i env.world.atar)
               (const $ const $ SGWorld env.time)
               {}
-            , sg2: subgraph vec
+          , sg2: subgraph vec
               (\i _ -> subPiece1 i)
               (const $ const $ SGWorld env.time)
               { beep: sinOsc 440.0 }
@@ -134,17 +134,11 @@ handleAction :: forall output m. MonadEffect m => MonadAff m => Action -> H.Halo
 handleAction = case _ of
   StartAudio -> do
     audioCtx <- H.liftEffect context
-    unitCache <- H.liftEffect makeUnitCache
+    ffiAudio <- H.liftEffect $ makeFFIAudioSnapshot audioCtx
     atar <-
       H.liftAff $ decodeAudioDataFromUri
-          audioCtx
-          "https://freesound.org/data/previews/100/100981_1234256-lq.mp3"
-    let
-      ffiAudio =
-        { context: audioCtx
-        , writeHead: 0.0
-        , units: unitCache
-        }
+        audioCtx
+        "https://freesound.org/data/previews/100/100981_1234256-lq.mp3"
     unsubscribe <-
       H.liftEffect
         $ subscribe

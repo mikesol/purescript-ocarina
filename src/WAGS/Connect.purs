@@ -49,10 +49,11 @@ instance connectInstance ::
           i
             { instructions = i.instructions <>
                 [ connectXToY
-                    fromI
-                    (reflectSymbol (Proxy :: _ fromSym))
-                    toI
-                    (reflectSymbol (Proxy :: _ toSym))
+                    { fromId
+                    , fromUnit: reflectSymbol (Proxy :: _ fromSym)
+                    , toId
+                    , toUnit: reflectSymbol (Proxy :: _ toSym)
+                    }
                 ]
             }
       , value: unit
@@ -60,9 +61,9 @@ instance connectInstance ::
     where
     { context: i, value: { source: fromI', dest: toI' } } = unsafeUnWAG w
 
-    fromI = reflectSymbol fromI'
+    fromId = reflectSymbol fromI'
 
-    toI = reflectSymbol toI'
+    toId = reflectSymbol toI'
 
 class ConnectT (source :: Symbol) (dest :: Symbol) (i :: Graph) (o :: Graph) | source dest i -> o
 

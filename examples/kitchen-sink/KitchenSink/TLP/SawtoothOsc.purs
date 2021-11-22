@@ -14,7 +14,7 @@ import WAGS.Example.KitchenSink.TLP.Convolver (doConvolver)
 import WAGS.Example.KitchenSink.TLP.LoopSig (StepSig)
 import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
 import WAGS.Example.KitchenSink.Types.SawtoothOsc (SawtoothOscGraph)
-import WAGS.Graph.AudioUnit (OnOff(..))
+import WAGS.Graph.AudioUnit (_on)
 import WAGS.Graph.Parameter (AudioParameter_)
 import WAGS.Patch (ipatch)
 import WAGS.Run (SceneI(..))
@@ -30,4 +30,4 @@ doSawtoothOsc =
         ipure lsig
     else
       Left
-        $ icont doConvolver (ipatch { microphone: Nothing } :*> ichange { buf: { buffer: myBuffer, onOff: On }, convolver: reverb } $> lsig)
+        $ icont doConvolver (ipatch { microphone: Nothing } :*> ichange { buf: { buffer: myBuffer, onOff: _on }, convolver: reverb } $> lsig)

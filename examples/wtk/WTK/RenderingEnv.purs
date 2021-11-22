@@ -1,6 +1,7 @@
 module WAGS.Example.WTK.RenderingEnv where
 
 import Prelude
+
 import Data.Int (toNumber)
 import Data.List (List(..), (:), filter, length, drop, zipWith)
 import Data.Maybe (maybe)
@@ -9,7 +10,7 @@ import Data.Tuple.Nested ((/\), type (/\))
 import FRP.Event.MIDI (MIDIEvent(..))
 import Math (pow)
 import WAGS.Example.WTK.Types (KeyUnit, MakeRenderingEnv)
-import WAGS.Graph.AudioUnit (OnOff(..))
+import WAGS.Graph.AudioUnit (_off, _on)
 import WAGS.Math (calcSlope)
 
 keyDur :: Number
@@ -33,21 +34,21 @@ asdr n
   | otherwise = 0.0
 
 keyStart :: Number -> KeyUnit
-keyStart cps = { gain: 0.0, onOff: On, freq: cps }
+keyStart cps = { gain: 0.0, onOff: _on, freq: cps }
 
 keySustain :: Number -> Number -> Number -> KeyUnit
 keySustain initialTime cps currentTime =
   { gain:
       (asdr (currentTime - initialTime))
-  , onOff: On
+  , onOff: _on
   , freq: cps
   }
 
 keySustainOff :: Number -> Number -> Number -> Number -> KeyUnit
-keySustainOff initialTime cps offTime currentTime = { gain: (asdr (currentTime - initialTime) * dampen currentTime offTime), onOff: On, freq: cps }
+keySustainOff initialTime cps offTime currentTime = { gain: (asdr (currentTime - initialTime) * dampen currentTime offTime), onOff: _on, freq: cps }
 
 keyEnd :: Number -> KeyUnit
-keyEnd cps = { gain: 0.0, onOff: Off, freq: cps }
+keyEnd cps = { gain: 0.0, onOff: _off, freq: cps }
 
 midiEventsToOnsets :: List MIDIEvent -> (List Int /\ List Int)
 midiEventsToOnsets = go Nil Nil

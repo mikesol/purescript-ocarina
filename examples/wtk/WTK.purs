@@ -20,7 +20,7 @@ import Halogen.HTML.Events as HE
 import Halogen.VDom.Driver (runUI)
 import WAGS.Example.WTK.RenderingEnv (makeRenderingEnv)
 import WAGS.Example.WTK.TLP (piece)
-import WAGS.Interpret (close, context, defaultFFIAudio, makeUnitCache)
+import WAGS.Interpret (close, context, makeFFIAudioSnapshot)
 import WAGS.Run (Run, bufferToList, run)
 import WAGS.WebAPI (AudioContext)
 
@@ -78,9 +78,7 @@ handleAction = case _ of
     let
       trigger = (bufferToList 5 (midi midAcc)) <|> pure Nil
     audioCtx <- H.liftEffect context
-    unitCache <- H.liftEffect makeUnitCache
-    let
-      ffiAudio = defaultFFIAudio audioCtx unitCache
+    ffiAudio <- H.liftEffect $ makeFFIAudioSnapshot audioCtx
     unsubscribe <-
       H.liftEffect
         $ subscribe
