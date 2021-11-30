@@ -20,7 +20,7 @@ import WAGS.Graph.Oversample (class IsOversampleT)
 import WAGS.Graph.Parameter (AudioParameter)
 import WAGS.Interpret (AsSubgraph)
 import WAGS.Util (class AddPrefixToRowList, class CoercePrefixToString, class MakePrefixIfNeeded)
-import WAGS.WebAPI (AnalyserNodeCb, BrowserAudioBuffer, BrowserFloatArray, BrowserPeriodicWave, MediaRecorderCb)
+import WAGS.WebAPI (AnalyserNodeCb, BrowserAudioBuffer, BrowserFloatArray, BrowserMediaElement, BrowserPeriodicWave, MediaRecorderCb)
 
 class CreateStepT (prefix :: Type) (map :: Type) (r :: Row Type) (inGraph :: Graph) (outGraph :: Graph) | r inGraph -> outGraph
 
@@ -194,6 +194,12 @@ instance createTLowshelf ::
   , R.Cons ptr (NodeC CTOR.TLowshelf {}) graphi grapho
   ) =>
   CreateT' ptr (CTOR.Lowshelf argA argB) graphi grapho
+
+instance createTMediaElement ::
+  ( R.Lacks ptr graphi
+  , R.Cons ptr (NodeC CTOR.TMediaElement {}) graphi grapho
+  ) =>
+  CreateT' ptr (CTOR.MediaElement BrowserMediaElement) graphi grapho
 
 instance createTMicrophone ::
   ( R.Lacks "microphone" graphi

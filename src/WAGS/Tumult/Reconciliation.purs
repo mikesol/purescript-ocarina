@@ -43,6 +43,7 @@ derogative = unwrap >>> match
   , makeLoopBufWithDeferredBuffer: du "LoopBuf"
   , makeLowpass: du "Lowpass"
   , makeLowshelf: du "Lowshelf"
+  , makeMediaElement: du "MediaElement"
   , makeMicrophone: \_ -> Set.insert $ R.iDestroyUnit { id: "microphone", unit: "Microphone" }
   , makeNotch: du "Notch"
   , makePeaking: du "Peaking"
@@ -299,6 +300,11 @@ reconcileTumult new old = result
                   ( Set.insert (R.iSetFrequency { id: a.id, frequency: a.freq })
                       <<< Set.insert (R.iSetGain { id: a.id, gain: a.gain })
                   )
+          )
+      , makeMediaElement: \a -> i1 #
+          ( udef
+              # on (Proxy :: _ "makeMediaElement") \b ->
+                comparable a b l0 h0 t0 l1 h1 t1 set identity
           )
       , makeMicrophone: \_ -> i1 # udef
       , makePeaking: \a -> i1 #

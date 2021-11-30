@@ -18,7 +18,7 @@ import Simple.JSON as JSON
 import Type.Proxy (Proxy(..))
 import WAGS.Graph.AudioUnit (APOnOff)
 import WAGS.Graph.Parameter (AudioParameter)
-import WAGS.WebAPI (AnalyserNodeCb, BrowserAudioBuffer, BrowserFloatArray, BrowserMicrophone, BrowserPeriodicWave, MediaRecorderCb)
+import WAGS.WebAPI (AnalyserNodeCb, BrowserAudioBuffer, BrowserFloatArray, BrowserMediaElement, BrowserMicrophone, BrowserPeriodicWave, MediaRecorderCb)
 
 type AudioWorkletNodeOptions_' =
   { name :: String
@@ -120,6 +120,10 @@ type MakeLoopBuf =
 type MakeLoopBufWithDeferredBuffer = { id :: String }
 type MakeLowpass = { id :: String, freq :: AudioParameter, q :: AudioParameter }
 type MakeLowshelf = { id :: String, freq :: AudioParameter, gain :: AudioParameter }
+type MakeMediaElement =
+  { id :: String
+  , element :: BrowserMediaElement
+  }
 type MakeMicrophone = { microphone :: BrowserMicrophone }
 type MakeNotch = { id :: String, freq :: AudioParameter, q :: AudioParameter }
 type MakePeaking = { id :: String, freq :: AudioParameter, q :: AudioParameter, gain :: AudioParameter }
@@ -218,6 +222,7 @@ type Instruction' =
   , makeLoopBufWithDeferredBuffer :: MakeLoopBufWithDeferredBuffer
   , makeLowpass :: MakeLowpass
   , makeLowshelf :: MakeLowshelf
+  , makeMediaElement :: MakeMediaElement
   , makeMicrophone :: MakeMicrophone
   , makeNotch :: MakeNotch
   , makePeaking :: MakePeaking
@@ -288,6 +293,7 @@ instructionWeight (Instruction v) = v # match
   , makeLoopBufWithDeferredBuffer: const 2
   , makeLowpass: const 2
   , makeLowshelf: const 2
+  , makeMediaElement: const 2
   , makeMicrophone: const 2
   , makeNotch: const 2
   , makePeaking: const 2
@@ -357,6 +363,7 @@ instructionId (Instruction v) = v # match
   , makeLoopBufWithDeferredBuffer: _.id
   , makeLowpass: _.id
   , makeLowshelf: _.id
+  , makeMediaElement: _.id
   , makeMicrophone: const "microphone"
   , makeNotch: _.id
   , makePeaking: _.id
@@ -462,6 +469,8 @@ iMakeLowpass :: MakeLowpass -> Instruction
 iMakeLowpass = Instruction <<< inj (Proxy :: Proxy "makeLowpass")
 iMakeLowshelf :: MakeLowshelf -> Instruction
 iMakeLowshelf = Instruction <<< inj (Proxy :: Proxy "makeLowshelf")
+iMakeMediaElement :: MakeMediaElement -> Instruction
+iMakeMediaElement = Instruction <<< inj (Proxy :: Proxy "makeMediaElement")
 iMakeMicrophone :: MakeMicrophone -> Instruction
 iMakeMicrophone = Instruction <<< inj (Proxy :: Proxy "makeMicrophone")
 iMakeNotch :: MakeNotch -> Instruction

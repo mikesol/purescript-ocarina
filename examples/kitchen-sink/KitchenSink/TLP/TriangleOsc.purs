@@ -32,7 +32,7 @@ doTriangleOsc =
       Left
         $ icont doSquareOsc
             if lsig.iteration `mod` 2 == 0 then Ix.do
-              ipatch { microphone: Nothing }
+              ipatch { microphone: Nothing, mediaElement: Nothing }
               ichange { squareOsc: 220.0 }
               ipure lsig
             else Ix.do

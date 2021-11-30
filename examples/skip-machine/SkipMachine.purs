@@ -87,7 +87,7 @@ cf nea len = f nea 0.0
   f ct x n = let hit = n + 0.04 > x in mkCofree (if hit then Just (hnea ct) else Nothing) (f (if hit then (rotate ct) else ct) (if hit then x + section else x))
 
 piece :: Scene (SceneI Unit World ()) RunAudio RunEngine Frame0 Unit
-piece = (\e@(SceneI { world: { hamlet } }) -> ipatch { microphone: empty } :*> myChange e (cf order (bufferDuration hamlet))) @!> iloop myChange
+piece = (\e@(SceneI { world: { hamlet } }) -> ipatch { microphone: empty, mediaElement: empty } :*> myChange e (cf order (bufferDuration hamlet))) @!> iloop myChange
 
 easingAlgorithm :: Cofree ((->) Int) Int
 easingAlgorithm =

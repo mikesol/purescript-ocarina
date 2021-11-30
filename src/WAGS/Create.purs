@@ -28,11 +28,11 @@ import WAGS.Graph.Node (NodeC)
 import WAGS.Graph.Oversample (class IsOversample, reflectOversample)
 import WAGS.Graph.Paramable (class Paramable, paramize, class OnOffable, onOffIze)
 import WAGS.Graph.Parameter (AudioParameter)
-import WAGS.Interpret (class AudioInterpret, AsSubgraph, makeAllpass, makeAnalyser, makeAudioWorkletNode, makeBandpass, makeConstant, makeConvolver, makeDelay, makeDynamicsCompressor, makeGain, makeHighpass, makeHighshelf, makeInput, makeLoopBuf, makeLowpass, makeLowshelf, makeMicrophone, makeNotch, makePeaking, makePeriodicOsc, makePeriodicOscV, makePlayBuf, makeRecorder, makeSawtoothOsc, makeSinOsc, makeSpeaker, makeSquareOsc, makeStereoPanner, makeSubgraph, makeTriangleOsc, makeTumult, makeWaveShaper, unAsSubGraph)
+import WAGS.Interpret (class AudioInterpret, AsSubgraph, makeAllpass, makeAnalyser, makeAudioWorkletNode, makeBandpass, makeConstant, makeConvolver, makeDelay, makeDynamicsCompressor, makeGain, makeHighpass, makeHighshelf, makeInput, makeLoopBuf, makeLowpass, makeLowshelf, makeMediaElement, makeMicrophone, makeNotch, makePeaking, makePeriodicOsc, makePeriodicOscV, makePlayBuf, makeRecorder, makeSawtoothOsc, makeSinOsc, makeSpeaker, makeSquareOsc, makeStereoPanner, makeSubgraph, makeTriangleOsc, makeTumult, makeWaveShaper, unAsSubGraph)
 import WAGS.Rendered (AudioWorkletNodeOptions_(..), RealImg(..))
 import WAGS.Tumult (Tumultuous, safeUntumult)
 import WAGS.Util (class AddPrefixToRowList, class CoercePrefixToString, class MakePrefixIfNeeded, class ValidateOutputChannelCount, toOutputChannelCount)
-import WAGS.WebAPI (AnalyserNodeCb, BrowserAudioBuffer, BrowserFloatArray, BrowserMicrophone, BrowserPeriodicWave, MediaRecorderCb)
+import WAGS.WebAPI (AnalyserNodeCb, BrowserAudioBuffer, BrowserFloatArray, BrowserMediaElement, BrowserMicrophone, BrowserPeriodicWave, MediaRecorderCb)
 
 type CreateStepRLSig (rl :: RL.RowList Type) (prefix :: Type) (map :: Type) (r :: Row Type) (inGraph :: Graph) (outGraph :: Graph)
   =
@@ -673,6 +673,28 @@ instance createLowshelf ::
               }
         , value: unit
         }
+
+instance createMediaElement ::
+  ( IsSymbol ptr
+  , R.Lacks ptr graphi
+  , R.Cons ptr (NodeC CTOR.TMediaElement {}) graphi grapho
+  ) =>
+  Create' ptr (CTOR.MediaElement BrowserMediaElement) graphi grapho where
+  create' ptr w = o
+    where
+    { context: i, value: (CTOR.MediaElement element) } = unsafeUnWAG w
+
+    nn = reflectSymbol ptr
+
+    o =
+      unsafeWAG
+        { context:
+            i
+              { instructions = i.instructions <> [ makeMediaElement { id: nn, element } ]
+              }
+        , value: unit
+        }
+
 
 instance createMicrophone ::
   ( R.Lacks "microphone" graphi

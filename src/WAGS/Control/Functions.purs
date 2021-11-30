@@ -43,7 +43,7 @@ import WAGS.Control.Types (class IsScene, AudioState', Frame0, InitialWAG, Scene
 import WAGS.Create (class Create, icreate)
 import WAGS.CreateT (class CreateT)
 import WAGS.Interpret (class AudioInterpret)
-import WAGS.Patch (class Patch, ipatch)
+import WAGS.Patch (class Patch, PatchInfo, ipatch)
 import WAGS.WebAPI (BrowserMicrophone)
 
 -- | The initial `Frame` that is needed to begin any `Scene`.
@@ -148,7 +148,7 @@ startUsing
   => AudioInterpret audio engine
   => IsScene scene
   => Patch () graph
-  => { microphone :: Maybe BrowserMicrophone }
+  => PatchInfo
   -> control
   -> ( forall proofA
         . WAG audio engine proofA res graph control
@@ -174,7 +174,7 @@ startUsingWithHint
   => CreateT hint () graph
   => Patch () graph
   => hintable
-  -> { microphone :: Maybe BrowserMicrophone }
+  -> PatchInfo
   -> control
   -> ( forall proofA
         . WAG audio engine proofA res graph control

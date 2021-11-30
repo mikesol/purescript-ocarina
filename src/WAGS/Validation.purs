@@ -286,6 +286,12 @@ instance allNodesAreSaturatedConsTLowshelf ::
   ) =>
   AllNodesAreSaturatedNL (RL.Cons iSym (NodeC (CTOR.TLowshelf) { | r }) tail)
 
+instance allNodesAreSaturatedConsTMediaElement ::
+  ( RowToList r RL.Nil
+  , AllNodesAreSaturatedNL tail
+  ) =>
+  AllNodesAreSaturatedNL (RL.Cons iSym (NodeC CTOR.TMediaElement { | r }) tail)
+
 instance allNodesAreSaturatedConsTMicrophone ::
   ( RowToList r RL.Nil
   , AllNodesAreSaturatedNL tail

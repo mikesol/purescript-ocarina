@@ -27,7 +27,7 @@ import WAGS.Interpret (class AudioInterpret, AsSubgraph, setAnalyserNodeCb, setA
 import WAGS.Rendered (Oversample, RealImg(..))
 import WAGS.Tumult (Tumultuous, safeUntumult)
 import WAGS.Util (class MakePrefixIfNeeded, class CoercePrefixToString)
-import WAGS.WebAPI (AnalyserNodeCb, BrowserAudioBuffer, BrowserFloatArray, BrowserMicrophone, BrowserPeriodicWave, MediaRecorderCb)
+import WAGS.WebAPI (AnalyserNodeCb, BrowserAudioBuffer, BrowserFloatArray, BrowserMediaElement, BrowserMicrophone, BrowserPeriodicWave, MediaRecorderCb)
 
 apure = pure :: forall a. a -> AudioParameter_ a
 
@@ -1422,6 +1422,15 @@ instance changeLowshelf ::
               }
         , value: unit
         }
+
+
+instance changeMediaElement ::
+  ( R.Cons iSym (NodeC CTOR.TMediaElement edges) ignore graph
+  ) =>
+  Change' iSym (CTOR.MediaElement BrowserMediaElement) graph where
+  -- for now, we make this a no-op as it does not make sense in the
+  -- web api to change a media element
+  change' _ w = w $> unit
 
 instance changeMicrophone ::
   ( R.Cons "microphone" (NodeC CTOR.TMicrophone edges) ignore graph

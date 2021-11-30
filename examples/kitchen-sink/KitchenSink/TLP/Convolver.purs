@@ -23,4 +23,4 @@ doConvolver =
       Right (ipure lsig)
     else
       Left
-        $ icont doAllpass (ipatch { microphone: Nothing } :*> ichange (ksAllpassCreate world) $> lsig)
+        $ icont doAllpass (ipatch { microphone: Nothing, mediaElement: Nothing } :*> ichange (ksAllpassCreate world) $> lsig)

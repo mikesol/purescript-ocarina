@@ -21,7 +21,7 @@ import WAGS.Graph.Worklet (AudioWorkletNodeResponse)
 import WAGS.Interpret (class AudioInterpret, AsSubgraph(..))
 import WAGS.Tumult (Tumultuous)
 import WAGS.Util (class ValidateOutputChannelCount)
-import WAGS.WebAPI (AnalyserNodeCb, BrowserAudioBuffer, BrowserFloatArray, BrowserMicrophone, BrowserPeriodicWave, MediaRecorderCb)
+import WAGS.WebAPI (AnalyserNodeCb, BrowserAudioBuffer, BrowserFloatArray, BrowserMediaElement, BrowserMicrophone, BrowserPeriodicWave, MediaRecorderCb)
 
 -----------
 data Allpass
@@ -580,6 +580,13 @@ else instance lowshelfCtor2 :: Paramable a => LowshelfCtor a (b -> CTOR.Lowshelf
 type CLowshelf a
   = CTOR.Lowshelf AudioParameter AudioParameter /\ a
 
+--------
+
+mediaElement :: BrowserMediaElement -> CTOR.MediaElement BrowserMediaElement /\ {}
+mediaElement = flip (/\) {} <<< CTOR.MediaElement
+
+type CMediaElement
+  = CTOR.MediaElement BrowserMediaElement /\ {}
 --------
 microphone_ :: BrowserMicrophone -> { microphone :: CTOR.Microphone BrowserMicrophone /\ {} }
 microphone_ = { microphone: _ } <<< microphone

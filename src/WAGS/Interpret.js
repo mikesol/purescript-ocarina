@@ -24,21 +24,26 @@ function makeid(length) {
 
 exports.makeFFIAudioSnapshot = function (audioCtx) {
 	return function () {
-		return { context: audioCtx, writeHead: 0.0, units: {}, unqidfr: makeid(10) };
+		return {
+			context: audioCtx,
+			writeHead: 0.0,
+			units: {},
+			unqidfr: makeid(10),
+		};
 	};
 };
 
-exports.contextFromSnapshot = function(snapshot) {
-  return snapshot.context;
-}
+exports.contextFromSnapshot = function (snapshot) {
+	return snapshot.context;
+};
 
-exports.advanceWriteHead = function(snapshot) {
-  return function(writeHead) {
-    var newSnapshot = Object.assign({}, snapshot);
-    newSnapshot.writeHead = writeHead;
+exports.advanceWriteHead = function (snapshot) {
+	return function (writeHead) {
+		var newSnapshot = Object.assign({}, snapshot);
+		newSnapshot.writeHead = writeHead;
 		return newSnapshot;
-  }
-}
+	};
+};
 
 exports.close = function (audioCtx) {
 	return function () {
@@ -550,6 +555,25 @@ exports.makeLowshelf_ = function (ptr) {
 		};
 	};
 };
+exports.makeMediaElement_ = function (ptr) {
+	return function (elt) {
+		return function (state) {
+			return function () {
+				var createFunction = function () {
+					var unit = state.context.createMediaElementSource(elt);
+					return unit;
+				};
+				state.units[ptr] = {
+					outgoing: [],
+					incoming: [],
+					createFunction: createFunction,
+					resumeClosure: {},
+					main: createFunction(),
+				};
+			};
+		};
+	};
+};
 exports.makeMicrophone_ = function (microphone) {
 	return function (state) {
 		return function () {
@@ -763,7 +787,7 @@ exports.makeSubgraph_ = function (ptr) {
 										context: state.context,
 										writeHead: state.writeHead,
 										units: {},
-                    unqidfr: makeid(10),
+										unqidfr: makeid(10),
 										parent: state,
 									};
 									scenes[i] = sceneM(i)(vek[i]);
@@ -822,7 +846,7 @@ exports.makeTumult_ = function (ptr) {
 										writeHead: state.writeHead,
 										units: {},
 										parent: state,
-                    unqidfr: makeid(10),
+										unqidfr: makeid(10),
 									};
 								}
 								state.units[ptr] = {
@@ -1167,7 +1191,7 @@ exports.setSubgraph_ = function (ptr) {
 											writeHead: state.writeHead,
 											units: {},
 											parent: state,
-                      unqidfr: makeid(10),
+											unqidfr: makeid(10),
 										};
 										scenes[i] = sceneM(i)(vek[i]);
 									}

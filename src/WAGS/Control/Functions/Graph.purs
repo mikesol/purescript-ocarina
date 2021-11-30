@@ -37,7 +37,7 @@ import WAGS.Control.Types (Frame0, Scene, WAG)
 import WAGS.Create (class Create)
 import WAGS.CreateT (class CreateT)
 import WAGS.Interpret (class AudioInterpret)
-import WAGS.Patch (class Patch)
+import WAGS.Patch (class Patch, PatchInfo)
 import WAGS.Validation (class GraphIsRenderable)
 import WAGS.WebAPI (BrowserMicrophone)
 
@@ -168,7 +168,7 @@ startUsing
   => AudioInterpret audio engine
   => GraphIsRenderable graph
   => Patch () graph
-  => { microphone :: Maybe BrowserMicrophone }
+  => PatchInfo
   -> control
   -> ( forall proofA
         . WAG audio engine proofA res graph control
@@ -186,7 +186,7 @@ startUsingWithHint
   => CreateT hint () graph
   => Patch () graph
   => hintable
-  -> { microphone :: Maybe BrowserMicrophone }
+  -> PatchInfo
   -> control
   -> ( forall proofA
         . WAG audio engine proofA res graph control

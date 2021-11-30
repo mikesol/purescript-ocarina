@@ -19,10 +19,10 @@ import WAGS.Control.Types (WAG, unsafeUnWAG, unsafeWAG)
 import WAGS.Graph.AudioUnit (_off, _on)
 import WAGS.Graph.AudioUnit as AU
 import WAGS.Graph.Oversample (class IsOversample, reflectOversample)
-import WAGS.Interpret (class AudioInterpret, connectXToY, destroyUnit, disconnectXFromY, makeAllpass, makeAnalyser, makeAudioWorkletNode, makeBandpass, makeConstant, makeDelay, makeDynamicsCompressor, makeGain, makeHighpass, makeHighshelf, makeInput, makeLoopBufWithDeferredBuffer, makeLowpass, makeLowshelf, makeMicrophone, makeNotch, makePassthroughConvolver, makePeaking, makePeriodicOscWithDeferredOsc, makePlayBufWithDeferredBuffer, makeRecorder, makeSawtoothOsc, makeSinOsc, makeSpeaker, makeSquareOsc, makeStereoPanner, makeSubgraphWithDeferredScene, makeTriangleOsc, makeTumultWithDeferredGraph, makeWaveShaper)
+import WAGS.Interpret (class AudioInterpret, connectXToY, destroyUnit, disconnectXFromY, makeAllpass, makeAnalyser, makeAudioWorkletNode, makeBandpass, makeConstant, makeDelay, makeDynamicsCompressor, makeGain, makeHighpass, makeHighshelf, makeInput, makeLoopBufWithDeferredBuffer, makeLowpass, makeLowshelf, makeMediaElement, makeMicrophone, makeNotch, makePassthroughConvolver, makePeaking, makePeriodicOscWithDeferredOsc, makePlayBufWithDeferredBuffer, makeRecorder, makeSawtoothOsc, makeSinOsc, makeSpeaker, makeSquareOsc, makeStereoPanner, makeSubgraphWithDeferredScene, makeTriangleOsc, makeTumultWithDeferredGraph, makeWaveShaper)
 import WAGS.Rendered (AudioWorkletNodeOptions_(..))
 import WAGS.Util (class TypeEqualTF, class ValidateOutputChannelCount, toOutputChannelCount)
-import WAGS.WebAPI (AnalyserNodeCb(..), BrowserFloatArray, BrowserMicrophone, MediaRecorderCb(..))
+import WAGS.WebAPI (AnalyserNodeCb(..), BrowserFloatArray, BrowserMediaElement, BrowserMicrophone, MediaRecorderCb(..))
 
 data ConnectXToY (x :: Symbol) (y :: Symbol)
   = ConnectXToY (Proxy x) (Proxy y)
@@ -77,6 +77,9 @@ data MakeLowpass (ptr :: Symbol)
 
 data MakeLowshelf (ptr :: Symbol)
   = MakeLowshelf (Proxy ptr)
+
+data MakeMediaElement (ptr :: Symbol)
+  = MakeMediaElement (Proxy ptr)
 
 data MakeMicrophone
   = MakeMicrophone
@@ -200,6 +203,8 @@ instance doCreateMakeLoopBuf :: DoCreate ptr AU.TLoopBuf (MakeLoopBuf ptr)
 instance doCreateMakeLowpass :: DoCreate ptr AU.TLowpass (MakeLowpass ptr)
 
 instance doCreateMakeLowshelf :: DoCreate ptr AU.TLowshelf (MakeLowshelf ptr)
+
+instance doCreateMediaElement :: DoCreate ptr AU.TMediaElement (MakeMediaElement ptr)
 
 instance doCreateMakeMicrophone :: DoCreate "microphone" AU.TMicrophone MakeMicrophone
 
@@ -341,7 +346,7 @@ class ToGraphEffects (i :: Type) where
     :: forall audio engine
      . AudioInterpret audio engine
     => Proxy i
-    -> { microphone :: Maybe BrowserMicrophone }
+    -> PatchInfo
     -> { instructions :: Array (audio -> engine)
        }
     -> { instructions :: Array (audio -> engine)
@@ -567,6 +572,17 @@ instance toGraphEffectsMakeLowshelf :: (IsSymbol ptr, ToGraphEffects rest) => To
     where
     id = reflectSymbol (Proxy :: _ ptr)
 
+
+instance toGraphEffectsMakeMediaElement :: (IsSymbol ptr, ToGraphEffects rest) => ToGraphEffects (MakeMediaElement ptr /\ rest) where
+  toGraphEffects _ cache i =
+    toGraphEffects (Proxy :: _ rest) cache
+      ( i
+          { instructions = i.instructions <> [ maybe constantNothing (makeMediaElement <<< { id, element: _ }) cache.mediaElement ]
+          }
+      )
+    where
+    id = reflectSymbol (Proxy :: _ ptr)
+
 constantNothing :: forall audio engine. AudioInterpret audio engine => audio -> engine
 constantNothing = makeConstant { id: "microphone", onOff: pure _on, offset: pure 0.0 }
 
@@ -720,18 +736,23 @@ instance toGraphEffectsMakeWaveShaper :: (IsSymbol ptr, IsOversample oversample,
 
     oversample' = reflectOversample (mempty :: oversample)
 
+type PatchInfo =
+  { microphone :: Maybe BrowserMicrophone
+  , mediaElement :: Maybe BrowserMediaElement
+  }
+
 ipatch
   :: forall audio engine proof res g0 g1
    . Patch g0 g1
   => AudioInterpret audio engine
-  => { microphone :: Maybe BrowserMicrophone }
+  => PatchInfo
   -> IxWAG audio engine proof res g0 g1 Unit
 ipatch cache = IxWAG \i -> patch cache (i $> unit)
 
 type PatchSig g0 g1 =
   forall audio engine proof res a
    . AudioInterpret audio engine
-  => { microphone :: Maybe BrowserMicrophone }
+  => PatchInfo
   -> WAG audio engine proof res g0 a
   -> WAG audio engine proof res g1 a
 
@@ -739,7 +760,7 @@ type PatchSigRes g0 g1 res =
   forall audio engine proof a
    . AudioInterpret audio engine
   => Monoid res
-  => { microphone :: Maybe BrowserMicrophone }
+  => PatchInfo
   -> WAG audio engine proof res g0 a
   -> WAG audio engine proof res g1 a
 
@@ -748,7 +769,7 @@ class Patch g0 g1 where
   patch
     :: forall audio engine proof res a
      . AudioInterpret audio engine
-    => { microphone :: Maybe BrowserMicrophone }
+    => PatchInfo
     -> WAG audio engine proof res g0 a
     -> WAG audio engine proof res g1 a
 

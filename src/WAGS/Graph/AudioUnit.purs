@@ -149,6 +149,13 @@ data Lowshelf frequency gain
 
 instance typeToSymLowshelf :: TypeToSym (Lowshelf frequency gain) "Lowshelf"
 
+-- | Term-level constructor for a media element.
+-- | - `media` - the media element to use.
+data MediaElement element
+  = MediaElement element
+
+instance typeToSymMediaElement :: TypeToSym (MediaElement element) "MediaElement"
+
 -- | Term-level constructor for a microphone
 data Microphone microphone
   = Microphone microphone
@@ -559,6 +566,22 @@ instance monoidTLowshelf :: Monoid TLowshelf where
 
 instance reifyTLowshelf :: ReifyAU (Lowshelf a b) TLowshelf where
   reifyAU = const mempty
+
+-- | Type-level constructor for playback from a media element.
+data TMediaElement
+  = TMediaElement
+
+instance typeToSymTMediaElement :: TypeToSym TMediaElement "TMediaElement"
+
+instance semigroupTMediaElement :: Semigroup TMediaElement where
+  append _ _ = TMediaElement
+
+instance monoidTMediaElement :: Monoid TMediaElement where
+  mempty = TMediaElement
+
+instance reifyTMediaElement :: ReifyAU (MediaElement a) TMediaElement where
+  reifyAU = const mempty
+
 
 -- | Type-level constructor for a microphone.
 data TMicrophone

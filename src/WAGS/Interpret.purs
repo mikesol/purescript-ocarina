@@ -60,6 +60,7 @@ module WAGS.Interpret
   , makeLoopBufWithDeferredBuffer
   , makeLowpass
   , makeLowshelf
+  , makeMediaElement
   , makeMicrophone
   , makeNotch
   , makePeaking
@@ -155,7 +156,7 @@ import WAGS.Rendered (AudioWorkletNodeOptions_(..), Instruction, Oversample, Rea
 import WAGS.Rendered as R
 import WAGS.Tumult.Reconciliation (reconcileTumult)
 import WAGS.Util (class ValidateOutputChannelCount)
-import WAGS.WebAPI (AnalyserNode, AnalyserNodeCb, BrowserAudioBuffer, BrowserFloatArray, BrowserMicrophone, BrowserPeriodicWave, MediaRecorder, MediaRecorderCb)
+import WAGS.WebAPI (AnalyserNode, AnalyserNodeCb, BrowserAudioBuffer, BrowserFloatArray, BrowserMediaElement, BrowserMicrophone, BrowserPeriodicWave, MediaRecorder, MediaRecorderCb)
 import WAGS.WebAPI as WebAPI
 
 foreign import getFFTSize :: WebAPI.AnalyserNode -> Effect Int
@@ -434,6 +435,8 @@ class AudioInterpret audio engine where
   makeLowpass :: R.MakeLowpass -> audio -> engine
   -- | Make a lowshelf filter.
   makeLowshelf :: R.MakeLowshelf -> audio -> engine
+  -- | Make a media element.
+  makeMediaElement :: R.MakeMediaElement -> audio -> engine
   -- | Make a microphone.
   makeMicrophone :: R.MakeMicrophone -> audio -> engine
   -- | Make a notch filter.
@@ -583,6 +586,7 @@ instance freeAudioInterpret :: AudioInterpret Unit Instruction where
   makeLoopBuf = const <<< R.iMakeLoopBuf
   makeLowpass = const <<< R.iMakeLowpass
   makeLowshelf = const <<< R.iMakeLowshelf
+  makeMediaElement = const <<< R.iMakeMediaElement
   makeMicrophone = const <<< R.iMakeMicrophone
   makeNotch = const <<< R.iMakeNotch
   makePeaking = const <<< R.iMakePeaking
@@ -664,6 +668,8 @@ foreign import makeLoopBuf_ :: String -> BrowserAudioBuffer -> FFIStringAudioPar
 foreign import makeLowpass_ :: String -> FFINumericAudioParameter -> FFINumericAudioParameter -> FFIAudioSnapshot -> Effect Unit
 
 foreign import makeLowshelf_ :: String -> FFINumericAudioParameter -> FFINumericAudioParameter -> FFIAudioSnapshot -> Effect Unit
+
+foreign import makeMediaElement_ :: String -> BrowserMediaElement -> FFIAudioSnapshot -> Effect Unit
 
 foreign import makeMicrophone_ :: BrowserMicrophone -> FFIAudioSnapshot -> Effect Unit
 
@@ -816,6 +822,7 @@ interpretInstruction = unwrap >>> match
   , makeLoopBufWithDeferredBuffer: \a -> makeLoopBufWithDeferredBuffer a
   , makeLowpass: \a -> makeLowpass a
   , makeLowshelf: \a -> makeLowshelf a
+  , makeMediaElement: \a -> makeMediaElement a
   , makeMicrophone: \a -> makeMicrophone a
   , makeNotch: \a -> makeNotch a
   , makePeaking: \a -> makePeaking a
@@ -902,6 +909,7 @@ instance effectfulAudioInterpret :: AudioInterpret FFIAudioSnapshot (Effect Unit
   makeLoopBuf { id, buffer, onOff, playbackRate, loopStart, loopEnd } g = makeLoopBuf_ (safeToFFI id) (safeToFFI buffer) (safeToFFI onOff) (safeToFFI playbackRate) (safeToFFI loopStart) (safeToFFI loopEnd) (safeToFFI g)
   makeLowpass { id, freq, q } d = makeLowpass_ (safeToFFI id) (safeToFFI freq) (safeToFFI q) (safeToFFI d)
   makeLowshelf { id, freq, gain } d = makeLowshelf_ (safeToFFI id) (safeToFFI freq) (safeToFFI gain) (safeToFFI d)
+  makeMediaElement { id, element } b = makeMediaElement_ (safeToFFI id) element (safeToFFI b)
   makeMicrophone { microphone } b = makeMicrophone_ (safeToFFI microphone) (safeToFFI b)
   makeNotch { id, freq, q } d = makeNotch_ (safeToFFI id) (safeToFFI freq) (safeToFFI q) (safeToFFI d)
   makePeaking { id, freq, q, gain } e = makePeaking_ (safeToFFI id) (safeToFFI freq) (safeToFFI q) (safeToFFI gain) (safeToFFI e)
@@ -1105,6 +1113,7 @@ instance mixedAudioInterpret :: AudioInterpret (Unit /\ FFIAudioSnapshot) (Instr
   makeLoopBuf a (x /\ y) = makeLoopBuf a x /\ makeLoopBuf a y
   makeLowpass a (x /\ y) = makeLowpass a x /\ makeLowpass a y
   makeLowshelf a (x /\ y) = makeLowshelf a x /\ makeLowshelf a y
+  makeMediaElement a (x /\ y) = makeMediaElement a x /\ makeMediaElement a y
   makeMicrophone a (x /\ y) = makeMicrophone a x /\ makeMicrophone a y
   makeNotch a (x /\ y) = makeNotch a x /\ makeNotch a y
   makePeaking a (x /\ y) = makePeaking a x /\ makePeaking a y
