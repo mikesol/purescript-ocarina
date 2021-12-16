@@ -156,6 +156,19 @@ let additions =
         , repo = "https://github.com/mikesol/purescript-event.git"
         , version = "v1.4.2"
         }
+      , everythings-better-with-variants =
+        { dependencies =
+          [ "control"
+          , "foldable-traversable"
+          , "invariant"
+          , "newtype"
+          , "prelude"
+          , "psci-support"
+          , "variant"
+          ]
+        , repo = "https://github.com/mikesol/purescript-everythings-better-with-variants.git"
+        , version = "v0.0.0"
+        }
       , typelevel-eval =
         { dependencies =
           [ "effect"
