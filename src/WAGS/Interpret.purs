@@ -150,7 +150,8 @@ import Type.Row.Homogeneous (class Homogeneous)
 import Unsafe.Coerce (unsafeCoerce)
 import WAGS.Control.Types (Frame0, SubScene(..), oneSubFrame)
 import WAGS.Graph.AudioUnit (APOnOff, OnOff)
-import WAGS.Graph.Parameter (AudioParameter, AudioParameter_(..), _fromMaybe, _isJust, _isNothing, _maybe)
+import WAGS.Graph.Parameter (AudioParameter, AudioParameter_(..))
+import Data.Variant.Maybe (fromMaybe, isJust, isNothing, maybe)
 import WAGS.Graph.Worklet (AudioWorkletNodeRequest, AudioWorkletNodeResponse)
 import WAGS.Rendered (AudioWorkletNodeOptions_(..), Instruction, Oversample, RealImg(..))
 import WAGS.Rendered as R
@@ -1031,11 +1032,11 @@ type FFINumericAudioParameter
 instance safeToFFI_AudioParameter ::
   SafeToFFI (AudioParameter_ Number) FFINumericAudioParameter where
   safeToFFI (AudioParameter { param, timeOffset, transition }) =
-    { param: _fromMaybe 0.0 param
-    , isJust: _isJust param
+    { param: fromMaybe 0.0 param
+    , isJust: isJust param
     , timeOffset
     , transition: show transition
-    , cancel: _isNothing param
+    , cancel: isNothing param
     }
 
 -- | An AudioParameter with the `transition` field stringly-typed for easier rendering in the FFI and cancelation as a boolean
@@ -1051,7 +1052,7 @@ instance safeToFFI_AudioParameterString ::
   SafeToFFI (AudioParameter_ OnOff) FFIStringAudioParameter where
   safeToFFI (AudioParameter { param, timeOffset, transition }) =
     { param:
-        _maybe "off"
+        maybe "off"
           ( unwrap >>> match
               { on: const "on"
               , off: const "off"
@@ -1061,7 +1062,7 @@ instance safeToFFI_AudioParameterString ::
           param
     , timeOffset
     , transition: show transition
-    , cancel: _isNothing param
+    , cancel: isNothing param
     }
 
 audioEngine1st :: forall terminus inputs env proof res. SubScene terminus inputs env (Unit /\ FFIAudioSnapshot) (Instruction /\ Effect Unit) proof res -> SubScene terminus inputs env Unit Instruction proof res

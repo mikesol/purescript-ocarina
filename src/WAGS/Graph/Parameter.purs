@@ -3,23 +3,13 @@ module WAGS.Graph.Parameter where
 import Prelude hiding (apply)
 
 import Control.Alt (class Alt)
-import Control.Alternative (class Alternative)
-import Control.Extend (class Extend)
-import Control.MonadZero (class MonadZero)
 import Control.Plus (class Plus)
-import Data.Eq (class Eq1)
-import Data.Foldable (class Foldable, foldMapDefaultL)
-import Data.FoldableWithIndex (class FoldableWithIndex, foldMapWithIndexDefaultL)
+import Data.Variant.Maybe (maybe, just, nothing, isNothing, Maybe)
 import Data.Function (apply)
-import Data.Functor.Invariant (class Invariant)
-import Data.FunctorWithIndex (class FunctorWithIndex)
 import Data.Generic.Rep (class Generic)
-import Data.Newtype (class Newtype, unwrap)
-import Data.Ord (class Ord1)
+import Data.Newtype (class Newtype)
 import Data.Show.Generic (genericShow)
-import Data.Traversable (class Traversable, sequenceDefault)
-import Data.TraversableWithIndex (class TraversableWithIndex)
-import Data.Variant (Variant, default, inj, match, on)
+import Data.Variant (Variant, inj)
 import Record as R
 import Type.Proxy (Proxy(..))
 
@@ -37,20 +27,20 @@ derive instance functorAudioParameter :: Functor AudioParameter_
 
 instance altAudioParameter :: Alt AudioParameter_ where
   alt l@(AudioParameter { param: param0 }) r@(AudioParameter { param: param1 })
-    | _isNothing param1 = l
-    | otherwise = if _isNothing param0 then r else l
+    | isNothing param1 = l
+    | otherwise = if isNothing param0 then r else l
 
 instance plusAudioParameter :: Plus AudioParameter_ where
-  empty = AudioParameter (R.set (Proxy :: _ "param") _nothing defaultParam)
+  empty = AudioParameter (R.set (Proxy :: _ "param") nothing defaultParam)
 
 instance applyAudioParameter :: Apply AudioParameter_ where
   apply = bop apply
 
 instance applicativeAudioParameter :: Applicative AudioParameter_ where
-  pure a = AudioParameter (R.set (Proxy :: _ "param") (_just a) defaultParam)
+  pure a = AudioParameter (R.set (Proxy :: _ "param") (just a) defaultParam)
 
 instance bindAudioParameter :: Bind AudioParameter_ where
-  bind (AudioParameter i@{ param }) f = _maybe (AudioParameter (i { param = _nothing })) (\a -> AudioParameter (R.set (Proxy :: _ "param") (_just identity) i) <*> f a) param
+  bind (AudioParameter i@{ param }) f = maybe (AudioParameter (i { param = nothing })) (\a -> AudioParameter (R.set (Proxy :: _ "param") (just identity) i) <*> f a) param
 
 instance monadAudioParameter :: Monad AudioParameter_
 
@@ -71,9 +61,9 @@ bop :: forall a b c. (a -> b -> c) -> AudioParameter_ a -> AudioParameter_ b -> 
 bop f (AudioParameter { param: param0, timeOffset: timeOffset0, transition: transition0 }) (AudioParameter { param: param1, timeOffset: timeOffset1, transition: transition1 }) = AudioParameter { param: f <$> param0 <*> param1, timeOffset: timeOffset0 + timeOffset1 / 2.0, transition: transition0 <> transition1 }
 
 instance semiringAudioParameter :: Semiring a => Semiring (AudioParameter_ a) where
-  zero = AudioParameter { param: _just zero, timeOffset: 0.0, transition: _linearRamp }
+  zero = AudioParameter { param: just zero, timeOffset: 0.0, transition: _linearRamp }
   one = AudioParameter
-    { param: _just one
+    { param: just one
     , timeOffset: 0.0
     , transition: _linearRamp
     }
@@ -89,7 +79,7 @@ instance divisionRingAudioParameter :: DivisionRing a => DivisionRing (AudioPara
 instance commutativeRingAudioParameter :: CommutativeRing a => CommutativeRing (AudioParameter_ a)
 
 instance euclideanRingAudioParameter :: EuclideanRing a => EuclideanRing (AudioParameter_ a) where
-  degree (AudioParameter { param: param0 }) = _maybe 0 degree param0
+  degree (AudioParameter { param: param0 }) = maybe 0 degree param0
   div = bop div
   mod = bop mod
 
@@ -99,147 +89,9 @@ instance euclideanRingAudioParameter :: EuclideanRing a => EuclideanRing (AudioP
 -- | `timeOffset`: How far ahead of the current playhead to set the parameter. This can be used in conjunction with the `headroom` parameter in `run` to execute precisely-timed events. For example, if the `headroom` is `20ms` and an attack should happen in `10ms`, use `timeOffset: 10.0` to make sure that the taret parameter happens exactly at the point of attack.
 -- | `transition`: Transition between two points in time.
 
-newtype Maybe' a = Maybe' (Variant (just :: a, nothing :: Unit))
-
-_just :: forall a. a -> Maybe' a
-_just = Maybe' <<< inj (Proxy :: _ "just")
-
-_nothing :: forall a. Maybe' a
-_nothing = Maybe' $ inj (Proxy :: _ "nothing") unit
-
-_onJust
-  :: forall a b r
-   . (a -> b)
-  -> (Variant r -> b)
-  -> Variant
-       ( just :: a
-       | r
-       )
-  -> b
-_onJust = on (Proxy :: _ "just")
-
-_isNothing :: forall a. Maybe' a -> Boolean
-_isNothing = unwrap >>>
-  match { just: const false, nothing: const true }
-
-_isJust :: forall a. Maybe' a -> Boolean
-_isJust = unwrap >>>
-  match { just: const true, nothing: const false }
-
-_maybe :: forall a b. b -> (a -> b) -> Maybe' a -> b
-_maybe b f (Maybe' v) = (default b # _onJust f) v
-
-_maybe' :: forall a b. (Unit -> b) -> (a -> b) -> Maybe' a -> b
-_maybe' fb f (Maybe' v) = v # match
-  { just: f
-  , nothing: fb
-  }
-
-_fromMaybe :: forall a. a -> Maybe' a -> a
-_fromMaybe a (Maybe' v) = v # match
-  { just: \b -> b
-  , nothing: \_ -> a
-  }
-
-derive instance newtypeMaybe' :: Newtype (Maybe' a) _
-derive instance eqMaybe' :: Eq a => Eq (Maybe' a)
-instance eq1Maybe' :: Eq1 Maybe' where
-  eq1 a b = _isNothing a == _isNothing b
-instance ord1Maybe' :: Ord1 Maybe' where
-  compare1 a b = compare (_isJust a) (_isJust b)
-instance boundedMaybe' :: Bounded a => Bounded (Maybe' a) where
-  top = _just top
-  bottom = _just bottom
-instance foldableMaybe' :: Foldable Maybe' where
-  foldl f b (Maybe' a) = a # match
-    { just: \a' -> f b a'
-    , nothing: \_ -> b
-    }
-  foldr f b (Maybe' a) = a # match
-    { just: \a' -> f a' b
-    , nothing: \_ -> b
-    }
-  foldMap = foldMapDefaultL
-instance foldableWithIndexMaybe' :: FoldableWithIndex Unit Maybe' where
-  foldlWithIndex f b (Maybe' a) = a # match
-    { just: \a' -> f unit b a'
-    , nothing: \_ -> b
-    }
-  foldrWithIndex f b (Maybe' a) = a # match
-    { just: \a' -> f unit a' b
-    , nothing: \_ -> b
-    }
-  foldMapWithIndex = foldMapWithIndexDefaultL
-instance traversableMaybe :: Traversable Maybe' where
-  traverse f (Maybe' a) = a # match
-    { just: \a' -> _just <$> f a'
-    , nothing: \_ -> pure _nothing
-    }
-  sequence = sequenceDefault
-instance traversableWithIndexMaybe :: TraversableWithIndex Unit Maybe' where
-  traverseWithIndex f (Maybe' a) = a # match
-    { just: \a' -> _just <$> f unit a'
-    , nothing: \_ -> pure _nothing
-    }
-instance functorWithIndexMaybe' :: FunctorWithIndex Unit Maybe' where
-  mapWithIndex f (Maybe' a) = a # match
-    { just: \a' -> _just (f unit a')
-    , nothing: \_ -> _nothing
-    }
-derive instance ordMaybe' :: Ord a => Ord (Maybe' a)
-instance functorMaybe' :: Functor Maybe' where
-  map f (Maybe' v) = v # match
-    { just: \a -> _just $ f a
-    , nothing: \_ -> _nothing
-    }
-instance applyMaybe' :: Apply Maybe' where
-  apply (Maybe' fa) (Maybe' a) = match
-    { just: \fa' -> a # match
-        { just: \a' -> _just (fa' a')
-        , nothing: const _nothing
-        }
-    , nothing: const _nothing
-    }
-    fa
-instance applicativeMaybe' :: Applicative Maybe' where
-  pure = _just
-instance bindMaybe' :: Bind Maybe' where
-  bind (Maybe' ma) f = (default _nothing # _onJust f) ma
-instance monadMaybe' :: Monad Maybe'
-instance altMaybe' :: Alt Maybe' where
-  alt a b
-    | _isJust a = a
-    | _isJust b = b
-    | otherwise = a
-instance plusMaybe' :: Plus Maybe' where
-  empty = _nothing
-instance alternativeMaybe' :: Alternative Maybe'
-instance monadZero' :: MonadZero Maybe'
-instance extendMaybe' :: Extend Maybe' where
-  extend f x = _just (f x)
-instance invariantMaybe :: Invariant Maybe' where
-  imap f _ (Maybe' v) = v # match
-    { just: \a -> _just $ f a
-    , nothing: \_ -> _nothing
-    }
-instance semigroupMaybe :: Semigroup a => Semigroup (Maybe' a) where
-  append _a@(Maybe' ax) _b@(Maybe' bx) = ax # match
-    { just: \a -> bx # match
-        { just: \b -> _just (a <> b)
-        , nothing: \_ -> _a
-        }
-    , nothing: \_ -> bx # match
-        { just: \_ -> _b
-        , nothing: \_ -> _nothing
-        }
-    }
-instance monoidMaybe :: Monoid a => Monoid (Maybe' a) where
-  mempty = _nothing
-derive newtype instance showMaybe' :: Show a => Show (Maybe' a)
-
 type AudioParameter_' a
   =
-  { param :: Maybe' a
+  { param :: Maybe a
   , timeOffset :: Number
   , transition :: AudioParameterTransition
   }
@@ -323,12 +175,12 @@ immediately = modRamp (const _immediately)
 -- |
 -- | defaultParam = { param: 0.0, timeOffset: 0.0, transition: _linearRamp }
 defaultParam :: AudioParameter'
-defaultParam = { param: _just 0.0, timeOffset: 0.0, transition: _linearRamp }
+defaultParam = { param: just 0.0, timeOffset: 0.0, transition: _linearRamp }
 
 class MM a b | a -> b where
   mm :: a -> b
 
-instance maybeMM :: MM (Maybe' a) (Maybe' a) where
+instance maybeMM :: MM (Maybe a) (Maybe a) where
   mm = identity
-else instance justMM :: MM a (Maybe' a) where
+else instance justMM :: MM a (Maybe a) where
   mm = pure
