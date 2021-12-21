@@ -134,9 +134,10 @@ import Data.Set as Set
 import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.Tuple (fst, snd)
 import Data.Tuple.Nested (type (/\), (/\))
-import Data.Typelevel.Num (class Nat, class Pos)
+import Data.Typelevel.Num (class Lt, class Nat, class Pos, D1)
 import Data.Typelevel.Undefined (undefined)
 import Data.Variant (match)
+import Data.Variant.Maybe (fromMaybe, isJust, isNothing, maybe)
 import Data.Vec (Vec)
 import Data.Vec as V
 import Data.Vec as Vec
@@ -151,7 +152,6 @@ import Unsafe.Coerce (unsafeCoerce)
 import WAGS.Control.Types (Frame0, SubScene(..), oneSubFrame)
 import WAGS.Graph.AudioUnit (APOnOff, OnOff)
 import WAGS.Graph.Parameter (AudioParameter, AudioParameter_(..))
-import Data.Variant.Maybe (fromMaybe, isJust, isNothing, maybe)
 import WAGS.Graph.Worklet (AudioWorkletNodeRequest, AudioWorkletNodeResponse)
 import WAGS.Rendered (AudioWorkletNodeOptions_(..), Instruction, Oversample, RealImg(..))
 import WAGS.Rendered as R
@@ -304,7 +304,7 @@ foreign import renderAudio :: Array (Effect Unit) -> Effect Unit
 -- | Given an audio context, a vector of real parts of complex numbers, and a vector of imaginary parts of complex numbers, build a periodic wave interpretable by the Web Audio API.
 makePeriodicWave
   :: forall len
-   . Pos len
+   . Lt D1 len
   => WebAPI.AudioContext
   -> Vec len Number
   -> Vec len Number

@@ -7,7 +7,7 @@ import Data.Functor (voidRight)
 import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.Tuple (Tuple)
 import Data.Tuple.Nested ((/\), type (/\))
-import Data.Typelevel.Num (class Nat, class Pos, toInt')
+import Data.Typelevel.Num (class Lt, class Nat, class Pos, D1, toInt')
 import Data.Vec as V
 import Foreign.Object (Object)
 import Foreign.Object as Object
@@ -799,6 +799,7 @@ instance createPeriodicOsc ::
 instance createPeriodicOsc2 ::
   ( IsSymbol ptr
   , Paramable argA
+  , Lt D1 a
   , R.Lacks ptr graphi
   , OnOffable onOff
   , R.Cons ptr (NodeC CTOR.TPeriodicOsc {}) graphi grapho

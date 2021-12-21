@@ -5,7 +5,8 @@ import Prelude
 import Control.Comonad (extract)
 import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.Tuple.Nested ((/\), type (/\))
-import Data.Typelevel.Num (class Pos)
+import Data.Typelevel.Num (class Lt, class Pos, D1)
+import Data.Variant.Maybe (Maybe, just, maybe, nothing)
 import Data.Vec as V
 import Prim.Row as R
 import Prim.RowList (class RowToList, RowList)
@@ -22,7 +23,6 @@ import WAGS.Graph.Graph (Graph)
 import WAGS.Graph.Node (NodeC)
 import WAGS.Graph.Oversample (class IsOversample, reflectOversample)
 import WAGS.Graph.Paramable (class Paramable, paramize, class OnOffable, onOffIze)
-import Data.Variant.Maybe(Maybe, just, maybe, nothing)
 import WAGS.Graph.Parameter (class MM, AudioParameter, AudioParameter_, mm)
 import WAGS.Interpret (class AudioInterpret, AsSubgraph, setAnalyserNodeCb, setAttack, setAudioWorkletParameter, setBuffer, setBufferOffset, setConvolverBuffer, setDelay, setFrequency, setGain, setInput, setKnee, setLoopEnd, setLoopStart, setMediaRecorderCb, setOffset, setOnOff, setPan, setPeriodicOsc, setPeriodicOscV, setPlaybackRate, setQ, setRatio, setRelease, setSubgraph, setThreshold, setTumult, setWaveShaperCurve, unAsSubGraph)
 import WAGS.Rendered (Oversample, RealImg(..))
@@ -267,6 +267,7 @@ instance changeVec ::
   ( R.Cons ptr tau' ignore graph
   , Detup tau' tau
   , Monoid tau
+  , Lt D1 size
   , OneShotChange tau (V.Vec size Number /\ V.Vec size Number) au
   , Change' ptr au graph
   ) =>
@@ -717,6 +718,7 @@ instance canBeChangedWaveformV ::
   ( IsSymbol ptr
   , R.Cons ptr tau' ignore graph
   , Detup tau' tau
+  , Lt D1 size
   , Waveformable tau
   ) =>
   CanBeChanged "waveform" (V.Vec size Number /\ V.Vec size Number) ptr graph where
@@ -1528,13 +1530,13 @@ instance oneShotChangePeriodicOscOO :: OneShotChange CTOR.TPeriodicOsc APOnOff (
 instance oneShotChangePeriodicOscProxy :: OneShotChange CTOR.TPeriodicOsc BrowserPeriodicWave (CTOR.PeriodicOsc (Maybe BrowserPeriodicWave) (Maybe APOnOff) (Maybe AudioParameter)) where
   oneShotChange _ osc = CTOR.PeriodicOsc (just osc) nothing nothing
 
-instance oneShotChangePeriodicOscVec :: OneShotChange CTOR.TPeriodicOsc (V.Vec size Number /\ V.Vec size Number) (CTOR.PeriodicOsc (Maybe (V.Vec size Number /\ V.Vec size Number)) (Maybe APOnOff) (Maybe AudioParameter)) where
+instance oneShotChangePeriodicOscVec ::   Lt D1 size => OneShotChange CTOR.TPeriodicOsc (V.Vec size Number /\ V.Vec size Number) (CTOR.PeriodicOsc (Maybe (V.Vec size Number /\ V.Vec size Number)) (Maybe APOnOff) (Maybe AudioParameter)) where
   oneShotChange _ osc = CTOR.PeriodicOsc (just osc) nothing nothing
 
 class ChangePeriodicOsc a where
   setPosc :: forall audio engine. AudioInterpret audio engine => String -> a -> audio -> engine
 
-instance changePeriodicOscV :: ChangePeriodicOsc (V.Vec size Number /\ V.Vec size Number) where
+instance changePeriodicOscV :: Lt D1 size => ChangePeriodicOsc (V.Vec size Number /\ V.Vec size Number) where
   setPosc s a = setPeriodicOscV { id: s, realImg: a # \(real /\ img) -> RealImg { real: V.toArray real, img: V.toArray img } }
 
 instance changePeriodicOscS :: ChangePeriodicOsc BrowserPeriodicWave where

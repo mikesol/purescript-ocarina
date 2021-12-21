@@ -7,7 +7,7 @@ import ConvertableOptions (class ConvertOption, class ConvertOptionsWithDefaults
 import Data.Symbol (class IsSymbol)
 import Data.Tuple (Tuple(..))
 import Data.Tuple.Nested ((/\), type (/\))
-import Data.Typelevel.Num (class Nat, class Pos)
+import Data.Typelevel.Num (class Lt, class Nat, class Pos, D1)
 import Data.Vec as V
 import Simple.JSON as JSON
 import Type.Row.Homogeneous (class Homogeneous)
@@ -697,7 +697,7 @@ class CanBeCoercedToPeriodicOsc (canBeCoercedToPeriodicOsc :: Type)
 
 instance canBeCoercedToPeriodicOscProxy :: CanBeCoercedToPeriodicOsc BrowserPeriodicWave
 
-instance canBeCoercedToPeriodicOscV :: CanBeCoercedToPeriodicOsc (V.Vec size Number /\ V.Vec size Number)
+instance canBeCoercedToPeriodicOscV :: Lt D1 size => CanBeCoercedToPeriodicOsc (V.Vec size Number /\ V.Vec size Number)
 
 data PeriodicOsc
   = PeriodicOsc
