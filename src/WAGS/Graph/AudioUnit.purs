@@ -19,15 +19,15 @@ instance typeToSymTup :: TypeToSym a c => TypeToSym (a /\ b) c
 -- | Term-level constructor for an allpass filter.
 -- | - `frequency` - the frequency where the phase transition occurs.
 -- | - `q` - the width of the filter.
-data Allpass frequency q
-  = Allpass frequency q
+newtype Allpass frequency q
+  = Allpass { frequency :: frequency, q :: q }
 
 instance typeToSymAllpass :: TypeToSym (Allpass frequency q) "Allpass"
 
 -- | Term-level constructor for a analyser.
 -- | - `analyser` - the analyser to which we write data.
-data Analyser callback
-  = Analyser callback
+newtype Analyser callback
+  = Analyser { callback :: callback }
 
 instance typeToSymAnalyser :: TypeToSym (Analyser callback) "Analyser"
 
@@ -54,16 +54,16 @@ instance typeToSymAudioWorkletNode :: Sym.Append "AudioWorkletNode" sym o => Typ
 -- | Term-level constructor for a bandpass filter.
 -- | - `frequency` - the frequency of the isolated band.
 -- | - `q` - the width of the filter.
-data Bandpass frequency q
-  = Bandpass frequency q
+newtype Bandpass frequency q
+  = Bandpass { frequency :: frequency, q :: q }
 
 instance typeToSymBandpass :: TypeToSym (Bandpass frequency q) "Bandpass"
 
 -- | Term-level constructor for a constant value, aka DC offset.
 -- | - `onOff` - whether the generator is on or off.
 -- | - `offset` - the amount of DC offset.
-data Constant onOff offset
-  = Constant onOff offset
+newtype Constant onOff offset
+  = Constant { onOff :: onOff, offset :: offset }
 
 instance typeToSymConstant :: TypeToSym (Constant onOff offset) "Constant"
 
@@ -581,7 +581,6 @@ instance monoidTMediaElement :: Monoid TMediaElement where
 
 instance reifyTMediaElement :: ReifyAU (MediaElement a) TMediaElement where
   reifyAU = const mempty
-
 
 -- | Type-level constructor for a microphone.
 data TMicrophone

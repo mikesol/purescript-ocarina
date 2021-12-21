@@ -916,7 +916,7 @@ instance changeAnalyser ::
   Change' ptr (CTOR.Analyser AnalyserNodeCb) graph where
   change' ptr w = o
     where
-    { context: i, value: (CTOR.Analyser cb) } = unsafeUnWAG w
+    { context: i, value: (CTOR.Analyser { callback: cb }) } = unsafeUnWAG w
 
     nn = reflectSymbol ptr
 
@@ -930,7 +930,7 @@ instance changeAnalyser ::
         }
 
 instance oneShotChangeAllpass :: OneShotChange CTOR.TAllpass AudioParameter (CTOR.Allpass (Maybe AudioParameter) (Maybe AudioParameter)) where
-  oneShotChange _ freq = CTOR.Allpass (just freq) nothing
+  oneShotChange _ freq = CTOR.Allpass { frequency: just freq, q: nothing }
 
 instance changeAllpass ::
   ( IsSymbol ptr
@@ -943,7 +943,7 @@ instance changeAllpass ::
   Change' ptr (CTOR.Allpass mArgA mArgB) graph where
   change' ptr w = o
     where
-    { context: i, value: (CTOR.Allpass argA argB) } = unsafeUnWAG w
+    { context: i, value: (CTOR.Allpass { frequency: argA, q: argB }) } = unsafeUnWAG w
 
     nn = reflectSymbol ptr
 
@@ -1018,7 +1018,7 @@ instance changeAudioWorkletNode ::
         }
 
 instance oneShotChangeBandpass :: OneShotChange CTOR.TBandpass AudioParameter (CTOR.Bandpass (Maybe AudioParameter) (Maybe AudioParameter)) where
-  oneShotChange _ freq = CTOR.Bandpass (just freq) nothing
+  oneShotChange _ freq = CTOR.Bandpass { frequency: just freq, q: nothing }
 
 instance changeBandpass ::
   ( IsSymbol ptr
@@ -1031,7 +1031,7 @@ instance changeBandpass ::
   Change' ptr (CTOR.Bandpass mArgA mArgB) graph where
   change' ptr w = o
     where
-    { context: i, value: (CTOR.Bandpass argA argB) } = unsafeUnWAG w
+    { context: i, value: (CTOR.Bandpass { frequency: argA, q: argB }) } = unsafeUnWAG w
 
     nn = reflectSymbol ptr
 
@@ -1053,10 +1053,10 @@ instance changeBandpass ::
         }
 
 instance oneShotChangeConstant :: OneShotChange CTOR.TConstant AudioParameter (CTOR.Constant (Maybe APOnOff) (Maybe AudioParameter)) where
-  oneShotChange _ offset = CTOR.Constant nothing (just offset)
+  oneShotChange _ offset = CTOR.Constant { onOff: nothing, offset: just offset }
 
 instance oneShotChangeConstantOO :: OneShotChange CTOR.TConstant APOnOff (CTOR.Constant (Maybe APOnOff) (Maybe AudioParameter)) where
-  oneShotChange _ oo = CTOR.Constant (just oo) nothing
+  oneShotChange _ oo = CTOR.Constant { onOff: just oo, offset: nothing }
 
 instance changeConstant ::
   ( IsSymbol ptr
@@ -1069,7 +1069,7 @@ instance changeConstant ::
   Change' ptr (CTOR.Constant mAPOnOff mArgA) graph where
   change' ptr w = o
     where
-    { context: i, value: (CTOR.Constant onOff argA) } = unsafeUnWAG w
+    { context: i, value: (CTOR.Constant { onOff: onOff, offset: argA }) } = unsafeUnWAG w
 
     nn = reflectSymbol ptr
 
@@ -1426,7 +1426,6 @@ instance changeLowshelf ::
         , value: unit
         }
 
-
 instance changeMediaElement ::
   ( R.Cons iSym (NodeC CTOR.TMediaElement edges) ignore graph
   ) =>
@@ -1530,7 +1529,7 @@ instance oneShotChangePeriodicOscOO :: OneShotChange CTOR.TPeriodicOsc APOnOff (
 instance oneShotChangePeriodicOscProxy :: OneShotChange CTOR.TPeriodicOsc BrowserPeriodicWave (CTOR.PeriodicOsc (Maybe BrowserPeriodicWave) (Maybe APOnOff) (Maybe AudioParameter)) where
   oneShotChange _ osc = CTOR.PeriodicOsc (just osc) nothing nothing
 
-instance oneShotChangePeriodicOscVec ::   Lt D1 size => OneShotChange CTOR.TPeriodicOsc (V.Vec size Number /\ V.Vec size Number) (CTOR.PeriodicOsc (Maybe (V.Vec size Number /\ V.Vec size Number)) (Maybe APOnOff) (Maybe AudioParameter)) where
+instance oneShotChangePeriodicOscVec :: Lt D1 size => OneShotChange CTOR.TPeriodicOsc (V.Vec size Number /\ V.Vec size Number) (CTOR.PeriodicOsc (Maybe (V.Vec size Number /\ V.Vec size Number)) (Maybe APOnOff) (Maybe AudioParameter)) where
   oneShotChange _ osc = CTOR.PeriodicOsc (just osc) nothing nothing
 
 class ChangePeriodicOsc a where

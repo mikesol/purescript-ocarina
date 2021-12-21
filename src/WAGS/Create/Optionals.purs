@@ -59,12 +59,12 @@ instance allpassCtor1 ::
   ( ConvertOptionsWithDefaults Allpass { | AllpassOptional } { | provided } { | AllpassAll }
   ) =>
   AllpassCtor { | provided } (b -> CTOR.Allpass AudioParameter AudioParameter /\ b) where
-  allpass provided b = CTOR.Allpass all.freq all.q /\ b
+  allpass provided b = CTOR.Allpass { frequency: all.freq, q: all.q } /\ b
     where
     all :: { | AllpassAll }
     all = convertOptionsWithDefaults Allpass defaultAllpass provided
 else instance allpassCtor2 :: Paramable a => AllpassCtor a (b -> CTOR.Allpass AudioParameter AudioParameter /\ b) where
-  allpass a b = CTOR.Allpass (paramize a) defaultAllpass.q /\ b
+  allpass a b = CTOR.Allpass { frequency: paramize a, q: defaultAllpass.q } /\ b
 
 type CAllpass a
   = CTOR.Allpass AudioParameter AudioParameter /\ a
@@ -80,7 +80,7 @@ analyser
    . a
   -> b
   -> CTOR.Analyser a /\ b
-analyser = Tuple <<< CTOR.Analyser
+analyser = Tuple <<< CTOR.Analyser <<< { callback: _ }
 
 type CAnalyser a
   = CTOR.Analyser AnalyserNodeCb /\ a
@@ -141,12 +141,12 @@ instance bandpassCtor1 ::
   ( ConvertOptionsWithDefaults Bandpass { | BandpassOptional } { | provided } { | BandpassAll }
   ) =>
   BandpassCtor { | provided } (b -> CTOR.Bandpass AudioParameter AudioParameter /\ b) where
-  bandpass provided b = CTOR.Bandpass all.freq all.q /\ b
+  bandpass provided b = CTOR.Bandpass { frequency: all.freq, q: all.q } /\ b
     where
     all :: { | BandpassAll }
     all = convertOptionsWithDefaults Bandpass defaultBandpass provided
 else instance bandpassCtor2 :: Paramable a => BandpassCtor a (b -> CTOR.Bandpass AudioParameter AudioParameter /\ b) where
-  bandpass a b = CTOR.Bandpass (paramize a) defaultBandpass.q /\ b
+  bandpass a b = CTOR.Bandpass { frequency: paramize a, q: defaultBandpass.q } /\ b
 
 type CBandpass a
   = CTOR.Bandpass AudioParameter AudioParameter /\ a
@@ -188,12 +188,12 @@ instance constantCtor1 ::
   ( ConvertOptionsWithDefaults Constant { | ConstantOptional } { | provided } { | ConstantAll }
   ) =>
   ConstantCtor { | provided } (CTOR.Constant APOnOff AudioParameter /\ {}) where
-  constant provided = CTOR.Constant all.onOff all.offset /\ {}
+  constant provided = CTOR.Constant { onOff: all.onOff, offset: all.offset } /\ {}
     where
     all :: { | ConstantAll }
     all = convertOptionsWithDefaults Constant defaultConstant provided
 else instance constantCtor2 :: Paramable a => ConstantCtor a (CTOR.Constant APOnOff AudioParameter /\ {}) where
-  constant a = CTOR.Constant defaultConstant.onOff (paramize a) /\ {}
+  constant a = CTOR.Constant { onOff: defaultConstant.onOff, offset: paramize a } /\ {}
 
 type CConstant
   = CTOR.Constant APOnOff AudioParameter /\ {}

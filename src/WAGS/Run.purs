@@ -123,7 +123,8 @@ instance workWithAnalysersCons ::
 -- | - `EngineInfo` is the engine information needed for rendering.
 -- | - `FFIAudio` is the audio state needed for rendering
 -- | - `Scene` is the scene to render. See `SceneI` to understand how `trigger` and `world` are blended into the inptu environment going to `Scene`.
-type RunSig = forall analysersRL analysers analyserCallbacks analyserRefs trigger world res
+type RunSig =
+  forall analysersRL analysers analyserCallbacks analyserRefs trigger world res
    . RL.RowToList analysers analysersRL
   => AnalyserRefs analysersRL analyserRefs
   => MakeAnalyserCallbacks analysersRL analyserRefs analyserCallbacks
@@ -146,7 +147,8 @@ run = run' true
 runNoLoop :: RunSig
 runNoLoop = run' false
 
-run' :: forall analysersRL analysers analyserCallbacks analyserRefs trigger world res
+run'
+  :: forall analysersRL analysers analyserCallbacks analyserRefs trigger world res
    . RL.RowToList analysers analysersRL
   => AnalyserRefs analysersRL analyserRefs
   => MakeAnalyserCallbacks analysersRL analyserRefs analyserCallbacks
@@ -287,8 +289,8 @@ run' loop trigger inWorld engineInfo audioInfo scene =
       canceler <-
         subscribe (sample_ world' (delay (max 1 remainingTime) (pure unit)))
           \{ world
-          , sysTime
-          } ->
+           , sysTime
+           } ->
             runInternal audioClockStart
               { world
               , sysTime

@@ -252,7 +252,7 @@ instance createAnalyser ::
   Create' ptr (CTOR.Analyser AnalyserNodeCb) graphi grapho where
   create' ptr w = o
     where
-    { context: i, value: (CTOR.Analyser cb) } = unsafeUnWAG w
+    { context: i, value: (CTOR.Analyser { callback: cb }) } = unsafeUnWAG w
 
     nn = reflectSymbol ptr
 
@@ -275,7 +275,7 @@ instance createAllpass ::
   Create' ptr (CTOR.Allpass argA argB) graphi grapho where
   create' ptr w = o
     where
-    { context: i, value: (CTOR.Allpass argA argB) } = unsafeUnWAG w
+    { context: i, value: (CTOR.Allpass { frequency: argA, q: argB }) } = unsafeUnWAG w
 
     nn = reflectSymbol ptr
 
@@ -371,7 +371,7 @@ instance createBandpass ::
   Create' ptr (CTOR.Bandpass argA argB) graphi grapho where
   create' ptr w = o
     where
-    { context: i, value: (CTOR.Bandpass argA argB) } = unsafeUnWAG w
+    { context: i, value: (CTOR.Bandpass { frequency: argA, q: argB }) } = unsafeUnWAG w
 
     nn = reflectSymbol ptr
 
@@ -399,7 +399,7 @@ instance createConstant ::
   Create' ptr (CTOR.Constant onOff argA) graphi grapho where
   create' ptr w = o
     where
-    { context: i, value: (CTOR.Constant onOff argA) } = unsafeUnWAG w
+    { context: i, value: (CTOR.Constant { onOff, offset: argA }) } = unsafeUnWAG w
 
     nn = reflectSymbol ptr
 
@@ -694,7 +694,6 @@ instance createMediaElement ::
               }
         , value: unit
         }
-
 
 instance createMicrophone ::
   ( R.Lacks "microphone" graphi
