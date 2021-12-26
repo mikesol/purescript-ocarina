@@ -34,7 +34,6 @@ import Prelude
 import Control.Apply.Indexed ((:*>))
 import Control.Comonad (extract)
 import Data.Either (Either(..))
-import Data.Maybe (Maybe)
 import Data.Tuple.Nested (type (/\))
 import Record as R
 import WAGS.Change (class Change, ichange)
@@ -44,7 +43,6 @@ import WAGS.Create (class Create, icreate)
 import WAGS.CreateT (class CreateT)
 import WAGS.Interpret (class AudioInterpret)
 import WAGS.Patch (class Patch, PatchInfo, ipatch)
-import WAGS.WebAPI (BrowserMicrophone)
 
 -- | The initial `Frame` that is needed to begin any `Scene`.
 -- |

@@ -2,10 +2,6 @@ module WAGS.Edgeable where
 
 import Prelude
 import Data.Tuple.Nested (type (/\), (/\))
-import Prim.Row as Row
-import Prim.Symbol as Sym
-import Type.Proxy (Proxy(..))
-import WAGS.Util (class AutoIncrementingInsert)
 
 class Edgeable a b | a -> b where
   withEdge :: a -> b

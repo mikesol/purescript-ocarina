@@ -2,11 +2,18 @@ module FRP.Event.MIDI
   ( MIDIAccess(..)
   , MIDIEvent(..)
   , MIDIEventInTime(..)
+  , MIDIOutput
   , midi
   , midiAccess
-  ) where
+  , midiEventToIntArray
+  , send
+  , sendMIDIEvent
+  , toOutputMap
+  )
+  where
 
 import Prelude
+
 import Control.Promise (Promise)
 import Data.ArrayBuffer.Types (ArrayBuffer)
 import Data.Foldable (traverse_)
@@ -14,6 +21,7 @@ import Data.List (List)
 import Data.Map as M
 import Data.Maybe (Maybe(..), maybe)
 import Data.Newtype (wrap)
+import Data.Time.Duration (Milliseconds)
 import Data.Traversable (sequence)
 import Data.Tuple (Tuple(..))
 import Effect (Effect)
@@ -49,7 +57,25 @@ foreign import data MIDIMessageEvent :: Type
 -- | Get the [MIDIAccess](https://developer.mozilla.org/en-US/docs/Web/API/MIDIAccess) from the browser.
 foreign import midiAccess :: Effect (Promise MIDIAccess)
 
-foreign import toTargetMap :: MIDIAccess -> Effect (O.Object EventTarget)
+foreign import toInputMap :: MIDIAccess -> Effect (O.Object EventTarget)
+
+data MIDIOutput
+
+foreign import toOutputMap :: MIDIAccess -> Effect (O.Object MIDIOutput)
+foreign import send :: MIDIOutput -> Array Int -> Milliseconds -> Effect Unit
+
+midiEventToIntArray :: MIDIEvent -> Array Int
+midiEventToIntArray = case _ of
+  NoteOff a b c -> [ a + 128, b, c ]
+  NoteOn a b c -> [ a + 144, b, c ]
+  Polytouch a b c -> [ a + 160, b, c ]
+  ControlChange a b c -> [ a + 176, b, c ]
+  ProgramChange a b -> [ a + 192, b ]
+  Aftertouch a b -> [ a + 208, b ]
+  Pitchwheel a b -> [ a + 224, b ]
+
+sendMIDIEvent :: MIDIOutput -> MIDIEvent -> Milliseconds -> Effect Unit
+sendMIDIEvent mo = send mo <<< midiEventToIntArray
 
 foreign import toMIDIEvent_
   :: (Int -> Int -> Int -> MIDIEvent)
@@ -94,7 +120,7 @@ fromEvent = unsafeReadProtoTagged "MIDIMessageEvent"
 midi :: MIDIAccess -> Event MIDIEventInTime
 midi midiAccess_ =
   makeEvent \push -> do
-    targetMap <- toTargetMap midiAccess_ >>= pure <<< M.fromFoldable <<< (O.toUnfoldable :: O.Object EventTarget -> List (Tuple String EventTarget))
+    targetMap <- toInputMap midiAccess_ >>= pure <<< M.fromFoldable <<< (O.toUnfoldable :: O.Object EventTarget -> List (Tuple String EventTarget))
     let
       makeListener _ =
         eventListener \e -> do

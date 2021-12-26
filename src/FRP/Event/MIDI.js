@@ -22,7 +22,7 @@ exports.getTimeStamp_ = function (nothing) {
   };
 };
 
-exports.toTargetMap = function (midiAccess) {
+exports.toInputMap = function (midiAccess) {
   return function () {
     var o = {};
     var a = Array.from(midiAccess.inputs);
@@ -32,6 +32,26 @@ exports.toTargetMap = function (midiAccess) {
     return o;
   };
 };
+exports.toOutputMap = function (midiAccess) {
+  return function () {
+    var o = {};
+    var a = Array.from(midiAccess.outputs);
+    for (var i = 0; i < a.length; i++) {
+      o[a[i][0]] = a[i][1];
+    }
+    return o;
+  };
+};
+exports.send = function(output) {
+  return function(msg) {
+    return function(timestamp) {
+    return function() {
+        output.send( msg, timestamp );
+      }
+    }
+  }
+}
+
 exports.toMIDIEvent_ = function (NoteOff) {
   return function (NoteOn) {
     return function (Polytouch) {

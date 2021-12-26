@@ -572,7 +572,6 @@ instance toGraphEffectsMakeLowshelf :: (IsSymbol ptr, ToGraphEffects rest) => To
     where
     id = reflectSymbol (Proxy :: _ ptr)
 
-
 instance toGraphEffectsMakeMediaElement :: (IsSymbol ptr, ToGraphEffects rest) => ToGraphEffects (MakeMediaElement ptr /\ rest) where
   toGraphEffects _ cache i =
     toGraphEffects (Proxy :: _ rest) cache

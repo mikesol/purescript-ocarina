@@ -1426,7 +1426,6 @@ instance changeLowshelf ::
         , value: unit
         }
 
-
 instance changeMediaElement ::
   ( R.Cons iSym (NodeC CTOR.TMediaElement edges) ignore graph
   ) =>
@@ -1530,7 +1529,7 @@ instance oneShotChangePeriodicOscOO :: OneShotChange CTOR.TPeriodicOsc APOnOff (
 instance oneShotChangePeriodicOscProxy :: OneShotChange CTOR.TPeriodicOsc BrowserPeriodicWave (CTOR.PeriodicOsc (Maybe BrowserPeriodicWave) (Maybe APOnOff) (Maybe AudioParameter)) where
   oneShotChange _ osc = CTOR.PeriodicOsc (just osc) nothing nothing
 
-instance oneShotChangePeriodicOscVec ::   Lt D1 size => OneShotChange CTOR.TPeriodicOsc (V.Vec size Number /\ V.Vec size Number) (CTOR.PeriodicOsc (Maybe (V.Vec size Number /\ V.Vec size Number)) (Maybe APOnOff) (Maybe AudioParameter)) where
+instance oneShotChangePeriodicOscVec :: Lt D1 size => OneShotChange CTOR.TPeriodicOsc (V.Vec size Number /\ V.Vec size Number) (CTOR.PeriodicOsc (Maybe (V.Vec size Number /\ V.Vec size Number)) (Maybe APOnOff) (Maybe AudioParameter)) where
   oneShotChange _ osc = CTOR.PeriodicOsc (just osc) nothing nothing
 
 class ChangePeriodicOsc a where

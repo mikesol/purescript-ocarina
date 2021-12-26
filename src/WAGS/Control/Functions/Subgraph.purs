@@ -28,7 +28,6 @@ module WAGS.Control.Functions.Subgraph
 import Prelude
 
 import Data.Either (Either)
-import Data.Maybe (Maybe)
 import WAGS.Change (class Change)
 import WAGS.Control.Functions (class GraphHint)
 import WAGS.Control.Functions as Functions
@@ -39,7 +38,6 @@ import WAGS.CreateT (class CreateT)
 import WAGS.Interpret (class AudioInterpret)
 import WAGS.Patch (class Patch, PatchInfo)
 import WAGS.Validation (class SubgraphIsRenderable)
-import WAGS.WebAPI (BrowserMicrophone)
 
 makeScene
   :: forall terminus inputs env audio engine proofA res graph a
