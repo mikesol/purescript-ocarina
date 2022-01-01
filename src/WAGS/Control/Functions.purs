@@ -147,13 +147,13 @@ startUsing
   => IsScene scene
   => Patch () graph
   => PatchInfo
-  -> control
+  -> (env -> control)
   -> ( forall proofA
         . WAG audio engine proofA res graph control
        -> scene env audio engine proofA res
      )
   -> scene env audio engine Frame0 res
-startUsing patchInfo control next = const (ipatch patchInfo $> control) @!> next
+startUsing patchInfo control next = (\e -> (ipatch patchInfo $> control e)) @!> next
 
 class GraphHint (i :: Type) (o :: Row Type) | i -> o
 
@@ -173,13 +173,13 @@ startUsingWithHint
   => Patch () graph
   => hintable
   -> PatchInfo
-  -> control
+  -> (env -> control)
   -> ( forall proofA
         . WAG audio engine proofA res graph control
        -> scene env audio engine proofA res
      )
   -> scene env audio engine Frame0 res
-startUsingWithHint _ patchInfo control next = const (ipatch patchInfo $> control) @!> next
+startUsingWithHint _ patchInfo control next = (\e -> (ipatch patchInfo $> control e)) @!> next
 
 loopUsingScene
   :: forall scene env audio engine res sn graph control
@@ -189,7 +189,7 @@ loopUsingScene
   => Create sn () graph
   => Change sn graph
   => (env -> control -> { scene :: { | sn }, control :: control })
-  -> control
+  -> (env -> control)
   -> scene env audio engine Frame0 res
 loopUsingScene = loopUsingSceneWithRes <<< f
   where
@@ -203,10 +203,10 @@ loopUsingSceneWithRes
   => Create sn () graph
   => Change sn graph
   => (env -> control -> { scene :: { | sn }, control :: control, res :: res })
-  -> control
+  -> (env -> control)
   -> scene env audio engine Frame0 res
 loopUsingSceneWithRes sceneF initialControl =
-  (\env -> let { scene, control, res } = sceneF env initialControl in icreate scene :*> imodifyRes (const res) $> control) @!>
+  (\env -> let { scene, control, res } = sceneF env (initialControl env) in icreate scene :*> imodifyRes (const res) $> control) @!>
     iloop \env icontrol ->
       let { scene, control, res } = sceneF env icontrol in ichange scene *> imodifyRes (const res) $> control
 

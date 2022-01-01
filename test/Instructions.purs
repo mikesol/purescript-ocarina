@@ -109,7 +109,7 @@ testInstructions = do
                 }
             }
         )
-        unit
+        (const unit)
       (frame0Instr /\ _ /\ frame1) = oneFrame' scene unit
 
       (frame1Instr /\ _ /\ frame2) = oneFrame' frame1 unit

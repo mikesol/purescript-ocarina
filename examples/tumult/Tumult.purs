@@ -43,7 +43,7 @@ subPiece1
    . AudioInterpret audio engine
   => Int
   -> SubScene "gnn" (beep :: Unit) SGWorld audio engine Frame0 Unit
-subPiece1 _ = unit # SG.loopUsingScene \(SGWorld time) _ ->
+subPiece1 _ = mempty # SG.loopUsingScene \(SGWorld time) _ ->
   { control: unit
   , scene:
       { gnn: tumult
@@ -73,7 +73,7 @@ subPiece1 _ = unit # SG.loopUsingScene \(SGWorld time) _ ->
   }
 
 piece :: Scene (SceneI Unit World ()) RunAudio RunEngine Frame0 Unit
-piece = unit # loopUsingScene \(SceneI env) _ ->
+piece = mempty # loopUsingScene \(SceneI env) _ ->
   { control: unit
   , scene: speaker
       { gn: gain 1.0

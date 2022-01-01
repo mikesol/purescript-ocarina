@@ -167,7 +167,7 @@ startUsing
   => SubgraphIsRenderable graph terminus inputs
   => Patch () graph
   => PatchInfo
-  -> control
+  -> (env -> control)
   -> ( forall proofA
         . WAG audio engine proofA res graph control
        -> SubScene terminus inputs env audio engine proofA res
@@ -185,7 +185,7 @@ startUsingWithHint
   => Patch () graph
   => hintable
   -> PatchInfo
-  -> control
+  -> (env -> control)
   -> ( forall proofA
         . WAG audio engine proofA res graph control
        -> SubScene terminus inputs env audio engine proofA res
@@ -201,7 +201,7 @@ loopUsingScene
   => Change scene graph
   => SubgraphIsRenderable graph terminus inputs
   => (env -> control -> { scene :: { | scene }, control :: control })
-  -> control
+  -> (env -> control)
   -> SubScene terminus inputs env audio engine Frame0 res
 loopUsingScene = Functions.loopUsingScene
 
@@ -213,7 +213,7 @@ loopUsingSceneWithRes
   => Change scene graph
   => SubgraphIsRenderable graph terminus inputs
   => (env -> control -> { scene :: { | scene }, control :: control, res :: res })
-  -> control
+  -> (env -> control)
   -> SubScene terminus inputs env audio engine Frame0 res
 loopUsingSceneWithRes = Functions.loopUsingSceneWithRes
 
