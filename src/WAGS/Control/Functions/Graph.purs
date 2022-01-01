@@ -169,7 +169,7 @@ startUsing
   => GraphIsRenderable graph
   => Patch () graph
   => PatchInfo
-  -> control
+  -> (env -> control)
   -> ( forall proofA
         . WAG audio engine proofA res graph control
        -> Scene env audio engine proofA res
@@ -187,7 +187,7 @@ startUsingWithHint
   => Patch () graph
   => hintable
   -> PatchInfo
-  -> control
+  -> (env -> control)
   -> ( forall proofA
         . WAG audio engine proofA res graph control
        -> Scene env audio engine proofA res
@@ -203,7 +203,7 @@ loopUsingScene
   => Change scene graph
   => GraphIsRenderable graph
   => (env -> control -> { scene :: { | scene }, control :: control })
-  -> control
+  -> (env -> control)
   -> Scene env audio engine Frame0 res
 loopUsingScene = Functions.loopUsingScene
 
@@ -215,7 +215,7 @@ loopUsingSceneWithRes
   => Change scene graph
   => GraphIsRenderable graph
   => (env -> control -> { scene :: { | scene }, control :: control, res :: res })
-  -> control
+  -> (env -> control)
   -> Scene env audio engine Frame0 res
 loopUsingSceneWithRes = Functions.loopUsingSceneWithRes
 

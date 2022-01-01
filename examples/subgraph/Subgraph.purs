@@ -40,7 +40,7 @@ subPiece0
   => Int
   -> BrowserAudioBuffer
   -> SubScene "buffy" () SGWorld audio engine Frame0 Unit
-subPiece0 i atar = unit # SG.loopUsingScene \(SGWorld time) _ ->
+subPiece0 i atar = mempty # SG.loopUsingScene \(SGWorld time) _ ->
   { control: unit
   , scene: { buffy: playBuf { onOff: if time < toNumber (i * 2) + 1.0 then _off else _on } atar }
   }
@@ -50,7 +50,7 @@ subPiece1
    . AudioInterpret audio engine
   => Int
   -> SubScene "gnn" (beep :: Unit) SGWorld audio engine Frame0 Unit
-subPiece1 i = unit # SG.loopUsingScene \(SGWorld time) _ ->
+subPiece1 i = mempty # SG.loopUsingScene \(SGWorld time) _ ->
   { control: unit
   , scene:
       { gnn: gain
@@ -60,7 +60,7 @@ subPiece1 i = unit # SG.loopUsingScene \(SGWorld time) _ ->
   }
 
 piece :: Scene (SceneI Unit World ()) RunAudio RunEngine Frame0 Unit
-piece = unit # loopUsingScene \(SceneI env) _ ->
+piece = mempty # loopUsingScene \(SceneI env) _ ->
   { control: unit
   , scene: speaker
       { gn: gain 1.0
