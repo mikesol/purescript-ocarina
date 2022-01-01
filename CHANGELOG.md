@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.4] - 2021-12-15
+
+### Fixed
+
+- Makes `run` start at 0.0 seconds all the time, allowing for smoother starts of works. Additional optimizations can be done, like graph pre-rendering for the 0 time frame (not sure if this is in fact an optimization, could even be slower, but theoretically it would optimize things), but this sounds good enough on first blush to leave it as-is for the time being.
+
 ## [0.6.3] - 2021-12-15
 
 ### Fixed

@@ -19,12 +19,13 @@ module WAGS.Run
 
 import Prelude
 
+import Control.Alt (alt)
 import Control.Comonad.Cofree (Cofree, head, tail)
 import Data.DateTime.Instant (Instant, unInstant)
 import Data.Foldable (for_)
 import Data.Int (floor, toNumber)
 import Data.List (List(..))
-import Data.Maybe (Maybe(..), isNothing)
+import Data.Maybe (Maybe(..), fromMaybe, isNothing)
 import Data.Newtype (class Newtype)
 import Data.Symbol (class IsSymbol)
 import Data.Time.Duration (Milliseconds)
@@ -166,7 +167,7 @@ run' :: forall analysersRL analysers analyserCallbacks analyserRefs trigger worl
 run' loop trigger inWorld engineInfo audioInfo scene =
   makeEvent \k -> do
     refsForAnalysers <- makeAnalyserRefs (Proxy :: _ analysersRL)
-    audioClockStart <- getAudioClockTime (contextFromSnapshot audioInfo)
+    audioClockStartRef <- Ref.new (Nothing :: Maybe Number)
     currentTimeoutCanceler <- Ref.new (pure unit :: Effect Unit)
     currentScene <- Ref.new scene
     currentEasingAlg <- Ref.new engineInfo.easingAlgorithm
@@ -195,7 +196,7 @@ run' loop trigger inWorld engineInfo audioInfo scene =
         cancelTimeout <- Ref.read currentTimeoutCanceler
         cancelTimeout
         runInternal
-          audioClockStart
+          audioClockStartRef
           ee
           newWorld
           currentTimeoutCanceler
@@ -211,7 +212,7 @@ run' loop trigger inWorld engineInfo audioInfo scene =
       unsubscribe
   where
   runInternal
-    :: Number
+    :: Ref.Ref (Maybe Number)
     -> { world :: world
        , trigger :: Maybe trigger
        , sysTime :: Milliseconds
@@ -228,12 +229,11 @@ run' loop trigger inWorld engineInfo audioInfo scene =
     -> { | analyserRefs }
     -> (Run res analysers -> Effect Unit)
     -> Effect Unit
-  runInternal audioClockStart fromEvents world' currentTimeoutCanceler currentEasingAlg currentScene ffiSnapshot analyserCallbacks analyserRefs reporter = do
+  runInternal audioClockStartRef fromEvents world' currentTimeoutCanceler currentEasingAlg currentScene ffiSnapshot analyserCallbacks analyserRefs reporter = do
     easingAlgNow <- Ref.read currentEasingAlg
     sceneNow <- Ref.read currentScene
-    let ctx = contextFromSnapshot ffiSnapshot
-    audioClockPriorToComputation <- getAudioClockTime ctx
     let
+      ctx = contextFromSnapshot ffiSnapshot
       -- this is how far in the future we are telling the
       -- algorithm to calculate with respect to the audio clock
       -- it is a bet:  we bet that the algorithm will finish
@@ -242,7 +242,11 @@ run' loop trigger inWorld engineInfo audioInfo scene =
 
       headroomInSeconds = (toNumber headroom) / 1000.0
 
-      time = (audioClockPriorToComputation - audioClockStart) + headroomInSeconds
+    audioClockPriorToComputation <- getAudioClockTime ctx
+    audioClockStart <- fromMaybe audioClockPriorToComputation
+     <$> Ref.modify (flip alt (Just audioClockPriorToComputation)) audioClockStartRef
+    let
+      time = audioClockPriorToComputation - audioClockStart
 
       fromScene =
         oneFrame sceneNow
@@ -264,7 +268,6 @@ run' loop trigger inWorld engineInfo audioInfo scene =
     renderAudio (map snd applied)
     let
       remainingTimeInSeconds = audioClockPriorToComputation + headroomInSeconds - audioClockAfterComputation
-
       remainingTime = floor $ 1000.0 * remainingTimeInSeconds
     Ref.write (tail easingAlgNow remainingTime) currentEasingAlg
     Ref.write
@@ -289,7 +292,7 @@ run' loop trigger inWorld engineInfo audioInfo scene =
           \{ world
           , sysTime
           } ->
-            runInternal audioClockStart
+            runInternal audioClockStartRef
               { world
               , sysTime
               , trigger: Nothing
