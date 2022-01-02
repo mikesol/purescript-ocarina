@@ -19,7 +19,6 @@ module WAGS.Run
 
 import Prelude
 
-import Control.Alt (alt)
 import Control.Comonad.Cofree (Cofree, head, tail)
 import Data.DateTime.Instant (Instant, unInstant)
 import Data.Foldable (for_)
@@ -124,7 +123,8 @@ instance workWithAnalysersCons ::
 -- | - `EngineInfo` is the engine information needed for rendering.
 -- | - `FFIAudio` is the audio state needed for rendering
 -- | - `Scene` is the scene to render. See `SceneI` to understand how `trigger` and `world` are blended into the inptu environment going to `Scene`.
-type RunSig = forall analysersRL analysers analyserCallbacks analyserRefs trigger world res
+type RunSig =
+  forall analysersRL analysers analyserCallbacks analyserRefs trigger world res
    . RL.RowToList analysers analysersRL
   => AnalyserRefs analysersRL analyserRefs
   => MakeAnalyserCallbacks analysersRL analyserRefs analyserCallbacks
@@ -147,7 +147,8 @@ run = run' true
 runNoLoop :: RunSig
 runNoLoop = run' false
 
-run' :: forall analysersRL analysers analyserCallbacks analyserRefs trigger world res
+run'
+  :: forall analysersRL analysers analyserCallbacks analyserRefs trigger world res
    . RL.RowToList analysers analysersRL
   => AnalyserRefs analysersRL analyserRefs
   => MakeAnalyserCallbacks analysersRL analyserRefs analyserCallbacks
@@ -167,7 +168,6 @@ run' :: forall analysersRL analysers analyserCallbacks analyserRefs trigger worl
 run' loop trigger inWorld engineInfo audioInfo scene =
   makeEvent \k -> do
     refsForAnalysers <- makeAnalyserRefs (Proxy :: _ analysersRL)
-    audioClockStartRef <- Ref.new (Nothing :: Maybe Number)
     currentTimeoutCanceler <- Ref.new (pure unit :: Effect Unit)
     currentScene <- Ref.new scene
     currentEasingAlg <- Ref.new engineInfo.easingAlgorithm
@@ -196,7 +196,7 @@ run' loop trigger inWorld engineInfo audioInfo scene =
         cancelTimeout <- Ref.read currentTimeoutCanceler
         cancelTimeout
         runInternal
-          audioClockStartRef
+          { audioClockStart: Nothing, writeHeadStart: Nothing }
           ee
           newWorld
           currentTimeoutCanceler
@@ -212,7 +212,7 @@ run' loop trigger inWorld engineInfo audioInfo scene =
       unsubscribe
   where
   runInternal
-    :: Ref.Ref (Maybe Number)
+    :: { audioClockStart :: Maybe Number, writeHeadStart :: Maybe Number }
     -> { world :: world
        , trigger :: Maybe trigger
        , sysTime :: Milliseconds
@@ -229,7 +229,7 @@ run' loop trigger inWorld engineInfo audioInfo scene =
     -> { | analyserRefs }
     -> (Run res analysers -> Effect Unit)
     -> Effect Unit
-  runInternal audioClockStartRef fromEvents world' currentTimeoutCanceler currentEasingAlg currentScene ffiSnapshot analyserCallbacks analyserRefs reporter = do
+  runInternal clockInfo fromEvents world' currentTimeoutCanceler currentEasingAlg currentScene ffiSnapshot analyserCallbacks analyserRefs reporter = do
     easingAlgNow <- Ref.read currentEasingAlg
     sceneNow <- Ref.read currentScene
     let
@@ -243,9 +243,8 @@ run' loop trigger inWorld engineInfo audioInfo scene =
       headroomInSeconds = (toNumber headroom) / 1000.0
 
     audioClockPriorToComputation <- getAudioClockTime ctx
-    audioClockStart <- fromMaybe audioClockPriorToComputation
-     <$> Ref.modify (flip alt (Just audioClockPriorToComputation)) audioClockStartRef
     let
+      audioClockStart = fromMaybe audioClockPriorToComputation clockInfo.audioClockStart
       time = audioClockPriorToComputation - audioClockStart
 
       fromScene =
@@ -262,9 +261,9 @@ run' loop trigger inWorld engineInfo audioInfo scene =
           )
     audioClockAfterComputation <- getAudioClockTime ctx
     let
-      ffi = advanceWriteHead ffiSnapshot $ max audioClockAfterComputation (audioClockPriorToComputation + headroomInSeconds)
-
-      applied = map (\f -> f (unit /\ ffi)) fromScene.instructions
+      writeHeadStart = fromMaybe (audioClockAfterComputation + headroomInSeconds) clockInfo.writeHeadStart
+      ffi = advanceWriteHead ffiSnapshot $ (writeHeadStart + time)
+      applied = map ((#) (unit /\ ffi)) fromScene.instructions
     renderAudio (map snd applied)
     let
       remainingTimeInSeconds = audioClockPriorToComputation + headroomInSeconds - audioClockAfterComputation
@@ -290,9 +289,9 @@ run' loop trigger inWorld engineInfo audioInfo scene =
       canceler <-
         subscribe (sample_ world' (delay (max 1 remainingTime) (pure unit)))
           \{ world
-          , sysTime
-          } ->
-            runInternal audioClockStartRef
+           , sysTime
+           } ->
+            runInternal { audioClockStart: Just audioClockStart, writeHeadStart: Just writeHeadStart }
               { world
               , sysTime
               , trigger: Nothing
