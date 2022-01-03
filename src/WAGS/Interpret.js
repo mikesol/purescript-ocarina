@@ -1348,7 +1348,7 @@ exports.setOnOff_ = function (ptr) {
 	return function (onOff) {
 		return function (state) {
 			return function () {
-				if (isOn(onOff.param)) {
+				if (onOff.param === "on") {
 					setOn_(ptr)(onOff)(state)();
 				} else if (onOff.param === "off") {
 					setOff_(ptr)(onOff)(state)();
