@@ -11,7 +11,10 @@ exports.contextResume = function (audioCtx) {
 		return audioCtx.resume();
 	};
 };
-function makeid(length) {
+var isOn = function(param) {
+	return param === "on" || param === "offOn";
+}
+var makeid = function(length) {
 	var result = "";
 	var characters =
 		"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -328,10 +331,10 @@ exports.makeConstant_ = function (ptr) {
 						main: createFunction(),
 					};
 					applyResumeClosure(state.units[ptr]);
-					if (onOff.param === "on") {
+					if (isOn(onOff.param)) {
 						state.units[ptr].main.start(state.writeHead + onOff.timeOffset);
 					}
-					state.units[ptr].onOff = onOff.param === "on";
+					state.units[ptr].onOff = isOn(onOff.param);
 				};
 			};
 		};
@@ -503,14 +506,14 @@ exports.makeLoopBuf_ = function (ptr) {
 									},
 									main: createFunction(),
 								};
-								if (onOff.param === "on") {
+								if (isOn(onOff.param)) {
 									applyResumeClosure(state.units[ptr]);
 									state.units[ptr].main.start(
 										state.writeHead + onOff.timeOffset,
 										c
 									);
 								}
-								state.units[ptr].onOff = onOff.param === "on";
+								state.units[ptr].onOff = isOn(onOff.param);
 							};
 						};
 					};
@@ -667,10 +670,10 @@ exports.makePeriodicOsc_ = function (ptr) {
 							main: createFunction(),
 						};
 						applyResumeClosure(state.units[ptr]);
-						if (onOff.param === "on") {
+						if (isOn(onOff.param)) {
 							state.units[ptr].main.start(state.writeHead + onOff.timeOffset);
 						}
-						state.units[ptr].onOff = onOff.param === "on";
+						state.units[ptr].onOff = isOn(onOff.param);
 					};
 				};
 			};
@@ -704,10 +707,10 @@ exports.makePeriodicOscV_ = function (ptr) {
 							main: createFunction(),
 						};
 						applyResumeClosure(state.units[ptr]);
-						if (onOff.param === "on") {
+						if (isOn(onOff.param)) {
 							state.units[ptr].main.start(state.writeHead + onOff.timeOffset);
 						}
-						state.units[ptr].onOff = onOff.param === "on";
+						state.units[ptr].onOff = isOn(onOff.param);
 					};
 				};
 			};
@@ -907,14 +910,14 @@ exports.makePlayBuf_ = function (ptr) {
 								},
 								main: createFunction(),
 							};
-							if (onOff.param === "on") {
+							if (isOn(onOff.param)) {
 								applyResumeClosure(state.units[ptr]);
 								state.units[ptr].main.start(
 									state.writeHead + onOff.timeOffset,
 									b
 								);
 							}
-							state.units[ptr].onOff = onOff.param === "on";
+							state.units[ptr].onOff = isOn(onOff.param);
 						};
 					};
 				};
@@ -983,10 +986,10 @@ exports.makeSawtoothOsc_ = function (ptr) {
 						main: createFunction(),
 					};
 					applyResumeClosure(state.units[ptr]);
-					if (onOff.param === "on") {
+					if (isOn(onOff.param)) {
 						state.units[ptr].main.start(state.writeHead + onOff.timeOffset);
 					}
-					state.units[ptr].onOff = onOff.param === "on";
+					state.units[ptr].onOff = isOn(onOff.param);
 				};
 			};
 		};
@@ -1014,10 +1017,10 @@ exports.makeSinOsc_ = function (ptr) {
 						main: createFunction(),
 					};
 					applyResumeClosure(state.units[ptr]);
-					if (onOff.param === "on") {
+					if (isOn(onOff.param)) {
 						state.units[ptr].main.start(state.writeHead + onOff.timeOffset);
 					}
-					state.units[ptr].onOff = onOff.param === "on";
+					state.units[ptr].onOff = isOn(onOff.param);
 				};
 			};
 		};
@@ -1056,10 +1059,10 @@ exports.makeSquareOsc_ = function (ptr) {
 						main: createFunction(),
 					};
 					applyResumeClosure(state.units[ptr]);
-					if (onOff.param === "on") {
+					if (isOn(onOff.param)) {
 						state.units[ptr].main.start(state.writeHead + onOff.timeOffset);
 					}
-					state.units[ptr].onOff = onOff.param === "on";
+					state.units[ptr].onOff = isOn(onOff.param);
 				};
 			};
 		};
@@ -1101,10 +1104,10 @@ exports.makeTriangleOsc_ = function (ptr) {
 						main: createFunction(),
 					};
 					applyResumeClosure(state.units[ptr]);
-					if (onOff.param === "on") {
+					if (isOn(onOff.param)) {
 						state.units[ptr].main.start(state.writeHead + onOff.timeOffset);
 					}
-					state.units[ptr].onOff = onOff.param === "on";
+					state.units[ptr].onOff = isOn(onOff.param);
 				};
 			};
 		};
@@ -1345,7 +1348,7 @@ exports.setOnOff_ = function (ptr) {
 	return function (onOff) {
 		return function (state) {
 			return function () {
-				if (onOff.param === "on") {
+				if (isOn(onOff.param)) {
 					setOn_(ptr)(onOff)(state)();
 				} else if (onOff.param === "off") {
 					setOff_(ptr)(onOff)(state)();

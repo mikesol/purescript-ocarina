@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.7] - 2022-01-03
+
+### Fixed
+
+- Changes the definition of `isOn` to both `on` and `offOn`, smoothing out the switching on of buffers and oscillators.
+
+## [0.6.6] - 2022-01-02
+
+### Added
+
+- Simplifies rendering algorithm in `Run.purs`.
+
 ## [0.6.5] - 2022-01-02
 
 ### Added
