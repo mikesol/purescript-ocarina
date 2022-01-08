@@ -116,9 +116,8 @@ fromEvent :: WE.Event -> Maybe MIDIMessageEvent
 fromEvent = unsafeReadProtoTagged "MIDIMessageEvent"
 
 midiInputDevices :: MIDIAccess -> Effect (List MIDIDevice)
-midiInputDevices midiAccess_ = do
-  devices <- midiInputDevices_ midiAccess_ mkMIDIDevice
-  pure $ fromFoldable devices
+midiInputDevices midiAccess_ =
+  fromFoldable <$> midiInputDevices_ midiAccess_ mkMIDIDevice
 
 midiOutputDevices :: MIDIAccess -> Effect (List MIDIDevice)
 midiOutputDevices midiAccess_ = do
