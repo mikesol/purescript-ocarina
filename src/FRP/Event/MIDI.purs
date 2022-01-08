@@ -120,9 +120,8 @@ midiInputDevices midiAccess_ =
   fromFoldable <$> midiInputDevices_ midiAccess_ mkMIDIDevice
 
 midiOutputDevices :: MIDIAccess -> Effect (List MIDIDevice)
-midiOutputDevices midiAccess_ = do
-  devices <- midiOutputDevices_ midiAccess_ mkMIDIDevice
-  pure $ fromFoldable devices
+midiOutputDevices midiAccess_ =
+  fromFoldable <$> midiOutputDevices_ midiAccess_ mkMIDIDevice
 
 -- | After having acquired the [MIDIAccess](https://developer.mozilla.org/en-US/docs/Web/API/MIDIAccess) from the browser, use it to create a streamed event of type `Event MIDIEventInTime`.
 midi :: MIDIAccess -> Event MIDIEventInTime
