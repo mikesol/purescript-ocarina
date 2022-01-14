@@ -5,6 +5,7 @@ import Prelude
 import Control.Alt ((<|>))
 import Control.Comonad.Cofree (Cofree, mkCofree)
 import Control.Promise (toAffE)
+import Data.Array (fromFoldable, singleton)
 import Data.Foldable (for_)
 import Data.List (List(..))
 import Data.Maybe (Maybe(..))
@@ -12,7 +13,7 @@ import Effect (Effect)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect)
 import FRP.Event (subscribe)
-import FRP.Event.MIDI (midi, midiAccess)
+import FRP.Event.MIDI (midi, midiAccess, midiInputDevices, MIDIDevice)
 import Halogen as H
 import Halogen.Aff (awaitBody, runHalogenAff)
 import Halogen.HTML as HH
@@ -37,6 +38,7 @@ type State
   =
   { unsubscribe :: Effect Unit
   , audioCtx :: Maybe AudioContext
+  , devices :: List MIDIDevice
   }
 
 data Action
@@ -55,11 +57,13 @@ initialState :: forall input. input -> State
 initialState _ =
   { unsubscribe: pure unit
   , audioCtx: Nothing
+  , devices: Nil
   }
 
 render :: forall m. State -> H.ComponentHTML Action () m
-render _ = do
-  HH.div_
+render s = HH.div_ (ui <> dev)
+  where
+  ui =
     [ HH.h1_
         [ HH.text "The Well-Typed Klavier" ]
     , HH.button
@@ -69,11 +73,22 @@ render _ = do
         [ HE.onClick \_ -> StopAudio ]
         [ HH.text "Stop audio" ]
     ]
+  dev = case s.devices of
+    Nil -> []
+    devices ->
+      [ HH.h4_
+          [ HH.text "Available input devices"]
+      , HH.ul_ (fromFoldable $ map (HH.li_ <<< singleton <<< HH.text <<< showDevices) devices)
+      ]
+  showDevices d =
+    let manufacturer = if d.manufacturer == "" then "" else d.manufacturer <> ": "
+     in manufacturer <> d.name
 
 handleAction :: forall output m. MonadEffect m => MonadAff m => Action -> H.HalogenM State Action () output m Unit
 handleAction = case _ of
   StartAudio -> do
     midAcc <- H.liftAff $ toAffE midiAccess
+    midDev <- H.liftEffect $ midiInputDevices midAcc
     -- alt Nil for thunk
     let
       trigger = (bufferToList 5 (midi midAcc)) <|> pure Nil
@@ -90,9 +105,9 @@ handleAction = case _ of
               (piece { makeRenderingEnv })
           )
           (\(_ :: Run Unit ()) -> pure unit)
-    H.modify_ _ { unsubscribe = unsubscribe, audioCtx = Just audioCtx }
+    H.modify_ _ { unsubscribe = unsubscribe, audioCtx = Just audioCtx, devices = midDev }
   StopAudio -> do
     { unsubscribe, audioCtx } <- H.get
     H.liftEffect unsubscribe
     for_ audioCtx (H.liftEffect <<< close)
-    H.modify_ _ { unsubscribe = pure unit, audioCtx = Nothing }
+    H.modify_ _ { unsubscribe = pure unit, audioCtx = Nothing, devices = Nil }

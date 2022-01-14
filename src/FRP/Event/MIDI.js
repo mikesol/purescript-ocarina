@@ -1,6 +1,28 @@
 exports.midiAccess = function () {
-  return navigator.requestMIDIAccess();
-};
+  return navigator.requestMIDIAccess()
+}
+
+const mkMidiDevices = function (devices) {
+  return function (mk) {
+    return function () {
+      const res = [];
+      for (let device of devices.entries()) {
+        const portID = device[0];
+        const dev = device[1];
+        res.push(mk(portID)(dev.manufacturer)(dev.name))
+      }
+      return res;
+    }
+  }
+}
+
+exports.midiInputDevices_ = function (midiAccess) {
+  return mkMidiDevices(midiAccess.inputs)
+}
+
+exports.midiOutputDevices_ = function (midiAccess) {
+  return mkMidiDevices(midiAccess.outputs)
+}
 
 exports.getData_ = function (nothing) {
   return function (just) {

@@ -2,15 +2,19 @@ module FRP.Event.MIDI
   ( MIDIAccess(..)
   , MIDIEvent(..)
   , MIDIEventInTime(..)
+  , MIDIDevice
   , midi
   , midiAccess
+  , midiInputDevices
+  , midiOutputDevices
   ) where
 
 import Prelude
+
 import Control.Promise (Promise)
 import Data.ArrayBuffer.Types (ArrayBuffer)
 import Data.Foldable (traverse_)
-import Data.List (List)
+import Data.List (List, fromFoldable)
 import Data.Map as M
 import Data.Maybe (Maybe(..), maybe)
 import Data.Newtype (wrap)
@@ -40,6 +44,17 @@ type MIDIEventInTime
   , event :: MIDIEvent
   }
 
+-- | Represents a MIDI device.
+type MIDIDevice
+  =
+  { portID :: String
+  , manufacturer :: String
+  , name :: String
+  }
+
+mkMIDIDevice :: String -> String -> String -> MIDIDevice
+mkMIDIDevice portID manufacturer name = { portID, manufacturer, name }
+
 -- | The Web API's [MIDIAccess](https://developer.mozilla.org/en-US/docs/Web/API/MIDIAccess).
 foreign import data MIDIAccess :: Type
 
@@ -48,6 +63,16 @@ foreign import data MIDIMessageEvent :: Type
 
 -- | Get the [MIDIAccess](https://developer.mozilla.org/en-US/docs/Web/API/MIDIAccess) from the browser.
 foreign import midiAccess :: Effect (Promise MIDIAccess)
+
+foreign import midiInputDevices_
+  :: MIDIAccess
+  -> (String -> String -> String -> MIDIDevice)
+  -> Effect (Array MIDIDevice)
+
+foreign import midiOutputDevices_
+  :: MIDIAccess
+  -> (String -> String -> String -> MIDIDevice)
+  -> Effect (Array MIDIDevice)
 
 foreign import toTargetMap :: MIDIAccess -> Effect (O.Object EventTarget)
 
@@ -89,6 +114,14 @@ toMIDIEvent =
 
 fromEvent :: WE.Event -> Maybe MIDIMessageEvent
 fromEvent = unsafeReadProtoTagged "MIDIMessageEvent"
+
+midiInputDevices :: MIDIAccess -> Effect (List MIDIDevice)
+midiInputDevices midiAccess_ =
+  fromFoldable <$> midiInputDevices_ midiAccess_ mkMIDIDevice
+
+midiOutputDevices :: MIDIAccess -> Effect (List MIDIDevice)
+midiOutputDevices midiAccess_ =
+  fromFoldable <$> midiOutputDevices_ midiAccess_ mkMIDIDevice
 
 -- | After having acquired the [MIDIAccess](https://developer.mozilla.org/en-US/docs/Web/API/MIDIAccess) from the browser, use it to create a streamed event of type `Event MIDIEventInTime`.
 midi :: MIDIAccess -> Event MIDIEventInTime
