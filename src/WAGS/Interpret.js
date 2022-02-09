@@ -1717,7 +1717,7 @@ exports.isTypeSupported = function (mimeType) {
 // of being set
 // if it is set in a loop, then there will effectively be no recording, as it will only capture the
 // last couple milliseconds of the loop
-exports.mediaRecorderToUrl = function (mimeType) {
+exports.mediaRecorderToBlob = function (mimeType) {
 	return function (handler) {
 		return function (mediaRecorder) {
 			return function () {
@@ -1728,7 +1728,7 @@ exports.mediaRecorderToUrl = function (mimeType) {
 
 				mediaRecorder.onstop = function () {
 					var blob = new Blob(chunks, { type: mimeType });
-					handler(URL.createObjectURL(blob))();
+					handler(blob)();
 					chunks = null;
 				};
 			};

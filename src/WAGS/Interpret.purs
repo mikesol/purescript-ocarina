@@ -79,6 +79,7 @@ module WAGS.Interpret
   , makeTriangleOsc
   , makeWaveShaper
   , mediaRecorderToUrl
+  , mediaRecorderToBlob
   , makeInput
   , makeTumultWithDeferredGraph
   , makeTumult
@@ -122,6 +123,7 @@ module WAGS.Interpret
 
 import Prelude
 
+import Control.Bind (bindFlipped)
 import Control.Plus (empty)
 import Control.Promise (Promise, toAffE)
 import Data.Array as Array
@@ -159,6 +161,8 @@ import WAGS.Tumult.Reconciliation (reconcileTumult)
 import WAGS.Util (class ValidateOutputChannelCount)
 import WAGS.WebAPI (AnalyserNode, AnalyserNodeCb, BrowserAudioBuffer, BrowserFloatArray, BrowserMediaElement, BrowserMicrophone, BrowserPeriodicWave, MediaRecorder, MediaRecorderCb)
 import WAGS.WebAPI as WebAPI
+import Web.File.Blob (Blob)
+import Web.File.Url (createObjectURL)
 
 foreign import getFFTSize :: WebAPI.AnalyserNode -> Effect Int
 
@@ -200,7 +204,9 @@ foreign import stopMediaRecorder :: WebAPI.MediaRecorder -> Effect Unit
 -- | ```purescript
 -- | mediaRecorderToUrl "audio/ogg" setAudioTagUrlToThisContent recorder
 -- | ```
-foreign import mediaRecorderToUrl :: String -> (String -> Effect Unit) -> WebAPI.MediaRecorder -> Effect Unit
+foreign import mediaRecorderToBlob :: String -> (Blob -> Effect Unit) -> WebAPI.MediaRecorder -> Effect Unit
+mediaRecorderToUrl :: String -> (String -> Effect Unit) -> WebAPI.MediaRecorder -> Effect Unit
+mediaRecorderToUrl s cb mr = flip (mediaRecorderToBlob s) mr (bindFlipped cb <<< createObjectURL)
 
 -- | Is this MIME type supported by this browser.
 foreign import isTypeSupported :: String -> Effect Boolean

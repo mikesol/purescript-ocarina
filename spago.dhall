@@ -40,6 +40,7 @@
   , "unsafe-reference"
   , "variant"
   , "web-events"
+  , "web-file"
   ]
 , packages = ./packages.dhall
 , sources = [ "src/**/*.purs" ]
