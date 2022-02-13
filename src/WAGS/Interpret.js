@@ -1503,6 +1503,9 @@ exports.setGain_ = function (ptr) {
 	return function (a) {
 		return function (state) {
 			return function () {
+				if (!state.units[ptr].main.gain.value && a.param) {
+					state.units[ptr].main.gain.value = 0.0;
+				}
 				genericSetter(state.units[ptr].main, "gain", state.writeHead, a);
 			};
 		};
