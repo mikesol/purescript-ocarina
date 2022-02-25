@@ -24,7 +24,7 @@ import WAGS.Control.Types (Frame0, Scene, SubScene)
 import WAGS.Create.Optionals (gain, input, playBuf, sinOsc, speaker, subgraph)
 import WAGS.Graph.AudioUnit (_off, _on)
 import WAGS.Interpret (class AudioInterpret, close, context, decodeAudioDataFromUri, makeFFIAudioSnapshot)
-import WAGS.Run (Run, RunAudio, RunEngine, SceneI(..), run)
+import WAGS.Run (Run, RunAudio, RunEngine, BehavingScene(..), run)
 import WAGS.WebAPI (AudioContext, BrowserAudioBuffer)
 
 type World = { atar :: BrowserAudioBuffer }
@@ -59,8 +59,8 @@ subPiece1 i = mempty # SG.loopUsingScene \(SGWorld time) _ ->
       }
   }
 
-piece :: Scene (SceneI Unit World ()) RunAudio RunEngine Frame0 Unit
-piece = mempty # loopUsingScene \(SceneI env) _ ->
+piece :: Scene (BehavingScene Unit World ()) RunAudio RunEngine Frame0 Unit
+piece = mempty # loopUsingScene \(BehavingScene env) _ ->
   { control: unit
   , scene: speaker
       { gn: gain 1.0

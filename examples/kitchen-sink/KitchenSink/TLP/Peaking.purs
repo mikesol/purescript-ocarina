@@ -18,11 +18,11 @@ import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
 import WAGS.Example.KitchenSink.Types.Empty (cursorGain)
 import WAGS.Example.KitchenSink.Types.Highpass (ksHighpassCreate)
 import WAGS.Example.KitchenSink.Types.Peaking (PeakingGraph, deltaKsPeaking)
-import WAGS.Run (SceneI(..))
+import WAGS.Run (BehavingScene(..))
 
 doPeaking :: forall proof. StepSig PeakingGraph proof
 doPeaking =
-  ibranch \(SceneI { time, world }) lsig ->
+  ibranch \(BehavingScene { time, world }) lsig ->
     if time % pieceTime < timing.ksPeaking.end then
       Right
         $ imodifyRes (const $ "Using a peaking filter")

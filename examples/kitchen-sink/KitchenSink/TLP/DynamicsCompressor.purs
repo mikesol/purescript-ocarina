@@ -17,11 +17,11 @@ import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
 import WAGS.Example.KitchenSink.Types.DynamicsCompressor (DynamicsCompressorGraph, deltaKsDynamicsCompressor)
 import WAGS.Example.KitchenSink.Types.Empty (cursorGain)
 import WAGS.Example.KitchenSink.Types.SinOsc (ksSinOscCreate)
-import WAGS.Run (SceneI(..))
+import WAGS.Run (BehavingScene(..))
 
 doDynamicsCompressor :: forall proof. StepSig DynamicsCompressorGraph proof
 doDynamicsCompressor =
-  ibranch \(SceneI { world, time }) l@{ loop: LoopSig lsig, iteration } ->
+  ibranch \(BehavingScene { world, time }) l@{ loop: LoopSig lsig, iteration } ->
     if time % pieceTime < timing.ksDynamicsCompressor.begin then
       Left
         $ icont lsig Ix.do

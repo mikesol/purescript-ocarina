@@ -13,7 +13,7 @@ import WAGS.Control.Types (Frame0, Scene)
 import WAGS.Create (icreate)
 import WAGS.Example.WTK.Types (Key(..), KeyInfo, MakeRenderingEnv, Trigger, KlavierType, fullKeyboard)
 import WAGS.Interpret (class AudioInterpret)
-import WAGS.Run (RunAudio, RunEngine, SceneI(..))
+import WAGS.Run (RunAudio, RunEngine, BehavingScene(..))
 
 playKeys ::
   forall audio engine proof res.
@@ -136,17 +136,17 @@ type Accumulator
     , availableKeys :: List Key
     }
 
-createFrame :: SceneI Trigger Unit () -> IxWAG RunAudio RunEngine Frame0 Unit () KlavierType Accumulator
+createFrame :: BehavingScene Trigger Unit () -> IxWAG RunAudio RunEngine Frame0 Unit () KlavierType Accumulator
 createFrame _ =
   icreate fullKeyboard
     $> { currentKeys: Nil
       , availableKeys: K0 : K1 : K2 : K3 : K4 : K5 : K6 : K7 : K8 : K9 : Nil
       }
 
-piece :: { makeRenderingEnv :: MakeRenderingEnv } -> Scene (SceneI Trigger Unit ()) RunAudio RunEngine Frame0 Unit
+piece :: { makeRenderingEnv :: MakeRenderingEnv } -> Scene (BehavingScene Trigger Unit ()) RunAudio RunEngine Frame0 Unit
 piece { makeRenderingEnv } =
   createFrame
-    @!> iloop \(SceneI { time, trigger }) { currentKeys, availableKeys } -> Ix.do
+    @!> iloop \(BehavingScene { time, trigger }) { currentKeys, availableKeys } -> Ix.do
         let
           { notesOff
           , onsets

@@ -18,11 +18,11 @@ import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
 import WAGS.Example.KitchenSink.Types.Constant (ConstantGraph, deltaKsConstant)
 import WAGS.Example.KitchenSink.Types.DynamicsCompressor (ksDynamicsCompressorCreate)
 import WAGS.Example.KitchenSink.Types.Empty (cursorGain)
-import WAGS.Run (SceneI(..))
+import WAGS.Run (BehavingScene(..))
 
 doConstant :: forall proof. StepSig ConstantGraph proof
 doConstant =
-  ibranch \(SceneI { time, world }) lsig ->
+  ibranch \(BehavingScene { time, world }) lsig ->
     if time % pieceTime < timing.ksConstant.end then
       Right (deltaKsConstant time $> lsig)
     else

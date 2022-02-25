@@ -25,7 +25,7 @@ import WAGS.Create (icreate)
 import WAGS.Create.Optionals (CGain, CSpeaker, CSinOsc, gain, sinOsc, speaker)
 import WAGS.Graph.AudioUnit (TGain, TSinOsc, TSpeaker)
 import WAGS.Interpret (close, context, makeFFIAudioSnapshot)
-import WAGS.Run (RunAudio, RunEngine, SceneI(..), Run, run)
+import WAGS.Run (RunAudio, RunEngine, BehavingScene(..), Run, run)
 import WAGS.WebAPI (AudioContext)
 
 type SceneTemplate
@@ -61,8 +61,8 @@ scene time =
       , gain3: gain 0.1 { sin3: sinOsc (530.0 + (19.0 * (5.0 * sin rad))) }
       }
 
-piece :: Scene (SceneI Unit Unit ()) RunAudio RunEngine Frame0 Unit
-piece = (unwrap >>> _.time >>> scene >>> icreate) @!> iloop \(SceneI { time }) _ -> ivoid $ ichange (scene time)
+piece :: Scene (BehavingScene Unit Unit ()) RunAudio RunEngine Frame0 Unit
+piece = (unwrap >>> _.time >>> scene >>> icreate) @!> iloop \(BehavingScene { time }) _ -> ivoid $ ichange (scene time)
 
 easingAlgorithm :: Cofree ((->) Int) Int
 easingAlgorithm =

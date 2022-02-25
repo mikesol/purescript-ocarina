@@ -18,11 +18,11 @@ import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
 import WAGS.Example.KitchenSink.Types.Empty (cursorGain)
 import WAGS.Example.KitchenSink.Types.PeriodicOsc (ksPeriodicOscCreate)
 import WAGS.Example.KitchenSink.Types.SquareOsc (SquareOscGraph, deltaKsSquareOsc)
-import WAGS.Run (SceneI(..))
+import WAGS.Run (BehavingScene(..))
 
 doSquareOsc :: forall proof. StepSig SquareOscGraph proof
 doSquareOsc =
-  ibranch \(SceneI { time, world }) lsig ->
+  ibranch \(BehavingScene { time, world }) lsig ->
     if time % pieceTime < timing.ksSquareOsc.end then
       Right
         ( imodifyRes (const "Playing a square osc")

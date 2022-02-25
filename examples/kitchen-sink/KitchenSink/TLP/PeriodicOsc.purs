@@ -18,11 +18,11 @@ import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
 import WAGS.Example.KitchenSink.Types.Empty (cursorGain)
 import WAGS.Example.KitchenSink.Types.PeriodicOsc (PeriodicOscGraph, deltaKsPeriodicOsc)
 import WAGS.Example.KitchenSink.Types.SawtoothOsc (frontloadSawtoothOsc, ksSawtoothOscCreate)
-import WAGS.Run (SceneI(..))
+import WAGS.Run (BehavingScene(..))
 
 doPeriodicOsc :: forall proof. StepSig PeriodicOscGraph proof
 doPeriodicOsc =
-  ibranch \(SceneI { time, world }) lsig ->
+  ibranch \(BehavingScene { time, world }) lsig ->
     if time % pieceTime < timing.ksPeriodicOsc.end then
       Right (deltaKsPeriodicOsc world time $> lsig)
     else

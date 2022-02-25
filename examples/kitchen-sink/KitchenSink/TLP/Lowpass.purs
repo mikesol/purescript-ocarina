@@ -18,11 +18,11 @@ import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
 import WAGS.Example.KitchenSink.Types.Empty (cursorGain)
 import WAGS.Example.KitchenSink.Types.Highshelf (ksHighshelfCreate)
 import WAGS.Example.KitchenSink.Types.Lowpass (LowpassGraph, deltaKsLowpass)
-import WAGS.Run (SceneI(..))
+import WAGS.Run (BehavingScene(..))
 
 doLowpass :: forall proof. StepSig LowpassGraph proof
 doLowpass =
-  ibranch \(SceneI { time, world }) lsig ->
+  ibranch \(BehavingScene { time, world }) lsig ->
     if time % pieceTime < timing.ksLowpass.end then
       Right (deltaKsLowpass world time $> lsig)
     else

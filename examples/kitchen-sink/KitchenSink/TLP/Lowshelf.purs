@@ -18,11 +18,11 @@ import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
 import WAGS.Example.KitchenSink.Types.Bandpass (ksBandpassCreate)
 import WAGS.Example.KitchenSink.Types.Empty (cursorGain)
 import WAGS.Example.KitchenSink.Types.Lowshelf (LowshelfGraph, deltaKsLowshelf)
-import WAGS.Run (SceneI(..))
+import WAGS.Run (BehavingScene(..))
 
 doLowshelf :: forall proof. StepSig LowshelfGraph proof
 doLowshelf =
-  ibranch \(SceneI { time, world }) lsig ->
+  ibranch \(BehavingScene { time, world }) lsig ->
     if time % pieceTime < timing.ksLowshelf.end then
       Right (deltaKsLowshelf world time $> lsig)
     else

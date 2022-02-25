@@ -29,7 +29,7 @@ import WAGS.Graph.AudioUnit (AudioWorkletNode, AudioWorkletNodeOptions(..), TAud
 import WAGS.Graph.Parameter (AudioParameter, ff)
 import WAGS.Graph.Worklet (AudioWorkletNodeRequest(..), AudioWorkletNodeResponse)
 import WAGS.Interpret (audioWorkletAddModule, close, context, makeFFIAudioSnapshot)
-import WAGS.Run (RunAudio, RunEngine, SceneI(..), Run, run)
+import WAGS.Run (RunAudio, RunEngine, BehavingScene(..), Run, run)
 import WAGS.WebAPI (AudioContext)
 import Web.File.Blob as Blob
 import Web.File.Url (createObjectURL)
@@ -84,11 +84,11 @@ scene wnr time =
           {}
     }
 
-createFrame :: SceneI Unit World () -> IxWAG RunAudio RunEngine Frame0 Unit () SceneType Unit
-createFrame (SceneI { time, world: { noiseUnit } }) = icreate (scene noiseUnit time)
+createFrame :: BehavingScene Unit World () -> IxWAG RunAudio RunEngine Frame0 Unit () SceneType Unit
+createFrame (BehavingScene { time, world: { noiseUnit } }) = icreate (scene noiseUnit time)
 
-piece :: Scene (SceneI Unit World ()) RunAudio RunEngine Frame0 Unit
-piece = createFrame @!> iloop \(SceneI { time, world: { noiseUnit } }) _ -> ichange (scene noiseUnit time)
+piece :: Scene (BehavingScene Unit World ()) RunAudio RunEngine Frame0 Unit
+piece = createFrame @!> iloop \(BehavingScene { time, world: { noiseUnit } }) _ -> ichange (scene noiseUnit time)
 
 easingAlgorithm :: Cofree ((->) Int) Int
 easingAlgorithm =

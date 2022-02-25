@@ -37,7 +37,7 @@ import WAGS.Graph.AudioUnit (TGain, TPeriodicOsc, TSpeaker)
 import WAGS.Graph.Parameter (ff)
 import WAGS.Interpret (close, context, makeFFIAudioSnapshot, makePeriodicWave)
 import WAGS.Math (calcSlope)
-import WAGS.Run (RunAudio, RunEngine, SceneI(..), Run, run)
+import WAGS.Run (RunAudio, RunEngine, BehavingScene(..), Run, run)
 import WAGS.WebAPI (AudioContext, BrowserPeriodicWave)
 
 type Note
@@ -140,8 +140,8 @@ type SceneType
   , osc :: TPeriodicOsc /\ {}
   )
 
-scene :: (SceneI Unit World ()) -> EnrichedNote -> Number -> SceneTemplate
-scene (SceneI { time, world: { bday } }) ({ start, dur } /\ pitch) to =
+scene :: (BehavingScene Unit World ()) -> EnrichedNote -> Number -> SceneTemplate
+scene (BehavingScene { time, world: { bday } }) ({ start, dur } /\ pitch) to =
   speaker
     { gain:
         gain
@@ -151,13 +151,13 @@ scene (SceneI { time, world: { bday } }) ({ start, dur } /\ pitch) to =
 
 type World = { bday :: BrowserPeriodicWave }
 
-createFrame :: SceneI Unit World () -> IxWAG RunAudio RunEngine Frame0 Unit () SceneType (List EnrichedNote)
+createFrame :: BehavingScene Unit World () -> IxWAG RunAudio RunEngine Frame0 Unit () SceneType (List EnrichedNote)
 createFrame e = icreate (scene e (inTempo rest0) 0.0) $> L.fromFoldable score''
 
-piece :: Scene (SceneI Unit World ()) RunAudio RunEngine Frame0 Unit
+piece :: Scene (BehavingScene Unit World ()) RunAudio RunEngine Frame0 Unit
 piece =
   createFrame
-    @!> iloop \e@(SceneI { time }) l ->
+    @!> iloop \e@(BehavingScene { time }) l ->
       let
         f = case _ of
           Nil -> ipure Nil

@@ -18,11 +18,11 @@ import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
 import WAGS.Example.KitchenSink.Types.Delay (DelayGraph, deltaKsDelay)
 import WAGS.Example.KitchenSink.Types.Empty (cursorGain)
 import WAGS.Example.KitchenSink.Types.Feedback (ksFeedbackCreate)
-import WAGS.Run (SceneI(..))
+import WAGS.Run (BehavingScene(..))
 
 doDelay :: forall proof. StepSig DelayGraph proof
 doDelay =
-  ibranch \(SceneI { time, world })lsig ->
+  ibranch \(BehavingScene { time, world })lsig ->
     if time % pieceTime < timing.ksDelay.end then
       Right (deltaKsDelay world time $> lsig)
     else

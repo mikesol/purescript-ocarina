@@ -18,11 +18,11 @@ import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
 import WAGS.Example.KitchenSink.Types.Empty (cursorGain)
 import WAGS.Example.KitchenSink.Types.LoopBuf (LoopBufGraph, deltaKsLoopBuf)
 import WAGS.Example.KitchenSink.Types.StereoPanner (ksStereoPannerCreate)
-import WAGS.Run (SceneI(..))
+import WAGS.Run (BehavingScene(..))
 
 doLoopBuf :: forall proof. StepSig LoopBufGraph proof
 doLoopBuf =
-  ibranch \(SceneI { time, world }) lsig ->
+  ibranch \(BehavingScene { time, world }) lsig ->
     if time % pieceTime < timing.ksLoopBuf.end then
       Right (deltaKsLoopBuf world time $> lsig)
     else

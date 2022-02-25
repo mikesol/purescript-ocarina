@@ -64,7 +64,7 @@ import WAGS.Control.Indexed (IxWAG)
 import WAGS.Control.Types (Frame0, Scene)
 import WAGS.Graph.AudioUnit as AU
 import WAGS.Patch (ipatch)
-import WAGS.Run (RunAudio, RunEngine, SceneI(..))
+import WAGS.Run (RunAudio, RunEngine, BehavingScene(..))
 
 type MyGraph
   = ( speaker :: AU.TSpeaker /\ { gain :: Unit }
@@ -75,10 +75,10 @@ type MyGraph
 initialFrame :: IxWAG () RunAudio RunEngine Frame0 Unit {} { | MyGraph } Unit
 initialFrame = ipatch
 
-piece :: Scene (SceneI Unit Unit) () RunAudio RunEngine Frame0 Unit
+piece :: Scene (BehavingScene Unit Unit) () RunAudio RunEngine Frame0 Unit
 piece =
   (const initialFrame)
-    @!> iloop \(SceneI { time }) _ -> ichange { gain: 0.2, osc: 440.0 + ((time * 15.0) % 30.0) }
+    @!> iloop \(BehavingScene { time }) _ -> ichange { gain: 0.2, osc: 440.0 + ((time * 15.0) % 30.0) }
 ```
 
 ## Branching
@@ -103,7 +103,7 @@ import WAGS.Control.Indexed (IxWAG)
 import WAGS.Control.Types (Frame0, Scene, WAG)
 import WAGS.Graph.AudioUnit as AU
 import WAGS.Patch (ipatch)
-import WAGS.Run (RunAudio, RunEngine, SceneI(..))
+import WAGS.Run (RunAudio, RunEngine, BehavingScene(..))
 import WAGS.WebAPI (BrowserAudioBuffer)
 
 type World = { myBuffer :: BrowserAudioBuffer }
@@ -128,9 +128,9 @@ initialFrame = ipatch { microphone: empty, mediaElement: empty } $> 42.0
 branch1
   :: forall proof
    . WAG RunAudio RunEngine proof Unit MyGraph1 Number
-  -> Scene (SceneI Unit World ()) RunAudio RunEngine proof Unit
+  -> Scene (BehavingScene Unit World ()) RunAudio RunEngine proof Unit
 branch1 =
-  ibranch \(SceneI e) a ->
+  ibranch \(BehavingScene e) a ->
     if e.time % 2.0 < 1.0 then
       Right $ ichange { osc: 330.0 } $> a
     else
@@ -139,9 +139,9 @@ branch1 =
 branch2
   :: forall proof
    . WAG RunAudio RunEngine proof Unit MyGraph2 String
-  -> Scene (SceneI Unit World ()) RunAudio RunEngine proof Unit
+  -> Scene (BehavingScene Unit World ()) RunAudio RunEngine proof Unit
 branch2 =
-  ibranch \(SceneI e) a ->
+  ibranch \(BehavingScene e) a ->
     if e.time % 2.0 > 1.0 then
       Right
         $
@@ -155,7 +155,7 @@ branch2 =
     else
       Left $ icont branch1 (ipatch { microphone: empty, mediaElement: empty } $> 42.0)
 
-piece :: Scene (SceneI Unit World ()) RunAudio RunEngine Frame0 Unit
+piece :: Scene (BehavingScene Unit World ()) RunAudio RunEngine Frame0 Unit
 piece = const initialFrame @!> branch1
 ```
 

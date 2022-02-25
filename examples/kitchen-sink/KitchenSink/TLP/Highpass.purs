@@ -18,11 +18,11 @@ import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
 import WAGS.Example.KitchenSink.Types.Empty (cursorGain)
 import WAGS.Example.KitchenSink.Types.Highpass (HighpassGraph, deltaKsHighpass)
 import WAGS.Example.KitchenSink.Types.Microphone (ksMicrophoneCreate)
-import WAGS.Run (SceneI(..))
+import WAGS.Run (BehavingScene(..))
 
 doHighpass :: forall proof. StepSig HighpassGraph proof
 doHighpass =
-  ibranch \(SceneI { time, world }) lsig ->
+  ibranch \(BehavingScene { time, world }) lsig ->
     if time % pieceTime < timing.ksHighpass.end then
       Right (deltaKsHighpass world time $> lsig)
     else

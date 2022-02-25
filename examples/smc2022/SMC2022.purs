@@ -28,7 +28,7 @@ import WAGS.Create (icreate)
 import WAGS.Create.Optionals (CGain, CSinOsc, CSpeaker, gain, sinOsc, speaker, tumult)
 import WAGS.Graph.AudioUnit (TGain, TSinOsc, TSpeaker)
 import WAGS.Interpret (class AudioInterpret, close, context, makeFFIAudioSnapshot)
-import WAGS.Run (RunAudio, RunEngine, SceneI(..), Run, run)
+import WAGS.Run (RunAudio, RunEngine, BehavingScene(..), Run, run)
 import WAGS.Tumult.Make (tumultuously)
 import WAGS.WebAPI (AudioContext)
 
@@ -71,11 +71,11 @@ scene' time =
 
 scene time = speaker (scene' time)
 
-pieceF :: Scene (SceneI Unit Unit ()) RunAudio RunEngine Frame0 Unit
-pieceF = (unwrap >>> _.time >>> scene >>> icreate) @!> iloop \(SceneI { time }) _ -> ivoid $ ichange { sin0: fsin0 time }
+pieceF :: Scene (BehavingScene Unit Unit ()) RunAudio RunEngine Frame0 Unit
+pieceF = (unwrap >>> _.time >>> scene >>> icreate) @!> iloop \(BehavingScene { time }) _ -> ivoid $ ichange { sin0: fsin0 time }
 
-pieceS :: Scene (SceneI Unit Unit ()) RunAudio RunEngine Frame0 Unit
-pieceS = mempty # loopUsingScene \(SceneI env) _ ->
+pieceS :: Scene (BehavingScene Unit Unit ()) RunAudio RunEngine Frame0 Unit
+pieceS = mempty # loopUsingScene \(BehavingScene env) _ ->
   { control: unit
   , scene: speaker
       { gn: gain 1.0

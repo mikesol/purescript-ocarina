@@ -5,7 +5,7 @@ import Prelude
 import WAGS.Control.Indexed (IxWAG)
 import WAGS.Control.Types (Scene, WAG)
 import WAGS.Example.KitchenSink.Types.StartGraph (StartGraph)
-import WAGS.Run (RunEngine, SceneI, RunAudio)
+import WAGS.Run (RunEngine, BehavingScene, RunAudio)
 import WAGS.WebAPI (BrowserAudioBuffer, BrowserFloatArray, BrowserMicrophone, BrowserPeriodicWave, MediaRecorderCb)
 
 type Res
@@ -25,10 +25,10 @@ type World =
 
 type SceneSig :: forall k. k -> Type
 type SceneSig proof
-  = Scene (SceneI Unit World ()) RunAudio RunEngine proof Res
+  = Scene (BehavingScene Unit World ()) RunAudio RunEngine proof Res
 
 type FrameSig' step proof a
-  = SceneI Unit World () -> WAG RunAudio RunEngine proof Res step a
+  = BehavingScene Unit World () -> WAG RunAudio RunEngine proof Res step a
 
 type FrameSig step proof
   = FrameSig' step proof { loop :: LoopSig, iteration :: Int }

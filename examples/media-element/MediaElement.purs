@@ -30,7 +30,7 @@ import WAGS.Create (icreate)
 import WAGS.Create.Optionals (CAnalyser, CGain, CMediaElement, CSpeaker, analyser, gain, mediaElement, speaker)
 import WAGS.Graph.AudioUnit (TAnalyser, TGain, TMediaElement, TSpeaker)
 import WAGS.Interpret (close, context, contextResume, contextState, getByteFrequencyData, makeFFIAudioSnapshot)
-import WAGS.Run (Run, RunAudio, RunEngine, SceneI(..), run)
+import WAGS.Run (Run, RunAudio, RunEngine, BehavingScene(..), run)
 import WAGS.WebAPI (AnalyserNode, AnalyserNodeCb, AudioContext, BrowserMediaElement)
 
 vol = 1.4 :: Number
@@ -59,8 +59,8 @@ type SceneType
   , loop0 :: TMediaElement /\ {}
   }
 
-scene :: SceneI Unit World AnalysersCb -> SceneTemplate
-scene (SceneI { time, world: { atar }, analyserCallbacks: { myAnalyser } }) =
+scene :: BehavingScene Unit World AnalysersCb -> SceneTemplate
+scene (BehavingScene { time, world: { atar }, analyserCallbacks: { myAnalyser } }) =
   let
     rad = pi * time
   in
@@ -78,7 +78,7 @@ scene (SceneI { time, world: { atar }, analyserCallbacks: { myAnalyser } }) =
             }
       }
 
-piece :: Scene (SceneI Unit World AnalysersCb) RunAudio RunEngine Frame0 Unit
+piece :: Scene (BehavingScene Unit World AnalysersCb) RunAudio RunEngine Frame0 Unit
 piece = (scene >>> icreate) @!> iloop \e _ -> ivoid $ ichange (scene e)
 
 easingAlgorithm :: Cofree ((->) Int) Int

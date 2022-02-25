@@ -18,11 +18,11 @@ import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
 import WAGS.Example.KitchenSink.Types.Empty (cursorGain)
 import WAGS.Example.KitchenSink.Types.Microphone (MicrophoneGraph, deltaKsMicrophone)
 import WAGS.Example.KitchenSink.Types.WaveShaper (ksWaveShaperCreate)
-import WAGS.Run (SceneI(..))
+import WAGS.Run (BehavingScene(..))
 
 doMicrophone :: forall proof. StepSig MicrophoneGraph proof
 doMicrophone =
-  ibranch \(SceneI { time, world }) lsig ->
+  ibranch \(BehavingScene { time, world }) lsig ->
     if time % pieceTime < timing.ksMicrophone.end then
       Right (deltaKsMicrophone time $> lsig)
     else

@@ -21,11 +21,11 @@ import WAGS.Example.KitchenSink.Types.Allpass (AllpassGraph, deltaKsAllpass)
 import WAGS.Example.KitchenSink.Types.Empty (cursorGain)
 import WAGS.Example.KitchenSink.Types.Lowpass (ksLowpassCreate)
 import WAGS.Patch (ipatch)
-import WAGS.Run (SceneI(..))
+import WAGS.Run (BehavingScene(..))
 
 doAllpass :: forall proof. StepSig AllpassGraph proof
 doAllpass =
-  ibranch \(SceneI { time, world: world@{ buffers: { "my-buffer": myBuffer } } }) lsig ->
+  ibranch \(BehavingScene { time, world: world@{ buffers: { "my-buffer": myBuffer } } }) lsig ->
     if time % pieceTime < timing.ksAllpass.end then
       Right (deltaKsAllpass world time $> lsig)
     else if lsig.iteration `mod` 2 == 0 then

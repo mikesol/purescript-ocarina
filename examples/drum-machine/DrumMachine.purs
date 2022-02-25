@@ -30,7 +30,7 @@ import WAGS.Create.Optionals (CGain, CSpeaker, CPlayBuf, gain, speaker, playBuf)
 import WAGS.Graph.AudioUnit (TGain, TLoopBuf, TSpeaker, _offOn, _on)
 import WAGS.Graph.Parameter (ff)
 import WAGS.Interpret (close, context, decodeAudioDataFromUri, makeFFIAudioSnapshot)
-import WAGS.Run (RunAudio, RunEngine, SceneI(..), Run, run)
+import WAGS.Run (RunAudio, RunEngine, BehavingScene(..), Run, run)
 import WAGS.WebAPI (AudioContext, BrowserAudioBuffer)
 
 type SceneTemplate
@@ -49,8 +49,8 @@ gap = 0.27 :: Number
 
 type World = { snare :: BrowserAudioBuffer }
 
-scene :: Boolean -> SceneI Unit World () -> SceneTemplate
-scene shouldReset (SceneI { time, world: { snare } }) =
+scene :: Boolean -> BehavingScene Unit World () -> SceneTemplate
+scene shouldReset (BehavingScene { time, world: { snare } }) =
   let
     tgFloor = floor (time / gap)
   in
@@ -69,10 +69,10 @@ scene shouldReset (SceneI { time, world: { snare } }) =
             }
       }
 
-piece :: Scene (SceneI Unit World ()) RunAudio RunEngine Frame0 Unit
+piece :: Scene (BehavingScene Unit World ()) RunAudio RunEngine Frame0 Unit
 piece =
   (\e -> icreate (scene false e) $> 0.0)
-    @!> iloop \(SceneI e) lastCrossing ->
+    @!> iloop \(BehavingScene e) lastCrossing ->
       let
         tgFloor = floor (e.time / gap)
 
@@ -82,7 +82,7 @@ piece =
 
         shouldReset = crossingDivide && crossDiff > 0.2
       in
-        ichange (scene shouldReset (SceneI e)) $> (if shouldReset then e.time else lastCrossing)
+        ichange (scene shouldReset (BehavingScene e)) $> (if shouldReset then e.time else lastCrossing)
 
 easingAlgorithm :: Cofree ((->) Int) Int
 easingAlgorithm =

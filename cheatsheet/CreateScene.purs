@@ -11,7 +11,7 @@ import WAGS.Control.Indexed (IxWAG)
 import WAGS.Control.Types (Frame0, Scene)
 import WAGS.Graph.AudioUnit as AU
 import WAGS.Patch (ipatch)
-import WAGS.Run (RunAudio, RunEngine, SceneI(..))
+import WAGS.Run (RunAudio, RunEngine, BehavingScene(..))
 
 type MyGraph
   = ( speaker :: AU.TSpeaker /\ { gain :: Unit }
@@ -22,7 +22,7 @@ type MyGraph
 initialFrame :: IxWAG RunAudio RunEngine Frame0 Unit () MyGraph Unit
 initialFrame = ipatch { microphone: empty, mediaElement: empty }
 
-piece :: Scene (SceneI Unit Unit ()) RunAudio RunEngine Frame0 Unit
+piece :: Scene (BehavingScene Unit Unit ()) RunAudio RunEngine Frame0 Unit
 piece =
   (const initialFrame)
-    @!> iloop \(SceneI { time }) _ -> ichange { gain: 0.2, osc: 440.0 + ((time * 15.0) % 30.0) }
+    @!> iloop \(BehavingScene { time }) _ -> ichange { gain: 0.2, osc: 440.0 + ((time * 15.0) % 30.0) }

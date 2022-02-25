@@ -30,7 +30,7 @@ import WAGS.Create.Optionals (playBuf, speaker)
 import WAGS.Graph.AudioUnit (TPlayBuf, TSpeaker, _offOn)
 import WAGS.Interpret (class AudioInterpret, bufferDuration, close, context, decodeAudioDataFromUri, makeFFIAudioSnapshot)
 import WAGS.Patch (ipatch)
-import WAGS.Run (Run, RunAudio, RunEngine, SceneI(..), run)
+import WAGS.Run (Run, RunAudio, RunEngine, BehavingScene(..), run)
 import WAGS.WebAPI (AudioContext, BrowserAudioBuffer)
 
 vol = 1.4 :: Number
@@ -49,10 +49,10 @@ type FCf = Number -> Cf
 myChange
   :: forall trigger analyserCb audio engine proof res
    . AudioInterpret audio engine
-  => SceneI trigger World analyserCb
+  => BehavingScene trigger World analyserCb
   -> FCf
   -> IxWAG audio engine proof res SceneType SceneType FCf
-myChange (SceneI { time, world: { hamlet } }) fcf =
+myChange (BehavingScene { time, world: { hamlet } }) fcf =
   maybe (ipure unit)
     ( \v -> ichange
         ( speaker
@@ -86,8 +86,8 @@ cf nea len = f nea 0.0
   section = len / toNumber maxnea
   f ct x n = let hit = n + 0.04 > x in mkCofree (if hit then Just (hnea ct) else Nothing) (f (if hit then (rotate ct) else ct) (if hit then x + section else x))
 
-piece :: Scene (SceneI Unit World ()) RunAudio RunEngine Frame0 Unit
-piece = (\e@(SceneI { world: { hamlet } }) -> ipatch { microphone: empty, mediaElement: empty } :*> myChange e (cf order (bufferDuration hamlet))) @!> iloop myChange
+piece :: Scene (BehavingScene Unit World ()) RunAudio RunEngine Frame0 Unit
+piece = (\e@(BehavingScene { world: { hamlet } }) -> ipatch { microphone: empty, mediaElement: empty } :*> myChange e (cf order (bufferDuration hamlet))) @!> iloop myChange
 
 easingAlgorithm :: Cofree ((->) Int) Int
 easingAlgorithm =

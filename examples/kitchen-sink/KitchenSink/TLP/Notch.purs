@@ -18,11 +18,11 @@ import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
 import WAGS.Example.KitchenSink.Types.Empty (cursorGain)
 import WAGS.Example.KitchenSink.Types.Notch (NotchGraph, deltaKsNotch)
 import WAGS.Example.KitchenSink.Types.Peaking (ksPeakingCreate)
-import WAGS.Run (SceneI(..))
+import WAGS.Run (BehavingScene(..))
 
 doNotch :: forall proof. StepSig NotchGraph proof
 doNotch =
-  ibranch \(SceneI { time, world }) lsig ->
+  ibranch \(BehavingScene { time, world }) lsig ->
     if time % pieceTime < timing.ksNotch.end then
       Right (deltaKsNotch world time $> lsig)
     else

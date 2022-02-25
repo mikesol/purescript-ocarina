@@ -18,11 +18,11 @@ import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
 import WAGS.Example.KitchenSink.Types.Empty (cursorGain)
 import WAGS.Example.KitchenSink.Types.Highshelf (HighshelfGraph, deltaKsHighshelf)
 import WAGS.Example.KitchenSink.Types.Lowshelf (ksLowshelfCreate)
-import WAGS.Run (SceneI(..))
+import WAGS.Run (BehavingScene(..))
 
 doHighshelf :: forall proof. StepSig HighshelfGraph proof
 doHighshelf =
-  ibranch \(SceneI { time, world }) lsig ->
+  ibranch \(BehavingScene { time, world }) lsig ->
     if time % pieceTime < timing.ksHighshelf.end then
       Right (deltaKsHighshelf world time $> lsig)
     else

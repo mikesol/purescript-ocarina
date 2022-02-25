@@ -21,11 +21,11 @@ import WAGS.Example.KitchenSink.Types.Empty (cursorGain)
 import WAGS.Example.KitchenSink.Types.SquareOsc (ksSquareOscCreate)
 import WAGS.Example.KitchenSink.Types.TriangleOsc (TriangleOscGraph, deltaKsTriangleOsc)
 import WAGS.Patch (ipatch)
-import WAGS.Run (SceneI(..))
+import WAGS.Run (BehavingScene(..))
 
 doTriangleOsc :: forall proof. StepSig TriangleOscGraph proof
 doTriangleOsc =
-  ibranch \(SceneI { time }) lsig ->
+  ibranch \(BehavingScene { time }) lsig ->
     if time % pieceTime < timing.ksTriangleOsc.end then
       Right (deltaKsTriangleOsc time $> lsig)
     else

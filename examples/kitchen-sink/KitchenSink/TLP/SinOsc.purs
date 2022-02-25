@@ -18,11 +18,11 @@ import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
 import WAGS.Example.KitchenSink.Types.Empty (cursorGain)
 import WAGS.Example.KitchenSink.Types.SinOsc (SinOscGraph, deltaKsSinOsc)
 import WAGS.Example.KitchenSink.Types.TriangleOsc (ksTriangleOscCreate)
-import WAGS.Run (SceneI(..))
+import WAGS.Run (BehavingScene(..))
 
 doSinOsc :: forall proof. StepSig SinOscGraph proof
 doSinOsc =
-  ibranch \(SceneI { time, world }) lsig ->
+  ibranch \(BehavingScene { time, world }) lsig ->
     if time % pieceTime < timing.ksSinOsc.end then
       Right (deltaKsSinOsc time $> lsig)
     else

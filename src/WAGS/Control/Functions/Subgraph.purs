@@ -74,7 +74,7 @@ infixr 6 makeSceneFlipped as <@
 -- | In WAGS, a "loop" is a universe whose `changeBit` increments by 1. That means that the structure of the graph is similar (no units added, none taken away) while some or none of its internal content (ie frequencies, gains, etc) has changed. This is accomplished using the `change` family of functions in `WAGS.Change`.
 -- |
 -- | ```purescript
--- | piece :: Scene (SceneI Unit Unit) FFIAudio (Effect Unit) Frame0
+-- | piece :: Scene (BehavingScene Unit Unit) FFIAudio (Effect Unit) Frame0
 -- | piece =
 -- |   WAGS.do
 -- |     start -- initial frame

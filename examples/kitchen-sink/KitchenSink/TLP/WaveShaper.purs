@@ -18,11 +18,11 @@ import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
 import WAGS.Example.KitchenSink.Types.Delay (ksDelayCreate)
 import WAGS.Example.KitchenSink.Types.Empty (cursorGain)
 import WAGS.Example.KitchenSink.Types.WaveShaper (WaveShaperGraph, deltaKsWaveShaper)
-import WAGS.Run (SceneI(..))
+import WAGS.Run (BehavingScene(..))
 
 doWaveShaper :: forall proof. StepSig WaveShaperGraph proof
 doWaveShaper =
-  ibranch \(SceneI { time, world }) lsig ->
+  ibranch \(BehavingScene { time, world }) lsig ->
     if time % pieceTime < timing.ksWaveShaper.end then
       Right (deltaKsWaveShaper time $> lsig)
     else

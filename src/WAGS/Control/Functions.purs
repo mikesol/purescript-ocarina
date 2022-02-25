@@ -49,7 +49,7 @@ import WAGS.WebAPI (BrowserMicrophone)
 -- | The initial `Frame` that is needed to begin any `Scene`.
 -- |
 -- | ```purescript
--- | piece :: Scene (SceneI Unit Unit) FFIAudio (Effect Unit) Frame0
+-- | piece :: Scene (BehavingScene Unit Unit) FFIAudio (Effect Unit) Frame0
 -- | piece =
 -- |   WAGS.do
 -- |     start -- initial frame
