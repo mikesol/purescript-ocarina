@@ -2,7 +2,8 @@
 module WAGS.Run
   ( EasingAlgorithm
   , EngineInfo
-  , Run
+  , BehavingRun
+  , TriggeredRun
   , TriggeredScene(..)
   , BehavingScene(..)
   , SharedScene
@@ -124,31 +125,28 @@ instance workWithAnalysersCons ::
 -- | - `EngineInfo` is the engine information needed for rendering.
 -- | - `FFIAudio` is the audio state needed for rendering
 -- | - `Scene` is the scene to render. See `BehavingScene` to understand how `trigger` and `world` are blended into the inptu environment going to `Scene`.
-type RunSig sceneType analysersRL analysers analyserCallbacks analyserRefs trigger world res = RL.RowToList analysers analysersRL
+type RunSig sceneType engineInfoType output analysersRL analysers analyserCallbacks analyserRefs trigger world res = RL.RowToList analysers analysersRL
   => AnalyserRefs analysersRL analyserRefs
   => MakeAnalyserCallbacks analysersRL analyserRefs analyserCallbacks
   => Analysers analysersRL analyserRefs analysers
   => Monoid res
   => Event trigger
   -> Behavior world
-  -> EngineInfo
+  -> engineInfoType
   -> FFIAudioSnapshot
   -> Scene (sceneType trigger world analyserCallbacks)
        RunAudio
        RunEngine
        Frame0
        res
-  -> Event (Run res analysers)
+  -> Event output
 
-
--- TODO: so much code duplication here. fix...
-runNoLoop :: forall analysersRL analysers analyserCallbacks analyserRefs trigger world res. RunSig TriggeredScene analysersRL analysers analyserCallbacks analyserRefs trigger world res
-runNoLoop trigger inWorld engineInfo audioInfo scene =
+-- TODO: fix code duplication?
+runNoLoop :: forall analysersRL analysers analyserCallbacks analyserRefs trigger world res. RunSig TriggeredScene {} (TriggeredRun res analysers) analysersRL analysers analyserCallbacks analyserRefs trigger world res
+runNoLoop trigger inWorld _ audioInfo scene =
   makeEvent \k -> do
     refsForAnalysers <- makeAnalyserRefs (Proxy :: _ analysersRL)
-    currentTimeoutCanceler <- Ref.new (pure unit :: Effect Unit)
     currentScene <- Ref.new scene
-    currentEasingAlg <- Ref.new engineInfo.easingAlgorithm
     let
       newWorld =
         { world: _
@@ -171,40 +169,23 @@ runNoLoop trigger inWorld engineInfo audioInfo scene =
           trigger
     unsubscribe <-
       subscribe eventAndEnv \ee -> do
-        cancelTimeout <- Ref.read currentTimeoutCanceler
-        cancelTimeout
         runInternal
-          { audioClockStart: Nothing, writeHeadStart: Nothing }
           ee
-          newWorld
-          currentTimeoutCanceler
-          currentEasingAlg
           currentScene
           audioInfo
           (makeAnalyserCallbacks (Proxy :: _ analysersRL) refsForAnalysers)
           refsForAnalysers
           k
-    pure do
-      cancelTimeout <- Ref.read currentTimeoutCanceler
-      cancelTimeout
-      unsubscribe
+    pure unsubscribe
   where
-  runInternal clockInfo fromEvents world' currentTimeoutCanceler currentEasingAlg currentScene ffiSnapshot analyserCallbacks analyserRefs reporter = do
-    easingAlgNow <- Ref.read currentEasingAlg
+  runInternal fromEvents currentScene ffiSnapshot analyserCallbacks analyserRefs reporter = do
     sceneNow <- Ref.read currentScene
     let
       ctx = contextFromSnapshot ffiSnapshot
-      -- this is how far in the future we are telling the
-      -- algorithm to calculate with respect to the audio clock
-      -- it is a bet:  we bet that the algorithm will finish
-      -- in this amount of time
-      headroom = head easingAlgNow
-
-      headroomInSeconds = (toNumber headroom) / 1000.0
 
     audioClockPriorToComputation <- getAudioClockTime ctx
     let
-      audioClockStart = fromMaybe audioClockPriorToComputation clockInfo.audioClockStart
+      audioClockStart = audioClockPriorToComputation
       time = audioClockPriorToComputation - audioClockStart
 
       fromScene =
@@ -214,36 +195,25 @@ runNoLoop trigger inWorld engineInfo audioInfo scene =
               , trigger: fromEvents.trigger
               , sysTime: fromEvents.sysTime
               , time
-              , headroom
-              , headroomInSeconds
               , analyserCallbacks
               }
           )
     audioClockAfterComputation <- getAudioClockTime ctx
     let
-      writeHeadStart = fromMaybe (audioClockAfterComputation + headroomInSeconds) clockInfo.writeHeadStart
+      -- todo: unhardcode
+      writeHeadStart = audioClockAfterComputation
       ffi = advanceWriteHead ffiSnapshot $ (writeHeadStart + time)
       applied = map ((#) (unit /\ ffi)) fromScene.instructions
     renderAudio (map snd applied)
-    let
-      remainingTimeInSeconds = audioClockPriorToComputation + headroomInSeconds - audioClockAfterComputation
-      remainingTime = floor $ 1000.0 * remainingTimeInSeconds
-    Ref.write (tail easingAlgNow remainingTime) currentEasingAlg
-    Ref.write
-      fromScene.next
-      currentScene
+    Ref.write fromScene.next currentScene
     analysers <- getAnalysers (Proxy :: _ analysersRL) analyserRefs
     reporter
       { instructions: map fst applied
       , res: fromScene.res
-      , remainingTimeInSeconds
-      , remainingTime
-      , headroom
-      , headroomInSeconds
       , analysers
       }
 
-run :: forall analysersRL analysers analyserCallbacks analyserRefs trigger world res. RunSig BehavingScene analysersRL analysers analyserCallbacks analyserRefs trigger world res
+run :: forall analysersRL analysers analyserCallbacks analyserRefs trigger world res. RunSig BehavingScene EngineInfo (BehavingRun res analysers) analysersRL analysers analyserCallbacks analyserRefs trigger world res
 run trigger inWorld engineInfo audioInfo scene =
   makeEvent \k -> do
     refsForAnalysers <- makeAnalyserRefs (Proxy :: _ analysersRL)
@@ -275,6 +245,10 @@ run trigger inWorld engineInfo audioInfo scene =
         cancelTimeout <- Ref.read currentTimeoutCanceler
         cancelTimeout
         runInternal
+          --------------- TODO
+          --------------- THIS IS WRONG
+          --------------- it needs to be a reference
+          --------------- otherwise, the clock resets on EVERY EVENT
           { audioClockStart: Nothing, writeHeadStart: Nothing }
           ee
           newWorld
@@ -330,9 +304,7 @@ run trigger inWorld engineInfo audioInfo scene =
       remainingTimeInSeconds = audioClockPriorToComputation + headroomInSeconds - audioClockAfterComputation
       remainingTime = floor $ 1000.0 * remainingTimeInSeconds
     Ref.write (tail easingAlgNow remainingTime) currentEasingAlg
-    Ref.write
-      fromScene.next
-      currentScene
+    Ref.write fromScene.next currentScene
     analysers <- getAnalysers (Proxy :: _ analysersRL) analyserRefs
     reporter
       { instructions: map fst applied
@@ -387,7 +359,7 @@ type EngineInfo
 type EasingAlgorithm
   = Cofree ((->) Int) Int
 
-type Run res analysers
+type BehavingRun res analysers
   =
   { instructions :: Array Instruction
   , res :: res
@@ -395,6 +367,13 @@ type Run res analysers
   , remainingTime :: Int
   , headroomInSeconds :: Number
   , headroom :: Int
+  , analysers :: { | analysers }
+  }
+
+type TriggeredRun res analysers
+  =
+  { instructions :: Array Instruction
+  , res :: res
   , analysers :: { | analysers }
   }
 
@@ -410,14 +389,14 @@ type SharedScene world analyserCallbacks =
   ( world :: world
   , time :: Number
   , sysTime :: Milliseconds
-  , headroom :: Int
-  , headroomInSeconds :: Number
   , analyserCallbacks :: { | analyserCallbacks }
   )
 
 newtype BehavingScene trigger world analyserCallbacks
   = BehavingScene
   { trigger :: Maybe trigger
+  , headroom :: Int
+  , headroomInSeconds :: Number
   | SharedScene world analyserCallbacks
   }
 
