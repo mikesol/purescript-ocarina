@@ -25,7 +25,7 @@ import Halogen.VDom.Driver (runUI)
 import Math (abs, pi)
 import WAGS.Example.KitchenSink.Piece (piece)
 import WAGS.Interpret (close, context, decodeAudioDataFromUri, getMicrophoneAndCamera, makeFFIAudioSnapshot, makeFloatArray, makePeriodicWave, mediaRecorderToUrl)
-import WAGS.Run (Run, run)
+import WAGS.Run (BehavingRun, run)
 import WAGS.WebAPI (AudioContext, BrowserAudioBuffer, MediaRecorderCb(..))
 
 makeDistortionCurve :: Number -> Array Number
@@ -63,7 +63,7 @@ type State
 
 data Action
   = StartAudio
-  | ReportGraph (Run String ())
+  | ReportGraph (BehavingRun String ())
   | HydrateRecording String
   | StopAudio
 

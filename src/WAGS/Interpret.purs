@@ -297,7 +297,7 @@ getMicrophoneAndCamera audio video =
 -- | Create a unit cache. This returns a fresh empty object `{}` that is used to cache audio units.
 foreign import makeFFIAudioSnapshot :: WebAPI.AudioContext -> Effect FFIAudioSnapshot
 foreign import contextFromSnapshot :: FFIAudioSnapshot -> WebAPI.AudioContext
-foreign import advanceWriteHead :: FFIAudioSnapshot -> Number -> FFIAudioSnapshot
+foreign import advanceWriteHead :: FFIAudioSnapshot -> Number -> Effect Unit
 
 -- | Render audio from an array of audio rendering instructions. This is conceptually the same as
 -- | taking `Array Effect Unit -> Effect Unit` and doing `map fold <<< sequence`.

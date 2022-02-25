@@ -37,7 +37,7 @@ import WAGS.Graph.AudioUnit (TGain, TPeriodicOsc, TSpeaker)
 import WAGS.Graph.Parameter (ff)
 import WAGS.Interpret (close, context, makeFFIAudioSnapshot, makePeriodicWave)
 import WAGS.Math (calcSlope)
-import WAGS.Run (RunAudio, RunEngine, BehavingScene(..), Run, run)
+import WAGS.Run (RunAudio, RunEngine, BehavingScene(..), BehavingRun, run)
 import WAGS.WebAPI (AudioContext, BrowserPeriodicWave)
 
 type Note
@@ -237,7 +237,7 @@ handleAction = case _ of
         unsubscribe <-
           subscribe
             (run (pure unit) (pure { bday }) { easingAlgorithm } ffiAudio piece)
-            (\(_ :: Run Unit ()) -> pure unit)
+            (\(_ :: BehavingRun Unit ()) -> pure unit)
         pure { unsubscribe, audioCtx }
     H.modify_ _ { unsubscribe = unsubscribe, audioCtx = Just audioCtx }
   StopAudio -> do

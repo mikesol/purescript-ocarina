@@ -25,7 +25,7 @@ import WAGS.Control.Types (Frame0, Scene, SubScene)
 import WAGS.Create.Optionals (bandpass, gain, highpass, input, loopBuf, sinOsc, speaker, subgraph, tumult)
 import WAGS.Graph.Parameter (AudioParameter, ff)
 import WAGS.Interpret (class AudioInterpret, close, context, decodeAudioDataFromUri, makeFFIAudioSnapshot)
-import WAGS.Run (Run, RunAudio, RunEngine, BehavingScene(..), run)
+import WAGS.Run (BehavingRun, RunAudio, RunEngine, BehavingScene(..), run)
 import WAGS.Tumult.Make (tumultuously)
 import WAGS.WebAPI (AudioContext, BrowserAudioBuffer)
 
@@ -152,7 +152,7 @@ handleAction = case _ of
       H.liftEffect
         $ subscribe
           (run (pure unit) (pure { shruti }) { easingAlgorithm } (ffiAudio) piece)
-          (\(_ :: Run Unit ()) -> pure unit)
+          (\(_ :: BehavingRun Unit ()) -> pure unit)
     H.modify_ _ { unsubscribe = unsubscribe, audioCtx = Just audioCtx }
   StopAudio -> do
     { unsubscribe, audioCtx } <- H.get

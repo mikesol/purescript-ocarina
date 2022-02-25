@@ -11,10 +11,10 @@ exports.contextResume = function (audioCtx) {
 		return audioCtx.resume();
 	};
 };
-var isOn = function(param) {
+var isOn = function (param) {
 	return param === "on" || param === "offOn";
-}
-var makeid = function(length) {
+};
+var makeid = function (length) {
 	var result = "";
 	var characters =
 		"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -23,7 +23,7 @@ var makeid = function(length) {
 		result += characters.charAt(Math.floor(Math.random() * charactersLength));
 	}
 	return result;
-}
+};
 
 exports.makeFFIAudioSnapshot = function (audioCtx) {
 	return function () {
@@ -42,9 +42,9 @@ exports.contextFromSnapshot = function (snapshot) {
 
 exports.advanceWriteHead = function (snapshot) {
 	return function (writeHead) {
-		var newSnapshot = Object.assign({}, snapshot);
-		newSnapshot.writeHead = writeHead;
-		return newSnapshot;
+		return function () {
+			snapshot.writeHead = writeHead;
+		};
 	};
 };
 

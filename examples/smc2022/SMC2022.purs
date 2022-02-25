@@ -28,7 +28,7 @@ import WAGS.Create (icreate)
 import WAGS.Create.Optionals (CGain, CSinOsc, CSpeaker, gain, sinOsc, speaker, tumult)
 import WAGS.Graph.AudioUnit (TGain, TSinOsc, TSpeaker)
 import WAGS.Interpret (class AudioInterpret, close, context, makeFFIAudioSnapshot)
-import WAGS.Run (RunAudio, RunEngine, BehavingScene(..), Run, run)
+import WAGS.Run (RunAudio, RunEngine, BehavingScene(..), BehavingRun, run)
 import WAGS.Tumult.Make (tumultuously)
 import WAGS.WebAPI (AudioContext)
 
@@ -164,7 +164,7 @@ handleAction = case _ of
               Fast -> pieceF
               Slow -> pieceS
           )
-          (\(_ :: Run Unit ()) -> pure unit)
+          (\(_ :: BehavingRun Unit ()) -> pure unit)
     H.modify_ _ { unsubscribe = unsubscribe, audioCtx = Just audioCtx }
   SetExample whichExample -> H.modify_ _ { whichExample = whichExample }
   StopAudio -> do

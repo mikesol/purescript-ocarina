@@ -30,7 +30,7 @@ import WAGS.Create (icreate)
 import WAGS.Create.Optionals (CGain, CLoopBuf, CSpeaker, CAnalyser, analyser, gain, loopBuf, speaker)
 import WAGS.Graph.AudioUnit (TAnalyser, TGain, TLoopBuf, TSpeaker)
 import WAGS.Interpret (close, context, contextResume, contextState, decodeAudioDataFromUri, getByteFrequencyData, makeFFIAudioSnapshot)
-import WAGS.Run (Run, RunAudio, RunEngine, BehavingScene(..), run)
+import WAGS.Run (BehavingRun, RunAudio, RunEngine, BehavingScene(..), run)
 import WAGS.WebAPI (AnalyserNode, AnalyserNodeCb, AudioContext, BrowserAudioBuffer)
 
 vol = 1.4 :: Number
@@ -175,7 +175,7 @@ handleAction = case _ of
       H.liftEffect
         $ subscribe
           (run (pure unit) (pure { atar }) { easingAlgorithm } (ffiAudio) piece)
-          ( \({ analysers: { myAnalyser } } :: Run Unit Analysers) ->
+          ( \({ analysers: { myAnalyser } } :: BehavingRun Unit Analysers) ->
               for_ myAnalyser \myAnalyser' -> do
                 frequencyData <- getByteFrequencyData myAnalyser'
                 arr <- toArray frequencyData

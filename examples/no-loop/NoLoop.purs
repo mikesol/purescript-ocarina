@@ -2,10 +2,9 @@ module WAGS.Example.NoLoop where
 
 import Prelude
 
-import Control.Comonad.Cofree (Cofree, mkCofree)
 import Data.Foldable (for_)
 import Data.Functor.Indexed (ivoid)
-import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Maybe (Maybe(..))
 import Data.Newtype (unwrap)
 import Data.Tuple (fst)
 import Data.Tuple.Nested (type (/\), (/\))
@@ -26,7 +25,7 @@ import WAGS.Create (icreate)
 import WAGS.Create.Optionals (CGain, CSpeaker, CSinOsc, gain, sinOsc, speaker)
 import WAGS.Graph.AudioUnit (TGain, TSinOsc, TSpeaker)
 import WAGS.Interpret (close, context, makeFFIAudioSnapshot)
-import WAGS.Run (Run, RunAudio, RunEngine, BehavingScene(..), runNoLoop)
+import WAGS.Run (TriggeredScene(..), RunAudio, RunEngine, TriggeredRun, runNoLoop)
 import WAGS.WebAPI (AudioContext)
 
 type SceneTemplate
@@ -59,15 +58,8 @@ scene mult =
       , gain3: gain 0.05 { sin3: sinOsc (220.0 * mult * 4.0) }
       }
 
-piece :: Scene (BehavingScene Number Unit ()) RunAudio RunEngine Frame0 Unit
-piece = (unwrap >>> _.trigger >>> fromMaybe 1.0 >>> scene >>> icreate) @!> iloop \(BehavingScene { trigger }) _ -> ivoid $ ichange (scene (fromMaybe 1.0 trigger))
-
-easingAlgorithm :: Cofree ((->) Int) Int
-easingAlgorithm =
-  let
-    fOf initialTime = mkCofree initialTime \adj -> fOf $ max 20 (initialTime - adj)
-  in
-    fOf 20
+piece :: Scene (TriggeredScene Number Unit ()) RunAudio RunEngine Frame0 Unit
+piece = (unwrap >>> _.trigger >>> scene >>> icreate) @!> iloop \(TriggeredScene { trigger }) _ -> ivoid $ ichange (scene trigger)
 
 main :: Effect Unit
 main =
@@ -120,8 +112,8 @@ handleAction = case _ of
     unsubscribe <-
       H.liftEffect
         $ subscribe
-          (runNoLoop (fold (\_ (b /\ u) -> if b >= 4.0 then (b - 1.0) /\ false else if b <= 1.0 then (b + 1.0) /\ true else (if u then add else sub) b 1.0 /\ u) (interval 2000) (1.0 /\ true) <#> fst) (pure unit) { easingAlgorithm } ffiAudio piece)
-          (\(_ :: Run Unit ()) -> pure unit)
+          (runNoLoop (fold (\_ (b /\ u) -> if b >= 4.0 then (b - 1.0) /\ false else if b <= 1.0 then (b + 1.0) /\ true else (if u then add else sub) b 1.0 /\ u) (interval 2000) (1.0 /\ true) <#> fst) (pure unit) {} ffiAudio piece)
+          (\(_ :: TriggeredRun Unit ()) -> pure unit)
     H.modify_ _ { unsubscribe = unsubscribe, audioCtx = Just audioCtx }
   StopAudio -> do
     { unsubscribe, audioCtx } <- H.get

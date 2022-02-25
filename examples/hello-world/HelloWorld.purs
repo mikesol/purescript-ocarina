@@ -25,7 +25,7 @@ import WAGS.Create (icreate)
 import WAGS.Create.Optionals (CGain, CSpeaker, CSinOsc, gain, sinOsc, speaker)
 import WAGS.Graph.AudioUnit (TGain, TSinOsc, TSpeaker)
 import WAGS.Interpret (close, context, makeFFIAudioSnapshot)
-import WAGS.Run (RunAudio, RunEngine, BehavingScene(..), Run, run)
+import WAGS.Run (RunAudio, RunEngine, BehavingScene(..), BehavingRun, run)
 import WAGS.WebAPI (AudioContext)
 
 type SceneTemplate
@@ -123,7 +123,7 @@ handleAction = case _ of
       H.liftEffect
         $ subscribe
           (run (pure unit) (pure unit) { easingAlgorithm } ffiAudio piece)
-          (\(_ :: Run Unit ()) -> pure unit)
+          (\(_ :: BehavingRun Unit ()) -> pure unit)
     H.modify_ _ { unsubscribe = unsubscribe, audioCtx = Just audioCtx }
   StopAudio -> do
     { unsubscribe, audioCtx } <- H.get
