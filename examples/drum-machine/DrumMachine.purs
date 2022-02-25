@@ -30,7 +30,7 @@ import WAGS.Create.Optionals (CGain, CSpeaker, CPlayBuf, gain, speaker, playBuf)
 import WAGS.Graph.AudioUnit (TGain, TLoopBuf, TSpeaker, _offOn, _on)
 import WAGS.Graph.Parameter (ff)
 import WAGS.Interpret (close, context, decodeAudioDataFromUri, makeFFIAudioSnapshot)
-import WAGS.Run (RunAudio, RunEngine, BehavingScene(..), Run, run)
+import WAGS.Run (RunAudio, RunEngine, BehavingScene(..), BehavingRun, run)
 import WAGS.WebAPI (AudioContext, BrowserAudioBuffer)
 
 type SceneTemplate
@@ -188,7 +188,7 @@ handleAction = case _ of
               (ffiAudio)
               piece
           )
-          (\(_ :: Run Unit ()) -> pure unit)
+          (\(_ :: BehavingRun Unit ()) -> pure unit)
     H.modify_
       _
         { unsubscribe =

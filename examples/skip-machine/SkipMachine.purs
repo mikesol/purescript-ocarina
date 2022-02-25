@@ -30,7 +30,7 @@ import WAGS.Create.Optionals (playBuf, speaker)
 import WAGS.Graph.AudioUnit (TPlayBuf, TSpeaker, _offOn)
 import WAGS.Interpret (class AudioInterpret, bufferDuration, close, context, decodeAudioDataFromUri, makeFFIAudioSnapshot)
 import WAGS.Patch (ipatch)
-import WAGS.Run (Run, RunAudio, RunEngine, BehavingScene(..), run)
+import WAGS.Run (BehavingRun, RunAudio, RunEngine, BehavingScene(..), run)
 import WAGS.WebAPI (AudioContext, BrowserAudioBuffer)
 
 vol = 1.4 :: Number
@@ -158,7 +158,7 @@ handleAction = case _ of
       H.liftEffect
         $ subscribe
           (run (pure unit) (pure { hamlet }) { easingAlgorithm } (ffiAudio) piece)
-          (\(_ :: Run Unit ()) -> pure unit)
+          (\(_ :: BehavingRun Unit ()) -> pure unit)
     H.modify_ _ { unsubscribe = unsubscribe, audioCtx = Just audioCtx }
   Freqz freqz -> H.modify_ _ { freqz = freqz }
   StopAudio -> do

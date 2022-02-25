@@ -29,7 +29,7 @@ import WAGS.Graph.AudioUnit (AudioWorkletNode, AudioWorkletNodeOptions(..), TAud
 import WAGS.Graph.Parameter (AudioParameter, ff)
 import WAGS.Graph.Worklet (AudioWorkletNodeRequest(..), AudioWorkletNodeResponse)
 import WAGS.Interpret (audioWorkletAddModule, close, context, makeFFIAudioSnapshot)
-import WAGS.Run (RunAudio, RunEngine, BehavingScene(..), Run, run)
+import WAGS.Run (RunAudio, RunEngine, BehavingScene(..), BehavingRun, run)
 import WAGS.WebAPI (AudioContext)
 import Web.File.Blob as Blob
 import Web.File.Url (createObjectURL)
@@ -189,7 +189,7 @@ registerProcessor('white-noise-processor', WhiteNoiseProcessor)"""
         unsubscribe <-
           subscribe
             (run (pure unit) (pure { noiseUnit }) { easingAlgorithm } ffiAudio piece)
-            (\(_ :: Run Unit ()) -> pure unit)
+            (\(_ :: BehavingRun Unit ()) -> pure unit)
         pure { unsubscribe, audioCtx }
     H.modify_ _ { unsubscribe = unsubscribe, audioCtx = Just audioCtx }
   StopAudio -> do
