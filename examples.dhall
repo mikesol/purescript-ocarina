@@ -15,6 +15,7 @@ in      conf
               , "stringutils"
               , "transformers"
               , "uint"
+              , "halogen-storybook"
               , "media-types"
               , "web-file"
               , "exceptions"
