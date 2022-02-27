@@ -10,6 +10,7 @@ in      conf
               , "console"
               , "halogen-subscriptions"
               , "heterogeneous"
+              , "nonempty"
               , "identity"
               , "nonempty"
               , "stringutils"

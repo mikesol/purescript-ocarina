@@ -209,9 +209,11 @@ class Timed a where
 singleNumber :: AudioSingleNumber -> AudioParameter
 singleNumber = AudioParameter <<< inj (Proxy :: Proxy
  "singleNumber")
+
 envelope :: AudioEnvelope -> AudioParameter
 envelope = AudioParameter <<< inj (Proxy :: Proxy
  "envelope")
+
 cancellation :: AudioParameterCancellation -> AudioParameter
 cancellation = AudioParameter <<< inj (Proxy :: Proxy
  "cancellation")

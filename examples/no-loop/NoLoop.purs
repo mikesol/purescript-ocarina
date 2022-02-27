@@ -2,15 +2,17 @@ module WAGS.Example.NoLoop where
 
 import Prelude
 
+import Data.Array.NonEmpty (NonEmptyArray, fromArray, fromNonEmpty)
 import Data.Foldable (for_)
 import Data.Functor.Indexed (ivoid)
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Newtype (unwrap)
 import Data.Tuple (fst)
 import Data.Tuple.Nested (type (/\), (/\))
 import Effect (Effect)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect)
+import Data.NonEmpty ((:|))
 import FRP.Event (fold, subscribe)
 import FRP.Event.Time (interval)
 import Halogen as H
@@ -24,9 +26,25 @@ import WAGS.Control.Types (Frame0, Scene)
 import WAGS.Create (icreate)
 import WAGS.Create.Optionals (CGain, CSpeaker, CSinOsc, gain, sinOsc, speaker)
 import WAGS.Graph.AudioUnit (TGain, TSinOsc, TSpeaker)
+import WAGS.Graph.Parameter (AudioEnvelope(..))
 import WAGS.Interpret (close, context, makeFFIAudioSnapshot)
 import WAGS.Run (TriggeredScene(..), RunAudio, RunEngine, TriggeredRun, runNoLoop)
 import WAGS.WebAPI (AudioContext)
+
+defaultEnv :: NonEmptyArray Number
+defaultEnv = fromNonEmpty (0.0 :| [ 0.0 ])
+env
+  :: { v :: Array Number
+     , o :: Number
+     , d :: Number
+     }
+  -> AudioEnvelope
+
+env { v, o, d } = AudioEnvelope
+  { values: fromMaybe defaultEnv $ fromArray v
+  , timeOffset: o
+  , duration: d
+  }
 
 type SceneTemplate
   = CSpeaker
@@ -51,12 +69,40 @@ type SceneType
 
 scene :: Number -> SceneTemplate
 scene mult =
-    speaker
-      { gain0: gain 0.2 { sin0: sinOsc (220.0 * mult)  }
-      , gain1: gain 0.05 { sin1: sinOsc (220.0 * mult * 2.0) }
-      , gain2: gain 0.3 { sin2: sinOsc (220.0 * mult * 3.0) }
-      , gain3: gain 0.05 { sin3: sinOsc (220.0 * mult * 4.0) }
-      }
+  speaker
+    { gain0: gain
+        ( env
+            { v: [ 0.0, 0.2, 0.05, 0.025, 0.0 ]
+            , o: 0.0
+            , d: 2.0
+            }
+        )
+        { sin0: sinOsc (220.0 * mult) }
+    , gain1: gain
+        ( env
+            { v: [ 0.0, 0.05, 0.025, 0.025, 0.0 ]
+            , o: 0.0
+            , d: 2.0
+            }
+        )
+        { sin1: sinOsc (220.0 * mult * 2.0) }
+    , gain2: gain
+        ( env
+            { v: [ 0.0, 0.3, 0.05, 0.025, 0.0 ]
+            , o: 0.0
+            , d: 2.0
+            }
+        )
+        { sin2: sinOsc (220.0 * mult * 3.0) }
+    , gain3: gain
+        ( env
+            { v: [ 0.0, 0.05, 0.025, 0.025, 0.0 ]
+            , o: 0.0
+            , d: 2.0
+            }
+        )
+        { sin3: sinOsc (220.0 * mult * 4.0) }
+    }
 
 piece :: Scene (TriggeredScene Number Unit ()) RunAudio RunEngine Frame0 Unit
 piece = (unwrap >>> _.trigger >>> scene >>> icreate) @!> iloop \(TriggeredScene { trigger }) _ -> ivoid $ ichange (scene trigger)
@@ -112,7 +158,19 @@ handleAction = case _ of
     unsubscribe <-
       H.liftEffect
         $ subscribe
-          (runNoLoop (fold (\_ (b /\ u) -> if b >= 4.0 then (b - 1.0) /\ false else if b <= 1.0 then (b + 1.0) /\ true else (if u then add else sub) b 1.0 /\ u) (interval 2000) (1.0 /\ true) <#> fst) (pure unit) {} ffiAudio piece)
+          ( runNoLoop
+              ( fold
+                  ( \_ (b /\ u) ->
+                      if b >= 4.0 then (b - 1.0) /\ false else if b <= 1.0 then (b + 1.0) /\ true else (if u then add else sub) b 1.0 /\ u
+                  )
+                  (interval 2000)
+                  (1.0 /\ true) <#> fst
+              )
+              (pure unit)
+              {}
+              ffiAudio
+              piece
+          )
           (\(_ :: TriggeredRun Unit ()) -> pure unit)
     H.modify_ _ { unsubscribe = unsubscribe, audioCtx = Just audioCtx }
   StopAudio -> do
