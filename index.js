@@ -38053,6 +38053,7 @@ var PS = {};
   "use strict";
   $PS["WAGS.Example.NoLoop"] = $PS["WAGS.Example.NoLoop"] || {};
   var exports = $PS["WAGS.Example.NoLoop"];
+  var Control_Alt = $PS["Control.Alt"];
   var Control_Applicative = $PS["Control.Applicative"];
   var Control_Bind = $PS["Control.Bind"];
   var Control_Monad_State_Class = $PS["Control.Monad.State.Class"];
@@ -38440,7 +38441,7 @@ var PS = {};
               if (v instanceof StartAudio) {
                   return Control_Bind.bind(Halogen_Query_HalogenM.bindHalogenM)(Effect_Class.liftEffect(Halogen_Query_HalogenM.monadEffectHalogenM(dictMonadAff.MonadEffect0()))(WAGS_Interpret.context))(function (audioCtx) {
                       return Control_Bind.bind(Halogen_Query_HalogenM.bindHalogenM)(Effect_Class.liftEffect(Halogen_Query_HalogenM.monadEffectHalogenM(dictMonadAff.MonadEffect0()))(WAGS_Interpret.makeFFIAudioSnapshot(audioCtx)))(function (ffiAudio) {
-                          return Control_Bind.bind(Halogen_Query_HalogenM.bindHalogenM)(Effect_Class.liftEffect(Halogen_Query_HalogenM.monadEffectHalogenM(dictMonadAff.MonadEffect0()))(FRP_Event.subscribe(WAGS_Run.runNoLoop()(WAGS_Run.analyserRefsNil)(WAGS_Run.workWithAnalysersNil)(WAGS_Run.getAnalysersNil)(Data_Monoid.monoidUnit)(Data_Functor.mapFlipped(FRP_Event.functorEvent)(FRP_Event_Class.fold(FRP_Event.eventIsEvent)(function (v1) {
+                          return Control_Bind.bind(Halogen_Query_HalogenM.bindHalogenM)(Effect_Class.liftEffect(Halogen_Query_HalogenM.monadEffectHalogenM(dictMonadAff.MonadEffect0()))(FRP_Event.subscribe(WAGS_Run.runNoLoop()(WAGS_Run.analyserRefsNil)(WAGS_Run.workWithAnalysersNil)(WAGS_Run.getAnalysersNil)(Data_Monoid.monoidUnit)(Control_Alt.alt(FRP_Event.altEvent)(Data_Functor.mapFlipped(FRP_Event.functorEvent)(FRP_Event_Class.fold(FRP_Event.eventIsEvent)(function (v1) {
                               return function (v2) {
                                   var $28 = v2.value0 >= 4.0;
                                   if ($28) {
@@ -38457,7 +38458,7 @@ var PS = {};
                                       return Data_Ring.sub(Data_Ring.ringNumber);
                                   })()(v2.value0)(1.0), v2.value1);
                               };
-                          })(FRP_Event_Time.interval(2000))(new Data_Tuple.Tuple(1.0, true)))(Data_Tuple.fst))(Control_Applicative.pure(FRP_Behavior.applicativeABehavior(FRP_Event.functorEvent))(Data_Unit.unit))({})(ffiAudio)(piece))(function (v1) {
+                          })(FRP_Event_Time.interval(2000))(new Data_Tuple.Tuple(1.0, true)))(Data_Tuple.fst))(Control_Applicative.pure(FRP_Event.applicativeEvent)(1.0)))(Control_Applicative.pure(FRP_Behavior.applicativeABehavior(FRP_Event.functorEvent))(Data_Unit.unit))({})(ffiAudio)(piece))(function (v1) {
                               return Control_Applicative.pure(Effect.applicativeEffect)(Data_Unit.unit);
                           })))(function (unsubscribe) {
                               return Control_Monad_State_Class.modify_(Halogen_Query_HalogenM.monadStateHalogenM)(function (v1) {
@@ -38499,7 +38500,7 @@ var PS = {};
                       });
                   });
               };
-              throw new Error("Failed pattern match at WAGS.Example.NoLoop (line 154, column 16 - line 180, column 64): " + [ v.constructor.name ]);
+              throw new Error("Failed pattern match at WAGS.Example.NoLoop (line 155, column 16 - line 181, column 64): " + [ v.constructor.name ]);
           };
       };
   };
