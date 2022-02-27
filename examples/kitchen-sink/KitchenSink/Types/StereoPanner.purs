@@ -9,7 +9,8 @@ import WAGS.Create.Optionals (CStereoPanner, CPlayBuf, pan, playBuf)
 import WAGS.Example.KitchenSink.TLP.LoopSig (IxWAGSig', World)
 import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
 import WAGS.Example.KitchenSink.Types.Empty (TopWith)
-import WAGS.Graph.AudioUnit (TPlayBuf, TStereoPanner, _off, _on)
+import WAGS.Graph.AudioUnit (TPlayBuf, TStereoPanner)
+import WAGS.Graph.Parameter (_off, _on)
 
 type StereoPannerGraph
   = TopWith { pan :: Unit }

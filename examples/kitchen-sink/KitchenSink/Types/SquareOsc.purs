@@ -9,7 +9,8 @@ import WAGS.Create.Optionals (CSquareOsc, squareOsc)
 import WAGS.Example.KitchenSink.TLP.LoopSig (IxWAGSig')
 import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
 import WAGS.Example.KitchenSink.Types.Empty (TopWith)
-import WAGS.Graph.AudioUnit (TSquareOsc, _off, _on)
+import WAGS.Graph.AudioUnit (TSquareOsc)
+import WAGS.Graph.Parameter (_off, _on)
 
 type SquareOscGraph
   = TopWith { squareOsc :: Unit }

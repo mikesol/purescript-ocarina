@@ -9,7 +9,8 @@ import WAGS.Create.Optionals (CPeaking, CPlayBuf, peaking, playBuf)
 import WAGS.Example.KitchenSink.TLP.LoopSig (IxWAGSig', World)
 import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
 import WAGS.Example.KitchenSink.Types.Empty (TopWith)
-import WAGS.Graph.AudioUnit (TPeaking, TPlayBuf, _off, _on)
+import WAGS.Graph.AudioUnit (TPeaking, TPlayBuf)
+import WAGS.Graph.Parameter (_off, _on)
 import WAGS.Math (calcSlope)
 
 type PeakingGraph

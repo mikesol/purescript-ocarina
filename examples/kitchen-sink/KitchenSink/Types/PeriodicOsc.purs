@@ -11,7 +11,8 @@ import WAGS.Create.Optionals (CPeriodicOsc, periodicOsc)
 import WAGS.Example.KitchenSink.TLP.LoopSig (IxWAGSig', World)
 import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
 import WAGS.Example.KitchenSink.Types.Empty (TopWith)
-import WAGS.Graph.AudioUnit (TPeriodicOsc, _off, _on)
+import WAGS.Graph.AudioUnit (TPeriodicOsc)
+import WAGS.Graph.Parameter (_off, _on)
 import WAGS.WebAPI (BrowserPeriodicWave)
 
 type PeriodicOscGraph

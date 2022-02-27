@@ -10,7 +10,7 @@ import Data.Tuple.Nested ((/\), type (/\))
 import FRP.Event.MIDI (MIDIEvent(..))
 import Math (pow)
 import WAGS.Example.WTK.Types (KeyUnit, MakeRenderingEnv)
-import WAGS.Graph.AudioUnit (_off, _on)
+import WAGS.Graph.Parameter (_off, _on)
 import WAGS.Math (calcSlope)
 
 keyDur :: Number

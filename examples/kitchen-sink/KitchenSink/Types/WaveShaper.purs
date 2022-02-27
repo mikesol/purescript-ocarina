@@ -9,7 +9,8 @@ import WAGS.Create.Optionals (CPlayBuf, CWaveShaper, playBuf, waveShaper)
 import WAGS.Example.KitchenSink.TLP.LoopSig (IxWAGSig', World)
 import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
 import WAGS.Example.KitchenSink.Types.Empty (TopWith)
-import WAGS.Graph.AudioUnit (OversampleTwoX(..), TPlayBuf, TWaveShaper, _off, _on)
+import WAGS.Graph.AudioUnit (OversampleTwoX(..), TPlayBuf, TWaveShaper)
+import WAGS.Graph.Parameter (_off, _on)
 
 type WaveShaperGraph
   = TopWith { waveShaper :: Unit }

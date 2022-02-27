@@ -9,7 +9,8 @@ import WAGS.Create.Optionals (CRecorder, CTriangleOsc, recorder, triangleOsc)
 import WAGS.Example.KitchenSink.TLP.LoopSig (IxWAGSig', World)
 import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
 import WAGS.Example.KitchenSink.Types.Empty (TopWith)
-import WAGS.Graph.AudioUnit (TRecorder, TTriangleOsc, _off, _on)
+import WAGS.Graph.AudioUnit (TRecorder, TTriangleOsc)
+import WAGS.Graph.Parameter (_off, _on)
 
 type TriangleOscGraph
   = TopWith { recorder :: Unit }

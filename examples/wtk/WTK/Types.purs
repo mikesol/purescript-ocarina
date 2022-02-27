@@ -9,7 +9,8 @@ import Data.Set as S
 import Data.Tuple.Nested (type (/\))
 import FRP.Event.MIDI (MIDIEventInTime)
 import WAGS.Create.Optionals (CGain, CSinOsc, CSpeaker, gain, sinOsc, speaker)
-import WAGS.Graph.AudioUnit (OnOff, TGain, TSinOsc, TSpeaker, _off)
+import WAGS.Graph.AudioUnit (TGain, TSinOsc, TSpeaker)
+import WAGS.Graph.Parameter (OnOff, _off)
 
 data Key
   = K0

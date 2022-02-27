@@ -16,9 +16,10 @@ import Simple.JSON as JSON
 import Type.Proxy (Proxy(..))
 import WAGS.Control.Indexed (IxWAG(..))
 import WAGS.Control.Types (WAG, unsafeUnWAG, unsafeWAG)
-import WAGS.Graph.AudioUnit (_off, _on)
 import WAGS.Graph.AudioUnit as AU
 import WAGS.Graph.Oversample (class IsOversample, reflectOversample)
+import WAGS.Graph.Paramable (onOffIze, paramize)
+import WAGS.Graph.Parameter (_off, _on)
 import WAGS.Interpret (class AudioInterpret, connectXToY, destroyUnit, disconnectXFromY, makeAllpass, makeAnalyser, makeAudioWorkletNode, makeBandpass, makeConstant, makeDelay, makeDynamicsCompressor, makeGain, makeHighpass, makeHighshelf, makeInput, makeLoopBufWithDeferredBuffer, makeLowpass, makeLowshelf, makeMediaElement, makeMicrophone, makeNotch, makePassthroughConvolver, makePeaking, makePeriodicOscWithDeferredOsc, makePlayBufWithDeferredBuffer, makeRecorder, makeSawtoothOsc, makeSinOsc, makeSpeaker, makeSquareOsc, makeStereoPanner, makeSubgraphWithDeferredScene, makeTriangleOsc, makeTumultWithDeferredGraph, makeWaveShaper)
 import WAGS.Rendered (AudioWorkletNodeOptions_(..))
 import WAGS.Util (class TypeEqualTF, class ValidateOutputChannelCount, toOutputChannelCount)
@@ -394,7 +395,7 @@ instance toGraphEffectsMakeAllpass :: (IsSymbol ptr, ToGraphEffects rest) => ToG
   toGraphEffects _ cache i =
     toGraphEffects (Proxy :: _ rest) cache
       ( i
-          { instructions = i.instructions <> [ makeAllpass { id, freq: pure 440.0, q: pure 1.0 } ]
+          { instructions = i.instructions <> [ makeAllpass { id, freq: paramize 440.0, q: paramize 1.0 } ]
           }
       )
     where
@@ -455,7 +456,7 @@ instance toGraphEffectsMakeBandpass :: (IsSymbol ptr, ToGraphEffects rest) => To
   toGraphEffects _ cache i =
     toGraphEffects (Proxy :: _ rest) cache
       ( i
-          { instructions = i.instructions <> [ makeBandpass { id, freq: pure 440.0, q: pure 1.0 } ]
+          { instructions = i.instructions <> [ makeBandpass { id, freq: paramize 440.0, q: paramize 1.0 } ]
           }
       )
     where
@@ -465,7 +466,7 @@ instance toGraphEffectsMakeConstant :: (IsSymbol ptr, ToGraphEffects rest) => To
   toGraphEffects _ cache i =
     toGraphEffects (Proxy :: _ rest) cache
       ( i
-          { instructions = i.instructions <> [ makeConstant { id, onOff: pure _off, offset: pure 0.0 } ]
+          { instructions = i.instructions <> [ makeConstant { id, onOff: onOffIze _off, offset: paramize 0.0 } ]
           }
       )
     where
@@ -485,7 +486,7 @@ instance toGraphEffectsMakeDelay :: (IsSymbol ptr, ToGraphEffects rest) => ToGra
   toGraphEffects _ cache i =
     toGraphEffects (Proxy :: _ rest) cache
       ( i
-          { instructions = i.instructions <> [ makeDelay { id, delayTime: pure 1.0 } ]
+          { instructions = i.instructions <> [ makeDelay { id, delayTime: paramize 1.0 } ]
           }
       )
     where
@@ -495,7 +496,7 @@ instance toGraphEffectsMakeDynamicsCompressor :: (IsSymbol ptr, ToGraphEffects r
   toGraphEffects _ cache i =
     toGraphEffects (Proxy :: _ rest) cache
       ( i
-          { instructions = i.instructions <> [ makeDynamicsCompressor { id, threshold: pure (-24.0), knee: pure 30.0, ratio: pure 12.0, attack: pure 0.003, release: pure 0.25 } ]
+          { instructions = i.instructions <> [ makeDynamicsCompressor { id, threshold: paramize (-24.0), knee: paramize 30.0, ratio: paramize 12.0, attack: paramize 0.003, release: paramize 0.25 } ]
           }
       )
     where
@@ -505,7 +506,7 @@ instance toGraphEffectsMakeGain :: (IsSymbol ptr, ToGraphEffects rest) => ToGrap
   toGraphEffects _ cache i =
     toGraphEffects (Proxy :: _ rest) cache
       ( i
-          { instructions = i.instructions <> [ makeGain { id, gain: pure 0.0 } ]
+          { instructions = i.instructions <> [ makeGain { id, gain: paramize 0.0 } ]
           }
       )
     where
@@ -515,7 +516,7 @@ instance toGraphEffectsMakeHighpass :: (IsSymbol ptr, ToGraphEffects rest) => To
   toGraphEffects _ cache i =
     toGraphEffects (Proxy :: _ rest) cache
       ( i
-          { instructions = i.instructions <> [ makeHighpass { id, freq: pure 440.0, q: pure 1.0 } ]
+          { instructions = i.instructions <> [ makeHighpass { id, freq: paramize 440.0, q: paramize 1.0 } ]
           }
       )
     where
@@ -525,7 +526,7 @@ instance toGraphEffectsMakeHighshelf :: (IsSymbol ptr, ToGraphEffects rest) => T
   toGraphEffects _ cache i =
     toGraphEffects (Proxy :: _ rest) cache
       ( i
-          { instructions = i.instructions <> [ makeHighshelf { id, freq: pure 440.0, gain: pure 0.0 } ]
+          { instructions = i.instructions <> [ makeHighshelf { id, freq: paramize 440.0, gain: paramize 0.0 } ]
           }
       )
     where
@@ -556,7 +557,7 @@ instance toGraphEffectsMakeLowpass :: (IsSymbol ptr, ToGraphEffects rest) => ToG
   toGraphEffects _ cache i =
     toGraphEffects (Proxy :: _ rest) cache
       ( i
-          { instructions = i.instructions <> [ makeLowpass { id, freq: pure 440.0, q: pure 1.0 } ]
+          { instructions = i.instructions <> [ makeLowpass { id, freq: paramize 440.0, q: paramize 1.0 } ]
           }
       )
     where
@@ -566,7 +567,7 @@ instance toGraphEffectsMakeLowshelf :: (IsSymbol ptr, ToGraphEffects rest) => To
   toGraphEffects _ cache i =
     toGraphEffects (Proxy :: _ rest) cache
       ( i
-          { instructions = i.instructions <> [ makeLowshelf { id, freq: pure 440.0, gain: pure 0.0 } ]
+          { instructions = i.instructions <> [ makeLowshelf { id, freq: paramize 440.0, gain: paramize 0.0 } ]
           }
       )
     where
@@ -584,7 +585,7 @@ instance toGraphEffectsMakeMediaElement :: (IsSymbol ptr, ToGraphEffects rest) =
     id = reflectSymbol (Proxy :: _ ptr)
 
 constantNothing :: forall audio engine. AudioInterpret audio engine => audio -> engine
-constantNothing = makeConstant { id: "microphone", onOff: pure _on, offset: pure 0.0 }
+constantNothing = makeConstant { id: "microphone", onOff: onOffIze _on, offset: paramize 0.0 }
 
 instance toGraphEffectsMakeMicrophone :: ToGraphEffects rest => ToGraphEffects (MakeMicrophone /\ rest) where
   toGraphEffects _ cache i =
@@ -598,7 +599,7 @@ instance toGraphEffectsMakeNotch :: (IsSymbol ptr, ToGraphEffects rest) => ToGra
   toGraphEffects _ cache i =
     toGraphEffects (Proxy :: _ rest) cache
       ( i
-          { instructions = i.instructions <> [ makeNotch { id, freq: pure 440.0, q: pure 1.0 } ]
+          { instructions = i.instructions <> [ makeNotch { id, freq: paramize 440.0, q: paramize 1.0 } ]
           }
       )
     where
@@ -608,7 +609,7 @@ instance toGraphEffectsMakePeaking :: (IsSymbol ptr, ToGraphEffects rest) => ToG
   toGraphEffects _ cache i =
     toGraphEffects (Proxy :: _ rest) cache
       ( i
-          { instructions = i.instructions <> [ makePeaking { id, freq: pure 440.0, q: pure 1.0, gain: pure 0.0 } ]
+          { instructions = i.instructions <> [ makePeaking { id, freq: paramize 440.0, q: paramize 1.0, gain: paramize 0.0 } ]
           }
       )
     where
@@ -648,7 +649,7 @@ instance toGraphEffectsMakeSawtoothOsc :: (IsSymbol ptr, ToGraphEffects rest) =>
   toGraphEffects _ cache i =
     toGraphEffects (Proxy :: _ rest) cache
       ( i
-          { instructions = i.instructions <> [ makeSawtoothOsc { id, onOff: pure _off, freq: pure 440.0 } ]
+          { instructions = i.instructions <> [ makeSawtoothOsc { id, onOff: onOffIze _off, freq: paramize 440.0 } ]
           }
       )
     where
@@ -658,7 +659,7 @@ instance toGraphEffectsMakeSinOsc :: (IsSymbol ptr, ToGraphEffects rest) => ToGr
   toGraphEffects _ cache i =
     toGraphEffects (Proxy :: _ rest) cache
       ( i
-          { instructions = i.instructions <> [ makeSinOsc { id, onOff: pure _off, freq: pure 440.0 } ]
+          { instructions = i.instructions <> [ makeSinOsc { id, onOff: onOffIze _off, freq: paramize 440.0 } ]
           }
       )
     where
@@ -668,7 +669,7 @@ instance toGraphEffectsMakeSquareOsc :: (IsSymbol ptr, ToGraphEffects rest) => T
   toGraphEffects _ cache i =
     toGraphEffects (Proxy :: _ rest) cache
       ( i
-          { instructions = i.instructions <> [ makeSquareOsc { id, onOff: pure _off, freq: pure 440.0 } ]
+          { instructions = i.instructions <> [ makeSquareOsc { id, onOff: onOffIze _off, freq: paramize 440.0 } ]
           }
       )
     where
@@ -686,7 +687,7 @@ instance toGraphEffectsMakeStereoPanner :: (IsSymbol ptr, ToGraphEffects rest) =
   toGraphEffects _ cache i =
     toGraphEffects (Proxy :: _ rest) cache
       ( i
-          { instructions = i.instructions <> [ makeStereoPanner { id, pan: pure 0.0 } ]
+          { instructions = i.instructions <> [ makeStereoPanner { id, pan: paramize 0.0 } ]
           }
       )
     where
@@ -706,7 +707,7 @@ instance toGraphEffectsMakeTriangleOsc :: (IsSymbol ptr, ToGraphEffects rest) =>
   toGraphEffects _ cache i =
     toGraphEffects (Proxy :: _ rest) cache
       ( i
-          { instructions = i.instructions <> [ makeTriangleOsc { id, onOff: pure _off, freq: pure 440.0 } ]
+          { instructions = i.instructions <> [ makeTriangleOsc { id, onOff: onOffIze _off, freq: paramize 440.0 } ]
           }
       )
     where

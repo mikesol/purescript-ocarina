@@ -16,8 +16,7 @@ import Foreign (Foreign)
 import Foreign.Object (Object)
 import Simple.JSON as JSON
 import Type.Proxy (Proxy(..))
-import WAGS.Graph.AudioUnit (APOnOff)
-import WAGS.Graph.Parameter (AudioParameter)
+import WAGS.Graph.Parameter (AudioParameter, AudioOnOff)
 import WAGS.WebAPI (AnalyserNodeCb, BrowserAudioBuffer, BrowserFloatArray, BrowserMediaElement, BrowserMicrophone, BrowserPeriodicWave, MediaRecorderCb)
 
 type AudioWorkletNodeOptions_' =
@@ -93,7 +92,7 @@ type MakeAllpass = { id :: String, freq :: AudioParameter, q :: AudioParameter }
 type MakeAnalyser = { id :: String, cb :: AnalyserNodeCb }
 type MakeAudioWorkletNode = { id :: String, options :: AudioWorkletNodeOptions_ }
 type MakeBandpass = { id :: String, freq :: AudioParameter, q :: AudioParameter }
-type MakeConstant = { id :: String, onOff :: APOnOff, offset :: AudioParameter }
+type MakeConstant = { id :: String, onOff :: AudioOnOff, offset :: AudioParameter }
 type MakePassthroughConvolver = { id :: String }
 type MakeConvolver = { id :: String, buffer :: BrowserAudioBuffer }
 type MakeDelay = { id :: String, delayTime :: AudioParameter }
@@ -112,7 +111,7 @@ type MakeInput = { id :: String, input :: String }
 type MakeLoopBuf =
   { id :: String
   , buffer :: BrowserAudioBuffer
-  , onOff :: APOnOff
+  , onOff :: AudioOnOff
   , playbackRate :: AudioParameter
   , loopStart :: Number
   , loopEnd :: Number
@@ -151,21 +150,21 @@ derive newtype instance eqPeriodicOscSpec :: Eq PeriodicOscSpec
 derive newtype instance ordPeriodicOscSpec :: Ord PeriodicOscSpec
 derive newtype instance showPeriodicOscSpec :: Show PeriodicOscSpec
 
-type MakePeriodicOsc = { id :: String, spec :: PeriodicOscSpec, onOff :: APOnOff, freq :: AudioParameter }
+type MakePeriodicOsc = { id :: String, spec :: PeriodicOscSpec, onOff :: AudioOnOff, freq :: AudioParameter }
 type MakePlayBuf =
   { id :: String
   , buffer :: BrowserAudioBuffer
   , bufferOffset :: Number
-  , onOff :: APOnOff
+  , onOff :: AudioOnOff
   , playbackRate :: AudioParameter
   }
 type MakePlayBufWithDeferredBuffer = { id :: String }
 type MakeRecorder = { id :: String, cb :: MediaRecorderCb }
-type MakeSawtoothOsc = { id :: String, onOff :: APOnOff, freq :: AudioParameter }
-type MakeSinOsc = { id :: String, onOff :: APOnOff, freq :: AudioParameter }
-type MakeSquareOsc = { id :: String, onOff :: APOnOff, freq :: AudioParameter }
+type MakeSawtoothOsc = { id :: String, onOff :: AudioOnOff, freq :: AudioParameter }
+type MakeSinOsc = { id :: String, onOff :: AudioOnOff, freq :: AudioParameter }
+type MakeSquareOsc = { id :: String, onOff :: AudioOnOff, freq :: AudioParameter }
 type MakeStereoPanner = { id :: String, pan :: AudioParameter }
-type MakeTriangleOsc = { id :: String, onOff :: APOnOff, freq :: AudioParameter }
+type MakeTriangleOsc = { id :: String, onOff :: AudioOnOff, freq :: AudioParameter }
 type MakeWaveShaper = { id :: String, curve :: BrowserFloatArray, oversample :: Oversample }
 type MakeSubgraph = { id :: String, instructions :: Lazy (Array (Array Instruction)) }
 type MakeSubgraphWithDeferredScene = { id :: String }
@@ -178,7 +177,7 @@ type SetAudioWorkletParameter = { id :: String, paramName :: String, paramValue 
 type SetBuffer = { id :: String, buffer :: BrowserAudioBuffer }
 type SetConvolverBuffer = { id :: String, buffer :: BrowserAudioBuffer }
 type SetPeriodicOsc = { id :: String, periodicOsc :: PeriodicOscSpec }
-type SetOnOff = { id :: String, onOff :: APOnOff }
+type SetOnOff = { id :: String, onOff :: AudioOnOff }
 type SetBufferOffset = { id :: String, bufferOffset :: Number }
 type SetLoopStart = { id :: String, loopStart :: Number }
 type SetLoopEnd = { id :: String, loopEnd :: Number }

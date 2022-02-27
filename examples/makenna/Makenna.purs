@@ -34,6 +34,7 @@ import WAGS.Control.Types (Frame0, Scene)
 import WAGS.Create (icreate)
 import WAGS.Create.Optionals (CPeriodicOsc, CSpeaker, CGain, gain, periodicOsc, speaker)
 import WAGS.Graph.AudioUnit (TGain, TPeriodicOsc, TSpeaker)
+import WAGS.Graph.Paramable (paramize)
 import WAGS.Graph.Parameter (ff)
 import WAGS.Interpret (close, context, makeFFIAudioSnapshot, makePeriodicWave)
 import WAGS.Math (calcSlope)
@@ -145,8 +146,8 @@ scene (BehavingScene { time, world: { bday } }) ({ start, dur } /\ pitch) to =
   speaker
     { gain:
         gain
-          (ff to $ pure (maybe 0.0 (const $ asdr (time - start) dur) pitch))
-          { osc: periodicOsc bday (ff to $ pure (midiToCps (fromMaybe 60.0 pitch))) }
+          (ff to $ paramize (maybe 0.0 (const $ asdr (time - start) dur) pitch))
+          { osc: periodicOsc bday (ff to $ paramize (midiToCps (fromMaybe 60.0 pitch))) }
     }
 
 type World = { bday :: BrowserPeriodicWave }

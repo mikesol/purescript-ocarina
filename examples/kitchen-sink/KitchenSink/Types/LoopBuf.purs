@@ -9,7 +9,8 @@ import WAGS.Create.Optionals (CLoopBuf, loopBuf)
 import WAGS.Example.KitchenSink.TLP.LoopSig (IxWAGSig', World)
 import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
 import WAGS.Example.KitchenSink.Types.Empty (TopWith)
-import WAGS.Graph.AudioUnit (TLoopBuf, _off, _on)
+import WAGS.Graph.AudioUnit (TLoopBuf)
+import WAGS.Graph.Parameter (_off, _on)
 
 type LoopBufGraph
   = TopWith { loopBuf :: Unit }

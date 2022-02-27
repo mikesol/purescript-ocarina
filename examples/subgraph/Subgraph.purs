@@ -22,7 +22,7 @@ import WAGS.Control.Functions.Graph (loopUsingScene)
 import WAGS.Control.Functions.Subgraph as SG
 import WAGS.Control.Types (Frame0, Scene, SubScene)
 import WAGS.Create.Optionals (gain, input, playBuf, sinOsc, speaker, subgraph)
-import WAGS.Graph.AudioUnit (_off, _on)
+import WAGS.Graph.Parameter (_off, _on)
 import WAGS.Interpret (class AudioInterpret, close, context, decodeAudioDataFromUri, makeFFIAudioSnapshot)
 import WAGS.Run (BehavingRun, RunAudio, RunEngine, BehavingScene(..), run)
 import WAGS.WebAPI (AudioContext, BrowserAudioBuffer)

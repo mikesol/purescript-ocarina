@@ -8,7 +8,7 @@ import WAGS.Create.Optionals (CSinOsc, sinOsc)
 import WAGS.Example.KitchenSink.TLP.LoopSig (IxWAGSig')
 import WAGS.Example.KitchenSink.Timing (pieceTime, timing)
 import WAGS.Example.KitchenSink.Types.StartGraph (StartGraph)
-import WAGS.Graph.AudioUnit (_off, _on)
+import WAGS.Graph.Parameter (_off, _on)
 
 type SinOscGraph
   = StartGraph

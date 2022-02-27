@@ -54,48 +54,24 @@ exports.close = function (audioCtx) {
 	};
 };
 var genericStarter = function (unit, name, param) {
-	unit[name].value = param.param;
-};
-// todo: merge two setters?
-var workletSetter = function (unit, paramName, timeToSet, param) {
-	if (param.transition === "Immediately") {
-		if (param.cancel) {
-			unit.parameters.get(paramName).cancelScheduledValues();
-		} else {
-			unit.parameters.get(paramName).value = param.param;
-		}
+	if (param.values) {
+		unit[name].value = param.values[0];
+		// 0.0 will start this immediately
+		unit[name].setValueCurveAtTime(param.values, 0.0, param.duration);
 	} else {
-		if (param.cancel) {
-			unit.parameters
-				.get(paramName)
-				.cancelScheduledValues(timeToSet + param.timeOffset);
-		} else {
-			unit.parameters
-				.get(paramName)
-				[
-					param.transition === "NoRamp"
-						? "setValueAtTime"
-						: param.transition === "LinearRamp"
-						? "linearRampToValueAtTime"
-						: param.transition === "ExponentialRamp"
-						? "exponentialRampToValueAtTime"
-						: "linearRampToValueAtTime"
-				](param.param, timeToSet + param.timeOffset);
-		}
+		unit[name].value = param.param;
 	}
 };
-var genericSetter = function (unit, name, timeToSet, param) {
+var protoSetter = function (thingee, timeToSet, param) {
 	if (param.transition === "Immediately") {
 		if (param.cancel) {
-			unit[name].cancelScheduledValues();
+			thingee.cancelScheduledValues();
 		} else {
-			unit[name].value = param.param;
+			thingee.value = param.param;
 		}
 	} else {
-		if (param.cancel) {
-			unit[name].cancelScheduledValues(timeToSet + param.timeOffset);
-		} else {
-			unit[name][
+		if (param.hasOwnProperty("param")) {
+			thingee[
 				param.transition === "NoRamp"
 					? "setValueAtTime"
 					: param.transition === "LinearRamp"
@@ -104,8 +80,26 @@ var genericSetter = function (unit, name, timeToSet, param) {
 					? "exponentialRampToValueAtTime"
 					: "linearRampToValueAtTime"
 			](param.param, timeToSet + param.timeOffset);
+		} else if (isCancellation(param)) {
+			param.hold
+				? thingee.cancelAndHoldAtTime(timeToSet + param.timeOffset)
+				: thingee.cancelScheduledValues(timeToSet + param.timeOffset);
+		} else if (param.hasOwnProperty("values")) {
+			param.setValueCurveAtTime(
+				param.values,
+				timeToSet + param.timeOffset,
+				param.duration
+			);
+		} else {
+			throw new Error("No idea what to do with " + JSON.stringify(param));
 		}
 	}
+};
+var workletSetter = function (unit, paramName, timeToSet, param) {
+	return protoSetter(unit.parameters.get(paramName), timeToSet, param);
+};
+var genericSetter = function (unit, name, timeToSet, param) {
+	return protoSetter(unit[name], timeToSet, param);
 };
 var connectXToY = function (calledExternally) {
 	return function (x) {
@@ -266,6 +260,9 @@ exports.setAnalyserNodeCb_ = function (ptr) {
 		};
 	};
 };
+var isCancellation = function (a) {
+	return a.hasOwnProperty("hold");
+};
 exports.makeAudioWorkletNode_ = function (ptr) {
 	return function (a) {
 		return function (state) {
@@ -273,7 +270,7 @@ exports.makeAudioWorkletNode_ = function (ptr) {
 				var parameterData = {};
 				var keys = Object.keys(a.parameterData);
 				for (var i = 0; i < keys.length; i++) {
-					if (a.parameterData[keys[i]].isJust) {
+					if (!isCancellation(a.parameterData[keys[i]])) {
 						parameterData[keys[i]] = a.parameterData[keys[i]].param;
 					}
 				}
@@ -331,10 +328,10 @@ exports.makeConstant_ = function (ptr) {
 						main: createFunction(),
 					};
 					applyResumeClosure(state.units[ptr]);
-					if (isOn(onOff.param)) {
+					if (isOn(onOff.onOff)) {
 						state.units[ptr].main.start(state.writeHead + onOff.timeOffset);
 					}
-					state.units[ptr].onOff = isOn(onOff.param);
+					state.units[ptr].onOff = isOn(onOff.onOff);
 				};
 			};
 		};
@@ -506,14 +503,14 @@ exports.makeLoopBuf_ = function (ptr) {
 									},
 									main: createFunction(),
 								};
-								if (isOn(onOff.param)) {
+								if (isOn(onOff.onOff)) {
 									applyResumeClosure(state.units[ptr]);
 									state.units[ptr].main.start(
 										state.writeHead + onOff.timeOffset,
 										c
 									);
 								}
-								state.units[ptr].onOff = isOn(onOff.param);
+								state.units[ptr].onOff = isOn(onOff.onOff);
 							};
 						};
 					};
@@ -670,10 +667,10 @@ exports.makePeriodicOsc_ = function (ptr) {
 							main: createFunction(),
 						};
 						applyResumeClosure(state.units[ptr]);
-						if (isOn(onOff.param)) {
+						if (isOn(onOff.onOff)) {
 							state.units[ptr].main.start(state.writeHead + onOff.timeOffset);
 						}
-						state.units[ptr].onOff = isOn(onOff.param);
+						state.units[ptr].onOff = isOn(onOff.onOff);
 					};
 				};
 			};
@@ -707,10 +704,10 @@ exports.makePeriodicOscV_ = function (ptr) {
 							main: createFunction(),
 						};
 						applyResumeClosure(state.units[ptr]);
-						if (isOn(onOff.param)) {
+						if (isOn(onOff.onOff)) {
 							state.units[ptr].main.start(state.writeHead + onOff.timeOffset);
 						}
-						state.units[ptr].onOff = isOn(onOff.param);
+						state.units[ptr].onOff = isOn(onOff.onOff);
 					};
 				};
 			};
@@ -910,14 +907,14 @@ exports.makePlayBuf_ = function (ptr) {
 								},
 								main: createFunction(),
 							};
-							if (isOn(onOff.param)) {
+							if (isOn(onOff.onOff)) {
 								applyResumeClosure(state.units[ptr]);
 								state.units[ptr].main.start(
 									state.writeHead + onOff.timeOffset,
 									b
 								);
 							}
-							state.units[ptr].onOff = isOn(onOff.param);
+							state.units[ptr].onOff = isOn(onOff.onOff);
 						};
 					};
 				};
@@ -986,10 +983,10 @@ exports.makeSawtoothOsc_ = function (ptr) {
 						main: createFunction(),
 					};
 					applyResumeClosure(state.units[ptr]);
-					if (isOn(onOff.param)) {
+					if (isOn(onOff.onOff)) {
 						state.units[ptr].main.start(state.writeHead + onOff.timeOffset);
 					}
-					state.units[ptr].onOff = isOn(onOff.param);
+					state.units[ptr].onOff = isOn(onOff.onOff);
 				};
 			};
 		};
@@ -1017,10 +1014,10 @@ exports.makeSinOsc_ = function (ptr) {
 						main: createFunction(),
 					};
 					applyResumeClosure(state.units[ptr]);
-					if (isOn(onOff.param)) {
+					if (isOn(onOff.onOff)) {
 						state.units[ptr].main.start(state.writeHead + onOff.timeOffset);
 					}
-					state.units[ptr].onOff = isOn(onOff.param);
+					state.units[ptr].onOff = isOn(onOff.onOff);
 				};
 			};
 		};
@@ -1059,10 +1056,10 @@ exports.makeSquareOsc_ = function (ptr) {
 						main: createFunction(),
 					};
 					applyResumeClosure(state.units[ptr]);
-					if (isOn(onOff.param)) {
+					if (isOn(onOff.onOff)) {
 						state.units[ptr].main.start(state.writeHead + onOff.timeOffset);
 					}
-					state.units[ptr].onOff = isOn(onOff.param);
+					state.units[ptr].onOff = isOn(onOff.onOff);
 				};
 			};
 		};
@@ -1104,10 +1101,10 @@ exports.makeTriangleOsc_ = function (ptr) {
 						main: createFunction(),
 					};
 					applyResumeClosure(state.units[ptr]);
-					if (isOn(onOff.param)) {
+					if (isOn(onOff.onOff)) {
 						state.units[ptr].main.start(state.writeHead + onOff.timeOffset);
 					}
-					state.units[ptr].onOff = isOn(onOff.param);
+					state.units[ptr].onOff = isOn(onOff.onOff);
 				};
 			};
 		};
@@ -1348,13 +1345,13 @@ exports.setOnOff_ = function (ptr) {
 	return function (onOff) {
 		return function (state) {
 			return function () {
-				if (onOff.param === "on") {
+				if (onOff.onOff === "on") {
 					setOn_(ptr)(onOff)(state)();
-				} else if (onOff.param === "off") {
+				} else if (onOff.onOff === "off") {
 					setOff_(ptr)(onOff)(state)();
-				} else if (onOff.param === "offOn") {
-					setOff_(ptr)({ param: "off", timeOffset: 0.0 })(state)();
-					setOn_(ptr)({ param: "on", timeOffset: onOff.timeOffset })(state)();
+				} else if (onOff.onOff === "offOn") {
+					setOff_(ptr)({ onOff: "off", timeOffset: 0.0 })(state)();
+					setOn_(ptr)({ onOff: "on", timeOffset: onOff.timeOffset })(state)();
 				}
 			};
 		};
@@ -1503,6 +1500,17 @@ exports.setGain_ = function (ptr) {
 	return function (a) {
 		return function (state) {
 			return function () {
+				// TODO: test removing this hack
+				// this was added at a time when there was a bug in the
+				// transition names. the FFI was getting incorrect name strings
+				// and, as a result, wound up always using linear transitions
+				// this sounded fine except in cases when the transition was
+				// immediate, in which case no transition happened.
+				// now that that bug is fixed, this may no longer be needed
+				// a way to test would be any of the synth-intensive works
+				// like a fast back prelude or fugue
+				// if you remove this and they are click free
+				// then it is safe to remove
 				if (!state.units[ptr].main.gain.value && a.param) {
 					state.units[ptr].main.gain.value = 0.0;
 				}

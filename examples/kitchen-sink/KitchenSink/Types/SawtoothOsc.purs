@@ -1,9 +1,11 @@
 module WAGS.Example.KitchenSink.Types.SawtoothOsc where
 
 import Prelude
+
 import Control.Applicative.Indexed (ipure)
 import Control.Monad.Indexed.Qualified as Ix
 import Data.Int (toNumber)
+import Data.Lens (set)
 import Data.List ((..))
 import Data.List as L
 import Data.Tuple.Nested (type (/\))
@@ -13,7 +15,8 @@ import WAGS.Create.Optionals (CSawtoothOsc, sawtoothOsc)
 import WAGS.Example.KitchenSink.TLP.LoopSig (IxWAGSig')
 import WAGS.Example.KitchenSink.Types.Empty (TopWith)
 import WAGS.Graph.AudioUnit (TSawtoothOsc)
-import WAGS.Graph.Parameter (modTime)
+import WAGS.Graph.Paramable (paramize)
+import WAGS.Graph.Parameter (lensTime)
 
 type SawtoothOscGraph
   = TopWith { sawtoothOsc :: Unit } (sawtoothOsc :: TSawtoothOsc /\ {})
@@ -41,5 +44,5 @@ deltaKsSawtoothOsc time =
   in
     ichange
       { mix: 0.1 - 0.1 * (cos time)
-      , sawtoothOsc: modTime (const time) $ pure (440.0 + 50.0 * ((sin (rad * 1.5)) `pow` 2.0))
+      , sawtoothOsc: set lensTime time $ paramize (440.0 + 50.0 * ((sin (rad * 1.5)) `pow` 2.0))
       }

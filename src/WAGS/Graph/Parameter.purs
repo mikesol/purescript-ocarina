@@ -2,109 +2,160 @@ module WAGS.Graph.Parameter where
 
 import Prelude hiding (apply)
 
-import Control.Alt (class Alt)
-import Control.Plus (class Plus)
-import Data.Variant.Maybe (maybe, just, nothing, isNothing, Maybe)
-import Data.Function (apply)
+import Data.Array.NonEmpty (NonEmptyArray)
 import Data.Generic.Rep (class Generic)
-import Data.Newtype (class Newtype)
-import Data.Show.Generic (genericShow)
-import Data.Variant (Variant, inj)
-import Record as R
+import Data.Lens (Lens', lens, over, set, view)
+import Data.Newtype (class Newtype, unwrap)
+import Data.Variant (Variant, inj, match)
+import Data.Variant.Maybe (Maybe)
 import Type.Proxy (Proxy(..))
 
--- | A control-rate audio parameter as a newtype.
-newtype AudioParameter_ a
-  = AudioParameter (AudioParameter_' a)
+newtype AudioParameter = AudioParameter
+  ( Variant
+      ( singleNumber :: AudioSingleNumber
+      , cancellation :: AudioParameterCancellation
+      , envelope :: AudioEnvelope
+      )
+  )
 
-type AudioParameter
-  = AudioParameter_ Number
+derive instance eqAudioParameter :: Eq AudioParameter
+derive instance ordAudioParameter :: Ord AudioParameter
+derive instance newtypeAudioParameter :: Newtype AudioParameter _
+derive newtype instance showAudioParameter :: Show AudioParameter
 
-derive instance eqAudioParameter :: Eq a => Eq (AudioParameter_ a)
-derive instance ordAudioParameter :: Ord a => Ord (AudioParameter_ a)
+newtype AudioParameterCancellation = AudioParameterCancellation
+  { timeOffset :: Number
+  , hold :: Boolean
+  }
 
-derive instance functorAudioParameter :: Functor AudioParameter_
+derive instance eqAudioParameterCancellation :: Eq AudioParameterCancellation
+derive instance ordAudioParameterCancellation :: Ord AudioParameterCancellation
+derive instance newtypeAudioParameterCancellation :: Newtype AudioParameterCancellation _
+derive newtype instance showAudioParameterCancellation :: Show AudioParameterCancellation
 
-instance altAudioParameter :: Alt AudioParameter_ where
-  alt l@(AudioParameter { param: param0 }) r@(AudioParameter { param: param1 })
-    | isNothing param1 = l
-    | otherwise = if isNothing param0 then r else l
+newtype AudioSingleNumber = AudioSingleNumber
+  { param :: Number
+  , timeOffset :: Number
+  , transition :: AudioSingleNumberTransition
+  }
 
-instance plusAudioParameter :: Plus AudioParameter_ where
-  empty = AudioParameter (R.set (Proxy :: _ "param") nothing defaultParam)
+derive instance eqAudioSingleNumber :: Eq AudioSingleNumber
+derive instance ordAudioSingleNumber :: Ord AudioSingleNumber
+derive instance newtypeAudioSingleNumber :: Newtype AudioSingleNumber _
+derive newtype instance showAudioSingleNumber :: Show AudioSingleNumber
 
-instance applyAudioParameter :: Apply AudioParameter_ where
-  apply = bop apply
+instance semigroupAudioSingleNumber :: Semigroup AudioSingleNumber where
+  append = bop (+)
 
-instance applicativeAudioParameter :: Applicative AudioParameter_ where
-  pure a = AudioParameter (R.set (Proxy :: _ "param") (just a) defaultParam)
+instance monoidAudioSingleNumber :: Monoid AudioSingleNumber where
+  mempty = AudioSingleNumber
+    { param: zero
+    , timeOffset: zero
+    , transition: _immediately
+    }
 
-instance bindAudioParameter :: Bind AudioParameter_ where
-  bind (AudioParameter i@{ param }) f = maybe (AudioParameter (i { param = nothing })) (\a -> AudioParameter (R.set (Proxy :: _ "param") (just identity) i) <*> f a) param
+newtype AudioEnvelope = AudioEnvelope
+  { values :: NonEmptyArray Number
+  , timeOffset :: Number
+  , duration :: Number
+  }
 
-instance monadAudioParameter :: Monad AudioParameter_
+derive instance eqAudioEnvelope :: Eq AudioEnvelope
+derive instance ordAudioEnvelope :: Ord AudioEnvelope
+derive instance newtypeAudioEnvelope :: Newtype AudioEnvelope _
+derive newtype instance showAudioEnvelope :: Show AudioEnvelope
 
-instance semigroupAudioParameter :: Semigroup a => Semigroup (AudioParameter_ a) where
-  append = bop append
+-- TODO: add semigroup, monoid, semiring etc for AudioEnvelope
 
-instance monoidAudioParameter :: Monoid a => Monoid (AudioParameter_ a) where
-  mempty = pure mempty
+-- | Term-level constructor for a generator being on or off
+newtype OnOff = OnOff
+  ( Variant
+      ( on :: Unit
+      , off :: Unit
+      -- turns off immediately and then on, good for loops.
+      -- todo: because of the way audioParameter works, this
+      -- is forced to stop immediately
+      -- this almost always is fine, but for more fine-grained control
+      -- we'll need a different abstraction
+      , offOn :: Unit
+      )
+  )
 
-derive instance newtypeAudioParameter :: Newtype (AudioParameter_ a) _
+_on :: OnOff
+_on = OnOff $ inj (Proxy :: _ "on") unit
 
-derive newtype instance showAudioParameter :: Show a => Show (AudioParameter_ a)
+_off :: OnOff
+_off = OnOff $ inj (Proxy :: _ "off") unit
 
-uop :: forall a b. (a -> b) -> AudioParameter_ a -> AudioParameter_ b
-uop f (AudioParameter { param: param0, timeOffset: timeOffset0, transition: transition0 }) = AudioParameter { param: f <$> param0, timeOffset: timeOffset0, transition: transition0 }
+_offOn :: OnOff
+_offOn = OnOff $ inj (Proxy :: _ "offOn") unit
 
-bop :: forall a b c. (a -> b -> c) -> AudioParameter_ a -> AudioParameter_ b -> AudioParameter_ c
-bop f (AudioParameter { param: param0, timeOffset: timeOffset0, transition: transition0 }) (AudioParameter { param: param1, timeOffset: timeOffset1, transition: transition1 }) = AudioParameter { param: f <$> param0 <*> param1, timeOffset: timeOffset0 + timeOffset1 / 2.0, transition: transition0 <> transition1 }
+derive instance newtypeOnOff :: Newtype OnOff _
+derive instance eqOnOff :: Eq OnOff
+derive instance ordOnOff :: Ord OnOff
+derive instance genericOnOff :: Generic OnOff _
 
-instance semiringAudioParameter :: Semiring a => Semiring (AudioParameter_ a) where
-  zero = AudioParameter { param: just zero, timeOffset: 0.0, transition: _linearRamp }
-  one = AudioParameter
-    { param: just one
-    , timeOffset: 0.0
+instance showOnOff :: Show OnOff where
+  show = unwrap >>> match { on: const "on", off: const "off", offOn: const "offOn" }
+
+newtype AudioOnOff = AudioOnOff
+  { onOff :: OnOff
+  , timeOffset :: Number
+  }
+
+derive instance eqAudioOnOff :: Eq AudioOnOff
+derive instance ordAudioOnOff :: Ord AudioOnOff
+derive instance newtypeAudioOnOff :: Newtype AudioOnOff _
+derive newtype instance showAudioOnOff :: Show AudioOnOff
+
+lensOnOff :: Lens' AudioOnOff OnOff
+lensOnOff = lens (unwrap >>> _.onOff)
+  (\(AudioOnOff s) -> AudioOnOff <<< s { onOff = _ })
+
+lensParam :: Lens' AudioSingleNumber Number
+lensParam = lens (unwrap >>> _.param)
+  (\(AudioSingleNumber s) -> AudioSingleNumber <<< s { param = _ })
+
+bop :: (Number -> Number -> Number) -> AudioSingleNumber -> AudioSingleNumber -> AudioSingleNumber
+bop f (AudioSingleNumber xxx) (AudioSingleNumber yyy) = AudioSingleNumber
+  { param: f xxx.param yyy.param
+  , timeOffset: (xxx.timeOffset + yyy.timeOffset) / 2.0
+  , transition: xxx.transition <> yyy.transition
+  }
+
+instance semiringAudioSingleNumber :: Semiring AudioSingleNumber where
+  zero = AudioSingleNumber
+    { param: zero
+    , timeOffset: zero
+    , transition: _linearRamp
+    }
+  one = AudioSingleNumber
+    { param: one
+    , timeOffset: zero
     , transition: _linearRamp
     }
   add = bop add
   mul = bop mul
 
-instance ringAudioParameter :: Ring a => Ring (AudioParameter_ a) where
+instance ringAudioSingleNumber :: Ring AudioSingleNumber where
   sub = bop sub
 
-instance divisionRingAudioParameter :: DivisionRing a => DivisionRing (AudioParameter_ a) where
-  recip = uop recip
+instance divisionRingAudioSingleNumber :: DivisionRing AudioSingleNumber where
+  recip = over lensParam recip
 
-instance commutativeRingAudioParameter :: CommutativeRing a => CommutativeRing (AudioParameter_ a)
+instance commutativeRingAudioSingleNumber :: CommutativeRing AudioSingleNumber
 
-instance euclideanRingAudioParameter :: EuclideanRing a => EuclideanRing (AudioParameter_ a) where
-  degree (AudioParameter { param: param0 }) = maybe 0 degree param0
+instance euclideanRingAudioSingleNumber :: EuclideanRing AudioSingleNumber where
+  degree = degree <<< _.param <<< unwrap
   div = bop div
   mod = bop mod
-
--- | A control-rate audio parameter.
--- |
--- | `param`: The parameter as a floating-point value _or_ an instruction to cancel all future parameters.
--- | `timeOffset`: How far ahead of the current playhead to set the parameter. This can be used in conjunction with the `headroom` parameter in `run` to execute precisely-timed events. For example, if the `headroom` is `20ms` and an attack should happen in `10ms`, use `timeOffset: 10.0` to make sure that the taret parameter happens exactly at the point of attack.
--- | `transition`: Transition between two points in time.
-
-type AudioParameter_' a
-  =
-  { param :: Maybe a
-  , timeOffset :: Number
-  , transition :: AudioParameterTransition
-  }
-
-type AudioParameter'
-  = AudioParameter_' Number
 
 -- | A transition between two points in time.
 -- | - `_noRamp` is a discrete step.
 -- | - `_linearRamp` is linear interpolation between two values.
 -- | - `ExponentialRamp` is exponential interpolation between two values.
 -- | - `Immediately` erases the current value and replaces it with this one. Different than `_noRamp` in that it does not take into account scheduling and executes immediately. Useful for responsive instruments.
-newtype AudioParameterTransition = AudioParameterTransition
+newtype AudioSingleNumberTransition = AudioSingleNumberTransition
   ( Variant
       ( noRamp :: Unit
       , linearRamp :: Unit
@@ -113,69 +164,103 @@ newtype AudioParameterTransition = AudioParameterTransition
       )
   )
 
-_noRamp :: AudioParameterTransition
-_noRamp = AudioParameterTransition $ inj (Proxy :: _ "noRamp") unit
+_noRamp :: AudioSingleNumberTransition
+_noRamp = AudioSingleNumberTransition $ inj (Proxy :: _ "noRamp") unit
 
-_linearRamp :: AudioParameterTransition
-_linearRamp = AudioParameterTransition $ inj (Proxy :: _ "linearRamp") unit
+_linearRamp :: AudioSingleNumberTransition
+_linearRamp = AudioSingleNumberTransition $ inj (Proxy :: _ "linearRamp") unit
 
-_exponentialRamp :: AudioParameterTransition
-_exponentialRamp = AudioParameterTransition $ inj (Proxy :: _ "exponentialRamp") unit
+_exponentialRamp :: AudioSingleNumberTransition
+_exponentialRamp = AudioSingleNumberTransition $ inj (Proxy :: _ "exponentialRamp") unit
 
-_immediately :: AudioParameterTransition
-_immediately = AudioParameterTransition $ inj (Proxy :: _ "immediately") unit
+_immediately :: AudioSingleNumberTransition
+_immediately = AudioSingleNumberTransition $ inj (Proxy :: _ "immediately") unit
 
-derive instance newtypeAudioParameterTransition :: Newtype AudioParameterTransition _
+derive instance newtypeAudioSingleNumberTransition :: Newtype AudioSingleNumberTransition _
 
-derive instance eqAudioParameterTransition :: Eq AudioParameterTransition
+derive instance eqAudioSingleNumberTransition :: Eq AudioSingleNumberTransition
 
-instance ordAudioParameterTransition :: Ord AudioParameterTransition where
+instance ordAudioSingleNumberTransition :: Ord AudioSingleNumberTransition where
   compare i0 i1
     | i0 == _immediately = LT
     | i1 == _immediately = GT
     | otherwise = EQ
 
-derive instance genericAudioParameterTransition :: Generic AudioParameterTransition _
+derive instance genericAudioSingleNumberTransition :: Generic AudioSingleNumberTransition _
 
-instance showAudioParameterTransition :: Show AudioParameterTransition where
-  show = genericShow
+instance showAudioSingleNumberTransition :: Show AudioSingleNumberTransition where
+  show = unwrap >>> match
+    { noRamp: const "NoRamp"
+    , linearRamp: const "LinearRamp"
+    , exponentialRamp: const "ExponentialRamp"
+    , immediately: const "Immediately"
+    }
 
-instance semigroupAudioParameterTransition :: Semigroup AudioParameterTransition where
+instance semigroupAudioSingleNumberTransition :: Semigroup AudioSingleNumberTransition where
   append i0 i1
     | i0 == _immediately || i1 == _immediately = _immediately
     | i0 == _exponentialRamp || i1 == _exponentialRamp = _exponentialRamp
     | i0 == _linearRamp || i1 == _linearRamp = _linearRamp
     | otherwise = _noRamp
 
-ff :: forall a. Number -> AudioParameter_ a -> AudioParameter_ a
-ff n (AudioParameter i) = AudioParameter (i { timeOffset = i.timeOffset + n })
+class Timed a where
+  lensTime :: Lens' a Number
 
-modTime :: forall a. (Number -> Number) -> AudioParameter_ a -> AudioParameter_ a
-modTime f (AudioParameter i) = AudioParameter (i { timeOffset = f i.timeOffset })
+singleNumber :: AudioSingleNumber -> AudioParameter
+singleNumber = AudioParameter <<< inj (Proxy :: Proxy
+ "singleNumber")
+envelope :: AudioEnvelope -> AudioParameter
+envelope = AudioParameter <<< inj (Proxy :: Proxy
+ "envelope")
+cancellation :: AudioParameterCancellation -> AudioParameter
+cancellation = AudioParameter <<< inj (Proxy :: Proxy
+ "cancellation")
 
-modParam :: forall a. (a -> a) -> AudioParameter_ a -> AudioParameter_ a
-modParam f (AudioParameter i) = AudioParameter (i { param = f <$> i.param })
+instance lensTimeAudioParameter :: Timed AudioParameter where
+  lensTime = lens (unwrap >>> match { singleNumber: view lensTime, envelope: view lensTime, cancellation: view lensTime })
+    ( \(AudioParameter s) a -> match
+        { singleNumber: singleNumber <<< set lensTime a
+        , envelope: envelope <<< set lensTime a
+        , cancellation: cancellation <<< set lensTime a
+        } s
+    )
 
-modRamp :: forall a. (AudioParameterTransition -> AudioParameterTransition) -> AudioParameter_ a -> AudioParameter_ a
-modRamp f (AudioParameter i) = AudioParameter (i { transition = f i.transition })
+instance lensTimeAudioSingleNumber :: Timed AudioSingleNumber where
+  lensTime = lens (unwrap >>> _.timeOffset)
+    (\(AudioSingleNumber s) -> AudioSingleNumber <<< s { timeOffset = _ })
 
-noRamp :: forall a. AudioParameter_ a -> AudioParameter_ a
-noRamp = modRamp (const _noRamp)
+instance lensTimeAudioEnvelope :: Timed AudioEnvelope where
+  lensTime = lens (unwrap >>> _.timeOffset)
+    (\(AudioEnvelope s) -> AudioEnvelope <<< s { timeOffset = _ })
+instance lensTimeAudioParameterCancellation :: Timed AudioParameterCancellation where
+  lensTime = lens (unwrap >>> _.timeOffset)
+    ( \(AudioParameterCancellation s) ->
+        AudioParameterCancellation <<< s { timeOffset = _ }
+    )
 
-linearRamp :: forall a. AudioParameter_ a -> AudioParameter_ a
-linearRamp = modRamp (const _linearRamp)
+instance lensTimeAudioOnOff :: Timed AudioOnOff where
+  lensTime = lens (unwrap >>> _.timeOffset) (\(AudioOnOff s) -> AudioOnOff <<< s { timeOffset = _ })
 
-exponentialRamp :: forall a. AudioParameter_ a -> AudioParameter_ a
-exponentialRamp = modRamp (const _exponentialRamp)
+cancel :: AudioParameterCancellation
+cancel = AudioParameterCancellation { hold: false, timeOffset: 0.0 }
 
-immediately :: forall a. AudioParameter_ a -> AudioParameter_ a
-immediately = modRamp (const _immediately)
+ff :: forall a. Timed a => Number -> a -> a
+ff = set lensTime
 
--- | A default audio parameter.
--- |
--- | defaultParam = { param: 0.0, timeOffset: 0.0, transition: _linearRamp }
-defaultParam :: AudioParameter'
-defaultParam = { param: just 0.0, timeOffset: 0.0, transition: _linearRamp }
+lensRamp :: Lens' AudioSingleNumber AudioSingleNumberTransition
+lensRamp = lens (unwrap >>> _.transition) (\(AudioSingleNumber s) -> AudioSingleNumber <<< s { transition = _ })
+
+noRamp :: AudioSingleNumber -> AudioSingleNumber
+noRamp = set lensRamp _noRamp
+
+linearRamp :: AudioSingleNumber -> AudioSingleNumber
+linearRamp = set lensRamp _linearRamp
+
+exponentialRamp :: AudioSingleNumber -> AudioSingleNumber
+exponentialRamp = set lensRamp _exponentialRamp
+
+immediately :: AudioSingleNumber -> AudioSingleNumber
+immediately = set lensRamp _immediately
 
 class MM a b | a -> b where
   mm :: a -> b

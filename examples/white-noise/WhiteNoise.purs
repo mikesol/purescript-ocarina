@@ -26,6 +26,7 @@ import WAGS.Control.Types (Frame0, Scene)
 import WAGS.Create (icreate)
 import WAGS.Create.Optionals (CAudioWorkletNode, CSpeaker, audioWorkletNode, speaker)
 import WAGS.Graph.AudioUnit (AudioWorkletNode, AudioWorkletNodeOptions(..), TAudioWorkletNode, TSpeaker)
+import WAGS.Graph.Paramable (paramize)
 import WAGS.Graph.Parameter (AudioParameter, ff)
 import WAGS.Graph.Worklet (AudioWorkletNodeRequest(..), AudioWorkletNodeResponse)
 import WAGS.Interpret (audioWorkletAddModule, close, context, makeFFIAudioSnapshot)
@@ -77,7 +78,7 @@ scene wnr time =
               { numberOfInputs: d0
               , numberOfOutputs: d1
               , outputChannelCount: d1
-              , parameterData: { customGain: let tsilence = 0.33 in if time < tsilence then pure 0.0 else ff 0.06 $ pure $ 0.02 - cos (pi * (time - tsilence) * 0.2) * 0.01 }
+              , parameterData: { customGain: let tsilence = 0.33 in if time < tsilence then paramize 0.0 else ff 0.06 $ paramize $ 0.02 - cos (pi * (time - tsilence) * 0.2) * 0.01 }
               , processorOptions: {}
               }
           )

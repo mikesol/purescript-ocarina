@@ -8,7 +8,9 @@ import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (shouldEqual)
 import WAGS.Control.Functions (freeze, start, (@||>))
 import WAGS.Control.Types (Frame0, WAG, oneFrame')
-import WAGS.Graph.AudioUnit (THighpass, TLowpass, TSawtoothOsc, TSinOsc, TSpeaker, _off)
+import WAGS.Graph.AudioUnit (THighpass, TLowpass, TSawtoothOsc, TSinOsc, TSpeaker)
+import WAGS.Graph.Paramable (onOffIze, paramize)
+import WAGS.Graph.Parameter (_off)
 import WAGS.Patch (PatchInfo, patch)
 import WAGS.Rendered (Instruction)
 import WAGS.Rendered as R
@@ -34,7 +36,7 @@ testPatch = do
         (frame0Instr /\ _ /\ _) = oneFrame' simpleScene unit
       (map ((#) unit) frame0Instr) `shouldEqual`
         [ R.iMakeSpeaker
-        , R.iMakeSinOsc { id: "sinOsc", onOff: (pure _off), freq: (pure 440.0) }
+        , R.iMakeSinOsc { id: "sinOsc", onOff: (onOffIze _off), freq: (paramize 440.0) }
         , R.iConnectXToY { fromId: "sinOsc", fromUnit: "PATCH", toId: "speaker", toUnit: "PATCH" }
         ]
     it "makes a no op a no op" do
@@ -175,7 +177,7 @@ testPatch = do
         , R.iDisconnectXFromY { fromId: "sinOsc", fromUnit: "PATCH", toId: "speaker", toUnit: "PATCH" }
         , R.iDestroyUnit { id: "highpass", unit: "PATCH" }
         , R.iDestroyUnit { id: "sinOsc", unit: "PATCH" }
-        , R.iMakeSinOsc { id: "anotherOsc", onOff: (pure _off), freq: (pure 440.0) }
+        , R.iMakeSinOsc { id: "anotherOsc", onOff: (onOffIze _off), freq: (paramize 440.0) }
         , R.iConnectXToY { fromId: "anotherOsc", fromUnit: "PATCH", toId: "speaker", toUnit: "PATCH" }
         ]
     it "leaves noop in complex graph" do
@@ -234,6 +236,6 @@ testPatch = do
         , R.iDisconnectXFromY { fromId: "sinOsc", fromUnit: "PATCH", toId: "speaker", toUnit: "PATCH" }
         , R.iDestroyUnit { id: "highpass", unit: "PATCH" }
         , R.iDestroyUnit { id: "sinOsc", unit: "PATCH" }
-        , R.iMakeSinOsc { id: "anotherOsc", onOff: (pure _off), freq: (pure 440.0) }
+        , R.iMakeSinOsc { id: "anotherOsc", onOff: (onOffIze _off), freq: (paramize 440.0) }
         , R.iConnectXToY { fromId: "anotherOsc", fromUnit: "PATCH", toId: "speaker", toUnit: "PATCH" }
         ]

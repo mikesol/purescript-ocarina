@@ -1,6 +1,7 @@
 module Test.Ops where
 
 import Prelude
+
 import Data.Tuple.Nested (type (/\))
 import Type.Proxy (Proxy(..))
 import WAGS.Change (change)
@@ -10,7 +11,8 @@ import WAGS.Create (create)
 import WAGS.Create.Optionals (gain, highpass, ref, sinOsc, speaker, speaker')
 import WAGS.Destroy (destroy)
 import WAGS.Disconnect (disconnect)
-import WAGS.Graph.AudioUnit (TGain, THighpass, TSinOsc, TSpeaker, _on)
+import WAGS.Graph.AudioUnit (TGain, THighpass, TSinOsc, TSpeaker)
+import WAGS.Graph.Parameter (_on)
 import WAGS.Interpret (class AudioInterpret)
 
 opsTest0

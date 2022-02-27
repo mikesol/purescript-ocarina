@@ -23,6 +23,7 @@ import WAGS.Control.Functions.Graph (loopUsingScene)
 import WAGS.Control.Functions.Subgraph as SG
 import WAGS.Control.Types (Frame0, Scene, SubScene)
 import WAGS.Create.Optionals (bandpass, gain, highpass, input, loopBuf, sinOsc, speaker, subgraph, tumult)
+import WAGS.Graph.Paramable (paramize)
 import WAGS.Graph.Parameter (AudioParameter, ff)
 import WAGS.Interpret (class AudioInterpret, close, context, decodeAudioDataFromUri, makeFFIAudioSnapshot)
 import WAGS.Run (BehavingRun, RunAudio, RunEngine, BehavingScene(..), run)
@@ -49,8 +50,8 @@ subPiece1 _ = mempty # SG.loopUsingScene \(SGWorld time) _ ->
       { gnn: tumult
           ( let
               sweep =
-                { freq: globalFF $ pure $ 3000.0 + sin (pi * time * 0.2) * 2990.0
-                , q: globalFF $ pure $ 1.0
+                { freq: globalFF $ paramize $ 3000.0 + sin (pi * time * 0.2) * 2990.0
+                , q: globalFF $ paramize $ 1.0
                 }
               tmod = time % 10.0
               tumult

@@ -27,8 +27,9 @@ import WAGS.Control.Functions.Graph (iloop, (@!>))
 import WAGS.Control.Types (Frame0, Scene)
 import WAGS.Create (icreate)
 import WAGS.Create.Optionals (CGain, CSpeaker, CPlayBuf, gain, speaker, playBuf)
-import WAGS.Graph.AudioUnit (TGain, TLoopBuf, TSpeaker, _offOn, _on)
-import WAGS.Graph.Parameter (ff)
+import WAGS.Graph.AudioUnit (TGain, TLoopBuf, TSpeaker)
+import WAGS.Graph.Paramable (onOffIze)
+import WAGS.Graph.Parameter (_offOn, _on, ff)
 import WAGS.Interpret (close, context, decodeAudioDataFromUri, makeFFIAudioSnapshot)
 import WAGS.Run (RunAudio, RunEngine, BehavingScene(..), BehavingRun, run)
 import WAGS.WebAPI (AudioContext, BrowserAudioBuffer)
@@ -61,9 +62,9 @@ scene shouldReset (BehavingScene { time, world: { snare } }) =
                 playBuf
                   { onOff:
                       if (not shouldReset) then
-                        pure _on
+                        onOffIze _on
                       else
-                        ff ((toNumber (tgFloor + 1) * gap) - time) (pure _offOn)
+                        ff ((toNumber (tgFloor + 1) * gap) - time) (onOffIze _offOn)
                   }
                   snare
             }

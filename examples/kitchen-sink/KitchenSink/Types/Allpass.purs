@@ -9,7 +9,8 @@ import WAGS.Create.Optionals (CAllpass, CPlayBuf, allpass, playBuf)
 import WAGS.Example.KitchenSink.TLP.LoopSig (IxWAGSig', World)
 import WAGS.Example.KitchenSink.Timing (timing, pieceTime)
 import WAGS.Example.KitchenSink.Types.Empty (TopWith)
-import WAGS.Graph.AudioUnit (TAllpass, TPlayBuf, _off, _on)
+import WAGS.Graph.AudioUnit (TAllpass, TPlayBuf)
+import WAGS.Graph.Parameter (_off, _on)
 import WAGS.Math (calcSlope)
 
 type AllpassGraph

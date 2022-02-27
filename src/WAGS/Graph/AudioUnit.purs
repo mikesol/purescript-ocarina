@@ -2,14 +2,9 @@ module WAGS.Graph.AudioUnit where
 
 import Prelude
 
-import Data.Generic.Rep (class Generic)
-import Data.Newtype (class Newtype)
-import Data.Show.Generic (genericShow)
 import Data.Tuple.Nested (type (/\))
-import Data.Variant (Variant, inj)
 import Prim.Symbol as Sym
 import Type.Proxy (Proxy(..))
-import WAGS.Graph.Parameter (AudioParameter_)
 import WAGS.Graph.Worklet (AudioWorkletNodeResponse)
 
 class TypeToSym (a :: Type) (b :: Symbol) | a -> b
@@ -274,40 +269,6 @@ data WaveShaper (floatArray :: Type) oversample
   = WaveShaper floatArray oversample
 
 instance typeToSymWaveShaper2x :: TypeToSym (WaveShaper sym oversample) "WaveShaper"
-
--- | Term-level constructor for a generator being on or off
-newtype OnOff = OnOff
-  ( Variant
-      ( on :: Unit
-      , off :: Unit
-      -- turns off immediately and then on, good for loops.
-      -- todo: because of the way audioParameter works, this
-      -- is forced to stop immediately
-      -- this almost always is fine, but for more fine-grained control
-      -- we'll need a different abstraction
-      , offOn :: Unit
-      )
-  )
-
-_on :: OnOff
-_on = OnOff $ inj (Proxy :: _ "on") unit
-
-_off :: OnOff
-_off = OnOff $ inj (Proxy :: _ "off") unit
-
-_offOn :: OnOff
-_offOn = OnOff $ inj (Proxy :: _ "offOn") unit
-
-derive instance newtypeOnOff :: Newtype OnOff _
-derive instance eqOnOff :: Eq OnOff
-derive instance ordOnOff :: Ord OnOff
-derive instance genericOnOff :: Generic OnOff _
-
-instance showOnOff :: Show OnOff where
-  show = genericShow
-
-type APOnOff
-  = AudioParameter_ OnOff
 
 -- | Type-level oversample none for a wave shaper. This is at the type-level and not the term-level via an ADT because we need make sure to construct an entirely new wave shaper if the value changes.
 data OversampleNone
