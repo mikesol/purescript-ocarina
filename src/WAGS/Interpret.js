@@ -83,8 +83,8 @@ var protoSetter = function (thingee, timeToSet, param) {
 				? thingee.cancelAndHoldAtTime(timeToSet + param.timeOffset)
 				: thingee.cancelScheduledValues(timeToSet + param.timeOffset);
 		} else if (param.hasOwnProperty("values")) {
-			param.cancelScheduledValues(timeToSet + param.timeOffset - 0.001);
-			param.setValueCurveAtTime(
+			thingee.cancelScheduledValues(timeToSet + param.timeOffset - 0.001);
+			thingee.setValueCurveAtTime(
 				param.values,
 				timeToSet + param.timeOffset,
 				param.duration
