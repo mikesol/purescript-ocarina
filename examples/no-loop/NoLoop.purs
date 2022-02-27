@@ -2,17 +2,18 @@ module WAGS.Example.NoLoop where
 
 import Prelude
 
+import Control.Alt ((<|>))
 import Data.Array.NonEmpty (NonEmptyArray, fromArray, fromNonEmpty)
 import Data.Foldable (for_)
 import Data.Functor.Indexed (ivoid)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Newtype (unwrap)
+import Data.NonEmpty ((:|))
 import Data.Tuple (fst)
 import Data.Tuple.Nested (type (/\), (/\))
 import Effect (Effect)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect)
-import Data.NonEmpty ((:|))
 import FRP.Event (fold, subscribe)
 import FRP.Event.Time (interval)
 import Halogen as H
@@ -159,13 +160,13 @@ handleAction = case _ of
       H.liftEffect
         $ subscribe
           ( runNoLoop
-              ( fold
+              (( fold
                   ( \_ (b /\ u) ->
                       if b >= 4.0 then (b - 1.0) /\ false else if b <= 1.0 then (b + 1.0) /\ true else (if u then add else sub) b 1.0 /\ u
                   )
                   (interval 2000)
                   (1.0 /\ true) <#> fst
-              )
+              ) <|> pure 1.0 )
               (pure unit)
               {}
               ffiAudio
