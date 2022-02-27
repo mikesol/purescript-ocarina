@@ -55,8 +55,6 @@ exports.close = function (audioCtx) {
 };
 var genericStarter = function (unit, name, param) {
 	if (param.values) {
-		unit[name].value = param.values[0];
-		// 0.0 will start this immediately
 		unit[name].setValueCurveAtTime(param.values, 0.0, param.duration);
 	} else {
 		unit[name].value = param.param;
@@ -85,6 +83,7 @@ var protoSetter = function (thingee, timeToSet, param) {
 				? thingee.cancelAndHoldAtTime(timeToSet + param.timeOffset)
 				: thingee.cancelScheduledValues(timeToSet + param.timeOffset);
 		} else if (param.hasOwnProperty("values")) {
+			param.cancelScheduledValues(timeToSet + param.timeOffset - 0.001);
 			param.setValueCurveAtTime(
 				param.values,
 				timeToSet + param.timeOffset,
