@@ -22,6 +22,7 @@ import WAGS.Control.Indexed (IxWAG(..))
 import WAGS.Control.Types (WAG, unsafeUnWAG, unsafeWAG)
 import WAGS.Graph.AudioUnit (TSubgraph, TTumult)
 import WAGS.Graph.AudioUnit as AU
+import WAGS.Graph.AudioUnit as CTOR
 import WAGS.Graph.Graph (Graph)
 import WAGS.Graph.Oversample (class IsOversample, reflectOversample)
 import WAGS.Graph.Paramable (onOffIze, paramize)
@@ -757,41 +758,25 @@ class GetSubgraphsRL (g :: RowList Type) subgraphs | g -> subgraphs where
 instance getSubgraphsRLNil :: GetSubgraphsRL RL.Nil subgraphs where
   getSubgraphsRL _ _ = Object.empty
 
-newtype PatchedSubgraphInput (n :: Type) terminus inputs env a = PatchedSubgraphInput
-  ( { controls :: Vec n a
-    , envs :: Int -> a -> env
-    , scenes :: AsSubgraph terminus inputs a env
-    }
-  )
-
-unPatchedSubgraph
-  :: forall n terminus inputs env a
-   . PatchedSubgraphInput n terminus inputs env a
-  -> { controls :: Vec n a
-     , envs :: Int -> a -> env
-     , scenes :: AsSubgraph terminus inputs a env
-     }
-unPatchedSubgraph (PatchedSubgraphInput x) = x
-
 instance getSubgraphsRLTumult ::
   ( IsSymbol id
   , IsSymbol terminus
   , Pos n
-  , Row.Cons id (PatchedSubgraphInput n terminus inputs env a) r' subgraphs
+  , Row.Cons id (CTOR.Subgraph inputs (Vec n info) (AsSubgraph terminus inputs info env) (Int -> info -> env)) r' subgraphs
   , GetSubgraphsRL rest subgraphs
   ) =>
   GetSubgraphsRL (RL.Cons id (TSubgraph n terminus inputs env /\ whatever) rest) subgraphs where
   getSubgraphsRL _ t = Object.insert id
     ( AE
         ( let
-            unpatched = unPatchedSubgraph (get (Proxy :: _ id) t)
+            (CTOR.Subgraph vec asSub env) = get (Proxy :: _ id) t
           in
             makeSubgraph
               { id
               , terminus: Proxy :: _ terminus
-              , controls: unpatched.controls
-              , envs: unpatched.envs
-              , scenes: unAsSubGraph unpatched.scenes
+              , controls: vec
+              , envs: env
+              , scenes: unAsSubGraph asSub
               }
         )
     )

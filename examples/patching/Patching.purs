@@ -11,7 +11,7 @@ import Data.Foldable (for_)
 import Data.Identity (Identity(..))
 import Data.Maybe (Maybe(..))
 import Data.Newtype (unwrap)
-import Data.Tuple (Tuple(..))
+import Data.Tuple (Tuple(..), fst)
 import Data.Tuple.Nested (type (/\))
 import Data.Typelevel.Num (class Lt, class Pred, D0, D40, d39, pred)
 import Data.Vec as V
@@ -31,11 +31,11 @@ import WAGS.Control.Functions.Graph (iloop, (@!>))
 import WAGS.Control.Functions.Subgraph as SG
 import WAGS.Control.Indexed (IxWAG)
 import WAGS.Control.Types (Frame0, Scene, SubScene)
-import WAGS.Create.Optionals (gain, input, playBuf, subgraphSingleSetter)
+import WAGS.Create.Optionals (gain, input, playBuf, subgraph, subgraphSingleSetter)
 import WAGS.Graph.AudioUnit (TGain, TSinOsc, TSpeaker, TSubgraph)
 import WAGS.Graph.Parameter (_off, _on)
-import WAGS.Interpret (class AudioInterpret, AsSubgraph(..), close, context, decodeAudioDataFromUri, makeFFIAudioSnapshot)
-import WAGS.Patch (PatchedSubgraphInput(..), ipatch)
+import WAGS.Interpret (class AudioInterpret, close, context, decodeAudioDataFromUri, makeFFIAudioSnapshot)
+import WAGS.Patch (ipatch)
 import WAGS.Run (RunAudio, RunEngine, TriggeredRun, TriggeredScene(..), runNoLoop)
 import WAGS.WebAPI (AudioContext, BrowserAudioBuffer)
 
@@ -151,16 +151,8 @@ createFrame atar =
     { microphone: Nothing
     , mediaElement: Nothing
     , subgraphs:
-        { sg: PatchedSubgraphInput
-            { controls: vec
-            , scenes: AsSubgraph (\i _ -> subPiece0 i atar)
-            , envs: (const $ const $ SGWorld false)
-            }
-        , sg2: PatchedSubgraphInput
-            { controls: vec
-            , scenes: AsSubgraph (\i _ -> subPiece1 i)
-            , envs: (const $ const $ SGWorld false)
-            }
+        { sg: fst (subgraph vec  (\i _ -> subPiece0 i atar) (const $ const $ SGWorld false) {})
+        , sg2: fst (subgraph  vec(\i _ -> subPiece1 i) (const $ const $ SGWorld false) {})
         }
     , tumults: {}
     } :*> ichange' (Proxy :: _ "gn") 1.0
