@@ -747,30 +747,7 @@ exports.makeInput_ = function (ptr) {
 		};
 	};
 };
-exports.makeTumultWithDeferredGraph_ = function (ptr) {
-	return function (state) {
-		return function () {
-			state.units[ptr] = {
-				outgoing: [],
-				incoming: [],
-				main: state.context.createGain(),
-				isTumult: true,
-			};
-		};
-	};
-};
-exports.makeSubgraphWithDeferredScene_ = function (ptr) {
-	return function (state) {
-		return function () {
-			state.units[ptr] = {
-				outgoing: [],
-				incoming: [],
-				main: state.context.createGain(),
-				isSubgraph: true,
-			};
-		};
-	};
-};
+
 exports.makeSubgraph_ = function (ptr) {
 	return function (terminalPtr) {
 		return function (vek) {
@@ -796,6 +773,7 @@ exports.makeSubgraph_ = function (ptr) {
 									incoming: [],
 									main: state.context.createGain(),
 									children: children,
+									funk: funk,
 									isSubgraph: true,
 									scenes: scenes,
 								};
@@ -1168,65 +1146,51 @@ exports.setInput_ = function (ptr) {
 		};
 	};
 };
+
 exports.setSubgraph_ = function (ptr) {
-	return function (terminalPtr) {
-		return function (vek) {
-			return function (sceneM) {
-				return function (envM) {
-					return function (funk) {
-						return function (state) {
-							return function () {
-								var needsCreation = !(
-									state.units[ptr] &&
-									state.units[ptr].children &&
-									state.units[ptr].scenes
-								);
-								if (needsCreation) {
-									var children = [];
-									var scenes = [];
-									for (var i = 0; i < vek.length; i++) {
-										children[i] = {
-											context: state.context,
-											writeHead: state.writeHead,
-											units: {},
-											parent: state,
-											unqidfr: makeid(10),
-										};
-										scenes[i] = sceneM(i)(vek[i]);
-									}
-									state.units[ptr].incoming = [];
-									state.units[ptr].outgoing = [];
-									state.units[ptr].children = children;
-									state.units[ptr].scenes = scenes;
-									state.units[ptr].isSubgraph = true;
-								} else {
-									for (var i = 0; i < vek.length; i++) {
-										state.units[ptr].children[i].writeHead = state.writeHead;
-									}
-								}
-								var scenes = state.units[ptr].scenes;
-								var children = state.units[ptr].children;
-								for (var i = 0; i < scenes.length; i++) {
-									var applied = funk(envM(i)(vek[i]))(scenes[i]);
-									for (var j = 0; j < applied.instructions.length; j++) {
-										// thunk
-										applied.instructions[j](children[i])();
-									}
-									scenes[i] = applied.nextScene;
-								}
-								if (needsCreation) {
-									for (var i = 0; i < children.length; i++) {
-										connectXToY(false)(terminalPtr)(ptr)(children[i])(state)();
-									}
-								}
-							};
-						};
-					};
+	return function (vek) {
+		return function (envM) {
+			return function (state) {
+				return function () {
+					for (var i = 0; i < vek.length; i++) {
+						state.units[ptr].children[i].writeHead = state.writeHead;
+					}
+					var scenes = state.units[ptr].scenes;
+					var children = state.units[ptr].children;
+					for (var i = 0; i < scenes.length; i++) {
+						var applied = state.units[ptr].funk(envM(i)(vek[i]))(scenes[i]);
+						for (var j = 0; j < applied.instructions.length; j++) {
+							// thunk
+							applied.instructions[j](children[i])();
+						}
+						scenes[i] = applied.nextScene;
+					}
 				};
 			};
 		};
 	};
 };
+
+exports.setSingleSubgraph_ = function (ptr) {
+	return function (i) {
+		return function (env) {
+			return function (state) {
+				return function () {
+					state.units[ptr].children[i].writeHead = state.writeHead;
+					var scenes = state.units[ptr].scenes;
+					var children = state.units[ptr].children;
+					var applied = state.units[ptr].funk(env)(scenes[i]);
+					for (var j = 0; j < applied.instructions.length; j++) {
+						// thunk
+						applied.instructions[j](children[i])();
+					}
+					scenes[i] = applied.nextScene;
+				};
+			};
+		};
+	};
+};
+
 exports.setTumult_ = function (ptr) {
 	return function (terminalPtr) {
 		return function (scenes) {

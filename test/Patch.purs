@@ -22,14 +22,14 @@ testPatch = do
       let
         simpleFrame =
           ( patch
-              :: PatchInfo
+              :: PatchInfo () ()
               -> WAG Unit Instruction Frame0 Unit () Unit
               -> WAG Unit Instruction Frame0 Unit
                    ( speaker :: TSpeaker /\ { sinOsc :: Unit }
                    , sinOsc :: TSinOsc /\ {}
                    )
                    Unit
-          ) { microphone: Nothing, mediaElement: Nothing }
+          ) { microphone: Nothing, mediaElement: Nothing, subgraphs: {}, tumults: {} }
 
         simpleScene = simpleFrame start @||> freeze
 
@@ -43,7 +43,7 @@ testPatch = do
       let
         startingFrame =
           ( patch
-              :: PatchInfo
+              :: PatchInfo () ()
               -> WAG Unit Instruction Frame0 Unit () Unit
               -> WAG Unit Instruction Frame0 Unit
                    ( speaker :: TSpeaker /\ { highpass :: Unit }
@@ -51,12 +51,12 @@ testPatch = do
                    , sinOsc :: TSinOsc /\ {}
                    )
                    Unit
-          ) { microphone: Nothing, mediaElement: Nothing }
+          ) { microphone: Nothing, mediaElement: Nothing, subgraphs: {}, tumults: {} }
 
         simpleFrame =
           ( patch
               :: forall proof
-               . PatchInfo
+               . PatchInfo () ()
               -> WAG Unit Instruction proof Unit
                    ( speaker :: TSpeaker /\ { highpass :: Unit }
                    , highpass :: THighpass /\ { sinOsc :: Unit }
@@ -69,7 +69,7 @@ testPatch = do
                    , sinOsc :: TSinOsc /\ {}
                    )
                    Unit
-          ) { microphone: Nothing, mediaElement: Nothing }
+          ) { microphone: Nothing, mediaElement: Nothing, subgraphs: {}, tumults: {} }
 
         simpleScene =
           startingFrame start
@@ -87,7 +87,7 @@ testPatch = do
       let
         startingFrame =
           ( patch
-              :: PatchInfo
+              :: PatchInfo () ()
               -> WAG Unit Instruction Frame0 Unit () Unit
               -> WAG Unit Instruction Frame0 Unit
                    ( speaker :: TSpeaker /\ { highpass :: Unit, sinOsc :: Unit }
@@ -95,12 +95,12 @@ testPatch = do
                    , sinOsc :: TSinOsc /\ {}
                    )
                    Unit
-          ) { microphone: Nothing, mediaElement: Nothing }
+          ) { microphone: Nothing, mediaElement: Nothing, subgraphs: {}, tumults: {} }
 
         simpleFrame =
           ( patch
               :: forall proof
-               . PatchInfo
+               . PatchInfo () ()
               -> WAG Unit Instruction proof Unit
                    ( speaker :: TSpeaker /\ { highpass :: Unit, sinOsc :: Unit }
                    , highpass :: THighpass /\ { sinOsc :: Unit }
@@ -113,7 +113,7 @@ testPatch = do
                    , sinOsc :: TSinOsc /\ {}
                    )
                    Unit
-          ) { microphone: Nothing, mediaElement: Nothing }
+          ) { microphone: Nothing, mediaElement: Nothing, subgraphs: {}, tumults: {} }
 
         simpleScene =
           startingFrame start
@@ -131,7 +131,7 @@ testPatch = do
       let
         startingFrame =
           ( patch
-              :: PatchInfo
+              :: PatchInfo () ()
               -> WAG Unit Instruction Frame0 Unit
                    ()
                    Unit
@@ -141,12 +141,12 @@ testPatch = do
                    , sinOsc :: TSinOsc /\ {}
                    )
                    Unit
-          ) { microphone: Nothing, mediaElement: Nothing }
+          ) { microphone: Nothing, mediaElement: Nothing, subgraphs: {}, tumults: {} }
 
         simpleFrame =
           ( patch
               :: forall proof
-               . PatchInfo
+               . PatchInfo () ()
               -> WAG Unit Instruction proof Unit
                    ( speaker :: TSpeaker /\ { highpass :: Unit, sinOsc :: Unit }
                    , highpass :: THighpass /\ { sinOsc :: Unit }
@@ -158,7 +158,7 @@ testPatch = do
                    , anotherOsc :: TSinOsc /\ {}
                    )
                    Unit
-          ) { microphone: Nothing, mediaElement: Nothing }
+          ) { microphone: Nothing, mediaElement: Nothing, subgraphs: {}, tumults: {} }
 
         simpleScene =
           startingFrame start
@@ -184,7 +184,7 @@ testPatch = do
       let
         startingFrame =
           ( patch
-              :: PatchInfo
+              :: PatchInfo () ()
               -> WAG Unit Instruction Frame0 Unit
                    ()
                    Unit
@@ -196,12 +196,12 @@ testPatch = do
                    , sawtoothOsc :: TSawtoothOsc /\ {}
                    )
                    Unit
-          ) { microphone: Nothing, mediaElement: Nothing }
+          ) { microphone: Nothing, mediaElement: Nothing, subgraphs: {}, tumults: {} }
 
         simpleFrame =
           ( patch
               :: forall proof
-               . PatchInfo
+               . PatchInfo () ()
               -> WAG Unit Instruction proof Unit
                    ( speaker :: TSpeaker /\ { highpass :: Unit, sinOsc :: Unit, lowpass :: Unit }
                    , highpass :: THighpass /\ { sinOsc :: Unit }
@@ -217,7 +217,7 @@ testPatch = do
                    , sawtoothOsc :: TSawtoothOsc /\ {}
                    )
                    Unit
-          ) { microphone: Nothing, mediaElement: Nothing }
+          ) { microphone: Nothing, mediaElement: Nothing, subgraphs: {}, tumults: {} }
 
         simpleScene =
           startingFrame start

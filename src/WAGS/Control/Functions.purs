@@ -34,7 +34,6 @@ import Prelude
 import Control.Apply.Indexed ((:*>))
 import Control.Comonad (extract)
 import Data.Either (Either(..))
-import Data.Maybe (Maybe)
 import Data.Tuple.Nested (type (/\))
 import Record as R
 import WAGS.Change (class Change, ichange)
@@ -43,8 +42,7 @@ import WAGS.Control.Types (class IsScene, AudioState', Frame0, InitialWAG, Scene
 import WAGS.Create (class Create, icreate)
 import WAGS.CreateT (class CreateT)
 import WAGS.Interpret (class AudioInterpret)
-import WAGS.Patch (class Patch, PatchInfo, ipatch)
-import WAGS.WebAPI (BrowserMicrophone)
+import WAGS.Patch (class GetSubgraphs, class GetTumults, class Patch, PatchInfo, ipatch)
 
 -- | The initial `Frame` that is needed to begin any `Scene`.
 -- |
@@ -143,12 +141,14 @@ istart m = makeSceneR (\e -> let IxWAG f = m e in f start)
 infixr 6 istart as @!>
 
 startUsing
-  :: forall scene env audio engine res graph control
+  :: forall scene env audio engine res graph subgraphs tumults control
    . Monoid res
   => AudioInterpret audio engine
   => IsScene scene
-  => Patch () graph
-  => PatchInfo
+  => GetSubgraphs graph subgraphs
+  => GetTumults graph tumults
+  => Patch subgraphs tumults () graph
+  => PatchInfo subgraphs tumults
   -> (env -> control)
   -> ( forall proofA
         . WAG audio engine proofA res graph control
@@ -166,15 +166,17 @@ instance graphHintTuple :: GraphHint right o => GraphHint (left /\ right) o
 instance graphHintF :: GraphHint x o => GraphHint (y -> x) o
 
 startUsingWithHint
-  :: forall scene env audio engine res hintable hint graph control
+  :: forall scene env audio engine res hintable hint graph subgraphs tumults control
    . Monoid res
   => AudioInterpret audio engine
   => IsScene scene
   => GraphHint hintable hint
   => CreateT hint () graph
-  => Patch () graph
+  => Patch subgraphs tumults () graph
+  => GetSubgraphs graph subgraphs
+  => GetTumults graph tumults
   => hintable
-  -> PatchInfo
+  -> PatchInfo subgraphs tumults
   -> (env -> control)
   -> ( forall proofA
         . WAG audio engine proofA res graph control

@@ -38,8 +38,7 @@ vol = 1.4 :: Number
 
 type World = { hamlet :: BrowserAudioBuffer }
 
-type SceneType
-  =
+type SceneType =
   ( speaker :: TSpeaker /\ { buf :: Unit }
   , buf :: TPlayBuf /\ {}
   )
@@ -88,7 +87,7 @@ cf nea len = f nea 0.0
   f ct x n = let hit = n + 0.04 > x in mkCofree (if hit then Just (hnea ct) else Nothing) (f (if hit then (rotate ct) else ct) (if hit then x + section else x))
 
 piece :: Scene (BehavingScene Unit World ()) RunAudio RunEngine Frame0 Unit
-piece = (\e@(BehavingScene { world: { hamlet } }) -> ipatch { microphone: empty, mediaElement: empty } :*> myChange e (cf order (bufferDuration hamlet))) @!> iloop myChange
+piece = (\e@(BehavingScene { world: { hamlet } }) -> ipatch { microphone: empty, mediaElement: empty, subgraphs: {}, tumults: {} } :*> myChange e (cf order (bufferDuration hamlet))) @!> iloop myChange
 
 easingAlgorithm :: Cofree ((->) Int) Int
 easingAlgorithm =
@@ -103,8 +102,7 @@ main =
     body <- awaitBody
     runUI component unit body
 
-type State
-  =
+type State =
   { unsubscribe :: Effect Unit
   , audioCtx :: Maybe AudioContext
   , freqz :: Array String
@@ -158,8 +156,8 @@ handleAction = case _ of
     unsubscribe <-
       H.liftEffect
         $ subscribe
-          (run (pure unit) (pure { hamlet }) { easingAlgorithm } (ffiAudio) piece)
-          (\(_ :: BehavingRun Unit ()) -> pure unit)
+            (run (pure unit) (pure { hamlet }) { easingAlgorithm } (ffiAudio) piece)
+            (\(_ :: BehavingRun Unit ()) -> pure unit)
     H.modify_ _ { unsubscribe = unsubscribe, audioCtx = Just audioCtx }
   Freqz freqz -> H.modify_ _ { freqz = freqz }
   StopAudio -> do

@@ -20,7 +20,7 @@ type MyGraph
     )
 
 initialFrame :: IxWAG RunAudio RunEngine Frame0 Unit () MyGraph Unit
-initialFrame = ipatch { microphone: empty, mediaElement: empty }
+initialFrame = ipatch { microphone: empty, mediaElement: empty, subgraphs: {}, tumults: {} }
 
 piece :: Scene (BehavingScene Unit Unit ()) RunAudio RunEngine Frame0 Unit
 piece =

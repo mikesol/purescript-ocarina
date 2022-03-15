@@ -5,7 +5,7 @@ import Prelude
 import Control.Comonad (extract)
 import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.Tuple.Nested ((/\), type (/\))
-import Data.Typelevel.Num (class Lt, class Pos, D1)
+import Data.Typelevel.Num (class Lt, class Nat, class Pos, D1)
 import Data.Variant.Maybe (Maybe, just, maybe, nothing)
 import Data.Vec as V
 import Prim.Row as R
@@ -24,7 +24,7 @@ import WAGS.Graph.Node (NodeC)
 import WAGS.Graph.Oversample (class IsOversample, reflectOversample)
 import WAGS.Graph.Paramable (class OnOffable, class Paramable, onOffIze, paramize)
 import WAGS.Graph.Parameter (class MM, AudioEnvelope, AudioOnOff, AudioParameter, AudioParameterCancellation, AudioSingleNumber, OnOff, mm)
-import WAGS.Interpret (class AudioInterpret, AsSubgraph, setAnalyserNodeCb, setAttack, setAudioWorkletParameter, setBuffer, setBufferOffset, setConvolverBuffer, setDelay, setFrequency, setGain, setInput, setKnee, setLoopEnd, setLoopStart, setMediaRecorderCb, setOffset, setOnOff, setPan, setPeriodicOsc, setPeriodicOscV, setPlaybackRate, setQ, setRatio, setRelease, setSubgraph, setThreshold, setTumult, setWaveShaperCurve, unAsSubGraph)
+import WAGS.Interpret (class AudioInterpret, setAnalyserNodeCb, setAttack, setAudioWorkletParameter, setBuffer, setBufferOffset, setConvolverBuffer, setDelay, setFrequency, setGain, setInput, setKnee, setLoopEnd, setLoopStart, setMediaRecorderCb, setOffset, setOnOff, setPan, setPeriodicOsc, setPeriodicOscV, setPlaybackRate, setQ, setRatio, setRelease, setSingleSubgraph, setSubgraph, setThreshold, setTumult, setWaveShaperCurve)
 import WAGS.Rendered (Oversample, RealImg(..))
 import WAGS.Tumult (Tumultuous, safeUntumult)
 import WAGS.Util (class MakePrefixIfNeeded, class CoercePrefixToString)
@@ -1812,16 +1812,18 @@ instance changeStereoPanner ::
         , value: unit
         }
 
-instance changeSubgraph ::
+
+
+instance changeSubgraph0 ::
   ( IsSymbol ptr
   , IsSymbol terminus
   , Pos n
   , R.Cons ptr (NodeC (CTOR.TSubgraph n terminus inputs env) edges) ignore graph
   ) =>
-  Change' ptr (CTOR.Subgraph inputs (V.Vec n info) (AsSubgraph terminus inputs info env) (Int -> info -> env)) graph where
+  Change' ptr (CTOR.Subgraph inputs (V.Vec n info) doesntMatterWillNotBeUsed (Int -> info -> env)) graph where
   change' ptr w = o
     where
-    { context: i, value: (CTOR.Subgraph vec asSub env) } = unsafeUnWAG w
+    { context: i, value: (CTOR.Subgraph vec _ env) } = unsafeUnWAG w
 
     nn = reflectSymbol ptr
 
@@ -1830,11 +1832,37 @@ instance changeSubgraph ::
         { context:
             i
               { instructions = i.instructions <>
-                  [ setSubgraph { id: nn, terminus: (Proxy :: _ terminus), controls: vec, envs: env, scenes: (unAsSubGraph asSub) } ]
+                  [ setSubgraph { id: nn, controls: vec, envs: env } ]
               }
         , value: unit
         }
 
+newtype ChangeSubgraph i env = ChangeSubgraph (i /\ env)
+
+instance changeSubgraph1 ::
+  ( IsSymbol ptr
+  , IsSymbol terminus
+  , R.Cons ptr (NodeC (CTOR.TSubgraph n terminus inputs env) edges) ignore graph
+  , Pos n
+  , Nat i
+  , Lt i n
+  ) =>
+  Change' ptr (ChangeSubgraph i env) graph where
+  change' ptr w = o
+    where
+    { context: i, value: (ChangeSubgraph (ii /\ env)) } = unsafeUnWAG w
+
+    nn = reflectSymbol ptr
+
+    o =
+      unsafeWAG
+        { context:
+            i
+              { instructions = i.instructions <>
+                  [ setSingleSubgraph { id: nn, index: ii, env: env } ]
+              }
+        , value: unit
+        }
 instance oneShotChangeTriangleOsc :: OneShotChange CTOR.TTriangleOsc AudioParameter (CTOR.TriangleOsc (Maybe AudioOnOff) (Maybe AudioParameter)) where
   oneShotChange _ freq = CTOR.TriangleOsc nothing (just freq)
 

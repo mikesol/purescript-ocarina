@@ -81,7 +81,6 @@ module WAGS.Interpret
   , mediaRecorderToUrl
   , mediaRecorderToBlob
   , makeInput
-  , makeTumultWithDeferredGraph
   , makeTumult
   , setInput
   , renderAudio
@@ -115,9 +114,9 @@ module WAGS.Interpret
   , bufferLength
   , bufferDuration
   , bufferNumberOfChannels
-  , makeSubgraphWithDeferredScene
   , makeSubgraph
   , setSubgraph
+  , setSingleSubgraph
   , setTumult
   ) where
 
@@ -137,7 +136,7 @@ import Data.Set as Set
 import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.Tuple (fst, snd)
 import Data.Tuple.Nested (type (/\), (/\))
-import Data.Typelevel.Num (class Lt, class Nat, class Pos, D1)
+import Data.Typelevel.Num (class Lt, class Nat, class Pos, D1, toInt)
 import Data.Typelevel.Undefined (undefined)
 import Data.Variant (match)
 import Data.Vec (Vec)
@@ -375,6 +374,19 @@ type SubgraphInput proxy terminus inputs n a env audio engine =
       -> SubScene terminus inputs env audio engine Frame0 Unit
   }
 
+type SetSubgraphInput :: forall k. k -> Type -> Type -> Type
+type SetSubgraphInput n a env =
+  { id :: String
+  , controls :: V.Vec n a
+  , envs :: Int -> a -> env
+  }
+
+type SetSingleSubgraphInput n env =
+  { id :: String
+  , index :: n
+  , env :: env
+  }
+
 type MakePeriodicOscW =
   { id :: String
   , wave :: BrowserPeriodicWave
@@ -473,8 +485,6 @@ class AudioInterpret audio engine where
   makeSquareOsc :: R.MakeSquareOsc -> audio -> engine
   -- | Make a stereo panner
   makeStereoPanner :: R.MakeStereoPanner -> audio -> engine
-  -- | Make subgraph with deferred scene.
-  makeSubgraphWithDeferredScene :: R.MakeSubgraphWithDeferredScene -> audio -> engine
   -- | Make sugbraph.
   makeSubgraph
     :: forall proxy terminus inputs env n a
@@ -485,9 +495,7 @@ class AudioInterpret audio engine where
     -> engine
   -- | Make a triangle-wave oscillator.
   makeTriangleOsc :: R.MakeTriangleOsc -> audio -> engine
-  -- | Make subgraph with deferred scene.
-  makeTumultWithDeferredGraph :: R.MakeTumultWithDeferredGraph -> audio -> engine
-  -- | Make sugbraph.
+  -- | Make tumult.
   makeTumult :: R.MakeTumult -> audio -> engine
   -- | Make a wave shaper.
   makeWaveShaper :: R.MakeWaveShaper -> audio -> engine
@@ -543,10 +551,15 @@ class AudioInterpret audio engine where
   setInput :: R.SetInput -> audio -> engine
   -- | Set subgraph.
   setSubgraph
-    :: forall proxy terminus inputs env n a
-     . IsSymbol terminus
-    => Pos n
-    => SubgraphInput proxy terminus inputs n a env audio engine
+    :: forall env n a
+     . Pos n
+    => SetSubgraphInput n a env
+    -> audio
+    -> engine
+  setSingleSubgraph
+    :: forall env n
+     . Nat n
+    => SetSingleSubgraphInput n env
     -> audio
     -> engine
   setTumult :: R.SetTumult -> audio -> engine
@@ -583,9 +596,7 @@ instance freeAudioInterpret :: AudioInterpret Unit Instruction where
   makeDelay = const <<< R.iMakeDelay
   makeInput = const <<< R.iMakeInput
   makeTumult = const <<< R.iMakeTumult
-  makeTumultWithDeferredGraph = const <<< R.iMakeTumultWithDeferredGraph
   makeSubgraph = handleSubgraph R.iMakeSubgraph
-  makeSubgraphWithDeferredScene = const <<< R.iMakeSubgraphWithDeferredScene
   makeDynamicsCompressor = const <<< R.iMakeDynamicsCompressor
   makeGain = const <<< R.iMakeGain
   makeHighpass = const <<< R.iMakeHighpass
@@ -636,7 +647,8 @@ instance freeAudioInterpret :: AudioInterpret Unit Instruction where
   setFrequency = const <<< R.iSetFrequency
   setWaveShaperCurve = const <<< R.iSetWaveShaperCurve
   setInput = const <<< R.iSetInput
-  setSubgraph = handleSubgraph R.iSetSubgraph
+  setSubgraph { id } _ = R.iSetSubgraph { id }
+  setSingleSubgraph { id } _ = R.iSetSingleSubgraph { id }
   setTumult = const <<< R.iSetTumult
 
 foreign import connectXToY_ :: String -> String -> FFIAudioSnapshot -> Effect Unit
@@ -713,8 +725,6 @@ foreign import makeWaveShaper_ :: String -> BrowserFloatArray -> String -> FFIAu
 
 foreign import makeInput_ :: String -> String -> FFIAudioSnapshot -> Effect Unit
 
-foreign import makeSubgraphWithDeferredScene_ :: String -> FFIAudioSnapshot -> Effect Unit
-
 foreign import makeSubgraph_
   :: forall a env scene
    . String
@@ -725,8 +735,6 @@ foreign import makeSubgraph_
   -> (env -> scene -> { instructions :: Array (FFIAudioSnapshot -> Effect Unit), nextScene :: scene })
   -> FFIAudioSnapshot
   -> Effect Unit
-
-foreign import makeTumultWithDeferredGraph_ :: String -> FFIAudioSnapshot -> Effect Unit
 
 foreign import makeTumult_
   :: String
@@ -799,13 +807,18 @@ foreign import setWaveShaperCurve_ :: String -> BrowserFloatArray -> FFIAudioSna
 foreign import setInput_ :: String -> String -> FFIAudioSnapshot -> Effect Unit
 
 foreign import setSubgraph_
-  :: forall a env scene
+  :: forall a env
    . String
-  -> String
   -> Array a
-  -> (Int -> a -> scene)
   -> (Int -> a -> env)
-  -> (env -> scene -> { instructions :: Array (FFIAudioSnapshot -> Effect Unit), nextScene :: scene })
+  -> FFIAudioSnapshot
+  -> Effect Unit
+
+foreign import setSingleSubgraph_
+  :: forall env
+   . String
+  -> Int
+  -> env
   -> FFIAudioSnapshot
   -> Effect Unit
 
@@ -854,9 +867,7 @@ interpretInstruction = unwrap >>> match
   -- add dummies
   -- maybe figure this out in the future
   , makeSubgraph: \{ id } -> makeGain { id, gain: paramize 1.0 }
-  , makeSubgraphWithDeferredScene: \{ id } -> makeGain { id, gain: paramize 1.0 }
   , makeTumult: \{ id } -> makeGain { id, gain: paramize 1.0 }
-  , makeTumultWithDeferredGraph: \{ id } -> makeGain { id, gain: paramize 1.0 }
   -----------------------------------
   , connectXToY: \a -> connectXToY a
   , setAnalyserNodeCb: \a -> setAnalyserNodeCb a
@@ -887,6 +898,7 @@ interpretInstruction = unwrap >>> match
   , setWaveShaperCurve: \a -> setWaveShaperCurve a
   , setInput: \a -> setInput a
   , setSubgraph: \{ id } -> setGain { id, gain: paramize 1.0 }
+  , setSingleSubgraph: \{ id } -> setGain { id, gain: paramize 1.0 }
   , setTumult: \{ id } -> setGain { id, gain: paramize 1.0 }
   }
 
@@ -933,9 +945,7 @@ instance effectfulAudioInterpret :: AudioInterpret FFIAudioSnapshot (Effect Unit
   makeSquareOsc { id, onOff, freq } d = makeSquareOsc_ (safeToFFI id) (safeToFFI onOff) (safeToFFI freq) (safeToFFI d)
   makeStereoPanner { id, pan } c = makeStereoPanner_ (safeToFFI id) (safeToFFI pan) (safeToFFI c)
   makeSubgraph { id, terminus, controls, envs, scenes } audio = makeSubgraph_ id (reflectSymbol terminus) (Vec.toArray controls) scenes envs (\env scene -> let res = oneSubFrame scene env in { instructions: res.instructions, nextScene: res.next }) (safeToFFI audio)
-  makeSubgraphWithDeferredScene { id } b = makeSubgraphWithDeferredScene_ id (safeToFFI b)
   makeTumult { id, terminus, instructions } toFFI = makeTumult_ id terminus instructions Nothing Just makeInstructionsEffectful (safeToFFI toFFI)
-  makeTumultWithDeferredGraph { id } b = makeTumultWithDeferredGraph_ id (safeToFFI b)
   makeTriangleOsc { id, onOff, freq } d = makeTriangleOsc_ (safeToFFI id) (safeToFFI onOff) (safeToFFI freq) (safeToFFI d)
   makeWaveShaper { id, curve, oversample } d = makeWaveShaper_ (safeToFFI id) (safeToFFI curve) (safeToFFI oversample) (safeToFFI d)
   setAudioWorkletParameter { id, paramName, paramValue } d = setAudioWorkletParameter_ (safeToFFI id) (safeToFFI paramName) (safeToFFI paramValue) (safeToFFI d)
@@ -963,7 +973,8 @@ instance effectfulAudioInterpret :: AudioInterpret FFIAudioSnapshot (Effect Unit
   setFrequency { id, frequency } c = setFrequency_ (safeToFFI id) (safeToFFI frequency) (safeToFFI c)
   setWaveShaperCurve { id, curve } c = setWaveShaperCurve_ (safeToFFI id) (safeToFFI curve) (safeToFFI c)
   setInput { id, source } c = setInput_ (safeToFFI id) (safeToFFI source) (safeToFFI c)
-  setSubgraph { id, terminus, controls, envs, scenes } audio = setSubgraph_ id (reflectSymbol terminus) (Vec.toArray controls) scenes envs (\env scene -> let res = oneSubFrame scene env in { instructions: res.instructions, nextScene: res.next }) (safeToFFI audio)
+  setSubgraph { id, controls, envs } audio = setSubgraph_ id (Vec.toArray controls) envs (safeToFFI audio)
+  setSingleSubgraph { id, index, env } audio = setSingleSubgraph_ id (toInt index) env (safeToFFI audio)
   setTumult { id, terminus, instructions } toFFI = setTumult_ id terminus instructions Nothing Just makeInstructionsEffectful (safeToFFI toFFI)
 
 -- A utility typeclass used to convert PS arguments to arguments that are understood by the Web Audio API.
@@ -1137,7 +1148,6 @@ instance mixedAudioInterpret :: AudioInterpret (Unit /\ FFIAudioSnapshot) (Instr
   disconnectXFromY a (x /\ y) = disconnectXFromY a x /\ disconnectXFromY a y
   destroyUnit a (x /\ y) = destroyUnit a x /\ destroyUnit a y
   makeSubgraph { id, terminus, controls, envs, scenes } (x /\ y) = makeSubgraph { id, terminus, controls, envs, scenes: (map <<< map) audioEngine1st scenes } x /\ makeSubgraph { id, terminus, controls, envs, scenes: (map <<< map) audioEngine2nd scenes } y
-  makeSubgraphWithDeferredScene a (x /\ y) = makeSubgraphWithDeferredScene a x /\ makeSubgraphWithDeferredScene a y
   makeInput a (x /\ y) = makeInput a x /\ makeInput a y
   makeAllpass a (x /\ y) = makeAllpass a x /\ makeAllpass a y
   makeAnalyser a (x /\ y) = makeAnalyser a x /\ makeAnalyser a y
@@ -1173,7 +1183,6 @@ instance mixedAudioInterpret :: AudioInterpret (Unit /\ FFIAudioSnapshot) (Instr
   makeTriangleOsc a (x /\ y) = makeTriangleOsc a x /\ makeTriangleOsc a y
   makeWaveShaper a (x /\ y) = makeWaveShaper a x /\ makeWaveShaper a y
   makeTumult a (x /\ y) = makeTumult a x /\ makeTumult a y
-  makeTumultWithDeferredGraph a (x /\ y) = makeTumultWithDeferredGraph a x /\ makeTumultWithDeferredGraph a y
   setAudioWorkletParameter a (x /\ y) = setAudioWorkletParameter a x /\ setAudioWorkletParameter a y
   setAnalyserNodeCb a (x /\ y) = setAnalyserNodeCb a x /\ setAnalyserNodeCb a y
   setMediaRecorderCb a (x /\ y) = setMediaRecorderCb a x /\ setMediaRecorderCb a y
@@ -1199,5 +1208,6 @@ instance mixedAudioInterpret :: AudioInterpret (Unit /\ FFIAudioSnapshot) (Instr
   setFrequency a (x /\ y) = setFrequency a x /\ setFrequency a y
   setWaveShaperCurve a (x /\ y) = setWaveShaperCurve a x /\ setWaveShaperCurve a y
   setInput a (x /\ y) = setInput a x /\ setInput a y
-  setSubgraph { id, terminus, controls, envs, scenes } (x /\ y) = setSubgraph { id, terminus, controls, envs, scenes: (map <<< map) audioEngine1st scenes } x /\ setSubgraph { id, terminus, controls, envs, scenes: (map <<< map) audioEngine2nd scenes } y
+  setSubgraph { id, controls, envs } (x /\ y) = setSubgraph { id, controls, envs } x /\ setSubgraph { id, controls, envs } y
+  setSingleSubgraph { id, index, env } (x /\ y) = setSingleSubgraph { id, index, env } x /\ setSingleSubgraph { id, index, env } y
   setTumult a (x /\ y) = setTumult a x /\ setTumult a y

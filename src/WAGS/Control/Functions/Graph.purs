@@ -36,7 +36,7 @@ import WAGS.Control.Types (Frame0, Scene, WAG)
 import WAGS.Create (class Create)
 import WAGS.CreateT (class CreateT)
 import WAGS.Interpret (class AudioInterpret)
-import WAGS.Patch (class Patch, PatchInfo)
+import WAGS.Patch (class GetSubgraphs, class GetTumults, class Patch, PatchInfo)
 import WAGS.Validation (class GraphIsRenderable)
 
 makeScene
@@ -161,12 +161,14 @@ istart = Functions.istart
 infixr 6 istart as @!>
 
 startUsing
-  :: forall env audio engine res graph control
+  :: forall env audio engine res subgraphs tumults graph control
    . Monoid res
   => AudioInterpret audio engine
   => GraphIsRenderable graph
-  => Patch () graph
-  => PatchInfo
+  => GetSubgraphs graph subgraphs
+  => GetTumults graph tumults
+  => Patch subgraphs tumults () graph
+  => PatchInfo subgraphs tumults
   -> (env -> control)
   -> ( forall proofA
         . WAG audio engine proofA res graph control
@@ -176,15 +178,17 @@ startUsing
 startUsing = Functions.startUsing
 
 startUsingWithHint
-  :: forall env audio engine res hintable hint graph control
+  :: forall env audio engine res hintable hint subgraphs tumults graph control
    . Monoid res
   => AudioInterpret audio engine
   => GraphIsRenderable graph
   => GraphHint hintable hint
   => CreateT hint () graph
-  => Patch () graph
+  => GetSubgraphs graph subgraphs
+  => GetTumults graph tumults
+  => Patch subgraphs tumults () graph
   => hintable
-  -> PatchInfo
+  -> PatchInfo subgraphs tumults
   -> (env -> control)
   -> ( forall proofA
         . WAG audio engine proofA res graph control

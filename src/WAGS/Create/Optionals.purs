@@ -11,6 +11,7 @@ import Data.Typelevel.Num (class Lt, class Nat, class Pos, D1)
 import Data.Vec as V
 import Simple.JSON as JSON
 import Type.Row.Homogeneous (class Homogeneous)
+import WAGS.Change (ChangeSubgraph(..))
 import WAGS.Control.Types (Frame0, SubScene)
 import WAGS.Graph.AudioUnit (AudioWorkletNodeOptions)
 import WAGS.Graph.AudioUnit as CTOR
@@ -1014,6 +1015,22 @@ subgraph
   -> r
   -> (CTOR.Subgraph inputs (V.Vec n info) (AsSubgraph terminus inputs info env) (Int -> info -> env)) /\ r
 subgraph vec sg ev = Tuple (CTOR.Subgraph vec (AsSubgraph sg) ev)
+
+subgraphSetter
+  :: forall n inputs info env
+   . Pos n
+  => V.Vec n info
+  -> (Int -> info -> env)
+  -> (CTOR.Subgraph inputs (V.Vec n info) Unit (Int -> info -> env))
+subgraphSetter vec ev = CTOR.Subgraph vec unit ev
+
+subgraphSingleSetter
+  :: forall n env
+   . Nat n
+  => n
+  -> env
+  -> ChangeSubgraph n env
+subgraphSingleSetter c ev = ChangeSubgraph (c /\ ev)
 
 type CSubgraph (n :: Type) info terminus inputs env r
   = (CTOR.Subgraph inputs (V.Vec n info) (AsSubgraph terminus inputs info env) (Int -> info -> env)) /\ r

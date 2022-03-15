@@ -167,9 +167,7 @@ type MakeStereoPanner = { id :: String, pan :: AudioParameter }
 type MakeTriangleOsc = { id :: String, onOff :: AudioOnOff, freq :: AudioParameter }
 type MakeWaveShaper = { id :: String, curve :: BrowserFloatArray, oversample :: Oversample }
 type MakeSubgraph = { id :: String, instructions :: Lazy (Array (Array Instruction)) }
-type MakeSubgraphWithDeferredScene = { id :: String }
 type MakeTumult = { id :: String, terminus :: String, instructions :: Array (Array Instruction) }
-type MakeTumultWithDeferredGraph = { id :: String }
 type ConnectXToY = { fromId :: String, fromUnit :: String, toId :: String, toUnit :: String }
 type SetAnalyserNodeCb = { id :: String, cb :: AnalyserNodeCb }
 type SetMediaRecorderCb = { id :: String, cb :: MediaRecorderCb }
@@ -195,7 +193,16 @@ type SetPlaybackRate = { id :: String, playbackRate :: AudioParameter }
 type SetFrequency = { id :: String, frequency :: AudioParameter }
 type SetWaveShaperCurve = { id :: String, curve :: BrowserFloatArray }
 type SetInput = { id :: String, source :: String }
-type SetSubgraph = { id :: String, instructions :: Lazy (Array (Array Instruction)) }
+-- TODO: we have no idea what set subgraph will hold because we
+-- have no idea what the previous state was in the pure model.
+-- fix? do we care? so far this is just for visualizations, but
+-- if it winds up being semantically interesting we should address this
+type SetSubgraph = { id :: String }
+-- TODO: we have no idea what set subgraph will hold because we
+-- have no idea what the previous state was in the pure model.
+-- fix? do we care? so far this is just for visualizations, but
+-- if it winds up being semantically interesting we should address this
+type SetSingleSubgraph = { id :: String }
 type SetTumult = { id :: String, terminus :: String, instructions :: Array (Array Instruction) }
 -- An audio rendering instruction. These instructions are used
 -- for testing purposes during "dry run" simulations of audio rendering.
@@ -238,9 +245,7 @@ type Instruction' =
   , makeTriangleOsc :: MakeTriangleOsc
   , makeWaveShaper :: MakeWaveShaper
   , makeSubgraph :: MakeSubgraph
-  , makeSubgraphWithDeferredScene :: MakeSubgraphWithDeferredScene
   , makeTumult :: MakeTumult
-  , makeTumultWithDeferredGraph :: MakeTumultWithDeferredGraph
   , connectXToY :: ConnectXToY
   , setAnalyserNodeCb :: SetAnalyserNodeCb
   , setMediaRecorderCb :: SetMediaRecorderCb
@@ -267,6 +272,7 @@ type Instruction' =
   , setWaveShaperCurve :: SetWaveShaperCurve
   , setInput :: SetInput
   , setSubgraph :: SetSubgraph
+  , setSingleSubgraph :: SetSingleSubgraph
   , setTumult :: SetTumult
   )
 newtype Instruction = Instruction (Variant Instruction')
@@ -309,9 +315,7 @@ instructionWeight (Instruction v) = v # match
   , makeTriangleOsc: const 2
   , makeWaveShaper: const 2
   , makeSubgraph: const 3
-  , makeSubgraphWithDeferredScene: const 3
   , makeTumult: const 4
-  , makeTumultWithDeferredGraph: const 4
   , connectXToY: const 5
   , setAnalyserNodeCb: const 6
   , setMediaRecorderCb: const 6
@@ -338,7 +342,8 @@ instructionWeight (Instruction v) = v # match
   , setWaveShaperCurve: const 6
   , setInput: const 6
   , setSubgraph: const 7
-  , setTumult: const 8
+  , setSingleSubgraph: const 8
+  , setTumult: const 9
   }
 
 instructionId :: Instruction -> String
@@ -379,9 +384,7 @@ instructionId (Instruction v) = v # match
   , makeTriangleOsc: _.id
   , makeWaveShaper: _.id
   , makeSubgraph: _.id
-  , makeSubgraphWithDeferredScene: _.id
   , makeTumult: _.id
-  , makeTumultWithDeferredGraph: _.id
   , connectXToY: _.fromId
   , setAnalyserNodeCb: _.id
   , setMediaRecorderCb: _.id
@@ -408,6 +411,7 @@ instructionId (Instruction v) = v # match
   , setWaveShaperCurve: _.id
   , setInput: _.id
   , setSubgraph: _.id
+  , setSingleSubgraph: _.id
   , setTumult: _.id
   }
 
@@ -502,12 +506,8 @@ iMakeWaveShaper :: MakeWaveShaper -> Instruction
 iMakeWaveShaper = Instruction <<< inj (Proxy :: Proxy "makeWaveShaper")
 iMakeSubgraph :: MakeSubgraph -> Instruction
 iMakeSubgraph = Instruction <<< inj (Proxy :: Proxy "makeSubgraph")
-iMakeSubgraphWithDeferredScene :: MakeSubgraphWithDeferredScene -> Instruction
-iMakeSubgraphWithDeferredScene = Instruction <<< inj (Proxy :: Proxy "makeSubgraphWithDeferredScene")
 iMakeTumult :: MakeTumult -> Instruction
 iMakeTumult = Instruction <<< inj (Proxy :: Proxy "makeTumult")
-iMakeTumultWithDeferredGraph :: MakeTumultWithDeferredGraph -> Instruction
-iMakeTumultWithDeferredGraph = Instruction <<< inj (Proxy :: Proxy "makeTumultWithDeferredGraph")
 iConnectXToY :: ConnectXToY -> Instruction
 iConnectXToY = Instruction <<< inj (Proxy :: Proxy "connectXToY")
 iSetAnalyserNodeCb :: SetAnalyserNodeCb -> Instruction
@@ -560,6 +560,8 @@ iSetInput :: SetInput -> Instruction
 iSetInput = Instruction <<< inj (Proxy :: Proxy "setInput")
 iSetSubgraph :: SetSubgraph -> Instruction
 iSetSubgraph = Instruction <<< inj (Proxy :: Proxy "setSubgraph")
+iSetSingleSubgraph :: SetSingleSubgraph -> Instruction
+iSetSingleSubgraph = Instruction <<< inj (Proxy :: Proxy "setSingleSubgraph")
 iSetTumult :: SetTumult -> Instruction
 iSetTumult = Instruction <<< inj (Proxy :: Proxy "setTumult")
 
