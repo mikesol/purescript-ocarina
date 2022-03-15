@@ -60,9 +60,7 @@ derogative = unwrap >>> match
   , makeTriangleOsc: du "TriangleOsc"
   , makeWaveShaper: du "WaveShaper"
   , makeSubgraph: du "Subgraph"
-  , makeSubgraphWithDeferredScene: du "Subgraph"
   , makeTumult: du "Tumult"
-  , makeTumultWithDeferredGraph: du "Tumult"
   , connectXToY: Set.insert <<< R.iDisconnectXFromY
   , setAnalyserNodeCb: const identity
   , setMediaRecorderCb: const identity
@@ -89,6 +87,7 @@ derogative = unwrap >>> match
   , setWaveShaperCurve: const identity
   , setInput: const identity
   , setSubgraph: const identity
+  , setSingleSubgraph: const identity
   , setTumult: const identity
   }
 
@@ -407,19 +406,9 @@ reconcileTumult new old = result
               # on (Proxy :: _ "makeSubgraph") \b ->
                 comparable a b l0 h0 t0 l1 h1 t1 set identity
           )
-      , makeSubgraphWithDeferredScene: \a -> i1 #
-          ( udef
-              # on (Proxy :: _ "makeSubgraphWithDeferredScene") \b ->
-                comparable a b l0 h0 t0 l1 h1 t1 set identity
-          )
       , makeTumult: \a -> i1 #
           ( udef
               # on (Proxy :: _ "makeTumult") \b ->
-                comparable a b l0 h0 t0 l1 h1 t1 set identity
-          )
-      , makeTumultWithDeferredGraph: \a -> i1 #
-          ( udef
-              # on (Proxy :: _ "makeTumultWithDeferredGraph") \b ->
                 comparable a b l0 h0 t0 l1 h1 t1 set identity
           )
       , setAnalyserNodeCb: \_ -> i1 # udef
@@ -447,5 +436,6 @@ reconcileTumult new old = result
       , setWaveShaperCurve: \_ -> i1 # udef
       , setInput: \_ -> i1 # udef
       , setSubgraph: \_ -> i1 # udef
+      , setSingleSubgraph: \_ -> i1 # udef
       , setTumult: \_ -> i1 # udef
       }

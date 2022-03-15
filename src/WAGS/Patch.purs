@@ -7,125 +7,98 @@ import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.Tuple.Nested (type (/\))
 import Data.Typelevel.Bool (False, True)
 import Data.Typelevel.Num (class Nat, class Pos, toInt')
+import Data.Vec (Vec)
+import Foreign.Object (Object, lookup)
 import Foreign.Object as Object
 import Prim.Ordering (Ordering, LT, GT, EQ)
-import Prim.RowList (class RowToList)
+import Prim.Row as Row
+import Prim.RowList (class RowToList, RowList)
 import Prim.RowList as RL
 import Prim.Symbol as Sym
+import Record (get)
 import Simple.JSON as JSON
 import Type.Proxy (Proxy(..))
 import WAGS.Control.Indexed (IxWAG(..))
 import WAGS.Control.Types (WAG, unsafeUnWAG, unsafeWAG)
+import WAGS.Graph.AudioUnit (TSubgraph, TTumult)
 import WAGS.Graph.AudioUnit as AU
+import WAGS.Graph.Graph (Graph)
 import WAGS.Graph.Oversample (class IsOversample, reflectOversample)
 import WAGS.Graph.Paramable (onOffIze, paramize)
 import WAGS.Graph.Parameter (_off, _on)
-import WAGS.Interpret (class AudioInterpret, connectXToY, destroyUnit, disconnectXFromY, makeAllpass, makeAnalyser, makeAudioWorkletNode, makeBandpass, makeConstant, makeDelay, makeDynamicsCompressor, makeGain, makeHighpass, makeHighshelf, makeInput, makeLoopBufWithDeferredBuffer, makeLowpass, makeLowshelf, makeMediaElement, makeMicrophone, makeNotch, makePassthroughConvolver, makePeaking, makePeriodicOscWithDeferredOsc, makePlayBufWithDeferredBuffer, makeRecorder, makeSawtoothOsc, makeSinOsc, makeSpeaker, makeSquareOsc, makeStereoPanner, makeSubgraphWithDeferredScene, makeTriangleOsc, makeTumultWithDeferredGraph, makeWaveShaper)
+import WAGS.Interpret (class AudioInterpret, AsSubgraph, connectXToY, destroyUnit, disconnectXFromY, makeAllpass, makeAnalyser, makeAudioWorkletNode, makeBandpass, makeConstant, makeDelay, makeDynamicsCompressor, makeGain, makeHighpass, makeHighshelf, makeInput, makeLoopBufWithDeferredBuffer, makeLowpass, makeLowshelf, makeMediaElement, makeMicrophone, makeNotch, makePassthroughConvolver, makePeaking, makePeriodicOscWithDeferredOsc, makePlayBufWithDeferredBuffer, makeRecorder, makeSawtoothOsc, makeSinOsc, makeSpeaker, makeSquareOsc, makeStereoPanner, makeSubgraph, makeTriangleOsc, makeTumult, makeWaveShaper, unAsSubGraph)
 import WAGS.Rendered (AudioWorkletNodeOptions_(..))
+import WAGS.Tumult (Tumultuous, safeUntumult)
 import WAGS.Util (class TypeEqualTF, class ValidateOutputChannelCount, toOutputChannelCount)
 import WAGS.WebAPI (AnalyserNodeCb(..), BrowserFloatArray, BrowserMediaElement, BrowserMicrophone, MediaRecorderCb(..))
 
-data ConnectXToY (x :: Symbol) (y :: Symbol)
-  = ConnectXToY (Proxy x) (Proxy y)
+data ConnectXToY (x :: Symbol) (y :: Symbol) = ConnectXToY (Proxy x) (Proxy y)
 
-data DisconnectXFromY (x :: Symbol) (y :: Symbol)
-  = DisconnectXFromY (Proxy x) (Proxy y)
+data DisconnectXFromY (x :: Symbol) (y :: Symbol) = DisconnectXFromY (Proxy x) (Proxy y)
 
-data DestroyUnit (x :: Symbol)
-  = DestroyUnit (Proxy x)
+data DestroyUnit (x :: Symbol) = DestroyUnit (Proxy x)
 
-data MakeAllpass (ptr :: Symbol)
-  = MakeAllpass (Proxy ptr)
+data MakeAllpass (ptr :: Symbol) = MakeAllpass (Proxy ptr)
 
-data MakeAnalyser (ptr :: Symbol)
-  = MakeAnalyser (Proxy ptr)
+data MakeAnalyser (ptr :: Symbol) = MakeAnalyser (Proxy ptr)
 
-data MakeAudioWorkletNode (ptr :: Symbol) (sym :: Symbol) (numberOfInputs :: Type) (numberOfOutputs :: Type) (outputChannelCount :: Type) (parameterData :: Row Type) (processorOptions :: Row Type)
-  = MakeAudioWorkletNode (Proxy ptr) (Proxy sym) (Proxy numberOfInputs) (Proxy numberOfOutputs) (Proxy outputChannelCount) (Proxy parameterData) (Proxy processorOptions)
+data MakeAudioWorkletNode (ptr :: Symbol) (sym :: Symbol) (numberOfInputs :: Type) (numberOfOutputs :: Type) (outputChannelCount :: Type) (parameterData :: Row Type) (processorOptions :: Row Type) = MakeAudioWorkletNode (Proxy ptr) (Proxy sym) (Proxy numberOfInputs) (Proxy numberOfOutputs) (Proxy outputChannelCount) (Proxy parameterData) (Proxy processorOptions)
 
-data MakeBandpass (ptr :: Symbol)
-  = MakeBandpass (Proxy ptr)
+data MakeBandpass (ptr :: Symbol) = MakeBandpass (Proxy ptr)
 
-data MakeConstant (ptr :: Symbol)
-  = MakeConstant (Proxy ptr)
+data MakeConstant (ptr :: Symbol) = MakeConstant (Proxy ptr)
 
-data MakeConvolver (ptr :: Symbol)
-  = MakeConvolver (Proxy ptr)
+data MakeConvolver (ptr :: Symbol) = MakeConvolver (Proxy ptr)
 
-data MakeDelay (ptr :: Symbol)
-  = MakeDelay (Proxy ptr)
+data MakeDelay (ptr :: Symbol) = MakeDelay (Proxy ptr)
 
-data MakeDynamicsCompressor (ptr :: Symbol)
-  = MakeDynamicsCompressor (Proxy ptr)
+data MakeDynamicsCompressor (ptr :: Symbol) = MakeDynamicsCompressor (Proxy ptr)
 
-data MakeGain (ptr :: Symbol)
-  = MakeGain (Proxy ptr)
+data MakeGain (ptr :: Symbol) = MakeGain (Proxy ptr)
 
-data MakeHighpass (ptr :: Symbol)
-  = MakeHighpass (Proxy ptr)
+data MakeHighpass (ptr :: Symbol) = MakeHighpass (Proxy ptr)
 
-data MakeHighshelf (ptr :: Symbol)
-  = MakeHighshelf (Proxy ptr)
+data MakeHighshelf (ptr :: Symbol) = MakeHighshelf (Proxy ptr)
 
-data MakeInput (ptr :: Symbol) (terminus :: Symbol)
-  = MakeInput (Proxy ptr) (Proxy terminus)
+data MakeInput (ptr :: Symbol) (terminus :: Symbol) = MakeInput (Proxy ptr) (Proxy terminus)
 
-data MakeLoopBuf (ptr :: Symbol)
-  = MakeLoopBuf (Proxy ptr)
+data MakeLoopBuf (ptr :: Symbol) = MakeLoopBuf (Proxy ptr)
 
-data MakeLowpass (ptr :: Symbol)
-  = MakeLowpass (Proxy ptr)
+data MakeLowpass (ptr :: Symbol) = MakeLowpass (Proxy ptr)
 
-data MakeLowshelf (ptr :: Symbol)
-  = MakeLowshelf (Proxy ptr)
+data MakeLowshelf (ptr :: Symbol) = MakeLowshelf (Proxy ptr)
 
-data MakeMediaElement (ptr :: Symbol)
-  = MakeMediaElement (Proxy ptr)
+data MakeMediaElement (ptr :: Symbol) = MakeMediaElement (Proxy ptr)
 
-data MakeMicrophone
-  = MakeMicrophone
+data MakeMicrophone = MakeMicrophone
 
-data MakeNotch (ptr :: Symbol)
-  = MakeNotch (Proxy ptr)
+data MakeNotch (ptr :: Symbol) = MakeNotch (Proxy ptr)
 
-data MakePeaking (ptr :: Symbol)
-  = MakePeaking (Proxy ptr)
+data MakePeaking (ptr :: Symbol) = MakePeaking (Proxy ptr)
 
-data MakePeriodicOsc (ptr :: Symbol)
-  = MakePeriodicOsc (Proxy ptr)
+data MakePeriodicOsc (ptr :: Symbol) = MakePeriodicOsc (Proxy ptr)
 
-data MakePlayBuf (ptr :: Symbol)
-  = MakePlayBuf (Proxy ptr)
+data MakePlayBuf (ptr :: Symbol) = MakePlayBuf (Proxy ptr)
 
-data MakeRecorder (ptr :: Symbol)
-  = MakeRecorder (Proxy ptr)
+data MakeRecorder (ptr :: Symbol) = MakeRecorder (Proxy ptr)
 
-data MakeSawtoothOsc (ptr :: Symbol)
-  = MakeSawtoothOsc (Proxy ptr)
+data MakeSawtoothOsc (ptr :: Symbol) = MakeSawtoothOsc (Proxy ptr)
 
-data MakeSinOsc (ptr :: Symbol)
-  = MakeSinOsc (Proxy ptr)
+data MakeSinOsc (ptr :: Symbol) = MakeSinOsc (Proxy ptr)
 
-data MakeSquareOsc (ptr :: Symbol)
-  = MakeSquareOsc (Proxy ptr)
+data MakeSquareOsc (ptr :: Symbol) = MakeSquareOsc (Proxy ptr)
 
-data MakeSpeaker
-  = MakeSpeaker
+data MakeSpeaker = MakeSpeaker
 
-data MakeStereoPanner (ptr :: Symbol)
-  = MakeStereoPanner (Proxy ptr)
+data MakeStereoPanner (ptr :: Symbol) = MakeStereoPanner (Proxy ptr)
 
-data MakeSubgraph (ptr :: Symbol)
-  = MakeSubgraph (Proxy ptr)
+data MakeSubgraph (ptr :: Symbol) = MakeSubgraph (Proxy ptr)
 
-data MakeTriangleOsc (ptr :: Symbol)
-  = MakeTriangleOsc (Proxy ptr)
+data MakeTriangleOsc (ptr :: Symbol) = MakeTriangleOsc (Proxy ptr)
 
-data MakeTumult (ptr :: Symbol)
-  = MakeTumult (Proxy ptr)
+data MakeTumult (ptr :: Symbol) = MakeTumult (Proxy ptr)
 
-data MakeWaveShaper (ptr :: Symbol) (oversample :: Type)
-  = MakeWaveShaper (Proxy ptr) oversample
+data MakeWaveShaper (ptr :: Symbol) (oversample :: Type) = MakeWaveShaper (Proxy ptr) oversample
 
 class CompInstr (a :: Type) (b :: Type) (o :: Ordering) | a b -> o
 
@@ -347,7 +320,7 @@ class ToGraphEffects (i :: Type) where
     :: forall audio engine
      . AudioInterpret audio engine
     => Proxy i
-    -> PatchInfo
+    -> UntypedPatchInfo
     -> { instructions :: Array (audio -> engine)
        }
     -> { instructions :: Array (audio -> engine)
@@ -368,6 +341,7 @@ instance toGraphEffectsConnectXToY :: (IsSymbol from, IsSymbol to, ToGraphEffect
     fromUnit = "PATCH"
     toId = reflectSymbol (Proxy :: _ to)
     toUnit = "PATCH"
+
 instance toGraphEffectsDisconnectXFromY :: (IsSymbol from, IsSymbol to, ToGraphEffects rest) => ToGraphEffects (DisconnectXFromY from to /\ rest) where
   toGraphEffects _ cache i =
     toGraphEffects (Proxy :: _ rest) cache
@@ -380,6 +354,7 @@ instance toGraphEffectsDisconnectXFromY :: (IsSymbol from, IsSymbol to, ToGraphE
     fromUnit = "PATCH"
     toId = reflectSymbol (Proxy :: _ to)
     toUnit = "PATCH"
+
 instance toGraphEffectsDestroyUnit :: (IsSymbol ptr, ToGraphEffects rest) => ToGraphEffects (DestroyUnit ptr /\ rest) where
   toGraphEffects _ cache i =
     toGraphEffects (Proxy :: _ rest) cache
@@ -573,7 +548,6 @@ instance toGraphEffectsMakeLowshelf :: (IsSymbol ptr, ToGraphEffects rest) => To
     where
     id = reflectSymbol (Proxy :: _ ptr)
 
-
 instance toGraphEffectsMakeMediaElement :: (IsSymbol ptr, ToGraphEffects rest) => ToGraphEffects (MakeMediaElement ptr /\ rest) where
   toGraphEffects _ cache i =
     toGraphEffects (Proxy :: _ rest) cache
@@ -697,7 +671,10 @@ instance toGraphEffectsMakeSubgraph :: (IsSymbol ptr, ToGraphEffects rest) => To
   toGraphEffects _ cache i =
     toGraphEffects (Proxy :: _ rest) cache
       ( i
-          { instructions = i.instructions <> [ makeSubgraphWithDeferredScene { id } ]
+          { instructions = i.instructions <>
+              ( maybe [] (\instr -> [ unAE instr ])
+                  $ lookup id cache.subgraphs
+              )
           }
       )
     where
@@ -717,7 +694,11 @@ instance toGraphEffectsMakeTumult :: (IsSymbol ptr, ToGraphEffects rest) => ToGr
   toGraphEffects _ cache i =
     toGraphEffects (Proxy :: _ rest) cache
       ( i
-          { instructions = i.instructions <> [ makeTumultWithDeferredGraph { id } ]
+          { instructions = i.instructions <>
+              ( maybe [] (\instr -> [ unAE instr ])
+                  $ lookup id cache.tumults
+              )
+
           }
       )
     where
@@ -737,40 +718,166 @@ instance toGraphEffectsMakeWaveShaper :: (IsSymbol ptr, IsOversample oversample,
 
     oversample' = reflectOversample (mempty :: oversample)
 
-type PatchInfo =
+type PatchInfo subgraphs tumults =
   { microphone :: Maybe BrowserMicrophone
   , mediaElement :: Maybe BrowserMediaElement
+  , subgraphs :: { | subgraphs }
+  , tumults :: { | tumults }
+  }
+
+newtype AE = AE (forall audio engine. AudioInterpret audio engine => audio -> engine)
+
+unAE :: AE -> forall audio engine. AudioInterpret audio engine => audio -> engine
+unAE (AE ae) = ae
+
+type UntypedPatchInfo =
+  { microphone :: Maybe BrowserMicrophone
+  , mediaElement :: Maybe BrowserMediaElement
+  , subgraphs :: Object AE
+  , tumults :: Object AE
   }
 
 ipatch
-  :: forall audio engine proof res g0 g1
-   . Patch g0 g1
+  :: forall audio engine proof res subgraphs tumults g0 g1
+   . Patch subgraphs tumults g0 g1
   => AudioInterpret audio engine
-  => PatchInfo
+  => GetSubgraphs g1 subgraphs
+  => GetTumults g1 tumults
+  => PatchInfo subgraphs tumults
   -> IxWAG audio engine proof res g0 g1 Unit
 ipatch cache = IxWAG \i -> patch cache (i $> unit)
 
-type PatchSig g0 g1 =
+class GetSubgraphsRL (g :: RowList Type) subgraphs | g -> subgraphs where
+  getSubgraphsRL
+    :: forall proxy
+     . proxy g
+    -> { | subgraphs }
+    -> Object AE
+
+instance getSubgraphsRLNil :: GetSubgraphsRL RL.Nil subgraphs where
+  getSubgraphsRL _ _ = Object.empty
+
+newtype PatchedSubgraphInput (n :: Type) terminus inputs env a = PatchedSubgraphInput
+  ( { controls :: Vec n a
+    , envs :: Int -> a -> env
+    , scenes :: AsSubgraph terminus inputs a env
+    }
+  )
+
+unPatchedSubgraph
+  :: forall n terminus inputs env a
+   . PatchedSubgraphInput n terminus inputs env a
+  -> { controls :: Vec n a
+     , envs :: Int -> a -> env
+     , scenes :: AsSubgraph terminus inputs a env
+     }
+unPatchedSubgraph (PatchedSubgraphInput x) = x
+
+instance getSubgraphsRLTumult ::
+  ( IsSymbol id
+  , IsSymbol terminus
+  , Pos n
+  , Row.Cons id (PatchedSubgraphInput n terminus inputs env a) r' subgraphs
+  , GetSubgraphsRL rest subgraphs
+  ) =>
+  GetSubgraphsRL (RL.Cons id (TSubgraph n terminus inputs env /\ whatever) rest) subgraphs where
+  getSubgraphsRL _ t = Object.insert id
+    ( AE
+        ( let
+            unpatched = unPatchedSubgraph (get (Proxy :: _ id) t)
+          in
+            makeSubgraph
+              { id
+              , terminus: Proxy :: _ terminus
+              , controls: unpatched.controls
+              , envs: unpatched.envs
+              , scenes: unAsSubGraph unpatched.scenes
+              }
+        )
+    )
+    (getSubgraphsRL (Proxy :: Proxy rest) t)
+    where
+    id = reflectSymbol (Proxy :: _ id)
+else instance getSubgraphsRLOther :: GetSubgraphsRL rest subgraphs => GetSubgraphsRL (RL.Cons soCares soWhat rest) subgraphs where
+  getSubgraphsRL _ = getSubgraphsRL (Proxy :: Proxy rest)
+
+class GetSubgraphs (g :: Graph) subgraphs | g -> subgraphs where
+  getSubgraphs
+    :: forall proxy
+     . proxy g
+    -> { | subgraphs }
+    -> Object AE
+
+instance getSubgraphsAll :: (RowToList g rl, GetSubgraphsRL rl subgraphs) => GetSubgraphs g subgraphs where
+  getSubgraphs _ = getSubgraphsRL (Proxy :: Proxy rl)
+
+class GetTumultsRL (rl :: RowList Type) tumults | rl -> tumults where
+  getTumultsRL
+    :: forall proxyRL
+     . proxyRL rl
+    -> { | tumults }
+    -> Object AE
+
+instance getTumultsRLNil :: GetTumultsRL RL.Nil tumults where
+  getTumultsRL _ _ = Object.empty
+
+instance getTumultsRLTumult ::
+  ( IsSymbol id
+  , IsSymbol terminus
+  , Row.Cons id (Tumultuous n terminus inputs) r' tumults
+  , GetTumultsRL rest tumults
+  ) =>
+  GetTumultsRL (RL.Cons id (TTumult n terminus inputs /\ whatever) rest) tumults where
+  getTumultsRL _ t = Object.insert id
+    ( AE
+        ( makeTumult
+            { id
+            , terminus: reflectSymbol (Proxy :: _ terminus)
+            , instructions: safeUntumult (get (Proxy :: _ id) t)
+            }
+        )
+    )
+    (getTumultsRL (Proxy :: Proxy rest) t)
+    where
+    id = reflectSymbol (Proxy :: _ id)
+else instance getTumultsRLOther :: GetTumultsRL rest tumults => GetTumultsRL (RL.Cons soCares soWhat rest) tumults where
+  getTumultsRL _ = getTumultsRL (Proxy :: Proxy rest)
+
+class GetTumults (g :: Graph) tumults | g -> tumults where
+  getTumults
+    :: forall proxy
+     . proxy g
+    -> { | tumults }
+    -> Object AE
+
+instance getTumultsAll :: (RowToList g rl, GetTumultsRL rl tumults) => GetTumults g tumults where
+  getTumults _ = getTumultsRL (Proxy :: Proxy rl)
+
+type PatchSig subgraphs tumults g0 g1 =
   forall audio engine proof res a
    . AudioInterpret audio engine
-  => PatchInfo
+  => GetSubgraphs g1 subgraphs
+  => GetTumults g1 tumults
+  => PatchInfo subgraphs tumults
   -> WAG audio engine proof res g0 a
   -> WAG audio engine proof res g1 a
 
-type PatchSigRes g0 g1 res =
+type PatchSigRes subgraphs tumults g0 g1 res =
   forall audio engine proof a
    . AudioInterpret audio engine
+  => GetSubgraphs g1 subgraphs
+  => GetTumults g1 tumults
   => Monoid res
-  => PatchInfo
+  => PatchInfo subgraphs tumults
   -> WAG audio engine proof res g0 a
   -> WAG audio engine proof res g1 a
 
-class Patch g0 g1 where
+class (GetSubgraphs g1 subgraphs, GetTumults g1 tumults) <= Patch subgraphs tumults g0 g1 | g1 -> subgraphs, g1 -> tumults where
   -- | Take any frame from `g0` to `g1`. The compiler automatically determines the necessary operations to perform the transformation.
   patch
     :: forall audio engine proof res a
      . AudioInterpret audio engine
-    => PatchInfo
+    => PatchInfo subgraphs tumults
     -> WAG audio engine proof res g0 a
     -> WAG audio engine proof res g1 a
 
@@ -778,10 +885,12 @@ instance patchAll ::
   ( RowToList old oldList
   , RowToList new newList
   , PatchRL oldList newList instructions'
+  , GetSubgraphs new subgraphs
+  , GetTumults new tumults
   , SortInstructions instructions' instructions
   , ToGraphEffects instructions
   ) =>
-  Patch old new where
+  Patch subgraphs tumults old new where
   patch cache w =
     unsafeWAG
       { context:
@@ -792,5 +901,9 @@ instance patchAll ::
       }
     where
     { context: i@{ instructions }, value } = unsafeUnWAG w
+    newCache = cache
+      { subgraphs = getSubgraphs (Proxy :: Proxy new) cache.subgraphs
+      , tumults = getTumults (Proxy :: Proxy new) cache.tumults
+      }
 
-    n = toGraphEffects (Proxy :: _ (instructions)) cache { instructions }
+    n = toGraphEffects (Proxy :: _ (instructions)) newCache { instructions }

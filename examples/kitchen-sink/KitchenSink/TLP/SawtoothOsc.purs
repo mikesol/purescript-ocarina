@@ -28,4 +28,4 @@ doSawtoothOsc =
         ipure lsig
     else
       Left
-        $ icont doConvolver (ipatch { microphone: Nothing, mediaElement: Nothing } :*> ichange { buf: { buffer: myBuffer, onOff: _on }, convolver: reverb } $> lsig)
+        $ icont doConvolver (ipatch { microphone: Nothing, mediaElement: Nothing, subgraphs: {}, tumults: {} } :*> ichange { buf: { buffer: myBuffer, onOff: _on }, convolver: reverb } $> lsig)

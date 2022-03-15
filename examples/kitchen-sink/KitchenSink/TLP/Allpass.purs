@@ -44,7 +44,7 @@ doAllpass =
     else
       Left
         $ icont doLowpass Ix.do
-          ipatch { microphone: Nothing, mediaElement: Nothing }
+          ipatch { microphone: Nothing, mediaElement: Nothing, subgraphs: {}, tumults: {} }
           ichange
             { lowpass: 300.0
             , buf: myBuffer

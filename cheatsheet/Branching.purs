@@ -19,22 +19,20 @@ import WAGS.WebAPI (BrowserAudioBuffer)
 
 type World = { myBuffer :: BrowserAudioBuffer }
 
-type MyGraph1
-  =
+type MyGraph1 =
   ( speaker :: AU.TSpeaker /\ { gain :: Unit }
   , gain :: AU.TGain /\ { osc :: Unit }
   , osc :: AU.TSinOsc /\ {}
   )
 
-type MyGraph2
-  =
+type MyGraph2 =
   ( speaker :: AU.TSpeaker /\ { gain :: Unit }
   , gain :: AU.TGain /\ { buf :: Unit }
   , buf :: AU.TLoopBuf /\ {}
   )
 
 initialFrame :: IxWAG RunAudio RunEngine Frame0 Unit () MyGraph1 Number
-initialFrame = ipatch { microphone: empty, mediaElement: empty } $> 42.0
+initialFrame = ipatch { microphone: empty, mediaElement: empty, subgraphs: {}, tumults: {} } $> 42.0
 
 branch1
   :: forall proof
@@ -45,7 +43,7 @@ branch1 =
     if e.time % 2.0 < 1.0 then
       Right $ ichange { osc: 330.0 } $> a
     else
-      Left $ icont branch2 (ipatch { microphone: empty, mediaElement: empty } :*> ichange { buf: e.world.myBuffer } $> "hello")
+      Left $ icont branch2 (ipatch { microphone: empty, mediaElement: empty, subgraphs: {}, tumults: {} } :*> ichange { buf: e.world.myBuffer } $> "hello")
 
 branch2
   :: forall proof
@@ -64,7 +62,7 @@ branch2 =
             }
             $> a
     else
-      Left $ icont branch1 (ipatch { microphone: empty, mediaElement: empty } $> 42.0)
+      Left $ icont branch1 (ipatch { microphone: empty, mediaElement: empty, subgraphs: {}, tumults: {} } $> 42.0)
 
 piece :: Scene (BehavingScene Unit World ()) RunAudio RunEngine Frame0 Unit
 piece = const initialFrame @!> branch1

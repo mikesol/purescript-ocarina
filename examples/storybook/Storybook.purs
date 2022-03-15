@@ -16,6 +16,7 @@ import Halogen.Storybook (Stories, runStorybook, proxy)
 import WAGS.Example.AtariSpeaks as AtariSpeaks
 import WAGS.Example.DrumMachine as DrumMachine
 import WAGS.Example.HelloWorld as HelloWorld
+import WAGS.Example.Patching as Patching
 import WAGS.Example.KitchenSink as KitchenSink
 import WAGS.Example.Makenna as Makenna
 import WAGS.Example.NoLoop as NoLoop
@@ -33,6 +34,7 @@ stories = Object.fromFoldable
   , Tuple "hello world" $ proxy HelloWorld.component
   , Tuple "kitchen sink" $ proxy KitchenSink.component
   , Tuple "happy birthday" $ proxy Makenna.component
+  , Tuple "patching" $ proxy Patching.component
   -- media element currently doen't work
   -- needs to be updated to use halogen ref
   -- , Tuple "media element" $ proxy MediaElement.component
