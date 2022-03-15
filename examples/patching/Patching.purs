@@ -3,6 +3,7 @@ module WAGS.Example.Patching where
 import Prelude
 
 import Control.Alt ((<|>))
+import Control.Apply.Indexed ((:*>))
 import Control.Comonad (extract)
 import Control.Comonad.Cofree (Cofree, deferCofree)
 import Control.Comonad.Cofree.Class (unwrapCofree)
@@ -104,7 +105,6 @@ else instance
 triggers0 :: Cofree Identity TriggerSG
 triggers0 = cofreeSubgraph0 d39
 
-
 subPiece0
   :: forall audio engine
    . AudioInterpret audio engine
@@ -115,8 +115,7 @@ subPiece0 _ atar = mempty # SG.loopUsingScene \(SGWorld oo) _ ->
   { control: unit
   , scene:
       { buffy: playBuf
-          { onOff:
-              if oo then _on else _off
+          { onOff: if oo then _on else _off
           }
           atar
       }
@@ -127,12 +126,11 @@ subPiece1
    . AudioInterpret audio engine
   => Int
   -> SubScene "gnn" (beep :: Unit) SGWorld audio engine Frame0 Unit
-subPiece1 _ = mempty # SG.loopUsingScene \(SGWorld oo) _ ->
+subPiece1 i = mempty # SG.loopUsingScene \(SGWorld oo) _ ->
   { control: unit
   , scene:
       { gnn: gain
-          ( if   oo then 0.10    else 0.0
-          )
+          (if oo then 0.2 else 0.0)
           (input (Proxy :: _ "beep"))
       }
   }
@@ -148,23 +146,25 @@ type FullGraph =
   )
 
 createFrame :: BrowserAudioBuffer -> IxWAG RunAudio RunEngine Frame0 Unit () FullGraph Unit
-createFrame atar = ipatch
-  { microphone: Nothing
-  , mediaElement: Nothing
-  , subgraphs:
-      { sg: PatchedSubgraphInput
-          { controls: vec
-          , scenes: AsSubgraph (\i _ -> subPiece0 i atar)
-          , envs: (const $ const $ SGWorld false)
-          }
-      , sg2: PatchedSubgraphInput
-          { controls: vec
-          , scenes: AsSubgraph (\i _ -> subPiece1 i)
-          , envs: (const $ const $ SGWorld false)
-          }
-      }
-  , tumults: {}
-  }
+createFrame atar =
+  ipatch
+    { microphone: Nothing
+    , mediaElement: Nothing
+    , subgraphs:
+        { sg: PatchedSubgraphInput
+            { controls: vec
+            , scenes: AsSubgraph (\i _ -> subPiece0 i atar)
+            , envs: (const $ const $ SGWorld false)
+            }
+        , sg2: PatchedSubgraphInput
+            { controls: vec
+            , scenes: AsSubgraph (\i _ -> subPiece1 i)
+            , envs: (const $ const $ SGWorld false)
+            }
+        }
+    , tumults: {}
+    } :*> ichange' (Proxy :: _ "gn") 1.0
+    :*> ichange' (Proxy :: _ "beep") { freq: 550.0, onOff: _on }
 
 piece :: Scene (TriggeredScene Unit World ()) RunAudio RunEngine Frame0 Unit
 piece = (\(TriggeredScene env) -> createFrame env.world.atar $> { triggers0 }) @!> iloop \_ acc ->
@@ -206,7 +206,7 @@ render { freqz } = do
   HH.div_
     $
       [ HH.h1_
-          [ HH.text "Subgraph test" ]
+          [ HH.text "Patching test" ]
       , HH.button
           [ HE.onClick \_ -> StartAudio ]
           [ HH.text "Start audio" ]
