@@ -35941,9 +35941,6 @@ var PS = {};
   var WAGS_Graph_Paramable = $PS["WAGS.Graph.Paramable"];
   var WAGS_Graph_Parameter = $PS["WAGS.Graph.Parameter"];
   var WAGS_Interpret = $PS["WAGS.Interpret"];
-  var unPatchedSubgraph = function (v) {
-      return v;
-  };
   var unAE = function (v) {
       return function (dictAudioInterpret) {
           return v(dictAudioInterpret);
@@ -36290,13 +36287,13 @@ var PS = {};
                               return function (t) {
                                   var id = Data_Symbol.reflectSymbol(dictIsSymbol)(Type_Proxy["Proxy"].value);
                                   return Foreign_Object.insert(id)(function (dictAudioInterpret) {
-                                      var unpatched = unPatchedSubgraph(Record.get(dictIsSymbol)()(Type_Proxy["Proxy"].value)(t));
+                                      var v1 = Record.get(dictIsSymbol)()(Type_Proxy["Proxy"].value)(t);
                                       return WAGS_Interpret.makeSubgraph(dictAudioInterpret)(dictIsSymbol1)(dictPos)({
                                           id: id,
                                           terminus: Type_Proxy["Proxy"].value,
-                                          controls: unpatched.controls,
-                                          envs: unpatched.envs,
-                                          scenes: WAGS_Interpret.unAsSubGraph(unpatched.scenes)(dictAudioInterpret)
+                                          controls: v1.value0,
+                                          envs: v1.value2,
+                                          scenes: WAGS_Interpret.unAsSubGraph(v1.value1)(dictAudioInterpret)
                                       });
                                   })(getSubgraphsRL(dictGetSubgraphsRL)(Type_Proxy["Proxy"].value)(t));
                               };
@@ -39292,28 +39289,20 @@ var PS = {};
           microphone: Data_Maybe.Nothing.value,
           mediaElement: Data_Maybe.Nothing.value,
           subgraphs: {
-              sg: {
-                  controls: vec,
-                  scenes: function (dictAudioInterpret) {
-                      return function (i) {
-                          return function (v) {
-                              return subPiece0(dictAudioInterpret)(i)(atar);
-                          };
+              sg: Data_Tuple.fst(WAGS_Create_Optionals.subgraph(Data_Typelevel_Num_Sets.posPosD0(Data_Typelevel_Num_Sets.posD4))(vec)(function (dictAudioInterpret) {
+                  return function (i) {
+                      return function (v) {
+                          return subPiece0(dictAudioInterpret)(i)(atar);
                       };
-                  },
-                  envs: Data_Function["const"](Data_Function["const"](false))
-              },
-              sg2: {
-                  controls: vec,
-                  scenes: function (dictAudioInterpret) {
-                      return function (i) {
-                          return function (v) {
-                              return subPiece1(dictAudioInterpret)(i);
-                          };
+                  };
+              })(Data_Function["const"](Data_Function["const"](false)))({})),
+              sg2: Data_Tuple.fst(WAGS_Create_Optionals.subgraph(Data_Typelevel_Num_Sets.posPosD0(Data_Typelevel_Num_Sets.posD4))(vec)(function (dictAudioInterpret) {
+                  return function (i) {
+                      return function (v) {
+                          return subPiece1(dictAudioInterpret)(i);
                       };
-                  },
-                  envs: Data_Function["const"](Data_Function["const"](false))
-              }
+                  };
+              })(Data_Function["const"](Data_Function["const"](false)))({}))
           },
           tumults: {}
       }))(WAGS_Change["ichange'"](WAGS_Interpret.mixedAudioInterpret)(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeGain({
@@ -39504,7 +39493,7 @@ var PS = {};
                       });
                   });
               };
-              throw new Error("Failed pattern match at WAGS.Example.Patching (line 220, column 16 - line 244, column 64): " + [ v.constructor.name ]);
+              throw new Error("Failed pattern match at WAGS.Example.Patching (line 212, column 16 - line 236, column 64): " + [ v.constructor.name ]);
           };
       };
   };
