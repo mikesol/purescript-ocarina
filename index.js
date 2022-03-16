@@ -9353,6 +9353,7 @@ var PS = {};
   var Data_Array = $PS["Data.Array"];
   var Data_Functor = $PS["Data.Functor"];
   var Data_FunctorWithIndex = $PS["Data.FunctorWithIndex"];
+  var Data_Typelevel_Num_Ops = $PS["Data.Typelevel.Num.Ops"];
   var Data_Typelevel_Num_Sets = $PS["Data.Typelevel.Num.Sets"];
   var Type_Proxy = $PS["Type.Proxy"];
   var zipWithE = function (f) {
@@ -9412,8 +9413,12 @@ var PS = {};
           };
       };
   };
+  var singleton = function (x) {
+      return cons(Data_Typelevel_Num_Ops.typelevelSucc(Data_Typelevel_Num_Sets.posD1)()(Data_Typelevel_Num_Ops.divMod10D0D0)()(Data_Typelevel_Num_Ops.divMod10D1D0))(x)(empty);
+  };
   exports["empty"] = empty;
   exports["cons"] = cons;
+  exports["singleton"] = singleton;
   exports["fill"] = fill;
   exports["toArray"] = toArray;
   exports["zipWithE"] = zipWithE;
@@ -14597,16 +14602,13 @@ var PS = {};
       return TAllpass;
   })();
   var Subgraph = (function () {
-      function Subgraph(value0, value1, value2) {
+      function Subgraph(value0, value1) {
           this.value0 = value0;
           this.value1 = value1;
-          this.value2 = value2;
       };
       Subgraph.create = function (value0) {
           return function (value1) {
-              return function (value2) {
-                  return new Subgraph(value0, value1, value2);
-              };
+              return new Subgraph(value0, value1);
           };
       };
       return Subgraph;
@@ -16594,15 +16596,14 @@ var PS = {};
 
   exports.makeSubgraph_ = function (ptr) {
 	  return function (terminalPtr) {
-		  return function (vek) {
+		  return function (envs) {
 			  return function (sceneM) {
-				  return function (envM) {
 					  return function (funk) {
 						  return function (state) {
 							  return function () {
 								  var children = [];
 								  var scenes = [];
-								  for (var i = 0; i < vek.length; i++) {
+								  for (var i = 0; i < envs.length; i++) {
 									  children[i] = {
 										  context: state.context,
 										  writeHead: state.writeHead,
@@ -16610,7 +16611,7 @@ var PS = {};
 										  unqidfr: makeid(10),
 										  parent: state,
 									  };
-									  scenes[i] = sceneM(i)(vek[i]);
+									  scenes[i] = sceneM(i);
 								  }
 								  state.units[ptr] = {
 									  outgoing: [],
@@ -16623,7 +16624,7 @@ var PS = {};
 								  };
 								  state.units[ptr].main.gain.value = 1.0;
 								  for (var i = 0; i < scenes.length; i++) {
-									  var applied = funk(envM(i)(vek[i]))(scenes[i]);
+									  var applied = funk(envs[i])(scenes[i]);
 									  for (var j = 0; j < applied.instructions.length; j++) {
 										  // thunk
 										  applied.instructions[j](children[i])();
@@ -16640,7 +16641,6 @@ var PS = {};
 			  };
 		  };
 	  };
-  };
   /**
  *
  * String
@@ -16992,17 +16992,16 @@ var PS = {};
   };
 
   exports.setSubgraph_ = function (ptr) {
-	  return function (vek) {
-		  return function (envM) {
+	  return function (envs) {
 			  return function (state) {
 				  return function () {
-					  for (var i = 0; i < vek.length; i++) {
+					  for (var i = 0; i < envs.length; i++) {
 						  state.units[ptr].children[i].writeHead = state.writeHead;
 					  }
 					  var scenes = state.units[ptr].scenes;
 					  var children = state.units[ptr].children;
 					  for (var i = 0; i < scenes.length; i++) {
-						  var applied = state.units[ptr].funk(envM(i)(vek[i]))(scenes[i]);
+						  var applied = state.units[ptr].funk(envs[i])(scenes[i]);
 						  for (var j = 0; j < applied.instructions.length; j++) {
 							  // thunk
 							  applied.instructions[j](children[i])();
@@ -17013,7 +17012,6 @@ var PS = {};
 			  };
 		  };
 	  };
-  };
 
   exports.setSingleSubgraph_ = function (ptr) {
 	  return function (i) {
@@ -23291,14 +23289,14 @@ var PS = {};
   };
   var safeToFFI_Oversample = {
       safeToFFI: (function () {
-          var $913 = Data_Variant.match()()()({
+          var $908 = Data_Variant.match()()()({
               none: Data_Function["const"]("none"),
               twoX: Data_Function["const"]("2x"),
               fourX: Data_Function["const"]("4x")
           });
-          var $914 = Data_Newtype.unwrap();
-          return function ($915) {
-              return $913($914($915));
+          var $909 = Data_Newtype.unwrap();
+          return function ($910) {
+              return $908($909($910));
           };
       })()
   };
@@ -23369,14 +23367,14 @@ var PS = {};
   };
   var safeToFFI_AudioParameter = {
       safeToFFI: (function () {
-          var $916 = Data_Variant.match()()()({
+          var $911 = Data_Variant.match()()()({
               singleNumber: safeToFFI(safeToFFI_AudioSingleNumber),
               cancellation: safeToFFI(safeToFFI_AudioParameterCancellation),
               envelope: safeToFFI(safeToFFI_AudioEnvelope)
           });
-          var $917 = Data_Newtype.unwrap();
-          return function ($918) {
-              return $916($917($918));
+          var $912 = Data_Newtype.unwrap();
+          return function ($913) {
+              return $911($912($913));
           };
       })()
   };
@@ -23396,9 +23394,9 @@ var PS = {};
       return function (cb) {
           return function (mr) {
               return Data_Function.flip($foreign.mediaRecorderToBlob(s))(mr)((function () {
-                  var $919 = Control_Bind.bindFlipped(Effect.bindEffect)(cb);
-                  return function ($920) {
-                      return $919(Web_File_Url.createObjectURL($920));
+                  var $914 = Control_Bind.bindFlipped(Effect.bindEffect)(cb);
+                  return function ($915) {
+                      return $914(Web_File_Url.createObjectURL($915));
                   };
               })());
           };
@@ -23526,9 +23524,10 @@ var PS = {};
           return Data_Function["const"](f({
               id: v.id,
               instructions: Data_Lazy.defer(function (v1) {
-                  var subs = Data_FunctorWithIndex.mapWithIndex(Data_Vec.functorWithIndexVec)(v.scenes)(v.controls);
-                  var allEnvs = Data_FunctorWithIndex.mapWithIndex(Data_Vec.functorWithIndexVec)(v.envs)(v.controls);
-                  var frames = Data_Vec.zipWithE(WAGS_Control_Types.oneSubFrame)(subs)(allEnvs);
+                  var subs = Data_FunctorWithIndex.mapWithIndex(Data_Vec.functorWithIndexVec)(function ($916) {
+                      return Data_Function["const"](v.scenes($916));
+                  })(v.envs);
+                  var frames = Data_Vec.zipWithE(WAGS_Control_Types.oneSubFrame)(subs)(v.envs);
                   return Data_Functor.map(Data_Functor.functorArray)(Data_Functor.map(Data_Functor.functorArray)(Data_Function.applyFlipped(Data_Unit.unit)))(Data_Functor.map(Data_Functor.functorArray)(function (v2) {
                       return v2.instructions;
                   })(Data_Vec.toArray(frames)));
@@ -23537,85 +23536,85 @@ var PS = {};
       };
   };
   var freeAudioInterpret = {
-      connectXToY: function ($921) {
-          return Data_Function["const"](WAGS_Rendered.iConnectXToY($921));
+      connectXToY: function ($917) {
+          return Data_Function["const"](WAGS_Rendered.iConnectXToY($917));
       },
-      disconnectXFromY: function ($922) {
-          return Data_Function["const"](WAGS_Rendered.iDisconnectXFromY($922));
+      disconnectXFromY: function ($918) {
+          return Data_Function["const"](WAGS_Rendered.iDisconnectXFromY($918));
       },
-      destroyUnit: function ($923) {
-          return Data_Function["const"](WAGS_Rendered.iDestroyUnit($923));
+      destroyUnit: function ($919) {
+          return Data_Function["const"](WAGS_Rendered.iDestroyUnit($919));
       },
-      makeAllpass: function ($924) {
-          return Data_Function["const"](WAGS_Rendered.iMakeAllpass($924));
+      makeAllpass: function ($920) {
+          return Data_Function["const"](WAGS_Rendered.iMakeAllpass($920));
       },
-      makeAnalyser: function ($925) {
-          return Data_Function["const"](WAGS_Rendered.iMakeAnalyser($925));
+      makeAnalyser: function ($921) {
+          return Data_Function["const"](WAGS_Rendered.iMakeAnalyser($921));
       },
-      makeAudioWorkletNode: function ($926) {
-          return Data_Function["const"](WAGS_Rendered.iMakeAudioWorkletNode($926));
+      makeAudioWorkletNode: function ($922) {
+          return Data_Function["const"](WAGS_Rendered.iMakeAudioWorkletNode($922));
       },
-      makeBandpass: function ($927) {
-          return Data_Function["const"](WAGS_Rendered.iMakeBandpass($927));
+      makeBandpass: function ($923) {
+          return Data_Function["const"](WAGS_Rendered.iMakeBandpass($923));
       },
-      makeConstant: function ($928) {
-          return Data_Function["const"](WAGS_Rendered.iMakeConstant($928));
+      makeConstant: function ($924) {
+          return Data_Function["const"](WAGS_Rendered.iMakeConstant($924));
       },
-      makePassthroughConvolver: function ($929) {
-          return Data_Function["const"](WAGS_Rendered.iMakePassthroughConvolver($929));
+      makePassthroughConvolver: function ($925) {
+          return Data_Function["const"](WAGS_Rendered.iMakePassthroughConvolver($925));
       },
-      makeConvolver: function ($930) {
-          return Data_Function["const"](WAGS_Rendered.iMakeConvolver($930));
+      makeConvolver: function ($926) {
+          return Data_Function["const"](WAGS_Rendered.iMakeConvolver($926));
       },
-      makeDelay: function ($931) {
-          return Data_Function["const"](WAGS_Rendered.iMakeDelay($931));
+      makeDelay: function ($927) {
+          return Data_Function["const"](WAGS_Rendered.iMakeDelay($927));
       },
-      makeInput: function ($932) {
-          return Data_Function["const"](WAGS_Rendered.iMakeInput($932));
+      makeInput: function ($928) {
+          return Data_Function["const"](WAGS_Rendered.iMakeInput($928));
       },
-      makeTumult: function ($933) {
-          return Data_Function["const"](WAGS_Rendered.iMakeTumult($933));
+      makeTumult: function ($929) {
+          return Data_Function["const"](WAGS_Rendered.iMakeTumult($929));
       },
       makeSubgraph: function (dictIsSymbol) {
           return function (dictPos) {
               return handleSubgraph(WAGS_Rendered.iMakeSubgraph);
           };
       },
-      makeDynamicsCompressor: function ($934) {
-          return Data_Function["const"](WAGS_Rendered.iMakeDynamicsCompressor($934));
+      makeDynamicsCompressor: function ($930) {
+          return Data_Function["const"](WAGS_Rendered.iMakeDynamicsCompressor($930));
       },
-      makeGain: function ($935) {
-          return Data_Function["const"](WAGS_Rendered.iMakeGain($935));
+      makeGain: function ($931) {
+          return Data_Function["const"](WAGS_Rendered.iMakeGain($931));
       },
-      makeHighpass: function ($936) {
-          return Data_Function["const"](WAGS_Rendered.iMakeHighpass($936));
+      makeHighpass: function ($932) {
+          return Data_Function["const"](WAGS_Rendered.iMakeHighpass($932));
       },
-      makeHighshelf: function ($937) {
-          return Data_Function["const"](WAGS_Rendered.iMakeHighshelf($937));
+      makeHighshelf: function ($933) {
+          return Data_Function["const"](WAGS_Rendered.iMakeHighshelf($933));
       },
-      makeLoopBufWithDeferredBuffer: function ($938) {
-          return Data_Function["const"](WAGS_Rendered.iMakeLoopBufWithDeferredBuffer($938));
+      makeLoopBufWithDeferredBuffer: function ($934) {
+          return Data_Function["const"](WAGS_Rendered.iMakeLoopBufWithDeferredBuffer($934));
       },
-      makeLoopBuf: function ($939) {
-          return Data_Function["const"](WAGS_Rendered.iMakeLoopBuf($939));
+      makeLoopBuf: function ($935) {
+          return Data_Function["const"](WAGS_Rendered.iMakeLoopBuf($935));
       },
-      makeLowpass: function ($940) {
-          return Data_Function["const"](WAGS_Rendered.iMakeLowpass($940));
+      makeLowpass: function ($936) {
+          return Data_Function["const"](WAGS_Rendered.iMakeLowpass($936));
       },
-      makeLowshelf: function ($941) {
-          return Data_Function["const"](WAGS_Rendered.iMakeLowshelf($941));
+      makeLowshelf: function ($937) {
+          return Data_Function["const"](WAGS_Rendered.iMakeLowshelf($937));
       },
-      makeMediaElement: function ($942) {
-          return Data_Function["const"](WAGS_Rendered.iMakeMediaElement($942));
+      makeMediaElement: function ($938) {
+          return Data_Function["const"](WAGS_Rendered.iMakeMediaElement($938));
       },
-      makeMicrophone: function ($943) {
-          return Data_Function["const"](WAGS_Rendered.iMakeMicrophone($943));
+      makeMicrophone: function ($939) {
+          return Data_Function["const"](WAGS_Rendered.iMakeMicrophone($939));
       },
-      makeNotch: function ($944) {
-          return Data_Function["const"](WAGS_Rendered.iMakeNotch($944));
+      makeNotch: function ($940) {
+          return Data_Function["const"](WAGS_Rendered.iMakeNotch($940));
       },
-      makePeaking: function ($945) {
-          return Data_Function["const"](WAGS_Rendered.iMakePeaking($945));
+      makePeaking: function ($941) {
+          return Data_Function["const"](WAGS_Rendered.iMakePeaking($941));
       },
       makePeriodicOsc: function (v) {
           return Data_Function["const"](WAGS_Rendered.iMakePeriodicOsc({
@@ -23633,45 +23632,45 @@ var PS = {};
               freq: v.freq
           }));
       },
-      makePeriodicOscWithDeferredOsc: function ($946) {
-          return Data_Function["const"](WAGS_Rendered.iMakePeriodicOscWithDeferredOsc($946));
+      makePeriodicOscWithDeferredOsc: function ($942) {
+          return Data_Function["const"](WAGS_Rendered.iMakePeriodicOscWithDeferredOsc($942));
       },
-      makePlayBufWithDeferredBuffer: function ($947) {
-          return Data_Function["const"](WAGS_Rendered.iMakePlayBufWithDeferredBuffer($947));
+      makePlayBufWithDeferredBuffer: function ($943) {
+          return Data_Function["const"](WAGS_Rendered.iMakePlayBufWithDeferredBuffer($943));
       },
-      makePlayBuf: function ($948) {
-          return Data_Function["const"](WAGS_Rendered.iMakePlayBuf($948));
+      makePlayBuf: function ($944) {
+          return Data_Function["const"](WAGS_Rendered.iMakePlayBuf($944));
       },
-      makeRecorder: function ($949) {
-          return Data_Function["const"](WAGS_Rendered.iMakeRecorder($949));
+      makeRecorder: function ($945) {
+          return Data_Function["const"](WAGS_Rendered.iMakeRecorder($945));
       },
-      makeSawtoothOsc: function ($950) {
-          return Data_Function["const"](WAGS_Rendered.iMakeSawtoothOsc($950));
+      makeSawtoothOsc: function ($946) {
+          return Data_Function["const"](WAGS_Rendered.iMakeSawtoothOsc($946));
       },
-      makeSinOsc: function ($951) {
-          return Data_Function["const"](WAGS_Rendered.iMakeSinOsc($951));
+      makeSinOsc: function ($947) {
+          return Data_Function["const"](WAGS_Rendered.iMakeSinOsc($947));
       },
       makeSpeaker: Data_Function["const"](WAGS_Rendered.iMakeSpeaker),
-      makeSquareOsc: function ($952) {
-          return Data_Function["const"](WAGS_Rendered.iMakeSquareOsc($952));
+      makeSquareOsc: function ($948) {
+          return Data_Function["const"](WAGS_Rendered.iMakeSquareOsc($948));
       },
-      makeStereoPanner: function ($953) {
-          return Data_Function["const"](WAGS_Rendered.iMakeStereoPanner($953));
+      makeStereoPanner: function ($949) {
+          return Data_Function["const"](WAGS_Rendered.iMakeStereoPanner($949));
       },
-      makeTriangleOsc: function ($954) {
-          return Data_Function["const"](WAGS_Rendered.iMakeTriangleOsc($954));
+      makeTriangleOsc: function ($950) {
+          return Data_Function["const"](WAGS_Rendered.iMakeTriangleOsc($950));
       },
-      makeWaveShaper: function ($955) {
-          return Data_Function["const"](WAGS_Rendered.iMakeWaveShaper($955));
+      makeWaveShaper: function ($951) {
+          return Data_Function["const"](WAGS_Rendered.iMakeWaveShaper($951));
       },
-      setAudioWorkletParameter: function ($956) {
-          return Data_Function["const"](WAGS_Rendered.iSetAudioWorkletParameter($956));
+      setAudioWorkletParameter: function ($952) {
+          return Data_Function["const"](WAGS_Rendered.iSetAudioWorkletParameter($952));
       },
-      setBuffer: function ($957) {
-          return Data_Function["const"](WAGS_Rendered.iSetBuffer($957));
+      setBuffer: function ($953) {
+          return Data_Function["const"](WAGS_Rendered.iSetBuffer($953));
       },
-      setConvolverBuffer: function ($958) {
-          return Data_Function["const"](WAGS_Rendered.iSetConvolverBuffer($958));
+      setConvolverBuffer: function ($954) {
+          return Data_Function["const"](WAGS_Rendered.iSetConvolverBuffer($954));
       },
       setPeriodicOsc: function (v) {
           return Data_Function["const"](WAGS_Rendered.iSetPeriodicOsc({
@@ -23685,65 +23684,65 @@ var PS = {};
               periodicOsc: WAGS_Rendered.iRealImg(v.realImg)
           }));
       },
-      setOnOff: function ($959) {
-          return Data_Function["const"](WAGS_Rendered.iSetOnOff($959));
+      setOnOff: function ($955) {
+          return Data_Function["const"](WAGS_Rendered.iSetOnOff($955));
       },
-      setMediaRecorderCb: function ($960) {
-          return Data_Function["const"](WAGS_Rendered.iSetMediaRecorderCb($960));
+      setMediaRecorderCb: function ($956) {
+          return Data_Function["const"](WAGS_Rendered.iSetMediaRecorderCb($956));
       },
-      setAnalyserNodeCb: function ($961) {
-          return Data_Function["const"](WAGS_Rendered.iSetAnalyserNodeCb($961));
+      setAnalyserNodeCb: function ($957) {
+          return Data_Function["const"](WAGS_Rendered.iSetAnalyserNodeCb($957));
       },
-      setBufferOffset: function ($962) {
-          return Data_Function["const"](WAGS_Rendered.iSetBufferOffset($962));
+      setBufferOffset: function ($958) {
+          return Data_Function["const"](WAGS_Rendered.iSetBufferOffset($958));
       },
-      setLoopStart: function ($963) {
-          return Data_Function["const"](WAGS_Rendered.iSetLoopStart($963));
+      setLoopStart: function ($959) {
+          return Data_Function["const"](WAGS_Rendered.iSetLoopStart($959));
       },
-      setLoopEnd: function ($964) {
-          return Data_Function["const"](WAGS_Rendered.iSetLoopEnd($964));
+      setLoopEnd: function ($960) {
+          return Data_Function["const"](WAGS_Rendered.iSetLoopEnd($960));
       },
-      setRatio: function ($965) {
-          return Data_Function["const"](WAGS_Rendered.iSetRatio($965));
+      setRatio: function ($961) {
+          return Data_Function["const"](WAGS_Rendered.iSetRatio($961));
       },
-      setOffset: function ($966) {
-          return Data_Function["const"](WAGS_Rendered.iSetOffset($966));
+      setOffset: function ($962) {
+          return Data_Function["const"](WAGS_Rendered.iSetOffset($962));
       },
-      setAttack: function ($967) {
-          return Data_Function["const"](WAGS_Rendered.iSetAttack($967));
+      setAttack: function ($963) {
+          return Data_Function["const"](WAGS_Rendered.iSetAttack($963));
       },
-      setGain: function ($968) {
-          return Data_Function["const"](WAGS_Rendered.iSetGain($968));
+      setGain: function ($964) {
+          return Data_Function["const"](WAGS_Rendered.iSetGain($964));
       },
-      setQ: function ($969) {
-          return Data_Function["const"](WAGS_Rendered.iSetQ($969));
+      setQ: function ($965) {
+          return Data_Function["const"](WAGS_Rendered.iSetQ($965));
       },
-      setPan: function ($970) {
-          return Data_Function["const"](WAGS_Rendered.iSetPan($970));
+      setPan: function ($966) {
+          return Data_Function["const"](WAGS_Rendered.iSetPan($966));
       },
-      setThreshold: function ($971) {
-          return Data_Function["const"](WAGS_Rendered.iSetThreshold($971));
+      setThreshold: function ($967) {
+          return Data_Function["const"](WAGS_Rendered.iSetThreshold($967));
       },
-      setRelease: function ($972) {
-          return Data_Function["const"](WAGS_Rendered.iSetRelease($972));
+      setRelease: function ($968) {
+          return Data_Function["const"](WAGS_Rendered.iSetRelease($968));
       },
-      setKnee: function ($973) {
-          return Data_Function["const"](WAGS_Rendered.iSetKnee($973));
+      setKnee: function ($969) {
+          return Data_Function["const"](WAGS_Rendered.iSetKnee($969));
       },
-      setDelay: function ($974) {
-          return Data_Function["const"](WAGS_Rendered.iSetDelay($974));
+      setDelay: function ($970) {
+          return Data_Function["const"](WAGS_Rendered.iSetDelay($970));
       },
-      setPlaybackRate: function ($975) {
-          return Data_Function["const"](WAGS_Rendered.iSetPlaybackRate($975));
+      setPlaybackRate: function ($971) {
+          return Data_Function["const"](WAGS_Rendered.iSetPlaybackRate($971));
       },
-      setFrequency: function ($976) {
-          return Data_Function["const"](WAGS_Rendered.iSetFrequency($976));
+      setFrequency: function ($972) {
+          return Data_Function["const"](WAGS_Rendered.iSetFrequency($972));
       },
-      setWaveShaperCurve: function ($977) {
-          return Data_Function["const"](WAGS_Rendered.iSetWaveShaperCurve($977));
+      setWaveShaperCurve: function ($973) {
+          return Data_Function["const"](WAGS_Rendered.iSetWaveShaperCurve($973));
       },
-      setInput: function ($978) {
-          return Data_Function["const"](WAGS_Rendered.iSetInput($978));
+      setInput: function ($974) {
+          return Data_Function["const"](WAGS_Rendered.iSetInput($974));
       },
       setSubgraph: function (dictPos) {
           return function (v) {
@@ -23763,8 +23762,8 @@ var PS = {};
               };
           };
       },
-      setTumult: function ($979) {
-          return Data_Function["const"](WAGS_Rendered.iSetTumult($979));
+      setTumult: function ($975) {
+          return Data_Function["const"](WAGS_Rendered.iSetTumult($975));
       }
   };
   var disconnectXFromY = function (dict) {
@@ -23776,9 +23775,9 @@ var PS = {};
   var decodeAudioDataFromUri = function (ctx) {
       return function (s) {
           return Control_Bind.bind(Effect_Aff.bindAff)(Control_Promise.toAffE($foreign.fetchArrayBuffer(s)))((function () {
-              var $980 = $foreign.decodeAudioDataFromArrayBuffer(ctx);
-              return function ($981) {
-                  return Control_Promise.toAffE($980($981));
+              var $976 = $foreign.decodeAudioDataFromArrayBuffer(ctx);
+              return function ($977) {
+                  return Control_Promise.toAffE($976($977));
               };
           })());
       };
@@ -23787,7 +23786,7 @@ var PS = {};
       return dict.connectXToY;
   };
   var interpretInstruction = function (dictAudioInterpret) {
-      var $982 = Data_Variant.match()()()({
+      var $978 = Data_Variant.match()()()({
           disconnectXFromY: function (a) {
               return disconnectXFromY(dictAudioInterpret)(a);
           },
@@ -24027,9 +24026,9 @@ var PS = {};
               });
           }
       });
-      var $983 = Data_Newtype.unwrap();
-      return function ($984) {
-          return $982($983($984));
+      var $979 = Data_Newtype.unwrap();
+      return function ($980) {
+          return $978($979($980));
       };
   };
   var makeInstructionsEffectful = function (a) {
@@ -24040,7 +24039,7 @@ var PS = {};
           if (v instanceof Data_Maybe.Just) {
               return Data_Functor.map(Data_Functor.functorArray)(interpretInstruction(effectfulAudioInterpret))(Data_Array.fromFoldable(Data_Set.foldableSet)(WAGS_Tumult_Reconciliation.reconcileTumult(Data_Set.fromFoldable(Data_Foldable.foldableArray)(WAGS_Rendered.ordInstruction)(a))(Data_Set.fromFoldable(Data_Foldable.foldableArray)(WAGS_Rendered.ordInstruction)(v.value0))));
           };
-          throw new Error("Failed pattern match at WAGS.Interpret (line 906, column 31 - line 909, column 85): " + [ v.constructor.name ]);
+          throw new Error("Failed pattern match at WAGS.Interpret (line 898, column 31 - line 901, column 85): " + [ v.constructor.name ]);
       };
   };
   var effectfulAudioInterpret = {
@@ -24221,7 +24220,7 @@ var PS = {};
           return function (dictPos) {
               return function (v) {
                   return function (audio) {
-                      return $foreign.makeSubgraph_(v.id)(Data_Symbol.reflectSymbol(dictIsSymbol)(v.terminus))(Data_Vec.toArray(v.controls))(v.scenes)(v.envs)(function (env) {
+                      return $foreign.makeSubgraph_(v.id)(Data_Symbol.reflectSymbol(dictIsSymbol)(v.terminus))(Data_Vec.toArray(v.envs))(v.scenes)(function (env) {
                           return function (scene) {
                               var res = WAGS_Control_Types.oneSubFrame(scene)(env);
                               return {
@@ -24377,7 +24376,7 @@ var PS = {};
       setSubgraph: function (dictPos) {
           return function (v) {
               return function (audio) {
-                  return $foreign.setSubgraph_(v.id)(Data_Vec.toArray(v.controls))(v.envs)(safeToFFI(safeToFFI_FFIAudio)(audio));
+                  return $foreign.setSubgraph_(v.id)(Data_Vec.toArray(v.envs))(safeToFFI(safeToFFI_FFIAudio)(audio));
               };
           };
       },
@@ -24486,15 +24485,13 @@ var PS = {};
                       return new Data_Tuple.Tuple(makeSubgraph(freeAudioInterpret)(dictIsSymbol)(dictPos)({
                           id: v.id,
                           terminus: v.terminus,
-                          controls: v.controls,
                           envs: v.envs,
-                          scenes: Data_Functor.map(Data_Functor.functorFn)(Data_Functor.map(Data_Functor.functorFn)(audioEngine1st))(v.scenes)
+                          scenes: Data_Functor.map(Data_Functor.functorFn)(audioEngine1st)(v.scenes)
                       })(v1.value0), makeSubgraph(effectfulAudioInterpret)(dictIsSymbol)(dictPos)({
                           id: v.id,
                           terminus: v.terminus,
-                          controls: v.controls,
                           envs: v.envs,
-                          scenes: Data_Functor.map(Data_Functor.functorFn)(Data_Functor.map(Data_Functor.functorFn)(audioEngine2nd))(v.scenes)
+                          scenes: Data_Functor.map(Data_Functor.functorFn)(audioEngine2nd)(v.scenes)
                       })(v1.value1));
                   };
               };
@@ -24803,11 +24800,9 @@ var PS = {};
               return function (v1) {
                   return new Data_Tuple.Tuple(setSubgraph(freeAudioInterpret)(dictPos)({
                       id: v.id,
-                      controls: v.controls,
                       envs: v.envs
                   })(v1.value0), setSubgraph(effectfulAudioInterpret)(dictPos)({
                       id: v.id,
-                      controls: v.controls,
                       envs: v.envs
                   })(v1.value1));
               };
@@ -25248,8 +25243,7 @@ var PS = {};
                                           res: v.context.res,
                                           instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)([ WAGS_Interpret.setSubgraph(dictAudioInterpret)(dictPos)({
                                               id: nn,
-                                              controls: v.value.value0,
-                                              envs: v.value.value2
+                                              envs: v.value.value1
                                           }) ])
                                       },
                                       value: Data_Unit.unit
@@ -26354,10 +26348,10 @@ var PS = {};
       return function (dictChange$prime) {
           return function (ptr) {
               return function (a) {
-                  var $836 = change$prime(dictChange$prime)(dictAudioInterpret)(ptr);
-                  var $837 = Data_Functor.voidRight(WAGS_Control_Types.functorWAG)(a);
-                  return function ($838) {
-                      return $836($837($838));
+                  var $835 = change$prime(dictChange$prime)(dictAudioInterpret)(ptr);
+                  var $836 = Data_Functor.voidRight(WAGS_Control_Types.functorWAG)(a);
+                  return function ($837) {
+                      return $835($836($837));
                   };
               };
           };
@@ -26369,10 +26363,10 @@ var PS = {};
   var ichange = function (dictAudioInterpret) {
       return function (dictChange) {
           return function (r) {
-              var $839 = change(dictChange)(dictAudioInterpret);
-              var $840 = Data_Functor.voidRight(WAGS_Control_Types.functorWAG)(r);
-              return function ($841) {
-                  return $839($840($841));
+              var $838 = change(dictChange)(dictAudioInterpret);
+              var $839 = Data_Functor.voidRight(WAGS_Control_Types.functorWAG)(r);
+              return function ($840) {
+                  return $838($839($840));
               };
           };
       };
@@ -27404,9 +27398,8 @@ var PS = {};
                                               instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)([ WAGS_Interpret.makeSubgraph(dictAudioInterpret)(dictIsSymbol1)(dictPos)({
                                                   id: nn,
                                                   terminus: Type_Proxy["Proxy"].value,
-                                                  controls: v.value.value0,
-                                                  envs: v.value.value2,
-                                                  scenes: WAGS_Interpret.unAsSubGraph(v.value.value1)(dictAudioInterpret)
+                                                  envs: v.value.value1,
+                                                  scenes: WAGS_Interpret.unAsSubGraph(v.value.value0)(dictAudioInterpret)
                                               }) ])
                                           },
                                           value: Data_Unit.unit
@@ -28397,10 +28390,10 @@ var PS = {};
   var icreate = function (dictAudioInterpret) {
       return function (dictCreate) {
           return function (r) {
-              var $574 = create(dictCreate)(dictAudioInterpret);
-              var $575 = Data_Functor.voidRight(WAGS_Control_Types.functorWAG)(r);
-              return function ($576) {
-                  return $574($575($576));
+              var $573 = create(dictCreate)(dictAudioInterpret);
+              var $574 = Data_Functor.voidRight(WAGS_Control_Types.functorWAG)(r);
+              return function ($575) {
+                  return $573($574($575));
               };
           };
       };
@@ -29017,13 +29010,11 @@ var PS = {};
       };
   };
   var subgraph = function (dictPos) {
-      return function (vec) {
+      return function (ev) {
           return function (sg) {
-              return function (ev) {
-                  return Data_Tuple.Tuple.create(new WAGS_Graph_AudioUnit.Subgraph(vec, function (dictAudioInterpret) {
-                      return sg(dictAudioInterpret);
-                  }, ev));
-              };
+              return Data_Tuple.Tuple.create(new WAGS_Graph_AudioUnit.Subgraph(function (dictAudioInterpret) {
+                  return sg(dictAudioInterpret);
+              }, ev));
           };
       };
   };
@@ -36291,9 +36282,8 @@ var PS = {};
                                       return WAGS_Interpret.makeSubgraph(dictAudioInterpret)(dictIsSymbol1)(dictPos)({
                                           id: id,
                                           terminus: Type_Proxy["Proxy"].value,
-                                          controls: v1.value0,
-                                          envs: v1.value2,
-                                          scenes: WAGS_Interpret.unAsSubGraph(v1.value1)(dictAudioInterpret)
+                                          envs: v1.value1,
+                                          scenes: WAGS_Interpret.unAsSubGraph(v1.value0)(dictAudioInterpret)
                                       });
                                   })(getSubgraphsRL(dictGetSubgraphsRL)(Type_Proxy["Proxy"].value)(t));
                               };
@@ -39057,8 +39047,7 @@ var PS = {};
       };
       StopAudio.value = new StopAudio();
       return StopAudio;
-  })();
-  var vec = Data_Vec.fill(Data_Typelevel_Num_Sets.posNatD0(Data_Typelevel_Num_Sets.posD4))(Data_Function["const"](Data_Unit.unit));
+  })();                                                                                                                            
   var unTriggerSG = function (v) {
       return v;
   };
@@ -39288,22 +39277,17 @@ var PS = {};
       })(Data_Typelevel_Num_Sets.posPosD0(Data_Typelevel_Num_Sets.posD4))()(WAGS_Patch.getSubgraphsRLOther(WAGS_Patch.getSubgraphsRLNil)))))))(WAGS_Patch.getTumultsAll()(WAGS_Patch.getTumultsRLOther(WAGS_Patch.getTumultsRLOther(WAGS_Patch.getTumultsRLOther(WAGS_Patch.getTumultsRLOther(WAGS_Patch.getTumultsRLOther(WAGS_Patch.getTumultsRLNil)))))))({
           microphone: Data_Maybe.Nothing.value,
           mediaElement: Data_Maybe.Nothing.value,
-          subgraphs: {
-              sg: Data_Tuple.fst(WAGS_Create_Optionals.subgraph(Data_Typelevel_Num_Sets.posPosD0(Data_Typelevel_Num_Sets.posD4))(vec)(function (dictAudioInterpret) {
-                  return function (i) {
-                      return function (v) {
-                          return subPiece0(dictAudioInterpret)(i)(atar);
-                      };
-                  };
-              })(Data_Function["const"](Data_Function["const"](false)))({})),
-              sg2: Data_Tuple.fst(WAGS_Create_Optionals.subgraph(Data_Typelevel_Num_Sets.posPosD0(Data_Typelevel_Num_Sets.posD4))(vec)(function (dictAudioInterpret) {
-                  return function (i) {
-                      return function (v) {
-                          return subPiece1(dictAudioInterpret)(i);
-                      };
-                  };
-              })(Data_Function["const"](Data_Function["const"](false)))({}))
-          },
+          subgraphs: (function () {
+              var envs = Data_Vec.fill(Data_Typelevel_Num_Sets.posNatD0(Data_Typelevel_Num_Sets.posD4))(Data_Function["const"](false));
+              return {
+                  sg: Data_Tuple.fst(WAGS_Create_Optionals.subgraph(Data_Typelevel_Num_Sets.posPosD0(Data_Typelevel_Num_Sets.posD4))(envs)(function (dictAudioInterpret) {
+                      return Data_Function.flip(subPiece0(dictAudioInterpret))(atar);
+                  })({})),
+                  sg2: Data_Tuple.fst(WAGS_Create_Optionals.subgraph(Data_Typelevel_Num_Sets.posPosD0(Data_Typelevel_Num_Sets.posD4))(envs)(function (dictAudioInterpret) {
+                      return subPiece1(dictAudioInterpret);
+                  })({}))
+              };
+          })(),
           tumults: {}
       }))(WAGS_Change["ichange'"](WAGS_Interpret.mixedAudioInterpret)(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeGain({
           reflectSymbol: function () {
@@ -39454,15 +39438,15 @@ var PS = {};
                                   return Control_Applicative.pure(Effect.applicativeEffect)(Data_Unit.unit);
                               })))(function (unsubscribe) {
                                   return Control_Monad_State_Class.modify_(Halogen_Query_HalogenM.monadStateHalogenM)(function (v1) {
-                                      var $48 = {};
-                                      for (var $49 in v1) {
-                                          if ({}.hasOwnProperty.call(v1, $49)) {
-                                              $48[$49] = v1[$49];
+                                      var $46 = {};
+                                      for (var $47 in v1) {
+                                          if ({}.hasOwnProperty.call(v1, $47)) {
+                                              $46[$47] = v1[$47];
                                           };
                                       };
-                                      $48.unsubscribe = unsubscribe;
-                                      $48.audioCtx = new Data_Maybe.Just(audioCtx);
-                                      return $48;
+                                      $46.unsubscribe = unsubscribe;
+                                      $46.audioCtx = new Data_Maybe.Just(audioCtx);
+                                      return $46;
                                   });
                               });
                           });
@@ -39473,27 +39457,27 @@ var PS = {};
                   return Control_Bind.bind(Halogen_Query_HalogenM.bindHalogenM)(Control_Monad_State_Class.get(Halogen_Query_HalogenM.monadStateHalogenM))(function (v1) {
                       return Control_Bind.discard(Control_Bind.discardUnit)(Halogen_Query_HalogenM.bindHalogenM)(Effect_Class.liftEffect(Halogen_Query_HalogenM.monadEffectHalogenM(dictMonadAff.MonadEffect0()))(v1.unsubscribe))(function () {
                           return Control_Bind.discard(Control_Bind.discardUnit)(Halogen_Query_HalogenM.bindHalogenM)(Data_Foldable.for_(Halogen_Query_HalogenM.applicativeHalogenM)(Data_Foldable.foldableMaybe)(v1.audioCtx)((function () {
-                              var $57 = Effect_Class.liftEffect(Halogen_Query_HalogenM.monadEffectHalogenM(dictMonadAff.MonadEffect0()));
-                              return function ($58) {
-                                  return $57(WAGS_Interpret.close($58));
+                              var $55 = Effect_Class.liftEffect(Halogen_Query_HalogenM.monadEffectHalogenM(dictMonadAff.MonadEffect0()));
+                              return function ($56) {
+                                  return $55(WAGS_Interpret.close($56));
                               };
                           })()))(function () {
                               return Control_Monad_State_Class.modify_(Halogen_Query_HalogenM.monadStateHalogenM)(function (v2) {
-                                  var $52 = {};
-                                  for (var $53 in v2) {
-                                      if ({}.hasOwnProperty.call(v2, $53)) {
-                                          $52[$53] = v2[$53];
+                                  var $50 = {};
+                                  for (var $51 in v2) {
+                                      if ({}.hasOwnProperty.call(v2, $51)) {
+                                          $50[$51] = v2[$51];
                                       };
                                   };
-                                  $52.unsubscribe = Control_Applicative.pure(Effect.applicativeEffect)(Data_Unit.unit);
-                                  $52.audioCtx = Data_Maybe.Nothing.value;
-                                  return $52;
+                                  $50.unsubscribe = Control_Applicative.pure(Effect.applicativeEffect)(Data_Unit.unit);
+                                  $50.audioCtx = Data_Maybe.Nothing.value;
+                                  return $50;
                               });
                           });
                       });
                   });
               };
-              throw new Error("Failed pattern match at WAGS.Example.Patching (line 212, column 16 - line 236, column 64): " + [ v.constructor.name ]);
+              throw new Error("Failed pattern match at WAGS.Example.Patching (line 215, column 16 - line 239, column 64): " + [ v.constructor.name ]);
           };
       };
   };
@@ -43203,8 +43187,7 @@ var PS = {};
       };
       StopAudio.value = new StopAudio();
       return StopAudio;
-  })();
-  var vec = Data_Vec.fill(Data_Typelevel_Num_Sets.posNatD0(Data_Typelevel_Num_Sets.posD4))(Data_Function["const"](Data_Unit.unit));
+  })();                                                                                                                            
   var subPiece1 = function (dictAudioInterpret) {
       return function (i) {
           return WAGS_Control_Functions_Subgraph.loopUsingScene(Data_Monoid.monoidUnit)(dictAudioInterpret)(WAGS_Create.createAll(WAGS_Create.createInternalAll()(WAGS_Create.createStepRLCons({
@@ -43273,8 +43256,8 @@ var PS = {};
                       control: Data_Unit.unit,
                       scene: {
                           gnn: WAGS_Create_Optionals.gain(WAGS_Graph_Paramable.paramableNumber)((function () {
-                              var $27 = v >= Data_Int.toNumber(i * 2 | 0) + 1.0 && v < Data_Int.toNumber(i * 2 | 0) + 1.2;
-                              if ($27) {
+                              var $25 = v >= Data_Int.toNumber(i * 2 | 0) + 1.0 && v < Data_Int.toNumber(i * 2 | 0) + 1.2;
+                              if ($25) {
                                   return 0.1;
                               };
                               return 0.0;
@@ -43319,8 +43302,8 @@ var PS = {};
                                   }
                               })))(ConvertableOptions.defaultsRecord()())))({
                                   onOff: (function () {
-                                      var $29 = v < Data_Int.toNumber(i * 2 | 0) + 1.0;
-                                      if ($29) {
+                                      var $27 = v < Data_Int.toNumber(i * 2 | 0) + 1.0;
+                                      if ($27) {
                                           return WAGS_Graph_Parameter["_off"];
                                       };
                                       return WAGS_Graph_Parameter["_on"];
@@ -43498,26 +43481,21 @@ var PS = {};
       return function (v1) {
           return {
               control: Data_Unit.unit,
-              scene: WAGS_Create_Optionals.speaker({
-                  gn: WAGS_Create_Optionals.gain(WAGS_Graph_Paramable.paramableNumber)(1.0)({
-                      sg: WAGS_Create_Optionals.subgraph(Data_Typelevel_Num_Sets.posPosD0(Data_Typelevel_Num_Sets.posD4))(vec)(function (dictAudioInterpret) {
-                          return function (i) {
-                              return function (v2) {
-                                  return subPiece0(dictAudioInterpret)(i)(v.world.atar);
-                              };
-                          };
-                      })(Data_Function["const"](Data_Function["const"](v.time)))({}),
-                      sg2: WAGS_Create_Optionals.subgraph(Data_Typelevel_Num_Sets.posPosD0(Data_Typelevel_Num_Sets.posD4))(vec)(function (dictAudioInterpret) {
-                          return function (i) {
-                              return function (v2) {
-                                  return subPiece1(dictAudioInterpret)(i);
-                              };
-                          };
-                      })(Data_Function["const"](Data_Function["const"](v.time)))({
-                          beep: WAGS_Create_Optionals.sinOsc(WAGS_Create_Optionals.sinOscCtor2(WAGS_Graph_Paramable.paramableNumber))(440.0)
+              scene: WAGS_Create_Optionals.speaker((function () {
+                  var envs = Data_Vec.fill(Data_Typelevel_Num_Sets.posNatD0(Data_Typelevel_Num_Sets.posD4))(Data_Function["const"](v.time));
+                  return {
+                      gn: WAGS_Create_Optionals.gain(WAGS_Graph_Paramable.paramableNumber)(1.0)({
+                          sg: WAGS_Create_Optionals.subgraph(Data_Typelevel_Num_Sets.posPosD0(Data_Typelevel_Num_Sets.posD4))(envs)(function (dictAudioInterpret) {
+                              return Data_Function.flip(subPiece0(dictAudioInterpret))(v.world.atar);
+                          })({}),
+                          sg2: WAGS_Create_Optionals.subgraph(Data_Typelevel_Num_Sets.posPosD0(Data_Typelevel_Num_Sets.posD4))(envs)(function (dictAudioInterpret) {
+                              return subPiece1(dictAudioInterpret);
+                          })({
+                              beep: WAGS_Create_Optionals.sinOsc(WAGS_Create_Optionals.sinOscCtor2(WAGS_Graph_Paramable.paramableNumber))(440.0)
+                          })
                       })
-                  })
-              })
+                  };
+              })())
           };
       };
   })(Data_Monoid.mempty(Data_Monoid.monoidFn(Data_Monoid.monoidUnit)));
@@ -43551,15 +43529,15 @@ var PS = {};
                                   return Control_Applicative.pure(Effect.applicativeEffect)(Data_Unit.unit);
                               })))(function (unsubscribe) {
                                   return Control_Monad_State_Class.modify_(Halogen_Query_HalogenM.monadStateHalogenM)(function (v1) {
-                                      var $34 = {};
-                                      for (var $35 in v1) {
-                                          if ({}.hasOwnProperty.call(v1, $35)) {
-                                              $34[$35] = v1[$35];
+                                      var $32 = {};
+                                      for (var $33 in v1) {
+                                          if ({}.hasOwnProperty.call(v1, $33)) {
+                                              $32[$33] = v1[$33];
                                           };
                                       };
-                                      $34.unsubscribe = unsubscribe;
-                                      $34.audioCtx = new Data_Maybe.Just(audioCtx);
-                                      return $34;
+                                      $32.unsubscribe = unsubscribe;
+                                      $32.audioCtx = new Data_Maybe.Just(audioCtx);
+                                      return $32;
                                   });
                               });
                           });
@@ -43570,21 +43548,21 @@ var PS = {};
                   return Control_Bind.bind(Halogen_Query_HalogenM.bindHalogenM)(Control_Monad_State_Class.get(Halogen_Query_HalogenM.monadStateHalogenM))(function (v1) {
                       return Control_Bind.discard(Control_Bind.discardUnit)(Halogen_Query_HalogenM.bindHalogenM)(Effect_Class.liftEffect(Halogen_Query_HalogenM.monadEffectHalogenM(dictMonadAff.MonadEffect0()))(v1.unsubscribe))(function () {
                           return Control_Bind.discard(Control_Bind.discardUnit)(Halogen_Query_HalogenM.bindHalogenM)(Data_Foldable.for_(Halogen_Query_HalogenM.applicativeHalogenM)(Data_Foldable.foldableMaybe)(v1.audioCtx)((function () {
-                              var $43 = Effect_Class.liftEffect(Halogen_Query_HalogenM.monadEffectHalogenM(dictMonadAff.MonadEffect0()));
-                              return function ($44) {
-                                  return $43(WAGS_Interpret.close($44));
+                              var $41 = Effect_Class.liftEffect(Halogen_Query_HalogenM.monadEffectHalogenM(dictMonadAff.MonadEffect0()));
+                              return function ($42) {
+                                  return $41(WAGS_Interpret.close($42));
                               };
                           })()))(function () {
                               return Control_Monad_State_Class.modify_(Halogen_Query_HalogenM.monadStateHalogenM)(function (v2) {
-                                  var $38 = {};
-                                  for (var $39 in v2) {
-                                      if ({}.hasOwnProperty.call(v2, $39)) {
-                                          $38[$39] = v2[$39];
+                                  var $36 = {};
+                                  for (var $37 in v2) {
+                                      if ({}.hasOwnProperty.call(v2, $37)) {
+                                          $36[$37] = v2[$37];
                                       };
                                   };
-                                  $38.unsubscribe = Control_Applicative.pure(Effect.applicativeEffect)(Data_Unit.unit);
-                                  $38.audioCtx = Data_Maybe.Nothing.value;
-                                  return $38;
+                                  $36.unsubscribe = Control_Applicative.pure(Effect.applicativeEffect)(Data_Unit.unit);
+                                  $36.audioCtx = Data_Maybe.Nothing.value;
+                                  return $36;
                               });
                           });
                       });
@@ -43623,7 +43601,6 @@ var PS = {};
   var ConvertableOptions = $PS["ConvertableOptions"];
   var Data_Boolean = $PS["Data.Boolean"];
   var Data_Foldable = $PS["Data.Foldable"];
-  var Data_Function = $PS["Data.Function"];
   var Data_Functor = $PS["Data.Functor"];
   var Data_Maybe = $PS["Data.Maybe"];
   var Data_Monoid = $PS["Data.Monoid"];
@@ -43671,8 +43648,7 @@ var PS = {};
       };
       StopAudio.value = new StopAudio();
       return StopAudio;
-  })();
-  var vec = Data_Vec.fill(Data_Typelevel_Num_Sets.natD1)(Data_Function["const"](Data_Unit.unit));
+  })();                                                                                          
   var render = function (v) {
       return Halogen_HTML_Elements.div_(Data_Semigroup.append(Data_Semigroup.semigroupArray)([ Halogen_HTML_Elements.h1_([ Halogen_HTML_Core.text("Tumult test") ]), Halogen_HTML_Elements.button([ Halogen_HTML_Events.onClick(function (v1) {
           return StartAudio.value;
@@ -44177,13 +44153,9 @@ var PS = {};
               control: Data_Unit.unit,
               scene: WAGS_Create_Optionals.speaker({
                   gn: WAGS_Create_Optionals.gain(WAGS_Graph_Paramable.paramableNumber)(1.0)({
-                      sg2: WAGS_Create_Optionals.subgraph(Data_Typelevel_Num_Sets.posD1)(vec)(function (dictAudioInterpret) {
-                          return function (i) {
-                              return function (v2) {
-                                  return subPiece1(dictAudioInterpret)(i);
-                              };
-                          };
-                      })(Data_Function["const"](Data_Function["const"](v.time)))({
+                      sg2: WAGS_Create_Optionals.subgraph(Data_Typelevel_Num_Sets.posD1)(Data_Vec.singleton(v.time))(function (dictAudioInterpret) {
+                          return subPiece1(dictAudioInterpret);
+                      })({
                           beep: WAGS_Create_Optionals.loopBuf(WAGS_Create_Optionals.loopBufCtor2)(v.world.shruti)
                       })
                   })
@@ -44214,15 +44186,15 @@ var PS = {};
                                   return Control_Applicative.pure(Effect.applicativeEffect)(Data_Unit.unit);
                               })))(function (unsubscribe) {
                                   return Control_Monad_State_Class.modify_(Halogen_Query_HalogenM.monadStateHalogenM)(function (v1) {
-                                      var $27 = {};
-                                      for (var $28 in v1) {
-                                          if ({}.hasOwnProperty.call(v1, $28)) {
-                                              $27[$28] = v1[$28];
+                                      var $26 = {};
+                                      for (var $27 in v1) {
+                                          if ({}.hasOwnProperty.call(v1, $27)) {
+                                              $26[$27] = v1[$27];
                                           };
                                       };
-                                      $27.unsubscribe = unsubscribe;
-                                      $27.audioCtx = new Data_Maybe.Just(audioCtx);
-                                      return $27;
+                                      $26.unsubscribe = unsubscribe;
+                                      $26.audioCtx = new Data_Maybe.Just(audioCtx);
+                                      return $26;
                                   });
                               });
                           });
@@ -44233,27 +44205,27 @@ var PS = {};
                   return Control_Bind.bind(Halogen_Query_HalogenM.bindHalogenM)(Control_Monad_State_Class.get(Halogen_Query_HalogenM.monadStateHalogenM))(function (v1) {
                       return Control_Bind.discard(Control_Bind.discardUnit)(Halogen_Query_HalogenM.bindHalogenM)(Effect_Class.liftEffect(Halogen_Query_HalogenM.monadEffectHalogenM(dictMonadAff.MonadEffect0()))(v1.unsubscribe))(function () {
                           return Control_Bind.discard(Control_Bind.discardUnit)(Halogen_Query_HalogenM.bindHalogenM)(Data_Foldable.for_(Halogen_Query_HalogenM.applicativeHalogenM)(Data_Foldable.foldableMaybe)(v1.audioCtx)((function () {
-                              var $36 = Effect_Class.liftEffect(Halogen_Query_HalogenM.monadEffectHalogenM(dictMonadAff.MonadEffect0()));
-                              return function ($37) {
-                                  return $36(WAGS_Interpret.close($37));
+                              var $35 = Effect_Class.liftEffect(Halogen_Query_HalogenM.monadEffectHalogenM(dictMonadAff.MonadEffect0()));
+                              return function ($36) {
+                                  return $35(WAGS_Interpret.close($36));
                               };
                           })()))(function () {
                               return Control_Monad_State_Class.modify_(Halogen_Query_HalogenM.monadStateHalogenM)(function (v2) {
-                                  var $31 = {};
-                                  for (var $32 in v2) {
-                                      if ({}.hasOwnProperty.call(v2, $32)) {
-                                          $31[$32] = v2[$32];
+                                  var $30 = {};
+                                  for (var $31 in v2) {
+                                      if ({}.hasOwnProperty.call(v2, $31)) {
+                                          $30[$31] = v2[$31];
                                       };
                                   };
-                                  $31.unsubscribe = Control_Applicative.pure(Effect.applicativeEffect)(Data_Unit.unit);
-                                  $31.audioCtx = Data_Maybe.Nothing.value;
-                                  return $31;
+                                  $30.unsubscribe = Control_Applicative.pure(Effect.applicativeEffect)(Data_Unit.unit);
+                                  $30.audioCtx = Data_Maybe.Nothing.value;
+                                  return $30;
                               });
                           });
                       });
                   });
               };
-              throw new Error("Failed pattern match at WAGS.Example.Tumult (line 144, column 16 - line 162, column 64): " + [ v.constructor.name ]);
+              throw new Error("Failed pattern match at WAGS.Example.Tumult (line 143, column 16 - line 161, column 64): " + [ v.constructor.name ]);
           };
       };
   };
