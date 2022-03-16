@@ -750,15 +750,14 @@ exports.makeInput_ = function (ptr) {
 
 exports.makeSubgraph_ = function (ptr) {
 	return function (terminalPtr) {
-		return function (vek) {
+		return function (envs) {
 			return function (sceneM) {
-				return function (envM) {
 					return function (funk) {
 						return function (state) {
 							return function () {
 								var children = [];
 								var scenes = [];
-								for (var i = 0; i < vek.length; i++) {
+								for (var i = 0; i < envs.length; i++) {
 									children[i] = {
 										context: state.context,
 										writeHead: state.writeHead,
@@ -766,7 +765,7 @@ exports.makeSubgraph_ = function (ptr) {
 										unqidfr: makeid(10),
 										parent: state,
 									};
-									scenes[i] = sceneM(i)(vek[i]);
+									scenes[i] = sceneM(i);
 								}
 								state.units[ptr] = {
 									outgoing: [],
@@ -779,7 +778,7 @@ exports.makeSubgraph_ = function (ptr) {
 								};
 								state.units[ptr].main.gain.value = 1.0;
 								for (var i = 0; i < scenes.length; i++) {
-									var applied = funk(envM(i)(vek[i]))(scenes[i]);
+									var applied = funk(envs[i])(scenes[i]);
 									for (var j = 0; j < applied.instructions.length; j++) {
 										// thunk
 										applied.instructions[j](children[i])();
@@ -796,7 +795,6 @@ exports.makeSubgraph_ = function (ptr) {
 			};
 		};
 	};
-};
 /**
  *
  * String
@@ -1148,17 +1146,16 @@ exports.setInput_ = function (ptr) {
 };
 
 exports.setSubgraph_ = function (ptr) {
-	return function (vek) {
-		return function (envM) {
+	return function (envs) {
 			return function (state) {
 				return function () {
-					for (var i = 0; i < vek.length; i++) {
+					for (var i = 0; i < envs.length; i++) {
 						state.units[ptr].children[i].writeHead = state.writeHead;
 					}
 					var scenes = state.units[ptr].scenes;
 					var children = state.units[ptr].children;
 					for (var i = 0; i < scenes.length; i++) {
-						var applied = state.units[ptr].funk(envM(i)(vek[i]))(scenes[i]);
+						var applied = state.units[ptr].funk(envs[i])(scenes[i]);
 						for (var j = 0; j < applied.instructions.length; j++) {
 							// thunk
 							applied.instructions[j](children[i])();
@@ -1169,7 +1166,6 @@ exports.setSubgraph_ = function (ptr) {
 			};
 		};
 	};
-};
 
 exports.setSingleSubgraph_ = function (ptr) {
 	return function (i) {

@@ -63,17 +63,18 @@ piece :: Scene (BehavingScene Unit World ()) RunAudio RunEngine Frame0 Unit
 piece = mempty # loopUsingScene \(BehavingScene env) _ ->
   { control: unit
   , scene: speaker
-      { gn: gain 1.0
-          { sg: subgraph vec
-              (\i _ -> subPiece0 i env.world.atar)
-              (const $ const $ SGWorld env.time)
-              {}
-          , sg2: subgraph vec
-              (\i _ -> subPiece1 i)
-              (const $ const $ SGWorld env.time)
-              { beep: sinOsc 440.0 }
-          }
-      }
+      let
+        envs = (V.fill $ const $ SGWorld env.time :: V.Vec D40 SGWorld)
+      in
+        { gn: gain 1.0
+            { sg: subgraph envs
+                (flip subPiece0 env.world.atar)
+                {}
+            , sg2: subgraph envs
+                (subPiece1)
+                { beep: sinOsc 440.0 }
+            }
+        }
   }
 
 easingAlgorithm :: Cofree ((->) Int) Int
@@ -89,8 +90,7 @@ main =
     body <- awaitBody
     runUI component unit body
 
-type State
-  =
+type State =
   { unsubscribe :: Effect Unit
   , audioCtx :: Maybe AudioContext
   , freqz :: Array String
@@ -142,8 +142,8 @@ handleAction = case _ of
     unsubscribe <-
       H.liftEffect
         $ subscribe
-          (run (pure unit) (pure { atar }) { easingAlgorithm } (ffiAudio) piece)
-          (\(_ :: BehavingRun Unit ()) -> pure unit)
+            (run (pure unit) (pure { atar }) { easingAlgorithm } (ffiAudio) piece)
+            (\(_ :: BehavingRun Unit ()) -> pure unit)
     H.modify_ _ { unsubscribe = unsubscribe, audioCtx = Just audioCtx }
   StopAudio -> do
     { unsubscribe, audioCtx } <- H.get

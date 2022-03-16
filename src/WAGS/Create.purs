@@ -51,9 +51,9 @@ instance createStepRLNil :: CreateStepRL RL.Nil prefix map r inGraph inGraph whe
   createStepRL _ _ _ r = r $> unit
 instance createStepRLConsB ::
   ( IsSymbol key
-  , R.Cons key (Tuple (CTOR.Subgraph inputs subgraphGenerator subgraphMaker env) ignoreMe) ignore r
+  , R.Cons key (Tuple (CTOR.Subgraph inputs subgraphMaker env) ignoreMe) ignore r
   , MakePrefixIfNeeded key prefix prefix'
-  , ConstructEdges prefix' map (Tuple (CTOR.Subgraph inputs subgraphGenerator subgraphMaker env) ignoreMe) newPrefix newMap (node /\ { | edges })
+  , ConstructEdges prefix' map (Tuple (CTOR.Subgraph inputs subgraphMaker env) ignoreMe) newPrefix newMap (node /\ { | edges })
   , CoercePrefixToString prefix realPrefix
   , Sym.Append realPrefix key newKey
   , RL.RowToList edges edgesRL
@@ -63,7 +63,7 @@ instance createStepRLConsB ::
   , CreateStepRL rest prefix map r graph1 graph2
   , Create' newKey node graph2 graph3
   ) =>
-  CreateStepRL (RL.Cons key (Tuple (CTOR.Subgraph inputs subgraphGenerator subgraphMaker env) ignoreMe) rest) prefix map r graph0 graph3 where
+  CreateStepRL (RL.Cons key (Tuple (CTOR.Subgraph inputs subgraphMaker env) ignoreMe) rest) prefix map r graph0 graph3 where
   createStepRL _ _ _ r = step3
     where
     rx = extract r
@@ -990,17 +990,17 @@ instance createSubgraph ::
   , R.Lacks ptr graphi
   , R.Cons ptr (NodeC (CTOR.TSubgraph n terminus inputs env) {}) graphi grapho
   ) =>
-  Create' ptr (CTOR.Subgraph inputs (V.Vec n info) (AsSubgraph terminus inputs info env) (Int -> info -> env)) graphi grapho where
+  Create' ptr (CTOR.Subgraph inputs (AsSubgraph terminus inputs env) (V.Vec n env)) graphi grapho where
   create' ptr w = o
     where
-    { context: i, value: (CTOR.Subgraph vec asSub env) } = unsafeUnWAG w
+    { context: i, value: (CTOR.Subgraph asSub env) } = unsafeUnWAG w
     nn = reflectSymbol ptr
     o =
       unsafeWAG
         { context:
             i
               { instructions = i.instructions <>
-                  [ makeSubgraph { id: nn, terminus: Proxy :: _ terminus, controls: vec, envs: env, scenes: unAsSubGraph asSub } ]
+                  [ makeSubgraph { id: nn, terminus: Proxy :: _ terminus, envs: env, scenes: unAsSubGraph asSub } ]
               }
         , value: unit
         }

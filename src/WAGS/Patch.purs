@@ -762,19 +762,18 @@ instance getSubgraphsRLTumult ::
   ( IsSymbol id
   , IsSymbol terminus
   , Pos n
-  , Row.Cons id (CTOR.Subgraph inputs (Vec n info) (AsSubgraph terminus inputs info env) (Int -> info -> env)) r' subgraphs
+  , Row.Cons id (CTOR.Subgraph inputs (AsSubgraph terminus inputs env) (Vec n env)) r' subgraphs
   , GetSubgraphsRL rest subgraphs
   ) =>
   GetSubgraphsRL (RL.Cons id (TSubgraph n terminus inputs env /\ whatever) rest) subgraphs where
   getSubgraphsRL _ t = Object.insert id
     ( AE
         ( let
-            (CTOR.Subgraph vec asSub env) = get (Proxy :: _ id) t
+            (CTOR.Subgraph asSub env) = get (Proxy :: _ id) t
           in
             makeSubgraph
               { id
               , terminus: Proxy :: _ terminus
-              , controls: vec
               , envs: env
               , scenes: unAsSubGraph asSub
               }

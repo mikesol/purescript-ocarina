@@ -277,7 +277,7 @@ instance createSubgraph ::
   ( R.Lacks ptr graphi
   , R.Cons ptr (NodeC (CTOR.TSubgraph n terminus inputs env) {}) graphi grapho
   ) =>
-  CreateT' ptr (CTOR.Subgraph inputs (V.Vec n info) (AsSubgraph terminus inputs info env) (Int -> info -> env)) graphi grapho
+  CreateT' ptr (CTOR.Subgraph inputs (AsSubgraph terminus inputs env) (V.Vec n env)) graphi grapho
 
 instance createTTriangleOsc ::
   ( R.Lacks ptr graphi

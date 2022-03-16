@@ -151,9 +151,12 @@ createFrame atar =
     { microphone: Nothing
     , mediaElement: Nothing
     , subgraphs:
-        { sg: fst (subgraph vec  (\i _ -> subPiece0 i atar) (const $ const $ SGWorld false) {})
-        , sg2: fst (subgraph  vec(\i _ -> subPiece1 i) (const $ const $ SGWorld false) {})
-        }
+        let
+          envs = V.fill $ const $ SGWorld false :: V.Vec D40 SGWorld
+        in
+          { sg: fst (subgraph envs (flip subPiece0 atar) {})
+          , sg2: fst (subgraph envs (subPiece1) {})
+          }
     , tumults: {}
     } :*> ichange' (Proxy :: _ "gn") 1.0
     :*> ichange' (Proxy :: _ "beep") { freq: 550.0, onOff: _on }

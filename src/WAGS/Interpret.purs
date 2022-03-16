@@ -343,42 +343,36 @@ foreign import bufferNumberOfChannels :: BrowserAudioBuffer -> Int
 
 data FFIAudioSnapshot
 
-newtype AsSubgraph terminus inputs info env = AsSubgraph
+newtype AsSubgraph terminus inputs env = AsSubgraph
   ( forall audio engine
      . AudioInterpret audio engine
     => Int
-    -> info
     -> SubScene terminus inputs env audio engine Frame0 Unit
   )
 
 unAsSubGraph
-  :: forall terminus inputs info env
-   . AsSubgraph terminus inputs info env
+  :: forall terminus inputs env
+   . AsSubgraph terminus inputs env
   -> ( forall audio engine
         . AudioInterpret audio engine
        => Int
-       -> info
        -> SubScene terminus inputs env audio engine Frame0 Unit
      )
 unAsSubGraph (AsSubgraph subgraph) = subgraph
 
-type SubgraphInput :: forall k. (Symbol -> Type) -> Symbol -> Row Type -> k -> Type -> Type -> Type -> Type -> Type
-type SubgraphInput proxy terminus inputs n a env audio engine =
+type SubgraphInput :: forall k. (Symbol -> Type) -> Symbol -> Row Type -> k -> Type -> Type -> Type -> Type
+type SubgraphInput proxy terminus inputs n env audio engine =
   { id :: String
   , terminus :: proxy terminus
-  , controls :: V.Vec n a
-  , envs :: Int -> a -> env
+  , envs :: V.Vec n env
   , scenes ::
-      Int
-      -> a
-      -> SubScene terminus inputs env audio engine Frame0 Unit
+      Int -> SubScene terminus inputs env audio engine Frame0 Unit
   }
 
-type SetSubgraphInput :: forall k. k -> Type -> Type -> Type
-type SetSubgraphInput n a env =
+type SetSubgraphInput :: forall k. k -> Type -> Type
+type SetSubgraphInput n env =
   { id :: String
-  , controls :: V.Vec n a
-  , envs :: Int -> a -> env
+  , envs :: V.Vec n env
   }
 
 type SetSingleSubgraphInput n env =
@@ -487,10 +481,10 @@ class AudioInterpret audio engine where
   makeStereoPanner :: R.MakeStereoPanner -> audio -> engine
   -- | Make sugbraph.
   makeSubgraph
-    :: forall proxy terminus inputs env n a
+    :: forall proxy terminus inputs env n
      . IsSymbol terminus
     => Pos n
-    => SubgraphInput proxy terminus inputs n a env audio engine
+    => SubgraphInput proxy terminus inputs n env audio engine
     -> audio
     -> engine
   -- | Make a triangle-wave oscillator.
@@ -551,9 +545,9 @@ class AudioInterpret audio engine where
   setInput :: R.SetInput -> audio -> engine
   -- | Set subgraph.
   setSubgraph
-    :: forall env n a
+    :: forall env n
      . Pos n
-    => SetSubgraphInput n a env
+    => SetSubgraphInput n env
     -> audio
     -> engine
   setSingleSubgraph
@@ -565,18 +559,18 @@ class AudioInterpret audio engine where
   setTumult :: R.SetTumult -> audio -> engine
 
 handleSubgraph
-  :: forall proxy terminus inputs env n a
+  :: forall proxy terminus inputs env n
    . (R.MakeSubgraph -> Instruction)
-  -> SubgraphInput proxy terminus inputs n a env Unit Instruction
+  -> SubgraphInput proxy terminus inputs n env Unit Instruction
   -> Unit
   -> Instruction
-handleSubgraph f { id, controls, envs, scenes } = const $ f
+handleSubgraph f { id, envs, scenes } = const $ f
   { id
   , instructions:
       defer \_ ->
         let
-          allEnvs = mapWithIndex envs controls
-          subs = mapWithIndex scenes controls
+          allEnvs = envs
+          subs = mapWithIndex (const <<< scenes) envs
           frames = V.zipWithE oneSubFrame subs allEnvs
         in
           (map <<< map) ((#) unit) (map _.instructions (V.toArray frames))
@@ -726,12 +720,11 @@ foreign import makeWaveShaper_ :: String -> BrowserFloatArray -> String -> FFIAu
 foreign import makeInput_ :: String -> String -> FFIAudioSnapshot -> Effect Unit
 
 foreign import makeSubgraph_
-  :: forall a env scene
+  :: forall env scene
    . String
   -> String
-  -> Array a
-  -> (Int -> a -> scene)
-  -> (Int -> a -> env)
+  -> Array env
+  -> (Int -> scene)
   -> (env -> scene -> { instructions :: Array (FFIAudioSnapshot -> Effect Unit), nextScene :: scene })
   -> FFIAudioSnapshot
   -> Effect Unit
@@ -807,10 +800,9 @@ foreign import setWaveShaperCurve_ :: String -> BrowserFloatArray -> FFIAudioSna
 foreign import setInput_ :: String -> String -> FFIAudioSnapshot -> Effect Unit
 
 foreign import setSubgraph_
-  :: forall a env
+  :: forall env
    . String
-  -> Array a
-  -> (Int -> a -> env)
+  -> Array env
   -> FFIAudioSnapshot
   -> Effect Unit
 
@@ -944,7 +936,7 @@ instance effectfulAudioInterpret :: AudioInterpret FFIAudioSnapshot (Effect Unit
   makeSpeaker a = makeSpeaker_ (safeToFFI a)
   makeSquareOsc { id, onOff, freq } d = makeSquareOsc_ (safeToFFI id) (safeToFFI onOff) (safeToFFI freq) (safeToFFI d)
   makeStereoPanner { id, pan } c = makeStereoPanner_ (safeToFFI id) (safeToFFI pan) (safeToFFI c)
-  makeSubgraph { id, terminus, controls, envs, scenes } audio = makeSubgraph_ id (reflectSymbol terminus) (Vec.toArray controls) scenes envs (\env scene -> let res = oneSubFrame scene env in { instructions: res.instructions, nextScene: res.next }) (safeToFFI audio)
+  makeSubgraph { id, terminus, envs, scenes } audio = makeSubgraph_ id (reflectSymbol terminus) (Vec.toArray envs) scenes (\env scene -> let res = oneSubFrame scene env in { instructions: res.instructions, nextScene: res.next }) (safeToFFI audio)
   makeTumult { id, terminus, instructions } toFFI = makeTumult_ id terminus instructions Nothing Just makeInstructionsEffectful (safeToFFI toFFI)
   makeTriangleOsc { id, onOff, freq } d = makeTriangleOsc_ (safeToFFI id) (safeToFFI onOff) (safeToFFI freq) (safeToFFI d)
   makeWaveShaper { id, curve, oversample } d = makeWaveShaper_ (safeToFFI id) (safeToFFI curve) (safeToFFI oversample) (safeToFFI d)
@@ -973,7 +965,7 @@ instance effectfulAudioInterpret :: AudioInterpret FFIAudioSnapshot (Effect Unit
   setFrequency { id, frequency } c = setFrequency_ (safeToFFI id) (safeToFFI frequency) (safeToFFI c)
   setWaveShaperCurve { id, curve } c = setWaveShaperCurve_ (safeToFFI id) (safeToFFI curve) (safeToFFI c)
   setInput { id, source } c = setInput_ (safeToFFI id) (safeToFFI source) (safeToFFI c)
-  setSubgraph { id, controls, envs } audio = setSubgraph_ id (Vec.toArray controls) envs (safeToFFI audio)
+  setSubgraph { id, envs } audio = setSubgraph_ id (Vec.toArray envs) (safeToFFI audio)
   setSingleSubgraph { id, index, env } audio = setSingleSubgraph_ id (toInt index) env (safeToFFI audio)
   setTumult { id, terminus, instructions } toFFI = setTumult_ id terminus instructions Nothing Just makeInstructionsEffectful (safeToFFI toFFI)
 
@@ -1147,7 +1139,7 @@ instance mixedAudioInterpret :: AudioInterpret (Unit /\ FFIAudioSnapshot) (Instr
   connectXToY a (x /\ y) = connectXToY a x /\ connectXToY a y
   disconnectXFromY a (x /\ y) = disconnectXFromY a x /\ disconnectXFromY a y
   destroyUnit a (x /\ y) = destroyUnit a x /\ destroyUnit a y
-  makeSubgraph { id, terminus, controls, envs, scenes } (x /\ y) = makeSubgraph { id, terminus, controls, envs, scenes: (map <<< map) audioEngine1st scenes } x /\ makeSubgraph { id, terminus, controls, envs, scenes: (map <<< map) audioEngine2nd scenes } y
+  makeSubgraph { id, terminus, envs, scenes } (x /\ y) = makeSubgraph { id, terminus, envs, scenes: map audioEngine1st scenes } x /\ makeSubgraph { id, terminus, envs, scenes: map audioEngine2nd scenes } y
   makeInput a (x /\ y) = makeInput a x /\ makeInput a y
   makeAllpass a (x /\ y) = makeAllpass a x /\ makeAllpass a y
   makeAnalyser a (x /\ y) = makeAnalyser a x /\ makeAnalyser a y
@@ -1208,6 +1200,6 @@ instance mixedAudioInterpret :: AudioInterpret (Unit /\ FFIAudioSnapshot) (Instr
   setFrequency a (x /\ y) = setFrequency a x /\ setFrequency a y
   setWaveShaperCurve a (x /\ y) = setWaveShaperCurve a x /\ setWaveShaperCurve a y
   setInput a (x /\ y) = setInput a x /\ setInput a y
-  setSubgraph { id, controls, envs } (x /\ y) = setSubgraph { id, controls, envs } x /\ setSubgraph { id, controls, envs } y
+  setSubgraph { id, envs } (x /\ y) = setSubgraph { id, envs } x /\ setSubgraph { id, envs } y
   setSingleSubgraph { id, index, env } (x /\ y) = setSingleSubgraph { id, index, env } x /\ setSingleSubgraph { id, index, env } y
   setTumult a (x /\ y) = setTumult a x /\ setTumult a y

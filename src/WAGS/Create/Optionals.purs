@@ -1002,27 +1002,24 @@ type CStereoPanner a
 -- | ```
 -- | the validity of inputs with respect to r is validated higher upstream (at the scene construction level)
 subgraph
-  :: forall n inputs info terminus env r
+  :: forall n inputs terminus env r
    . Pos n
-  => V.Vec n info
+  => V.Vec n env
   -> ( forall audio engine
         . AudioInterpret audio engine
        => Int
-       -> info
        -> SubScene terminus inputs env audio engine Frame0 Unit
      )
-  -> (Int -> info -> env)
   -> r
-  -> (CTOR.Subgraph inputs (V.Vec n info) (AsSubgraph terminus inputs info env) (Int -> info -> env)) /\ r
-subgraph vec sg ev = Tuple (CTOR.Subgraph vec (AsSubgraph sg) ev)
+  -> (CTOR.Subgraph inputs  (AsSubgraph terminus inputs env) (V.Vec n env)) /\ r
+subgraph ev sg = Tuple (CTOR.Subgraph (AsSubgraph sg) ev)
 
 subgraphSetter
-  :: forall n inputs info env
+  :: forall n inputs env
    . Pos n
-  => V.Vec n info
-  -> (Int -> info -> env)
-  -> (CTOR.Subgraph inputs (V.Vec n info) Unit (Int -> info -> env))
-subgraphSetter vec ev = CTOR.Subgraph vec unit ev
+  => V.Vec n env
+  -> (CTOR.Subgraph inputs Unit (V.Vec n env))
+subgraphSetter vec = CTOR.Subgraph unit vec
 
 subgraphSingleSetter
   :: forall n env
@@ -1032,8 +1029,8 @@ subgraphSingleSetter
   -> ChangeSubgraph n env
 subgraphSingleSetter c ev = ChangeSubgraph (c /\ ev)
 
-type CSubgraph (n :: Type) info terminus inputs env r
-  = (CTOR.Subgraph inputs (V.Vec n info) (AsSubgraph terminus inputs info env) (Int -> info -> env)) /\ r
+type CSubgraph (n :: Type) terminus inputs env r
+  = (CTOR.Subgraph inputs (AsSubgraph terminus inputs env) (V.Vec n env) ) /\ r
 
 ------
 data TriangleOsc

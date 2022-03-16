@@ -1820,10 +1820,10 @@ instance changeSubgraph0 ::
   , Pos n
   , R.Cons ptr (NodeC (CTOR.TSubgraph n terminus inputs env) edges) ignore graph
   ) =>
-  Change' ptr (CTOR.Subgraph inputs (V.Vec n info) doesntMatterWillNotBeUsed (Int -> info -> env)) graph where
+  Change' ptr (CTOR.Subgraph inputs doesntMatterWillNotBeUsed (V.Vec n env)) graph where
   change' ptr w = o
     where
-    { context: i, value: (CTOR.Subgraph vec _ env) } = unsafeUnWAG w
+    { context: i, value: (CTOR.Subgraph _ env) } = unsafeUnWAG w
 
     nn = reflectSymbol ptr
 
@@ -1832,7 +1832,7 @@ instance changeSubgraph0 ::
         { context:
             i
               { instructions = i.instructions <>
-                  [ setSubgraph { id: nn, controls: vec, envs: env } ]
+                  [ setSubgraph { id: nn, envs: env } ]
               }
         , value: unit
         }

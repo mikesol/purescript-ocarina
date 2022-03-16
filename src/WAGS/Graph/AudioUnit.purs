@@ -239,13 +239,12 @@ instance typeToSymStereoPanner :: TypeToSym (StereoPanner pan) "StereoPanner"
 
 -- | Term-level constructor for a subgraph
 -- | - `inputs` - the inputs to the subgraph
--- | - `subgraphGenerator` - the generating vector for the subgraph
 -- | - `subgraphMaker` - the scene that makes the subgraph
 -- | - `enc` - the scene that makes the subgraph
-data Subgraph (inputs :: Row Type) subgraphGenerator subgraphMaker env
-  = Subgraph subgraphGenerator subgraphMaker env
+data Subgraph (inputs :: Row Type) subgraphMaker env
+  = Subgraph subgraphMaker env
 
-instance typeToSymSubgraph :: TypeToSym (Subgraph inputs subgraphGenerator subgraphMaker env) "Subgraph"
+instance typeToSymSubgraph :: TypeToSym (Subgraph inputs subgraphMaker env) "Subgraph"
 
 -- | Term-level constructor for a triangle oscillator.
 -- | - `onOff` - whether the generator is on or off.
@@ -721,7 +720,7 @@ instance semigroupTSubgraph :: Semigroup (TSubgraph arity terminus inputs env) w
 instance monoidTSubgraph :: Monoid (TSubgraph arity terminus inputs env) where
   mempty = TSubgraph
 
-instance reifyTSubgraph :: ReifyAU (Subgraph a b c d) (TSubgraph w x y z) where
+instance reifyTSubgraph :: ReifyAU (Subgraph a b c) (TSubgraph w x y z) where
   reifyAU = const mempty
 
 -- | Type-level constructor for a triangle oscillator.

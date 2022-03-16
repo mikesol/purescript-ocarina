@@ -6,7 +6,7 @@ import Control.Comonad.Cofree (Cofree, mkCofree)
 import Data.Foldable (for_)
 import Data.Maybe (Maybe(..))
 import Data.Typelevel.Num (D1)
-import Data.Vec ((+>))
+import Data.Vec (singleton, (+>))
 import Data.Vec as V
 import Effect (Effect)
 import Effect.Aff.Class (class MonadAff)
@@ -78,9 +78,8 @@ piece = mempty # loopUsingScene \(BehavingScene env) _ ->
   { control: unit
   , scene: speaker
       { gn: gain 1.0
-          { sg2: subgraph vec
-              (\i _ -> subPiece1 i)
-              (const $ const $ SGWorld env.time)
+          { sg2: subgraph (singleton $ SGWorld env.time)
+              (subPiece1)
               { beep: loopBuf env.world.shruti }
           }
       }
