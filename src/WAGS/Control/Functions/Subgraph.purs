@@ -44,7 +44,10 @@ makeScene
    . Monoid res
   => AudioInterpret audio engine
   => SubgraphIsRenderable graph terminus inputs
-  => (env -> Either (SubScene terminus inputs env audio engine proofA res) (WAG audio engine proofA res graph a))
+  => ( env
+       -> Either (SubScene terminus inputs env audio engine proofA res)
+            (WAG audio engine proofA res graph a)
+     )
   -> ( forall proofB
         . WAG audio engine proofB res graph a
        -> SubScene terminus inputs env audio engine proofB res
@@ -63,7 +66,10 @@ makeSceneFlipped
         . WAG audio engine proofB res graph a
        -> SubScene terminus inputs env audio engine proofB res
      )
-  -> (env -> Either (SubScene terminus inputs env audio engine proofA res) (WAG audio engine proofA res graph a))
+  -> ( env
+       -> Either (SubScene terminus inputs env audio engine proofA res)
+            (WAG audio engine proofA res graph a)
+     )
   -> SubScene terminus inputs env audio engine proofA res
 makeSceneFlipped = Functions.makeSceneFlipped
 
@@ -123,7 +129,8 @@ branch
   => ( forall proofB
         . WAG audio engine proofB res graph a
        -> env
-       -> Either (SubScene terminus inputs env audio engine proofB res) (WAG audio engine proofB res graph a)
+       -> Either (SubScene terminus inputs env audio engine proofB res)
+            (WAG audio engine proofB res graph a)
      )
   -> WAG audio engine proofA res graph a
   -> SubScene terminus inputs env audio engine proofA res
@@ -138,7 +145,9 @@ ibranch
         . env
        -> a
        -> Either
-            (WAG audio engine proofB res graph a -> SubScene terminus inputs env audio engine proofB res)
+            ( WAG audio engine proofB res graph a
+              -> SubScene terminus inputs env audio engine proofB res
+            )
             (IxWAG audio engine proofB res graph graph a)
      )
   -> WAG audio engine proofA res graph a
@@ -178,7 +187,8 @@ startUsing
 startUsing = Functions.startUsing
 
 startUsingWithHint
-  :: forall terminus inputs env audio engine res hintable hint subgraphs tumults graph control
+  :: forall terminus inputs env audio engine res hintable hint subgraphs tumults
+       graph control
    . Monoid res
   => AudioInterpret audio engine
   => SubgraphIsRenderable graph terminus inputs
@@ -216,7 +226,10 @@ loopUsingSceneWithRes
   => Create scene () graph
   => Change scene graph
   => SubgraphIsRenderable graph terminus inputs
-  => (env -> control -> { scene :: { | scene }, control :: control, res :: res })
+  => ( env
+       -> control
+       -> { scene :: { | scene }, control :: control, res :: res }
+     )
   -> (env -> control)
   -> SubScene terminus inputs env audio engine Frame0 res
 loopUsingSceneWithRes = Functions.loopUsingSceneWithRes

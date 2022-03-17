@@ -26,7 +26,7 @@ import WAGS.Graph.AudioUnit as CTOR
 import WAGS.Graph.Graph (Graph)
 import WAGS.Graph.Node (NodeC)
 import WAGS.Graph.Oversample (class IsOversample, reflectOversample)
-import WAGS.Graph.Paramable (class Paramable, paramize, class OnOffable, onOffIze)
+import WAGS.Graph.Paramable (class Paramable)
 import WAGS.Graph.Parameter (AudioParameter)
 import WAGS.Interpret (class AudioInterpret, AsSubgraph, makeAllpass, makeAnalyser, makeAudioWorkletNode, makeBandpass, makeConstant, makeConvolver, makeDelay, makeDynamicsCompressor, makeGain, makeHighpass, makeHighshelf, makeInput, makeLoopBuf, makeLowpass, makeLowshelf, makeMediaElement, makeMicrophone, makeNotch, makePeaking, makePeriodicOsc, makePeriodicOscV, makePlayBuf, makeRecorder, makeSawtoothOsc, makeSinOsc, makeSpeaker, makeSquareOsc, makeStereoPanner, makeSubgraph, makeTriangleOsc, makeTumult, makeWaveShaper, unAsSubGraph)
 import WAGS.Rendered (AudioWorkletNodeOptions_(..), RealImg(..))
@@ -34,7 +34,13 @@ import WAGS.Tumult (Tumultuous, safeUntumult)
 import WAGS.Util (class AddPrefixToRowList, class CoercePrefixToString, class MakePrefixIfNeeded, class ValidateOutputChannelCount, toOutputChannelCount)
 import WAGS.WebAPI (AnalyserNodeCb, BrowserFloatArray, BrowserPeriodicWave)
 
-type CreateStepRLSig (rl :: RL.RowList Type) (prefix :: Type) (map :: Type) (r :: Row Type) (inGraph :: Graph) (outGraph :: Graph) =
+type CreateStepRLSig
+  (rl :: RL.RowList Type)
+  (prefix :: Type)
+  (map :: Type)
+  (r :: Row Type)
+  (inGraph :: Graph)
+  (outGraph :: Graph) =
   forall proxyPrefix proxyMap proxyRL audio engine proof res
    . AudioInterpret audio engine
   => proxyRL rl
@@ -43,7 +49,15 @@ type CreateStepRLSig (rl :: RL.RowList Type) (prefix :: Type) (map :: Type) (r :
   -> WAG audio engine proof res inGraph { | r }
   -> WAG audio engine proof res outGraph Unit
 
-class CreateStepRL (rl :: RL.RowList Type) (prefix :: Type) (map :: Type) (r :: Row Type) (inGraph :: Graph) (outGraph :: Graph) | rl prefix map r inGraph -> outGraph where
+class
+  CreateStepRL
+    (rl :: RL.RowList Type)
+    (prefix :: Type)
+    (map :: Type)
+    (r :: Row Type)
+    (inGraph :: Graph)
+    (outGraph :: Graph)
+  | rl prefix map r inGraph -> outGraph where
   createStepRL :: CreateStepRLSig rl prefix map r inGraph outGraph
 
 instance createStepRLNil :: CreateStepRL RL.Nil prefix map r inGraph inGraph where
@@ -51,9 +65,14 @@ instance createStepRLNil :: CreateStepRL RL.Nil prefix map r inGraph inGraph whe
 
 instance createStepRLConsB ::
   ( IsSymbol key
-  , R.Cons key (Tuple (CTOR.Subgraph inputs subgraphMaker env) ignoreMe) ignore r
+  , R.Cons key (Tuple (CTOR.Subgraph inputs subgraphMaker env) ignoreMe) ignore
+      r
   , MakePrefixIfNeeded key prefix prefix'
-  , ConstructEdges prefix' map (Tuple (CTOR.Subgraph inputs subgraphMaker env) ignoreMe) newPrefix newMap (node /\ { | edges })
+  , ConstructEdges prefix' map
+      (Tuple (CTOR.Subgraph inputs subgraphMaker env) ignoreMe)
+      newPrefix
+      newMap
+      (node /\ { | edges })
   , CoercePrefixToString prefix realPrefix
   , Sym.Append realPrefix key newKey
   , RL.RowToList edges edgesRL
@@ -63,21 +82,36 @@ instance createStepRLConsB ::
   , CreateStepRL rest prefix map r graph1 graph2
   , Create' newKey node graph2 graph3
   ) =>
-  CreateStepRL (RL.Cons key (Tuple (CTOR.Subgraph inputs subgraphMaker env) ignoreMe) rest) prefix map r graph0 graph3 where
+  CreateStepRL ( RL.Cons key
+        (Tuple (CTOR.Subgraph inputs subgraphMaker env) ignoreMe)
+        rest
+    )
+    prefix
+    map
+    r
+    graph0
+    graph3 where
   createStepRL _ _ _ r = step3
     where
     rx = extract r
-    (_ /\ _ /\ (node /\ edges)) = constructEdges (Proxy :: _ prefix') (Proxy :: _ map) (Record.get (Proxy :: _ key) rx)
+    (_ /\ _ /\ (node /\ edges)) = constructEdges (Proxy :: _ prefix')
+      (Proxy :: _ map)
+      (Record.get (Proxy :: _ key) rx)
     step1 =
-      (createStepRL :: CreateStepRLSig edgesRL newPrefix newMap edges graph0 graph1) Proxy Proxy Proxy
+      ( createStepRL
+          :: CreateStepRLSig edgesRL newPrefix newMap edges graph0 graph1
+      ) Proxy Proxy Proxy
         (r $> edges)
-    step2 = createStepRL (Proxy :: _ rest) (Proxy :: _ prefix) (Proxy :: _ map) (step1 $> rx)
+    step2 = createStepRL (Proxy :: _ rest) (Proxy :: _ prefix) (Proxy :: _ map)
+      (step1 $> rx)
     step3 = create' (Proxy :: _ newKey) (step2 $> node)
 else instance createStepRLConsC ::
   ( IsSymbol key
   , R.Cons key (Tuple (CTOR.Tumult tumult) ignoreMe) ignore r
   , MakePrefixIfNeeded key prefix prefix'
-  , ConstructEdges prefix' map (Tuple (CTOR.Tumult tumult) ignoreMe) newPrefix newMap (node /\ { | edges })
+  , ConstructEdges prefix' map (Tuple (CTOR.Tumult tumult) ignoreMe) newPrefix
+      newMap
+      (node /\ { | edges })
   , CoercePrefixToString prefix realPrefix
   , Sym.Append realPrefix key newKey
   , RL.RowToList edges edgesRL
@@ -87,15 +121,25 @@ else instance createStepRLConsC ::
   , CreateStepRL rest prefix map r graph1 graph2
   , Create' newKey node graph2 graph3
   ) =>
-  CreateStepRL (RL.Cons key (Tuple (CTOR.Tumult tumult) ignoreMe) rest) prefix map r graph0 graph3 where
+  CreateStepRL (RL.Cons key (Tuple (CTOR.Tumult tumult) ignoreMe) rest)
+    prefix
+    map
+    r
+    graph0
+    graph3 where
   createStepRL _ _ _ r = step3
     where
     rx = extract r
-    (_ /\ _ /\ (node /\ edges)) = constructEdges (Proxy :: _ prefix') (Proxy :: _ map) (Record.get (Proxy :: _ key) rx)
+    (_ /\ _ /\ (node /\ edges)) = constructEdges (Proxy :: _ prefix')
+      (Proxy :: _ map)
+      (Record.get (Proxy :: _ key) rx)
     step1 =
-      (createStepRL :: CreateStepRLSig edgesRL newPrefix newMap edges graph0 graph1) Proxy Proxy Proxy
+      ( createStepRL
+          :: CreateStepRLSig edgesRL newPrefix newMap edges graph0 graph1
+      ) Proxy Proxy Proxy
         (r $> edges)
-    step2 = createStepRL (Proxy :: _ rest) (Proxy :: _ prefix) (Proxy :: _ map) (step1 $> rx)
+    step2 = createStepRL (Proxy :: _ rest) (Proxy :: _ prefix) (Proxy :: _ map)
+      (step1 $> rx)
     step3 = create' (Proxy :: _ newKey) (step2 $> node)
 else instance createStepRLCons ::
   ( IsSymbol key
@@ -115,14 +159,25 @@ else instance createStepRLCons ::
   createStepRL _ _ _ r = step3
     where
     rx = extract r
-    (_ /\ _ /\ (node /\ edges)) = constructEdges (Proxy :: _ prefix') (Proxy :: _ map) (Record.get (Proxy :: _ key) rx)
+    (_ /\ _ /\ (node /\ edges)) = constructEdges (Proxy :: _ prefix')
+      (Proxy :: _ map)
+      (Record.get (Proxy :: _ key) rx)
     step1 = create' (Proxy :: _ newKey) (r $> node)
     step2 =
-      (createStepRL :: CreateStepRLSig edgesRL newPrefix newMap edges graph1 graph2) Proxy Proxy Proxy
+      ( createStepRL
+          :: CreateStepRLSig edgesRL newPrefix newMap edges graph1 graph2
+      ) Proxy Proxy Proxy
         (step1 $> edges)
-    step3 = createStepRL (Proxy :: _ rest) (Proxy :: _ prefix) (Proxy :: _ map) (step2 $> rx)
+    step3 = createStepRL (Proxy :: _ rest) (Proxy :: _ prefix) (Proxy :: _ map)
+      (step2 $> rx)
 
-class ConnectEdgesToNode (sources :: RL.RowList Type) (dest :: Symbol) (inGraph :: Graph) (outGraph :: Graph) | sources dest inGraph -> outGraph where
+class
+  ConnectEdgesToNode
+    (sources :: RL.RowList Type)
+    (dest :: Symbol)
+    (inGraph :: Graph)
+    (outGraph :: Graph)
+  | sources dest inGraph -> outGraph where
   connectEdgesToNode
     :: forall proxyRL proxyS audio engine proof res
      . AudioInterpret audio engine
@@ -133,14 +188,23 @@ class ConnectEdgesToNode (sources :: RL.RowList Type) (dest :: Symbol) (inGraph 
 instance connectEdgesToNodeNil :: ConnectEdgesToNode RL.Nil dest inGraph inGraph where
   connectEdgesToNode _ w = w
 
-instance connectEdgesToNodeCons :: (Connect key dest inGraph midGraph, ConnectEdgesToNode rest dest midGraph outGraph) => ConnectEdgesToNode (RL.Cons key ignore rest) dest inGraph outGraph where
+instance connectEdgesToNodeCons ::
+  ( Connect key dest inGraph midGraph
+  , ConnectEdgesToNode rest dest midGraph outGraph
+  ) =>
+  ConnectEdgesToNode (RL.Cons key ignore rest) dest inGraph outGraph where
   connectEdgesToNode _ w = step2
     where
     step1 = connect (w $> { source: (Proxy :: _ key), dest: (Proxy :: _ dest) })
 
     step2 = connectEdgesToNode (Proxy :: _ rest) (step1 $> (extract w))
 
-type ConnectAfterCreateSig (prefix :: Type) (map :: Type) (rl :: RL.RowList Type) (inGraph :: Graph) (outGraph :: Graph) =
+type ConnectAfterCreateSig
+  (prefix :: Type)
+  (map :: Type)
+  (rl :: RL.RowList Type)
+  (inGraph :: Graph)
+  (outGraph :: Graph) =
   forall proxyPrefix proxyMap audio engine proof res
    . AudioInterpret audio engine
   => proxyPrefix prefix
@@ -148,10 +212,18 @@ type ConnectAfterCreateSig (prefix :: Type) (map :: Type) (rl :: RL.RowList Type
   -> WAG audio engine proof res inGraph (Proxy rl)
   -> WAG audio engine proof res outGraph Unit
 
-class ConnectAfterCreate (prefix :: Type) (map :: Type) (rl :: RL.RowList Type) (inGraph :: Graph) (outGraph :: Graph) | prefix map rl inGraph -> outGraph where
+class
+  ConnectAfterCreate
+    (prefix :: Type)
+    (map :: Type)
+    (rl :: RL.RowList Type)
+    (inGraph :: Graph)
+    (outGraph :: Graph)
+  | prefix map rl inGraph -> outGraph where
   connectAfterCreate :: ConnectAfterCreateSig prefix map rl inGraph outGraph
 
-instance connectAfterCreateNil :: ConnectAfterCreate prefix map RL.Nil graph0 graph0 where
+instance connectAfterCreateNil ::
+  ConnectAfterCreate prefix map RL.Nil graph0 graph0 where
   connectAfterCreate _ _ w = w $> unit
 
 instance connectAfterCreateCons ::
@@ -170,11 +242,18 @@ instance connectAfterCreateCons ::
     where
     step1 = connectEdgesToNode (Proxy :: _ oel) (w $> (Proxy :: _ newKey))
 
-    step2 = connectAfterCreate (Proxy :: _ newPrefix) (Proxy :: _ newMap) (step1 $> (Proxy :: _ edgesList))
+    step2 = connectAfterCreate (Proxy :: _ newPrefix) (Proxy :: _ newMap)
+      (step1 $> (Proxy :: _ edgesList))
 
-    step3 = connectAfterCreate (Proxy :: _ prefix) (Proxy :: _ map) (step2 $> (Proxy :: _ rest))
+    step3 = connectAfterCreate (Proxy :: _ prefix) (Proxy :: _ map)
+      (step2 $> (Proxy :: _ rest))
 
-type CreateInternalSig (prefix :: Type) (map :: Type) (r :: Row Type) (inGraph :: Graph) (outGraph :: Graph) =
+type CreateInternalSig
+  (prefix :: Type)
+  (map :: Type)
+  (r :: Row Type)
+  (inGraph :: Graph)
+  (outGraph :: Graph) =
   forall proxyPrefix proxyMap audio engine proof res
    . AudioInterpret audio engine
   => proxyPrefix prefix
@@ -182,7 +261,14 @@ type CreateInternalSig (prefix :: Type) (map :: Type) (r :: Row Type) (inGraph :
   -> WAG audio engine proof res inGraph { | r }
   -> WAG audio engine proof res outGraph Unit
 
-class CreateInternal (prefix :: Type) (map :: Type) (r :: Row Type) (inGraph :: Graph) (outGraph :: Graph) | prefix map r inGraph -> outGraph where
+class
+  CreateInternal
+    (prefix :: Type)
+    (map :: Type)
+    (r :: Row Type)
+    (inGraph :: Graph)
+    (outGraph :: Graph)
+  | prefix map r inGraph -> outGraph where
   createInternal :: CreateInternalSig prefix map r inGraph outGraph
 
 instance createInternalAll ::
@@ -193,11 +279,18 @@ instance createInternalAll ::
   CreateInternal prefix map r inGraph outGraph where
   createInternal _ _ r = step1
     where
-    step0 = (createStepRL :: CreateStepRLSig rl prefix map r inGraph midGraph) Proxy Proxy Proxy r
+    step0 = (createStepRL :: CreateStepRLSig rl prefix map r inGraph midGraph)
+      Proxy
+      Proxy
+      Proxy
+      r
 
-    step1 = connectAfterCreate (Proxy :: _ prefix) (Proxy :: _ map) (step0 $> (Proxy :: _ rl))
+    step1 = connectAfterCreate (Proxy :: _ prefix) (Proxy :: _ map)
+      (step0 $> (Proxy :: _ rl))
 
-class Create (r :: Row Type) (inGraph :: Graph) (outGraph :: Graph) | r inGraph -> outGraph where
+class
+  Create (r :: Row Type) (inGraph :: Graph) (outGraph :: Graph)
+  | r inGraph -> outGraph where
   create
     :: forall audio engine proof res
      . AudioInterpret audio engine
@@ -221,7 +314,9 @@ icreate
 icreate r = IxWAG (create <<< voidRight r)
 
 -- | Create an audio unit `node` in `igraph` with index `ptr`, resulting in `ograph`.
-class Create' (ptr :: Symbol) (node :: Type) (inGraph :: Graph) (outGraph :: Graph) | ptr node inGraph -> outGraph where
+class
+  Create' (ptr :: Symbol) (node :: Type) (inGraph :: Graph) (outGraph :: Graph)
+  | ptr node inGraph -> outGraph where
   create'
     :: forall proxy audio engine proof res
      . AudioInterpret audio engine
@@ -288,7 +383,8 @@ instance createAllpass ::
         , value: unit
         }
 
-class CreateParameters (parameterRL :: RL.RowList Type) (parameterData :: Row Type) where
+class
+  CreateParameters (parameterRL :: RL.RowList Type) (parameterData :: Row Type) where
   createParameters
     :: forall proxyRL
      . proxyRL parameterRL
@@ -316,7 +412,17 @@ instance createAudioWorkletNode ::
   ( IsSymbol ptr
   , IsSymbol sym
   , R.Lacks ptr graphi
-  , R.Cons ptr (NodeC (CTOR.TAudioWorkletNode sym numberOfInputs numberOfOutputs outputChannelCount parameterData processorOptions) {}) graphi grapho
+  , R.Cons ptr
+      ( NodeC
+          ( CTOR.TAudioWorkletNode sym numberOfInputs numberOfOutputs
+              outputChannelCount
+              parameterData
+              processorOptions
+          )
+          {}
+      )
+      graphi
+      grapho
   , RL.RowToList parameterData parameterDataRL
   , CreateParameters parameterDataRL parameterData
   , Monoid { | processorOptions }
@@ -327,12 +433,18 @@ instance createAudioWorkletNode ::
   ) =>
   Create'
     ptr
-    (CTOR.AudioWorkletNode sym numberOfInputs numberOfOutputs outputChannelCount parameterData processorOptions)
+    ( CTOR.AudioWorkletNode sym numberOfInputs numberOfOutputs
+        outputChannelCount
+        parameterData
+        processorOptions
+    )
     graphi
     grapho where
   create' ptr w = o
     where
-    { context: i, value: (CTOR.AudioWorkletNode _ (AudioWorkletNodeOptions options)) } = unsafeUnWAG w
+    { context: i
+    , value: (CTOR.AudioWorkletNode _ (AudioWorkletNodeOptions options))
+    } = unsafeUnWAG w
 
     id = reflectSymbol ptr
 
@@ -347,9 +459,14 @@ instance createAudioWorkletNode ::
                           { name: reflectSymbol (Proxy :: _ sym)
                           , numberOfInputs: toInt' (Proxy :: _ numberOfInputs)
                           , numberOfOutputs: toInt' (Proxy :: _ numberOfOutputs)
-                          , outputChannelCount: toOutputChannelCount (Proxy :: _ numberOfOutputs) (Proxy :: _ outputChannelCount)
-                          , parameterData: createParameters (Proxy :: _ parameterDataRL) options.parameterData
-                          , processorOptions: JSON.writeImpl (mempty :: { | processorOptions })
+                          , outputChannelCount: toOutputChannelCount
+                              (Proxy :: _ numberOfOutputs)
+                              (Proxy :: _ outputChannelCount)
+                          , parameterData: createParameters
+                              (Proxy :: _ parameterDataRL)
+                              options.parameterData
+                          , processorOptions: JSON.writeImpl
+                              (mempty :: { | processorOptions })
                           }
                       }
                   ] --(createParameters nn (Proxy :: _ parameterData) (Proxy :: _ parametersRL) parameters)
@@ -425,7 +542,8 @@ instance createConvolver ::
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makeConvolver { id, buffer } ]
+              { instructions = i.instructions <>
+                  [ makeConvolver { id, buffer } ]
               }
         , value: unit
         }
@@ -464,7 +582,10 @@ instance createDynamicsCompressor ::
   Create' ptr (CTOR.DynamicsCompressor) graphi grapho where
   create' ptr w = o
     where
-    { context: i, value: (CTOR.DynamicsCompressor { knee, threshold, ratio, attack, release }) } = unsafeUnWAG w
+    { context: i
+    , value:
+        (CTOR.DynamicsCompressor { knee, threshold, ratio, attack, release })
+    } = unsafeUnWAG w
 
     id = reflectSymbol ptr
 
@@ -578,7 +699,8 @@ instance createInput ::
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makeInput { id, input: reflectSymbol (Proxy :: _ sym) } ]
+              { instructions = i.instructions <>
+                  [ makeInput { id, input: reflectSymbol (Proxy :: _ sym) } ]
               }
         , value: unit
         }
@@ -591,7 +713,9 @@ instance createLoopBuf ::
   Create' ptr CTOR.LoopBuf graphi grapho where
   create' ptr w = o
     where
-    { context: i, value: CTOR.LoopBuf { buffer, onOff, playbackRate, loopStart, loopEnd } } = unsafeUnWAG w
+    { context: i
+    , value: CTOR.LoopBuf { buffer, onOff, playbackRate, loopStart, loopEnd }
+    } = unsafeUnWAG w
 
     id = reflectSymbol ptr
 
@@ -683,7 +807,8 @@ instance createMediaElement ::
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makeMediaElement { id, element: media } ]
+              { instructions = i.instructions <>
+                  [ makeMediaElement { id, element: media } ]
               }
         , value: unit
         }
@@ -701,7 +826,8 @@ instance createMicrophone ::
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makeMicrophone { microphone } ]
+              { instructions = i.instructions <>
+                  [ makeMicrophone { microphone } ]
               }
         , value: unit
         }
@@ -749,7 +875,8 @@ instance createPeaking ::
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makePeaking { id, freq, gain, q } ]
+              { instructions = i.instructions <>
+                  [ makePeaking { id, freq, gain, q } ]
               }
         , value: unit
         }
@@ -762,7 +889,8 @@ instance createPeriodicOsc ::
   Create' ptr (CTOR.PeriodicOsc BrowserPeriodicWave) graphi grapho where
   create' ptr w = o
     where
-    { context: i, value: (CTOR.PeriodicOsc { wave, onOff, freq }) } = unsafeUnWAG w
+    { context: i, value: (CTOR.PeriodicOsc { wave, onOff, freq }) } =
+      unsafeUnWAG w
 
     id = reflectSymbol ptr
 
@@ -770,7 +898,8 @@ instance createPeriodicOsc ::
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makePeriodicOsc { id, wave, onOff, freq } ]
+              { instructions = i.instructions <>
+                  [ makePeriodicOsc { id, wave, onOff, freq } ]
               }
         , value: unit
         }
@@ -781,10 +910,14 @@ instance createPeriodicOsc2 ::
   , R.Lacks ptr graphi
   , R.Cons ptr (NodeC CTOR.TPeriodicOsc {}) graphi grapho
   ) =>
-  Create' ptr (CTOR.PeriodicOsc (V.Vec a Number /\ V.Vec a Number)) graphi grapho where
+  Create' ptr
+    (CTOR.PeriodicOsc (V.Vec a Number /\ V.Vec a Number))
+    graphi
+    grapho where
   create' ptr w = o
     where
-    { context: i, value: (CTOR.PeriodicOsc { wave, onOff, freq }) } = unsafeUnWAG w
+    { context: i, value: (CTOR.PeriodicOsc { wave, onOff, freq }) } =
+      unsafeUnWAG w
 
     id = reflectSymbol ptr
 
@@ -792,7 +925,15 @@ instance createPeriodicOsc2 ::
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makePeriodicOscV { id, realImg: wave # \(real /\ img) -> RealImg { real: V.toArray real, img: V.toArray img }, onOff: onOff, freq } ]
+              { instructions = i.instructions <>
+                  [ makePeriodicOscV
+                      { id
+                      , realImg: wave # \(real /\ img) -> RealImg
+                          { real: V.toArray real, img: V.toArray img }
+                      , onOff: onOff
+                      , freq
+                      }
+                  ]
               }
         , value: unit
         }
@@ -805,13 +946,18 @@ instance createPlayBuf ::
   Create' ptr (CTOR.PlayBuf) graphi grapho where
   create' ptr w = o
     where
-    { context: i, value: (CTOR.PlayBuf { buffer, bufferOffset, playbackRate, onOff }) } = unsafeUnWAG w
+    { context: i
+    , value: (CTOR.PlayBuf { buffer, bufferOffset, playbackRate, onOff })
+    } = unsafeUnWAG w
     id = reflectSymbol ptr
     o =
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makePlayBuf { id, buffer, bufferOffset, onOff, playbackRate } ]
+              { instructions = i.instructions <>
+                  [ makePlayBuf
+                      { id, buffer, bufferOffset, onOff, playbackRate }
+                  ]
               }
         , value: unit
         }
@@ -858,31 +1004,30 @@ instance createSawtoothOsc ::
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makeSawtoothOsc { id, onOff, freq } ]
+              { instructions = i.instructions <>
+                  [ makeSawtoothOsc { id, onOff, freq } ]
               }
         , value: unit
         }
 
 instance createSinOsc ::
   ( IsSymbol ptr
-  , Paramable argA
-  , OnOffable onOff
   , R.Lacks ptr graphi
   , R.Cons ptr (NodeC CTOR.TSinOsc {}) graphi grapho
   ) =>
-  Create' ptr (CTOR.SinOsc onOff argA) graphi grapho where
+  Create' ptr (CTOR.SinOsc) graphi grapho where
   create' ptr w = o
     where
-    { context: i, value: (CTOR.SinOsc onOff argA) } = unsafeUnWAG w
+    { context: i, value: (CTOR.SinOsc { onOff, freq }) } = unsafeUnWAG w
 
     id = reflectSymbol ptr
 
-    argA_iv' = paramize argA
     o =
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makeSinOsc { id, onOff: onOffIze onOff, freq: argA_iv' } ]
+              { instructions = i.instructions <>
+                  [ makeSinOsc { id, onOff, freq } ]
               }
         , value: unit
         }
@@ -906,25 +1051,23 @@ instance createSpeaker ::
 
 instance createSquareOsc ::
   ( IsSymbol ptr
-  , Paramable argA
-  , OnOffable onOff
   , R.Lacks ptr graphi
   , R.Cons ptr (NodeC CTOR.TSquareOsc {}) graphi grapho
   ) =>
-  Create' ptr (CTOR.SquareOsc onOff argA) graphi grapho where
+  Create' ptr (CTOR.SquareOsc) graphi grapho where
   create' ptr w = o
     where
-    { context: i, value: (CTOR.SquareOsc onOff argA) } = unsafeUnWAG w
+    { context: i, value: (CTOR.SquareOsc { freq, onOff }) } = unsafeUnWAG w
 
     id = reflectSymbol ptr
-
-    argA_iv' = paramize argA
 
     o =
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makeSquareOsc { id, onOff: onOffIze onOff, freq: argA_iv' } ]
+              { instructions = i.instructions <>
+                  [ makeSquareOsc { id, onOff, freq }
+                  ]
               }
         , value: unit
         }
@@ -935,20 +1078,20 @@ instance createStereoPanner ::
   , R.Lacks ptr graphi
   , R.Cons ptr (NodeC CTOR.TStereoPanner {}) graphi grapho
   ) =>
-  Create' ptr (CTOR.StereoPanner argA) graphi grapho where
+  Create' ptr (CTOR.StereoPanner) graphi grapho where
   create' ptr w = o
     where
-    { context: i, value: (CTOR.StereoPanner argA) } = unsafeUnWAG w
+    { context: i, value: (CTOR.StereoPanner {pan}) } = unsafeUnWAG w
 
     id = reflectSymbol ptr
 
-    argA_iv' = paramize argA
 
     o =
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makeStereoPanner { id, pan: argA_iv' } ]
+              { instructions = i.instructions <>
+                  [ makeStereoPanner { id, pan } ]
               }
         , value: unit
         }
@@ -960,7 +1103,10 @@ instance createSubgraph ::
   , R.Lacks ptr graphi
   , R.Cons ptr (NodeC (CTOR.TSubgraph n terminus inputs env) {}) graphi grapho
   ) =>
-  Create' ptr (CTOR.Subgraph inputs (AsSubgraph terminus inputs env) (V.Vec n env)) graphi grapho where
+  Create' ptr
+    (CTOR.Subgraph inputs (AsSubgraph terminus inputs env) (V.Vec n env))
+    graphi
+    grapho where
   create' ptr w = o
     where
     { context: i, value: (CTOR.Subgraph asSub env) } = unsafeUnWAG w
@@ -970,7 +1116,13 @@ instance createSubgraph ::
         { context:
             i
               { instructions = i.instructions <>
-                  [ makeSubgraph { id, terminus: Proxy :: _ terminus, envs: env, scenes: unAsSubGraph asSub } ]
+                  [ makeSubgraph
+                      { id
+                      , terminus: Proxy :: _ terminus
+                      , envs: env
+                      , scenes: unAsSubGraph asSub
+                      }
+                  ]
               }
         , value: unit
         }
@@ -993,32 +1145,33 @@ instance createTumult ::
         { context:
             i
               { instructions = i.instructions <>
-                  [ makeTumult { id, terminus: pt, instructions: safeUntumult tummy } ]
+                  [ makeTumult
+                      { id, terminus: pt, instructions: safeUntumult tummy }
+                  ]
               }
         , value: unit
         }
 
 instance createTriangleOsc ::
   ( IsSymbol ptr
-  , Paramable argA
-  , OnOffable onOff
   , R.Lacks ptr graphi
   , R.Cons ptr (NodeC CTOR.TTriangleOsc {}) graphi grapho
   ) =>
-  Create' ptr (CTOR.TriangleOsc onOff argA) graphi grapho where
+  Create' ptr (CTOR.TriangleOsc) graphi grapho where
   create' ptr w = o
     where
-    { context: i, value: (CTOR.TriangleOsc onOff argA) } = unsafeUnWAG w
+    { context: i, value: (CTOR.TriangleOsc { freq, onOff }) } = unsafeUnWAG w
 
     id = reflectSymbol ptr
-
-    argA_iv' = paramize argA
 
     o =
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makeTriangleOsc { id, onOff: onOffIze onOff, freq: argA_iv' } ]
+              { instructions = i.instructions <>
+                  [ makeTriangleOsc
+                      { id, onOff, freq }
+                  ]
               }
         , value: unit
         }
@@ -1032,7 +1185,8 @@ instance createWaveShaper ::
   Create' ptr (CTOR.WaveShaper BrowserFloatArray oversample) graphi grapho where
   create' ptr w = o
     where
-    { context: i, value: (CTOR.WaveShaper floatArray oversample') } = unsafeUnWAG w
+    { context: i, value: (CTOR.WaveShaper floatArray oversample') } =
+      unsafeUnWAG w
 
     id = reflectSymbol ptr
 
@@ -1042,7 +1196,8 @@ instance createWaveShaper ::
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makeWaveShaper { id, curve: floatArray, oversample } ]
+              { instructions = i.instructions <>
+                  [ makeWaveShaper { id, curve: floatArray, oversample } ]
               }
         , value: unit
         }

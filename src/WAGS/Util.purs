@@ -62,7 +62,8 @@ instance ltEqZ' :: LtEq Z (Succ x)
 instance ltEqS :: LtEq x y => LtEq (Succ x) (Succ y)
 
 -- | Assertion that `sym` is not present in `nodeList`.
-class SymInRowList' :: ∀ (k ∷ Type). Type -> Symbol -> RowList k -> Type -> Constraint
+class SymInRowList'
+  :: ∀ (k ∷ Type). Type -> Symbol -> RowList k -> Type -> Constraint
 class SymInRowList' tf sym nodeList o | tf sym nodeList -> o
 
 instance symInRowList'True :: SymInRowList' True sym rl True
@@ -91,11 +92,26 @@ instance rowListEmptyCons :: RowListEmpty (RL.Cons a b c) False
 tmap :: forall a b. (a -> b) -> a /\ a -> b /\ b
 tmap f (a0 /\ a1) = f a0 /\ f a1
 
-class Nat val <= AutoIncrementingInsert (key :: Type) (imap :: Type) (val :: Type) (omap :: Type) | key imap -> val omap
+class
+  Nat val <=
+  AutoIncrementingInsert
+    (key :: Type)
+    (imap :: Type)
+    (val :: Type)
+    (omap :: Type)
+  | key imap -> val omap
 
-instance autoIncrementingInsertUnit :: AutoIncrementingInsert key Unit D0 ((key /\ D0) /\ Unit)
-else instance autoIncrementingInsertTupleHit :: Succ val valP1 => AutoIncrementingInsert key ((key /\ val) /\ rest) valP1 ((key /\ valP1) /\ rest)
-else instance autoIncrementingInsertTupleMiss :: AutoIncrementingInsert key rest val out => AutoIncrementingInsert key (x /\ rest) val (x /\ out)
+instance autoIncrementingInsertUnit ::
+  AutoIncrementingInsert key Unit D0 ((key /\ D0) /\ Unit)
+else instance autoIncrementingInsertTupleHit ::
+  Succ val valP1 =>
+  AutoIncrementingInsert key
+    ((key /\ val) /\ rest)
+    valP1
+    ((key /\ valP1) /\ rest)
+else instance autoIncrementingInsertTupleMiss ::
+  AutoIncrementingInsert key rest val out =>
+  AutoIncrementingInsert key (x /\ rest) val (x /\ out)
 
 class Nat n <= NatToSym (n :: Type) (s :: Symbol) | n -> s
 
@@ -119,7 +135,14 @@ instance natToSymD8 :: NatToSym D8 "D8"
 
 instance natToSymD9 :: NatToSym D9 "D9"
 
-instance natToSymDCons :: (Nat (x :* y), NatToSym x sx, NatToSym y sy, Sym.Append sx "_" s0, Sym.Append s0 sy o) => NatToSym (x :* y) o
+instance natToSymDCons ::
+  ( Nat (x :* y)
+  , NatToSym x sx
+  , NatToSym y sy
+  , Sym.Append sx "_" s0
+  , Sym.Append s0 sy o
+  ) =>
+  NatToSym (x :* y) o
 
 class MakePrefixIfNeeded (s :: Symbol) (i :: Type) (o :: Symbol) | s i -> o
 
@@ -133,18 +156,40 @@ instance symOrBust2Proxy :: CoercePrefixToString (Proxy sym) sym
 
 instance symOrBust2Unit :: CoercePrefixToString Unit ""
 
-class AddPrefixToRowList (s :: Type) (i :: RowList Type) (o :: RowList Type) | s i -> o
+class
+  AddPrefixToRowList (s :: Type) (i :: RowList Type) (o :: RowList Type)
+  | s i -> o
 
-instance sddPrefixToRowListCons :: (AddPrefixToRowList (Proxy sym) c x, Sym.Append sym a symA) => AddPrefixToRowList (Proxy sym) (RL.Cons a b c) (RL.Cons symA b x)
+instance sddPrefixToRowListCons ::
+  ( AddPrefixToRowList (Proxy sym) c x
+  , Sym.Append sym a symA
+  ) =>
+  AddPrefixToRowList (Proxy sym) (RL.Cons a b c) (RL.Cons symA b x)
 
 instance sddPrefixToRowListNil :: AddPrefixToRowList (Proxy sym) RL.Nil RL.Nil
 
 instance addPrefixToRowListUnit :: AddPrefixToRowList Unit i i
 
-class ValidateOutputChannelCount (numberOfOutputs :: Type) (outputChannelCount :: Type) where
-  toOutputChannelCount :: forall proxy. proxy numberOfOutputs -> proxy outputChannelCount -> Array Int
+class
+  ValidateOutputChannelCount
+    (numberOfOutputs :: Type)
+    (outputChannelCount :: Type) where
+  toOutputChannelCount
+    :: forall proxy
+     . proxy numberOfOutputs
+    -> proxy outputChannelCount
+    -> Array Int
 
-instance validateOutputChannelCountD1 :: Pos n => ValidateOutputChannelCount D1 n where
+instance validateOutputChannelCountD1 ::
+  Pos n =>
+  ValidateOutputChannelCount D1 n where
   toOutputChannelCount _ _ = [ toInt' (Proxy :: _ n) ]
-else instance validateOutputChannelCountN :: (Pred x xMinus1, Pos n, ValidateOutputChannelCount xMinus1 r) => ValidateOutputChannelCount x (n /\ r) where
-  toOutputChannelCount _ _ = [ toInt' (Proxy :: _ n) ] <> toOutputChannelCount (Proxy :: _ xMinus1) (Proxy :: _ r)
+else instance validateOutputChannelCountN ::
+  ( Pred x xMinus1
+  , Pos n
+  , ValidateOutputChannelCount xMinus1 r
+  ) =>
+  ValidateOutputChannelCount x (n /\ r) where
+  toOutputChannelCount _ _ = [ toInt' (Proxy :: _ n) ] <> toOutputChannelCount
+    (Proxy :: _ xMinus1)
+    (Proxy :: _ r)

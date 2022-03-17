@@ -16,7 +16,8 @@ calcSlope x0 y0 x1 y1 x =
     in
       m * x + b
 
-calcSlopeExp :: Number -> Number -> Number -> Number -> Number -> Number -> Number
+calcSlopeExp
+  :: Number -> Number -> Number -> Number -> Number -> Number -> Number
 calcSlopeExp x0 y0 x1 y1 exp x' =
   if x1 == x0 || y1 == y0 then
     y0

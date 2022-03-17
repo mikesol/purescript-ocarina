@@ -9,7 +9,8 @@ class Paramable a where
   paramize :: a -> AudioParameter
 
 instance paramableNumber :: Paramable Number where
-  paramize = singleNumber <<< AudioSingleNumber <<< { timeOffset: 0.0, transition: _linearRamp, param: _ }
+  paramize = singleNumber <<< AudioSingleNumber <<<
+    { timeOffset: 0.0, transition: _linearRamp, param: _ }
 
 instance paramableSingleNumber :: Paramable AudioSingleNumber where
   paramize = singleNumber

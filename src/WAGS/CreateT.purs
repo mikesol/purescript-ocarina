@@ -22,11 +22,30 @@ import WAGS.Interpret (AsSubgraph)
 import WAGS.Util (class AddPrefixToRowList, class CoercePrefixToString, class MakePrefixIfNeeded)
 import WAGS.WebAPI (AnalyserNodeCb, BrowserFloatArray, BrowserPeriodicWave)
 
-class CreateStepT (prefix :: Type) (map :: Type) (r :: Row Type) (inGraph :: Graph) (outGraph :: Graph) | r inGraph -> outGraph
+class
+  CreateStepT
+    (prefix :: Type)
+    (map :: Type)
+    (r :: Row Type)
+    (inGraph :: Graph)
+    (outGraph :: Graph)
+  | r inGraph -> outGraph
 
-class CreateStepRLT (rl :: RL.RowList Type) (prefix :: Type) (map :: Type) (r :: Row Type) (inGraph :: Graph) (outGraph :: Graph) | rl r inGraph -> outGraph
+class
+  CreateStepRLT
+    (rl :: RL.RowList Type)
+    (prefix :: Type)
+    (map :: Type)
+    (r :: Row Type)
+    (inGraph :: Graph)
+    (outGraph :: Graph)
+  | rl r inGraph -> outGraph
 
-instance createStepTAll :: (RL.RowToList r rl, CreateStepRLT rl prefix map r inGraph outGraph) => CreateStepT prefix map r inGraph outGraph
+instance createStepTAll ::
+  ( RL.RowToList r rl
+  , CreateStepRLT rl prefix map r inGraph outGraph
+  ) =>
+  CreateStepT prefix map r inGraph outGraph
 
 instance createStepRLTNil :: CreateStepRLT RL.Nil prefix map r inGraph inGraph
 
@@ -44,15 +63,34 @@ instance createStepRLTCons ::
   ) =>
   CreateStepRLT (RL.Cons key val rest) prefix map r graph0 graph3
 
-class ConnectEdgesToNodeT (sources :: RL.RowList Type) (dest :: Symbol) (inGraph :: Graph) (outGraph :: Graph) | sources dest inGraph -> outGraph
+class
+  ConnectEdgesToNodeT
+    (sources :: RL.RowList Type)
+    (dest :: Symbol)
+    (inGraph :: Graph)
+    (outGraph :: Graph)
+  | sources dest inGraph -> outGraph
 
-instance connectEdgesToNodeTNil :: ConnectEdgesToNodeT RL.Nil dest inGraph inGraph
+instance connectEdgesToNodeTNil ::
+  ConnectEdgesToNodeT RL.Nil dest inGraph inGraph
 
-instance connectEdgesToNodeTCons :: (ConnectT key dest inGraph midGraph, ConnectEdgesToNodeT rest dest midGraph outGraph) => ConnectEdgesToNodeT (RL.Cons key ignore rest) dest inGraph outGraph
+instance connectEdgesToNodeTCons ::
+  ( ConnectT key dest inGraph midGraph
+  , ConnectEdgesToNodeT rest dest midGraph outGraph
+  ) =>
+  ConnectEdgesToNodeT (RL.Cons key ignore rest) dest inGraph outGraph
 
-class ConnectAfterCreateT (prefix :: Type) (map :: Type) (rl :: RL.RowList Type) (inGraph :: Graph) (outGraph :: Graph) | rl inGraph -> outGraph
+class
+  ConnectAfterCreateT
+    (prefix :: Type)
+    (map :: Type)
+    (rl :: RL.RowList Type)
+    (inGraph :: Graph)
+    (outGraph :: Graph)
+  | rl inGraph -> outGraph
 
-instance connectAfterCreateTNil :: ConnectAfterCreateT prefix map RL.Nil graph0 graph0
+instance connectAfterCreateTNil ::
+  ConnectAfterCreateT prefix map RL.Nil graph0 graph0
 
 instance connectAfterCreateTCons ::
   ( MakePrefixIfNeeded sym prefix prefix'
@@ -67,7 +105,14 @@ instance connectAfterCreateTCons ::
   ) =>
   ConnectAfterCreateT prefix map (RL.Cons sym node' rest) graph0 graph3
 
-class CreateInternalT (prefix :: Type) (map :: Type) (r :: Row Type) (inGraph :: Graph) (outGraph :: Graph) | prefix map r inGraph -> outGraph
+class
+  CreateInternalT
+    (prefix :: Type)
+    (map :: Type)
+    (r :: Row Type)
+    (inGraph :: Graph)
+    (outGraph :: Graph)
+  | prefix map r inGraph -> outGraph
 
 instance createInternalTAll ::
   ( CreateStepT prefix map r inGraph midGraph
@@ -76,7 +121,9 @@ instance createInternalTAll ::
   ) =>
   CreateInternalT prefix map r inGraph outGraph
 
-class CreateT (r :: Row Type) (inGraph :: Graph) (outGraph :: Graph) | r inGraph -> outGraph
+class
+  CreateT (r :: Row Type) (inGraph :: Graph) (outGraph :: Graph)
+  | r inGraph -> outGraph
 
 instance createTAll ::
   ( CreateInternalT Unit Unit r inGraph outGraph
@@ -84,7 +131,9 @@ instance createTAll ::
   CreateT r inGraph outGraph
 
 -- | Create an audio unit `node` in `igraph` with index `ptr`, resulting in `ograph`.
-class CreateT' (ptr :: Symbol) (node :: Type) (inGraph :: Graph) (outGraph :: Graph) | ptr node inGraph -> outGraph
+class
+  CreateT' (ptr :: Symbol) (node :: Type) (inGraph :: Graph) (outGraph :: Graph)
+  | ptr node inGraph -> outGraph
 
 instance createTUnit ::
   CreateT' ptr Unit graphi graphi
@@ -101,7 +150,8 @@ instance createTAnalyser ::
   ) =>
   CreateT' ptr (CTOR.Analyser AnalyserNodeCb) graphi grapho
 
-class CreateParametersT (parameterRL :: RL.RowList Type) (parameterData :: Row Type)
+class
+  CreateParametersT (parameterRL :: RL.RowList Type) (parameterData :: Row Type)
 
 instance createParametersTNil :: CreateParametersT RL.Nil parameterData
 
@@ -113,13 +163,27 @@ instance createParametersTCons ::
 
 instance createAudioWorkletNode ::
   ( R.Lacks ptr graphi
-  , R.Cons ptr (NodeC (CTOR.TAudioWorkletNode name numberOfInputs numberOfOutputs outputChannelCount parameterData processorOptions) {}) graphi grapho
+  , R.Cons ptr
+      ( NodeC
+          ( CTOR.TAudioWorkletNode name numberOfInputs numberOfOutputs
+              outputChannelCount
+              parameterData
+              processorOptions
+          )
+          {}
+      )
+      graphi
+      grapho
   , RL.RowToList parameterData parameterDataRL
   , CreateParametersT parameterDataRL parameterData
   ) =>
   CreateT'
     ptr
-    (CTOR.AudioWorkletNode sym numberOfInputs numberOfOutputs outputChannelCount parameterData processorOptions)
+    ( CTOR.AudioWorkletNode sym numberOfInputs numberOfOutputs
+        outputChannelCount
+        parameterData
+        processorOptions
+    )
     graphi
     grapho
 
@@ -229,7 +293,10 @@ instance createTPeriodicOsc2 ::
   ( R.Lacks ptr graphi
   , R.Cons ptr (NodeC CTOR.TPeriodicOsc {}) graphi grapho
   ) =>
-  CreateT' ptr (CTOR.PeriodicOsc (V.Vec a Number /\ V.Vec a Number)) graphi grapho
+  CreateT' ptr
+    (CTOR.PeriodicOsc (V.Vec a Number /\ V.Vec a Number))
+    graphi
+    grapho
 
 instance createTPlayBuf ::
   ( R.Lacks ptr graphi
@@ -253,7 +320,7 @@ instance createTSinOsc ::
   ( R.Lacks ptr graphi
   , R.Cons ptr (NodeC CTOR.TSinOsc {}) graphi grapho
   ) =>
-  CreateT' ptr (CTOR.SinOsc onOff argA) graphi grapho
+  CreateT' ptr (CTOR.SinOsc) graphi grapho
 
 instance createTSpeaker ::
   ( R.Lacks "speaker" graphi
@@ -265,25 +332,28 @@ instance createTSquareOsc ::
   ( R.Lacks ptr graphi
   , R.Cons ptr (NodeC CTOR.TSquareOsc {}) graphi grapho
   ) =>
-  CreateT' ptr (CTOR.SquareOsc onOff argA) graphi grapho
+  CreateT' ptr (CTOR.SquareOsc) graphi grapho
 
 instance createTStereoPanner ::
   ( R.Lacks ptr graphi
   , R.Cons ptr (NodeC CTOR.TStereoPanner {}) graphi grapho
   ) =>
-  CreateT' ptr (CTOR.StereoPanner argA) graphi grapho
+  CreateT' ptr (CTOR.StereoPanner) graphi grapho
 
 instance createSubgraph ::
   ( R.Lacks ptr graphi
   , R.Cons ptr (NodeC (CTOR.TSubgraph n terminus inputs env) {}) graphi grapho
   ) =>
-  CreateT' ptr (CTOR.Subgraph inputs (AsSubgraph terminus inputs env) (V.Vec n env)) graphi grapho
+  CreateT' ptr
+    (CTOR.Subgraph inputs (AsSubgraph terminus inputs env) (V.Vec n env))
+    graphi
+    grapho
 
 instance createTTriangleOsc ::
   ( R.Lacks ptr graphi
   , R.Cons ptr (NodeC CTOR.TTriangleOsc {}) graphi grapho
   ) =>
-  CreateT' ptr (CTOR.TriangleOsc onOff argA) graphi grapho
+  CreateT' ptr (CTOR.TriangleOsc) graphi grapho
 
 instance createTWaveShaper ::
   ( IsOversampleT oversample

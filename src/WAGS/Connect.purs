@@ -22,11 +22,14 @@ iconnect
 iconnect ptrs = IxWAG (connect <<< voidRight ptrs)
 
 -- | Connect node `source` from node `dest` in graph `i`, resulting in output graph `o`.
-class Connect (source :: Symbol) (dest :: Symbol) (i :: Graph) (o :: Graph) | source dest i -> o where
+class
+  Connect (source :: Symbol) (dest :: Symbol) (i :: Graph) (o :: Graph)
+  | source dest i -> o where
   connect
     :: forall proxy audio engine proof res
      . AudioInterpret audio engine
-    => WAG audio engine proof res i { source :: proxy source, dest :: proxy dest }
+    => WAG audio engine proof res i
+         { source :: proxy source, dest :: proxy dest }
     -> WAG audio engine proof res o Unit
 
 instance connectInstance ::
@@ -65,7 +68,9 @@ instance connectInstance ::
 
     toId = reflectSymbol toI'
 
-class ConnectT (source :: Symbol) (dest :: Symbol) (i :: Graph) (o :: Graph) | source dest i -> o
+class
+  ConnectT (source :: Symbol) (dest :: Symbol) (i :: Graph) (o :: Graph)
+  | source dest i -> o
 
 instance connectTInstance ::
   ( R.Cons from ignore0 ignore1 graphi

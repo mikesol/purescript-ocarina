@@ -38,15 +38,13 @@ data MIDIEvent
   | Pitchwheel Int Int
 
 -- | Represents a MIDI event with a timestamp.
-type MIDIEventInTime
-  =
+type MIDIEventInTime =
   { timeStamp :: Number
   , event :: MIDIEvent
   }
 
 -- | Represents a MIDI device.
-type MIDIDevice
-  =
+type MIDIDevice =
   { portID :: String
   , manufacturer :: String
   , name :: String
@@ -89,9 +87,17 @@ foreign import toMIDIEvent_
   -> ArrayBuffer
   -> Effect (Maybe MIDIEvent)
 
-foreign import getData_ :: (Maybe ArrayBuffer) -> (ArrayBuffer -> Maybe ArrayBuffer) -> MIDIMessageEvent -> Effect (Maybe ArrayBuffer)
+foreign import getData_
+  :: (Maybe ArrayBuffer)
+  -> (ArrayBuffer -> Maybe ArrayBuffer)
+  -> MIDIMessageEvent
+  -> Effect (Maybe ArrayBuffer)
 
-foreign import getTimeStamp_ :: (Maybe Number) -> (Number -> Maybe Number) -> MIDIMessageEvent -> Effect (Maybe Number)
+foreign import getTimeStamp_
+  :: (Maybe Number)
+  -> (Number -> Maybe Number)
+  -> MIDIMessageEvent
+  -> Effect (Maybe Number)
 
 getData :: MIDIMessageEvent -> Effect (Maybe ArrayBuffer)
 getData = getData_ Nothing Just
@@ -127,59 +133,62 @@ midiOutputDevices midiAccess_ =
 midi :: MIDIAccess -> Event MIDIEventInTime
 midi midiAccess_ =
   makeEvent \push -> do
-    targetMap <- toTargetMap midiAccess_ >>= pure <<< M.fromFoldable <<< (O.toUnfoldable :: O.Object EventTarget -> List (Tuple String EventTarget))
+    targetMap <- toTargetMap midiAccess_ >>= pure <<< M.fromFoldable <<<
+      ( O.toUnfoldable
+          :: O.Object EventTarget -> List (Tuple String EventTarget)
+      )
     let
       makeListener _ =
         eventListener \e -> do
           fromEvent e
             # traverse_ \me -> do
-              data__ <- getData me
-              timeStamp__ <- getTimeStamp me
-              midiEvent__ <- maybe (pure Nothing) toMIDIEvent data__
-              let
-                toAdd_ =
-                  ( do
-                      timeStamp_ <- timeStamp__
-                      midiEvent_ <- midiEvent__
-                      pure
-                        { timeStamp: timeStamp_
-                        , event: midiEvent_
-                        }
-                  )
-              case toAdd_ of
-                Nothing -> pure unit
-                Just toAdd -> push toAdd
+                data__ <- getData me
+                timeStamp__ <- getTimeStamp me
+                midiEvent__ <- maybe (pure Nothing) toMIDIEvent data__
+                let
+                  toAdd_ =
+                    ( do
+                        timeStamp_ <- timeStamp__
+                        midiEvent_ <- midiEvent__
+                        pure
+                          { timeStamp: timeStamp_
+                          , event: midiEvent_
+                          }
+                    )
+                case toAdd_ of
+                  Nothing -> pure unit
+                  Just toAdd -> push toAdd
     listeners <-
       sequence
         $ M.mapMaybeWithKey
-          ( \k v ->
-              Just
-                ( do
-                    listener <- makeListener k
-                    _ <-
-                      addEventListener
-                        (wrap "midimessage")
-                        listener
-                        false
-                        v
-                    pure (Tuple listener v)
-                )
-          )
-          targetMap
+            ( \k v ->
+                Just
+                  ( do
+                      listener <- makeListener k
+                      _ <-
+                        addEventListener
+                          (wrap "midimessage")
+                          listener
+                          false
+                          v
+                      pure (Tuple listener v)
+                  )
+            )
+            targetMap
     let
       dispose = do
         _ <-
           sequence
             $ M.mapMaybeWithKey
-              ( \_ (Tuple l v) ->
-                  Just
-                    ( removeEventListener
-                        (wrap "midimessage")
-                        l
-                        false
-                        v
-                    )
-              )
-              listeners
+                ( \_ (Tuple l v) ->
+                    Just
+                      ( removeEventListener
+                          (wrap "midimessage")
+                          l
+                          false
+                          v
+                      )
+                )
+                listeners
         pure unit
     pure dispose

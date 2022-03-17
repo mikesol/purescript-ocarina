@@ -50,40 +50,51 @@ import WAGS.Interpret (FFIAudioSnapshot, advanceWriteHead, contextFromSnapshot, 
 import WAGS.Rendered (Instruction)
 import WAGS.WebAPI as WebAPI
 
-type RunAudio
-  = Unit /\ FFIAudioSnapshot
+type RunAudio = Unit /\ FFIAudioSnapshot
 
-type RunEngine
-  = Instruction /\ Effect Unit
+type RunEngine = Instruction /\ Effect Unit
 
-class Analysers (analysersRL :: RL.RowList Type) analyserRefs analysers | analysersRL analyserRefs -> analysers where
-  getAnalysers :: forall proxy. proxy analysersRL -> { | analyserRefs } -> Effect { | analysers }
+class
+  Analysers (analysersRL :: RL.RowList Type) analyserRefs analysers
+  | analysersRL analyserRefs -> analysers where
+  getAnalysers
+    :: forall proxy
+     . proxy analysersRL
+    -> { | analyserRefs }
+    -> Effect { | analysers }
 
 instance getAnalysersNil :: Analysers RL.Nil analyserRefs () where
   getAnalysers _ _ = pure {}
 
 instance getAnalysersCons ::
   ( IsSymbol key
-  , Row.Cons key (Ref.Ref (Maybe WebAPI.AnalyserNode)) analyserRefs' analyserRefs
+  , Row.Cons key (Ref.Ref (Maybe WebAPI.AnalyserNode)) analyserRefs'
+      analyserRefs
   , Row.Cons key (Maybe WebAPI.AnalyserNode) analysers' analysers
   , Lacks key analyserRefs'
   , Lacks key analysers'
   , Analysers rest analyserRefs analysers'
   ) =>
-  Analysers (RL.Cons key (Maybe WebAPI.AnalyserNode) rest) analyserRefs analysers where
+  Analysers (RL.Cons key (Maybe WebAPI.AnalyserNode) rest)
+    analyserRefs
+    analysers where
   getAnalysers _ refs = do
     mbe <- Ref.read (Record.get (Proxy :: _ key) refs)
     Record.insert (Proxy :: _ key) mbe <$> (getAnalysers (Proxy :: _ rest) refs)
 
-class AnalyserRefs (analysersRL :: RL.RowList Type) analyserRefs | analysersRL -> analyserRefs where
-  makeAnalyserRefs :: forall proxy. proxy analysersRL -> Effect { | analyserRefs }
+class
+  AnalyserRefs (analysersRL :: RL.RowList Type) analyserRefs
+  | analysersRL -> analyserRefs where
+  makeAnalyserRefs
+    :: forall proxy. proxy analysersRL -> Effect { | analyserRefs }
 
 instance analyserRefsNil :: AnalyserRefs RL.Nil () where
   makeAnalyserRefs _ = pure {}
 
 instance analyserRefsCons ::
   ( IsSymbol key
-  , Row.Cons key (Ref.Ref (Maybe WebAPI.AnalyserNode)) analyserRefs' analyserRefs
+  , Row.Cons key (Ref.Ref (Maybe WebAPI.AnalyserNode)) analyserRefs'
+      analyserRefs
   , Lacks key analyserRefs'
   , AnalyserRefs rest analyserRefs'
   ) =>
@@ -92,27 +103,40 @@ instance analyserRefsCons ::
     ref <- Ref.new Nothing
     Record.insert (Proxy :: _ key) ref <$> (makeAnalyserRefs (Proxy :: _ rest))
 
-class MakeAnalyserCallbacks (analysersRL :: RL.RowList Type) analyserRefs analyserCallbacks | analysersRL analyserRefs -> analyserCallbacks where
-  makeAnalyserCallbacks :: forall proxy. proxy analysersRL -> { | analyserRefs } -> { | analyserCallbacks }
+class
+  MakeAnalyserCallbacks
+    (analysersRL :: RL.RowList Type)
+    analyserRefs
+    analyserCallbacks
+  | analysersRL analyserRefs -> analyserCallbacks where
+  makeAnalyserCallbacks
+    :: forall proxy
+     . proxy analysersRL
+    -> { | analyserRefs }
+    -> { | analyserCallbacks }
 
 instance workWithAnalysersNil :: MakeAnalyserCallbacks RL.Nil analyserRefs () where
   makeAnalyserCallbacks _ _ = {}
 
 instance workWithAnalysersCons ::
   ( IsSymbol key
-  , Row.Cons key (Ref.Ref (Maybe WebAPI.AnalyserNode)) analyserRefs' analyserRefs
+  , Row.Cons key (Ref.Ref (Maybe WebAPI.AnalyserNode)) analyserRefs'
+      analyserRefs
   , Row.Cons key WebAPI.AnalyserNodeCb analyserCallbacks' analyserCallbacks
   , Lacks key analyserRefs'
   , Lacks key analyserCallbacks'
   , MakeAnalyserCallbacks rest analyserRefs analyserCallbacks'
   ) =>
-  MakeAnalyserCallbacks (RL.Cons key (Maybe WebAPI.AnalyserNode) rest) analyserRefs analyserCallbacks where
+  MakeAnalyserCallbacks (RL.Cons key (Maybe WebAPI.AnalyserNode) rest)
+    analyserRefs
+    analyserCallbacks where
   makeAnalyserCallbacks _ refs = Record.insert
     (Proxy :: _ key)
     (WebAPI.AnalyserNodeCb f)
     (makeAnalyserCallbacks (Proxy :: _ rest) refs)
     where
     ref = Record.get (Proxy :: _ key) refs
+
     f :: WebAPI.AnalyserNode -> Effect (Effect Unit)
     f node = do
       Ref.write (Just node) ref
@@ -125,7 +149,17 @@ instance workWithAnalysersCons ::
 -- | - `EngineInfo` is the engine information needed for rendering.
 -- | - `FFIAudio` is the audio state needed for rendering
 -- | - `Scene` is the scene to render. See `BehavingScene` to understand how `trigger` and `world` are blended into the inptu environment going to `Scene`.
-type RunSig sceneType engineInfoType output analysersRL analysers analyserCallbacks analyserRefs trigger world res =
+type RunSig
+  sceneType
+  engineInfoType
+  output
+  analysersRL
+  analysers
+  analyserCallbacks
+  analyserRefs
+  trigger
+  world
+  res =
   RL.RowToList analysers analysersRL
   => AnalyserRefs analysersRL analyserRefs
   => MakeAnalyserCallbacks analysersRL analyserRefs analyserCallbacks
@@ -143,7 +177,15 @@ type RunSig sceneType engineInfoType output analysersRL analysers analyserCallba
   -> Event output
 
 -- TODO: fix code duplication?
-runNoLoop :: forall analysersRL analysers analyserCallbacks analyserRefs trigger world res. RunSig TriggeredScene {} (TriggeredRun res analysers) analysersRL analysers analyserCallbacks analyserRefs trigger world res
+runNoLoop
+  :: forall analysersRL analysers analyserCallbacks analyserRefs trigger world
+       res
+   . RunSig TriggeredScene {} (TriggeredRun res analysers) analysersRL analysers
+       analyserCallbacks
+       analyserRefs
+       trigger
+       world
+       res
 runNoLoop trigger inWorld _ audioInfo scene =
   makeEvent \reporter -> do
     analyserRefs <- makeAnalyserRefs (Proxy :: _ analysersRL)
@@ -172,7 +214,8 @@ runNoLoop trigger inWorld _ audioInfo scene =
           )
           newWorld
           trigger
-      analyserCallbacks = makeAnalyserCallbacks (Proxy :: _ analysersRL) analyserRefs
+      analyserCallbacks = makeAnalyserCallbacks (Proxy :: _ analysersRL)
+        analyserRefs
     unsubscribe <-
       subscribe eventAndEnv \ee -> do
         sceneNow <- Ref.read currentScene
@@ -182,7 +225,8 @@ runNoLoop trigger inWorld _ audioInfo scene =
         audioClockPriorToComputation <- getAudioClockTime ctx
         clockInfo <- Ref.read currentClockInfo
         let
-          audioClockStart = fromMaybe audioClockPriorToComputation clockInfo.audioClockStart
+          audioClockStart = fromMaybe audioClockPriorToComputation
+            clockInfo.audioClockStart
           time = audioClockPriorToComputation - audioClockStart
 
           fromScene =
@@ -198,7 +242,8 @@ runNoLoop trigger inWorld _ audioInfo scene =
         audioClockAfterComputation <- getAudioClockTime ctx
         let
           -- todo: un-hardcode 0.02
-          writeHeadStart = fromMaybe (audioClockAfterComputation + 0.02) clockInfo.writeHeadStart
+          writeHeadStart = fromMaybe (audioClockAfterComputation + 0.02)
+            clockInfo.writeHeadStart
         advanceWriteHead audioInfo $ (writeHeadStart + time)
         let
           applied = map ((#) (unit /\ audioInfo)) fromScene.instructions
@@ -217,7 +262,16 @@ runNoLoop trigger inWorld _ audioInfo scene =
           currentClockInfo
     pure unsubscribe
 
-run :: forall analysersRL analysers analyserCallbacks analyserRefs trigger world res. RunSig BehavingScene EngineInfo (BehavingRun res analysers) analysersRL analysers analyserCallbacks analyserRefs trigger world res
+run
+  :: forall analysersRL analysers analyserCallbacks analyserRefs trigger world
+       res
+   . RunSig BehavingScene EngineInfo (BehavingRun res analysers) analysersRL
+       analysers
+       analyserCallbacks
+       analyserRefs
+       trigger
+       world
+       res
 run trigger inWorld engineInfo ffiSnapshot scene =
   makeEvent \reporter -> do
     analyserRefs <- makeAnalyserRefs (Proxy :: _ analysersRL)
@@ -248,7 +302,8 @@ run trigger inWorld engineInfo ffiSnapshot scene =
           )
           newWorld
           trigger
-      analyserCallbacks = makeAnalyserCallbacks (Proxy :: _ analysersRL) analyserRefs
+      analyserCallbacks = makeAnalyserCallbacks (Proxy :: _ analysersRL)
+        analyserRefs
       runInternal fromEvents world' = do
         clockInfo <- Ref.read currentClockInfo
         easingAlgNow <- Ref.read currentEasingAlg
@@ -265,7 +320,8 @@ run trigger inWorld engineInfo ffiSnapshot scene =
 
         audioClockPriorToComputation <- getAudioClockTime ctx
         let
-          audioClockStart = fromMaybe audioClockPriorToComputation clockInfo.audioClockStart
+          audioClockStart = fromMaybe audioClockPriorToComputation
+            clockInfo.audioClockStart
           time = audioClockPriorToComputation - audioClockStart
 
           fromScene =
@@ -282,13 +338,17 @@ run trigger inWorld engineInfo ffiSnapshot scene =
               )
         audioClockAfterComputation <- getAudioClockTime ctx
         let
-          writeHeadStart = fromMaybe (audioClockAfterComputation + headroomInSeconds) clockInfo.writeHeadStart
+          writeHeadStart = fromMaybe
+            (audioClockAfterComputation + headroomInSeconds)
+            clockInfo.writeHeadStart
         advanceWriteHead ffiSnapshot $ (writeHeadStart + time)
         let
           applied = map ((#) (unit /\ ffiSnapshot)) fromScene.instructions
         renderAudio (map snd applied)
         let
-          remainingTimeInSeconds = audioClockPriorToComputation + headroomInSeconds - audioClockAfterComputation
+          remainingTimeInSeconds = audioClockPriorToComputation
+            + headroomInSeconds
+            - audioClockAfterComputation
           remainingTime = floor $ 1000.0 * remainingTimeInSeconds
         Ref.write (tail easingAlgNow remainingTime) currentEasingAlg
         Ref.write fromScene.next currentScene
@@ -336,8 +396,7 @@ run trigger inWorld engineInfo ffiSnapshot scene =
       unsubscribe
 
 -- | The information provided to `run` that tells the engine how to make certain rendering tradeoffs.
-type EngineInfo
-  = { easingAlgorithm :: EasingAlgorithm }
+type EngineInfo = { easingAlgorithm :: EasingAlgorithm }
 
 -- | An algorithm that tells the engine how much lookahead the audio should have in milliseconds. The `(->) Int` is a penalty function, where a positive input is the number of milliseconds left over after rendering (meaning we gave too much headroom) and a negative input is the number of milliseconds by which we missed the deadline (meaning there was not enough headroom). This allows the algorithm to make adjustments if necessary.
 -- |
@@ -353,11 +412,9 @@ type EngineInfo
 -- | ```
 -- |
 -- | This easing algorithm always provides at least 20ms of headroom to the algorithm, but adjusts upwards in case deadlines are being missed.
-type EasingAlgorithm
-  = Cofree ((->) Int) Int
+type EasingAlgorithm = Cofree ((->) Int) Int
 
-type BehavingRun res analysers
-  =
+type BehavingRun res analysers =
   { instructions :: Array Instruction
   , res :: res
   , remainingTimeInSeconds :: Number
@@ -367,8 +424,7 @@ type BehavingRun res analysers
   , analysers :: { | analysers }
   }
 
-type TriggeredRun res analysers
-  =
+type TriggeredRun res analysers =
   { instructions :: Array Instruction
   , res :: res
   , analysers :: { | analysers }
@@ -389,22 +445,23 @@ type SharedScene world analyserCallbacks =
   , analyserCallbacks :: { | analyserCallbacks }
   )
 
-newtype BehavingScene trigger world analyserCallbacks
-  = BehavingScene
+newtype BehavingScene trigger world analyserCallbacks = BehavingScene
   { trigger :: Maybe trigger
   , headroom :: Int
   , headroomInSeconds :: Number
   | SharedScene world analyserCallbacks
   }
-derive instance newtypeBehavingScene :: Newtype (BehavingScene trigger world analyserCallbacks) _
 
-newtype TriggeredScene trigger world analyserCallbacks
-  = TriggeredScene
+derive instance newtypeBehavingScene ::
+  Newtype (BehavingScene trigger world analyserCallbacks) _
+
+newtype TriggeredScene trigger world analyserCallbacks = TriggeredScene
   { trigger :: trigger
   | SharedScene world analyserCallbacks
   }
-derive instance newtypeTriggeredScene :: Newtype (TriggeredScene trigger world analyserCallbacks) _
 
+derive instance newtypeTriggeredScene ::
+  Newtype (TriggeredScene trigger world analyserCallbacks) _
 
 -- | Given a buffering window and an event, return a list of events that occur within that window.
 -- | - `timeToCollect` - the buffering window

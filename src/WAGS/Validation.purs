@@ -48,7 +48,12 @@ instance graphIsRenderable ::
 -- | Subgraphs are exactly like graphs with the exception that the node _cannot_ be a
 -- | speaker.
 
-class SubgraphIsRenderable (graph :: Graph) (terminusName :: Symbol) (inputs :: Row Type) | graph -> terminusName inputs
+class
+  SubgraphIsRenderable
+    (graph :: Graph)
+    (terminusName :: Symbol)
+    (inputs :: Row Type)
+  | graph -> terminusName inputs
 
 instance subgraphIsRenderable ::
   ( NoNodesAreDuplicated graph
@@ -102,14 +107,20 @@ instance allEdgesInGraphCons ::
 -- | Assertion that all edges in the graph point to a node in the graph.
 class AllEdgesPointToNodes (graph :: Graph)
 
-instance allEdgesPointToNodes :: (RowToList graph nodeList, AllEdgesInGraph nodeList graph) => AllEdgesPointToNodes graph
+instance allEdgesPointToNodes ::
+  ( RowToList graph nodeList
+  , AllEdgesInGraph nodeList graph
+  ) =>
+  AllEdgesPointToNodes graph
 
 -- | Assertion that `nodeList` contains no parallel edges. Parallel edges are two or more edges from `node1` to `node2` in a list of nodes.
 class NoParallelEdgesNL (nodeList :: NodeList)
 
 instance noParallelEdgesNLNil :: NoParallelEdgesNL RL.Nil
 
-instance noParallelEdgesNLConsManyEdges :: Nub r r => NoParallelEdgesNL (RL.Cons h (NodeC n { | r }) tail)
+instance noParallelEdgesNLConsManyEdges ::
+  Nub r r =>
+  NoParallelEdgesNL (RL.Cons h (NodeC n { | r }) tail)
 
 -- | Assertion that `graph` contains no parallel edges. Parallel edges are two or more edges from `node1` to `node2` in a list of nodes.
 class NoParallelEdges (graph :: Graph)
@@ -123,7 +134,9 @@ instance noParallelEdges ::
 -- | Tail-recursive lookup of all nodes in a graph without incoming edges.
 -- | - `nodeList` is the list of nodes that will be searched over.
 -- | - `output` contains all nodes without incoming edges.
-class SourceNodes (nodeList :: NodeList) (output :: NodeList) | nodeList -> output
+class
+  SourceNodes (nodeList :: NodeList) (output :: NodeList)
+  | nodeList -> output
 
 instance sourceNodesNil :: SourceNodes RL.Nil RL.Nil
 
@@ -138,23 +151,43 @@ instance sourceNodesConsNil ::
 -- | Assertion that a graph has source nodes. Source nodes are nodes without incoming edges.
 class HasSourceNodes (graph :: Graph)
 
-instance hasSourceNodes :: (RowToList graph graph', SourceNodes graph' (RL.Cons a b c)) => HasSourceNodes graph
+instance hasSourceNodes ::
+  ( RowToList graph graph'
+  , SourceNodes graph' (RL.Cons a b c)
+  ) =>
+  HasSourceNodes graph
 
-class SymPresentInAtLeastOneEdge (tf :: Type) (sym :: Symbol) (graphAsList :: RowList Type) (o :: Type) | tf sym graphAsList -> o
+class
+  SymPresentInAtLeastOneEdge
+    (tf :: Type)
+    (sym :: Symbol)
+    (graphAsList :: RowList Type)
+    (o :: Type)
+  | tf sym graphAsList -> o
 
-instance symPresentInAtLeastOneEdgeTrue :: SymPresentInAtLeastOneEdge True sym graphAsList True
+instance symPresentInAtLeastOneEdgeTrue ::
+  SymPresentInAtLeastOneEdge True sym graphAsList True
 
-instance symPresentInAtLeastOneEdgeNil :: SymPresentInAtLeastOneEdge False sym RL.Nil False
+instance symPresentInAtLeastOneEdgeNil ::
+  SymPresentInAtLeastOneEdge False sym RL.Nil False
 
 instance symPresentInAtLeastOneEdgeCons ::
   ( RowToList edges edges'
   , SymInRowList sym edges' tf
   , SymPresentInAtLeastOneEdge tf sym rest o
   ) =>
-  SymPresentInAtLeastOneEdge False sym (RL.Cons sym' (NodeC node { | edges }) rest) o
+  SymPresentInAtLeastOneEdge False
+    sym
+    (RL.Cons sym' (NodeC node { | edges }) rest)
+    o
 
 -- | The algorithm that finds the terminal nodes of a graph.
-class GetTerminii (toVisit :: NodeList) (graphAsNodeList :: NodeList) (output :: NodeList) | toVisit graphAsNodeList -> output
+class
+  GetTerminii
+    (toVisit :: NodeList)
+    (graphAsNodeList :: NodeList)
+    (output :: NodeList)
+  | toVisit graphAsNodeList -> output
 
 instance getTerminiiNil :: GetTerminii RL.Nil graphAsNodeList RL.Nil
 
@@ -168,7 +201,9 @@ instance getTerminiiCons ::
 -- | Assertion that `graph` has the unique terminus `node`. Note that,
 -- | due to the fundep, the assertion also _finds_ the unique terminus
 -- | if it exists.
-class UniqueTerminus (graph :: Graph) (sym :: Symbol) (node :: Type) | graph -> sym node
+class
+  UniqueTerminus (graph :: Graph) (sym :: Symbol) (node :: Type)
+  | graph -> sym node
 
 instance uniqueTerminus ::
   ( RowToList graph graphAsList
@@ -179,7 +214,9 @@ instance uniqueTerminus ::
 -- | Assertion that `graph` has a unique terminus.
 class HasUniqueTerminus (graph :: Graph)
 
-instance hasUniqueTerminus :: UniqueTerminus graph sym node => HasUniqueTerminus graph
+instance hasUniqueTerminus ::
+  UniqueTerminus graph sym node =>
+  HasUniqueTerminus graph
 
 -- | Asserts that all nodes in `graph` are saturated.
 -- | "Saturation" for audio nodes is similar to the concept of saturation
@@ -205,14 +242,28 @@ instance allNodesAreSaturatedConsTAnalyser ::
 class Length (rl :: RowList Type) (n :: Type) | rl -> n
 
 instance length0 :: Length RL.Nil D0
-else instance lengthN :: (Pred n nMinus1, Length rest nMinus1) => Length (RL.Cons a b rest) nMinus1
+else instance lengthN ::
+  ( Pred n nMinus1
+  , Length rest nMinus1
+  ) =>
+  Length (RL.Cons a b rest) nMinus1
 
 instance allNodesAreSaturatedConsTAudioWorkletNode0 ::
   ( RowToList r rl
   , Length rl numberOfInputs
   , AllNodesAreSaturatedNL tail
   ) =>
-  AllNodesAreSaturatedNL (RL.Cons iSym (NodeC (CTOR.TAudioWorkletNode sym numberOfInputs numberOfOutputs outputChannelCount parameterData processorOptions) { | r }) tail)
+  AllNodesAreSaturatedNL ( RL.Cons iSym
+        ( NodeC
+            ( CTOR.TAudioWorkletNode sym numberOfInputs numberOfOutputs
+                outputChannelCount
+                parameterData
+                processorOptions
+            )
+            { | r }
+        )
+        tail
+    )
 
 instance allNodesAreSaturatedConsTBandpass2 ::
   ( RowToList r (RL.Cons aSym aVal RL.Nil)
@@ -242,7 +293,10 @@ instance allNodesAreSaturatedConsTDynamicsCompressor ::
   ( RowToList r (RL.Cons aSym aVal RL.Nil)
   , AllNodesAreSaturatedNL tail
   ) =>
-  AllNodesAreSaturatedNL (RL.Cons iSym (NodeC (CTOR.TDynamicsCompressor) { | r }) tail)
+  AllNodesAreSaturatedNL ( RL.Cons iSym
+        (NodeC (CTOR.TDynamicsCompressor) { | r })
+        tail
+    )
 
 instance allNodesAreSaturatedCons_TGain ::
   ( RowToList r (RL.Cons aSym aVal next)
@@ -356,21 +410,30 @@ instance allNodesAreSaturatedConsTStereoPanner ::
   ( RowToList r (RL.Cons aSym aVal RL.Nil)
   , AllNodesAreSaturatedNL tail
   ) =>
-  AllNodesAreSaturatedNL (RL.Cons iSym (NodeC (CTOR.TStereoPanner) { | r }) tail)
+  AllNodesAreSaturatedNL ( RL.Cons iSym (NodeC (CTOR.TStereoPanner) { | r })
+        tail
+    )
 
 class RowListInRow :: forall k1 k2. RowList k1 -> Row k2 -> Constraint
 class RowListInRow rl r
 
 instance rowListInRowNil :: RowListInRow RL.Nil r
 
-instance rowListInRowCons :: (RowListInRow c r, Cons a x y r) => RowListInRow (RL.Cons a b c) r
+instance rowListInRowCons ::
+  ( RowListInRow c r
+  , Cons a x y r
+  ) =>
+  RowListInRow (RL.Cons a b c) r
 
 instance allNodesAreSaturatedCons_TSubgraph ::
   ( RowToList inputs inputsRL
   , RowListInRow inputsRL r
   , AllNodesAreSaturatedNL tail
   ) =>
-  AllNodesAreSaturatedNL (RL.Cons iSym (NodeC (CTOR.TSubgraph arity terminus inputs env) { | r }) tail)
+  AllNodesAreSaturatedNL ( RL.Cons iSym
+        (NodeC (CTOR.TSubgraph arity terminus inputs env) { | r })
+        tail
+    )
 
 instance allNodesAreSaturatedConsTTriangleOsc ::
   ( RowToList r RL.Nil
@@ -383,29 +446,42 @@ instance allNodesAreSaturatedCons_TTumult ::
   , RowListInRow inputsRL r
   , AllNodesAreSaturatedNL tail
   ) =>
-  AllNodesAreSaturatedNL (RL.Cons iSym (NodeC (CTOR.TTumult arity terminus inputs) { | r }) tail)
+  AllNodesAreSaturatedNL ( RL.Cons iSym
+        (NodeC (CTOR.TTumult arity terminus inputs) { | r })
+        tail
+    )
 
 instance allNodesAreSaturatedConsTWaveShaper ::
   ( RowToList r (RL.Cons aSym aVal RL.Nil)
   , AllNodesAreSaturatedNL tail
   ) =>
-  AllNodesAreSaturatedNL (RL.Cons iSym (NodeC (CTOR.TWaveShaper p0) { | r }) tail)
+  AllNodesAreSaturatedNL ( RL.Cons iSym (NodeC (CTOR.TWaveShaper p0) { | r })
+        tail
+    )
 
 -- | Asserts that all nodes in `graph` are saturated. This is
 -- | the same as the node-list algorithm, but for a graph.
 class AllNodesAreSaturated (graph :: Graph)
 
-instance allNodesAreSaturated :: (RowToList graph nodeList, AllNodesAreSaturatedNL nodeList) => AllNodesAreSaturated graph
+instance allNodesAreSaturated ::
+  ( RowToList graph nodeList
+  , AllNodesAreSaturatedNL nodeList
+  ) =>
+  AllNodesAreSaturated graph
 
 -- | Asserts the node is an output device. Currently, in the web-audio API,
 -- | this is a loudspeaker or recorder.
 class NodeIsOutputDevice (node :: Type)
 
-instance nodeIsOutputDeviceTSpeaker :: NodeIsOutputDevice (NodeC (CTOR.TSpeaker) x)
+instance nodeIsOutputDeviceTSpeaker ::
+  NodeIsOutputDevice (NodeC (CTOR.TSpeaker) x)
 
-instance nodeIsOutputDeviceTRecorder :: NodeIsOutputDevice (NodeC (CTOR.TRecorder) x)
+instance nodeIsOutputDeviceTRecorder ::
+  NodeIsOutputDevice (NodeC (CTOR.TRecorder) x)
 
-class GetInputList' (graph :: RowList Type) (inputs :: Row Type) | graph -> inputs
+class
+  GetInputList' (graph :: RowList Type) (inputs :: Row Type)
+  | graph -> inputs
 
 instance inputsAreInInputListNil :: GetInputList' RL.Nil ()
 instance inputsAreInInputListCons ::
@@ -428,8 +504,12 @@ instance inputsAreInInputListAll ::
 
 class NodeCanBeTumultuous (node :: Type)
 
-instance nodeCanBeTumultuousSubgraph :: Fail (Text "Subgraph cannot be tumultuous") => NodeCanBeTumultuous (CTOR.TSubgraph a b c d)
-else instance nodeCanBeTumultuousTumult :: Fail (Text "Tumult cannot be tumultuous") => NodeCanBeTumultuous (CTOR.TTumult a b c)
+instance nodeCanBeTumultuousSubgraph ::
+  Fail (Text "Subgraph cannot be tumultuous") =>
+  NodeCanBeTumultuous (CTOR.TSubgraph a b c d)
+else instance nodeCanBeTumultuousTumult ::
+  Fail (Text "Tumult cannot be tumultuous") =>
+  NodeCanBeTumultuous (CTOR.TTumult a b c)
 else instance nodeCanBeTumultuousTumultAll :: NodeCanBeTumultuous node
 
 class NodesCanBeTumultuous (rl :: RowList Type)

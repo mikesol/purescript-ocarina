@@ -172,7 +172,8 @@ foreign import getFrequencyBinCount :: WebAPI.AnalyserNode -> Effect Int
 
 foreign import getSmoothingTimeConstant :: WebAPI.AnalyserNode -> Effect Number
 
-foreign import setSmoothingTimeConstant :: WebAPI.AnalyserNode -> Number -> Effect Unit
+foreign import setSmoothingTimeConstant
+  :: WebAPI.AnalyserNode -> Number -> Effect Unit
 
 foreign import getMinDecibels :: WebAPI.AnalyserNode -> Effect Number
 
@@ -182,16 +183,19 @@ foreign import getMaxDecibels :: WebAPI.AnalyserNode -> Effect Number
 
 foreign import setMaxDecibels :: WebAPI.AnalyserNode -> Number -> Effect Unit
 
-foreign import getFloatTimeDomainData :: WebAPI.AnalyserNode -> Effect Float32Array
+foreign import getFloatTimeDomainData
+  :: WebAPI.AnalyserNode -> Effect Float32Array
 
-foreign import getFloatFrequencyData :: WebAPI.AnalyserNode -> Effect Float32Array
+foreign import getFloatFrequencyData
+  :: WebAPI.AnalyserNode -> Effect Float32Array
 
 foreign import getByteTimeDomainData :: WebAPI.AnalyserNode -> Effect Uint8Array
 
 foreign import getByteFrequencyData :: WebAPI.AnalyserNode -> Effect Uint8Array
 
 -- | For a given audio context, add the audio worklet module at a given URI.
-foreign import audioWorkletAddModule_ :: WebAPI.AudioContext -> String -> Effect (Promise Unit)
+foreign import audioWorkletAddModule_
+  :: WebAPI.AudioContext -> String -> Effect (Promise Unit)
 
 -- | Gets the audio clock time from an audio context.
 foreign import getAudioClockTime :: WebAPI.AudioContext -> Effect Number
@@ -204,29 +208,44 @@ foreign import stopMediaRecorder :: WebAPI.MediaRecorder -> Effect Unit
 -- | ```purescript
 -- | mediaRecorderToUrl "audio/ogg" setAudioTagUrlToThisContent recorder
 -- | ```
-foreign import mediaRecorderToBlob :: String -> (Blob -> Effect Unit) -> WebAPI.MediaRecorder -> Effect Unit
-mediaRecorderToUrl :: String -> (String -> Effect Unit) -> WebAPI.MediaRecorder -> Effect Unit
-mediaRecorderToUrl s cb mr = flip (mediaRecorderToBlob s) mr (bindFlipped cb <<< createObjectURL)
+foreign import mediaRecorderToBlob
+  :: String -> (Blob -> Effect Unit) -> WebAPI.MediaRecorder -> Effect Unit
+
+mediaRecorderToUrl
+  :: String -> (String -> Effect Unit) -> WebAPI.MediaRecorder -> Effect Unit
+mediaRecorderToUrl s cb mr = flip (mediaRecorderToBlob s) mr
+  (bindFlipped cb <<< createObjectURL)
 
 -- | Is this MIME type supported by this browser.
 foreign import isTypeSupported :: String -> Effect Boolean
 
 -- | Given an audio context and a URI, decode the content of the URI to an audio buffer.
-decodeAudioDataFromUri :: WebAPI.AudioContext -> String -> Aff WebAPI.BrowserAudioBuffer
+decodeAudioDataFromUri
+  :: WebAPI.AudioContext -> String -> Aff WebAPI.BrowserAudioBuffer
 decodeAudioDataFromUri ctx s =
-  toAffE (fetchArrayBuffer s) >>= (toAffE <<< decodeAudioDataFromArrayBuffer ctx)
+  toAffE (fetchArrayBuffer s) >>=
+    (toAffE <<< decodeAudioDataFromArrayBuffer ctx)
 
 foreign import fetchArrayBuffer :: String -> Effect (Promise ArrayBuffer)
 
-foreign import decodeAudioDataFromArrayBuffer :: WebAPI.AudioContext -> ArrayBuffer -> Effect (Promise WebAPI.BrowserAudioBuffer)
+foreign import decodeAudioDataFromArrayBuffer
+  :: WebAPI.AudioContext
+  -> ArrayBuffer
+  -> Effect (Promise WebAPI.BrowserAudioBuffer)
 
 -- | Given an audio context and a base-64-encoded audio file, decode the content of the string to an audio buffer.
-foreign import decodeAudioDataFromBase64EncodedString :: WebAPI.AudioContext -> String -> Effect (Promise WebAPI.BrowserAudioBuffer)
+foreign import decodeAudioDataFromBase64EncodedString
+  :: WebAPI.AudioContext -> String -> Effect (Promise WebAPI.BrowserAudioBuffer)
 
-foreign import makePeriodicWaveImpl :: WebAPI.AudioContext -> Array Number -> Array Number -> Effect WebAPI.BrowserPeriodicWave
+foreign import makePeriodicWaveImpl
+  :: WebAPI.AudioContext
+  -> Array Number
+  -> Array Number
+  -> Effect WebAPI.BrowserPeriodicWave
 
 -- | For a given audio context, use an audio buffer to create a browser audio buffer. This is useful when doing DSP in the browser.  Note that `AudioBuffer` is a purescript type whereas `WebAPI.BrowserAudioBuffer` is an optimized browser-based type. That means that, once you write to `WebAPI.BrowserAudioBuffer`, it is effectively a blob and its contents cannot be retrieved using the WAGS API.
-foreign import makeAudioBuffer :: WebAPI.AudioContext -> AudioBuffer -> Effect WebAPI.BrowserAudioBuffer
+foreign import makeAudioBuffer
+  :: WebAPI.AudioContext -> AudioBuffer -> Effect WebAPI.BrowserAudioBuffer
 
 -- | Make a float 32 array. Useful when creating a waveshaper node.
 foreign import makeFloatArray :: Array Number -> Effect WebAPI.BrowserFloatArray
@@ -248,12 +267,14 @@ foreign import close :: WebAPI.AudioContext -> Effect Unit
 
 foreign import data BrowserMediaStream :: Type
 
-foreign import getBrowserMediaStreamImpl :: Boolean -> Boolean -> Effect (Promise BrowserMediaStream)
+foreign import getBrowserMediaStreamImpl
+  :: Boolean -> Boolean -> Effect (Promise BrowserMediaStream)
 
 data Audio
 
 audioWorkletAddModule
-  :: forall node numberOfInputs numberOfOutputs outputChannelCount parameterData processorOptions
+  :: forall node numberOfInputs numberOfOutputs outputChannelCount parameterData
+       processorOptions
    . IsSymbol node
   => Nat numberOfInputs
   => Pos numberOfOutputs
@@ -277,25 +298,38 @@ audioWorkletAddModule
            processorOptions
 
        )
-audioWorkletAddModule c px _ = toAffE (audioWorkletAddModule_ c px) $> unsafeCoerce unit
+audioWorkletAddModule c px _ = toAffE (audioWorkletAddModule_ c px) $>
+  unsafeCoerce unit
 
-browserMediaStreamToBrowserMicrophone :: BrowserMediaStream -> WebAPI.BrowserMicrophone
+browserMediaStreamToBrowserMicrophone
+  :: BrowserMediaStream -> WebAPI.BrowserMicrophone
 browserMediaStreamToBrowserMicrophone = unsafeCoerce
 
 browserMediaStreamToBrowserCamera :: BrowserMediaStream -> WebAPI.BrowserCamera
 browserMediaStreamToBrowserCamera = unsafeCoerce
 
-getMicrophoneAndCamera :: Boolean -> Boolean -> Aff { microphone :: Maybe WebAPI.BrowserMicrophone, camera :: Maybe WebAPI.BrowserCamera }
+getMicrophoneAndCamera
+  :: Boolean
+  -> Boolean
+  -> Aff
+       { microphone :: Maybe WebAPI.BrowserMicrophone
+       , camera :: Maybe WebAPI.BrowserCamera
+       }
 getMicrophoneAndCamera audio video =
   ( \i ->
-      { microphone: if audio then pure $ browserMediaStreamToBrowserMicrophone i else empty
-      , camera: if video then pure $ browserMediaStreamToBrowserCamera i else empty
+      { microphone:
+          if audio then pure $ browserMediaStreamToBrowserMicrophone i
+          else empty
+      , camera:
+          if video then pure $ browserMediaStreamToBrowserCamera i else empty
       }
   )
     <$> toAffE (getBrowserMediaStreamImpl audio video)
 
 -- | Create a unit cache. This returns a fresh empty object `{}` that is used to cache audio units.
-foreign import makeFFIAudioSnapshot :: WebAPI.AudioContext -> Effect FFIAudioSnapshot
+foreign import makeFFIAudioSnapshot
+  :: WebAPI.AudioContext -> Effect FFIAudioSnapshot
+
 foreign import contextFromSnapshot :: FFIAudioSnapshot -> WebAPI.AudioContext
 foreign import advanceWriteHead :: FFIAudioSnapshot -> Number -> Effect Unit
 
@@ -318,8 +352,7 @@ makePeriodicWave
 makePeriodicWave ctx a b = makePeriodicWaveImpl ctx (V.toArray a) (V.toArray b)
 
 -- | A multi-channel audio buffer.
-data AudioBuffer
-  = AudioBuffer Int (Array (Array Number))
+data AudioBuffer = AudioBuffer Int (Array (Array Number))
 
 instance showAudioBuffer :: Show AudioBuffer where
   show (AudioBuffer i a) = "AudioBuffer <" <> show i <> " : " <> show a <> ">"
@@ -360,7 +393,16 @@ unAsSubGraph
      )
 unAsSubGraph (AsSubgraph subgraph) = subgraph
 
-type SubgraphInput :: forall k. (Symbol -> Type) -> Symbol -> Row Type -> k -> Type -> Type -> Type -> Type
+type SubgraphInput
+  :: forall k
+   . (Symbol -> Type)
+  -> Symbol
+  -> Row Type
+  -> k
+  -> Type
+  -> Type
+  -> Type
+  -> Type
 type SubgraphInput proxy terminus inputs n env audio engine =
   { id :: String
   , terminus :: proxy terminus
@@ -404,6 +446,7 @@ type SetPeriodicOscV =
   { id :: String
   , realImg :: RealImg
   }
+
 -- | A class with all possible instructions for interpreting audio.
 -- | The class is paramaterized by two types:
 -- | - `audio`: an audio context, which could be nothing (ie `Unit`) if there is audio or `FFIAudio` if there is audio.
@@ -442,7 +485,8 @@ class AudioInterpret audio engine where
   -- | Make input.
   makeInput :: R.MakeInput -> audio -> engine
   -- | Make a looping audio buffer node with a deferred buffer.
-  makeLoopBufWithDeferredBuffer :: R.MakeLoopBufWithDeferredBuffer -> audio -> engine
+  makeLoopBufWithDeferredBuffer
+    :: R.MakeLoopBufWithDeferredBuffer -> audio -> engine
   -- | Make a looping audio buffer node.
   makeLoopBuf :: R.MakeLoopBuf -> audio -> engine
   -- | Make a lowpass filter.
@@ -458,13 +502,15 @@ class AudioInterpret audio engine where
   -- | Make a peaking filter.
   makePeaking :: R.MakePeaking -> audio -> engine
   -- | Make a periodic oscillator.
-  makePeriodicOscWithDeferredOsc :: R.MakePeriodicOscWithDeferredOsc -> audio -> engine
+  makePeriodicOscWithDeferredOsc
+    :: R.MakePeriodicOscWithDeferredOsc -> audio -> engine
   -- | Make a periodic oscillator.
   makePeriodicOsc :: MakePeriodicOscW -> audio -> engine
   -- | Make a periodic oscillator
   makePeriodicOscV :: MakePeriodicOscV -> audio -> engine
   -- | Make an audio buffer node with a deferred buffer.
-  makePlayBufWithDeferredBuffer :: R.MakePlayBufWithDeferredBuffer -> audio -> engine
+  makePlayBufWithDeferredBuffer
+    :: R.MakePlayBufWithDeferredBuffer -> audio -> engine
   -- | Make an audio buffer node.
   makePlayBuf :: R.MakePlayBuf -> audio -> engine
   -- | Make a recorder.
@@ -603,8 +649,10 @@ instance freeAudioInterpret :: AudioInterpret Unit Instruction where
   makeMicrophone = const <<< R.iMakeMicrophone
   makeNotch = const <<< R.iMakeNotch
   makePeaking = const <<< R.iMakePeaking
-  makePeriodicOsc { id, onOff, wave, freq } = const $ R.iMakePeriodicOsc { id, onOff, spec: R.iWave wave, freq }
-  makePeriodicOscV { id, onOff, realImg, freq } = const $ R.iMakePeriodicOsc { id, onOff, spec: R.iRealImg realImg, freq }
+  makePeriodicOsc { id, onOff, wave, freq } = const $ R.iMakePeriodicOsc
+    { id, onOff, spec: R.iWave wave, freq }
+  makePeriodicOscV { id, onOff, realImg, freq } = const $ R.iMakePeriodicOsc
+    { id, onOff, spec: R.iRealImg realImg, freq }
   makePeriodicOscWithDeferredOsc = const <<< R.iMakePeriodicOscWithDeferredOsc
   makePlayBufWithDeferredBuffer = const <<< R.iMakePlayBufWithDeferredBuffer
   makePlayBuf = const <<< R.iMakePlayBuf
@@ -619,8 +667,10 @@ instance freeAudioInterpret :: AudioInterpret Unit Instruction where
   setAudioWorkletParameter = const <<< R.iSetAudioWorkletParameter
   setBuffer = const <<< R.iSetBuffer
   setConvolverBuffer = const <<< R.iSetConvolverBuffer
-  setPeriodicOsc { id, wave } = const $ R.iSetPeriodicOsc { id, periodicOsc: R.iWave wave }
-  setPeriodicOscV { id, realImg } = const $ R.iSetPeriodicOsc { id, periodicOsc: R.iRealImg realImg }
+  setPeriodicOsc { id, wave } = const $ R.iSetPeriodicOsc
+    { id, periodicOsc: R.iWave wave }
+  setPeriodicOscV { id, realImg } = const $ R.iSetPeriodicOsc
+    { id, periodicOsc: R.iRealImg realImg }
   setOnOff = const <<< R.iSetOnOff
   setMediaRecorderCb = const <<< R.iSetMediaRecorderCb
   setAnalyserNodeCb = const <<< R.iSetAnalyserNodeCb
@@ -645,77 +695,197 @@ instance freeAudioInterpret :: AudioInterpret Unit Instruction where
   setSingleSubgraph { id } _ = R.iSetSingleSubgraph { id }
   setTumult = const <<< R.iSetTumult
 
-foreign import connectXToY_ :: String -> String -> FFIAudioSnapshot -> Effect Unit
+foreign import connectXToY_
+  :: String -> String -> FFIAudioSnapshot -> Effect Unit
 
-foreign import disconnectXFromY_ :: String -> String -> FFIAudioSnapshot -> Effect Unit
+foreign import disconnectXFromY_
+  :: String -> String -> FFIAudioSnapshot -> Effect Unit
 
 foreign import destroyUnit_ :: String -> FFIAudioSnapshot -> Effect Unit
 
-foreign import makeAllpass_ :: String -> FFIAudioParameter -> FFIAudioParameter -> FFIAudioSnapshot -> Effect Unit
+foreign import makeAllpass_
+  :: String
+  -> FFIAudioParameter
+  -> FFIAudioParameter
+  -> FFIAudioSnapshot
+  -> Effect Unit
 
-foreign import makeAnalyser_ :: String -> (AnalyserNode -> Effect (Effect Unit)) -> FFIAudioSnapshot -> Effect Unit
+foreign import makeAnalyser_
+  :: String
+  -> (AnalyserNode -> Effect (Effect Unit))
+  -> FFIAudioSnapshot
+  -> Effect Unit
 
-foreign import makeAudioWorkletNode_ :: String -> AudioWorkletNodeOptionsFFI_ -> FFIAudioSnapshot -> Effect Unit
+foreign import makeAudioWorkletNode_
+  :: String -> AudioWorkletNodeOptionsFFI_ -> FFIAudioSnapshot -> Effect Unit
 
-foreign import makeBandpass_ :: String -> FFIAudioParameter -> FFIAudioParameter -> FFIAudioSnapshot -> Effect Unit
+foreign import makeBandpass_
+  :: String
+  -> FFIAudioParameter
+  -> FFIAudioParameter
+  -> FFIAudioSnapshot
+  -> Effect Unit
 
-foreign import makeConstant_ :: String -> FFIAudioOnOff -> FFIAudioParameter -> FFIAudioSnapshot -> Effect Unit
+foreign import makeConstant_
+  :: String
+  -> FFIAudioOnOff
+  -> FFIAudioParameter
+  -> FFIAudioSnapshot
+  -> Effect Unit
 
-foreign import makeConvolver_ :: String -> BrowserAudioBuffer -> FFIAudioSnapshot -> Effect Unit
+foreign import makeConvolver_
+  :: String -> BrowserAudioBuffer -> FFIAudioSnapshot -> Effect Unit
 
-foreign import makePassthroughConvolver_ :: String -> FFIAudioSnapshot -> Effect Unit
+foreign import makePassthroughConvolver_
+  :: String -> FFIAudioSnapshot -> Effect Unit
 
-foreign import makeDelay_ :: String -> FFIAudioParameter -> FFIAudioSnapshot -> Effect Unit
+foreign import makeDelay_
+  :: String -> FFIAudioParameter -> FFIAudioSnapshot -> Effect Unit
 
-foreign import makeDynamicsCompressor_ :: String -> FFIAudioParameter -> FFIAudioParameter -> FFIAudioParameter -> FFIAudioParameter -> FFIAudioParameter -> FFIAudioSnapshot -> Effect Unit
+foreign import makeDynamicsCompressor_
+  :: String
+  -> FFIAudioParameter
+  -> FFIAudioParameter
+  -> FFIAudioParameter
+  -> FFIAudioParameter
+  -> FFIAudioParameter
+  -> FFIAudioSnapshot
+  -> Effect Unit
 
-foreign import makeGain_ :: String -> FFIAudioParameter -> FFIAudioSnapshot -> Effect Unit
+foreign import makeGain_
+  :: String -> FFIAudioParameter -> FFIAudioSnapshot -> Effect Unit
 
-foreign import makeHighpass_ :: String -> FFIAudioParameter -> FFIAudioParameter -> FFIAudioSnapshot -> Effect Unit
+foreign import makeHighpass_
+  :: String
+  -> FFIAudioParameter
+  -> FFIAudioParameter
+  -> FFIAudioSnapshot
+  -> Effect Unit
 
-foreign import makeHighshelf_ :: String -> FFIAudioParameter -> FFIAudioParameter -> FFIAudioSnapshot -> Effect Unit
+foreign import makeHighshelf_
+  :: String
+  -> FFIAudioParameter
+  -> FFIAudioParameter
+  -> FFIAudioSnapshot
+  -> Effect Unit
 
-foreign import makeLoopBufWithDeferredBuffer_ :: String -> FFIAudioSnapshot -> Effect Unit
+foreign import makeLoopBufWithDeferredBuffer_
+  :: String -> FFIAudioSnapshot -> Effect Unit
 
-foreign import makeLoopBuf_ :: String -> BrowserAudioBuffer -> FFIAudioOnOff -> FFIAudioParameter -> Number -> Number -> FFIAudioSnapshot -> Effect Unit
+foreign import makeLoopBuf_
+  :: String
+  -> BrowserAudioBuffer
+  -> FFIAudioOnOff
+  -> FFIAudioParameter
+  -> Number
+  -> Number
+  -> FFIAudioSnapshot
+  -> Effect Unit
 
-foreign import makeLowpass_ :: String -> FFIAudioParameter -> FFIAudioParameter -> FFIAudioSnapshot -> Effect Unit
+foreign import makeLowpass_
+  :: String
+  -> FFIAudioParameter
+  -> FFIAudioParameter
+  -> FFIAudioSnapshot
+  -> Effect Unit
 
-foreign import makeLowshelf_ :: String -> FFIAudioParameter -> FFIAudioParameter -> FFIAudioSnapshot -> Effect Unit
+foreign import makeLowshelf_
+  :: String
+  -> FFIAudioParameter
+  -> FFIAudioParameter
+  -> FFIAudioSnapshot
+  -> Effect Unit
 
-foreign import makeMediaElement_ :: String -> BrowserMediaElement -> FFIAudioSnapshot -> Effect Unit
+foreign import makeMediaElement_
+  :: String -> BrowserMediaElement -> FFIAudioSnapshot -> Effect Unit
 
-foreign import makeMicrophone_ :: BrowserMicrophone -> FFIAudioSnapshot -> Effect Unit
+foreign import makeMicrophone_
+  :: BrowserMicrophone -> FFIAudioSnapshot -> Effect Unit
 
-foreign import makeNotch_ :: String -> FFIAudioParameter -> FFIAudioParameter -> FFIAudioSnapshot -> Effect Unit
+foreign import makeNotch_
+  :: String
+  -> FFIAudioParameter
+  -> FFIAudioParameter
+  -> FFIAudioSnapshot
+  -> Effect Unit
 
-foreign import makePeaking_ :: String -> FFIAudioParameter -> FFIAudioParameter -> FFIAudioParameter -> FFIAudioSnapshot -> Effect Unit
+foreign import makePeaking_
+  :: String
+  -> FFIAudioParameter
+  -> FFIAudioParameter
+  -> FFIAudioParameter
+  -> FFIAudioSnapshot
+  -> Effect Unit
 
-foreign import makePeriodicOscWithDeferredOsc_ :: String -> FFIAudioSnapshot -> Effect Unit
+foreign import makePeriodicOscWithDeferredOsc_
+  :: String -> FFIAudioSnapshot -> Effect Unit
 
-foreign import makePeriodicOsc_ :: String -> BrowserPeriodicWave -> FFIAudioOnOff -> FFIAudioParameter -> FFIAudioSnapshot -> Effect Unit
+foreign import makePeriodicOsc_
+  :: String
+  -> BrowserPeriodicWave
+  -> FFIAudioOnOff
+  -> FFIAudioParameter
+  -> FFIAudioSnapshot
+  -> Effect Unit
 
-foreign import makePeriodicOscV_ :: String -> (Array (Array Number)) -> FFIAudioOnOff -> FFIAudioParameter -> FFIAudioSnapshot -> Effect Unit
+foreign import makePeriodicOscV_
+  :: String
+  -> (Array (Array Number))
+  -> FFIAudioOnOff
+  -> FFIAudioParameter
+  -> FFIAudioSnapshot
+  -> Effect Unit
 
-foreign import makePlayBufWithDeferredBuffer_ :: String -> FFIAudioSnapshot -> Effect Unit
+foreign import makePlayBufWithDeferredBuffer_
+  :: String -> FFIAudioSnapshot -> Effect Unit
 
-foreign import makePlayBuf_ :: String -> BrowserAudioBuffer -> Number -> FFIAudioOnOff -> FFIAudioParameter -> FFIAudioSnapshot -> Effect Unit
+foreign import makePlayBuf_
+  :: String
+  -> BrowserAudioBuffer
+  -> Number
+  -> FFIAudioOnOff
+  -> FFIAudioParameter
+  -> FFIAudioSnapshot
+  -> Effect Unit
 
-foreign import makeRecorder_ :: String -> (MediaRecorder -> Effect Unit) -> FFIAudioSnapshot -> Effect Unit
+foreign import makeRecorder_
+  :: String -> (MediaRecorder -> Effect Unit) -> FFIAudioSnapshot -> Effect Unit
 
-foreign import makeSawtoothOsc_ :: String -> FFIAudioOnOff -> FFIAudioParameter -> FFIAudioSnapshot -> Effect Unit
+foreign import makeSawtoothOsc_
+  :: String
+  -> FFIAudioOnOff
+  -> FFIAudioParameter
+  -> FFIAudioSnapshot
+  -> Effect Unit
 
-foreign import makeSinOsc_ :: String -> FFIAudioOnOff -> FFIAudioParameter -> FFIAudioSnapshot -> Effect Unit
+foreign import makeSinOsc_
+  :: String
+  -> FFIAudioOnOff
+  -> FFIAudioParameter
+  -> FFIAudioSnapshot
+  -> Effect Unit
 
 foreign import makeSpeaker_ :: FFIAudioSnapshot -> Effect Unit
 
-foreign import makeSquareOsc_ :: String -> FFIAudioOnOff -> FFIAudioParameter -> FFIAudioSnapshot -> Effect Unit
+foreign import makeSquareOsc_
+  :: String
+  -> FFIAudioOnOff
+  -> FFIAudioParameter
+  -> FFIAudioSnapshot
+  -> Effect Unit
 
-foreign import makeStereoPanner_ :: String -> FFIAudioParameter -> FFIAudioSnapshot -> Effect Unit
+foreign import makeStereoPanner_
+  :: String -> FFIAudioParameter -> FFIAudioSnapshot -> Effect Unit
 
-foreign import makeTriangleOsc_ :: String -> FFIAudioOnOff -> FFIAudioParameter -> FFIAudioSnapshot -> Effect Unit
+foreign import makeTriangleOsc_
+  :: String
+  -> FFIAudioOnOff
+  -> FFIAudioParameter
+  -> FFIAudioSnapshot
+  -> Effect Unit
 
-foreign import makeWaveShaper_ :: String -> BrowserFloatArray -> String -> FFIAudioSnapshot -> Effect Unit
+foreign import makeWaveShaper_
+  :: String -> BrowserFloatArray -> String -> FFIAudioSnapshot -> Effect Unit
 
 foreign import makeInput_ :: String -> String -> FFIAudioSnapshot -> Effect Unit
 
@@ -725,7 +895,12 @@ foreign import makeSubgraph_
   -> String
   -> Array env
   -> (Int -> scene)
-  -> (env -> scene -> { instructions :: Array (FFIAudioSnapshot -> Effect Unit), nextScene :: scene })
+  -> ( env
+       -> scene
+       -> { instructions :: Array (FFIAudioSnapshot -> Effect Unit)
+          , nextScene :: scene
+          }
+     )
   -> FFIAudioSnapshot
   -> Effect Unit
 
@@ -735,7 +910,10 @@ foreign import makeTumult_
   -> Array (Array Instruction)
   -> Maybe (Array Instruction)
   -> (Array Instruction -> Maybe (Array Instruction))
-  -> (Array Instruction -> Maybe (Array Instruction) -> Array (FFIAudioSnapshot -> Effect Unit))
+  -> ( Array Instruction
+       -> Maybe (Array Instruction)
+       -> Array (FFIAudioSnapshot -> Effect Unit)
+     )
   -> FFIAudioSnapshot
   -> Effect Unit
 
@@ -745,57 +923,87 @@ foreign import setTumult_
   -> Array (Array Instruction)
   -> Maybe (Array Instruction)
   -> (Array Instruction -> Maybe (Array Instruction))
-  -> (Array Instruction -> Maybe (Array Instruction) -> Array (FFIAudioSnapshot -> Effect Unit))
+  -> ( Array Instruction
+       -> Maybe (Array Instruction)
+       -> Array (FFIAudioSnapshot -> Effect Unit)
+     )
   -> FFIAudioSnapshot
   -> Effect Unit
 
-foreign import setAudioWorkletParameter_ :: String -> String -> FFIAudioParameter -> FFIAudioSnapshot -> Effect Unit
+foreign import setAudioWorkletParameter_
+  :: String -> String -> FFIAudioParameter -> FFIAudioSnapshot -> Effect Unit
 
-foreign import setOnOff_ :: String -> FFIAudioOnOff -> FFIAudioSnapshot -> Effect Unit
+foreign import setOnOff_
+  :: String -> FFIAudioOnOff -> FFIAudioSnapshot -> Effect Unit
 
-foreign import setBufferOffset_ :: String -> Number -> FFIAudioSnapshot -> Effect Unit
+foreign import setBufferOffset_
+  :: String -> Number -> FFIAudioSnapshot -> Effect Unit
 
-foreign import setLoopStart_ :: String -> Number -> FFIAudioSnapshot -> Effect Unit
+foreign import setLoopStart_
+  :: String -> Number -> FFIAudioSnapshot -> Effect Unit
 
-foreign import setLoopEnd_ :: String -> Number -> FFIAudioSnapshot -> Effect Unit
+foreign import setLoopEnd_
+  :: String -> Number -> FFIAudioSnapshot -> Effect Unit
 
-foreign import setRatio_ :: String -> FFIAudioParameter -> FFIAudioSnapshot -> Effect Unit
+foreign import setRatio_
+  :: String -> FFIAudioParameter -> FFIAudioSnapshot -> Effect Unit
 
-foreign import setOffset_ :: String -> FFIAudioParameter -> FFIAudioSnapshot -> Effect Unit
+foreign import setOffset_
+  :: String -> FFIAudioParameter -> FFIAudioSnapshot -> Effect Unit
 
-foreign import setAttack_ :: String -> FFIAudioParameter -> FFIAudioSnapshot -> Effect Unit
+foreign import setAttack_
+  :: String -> FFIAudioParameter -> FFIAudioSnapshot -> Effect Unit
 
-foreign import setGain_ :: String -> FFIAudioParameter -> FFIAudioSnapshot -> Effect Unit
+foreign import setGain_
+  :: String -> FFIAudioParameter -> FFIAudioSnapshot -> Effect Unit
 
-foreign import setQ_ :: String -> FFIAudioParameter -> FFIAudioSnapshot -> Effect Unit
+foreign import setQ_
+  :: String -> FFIAudioParameter -> FFIAudioSnapshot -> Effect Unit
 
-foreign import setPan_ :: String -> FFIAudioParameter -> FFIAudioSnapshot -> Effect Unit
+foreign import setPan_
+  :: String -> FFIAudioParameter -> FFIAudioSnapshot -> Effect Unit
 
-foreign import setThreshold_ :: String -> FFIAudioParameter -> FFIAudioSnapshot -> Effect Unit
+foreign import setThreshold_
+  :: String -> FFIAudioParameter -> FFIAudioSnapshot -> Effect Unit
 
-foreign import setRelease_ :: String -> FFIAudioParameter -> FFIAudioSnapshot -> Effect Unit
+foreign import setRelease_
+  :: String -> FFIAudioParameter -> FFIAudioSnapshot -> Effect Unit
 
-foreign import setKnee_ :: String -> FFIAudioParameter -> FFIAudioSnapshot -> Effect Unit
+foreign import setKnee_
+  :: String -> FFIAudioParameter -> FFIAudioSnapshot -> Effect Unit
 
-foreign import setDelay_ :: String -> FFIAudioParameter -> FFIAudioSnapshot -> Effect Unit
+foreign import setDelay_
+  :: String -> FFIAudioParameter -> FFIAudioSnapshot -> Effect Unit
 
-foreign import setPlaybackRate_ :: String -> FFIAudioParameter -> FFIAudioSnapshot -> Effect Unit
+foreign import setPlaybackRate_
+  :: String -> FFIAudioParameter -> FFIAudioSnapshot -> Effect Unit
 
-foreign import setFrequency_ :: String -> FFIAudioParameter -> FFIAudioSnapshot -> Effect Unit
+foreign import setFrequency_
+  :: String -> FFIAudioParameter -> FFIAudioSnapshot -> Effect Unit
 
-foreign import setBuffer_ :: String -> BrowserAudioBuffer -> FFIAudioSnapshot -> Effect Unit
+foreign import setBuffer_
+  :: String -> BrowserAudioBuffer -> FFIAudioSnapshot -> Effect Unit
 
-foreign import setConvolverBuffer_ :: String -> BrowserAudioBuffer -> FFIAudioSnapshot -> Effect Unit
+foreign import setConvolverBuffer_
+  :: String -> BrowserAudioBuffer -> FFIAudioSnapshot -> Effect Unit
 
-foreign import setPeriodicOsc_ :: String -> BrowserPeriodicWave -> FFIAudioSnapshot -> Effect Unit
+foreign import setPeriodicOsc_
+  :: String -> BrowserPeriodicWave -> FFIAudioSnapshot -> Effect Unit
 
-foreign import setPeriodicOscV_ :: String -> Array (Array Number) -> FFIAudioSnapshot -> Effect Unit
+foreign import setPeriodicOscV_
+  :: String -> Array (Array Number) -> FFIAudioSnapshot -> Effect Unit
 
-foreign import setAnalyserNodeCb_ :: String -> (AnalyserNode -> Effect (Effect Unit)) -> FFIAudioSnapshot -> Effect Unit
+foreign import setAnalyserNodeCb_
+  :: String
+  -> (AnalyserNode -> Effect (Effect Unit))
+  -> FFIAudioSnapshot
+  -> Effect Unit
 
-foreign import setMediaRecorderCb_ :: String -> (MediaRecorder -> Effect Unit) -> FFIAudioSnapshot -> Effect Unit
+foreign import setMediaRecorderCb_
+  :: String -> (MediaRecorder -> Effect Unit) -> FFIAudioSnapshot -> Effect Unit
 
-foreign import setWaveShaperCurve_ :: String -> BrowserFloatArray -> FFIAudioSnapshot -> Effect Unit
+foreign import setWaveShaperCurve_
+  :: String -> BrowserFloatArray -> FFIAudioSnapshot -> Effect Unit
 
 foreign import setInput_ :: String -> String -> FFIAudioSnapshot -> Effect Unit
 
@@ -814,7 +1022,12 @@ foreign import setSingleSubgraph_
   -> FFIAudioSnapshot
   -> Effect Unit
 
-interpretInstruction :: forall audio engine. AudioInterpret audio engine => Instruction -> audio -> engine
+interpretInstruction
+  :: forall audio engine
+   . AudioInterpret audio engine
+  => Instruction
+  -> audio
+  -> engine
 interpretInstruction = unwrap >>> match
   { disconnectXFromY: \a -> disconnectXFromY a
   , destroyUnit: \a -> destroyUnit a
@@ -894,101 +1107,259 @@ interpretInstruction = unwrap >>> match
   , setTumult: \{ id } -> setGain { id, gain: paramize 1.0 }
   }
 
-makeInstructionsEffectful :: Array Instruction -> Maybe (Array Instruction) -> Array (FFIAudioSnapshot -> Effect Unit)
+makeInstructionsEffectful
+  :: Array Instruction
+  -> Maybe (Array Instruction)
+  -> Array (FFIAudioSnapshot -> Effect Unit)
 makeInstructionsEffectful a = case _ of
   Nothing -> map (interpretInstruction) a
   Just b -> map (interpretInstruction)
-    (Array.fromFoldable $ reconcileTumult (Set.fromFoldable a) (Set.fromFoldable b))
+    ( Array.fromFoldable $ reconcileTumult (Set.fromFoldable a)
+        (Set.fromFoldable b)
+    )
 
-instance effectfulAudioInterpret :: AudioInterpret FFIAudioSnapshot (Effect Unit) where
+instance effectfulAudioInterpret ::
+  AudioInterpret FFIAudioSnapshot (Effect Unit) where
   connectXToY { fromId, toId } c = connectXToY_ fromId toId (safeToFFI c)
-  disconnectXFromY { fromId, toId } c = disconnectXFromY_ fromId toId (safeToFFI c)
+  disconnectXFromY { fromId, toId } c = disconnectXFromY_ fromId toId
+    (safeToFFI c)
   destroyUnit { id } b = destroyUnit_ id (safeToFFI b)
-  makeInput { id, input } c = makeInput_ (safeToFFI id) (safeToFFI input) (safeToFFI c)
-  makeAllpass { id, freq, q } d = makeAllpass_ (safeToFFI id) (safeToFFI freq) (safeToFFI q) (safeToFFI d)
-  makeAnalyser { id, cb } c = makeAnalyser_ (safeToFFI id) (safeToFFI cb) (safeToFFI c)
-  makeAudioWorkletNode { id, options } c = makeAudioWorkletNode_ (safeToFFI id) (safeToFFI options) (safeToFFI c)
-  makeBandpass { id, freq, q } d = makeBandpass_ (safeToFFI id) (safeToFFI freq) (safeToFFI q) (safeToFFI d)
-  makeConstant { id, onOff, offset } d = makeConstant_ (safeToFFI id) (safeToFFI onOff) (safeToFFI offset) (safeToFFI d)
-  makeConvolver { id, buffer } c = makeConvolver_ (safeToFFI id) (safeToFFI buffer) (safeToFFI c)
-  makePassthroughConvolver { id } b = makePassthroughConvolver_ (safeToFFI id) (safeToFFI b)
-  makeDelay { id, delayTime } c = makeDelay_ (safeToFFI id) (safeToFFI delayTime) (safeToFFI c)
-  makeDynamicsCompressor { id, threshold, knee, ratio, attack, release } g = makeDynamicsCompressor_ (safeToFFI id) (safeToFFI threshold) (safeToFFI knee) (safeToFFI ratio) (safeToFFI attack) (safeToFFI release) (safeToFFI g)
-  makeGain { id, gain } c = makeGain_ (safeToFFI id) (safeToFFI gain) (safeToFFI c)
-  makeHighpass { id, freq, q } d = makeHighpass_ (safeToFFI id) (safeToFFI freq) (safeToFFI q) (safeToFFI d)
-  makeHighshelf { id, freq, gain } d = makeHighshelf_ (safeToFFI id) (safeToFFI freq) (safeToFFI gain) (safeToFFI d)
-  makeLoopBufWithDeferredBuffer { id } b = makeLoopBufWithDeferredBuffer_ (safeToFFI id) (safeToFFI b)
-  makeLoopBuf { id, buffer, onOff, playbackRate, loopStart, loopEnd } g = makeLoopBuf_ (safeToFFI id) (safeToFFI buffer) (safeToFFI onOff) (safeToFFI playbackRate) (safeToFFI loopStart) (safeToFFI loopEnd) (safeToFFI g)
-  makeLowpass { id, freq, q } d = makeLowpass_ (safeToFFI id) (safeToFFI freq) (safeToFFI q) (safeToFFI d)
-  makeLowshelf { id, freq, gain } d = makeLowshelf_ (safeToFFI id) (safeToFFI freq) (safeToFFI gain) (safeToFFI d)
-  makeMediaElement { id, element } b = makeMediaElement_ (safeToFFI id) element (safeToFFI b)
-  makeMicrophone { microphone } b = makeMicrophone_ (safeToFFI microphone) (safeToFFI b)
-  makeNotch { id, freq, q } d = makeNotch_ (safeToFFI id) (safeToFFI freq) (safeToFFI q) (safeToFFI d)
-  makePeaking { id, freq, q, gain } e = makePeaking_ (safeToFFI id) (safeToFFI freq) (safeToFFI q) (safeToFFI gain) (safeToFFI e)
-  makePeriodicOscWithDeferredOsc { id } b = makePeriodicOscWithDeferredOsc_ (safeToFFI id) (safeToFFI b)
-  makePeriodicOsc { id, wave, onOff, freq } e = makePeriodicOsc_ (safeToFFI id) (safeToFFI wave) (safeToFFI onOff) (safeToFFI freq) (safeToFFI e)
-  makePeriodicOscV { id, realImg, onOff, freq } e = makePeriodicOscV_ (safeToFFI id) (safeToFFI realImg) (safeToFFI onOff) (safeToFFI freq) (safeToFFI e)
-  makePlayBufWithDeferredBuffer { id } b = makePlayBufWithDeferredBuffer_ (safeToFFI id) (safeToFFI b)
-  makePlayBuf { id, buffer, bufferOffset, onOff, playbackRate } f = makePlayBuf_ (safeToFFI id) (safeToFFI buffer) (safeToFFI bufferOffset) (safeToFFI onOff) (safeToFFI playbackRate) (safeToFFI f)
-  makeRecorder { id, cb } c = makeRecorder_ (safeToFFI id) (safeToFFI cb) (safeToFFI c)
-  makeSawtoothOsc { id, onOff, freq } d = makeSawtoothOsc_ (safeToFFI id) (safeToFFI onOff) (safeToFFI freq) (safeToFFI d)
-  makeSinOsc { id, onOff, freq } d = makeSinOsc_ (safeToFFI id) (safeToFFI onOff) (safeToFFI freq) (safeToFFI d)
+  makeInput { id, input } c = makeInput_ (safeToFFI id) (safeToFFI input)
+    (safeToFFI c)
+  makeAllpass { id, freq, q } d = makeAllpass_ (safeToFFI id) (safeToFFI freq)
+    (safeToFFI q)
+    (safeToFFI d)
+  makeAnalyser { id, cb } c = makeAnalyser_ (safeToFFI id) (safeToFFI cb)
+    (safeToFFI c)
+  makeAudioWorkletNode { id, options } c = makeAudioWorkletNode_ (safeToFFI id)
+    (safeToFFI options)
+    (safeToFFI c)
+  makeBandpass { id, freq, q } d = makeBandpass_ (safeToFFI id) (safeToFFI freq)
+    (safeToFFI q)
+    (safeToFFI d)
+  makeConstant { id, onOff, offset } d = makeConstant_ (safeToFFI id)
+    (safeToFFI onOff)
+    (safeToFFI offset)
+    (safeToFFI d)
+  makeConvolver { id, buffer } c = makeConvolver_ (safeToFFI id)
+    (safeToFFI buffer)
+    (safeToFFI c)
+  makePassthroughConvolver { id } b = makePassthroughConvolver_ (safeToFFI id)
+    (safeToFFI b)
+  makeDelay { id, delayTime } c = makeDelay_ (safeToFFI id)
+    (safeToFFI delayTime)
+    (safeToFFI c)
+  makeDynamicsCompressor { id, threshold, knee, ratio, attack, release } g =
+    makeDynamicsCompressor_ (safeToFFI id) (safeToFFI threshold)
+      (safeToFFI knee)
+      (safeToFFI ratio)
+      (safeToFFI attack)
+      (safeToFFI release)
+      (safeToFFI g)
+  makeGain { id, gain } c = makeGain_ (safeToFFI id) (safeToFFI gain)
+    (safeToFFI c)
+  makeHighpass { id, freq, q } d = makeHighpass_ (safeToFFI id) (safeToFFI freq)
+    (safeToFFI q)
+    (safeToFFI d)
+  makeHighshelf { id, freq, gain } d = makeHighshelf_ (safeToFFI id)
+    (safeToFFI freq)
+    (safeToFFI gain)
+    (safeToFFI d)
+  makeLoopBufWithDeferredBuffer { id } b = makeLoopBufWithDeferredBuffer_
+    (safeToFFI id)
+    (safeToFFI b)
+  makeLoopBuf { id, buffer, onOff, playbackRate, loopStart, loopEnd } g =
+    makeLoopBuf_ (safeToFFI id) (safeToFFI buffer) (safeToFFI onOff)
+      (safeToFFI playbackRate)
+      (safeToFFI loopStart)
+      (safeToFFI loopEnd)
+      (safeToFFI g)
+  makeLowpass { id, freq, q } d = makeLowpass_ (safeToFFI id) (safeToFFI freq)
+    (safeToFFI q)
+    (safeToFFI d)
+  makeLowshelf { id, freq, gain } d = makeLowshelf_ (safeToFFI id)
+    (safeToFFI freq)
+    (safeToFFI gain)
+    (safeToFFI d)
+  makeMediaElement { id, element } b = makeMediaElement_ (safeToFFI id) element
+    (safeToFFI b)
+  makeMicrophone { microphone } b = makeMicrophone_ (safeToFFI microphone)
+    (safeToFFI b)
+  makeNotch { id, freq, q } d = makeNotch_ (safeToFFI id) (safeToFFI freq)
+    (safeToFFI q)
+    (safeToFFI d)
+  makePeaking { id, freq, q, gain } e = makePeaking_ (safeToFFI id)
+    (safeToFFI freq)
+    (safeToFFI q)
+    (safeToFFI gain)
+    (safeToFFI e)
+  makePeriodicOscWithDeferredOsc { id } b = makePeriodicOscWithDeferredOsc_
+    (safeToFFI id)
+    (safeToFFI b)
+  makePeriodicOsc { id, wave, onOff, freq } e = makePeriodicOsc_ (safeToFFI id)
+    (safeToFFI wave)
+    (safeToFFI onOff)
+    (safeToFFI freq)
+    (safeToFFI e)
+  makePeriodicOscV { id, realImg, onOff, freq } e = makePeriodicOscV_
+    (safeToFFI id)
+    (safeToFFI realImg)
+    (safeToFFI onOff)
+    (safeToFFI freq)
+    (safeToFFI e)
+  makePlayBufWithDeferredBuffer { id } b = makePlayBufWithDeferredBuffer_
+    (safeToFFI id)
+    (safeToFFI b)
+  makePlayBuf { id, buffer, bufferOffset, onOff, playbackRate } f = makePlayBuf_
+    (safeToFFI id)
+    (safeToFFI buffer)
+    (safeToFFI bufferOffset)
+    (safeToFFI onOff)
+    (safeToFFI playbackRate)
+    (safeToFFI f)
+  makeRecorder { id, cb } c = makeRecorder_ (safeToFFI id) (safeToFFI cb)
+    (safeToFFI c)
+  makeSawtoothOsc { id, onOff, freq } d = makeSawtoothOsc_ (safeToFFI id)
+    (safeToFFI onOff)
+    (safeToFFI freq)
+    (safeToFFI d)
+  makeSinOsc { id, onOff, freq } d = makeSinOsc_ (safeToFFI id)
+    (safeToFFI onOff)
+    (safeToFFI freq)
+    (safeToFFI d)
   makeSpeaker a = makeSpeaker_ (safeToFFI a)
-  makeSquareOsc { id, onOff, freq } d = makeSquareOsc_ (safeToFFI id) (safeToFFI onOff) (safeToFFI freq) (safeToFFI d)
-  makeStereoPanner { id, pan } c = makeStereoPanner_ (safeToFFI id) (safeToFFI pan) (safeToFFI c)
-  makeSubgraph { id, terminus, envs, scenes } audio = makeSubgraph_ id (reflectSymbol terminus) (Vec.toArray envs) scenes (\env scene -> let res = oneSubFrame scene env in { instructions: res.instructions, nextScene: res.next }) (safeToFFI audio)
-  makeTumult { id, terminus, instructions } toFFI = makeTumult_ id terminus instructions Nothing Just makeInstructionsEffectful (safeToFFI toFFI)
-  makeTriangleOsc { id, onOff, freq } d = makeTriangleOsc_ (safeToFFI id) (safeToFFI onOff) (safeToFFI freq) (safeToFFI d)
-  makeWaveShaper { id, curve, oversample } d = makeWaveShaper_ (safeToFFI id) (safeToFFI curve) (safeToFFI oversample) (safeToFFI d)
-  setAudioWorkletParameter { id, paramName, paramValue } d = setAudioWorkletParameter_ (safeToFFI id) (safeToFFI paramName) (safeToFFI paramValue) (safeToFFI d)
-  setAnalyserNodeCb { id, cb } c = setAnalyserNodeCb_ (safeToFFI id) (safeToFFI cb) (safeToFFI c)
-  setMediaRecorderCb { id, cb } c = setMediaRecorderCb_ (safeToFFI id) (safeToFFI cb) (safeToFFI c)
-  setConvolverBuffer { id, buffer } c = setConvolverBuffer_ (safeToFFI id) (safeToFFI buffer) (safeToFFI c)
-  setBuffer { id, buffer } c = setBuffer_ (safeToFFI id) (safeToFFI buffer) (safeToFFI c)
-  setPeriodicOsc { id, wave } c = setPeriodicOsc_ (safeToFFI id) (safeToFFI wave) (safeToFFI c)
-  setPeriodicOscV { id, realImg } c = setPeriodicOscV_ (safeToFFI id) (safeToFFI realImg) (safeToFFI c)
-  setOnOff { id, onOff } c = setOnOff_ (safeToFFI id) (safeToFFI onOff) (safeToFFI c)
-  setBufferOffset { id, bufferOffset } c = setBufferOffset_ (safeToFFI id) (safeToFFI bufferOffset) (safeToFFI c)
-  setLoopStart { id, loopStart } c = setLoopStart_ (safeToFFI id) (safeToFFI loopStart) (safeToFFI c)
-  setLoopEnd { id, loopEnd } c = setLoopEnd_ (safeToFFI id) (safeToFFI loopEnd) (safeToFFI c)
-  setRatio { id, ratio } c = setRatio_ (safeToFFI id) (safeToFFI ratio) (safeToFFI c)
-  setOffset { id, offset } c = setOffset_ (safeToFFI id) (safeToFFI offset) (safeToFFI c)
-  setAttack { id, attack } c = setAttack_ (safeToFFI id) (safeToFFI attack) (safeToFFI c)
-  setGain { id, gain } c = setGain_ (safeToFFI id) (safeToFFI gain) (safeToFFI c)
+  makeSquareOsc { id, onOff, freq } d = makeSquareOsc_ (safeToFFI id)
+    (safeToFFI onOff)
+    (safeToFFI freq)
+    (safeToFFI d)
+  makeStereoPanner { id, pan } c = makeStereoPanner_ (safeToFFI id)
+    (safeToFFI pan)
+    (safeToFFI c)
+  makeSubgraph { id, terminus, envs, scenes } audio = makeSubgraph_ id
+    (reflectSymbol terminus)
+    (Vec.toArray envs)
+    scenes
+    ( \env scene ->
+        let
+          res = oneSubFrame scene env
+        in
+          { instructions: res.instructions, nextScene: res.next }
+    )
+    (safeToFFI audio)
+  makeTumult { id, terminus, instructions } toFFI = makeTumult_ id terminus
+    instructions
+    Nothing
+    Just
+    makeInstructionsEffectful
+    (safeToFFI toFFI)
+  makeTriangleOsc { id, onOff, freq } d = makeTriangleOsc_ (safeToFFI id)
+    (safeToFFI onOff)
+    (safeToFFI freq)
+    (safeToFFI d)
+  makeWaveShaper { id, curve, oversample } d = makeWaveShaper_ (safeToFFI id)
+    (safeToFFI curve)
+    (safeToFFI oversample)
+    (safeToFFI d)
+  setAudioWorkletParameter { id, paramName, paramValue } d =
+    setAudioWorkletParameter_ (safeToFFI id) (safeToFFI paramName)
+      (safeToFFI paramValue)
+      (safeToFFI d)
+  setAnalyserNodeCb { id, cb } c = setAnalyserNodeCb_ (safeToFFI id)
+    (safeToFFI cb)
+    (safeToFFI c)
+  setMediaRecorderCb { id, cb } c = setMediaRecorderCb_ (safeToFFI id)
+    (safeToFFI cb)
+    (safeToFFI c)
+  setConvolverBuffer { id, buffer } c = setConvolverBuffer_ (safeToFFI id)
+    (safeToFFI buffer)
+    (safeToFFI c)
+  setBuffer { id, buffer } c = setBuffer_ (safeToFFI id) (safeToFFI buffer)
+    (safeToFFI c)
+  setPeriodicOsc { id, wave } c = setPeriodicOsc_ (safeToFFI id)
+    (safeToFFI wave)
+    (safeToFFI c)
+  setPeriodicOscV { id, realImg } c = setPeriodicOscV_ (safeToFFI id)
+    (safeToFFI realImg)
+    (safeToFFI c)
+  setOnOff { id, onOff } c = setOnOff_ (safeToFFI id) (safeToFFI onOff)
+    (safeToFFI c)
+  setBufferOffset { id, bufferOffset } c = setBufferOffset_ (safeToFFI id)
+    (safeToFFI bufferOffset)
+    (safeToFFI c)
+  setLoopStart { id, loopStart } c = setLoopStart_ (safeToFFI id)
+    (safeToFFI loopStart)
+    (safeToFFI c)
+  setLoopEnd { id, loopEnd } c = setLoopEnd_ (safeToFFI id) (safeToFFI loopEnd)
+    (safeToFFI c)
+  setRatio { id, ratio } c = setRatio_ (safeToFFI id) (safeToFFI ratio)
+    (safeToFFI c)
+  setOffset { id, offset } c = setOffset_ (safeToFFI id) (safeToFFI offset)
+    (safeToFFI c)
+  setAttack { id, attack } c = setAttack_ (safeToFFI id) (safeToFFI attack)
+    (safeToFFI c)
+  setGain { id, gain } c = setGain_ (safeToFFI id) (safeToFFI gain)
+    (safeToFFI c)
   setQ { id, q } c = setQ_ (safeToFFI id) (safeToFFI q) (safeToFFI c)
   setPan { id, pan } c = setPan_ (safeToFFI id) (safeToFFI pan) (safeToFFI c)
-  setThreshold { id, threshold } c = setThreshold_ (safeToFFI id) (safeToFFI threshold) (safeToFFI c)
-  setRelease { id, release } c = setRelease_ (safeToFFI id) (safeToFFI release) (safeToFFI c)
-  setKnee { id, knee } c = setKnee_ (safeToFFI id) (safeToFFI knee) (safeToFFI c)
-  setDelay { id, delay } c = setDelay_ (safeToFFI id) (safeToFFI delay) (safeToFFI c)
-  setPlaybackRate { id, playbackRate } c = setPlaybackRate_ (safeToFFI id) (safeToFFI playbackRate) (safeToFFI c)
-  setFrequency { id, frequency } c = setFrequency_ (safeToFFI id) (safeToFFI frequency) (safeToFFI c)
-  setWaveShaperCurve { id, curve } c = setWaveShaperCurve_ (safeToFFI id) (safeToFFI curve) (safeToFFI c)
-  setInput { id, source } c = setInput_ (safeToFFI id) (safeToFFI source) (safeToFFI c)
-  setSubgraph { id, envs } audio = setSubgraph_ id (Vec.toArray envs) (safeToFFI audio)
-  setSingleSubgraph { id, index, env } audio = setSingleSubgraph_ id (toInt index) env (safeToFFI audio)
-  setTumult { id, terminus, instructions } toFFI = setTumult_ id terminus instructions Nothing Just makeInstructionsEffectful (safeToFFI toFFI)
+  setThreshold { id, threshold } c = setThreshold_ (safeToFFI id)
+    (safeToFFI threshold)
+    (safeToFFI c)
+  setRelease { id, release } c = setRelease_ (safeToFFI id) (safeToFFI release)
+    (safeToFFI c)
+  setKnee { id, knee } c = setKnee_ (safeToFFI id) (safeToFFI knee)
+    (safeToFFI c)
+  setDelay { id, delay } c = setDelay_ (safeToFFI id) (safeToFFI delay)
+    (safeToFFI c)
+  setPlaybackRate { id, playbackRate } c = setPlaybackRate_ (safeToFFI id)
+    (safeToFFI playbackRate)
+    (safeToFFI c)
+  setFrequency { id, frequency } c = setFrequency_ (safeToFFI id)
+    (safeToFFI frequency)
+    (safeToFFI c)
+  setWaveShaperCurve { id, curve } c = setWaveShaperCurve_ (safeToFFI id)
+    (safeToFFI curve)
+    (safeToFFI c)
+  setInput { id, source } c = setInput_ (safeToFFI id) (safeToFFI source)
+    (safeToFFI c)
+  setSubgraph { id, envs } audio = setSubgraph_ id (Vec.toArray envs)
+    (safeToFFI audio)
+  setSingleSubgraph { id, index, env } audio = setSingleSubgraph_ id
+    (toInt index)
+    env
+    (safeToFFI audio)
+  setTumult { id, terminus, instructions } toFFI = setTumult_ id terminus
+    instructions
+    Nothing
+    Just
+    makeInstructionsEffectful
+    (safeToFFI toFFI)
 
 -- A utility typeclass used to convert PS arguments to arguments that are understood by the Web Audio API.
 class SafeToFFI a b | a -> b where
   safeToFFI :: a -> b
 
-instance safeToFFI_BrowserMicrophone :: SafeToFFI BrowserMicrophone BrowserMicrophone where
+instance safeToFFI_BrowserMicrophone ::
+  SafeToFFI BrowserMicrophone BrowserMicrophone where
   safeToFFI = identity
 
-instance safeToFFI_BrowserAudioBuffer :: SafeToFFI BrowserAudioBuffer BrowserAudioBuffer where
+instance safeToFFI_BrowserAudioBuffer ::
+  SafeToFFI BrowserAudioBuffer BrowserAudioBuffer where
   safeToFFI = identity
 
-instance safeToFFI_BrowserPeriodicWave :: SafeToFFI BrowserPeriodicWave BrowserPeriodicWave where
+instance safeToFFI_BrowserPeriodicWave ::
+  SafeToFFI BrowserPeriodicWave BrowserPeriodicWave where
   safeToFFI = identity
 
-instance safeToFFI_BrowserFloatArray :: SafeToFFI BrowserFloatArray BrowserFloatArray where
+instance safeToFFI_BrowserFloatArray ::
+  SafeToFFI BrowserFloatArray BrowserFloatArray where
   safeToFFI = identity
 
-instance safeToFFI_AnalyserNodeCb :: SafeToFFI AnalyserNodeCb (AnalyserNode -> Effect (Effect Unit)) where
+instance safeToFFI_AnalyserNodeCb ::
+  SafeToFFI AnalyserNodeCb (AnalyserNode -> Effect (Effect Unit)) where
   safeToFFI = coerce
 
-instance safeToFFI_MediaRecorderCb :: SafeToFFI MediaRecorderCb (MediaRecorder -> Effect Unit) where
+instance safeToFFI_MediaRecorderCb ::
+  SafeToFFI MediaRecorderCb (MediaRecorder -> Effect Unit) where
   safeToFFI = coerce
 
 instance safeToFFI_Int :: SafeToFFI Int Int where
@@ -1027,38 +1398,50 @@ type AudioWorkletNodeOptionsFFI_ =
 
 instance safeToFFI_AudioWorkletNodeOptions_ ::
   SafeToFFI AudioWorkletNodeOptions_ AudioWorkletNodeOptionsFFI_ where
-  safeToFFI (AudioWorkletNodeOptions_ { name, numberOfInputs, numberOfOutputs, outputChannelCount, parameterData, processorOptions }) = { name, numberOfInputs, numberOfOutputs, outputChannelCount, parameterData: map safeToFFI parameterData, processorOptions }
+  safeToFFI
+    ( AudioWorkletNodeOptions_
+        { name
+        , numberOfInputs
+        , numberOfOutputs
+        , outputChannelCount
+        , parameterData
+        , processorOptions
+        }
+    ) =
+    { name
+    , numberOfInputs
+    , numberOfOutputs
+    , outputChannelCount
+    , parameterData: map safeToFFI parameterData
+    , processorOptions
+    }
 
 -- | An AudioParameter with the `transition` field stringly-typed for easier rendering in the FFI and cancelation as a boolean
-type FFIAudioSingleNumber
-  =
+type FFIAudioSingleNumber =
   { param :: Number
   , timeOffset :: Number
   , transition :: String
   }
 
-type FFIAudioParameterCancellation
-  =
+type FFIAudioParameterCancellation =
   { hold :: Boolean
   , timeOffset :: Number
   }
 
-type FFIAudioEnvelope
-  =
+type FFIAudioEnvelope =
   { values :: Array Number
   , duration :: Number
   , timeOffset :: Number
   }
 
-
 -- | An AudioParameter with the `transition` field stringly-typed for easier rendering in the FFI and cancelation as a boolean
-type FFIAudioOnOff
-  =
+type FFIAudioOnOff =
   { onOff :: String
   , timeOffset :: Number
   }
 
-type FFIAudioSingleNumberEnvelope = { values :: Array Number, duration :: Number, timeOffset :: Number }
+type FFIAudioSingleNumberEnvelope =
+  { values :: Array Number, duration :: Number, timeOffset :: Number }
 
 type FFIAudioParameter = FFIAudioSingleNumber
   |+| FFIAudioParameterCancellation
@@ -1084,10 +1467,12 @@ instance safeToFFI_AudioSingleNumber ::
 instance safeToFFI_AudioEnvelope ::
   SafeToFFI AudioEnvelope FFIAudioParameter where
   safeToFFI (AudioEnvelope i) =
-      asOneOf { values: toArray i.values
+    asOneOf
+      { values: toArray i.values
       , timeOffset: i.timeOffset
       , duration: i.duration
       }
+
 instance safeToFFI_AudioParameterCancellation ::
   SafeToFFI AudioParameterCancellation FFIAudioParameter where
   safeToFFI (AudioParameterCancellation i) =
@@ -1099,17 +1484,23 @@ instance safeToFFI_AudioParameterCancellation ::
 instance safeToFFI_AudioOnOff ::
   SafeToFFI AudioOnOff FFIAudioOnOff where
   safeToFFI (AudioOnOff i) =
-      { onOff:
-          match
-            { on: const "on"
-            , off: const "off"
-            , offOn: const "offOn"
-            }
-            (unwrap i.onOff)
-      , timeOffset: i.timeOffset
-      }
+    { onOff:
+        match
+          { on: const "on"
+          , off: const "off"
+          , offOn: const "offOn"
+          }
+          (unwrap i.onOff)
+    , timeOffset: i.timeOffset
+    }
 
-audioEngine1st :: forall terminus inputs env proof res. SubScene terminus inputs env (Unit /\ FFIAudioSnapshot) (Instruction /\ Effect Unit) proof res -> SubScene terminus inputs env Unit Instruction proof res
+audioEngine1st
+  :: forall terminus inputs env proof res
+   . SubScene terminus inputs env (Unit /\ FFIAudioSnapshot)
+       (Instruction /\ Effect Unit)
+       proof
+       res
+  -> SubScene terminus inputs env Unit Instruction proof res
 audioEngine1st (SubScene sceneA) = SubScene
   ( \env ->
       let
@@ -1117,43 +1508,59 @@ audioEngine1st (SubScene sceneA) = SubScene
       in
         -- highly unsafe. only works because the result is effectful and we don't have any form of currying in the
         -- ffi, so the effect won't be triggered and the `undefined` won't be used
-        { instructions: map (\f aSide -> fst $ f (aSide /\ (unsafeCoerce undefined))) eaA.instructions
+        { instructions: map
+            (\f aSide -> fst $ f (aSide /\ (unsafeCoerce undefined)))
+            eaA.instructions
         , res: eaA.res
         , next: audioEngine1st eaA.next
         }
   )
 
-audioEngine2nd :: forall terminus inputs env proof res. SubScene terminus inputs env (Unit /\ FFIAudioSnapshot) (Instruction /\ Effect Unit) proof res -> SubScene terminus inputs env FFIAudioSnapshot (Effect Unit) proof res
+audioEngine2nd
+  :: forall terminus inputs env proof res
+   . SubScene terminus inputs env (Unit /\ FFIAudioSnapshot)
+       (Instruction /\ Effect Unit)
+       proof
+       res
+  -> SubScene terminus inputs env FFIAudioSnapshot (Effect Unit) proof res
 audioEngine2nd (SubScene sceneA) = SubScene
   ( \env ->
       let
         eaA = sceneA env
       in
-        { instructions: map (\f bSide -> snd $ f (unit /\ bSide)) eaA.instructions
+        { instructions: map (\f bSide -> snd $ f (unit /\ bSide))
+            eaA.instructions
         , res: eaA.res
         , next: audioEngine2nd eaA.next
         }
   )
 
-instance mixedAudioInterpret :: AudioInterpret (Unit /\ FFIAudioSnapshot) (Instruction /\ Effect Unit) where
+instance mixedAudioInterpret ::
+  AudioInterpret (Unit /\ FFIAudioSnapshot) (Instruction /\ Effect Unit) where
   connectXToY a (x /\ y) = connectXToY a x /\ connectXToY a y
   disconnectXFromY a (x /\ y) = disconnectXFromY a x /\ disconnectXFromY a y
   destroyUnit a (x /\ y) = destroyUnit a x /\ destroyUnit a y
-  makeSubgraph { id, terminus, envs, scenes } (x /\ y) = makeSubgraph { id, terminus, envs, scenes: map audioEngine1st scenes } x /\ makeSubgraph { id, terminus, envs, scenes: map audioEngine2nd scenes } y
+  makeSubgraph { id, terminus, envs, scenes } (x /\ y) =
+    makeSubgraph { id, terminus, envs, scenes: map audioEngine1st scenes } x /\
+      makeSubgraph { id, terminus, envs, scenes: map audioEngine2nd scenes } y
   makeInput a (x /\ y) = makeInput a x /\ makeInput a y
   makeAllpass a (x /\ y) = makeAllpass a x /\ makeAllpass a y
   makeAnalyser a (x /\ y) = makeAnalyser a x /\ makeAnalyser a y
-  makeAudioWorkletNode a (x /\ y) = makeAudioWorkletNode a x /\ makeAudioWorkletNode a y
+  makeAudioWorkletNode a (x /\ y) = makeAudioWorkletNode a x /\
+    makeAudioWorkletNode a y
   makeBandpass a (x /\ y) = makeBandpass a x /\ makeBandpass a y
   makeConstant a (x /\ y) = makeConstant a x /\ makeConstant a y
-  makePassthroughConvolver a (x /\ y) = makePassthroughConvolver a x /\ makePassthroughConvolver a y
+  makePassthroughConvolver a (x /\ y) = makePassthroughConvolver a x /\
+    makePassthroughConvolver a y
   makeConvolver a (x /\ y) = makeConvolver a x /\ makeConvolver a y
   makeDelay a (x /\ y) = makeDelay a x /\ makeDelay a y
-  makeDynamicsCompressor a (x /\ y) = makeDynamicsCompressor a x /\ makeDynamicsCompressor a y
+  makeDynamicsCompressor a (x /\ y) = makeDynamicsCompressor a x /\
+    makeDynamicsCompressor a y
   makeGain a (x /\ y) = makeGain a x /\ makeGain a y
   makeHighpass a (x /\ y) = makeHighpass a x /\ makeHighpass a y
   makeHighshelf a (x /\ y) = makeHighshelf a x /\ makeHighshelf a y
-  makeLoopBufWithDeferredBuffer a (x /\ y) = makeLoopBufWithDeferredBuffer a x /\ makeLoopBufWithDeferredBuffer a y
+  makeLoopBufWithDeferredBuffer a (x /\ y) = makeLoopBufWithDeferredBuffer a x
+    /\ makeLoopBufWithDeferredBuffer a y
   makeLoopBuf a (x /\ y) = makeLoopBuf a x /\ makeLoopBuf a y
   makeLowpass a (x /\ y) = makeLowpass a x /\ makeLowpass a y
   makeLowshelf a (x /\ y) = makeLowshelf a x /\ makeLowshelf a y
@@ -1163,8 +1570,10 @@ instance mixedAudioInterpret :: AudioInterpret (Unit /\ FFIAudioSnapshot) (Instr
   makePeaking a (x /\ y) = makePeaking a x /\ makePeaking a y
   makePeriodicOsc a (x /\ y) = makePeriodicOsc a x /\ makePeriodicOsc a y
   makePeriodicOscV a (x /\ y) = makePeriodicOscV a x /\ makePeriodicOscV a y
-  makePeriodicOscWithDeferredOsc a (x /\ y) = makePeriodicOscWithDeferredOsc a x /\ makePeriodicOscWithDeferredOsc a y
-  makePlayBufWithDeferredBuffer a (x /\ y) = makePlayBufWithDeferredBuffer a x /\ makePlayBufWithDeferredBuffer a y
+  makePeriodicOscWithDeferredOsc a (x /\ y) = makePeriodicOscWithDeferredOsc a x
+    /\ makePeriodicOscWithDeferredOsc a y
+  makePlayBufWithDeferredBuffer a (x /\ y) = makePlayBufWithDeferredBuffer a x
+    /\ makePlayBufWithDeferredBuffer a y
   makePlayBuf a (x /\ y) = makePlayBuf a x /\ makePlayBuf a y
   makeRecorder a (x /\ y) = makeRecorder a x /\ makeRecorder a y
   makeSawtoothOsc a (x /\ y) = makeSawtoothOsc a x /\ makeSawtoothOsc a y
@@ -1175,11 +1584,14 @@ instance mixedAudioInterpret :: AudioInterpret (Unit /\ FFIAudioSnapshot) (Instr
   makeTriangleOsc a (x /\ y) = makeTriangleOsc a x /\ makeTriangleOsc a y
   makeWaveShaper a (x /\ y) = makeWaveShaper a x /\ makeWaveShaper a y
   makeTumult a (x /\ y) = makeTumult a x /\ makeTumult a y
-  setAudioWorkletParameter a (x /\ y) = setAudioWorkletParameter a x /\ setAudioWorkletParameter a y
+  setAudioWorkletParameter a (x /\ y) = setAudioWorkletParameter a x /\
+    setAudioWorkletParameter a y
   setAnalyserNodeCb a (x /\ y) = setAnalyserNodeCb a x /\ setAnalyserNodeCb a y
-  setMediaRecorderCb a (x /\ y) = setMediaRecorderCb a x /\ setMediaRecorderCb a y
+  setMediaRecorderCb a (x /\ y) = setMediaRecorderCb a x /\ setMediaRecorderCb a
+    y
   setBuffer a (x /\ y) = setBuffer a x /\ setBuffer a y
-  setConvolverBuffer a (x /\ y) = setConvolverBuffer a x /\ setConvolverBuffer a y
+  setConvolverBuffer a (x /\ y) = setConvolverBuffer a x /\ setConvolverBuffer a
+    y
   setPeriodicOsc a (x /\ y) = setPeriodicOsc a x /\ setPeriodicOsc a y
   setPeriodicOscV a (x /\ y) = setPeriodicOscV a x /\ setPeriodicOscV a y
   setOnOff a (x /\ y) = setOnOff a x /\ setOnOff a y
@@ -1198,8 +1610,14 @@ instance mixedAudioInterpret :: AudioInterpret (Unit /\ FFIAudioSnapshot) (Instr
   setDelay a (x /\ y) = setDelay a x /\ setDelay a y
   setPlaybackRate a (x /\ y) = setPlaybackRate a x /\ setPlaybackRate a y
   setFrequency a (x /\ y) = setFrequency a x /\ setFrequency a y
-  setWaveShaperCurve a (x /\ y) = setWaveShaperCurve a x /\ setWaveShaperCurve a y
+  setWaveShaperCurve a (x /\ y) = setWaveShaperCurve a x /\ setWaveShaperCurve a
+    y
   setInput a (x /\ y) = setInput a x /\ setInput a y
-  setSubgraph { id, envs } (x /\ y) = setSubgraph { id, envs } x /\ setSubgraph { id, envs } y
-  setSingleSubgraph { id, index, env } (x /\ y) = setSingleSubgraph { id, index, env } x /\ setSingleSubgraph { id, index, env } y
+  setSubgraph { id, envs } (x /\ y) = setSubgraph { id, envs } x /\ setSubgraph
+    { id, envs }
+    y
+  setSingleSubgraph { id, index, env } (x /\ y) =
+    setSingleSubgraph { id, index, env } x /\ setSingleSubgraph
+      { id, index, env }
+      y
   setTumult a (x /\ y) = setTumult a x /\ setTumult a y

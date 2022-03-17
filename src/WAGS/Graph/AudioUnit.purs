@@ -36,7 +36,12 @@ data Analyser callback = Analyser callback
 
 instance typeToSymAnalyser :: TypeToSym (Analyser callback) "Analyser"
 
-type AudioWorkletNodeOptions' (numberOfInputs :: Type) (numberOfOutputs :: Type) (outputChannelCount :: Type) (parameterData :: Row Type) (processorOptions :: Row Type) =
+type AudioWorkletNodeOptions'
+  (numberOfInputs :: Type)
+  (numberOfOutputs :: Type)
+  (outputChannelCount :: Type)
+  (parameterData :: Row Type)
+  (processorOptions :: Row Type) =
   ( numberOfInputs :: numberOfInputs
   , numberOfOutputs :: numberOfOutputs
   , outputChannelCount :: outputChannelCount
@@ -44,17 +49,46 @@ type AudioWorkletNodeOptions' (numberOfInputs :: Type) (numberOfOutputs :: Type)
   , processorOptions :: { | processorOptions }
   )
 
-newtype AudioWorkletNodeOptions (numberOfInputs :: Type) (numberOfOutputs :: Type) (outputChannelCount :: Type) (parameterData :: Row Type) (processorOptions :: Row Type) = AudioWorkletNodeOptions
+newtype AudioWorkletNodeOptions
+  (numberOfInputs :: Type)
+  (numberOfOutputs :: Type)
+  (outputChannelCount :: Type)
+  (parameterData :: Row Type)
+  (processorOptions :: Row Type) = AudioWorkletNodeOptions
   {
-  | AudioWorkletNodeOptions' numberOfInputs numberOfOutputs outputChannelCount parameterData processorOptions
+  | AudioWorkletNodeOptions' numberOfInputs numberOfOutputs outputChannelCount
+      parameterData
+      processorOptions
   }
 
 -- | Term-level constructor for an audio worklet node.
 -- | - `node` - the name of the node.
 -- | - `options` - initialization options
-data AudioWorkletNode (node :: Symbol) (numberOfInputs :: Type) (numberOfOutputs :: Type) (outputChannelCount :: Type) (parameterData :: Row Type) (processorOptions :: Row Type) = AudioWorkletNode (AudioWorkletNodeResponse node numberOfInputs numberOfOutputs outputChannelCount parameterData processorOptions) (AudioWorkletNodeOptions numberOfInputs numberOfOutputs outputChannelCount parameterData processorOptions)
+data AudioWorkletNode
+  (node :: Symbol)
+  (numberOfInputs :: Type)
+  (numberOfOutputs :: Type)
+  (outputChannelCount :: Type)
+  (parameterData :: Row Type)
+  (processorOptions :: Row Type) = AudioWorkletNode
+  ( AudioWorkletNodeResponse node numberOfInputs numberOfOutputs
+      outputChannelCount
+      parameterData
+      processorOptions
+  )
+  ( AudioWorkletNodeOptions numberOfInputs numberOfOutputs outputChannelCount
+      parameterData
+      processorOptions
+  )
 
-instance typeToSymAudioWorkletNode :: Sym.Append "AudioWorkletNode" sym o => TypeToSym (AudioWorkletNode sym numberOfInputs numberOfOutputs outputChannelCount parameterData processorOptions) o
+instance typeToSymAudioWorkletNode ::
+  Sym.Append "AudioWorkletNode" sym o =>
+  TypeToSym ( AudioWorkletNode sym numberOfInputs numberOfOutputs
+        outputChannelCount
+        parameterData
+        processorOptions
+    )
+    o
 
 -- | Term-level constructor for a bandpass filter.
 -- | - `frequency` - the frequency of the isolated band.
@@ -127,13 +161,16 @@ type DynamicsCompressor' =
 newtype DynamicsCompressor = DynamicsCompressor { | DynamicsCompressor' }
 
 derive instance newtypeDynamicsCompressor :: Newtype DynamicsCompressor _
-newtype XDynamicsCompressor = XDynamicsCompressor (RowOptions DynamicsCompressor')
+newtype XDynamicsCompressor = XDynamicsCompressor
+  (RowOptions DynamicsCompressor')
 
 derive instance newtypeXDynamicsCompressor :: Newtype XDynamicsCompressor _
 
-instance typeToSymDynamicsCompressor :: TypeToSym DynamicsCompressor "DynamicsCompressor"
+instance typeToSymDynamicsCompressor ::
+  TypeToSym DynamicsCompressor "DynamicsCompressor"
 
-instance typeToSymXDynamicsCompressor :: TypeToSym XDynamicsCompressor "DynamicsCompressor"
+instance typeToSymXDynamicsCompressor ::
+  TypeToSym XDynamicsCompressor "DynamicsCompressor"
 
 -- | Term-level constructor for a gain unit.
 -- | - `gain` - the volume of the gain from 0 to 1.
@@ -284,17 +321,23 @@ instance typeToSymXPeaking :: TypeToSym XPeaking "Peaking"
 -- | - `periodicOsc` - the name of the wave table we'll be using. Note that, for a chance to take effect, the periodic oscillator must be stopped.
 -- | - `onOff` - whether the generator is on or off.
 -- | - `frequency` - the frequency of the oscillator.
-type PeriodicOsc' periodicOsc = (wave :: periodicOsc, onOff :: AudioOnOff, freq :: AudioParameter)
+type PeriodicOsc' periodicOsc =
+  (wave :: periodicOsc, onOff :: AudioOnOff, freq :: AudioParameter)
+
 newtype PeriodicOsc periodicOsc = PeriodicOsc { | PeriodicOsc' periodicOsc }
 
 derive instance newtypePeriodicOsc :: Newtype (PeriodicOsc periodicOsc) _
 
-newtype XPeriodicOsc periodicOsc = XPeriodicOsc (RowOptions (PeriodicOsc' periodicOsc))
+newtype XPeriodicOsc periodicOsc = XPeriodicOsc
+  (RowOptions (PeriodicOsc' periodicOsc))
 
 derive instance newtypeXPeriodicOsc :: Newtype (XPeriodicOsc periodicOsc) _
 
-instance typeToSymPeriodicOsc :: TypeToSym (PeriodicOsc periodicOsc) "PeriodicOsc"
-instance typeToSymXPeriodicOsc :: TypeToSym (XPeriodicOsc periodicOsc) "PeriodicOsc"
+instance typeToSymPeriodicOsc ::
+  TypeToSym (PeriodicOsc periodicOsc) "PeriodicOsc"
+
+instance typeToSymXPeriodicOsc ::
+  TypeToSym (XPeriodicOsc periodicOsc) "PeriodicOsc"
 
 -- | Term-level constructor for a playback buffer.
 -- | - `buffer` - the buffer to use. Note that this symbol, when reset, will only reset the buffer when it is stopped.
@@ -344,13 +387,20 @@ derive instance newtypeXSawtoothOsc :: Newtype XSawtoothOsc _
 instance typeToSymSawtoothOsc :: TypeToSym SawtoothOsc "SawtoothOsc"
 instance typeToSymXSawtoothOsc :: TypeToSym XSawtoothOsc "SawtoothOsc"
 
-
 -- | Term-level constructor for a sine-wave oscillator.
 -- | - `onOff` - whether the generator is on or off.
 -- | - `frequency` - the frequency of the oscillator.
-data SinOsc onOff frequency = SinOsc onOff frequency
+type SinOsc' = (onOff :: AudioOnOff, freq :: AudioParameter)
+newtype SinOsc = SinOsc { | SinOsc' }
 
-instance typeToSymSinOsc :: TypeToSym (SinOsc onOff frequency) "SinOsc"
+derive instance newtypeSinOsc :: Newtype SinOsc _
+
+newtype XSinOsc = XSinOsc (RowOptions SinOsc')
+
+derive instance newtypeXSinOsc :: Newtype XSinOsc _
+
+instance typeToSymSinOsc :: TypeToSym SinOsc "SinOsc"
+instance typeToSymXSinOsc :: TypeToSym XSinOsc "SinOsc"
 
 -- | Term-level constructor for a loudspeaker.
 data Speaker = Speaker
@@ -360,30 +410,55 @@ instance typeToSymSpeaker :: TypeToSym Speaker "Speaker"
 -- | Term-level constructor for a square-wave oscillator.
 -- | - `onOff` - whether the generator is on or off.
 -- | - `frequency` - the frequency of the oscillator.
-data SquareOsc onOff frequency = SquareOsc onOff frequency
+type SquareOsc' = (onOff :: AudioOnOff, freq :: AudioParameter)
+newtype SquareOsc = SquareOsc { | SquareOsc' }
 
-instance typeToSymSquareOsc :: TypeToSym (SquareOsc onOff frequency) "SquareOsc"
+derive instance newtypeSquareOsc :: Newtype SquareOsc _
+
+newtype XSquareOsc = XSquareOsc (RowOptions SquareOsc')
+
+derive instance newtypeXSquareOsc :: Newtype XSquareOsc _
+
+instance typeToSymSquareOsc :: TypeToSym SquareOsc "SquareOsc"
+instance typeToSymXSquareOsc :: TypeToSym XSquareOsc "SquareOsc"
 
 -- | Term-level constructor for a stereo panner.
 -- | - `pan` - the amount of pan to apply, where -1.0 is fully to the left and 1.0 is fully to the right.
-data StereoPanner pan = StereoPanner pan
+type StereoPanner' = (pan :: AudioParameter)
+newtype StereoPanner = StereoPanner { | StereoPanner' }
 
-instance typeToSymStereoPanner :: TypeToSym (StereoPanner pan) "StereoPanner"
+derive instance newtypeStereoPanner :: Newtype StereoPanner _
+newtype XStereoPanner = XStereoPanner (RowOptions StereoPanner')
+
+derive instance newtypeXStereoPanner :: Newtype XStereoPanner _
+
+instance typeToSymStereoPanner :: TypeToSym StereoPanner "StereoPanner"
+instance typeToSymXStereoPanner :: TypeToSym XStereoPanner "StereoPanner"
 
 -- | Term-level constructor for a subgraph
 -- | - `inputs` - the inputs to the subgraph
 -- | - `subgraphMaker` - the scene that makes the subgraph
 -- | - `enc` - the scene that makes the subgraph
-data Subgraph (inputs :: Row Type) subgraphMaker env = Subgraph subgraphMaker env
+data Subgraph (inputs :: Row Type) subgraphMaker env = Subgraph subgraphMaker
+  env
 
-instance typeToSymSubgraph :: TypeToSym (Subgraph inputs subgraphMaker env) "Subgraph"
+instance typeToSymSubgraph ::
+  TypeToSym (Subgraph inputs subgraphMaker env) "Subgraph"
 
 -- | Term-level constructor for a triangle oscillator.
 -- | - `onOff` - whether the generator is on or off.
 -- | - `frequency` - the frequency of the oscillator.
-data TriangleOsc onOff frequency = TriangleOsc onOff frequency
+type TriangleOsc' = (onOff :: AudioOnOff, freq :: AudioParameter)
+newtype TriangleOsc = TriangleOsc { | TriangleOsc' }
 
-instance typeToSymTriangleOsc :: TypeToSym (TriangleOsc onOff frequency) "TriangleOsc"
+derive instance newtypeTriangleOsc :: Newtype TriangleOsc _
+
+newtype XTriangleOsc = XTriangleOsc (RowOptions TriangleOsc')
+
+derive instance newtypeXTriangleOsc :: Newtype XTriangleOsc _
+
+instance typeToSymTriangleOsc :: TypeToSym TriangleOsc "TriangleOsc"
+instance typeToSymXTriangleOsc :: TypeToSym XTriangleOsc "TriangleOsc"
 
 -- | Term-level constructor for a tumultuous subgraph
 -- | - `tumult` - the tumult
@@ -394,9 +469,11 @@ instance typeToSymTumult :: TypeToSym (Tumult tumult) "Tumult"
 -- | Term-level constructor for a WaveShaper, aka distortion.
 -- | - `floatArray` - the shape of the distortion.
 -- | - `oversample` - how much to oversample - none, 2x or 4x. Once set, this cannot change without destroying and remaking the audio unit.
-data WaveShaper (floatArray :: Type) oversample = WaveShaper floatArray oversample
+data WaveShaper (floatArray :: Type) oversample = WaveShaper floatArray
+  oversample
 
-instance typeToSymWaveShaper2x :: TypeToSym (WaveShaper sym oversample) "WaveShaper"
+instance typeToSymWaveShaper2x ::
+  TypeToSym (WaveShaper sym oversample) "WaveShaper"
 
 -- | Type-level oversample none for a wave shaper. This is at the type-level and not the term-level via an ADT because we need make sure to construct an entirely new wave shaper if the value changes.
 data OversampleNone = OversampleNone
@@ -460,17 +537,62 @@ instance reifyTAnalyser :: ReifyAU (Analyser callback) TAnalyser where
   reifyAU = const mempty
 
 -- | Type-level constructor for an audio worklet node.
-data TAudioWorkletNode (sym :: Symbol) (numberOfInputs :: Type) (numberOfOutputs :: Type) (outputChannelCount :: Type) (parameterData :: Row Type) (processorOptions :: Row Type) = TAudioWorkletNode (Proxy sym) (Proxy numberOfInputs) (Proxy numberOfOutputs) (Proxy outputChannelCount) (Proxy parameterData) (Proxy processorOptions)
+data TAudioWorkletNode
+  (sym :: Symbol)
+  (numberOfInputs :: Type)
+  (numberOfOutputs :: Type)
+  (outputChannelCount :: Type)
+  (parameterData :: Row Type)
+  (processorOptions :: Row Type) = TAudioWorkletNode (Proxy sym)
+  (Proxy numberOfInputs)
+  (Proxy numberOfOutputs)
+  (Proxy outputChannelCount)
+  (Proxy parameterData)
+  (Proxy processorOptions)
 
-instance typeToSymTAudioWorkletNode :: Sym.Append "TAudioWorkletNode_" sym o => TypeToSym (TAudioWorkletNode sym numberOfInputs numberOfOutputs outputChannelCount parameterData processorOptions) o
+instance typeToSymTAudioWorkletNode ::
+  Sym.Append "TAudioWorkletNode_" sym o =>
+  TypeToSym ( TAudioWorkletNode sym numberOfInputs numberOfOutputs
+        outputChannelCount
+        parameterData
+        processorOptions
+    )
+    o
 
-instance semigroupTAudioWorkletNode :: Semigroup (TAudioWorkletNode sym numberOfInputs numberOfOutputs outputChannelCount parameterData processorOptions) where
-  append _ _ = TAudioWorkletNode (Proxy :: _ sym) (Proxy :: _ numberOfInputs) (Proxy :: _ numberOfOutputs) (Proxy :: _ outputChannelCount) (Proxy :: _ parameterData) (Proxy :: _ processorOptions)
+instance semigroupTAudioWorkletNode ::
+  Semigroup ( TAudioWorkletNode sym numberOfInputs numberOfOutputs
+        outputChannelCount
+        parameterData
+        processorOptions
+    ) where
+  append _ _ = TAudioWorkletNode (Proxy :: _ sym) (Proxy :: _ numberOfInputs)
+    (Proxy :: _ numberOfOutputs)
+    (Proxy :: _ outputChannelCount)
+    (Proxy :: _ parameterData)
+    (Proxy :: _ processorOptions)
 
-instance monoidTAudioWorkletNode :: Monoid (TAudioWorkletNode sym numberOfInputs numberOfOutputs outputChannelCount parameterData processorOptions) where
-  mempty = TAudioWorkletNode (Proxy :: _ sym) (Proxy :: _ numberOfInputs) (Proxy :: _ numberOfOutputs) (Proxy :: _ outputChannelCount) (Proxy :: _ parameterData) (Proxy :: _ processorOptions)
+instance monoidTAudioWorkletNode ::
+  Monoid ( TAudioWorkletNode sym numberOfInputs numberOfOutputs
+        outputChannelCount
+        parameterData
+        processorOptions
+    ) where
+  mempty = TAudioWorkletNode (Proxy :: _ sym) (Proxy :: _ numberOfInputs)
+    (Proxy :: _ numberOfOutputs)
+    (Proxy :: _ outputChannelCount)
+    (Proxy :: _ parameterData)
+    (Proxy :: _ processorOptions)
 
-instance reifyTAudioWorkletNode :: ReifyAU (AudioWorkletNode sym numberOfInputs numberOfOutputs outputChannelCount parameterData processorOptions) (TAudioWorkletNode sym numberOfInputs numberOfOutputs outputChannelCount parameterData processorOptions) where
+instance reifyTAudioWorkletNode ::
+  ReifyAU ( AudioWorkletNode sym numberOfInputs numberOfOutputs
+        outputChannelCount
+        parameterData
+        processorOptions
+    )
+    ( TAudioWorkletNode sym numberOfInputs numberOfOutputs outputChannelCount
+        parameterData
+        processorOptions
+    ) where
   reifyAU = const mempty
 
 -- | Type-level constructor for a bandpass filter.
@@ -544,7 +666,8 @@ instance reifyTXDelay :: ReifyAU XDelay TDelay where
 -- | Type-level constructor for a compressor.
 data TDynamicsCompressor = TDynamicsCompressor
 
-instance typeToSymTDynamicsCompressor :: TypeToSym TDynamicsCompressor "TDynamicsCompressor"
+instance typeToSymTDynamicsCompressor ::
+  TypeToSym TDynamicsCompressor "TDynamicsCompressor"
 
 instance semigroupTDynamicsCompressor :: Semigroup TDynamicsCompressor where
   append _ _ = TDynamicsCompressor
@@ -552,10 +675,12 @@ instance semigroupTDynamicsCompressor :: Semigroup TDynamicsCompressor where
 instance monoidTDynamicsCompressor :: Monoid TDynamicsCompressor where
   mempty = TDynamicsCompressor
 
-instance reifyTDynamicsCompressor :: ReifyAU DynamicsCompressor TDynamicsCompressor where
+instance reifyTDynamicsCompressor ::
+  ReifyAU DynamicsCompressor TDynamicsCompressor where
   reifyAU = const mempty
 
-instance reifyTXDynamicsCompressor :: ReifyAU XDynamicsCompressor TDynamicsCompressor where
+instance reifyTXDynamicsCompressor ::
+  ReifyAU XDynamicsCompressor TDynamicsCompressor where
   reifyAU = const mempty
 
 -- | Type-level constructor for a gain unit.
@@ -800,6 +925,7 @@ instance monoidTSawtoothOsc :: Monoid TSawtoothOsc where
 
 instance reifyTSawtoothOsc :: ReifyAU (SawtoothOsc) TSawtoothOsc where
   reifyAU = const mempty
+
 instance reifyTXSawtoothOsc :: ReifyAU (XSawtoothOsc) TSawtoothOsc where
   reifyAU = const mempty
 
@@ -814,7 +940,10 @@ instance semigroupTSinOsc :: Semigroup TSinOsc where
 instance monoidTSinOsc :: Monoid TSinOsc where
   mempty = TSinOsc
 
-instance reifyTSinOsc :: ReifyAU (SinOsc a b) TSinOsc where
+instance reifyTSinOsc :: ReifyAU (SinOsc) TSinOsc where
+  reifyAU = const mempty
+
+instance reifyTXSinOsc :: ReifyAU (XSinOsc) TSinOsc where
   reifyAU = const mempty
 
 -- | Type-level constructor for a loudspeaker.
@@ -842,7 +971,10 @@ instance semigroupTSquareOsc :: Semigroup TSquareOsc where
 instance monoidTSquareOsc :: Monoid TSquareOsc where
   mempty = TSquareOsc
 
-instance reifyTSquareOsc :: ReifyAU (SquareOsc a b) TSquareOsc where
+instance reifyTSquareOsc :: ReifyAU (SquareOsc) TSquareOsc where
+  reifyAU = const mempty
+
+instance reifyTXSquareOsc :: ReifyAU (XSquareOsc) TSquareOsc where
   reifyAU = const mempty
 
 -- | Type-level constructor for a stereo panner.
@@ -856,13 +988,21 @@ instance semigroupTStereoPanner :: Semigroup TStereoPanner where
 instance monoidTStereoPanner :: Monoid TStereoPanner where
   mempty = TStereoPanner
 
-instance reifyTStereoPanner :: ReifyAU (StereoPanner a) TStereoPanner where
+instance reifyTStereoPanner :: ReifyAU (StereoPanner) TStereoPanner where
+  reifyAU = const mempty
+
+instance reifyTXStereoPanner :: ReifyAU (XStereoPanner) TStereoPanner where
   reifyAU = const mempty
 
 -- | Type-level constructor for a subgraph.
-data TSubgraph (arity :: Type) (terminus :: Symbol) (inputs :: Row Type) (env :: Type) = TSubgraph
+data TSubgraph
+  (arity :: Type)
+  (terminus :: Symbol)
+  (inputs :: Row Type)
+  (env :: Type) = TSubgraph
 
-instance typeToSymTSubgraph :: TypeToSym (TSubgraph arity terminus inputs env) "TSubgraph"
+instance typeToSymTSubgraph ::
+  TypeToSym (TSubgraph arity terminus inputs env) "TSubgraph"
 
 instance semigroupTSubgraph :: Semigroup (TSubgraph arity terminus inputs env) where
   append _ _ = TSubgraph
@@ -884,7 +1024,10 @@ instance semigroupTTriangleOsc :: Semigroup TTriangleOsc where
 instance monoidTTriangleOsc :: Monoid TTriangleOsc where
   mempty = TTriangleOsc
 
-instance reifyTTriangleOsc :: ReifyAU (TriangleOsc a b) TTriangleOsc where
+instance reifyTTriangleOsc :: ReifyAU (TriangleOsc) TTriangleOsc where
+  reifyAU = const mempty
+
+instance reifyTXTriangleOsc :: ReifyAU (XTriangleOsc) TTriangleOsc where
   reifyAU = const mempty
 
 -- | Type-level constructor for a subgraph.
@@ -904,11 +1047,14 @@ instance reifyTTumult :: ReifyAU (Tumult tumult) (TTumult w x y) where
 -- | Type-level constructor for a wave shaper.
 data TWaveShaper (oversample :: Type) = TWaveShaper oversample
 
-instance typeToSymTWaveshaper2x :: TypeToSym (TWaveShaper OversampleTwoX) "TWaveShaper_OversampleTwoX"
+instance typeToSymTWaveshaper2x ::
+  TypeToSym (TWaveShaper OversampleTwoX) "TWaveShaper_OversampleTwoX"
 
-instance typeToSymTWaveshaper4x :: TypeToSym (TWaveShaper OversampleFourX) "TWaveShaper_OversampleFourX"
+instance typeToSymTWaveshaper4x ::
+  TypeToSym (TWaveShaper OversampleFourX) "TWaveShaper_OversampleFourX"
 
-instance typeToSymTWaveshaperNone :: TypeToSym (TWaveShaper OversampleNone) "TWaveShaper_OversampleNone"
+instance typeToSymTWaveshaperNone ::
+  TypeToSym (TWaveShaper OversampleNone) "TWaveShaper_OversampleNone"
 
 instance semigroupTWaveShaper :: Monoid a => Semigroup (TWaveShaper a) where
   append _ _ = TWaveShaper mempty
@@ -916,5 +1062,7 @@ instance semigroupTWaveShaper :: Monoid a => Semigroup (TWaveShaper a) where
 instance monoidTWaveShaper :: Monoid a => Monoid (TWaveShaper a) where
   mempty = TWaveShaper mempty
 
-instance reifyTWaveShaper :: Monoid b => ReifyAU (WaveShaper a b) (TWaveShaper b) where
+instance reifyTWaveShaper ::
+  Monoid b =>
+  ReifyAU (WaveShaper a b) (TWaveShaper b) where
   reifyAU = const mempty

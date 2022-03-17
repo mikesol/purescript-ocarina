@@ -29,6 +29,7 @@ tumultuously scenes = unsafeTumult (map go (toArray scenes))
     where
     init :: WAG Unit Instruction Frame0 Unit graph Unit
     init = create (start $> scene)
+
     subscene :: SubScene terminus inputs Unit Unit Instruction Frame0 Unit
     subscene = init @||> freeze
     frame = oneSubFrame subscene unit

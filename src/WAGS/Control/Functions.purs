@@ -67,7 +67,8 @@ start
   => InitialWAG audio engine res Unit
 start = unsafeWAG { context: initialAudioState, value: unit }
 
-initialAudioState :: forall audio engine res. Monoid res => AudioState' audio engine res
+initialAudioState
+  :: forall audio engine res. Monoid res => AudioState' audio engine res
 initialAudioState =
   { res: mempty
   , instructions: []
@@ -86,7 +87,10 @@ makeScene
    . Monoid res
   => IsScene scene
   => AudioInterpret audio engine
-  => (env -> Either (scene env audio engine proofA res) (WAG audio engine proofA res graph control))
+  => ( env
+       -> Either (scene env audio engine proofA res)
+            (WAG audio engine proofA res graph control)
+     )
   -> ( forall proofB
         . WAG audio engine proofB res graph control
        -> scene env audio engine proofB res
@@ -105,7 +109,10 @@ makeScene m trans = unFrame go
         , res: context.res
         , next:
             trans
-              $ unsafeWAG { context: context { instructions = [], res = mempty }, value }
+              $ unsafeWAG
+                  { context: context { instructions = [], res = mempty }
+                  , value
+                  }
         }
 
 infixr 6 makeScene as @>
@@ -119,7 +126,10 @@ makeSceneFlipped
         . WAG audio engine proofB res graph control
        -> scene env audio engine proofB res
      )
-  -> (env -> Either (scene env audio engine proofA res) (WAG audio engine proofA res graph control))
+  -> ( env
+       -> Either (scene env audio engine proofA res)
+            (WAG audio engine proofA res graph control)
+     )
   -> scene env audio engine proofA res
 makeSceneFlipped trans m = makeScene m trans
 
@@ -155,7 +165,8 @@ startUsing
        -> scene env audio engine proofA res
      )
   -> scene env audio engine Frame0 res
-startUsing patchInfo control next = (\e -> (ipatch patchInfo $> control e)) @!> next
+startUsing patchInfo control next = (\e -> (ipatch patchInfo $> control e)) @!>
+  next
 
 class GraphHint (i :: Type) (o :: Row Type) | i -> o
 
@@ -166,7 +177,8 @@ instance graphHintTuple :: GraphHint right o => GraphHint (left /\ right) o
 instance graphHintF :: GraphHint x o => GraphHint (y -> x) o
 
 startUsingWithHint
-  :: forall scene env audio engine res hintable hint graph subgraphs tumults control
+  :: forall scene env audio engine res hintable hint graph subgraphs tumults
+       control
    . Monoid res
   => AudioInterpret audio engine
   => IsScene scene
@@ -183,7 +195,8 @@ startUsingWithHint
        -> scene env audio engine proofA res
      )
   -> scene env audio engine Frame0 res
-startUsingWithHint _ patchInfo control next = (\e -> (ipatch patchInfo $> control e)) @!> next
+startUsingWithHint _ patchInfo control next =
+  (\e -> (ipatch patchInfo $> control e)) @!> next
 
 loopUsingScene
   :: forall scene env audio engine res sn graph control
@@ -210,9 +223,17 @@ loopUsingSceneWithRes
   -> (env -> control)
   -> scene env audio engine Frame0 res
 loopUsingSceneWithRes sceneF initialControl =
-  (\env -> let { scene, control, res } = sceneF env (initialControl env) in icreate scene :*> imodifyRes (const res) $> control) @!>
+  ( \env ->
+      let
+        { scene, control, res } = sceneF env (initialControl env)
+      in
+        icreate scene :*> imodifyRes (const res) $> control
+  ) @!>
     iloop \env icontrol ->
-      let { scene, control, res } = sceneF env icontrol in ichange scene *> imodifyRes (const res) $> control
+      let
+        { scene, control, res } = sceneF env icontrol
+      in
+        ichange scene *> imodifyRes (const res) $> control
 
 -- | Loops audio.
 -- |
@@ -257,7 +278,8 @@ branch
   => ( forall proofB
         . WAG audio engine proofB res graph control
        -> env
-       -> Either (scene env audio engine proofB res) (WAG audio engine proofB res graph control)
+       -> Either (scene env audio engine proofB res)
+            (WAG audio engine proofB res graph control)
      )
   -> WAG audio engine proofA res graph control
   -> scene env audio engine proofA res
@@ -285,7 +307,9 @@ ibranch
         . env
        -> control
        -> Either
-            (WAG audio engine proofB res graph control -> scene env audio engine proofB res)
+            ( WAG audio engine proofB res graph control
+              -> scene env audio engine proofB res
+            )
             (IxWAG audio engine proofB res graph graph control)
      )
   -> WAG audio engine proofA res graph control

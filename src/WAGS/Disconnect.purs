@@ -22,11 +22,14 @@ idisconnect
 idisconnect ptrs = IxWAG (disconnect <<< voidRight ptrs)
 
 -- | Disconnect node `source` from node `dest` in graph `i`, resulting in output graph `o`.
-class Disconnect (source :: Symbol) (dest :: Symbol) (i :: Graph) (o :: Graph) | source dest i -> o where
+class
+  Disconnect (source :: Symbol) (dest :: Symbol) (i :: Graph) (o :: Graph)
+  | source dest i -> o where
   disconnect
     :: forall proxy audio engine proof res
      . AudioInterpret audio engine
-    => WAG audio engine proof res i { source :: proxy source, dest :: proxy dest }
+    => WAG audio engine proof res i
+         { source :: proxy source, dest :: proxy dest }
     -> WAG audio engine proof res o Unit
 
 instance disconnector ::

@@ -46,7 +46,9 @@ instance destroyer ::
       $
         { context:
             i
-              { instructions = i.instructions <> [ destroyUnit { id, unit: reflectSymbol (Proxy :: _ nodeSym) } ]
+              { instructions = i.instructions <>
+                  [ destroyUnit { id, unit: reflectSymbol (Proxy :: _ nodeSym) }
+                  ]
               }
         , value: unit
         }
@@ -58,6 +60,11 @@ instance destroyer ::
 -- | Internal helper class used for destroing audio nodes.
 class PointerNotPresentInAnyEdgeList (ptr :: Symbol) (i :: NodeList)
 
-instance pointerNotPresentInAnyEdgeListNil :: PointerNotPresentInAnyEdgeList a RL.Nil
+instance pointerNotPresentInAnyEdgeListNil ::
+  PointerNotPresentInAnyEdgeList a RL.Nil
 
-instance pointerNotPresentInAnyEdgeListCons :: (R.Lacks a l, PointerNotPresentInAnyEdgeList a tail) => PointerNotPresentInAnyEdgeList a (RL.Cons h (NodeC n { | l }) tail)
+instance pointerNotPresentInAnyEdgeListCons ::
+  ( R.Lacks a l
+  , PointerNotPresentInAnyEdgeList a tail
+  ) =>
+  PointerNotPresentInAnyEdgeList a (RL.Cons h (NodeC n { | l }) tail)

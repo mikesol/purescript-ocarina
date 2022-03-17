@@ -37,7 +37,8 @@ type AudioWorkletNodeOptions_S' =
   , processorOptions :: String
   }
 
-audioWorkletNodeOptionsForInstances :: AudioWorkletNodeOptions_' -> AudioWorkletNodeOptions_S'
+audioWorkletNodeOptionsForInstances
+  :: AudioWorkletNodeOptions_' -> AudioWorkletNodeOptions_S'
 audioWorkletNodeOptionsForInstances
   { name
   , numberOfInputs
@@ -63,7 +64,8 @@ newtype AudioWorkletNodeOptions_ = AudioWorkletNodeOptions_
   , processorOptions :: Foreign
   }
 
-derive instance newtypeAudioWorkletNodeOptions_ :: Newtype AudioWorkletNodeOptions_ _
+derive instance newtypeAudioWorkletNodeOptions_ ::
+  Newtype AudioWorkletNodeOptions_ _
 
 instance eqAudioWorkletNodeOptions_ :: Eq AudioWorkletNodeOptions_ where
   eq = eq `on` (unwrap >>> audioWorkletNodeOptionsForInstances)
@@ -86,13 +88,21 @@ instance showAudioWorkletNodeOptions_ :: Show AudioWorkletNodeOptions_ where
     <> JSON.writeJSON a.numberOfInputs
     <> " >"
 
-type DisconnectXFromY = { fromId :: String, fromUnit :: String, toId :: String, toUnit :: String }
+type DisconnectXFromY =
+  { fromId :: String, fromUnit :: String, toId :: String, toUnit :: String }
+
 type DestroyUnit = { id :: String, unit :: String }
 type MakeAllpass = { id :: String, freq :: AudioParameter, q :: AudioParameter }
 type MakeAnalyser = { id :: String, cb :: AnalyserNodeCb }
-type MakeAudioWorkletNode = { id :: String, options :: AudioWorkletNodeOptions_ }
-type MakeBandpass = { id :: String, freq :: AudioParameter, q :: AudioParameter }
-type MakeConstant = { id :: String, onOff :: AudioOnOff, offset :: AudioParameter }
+type MakeAudioWorkletNode =
+  { id :: String, options :: AudioWorkletNodeOptions_ }
+
+type MakeBandpass =
+  { id :: String, freq :: AudioParameter, q :: AudioParameter }
+
+type MakeConstant =
+  { id :: String, onOff :: AudioOnOff, offset :: AudioParameter }
+
 type MakePassthroughConvolver = { id :: String }
 type MakeConvolver = { id :: String, buffer :: BrowserAudioBuffer }
 type MakeDelay = { id :: String, delayTime :: AudioParameter }
@@ -104,9 +114,14 @@ type MakeDynamicsCompressor =
   , attack :: AudioParameter
   , release :: AudioParameter
   }
+
 type MakeGain = { id :: String, gain :: AudioParameter }
-type MakeHighpass = { id :: String, freq :: AudioParameter, q :: AudioParameter }
-type MakeHighshelf = { id :: String, freq :: AudioParameter, gain :: AudioParameter }
+type MakeHighpass =
+  { id :: String, freq :: AudioParameter, q :: AudioParameter }
+
+type MakeHighshelf =
+  { id :: String, freq :: AudioParameter, gain :: AudioParameter }
+
 type MakeInput = { id :: String, input :: String }
 type MakeLoopBuf =
   { id :: String
@@ -116,18 +131,29 @@ type MakeLoopBuf =
   , loopStart :: Number
   , loopEnd :: Number
   }
+
 type MakeLoopBufWithDeferredBuffer = { id :: String }
 type MakeLowpass = { id :: String, freq :: AudioParameter, q :: AudioParameter }
-type MakeLowshelf = { id :: String, freq :: AudioParameter, gain :: AudioParameter }
+type MakeLowshelf =
+  { id :: String, freq :: AudioParameter, gain :: AudioParameter }
+
 type MakeMediaElement =
   { id :: String
   , element :: BrowserMediaElement
   }
+
 type MakeMicrophone = { microphone :: BrowserMicrophone }
 type MakeNotch = { id :: String, freq :: AudioParameter, q :: AudioParameter }
-type MakePeaking = { id :: String, freq :: AudioParameter, q :: AudioParameter, gain :: AudioParameter }
+type MakePeaking =
+  { id :: String
+  , freq :: AudioParameter
+  , q :: AudioParameter
+  , gain :: AudioParameter
+  }
+
 type MakePeriodicOscWithDeferredOsc = { id :: String }
 newtype RealImg = RealImg { real :: Array Number, img :: Array Number }
+
 derive instance newtypeRealImg :: Newtype RealImg _
 derive instance eqRealImg :: Eq RealImg
 derive instance ordRealImg :: Ord RealImg
@@ -150,7 +176,13 @@ derive newtype instance eqPeriodicOscSpec :: Eq PeriodicOscSpec
 derive newtype instance ordPeriodicOscSpec :: Ord PeriodicOscSpec
 derive newtype instance showPeriodicOscSpec :: Show PeriodicOscSpec
 
-type MakePeriodicOsc = { id :: String, spec :: PeriodicOscSpec, onOff :: AudioOnOff, freq :: AudioParameter }
+type MakePeriodicOsc =
+  { id :: String
+  , spec :: PeriodicOscSpec
+  , onOff :: AudioOnOff
+  , freq :: AudioParameter
+  }
+
 type MakePlayBuf =
   { id :: String
   , buffer :: BrowserAudioBuffer
@@ -158,20 +190,40 @@ type MakePlayBuf =
   , onOff :: AudioOnOff
   , playbackRate :: AudioParameter
   }
+
 type MakePlayBufWithDeferredBuffer = { id :: String }
 type MakeRecorder = { id :: String, cb :: MediaRecorderCb }
-type MakeSawtoothOsc = { id :: String, onOff :: AudioOnOff, freq :: AudioParameter }
+type MakeSawtoothOsc =
+  { id :: String, onOff :: AudioOnOff, freq :: AudioParameter }
+
 type MakeSinOsc = { id :: String, onOff :: AudioOnOff, freq :: AudioParameter }
-type MakeSquareOsc = { id :: String, onOff :: AudioOnOff, freq :: AudioParameter }
+type MakeSquareOsc =
+  { id :: String, onOff :: AudioOnOff, freq :: AudioParameter }
+
 type MakeStereoPanner = { id :: String, pan :: AudioParameter }
-type MakeTriangleOsc = { id :: String, onOff :: AudioOnOff, freq :: AudioParameter }
-type MakeWaveShaper = { id :: String, curve :: BrowserFloatArray, oversample :: Oversample }
-type MakeSubgraph = { id :: String, instructions :: Lazy (Array (Array Instruction)) }
-type MakeTumult = { id :: String, terminus :: String, instructions :: Array (Array Instruction) }
-type ConnectXToY = { fromId :: String, fromUnit :: String, toId :: String, toUnit :: String }
+type MakeTriangleOsc =
+  { id :: String, onOff :: AudioOnOff, freq :: AudioParameter }
+
+type MakeWaveShaper =
+  { id :: String, curve :: BrowserFloatArray, oversample :: Oversample }
+
+type MakeSubgraph =
+  { id :: String, instructions :: Lazy (Array (Array Instruction)) }
+
+type MakeTumult =
+  { id :: String
+  , terminus :: String
+  , instructions :: Array (Array Instruction)
+  }
+
+type ConnectXToY =
+  { fromId :: String, fromUnit :: String, toId :: String, toUnit :: String }
+
 type SetAnalyserNodeCb = { id :: String, cb :: AnalyserNodeCb }
 type SetMediaRecorderCb = { id :: String, cb :: MediaRecorderCb }
-type SetAudioWorkletParameter = { id :: String, paramName :: String, paramValue :: AudioParameter }
+type SetAudioWorkletParameter =
+  { id :: String, paramName :: String, paramValue :: AudioParameter }
+
 type SetBuffer = { id :: String, buffer :: BrowserAudioBuffer }
 type SetConvolverBuffer = { id :: String, buffer :: BrowserAudioBuffer }
 type SetPeriodicOsc = { id :: String, periodicOsc :: PeriodicOscSpec }
@@ -203,7 +255,12 @@ type SetSubgraph = { id :: String }
 -- fix? do we care? so far this is just for visualizations, but
 -- if it winds up being semantically interesting we should address this
 type SetSingleSubgraph = { id :: String }
-type SetTumult = { id :: String, terminus :: String, instructions :: Array (Array Instruction) }
+type SetTumult =
+  { id :: String
+  , terminus :: String
+  , instructions :: Array (Array Instruction)
+  }
+
 -- An audio rendering instruction. These instructions are used
 -- for testing purposes during "dry run" simulations of audio rendering.
 -- `Instruction` can also be used if web-audio is being used to control other audio units.
@@ -275,6 +332,7 @@ type Instruction' =
   , setSingleSubgraph :: SetSingleSubgraph
   , setTumult :: SetTumult
   )
+
 newtype Instruction = Instruction (Variant Instruction')
 
 instructionWeight :: Instruction -> Int
@@ -436,132 +494,203 @@ instance showInstruction :: Show Instruction where
 
 iDisconnectXFromY :: DisconnectXFromY -> Instruction
 iDisconnectXFromY = Instruction <<< inj (Proxy :: Proxy "disconnectXFromY")
+
 iDestroyUnit :: DestroyUnit -> Instruction
 iDestroyUnit = Instruction <<< inj (Proxy :: Proxy "destroyUnit")
+
 iMakeAllpass :: MakeAllpass -> Instruction
 iMakeAllpass = Instruction <<< inj (Proxy :: Proxy "makeAllpass")
+
 iMakeAnalyser :: MakeAnalyser -> Instruction
 iMakeAnalyser = Instruction <<< inj (Proxy :: Proxy "makeAnalyser")
+
 iMakeAudioWorkletNode :: MakeAudioWorkletNode -> Instruction
-iMakeAudioWorkletNode = Instruction <<< inj (Proxy :: Proxy "makeAudioWorkletNode")
+iMakeAudioWorkletNode = Instruction <<< inj
+  (Proxy :: Proxy "makeAudioWorkletNode")
+
 iMakeBandpass :: MakeBandpass -> Instruction
 iMakeBandpass = Instruction <<< inj (Proxy :: Proxy "makeBandpass")
+
 iMakeConstant :: MakeConstant -> Instruction
 iMakeConstant = Instruction <<< inj (Proxy :: Proxy "makeConstant")
+
 iMakePassthroughConvolver :: MakePassthroughConvolver -> Instruction
-iMakePassthroughConvolver = Instruction <<< inj (Proxy :: Proxy "makePassthroughConvolver")
+iMakePassthroughConvolver = Instruction <<< inj
+  (Proxy :: Proxy "makePassthroughConvolver")
+
 iMakeConvolver :: MakeConvolver -> Instruction
 iMakeConvolver = Instruction <<< inj (Proxy :: Proxy "makeConvolver")
+
 iMakeDelay :: MakeDelay -> Instruction
 iMakeDelay = Instruction <<< inj (Proxy :: Proxy "makeDelay")
+
 iMakeDynamicsCompressor :: MakeDynamicsCompressor -> Instruction
-iMakeDynamicsCompressor = Instruction <<< inj (Proxy :: Proxy "makeDynamicsCompressor")
+iMakeDynamicsCompressor = Instruction <<< inj
+  (Proxy :: Proxy "makeDynamicsCompressor")
+
 iMakeGain :: MakeGain -> Instruction
 iMakeGain = Instruction <<< inj (Proxy :: Proxy "makeGain")
+
 iMakeHighpass :: MakeHighpass -> Instruction
 iMakeHighpass = Instruction <<< inj (Proxy :: Proxy "makeHighpass")
+
 iMakeHighshelf :: MakeHighshelf -> Instruction
 iMakeHighshelf = Instruction <<< inj (Proxy :: Proxy "makeHighshelf")
+
 iMakeInput :: MakeInput -> Instruction
 iMakeInput = Instruction <<< inj (Proxy :: Proxy "makeInput")
+
 iMakeLoopBuf :: MakeLoopBuf -> Instruction
 iMakeLoopBuf = Instruction <<< inj (Proxy :: Proxy "makeLoopBuf")
+
 iMakeLoopBufWithDeferredBuffer :: MakeLoopBufWithDeferredBuffer -> Instruction
-iMakeLoopBufWithDeferredBuffer = Instruction <<< inj (Proxy :: Proxy "makeLoopBufWithDeferredBuffer")
+iMakeLoopBufWithDeferredBuffer = Instruction <<< inj
+  (Proxy :: Proxy "makeLoopBufWithDeferredBuffer")
+
 iMakeLowpass :: MakeLowpass -> Instruction
 iMakeLowpass = Instruction <<< inj (Proxy :: Proxy "makeLowpass")
+
 iMakeLowshelf :: MakeLowshelf -> Instruction
 iMakeLowshelf = Instruction <<< inj (Proxy :: Proxy "makeLowshelf")
+
 iMakeMediaElement :: MakeMediaElement -> Instruction
 iMakeMediaElement = Instruction <<< inj (Proxy :: Proxy "makeMediaElement")
+
 iMakeMicrophone :: MakeMicrophone -> Instruction
 iMakeMicrophone = Instruction <<< inj (Proxy :: Proxy "makeMicrophone")
+
 iMakeNotch :: MakeNotch -> Instruction
 iMakeNotch = Instruction <<< inj (Proxy :: Proxy "makeNotch")
+
 iMakePeaking :: MakePeaking -> Instruction
 iMakePeaking = Instruction <<< inj (Proxy :: Proxy "makePeaking")
+
 iMakePeriodicOscWithDeferredOsc :: MakePeriodicOscWithDeferredOsc -> Instruction
-iMakePeriodicOscWithDeferredOsc = Instruction <<< inj (Proxy :: Proxy "makePeriodicOscWithDeferredOsc")
+iMakePeriodicOscWithDeferredOsc = Instruction <<< inj
+  (Proxy :: Proxy "makePeriodicOscWithDeferredOsc")
+
 iMakePeriodicOsc :: MakePeriodicOsc -> Instruction
 iMakePeriodicOsc = Instruction <<< inj (Proxy :: Proxy "makePeriodicOsc")
+
 iMakePlayBuf :: MakePlayBuf -> Instruction
 iMakePlayBuf = Instruction <<< inj (Proxy :: Proxy "makePlayBuf")
+
 iMakePlayBufWithDeferredBuffer :: MakePlayBufWithDeferredBuffer -> Instruction
-iMakePlayBufWithDeferredBuffer = Instruction <<< inj (Proxy :: Proxy "makePlayBufWithDeferredBuffer")
+iMakePlayBufWithDeferredBuffer = Instruction <<< inj
+  (Proxy :: Proxy "makePlayBufWithDeferredBuffer")
+
 iMakeRecorder :: MakeRecorder -> Instruction
 iMakeRecorder = Instruction <<< inj (Proxy :: Proxy "makeRecorder")
+
 iMakeSawtoothOsc :: MakeSawtoothOsc -> Instruction
 iMakeSawtoothOsc = Instruction <<< inj (Proxy :: Proxy "makeSawtoothOsc")
+
 iMakeSinOsc :: MakeSinOsc -> Instruction
 iMakeSinOsc = Instruction <<< inj (Proxy :: Proxy "makeSinOsc")
+
 iMakeSquareOsc :: MakeSquareOsc -> Instruction
 iMakeSquareOsc = Instruction <<< inj (Proxy :: Proxy "makeSquareOsc")
+
 iMakeSpeaker :: Instruction
 iMakeSpeaker = Instruction $ inj (Proxy :: Proxy "makeSpeaker") unit
+
 iMakeStereoPanner :: MakeStereoPanner -> Instruction
 iMakeStereoPanner = Instruction <<< inj (Proxy :: Proxy "makeStereoPanner")
+
 iMakeTriangleOsc :: MakeTriangleOsc -> Instruction
 iMakeTriangleOsc = Instruction <<< inj (Proxy :: Proxy "makeTriangleOsc")
+
 iMakeWaveShaper :: MakeWaveShaper -> Instruction
 iMakeWaveShaper = Instruction <<< inj (Proxy :: Proxy "makeWaveShaper")
+
 iMakeSubgraph :: MakeSubgraph -> Instruction
 iMakeSubgraph = Instruction <<< inj (Proxy :: Proxy "makeSubgraph")
+
 iMakeTumult :: MakeTumult -> Instruction
 iMakeTumult = Instruction <<< inj (Proxy :: Proxy "makeTumult")
+
 iConnectXToY :: ConnectXToY -> Instruction
 iConnectXToY = Instruction <<< inj (Proxy :: Proxy "connectXToY")
+
 iSetAnalyserNodeCb :: SetAnalyserNodeCb -> Instruction
 iSetAnalyserNodeCb = Instruction <<< inj (Proxy :: Proxy "setAnalyserNodeCb")
+
 iSetMediaRecorderCb :: SetMediaRecorderCb -> Instruction
 iSetMediaRecorderCb = Instruction <<< inj (Proxy :: Proxy "setMediaRecorderCb")
+
 iSetAudioWorkletParameter :: SetAudioWorkletParameter -> Instruction
-iSetAudioWorkletParameter = Instruction <<< inj (Proxy :: Proxy "setAudioWorkletParameter")
+iSetAudioWorkletParameter = Instruction <<< inj
+  (Proxy :: Proxy "setAudioWorkletParameter")
+
 iSetBuffer :: SetBuffer -> Instruction
 iSetBuffer = Instruction <<< inj (Proxy :: Proxy "setBuffer")
+
 iSetConvolverBuffer :: SetConvolverBuffer -> Instruction
 iSetConvolverBuffer = Instruction <<< inj (Proxy :: Proxy "setConvolverBuffer")
+
 iSetPeriodicOsc :: SetPeriodicOsc -> Instruction
 iSetPeriodicOsc = Instruction <<< inj (Proxy :: Proxy "setPeriodicOsc")
+
 iSetOnOff :: SetOnOff -> Instruction
 iSetOnOff = Instruction <<< inj (Proxy :: Proxy "setOnOff")
+
 iSetBufferOffset :: SetBufferOffset -> Instruction
 iSetBufferOffset = Instruction <<< inj (Proxy :: Proxy "setBufferOffset")
+
 iSetLoopStart :: SetLoopStart -> Instruction
 iSetLoopStart = Instruction <<< inj (Proxy :: Proxy "setLoopStart")
+
 iSetLoopEnd :: SetLoopEnd -> Instruction
 iSetLoopEnd = Instruction <<< inj (Proxy :: Proxy "setLoopEnd")
+
 iSetRatio :: SetRatio -> Instruction
 iSetRatio = Instruction <<< inj (Proxy :: Proxy "setRatio")
+
 iSetOffset :: SetOffset -> Instruction
 iSetOffset = Instruction <<< inj (Proxy :: Proxy "setOffset")
+
 iSetAttack :: SetAttack -> Instruction
 iSetAttack = Instruction <<< inj (Proxy :: Proxy "setAttack")
+
 iSetGain :: SetGain -> Instruction
 iSetGain = Instruction <<< inj (Proxy :: Proxy "setGain")
+
 iSetQ :: SetQ -> Instruction
 iSetQ = Instruction <<< inj (Proxy :: Proxy "setQ")
+
 iSetPan :: SetPan -> Instruction
 iSetPan = Instruction <<< inj (Proxy :: Proxy "setPan")
+
 iSetThreshold :: SetThreshold -> Instruction
 iSetThreshold = Instruction <<< inj (Proxy :: Proxy "setThreshold")
+
 iSetRelease :: SetRelease -> Instruction
 iSetRelease = Instruction <<< inj (Proxy :: Proxy "setRelease")
+
 iSetKnee :: SetKnee -> Instruction
 iSetKnee = Instruction <<< inj (Proxy :: Proxy "setKnee")
+
 iSetDelay :: SetDelay -> Instruction
 iSetDelay = Instruction <<< inj (Proxy :: Proxy "setDelay")
+
 iSetPlaybackRate :: SetPlaybackRate -> Instruction
 iSetPlaybackRate = Instruction <<< inj (Proxy :: Proxy "setPlaybackRate")
+
 iSetFrequency :: SetFrequency -> Instruction
 iSetFrequency = Instruction <<< inj (Proxy :: Proxy "setFrequency")
+
 iSetWaveShaperCurve :: SetWaveShaperCurve -> Instruction
 iSetWaveShaperCurve = Instruction <<< inj (Proxy :: Proxy "setWaveShaperCurve")
+
 iSetInput :: SetInput -> Instruction
 iSetInput = Instruction <<< inj (Proxy :: Proxy "setInput")
+
 iSetSubgraph :: SetSubgraph -> Instruction
 iSetSubgraph = Instruction <<< inj (Proxy :: Proxy "setSubgraph")
+
 iSetSingleSubgraph :: SetSingleSubgraph -> Instruction
 iSetSingleSubgraph = Instruction <<< inj (Proxy :: Proxy "setSingleSubgraph")
+
 iSetTumult :: SetTumult -> Instruction
 iSetTumult = Instruction <<< inj (Proxy :: Proxy "setTumult")
 

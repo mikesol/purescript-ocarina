@@ -30,8 +30,11 @@ newtype AudioParameterCancellation = AudioParameterCancellation
 
 derive instance eqAudioParameterCancellation :: Eq AudioParameterCancellation
 derive instance ordAudioParameterCancellation :: Ord AudioParameterCancellation
-derive instance newtypeAudioParameterCancellation :: Newtype AudioParameterCancellation _
-derive newtype instance showAudioParameterCancellation :: Show AudioParameterCancellation
+derive instance newtypeAudioParameterCancellation ::
+  Newtype AudioParameterCancellation _
+
+derive newtype instance showAudioParameterCancellation ::
+  Show AudioParameterCancellation
 
 newtype AudioSingleNumber = AudioSingleNumber
   { param :: Number
@@ -96,7 +99,8 @@ derive instance ordOnOff :: Ord OnOff
 derive instance genericOnOff :: Generic OnOff _
 
 instance showOnOff :: Show OnOff where
-  show = unwrap >>> match { on: const "on", off: const "off", offOn: const "offOn" }
+  show = unwrap >>> match
+    { on: const "on", off: const "off", offOn: const "offOn" }
 
 newtype AudioOnOff = AudioOnOff
   { onOff :: OnOff
@@ -116,7 +120,11 @@ lensParam :: Lens' AudioSingleNumber Number
 lensParam = lens (unwrap >>> _.param)
   (\(AudioSingleNumber s) -> AudioSingleNumber <<< s { param = _ })
 
-bop :: (Number -> Number -> Number) -> AudioSingleNumber -> AudioSingleNumber -> AudioSingleNumber
+bop
+  :: (Number -> Number -> Number)
+  -> AudioSingleNumber
+  -> AudioSingleNumber
+  -> AudioSingleNumber
 bop f (AudioSingleNumber xxx) (AudioSingleNumber yyy) = AudioSingleNumber
   { param: f xxx.param yyy.param
   , timeOffset: (xxx.timeOffset + yyy.timeOffset) / 2.0
@@ -171,12 +179,15 @@ _linearRamp :: AudioSingleNumberTransition
 _linearRamp = AudioSingleNumberTransition $ inj (Proxy :: _ "linearRamp") unit
 
 _exponentialRamp :: AudioSingleNumberTransition
-_exponentialRamp = AudioSingleNumberTransition $ inj (Proxy :: _ "exponentialRamp") unit
+_exponentialRamp = AudioSingleNumberTransition $ inj
+  (Proxy :: _ "exponentialRamp")
+  unit
 
 _immediately :: AudioSingleNumberTransition
 _immediately = AudioSingleNumberTransition $ inj (Proxy :: _ "immediately") unit
 
-derive instance newtypeAudioSingleNumberTransition :: Newtype AudioSingleNumberTransition _
+derive instance newtypeAudioSingleNumberTransition ::
+  Newtype AudioSingleNumberTransition _
 
 derive instance eqAudioSingleNumberTransition :: Eq AudioSingleNumberTransition
 
@@ -186,7 +197,8 @@ instance ordAudioSingleNumberTransition :: Ord AudioSingleNumberTransition where
     | i1 == _immediately = GT
     | otherwise = EQ
 
-derive instance genericAudioSingleNumberTransition :: Generic AudioSingleNumberTransition _
+derive instance genericAudioSingleNumberTransition ::
+  Generic AudioSingleNumberTransition _
 
 instance showAudioSingleNumberTransition :: Show AudioSingleNumberTransition where
   show = unwrap >>> match
@@ -196,7 +208,8 @@ instance showAudioSingleNumberTransition :: Show AudioSingleNumberTransition whe
     , immediately: const "Immediately"
     }
 
-instance semigroupAudioSingleNumberTransition :: Semigroup AudioSingleNumberTransition where
+instance semigroupAudioSingleNumberTransition ::
+  Semigroup AudioSingleNumberTransition where
   append i0 i1
     | i0 == _immediately || i1 == _immediately = _immediately
     | i0 == _exponentialRamp || i1 == _exponentialRamp = _exponentialRamp
@@ -207,24 +220,40 @@ class Timed a where
   lensTime :: Lens' a Number
 
 singleNumber :: AudioSingleNumber -> AudioParameter
-singleNumber = AudioParameter <<< inj (Proxy :: Proxy
- "singleNumber")
+singleNumber = AudioParameter <<< inj
+  ( Proxy
+      :: Proxy
+           "singleNumber"
+  )
 
 envelope :: AudioEnvelope -> AudioParameter
-envelope = AudioParameter <<< inj (Proxy :: Proxy
- "envelope")
+envelope = AudioParameter <<< inj
+  ( Proxy
+      :: Proxy
+           "envelope"
+  )
 
 cancellation :: AudioParameterCancellation -> AudioParameter
-cancellation = AudioParameter <<< inj (Proxy :: Proxy
- "cancellation")
+cancellation = AudioParameter <<< inj
+  ( Proxy
+      :: Proxy
+           "cancellation"
+  )
 
 instance lensTimeAudioParameter :: Timed AudioParameter where
-  lensTime = lens (unwrap >>> match { singleNumber: view lensTime, envelope: view lensTime, cancellation: view lensTime })
+  lensTime = lens
+    ( unwrap >>> match
+        { singleNumber: view lensTime
+        , envelope: view lensTime
+        , cancellation: view lensTime
+        }
+    )
     ( \(AudioParameter s) a -> match
         { singleNumber: singleNumber <<< set lensTime a
         , envelope: envelope <<< set lensTime a
         , cancellation: cancellation <<< set lensTime a
-        } s
+        }
+        s
     )
 
 instance lensTimeAudioSingleNumber :: Timed AudioSingleNumber where
@@ -234,6 +263,7 @@ instance lensTimeAudioSingleNumber :: Timed AudioSingleNumber where
 instance lensTimeAudioEnvelope :: Timed AudioEnvelope where
   lensTime = lens (unwrap >>> _.timeOffset)
     (\(AudioEnvelope s) -> AudioEnvelope <<< s { timeOffset = _ })
+
 instance lensTimeAudioParameterCancellation :: Timed AudioParameterCancellation where
   lensTime = lens (unwrap >>> _.timeOffset)
     ( \(AudioParameterCancellation s) ->
@@ -241,7 +271,8 @@ instance lensTimeAudioParameterCancellation :: Timed AudioParameterCancellation 
     )
 
 instance lensTimeAudioOnOff :: Timed AudioOnOff where
-  lensTime = lens (unwrap >>> _.timeOffset) (\(AudioOnOff s) -> AudioOnOff <<< s { timeOffset = _ })
+  lensTime = lens (unwrap >>> _.timeOffset)
+    (\(AudioOnOff s) -> AudioOnOff <<< s { timeOffset = _ })
 
 cancel :: AudioParameterCancellation
 cancel = AudioParameterCancellation { hold: false, timeOffset: 0.0 }
@@ -250,7 +281,8 @@ ff :: forall a. Timed a => Number -> a -> a
 ff = set lensTime
 
 lensRamp :: Lens' AudioSingleNumber AudioSingleNumberTransition
-lensRamp = lens (unwrap >>> _.transition) (\(AudioSingleNumber s) -> AudioSingleNumber <<< s { transition = _ })
+lensRamp = lens (unwrap >>> _.transition)
+  (\(AudioSingleNumber s) -> AudioSingleNumber <<< s { transition = _ })
 
 noRamp :: AudioSingleNumber -> AudioSingleNumber
 noRamp = set lensRamp _noRamp

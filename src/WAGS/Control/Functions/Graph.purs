@@ -44,7 +44,10 @@ makeScene
    . Monoid res
   => AudioInterpret audio engine
   => GraphIsRenderable graph
-  => (env -> Either (Scene env audio engine proofA res) (WAG audio engine proofA res graph a))
+  => ( env
+       -> Either (Scene env audio engine proofA res)
+            (WAG audio engine proofA res graph a)
+     )
   -> ( forall proofB
         . WAG audio engine proofB res graph a
        -> Scene env audio engine proofB res
@@ -63,7 +66,10 @@ makeSceneFlipped
         . WAG audio engine proofB res graph a
        -> Scene env audio engine proofB res
      )
-  -> (env -> Either (Scene env audio engine proofA res) (WAG audio engine proofA res graph a))
+  -> ( env
+       -> Either (Scene env audio engine proofA res)
+            (WAG audio engine proofA res graph a)
+     )
   -> Scene env audio engine proofA res
 makeSceneFlipped = Functions.makeSceneFlipped
 
@@ -123,7 +129,8 @@ branch
   => ( forall proofB
         . WAG audio engine proofB res graph a
        -> env
-       -> Either (Scene env audio engine proofB res) (WAG audio engine proofB res graph a)
+       -> Either (Scene env audio engine proofB res)
+            (WAG audio engine proofB res graph a)
      )
   -> WAG audio engine proofA res graph a
   -> Scene env audio engine proofA res
@@ -138,7 +145,9 @@ ibranch
         . env
        -> a
        -> Either
-            (WAG audio engine proofB res graph a -> Scene env audio engine proofB res)
+            ( WAG audio engine proofB res graph a
+              -> Scene env audio engine proofB res
+            )
             (IxWAG audio engine proofB res graph graph a)
      )
   -> WAG audio engine proofA res graph a
@@ -216,7 +225,10 @@ loopUsingSceneWithRes
   => Create scene () graph
   => Change scene graph
   => GraphIsRenderable graph
-  => (env -> control -> { scene :: { | scene }, control :: control, res :: res })
+  => ( env
+       -> control
+       -> { scene :: { | scene }, control :: control, res :: res }
+     )
   -> (env -> control)
   -> Scene env audio engine Frame0 res
 loopUsingSceneWithRes = Functions.loopUsingSceneWithRes
