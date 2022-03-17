@@ -3,11 +3,15 @@ module WAGS.Change where
 import Prelude
 
 import Control.Comonad (extract)
+import Data.Homogeneous.Row.Options (homogeneous, objFromHomogeneous)
+import Data.Newtype (over)
+import Data.Row.Options (asOptions, options, megamap)
 import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.Tuple.Nested ((/\), type (/\))
 import Data.Typelevel.Num (class Lt, class Nat, class Pos, D1)
 import Data.Variant.Maybe (Maybe, just, maybe, nothing)
 import Data.Vec as V
+import Foreign.Object (values)
 import Prim.Row as R
 import Prim.RowList (class RowToList, RowList)
 import Prim.RowList as RL
@@ -30,8 +34,7 @@ import WAGS.Tumult (Tumultuous, safeUntumult)
 import WAGS.Util (class MakePrefixIfNeeded, class CoercePrefixToString)
 import WAGS.WebAPI (AnalyserNodeCb, BrowserAudioBuffer, BrowserFloatArray, BrowserMediaElement, BrowserMicrophone, BrowserPeriodicWave, MediaRecorderCb)
 
-type Change'Type (ptr :: Symbol) (a :: Type) (graph :: Graph)
-  =
+type Change'Type (ptr :: Symbol) (a :: Type) (graph :: Graph) =
   forall proxy audio engine proof res
    . AudioInterpret audio engine
   => proxy ptr
@@ -42,8 +45,7 @@ type Change'Type (ptr :: Symbol) (a :: Type) (graph :: Graph)
 class Change' (ptr :: Symbol) (a :: Type) (graph :: Graph) where
   change' :: Change'Type ptr a graph
 
-type CanBeChangedType (sym :: Symbol) (val :: Type) (ptr :: Symbol) (graph :: Graph)
-  =
+type CanBeChangedType (sym :: Symbol) (val :: Type) (ptr :: Symbol) (graph :: Graph) =
   forall proxy audio engine proof res
    . AudioInterpret audio engine
   => proxy sym
@@ -55,8 +57,7 @@ type CanBeChangedType (sym :: Symbol) (val :: Type) (ptr :: Symbol) (graph :: Gr
 class CanBeChanged (sym :: Symbol) (val :: Type) (ptr :: Symbol) (graph :: Graph) where
   canBeChanged :: CanBeChangedType sym val ptr graph
 
-type Change''Type (rl :: RL.RowList Type) (ptr :: Symbol) (a :: Row Type) (graph :: Graph)
-  =
+type Change''Type (rl :: RL.RowList Type) (ptr :: Symbol) (a :: Row Type) (graph :: Graph) =
   forall proxyA proxyB audio engine proof res
    . AudioInterpret audio engine
   => proxyA rl
@@ -106,8 +107,7 @@ class Change (r :: Row Type) (graph :: Graph) where
     => WAG audio engine proof res graph { | r }
     -> WAG audio engine proof res graph Unit
 
-type ChangeInternalSig (prefix :: Type) (map :: Type) (r :: Row Type) (graph :: Graph)
-  =
+type ChangeInternalSig (prefix :: Type) (map :: Type) (r :: Row Type) (graph :: Graph) =
   forall proxyPrefix proxyMap audio engine proof res
    . AudioInterpret audio engine
   => proxyPrefix prefix
@@ -353,9 +353,9 @@ instance canBeChangedFreq ::
     where
     { context: i } = unsafeUnWAG w
 
-    nn = reflectSymbol ptr
+    id = reflectSymbol ptr
 
-    argA_Changes = [ setFrequency { id: nn, frequency: val } ]
+    argA_Changes = [ setFrequency { id, frequency: val } ]
 
     o =
       unsafeWAG
@@ -397,13 +397,13 @@ instance canBeChangedAudioOnOff ::
   , AudioOnOffable tau
   ) =>
   CanBeChanged "onOff" AudioOnOff ptr graph where
-  canBeChanged _ val ptr w = o
+  canBeChanged _ onOff ptr w = o
     where
     { context: i } = unsafeUnWAG w
 
-    nn = reflectSymbol ptr
+    id = reflectSymbol ptr
 
-    argA_Changes = [ setOnOff { id: nn, onOff: val } ]
+    argA_Changes = [ setOnOff { id, onOff } ]
 
     o =
       unsafeWAG
@@ -441,13 +441,13 @@ instance canBeChangedQ ::
   , Qable tau
   ) =>
   CanBeChanged "q" AudioParameter ptr graph where
-  canBeChanged _ val ptr w = o
+  canBeChanged _ q ptr w = o
     where
     { context: i } = unsafeUnWAG w
 
-    nn = reflectSymbol ptr
+    id = reflectSymbol ptr
 
-    argA_Changes = [ setQ { id: nn, q: val } ]
+    argA_Changes = [ setQ { id, q } ]
 
     o =
       unsafeWAG
@@ -479,13 +479,13 @@ instance canBeChangedGain ::
   , Gainable tau
   ) =>
   CanBeChanged "gain" AudioParameter ptr graph where
-  canBeChanged _ val ptr w = o
+  canBeChanged _ gain ptr w = o
     where
     { context: i } = unsafeUnWAG w
 
-    nn = reflectSymbol ptr
+    id = reflectSymbol ptr
 
-    argA_Changes = [ setGain { id: nn, gain: val } ]
+    argA_Changes = [ setGain { id, gain } ]
 
     o =
       unsafeWAG
@@ -513,13 +513,13 @@ instance canBeChangedOffset ::
   , Offsetable tau
   ) =>
   CanBeChanged "offset" AudioParameter ptr graph where
-  canBeChanged _ val ptr w = o
+  canBeChanged _ offset ptr w = o
     where
     { context: i } = unsafeUnWAG w
 
-    nn = reflectSymbol ptr
+    id = reflectSymbol ptr
 
-    argA_Changes = [ setOffset { id: nn, offset: val } ]
+    argA_Changes = [ setOffset { id, offset } ]
 
     o =
       unsafeWAG
@@ -952,37 +952,37 @@ instance changeAnalyser ::
         , value: unit
         }
 
-instance oneShotChangeAllpass :: OneShotChange CTOR.TAllpass AudioParameter (CTOR.Allpass (Maybe AudioParameter) (Maybe AudioParameter)) where
-  oneShotChange _ freq = CTOR.Allpass (just freq) nothing
+instance oneShotChangeAllpass :: OneShotChange CTOR.TAllpass AudioParameter CTOR.XAllpass where
+  oneShotChange = const (CTOR.XAllpass <<< options <<< { freq: _ })
 
 instance changeAllpass ::
   ( IsSymbol ptr
-  , MM mArgA (Maybe argA)
-  , Paramable argA
-  , MM mArgB (Maybe argB)
-  , Paramable argB
   , R.Cons ptr (NodeC CTOR.TAllpass edges) ignore graph
   ) =>
-  Change' ptr (CTOR.Allpass mArgA mArgB) graph where
+  Change' ptr CTOR.Allpass graph where
+  change' ptr = change' ptr
+    <<< map (over CTOR.Allpass asOptions :: _ -> CTOR.XAllpass)
+
+instance changeXAllpass ::
+  ( IsSymbol ptr
+  , R.Cons ptr (NodeC CTOR.TAllpass edges) ignore graph
+  ) =>
+  Change' ptr CTOR.XAllpass graph where
   change' ptr w = o
     where
-    { context: i, value: (CTOR.Allpass argA argB) } = unsafeUnWAG w
+    { context: i, value: (CTOR.XAllpass x) } = unsafeUnWAG w
 
     nn = reflectSymbol ptr
-
-    argA_iv' = paramize <$> (mm argA)
-
-    argA_Changes = maybe [] (\argA_iv'' -> [ setFrequency { id: nn, frequency: argA_iv'' } ]) argA_iv'
-
-    argB_iv' = paramize <$> (mm argB)
-
-    argB_Changes = maybe [] (\argB_iv'' -> [ setQ { id: nn, q: argB_iv'' } ]) argB_iv'
+    changes = values
+      $ objFromHomogeneous
+      $ homogeneous
+      $ megamap x { freq: setFrequency <<< { id: nn, frequency: _ }, q: setQ <<< { id: nn, q: _ } }
 
     o =
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> argA_Changes <> argB_Changes
+              { instructions = i.instructions <> changes
               }
         , value: unit
         }
@@ -1040,73 +1040,81 @@ instance changeAudioWorkletNode ::
         , value: unit
         }
 
-instance oneShotChangeBandpass :: OneShotChange CTOR.TBandpass AudioParameter (CTOR.Bandpass (Maybe AudioParameter) (Maybe AudioParameter)) where
-  oneShotChange _ freq = CTOR.Bandpass (just freq) nothing
+instance oneShotChangeBandpass :: OneShotChange CTOR.TBandpass AudioParameter CTOR.XBandpass where
+  oneShotChange = const (CTOR.XBandpass <<< options <<< { freq: _ })
 
 instance changeBandpass ::
   ( IsSymbol ptr
-  , MM mArgA (Maybe argA)
-  , Paramable argA
-  , MM mArgB (Maybe argB)
-  , Paramable argB
   , R.Cons ptr (NodeC CTOR.TBandpass edges) ignore graph
   ) =>
-  Change' ptr (CTOR.Bandpass mArgA mArgB) graph where
+  Change' ptr CTOR.Bandpass graph where
+  change' ptr = change' ptr
+    <<< map (over CTOR.Bandpass asOptions :: _ -> CTOR.XBandpass)
+
+instance changeXBandpass ::
+  ( IsSymbol ptr
+  , R.Cons ptr (NodeC CTOR.TBandpass edges) ignore graph
+  ) =>
+  Change' ptr CTOR.XBandpass graph where
   change' ptr w = o
     where
-    { context: i, value: (CTOR.Bandpass argA argB) } = unsafeUnWAG w
+    { context: i, value: (CTOR.XBandpass x) } = unsafeUnWAG w
 
     nn = reflectSymbol ptr
-
-    argA_iv' = paramize <$> (mm argA)
-
-    argA_Changes = maybe [] (\argA_iv'' -> [ setFrequency { id: nn, frequency: argA_iv'' } ]) argA_iv'
-
-    argB_iv' = paramize <$> (mm argB)
-
-    argB_Changes = maybe [] (\argB_iv'' -> [ setQ { id: nn, q: argB_iv'' } ]) argB_iv'
+    changes = values
+      $ objFromHomogeneous
+      $ homogeneous
+      $ megamap x
+          { freq: setFrequency <<< { id: nn, frequency: _ }
+          , q: setQ <<< { id: nn, q: _ }
+          }
 
     o =
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> argA_Changes <> argB_Changes
+              { instructions = i.instructions <> changes
               }
         , value: unit
         }
 
-instance oneShotChangeConstant :: OneShotChange CTOR.TConstant AudioParameter (CTOR.Constant (Maybe AudioOnOff) (Maybe AudioParameter)) where
-  oneShotChange _ offset = CTOR.Constant nothing (just offset)
+instance oneShotChangeConstantOffset :: OneShotChange CTOR.TConstant AudioParameter CTOR.XConstant where
+  oneShotChange = const (CTOR.XConstant <<< options <<< { offset: _ })
 
-instance oneShotChangeConstantOO :: OneShotChange CTOR.TConstant AudioOnOff (CTOR.Constant (Maybe AudioOnOff) (Maybe AudioParameter)) where
-  oneShotChange _ oo = CTOR.Constant (just oo) nothing
+instance oneShotChangeConstantOnOff :: OneShotChange CTOR.TConstant AudioOnOff CTOR.XConstant where
+  oneShotChange = const (CTOR.XConstant <<< options <<< { onOff: _ })
 
 instance changeConstant ::
   ( IsSymbol ptr
-  , MM mAudioOnOff (Maybe onOff)
-  , OnOffable onOff
-  , MM mArgA (Maybe argA)
-  , Paramable argA
   , R.Cons ptr (NodeC CTOR.TConstant edges) ignore graph
   ) =>
-  Change' ptr (CTOR.Constant mAudioOnOff mArgA) graph where
+  Change' ptr CTOR.Constant graph where
+  change' ptr = change' ptr
+    <<< map (over CTOR.Constant asOptions :: _ -> CTOR.XConstant)
+
+instance changeXConstant ::
+  ( IsSymbol ptr
+  , R.Cons ptr (NodeC CTOR.TConstant edges) ignore graph
+  ) =>
+  Change' ptr CTOR.XConstant graph where
   change' ptr w = o
     where
-    { context: i, value: (CTOR.Constant onOff argA) } = unsafeUnWAG w
+    { context: i, value: (CTOR.XConstant x) } = unsafeUnWAG w
 
-    nn = reflectSymbol ptr
-
-    oo_Changes = maybe [] (\onOff' -> [ setOnOff { id: nn, onOff: onOffIze onOff' } ]) (mm onOff)
-
-    argA_iv' = paramize <$> (mm argA)
-
-    argA_Changes = maybe [] (\argA_iv'' -> [ setOffset { id: nn, offset: argA_iv'' } ]) argA_iv'
+    id = reflectSymbol ptr
+    changes = values
+      $ objFromHomogeneous
+      $ homogeneous
+      $ megamap x
+          { offset: setOffset <<< { id, offset: _ }
+          , onOff: setOnOff <<< { id, onOff: _ }
+          }
 
     o =
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> (argA_Changes <> oo_Changes)
+              { instructions = i.instructions <> changes
               }
         , value: unit
         }
@@ -1130,31 +1138,36 @@ instance changeConvolver ::
         , value: unit
         }
 
-instance oneShotChangeDelay :: OneShotChange CTOR.TDelay AudioParameter (CTOR.Delay (Maybe AudioParameter)) where
-  oneShotChange _ delay = CTOR.Delay (just delay)
+instance oneShotChangeDelay :: OneShotChange CTOR.TDelay AudioParameter CTOR.XDelay where
+  oneShotChange = const (CTOR.XDelay <<< options <<< { delayTime: _ })
 
 instance changeDelay ::
   ( IsSymbol ptr
-  , MM mArgA (Maybe argA)
-  , Paramable argA
   , R.Cons ptr (NodeC CTOR.TDelay edges) ignore graph
   ) =>
-  Change' ptr (CTOR.Delay mArgA) graph where
+  Change' ptr CTOR.Delay graph where
+  change' ptr = change' ptr <<< map (over CTOR.Delay asOptions :: _ -> CTOR.XDelay)
+
+instance changeXDelay ::
+  ( IsSymbol ptr
+  , R.Cons ptr (NodeC CTOR.TDelay edges) ignore graph
+  ) =>
+  Change' ptr CTOR.XDelay graph where
   change' ptr w = o
     where
-    { context: i, value: (CTOR.Delay argA) } = unsafeUnWAG w
+    { context: i, value: (CTOR.XDelay x) } = unsafeUnWAG w
 
-    nn = reflectSymbol ptr
-
-    argA_iv' = paramize <$> (mm argA)
-
-    argA_Changes = maybe [] (\argA_iv'' -> [ setDelay { id: nn, delay: argA_iv'' } ]) argA_iv'
+    id = reflectSymbol ptr
+    changes = values
+      $ objFromHomogeneous
+      $ homogeneous
+      $ megamap x { delayTime: setDelay <<< { id, delay: _ } }
 
     o =
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> argA_Changes
+              { instructions = i.instructions <> changes
               }
         , value: unit
         }
@@ -1449,7 +1462,6 @@ instance changeLowshelf ::
         , value: unit
         }
 
-
 instance changeMediaElement ::
   ( R.Cons iSym (NodeC CTOR.TMediaElement edges) ignore graph
   ) =>
@@ -1553,7 +1565,7 @@ instance oneShotChangePeriodicOscOO :: OneShotChange CTOR.TPeriodicOsc AudioOnOf
 instance oneShotChangePeriodicOscProxy :: OneShotChange CTOR.TPeriodicOsc BrowserPeriodicWave (CTOR.PeriodicOsc (Maybe BrowserPeriodicWave) (Maybe AudioOnOff) (Maybe AudioParameter)) where
   oneShotChange _ osc = CTOR.PeriodicOsc (just osc) nothing nothing
 
-instance oneShotChangePeriodicOscVec ::   Lt D1 size => OneShotChange CTOR.TPeriodicOsc (V.Vec size Number /\ V.Vec size Number) (CTOR.PeriodicOsc (Maybe (V.Vec size Number /\ V.Vec size Number)) (Maybe AudioOnOff) (Maybe AudioParameter)) where
+instance oneShotChangePeriodicOscVec :: Lt D1 size => OneShotChange CTOR.TPeriodicOsc (V.Vec size Number /\ V.Vec size Number) (CTOR.PeriodicOsc (Maybe (V.Vec size Number /\ V.Vec size Number)) (Maybe AudioOnOff) (Maybe AudioParameter)) where
   oneShotChange _ osc = CTOR.PeriodicOsc (just osc) nothing nothing
 
 class ChangePeriodicOsc a where
@@ -1812,8 +1824,6 @@ instance changeStereoPanner ::
         , value: unit
         }
 
-
-
 instance changeSubgraph0 ::
   ( IsSymbol ptr
   , IsSymbol terminus
@@ -1863,6 +1873,7 @@ instance changeSubgraph1 ::
               }
         , value: unit
         }
+
 instance oneShotChangeTriangleOsc :: OneShotChange CTOR.TTriangleOsc AudioParameter (CTOR.TriangleOsc (Maybe AudioOnOff) (Maybe AudioParameter)) where
   oneShotChange _ freq = CTOR.TriangleOsc nothing (just freq)
 

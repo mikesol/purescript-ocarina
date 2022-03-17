@@ -93,7 +93,7 @@ instance createTAllpass ::
   ( R.Lacks ptr graphi
   , R.Cons ptr (NodeC CTOR.TAllpass {}) graphi grapho
   ) =>
-  CreateT' ptr (CTOR.Allpass argA argB) graphi grapho
+  CreateT' ptr CTOR.Allpass graphi grapho
 
 instance createTAnalyser ::
   ( R.Lacks ptr graphi
@@ -127,13 +127,13 @@ instance createTBandpass ::
   ( R.Lacks ptr graphi
   , R.Cons ptr (NodeC CTOR.TBandpass {}) graphi grapho
   ) =>
-  CreateT' ptr (CTOR.Bandpass argA argB) graphi grapho
+  CreateT' ptr CTOR.Bandpass graphi grapho
 
 instance createTConstant ::
   ( R.Lacks ptr graphi
   , R.Cons ptr (NodeC CTOR.TConstant {}) graphi grapho
   ) =>
-  CreateT' ptr (CTOR.Constant onOff argA) graphi grapho
+  CreateT' ptr CTOR.Constant graphi grapho
 
 instance createTConvolver ::
   ( R.Lacks ptr graphi
@@ -145,7 +145,7 @@ instance createTDelay ::
   ( R.Lacks ptr graphi
   , R.Cons ptr (NodeC CTOR.TDelay {}) graphi grapho
   ) =>
-  CreateT' ptr (CTOR.Delay argA) graphi grapho
+  CreateT' ptr CTOR.Delay graphi grapho
 
 instance createTDynamicsCompressor ::
   ( R.Lacks ptr graphi

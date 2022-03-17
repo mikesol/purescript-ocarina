@@ -34,8 +34,7 @@ import WAGS.Tumult (Tumultuous, safeUntumult)
 import WAGS.Util (class AddPrefixToRowList, class CoercePrefixToString, class MakePrefixIfNeeded, class ValidateOutputChannelCount, toOutputChannelCount)
 import WAGS.WebAPI (AnalyserNodeCb, BrowserAudioBuffer, BrowserFloatArray, BrowserMediaElement, BrowserMicrophone, BrowserPeriodicWave, MediaRecorderCb)
 
-type CreateStepRLSig (rl :: RL.RowList Type) (prefix :: Type) (map :: Type) (r :: Row Type) (inGraph :: Graph) (outGraph :: Graph)
-  =
+type CreateStepRLSig (rl :: RL.RowList Type) (prefix :: Type) (map :: Type) (r :: Row Type) (inGraph :: Graph) (outGraph :: Graph) =
   forall proxyPrefix proxyMap proxyRL audio engine proof res
    . AudioInterpret audio engine
   => proxyRL rl
@@ -49,6 +48,7 @@ class CreateStepRL (rl :: RL.RowList Type) (prefix :: Type) (map :: Type) (r :: 
 
 instance createStepRLNil :: CreateStepRL RL.Nil prefix map r inGraph inGraph where
   createStepRL _ _ _ r = r $> unit
+
 instance createStepRLConsB ::
   ( IsSymbol key
   , R.Cons key (Tuple (CTOR.Subgraph inputs subgraphMaker env) ignoreMe) ignore r
@@ -140,8 +140,7 @@ instance connectEdgesToNodeCons :: (Connect key dest inGraph midGraph, ConnectEd
 
     step2 = connectEdgesToNode (Proxy :: _ rest) (step1 $> (extract w))
 
-type ConnectAfterCreateSig (prefix :: Type) (map :: Type) (rl :: RL.RowList Type) (inGraph :: Graph) (outGraph :: Graph)
-  =
+type ConnectAfterCreateSig (prefix :: Type) (map :: Type) (rl :: RL.RowList Type) (inGraph :: Graph) (outGraph :: Graph) =
   forall proxyPrefix proxyMap audio engine proof res
    . AudioInterpret audio engine
   => proxyPrefix prefix
@@ -175,8 +174,7 @@ instance connectAfterCreateCons ::
 
     step3 = connectAfterCreate (Proxy :: _ prefix) (Proxy :: _ map) (step2 $> (Proxy :: _ rest))
 
-type CreateInternalSig (prefix :: Type) (map :: Type) (r :: Row Type) (inGraph :: Graph) (outGraph :: Graph)
-  =
+type CreateInternalSig (prefix :: Type) (map :: Type) (r :: Row Type) (inGraph :: Graph) (outGraph :: Graph) =
   forall proxyPrefix proxyMap audio engine proof res
    . AudioInterpret audio engine
   => proxyPrefix prefix
@@ -267,27 +265,25 @@ instance createAnalyser ::
 
 instance createAllpass ::
   ( IsSymbol ptr
-  , Paramable argA
-  , Paramable argB
   , R.Lacks ptr graphi
   , R.Cons ptr (NodeC CTOR.TAllpass {}) graphi grapho
   ) =>
-  Create' ptr (CTOR.Allpass argA argB) graphi grapho where
+  Create' ptr CTOR.Allpass graphi grapho where
   create' ptr w = o
     where
-    { context: i, value: (CTOR.Allpass argA argB) } = unsafeUnWAG w
-
-    nn = reflectSymbol ptr
-
-    argA_iv' = paramize argA
-
-    argB_iv' = paramize argB
-
+    { context: i, value: (CTOR.Allpass { freq, q }) } = unsafeUnWAG w
+    id = reflectSymbol ptr
     o =
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makeAllpass { id: nn, freq: argA_iv', q: argB_iv' } ]
+              { instructions = i.instructions <>
+                  [ makeAllpass
+                      { id
+                      , freq
+                      , q
+                      }
+                  ]
               }
         , value: unit
         }
@@ -363,53 +359,52 @@ instance createAudioWorkletNode ::
 
 instance createBandpass ::
   ( IsSymbol ptr
-  , Paramable argA
-  , Paramable argB
   , R.Lacks ptr graphi
   , R.Cons ptr (NodeC CTOR.TBandpass {}) graphi grapho
   ) =>
-  Create' ptr (CTOR.Bandpass argA argB) graphi grapho where
+  Create' ptr CTOR.Bandpass graphi grapho where
   create' ptr w = o
     where
-    { context: i, value: (CTOR.Bandpass argA argB) } = unsafeUnWAG w
-
-    nn = reflectSymbol ptr
-
-    argA_iv' = paramize argA
-
-    argB_iv' = paramize argB
-
+    { context: i, value: (CTOR.Bandpass { freq, q }) } = unsafeUnWAG w
+    id = reflectSymbol ptr
     o =
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makeBandpass { id: nn, freq: argA_iv', q: argB_iv' } ]
+              { instructions = i.instructions <>
+                  [ makeBandpass
+                      { id
+                      , freq
+                      , q
+                      }
+                  ]
               }
         , value: unit
         }
 
 instance createConstant ::
   ( IsSymbol ptr
-  , Paramable argA
   , R.Lacks ptr graphi
-  , OnOffable onOff
-  , OnOffable onOff
   , R.Cons ptr (NodeC CTOR.TConstant {}) graphi grapho
   ) =>
-  Create' ptr (CTOR.Constant onOff argA) graphi grapho where
+  Create' ptr CTOR.Constant graphi grapho where
   create' ptr w = o
     where
-    { context: i, value: (CTOR.Constant onOff argA) } = unsafeUnWAG w
+    { context: i, value: (CTOR.Constant { onOff, offset }) } = unsafeUnWAG w
 
-    nn = reflectSymbol ptr
-
-    argA_iv' = paramize argA
+    id = reflectSymbol ptr
 
     o =
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makeConstant { id: nn, onOff: (onOffIze onOff), offset: argA_iv' } ]
+              { instructions = i.instructions <>
+                  [ makeConstant
+                      { id
+                      , onOff
+                      , offset
+                      }
+                  ]
               }
         , value: unit
         }
@@ -437,24 +432,26 @@ instance createConvolver ::
 
 instance createDelay ::
   ( IsSymbol ptr
-  , Paramable argA
   , R.Lacks ptr graphi
   , R.Cons ptr (NodeC CTOR.TDelay {}) graphi grapho
   ) =>
-  Create' ptr (CTOR.Delay argA) graphi grapho where
+  Create' ptr CTOR.Delay graphi grapho where
   create' ptr w = o
     where
-    { context: i, value: (CTOR.Delay argA) } = unsafeUnWAG w
+    { context: i, value: (CTOR.Delay { delayTime }) } = unsafeUnWAG w
 
-    nn = reflectSymbol ptr
-
-    argA_iv' = paramize argA
+    id = reflectSymbol ptr
 
     o =
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makeDelay { id: nn, delayTime: argA_iv' } ]
+              { instructions = i.instructions <>
+                  [ makeDelay
+                      { id
+                      , delayTime
+                      }
+                  ]
               }
         , value: unit
         }
@@ -694,7 +691,6 @@ instance createMediaElement ::
               }
         , value: unit
         }
-
 
 instance createMicrophone ::
   ( R.Lacks "microphone" graphi

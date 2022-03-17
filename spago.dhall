@@ -31,6 +31,7 @@
   , "psci-support"
   , "record"
   , "refs"
+  , "row-options"
   , "safe-coerce"
   , "simple-json"
   , "sized-vectors"

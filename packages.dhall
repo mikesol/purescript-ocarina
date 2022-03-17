@@ -197,6 +197,14 @@ let additions =
         , repo = "https://github.com/mikesol/purescript-behaviors.git"
         , version = "v8.1.0"
         }
+      , row-options =
+        { dependencies =
+          [ "homogeneous"
+          , "heterogeneous"
+          ]
+        , repo = "https://github.com/mikesol/purescript-row-options.git"
+        , version = "v0.0.2"
+        }
       , convertable-options =
         { dependencies = [ "console", "effect", "maybe", "record" ]
         , repo =
