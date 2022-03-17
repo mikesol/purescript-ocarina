@@ -17530,7 +17530,7 @@ var PS = {};
   };
   var oTwoX = Data_Variant.inj()({
       reflectSymbol: function () {
-          return "twoX";
+          return "2x";
       }
   })(Type_Proxy["Proxy"].value)(Data_Unit.unit);
   var instructionWeight = function (v) {
@@ -18473,15 +18473,15 @@ var PS = {};
   var showOversample = {
       show: Data_Show_Generic.genericShow(genericOversample)(Data_Show_Generic.genericShowConstructor(Data_Show_Generic.genericShowArgsArgument(Data_Variant.showVariant()(Data_Variant_Internal.variantTagsCons(Data_Variant_Internal.variantTagsCons(Data_Variant_Internal.variantTagsCons(Data_Variant_Internal.variantTagsNil)({
           reflectSymbol: function () {
-              return "twoX";
-          }
-      }))({
-          reflectSymbol: function () {
               return "none";
           }
       }))({
           reflectSymbol: function () {
-              return "fourX";
+              return "4x";
+          }
+      }))({
+          reflectSymbol: function () {
+              return "2x";
           }
       }))(Data_Variant.showVariantCons(Data_Variant.showVariantCons(Data_Variant.showVariantCons(Data_Variant.showVariantNil)(Data_Unit.showUnit))(Data_Unit.showUnit))(Data_Unit.showUnit))))({
           reflectSymbol: function () {
@@ -19425,15 +19425,15 @@ var PS = {};
           return function (y) {
               return Data_Eq.eq(Data_Variant.eqVariant()(Data_Variant_Internal.variantTagsCons(Data_Variant_Internal.variantTagsCons(Data_Variant_Internal.variantTagsCons(Data_Variant_Internal.variantTagsNil)({
                   reflectSymbol: function () {
-                      return "twoX";
-                  }
-              }))({
-                  reflectSymbol: function () {
                       return "none";
                   }
               }))({
                   reflectSymbol: function () {
-                      return "fourX";
+                      return "4x";
+                  }
+              }))({
+                  reflectSymbol: function () {
+                      return "2x";
                   }
               }))(Data_Variant.eqVariantCons(Data_Variant.eqVariantCons(Data_Variant.eqVariantCons(Data_Variant.eqVariantNil)(Data_Eq.eqUnit))(Data_Eq.eqUnit))(Data_Eq.eqUnit)))(x)(y);
           };
@@ -19444,15 +19444,15 @@ var PS = {};
           return function (y) {
               return Data_Ord.compare(Data_Variant.ordVariant()(Data_Variant_Internal.variantTagsCons(Data_Variant_Internal.variantTagsCons(Data_Variant_Internal.variantTagsCons(Data_Variant_Internal.variantTagsNil)({
                   reflectSymbol: function () {
-                      return "twoX";
-                  }
-              }))({
-                  reflectSymbol: function () {
                       return "none";
                   }
               }))({
                   reflectSymbol: function () {
-                      return "fourX";
+                      return "4x";
+                  }
+              }))({
+                  reflectSymbol: function () {
+                      return "2x";
                   }
               }))(Data_Variant.eqVariantCons(Data_Variant.eqVariantCons(Data_Variant.eqVariantCons(Data_Variant.eqVariantNil)(Data_Eq.eqUnit))(Data_Eq.eqUnit))(Data_Eq.eqUnit))(Data_Variant.ordVariantCons(Data_Variant.ordVariantCons(Data_Variant.ordVariantCons(Data_Variant.ordVariantNil)(Data_Ord.ordUnit))(Data_Ord.ordUnit))(Data_Ord.ordUnit)))(x)(y);
           };
@@ -23084,8 +23084,8 @@ var PS = {};
       safeToFFI: (function () {
           var $908 = Data_Variant.match()()()({
               none: Data_Function["const"]("none"),
-              twoX: Data_Function["const"]("2x"),
-              fourX: Data_Function["const"]("4x")
+              "2x": Data_Function["const"]("2x"),
+              "4x": Data_Function["const"]("4x")
           });
           var $909 = Data_Newtype.unwrap();
           return function ($910) {
