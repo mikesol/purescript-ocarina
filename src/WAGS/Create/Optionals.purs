@@ -11,7 +11,6 @@ import Data.Typelevel.Num (class Lt, class Nat, class Pos, D1)
 import Data.Vec as V
 import Simple.JSON as JSON
 import Type.Row.Homogeneous (class Homogeneous)
-import WAGS.Change (ChangeSubgraph(..))
 import WAGS.Control.Types (Frame0, SubScene)
 import WAGS.Graph.AudioUnit (AudioWorkletNodeOptions)
 import WAGS.Graph.AudioUnit as CTOR
@@ -1114,22 +1113,23 @@ subgraph
      )
   -> r
   -> (CTOR.Subgraph inputs (AsSubgraph terminus inputs env) (V.Vec n env)) /\ r
-subgraph ev sg = Tuple (CTOR.Subgraph (AsSubgraph sg) ev)
+subgraph envs sg = Tuple
+  (CTOR.Subgraph { subgraphMaker: (AsSubgraph sg), envs })
 
 subgraphSetter
   :: forall n inputs env
    . Pos n
   => V.Vec n env
   -> (CTOR.Subgraph inputs Unit (V.Vec n env))
-subgraphSetter vec = CTOR.Subgraph unit vec
+subgraphSetter = CTOR.Subgraph <<< { subgraphMaker: unit, envs: _ }
 
 subgraphSingleSetter
   :: forall n env
    . Nat n
   => n
   -> env
-  -> ChangeSubgraph n env
-subgraphSingleSetter c ev = ChangeSubgraph (c /\ ev)
+  -> CTOR.XSubgraph n env
+subgraphSingleSetter index env = CTOR.XSubgraph { index, env }
 
 type CSubgraph (n :: Type) terminus inputs env r =
   (CTOR.Subgraph inputs (AsSubgraph terminus inputs env) (V.Vec n env)) /\ r
@@ -1198,12 +1198,12 @@ tumult
    . Pos n
   => Tumultuous n terminus inputs
   -> r
-  -> (CTOR.Tumult (Tumultuous n terminus inputs)) /\ r
-tumult tmt = Tuple (CTOR.Tumult tmt)
+  -> (CTOR.Tumult n terminus inputs) /\ r
+tumult = Tuple <<< CTOR.Tumult <<< { tumult: _ }
 
 type CTumult :: forall k1 k2. Type -> k1 -> k2 -> Type -> Type
 type CTumult (n :: Type) terminus inputs r =
-  (CTOR.Tumult (Tumultuous n terminus inputs)) /\ r
+  (CTOR.Tumult n terminus inputs) /\ r
 
 ----------
 -- | Apply distorion to audio
@@ -1212,15 +1212,15 @@ type CTumult (n :: Type) terminus inputs r =
 -- | waveShaper (Proxy :: _ "my-wave") OversampleNone { buf: playBuf "my-track" }
 -- | ```
 waveShaper
-  :: forall a b c
+  :: forall b c
    . IsOversample b
-  => a
+  => BrowserFloatArray
   -> b
   -> c
-  -> CTOR.WaveShaper a b /\ c
-waveShaper a = Tuple <<< CTOR.WaveShaper a
+  -> CTOR.WaveShaper b /\ c
+waveShaper a b c = Tuple (CTOR.WaveShaper { floatArray: a, oversample: b }) c
 
-type CWaveShaper b c = CTOR.WaveShaper BrowserFloatArray b /\ c
+type CWaveShaper b c = CTOR.WaveShaper b /\ c
 
 ---------------
 -- | A reference to a node in a graph.

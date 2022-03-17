@@ -26,13 +26,12 @@ import WAGS.Graph.AudioUnit as CTOR
 import WAGS.Graph.Graph (Graph)
 import WAGS.Graph.Node (NodeC)
 import WAGS.Graph.Oversample (class IsOversample, reflectOversample)
-import WAGS.Graph.Paramable (class Paramable)
 import WAGS.Graph.Parameter (AudioParameter)
 import WAGS.Interpret (class AudioInterpret, AsSubgraph, makeAllpass, makeAnalyser, makeAudioWorkletNode, makeBandpass, makeConstant, makeConvolver, makeDelay, makeDynamicsCompressor, makeGain, makeHighpass, makeHighshelf, makeInput, makeLoopBuf, makeLowpass, makeLowshelf, makeMediaElement, makeMicrophone, makeNotch, makePeaking, makePeriodicOsc, makePeriodicOscV, makePlayBuf, makeRecorder, makeSawtoothOsc, makeSinOsc, makeSpeaker, makeSquareOsc, makeStereoPanner, makeSubgraph, makeTriangleOsc, makeTumult, makeWaveShaper, unAsSubGraph)
 import WAGS.Rendered (AudioWorkletNodeOptions_(..), RealImg(..))
-import WAGS.Tumult (Tumultuous, safeUntumult)
+import WAGS.Tumult (safeUntumult)
 import WAGS.Util (class AddPrefixToRowList, class CoercePrefixToString, class MakePrefixIfNeeded, class ValidateOutputChannelCount, toOutputChannelCount)
-import WAGS.WebAPI (AnalyserNodeCb, BrowserFloatArray, BrowserPeriodicWave)
+import WAGS.WebAPI (AnalyserNodeCb, BrowserPeriodicWave)
 
 type CreateStepRLSig
   (rl :: RL.RowList Type)
@@ -107,9 +106,14 @@ instance createStepRLConsB ::
     step3 = create' (Proxy :: _ newKey) (step2 $> node)
 else instance createStepRLConsC ::
   ( IsSymbol key
-  , R.Cons key (Tuple (CTOR.Tumult tumult) ignoreMe) ignore r
+  , R.Cons key
+      (Tuple (CTOR.Tumult tumultN tumultTerminus tumultInputs) ignoreMe)
+      ignore
+      r
   , MakePrefixIfNeeded key prefix prefix'
-  , ConstructEdges prefix' map (Tuple (CTOR.Tumult tumult) ignoreMe) newPrefix
+  , ConstructEdges prefix' map
+      (Tuple (CTOR.Tumult tumultN tumultTerminus tumultInputs) ignoreMe)
+      newPrefix
       newMap
       (node /\ { | edges })
   , CoercePrefixToString prefix realPrefix
@@ -121,7 +125,10 @@ else instance createStepRLConsC ::
   , CreateStepRL rest prefix map r graph1 graph2
   , Create' newKey node graph2 graph3
   ) =>
-  CreateStepRL (RL.Cons key (Tuple (CTOR.Tumult tumult) ignoreMe) rest)
+  CreateStepRL ( RL.Cons key
+        (Tuple (CTOR.Tumult tumultN tumultTerminus tumultInputs) ignoreMe)
+        rest
+    )
     prefix
     map
     r
@@ -1074,17 +1081,15 @@ instance createSquareOsc ::
 
 instance createStereoPanner ::
   ( IsSymbol ptr
-  , Paramable argA
   , R.Lacks ptr graphi
   , R.Cons ptr (NodeC CTOR.TStereoPanner {}) graphi grapho
   ) =>
   Create' ptr (CTOR.StereoPanner) graphi grapho where
   create' ptr w = o
     where
-    { context: i, value: (CTOR.StereoPanner {pan}) } = unsafeUnWAG w
+    { context: i, value: (CTOR.StereoPanner { pan }) } = unsafeUnWAG w
 
     id = reflectSymbol ptr
-
 
     o =
       unsafeWAG
@@ -1109,7 +1114,8 @@ instance createSubgraph ::
     grapho where
   create' ptr w = o
     where
-    { context: i, value: (CTOR.Subgraph asSub env) } = unsafeUnWAG w
+    { context: i, value: (CTOR.Subgraph { subgraphMaker, envs }) } = unsafeUnWAG
+      w
     id = reflectSymbol ptr
     o =
       unsafeWAG
@@ -1119,8 +1125,8 @@ instance createSubgraph ::
                   [ makeSubgraph
                       { id
                       , terminus: Proxy :: _ terminus
-                      , envs: env
-                      , scenes: unAsSubGraph asSub
+                      , envs
+                      , scenes: unAsSubGraph subgraphMaker
                       }
                   ]
               }
@@ -1134,10 +1140,10 @@ instance createTumult ::
   , R.Lacks ptr graphi
   , R.Cons ptr (NodeC (CTOR.TTumult n terminus inputs) {}) graphi grapho
   ) =>
-  Create' ptr (CTOR.Tumult (Tumultuous n terminus inputs)) graphi grapho where
+  Create' ptr (CTOR.Tumult n terminus inputs) graphi grapho where
   create' ptr w = o
     where
-    { context: i, value: (CTOR.Tumult tummy) } = unsafeUnWAG w
+    { context: i, value: (CTOR.Tumult { tumult }) } = unsafeUnWAG w
     id = reflectSymbol ptr
     pt = reflectSymbol (Proxy :: _ terminus)
     o =
@@ -1146,7 +1152,7 @@ instance createTumult ::
             i
               { instructions = i.instructions <>
                   [ makeTumult
-                      { id, terminus: pt, instructions: safeUntumult tummy }
+                      { id, terminus: pt, instructions: safeUntumult tumult }
                   ]
               }
         , value: unit
@@ -1182,10 +1188,12 @@ instance createWaveShaper ::
   , R.Lacks ptr graphi
   , R.Cons ptr (NodeC (CTOR.TWaveShaper oversample) {}) graphi grapho
   ) =>
-  Create' ptr (CTOR.WaveShaper BrowserFloatArray oversample) graphi grapho where
+  Create' ptr (CTOR.WaveShaper oversample) graphi grapho where
   create' ptr w = o
     where
-    { context: i, value: (CTOR.WaveShaper floatArray oversample') } =
+    { context: i
+    , value: (CTOR.WaveShaper { floatArray, oversample: oversample' })
+    } =
       unsafeUnWAG w
 
     id = reflectSymbol ptr

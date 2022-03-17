@@ -1142,13 +1142,13 @@ instance getSubgraphsRLTumult ::
   getSubgraphsRL _ t = Object.insert id
     ( AE
         ( let
-            (CTOR.Subgraph asSub env) = get (Proxy :: _ id) t
+            (CTOR.Subgraph { subgraphMaker, envs }) = get (Proxy :: _ id) t
           in
             makeSubgraph
               { id
               , terminus: Proxy :: _ terminus
-              , envs: env
-              , scenes: unAsSubGraph asSub
+              , envs
+              , scenes: unAsSubGraph subgraphMaker
               }
         )
     )
@@ -1246,7 +1246,8 @@ class
   , GetTumults g1 tumults
   ) <=
   Patch subgraphs tumults g0 g1
-  | g1 -> subgraphs, g1 -> tumults where
+  | g1 -> subgraphs
+  , g1 -> tumults where
   -- | Take any frame from `g0` to `g1`. The compiler automatically determines the necessary operations to perform the transformation.
   patch
     :: forall audio engine proof res a

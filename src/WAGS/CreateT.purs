@@ -20,7 +20,7 @@ import WAGS.Graph.Oversample (class IsOversampleT)
 import WAGS.Graph.Parameter (AudioParameter)
 import WAGS.Interpret (AsSubgraph)
 import WAGS.Util (class AddPrefixToRowList, class CoercePrefixToString, class MakePrefixIfNeeded)
-import WAGS.WebAPI (AnalyserNodeCb, BrowserFloatArray, BrowserPeriodicWave)
+import WAGS.WebAPI (AnalyserNodeCb, BrowserPeriodicWave)
 
 class
   CreateStepT
@@ -360,4 +360,4 @@ instance createTWaveShaper ::
   , R.Lacks ptr graphi
   , R.Cons ptr (NodeC (CTOR.TWaveShaper oversample) {}) graphi grapho
   ) =>
-  CreateT' ptr (CTOR.WaveShaper BrowserFloatArray oversample) graphi grapho
+  CreateT' ptr (CTOR.WaveShaper oversample) graphi grapho

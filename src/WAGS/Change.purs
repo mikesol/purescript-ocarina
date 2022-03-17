@@ -26,11 +26,11 @@ import WAGS.Graph.AudioUnit (AudioWorkletNodeOptions(..))
 import WAGS.Graph.AudioUnit as CTOR
 import WAGS.Graph.Graph (Graph)
 import WAGS.Graph.Node (NodeC)
-import WAGS.Graph.Oversample (class IsOversample, reflectOversample)
+import WAGS.Graph.Oversample (class IsOversample)
 import WAGS.Graph.Paramable (onOffIze, paramize)
 import WAGS.Graph.Parameter (class MM, AudioEnvelope, AudioOnOff, AudioParameter, AudioParameterCancellation, AudioSingleNumber, OnOff)
 import WAGS.Interpret (class AudioInterpret, setAnalyserNodeCb, setAttack, setAudioWorkletParameter, setBuffer, setBufferOffset, setConvolverBuffer, setDelay, setFrequency, setGain, setInput, setKnee, setLoopEnd, setLoopStart, setMediaRecorderCb, setOffset, setOnOff, setPan, setPeriodicOsc, setPeriodicOscV, setPlaybackRate, setQ, setRatio, setRelease, setSingleSubgraph, setSubgraph, setThreshold, setTumult, setWaveShaperCurve)
-import WAGS.Rendered (Oversample, RealImg(..))
+import WAGS.Rendered (RealImg(..))
 import WAGS.Tumult (Tumultuous, safeUntumult)
 import WAGS.Util (class MakePrefixIfNeeded, class CoercePrefixToString)
 import WAGS.WebAPI (AnalyserNodeCb, BrowserAudioBuffer, BrowserFloatArray, BrowserMicrophone, BrowserPeriodicWave, MediaRecorderCb)
@@ -2023,15 +2023,13 @@ instance changeXStereoPanner ::
 instance changeSubgraph0 ::
   ( IsSymbol ptr
   , IsSymbol terminus
-  , Pos n
   , R.Cons ptr (NodeC (CTOR.TSubgraph n terminus inputs env) edges) ignore graph
+  , Pos n
   ) =>
-  Change' ptr
-    (CTOR.Subgraph inputs doesntMatterWillNotBeUsed (V.Vec n env))
-    graph where
+  Change' ptr (CTOR.Subgraph inputs notImportant (V.Vec n env)) graph where
   change' ptr w = o
     where
-    { context: i, value: (CTOR.Subgraph _ env) } = unsafeUnWAG w
+    { context: i, value: (CTOR.Subgraph { envs }) } = unsafeUnWAG w
 
     id = reflectSymbol ptr
 
@@ -2040,12 +2038,10 @@ instance changeSubgraph0 ::
         { context:
             i
               { instructions = i.instructions <>
-                  [ setSubgraph { id, envs: env } ]
+                  [ setSubgraph { id, envs } ]
               }
         , value: unit
         }
-
-newtype ChangeSubgraph i env = ChangeSubgraph (i /\ env)
 
 instance changeSubgraph1 ::
   ( IsSymbol ptr
@@ -2055,10 +2051,10 @@ instance changeSubgraph1 ::
   , Nat i
   , Lt i n
   ) =>
-  Change' ptr (ChangeSubgraph i env) graph where
+  Change' ptr (CTOR.XSubgraph i env) graph where
   change' ptr w = o
     where
-    { context: i, value: (ChangeSubgraph (ii /\ env)) } = unsafeUnWAG w
+    { context: i, value: (CTOR.XSubgraph { index, env }) } = unsafeUnWAG w
 
     id = reflectSymbol ptr
 
@@ -2067,7 +2063,7 @@ instance changeSubgraph1 ::
         { context:
             i
               { instructions = i.instructions <>
-                  [ setSingleSubgraph { id, index: ii, env: env } ]
+                  [ setSingleSubgraph { id, index, env } ]
               }
         , value: unit
         }
@@ -2121,8 +2117,8 @@ instance oneShotChangeTumult ::
   ) =>
   OneShotChange (CTOR.TTumult nSubgraphs terminus inputs)
     (Tumultuous nSubgraphs terminus inputs)
-    (CTOR.Tumult (Tumultuous nSubgraphs terminus inputs)) where
-  oneShotChange _ tummy = CTOR.Tumult tummy
+    (CTOR.Tumult nSubgraphs terminus inputs) where
+  oneShotChange = const (CTOR.Tumult <<< { tumult: _ })
 
 instance changeTumult ::
   ( IsSymbol ptr
@@ -2130,10 +2126,10 @@ instance changeTumult ::
   , Pos n
   , R.Cons ptr (NodeC (CTOR.TTumult n terminus inputs) edges) ignore graph
   ) =>
-  Change' ptr (CTOR.Tumult (Tumultuous n terminus inputs)) graph where
+  Change' ptr (CTOR.Tumult n terminus inputs) graph where
   change' ptr w = o
     where
-    { context: i, value: (CTOR.Tumult tummy) } = unsafeUnWAG w
+    { context: i, value: (CTOR.Tumult { tumult }) } = unsafeUnWAG w
     id = reflectSymbol ptr
     tms = reflectSymbol (Proxy :: _ terminus)
     o =
@@ -2142,7 +2138,7 @@ instance changeTumult ::
             i
               { instructions = i.instructions <>
                   [ setTumult
-                      { id, terminus: tms, instructions: (safeUntumult tummy) }
+                      { id, terminus: tms, instructions: (safeUntumult tumult) }
                   ]
               }
         , value: unit
@@ -2154,18 +2150,30 @@ instance oneShotChangeWaveshaper ::
   ) =>
   OneShotChange (CTOR.TWaveShaper oversample)
     BrowserFloatArray
-    (CTOR.WaveShaper BrowserFloatArray Oversample) where
-  oneShotChange _ bfa = CTOR.WaveShaper bfa
-    (reflectOversample (mempty :: oversample))
+    (CTOR.XWaveShaper) where
+  oneShotChange _ floatArray = CTOR.XWaveShaper { floatArray }
 
 instance changeWaveShaper ::
   ( IsSymbol ptr
   , R.Cons ptr (NodeC (CTOR.TWaveShaper a) edges) ignore graph
   ) =>
-  Change' ptr (CTOR.WaveShaper BrowserFloatArray b) graph where
+  Change' ptr (CTOR.WaveShaper oversample) graph where
+  change' ptr w = change' ptr
+    ( map
+        ( over CTOR.WaveShaper (\{ floatArray } -> { floatArray })
+            :: _ -> CTOR.XWaveShaper
+        )
+        w
+    )
+
+instance changeXWaveShaper ::
+  ( IsSymbol ptr
+  , R.Cons ptr (NodeC (CTOR.TWaveShaper a) edges) ignore graph
+  ) =>
+  Change' ptr (CTOR.XWaveShaper) graph where
   change' ptr w = o
     where
-    { context: i, value: (CTOR.WaveShaper fa _) } = unsafeUnWAG w
+    { context: i, value: (CTOR.XWaveShaper { floatArray }) } = unsafeUnWAG w
 
     id = reflectSymbol ptr
 
@@ -2174,7 +2182,7 @@ instance changeWaveShaper ::
         { context:
             i
               { instructions = i.instructions <>
-                  [ setWaveShaperCurve { id, curve: fa } ]
+                  [ setWaveShaperCurve { id, curve: floatArray } ]
               }
         , value: unit
         }

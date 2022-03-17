@@ -9,7 +9,8 @@ import Prim.Symbol as Sym
 import Type.Proxy (Proxy(..))
 import WAGS.Graph.Parameter (AudioOnOff, AudioParameter)
 import WAGS.Graph.Worklet (AudioWorkletNodeResponse)
-import WAGS.WebAPI (BrowserAudioBuffer, BrowserMediaElement, BrowserMicrophone, MediaRecorderCb)
+import WAGS.Tumult (Tumultuous)
+import WAGS.WebAPI (BrowserAudioBuffer, BrowserFloatArray, BrowserMediaElement, BrowserMicrophone, MediaRecorderCb)
 
 class TypeToSym (a :: Type) (b :: Symbol) | a -> b
 
@@ -438,12 +439,25 @@ instance typeToSymXStereoPanner :: TypeToSym XStereoPanner "StereoPanner"
 -- | Term-level constructor for a subgraph
 -- | - `inputs` - the inputs to the subgraph
 -- | - `subgraphMaker` - the scene that makes the subgraph
--- | - `enc` - the scene that makes the subgraph
-data Subgraph (inputs :: Row Type) subgraphMaker env = Subgraph subgraphMaker
-  env
+-- | - `env` - the envs
+newtype Subgraph (inputs :: Row Type) subgraphMaker envs = Subgraph
+  { subgraphMaker :: subgraphMaker
+  , envs :: envs
+  }
+
+derive instance newtypeSubgraph :: Newtype (Subgraph inputs subgraphMaker env) _
+
+newtype XSubgraph index env = XSubgraph
+  { index :: index, env :: env }
+
+derive instance newtypeXSubgraph ::
+  Newtype (XSubgraph i env) _
 
 instance typeToSymSubgraph ::
   TypeToSym (Subgraph inputs subgraphMaker env) "Subgraph"
+
+instance typeToSymXSubgraph ::
+  TypeToSym (XSubgraph index env) "Subgraph"
 
 -- | Term-level constructor for a triangle oscillator.
 -- | - `onOff` - whether the generator is on or off.
@@ -462,18 +476,29 @@ instance typeToSymXTriangleOsc :: TypeToSym XTriangleOsc "TriangleOsc"
 
 -- | Term-level constructor for a tumultuous subgraph
 -- | - `tumult` - the tumult
-data Tumult tumult = Tumult tumult
+newtype Tumult :: forall k1 k2 k3. k1 -> k2 -> k3 -> Type
+newtype Tumult n terminus inputs = Tumult
+  { tumult :: Tumultuous n terminus inputs }
 
-instance typeToSymTumult :: TypeToSym (Tumult tumult) "Tumult"
+instance typeToSymTumult :: TypeToSym (Tumult n terminus inputs) "Tumult"
 
 -- | Term-level constructor for a WaveShaper, aka distortion.
 -- | - `floatArray` - the shape of the distortion.
 -- | - `oversample` - how much to oversample - none, 2x or 4x. Once set, this cannot change without destroying and remaking the audio unit.
-data WaveShaper (floatArray :: Type) oversample = WaveShaper floatArray
-  oversample
+type WaveShaper' oversample =
+  (floatArray :: BrowserFloatArray, oversample :: oversample)
 
-instance typeToSymWaveShaper2x ::
-  TypeToSym (WaveShaper sym oversample) "WaveShaper"
+newtype WaveShaper oversample = WaveShaper
+  { | WaveShaper' oversample }
+
+derive instance newtypeWaveShaper :: Newtype (WaveShaper oversample) _
+
+newtype XWaveShaper = XWaveShaper { floatArray :: BrowserFloatArray }
+
+derive instance newtypeXWaveShaper :: Newtype (XWaveShaper) _
+
+instance typeToSymWaveShaper ::
+  TypeToSym (WaveShaper oversample) "WaveShaper"
 
 -- | Type-level oversample none for a wave shaper. This is at the type-level and not the term-level via an ADT because we need make sure to construct an entirely new wave shaper if the value changes.
 data OversampleNone = OversampleNone
@@ -1041,7 +1066,7 @@ instance semigroupTTumult :: Semigroup (TTumult arity terminus inputs) where
 instance monoidTTumult :: Monoid (TTumult arity terminus inputs) where
   mempty = TTumult
 
-instance reifyTTumult :: ReifyAU (Tumult tumult) (TTumult w x y) where
+instance reifyTTumult :: ReifyAU (Tumult n terminus inputs) (TTumult w x y) where
   reifyAU = const mempty
 
 -- | Type-level constructor for a wave shaper.
@@ -1064,5 +1089,10 @@ instance monoidTWaveShaper :: Monoid a => Monoid (TWaveShaper a) where
 
 instance reifyTWaveShaper ::
   Monoid b =>
-  ReifyAU (WaveShaper a b) (TWaveShaper b) where
+  ReifyAU (WaveShaper b) (TWaveShaper b) where
+  reifyAU = const mempty
+
+instance reifyTXWaveShaper ::
+  Monoid b =>
+  ReifyAU (XWaveShaper) (TWaveShaper b) where
   reifyAU = const mempty
