@@ -14720,75 +14720,24 @@ var PS = {};
       };
       return SinOsc;
   })();
-  var SawtoothOsc = (function () {
-      function SawtoothOsc(value0, value1) {
-          this.value0 = value0;
-          this.value1 = value1;
-      };
-      SawtoothOsc.create = function (value0) {
-          return function (value1) {
-              return new SawtoothOsc(value0, value1);
-          };
-      };
-      return SawtoothOsc;
-  })();
-  var Recorder = (function () {
-      function Recorder(value0) {
-          this.value0 = value0;
-      };
-      Recorder.create = function (value0) {
-          return new Recorder(value0);
-      };
-      return Recorder;
-  })();
-  var PlayBuf = (function () {
-      function PlayBuf(value0, value1, value2, value3) {
-          this.value0 = value0;
-          this.value1 = value1;
-          this.value2 = value2;
-          this.value3 = value3;
-      };
-      PlayBuf.create = function (value0) {
-          return function (value1) {
-              return function (value2) {
-                  return function (value3) {
-                      return new PlayBuf(value0, value1, value2, value3);
-                  };
-              };
-          };
-      };
-      return PlayBuf;
-  })();
-  var PeriodicOsc = (function () {
-      function PeriodicOsc(value0, value1, value2) {
-          this.value0 = value0;
-          this.value1 = value1;
-          this.value2 = value2;
-      };
-      PeriodicOsc.create = function (value0) {
-          return function (value1) {
-              return function (value2) {
-                  return new PeriodicOsc(value0, value1, value2);
-              };
-          };
-      };
-      return PeriodicOsc;
-  })();
-  var Peaking = (function () {
-      function Peaking(value0, value1, value2) {
-          this.value0 = value0;
-          this.value1 = value1;
-          this.value2 = value2;
-      };
-      Peaking.create = function (value0) {
-          return function (value1) {
-              return function (value2) {
-                  return new Peaking(value0, value1, value2);
-              };
-          };
-      };
-      return Peaking;
-  })();
+  var XSawtoothOsc = function (x) {
+      return x;
+  };
+  var Recorder = function (x) {
+      return x;
+  };
+  var XPlayBuf = function (x) {
+      return x;
+  };
+  var PlayBuf = function (x) {
+      return x;
+  };
+  var PeriodicOsc = function (x) {
+      return x;
+  };
+  var XPeaking = function (x) {
+      return x;
+  };
   var OversampleTwoX = (function () {
       function OversampleTwoX() {
 
@@ -14796,51 +14745,18 @@ var PS = {};
       OversampleTwoX.value = new OversampleTwoX();
       return OversampleTwoX;
   })();
-  var Notch = (function () {
-      function Notch(value0, value1) {
-          this.value0 = value0;
-          this.value1 = value1;
-      };
-      Notch.create = function (value0) {
-          return function (value1) {
-              return new Notch(value0, value1);
-          };
-      };
-      return Notch;
-  })();
-  var Microphone = (function () {
-      function Microphone(value0) {
-          this.value0 = value0;
-      };
-      Microphone.create = function (value0) {
-          return new Microphone(value0);
-      };
-      return Microphone;
-  })();
-  var Lowshelf = (function () {
-      function Lowshelf(value0, value1) {
-          this.value0 = value0;
-          this.value1 = value1;
-      };
-      Lowshelf.create = function (value0) {
-          return function (value1) {
-              return new Lowshelf(value0, value1);
-          };
-      };
-      return Lowshelf;
-  })();
-  var Lowpass = (function () {
-      function Lowpass(value0, value1) {
-          this.value0 = value0;
-          this.value1 = value1;
-      };
-      Lowpass.create = function (value0) {
-          return function (value1) {
-              return new Lowpass(value0, value1);
-          };
-      };
-      return Lowpass;
-  })();
+  var XNotch = function (x) {
+      return x;
+  };
+  var Microphone = function (x) {
+      return x;
+  };
+  var XLowshelf = function (x) {
+      return x;
+  };
+  var XLowpass = function (x) {
+      return x;
+  };
   var LoopBuf = function (x) {
       return x;
   };
@@ -14866,15 +14782,9 @@ var PS = {};
   var XDelay = function (x) {
       return x;
   };
-  var Convolver = (function () {
-      function Convolver(value0) {
-          this.value0 = value0;
-      };
-      Convolver.create = function (value0) {
-          return new Convolver(value0);
-      };
-      return Convolver;
-  })();
+  var XConvolver = function (x) {
+      return x;
+  };
   var XConstant = function (x) {
       return x;
   };
@@ -15135,7 +15045,7 @@ var PS = {};
   exports["AudioWorkletNode"] = AudioWorkletNode;
   exports["XBandpass"] = XBandpass;
   exports["XConstant"] = XConstant;
-  exports["Convolver"] = Convolver;
+  exports["XConvolver"] = XConvolver;
   exports["XDelay"] = XDelay;
   exports["Gain"] = Gain;
   exports["XGain"] = XGain;
@@ -15143,15 +15053,16 @@ var PS = {};
   exports["XHighshelf"] = XHighshelf;
   exports["Input"] = Input;
   exports["LoopBuf"] = LoopBuf;
-  exports["Lowpass"] = Lowpass;
-  exports["Lowshelf"] = Lowshelf;
+  exports["XLowpass"] = XLowpass;
+  exports["XLowshelf"] = XLowshelf;
   exports["Microphone"] = Microphone;
-  exports["Notch"] = Notch;
-  exports["Peaking"] = Peaking;
+  exports["XNotch"] = XNotch;
+  exports["XPeaking"] = XPeaking;
   exports["PeriodicOsc"] = PeriodicOsc;
   exports["PlayBuf"] = PlayBuf;
+  exports["XPlayBuf"] = XPlayBuf;
   exports["Recorder"] = Recorder;
-  exports["SawtoothOsc"] = SawtoothOsc;
+  exports["XSawtoothOsc"] = XSawtoothOsc;
   exports["SinOsc"] = SinOsc;
   exports["Speaker"] = Speaker;
   exports["SquareOsc"] = SquareOsc;
@@ -24928,10 +24839,7 @@ var PS = {};
   var WAGS_Graph_Paramable = $PS["WAGS.Graph.Paramable"];
   var WAGS_Graph_Parameter = $PS["WAGS.Graph.Parameter"];
   var WAGS_Interpret = $PS["WAGS.Interpret"];
-  var WAGS_Tumult = $PS["WAGS.Tumult"];    
-  var setPosc = function (dict) {
-      return dict.setPosc;
-  };
+  var WAGS_Tumult = $PS["WAGS.Tumult"];
   var oneShotChangeStereoPanner = {
       oneShotChange: function (v) {
           return function (pan) {
@@ -24962,75 +24870,105 @@ var PS = {};
           return WAGS_Graph_AudioUnit.monoidTSinOsc;
       }
   };
-  var oneShotChangeSawtoothOsc = {
-      oneShotChange: function (v) {
-          return function (freq) {
-              return new WAGS_Graph_AudioUnit.SawtoothOsc(Data_Variant_Maybe.nothing, Data_Variant_Maybe.just(freq));
+  var oneShotChangeSawtoothOscOffset = {
+      oneShotChange: Data_Function["const"]((function () {
+          var $825 = Data_Row_Options.options();
+          return function ($826) {
+              return WAGS_Graph_AudioUnit.XSawtoothOsc($825((function (v) {
+                  return {
+                      freq: v
+                  };
+              })($826)));
           };
-      },
+      })()),
       Monoid0: function () {
           return WAGS_Graph_AudioUnit.monoidTSawtoothOsc;
       }
   };
-  var oneShotChangePlayBufProxy = {
-      oneShotChange: function (v) {
-          return function (buffer) {
-              return new WAGS_Graph_AudioUnit.PlayBuf(Data_Variant_Maybe.just(buffer), Data_Variant_Maybe.nothing, Data_Variant_Maybe.nothing, Data_Variant_Maybe.nothing);
+  var oneShotChangePlayBufBuffer = {
+      oneShotChange: Data_Function["const"]((function () {
+          var $831 = Data_Row_Options.options();
+          return function ($832) {
+              return WAGS_Graph_AudioUnit.XPlayBuf($831((function (v) {
+                  return {
+                      buffer: v
+                  };
+              })($832)));
           };
-      },
+      })()),
       Monoid0: function () {
           return WAGS_Graph_AudioUnit.monoidTPlayBuf;
       }
   };
   var oneShotChangePeaking = {
-      oneShotChange: function (v) {
-          return function (freq) {
-              return new WAGS_Graph_AudioUnit.Peaking(Data_Variant_Maybe.just(freq), Data_Variant_Maybe.nothing, Data_Variant_Maybe.nothing);
+      oneShotChange: Data_Function["const"]((function () {
+          var $843 = Data_Row_Options.options();
+          return function ($844) {
+              return WAGS_Graph_AudioUnit.XPeaking($843((function (v) {
+                  return {
+                      freq: v
+                  };
+              })($844)));
           };
-      },
+      })()),
       Monoid0: function () {
           return WAGS_Graph_AudioUnit.monoidTPeaking;
       }
   };
   var oneShotChangeNotch = {
-      oneShotChange: function (v) {
-          return function (freq) {
-              return new WAGS_Graph_AudioUnit.Notch(Data_Variant_Maybe.just(freq), Data_Variant_Maybe.nothing);
+      oneShotChange: Data_Function["const"]((function () {
+          var $845 = Data_Row_Options.options();
+          return function ($846) {
+              return WAGS_Graph_AudioUnit.XNotch($845((function (v) {
+                  return {
+                      freq: v
+                  };
+              })($846)));
           };
-      },
+      })()),
       Monoid0: function () {
           return WAGS_Graph_AudioUnit.monoidTNotch;
       }
   };
   var oneShotChangeLowshelf = {
-      oneShotChange: function (v) {
-          return function (freq) {
-              return new WAGS_Graph_AudioUnit.Lowshelf(Data_Variant_Maybe.just(freq), Data_Variant_Maybe.nothing);
+      oneShotChange: Data_Function["const"]((function () {
+          var $847 = Data_Row_Options.options();
+          return function ($848) {
+              return WAGS_Graph_AudioUnit.XLowshelf($847((function (v) {
+                  return {
+                      freq: v
+                  };
+              })($848)));
           };
-      },
+      })()),
       Monoid0: function () {
           return WAGS_Graph_AudioUnit.monoidTLowshelf;
       }
   };
   var oneShotChangeLowpass = {
-      oneShotChange: function (v) {
-          return function (freq) {
-              return new WAGS_Graph_AudioUnit.Lowpass(Data_Variant_Maybe.just(freq), Data_Variant_Maybe.nothing);
+      oneShotChange: Data_Function["const"]((function () {
+          var $849 = Data_Row_Options.options();
+          return function ($850) {
+              return WAGS_Graph_AudioUnit.XLowpass($849((function (v) {
+                  return {
+                      freq: v
+                  };
+              })($850)));
           };
-      },
+      })()),
       Monoid0: function () {
           return WAGS_Graph_AudioUnit.monoidTLowpass;
       }
   };
   var oneShotChangeHighshelf = {
       oneShotChange: Data_Function["const"]((function () {
-          var $827 = Data_Row_Options.options();
-          return function ($828) {
-              return WAGS_Graph_AudioUnit.XHighshelf($827((function (v) {
+          var $857 = Data_Row_Options.options();
+          return function ($858) {
+              return WAGS_Graph_AudioUnit.XHighshelf($857((function (v) {
                   return {
                       freq: v
                   };
-              })($828)));
+              })($858)));
           };
       })()),
       Monoid0: function () {
@@ -25039,13 +24977,13 @@ var PS = {};
   };
   var oneShotChangeHighpass = {
       oneShotChange: Data_Function["const"]((function () {
-          var $829 = Data_Row_Options.options();
-          return function ($830) {
-              return WAGS_Graph_AudioUnit.XHighpass($829((function (v) {
+          var $859 = Data_Row_Options.options();
+          return function ($860) {
+              return WAGS_Graph_AudioUnit.XHighpass($859((function (v) {
                   return {
                       freq: v
                   };
-              })($830)));
+              })($860)));
           };
       })()),
       Monoid0: function () {
@@ -25054,13 +24992,13 @@ var PS = {};
   };
   var oneShotChangeGain = {
       oneShotChange: Data_Function["const"]((function () {
-          var $831 = Data_Row_Options.options();
-          return function ($832) {
-              return WAGS_Graph_AudioUnit.XGain($831((function (v) {
+          var $861 = Data_Row_Options.options();
+          return function ($862) {
+              return WAGS_Graph_AudioUnit.XGain($861((function (v) {
                   return {
                       gain: v
                   };
-              })($832)));
+              })($862)));
           };
       })()),
       Monoid0: function () {
@@ -25069,13 +25007,13 @@ var PS = {};
   };
   var oneShotChangeDelay = {
       oneShotChange: Data_Function["const"]((function () {
-          var $833 = Data_Row_Options.options();
-          return function ($834) {
-              return WAGS_Graph_AudioUnit.XDelay($833((function (v) {
+          var $863 = Data_Row_Options.options();
+          return function ($864) {
+              return WAGS_Graph_AudioUnit.XDelay($863((function (v) {
                   return {
                       delayTime: v
                   };
-              })($834)));
+              })($864)));
           };
       })()),
       Monoid0: function () {
@@ -25083,24 +25021,29 @@ var PS = {};
       }
   };
   var oneShotChangeConvolver = {
-      oneShotChange: function (v) {
-          return function (bab) {
-              return new WAGS_Graph_AudioUnit.Convolver(bab);
+      oneShotChange: Data_Function["const"]((function () {
+          var $865 = Data_Row_Options.options();
+          return function ($866) {
+              return WAGS_Graph_AudioUnit.XConvolver($865((function (v) {
+                  return {
+                      buffer: v
+                  };
+              })($866)));
           };
-      },
+      })()),
       Monoid0: function () {
           return WAGS_Graph_AudioUnit.monoidTConvolver;
       }
   };
   var oneShotChangeConstantOffset = {
       oneShotChange: Data_Function["const"]((function () {
-          var $837 = Data_Row_Options.options();
-          return function ($838) {
-              return WAGS_Graph_AudioUnit.XConstant($837((function (v) {
+          var $869 = Data_Row_Options.options();
+          return function ($870) {
+              return WAGS_Graph_AudioUnit.XConstant($869((function (v) {
                   return {
                       offset: v
                   };
-              })($838)));
+              })($870)));
           };
       })()),
       Monoid0: function () {
@@ -25109,13 +25052,13 @@ var PS = {};
   };
   var oneShotChangeBandpass = {
       oneShotChange: Data_Function["const"]((function () {
-          var $839 = Data_Row_Options.options();
-          return function ($840) {
-              return WAGS_Graph_AudioUnit.XBandpass($839((function (v) {
+          var $871 = Data_Row_Options.options();
+          return function ($872) {
+              return WAGS_Graph_AudioUnit.XBandpass($871((function (v) {
                   return {
                       freq: v
                   };
-              })($840)));
+              })($872)));
           };
       })()),
       Monoid0: function () {
@@ -25124,13 +25067,13 @@ var PS = {};
   };
   var oneShotChangeAllpass = {
       oneShotChange: Data_Function["const"]((function () {
-          var $841 = Data_Row_Options.options();
-          return function ($842) {
-              return WAGS_Graph_AudioUnit.XAllpass($841((function (v) {
+          var $873 = Data_Row_Options.options();
+          return function ($874) {
+              return WAGS_Graph_AudioUnit.XAllpass($873((function (v) {
                   return {
                       freq: v
                   };
-              })($842)));
+              })($874)));
           };
       })()),
       Monoid0: function () {
@@ -25181,86 +25124,7 @@ var PS = {};
           };
       };
   };                  
-  var changeXLoopBuf = function (dictIsSymbol) {
-      return function (dictCons) {
-          return {
-              "change'": function (dictAudioInterpret) {
-                  return function (ptr) {
-                      return function (w) {
-                          var v = WAGS_Control_Types.unsafeUnWAG(w);
-                          var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
-                          var changes = Foreign_Object.values(Data_Homogeneous_Row_Options.objFromHomogeneous()(Data_Homogeneous_Row_Options.homogeneous()(Data_Row_Options.megamap()()(v.value)({
-                              buffer: (function () {
-                                  var $843 = WAGS_Interpret.setBuffer(dictAudioInterpret);
-                                  return function ($844) {
-                                      return $843((function (v1) {
-                                          return {
-                                              id: id,
-                                              buffer: v1
-                                          };
-                                      })($844));
-                                  };
-                              })(),
-                              onOff: (function () {
-                                  var $845 = WAGS_Interpret.setOnOff(dictAudioInterpret);
-                                  return function ($846) {
-                                      return $845((function (v1) {
-                                          return {
-                                              id: id,
-                                              onOff: v1
-                                          };
-                                      })($846));
-                                  };
-                              })(),
-                              playbackRate: (function () {
-                                  var $847 = WAGS_Interpret.setPlaybackRate(dictAudioInterpret);
-                                  return function ($848) {
-                                      return $847((function (v1) {
-                                          return {
-                                              id: id,
-                                              playbackRate: v1
-                                          };
-                                      })($848));
-                                  };
-                              })(),
-                              loopStart: (function () {
-                                  var $849 = WAGS_Interpret.setLoopStart(dictAudioInterpret);
-                                  return function ($850) {
-                                      return $849((function (v1) {
-                                          return {
-                                              id: id,
-                                              loopStart: v1
-                                          };
-                                      })($850));
-                                  };
-                              })(),
-                              loopEnd: (function () {
-                                  var $851 = WAGS_Interpret.setLoopEnd(dictAudioInterpret);
-                                  return function ($852) {
-                                      return $851((function (v1) {
-                                          return {
-                                              id: id,
-                                              loopEnd: v1
-                                          };
-                                      })($852));
-                                  };
-                              })()
-                          }))));
-                          var o = WAGS_Control_Types.unsafeWAG({
-                              context: {
-                                  res: v.context.res,
-                                  instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)(changes)
-                              },
-                              value: Data_Unit.unit
-                          });
-                          return o;
-                      };
-                  };
-              }
-          };
-      };
-  };
-  var changeXHighshelf = function (dictIsSymbol) {
+  var changeXSawtoothOsc = function (dictIsSymbol) {
       return function (dictCons) {
           return {
               "change'": function (dictAudioInterpret) {
@@ -25270,174 +25134,12 @@ var PS = {};
                           var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
                           var changes = Foreign_Object.values(Data_Homogeneous_Row_Options.objFromHomogeneous()(Data_Homogeneous_Row_Options.homogeneous()(Data_Row_Options.megamap()()(v.value)({
                               freq: (function () {
-                                  var $853 = WAGS_Interpret.setFrequency(dictAudioInterpret);
-                                  return function ($854) {
-                                      return $853((function (v1) {
-                                          return {
-                                              id: id,
-                                              frequency: v1
-                                          };
-                                      })($854));
-                                  };
-                              })(),
-                              gain: (function () {
-                                  var $855 = WAGS_Interpret.setGain(dictAudioInterpret);
-                                  return function ($856) {
-                                      return $855((function (v1) {
-                                          return {
-                                              id: id,
-                                              gain: v1
-                                          };
-                                      })($856));
-                                  };
-                              })()
-                          }))));
-                          var o = WAGS_Control_Types.unsafeWAG({
-                              context: {
-                                  res: v.context.res,
-                                  instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)(changes)
-                              },
-                              value: Data_Unit.unit
-                          });
-                          return o;
-                      };
-                  };
-              }
-          };
-      };
-  };
-  var changeXHighpass = function (dictIsSymbol) {
-      return function (dictCons) {
-          return {
-              "change'": function (dictAudioInterpret) {
-                  return function (ptr) {
-                      return function (w) {
-                          var v = WAGS_Control_Types.unsafeUnWAG(w);
-                          var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
-                          var changes = Foreign_Object.values(Data_Homogeneous_Row_Options.objFromHomogeneous()(Data_Homogeneous_Row_Options.homogeneous()(Data_Row_Options.megamap()()(v.value)({
-                              freq: (function () {
-                                  var $857 = WAGS_Interpret.setFrequency(dictAudioInterpret);
-                                  return function ($858) {
-                                      return $857((function (v1) {
-                                          return {
-                                              id: id,
-                                              frequency: v1
-                                          };
-                                      })($858));
-                                  };
-                              })(),
-                              q: (function () {
-                                  var $859 = WAGS_Interpret.setQ(dictAudioInterpret);
-                                  return function ($860) {
-                                      return $859((function (v1) {
-                                          return {
-                                              id: id,
-                                              q: v1
-                                          };
-                                      })($860));
-                                  };
-                              })()
-                          }))));
-                          var o = WAGS_Control_Types.unsafeWAG({
-                              context: {
-                                  res: v.context.res,
-                                  instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)(changes)
-                              },
-                              value: Data_Unit.unit
-                          });
-                          return o;
-                      };
-                  };
-              }
-          };
-      };
-  };
-  var changeXGain = function (dictIsSymbol) {
-      return function (dictCons) {
-          return {
-              "change'": function (dictAudioInterpret) {
-                  return function (ptr) {
-                      return function (w) {
-                          var v = WAGS_Control_Types.unsafeUnWAG(w);
-                          var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
-                          var changes = Foreign_Object.values(Data_Homogeneous_Row_Options.objFromHomogeneous()(Data_Homogeneous_Row_Options.homogeneous()(Data_Row_Options.megamap()()(v.value)({
-                              gain: (function () {
-                                  var $861 = WAGS_Interpret.setGain(dictAudioInterpret);
-                                  return function ($862) {
-                                      return $861((function (v1) {
-                                          return {
-                                              id: id,
-                                              gain: v1
-                                          };
-                                      })($862));
-                                  };
-                              })()
-                          }))));
-                          var o = WAGS_Control_Types.unsafeWAG({
-                              context: {
-                                  res: v.context.res,
-                                  instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)(changes)
-                              },
-                              value: Data_Unit.unit
-                          });
-                          return o;
-                      };
-                  };
-              }
-          };
-      };
-  };
-  var changeXDelay = function (dictIsSymbol) {
-      return function (dictCons) {
-          return {
-              "change'": function (dictAudioInterpret) {
-                  return function (ptr) {
-                      return function (w) {
-                          var v = WAGS_Control_Types.unsafeUnWAG(w);
-                          var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
-                          var changes = Foreign_Object.values(Data_Homogeneous_Row_Options.objFromHomogeneous()(Data_Homogeneous_Row_Options.homogeneous()(Data_Row_Options.megamap()()(v.value)({
-                              delayTime: (function () {
-                                  var $873 = WAGS_Interpret.setDelay(dictAudioInterpret);
-                                  return function ($874) {
-                                      return $873((function (v1) {
-                                          return {
-                                              id: id,
-                                              delay: v1
-                                          };
-                                      })($874));
-                                  };
-                              })()
-                          }))));
-                          var o = WAGS_Control_Types.unsafeWAG({
-                              context: {
-                                  res: v.context.res,
-                                  instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)(changes)
-                              },
-                              value: Data_Unit.unit
-                          });
-                          return o;
-                      };
-                  };
-              }
-          };
-      };
-  };
-  var changeXConstant = function (dictIsSymbol) {
-      return function (dictCons) {
-          return {
-              "change'": function (dictAudioInterpret) {
-                  return function (ptr) {
-                      return function (w) {
-                          var v = WAGS_Control_Types.unsafeUnWAG(w);
-                          var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
-                          var changes = Foreign_Object.values(Data_Homogeneous_Row_Options.objFromHomogeneous()(Data_Homogeneous_Row_Options.homogeneous()(Data_Row_Options.megamap()()(v.value)({
-                              offset: (function () {
-                                  var $875 = WAGS_Interpret.setOffset(dictAudioInterpret);
+                                  var $875 = WAGS_Interpret.setFrequency(dictAudioInterpret);
                                   return function ($876) {
                                       return $875((function (v1) {
                                           return {
                                               id: id,
-                                              offset: v1
+                                              frequency: v1
                                           };
                                       })($876));
                                   };
@@ -25468,6 +25170,591 @@ var PS = {};
           };
       };
   };
+  var changeXPlayBuf = function (dictIsSymbol) {
+      return function (dictCons) {
+          return {
+              "change'": function (dictAudioInterpret) {
+                  return function (ptr) {
+                      return function (w) {
+                          var v = WAGS_Control_Types.unsafeUnWAG(w);
+                          var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                          var changes = Foreign_Object.values(Data_Homogeneous_Row_Options.objFromHomogeneous()(Data_Homogeneous_Row_Options.homogeneous()(Data_Row_Options.megamap()()(v.value)({
+                              buffer: (function () {
+                                  var $881 = WAGS_Interpret.setBuffer(dictAudioInterpret);
+                                  return function ($882) {
+                                      return $881((function (v1) {
+                                          return {
+                                              id: id,
+                                              buffer: v1
+                                          };
+                                      })($882));
+                                  };
+                              })(),
+                              onOff: (function () {
+                                  var $883 = WAGS_Interpret.setOnOff(dictAudioInterpret);
+                                  return function ($884) {
+                                      return $883((function (v1) {
+                                          return {
+                                              id: id,
+                                              onOff: v1
+                                          };
+                                      })($884));
+                                  };
+                              })(),
+                              playbackRate: (function () {
+                                  var $885 = WAGS_Interpret.setPlaybackRate(dictAudioInterpret);
+                                  return function ($886) {
+                                      return $885((function (v1) {
+                                          return {
+                                              id: id,
+                                              playbackRate: v1
+                                          };
+                                      })($886));
+                                  };
+                              })(),
+                              bufferOffset: (function () {
+                                  var $887 = WAGS_Interpret.setBufferOffset(dictAudioInterpret);
+                                  return function ($888) {
+                                      return $887((function (v1) {
+                                          return {
+                                              id: id,
+                                              bufferOffset: v1
+                                          };
+                                      })($888));
+                                  };
+                              })()
+                          }))));
+                          var o = WAGS_Control_Types.unsafeWAG({
+                              context: {
+                                  res: v.context.res,
+                                  instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)(changes)
+                              },
+                              value: Data_Unit.unit
+                          });
+                          return o;
+                      };
+                  };
+              }
+          };
+      };
+  };
+  var changeXPeaking = function (dictIsSymbol) {
+      return function (dictCons) {
+          return {
+              "change'": function (dictAudioInterpret) {
+                  return function (ptr) {
+                      return function (w) {
+                          var v = WAGS_Control_Types.unsafeUnWAG(w);
+                          var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                          var changes = Foreign_Object.values(Data_Homogeneous_Row_Options.objFromHomogeneous()(Data_Homogeneous_Row_Options.homogeneous()(Data_Row_Options.megamap()()(v.value)({
+                              freq: (function () {
+                                  var $889 = WAGS_Interpret.setFrequency(dictAudioInterpret);
+                                  return function ($890) {
+                                      return $889((function (v1) {
+                                          return {
+                                              id: id,
+                                              frequency: v1
+                                          };
+                                      })($890));
+                                  };
+                              })(),
+                              q: (function () {
+                                  var $891 = WAGS_Interpret.setQ(dictAudioInterpret);
+                                  return function ($892) {
+                                      return $891((function (v1) {
+                                          return {
+                                              id: id,
+                                              q: v1
+                                          };
+                                      })($892));
+                                  };
+                              })(),
+                              gain: (function () {
+                                  var $893 = WAGS_Interpret.setGain(dictAudioInterpret);
+                                  return function ($894) {
+                                      return $893((function (v1) {
+                                          return {
+                                              id: id,
+                                              gain: v1
+                                          };
+                                      })($894));
+                                  };
+                              })()
+                          }))));
+                          var o = WAGS_Control_Types.unsafeWAG({
+                              context: {
+                                  res: v.context.res,
+                                  instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)(changes)
+                              },
+                              value: Data_Unit.unit
+                          });
+                          return o;
+                      };
+                  };
+              }
+          };
+      };
+  };
+  var changeXNotch = function (dictIsSymbol) {
+      return function (dictCons) {
+          return {
+              "change'": function (dictAudioInterpret) {
+                  return function (ptr) {
+                      return function (w) {
+                          var v = WAGS_Control_Types.unsafeUnWAG(w);
+                          var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                          var changes = Foreign_Object.values(Data_Homogeneous_Row_Options.objFromHomogeneous()(Data_Homogeneous_Row_Options.homogeneous()(Data_Row_Options.megamap()()(v.value)({
+                              freq: (function () {
+                                  var $895 = WAGS_Interpret.setFrequency(dictAudioInterpret);
+                                  return function ($896) {
+                                      return $895((function (v1) {
+                                          return {
+                                              id: id,
+                                              frequency: v1
+                                          };
+                                      })($896));
+                                  };
+                              })(),
+                              q: (function () {
+                                  var $897 = WAGS_Interpret.setQ(dictAudioInterpret);
+                                  return function ($898) {
+                                      return $897((function (v1) {
+                                          return {
+                                              id: id,
+                                              q: v1
+                                          };
+                                      })($898));
+                                  };
+                              })()
+                          }))));
+                          var o = WAGS_Control_Types.unsafeWAG({
+                              context: {
+                                  res: v.context.res,
+                                  instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)(changes)
+                              },
+                              value: Data_Unit.unit
+                          });
+                          return o;
+                      };
+                  };
+              }
+          };
+      };
+  };
+  var changeXLowshelf = function (dictIsSymbol) {
+      return function (dictCons) {
+          return {
+              "change'": function (dictAudioInterpret) {
+                  return function (ptr) {
+                      return function (w) {
+                          var v = WAGS_Control_Types.unsafeUnWAG(w);
+                          var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                          var changes = Foreign_Object.values(Data_Homogeneous_Row_Options.objFromHomogeneous()(Data_Homogeneous_Row_Options.homogeneous()(Data_Row_Options.megamap()()(v.value)({
+                              freq: (function () {
+                                  var $899 = WAGS_Interpret.setFrequency(dictAudioInterpret);
+                                  return function ($900) {
+                                      return $899((function (v1) {
+                                          return {
+                                              id: id,
+                                              frequency: v1
+                                          };
+                                      })($900));
+                                  };
+                              })(),
+                              gain: (function () {
+                                  var $901 = WAGS_Interpret.setGain(dictAudioInterpret);
+                                  return function ($902) {
+                                      return $901((function (v1) {
+                                          return {
+                                              id: id,
+                                              gain: v1
+                                          };
+                                      })($902));
+                                  };
+                              })()
+                          }))));
+                          var o = WAGS_Control_Types.unsafeWAG({
+                              context: {
+                                  res: v.context.res,
+                                  instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)(changes)
+                              },
+                              value: Data_Unit.unit
+                          });
+                          return o;
+                      };
+                  };
+              }
+          };
+      };
+  };
+  var changeXLowpass = function (dictIsSymbol) {
+      return function (dictCons) {
+          return {
+              "change'": function (dictAudioInterpret) {
+                  return function (ptr) {
+                      return function (w) {
+                          var v = WAGS_Control_Types.unsafeUnWAG(w);
+                          var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                          var changes = Foreign_Object.values(Data_Homogeneous_Row_Options.objFromHomogeneous()(Data_Homogeneous_Row_Options.homogeneous()(Data_Row_Options.megamap()()(v.value)({
+                              freq: (function () {
+                                  var $903 = WAGS_Interpret.setFrequency(dictAudioInterpret);
+                                  return function ($904) {
+                                      return $903((function (v1) {
+                                          return {
+                                              id: id,
+                                              frequency: v1
+                                          };
+                                      })($904));
+                                  };
+                              })(),
+                              q: (function () {
+                                  var $905 = WAGS_Interpret.setQ(dictAudioInterpret);
+                                  return function ($906) {
+                                      return $905((function (v1) {
+                                          return {
+                                              id: id,
+                                              q: v1
+                                          };
+                                      })($906));
+                                  };
+                              })()
+                          }))));
+                          var o = WAGS_Control_Types.unsafeWAG({
+                              context: {
+                                  res: v.context.res,
+                                  instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)(changes)
+                              },
+                              value: Data_Unit.unit
+                          });
+                          return o;
+                      };
+                  };
+              }
+          };
+      };
+  };
+  var changeXLoopBuf = function (dictIsSymbol) {
+      return function (dictCons) {
+          return {
+              "change'": function (dictAudioInterpret) {
+                  return function (ptr) {
+                      return function (w) {
+                          var v = WAGS_Control_Types.unsafeUnWAG(w);
+                          var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                          var changes = Foreign_Object.values(Data_Homogeneous_Row_Options.objFromHomogeneous()(Data_Homogeneous_Row_Options.homogeneous()(Data_Row_Options.megamap()()(v.value)({
+                              buffer: (function () {
+                                  var $907 = WAGS_Interpret.setBuffer(dictAudioInterpret);
+                                  return function ($908) {
+                                      return $907((function (v1) {
+                                          return {
+                                              id: id,
+                                              buffer: v1
+                                          };
+                                      })($908));
+                                  };
+                              })(),
+                              onOff: (function () {
+                                  var $909 = WAGS_Interpret.setOnOff(dictAudioInterpret);
+                                  return function ($910) {
+                                      return $909((function (v1) {
+                                          return {
+                                              id: id,
+                                              onOff: v1
+                                          };
+                                      })($910));
+                                  };
+                              })(),
+                              playbackRate: (function () {
+                                  var $911 = WAGS_Interpret.setPlaybackRate(dictAudioInterpret);
+                                  return function ($912) {
+                                      return $911((function (v1) {
+                                          return {
+                                              id: id,
+                                              playbackRate: v1
+                                          };
+                                      })($912));
+                                  };
+                              })(),
+                              loopStart: (function () {
+                                  var $913 = WAGS_Interpret.setLoopStart(dictAudioInterpret);
+                                  return function ($914) {
+                                      return $913((function (v1) {
+                                          return {
+                                              id: id,
+                                              loopStart: v1
+                                          };
+                                      })($914));
+                                  };
+                              })(),
+                              loopEnd: (function () {
+                                  var $915 = WAGS_Interpret.setLoopEnd(dictAudioInterpret);
+                                  return function ($916) {
+                                      return $915((function (v1) {
+                                          return {
+                                              id: id,
+                                              loopEnd: v1
+                                          };
+                                      })($916));
+                                  };
+                              })()
+                          }))));
+                          var o = WAGS_Control_Types.unsafeWAG({
+                              context: {
+                                  res: v.context.res,
+                                  instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)(changes)
+                              },
+                              value: Data_Unit.unit
+                          });
+                          return o;
+                      };
+                  };
+              }
+          };
+      };
+  };
+  var changeXHighshelf = function (dictIsSymbol) {
+      return function (dictCons) {
+          return {
+              "change'": function (dictAudioInterpret) {
+                  return function (ptr) {
+                      return function (w) {
+                          var v = WAGS_Control_Types.unsafeUnWAG(w);
+                          var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                          var changes = Foreign_Object.values(Data_Homogeneous_Row_Options.objFromHomogeneous()(Data_Homogeneous_Row_Options.homogeneous()(Data_Row_Options.megamap()()(v.value)({
+                              freq: (function () {
+                                  var $917 = WAGS_Interpret.setFrequency(dictAudioInterpret);
+                                  return function ($918) {
+                                      return $917((function (v1) {
+                                          return {
+                                              id: id,
+                                              frequency: v1
+                                          };
+                                      })($918));
+                                  };
+                              })(),
+                              gain: (function () {
+                                  var $919 = WAGS_Interpret.setGain(dictAudioInterpret);
+                                  return function ($920) {
+                                      return $919((function (v1) {
+                                          return {
+                                              id: id,
+                                              gain: v1
+                                          };
+                                      })($920));
+                                  };
+                              })()
+                          }))));
+                          var o = WAGS_Control_Types.unsafeWAG({
+                              context: {
+                                  res: v.context.res,
+                                  instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)(changes)
+                              },
+                              value: Data_Unit.unit
+                          });
+                          return o;
+                      };
+                  };
+              }
+          };
+      };
+  };
+  var changeXHighpass = function (dictIsSymbol) {
+      return function (dictCons) {
+          return {
+              "change'": function (dictAudioInterpret) {
+                  return function (ptr) {
+                      return function (w) {
+                          var v = WAGS_Control_Types.unsafeUnWAG(w);
+                          var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                          var changes = Foreign_Object.values(Data_Homogeneous_Row_Options.objFromHomogeneous()(Data_Homogeneous_Row_Options.homogeneous()(Data_Row_Options.megamap()()(v.value)({
+                              freq: (function () {
+                                  var $921 = WAGS_Interpret.setFrequency(dictAudioInterpret);
+                                  return function ($922) {
+                                      return $921((function (v1) {
+                                          return {
+                                              id: id,
+                                              frequency: v1
+                                          };
+                                      })($922));
+                                  };
+                              })(),
+                              q: (function () {
+                                  var $923 = WAGS_Interpret.setQ(dictAudioInterpret);
+                                  return function ($924) {
+                                      return $923((function (v1) {
+                                          return {
+                                              id: id,
+                                              q: v1
+                                          };
+                                      })($924));
+                                  };
+                              })()
+                          }))));
+                          var o = WAGS_Control_Types.unsafeWAG({
+                              context: {
+                                  res: v.context.res,
+                                  instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)(changes)
+                              },
+                              value: Data_Unit.unit
+                          });
+                          return o;
+                      };
+                  };
+              }
+          };
+      };
+  };
+  var changeXGain = function (dictIsSymbol) {
+      return function (dictCons) {
+          return {
+              "change'": function (dictAudioInterpret) {
+                  return function (ptr) {
+                      return function (w) {
+                          var v = WAGS_Control_Types.unsafeUnWAG(w);
+                          var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                          var changes = Foreign_Object.values(Data_Homogeneous_Row_Options.objFromHomogeneous()(Data_Homogeneous_Row_Options.homogeneous()(Data_Row_Options.megamap()()(v.value)({
+                              gain: (function () {
+                                  var $925 = WAGS_Interpret.setGain(dictAudioInterpret);
+                                  return function ($926) {
+                                      return $925((function (v1) {
+                                          return {
+                                              id: id,
+                                              gain: v1
+                                          };
+                                      })($926));
+                                  };
+                              })()
+                          }))));
+                          var o = WAGS_Control_Types.unsafeWAG({
+                              context: {
+                                  res: v.context.res,
+                                  instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)(changes)
+                              },
+                              value: Data_Unit.unit
+                          });
+                          return o;
+                      };
+                  };
+              }
+          };
+      };
+  };
+  var changeXDelay = function (dictIsSymbol) {
+      return function (dictCons) {
+          return {
+              "change'": function (dictAudioInterpret) {
+                  return function (ptr) {
+                      return function (w) {
+                          var v = WAGS_Control_Types.unsafeUnWAG(w);
+                          var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                          var changes = Foreign_Object.values(Data_Homogeneous_Row_Options.objFromHomogeneous()(Data_Homogeneous_Row_Options.homogeneous()(Data_Row_Options.megamap()()(v.value)({
+                              delayTime: (function () {
+                                  var $937 = WAGS_Interpret.setDelay(dictAudioInterpret);
+                                  return function ($938) {
+                                      return $937((function (v1) {
+                                          return {
+                                              id: id,
+                                              delay: v1
+                                          };
+                                      })($938));
+                                  };
+                              })()
+                          }))));
+                          var o = WAGS_Control_Types.unsafeWAG({
+                              context: {
+                                  res: v.context.res,
+                                  instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)(changes)
+                              },
+                              value: Data_Unit.unit
+                          });
+                          return o;
+                      };
+                  };
+              }
+          };
+      };
+  };
+  var changeXConvolver = function (dictIsSymbol) {
+      return function (dictCons) {
+          return {
+              "change'": function (dictAudioInterpret) {
+                  return function (ptr) {
+                      return function (w) {
+                          var v = WAGS_Control_Types.unsafeUnWAG(w);
+                          var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                          var changes = Foreign_Object.values(Data_Homogeneous_Row_Options.objFromHomogeneous()(Data_Homogeneous_Row_Options.homogeneous()(Data_Row_Options.megamap()()(v.value)({
+                              buffer: (function () {
+                                  var $939 = WAGS_Interpret.setConvolverBuffer(dictAudioInterpret);
+                                  return function ($940) {
+                                      return $939((function (v1) {
+                                          return {
+                                              id: id,
+                                              buffer: v1
+                                          };
+                                      })($940));
+                                  };
+                              })()
+                          }))));
+                          var o = WAGS_Control_Types.unsafeWAG({
+                              context: {
+                                  res: v.context.res,
+                                  instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)(changes)
+                              },
+                              value: Data_Unit.unit
+                          });
+                          return o;
+                      };
+                  };
+              }
+          };
+      };
+  };
+  var changeXConstant = function (dictIsSymbol) {
+      return function (dictCons) {
+          return {
+              "change'": function (dictAudioInterpret) {
+                  return function (ptr) {
+                      return function (w) {
+                          var v = WAGS_Control_Types.unsafeUnWAG(w);
+                          var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                          var changes = Foreign_Object.values(Data_Homogeneous_Row_Options.objFromHomogeneous()(Data_Homogeneous_Row_Options.homogeneous()(Data_Row_Options.megamap()()(v.value)({
+                              offset: (function () {
+                                  var $941 = WAGS_Interpret.setOffset(dictAudioInterpret);
+                                  return function ($942) {
+                                      return $941((function (v1) {
+                                          return {
+                                              id: id,
+                                              offset: v1
+                                          };
+                                      })($942));
+                                  };
+                              })(),
+                              onOff: (function () {
+                                  var $943 = WAGS_Interpret.setOnOff(dictAudioInterpret);
+                                  return function ($944) {
+                                      return $943((function (v1) {
+                                          return {
+                                              id: id,
+                                              onOff: v1
+                                          };
+                                      })($944));
+                                  };
+                              })()
+                          }))));
+                          var o = WAGS_Control_Types.unsafeWAG({
+                              context: {
+                                  res: v.context.res,
+                                  instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)(changes)
+                              },
+                              value: Data_Unit.unit
+                          });
+                          return o;
+                      };
+                  };
+              }
+          };
+      };
+  };
   var changeXBandpass = function (dictIsSymbol) {
       return function (dictCons) {
           return {
@@ -25478,25 +25765,25 @@ var PS = {};
                           var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
                           var changes = Foreign_Object.values(Data_Homogeneous_Row_Options.objFromHomogeneous()(Data_Homogeneous_Row_Options.homogeneous()(Data_Row_Options.megamap()()(v.value)({
                               freq: (function () {
-                                  var $879 = WAGS_Interpret.setFrequency(dictAudioInterpret);
-                                  return function ($880) {
-                                      return $879((function (v1) {
+                                  var $945 = WAGS_Interpret.setFrequency(dictAudioInterpret);
+                                  return function ($946) {
+                                      return $945((function (v1) {
                                           return {
                                               id: id,
                                               frequency: v1
                                           };
-                                      })($880));
+                                      })($946));
                                   };
                               })(),
                               q: (function () {
-                                  var $881 = WAGS_Interpret.setQ(dictAudioInterpret);
-                                  return function ($882) {
-                                      return $881((function (v1) {
+                                  var $947 = WAGS_Interpret.setQ(dictAudioInterpret);
+                                  return function ($948) {
+                                      return $947((function (v1) {
                                           return {
                                               id: id,
                                               q: v1
                                           };
-                                      })($882));
+                                      })($948));
                                   };
                               })()
                           }))));
@@ -25524,25 +25811,25 @@ var PS = {};
                           var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
                           var changes = Foreign_Object.values(Data_Homogeneous_Row_Options.objFromHomogeneous()(Data_Homogeneous_Row_Options.homogeneous()(Data_Row_Options.megamap()()(v.value)({
                               freq: (function () {
-                                  var $883 = WAGS_Interpret.setFrequency(dictAudioInterpret);
-                                  return function ($884) {
-                                      return $883((function (v1) {
+                                  var $949 = WAGS_Interpret.setFrequency(dictAudioInterpret);
+                                  return function ($950) {
+                                      return $949((function (v1) {
                                           return {
                                               id: id,
                                               frequency: v1
                                           };
-                                      })($884));
+                                      })($950));
                                   };
                               })(),
                               q: (function () {
-                                  var $885 = WAGS_Interpret.setQ(dictAudioInterpret);
-                                  return function ($886) {
-                                      return $885((function (v1) {
+                                  var $951 = WAGS_Interpret.setQ(dictAudioInterpret);
+                                  return function ($952) {
+                                      return $951((function (v1) {
                                           return {
                                               id: id,
                                               q: v1
                                           };
-                                      })($886));
+                                      })($952));
                                   };
                               })()
                           }))));
@@ -25784,49 +26071,6 @@ var PS = {};
           };
       };
   };
-  var changeSawtoothOsc = function (dictIsSymbol) {
-      return function (dictMM) {
-          return function (dictOnOffable) {
-              return function (dictMM1) {
-                  return function (dictParamable) {
-                      return function (dictCons) {
-                          return {
-                              "change'": function (dictAudioInterpret) {
-                                  return function (ptr) {
-                                      return function (w) {
-                                          var v = WAGS_Control_Types.unsafeUnWAG(w);
-                                          var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
-                                          var oo_Changes = Data_Variant_Maybe.maybe([  ])(function (onOff$prime) {
-                                              return [ WAGS_Interpret.setOnOff(dictAudioInterpret)({
-                                                  id: id,
-                                                  onOff: WAGS_Graph_Paramable.onOffIze(dictOnOffable)(onOff$prime)
-                                              }) ];
-                                          })(WAGS_Graph_Parameter.mm(dictMM)(v.value.value0));
-                                          var argA_iv$prime = Data_Functor.map(Data_Variant_Maybe.functorMaybe)(WAGS_Graph_Paramable.paramize(dictParamable))(WAGS_Graph_Parameter.mm(dictMM1)(v.value.value1));
-                                          var argA_Changes = Data_Variant_Maybe.maybe([  ])(function (argA_iv$prime$prime) {
-                                              return [ WAGS_Interpret.setFrequency(dictAudioInterpret)({
-                                                  id: id,
-                                                  frequency: argA_iv$prime$prime
-                                              }) ];
-                                          })(argA_iv$prime);
-                                          var o = WAGS_Control_Types.unsafeWAG({
-                                              context: {
-                                                  res: v.context.res,
-                                                  instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)(Data_Semigroup.append(Data_Semigroup.semigroupArray)(oo_Changes)(argA_Changes))
-                                              },
-                                              value: Data_Unit.unit
-                                          });
-                                          return o;
-                                      };
-                                  };
-                              }
-                          };
-                      };
-                  };
-              };
-          };
-      };
-  };
   var changeRLNil = {
       changeRL: function (dictAudioInterpret) {
           return function (v) {
@@ -25843,311 +26087,60 @@ var PS = {};
   var changeRL = function (dict) {
       return dict.changeRL;
   };
-  var changePlayBuf = function (dictIsSymbol) {
-      return function (dictMM) {
-          return function (dictMM1) {
-              return function (dictMM2) {
-                  return function (dictOnOffable) {
-                      return function (dictMM3) {
-                          return function (dictParamable) {
-                              return function (dictCons) {
-                                  return {
-                                      "change'": function (dictAudioInterpret) {
-                                          return function (ptr) {
-                                              return function (w) {
-                                                  var v = WAGS_Control_Types.unsafeUnWAG(w);
-                                                  var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
-                                                  var offset_Changes = Data_Variant_Maybe.maybe([  ])(function (offset$prime) {
-                                                      return [ WAGS_Interpret.setBufferOffset(dictAudioInterpret)({
-                                                          id: id,
-                                                          bufferOffset: offset$prime
-                                                      }) ];
-                                                  })(WAGS_Graph_Parameter.mm(dictMM1)(v.value.value1));
-                                                  var oo_Changes = Data_Variant_Maybe.maybe([  ])(function (onOff$prime) {
-                                                      return [ WAGS_Interpret.setOnOff(dictAudioInterpret)({
-                                                          id: id,
-                                                          onOff: WAGS_Graph_Paramable.onOffIze(dictOnOffable)(onOff$prime)
-                                                      }) ];
-                                                  })(WAGS_Graph_Parameter.mm(dictMM2)(v.value.value2));
-                                                  var buffer_Changes = Data_Variant_Maybe.maybe([  ])(function (buffer$prime) {
-                                                      return [ WAGS_Interpret.setBuffer(dictAudioInterpret)({
-                                                          id: id,
-                                                          buffer: buffer$prime
-                                                      }) ];
-                                                  })(WAGS_Graph_Parameter.mm(dictMM)(v.value.value0));
-                                                  var argA_iv$prime = Data_Functor.map(Data_Variant_Maybe.functorMaybe)(WAGS_Graph_Paramable.paramize(dictParamable))(WAGS_Graph_Parameter.mm(dictMM3)(v.value.value3));
-                                                  var argA_Changes = Data_Variant_Maybe.maybe([  ])(function (argA_iv$prime$prime) {
-                                                      return [ WAGS_Interpret.setPlaybackRate(dictAudioInterpret)({
-                                                          id: id,
-                                                          playbackRate: argA_iv$prime$prime
-                                                      }) ];
-                                                  })(argA_iv$prime);
-                                                  var o = WAGS_Control_Types.unsafeWAG({
-                                                      context: {
-                                                          res: v.context.res,
-                                                          instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)(Data_Semigroup.append(Data_Semigroup.semigroupArray)(buffer_Changes)(Data_Semigroup.append(Data_Semigroup.semigroupArray)(offset_Changes)(Data_Semigroup.append(Data_Semigroup.semigroupArray)(oo_Changes)(argA_Changes))))
-                                                      },
-                                                      value: Data_Unit.unit
-                                                  });
-                                                  return o;
-                                              };
+  var changePeriodicXOsc = function (dictIsSymbol) {
+      return function (dictCons) {
+          return {
+              "change'": function (dictAudioInterpret) {
+                  return function (ptr) {
+                      return function (w) {
+                          var v = WAGS_Control_Types.unsafeUnWAG(w);
+                          var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                          var changes = Foreign_Object.values(Data_Homogeneous_Row_Options.objFromHomogeneous()(Data_Homogeneous_Row_Options.homogeneous()(Data_Row_Options.megamap()()(v.value)({
+                              freq: (function () {
+                                  var $953 = WAGS_Interpret.setFrequency(dictAudioInterpret);
+                                  return function ($954) {
+                                      return $953((function (v1) {
+                                          return {
+                                              id: id,
+                                              frequency: v1
                                           };
-                                      }
+                                      })($954));
                                   };
-                              };
-                          };
-                      };
-                  };
-              };
-          };
-      };
-  };
-  var changePeriodicOscS = {
-      setPosc: function (dictAudioInterpret) {
-          return function (id) {
-              return function (wave) {
-                  return WAGS_Interpret.setPeriodicOsc(dictAudioInterpret)({
-                      id: id,
-                      wave: wave
-                  });
-              };
-          };
-      }
-  };
-  var changePeriodicOsc = function (dictIsSymbol) {
-      return function (dictMM) {
-          return function (dictMM1) {
-              return function (dictOnOffable) {
-                  return function (dictChangePeriodicOsc) {
-                      return function (dictMM2) {
-                          return function (dictParamable) {
-                              return function (dictCons) {
-                                  return {
-                                      "change'": function (dictAudioInterpret) {
-                                          return function (ptr) {
-                                              return function (w) {
-                                                  var v = WAGS_Control_Types.unsafeUnWAG(w);
-                                                  var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
-                                                  var oo_Changes = Data_Variant_Maybe.maybe([  ])(function (onOff$prime) {
-                                                      return [ WAGS_Interpret.setOnOff(dictAudioInterpret)({
-                                                          id: id,
-                                                          onOff: WAGS_Graph_Paramable.onOffIze(dictOnOffable)(onOff$prime)
-                                                      }) ];
-                                                  })(WAGS_Graph_Parameter.mm(dictMM1)(v.value.value1));
-                                                  var pw_Changes = Data_Variant_Maybe.maybe([  ])(function (periodicWave$prime) {
-                                                      return [ setPosc(dictChangePeriodicOsc)(dictAudioInterpret)(id)(periodicWave$prime) ];
-                                                  })(WAGS_Graph_Parameter.mm(dictMM)(v.value.value0));
-                                                  var argA_iv$prime = Data_Functor.map(Data_Variant_Maybe.functorMaybe)(WAGS_Graph_Paramable.paramize(dictParamable))(WAGS_Graph_Parameter.mm(dictMM2)(v.value.value2));
-                                                  var argA_Changes = Data_Variant_Maybe.maybe([  ])(function (argA_iv$prime$prime) {
-                                                      return [ WAGS_Interpret.setFrequency(dictAudioInterpret)({
-                                                          id: id,
-                                                          frequency: argA_iv$prime$prime
-                                                      }) ];
-                                                  })(argA_iv$prime);
-                                                  var o = WAGS_Control_Types.unsafeWAG({
-                                                      context: {
-                                                          res: v.context.res,
-                                                          instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)(Data_Semigroup.append(Data_Semigroup.semigroupArray)(pw_Changes)(Data_Semigroup.append(Data_Semigroup.semigroupArray)(oo_Changes)(argA_Changes)))
-                                                      },
-                                                      value: Data_Unit.unit
-                                                  });
-                                                  return o;
-                                              };
+                              })(),
+                              onOff: (function () {
+                                  var $955 = WAGS_Interpret.setOnOff(dictAudioInterpret);
+                                  return function ($956) {
+                                      return $955((function (v1) {
+                                          return {
+                                              id: id,
+                                              onOff: v1
                                           };
-                                      }
+                                      })($956));
                                   };
-                              };
-                          };
-                      };
-                  };
-              };
-          };
-      };
-  };
-  var changePeaking = function (dictIsSymbol) {
-      return function (dictMM) {
-          return function (dictParamable) {
-              return function (dictMM1) {
-                  return function (dictParamable1) {
-                      return function (dictMM2) {
-                          return function (dictParamable2) {
-                              return function (dictCons) {
-                                  return {
-                                      "change'": function (dictAudioInterpret) {
-                                          return function (ptr) {
-                                              return function (w) {
-                                                  var v = WAGS_Control_Types.unsafeUnWAG(w);
-                                                  var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
-                                                  var argC_iv$prime = Data_Functor.map(Data_Variant_Maybe.functorMaybe)(WAGS_Graph_Paramable.paramize(dictParamable2))(WAGS_Graph_Parameter.mm(dictMM2)(v.value.value2));
-                                                  var argC_Changes = Data_Variant_Maybe.maybe([  ])(function (argC_iv$prime$prime) {
-                                                      return [ WAGS_Interpret.setGain(dictAudioInterpret)({
-                                                          id: id,
-                                                          gain: argC_iv$prime$prime
-                                                      }) ];
-                                                  })(argC_iv$prime);
-                                                  var argB_iv$prime = Data_Functor.map(Data_Variant_Maybe.functorMaybe)(WAGS_Graph_Paramable.paramize(dictParamable1))(WAGS_Graph_Parameter.mm(dictMM1)(v.value.value1));
-                                                  var argB_Changes = Data_Variant_Maybe.maybe([  ])(function (argB_iv$prime$prime) {
-                                                      return [ WAGS_Interpret.setQ(dictAudioInterpret)({
-                                                          id: id,
-                                                          q: argB_iv$prime$prime
-                                                      }) ];
-                                                  })(argB_iv$prime);
-                                                  var argA_iv$prime = Data_Functor.map(Data_Variant_Maybe.functorMaybe)(WAGS_Graph_Paramable.paramize(dictParamable))(WAGS_Graph_Parameter.mm(dictMM)(v.value.value0));
-                                                  var argA_Changes = Data_Variant_Maybe.maybe([  ])(function (argA_iv$prime$prime) {
-                                                      return [ WAGS_Interpret.setFrequency(dictAudioInterpret)({
-                                                          id: id,
-                                                          frequency: argA_iv$prime$prime
-                                                      }) ];
-                                                  })(argA_iv$prime);
-                                                  var o = WAGS_Control_Types.unsafeWAG({
-                                                      context: {
-                                                          res: v.context.res,
-                                                          instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)(Data_Semigroup.append(Data_Semigroup.semigroupArray)(argA_Changes)(Data_Semigroup.append(Data_Semigroup.semigroupArray)(argB_Changes)(argC_Changes)))
-                                                      },
-                                                      value: Data_Unit.unit
-                                                  });
-                                                  return o;
-                                              };
+                              })(),
+                              wave: (function () {
+                                  var $957 = WAGS_Interpret.setPeriodicOsc(dictAudioInterpret);
+                                  return function ($958) {
+                                      return $957((function (v1) {
+                                          return {
+                                              id: id,
+                                              wave: v1
                                           };
-                                      }
+                                      })($958));
                                   };
-                              };
-                          };
+                              })()
+                          }))));
+                          var o = WAGS_Control_Types.unsafeWAG({
+                              context: {
+                                  res: v.context.res,
+                                  instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)(changes)
+                              },
+                              value: Data_Unit.unit
+                          });
+                          return o;
                       };
                   };
-              };
-          };
-      };
-  };
-  var changeNotch = function (dictIsSymbol) {
-      return function (dictMM) {
-          return function (dictParamable) {
-              return function (dictMM1) {
-                  return function (dictParamable1) {
-                      return function (dictCons) {
-                          return {
-                              "change'": function (dictAudioInterpret) {
-                                  return function (ptr) {
-                                      return function (w) {
-                                          var v = WAGS_Control_Types.unsafeUnWAG(w);
-                                          var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
-                                          var argB_iv$prime = Data_Functor.map(Data_Variant_Maybe.functorMaybe)(WAGS_Graph_Paramable.paramize(dictParamable1))(WAGS_Graph_Parameter.mm(dictMM1)(v.value.value1));
-                                          var argB_Changes = Data_Variant_Maybe.maybe([  ])(function (argB_iv$prime$prime) {
-                                              return [ WAGS_Interpret.setQ(dictAudioInterpret)({
-                                                  id: id,
-                                                  q: argB_iv$prime$prime
-                                              }) ];
-                                          })(argB_iv$prime);
-                                          var argA_iv$prime = Data_Functor.map(Data_Variant_Maybe.functorMaybe)(WAGS_Graph_Paramable.paramize(dictParamable))(WAGS_Graph_Parameter.mm(dictMM)(v.value.value0));
-                                          var argA_Changes = Data_Variant_Maybe.maybe([  ])(function (argA_iv$prime$prime) {
-                                              return [ WAGS_Interpret.setFrequency(dictAudioInterpret)({
-                                                  id: id,
-                                                  frequency: argA_iv$prime$prime
-                                              }) ];
-                                          })(argA_iv$prime);
-                                          var o = WAGS_Control_Types.unsafeWAG({
-                                              context: {
-                                                  res: v.context.res,
-                                                  instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)(Data_Semigroup.append(Data_Semigroup.semigroupArray)(argA_Changes)(argB_Changes))
-                                              },
-                                              value: Data_Unit.unit
-                                          });
-                                          return o;
-                                      };
-                                  };
-                              }
-                          };
-                      };
-                  };
-              };
-          };
-      };
-  };
-  var changeLowshelf = function (dictIsSymbol) {
-      return function (dictMM) {
-          return function (dictParamable) {
-              return function (dictMM1) {
-                  return function (dictParamable1) {
-                      return function (dictCons) {
-                          return {
-                              "change'": function (dictAudioInterpret) {
-                                  return function (ptr) {
-                                      return function (w) {
-                                          var v = WAGS_Control_Types.unsafeUnWAG(w);
-                                          var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
-                                          var argB_iv$prime = Data_Functor.map(Data_Variant_Maybe.functorMaybe)(WAGS_Graph_Paramable.paramize(dictParamable1))(WAGS_Graph_Parameter.mm(dictMM1)(v.value.value1));
-                                          var argB_Changes = Data_Variant_Maybe.maybe([  ])(function (argB_iv$prime$prime) {
-                                              return [ WAGS_Interpret.setGain(dictAudioInterpret)({
-                                                  id: id,
-                                                  gain: argB_iv$prime$prime
-                                              }) ];
-                                          })(argB_iv$prime);
-                                          var argA_iv$prime = Data_Functor.map(Data_Variant_Maybe.functorMaybe)(WAGS_Graph_Paramable.paramize(dictParamable))(WAGS_Graph_Parameter.mm(dictMM)(v.value.value0));
-                                          var argA_Changes = Data_Variant_Maybe.maybe([  ])(function (argA_iv$prime$prime) {
-                                              return [ WAGS_Interpret.setFrequency(dictAudioInterpret)({
-                                                  id: id,
-                                                  frequency: argA_iv$prime$prime
-                                              }) ];
-                                          })(argA_iv$prime);
-                                          var o = WAGS_Control_Types.unsafeWAG({
-                                              context: {
-                                                  res: v.context.res,
-                                                  instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)(Data_Semigroup.append(Data_Semigroup.semigroupArray)(argA_Changes)(argB_Changes))
-                                              },
-                                              value: Data_Unit.unit
-                                          });
-                                          return o;
-                                      };
-                                  };
-                              }
-                          };
-                      };
-                  };
-              };
-          };
-      };
-  };
-  var changeLowpass = function (dictIsSymbol) {
-      return function (dictMM) {
-          return function (dictParamable) {
-              return function (dictMM1) {
-                  return function (dictParamable1) {
-                      return function (dictCons) {
-                          return {
-                              "change'": function (dictAudioInterpret) {
-                                  return function (ptr) {
-                                      return function (w) {
-                                          var v = WAGS_Control_Types.unsafeUnWAG(w);
-                                          var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
-                                          var argB_iv$prime = Data_Functor.map(Data_Variant_Maybe.functorMaybe)(WAGS_Graph_Paramable.paramize(dictParamable1))(WAGS_Graph_Parameter.mm(dictMM1)(v.value.value1));
-                                          var argB_Changes = Data_Variant_Maybe.maybe([  ])(function (argB_iv$prime$prime) {
-                                              return [ WAGS_Interpret.setQ(dictAudioInterpret)({
-                                                  id: id,
-                                                  q: argB_iv$prime$prime
-                                              }) ];
-                                          })(argB_iv$prime);
-                                          var argA_iv$prime = Data_Functor.map(Data_Variant_Maybe.functorMaybe)(WAGS_Graph_Paramable.paramize(dictParamable))(WAGS_Graph_Parameter.mm(dictMM)(v.value.value0));
-                                          var argA_Changes = Data_Variant_Maybe.maybe([  ])(function (argA_iv$prime$prime) {
-                                              return [ WAGS_Interpret.setFrequency(dictAudioInterpret)({
-                                                  id: id,
-                                                  frequency: argA_iv$prime$prime
-                                              }) ];
-                                          })(argA_iv$prime);
-                                          var o = WAGS_Control_Types.unsafeWAG({
-                                              context: {
-                                                  res: v.context.res,
-                                                  instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)(Data_Semigroup.append(Data_Semigroup.semigroupArray)(argA_Changes)(argB_Changes))
-                                              },
-                                              value: Data_Unit.unit
-                                          });
-                                          return o;
-                                      };
-                                  };
-                              }
-                          };
-                      };
-                  };
-              };
+              }
           };
       };
   };
@@ -26175,31 +26168,6 @@ var PS = {};
                       };
                   }
               };
-          };
-      };
-  };
-  var changeConvolver = function (dictIsSymbol) {
-      return function (dictCons) {
-          return {
-              "change'": function (dictAudioInterpret) {
-                  return function (ptr) {
-                      return function (w) {
-                          var v = WAGS_Control_Types.unsafeUnWAG(w);
-                          var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
-                          var o = WAGS_Control_Types.unsafeWAG({
-                              context: {
-                                  res: v.context.res,
-                                  instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)([ WAGS_Interpret.setConvolverBuffer(dictAudioInterpret)({
-                                      id: id,
-                                      buffer: v.value.value0
-                                  }) ])
-                              },
-                              value: Data_Unit.unit
-                          });
-                          return o;
-                      };
-                  };
-              }
           };
       };
   };
@@ -26296,10 +26264,10 @@ var PS = {};
           return {
               "change'": function (dictAudioInterpret) {
                   return function (ptr) {
-                      var $887 = change$prime(changeXAllpass(dictIsSymbol)())(dictAudioInterpret)(ptr);
-                      var $888 = Data_Functor.map(WAGS_Control_Types.functorWAG)(Data_Newtype.over()()(WAGS_Graph_AudioUnit.Allpass)(Data_Row_Options.asOptions));
-                      return function ($889) {
-                          return $887($888($889));
+                      var $967 = change$prime(changeXAllpass(dictIsSymbol)())(dictAudioInterpret)(ptr);
+                      var $968 = Data_Functor.map(WAGS_Control_Types.functorWAG)(Data_Newtype.over()()(WAGS_Graph_AudioUnit.Allpass)(Data_Row_Options.asOptions));
+                      return function ($969) {
+                          return $967($968($969));
                       };
                   };
               }
@@ -26360,10 +26328,10 @@ var PS = {};
           return {
               "change'": function (dictAudioInterpret) {
                   return function (ptr) {
-                      var $902 = change$prime(changeXGain(dictIsSymbol)())(dictAudioInterpret)(ptr);
-                      var $903 = Data_Functor.map(WAGS_Control_Types.functorWAG)(Data_Newtype.over()()(WAGS_Graph_AudioUnit.Gain)(Data_Row_Options.asOptions));
-                      return function ($904) {
-                          return $902($903($904));
+                      var $985 = change$prime(changeXGain(dictIsSymbol)())(dictAudioInterpret)(ptr);
+                      var $986 = Data_Functor.map(WAGS_Control_Types.functorWAG)(Data_Newtype.over()()(WAGS_Graph_AudioUnit.Gain)(Data_Row_Options.asOptions));
+                      return function ($987) {
+                          return $985($986($987));
                       };
                   };
               }
@@ -26375,10 +26343,10 @@ var PS = {};
           return {
               "change'": function (dictAudioInterpret) {
                   return function (ptr) {
-                      var $911 = change$prime(changeXLoopBuf(dictIsSymbol)())(dictAudioInterpret)(ptr);
-                      var $912 = Data_Functor.map(WAGS_Control_Types.functorWAG)(Data_Newtype.over()()(WAGS_Graph_AudioUnit.LoopBuf)(Data_Row_Options.asOptions));
-                      return function ($913) {
-                          return $911($912($913));
+                      var $994 = change$prime(changeXLoopBuf(dictIsSymbol)())(dictAudioInterpret)(ptr);
+                      var $995 = Data_Functor.map(WAGS_Control_Types.functorWAG)(Data_Newtype.over()()(WAGS_Graph_AudioUnit.LoopBuf)(Data_Row_Options.asOptions));
+                      return function ($996) {
+                          return $994($995($996));
                       };
                   };
               }
@@ -26394,6 +26362,38 @@ var PS = {};
                   };
               };
           }
+      };
+  };
+  var changePeriodicOsc = function (dictIsSymbol) {
+      return function (dictCons) {
+          return function (dictChange$prime) {
+              return {
+                  "change'": function (dictAudioInterpret) {
+                      return function (ptr) {
+                          var $1009 = change$prime(dictChange$prime)(dictAudioInterpret)(ptr);
+                          var $1010 = Data_Functor.map(WAGS_Control_Types.functorWAG)(Data_Newtype.over()()(WAGS_Graph_AudioUnit.PeriodicOsc)(Data_Row_Options.asOptions));
+                          return function ($1011) {
+                              return $1009($1010($1011));
+                          };
+                      };
+                  }
+              };
+          };
+      };
+  };
+  var changePlayBuf = function (dictIsSymbol) {
+      return function (dictCons) {
+          return {
+              "change'": function (dictAudioInterpret) {
+                  return function (ptr) {
+                      var $1012 = change$prime(changeXPlayBuf(dictIsSymbol)())(dictAudioInterpret)(ptr);
+                      var $1013 = Data_Functor.map(WAGS_Control_Types.functorWAG)(Data_Newtype.over()()(WAGS_Graph_AudioUnit.PlayBuf)(Data_Row_Options.asOptions));
+                      return function ($1014) {
+                          return $1012($1013($1014));
+                      };
+                  };
+              }
+          };
       };
   };
   var changeRLCons = function (dictIsSymbol) {
@@ -26438,10 +26438,10 @@ var PS = {};
       return function (dictChange$prime) {
           return function (ptr) {
               return function (a) {
-                  var $914 = change$prime(dictChange$prime)(dictAudioInterpret)(ptr);
-                  var $915 = Data_Functor.voidRight(WAGS_Control_Types.functorWAG)(a);
-                  return function ($916) {
-                      return $914($915($916));
+                  var $1021 = change$prime(dictChange$prime)(dictAudioInterpret)(ptr);
+                  var $1022 = Data_Functor.voidRight(WAGS_Control_Types.functorWAG)(a);
+                  return function ($1023) {
+                      return $1021($1022($1023));
                   };
               };
           };
@@ -26453,10 +26453,10 @@ var PS = {};
   var ichange = function (dictAudioInterpret) {
       return function (dictChange) {
           return function (r) {
-              var $917 = change(dictChange)(dictAudioInterpret);
-              var $918 = Data_Functor.voidRight(WAGS_Control_Types.functorWAG)(r);
-              return function ($919) {
-                  return $917($918($919));
+              var $1024 = change(dictChange)(dictAudioInterpret);
+              var $1025 = Data_Functor.voidRight(WAGS_Control_Types.functorWAG)(r);
+              return function ($1026) {
+                  return $1024($1025($1026));
               };
           };
       };
@@ -27102,7 +27102,7 @@ var PS = {};
   exports["oneShotChangeConstantOffset"] = oneShotChangeConstantOffset;
   exports["changeXConstant"] = changeXConstant;
   exports["oneShotChangeConvolver"] = oneShotChangeConvolver;
-  exports["changeConvolver"] = changeConvolver;
+  exports["changeXConvolver"] = changeXConvolver;
   exports["oneShotChangeDelay"] = oneShotChangeDelay;
   exports["changeXDelay"] = changeXDelay;
   exports["oneShotChangeGain"] = oneShotChangeGain;
@@ -27115,19 +27115,20 @@ var PS = {};
   exports["changeInput"] = changeInput;
   exports["changeLoopBuf"] = changeLoopBuf;
   exports["oneShotChangeLowpass"] = oneShotChangeLowpass;
-  exports["changeLowpass"] = changeLowpass;
+  exports["changeXLowpass"] = changeXLowpass;
   exports["oneShotChangeLowshelf"] = oneShotChangeLowshelf;
-  exports["changeLowshelf"] = changeLowshelf;
+  exports["changeXLowshelf"] = changeXLowshelf;
   exports["oneShotChangeNotch"] = oneShotChangeNotch;
-  exports["changeNotch"] = changeNotch;
+  exports["changeXNotch"] = changeXNotch;
   exports["oneShotChangePeaking"] = oneShotChangePeaking;
-  exports["changePeaking"] = changePeaking;
-  exports["changePeriodicOscS"] = changePeriodicOscS;
+  exports["changeXPeaking"] = changeXPeaking;
   exports["changePeriodicOsc"] = changePeriodicOsc;
-  exports["oneShotChangePlayBufProxy"] = oneShotChangePlayBufProxy;
+  exports["changePeriodicXOsc"] = changePeriodicXOsc;
+  exports["oneShotChangePlayBufBuffer"] = oneShotChangePlayBufBuffer;
   exports["changePlayBuf"] = changePlayBuf;
-  exports["oneShotChangeSawtoothOsc"] = oneShotChangeSawtoothOsc;
-  exports["changeSawtoothOsc"] = changeSawtoothOsc;
+  exports["changeXPlayBuf"] = changeXPlayBuf;
+  exports["oneShotChangeSawtoothOscOffset"] = oneShotChangeSawtoothOscOffset;
+  exports["changeXSawtoothOsc"] = changeXSawtoothOsc;
   exports["oneShotChangeSinOsc"] = oneShotChangeSinOsc;
   exports["changeSinOsc"] = changeSinOsc;
   exports["changeSpeaker"] = changeSpeaker;
@@ -27377,12 +27378,12 @@ var PS = {};
                               return function (w) {
                                   var v = WAGS_Control_Types.unsafeUnWAG(w);
                                   var oversample = WAGS_Graph_Oversample.reflectOversample(dictIsOversample)(v.value.value1);
-                                  var nn = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                                  var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
                                   var o = WAGS_Control_Types.unsafeWAG({
                                       context: {
                                           res: v.context.res,
                                           instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)([ WAGS_Interpret.makeWaveShaper(dictAudioInterpret)({
-                                              id: nn,
+                                              id: id,
                                               curve: v.value.value0,
                                               oversample: oversample
                                           }) ])
@@ -27418,12 +27419,12 @@ var PS = {};
                                   return function (w) {
                                       var v = WAGS_Control_Types.unsafeUnWAG(w);
                                       var pt = Data_Symbol.reflectSymbol(dictIsSymbol1)(Type_Proxy["Proxy"].value);
-                                      var nn = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                                      var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
                                       var o = WAGS_Control_Types.unsafeWAG({
                                           context: {
                                               res: v.context.res,
                                               instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)([ WAGS_Interpret.makeTumult(dictAudioInterpret)({
-                                                  id: nn,
+                                                  id: id,
                                                   terminus: pt,
                                                   instructions: WAGS_Tumult.safeUntumult(v.value.value0)
                                               }) ])
@@ -27450,13 +27451,13 @@ var PS = {};
                               return function (ptr) {
                                   return function (w) {
                                       var v = WAGS_Control_Types.unsafeUnWAG(w);
-                                      var nn = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                                      var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
                                       var argA_iv$prime = WAGS_Graph_Paramable.paramize(dictParamable)(v.value.value1);
                                       var o = WAGS_Control_Types.unsafeWAG({
                                           context: {
                                               res: v.context.res,
                                               instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)([ WAGS_Interpret.makeTriangleOsc(dictAudioInterpret)({
-                                                  id: nn,
+                                                  id: id,
                                                   onOff: WAGS_Graph_Paramable.onOffIze(dictOnOffable)(v.value.value0),
                                                   freq: argA_iv$prime
                                               }) ])
@@ -27483,12 +27484,12 @@ var PS = {};
                               return function (ptr) {
                                   return function (w) {
                                       var v = WAGS_Control_Types.unsafeUnWAG(w);
-                                      var nn = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                                      var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
                                       var o = WAGS_Control_Types.unsafeWAG({
                                           context: {
                                               res: v.context.res,
                                               instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)([ WAGS_Interpret.makeSubgraph(dictAudioInterpret)(dictIsSymbol1)(dictPos)({
-                                                  id: nn,
+                                                  id: id,
                                                   terminus: Type_Proxy["Proxy"].value,
                                                   envs: v.value.value1,
                                                   scenes: WAGS_Interpret.unAsSubGraph(v.value.value0)(dictAudioInterpret)
@@ -27515,13 +27516,13 @@ var PS = {};
                           return function (ptr) {
                               return function (w) {
                                   var v = WAGS_Control_Types.unsafeUnWAG(w);
-                                  var nn = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                                  var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
                                   var argA_iv$prime = WAGS_Graph_Paramable.paramize(dictParamable)(v.value.value0);
                                   var o = WAGS_Control_Types.unsafeWAG({
                                       context: {
                                           res: v.context.res,
                                           instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)([ WAGS_Interpret.makeStereoPanner(dictAudioInterpret)({
-                                              id: nn,
+                                              id: id,
                                               pan: argA_iv$prime
                                           }) ])
                                       },
@@ -27562,13 +27563,13 @@ var PS = {};
                               return function (ptr) {
                                   return function (w) {
                                       var v = WAGS_Control_Types.unsafeUnWAG(w);
-                                      var nn = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                                      var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
                                       var argA_iv$prime = WAGS_Graph_Paramable.paramize(dictParamable)(v.value.value1);
                                       var o = WAGS_Control_Types.unsafeWAG({
                                           context: {
                                               res: v.context.res,
                                               instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)([ WAGS_Interpret.makeSquareOsc(dictAudioInterpret)({
-                                                  id: nn,
+                                                  id: id,
                                                   onOff: WAGS_Graph_Paramable.onOffIze(dictOnOffable)(v.value.value0),
                                                   freq: argA_iv$prime
                                               }) ])
@@ -27616,13 +27617,13 @@ var PS = {};
                               return function (ptr) {
                                   return function (w) {
                                       var v = WAGS_Control_Types.unsafeUnWAG(w);
-                                      var nn = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                                      var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
                                       var argA_iv$prime = WAGS_Graph_Paramable.paramize(dictParamable)(v.value.value1);
                                       var o = WAGS_Control_Types.unsafeWAG({
                                           context: {
                                               res: v.context.res,
                                               instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)([ WAGS_Interpret.makeSinOsc(dictAudioInterpret)({
-                                                  id: nn,
+                                                  id: id,
                                                   onOff: WAGS_Graph_Paramable.onOffIze(dictOnOffable)(v.value.value0),
                                                   freq: argA_iv$prime
                                               }) ])
@@ -27640,34 +27641,29 @@ var PS = {};
       };
   };
   var createSawtoothOsc = function (dictIsSymbol) {
-      return function (dictParamable) {
-          return function (dictLacks) {
-              return function (dictOnOffable) {
-                  return function (dictCons) {
-                      return {
-                          "create'": function (dictAudioInterpret) {
-                              return function (ptr) {
-                                  return function (w) {
-                                      var v = WAGS_Control_Types.unsafeUnWAG(w);
-                                      var nn = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
-                                      var argA_iv$prime = WAGS_Graph_Paramable.paramize(dictParamable)(v.value.value1);
-                                      var o = WAGS_Control_Types.unsafeWAG({
-                                          context: {
-                                              res: v.context.res,
-                                              instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)([ WAGS_Interpret.makeSawtoothOsc(dictAudioInterpret)({
-                                                  id: nn,
-                                                  onOff: WAGS_Graph_Paramable.onOffIze(dictOnOffable)(v.value.value0),
-                                                  freq: argA_iv$prime
-                                              }) ])
-                                          },
-                                          value: Data_Unit.unit
-                                      });
-                                      return o;
-                                  };
-                              };
-                          }
+      return function (dictLacks) {
+          return function (dictCons) {
+              return {
+                  "create'": function (dictAudioInterpret) {
+                      return function (ptr) {
+                          return function (w) {
+                              var v = WAGS_Control_Types.unsafeUnWAG(w);
+                              var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                              var o = WAGS_Control_Types.unsafeWAG({
+                                  context: {
+                                      res: v.context.res,
+                                      instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)([ WAGS_Interpret.makeSawtoothOsc(dictAudioInterpret)({
+                                          id: id,
+                                          onOff: v.value.onOff,
+                                          freq: v.value.freq
+                                      }) ])
+                                  },
+                                  value: Data_Unit.unit
+                              });
+                              return o;
+                          };
                       };
-                  };
+                  }
               };
           };
       };
@@ -27680,13 +27676,13 @@ var PS = {};
                       return function (ptr) {
                           return function (w) {
                               var v = WAGS_Control_Types.unsafeUnWAG(w);
-                              var nn = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                              var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
                               var o = WAGS_Control_Types.unsafeWAG({
                                   context: {
                                       res: v.context.res,
                                       instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)([ WAGS_Interpret.makeRecorder(dictAudioInterpret)({
-                                          id: nn,
-                                          cb: v.value.value0
+                                          id: id,
+                                          cb: v.value.cb
                                       }) ])
                                   },
                                   value: Data_Unit.unit
@@ -27700,108 +27696,89 @@ var PS = {};
       };
   };
   var createPlayBuf = function (dictIsSymbol) {
-      return function (dictParamable) {
-          return function (dictOnOffable) {
-              return function (dictLacks) {
-                  return function (dictCons) {
-                      return {
-                          "create'": function (dictAudioInterpret) {
-                              return function (ptr) {
-                                  return function (w) {
-                                      var v = WAGS_Control_Types.unsafeUnWAG(w);
-                                      var nn = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
-                                      var argA_iv$prime = WAGS_Graph_Paramable.paramize(dictParamable)(v.value.value3);
-                                      var o = WAGS_Control_Types.unsafeWAG({
-                                          context: {
-                                              res: v.context.res,
-                                              instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)([ WAGS_Interpret.makePlayBuf(dictAudioInterpret)({
-                                                  id: nn,
-                                                  buffer: v.value.value0,
-                                                  bufferOffset: v.value.value1,
-                                                  onOff: WAGS_Graph_Paramable.onOffIze(dictOnOffable)(v.value.value2),
-                                                  playbackRate: argA_iv$prime
-                                              }) ])
-                                          },
-                                          value: Data_Unit.unit
-                                      });
-                                      return o;
-                                  };
-                              };
-                          }
+      return function (dictLacks) {
+          return function (dictCons) {
+              return {
+                  "create'": function (dictAudioInterpret) {
+                      return function (ptr) {
+                          return function (w) {
+                              var v = WAGS_Control_Types.unsafeUnWAG(w);
+                              var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                              var o = WAGS_Control_Types.unsafeWAG({
+                                  context: {
+                                      res: v.context.res,
+                                      instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)([ WAGS_Interpret.makePlayBuf(dictAudioInterpret)({
+                                          id: id,
+                                          buffer: v.value.buffer,
+                                          bufferOffset: v.value.bufferOffset,
+                                          onOff: v.value.onOff,
+                                          playbackRate: v.value.playbackRate
+                                      }) ])
+                                  },
+                                  value: Data_Unit.unit
+                              });
+                              return o;
+                          };
                       };
-                  };
+                  }
               };
           };
       };
   };
   var createPeriodicOsc = function (dictIsSymbol) {
-      return function (dictParamable) {
-          return function (dictLacks) {
-              return function (dictOnOffable) {
-                  return function (dictCons) {
-                      return {
-                          "create'": function (dictAudioInterpret) {
-                              return function (ptr) {
-                                  return function (w) {
-                                      var v = WAGS_Control_Types.unsafeUnWAG(w);
-                                      var nn = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
-                                      var argA_iv$prime = WAGS_Graph_Paramable.paramize(dictParamable)(v.value.value2);
-                                      var o = WAGS_Control_Types.unsafeWAG({
-                                          context: {
-                                              res: v.context.res,
-                                              instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)([ WAGS_Interpret.makePeriodicOsc(dictAudioInterpret)({
-                                                  id: nn,
-                                                  wave: v.value.value0,
-                                                  onOff: WAGS_Graph_Paramable.onOffIze(dictOnOffable)(v.value.value1),
-                                                  freq: argA_iv$prime
-                                              }) ])
-                                          },
-                                          value: Data_Unit.unit
-                                      });
-                                      return o;
-                                  };
-                              };
-                          }
+      return function (dictLacks) {
+          return function (dictCons) {
+              return {
+                  "create'": function (dictAudioInterpret) {
+                      return function (ptr) {
+                          return function (w) {
+                              var v = WAGS_Control_Types.unsafeUnWAG(w);
+                              var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                              var o = WAGS_Control_Types.unsafeWAG({
+                                  context: {
+                                      res: v.context.res,
+                                      instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)([ WAGS_Interpret.makePeriodicOsc(dictAudioInterpret)({
+                                          id: id,
+                                          wave: v.value.wave,
+                                          onOff: v.value.onOff,
+                                          freq: v.value.freq
+                                      }) ])
+                                  },
+                                  value: Data_Unit.unit
+                              });
+                              return o;
+                          };
                       };
-                  };
+                  }
               };
           };
       };
   };
   var createPeaking = function (dictIsSymbol) {
-      return function (dictParamable) {
-          return function (dictParamable1) {
-              return function (dictParamable2) {
-                  return function (dictLacks) {
-                      return function (dictCons) {
-                          return {
-                              "create'": function (dictAudioInterpret) {
-                                  return function (ptr) {
-                                      return function (w) {
-                                          var v = WAGS_Control_Types.unsafeUnWAG(w);
-                                          var nn = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
-                                          var argC_iv$prime = WAGS_Graph_Paramable.paramize(dictParamable2)(v.value.value2);
-                                          var argB_iv$prime = WAGS_Graph_Paramable.paramize(dictParamable1)(v.value.value1);
-                                          var argA_iv$prime = WAGS_Graph_Paramable.paramize(dictParamable)(v.value.value0);
-                                          var o = WAGS_Control_Types.unsafeWAG({
-                                              context: {
-                                                  res: v.context.res,
-                                                  instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)([ WAGS_Interpret.makePeaking(dictAudioInterpret)({
-                                                      id: nn,
-                                                      freq: argA_iv$prime,
-                                                      q: argB_iv$prime,
-                                                      gain: argC_iv$prime
-                                                  }) ])
-                                              },
-                                              value: Data_Unit.unit
-                                          });
-                                          return o;
-                                      };
-                                  };
-                              }
+      return function (dictLacks) {
+          return function (dictCons) {
+              return {
+                  "create'": function (dictAudioInterpret) {
+                      return function (ptr) {
+                          return function (w) {
+                              var v = WAGS_Control_Types.unsafeUnWAG(w);
+                              var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                              var o = WAGS_Control_Types.unsafeWAG({
+                                  context: {
+                                      res: v.context.res,
+                                      instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)([ WAGS_Interpret.makePeaking(dictAudioInterpret)({
+                                          id: id,
+                                          freq: v.value.freq,
+                                          gain: v.value.gain,
+                                          q: v.value.q
+                                      }) ])
+                                  },
+                                  value: Data_Unit.unit
+                              });
+                              return o;
                           };
                       };
-                  };
+                  }
               };
           };
       };
@@ -27832,35 +27809,29 @@ var PS = {};
       };
   };
   var createNotch = function (dictIsSymbol) {
-      return function (dictParamable) {
-          return function (dictParamable1) {
-              return function (dictLacks) {
-                  return function (dictCons) {
-                      return {
-                          "create'": function (dictAudioInterpret) {
-                              return function (ptr) {
-                                  return function (w) {
-                                      var v = WAGS_Control_Types.unsafeUnWAG(w);
-                                      var nn = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
-                                      var argB_iv$prime = WAGS_Graph_Paramable.paramize(dictParamable1)(v.value.value1);
-                                      var argA_iv$prime = WAGS_Graph_Paramable.paramize(dictParamable)(v.value.value0);
-                                      var o = WAGS_Control_Types.unsafeWAG({
-                                          context: {
-                                              res: v.context.res,
-                                              instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)([ WAGS_Interpret.makeNotch(dictAudioInterpret)({
-                                                  id: nn,
-                                                  freq: argA_iv$prime,
-                                                  q: argB_iv$prime
-                                              }) ])
-                                          },
-                                          value: Data_Unit.unit
-                                      });
-                                      return o;
-                                  };
-                              };
-                          }
+      return function (dictLacks) {
+          return function (dictCons) {
+              return {
+                  "create'": function (dictAudioInterpret) {
+                      return function (ptr) {
+                          return function (w) {
+                              var v = WAGS_Control_Types.unsafeUnWAG(w);
+                              var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                              var o = WAGS_Control_Types.unsafeWAG({
+                                  context: {
+                                      res: v.context.res,
+                                      instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)([ WAGS_Interpret.makeNotch(dictAudioInterpret)({
+                                          id: id,
+                                          freq: v.value.freq,
+                                          q: v.value.q
+                                      }) ])
+                                  },
+                                  value: Data_Unit.unit
+                              });
+                              return o;
+                          };
                       };
-                  };
+                  }
               };
           };
       };
@@ -27876,7 +27847,7 @@ var PS = {};
                               context: {
                                   res: v1.context.res,
                                   instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v1.context.instructions)([ WAGS_Interpret.makeMicrophone(dictAudioInterpret)({
-                                      microphone: v1.value.value0
+                                      microphone: v1.value.microphone
                                   }) ])
                               },
                               value: Data_Unit.unit
@@ -27889,69 +27860,57 @@ var PS = {};
       };
   };
   var createLowshelf = function (dictIsSymbol) {
-      return function (dictParamable) {
-          return function (dictParamable1) {
-              return function (dictLacks) {
-                  return function (dictCons) {
-                      return {
-                          "create'": function (dictAudioInterpret) {
-                              return function (ptr) {
-                                  return function (w) {
-                                      var v = WAGS_Control_Types.unsafeUnWAG(w);
-                                      var nn = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
-                                      var argB_iv$prime = WAGS_Graph_Paramable.paramize(dictParamable1)(v.value.value1);
-                                      var argA_iv$prime = WAGS_Graph_Paramable.paramize(dictParamable)(v.value.value0);
-                                      var o = WAGS_Control_Types.unsafeWAG({
-                                          context: {
-                                              res: v.context.res,
-                                              instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)([ WAGS_Interpret.makeLowshelf(dictAudioInterpret)({
-                                                  id: nn,
-                                                  freq: argA_iv$prime,
-                                                  gain: argB_iv$prime
-                                              }) ])
-                                          },
-                                          value: Data_Unit.unit
-                                      });
-                                      return o;
-                                  };
-                              };
-                          }
+      return function (dictLacks) {
+          return function (dictCons) {
+              return {
+                  "create'": function (dictAudioInterpret) {
+                      return function (ptr) {
+                          return function (w) {
+                              var v = WAGS_Control_Types.unsafeUnWAG(w);
+                              var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                              var o = WAGS_Control_Types.unsafeWAG({
+                                  context: {
+                                      res: v.context.res,
+                                      instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)([ WAGS_Interpret.makeLowshelf(dictAudioInterpret)({
+                                          id: id,
+                                          freq: v.value.freq,
+                                          gain: v.value.gain
+                                      }) ])
+                                  },
+                                  value: Data_Unit.unit
+                              });
+                              return o;
+                          };
                       };
-                  };
+                  }
               };
           };
       };
   };
   var createLowpass = function (dictIsSymbol) {
-      return function (dictParamable) {
-          return function (dictParamable1) {
-              return function (dictLacks) {
-                  return function (dictCons) {
-                      return {
-                          "create'": function (dictAudioInterpret) {
-                              return function (ptr) {
-                                  return function (w) {
-                                      var v = WAGS_Control_Types.unsafeUnWAG(w);
-                                      var nn = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
-                                      var argB_iv$prime = WAGS_Graph_Paramable.paramize(dictParamable1)(v.value.value1);
-                                      var argA_iv$prime = WAGS_Graph_Paramable.paramize(dictParamable)(v.value.value0);
-                                      var o = WAGS_Control_Types.unsafeWAG({
-                                          context: {
-                                              res: v.context.res,
-                                              instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)([ WAGS_Interpret.makeLowpass(dictAudioInterpret)({
-                                                  id: nn,
-                                                  freq: argA_iv$prime,
-                                                  q: argB_iv$prime
-                                              }) ])
-                                          },
-                                          value: Data_Unit.unit
-                                      });
-                                      return o;
-                                  };
-                              };
-                          }
+      return function (dictLacks) {
+          return function (dictCons) {
+              return {
+                  "create'": function (dictAudioInterpret) {
+                      return function (ptr) {
+                          return function (w) {
+                              var v = WAGS_Control_Types.unsafeUnWAG(w);
+                              var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                              var o = WAGS_Control_Types.unsafeWAG({
+                                  context: {
+                                      res: v.context.res,
+                                      instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)([ WAGS_Interpret.makeLowpass(dictAudioInterpret)({
+                                          id: id,
+                                          freq: v.value.freq,
+                                          q: v.value.q
+                                      }) ])
+                                  },
+                                  value: Data_Unit.unit
+                              });
+                              return o;
+                          };
                       };
-                  };
+                  }
               };
           };
       };
@@ -28232,12 +28191,12 @@ var PS = {};
                                                       return function (ptr) {
                                                           return function (w) {
                                                               var v = WAGS_Control_Types.unsafeUnWAG(w);
-                                                              var nn = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                                                              var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
                                                               var o = WAGS_Control_Types.unsafeWAG({
                                                                   context: {
                                                                       res: v.context.res,
                                                                       instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)([ WAGS_Interpret.makeAudioWorkletNode(dictAudioInterpret)({
-                                                                          id: nn,
+                                                                          id: id,
                                                                           options: {
                                                                               name: Data_Symbol.reflectSymbol(dictIsSymbol1)(Type_Proxy["Proxy"].value),
                                                                               numberOfInputs: Data_Typelevel_Num_Sets["toInt'"](dictNat)(Type_Proxy["Proxy"].value),
@@ -28274,12 +28233,12 @@ var PS = {};
                       return function (ptr) {
                           return function (w) {
                               var v = WAGS_Control_Types.unsafeUnWAG(w);
-                              var nn = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                              var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
                               var o = WAGS_Control_Types.unsafeWAG({
                                   context: {
                                       res: v.context.res,
                                       instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)([ WAGS_Interpret.makeAnalyser(dictAudioInterpret)({
-                                          id: nn,
+                                          id: id,
                                           cb: v.value.value0
                                       }) ])
                                   },
@@ -28431,10 +28390,10 @@ var PS = {};
   var icreate = function (dictAudioInterpret) {
       return function (dictCreate) {
           return function (r) {
-              var $553 = create(dictCreate)(dictAudioInterpret);
-              var $554 = Data_Functor.voidRight(WAGS_Control_Types.functorWAG)(r);
-              return function ($555) {
-                  return $553($554($555));
+              var $536 = create(dictCreate)(dictAudioInterpret);
+              var $537 = Data_Functor.voidRight(WAGS_Control_Types.functorWAG)(r);
+              return function ($538) {
+                  return $536($537($538));
               };
           };
       };
@@ -28929,26 +28888,12 @@ var PS = {};
       SinOsc.value = new SinOsc();
       return SinOsc;
   })();
-  var SawtoothOsc = (function () {
-      function SawtoothOsc() {
-
-      };
-      SawtoothOsc.value = new SawtoothOsc();
-      return SawtoothOsc;
-  })();
   var PlayBuf = (function () {
       function PlayBuf() {
 
       };
       PlayBuf.value = new PlayBuf();
       return PlayBuf;
-  })();
-  var PeriodicOsc = (function () {
-      function PeriodicOsc() {
-
-      };
-      PeriodicOsc.value = new PeriodicOsc();
-      return PeriodicOsc;
   })();
   var Peaking = (function () {
       function Peaking() {
@@ -29022,9 +28967,9 @@ var PS = {};
   })();
   var waveShaper = function (dictIsOversample) {
       return function (a) {
-          var $199 = WAGS_Graph_AudioUnit.WaveShaper.create(a);
-          return function ($200) {
-              return Data_Tuple.Tuple.create($199($200));
+          var $203 = WAGS_Graph_AudioUnit.WaveShaper.create(a);
+          return function ($204) {
+              return Data_Tuple.Tuple.create($203($204));
           };
       };
   };
@@ -29067,8 +29012,12 @@ var PS = {};
       return dict.sawtoothOsc;
   };
   var ref = new Data_Tuple.Tuple(Data_Unit.unit, {});
-  var recorder = function ($201) {
-      return Data_Tuple.Tuple.create(WAGS_Graph_AudioUnit.Recorder.create($201));
+  var recorder = function ($205) {
+      return Data_Tuple.Tuple.create(WAGS_Graph_AudioUnit.Recorder((function (v) {
+          return {
+              cb: v
+          };
+      })($205)));
   };
   var playBuf = function (dict) {
       return dict.playBuf;
@@ -29088,9 +29037,13 @@ var PS = {};
       return dict.notch;
   }; 
   var microphone = (function () {
-      var $202 = Data_Function.flip(Data_Tuple.Tuple.create)({});
-      return function ($203) {
-          return $202(WAGS_Graph_AudioUnit.Microphone.create($203));
+      var $206 = Data_Function.flip(Data_Tuple.Tuple.create)({});
+      return function ($207) {
+          return $206(WAGS_Graph_AudioUnit.Microphone((function (v) {
+              return {
+                  microphone: v
+              };
+          })($207)));
       };
   })();
   var lowshelf = function (dict) {
@@ -29171,7 +29124,10 @@ var PS = {};
   var sawtoothOscCtor2 = function (dictParamable) {
       return {
           sawtoothOsc: function (a) {
-              return new Data_Tuple.Tuple(new WAGS_Graph_AudioUnit.SawtoothOsc(defaultSawtoothOsc.onOff, WAGS_Graph_Paramable.paramize(dictParamable)(a)), {});
+              return new Data_Tuple.Tuple({
+                  onOff: defaultSawtoothOsc.onOff,
+                  freq: WAGS_Graph_Paramable.paramize(dictParamable)(a)
+              }, {});
           }
       };
   };
@@ -29183,16 +29139,26 @@ var PS = {};
   var playBufCtor1 = function (dictConvertOptionsWithDefaults) {
       return {
           playBuf: function (provided) {
-              return function (proxy) {
+              return function (buffer) {
                   var all = ConvertableOptions.convertOptionsWithDefaults(dictConvertOptionsWithDefaults)(PlayBuf.value)(defaultPlayBuf)(provided);
-                  return new Data_Tuple.Tuple(new WAGS_Graph_AudioUnit.PlayBuf(proxy, all.bufferOffset, all.onOff, all.playbackRate), {});
+                  return new Data_Tuple.Tuple({
+                      buffer: buffer,
+                      bufferOffset: all.bufferOffset,
+                      onOff: all.onOff,
+                      playbackRate: all.playbackRate
+                  }, {});
               };
           }
       };
   };
   var playBufCtor2 = {
-      playBuf: function (str) {
-          return new Data_Tuple.Tuple(new WAGS_Graph_AudioUnit.PlayBuf(str, defaultPlayBuf.bufferOffset, defaultPlayBuf.onOff, defaultPlayBuf.playbackRate), {});
+      playBuf: function (buffer) {
+          return new Data_Tuple.Tuple({
+              buffer: buffer,
+              bufferOffset: defaultPlayBuf.bufferOffset,
+              onOff: defaultPlayBuf.onOff,
+              playbackRate: defaultPlayBuf.playbackRate
+          }, {});
       }
   };
   var defaultPeriodicOsc = {
@@ -29203,7 +29169,11 @@ var PS = {};
           return {
               periodicOsc: function (wave) {
                   return function (a) {
-                      return new Data_Tuple.Tuple(new WAGS_Graph_AudioUnit.PeriodicOsc(wave, defaultPeriodicOsc.onOff, WAGS_Graph_Paramable.paramize(dictParamable)(a)), {});
+                      return new Data_Tuple.Tuple({
+                          wave: wave,
+                          onOff: defaultPeriodicOsc.onOff,
+                          freq: WAGS_Graph_Paramable.paramize(dictParamable)(a)
+                      }, {});
                   };
               }
           };
@@ -29217,7 +29187,7 @@ var PS = {};
       return {
           peaking: function (provided) {
               var all = ConvertableOptions.convertOptionsWithDefaults(dictConvertOptionsWithDefaults)(Peaking.value)(defaultPeaking)(provided);
-              return Data_Tuple.Tuple.create(new WAGS_Graph_AudioUnit.Peaking(all.freq, all.q, all.gain));
+              return Data_Tuple.Tuple.create(all);
           }
       };
   };
@@ -29228,7 +29198,7 @@ var PS = {};
       return {
           notch: function (provided) {
               var all = ConvertableOptions.convertOptionsWithDefaults(dictConvertOptionsWithDefaults)(Notch.value)(defaultNotch)(provided);
-              return Data_Tuple.Tuple.create(new WAGS_Graph_AudioUnit.Notch(all.freq, all.q));
+              return Data_Tuple.Tuple.create(all);
           }
       };
   };
@@ -29239,7 +29209,7 @@ var PS = {};
       return {
           lowshelf: function (provided) {
               var all = ConvertableOptions.convertOptionsWithDefaults(dictConvertOptionsWithDefaults)(Lowshelf.value)(defaultLowshelf)(provided);
-              return Data_Tuple.Tuple.create(new WAGS_Graph_AudioUnit.Lowshelf(all.freq, all.gain));
+              return Data_Tuple.Tuple.create(all);
           }
       };
   };
@@ -29250,7 +29220,7 @@ var PS = {};
       return {
           lowpass: function (provided) {
               var all = ConvertableOptions.convertOptionsWithDefaults(dictConvertOptionsWithDefaults)(Lowpass.value)(defaultLowpass)(provided);
-              return Data_Tuple.Tuple.create(new WAGS_Graph_AudioUnit.Lowpass(all.freq, all.q));
+              return Data_Tuple.Tuple.create(all);
           }
       };
   };
@@ -29543,8 +29513,8 @@ var PS = {};
           };
       };
   };
-  var analyser = function ($208) {
-      return Data_Tuple.Tuple.create(WAGS_Graph_AudioUnit.Analyser.create($208));
+  var analyser = function ($212) {
+      return Data_Tuple.Tuple.create(WAGS_Graph_AudioUnit.Analyser.create($212));
   };
   var allpassCtor1 = function (dictConvertOptionsWithDefaults) {
       return {
@@ -30771,7 +30741,7 @@ var PS = {};
           reflectSymbol: function () {
               return "play0";
           }
-      })(WAGS_Graph_Paramable.paramableAudioParameter)(WAGS_Graph_Paramable.onOffIzeAudioParameter)()())()(WAGS_Create.createStepRLNil)(WAGS_Create.createStepRLNil))(WAGS_Create.createStepRLNil))(WAGS_Create.createStepRLNil))(WAGS_Create.connectAfterCreateCons()()()()()()(WAGS_Create.connectEdgesToNodeCons(WAGS_Connect.connectInstance({
+      })()())()(WAGS_Create.createStepRLNil)(WAGS_Create.createStepRLNil))(WAGS_Create.createStepRLNil))(WAGS_Create.createStepRLNil))(WAGS_Create.connectAfterCreateCons()()()()()()(WAGS_Create.connectEdgesToNodeCons(WAGS_Connect.connectInstance({
           reflectSymbol: function () {
               return "gain0";
           }
@@ -30830,7 +30800,7 @@ var PS = {};
               reflectSymbol: function () {
                   return "play0";
               }
-          })(WAGS_Graph_Parameter.justMM)(WAGS_Graph_Parameter.justMM)(WAGS_Graph_Parameter.justMM)(WAGS_Graph_Paramable.onOffIzeAudioParameter)(WAGS_Graph_Parameter.justMM)(WAGS_Graph_Paramable.paramableAudioParameter)())(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLNil)))(WAGS_Change.changeRLNil)))(WAGS_Change.changeRLNil))))(scene(shouldReset)(v)))((function () {
+          })())(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLNil)))(WAGS_Change.changeRLNil)))(WAGS_Change.changeRLNil))))(scene(shouldReset)(v)))((function () {
               if (shouldReset) {
                   return v.time;
               };
@@ -31702,8 +31672,6 @@ var PS = {};
   var WAGS_Create_Optionals = $PS["WAGS.Create.Optionals"];
   var WAGS_Example_KitchenSink_Timing = $PS["WAGS.Example.KitchenSink.Timing"];
   var WAGS_Graph_AudioUnit = $PS["WAGS.Graph.AudioUnit"];
-  var WAGS_Graph_Paramable = $PS["WAGS.Graph.Paramable"];
-  var WAGS_Graph_Parameter = $PS["WAGS.Graph.Parameter"];
   var WAGS_Interpret = $PS["WAGS.Interpret"];                
   var ksDynamicsCompressorCreate = function (v) {
       return {
@@ -31773,11 +31741,11 @@ var PS = {};
                   reflectSymbol: function () {
                       return "buf";
                   }
-              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeBrowserAudioBuffer()()(WAGS_Graph_AudioUnit.monoidTPlayBuf)(WAGS_Change.oneShotChangePlayBufProxy)(WAGS_Change.changePlayBuf({
+              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeBrowserAudioBuffer()()(WAGS_Graph_AudioUnit.monoidTPlayBuf)(WAGS_Change.oneShotChangePlayBufBuffer)(WAGS_Change.changeXPlayBuf({
                   reflectSymbol: function () {
                       return "buf";
                   }
-              })(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Paramable.onOffIzeAudioParameter)(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Paramable.paramableAudioParameter)()))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
+              })()))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
                   reflectSymbol: function () {
                       return "compressor";
                   }
@@ -32149,7 +32117,6 @@ var PS = {};
   var WAGS_Example_KitchenSink_Types_Constant = $PS["WAGS.Example.KitchenSink.Types.Constant"];
   var WAGS_Example_KitchenSink_Types_DynamicsCompressor = $PS["WAGS.Example.KitchenSink.Types.DynamicsCompressor"];
   var WAGS_Example_KitchenSink_Types_Empty = $PS["WAGS.Example.KitchenSink.Types.Empty"];
-  var WAGS_Graph_Paramable = $PS["WAGS.Graph.Paramable"];
   var WAGS_Interpret = $PS["WAGS.Interpret"];                
   var doConstant = WAGS_Control_Functions.ibranch(Data_Monoid.monoidString)(WAGS_Interpret.mixedAudioInterpret)(WAGS_Control_Types.isSceneScene)(function (v) {
       return function (lsig) {
@@ -32202,7 +32169,7 @@ var PS = {};
                       reflectSymbol: function () {
                           return "buf";
                       }
-                  })(WAGS_Graph_Paramable.paramableAudioParameter)(WAGS_Graph_Paramable.onOffIzeAudioParameter)()())()(WAGS_Create.createStepRLNil)(WAGS_Create.createStepRLNil))(WAGS_Create.createStepRLNil))(WAGS_Create.connectAfterCreateCons()()()()()()(WAGS_Create.connectEdgesToNodeCons(WAGS_Connect.connectInstance({
+                  })()())()(WAGS_Create.createStepRLNil)(WAGS_Create.createStepRLNil))(WAGS_Create.createStepRLNil))(WAGS_Create.connectAfterCreateCons()()()()()()(WAGS_Create.connectEdgesToNodeCons(WAGS_Connect.connectInstance({
                       reflectSymbol: function () {
                           return "buf";
                       }
@@ -32705,7 +32672,7 @@ var PS = {};
                       reflectSymbol: function () {
                           return "buf";
                       }
-                  })(WAGS_Graph_Paramable.paramableAudioParameter)(WAGS_Graph_Paramable.onOffIzeAudioParameter)()())()(WAGS_Create.createStepRLNil)(WAGS_Create.createStepRLNil))(WAGS_Create.createStepRLNil))(WAGS_Create.connectAfterCreateCons()()()()()()(WAGS_Create.connectEdgesToNodeCons(WAGS_Connect.connectInstance({
+                  })()())()(WAGS_Create.createStepRLNil)(WAGS_Create.createStepRLNil))(WAGS_Create.createStepRLNil))(WAGS_Create.connectAfterCreateCons()()()()()()(WAGS_Create.connectEdgesToNodeCons(WAGS_Connect.connectInstance({
                       reflectSymbol: function () {
                           return "buf";
                       }
@@ -33256,7 +33223,6 @@ var PS = {};
   var WAGS_Example_KitchenSink_Types_Delay = $PS["WAGS.Example.KitchenSink.Types.Delay"];
   var WAGS_Example_KitchenSink_Types_Empty = $PS["WAGS.Example.KitchenSink.Types.Empty"];
   var WAGS_Example_KitchenSink_Types_Feedback = $PS["WAGS.Example.KitchenSink.Types.Feedback"];
-  var WAGS_Graph_Paramable = $PS["WAGS.Graph.Paramable"];
   var WAGS_Interpret = $PS["WAGS.Interpret"];                
   var doDelay = WAGS_Control_Functions.ibranch(Data_Monoid.monoidString)(WAGS_Interpret.mixedAudioInterpret)(WAGS_Control_Types.isSceneScene)(function (v) {
       return function (lsig) {
@@ -33387,7 +33353,7 @@ var PS = {};
                                           reflectSymbol: function () {
                                               return "buf";
                                           }
-                                      })(WAGS_Graph_Paramable.paramableAudioParameter)(WAGS_Graph_Paramable.onOffIzeAudioParameter)()())()(WAGS_Create.createStepRLNil)(WAGS_Create.createStepRLCons({
+                                      })()())()(WAGS_Create.createStepRLNil)(WAGS_Create.createStepRLCons({
                                           reflectSymbol: function () {
                                               return "delay";
                                           }
@@ -33612,7 +33578,6 @@ var PS = {};
   var WAGS_Example_KitchenSink_Types_Delay = $PS["WAGS.Example.KitchenSink.Types.Delay"];
   var WAGS_Example_KitchenSink_Types_Empty = $PS["WAGS.Example.KitchenSink.Types.Empty"];
   var WAGS_Example_KitchenSink_Types_WaveShaper = $PS["WAGS.Example.KitchenSink.Types.WaveShaper"];
-  var WAGS_Graph_Paramable = $PS["WAGS.Graph.Paramable"];
   var WAGS_Interpret = $PS["WAGS.Interpret"];                
   var doWaveShaper = WAGS_Control_Functions.ibranch(Data_Monoid.monoidString)(WAGS_Interpret.mixedAudioInterpret)(WAGS_Control_Types.isSceneScene)(function (v) {
       return function (lsig) {
@@ -33706,7 +33671,7 @@ var PS = {};
                               reflectSymbol: function () {
                                   return "buf";
                               }
-                          })(WAGS_Graph_Paramable.paramableAudioParameter)(WAGS_Graph_Paramable.onOffIzeAudioParameter)()())()(WAGS_Create.createStepRLNil)(WAGS_Create.createStepRLNil))(WAGS_Create.createStepRLNil)))(WAGS_Create.createStepRLNil))(WAGS_Create.connectAfterCreateCons()()()()()()(WAGS_Create.connectEdgesToNodeCons(WAGS_Connect.connectInstance({
+                          })()())()(WAGS_Create.createStepRLNil)(WAGS_Create.createStepRLNil))(WAGS_Create.createStepRLNil)))(WAGS_Create.createStepRLNil))(WAGS_Create.connectAfterCreateCons()()()()()()(WAGS_Create.connectEdgesToNodeCons(WAGS_Connect.connectInstance({
                               reflectSymbol: function () {
                                   return "buf";
                               }
@@ -33857,7 +33822,6 @@ var PS = {};
   var WAGS_Example_KitchenSink_Types_Microphone = $PS["WAGS.Example.KitchenSink.Types.Microphone"];
   var WAGS_Example_KitchenSink_Types_WaveShaper = $PS["WAGS.Example.KitchenSink.Types.WaveShaper"];
   var WAGS_Graph_Oversample = $PS["WAGS.Graph.Oversample"];
-  var WAGS_Graph_Paramable = $PS["WAGS.Graph.Paramable"];
   var WAGS_Interpret = $PS["WAGS.Interpret"];                
   var doMicrophone = WAGS_Control_Functions.ibranch(Data_Monoid.monoidString)(WAGS_Interpret.mixedAudioInterpret)(WAGS_Control_Types.isSceneScene)(function (v) {
       return function (lsig) {
@@ -33910,7 +33874,7 @@ var PS = {};
                       reflectSymbol: function () {
                           return "buf";
                       }
-                  })(WAGS_Graph_Paramable.paramableAudioParameter)(WAGS_Graph_Paramable.onOffIzeAudioParameter)()())()(WAGS_Create.createStepRLNil)(WAGS_Create.createStepRLNil))(WAGS_Create.createStepRLNil))(WAGS_Create.connectAfterCreateCons()()()()()()(WAGS_Create.connectEdgesToNodeCons(WAGS_Connect.connectInstance({
+                  })()())()(WAGS_Create.createStepRLNil)(WAGS_Create.createStepRLNil))(WAGS_Create.createStepRLNil))(WAGS_Create.connectAfterCreateCons()()()()()()(WAGS_Create.connectEdgesToNodeCons(WAGS_Connect.connectInstance({
                       reflectSymbol: function () {
                           return "buf";
                       }
@@ -34297,11 +34261,11 @@ var PS = {};
                   reflectSymbol: function () {
                       return "peaking";
                   }
-              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTPeaking)(WAGS_Change.oneShotChangePeaking)(WAGS_Change.changePeaking({
+              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTPeaking)(WAGS_Change.oneShotChangePeaking)(WAGS_Change.changeXPeaking({
                   reflectSymbol: function () {
                       return "peaking";
                   }
-              })(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Paramable.paramableAudioParameter)(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Paramable.paramableAudioParameter)(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Paramable.paramableAudioParameter)())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLNil))))))({
+              })())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLNil))))))({
                   mix: mix,
                   peaking: peaking,
                   buf: {
@@ -34347,7 +34311,6 @@ var PS = {};
   var WAGS_Example_KitchenSink_Types_Empty = $PS["WAGS.Example.KitchenSink.Types.Empty"];
   var WAGS_Example_KitchenSink_Types_Highpass = $PS["WAGS.Example.KitchenSink.Types.Highpass"];
   var WAGS_Example_KitchenSink_Types_Peaking = $PS["WAGS.Example.KitchenSink.Types.Peaking"];
-  var WAGS_Graph_Paramable = $PS["WAGS.Graph.Paramable"];
   var WAGS_Interpret = $PS["WAGS.Interpret"];                
   var doPeaking = WAGS_Control_Functions.ibranch(Data_Monoid.monoidString)(WAGS_Interpret.mixedAudioInterpret)(WAGS_Control_Types.isSceneScene)(function (v) {
       return function (lsig) {
@@ -34429,7 +34392,7 @@ var PS = {};
                               reflectSymbol: function () {
                                   return "buf";
                               }
-                          })(WAGS_Graph_Paramable.paramableAudioParameter)(WAGS_Graph_Paramable.onOffIzeAudioParameter)()())()(WAGS_Create.createStepRLNil)(WAGS_Create.createStepRLNil))(WAGS_Create.createStepRLNil))(WAGS_Create.connectAfterCreateCons()()()()()()(WAGS_Create.connectEdgesToNodeCons(WAGS_Connect.connectInstance({
+                          })()())()(WAGS_Create.createStepRLNil)(WAGS_Create.createStepRLNil))(WAGS_Create.createStepRLNil))(WAGS_Create.connectAfterCreateCons()()()()()()(WAGS_Create.connectEdgesToNodeCons(WAGS_Connect.connectInstance({
                               reflectSymbol: function () {
                                   return "buf";
                               }
@@ -34573,11 +34536,11 @@ var PS = {};
                   reflectSymbol: function () {
                       return "notch";
                   }
-              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTNotch)(WAGS_Change.oneShotChangeNotch)(WAGS_Change.changeNotch({
+              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTNotch)(WAGS_Change.oneShotChangeNotch)(WAGS_Change.changeXNotch({
                   reflectSymbol: function () {
                       return "notch";
                   }
-              })(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Paramable.paramableAudioParameter)(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Paramable.paramableAudioParameter)())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLNil))))))({
+              })())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLNil))))))({
                   mix: mix,
                   notch: notch,
                   buf: {
@@ -34621,7 +34584,6 @@ var PS = {};
   var WAGS_Example_KitchenSink_Types_Empty = $PS["WAGS.Example.KitchenSink.Types.Empty"];
   var WAGS_Example_KitchenSink_Types_Notch = $PS["WAGS.Example.KitchenSink.Types.Notch"];
   var WAGS_Example_KitchenSink_Types_Peaking = $PS["WAGS.Example.KitchenSink.Types.Peaking"];
-  var WAGS_Graph_Paramable = $PS["WAGS.Graph.Paramable"];
   var WAGS_Interpret = $PS["WAGS.Interpret"];                
   var doNotch = WAGS_Control_Functions.ibranch(Data_Monoid.monoidString)(WAGS_Interpret.mixedAudioInterpret)(WAGS_Control_Types.isSceneScene)(function (v) {
       return function (lsig) {
@@ -34695,7 +34657,7 @@ var PS = {};
                               reflectSymbol: function () {
                                   return "peaking";
                               }
-                          })(WAGS_Graph_Paramable.paramableAudioParameter)(WAGS_Graph_Paramable.paramableAudioParameter)(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+                          })()())()(WAGS_Create.createStepRLCons({
                               reflectSymbol: function () {
                                   return "buf";
                               }
@@ -34703,7 +34665,7 @@ var PS = {};
                               reflectSymbol: function () {
                                   return "buf";
                               }
-                          })(WAGS_Graph_Paramable.paramableAudioParameter)(WAGS_Graph_Paramable.onOffIzeAudioParameter)()())()(WAGS_Create.createStepRLNil)(WAGS_Create.createStepRLNil))(WAGS_Create.createStepRLNil))(WAGS_Create.connectAfterCreateCons()()()()()()(WAGS_Create.connectEdgesToNodeCons(WAGS_Connect.connectInstance({
+                          })()())()(WAGS_Create.createStepRLNil)(WAGS_Create.createStepRLNil))(WAGS_Create.createStepRLNil))(WAGS_Create.connectAfterCreateCons()()()()()()(WAGS_Create.connectEdgesToNodeCons(WAGS_Connect.connectInstance({
                               reflectSymbol: function () {
                                   return "buf";
                               }
@@ -34894,7 +34856,6 @@ var PS = {};
   var WAGS_Example_KitchenSink_Types_Bandpass = $PS["WAGS.Example.KitchenSink.Types.Bandpass"];
   var WAGS_Example_KitchenSink_Types_Empty = $PS["WAGS.Example.KitchenSink.Types.Empty"];
   var WAGS_Example_KitchenSink_Types_Notch = $PS["WAGS.Example.KitchenSink.Types.Notch"];
-  var WAGS_Graph_Paramable = $PS["WAGS.Graph.Paramable"];
   var WAGS_Interpret = $PS["WAGS.Interpret"];                
   var doBandpass = WAGS_Control_Functions.ibranch(Data_Monoid.monoidString)(WAGS_Interpret.mixedAudioInterpret)(WAGS_Control_Types.isSceneScene)(function (v) {
       return function (lsig) {
@@ -34968,7 +34929,7 @@ var PS = {};
                               reflectSymbol: function () {
                                   return "notch";
                               }
-                          })(WAGS_Graph_Paramable.paramableAudioParameter)(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+                          })()())()(WAGS_Create.createStepRLCons({
                               reflectSymbol: function () {
                                   return "buf";
                               }
@@ -34976,7 +34937,7 @@ var PS = {};
                               reflectSymbol: function () {
                                   return "buf";
                               }
-                          })(WAGS_Graph_Paramable.paramableAudioParameter)(WAGS_Graph_Paramable.onOffIzeAudioParameter)()())()(WAGS_Create.createStepRLNil)(WAGS_Create.createStepRLNil))(WAGS_Create.createStepRLNil))(WAGS_Create.connectAfterCreateCons()()()()()()(WAGS_Create.connectEdgesToNodeCons(WAGS_Connect.connectInstance({
+                          })()())()(WAGS_Create.createStepRLNil)(WAGS_Create.createStepRLNil))(WAGS_Create.createStepRLNil))(WAGS_Create.connectAfterCreateCons()()()()()()(WAGS_Create.connectEdgesToNodeCons(WAGS_Connect.connectInstance({
                               reflectSymbol: function () {
                                   return "buf";
                               }
@@ -35112,11 +35073,11 @@ var PS = {};
                   reflectSymbol: function () {
                       return "lowshelf";
                   }
-              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTLowshelf)(WAGS_Change.oneShotChangeLowshelf)(WAGS_Change.changeLowshelf({
+              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTLowshelf)(WAGS_Change.oneShotChangeLowshelf)(WAGS_Change.changeXLowshelf({
                   reflectSymbol: function () {
                       return "lowshelf";
                   }
-              })(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Paramable.paramableAudioParameter)(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Paramable.paramableAudioParameter)())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
+              })())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
                   reflectSymbol: function () {
                       return "mix";
                   }
@@ -35168,7 +35129,6 @@ var PS = {};
   var WAGS_Example_KitchenSink_Types_Bandpass = $PS["WAGS.Example.KitchenSink.Types.Bandpass"];
   var WAGS_Example_KitchenSink_Types_Empty = $PS["WAGS.Example.KitchenSink.Types.Empty"];
   var WAGS_Example_KitchenSink_Types_Lowshelf = $PS["WAGS.Example.KitchenSink.Types.Lowshelf"];
-  var WAGS_Graph_Paramable = $PS["WAGS.Graph.Paramable"];
   var WAGS_Interpret = $PS["WAGS.Interpret"];                
   var doLowshelf = WAGS_Control_Functions.ibranch(Data_Monoid.monoidString)(WAGS_Interpret.mixedAudioInterpret)(WAGS_Control_Types.isSceneScene)(function (v) {
       return function (lsig) {
@@ -35250,7 +35210,7 @@ var PS = {};
                               reflectSymbol: function () {
                                   return "buf";
                               }
-                          })(WAGS_Graph_Paramable.paramableAudioParameter)(WAGS_Graph_Paramable.onOffIzeAudioParameter)()())()(WAGS_Create.createStepRLNil)(WAGS_Create.createStepRLNil))(WAGS_Create.createStepRLNil))(WAGS_Create.connectAfterCreateCons()()()()()()(WAGS_Create.connectEdgesToNodeCons(WAGS_Connect.connectInstance({
+                          })()())()(WAGS_Create.createStepRLNil)(WAGS_Create.createStepRLNil))(WAGS_Create.createStepRLNil))(WAGS_Create.connectAfterCreateCons()()()()()()(WAGS_Create.connectEdgesToNodeCons(WAGS_Connect.connectInstance({
                               reflectSymbol: function () {
                                   return "buf";
                               }
@@ -35442,7 +35402,6 @@ var PS = {};
   var WAGS_Example_KitchenSink_Types_Empty = $PS["WAGS.Example.KitchenSink.Types.Empty"];
   var WAGS_Example_KitchenSink_Types_Highshelf = $PS["WAGS.Example.KitchenSink.Types.Highshelf"];
   var WAGS_Example_KitchenSink_Types_Lowshelf = $PS["WAGS.Example.KitchenSink.Types.Lowshelf"];
-  var WAGS_Graph_Paramable = $PS["WAGS.Graph.Paramable"];
   var WAGS_Interpret = $PS["WAGS.Interpret"];                
   var doHighshelf = WAGS_Control_Functions.ibranch(Data_Monoid.monoidString)(WAGS_Interpret.mixedAudioInterpret)(WAGS_Control_Types.isSceneScene)(function (v) {
       return function (lsig) {
@@ -35516,7 +35475,7 @@ var PS = {};
                               reflectSymbol: function () {
                                   return "lowshelf";
                               }
-                          })(WAGS_Graph_Paramable.paramableAudioParameter)(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+                          })()())()(WAGS_Create.createStepRLCons({
                               reflectSymbol: function () {
                                   return "buf";
                               }
@@ -35524,7 +35483,7 @@ var PS = {};
                               reflectSymbol: function () {
                                   return "buf";
                               }
-                          })(WAGS_Graph_Paramable.paramableAudioParameter)(WAGS_Graph_Paramable.onOffIzeAudioParameter)()())()(WAGS_Create.createStepRLNil)(WAGS_Create.createStepRLNil))(WAGS_Create.createStepRLNil))(WAGS_Create.connectAfterCreateCons()()()()()()(WAGS_Create.connectEdgesToNodeCons(WAGS_Connect.connectInstance({
+                          })()())()(WAGS_Create.createStepRLNil)(WAGS_Create.createStepRLNil))(WAGS_Create.createStepRLNil))(WAGS_Create.connectAfterCreateCons()()()()()()(WAGS_Create.connectEdgesToNodeCons(WAGS_Connect.connectInstance({
                               reflectSymbol: function () {
                                   return "buf";
                               }
@@ -35660,11 +35619,11 @@ var PS = {};
                   reflectSymbol: function () {
                       return "lowpass";
                   }
-              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTLowpass)(WAGS_Change.oneShotChangeLowpass)(WAGS_Change.changeLowpass({
+              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTLowpass)(WAGS_Change.oneShotChangeLowpass)(WAGS_Change.changeXLowpass({
                   reflectSymbol: function () {
                       return "lowpass";
                   }
-              })(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Paramable.paramableAudioParameter)(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Paramable.paramableAudioParameter)())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
+              })())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
                   reflectSymbol: function () {
                       return "mix";
                   }
@@ -35716,7 +35675,6 @@ var PS = {};
   var WAGS_Example_KitchenSink_Types_Empty = $PS["WAGS.Example.KitchenSink.Types.Empty"];
   var WAGS_Example_KitchenSink_Types_Highshelf = $PS["WAGS.Example.KitchenSink.Types.Highshelf"];
   var WAGS_Example_KitchenSink_Types_Lowpass = $PS["WAGS.Example.KitchenSink.Types.Lowpass"];
-  var WAGS_Graph_Paramable = $PS["WAGS.Graph.Paramable"];
   var WAGS_Interpret = $PS["WAGS.Interpret"];                
   var doLowpass = WAGS_Control_Functions.ibranch(Data_Monoid.monoidString)(WAGS_Interpret.mixedAudioInterpret)(WAGS_Control_Types.isSceneScene)(function (v) {
       return function (lsig) {
@@ -35798,7 +35756,7 @@ var PS = {};
                               reflectSymbol: function () {
                                   return "buf";
                               }
-                          })(WAGS_Graph_Paramable.paramableAudioParameter)(WAGS_Graph_Paramable.onOffIzeAudioParameter)()())()(WAGS_Create.createStepRLNil)(WAGS_Create.createStepRLNil))(WAGS_Create.createStepRLNil))(WAGS_Create.connectAfterCreateCons()()()()()()(WAGS_Create.connectEdgesToNodeCons(WAGS_Connect.connectInstance({
+                          })()())()(WAGS_Create.createStepRLNil)(WAGS_Create.createStepRLNil))(WAGS_Create.createStepRLNil))(WAGS_Create.connectAfterCreateCons()()()()()()(WAGS_Create.connectEdgesToNodeCons(WAGS_Connect.connectInstance({
                               reflectSymbol: function () {
                                   return "buf";
                               }
@@ -36452,8 +36410,6 @@ var PS = {};
   var WAGS_Example_KitchenSink_Types_Empty = $PS["WAGS.Example.KitchenSink.Types.Empty"];
   var WAGS_Example_KitchenSink_Types_Lowpass = $PS["WAGS.Example.KitchenSink.Types.Lowpass"];
   var WAGS_Graph_AudioUnit = $PS["WAGS.Graph.AudioUnit"];
-  var WAGS_Graph_Paramable = $PS["WAGS.Graph.Paramable"];
-  var WAGS_Graph_Parameter = $PS["WAGS.Graph.Parameter"];
   var WAGS_Interpret = $PS["WAGS.Interpret"];
   var WAGS_Patch = $PS["WAGS.Patch"];                
   var doAllpass = WAGS_Control_Functions.ibranch(Data_Monoid.monoidString)(WAGS_Interpret.mixedAudioInterpret)(WAGS_Control_Types.isSceneScene)(function (v) {
@@ -36530,7 +36486,7 @@ var PS = {};
                                   reflectSymbol: function () {
                                       return "lowpass";
                                   }
-                              })(WAGS_Graph_Paramable.paramableAudioParameter)(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+                              })()())()(WAGS_Create.createStepRLCons({
                                   reflectSymbol: function () {
                                       return "buf";
                                   }
@@ -36538,7 +36494,7 @@ var PS = {};
                                   reflectSymbol: function () {
                                       return "buf";
                                   }
-                              })(WAGS_Graph_Paramable.paramableAudioParameter)(WAGS_Graph_Paramable.onOffIzeAudioParameter)()())()(WAGS_Create.createStepRLNil)(WAGS_Create.createStepRLNil))(WAGS_Create.createStepRLNil))(WAGS_Create.connectAfterCreateCons()()()()()()(WAGS_Create.connectEdgesToNodeCons(WAGS_Connect.connectInstance({
+                              })()())()(WAGS_Create.createStepRLNil)(WAGS_Create.createStepRLNil))(WAGS_Create.createStepRLNil))(WAGS_Create.connectAfterCreateCons()()()()()()(WAGS_Create.connectEdgesToNodeCons(WAGS_Connect.connectInstance({
                                   reflectSymbol: function () {
                                       return "buf";
                                   }
@@ -36633,19 +36589,19 @@ var PS = {};
                   reflectSymbol: function () {
                       return "buf";
                   }
-              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeBrowserAudioBuffer()()(WAGS_Graph_AudioUnit.monoidTPlayBuf)(WAGS_Change.oneShotChangePlayBufProxy)(WAGS_Change.changePlayBuf({
+              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeBrowserAudioBuffer()()(WAGS_Graph_AudioUnit.monoidTPlayBuf)(WAGS_Change.oneShotChangePlayBufBuffer)(WAGS_Change.changeXPlayBuf({
                   reflectSymbol: function () {
                       return "buf";
                   }
-              })(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Paramable.onOffIzeAudioParameter)(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Paramable.paramableAudioParameter)()))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
+              })()))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
                   reflectSymbol: function () {
                       return "lowpass";
                   }
-              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTLowpass)(WAGS_Change.oneShotChangeLowpass)(WAGS_Change.changeLowpass({
+              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTLowpass)(WAGS_Change.oneShotChangeLowpass)(WAGS_Change.changeXLowpass({
                   reflectSymbol: function () {
                       return "lowpass";
                   }
-              })(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Paramable.paramableAudioParameter)(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Paramable.paramableAudioParameter)())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLNil)))))({
+              })())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLNil)))))({
                   lowpass: 300.0,
                   buf: v["world"]["buffers"]["my-buffer"]
               }))(function () {
@@ -36676,8 +36632,6 @@ var PS = {};
   var WAGS_Example_KitchenSink_TLP_Allpass = $PS["WAGS.Example.KitchenSink.TLP.Allpass"];
   var WAGS_Example_KitchenSink_Timing = $PS["WAGS.Example.KitchenSink.Timing"];
   var WAGS_Example_KitchenSink_Types_Allpass = $PS["WAGS.Example.KitchenSink.Types.Allpass"];
-  var WAGS_Graph_Paramable = $PS["WAGS.Graph.Paramable"];
-  var WAGS_Graph_Parameter = $PS["WAGS.Graph.Parameter"];
   var WAGS_Interpret = $PS["WAGS.Interpret"];
   var WAGS_Patch = $PS["WAGS.Patch"];                
   var doConvolver = WAGS_Control_Functions.ibranch(Data_Monoid.monoidString)(WAGS_Interpret.mixedAudioInterpret)(WAGS_Control_Types.isSceneScene)(function (v) {
@@ -36747,7 +36701,7 @@ var PS = {};
               reflectSymbol: function () {
                   return "buf";
               }
-          })(WAGS_Graph_Parameter.justMM)(WAGS_Graph_Parameter.justMM)(WAGS_Graph_Parameter.justMM)(WAGS_Graph_Paramable.onOffIzeAudioParameter)(WAGS_Graph_Parameter.justMM)(WAGS_Graph_Paramable.paramableAudioParameter)())(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLNil)))(WAGS_Change.changeRLNil))))(WAGS_Example_KitchenSink_Types_Allpass.ksAllpassCreate(v.world))))(lsig)));
+          })())(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLNil)))(WAGS_Change.changeRLNil))))(WAGS_Example_KitchenSink_Types_Allpass.ksAllpassCreate(v.world))))(lsig)));
       };
   });
   exports["doConvolver"] = doConvolver;
@@ -36775,7 +36729,6 @@ var PS = {};
   var WAGS_Example_KitchenSink_TLP_Convolver = $PS["WAGS.Example.KitchenSink.TLP.Convolver"];
   var WAGS_Example_KitchenSink_Timing = $PS["WAGS.Example.KitchenSink.Timing"];
   var WAGS_Graph_AudioUnit = $PS["WAGS.Graph.AudioUnit"];
-  var WAGS_Graph_Paramable = $PS["WAGS.Graph.Paramable"];
   var WAGS_Graph_Parameter = $PS["WAGS.Graph.Parameter"];
   var WAGS_Interpret = $PS["WAGS.Interpret"];
   var WAGS_Patch = $PS["WAGS.Patch"];                
@@ -36787,11 +36740,11 @@ var PS = {};
                   reflectSymbol: function () {
                       return "sawtoothOsc";
                   }
-              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeCancellation(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTSawtoothOsc)(WAGS_Change.oneShotChangeSawtoothOsc)(WAGS_Change.changeSawtoothOsc({
+              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeCancellation(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTSawtoothOsc)(WAGS_Change.oneShotChangeSawtoothOscOffset)(WAGS_Change.changeXSawtoothOsc({
                   reflectSymbol: function () {
                       return "sawtoothOsc";
                   }
-              })(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Paramable.onOffIzeAudioParameter)(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Paramable.paramableAudioParameter)())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLNil))))({
+              })())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLNil))))({
                   sawtoothOsc: WAGS_Graph_Parameter.cancel
               })))(function () {
                   return Control_Applicative_Indexed.ipure(WAGS_Control_Indexed.ixApplicativeIxWAG)(lsig);
@@ -36870,7 +36823,7 @@ var PS = {};
               reflectSymbol: function () {
                   return "convolver";
               }
-          })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeBrowserAudioBuffer()()(WAGS_Graph_AudioUnit.monoidTConvolver)(WAGS_Change.oneShotChangeConvolver)(WAGS_Change.changeConvolver({
+          })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeBrowserAudioBuffer()()(WAGS_Graph_AudioUnit.monoidTConvolver)(WAGS_Change.oneShotChangeConvolver)(WAGS_Change.changeXConvolver({
               reflectSymbol: function () {
                   return "convolver";
               }
@@ -37098,11 +37051,11 @@ var PS = {};
           reflectSymbol: function () {
               return "sawtoothOsc";
           }
-      })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTSawtoothOsc)(WAGS_Change.oneShotChangeSawtoothOsc)(WAGS_Change.changeSawtoothOsc({
+      })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTSawtoothOsc)(WAGS_Change.oneShotChangeSawtoothOscOffset)(WAGS_Change.changeXSawtoothOsc({
           reflectSymbol: function () {
               return "sawtoothOsc";
           }
-      })(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Paramable.onOffIzeAudioParameter)(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Paramable.paramableAudioParameter)()))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLNil)))))({
+      })()))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLNil)))))({
           mix: 0.1 - 0.1 * $$Math.cos(time),
           sawtoothOsc: Data_Lens_Setter.set(WAGS_Graph_Parameter.lensTime(WAGS_Graph_Parameter.lensTimeAudioParameter)(Data_Profunctor_Strong.strongFn))(time)(WAGS_Graph_Paramable.paramize(WAGS_Graph_Paramable.paramableNumber)(440.0 + 50.0 * $$Math.pow($$Math.sin(rad * 1.5))(2.0)))
       });
@@ -37150,7 +37103,6 @@ var PS = {};
   var WAGS_Example_KitchenSink_Types_Empty = $PS["WAGS.Example.KitchenSink.Types.Empty"];
   var WAGS_Example_KitchenSink_Types_PeriodicOsc = $PS["WAGS.Example.KitchenSink.Types.PeriodicOsc"];
   var WAGS_Example_KitchenSink_Types_SawtoothOsc = $PS["WAGS.Example.KitchenSink.Types.SawtoothOsc"];
-  var WAGS_Graph_Paramable = $PS["WAGS.Graph.Paramable"];
   var WAGS_Interpret = $PS["WAGS.Interpret"];                
   var doPeriodicOsc = WAGS_Control_Functions.ibranch(Data_Monoid.monoidString)(WAGS_Interpret.mixedAudioInterpret)(WAGS_Control_Types.isSceneScene)(function (v) {
       return function (lsig) {
@@ -37195,7 +37147,7 @@ var PS = {};
                       reflectSymbol: function () {
                           return "sawtoothOsc";
                       }
-                  })(WAGS_Graph_Paramable.paramableAudioParameter)()(WAGS_Graph_Paramable.onOffIzeAudioParameter)())()(WAGS_Create.createStepRLNil)(WAGS_Create.createStepRLNil))(WAGS_Create.connectAfterCreateCons()()()()()()(WAGS_Create.connectEdgesToNodeNil)(WAGS_Create.connectAfterCreateNil)(WAGS_Create.connectAfterCreateNil))))(WAGS_Example_KitchenSink_Types_SawtoothOsc.ksSawtoothOscCreate))(function () {
+                  })()())()(WAGS_Create.createStepRLNil)(WAGS_Create.createStepRLNil))(WAGS_Create.connectAfterCreateCons()()()()()()(WAGS_Create.connectEdgesToNodeNil)(WAGS_Create.connectAfterCreateNil)(WAGS_Create.connectAfterCreateNil))))(WAGS_Example_KitchenSink_Types_SawtoothOsc.ksSawtoothOscCreate))(function () {
                       return Control_Monad_Indexed_Qualified.discard(WAGS_Control_Indexed.ixBindIxWAG)(Control_Bind_Indexed.ixDiscardUnit)(WAGS_Connect.iconnect(WAGS_Interpret.mixedAudioInterpret)(WAGS_Connect.connectInstance({
                           reflectSymbol: function () {
                               return "sawtoothOsc";
@@ -37337,7 +37289,6 @@ var PS = {};
   var WAGS_Example_KitchenSink_Types_Empty = $PS["WAGS.Example.KitchenSink.Types.Empty"];
   var WAGS_Example_KitchenSink_Types_PeriodicOsc = $PS["WAGS.Example.KitchenSink.Types.PeriodicOsc"];
   var WAGS_Example_KitchenSink_Types_SquareOsc = $PS["WAGS.Example.KitchenSink.Types.SquareOsc"];
-  var WAGS_Graph_Paramable = $PS["WAGS.Graph.Paramable"];
   var WAGS_Interpret = $PS["WAGS.Interpret"];                
   var doSquareOsc = WAGS_Control_Functions.ibranch(Data_Monoid.monoidString)(WAGS_Interpret.mixedAudioInterpret)(WAGS_Control_Types.isSceneScene)(function (v) {
       return function (lsig) {
@@ -37382,7 +37333,7 @@ var PS = {};
                       reflectSymbol: function () {
                           return "periodicOsc";
                       }
-                  })(WAGS_Graph_Paramable.paramableAudioParameter)()(WAGS_Graph_Paramable.onOffIzeAudioParameter)())()(WAGS_Create.createStepRLNil)(WAGS_Create.createStepRLNil))(WAGS_Create.connectAfterCreateCons()()()()()()(WAGS_Create.connectEdgesToNodeNil)(WAGS_Create.connectAfterCreateNil)(WAGS_Create.connectAfterCreateNil))))(WAGS_Example_KitchenSink_Types_PeriodicOsc.ksPeriodicOscCreate(v.world)))(function () {
+                  })()())()(WAGS_Create.createStepRLNil)(WAGS_Create.createStepRLNil))(WAGS_Create.connectAfterCreateCons()()()()()()(WAGS_Create.connectEdgesToNodeNil)(WAGS_Create.connectAfterCreateNil)(WAGS_Create.connectAfterCreateNil))))(WAGS_Example_KitchenSink_Types_PeriodicOsc.ksPeriodicOscCreate(v.world)))(function () {
                       return Control_Monad_Indexed_Qualified.discard(WAGS_Control_Indexed.ixBindIxWAG)(Control_Bind_Indexed.ixDiscardUnit)(WAGS_Connect.iconnect(WAGS_Interpret.mixedAudioInterpret)(WAGS_Connect.connectInstance({
                           reflectSymbol: function () {
                               return "periodicOsc";
@@ -38393,7 +38344,7 @@ var PS = {};
           reflectSymbol: function () {
               return "osc";
           }
-      })(WAGS_Graph_Paramable.paramableAudioParameter)()(WAGS_Graph_Paramable.onOffIzeAudioParameter)())()(WAGS_Create.createStepRLNil)(WAGS_Create.createStepRLNil))(WAGS_Create.createStepRLNil))(WAGS_Create.createStepRLNil))(WAGS_Create.connectAfterCreateCons()()()()()()(WAGS_Create.connectEdgesToNodeCons(WAGS_Connect.connectInstance({
+      })()())()(WAGS_Create.createStepRLNil)(WAGS_Create.createStepRLNil))(WAGS_Create.createStepRLNil))(WAGS_Create.createStepRLNil))(WAGS_Create.connectAfterCreateCons()()()()()()(WAGS_Create.connectEdgesToNodeCons(WAGS_Connect.connectInstance({
           reflectSymbol: function () {
               return "gain";
           }
@@ -38464,7 +38415,11 @@ var PS = {};
                               reflectSymbol: function () {
                                   return "osc";
                               }
-                          })(WAGS_Graph_Parameter.justMM)(WAGS_Graph_Parameter.justMM)(WAGS_Graph_Paramable.onOffIzeAudioParameter)(WAGS_Change.changePeriodicOscS)(WAGS_Graph_Parameter.justMM)(WAGS_Graph_Paramable.paramableAudioParameter)())(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLNil)))(WAGS_Change.changeRLNil)))(WAGS_Change.changeRLNil))))(scene(v)(v1.value0)(5.0e-2)))(new Data_List_Types.Cons(v1.value0, v1.value1));
+                          })()(WAGS_Change.changePeriodicXOsc({
+                              reflectSymbol: function () {
+                                  return "osc";
+                              }
+                          })()))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLNil)))(WAGS_Change.changeRLNil)))(WAGS_Change.changeRLNil))))(scene(v)(v1.value0)(5.0e-2)))(new Data_List_Types.Cons(v1.value0, v1.value1));
                       };
                   };
                   throw new Error("Failed pattern match at WAGS.Example.Makenna (line 163, column 13 - line 167, column 63): " + [ v1.constructor.name ]);
@@ -39193,7 +39148,7 @@ var PS = {};
                   reflectSymbol: function () {
                       return "buffy";
                   }
-              })(WAGS_Graph_Paramable.paramableAudioParameter)(WAGS_Graph_Paramable.onOffIzeAudioParameter)()())()(WAGS_Create.createStepRLNil)(WAGS_Create.createStepRLNil))(WAGS_Create.connectAfterCreateCons()()()()()()(WAGS_Create.connectEdgesToNodeNil)(WAGS_Create.connectAfterCreateNil)(WAGS_Create.connectAfterCreateNil))))(WAGS_Change.changeAll(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLCons({
+              })()())()(WAGS_Create.createStepRLNil)(WAGS_Create.createStepRLNil))(WAGS_Create.connectAfterCreateCons()()()()()()(WAGS_Create.connectEdgesToNodeNil)(WAGS_Create.connectAfterCreateNil)(WAGS_Create.connectAfterCreateNil))))(WAGS_Change.changeAll(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLCons({
                   reflectSymbol: function () {
                       return "buffy";
                   }
@@ -39201,7 +39156,7 @@ var PS = {};
                   reflectSymbol: function () {
                       return "buffy";
                   }
-              })(WAGS_Graph_Parameter.justMM)(WAGS_Graph_Parameter.justMM)(WAGS_Graph_Parameter.justMM)(WAGS_Graph_Paramable.onOffIzeAudioParameter)(WAGS_Graph_Parameter.justMM)(WAGS_Graph_Paramable.paramableAudioParameter)())(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLNil))))()(function (v1) {
+              })())(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLNil))))()(function (v1) {
                   return function (v2) {
                       return {
                           control: Data_Unit.unit,
@@ -42944,7 +42899,6 @@ var PS = {};
   var WAGS_Control_Functions_Graph = $PS["WAGS.Control.Functions.Graph"];
   var WAGS_Control_Indexed = $PS["WAGS.Control.Indexed"];
   var WAGS_Create_Optionals = $PS["WAGS.Create.Optionals"];
-  var WAGS_Graph_Paramable = $PS["WAGS.Graph.Paramable"];
   var WAGS_Graph_Parameter = $PS["WAGS.Graph.Parameter"];
   var WAGS_Interpret = $PS["WAGS.Interpret"];
   var WAGS_Patch = $PS["WAGS.Patch"];
@@ -43005,7 +42959,7 @@ var PS = {};
                       reflectSymbol: function () {
                           return "buf";
                       }
-                  })(WAGS_Graph_Parameter.justMM)(WAGS_Graph_Parameter.justMM)(WAGS_Graph_Parameter.justMM)(WAGS_Graph_Paramable.onOffIzeAudioParameter)(WAGS_Graph_Parameter.justMM)(WAGS_Graph_Paramable.paramableAudioParameter)())(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLNil)))(WAGS_Change.changeRLNil))))(WAGS_Create_Optionals.speaker({
+                  })())(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLNil)))(WAGS_Change.changeRLNil))))(WAGS_Create_Optionals.speaker({
                       buf: WAGS_Create_Optionals.playBuf(WAGS_Create_Optionals.playBufCtor1(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Create_Optionals.convertPlayBufOnOff)()()()({
                           reflectSymbol: function () {
                               return "onOff";
@@ -43331,7 +43285,7 @@ var PS = {};
                   reflectSymbol: function () {
                       return "buffy";
                   }
-              })(WAGS_Graph_Paramable.paramableAudioParameter)(WAGS_Graph_Paramable.onOffIzeAudioParameter)()())()(WAGS_Create.createStepRLNil)(WAGS_Create.createStepRLNil))(WAGS_Create.connectAfterCreateCons()()()()()()(WAGS_Create.connectEdgesToNodeNil)(WAGS_Create.connectAfterCreateNil)(WAGS_Create.connectAfterCreateNil))))(WAGS_Change.changeAll(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLCons({
+              })()())()(WAGS_Create.createStepRLNil)(WAGS_Create.createStepRLNil))(WAGS_Create.connectAfterCreateCons()()()()()()(WAGS_Create.connectEdgesToNodeNil)(WAGS_Create.connectAfterCreateNil)(WAGS_Create.connectAfterCreateNil))))(WAGS_Change.changeAll(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLCons({
                   reflectSymbol: function () {
                       return "buffy";
                   }
@@ -43339,7 +43293,7 @@ var PS = {};
                   reflectSymbol: function () {
                       return "buffy";
                   }
-              })(WAGS_Graph_Parameter.justMM)(WAGS_Graph_Parameter.justMM)(WAGS_Graph_Parameter.justMM)(WAGS_Graph_Paramable.onOffIzeAudioParameter)(WAGS_Graph_Parameter.justMM)(WAGS_Graph_Paramable.paramableAudioParameter)())(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLNil))))()(function (v) {
+              })())(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLNil))))()(function (v) {
                   return function (v1) {
                       return {
                           control: Data_Unit.unit,
