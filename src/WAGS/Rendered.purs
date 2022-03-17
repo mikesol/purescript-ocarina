@@ -698,8 +698,8 @@ iSetTumult = Instruction <<< inj (Proxy :: Proxy "setTumult")
 newtype Oversample = Oversample
   ( Variant
       ( none :: Unit
-      , twoX :: Unit
-      , fourX :: Unit
+      , "2x" :: Unit
+      , "4x" :: Unit
       )
   )
 
@@ -709,10 +709,10 @@ oNone :: Oversample
 oNone = Oversample (inj (Proxy :: Proxy "none") unit)
 
 oTwoX :: Oversample
-oTwoX = Oversample (inj (Proxy :: Proxy "twoX") unit)
+oTwoX = Oversample (inj (Proxy :: Proxy "2x") unit)
 
 oFourX :: Oversample
-oFourX = Oversample (inj (Proxy :: Proxy "fourX") unit)
+oFourX = Oversample (inj (Proxy :: Proxy "4x") unit)
 
 derive instance eqOversample :: Eq Oversample
 

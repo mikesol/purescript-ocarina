@@ -1380,8 +1380,8 @@ instance safeToFFI_String :: SafeToFFI String String where
 instance safeToFFI_Oversample :: SafeToFFI Oversample String where
   safeToFFI = unwrap >>> match
     { none: const "none"
-    , twoX: const "2x"
-    , fourX: const "4x"
+    , "2x": const "2x"
+    , "4x": const "4x"
     }
 
 instance safeToFFI_FFIAudio :: SafeToFFI FFIAudioSnapshot FFIAudioSnapshot where
