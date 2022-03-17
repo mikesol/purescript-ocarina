@@ -20,7 +20,7 @@ import WAGS.Graph.Oversample (class IsOversampleT)
 import WAGS.Graph.Parameter (AudioParameter)
 import WAGS.Interpret (AsSubgraph)
 import WAGS.Util (class AddPrefixToRowList, class CoercePrefixToString, class MakePrefixIfNeeded)
-import WAGS.WebAPI (AnalyserNodeCb, BrowserAudioBuffer, BrowserFloatArray, BrowserMediaElement, BrowserPeriodicWave, MediaRecorderCb)
+import WAGS.WebAPI (AnalyserNodeCb, BrowserFloatArray, BrowserPeriodicWave)
 
 class CreateStepT (prefix :: Type) (map :: Type) (r :: Row Type) (inGraph :: Graph) (outGraph :: Graph) | r inGraph -> outGraph
 
@@ -139,7 +139,7 @@ instance createTConvolver ::
   ( R.Lacks ptr graphi
   , R.Cons ptr (NodeC CTOR.TConvolver {}) graphi grapho
   ) =>
-  CreateT' ptr (CTOR.Convolver BrowserAudioBuffer) graphi grapho
+  CreateT' ptr (CTOR.Convolver) graphi grapho
 
 instance createTDelay ::
   ( R.Lacks ptr graphi
@@ -187,67 +187,67 @@ instance createTLowpass ::
   ( R.Lacks ptr graphi
   , R.Cons ptr (NodeC CTOR.TLowpass {}) graphi grapho
   ) =>
-  CreateT' ptr (CTOR.Lowpass argA argB) graphi grapho
+  CreateT' ptr (CTOR.Lowpass) graphi grapho
 
 instance createTLowshelf ::
   ( R.Lacks ptr graphi
   , R.Cons ptr (NodeC CTOR.TLowshelf {}) graphi grapho
   ) =>
-  CreateT' ptr (CTOR.Lowshelf argA argB) graphi grapho
+  CreateT' ptr (CTOR.Lowshelf) graphi grapho
 
 instance createTMediaElement ::
   ( R.Lacks ptr graphi
   , R.Cons ptr (NodeC CTOR.TMediaElement {}) graphi grapho
   ) =>
-  CreateT' ptr (CTOR.MediaElement BrowserMediaElement) graphi grapho
+  CreateT' ptr (CTOR.MediaElement) graphi grapho
 
 instance createTMicrophone ::
   ( R.Lacks "microphone" graphi
   , R.Cons "microphone" (NodeC CTOR.TMicrophone {}) graphi grapho
   ) =>
-  CreateT' "microphone" (CTOR.Microphone microphone) graphi grapho
+  CreateT' "microphone" (CTOR.Microphone) graphi grapho
 
 instance createTNotch ::
   ( R.Lacks ptr graphi
   , R.Cons ptr (NodeC CTOR.TNotch {}) graphi grapho
   ) =>
-  CreateT' ptr (CTOR.Notch argA argB) graphi grapho
+  CreateT' ptr (CTOR.Notch) graphi grapho
 
 instance createTPeaking ::
   ( R.Lacks ptr graphi
   , R.Cons ptr (NodeC CTOR.TPeaking {}) graphi grapho
   ) =>
-  CreateT' ptr (CTOR.Peaking argA argB argC) graphi grapho
+  CreateT' ptr (CTOR.Peaking) graphi grapho
 
 instance createTPeriodicOsc ::
   ( R.Lacks ptr graphi
   , R.Cons ptr (NodeC CTOR.TPeriodicOsc {}) graphi grapho
   ) =>
-  CreateT' ptr (CTOR.PeriodicOsc BrowserPeriodicWave onOff argA) graphi grapho
+  CreateT' ptr (CTOR.PeriodicOsc BrowserPeriodicWave) graphi grapho
 
 instance createTPeriodicOsc2 ::
   ( R.Lacks ptr graphi
   , R.Cons ptr (NodeC CTOR.TPeriodicOsc {}) graphi grapho
   ) =>
-  CreateT' ptr (CTOR.PeriodicOsc (V.Vec a Number /\ V.Vec a Number) onOff argA) graphi grapho
+  CreateT' ptr (CTOR.PeriodicOsc (V.Vec a Number /\ V.Vec a Number)) graphi grapho
 
 instance createTPlayBuf ::
   ( R.Lacks ptr graphi
   , R.Cons ptr (NodeC CTOR.TPlayBuf {}) graphi grapho
   ) =>
-  CreateT' ptr (CTOR.PlayBuf BrowserAudioBuffer Number onOff argA) graphi grapho
+  CreateT' ptr (CTOR.PlayBuf) graphi grapho
 
 instance createTRecorder ::
   ( R.Lacks ptr graphi
   , R.Cons ptr (NodeC (CTOR.TRecorder) {}) graphi grapho
   ) =>
-  CreateT' ptr (CTOR.Recorder MediaRecorderCb) graphi grapho
+  CreateT' ptr (CTOR.Recorder) graphi grapho
 
 instance createTSawtoothOsc ::
   ( R.Lacks ptr graphi
   , R.Cons ptr (NodeC CTOR.TSawtoothOsc {}) graphi grapho
   ) =>
-  CreateT' ptr (CTOR.SawtoothOsc onOff argA) graphi grapho
+  CreateT' ptr (CTOR.SawtoothOsc) graphi grapho
 
 instance createTSinOsc ::
   ( R.Lacks ptr graphi

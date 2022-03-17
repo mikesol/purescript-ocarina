@@ -32,7 +32,7 @@ import WAGS.Interpret (class AudioInterpret, AsSubgraph, makeAllpass, makeAnalys
 import WAGS.Rendered (AudioWorkletNodeOptions_(..), RealImg(..))
 import WAGS.Tumult (Tumultuous, safeUntumult)
 import WAGS.Util (class AddPrefixToRowList, class CoercePrefixToString, class MakePrefixIfNeeded, class ValidateOutputChannelCount, toOutputChannelCount)
-import WAGS.WebAPI (AnalyserNodeCb, BrowserAudioBuffer, BrowserFloatArray, BrowserMediaElement, BrowserMicrophone, BrowserPeriodicWave, MediaRecorderCb)
+import WAGS.WebAPI (AnalyserNodeCb, BrowserFloatArray, BrowserPeriodicWave)
 
 type CreateStepRLSig (rl :: RL.RowList Type) (prefix :: Type) (map :: Type) (r :: Row Type) (inGraph :: Graph) (outGraph :: Graph) =
   forall proxyPrefix proxyMap proxyRL audio engine proof res
@@ -252,13 +252,13 @@ instance createAnalyser ::
     where
     { context: i, value: (CTOR.Analyser cb) } = unsafeUnWAG w
 
-    nn = reflectSymbol ptr
+    id = reflectSymbol ptr
 
     o =
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makeAnalyser { id: nn, cb } ]
+              { instructions = i.instructions <> [ makeAnalyser { id, cb } ]
               }
         , value: unit
         }
@@ -334,7 +334,7 @@ instance createAudioWorkletNode ::
     where
     { context: i, value: (CTOR.AudioWorkletNode _ (AudioWorkletNodeOptions options)) } = unsafeUnWAG w
 
-    nn = reflectSymbol ptr
+    id = reflectSymbol ptr
 
     o =
       unsafeWAG
@@ -342,7 +342,7 @@ instance createAudioWorkletNode ::
             i
               { instructions = i.instructions <>
                   [ makeAudioWorkletNode
-                      { id: nn
+                      { id
                       , options: AudioWorkletNodeOptions_
                           { name: reflectSymbol (Proxy :: _ sym)
                           , numberOfInputs: toInt' (Proxy :: _ numberOfInputs)
@@ -414,18 +414,18 @@ instance createConvolver ::
   , R.Lacks ptr graphi
   , R.Cons ptr (NodeC CTOR.TConvolver {}) graphi grapho
   ) =>
-  Create' ptr (CTOR.Convolver BrowserAudioBuffer) graphi grapho where
+  Create' ptr (CTOR.Convolver) graphi grapho where
   create' ptr w = o
     where
-    { context: i, value: (CTOR.Convolver buffer) } = unsafeUnWAG w
+    { context: i, value: (CTOR.Convolver { buffer }) } = unsafeUnWAG w
 
-    nn = reflectSymbol ptr
+    id = reflectSymbol ptr
 
     o =
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makeConvolver { id: nn, buffer } ]
+              { instructions = i.instructions <> [ makeConvolver { id, buffer } ]
               }
         , value: unit
         }
@@ -615,54 +615,54 @@ instance createLoopBuf ::
 
 instance createLowpass ::
   ( IsSymbol ptr
-  , Paramable argA
-  , Paramable argB
   , R.Lacks ptr graphi
   , R.Cons ptr (NodeC CTOR.TLowpass {}) graphi grapho
   ) =>
-  Create' ptr (CTOR.Lowpass argA argB) graphi grapho where
+  Create' ptr (CTOR.Lowpass) graphi grapho where
   create' ptr w = o
     where
-    { context: i, value: (CTOR.Lowpass argA argB) } = unsafeUnWAG w
+    { context: i, value: CTOR.Lowpass { freq, q } } = unsafeUnWAG w
 
-    nn = reflectSymbol ptr
-
-    argA_iv' = paramize argA
-
-    argB_iv' = paramize argB
+    id = reflectSymbol ptr
 
     o =
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makeLowpass { id: nn, freq: argA_iv', q: argB_iv' } ]
+              { instructions = i.instructions <>
+                  [ makeLowpass
+                      { id
+                      , freq
+                      , q
+                      }
+                  ]
               }
         , value: unit
         }
 
 instance createLowshelf ::
   ( IsSymbol ptr
-  , Paramable argA
-  , Paramable argB
   , R.Lacks ptr graphi
   , R.Cons ptr (NodeC CTOR.TLowshelf {}) graphi grapho
   ) =>
-  Create' ptr (CTOR.Lowshelf argA argB) graphi grapho where
+  Create' ptr (CTOR.Lowshelf) graphi grapho where
   create' ptr w = o
     where
-    { context: i, value: (CTOR.Lowshelf argA argB) } = unsafeUnWAG w
+    { context: i, value: (CTOR.Lowshelf { freq, gain }) } = unsafeUnWAG w
 
-    nn = reflectSymbol ptr
-
-    argA_iv' = paramize argA
-
-    argB_iv' = paramize argB
+    id = reflectSymbol ptr
 
     o =
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makeLowshelf { id: nn, freq: argA_iv', gain: argB_iv' } ]
+              { instructions = i.instructions <>
+                  [ makeLowshelf
+                      { id
+                      , freq
+                      , gain
+                      }
+                  ]
               }
         , value: unit
         }
@@ -672,18 +672,18 @@ instance createMediaElement ::
   , R.Lacks ptr graphi
   , R.Cons ptr (NodeC CTOR.TMediaElement {}) graphi grapho
   ) =>
-  Create' ptr (CTOR.MediaElement BrowserMediaElement) graphi grapho where
+  Create' ptr (CTOR.MediaElement) graphi grapho where
   create' ptr w = o
     where
-    { context: i, value: (CTOR.MediaElement element) } = unsafeUnWAG w
+    { context: i, value: (CTOR.MediaElement { media }) } = unsafeUnWAG w
 
-    nn = reflectSymbol ptr
+    id = reflectSymbol ptr
 
     o =
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makeMediaElement { id: nn, element } ]
+              { instructions = i.instructions <> [ makeMediaElement { id, element: media } ]
               }
         , value: unit
         }
@@ -692,10 +692,10 @@ instance createMicrophone ::
   ( R.Lacks "microphone" graphi
   , R.Cons "microphone" (NodeC CTOR.TMicrophone {}) graphi grapho
   ) =>
-  Create' "microphone" (CTOR.Microphone BrowserMicrophone) graphi grapho where
+  Create' "microphone" (CTOR.Microphone) graphi grapho where
   create' _ w = o
     where
-    { context: i, value: (CTOR.Microphone microphone) } = unsafeUnWAG w
+    { context: i, value: (CTOR.Microphone { microphone }) } = unsafeUnWAG w
 
     o =
       unsafeWAG
@@ -708,133 +708,110 @@ instance createMicrophone ::
 
 instance createNotch ::
   ( IsSymbol ptr
-  , Paramable argA
-  , Paramable argB
   , R.Lacks ptr graphi
   , R.Cons ptr (NodeC CTOR.TNotch {}) graphi grapho
   ) =>
-  Create' ptr (CTOR.Notch argA argB) graphi grapho where
+  Create' ptr (CTOR.Notch) graphi grapho where
   create' ptr w = o
     where
-    { context: i, value: (CTOR.Notch argA argB) } = unsafeUnWAG w
+    { context: i, value: (CTOR.Notch { freq, q }) } = unsafeUnWAG w
 
-    nn = reflectSymbol ptr
-
-    argA_iv' = paramize argA
-
-    argB_iv' = paramize argB
+    id = reflectSymbol ptr
 
     o =
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makeNotch { id: nn, freq: argA_iv', q: argB_iv' } ]
+              { instructions = i.instructions <>
+                  [ makeNotch
+                      { id
+                      , freq
+                      , q
+                      }
+                  ]
               }
         , value: unit
         }
 
 instance createPeaking ::
   ( IsSymbol ptr
-  , Paramable argA
-  , Paramable argB
-  , Paramable argC
   , R.Lacks ptr graphi
   , R.Cons ptr (NodeC CTOR.TPeaking {}) graphi grapho
   ) =>
-  Create' ptr (CTOR.Peaking argA argB argC) graphi grapho where
+  Create' ptr (CTOR.Peaking) graphi grapho where
   create' ptr w = o
     where
-    { context: i, value: (CTOR.Peaking argA argB argC) } = unsafeUnWAG w
+    { context: i, value: (CTOR.Peaking { freq, gain, q }) } = unsafeUnWAG w
 
-    nn = reflectSymbol ptr
-
-    argA_iv' = paramize argA
-
-    argB_iv' = paramize argB
-
-    argC_iv' = paramize argC
+    id = reflectSymbol ptr
 
     o =
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makePeaking { id: nn, freq: argA_iv', q: argB_iv', gain: argC_iv' } ]
+              { instructions = i.instructions <> [ makePeaking { id, freq, gain, q } ]
               }
         , value: unit
         }
 
 instance createPeriodicOsc ::
   ( IsSymbol ptr
-  , Paramable argA
   , R.Lacks ptr graphi
-  , OnOffable onOff
   , R.Cons ptr (NodeC CTOR.TPeriodicOsc {}) graphi grapho
   ) =>
-  Create' ptr (CTOR.PeriodicOsc BrowserPeriodicWave onOff argA) graphi grapho where
+  Create' ptr (CTOR.PeriodicOsc BrowserPeriodicWave) graphi grapho where
   create' ptr w = o
     where
-    { context: i, value: (CTOR.PeriodicOsc oscWave onOff argA) } = unsafeUnWAG w
+    { context: i, value: (CTOR.PeriodicOsc { wave, onOff, freq }) } = unsafeUnWAG w
 
-    nn = reflectSymbol ptr
-
-    argA_iv' = paramize argA
+    id = reflectSymbol ptr
 
     o =
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makePeriodicOsc { id: nn, wave: oscWave, onOff: (onOffIze onOff), freq: argA_iv' } ]
+              { instructions = i.instructions <> [ makePeriodicOsc { id, wave, onOff, freq } ]
               }
         , value: unit
         }
 
 instance createPeriodicOsc2 ::
   ( IsSymbol ptr
-  , Paramable argA
   , Lt D1 a
   , R.Lacks ptr graphi
-  , OnOffable onOff
   , R.Cons ptr (NodeC CTOR.TPeriodicOsc {}) graphi grapho
   ) =>
-  Create' ptr (CTOR.PeriodicOsc (V.Vec a Number /\ V.Vec a Number) onOff argA) graphi grapho where
+  Create' ptr (CTOR.PeriodicOsc (V.Vec a Number /\ V.Vec a Number)) graphi grapho where
   create' ptr w = o
     where
-    { context: i, value: (CTOR.PeriodicOsc oscSpec onOff argA) } = unsafeUnWAG w
+    { context: i, value: (CTOR.PeriodicOsc { wave, onOff, freq }) } = unsafeUnWAG w
 
-    nn = reflectSymbol ptr
-
-    argA_iv' = paramize argA
+    id = reflectSymbol ptr
 
     o =
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makePeriodicOscV { id: nn, realImg: oscSpec # \(real /\ img) -> RealImg { real: V.toArray real, img: V.toArray img }, onOff: (onOffIze onOff), freq: argA_iv' } ]
+              { instructions = i.instructions <> [ makePeriodicOscV { id, realImg: wave # \(real /\ img) -> RealImg { real: V.toArray real, img: V.toArray img }, onOff: onOff, freq } ]
               }
         , value: unit
         }
 
 instance createPlayBuf ::
   ( IsSymbol ptr
-  , Paramable argA
-  , OnOffable onOff
   , R.Lacks ptr graphi
   , R.Cons ptr (NodeC CTOR.TPlayBuf {}) graphi grapho
   ) =>
-  Create' ptr (CTOR.PlayBuf BrowserAudioBuffer Number onOff argA) graphi grapho where
+  Create' ptr (CTOR.PlayBuf) graphi grapho where
   create' ptr w = o
     where
-    { context: i, value: (CTOR.PlayBuf buffer offset onOff argA) } = unsafeUnWAG w
-
-    nn = reflectSymbol ptr
-
-    argA_iv' = paramize argA
-
+    { context: i, value: (CTOR.PlayBuf { buffer, bufferOffset, playbackRate, onOff }) } = unsafeUnWAG w
+    id = reflectSymbol ptr
     o =
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makePlayBuf { id: nn, buffer, bufferOffset: offset, onOff: (onOffIze onOff), playbackRate: argA_iv' } ]
+              { instructions = i.instructions <> [ makePlayBuf { id, buffer, bufferOffset, onOff, playbackRate } ]
               }
         , value: unit
         }
@@ -844,43 +821,44 @@ instance createRecorder ::
   , R.Lacks ptr graphi
   , R.Cons ptr (NodeC CTOR.TRecorder {}) graphi grapho
   ) =>
-  Create' ptr (CTOR.Recorder MediaRecorderCb) graphi grapho where
+  Create' ptr (CTOR.Recorder) graphi grapho where
   create' ptr w = o
     where
-    { context: i, value: (CTOR.Recorder cb) } = unsafeUnWAG w
+    { context: i, value: (CTOR.Recorder { cb }) } = unsafeUnWAG w
 
-    nn = reflectSymbol ptr
+    id = reflectSymbol ptr
 
     o =
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makeRecorder { id: nn, cb } ]
+              { instructions = i.instructions <>
+                  [ makeRecorder
+                      { id
+                      , cb
+                      }
+                  ]
               }
         , value: unit
         }
 
 instance createSawtoothOsc ::
   ( IsSymbol ptr
-  , Paramable argA
   , R.Lacks ptr graphi
-  , OnOffable onOff
   , R.Cons ptr (NodeC CTOR.TSawtoothOsc {}) graphi grapho
   ) =>
-  Create' ptr (CTOR.SawtoothOsc onOff argA) graphi grapho where
+  Create' ptr (CTOR.SawtoothOsc) graphi grapho where
   create' ptr w = o
     where
-    { context: i, value: (CTOR.SawtoothOsc onOff argA) } = unsafeUnWAG w
+    { context: i, value: (CTOR.SawtoothOsc { onOff, freq }) } = unsafeUnWAG w
 
-    nn = reflectSymbol ptr
-
-    argA_iv' = paramize argA
+    id = reflectSymbol ptr
 
     o =
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makeSawtoothOsc { id: nn, onOff: onOffIze onOff, freq: argA_iv' } ]
+              { instructions = i.instructions <> [ makeSawtoothOsc { id, onOff, freq } ]
               }
         , value: unit
         }
@@ -897,14 +875,14 @@ instance createSinOsc ::
     where
     { context: i, value: (CTOR.SinOsc onOff argA) } = unsafeUnWAG w
 
-    nn = reflectSymbol ptr
+    id = reflectSymbol ptr
 
     argA_iv' = paramize argA
     o =
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makeSinOsc { id: nn, onOff: onOffIze onOff, freq: argA_iv' } ]
+              { instructions = i.instructions <> [ makeSinOsc { id, onOff: onOffIze onOff, freq: argA_iv' } ]
               }
         , value: unit
         }
@@ -938,7 +916,7 @@ instance createSquareOsc ::
     where
     { context: i, value: (CTOR.SquareOsc onOff argA) } = unsafeUnWAG w
 
-    nn = reflectSymbol ptr
+    id = reflectSymbol ptr
 
     argA_iv' = paramize argA
 
@@ -946,7 +924,7 @@ instance createSquareOsc ::
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makeSquareOsc { id: nn, onOff: onOffIze onOff, freq: argA_iv' } ]
+              { instructions = i.instructions <> [ makeSquareOsc { id, onOff: onOffIze onOff, freq: argA_iv' } ]
               }
         , value: unit
         }
@@ -962,7 +940,7 @@ instance createStereoPanner ::
     where
     { context: i, value: (CTOR.StereoPanner argA) } = unsafeUnWAG w
 
-    nn = reflectSymbol ptr
+    id = reflectSymbol ptr
 
     argA_iv' = paramize argA
 
@@ -970,7 +948,7 @@ instance createStereoPanner ::
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makeStereoPanner { id: nn, pan: argA_iv' } ]
+              { instructions = i.instructions <> [ makeStereoPanner { id, pan: argA_iv' } ]
               }
         , value: unit
         }
@@ -986,13 +964,13 @@ instance createSubgraph ::
   create' ptr w = o
     where
     { context: i, value: (CTOR.Subgraph asSub env) } = unsafeUnWAG w
-    nn = reflectSymbol ptr
+    id = reflectSymbol ptr
     o =
       unsafeWAG
         { context:
             i
               { instructions = i.instructions <>
-                  [ makeSubgraph { id: nn, terminus: Proxy :: _ terminus, envs: env, scenes: unAsSubGraph asSub } ]
+                  [ makeSubgraph { id, terminus: Proxy :: _ terminus, envs: env, scenes: unAsSubGraph asSub } ]
               }
         , value: unit
         }
@@ -1008,14 +986,14 @@ instance createTumult ::
   create' ptr w = o
     where
     { context: i, value: (CTOR.Tumult tummy) } = unsafeUnWAG w
-    nn = reflectSymbol ptr
+    id = reflectSymbol ptr
     pt = reflectSymbol (Proxy :: _ terminus)
     o =
       unsafeWAG
         { context:
             i
               { instructions = i.instructions <>
-                  [ makeTumult { id: nn, terminus: pt, instructions: safeUntumult tummy } ]
+                  [ makeTumult { id, terminus: pt, instructions: safeUntumult tummy } ]
               }
         , value: unit
         }
@@ -1032,7 +1010,7 @@ instance createTriangleOsc ::
     where
     { context: i, value: (CTOR.TriangleOsc onOff argA) } = unsafeUnWAG w
 
-    nn = reflectSymbol ptr
+    id = reflectSymbol ptr
 
     argA_iv' = paramize argA
 
@@ -1040,7 +1018,7 @@ instance createTriangleOsc ::
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makeTriangleOsc { id: nn, onOff: onOffIze onOff, freq: argA_iv' } ]
+              { instructions = i.instructions <> [ makeTriangleOsc { id, onOff: onOffIze onOff, freq: argA_iv' } ]
               }
         , value: unit
         }
@@ -1056,7 +1034,7 @@ instance createWaveShaper ::
     where
     { context: i, value: (CTOR.WaveShaper floatArray oversample') } = unsafeUnWAG w
 
-    nn = reflectSymbol ptr
+    id = reflectSymbol ptr
 
     oversample = reflectOversample oversample'
 
@@ -1064,7 +1042,7 @@ instance createWaveShaper ::
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makeWaveShaper { id: nn, curve: floatArray, oversample } ]
+              { instructions = i.instructions <> [ makeWaveShaper { id, curve: floatArray, oversample } ]
               }
         , value: unit
         }

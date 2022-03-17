@@ -9,7 +9,7 @@ import Prim.Symbol as Sym
 import Type.Proxy (Proxy(..))
 import WAGS.Graph.Parameter (AudioOnOff, AudioParameter)
 import WAGS.Graph.Worklet (AudioWorkletNodeResponse)
-import WAGS.WebAPI (BrowserAudioBuffer)
+import WAGS.WebAPI (BrowserAudioBuffer, BrowserMediaElement, BrowserMicrophone, MediaRecorderCb)
 
 class TypeToSym (a :: Type) (b :: Symbol) | a -> b
 
@@ -87,9 +87,15 @@ instance typeToSymXConstant :: TypeToSym XConstant "Constant"
 
 -- | Term-level constructor for a convolver, aka reverb.
 -- | - `buffer` - the buffer of the impulse response of the space.
-data Convolver (buffer :: Type) = Convolver buffer
+type Convolver' = (buffer :: BrowserAudioBuffer)
+newtype Convolver = Convolver { | Convolver' }
 
-instance typeToSymConvolver :: TypeToSym (Convolver buffer) "Convolver"
+derive instance newtypeConvolver :: Newtype (Convolver) _
+newtype XConvolver = XConvolver (RowOptions (Convolver'))
+
+derive instance newtypeXConvolver :: Newtype (XConvolver) _
+
+instance typeToSymConvolver :: TypeToSym (Convolver) "Convolver"
 
 -- | Term-level constructor for a delay unit.
 -- | - `delay` - the delay to apply.
@@ -183,10 +189,19 @@ instance typeToSymInput :: TypeToSym (Input input) "Input"
 -- | - `loopStart` - where in the file the loop should start.
 -- | - `loopEnd` - where in the file the loop should end. A value of 0.0 or less means play to the end of the buffer.
 
-type LoopBuf' = (buffer :: BrowserAudioBuffer, onOff :: AudioOnOff, playbackRate :: AudioParameter, loopStart :: Number, loopEnd :: Number)
+type LoopBuf' =
+  ( buffer :: BrowserAudioBuffer
+  , onOff :: AudioOnOff
+  , playbackRate :: AudioParameter
+  , loopStart :: Number
+  , loopEnd :: Number
+  )
+
 newtype LoopBuf = LoopBuf { | LoopBuf' }
+
 derive instance newtypeLoopBuf :: Newtype LoopBuf _
 newtype XLoopBuf = XLoopBuf (RowOptions LoopBuf')
+
 derive instance newtypeXLoopBuf :: Newtype XLoopBuf _
 
 instance typeToSymLoopBuf :: TypeToSym LoopBuf "LoopBuf"
@@ -195,72 +210,140 @@ instance typeToSymXLoopBuf :: TypeToSym XLoopBuf "LoopBuf"
 -- | Term-level constructor for a lowpass filter.
 -- | - `frequency` - the frequency above which we start to filter.
 -- | - `q` - the width of the filter.
-data Lowpass frequency q = Lowpass frequency q
+type Lowpass' = (freq :: AudioParameter, q :: AudioParameter)
+newtype Lowpass = Lowpass { | Lowpass' }
 
-instance typeToSymLowpass :: TypeToSym (Lowpass frequency q) "Lowpass"
+derive instance newtypeLowpass :: Newtype Lowpass _
+newtype XLowpass = XLowpass (RowOptions Lowpass')
 
+derive instance newtypeXLowpass :: Newtype XLowpass _
+
+instance typeToSymLowpass :: TypeToSym Lowpass "Lowpass"
+instance typeToSymXLowpass :: TypeToSym XLowpass "Lowpass"
 -- | Term-level constructor for a lowshelf filter.
 -- | - `frequency` - the frequency below which we start to filter.
--- | - `q` - the width of the filter.
-data Lowshelf frequency gain = Lowshelf frequency gain
+-- | - `gain` - the width of the filter.
+type Lowshelf' = (freq :: AudioParameter, gain :: AudioParameter)
+newtype Lowshelf = Lowshelf { | Lowshelf' }
 
-instance typeToSymLowshelf :: TypeToSym (Lowshelf frequency gain) "Lowshelf"
+derive instance newtypeLowshelf :: Newtype Lowshelf _
+newtype XLowshelf = XLowshelf (RowOptions Lowshelf')
 
+derive instance newtypeXLowshelf :: Newtype XLowshelf _
+
+instance typeToSymLowshelf :: TypeToSym Lowshelf "Lowshelf"
+instance typeToSymXLowshelf :: TypeToSym XLowshelf "Lowshelf"
 -- | Term-level constructor for a media element.
 -- | - `media` - the media element to use.
-data MediaElement element = MediaElement element
+type MediaElement' = (media :: BrowserMediaElement)
+newtype MediaElement = MediaElement { | MediaElement' }
 
-instance typeToSymMediaElement :: TypeToSym (MediaElement element) "MediaElement"
+derive instance newtypeMediaElement :: Newtype MediaElement _
+
+instance typeToSymMediaElement :: TypeToSym (MediaElement) "MediaElement"
 
 -- | Term-level constructor for a microphone
-data Microphone microphone = Microphone microphone
+newtype Microphone = Microphone { microphone :: BrowserMicrophone }
 
-instance typeToSymMicrophone :: TypeToSym (Microphone microphone) "Microphone"
+instance typeToSymMicrophone :: TypeToSym (Microphone) "Microphone"
 
 -- | Term-level constructor for a notch (aka band-reject) filter.
 -- | - `frequency` - the frequency we are rejecting.
 -- | - `q` - the width of the filter.
-data Notch frequency q = Notch frequency q
+type Notch' = (freq :: AudioParameter, q :: AudioParameter)
+newtype Notch = Notch { | Notch' }
 
-instance typeToSymNotch :: TypeToSym (Notch frequency q) "Notch"
+derive instance newtypeNotch :: Newtype Notch _
+newtype XNotch = XNotch (RowOptions Notch')
+
+derive instance newtypeXNotch :: Newtype XNotch _
+
+instance typeToSymNotch :: TypeToSym Notch "Notch"
+instance typeToSymXNotch :: TypeToSym XNotch "Notch"
 
 -- | Term-level constructor for a peaking filter. A peaking filter is a combination of bandpass and notch where the gain parameter modulates whether we are reinforcing or attenuating a frequency.
 -- | - `frequency` - the frequency we are emphasizing _or_ rejecting.
 -- | - `q` - the width of the filter.
 -- | - `gain` - if positive, we are emphasizing the frequency. If negative, we are rejecting it.
-data Peaking frequency q gain = Peaking frequency q gain
+type Peaking' =
+  ( freq :: AudioParameter
+  , q :: AudioParameter
+  , gain :: AudioParameter
+  )
 
-instance typeToSymPeaking :: TypeToSym (Peaking frequency q gain) "Peaking"
+newtype Peaking = Peaking { | Peaking' }
 
+derive instance newtypePeaking :: Newtype Peaking _
+newtype XPeaking = XPeaking (RowOptions Peaking')
+
+derive instance newtypeXPeaking :: Newtype XPeaking _
+
+instance typeToSymPeaking :: TypeToSym Peaking "Peaking"
+instance typeToSymXPeaking :: TypeToSym XPeaking "Peaking"
 -- | Term-level constructor for a periodic oscillator.
 -- | - `periodicOsc` - the name of the wave table we'll be using. Note that, for a chance to take effect, the periodic oscillator must be stopped.
 -- | - `onOff` - whether the generator is on or off.
 -- | - `frequency` - the frequency of the oscillator.
-data PeriodicOsc periodicOsc onOff frequency = PeriodicOsc periodicOsc onOff frequency
+type PeriodicOsc' periodicOsc = (wave :: periodicOsc, onOff :: AudioOnOff, freq :: AudioParameter)
+newtype PeriodicOsc periodicOsc = PeriodicOsc { | PeriodicOsc' periodicOsc }
 
-instance typeToSymPeriodicOsc :: TypeToSym (PeriodicOsc periodicOsc onOff frequency) "PeriodicOsc"
+derive instance newtypePeriodicOsc :: Newtype (PeriodicOsc periodicOsc) _
+
+newtype XPeriodicOsc periodicOsc = XPeriodicOsc (RowOptions (PeriodicOsc' periodicOsc))
+
+derive instance newtypeXPeriodicOsc :: Newtype (XPeriodicOsc periodicOsc) _
+
+instance typeToSymPeriodicOsc :: TypeToSym (PeriodicOsc periodicOsc) "PeriodicOsc"
+instance typeToSymXPeriodicOsc :: TypeToSym (XPeriodicOsc periodicOsc) "PeriodicOsc"
 
 -- | Term-level constructor for a playback buffer.
 -- | - `buffer` - the buffer to use. Note that this symbol, when reset, will only reset the buffer when it is stopped.
 -- | - `offset` - where in the file the playback should start.
 -- | - `onOff` - whether or not the generator is on or off.
 -- | - `playbackRate` - the playback rate.
-data PlayBuf buffer offset onOff playbackRate = PlayBuf buffer offset onOff playbackRate
+type PlayBuf' =
+  ( buffer :: BrowserAudioBuffer
+  , onOff :: AudioOnOff
+  , playbackRate :: AudioParameter
+  , bufferOffset :: Number
+  )
 
-instance typeToSymPlayBuf :: TypeToSym (PlayBuf buffer offset onOff playbackRate) "PlayBuf"
+newtype PlayBuf = PlayBuf { | PlayBuf' }
+
+derive instance newtypePlayBuf :: Newtype PlayBuf _
+newtype XPlayBuf = XPlayBuf (RowOptions PlayBuf')
+
+derive instance newtypeXPlayBuf :: Newtype XPlayBuf _
+
+instance typeToSymPlayBuf :: TypeToSym PlayBuf "PlayBuf"
+instance typeToSymXPlayBuf :: TypeToSym XPlayBuf "PlayBuf"
 
 -- | Term-level constructor for a recorder.
 -- | - `recorder` - the recorder to which we write data.
-data Recorder (recorder :: Type) = Recorder recorder
+type Recorder' = (cb :: MediaRecorderCb)
+newtype Recorder = Recorder { | Recorder' }
+newtype XRecorder = XRecorder (RowOptions Recorder')
 
-instance typeToSymRecorder :: TypeToSym (Recorder recorder) "Recorder"
+derive instance newtypeRecorder :: Newtype Recorder _
+derive instance newtypeXRecorder :: Newtype XRecorder _
+instance typeToSymRecorder :: TypeToSym (Recorder) "Recorder"
+instance typeToSymXRecorder :: TypeToSym (XRecorder) "Recorder"
 
 -- | Term-level constructor for a sawtooth oscillator.
 -- | - `onOff` - whether the generator is on or off.
 -- | - `frequency` - the frequency of the oscillator.
-data SawtoothOsc onOff frequency = SawtoothOsc onOff frequency
+type SawtoothOsc' = (onOff :: AudioOnOff, freq :: AudioParameter)
+newtype SawtoothOsc = SawtoothOsc { | SawtoothOsc' }
 
-instance typeToSymSawtoothOsc :: TypeToSym (SawtoothOsc onOff frequency) "SawtoothOsc"
+derive instance newtypeSawtoothOsc :: Newtype SawtoothOsc _
+
+newtype XSawtoothOsc = XSawtoothOsc (RowOptions SawtoothOsc')
+
+derive instance newtypeXSawtoothOsc :: Newtype XSawtoothOsc _
+
+instance typeToSymSawtoothOsc :: TypeToSym SawtoothOsc "SawtoothOsc"
+instance typeToSymXSawtoothOsc :: TypeToSym XSawtoothOsc "SawtoothOsc"
+
 
 -- | Term-level constructor for a sine-wave oscillator.
 -- | - `onOff` - whether the generator is on or off.
@@ -435,7 +518,10 @@ instance semigroupTConvolver :: Semigroup TConvolver where
 instance monoidTConvolver :: Monoid TConvolver where
   mempty = TConvolver
 
-instance reifyTConvolver :: ReifyAU (Convolver buffer) TConvolver where
+instance reifyTConvolver :: ReifyAU (Convolver) TConvolver where
+  reifyAU = const mempty
+
+instance reifyTXConvolver :: ReifyAU (XConvolver) TConvolver where
   reifyAU = const mempty
 
 -- | Type-level constructor for a delay unit.
@@ -565,7 +651,10 @@ instance semigroupTLowpass :: Semigroup TLowpass where
 instance monoidTLowpass :: Monoid TLowpass where
   mempty = TLowpass
 
-instance reifyTLowpass :: ReifyAU (Lowpass a b) TLowpass where
+instance reifyTLowpass :: ReifyAU (Lowpass) TLowpass where
+  reifyAU = const mempty
+
+instance reifyTXLowpass :: ReifyAU (XLowpass) TLowpass where
   reifyAU = const mempty
 
 -- | Type-level constructor for a lowshelf filter.
@@ -579,7 +668,10 @@ instance semigroupTLowshelf :: Semigroup TLowshelf where
 instance monoidTLowshelf :: Monoid TLowshelf where
   mempty = TLowshelf
 
-instance reifyTLowshelf :: ReifyAU (Lowshelf a b) TLowshelf where
+instance reifyTLowshelf :: ReifyAU (Lowshelf) TLowshelf where
+  reifyAU = const mempty
+
+instance reifyTXLowshelf :: ReifyAU (XLowshelf) TLowshelf where
   reifyAU = const mempty
 
 -- | Type-level constructor for playback from a media element.
@@ -593,7 +685,7 @@ instance semigroupTMediaElement :: Semigroup TMediaElement where
 instance monoidTMediaElement :: Monoid TMediaElement where
   mempty = TMediaElement
 
-instance reifyTMediaElement :: ReifyAU (MediaElement a) TMediaElement where
+instance reifyTMediaElement :: ReifyAU (MediaElement) TMediaElement where
   reifyAU = const mempty
 
 -- | Type-level constructor for a microphone.
@@ -607,7 +699,7 @@ instance semigroupTMicrophone :: Semigroup TMicrophone where
 instance monoidTMicrophone :: Monoid TMicrophone where
   mempty = TMicrophone
 
-instance reifyTMicrophone :: ReifyAU (Microphone microphone) TMicrophone where
+instance reifyTMicrophone :: ReifyAU (Microphone) TMicrophone where
   reifyAU = const mempty
 
 -- | Type-level constructor for a notch filter.
@@ -621,7 +713,10 @@ instance semigroupTNotch :: Semigroup TNotch where
 instance monoidTNotch :: Monoid TNotch where
   mempty = TNotch
 
-instance reifyTNotch :: ReifyAU (Notch a b) TNotch where
+instance reifyTNotch :: ReifyAU (Notch) TNotch where
+  reifyAU = const mempty
+
+instance reifyTXNotch :: ReifyAU (XNotch) TNotch where
   reifyAU = const mempty
 
 -- | Type-level constructor for a peaking filter.
@@ -635,7 +730,10 @@ instance semigroupTPeaking :: Semigroup TPeaking where
 instance monoidTPeaking :: Monoid TPeaking where
   mempty = TPeaking
 
-instance reifyTPeaking :: ReifyAU (Peaking a b c) TPeaking where
+instance reifyTPeaking :: ReifyAU (Peaking) TPeaking where
+  reifyAU = const mempty
+
+instance reifyTXPeaking :: ReifyAU (XPeaking) TPeaking where
   reifyAU = const mempty
 
 -- | Type-level constructor for a periodic oscillator.
@@ -649,7 +747,10 @@ instance semigroupTPeriodicOsc :: Semigroup TPeriodicOsc where
 instance monoidTPeriodicOsc :: Monoid TPeriodicOsc where
   mempty = TPeriodicOsc
 
-instance reifyTPeriodicOsc :: ReifyAU (PeriodicOsc a b c) TPeriodicOsc where
+instance reifyTPeriodicOsc :: ReifyAU (PeriodicOsc a) TPeriodicOsc where
+  reifyAU = const mempty
+
+instance reifyTXPeriodicOsc :: ReifyAU (XPeriodicOsc a) TPeriodicOsc where
   reifyAU = const mempty
 
 -- | Type-level constructor for playback from a buffer.
@@ -663,7 +764,10 @@ instance semigroupTPlayBuf :: Semigroup TPlayBuf where
 instance monoidTPlayBuf :: Monoid TPlayBuf where
   mempty = TPlayBuf
 
-instance reifyTPlayBuf :: ReifyAU (PlayBuf a b c d) TPlayBuf where
+instance reifyTPlayBuf :: ReifyAU (PlayBuf) TPlayBuf where
+  reifyAU = const mempty
+
+instance reifyTXPlayBuf :: ReifyAU (XPlayBuf) TPlayBuf where
   reifyAU = const mempty
 
 -- | Type-level constructor for a recorder.
@@ -677,7 +781,10 @@ instance semigroupTRecorder :: Semigroup TRecorder where
 instance monoidTRecorder :: Monoid TRecorder where
   mempty = TRecorder
 
-instance reifyTRecorder :: ReifyAU (Recorder recorder) TRecorder where
+instance reifyTRecorder :: ReifyAU (Recorder) TRecorder where
+  reifyAU = const mempty
+
+instance reifyTXRecorder :: ReifyAU (XRecorder) TRecorder where
   reifyAU = const mempty
 
 -- | Type-level constructor for a sawtooth oscillator.
@@ -691,7 +798,9 @@ instance semigroupTSawtoothOsc :: Semigroup TSawtoothOsc where
 instance monoidTSawtoothOsc :: Monoid TSawtoothOsc where
   mempty = TSawtoothOsc
 
-instance reifyTSawtoothOsc :: ReifyAU (SawtoothOsc a b) TSawtoothOsc where
+instance reifyTSawtoothOsc :: ReifyAU (SawtoothOsc) TSawtoothOsc where
+  reifyAU = const mempty
+instance reifyTXSawtoothOsc :: ReifyAU (XSawtoothOsc) TSawtoothOsc where
   reifyAU = const mempty
 
 -- | Type-level constructor for a sine-wave oscillator.
