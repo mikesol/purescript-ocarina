@@ -9,6 +9,7 @@ import Prim.Symbol as Sym
 import Type.Proxy (Proxy(..))
 import WAGS.Graph.Parameter (AudioOnOff, AudioParameter)
 import WAGS.Graph.Worklet (AudioWorkletNodeResponse)
+import WAGS.WebAPI (BrowserAudioBuffer)
 
 class TypeToSym (a :: Type) (b :: Symbol) | a -> b
 
@@ -109,29 +110,65 @@ instance typeToSymXDelay :: TypeToSym XDelay "Delay"
 -- | - `ratio` - The amount of compression to apply.
 -- | - `attack` - How far we look ahead. Longer attacks will lead to more crisp compression at the expense of an audible delay.
 -- | - `release` - How long the release time of compression should be.
-data DynamicsCompressor threshold knee ratio attack release = DynamicsCompressor threshold knee ratio attack release
+type DynamicsCompressor' =
+  ( threshold :: AudioParameter
+  , knee :: AudioParameter
+  , ratio :: AudioParameter
+  , attack :: AudioParameter
+  , release :: AudioParameter
+  )
 
-instance typeToSymDynamicsCompressor :: TypeToSym (DynamicsCompressor threshold knee ratio attack release) "DynamicsCompressor"
+newtype DynamicsCompressor = DynamicsCompressor { | DynamicsCompressor' }
+
+derive instance newtypeDynamicsCompressor :: Newtype DynamicsCompressor _
+newtype XDynamicsCompressor = XDynamicsCompressor (RowOptions DynamicsCompressor')
+
+derive instance newtypeXDynamicsCompressor :: Newtype XDynamicsCompressor _
+
+instance typeToSymDynamicsCompressor :: TypeToSym DynamicsCompressor "DynamicsCompressor"
+
+instance typeToSymXDynamicsCompressor :: TypeToSym XDynamicsCompressor "DynamicsCompressor"
 
 -- | Term-level constructor for a gain unit.
--- | - `volume` - the volume of the gain from 0 to 1.
-data Gain volume = Gain volume
+-- | - `gain` - the volume of the gain from 0 to 1.
+type Gain' = (gain :: AudioParameter)
+newtype Gain = Gain { | Gain' }
 
-instance typeToSymGain :: TypeToSym (Gain volume) "Gain"
+derive instance newtypeGain :: Newtype Gain _
+newtype XGain = XGain (RowOptions Gain')
+
+derive instance newtypeXGain :: Newtype XGain _
+
+instance typeToSymGain :: TypeToSym Gain "Gain"
+instance typeToSymXGain :: TypeToSym XGain "Gain"
 
 -- | Term-level constructor for a highpass filter.
 -- | - `frequency` - the frequency below which we start to filter.
 -- | - `q` - the width of the filter.
-data Highpass frequency q = Highpass frequency q
+type Highpass' = (freq :: AudioParameter, q :: AudioParameter)
+newtype Highpass = Highpass { | Highpass' }
 
-instance typeToSymHighpass :: TypeToSym (Highpass frequency q) "Highpass"
+derive instance newtypeHighpass :: Newtype Highpass _
+newtype XHighpass = XHighpass (RowOptions Highpass')
+
+derive instance newtypeXHighpass :: Newtype XHighpass _
+
+instance typeToSymHighpass :: TypeToSym Highpass "Highpass"
+instance typeToSymXHighpass :: TypeToSym XHighpass "Highpass"
 
 -- | Term-level constructor for a highshelf filter.
 -- | - `frequency` - the frequency above which we start to filter.
 -- | - `gain` - the boost or the amount of attenuation to apply.
-data Highshelf frequency gain = Highshelf frequency gain
+type Highshelf' = (freq :: AudioParameter, gain :: AudioParameter)
+newtype Highshelf = Highshelf { | Highshelf' }
 
-instance typeToSymHighshelf :: TypeToSym (Highshelf frequency gain) "Highshelf"
+derive instance newtypeHighshelf :: Newtype Highshelf _
+newtype XHighshelf = XHighshelf (RowOptions Highshelf')
+
+derive instance newtypeXHighshelf :: Newtype XHighshelf _
+
+instance typeToSymHighshelf :: TypeToSym Highshelf "Highshelf"
+instance typeToSymXHighshelf :: TypeToSym XHighshelf "Highshelf"
 
 -- | Term-level constructor for arbitrary input (ie from another audio graph)
 -- | - `input` - the input to use.
@@ -145,9 +182,15 @@ instance typeToSymInput :: TypeToSym (Input input) "Input"
 -- | - `playbackRate` - the playback rate.
 -- | - `loopStart` - where in the file the loop should start.
 -- | - `loopEnd` - where in the file the loop should end. A value of 0.0 or less means play to the end of the buffer.
-data LoopBuf buffer onOff playbackRate loopStart loopEnd = LoopBuf buffer onOff playbackRate loopStart loopEnd
 
-instance typeToSymLoopBuf :: TypeToSym (LoopBuf buffer onOff playbackRate loopStart loopEnd) "LoopBuf"
+type LoopBuf' = (buffer :: BrowserAudioBuffer, onOff :: AudioOnOff, playbackRate :: AudioParameter, loopStart :: Number, loopEnd :: Number)
+newtype LoopBuf = LoopBuf { | LoopBuf' }
+derive instance newtypeLoopBuf :: Newtype LoopBuf _
+newtype XLoopBuf = XLoopBuf (RowOptions LoopBuf')
+derive instance newtypeXLoopBuf :: Newtype XLoopBuf _
+
+instance typeToSymLoopBuf :: TypeToSym LoopBuf "LoopBuf"
+instance typeToSymXLoopBuf :: TypeToSym XLoopBuf "LoopBuf"
 
 -- | Term-level constructor for a lowpass filter.
 -- | - `frequency` - the frequency above which we start to filter.
@@ -423,7 +466,10 @@ instance semigroupTDynamicsCompressor :: Semigroup TDynamicsCompressor where
 instance monoidTDynamicsCompressor :: Monoid TDynamicsCompressor where
   mempty = TDynamicsCompressor
 
-instance reifyTDynamicsCompressor :: ReifyAU (DynamicsCompressor a b c d e) TDynamicsCompressor where
+instance reifyTDynamicsCompressor :: ReifyAU DynamicsCompressor TDynamicsCompressor where
+  reifyAU = const mempty
+
+instance reifyTXDynamicsCompressor :: ReifyAU XDynamicsCompressor TDynamicsCompressor where
   reifyAU = const mempty
 
 -- | Type-level constructor for a gain unit.
@@ -437,7 +483,10 @@ instance semigroupTGain :: Semigroup TGain where
 instance monoidTGain :: Monoid TGain where
   mempty = TGain
 
-instance reifyTGain :: ReifyAU (Gain a) TGain where
+instance reifyTGain :: ReifyAU Gain TGain where
+  reifyAU = const mempty
+
+instance reifyTXGain :: ReifyAU XGain TGain where
   reifyAU = const mempty
 
 -- | Type-level constructor for a highpass filter.
@@ -451,7 +500,10 @@ instance semigroupTHighpass :: Semigroup THighpass where
 instance monoidTHighpass :: Monoid THighpass where
   mempty = THighpass
 
-instance reifyTHighpass :: ReifyAU (Highpass a b) THighpass where
+instance reifyTHighpass :: ReifyAU (Highpass) THighpass where
+  reifyAU = const mempty
+
+instance reifyTXHighpass :: ReifyAU (XHighpass) THighpass where
   reifyAU = const mempty
 
 -- | Type-level constructor for a highshelf filter.
@@ -465,7 +517,10 @@ instance semigroupTHighshelf :: Semigroup THighshelf where
 instance monoidTHighshelf :: Monoid THighshelf where
   mempty = THighshelf
 
-instance reifyTHighshelf :: ReifyAU (Highshelf a b) THighshelf where
+instance reifyTHighshelf :: ReifyAU (Highshelf) THighshelf where
+  reifyAU = const mempty
+
+instance reifyTXHighshelf :: ReifyAU (XHighshelf) THighshelf where
   reifyAU = const mempty
 
 -- | Type-level constructor for arbitrary input
@@ -493,7 +548,10 @@ instance semigroupTLoopBuf :: Semigroup TLoopBuf where
 instance monoidTLoopBuf :: Monoid TLoopBuf where
   mempty = TLoopBuf
 
-instance reifyTLoopBuf :: ReifyAU (LoopBuf a b c d e) TLoopBuf where
+instance reifyTLoopBuf :: ReifyAU (LoopBuf) TLoopBuf where
+  reifyAU = const mempty
+
+instance reifyTXLoopBuf :: ReifyAU (XLoopBuf) TLoopBuf where
   reifyAU = const mempty
 
 -- | Type-level constructor for a lowpass filter.

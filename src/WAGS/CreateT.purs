@@ -151,25 +151,25 @@ instance createTDynamicsCompressor ::
   ( R.Lacks ptr graphi
   , R.Cons ptr (NodeC CTOR.TDynamicsCompressor {}) graphi grapho
   ) =>
-  CreateT' ptr (CTOR.DynamicsCompressor argA argB argC argD argE) graphi grapho
+  CreateT' ptr CTOR.DynamicsCompressor graphi grapho
 
 instance createTGain ::
   ( R.Lacks ptr graphi
   , R.Cons ptr (NodeC CTOR.TGain {}) graphi grapho
   ) =>
-  CreateT' ptr (CTOR.Gain argA) graphi grapho
+  CreateT' ptr CTOR.Gain graphi grapho
 
 instance createTHighpass ::
   ( R.Lacks ptr graphi
   , R.Cons ptr (NodeC CTOR.THighpass {}) graphi grapho
   ) =>
-  CreateT' ptr (CTOR.Highpass argA argB) graphi grapho
+  CreateT' ptr CTOR.Highpass graphi grapho
 
 instance createTHighshelf ::
   ( R.Lacks ptr graphi
   , R.Cons ptr (NodeC CTOR.THighshelf {}) graphi grapho
   ) =>
-  CreateT' ptr (CTOR.Highshelf argA argB) graphi grapho
+  CreateT' ptr CTOR.Highshelf graphi grapho
 
 instance createTInput ::
   ( R.Lacks ptr graphi
@@ -181,7 +181,7 @@ instance createTLoopBuf ::
   ( R.Lacks ptr graphi
   , R.Cons ptr (NodeC CTOR.TLoopBuf {}) graphi grapho
   ) =>
-  CreateT' ptr (CTOR.LoopBuf BrowserAudioBuffer onOff argA Number Number) graphi grapho
+  CreateT' ptr CTOR.LoopBuf graphi grapho
 
 instance createTLowpass ::
   ( R.Lacks ptr graphi

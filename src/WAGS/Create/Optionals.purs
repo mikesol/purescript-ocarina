@@ -211,7 +211,7 @@ delay
   => a
   -> b
   -> CTOR.Delay /\ b
-delay gvsv = Tuple (CTOR.Delay {delayTime: paramize gvsv})
+delay gvsv = Tuple (CTOR.Delay { delayTime: paramize gvsv })
 
 type CDelay a = CTOR.Delay /\ a
 
@@ -268,36 +268,29 @@ class DynamicsCompressorCtor i compressor | i -> compressor where
 instance compressorCTor ::
   ( ConvertOptionsWithDefaults DynamicsCompressor { | DynamicsCompressorOptional } { | provided } { | DynamicsCompressorAll }
   ) =>
-  DynamicsCompressorCtor { | provided } (b -> CTOR.DynamicsCompressor AudioParameter AudioParameter AudioParameter AudioParameter AudioParameter /\ b) where
-  compressor provided b =
-    CTOR.DynamicsCompressor
-      all.threshold
-      all.knee
-      all.ratio
-      all.attack
-      all.release
-      /\ b
+  DynamicsCompressorCtor { | provided } (b -> CTOR.DynamicsCompressor /\ b) where
+  compressor provided b = CTOR.DynamicsCompressor all /\ b
     where
     all :: { | DynamicsCompressorAll }
     all = convertOptionsWithDefaults DynamicsCompressor defaultDynamicsCompressor provided
 
-type CDynamicsCompressor a = CTOR.DynamicsCompressor AudioParameter AudioParameter AudioParameter AudioParameter AudioParameter /\ a
+type CDynamicsCompressor a = CTOR.DynamicsCompressor /\ a
 
 ------
-gain :: forall a b. Paramable a => a -> b -> CTOR.Gain AudioParameter /\ b
-gain a = Tuple (CTOR.Gain (paramize a))
+gain :: forall a b. Paramable a => a -> b -> CTOR.Gain /\ b
+gain a = Tuple (CTOR.Gain { gain: paramize a })
 
 -- | Mix together several audio units
 -- |
 -- | ```purescript
 -- | mix (playBuf (Proxy :: _ "hello") /\ playBuf (Proxy :: _ "world") /\ unit)
 -- | ```
-mix :: forall a. a -> CTOR.Gain AudioParameter /\ a
-mix = Tuple (CTOR.Gain (paramize 1.0))
+mix :: forall a. a -> CTOR.Gain /\ a
+mix = Tuple (CTOR.Gain { gain: paramize 1.0 })
 
-type Mix = CTOR.Gain AudioParameter
+type Mix = CTOR.Gain
 
-type CGain a = CTOR.Gain AudioParameter /\ a
+type CGain a = CTOR.Gain /\ a
 
 ------
 data Highpass = Highpass
@@ -331,15 +324,15 @@ class HighpassCtor i highpass | i -> highpass where
 instance highpassCtor1 ::
   ( ConvertOptionsWithDefaults Highpass { | HighpassOptional } { | provided } { | HighpassAll }
   ) =>
-  HighpassCtor { | provided } (b -> CTOR.Highpass AudioParameter AudioParameter /\ b) where
-  highpass provided = Tuple (CTOR.Highpass all.freq all.q)
+  HighpassCtor { | provided } (b -> CTOR.Highpass /\ b) where
+  highpass provided = Tuple (CTOR.Highpass all)
     where
     all :: { | HighpassAll }
     all = convertOptionsWithDefaults Highpass defaultHighpass provided
-else instance highpassCtor2 :: Paramable a => HighpassCtor a (b -> CTOR.Highpass AudioParameter AudioParameter /\ b) where
-  highpass a = Tuple (CTOR.Highpass (paramize a) defaultHighpass.q)
+else instance highpassCtor2 :: Paramable a => HighpassCtor a (b -> CTOR.Highpass /\ b) where
+  highpass a = Tuple (CTOR.Highpass { freq: paramize a, q: defaultHighpass.q })
 
-type CHighpass a = CTOR.Highpass AudioParameter AudioParameter /\ a
+type CHighpass a = CTOR.Highpass /\ a
 
 ------
 data Highshelf = Highshelf
@@ -373,15 +366,15 @@ class HighshelfCtor i highshelf | i -> highshelf where
 instance highshelfCtor1 ::
   ( ConvertOptionsWithDefaults Highshelf { | HighshelfOptional } { | provided } { | HighshelfAll }
   ) =>
-  HighshelfCtor { | provided } (b -> CTOR.Highshelf AudioParameter AudioParameter /\ b) where
-  highshelf provided = Tuple (CTOR.Highshelf all.freq all.gain)
+  HighshelfCtor { | provided } (b -> CTOR.Highshelf /\ b) where
+  highshelf provided = Tuple (CTOR.Highshelf all)
     where
     all :: { | HighshelfAll }
     all = convertOptionsWithDefaults Highshelf defaultHighshelf provided
-else instance highshelfCtor2 :: Paramable a => HighshelfCtor a (b -> CTOR.Highshelf AudioParameter AudioParameter /\ b) where
-  highshelf a = Tuple (CTOR.Highshelf (paramize a) defaultHighshelf.gain)
+else instance highshelfCtor2 :: Paramable a => HighshelfCtor a (b -> CTOR.Highshelf /\ b) where
+  highshelf a = Tuple (CTOR.Highshelf { freq: paramize a, gain: defaultHighshelf.gain })
 
-type CHighshelf a = CTOR.Highshelf AudioParameter AudioParameter /\ a
+type CHighshelf a = CTOR.Highshelf /\ a
 
 ----
 -- | Make an input
@@ -436,22 +429,30 @@ class LoopBufCtor i loopBuf | i -> loopBuf where
 instance loopBufCtor1 ::
   ( ConvertOptionsWithDefaults LoopBuf { | LoopBufOptional } { | provided } { | LoopBufAll }
   ) =>
-  LoopBufCtor { | provided } (BrowserAudioBuffer -> CTOR.LoopBuf BrowserAudioBuffer AudioOnOff AudioParameter Number Number /\ {}) where
-  loopBuf provided proxy = CTOR.LoopBuf proxy all.onOff all.playbackRate all.loopStart all.loopEnd /\ {}
+  LoopBufCtor { | provided } (BrowserAudioBuffer -> CTOR.LoopBuf /\ {}) where
+  loopBuf provided buffer =
+    CTOR.LoopBuf
+      { buffer
+      , onOff: all.onOff
+      , playbackRate: all.playbackRate
+      , loopStart: all.loopStart
+      , loopEnd: all.loopEnd
+      } /\ {}
     where
     all :: { | LoopBufAll }
     all = convertOptionsWithDefaults LoopBuf defaultLoopBuf provided
-else instance loopBufCtor2 :: LoopBufCtor BrowserAudioBuffer (CTOR.LoopBuf BrowserAudioBuffer AudioOnOff AudioParameter Number Number /\ {}) where
-  loopBuf name =
+else instance loopBufCtor2 :: LoopBufCtor BrowserAudioBuffer (CTOR.LoopBuf /\ {}) where
+  loopBuf buffer =
     CTOR.LoopBuf
-      name
-      defaultLoopBuf.onOff
-      defaultLoopBuf.playbackRate
-      defaultLoopBuf.loopStart
-      defaultLoopBuf.loopEnd
+      { buffer
+      , onOff: defaultLoopBuf.onOff
+      , playbackRate: defaultLoopBuf.playbackRate
+      , loopStart: defaultLoopBuf.loopStart
+      , loopEnd: defaultLoopBuf.loopEnd
+      }
       /\ {}
 
-type CLoopBuf = CTOR.LoopBuf BrowserAudioBuffer AudioOnOff AudioParameter Number Number /\ {}
+type CLoopBuf = CTOR.LoopBuf /\ {}
 
 -----
 data Lowpass = Lowpass

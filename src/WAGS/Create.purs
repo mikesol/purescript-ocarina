@@ -458,114 +458,105 @@ instance createDelay ::
 
 instance createDynamicsCompressor ::
   ( IsSymbol ptr
-  , Paramable argA
-  , Paramable argB
-  , Paramable argC
-  , Paramable argD
-  , Paramable argE
   , R.Lacks ptr graphi
   , R.Cons ptr (NodeC CTOR.TDynamicsCompressor {}) graphi grapho
   ) =>
-  Create' ptr (CTOR.DynamicsCompressor argA argB argC argD argE) graphi grapho where
+  Create' ptr (CTOR.DynamicsCompressor) graphi grapho where
   create' ptr w = o
     where
-    { context: i, value: (CTOR.DynamicsCompressor argA argB argC argD argE) } = unsafeUnWAG w
+    { context: i, value: (CTOR.DynamicsCompressor { knee, threshold, ratio, attack, release }) } = unsafeUnWAG w
 
-    nn = reflectSymbol ptr
-
-    argA_iv' = paramize argA
-
-    argB_iv' = paramize argB
-
-    argC_iv' = paramize argC
-
-    argD_iv' = paramize argD
-
-    argE_iv' = paramize argE
+    id = reflectSymbol ptr
 
     o =
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makeDynamicsCompressor { id: nn, threshold: argA_iv', knee: argB_iv', ratio: argC_iv', attack: argD_iv', release: argE_iv' } ]
+              { instructions = i.instructions <>
+                  [ makeDynamicsCompressor
+                      { id
+                      , knee
+                      , threshold
+                      , ratio
+                      , attack
+                      , release
+                      }
+                  ]
               }
         , value: unit
         }
 
 instance createGain ::
   ( IsSymbol ptr
-  , Paramable argA
   , R.Lacks ptr graphi
   , R.Cons ptr (NodeC CTOR.TGain {}) graphi grapho
   ) =>
-  Create' ptr (CTOR.Gain argA) graphi grapho where
+  Create' ptr CTOR.Gain graphi grapho where
   create' ptr w = o
     where
-    { context: i, value: (CTOR.Gain argA) } = unsafeUnWAG w
+    { context: i, value: (CTOR.Gain { gain }) } = unsafeUnWAG w
 
-    nn = reflectSymbol ptr
-
-    argA_iv' = paramize argA
+    id = reflectSymbol ptr
 
     o =
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makeGain { id: nn, gain: argA_iv' } ]
+              { instructions = i.instructions <> [ makeGain { id, gain } ]
               }
         , value: unit
         }
 
 instance createHighpass ::
   ( IsSymbol ptr
-  , Paramable argA
-  , Paramable argB
   , R.Lacks ptr graphi
   , R.Cons ptr (NodeC CTOR.THighpass {}) graphi grapho
   ) =>
-  Create' ptr (CTOR.Highpass argA argB) graphi grapho where
+  Create' ptr (CTOR.Highpass) graphi grapho where
   create' ptr w = o
     where
-    { context: i, value: (CTOR.Highpass argA argB) } = unsafeUnWAG w
+    { context: i, value: (CTOR.Highpass { freq, q }) } = unsafeUnWAG w
 
-    nn = reflectSymbol ptr
-
-    argA_iv' = paramize argA
-
-    argB_iv' = paramize argB
+    id = reflectSymbol ptr
 
     o =
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makeHighpass { id: nn, freq: argA_iv', q: argB_iv' } ]
+              { instructions = i.instructions <>
+                  [ makeHighpass
+                      { id
+                      , freq
+                      , q
+                      }
+                  ]
               }
         , value: unit
         }
 
 instance createHighshelf ::
   ( IsSymbol ptr
-  , Paramable argA
-  , Paramable argB
   , R.Lacks ptr graphi
   , R.Cons ptr (NodeC CTOR.THighshelf {}) graphi grapho
   ) =>
-  Create' ptr (CTOR.Highshelf argA argB) graphi grapho where
+  Create' ptr (CTOR.Highshelf) graphi grapho where
   create' ptr w = o
     where
-    { context: i, value: (CTOR.Highshelf argA argB) } = unsafeUnWAG w
+    { context: i, value: (CTOR.Highshelf { freq, gain }) } = unsafeUnWAG w
 
-    nn = reflectSymbol ptr
-
-    argA_iv' = paramize argA
-
-    argB_iv' = paramize argB
+    id = reflectSymbol ptr
 
     o =
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makeHighshelf { id: nn, freq: argA_iv', gain: argB_iv' } ]
+              { instructions = i.instructions <>
+                  [ makeHighshelf
+                      { id
+                      , freq
+                      , gain
+                      }
+                  ]
               }
         , value: unit
         }
@@ -581,38 +572,43 @@ instance createInput ::
     where
     { context: i, value: CTOR.Input } = unsafeUnWAG w
 
-    nn = reflectSymbol ptr
+    id = reflectSymbol ptr
 
     o =
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makeInput { id: nn, input: (reflectSymbol (Proxy :: _ sym)) } ]
+              { instructions = i.instructions <> [ makeInput { id, input: reflectSymbol (Proxy :: _ sym) } ]
               }
         , value: unit
         }
 
 instance createLoopBuf ::
   ( IsSymbol ptr
-  , Paramable argA
   , R.Lacks ptr graphi
-  , OnOffable onOff
   , R.Cons ptr (NodeC CTOR.TLoopBuf {}) graphi grapho
   ) =>
-  Create' ptr (CTOR.LoopBuf BrowserAudioBuffer onOff argA Number Number) graphi grapho where
+  Create' ptr CTOR.LoopBuf graphi grapho where
   create' ptr w = o
     where
-    { context: i, value: (CTOR.LoopBuf buffer onOff argA loopStart loopEnd) } = unsafeUnWAG w
+    { context: i, value: CTOR.LoopBuf { buffer, onOff, playbackRate, loopStart, loopEnd } } = unsafeUnWAG w
 
-    nn = reflectSymbol ptr
-
-    argA_iv' = paramize argA
+    id = reflectSymbol ptr
 
     o =
       unsafeWAG
         { context:
             i
-              { instructions = i.instructions <> [ makeLoopBuf { id: nn, buffer, onOff: (onOffIze onOff), playbackRate: argA_iv', loopStart, loopEnd } ]
+              { instructions = i.instructions <>
+                  [ makeLoopBuf
+                      { id
+                      , buffer
+                      , onOff
+                      , playbackRate
+                      , loopStart
+                      , loopEnd
+                      }
+                  ]
               }
         , value: unit
         }
