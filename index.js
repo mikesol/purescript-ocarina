@@ -14841,27 +14841,9 @@ var PS = {};
       };
       return Lowpass;
   })();
-  var LoopBuf = (function () {
-      function LoopBuf(value0, value1, value2, value3, value4) {
-          this.value0 = value0;
-          this.value1 = value1;
-          this.value2 = value2;
-          this.value3 = value3;
-          this.value4 = value4;
-      };
-      LoopBuf.create = function (value0) {
-          return function (value1) {
-              return function (value2) {
-                  return function (value3) {
-                      return function (value4) {
-                          return new LoopBuf(value0, value1, value2, value3, value4);
-                      };
-                  };
-              };
-          };
-      };
-      return LoopBuf;
-  })();
+  var LoopBuf = function (x) {
+      return x;
+  };
   var Input = (function () {
       function Input() {
 
@@ -14869,60 +14851,18 @@ var PS = {};
       Input.value = new Input();
       return Input;
   })();
-  var Highshelf = (function () {
-      function Highshelf(value0, value1) {
-          this.value0 = value0;
-          this.value1 = value1;
-      };
-      Highshelf.create = function (value0) {
-          return function (value1) {
-              return new Highshelf(value0, value1);
-          };
-      };
-      return Highshelf;
-  })();
-  var Highpass = (function () {
-      function Highpass(value0, value1) {
-          this.value0 = value0;
-          this.value1 = value1;
-      };
-      Highpass.create = function (value0) {
-          return function (value1) {
-              return new Highpass(value0, value1);
-          };
-      };
-      return Highpass;
-  })();
-  var Gain = (function () {
-      function Gain(value0) {
-          this.value0 = value0;
-      };
-      Gain.create = function (value0) {
-          return new Gain(value0);
-      };
-      return Gain;
-  })();
-  var DynamicsCompressor = (function () {
-      function DynamicsCompressor(value0, value1, value2, value3, value4) {
-          this.value0 = value0;
-          this.value1 = value1;
-          this.value2 = value2;
-          this.value3 = value3;
-          this.value4 = value4;
-      };
-      DynamicsCompressor.create = function (value0) {
-          return function (value1) {
-              return function (value2) {
-                  return function (value3) {
-                      return function (value4) {
-                          return new DynamicsCompressor(value0, value1, value2, value3, value4);
-                      };
-                  };
-              };
-          };
-      };
-      return DynamicsCompressor;
-  })();
+  var XHighshelf = function (x) {
+      return x;
+  };
+  var XHighpass = function (x) {
+      return x;
+  };
+  var XGain = function (x) {
+      return x;
+  };
+  var Gain = function (x) {
+      return x;
+  };
   var XDelay = function (x) {
       return x;
   };
@@ -15197,10 +15137,10 @@ var PS = {};
   exports["XConstant"] = XConstant;
   exports["Convolver"] = Convolver;
   exports["XDelay"] = XDelay;
-  exports["DynamicsCompressor"] = DynamicsCompressor;
   exports["Gain"] = Gain;
-  exports["Highpass"] = Highpass;
-  exports["Highshelf"] = Highshelf;
+  exports["XGain"] = XGain;
+  exports["XHighpass"] = XHighpass;
+  exports["XHighshelf"] = XHighshelf;
   exports["Input"] = Input;
   exports["LoopBuf"] = LoopBuf;
   exports["Lowpass"] = Lowpass;
@@ -25083,31 +25023,46 @@ var PS = {};
       }
   };
   var oneShotChangeHighshelf = {
-      oneShotChange: function (v) {
-          return function (freq) {
-              return new WAGS_Graph_AudioUnit.Highshelf(Data_Variant_Maybe.just(freq), Data_Variant_Maybe.nothing);
+      oneShotChange: Data_Function["const"]((function () {
+          var $827 = Data_Row_Options.options();
+          return function ($828) {
+              return WAGS_Graph_AudioUnit.XHighshelf($827((function (v) {
+                  return {
+                      freq: v
+                  };
+              })($828)));
           };
-      },
+      })()),
       Monoid0: function () {
           return WAGS_Graph_AudioUnit.monoidTHighshelf;
       }
   };
   var oneShotChangeHighpass = {
-      oneShotChange: function (v) {
-          return function (freq) {
-              return new WAGS_Graph_AudioUnit.Highpass(Data_Variant_Maybe.just(freq), Data_Variant_Maybe.nothing);
+      oneShotChange: Data_Function["const"]((function () {
+          var $829 = Data_Row_Options.options();
+          return function ($830) {
+              return WAGS_Graph_AudioUnit.XHighpass($829((function (v) {
+                  return {
+                      freq: v
+                  };
+              })($830)));
           };
-      },
+      })()),
       Monoid0: function () {
           return WAGS_Graph_AudioUnit.monoidTHighpass;
       }
   };
   var oneShotChangeGain = {
-      oneShotChange: function (v) {
-          return function (gain) {
-              return new WAGS_Graph_AudioUnit.Gain(Data_Variant_Maybe.just(gain));
+      oneShotChange: Data_Function["const"]((function () {
+          var $831 = Data_Row_Options.options();
+          return function ($832) {
+              return WAGS_Graph_AudioUnit.XGain($831((function (v) {
+                  return {
+                      gain: v
+                  };
+              })($832)));
           };
-      },
+      })()),
       Monoid0: function () {
           return WAGS_Graph_AudioUnit.monoidTGain;
       }
@@ -25207,15 +25162,15 @@ var PS = {};
               return function (dictInterpretParameters) {
                   return {
                       interpretParameters: function (dictAudioInterpret) {
-                          return function (nn) {
+                          return function (id) {
                               return function (pd) {
                                   return function (v) {
                                       return function (p) {
                                           return Data_Semigroup.append(Data_Semigroup.semigroupArray)([ WAGS_Interpret.setAudioWorkletParameter(dictAudioInterpret)({
-                                              id: nn,
+                                              id: id,
                                               paramName: Data_Symbol.reflectSymbol(dictIsSymbol)(Type_Proxy["Proxy"].value),
                                               paramValue: Record.get(dictIsSymbol)()(Type_Proxy["Proxy"].value)(p)
-                                          }) ])(interpretParameters(dictInterpretParameters)(dictAudioInterpret)(nn)(pd)(Type_Proxy["Proxy"].value)(p));
+                                          }) ])(interpretParameters(dictInterpretParameters)(dictAudioInterpret)(id)(pd)(Type_Proxy["Proxy"].value)(p));
                                       };
                                   };
                               };
@@ -25226,6 +25181,212 @@ var PS = {};
           };
       };
   };                  
+  var changeXLoopBuf = function (dictIsSymbol) {
+      return function (dictCons) {
+          return {
+              "change'": function (dictAudioInterpret) {
+                  return function (ptr) {
+                      return function (w) {
+                          var v = WAGS_Control_Types.unsafeUnWAG(w);
+                          var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                          var changes = Foreign_Object.values(Data_Homogeneous_Row_Options.objFromHomogeneous()(Data_Homogeneous_Row_Options.homogeneous()(Data_Row_Options.megamap()()(v.value)({
+                              buffer: (function () {
+                                  var $843 = WAGS_Interpret.setBuffer(dictAudioInterpret);
+                                  return function ($844) {
+                                      return $843((function (v1) {
+                                          return {
+                                              id: id,
+                                              buffer: v1
+                                          };
+                                      })($844));
+                                  };
+                              })(),
+                              onOff: (function () {
+                                  var $845 = WAGS_Interpret.setOnOff(dictAudioInterpret);
+                                  return function ($846) {
+                                      return $845((function (v1) {
+                                          return {
+                                              id: id,
+                                              onOff: v1
+                                          };
+                                      })($846));
+                                  };
+                              })(),
+                              playbackRate: (function () {
+                                  var $847 = WAGS_Interpret.setPlaybackRate(dictAudioInterpret);
+                                  return function ($848) {
+                                      return $847((function (v1) {
+                                          return {
+                                              id: id,
+                                              playbackRate: v1
+                                          };
+                                      })($848));
+                                  };
+                              })(),
+                              loopStart: (function () {
+                                  var $849 = WAGS_Interpret.setLoopStart(dictAudioInterpret);
+                                  return function ($850) {
+                                      return $849((function (v1) {
+                                          return {
+                                              id: id,
+                                              loopStart: v1
+                                          };
+                                      })($850));
+                                  };
+                              })(),
+                              loopEnd: (function () {
+                                  var $851 = WAGS_Interpret.setLoopEnd(dictAudioInterpret);
+                                  return function ($852) {
+                                      return $851((function (v1) {
+                                          return {
+                                              id: id,
+                                              loopEnd: v1
+                                          };
+                                      })($852));
+                                  };
+                              })()
+                          }))));
+                          var o = WAGS_Control_Types.unsafeWAG({
+                              context: {
+                                  res: v.context.res,
+                                  instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)(changes)
+                              },
+                              value: Data_Unit.unit
+                          });
+                          return o;
+                      };
+                  };
+              }
+          };
+      };
+  };
+  var changeXHighshelf = function (dictIsSymbol) {
+      return function (dictCons) {
+          return {
+              "change'": function (dictAudioInterpret) {
+                  return function (ptr) {
+                      return function (w) {
+                          var v = WAGS_Control_Types.unsafeUnWAG(w);
+                          var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                          var changes = Foreign_Object.values(Data_Homogeneous_Row_Options.objFromHomogeneous()(Data_Homogeneous_Row_Options.homogeneous()(Data_Row_Options.megamap()()(v.value)({
+                              freq: (function () {
+                                  var $853 = WAGS_Interpret.setFrequency(dictAudioInterpret);
+                                  return function ($854) {
+                                      return $853((function (v1) {
+                                          return {
+                                              id: id,
+                                              frequency: v1
+                                          };
+                                      })($854));
+                                  };
+                              })(),
+                              gain: (function () {
+                                  var $855 = WAGS_Interpret.setGain(dictAudioInterpret);
+                                  return function ($856) {
+                                      return $855((function (v1) {
+                                          return {
+                                              id: id,
+                                              gain: v1
+                                          };
+                                      })($856));
+                                  };
+                              })()
+                          }))));
+                          var o = WAGS_Control_Types.unsafeWAG({
+                              context: {
+                                  res: v.context.res,
+                                  instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)(changes)
+                              },
+                              value: Data_Unit.unit
+                          });
+                          return o;
+                      };
+                  };
+              }
+          };
+      };
+  };
+  var changeXHighpass = function (dictIsSymbol) {
+      return function (dictCons) {
+          return {
+              "change'": function (dictAudioInterpret) {
+                  return function (ptr) {
+                      return function (w) {
+                          var v = WAGS_Control_Types.unsafeUnWAG(w);
+                          var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                          var changes = Foreign_Object.values(Data_Homogeneous_Row_Options.objFromHomogeneous()(Data_Homogeneous_Row_Options.homogeneous()(Data_Row_Options.megamap()()(v.value)({
+                              freq: (function () {
+                                  var $857 = WAGS_Interpret.setFrequency(dictAudioInterpret);
+                                  return function ($858) {
+                                      return $857((function (v1) {
+                                          return {
+                                              id: id,
+                                              frequency: v1
+                                          };
+                                      })($858));
+                                  };
+                              })(),
+                              q: (function () {
+                                  var $859 = WAGS_Interpret.setQ(dictAudioInterpret);
+                                  return function ($860) {
+                                      return $859((function (v1) {
+                                          return {
+                                              id: id,
+                                              q: v1
+                                          };
+                                      })($860));
+                                  };
+                              })()
+                          }))));
+                          var o = WAGS_Control_Types.unsafeWAG({
+                              context: {
+                                  res: v.context.res,
+                                  instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)(changes)
+                              },
+                              value: Data_Unit.unit
+                          });
+                          return o;
+                      };
+                  };
+              }
+          };
+      };
+  };
+  var changeXGain = function (dictIsSymbol) {
+      return function (dictCons) {
+          return {
+              "change'": function (dictAudioInterpret) {
+                  return function (ptr) {
+                      return function (w) {
+                          var v = WAGS_Control_Types.unsafeUnWAG(w);
+                          var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                          var changes = Foreign_Object.values(Data_Homogeneous_Row_Options.objFromHomogeneous()(Data_Homogeneous_Row_Options.homogeneous()(Data_Row_Options.megamap()()(v.value)({
+                              gain: (function () {
+                                  var $861 = WAGS_Interpret.setGain(dictAudioInterpret);
+                                  return function ($862) {
+                                      return $861((function (v1) {
+                                          return {
+                                              id: id,
+                                              gain: v1
+                                          };
+                                      })($862));
+                                  };
+                              })()
+                          }))));
+                          var o = WAGS_Control_Types.unsafeWAG({
+                              context: {
+                                  res: v.context.res,
+                                  instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)(changes)
+                              },
+                              value: Data_Unit.unit
+                          });
+                          return o;
+                      };
+                  };
+              }
+          };
+      };
+  };
   var changeXDelay = function (dictIsSymbol) {
       return function (dictCons) {
           return {
@@ -25236,14 +25397,14 @@ var PS = {};
                           var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
                           var changes = Foreign_Object.values(Data_Homogeneous_Row_Options.objFromHomogeneous()(Data_Homogeneous_Row_Options.homogeneous()(Data_Row_Options.megamap()()(v.value)({
                               delayTime: (function () {
-                                  var $843 = WAGS_Interpret.setDelay(dictAudioInterpret);
-                                  return function ($844) {
-                                      return $843((function (v1) {
+                                  var $873 = WAGS_Interpret.setDelay(dictAudioInterpret);
+                                  return function ($874) {
+                                      return $873((function (v1) {
                                           return {
                                               id: id,
                                               delay: v1
                                           };
-                                      })($844));
+                                      })($874));
                                   };
                               })()
                           }))));
@@ -25271,25 +25432,25 @@ var PS = {};
                           var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
                           var changes = Foreign_Object.values(Data_Homogeneous_Row_Options.objFromHomogeneous()(Data_Homogeneous_Row_Options.homogeneous()(Data_Row_Options.megamap()()(v.value)({
                               offset: (function () {
-                                  var $845 = WAGS_Interpret.setOffset(dictAudioInterpret);
-                                  return function ($846) {
-                                      return $845((function (v1) {
+                                  var $875 = WAGS_Interpret.setOffset(dictAudioInterpret);
+                                  return function ($876) {
+                                      return $875((function (v1) {
                                           return {
                                               id: id,
                                               offset: v1
                                           };
-                                      })($846));
+                                      })($876));
                                   };
                               })(),
                               onOff: (function () {
-                                  var $847 = WAGS_Interpret.setOnOff(dictAudioInterpret);
-                                  return function ($848) {
-                                      return $847((function (v1) {
+                                  var $877 = WAGS_Interpret.setOnOff(dictAudioInterpret);
+                                  return function ($878) {
+                                      return $877((function (v1) {
                                           return {
                                               id: id,
                                               onOff: v1
                                           };
-                                      })($848));
+                                      })($878));
                                   };
                               })()
                           }))));
@@ -25314,28 +25475,28 @@ var PS = {};
                   return function (ptr) {
                       return function (w) {
                           var v = WAGS_Control_Types.unsafeUnWAG(w);
-                          var nn = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                          var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
                           var changes = Foreign_Object.values(Data_Homogeneous_Row_Options.objFromHomogeneous()(Data_Homogeneous_Row_Options.homogeneous()(Data_Row_Options.megamap()()(v.value)({
                               freq: (function () {
-                                  var $849 = WAGS_Interpret.setFrequency(dictAudioInterpret);
-                                  return function ($850) {
-                                      return $849((function (v1) {
+                                  var $879 = WAGS_Interpret.setFrequency(dictAudioInterpret);
+                                  return function ($880) {
+                                      return $879((function (v1) {
                                           return {
-                                              id: nn,
+                                              id: id,
                                               frequency: v1
                                           };
-                                      })($850));
+                                      })($880));
                                   };
                               })(),
                               q: (function () {
-                                  var $851 = WAGS_Interpret.setQ(dictAudioInterpret);
-                                  return function ($852) {
-                                      return $851((function (v1) {
+                                  var $881 = WAGS_Interpret.setQ(dictAudioInterpret);
+                                  return function ($882) {
+                                      return $881((function (v1) {
                                           return {
-                                              id: nn,
+                                              id: id,
                                               q: v1
                                           };
-                                      })($852));
+                                      })($882));
                                   };
                               })()
                           }))));
@@ -25360,28 +25521,28 @@ var PS = {};
                   return function (ptr) {
                       return function (w) {
                           var v = WAGS_Control_Types.unsafeUnWAG(w);
-                          var nn = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                          var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
                           var changes = Foreign_Object.values(Data_Homogeneous_Row_Options.objFromHomogeneous()(Data_Homogeneous_Row_Options.homogeneous()(Data_Row_Options.megamap()()(v.value)({
                               freq: (function () {
-                                  var $853 = WAGS_Interpret.setFrequency(dictAudioInterpret);
-                                  return function ($854) {
-                                      return $853((function (v1) {
+                                  var $883 = WAGS_Interpret.setFrequency(dictAudioInterpret);
+                                  return function ($884) {
+                                      return $883((function (v1) {
                                           return {
-                                              id: nn,
+                                              id: id,
                                               frequency: v1
                                           };
-                                      })($854));
+                                      })($884));
                                   };
                               })(),
                               q: (function () {
-                                  var $855 = WAGS_Interpret.setQ(dictAudioInterpret);
-                                  return function ($856) {
-                                      return $855((function (v1) {
+                                  var $885 = WAGS_Interpret.setQ(dictAudioInterpret);
+                                  return function ($886) {
+                                      return $885((function (v1) {
                                           return {
-                                              id: nn,
+                                              id: id,
                                               q: v1
                                           };
-                                      })($856));
+                                      })($886));
                                   };
                               })()
                           }))));
@@ -25409,12 +25570,12 @@ var PS = {};
                               return function (w) {
                                   var v = WAGS_Control_Types.unsafeUnWAG(w);
                                   var tms = Data_Symbol.reflectSymbol(dictIsSymbol1)(Type_Proxy["Proxy"].value);
-                                  var nn = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                                  var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
                                   var o = WAGS_Control_Types.unsafeWAG({
                                       context: {
                                           res: v.context.res,
                                           instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)([ WAGS_Interpret.setTumult(dictAudioInterpret)({
-                                              id: nn,
+                                              id: id,
                                               terminus: tms,
                                               instructions: WAGS_Tumult.safeUntumult(v.value.value0)
                                           }) ])
@@ -25441,12 +25602,12 @@ var PS = {};
                                   return function (ptr) {
                                       return function (w) {
                                           var v = WAGS_Control_Types.unsafeUnWAG(w);
-                                          var nn = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                                          var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
                                           var o = WAGS_Control_Types.unsafeWAG({
                                               context: {
                                                   res: v.context.res,
                                                   instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)([ WAGS_Interpret.setSingleSubgraph(dictAudioInterpret)(dictNat)({
-                                                      id: nn,
+                                                      id: id,
                                                       index: v.value.value0,
                                                       env: v.value.value1
                                                   }) ])
@@ -25473,12 +25634,12 @@ var PS = {};
                           return function (ptr) {
                               return function (w) {
                                   var v = WAGS_Control_Types.unsafeUnWAG(w);
-                                  var nn = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                                  var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
                                   var o = WAGS_Control_Types.unsafeWAG({
                                       context: {
                                           res: v.context.res,
                                           instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)([ WAGS_Interpret.setSubgraph(dictAudioInterpret)(dictPos)({
-                                              id: nn,
+                                              id: id,
                                               envs: v.value.value1
                                           }) ])
                                       },
@@ -25502,11 +25663,11 @@ var PS = {};
                           return function (ptr) {
                               return function (w) {
                                   var v = WAGS_Control_Types.unsafeUnWAG(w);
-                                  var nn = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                                  var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
                                   var argA_iv$prime = Data_Functor.map(Data_Variant_Maybe.functorMaybe)(WAGS_Graph_Paramable.paramize(dictParamable))(WAGS_Graph_Parameter.mm(dictMM)(v.value.value0));
                                   var argA_Changes = Data_Variant_Maybe.maybe([  ])(function (argA_iv$prime$prime) {
                                       return [ WAGS_Interpret.setPan(dictAudioInterpret)({
-                                          id: nn,
+                                          id: id,
                                           pan: argA_iv$prime$prime
                                       }) ];
                                   })(argA_iv$prime);
@@ -25537,17 +25698,17 @@ var PS = {};
                                   return function (ptr) {
                                       return function (w) {
                                           var v = WAGS_Control_Types.unsafeUnWAG(w);
-                                          var nn = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                                          var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
                                           var oo_Changes = Data_Variant_Maybe.maybe([  ])(function (onOff$prime) {
                                               return [ WAGS_Interpret.setOnOff(dictAudioInterpret)({
-                                                  id: nn,
+                                                  id: id,
                                                   onOff: WAGS_Graph_Paramable.onOffIze(dictOnOffable)(onOff$prime)
                                               }) ];
                                           })(WAGS_Graph_Parameter.mm(dictMM)(v.value.value0));
                                           var argA_iv$prime = Data_Functor.map(Data_Variant_Maybe.functorMaybe)(WAGS_Graph_Paramable.paramize(dictParamable))(WAGS_Graph_Parameter.mm(dictMM1)(v.value.value1));
                                           var argA_Changes = Data_Variant_Maybe.maybe([  ])(function (argA_iv$prime$prime) {
                                               return [ WAGS_Interpret.setFrequency(dictAudioInterpret)({
-                                                  id: nn,
+                                                  id: id,
                                                   frequency: argA_iv$prime$prime
                                               }) ];
                                           })(argA_iv$prime);
@@ -25591,17 +25752,17 @@ var PS = {};
                                   return function (ptr) {
                                       return function (w) {
                                           var v = WAGS_Control_Types.unsafeUnWAG(w);
-                                          var nn = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                                          var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
                                           var oo_Changes = Data_Variant_Maybe.maybe([  ])(function (onOff$prime) {
                                               return [ WAGS_Interpret.setOnOff(dictAudioInterpret)({
-                                                  id: nn,
+                                                  id: id,
                                                   onOff: WAGS_Graph_Paramable.onOffIze(dictOnOffable)(onOff$prime)
                                               }) ];
                                           })(WAGS_Graph_Parameter.mm(dictMM)(v.value.value0));
                                           var argA_iv$prime = Data_Functor.map(Data_Variant_Maybe.functorMaybe)(WAGS_Graph_Paramable.paramize(dictParamable))(WAGS_Graph_Parameter.mm(dictMM1)(v.value.value1));
                                           var argA_Changes = Data_Variant_Maybe.maybe([  ])(function (argA_iv$prime$prime) {
                                               return [ WAGS_Interpret.setFrequency(dictAudioInterpret)({
-                                                  id: nn,
+                                                  id: id,
                                                   frequency: argA_iv$prime$prime
                                               }) ];
                                           })(argA_iv$prime);
@@ -25634,17 +25795,17 @@ var PS = {};
                                   return function (ptr) {
                                       return function (w) {
                                           var v = WAGS_Control_Types.unsafeUnWAG(w);
-                                          var nn = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                                          var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
                                           var oo_Changes = Data_Variant_Maybe.maybe([  ])(function (onOff$prime) {
                                               return [ WAGS_Interpret.setOnOff(dictAudioInterpret)({
-                                                  id: nn,
+                                                  id: id,
                                                   onOff: WAGS_Graph_Paramable.onOffIze(dictOnOffable)(onOff$prime)
                                               }) ];
                                           })(WAGS_Graph_Parameter.mm(dictMM)(v.value.value0));
                                           var argA_iv$prime = Data_Functor.map(Data_Variant_Maybe.functorMaybe)(WAGS_Graph_Paramable.paramize(dictParamable))(WAGS_Graph_Parameter.mm(dictMM1)(v.value.value1));
                                           var argA_Changes = Data_Variant_Maybe.maybe([  ])(function (argA_iv$prime$prime) {
                                               return [ WAGS_Interpret.setFrequency(dictAudioInterpret)({
-                                                  id: nn,
+                                                  id: id,
                                                   frequency: argA_iv$prime$prime
                                               }) ];
                                           })(argA_iv$prime);
@@ -25695,29 +25856,29 @@ var PS = {};
                                           return function (ptr) {
                                               return function (w) {
                                                   var v = WAGS_Control_Types.unsafeUnWAG(w);
-                                                  var nn = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                                                  var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
                                                   var offset_Changes = Data_Variant_Maybe.maybe([  ])(function (offset$prime) {
                                                       return [ WAGS_Interpret.setBufferOffset(dictAudioInterpret)({
-                                                          id: nn,
+                                                          id: id,
                                                           bufferOffset: offset$prime
                                                       }) ];
                                                   })(WAGS_Graph_Parameter.mm(dictMM1)(v.value.value1));
                                                   var oo_Changes = Data_Variant_Maybe.maybe([  ])(function (onOff$prime) {
                                                       return [ WAGS_Interpret.setOnOff(dictAudioInterpret)({
-                                                          id: nn,
+                                                          id: id,
                                                           onOff: WAGS_Graph_Paramable.onOffIze(dictOnOffable)(onOff$prime)
                                                       }) ];
                                                   })(WAGS_Graph_Parameter.mm(dictMM2)(v.value.value2));
                                                   var buffer_Changes = Data_Variant_Maybe.maybe([  ])(function (buffer$prime) {
                                                       return [ WAGS_Interpret.setBuffer(dictAudioInterpret)({
-                                                          id: nn,
+                                                          id: id,
                                                           buffer: buffer$prime
                                                       }) ];
                                                   })(WAGS_Graph_Parameter.mm(dictMM)(v.value.value0));
                                                   var argA_iv$prime = Data_Functor.map(Data_Variant_Maybe.functorMaybe)(WAGS_Graph_Paramable.paramize(dictParamable))(WAGS_Graph_Parameter.mm(dictMM3)(v.value.value3));
                                                   var argA_Changes = Data_Variant_Maybe.maybe([  ])(function (argA_iv$prime$prime) {
                                                       return [ WAGS_Interpret.setPlaybackRate(dictAudioInterpret)({
-                                                          id: nn,
+                                                          id: id,
                                                           playbackRate: argA_iv$prime$prime
                                                       }) ];
                                                   })(argA_iv$prime);
@@ -25766,20 +25927,20 @@ var PS = {};
                                           return function (ptr) {
                                               return function (w) {
                                                   var v = WAGS_Control_Types.unsafeUnWAG(w);
-                                                  var nn = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                                                  var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
                                                   var oo_Changes = Data_Variant_Maybe.maybe([  ])(function (onOff$prime) {
                                                       return [ WAGS_Interpret.setOnOff(dictAudioInterpret)({
-                                                          id: nn,
+                                                          id: id,
                                                           onOff: WAGS_Graph_Paramable.onOffIze(dictOnOffable)(onOff$prime)
                                                       }) ];
                                                   })(WAGS_Graph_Parameter.mm(dictMM1)(v.value.value1));
                                                   var pw_Changes = Data_Variant_Maybe.maybe([  ])(function (periodicWave$prime) {
-                                                      return [ setPosc(dictChangePeriodicOsc)(dictAudioInterpret)(nn)(periodicWave$prime) ];
+                                                      return [ setPosc(dictChangePeriodicOsc)(dictAudioInterpret)(id)(periodicWave$prime) ];
                                                   })(WAGS_Graph_Parameter.mm(dictMM)(v.value.value0));
                                                   var argA_iv$prime = Data_Functor.map(Data_Variant_Maybe.functorMaybe)(WAGS_Graph_Paramable.paramize(dictParamable))(WAGS_Graph_Parameter.mm(dictMM2)(v.value.value2));
                                                   var argA_Changes = Data_Variant_Maybe.maybe([  ])(function (argA_iv$prime$prime) {
                                                       return [ WAGS_Interpret.setFrequency(dictAudioInterpret)({
-                                                          id: nn,
+                                                          id: id,
                                                           frequency: argA_iv$prime$prime
                                                       }) ];
                                                   })(argA_iv$prime);
@@ -25816,25 +25977,25 @@ var PS = {};
                                           return function (ptr) {
                                               return function (w) {
                                                   var v = WAGS_Control_Types.unsafeUnWAG(w);
-                                                  var nn = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                                                  var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
                                                   var argC_iv$prime = Data_Functor.map(Data_Variant_Maybe.functorMaybe)(WAGS_Graph_Paramable.paramize(dictParamable2))(WAGS_Graph_Parameter.mm(dictMM2)(v.value.value2));
                                                   var argC_Changes = Data_Variant_Maybe.maybe([  ])(function (argC_iv$prime$prime) {
                                                       return [ WAGS_Interpret.setGain(dictAudioInterpret)({
-                                                          id: nn,
+                                                          id: id,
                                                           gain: argC_iv$prime$prime
                                                       }) ];
                                                   })(argC_iv$prime);
                                                   var argB_iv$prime = Data_Functor.map(Data_Variant_Maybe.functorMaybe)(WAGS_Graph_Paramable.paramize(dictParamable1))(WAGS_Graph_Parameter.mm(dictMM1)(v.value.value1));
                                                   var argB_Changes = Data_Variant_Maybe.maybe([  ])(function (argB_iv$prime$prime) {
                                                       return [ WAGS_Interpret.setQ(dictAudioInterpret)({
-                                                          id: nn,
+                                                          id: id,
                                                           q: argB_iv$prime$prime
                                                       }) ];
                                                   })(argB_iv$prime);
                                                   var argA_iv$prime = Data_Functor.map(Data_Variant_Maybe.functorMaybe)(WAGS_Graph_Paramable.paramize(dictParamable))(WAGS_Graph_Parameter.mm(dictMM)(v.value.value0));
                                                   var argA_Changes = Data_Variant_Maybe.maybe([  ])(function (argA_iv$prime$prime) {
                                                       return [ WAGS_Interpret.setFrequency(dictAudioInterpret)({
-                                                          id: nn,
+                                                          id: id,
                                                           frequency: argA_iv$prime$prime
                                                       }) ];
                                                   })(argA_iv$prime);
@@ -25869,18 +26030,18 @@ var PS = {};
                                   return function (ptr) {
                                       return function (w) {
                                           var v = WAGS_Control_Types.unsafeUnWAG(w);
-                                          var nn = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                                          var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
                                           var argB_iv$prime = Data_Functor.map(Data_Variant_Maybe.functorMaybe)(WAGS_Graph_Paramable.paramize(dictParamable1))(WAGS_Graph_Parameter.mm(dictMM1)(v.value.value1));
                                           var argB_Changes = Data_Variant_Maybe.maybe([  ])(function (argB_iv$prime$prime) {
                                               return [ WAGS_Interpret.setQ(dictAudioInterpret)({
-                                                  id: nn,
+                                                  id: id,
                                                   q: argB_iv$prime$prime
                                               }) ];
                                           })(argB_iv$prime);
                                           var argA_iv$prime = Data_Functor.map(Data_Variant_Maybe.functorMaybe)(WAGS_Graph_Paramable.paramize(dictParamable))(WAGS_Graph_Parameter.mm(dictMM)(v.value.value0));
                                           var argA_Changes = Data_Variant_Maybe.maybe([  ])(function (argA_iv$prime$prime) {
                                               return [ WAGS_Interpret.setFrequency(dictAudioInterpret)({
-                                                  id: nn,
+                                                  id: id,
                                                   frequency: argA_iv$prime$prime
                                               }) ];
                                           })(argA_iv$prime);
@@ -25913,18 +26074,18 @@ var PS = {};
                                   return function (ptr) {
                                       return function (w) {
                                           var v = WAGS_Control_Types.unsafeUnWAG(w);
-                                          var nn = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                                          var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
                                           var argB_iv$prime = Data_Functor.map(Data_Variant_Maybe.functorMaybe)(WAGS_Graph_Paramable.paramize(dictParamable1))(WAGS_Graph_Parameter.mm(dictMM1)(v.value.value1));
                                           var argB_Changes = Data_Variant_Maybe.maybe([  ])(function (argB_iv$prime$prime) {
                                               return [ WAGS_Interpret.setGain(dictAudioInterpret)({
-                                                  id: nn,
+                                                  id: id,
                                                   gain: argB_iv$prime$prime
                                               }) ];
                                           })(argB_iv$prime);
                                           var argA_iv$prime = Data_Functor.map(Data_Variant_Maybe.functorMaybe)(WAGS_Graph_Paramable.paramize(dictParamable))(WAGS_Graph_Parameter.mm(dictMM)(v.value.value0));
                                           var argA_Changes = Data_Variant_Maybe.maybe([  ])(function (argA_iv$prime$prime) {
                                               return [ WAGS_Interpret.setFrequency(dictAudioInterpret)({
-                                                  id: nn,
+                                                  id: id,
                                                   frequency: argA_iv$prime$prime
                                               }) ];
                                           })(argA_iv$prime);
@@ -25957,18 +26118,18 @@ var PS = {};
                                   return function (ptr) {
                                       return function (w) {
                                           var v = WAGS_Control_Types.unsafeUnWAG(w);
-                                          var nn = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                                          var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
                                           var argB_iv$prime = Data_Functor.map(Data_Variant_Maybe.functorMaybe)(WAGS_Graph_Paramable.paramize(dictParamable1))(WAGS_Graph_Parameter.mm(dictMM1)(v.value.value1));
                                           var argB_Changes = Data_Variant_Maybe.maybe([  ])(function (argB_iv$prime$prime) {
                                               return [ WAGS_Interpret.setQ(dictAudioInterpret)({
-                                                  id: nn,
+                                                  id: id,
                                                   q: argB_iv$prime$prime
                                               }) ];
                                           })(argB_iv$prime);
                                           var argA_iv$prime = Data_Functor.map(Data_Variant_Maybe.functorMaybe)(WAGS_Graph_Paramable.paramize(dictParamable))(WAGS_Graph_Parameter.mm(dictMM)(v.value.value0));
                                           var argA_Changes = Data_Variant_Maybe.maybe([  ])(function (argA_iv$prime$prime) {
                                               return [ WAGS_Interpret.setFrequency(dictAudioInterpret)({
-                                                  id: nn,
+                                                  id: id,
                                                   frequency: argA_iv$prime$prime
                                               }) ];
                                           })(argA_iv$prime);
@@ -25983,73 +26144,6 @@ var PS = {};
                                       };
                                   };
                               }
-                          };
-                      };
-                  };
-              };
-          };
-      };
-  };
-  var changeLoopBuf = function (dictIsSymbol) {
-      return function (dictMM) {
-          return function (dictMM1) {
-              return function (dictOnOffable) {
-                  return function (dictMM2) {
-                      return function (dictMM3) {
-                          return function (dictMM4) {
-                              return function (dictParamable) {
-                                  return function (dictCons) {
-                                      return {
-                                          "change'": function (dictAudioInterpret) {
-                                              return function (ptr) {
-                                                  return function (w) {
-                                                      var v = WAGS_Control_Types.unsafeUnWAG(w);
-                                                      var nn = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
-                                                      var oo_Changes = Data_Variant_Maybe.maybe([  ])(function (onOff$prime) {
-                                                          return [ WAGS_Interpret.setOnOff(dictAudioInterpret)({
-                                                              id: nn,
-                                                              onOff: WAGS_Graph_Paramable.onOffIze(dictOnOffable)(onOff$prime)
-                                                          }) ];
-                                                      })(WAGS_Graph_Parameter.mm(dictMM1)(v.value.value1));
-                                                      var loopStart_Changes = Data_Variant_Maybe.maybe([  ])(function (loopStart$prime) {
-                                                          return [ WAGS_Interpret.setLoopStart(dictAudioInterpret)({
-                                                              id: nn,
-                                                              loopStart: loopStart$prime
-                                                          }) ];
-                                                      })(WAGS_Graph_Parameter.mm(dictMM3)(v.value.value3));
-                                                      var loopEnd_Changes = Data_Variant_Maybe.maybe([  ])(function (loopEnd$prime) {
-                                                          return [ WAGS_Interpret.setLoopEnd(dictAudioInterpret)({
-                                                              id: nn,
-                                                              loopEnd: loopEnd$prime
-                                                          }) ];
-                                                      })(WAGS_Graph_Parameter.mm(dictMM4)(v.value.value4));
-                                                      var buffer_Changes = Data_Variant_Maybe.maybe([  ])(function (buffer$prime) {
-                                                          return [ WAGS_Interpret.setBuffer(dictAudioInterpret)({
-                                                              id: nn,
-                                                              buffer: buffer$prime
-                                                          }) ];
-                                                      })(WAGS_Graph_Parameter.mm(dictMM)(v.value.value0));
-                                                      var argA_iv$prime = Data_Functor.map(Data_Variant_Maybe.functorMaybe)(WAGS_Graph_Paramable.paramize(dictParamable))(WAGS_Graph_Parameter.mm(dictMM2)(v.value.value2));
-                                                      var argA_Changes = Data_Variant_Maybe.maybe([  ])(function (argA_iv$prime$prime) {
-                                                          return [ WAGS_Interpret.setPlaybackRate(dictAudioInterpret)({
-                                                              id: nn,
-                                                              playbackRate: argA_iv$prime$prime
-                                                          }) ];
-                                                      })(argA_iv$prime);
-                                                      var o = WAGS_Control_Types.unsafeWAG({
-                                                          context: {
-                                                              res: v.context.res,
-                                                              instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)(Data_Semigroup.append(Data_Semigroup.semigroupArray)(buffer_Changes)(Data_Semigroup.append(Data_Semigroup.semigroupArray)(oo_Changes)(Data_Semigroup.append(Data_Semigroup.semigroupArray)(argA_Changes)(Data_Semigroup.append(Data_Semigroup.semigroupArray)(loopStart_Changes)(loopEnd_Changes)))))
-                                                          },
-                                                          value: Data_Unit.unit
-                                                      });
-                                                      return o;
-                                                  };
-                                              };
-                                          }
-                                      };
-                                  };
-                              };
                           };
                       };
                   };
@@ -26084,127 +26178,6 @@ var PS = {};
           };
       };
   };
-  var changeHighshelf = function (dictIsSymbol) {
-      return function (dictMM) {
-          return function (dictParamable) {
-              return function (dictMM1) {
-                  return function (dictParamable1) {
-                      return function (dictCons) {
-                          return {
-                              "change'": function (dictAudioInterpret) {
-                                  return function (ptr) {
-                                      return function (w) {
-                                          var v = WAGS_Control_Types.unsafeUnWAG(w);
-                                          var nn = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
-                                          var argB_iv$prime = Data_Functor.map(Data_Variant_Maybe.functorMaybe)(WAGS_Graph_Paramable.paramize(dictParamable1))(WAGS_Graph_Parameter.mm(dictMM1)(v.value.value1));
-                                          var argB_Changes = Data_Variant_Maybe.maybe([  ])(function (argB_iv$prime$prime) {
-                                              return [ WAGS_Interpret.setGain(dictAudioInterpret)({
-                                                  id: nn,
-                                                  gain: argB_iv$prime$prime
-                                              }) ];
-                                          })(argB_iv$prime);
-                                          var argA_iv$prime = Data_Functor.map(Data_Variant_Maybe.functorMaybe)(WAGS_Graph_Paramable.paramize(dictParamable))(WAGS_Graph_Parameter.mm(dictMM)(v.value.value0));
-                                          var argA_Changes = Data_Variant_Maybe.maybe([  ])(function (argA_iv$prime$prime) {
-                                              return [ WAGS_Interpret.setFrequency(dictAudioInterpret)({
-                                                  id: nn,
-                                                  frequency: argA_iv$prime$prime
-                                              }) ];
-                                          })(argA_iv$prime);
-                                          var o = WAGS_Control_Types.unsafeWAG({
-                                              context: {
-                                                  res: v.context.res,
-                                                  instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)(Data_Semigroup.append(Data_Semigroup.semigroupArray)(argA_Changes)(argB_Changes))
-                                              },
-                                              value: Data_Unit.unit
-                                          });
-                                          return o;
-                                      };
-                                  };
-                              }
-                          };
-                      };
-                  };
-              };
-          };
-      };
-  };
-  var changeHighpass = function (dictIsSymbol) {
-      return function (dictMM) {
-          return function (dictParamable) {
-              return function (dictMM1) {
-                  return function (dictParamable1) {
-                      return function (dictCons) {
-                          return {
-                              "change'": function (dictAudioInterpret) {
-                                  return function (ptr) {
-                                      return function (w) {
-                                          var v = WAGS_Control_Types.unsafeUnWAG(w);
-                                          var nn = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
-                                          var argB_iv$prime = Data_Functor.map(Data_Variant_Maybe.functorMaybe)(WAGS_Graph_Paramable.paramize(dictParamable1))(WAGS_Graph_Parameter.mm(dictMM1)(v.value.value1));
-                                          var argB_Changes = Data_Variant_Maybe.maybe([  ])(function (argB_iv$prime$prime) {
-                                              return [ WAGS_Interpret.setQ(dictAudioInterpret)({
-                                                  id: nn,
-                                                  q: argB_iv$prime$prime
-                                              }) ];
-                                          })(argB_iv$prime);
-                                          var argA_iv$prime = Data_Functor.map(Data_Variant_Maybe.functorMaybe)(WAGS_Graph_Paramable.paramize(dictParamable))(WAGS_Graph_Parameter.mm(dictMM)(v.value.value0));
-                                          var argA_Changes = Data_Variant_Maybe.maybe([  ])(function (argA_iv$prime$prime) {
-                                              return [ WAGS_Interpret.setFrequency(dictAudioInterpret)({
-                                                  id: nn,
-                                                  frequency: argA_iv$prime$prime
-                                              }) ];
-                                          })(argA_iv$prime);
-                                          var o = WAGS_Control_Types.unsafeWAG({
-                                              context: {
-                                                  res: v.context.res,
-                                                  instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)(Data_Semigroup.append(Data_Semigroup.semigroupArray)(argA_Changes)(argB_Changes))
-                                              },
-                                              value: Data_Unit.unit
-                                          });
-                                          return o;
-                                      };
-                                  };
-                              }
-                          };
-                      };
-                  };
-              };
-          };
-      };
-  };
-  var changeGain = function (dictIsSymbol) {
-      return function (dictMM) {
-          return function (dictParamable) {
-              return function (dictCons) {
-                  return {
-                      "change'": function (dictAudioInterpret) {
-                          return function (ptr) {
-                              return function (w) {
-                                  var v = WAGS_Control_Types.unsafeUnWAG(w);
-                                  var nn = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
-                                  var argA_iv$prime = Data_Functor.map(Data_Variant_Maybe.functorMaybe)(WAGS_Graph_Paramable.paramize(dictParamable))(WAGS_Graph_Parameter.mm(dictMM)(v.value.value0));
-                                  var argA_Changes = Data_Variant_Maybe.maybe([  ])(function (argA_iv$prime$prime) {
-                                      return [ WAGS_Interpret.setGain(dictAudioInterpret)({
-                                          id: nn,
-                                          gain: argA_iv$prime$prime
-                                      }) ];
-                                  })(argA_iv$prime);
-                                  var o = WAGS_Control_Types.unsafeWAG({
-                                      context: {
-                                          res: v.context.res,
-                                          instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)(argA_Changes)
-                                      },
-                                      value: Data_Unit.unit
-                                  });
-                                  return o;
-                              };
-                          };
-                      }
-                  };
-              };
-          };
-      };
-  };
   var changeConvolver = function (dictIsSymbol) {
       return function (dictCons) {
           return {
@@ -26212,12 +26185,12 @@ var PS = {};
                   return function (ptr) {
                       return function (w) {
                           var v = WAGS_Control_Types.unsafeUnWAG(w);
-                          var nn = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                          var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
                           var o = WAGS_Control_Types.unsafeWAG({
                               context: {
                                   res: v.context.res,
                                   instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)([ WAGS_Interpret.setConvolverBuffer(dictAudioInterpret)({
-                                      id: nn,
+                                      id: id,
                                       buffer: v.value.value0
                                   }) ])
                               },
@@ -26239,11 +26212,11 @@ var PS = {};
                           return function (ptr) {
                               return function (w) {
                                   var v = WAGS_Control_Types.unsafeUnWAG(w);
-                                  var nn = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                                  var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
                                   var o = WAGS_Control_Types.unsafeWAG({
                                       context: {
                                           res: v.context.res,
-                                          instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)(interpretParameters(dictInterpretParameters)(dictAudioInterpret)(nn)(Type_Proxy["Proxy"].value)(Type_Proxy["Proxy"].value)(v.value.value1.parameterData))
+                                          instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)(interpretParameters(dictInterpretParameters)(dictAudioInterpret)(id)(Type_Proxy["Proxy"].value)(Type_Proxy["Proxy"].value)(v.value.value1.parameterData))
                                       },
                                       value: Data_Unit.unit
                                   });
@@ -26263,12 +26236,12 @@ var PS = {};
                   return function (ptr) {
                       return function (w) {
                           var v = WAGS_Control_Types.unsafeUnWAG(w);
-                          var nn = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                          var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
                           var o = WAGS_Control_Types.unsafeWAG({
                               context: {
                                   res: v.context.res,
                                   instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)([ WAGS_Interpret.setAnalyserNodeCb(dictAudioInterpret)({
-                                      id: nn,
+                                      id: id,
                                       cb: v.value.value0
                                   }) ])
                               },
@@ -26323,10 +26296,10 @@ var PS = {};
           return {
               "change'": function (dictAudioInterpret) {
                   return function (ptr) {
-                      var $857 = change$prime(changeXAllpass(dictIsSymbol)())(dictAudioInterpret)(ptr);
-                      var $858 = Data_Functor.map(WAGS_Control_Types.functorWAG)(Data_Newtype.over()()(WAGS_Graph_AudioUnit.Allpass)(Data_Row_Options.asOptions));
-                      return function ($859) {
-                          return $857($858($859));
+                      var $887 = change$prime(changeXAllpass(dictIsSymbol)())(dictAudioInterpret)(ptr);
+                      var $888 = Data_Functor.map(WAGS_Control_Types.functorWAG)(Data_Newtype.over()()(WAGS_Graph_AudioUnit.Allpass)(Data_Row_Options.asOptions));
+                      return function ($889) {
+                          return $887($888($889));
                       };
                   };
               }
@@ -26382,6 +26355,36 @@ var PS = {};
           }
       };
   };
+  var changeGain = function (dictIsSymbol) {
+      return function (dictCons) {
+          return {
+              "change'": function (dictAudioInterpret) {
+                  return function (ptr) {
+                      var $902 = change$prime(changeXGain(dictIsSymbol)())(dictAudioInterpret)(ptr);
+                      var $903 = Data_Functor.map(WAGS_Control_Types.functorWAG)(Data_Newtype.over()()(WAGS_Graph_AudioUnit.Gain)(Data_Row_Options.asOptions));
+                      return function ($904) {
+                          return $902($903($904));
+                      };
+                  };
+              }
+          };
+      };
+  };
+  var changeLoopBuf = function (dictIsSymbol) {
+      return function (dictCons) {
+          return {
+              "change'": function (dictAudioInterpret) {
+                  return function (ptr) {
+                      var $911 = change$prime(changeXLoopBuf(dictIsSymbol)())(dictAudioInterpret)(ptr);
+                      var $912 = Data_Functor.map(WAGS_Control_Types.functorWAG)(Data_Newtype.over()()(WAGS_Graph_AudioUnit.LoopBuf)(Data_Row_Options.asOptions));
+                      return function ($913) {
+                          return $911($912($913));
+                      };
+                  };
+              }
+          };
+      };
+  };
   var changeNumber = function (dictChange$prime) {
       return {
           "change'": function (dictAudioInterpret) {
@@ -26435,10 +26438,10 @@ var PS = {};
       return function (dictChange$prime) {
           return function (ptr) {
               return function (a) {
-                  var $869 = change$prime(dictChange$prime)(dictAudioInterpret)(ptr);
-                  var $870 = Data_Functor.voidRight(WAGS_Control_Types.functorWAG)(a);
-                  return function ($871) {
-                      return $869($870($871));
+                  var $914 = change$prime(dictChange$prime)(dictAudioInterpret)(ptr);
+                  var $915 = Data_Functor.voidRight(WAGS_Control_Types.functorWAG)(a);
+                  return function ($916) {
+                      return $914($915($916));
                   };
               };
           };
@@ -26450,10 +26453,10 @@ var PS = {};
   var ichange = function (dictAudioInterpret) {
       return function (dictChange) {
           return function (r) {
-              var $872 = change(dictChange)(dictAudioInterpret);
-              var $873 = Data_Functor.voidRight(WAGS_Control_Types.functorWAG)(r);
-              return function ($874) {
-                  return $872($873($874));
+              var $917 = change(dictChange)(dictAudioInterpret);
+              var $918 = Data_Functor.voidRight(WAGS_Control_Types.functorWAG)(r);
+              return function ($919) {
+                  return $917($918($919));
               };
           };
       };
@@ -26470,9 +26473,9 @@ var PS = {};
                                       return function (ptr) {
                                           return function (w) {
                                               var v1 = WAGS_Control_Types.unsafeUnWAG(w);
-                                              var nn = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                                              var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
                                               var argA_Changes = [ WAGS_Interpret.setPeriodicOscV(dictAudioInterpret)({
-                                                  id: nn,
+                                                  id: id,
                                                   realImg: (function (v2) {
                                                       return {
                                                           real: Data_Vec.toArray(v2.value0),
@@ -26510,9 +26513,9 @@ var PS = {};
                                   return function (ptr) {
                                       return function (w) {
                                           var v1 = WAGS_Control_Types.unsafeUnWAG(w);
-                                          var nn = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                                          var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
                                           var argA_Changes = [ WAGS_Interpret.setPeriodicOsc(dictAudioInterpret)({
-                                              id: nn,
+                                              id: id,
                                               wave: val
                                           }) ];
                                           var o = WAGS_Control_Types.unsafeWAG({
@@ -26544,9 +26547,9 @@ var PS = {};
                                   return function (ptr) {
                                       return function (w) {
                                           var v1 = WAGS_Control_Types.unsafeUnWAG(w);
-                                          var nn = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                                          var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
                                           var argA_Changes = [ WAGS_Interpret.setThreshold(dictAudioInterpret)({
-                                              id: nn,
+                                              id: id,
                                               threshold: val
                                           }) ];
                                           var o = WAGS_Control_Types.unsafeWAG({
@@ -26578,9 +26581,9 @@ var PS = {};
                                   return function (ptr) {
                                       return function (w) {
                                           var v1 = WAGS_Control_Types.unsafeUnWAG(w);
-                                          var nn = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                                          var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
                                           var argA_Changes = [ WAGS_Interpret.setRelease(dictAudioInterpret)({
-                                              id: nn,
+                                              id: id,
                                               release: val
                                           }) ];
                                           var o = WAGS_Control_Types.unsafeWAG({
@@ -26612,9 +26615,9 @@ var PS = {};
                                   return function (ptr) {
                                       return function (w) {
                                           var v1 = WAGS_Control_Types.unsafeUnWAG(w);
-                                          var nn = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                                          var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
                                           var argA_Changes = [ WAGS_Interpret.setRatio(dictAudioInterpret)({
-                                              id: nn,
+                                              id: id,
                                               ratio: val
                                           }) ];
                                           var o = WAGS_Control_Types.unsafeWAG({
@@ -26646,9 +26649,9 @@ var PS = {};
                                   return function (ptr) {
                                       return function (w) {
                                           var v1 = WAGS_Control_Types.unsafeUnWAG(w);
-                                          var nn = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                                          var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
                                           var argA_Changes = [ WAGS_Interpret.setPlaybackRate(dictAudioInterpret)({
-                                              id: nn,
+                                              id: id,
                                               playbackRate: val
                                           }) ];
                                           var o = WAGS_Control_Types.unsafeWAG({
@@ -26680,9 +26683,9 @@ var PS = {};
                                   return function (ptr) {
                                       return function (w) {
                                           var v1 = WAGS_Control_Types.unsafeUnWAG(w);
-                                          var nn = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                                          var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
                                           var argA_Changes = [ WAGS_Interpret.setLoopStart(dictAudioInterpret)({
-                                              id: nn,
+                                              id: id,
                                               loopStart: val
                                           }) ];
                                           var o = WAGS_Control_Types.unsafeWAG({
@@ -26714,9 +26717,9 @@ var PS = {};
                                   return function (ptr) {
                                       return function (w) {
                                           var v1 = WAGS_Control_Types.unsafeUnWAG(w);
-                                          var nn = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                                          var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
                                           var argA_Changes = [ WAGS_Interpret.setLoopEnd(dictAudioInterpret)({
-                                              id: nn,
+                                              id: id,
                                               loopEnd: val
                                           }) ];
                                           var o = WAGS_Control_Types.unsafeWAG({
@@ -26748,9 +26751,9 @@ var PS = {};
                                   return function (ptr) {
                                       return function (w) {
                                           var v1 = WAGS_Control_Types.unsafeUnWAG(w);
-                                          var nn = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                                          var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
                                           var argA_Changes = [ WAGS_Interpret.setKnee(dictAudioInterpret)({
-                                              id: nn,
+                                              id: id,
                                               knee: val
                                           }) ];
                                           var o = WAGS_Control_Types.unsafeWAG({
@@ -26816,9 +26819,9 @@ var PS = {};
                                   return function (ptr) {
                                       return function (w) {
                                           var v1 = WAGS_Control_Types.unsafeUnWAG(w);
-                                          var nn = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                                          var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
                                           var argA_Changes = [ WAGS_Interpret.setBuffer(dictAudioInterpret)({
-                                              id: nn,
+                                              id: id,
                                               buffer: val
                                           }) ];
                                           var o = WAGS_Control_Types.unsafeWAG({
@@ -26884,9 +26887,9 @@ var PS = {};
                                   return function (ptr) {
                                       return function (w) {
                                           var v1 = WAGS_Control_Types.unsafeUnWAG(w);
-                                          var nn = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                                          var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
                                           var argA_Changes = [ WAGS_Interpret.setAttack(dictAudioInterpret)({
-                                              id: nn,
+                                              id: id,
                                               attack: val
                                           }) ];
                                           var o = WAGS_Control_Types.unsafeWAG({
@@ -27104,10 +27107,11 @@ var PS = {};
   exports["changeXDelay"] = changeXDelay;
   exports["oneShotChangeGain"] = oneShotChangeGain;
   exports["changeGain"] = changeGain;
+  exports["changeXGain"] = changeXGain;
   exports["oneShotChangeHighpass"] = oneShotChangeHighpass;
-  exports["changeHighpass"] = changeHighpass;
+  exports["changeXHighpass"] = changeXHighpass;
   exports["oneShotChangeHighshelf"] = oneShotChangeHighshelf;
-  exports["changeHighshelf"] = changeHighshelf;
+  exports["changeXHighshelf"] = changeXHighshelf;
   exports["changeInput"] = changeInput;
   exports["changeLoopBuf"] = changeLoopBuf;
   exports["oneShotChangeLowpass"] = oneShotChangeLowpass;
@@ -27953,37 +27957,32 @@ var PS = {};
       };
   };
   var createLoopBuf = function (dictIsSymbol) {
-      return function (dictParamable) {
-          return function (dictLacks) {
-              return function (dictOnOffable) {
-                  return function (dictCons) {
-                      return {
-                          "create'": function (dictAudioInterpret) {
-                              return function (ptr) {
-                                  return function (w) {
-                                      var v = WAGS_Control_Types.unsafeUnWAG(w);
-                                      var nn = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
-                                      var argA_iv$prime = WAGS_Graph_Paramable.paramize(dictParamable)(v.value.value2);
-                                      var o = WAGS_Control_Types.unsafeWAG({
-                                          context: {
-                                              res: v.context.res,
-                                              instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)([ WAGS_Interpret.makeLoopBuf(dictAudioInterpret)({
-                                                  id: nn,
-                                                  buffer: v.value.value0,
-                                                  onOff: WAGS_Graph_Paramable.onOffIze(dictOnOffable)(v.value.value1),
-                                                  playbackRate: argA_iv$prime,
-                                                  loopStart: v.value.value3,
-                                                  loopEnd: v.value.value4
-                                              }) ])
-                                          },
-                                          value: Data_Unit.unit
-                                      });
-                                      return o;
-                                  };
-                              };
-                          }
+      return function (dictLacks) {
+          return function (dictCons) {
+              return {
+                  "create'": function (dictAudioInterpret) {
+                      return function (ptr) {
+                          return function (w) {
+                              var v = WAGS_Control_Types.unsafeUnWAG(w);
+                              var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                              var o = WAGS_Control_Types.unsafeWAG({
+                                  context: {
+                                      res: v.context.res,
+                                      instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)([ WAGS_Interpret.makeLoopBuf(dictAudioInterpret)({
+                                          id: id,
+                                          buffer: v.value.buffer,
+                                          onOff: v.value.onOff,
+                                          playbackRate: v.value.playbackRate,
+                                          loopStart: v.value.loopStart,
+                                          loopEnd: v.value.loopEnd
+                                      }) ])
+                                  },
+                                  value: Data_Unit.unit
+                              });
+                              return o;
+                          };
                       };
-                  };
+                  }
               };
           };
       };
@@ -28000,12 +27999,12 @@ var PS = {};
                           return function (ptr) {
                               return function (w) {
                                   var v = WAGS_Control_Types.unsafeUnWAG(w);
-                                  var nn = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                                  var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
                                   var o = WAGS_Control_Types.unsafeWAG({
                                       context: {
                                           res: v.context.res,
                                           instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)([ WAGS_Interpret.makeInput(dictAudioInterpret)({
-                                              id: nn,
+                                              id: id,
                                               input: Data_Symbol.reflectSymbol(dictIsSymbol1)(Type_Proxy["Proxy"].value)
                                           }) ])
                                       },
@@ -28021,145 +28020,115 @@ var PS = {};
       };
   };
   var createHighshelf = function (dictIsSymbol) {
-      return function (dictParamable) {
-          return function (dictParamable1) {
-              return function (dictLacks) {
-                  return function (dictCons) {
-                      return {
-                          "create'": function (dictAudioInterpret) {
-                              return function (ptr) {
-                                  return function (w) {
-                                      var v = WAGS_Control_Types.unsafeUnWAG(w);
-                                      var nn = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
-                                      var argB_iv$prime = WAGS_Graph_Paramable.paramize(dictParamable1)(v.value.value1);
-                                      var argA_iv$prime = WAGS_Graph_Paramable.paramize(dictParamable)(v.value.value0);
-                                      var o = WAGS_Control_Types.unsafeWAG({
-                                          context: {
-                                              res: v.context.res,
-                                              instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)([ WAGS_Interpret.makeHighshelf(dictAudioInterpret)({
-                                                  id: nn,
-                                                  freq: argA_iv$prime,
-                                                  gain: argB_iv$prime
-                                              }) ])
-                                          },
-                                          value: Data_Unit.unit
-                                      });
-                                      return o;
-                                  };
-                              };
-                          }
+      return function (dictLacks) {
+          return function (dictCons) {
+              return {
+                  "create'": function (dictAudioInterpret) {
+                      return function (ptr) {
+                          return function (w) {
+                              var v = WAGS_Control_Types.unsafeUnWAG(w);
+                              var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                              var o = WAGS_Control_Types.unsafeWAG({
+                                  context: {
+                                      res: v.context.res,
+                                      instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)([ WAGS_Interpret.makeHighshelf(dictAudioInterpret)({
+                                          id: id,
+                                          freq: v.value.freq,
+                                          gain: v.value.gain
+                                      }) ])
+                                  },
+                                  value: Data_Unit.unit
+                              });
+                              return o;
+                          };
                       };
-                  };
+                  }
               };
           };
       };
   };
   var createHighpass = function (dictIsSymbol) {
-      return function (dictParamable) {
-          return function (dictParamable1) {
-              return function (dictLacks) {
-                  return function (dictCons) {
-                      return {
-                          "create'": function (dictAudioInterpret) {
-                              return function (ptr) {
-                                  return function (w) {
-                                      var v = WAGS_Control_Types.unsafeUnWAG(w);
-                                      var nn = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
-                                      var argB_iv$prime = WAGS_Graph_Paramable.paramize(dictParamable1)(v.value.value1);
-                                      var argA_iv$prime = WAGS_Graph_Paramable.paramize(dictParamable)(v.value.value0);
-                                      var o = WAGS_Control_Types.unsafeWAG({
-                                          context: {
-                                              res: v.context.res,
-                                              instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)([ WAGS_Interpret.makeHighpass(dictAudioInterpret)({
-                                                  id: nn,
-                                                  freq: argA_iv$prime,
-                                                  q: argB_iv$prime
-                                              }) ])
-                                          },
-                                          value: Data_Unit.unit
-                                      });
-                                      return o;
-                                  };
-                              };
-                          }
+      return function (dictLacks) {
+          return function (dictCons) {
+              return {
+                  "create'": function (dictAudioInterpret) {
+                      return function (ptr) {
+                          return function (w) {
+                              var v = WAGS_Control_Types.unsafeUnWAG(w);
+                              var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                              var o = WAGS_Control_Types.unsafeWAG({
+                                  context: {
+                                      res: v.context.res,
+                                      instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)([ WAGS_Interpret.makeHighpass(dictAudioInterpret)({
+                                          id: id,
+                                          freq: v.value.freq,
+                                          q: v.value.q
+                                      }) ])
+                                  },
+                                  value: Data_Unit.unit
+                              });
+                              return o;
+                          };
                       };
-                  };
+                  }
               };
           };
       };
   };
   var createGain = function (dictIsSymbol) {
-      return function (dictParamable) {
-          return function (dictLacks) {
-              return function (dictCons) {
-                  return {
-                      "create'": function (dictAudioInterpret) {
-                          return function (ptr) {
-                              return function (w) {
-                                  var v = WAGS_Control_Types.unsafeUnWAG(w);
-                                  var nn = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
-                                  var argA_iv$prime = WAGS_Graph_Paramable.paramize(dictParamable)(v.value.value0);
-                                  var o = WAGS_Control_Types.unsafeWAG({
-                                      context: {
-                                          res: v.context.res,
-                                          instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)([ WAGS_Interpret.makeGain(dictAudioInterpret)({
-                                              id: nn,
-                                              gain: argA_iv$prime
-                                          }) ])
-                                      },
-                                      value: Data_Unit.unit
-                                  });
-                                  return o;
-                              };
+      return function (dictLacks) {
+          return function (dictCons) {
+              return {
+                  "create'": function (dictAudioInterpret) {
+                      return function (ptr) {
+                          return function (w) {
+                              var v = WAGS_Control_Types.unsafeUnWAG(w);
+                              var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                              var o = WAGS_Control_Types.unsafeWAG({
+                                  context: {
+                                      res: v.context.res,
+                                      instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)([ WAGS_Interpret.makeGain(dictAudioInterpret)({
+                                          id: id,
+                                          gain: v.value.gain
+                                      }) ])
+                                  },
+                                  value: Data_Unit.unit
+                              });
+                              return o;
                           };
-                      }
-                  };
+                      };
+                  }
               };
           };
       };
   };
   var createDynamicsCompressor = function (dictIsSymbol) {
-      return function (dictParamable) {
-          return function (dictParamable1) {
-              return function (dictParamable2) {
-                  return function (dictParamable3) {
-                      return function (dictParamable4) {
-                          return function (dictLacks) {
-                              return function (dictCons) {
-                                  return {
-                                      "create'": function (dictAudioInterpret) {
-                                          return function (ptr) {
-                                              return function (w) {
-                                                  var v = WAGS_Control_Types.unsafeUnWAG(w);
-                                                  var nn = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
-                                                  var argE_iv$prime = WAGS_Graph_Paramable.paramize(dictParamable4)(v.value.value4);
-                                                  var argD_iv$prime = WAGS_Graph_Paramable.paramize(dictParamable3)(v.value.value3);
-                                                  var argC_iv$prime = WAGS_Graph_Paramable.paramize(dictParamable2)(v.value.value2);
-                                                  var argB_iv$prime = WAGS_Graph_Paramable.paramize(dictParamable1)(v.value.value1);
-                                                  var argA_iv$prime = WAGS_Graph_Paramable.paramize(dictParamable)(v.value.value0);
-                                                  var o = WAGS_Control_Types.unsafeWAG({
-                                                      context: {
-                                                          res: v.context.res,
-                                                          instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)([ WAGS_Interpret.makeDynamicsCompressor(dictAudioInterpret)({
-                                                              id: nn,
-                                                              threshold: argA_iv$prime,
-                                                              knee: argB_iv$prime,
-                                                              ratio: argC_iv$prime,
-                                                              attack: argD_iv$prime,
-                                                              release: argE_iv$prime
-                                                          }) ])
-                                                      },
-                                                      value: Data_Unit.unit
-                                                  });
-                                                  return o;
-                                              };
-                                          };
-                                      }
-                                  };
-                              };
+      return function (dictLacks) {
+          return function (dictCons) {
+              return {
+                  "create'": function (dictAudioInterpret) {
+                      return function (ptr) {
+                          return function (w) {
+                              var v = WAGS_Control_Types.unsafeUnWAG(w);
+                              var id = Data_Symbol.reflectSymbol(dictIsSymbol)(ptr);
+                              var o = WAGS_Control_Types.unsafeWAG({
+                                  context: {
+                                      res: v.context.res,
+                                      instructions: Data_Semigroup.append(Data_Semigroup.semigroupArray)(v.context.instructions)([ WAGS_Interpret.makeDynamicsCompressor(dictAudioInterpret)({
+                                          id: id,
+                                          knee: v.value.knee,
+                                          threshold: v.value.threshold,
+                                          ratio: v.value.ratio,
+                                          attack: v.value.attack,
+                                          release: v.value.release
+                                      }) ])
+                                  },
+                                  value: Data_Unit.unit
+                              });
+                              return o;
                           };
                       };
-                  };
+                  }
               };
           };
       };
@@ -28462,10 +28431,10 @@ var PS = {};
   var icreate = function (dictAudioInterpret) {
       return function (dictCreate) {
           return function (r) {
-              var $565 = create(dictCreate)(dictAudioInterpret);
-              var $566 = Data_Functor.voidRight(WAGS_Control_Types.functorWAG)(r);
-              return function ($567) {
-                  return $565($566($567));
+              var $553 = create(dictCreate)(dictAudioInterpret);
+              var $554 = Data_Functor.voidRight(WAGS_Control_Types.functorWAG)(r);
+              return function ($555) {
+                  return $553($554($555));
               };
           };
       };
@@ -29117,7 +29086,7 @@ var PS = {};
   };
   var notch = function (dict) {
       return dict.notch;
-  };                                                                                                                                         
+  }; 
   var microphone = (function () {
       var $202 = Data_Function.flip(Data_Tuple.Tuple.create)({});
       return function ($203) {
@@ -29146,7 +29115,9 @@ var PS = {};
   };
   var gain = function (dictParamable) {
       return function (a) {
-          return Data_Tuple.Tuple.create(new WAGS_Graph_AudioUnit.Gain(WAGS_Graph_Paramable.paramize(dictParamable)(a)));
+          return Data_Tuple.Tuple.create({
+              gain: WAGS_Graph_Paramable.paramize(dictParamable)(a)
+          });
       };
   };
   var delay = function (dictParamable) {
@@ -29292,16 +29263,28 @@ var PS = {};
   var loopBufCtor1 = function (dictConvertOptionsWithDefaults) {
       return {
           loopBuf: function (provided) {
-              return function (proxy) {
+              return function (buffer) {
                   var all = ConvertableOptions.convertOptionsWithDefaults(dictConvertOptionsWithDefaults)(LoopBuf.value)(defaultLoopBuf)(provided);
-                  return new Data_Tuple.Tuple(new WAGS_Graph_AudioUnit.LoopBuf(proxy, all.onOff, all.playbackRate, all.loopStart, all.loopEnd), {});
+                  return new Data_Tuple.Tuple({
+                      buffer: buffer,
+                      onOff: all.onOff,
+                      playbackRate: all.playbackRate,
+                      loopStart: all.loopStart,
+                      loopEnd: all.loopEnd
+                  }, {});
               };
           }
       };
   };
   var loopBufCtor2 = {
-      loopBuf: function (name) {
-          return new Data_Tuple.Tuple(new WAGS_Graph_AudioUnit.LoopBuf(name, defaultLoopBuf.onOff, defaultLoopBuf.playbackRate, defaultLoopBuf.loopStart, defaultLoopBuf.loopEnd), {});
+      loopBuf: function (buffer) {
+          return new Data_Tuple.Tuple({
+              buffer: buffer,
+              onOff: defaultLoopBuf.onOff,
+              playbackRate: defaultLoopBuf.playbackRate,
+              loopStart: defaultLoopBuf.loopStart,
+              loopEnd: defaultLoopBuf.loopEnd
+          }, {});
       }
   };
   var defaultHighshelf = {
@@ -29311,7 +29294,7 @@ var PS = {};
       return {
           highshelf: function (provided) {
               var all = ConvertableOptions.convertOptionsWithDefaults(dictConvertOptionsWithDefaults)(Highshelf.value)(defaultHighshelf)(provided);
-              return Data_Tuple.Tuple.create(new WAGS_Graph_AudioUnit.Highshelf(all.freq, all.gain));
+              return Data_Tuple.Tuple.create(all);
           }
       };
   };
@@ -29322,14 +29305,17 @@ var PS = {};
       return {
           highpass: function (provided) {
               var all = ConvertableOptions.convertOptionsWithDefaults(dictConvertOptionsWithDefaults)(Highpass.value)(defaultHighpass)(provided);
-              return Data_Tuple.Tuple.create(new WAGS_Graph_AudioUnit.Highpass(all.freq, all.q));
+              return Data_Tuple.Tuple.create(all);
           }
       };
   };
   var highpassCtor2 = function (dictParamable) {
       return {
           highpass: function (a) {
-              return Data_Tuple.Tuple.create(new WAGS_Graph_AudioUnit.Highpass(WAGS_Graph_Paramable.paramize(dictParamable)(a), defaultHighpass.q));
+              return Data_Tuple.Tuple.create({
+                  freq: WAGS_Graph_Paramable.paramize(dictParamable)(a),
+                  q: defaultHighpass.q
+              });
           }
       };
   };
@@ -29517,7 +29503,7 @@ var PS = {};
           compressor: function (provided) {
               return function (b) {
                   var all = ConvertableOptions.convertOptionsWithDefaults(dictConvertOptionsWithDefaults)(DynamicsCompressor.value)(defaultDynamicsCompressor)(provided);
-                  return new Data_Tuple.Tuple(new WAGS_Graph_AudioUnit.DynamicsCompressor(all.threshold, all.knee, all.ratio, all.attack, all.release), b);
+                  return new Data_Tuple.Tuple(all, b);
               };
           }
       };
@@ -30181,7 +30167,6 @@ var PS = {};
   var WAGS_Create = $PS["WAGS.Create"];
   var WAGS_Create_Optionals = $PS["WAGS.Create.Optionals"];
   var WAGS_Graph_Paramable = $PS["WAGS.Graph.Paramable"];
-  var WAGS_Graph_Parameter = $PS["WAGS.Graph.Parameter"];
   var WAGS_Interpret = $PS["WAGS.Interpret"];
   var WAGS_Run = $PS["WAGS.Run"];                
   var StartAudio = (function () {
@@ -30284,7 +30269,7 @@ var PS = {};
           reflectSymbol: function () {
               return "analysed";
           }
-      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+      })()())()(WAGS_Create.createStepRLCons({
           reflectSymbol: function () {
               return "gain0";
           }
@@ -30292,7 +30277,7 @@ var PS = {};
           reflectSymbol: function () {
               return "gain0";
           }
-      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+      })()())()(WAGS_Create.createStepRLCons({
           reflectSymbol: function () {
               return "loop0";
           }
@@ -30300,7 +30285,7 @@ var PS = {};
           reflectSymbol: function () {
               return "loop0";
           }
-      })(WAGS_Graph_Paramable.paramableAudioParameter)()(WAGS_Graph_Paramable.onOffIzeAudioParameter)())()(WAGS_Create.createStepRLNil)(WAGS_Create.createStepRLNil))(WAGS_Create.createStepRLCons({
+      })()())()(WAGS_Create.createStepRLNil)(WAGS_Create.createStepRLNil))(WAGS_Create.createStepRLCons({
           reflectSymbol: function () {
               return "gain1";
           }
@@ -30308,7 +30293,7 @@ var PS = {};
           reflectSymbol: function () {
               return "gain1";
           }
-      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+      })()())()(WAGS_Create.createStepRLCons({
           reflectSymbol: function () {
               return "loop1";
           }
@@ -30316,7 +30301,7 @@ var PS = {};
           reflectSymbol: function () {
               return "loop1";
           }
-      })(WAGS_Graph_Paramable.paramableAudioParameter)()(WAGS_Graph_Paramable.onOffIzeAudioParameter)())()(WAGS_Create.createStepRLNil)(WAGS_Create.createStepRLNil))(WAGS_Create.createStepRLCons({
+      })()())()(WAGS_Create.createStepRLNil)(WAGS_Create.createStepRLNil))(WAGS_Create.createStepRLCons({
           reflectSymbol: function () {
               return "gain2";
           }
@@ -30324,7 +30309,7 @@ var PS = {};
           reflectSymbol: function () {
               return "gain2";
           }
-      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+      })()())()(WAGS_Create.createStepRLCons({
           reflectSymbol: function () {
               return "loop2";
           }
@@ -30332,7 +30317,7 @@ var PS = {};
           reflectSymbol: function () {
               return "loop2";
           }
-      })(WAGS_Graph_Paramable.paramableAudioParameter)()(WAGS_Graph_Paramable.onOffIzeAudioParameter)())()(WAGS_Create.createStepRLNil)(WAGS_Create.createStepRLNil))(WAGS_Create.createStepRLNil))))(WAGS_Create.createStepRLNil))(WAGS_Create.createStepRLNil))(WAGS_Create.createStepRLNil))(WAGS_Create.connectAfterCreateCons()()()()()()(WAGS_Create.connectEdgesToNodeCons(WAGS_Connect.connectInstance({
+      })()())()(WAGS_Create.createStepRLNil)(WAGS_Create.createStepRLNil))(WAGS_Create.createStepRLNil))))(WAGS_Create.createStepRLNil))(WAGS_Create.createStepRLNil))(WAGS_Create.createStepRLNil))(WAGS_Create.connectAfterCreateCons()()()()()()(WAGS_Create.connectEdgesToNodeCons(WAGS_Connect.connectInstance({
           reflectSymbol: function () {
               return "analyse";
           }
@@ -30486,7 +30471,7 @@ var PS = {};
               reflectSymbol: function () {
                   return "analysed";
               }
-          })(WAGS_Graph_Parameter.justMM)(WAGS_Graph_Paramable.paramableAudioParameter)())(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLCons({
+          })())(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLCons({
               reflectSymbol: function () {
                   return "gain0";
               }
@@ -30494,7 +30479,7 @@ var PS = {};
               reflectSymbol: function () {
                   return "gain0";
               }
-          })(WAGS_Graph_Parameter.justMM)(WAGS_Graph_Paramable.paramableAudioParameter)())(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLCons({
+          })())(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLCons({
               reflectSymbol: function () {
                   return "loop0";
               }
@@ -30502,7 +30487,7 @@ var PS = {};
               reflectSymbol: function () {
                   return "loop0";
               }
-          })(WAGS_Graph_Parameter.justMM)(WAGS_Graph_Parameter.justMM)(WAGS_Graph_Paramable.onOffIzeAudioParameter)(WAGS_Graph_Parameter.justMM)(WAGS_Graph_Parameter.justMM)(WAGS_Graph_Parameter.justMM)(WAGS_Graph_Paramable.paramableAudioParameter)())(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLNil)))(WAGS_Change.changeRLCons({
+          })())(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLNil)))(WAGS_Change.changeRLCons({
               reflectSymbol: function () {
                   return "gain1";
               }
@@ -30510,7 +30495,7 @@ var PS = {};
               reflectSymbol: function () {
                   return "gain1";
               }
-          })(WAGS_Graph_Parameter.justMM)(WAGS_Graph_Paramable.paramableAudioParameter)())(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLCons({
+          })())(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLCons({
               reflectSymbol: function () {
                   return "loop1";
               }
@@ -30518,7 +30503,7 @@ var PS = {};
               reflectSymbol: function () {
                   return "loop1";
               }
-          })(WAGS_Graph_Parameter.justMM)(WAGS_Graph_Parameter.justMM)(WAGS_Graph_Paramable.onOffIzeAudioParameter)(WAGS_Graph_Parameter.justMM)(WAGS_Graph_Parameter.justMM)(WAGS_Graph_Parameter.justMM)(WAGS_Graph_Paramable.paramableAudioParameter)())(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLNil)))(WAGS_Change.changeRLCons({
+          })())(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLNil)))(WAGS_Change.changeRLCons({
               reflectSymbol: function () {
                   return "gain2";
               }
@@ -30526,7 +30511,7 @@ var PS = {};
               reflectSymbol: function () {
                   return "gain2";
               }
-          })(WAGS_Graph_Parameter.justMM)(WAGS_Graph_Paramable.paramableAudioParameter)())(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLCons({
+          })())(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLCons({
               reflectSymbol: function () {
                   return "loop2";
               }
@@ -30534,7 +30519,7 @@ var PS = {};
               reflectSymbol: function () {
                   return "loop2";
               }
-          })(WAGS_Graph_Parameter.justMM)(WAGS_Graph_Parameter.justMM)(WAGS_Graph_Paramable.onOffIzeAudioParameter)(WAGS_Graph_Parameter.justMM)(WAGS_Graph_Parameter.justMM)(WAGS_Graph_Parameter.justMM)(WAGS_Graph_Paramable.paramableAudioParameter)())(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLNil)))(WAGS_Change.changeRLNil)))))(WAGS_Change.changeRLNil)))(WAGS_Change.changeRLNil)))(WAGS_Change.changeRLNil))))(scene(e)));
+          })())(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLNil)))(WAGS_Change.changeRLNil)))))(WAGS_Change.changeRLNil)))(WAGS_Change.changeRLNil)))(WAGS_Change.changeRLNil))))(scene(e)));
       };
   }));
   var initialState = function (v) {
@@ -30778,7 +30763,7 @@ var PS = {};
           reflectSymbol: function () {
               return "gain0";
           }
-      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+      })()())()(WAGS_Create.createStepRLCons({
           reflectSymbol: function () {
               return "play0";
           }
@@ -30837,7 +30822,7 @@ var PS = {};
               reflectSymbol: function () {
                   return "gain0";
               }
-          })(WAGS_Graph_Parameter.justMM)(WAGS_Graph_Paramable.paramableAudioParameter)())(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLCons({
+          })())(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLCons({
               reflectSymbol: function () {
                   return "play0";
               }
@@ -31063,7 +31048,7 @@ var PS = {};
           reflectSymbol: function () {
               return "gain0";
           }
-      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+      })()())()(WAGS_Create.createStepRLCons({
           reflectSymbol: function () {
               return "sin0";
           }
@@ -31079,7 +31064,7 @@ var PS = {};
           reflectSymbol: function () {
               return "gain1";
           }
-      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+      })()())()(WAGS_Create.createStepRLCons({
           reflectSymbol: function () {
               return "sin1";
           }
@@ -31095,7 +31080,7 @@ var PS = {};
           reflectSymbol: function () {
               return "gain2";
           }
-      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+      })()())()(WAGS_Create.createStepRLCons({
           reflectSymbol: function () {
               return "sin2";
           }
@@ -31111,7 +31096,7 @@ var PS = {};
           reflectSymbol: function () {
               return "gain3";
           }
-      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+      })()())()(WAGS_Create.createStepRLCons({
           reflectSymbol: function () {
               return "sin3";
           }
@@ -31268,7 +31253,7 @@ var PS = {};
               reflectSymbol: function () {
                   return "gain0";
               }
-          })(WAGS_Graph_Parameter.justMM)(WAGS_Graph_Paramable.paramableAudioParameter)())(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLCons({
+          })())(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLCons({
               reflectSymbol: function () {
                   return "sin0";
               }
@@ -31284,7 +31269,7 @@ var PS = {};
               reflectSymbol: function () {
                   return "gain1";
               }
-          })(WAGS_Graph_Parameter.justMM)(WAGS_Graph_Paramable.paramableAudioParameter)())(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLCons({
+          })())(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLCons({
               reflectSymbol: function () {
                   return "sin1";
               }
@@ -31300,7 +31285,7 @@ var PS = {};
               reflectSymbol: function () {
                   return "gain2";
               }
-          })(WAGS_Graph_Parameter.justMM)(WAGS_Graph_Paramable.paramableAudioParameter)())(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLCons({
+          })())(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLCons({
               reflectSymbol: function () {
                   return "sin2";
               }
@@ -31316,7 +31301,7 @@ var PS = {};
               reflectSymbol: function () {
                   return "gain3";
               }
-          })(WAGS_Graph_Parameter.justMM)(WAGS_Graph_Paramable.paramableAudioParameter)())(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLCons({
+          })())(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLCons({
               reflectSymbol: function () {
                   return "sin3";
               }
@@ -31860,11 +31845,11 @@ var PS = {};
                   reflectSymbol: function () {
                       return "mix";
                   }
-              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeGain({
+              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeXGain({
                   reflectSymbol: function () {
                       return "mix";
                   }
-              })(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Paramable.paramableAudioParameter)())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLNil))))))(changes);
+              })())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLNil))))))(changes);
           })($18((function (v1) {
               return v1 - WAGS_Example_KitchenSink_Timing.timing.ksDynamicsCompressor.begin;
           })((function (v1) {
@@ -31912,11 +31897,11 @@ var PS = {};
                   reflectSymbol: function () {
                       return "mix";
                   }
-              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeGain({
+              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeXGain({
                   reflectSymbol: function () {
                       return "mix";
                   }
-              })(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Paramable.paramableAudioParameter)())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
+              })())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
                   reflectSymbol: function () {
                       return "sinOsc";
                   }
@@ -32111,7 +32096,6 @@ var PS = {};
   var WAGS_Create_Optionals = $PS["WAGS.Create.Optionals"];
   var WAGS_Graph_AudioUnit = $PS["WAGS.Graph.AudioUnit"];
   var WAGS_Graph_Paramable = $PS["WAGS.Graph.Paramable"];
-  var WAGS_Graph_Parameter = $PS["WAGS.Graph.Parameter"];
   var WAGS_Interpret = $PS["WAGS.Interpret"];                
   var ksConstantCreate = {
       constant: WAGS_Create_Optionals.constant(WAGS_Create_Optionals.constantCtor2(WAGS_Graph_Paramable.paramableNumber))(0.0)
@@ -32128,11 +32112,11 @@ var PS = {};
       reflectSymbol: function () {
           return "mix";
       }
-  })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeGain({
+  })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeXGain({
       reflectSymbol: function () {
           return "mix";
       }
-  })(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Paramable.paramableAudioParameter)())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLNil)))))({
+  })())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLNil)))))({
       mix: 1.0,
       constant: 0.0
   }));
@@ -32210,7 +32194,7 @@ var PS = {};
                       reflectSymbol: function () {
                           return "compressor";
                       }
-                  })(WAGS_Graph_Paramable.paramableAudioParameter)(WAGS_Graph_Paramable.paramableAudioParameter)(WAGS_Graph_Paramable.paramableAudioParameter)(WAGS_Graph_Paramable.paramableAudioParameter)(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+                  })()())()(WAGS_Create.createStepRLCons({
                       reflectSymbol: function () {
                           return "buf";
                       }
@@ -32344,11 +32328,11 @@ var PS = {};
                   reflectSymbol: function () {
                       return "mix";
                   }
-              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeGain({
+              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeXGain({
                   reflectSymbol: function () {
                       return "mix";
                   }
-              })(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Paramable.paramableAudioParameter)())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
+              })())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
                   reflectSymbol: function () {
                       return "pan";
                   }
@@ -32885,11 +32869,11 @@ var PS = {};
                   reflectSymbol: function () {
                       return "mix";
                   }
-              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeGain({
+              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeXGain({
                   reflectSymbol: function () {
                       return "mix";
                   }
-              })(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Paramable.paramableAudioParameter)())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLNil))))))({
+              })())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLNil))))))({
                   mix: mix,
                   delay: delay,
                   buf: {
@@ -32935,8 +32919,6 @@ var PS = {};
   var WAGS_Example_KitchenSink_Types_Feedback = $PS["WAGS.Example.KitchenSink.Types.Feedback"];
   var WAGS_Example_KitchenSink_Types_LoopBuf = $PS["WAGS.Example.KitchenSink.Types.LoopBuf"];
   var WAGS_Graph_AudioUnit = $PS["WAGS.Graph.AudioUnit"];
-  var WAGS_Graph_Paramable = $PS["WAGS.Graph.Paramable"];
-  var WAGS_Graph_Parameter = $PS["WAGS.Graph.Parameter"];
   var WAGS_Interpret = $PS["WAGS.Interpret"];                
   var doFeedback = WAGS_Control_Functions.ibranch(Data_Monoid.monoidString)(WAGS_Interpret.mixedAudioInterpret)(WAGS_Control_Types.isSceneScene)(function (v) {
       return function (lsig) {
@@ -33088,7 +33070,7 @@ var PS = {};
                                                   reflectSymbol: function () {
                                                       return "loopBuf";
                                                   }
-                                              })(WAGS_Graph_Paramable.paramableAudioParameter)()(WAGS_Graph_Paramable.onOffIzeAudioParameter)())()(WAGS_Create.createStepRLNil)(WAGS_Create.createStepRLNil))(WAGS_Create.connectAfterCreateCons()()()()()()(WAGS_Create.connectEdgesToNodeNil)(WAGS_Create.connectAfterCreateNil)(WAGS_Create.connectAfterCreateNil))))(WAGS_Example_KitchenSink_Types_LoopBuf.ksLoopBufCreate(v.world)))(function () {
+                                              })()())()(WAGS_Create.createStepRLNil)(WAGS_Create.createStepRLNil))(WAGS_Create.connectAfterCreateCons()()()()()()(WAGS_Create.connectEdgesToNodeNil)(WAGS_Create.connectAfterCreateNil)(WAGS_Create.connectAfterCreateNil))))(WAGS_Example_KitchenSink_Types_LoopBuf.ksLoopBufCreate(v.world)))(function () {
                                                   return Control_Monad_Indexed_Qualified.discard(WAGS_Control_Indexed.ixBindIxWAG)(Control_Bind_Indexed.ixDiscardUnit)(WAGS_Connect.iconnect(WAGS_Interpret.mixedAudioInterpret)(WAGS_Connect.connectInstance({
                                                       reflectSymbol: function () {
                                                           return "loopBuf";
@@ -33113,11 +33095,11 @@ var PS = {};
                                                           reflectSymbol: function () {
                                                               return "mix";
                                                           }
-                                                      })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeGain({
+                                                      })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeXGain({
                                                           reflectSymbol: function () {
                                                               return "mix";
                                                           }
-                                                      })(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Paramable.paramableAudioParameter)())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLNil))))({
+                                                      })())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLNil))))({
                                                           mix: 1.0
                                                       }))(function () {
                                                           return Control_Applicative_Indexed.ipure(WAGS_Control_Indexed.ixApplicativeIxWAG)(lsig);
@@ -33233,11 +33215,11 @@ var PS = {};
                   reflectSymbol: function () {
                       return "mix";
                   }
-              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeGain({
+              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeXGain({
                   reflectSymbol: function () {
                       return "mix";
                   }
-              })(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Paramable.paramableAudioParameter)())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLNil))))))(changes);
+              })())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLNil))))))(changes);
           })($14((function (v1) {
               return v1 - WAGS_Example_KitchenSink_Timing.timing.ksDelay.begin;
           })((function (v1) {
@@ -33397,7 +33379,7 @@ var PS = {};
                                           reflectSymbol: function () {
                                               return "dmix";
                                           }
-                                      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+                                      })()())()(WAGS_Create.createStepRLCons({
                                           reflectSymbol: function () {
                                               return "buf";
                                           }
@@ -33421,7 +33403,7 @@ var PS = {};
                                           reflectSymbol: function () {
                                               return "highpass";
                                           }
-                                      })(WAGS_Graph_Paramable.paramableAudioParameter)(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+                                      })()())()(WAGS_Create.createStepRLCons({
                                           reflectSymbol: function () {
                                               return "dmix";
                                           }
@@ -33537,7 +33519,6 @@ var PS = {};
   var WAGS_Example_KitchenSink_Timing = $PS["WAGS.Example.KitchenSink.Timing"];
   var WAGS_Graph_AudioUnit = $PS["WAGS.Graph.AudioUnit"];
   var WAGS_Graph_Oversample = $PS["WAGS.Graph.Oversample"];
-  var WAGS_Graph_Paramable = $PS["WAGS.Graph.Paramable"];
   var WAGS_Graph_Parameter = $PS["WAGS.Graph.Parameter"];
   var WAGS_Interpret = $PS["WAGS.Interpret"];                
   var ksWaveShaperCreate = function (v) {
@@ -33585,11 +33566,11 @@ var PS = {};
                   reflectSymbol: function () {
                       return "mix";
                   }
-              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeGain({
+              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeXGain({
                   reflectSymbol: function () {
                       return "mix";
                   }
-              })(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Paramable.paramableAudioParameter)())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLNil)))))({
+              })())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLNil)))))({
                   mix: mix,
                   buf: {
                       onOff: onOff
@@ -33705,7 +33686,7 @@ var PS = {};
                               reflectSymbol: function () {
                                   return "dmix";
                               }
-                          })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+                          })()())()(WAGS_Create.createStepRLCons({
                               reflectSymbol: function () {
                                   return "buf";
                               }
@@ -33817,8 +33798,6 @@ var PS = {};
   var WAGS_Create_Optionals = $PS["WAGS.Create.Optionals"];
   var WAGS_Example_KitchenSink_Timing = $PS["WAGS.Example.KitchenSink.Timing"];
   var WAGS_Graph_AudioUnit = $PS["WAGS.Graph.AudioUnit"];
-  var WAGS_Graph_Paramable = $PS["WAGS.Graph.Paramable"];
-  var WAGS_Graph_Parameter = $PS["WAGS.Graph.Parameter"];
   var WAGS_Interpret = $PS["WAGS.Interpret"];                
   var ksMicrophoneCreate = function (v) {
       return {
@@ -33834,11 +33813,11 @@ var PS = {};
                   reflectSymbol: function () {
                       return "mix";
                   }
-              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeGain({
+              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeXGain({
                   reflectSymbol: function () {
                       return "mix";
                   }
-              })(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Paramable.paramableAudioParameter)())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLNil))))({
+              })())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLNil))))({
                   mix: 0.1 - 0.1 * $$Math.cos(rad)
               });
           })($5((function (v) {
@@ -34065,19 +34044,19 @@ var PS = {};
                   reflectSymbol: function () {
                       return "highpass";
                   }
-              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTHighpass)(WAGS_Change.oneShotChangeHighpass)(WAGS_Change.changeHighpass({
+              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTHighpass)(WAGS_Change.oneShotChangeHighpass)(WAGS_Change.changeXHighpass({
                   reflectSymbol: function () {
                       return "highpass";
                   }
-              })(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Paramable.paramableAudioParameter)(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Paramable.paramableAudioParameter)())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
+              })())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
                   reflectSymbol: function () {
                       return "mix";
                   }
-              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeGain({
+              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeXGain({
                   reflectSymbol: function () {
                       return "mix";
                   }
-              })(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Paramable.paramableAudioParameter)())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLNil))))))({
+              })())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLNil))))))({
                   mix: mix,
                   highpass: highpass,
                   buf: {
@@ -34310,11 +34289,11 @@ var PS = {};
                   reflectSymbol: function () {
                       return "mix";
                   }
-              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeGain({
+              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeXGain({
                   reflectSymbol: function () {
                       return "mix";
                   }
-              })(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Paramable.paramableAudioParameter)())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
+              })())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
                   reflectSymbol: function () {
                       return "peaking";
                   }
@@ -34442,7 +34421,7 @@ var PS = {};
                               reflectSymbol: function () {
                                   return "highpass";
                               }
-                          })(WAGS_Graph_Paramable.paramableAudioParameter)(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+                          })()())()(WAGS_Create.createStepRLCons({
                               reflectSymbol: function () {
                                   return "buf";
                               }
@@ -34586,11 +34565,11 @@ var PS = {};
                   reflectSymbol: function () {
                       return "mix";
                   }
-              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeGain({
+              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeXGain({
                   reflectSymbol: function () {
                       return "mix";
                   }
-              })(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Paramable.paramableAudioParameter)())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
+              })())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
                   reflectSymbol: function () {
                       return "notch";
                   }
@@ -34874,11 +34853,11 @@ var PS = {};
                   reflectSymbol: function () {
                       return "mix";
                   }
-              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeGain({
+              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeXGain({
                   reflectSymbol: function () {
                       return "mix";
                   }
-              })(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Paramable.paramableAudioParameter)())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLNil))))))(changes);
+              })())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLNil))))))(changes);
           })($14((function (v1) {
               return v1 - WAGS_Example_KitchenSink_Timing.timing.ksBandpass.begin;
           })((function (v1) {
@@ -35141,11 +35120,11 @@ var PS = {};
                   reflectSymbol: function () {
                       return "mix";
                   }
-              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeGain({
+              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeXGain({
                   reflectSymbol: function () {
                       return "mix";
                   }
-              })(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Paramable.paramableAudioParameter)())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLNil))))))({
+              })())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLNil))))))({
                   mix: mix,
                   lowshelf: lowshelf,
                   buf: {
@@ -35407,19 +35386,19 @@ var PS = {};
                   reflectSymbol: function () {
                       return "highshelf";
                   }
-              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTHighshelf)(WAGS_Change.oneShotChangeHighshelf)(WAGS_Change.changeHighshelf({
+              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTHighshelf)(WAGS_Change.oneShotChangeHighshelf)(WAGS_Change.changeXHighshelf({
                   reflectSymbol: function () {
                       return "highshelf";
                   }
-              })(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Paramable.paramableAudioParameter)(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Paramable.paramableAudioParameter)())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
+              })())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
                   reflectSymbol: function () {
                       return "mix";
                   }
-              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeGain({
+              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeXGain({
                   reflectSymbol: function () {
                       return "mix";
                   }
-              })(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Paramable.paramableAudioParameter)())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLNil))))))({
+              })())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLNil))))))({
                   mix: mix,
                   highshelf: highshelf,
                   buf: {
@@ -35689,11 +35668,11 @@ var PS = {};
                   reflectSymbol: function () {
                       return "mix";
                   }
-              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeGain({
+              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeXGain({
                   reflectSymbol: function () {
                       return "mix";
                   }
-              })(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Paramable.paramableAudioParameter)())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLNil))))))({
+              })())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLNil))))))({
                   mix: mix,
                   lowpass: lowpass,
                   buf: {
@@ -35811,7 +35790,7 @@ var PS = {};
                               reflectSymbol: function () {
                                   return "highshelf";
                               }
-                          })(WAGS_Graph_Paramable.paramableAudioParameter)(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+                          })()())()(WAGS_Create.createStepRLCons({
                               reflectSymbol: function () {
                                   return "buf";
                               }
@@ -35968,11 +35947,11 @@ var PS = {};
                   reflectSymbol: function () {
                       return "mix";
                   }
-              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeGain({
+              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeXGain({
                   reflectSymbol: function () {
                       return "mix";
                   }
-              })(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Paramable.paramableAudioParameter)())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLNil))))))(changes);
+              })())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLNil))))))(changes);
           })($14((function (v1) {
               return v1 - WAGS_Example_KitchenSink_Timing.timing.ksAllpass.begin;
           })((function (v1) {
@@ -36942,11 +36921,11 @@ var PS = {};
                       reflectSymbol: function () {
                           return "mix";
                       }
-                  })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeGain({
+                  })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeXGain({
                       reflectSymbol: function () {
                           return "mix";
                       }
-                  })(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Paramable.paramableAudioParameter)())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
+                  })())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
                       reflectSymbol: function () {
                           return "periodicOsc";
                       }
@@ -37004,11 +36983,11 @@ var PS = {};
                   reflectSymbol: function () {
                       return "mix";
                   }
-              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeGain({
+              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeXGain({
                   reflectSymbol: function () {
                       return "mix";
                   }
-              })(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Paramable.paramableAudioParameter)())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
+              })())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
                   reflectSymbol: function () {
                       return "periodicOsc";
                   }
@@ -37111,11 +37090,11 @@ var PS = {};
           reflectSymbol: function () {
               return "mix";
           }
-      })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeGain({
+      })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeXGain({
           reflectSymbol: function () {
               return "mix";
           }
-      })(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Paramable.paramableAudioParameter)())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
+      })())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
           reflectSymbol: function () {
               return "sawtoothOsc";
           }
@@ -37276,11 +37255,11 @@ var PS = {};
                   reflectSymbol: function () {
                       return "mix";
                   }
-              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeGain({
+              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeXGain({
                   reflectSymbol: function () {
                       return "mix";
                   }
-              })(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Paramable.paramableAudioParameter)())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
+              })())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
                   reflectSymbol: function () {
                       return "squareOsc";
                   }
@@ -37465,11 +37444,11 @@ var PS = {};
                   reflectSymbol: function () {
                       return "mix";
                   }
-              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeGain({
+              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeXGain({
                   reflectSymbol: function () {
                       return "mix";
                   }
-              })(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Paramable.paramableAudioParameter)())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
+              })())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
                   reflectSymbol: function () {
                       return "triangleOsc";
                   }
@@ -37874,7 +37853,7 @@ var PS = {};
           reflectSymbol: function () {
               return "mix";
           }
-      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+      })()())()(WAGS_Create.createStepRLCons({
           reflectSymbol: function () {
               return "sinOsc";
           }
@@ -38406,7 +38385,7 @@ var PS = {};
           reflectSymbol: function () {
               return "gain";
           }
-      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+      })()())()(WAGS_Create.createStepRLCons({
           reflectSymbol: function () {
               return "osc";
           }
@@ -38477,7 +38456,7 @@ var PS = {};
                               reflectSymbol: function () {
                                   return "gain";
                               }
-                          })(WAGS_Graph_Parameter.justMM)(WAGS_Graph_Paramable.paramableAudioParameter)())(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLCons({
+                          })())(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLCons({
                               reflectSymbol: function () {
                                   return "osc";
                               }
@@ -38697,7 +38676,7 @@ var PS = {};
           reflectSymbol: function () {
               return "gain0";
           }
-      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+      })()())()(WAGS_Create.createStepRLCons({
           reflectSymbol: function () {
               return "sin0";
           }
@@ -38713,7 +38692,7 @@ var PS = {};
           reflectSymbol: function () {
               return "gain1";
           }
-      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+      })()())()(WAGS_Create.createStepRLCons({
           reflectSymbol: function () {
               return "sin1";
           }
@@ -38729,7 +38708,7 @@ var PS = {};
           reflectSymbol: function () {
               return "gain2";
           }
-      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+      })()())()(WAGS_Create.createStepRLCons({
           reflectSymbol: function () {
               return "sin2";
           }
@@ -38745,7 +38724,7 @@ var PS = {};
           reflectSymbol: function () {
               return "gain3";
           }
-      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+      })()())()(WAGS_Create.createStepRLCons({
           reflectSymbol: function () {
               return "sin3";
           }
@@ -38902,7 +38881,7 @@ var PS = {};
               reflectSymbol: function () {
                   return "gain0";
               }
-          })(WAGS_Graph_Parameter.justMM)(WAGS_Graph_Paramable.paramableAudioParameter)())(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLCons({
+          })())(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLCons({
               reflectSymbol: function () {
                   return "sin0";
               }
@@ -38918,7 +38897,7 @@ var PS = {};
               reflectSymbol: function () {
                   return "gain1";
               }
-          })(WAGS_Graph_Parameter.justMM)(WAGS_Graph_Paramable.paramableAudioParameter)())(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLCons({
+          })())(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLCons({
               reflectSymbol: function () {
                   return "sin1";
               }
@@ -38934,7 +38913,7 @@ var PS = {};
               reflectSymbol: function () {
                   return "gain2";
               }
-          })(WAGS_Graph_Parameter.justMM)(WAGS_Graph_Paramable.paramableAudioParameter)())(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLCons({
+          })())(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLCons({
               reflectSymbol: function () {
                   return "sin2";
               }
@@ -38950,7 +38929,7 @@ var PS = {};
               reflectSymbol: function () {
                   return "gain3";
               }
-          })(WAGS_Graph_Parameter.justMM)(WAGS_Graph_Paramable.paramableAudioParameter)())(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLCons({
+          })())(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLCons({
               reflectSymbol: function () {
                   return "sin3";
               }
@@ -39134,7 +39113,7 @@ var PS = {};
               reflectSymbol: function () {
                   return "gnn";
               }
-          })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+          })()())()(WAGS_Create.createStepRLCons({
               reflectSymbol: function () {
                   return "Input_D0";
               }
@@ -39174,7 +39153,7 @@ var PS = {};
               reflectSymbol: function () {
                   return "gnn";
               }
-          })(WAGS_Graph_Parameter.justMM)(WAGS_Graph_Paramable.paramableAudioParameter)())(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLCons({
+          })())(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLCons({
               reflectSymbol: function () {
                   return "Input_D0";
               }
@@ -39358,11 +39337,11 @@ var PS = {};
               };
           })(),
           tumults: {}
-      }))(WAGS_Change["ichange'"](WAGS_Interpret.mixedAudioInterpret)(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeGain({
+      }))(WAGS_Change["ichange'"](WAGS_Interpret.mixedAudioInterpret)(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeXGain({
           reflectSymbol: function () {
               return "gn";
           }
-      })(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Paramable.paramableAudioParameter)())))(Type_Proxy["Proxy"].value)(1.0)))(WAGS_Change["ichange'"](WAGS_Interpret.mixedAudioInterpret)(WAGS_Change.changeRec()()(WAGS_Change["change''Cons"]({
+      })())))(Type_Proxy["Proxy"].value)(1.0)))(WAGS_Change["ichange'"](WAGS_Interpret.mixedAudioInterpret)(WAGS_Change.changeRec()()(WAGS_Change["change''Cons"]({
           reflectSymbol: function () {
               return "freq";
           }
@@ -39824,7 +39803,7 @@ var PS = {};
       reflectSymbol: function () {
           return "gn";
       }
-  })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLConsC({
+  })()())()(WAGS_Create.createStepRLConsC({
       reflectSymbol: function () {
           return "tmt";
       }
@@ -39880,7 +39859,7 @@ var PS = {};
       reflectSymbol: function () {
           return "gn";
       }
-  })(WAGS_Graph_Parameter.justMM)(WAGS_Graph_Paramable.paramableAudioParameter)())(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLCons({
+  })())(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLCons({
       reflectSymbol: function () {
           return "tmt";
       }
@@ -39906,7 +39885,7 @@ var PS = {};
                           reflectSymbol: function () {
                               return "output";
                           }
-                      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+                      })()())()(WAGS_Create.createStepRLCons({
                           reflectSymbol: function () {
                               return "gain0";
                           }
@@ -39914,7 +39893,7 @@ var PS = {};
                           reflectSymbol: function () {
                               return "gain0";
                           }
-                      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+                      })()())()(WAGS_Create.createStepRLCons({
                           reflectSymbol: function () {
                               return "sin0";
                           }
@@ -39930,7 +39909,7 @@ var PS = {};
                           reflectSymbol: function () {
                               return "gain1";
                           }
-                      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+                      })()())()(WAGS_Create.createStepRLCons({
                           reflectSymbol: function () {
                               return "sin1";
                           }
@@ -39946,7 +39925,7 @@ var PS = {};
                           reflectSymbol: function () {
                               return "gain10";
                           }
-                      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+                      })()())()(WAGS_Create.createStepRLCons({
                           reflectSymbol: function () {
                               return "sin10";
                           }
@@ -39962,7 +39941,7 @@ var PS = {};
                           reflectSymbol: function () {
                               return "gain11";
                           }
-                      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+                      })()())()(WAGS_Create.createStepRLCons({
                           reflectSymbol: function () {
                               return "sin11";
                           }
@@ -39978,7 +39957,7 @@ var PS = {};
                           reflectSymbol: function () {
                               return "gain12";
                           }
-                      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+                      })()())()(WAGS_Create.createStepRLCons({
                           reflectSymbol: function () {
                               return "sin12";
                           }
@@ -39994,7 +39973,7 @@ var PS = {};
                           reflectSymbol: function () {
                               return "gain13";
                           }
-                      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+                      })()())()(WAGS_Create.createStepRLCons({
                           reflectSymbol: function () {
                               return "sin13";
                           }
@@ -40010,7 +39989,7 @@ var PS = {};
                           reflectSymbol: function () {
                               return "gain14";
                           }
-                      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+                      })()())()(WAGS_Create.createStepRLCons({
                           reflectSymbol: function () {
                               return "sin14";
                           }
@@ -40026,7 +40005,7 @@ var PS = {};
                           reflectSymbol: function () {
                               return "gain15";
                           }
-                      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+                      })()())()(WAGS_Create.createStepRLCons({
                           reflectSymbol: function () {
                               return "sin15";
                           }
@@ -40042,7 +40021,7 @@ var PS = {};
                           reflectSymbol: function () {
                               return "gain16";
                           }
-                      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+                      })()())()(WAGS_Create.createStepRLCons({
                           reflectSymbol: function () {
                               return "sin16";
                           }
@@ -40058,7 +40037,7 @@ var PS = {};
                           reflectSymbol: function () {
                               return "gain17";
                           }
-                      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+                      })()())()(WAGS_Create.createStepRLCons({
                           reflectSymbol: function () {
                               return "sin17";
                           }
@@ -40074,7 +40053,7 @@ var PS = {};
                           reflectSymbol: function () {
                               return "gain18";
                           }
-                      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+                      })()())()(WAGS_Create.createStepRLCons({
                           reflectSymbol: function () {
                               return "sin18";
                           }
@@ -40090,7 +40069,7 @@ var PS = {};
                           reflectSymbol: function () {
                               return "gain19";
                           }
-                      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+                      })()())()(WAGS_Create.createStepRLCons({
                           reflectSymbol: function () {
                               return "sin19";
                           }
@@ -40106,7 +40085,7 @@ var PS = {};
                           reflectSymbol: function () {
                               return "gain2";
                           }
-                      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+                      })()())()(WAGS_Create.createStepRLCons({
                           reflectSymbol: function () {
                               return "sin2";
                           }
@@ -40122,7 +40101,7 @@ var PS = {};
                           reflectSymbol: function () {
                               return "gain20";
                           }
-                      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+                      })()())()(WAGS_Create.createStepRLCons({
                           reflectSymbol: function () {
                               return "sin20";
                           }
@@ -40138,7 +40117,7 @@ var PS = {};
                           reflectSymbol: function () {
                               return "gain21";
                           }
-                      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+                      })()())()(WAGS_Create.createStepRLCons({
                           reflectSymbol: function () {
                               return "sin21";
                           }
@@ -40154,7 +40133,7 @@ var PS = {};
                           reflectSymbol: function () {
                               return "gain22";
                           }
-                      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+                      })()())()(WAGS_Create.createStepRLCons({
                           reflectSymbol: function () {
                               return "sin22";
                           }
@@ -40170,7 +40149,7 @@ var PS = {};
                           reflectSymbol: function () {
                               return "gain23";
                           }
-                      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+                      })()())()(WAGS_Create.createStepRLCons({
                           reflectSymbol: function () {
                               return "sin23";
                           }
@@ -40186,7 +40165,7 @@ var PS = {};
                           reflectSymbol: function () {
                               return "gain24";
                           }
-                      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+                      })()())()(WAGS_Create.createStepRLCons({
                           reflectSymbol: function () {
                               return "sin24";
                           }
@@ -40202,7 +40181,7 @@ var PS = {};
                           reflectSymbol: function () {
                               return "gain25";
                           }
-                      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+                      })()())()(WAGS_Create.createStepRLCons({
                           reflectSymbol: function () {
                               return "sin25";
                           }
@@ -40218,7 +40197,7 @@ var PS = {};
                           reflectSymbol: function () {
                               return "gain26";
                           }
-                      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+                      })()())()(WAGS_Create.createStepRLCons({
                           reflectSymbol: function () {
                               return "sin26";
                           }
@@ -40234,7 +40213,7 @@ var PS = {};
                           reflectSymbol: function () {
                               return "gain27";
                           }
-                      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+                      })()())()(WAGS_Create.createStepRLCons({
                           reflectSymbol: function () {
                               return "sin27";
                           }
@@ -40250,7 +40229,7 @@ var PS = {};
                           reflectSymbol: function () {
                               return "gain28";
                           }
-                      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+                      })()())()(WAGS_Create.createStepRLCons({
                           reflectSymbol: function () {
                               return "sin28";
                           }
@@ -40266,7 +40245,7 @@ var PS = {};
                           reflectSymbol: function () {
                               return "gain29";
                           }
-                      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+                      })()())()(WAGS_Create.createStepRLCons({
                           reflectSymbol: function () {
                               return "sin29";
                           }
@@ -40282,7 +40261,7 @@ var PS = {};
                           reflectSymbol: function () {
                               return "gain3";
                           }
-                      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+                      })()())()(WAGS_Create.createStepRLCons({
                           reflectSymbol: function () {
                               return "sin3";
                           }
@@ -40298,7 +40277,7 @@ var PS = {};
                           reflectSymbol: function () {
                               return "gain4";
                           }
-                      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+                      })()())()(WAGS_Create.createStepRLCons({
                           reflectSymbol: function () {
                               return "sin4";
                           }
@@ -40314,7 +40293,7 @@ var PS = {};
                           reflectSymbol: function () {
                               return "gain5";
                           }
-                      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+                      })()())()(WAGS_Create.createStepRLCons({
                           reflectSymbol: function () {
                               return "sin5";
                           }
@@ -40330,7 +40309,7 @@ var PS = {};
                           reflectSymbol: function () {
                               return "gain6";
                           }
-                      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+                      })()())()(WAGS_Create.createStepRLCons({
                           reflectSymbol: function () {
                               return "sin6";
                           }
@@ -40346,7 +40325,7 @@ var PS = {};
                           reflectSymbol: function () {
                               return "gain7";
                           }
-                      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+                      })()())()(WAGS_Create.createStepRLCons({
                           reflectSymbol: function () {
                               return "sin7";
                           }
@@ -40362,7 +40341,7 @@ var PS = {};
                           reflectSymbol: function () {
                               return "gain8";
                           }
-                      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+                      })()())()(WAGS_Create.createStepRLCons({
                           reflectSymbol: function () {
                               return "sin8";
                           }
@@ -40378,7 +40357,7 @@ var PS = {};
                           reflectSymbol: function () {
                               return "gain9";
                           }
-                      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+                      })()())()(WAGS_Create.createStepRLCons({
                           reflectSymbol: function () {
                               return "sin9";
                           }
@@ -41370,7 +41349,7 @@ var PS = {};
           reflectSymbol: function () {
               return "gain0";
           }
-      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+      })()())()(WAGS_Create.createStepRLCons({
           reflectSymbol: function () {
               return "sin0";
           }
@@ -41386,7 +41365,7 @@ var PS = {};
           reflectSymbol: function () {
               return "gain1";
           }
-      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+      })()())()(WAGS_Create.createStepRLCons({
           reflectSymbol: function () {
               return "sin1";
           }
@@ -41402,7 +41381,7 @@ var PS = {};
           reflectSymbol: function () {
               return "gain10";
           }
-      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+      })()())()(WAGS_Create.createStepRLCons({
           reflectSymbol: function () {
               return "sin10";
           }
@@ -41418,7 +41397,7 @@ var PS = {};
           reflectSymbol: function () {
               return "gain11";
           }
-      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+      })()())()(WAGS_Create.createStepRLCons({
           reflectSymbol: function () {
               return "sin11";
           }
@@ -41434,7 +41413,7 @@ var PS = {};
           reflectSymbol: function () {
               return "gain12";
           }
-      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+      })()())()(WAGS_Create.createStepRLCons({
           reflectSymbol: function () {
               return "sin12";
           }
@@ -41450,7 +41429,7 @@ var PS = {};
           reflectSymbol: function () {
               return "gain13";
           }
-      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+      })()())()(WAGS_Create.createStepRLCons({
           reflectSymbol: function () {
               return "sin13";
           }
@@ -41466,7 +41445,7 @@ var PS = {};
           reflectSymbol: function () {
               return "gain14";
           }
-      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+      })()())()(WAGS_Create.createStepRLCons({
           reflectSymbol: function () {
               return "sin14";
           }
@@ -41482,7 +41461,7 @@ var PS = {};
           reflectSymbol: function () {
               return "gain15";
           }
-      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+      })()())()(WAGS_Create.createStepRLCons({
           reflectSymbol: function () {
               return "sin15";
           }
@@ -41498,7 +41477,7 @@ var PS = {};
           reflectSymbol: function () {
               return "gain16";
           }
-      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+      })()())()(WAGS_Create.createStepRLCons({
           reflectSymbol: function () {
               return "sin16";
           }
@@ -41514,7 +41493,7 @@ var PS = {};
           reflectSymbol: function () {
               return "gain17";
           }
-      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+      })()())()(WAGS_Create.createStepRLCons({
           reflectSymbol: function () {
               return "sin17";
           }
@@ -41530,7 +41509,7 @@ var PS = {};
           reflectSymbol: function () {
               return "gain18";
           }
-      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+      })()())()(WAGS_Create.createStepRLCons({
           reflectSymbol: function () {
               return "sin18";
           }
@@ -41546,7 +41525,7 @@ var PS = {};
           reflectSymbol: function () {
               return "gain19";
           }
-      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+      })()())()(WAGS_Create.createStepRLCons({
           reflectSymbol: function () {
               return "sin19";
           }
@@ -41562,7 +41541,7 @@ var PS = {};
           reflectSymbol: function () {
               return "gain2";
           }
-      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+      })()())()(WAGS_Create.createStepRLCons({
           reflectSymbol: function () {
               return "sin2";
           }
@@ -41578,7 +41557,7 @@ var PS = {};
           reflectSymbol: function () {
               return "gain20";
           }
-      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+      })()())()(WAGS_Create.createStepRLCons({
           reflectSymbol: function () {
               return "sin20";
           }
@@ -41594,7 +41573,7 @@ var PS = {};
           reflectSymbol: function () {
               return "gain21";
           }
-      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+      })()())()(WAGS_Create.createStepRLCons({
           reflectSymbol: function () {
               return "sin21";
           }
@@ -41610,7 +41589,7 @@ var PS = {};
           reflectSymbol: function () {
               return "gain22";
           }
-      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+      })()())()(WAGS_Create.createStepRLCons({
           reflectSymbol: function () {
               return "sin22";
           }
@@ -41626,7 +41605,7 @@ var PS = {};
           reflectSymbol: function () {
               return "gain23";
           }
-      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+      })()())()(WAGS_Create.createStepRLCons({
           reflectSymbol: function () {
               return "sin23";
           }
@@ -41642,7 +41621,7 @@ var PS = {};
           reflectSymbol: function () {
               return "gain24";
           }
-      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+      })()())()(WAGS_Create.createStepRLCons({
           reflectSymbol: function () {
               return "sin24";
           }
@@ -41658,7 +41637,7 @@ var PS = {};
           reflectSymbol: function () {
               return "gain25";
           }
-      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+      })()())()(WAGS_Create.createStepRLCons({
           reflectSymbol: function () {
               return "sin25";
           }
@@ -41674,7 +41653,7 @@ var PS = {};
           reflectSymbol: function () {
               return "gain26";
           }
-      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+      })()())()(WAGS_Create.createStepRLCons({
           reflectSymbol: function () {
               return "sin26";
           }
@@ -41690,7 +41669,7 @@ var PS = {};
           reflectSymbol: function () {
               return "gain27";
           }
-      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+      })()())()(WAGS_Create.createStepRLCons({
           reflectSymbol: function () {
               return "sin27";
           }
@@ -41706,7 +41685,7 @@ var PS = {};
           reflectSymbol: function () {
               return "gain28";
           }
-      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+      })()())()(WAGS_Create.createStepRLCons({
           reflectSymbol: function () {
               return "sin28";
           }
@@ -41722,7 +41701,7 @@ var PS = {};
           reflectSymbol: function () {
               return "gain29";
           }
-      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+      })()())()(WAGS_Create.createStepRLCons({
           reflectSymbol: function () {
               return "sin29";
           }
@@ -41738,7 +41717,7 @@ var PS = {};
           reflectSymbol: function () {
               return "gain3";
           }
-      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+      })()())()(WAGS_Create.createStepRLCons({
           reflectSymbol: function () {
               return "sin3";
           }
@@ -41754,7 +41733,7 @@ var PS = {};
           reflectSymbol: function () {
               return "gain4";
           }
-      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+      })()())()(WAGS_Create.createStepRLCons({
           reflectSymbol: function () {
               return "sin4";
           }
@@ -41770,7 +41749,7 @@ var PS = {};
           reflectSymbol: function () {
               return "gain5";
           }
-      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+      })()())()(WAGS_Create.createStepRLCons({
           reflectSymbol: function () {
               return "sin5";
           }
@@ -41786,7 +41765,7 @@ var PS = {};
           reflectSymbol: function () {
               return "gain6";
           }
-      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+      })()())()(WAGS_Create.createStepRLCons({
           reflectSymbol: function () {
               return "sin6";
           }
@@ -41802,7 +41781,7 @@ var PS = {};
           reflectSymbol: function () {
               return "gain7";
           }
-      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+      })()())()(WAGS_Create.createStepRLCons({
           reflectSymbol: function () {
               return "sin7";
           }
@@ -41818,7 +41797,7 @@ var PS = {};
           reflectSymbol: function () {
               return "gain8";
           }
-      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+      })()())()(WAGS_Create.createStepRLCons({
           reflectSymbol: function () {
               return "sin8";
           }
@@ -41834,7 +41813,7 @@ var PS = {};
           reflectSymbol: function () {
               return "gain9";
           }
-      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+      })()())()(WAGS_Create.createStepRLCons({
           reflectSymbol: function () {
               return "sin9";
           }
@@ -43271,7 +43250,7 @@ var PS = {};
               reflectSymbol: function () {
                   return "gnn";
               }
-          })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+          })()())()(WAGS_Create.createStepRLCons({
               reflectSymbol: function () {
                   return "Input_D0";
               }
@@ -43311,7 +43290,7 @@ var PS = {};
               reflectSymbol: function () {
                   return "gnn";
               }
-          })(WAGS_Graph_Parameter.justMM)(WAGS_Graph_Paramable.paramableAudioParameter)())(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLCons({
+          })())(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLCons({
               reflectSymbol: function () {
                   return "Input_D0";
               }
@@ -43406,7 +43385,7 @@ var PS = {};
       reflectSymbol: function () {
           return "gn";
       }
-  })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLConsB({
+  })()())()(WAGS_Create.createStepRLConsB({
       reflectSymbol: function () {
           return "sg";
       }
@@ -43514,7 +43493,7 @@ var PS = {};
       reflectSymbol: function () {
           return "gn";
       }
-  })(WAGS_Graph_Parameter.justMM)(WAGS_Graph_Paramable.paramableAudioParameter)())(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLCons({
+  })())(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLCons({
       reflectSymbol: function () {
           return "sg";
       }
@@ -43843,7 +43822,7 @@ var PS = {};
                                           reflectSymbol: function () {
                                               return "output";
                                           }
-                                      })(WAGS_Graph_Paramable.paramableAudioParameter)(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+                                      })()())()(WAGS_Create.createStepRLCons({
                                           reflectSymbol: function () {
                                               return "Input_D0";
                                           }
@@ -43896,7 +43875,7 @@ var PS = {};
                                           reflectSymbol: function () {
                                               return "output";
                                           }
-                                      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+                                      })()())()(WAGS_Create.createStepRLCons({
                                           reflectSymbol: function () {
                                               return "beep";
                                           }
@@ -43904,7 +43883,7 @@ var PS = {};
                                           reflectSymbol: function () {
                                               return "beep";
                                           }
-                                      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+                                      })()())()(WAGS_Create.createStepRLCons({
                                           reflectSymbol: function () {
                                               return "sosc";
                                           }
@@ -44116,7 +44095,7 @@ var PS = {};
       reflectSymbol: function () {
           return "gn";
       }
-  })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLConsB({
+  })()())()(WAGS_Create.createStepRLConsB({
       reflectSymbol: function () {
           return "sg2";
       }
@@ -44128,7 +44107,7 @@ var PS = {};
       reflectSymbol: function () {
           return "beep";
       }
-  })(WAGS_Graph_Paramable.paramableAudioParameter)()(WAGS_Graph_Paramable.onOffIzeAudioParameter)())()(WAGS_Create.createStepRLNil)(WAGS_Create.createStepRLNil))(WAGS_Create.createStepRLNil)(WAGS_Create.createSubgraph({
+  })()())()(WAGS_Create.createStepRLNil)(WAGS_Create.createStepRLNil))(WAGS_Create.createStepRLNil)(WAGS_Create.createSubgraph({
       reflectSymbol: function () {
           return "sg2";
       }
@@ -44196,7 +44175,7 @@ var PS = {};
       reflectSymbol: function () {
           return "gn";
       }
-  })(WAGS_Graph_Parameter.justMM)(WAGS_Graph_Paramable.paramableAudioParameter)())(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLCons({
+  })())(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLCons({
       reflectSymbol: function () {
           return "sg2";
       }
@@ -44216,7 +44195,7 @@ var PS = {};
       reflectSymbol: function () {
           return "beep";
       }
-  })(WAGS_Graph_Parameter.justMM)(WAGS_Graph_Parameter.justMM)(WAGS_Graph_Paramable.onOffIzeAudioParameter)(WAGS_Graph_Parameter.justMM)(WAGS_Graph_Parameter.justMM)(WAGS_Graph_Parameter.justMM)(WAGS_Graph_Paramable.paramableAudioParameter)())(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLNil)))(WAGS_Change.changeRLNil)))(WAGS_Change.changeRLNil)))(WAGS_Change.changeRLNil))))()(function (v) {
+  })())(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLNil)))(WAGS_Change.changeRLNil)))(WAGS_Change.changeRLNil)))(WAGS_Change.changeRLNil))))()(function (v) {
       return function (v1) {
           return {
               control: Data_Unit.unit,
@@ -44766,7 +44745,6 @@ var PS = {};
   var WAGS_Example_WTK_Types = $PS["WAGS.Example.WTK.Types"];
   var WAGS_Graph_AudioUnit = $PS["WAGS.Graph.AudioUnit"];
   var WAGS_Graph_Paramable = $PS["WAGS.Graph.Paramable"];
-  var WAGS_Graph_Parameter = $PS["WAGS.Graph.Parameter"];
   var WAGS_Interpret = $PS["WAGS.Interpret"];                
   var playKeys = function (dictMonoid) {
       return function (dictAudioInterpret) {
@@ -44789,11 +44767,11 @@ var PS = {};
                                   reflectSymbol: function () {
                                       return "k0";
                                   }
-                              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeGain({
+                              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeXGain({
                                   reflectSymbol: function () {
                                       return "k0";
                                   }
-                              })(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Paramable.paramableAudioParameter)())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
+                              })())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
                                   reflectSymbol: function () {
                                       return "osc0";
                                   }
@@ -44843,11 +44821,11 @@ var PS = {};
                                   reflectSymbol: function () {
                                       return "k1";
                                   }
-                              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeGain({
+                              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeXGain({
                                   reflectSymbol: function () {
                                       return "k1";
                                   }
-                              })(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Paramable.paramableAudioParameter)())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
+                              })())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
                                   reflectSymbol: function () {
                                       return "osc1";
                                   }
@@ -44897,11 +44875,11 @@ var PS = {};
                                   reflectSymbol: function () {
                                       return "k2";
                                   }
-                              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeGain({
+                              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeXGain({
                                   reflectSymbol: function () {
                                       return "k2";
                                   }
-                              })(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Paramable.paramableAudioParameter)())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
+                              })())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
                                   reflectSymbol: function () {
                                       return "osc2";
                                   }
@@ -44951,11 +44929,11 @@ var PS = {};
                                   reflectSymbol: function () {
                                       return "k3";
                                   }
-                              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeGain({
+                              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeXGain({
                                   reflectSymbol: function () {
                                       return "k3";
                                   }
-                              })(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Paramable.paramableAudioParameter)())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
+                              })())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
                                   reflectSymbol: function () {
                                       return "osc3";
                                   }
@@ -45005,11 +44983,11 @@ var PS = {};
                                   reflectSymbol: function () {
                                       return "k4";
                                   }
-                              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeGain({
+                              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeXGain({
                                   reflectSymbol: function () {
                                       return "k4";
                                   }
-                              })(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Paramable.paramableAudioParameter)())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
+                              })())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
                                   reflectSymbol: function () {
                                       return "osc4";
                                   }
@@ -45059,11 +45037,11 @@ var PS = {};
                                   reflectSymbol: function () {
                                       return "k5";
                                   }
-                              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeGain({
+                              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeXGain({
                                   reflectSymbol: function () {
                                       return "k5";
                                   }
-                              })(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Paramable.paramableAudioParameter)())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
+                              })())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
                                   reflectSymbol: function () {
                                       return "osc5";
                                   }
@@ -45113,11 +45091,11 @@ var PS = {};
                                   reflectSymbol: function () {
                                       return "k6";
                                   }
-                              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeGain({
+                              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeXGain({
                                   reflectSymbol: function () {
                                       return "k6";
                                   }
-                              })(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Paramable.paramableAudioParameter)())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
+                              })())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
                                   reflectSymbol: function () {
                                       return "osc6";
                                   }
@@ -45167,11 +45145,11 @@ var PS = {};
                                   reflectSymbol: function () {
                                       return "k7";
                                   }
-                              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeGain({
+                              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeXGain({
                                   reflectSymbol: function () {
                                       return "k7";
                                   }
-                              })(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Paramable.paramableAudioParameter)())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
+                              })())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
                                   reflectSymbol: function () {
                                       return "osc7";
                                   }
@@ -45221,11 +45199,11 @@ var PS = {};
                                   reflectSymbol: function () {
                                       return "k8";
                                   }
-                              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeGain({
+                              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeXGain({
                                   reflectSymbol: function () {
                                       return "k8";
                                   }
-                              })(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Paramable.paramableAudioParameter)())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
+                              })())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
                                   reflectSymbol: function () {
                                       return "osc8";
                                   }
@@ -45275,11 +45253,11 @@ var PS = {};
                                   reflectSymbol: function () {
                                       return "k9";
                                   }
-                              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeGain({
+                              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeXGain({
                                   reflectSymbol: function () {
                                       return "k9";
                                   }
-                              })(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Paramable.paramableAudioParameter)())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
+                              })())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
                                   reflectSymbol: function () {
                                       return "osc9";
                                   }
@@ -45325,11 +45303,11 @@ var PS = {};
                                   reflectSymbol: function () {
                                       return "k0";
                                   }
-                              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeGain({
+                              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeXGain({
                                   reflectSymbol: function () {
                                       return "k0";
                                   }
-                              })(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Paramable.paramableAudioParameter)())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
+                              })())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
                                   reflectSymbol: function () {
                                       return "osc0";
                                   }
@@ -45372,11 +45350,11 @@ var PS = {};
                                   reflectSymbol: function () {
                                       return "k1";
                                   }
-                              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeGain({
+                              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeXGain({
                                   reflectSymbol: function () {
                                       return "k1";
                                   }
-                              })(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Paramable.paramableAudioParameter)())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
+                              })())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
                                   reflectSymbol: function () {
                                       return "osc1";
                                   }
@@ -45419,11 +45397,11 @@ var PS = {};
                                   reflectSymbol: function () {
                                       return "k2";
                                   }
-                              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeGain({
+                              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeXGain({
                                   reflectSymbol: function () {
                                       return "k2";
                                   }
-                              })(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Paramable.paramableAudioParameter)())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
+                              })())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
                                   reflectSymbol: function () {
                                       return "osc2";
                                   }
@@ -45466,11 +45444,11 @@ var PS = {};
                                   reflectSymbol: function () {
                                       return "k3";
                                   }
-                              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeGain({
+                              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeXGain({
                                   reflectSymbol: function () {
                                       return "k3";
                                   }
-                              })(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Paramable.paramableAudioParameter)())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
+                              })())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
                                   reflectSymbol: function () {
                                       return "osc3";
                                   }
@@ -45513,11 +45491,11 @@ var PS = {};
                                   reflectSymbol: function () {
                                       return "k4";
                                   }
-                              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeGain({
+                              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeXGain({
                                   reflectSymbol: function () {
                                       return "k4";
                                   }
-                              })(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Paramable.paramableAudioParameter)())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
+                              })())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
                                   reflectSymbol: function () {
                                       return "osc4";
                                   }
@@ -45560,11 +45538,11 @@ var PS = {};
                                   reflectSymbol: function () {
                                       return "k5";
                                   }
-                              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeGain({
+                              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeXGain({
                                   reflectSymbol: function () {
                                       return "k5";
                                   }
-                              })(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Paramable.paramableAudioParameter)())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
+                              })())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
                                   reflectSymbol: function () {
                                       return "osc5";
                                   }
@@ -45607,11 +45585,11 @@ var PS = {};
                                   reflectSymbol: function () {
                                       return "k6";
                                   }
-                              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeGain({
+                              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeXGain({
                                   reflectSymbol: function () {
                                       return "k6";
                                   }
-                              })(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Paramable.paramableAudioParameter)())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
+                              })())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
                                   reflectSymbol: function () {
                                       return "osc6";
                                   }
@@ -45654,11 +45632,11 @@ var PS = {};
                                   reflectSymbol: function () {
                                       return "k7";
                                   }
-                              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeGain({
+                              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeXGain({
                                   reflectSymbol: function () {
                                       return "k7";
                                   }
-                              })(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Paramable.paramableAudioParameter)())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
+                              })())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
                                   reflectSymbol: function () {
                                       return "osc7";
                                   }
@@ -45701,11 +45679,11 @@ var PS = {};
                                   reflectSymbol: function () {
                                       return "k8";
                                   }
-                              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeGain({
+                              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeXGain({
                                   reflectSymbol: function () {
                                       return "k8";
                                   }
-                              })(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Paramable.paramableAudioParameter)())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
+                              })())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
                                   reflectSymbol: function () {
                                       return "osc8";
                                   }
@@ -45748,11 +45726,11 @@ var PS = {};
                                   reflectSymbol: function () {
                                       return "k9";
                                   }
-                              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeGain({
+                              })()()(WAGS_ConstructEdges.constructEdgesRest)()()(WAGS_Change.changeNumber(WAGS_Change.changeAudioParameter()()(WAGS_Graph_AudioUnit.monoidTGain)(WAGS_Change.oneShotChangeGain)(WAGS_Change.changeXGain({
                                   reflectSymbol: function () {
                                       return "k9";
                                   }
-                              })(WAGS_Graph_Parameter.maybeMM)(WAGS_Graph_Paramable.paramableAudioParameter)())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
+                              })())))(WAGS_Change.changeInternalAll()(WAGS_Change.changeRLNil))(WAGS_Change.changeRLCons({
                                   reflectSymbol: function () {
                                       return "osc9";
                                   }
@@ -45811,7 +45789,7 @@ var PS = {};
           reflectSymbol: function () {
               return "mix";
           }
-      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+      })()())()(WAGS_Create.createStepRLCons({
           reflectSymbol: function () {
               return "k0";
           }
@@ -45819,7 +45797,7 @@ var PS = {};
           reflectSymbol: function () {
               return "k0";
           }
-      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+      })()())()(WAGS_Create.createStepRLCons({
           reflectSymbol: function () {
               return "osc0";
           }
@@ -45835,7 +45813,7 @@ var PS = {};
           reflectSymbol: function () {
               return "k1";
           }
-      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+      })()())()(WAGS_Create.createStepRLCons({
           reflectSymbol: function () {
               return "osc1";
           }
@@ -45851,7 +45829,7 @@ var PS = {};
           reflectSymbol: function () {
               return "k2";
           }
-      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+      })()())()(WAGS_Create.createStepRLCons({
           reflectSymbol: function () {
               return "osc2";
           }
@@ -45867,7 +45845,7 @@ var PS = {};
           reflectSymbol: function () {
               return "k3";
           }
-      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+      })()())()(WAGS_Create.createStepRLCons({
           reflectSymbol: function () {
               return "osc3";
           }
@@ -45883,7 +45861,7 @@ var PS = {};
           reflectSymbol: function () {
               return "k4";
           }
-      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+      })()())()(WAGS_Create.createStepRLCons({
           reflectSymbol: function () {
               return "osc4";
           }
@@ -45899,7 +45877,7 @@ var PS = {};
           reflectSymbol: function () {
               return "k5";
           }
-      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+      })()())()(WAGS_Create.createStepRLCons({
           reflectSymbol: function () {
               return "osc5";
           }
@@ -45915,7 +45893,7 @@ var PS = {};
           reflectSymbol: function () {
               return "k6";
           }
-      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+      })()())()(WAGS_Create.createStepRLCons({
           reflectSymbol: function () {
               return "osc6";
           }
@@ -45931,7 +45909,7 @@ var PS = {};
           reflectSymbol: function () {
               return "k7";
           }
-      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+      })()())()(WAGS_Create.createStepRLCons({
           reflectSymbol: function () {
               return "osc7";
           }
@@ -45947,7 +45925,7 @@ var PS = {};
           reflectSymbol: function () {
               return "k8";
           }
-      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+      })()())()(WAGS_Create.createStepRLCons({
           reflectSymbol: function () {
               return "osc8";
           }
@@ -45963,7 +45941,7 @@ var PS = {};
           reflectSymbol: function () {
               return "k9";
           }
-      })(WAGS_Graph_Paramable.paramableAudioParameter)()())()(WAGS_Create.createStepRLCons({
+      })()())()(WAGS_Create.createStepRLCons({
           reflectSymbol: function () {
               return "osc9";
           }
