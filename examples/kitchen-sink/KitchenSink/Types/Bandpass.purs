@@ -13,16 +13,20 @@ import WAGS.Graph.AudioUnit (TBandpass, TPlayBuf)
 import WAGS.Graph.Parameter (_off, _on)
 import WAGS.Math (calcSlope)
 
-type BandpassGraph
-  = TopWith { bandpass :: Unit }
+type BandpassGraph = TopWith { bandpass :: Unit }
   ( bandpass :: TBandpass /\ { buf :: Unit }
   , buf :: TPlayBuf /\ {}
   )
 
 ksBandpassCreate :: World -> { bandpass :: CBandpass { buf :: CPlayBuf } }
-ksBandpassCreate { buffers: { "my-buffer": myBuffer } } = { bandpass: bandpass { freq: 300.0 } { buf: playBuf myBuffer } }
+ksBandpassCreate { buffers: { "my-buffer": myBuffer } } =
+  { bandpass: bandpass { freq: 300.0 } { buf: playBuf myBuffer } }
 
-deltaKsBandpass :: forall proof. World -> Number -> IxWAGSig' BandpassGraph BandpassGraph proof Unit
+deltaKsBandpass
+  :: forall proof
+   . World
+  -> Number
+  -> IxWAGSig' BandpassGraph BandpassGraph proof Unit
 deltaKsBandpass { buffers: { "my-buffer": myBuffer, shruti } } =
   (_ % pieceTime)
     >>> (_ - timing.ksBandpass.begin)
@@ -35,7 +39,10 @@ deltaKsBandpass { buffers: { "my-buffer": myBuffer, shruti } } =
         buffer = if switchW then myBuffer else shruti
         changes =
           { mix: if time > (timing.ksBandpass.dur - 1.0) then 0.0 else 1.0
-          , bandpass: calcSlope 0.0 300.0 timing.ksBandpass.dur 2000.0 time
+          , bandpass:
+              { freq: calcSlope 0.0 300.0 timing.ksBandpass.dur 2000.0 time
+              , q: calcSlope 0.0 1.0 timing.ksBandpass.dur 20.0 time
+              }
           , buf: { onOff, buffer }
           }
       in

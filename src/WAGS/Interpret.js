@@ -1,3 +1,10 @@
+var SINGLE_NUMBER = "singleNumber";
+var CANCELLATION = "cancellation";
+var IMMEDIATELY = "immediately";
+var NO_RAMP = "noRamp";
+var LINEAR_RAMP = "linearRamp";
+var EXPONENTIAL_RAMP = "exponentialRamp";
+var ENVELOPE = "envelope";
 exports.context = function () {
 	return new (window.AudioContext || window.webkitAudioContext)();
 };
@@ -12,7 +19,7 @@ exports.contextResume = function (audioCtx) {
 	};
 };
 var isOn = function (param) {
-	return param === "on" || param === "offOn";
+	return param.type === "on" || param.type === "offOn";
 };
 var makeid = function (length) {
 	var result = "";
@@ -54,40 +61,44 @@ exports.close = function (audioCtx) {
 	};
 };
 var genericStarter = function (unit, name, param) {
-	if (param.values) {
-		unit[name].setValueCurveAtTime(param.values, 0.0, param.duration);
-	} else {
-		unit[name].value = param.param;
+	if (param.type === ENVELOPE) {
+		unit[name].setValueCurveAtTime(
+			param.value.values,
+			0.0,
+			param.value.duration
+		);
+	} else if (param.type === SINGLE_NUMBER) {
+		unit[name].value = param.value.param;
 	}
 };
 var protoSetter = function (thingee, timeToSet, param) {
-	if (param.transition === "Immediately") {
-		if (param.cancel) {
-			thingee.cancelScheduledValues();
-		} else {
-			thingee.value = param.param;
-		}
+	if (
+		param.type === SINGLE_NUMBER &&
+		param.value.transition.type === IMMEDIATELY
+	) {
+		thingee.value = param.value.param;
 	} else {
-		if (param.hasOwnProperty("param")) {
+		if (param.type === SINGLE_NUMBER) {
 			thingee[
-				param.transition === "NoRamp"
+				param.value.transition.type === NO_RAMP
 					? "setValueAtTime"
-					: param.transition === "LinearRamp"
+					: param.value.transition.type === LINEAR_RAMP
 					? "linearRampToValueAtTime"
-					: param.transition === "ExponentialRamp"
+					: param.value.transition.type === EXPONENTIAL_RAMP
 					? "exponentialRampToValueAtTime"
 					: "linearRampToValueAtTime"
-			](param.param, timeToSet + param.timeOffset);
+			](param.value.param, timeToSet + param.value.timeOffset);
 		} else if (isCancellation(param)) {
-			param.hold
-				? thingee.cancelAndHoldAtTime(timeToSet + param.timeOffset)
-				: thingee.cancelScheduledValues(timeToSet + param.timeOffset);
-		} else if (param.hasOwnProperty("values")) {
-			thingee.cancelScheduledValues(timeToSet + param.timeOffset - 0.001);
+			param.value.hold
+				? thingee.cancelAndHoldAtTime(timeToSet + param.value.timeOffset)
+				: thingee.cancelScheduledValues(timeToSet + param.value.timeOffset);
+		} else if (param.type === ENVELOPE) {
+			// envelope is last option
+			thingee.cancelScheduledValues(timeToSet + param.value.timeOffset - 0.001);
 			thingee.setValueCurveAtTime(
-				param.values,
-				timeToSet + param.timeOffset,
-				param.duration
+				param.value.values,
+				timeToSet + param.value.timeOffset,
+				param.value.duration
 			);
 		} else {
 			throw new Error("No idea what to do with " + JSON.stringify(param));
@@ -125,10 +136,8 @@ var connectXToY = function (calledExternally) {
 	};
 };
 exports.connectXToY_ = function (x) {
-	return function (y) {
-		return function (state) {
-			return connectXToY(true)(x)(y)(state)(state);
-		};
+	return function (state) {
+		return connectXToY(true)(x.fromId)(x.toId)(state)(state);
 	};
 };
 var disconnectXFromY = function (calledExternally) {
@@ -164,15 +173,14 @@ var disconnectXFromY = function (calledExternally) {
 	};
 };
 exports.disconnectXFromY_ = function (x) {
-	return function (y) {
-		return function (state) {
-			return disconnectXFromY(true)(x)(y)(state)(state);
-		};
+	return function (state) {
+		return disconnectXFromY(true)(x.fromId)(x.toId)(state)(state);
 	};
 };
-exports.destroyUnit_ = function (ptr) {
+exports.destroyUnit_ = function (a) {
 	return function (state) {
 		return function () {
+			var ptr = a.id;
 			// hack for recorder
 			if (state.units[ptr].recorder) {
 				state.units[ptr].recorder.stop();
@@ -204,155 +212,149 @@ exports.getAudioClockTime = function (ctx) {
 		return ctx.currentTime;
 	};
 };
-exports.makeAllpass_ = function (ptr) {
-	return function (a) {
-		return function (b) {
-			return function (state) {
-				return function () {
-					state.units[ptr] = {
-						outgoing: [],
-						incoming: [],
-						main: state.context.createBiquadFilter(),
-					};
-					state.units[ptr].main.type = "allpass";
-					genericStarter(state.units[ptr].main, "frequency", a);
-					genericStarter(state.units[ptr].main, "Q", b);
-				};
+exports.makeAllpass_ = function (a) {
+	return function (state) {
+		return function () {
+			var ptr = a.id;
+			state.units[ptr] = {
+				outgoing: [],
+				incoming: [],
+				main: state.context.createBiquadFilter(),
+			};
+			state.units[ptr].main.type = "allpass";
+			genericStarter(state.units[ptr].main, "frequency", a.freq);
+			genericStarter(state.units[ptr].main, "Q", a.q);
+		};
+	};
+};
+exports.makeAnalyser_ = function (a) {
+	return function (state) {
+		return function () {
+			var ptr = a.id;
+			var analyserSideEffectFunction = a.cb;
+			var dest = state.context.createAnalyser();
+			// todo - unhardcode?
+			dest.fftSize = 2048;
+			// unsubscribe is effect unit
+			var unsubscribe = analyserSideEffectFunction(dest)();
+			state.units[ptr] = {
+				outgoing: [],
+				incoming: [],
+				analyserOrig: analyserSideEffectFunction,
+				analyser: unsubscribe,
+				main: state.context.createGain(),
+				se: dest,
 			};
 		};
 	};
 };
-exports.makeAnalyser_ = function (ptr) {
-	return function (a) {
-		return function (state) {
-			return function () {
-				var analyserSideEffectFunction = a;
-				var dest = state.context.createAnalyser();
-				// todo - unhardcode?
-				dest.fftSize = 2048;
-				// unsubscribe is effect unit
-				var unsubscribe = analyserSideEffectFunction(dest)();
-				state.units[ptr] = {
-					outgoing: [],
-					incoming: [],
-					analyserOrig: analyserSideEffectFunction,
-					analyser: unsubscribe,
-					main: state.context.createGain(),
-					se: dest,
-				};
-			};
-		};
-	};
-};
-exports.setAnalyserNodeCb_ = function (ptr) {
-	return function (a) {
-		return function (state) {
-			return function () {
-				if (state.units[ptr].analyserOrig === a) {
-					return;
-				}
-				// first, unsubscribe
-				state.units[ptr].analyser && state.units[ptr].analyser();
-				state.units[ptr].analyser = a(state.units[ptr].se)();
-				state.units[ptr].analyserOrig = a;
-			};
+exports.setAnalyserNodeCb_ = function (aa) {
+	return function (state) {
+		return function () {
+			var ptr = aa.id;
+			var a = aa.cb;
+			if (state.units[ptr].analyserOrig === a) {
+				return;
+			}
+			// first, unsubscribe
+			state.units[ptr].analyser && state.units[ptr].analyser();
+			state.units[ptr].analyser = a(state.units[ptr].se)();
+			state.units[ptr].analyserOrig = a;
 		};
 	};
 };
 var isCancellation = function (a) {
-	return a.hasOwnProperty("hold");
+	return a.type === CANCELLATION;
 };
-exports.makeAudioWorkletNode_ = function (ptr) {
-	return function (a) {
-		return function (state) {
-			return function () {
-				var parameterData = {};
-				var keys = Object.keys(a.parameterData);
-				for (var i = 0; i < keys.length; i++) {
-					if (!isCancellation(a.parameterData[keys[i]])) {
-						parameterData[keys[i]] = a.parameterData[keys[i]].param;
-					}
-				}
-				state.units[ptr] = {
-					outgoing: [],
-					incoming: [],
-					main: new AudioWorkletNode(state.context, a.name, {
-						numberOfInputs: a.numberOfInputs,
-						numberOfOutputs: a.numberOfOutputs,
-						outputChannelCount: a.outputChannelCount,
-						parameterData: parameterData,
-						processorOptions: a.processorOptions,
-					}),
-				};
-			};
-		};
-	};
-};
-exports.makeBandpass_ = function (ptr) {
-	return function (a) {
-		return function (b) {
-			return function (state) {
-				return function () {
-					state.units[ptr] = {
-						outgoing: [],
-						incoming: [],
-						main: state.context.createBiquadFilter(),
-					};
-					state.units[ptr].main.type = "bandpass";
-					genericStarter(state.units[ptr].main, "frequency", a);
-					genericStarter(state.units[ptr].main, "Q", b);
-				};
-			};
-		};
-	};
-};
-exports.makeConstant_ = function (ptr) {
-	return function (onOff) {
-		return function (a) {
-			return function (state) {
-				return function () {
-					var createFunction = function () {
-						var unit = state.context.createConstantSource();
-						return unit;
-					};
-					state.units[ptr] = {
-						outgoing: [],
-						incoming: [],
-						resumeClosure: {
-							offset: function (i) {
-								genericStarter(i, "offset", a);
-							},
-						},
-						createFunction: createFunction,
-						main: createFunction(),
-					};
-					applyResumeClosure(state.units[ptr]);
-					if (isOn(onOff.onOff)) {
-						state.units[ptr].main.start(state.writeHead + onOff.timeOffset);
-					}
-					state.units[ptr].onOff = isOn(onOff.onOff);
-				};
-			};
-		};
-	};
-};
-exports.makeConvolver_ = function (ptr) {
-	return function (a) {
-		return function (state) {
-			return function () {
-				state.units[ptr] = {
-					outgoing: [],
-					incoming: [],
-					main: state.context.createConvolver(),
-				};
-				state.units[ptr].main.buffer = a;
-			};
-		};
-	};
-};
-exports.makePassthroughConvolver_ = function (ptr) {
+exports.makeAudioWorkletNode_ = function (aa) {
 	return function (state) {
 		return function () {
+			var ptr = aa.id;
+			var a = aa.options;
+			var parameterData = {};
+			var keys = Object.keys(a.parameterData);
+			for (var i = 0; i < keys.length; i++) {
+				if (a.parameterData[keys[i]].type === SINGLE_NUMBER) {
+					parameterData[keys[i]] = a.parameterData[keys[i]].value.param;
+				}
+			}
+			state.units[ptr] = {
+				outgoing: [],
+				incoming: [],
+				main: new AudioWorkletNode(state.context, a.name, {
+					numberOfInputs: a.numberOfInputs,
+					numberOfOutputs: a.numberOfOutputs,
+					outputChannelCount: a.outputChannelCount,
+					parameterData: parameterData,
+					processorOptions: a.processorOptions,
+				}),
+			};
+		};
+	};
+};
+exports.makeBandpass_ = function (a) {
+	return function (state) {
+		return function () {
+			var ptr = a.id;
+			state.units[ptr] = {
+				outgoing: [],
+				incoming: [],
+				main: state.context.createBiquadFilter(),
+			};
+			state.units[ptr].main.type = "bandpass";
+			genericStarter(state.units[ptr].main, "frequency", a.freq);
+			genericStarter(state.units[ptr].main, "Q", a.q);
+		};
+	};
+};
+exports.makeConstant_ = function (aa) {
+	return function (state) {
+		return function () {
+			var ptr = aa.id;
+			var onOff = aa.onOff;
+			var a = aa.offset;
+			var createFunction = function () {
+				var unit = state.context.createConstantSource();
+				return unit;
+			};
+			state.units[ptr] = {
+				outgoing: [],
+				incoming: [],
+				resumeClosure: {
+					offset: function (i) {
+						genericStarter(i, "offset", a);
+					},
+				},
+				createFunction: createFunction,
+				main: createFunction(),
+			};
+			applyResumeClosure(state.units[ptr]);
+			if (isOn(onOff.onOff)) {
+				state.units[ptr].main.start(state.writeHead + onOff.timeOffset);
+			}
+			state.units[ptr].onOff = isOn(onOff.onOff);
+		};
+	};
+};
+
+exports.makeConvolver_ = function (a) {
+	return function (state) {
+		return function () {
+			var ptr = a.id;
+			state.units[ptr] = {
+				outgoing: [],
+				incoming: [],
+				main: state.context.createConvolver(),
+			};
+			state.units[ptr].main.buffer = a.buffer;
+		};
+	};
+};
+
+exports.makePassthroughConvolver_ = function (a) {
+	return function (state) {
+		return function () {
+			var ptr = a.id;
 			state.units[ptr] = {
 				outgoing: [],
 				incoming: [],
@@ -361,99 +363,83 @@ exports.makePassthroughConvolver_ = function (ptr) {
 		};
 	};
 };
-exports.makeDelay_ = function (ptr) {
-	return function (a) {
-		return function (state) {
-			return function () {
-				state.units[ptr] = {
-					outgoing: [],
-					incoming: [],
-					main: state.context.createDelay(),
-				};
-				genericStarter(state.units[ptr].main, "delayTime", a);
-			};
-		};
-	};
-};
-exports.makeDynamicsCompressor_ = function (ptr) {
-	return function (a) {
-		return function (b) {
-			return function (c) {
-				return function (d) {
-					return function (e) {
-						return function (state) {
-							return function () {
-								state.units[ptr] = {
-									main: state.context.createDynamicsCompressor(),
-									outgoing: [],
-									incoming: [],
-								};
-								genericStarter(state.units[ptr].main, "threshold", a);
-								genericStarter(state.units[ptr].main, "knee", b);
-								genericStarter(state.units[ptr].main, "ratio", c);
-								genericStarter(state.units[ptr].main, "attack", d);
-								genericStarter(state.units[ptr].main, "release", e);
-							};
-						};
-					};
-				};
-			};
-		};
-	};
-};
-exports.makeGain_ = function (ptr) {
-	return function (a) {
-		return function (state) {
-			return function () {
-				state.units[ptr] = {
-					outgoing: [],
-					incoming: [],
-					main: state.context.createGain(),
-				};
-				genericStarter(state.units[ptr].main, "gain", a);
-			};
-		};
-	};
-};
-exports.makeHighpass_ = function (ptr) {
-	return function (a) {
-		return function (b) {
-			return function (state) {
-				return function () {
-					state.units[ptr] = {
-						outgoing: [],
-						incoming: [],
-						main: state.context.createBiquadFilter(),
-					};
-					state.units[ptr].main.type = "highpass";
-					genericStarter(state.units[ptr].main, "frequency", a);
-					genericStarter(state.units[ptr].main, "Q", b);
-				};
-			};
-		};
-	};
-};
-exports.makeHighshelf_ = function (ptr) {
-	return function (a) {
-		return function (b) {
-			return function (state) {
-				return function () {
-					state.units[ptr] = {
-						outgoing: [],
-						incoming: [],
-						main: state.context.createBiquadFilter(),
-					};
-					state.units[ptr].main.type = "highshelf";
-					genericStarter(state.units[ptr].main, "frequency", a);
-					genericStarter(state.units[ptr].main, "gain", b);
-				};
-			};
-		};
-	};
-};
-exports.makeLoopBufWithDeferredBuffer_ = function (ptr) {
+exports.makeDelay_ = function (a) {
 	return function (state) {
 		return function () {
+			var ptr = a.id;
+			state.units[ptr] = {
+				outgoing: [],
+				incoming: [],
+				main: state.context.createDelay(),
+			};
+			genericStarter(state.units[ptr].main, "delayTime", a.delayTime);
+		};
+	};
+};
+exports.makeDynamicsCompressor_ = function (a) {
+	return function (state) {
+		return function () {
+			var ptr = a.id;
+			state.units[ptr] = {
+				main: state.context.createDynamicsCompressor(),
+				outgoing: [],
+				incoming: [],
+			};
+			genericStarter(state.units[ptr].main, "threshold", a.threshold);
+			genericStarter(state.units[ptr].main, "knee", a.knee);
+			genericStarter(state.units[ptr].main, "ratio", a.ratio);
+			genericStarter(state.units[ptr].main, "attack", a.attack);
+			genericStarter(state.units[ptr].main, "release", a.release);
+		};
+	};
+};
+exports.makeGain_ = function (a) {
+	return function (state) {
+		return function () {
+			var ptr = a.id;
+			state.units[ptr] = {
+				outgoing: [],
+				incoming: [],
+				main: state.context.createGain(),
+			};
+			genericStarter(state.units[ptr].main, "gain", a.gain);
+		};
+	};
+};
+exports.makeHighpass_ = function (a) {
+	return function (state) {
+		return function () {
+			var ptr = a.id;
+			state.units[ptr] = {
+				outgoing: [],
+				incoming: [],
+				main: state.context.createBiquadFilter(),
+			};
+			state.units[ptr].main.type = "highpass";
+			genericStarter(state.units[ptr].main, "frequency", a.freq);
+			genericStarter(state.units[ptr].main, "Q", a.q);
+		};
+	};
+};
+exports.makeHighshelf_ = function (a) {
+	return function (state) {
+		return function () {
+			var ptr = a.id;
+			state.units[ptr] = {
+				outgoing: [],
+				incoming: [],
+				main: state.context.createBiquadFilter(),
+			};
+			state.units[ptr].main.type = "highshelf";
+			genericStarter(state.units[ptr].main, "frequency", a.freq);
+			genericStarter(state.units[ptr].main, "gain", a.gain);
+		};
+	};
+};
+exports.makeLoopBufWithDeferredBuffer_ = function (a) {
+	return function (state) {
+		return function () {
+			var ptr = a.id;
 			var createFunction = function () {
 				var unit = state.context.createBufferSource();
 				unit.loop = true;
@@ -469,163 +455,146 @@ exports.makeLoopBufWithDeferredBuffer_ = function (ptr) {
 		};
 	};
 };
-exports.makeLoopBuf_ = function (ptr) {
-	return function (a) {
-		return function (onOff) {
-			return function (b) {
-				return function (c) {
-					return function (d) {
-						return function (state) {
-							return function () {
-								var createFunction = function () {
-									var unit = state.context.createBufferSource();
-									unit.loop = true;
-									return unit;
-								};
-								state.units[ptr] = {
-									outgoing: [],
-									incoming: [],
-									createFunction: createFunction,
-									resumeClosure: {
-										playbackRate: function (i) {
-											genericStarter(i, "playbackRate", b);
-										},
-										loopStart: function (i) {
-											i.loopStart = c;
-										},
-										loopEnd: function (i) {
-											i.loopEnd = d;
-										},
-										buffer: function (i) {
-											i.buffer = a;
-										},
-									},
-									main: createFunction(),
-								};
-								if (isOn(onOff.onOff)) {
-									applyResumeClosure(state.units[ptr]);
-									state.units[ptr].main.start(
-										state.writeHead + onOff.timeOffset,
-										c
-									);
-								}
-								state.units[ptr].onOff = isOn(onOff.onOff);
-							};
-						};
-					};
-				};
+exports.makeLoopBuf_ = function (aa) {
+	return function (state) {
+		return function () {
+			var ptr = aa.id;
+			var onOff = aa.onOff;
+			var a = aa.buffer;
+			var b = aa.playbackRate;
+			var c = aa.loopStart;
+			var d = aa.loopEnd;
+			var createFunction = function () {
+				var unit = state.context.createBufferSource();
+				unit.loop = true;
+				return unit;
+			};
+			state.units[ptr] = {
+				outgoing: [],
+				incoming: [],
+				createFunction: createFunction,
+				resumeClosure: {
+					playbackRate: function (i) {
+						genericStarter(i, "playbackRate", b);
+					},
+					loopStart: function (i) {
+						i.loopStart = c;
+					},
+					loopEnd: function (i) {
+						i.loopEnd = d;
+					},
+					buffer: function (i) {
+						i.buffer = a;
+					},
+				},
+				main: createFunction(),
+			};
+			if (isOn(onOff.onOff)) {
+				applyResumeClosure(state.units[ptr]);
+				state.units[ptr].main.start(state.writeHead + onOff.timeOffset, c);
+			}
+			state.units[ptr].onOff = isOn(onOff.onOff);
+		};
+	};
+};
+exports.makeLowpass_ = function (a) {
+	return function (state) {
+		return function () {
+			var ptr = a.id;
+			state.units[ptr] = {
+				outgoing: [],
+				incoming: [],
+				main: state.context.createBiquadFilter(),
+			};
+			state.units[ptr].main.type = "lowpass";
+			genericStarter(state.units[ptr].main, "frequency", a.freq);
+			genericStarter(state.units[ptr].main, "Q", a.q);
+		};
+	};
+};
+exports.makeLowshelf_ = function (a) {
+	return function (state) {
+		return function () {
+			var ptr = a.id;
+			state.units[ptr] = {
+				outgoing: [],
+				incoming: [],
+				main: state.context.createBiquadFilter(),
+			};
+			state.units[ptr].main.type = "lowshelf";
+			genericStarter(state.units[ptr].main, "frequency", a.freq);
+			genericStarter(state.units[ptr].main, "gain", a.gain);
+		};
+	};
+};
+exports.makeMediaElement_ = function (a) {
+	return function (state) {
+		return function () {
+			var ptr = a.id;
+			var elt = a.element;
+			var createFunction = function () {
+				var unit = state.context.createMediaElementSource(elt);
+				return unit;
+			};
+			state.units[ptr] = {
+				outgoing: [],
+				incoming: [],
+				createFunction: createFunction,
+				resumeClosure: {},
+				main: createFunction(),
 			};
 		};
 	};
 };
-exports.makeLowpass_ = function (ptr) {
-	return function (a) {
-		return function (b) {
-			return function (state) {
-				return function () {
-					state.units[ptr] = {
-						outgoing: [],
-						incoming: [],
-						main: state.context.createBiquadFilter(),
-					};
-					state.units[ptr].main.type = "lowpass";
-					genericStarter(state.units[ptr].main, "frequency", a);
-					genericStarter(state.units[ptr].main, "Q", b);
-				};
-			};
-		};
-	};
-};
-exports.makeLowshelf_ = function (ptr) {
-	return function (a) {
-		return function (b) {
-			return function (state) {
-				return function () {
-					state.units[ptr] = {
-						outgoing: [],
-						incoming: [],
-						main: state.context.createBiquadFilter(),
-					};
-					state.units[ptr].main.type = "lowshelf";
-					genericStarter(state.units[ptr].main, "frequency", a);
-					genericStarter(state.units[ptr].main, "gain", b);
-				};
-			};
-		};
-	};
-};
-exports.makeMediaElement_ = function (ptr) {
-	return function (elt) {
-		return function (state) {
-			return function () {
-				var createFunction = function () {
-					var unit = state.context.createMediaElementSource(elt);
-					return unit;
-				};
-				state.units[ptr] = {
-					outgoing: [],
-					incoming: [],
-					createFunction: createFunction,
-					resumeClosure: {},
-					main: createFunction(),
-				};
-			};
-		};
-	};
-};
-exports.makeMicrophone_ = function (microphone) {
+
+exports.makeMicrophone_ = function (a) {
 	return function (state) {
 		return function () {
 			state.units["microphone"] = {
-				main: state.context.createMediaStreamSource(microphone),
+				main: state.context.createMediaStreamSource(a.microphone),
 				outgoing: [],
 				incoming: [],
 			};
 		};
 	};
 };
-exports.makeNotch_ = function (ptr) {
-	return function (a) {
-		return function (b) {
-			return function (state) {
-				return function () {
-					state.units[ptr] = {
-						outgoing: [],
-						incoming: [],
-						main: state.context.createBiquadFilter(),
-					};
-					state.units[ptr].main.type = "notch";
-					genericStarter(state.units[ptr].main, "frequency", a);
-					genericStarter(state.units[ptr].main, "Q", b);
-				};
-			};
-		};
-	};
-};
-exports.makePeaking_ = function (ptr) {
-	return function (a) {
-		return function (b) {
-			return function (c) {
-				return function (state) {
-					return function () {
-						state.units[ptr] = {
-							outgoing: [],
-							incoming: [],
-							main: state.context.createBiquadFilter(),
-						};
-						state.units[ptr].main.type = "peaking";
-						genericStarter(state.units[ptr].main, "frequency", a);
-						genericStarter(state.units[ptr].main, "Q", b);
-						genericStarter(state.units[ptr].main, "gain", c);
-					};
-				};
-			};
-		};
-	};
-};
-exports.makePeriodicOscWithDeferredOsc_ = function (ptr) {
+exports.makeNotch_ = function (a) {
 	return function (state) {
 		return function () {
+			var ptr = a.id;
+			state.units[ptr] = {
+				outgoing: [],
+				incoming: [],
+				main: state.context.createBiquadFilter(),
+			};
+			state.units[ptr].main.type = "notch";
+			genericStarter(state.units[ptr].main, "frequency", a.freq);
+			genericStarter(state.units[ptr].main, "Q", a.q);
+		};
+	};
+};
+
+exports.makePeaking_ = function (a) {
+	return function (state) {
+		return function () {
+			var ptr = a.id;
+			state.units[ptr] = {
+				outgoing: [],
+				incoming: [],
+				main: state.context.createBiquadFilter(),
+			};
+			state.units[ptr].main.type = "peaking";
+			genericStarter(state.units[ptr].main, "frequency", a.freq);
+			genericStarter(state.units[ptr].main, "Q", a.q);
+			genericStarter(state.units[ptr].main, "gain", a.gain);
+		};
+	};
+};
+
+exports.makePeriodicOscWithDeferredOsc_ = function (a) {
+	return function (state) {
+		return function () {
+			var ptr = a.id;
 			var createFunction = function () {
 				var unit = state.context.createOscillator();
 				return unit;
@@ -641,81 +610,79 @@ exports.makePeriodicOscWithDeferredOsc_ = function (ptr) {
 	};
 };
 
-exports.makePeriodicOsc_ = function (ptr) {
-	return function (a) {
-		return function (onOff) {
-			return function (b) {
-				return function (state) {
-					return function () {
-						var createFunction = function () {
-							var unit = state.context.createOscillator();
-							return unit;
-						};
-						state.units[ptr] = {
-							outgoing: [],
-							incoming: [],
-							createFunction: createFunction,
-							resumeClosure: {
-								frequency: function (i) {
-									genericStarter(i, "frequency", b);
-								},
-								periodicOsc: function (i) {
-									i.setPeriodicWave(a);
-								},
-							},
-							main: createFunction(),
-						};
-						applyResumeClosure(state.units[ptr]);
-						if (isOn(onOff.onOff)) {
-							state.units[ptr].main.start(state.writeHead + onOff.timeOffset);
-						}
-						state.units[ptr].onOff = isOn(onOff.onOff);
-					};
-				};
-			};
-		};
-	};
-};
-exports.makePeriodicOscV_ = function (ptr) {
-	return function (a) {
-		return function (onOff) {
-			return function (b) {
-				return function (state) {
-					return function () {
-						var createFunction = function () {
-							var unit = state.context.createOscillator();
-							return unit;
-						};
-						state.units[ptr] = {
-							outgoing: [],
-							incoming: [],
-							createFunction: createFunction,
-							resumeClosure: {
-								frequency: function (i) {
-									genericStarter(i, "frequency", b);
-								},
-								periodicOsc: function (i) {
-									i.setPeriodicWave(
-										makePeriodicWaveImpl(state.context)(a[0])(a[1])()
-									);
-								},
-							},
-							main: createFunction(),
-						};
-						applyResumeClosure(state.units[ptr]);
-						if (isOn(onOff.onOff)) {
-							state.units[ptr].main.start(state.writeHead + onOff.timeOffset);
-						}
-						state.units[ptr].onOff = isOn(onOff.onOff);
-					};
-				};
-			};
-		};
-	};
-};
-exports.makePlayBufWithDeferredBuffer_ = function (ptr) {
+exports.makePeriodicOsc_ = function (aa) {
 	return function (state) {
 		return function () {
+			var ptr = aa.id;
+			var a = aa.wave;
+			var onOff = aa.onOff;
+			var b = aa.freq;
+			var createFunction = function () {
+				var unit = state.context.createOscillator();
+				return unit;
+			};
+			state.units[ptr] = {
+				outgoing: [],
+				incoming: [],
+				createFunction: createFunction,
+				resumeClosure: {
+					frequency: function (i) {
+						genericStarter(i, "frequency", b);
+					},
+					periodicOsc: function (i) {
+						i.setPeriodicWave(a);
+					},
+				},
+				main: createFunction(),
+			};
+			applyResumeClosure(state.units[ptr]);
+			if (isOn(onOff.onOff)) {
+				state.units[ptr].main.start(state.writeHead + onOff.timeOffset);
+			}
+			state.units[ptr].onOff = isOn(onOff.onOff);
+		};
+	};
+};
+exports.makePeriodicOscV_ = function (aa) {
+	return function (state) {
+		return function () {
+			var ptr = aa.id;
+			var a = aa.realImg;
+			var onOff = aa.onOff;
+			var b = aa.freq;
+
+			var createFunction = function () {
+				var unit = state.context.createOscillator();
+				return unit;
+			};
+			state.units[ptr] = {
+				outgoing: [],
+				incoming: [],
+				createFunction: createFunction,
+				resumeClosure: {
+					frequency: function (i) {
+						genericStarter(i, "frequency", b);
+					},
+					periodicOsc: function (i) {
+						i.setPeriodicWave(
+							makePeriodicWaveImpl(state.context)(a.real)(a.img)()
+						);
+					},
+				},
+				main: createFunction(),
+			};
+			applyResumeClosure(state.units[ptr]);
+			if (isOn(onOff.onOff)) {
+				state.units[ptr].main.start(state.writeHead + onOff.timeOffset);
+			}
+			state.units[ptr].onOff = isOn(onOff.onOff);
+		};
+	};
+};
+exports.makePlayBufWithDeferredBuffer_ = function (a) {
+	return function (state) {
+		return function () {
+			var ptr = a.id;
 			var createFunction = function () {
 				var unit = state.context.createBufferSource();
 				return unit;
@@ -730,20 +697,19 @@ exports.makePlayBufWithDeferredBuffer_ = function (ptr) {
 		};
 	};
 };
-exports.makeInput_ = function (ptr) {
-	return function (a) {
-		return function (state) {
-			return function () {
-				state.units[ptr] = {
-					outgoing: [],
-					incoming: [],
-					main: state.context.createGain(),
-					parent: state.parent,
-					input: a,
-				};
-				connectXToY(false)(a)(ptr)(state.parent)(state)();
-				state.units[ptr].main.gain.value = 1.0;
+exports.makeInput_ = function (a) {
+	return function (state) {
+		return function () {
+			var ptr = a.id;
+			state.units[ptr] = {
+				outgoing: [],
+				incoming: [],
+				main: state.context.createGain(),
+				parent: state.parent,
+				input: a.input,
 			};
+			connectXToY(false)(a.input)(ptr)(state.parent)(state)();
+			state.units[ptr].main.gain.value = 1.0;
 		};
 	};
 };
@@ -752,49 +718,49 @@ exports.makeSubgraph_ = function (ptr) {
 	return function (terminalPtr) {
 		return function (envs) {
 			return function (sceneM) {
-					return function (funk) {
-						return function (state) {
-							return function () {
-								var children = [];
-								var scenes = [];
-								for (var i = 0; i < envs.length; i++) {
-									children[i] = {
-										context: state.context,
-										writeHead: state.writeHead,
-										units: {},
-										unqidfr: makeid(10),
-										parent: state,
-									};
-									scenes[i] = sceneM(i);
-								}
-								state.units[ptr] = {
-									outgoing: [],
-									incoming: [],
-									main: state.context.createGain(),
-									children: children,
-									funk: funk,
-									isSubgraph: true,
-									scenes: scenes,
+				return function (funk) {
+					return function (state) {
+						return function () {
+							var children = [];
+							var scenes = [];
+							for (var i = 0; i < envs.length; i++) {
+								children[i] = {
+									context: state.context,
+									writeHead: state.writeHead,
+									units: {},
+									unqidfr: makeid(10),
+									parent: state,
 								};
-								state.units[ptr].main.gain.value = 1.0;
-								for (var i = 0; i < scenes.length; i++) {
-									var applied = funk(envs[i])(scenes[i]);
-									for (var j = 0; j < applied.instructions.length; j++) {
-										// thunk
-										applied.instructions[j](children[i])();
-									}
-									scenes[i] = applied.nextScene;
-								}
-								for (var i = 0; i < children.length; i++) {
-									connectXToY(false)(terminalPtr)(ptr)(children[i])(state)();
-								}
+								scenes[i] = sceneM(i);
+							}
+							state.units[ptr] = {
+								outgoing: [],
+								incoming: [],
+								main: state.context.createGain(),
+								children: children,
+								funk: funk,
+								isSubgraph: true,
+								scenes: scenes,
 							};
+							state.units[ptr].main.gain.value = 1.0;
+							for (var i = 0; i < scenes.length; i++) {
+								var applied = funk(envs[i])(scenes[i]);
+								for (var j = 0; j < applied.instructions.length; j++) {
+									// thunk
+									applied.instructions[j](children[i])();
+								}
+								scenes[i] = applied.nextScene;
+							}
+							for (var i = 0; i < children.length; i++) {
+								connectXToY(false)(terminalPtr)(ptr)(children[i])(state)();
+							}
 						};
 					};
 				};
 			};
 		};
 	};
+};
 /**
  *
  * String
@@ -856,148 +822,142 @@ exports.makeTumult_ = function (ptr) {
 		};
 	};
 };
-exports.makePlayBuf_ = function (ptr) {
-	return function (a) {
-		return function (b) {
-			return function (onOff) {
-				return function (c) {
-					return function (state) {
-						return function () {
-							var createFunction = function () {
-								var unit = state.context.createBufferSource();
-								return unit;
-							};
-							state.units[ptr] = {
-								outgoing: [],
-								incoming: [],
-								bufferOffset: b,
-								createFunction: createFunction,
-								resumeClosure: {
-									playbackRate: function (i) {
-										genericStarter(i, "playbackRate", c);
-									},
-									buffer: function (i) {
-										i.buffer = a;
-									},
-								},
-								main: createFunction(),
-							};
-							if (isOn(onOff.onOff)) {
-								applyResumeClosure(state.units[ptr]);
-								state.units[ptr].main.start(
-									state.writeHead + onOff.timeOffset,
-									b
-								);
-							}
-							state.units[ptr].onOff = isOn(onOff.onOff);
-						};
-					};
-				};
+exports.makePlayBuf_ = function (aa) {
+	return function (state) {
+		return function () {
+			var ptr = aa.id;
+			var a = aa.buffer;
+			var b = aa.bufferOffset;
+			var onOff = aa.onOff;
+			var c = aa.playbackRate;
+			var createFunction = function () {
+				var unit = state.context.createBufferSource();
+				return unit;
 			};
+			state.units[ptr] = {
+				outgoing: [],
+				incoming: [],
+				bufferOffset: b,
+				createFunction: createFunction,
+				resumeClosure: {
+					playbackRate: function (i) {
+						genericStarter(i, "playbackRate", c);
+					},
+					buffer: function (i) {
+						i.buffer = a;
+					},
+				},
+				main: createFunction(),
+			};
+			if (isOn(onOff.onOff)) {
+				applyResumeClosure(state.units[ptr]);
+				state.units[ptr].main.start(state.writeHead + onOff.timeOffset, b);
+			}
+			state.units[ptr].onOff = isOn(onOff.onOff);
 		};
 	};
 };
-exports.makeRecorder_ = function (ptr) {
-	return function (a) {
-		return function (state) {
-			return function () {
-				var mediaRecorderSideEffectFn = a;
-				var dest = state.context.createMediaStreamDestination();
-				var mediaRecorder = new MediaRecorder(dest.stream);
-				mediaRecorderSideEffectFn(mediaRecorder)();
-				mediaRecorder.start();
-				state.units[ptr] = {
-					outgoing: [],
-					incoming: [],
-					recorderOrig: mediaRecorderSideEffectFn,
-					recorder: mediaRecorder,
-					main: state.context.createGain(),
-					se: dest,
-				};
+exports.makeRecorder_ = function (aa) {
+	return function (state) {
+		return function () {
+			var ptr = aa.id;
+			var mediaRecorderSideEffectFn = aa.cb;
+			var dest = state.context.createMediaStreamDestination();
+			var mediaRecorder = new MediaRecorder(dest.stream);
+			mediaRecorderSideEffectFn(mediaRecorder)();
+			mediaRecorder.start();
+			state.units[ptr] = {
+				outgoing: [],
+				incoming: [],
+				recorderOrig: mediaRecorderSideEffectFn,
+				recorder: mediaRecorder,
+				main: state.context.createGain(),
+				se: dest,
 			};
 		};
 	};
 };
 // setting makes us stop the previous one if it exists
-exports.setMediaRecorderCb_ = function (ptr) {
-	return function (a) {
-		return function (state) {
-			return function () {
-				if (state.units[ptr].recorderOrig === a) {
-					return;
-				}
-				state.units[ptr].recorder && state.units[ptr].recorder.stop();
-				var mediaRecorderSideEffectFn = a;
-				state.units[ptr].recorderOrig = a;
-				var mediaRecorder = new MediaRecorder(state.units[ptr].se);
-				mediaRecorderSideEffectFn(mediaRecorder)();
-				mediaRecorder.start();
-			};
+exports.setMediaRecorderCb_ = function (aa) {
+	return function (state) {
+		return function () {
+			var a = aa.cb;
+			var ptr = aa.id;
+			if (state.units[ptr].recorderOrig === a) {
+				return;
+			}
+			state.units[ptr].recorder && state.units[ptr].recorder.stop();
+			var mediaRecorderSideEffectFn = a;
+			state.units[ptr].recorderOrig = a;
+			var mediaRecorder = new MediaRecorder(state.units[ptr].se);
+			mediaRecorderSideEffectFn(mediaRecorder)();
+			mediaRecorder.start();
 		};
 	};
 };
-exports.makeSawtoothOsc_ = function (ptr) {
-	return function (onOff) {
-		return function (a) {
-			return function (state) {
-				return function () {
-					var createFunction = function () {
-						var unit = state.context.createOscillator();
-						unit.type = "sawtooth";
-						return unit;
-					};
-					state.units[ptr] = {
-						outgoing: [],
-						incoming: [],
-						createFunction: createFunction,
-						resumeClosure: {
-							frequency: function (i) {
-								genericStarter(i, "frequency", a);
-							},
-						},
-						main: createFunction(),
-					};
-					applyResumeClosure(state.units[ptr]);
-					if (isOn(onOff.onOff)) {
-						state.units[ptr].main.start(state.writeHead + onOff.timeOffset);
-					}
-					state.units[ptr].onOff = isOn(onOff.onOff);
-				};
+
+exports.makeSawtoothOsc_ = function (aa) {
+	return function (state) {
+		return function () {
+			var ptr = aa.id;
+			var onOff = aa.onOff;
+			var a = aa.freq;
+			var createFunction = function () {
+				var unit = state.context.createOscillator();
+				unit.type = "sawtooth";
+				return unit;
 			};
+			state.units[ptr] = {
+				outgoing: [],
+				incoming: [],
+				createFunction: createFunction,
+				resumeClosure: {
+					frequency: function (i) {
+						genericStarter(i, "frequency", a);
+					},
+				},
+				main: createFunction(),
+			};
+			applyResumeClosure(state.units[ptr]);
+			if (isOn(onOff.onOff)) {
+				state.units[ptr].main.start(state.writeHead + onOff.timeOffset);
+			}
+			state.units[ptr].onOff = isOn(onOff.onOff);
 		};
 	};
 };
-exports.makeSinOsc_ = function (ptr) {
-	return function (onOff) {
-		return function (a) {
-			return function (state) {
-				return function () {
-					var createFunction = function () {
-						var unit = state.context.createOscillator();
-						unit.type = "sine";
-						return unit;
-					};
-					state.units[ptr] = {
-						outgoing: [],
-						incoming: [],
-						createFunction: createFunction,
-						resumeClosure: {
-							frequency: function (i) {
-								genericStarter(i, "frequency", a);
-							},
-						},
-						main: createFunction(),
-					};
-					applyResumeClosure(state.units[ptr]);
-					if (isOn(onOff.onOff)) {
-						state.units[ptr].main.start(state.writeHead + onOff.timeOffset);
-					}
-					state.units[ptr].onOff = isOn(onOff.onOff);
-				};
+exports.makeSinOsc_ = function (aa) {
+	return function (state) {
+		return function () {
+			var ptr = aa.id;
+			var onOff = aa.onOff;
+			var a = aa.freq;
+
+			var createFunction = function () {
+				var unit = state.context.createOscillator();
+				unit.type = "sine";
+				return unit;
 			};
+			state.units[ptr] = {
+				outgoing: [],
+				incoming: [],
+				createFunction: createFunction,
+				resumeClosure: {
+					frequency: function (i) {
+						genericStarter(i, "frequency", a);
+					},
+				},
+				main: createFunction(),
+			};
+			applyResumeClosure(state.units[ptr]);
+			if (isOn(onOff.onOff)) {
+				state.units[ptr].main.start(state.writeHead + onOff.timeOffset);
+			}
+			state.units[ptr].onOff = isOn(onOff.onOff);
 		};
 	};
 };
+
 exports.makeSpeaker_ = function (state) {
 	return function () {
 		state.units["speaker"] = {
@@ -1009,163 +969,168 @@ exports.makeSpeaker_ = function (state) {
 	};
 };
 
-exports.makeSquareOsc_ = function (ptr) {
-	return function (onOff) {
-		return function (a) {
-			return function (state) {
-				return function () {
-					var createFunction = function () {
-						var unit = state.context.createOscillator();
-						unit.type = "square";
-						return unit;
-					};
-					state.units[ptr] = {
-						outgoing: [],
-						incoming: [],
-						createFunction: createFunction,
-						resumeClosure: {
-							frequency: function (i) {
-								genericStarter(i, "frequency", a);
-							},
-						},
-						main: createFunction(),
-					};
-					applyResumeClosure(state.units[ptr]);
-					if (isOn(onOff.onOff)) {
-						state.units[ptr].main.start(state.writeHead + onOff.timeOffset);
-					}
-					state.units[ptr].onOff = isOn(onOff.onOff);
-				};
+exports.makeSquareOsc_ = function (aa) {
+	return function (state) {
+		return function () {
+			var ptr = aa.id;
+			var onOff = aa.onOff;
+			var a = aa.freq;
+
+			var createFunction = function () {
+				var unit = state.context.createOscillator();
+				unit.type = "square";
+				return unit;
+			};
+			state.units[ptr] = {
+				outgoing: [],
+				incoming: [],
+				createFunction: createFunction,
+				resumeClosure: {
+					frequency: function (i) {
+						genericStarter(i, "frequency", a);
+					},
+				},
+				main: createFunction(),
+			};
+			applyResumeClosure(state.units[ptr]);
+			if (isOn(onOff.onOff)) {
+				state.units[ptr].main.start(state.writeHead + onOff.timeOffset);
+			}
+			state.units[ptr].onOff = isOn(onOff.onOff);
+		};
+	};
+};
+
+exports.makeStereoPanner_ = function (aa) {
+	return function (state) {
+		return function () {
+			var ptr = aa.id;
+			var a = aa.pan;
+			state.units[ptr] = {
+				outgoing: [],
+				incoming: [],
+				main: state.context.createStereoPanner(),
+			};
+			genericStarter(state.units[ptr].main, "pan", a);
+		};
+	};
+};
+exports.makeTriangleOsc_ = function (aa) {
+	return function (state) {
+		var ptr = aa.id;
+		var onOff = aa.onOff;
+		var a = aa.freq;
+
+		return function () {
+			var createFunction = function () {
+				var unit = state.context.createOscillator();
+				unit.type = "triangle";
+				return unit;
+			};
+			state.units[ptr] = {
+				outgoing: [],
+				incoming: [],
+				createFunction: createFunction,
+				resumeClosure: {
+					frequency: function (i) {
+						genericStarter(i, "frequency", a);
+					},
+				},
+				main: createFunction(),
+			};
+			applyResumeClosure(state.units[ptr]);
+			if (isOn(onOff.onOff)) {
+				state.units[ptr].main.start(state.writeHead + onOff.timeOffset);
+			}
+			state.units[ptr].onOff = isOn(onOff.onOff);
+		};
+	};
+};
+
+exports.makeWaveShaper_ = function (aa) {
+	return function (state) {
+		var ptr = aa.id;
+		var a = aa.curve;
+		var b = aa.oversample;
+		return function () {
+			state.units[ptr] = {
+				outgoing: [],
+				incoming: [],
+				main: state.context.createWaveShaper(),
+			};
+			state.units[ptr].main.curve = a;
+			// .type because it's a key-only variant
+			state.units[ptr].main.oversample = b.type;
+		};
+	};
+};
+
+exports.setWaveShaperCurve_ = function (aa) {
+	return function (state) {
+		return function () {
+			var ptr = aa.id;
+			var a = aa.curve;
+			state.units[ptr].main.curve = a;
+		};
+	};
+};
+
+exports.setBuffer_ = function (aa) {
+	return function (state) {
+		return function () {
+			var ptr = aa.id;
+			var buffer = aa.buffer;
+			state.units[ptr].resumeClosure.buffer = function (i) {
+				i.buffer = buffer;
 			};
 		};
 	};
 };
-exports.makeStereoPanner_ = function (ptr) {
-	return function (a) {
-		return function (state) {
-			return function () {
-				state.units[ptr] = {
-					outgoing: [],
-					incoming: [],
-					main: state.context.createStereoPanner(),
-				};
-				genericStarter(state.units[ptr].main, "pan", a);
-			};
-		};
-	};
-};
-exports.makeTriangleOsc_ = function (ptr) {
-	return function (onOff) {
-		return function (a) {
-			return function (state) {
-				return function () {
-					var createFunction = function () {
-						var unit = state.context.createOscillator();
-						unit.type = "triangle";
-						return unit;
-					};
-					state.units[ptr] = {
-						outgoing: [],
-						incoming: [],
-						createFunction: createFunction,
-						resumeClosure: {
-							frequency: function (i) {
-								genericStarter(i, "frequency", a);
-							},
-						},
-						main: createFunction(),
-					};
-					applyResumeClosure(state.units[ptr]);
-					if (isOn(onOff.onOff)) {
-						state.units[ptr].main.start(state.writeHead + onOff.timeOffset);
-					}
-					state.units[ptr].onOff = isOn(onOff.onOff);
-				};
-			};
-		};
-	};
-};
-exports.makeWaveShaper_ = function (ptr) {
-	return function (a) {
-		return function (b) {
-			return function (state) {
-				return function () {
-					state.units[ptr] = {
-						outgoing: [],
-						incoming: [],
-						main: state.context.createWaveShaper(),
-					};
-					state.units[ptr].main.curve = a;
-					state.units[ptr].main.oversample = b;
-				};
-			};
-		};
-	};
-};
-exports.setWaveShaperCurve_ = function (ptr) {
-	return function (a) {
-		return function (state) {
-			return function () {
-				state.units[ptr].main.curve = a;
-			};
-		};
-	};
-};
-exports.setBuffer_ = function (ptr) {
-	return function (buffer) {
-		return function (state) {
-			return function () {
-				state.units[ptr].resumeClosure.buffer = function (i) {
-					i.buffer = buffer;
-				};
-			};
-		};
-	};
-};
-exports.setInput_ = function (ptr) {
-	return function (a) {
-		return function (state) {
-			return function () {
-				if (state.units[ptr].input && state.units[ptr].input === a) {
-					return;
-				}
-				if (state.units[ptr].input) {
-					disconnectXFromY(false)(
-						state.units[ptr].input,
-						ptr,
-						state.parent,
-						state
-					);
-				}
-				state.units[ptr].input = a;
-				connectXToY(false)(a)(ptr)(state.parent)(state)();
-				state.units[ptr].main.gain.value = 1.0;
-			};
+
+exports.setInput_ = function (aa) {
+	return function (state) {
+		return function () {
+			var ptr = aa.id;
+			var a = aa.input;
+			if (state.units[ptr].input && state.units[ptr].input === a) {
+				return;
+			}
+			if (state.units[ptr].input) {
+				disconnectXFromY(false)(
+					state.units[ptr].input,
+					ptr,
+					state.parent,
+					state
+				);
+			}
+			state.units[ptr].input = a;
+			connectXToY(false)(a)(ptr)(state.parent)(state)();
+			state.units[ptr].main.gain.value = 1.0;
 		};
 	};
 };
 
 exports.setSubgraph_ = function (ptr) {
 	return function (envs) {
-			return function (state) {
-				return function () {
-					for (var i = 0; i < envs.length; i++) {
-						state.units[ptr].children[i].writeHead = state.writeHead;
+		return function (state) {
+			return function () {
+				for (var i = 0; i < envs.length; i++) {
+					state.units[ptr].children[i].writeHead = state.writeHead;
+				}
+				var scenes = state.units[ptr].scenes;
+				var children = state.units[ptr].children;
+				for (var i = 0; i < scenes.length; i++) {
+					var applied = state.units[ptr].funk(envs[i])(scenes[i]);
+					for (var j = 0; j < applied.instructions.length; j++) {
+						// thunk
+						applied.instructions[j](children[i])();
 					}
-					var scenes = state.units[ptr].scenes;
-					var children = state.units[ptr].children;
-					for (var i = 0; i < scenes.length; i++) {
-						var applied = state.units[ptr].funk(envs[i])(scenes[i]);
-						for (var j = 0; j < applied.instructions.length; j++) {
-							// thunk
-							applied.instructions[j](children[i])();
-						}
-						scenes[i] = applied.nextScene;
-					}
-				};
+					scenes[i] = applied.nextScene;
+				}
 			};
 		};
 	};
+};
 
 exports.setSingleSubgraph_ = function (ptr) {
 	return function (i) {
@@ -1257,41 +1222,43 @@ exports.setTumult_ = function (ptr) {
 		};
 	};
 };
-exports.setConvolverBuffer_ = function (ptr) {
-	return function (buffer) {
-		return function (state) {
-			return function () {
-				state.units[ptr].main.buffer = buffer;
+exports.setConvolverBuffer_ = function (aa) {
+	return function (state) {
+		return function () {
+			var ptr = aa.id;
+			var buffer = aa.buffer;
+			state.units[ptr].main.buffer = buffer;
+		};
+	};
+};
+exports.setPeriodicOsc_ = function (aa) {
+	return function (state) {
+		return function () {
+			var ptr = aa.id;
+			var periodicOsc = aa.wave;
+			state.units[ptr].resumeClosure.periodicOsc = function (i) {
+				i.setPeriodicWave(periodicOsc);
 			};
 		};
 	};
 };
-exports.setPeriodicOsc_ = function (ptr) {
-	return function (periodicOsc) {
-		return function (state) {
-			return function () {
-				state.units[ptr].resumeClosure.periodicOsc = function (i) {
-					i.setPeriodicWave(periodicOsc);
-				};
+
+exports.setPeriodicOscV_ = function (aa) {
+	return function (state) {
+		return function () {
+			var ptr = aa.id;
+			var periodicOsc = aa.realImg;
+			state.units[ptr].resumeClosure.periodicOsc = function (i) {
+				i.setPeriodicWave(
+					makePeriodicWaveImpl(state.context)(periodicOsc.real)(
+						periodicOsc.img
+					)()
+				);
 			};
 		};
 	};
 };
-exports.setPeriodicOscV_ = function (ptr) {
-	return function (periodicOsc) {
-		return function (state) {
-			return function () {
-				state.units[ptr].resumeClosure.periodicOsc = function (i) {
-					i.setPeriodicWave(
-						makePeriodicWaveImpl(state.context)(periodicOsc[0])(
-							periodicOsc[1]
-						)()
-					);
-				};
-			};
-		};
-	};
-};
+
 var applyResumeClosure = function (i) {
 	for (var key in i.resumeClosure) {
 		if (i.resumeClosure.hasOwnProperty(key)) {
@@ -1300,19 +1267,21 @@ var applyResumeClosure = function (i) {
 	}
 };
 
-exports.setOnOff_ = function (ptr) {
-	return function (onOff) {
-		return function (state) {
-			return function () {
-				if (onOff.onOff === "on") {
-					setOn_(ptr)(onOff)(state)();
-				} else if (onOff.onOff === "off") {
-					setOff_(ptr)(onOff)(state)();
-				} else if (onOff.onOff === "offOn") {
-					setOff_(ptr)({ onOff: "off", timeOffset: 0.0 })(state)();
-					setOn_(ptr)({ onOff: "on", timeOffset: onOff.timeOffset })(state)();
-				}
-			};
+exports.setOnOff_ = function (aa) {
+	return function (state) {
+		return function () {
+			var ptr = aa.id;
+			var onOff = aa.onOff;
+			if (onOff.onOff.type === "on") {
+				setOn_(ptr)(onOff)(state)();
+			} else if (onOff.onOff.type === "off") {
+				setOff_(ptr)(onOff)(state)();
+			} else if (onOff.onOff.type === "offOn") {
+				setOff_(ptr)({ onOff: { type: "off" }, timeOffset: 0.0 })(state)();
+				setOn_(ptr)({ onOff: { type: "on" }, timeOffset: onOff.timeOffset })(
+					state
+				)();
+			}
 		};
 	};
 };
@@ -1381,187 +1350,190 @@ var setOff_ = function (ptr) {
 		};
 	};
 };
-exports.setLoopStart_ = function (ptr) {
-	return function (a) {
-		return function (state) {
-			return function () {
-				state.units[ptr].main.loopStart = a;
-				state.units[ptr].resumeClosure.loopStart = function (i) {
-					i.loopStart = a;
+exports.setLoopStart_ = function (aa) {
+	return function (state) {
+		return function () {
+			var ptr = aa.id;
+			var a = aa.loopStart;
+			state.units[ptr].main.loopStart = a;
+			state.units[ptr].resumeClosure.loopStart = function (i) {
+				i.loopStart = a;
+			};
+		};
+	};
+};
+
+exports.setBufferOffset_ = function (aa) {
+	return function (state) {
+		return function () {
+			var ptr = aa.id;
+			var a = aa.bufferOffset;
+			state.units[ptr].bufferOffset = a;
+		};
+	};
+};
+exports.setLoopEnd_ = function (aa) {
+	return function (state) {
+		return function () {
+			var ptr = aa.id;
+			var a = aa.loopEnd;
+
+			state.units[ptr].main.loopEnd = a;
+			state.units[ptr].resumeClosure.loopEnd = function (i) {
+				i.loopEnd = a;
+			};
+		};
+	};
+};
+
+exports.setRatio_ = function (aa) {
+	return function (state) {
+		return function () {
+			var ptr = aa.id;
+			var a = aa.ratio;
+			genericSetter(state.units[ptr].main, "ratio", state.writeHead, a);
+		};
+	};
+};
+
+exports.setOffset_ = function (aa) {
+	return function (state) {
+		return function () {
+			var ptr = aa.id;
+			var a = aa.offset;
+
+			genericSetter(state.units[ptr].main, "offset", state.writeHead, a);
+			state.units[ptr].resumeClosure.offset = function (i) {
+				genericStarter(i, "offset", a);
+			};
+		};
+	};
+};
+
+exports.setAttack_ = function (aa) {
+	return function (state) {
+		return function () {
+			var ptr = aa.id;
+			var a = aa.attack;
+
+			genericSetter(state.units[ptr].main, "attack", state.writeHead, a);
+		};
+	};
+};
+
+exports.setAudioWorkletParameter_ = function (aa) {
+	return function (state) {
+		return function () {
+			var ptr = aa.id;
+			var a = aa.paramName;
+			var b = aa.paramValue;
+			workletSetter(state.units[ptr].main, a, state.writeHead, b);
+		};
+	};
+};
+exports.setGain_ = function (aa) {
+	return function (state) {
+		return function () {
+			var ptr = aa.id;
+			var a = aa.gain;
+			// TODO: test removing this hack
+			// this was added at a time when there was a bug in the
+			// transition names. the FFI was getting incorrect name strings
+			// and, as a result, wound up always using linear transitions
+			// this sounded fine except in cases when the transition was
+			// immediate, in which case no transition happened.
+			// now that that bug is fixed, this may no longer be needed
+			// a way to test would be any of the synth-intensive works
+			// like a fast back prelude or fugue
+			// if you remove this and they are click free
+			// then it is safe to remove
+			if (!state.units[ptr].main.gain.value && a.param) {
+				state.units[ptr].main.gain.value = 0.0;
+			}
+			genericSetter(state.units[ptr].main, "gain", state.writeHead, a);
+		};
+	};
+};
+
+exports.setQ_ = function (aa) {
+	return function (state) {
+		return function () {
+			var ptr = aa.id;
+			var a = aa.q;
+			genericSetter(state.units[ptr].main, "Q", state.writeHead, a);
+		};
+	};
+};
+exports.setPan_ = function (aa) {
+	return function (state) {
+		return function () {
+			var ptr = aa.id;
+			var a = aa.pan;
+			genericSetter(state.units[ptr].main, "pan", state.writeHead, a);
+		};
+	};
+};
+exports.setThreshold_ = function (aa) {
+	return function (state) {
+		return function () {
+			var ptr = aa.id;
+			var a = aa.threshold;
+			genericSetter(state.units[ptr].main, "threshold", state.writeHead, a);
+		};
+	};
+};
+exports.setRelease_ = function (aa) {
+	return function (state) {
+		return function () {
+			var ptr = aa.id;
+			var a = aa.release;
+			genericSetter(state.units[ptr].main, "release", state.writeHead, a);
+		};
+	};
+};
+exports.setKnee_ = function (aa) {
+	return function (state) {
+		return function () {
+			var ptr = aa.id;
+			var a = aa.knee;
+			genericSetter(state.units[ptr].main, "knee", state.writeHead, a);
+		};
+	};
+};
+exports.setDelay_ = function (aa) {
+	return function (state) {
+		return function () {
+			var ptr = aa.id;
+			var a = aa.delay;
+			genericSetter(state.units[ptr].main, "delayTime", state.writeHead, a);
+		};
+	};
+};
+exports.setPlaybackRate_ = function (aa) {
+	return function (state) {
+		return function () {
+			var ptr = aa.id;
+			var a = aa.playbackRate;
+			genericSetter(state.units[ptr].main, "playbackRate", state.writeHead, a);
+			state.units[ptr].resumeClosure.playbackRate = function (i) {
+				genericStarter(i, "playbackRate", a);
+			};
+		};
+	};
+};
+exports.setFrequency_ = function (aa) {
+	return function (state) {
+		return function () {
+			var ptr = aa.id;
+			var a = aa.frequency;
+			genericSetter(state.units[ptr].main, "frequency", state.writeHead, a);
+			// frequency defined for some non-generators
+			// so check first for existence of resumeClosure
+			if (state.units[ptr].resumeClosure) {
+				state.units[ptr].resumeClosure.frequency = function (i) {
+					genericStarter(i, "frequency", a);
 				};
-			};
-		};
-	};
-};
-exports.setBufferOffset_ = function (ptr) {
-	return function (a) {
-		return function (state) {
-			return function () {
-				state.units[ptr].bufferOffset = a;
-			};
-		};
-	};
-};
-exports.setLoopEnd_ = function (ptr) {
-	return function (a) {
-		return function (state) {
-			return function () {
-				state.units[ptr].main.loopEnd = a;
-				state.units[ptr].resumeClosure.loopEnd = function (i) {
-					i.loopEnd = a;
-				};
-			};
-		};
-	};
-};
-exports.setRatio_ = function (ptr) {
-	return function (a) {
-		return function (state) {
-			return function () {
-				genericSetter(state.units[ptr].main, "ratio", state.writeHead, a);
-			};
-		};
-	};
-};
-exports.setOffset_ = function (ptr) {
-	return function (a) {
-		return function (state) {
-			return function () {
-				genericSetter(state.units[ptr].main, "offset", state.writeHead, a);
-				state.units[ptr].resumeClosure.offset = function (i) {
-					genericStarter(i, "offset", a);
-				};
-			};
-		};
-	};
-};
-exports.setAttack_ = function (ptr) {
-	return function (a) {
-		return function (state) {
-			return function () {
-				genericSetter(state.units[ptr].main, "attack", state.writeHead, a);
-			};
-		};
-	};
-};
-exports.setAudioWorkletParameter_ = function (ptr) {
-	return function (a) {
-		return function (b) {
-			return function (state) {
-				return function () {
-					workletSetter(state.units[ptr].main, a, state.writeHead, b);
-				};
-			};
-		};
-	};
-};
-exports.setGain_ = function (ptr) {
-	return function (a) {
-		return function (state) {
-			return function () {
-				// TODO: test removing this hack
-				// this was added at a time when there was a bug in the
-				// transition names. the FFI was getting incorrect name strings
-				// and, as a result, wound up always using linear transitions
-				// this sounded fine except in cases when the transition was
-				// immediate, in which case no transition happened.
-				// now that that bug is fixed, this may no longer be needed
-				// a way to test would be any of the synth-intensive works
-				// like a fast back prelude or fugue
-				// if you remove this and they are click free
-				// then it is safe to remove
-				if (!state.units[ptr].main.gain.value && a.param) {
-					state.units[ptr].main.gain.value = 0.0;
-				}
-				genericSetter(state.units[ptr].main, "gain", state.writeHead, a);
-			};
-		};
-	};
-};
-exports.setQ_ = function (ptr) {
-	return function (a) {
-		return function (state) {
-			return function () {
-				genericSetter(state.units[ptr].main, "Q", state.writeHead, a);
-			};
-		};
-	};
-};
-exports.setPan_ = function (ptr) {
-	return function (a) {
-		return function (state) {
-			return function () {
-				genericSetter(state.units[ptr].main, "pan", state.writeHead, a);
-			};
-		};
-	};
-};
-exports.setThreshold_ = function (ptr) {
-	return function (a) {
-		return function (state) {
-			return function () {
-				genericSetter(state.units[ptr].main, "threshold", state.writeHead, a);
-			};
-		};
-	};
-};
-exports.setRelease_ = function (ptr) {
-	return function (a) {
-		return function (state) {
-			return function () {
-				genericSetter(state.units[ptr].main, "release", state.writeHead, a);
-			};
-		};
-	};
-};
-exports.setKnee_ = function (ptr) {
-	return function (a) {
-		return function (state) {
-			return function () {
-				genericSetter(state.units[ptr].main, "knee", state.writeHead, a);
-			};
-		};
-	};
-};
-exports.setDelay_ = function (ptr) {
-	return function (a) {
-		return function (state) {
-			return function () {
-				genericSetter(state.units[ptr].main, "delayTime", state.writeHead, a);
-			};
-		};
-	};
-};
-exports.setPlaybackRate_ = function (ptr) {
-	return function (a) {
-		return function (state) {
-			return function () {
-				genericSetter(
-					state.units[ptr].main,
-					"playbackRate",
-					state.writeHead,
-					a
-				);
-				state.units[ptr].resumeClosure.playbackRate = function (i) {
-					genericStarter(i, "playbackRate", a);
-				};
-			};
-		};
-	};
-};
-exports.setFrequency_ = function (ptr) {
-	return function (a) {
-		return function (state) {
-			return function () {
-				genericSetter(state.units[ptr].main, "frequency", state.writeHead, a);
-				// frequency defined for some non-generators
-				// so check first for existence of resumeClosure
-				if (state.units[ptr].resumeClosure) {
-					state.units[ptr].resumeClosure.frequency = function (i) {
-						genericStarter(i, "frequency", a);
-					};
-				}
-			};
+			}
 		};
 	};
 };
