@@ -16,7 +16,7 @@ import Foreign (Foreign)
 import Foreign.Object (Object)
 import Simple.JSON as JSON
 import Type.Proxy (Proxy(..))
-import WAGS.Graph.Parameter (AudioParameter, AudioOnOff)
+import WAGS.Graph.Parameter (AudioOnOff(..), AudioParameter, MultiPlayBufOnOff)
 import WAGS.WebAPI (AnalyserNodeCb, BrowserAudioBuffer, BrowserFloatArray, BrowserMediaElement, BrowserMicrophone, BrowserPeriodicWave, MediaRecorderCb)
 
 type AudioWorkletNodeOptions_' =
@@ -191,6 +191,12 @@ type MakePlayBuf =
   , playbackRate :: AudioParameter
   }
 
+type MakeMultiPlayBuf =
+  { id :: String
+  , onOff :: MultiPlayBufOnOff
+  , playbackRate :: AudioParameter
+  }
+
 type MakePlayBufWithDeferredBuffer = { id :: String }
 type MakeRecorder = { id :: String, cb :: MediaRecorderCb }
 type MakeSawtoothOsc =
@@ -228,6 +234,7 @@ type SetBuffer = { id :: String, buffer :: BrowserAudioBuffer }
 type SetConvolverBuffer = { id :: String, buffer :: BrowserAudioBuffer }
 type SetPeriodicOsc = { id :: String, periodicOsc :: PeriodicOscSpec }
 type SetOnOff = { id :: String, onOff :: AudioOnOff }
+type SetMultiPlayBufOnOff = { id :: String, onOff :: MultiPlayBufOnOff }
 type SetBufferOffset = { id :: String, bufferOffset :: Number }
 type SetLoopStart = { id :: String, loopStart :: Number }
 type SetLoopEnd = { id :: String, loopEnd :: Number }
@@ -292,6 +299,7 @@ type Instruction' =
   , makePeriodicOscWithDeferredOsc :: MakePeriodicOscWithDeferredOsc
   , makePeriodicOsc :: MakePeriodicOsc
   , makePlayBuf :: MakePlayBuf
+  , makeMultiPlayBuf :: MakeMultiPlayBuf
   , makePlayBufWithDeferredBuffer :: MakePlayBufWithDeferredBuffer
   , makeRecorder :: MakeRecorder
   , makeSawtoothOsc :: MakeSawtoothOsc
@@ -311,6 +319,7 @@ type Instruction' =
   , setConvolverBuffer :: SetConvolverBuffer
   , setPeriodicOsc :: SetPeriodicOsc
   , setOnOff :: SetOnOff
+  , setMultiPlayBufOnOff :: SetMultiPlayBufOnOff
   , setBufferOffset :: SetBufferOffset
   , setLoopStart :: SetLoopStart
   , setLoopEnd :: SetLoopEnd
@@ -363,6 +372,7 @@ instructionWeight (Instruction v) = v # match
   , makePeriodicOscWithDeferredOsc: const 2
   , makePeriodicOsc: const 2
   , makePlayBuf: const 2
+  , makeMultiPlayBuf: const 2
   , makePlayBufWithDeferredBuffer: const 2
   , makeRecorder: const 2
   , makeSawtoothOsc: const 2
@@ -382,6 +392,7 @@ instructionWeight (Instruction v) = v # match
   , setConvolverBuffer: const 6
   , setPeriodicOsc: const 6
   , setOnOff: const 6
+  , setMultiPlayBufOnOff: const 6
   , setBufferOffset: const 6
   , setLoopStart: const 6
   , setLoopEnd: const 6
@@ -432,6 +443,7 @@ instructionId (Instruction v) = v # match
   , makePeriodicOscWithDeferredOsc: _.id
   , makePeriodicOsc: _.id
   , makePlayBuf: _.id
+  , makeMultiPlayBuf: _.id
   , makePlayBufWithDeferredBuffer: _.id
   , makeRecorder: _.id
   , makeSawtoothOsc: _.id
@@ -451,6 +463,7 @@ instructionId (Instruction v) = v # match
   , setConvolverBuffer: _.id
   , setPeriodicOsc: _.id
   , setOnOff: _.id
+  , setMultiPlayBufOnOff: _.id
   , setBufferOffset: _.id
   , setLoopStart: _.id
   , setLoopEnd: _.id
@@ -575,6 +588,9 @@ iMakePeriodicOsc = Instruction <<< inj (Proxy :: Proxy "makePeriodicOsc")
 iMakePlayBuf :: MakePlayBuf -> Instruction
 iMakePlayBuf = Instruction <<< inj (Proxy :: Proxy "makePlayBuf")
 
+iMakeMultiPlayBuf :: MakeMultiPlayBuf -> Instruction
+iMakeMultiPlayBuf = Instruction <<< inj (Proxy :: Proxy "makeMultiPlayBuf")
+
 iMakePlayBufWithDeferredBuffer :: MakePlayBufWithDeferredBuffer -> Instruction
 iMakePlayBufWithDeferredBuffer = Instruction <<< inj
   (Proxy :: Proxy "makePlayBufWithDeferredBuffer")
@@ -633,6 +649,9 @@ iSetPeriodicOsc = Instruction <<< inj (Proxy :: Proxy "setPeriodicOsc")
 
 iSetOnOff :: SetOnOff -> Instruction
 iSetOnOff = Instruction <<< inj (Proxy :: Proxy "setOnOff")
+
+iSetMultiPlayBufOnOff :: SetMultiPlayBufOnOff -> Instruction
+iSetMultiPlayBufOnOff = Instruction <<< inj (Proxy :: Proxy "setMultiPlayBufOnOff")
 
 iSetBufferOffset :: SetBufferOffset -> Instruction
 iSetBufferOffset = Instruction <<< inj (Proxy :: Proxy "setBufferOffset")

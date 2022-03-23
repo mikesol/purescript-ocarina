@@ -9,6 +9,7 @@ import Data.Newtype (class Newtype, unwrap)
 import Data.Variant (Variant, inj, match)
 import Data.Variant.Maybe (Maybe)
 import Type.Proxy (Proxy(..))
+import WAGS.WebAPI (BrowserAudioBuffer)
 
 newtype AudioParameter = AudioParameter
   ( Variant
@@ -115,6 +116,20 @@ derive newtype instance showAudioOnOff :: Show AudioOnOff
 lensOnOff :: Lens' AudioOnOff OnOff
 lensOnOff = lens (unwrap >>> _.onOff)
   (\(AudioOnOff s) -> AudioOnOff <<< s { onOff = _ })
+
+type TBO = { t :: Number, b :: BrowserAudioBuffer, o :: Number }
+
+newtype MultiPlayBufOnOff = MultiPlayBufOnOff 
+  ( Variant
+      ( ons :: { starts :: TBO, next :: Array TBO }
+      , off :: Number
+      , offOns :: { starts :: TBO, next :: Array TBO }
+      )
+  )
+
+derive newtype instance Eq MultiPlayBufOnOff
+derive newtype instance Ord MultiPlayBufOnOff
+derive newtype instance Show MultiPlayBufOnOff
 
 lensParam :: Lens' AudioSingleNumber Number
 lensParam = lens (unwrap >>> _.param)

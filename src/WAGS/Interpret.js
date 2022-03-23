@@ -19,7 +19,7 @@ exports.contextResume = function (audioCtx) {
 	};
 };
 var isOn = function (param) {
-	return param.type === "on" || param.type === "offOn";
+	return param.type === "on" || param.type === "offOn" || param.type === "ons" || param.type === "offOns";
 };
 var makeid = function (length) {
 	var result = "";
@@ -857,6 +857,52 @@ exports.makePlayBuf_ = function (aa) {
 		};
 	};
 };
+exports.makeMultiPlayBuf_ = function (aa) {
+	return function (state) {
+		return function () {
+			var ptr = aa.id;
+			var onOff = aa.onOff;
+			var c = aa.playbackRate;
+			var createFunction = function (oo) {
+				var arr = [oo.onOff.value.starts].concat(oo.onOff.value.next);
+				var startOffset = 0.0;
+				var stopOffset = arr[0].t;
+				for (var i = 0; i < arr.length; i++) {
+					var tbo = arr[i];
+					startOffset += tbo.t;
+					state.units[ptr].mains.push(state.context.createBufferSource());
+					state.units[ptr].mains[i].start(
+						state.writeHead + startOffset,
+						state.units[ptr].o
+					);
+					if (i !== arr.length - 1) {
+						var ftbo = arr[i + 1];
+						stopOffset += ftbo.t;
+						state.units[ptr].mains[i].stop(
+							state.writeHead + stopOffset
+						);
+					}
+					applyResumeClosure(state.units[ptr]);
+				}
+			};
+			state.units[ptr] = {
+				outgoing: [],
+				incoming: [],
+				mains: [],
+				createFunction: createFunction,
+				resumeClosure: {
+					playbackRate: function (i) {
+						genericStarter(i, "playbackRate", c);
+					},
+				},
+			};
+			if (isOn(onOff.onOff)) {
+				createFunction(onOff);
+			}
+			state.units[ptr].onOff = isOn(onOff.onOff);
+		};
+	};
+};
 exports.makeRecorder_ = function (aa) {
 	return function (state) {
 		return function () {
@@ -1262,7 +1308,16 @@ exports.setPeriodicOscV_ = function (aa) {
 var applyResumeClosure = function (i) {
 	for (var key in i.resumeClosure) {
 		if (i.resumeClosure.hasOwnProperty(key)) {
-			i.resumeClosure[key](i.main);
+			if (i.mains) {
+				// TODO: do we want to prune this list over time
+				// to get better performance as the piece continues
+				for(var j = 0; j < i.mains.length; j++) {
+					i.resumeClosure[key](i.mains[j]);
+				}
+			} else {
+				i.resumeClosure[key](i.main);
+
+			}
 		}
 	}
 };
@@ -1281,6 +1336,23 @@ exports.setOnOff_ = function (aa) {
 				setOn_(ptr)({ onOff: { type: "on" }, timeOffset: onOff.timeOffset })(
 					state
 				)();
+			}
+		};
+	};
+};
+
+exports.setMultiPlayBufOnOff_ = function (aa) {
+	return function (state) {
+		return function () {
+			var ptr = aa.id;
+			var onOff = aa.onOff;
+			if (onOff.onOff.type === "ons") {
+				// TODO: - do not ca
+				// state.units[ptr].createFunction(onOff)
+			} else if (onOff.onOff.type === "off") {
+				// setOff_(ptr)(onOff)(state)();
+			} else if (onOff.onOff.type === "offOns") {
+				// state.units[ptr].createFunction(onOff)
 			}
 		};
 	};

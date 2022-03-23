@@ -51,6 +51,7 @@ derogative = unwrap >>> match
   , makePeriodicOscWithDeferredOsc: du "PeriodicOsc"
   , makePeriodicOsc: du "PeriodicOsc"
   , makePlayBuf: du "PlayBuf"
+  , makeMultiPlayBuf: du "PlayBuf"
   , makePlayBufWithDeferredBuffer: du "PlayBuf"
   , makeRecorder: du "Recorder"
   , makeSawtoothOsc: du "SawtoothOsc"
@@ -71,6 +72,7 @@ derogative = unwrap >>> match
   , setConvolverBuffer: const identity
   , setPeriodicOsc: const identity
   , setOnOff: const identity
+  , setMultiPlayBufOnOff: const identity
   , setBufferOffset: const identity
   , setLoopStart: const identity
   , setLoopEnd: const identity
@@ -399,6 +401,19 @@ reconcileTumult new old = result
                             )
                       )
             )
+        , makeMultiPlayBuf: \a -> i1 #
+            ( udef
+                # on (Proxy :: _ "makeMultiPlayBuf") \b ->
+                    comparable a b l0 h0 t0 l1 h1 t1 set
+                      ( Set.insert
+                            ( R.iSetMultiPlayBufOnOff { id: a.id, onOff: a.onOff }
+                            )
+                          <<< Set.insert
+                            ( R.iSetPlaybackRate
+                                { id: a.id, playbackRate: a.playbackRate }
+                            )
+                      )
+            )
         , makePlayBufWithDeferredBuffer: \a -> i1 #
             ( udef
                 # on (Proxy :: _ "makePlayBufWithDeferredBuffer") \b ->
@@ -474,6 +489,7 @@ reconcileTumult new old = result
         , setConvolverBuffer: \_ -> i1 # udef
         , setPeriodicOsc: \_ -> i1 # udef
         , setOnOff: \_ -> i1 # udef
+        , setMultiPlayBufOnOff: \_ -> i1 # udef
         , setBufferOffset: \_ -> i1 # udef
         , setLoopStart: \_ -> i1 # udef
         , setLoopEnd: \_ -> i1 # udef

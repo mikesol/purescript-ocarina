@@ -67,6 +67,7 @@ module WAGS.Interpret
   , makePeriodicOscWithDeferredOsc
   , makePeriodicWave
   , makePlayBuf
+  , makeMultiPlayBuf
   , makePlayBufWithDeferredBuffer
   , makeRecorder
   , makeSawtoothOsc
@@ -99,6 +100,7 @@ module WAGS.Interpret
   , setLoopStart
   , setOffset
   , setOnOff
+  , setMultiPlayBufOnOff
   , setPan
   , setPlaybackRate
   , setQ
@@ -505,6 +507,8 @@ class AudioInterpret audio engine where
     :: R.MakePlayBufWithDeferredBuffer -> audio -> engine
   -- | Make an audio buffer node.
   makePlayBuf :: R.MakePlayBuf -> audio -> engine
+  -- | Make an audio buffer node.
+  makeMultiPlayBuf :: R.MakeMultiPlayBuf -> audio -> engine
   -- | Make a recorder.
   makeRecorder :: R.MakeRecorder -> audio -> engine
   -- | Make a sawtooth oscillator.
@@ -549,6 +553,8 @@ class AudioInterpret audio engine where
   setPeriodicOscV :: SetPeriodicOscV -> audio -> engine
   -- | Turn on or off a generator (an oscillator or playback node).
   setOnOff :: R.SetOnOff -> audio -> engine
+  -- | Turn on or off a generator (a playback node).
+  setMultiPlayBufOnOff :: R.SetMultiPlayBufOnOff -> audio -> engine
   -- | Set the offset for a playbuf
   setBufferOffset :: R.SetBufferOffset -> audio -> engine
   -- | Set the start position of a looping audio buffer node.
@@ -648,6 +654,7 @@ instance freeAudioInterpret :: AudioInterpret Unit Instruction where
   makePeriodicOscWithDeferredOsc = const <<< R.iMakePeriodicOscWithDeferredOsc
   makePlayBufWithDeferredBuffer = const <<< R.iMakePlayBufWithDeferredBuffer
   makePlayBuf = const <<< R.iMakePlayBuf
+  makeMultiPlayBuf = const <<< R.iMakeMultiPlayBuf
   makeRecorder = const <<< R.iMakeRecorder
   makeSawtoothOsc = const <<< R.iMakeSawtoothOsc
   makeSinOsc = const <<< R.iMakeSinOsc
@@ -664,6 +671,7 @@ instance freeAudioInterpret :: AudioInterpret Unit Instruction where
   setPeriodicOscV { id, realImg } = const $ R.iSetPeriodicOsc
     { id, periodicOsc: R.iRealImg realImg }
   setOnOff = const <<< R.iSetOnOff
+  setMultiPlayBufOnOff = const <<< R.iSetMultiPlayBufOnOff
   setMediaRecorderCb = const <<< R.iSetMediaRecorderCb
   setAnalyserNodeCb = const <<< R.iSetAnalyserNodeCb
   setBufferOffset = const <<< R.iSetBufferOffset
@@ -807,6 +815,11 @@ foreign import makePlayBuf_
   -> FFIAudioSnapshot
   -> Effect Unit
 
+foreign import makeMultiPlayBuf_
+  :: R.MakeMultiPlayBuf
+  -> FFIAudioSnapshot
+  -> Effect Unit
+
 foreign import makeRecorder_
   :: R.MakeRecorder -> FFIAudioSnapshot -> Effect Unit
 
@@ -888,6 +901,9 @@ foreign import setAudioWorkletParameter_
 
 foreign import setOnOff_
   :: R.SetOnOff -> FFIAudioSnapshot -> Effect Unit
+
+foreign import setMultiPlayBufOnOff_
+  :: R.SetMultiPlayBufOnOff -> FFIAudioSnapshot -> Effect Unit
 
 foreign import setBufferOffset_
   :: R.SetBufferOffset -> FFIAudioSnapshot -> Effect Unit
@@ -1010,6 +1026,7 @@ interpretInstruction = unwrap >>> match
       , realImg: \realImg -> makePeriodicOscV { id, realImg, onOff, freq }
       }
   , makePlayBuf: \a -> makePlayBuf a
+  , makeMultiPlayBuf: \a -> makeMultiPlayBuf a
   , makePlayBufWithDeferredBuffer: \a -> makePlayBufWithDeferredBuffer a
   , makeRecorder: \a -> makeRecorder a
   , makeSawtoothOsc: \a -> makeSawtoothOsc a
@@ -1037,6 +1054,7 @@ interpretInstruction = unwrap >>> match
       , realImg: \realImg -> setPeriodicOscV { id, realImg }
       }
   , setOnOff: \a -> setOnOff a
+  , setMultiPlayBufOnOff: \a -> setMultiPlayBufOnOff a
   , setBufferOffset: \a -> setBufferOffset a
   , setLoopStart: \a -> setLoopStart a
   , setLoopEnd: \a -> setLoopEnd a
@@ -1101,6 +1119,7 @@ instance effectfulAudioInterpret ::
   makePeriodicOscV = makePeriodicOscV_
   makePlayBufWithDeferredBuffer = makePlayBufWithDeferredBuffer_
   makePlayBuf = makePlayBuf_
+  makeMultiPlayBuf = makeMultiPlayBuf_
   makeRecorder = makeRecorder_
   makeSawtoothOsc = makeSawtoothOsc_
   makeSinOsc = makeSinOsc_
@@ -1137,6 +1156,7 @@ instance effectfulAudioInterpret ::
   setPeriodicOsc = setPeriodicOsc_
   setPeriodicOscV = setPeriodicOscV_
   setOnOff = setOnOff_
+  setMultiPlayBufOnOff = setMultiPlayBufOnOff_
   setBufferOffset = setBufferOffset_
   setLoopStart = setLoopStart_
   setLoopEnd = setLoopEnd_
@@ -1252,6 +1272,7 @@ instance mixedAudioInterpret ::
   makePlayBufWithDeferredBuffer a (x /\ y) = makePlayBufWithDeferredBuffer a x
     /\ makePlayBufWithDeferredBuffer a y
   makePlayBuf a (x /\ y) = makePlayBuf a x /\ makePlayBuf a y
+  makeMultiPlayBuf a (x /\ y) = makeMultiPlayBuf a x /\ makeMultiPlayBuf a y
   makeRecorder a (x /\ y) = makeRecorder a x /\ makeRecorder a y
   makeSawtoothOsc a (x /\ y) = makeSawtoothOsc a x /\ makeSawtoothOsc a y
   makeSinOsc a (x /\ y) = makeSinOsc a x /\ makeSinOsc a y
@@ -1272,6 +1293,7 @@ instance mixedAudioInterpret ::
   setPeriodicOsc a (x /\ y) = setPeriodicOsc a x /\ setPeriodicOsc a y
   setPeriodicOscV a (x /\ y) = setPeriodicOscV a x /\ setPeriodicOscV a y
   setOnOff a (x /\ y) = setOnOff a x /\ setOnOff a y
+  setMultiPlayBufOnOff a (x /\ y) = setMultiPlayBufOnOff a x /\ setMultiPlayBufOnOff a y
   setBufferOffset a (x /\ y) = setBufferOffset a x /\ setBufferOffset a y
   setLoopStart a (x /\ y) = setLoopStart a x /\ setLoopStart a y
   setLoopEnd a (x /\ y) = setLoopEnd a x /\ setLoopEnd a y

@@ -7,7 +7,7 @@ import Data.Row.Options (RowOptions)
 import Data.Tuple.Nested (type (/\))
 import Prim.Symbol as Sym
 import Type.Proxy (Proxy(..))
-import WAGS.Graph.Parameter (AudioOnOff, AudioParameter)
+import WAGS.Graph.Parameter (AudioOnOff, AudioParameter, MultiPlayBufOnOff)
 import WAGS.Graph.Worklet (AudioWorkletNodeResponse)
 import WAGS.Tumult (Tumultuous)
 import WAGS.WebAPI (BrowserAudioBuffer, BrowserFloatArray, BrowserMediaElement, BrowserMicrophone, MediaRecorderCb)
@@ -350,6 +350,11 @@ type PlayBuf' =
   , onOff :: AudioOnOff
   , playbackRate :: AudioParameter
   , bufferOffset :: Number
+  )
+
+type MultiPlayBuf' =
+  ( onOff :: MultiPlayBufOnOff
+  , playbackRate :: AudioParameter
   )
 
 newtype PlayBuf = PlayBuf { | PlayBuf' }
