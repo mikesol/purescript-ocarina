@@ -864,7 +864,7 @@ exports.makeMultiPlayBuf_ = function (aa) {
 			var onOff = aa.onOff;
 			var c = aa.playbackRate;
 			var createFunction = function (oo) {
-				var arr = [oo.onOff.value.starts].concat(oo.onOff.value.next);
+				var arr = [oo.value.starts].concat(oo.value.next);
 				var startOffset = 0.0;
 				var stopOffset = arr[0].t;
 				for (var i = 0; i < arr.length; i++) {
@@ -896,10 +896,10 @@ exports.makeMultiPlayBuf_ = function (aa) {
 					},
 				},
 			};
-			if (isOn(onOff.onOff)) {
+			if (isOn(onOff)) {
 				createFunction(onOff);
 			}
-			state.units[ptr].onOff = isOn(onOff.onOff);
+			state.units[ptr].onOff = isOn(onOff);
 		};
 	};
 };
@@ -1346,12 +1346,12 @@ exports.setMultiPlayBufOnOff_ = function (aa) {
 		return function () {
 			var ptr = aa.id;
 			var onOff = aa.onOff;
-			if (onOff.onOff.type === "ons") {
+			if (onOff.type === "ons") {
 				// TODO: - do not ca
 				// state.units[ptr].createFunction(onOff)
-			} else if (onOff.onOff.type === "off") {
+			} else if (onOff.type === "off") {
 				// setOff_(ptr)(onOff)(state)();
-			} else if (onOff.onOff.type === "offOns") {
+			} else if (onOff.type === "offOns") {
 				// state.units[ptr].createFunction(onOff)
 			}
 		};
