@@ -863,30 +863,16 @@ exports.makeMultiPlayBuf_ = function (aa) {
 			var ptr = aa.id;
 			var onOff = aa.onOff;
 			var c = aa.playbackRate;
-			var createFunction = function (oo) {
-				var arr = [oo.value.starts].concat(oo.value.next);
-				var startOffset = 0.0;
-				var stopOffset = arr[0].t;
-				for (var i = 0; i < arr.length; i++) {
-					var tbo = arr[i];
-					startOffset += tbo.t;
-					state.units[ptr].mains.push(state.context.createBufferSource());
-					state.units[ptr].mains[i].start(
-						state.writeHead + startOffset, arr[i].o
-					);
-					if (i !== arr.length - 1) {
-						var ftbo = arr[i + 1];
-						stopOffset += ftbo.t;
-						state.units[ptr].mains[i].stop(
-							state.writeHead + stopOffset
-						);
-					}
-					applyResumeClosure(state.units[ptr]);
-				}
-			};
+                        var createFunction = function (oo) {
+                                state.units[ptr].oos = [oo.value.starts].concat(oo.value.next);
+                                for (var i = 0; i < state.units[ptr].oos.length; i++) {
+                                        state.units[ptr].mains.push(state.context.createBufferSource());
+                                }
+                        }
 			state.units[ptr] = {
 				outgoing: [],
 				incoming: [],
+                                oos: [],
 				mains: [],
 				createFunction: createFunction,
 				resumeClosure: {
@@ -895,8 +881,23 @@ exports.makeMultiPlayBuf_ = function (aa) {
 					},
 				},
 			};
+                        createFunction(onOff);
 			if (isOn(onOff)) {
-				createFunction(onOff);
+                                applyResumeClosure(state.units[ptr]);
+                                var startOffset = 0.0;
+                                var stopOffset = state.units[ptr].oos[0].t;
+                                for (var i = 0; i < state.units[ptr].oos.length; i++) {
+                                        startOffset += state.units[ptr].oos[i].t;
+                                        state.units[ptr].mains[i].start(
+                                                state.writeHead + startOffset, state.units[ptr].oos[i].o
+                                        );
+                                        if (i !== state.units[ptr].oos.length - 1) {
+                                                stopOffset += state.units[ptr].oos[i + 1];
+                                                state.units[ptr].mains[i].stop(
+                                                        state.writeHead + stopOffset
+                                                );
+                                        }
+                                }
 			}
 			state.units[ptr].onOff = isOn(onOff);
 		};
