@@ -19,6 +19,7 @@ import WAGS.Example.HelloWorld as HelloWorld
 import WAGS.Example.Patching as Patching
 import WAGS.Example.KitchenSink as KitchenSink
 import WAGS.Example.Makenna as Makenna
+import WAGS.Example.MultiBuf as MultiBuf
 import WAGS.Example.NoLoop as NoLoop
 import WAGS.Example.SMC2022 as SMC2022
 import WAGS.Example.SkipMachine as SkipMachine
@@ -38,6 +39,7 @@ stories = Object.fromFoldable
   -- media element currently doen't work
   -- needs to be updated to use halogen ref
   -- , Tuple "media element" $ proxy MediaElement.component
+  , Tuple "multibuf" $ proxy MultiBuf.component
   , Tuple "no loop" $ proxy NoLoop.component
   , Tuple "skip machine" $ proxy SkipMachine.component
   , Tuple "smc2022" $ proxy SMC2022.component
