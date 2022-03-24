@@ -19,7 +19,7 @@ exports.contextResume = function (audioCtx) {
 	};
 };
 var isOn = function (param) {
-	return param.type === "on" || param.type === "offOn" || param.type === "ons" || param.type === "offOns";
+	return param.type === "on" || param.type === "offOn" || param.type === "ons";
 };
 var makeid = function (length) {
 	var result = "";
@@ -872,8 +872,7 @@ exports.makeMultiPlayBuf_ = function (aa) {
 					startOffset += tbo.t;
 					state.units[ptr].mains.push(state.context.createBufferSource());
 					state.units[ptr].mains[i].start(
-						state.writeHead + startOffset,
-						state.units[ptr].o
+						state.writeHead + startOffset, arr[i].o
 					);
 					if (i !== arr.length - 1) {
 						var ftbo = arr[i + 1];
@@ -1347,13 +1346,10 @@ exports.setMultiPlayBufOnOff_ = function (aa) {
 			var ptr = aa.id;
 			var onOff = aa.onOff;
 			if (onOff.type === "ons") {
-				// TODO: - do not ca
-				// state.units[ptr].createFunction(onOff)
+                                // Remove all scheduled nodes and immediately start playing.
 			} else if (onOff.type === "off") {
-				// setOff_(ptr)(onOff)(state)();
-			} else if (onOff.type === "offOns") {
-				// state.units[ptr].createFunction(onOff)
-			}
+                                // Remove all scheduled nodes.
+                        }
 		};
 	};
 };

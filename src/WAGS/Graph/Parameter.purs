@@ -123,7 +123,6 @@ newtype MultiPlayBufOnOff = MultiPlayBufOnOff
   ( Variant
       ( ons :: { starts :: TBO, next :: Array TBO }
       , off :: Number
-      , offOns :: { starts :: TBO, next :: Array TBO }
       )
   )
 
