@@ -28,7 +28,7 @@ import WAGS.Graph.Graph (Graph)
 import WAGS.Graph.Node (NodeC)
 import WAGS.Graph.Oversample (class IsOversample)
 import WAGS.Graph.Paramable (onOffIze, paramize)
-import WAGS.Graph.Parameter (class MM, AudioEnvelope, AudioOnOff, AudioParameter, AudioParameterCancellation, AudioSingleNumber, OnOff)
+import WAGS.Graph.Parameter (class MM, AudioEnvelope, AudioOnOff, AudioParameter, AudioParameterCancellation, AudioSingleNumber, OnOff, MultiPlayBufOnOff)
 import WAGS.Interpret (class AudioInterpret, setAnalyserNodeCb, setAttack, setAudioWorkletParameter, setBuffer, setBufferOffset, setConvolverBuffer, setDelay, setFrequency, setGain, setInput, setKnee, setLoopEnd, setLoopStart, setMediaRecorderCb, setOffset, setOnOff, setMultiPlayBufOnOff, setPan, setPeriodicOsc, setPeriodicOscV, setPlaybackRate, setQ, setRatio, setRelease, setSingleSubgraph, setSubgraph, setThreshold, setTumult, setWaveShaperCurve)
 import WAGS.Rendered (RealImg(..))
 import WAGS.Tumult (Tumultuous, safeUntumult)
@@ -411,6 +411,8 @@ instance onOffableConstant :: AudioOnOffable CTOR.TConstant
 
 instance onOffablePlayBuf :: AudioOnOffable CTOR.TPlayBuf
 
+instance AudioOnOffable CTOR.TMultiPlayBuf
+
 instance onOffableLoopBuf :: AudioOnOffable CTOR.TLoopBuf
 
 instance onOffableSinOsc :: AudioOnOffable CTOR.TSinOsc
@@ -443,6 +445,30 @@ instance canBeChangedAudioOnOff ::
     id = reflectSymbol ptr
 
     argA_Changes = [ setOnOff { id, onOff } ]
+
+    o =
+      unsafeWAG
+        { context:
+            i
+              { instructions = i.instructions <> argA_Changes
+              }
+        , value: unit
+        }
+
+instance canBeChangedAudioMultiPlayBufOnOff ::
+  ( IsSymbol ptr
+  , R.Cons ptr tau' ignore graph
+  , Detup tau' tau
+  , AudioOnOffable tau
+  ) =>
+  CanBeChanged "onOff" MultiPlayBufOnOff ptr graph where
+  canBeChanged _ onOff ptr w = o
+    where
+    { context: i } = unsafeUnWAG w
+
+    id = reflectSymbol ptr
+
+    argA_Changes = [ setMultiPlayBufOnOff { id, onOff } ]
 
     o =
       unsafeWAG
