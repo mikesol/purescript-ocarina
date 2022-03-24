@@ -1348,10 +1348,7 @@ exports.setMultiPlayBufOnOff_ = function (aa) {
 			var onOff = aa.onOff;
 			if (onOff.type === "ons") {
                                 if (state.units[ptr].onOff) {
-                                        var oldOos = state.units[ptr].oos.slice();
-                                        var oldMains = state.units[ptr].mains.slice();
-                                        // TODO: unschedule oldMains
-                                        state.units[ptr].createFunction(onOff);
+                                        return;
                                 }
                                 state.units[ptr].onOff = true;
                                 if (state.units[ptr].resumeClosure) {
@@ -1372,8 +1369,41 @@ exports.setMultiPlayBufOnOff_ = function (aa) {
                                         }
                                 }
 			} else if (onOff.type === "off") {
-                                // TODO: unschedule nodes.
+                                if (!state.units[ptr].onOff) {
+                                        return;
+                                }
                                 state.units[ptr].onOff = false;
+                                var oldMains = state.units[ptr].mains.slice();
+                                var oldOos = state.units[ptr].oos.slice();
+                                var oldOutgoing = state.units[ptr].outgoing.slice();
+                                state.units[ptr].createFunction(onOff);
+                                for (var i = 0; i < state.units[ptr].oos.length; i++) {
+                                        setTimeout(() => {
+                                                for (var j = 0; j < oldOutgoing.length; j++) {
+                                                        var oogj = oldOutgoing[j];
+                                                        try {
+                                                                for (var k = 0; k < state.units[ptr].mains.length; k++) {
+                                                                        state.units[ptr].mains[k].disconnect(oogj.state.units[oogj.unit].main);
+                                                                        if (oogj.state.units[oogj.unit].se) {
+                                                                                state.units[ptr].mains[k].disconnect(oogj.state.units[oogj.unit].se);
+                                                                        }
+                                                                }
+                                                        } catch (e) {
+                                                                console.log(e);
+                                                                continue;
+                                                        }
+                                                }
+                                        }, 1000.0 * (state.writeHead + state.units[ptr].oos[i].t + 0.2 - state.context.currentTime));
+                                }
+                                for (var i = 0; i < state.units[ptr].outgoing.length; i++) {
+                                        var ogi = state.units[ptr].outgoing[i];
+                                        for (var j = 0; j < state.units[ptr].mains.length; j++) {
+                                                state.units[ptr].mains[j].connect(ogi.state.units[ogi.unit].main);
+                                                if (ogi.state.units[ogi.unit].se) {
+                                                        state.units[ptr].mains[j].connect(ogi.state.units[ogi.unit].se);
+                                                }
+                                        }
+                                }
                         }
 		};
 	};
