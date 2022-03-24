@@ -376,6 +376,12 @@ instance allNodesAreSaturatedConsTPlayBuf ::
   ) =>
   AllNodesAreSaturatedNL (RL.Cons iSym (NodeC (CTOR.TPlayBuf) { | r }) tail)
 
+instance allNodesAreSaturatedConsTMultiPlayBuf ::
+  ( RowToList r RL.Nil
+  , AllNodesAreSaturatedNL tail
+  ) =>
+  AllNodesAreSaturatedNL (RL.Cons iSym (NodeC (CTOR.TMultiPlayBuf) { | r }) tail)
+
 instance allNodesAreSaturatedConsTRecorder ::
   ( RowToList r (RL.Cons aSym aVal RL.Nil)
   , AllNodesAreSaturatedNL tail
