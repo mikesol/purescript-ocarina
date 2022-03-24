@@ -22,6 +22,7 @@ import WAGS.Control.Indexed (IxWAG)
 import WAGS.Control.Types (Frame0, Scene)
 import WAGS.Create (icreate)
 import WAGS.Create.Optionals (speaker)
+import WAGS.Change (ichange')
 import WAGS.Graph.AudioUnit (MultiPlayBuf(..), TMultiPlayBuf, TSpeaker)
 import WAGS.Graph.Parameter (MultiPlayBufOnOff(..))
 import WAGS.Graph.Paramable (paramize)
@@ -53,7 +54,9 @@ loop
    . BehavingScene Unit World ()
   -> Unit
   -> IxWAG RunAudio RunEngine proof Unit Graph Graph Unit
-loop (BehavingScene _) _ = pure unit
+loop (BehavingScene _) _ = do
+  ichange' (Proxy :: Proxy "multiPlayBuf") { onOff: MultiPlayBufOnOff (inj (Proxy :: _ "off") 0.0) }
+  pure unit
 
 scene :: Scene (BehavingScene Unit World ()) RunAudio RunEngine Frame0 Unit
 scene = const initialize @!> iloop loop

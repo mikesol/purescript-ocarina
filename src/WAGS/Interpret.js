@@ -123,11 +123,11 @@ var connectXToY = function (calledExternally) {
 						) {
 							return;
 						}
-						stateX.units[x].main.connect(stateY.units[y].main);
+                                                stateX.units[x].main.connect(stateY.units[y].main);
 						stateX.units[x].outgoing.push({ unit: y, state: stateY });
 						stateY.units[y].incoming.push({ unit: x, state: stateX });
 						if (stateY.units[y].se) {
-							stateX.units[x].main.connect(stateY.units[y].se);
+                                                 	stateX.units[x].main.connect(stateY.units[y].se);
 						}
 					};
 				};
@@ -874,6 +874,7 @@ exports.makeMultiPlayBuf_ = function (aa) {
 				incoming: [],
                                 oos: [],
 				mains: [],
+                                main: state.context.createGain(),
 				createFunction: createFunction,
 				resumeClosure: {
 					playbackRate: function (i) {
@@ -881,12 +882,16 @@ exports.makeMultiPlayBuf_ = function (aa) {
 					},
 				},
 			};
+                        state.units[ptr].main.gain.value = 1.0;
                         createFunction(onOff);
 			if (isOn(onOff)) {
                                 applyResumeClosure(state.units[ptr]);
                                 var startOffset = 0.0;
                                 var stopOffset = state.units[ptr].oos[0].t;
                                 for (var i = 0; i < state.units[ptr].oos.length; i++) {
+                                        var tmp = { units: { } };
+                                        tmp.units[ptr] = state.units[ptr].mains[i];
+                                        connectXToY(false)(ptr)(ptr)(tmp)(state)();
                                         startOffset += state.units[ptr].oos[i].t;
                                         state.units[ptr].mains[i].start(
                                                 state.writeHead + startOffset, state.units[ptr].oos[i].o
@@ -1357,6 +1362,9 @@ exports.setMultiPlayBufOnOff_ = function (aa) {
                                 var startOffset = 0.0;
                                 var stopOffset = state.units[ptr].oos[0].t;
                                 for (var i = 0; i < state.units[ptr].oos.length; i++) {
+                                        var tmp = { units: { } };
+                                        tmp.units[ptr] = state.units[ptr].mains[i];
+                                        connectXToY(false)(ptr)(ptr)(tmp)(state)();
                                         startOffset += state.units[ptr].oos[i].t;
                                         state.units[ptr].mains[i].start(
                                                 state.writeHead + startOffset, state.units[ptr].oos[i].o
@@ -1375,34 +1383,18 @@ exports.setMultiPlayBufOnOff_ = function (aa) {
                                 state.units[ptr].onOff = false;
                                 var oldMains = state.units[ptr].mains.slice();
                                 var oldOos = state.units[ptr].oos.slice();
-                                var oldOutgoing = state.units[ptr].outgoing.slice();
                                 state.units[ptr].createFunction(onOff);
                                 for (var i = 0; i < state.units[ptr].oos.length; i++) {
                                         setTimeout(() => {
-                                                for (var j = 0; j < oldOutgoing.length; j++) {
-                                                        var oogj = oldOutgoing[j];
-                                                        try {
-                                                                for (var k = 0; k < state.units[ptr].mains.length; k++) {
-                                                                        state.units[ptr].mains[k].disconnect(oogj.state.units[oogj.unit].main);
-                                                                        if (oogj.state.units[oogj.unit].se) {
-                                                                                state.units[ptr].mains[k].disconnect(oogj.state.units[oogj.unit].se);
-                                                                        }
-                                                                }
-                                                        } catch (e) {
-                                                                console.log(e);
-                                                                continue;
-                                                        }
-                                                }
+                                                var tmp = { units: { } };
+                                                tmp.units[ptr] = state.units[ptr].mains[i];
+                                                disconnectXFromY(false)(ptr)(ptr)(tmp)(state)();
                                         }, 1000.0 * (state.writeHead + state.units[ptr].oos[i].t + 0.2 - state.context.currentTime));
                                 }
-                                for (var i = 0; i < state.units[ptr].outgoing.length; i++) {
-                                        var ogi = state.units[ptr].outgoing[i];
-                                        for (var j = 0; j < state.units[ptr].mains.length; j++) {
-                                                state.units[ptr].mains[j].connect(ogi.state.units[ogi.unit].main);
-                                                if (ogi.state.units[ogi.unit].se) {
-                                                        state.units[ptr].mains[j].connect(ogi.state.units[ogi.unit].se);
-                                                }
-                                        }
+                                for (var i = 0; i < state.units[ptr].mains.length; i++) {
+                                        var tmp = { units: { } };
+                                        tmp.units[ptr] = state.units[ptr].mains[i];
+                                        connectXToY(false)(ptr)(ptr)(tmp)(state)();
                                 }
                         }
 		};
