@@ -1347,9 +1347,33 @@ exports.setMultiPlayBufOnOff_ = function (aa) {
 			var ptr = aa.id;
 			var onOff = aa.onOff;
 			if (onOff.type === "ons") {
-                                // Remove all scheduled nodes and immediately start playing.
+                                if (state.units[ptr].onOff) {
+                                        var oldOos = state.units[ptr].oos.slice();
+                                        var oldMains = state.units[ptr].mains.slice();
+                                        // TODO: unschedule oldMains
+                                        state.units[ptr].createFunction(onOff);
+                                }
+                                state.units[ptr].onOff = true;
+                                if (state.units[ptr].resumeClosure) {
+                                        applyResumeClosure(state.units[ptr]);
+                                }
+                                var startOffset = 0.0;
+                                var stopOffset = state.units[ptr].oos[0].t;
+                                for (var i = 0; i < state.units[ptr].oos.length; i++) {
+                                        startOffset += state.units[ptr].oos[i].t;
+                                        state.units[ptr].mains[i].start(
+                                                state.writeHead + startOffset, state.units[ptr].oos[i].o
+                                        );
+                                        if (i !== state.units[ptr].oos.length - 1) {
+                                                stopOffset += state.units[ptr].oos[i + 1];
+                                                state.units[ptr].mains[i].stop(
+                                                        state.writeHead + stopOffset
+                                                );
+                                        }
+                                }
 			} else if (onOff.type === "off") {
-                                // Remove all scheduled nodes.
+                                // TODO: unschedule nodes.
+                                state.units[ptr].onOff = false;
                         }
 		};
 	};
