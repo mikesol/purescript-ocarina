@@ -27,7 +27,7 @@ import WAGS.Graph.Graph (Graph)
 import WAGS.Graph.Node (NodeC)
 import WAGS.Graph.Oversample (class IsOversample, reflectOversample)
 import WAGS.Graph.Parameter (AudioParameter)
-import WAGS.Interpret (class AudioInterpret, AsSubgraph, makeAllpass, makeAnalyser, makeAudioWorkletNode, makeBandpass, makeConstant, makeConvolver, makeDelay, makeDynamicsCompressor, makeGain, makeHighpass, makeHighshelf, makeInput, makeLoopBuf, makeLowpass, makeLowshelf, makeMediaElement, makeMicrophone, makeNotch, makePeaking, makePeriodicOsc, makePeriodicOscV, makePlayBuf, makeRecorder, makeSawtoothOsc, makeSinOsc, makeSpeaker, makeSquareOsc, makeStereoPanner, makeSubgraph, makeTriangleOsc, makeTumult, makeWaveShaper, unAsSubGraph)
+import WAGS.Interpret (class AudioInterpret, AsSubgraph, makeAllpass, makeAnalyser, makeAudioWorkletNode, makeBandpass, makeConstant, makeConvolver, makeDelay, makeDynamicsCompressor, makeGain, makeHighpass, makeHighshelf, makeInput, makeLoopBuf, makeLowpass, makeLowshelf, makeMediaElement, makeMicrophone, makeNotch, makePeaking, makePeriodicOsc, makePeriodicOscV, makePlayBuf, makeMultiPlayBuf, makeRecorder, makeSawtoothOsc, makeSinOsc, makeSpeaker, makeSquareOsc, makeStereoPanner, makeSubgraph, makeTriangleOsc, makeTumult, makeWaveShaper, unAsSubGraph)
 import WAGS.Rendered (AudioWorkletNodeOptions_(..), RealImg(..))
 import WAGS.Tumult (safeUntumult)
 import WAGS.Util (class AddPrefixToRowList, class CoercePrefixToString, class MakePrefixIfNeeded, class ValidateOutputChannelCount, toOutputChannelCount)
@@ -964,6 +964,30 @@ instance createPlayBuf ::
               { instructions = i.instructions <>
                   [ makePlayBuf
                       { id, buffer, bufferOffset, onOff, playbackRate }
+                  ]
+              }
+        , value: unit
+        }
+
+instance createMultiPlayBuf ::
+  ( IsSymbol ptr
+  , R.Lacks ptr graphi
+  , R.Cons ptr (NodeC CTOR.TMultiPlayBuf {}) graphi grapho
+  ) =>
+  Create' ptr CTOR.MultiPlayBuf graphi grapho where
+  create' ptr w = o
+    where
+    { context: i
+    , value: (CTOR.MultiPlayBuf { playbackRate, onOff })
+    } = unsafeUnWAG w
+    id = reflectSymbol ptr
+    o =
+      unsafeWAG
+        { context:
+            i
+              { instructions = i.instructions <>
+                  [ makeMultiPlayBuf
+                      { id, onOff, playbackRate }
                   ]
               }
         , value: unit

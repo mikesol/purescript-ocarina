@@ -367,6 +367,16 @@ derive instance newtypeXPlayBuf :: Newtype XPlayBuf _
 instance typeToSymPlayBuf :: TypeToSym PlayBuf "PlayBuf"
 instance typeToSymXPlayBuf :: TypeToSym XPlayBuf "PlayBuf"
 
+newtype MultiPlayBuf = MultiPlayBuf { | MultiPlayBuf' }
+
+derive instance newtypeMultiPlayBuf :: Newtype MultiPlayBuf _
+newtype XMultiPlayBuf = XMultiPlayBuf (RowOptions MultiPlayBuf')
+
+derive instance newtypeXMultiPlayBuf :: Newtype XMultiPlayBuf _
+
+instance typeToSymMultiPlayBuf :: TypeToSym MultiPlayBuf "MultiPlayBuf"
+instance typeToSymXMultiPlayBuf :: TypeToSym XMultiPlayBuf "MultiPlayBuf"
+
 -- | Term-level constructor for a recorder.
 -- | - `recorder` - the recorder to which we write data.
 type Recorder' = (cb :: MediaRecorderCb)
@@ -923,6 +933,23 @@ instance reifyTPlayBuf :: ReifyAU (PlayBuf) TPlayBuf where
   reifyAU = const mempty
 
 instance reifyTXPlayBuf :: ReifyAU (XPlayBuf) TPlayBuf where
+  reifyAU = const mempty
+
+-- | Type-level constructor for playback for multiple buffers.
+data TMultiPlayBuf = TMultiPlayBuf
+
+instance typeToSymTMultiPlayBuf :: TypeToSym TMultiPlayBuf "TMultiPlayBuf"
+
+instance semigroupTMultiPlayBuf :: Semigroup TMultiPlayBuf where
+  append _ _ = TMultiPlayBuf
+
+instance monoidTMultiPlayBuf :: Monoid TMultiPlayBuf where
+  mempty = TMultiPlayBuf
+
+instance reifyTMultiPlayBuf :: ReifyAU (MultiPlayBuf) TMultiPlayBuf where
+  reifyAU = const mempty
+
+instance reifyTXMultiPlayBuf :: ReifyAU (XMultiPlayBuf) TMultiPlayBuf where
   reifyAU = const mempty
 
 -- | Type-level constructor for a recorder.
