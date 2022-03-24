@@ -29,7 +29,7 @@ import WAGS.Graph.Node (NodeC)
 import WAGS.Graph.Oversample (class IsOversample)
 import WAGS.Graph.Paramable (onOffIze, paramize)
 import WAGS.Graph.Parameter (class MM, AudioEnvelope, AudioOnOff, AudioParameter, AudioParameterCancellation, AudioSingleNumber, OnOff)
-import WAGS.Interpret (class AudioInterpret, setAnalyserNodeCb, setAttack, setAudioWorkletParameter, setBuffer, setBufferOffset, setConvolverBuffer, setDelay, setFrequency, setGain, setInput, setKnee, setLoopEnd, setLoopStart, setMediaRecorderCb, setOffset, setOnOff, setPan, setPeriodicOsc, setPeriodicOscV, setPlaybackRate, setQ, setRatio, setRelease, setSingleSubgraph, setSubgraph, setThreshold, setTumult, setWaveShaperCurve)
+import WAGS.Interpret (class AudioInterpret, setAnalyserNodeCb, setAttack, setAudioWorkletParameter, setBuffer, setBufferOffset, setConvolverBuffer, setDelay, setFrequency, setGain, setInput, setKnee, setLoopEnd, setLoopStart, setMediaRecorderCb, setOffset, setOnOff, setMultiPlayBufOnOff, setPan, setPeriodicOsc, setPeriodicOscV, setPlaybackRate, setQ, setRatio, setRelease, setSingleSubgraph, setSubgraph, setThreshold, setTumult, setWaveShaperCurve)
 import WAGS.Rendered (RealImg(..))
 import WAGS.Tumult (Tumultuous, safeUntumult)
 import WAGS.Util (class MakePrefixIfNeeded, class CoercePrefixToString)
@@ -1800,6 +1800,41 @@ instance changeXPlayBuf ::
           , onOff: setOnOff <<< { id, onOff: _ }
           , playbackRate: setPlaybackRate <<< { id, playbackRate: _ }
           , bufferOffset: setBufferOffset <<< { id, bufferOffset: _ }
+          }
+
+    o =
+      unsafeWAG
+        { context:
+            i
+              { instructions = i.instructions <> changes
+              }
+        , value: unit
+        }
+
+instance changeMultiPlayBuf ::
+  ( IsSymbol ptr
+  , R.Cons ptr (NodeC CTOR.TMultiPlayBuf edges) ignore graph
+  ) =>
+  Change' ptr CTOR.MultiPlayBuf graph where
+  change' ptr = change' ptr
+    <<< map (over CTOR.MultiPlayBuf asOptions :: _ -> CTOR.XMultiPlayBuf)
+
+instance changeXMultiPlayBuf ::
+  ( IsSymbol ptr
+  , R.Cons ptr (NodeC CTOR.TMultiPlayBuf edges) ignore graph
+  ) =>
+  Change' ptr CTOR.XMultiPlayBuf graph where
+  change' ptr w = o
+    where
+    { context: i, value: (CTOR.XMultiPlayBuf x) } = unsafeUnWAG w
+
+    id = reflectSymbol ptr
+    changes = values
+      $ objFromHomogeneous
+      $ homogeneous
+      $ megamap x
+          { onOff: setMultiPlayBufOnOff <<< { id, onOff: _ }
+          , playbackRate: setPlaybackRate <<< { id, playbackRate: _ }
           }
 
     o =
