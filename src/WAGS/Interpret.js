@@ -866,24 +866,27 @@ exports.makeMultiPlayBuf_ = function (aa) {
             var createFunction = function (onOff) {
                 var tbos = [onOff.value.starts].concat(onOff.value.next);
                 for (var i = 0; i < tbos.length; i++) {
+                    var tbo = tbos[i];
                     state.units[ptr].subs[i] = { units: { } };
                     state.units[ptr].subs[i].units[ptr] = {
                         outgoing: [],
                         incoming: [],
                         main: state.context.createBufferSource(),
-                        tbo: tbos[i],
+                        tbo: tbo,
                         resumeClosure: {
                             playbackRate: function(i) {
                                 genericStarter(i, "playbackRate", playbackRate);
-                            }
+                            },
+                            buffer: function(i) {
+                                i.buffer = tbo.b;
+                            },
                         },
-                    }
+                    };
                 }
             };
             state.units[ptr] = {
                 outgoing: [],
                 incoming: [],
-                tbos: [],
                 main: state.context.createGain(),
                 subs: [],
                 createFunction: createFunction,
@@ -903,7 +906,7 @@ exports.makeMultiPlayBuf_ = function (aa) {
                     );
                     if (i !== state.units[ptr].subs.length - 1) {
                         stopOffset += state.units[ptr].subs[i + 1].units[ptr].tbo.t;
-                        state.units[ptr].mains[i].stop(
+                        state.units[ptr].subs[i].units[ptr].main.stop(
                             state.writeHead + stopOffset
                         );
                     }
