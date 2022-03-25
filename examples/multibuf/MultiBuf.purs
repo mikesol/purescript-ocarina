@@ -70,8 +70,8 @@ easingAlgorithm =
   in
     fOf 20
 
-initialize :: forall residuals. (BehavingScene Unit World ()) -> IxWAG RunAudio RunEngine Frame0 residuals () Graph Unit
-initialize (BehavingScene { world: { sample0, sample1 } }) = icreate $ speaker
+initialize :: forall residuals. (BehavingScene Unit World ()) -> IxWAG RunAudio RunEngine Frame0 residuals () Graph Boolean
+initialize (BehavingScene { world: { sample0, sample1 } }) = (icreate $ speaker
   { multiPlayBuf:
       MultiPlayBuf
         { playbackRate: paramize 1.0
@@ -89,27 +89,28 @@ initialize (BehavingScene { world: { sample0, sample1 } }) = icreate $ speaker
                 }
             )
         }
-  }
+  }) $> false
 
 loop
   :: forall proof
    . BehavingScene Unit World ()
-  -> Unit
-  -> IxWAG RunAudio RunEngine proof Unit Graph Graph Unit
-loop (BehavingScene { world: { sample2, sample3 }}) _ = do
-  ichange' (Proxy :: Proxy "multiPlayBuf") { onOff: MultiPlayBufOnOff ( inj (Proxy :: _ "ons")
-                { starts: { b: sample2, t: 0.5, o: 0.0 }
-                , next:
-                    [ { b: sample3, t: 1.0, o: 0.0 }
-                    , { b: sample2, t: 1.0, o: 0.0 }
-                    , { b: sample3, t: 1.0, o: 0.0 }
-                    , { b: sample2, t: 1.0, o: 0.0 }
-                    , { b: sample3, t: 1.0, o: 0.0 }
-                    , { b: sample2, t: 1.0, o: 0.0 }
-                    ]
-                }
-            ) }
-  pure unit
+  -> Boolean
+  -> IxWAG RunAudio RunEngine proof Unit Graph Graph Boolean
+loop (BehavingScene { world: { sample2, sample3 }}) played =
+  true <$ when (not played) do
+    ichange' (Proxy :: Proxy "multiPlayBuf") { onOff: MultiPlayBufOnOff ( inj (Proxy :: _ "ons")
+                  { starts: { b: sample2, t: 0.5, o: 0.0 }
+                  , next:
+                      [ { b: sample3, t: 1.0, o: 0.0 }
+                      , { b: sample2, t: 1.0, o: 0.0 }
+                      , { b: sample3, t: 1.0, o: 0.0 }
+                      , { b: sample2, t: 1.0, o: 0.0 }
+                      , { b: sample3, t: 1.0, o: 0.0 }
+                      , { b: sample2, t: 1.0, o: 0.0 }
+                      ]
+                  }
+                                                                        )
+                                             }
 
 scene :: Scene (BehavingScene Unit World ()) RunAudio RunEngine Frame0 Unit
 scene = initialize @!> iloop loop

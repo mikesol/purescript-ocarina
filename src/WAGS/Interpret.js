@@ -867,10 +867,9 @@ exports.makeMultiPlayBuf_ = function (aa) {
                 var tbos = [onOff.value.starts].concat(onOff.value.next);
 				var oldSubsLength = state.units[ptr].subs.length;
                 for (var i = 0; i < tbos.length; i++) {
-					i += oldSubsLength;
-                    state.units[ptr].subs[i] = { units: { } };
+                    state.units[ptr].subs[i + oldSubsLength] = { units: { } };
 					state.units[ptr].actives.push(i);
-                    state.units[ptr].subs[i].units[ptr] = {
+                    state.units[ptr].subs[i + oldSubsLength].units[ptr] = {
                         outgoing: [],
                         incoming: [],
                         main: state.context.createBufferSource(),
@@ -881,7 +880,7 @@ exports.makeMultiPlayBuf_ = function (aa) {
                             },
                             buffer: (function(i) {
 								return function(n) {
-									n.buffer = state.units[ptr].subs[i].units[ptr].tbo.b;
+									n.buffer = state.units[ptr].subs[i + oldSubsLength].units[ptr].tbo.b;
 								};
 							})(i),
                         },
@@ -1365,11 +1364,9 @@ exports.setMultiPlayBufOnOff_ = function (aa) {
 			if (onOff.type === "ons") {
 				var oldSubsLength = state.units[ptr].subs.length;
 				state.units[ptr].createFunction(onOff);
-				console.log(oldSubsLength);
-				console.log(state.units[ptr].subs.length);
 				var startOffset = 0.0;
-                var stopOffset = state.units[ptr].subs[oldSubsLength - 1].units[ptr].tbo.t;
-                for (var i = oldSubsLength - 1; i < state.units[ptr].subs.length; i++) {
+                var stopOffset = state.units[ptr].subs[oldSubsLength].units[ptr].tbo.t;
+                for (var i = oldSubsLength; i < state.units[ptr].subs.length; i++) {
                     applyResumeClosure(state.units[ptr].subs[i].units[ptr]);
                     connectXToY(false)(ptr)(ptr)(state.units[ptr].subs[i])(state)();
                     startOffset += state.units[ptr].subs[i].units[ptr].tbo.t;
