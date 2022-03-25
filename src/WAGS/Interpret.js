@@ -865,21 +865,25 @@ exports.makeMultiPlayBuf_ = function (aa) {
             var playbackRate = aa.playbackRate;
             var createFunction = function (onOff) {
                 var tbos = [onOff.value.starts].concat(onOff.value.next);
+				var oldSubsLength = state.units[ptr].subs.length;
                 for (var i = 0; i < tbos.length; i++) {
-                    var tbo = tbos[i];
+					i += oldSubsLength;
                     state.units[ptr].subs[i] = { units: { } };
+					state.units[ptr].actives.push(i);
                     state.units[ptr].subs[i].units[ptr] = {
                         outgoing: [],
                         incoming: [],
                         main: state.context.createBufferSource(),
-                        tbo: tbo,
+                        tbo: tbos[i],
                         resumeClosure: {
                             playbackRate: function(i) {
                                 genericStarter(i, "playbackRate", playbackRate);
                             },
-                            buffer: function(i) {
-                                i.buffer = tbo.b;
-                            },
+                            buffer: (function(i) {
+								return function(n) {
+									n.buffer = state.units[ptr].subs[i].units[ptr].tbo.b;
+								};
+							})(i),
                         },
                     };
                 }
@@ -889,6 +893,7 @@ exports.makeMultiPlayBuf_ = function (aa) {
                 incoming: [],
                 main: state.context.createGain(),
                 subs: [],
+				actives: [],
                 createFunction: createFunction,
                 resumeClosure: {},
             };
@@ -910,6 +915,13 @@ exports.makeMultiPlayBuf_ = function (aa) {
                             state.writeHead + stopOffset
                         );
                     }
+					// var pos = i;
+					// state.units[ptr].subs[i].units[ptr].main.addEventListener('ended', function() {
+					// 	state.units[ptr].actives = state.units[ptr].actives.filter(function(a) {
+					// 		return a !== pos;
+					// 	});
+					// 	delete state.units[ptr].subs[pos];
+					// });
                 }
             }
             state.units[ptr].isOn = isOn(onOff);
@@ -1348,7 +1360,39 @@ exports.setOnOff_ = function (aa) {
 exports.setMultiPlayBufOnOff_ = function (aa) {
     return function (state) {
         return function () {
-            return;
+			var ptr = aa.id;
+			var onOff = aa.onOff;
+			if (onOff.type === "ons") {
+				var oldSubsLength = state.units[ptr].subs.length;
+				state.units[ptr].createFunction(onOff);
+				console.log(oldSubsLength);
+				console.log(state.units[ptr].subs.length);
+				var startOffset = 0.0;
+                var stopOffset = state.units[ptr].subs[oldSubsLength - 1].units[ptr].tbo.t;
+                for (var i = oldSubsLength - 1; i < state.units[ptr].subs.length; i++) {
+                    applyResumeClosure(state.units[ptr].subs[i].units[ptr]);
+                    connectXToY(false)(ptr)(ptr)(state.units[ptr].subs[i])(state)();
+                    startOffset += state.units[ptr].subs[i].units[ptr].tbo.t;
+                    state.units[ptr].subs[i].units[ptr].main.start(
+                        state.writeHead + startOffset, state.units[ptr].subs[i].units[ptr].tbo.o
+                    );
+                    if (i !== state.units[ptr].subs.length - 1) {
+                        stopOffset += state.units[ptr].subs[i + 1].units[ptr].tbo.t;
+                        state.units[ptr].subs[i].units[ptr].main.stop(
+                            state.writeHead + stopOffset
+                        );
+                    }
+				// 	var pos = i;
+				// 	state.units[ptr].subs[i].units[ptr].main.addEventListener('ended', function() {
+				// 		state.units[ptr].actives = state.units[ptr].actives.filter(function(a) {
+				// 			return a !== pos;
+				// 		});
+				// 		delete state.units[ptr].subs[pos];
+				// 	});
+				}
+			} else if (onOff.type === "off") {
+
+			}
         };
     };
 };
@@ -1581,10 +1625,21 @@ exports.setPlaybackRate_ = function (aa) {
 		return function () {
 			var ptr = aa.id;
 			var a = aa.playbackRate;
-			genericSetter(state.units[ptr].main, "playbackRate", state.writeHead, a);
-			state.units[ptr].resumeClosure.playbackRate = function (i) {
-				genericStarter(i, "playbackRate", a);
-			};
+			if (state.units[ptr].actives) {
+				for (var i = 0; i < state.units[ptr].actives; i++) {
+					var ix = state.units[ptr].actives[i];
+					genericSetter(state.units[ptr].main.subs[ix], "playbackRate", state.writeHead, a);
+					state.units[ptr].resumeClosure.playbackRate = function (i) {
+					genericStarter(i, "playbackRate", a);
+				};
+				}
+			}
+			else {
+				genericSetter(state.units[ptr].main, "playbackRate", state.writeHead, a);
+				state.units[ptr].resumeClosure.playbackRate = function (i) {
+					genericStarter(i, "playbackRate", a);
+				};
+			}
 		};
 	};
 };

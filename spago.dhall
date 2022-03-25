@@ -25,6 +25,7 @@
   , "maybe"
   , "newtype"
   , "ordered-collections"
+  , "parallel"
   , "prelude"
   , "profunctor-lenses"
   , "record"

@@ -1,37 +1,61 @@
 module WAGS.Example.MultiBuf where
 
+-- In this test, we test multibuf in the following way.
+-- First, we schedule six sounds to play in sequence.
+-- Then, at 2.5 seconds, we schedule another six sounds to play immediately in sequence.
+-- This should have the effect of:
+-- - letting the previous sounds continue playing
+-- - scheduling a new group of sounds to start in 0.5 seconds. that means that there will be overlap starting at 4.5 seconds
+
+-- end (Maybe Number)
+
+{-
+allowing the sounds to overlap
+
+schedule 1:    __ __ ______ __ _ _______ __ ________ __
+schedule 2:             ______ ___ _     _____  _____ ___
+-}
+
+-- Schedule 1: Schedule 6 sounds, that also means that my substates is also 6 items, iterating starting at 0
+-- Schedule 2: Schedule 6 more sounds, my substates would become 12 items, iterating at the previous length
+
 import Prelude
 
 import Control.Comonad.Cofree (Cofree, mkCofree)
+import Control.Parallel.Class (parallel, sequential)
 import Data.Foldable (for_)
 import Data.Maybe (Maybe(..))
 import Data.Tuple.Nested (type (/\))
 import Data.Variant (inj)
 import Effect (Effect)
+import Effect.Aff (Milliseconds(..), delay)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect)
-import FRP.Event (subscribe)
+import FRP.Event (subscribe, create)
 import Halogen as H
 import Halogen.Aff (awaitBody, runHalogenAff)
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.VDom.Driver (runUI)
 import Type.Proxy (Proxy(..))
+import WAGS.Change (ichange')
 import WAGS.Control.Functions.Graph (iloop, (@!>))
 import WAGS.Control.Indexed (IxWAG)
 import WAGS.Control.Types (Frame0, Scene)
 import WAGS.Create (icreate)
 import WAGS.Create.Optionals (speaker)
-import WAGS.Change (ichange')
 import WAGS.Graph.AudioUnit (MultiPlayBuf(..), TMultiPlayBuf, TSpeaker)
-import WAGS.Graph.Parameter (MultiPlayBufOnOff(..))
 import WAGS.Graph.Paramable (paramize)
+import WAGS.Graph.Parameter (MultiPlayBufOnOff(..))
 import WAGS.Interpret (close, context, decodeAudioDataFromUri, makeFFIAudioSnapshot)
 import WAGS.Run (BehavingRun, RunAudio, RunEngine, BehavingScene(..), run)
 import WAGS.WebAPI (AudioContext, BrowserAudioBuffer)
 
 type World =
-  { sample :: BrowserAudioBuffer
+  { sample0 :: BrowserAudioBuffer
+  , sample1 :: BrowserAudioBuffer
+  , sample2 :: BrowserAudioBuffer
+  , sample3 :: BrowserAudioBuffer
   }
 
 type Graph =
@@ -47,15 +71,20 @@ easingAlgorithm =
     fOf 20
 
 initialize :: forall residuals. (BehavingScene Unit World ()) -> IxWAG RunAudio RunEngine Frame0 residuals () Graph Unit
-initialize (BehavingScene { world: { sample } }) = icreate $ speaker
+initialize (BehavingScene { world: { sample0, sample1 } }) = icreate $ speaker
   { multiPlayBuf:
       MultiPlayBuf
         { playbackRate: paramize 1.0
         , onOff: MultiPlayBufOnOff
             ( inj (Proxy :: _ "ons")
-                { starts: { b: sample, t: 0.0, o: 0.0 }
+                { starts: { b: sample0, t: 0.0, o: 0.0 }
                 , next:
-                    [ { b: sample, t: 1.0, o: 0.0 }
+                    [ { b: sample1, t: 1.0, o: 0.0 }
+                    , { b: sample0, t: 1.0, o: 0.0 }
+                    , { b: sample1, t: 1.0, o: 0.0 }
+                    , { b: sample0, t: 1.0, o: 0.0 }
+                    , { b: sample1, t: 1.0, o: 0.0 }
+                    , { b: sample0, t: 1.0, o: 0.0 }
                     ]
                 }
             )
@@ -67,8 +96,19 @@ loop
    . BehavingScene Unit World ()
   -> Unit
   -> IxWAG RunAudio RunEngine proof Unit Graph Graph Unit
-loop (BehavingScene _) _ = do
-  ichange' (Proxy :: Proxy "multiPlayBuf") { onOff: MultiPlayBufOnOff (inj (Proxy :: _ "off") 0.0) }
+loop (BehavingScene { world: { sample2, sample3 }}) _ = do
+  ichange' (Proxy :: Proxy "multiPlayBuf") { onOff: MultiPlayBufOnOff ( inj (Proxy :: _ "ons")
+                { starts: { b: sample2, t: 0.5, o: 0.0 }
+                , next:
+                    [ { b: sample3, t: 1.0, o: 0.0 }
+                    , { b: sample2, t: 1.0, o: 0.0 }
+                    , { b: sample3, t: 1.0, o: 0.0 }
+                    , { b: sample2, t: 1.0, o: 0.0 }
+                    , { b: sample3, t: 1.0, o: 0.0 }
+                    , { b: sample2, t: 1.0, o: 0.0 }
+                    ]
+                }
+            ) }
   pure unit
 
 scene :: Scene (BehavingScene Unit World ()) RunAudio RunEngine Frame0 Unit
@@ -120,17 +160,26 @@ render _ = do
 handleAction :: forall output m. MonadEffect m => MonadAff m => Action -> H.HalogenM State Action () output m Unit
 handleAction = case _ of
   StartAudio -> do
+    myEvent <- H.liftEffect create
     audioCtx <- H.liftEffect context
     ffiAudio <- H.liftEffect $ makeFFIAudioSnapshot audioCtx
-    sample <-
-      H.liftAff $ decodeAudioDataFromUri
-        audioCtx
-        "https://freesound.org/data/previews/50/50843_489520-hq.mp3"
+    let pf = parallel <<< decodeAudioDataFromUri audioCtx
+    { sample0, sample1, sample2, sample3 } <- H.liftAff (
+         sequential ({sample0: _, sample1: _, sample2: _, sample3: _} <$>
+          pf "https://freesound.org/data/previews/320/320873_527080-lq.mp3" <*>
+          pf "https://freesound.org/data/previews/144/144971_2137927-lq.mp3" <*> 
+          pf "https://freesound.org/data/previews/110/110212_1751865-lq.mp3" <*>
+          pf "https://freesound.org/data/previews/110/110158_649468-lq.mp3" )
+    )
     unsubscribe <-
       H.liftEffect
         $ subscribe
-            (run (pure unit) (pure { sample }) { easingAlgorithm } ffiAudio scene)
+            (run myEvent.event (pure { sample0, sample1, sample2, sample3 }) { easingAlgorithm } ffiAudio scene)
             (\(_ :: BehavingRun Unit ()) -> pure unit)
+    H.liftEffect $ myEvent.push unit
+    H.liftAff $ do
+      delay (Milliseconds 2500.0)
+      H.liftEffect (myEvent.push unit)
     H.modify_ _ { unsubscribe = unsubscribe, audioCtx = Just audioCtx }
   StopAudio -> do
     { unsubscribe, audioCtx } <- H.get
