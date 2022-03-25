@@ -51,7 +51,14 @@ initialize (BehavingScene { world: { sample } }) = icreate $ speaker
   { multiPlayBuf:
       MultiPlayBuf
         { playbackRate: paramize 1.0
-        , onOff: MultiPlayBufOnOff (inj (Proxy :: _ "ons") { starts: { b: sample, t: 0.0, o: 0.0 }, next: [] })
+        , onOff: MultiPlayBufOnOff
+            ( inj (Proxy :: _ "ons")
+                { starts: { b: sample, t: 0.0, o: 0.0 }
+                , next:
+                    [ { b: sample, t: 1.0, o: 0.0 }
+                    ]
+                }
+            )
         }
   }
 
