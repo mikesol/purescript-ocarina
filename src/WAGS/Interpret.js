@@ -865,11 +865,11 @@ exports.makeMultiPlayBuf_ = function (aa) {
             var playbackRate = aa.playbackRate;
             var createFunction = function (onOff) {
                 var tbos = [onOff.value.starts].concat(onOff.value.next);
-				var oldSubsLength = state.units[ptr].subs.length;
                 for (var i = 0; i < tbos.length; i++) {
-                    state.units[ptr].subs[i + oldSubsLength] = { units: { } };
-					state.units[ptr].actives.push(i);
-                    state.units[ptr].subs[i + oldSubsLength].units[ptr] = {
+                    var j = i + state.units[ptr].subsIdx;
+                    state.units[ptr].subs[j] = { units: { } };
+					state.units[ptr].actives.push(j);
+                    state.units[ptr].subs[j].units[ptr] = {
                         outgoing: [],
                         incoming: [],
                         main: state.context.createBufferSource(),
@@ -878,20 +878,22 @@ exports.makeMultiPlayBuf_ = function (aa) {
                             playbackRate: function(i) {
                                 genericStarter(i, "playbackRate", playbackRate);
                             },
-                            buffer: (function(i) {
+                            buffer: (function(j) {
 								return function(n) {
-									n.buffer = state.units[ptr].subs[i + oldSubsLength].units[ptr].tbo.b;
+									n.buffer = state.units[ptr].subs[j].units[ptr].tbo.b;
 								};
-							})(i),
+							})(j),
                         },
                     };
                 }
+                state.units[ptr].subsIdx = tbos.length;
             };
             state.units[ptr] = {
                 outgoing: [],
                 incoming: [],
                 main: state.context.createGain(),
                 subs: [],
+                subsIdx: 0,
 				actives: [],
                 createFunction: createFunction,
                 resumeClosure: {},
@@ -914,13 +916,14 @@ exports.makeMultiPlayBuf_ = function (aa) {
                             state.writeHead + stopOffset
                         );
                     }
-					// var pos = i;
-					// state.units[ptr].subs[i].units[ptr].main.addEventListener('ended', function() {
-					// 	state.units[ptr].actives = state.units[ptr].actives.filter(function(a) {
-					// 		return a !== pos;
-					// 	});
-					// 	delete state.units[ptr].subs[pos];
-					// });
+                    state.units[ptr].subs[i].units[ptr].main.addEventListener("ended", (function (i) {
+                        return function () {
+                            state.units[ptr].actives = state.units[ptr].actives.filter(function (j) {
+                                return i !== j;
+                            });
+                            delete state.units[ptr].subs[i];
+                        };
+                    }(i)));
                 }
             }
             state.units[ptr].isOn = isOn(onOff);
@@ -1362,11 +1365,10 @@ exports.setMultiPlayBufOnOff_ = function (aa) {
 			var ptr = aa.id;
 			var onOff = aa.onOff;
 			if (onOff.type === "ons") {
-				var oldSubsLength = state.units[ptr].subs.length;
 				state.units[ptr].createFunction(onOff);
 				var startOffset = 0.0;
-                var stopOffset = state.units[ptr].subs[oldSubsLength].units[ptr].tbo.t;
-                for (var i = oldSubsLength; i < state.units[ptr].subs.length; i++) {
+                var stopOffset = state.units[ptr].subs[state.units[ptr].subsIdx].units[ptr].tbo.t;
+                for (var i = state.units[ptr].subsIdx; i < state.units[ptr].subs.length; i++) {
                     applyResumeClosure(state.units[ptr].subs[i].units[ptr]);
                     connectXToY(false)(ptr)(ptr)(state.units[ptr].subs[i])(state)();
                     startOffset += state.units[ptr].subs[i].units[ptr].tbo.t;
@@ -1379,13 +1381,14 @@ exports.setMultiPlayBufOnOff_ = function (aa) {
                             state.writeHead + stopOffset
                         );
                     }
-				// 	var pos = i;
-				// 	state.units[ptr].subs[i].units[ptr].main.addEventListener('ended', function() {
-				// 		state.units[ptr].actives = state.units[ptr].actives.filter(function(a) {
-				// 			return a !== pos;
-				// 		});
-				// 		delete state.units[ptr].subs[pos];
-				// 	});
+                    state.units[ptr].subs[i].units[ptr].main.addEventListener("ended", (function (i) {
+                        return function () {
+                            state.units[ptr].actives = state.units[ptr].actives.filter(function (j) {
+                                return i !== j;
+                            });
+                            delete state.units[ptr].subs[i];
+                        };
+                    }(i)));
 				}
 			} else if (onOff.type === "off") {
 
@@ -1627,11 +1630,10 @@ exports.setPlaybackRate_ = function (aa) {
 					var ix = state.units[ptr].actives[i];
 					genericSetter(state.units[ptr].main.subs[ix], "playbackRate", state.writeHead, a);
 					state.units[ptr].resumeClosure.playbackRate = function (i) {
-					genericStarter(i, "playbackRate", a);
-				};
+					    genericStarter(i, "playbackRate", a);
+				    };
 				}
-			}
-			else {
+			} else {
 				genericSetter(state.units[ptr].main, "playbackRate", state.writeHead, a);
 				state.units[ptr].resumeClosure.playbackRate = function (i) {
 					genericStarter(i, "playbackRate", a);
