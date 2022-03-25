@@ -46,8 +46,14 @@ easingAlgorithm =
   in
     fOf 20
 
-initialize :: forall residuals. IxWAG RunAudio RunEngine Frame0 residuals () Graph Unit
-initialize = icreate $ speaker { multiPlayBuf: MultiPlayBuf { playbackRate: paramize 1.0, onOff: MultiPlayBufOnOff (inj (Proxy :: _ "off") 0.0) } }
+initialize :: forall residuals. (BehavingScene Unit World ()) -> IxWAG RunAudio RunEngine Frame0 residuals () Graph Unit
+initialize (BehavingScene { world: { sample } }) = icreate $ speaker
+  { multiPlayBuf:
+      MultiPlayBuf
+        { playbackRate: paramize 1.0
+        , onOff: MultiPlayBufOnOff (inj (Proxy :: _ "ons") { starts: { b: sample, t: 0.0, o: 0.0 }, next: [] })
+        }
+  }
 
 loop
   :: forall proof
@@ -59,7 +65,7 @@ loop (BehavingScene _) _ = do
   pure unit
 
 scene :: Scene (BehavingScene Unit World ()) RunAudio RunEngine Frame0 Unit
-scene = const initialize @!> iloop loop
+scene = initialize @!> iloop loop
 
 main :: Effect Unit
 main =

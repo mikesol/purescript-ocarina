@@ -858,56 +858,60 @@ exports.makePlayBuf_ = function (aa) {
 	};
 };
 exports.makeMultiPlayBuf_ = function (aa) {
-	return function (state) {
-		return function () {
-			var ptr = aa.id;
-			var onOff = aa.onOff;
-			var c = aa.playbackRate;
-			var createFunction = function (oo) {
-				state.units[ptr].oos = [oo.value.starts].concat(oo.value.next);
-				for (var i = 0; i < state.units[ptr].oos.length; i++) {
-					state.units[ptr].mains.push(state.context.createBufferSource());
-				}
-			}
-			state.units[ptr] = {
-				outgoing: [],
-				incoming: [],
-				oos: [],
-				mains: [],
-				main: state.context.createGain(),
-				createFunction: createFunction,
-				resumeClosure: {
-					playbackRate: function (i) {
-						genericStarter(i, "playbackRate", c);
-					},
-				},
-			};
-			state.units[ptr].main.gain.value = 1.0;
-			createFunction(onOff);
-			if (isOn(onOff)) {
-				applyResumeClosure(state.units[ptr]);
-				var startOffset = 0.0;
-				var stopOffset = state.units[ptr].oos[0].t;
-				for (var i = 0; i < state.units[ptr].oos.length; i++) {
-					var tmp = { units: { } };
-					tmp.units[ptr] = state.units[ptr].mains[i];
-				    console.log(tmp);
-					connectXToY(false)(ptr)(ptr)(tmp)(state)();
-					startOffset += state.units[ptr].oos[i].t;
-					state.units[ptr].mains[i].start(
-						state.writeHead + startOffset, state.units[ptr].oos[i].o
-					);
-					if (i !== state.units[ptr].oos.length - 1) {
-						stopOffset += state.units[ptr].oos[i + 1];
-						state.units[ptr].mains[i].stop(
-							state.writeHead + stopOffset
-						);
-					}
-				}
-			}
-			state.units[ptr].onOff = isOn(onOff);
-		};
-	};
+    return function (state) {
+        return function () {
+            var ptr = aa.id;
+            var onOff = aa.onOff;
+            var playbackRate = aa.playbackRate;
+            var createFunction = function (onOff) {
+                var tbos = [onOff.value.starts].concat(onOff.value.next);
+                for (var i = 0; i < tbos.length; i++) {
+                    state.units[ptr].subs[i] = { units: { } };
+                    state.units[ptr].subs[i].units[ptr] = {
+                        outgoing: [],
+                        incoming: [],
+                        main: state.context.createBufferSource(),
+                        tbo: tbos[i],
+                        resumeClosure: {
+                            playbackRate: function(i) {
+                                genericStarter(i, "playbackRate", playbackRate);
+                            }
+                        },
+                    }
+                }
+            };
+            state.units[ptr] = {
+                outgoing: [],
+                incoming: [],
+                tbos: [],
+                main: state.context.createGain(),
+                subs: [],
+                createFunction: createFunction,
+                resumeClosure: {},
+            };
+            state.units[ptr].main.gain.value = 1.0;
+            if (isOn(onOff)) {
+                createFunction(onOff);
+                var startOffset = 0.0;
+                var stopOffset = state.units[ptr].subs[0].units[ptr].tbo.t;
+                for (var i = 0; i < state.units[ptr].subs.length; i++) {
+                    applyResumeClosure(state.units[ptr].subs[i].units[ptr]);
+                    connectXToY(false)(ptr)(ptr)(state.units[ptr].subs[i])(state)();
+                    startOffset += state.units[ptr].subs[i].units[ptr].tbo.t;
+                    state.units[ptr].subs[i].units[ptr].main.start(
+                        state.writeHead + startOffset, state.units[ptr].subs[i].units[ptr].tbo.o
+                    );
+                    if (i !== state.units[ptr].subs.length - 1) {
+                        stopOffset += state.units[ptr].subs[i + 1].units[ptr].tbo.t;
+                        state.units[ptr].mains[i].stop(
+                            state.writeHead + stopOffset
+                        );
+                    }
+                }
+            }
+            state.units[ptr].isOn = isOn(onOff);
+        };
+    };
 };
 exports.makeRecorder_ = function (aa) {
 	return function (state) {
@@ -1314,16 +1318,7 @@ exports.setPeriodicOscV_ = function (aa) {
 var applyResumeClosure = function (i) {
 	for (var key in i.resumeClosure) {
 		if (i.resumeClosure.hasOwnProperty(key)) {
-			if (i.mains) {
-				// TODO: do we want to prune this list over time
-				// to get better performance as the piece continues
-				for(var j = 0; j < i.mains.length; j++) {
-					i.resumeClosure[key](i.mains[j]);
-				}
-			} else {
-				i.resumeClosure[key](i.main);
-
-			}
+			i.resumeClosure[key](i.main);
 		}
 	}
 };
@@ -1348,58 +1343,11 @@ exports.setOnOff_ = function (aa) {
 };
 
 exports.setMultiPlayBufOnOff_ = function (aa) {
-	return function (state) {
-		return function () {
-			var ptr = aa.id;
-			var onOff = aa.onOff;
-			if (onOff.type === "ons") {
-				if (state.units[ptr].onOff) {
-					return;
-				}
-				state.units[ptr].onOff = true;
-				if (state.units[ptr].resumeClosure) {
-					applyResumeClosure(state.units[ptr]);
-				}
-				var startOffset = 0.0;
-				var stopOffset = state.units[ptr].oos[0].t;
-				for (var i = 0; i < state.units[ptr].oos.length; i++) {
-					var tmp = { units: { } };
-					tmp.units[ptr] = state.units[ptr].mains[i];
-					connectXToY(false)(ptr)(ptr)(tmp)(state)();
-					startOffset += state.units[ptr].oos[i].t;
-					state.units[ptr].mains[i].start(
-						state.writeHead + startOffset, state.units[ptr].oos[i].o
-					);
-					if (i !== state.units[ptr].oos.length - 1) {
-						stopOffset += state.units[ptr].oos[i + 1];
-						state.units[ptr].mains[i].stop(
-							state.writeHead + stopOffset
-						);
-					}
-				}
-			} else if (onOff.type === "off") {
-				if (!state.units[ptr].onOff) {
-					return;
-				}
-				state.units[ptr].onOff = false;
-				var oldMains = state.units[ptr].mains.slice();
-				var oldOos = state.units[ptr].oos.slice();
-				state.units[ptr].createFunction(onOff);
-				for (var i = 0; i < state.units[ptr].oos.length; i++) {
-					setTimeout(() => {
-						var tmp = { units: { } };
-						tmp.units[ptr] = state.units[ptr].mains[i];
-						disconnectXFromY(false)(ptr)(ptr)(tmp)(state)();
-					}, 1000.0 * (state.writeHead + state.units[ptr].oos[i].t + 0.2 - state.context.currentTime));
-				}
-				for (var i = 0; i < state.units[ptr].mains.length; i++) {
-					var tmp = { units: { } };
-					tmp.units[ptr] = state.units[ptr].mains[i];
-					connectXToY(false)(ptr)(ptr)(tmp)(state)();
-				}
-			}
-		};
-	};
+    return function (state) {
+        return function () {
+            return;
+        };
+    };
 };
 
 var setOn_ = function (ptr) {
