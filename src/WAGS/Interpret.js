@@ -858,77 +858,77 @@ exports.makePlayBuf_ = function (aa) {
 	};
 };
 exports.makeMultiPlayBuf_ = function (aa) {
-    return function (state) {
-        return function () {
-            var ptr = aa.id;
-            var onOff = aa.onOff;
-            var playbackRate = aa.playbackRate;
-            var createFunction = function (onOff) {
-                var tbos = [onOff.value.starts].concat(onOff.value.next);
-                for (var i = 0; i < tbos.length; i++) {
-                    var j = i + state.units[ptr].subsIdx;
-                    state.units[ptr].subs[j] = { units: { } };
+	return function (state) {
+		return function () {
+			var ptr = aa.id;
+			var onOff = aa.onOff;
+			var playbackRate = aa.playbackRate;
+			var createFunction = function (onOff) {
+				var tbos = [onOff.value.starts].concat(onOff.value.next);
+				for (var i = 0; i < tbos.length; i++) {
+					var j = i + state.units[ptr].subsIdx;
+					state.units[ptr].subs[j] = { units: { } };
 					state.units[ptr].actives.push(j);
-                    state.units[ptr].subs[j].units[ptr] = {
-                        outgoing: [],
-                        incoming: [],
-                        main: state.context.createBufferSource(),
-                        tbo: tbos[i],
-                        resumeClosure: {
-                            playbackRate: function(i) {
-                                genericStarter(i, "playbackRate", playbackRate);
-                            },
-                            buffer: (function(j) {
+					state.units[ptr].subs[j].units[ptr] = {
+						outgoing: [],
+						incoming: [],
+						main: state.context.createBufferSource(),
+						tbo: tbos[i],
+						resumeClosure: {
+							playbackRate: function(i) {
+								genericStarter(i, "playbackRate", playbackRate);
+							},
+							buffer: (function(j) {
 								return function(n) {
 									n.buffer = state.units[ptr].subs[j].units[ptr].tbo.b;
 								};
 							})(j),
-                        },
-                    };
-                }
-                state.units[ptr].subsIdx = tbos.length;
-            };
-            state.units[ptr] = {
-                outgoing: [],
-                incoming: [],
-                main: state.context.createGain(),
-                subs: [],
-                subsIdx: 0,
+						},
+					};
+				}
+				state.units[ptr].subsIdx = tbos.length;
+			};
+			state.units[ptr] = {
+				outgoing: [],
+				incoming: [],
+				main: state.context.createGain(),
+				subs: [],
+				subsIdx: 0,
 				actives: [],
-                createFunction: createFunction,
-                resumeClosure: {},
-            };
-            state.units[ptr].main.gain.value = 1.0;
-            if (isOn(onOff)) {
-                createFunction(onOff);
-                var startOffset = 0.0;
-                var stopOffset = state.units[ptr].subs[0].units[ptr].tbo.t;
-                for (var i = 0; i < state.units[ptr].subs.length; i++) {
-                    applyResumeClosure(state.units[ptr].subs[i].units[ptr]);
-                    connectXToY(false)(ptr)(ptr)(state.units[ptr].subs[i])(state)();
-                    startOffset += state.units[ptr].subs[i].units[ptr].tbo.t;
-                    state.units[ptr].subs[i].units[ptr].main.start(
-                        state.writeHead + startOffset, state.units[ptr].subs[i].units[ptr].tbo.o
-                    );
-                    if (i !== state.units[ptr].subs.length - 1) {
-                        stopOffset += state.units[ptr].subs[i + 1].units[ptr].tbo.t;
-                        state.units[ptr].subs[i].units[ptr].main.stop(
-                            state.writeHead + stopOffset
-                        );
-                    }
-                    state.units[ptr].subs[i].units[ptr].main.addEventListener("ended", (function (i) {
-                        return function () {
-                            state.units[ptr].actives = state.units[ptr].actives.filter(function (j) {
-                                return i !== j;
-                            });
-                            delete state.units[ptr].subs[i];
-                        };
-                    }(i)));
-                }
-            }
-            state.units[ptr].isOn = isOn(onOff);
-        };
-    };
+				createFunction: createFunction,
+				resumeClosure: {},
+			};
+			state.units[ptr].main.gain.value = 1.0;
+			if (isOn(onOff)) {
+				createFunction(onOff);
+				var startOffset = 0.0;
+				var stopOffset = state.units[ptr].subs[0].units[ptr].tbo.t;
+				for (var i = 0; i < state.units[ptr].subs.length; i++) {
+					applyResumeClosure(state.units[ptr].subs[i].units[ptr]);
+					connectXToY(false)(ptr)(ptr)(state.units[ptr].subs[i])(state)();
+					startOffset += state.units[ptr].subs[i].units[ptr].tbo.t;
+					state.units[ptr].subs[i].units[ptr].main.start(
+						state.writeHead + startOffset, state.units[ptr].subs[i].units[ptr].tbo.o
+					);
+					if (i !== state.units[ptr].subs.length - 1) {
+						stopOffset += state.units[ptr].subs[i + 1].units[ptr].tbo.t;
+						state.units[ptr].subs[i].units[ptr].main.stop(
+							state.writeHead + stopOffset
+						);
+					}
+					state.units[ptr].subs[i].units[ptr].main.addEventListener("ended", (function (i) {
+						return function () {
+							state.units[ptr].actives = state.units[ptr].actives.filter(function (j) {
+								return i !== j;
+							});
+							delete state.units[ptr].subs[i];
+						};
+					}(i)));
+				}
+			}
+			state.units[ptr].isOn = isOn(onOff);
+		};
+	};
 };
 exports.makeRecorder_ = function (aa) {
 	return function (state) {
@@ -1360,41 +1360,41 @@ exports.setOnOff_ = function (aa) {
 };
 
 exports.setMultiPlayBufOnOff_ = function (aa) {
-    return function (state) {
-        return function () {
+	return function (state) {
+		return function () {
 			var ptr = aa.id;
 			var onOff = aa.onOff;
 			if (onOff.type === "ons") {
 				state.units[ptr].createFunction(onOff);
 				var startOffset = 0.0;
-                var stopOffset = state.units[ptr].subs[state.units[ptr].subsIdx].units[ptr].tbo.t;
-                for (var i = state.units[ptr].subsIdx; i < state.units[ptr].subs.length; i++) {
-                    applyResumeClosure(state.units[ptr].subs[i].units[ptr]);
-                    connectXToY(false)(ptr)(ptr)(state.units[ptr].subs[i])(state)();
-                    startOffset += state.units[ptr].subs[i].units[ptr].tbo.t;
-                    state.units[ptr].subs[i].units[ptr].main.start(
-                        state.writeHead + startOffset, state.units[ptr].subs[i].units[ptr].tbo.o
-                    );
-                    if (i !== state.units[ptr].subs.length - 1) {
-                        stopOffset += state.units[ptr].subs[i + 1].units[ptr].tbo.t;
-                        state.units[ptr].subs[i].units[ptr].main.stop(
-                            state.writeHead + stopOffset
-                        );
-                    }
-                    state.units[ptr].subs[i].units[ptr].main.addEventListener("ended", (function (i) {
-                        return function () {
-                            state.units[ptr].actives = state.units[ptr].actives.filter(function (j) {
-                                return i !== j;
-                            });
-                            delete state.units[ptr].subs[i];
-                        };
-                    }(i)));
+				var stopOffset = state.units[ptr].subs[state.units[ptr].subsIdx].units[ptr].tbo.t;
+				for (var i = state.units[ptr].subsIdx; i < state.units[ptr].subs.length; i++) {
+					applyResumeClosure(state.units[ptr].subs[i].units[ptr]);
+					connectXToY(false)(ptr)(ptr)(state.units[ptr].subs[i])(state)();
+					startOffset += state.units[ptr].subs[i].units[ptr].tbo.t;
+					state.units[ptr].subs[i].units[ptr].main.start(
+						state.writeHead + startOffset, state.units[ptr].subs[i].units[ptr].tbo.o
+					);
+					if (i !== state.units[ptr].subs.length - 1) {
+						stopOffset += state.units[ptr].subs[i + 1].units[ptr].tbo.t;
+						state.units[ptr].subs[i].units[ptr].main.stop(
+							state.writeHead + stopOffset
+						);
+					}
+					state.units[ptr].subs[i].units[ptr].main.addEventListener("ended", (function (i) {
+						return function () {
+							state.units[ptr].actives = state.units[ptr].actives.filter(function (j) {
+								return i !== j;
+							});
+							delete state.units[ptr].subs[i];
+						};
+					}(i)));
 				}
 			} else if (onOff.type === "off") {
 
 			}
-        };
-    };
+		};
+	};
 };
 
 var setOn_ = function (ptr) {
@@ -1630,8 +1630,8 @@ exports.setPlaybackRate_ = function (aa) {
 					var ix = state.units[ptr].actives[i];
 					genericSetter(state.units[ptr].main.subs[ix], "playbackRate", state.writeHead, a);
 					state.units[ptr].resumeClosure.playbackRate = function (i) {
-					    genericStarter(i, "playbackRate", a);
-				    };
+						genericStarter(i, "playbackRate", a);
+					};
 				}
 			} else {
 				genericSetter(state.units[ptr].main, "playbackRate", state.writeHead, a);
