@@ -21,7 +21,6 @@ schedule 2:             ______ ___ _     _____  _____ ___
 
 import Prelude
 
-import Control.Comonad.Cofree (Cofree, mkCofree)
 import Control.Parallel.Class (parallel, sequential)
 import Data.Foldable (for_)
 import Data.Maybe (Maybe(..))
@@ -48,7 +47,7 @@ import WAGS.Graph.AudioUnit (MultiPlayBuf(..), TMultiPlayBuf, TSpeaker)
 import WAGS.Graph.Paramable (paramize)
 import WAGS.Graph.Parameter (MultiPlayBufOnOff(..))
 import WAGS.Interpret (close, context, decodeAudioDataFromUri, makeFFIAudioSnapshot)
-import WAGS.Run (BehavingRun, RunAudio, RunEngine, BehavingScene(..), run)
+import WAGS.Run (TriggeredRun, RunAudio, RunEngine, TriggeredScene(..), runNoLoop)
 import WAGS.WebAPI (AudioContext, BrowserAudioBuffer)
 
 type World =
@@ -63,56 +62,43 @@ type Graph =
   , multiPlayBuf :: TMultiPlayBuf /\ {}
   )
 
-easingAlgorithm :: Cofree ((->) Int) Int
-easingAlgorithm =
-  let
-    fOf initialTime = mkCofree initialTime \adj -> fOf $ max 20 (initialTime - adj)
-  in
-    fOf 20
+alternate
+  :: BrowserAudioBuffer -> BrowserAudioBuffer -> Number -> MultiPlayBufOnOff
+alternate sample0 sample1 startTime = MultiPlayBufOnOff $ inj (Proxy :: _ "ons")
+  { starts: { b: sample0, t: startTime, o: 0.0 }
+  , next:
+      [ { b: sample1, t: 1.0, o: 0.0 }
+      , { b: sample0, t: 1.0, o: 0.0 }
+      , { b: sample1, t: 1.0, o: 0.0 }
+      , { b: sample0, t: 1.0, o: 0.0 }
+      , { b: sample1, t: 1.0, o: 0.0 }
+      , { b: sample0, t: 1.0, o: 0.0 }
+      ]
+  }
 
-initialize :: forall residuals. (BehavingScene Unit World ()) -> IxWAG RunAudio RunEngine Frame0 residuals () Graph Boolean
-initialize (BehavingScene { world: { sample0, sample1 } }) = (icreate $ speaker
+initialize
+  :: forall residuals
+   . TriggeredScene Unit World ()
+  -> IxWAG RunAudio RunEngine Frame0 residuals () Graph Unit
+initialize (TriggeredScene { world: { sample0, sample1 } }) = icreate $ speaker
   { multiPlayBuf:
       MultiPlayBuf
         { playbackRate: paramize 1.0
-        , onOff: MultiPlayBufOnOff
-            ( inj (Proxy :: _ "ons")
-                { starts: { b: sample0, t: 0.0, o: 0.0 }
-                , next:
-                    [ { b: sample1, t: 1.0, o: 0.0 }
-                    , { b: sample0, t: 1.0, o: 0.0 }
-                    , { b: sample1, t: 1.0, o: 0.0 }
-                    , { b: sample0, t: 1.0, o: 0.0 }
-                    , { b: sample1, t: 1.0, o: 0.0 }
-                    , { b: sample0, t: 1.0, o: 0.0 }
-                    ]
-                }
-            )
+        , onOff: alternate sample0 sample1 0.0
         }
-  }) $> false
+  }
 
 loop
   :: forall proof
-   . BehavingScene Unit World ()
-  -> Boolean
-  -> IxWAG RunAudio RunEngine proof Unit Graph Graph Boolean
-loop (BehavingScene { world: { sample2, sample3 }}) played =
-  true <$ when (not played) do
-    ichange' (Proxy :: Proxy "multiPlayBuf") { onOff: MultiPlayBufOnOff ( inj (Proxy :: _ "ons")
-                  { starts: { b: sample2, t: 0.5, o: 0.0 }
-                  , next:
-                      [ { b: sample3, t: 1.0, o: 0.0 }
-                      , { b: sample2, t: 1.0, o: 0.0 }
-                      , { b: sample3, t: 1.0, o: 0.0 }
-                      , { b: sample2, t: 1.0, o: 0.0 }
-                      , { b: sample3, t: 1.0, o: 0.0 }
-                      , { b: sample2, t: 1.0, o: 0.0 }
-                      ]
-                  }
-                                                                        )
-                                             }
+   . TriggeredScene Unit World ()
+  -> Unit
+  -> IxWAG RunAudio RunEngine proof Unit Graph Graph Unit
+loop (TriggeredScene { world: { sample2, sample3 } }) _ =
+  ichange' (Proxy :: Proxy "multiPlayBuf")
+    { onOff: alternate sample2 sample3 0.5
+    }
 
-scene :: Scene (BehavingScene Unit World ()) RunAudio RunEngine Frame0 Unit
+scene :: Scene (TriggeredScene Unit World ()) RunAudio RunEngine Frame0 Unit
 scene = initialize @!> iloop loop
 
 main :: Effect Unit
@@ -130,7 +116,11 @@ data Action
   = StartAudio
   | StopAudio
 
-component :: forall query input output m. MonadEffect m => MonadAff m => H.Component query input output m
+component
+  :: forall query input output m
+   . MonadEffect m
+  => MonadAff m
+  => H.Component query input output m
 component =
   H.mkComponent
     { initialState
@@ -158,25 +148,42 @@ render _ = do
           [ HH.text "Stop audio" ]
       ]
 
-handleAction :: forall output m. MonadEffect m => MonadAff m => Action -> H.HalogenM State Action () output m Unit
+handleAction
+  :: forall output m
+   . MonadEffect m
+  => MonadAff m
+  => Action
+  -> H.HalogenM State Action () output m Unit
 handleAction = case _ of
   StartAudio -> do
     myEvent <- H.liftEffect create
     audioCtx <- H.liftEffect context
     ffiAudio <- H.liftEffect $ makeFFIAudioSnapshot audioCtx
     let pf = parallel <<< decodeAudioDataFromUri audioCtx
-    { sample0, sample1, sample2, sample3 } <- H.liftAff (
-         sequential ({sample0: _, sample1: _, sample2: _, sample3: _} <$>
-          pf "https://freesound.org/data/previews/320/320873_527080-lq.mp3" <*>
-          pf "https://freesound.org/data/previews/144/144971_2137927-lq.mp3" <*> 
-          pf "https://freesound.org/data/previews/110/110212_1751865-lq.mp3" <*>
-          pf "https://freesound.org/data/previews/110/110158_649468-lq.mp3" )
-    )
+    { sample0, sample1, sample2, sample3 } <- H.liftAff
+      ( sequential
+          ( { sample0: _, sample1: _, sample2: _, sample3: _ }
+              <$> pf
+                "https://freesound.org/data/previews/320/320873_527080-lq.mp3"
+              <*> pf
+                "https://freesound.org/data/previews/144/144971_2137927-lq.mp3"
+              <*> pf
+                "https://freesound.org/data/previews/110/110212_1751865-lq.mp3"
+              <*>
+                pf
+                  "https://freesound.org/data/previews/110/110158_649468-lq.mp3"
+          )
+      )
     unsubscribe <-
       H.liftEffect
         $ subscribe
-            (run myEvent.event (pure { sample0, sample1, sample2, sample3 }) { easingAlgorithm } ffiAudio scene)
-            (\(_ :: BehavingRun Unit ()) -> pure unit)
+            ( runNoLoop myEvent.event
+                (pure { sample0, sample1, sample2, sample3 })
+                {}
+                ffiAudio
+                scene
+            )
+            (\(_ :: TriggeredRun Unit ()) -> pure unit)
     H.liftEffect $ myEvent.push unit
     H.liftAff $ do
       delay (Milliseconds 2500.0)
