@@ -1642,9 +1642,9 @@ exports.setPlaybackRate_ = function (aa) {
 			var ptr = aa.id;
 			var a = aa.playbackRate;
 			if (state.units[ptr].actives) {
-				for (var i = 0; i < state.units[ptr].actives; i++) {
+				for (var i = 0; i < state.units[ptr].actives.length; i++) {
 					var ix = state.units[ptr].actives[i];
-					genericSetter(state.units[ptr].main.subs[ix], "playbackRate", state.writeHead, a);
+					genericSetter(state.units[ptr].subs[ix].units[ptr].main, "playbackRate", state.writeHead, a);
 					state.units[ptr].resumeClosure.playbackRate = function (i) {
 						genericStarter(i, "playbackRate", a);
 					};

@@ -714,6 +714,8 @@ instance playbackRateableLoopBuf :: PlaybackRateable CTOR.TLoopBuf
 
 instance playbackRateablePlayBuf :: PlaybackRateable CTOR.TPlayBuf
 
+instance playbackRateableMultiPlayBuf :: PlaybackRateable CTOR.TMultiPlayBuf
+
 instance canBeChangedPlaybackRateN ::
   ( CanBeChanged "playbackRate" AudioParameter ptr graph
   ) =>

@@ -79,6 +79,9 @@ loop (TriggeredScene { world: { sample2, sample3 } }) _ = do
     { onOff: alternate sample2 sample3 0.5
     }
   ichange' (Proxy :: Proxy "multiPlayBuf")
+    { playbackRate: 1.5
+    }
+  ichange' (Proxy :: Proxy "multiPlayBuf")
     { onOff: MultiPlayBufOnOff (inj (Proxy :: _ "off") 4.0)
     }
 
