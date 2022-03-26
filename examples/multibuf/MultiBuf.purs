@@ -1,24 +1,5 @@
 module WAGS.Example.MultiBuf where
 
--- In this test, we test multibuf in the following way.
--- First, we schedule six sounds to play in sequence.
--- Then, at 2.5 seconds, we schedule another six sounds to play immediately in sequence.
--- This should have the effect of:
--- - letting the previous sounds continue playing
--- - scheduling a new group of sounds to start in 0.5 seconds. that means that there will be overlap starting at 4.5 seconds
-
--- end (Maybe Number)
-
-{-
-allowing the sounds to overlap
-
-schedule 1:    __ __ ______ __ _ _______ __ ________ __
-schedule 2:             ______ ___ _     _____  _____ ___
--}
-
--- Schedule 1: Schedule 6 sounds, that also means that my substates is also 6 items, iterating starting at 0
--- Schedule 2: Schedule 6 more sounds, my substates would become 12 items, iterating at the previous length
-
 import Prelude
 
 import Control.Parallel.Class (parallel, sequential)
@@ -93,9 +74,12 @@ loop
    . TriggeredScene Unit World ()
   -> Unit
   -> IxWAG RunAudio RunEngine proof Unit Graph Graph Unit
-loop (TriggeredScene { world: { sample2, sample3 } }) _ =
+loop (TriggeredScene { world: { sample2, sample3 } }) _ = do
   ichange' (Proxy :: Proxy "multiPlayBuf")
     { onOff: alternate sample2 sample3 0.5
+    }
+  ichange' (Proxy :: Proxy "multiPlayBuf")
+    { onOff: MultiPlayBufOnOff (inj (Proxy :: _ "off") 4.0)
     }
 
 scene :: Scene (TriggeredScene Unit World ()) RunAudio RunEngine Frame0 Unit

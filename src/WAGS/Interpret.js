@@ -921,6 +921,7 @@ exports.makeMultiPlayBuf_ = function (aa) {
 							state.units[ptr].actives = state.units[ptr].actives.filter(function (j) {
 								return i !== j;
 							});
+							disconnectXFromY(ptr)(ptr)(state.units[ptr].subs[i])(state)();
 							delete state.units[ptr].subs[i];
 						};
 					}(i)));
@@ -1386,12 +1387,27 @@ exports.setMultiPlayBufOnOff_ = function (aa) {
 							state.units[ptr].actives = state.units[ptr].actives.filter(function (j) {
 								return i !== j;
 							});
+							disconnectXFromY(ptr)(ptr)(state.units[ptr].subs[i])(state)();
 							delete state.units[ptr].subs[i];
 						};
 					}(i)));
 				}
 			} else if (onOff.type === "off") {
-
+				if (!state.units[ptr].isOn) {
+				return;
+				}
+				state.units[ptr].isOn = false;
+				var oldActives = state.units[ptr].actives;
+				// We use `setTimeout` here as we want to cancel future sounds immediately.
+				setTimeout(function () {
+					for (var i = 0; i < oldActives.length; i++) {
+						// Sounds may have already ended once we get to this point.
+						if (state.units[ptr].subs[oldActives[i]]) {
+							state.units[ptr].subs[oldActives[i]].units[ptr].main.stop(state.writeHead);
+						}
+					}
+				}, 1000.0 * (state.writeHead + onOff.value - state.context.currentTime));
+				state.units[ptr].actives = [];
 			}
 		};
 	};
