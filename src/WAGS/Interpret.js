@@ -713,14 +713,30 @@ exports.makeInput_ = function (a) {
 		};
 	};
 };
-
+/**
+ *
+ *   String
+  -> String
+  -> Array (Pie index env)
+  -> (index -> scene)
+  -> ( env
+       -> scene
+       -> { instructions :: Array (FFIAudioSnapshot -> Effect Unit)
+          , nextScene :: scene
+          }
+     )
+  -> FFIAudioSnapshot
+  -> Effect Unit} ptr
+ * @returns
+ */
 exports.makeSubgraph_ = function (ptr) {
 	return function (terminalPtr) {
 		return function (envs) {
 			return function (sceneM) {
-				return function (funk) {
+				return function (funkyFx) {
 					return function (state) {
 						return function () {
+							/*
 							var children = [];
 							var scenes = [];
 							for (var i = 0; i < envs.length; i++) {
@@ -753,7 +769,23 @@ exports.makeSubgraph_ = function (ptr) {
 							}
 							for (var i = 0; i < children.length; i++) {
 								connectXToY(false)(terminalPtr)(ptr)(children[i])(state)();
-							}
+							}*/
+							var children = {};
+							var scenes = {};
+							var funk = {};
+							state.units[ptr] = {
+								outgoing: [],
+								incoming: [],
+								sceneM: sceneM,
+								main: state.context.createGain(),
+								funkyFx: funkyFx,
+								terminalPtr: terminalPtr,
+								isSubgraph: true,
+								scenes: scenes,
+								children: children,
+								funk: funk,
+							};
+							setSubgraph_(ptr)(envs)(state)();
 						};
 					};
 				};
@@ -1110,28 +1142,82 @@ exports.setInput_ = function (aa) {
 	};
 };
 
-exports.setSubgraph_ = function (ptr) {
+var setSubgraph_ = function (ptr) {
 	return function (envs) {
 		return function (state) {
 			return function () {
-				for (var i = 0; i < envs.length; i++) {
-					state.units[ptr].children[i].writeHead = state.writeHead;
-				}
+				// for (var i = 0; i < envs.length; i++) {
+				// 	state.units[ptr].children[i].writeHead = state.writeHead;
+				// }
+				// var scenes = state.units[ptr].scenes;
+				// var children = state.units[ptr].children;
+				// for (var i = 0; i < scenes.length; i++) {
+				// 	var applied = state.units[ptr].funk(envs[i])(scenes[i]);
+				// 	for (var j = 0; j < applied.instructions.length; j++) {
+				// 		// thunk
+				// 		applied.instructions[j](children[i])();
+				// 	}
+				// 	scenes[i] = applied.nextScene;
+				// }
 				var scenes = state.units[ptr].scenes;
 				var children = state.units[ptr].children;
-				for (var i = 0; i < scenes.length; i++) {
-					var applied = state.units[ptr].funk(envs[i])(scenes[i]);
+				var funk = state.units[ptr].funk;
+				var needsConnecting = [];
+				for (var i = 0; i < envs.length; i++) {
+					var j = envs[i].pos;
+					if (envs[i].env === null && scenes[j] === undefined) {
+					} else if (envs[i].env !== null && scenes[j] !== undefined) {
+					} else if (envs[i].env !== null && scenes[j] === undefined) {
+						children[j] = {
+							units: {},
+							unqidfr: makeid(10),
+							parent: state,
+							context: state.context,
+							writeHead: state.writeHead,
+						};
+						scenes[j] = state.units[ptr].sceneM(envs[i].index);
+						var funkworthy = state.units[ptr].funkyFx;
+						// todo: this is copied from deku, but as
+						// the creation of funk[j] is not effectful,
+						// this seems like one layer of indirection
+						// too much. funkyFx currently never changes
+						// so we can likely get away with nixing it.
+						funk[j] = funkworthy;
+						needsConnecting.push(j);
+					} else {
+						disconnectXFromY(false)(state.units[ptr].terminalPtr)(ptr)(
+							children[j]
+						)(state)();
+						// delete unused
+						delete scenes[j];
+						delete children[j];
+						delete funk[j];
+					}
+				}
+				var sortable = [];
+				for (var m = 0; m < envs.length; m++) {
+					if (envs[m].env === null) {
+						continue;
+					}
+					var i = envs[m].pos;
+					var applied = funk[i](envs[m].env)(scenes[i]);
 					for (var j = 0; j < applied.instructions.length; j++) {
 						// thunk
 						applied.instructions[j](children[i])();
 					}
 					scenes[i] = applied.nextScene;
 				}
+				for (var i = 0; i < needsConnecting.length; i++) {
+					var j = needsConnecting[i];
+					connectXToY(false)(state.units[ptr].terminalPtr)(ptr)(children[j])(
+						state
+					)();
+				}
 			};
 		};
 	};
 };
-
+exports.setSubgraph_ = setSubgraph_;
 exports.setTumult_ = function (ptr) {
 	return function (terminalPtr) {
 		return function (scenes) {

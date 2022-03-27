@@ -27,7 +27,7 @@ import WAGS.Graph.Graph (Graph)
 import WAGS.Graph.Node (NodeC)
 import WAGS.Graph.Oversample (class IsOversample, reflectOversample)
 import WAGS.Graph.Parameter (AudioParameter)
-import WAGS.Interpret (class AudioInterpret, AsSubgraph, makeAllpass, makeAnalyser, makeAudioWorkletNode, makeBandpass, makeConstant, makeConvolver, makeDelay, makeDynamicsCompressor, makeGain, makeHighpass, makeHighshelf, makeInput, makeLoopBuf, makeLowpass, makeLowshelf, makeMediaElement, makeMicrophone, makeNotch, makePeaking, makePeriodicOsc, makePeriodicOscV, makePlayBuf, makeRecorder, makeSawtoothOsc, makeSinOsc, makeSpeaker, makeSquareOsc, makeStereoPanner, makeSubgraph, makeTriangleOsc, makeTumult, makeWaveShaper, unAsSubGraph)
+import WAGS.Interpret (class AudioInterpret, makeAllpass, makeAnalyser, makeAudioWorkletNode, makeBandpass, makeConstant, makeConvolver, makeDelay, makeDynamicsCompressor, makeGain, makeHighpass, makeHighshelf, makeInput, makeLoopBuf, makeLowpass, makeLowshelf, makeMediaElement, makeMicrophone, makeNotch, makePeaking, makePeriodicOsc, makePeriodicOscV, makePlayBuf, makeRecorder, makeSawtoothOsc, makeSinOsc, makeSpeaker, makeSquareOsc, makeStereoPanner, makeSubgraph, makeTriangleOsc, makeTumult, makeWaveShaper)
 import WAGS.Rendered (AudioWorkletNodeOptions_(..), RealImg(..))
 import WAGS.Tumult (safeUntumult)
 import WAGS.Util (class AddPrefixToRowList, class CoercePrefixToString, class MakePrefixIfNeeded, class ValidateOutputChannelCount, toOutputChannelCount)
@@ -64,11 +64,11 @@ instance createStepRLNil :: CreateStepRL RL.Nil prefix map r inGraph inGraph whe
 
 instance createStepRLConsB ::
   ( IsSymbol key
-  , R.Cons key (Tuple (CTOR.Subgraph inputs subgraphMaker env) ignoreMe) ignore
+  , R.Cons key (Tuple (CTOR.Subgraph terminus inputs index env) ignoreMe) ignore
       r
   , MakePrefixIfNeeded key prefix prefix'
   , ConstructEdges prefix' map
-      (Tuple (CTOR.Subgraph inputs subgraphMaker env) ignoreMe)
+      (Tuple (CTOR.Subgraph terminus inputs index env) ignoreMe)
       newPrefix
       newMap
       (node /\ { | edges })
@@ -82,7 +82,7 @@ instance createStepRLConsB ::
   , Create' newKey node graph2 graph3
   ) =>
   CreateStepRL ( RL.Cons key
-        (Tuple (CTOR.Subgraph inputs subgraphMaker env) ignoreMe)
+        (Tuple (CTOR.Subgraph terminus inputs index env) ignoreMe)
         rest
     )
     prefix
@@ -1104,12 +1104,11 @@ instance createStereoPanner ::
 instance createSubgraph ::
   ( IsSymbol ptr
   , IsSymbol terminus
-  , Pos n
   , R.Lacks ptr graphi
-  , R.Cons ptr (NodeC (CTOR.TSubgraph n terminus inputs env) {}) graphi grapho
+  , R.Cons ptr (NodeC (CTOR.TSubgraph terminus inputs index env) {}) graphi grapho
   ) =>
   Create' ptr
-    (CTOR.Subgraph inputs (AsSubgraph terminus inputs env) (V.Vec n env))
+    (CTOR.Subgraph terminus inputs index env)
     graphi
     grapho where
   create' ptr w = o
@@ -1126,7 +1125,7 @@ instance createSubgraph ::
                       { id
                       , terminus: Proxy :: _ terminus
                       , envs
-                      , scenes: unAsSubGraph subgraphMaker
+                      , scenes: CTOR.unAsSubGraph subgraphMaker
                       }
                   ]
               }

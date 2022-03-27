@@ -560,9 +560,8 @@ class AudioInterpret audio engine where
   setInput :: R.SetInput -> audio -> engine
   -- | Set subgraph.
   setSubgraph
-    :: forall env n
-     . Pos n
-    => SetSubgraphInput n env
+    :: forall index env
+     . SetSubgraphInput index env
     -> audio
     -> engine
   setTumult :: R.SetTumult -> audio -> engine
@@ -1032,7 +1031,7 @@ makeInstructionsEffectful a = case _ of
         (Set.fromFoldable b)
     )
 envsToFFI
-  :: forall index env push
+  :: forall index env
    . Array (Ie index env)
   -> Array (Pie index env)
 envsToFFI = map go

@@ -9,7 +9,7 @@ import Data.Row.Options (asOptions, options, megamap)
 import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.Tuple (fst, snd)
 import Data.Tuple.Nested ((/\), type (/\))
-import Data.Typelevel.Num (class Lt, class Nat, class Pos, D1)
+import Data.Typelevel.Num (class Lt, class Pos, D1)
 import Data.Variant.Maybe (Maybe)
 import Data.Vec as V
 import Foreign.Object (values)
@@ -29,7 +29,7 @@ import WAGS.Graph.Node (NodeC)
 import WAGS.Graph.Oversample (class IsOversample)
 import WAGS.Graph.Paramable (onOffIze, paramize)
 import WAGS.Graph.Parameter (class MM, AudioEnvelope, AudioOnOff, AudioParameter, AudioParameterCancellation, AudioSingleNumber, OnOff)
-import WAGS.Interpret (class AudioInterpret, setAnalyserNodeCb, setAttack, setAudioWorkletParameter, setBuffer, setBufferOffset, setConvolverBuffer, setDelay, setFrequency, setGain, setInput, setKnee, setLoopEnd, setLoopStart, setMediaRecorderCb, setOffset, setOnOff, setPan, setPeriodicOsc, setPeriodicOscV, setPlaybackRate, setQ, setRatio, setRelease, setSingleSubgraph, setSubgraph, setThreshold, setTumult, setWaveShaperCurve)
+import WAGS.Interpret (class AudioInterpret, setAnalyserNodeCb, setAttack, setAudioWorkletParameter, setBuffer, setBufferOffset, setConvolverBuffer, setDelay, setFrequency, setGain, setInput, setKnee, setLoopEnd, setLoopStart, setMediaRecorderCb, setOffset, setOnOff, setPan, setPeriodicOsc, setPeriodicOscV, setPlaybackRate, setQ, setRatio, setRelease, setSubgraph, setThreshold, setTumult, setWaveShaperCurve)
 import WAGS.Rendered (RealImg(..))
 import WAGS.Tumult (Tumultuous, safeUntumult)
 import WAGS.Util (class MakePrefixIfNeeded, class CoercePrefixToString)
@@ -2023,10 +2023,9 @@ instance changeXStereoPanner ::
 instance changeSubgraph0 ::
   ( IsSymbol ptr
   , IsSymbol terminus
-  , R.Cons ptr (NodeC (CTOR.TSubgraph n terminus inputs env) edges) ignore graph
-  , Pos n
+  , R.Cons ptr (NodeC (CTOR.TSubgraph terminus inputs index env) edges) ignore graph
   ) =>
-  Change' ptr (CTOR.Subgraph inputs notImportant (V.Vec n env)) graph where
+  Change' ptr (CTOR.Subgraph terminus inputs index env) graph where
   change' ptr w = o
     where
     { context: i, value: (CTOR.Subgraph { envs }) } = unsafeUnWAG w
@@ -2046,15 +2045,12 @@ instance changeSubgraph0 ::
 instance changeSubgraph1 ::
   ( IsSymbol ptr
   , IsSymbol terminus
-  , R.Cons ptr (NodeC (CTOR.TSubgraph n terminus inputs env) edges) ignore graph
-  , Pos n
-  , Nat i
-  , Lt i n
+  , R.Cons ptr (NodeC (CTOR.TSubgraph terminus inputs index env) edges) ignore graph
   ) =>
-  Change' ptr (CTOR.XSubgraph i env) graph where
+  Change' ptr (CTOR.XSubgraph index env) graph where
   change' ptr w = o
     where
-    { context: i, value: (CTOR.XSubgraph { index, env }) } = unsafeUnWAG w
+    { context: i, value: (CTOR.XSubgraph { envs }) } = unsafeUnWAG w
 
     id = reflectSymbol ptr
 
@@ -2063,7 +2059,7 @@ instance changeSubgraph1 ::
         { context:
             i
               { instructions = i.instructions <>
-                  [ setSingleSubgraph { id, index, env } ]
+                  [ setSubgraph { id, envs } ]
               }
         , value: unit
         }
