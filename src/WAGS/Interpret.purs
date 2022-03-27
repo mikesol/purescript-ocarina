@@ -123,11 +123,10 @@ import Control.Promise (Promise, toAffE)
 import Data.Array as Array
 import Data.ArrayBuffer.Types (Float32Array, Uint8Array, ArrayBuffer)
 import Data.Compactable (compact)
-import Data.FunctorWithIndex (mapWithIndex)
 import Data.Lazy (defer)
-import Data.Variant.Maybe as VM
 import Data.Maybe (Maybe(..))
 import Data.Newtype (unwrap)
+import Data.Nullable (Nullable, toNullable)
 import Data.Set as Set
 import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.Tuple (fst, snd)
@@ -135,6 +134,7 @@ import Data.Tuple.Nested (type (/\), (/\))
 import Data.Typelevel.Num (class Lt, class Nat, class Pos, D1, toInt)
 import Data.Typelevel.Undefined (undefined)
 import Data.Variant (match)
+import Data.Variant.Maybe as VM
 import Data.Vec (Vec)
 import Data.Vec as V
 import Data.Vec as Vec
@@ -507,7 +507,8 @@ class AudioInterpret audio engine where
   -- | Make sugbraph.
   makeSubgraph
     :: forall proxy terminus inputs index env
-     . SubgraphInput proxy terminus inputs index env audio engine
+     . IsSymbol terminus
+    => SubgraphInput proxy terminus inputs index env audio engine
     -> audio
     -> engine
   -- | Make a triangle-wave oscillator.
@@ -592,7 +593,6 @@ handleSubgraph f { id, envs, scenes } = const $ f
   , instructions:
       defer \_ ->
         let
-          allEnvs = envs
           subs = map (\{ index, env } -> VM.maybe Nothing Just $ map (oneSubFrame (scenes index)) env) envs
         in
           (map <<< map) ((#) unit) (map _.instructions (compact subs))
@@ -826,12 +826,15 @@ foreign import makeWaveShaper_
 
 foreign import makeInput_ :: R.MakeInput -> FFIAudioSnapshot -> Effect Unit
 
+type Pie index env =
+  { pos :: Int, index :: index, env :: Nullable env }
+
 foreign import makeSubgraph_
-  :: forall env scene
+  :: forall index env scene
    . String
   -> String
-  -> Array env
-  -> (Int -> scene)
+  -> Array (Pie index env)
+  -> (index -> scene)
   -> ( env
        -> scene
        -> { instructions :: Array (FFIAudioSnapshot -> Effect Unit)
@@ -1053,6 +1056,13 @@ makeInstructionsEffectful a = case _ of
     ( Array.fromFoldable $ reconcileTumult (Set.fromFoldable a)
         (Set.fromFoldable b)
     )
+envsToFFI
+  :: forall index env push
+   . Array (Ie index env)
+  -> Array (Pie index env)
+envsToFFI = map go
+  where
+  go { pos, index, env } = { pos, index, env: toNullable $ VM.maybe Nothing Just env }
 
 instance effectfulAudioInterpret ::
   AudioInterpret FFIAudioSnapshot (Effect Unit) where
@@ -1091,9 +1101,23 @@ instance effectfulAudioInterpret ::
   makeSpeaker = makeSpeaker_
   makeSquareOsc = makeSquareOsc_
   makeStereoPanner = makeStereoPanner_
-  makeSubgraph { id, terminus, envs, scenes } audio = makeSubgraph_ id
+  {-: forall index env scene
+   . String
+  -> String
+  -> Array (Pie index env)
+  -> (index -> scene)
+  -> ( env
+       -> scene
+       -> { instructions :: Array (FFIAudioSnapshot -> Effect Unit)
+          , nextScene :: scene
+          }
+     )
+  -> FFIAudioSnapshot
+  -> Effect Unit-}
+  makeSubgraph { id, terminus, envs, scenes } audio =
+    makeSubgraph_ id
     (reflectSymbol terminus)
-    (Vec.toArray envs)
+    (envsToFFI envs)
     scenes
     ( \env scene ->
         let
