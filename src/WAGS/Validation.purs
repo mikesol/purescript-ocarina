@@ -431,7 +431,7 @@ instance allNodesAreSaturatedCons_TSubgraph ::
   , AllNodesAreSaturatedNL tail
   ) =>
   AllNodesAreSaturatedNL ( RL.Cons iSym
-        (NodeC (CTOR.TSubgraph arity terminus inputs env) { | r })
+        (NodeC (CTOR.TSubgraph terminus inputs index env) { | r })
         tail
     )
 

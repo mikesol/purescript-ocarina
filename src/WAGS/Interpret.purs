@@ -5,8 +5,6 @@ module WAGS.Interpret
   ( class AudioInterpret
   , AudioBuffer
   , FFIAudioSnapshot
-  , unAsSubGraph
-  , AsSubgraph(..)
   , makeFFIAudioSnapshot
   , contextFromSnapshot
   , advanceWriteHead
@@ -124,8 +122,10 @@ import Control.Plus (empty)
 import Control.Promise (Promise, toAffE)
 import Data.Array as Array
 import Data.ArrayBuffer.Types (Float32Array, Uint8Array, ArrayBuffer)
+import Data.Compactable (compact)
 import Data.FunctorWithIndex (mapWithIndex)
 import Data.Lazy (defer)
+import Data.Variant.Maybe as VM
 import Data.Maybe (Maybe(..))
 import Data.Newtype (unwrap)
 import Data.Set as Set
@@ -367,40 +367,27 @@ foreign import bufferDuration :: BrowserAudioBuffer -> Number
 foreign import bufferNumberOfChannels :: BrowserAudioBuffer -> Int
 
 data FFIAudioSnapshot
-
-newtype AsSubgraph terminus inputs env = AsSubgraph
-  ( forall audio engine
-     . AudioInterpret audio engine
-    => Int
-    -> SubScene terminus inputs env audio engine Frame0 Unit
-  )
-
-unAsSubGraph
-  :: forall terminus inputs env
-   . AsSubgraph terminus inputs env
-  -> ( forall audio engine
-        . AudioInterpret audio engine
-       => Int
-       -> SubScene terminus inputs env audio engine Frame0 Unit
-     )
-unAsSubGraph (AsSubgraph subgraph) = subgraph
+type Ie index env =
+  { pos :: Int
+  , index :: index
+  , env :: VM.Maybe env
+  }
 
 type SubgraphInput
-  :: forall k
-   . (Symbol -> Type)
+  :: (Symbol -> Type)
   -> Symbol
   -> Row Type
-  -> k
   -> Type
   -> Type
   -> Type
   -> Type
-type SubgraphInput proxy terminus inputs n env audio engine =
+  -> Type
+type SubgraphInput proxy terminus inputs index env audio engine =
   { id :: String
   , terminus :: proxy terminus
-  , envs :: V.Vec n env
+  , envs :: Array (Ie index env)
   , scenes ::
-      Int -> SubScene terminus inputs env audio engine Frame0 Unit
+      index -> SubScene terminus inputs env audio engine Frame0 Unit
   }
 
 type SetSubgraphInput :: forall k. k -> Type -> Type
@@ -519,10 +506,8 @@ class AudioInterpret audio engine where
   makeStereoPanner :: R.MakeStereoPanner -> audio -> engine
   -- | Make sugbraph.
   makeSubgraph
-    :: forall proxy terminus inputs env n
-     . IsSymbol terminus
-    => Pos n
-    => SubgraphInput proxy terminus inputs n env audio engine
+    :: forall proxy terminus inputs index env
+     . SubgraphInput proxy terminus inputs index env audio engine
     -> audio
     -> engine
   -- | Make a triangle-wave oscillator.
@@ -608,10 +593,9 @@ handleSubgraph f { id, envs, scenes } = const $ f
       defer \_ ->
         let
           allEnvs = envs
-          subs = mapWithIndex (const <<< scenes) envs
-          frames = V.zipWithE oneSubFrame subs allEnvs
+          subs = map (\{ index, env } -> VM.maybe Nothing Just $ map (oneSubFrame (scenes index)) env) envs
         in
-          (map <<< map) ((#) unit) (map _.instructions (V.toArray frames))
+          (map <<< map) ((#) unit) (map _.instructions (compact subs))
   }
 
 instance freeAudioInterpret :: AudioInterpret Unit Instruction where
