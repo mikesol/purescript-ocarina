@@ -36,6 +36,7 @@
   , "typelevel"
   , "typelevel-peano"
   , "typelevel-prelude"
+  , "unordered-collections"
   , "unsafe-coerce"
   , "unsafe-reference"
   , "variant"

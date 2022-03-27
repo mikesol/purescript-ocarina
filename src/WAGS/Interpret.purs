@@ -111,7 +111,6 @@ module WAGS.Interpret
   , bufferNumberOfChannels
   , makeSubgraph
   , setSubgraph
-  , setSingleSubgraph
   , setTumult
   ) where
 
@@ -131,13 +130,12 @@ import Data.Set as Set
 import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.Tuple (fst, snd)
 import Data.Tuple.Nested (type (/\), (/\))
-import Data.Typelevel.Num (class Lt, class Nat, class Pos, D1, toInt)
+import Data.Typelevel.Num (class Lt, class Nat, class Pos, D1)
 import Data.Typelevel.Undefined (undefined)
 import Data.Variant (match)
 import Data.Variant.Maybe as VM
 import Data.Vec (Vec)
 import Data.Vec as V
-import Data.Vec as Vec
 import Effect (Effect)
 import Effect.Aff (Aff)
 import Simple.JSON as JSON
@@ -390,16 +388,9 @@ type SubgraphInput proxy terminus inputs index env audio engine =
       index -> SubScene terminus inputs env audio engine Frame0 Unit
   }
 
-type SetSubgraphInput :: forall k. k -> Type -> Type
-type SetSubgraphInput n env =
+type SetSubgraphInput index env =
   { id :: String
-  , envs :: V.Vec n env
-  }
-
-type SetSingleSubgraphInput n env =
-  { id :: String
-  , index :: n
-  , env :: env
+  , envs :: Array (Ie index env)
   }
 
 type MakePeriodicOscW =
@@ -574,12 +565,6 @@ class AudioInterpret audio engine where
     => SetSubgraphInput n env
     -> audio
     -> engine
-  setSingleSubgraph
-    :: forall env n
-     . Nat n
-    => SetSingleSubgraphInput n env
-    -> audio
-    -> engine
   setTumult :: R.SetTumult -> audio -> engine
 
 handleSubgraph
@@ -668,7 +653,6 @@ instance freeAudioInterpret :: AudioInterpret Unit Instruction where
   setWaveShaperCurve = const <<< R.iSetWaveShaperCurve
   setInput = const <<< R.iSetInput
   setSubgraph { id } _ = R.iSetSubgraph { id }
-  setSingleSubgraph { id } _ = R.iSetSingleSubgraph { id }
   setTumult = const <<< R.iSetTumult
 
 foreign import connectXToY_
@@ -947,17 +931,9 @@ foreign import setWaveShaperCurve_
 foreign import setInput_ :: R.SetInput -> FFIAudioSnapshot -> Effect Unit
 
 foreign import setSubgraph_
-  :: forall env
+  :: forall index env
    . String
-  -> Array env
-  -> FFIAudioSnapshot
-  -> Effect Unit
-
-foreign import setSingleSubgraph_
-  :: forall env
-   . String
-  -> Int
-  -> env
+  -> Array (Pie index env)
   -> FFIAudioSnapshot
   -> Effect Unit
 
@@ -1042,7 +1018,6 @@ interpretInstruction = unwrap >>> match
   , setWaveShaperCurve: \a -> setWaveShaperCurve a
   , setInput: \a -> setInput a
   , setSubgraph: \{ id } -> setGain { id, gain: paramize 1.0 }
-  , setSingleSubgraph: \{ id } -> setGain { id, gain: paramize 1.0 }
   , setTumult: \{ id } -> setGain { id, gain: paramize 1.0 }
   }
 
@@ -1162,11 +1137,7 @@ instance effectfulAudioInterpret ::
   setFrequency = setFrequency_
   setWaveShaperCurve = setWaveShaperCurve_
   setInput = setInput_
-  setSubgraph { id, envs } audio = setSubgraph_ id (Vec.toArray envs)
-    (audio)
-  setSingleSubgraph { id, index, env } audio = setSingleSubgraph_ id
-    (toInt index)
-    env
+  setSubgraph { id, envs } audio = setSubgraph_ id (envsToFFI envs)
     (audio)
   setTumult { id, terminus, instructions } toFFI = setTumult_
     id
@@ -1301,8 +1272,4 @@ instance mixedAudioInterpret ::
   setSubgraph { id, envs } (x /\ y) = setSubgraph { id, envs } x /\ setSubgraph
     { id, envs }
     y
-  setSingleSubgraph { id, index, env } (x /\ y) =
-    setSingleSubgraph { id, index, env } x /\ setSingleSubgraph
-      { id, index, env }
-      y
   setTumult a (x /\ y) = setTumult a x /\ setTumult a y

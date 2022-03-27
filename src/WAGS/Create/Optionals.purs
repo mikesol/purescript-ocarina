@@ -4,12 +4,16 @@ module WAGS.Create.Optionals where
 import Prelude
 
 import ConvertableOptions (class ConvertOption, class ConvertOptionsWithDefaults, convertOptionsWithDefaults)
-import Data.Symbol (class IsSymbol)
+import Data.Hashable (class Hashable, hash)
+import Data.Map (Map, toUnfoldable)
+import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.Tuple (Tuple(..))
 import Data.Tuple.Nested ((/\), type (/\))
 import Data.Typelevel.Num (class Lt, class Nat, class Pos, D1)
+import Data.Variant.Maybe (Maybe)
 import Data.Vec as V
 import Simple.JSON as JSON
+import Type.Proxy (Proxy(..))
 import Type.Row.Homogeneous (class Homogeneous)
 import WAGS.Control.Types (Frame0, SubScene)
 import WAGS.Graph.AudioUnit (AudioWorkletNodeOptions)
@@ -18,7 +22,7 @@ import WAGS.Graph.Oversample (class IsOversample)
 import WAGS.Graph.Paramable (class Paramable, onOffIze, paramize)
 import WAGS.Graph.Parameter (AudioOnOff, OnOff, _on, AudioParameter)
 import WAGS.Graph.Worklet (AudioWorkletNodeResponse)
-import WAGS.Interpret (class AudioInterpret, AsSubgraph(..))
+import WAGS.Interpret (class AudioInterpret)
 import WAGS.Tumult (Tumultuous)
 import WAGS.Util (class ValidateOutputChannelCount)
 import WAGS.WebAPI (AnalyserNodeCb, BrowserAudioBuffer, BrowserFloatArray, BrowserMediaElement, BrowserMicrophone, BrowserPeriodicWave, MediaRecorderCb)
@@ -1103,36 +1107,38 @@ type CStereoPanner a = CTOR.StereoPanner /\ a
 -- | ```
 -- | the validity of inputs with respect to r is validated higher upstream (at the scene construction level)
 subgraph
-  :: forall n inputs terminus env r
-   . Pos n
-  => V.Vec n env
+  :: forall index inputs terminus env r
+   . Hashable index
+  => IsSymbol terminus
+  => Map index (Maybe env)
   -> ( forall audio engine
         . AudioInterpret audio engine
-       => Int
+       => index
        -> SubScene terminus inputs env audio engine Frame0 Unit
      )
   -> r
-  -> (CTOR.Subgraph inputs (AsSubgraph terminus inputs env) (V.Vec n env)) /\ r
+  -> (CTOR.Subgraph terminus inputs index env) /\ r
 subgraph envs sg = Tuple
-  (CTOR.Subgraph { subgraphMaker: (AsSubgraph sg), envs })
+  ( CTOR.Subgraph
+      { subgraphMaker: (CTOR.AsSubgraph sg)
+      , envs: map (\(index /\ env) -> { index, pos: hash index, env })
+          (toUnfoldable envs)
+      , terminus: reflectSymbol (Proxy :: _ terminus)
+      }
+  )
 
 subgraphSetter
-  :: forall n inputs env
-   . Pos n
-  => V.Vec n env
-  -> (CTOR.Subgraph inputs Unit (V.Vec n env))
-subgraphSetter = CTOR.Subgraph <<< { subgraphMaker: unit, envs: _ }
+  :: forall index env
+   . Hashable index
+  => Map index (Maybe env)
+  -> CTOR.XSubgraph index env
+subgraphSetter envs = CTOR.XSubgraph
+  { envs: map (\(index /\ env) -> { index, pos: hash index, env })
+      (toUnfoldable envs)
+  }
 
-subgraphSingleSetter
-  :: forall n env
-   . Nat n
-  => n
-  -> env
-  -> CTOR.XSubgraph n env
-subgraphSingleSetter index env = CTOR.XSubgraph { index, env }
-
-type CSubgraph (n :: Type) terminus inputs env r =
-  (CTOR.Subgraph inputs (AsSubgraph terminus inputs env) (V.Vec n env)) /\ r
+type CSubgraph terminus inputs index env r =
+  (CTOR.Subgraph terminus inputs index env) /\ r
 
 ------
 data TriangleOsc = TriangleOsc

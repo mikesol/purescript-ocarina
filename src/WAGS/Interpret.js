@@ -1132,26 +1132,6 @@ exports.setSubgraph_ = function (ptr) {
 	};
 };
 
-exports.setSingleSubgraph_ = function (ptr) {
-	return function (i) {
-		return function (env) {
-			return function (state) {
-				return function () {
-					state.units[ptr].children[i].writeHead = state.writeHead;
-					var scenes = state.units[ptr].scenes;
-					var children = state.units[ptr].children;
-					var applied = state.units[ptr].funk(env)(scenes[i]);
-					for (var j = 0; j < applied.instructions.length; j++) {
-						// thunk
-						applied.instructions[j](children[i])();
-					}
-					scenes[i] = applied.nextScene;
-				};
-			};
-		};
-	};
-};
-
 exports.setTumult_ = function (ptr) {
 	return function (terminalPtr) {
 		return function (scenes) {

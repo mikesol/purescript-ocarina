@@ -450,10 +450,10 @@ unAsSubGraph
   :: forall terminus inputs index env
    . AsSubgraph terminus inputs index env
   -> ( forall audio engine
-     . AudioInterpret audio engine
-    => index
-    -> SubScene terminus inputs env audio engine Frame0 Unit
-  )
+        . AudioInterpret audio engine
+       => index
+       -> SubScene terminus inputs env audio engine Frame0 Unit
+     )
 unAsSubGraph (AsSubgraph subgraph) = subgraph
 
 -- | Term-level constructor for a subgraph
@@ -464,16 +464,18 @@ unAsSubGraph (AsSubgraph subgraph) = subgraph
 type Subgraph' terminus inputs index env =
   ( subgraphMaker :: AsSubgraph terminus inputs index env
   , envs :: Array { index :: index, pos :: Int, env :: Maybe env }
-  , inputs :: Array String
   , terminus :: String
   )
+
 newtype Subgraph terminus inputs index env = Subgraph
   { | Subgraph' terminus inputs index env }
 
-derive instance newtypeSubgraph :: Newtype (Subgraph terminus inputs index env) _
+derive instance newtypeSubgraph ::
+  Newtype (Subgraph terminus inputs index env) _
 
 newtype XSubgraph index env = XSubgraph
-  { index :: index, env :: env }
+  { envs :: Array { index :: index, pos :: Int, env :: Maybe env }
+  }
 
 derive instance newtypeXSubgraph ::
   Newtype (XSubgraph i env) _
@@ -1060,7 +1062,9 @@ instance semigroupTSubgraph :: Semigroup (TSubgraph terminus inputs index env) w
 instance monoidTSubgraph :: Monoid (TSubgraph terminus inputs index env) where
   mempty = TSubgraph
 
-instance reifyTSubgraph :: ReifyAU (Subgraph terminus inputs index env) (TSubgraph terminus inputs index env) where
+instance reifyTSubgraph ::
+  ReifyAU (Subgraph terminus inputs index env)
+    (TSubgraph terminus inputs index env) where
   reifyAU = const mempty
 
 -- | Type-level constructor for a triangle oscillator.
