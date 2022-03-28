@@ -19,8 +19,6 @@ import Data.Tuple (swap)
 import Data.Tuple.Nested ((/\))
 import Data.Typelevel.Num (D40)
 import Data.Variant.Maybe (just, nothing)
-import Data.Vec as V
-import Debug (spy)
 import Effect (Effect)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect)
@@ -43,9 +41,6 @@ import WAGS.WebAPI (AudioContext, BrowserAudioBuffer)
 type World = { kick :: BrowserAudioBuffer, snare :: BrowserAudioBuffer }
 
 newtype SGWorld = SGWorld Number
-
-vec :: V.Vec D40 Unit
-vec = V.fill (const unit)
 
 subPiece0
   :: forall audio engine
@@ -117,14 +112,6 @@ piece =
                 }
             }
       }
-
-easingAlgorithm :: Cofree ((->) Int) Int
-easingAlgorithm =
-  let
-    fOf initialTime = mkCofree initialTime \adj -> fOf $ max 20
-      (initialTime - adj)
-  in
-    fOf 20
 
 main :: Effect Unit
 main =
