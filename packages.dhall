@@ -31,7 +31,6 @@ let additions =
           , "console"
           , "effect"
           , "prelude"
-          , "psci-support"
           , "typelevel-prelude"
           , "unsafe-coerce"
           ]
@@ -58,7 +57,6 @@ let additions =
           , "invariant"
           , "newtype"
           , "prelude"
-          , "psci-support"
           , "variant"
           ]
         , repo =
@@ -70,7 +68,6 @@ let additions =
           [ "effect"
           , "leibniz"
           , "prelude"
-          , "psci-support"
           , "tuples"
           , "typelevel-prelude"
           , "unsafe-coerce"
@@ -80,8 +77,7 @@ let additions =
         }
       , behaviors =
         { dependencies =
-          [ "psci-support"
-          , "effect"
+          [ "effect"
           , "ordered-collections"
           , "filterable"
           , "nullable"
