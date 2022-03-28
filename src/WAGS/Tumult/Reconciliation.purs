@@ -89,7 +89,6 @@ derogative = unwrap >>> match
   , setWaveShaperCurve: const identity
   , setInput: const identity
   , setSubgraph: const identity
-  , setSingleSubgraph: const identity
   , setTumult: const identity
   }
 
@@ -492,6 +491,5 @@ reconcileTumult new old = result
         , setWaveShaperCurve: \_ -> i1 # udef
         , setInput: \_ -> i1 # udef
         , setSubgraph: \_ -> i1 # udef
-        , setSingleSubgraph: \_ -> i1 # udef
         , setTumult: \_ -> i1 # udef
         }

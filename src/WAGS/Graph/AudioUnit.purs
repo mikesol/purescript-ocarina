@@ -5,10 +5,13 @@ import Prelude
 import Data.Newtype (class Newtype)
 import Data.Row.Options (RowOptions)
 import Data.Tuple.Nested (type (/\))
+import Data.Variant.Maybe (Maybe)
 import Prim.Symbol as Sym
 import Type.Proxy (Proxy(..))
+import WAGS.Control.Types (Frame0, SubScene)
 import WAGS.Graph.Parameter (AudioOnOff, AudioParameter)
 import WAGS.Graph.Worklet (AudioWorkletNodeResponse)
+import WAGS.Interpret (class AudioInterpret)
 import WAGS.Tumult (Tumultuous)
 import WAGS.WebAPI (BrowserAudioBuffer, BrowserFloatArray, BrowserMediaElement, BrowserMicrophone, MediaRecorderCb)
 
@@ -436,25 +439,49 @@ derive instance newtypeXStereoPanner :: Newtype XStereoPanner _
 instance typeToSymStereoPanner :: TypeToSym StereoPanner "StereoPanner"
 instance typeToSymXStereoPanner :: TypeToSym XStereoPanner "StereoPanner"
 
--- | Term-level constructor for a subgraph
--- | - `inputs` - the inputs to the subgraph
--- | - `subgraphMaker` - the scene that makes the subgraph
--- | - `env` - the envs
-newtype Subgraph (inputs :: Row Type) subgraphMaker envs = Subgraph
-  { subgraphMaker :: subgraphMaker
-  , envs :: envs
-  }
+newtype AsSubgraph terminus inputs index env = AsSubgraph
+  ( forall audio engine
+     . AudioInterpret audio engine
+    => index
+    -> SubScene terminus inputs env audio engine Frame0 Unit
+  )
 
-derive instance newtypeSubgraph :: Newtype (Subgraph inputs subgraphMaker env) _
+unAsSubGraph
+  :: forall terminus inputs index env
+   . AsSubgraph terminus inputs index env
+  -> ( forall audio engine
+        . AudioInterpret audio engine
+       => index
+       -> SubScene terminus inputs env audio engine Frame0 Unit
+     )
+unAsSubGraph (AsSubgraph subgraph) = subgraph
+
+-- | Term-level constructor for a subgraph
+-- | - `terminus` - the terminal node of the subgraph
+-- | - `inputs` - the inputs to the subgraph
+-- | - `index` - the type by which the subgraph is indexed
+-- | - `env` - the envs
+type Subgraph' terminus inputs index env =
+  ( subgraphMaker :: AsSubgraph terminus inputs index env
+  , envs :: Array { index :: index, pos :: Int, env :: Maybe env }
+  , terminus :: String
+  )
+
+newtype Subgraph terminus inputs index env = Subgraph
+  { | Subgraph' terminus inputs index env }
+
+derive instance newtypeSubgraph ::
+  Newtype (Subgraph terminus inputs index env) _
 
 newtype XSubgraph index env = XSubgraph
-  { index :: index, env :: env }
+  { envs :: Array { index :: index, pos :: Int, env :: Maybe env }
+  }
 
 derive instance newtypeXSubgraph ::
   Newtype (XSubgraph i env) _
 
 instance typeToSymSubgraph ::
-  TypeToSym (Subgraph inputs subgraphMaker env) "Subgraph"
+  TypeToSym (Subgraph terminus inputs index env) "Subgraph"
 
 instance typeToSymXSubgraph ::
   TypeToSym (XSubgraph index env) "Subgraph"
@@ -1021,21 +1048,23 @@ instance reifyTXStereoPanner :: ReifyAU (XStereoPanner) TStereoPanner where
 
 -- | Type-level constructor for a subgraph.
 data TSubgraph
-  (arity :: Type)
   (terminus :: Symbol)
   (inputs :: Row Type)
+  (index :: Type)
   (env :: Type) = TSubgraph
 
 instance typeToSymTSubgraph ::
-  TypeToSym (TSubgraph arity terminus inputs env) "TSubgraph"
+  TypeToSym (TSubgraph terminus inputs index env) "TSubgraph"
 
-instance semigroupTSubgraph :: Semigroup (TSubgraph arity terminus inputs env) where
+instance semigroupTSubgraph :: Semigroup (TSubgraph terminus inputs index env) where
   append _ _ = TSubgraph
 
-instance monoidTSubgraph :: Monoid (TSubgraph arity terminus inputs env) where
+instance monoidTSubgraph :: Monoid (TSubgraph terminus inputs index env) where
   mempty = TSubgraph
 
-instance reifyTSubgraph :: ReifyAU (Subgraph a b c) (TSubgraph w x y z) where
+instance reifyTSubgraph ::
+  ReifyAU (Subgraph terminus inputs index env)
+    (TSubgraph terminus inputs index env) where
   reifyAU = const mempty
 
 -- | Type-level constructor for a triangle oscillator.

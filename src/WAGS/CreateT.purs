@@ -18,7 +18,6 @@ import WAGS.Graph.Graph (Graph)
 import WAGS.Graph.Node (NodeC)
 import WAGS.Graph.Oversample (class IsOversampleT)
 import WAGS.Graph.Parameter (AudioParameter)
-import WAGS.Interpret (AsSubgraph)
 import WAGS.Util (class AddPrefixToRowList, class CoercePrefixToString, class MakePrefixIfNeeded)
 import WAGS.WebAPI (AnalyserNodeCb, BrowserPeriodicWave)
 
@@ -342,10 +341,10 @@ instance createTStereoPanner ::
 
 instance createSubgraph ::
   ( R.Lacks ptr graphi
-  , R.Cons ptr (NodeC (CTOR.TSubgraph n terminus inputs env) {}) graphi grapho
+  , R.Cons ptr (NodeC (CTOR.TSubgraph terminus inputs index env) {}) graphi grapho
   ) =>
   CreateT' ptr
-    (CTOR.Subgraph inputs (AsSubgraph terminus inputs env) (V.Vec n env))
+    (CTOR.Subgraph terminus inputs index env)
     graphi
     grapho
 

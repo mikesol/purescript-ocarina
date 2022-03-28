@@ -250,11 +250,6 @@ type SetInput = { id :: String, source :: String }
 -- fix? do we care? so far this is just for visualizations, but
 -- if it winds up being semantically interesting we should address this
 type SetSubgraph = { id :: String }
--- TODO: we have no idea what set subgraph will hold because we
--- have no idea what the previous state was in the pure model.
--- fix? do we care? so far this is just for visualizations, but
--- if it winds up being semantically interesting we should address this
-type SetSingleSubgraph = { id :: String }
 type SetTumult =
   { id :: String
   , terminus :: String
@@ -329,7 +324,6 @@ type Instruction' =
   , setWaveShaperCurve :: SetWaveShaperCurve
   , setInput :: SetInput
   , setSubgraph :: SetSubgraph
-  , setSingleSubgraph :: SetSingleSubgraph
   , setTumult :: SetTumult
   )
 
@@ -400,7 +394,6 @@ instructionWeight (Instruction v) = v # match
   , setWaveShaperCurve: const 6
   , setInput: const 6
   , setSubgraph: const 7
-  , setSingleSubgraph: const 8
   , setTumult: const 9
   }
 
@@ -469,7 +462,6 @@ instructionId (Instruction v) = v # match
   , setWaveShaperCurve: _.id
   , setInput: _.id
   , setSubgraph: _.id
-  , setSingleSubgraph: _.id
   , setTumult: _.id
   }
 
@@ -687,9 +679,6 @@ iSetInput = Instruction <<< inj (Proxy :: Proxy "setInput")
 
 iSetSubgraph :: SetSubgraph -> Instruction
 iSetSubgraph = Instruction <<< inj (Proxy :: Proxy "setSubgraph")
-
-iSetSingleSubgraph :: SetSingleSubgraph -> Instruction
-iSetSingleSubgraph = Instruction <<< inj (Proxy :: Proxy "setSingleSubgraph")
 
 iSetTumult :: SetTumult -> Instruction
 iSetTumult = Instruction <<< inj (Proxy :: Proxy "setTumult")

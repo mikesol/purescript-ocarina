@@ -3,10 +3,14 @@ module WAGS.Example.Subgraph where
 import Prelude
 
 import Control.Comonad.Cofree (Cofree, mkCofree)
+import Data.Array ((..))
 import Data.Foldable (for_)
 import Data.Int (toNumber)
+import Data.Map (fromFoldable)
 import Data.Maybe (Maybe(..))
+import Data.Tuple.Nested ((/\))
 import Data.Typelevel.Num (D40)
+import Data.Variant.Maybe (just)
 import Data.Vec as V
 import Effect (Effect)
 import Effect.Aff.Class (class MonadAff)
@@ -64,7 +68,7 @@ piece = mempty # loopUsingScene \(BehavingScene env) _ ->
   { control: unit
   , scene: speaker
       let
-        envs = (V.fill $ const $ SGWorld env.time :: V.Vec D40 SGWorld)
+        envs = fromFoldable (map (\i -> i /\ (just $ SGWorld env.time)) (0 .. 40))
       in
         { gn: gain 1.0
             { sg: subgraph envs

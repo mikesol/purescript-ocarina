@@ -5,8 +5,6 @@ module WAGS.Interpret
   ( class AudioInterpret
   , AudioBuffer
   , FFIAudioSnapshot
-  , unAsSubGraph
-  , AsSubgraph(..)
   , makeFFIAudioSnapshot
   , contextFromSnapshot
   , advanceWriteHead
@@ -113,7 +111,6 @@ module WAGS.Interpret
   , bufferNumberOfChannels
   , makeSubgraph
   , setSubgraph
-  , setSingleSubgraph
   , setTumult
   ) where
 
@@ -124,20 +121,21 @@ import Control.Plus (empty)
 import Control.Promise (Promise, toAffE)
 import Data.Array as Array
 import Data.ArrayBuffer.Types (Float32Array, Uint8Array, ArrayBuffer)
-import Data.FunctorWithIndex (mapWithIndex)
+import Data.Compactable (compact)
 import Data.Lazy (defer)
 import Data.Maybe (Maybe(..))
 import Data.Newtype (unwrap)
+import Data.Nullable (Nullable, toNullable)
 import Data.Set as Set
 import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.Tuple (fst, snd)
 import Data.Tuple.Nested (type (/\), (/\))
-import Data.Typelevel.Num (class Lt, class Nat, class Pos, D1, toInt)
+import Data.Typelevel.Num (class Lt, class Nat, class Pos, D1)
 import Data.Typelevel.Undefined (undefined)
 import Data.Variant (match)
+import Data.Variant.Maybe as VM
 import Data.Vec (Vec)
 import Data.Vec as V
-import Data.Vec as Vec
 import Effect (Effect)
 import Effect.Aff (Aff)
 import Simple.JSON as JSON
@@ -367,52 +365,32 @@ foreign import bufferDuration :: BrowserAudioBuffer -> Number
 foreign import bufferNumberOfChannels :: BrowserAudioBuffer -> Int
 
 data FFIAudioSnapshot
-
-newtype AsSubgraph terminus inputs env = AsSubgraph
-  ( forall audio engine
-     . AudioInterpret audio engine
-    => Int
-    -> SubScene terminus inputs env audio engine Frame0 Unit
-  )
-
-unAsSubGraph
-  :: forall terminus inputs env
-   . AsSubgraph terminus inputs env
-  -> ( forall audio engine
-        . AudioInterpret audio engine
-       => Int
-       -> SubScene terminus inputs env audio engine Frame0 Unit
-     )
-unAsSubGraph (AsSubgraph subgraph) = subgraph
+type Ie index env =
+  { pos :: Int
+  , index :: index
+  , env :: VM.Maybe env
+  }
 
 type SubgraphInput
-  :: forall k
-   . (Symbol -> Type)
+  :: (Symbol -> Type)
   -> Symbol
   -> Row Type
-  -> k
   -> Type
   -> Type
   -> Type
   -> Type
-type SubgraphInput proxy terminus inputs n env audio engine =
+  -> Type
+type SubgraphInput proxy terminus inputs index env audio engine =
   { id :: String
   , terminus :: proxy terminus
-  , envs :: V.Vec n env
+  , envs :: Array (Ie index env)
   , scenes ::
-      Int -> SubScene terminus inputs env audio engine Frame0 Unit
+      index -> SubScene terminus inputs env audio engine Frame0 Unit
   }
 
-type SetSubgraphInput :: forall k. k -> Type -> Type
-type SetSubgraphInput n env =
+type SetSubgraphInput index env =
   { id :: String
-  , envs :: V.Vec n env
-  }
-
-type SetSingleSubgraphInput n env =
-  { id :: String
-  , index :: n
-  , env :: env
+  , envs :: Array (Ie index env)
   }
 
 type MakePeriodicOscW =
@@ -519,10 +497,9 @@ class AudioInterpret audio engine where
   makeStereoPanner :: R.MakeStereoPanner -> audio -> engine
   -- | Make sugbraph.
   makeSubgraph
-    :: forall proxy terminus inputs env n
+    :: forall proxy terminus inputs index env
      . IsSymbol terminus
-    => Pos n
-    => SubgraphInput proxy terminus inputs n env audio engine
+    => SubgraphInput proxy terminus inputs index env audio engine
     -> audio
     -> engine
   -- | Make a triangle-wave oscillator.
@@ -583,15 +560,8 @@ class AudioInterpret audio engine where
   setInput :: R.SetInput -> audio -> engine
   -- | Set subgraph.
   setSubgraph
-    :: forall env n
-     . Pos n
-    => SetSubgraphInput n env
-    -> audio
-    -> engine
-  setSingleSubgraph
-    :: forall env n
-     . Nat n
-    => SetSingleSubgraphInput n env
+    :: forall index env
+     . SetSubgraphInput index env
     -> audio
     -> engine
   setTumult :: R.SetTumult -> audio -> engine
@@ -607,11 +577,9 @@ handleSubgraph f { id, envs, scenes } = const $ f
   , instructions:
       defer \_ ->
         let
-          allEnvs = envs
-          subs = mapWithIndex (const <<< scenes) envs
-          frames = V.zipWithE oneSubFrame subs allEnvs
+          subs = map (\{ index, env } -> VM.maybe Nothing Just $ map (oneSubFrame (scenes index)) env) envs
         in
-          (map <<< map) ((#) unit) (map _.instructions (V.toArray frames))
+          (map <<< map) ((#) unit) (map _.instructions (compact subs))
   }
 
 instance freeAudioInterpret :: AudioInterpret Unit Instruction where
@@ -684,7 +652,6 @@ instance freeAudioInterpret :: AudioInterpret Unit Instruction where
   setWaveShaperCurve = const <<< R.iSetWaveShaperCurve
   setInput = const <<< R.iSetInput
   setSubgraph { id } _ = R.iSetSubgraph { id }
-  setSingleSubgraph { id } _ = R.iSetSingleSubgraph { id }
   setTumult = const <<< R.iSetTumult
 
 foreign import connectXToY_
@@ -842,12 +809,15 @@ foreign import makeWaveShaper_
 
 foreign import makeInput_ :: R.MakeInput -> FFIAudioSnapshot -> Effect Unit
 
+type Pie index env =
+  { pos :: Int, index :: index, env :: Nullable env }
+
 foreign import makeSubgraph_
-  :: forall env scene
+  :: forall index env scene
    . String
   -> String
-  -> Array env
-  -> (Int -> scene)
+  -> Array (Pie index env)
+  -> (index -> scene)
   -> ( env
        -> scene
        -> { instructions :: Array (FFIAudioSnapshot -> Effect Unit)
@@ -960,17 +930,9 @@ foreign import setWaveShaperCurve_
 foreign import setInput_ :: R.SetInput -> FFIAudioSnapshot -> Effect Unit
 
 foreign import setSubgraph_
-  :: forall env
+  :: forall index env
    . String
-  -> Array env
-  -> FFIAudioSnapshot
-  -> Effect Unit
-
-foreign import setSingleSubgraph_
-  :: forall env
-   . String
-  -> Int
-  -> env
+  -> Array (Pie index env)
   -> FFIAudioSnapshot
   -> Effect Unit
 
@@ -1055,7 +1017,6 @@ interpretInstruction = unwrap >>> match
   , setWaveShaperCurve: \a -> setWaveShaperCurve a
   , setInput: \a -> setInput a
   , setSubgraph: \{ id } -> setGain { id, gain: paramize 1.0 }
-  , setSingleSubgraph: \{ id } -> setGain { id, gain: paramize 1.0 }
   , setTumult: \{ id } -> setGain { id, gain: paramize 1.0 }
   }
 
@@ -1069,6 +1030,13 @@ makeInstructionsEffectful a = case _ of
     ( Array.fromFoldable $ reconcileTumult (Set.fromFoldable a)
         (Set.fromFoldable b)
     )
+envsToFFI
+  :: forall index env
+   . Array (Ie index env)
+  -> Array (Pie index env)
+envsToFFI = map go
+  where
+  go { pos, index, env } = { pos, index, env: toNullable $ VM.maybe Nothing Just env }
 
 instance effectfulAudioInterpret ::
   AudioInterpret FFIAudioSnapshot (Effect Unit) where
@@ -1107,9 +1075,23 @@ instance effectfulAudioInterpret ::
   makeSpeaker = makeSpeaker_
   makeSquareOsc = makeSquareOsc_
   makeStereoPanner = makeStereoPanner_
-  makeSubgraph { id, terminus, envs, scenes } audio = makeSubgraph_ id
+  {-: forall index env scene
+   . String
+  -> String
+  -> Array (Pie index env)
+  -> (index -> scene)
+  -> ( env
+       -> scene
+       -> { instructions :: Array (FFIAudioSnapshot -> Effect Unit)
+          , nextScene :: scene
+          }
+     )
+  -> FFIAudioSnapshot
+  -> Effect Unit-}
+  makeSubgraph { id, terminus, envs, scenes } audio =
+    makeSubgraph_ id
     (reflectSymbol terminus)
-    (Vec.toArray envs)
+    (envsToFFI envs)
     scenes
     ( \env scene ->
         let
@@ -1154,11 +1136,7 @@ instance effectfulAudioInterpret ::
   setFrequency = setFrequency_
   setWaveShaperCurve = setWaveShaperCurve_
   setInput = setInput_
-  setSubgraph { id, envs } audio = setSubgraph_ id (Vec.toArray envs)
-    (audio)
-  setSingleSubgraph { id, index, env } audio = setSingleSubgraph_ id
-    (toInt index)
-    env
+  setSubgraph { id, envs } audio = setSubgraph_ id (envsToFFI envs)
     (audio)
   setTumult { id, terminus, instructions } toFFI = setTumult_
     id
@@ -1293,8 +1271,4 @@ instance mixedAudioInterpret ::
   setSubgraph { id, envs } (x /\ y) = setSubgraph { id, envs } x /\ setSubgraph
     { id, envs }
     y
-  setSingleSubgraph { id, index, env } (x /\ y) =
-    setSingleSubgraph { id, index, env } x /\ setSingleSubgraph
-      { id, index, env }
-      y
   setTumult a (x /\ y) = setTumult a x /\ setTumult a y

@@ -27,7 +27,7 @@ import WAGS.Graph.Graph (Graph)
 import WAGS.Graph.Oversample (class IsOversample, reflectOversample)
 import WAGS.Graph.Paramable (onOffIze, paramize)
 import WAGS.Graph.Parameter (_off, _on)
-import WAGS.Interpret (class AudioInterpret, AsSubgraph, connectXToY, destroyUnit, disconnectXFromY, makeAllpass, makeAnalyser, makeAudioWorkletNode, makeBandpass, makeConstant, makeDelay, makeDynamicsCompressor, makeGain, makeHighpass, makeHighshelf, makeInput, makeLoopBufWithDeferredBuffer, makeLowpass, makeLowshelf, makeMediaElement, makeMicrophone, makeNotch, makePassthroughConvolver, makePeaking, makePeriodicOscWithDeferredOsc, makePlayBufWithDeferredBuffer, makeRecorder, makeSawtoothOsc, makeSinOsc, makeSpeaker, makeSquareOsc, makeStereoPanner, makeSubgraph, makeTriangleOsc, makeTumult, makeWaveShaper, unAsSubGraph)
+import WAGS.Interpret (class AudioInterpret, connectXToY, destroyUnit, disconnectXFromY, makeAllpass, makeAnalyser, makeAudioWorkletNode, makeBandpass, makeConstant, makeDelay, makeDynamicsCompressor, makeGain, makeHighpass, makeHighshelf, makeInput, makeLoopBufWithDeferredBuffer, makeLowpass, makeLowshelf, makeMediaElement, makeMicrophone, makeNotch, makePassthroughConvolver, makePeaking, makePeriodicOscWithDeferredOsc, makePlayBufWithDeferredBuffer, makeRecorder, makeSawtoothOsc, makeSinOsc, makeSpeaker, makeSquareOsc, makeStereoPanner, makeSubgraph, makeTriangleOsc, makeTumult, makeWaveShaper)
 import WAGS.Rendered (AudioWorkletNodeOptions_(..))
 import WAGS.Tumult (Tumultuous, safeUntumult)
 import WAGS.Util (class TypeEqualTF, class ValidateOutputChannelCount, toOutputChannelCount)
@@ -1132,12 +1132,12 @@ instance getSubgraphsRLTumult ::
   , IsSymbol terminus
   , Pos n
   , Row.Cons id
-      (CTOR.Subgraph inputs (AsSubgraph terminus inputs env) (Vec n env))
+      (CTOR.Subgraph terminus inputs index env)
       r'
       subgraphs
   , GetSubgraphsRL rest subgraphs
   ) =>
-  GetSubgraphsRL (RL.Cons id (TSubgraph n terminus inputs env /\ whatever) rest)
+  GetSubgraphsRL (RL.Cons id (TSubgraph terminus inputs index env /\ whatever) rest)
     subgraphs where
   getSubgraphsRL _ t = Object.insert id
     ( AE
@@ -1148,7 +1148,7 @@ instance getSubgraphsRLTumult ::
               { id
               , terminus: Proxy :: _ terminus
               , envs
-              , scenes: unAsSubGraph subgraphMaker
+              , scenes: AU.unAsSubGraph subgraphMaker
               }
         )
     )
