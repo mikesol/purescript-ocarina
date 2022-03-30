@@ -10,7 +10,7 @@ import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.Tuple (fst, snd)
 import Data.Tuple.Nested ((/\), type (/\))
 import Data.Typelevel.Num (class Lt, class Pos, D1)
-import Data.Variant.Maybe (Maybe)
+import Data.Variant.Maybe (Maybe, just)
 import Data.Vec as V
 import Foreign.Object (values)
 import Prim.Row as R
@@ -29,7 +29,7 @@ import WAGS.Graph.Node (NodeC)
 import WAGS.Graph.Oversample (class IsOversample)
 import WAGS.Graph.Paramable (onOffIze, paramize)
 import WAGS.Graph.Parameter (class MM, AudioEnvelope, AudioOnOff, AudioParameter, AudioParameterCancellation, AudioSingleNumber, OnOff)
-import WAGS.Interpret (class AudioInterpret, setAnalyserNodeCb, setAttack, setAudioWorkletParameter, setBuffer, setBufferOffset, setConvolverBuffer, setDelay, setFrequency, setGain, setInput, setKnee, setLoopEnd, setLoopStart, setMediaRecorderCb, setOffset, setOnOff, setPan, setPeriodicOsc, setPeriodicOscV, setPlaybackRate, setQ, setRatio, setRelease, setSubgraph, setThreshold, setTumult, setWaveShaperCurve)
+import WAGS.Interpret (class AudioInterpret, setAnalyserNodeCb, setAttack, setAudioWorkletParameter, setBuffer, setBufferOffset, setDuration, setConvolverBuffer, setDelay, setFrequency, setGain, setInput, setKnee, setLoopEnd, setLoopStart, setMediaRecorderCb, setOffset, setOnOff, setPan, setPeriodicOsc, setPeriodicOscV, setPlaybackRate, setQ, setRatio, setRelease, setSubgraph, setThreshold, setTumult, setWaveShaperCurve)
 import WAGS.Rendered (RealImg(..))
 import WAGS.Tumult (Tumultuous, safeUntumult)
 import WAGS.Util (class MakePrefixIfNeeded, class CoercePrefixToString)
@@ -643,6 +643,34 @@ instance canBeChangedBufferOffset ::
     id = reflectSymbol ptr
 
     argA_Changes = [ setBufferOffset { id, bufferOffset: val } ]
+
+    o =
+      unsafeWAG
+        { context:
+            i
+              { instructions = i.instructions <> argA_Changes
+              }
+        , value: unit
+        }
+
+class Durationable (tau :: Type)
+
+instance durationablePlayBuf :: Durationable CTOR.TPlayBuf
+
+instance canBeChangedDuration ::
+  ( IsSymbol ptr
+  , R.Cons ptr tau' ignore graph
+  , Detup tau' tau
+  , Durationable tau
+  ) =>
+  CanBeChanged "duration" Number ptr graph where
+  canBeChanged _ val ptr w = o
+    where
+    { context: i } = unsafeUnWAG w
+
+    id = reflectSymbol ptr
+
+    argA_Changes = [ setDuration { id, duration: (just val) } ]
 
     o =
       unsafeWAG
@@ -1800,6 +1828,7 @@ instance changeXPlayBuf ::
           , onOff: setOnOff <<< { id, onOff: _ }
           , playbackRate: setPlaybackRate <<< { id, playbackRate: _ }
           , bufferOffset: setBufferOffset <<< { id, bufferOffset: _ }
+          , duration: setDuration <<< { id, duration: _ }
           }
 
     o =
@@ -2023,7 +2052,8 @@ instance changeXStereoPanner ::
 instance changeSubgraph0 ::
   ( IsSymbol ptr
   , IsSymbol terminus
-  , R.Cons ptr (NodeC (CTOR.TSubgraph terminus inputs index env) edges) ignore graph
+  , R.Cons ptr (NodeC (CTOR.TSubgraph terminus inputs index env) edges) ignore
+      graph
   ) =>
   Change' ptr (CTOR.Subgraph terminus inputs index env) graph where
   change' ptr w = o
@@ -2045,7 +2075,8 @@ instance changeSubgraph0 ::
 instance changeSubgraph1 ::
   ( IsSymbol ptr
   , IsSymbol terminus
-  , R.Cons ptr (NodeC (CTOR.TSubgraph terminus inputs index env) edges) ignore graph
+  , R.Cons ptr (NodeC (CTOR.TSubgraph terminus inputs index env) edges) ignore
+      graph
   ) =>
   Change' ptr (CTOR.XSubgraph index env) graph where
   change' ptr w = o

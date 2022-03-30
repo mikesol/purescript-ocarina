@@ -7,7 +7,6 @@ import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.Tuple.Nested (type (/\))
 import Data.Typelevel.Bool (False, True)
 import Data.Typelevel.Num (class Nat, class Pos, toInt')
-import Data.Vec (Vec)
 import Foreign.Object (Object, lookup)
 import Foreign.Object as Object
 import Prim.Ordering (Ordering, LT, GT, EQ)
@@ -1137,7 +1136,9 @@ instance getSubgraphsRLTumult ::
       subgraphs
   , GetSubgraphsRL rest subgraphs
   ) =>
-  GetSubgraphsRL (RL.Cons id (TSubgraph terminus inputs index env /\ whatever) rest)
+  GetSubgraphsRL ( RL.Cons id (TSubgraph terminus inputs index env /\ whatever)
+        rest
+    )
     subgraphs where
   getSubgraphsRL _ t = Object.insert id
     ( AE

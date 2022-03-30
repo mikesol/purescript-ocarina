@@ -93,6 +93,7 @@ module WAGS.Interpret
   , setGain
   , setKnee
   , setBufferOffset
+  , setDuration
   , setLoopEnd
   , setLoopStart
   , setOffset
@@ -528,6 +529,8 @@ class AudioInterpret audio engine where
   setOnOff :: R.SetOnOff -> audio -> engine
   -- | Set the offset for a playbuf
   setBufferOffset :: R.SetBufferOffset -> audio -> engine
+  -- | Set the duration for a playbuf
+  setDuration :: R.SetDuration -> audio -> engine
   -- | Set the start position of a looping audio buffer node.
   setLoopStart :: R.SetLoopStart -> audio -> engine
   -- | Set the end position of a looping audio buffer node.
@@ -577,7 +580,12 @@ handleSubgraph f { id, envs, scenes } = const $ f
   , instructions:
       defer \_ ->
         let
-          subs = map (\{ index, env } -> VM.maybe Nothing Just $ map (oneSubFrame (scenes index)) env) envs
+          subs = map
+            ( \{ index, env } -> VM.maybe Nothing Just $ map
+                (oneSubFrame (scenes index))
+                env
+            )
+            envs
         in
           (map <<< map) ((#) unit) (map _.instructions (compact subs))
   }
@@ -635,6 +643,7 @@ instance freeAudioInterpret :: AudioInterpret Unit Instruction where
   setMediaRecorderCb = const <<< R.iSetMediaRecorderCb
   setAnalyserNodeCb = const <<< R.iSetAnalyserNodeCb
   setBufferOffset = const <<< R.iSetBufferOffset
+  setDuration = const <<< R.iSetDuration
   setLoopStart = const <<< R.iSetLoopStart
   setLoopEnd = const <<< R.iSetLoopEnd
   setRatio = const <<< R.iSetRatio
@@ -862,6 +871,9 @@ foreign import setOnOff_
 foreign import setBufferOffset_
   :: R.SetBufferOffset -> FFIAudioSnapshot -> Effect Unit
 
+foreign import setDuration_
+  :: R.SetDuration -> FFIAudioSnapshot -> Effect Unit
+
 foreign import setLoopStart_
   :: R.SetLoopStart -> FFIAudioSnapshot -> Effect Unit
 
@@ -1000,6 +1012,7 @@ interpretInstruction = unwrap >>> match
       }
   , setOnOff: \a -> setOnOff a
   , setBufferOffset: \a -> setBufferOffset a
+  , setDuration: \a -> setDuration a
   , setLoopStart: \a -> setLoopStart a
   , setLoopEnd: \a -> setLoopEnd a
   , setRatio: \a -> setRatio a
@@ -1030,13 +1043,15 @@ makeInstructionsEffectful a = case _ of
     ( Array.fromFoldable $ reconcileTumult (Set.fromFoldable a)
         (Set.fromFoldable b)
     )
+
 envsToFFI
   :: forall index env
    . Array (Ie index env)
   -> Array (Pie index env)
 envsToFFI = map go
   where
-  go { pos, index, env } = { pos, index, env: toNullable $ VM.maybe Nothing Just env }
+  go { pos, index, env } =
+    { pos, index, env: toNullable $ VM.maybe Nothing Just env }
 
 instance effectfulAudioInterpret ::
   AudioInterpret FFIAudioSnapshot (Effect Unit) where
@@ -1090,16 +1105,16 @@ instance effectfulAudioInterpret ::
   -> Effect Unit-}
   makeSubgraph { id, terminus, envs, scenes } audio =
     makeSubgraph_ id
-    (reflectSymbol terminus)
-    (envsToFFI envs)
-    scenes
-    ( \env scene ->
-        let
-          res = oneSubFrame scene env
-        in
-          { instructions: res.instructions, nextScene: res.next }
-    )
-    audio
+      (reflectSymbol terminus)
+      (envsToFFI envs)
+      scenes
+      ( \env scene ->
+          let
+            res = oneSubFrame scene env
+          in
+            { instructions: res.instructions, nextScene: res.next }
+      )
+      audio
   makeTumult { id, terminus, instructions } toFFI =
     makeTumult_
       id
@@ -1120,6 +1135,7 @@ instance effectfulAudioInterpret ::
   setPeriodicOscV = setPeriodicOscV_
   setOnOff = setOnOff_
   setBufferOffset = setBufferOffset_
+  setDuration = setDuration_
   setLoopStart = setLoopStart_
   setLoopEnd = setLoopEnd_
   setRatio = setRatio_
@@ -1251,6 +1267,7 @@ instance mixedAudioInterpret ::
   setPeriodicOscV a (x /\ y) = setPeriodicOscV a x /\ setPeriodicOscV a y
   setOnOff a (x /\ y) = setOnOff a x /\ setOnOff a y
   setBufferOffset a (x /\ y) = setBufferOffset a x /\ setBufferOffset a y
+  setDuration a (x /\ y) = setDuration a x /\ setDuration a y
   setLoopStart a (x /\ y) = setLoopStart a x /\ setLoopStart a y
   setLoopEnd a (x /\ y) = setLoopEnd a x /\ setLoopEnd a y
   setRatio a (x /\ y) = setRatio a x /\ setRatio a y

@@ -341,7 +341,8 @@ instance createTStereoPanner ::
 
 instance createSubgraph ::
   ( R.Lacks ptr graphi
-  , R.Cons ptr (NodeC (CTOR.TSubgraph terminus inputs index env) {}) graphi grapho
+  , R.Cons ptr (NodeC (CTOR.TSubgraph terminus inputs index env) {}) graphi
+      grapho
   ) =>
   CreateT' ptr
     (CTOR.Subgraph terminus inputs index env)

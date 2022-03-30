@@ -722,8 +722,8 @@ exports.makeInput_ = function (a) {
   -> ( env
        -> scene
        -> { instructions :: Array (FFIAudioSnapshot -> Effect Unit)
-          , nextScene :: scene
-          }
+	  , nextScene :: scene
+	  }
      )
   -> FFIAudioSnapshot
   -> Effect Unit} ptr
@@ -861,7 +861,8 @@ exports.makePlayBuf_ = function (aa) {
 			var a = aa.buffer;
 			var b = aa.bufferOffset;
 			var onOff = aa.onOff;
-			var c = aa.playbackRate;
+		    var c = aa.playbackRate;
+		    var d = aa.duration;
 			var createFunction = function () {
 				var unit = state.context.createBufferSource();
 				return unit;
@@ -869,7 +870,8 @@ exports.makePlayBuf_ = function (aa) {
 			state.units[ptr] = {
 				outgoing: [],
 				incoming: [],
-				bufferOffset: b,
+			    bufferOffset: b,
+			    duration: d,
 				createFunction: createFunction,
 				resumeClosure: {
 					playbackRate: function (i) {
@@ -882,8 +884,12 @@ exports.makePlayBuf_ = function (aa) {
 				main: createFunction(),
 			};
 			if (isOn(onOff.onOff)) {
-				applyResumeClosure(state.units[ptr]);
-				state.units[ptr].main.start(state.writeHead + onOff.timeOffset, b);
+			    applyResumeClosure(state.units[ptr]);
+			    var args = [state.writeHead + onOff.timeOffset, b];
+			    if (d.type == "just") {
+				args.push(d.value);
+			    }
+			    state.units[ptr].main.start(...args);
 			}
 			state.units[ptr].onOff = isOn(onOff.onOff);
 		};
@@ -1147,17 +1153,17 @@ var setSubgraph_ = function (ptr) {
 		return function (state) {
 			return function () {
 				// for (var i = 0; i < envs.length; i++) {
-				// 	state.units[ptr].children[i].writeHead = state.writeHead;
+				//	state.units[ptr].children[i].writeHead = state.writeHead;
 				// }
 				// var scenes = state.units[ptr].scenes;
 				// var children = state.units[ptr].children;
 				// for (var i = 0; i < scenes.length; i++) {
-				// 	var applied = state.units[ptr].funk(envs[i])(scenes[i]);
-				// 	for (var j = 0; j < applied.instructions.length; j++) {
-				// 		// thunk
-				// 		applied.instructions[j](children[i])();
-				// 	}
-				// 	scenes[i] = applied.nextScene;
+				//	var applied = state.units[ptr].funk(envs[i])(scenes[i]);
+				//	for (var j = 0; j < applied.instructions.length; j++) {
+				//		// thunk
+				//		applied.instructions[j](children[i])();
+				//	}
+				//	scenes[i] = applied.nextScene;
 				// }
 				var scenes = state.units[ptr].scenes;
 				var children = state.units[ptr].children;
@@ -1363,14 +1369,14 @@ var setOn_ = function (ptr) {
 				if (state.units[ptr].resumeClosure) {
 					applyResumeClosure(state.units[ptr]);
 				}
-				if (state.units[ptr].bufferOffset) {
-					state.units[ptr].main.start(
-						state.writeHead + onOffInstr.timeOffset,
-						state.units[ptr].bufferOffset
-					);
-				} else {
-					state.units[ptr].main.start(state.writeHead + onOffInstr.timeOffset);
-				}
+			    var args = [state.writeHead + onOffInstr.timeOffset];
+			    if (state.units[ptr].bufferOffset) {
+				args.push(state.units[ptr].bufferOffset);
+			    }
+			    if (state.units[ptr].duration && state.units[ptr].duration.type == "just") {
+				args.push(state.units[ptr].duration.value);
+			    }
+			    state.units[ptr].main.start(...args);
 			};
 		};
 	};
@@ -1438,6 +1444,15 @@ exports.setBufferOffset_ = function (aa) {
 		};
 	};
 };
+exports.setDuration_ = function (aa) {
+    return function (state) {
+	return function () {
+	    if (aa.duration.type == "just") {
+		state.units[aa.id].duration = aa.duration.value;
+	    }
+	}
+    }
+}
 exports.setLoopEnd_ = function (aa) {
 	return function (state) {
 		return function () {

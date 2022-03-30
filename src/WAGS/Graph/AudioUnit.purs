@@ -348,11 +348,13 @@ instance typeToSymXPeriodicOsc ::
 -- | - `offset` - where in the file the playback should start.
 -- | - `onOff` - whether or not the generator is on or off.
 -- | - `playbackRate` - the playback rate.
+-- | - `duration` - the duration.
 type PlayBuf' =
   ( buffer :: BrowserAudioBuffer
   , onOff :: AudioOnOff
   , playbackRate :: AudioParameter
   , bufferOffset :: Number
+  , duration :: Maybe Number
   )
 
 newtype PlayBuf = PlayBuf { | PlayBuf' }

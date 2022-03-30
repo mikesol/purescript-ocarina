@@ -10,7 +10,7 @@ import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.Tuple (Tuple(..))
 import Data.Tuple.Nested ((/\), type (/\))
 import Data.Typelevel.Num (class Lt, class Nat, class Pos, D1)
-import Data.Variant.Maybe (Maybe)
+import Data.Variant.Maybe (Maybe, nothing)
 import Data.Vec as V
 import Simple.JSON as JSON
 import Type.Proxy (Proxy(..))
@@ -857,14 +857,22 @@ instance convertPlayBufAPBufferOffset ::
   ConvertOption PlayBuf "bufferOffset" Number Number where
   convertOption _ _ = identity
 
+instance convertPlayBufDuration ::
+  ConvertOption PlayBuf "duration" (Maybe Number) (Maybe Number) where
+  convertOption _ _ = identity
+
+instance convertPlayBufMbDuration ::
+  ConvertOption PlayBuf "duration" Number (Maybe Number) where
+  convertOption _ _ = pure
+
 type PlayBufOptional =
-  (playbackRate :: AudioParameter, onOff :: AudioOnOff, bufferOffset :: Number)
+  (playbackRate :: AudioParameter, onOff :: AudioOnOff, bufferOffset :: Number, duration :: Maybe Number)
 
 type PlayBufAll = (| PlayBufOptional)
 
 defaultPlayBuf :: { | PlayBufOptional }
 defaultPlayBuf =
-  { playbackRate: paramize 1.0, onOff: onOffIze _on, bufferOffset: 0.0 }
+  { playbackRate: paramize 1.0, onOff: onOffIze _on, bufferOffset: 0.0, duration: nothing }
 
 class PlayBufCtor i playBuf | i -> playBuf where
   -- | Make a unit that plays from a buffer.
@@ -886,6 +894,7 @@ instance playBufCtor1 ::
       , bufferOffset: all.bufferOffset
       , onOff: all.onOff
       , playbackRate: all.playbackRate
+      , duration: all.duration
       } /\ {}
     where
     all :: { | PlayBufAll }
@@ -898,6 +907,7 @@ else instance playBufCtor2 ::
       , bufferOffset: defaultPlayBuf.bufferOffset
       , onOff: defaultPlayBuf.onOff
       , playbackRate: defaultPlayBuf.playbackRate
+      , duration: defaultPlayBuf.duration
       }
       /\ {}
 

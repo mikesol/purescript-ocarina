@@ -72,6 +72,7 @@ derogative = unwrap >>> match
   , setPeriodicOsc: const identity
   , setOnOff: const identity
   , setBufferOffset: const identity
+  , setDuration: const identity
   , setLoopStart: const identity
   , setLoopEnd: const identity
   , setRatio: const identity
@@ -474,6 +475,7 @@ reconcileTumult new old = result
         , setPeriodicOsc: \_ -> i1 # udef
         , setOnOff: \_ -> i1 # udef
         , setBufferOffset: \_ -> i1 # udef
+        , setDuration: \_ -> i1 # udef
         , setLoopStart: \_ -> i1 # udef
         , setLoopEnd: \_ -> i1 # udef
         , setRatio: \_ -> i1 # udef

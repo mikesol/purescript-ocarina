@@ -954,7 +954,8 @@ instance createPlayBuf ::
   create' ptr w = o
     where
     { context: i
-    , value: (CTOR.PlayBuf { buffer, bufferOffset, playbackRate, onOff })
+    , value:
+        (CTOR.PlayBuf { buffer, bufferOffset, playbackRate, onOff, duration })
     } = unsafeUnWAG w
     id = reflectSymbol ptr
     o =
@@ -963,7 +964,13 @@ instance createPlayBuf ::
             i
               { instructions = i.instructions <>
                   [ makePlayBuf
-                      { id, buffer, bufferOffset, onOff, playbackRate }
+                      { id
+                      , buffer
+                      , bufferOffset
+                      , onOff
+                      , playbackRate
+                      , duration
+                      }
                   ]
               }
         , value: unit
@@ -1105,7 +1112,8 @@ instance createSubgraph ::
   ( IsSymbol ptr
   , IsSymbol terminus
   , R.Lacks ptr graphi
-  , R.Cons ptr (NodeC (CTOR.TSubgraph terminus inputs index env) {}) graphi grapho
+  , R.Cons ptr (NodeC (CTOR.TSubgraph terminus inputs index env) {}) graphi
+      grapho
   ) =>
   Create' ptr
     (CTOR.Subgraph terminus inputs index env)
