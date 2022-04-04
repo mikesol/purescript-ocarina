@@ -1,4 +1,4 @@
-module WAGS.WebAPI where
+module Deku.WebAPI where
 
 import Prelude
 
