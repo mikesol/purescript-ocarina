@@ -1,4 +1,4 @@
-module Deku.Control where
+module WAGS.Control where
 
 import Prelude
 
@@ -14,8 +14,8 @@ import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.Tuple.Nested (type (/\), (/\))
 import Data.Typelevel.Num (class Nat, class Pos, class Pred, D1, D2, pred, toInt)
 import Data.Variant (Unvariant(..), match, unvariant)
-import Deku.Core (AudioParameter, AudioWorkletNodeOptions_(..), InitialAudioParameter)
-import Deku.Core as C
+import WAGS.Core (AudioParameter, AudioWorkletNodeOptions_(..), InitialAudioParameter)
+import WAGS.Core as C
 import FRP.Behavior (sample_)
 import FRP.Event (class IsEvent, keepLatest)
 import Foreign.Object (fromHomogeneous)

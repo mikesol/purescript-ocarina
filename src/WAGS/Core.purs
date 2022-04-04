@@ -1,4 +1,4 @@
-module Deku.Core where
+module WAGS.Core where
 
 import Prelude
 
@@ -10,7 +10,7 @@ import Data.Set (Set)
 import Data.Show.Generic (genericShow)
 import Data.Variant (Variant, inj, match)
 import Data.Variant.Maybe (Maybe)
-import Deku.WebAPI (AnalyserNodeCb, BrowserAudioBuffer, BrowserFloatArray, BrowserMediaElement, BrowserMicrophone, BrowserPeriodicWave, MediaRecorderCb)
+import WAGS.WebAPI (AnalyserNodeCb, BrowserAudioBuffer, BrowserFloatArray, BrowserMediaElement, BrowserMicrophone, BrowserPeriodicWave, MediaRecorderCb)
 import FRP.Behavior (ABehavior)
 import FRP.Event.Pure (PureEvent)
 import Foreign (Foreign)

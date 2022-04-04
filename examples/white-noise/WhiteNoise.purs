@@ -12,26 +12,7 @@ import Effect (Effect)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect)
 import FRP.Event (subscribe)
-import Halogen as H
-import Halogen.Aff (awaitBody, runHalogenAff)
-import Halogen.HTML as HH
-import Halogen.HTML.Events as HE
-import Halogen.HTML.Properties as HP
-import Halogen.VDom.Driver (runUI)
 import Math (cos, pi)
-import WAGS.Change (ichange)
-import WAGS.Control.Functions.Graph (iloop, (@!>))
-import WAGS.Control.Indexed (IxWAG)
-import WAGS.Control.Types (Frame0, Scene)
-import WAGS.Create (icreate)
-import WAGS.Create.Optionals (CAudioWorkletNode, CSpeaker, audioWorkletNode, speaker)
-import WAGS.Graph.AudioUnit (AudioWorkletNode, AudioWorkletNodeOptions(..), TAudioWorkletNode, TSpeaker)
-import WAGS.Graph.Paramable (paramize)
-import WAGS.Graph.Parameter (AudioParameter, ff)
-import WAGS.Graph.Worklet (AudioWorkletNodeRequest(..), AudioWorkletNodeResponse)
-import WAGS.Interpret (audioWorkletAddModule, close, context, makeFFIAudioSnapshot)
-import WAGS.Run (RunAudio, RunEngine, BehavingScene(..), BehavingRun, run)
-import WAGS.WebAPI (AudioContext)
 import Web.File.Blob as Blob
 import Web.File.Url (createObjectURL)
 

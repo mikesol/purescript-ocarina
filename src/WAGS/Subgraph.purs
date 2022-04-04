@@ -1,4 +1,4 @@
-module Deku.Subgraph where
+module WAGS.Subgraph where
 
 import Prelude
 
@@ -6,8 +6,8 @@ import Control.Alt ((<|>))
 import Data.Hashable (class Hashable, hash)
 import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.Tuple.Nested (type (/\), (/\))
-import Deku.Core (Input(..), Subgraph)
-import Deku.Core as C
+import WAGS.Core (Input(..), Subgraph)
+import WAGS.Core as C
 import FRP.Behavior (sample_)
 import FRP.Event (class IsEvent, keepLatest)
 import Prim.Row as Row

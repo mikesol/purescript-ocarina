@@ -1,4 +1,4 @@
-module Deku.Interpret where
+module WAGS.Interpret where
 
 import Prelude
 
@@ -10,11 +10,11 @@ import Data.Symbol (class IsSymbol)
 import Data.Typelevel.Num (class Lt, class Nat, class Pos, D1)
 import Data.Vec (Vec)
 import Data.Vec as V
-import Deku.Control (class ValidateOutputChannelCount)
-import Deku.Core (AudioParameter, Node(..), Subgraph(..))
-import Deku.Core as C
-import Deku.WebAPI (BrowserAudioBuffer)
-import Deku.WebAPI as WebAPI
+import WAGS.Control (class ValidateOutputChannelCount)
+import WAGS.Core (AudioParameter, Node(..), Subgraph(..))
+import WAGS.Core as C
+import WAGS.WebAPI (BrowserAudioBuffer)
+import WAGS.WebAPI as WebAPI
 import Effect (Effect)
 import Effect.Aff (Aff)
 import Effect.Random as R

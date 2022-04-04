@@ -17,7 +17,6 @@ import WAGS.Example.AtariSpeaks as AtariSpeaks
 import WAGS.Example.HelloWorld as DrumMachine
 import WAGS.Example.HelloWorld as HelloWorld
 import WAGS.Example.Subgraph as Subgraph
-import WAGS.Example.Tumult as Tumult
 import WAGS.Example.WhiteNoise as WhiteNoise
 
 stories :: forall m. MonadEffect m => MonadAff m => MonadThrow Error m => Stories m

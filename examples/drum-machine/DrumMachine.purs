@@ -17,23 +17,6 @@ import Effect.Ref as Ref
 import FRP.Behavior (behavior)
 import FRP.Event (makeEvent, subscribe)
 import FRP.Event.Time (interval)
-import Halogen as H
-import Halogen.Aff (awaitBody, runHalogenAff)
-import Halogen.HTML as HH
-import Halogen.HTML.Events as HE
-import Halogen.VDom.Driver (runUI)
-import WAGS.Change (ichange)
-import WAGS.Control.Functions.Graph (iloop, (@!>))
-import WAGS.Control.Types (Frame0, Scene)
-import WAGS.Create (icreate)
-import WAGS.Create.Optionals (CGain, CSpeaker, CPlayBuf, gain, speaker, playBuf)
-import WAGS.Graph.AudioUnit (TGain, TLoopBuf, TSpeaker)
-import WAGS.Graph.Paramable (onOffIze)
-import WAGS.Graph.Parameter (_offOn, _on, ff)
-import WAGS.Interpret (close, context, decodeAudioDataFromUri, makeFFIAudioSnapshot)
-import WAGS.Run (RunAudio, RunEngine, BehavingScene(..), BehavingRun, run)
-import WAGS.WebAPI (AudioContext, BrowserAudioBuffer)
-
 type SceneTemplate
   = CSpeaker
   { gain0 :: CGain { play0 :: CPlayBuf }

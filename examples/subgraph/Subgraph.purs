@@ -16,20 +16,6 @@ import Effect (Effect)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect)
 import FRP.Event (subscribe)
-import Halogen as H
-import Halogen.Aff (awaitBody, runHalogenAff)
-import Halogen.HTML as HH
-import Halogen.HTML.Events as HE
-import Halogen.VDom.Driver (runUI)
-import Type.Proxy (Proxy(..))
-import WAGS.Control.Functions.Graph (loopUsingScene)
-import WAGS.Control.Functions.Subgraph as SG
-import WAGS.Control.Types (Frame0, Scene, SubScene)
-import WAGS.Create.Optionals (gain, input, playBuf, sinOsc, speaker, subgraph)
-import WAGS.Graph.Parameter (_off, _on)
-import WAGS.Interpret (class AudioInterpret, close, context, decodeAudioDataFromUri, makeFFIAudioSnapshot)
-import WAGS.Run (BehavingRun, RunAudio, RunEngine, BehavingScene(..), run)
-import WAGS.WebAPI (AudioContext, BrowserAudioBuffer)
 
 type World = { atar :: BrowserAudioBuffer }
 
