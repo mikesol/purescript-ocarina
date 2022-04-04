@@ -2,117 +2,139 @@ module WAGS.Example.HelloWorld where
 
 import Prelude
 
-import Control.Comonad.Cofree (Cofree, mkCofree)
+import Control.Alt ((<|>))
+import Control.Plus (empty)
 import Data.Foldable (for_)
-import Data.Functor.Indexed (ivoid)
-import Data.Maybe (Maybe(..))
-import Data.Newtype (unwrap)
-import Data.Tuple.Nested (type (/\))
+import Data.Lens (over)
+import Data.Lens.Iso.Newtype (unto)
+import Data.Typelevel.Num (D2)
+import Data.Variant (inj)
+import Deku.Attribute (cb, (:=))
+import Deku.Control (deku, text, text_)
+import Deku.DOM as DOM
+import Deku.Interpret (effectfulDOMInterpret, makeFFIDOMSnapshot)
 import Effect (Effect)
-import Effect.Aff.Class (class MonadAff)
-import Effect.Class (class MonadEffect)
-import FRP.Event (subscribe)
+import Effect.Ref as Ref
+import FRP.Behavior (sample_)
+import FRP.Event (class IsEvent, Event, create, fold, makeEvent, subscribe)
+import Math (pi, sin)
+import Type.Proxy (Proxy(..))
+import WAGS.Control (gain__, sinOsc, speaker2, (:*))
+import WAGS.Core (GainInput, InitializeGain(..), InitializeSinOsc(..), SinOsc(..))
+import WAGS.Interpret (context, effectfulAudioInterpret, makeFFIAudioSnapshot, writeHead)
+import WAGS.Parameter (AudioNumeric(..), WriteHead, _apOn, _numeric, at_, propn)
+import Web.HTML (window)
+import Web.HTML.HTMLDocument (body)
+import Web.HTML.HTMLElement (toElement)
+import Web.HTML.Window (document, requestAnimationFrame)
 
-
-type SceneTemplate
-  = CSpeaker
-  { gain0 :: CGain { sin0 :: CSinOsc }
-  , gain1 :: CGain { sin1 :: CSinOsc }
-  , gain2 :: CGain { sin2 :: CSinOsc }
-  , gain3 :: CGain { sin3 :: CSinOsc }
-  }
-
-type SceneType
-  =
-  { speaker :: TSpeaker /\ { gain0 :: Unit, gain1 :: Unit, gain2 :: Unit, gain3 :: Unit }
-  , gain0 :: TGain /\ { sin0 :: Unit }
-  , sin0 :: TSinOsc /\ {}
-  , gain1 :: TGain /\ { sin1 :: Unit }
-  , sin1 :: TSinOsc /\ {}
-  , gain2 :: TGain /\ { sin2 :: Unit }
-  , sin2 :: TSinOsc /\ {}
-  , gain3 :: TGain /\ { sin3 :: Unit }
-  , sin3 :: TSinOsc /\ {}
-  }
-
-scene :: Number -> SceneTemplate
-scene time =
+scene
+  :: forall event payload
+   . IsEvent event
+  => WriteHead event
+  -> GainInput D2 () () event payload
+scene wh =
   let
-    rad = pi * time
+    tr = at_ wh (mul pi)
   in
-    speaker
-      { gain0: gain 0.1 { sin0: sinOsc (440.0 + (10.0 * sin (2.3 * rad))) }
-      , gain1: gain 0.25 { sin1: sinOsc (235.0 + (10.0 * sin (1.7 * rad))) }
-      , gain2: gain 0.2 { sin2: sinOsc (337.0 + (10.0 * sin rad)) }
-      , gain3: gain 0.1 { sin3: sinOsc (530.0 + (19.0 * (5.0 * sin rad))) }
-      }
+    gain__ (InitializeGain { gain: 0.1 }) empty
+      ( sinOsc (InitializeSinOsc { frequency: 440.0 })
+          ( pure (SinOsc $ inj (Proxy :: _ "onOff") _apOn) <|>
+              ( ( SinOsc <<< inj (Proxy :: _ "frequency") <<< _numeric <<< over
+                    (unto AudioNumeric <<< propn)
+                    (\rad -> 440.0 + (10.0 * sin (2.3 * rad)))
+                ) <$> tr
+              )
+          )
+      ) :*
+      [ gain__ (InitializeGain { gain: 0.25 }) empty
+          ( sinOsc (InitializeSinOsc { frequency: 235.0 })
 
-piece :: Scene (BehavingScene Unit Unit ()) RunAudio RunEngine Frame0 Unit
-piece = (unwrap >>> _.time >>> scene >>> icreate) @!> iloop \(BehavingScene { time }) _ -> ivoid $ ichange (scene time)
+              ( pure (SinOsc $ inj (Proxy :: _ "onOff") _apOn) <|>
+                  ( ( SinOsc <<< inj (Proxy :: _ "frequency") <<< _numeric <<<
+                        over
+                          (unto AudioNumeric <<< propn)
+                          (\rad -> 235.0 + (10.0 * sin (1.7 * rad)))
+                    ) <$> tr
+                  )
+              )
+          )
+      , gain__ (InitializeGain { gain: 0.2 }) empty
+          ( sinOsc (InitializeSinOsc { frequency: 337.0 })
+              ( pure (SinOsc $ inj (Proxy :: _ "onOff") _apOn) <|>
+                  ( SinOsc <<< inj (Proxy :: _ "frequency") <<< _numeric <<<
+                      over
+                        (unto AudioNumeric <<< propn)
+                        (\rad -> 337.0 + (10.0 * sin rad)) <$> tr
+                  )
+              )
+          )
+      , gain__ (InitializeGain { gain: 0.1 }) empty
+          ( sinOsc (InitializeSinOsc { frequency: 530.0 })
+              ( pure (SinOsc $ inj (Proxy :: _ "onOff") _apOn) <|>
+                  ( SinOsc <<< inj (Proxy :: _ "frequency") <<< _numeric <<<
+                      over
+                        (unto AudioNumeric <<< propn)
+                        (\rad -> 530.0 + (19.0 * (5.0 * sin rad))) <$> tr
+                  )
+              )
+          )
+      ]
 
-easingAlgorithm :: Cofree ((->) Int) Int
-easingAlgorithm =
+animationFrameEvent :: Event Unit
+animationFrameEvent = makeEvent \k -> do
+  w <- window
+  running <- Ref.new true
   let
-    fOf initialTime = mkCofree initialTime \adj -> fOf $ max 20 (initialTime - adj)
-  in
-    fOf 20
+    fx = void $ flip requestAnimationFrame w do
+      r' <- Ref.read running
+      when r' do
+        k unit
+        fx
+  fx
+  pure $ Ref.write false running
 
 main :: Effect Unit
-main =
-  runHalogenAff do
-    body <- awaitBody
-    runUI component unit body
-
-type State
-  =
-  { unsubscribe :: Effect Unit
-  , audioCtx :: Maybe AudioContext
-  }
-
-data Action
-  = StartAudio
-  | StopAudio
-
-component :: forall query input output m. MonadEffect m => MonadAff m => H.Component query input output m
-component =
-  H.mkComponent
-    { initialState
-    , render
-    , eval: H.mkEval $ H.defaultEval { handleAction = handleAction }
-    }
-
-initialState :: forall input. input -> State
-initialState _ =
-  { unsubscribe: pure unit
-  , audioCtx: Nothing
-  }
-
-render :: forall m. State -> H.ComponentHTML Action () m
-render _ = do
-  HH.div_
-    [ HH.h1_
-        [ HH.text "Hello world" ]
-    , HH.button
-        [ HE.onClick \_ -> StartAudio ]
-        [ HH.text "Start audio" ]
-    , HH.button
-        [ HE.onClick \_ -> StopAudio ]
-        [ HH.text "Stop audio" ]
-    ]
-
-handleAction :: forall output m. MonadEffect m => MonadAff m => Action -> H.HalogenM State Action () output m Unit
-handleAction = case _ of
-  StartAudio -> do
-    audioCtx <- H.liftEffect context
-    ffiAudio <- H.liftEffect $ makeFFIAudioSnapshot audioCtx
-    unsubscribe <-
-      H.liftEffect
-        $ subscribe
-          (run (pure unit) (pure unit) { easingAlgorithm } ffiAudio piece)
-          (\(_ :: BehavingRun Unit ()) -> pure unit)
-    H.modify_ _ { unsubscribe = unsubscribe, audioCtx = Just audioCtx }
-  StopAudio -> do
-    { unsubscribe, audioCtx } <- H.get
-    H.liftEffect unsubscribe
-    for_ audioCtx (H.liftEffect <<< close)
-    H.modify_ _ { unsubscribe = pure unit, audioCtx = Nothing }
+main = do
+  b' <- window >>= document >>= body
+  for_ (toElement <$> b') \elt -> do
+    ffi <- makeFFIDOMSnapshot
+    { push, event } <- create
+    let
+      switch = fold (\unsub b -> { on: not b.on, unsub }) event
+        { on: true, unsub: pure unit }
+    let
+      evt = deku elt
+        ( DOM.div_
+            [ text_ "Hello world"
+            , DOM.button
+                ( map
+                    ( \{ on, unsub } -> DOM.OnClick := cb
+                        ( const $
+                            if on then do
+                              unsub
+                              push (pure unit)
+                            else do
+                              ctx <- context
+                              ffi2 <- makeFFIAudioSnapshot ctx
+                              let wh = writeHead 0.04 ctx
+                              unsub2 <- subscribe
+                                ( speaker2
+                                    (scene (sample_ wh animationFrameEvent))
+                                    effectfulAudioInterpret
+                                )
+                                \i -> do
+                                  i ffi2
+                              push unsub2
+                        )
+                    )
+                    switch
+                )
+                [ text
+                    (map (_.on >>> if _ then "Turn off" else "Turn on") switch)
+                ]
+            ]
+        )
+        effectfulDOMInterpret
+    _ <- subscribe evt \i -> i ffi
+    push (pure unit)

@@ -14,8 +14,6 @@ import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.Tuple.Nested (type (/\), (/\))
 import Data.Typelevel.Num (class Nat, class Pos, class Pred, D1, D2, pred, toInt)
 import Data.Variant (Unvariant(..), match, unvariant)
-import WAGS.Core (AudioParameter, AudioWorkletNodeOptions_(..), InitialAudioParameter)
-import WAGS.Core as C
 import FRP.Behavior (sample_)
 import FRP.Event (class IsEvent, keepLatest)
 import Foreign.Object (fromHomogeneous)
@@ -24,6 +22,8 @@ import Safe.Coerce (coerce)
 import Simple.JSON as JSON
 import Type.Proxy (Proxy(..))
 import Type.Row.Homogeneous (class Homogeneous)
+import WAGS.Core as C
+import WAGS.Parameter (AudioParameter, InitialAudioParameter)
 
 -- gain input
 singleton
@@ -84,7 +84,7 @@ allpass
   -> event C.Allpass
   -> C.Node outputChannels produced consumed event payload
   -> C.Node outputChannels produced consumed event payload
-allpass i atts elt = C.Node go
+allpass (C.InitializeAllpass i) atts elt = C.Node go
   where
   go parent di@(C.AudioInterpret { ids, makeAllpass, setFrequency, setQ }) =
     keepLatest
@@ -126,7 +126,7 @@ analyser
   -> event C.Analyser
   -> C.Node outputChannels produced consumed event payload
   -> C.Node outputChannels produced consumed event payload
-analyser i atts elt = C.Node go
+analyser (C.InitializeAnalyser i) atts elt = C.Node go
   where
   go parent di@(C.AudioInterpret { ids, makeAnalyser, setAnalyserNodeCb }) =
     keepLatest
@@ -187,7 +187,7 @@ audioWorklet
   -> event (C.AudioWorkletNode parameterData)
   -> C.Node numberOfOutputs produced consumed event payload
   -> C.Node numberOfOutputs produced consumed event payload
-audioWorklet i atts elt = C.Node go
+audioWorklet (C.InitializeAudioWorkletNode i) atts elt = C.Node go
   where
   go
     parent
@@ -200,7 +200,7 @@ audioWorklet i atts elt = C.Node go
                 { id: me
                 , parent: parent
                 , options:
-                    AudioWorkletNodeOptions_
+                    C.AudioWorkletNodeOptions_
                       { name: reflectSymbol (Proxy :: _ name)
                       , numberOfInputs: toInt i.numberOfInputs
                       , numberOfOutputs: toInt i.numberOfOutputs
@@ -256,7 +256,7 @@ bandpass
   -> event C.Bandpass
   -> C.Node outputChannels produced consumed event payload
   -> C.Node outputChannels produced consumed event payload
-bandpass i atts elt = C.Node go
+bandpass (C.InitializeBandpass i) atts elt = C.Node go
   where
   go parent di@(C.AudioInterpret { ids, makeBandpass, setFrequency, setQ }) =
     keepLatest
@@ -296,7 +296,7 @@ constant
   => C.InitializeConstant
   -> event C.Constant
   -> C.Node outputChannels () () event payload
-constant i atts = C.Node go
+constant (C.InitializeConstant i) atts = C.Node go
   where
   go parent (C.AudioInterpret { ids, makeConstant, setOffset, setOnOff }) =
     keepLatest
@@ -306,7 +306,6 @@ constant i atts = C.Node go
                 { id: me
                 , parent: parent
                 , offset: i.offset
-                , onOff: i.onOff
                 }
             )
             <|> map
@@ -337,7 +336,7 @@ convolver
    . IsEvent event
   => C.InitializeConvolver
   -> C.Node outputChannels () () event payload
-convolver i = C.Node go
+convolver (C.InitializeConvolver i) = C.Node go
   where
   go parent (C.AudioInterpret { ids, makeConvolver }) =
     keepLatest
@@ -369,7 +368,7 @@ delay
   -> event C.Delay
   -> C.Node outputChannels produced consumed event payload
   -> C.Node outputChannels produced consumed event payload
-delay i atts elt = C.Node go
+delay (C.InitializeDelay i) atts elt = C.Node go
   where
   go parent di@(C.AudioInterpret { ids, makeDelay, setDelay }) =
     keepLatest
@@ -409,7 +408,7 @@ dynamicsCompressor
   -> event C.DynamicsCompressor
   -> C.Node outputChannels produced consumed event payload
   -> C.Node outputChannels produced consumed event payload
-dynamicsCompressor i atts elt = C.Node go
+dynamicsCompressor (C.InitializeDynamicsCompressor i) atts elt = C.Node go
   where
   go
     parent
@@ -470,6 +469,15 @@ dynamicsCompressor' _ i atts elts =
 
 -- gain
 
+gain__
+  :: forall outputChannels produced consumed event payload
+   . IsEvent event
+  => C.InitializeGain
+  -> event C.Gain
+  -> C.Node outputChannels produced consumed event payload
+  -> C.Node outputChannels produced consumed event payload
+gain__ i atts h = gain i atts (C.GainInput (NEA.fromNonEmpty (h :| [])))
+
 gain_
   :: forall outputChannels produced consumed event payload
    . IsEvent event
@@ -487,7 +495,7 @@ gain
   -> event C.Gain
   -> C.GainInput outputChannels produced consumed event payload
   -> C.Node outputChannels produced consumed event payload
-gain i atts (C.GainInput elts) = C.Node go
+gain (C.InitializeGain i) atts (C.GainInput elts) = C.Node go
   where
   go parent di@(C.AudioInterpret { ids, makeGain, setGain }) = keepLatest
     ( (sample_ ids (pure unit)) <#> \me ->
@@ -525,7 +533,7 @@ highpass
   -> event C.Highpass
   -> C.Node outputChannels produced consumed event payload
   -> C.Node outputChannels produced consumed event payload
-highpass i atts elt = C.Node go
+highpass (C.InitializeHighpass i) atts elt = C.Node go
   where
   go parent di@(C.AudioInterpret { ids, makeHighpass, setFrequency, setQ }) =
     keepLatest
@@ -566,7 +574,7 @@ highshelf
   -> event C.Highshelf
   -> C.Node outputChannels produced consumed event payload
   -> C.Node outputChannels produced consumed event payload
-highshelf i atts elt = C.Node go
+highshelf (C.InitializeHighshelf i) atts elt = C.Node go
   where
   go parent di@(C.AudioInterpret { ids, makeHighshelf, setFrequency, setGain }) =
     keepLatest
@@ -621,7 +629,7 @@ lowpass
   -> event C.Lowpass
   -> C.Node outputChannels produced consumed event payload
   -> C.Node outputChannels produced consumed event payload
-lowpass i atts elt = C.Node go
+lowpass (C.InitializeLowpass i) atts elt = C.Node go
   where
   go parent di@(C.AudioInterpret { ids, makeLowpass, setFrequency, setQ }) =
     keepLatest
@@ -662,7 +670,7 @@ lowshelf
   -> event C.Lowshelf
   -> C.Node outputChannels produced consumed event payload
   -> C.Node outputChannels produced consumed event payload
-lowshelf i atts elt = C.Node go
+lowshelf (C.InitializeLowshelf i) atts elt = C.Node go
   where
   go parent di@(C.AudioInterpret { ids, makeLowshelf, setFrequency, setGain }) =
     keepLatest
@@ -702,7 +710,7 @@ loopBuf
   => C.InitializeLoopBuf
   -> event C.LoopBuf
   -> C.Node outputChannels () () event payload
-loopBuf i atts = C.Node go
+loopBuf (C.InitializeLoopBuf i) atts = C.Node go
   where
   go
     parent
@@ -723,7 +731,6 @@ loopBuf i atts = C.Node go
                 { id: me
                 , parent: parent
                 , buffer: i.buffer
-                , onOff: i.onOff
                 , playbackRate: i.playbackRate
                 , loopStart: i.loopStart
                 , loopEnd: i.loopEnd
@@ -761,7 +768,7 @@ mediaElement
    . IsEvent event
   => C.InitializeMediaElement
   -> C.Node outputChannels () () event payload
-mediaElement i = C.Node go
+mediaElement (C.InitializeMediaElement i) = C.Node go
   where
   go parent (C.AudioInterpret { ids, makeMediaElement }) =
     keepLatest
@@ -791,7 +798,7 @@ microphone
    . IsEvent event
   => C.InitializeMicrophone
   -> C.Node outputChannels () () event payload
-microphone i = C.Node go
+microphone (C.InitializeMicrophone i) = C.Node go
   where
   go parent (C.AudioInterpret { ids, makeMicrophone }) =
     keepLatest
@@ -823,7 +830,7 @@ notch
   -> event C.Notch
   -> C.Node outputChannels produced consumed event payload
   -> C.Node outputChannels produced consumed event payload
-notch i atts elt = C.Node go
+notch (C.InitializeNotch i) atts elt = C.Node go
   where
   go parent di@(C.AudioInterpret { ids, makeNotch, setFrequency, setQ }) =
     keepLatest
@@ -864,7 +871,7 @@ peaking
   -> event C.Peaking
   -> C.Node outputChannels produced consumed event payload
   -> C.Node outputChannels produced consumed event payload
-peaking i atts elt = C.Node go
+peaking (C.InitializePeaking i) atts elt = C.Node go
   where
   go
     parent
@@ -912,7 +919,7 @@ periodicOsc
   => C.InitializePeriodicOsc
   -> event C.PeriodicOsc
   -> C.Node outputChannels () () event payload
-periodicOsc i atts = C.Node go
+periodicOsc (C.InitializePeriodicOsc i) atts = C.Node go
   where
   go parent (C.AudioInterpret { ids, makePeriodicOsc, setFrequency, setOnOff, setPeriodicOsc }) =
     keepLatest
@@ -922,7 +929,6 @@ periodicOsc i atts = C.Node go
                 { id: me
                 , parent: parent
                 , frequency: i.frequency
-                , onOff: i.onOff
                 , spec: i.spec
                 }
             )
@@ -956,7 +962,7 @@ playBuf
   => C.InitializePlayBuf
   -> event C.PlayBuf
   -> C.Node outputChannels () () event payload
-playBuf i atts = C.Node go
+playBuf (C.InitializePlayBuf i) atts = C.Node go
   where
   go
     parent
@@ -976,7 +982,6 @@ playBuf i atts = C.Node go
                 { id: me
                 , parent: parent
                 , buffer: i.buffer
-                , onOff: i.onOff
                 , playbackRate: i.playbackRate
                 , bufferOffset: i.bufferOffset
                 , duration: i.duration
@@ -1012,7 +1017,7 @@ recorder
   => C.InitializeRecorder
   -> C.Node outputChannels produced consumed event payload
   -> C.Node outputChannels produced consumed event payload
-recorder i elt = C.Node go
+recorder (C.InitializeRecorder i) elt = C.Node go
   where
   go parent di@(C.AudioInterpret { ids, makeRecorder }) =
     keepLatest
@@ -1043,7 +1048,7 @@ sawtoothOsc
   => C.InitializeSawtoothOsc
   -> event C.SawtoothOsc
   -> C.Node outputChannels () () event payload
-sawtoothOsc i atts = C.Node go
+sawtoothOsc (C.InitializeSawtoothOsc i) atts = C.Node go
   where
   go parent (C.AudioInterpret { ids, makeSawtoothOsc, setFrequency, setOnOff }) =
     keepLatest
@@ -1053,7 +1058,6 @@ sawtoothOsc i atts = C.Node go
                 { id: me
                 , parent: parent
                 , frequency: i.frequency
-                , onOff: i.onOff
                 }
             )
             <|> map
@@ -1085,7 +1089,7 @@ sinOsc
   => C.InitializeSinOsc
   -> event C.SinOsc
   -> C.Node outputChannels () () event payload
-sinOsc i atts = C.Node go
+sinOsc (C.InitializeSinOsc i) atts = C.Node go
   where
   go parent (C.AudioInterpret { ids, makeSinOsc, setFrequency, setOnOff }) =
     keepLatest
@@ -1095,7 +1099,6 @@ sinOsc i atts = C.Node go
                 { id: me
                 , parent: parent
                 , frequency: i.frequency
-                , onOff: i.onOff
                 }
             )
             <|> map
@@ -1127,7 +1130,7 @@ squareOsc
   => C.InitializeSquareOsc
   -> event C.SquareOsc
   -> C.Node outputChannels () () event payload
-squareOsc i atts = C.Node go
+squareOsc (C.InitializeSquareOsc i) atts = C.Node go
   where
   go parent (C.AudioInterpret { ids, makeSquareOsc, setFrequency, setOnOff }) =
     keepLatest
@@ -1137,7 +1140,6 @@ squareOsc i atts = C.Node go
                 { id: me
                 , parent: parent
                 , frequency: i.frequency
-                , onOff: i.onOff
                 }
             )
             <|> map
@@ -1198,7 +1200,7 @@ pan
   -> event C.StereoPanner
   -> C.Node outputChannels produced consumed event payload
   -> C.Node outputChannels produced consumed event payload
-pan i atts elt = C.Node go
+pan (C.InitializeStereoPanner i) atts elt = C.Node go
   where
   go parent di@(C.AudioInterpret { ids, makeStereoPanner, setPan }) =
     keepLatest
@@ -1237,7 +1239,7 @@ triangleOsc
   => C.InitializeTriangleOsc
   -> event C.TriangleOsc
   -> C.Node outputChannels () () event payload
-triangleOsc i atts = C.Node go
+triangleOsc (C.InitializeTriangleOsc i) atts = C.Node go
   where
   go parent (C.AudioInterpret { ids, makeTriangleOsc, setFrequency, setOnOff }) =
     keepLatest
@@ -1247,7 +1249,6 @@ triangleOsc i atts = C.Node go
                 { id: me
                 , parent: parent
                 , frequency: i.frequency
-                , onOff: i.onOff
                 }
             )
             <|> map
@@ -1278,7 +1279,7 @@ waveshaper
    . IsEvent event
   => C.InitializeWaveshaper
   -> C.Node outputChannels () () event payload
-waveshaper i = C.Node go
+waveshaper (C.InitializeWaveshaper i) = C.Node go
   where
   go parent (C.AudioInterpret { ids, makeWaveShaper }) =
     keepLatest

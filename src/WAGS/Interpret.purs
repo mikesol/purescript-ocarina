@@ -10,19 +10,19 @@ import Data.Symbol (class IsSymbol)
 import Data.Typelevel.Num (class Lt, class Nat, class Pos, D1)
 import Data.Vec (Vec)
 import Data.Vec as V
-import WAGS.Control (class ValidateOutputChannelCount)
-import WAGS.Core (AudioParameter, Node(..), Subgraph(..))
-import WAGS.Core as C
-import WAGS.WebAPI (BrowserAudioBuffer)
-import WAGS.WebAPI as WebAPI
 import Effect (Effect)
 import Effect.Aff (Aff)
 import Effect.Random as R
-import FRP.Behavior (behavior)
+import FRP.Behavior (Behavior, behavior)
 import FRP.Event (Event, create, makeEvent, subscribe)
 import Simple.JSON as JSON
 import Type.Row.Homogeneous (class Homogeneous)
 import Unsafe.Coerce (unsafeCoerce)
+import WAGS.Control (class ValidateOutputChannelCount)
+import WAGS.Core as C
+import WAGS.Parameter (AudioParameter, WriteHead)
+import WAGS.WebAPI (BrowserAudioBuffer)
+import WAGS.WebAPI as WebAPI
 import Web.File.Blob (Blob)
 import Web.File.Url (createObjectURL)
 
@@ -245,6 +245,14 @@ audioBuffer
   -> Vec bch (Vec blen Number)
   -> AudioBuffer
 audioBuffer i v = AudioBuffer i (map V.toArray $ V.toArray v)
+
+
+writeHead :: Number -> WebAPI.AudioContext -> WriteHead Behavior
+writeHead offset ctx = behavior \eab -> makeEvent \k ->
+  subscribe eab \ab -> do
+    t <- getAudioClockTime ctx
+    k (ab { concreteTime: t, abstractTime: t - offset })
+
 -- foreign
 data FFIAudioSnapshot
 
@@ -362,7 +370,7 @@ effectfulAudioInterpret = C.AudioInterpret
           let
             actualized =
               let
-                Node elt = (let Subgraph sg = scenes in sg) index event
+                C.Node elt = (let C.Subgraph sg = scenes in sg) index event
               in
                 elt parent effectfulAudioInterpret
           pure { actualized, pusher: evt.push }

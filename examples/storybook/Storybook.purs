@@ -19,19 +19,19 @@ import WAGS.Example.HelloWorld as HelloWorld
 import WAGS.Example.Subgraph as Subgraph
 import WAGS.Example.WhiteNoise as WhiteNoise
 
-stories :: forall m. MonadEffect m => MonadAff m => MonadThrow Error m => Stories m
-stories = Object.fromFoldable
-  [ Tuple "atari speaks" $ proxy AtariSpeaks.component
-  , Tuple "drum machine" $ proxy DrumMachine.component
-  , Tuple "hello world" $ proxy HelloWorld.component
-  , Tuple "subgraph" $ proxy Subgraph.component
-  , Tuple "white noise" $ proxy WhiteNoise.component
-  ]
+-- stories :: forall m. MonadEffect m => MonadAff m => MonadThrow Error m => Stories m
+-- stories = Object.fromFoldable
+--   [ Tuple "atari speaks" $ proxy AtariSpeaks.component
+--   , Tuple "drum machine" $ proxy DrumMachine.component
+--   , Tuple "hello world" $ proxy HelloWorld.component
+--   , Tuple "subgraph" $ proxy Subgraph.component
+--   , Tuple "white noise" $ proxy WhiteNoise.component
+--   ]
 
-main :: Effect Unit
-main = HA.runHalogenAff do
-  HA.awaitBody >>=
-    runStorybook
-      { stories
-      , logo: Just (HH.text "Wags acceptance tests")  -- pass `Just HH.PlainHTML` to override the logo
-      }
+-- main :: Effect Unit
+-- main = HA.runHalogenAff do
+--   HA.awaitBody >>=
+--     runStorybook
+--       { stories
+--       , logo: Just (HH.text "Wags acceptance tests")  -- pass `Just HH.PlainHTML` to override the logo
+--       }
