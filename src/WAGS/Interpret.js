@@ -41,7 +41,9 @@ var protoSetter = function (thingee, deprecatedTimeToSet, param) {
 				: thingee.cancelScheduledValues(deprecatedTimeToSet + param.value.o);
 		} else if (param.type === ENVELOPE) {
 			// envelope is last option
-			thingee.cancelScheduledValues(deprecatedTimeToSet + param.value.o - 0.001);
+			thingee.cancelScheduledValues(
+				deprecatedTimeToSet + param.value.o - 0.001
+			);
 			thingee.setValueCurveAtTime(
 				param.value.p,
 				deprecatedTimeToSet + param.value.o,
@@ -53,10 +55,25 @@ var protoSetter = function (thingee, deprecatedTimeToSet, param) {
 	}
 };
 var workletSetter = function (unit, paramName, deprecatedTimeToSet, param) {
-	return protoSetter(unit.parameters.get(paramName), deprecatedTimeToSet, param);
+	return protoSetter(
+		unit.parameters.get(paramName),
+		deprecatedTimeToSet,
+		param
+	);
 };
 var genericSetter = function (unit, name, deprecatedTimeToSet, param) {
 	return protoSetter(unit[name], deprecatedTimeToSet, param);
+};
+var mConnectXToY_ = function (x) {
+	return function (y) {
+		return function (state) {
+			return function () {
+				if (y.type === "just") {
+					connectXToY_(x)(y.value)(state)();
+				}
+			};
+		};
+	};
 };
 var connectXToY_ = function (x) {
 	return function (y) {
@@ -72,8 +89,17 @@ var connectXToY_ = function (x) {
 		};
 	};
 };
-exports.connectXToY_ = connectXToY_;
-
+exports.connectXToY_ = function (x) {
+	return function (y) {
+		return function (state) {
+			return function () {
+				setImmediate(function () {
+					connectXToY_(x)(y)(state)();
+				});
+			};
+		};
+	};
+};
 var disconnectXFromY_ = function (x) {
 	return function (y) {
 		return function (state) {
@@ -124,7 +150,7 @@ exports.makeAllpass_ = function (a) {
 					frequency: a.frequency,
 				}),
 			};
-			connectXToY_(ptr)(a.parent)(state)();
+			mConnectXToY_(ptr)(a.parent)(state)();
 		};
 	};
 };
@@ -146,7 +172,7 @@ exports.makeAnalyser_ = function (a) {
 				main: state.context.createGain(),
 				se: dest,
 			};
-			connectXToY_(ptr)(a.parent)(state)();
+			mConnectXToY_(ptr)(a.parent)(state)();
 		};
 	};
 };
@@ -168,7 +194,7 @@ exports.makeAudioWorkletNode_ = function (aa) {
 					processorOptions: a.processorOptions,
 				}),
 			};
-			connectXToY_(ptr)(aa.parent)(state)();
+			mConnectXToY_(ptr)(aa.parent)(state)();
 		};
 	};
 };
@@ -187,7 +213,7 @@ exports.makeBandpass_ = function (a) {
 					frequency: a.frequency,
 				}),
 			};
-			connectXToY_(ptr)(a.parent)(state)();
+			mConnectXToY_(ptr)(a.parent)(state)();
 		};
 	};
 };
@@ -210,7 +236,7 @@ exports.makeConstant_ = function (a) {
 				createClosure: createClosure,
 				main: createClosure(state.context, resume),
 			};
-			connectXToY_(ptr)(a.parent)(state)();
+			mConnectXToY_(ptr)(a.parent)(state)();
 			// var oo = isOn(onOff.onOff);
 			// if (oo) {
 			// 	state.units[ptr].main.start(
@@ -231,7 +257,7 @@ exports.makeConvolver_ = function (a) {
 				incoming: [],
 				main: new ConvolverNode(state.context, { buffer: a.buffer }),
 			};
-			connectXToY_(ptr)(a.parent)(state)();
+			mConnectXToY_(ptr)(a.parent)(state)();
 		};
 	};
 };
@@ -248,7 +274,7 @@ exports.makeDelay_ = function (a) {
 					delayTime: a.delayTime,
 				}),
 			};
-			connectXToY_(ptr)(a.parent)(state)();
+			mConnectXToY_(ptr)(a.parent)(state)();
 		};
 	};
 };
@@ -269,7 +295,7 @@ exports.makeDynamicsCompressor_ = function (a) {
 					release: a.release,
 				}),
 			};
-			connectXToY_(ptr)(a.parent)(state)();
+			mConnectXToY_(ptr)(a.parent)(state)();
 		};
 	};
 };
@@ -286,7 +312,7 @@ exports.makeGain_ = function (a) {
 					gain: a.gain,
 				}),
 			};
-			connectXToY_(ptr)(a.parent)(state)();
+			mConnectXToY_(ptr)(a.parent)(state)();
 		};
 	};
 };
@@ -304,7 +330,7 @@ exports.makeHighpass_ = function (a) {
 					frequency: a.frequency,
 				}),
 			};
-			connectXToY_(ptr)(a.parent)(state)();
+			mConnectXToY_(ptr)(a.parent)(state)();
 		};
 	};
 };
@@ -323,7 +349,7 @@ exports.makeHighshelf_ = function (a) {
 					gain: a.gain,
 				}),
 			};
-			connectXToY_(ptr)(a.parent)(state)();
+			mConnectXToY_(ptr)(a.parent)(state)();
 		};
 	};
 };
@@ -365,7 +391,7 @@ exports.makeLoopBuf_ = function (a) {
 				createClosure: createClosure,
 				main: createClosure(state.context, resume),
 			};
-			connectXToY_(ptr)(a.parent)(state)();
+			mConnectXToY_(ptr)(a.parent)(state)();
 			// var oo = isOn(onOff.onOff);
 			// if (oo) {
 			// 	state.units[ptr].main.start(
@@ -391,7 +417,7 @@ exports.makeLowpass_ = function (a) {
 					frequency: a.frequency,
 				}),
 			};
-			connectXToY_(ptr)(a.parent)(state)();
+			mConnectXToY_(ptr)(a.parent)(state)();
 		};
 	};
 };
@@ -410,7 +436,7 @@ exports.makeLowshelf_ = function (a) {
 					gain: a.gain,
 				}),
 			};
-			connectXToY_(ptr)(a.parent)(state)();
+			mConnectXToY_(ptr)(a.parent)(state)();
 		};
 	};
 };
@@ -433,7 +459,7 @@ exports.makeMediaElement_ = function (a) {
 				resumeClosure: {},
 				main: createClosure(),
 			};
-			connectXToY_(ptr)(a.parent)(state)();
+			mConnectXToY_(ptr)(a.parent)(state)();
 		};
 	};
 };
@@ -465,7 +491,7 @@ exports.makeNotch_ = function (a) {
 					Q: a.q,
 				}),
 			};
-			connectXToY_(ptr)(a.parent)(state)();
+			mConnectXToY_(ptr)(a.parent)(state)();
 		};
 	};
 };
@@ -485,7 +511,7 @@ exports.makePeaking_ = function (a) {
 					gain: a.gain,
 				}),
 			};
-			connectXToY_(ptr)(a.parent)(state)();
+			mConnectXToY_(ptr)(a.parent)(state)();
 		};
 	};
 };
@@ -516,7 +542,7 @@ exports.makePeriodicOsc_ = function (a) {
 				createClosure: createClosure,
 				main: createClosure(state.context, resume),
 			};
-			connectXToY_(ptr)(a.parent)(state)();
+			mConnectXToY_(ptr)(a.parent)(state)();
 			// var oo = isOn(onOff.onOff);
 			// if (oo) {
 			// 	state.units[ptr].main.start(
@@ -552,7 +578,7 @@ exports.makePlayBuf_ = function (a) {
 				createClosure: createClosure,
 				main: createClosure(state.context, resume),
 			};
-			connectXToY_(ptr)(a.parent)(state)();
+			mConnectXToY_(ptr)(a.parent)(state)();
 			// var oo = isOn(onOff.onOff);
 			// if (oo) {
 			// 	state.units[ptr].main.start(
@@ -584,7 +610,7 @@ exports.makeRecorder_ = function (aa) {
 				main: state.context.createGain(),
 				se: dest,
 			};
-			connectXToY_(ptr)(aa.parent)(state)();
+			mConnectXToY_(ptr)(aa.parent)(state)();
 		};
 	};
 };
@@ -607,7 +633,7 @@ exports.makeSawtoothOsc_ = function (a) {
 				createClosure: createClosure,
 				main: createClosure(state.context, resume),
 			};
-			connectXToY_(ptr)(a.parent)(state)();
+			mConnectXToY_(ptr)(a.parent)(state)();
 			// var oo = isOn(onOff.onOff);
 			// if (oo) {
 			// 	state.units[ptr].main.start(
@@ -637,7 +663,7 @@ exports.makeSinOsc_ = function (a) {
 				createClosure: createClosure,
 				main: createClosure(state.context, resume),
 			};
-			connectXToY_(ptr)(a.parent)(state)();
+			mConnectXToY_(ptr)(a.parent)(state)();
 			// var oo = isOn(onOff.onOff);
 			// if (oo) {
 			// 	state.units[ptr].main.start(
@@ -762,7 +788,7 @@ exports.makeStereoPanner_ = function (a) {
 					pan: a.pan,
 				}),
 			};
-			connectXToY_(ptr)(a.parent)(state)();
+			mConnectXToY_(ptr)(a.parent)(state)();
 		};
 	};
 };
@@ -785,7 +811,7 @@ exports.makeSquareOsc_ = function (a) {
 				createClosure: createClosure,
 				main: createClosure(state.context, resume),
 			};
-			connectXToY_(ptr)(a.parent)(state)();
+			mConnectXToY_(ptr)(a.parent)(state)();
 			// var oo = isOn(onOff.onOff);
 			// if (oo) {
 			// 	state.units[ptr].main.start(
@@ -815,7 +841,7 @@ exports.makeTriangleOsc_ = function (a) {
 				createClosure: createClosure,
 				main: createClosure(state.context, resume),
 			};
-			connectXToY_(ptr)(a.parent)(state)();
+			mConnectXToY_(ptr)(a.parent)(state)();
 			// var oo = isOn(onOff.onOff);
 			// if (oo) {
 			// 	state.units[ptr].main.start(
@@ -841,7 +867,7 @@ exports.makeWaveShaper_ = function (aa) {
 					oversample: b.type,
 				}),
 			};
-			connectXToY_(ptr)(a.parent)(state)();
+			mConnectXToY_(ptr)(a.parent)(state)();
 		};
 	};
 };

@@ -96,7 +96,7 @@ allpass (C.InitializeAllpass i) atts elt = C.Node go
       ( (sample_ ids (pure unit)) <#> \me ->
           ( pure
               ( makeAllpass
-                  { id: me, parent: parent, frequency: i.frequency, q: i.q }
+                  { id: me, parent: just parent, frequency: i.frequency, q: i.q }
               )
           )
             <|> map
@@ -226,7 +226,7 @@ analyser i' atts elt = C.Node go
           pure
             ( makeAnalyser
                 { id: me
-                , parent: parent
+                , parent: just parent
                 , cb: i.cb
                 , fftSize: 2 `pow`
                     ( case i.fftSize of
@@ -317,7 +317,7 @@ audioWorklet (C.InitializeAudioWorkletNode i) atts elt = C.Node go
           pure
             ( makeAudioWorkletNode
                 { id: me
-                , parent: parent
+                , parent: just parent
                 , options:
                     C.AudioWorkletNodeOptions_
                       { name: reflectSymbol (Proxy :: _ name)
@@ -383,7 +383,7 @@ bandpass (C.InitializeBandpass i) atts elt = C.Node go
       ( (sample_ ids (pure unit)) <#> \me ->
           pure
             ( makeBandpass
-                { id: me, parent: parent, frequency: i.frequency, q: i.q }
+                { id: me, parent: just parent, frequency: i.frequency, q: i.q }
             )
             <|> map
               ( \(C.Bandpass e) -> match
@@ -424,7 +424,7 @@ constant (C.InitializeConstant i) atts = C.Node go
           pure
             ( makeConstant
                 { id: me
-                , parent: parent
+                , parent: just parent
                 , offset: i.offset
                 }
             )
@@ -464,7 +464,7 @@ convolver (C.InitializeConvolver i) = C.Node go
           pure
             ( makeConvolver
                 { id: me
-                , parent: parent
+                , parent: just parent
                 , buffer: i.buffer
                 }
             )
@@ -495,7 +495,7 @@ delay (C.InitializeDelay i) atts elt = C.Node go
       ( (sample_ ids (pure unit)) <#> \me ->
           pure
             ( makeDelay
-                { id: me, parent: parent, delayTime: i.delayTime }
+                { id: me, parent: just parent, delayTime: i.delayTime }
             )
             <|> map
               ( \(C.Delay e) -> match
@@ -548,7 +548,7 @@ dynamicsCompressor (C.InitializeDynamicsCompressor i) atts elt = C.Node go
           pure
             ( makeDynamicsCompressor
                 { id: me
-                , parent: parent
+                , parent: just parent
                 , threshold: i.threshold
                 , ratio: i.ratio
                 , knee: i.knee
@@ -633,7 +633,7 @@ gain i' atts (C.GainInput elts) = C.Node go
   C.InitializeGain i = toInitialGain i'
   go parent di@(C.AudioInterpret { ids, makeGain, setGain }) = keepLatest
     ( (sample_ ids (pure unit)) <#> \me ->
-        pure (makeGain { id: me, parent: parent, gain: i.gain })
+        pure (makeGain { id: me, parent: just parent, gain: i.gain })
           <|> map
             ( \(C.Gain e) -> match
                 { gain: \g -> setGain { id: me, gain: g }
@@ -675,7 +675,7 @@ highpass (C.InitializeHighpass i) atts elt = C.Node go
       ( (sample_ ids (pure unit)) <#> \me ->
           pure
             ( makeHighpass
-                { id: me, parent: parent, frequency: i.frequency, q: i.q }
+                { id: me, parent: just parent, frequency: i.frequency, q: i.q }
             )
             <|> map
               ( \(C.Highpass e) -> match
@@ -716,7 +716,7 @@ highshelf (C.InitializeHighshelf i) atts elt = C.Node go
       ( (sample_ ids (pure unit)) <#> \me ->
           pure
             ( makeHighshelf
-                { id: me, parent: parent, frequency: i.frequency, gain: i.gain }
+                { id: me, parent: just parent, frequency: i.frequency, gain: i.gain }
             )
             <|> map
               ( \(C.Highshelf e) -> match
@@ -752,7 +752,7 @@ input (C.Input me) = C.Node go
   where
   go parent (C.AudioInterpret { makeInput }) = pure
     ( makeInput
-        { id: me, parent: parent }
+        { id: me, parent: just parent }
     )
 
 -- lowpass
@@ -771,7 +771,7 @@ lowpass (C.InitializeLowpass i) atts elt = C.Node go
       ( (sample_ ids (pure unit)) <#> \me ->
           pure
             ( makeLowpass
-                { id: me, parent: parent, frequency: i.frequency, q: i.q }
+                { id: me, parent: just parent, frequency: i.frequency, q: i.q }
             )
             <|> map
               ( \(C.Lowpass e) -> match
@@ -812,7 +812,7 @@ lowshelf (C.InitializeLowshelf i) atts elt = C.Node go
       ( (sample_ ids (pure unit)) <#> \me ->
           pure
             ( makeLowshelf
-                { id: me, parent: parent, frequency: i.frequency, gain: i.gain }
+                { id: me, parent: just parent, frequency: i.frequency, gain: i.gain }
             )
             <|> map
               ( \(C.Lowshelf e) -> match
@@ -924,7 +924,7 @@ loopBuf i' atts = C.Node go
           pure
             ( makeLoopBuf
                 { id: me
-                , parent: parent
+                , parent: just parent
                 , buffer: i.buffer
                 , playbackRate: i.playbackRate
                 , loopStart: i.loopStart
@@ -971,7 +971,7 @@ mediaElement (C.InitializeMediaElement i) = C.Node go
           pure
             ( makeMediaElement
                 { id: me
-                , parent: parent
+                , parent: just parent
                 , element: i.element
                 }
             )
@@ -1001,7 +1001,7 @@ microphone (C.InitializeMicrophone i) = C.Node go
           pure
             ( makeMicrophone
                 { id: me
-                , parent: parent
+                , parent: just parent
                 , microphone: i.microphone
                 }
             )
@@ -1032,7 +1032,7 @@ notch (C.InitializeNotch i) atts elt = C.Node go
       ( (sample_ ids (pure unit)) <#> \me ->
           pure
             ( makeNotch
-                { id: me, parent: parent, frequency: i.frequency, q: i.q }
+                { id: me, parent: just parent, frequency: i.frequency, q: i.q }
             )
             <|> map
               ( \(C.Notch e) -> match
@@ -1076,7 +1076,7 @@ peaking (C.InitializePeaking i) atts elt = C.Node go
           pure
             ( makePeaking
                 { id: me
-                , parent: parent
+                , parent: just parent
                 , frequency: i.frequency
                 , q: i.q
                 , gain: i.gain
@@ -1126,7 +1126,7 @@ periodicOsc (C.InitializePeriodicOsc i) atts = C.Node go
           pure
             ( makePeriodicOsc
                 { id: me
-                , parent: parent
+                , parent: just parent
                 , frequency: i.frequency
                 , spec: i.spec
                 }
@@ -1234,7 +1234,7 @@ playBuf i' atts = C.Node go
           pure
             ( makePlayBuf
                 { id: me
-                , parent: parent
+                , parent: just parent
                 , buffer: i.buffer
                 , playbackRate: i.playbackRate
                 , bufferOffset: i.bufferOffset
@@ -1277,7 +1277,7 @@ recorder (C.InitializeRecorder i) elt = C.Node go
   go parent di@(C.AudioInterpret { ids, makeRecorder }) =
     keepLatest
       ( (sample_ ids (pure unit)) <#> \me ->
-          pure (makeRecorder { id: me, parent: parent, cb: i.cb })
+          pure (makeRecorder { id: me, parent: just parent, cb: i.cb })
             <|> ((\y -> let C.Node x = y in x) elt) me di
 
       )
@@ -1312,7 +1312,7 @@ sawtoothOsc (C.InitializeSawtoothOsc i) atts = C.Node go
           pure
             ( makeSawtoothOsc
                 { id: me
-                , parent: parent
+                , parent: just parent
                 , frequency: i.frequency
                 }
             )
@@ -1364,7 +1364,7 @@ sinOsc i' atts = C.Node go
           pure
             ( makeSinOsc
                 { id: me
-                , parent: parent
+                , parent: just parent
                 , frequency: i.frequency
                 }
             )
@@ -1406,7 +1406,7 @@ squareOsc (C.InitializeSquareOsc i) atts = C.Node go
           pure
             ( makeSquareOsc
                 { id: me
-                , parent: parent
+                , parent: just parent
                 , frequency: i.frequency
                 }
             )
@@ -1476,7 +1476,7 @@ pan (C.InitializeStereoPanner i) atts elt = C.Node go
       ( (sample_ ids (pure unit)) <#> \me ->
           pure
             ( makeStereoPanner
-                { id: me, parent: parent, pan: i.pan }
+                { id: me, parent: just parent, pan: i.pan }
             )
             <|> map
               ( \(C.StereoPanner e) -> match
@@ -1516,7 +1516,7 @@ triangleOsc (C.InitializeTriangleOsc i) atts = C.Node go
           pure
             ( makeTriangleOsc
                 { id: me
-                , parent: parent
+                , parent: just parent
                 , frequency: i.frequency
                 }
             )
@@ -1556,7 +1556,7 @@ waveshaper (C.InitializeWaveshaper i) = C.Node go
           pure
             ( makeWaveShaper
                 { id: me
-                , parent: parent
+                , parent: just parent
                 , curve: i.curve
                 , oversample: i.oversample
                 }

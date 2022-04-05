@@ -182,7 +182,7 @@ newtype InitializeAllpass = InitializeAllpass
 
 type MakeAllpass =
   { id :: String
-  , parent :: String
+  , parent :: Maybe String
   , frequency :: InitialAudioParameter
   , q :: InitialAudioParameter
   }
@@ -208,7 +208,7 @@ newtype InitializeAnalyser = InitializeAnalyser
 
 type MakeAnalyser =
   { id :: String
-  , parent :: String
+  , parent :: Maybe String
   , cb :: AnalyserNodeCb
   , fftSize :: Int
   , maxDecibels :: Number
@@ -250,7 +250,7 @@ newtype InitializeAudioWorkletNode
   }
 
 type MakeAudioWorkletNode =
-  { id :: String, parent :: String, options :: AudioWorkletNodeOptions_ }
+  { id :: String, parent :: Maybe String, options :: AudioWorkletNodeOptions_ }
 
 derive instance newtypeBandpass :: Newtype Bandpass _
 newtype Bandpass = Bandpass
@@ -268,7 +268,7 @@ newtype InitializeBandpass = InitializeBandpass
 
 type MakeBandpass =
   { id :: String
-  , parent :: String
+  , parent :: Maybe String
   , frequency :: InitialAudioParameter
   , q :: InitialAudioParameter
   }
@@ -283,7 +283,7 @@ newtype InitializeConstant = InitializeConstant
 
 type MakeConstant =
   { id :: String
-  , parent :: String
+  , parent :: Maybe String
   , offset :: InitialAudioParameter
   }
 
@@ -292,7 +292,7 @@ newtype InitializeConvolver = InitializeConvolver
   { buffer :: BrowserAudioBuffer }
 
 type MakeConvolver =
-  { id :: String, parent :: String, buffer :: BrowserAudioBuffer }
+  { id :: String, parent :: Maybe String, buffer :: BrowserAudioBuffer }
 
 derive instance newtypeDelay :: Newtype Delay _
 newtype Delay = Delay (Variant (delayTime :: AudioParameter))
@@ -300,7 +300,7 @@ newtype Delay = Delay (Variant (delayTime :: AudioParameter))
 derive instance newtypeInitializeDelay :: Newtype InitializeDelay _
 newtype InitializeDelay = InitializeDelay { delayTime :: InitialAudioParameter }
 type MakeDelay =
-  { id :: String, parent :: String, delayTime :: InitialAudioParameter }
+  { id :: String, parent :: Maybe String, delayTime :: InitialAudioParameter }
 
 derive instance newtypeDynamicsCompressor :: Newtype DynamicsCompressor _
 newtype DynamicsCompressor = DynamicsCompressor
@@ -326,7 +326,7 @@ newtype InitializeDynamicsCompressor = InitializeDynamicsCompressor
 
 type MakeDynamicsCompressor =
   { id :: String
-  , parent :: String
+  , parent :: Maybe String
   , threshold :: InitialAudioParameter
   , knee :: InitialAudioParameter
   , ratio :: InitialAudioParameter
@@ -340,7 +340,7 @@ newtype Gain = Gain (Variant (gain :: AudioParameter))
 derive instance newtypeInitializeGain :: Newtype InitializeGain _
 newtype InitializeGain = InitializeGain { gain :: InitialAudioParameter }
 type MakeGain =
-  { id :: String, parent :: String, gain :: InitialAudioParameter }
+  { id :: String, parent :: Maybe String, gain :: InitialAudioParameter }
 
 derive instance newtypeHighpass :: Newtype Highpass _
 newtype Highpass = Highpass
@@ -358,7 +358,7 @@ newtype InitializeHighpass = InitializeHighpass
 
 type MakeHighpass =
   { id :: String
-  , parent :: String
+  , parent :: Maybe String
   , frequency :: InitialAudioParameter
   , q :: InitialAudioParameter
   }
@@ -379,12 +379,12 @@ newtype InitializeHighshelf = InitializeHighshelf
 
 type MakeHighshelf =
   { id :: String
-  , parent :: String
+  , parent :: Maybe String
   , frequency :: InitialAudioParameter
   , gain :: InitialAudioParameter
   }
 
-type MakeInput = { id :: String, parent :: String }
+type MakeInput = { id :: String, parent :: Maybe String }
 
 derive instance newtypeLoopBuf :: Newtype LoopBuf _
 newtype LoopBuf = LoopBuf
@@ -409,7 +409,7 @@ newtype InitializeLoopBuf = InitializeLoopBuf
 
 type MakeLoopBuf =
   { id :: String
-  , parent :: String
+  , parent :: Maybe String
   , buffer :: BrowserAudioBuffer
   , playbackRate :: InitialAudioParameter
   , loopStart :: Number
@@ -433,7 +433,7 @@ newtype InitializeLowpass = InitializeLowpass
 
 type MakeLowpass =
   { id :: String
-  , parent :: String
+  , parent :: Maybe String
   , frequency :: InitialAudioParameter
   , q :: InitialAudioParameter
   }
@@ -454,7 +454,7 @@ newtype InitializeLowshelf = InitializeLowshelf
 
 type MakeLowshelf =
   { id :: String
-  , parent :: String
+  , parent :: Maybe String
   , frequency :: InitialAudioParameter
   , gain :: InitialAudioParameter
   }
@@ -468,16 +468,16 @@ newtype InitializeMediaElement = InitializeMediaElement
 
 type MakeMediaElement =
   { id :: String
-  , parent :: String
+  , parent :: Maybe String
   , element :: BrowserMediaElement
   }
 
 derive instance newtypeInitializeMicrophone :: Newtype InitializeMicrophone _
 newtype InitializeMicrophone = InitializeMicrophone
-  { microphone :: BrowserMicrophone, parent :: String }
+  { microphone :: BrowserMicrophone, parent :: Maybe String }
 
 type MakeMicrophone =
-  { id :: String, microphone :: BrowserMicrophone, parent :: String }
+  { id :: String, microphone :: BrowserMicrophone, parent :: Maybe String }
 
 derive instance newtypeNotch :: Newtype Notch _
 newtype Notch = Notch
@@ -495,7 +495,7 @@ newtype InitializeNotch = InitializeNotch
 
 type MakeNotch =
   { id :: String
-  , parent :: String
+  , parent :: Maybe String
   , frequency :: InitialAudioParameter
   , q :: InitialAudioParameter
   }
@@ -518,7 +518,7 @@ newtype InitializePeaking = InitializePeaking
 
 type MakePeaking =
   { id :: String
-  , parent :: String
+  , parent :: Maybe String
   , frequency :: InitialAudioParameter
   , q :: InitialAudioParameter
   , gain :: InitialAudioParameter
@@ -542,7 +542,7 @@ newtype InitializePeriodicOsc = InitializePeriodicOsc
 
 type MakePeriodicOsc =
   { id :: String
-  , parent :: String
+  , parent :: Maybe String
   , spec :: PeriodicOscSpec
   , frequency :: InitialAudioParameter
   }
@@ -568,7 +568,7 @@ newtype InitializePlayBuf = InitializePlayBuf
 
 type MakePlayBuf =
   { id :: String
-  , parent :: String
+  , parent :: Maybe String
   , buffer :: BrowserAudioBuffer
   , bufferOffset :: Number
   , playbackRate :: InitialAudioParameter
@@ -577,7 +577,7 @@ type MakePlayBuf =
 
 derive instance newtypeInitializeRecorder :: Newtype InitializeRecorder _
 newtype InitializeRecorder = InitializeRecorder { cb :: MediaRecorderCb }
-type MakeRecorder = { id :: String, parent :: String, cb :: MediaRecorderCb }
+type MakeRecorder = { id :: String, parent :: Maybe String, cb :: MediaRecorderCb }
 type MakeSpeaker = { id :: String }
 
 derive instance newtypeSawtoothOsc :: Newtype SawtoothOsc _
@@ -596,7 +596,7 @@ newtype InitializeSawtoothOsc = InitializeSawtoothOsc
 
 type MakeSawtoothOsc =
   { id :: String
-  , parent :: String
+  , parent :: Maybe String
   , frequency :: InitialAudioParameter
   }
 
@@ -611,7 +611,7 @@ newtype InitializeSinOsc = InitializeSinOsc
 
 type MakeSinOsc =
   { id :: String
-  , parent :: String
+  , parent :: Maybe String
   , frequency :: InitialAudioParameter
   }
 
@@ -631,7 +631,7 @@ newtype InitializeSquareOsc = InitializeSquareOsc
 
 type MakeSquareOsc =
   { id :: String
-  , parent :: String
+  , parent :: Maybe String
   , frequency :: InitialAudioParameter
   }
 
@@ -646,7 +646,7 @@ newtype InitializeStereoPanner = InitializeStereoPanner
   { pan :: InitialAudioParameter }
 
 type MakeStereoPanner =
-  { id :: String, parent :: String, pan :: InitialAudioParameter }
+  { id :: String, parent :: Maybe String, pan :: InitialAudioParameter }
 
 derive instance newtypeTriangleOsc :: Newtype TriangleOsc _
 newtype TriangleOsc =
@@ -664,7 +664,7 @@ newtype InitializeTriangleOsc = InitializeTriangleOsc
 
 type MakeTriangleOsc =
   { id :: String
-  , parent :: String
+  , parent :: Maybe String
   , frequency :: InitialAudioParameter
   }
 
@@ -676,7 +676,7 @@ newtype InitializeWaveshaper = InitializeWaveshaper
 
 type MakeWaveShaper =
   { id :: String
-  , parent :: String
+  , parent :: Maybe String
   , curve :: BrowserFloatArray
   , oversample :: Oversample
   }

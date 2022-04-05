@@ -16,6 +16,7 @@
   , "foreign"
   , "foreign-object"
   , "homogeneous"
+  , "indexed-monad"
   , "integers"
   , "lists"
   , "maybe"
