@@ -8,10 +8,7 @@ in      conf
               , "arrays"
               , "arraybuffer"
               , "deku"
-              , "deku-toplevel"
               , "console"
-              , "halogen-subscriptions"
-              , "heterogeneous"
               , "nonempty"
               , "identity"
               , "nonempty"
@@ -25,5 +22,8 @@ in      conf
               , "web-file"
               , "exceptions"
               , "profunctor-lenses"
+              , "free"
+              , "math"
+              , "refs"
               ]
         }

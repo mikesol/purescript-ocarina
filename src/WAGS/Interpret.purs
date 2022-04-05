@@ -248,10 +248,10 @@ audioBuffer i v = AudioBuffer i (map V.toArray $ V.toArray v)
 
 
 writeHead :: Number -> WebAPI.AudioContext -> WriteHead Behavior
-writeHead offset ctx = behavior \eab -> makeEvent \k ->
+writeHead lookAhead ctx = behavior \eab -> makeEvent \k ->
   subscribe eab \ab -> do
     t <- getAudioClockTime ctx
-    k (ab { concreteTime: t, abstractTime: t - offset })
+    k (ab { concreteTime: t, abstractTime: t - lookAhead, lookAhead })
 
 -- foreign
 data FFIAudioSnapshot

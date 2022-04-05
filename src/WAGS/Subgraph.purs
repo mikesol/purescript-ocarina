@@ -34,21 +34,32 @@ instance inputsCons ::
   , MakeInputs rest consumed'
   ) =>
   MakeInputs (RL.Cons key Input rest) consumed where
-  inputs _ = let px = (Proxy :: _ key) in Record.insert px (Input (reflectSymbol px)) (inputs (Proxy :: _ rest))
+  inputs _ =
+    let
+      px = (Proxy :: _ key)
+    in
+      Record.insert px (Input (reflectSymbol px)) (inputs (Proxy :: _ rest))
 
 subgraph
-  :: forall index env outputChannels consumed consumedRL produced event payload
+  :: forall index env outputChannels produced consumed consumedRL sgProduced
+       sgConsumed event payload
    . IsEvent event
   => Hashable index
   => RowToList consumed consumedRL
   => MakeInputs consumedRL consumed
   => event (index /\ SubgraphAction env)
-  -> ({ | consumed } -> Subgraph index env outputChannels event payload)
+  -> ( { | consumed }
+       -> Subgraph index env outputChannels sgProduced sgConsumed event payload
+     )
   -> C.Node outputChannels produced consumed event payload
 subgraph mods elt = C.Node go
   where
   subg = elt (inputs (Proxy :: _ consumedRL))
-  go parent (C.AudioInterpret { ids, makeSubgraph, insertOrUpdateSubgraph, removeSubgraph }) =
+  go
+    parent
+    ( C.AudioInterpret
+        { ids, makeSubgraph, insertOrUpdateSubgraph, removeSubgraph }
+    ) =
     keepLatest
       ( (sample_ ids (pure unit)) <#> \me ->
           pure
@@ -65,7 +76,9 @@ subgraph mods elt = C.Node go
       )
 
 subgraph'
-  :: forall proxy sym index env outputChannels consumed' consumed consumedRL produced event payload
+  :: forall proxy sym index env outputChannels produced consumed' consumed
+       consumedRL
+       sgProduced sgConsumed event payload
    . IsEvent event
   => Hashable index
   => RowToList consumed consumedRL
@@ -73,7 +86,9 @@ subgraph'
   => Row.Cons sym C.Input consumed' consumed
   => proxy sym
   -> event (index /\ SubgraphAction env)
-  -> ({ | consumed } -> Subgraph index env outputChannels event payload)
+  -> ( { | consumed }
+       -> Subgraph index env outputChannels sgProduced sgConsumed event payload
+     )
   -> C.Node outputChannels produced consumed event payload
 subgraph' _ mods elt = let C.Node n = subgraph mods elt in C.Node n
 

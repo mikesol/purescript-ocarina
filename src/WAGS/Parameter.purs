@@ -4,10 +4,9 @@ import Prelude
 
 import Data.Generic.Rep (class Generic)
 import Data.Lens (over, view)
-import Data.Lens.Iso.Newtype (_Newtype, unto)
+import Data.Lens.Iso.Newtype (unto)
 import Data.Lens.Record (prop)
 import Data.Newtype (class Newtype, unwrap, wrap)
-import Data.Profunctor.Strong (class Strong)
 import Data.Variant (Variant, inj, match)
 import Type.Proxy (Proxy(..))
 
@@ -143,11 +142,25 @@ derive instance ordAudioOnOff :: Ord AudioOnOff
 derive instance newtypeAudioOnOff :: Newtype AudioOnOff _
 derive instance genericAudioOnOff :: Generic AudioOnOff _
 
+type ACTime = { concreteTime :: Number, abstractTime :: Number, lookAhead :: Number }
+
 type WriteHead (f :: Type -> Type) = f
-  { concreteTime :: Number, abstractTime :: Number }
+  { concreteTime :: Number, abstractTime :: Number, lookAhead :: Number }
 
 cp :: forall f. Applicative f => Number -> f AudioParameter
 cp n = pure (_sudden (AudioSudden { n }))
+
+oo :: forall f
+   . Functor f
+  => WriteHead f
+  -> (Number -> AudioOnOff)
+  -> f AudioOnOff
+oo wh f = wh # map
+  \{ concreteTime, abstractTime } ->
+    let
+      AudioOnOff { onOff, timeOffset } = f abstractTime
+    in
+      AudioOnOff { onOff, timeOffset: timeOffset + concreteTime }
 
 at
   :: forall f
@@ -187,9 +200,23 @@ at_' wh f = wh # map
     in
       AudioNumeric { t: _linear, o: o + concreteTime, n }
 
+ovnn :: (Number -> Number) -> AudioNumeric -> AudioNumeric
 ovnn = over (unto AudioNumeric <<< prop (Proxy :: Proxy "n"))
+vwnn :: AudioNumeric -> Number
 vwnn = view (unto AudioNumeric <<< prop (Proxy :: Proxy "n"))
 
+
+class ToAudioOnOff i where
+  toAudioOnOff :: i -> AudioOnOff
+
+instance ToAudioOnOff Number where
+  toAudioOnOff = AudioOnOff <<< { timeOffset: _, onOff: _on }
+
+instance ToAudioOnOff OnOff where
+  toAudioOnOff = AudioOnOff <<< { timeOffset: 0.0, onOff: _ }
+
+instance ToAudioOnOff AudioOnOff where
+  toAudioOnOff = identity
 
 class ToAudioParameter i where
   toAudioParameter :: i -> AudioParameter

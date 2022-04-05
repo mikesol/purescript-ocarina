@@ -98,12 +98,16 @@ newtype Node outputChannels produced consumed event payload = Node
 newtype GainInput outputChannels produced consumed event payload = GainInput
   (NonEmptyArray (Node outputChannels produced consumed event payload))
 
-newtype Subgraph index env outputChannels event payload =
+type SubgraphSig index env outputChannels sgProduced sgConsumed event payload =
+  index
+  -> event env
+  -> Node outputChannels sgProduced sgConsumed event payload
+
+newtype Subgraph index env outputChannels sgProduced sgConsumed event payload =
   Subgraph
-    ( forall (produced :: Row Type) (consumed :: Row Type)
-       . index
+    ( index
       -> event env
-      -> Node outputChannels produced consumed event payload
+      -> Node outputChannels sgProduced sgConsumed event payload
     )
 
 newtype RealImg = RealImg { real :: Array Number, img :: Array Number }
@@ -703,11 +707,13 @@ type MakeSubgraph
   index
   env
   (outputChannels :: Type)
+  (sgProduced :: Row Type)
+  (sgConsumed :: Row Type)
   event
   payload =
   { id :: String
   , parent :: String
-  , scenes :: Subgraph index env outputChannels event payload
+  , scenes :: Subgraph index env outputChannels sgProduced sgConsumed event payload
   }
 
 type InsertOrUpdateSubgraph index env =
@@ -793,8 +799,8 @@ newtype AudioInterpret event payload = AudioInterpret
   , makeSquareOsc :: MakeSquareOsc -> payload
   , makeStereoPanner :: MakeStereoPanner -> payload
   , makeSubgraph ::
-      forall index env outputChannels
-       . MakeSubgraph index env outputChannels event payload
+      forall index env outputChannels sgProduced sgConsumed
+       . MakeSubgraph index env outputChannels sgProduced sgConsumed event payload
       -> payload
   , makeTriangleOsc :: MakeTriangleOsc -> payload
   , makeTumult :: MakeTumultInternal -> payload
@@ -864,8 +870,8 @@ type Instruction' =
   , makeTriangleOsc :: MakeTriangleOsc
   , makeWaveShaper :: MakeWaveShaper
   , makeSubgraph ::
-      forall index env outputChannels event payload
-       . MakeSubgraph index env outputChannels event payload
+      forall index env outputChannels sgProduced sgConsumed event payload
+       . MakeSubgraph index env outputChannels sgProduced sgConsumed event payload
   , makeTumult :: MakeTumult
   , connectXToY :: ConnectXToY
   , destroyUnit :: DestroyUnit

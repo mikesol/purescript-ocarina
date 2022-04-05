@@ -707,11 +707,12 @@ exports.insertOrUpdateSubgraph_ = function (a) {
 			if (env !== null && unsu[j] === undefined) {
 				children[j] = {
 					units: {},
-					portals: state.portals,
 					terminus: state.units[ptr].parent,
 					unqidfr: makeid(10),
 					parent: ptr,
 					terminalPtrs: [],
+					context: state.context,
+					deprecatedWriteHead: state.deprecatedWriteHead,
 				};
 				children[j].units[state.units[ptr].parent] =
 					state.units[state.units[ptr].parent];

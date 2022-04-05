@@ -1155,14 +1155,69 @@ periodicOsc' _ i atts = let C.Node n = periodicOsc i atts in C.Node n
 
 -- playBuf
 
+data PlayBufOptions = PlayBufOptions
+
+instance
+  ConvertOption PlayBufOptions
+    "playbackRate"
+    InitialAudioParameter
+    InitialAudioParameter where
+  convertOption _ _ = identity
+
+instance ConvertOption PlayBufOptions "duration" Number (Maybe Number) where
+  convertOption _ _ = just
+
+instance ConvertOption PlayBufOptions "bufferOffset" Number Number where
+  convertOption _ _ = identity
+
+instance
+  ConvertOption PlayBufOptions "buffer" BrowserAudioBuffer BrowserAudioBuffer where
+  convertOption _ _ = identity
+
+type PlayBufOptional =
+  ( bufferOffset :: Number
+  , playbackRate :: InitialAudioParameter
+  , duration :: Maybe Number
+  )
+
+type PlayBufAll =
+  ( buffer :: BrowserAudioBuffer
+  | PlayBufOptional
+  )
+
+defaultPlayBuf :: { | PlayBufOptional }
+defaultPlayBuf =
+  { bufferOffset: 0.0
+  , playbackRate: 1.0
+  , duration: nothing
+  }
+
+class InitialPlayBuf i where
+  toInitialPlayBuf :: i -> C.InitializePlayBuf
+
+instance InitialPlayBuf C.InitializePlayBuf where
+  toInitialPlayBuf = identity
+
+instance InitialPlayBuf BrowserAudioBuffer where
+  toInitialPlayBuf = toInitialPlayBuf <<< { buffer: _ }
+
+instance
+  ConvertOptionsWithDefaults PlayBufOptions { | PlayBufOptional } { | provided }
+    { | PlayBufAll } =>
+  InitialPlayBuf { | provided } where
+  toInitialPlayBuf provided = C.InitializePlayBuf
+    (convertOptionsWithDefaults PlayBufOptions defaultPlayBuf provided)
+
 playBuf
-  :: forall outputChannels event payload
+  :: forall i outputChannels event payload
    . IsEvent event
-  => C.InitializePlayBuf
+  => InitialPlayBuf i
+  => i
   -> event C.PlayBuf
   -> C.Node outputChannels () () event payload
-playBuf (C.InitializePlayBuf i) atts = C.Node go
+playBuf i' atts = C.Node go
   where
+  C.InitializePlayBuf i = toInitialPlayBuf i'
   go
     parent
     ( C.AudioInterpret
