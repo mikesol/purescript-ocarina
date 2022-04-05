@@ -186,9 +186,34 @@ type MakeAllpass =
 derive instance newtypeAnalyser :: Newtype Analyser _
 newtype Analyser = Analyser (Variant (cb :: AnalyserNodeCb))
 
+data Po2 = TTT7 | TTT8 | TTT9 | TTT10 | TTT11 | TTT12 | TTT13
+data ChannelCountMode = ClampedMax | Max | Explicit
+data ChannelInterpretation = Speakers | Discrete
+
 derive instance newtypeInitializeAnalyser :: Newtype InitializeAnalyser _
-newtype InitializeAnalyser = InitializeAnalyser { cb :: AnalyserNodeCb }
-type MakeAnalyser = { id :: String, parent :: String, cb :: AnalyserNodeCb }
+newtype InitializeAnalyser = InitializeAnalyser
+  { cb :: AnalyserNodeCb
+  , fftSize :: Po2
+  , maxDecibels :: Number
+  , minDecibels :: Number
+  , smoothingTimeConstant :: Number
+  , channelCount :: Int
+  , channelCountMode :: ChannelCountMode
+  , channelInterpretation :: ChannelInterpretation
+  }
+
+type MakeAnalyser =
+  { id :: String
+  , parent :: String
+  , cb :: AnalyserNodeCb
+  , fftSize :: Int
+  , maxDecibels :: Number
+  , minDecibels :: Number
+  , smoothingTimeConstant :: Number
+  , channelCount :: Int
+  , channelCountMode :: String
+  , channelInterpretation :: String
+  }
 
 derive instance newtypeAudioWorkletNode ::
   Newtype (AudioWorkletNode parameterData) _

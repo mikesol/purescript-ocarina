@@ -2,175 +2,174 @@ module WAGS.Example.AtariSpeaks where
 
 import Prelude
 
-import Control.Comonad.Cofree (Cofree, mkCofree)
-import Control.Promise (toAffE)
+import Control.Alt ((<|>))
+import Control.Plus (empty)
 import Data.ArrayBuffer.Typed (toArray)
-import Data.Foldable (for_)
-import Data.Functor.Indexed (ivoid)
+import Data.Foldable (for_, intercalate)
 import Data.Maybe (Maybe(..))
 import Data.String.Utils (unsafeRepeat)
-import Data.Tuple.Nested (type (/\))
+import Data.Tuple (Tuple(..))
+import Data.Typelevel.Num (D2)
 import Data.UInt (toInt)
+import Deku.Attribute (cb, (:=))
+import Deku.Control (deku, text, text_)
+import Deku.DOM as DOM
+import Deku.Interpret (effectfulDOMInterpret, makeFFIDOMSnapshot)
 import Effect (Effect)
-import Effect.Aff.Class (class MonadAff)
-import Effect.Class (class MonadEffect)
-import Effect.Console as Log
-import FRP.Event (subscribe)
+import Effect.Aff (launchAff_)
+import Effect.Class (liftEffect)
+import FRP.Behavior (sample_)
+import FRP.Event (class IsEvent, create, filterMap, sampleOn, subscribe)
+import Math (pi, sin)
+import WAGS.Control (analyser, gain, gain__, loopBuf, singleton, speaker2, (:*))
+import WAGS.Core (GainInput)
+import WAGS.Example.Utils (animationFrameEvent)
+import WAGS.Interpret (close, context, decodeAudioDataFromUri, effectfulAudioInterpret, getByteFrequencyData, makeFFIAudioSnapshot, writeHead)
+import WAGS.Parameter (WriteHead, at_, ovnn, pureOn, vwnn)
+import WAGS.Properties (loopEnd, loopStart, playbackRate)
+import WAGS.WebAPI (AnalyserNodeCb(..), AudioContext, BrowserAudioBuffer)
+import Web.HTML (window)
+import Web.HTML.HTMLDocument (body)
+import Web.HTML.HTMLElement (toElement)
+import Web.HTML.Window (document)
 
--- vol = 1.4 :: Number
+scene
+  :: forall event payload
+   . IsEvent event
+  => BrowserAudioBuffer
+  -> AnalyserNodeCb
+  -> WriteHead event
+  -> GainInput D2 () () event payload
+scene atar cb wh =
+  let
+    tr = at_ wh (mul pi)
+  in
+    singleton
+      ( analyser { cb } empty
+          ( gain 1.0 empty
+              $
+                gain__ 0.3 empty
+                  ( loopBuf { buffer: atar, playbackRate: 1.0 }
+                      ( pureOn <|>
+                          playbackRate <<<
+                            (ovnn (\rad -> 1.0 + 0.1 * sin rad)) <$> tr
+                      )
+                  )
+                  :*
+                    [ gain__ 0.15 empty
+                        ( loopBuf { buffer: atar, playbackRate: 1.0 }
+                            ( pureOn
+                                <|>
+                                  playbackRate <<<
+                                    (ovnn (\rad -> 1.5 + 0.1 * sin (2.0 * rad)))
+                                    <$> tr
+                                <|>
+                                  loopStart <<< (\rad -> 0.1 + 0.1 * sin rad)
+                                    <<< vwnn <$> tr
+                                <|>
+                                  loopEnd
+                                    <<< (\rad -> 0.5 + 0.25 * sin (2.0 * rad))
+                                    <<< vwnn <$> tr
+                            )
+                        )
+                    , gain__ 0.3 empty
+                        (loopBuf { buffer: atar, playbackRate: 0.25 } pureOn)
+                    ]
+          )
+      )
 
--- type World = { atar :: BrowserAudioBuffer }
--- type Analysers = (myAnalyser :: Maybe AnalyserNode)
--- type AnalysersCb = (myAnalyser :: AnalyserNodeCb)
+data UIAction
+  = TurnOff { ctx :: AudioContext, unsub :: Effect Unit }
+  | AsciiMixer String
+  | TurnOn
 
--- type SceneTemplate
---   = CSpeaker
---   { analyse ::
---       CAnalyser
---         { analysed ::
---             CGain
---               { gain0 :: CGain { loop0 :: CLoopBuf }
---               , gain1 :: CGain { loop1 :: CLoopBuf }
---               , gain2 :: CGain { loop2 :: CLoopBuf }
---               }
---         }
---   }
+main :: Effect Unit
+main = launchAff_ do
+  atar <- liftEffect context >>= flip decodeAudioDataFromUri
+    "https://freesound.org/data/previews/100/100981_1234256-lq.mp3"
+  liftEffect $ do
+    b' <- window >>= document >>= body
+    for_ (toElement <$> b') \elt -> do
+      ffi <- makeFFIDOMSnapshot
+      { push, event } <- create
+      let
+        evt = deku elt
+          ( DOM.div_
+              [ DOM.h1_ [ text_ "Atari speaks" ]
+              , DOM.button
+                  ( map
+                      ( \i -> DOM.OnClick := cb
+                          ( const $
+                              case i of
+                                Nothing -> do
+                                  analyserE <- create
+                                  ctx <- context
+                                  ffi2 <- makeFFIAudioSnapshot ctx
+                                  let wh = writeHead 0.04 ctx
+                                  let
+                                    audioE = speaker2
+                                      ( scene atar
+                                          ( AnalyserNodeCb
+                                              ( \a -> do
+                                                  analyserE.push (Just a)
+                                                  pure (analyserE.push Nothing)
+                                              )
+                                          )
+                                          (sample_ wh animationFrameEvent)
+                                      )
+                                      effectfulAudioInterpret
 
--- type SceneType
---   =
---   { speaker :: TSpeaker /\ { analyser :: Unit }
---   , analyser :: TAnalyser /\ { analysed :: Unit }
---   , analysed :: TGain /\ { gain0 :: Unit, gain1 :: Unit, gain2 :: Unit }
---   , gain0 :: TGain /\ { loop0 :: Unit }
---   , loop0 :: TLoopBuf /\ {}
---   , gain1 :: TGain /\ { loop1 :: Unit }
---   , loop1 :: TLoopBuf /\ {}
---   , gain2 :: TGain /\ { loop2 :: Unit }
---   , loop2 :: TLoopBuf /\ {}
---   }
+                                  unsub <- subscribe
+                                    ( sampleOn
+                                        (analyserE.event <|> pure Nothing)
+                                        (map Tuple audioE)
+                                    )
+                                    ( \(Tuple audio analyser) -> do
+                                        audio ffi2
+                                        for_ analyser \a -> do
+                                          frequencyData <-
+                                            getByteFrequencyData a
+                                          arr <- toArray frequencyData
+                                          push $ AsciiMixer $
+                                            intercalate "\n"
+                                              ( map
+                                                  ( \ii ->
+                                                      unsafeRepeat
+                                                        (toInt ii + 1)
+                                                        ">"
+                                                  )
+                                                  arr
+                                              )
+                                    )
+                                  push $ TurnOff { unsub, ctx }
+                                Just { unsub, ctx } -> do
+                                  unsub
+                                  close ctx
+                                  push TurnOn
 
--- scene :: BehavingScene Unit World AnalysersCb -> SceneTemplate
--- scene (BehavingScene { time, world: { atar }, analyserCallbacks: { myAnalyser } }) =
---   let
---     rad = pi * time
---   in
---     speaker
---       { analyse:
---           analyser myAnalyser
---             { analysed:
---                 gain 1.0
---                   { gain0:
---                       gain (0.3 * vol)
---                         { loop0: loopBuf { playbackRate: 1.0 + 0.1 * sin rad } atar
---                         }
---                   , gain1:
---                       gain (0.15 * vol)
---                         { loop1:
---                             loopBuf
---                               { playbackRate: 1.5 + 0.1 * sin (2.0 * rad)
---                               , loopStart: 0.1 + 0.1 * sin rad
---                               , loopEnd: 0.5 + 0.25 * sin (2.0 * rad)
---                               }
---                               atar
---                         }
---                   , gain2:
---                       gain (0.3 * vol)
---                         { loop2: loopBuf { playbackRate: 0.25 } atar
---                         }
---                   }
---             }
---       }
-
--- piece :: Scene (BehavingScene Unit World AnalysersCb) RunAudio RunEngine Frame0 Unit
--- piece = (scene >>> icreate) @!> iloop \e _ -> ivoid $ ichange (scene e)
-
--- easingAlgorithm :: Cofree ((->) Int) Int
--- easingAlgorithm =
---   let
---     fOf initialTime = mkCofree initialTime \adj -> fOf $ max 20 (initialTime - adj)
---   in
---     fOf 20
-
--- main :: Effect Unit
--- main =
---   runHalogenAff do
---     body <- awaitBody
---     runUI component unit body
-
--- type State
---   =
---   { unsubscribe :: Effect Unit
---   , unsubscribeFromHalogen :: Maybe H.SubscriptionId
---   , audioCtx :: Maybe AudioContext
---   , freqz :: Array String
---   }
-
--- data Action
---   = StartAudio
---   | StopAudio
---   | Freqz (Array String)
-
--- component :: forall query input output m. MonadEffect m => MonadAff m => H.Component query input output m
--- component =
---   H.mkComponent
---     { initialState
---     , render
---     , eval: H.mkEval $ H.defaultEval { handleAction = handleAction }
---     }
-
--- initialState :: forall input. input -> State
--- initialState _ =
---   { unsubscribe: pure unit
---   , audioCtx: Nothing
---   , unsubscribeFromHalogen: Nothing
---   , freqz: []
---   }
-
--- render :: forall m. State -> H.ComponentHTML Action () m
--- render { freqz } = do
---   HH.div_
---     $
---       [ HH.h1_
---           [ HH.text "Atari speaks" ]
---       , HH.button
---           [ HE.onClick \_ -> StartAudio ]
---           [ HH.text "Start audio" ]
---       , HH.button
---           [ HE.onClick \_ -> StopAudio ]
---           [ HH.text "Stop audio" ]
---       ]
---         <> map (\freq -> HH.p [] [ HH.text freq ]) freqz
-
--- handleAction :: forall output m. MonadEffect m => MonadAff m => Action -> H.HalogenM State Action () output m Unit
--- handleAction = case _ of
---   StartAudio -> do
---     { emitter, listener } <- H.liftEffect HS.create
---     unsubscribeFromHalogen <- H.subscribe emitter
---     audioCtx <- H.liftEffect context
---     -- just for kicks
---     H.liftEffect $ contextState audioCtx >>= Log.info
---     H.liftAff $ toAffE $ contextResume audioCtx
---     ffiAudio <- H.liftEffect $ makeFFIAudioSnapshot audioCtx
---     atar <-
---       H.liftAff $ decodeAudioDataFromUri
---           audioCtx
---           "https://freesound.org/data/previews/100/100981_1234256-lq.mp3"
---     unsubscribe <-
---       H.liftEffect
---         $ subscribe
---           (run (pure unit) (pure { atar }) { easingAlgorithm } (ffiAudio) piece)
---           ( \({ analysers: { myAnalyser } } :: BehavingRun Unit Analysers) ->
---               for_ myAnalyser \myAnalyser' -> do
---                 frequencyData <- getByteFrequencyData myAnalyser'
---                 arr <- toArray frequencyData
---                 HS.notify listener (Freqz ((map (\i -> unsafeRepeat (toInt i + 1) ">") arr)))
---                 pure unit
---           )
---     H.modify_ _ { unsubscribe = unsubscribe, unsubscribeFromHalogen = Just unsubscribeFromHalogen, audioCtx = Just audioCtx }
---   Freqz freqz -> H.modify_ _ { freqz = freqz }
---   StopAudio -> do
---     { unsubscribe, unsubscribeFromHalogen, audioCtx } <- H.get
---     H.liftEffect unsubscribe
---     for_ unsubscribeFromHalogen H.unsubscribe
---     for_ audioCtx (H.liftEffect <<< close)
---     H.modify_ _ { unsubscribe = pure unit, audioCtx = Nothing }
+                          )
+                      )
+                      ( event # filterMap case _ of
+                          AsciiMixer _ -> Nothing
+                          TurnOff a -> Just (Just a)
+                          TurnOn -> Just Nothing
+                      )
+                  )
+                  [ text
+                      ( event # map case _ of
+                          TurnOn -> "Turn on"
+                          _ -> "Turn off"
+                      )
+                  ]
+              , DOM.p_
+                  [ text
+                      ( event # map case _ of
+                          AsciiMixer s -> s
+                          _ -> ""
+                      )
+                  ]
+              ]
+          )
+          effectfulDOMInterpret
+      _ <- subscribe evt \i -> i ffi
+      push TurnOn

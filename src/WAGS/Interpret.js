@@ -135,9 +135,7 @@ exports.makeAnalyser_ = function (a) {
 		return function () {
 			var ptr = a.id;
 			var analyserSideEffectFunction = a.cb;
-			var dest = state.context.createAnalyser();
-			// todo - unhardcode?
-			dest.fftSize = 2048;
+			var dest = new AnalyserNode(state.context, a);
 			// unsubscribe is effect unit
 			var unsubscribe = analyserSideEffectFunction(dest)();
 			state.units[ptr] = {

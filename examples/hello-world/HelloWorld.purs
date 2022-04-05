@@ -52,7 +52,7 @@ main = do
     let
       evt = deku elt
         ( DOM.div_
-            [ text_ "Hello world"
+            [ DOM.h1_ [text_ "Hello world"]
             , DOM.button
                 ( map
                     ( \i -> DOM.OnClick := cb

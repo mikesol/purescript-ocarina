@@ -4,16 +4,19 @@ import Prelude
 
 import Control.Alt ((<|>))
 import Control.Comonad (extract)
+import ConvertableOptions (class ConvertOption, class ConvertOptionsWithDefaults, convertOptionsWithDefaults)
 import Data.Array.NonEmpty (fromNonEmpty)
 import Data.Array.NonEmpty as NEA
 import Data.Foldable (oneOf)
 import Data.Homogeneous (class HomogeneousRowLabels)
 import Data.Homogeneous.Variant (homogeneous)
+import Data.Int (pow)
 import Data.NonEmpty ((:|))
 import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.Tuple.Nested (type (/\), (/\))
 import Data.Typelevel.Num (class Nat, class Pos, class Pred, D1, D2, pred, toInt)
 import Data.Variant (Unvariant(..), match, unvariant)
+import Data.Variant.Maybe (Maybe, just, nothing)
 import FRP.Behavior (sample_)
 import FRP.Event (class IsEvent, keepLatest)
 import Foreign.Object (fromHomogeneous)
@@ -22,8 +25,10 @@ import Safe.Coerce (coerce)
 import Simple.JSON as JSON
 import Type.Proxy (Proxy(..))
 import Type.Row.Homogeneous (class Homogeneous)
+import WAGS.Core (ChannelCountMode(..), ChannelInterpretation(..), Po2(..))
 import WAGS.Core as C
 import WAGS.Parameter (AudioParameter, InitialAudioParameter)
+import WAGS.WebAPI (AnalyserNodeCb(..), BrowserAudioBuffer)
 
 -- gain input
 singleton
@@ -119,19 +124,133 @@ allpass'
 allpass' _ i atts elts = let C.Node n = allpass i atts elts in C.Node n
 
 -- analyser
+
+data AnalyserOptions = AnalyserOptions
+
+instance
+  ConvertOption AnalyserOptions
+    "playbackRate"
+    InitialAudioParameter
+    InitialAudioParameter where
+  convertOption _ _ = identity
+
+instance
+  ConvertOption AnalyserOptions
+    "channelInterpretation"
+    ChannelInterpretation
+    ChannelInterpretation where
+  convertOption _ _ = identity
+
+instance
+  ConvertOption AnalyserOptions
+    "channelCountMode"
+    ChannelCountMode
+    ChannelCountMode where
+  convertOption _ _ = identity
+
+instance ConvertOption AnalyserOptions "channelCount" Int Int where
+  convertOption _ _ = identity
+
+instance ConvertOption AnalyserOptions "smoothingTimeConstant" Number Number where
+  convertOption _ _ = identity
+
+instance ConvertOption AnalyserOptions "maxDecibels" Number Number where
+  convertOption _ _ = identity
+
+instance ConvertOption AnalyserOptions "minDecibels" Number Number where
+  convertOption _ _ = identity
+
+instance ConvertOption AnalyserOptions "fftSize" Po2 Po2 where
+  convertOption _ _ = identity
+
+instance
+  ConvertOption AnalyserOptions "cb" AnalyserNodeCb AnalyserNodeCb where
+  convertOption _ _ = identity
+
+type AnalyserOptional =
+  ( cb :: AnalyserNodeCb
+  , fftSize :: Po2
+  , maxDecibels :: Number
+  , minDecibels :: Number
+  , smoothingTimeConstant :: Number
+  , channelCount :: Int
+  , channelCountMode :: ChannelCountMode
+  , channelInterpretation :: ChannelInterpretation
+  )
+
+type AnalyserAll = (| AnalyserOptional)
+
+defaultAnalyser :: { | AnalyserOptional }
+defaultAnalyser =
+  { cb: AnalyserNodeCb \_ -> pure (pure unit)
+  , fftSize: TTT11
+  , maxDecibels: -30.0
+  , minDecibels: -100.0
+  , smoothingTimeConstant: 0.8
+  , channelCount: 2
+  , channelCountMode: Max
+  , channelInterpretation: Speakers
+  }
+
+class InitialAnalyser i where
+  toInitialAnalyser :: i -> C.InitializeAnalyser
+
+instance InitialAnalyser C.InitializeAnalyser where
+  toInitialAnalyser = identity
+
+instance InitialAnalyser AnalyserNodeCb where
+  toInitialAnalyser cb = toInitialAnalyser { cb }
+
+instance
+  ConvertOptionsWithDefaults AnalyserOptions { | AnalyserOptional }
+    { | provided }
+    { | AnalyserAll } =>
+  InitialAnalyser { | provided } where
+  toInitialAnalyser provided = C.InitializeAnalyser
+    (convertOptionsWithDefaults AnalyserOptions defaultAnalyser provided)
+
 analyser
-  :: forall outputChannels produced consumed event payload
+  :: forall i outputChannels produced consumed event payload
    . IsEvent event
-  => C.InitializeAnalyser
+  => InitialAnalyser i
+  => i
   -> event C.Analyser
   -> C.Node outputChannels produced consumed event payload
   -> C.Node outputChannels produced consumed event payload
-analyser (C.InitializeAnalyser i) atts elt = C.Node go
+analyser i' atts elt = C.Node go
   where
+  C.InitializeAnalyser i = toInitialAnalyser i'
   go parent di@(C.AudioInterpret { ids, makeAnalyser, setAnalyserNodeCb }) =
     keepLatest
       ( (sample_ ids (pure unit)) <#> \me ->
-          pure (makeAnalyser { id: me, parent: parent, cb: i.cb })
+          pure
+            ( makeAnalyser
+                { id: me
+                , parent: parent
+                , cb: i.cb
+                , fftSize: 2 `pow`
+                    ( case i.fftSize of
+                        TTT7 -> 7
+                        TTT8 -> 8
+                        TTT9 -> 9
+                        TTT10 -> 10
+                        TTT11 -> 11
+                        TTT12 -> 12
+                        TTT13 -> 13
+                    )
+                , maxDecibels: i.maxDecibels
+                , minDecibels: i.minDecibels
+                , smoothingTimeConstant: i.smoothingTimeConstant
+                , channelCount: i.channelCount
+                , channelCountMode: case i.channelCountMode of
+                    Explicit -> "explicit"
+                    Max -> "max"
+                    ClampedMax -> "clamped-max"
+                , channelInterpretation: case i.channelInterpretation of
+                    Speakers -> "speakers"
+                    Discrete -> "discrete"
+                }
+            )
             <|> map
               ( \(C.Analyser e) -> match
                   { cb: \cb -> setAnalyserNodeCb { id: me, cb }
@@ -480,20 +599,21 @@ instance InitialGain Number where
   toInitialGain = C.InitializeGain <<< { gain: _ }
 
 gain__
-  :: forall initialGain outputChannels produced consumed event payload
+  :: forall i outputChannels produced consumed event payload
    . IsEvent event
-  => InitialGain initialGain
-  => initialGain
+  => InitialGain i
+  => i
   -> event C.Gain
   -> C.Node outputChannels produced consumed event payload
   -> C.Node outputChannels produced consumed event payload
-gain__ i atts h = gain (toInitialGain i) atts
+gain__ i atts h = gain i atts
   (C.GainInput (NEA.fromNonEmpty (h :| [])))
 
 gain_
-  :: forall outputChannels produced consumed event payload
+  :: forall i outputChannels produced consumed event payload
    . IsEvent event
-  => C.InitializeGain
+  => InitialGain i
+  => i
   -> event C.Gain
   -> C.Node outputChannels produced consumed event payload
   -> Array (C.Node outputChannels produced consumed event payload)
@@ -501,14 +621,16 @@ gain_
 gain_ i atts h t = gain i atts (C.GainInput (NEA.fromNonEmpty (h :| t)))
 
 gain
-  :: forall outputChannels produced consumed event payload
+  :: forall i outputChannels produced consumed event payload
    . IsEvent event
-  => C.InitializeGain
+  => InitialGain i
+  => i
   -> event C.Gain
   -> C.GainInput outputChannels produced consumed event payload
   -> C.Node outputChannels produced consumed event payload
-gain (C.InitializeGain i) atts (C.GainInput elts) = C.Node go
+gain i' atts (C.GainInput elts) = C.Node go
   where
+  C.InitializeGain i = toInitialGain i'
   go parent di@(C.AudioInterpret { ids, makeGain, setGain }) = keepLatest
     ( (sample_ ids (pure unit)) <#> \me ->
         pure (makeGain { id: me, parent: parent, gain: i.gain })
@@ -526,11 +648,12 @@ gain (C.InitializeGain i) atts (C.GainInput elts) = C.Node go
     )
 
 gain'
-  :: forall proxy sym outputChannels produced produced' consumed event payload
+  :: forall proxy sym i outputChannels produced produced' consumed event payload
    . IsEvent event
   => Cons sym C.Input produced' produced
+  => InitialGain i
   => proxy sym
-  -> C.InitializeGain
+  -> i
   -> event C.Gain
   -> C.GainInput outputChannels produced' consumed event payload
   -> C.Node outputChannels produced consumed event payload
@@ -716,14 +839,74 @@ lowshelf' _ i atts elts = let C.Node n = lowshelf i atts elts in C.Node n
 
 -- loopBuf
 
+data LoopBufOptions = LoopBufOptions
+
+instance
+  ConvertOption LoopBufOptions
+    "playbackRate"
+    InitialAudioParameter
+    InitialAudioParameter where
+  convertOption _ _ = identity
+
+instance ConvertOption LoopBufOptions "duration" Number (Maybe Number) where
+  convertOption _ _ = just
+
+instance ConvertOption LoopBufOptions "loopStart" Number Number where
+  convertOption _ _ = identity
+
+instance ConvertOption LoopBufOptions "loopEnd" Number Number where
+  convertOption _ _ = identity
+
+instance
+  ConvertOption LoopBufOptions "buffer" BrowserAudioBuffer BrowserAudioBuffer where
+  convertOption _ _ = identity
+
+type LoopBufOptional =
+  ( loopStart :: Number
+  , loopEnd :: Number
+  , playbackRate :: InitialAudioParameter
+  , duration :: Maybe Number
+  )
+
+type LoopBufAll =
+  ( buffer :: BrowserAudioBuffer
+  | LoopBufOptional
+  )
+
+defaultLoopBuf :: { | LoopBufOptional }
+defaultLoopBuf =
+  { loopStart: 0.0
+  , loopEnd: 0.0
+  , playbackRate: 1.0
+  , duration: nothing
+  }
+
+class InitialLoopBuf i where
+  toInitialLoopBuf :: i -> C.InitializeLoopBuf
+
+instance InitialLoopBuf C.InitializeLoopBuf where
+  toInitialLoopBuf = identity
+
+instance InitialLoopBuf BrowserAudioBuffer where
+  toInitialLoopBuf = toInitialLoopBuf <<< { buffer: _ }
+
+instance
+  ConvertOptionsWithDefaults LoopBufOptions { | LoopBufOptional } { | provided }
+    { | LoopBufAll } =>
+  InitialLoopBuf { | provided } where
+  toInitialLoopBuf provided = C.InitializeLoopBuf
+    (convertOptionsWithDefaults LoopBufOptions defaultLoopBuf provided)
+
 loopBuf
-  :: forall outputChannels event payload
+  :: forall i outputChannels event payload
    . IsEvent event
-  => C.InitializeLoopBuf
+  => InitialLoopBuf i
+  => i
   -> event C.LoopBuf
   -> C.Node outputChannels () () event payload
-loopBuf (C.InitializeLoopBuf i) atts = C.Node go
+loopBuf i' atts = C.Node go
   where
+  C.InitializeLoopBuf i = toInitialLoopBuf i'
   go
     parent
     ( C.AudioInterpret

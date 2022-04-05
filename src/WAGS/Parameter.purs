@@ -3,7 +3,7 @@ module WAGS.Parameter where
 import Prelude
 
 import Data.Generic.Rep (class Generic)
-import Data.Lens (over)
+import Data.Lens (over, view)
 import Data.Lens.Iso.Newtype (_Newtype, unto)
 import Data.Lens.Record (prop)
 import Data.Newtype (class Newtype, unwrap, wrap)
@@ -188,6 +188,7 @@ at_' wh f = wh # map
       AudioNumeric { t: _linear, o: o + concreteTime, n }
 
 ovnn = over (unto AudioNumeric <<< prop (Proxy :: Proxy "n"))
+vwnn = view (unto AudioNumeric <<< prop (Proxy :: Proxy "n"))
 
 
 class ToAudioParameter i where
