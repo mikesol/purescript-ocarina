@@ -5,16 +5,20 @@ import Prelude
 import Control.Alt ((<|>))
 import Control.Plus (empty)
 import Data.ArrayBuffer.Typed (toArray)
+import Data.Either (Either, either)
 import Data.Foldable (for_, intercalate)
 import Data.Maybe (Maybe(..))
+import Data.Profunctor (lcmap)
 import Data.String.Utils (unsafeRepeat)
 import Data.Tuple (Tuple(..))
 import Data.Typelevel.Num (D2)
 import Data.UInt (toInt)
 import Deku.Attribute (cb, (:=))
 import Deku.Control (deku, text, text_)
+import Deku.Core (Element)
 import Deku.DOM as DOM
 import Deku.Interpret (effectfulDOMInterpret, makeFFIDOMSnapshot)
+import Deku.Subgraph (SubgraphAction(..), subgraph)
 import Effect (Effect)
 import Effect.Aff (launchAff_)
 import Effect.Class (liftEffect)
@@ -83,93 +87,105 @@ data UIAction
   | AsciiMixer String
   | TurnOn
 
-main :: Effect Unit
-main = launchAff_ do
+initializeAtariSpeaks :: (BrowserAudioBuffer -> Effect Unit) -> Effect Unit
+initializeAtariSpeaks cb = launchAff_ do
   atar <- liftEffect context >>= flip decodeAudioDataFromUri
     "https://freesound.org/data/previews/100/100981_1234256-lq.mp3"
-  liftEffect $ do
-    b' <- window >>= document >>= body
-    for_ (toElement <$> b') \elt -> do
-      ffi <- makeFFIDOMSnapshot
-      { push, event } <- create
-      let
-        evt = deku elt
-          ( DOM.div_
-              [ DOM.h1_ [ text_ "Atari speaks" ]
-              , DOM.button
-                  ( map
-                      ( \i -> DOM.OnClick := cb
-                          ( const $
-                              case i of
-                                Nothing -> do
-                                  analyserE <- create
-                                  ctx <- context
-                                  ffi2 <- makeFFIAudioSnapshot ctx
-                                  let wh = writeHead 0.04 ctx
-                                  let
-                                    audioE = speaker2
-                                      ( scene atar
-                                          ( AnalyserNodeCb
-                                              ( \a -> do
-                                                  analyserE.push (Just a)
-                                                  pure (analyserE.push Nothing)
-                                              )
-                                          )
-                                          (sample_ wh animationFrameEvent)
-                                      )
-                                      effectfulAudioInterpret
+  liftEffect $ cb atar
 
-                                  unsub <- subscribe
-                                    ( sampleOn
-                                        (analyserE.event <|> pure Nothing)
-                                        (map Tuple audioE)
+atariSpeaks
+  :: forall event payload
+   . IsEvent event
+  => BrowserAudioBuffer
+  -> Unit
+  -> (UIAction -> Effect Unit)
+  -> event (Either UIAction UIAction)
+  -> Element event payload
+atariSpeaks atar _ push = lcmap (map (either identity identity)) \event ->
+  DOM.div_
+    [ DOM.h1_ [ text_ "Atari speaks" ]
+    , DOM.button
+        ( map
+            ( \i -> DOM.OnClick := cb
+                ( const $
+                    case i of
+                      Nothing -> do
+                        analyserE <- create
+                        ctx <- context
+                        ffi2 <- makeFFIAudioSnapshot ctx
+                        let wh = writeHead 0.04 ctx
+                        let
+                          audioE = speaker2
+                            ( scene atar
+                                ( AnalyserNodeCb
+                                    ( \a -> do
+                                        analyserE.push (Just a)
+                                        pure (analyserE.push Nothing)
                                     )
-                                    ( \(Tuple audio analyser) -> do
-                                        audio ffi2
-                                        for_ analyser \a -> do
-                                          frequencyData <-
-                                            getByteFrequencyData a
-                                          arr <- toArray frequencyData
-                                          push $ AsciiMixer $
-                                            intercalate "\n"
-                                              ( map
-                                                  ( \ii ->
-                                                      unsafeRepeat
-                                                        (toInt ii + 1)
-                                                        ">"
-                                                  )
-                                                  arr
-                                              )
-                                    )
-                                  push $ TurnOff { unsub, ctx }
-                                Just { unsub, ctx } -> do
-                                  unsub
-                                  close ctx
-                                  push TurnOn
+                                )
+                                (sample_ wh animationFrameEvent)
+                            )
+                            effectfulAudioInterpret
 
+                        unsub <- subscribe
+                          ( sampleOn
+                              (analyserE.event <|> pure Nothing)
+                              (map Tuple audioE)
                           )
-                      )
-                      ( event # filterMap case _ of
-                          AsciiMixer _ -> Nothing
-                          TurnOff a -> Just (Just a)
-                          TurnOn -> Just Nothing
-                      )
-                  )
-                  [ text
-                      ( event # map case _ of
-                          TurnOn -> "Turn on"
-                          _ -> "Turn off"
-                      )
-                  ]
-              , DOM.p_
-                  [ text
-                      ( event # map case _ of
-                          AsciiMixer s -> s
-                          _ -> ""
-                      )
-                  ]
-              ]
-          )
-          effectfulDOMInterpret
-      _ <- subscribe evt \i -> i ffi
-      push TurnOn
+                          ( \(Tuple audio analyser) -> do
+                              audio ffi2
+                              for_ analyser \a -> do
+                                frequencyData <-
+                                  getByteFrequencyData a
+                                arr <- toArray frequencyData
+                                push $ AsciiMixer $
+                                  intercalate "\n"
+                                    ( map
+                                        ( \ii ->
+                                            unsafeRepeat
+                                              (toInt ii + 1)
+                                              ">"
+                                        )
+                                        arr
+                                    )
+                          )
+                        push $ TurnOff { unsub, ctx }
+                      Just { unsub, ctx } -> do
+                        unsub
+                        close ctx
+                        push TurnOn
+
+                )
+            )
+            ( event # filterMap case _ of
+                AsciiMixer _ -> Nothing
+                TurnOff a -> Just (Just a)
+                TurnOn -> Just Nothing
+            )
+        )
+        [ text
+            ( event # map case _ of
+                TurnOn -> "Turn on"
+                _ -> "Turn off"
+            )
+        ]
+    , DOM.p_
+        [ text
+            ( event # map case _ of
+                AsciiMixer s -> s
+                _ -> ""
+            )
+        ]
+    ]
+
+main :: Effect Unit
+main = initializeAtariSpeaks \atar -> do
+  b' <- window >>= document >>= body
+  for_ (toElement <$> b') \elt -> do
+    ffi <- makeFFIDOMSnapshot
+    let
+      evt = deku elt
+        (subgraph (pure (Tuple unit (InsertOrUpdate TurnOn))) (atariSpeaks atar))
+        effectfulDOMInterpret
+    _ <- subscribe evt \i -> i ffi
+    pure unit
