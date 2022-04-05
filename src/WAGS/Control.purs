@@ -226,7 +226,8 @@ audioWorklet (C.InitializeAudioWorkletNode i) atts elt = C.Node go
 
 audioWorklet'
   :: forall proxy sym name numberOfInputs numberOfOutputs outputChannelCount
-       parameterData parameterDataRL processorOptions produced consumed event payload
+       parameterData parameterDataRL processorOptions produced consumed event
+       payload
    . IsSymbol name
   => Nat numberOfInputs
   => Pos numberOfOutputs
@@ -469,14 +470,25 @@ dynamicsCompressor' _ i atts elts =
 
 -- gain
 
+class InitialGain i where
+  toInitialGain :: i -> C.InitializeGain
+
+instance InitialGain C.InitializeGain where
+  toInitialGain = identity
+
+instance InitialGain Number where
+  toInitialGain = C.InitializeGain <<< { gain: _ }
+
 gain__
-  :: forall outputChannels produced consumed event payload
+  :: forall initialGain outputChannels produced consumed event payload
    . IsEvent event
-  => C.InitializeGain
+  => InitialGain initialGain
+  => initialGain
   -> event C.Gain
   -> C.Node outputChannels produced consumed event payload
   -> C.Node outputChannels produced consumed event payload
-gain__ i atts h = gain i atts (C.GainInput (NEA.fromNonEmpty (h :| [])))
+gain__ i atts h = gain (toInitialGain i) atts
+  (C.GainInput (NEA.fromNonEmpty (h :| [])))
 
 gain_
   :: forall outputChannels produced consumed event payload
@@ -921,7 +933,11 @@ periodicOsc
   -> C.Node outputChannels () () event payload
 periodicOsc (C.InitializePeriodicOsc i) atts = C.Node go
   where
-  go parent (C.AudioInterpret { ids, makePeriodicOsc, setFrequency, setOnOff, setPeriodicOsc }) =
+  go
+    parent
+    ( C.AudioInterpret
+        { ids, makePeriodicOsc, setFrequency, setOnOff, setPeriodicOsc }
+    ) =
     keepLatest
       ( (sample_ ids (pure unit)) <#> \me ->
           pure
@@ -992,7 +1008,8 @@ playBuf (C.InitializePlayBuf i) atts = C.Node go
                   { buffer: \buffer -> setBuffer { id: me, buffer }
                   , playbackRate: \playbackRate -> setPlaybackRate
                       { id: me, playbackRate }
-                  , bufferOffset: \bufferOffset -> setBufferOffset { id: me, bufferOffset }
+                  , bufferOffset: \bufferOffset -> setBufferOffset
+                      { id: me, bufferOffset }
                   , onOff: \onOff -> setOnOff { id: me, onOff }
                   }
                   e
@@ -1026,6 +1043,7 @@ recorder (C.InitializeRecorder i) elt = C.Node go
             <|> ((\y -> let C.Node x = y in x) elt) me di
 
       )
+
 -- ref
 
 ref
@@ -1083,14 +1101,25 @@ sawtoothOsc' _ i atts = let C.Node n = sawtoothOsc i atts in C.Node n
 
 -- sinOsc
 
+class InitialSinOsc i where
+  toInitialSinOsc :: i -> C.InitializeSinOsc
+
+instance InitialSinOsc C.InitializeSinOsc where
+  toInitialSinOsc = identity
+
+instance InitialSinOsc Number where
+  toInitialSinOsc = C.InitializeSinOsc <<< { frequency: _ }
+
 sinOsc
-  :: forall outputChannels event payload
+  :: forall i outputChannels event payload
    . IsEvent event
-  => C.InitializeSinOsc
+  => InitialSinOsc i
+  => i
   -> event C.SinOsc
   -> C.Node outputChannels () () event payload
-sinOsc (C.InitializeSinOsc i) atts = C.Node go
+sinOsc i' atts = C.Node go
   where
+  C.InitializeSinOsc i = toInitialSinOsc i'
   go parent (C.AudioInterpret { ids, makeSinOsc, setFrequency, setOnOff }) =
     keepLatest
       ( (sample_ ids (pure unit)) <#> \me ->
@@ -1113,11 +1142,12 @@ sinOsc (C.InitializeSinOsc i) atts = C.Node go
       )
 
 sinOsc'
-  :: forall proxy sym outputChannels produced event payload
+  :: forall proxy sym i outputChannels produced event payload
    . IsEvent event
+  => InitialSinOsc i
   => Cons sym C.Input () produced
   => proxy sym
-  -> C.InitializeSinOsc
+  -> i
   -> event C.SinOsc
   -> C.Node outputChannels produced () event payload
 sinOsc' _ i atts = let C.Node n = sinOsc i atts in C.Node n
@@ -1162,6 +1192,7 @@ squareOsc'
   -> event C.SquareOsc
   -> C.Node outputChannels produced () event payload
 squareOsc' _ i atts = let C.Node n = squareOsc i atts in C.Node n
+
 -- speaker
 speaker
   :: forall outputChannels produced produced' consumed event payload

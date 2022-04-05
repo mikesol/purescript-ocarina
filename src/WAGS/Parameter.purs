@@ -3,8 +3,10 @@ module WAGS.Parameter where
 import Prelude
 
 import Data.Generic.Rep (class Generic)
+import Data.Lens (over)
+import Data.Lens.Iso.Newtype (_Newtype, unto)
 import Data.Lens.Record (prop)
-import Data.Newtype (class Newtype, unwrap)
+import Data.Newtype (class Newtype, unwrap, wrap)
 import Data.Profunctor.Strong (class Strong)
 import Data.Variant (Variant, inj, match)
 import Type.Proxy (Proxy(..))
@@ -38,13 +40,16 @@ _cancel = AudioParameter <<< inj (Proxy :: _ "cancel")
 _sudden :: AudioSudden -> AudioParameter
 _sudden = AudioParameter <<< inj (Proxy :: _ "sudden")
 
-newtype AudioNumeric = AudioNumeric { n :: Number, o :: Number, t :: Transition }
+newtype AudioNumeric = AudioNumeric
+  { n :: Number, o :: Number, t :: Transition }
+
 derive instance Eq AudioNumeric
 derive instance Ord AudioNumeric
 derive instance Newtype AudioNumeric _
 derive newtype instance Show AudioNumeric
 
-newtype AudioEnvelope = AudioEnvelope { p :: Array Number, o :: Number, d :: Number }
+newtype AudioEnvelope = AudioEnvelope
+  { p :: Array Number, o :: Number, d :: Number }
 
 derive instance Eq AudioEnvelope
 derive instance Ord AudioEnvelope
@@ -52,12 +57,14 @@ derive instance Newtype AudioEnvelope _
 derive newtype instance Show AudioEnvelope
 
 newtype AudioCancel = AudioCancel { o :: Number }
+
 derive instance Eq AudioCancel
 derive instance Ord AudioCancel
 derive instance Newtype AudioCancel _
 derive newtype instance Show AudioCancel
 
 newtype AudioSudden = AudioSudden { n :: Number }
+
 derive instance Eq AudioSudden
 derive instance Ord AudioSudden
 derive instance Newtype AudioSudden _
@@ -115,14 +122,21 @@ newtype AudioOnOff = AudioOnOff
   , timeOffset :: Number
   }
 
-_apOn :: AudioOnOff
-_apOn = AudioOnOff { onOff: _on, timeOffset: 0.0 }
+apOn :: AudioOnOff
+apOn = AudioOnOff { onOff: _on, timeOffset: 0.0 }
 
-_apOff :: AudioOnOff
-_apOff = AudioOnOff { onOff: _off, timeOffset: 0.0 }
+pureOn
+  :: forall event nt r
+   . Applicative event
+  => Newtype nt (Variant (onOff :: AudioOnOff | r))
+  => event nt
+pureOn = pure (wrap $ inj (Proxy :: _ "onOff") apOn)
 
-_apOffOn :: AudioOnOff
-_apOffOn = AudioOnOff { onOff: _offOn, timeOffset: 0.0 }
+apOff :: AudioOnOff
+apOff = AudioOnOff { onOff: _off, timeOffset: 0.0 }
+
+apOffOn :: AudioOnOff
+apOffOn = AudioOnOff { onOff: _offOn, timeOffset: 0.0 }
 
 derive instance eqAudioOnOff :: Eq AudioOnOff
 derive instance ordAudioOnOff :: Ord AudioOnOff
@@ -173,15 +187,23 @@ at_' wh f = wh # map
     in
       AudioNumeric { t: _linear, o: o + concreteTime, n }
 
-propn :: forall p r a b. Strong p => p a b -> p { n :: a | r } { n :: b | r }
-propn = prop (Proxy :: Proxy "n")
-
-propp :: forall p r a b. Strong p => p a b -> p { p :: a | r } { p :: b | r }
-propp = prop (Proxy :: Proxy "p")
-
-propt :: forall p r a b. Strong p => p a b -> p { t :: a | r } { t :: b | r }
-propt = prop (Proxy :: Proxy "t")
+ovnn = over (unto AudioNumeric <<< prop (Proxy :: Proxy "n"))
 
 
-propo :: forall p r a b. Strong p => p a b -> p { o :: a | r } { o :: b | r }
-propo = prop (Proxy :: Proxy "o")
+class ToAudioParameter i where
+  toAudioParameter :: i -> AudioParameter
+
+instance ToAudioParameter Number where
+  toAudioParameter n = _sudden (AudioSudden { n })
+
+instance ToAudioParameter AudioNumeric where
+  toAudioParameter = _numeric
+
+instance ToAudioParameter AudioSudden where
+  toAudioParameter = _sudden
+
+instance ToAudioParameter AudioCancel where
+  toAudioParameter = _cancel
+
+instance ToAudioParameter AudioEnvelope where
+  toAudioParameter = _envelope
