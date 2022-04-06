@@ -245,7 +245,6 @@ instance createUnit ::
 
 instance createInput ::
   ( IsSymbol ptr
-  , IsSymbol input
   , R.Lacks ptr graphi
   , R.Cons ptr (NodeC CTOR.TInput {}) graphi grapho
   ) =>

@@ -5,6 +5,7 @@ import Prelude
 import Data.Newtype (class Newtype)
 import Data.Tuple.Nested (type (/\))
 import Data.Variant.Maybe (Maybe)
+import WAGS.Core as Core
 import Prim.Symbol as Sym
 import Type.Proxy (Proxy(..))
 import WAGS.Interpret (AudioWorkletNodeResponse)
@@ -169,6 +170,7 @@ instance typeToSymHighshelf :: TypeToSym Highshelf "Highshelf"
 -- | - `input` - the input to use.
 data Input (input :: Symbol) = Input
 instance typeToSymInput :: TypeToSym (Input input) "Input"
+instance typeToSymCoreInput :: TypeToSym Core.Input "Input"
 
 -- | Term-level constructor for a looping buffer.
 -- | - `buffer` - the buffer to use. Note that this symbol, when reset, will only reset the buffer when it is stopped.

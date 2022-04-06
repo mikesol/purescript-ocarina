@@ -8,7 +8,6 @@ import Prim.Row (class Cons, class Nub)
 import Prim.Row as R
 import Prim.RowList (class RowToList, RowList)
 import Prim.RowList as RL
-import Prim.TypeError (class Fail, Text)
 import WAGS.Tumult.Graph.AudioUnit as CTOR
 import WAGS.Tumult.Graph.Edge (EdgeList)
 import WAGS.Tumult.Graph.Graph (Graph)
