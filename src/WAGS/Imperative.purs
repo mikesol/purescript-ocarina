@@ -14,9 +14,8 @@ import Prim.Row as Row
 import Prim.Symbol as Symbol
 import Type.Prelude (class IsSymbol, reflectSymbol)
 import Type.Proxy (Proxy(..))
-import Unsafe.Coerce (unsafeCoerce)
 import WAGS.Common as Common
-import WAGS.Core as C
+import WAGS.Core as Core
 
 --
 data TypePair :: forall k l. k -> l -> Type
@@ -27,17 +26,27 @@ infixr 6 type TypePair as \/
 --
 newtype GraphBuilder :: (Type -> Type) -> Type -> Type -> Type -> Type -> Type
 newtype GraphBuilder e p i o a = GraphBuilder
-  (C.AudioInterpret e p -> { event :: e p, result :: a })
-
-unsafeGraphBuilder :: forall i o e p a. GraphBuilder e p i o a
-unsafeGraphBuilder = unsafeCoerce unit
+  (Core.AudioInterpret e p -> { event :: e p, result :: a })
 
 type InitialGraphBuilderIndex :: Type
 type InitialGraphBuilderIndex = (() :: Row Type) \/ (() :: Row Boolean) \/ False
 
-evalGraphBuilder
-  :: forall o e p a. GraphBuilder e p InitialGraphBuilderIndex o a -> Proxy o
-evalGraphBuilder _ = Proxy
+runGraphBuilder_
+  :: forall e p o a
+   . IsEvent e
+  => Core.AudioInterpret e p
+  -> GraphBuilder e p InitialGraphBuilderIndex o a
+  -> { event :: e p, result :: a }
+runGraphBuilder_ audioInterpret (GraphBuilder graphBuilder) =
+  graphBuilder audioInterpret
+
+runGraphBuilder
+  :: forall e p o a
+   . IsEvent e
+  => Core.AudioInterpret e p
+  -> GraphBuilder e p InitialGraphBuilderIndex o a
+  -> e p
+runGraphBuilder audioInterpret = runGraphBuilder_ audioInterpret >>> _.event
 
 instance functorGraphBuilder :: Functor (GraphBuilder e p i i) where
   map f (GraphBuilder g) = GraphBuilder (g >>> \n -> n { result = f n.result })
@@ -161,7 +170,7 @@ createSpeaker
   -> GraphBuilder e p i o (GraphUnit id Speaker)
 createSpeaker _ = GraphBuilder go
   where
-  go (C.AudioInterpret { makeSpeaker }) =
+  go (Core.AudioInterpret { makeSpeaker }) =
     { event: pure $ makeSpeaker { id: reflectSymbol (Proxy :: _ id) }
     , result: GraphUnit
     }
@@ -174,12 +183,12 @@ createGain
   => InsertTerminal i id False o
   => Proxy id
   -> initialGain
-  -> e C.Gain
+  -> e Core.Gain
   -> GraphBuilder e p i o (GraphUnit id Gain)
 createGain _ initialGain attributes = GraphBuilder go
   where
   { gain } = unwrap $ Common.toInitializeGain initialGain
-  go (C.AudioInterpret { makeGain, setGain }) =
+  go (Core.AudioInterpret { makeGain, setGain }) =
     { event:
         let
           id = reflectSymbol (Proxy :: _ id)
@@ -201,12 +210,12 @@ createSinOsc
   => InsertTerminal i id False o
   => Proxy id
   -> initialSinOsc
-  -> e C.SinOsc
+  -> e Core.SinOsc
   -> GraphBuilder e p i o (GraphUnit id SinOsc)
 createSinOsc _ initialSinOsc attributes = GraphBuilder go
   where
   { frequency } = unwrap $ Common.toInitializeSinOsc initialSinOsc
-  go (C.AudioInterpret { makeSinOsc, setFrequency, setOnOff }) =
+  go (Core.AudioInterpret { makeSinOsc, setFrequency, setOnOff }) =
     { event:
         let
           id = reflectSymbol (Proxy :: _ id)
@@ -271,7 +280,7 @@ instance connectDefault ::
   Connect (c \/ t \/ s) e fId fNode iId iNode (c' \/ t'' \/ s') where
   connect _ = GraphBuilder go
     where
-    go (C.AudioInterpret { connectXToY }) =
+    go (Core.AudioInterpret { connectXToY }) =
       { event: pure $ connectXToY
           { from: reflectSymbol (Proxy :: _ fId)
           , to: reflectSymbol (Proxy :: _ iId)
