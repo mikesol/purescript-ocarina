@@ -2,6 +2,7 @@ module WAGS.Tumult.Connect where
 
 import Prelude hiding (Ordering(..))
 
+import Data.Set (insert)
 import Data.Symbol (class IsSymbol, reflectSymbol)
 import Prim.Row as R
 import Type.Proxy (Proxy(..))
@@ -37,14 +38,16 @@ instance connectInstance ::
   Connect from to graphi grapho where
   connect { source: fromI', dest: toI' } w =
     WAG
-      { instructions: instructions <>
-          [ I.iConnectXToY
+      { instructions: insert
+          ( I.iConnectXToY
               { from
               , fromUnit: reflectSymbol (Proxy :: _ fromSym)
               , to
               , toUnit: reflectSymbol (Proxy :: _ toSym)
               }
-          ]
+          )
+          instructions
+
       }
     where
     WAG { instructions } = w

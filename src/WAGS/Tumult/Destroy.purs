@@ -1,7 +1,7 @@
 module WAGS.Tumult.Destroy where
 
-import Prelude
 
+import Data.Set (insert)
 import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.Tuple.Nested (type (/\))
 import Prim.Row as R
@@ -13,7 +13,6 @@ import WAGS.Tumult.Graph.AudioUnit (class TypeToSym)
 import WAGS.Tumult.Graph.Graph (Graph)
 import WAGS.Tumult.Graph.Node (NodeC, NodeList)
 import WAGS.Tumult.Instructions as I
-
 
 -- | Destroy node `ptr` in graph `i`, resulting in graph `o`. Note that, to destroy a node, it must have no outgoing or incoming edges. This is achieved via use of `disconnect`. Failure to disconnect nodes before destroying will result in a compile-time error during graph validation.
 class Destroy (ptr :: Symbol) (i :: Graph) (o :: Graph) | ptr i -> o where
@@ -32,10 +31,13 @@ instance destroyer ::
   , PointerNotPresentInAnyEdgeList ptr nodeListI
   ) =>
   Destroy ptr graphi grapho where
-  destroy ptrI' w = WAG { instructions: instructions <>
-                  [ I.iDestroyUnit { id, unit: reflectSymbol (Proxy :: _ nodeSym) }
-                  ]
-              }
+  destroy ptrI' w = WAG
+    { instructions:
+        insert
+          ( I.iDestroyUnit { id, unit: reflectSymbol (Proxy :: _ nodeSym) }
+          )
+          instructions
+    }
     where
     WAG { instructions } = w
 

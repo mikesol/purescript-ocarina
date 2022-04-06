@@ -2,6 +2,7 @@ module WAGS.Tumult.Disconnect where
 
 import Prelude hiding (Ordering(..))
 
+import Data.Set (insert)
 import Data.Symbol (class IsSymbol, reflectSymbol)
 import Prim.Row as R
 import Type.Proxy (Proxy(..))
@@ -37,14 +38,16 @@ instance disconnector ::
   Disconnect from to graphi grapho where
   disconnect { source, dest } w =
     WAG
-      { instructions: instructions <>
-          [ I.iDisconnectXFromY
-              { from
-              , fromUnit: reflectSymbol (Proxy :: _ fromSym)
-              , to
-              , toUnit: reflectSymbol (Proxy :: _ toSym)
-              }
-          ]
+      { instructions:
+          insert
+            ( I.iDisconnectXFromY
+                { from
+                , fromUnit: reflectSymbol (Proxy :: _ fromSym)
+                , to
+                , toUnit: reflectSymbol (Proxy :: _ toSym)
+                }
+            ) instructions
+
       }
     where
     WAG { instructions } = w

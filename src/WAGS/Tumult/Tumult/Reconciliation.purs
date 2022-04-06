@@ -37,7 +37,6 @@ derogative (Instruction i) = match
   , makeGain: du "Gain"
   , makeHighpass: du "Highpass"
   , makeHighshelf: du "Highshelf"
-  , makeInput: du "Input"
   , makeLoopBuf: du "LoopBuf"
   , makeLowpass: du "Lowpass"
   , makeLowshelf: du "Lowshelf"
@@ -275,12 +274,6 @@ reconcileTumult new old = result
                           <<< Set.insert (R.iSetGain { id: a.id, gain: a.gain })
                       )
             )
-        , makeInput: \a ->
-            i1 #
-              ( udef
-                  # on (Proxy :: _ "makeInput") \b ->
-                      comparable a b l0 h0 t0 l1 h1 t1 set identity -- todo: should this be identity?
-              )
         , makeLoopBuf: \a -> i1 #
             ( udef
                 # on (Proxy :: _ "makeLoopBuf") \b ->

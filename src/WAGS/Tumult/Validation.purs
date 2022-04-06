@@ -55,7 +55,6 @@ instance subgraphIsRenderable ::
   , NoParallelEdges graph
   , HasSourceNodes graph
   , UniqueTerminus graph name terminus
-  , GetInputList graph inputs
   , AllNodesAreSaturated graph
   ) =>
   SubgraphIsRenderable graph name inputs
@@ -310,12 +309,6 @@ instance allNodesAreSaturatedConsTHighshelf ::
   ) =>
   AllNodesAreSaturatedNL (RL.Cons iSym (NodeC (CTOR.THighshelf) { | r }) tail)
 
-instance allNodesAreSaturatedConsTInput ::
-  ( RowToList r RL.Nil
-  , AllNodesAreSaturatedNL tail
-  ) =>
-  AllNodesAreSaturatedNL (RL.Cons iSym (NodeC (CTOR.TInput ipt) { | r }) tail)
-
 instance allNodesAreSaturatedConsTLoopBuf ::
   ( RowToList r RL.Nil
   , AllNodesAreSaturatedNL tail
@@ -452,26 +445,3 @@ instance nodeIsOutputDeviceTSpeaker ::
 
 instance nodeIsOutputDeviceTRecorder ::
   NodeIsOutputDevice (NodeC (CTOR.TRecorder) x)
-
-class
-  GetInputList' (graph :: RowList Type) (inputs :: Row Type)
-  | graph -> inputs
-
-instance inputsAreInInputListNil :: GetInputList' RL.Nil ()
-instance inputsAreInInputListCons ::
-  ( Cons i Unit iii r
-  , GetInputList' z iii
-  ) =>
-  GetInputList' (RL.Cons a (NodeC (CTOR.TInput i) f) z) r
-else instance inputsAreInInputListCons2 ::
-  GetInputList' z r =>
-  GetInputList' (RL.Cons a (NodeC ignoreMe f) z) r
-
-class GetInputList (graph :: Row Type) (inputs :: Row Type) | graph -> inputs
-
-instance inputsAreInInputListAll ::
-  ( RowToList graph graphR
-  , GetInputList' graphR inputs'
-  , Nub inputs' inputs
-  ) =>
-  GetInputList graph inputs

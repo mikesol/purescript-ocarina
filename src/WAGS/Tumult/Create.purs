@@ -2,6 +2,7 @@ module WAGS.Tumult.Create where
 
 import Prelude
 
+import Data.Set (insert)
 import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.Tuple (Tuple)
 import Data.Tuple.Nested ((/\), type (/\))
@@ -85,7 +86,8 @@ instance createStepRLCons ::
           :: CreateStepRLSig edgesRL newPrefix newMap edges graph1 graph2
       ) Proxy Proxy Proxy edges
         (step1)
-    step3 = createStepRL (Proxy :: _ rest) (Proxy :: _ prefix) (Proxy :: _ map) rx
+    step3 = createStepRL (Proxy :: _ rest) (Proxy :: _ prefix) (Proxy :: _ map)
+      rx
       (step2)
 
 class
@@ -159,10 +161,12 @@ instance connectAfterCreateCons ::
     where
     step1 = connectEdgesToNode (Proxy :: _ oel) (Proxy :: _ newKey) (w)
 
-    step2 = connectAfterCreate (Proxy :: _ newPrefix) (Proxy :: _ newMap) (Proxy :: _ edgesList)
+    step2 = connectAfterCreate (Proxy :: _ newPrefix) (Proxy :: _ newMap)
+      (Proxy :: _ edgesList)
       (step1)
 
-    step3 = connectAfterCreate (Proxy :: _ prefix) (Proxy :: _ map) (Proxy :: _ rest)
+    step3 = connectAfterCreate (Proxy :: _ prefix) (Proxy :: _ map)
+      (Proxy :: _ rest)
       (step2)
 
 type CreateInternalSig
@@ -203,7 +207,8 @@ instance createInternalAll ::
       z
       r
 
-    step1 = connectAfterCreate (Proxy :: _ prefix) (Proxy :: _ map) (Proxy :: _ rl)
+    step1 = connectAfterCreate (Proxy :: _ prefix) (Proxy :: _ map)
+      (Proxy :: _ rl)
       (step0)
 
 class
@@ -251,8 +256,8 @@ instance createAnalyser ::
     -- todo: un-hard-code
     o =
       WAG
-        { instructions: instructions <>
-            [ I.iMakeAnalyser
+        { instructions: insert
+            ( I.iMakeAnalyser
                 { id
                 , cb
                 , channelCount: 2
@@ -264,7 +269,8 @@ instance createAnalyser ::
                 , smoothingTimeConstant: 0.8
                 , parent: nothing
                 }
-            ]
+            )
+            instructions
         }
 
 instance createAllpass ::
@@ -279,7 +285,9 @@ instance createAllpass ::
     id = reflectSymbol ptr
     o =
       WAG
-        { instructions: instructions <> [ I.iMakeAllpass { id, frequency, q, parent: nothing } ]
+        { instructions: insert
+            (I.iMakeAllpass { id, frequency, q, parent: nothing })
+            instructions
         }
 
 class
@@ -347,8 +355,8 @@ instance createAudioWorkletNode ::
 
     o =
       WAG
-        { instructions: instructions <>
-            [ I.iMakeAudioWorkletNode
+        { instructions: insert
+            ( I.iMakeAudioWorkletNode
                 { id
                 , options: AudioWorkletNodeOptions_
                     { name: reflectSymbol (Proxy :: _ sym)
@@ -365,7 +373,8 @@ instance createAudioWorkletNode ::
                     }
                 , parent: nothing
                 }
-            ] --(createParameters nn (Proxy :: _ parameterData) (Proxy :: _ parametersRL) parameters)
+            )
+            instructions
         }
 
 instance createBandpass ::
@@ -380,14 +389,16 @@ instance createBandpass ::
     id = reflectSymbol ptr
     o =
       WAG
-        { instructions: instructions <>
-            [ I.iMakeBandpass
+        { instructions: insert
+            ( I.iMakeBandpass
                 { id
                 , frequency
                 , q
                 , parent: nothing
                 }
-            ]
+            )
+            instructions
+
         }
 
 instance createConstant ::
@@ -404,14 +415,16 @@ instance createConstant ::
 
     o =
       WAG
-        { instructions: instructions <>
-            [ I.iMakeConstant
+        { instructions: insert
+            ( I.iMakeConstant
                 { id
                 , onOff
                 , offset
                 , parent: nothing
                 }
-            ]
+            )
+            instructions
+
         }
 
 instance createConvolver ::
@@ -428,8 +441,9 @@ instance createConvolver ::
 
     o =
       WAG
-        { instructions: instructions <>
-            [ I.iMakeConvolver { id, buffer, parent: nothing } ]
+        { instructions: insert
+            (I.iMakeConvolver { id, buffer, parent: nothing })
+            instructions
         }
 
 instance createDelay ::
@@ -446,13 +460,15 @@ instance createDelay ::
 
     o =
       WAG
-        { instructions: instructions <>
-            [ I.iMakeDelay
+        { instructions: insert
+            ( I.iMakeDelay
                 { id
                 , delayTime
                 , parent: nothing
                 }
-            ]
+            )
+            instructions
+
         }
 
 instance createDynamicsCompressor ::
@@ -472,8 +488,8 @@ instance createDynamicsCompressor ::
 
     o =
       WAG
-        { instructions: instructions <>
-            [ I.iMakeDynamicsCompressor
+        { instructions: insert
+            ( I.iMakeDynamicsCompressor
                 { id
                 , knee
                 , threshold
@@ -482,7 +498,8 @@ instance createDynamicsCompressor ::
                 , release
                 , parent: nothing
                 }
-            ]
+            )
+            instructions
         }
 
 instance createGain ::
@@ -498,8 +515,8 @@ instance createGain ::
     id = reflectSymbol ptr
 
     o = WAG
-      { instructions: instructions <>
-          [ I.iMakeGain { id, gain, parent: nothing } ]
+      { instructions: insert (I.iMakeGain { id, gain, parent: nothing })
+          instructions
       }
 
 instance createHighpass ::
@@ -514,14 +531,16 @@ instance createHighpass ::
     id = reflectSymbol ptr
 
     o = WAG
-      { instructions: instructions <>
-          [ I.iMakeHighpass
+      { instructions: insert
+          ( I.iMakeHighpass
               { id
               , frequency
               , q
               , parent: nothing
               }
-          ]
+          )
+          instructions
+
       }
 
 instance createHighshelf ::
@@ -537,33 +556,16 @@ instance createHighshelf ::
     id = reflectSymbol ptr
 
     o = WAG
-      { instructions: instructions <>
-          [ I.iMakeHighshelf
+      { instructions: insert
+          ( I.iMakeHighshelf
               { id
               , frequency
               , gain
               , parent: nothing
               }
-          ]
-      }
+          )
+          instructions
 
-instance createInput ::
-  ( IsSymbol ptr
-  , IsSymbol sym
-  , R.Lacks ptr graphi
-  , R.Cons ptr (NodeC (CTOR.TInput sym) {}) graphi grapho
-  ) =>
-  Create' ptr (CTOR.Input sym) graphi grapho where
-  create' ptr _ w = o
-    where
-    WAG { instructions } = w
-
-    id = reflectSymbol ptr
-
-    o = WAG
-      { instructions: instructions <>
-          [ I.iMakeInput { id: reflectSymbol (Proxy :: _ sym), parent: nothing }
-          ]
       }
 
 instance createLoopBuf ::
@@ -582,8 +584,8 @@ instance createLoopBuf ::
     id = reflectSymbol ptr
 
     o = WAG
-      { instructions: instructions <>
-          [ I.iMakeLoopBuf
+      { instructions: insert
+          ( I.iMakeLoopBuf
               { id
               , buffer
               , onOff
@@ -593,7 +595,9 @@ instance createLoopBuf ::
               , duration
               , parent: nothing
               }
-          ]
+          )
+          instructions
+
       }
 
 instance createLowpass ::
@@ -610,14 +614,16 @@ instance createLowpass ::
 
     o =
       WAG
-        { instructions: instructions <>
-            [ I.iMakeLowpass
+        { instructions: insert
+            ( I.iMakeLowpass
                 { id
                 , frequency
                 , q
                 , parent: nothing
                 }
-            ]
+            )
+            instructions
+
         }
 
 instance createLowshelf ::
@@ -633,14 +639,16 @@ instance createLowshelf ::
     id = reflectSymbol ptr
 
     o = WAG
-      { instructions: instructions <>
-          [ I.iMakeLowshelf
+      { instructions: insert
+          ( I.iMakeLowshelf
               { id
               , frequency
               , gain
               , parent: nothing
               }
-          ]
+          )
+          instructions
+
       }
 
 instance createMediaElement ::
@@ -656,8 +664,9 @@ instance createMediaElement ::
     id = reflectSymbol ptr
 
     o = WAG
-      { instructions: instructions <>
-          [ I.iMakeMediaElement { id, element, parent: nothing } ]
+      { instructions: insert
+          (I.iMakeMediaElement { id, element, parent: nothing })
+          instructions
       }
 
 instance createMicrophone ::
@@ -670,9 +679,10 @@ instance createMicrophone ::
     WAG { instructions } = w
 
     o = WAG
-      { instructions: instructions <>
-          [ I.iMakeMicrophone { id: "microphone", microphone, parent: nothing }
-          ]
+      { instructions: insert
+          (I.iMakeMicrophone { id: "microphone", microphone, parent: nothing })
+          instructions
+
       }
 
 instance createNotch ::
@@ -688,14 +698,15 @@ instance createNotch ::
     id = reflectSymbol ptr
 
     o = WAG
-      { instructions: instructions <>
-          [ I.iMakeNotch
+      { instructions: insert
+          ( I.iMakeNotch
               { id
               , frequency
               , q
               , parent: nothing
               }
-          ]
+          )
+          instructions
       }
 
 instance createPeaking ::
@@ -711,8 +722,9 @@ instance createPeaking ::
     id = reflectSymbol ptr
 
     o = WAG
-      { instructions: instructions <>
-          [ I.iMakePeaking { id, frequency, gain, q, parent: nothing } ]
+      { instructions: insert
+          (I.iMakePeaking { id, frequency, gain, q, parent: nothing })
+          instructions
       }
 
 instance createPeriodicOsc ::
@@ -728,10 +740,12 @@ instance createPeriodicOsc ::
     id = reflectSymbol ptr
 
     o = WAG
-      { instructions: instructions <>
-          [ I.iMakePeriodicOsc
+      { instructions: insert
+          ( I.iMakePeriodicOsc
               { id, spec: _wave wave, onOff, frequency, parent: nothing }
-          ]
+          )
+          instructions
+
       }
 
 instance createPeriodicOsc2 ::
@@ -751,8 +765,8 @@ instance createPeriodicOsc2 ::
     id = reflectSymbol ptr
 
     o = WAG
-      { instructions: instructions <>
-          [ I.iMakePeriodicOsc
+      { instructions: insert
+          ( I.iMakePeriodicOsc
               { id
               , spec: _realImg
                   ( wave # \(real /\ img) -> RealImg
@@ -762,7 +776,9 @@ instance createPeriodicOsc2 ::
               , frequency
               , parent: nothing
               }
-          ]
+          )
+          instructions
+
       }
 
 instance createPlayBuf ::
@@ -779,8 +795,8 @@ instance createPlayBuf ::
     WAG { instructions } = w
     id = reflectSymbol ptr
     o = WAG
-      { instructions: instructions <>
-          [ I.iMakePlayBuf
+      { instructions: insert
+          ( I.iMakePlayBuf
               { id
               , buffer
               , bufferOffset
@@ -789,7 +805,9 @@ instance createPlayBuf ::
               , duration
               , parent: nothing
               }
-          ]
+          )
+          instructions
+
       }
 
 instance createRecorder ::
@@ -805,13 +823,15 @@ instance createRecorder ::
     id = reflectSymbol ptr
 
     o = WAG
-      { instructions: instructions <>
-          [ I.iMakeRecorder
+      { instructions: insert
+          ( I.iMakeRecorder
               { id
               , cb
               , parent: nothing
               }
-          ]
+          )
+          instructions
+
       }
 
 instance createSawtoothOsc ::
@@ -827,8 +847,9 @@ instance createSawtoothOsc ::
     id = reflectSymbol ptr
 
     o = WAG
-      { instructions: instructions <>
-          [ I.iMakeSawtoothOsc { id, onOff, frequency, parent: nothing } ]
+      { instructions: insert
+          (I.iMakeSawtoothOsc { id, onOff, frequency, parent: nothing })
+          instructions
       }
 
 instance createSinOsc ::
@@ -844,8 +865,10 @@ instance createSinOsc ::
     id = reflectSymbol ptr
 
     o = WAG
-      { instructions: instructions <>
-          [ I.iMakeSinOsc { id, onOff, frequency, parent: nothing } ]
+      { instructions: insert
+          (I.iMakeSinOsc { id, onOff, frequency, parent: nothing })
+          instructions
+
       }
 
 instance createSquareOsc ::
@@ -861,9 +884,10 @@ instance createSquareOsc ::
     id = reflectSymbol ptr
 
     o = WAG
-      { instructions: instructions <>
-          [ I.iMakeSquareOsc { id, onOff, frequency, parent: nothing }
-          ]
+      { instructions: insert
+          (I.iMakeSquareOsc { id, onOff, frequency, parent: nothing })
+          instructions
+
       }
 
 instance createStereoPanner ::
@@ -879,8 +903,8 @@ instance createStereoPanner ::
     id = reflectSymbol ptr
 
     o = WAG
-      { instructions: instructions <>
-          [ I.iMakeStereoPanner { id, pan, parent: nothing } ]
+      { instructions: insert (I.iMakeStereoPanner { id, pan, parent: nothing })
+          instructions
       }
 
 instance createTriangleOsc ::
@@ -896,10 +920,11 @@ instance createTriangleOsc ::
     id = reflectSymbol ptr
 
     o = WAG
-      { instructions: instructions <>
-          [ I.iMakeTriangleOsc
+      { instructions: insert
+          ( I.iMakeTriangleOsc
               { id, onOff, frequency, parent: nothing }
-          ]
+          )
+          instructions
       }
 
 instance createWaveShaper ::
@@ -919,8 +944,10 @@ instance createWaveShaper ::
 
     o =
       WAG
-        { instructions: instructions <>
-            [ I.iMakeWaveShaper
+        { instructions: insert
+            ( I.iMakeWaveShaper
                 { id, curve: floatArray, oversample, parent: nothing }
-            ]
+            )
+            instructions
+
         }

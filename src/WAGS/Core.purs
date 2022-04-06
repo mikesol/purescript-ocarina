@@ -937,7 +937,6 @@ type Instruction' =
   , makeGain :: MakeGain'
   , makeHighpass :: MakeHighpass'
   , makeHighshelf :: MakeHighshelf'
-  , makeInput :: MakeInput
   , makeLoopBuf :: MakeLoopBuf'
   , makeLowpass :: MakeLowpass'
   , makeLowshelf :: MakeLowshelf'
@@ -997,7 +996,6 @@ instructionWeight (Instruction v) = v # match
   , makeGain: const 2
   , makeHighpass: const 2
   , makeHighshelf: const 2
-  , makeInput: const 2
   , makeLoopBuf: const 2
   , makeLowpass: const 2
   , makeLowshelf: const 2
@@ -1055,7 +1053,6 @@ instructionId (Instruction v) = v # match
   , makeGain: _.id
   , makeHighpass: _.id
   , makeHighshelf: _.id
-  , makeInput: _.id
   , makeLoopBuf: _.id
   , makeLowpass: _.id
   , makeLowshelf: _.id

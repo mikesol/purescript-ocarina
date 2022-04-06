@@ -165,11 +165,6 @@ newtype Highshelf = Highshelf { | Highshelf' }
 derive instance newtypeHighshelf :: Newtype Highshelf _
 instance typeToSymHighshelf :: TypeToSym Highshelf "Highshelf"
 
--- | Term-level constructor for arbitrary input (ie from another audio graph)
--- | - `input` - the input to use.
-data Input (input :: Symbol) = Input
-instance typeToSymInput :: TypeToSym (Input input) "Input"
-
 -- | Term-level constructor for a looping buffer.
 -- | - `buffer` - the buffer to use. Note that this symbol, when reset, will only reset the buffer when it is stopped.
 -- | - `onOff` - whether or not the generator is on or off.
@@ -572,20 +567,6 @@ instance monoidTHighshelf :: Monoid THighshelf where
   mempty = THighshelf
 
 instance reifyTHighshelf :: ReifyAU (Highshelf) THighshelf where
-  reifyAU = const mempty
-
--- | Type-level constructor for arbitrary input
-data TInput (input :: Symbol) = TInput
-
-instance typeToSymTInput :: TypeToSym (TInput input) "TInput"
-
-instance semigroupTInput :: Semigroup (TInput input) where
-  append _ _ = TInput
-
-instance monoidTInput :: Monoid (TInput input) where
-  mempty = TInput
-
-instance reifyTInput :: ReifyAU (Input a) (TInput a) where
   reifyAU = const mempty
 
 -- | Type-level constructor for a looping buffer.

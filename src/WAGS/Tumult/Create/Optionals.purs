@@ -445,21 +445,6 @@ else instance highshelfCtor2 ::
 type CHighshelf a = CTOR.Highshelf /\ a
 
 ----
--- | Make an input
--- |
--- | ```purescript
--- | input myInput
--- | ```
-input
-  :: forall proxy sym
-   . IsSymbol sym
-  => proxy sym
-  -> CTOR.Input sym /\ {}
-input _ = Tuple (CTOR.Input) {}
-
-type CInput px = CTOR.Input px /\ {}
-
-----
 data LoopBuf = LoopBuf
 
 instance convertLoopBufPlaybackRate ::

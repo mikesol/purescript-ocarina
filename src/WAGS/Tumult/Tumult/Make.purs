@@ -1,5 +1,6 @@
 module WAGS.Tumult.Tumult.Make where
 
+import Data.Set (empty)
 import Prim.RowList (class RowToList)
 import WAGS.Tumult.Control.Types (WAG(..))
 import WAGS.Tumult.Create (class Create, create)
@@ -15,4 +16,4 @@ tumultuously
   -> Tumultuous terminus inputs
 tumultuously scene = unsafeTumult instructions
   where
-  WAG { instructions } = create scene (WAG { instructions: [] } :: WAG ())
+  WAG { instructions } = create scene (WAG { instructions: empty } :: WAG ())
