@@ -21,10 +21,11 @@ jobs:
       #  run: npx spago -x cheatsheet.dhall build
       #- name: Spago test
       #  run: npx spago -x test.dhall test
-      #- name: Build qc
-      #  run: npx spago -x examples.dhall bundle-app --main WAGS.Example.Storybook --to examples/storybook/index.js
-      #- name: Deploy
-      #  uses: peaceiris/actions-gh-pages@v3
-      #  with:
-      #    github_token: ${{ secrets.GH_TOKEN }}
-      #    publish_dir: ./examples/storybook
+      - name: Build qc
+        run: npx spago -x examples.dhall bundle-app --main WAGS.Example.Storybook --to examples/storybook/index.js
+      - name: Deploy
+        if: ${{ github.ref == 'refs/heads/main' }}
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GH_TOKEN }}
+          publish_dir: ./examples/storybook
