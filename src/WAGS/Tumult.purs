@@ -63,7 +63,7 @@ tumult atts' = C.Node go
           in
             keepLatest
               ( map
-                  ( \instr  -> foldl
+                  ( \instr -> foldl
                       ( \b (Instruction i) -> b <|> match
                           { makeAllpass: \{ id, frequency, q, parent } -> pure $
                               ai.makeAllpass
@@ -344,9 +344,15 @@ tumult atts' = C.Node go
                           , makeInput: \_ -> empty
                           , connectXToY: \{ from, to } -> pure $
                               ai.connectXToY
-                                { from: case (String.split (String.Pattern __inputMonicker) from) !! 1 of
-                                  Just s -> s
-                                  Nothing -> sfx from
+                                { from:
+                                    case
+                                      ( String.split
+                                          (String.Pattern __inputMonicker)
+                                          from
+                                      ) !! 1
+                                      of
+                                      Just s -> s
+                                      Nothing -> sfx from
                                 , to: sfx to
                                 }
                           -- when disconnecting, we work off of
@@ -354,11 +360,20 @@ tumult atts' = C.Node go
                           -- as we can only ever disconnect a previous input
                           , disconnectXFromY: \{ from, to } -> pure $
                               ai.disconnectXFromY
-                                { from: sfx from
+                                { from:
+                                    case
+                                      ( String.split
+                                          (String.Pattern __inputMonicker)
+                                          from
+                                      ) !! 1
+                                      of
+                                      Just s -> s
+                                      Nothing -> sfx from
                                 , to: sfx to
                                 }
                           -- we never destroy inputs
-                          , destroyUnit: \{ id } ->  pure $ ai.destroyUnit { id: sfx id }
+                          , destroyUnit: \{ id } -> pure $ ai.destroyUnit
+                              { id: sfx id }
                           , setAnalyserNodeCb: isfx \ii -> pure $
                               ai.setAnalyserNodeCb ii
                           , setMediaRecorderCb: isfx \ii -> pure $

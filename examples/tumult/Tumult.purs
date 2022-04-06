@@ -2,14 +2,16 @@ module WAGS.Example.Tumult where
 
 import Prelude
 
-import Control.Alt ((<|>))
 import Control.Plus (empty)
 import Data.Either (Either, either)
 import Data.Foldable (for_)
 import Data.Maybe (Maybe(..), maybe)
 import Data.Profunctor (lcmap)
 import Data.Tuple (Tuple(..))
+import Data.Tuple.Nested ((/\))
 import Data.Typelevel.Num (D2)
+import Data.Vec ((+>))
+import Data.Vec as V
 import Deku.Attribute (cb, (:=))
 import Deku.Control (deku, text, text_)
 import Deku.Core (Element)
@@ -17,20 +19,21 @@ import Deku.DOM as DOM
 import Deku.Interpret (effectfulDOMInterpret, makeFFIDOMSnapshot)
 import Deku.Subgraph (SubgraphAction(..), subgraph)
 import Effect (Effect)
+import Effect.Aff (launchAff_)
+import Effect.Class (liftEffect)
 import FRP.Behavior (sample_)
 import FRP.Event (class IsEvent, subscribe)
-import Math (pi, sin)
+import Math (pi, sin, (%))
 import Type.Proxy (Proxy(..))
-import WAGS.Control (gain', gain__, sinOsc, speaker2, (:*))
+import WAGS.Control (gain', gain__, loopBuf, speaker2, (:*))
 import WAGS.Core (GainInput, Input)
 import WAGS.Example.Utils (animationFrameEvent)
-import WAGS.Interpret (close, context, effectfulAudioInterpret, makeFFIAudioSnapshot, writeHead)
-import WAGS.Parameter (WriteHead, at_, ovnn, pureOn)
-import WAGS.Properties (frequency)
+import WAGS.Interpret (close, context, decodeAudioDataFromUri, effectfulAudioInterpret, makeFFIAudioSnapshot, writeHead)
+import WAGS.Parameter (AudioNumeric(..), WriteHead, at_, ovnn, pureOn)
 import WAGS.Tumult (tumult)
 import WAGS.Tumult.Create.Optionals as Opt
 import WAGS.Tumult.Tumult.Make (tumultuously)
-import WAGS.WebAPI (AudioContext)
+import WAGS.WebAPI (AudioContext, BrowserAudioBuffer)
 import Web.HTML (window)
 import Web.HTML.HTMLDocument (body)
 import Web.HTML.HTMLElement (toElement)
@@ -39,81 +42,132 @@ import Web.HTML.Window (document)
 scene
   :: forall event payload
    . IsEvent event
-  => WriteHead event
+  => BrowserAudioBuffer
+  -> WriteHead event
   -> GainInput D2 (tmlt :: Input) (tmlt :: Input) event payload
-scene wh =
+scene loopy wh =
   let
     tr = at_ wh (mul pi)
-    gso a b c = gain__ a empty
-      (sinOsc b (pureOn <|> (frequency <<< (ovnn c) <$> tr)))
   in
     gain__ 0.0 empty
       ( gain' (Proxy :: _ "tmlt") 1.0 empty
-          ( gso 0.1 440.0 (\rad -> 440.0 + (10.0 * sin (2.3 * rad))) :*
-              [ gso 0.25 235.0 (\rad -> 235.0 + (10.0 * sin (1.7 * rad)))
-              , gso 0.2 337.0 (\rad -> 337.0 + (10.0 * sin rad))
-              , gso 0.1 530.0 (\rad -> 530.0 + (19.0 * (5.0 * sin rad)))
-              ]
-          )
+          (loopBuf loopy pureOn :* [])
       ) :*
       [ tumult
-          ( tr <#> \anum ->
-              \({ tmlt } :: { tmlt :: Input }) -> tumultuously
-                { output: Opt.gain 1.0
-                    { hp: Opt.highpass
-                        (ovnn (\x -> 2600.0 + 1000.0 * sin x) anum)
-                        tmlt
-                    }
-                }
+          ( tr <#> \anum@(AudioNumeric { o }) ->
+              let
+                oo = o % 10.0
+              in
+                \({ tmlt } :: { tmlt :: Input }) ->
+                  let
+                    ooo
+                      | oo < 2.0 = tumultuously
+                          { output: Opt.gain 1.0
+                              { lp: Opt.lowpass
+                                  (ovnn (\x -> 1100.0 + 1000.0 * sin x) anum)
+                                  tmlt
+                              , osc: Opt.gain 0.03 (Opt.sinOsc 220.0)
+                              }
+                          }
+                      | oo < 4.0 = tumultuously
+                          { output: Opt.gain 1.0
+                              { bp: Opt.bandpass
+                                  (ovnn (\x -> 2000.0 + 1500.0 * sin x) anum)
+                                  tmlt
+                              , osc: Opt.gain 0.03 (Opt.sawtoothOsc 330.0)
+                              }
+                          }
+                      | oo < 6.0 = tumultuously
+                          { output: Opt.gain 1.0
+                              { hs: Opt.gain 1.0
+                                  { x0: Opt.highshelf
+                                      ( ovnn (\x -> 2600.0 + 1000.0 * sin x)
+                                          anum
+                                      )
+                                      tmlt
+                                  , x1: Opt.delay 0.04
+                                      (Opt.gain 0.3 { x0: Opt.ref })
+                                  }
+                              , osc: Opt.gain 0.03 (Opt.triangleOsc 550.0)
+                              }
+                          }
+                      | oo < 8.0 = tumultuously
+                          { output: Opt.gain 1.0
+                              { ls: Opt.lowshelf
+                                  (ovnn (\x -> 2600.0 + 1000.0 * sin x) anum)
+                                  tmlt
+                              , osc: Opt.gain 0.03 (Opt.squareOsc 810.0)
+                              }
+                          }
+                      | otherwise = tumultuously
+                          { output: Opt.gain 1.0
+                              { hp: Opt.highpass
+                                  (ovnn (\x -> 2600.0 + 1000.0 * sin x) anum)
+                                  tmlt
+                              , osc: Opt.gain 0.03
+                                  ( Opt.periodicOsc
+                                      ( (0.1 +> 0.1 +> 0.02 +> V.empty) /\
+                                          (0.05 +> 0.4 +> 0.1 +> V.empty)
+                                      )
+                                      1020.0
+                                  )
+                              }
+                          }
+                  in
+                    ooo
           )
       ]
 
 type UIAction = Maybe { unsub :: Effect Unit, ctx :: AudioContext }
 
-initializeTumult :: (Unit -> Effect Unit) -> Effect Unit
-initializeTumult = (#) unit
+initializeTumult :: (BrowserAudioBuffer -> Effect Unit) -> Effect Unit
+initializeTumult cb = launchAff_ do
+  atar <- liftEffect context >>= flip decodeAudioDataFromUri
+    "https://freesound.org/data/previews/36/36132_321601-hq.mp3"
+  liftEffect $ cb atar
 
 tumultExample
   :: forall event payload
    . IsEvent event
-  => Unit
+  => BrowserAudioBuffer
   -> Unit
   -> (UIAction -> Effect Unit)
   -> event (Either UIAction UIAction)
   -> Element event payload
-tumultExample _ _ push = lcmap (map (either identity identity)) \event -> DOM.div_
-  [ DOM.h1_ [ text_ "Tumult" ]
-  , DOM.button
-      ( map
-          ( \i -> DOM.OnClick := cb
-              ( const $
-                  maybe
-                    ( do
-                        ctx <- context
-                        ffi2 <- makeFFIAudioSnapshot ctx
-                        let wh = writeHead 0.04 ctx
-                        unsub <- subscribe
-                          ( speaker2
-                              (scene (sample_ wh animationFrameEvent))
-                              effectfulAudioInterpret
-                          )
-                          ((#) ffi2)
-                        push $ Just { unsub: unsub, ctx }
-                    )
-                    ( \{ unsub, ctx } -> do
-                        unsub
-                        close ctx
-                        push Nothing
-                    )
-                    i
-              )
-          )
-          event
-      )
-      [ text
-          (map (maybe "Turn on" (const "Turn off")) event)
-      ]
-  ]
+tumultExample loopy _ push = lcmap (map (either identity identity)) \event ->
+  DOM.div_
+    [ DOM.h1_ [ text_ "Tumult" ]
+    , DOM.button
+        ( map
+            ( \i -> DOM.OnClick := cb
+                ( const $
+                    maybe
+                      ( do
+                          ctx <- context
+                          ffi2 <- makeFFIAudioSnapshot ctx
+                          let wh = writeHead 0.04 ctx
+                          unsub <- subscribe
+                            ( speaker2
+                                (scene loopy (sample_ wh animationFrameEvent))
+                                effectfulAudioInterpret
+                            )
+                            ((#) ffi2)
+                          push $ Just { unsub: unsub, ctx }
+                      )
+                      ( \{ unsub, ctx } -> do
+                          unsub
+                          close ctx
+                          push Nothing
+                      )
+                      i
+                )
+            )
+            event
+        )
+        [ text
+            (map (maybe "Turn on" (const "Turn off")) event)
+        ]
+    ]
 
 main :: Effect Unit
 main = initializeTumult \init -> do

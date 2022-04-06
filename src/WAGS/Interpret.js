@@ -527,14 +527,16 @@ exports.makePeriodicOsc_ = function (a) {
 			var ptr = a.id;
 			var onOff = a.onOff;
 			var createClosure = function (context, i) {
-				var o = new OscillatorNode(context, i);
-				o.setPeriodicWave(
-					i.spec.type === "wave"
-						? i.spec.value
-						: makePeriodicWaveImpl(state.context)(i.spec.value.real)(
-								i.spec.value.img
-						  )()
-				);
+				var opts = {
+					frequency: i.frequency,
+					periodicWave:
+						i.spec.type === "wave"
+							? i.spec.value
+							: makePeriodicWaveImpl(state.context)(i.spec.value.real)(
+									i.spec.value.img
+							  )(),
+				};
+				var o = new OscillatorNode(context, opts);
 				return o;
 			};
 			var resume = { frequency: a.frequency, type: "custom", spec: a.spec };
@@ -988,7 +990,7 @@ exports.setConvolverBuffer_ = function (aa) {
 exports.setPeriodicOsc_ = function (aa) {
 	return function (state) {
 		return function () {
-			var ptr = a.id;
+			var ptr = aa.id;
 			var a = aa.spec;
 			if (state.units[ptr].resume) {
 				state.units[ptr].resume.spec = a;
@@ -1144,7 +1146,7 @@ exports.setDelay_ = function (aa) {
 	return function (state) {
 		return function () {
 			var ptr = aa.id;
-			var a = aa.delay;
+			var a = aa.delayTime;
 			genericSetter(
 				state.units[ptr].main,
 				"delayTime",
