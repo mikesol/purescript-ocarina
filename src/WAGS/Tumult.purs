@@ -48,7 +48,7 @@ tumult atts' = C.Node go
   terminus = reflectSymbol (Proxy :: _ terminus)
   atts = fold (\a b -> reconcileTumult a (fst b))
     (map (\t -> safeUntumult (t (inputs (Proxy :: _ inputsRL)))) atts')
-    (Set.empty /\ (wrap Map.empty))
+    (Set.empty /\ { oldInputs: wrap Map.empty, newInputs: wrap Map.empty })
   go prnt (C.AudioInterpret ai@{ ids, connectXToY }) =
     keepLatest
       ( (sample_ ids (pure unit)) <#> \msfx' ->
@@ -63,7 +63,11 @@ tumult atts' = C.Node go
           in
             keepLatest
               ( map
-                  ( \(instr /\ (SemigroupMap mp)) -> foldl
+                  ( \( instr /\
+                         { newInputs: SemigroupMap mp
+                         , oldInputs: SemigroupMap omp
+                         }
+                     ) -> foldl
                       ( \b (Instruction i) -> b <|> match
                           { makeAllpass: \{ id, frequency, q, parent } -> pure $
                               ai.makeAllpass
@@ -349,10 +353,13 @@ tumult atts' = C.Node go
                                 , to: maybe' (\_ -> sfx to) identity
                                     (lookup to mp)
                                 }
+                          -- when disconnecting, we work off of
+                          -- omp for `from`
+                          -- as we can only ever disconnect a previous input
                           , disconnectXFromY: \{ from, to } -> pure $
                               ai.disconnectXFromY
                                 { from: maybe' (\_ -> sfx from) identity
-                                    (lookup from mp)
+                                    (lookup from omp)
                                 , to: maybe' (\_ -> sfx to) identity
                                     (lookup to mp)
                                 }
@@ -360,7 +367,7 @@ tumult atts' = C.Node go
                           , destroyUnit: \{ id } -> maybe'
                               (\_ -> pure $ ai.destroyUnit { id: sfx id })
                               (const empty)
-                              (lookup id mp)
+                              (lookup id omp)
                           , setAnalyserNodeCb: isfx \ii -> pure $
                               ai.setAnalyserNodeCb ii
                           , setMediaRecorderCb: isfx \ii -> pure $

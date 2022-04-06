@@ -86,10 +86,15 @@ derogative (Instruction i) = match
   }
   i
 
+type InputCache =
+  { oldInputs :: SemigroupMap String String
+  , newInputs :: SemigroupMap String String
+  }
+
 reconcileTumult
   :: Set Instruction
   -> Set Instruction
-  -> (Set Instruction /\ SemigroupMap String String)
+  -> (Set Instruction /\ InputCache)
 reconcileTumult new old = runWriter result
   where
   result = go primus secondus Set.empty
@@ -106,7 +111,7 @@ reconcileTumult new old = runWriter result
     -> List Instruction
     -> Set Instruction
     -> Variant v
-    -> Writer (SemigroupMap String String) (Set Instruction)
+    -> Writer InputCache (Set Instruction)
   usingDefault l0 h0 t0 l1 h1 t1 set _ =
     case compare h0 h1 of
       LT -> go t0 l1 $ Set.insert h0 set
@@ -129,7 +134,7 @@ reconcileTumult new old = runWriter result
     -> List Instruction
     -> Set Instruction
     -> (Set Instruction -> Set Instruction)
-    -> Writer (SemigroupMap String String) (Set Instruction)
+    -> Writer InputCache (Set Instruction)
   comparable a b l0 h0 t0 l1 h1 t1 set setf
     | a.id < b.id = go t0 l1 $ Set.insert h0 set
     | b.id < a.id = go l0 t1 $ derogative h1 set
@@ -139,7 +144,7 @@ reconcileTumult new old = runWriter result
     :: List Instruction
     -> List Instruction
     -> Set Instruction
-    -> Writer (SemigroupMap String String) (Set Instruction)
+    -> Writer InputCache (Set Instruction)
   go Nil Nil set = pure set
   go (h0 : t0) Nil set = go t0 Nil (Set.insert h0 set)
   go Nil (h1 : t1) set = go Nil t1 (derogative h1 set)
@@ -148,7 +153,7 @@ reconcileTumult new old = runWriter result
       udef
         :: forall v
          . Variant v
-        -> Writer (SemigroupMap String String) (Set Instruction)
+        -> Writer InputCache (Set Instruction)
       udef = usingDefault l0 h0 t0 l1 h1 t1 set
     in
       i0 # match
@@ -286,12 +291,22 @@ reconcileTumult new old = runWriter result
                           <<< Set.insert (R.iSetGain { id: a.id, gain: a.gain })
                       )
             )
-        , makeInput: \a -> tell (wrap $ M.singleton a.id a.input) *>
-            ( udef
-                # on (Proxy :: _ "makeInput") \b ->
-                    tell (wrap $ M.singleton b.id b.input) *>
-                      comparable a b l0 h0 t0 l1 h1 t1 set identity
-            ) i1
+        , makeInput: \a ->
+            tell
+              ( { newInputs: wrap $ M.singleton a.id a.input
+                , oldInputs: wrap $ M.empty
+                }
+              )
+              *>
+                ( udef
+                    # on (Proxy :: _ "makeInput") \b ->
+                        tell
+                          ( { newInputs: wrap $ M.empty
+                            , oldInputs: wrap $ M.singleton b.id b.input
+                            }
+                          ) *>
+                          comparable a b l0 h0 t0 l1 h1 t1 set identity
+                ) i1
         , makeLoopBuf: \a -> i1 #
             ( udef
                 # on (Proxy :: _ "makeLoopBuf") \b ->
