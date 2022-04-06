@@ -4,20 +4,20 @@ import Prelude
 
 import WAGS.Core (Instruction)
 
-newtype Tumultuous :: forall k1 k2 k3. k1 -> k2 -> k3 -> Type
-newtype Tumultuous n terminus inputs = Tumultuous (Array (Array Instruction))
+newtype Tumultuous :: forall k1 k2. k1 -> k2 -> Type
+newtype Tumultuous terminus inputs = Tumultuous (Array Instruction)
 
-derive instance eqTumult :: Eq (Tumultuous n terminus inputs)
-derive instance ordTumult :: Ord (Tumultuous n terminus inputs)
+derive instance eqTumult :: Eq (Tumultuous terminus inputs)
+derive instance ordTumult :: Ord (Tumultuous terminus inputs)
 
 unsafeTumult
-  :: forall n terminus inputs
-   . Array (Array Instruction)
-  -> Tumultuous n terminus inputs
+  :: forall terminus inputs
+   . Array Instruction
+  -> Tumultuous terminus inputs
 unsafeTumult = Tumultuous
 
 safeUntumult
-  :: forall n terminus inputs
-   . Tumultuous n terminus inputs
-  -> Array (Array Instruction)
+  :: forall terminus inputs
+   . Tumultuous terminus inputs
+  -> Array Instruction
 safeUntumult (Tumultuous tumult) = tumult
