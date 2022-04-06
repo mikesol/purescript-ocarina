@@ -156,10 +156,11 @@ tumultExample loopy rc _ = mkExists $ SubgraphF \push -> lcmap
                                   effectfulAudioInterpret
                               )
                               ((#) ffi2)
-                            rc { unsub, ctx }
+                            rc $ Just { unsub, ctx }
                             push $ Just { unsub, ctx }
                         )
                         ( \{ unsub, ctx } -> do
+                            rc Nothing
                             unsub
                             close ctx
                             push Nothing

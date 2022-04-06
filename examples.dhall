@@ -11,6 +11,7 @@ in      conf
               , "console"
               , "nonempty"
               , "identity"
+              , "exists"
               , "nonempty"
               , "profunctor"
               , "web-html"

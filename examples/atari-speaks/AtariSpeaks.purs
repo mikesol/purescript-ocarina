@@ -151,11 +151,12 @@ atariSpeaks atar rc _ = mkExists $ SubgraphF \push -> lcmap (map (either (const 
                                         arr
                                     )
                           )
-                        rc { unsub, ctx }
+                        rc $ Just { unsub, ctx }
                         push $ TurnOff { unsub, ctx }
                       Just { unsub, ctx } -> do
                         unsub
                         close ctx
+                        rc Nothing
                         push TurnOn
 
                 )

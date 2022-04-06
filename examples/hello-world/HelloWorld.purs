@@ -120,12 +120,13 @@ helloWorld _ rc _ = mkExists $ SubgraphF \push -> lcmap (map (either (const Noth
                         unsub <- subscribe
                           (audioEvent (sample_ wh animationFrameEvent))
                           ((#) ffi2)
-                        rc { unsub, ctx }
+                        rc $ Just { unsub, ctx }
                         push $ Just { unsub, ctx }
                     )
                     ( \{ unsub, ctx } -> do
                         unsub
                         close ctx
+                        rc Nothing
                         push Nothing
                     )
                     i

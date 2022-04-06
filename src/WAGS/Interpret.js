@@ -90,11 +90,13 @@ var connectXToY_ = function (x) {
 	};
 };
 exports.connectXToY_ = function (parameters) {
-    return function (state) {
-	return function () {
-	    connectXToY_(parameters["from"])(parameters["to"])(state)();
+	return function (state) {
+		return function () {
+			setTimeout(function () {
+				connectXToY_(parameters["from"])(parameters["to"])(state)();
+			}, 0);
+		};
 	};
-    };
 };
 var disconnectXFromY_ = function (x) {
 	return function (y) {
