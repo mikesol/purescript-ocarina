@@ -18,6 +18,7 @@ import Record as Record
 import Simple.JSON as JSON
 import Type.Proxy (Proxy(..))
 import WAGS.Core (AudioWorkletNodeOptions_(..), RealImg(..), _realImg, _wave)
+import WAGS.Core as Core
 import WAGS.Parameter (AudioParameter)
 import WAGS.Tumult.Connect (class Connect, connect)
 import WAGS.Tumult.ConstructEdges (class ConstructEdges, class ConstructEdgesT, constructEdges)
@@ -241,6 +242,26 @@ class
 instance createUnit ::
   Create' ptr Unit graphi graphi where
   create' _ _ w = w
+
+instance createInput ::
+  ( IsSymbol ptr
+  , IsSymbol input
+  , R.Lacks ptr graphi
+  , R.Cons ptr (NodeC CTOR.TInput {}) graphi grapho
+  ) =>
+  Create' ptr (Core.Input) graphi grapho where
+  create' ptr (Core.Input input) w = o
+    where
+    WAG { instructions } = w
+
+    id = reflectSymbol ptr
+    -- todo: un-hard-code
+    o =
+      WAG
+        { instructions: insert
+            (I.iMakeInput { id, input })
+            instructions
+        }
 
 instance createAnalyser ::
   ( IsSymbol ptr

@@ -2,12 +2,16 @@ module WAGS.Tumult.Tumult.Reconciliation where
 
 import Prelude
 
+import Control.Monad.Writer (Writer, runWriter, tell)
 import Data.List (List(..), (:))
 import Data.List as List
-import Data.Newtype (unwrap)
+import Data.Map (SemigroupMap)
+import Data.Map as M
+import Data.Newtype (unwrap, wrap)
 import Data.Set (Set)
 import Data.Set as Set
 import Data.Tuple (uncurry)
+import Data.Tuple.Nested (type (/\))
 import Data.Variant (Variant, match, on)
 import Foreign.Object as Object
 import Type.Proxy (Proxy(..))
@@ -37,6 +41,7 @@ derogative (Instruction i) = match
   , makeGain: du "Gain"
   , makeHighpass: du "Highpass"
   , makeHighshelf: du "Highshelf"
+  , makeInput: du "Input"
   , makeLoopBuf: du "LoopBuf"
   , makeLowpass: du "Lowpass"
   , makeLowshelf: du "Lowshelf"
@@ -78,10 +83,14 @@ derogative (Instruction i) = match
   , setPlaybackRate: const identity
   , setFrequency: const identity
   , setWaveShaperCurve: const identity
-  } i
+  }
+  i
 
-reconcileTumult :: Set Instruction -> Set Instruction -> Set Instruction
-reconcileTumult new old = result
+reconcileTumult
+  :: Set Instruction
+  -> Set Instruction
+  -> (Set Instruction /\ SemigroupMap String String)
+reconcileTumult new old = runWriter result
   where
   result = go primus secondus Set.empty
   primus = List.fromFoldable new
@@ -97,7 +106,7 @@ reconcileTumult new old = result
     -> List Instruction
     -> Set Instruction
     -> Variant v
-    -> Set Instruction
+    -> Writer (SemigroupMap String String) (Set Instruction)
   usingDefault l0 h0 t0 l1 h1 t1 set _ =
     case compare h0 h1 of
       LT -> go t0 l1 $ Set.insert h0 set
@@ -120,7 +129,7 @@ reconcileTumult new old = result
     -> List Instruction
     -> Set Instruction
     -> (Set Instruction -> Set Instruction)
-    -> Set Instruction
+    -> Writer (SemigroupMap String String) (Set Instruction)
   comparable a b l0 h0 t0 l1 h1 t1 set setf
     | a.id < b.id = go t0 l1 $ Set.insert h0 set
     | b.id < a.id = go l0 t1 $ derogative h1 set
@@ -130,13 +139,16 @@ reconcileTumult new old = result
     :: List Instruction
     -> List Instruction
     -> Set Instruction
-    -> Set Instruction
-  go Nil Nil set = set
+    -> Writer (SemigroupMap String String) (Set Instruction)
+  go Nil Nil set = pure set
   go (h0 : t0) Nil set = go t0 Nil (Set.insert h0 set)
   go Nil (h1 : t1) set = go Nil t1 (derogative h1 set)
   go l0@(h0@(Instruction i0) : t0) l1@(h1@(Instruction i1) : t1) set =
     let
-      udef :: forall v. Variant v -> Set Instruction
+      udef
+        :: forall v
+         . Variant v
+        -> Writer (SemigroupMap String String) (Set Instruction)
       udef = usingDefault l0 h0 t0 l1 h1 t1 set
     in
       i0 # match
@@ -274,6 +286,12 @@ reconcileTumult new old = result
                           <<< Set.insert (R.iSetGain { id: a.id, gain: a.gain })
                       )
             )
+        , makeInput: \a -> tell (wrap $ M.singleton a.id a.input) *>
+            ( udef
+                # on (Proxy :: _ "makeInput") \b ->
+                    tell (wrap $ M.singleton b.id b.input) *>
+                      comparable a b l0 h0 t0 l1 h1 t1 set identity
+            ) i1
         , makeLoopBuf: \a -> i1 #
             ( udef
                 # on (Proxy :: _ "makeLoopBuf") \b ->
@@ -345,7 +363,9 @@ reconcileTumult new old = result
                           <<< Set.insert
                             (R.iSetOnOff { id: a.id, onOff: a.onOff })
                           <<< Set.insert
-                            (R.iSetFrequency { id: a.id, frequency: a.frequency })
+                            ( R.iSetFrequency
+                                { id: a.id, frequency: a.frequency }
+                            )
                       )
             )
         , makePlayBuf: \a -> i1 #
@@ -376,7 +396,9 @@ reconcileTumult new old = result
                     comparable a b l0 h0 t0 l1 h1 t1 set
                       ( Set.insert (R.iSetOnOff { id: a.id, onOff: a.onOff })
                           <<< Set.insert
-                            (R.iSetFrequency { id: a.id, frequency: a.frequency })
+                            ( R.iSetFrequency
+                                { id: a.id, frequency: a.frequency }
+                            )
                       )
             )
         , makeSinOsc: \a -> i1 #
@@ -385,7 +407,9 @@ reconcileTumult new old = result
                     comparable a b l0 h0 t0 l1 h1 t1 set
                       ( Set.insert (R.iSetOnOff { id: a.id, onOff: a.onOff })
                           <<< Set.insert
-                            (R.iSetFrequency { id: a.id, frequency: a.frequency })
+                            ( R.iSetFrequency
+                                { id: a.id, frequency: a.frequency }
+                            )
                       )
             )
         , makeSquareOsc: \a -> i1 #
@@ -394,7 +418,9 @@ reconcileTumult new old = result
                     comparable a b l0 h0 t0 l1 h1 t1 set
                       ( Set.insert (R.iSetOnOff { id: a.id, onOff: a.onOff })
                           <<< Set.insert
-                            (R.iSetFrequency { id: a.id, frequency: a.frequency })
+                            ( R.iSetFrequency
+                                { id: a.id, frequency: a.frequency }
+                            )
                       )
             )
         , makeStereoPanner: \a -> i1 #
@@ -409,7 +435,9 @@ reconcileTumult new old = result
                     comparable a b l0 h0 t0 l1 h1 t1 set
                       ( Set.insert (R.iSetOnOff { id: a.id, onOff: a.onOff })
                           <<< Set.insert
-                            (R.iSetFrequency { id: a.id, frequency: a.frequency })
+                            ( R.iSetFrequency
+                                { id: a.id, frequency: a.frequency }
+                            )
                       )
             )
         , makeWaveShaper: \a -> i1 #

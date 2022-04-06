@@ -47,6 +47,9 @@ iMakeHighpass = C.Instruction <<< inj (Proxy :: Proxy "makeHighpass")
 iMakeHighshelf :: C.MakeHighshelf' -> C.Instruction
 iMakeHighshelf = C.Instruction <<< inj (Proxy :: Proxy "makeHighshelf")
 
+iMakeInput :: C.MakeTumultInput -> C.Instruction
+iMakeInput = C.Instruction <<< inj (Proxy :: Proxy "makeInput")
+
 iMakeLoopBuf :: C.MakeLoopBuf' -> C.Instruction
 iMakeLoopBuf = C.Instruction <<< inj (Proxy :: Proxy "makeLoopBuf")
 

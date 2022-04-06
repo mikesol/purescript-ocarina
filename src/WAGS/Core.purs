@@ -428,6 +428,7 @@ type MakeHighshelf = MakeHighshelf_ InitialAudioParameter
 type MakeHighshelf' = MakeHighshelf_ AudioParameter
 
 type MakeInput = { id :: String, parent :: Maybe String }
+type MakeTumultInput = { id :: String, input :: String }
 
 derive instance newtypeLoopBuf :: Newtype LoopBuf _
 newtype LoopBuf = LoopBuf
@@ -940,6 +941,7 @@ type Instruction' =
   , makeLoopBuf :: MakeLoopBuf'
   , makeLowpass :: MakeLowpass'
   , makeLowshelf :: MakeLowshelf'
+  , makeInput :: MakeTumultInput
   , makeMediaElement :: MakeMediaElement
   , makeMicrophone :: MakeMicrophone
   , makeNotch :: MakeNotch'
@@ -1012,6 +1014,7 @@ instructionWeight (Instruction v) = v # match
   , makeStereoPanner: const 2
   , makeTriangleOsc: const 2
   , makeWaveShaper: const 2
+  , makeInput: const 3
   , connectXToY: const 5
   , disconnectXFromY: const 0
   , destroyUnit: const 1
@@ -1069,6 +1072,7 @@ instructionId (Instruction v) = v # match
   , makeStereoPanner: _.id
   , makeTriangleOsc: _.id
   , makeWaveShaper: _.id
+  , makeInput: _.id
   , connectXToY: _.from
   , disconnectXFromY: _.from
   , destroyUnit: _.id
