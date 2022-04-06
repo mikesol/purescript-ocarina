@@ -1,7 +1,7 @@
 let conf = ./spago.dhall
 
 in      conf
-    //  { sources = conf.sources # [ "examples" ++ "/${(env:EXAMPLE as Text) ? ""}" ++ "/**/*.purs" ]
+    //  { sources = conf.sources # [ "examples/Utils.purs", "examples" ++ "/${(env:EXAMPLE as Text) ? ""}" ++ "/**/*.purs" ]
         , dependencies =
               conf.dependencies
             # [ "halogen"
