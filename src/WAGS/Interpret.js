@@ -89,14 +89,12 @@ var connectXToY_ = function (x) {
 		};
 	};
 };
-exports.connectXToY_ = function (a) {
-	return function (state) {
-		return function () {
-			setTimeout(function () {
-				connectXToY_(a.from)(a.to)(state)();
-			}, 0);
-		};
+exports.connectXToY_ = function (parameters) {
+    return function (state) {
+	return function () {
+	    connectXToY_(parameters["from"])(parameters["to"])(state)();
 	};
+    };
 };
 var disconnectXFromY_ = function (x) {
 	return function (y) {

@@ -4,6 +4,7 @@ import Prelude
 
 import Control.Alt ((<|>))
 import Control.Plus (empty)
+import Control.Monad.Indexed.Qualified as Ix
 import Data.Either (Either, either)
 import Data.Foldable (for_)
 import Data.Maybe (Maybe(..), maybe)
@@ -20,9 +21,11 @@ import Effect (Effect)
 import FRP.Behavior (sample_)
 import FRP.Event (class IsEvent, subscribe)
 import Math (pi, sin)
+import Type.Proxy (Proxy(..))
 import WAGS.Control (gain__, sinOsc, speaker2, (:*))
 import WAGS.Core (GainInput)
 import WAGS.Example.Utils (animationFrameEvent)
+import WAGS.Imperative (GraphBuilder, InitialGraphBuilderIndex, connect, createGain, createSinOsc, createSpeaker, runGraphBuilder)
 import WAGS.Interpret (close, context, effectfulAudioInterpret, makeFFIAudioSnapshot, writeHead)
 import WAGS.Parameter (WriteHead, at_, ovnn, pureOn)
 import WAGS.Properties (frequency)
@@ -49,6 +52,37 @@ scene wh =
       , gso 0.1 530.0 (\rad -> 530.0 + (19.0 * (5.0 * sin rad)))
       ]
 
+scene'
+  :: forall event payload
+   . IsEvent event
+  => WriteHead event
+  -> GraphBuilder event payload InitialGraphBuilderIndex _ Unit
+scene' wh = Ix.do
+  speaker <- createSpeaker (Proxy :: Proxy "speaker")
+  gain0 <- createGain (Proxy :: Proxy "gain0") 0.1 empty
+  gain1 <- createGain (Proxy :: Proxy "gain1") 0.25 empty
+  gain2 <- createGain (Proxy :: Proxy "gain2") 0.20 empty
+  gain3 <- createGain (Proxy :: Proxy "gain3") 0.10 empty
+  sinOsc0 <- createSinOsc (Proxy :: Proxy "sinOsc0") 440.0
+    (so \rad -> 440.0 + (10.0 * sin (2.3 * rad)))
+  sinOsc1 <- createSinOsc (Proxy :: Proxy "sinOsc1") 235.0
+    (so \rad -> 235.0 + (10.0 * sin (1.7 * rad)))
+  sinOsc2 <- createSinOsc (Proxy :: Proxy "sinOsc2") 337.0
+    (so \rad -> 337.0 + (10.0 * sin rad))
+  sinOsc3 <- createSinOsc (Proxy :: Proxy "sinOsc3") 530.0
+    (so \rad -> 530.0 + (19.0 * (5.0 * sin rad)))
+  connect { from: gain0, into: speaker }
+  connect { from: gain1, into: speaker }
+  connect { from: gain2, into: speaker }
+  connect { from: gain3, into: speaker }
+  connect { from: sinOsc0, into: gain0 }
+  connect { from: sinOsc1, into: gain1 }
+  connect { from: sinOsc2, into: gain2 }
+  connect { from: sinOsc3, into: gain3 }
+  where
+  tr = at_ wh (mul pi)
+  so f = pureOn <|> (frequency <<< (ovnn f) <$> tr)
+
 type UIAction = Maybe { unsub :: Effect Unit, ctx :: AudioContext }
 
 initializeHelloWorld :: (Unit -> Effect Unit) -> Effect Unit
@@ -64,7 +98,12 @@ helloWorld
   -> Element event payload
 helloWorld _ _ push = lcmap (map (either identity identity)) \event -> DOM.div_
   [ DOM.h1_ [ text_ "Hello world" ]
-  , DOM.button
+  , musicButton event (runGraphBuilder effectfulAudioInterpret <<< scene')
+  , musicButton event (flip speaker2 effectfulAudioInterpret <<< scene)
+  ]
+  where
+  musicButton event audioEvent =
+    DOM.button
       ( map
           ( \i -> DOM.OnClick := cb
               ( const $
@@ -74,10 +113,7 @@ helloWorld _ _ push = lcmap (map (either identity identity)) \event -> DOM.div_
                         ffi2 <- makeFFIAudioSnapshot ctx
                         let wh = writeHead 0.04 ctx
                         unsub <- subscribe
-                          ( speaker2
-                              (scene (sample_ wh animationFrameEvent))
-                              effectfulAudioInterpret
-                          )
+                          (audioEvent (sample_ wh animationFrameEvent))
                           ((#) ffi2)
                         push $ Just { unsub: unsub, ctx }
                     )
@@ -94,7 +130,6 @@ helloWorld _ _ push = lcmap (map (either identity identity)) \event -> DOM.div_
       [ text
           (map (maybe "Turn on" (const "Turn off")) event)
       ]
-  ]
 
 main :: Effect Unit
 main = initializeHelloWorld \init -> do
@@ -103,7 +138,9 @@ main = initializeHelloWorld \init -> do
     ffi <- makeFFIDOMSnapshot
     let
       evt = deku elt
-        (subgraph (pure (Tuple unit (InsertOrUpdate Nothing))) (helloWorld init))
+        ( subgraph (pure (Tuple unit (InsertOrUpdate Nothing)))
+            (helloWorld init)
+        )
         effectfulDOMInterpret
     _ <- subscribe evt \i -> i ffi
     pure unit
