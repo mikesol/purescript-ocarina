@@ -8,10 +8,11 @@ import Data.Functor.Indexed (class IxFunctor)
 import Data.Newtype (unwrap)
 import Data.Variant (match)
 import Data.Variant.Maybe (nothing)
-import FRP.Behavior (sample_)
-import FRP.Event.Class (class IsEvent, keepLatest)
+import FRP.Event.Class (class IsEvent)
 import Prim.Boolean (False, True)
 import Prim.Row as Row
+import Prim.Symbol as Symbol
+import Type.Prelude (class IsSymbol, reflectSymbol)
 import Type.Proxy (Proxy(..))
 import Unsafe.Coerce (unsafeCoerce)
 import WAGS.Common as Common
@@ -145,7 +146,8 @@ class InsertTerminal :: Type -> Symbol -> Boolean -> Type -> Constraint
 class InsertTerminal i id tOrF o | i id tOrF -> o
 
 instance insertTerminalDefault ::
-  ( Row.Cons id tOrf t t'
+  ( Row.Lacks id t
+  , Row.Cons id tOrF t t'
   ) =>
   InsertTerminal (c \/ t \/ s) id tOrF (c \/ t' \/ s)
 
@@ -153,19 +155,21 @@ instance insertTerminalDefault ::
 createSpeaker
   :: forall e p i o id
    . IsEvent e
+  => IsSymbol id
   => InsertTerminal i id True o
   => Proxy id
   -> GraphBuilder e p i o (GraphUnit id Speaker)
 createSpeaker _ = GraphBuilder go
   where
-  go (C.AudioInterpret { ids, makeSpeaker }) =
-    { event: sample_ ids (pure unit) <#> makeSpeaker <<< { id: _ }
+  go (C.AudioInterpret { makeSpeaker }) =
+    { event: pure $ makeSpeaker { id: reflectSymbol (Proxy :: _ id) }
     , result: GraphUnit
     }
 
 createGain
   :: forall e p i o id initialGain
    . IsEvent e
+  => IsSymbol id
   => Common.InitialGain initialGain
   => InsertTerminal i id False o
   => Proxy id
@@ -175,9 +179,10 @@ createGain
 createGain _ initialGain attributes = GraphBuilder go
   where
   { gain } = unwrap $ Common.toInitializeGain initialGain
-  go (C.AudioInterpret { ids, makeGain, setGain }) =
-    { event: keepLatest $ sample_ ids (pure unit) <#> \id ->
+  go (C.AudioInterpret { makeGain, setGain }) =
+    { event:
         let
+          id = reflectSymbol (Proxy :: _ id)
           event0 = pure $
             makeGain { id, parent: nothing, gain }
           eventN = attributes <#> unwrap >>> match
@@ -191,18 +196,20 @@ createGain _ initialGain attributes = GraphBuilder go
 createSinOsc
   :: forall e p i o id initialSinOsc
    . IsEvent e
+  => IsSymbol id
   => Common.InitialSinOsc initialSinOsc
   => InsertTerminal i id False o
   => Proxy id
   -> initialSinOsc
   -> e C.SinOsc
-  -> GraphBuilder e p i o (GraphUnit id Gain)
+  -> GraphBuilder e p i o (GraphUnit id SinOsc)
 createSinOsc _ initialSinOsc attributes = GraphBuilder go
   where
   { frequency } = unwrap $ Common.toInitializeSinOsc initialSinOsc
-  go (C.AudioInterpret { ids, makeSinOsc, setFrequency, setOnOff }) =
-    { event: keepLatest $ sample_ ids (pure unit) <#> \id ->
+  go (C.AudioInterpret { makeSinOsc, setFrequency, setOnOff }) =
+    { event:
         let
+          id = reflectSymbol (Proxy :: _ id)
           event0 = pure $
             makeSinOsc { id, parent: nothing, frequency }
           eventN = attributes <#> unwrap >>> match
@@ -213,3 +220,61 @@ createSinOsc _ initialSinOsc attributes = GraphBuilder go
           event0 <|> eventN
     , result: GraphUnit
     }
+
+class IntoIsTerminal :: Boolean -> Constraint
+class IntoIsTerminal isTerminal
+
+instance intoIsTerminalTrue :: IntoIsTerminal True
+
+class MakesSound :: Node -> Boolean -> Boolean -> Constraint
+class MakesSound node n f | node n -> f
+
+instance makesSoundAlready :: MakesSound node True True
+else instance makesSoundNotYet ::
+  ( HasSound node hasSound
+  ) =>
+  MakesSound node tOrF hasSound
+
+class Connect
+  :: Type
+  -> (Type -> Type)
+  -> Symbol
+  -> Node
+  -> Symbol
+  -> Node
+  -> Type
+  -> Constraint
+class Connect i e fId fNode iId iNode o | i fId fNode iId iNode -> o where
+  connect
+    :: forall p
+     . { from :: GraphUnit fId fNode
+       , into :: GraphUnit iId iNode
+       }
+    -> GraphBuilder e p i o Unit
+
+instance connectDefault ::
+  ( IsEvent e
+  , IsSymbol fId
+  , IsSymbol iId
+  , HasOutput fNode
+  , HasInput iNode
+  , Row.Cons iId iIsTerminal t_ t
+  , IntoIsTerminal iIsTerminal
+  , Row.Cons fId tOrF t' t
+  , Row.Cons fId True t' t''
+  , Symbol.Append "=>" iId iId'
+  , Symbol.Append fId iId' cId
+  , Row.Lacks cId c
+  , Row.Cons cId Unit c c'
+  , MakesSound fNode s s'
+  ) =>
+  Connect (c \/ t \/ s) e fId fNode iId iNode (c' \/ t'' \/ s') where
+  connect _ = GraphBuilder go
+    where
+    go (C.AudioInterpret { connectXToY }) =
+      { event: pure $ connectXToY
+          { from: reflectSymbol (Proxy :: _ fId)
+          , to: reflectSymbol (Proxy :: _ iId)
+          }
+      , result: unit
+      }
