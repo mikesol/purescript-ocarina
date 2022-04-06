@@ -143,10 +143,10 @@ scene push = lcmap
       ]
   where
   page :: (Maybe ToCancel -> Effect Unit) -> Subgraph Page Unit event payload
-  page cancelCb p@(HelloWorld hwi) = HelloWorld.helloWorld hwi cancelCb p
-  page cancelCb p@(AtariSpeaks ati) = AtariSpeaks.atariSpeaks ati cancelCb p
-  page cancelCb p@(MultiBuf mbi) = MultiBuf.multiBuf mbi cancelCb p
-  page cancelCb p@(Tumult ti) = Tumult.tumultExample ti cancelCb p
+  page cancelCb (HelloWorld hwi) = HelloWorld.helloWorld hwi cancelCb
+  page cancelCb (AtariSpeaks ati) = AtariSpeaks.atariSpeaks ati cancelCb
+  page cancelCb (MultiBuf mbi) = MultiBuf.multiBuf mbi cancelCb
+  page cancelCb (Tumult ti) = Tumult.tumultExample ti cancelCb
   page _ (ErrorPage s) = mkExists $ SubgraphF \_ _ -> D.p_
     [ text_ ("Well, this is embarassing. The following error occurred: " <> s) ]
 

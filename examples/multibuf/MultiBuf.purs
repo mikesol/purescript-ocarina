@@ -157,48 +157,51 @@ multiBuf
    . IsEvent event
   => KickSnare
   -> RaiseCancellation
-  -> index
   -> Exists (SubgraphF index Unit event payload)
-multiBuf ks rc _ = mkExists $ SubgraphF \push -> lcmap (map (either (const Nothing) identity)) \event ->
-  DOM.div_
-    [ DOM.h1_ [ text_ "Multi Buf" ]
-    , DOM.button
-        ( map
-            ( \i -> DOM.OnClick := cb
-                ( const $
-                    maybe
-                      ( do
-                          ctx <- context
-                          ffi2 <- makeFFIAudioSnapshot ctx
-                          let wh = writeHead 0.04 ctx
-                          unsub <- subscribe
-                            ( speaker2
-                                ( scene ks
-                                    ( sample_ wh
-                                        (pure unit <|> (interval 4900 $> unit))
-                                    )
-                                )
-                                effectfulAudioInterpret
-                            )
-                            ((#) ffi2)
-                          rc $ Just { unsub, ctx }
-                          push $ Just { unsub, ctx }
-                      )
-                      ( \{ unsub, ctx } -> do
-                          rc Nothing
-                          unsub
-                          close ctx
-                          push Nothing
-                      )
-                      i
-                )
-            )
-            event
-        )
-        [ text
-            (map (maybe "Turn on" (const "Turn off")) event)
-        ]
-    ]
+multiBuf ks rc = mkExists $ SubgraphF \push -> lcmap
+  (map (either (const Nothing) identity))
+  \event ->
+    DOM.div_
+      [ DOM.h1_ [ text_ "Multi Buf" ]
+      , DOM.button
+          ( map
+              ( \i -> DOM.OnClick := cb
+                  ( const $
+                      maybe
+                        ( do
+                            ctx <- context
+                            ffi2 <- makeFFIAudioSnapshot ctx
+                            let wh = writeHead 0.04 ctx
+                            unsub <- subscribe
+                              ( speaker2
+                                  ( scene ks
+                                      ( sample_ wh
+                                          ( pure unit <|>
+                                              (interval 4900 $> unit)
+                                          )
+                                      )
+                                  )
+                                  effectfulAudioInterpret
+                              )
+                              ((#) ffi2)
+                            rc $ Just { unsub, ctx }
+                            push $ Just { unsub, ctx }
+                        )
+                        ( \{ unsub, ctx } -> do
+                            rc Nothing
+                            unsub
+                            close ctx
+                            push Nothing
+                        )
+                        i
+                  )
+              )
+              event
+          )
+          [ text
+              (map (maybe "Turn on" (const "Turn off")) event)
+          ]
+      ]
 
 main :: Effect Unit
 main = launchAff_ do
@@ -210,7 +213,7 @@ main = launchAff_ do
       let
         evt = deku elt
           ( subgraph (pure (Tuple unit (InsertOrUpdate unit)))
-              (multiBuf init (const $ pure unit))
+              (const $ multiBuf init (const $ pure unit))
           )
           effectfulDOMInterpret
       _ <- subscribe evt \i -> i ffi

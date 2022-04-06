@@ -98,9 +98,8 @@ helloWorld
    . IsEvent event
   => Unit
   -> RaiseCancellation
-  -> index
   -> Exists (SubgraphF index Unit event payload)
-helloWorld _ rc _ = mkExists $ SubgraphF \push -> lcmap (map (either (const Nothing) identity)) \event ->
+helloWorld _ rc = mkExists $ SubgraphF \push -> lcmap (map (either (const Nothing) identity)) \event ->
   DOM.div_
     [ DOM.h1_ [ text_ "Hello world" ]
     , musicButton push event (runGraphBuilder effectfulAudioInterpret <<< scene')
@@ -148,7 +147,7 @@ main = launchAff_ do
       let
         evt = deku elt
           ( subgraph (pure (Tuple unit (InsertOrUpdate unit)))
-              (helloWorld init (const $ pure unit))
+              (const $ helloWorld init (const $ pure unit))
           )
           effectfulDOMInterpret
       _ <- subscribe evt \i -> i ffi

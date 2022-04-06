@@ -134,9 +134,8 @@ tumultExample
    . IsEvent event
   => BrowserAudioBuffer
   -> RaiseCancellation
-  -> index
   -> Exists (SubgraphF index Unit event payload)
-tumultExample loopy rc _ = mkExists $ SubgraphF \push -> lcmap
+tumultExample loopy rc = mkExists $ SubgraphF \push -> lcmap
   (map (either (const Nothing) identity))
   \event ->
     DOM.div_
@@ -185,7 +184,7 @@ main = launchAff_ do
       let
         evt = deku elt
           ( subgraph (pure (Tuple unit (InsertOrUpdate unit)))
-              (tumultExample init (const $ pure unit))
+              (const $ tumultExample init (const $ pure unit))
           )
           effectfulDOMInterpret
       _ <- subscribe evt \i -> i ffi
