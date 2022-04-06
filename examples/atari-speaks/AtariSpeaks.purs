@@ -5,7 +5,8 @@ import Prelude
 import Control.Alt ((<|>))
 import Control.Plus (empty)
 import Data.ArrayBuffer.Typed (toArray)
-import Data.Either (Either, either)
+import Data.Either (either)
+import Data.Exists (Exists, mkExists)
 import Data.Foldable (for_, intercalate)
 import Data.Maybe (Maybe(..))
 import Data.Profunctor (lcmap)
@@ -15,19 +16,19 @@ import Data.Typelevel.Num (D2)
 import Data.UInt (toInt)
 import Deku.Attribute (cb, (:=))
 import Deku.Control (deku, text, text_)
-import Deku.Core (Element)
+import Deku.Core (SubgraphF(..))
 import Deku.DOM as DOM
 import Deku.Interpret (effectfulDOMInterpret, makeFFIDOMSnapshot)
 import Deku.Subgraph (SubgraphAction(..), subgraph)
 import Effect (Effect)
-import Effect.Aff (launchAff_)
+import Effect.Aff (Aff, launchAff_)
 import Effect.Class (liftEffect)
 import FRP.Behavior (sample_)
 import FRP.Event (class IsEvent, create, filterMap, sampleOn, subscribe)
 import Math (pi, sin)
 import WAGS.Control (analyser, gain, gain__, loopBuf, singleton, speaker2, (:*))
 import WAGS.Core (GainInput)
-import WAGS.Example.Utils (animationFrameEvent)
+import WAGS.Example.Utils (RaiseCancellation, animationFrameEvent)
 import WAGS.Interpret (close, context, decodeAudioDataFromUri, effectfulAudioInterpret, getByteFrequencyData, makeFFIAudioSnapshot, writeHead)
 import WAGS.Parameter (WriteHead, at_, ovnn, pureOn, vwnn)
 import WAGS.Properties (loopEnd, loopStart, playbackRate)
@@ -87,21 +88,22 @@ data UIAction
   | AsciiMixer String
   | TurnOn
 
-initializeAtariSpeaks :: (BrowserAudioBuffer -> Effect Unit) -> Effect Unit
-initializeAtariSpeaks cb = launchAff_ do
+type Init = BrowserAudioBuffer
+
+initializeAtariSpeaks :: Aff Init
+initializeAtariSpeaks = do
   atar <- liftEffect context >>= flip decodeAudioDataFromUri
     "https://freesound.org/data/previews/100/100981_1234256-lq.mp3"
-  liftEffect $ cb atar
+  pure atar
 
 atariSpeaks
-  :: forall event payload
+  :: forall index event payload
    . IsEvent event
   => BrowserAudioBuffer
-  -> Unit
-  -> (UIAction -> Effect Unit)
-  -> event (Either UIAction UIAction)
-  -> Element event payload
-atariSpeaks atar _ push = lcmap (map (either identity identity)) \event ->
+  -> RaiseCancellation
+  -> index
+  -> Exists (SubgraphF index Unit event payload)
+atariSpeaks atar rc _ = mkExists $ SubgraphF \push -> lcmap (map (either (const $ TurnOn) identity)) \event ->
   DOM.div_
     [ DOM.h1_ [ text_ "Atari speaks" ]
     , DOM.button
@@ -149,6 +151,7 @@ atariSpeaks atar _ push = lcmap (map (either identity identity)) \event ->
                                         arr
                                     )
                           )
+                        rc { unsub, ctx }
                         push $ TurnOff { unsub, ctx }
                       Just { unsub, ctx } -> do
                         unsub
@@ -179,13 +182,15 @@ atariSpeaks atar _ push = lcmap (map (either identity identity)) \event ->
     ]
 
 main :: Effect Unit
-main = initializeAtariSpeaks \atar -> do
-  b' <- window >>= document >>= body
-  for_ (toElement <$> b') \elt -> do
-    ffi <- makeFFIDOMSnapshot
-    let
-      evt = deku elt
-        (subgraph (pure (Tuple unit (InsertOrUpdate TurnOn))) (atariSpeaks atar))
-        effectfulDOMInterpret
-    _ <- subscribe evt \i -> i ffi
-    pure unit
+main = launchAff_ do
+  atar <- initializeAtariSpeaks
+  liftEffect do
+    b' <- window >>= document >>= body
+    for_ (toElement <$> b') \elt -> do
+      ffi <- makeFFIDOMSnapshot
+      let
+        evt = deku elt
+          (subgraph (pure (Tuple unit (InsertOrUpdate unit))) (atariSpeaks atar (const $ pure unit)))
+          effectfulDOMInterpret
+      _ <- subscribe evt \i -> i ffi
+      pure unit

@@ -108,6 +108,7 @@ let additions =
   , "effect"
   , "either"
   , "event"
+  , "exists"
   , "foldable-traversable"
   , "foreign"
   , "foreign-object"
@@ -132,7 +133,7 @@ let additions =
   , "web-dom"
   , "web-events"
   ], repo = "https://github.com/mikesol/purescript-deku.git"
-        , version = "v0.1.1"
+        , version = "v0.1.2"
       },deku-toplevel = {
         dependencies =  [ "arrays"
   , "behaviors"

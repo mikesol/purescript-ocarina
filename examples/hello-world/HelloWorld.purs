@@ -3,9 +3,10 @@ module WAGS.Example.HelloWorld where
 import Prelude
 
 import Control.Alt ((<|>))
-import Control.Plus (empty)
 import Control.Monad.Indexed.Qualified as Ix
+import Control.Plus (empty)
 import Data.Either (Either, either)
+import Data.Exists (Exists, mkExists)
 import Data.Foldable (for_)
 import Data.Maybe (Maybe(..), maybe)
 import Data.Profunctor (lcmap)
@@ -13,18 +14,20 @@ import Data.Tuple (Tuple(..))
 import Data.Typelevel.Num (D2)
 import Deku.Attribute (cb, (:=))
 import Deku.Control (deku, text, text_)
-import Deku.Core (Element)
+import Deku.Core (Element, SubgraphF(..))
 import Deku.DOM as DOM
 import Deku.Interpret (effectfulDOMInterpret, makeFFIDOMSnapshot)
 import Deku.Subgraph (SubgraphAction(..), subgraph)
 import Effect (Effect)
+import Effect.Aff (Aff, launchAff_)
+import Effect.Class (liftEffect)
 import FRP.Behavior (sample_)
 import FRP.Event (class IsEvent, subscribe)
 import Math (pi, sin)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (gain__, sinOsc, speaker2, (:*))
 import WAGS.Core (GainInput)
-import WAGS.Example.Utils (animationFrameEvent)
+import WAGS.Example.Utils (RaiseCancellation, animationFrameEvent)
 import WAGS.Imperative (GraphBuilder, InitialGraphBuilderIndex, connect, createGain, createSinOsc, createSpeaker, runGraphBuilder)
 import WAGS.Interpret (close, context, effectfulAudioInterpret, makeFFIAudioSnapshot, writeHead)
 import WAGS.Parameter (WriteHead, at_, ovnn, pureOn)
@@ -85,24 +88,26 @@ scene' wh = Ix.do
 
 type UIAction = Maybe { unsub :: Effect Unit, ctx :: AudioContext }
 
-initializeHelloWorld :: (Unit -> Effect Unit) -> Effect Unit
-initializeHelloWorld = (#) unit
+type Init = Unit
+
+initializeHelloWorld :: Aff Init
+initializeHelloWorld = pure unit
 
 helloWorld
-  :: forall event payload
+  :: forall index event payload
    . IsEvent event
   => Unit
-  -> Unit
-  -> (UIAction -> Effect Unit)
-  -> event (Either UIAction UIAction)
-  -> Element event payload
-helloWorld _ _ push = lcmap (map (either identity identity)) \event -> DOM.div_
-  [ DOM.h1_ [ text_ "Hello world" ]
-  , musicButton event (runGraphBuilder effectfulAudioInterpret <<< scene')
-  , musicButton event (flip speaker2 effectfulAudioInterpret <<< scene)
-  ]
+  -> RaiseCancellation
+  -> index
+  -> Exists (SubgraphF index Unit event payload)
+helloWorld _ rc _ = mkExists $ SubgraphF \push -> lcmap (map (either (const Nothing) identity)) \event ->
+  DOM.div_
+    [ DOM.h1_ [ text_ "Hello world" ]
+    , musicButton push event (runGraphBuilder effectfulAudioInterpret <<< scene')
+    , musicButton push event (flip speaker2 effectfulAudioInterpret <<< scene)
+    ]
   where
-  musicButton event audioEvent =
+  musicButton push event audioEvent =
     DOM.button
       ( map
           ( \i -> DOM.OnClick := cb
@@ -115,7 +120,8 @@ helloWorld _ _ push = lcmap (map (either identity identity)) \event -> DOM.div_
                         unsub <- subscribe
                           (audioEvent (sample_ wh animationFrameEvent))
                           ((#) ffi2)
-                        push $ Just { unsub: unsub, ctx }
+                        rc { unsub, ctx }
+                        push $ Just { unsub, ctx }
                     )
                     ( \{ unsub, ctx } -> do
                         unsub
@@ -132,15 +138,17 @@ helloWorld _ _ push = lcmap (map (either identity identity)) \event -> DOM.div_
       ]
 
 main :: Effect Unit
-main = initializeHelloWorld \init -> do
-  b' <- window >>= document >>= body
-  for_ (toElement <$> b') \elt -> do
-    ffi <- makeFFIDOMSnapshot
-    let
-      evt = deku elt
-        ( subgraph (pure (Tuple unit (InsertOrUpdate Nothing)))
-            (helloWorld init)
-        )
-        effectfulDOMInterpret
-    _ <- subscribe evt \i -> i ffi
-    pure unit
+main = launchAff_ do
+  init <- initializeHelloWorld
+  liftEffect do
+    b' <- window >>= document >>= body
+    for_ (toElement <$> b') \elt -> do
+      ffi <- makeFFIDOMSnapshot
+      let
+        evt = deku elt
+          ( subgraph (pure (Tuple unit (InsertOrUpdate unit)))
+              (helloWorld init (const $ pure unit))
+          )
+          effectfulDOMInterpret
+      _ <- subscribe evt \i -> i ffi
+      pure unit

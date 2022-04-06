@@ -3,7 +3,8 @@ module WAGS.Example.Tumult where
 import Prelude
 
 import Control.Plus (empty)
-import Data.Either (Either, either)
+import Data.Either (either)
+import Data.Exists (Exists, mkExists)
 import Data.Foldable (for_)
 import Data.Maybe (Maybe(..), maybe)
 import Data.Profunctor (lcmap)
@@ -14,12 +15,12 @@ import Data.Vec ((+>))
 import Data.Vec as V
 import Deku.Attribute (cb, (:=))
 import Deku.Control (deku, text, text_)
-import Deku.Core (Element)
+import Deku.Core (SubgraphF(..))
 import Deku.DOM as DOM
 import Deku.Interpret (effectfulDOMInterpret, makeFFIDOMSnapshot)
 import Deku.Subgraph (SubgraphAction(..), subgraph)
 import Effect (Effect)
-import Effect.Aff (launchAff_)
+import Effect.Aff (Aff, launchAff_)
 import Effect.Class (liftEffect)
 import FRP.Behavior (sample_)
 import FRP.Event (class IsEvent, subscribe)
@@ -27,7 +28,7 @@ import Math (pi, sin, (%))
 import Type.Proxy (Proxy(..))
 import WAGS.Control (gain', gain__, loopBuf, speaker2, (:*))
 import WAGS.Core (GainInput, Input)
-import WAGS.Example.Utils (animationFrameEvent)
+import WAGS.Example.Utils (RaiseCancellation, animationFrameEvent)
 import WAGS.Interpret (close, context, decodeAudioDataFromUri, effectfulAudioInterpret, makeFFIAudioSnapshot, writeHead)
 import WAGS.Parameter (AudioNumeric(..), WriteHead, at_, ovnn, pureOn)
 import WAGS.Tumult (tumult)
@@ -120,65 +121,71 @@ scene loopy wh =
 
 type UIAction = Maybe { unsub :: Effect Unit, ctx :: AudioContext }
 
-initializeTumult :: (BrowserAudioBuffer -> Effect Unit) -> Effect Unit
-initializeTumult cb = launchAff_ do
+type Init = BrowserAudioBuffer
+
+initializeTumult :: Aff Init
+initializeTumult = do
   atar <- liftEffect context >>= flip decodeAudioDataFromUri
     "https://freesound.org/data/previews/36/36132_321601-hq.mp3"
-  liftEffect $ cb atar
+  pure atar
 
 tumultExample
-  :: forall event payload
+  :: forall index event payload
    . IsEvent event
   => BrowserAudioBuffer
-  -> Unit
-  -> (UIAction -> Effect Unit)
-  -> event (Either UIAction UIAction)
-  -> Element event payload
-tumultExample loopy _ push = lcmap (map (either identity identity)) \event ->
-  DOM.div_
-    [ DOM.h1_ [ text_ "Tumult" ]
-    , DOM.button
-        ( map
-            ( \i -> DOM.OnClick := cb
-                ( const $
-                    maybe
-                      ( do
-                          ctx <- context
-                          ffi2 <- makeFFIAudioSnapshot ctx
-                          let wh = writeHead 0.04 ctx
-                          unsub <- subscribe
-                            ( speaker2
-                                (scene loopy (sample_ wh animationFrameEvent))
-                                effectfulAudioInterpret
-                            )
-                            ((#) ffi2)
-                          push $ Just { unsub: unsub, ctx }
-                      )
-                      ( \{ unsub, ctx } -> do
-                          unsub
-                          close ctx
-                          push Nothing
-                      )
-                      i
-                )
-            )
-            event
-        )
-        [ text
-            (map (maybe "Turn on" (const "Turn off")) event)
-        ]
-    ]
+  -> RaiseCancellation
+  -> index
+  -> Exists (SubgraphF index Unit event payload)
+tumultExample loopy rc _ = mkExists $ SubgraphF \push -> lcmap
+  (map (either (const Nothing) identity))
+  \event ->
+    DOM.div_
+      [ DOM.h1_ [ text_ "Tumult" ]
+      , DOM.button
+          ( map
+              ( \i -> DOM.OnClick := cb
+                  ( const $
+                      maybe
+                        ( do
+                            ctx <- context
+                            ffi2 <- makeFFIAudioSnapshot ctx
+                            let wh = writeHead 0.04 ctx
+                            unsub <- subscribe
+                              ( speaker2
+                                  (scene loopy (sample_ wh animationFrameEvent))
+                                  effectfulAudioInterpret
+                              )
+                              ((#) ffi2)
+                            rc { unsub, ctx }
+                            push $ Just { unsub, ctx }
+                        )
+                        ( \{ unsub, ctx } -> do
+                            unsub
+                            close ctx
+                            push Nothing
+                        )
+                        i
+                  )
+              )
+              event
+          )
+          [ text
+              (map (maybe "Turn on" (const "Turn off")) event)
+          ]
+      ]
 
 main :: Effect Unit
-main = initializeTumult \init -> do
-  b' <- window >>= document >>= body
-  for_ (toElement <$> b') \elt -> do
-    ffi <- makeFFIDOMSnapshot
-    let
-      evt = deku elt
-        ( subgraph (pure (Tuple unit (InsertOrUpdate Nothing)))
-            (tumultExample init)
-        )
-        effectfulDOMInterpret
-    _ <- subscribe evt \i -> i ffi
-    pure unit
+main = launchAff_ do
+  init <- initializeTumult
+  liftEffect do
+    b' <- window >>= document >>= body
+    for_ (toElement <$> b') \elt -> do
+      ffi <- makeFFIDOMSnapshot
+      let
+        evt = deku elt
+          ( subgraph (pure (Tuple unit (InsertOrUpdate unit)))
+              (tumultExample init (const $ pure unit))
+          )
+          effectfulDOMInterpret
+      _ <- subscribe evt \i -> i ffi
+      pure unit

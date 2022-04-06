@@ -9,7 +9,8 @@ import Control.Comonad.Cofree (Cofree, deferCofree)
 import Control.Comonad.Cofree.Class (unwrapCofree)
 import Control.Plus (empty)
 import Data.Array as Array
-import Data.Either (Either, either)
+import Data.Either (either)
+import Data.Exists (Exists, mkExists)
 import Data.Foldable (for_, oneOf)
 import Data.FoldableWithIndex (foldlWithIndex)
 import Data.Identity (Identity(..))
@@ -22,18 +23,19 @@ import Data.Tuple.Nested (type (/\), (/\))
 import Data.Typelevel.Num (D2)
 import Deku.Attribute (cb, (:=))
 import Deku.Control (deku, text, text_)
-import Deku.Core (Element)
+import Deku.Core (SubgraphF(..))
 import Deku.DOM as DOM
 import Deku.Interpret (effectfulDOMInterpret, makeFFIDOMSnapshot)
 import Deku.Subgraph (SubgraphAction(..), subgraph)
 import Effect (Effect)
-import Effect.Aff (launchAff_)
+import Effect.Aff (Aff, launchAff_)
 import Effect.Class (liftEffect)
 import FRP.Behavior (sample_)
 import FRP.Event (class IsEvent, keepLatest, mapAccum, subscribe)
 import FRP.Event.Time (interval)
 import WAGS.Control (gain__, playBuf, singleton, speaker2)
 import WAGS.Core (GainInput, Subgraph(..))
+import WAGS.Example.Utils (RaiseCancellation)
 import WAGS.Interpret (close, context, decodeAudioDataFromUri, effectfulAudioInterpret, makeFFIAudioSnapshot, writeHead)
 import WAGS.Parameter (ACTime, AudioOnOff(..), WriteHead, _on)
 import WAGS.Properties (onOff)
@@ -137,12 +139,10 @@ scene ks wh =
 type UIAction = Maybe { unsub :: Effect Unit, ctx :: AudioContext }
 type KickSnare = { kick :: BrowserAudioBuffer, snare :: BrowserAudioBuffer }
 
-initializeMultiBuf
-  :: ( { kick :: BrowserAudioBuffer, snare :: BrowserAudioBuffer }
-       -> Effect Unit
-     )
-  -> Effect Unit
-initializeMultiBuf cb = launchAff_ do
+type Init = { kick :: BrowserAudioBuffer, snare :: BrowserAudioBuffer }
+
+initializeMultiBuf :: Aff Init
+initializeMultiBuf = do
   audioCtx <- liftEffect context
   kick <- decodeAudioDataFromUri
     audioCtx
@@ -150,62 +150,67 @@ initializeMultiBuf cb = launchAff_ do
   snare <- decodeAudioDataFromUri
     audioCtx
     "https://freesound.org/data/previews/387/387186_7255534-hq.mp3"
-  liftEffect $ cb { kick, snare }
+  pure { kick, snare }
 
 multiBuf
-  :: forall event payload
+  :: forall index event payload
    . IsEvent event
   => KickSnare
-  -> Unit
-  -> (UIAction -> Effect Unit)
-  -> event (Either UIAction UIAction)
-  -> Element event payload
-multiBuf ks _ push = lcmap (map (either identity identity)) \event -> DOM.div_
-  [ DOM.h1_ [ text_ "Multi Buf" ]
-  , DOM.button
-      ( map
-          ( \i -> DOM.OnClick := cb
-              ( const $
-                  maybe
-                    ( do
-                        ctx <- context
-                        ffi2 <- makeFFIAudioSnapshot ctx
-                        let wh = writeHead 0.04 ctx
-                        unsub <- subscribe
-                          ( speaker2
-                              ( scene ks
-                                  ( sample_ wh
-                                      (pure unit <|> (interval 4900 $> unit))
-                                  )
-                              )
-                              effectfulAudioInterpret
-                          )
-                          ((#) ffi2)
-                        push $ Just { unsub: unsub, ctx }
-                    )
-                    ( \{ unsub, ctx } -> do
-                        unsub
-                        close ctx
-                        push Nothing
-                    )
-                    i
-              )
-          )
-          event
-      )
-      [ text
-          (map (maybe "Turn on" (const "Turn off")) event)
-      ]
-  ]
+  -> RaiseCancellation
+  -> index
+  -> Exists (SubgraphF index Unit event payload)
+multiBuf ks rc _ = mkExists $ SubgraphF \push -> lcmap (map (either (const Nothing) identity)) \event ->
+  DOM.div_
+    [ DOM.h1_ [ text_ "Multi Buf" ]
+    , DOM.button
+        ( map
+            ( \i -> DOM.OnClick := cb
+                ( const $
+                    maybe
+                      ( do
+                          ctx <- context
+                          ffi2 <- makeFFIAudioSnapshot ctx
+                          let wh = writeHead 0.04 ctx
+                          unsub <- subscribe
+                            ( speaker2
+                                ( scene ks
+                                    ( sample_ wh
+                                        (pure unit <|> (interval 4900 $> unit))
+                                    )
+                                )
+                                effectfulAudioInterpret
+                            )
+                            ((#) ffi2)
+                          rc { unsub, ctx }
+                          push $ Just { unsub, ctx }
+                      )
+                      ( \{ unsub, ctx } -> do
+                          unsub
+                          close ctx
+                          push Nothing
+                      )
+                      i
+                )
+            )
+            event
+        )
+        [ text
+            (map (maybe "Turn on" (const "Turn off")) event)
+        ]
+    ]
 
 main :: Effect Unit
-main = initializeMultiBuf \init -> do
-  b' <- window >>= document >>= body
-  for_ (toElement <$> b') \elt -> do
-    ffi <- makeFFIDOMSnapshot
-    let
-      evt = deku elt
-        (subgraph (pure (Tuple unit (InsertOrUpdate Nothing))) (multiBuf init))
-        effectfulDOMInterpret
-    _ <- subscribe evt \i -> i ffi
-    pure unit
+main = launchAff_ do
+  init <- initializeMultiBuf
+  liftEffect do
+    b' <- window >>= document >>= body
+    for_ (toElement <$> b') \elt -> do
+      ffi <- makeFFIDOMSnapshot
+      let
+        evt = deku elt
+          ( subgraph (pure (Tuple unit (InsertOrUpdate unit)))
+              (multiBuf init (const $ pure unit))
+          )
+          effectfulDOMInterpret
+      _ <- subscribe evt \i -> i ffi
+      pure unit

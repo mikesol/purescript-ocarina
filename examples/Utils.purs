@@ -2,10 +2,15 @@ module WAGS.Example.Utils where
 
 import Prelude
 
+import Effect (Effect)
 import Effect.Ref as Ref
 import FRP.Event (Event, makeEvent)
+import WAGS.WebAPI (AudioContext)
 import Web.HTML (window)
 import Web.HTML.Window (requestAnimationFrame)
+
+type ToCancel = { unsub :: Effect Unit, ctx :: AudioContext }
+type RaiseCancellation = ToCancel -> Effect Unit
 
 animationFrameEvent :: Event Unit
 animationFrameEvent = makeEvent \k -> do
