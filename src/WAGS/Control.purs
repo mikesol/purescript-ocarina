@@ -25,6 +25,7 @@ import Safe.Coerce (coerce)
 import Simple.JSON as JSON
 import Type.Proxy (Proxy(..))
 import Type.Row.Homogeneous (class Homogeneous)
+import WAGS.Common
 import WAGS.Core (ChannelCountMode(..), ChannelInterpretation(..), Po2(..))
 import WAGS.Core as C
 import WAGS.Parameter (AudioParameter, InitialAudioParameter)
@@ -588,16 +589,6 @@ dynamicsCompressor' _ i atts elts =
   let C.Node n = dynamicsCompressor i atts elts in C.Node n
 
 -- gain
-
-class InitialGain i where
-  toInitialGain :: i -> C.InitializeGain
-
-instance InitialGain C.InitializeGain where
-  toInitialGain = identity
-
-instance InitialGain Number where
-  toInitialGain = C.InitializeGain <<< { gain: _ }
-
 gain__
   :: forall i outputChannels produced consumed event payload
    . IsEvent event
@@ -630,7 +621,7 @@ gain
   -> C.Node outputChannels produced consumed event payload
 gain i' atts (C.GainInput elts) = C.Node go
   where
-  C.InitializeGain i = toInitialGain i'
+  C.InitializeGain i = toInitializeGain i'
   go parent di@(C.AudioInterpret { ids, makeGain, setGain }) = keepLatest
     ( (sample_ ids (pure unit)) <#> \me ->
         pure (makeGain { id: me, parent: just parent, gain: i.gain })
@@ -1339,15 +1330,6 @@ sawtoothOsc' _ i atts = let C.Node n = sawtoothOsc i atts in C.Node n
 
 -- sinOsc
 
-class InitialSinOsc i where
-  toInitialSinOsc :: i -> C.InitializeSinOsc
-
-instance InitialSinOsc C.InitializeSinOsc where
-  toInitialSinOsc = identity
-
-instance InitialSinOsc Number where
-  toInitialSinOsc = C.InitializeSinOsc <<< { frequency: _ }
-
 sinOsc
   :: forall i outputChannels event payload
    . IsEvent event
@@ -1357,7 +1339,7 @@ sinOsc
   -> C.Node outputChannels () () event payload
 sinOsc i' atts = C.Node go
   where
-  C.InitializeSinOsc i = toInitialSinOsc i'
+  C.InitializeSinOsc i = toInitializeSinOsc i'
   go parent (C.AudioInterpret { ids, makeSinOsc, setFrequency, setOnOff }) =
     keepLatest
       ( (sample_ ids (pure unit)) <#> \me ->

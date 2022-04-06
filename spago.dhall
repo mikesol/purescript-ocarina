@@ -1,4 +1,4 @@
-{ name = "purescript-wags"
+{ name = "wags"
 , dependencies =
   [ "aff"
   , "aff-promise"
