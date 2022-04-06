@@ -354,11 +354,9 @@ exports.makeHighshelf_ = function (a) {
 exports.makeInput_ = function (a) {
 	return function (state) {
 		return function () {
-			var ptr = a.id;
-			var parent = a.parent;
-			setImmediate(function () {
-				connectXToY_(ptr)(parent)(state)();
-			});
+		    var ptr = a.id;
+		    var parent = a.parent;
+		    connectXToY_(ptr)(parent)(state)();
 		};
 	};
 };
