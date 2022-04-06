@@ -43,9 +43,10 @@ type CreateStepRLSig
    . proxyRL rl
   -> proxyPrefix prefix
   -> proxyMap map
+  -> Object String
   -> { | r }
   -> WAG inGraph
-  -> WAG outGraph
+  -> WAG outGraph /\ Object String
 
 class
   CreateStepRL
@@ -59,7 +60,7 @@ class
   createStepRL :: CreateStepRLSig rl prefix map r inGraph outGraph
 
 instance createStepRLNil :: CreateStepRL RL.Nil prefix map r inGraph inGraph where
-  createStepRL _ _ _ _ r = r
+  createStepRL _ _ _ o _ r = r /\ o
 
 instance createStepRLCons ::
   ( IsSymbol key
@@ -76,18 +77,19 @@ instance createStepRLCons ::
   , CreateStepRL rest prefix map r graph2 graph3
   ) =>
   CreateStepRL (RL.Cons key val rest) prefix map r graph0 graph3 where
-  createStepRL _ _ _ rx r = step3
+  createStepRL _ _ _ o rx r = step3 /\ inputCache3
     where
     (_ /\ _ /\ (node /\ edges)) = constructEdges (Proxy :: _ prefix')
       (Proxy :: _ map)
       (Record.get (Proxy :: _ key) rx)
-    step1 = create' (Proxy :: _ newKey) node (r)
-    step2 =
+    step1 /\ inputCache1 = create' (Proxy :: _ newKey) node (r)
+    step2 /\ inputCache2 =
       ( createStepRL
           :: CreateStepRLSig edgesRL newPrefix newMap edges graph1 graph2
-      ) Proxy Proxy Proxy edges
+      ) Proxy Proxy Proxy (Object.union inputCache1 o) edges
         (step1)
-    step3 = createStepRL (Proxy :: _ rest) (Proxy :: _ prefix) (Proxy :: _ map)
+    step3 /\ inputCache3 = createStepRL (Proxy :: _ rest) (Proxy :: _ prefix) (Proxy :: _ map)
+      inputCache2
       rx
       (step2)
 
@@ -102,22 +104,24 @@ class
     :: forall proxyRL proxyS
      . proxyRL sources
     -> proxyS dest
+    -> Object String
     -> WAG inGraph
     -> WAG outGraph
 
 instance connectEdgesToNodeNil :: ConnectEdgesToNode RL.Nil dest inGraph inGraph where
-  connectEdgesToNode _ _ w = w
+  connectEdgesToNode _ _ _ w = w
 
 instance connectEdgesToNodeCons ::
-  ( Connect key dest inGraph midGraph
+  ( IsSymbol key
+  , Connect key dest inGraph midGraph
   , ConnectEdgesToNode rest dest midGraph outGraph
   ) =>
   ConnectEdgesToNode (RL.Cons key ignore rest) dest inGraph outGraph where
-  connectEdgesToNode _ px w = step2
+  connectEdgesToNode _ px o w = step2
     where
-    step1 = connect { source: (Proxy :: _ key), dest: (Proxy :: _ dest) } (w)
+    step1 = connect (Object.lookup (reflectSymbol (Proxy :: _ key)) o) { source: (Proxy :: _ key), dest: (Proxy :: _ dest) } (w)
 
-    step2 = connectEdgesToNode (Proxy :: _ rest) px (step1)
+    step2 = connectEdgesToNode (Proxy :: _ rest) px o (step1)
 
 type ConnectAfterCreateSig
   (prefix :: Type)
@@ -129,6 +133,7 @@ type ConnectAfterCreateSig
    . proxyPrefix prefix
   -> proxyMap map
   -> proxyRL rl
+  -> Object String
   -> WAG inGraph
   -> WAG outGraph
 
@@ -144,7 +149,7 @@ class
 
 instance connectAfterCreateNil ::
   ConnectAfterCreate prefix map RL.Nil graph0 graph0 where
-  connectAfterCreate _ _ _ w = w
+  connectAfterCreate _ _ _ _ w = w
 
 instance connectAfterCreateCons ::
   ( MakePrefixIfNeeded sym prefix prefix'
@@ -158,16 +163,16 @@ instance connectAfterCreateCons ::
   , ConnectAfterCreate prefix map rest graph2 graph3
   ) =>
   ConnectAfterCreate prefix map (RL.Cons sym node' rest) graph0 graph3 where
-  connectAfterCreate _ _ _ w = step3
+  connectAfterCreate _ _ _ o w = step3
     where
-    step1 = connectEdgesToNode (Proxy :: _ oel) (Proxy :: _ newKey) (w)
+    step1 = connectEdgesToNode (Proxy :: _ oel) (Proxy :: _ newKey) o (w)
 
     step2 = connectAfterCreate (Proxy :: _ newPrefix) (Proxy :: _ newMap)
-      (Proxy :: _ edgesList)
+      (Proxy :: _ edgesList) o
       (step1)
 
     step3 = connectAfterCreate (Proxy :: _ prefix) (Proxy :: _ map)
-      (Proxy :: _ rest)
+      (Proxy :: _ rest) o
       (step2)
 
 type CreateInternalSig
@@ -201,15 +206,16 @@ instance createInternalAll ::
   CreateInternal prefix map r inGraph outGraph where
   createInternal _ _ z r = step1
     where
-    step0 = (createStepRL :: CreateStepRLSig rl prefix map r inGraph midGraph)
+    step0 /\ inputCache = (createStepRL :: CreateStepRLSig rl prefix map r inGraph midGraph)
       Proxy
       Proxy
       Proxy
+      Object.empty
       z
       r
 
     step1 = connectAfterCreate (Proxy :: _ prefix) (Proxy :: _ map)
-      (Proxy :: _ rl)
+      (Proxy :: _ rl) inputCache
       (step0)
 
 class
@@ -237,11 +243,11 @@ class
      . proxy ptr
     -> node
     -> WAG inGraph
-    -> WAG outGraph
+    -> WAG outGraph /\ Object String
 
 instance createUnit ::
   Create' ptr Unit graphi graphi where
-  create' _ _ w = w
+  create' _ _ w = w /\ Object.empty
 
 instance createInput ::
   ( IsSymbol ptr
@@ -249,7 +255,7 @@ instance createInput ::
   , R.Cons ptr (NodeC CTOR.TInput {}) graphi grapho
   ) =>
   Create' ptr (Core.Input) graphi grapho where
-  create' ptr (Core.Input input) w = o
+  create' ptr (Core.Input input) w = o /\ Object.singleton id input
     where
     WAG { instructions } = w
 
@@ -268,7 +274,7 @@ instance createAnalyser ::
   , R.Cons ptr (NodeC CTOR.TAnalyser {}) graphi grapho
   ) =>
   Create' ptr (CTOR.Analyser AnalyserNodeCb) graphi grapho where
-  create' ptr (CTOR.Analyser cb) w = o
+  create' ptr (CTOR.Analyser cb) w = o /\ Object.empty
     where
     WAG { instructions } = w
 
@@ -299,7 +305,7 @@ instance createAllpass ::
   , R.Cons ptr (NodeC CTOR.TAllpass {}) graphi grapho
   ) =>
   Create' ptr CTOR.Allpass graphi grapho where
-  create' ptr (CTOR.Allpass { frequency, q }) w = o
+  create' ptr (CTOR.Allpass { frequency, q }) w = o /\ Object.empty
     where
     WAG { instructions } = w
     id = reflectSymbol ptr
@@ -367,7 +373,7 @@ instance createAudioWorkletNode ::
     )
     graphi
     grapho where
-  create' ptr (CTOR.AudioWorkletNode _ (AudioWorkletNodeOptions options)) w = o
+  create' ptr (CTOR.AudioWorkletNode _ (AudioWorkletNodeOptions options)) w = o /\ Object.empty
     where
     WAG { instructions } = w
 
@@ -403,7 +409,7 @@ instance createBandpass ::
   , R.Cons ptr (NodeC CTOR.TBandpass {}) graphi grapho
   ) =>
   Create' ptr CTOR.Bandpass graphi grapho where
-  create' ptr (CTOR.Bandpass { frequency, q }) w = o
+  create' ptr (CTOR.Bandpass { frequency, q }) w = o /\ Object.empty
     where
     WAG { instructions } = w
     id = reflectSymbol ptr
@@ -427,7 +433,7 @@ instance createConstant ::
   , R.Cons ptr (NodeC CTOR.TConstant {}) graphi grapho
   ) =>
   Create' ptr CTOR.Constant graphi grapho where
-  create' ptr (CTOR.Constant { onOff, offset }) w = o
+  create' ptr (CTOR.Constant { onOff, offset }) w = o /\ Object.empty
     where
     WAG { instructions } = w
 
@@ -453,7 +459,7 @@ instance createConvolver ::
   , R.Cons ptr (NodeC CTOR.TConvolver {}) graphi grapho
   ) =>
   Create' ptr (CTOR.Convolver) graphi grapho where
-  create' ptr (CTOR.Convolver { buffer }) w = o
+  create' ptr (CTOR.Convolver { buffer }) w = o /\ Object.empty
     where
     WAG { instructions } = w
 
@@ -472,7 +478,7 @@ instance createDelay ::
   , R.Cons ptr (NodeC CTOR.TDelay {}) graphi grapho
   ) =>
   Create' ptr CTOR.Delay graphi grapho where
-  create' ptr (CTOR.Delay { delayTime }) w = o
+  create' ptr (CTOR.Delay { delayTime }) w = o /\ Object.empty
     where
     WAG { instructions } = w
 
@@ -500,7 +506,7 @@ instance createDynamicsCompressor ::
   create'
     ptr
     (CTOR.DynamicsCompressor { knee, threshold, ratio, attack, release })
-    w = o
+    w = o /\ Object.empty
     where
     WAG { instructions } = w
 
@@ -528,7 +534,7 @@ instance createGain ::
   , R.Cons ptr (NodeC CTOR.TGain {}) graphi grapho
   ) =>
   Create' ptr CTOR.Gain graphi grapho where
-  create' ptr (CTOR.Gain { gain }) w = o
+  create' ptr (CTOR.Gain { gain }) w = o /\ Object.empty
     where
     WAG { instructions } = w
 
@@ -545,7 +551,7 @@ instance createHighpass ::
   , R.Cons ptr (NodeC CTOR.THighpass {}) graphi grapho
   ) =>
   Create' ptr (CTOR.Highpass) graphi grapho where
-  create' ptr (CTOR.Highpass { frequency, q }) w = o
+  create' ptr (CTOR.Highpass { frequency, q }) w = o /\ Object.empty
     where
     WAG { instructions } = w
     id = reflectSymbol ptr
@@ -569,7 +575,7 @@ instance createHighshelf ::
   , R.Cons ptr (NodeC CTOR.THighshelf {}) graphi grapho
   ) =>
   Create' ptr (CTOR.Highshelf) graphi grapho where
-  create' ptr (CTOR.Highshelf { frequency, gain }) w = o
+  create' ptr (CTOR.Highshelf { frequency, gain }) w = o /\ Object.empty
     where
     WAG { instructions } = w
 
@@ -597,7 +603,7 @@ instance createLoopBuf ::
   create'
     ptr
     (CTOR.LoopBuf { buffer, onOff, playbackRate, loopStart, loopEnd, duration })
-    w = o
+    w = o /\ Object.empty
     where
     WAG { instructions } = w
 
@@ -626,7 +632,7 @@ instance createLowpass ::
   , R.Cons ptr (NodeC CTOR.TLowpass {}) graphi grapho
   ) =>
   Create' ptr (CTOR.Lowpass) graphi grapho where
-  create' ptr (CTOR.Lowpass { frequency, q }) w = o
+  create' ptr (CTOR.Lowpass { frequency, q }) w = o /\ Object.empty
     where
     WAG { instructions } = w
 
@@ -652,7 +658,7 @@ instance createLowshelf ::
   , R.Cons ptr (NodeC CTOR.TLowshelf {}) graphi grapho
   ) =>
   Create' ptr (CTOR.Lowshelf) graphi grapho where
-  create' ptr (CTOR.Lowshelf { frequency, gain }) w = o
+  create' ptr (CTOR.Lowshelf { frequency, gain }) w = o /\ Object.empty
     where
     WAG { instructions } = w
 
@@ -677,7 +683,7 @@ instance createMediaElement ::
   , R.Cons ptr (NodeC CTOR.TMediaElement {}) graphi grapho
   ) =>
   Create' ptr (CTOR.MediaElement) graphi grapho where
-  create' ptr (CTOR.MediaElement { element }) w = o
+  create' ptr (CTOR.MediaElement { element }) w = o /\ Object.empty
     where
     WAG { instructions } = w
 
@@ -694,7 +700,7 @@ instance createMicrophone ::
   , R.Cons "microphone" (NodeC CTOR.TMicrophone {}) graphi grapho
   ) =>
   Create' "microphone" (CTOR.Microphone) graphi grapho where
-  create' _ (CTOR.Microphone { microphone }) w = o
+  create' _ (CTOR.Microphone { microphone }) w = o /\ Object.empty
     where
     WAG { instructions } = w
 
@@ -711,7 +717,7 @@ instance createNotch ::
   , R.Cons ptr (NodeC CTOR.TNotch {}) graphi grapho
   ) =>
   Create' ptr (CTOR.Notch) graphi grapho where
-  create' ptr (CTOR.Notch { frequency, q }) w = o
+  create' ptr (CTOR.Notch { frequency, q }) w = o /\ Object.empty
     where
     WAG { instructions } = w
 
@@ -735,7 +741,7 @@ instance createPeaking ::
   , R.Cons ptr (NodeC CTOR.TPeaking {}) graphi grapho
   ) =>
   Create' ptr (CTOR.Peaking) graphi grapho where
-  create' ptr (CTOR.Peaking { frequency, gain, q }) w = o
+  create' ptr (CTOR.Peaking { frequency, gain, q }) w = o /\ Object.empty
     where
     WAG { instructions } = w
 
@@ -753,7 +759,7 @@ instance createPeriodicOsc ::
   , R.Cons ptr (NodeC CTOR.TPeriodicOsc {}) graphi grapho
   ) =>
   Create' ptr (CTOR.PeriodicOsc BrowserPeriodicWave) graphi grapho where
-  create' ptr (CTOR.PeriodicOsc { wave, onOff, frequency }) w = o
+  create' ptr (CTOR.PeriodicOsc { wave, onOff, frequency }) w = o /\ Object.empty
     where
     WAG { instructions } = w
 
@@ -778,7 +784,7 @@ instance createPeriodicOsc2 ::
     (CTOR.PeriodicOsc (V.Vec a Number /\ V.Vec a Number))
     graphi
     grapho where
-  create' ptr (CTOR.PeriodicOsc { wave, onOff, frequency }) w = o
+  create' ptr (CTOR.PeriodicOsc { wave, onOff, frequency }) w = o /\ Object.empty
     where
     WAG { instructions } = w
 
@@ -810,7 +816,7 @@ instance createPlayBuf ::
   create'
     ptr
     (CTOR.PlayBuf { buffer, bufferOffset, playbackRate, onOff, duration })
-    w = o
+    w = o /\ Object.empty
     where
     WAG { instructions } = w
     id = reflectSymbol ptr
@@ -836,7 +842,7 @@ instance createRecorder ::
   , R.Cons ptr (NodeC CTOR.TRecorder {}) graphi grapho
   ) =>
   Create' ptr (CTOR.Recorder) graphi grapho where
-  create' ptr (CTOR.Recorder { cb }) w = o
+  create' ptr (CTOR.Recorder { cb }) w = o /\ Object.empty
     where
     WAG { instructions } = w
 
@@ -860,7 +866,7 @@ instance createSawtoothOsc ::
   , R.Cons ptr (NodeC CTOR.TSawtoothOsc {}) graphi grapho
   ) =>
   Create' ptr (CTOR.SawtoothOsc) graphi grapho where
-  create' ptr (CTOR.SawtoothOsc { onOff, frequency }) w = o
+  create' ptr (CTOR.SawtoothOsc { onOff, frequency }) w = o /\ Object.empty
     where
     WAG { instructions } = w
 
@@ -878,7 +884,7 @@ instance createSinOsc ::
   , R.Cons ptr (NodeC CTOR.TSinOsc {}) graphi grapho
   ) =>
   Create' ptr (CTOR.SinOsc) graphi grapho where
-  create' ptr (CTOR.SinOsc { onOff, frequency }) w = o
+  create' ptr (CTOR.SinOsc { onOff, frequency }) w = o /\ Object.empty
     where
     WAG { instructions } = w
 
@@ -897,7 +903,7 @@ instance createSquareOsc ::
   , R.Cons ptr (NodeC CTOR.TSquareOsc {}) graphi grapho
   ) =>
   Create' ptr (CTOR.SquareOsc) graphi grapho where
-  create' ptr (CTOR.SquareOsc { frequency, onOff }) w = o
+  create' ptr (CTOR.SquareOsc { frequency, onOff }) w = o /\ Object.empty
     where
     WAG { instructions } = w
 
@@ -916,7 +922,7 @@ instance createStereoPanner ::
   , R.Cons ptr (NodeC CTOR.TStereoPanner {}) graphi grapho
   ) =>
   Create' ptr (CTOR.StereoPanner) graphi grapho where
-  create' ptr (CTOR.StereoPanner { pan }) w = o
+  create' ptr (CTOR.StereoPanner { pan }) w = o /\ Object.empty
     where
     WAG { instructions } = w
 
@@ -933,7 +939,7 @@ instance createTriangleOsc ::
   , R.Cons ptr (NodeC CTOR.TTriangleOsc {}) graphi grapho
   ) =>
   Create' ptr (CTOR.TriangleOsc) graphi grapho where
-  create' ptr (CTOR.TriangleOsc { frequency, onOff }) w = o
+  create' ptr (CTOR.TriangleOsc { frequency, onOff }) w = o /\ Object.empty
     where
     WAG { instructions } = w
 
@@ -954,7 +960,7 @@ instance createWaveShaper ::
   , R.Cons ptr (NodeC (CTOR.TWaveShaper oversample) {}) graphi grapho
   ) =>
   Create' ptr (CTOR.WaveShaper oversample) graphi grapho where
-  create' ptr (CTOR.WaveShaper { floatArray, oversample: oversample' }) w = o
+  create' ptr (CTOR.WaveShaper { floatArray, oversample: oversample' }) w = o /\ Object.empty
     where
     WAG { instructions } = w
 

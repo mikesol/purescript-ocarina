@@ -5,10 +5,6 @@ import Prelude
 import Control.Alt ((<|>))
 import Control.Plus (empty)
 import Data.Foldable (foldl)
-import Data.Map (SemigroupMap(..), lookup)
-import Data.Map as Map
-import Data.Maybe (maybe')
-import Data.Newtype (wrap)
 import Data.Profunctor (lcmap)
 import Data.Set as Set
 import Data.Symbol (class IsSymbol, reflectSymbol)
@@ -46,9 +42,9 @@ tumult atts' = C.Node go
     }
     v
   terminus = reflectSymbol (Proxy :: _ terminus)
-  atts = fold (\a b -> reconcileTumult a (fst b))
+  atts = map fst $ fold (\a (_ /\ b1) -> reconcileTumult a b1 /\ a)
     (map (\t -> safeUntumult (t (inputs (Proxy :: _ inputsRL)))) atts')
-    (Set.empty /\ { oldInputs: wrap Map.empty, newInputs: wrap Map.empty })
+    (Set.empty /\ Set.empty)
   go prnt (C.AudioInterpret ai@{ ids, connectXToY }) =
     keepLatest
       ( (sample_ ids (pure unit)) <#> \msfx' ->
@@ -63,11 +59,7 @@ tumult atts' = C.Node go
           in
             keepLatest
               ( map
-                  ( \( instr /\
-                         { newInputs: SemigroupMap mp
-                         , oldInputs: SemigroupMap omp
-                         }
-                     ) -> foldl
+                  ( \instr  -> foldl
                       ( \b (Instruction i) -> b <|> match
                           { makeAllpass: \{ id, frequency, q, parent } -> pure $
                               ai.makeAllpass
@@ -348,26 +340,19 @@ tumult atts' = C.Node go
                           , makeInput: \_ -> empty
                           , connectXToY: \{ from, to } -> pure $
                               ai.connectXToY
-                                { from: maybe' (\_ -> sfx from) identity
-                                    (lookup from mp)
-                                , to: maybe' (\_ -> sfx to) identity
-                                    (lookup to mp)
+                                { from: sfx from
+                                , to: sfx to
                                 }
                           -- when disconnecting, we work off of
                           -- omp for `from`
                           -- as we can only ever disconnect a previous input
                           , disconnectXFromY: \{ from, to } -> pure $
                               ai.disconnectXFromY
-                                { from: maybe' (\_ -> sfx from) identity
-                                    (lookup from omp)
-                                , to: maybe' (\_ -> sfx to) identity
-                                    (lookup to mp)
+                                { from: sfx from
+                                , to: sfx to
                                 }
                           -- we never destroy inputs
-                          , destroyUnit: \{ id } -> maybe'
-                              (\_ -> pure $ ai.destroyUnit { id: sfx id })
-                              (const empty)
-                              (lookup id omp)
+                          , destroyUnit: \{ id } ->  pure $ ai.destroyUnit { id: sfx id }
                           , setAnalyserNodeCb: isfx \ii -> pure $
                               ai.setAnalyserNodeCb ii
                           , setMediaRecorderCb: isfx \ii -> pure $

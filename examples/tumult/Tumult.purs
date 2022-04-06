@@ -70,10 +70,10 @@ scene wh =
 
 type UIAction = Maybe { unsub :: Effect Unit, ctx :: AudioContext }
 
-initializeHelloWorld :: (Unit -> Effect Unit) -> Effect Unit
-initializeHelloWorld = (#) unit
+initializeTumult :: (Unit -> Effect Unit) -> Effect Unit
+initializeTumult = (#) unit
 
-helloWorld
+tumultExample
   :: forall event payload
    . IsEvent event
   => Unit
@@ -81,8 +81,8 @@ helloWorld
   -> (UIAction -> Effect Unit)
   -> event (Either UIAction UIAction)
   -> Element event payload
-helloWorld _ _ push = lcmap (map (either identity identity)) \event -> DOM.div_
-  [ DOM.h1_ [ text_ "Hello world" ]
+tumultExample _ _ push = lcmap (map (either identity identity)) \event -> DOM.div_
+  [ DOM.h1_ [ text_ "Tumult" ]
   , DOM.button
       ( map
           ( \i -> DOM.OnClick := cb
@@ -116,14 +116,14 @@ helloWorld _ _ push = lcmap (map (either identity identity)) \event -> DOM.div_
   ]
 
 main :: Effect Unit
-main = initializeHelloWorld \init -> do
+main = initializeTumult \init -> do
   b' <- window >>= document >>= body
   for_ (toElement <$> b') \elt -> do
     ffi <- makeFFIDOMSnapshot
     let
       evt = deku elt
         ( subgraph (pure (Tuple unit (InsertOrUpdate Nothing)))
-            (helloWorld init)
+            (tumultExample init)
         )
         effectfulDOMInterpret
     _ <- subscribe evt \i -> i ffi

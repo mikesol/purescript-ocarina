@@ -89,14 +89,12 @@ var connectXToY_ = function (x) {
 		};
 	};
 };
-exports.connectXToY_ = function (x) {
-	return function (y) {
-		return function (state) {
-			return function () {
-				setImmediate(function () {
-					connectXToY_(x)(y)(state)();
-				});
-			};
+exports.connectXToY_ = function (a) {
+	return function (state) {
+		return function () {
+			setTimeout(function () {
+				connectXToY_(a.from)(a.to)(state)();
+			}, 0);
 		};
 	};
 };
@@ -110,15 +108,21 @@ var disconnectXFromY_ = function (x) {
 				state.units[y].incoming = state.units[y].incoming.filter(function (i) {
 					return !(i === x);
 				});
-				state.units[x].main.connect(state.units[y].main);
+				state.units[x].main.disconnect(state.units[y].main);
 				if (state.units[y].se) {
-					state.units[x].main.connect(state.units[y].se);
+					state.units[x].main.disconnect(state.units[y].se);
 				}
 			};
 		};
 	};
 };
-exports.disconnectXFromY_ = disconnectXFromY_;
+exports.disconnectXFromY_ = function (a) {
+	return function (state) {
+		return function () {
+			return disconnectXFromY_(a.from)(a.to)(state)();
+		};
+	};
+};
 exports.destroyUnit_ = function (a) {
 	return function (state) {
 		return function () {
@@ -360,9 +364,9 @@ exports.makeInput_ = function (a) {
 		return function () {
 			var ptr = a.id;
 			var parent = a.parent;
-			setImmediate(function () {
+			setTimeout(function () {
 				connectXToY_(ptr)(parent)(state)();
-			});
+			}, 0);
 		};
 	};
 };

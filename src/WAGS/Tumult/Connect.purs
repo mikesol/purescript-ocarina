@@ -2,6 +2,7 @@ module WAGS.Tumult.Connect where
 
 import Prelude hiding (Ordering(..))
 
+import Data.Maybe (Maybe(..))
 import Data.Set (insert)
 import Data.Symbol (class IsSymbol, reflectSymbol)
 import Prim.Row as R
@@ -18,7 +19,13 @@ class
   | source dest i -> o where
   connect
     :: forall proxy
-     . { source :: proxy source, dest :: proxy dest }
+     -- this is a manual override for the source node
+     -- we need this if we are working with an Input
+     -- inputs are just phantom nodes, which means that whatever they are
+     -- in the tumult graph is not used
+     -- so we emit an instruction for the phantom node
+     . Maybe String
+    -> { source :: proxy source, dest :: proxy dest }
     -> WAG i
     -> WAG o
 
@@ -36,7 +43,7 @@ instance connectInstance ::
   , R.Cons to (NodeC toN { | e' }) newg grapho
   ) =>
   Connect from to graphi grapho where
-  connect { source: fromI', dest: toI' } w =
+  connect ms { source: fromI', dest: toI' } w =
     WAG
       { instructions: insert
           ( I.iConnectXToY
@@ -52,19 +59,8 @@ instance connectInstance ::
     where
     WAG { instructions } = w
 
-    from = reflectSymbol fromI'
+    from = case ms of
+      Just s -> s
+      Nothing -> reflectSymbol fromI'
 
     to = reflectSymbol toI'
-
-class
-  ConnectT (source :: Symbol) (dest :: Symbol) (i :: Graph) (o :: Graph)
-  | source dest i -> o
-
-instance connectTInstance ::
-  ( R.Cons from ignore0 ignore1 graphi
-  , R.Cons to (NodeC n { | e }) newg graphi
-  , R.Lacks from e
-  , R.Cons from Unit e e'
-  , R.Cons to (NodeC n { | e' }) newg grapho
-  ) =>
-  ConnectT from to graphi grapho
