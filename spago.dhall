@@ -32,6 +32,7 @@
   , "simple-json"
   , "sized-vectors"
   , "st"
+  , "strings"
   , "tuples"
   , "typelevel"
   , "typelevel-peano"

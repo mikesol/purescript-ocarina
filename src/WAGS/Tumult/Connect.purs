@@ -13,6 +13,8 @@ import WAGS.Tumult.Graph.Graph (Graph)
 import WAGS.Tumult.Graph.Node (NodeC)
 import WAGS.Tumult.Instructions as I
 
+__inputMonicker = "@!@INP(UT@`@" :: String
+
 -- | Connect node `source` from node `dest` in graph `i`, resulting in output graph `o`.
 class
   Connect (source :: Symbol) (dest :: Symbol) (i :: Graph) (o :: Graph)
@@ -60,7 +62,7 @@ instance connectInstance ::
     WAG { instructions } = w
 
     from = case ms of
-      Just s -> s
+      Just s -> __inputMonicker <> s
       Nothing -> reflectSymbol fromI'
 
     to = reflectSymbol toI'

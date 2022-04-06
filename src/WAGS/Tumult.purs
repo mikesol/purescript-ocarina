@@ -4,9 +4,12 @@ import Prelude
 
 import Control.Alt ((<|>))
 import Control.Plus (empty)
+import Data.Array ((!!))
 import Data.Foldable (foldl)
+import Data.Maybe (Maybe(..))
 import Data.Profunctor (lcmap)
 import Data.Set as Set
+import Data.String as String
 import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.Tuple (fst)
 import Data.Tuple.Nested ((/\))
@@ -19,6 +22,7 @@ import WAGS.Core (AudioWorkletNodeOptions_(..), Instruction(..))
 import WAGS.Core as C
 import WAGS.Parameter (AudioCancel(..), AudioEnvelope(..), AudioNumeric(..), AudioParameter(..), AudioSudden(..))
 import WAGS.Subgraph (class MakeInputs, inputs)
+import WAGS.Tumult.Connect (__inputMonicker)
 import WAGS.Tumult.Tumult (Tumultuous, safeUntumult)
 import WAGS.Tumult.Tumult.Reconciliation (reconcileTumult)
 
@@ -340,7 +344,9 @@ tumult atts' = C.Node go
                           , makeInput: \_ -> empty
                           , connectXToY: \{ from, to } -> pure $
                               ai.connectXToY
-                                { from: sfx from
+                                { from: case (String.split (String.Pattern __inputMonicker) from) !! 1 of
+                                  Just s -> s
+                                  Nothing -> sfx from
                                 , to: sfx to
                                 }
                           -- when disconnecting, we work off of
