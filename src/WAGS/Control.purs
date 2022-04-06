@@ -16,7 +16,7 @@ import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.Tuple.Nested (type (/\), (/\))
 import Data.Typelevel.Num (class Nat, class Pos, class Pred, D1, D2, pred, toInt)
 import Data.Variant (Unvariant(..), match, unvariant)
-import Data.Variant.Maybe (Maybe, fromMaybe, just, maybe, nothing)
+import Data.Variant.Maybe (Maybe, just, maybe, nothing)
 import FRP.Behavior (sample_)
 import FRP.Event (class IsEvent, keepLatest)
 import Foreign.Object (fromHomogeneous)
@@ -86,13 +86,13 @@ infixr 6 gainInputAppend as <>*
 -- allpass
 
 __allpass
-  :: forall outputChannels produced consumed event payload
+  :: forall outputChannels producedI consumedI producedO consumedO event payload
    . IsEvent event
   => Maybe String
   -> C.InitializeAllpass
   -> event C.Allpass
-  -> C.Node outputChannels produced consumed event payload
-  -> C.Node outputChannels produced consumed event payload
+  -> C.Node outputChannels producedI consumedI event payload
+  -> C.Node outputChannels producedO consumedO event payload
 __allpass mId (C.InitializeAllpass i) atts elt = C.Node go
   where
   go parent di@(C.AudioInterpret { ids, makeAllpass, setFrequency, setQ }) =
@@ -405,13 +405,13 @@ audioWorklet' px = __audioWorklet (just (reflectSymbol px))
 -- bandpass
 
 __bandpass
-  :: forall outputChannels produced consumed event payload
+  :: forall outputChannels producedI consumedI producedO consumedO event payload
    . IsEvent event
   => Maybe String
   -> C.InitializeBandpass
   -> event C.Bandpass
-  -> C.Node outputChannels produced consumed event payload
-  -> C.Node outputChannels produced consumed event payload
+  -> C.Node outputChannels producedI consumedI event payload
+  -> C.Node outputChannels producedO consumedO event payload
 __bandpass mId (C.InitializeBandpass i) atts elt = C.Node go
   where
   go parent di@(C.AudioInterpret { ids, makeBandpass, setFrequency, setQ }) =
@@ -463,7 +463,7 @@ __constant
   => Maybe String
   -> C.InitializeConstant
   -> event C.Constant
-  -> C.Node outputChannels produced consued event payload
+  -> C.Node outputChannels produced consumed event payload
 __constant mId (C.InitializeConstant i) atts = C.Node go
   where
   go parent (C.AudioInterpret { ids, makeConstant, setOffset, setOnOff }) =
@@ -509,13 +509,13 @@ constant' px = __constant (just (reflectSymbol px))
 -- convolver
 
 __convolver
-  :: forall outputChannels produced consumed event payload
+  :: forall outputChannels producedI consumedI producedO consumedO event payload
    . IsEvent event
   => Maybe String
   -> C.InitializeConvolver
-  -> C.Node outputChannels produced consumed event payload
-  -> C.Node outputChannels produced consumed event payload
-__convolver mId i elt = C.Node go
+  -> C.Node outputChannels producedI consumedI event payload
+  -> C.Node outputChannels producedO consumedO event payload
+__convolver mId (C.InitializeConvolver i) elt = C.Node go
   where
   go parent di@(C.AudioInterpret { ids, makeConvolver }) =
     keepLatest
@@ -533,29 +533,31 @@ convolver
   :: forall outputChannels produced consumed event payload
    . IsEvent event
   => C.InitializeConvolver
-  -> C.Node outputChannels () () event payload
+  -> C.Node outputChannels produced consumed event payload
+  -> C.Node outputChannels produced consumed event payload
 convolver = __convolver nothing
 
 convolver'
-  :: forall proxy sym outputChannels produced event payload
+  :: forall proxy sym outputChannels produced produced' consumed event payload
    . IsEvent event
   => IsSymbol sym
-  => Cons sym C.Input () produced
+  => Cons sym C.Input produced' produced
   => proxy sym
   -> C.InitializeConvolver
-  -> C.Node outputChannels produced () event payload
-convolver' px = __convolver (reflectSymbol (just px))
+  -> C.Node outputChannels produced' consumed event payload
+  -> C.Node outputChannels produced consumed event payload
+convolver' px = __convolver (just (reflectSymbol px))
 
 -- delay
 
 __delay
-  :: forall outputChannels produced consumed event payload
+  :: forall outputChannels producedI consumedI producedO consumedO event payload
    . IsEvent event
   => Maybe String
   -> C.InitializeDelay
   -> event C.Delay
-  -> C.Node outputChannels produced consumed event payload
-  -> C.Node outputChannels produced consumed event payload
+  -> C.Node outputChannels producedI consumedI event payload
+  -> C.Node outputChannels producedO consumedO event payload
 __delay mId (C.InitializeDelay i) atts elt = C.Node go
   where
   go parent di@(C.AudioInterpret { ids, makeDelay, setDelay }) =
@@ -600,13 +602,13 @@ delay' px = __delay (just (reflectSymbol px))
 -- dynamics compressor
 
 __dynamicsCompressor
-  :: forall outputChannels produced consumed event payload
+  :: forall outputChannels producedI consumedI producedO consumedO event payload
    . IsEvent event
   => Maybe String
   -> C.InitializeDynamicsCompressor
   -> event C.DynamicsCompressor
-  -> C.Node outputChannels produced consumed event payload
-  -> C.Node outputChannels produced consumed event payload
+  -> C.Node outputChannels producedI consumedI event payload
+  -> C.Node outputChannels producedO consumedO event payload
 __dynamicsCompressor mId (C.InitializeDynamicsCompressor i) atts elt = C.Node go
   where
   go
@@ -665,6 +667,7 @@ dynamicsCompressor = __dynamicsCompressor nothing
 dynamicsCompressor'
   :: forall proxy sym outputChannels produced produced' consumed event payload
    . IsEvent event
+  => IsSymbol sym
   => Cons sym C.Input produced' produced
   => proxy sym
   -> C.InitializeDynamicsCompressor
@@ -707,14 +710,14 @@ gain_
 gain_ i atts h t = gain i atts (C.GainInput (NEA.fromNonEmpty (h :| t)))
 
 __gain
-  :: forall i outputChannels produced consumed event payload
+  :: forall i outputChannels producedI consumedI producedO consumedO event payload
    . IsEvent event
   => InitialGain i
   => Maybe String
   -> i
   -> event C.Gain
-  -> C.GainInput outputChannels produced consumed event payload
-  -> C.Node outputChannels produced consumed event payload
+  -> C.GainInput outputChannels producedI consumedI event payload
+  -> C.Node outputChannels producedO consumedO event payload
 __gain mId i' atts (C.GainInput elts) = C.Node go
   where
   C.InitializeGain i = toInitialGain i'
@@ -760,13 +763,13 @@ gain' px = __gain (just (reflectSymbol px))
 -- highpass
 
 __highpass
-  :: forall outputChannels produced consumed event payload
+  :: forall outputChannels producedI consumedI producedO consumedO event payload
    . IsEvent event
   => Maybe String
   -> C.InitializeHighpass
   -> event C.Highpass
-  -> C.Node outputChannels produced consumed event payload
-  -> C.Node outputChannels produced consumed event payload
+  -> C.Node outputChannels producedI consumedI event payload
+  -> C.Node outputChannels producedO consumedO event payload
 __highpass mId (C.InitializeHighpass i) atts elt = C.Node go
   where
   go parent di@(C.AudioInterpret { ids, makeHighpass, setFrequency, setQ }) =
@@ -812,13 +815,13 @@ highpass' px = __highpass (just (reflectSymbol px))
 -- highshelf
 
 __highshelf
-  :: forall outputChannels produced consumed event payload
+  :: forall outputChannels producedI consumedI producedO consumedO event payload
    . IsEvent event
   => Maybe String
   -> C.InitializeHighshelf
   -> event C.Highshelf
-  -> C.Node outputChannels produced consumed event payload
-  -> C.Node outputChannels produced consumed event payload
+  -> C.Node outputChannels producedI consumedI event payload
+  -> C.Node outputChannels producedO consumedO event payload
 __highshelf mId (C.InitializeHighshelf i) atts elt = C.Node go
   where
   go parent di@(C.AudioInterpret { ids, makeHighshelf, setFrequency, setGain }) =
@@ -852,6 +855,7 @@ highshelf = __highshelf nothing
 highshelf'
   :: forall proxy sym outputChannels produced produced' consumed event payload
    . IsEvent event
+  => IsSymbol sym
   => Cons sym C.Input produced' produced
   => proxy sym
   -> C.InitializeHighshelf
@@ -877,13 +881,13 @@ input (C.Input me) = C.Node go
 -- lowpass
 
 __lowpass
-  :: forall outputChannels produced consumed event payload
+  :: forall outputChannels producedI consumedI producedO consumedO event payload
    . IsEvent event
   => Maybe String
   -> C.InitializeLowpass
   -> event C.Lowpass
-  -> C.Node outputChannels produced consumed event payload
-  -> C.Node outputChannels produced consumed event payload
+  -> C.Node outputChannels producedI consumedI event payload
+  -> C.Node outputChannels producedO consumedO event payload
 __lowpass mId (C.InitializeLowpass i) atts elt = C.Node go
   where
   go parent di@(C.AudioInterpret { ids, makeLowpass, setFrequency, setQ }) =
@@ -917,6 +921,7 @@ lowpass = __lowpass nothing
 lowpass'
   :: forall proxy sym outputChannels produced produced' consumed event payload
    . IsEvent event
+  => IsSymbol sym
   => Cons sym C.Input produced' produced
   => proxy sym
   -> C.InitializeLowpass
@@ -928,13 +933,13 @@ lowpass' px = __lowpass (just (reflectSymbol px))
 -- lowshelf
 
 __lowshelf
-  :: forall outputChannels produced consumed event payload
+  :: forall outputChannels producedI consumedI producedO consumedO event payload
    . IsEvent event
   => Maybe String
   -> C.InitializeLowshelf
   -> event C.Lowshelf
-  -> C.Node outputChannels produced consumed event payload
-  -> C.Node outputChannels produced consumed event payload
+  -> C.Node outputChannels producedI consumedI event payload
+  -> C.Node outputChannels producedO consumedO event payload
 __lowshelf mId (C.InitializeLowshelf i) atts elt = C.Node go
   where
   go parent di@(C.AudioInterpret { ids, makeLowshelf, setFrequency, setGain }) =
@@ -968,6 +973,7 @@ lowshelf = __lowshelf nothing
 lowshelf'
   :: forall proxy sym outputChannels produced produced' consumed event payload
    . IsEvent event
+  => IsSymbol sym
   => Cons sym C.Input produced' produced
   => proxy sym
   -> C.InitializeLowshelf
@@ -1098,6 +1104,7 @@ loopBuf = __loopBuf nothing
 loopBuf'
   :: forall proxy sym outputChannels produced event payload
    . IsEvent event
+  => IsSymbol sym
   => Cons sym C.Input () produced
   => proxy sym
   -> C.InitializeLoopBuf
@@ -1137,6 +1144,7 @@ mediaElement = __mediaElement nothing
 mediaElement'
   :: forall proxy sym outputChannels produced event payload
    . IsEvent event
+  => IsSymbol sym
   => Cons sym C.Input () produced
   => proxy sym
   -> C.InitializeMediaElement
@@ -1148,9 +1156,10 @@ mediaElement' px = __mediaElement (just (reflectSymbol px))
 __microphone
   :: forall outputChannels produced consumed event payload
    . IsEvent event
-  => C.InitializeMicrophone
-  -> C.Node outputChannels () () event payload
-__microphone (C.InitializeMicrophone i) = C.Node go
+  => Maybe String
+  -> C.InitializeMicrophone
+  -> C.Node outputChannels produced consumed event payload
+__microphone mId (C.InitializeMicrophone i) = C.Node go
   where
   go parent (C.AudioInterpret { ids, makeMicrophone }) =
     keepLatest
@@ -1164,25 +1173,34 @@ __microphone (C.InitializeMicrophone i) = C.Node go
             )
       )
 
+microphone
+  :: forall outputChannels produced consumed event payload
+   . IsEvent event
+  => C.InitializeMicrophone
+  -> C.Node outputChannels () () event payload
+microphone = __microphone nothing
+
 microphone'
   :: forall proxy sym outputChannels produced event payload
    . IsEvent event
+  => IsSymbol sym
   => Cons sym C.Input () produced
   => proxy sym
   -> C.InitializeMicrophone
   -> C.Node outputChannels produced () event payload
-microphone' _ i = let C.Node n = microphone i in C.Node n
+microphone' px = __microphone (just (reflectSymbol px))
 
 -- notch
 
 __notch
-  :: forall outputChannels produced consumed event payload
+  :: forall outputChannels producedI consumedI producedO consumedO event payload
    . IsEvent event
-  => C.InitializeNotch
+  => Maybe String
+  -> C.InitializeNotch
   -> event C.Notch
-  -> C.Node outputChannels produced consumed event payload
-  -> C.Node outputChannels produced consumed event payload
-__notch (C.InitializeNotch i) atts elt = C.Node go
+  -> C.Node outputChannels producedI consumedI event payload
+  -> C.Node outputChannels producedO consumedO event payload
+__notch mId (C.InitializeNotch i) atts elt = C.Node go
   where
   go parent di@(C.AudioInterpret { ids, makeNotch, setFrequency, setQ }) =
     keepLatest
@@ -1203,27 +1221,38 @@ __notch (C.InitializeNotch i) atts elt = C.Node go
             <|> ((\y -> let C.Node x = y in x) elt) me di
       )
 
+notch
+  :: forall outputChannels produced consumed event payload
+   . IsEvent event
+  => C.InitializeNotch
+  -> event C.Notch
+  -> C.Node outputChannels produced consumed event payload
+  -> C.Node outputChannels produced consumed event payload
+notch = __notch nothing
+
 notch'
   :: forall proxy sym outputChannels produced produced' consumed event payload
    . IsEvent event
+  => IsSymbol sym
   => Cons sym C.Input produced' produced
   => proxy sym
   -> C.InitializeNotch
   -> event C.Notch
   -> C.Node outputChannels produced' consumed event payload
   -> C.Node outputChannels produced consumed event payload
-notch' _ i atts elts = let C.Node n = notch i atts elts in C.Node n
+notch' px = __notch (just (reflectSymbol px))
 
 -- peaking
 
 __peaking
-  :: forall outputChannels produced consumed event payload
+  :: forall outputChannels producedI consumedI producedO consumedO event payload
    . IsEvent event
-  => C.InitializePeaking
+  => Maybe String
+  -> C.InitializePeaking
   -> event C.Peaking
-  -> C.Node outputChannels produced consumed event payload
-  -> C.Node outputChannels produced consumed event payload
-__peaking (C.InitializePeaking i) atts elt = C.Node go
+  -> C.Node outputChannels producedI consumedI event payload
+  -> C.Node outputChannels producedO consumedO event payload
+__peaking mId (C.InitializePeaking i) atts elt = C.Node go
   where
   go
     parent
@@ -1252,26 +1281,37 @@ __peaking (C.InitializePeaking i) atts elt = C.Node go
             <|> ((\y -> let C.Node x = y in x) elt) me di
       )
 
+peaking
+  :: forall outputChannels produced consumed event payload
+   . IsEvent event
+  => C.InitializePeaking
+  -> event C.Peaking
+  -> C.Node outputChannels produced consumed event payload
+  -> C.Node outputChannels produced consumed event payload
+peaking = __peaking nothing
+
 peaking'
   :: forall proxy sym outputChannels produced produced' consumed event payload
    . IsEvent event
+  => IsSymbol sym
   => Cons sym C.Input produced' produced
   => proxy sym
   -> C.InitializePeaking
   -> event C.Peaking
   -> C.Node outputChannels produced' consumed event payload
   -> C.Node outputChannels produced consumed event payload
-peaking' _ i atts elts = let C.Node n = peaking i atts elts in C.Node n
+peaking' px = __peaking (just (reflectSymbol px))
 
 -- periodicOsc
 
 __periodicOsc
   :: forall outputChannels produced consumed event payload
    . IsEvent event
-  => C.InitializePeriodicOsc
+  => Maybe String
+  -> C.InitializePeriodicOsc
   -> event C.PeriodicOsc
-  -> C.Node outputChannels () () event payload
-__periodicOsc (C.InitializePeriodicOsc i) atts = C.Node go
+  -> C.Node outputChannels produced consumed event payload
+__periodicOsc mId (C.InitializePeriodicOsc i) atts = C.Node go
   where
   go
     parent
@@ -1300,15 +1340,24 @@ __periodicOsc (C.InitializePeriodicOsc i) atts = C.Node go
               atts
       )
 
+periodicOsc
+  :: forall outputChannels produced consumed event payload
+   . IsEvent event
+  => C.InitializePeriodicOsc
+  -> event C.PeriodicOsc
+  -> C.Node outputChannels () () event payload
+periodicOsc = __periodicOsc nothing
+
 periodicOsc'
   :: forall proxy sym outputChannels produced event payload
    . IsEvent event
+  => IsSymbol sym
   => Cons sym C.Input () produced
   => proxy sym
   -> C.InitializePeriodicOsc
   -> event C.PeriodicOsc
   -> C.Node outputChannels produced () event payload
-periodicOsc' _ i atts = let C.Node n = periodicOsc i atts in C.Node n
+periodicOsc' px = __periodicOsc (just (reflectSymbol px))
 
 -- playBuf
 
@@ -1369,10 +1418,11 @@ __playBuf
   :: forall i outputChannels produced consumed event payload
    . IsEvent event
   => InitialPlayBuf i
-  => i
+  => Maybe String
+  -> i
   -> event C.PlayBuf
-  -> C.Node outputChannels () () event payload
-__playBuf i' atts = C.Node go
+  -> C.Node outputChannels produced consumed event payload
+__playBuf mId i' atts = C.Node go
   where
   C.InitializePlayBuf i = toInitialPlayBuf i'
   go
@@ -1412,28 +1462,38 @@ __playBuf i' atts = C.Node go
               atts
       )
 
+playBuf
+  :: forall i outputChannels event payload
+   . IsEvent event
+  => InitialPlayBuf i
+  => i
+  -> event C.PlayBuf
+  -> C.Node outputChannels () () event payload
+playBuf = __playBuf nothing
+
 playBuf'
   :: forall proxy sym outputChannels produced event payload
    . IsEvent event
+  => IsSymbol sym
   => Cons sym C.Input () produced
   => proxy sym
   -> C.InitializePlayBuf
   -> event C.PlayBuf
   -> C.Node outputChannels produced () event payload
-playBuf' _ i atts = let C.Node n = playBuf i atts in C.Node n
+playBuf' px = __playBuf (just (reflectSymbol px))
 
 -- recorder
-__recorder
+recorder
   :: forall outputChannels produced consumed event payload
    . IsEvent event
   => C.InitializeRecorder
   -> C.Node outputChannels produced consumed event payload
   -> C.Node outputChannels produced consumed event payload
-__recorder (C.InitializeRecorder i) elt = C.Node go
+recorder (C.InitializeRecorder i) elt = C.Node go
   where
   go parent di@(C.AudioInterpret { ids, makeRecorder }) =
     keepLatest
-      ( (sample_ ids (pure unit)) <#> __mId mId \me ->
+      ( (sample_ ids (pure unit)) <#> \me ->
           pure (makeRecorder { id: me, parent: just parent, cb: i.cb })
             <|> ((\y -> let C.Node x = y in x) elt) me di
 
@@ -1458,10 +1518,11 @@ ref px = C.Node go
 __sawtoothOsc
   :: forall outputChannels produced consumed event payload
    . IsEvent event
-  => C.InitializeSawtoothOsc
+  => Maybe String
+  -> C.InitializeSawtoothOsc
   -> event C.SawtoothOsc
-  -> C.Node outputChannels () () event payload
-__sawtoothOsc (C.InitializeSawtoothOsc i) atts = C.Node go
+  -> C.Node outputChannels produced consumed event payload
+__sawtoothOsc mId (C.InitializeSawtoothOsc i) atts = C.Node go
   where
   go parent (C.AudioInterpret { ids, makeSawtoothOsc, setFrequency, setOnOff }) =
     keepLatest
@@ -1484,15 +1545,24 @@ __sawtoothOsc (C.InitializeSawtoothOsc i) atts = C.Node go
               atts
       )
 
+sawtoothOsc
+  :: forall outputChannels event payload
+   . IsEvent event
+  => C.InitializeSawtoothOsc
+  -> event C.SawtoothOsc
+  -> C.Node outputChannels () () event payload
+sawtoothOsc = __sawtoothOsc nothing
+
 sawtoothOsc'
   :: forall proxy sym outputChannels produced event payload
    . IsEvent event
+  => IsSymbol sym
   => Cons sym C.Input () produced
   => proxy sym
   -> C.InitializeSawtoothOsc
   -> event C.SawtoothOsc
   -> C.Node outputChannels produced () event payload
-sawtoothOsc' _ i atts = let C.Node n = sawtoothOsc i atts in C.Node n
+sawtoothOsc' px = __sawtoothOsc (just (reflectSymbol px))
 
 -- sinOsc
 
@@ -1509,10 +1579,11 @@ __sinOsc
   :: forall i outputChannels produced consumed event payload
    . IsEvent event
   => InitialSinOsc i
-  => i
+  => Maybe String
+  -> i
   -> event C.SinOsc
-  -> C.Node outputChannels () () event payload
-__sinOsc i' atts = C.Node go
+  -> C.Node outputChannels produced consumed event payload
+__sinOsc mId i' atts = C.Node go
   where
   C.InitializeSinOsc i = toInitialSinOsc i'
   go parent (C.AudioInterpret { ids, makeSinOsc, setFrequency, setOnOff }) =
@@ -1536,26 +1607,37 @@ __sinOsc i' atts = C.Node go
               atts
       )
 
+sinOsc
+  :: forall i outputChannels event payload
+   . IsEvent event
+  => InitialSinOsc i
+  => i
+  -> event C.SinOsc
+  -> C.Node outputChannels () () event payload
+sinOsc = __sinOsc nothing
+
 sinOsc'
   :: forall proxy sym i outputChannels produced event payload
    . IsEvent event
+  => IsSymbol sym
   => InitialSinOsc i
   => Cons sym C.Input () produced
   => proxy sym
   -> i
   -> event C.SinOsc
   -> C.Node outputChannels produced () event payload
-sinOsc' _ i atts = let C.Node n = sinOsc i atts in C.Node n
+sinOsc' px = __sinOsc (just (reflectSymbol px))
 
 -- squareOsc
 
 __squareOsc
   :: forall outputChannels produced consumed event payload
    . IsEvent event
-  => C.InitializeSquareOsc
+  => Maybe String
+  -> C.InitializeSquareOsc
   -> event C.SquareOsc
-  -> C.Node outputChannels () () event payload
-__squareOsc (C.InitializeSquareOsc i) atts = C.Node go
+  -> C.Node outputChannels produced consumed event payload
+__squareOsc mId (C.InitializeSquareOsc i) atts = C.Node go
   where
   go parent (C.AudioInterpret { ids, makeSquareOsc, setFrequency, setOnOff }) =
     keepLatest
@@ -1578,15 +1660,24 @@ __squareOsc (C.InitializeSquareOsc i) atts = C.Node go
               atts
       )
 
+squareOsc
+  :: forall outputChannels event payload
+   . IsEvent event
+  => C.InitializeSquareOsc
+  -> event C.SquareOsc
+  -> C.Node outputChannels () () event payload
+squareOsc = __squareOsc nothing
+
 squareOsc'
   :: forall proxy sym outputChannels produced event payload
    . IsEvent event
+  => IsSymbol sym
   => Cons sym C.Input () produced
   => proxy sym
   -> C.InitializeSquareOsc
   -> event C.SquareOsc
   -> C.Node outputChannels produced () event payload
-squareOsc' _ i atts = let C.Node n = squareOsc i atts in C.Node n
+squareOsc' px = __squareOsc (just (reflectSymbol px))
 
 -- speaker
 speaker
@@ -1620,13 +1711,14 @@ speaker2 = speaker
 -- pan
 
 __pan
-  :: forall outputChannels produced consumed event payload
+  :: forall outputChannels producedI consumedI producedO consumedO event payload
    . IsEvent event
-  => C.InitializeStereoPanner
+  => Maybe String
+  -> C.InitializeStereoPanner
   -> event C.StereoPanner
-  -> C.Node outputChannels produced consumed event payload
-  -> C.Node outputChannels produced consumed event payload
-__pan (C.InitializeStereoPanner i) atts elt = C.Node go
+  -> C.Node outputChannels producedI consumedI event payload
+  -> C.Node outputChannels producedO consumedO event payload
+__pan mId (C.InitializeStereoPanner i) atts elt = C.Node go
   where
   go parent di@(C.AudioInterpret { ids, makeStereoPanner, setPan }) =
     keepLatest
@@ -1646,16 +1738,26 @@ __pan (C.InitializeStereoPanner i) atts elt = C.Node go
             <|> ((\y -> let C.Node x = y in x) elt) me di
       )
 
+pan
+  :: forall outputChannels produced consumed event payload
+   . IsEvent event
+  => C.InitializeStereoPanner
+  -> event C.StereoPanner
+  -> C.Node outputChannels produced consumed event payload
+  -> C.Node outputChannels produced consumed event payload
+pan = __pan nothing
+
 pan'
   :: forall proxy sym outputChannels produced produced' consumed event payload
    . IsEvent event
+  => IsSymbol sym
   => Cons sym C.Input produced' produced
   => proxy sym
   -> C.InitializeStereoPanner
   -> event C.StereoPanner
   -> C.Node outputChannels produced' consumed event payload
   -> C.Node outputChannels produced consumed event payload
-pan' _ i atts elts = let C.Node n = pan i atts elts in C.Node n
+pan' px = __pan (just (reflectSymbol px))
 
 -- triangleOsc
 
