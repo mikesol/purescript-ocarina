@@ -2,9 +2,7 @@ module WAGS.Imperative where
 
 import Prelude
 
-import Control.Alternative (empty, (<|>))
-import Control.Monad.Indexed (class IxApplicative, class IxApply, class IxBind, class IxMonad)
-import Data.Functor.Indexed (class IxFunctor)
+import Control.Alternative ((<|>))
 import Data.Newtype (unwrap)
 import Data.Variant (match)
 import Data.Variant.Maybe (nothing)
@@ -16,107 +14,8 @@ import Type.Prelude (class IsSymbol, reflectSymbol)
 import Type.Proxy (Proxy(..))
 import WAGS.Common as Common
 import WAGS.Core as Core
-
---
-data TypePair :: forall k l. k -> l -> Type
-data TypePair a b
-
-infixr 6 type TypePair as \/
-
---
-newtype GraphBuilder :: (Type -> Type) -> Type -> Type -> Type -> Type -> Type
-newtype GraphBuilder e p i o a = GraphBuilder
-  (Core.AudioInterpret e p -> { event :: e p, result :: a })
-
-type InitialGraphBuilderIndex :: Type
-type InitialGraphBuilderIndex = (() :: Row Type) \/ (() :: Row Boolean) \/ False
-
-runGraphBuilder_
-  :: forall e p o a
-   . IsEvent e
-  => Core.AudioInterpret e p
-  -> GraphBuilder e p InitialGraphBuilderIndex o a
-  -> { event :: e p, result :: a }
-runGraphBuilder_ audioInterpret (GraphBuilder graphBuilder) =
-  graphBuilder audioInterpret
-
-runGraphBuilder
-  :: forall e p o a
-   . IsEvent e
-  => Core.AudioInterpret e p
-  -> GraphBuilder e p InitialGraphBuilderIndex o a
-  -> e p
-runGraphBuilder audioInterpret = runGraphBuilder_ audioInterpret >>> _.event
-
-instance functorGraphBuilder :: Functor (GraphBuilder e p i i) where
-  map f (GraphBuilder g) = GraphBuilder (g >>> \n -> n { result = f n.result })
-
-instance applyGraphBuilder :: IsEvent e => Apply (GraphBuilder e p i i) where
-  apply (GraphBuilder f) (GraphBuilder g) = GraphBuilder h
-    where
-    h audioInterpret =
-      let
-        f' = f audioInterpret
-        g' = g audioInterpret
-      in
-        { event: f'.event <|> g'.event
-        , result: f'.result g'.result
-        }
-
-instance applicativeGraphBuilder ::
-  IsEvent e =>
-  Applicative (GraphBuilder e p i i) where
-  pure result = GraphBuilder \_ -> { event: empty, result }
-
-instance bindGraphBuilder :: IsEvent e => Bind (GraphBuilder e p i i) where
-  bind (GraphBuilder f) mkG = GraphBuilder h
-    where
-    h audioInterpret =
-      let
-        f' = f audioInterpret
-        (GraphBuilder g) = mkG f'.result
-        g' = g audioInterpret
-      in
-        { event: f'.event <|> g'.event
-        , result: g'.result
-        }
-
-instance monadGraphBuilder :: IsEvent e => Monad (GraphBuilder e p i i)
-
-instance ixFunctorGraphBuilder :: IxFunctor (GraphBuilder e p) where
-  imap f (GraphBuilder g) = GraphBuilder (g >>> \n -> n { result = f n.result })
-
-instance ixApplyGraphBuilder :: IsEvent e => IxApply (GraphBuilder e p) where
-  iapply (GraphBuilder f) (GraphBuilder g) = GraphBuilder h
-    where
-    h audioInterpret =
-      let
-        f' = f audioInterpret
-        g' = g audioInterpret
-      in
-        { event: f'.event <|> g'.event
-        , result: f'.result g'.result
-        }
-
-instance ixApplicativeGraphBuilder ::
-  IsEvent e =>
-  IxApplicative (GraphBuilder e p) where
-  ipure result = GraphBuilder \_ -> { event: empty, result }
-
-instance ixBindGraphBuilder :: IsEvent e => IxBind (GraphBuilder e p) where
-  ibind (GraphBuilder f) mkG = GraphBuilder h
-    where
-    h audioInterpret =
-      let
-        f' = f audioInterpret
-        (GraphBuilder g) = mkG f'.result
-        g' = g audioInterpret
-      in
-        { event: f'.event <|> g'.event
-        , result: g'.result
-        }
-
-instance ixMonadGraphBuilder :: IsEvent e => IxMonad (GraphBuilder e p)
+import WAGS.Imperative.Monad (GraphBuilder(..))
+import WAGS.Imperative.Types (type (\/))
 
 --
 data Node
