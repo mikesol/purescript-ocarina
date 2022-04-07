@@ -14,7 +14,7 @@ import Prim.RowList (class RowToList)
 import Prim.RowList as RL
 import Record as Record
 import Type.Proxy (Proxy(..))
-import WAGS.Control (__mId)
+import WAGS.Control (__appendScopeToNamedInput, __maybeUseName)
 import WAGS.Core (Input(..), Subgraph)
 import WAGS.Core as C
 
@@ -40,7 +40,8 @@ instance inputsCons ::
     let
       px = (Proxy :: _ key)
     in
-      Record.insert px (Input (reflectSymbol px <> "!" <> scope))
+      Record.insert px
+        (Input (__appendScopeToNamedInput (reflectSymbol px) scope))
         (inputs scope (Proxy :: _ rest))
 
 __subgraph
@@ -67,7 +68,7 @@ __subgraph mId mods elt = C.Node go
       subg = elt (inputs scope (Proxy :: _ consumedRL))
     in
       keepLatest
-        ( (sample_ ids (pure unit)) <#> __mId scope mId \me ->
+        ( (sample_ ids (pure unit)) <#> __maybeUseName scope mId \me ->
             pure
               ( makeSubgraph
                   { id: me, parent: parent, scenes: subg, scope }
