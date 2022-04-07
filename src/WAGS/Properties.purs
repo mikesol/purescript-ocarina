@@ -5,7 +5,7 @@ import Prelude
 import Data.Newtype (class Newtype, wrap)
 import Data.Variant (Variant, inj)
 import Type.Proxy (Proxy(..))
-import WAGS.Parameter (class ToAudioOnOff, class ToAudioParameter, AudioOnOff(..), AudioParameter, toAudioOnOff, toAudioParameter)
+import WAGS.Parameter (class ToAudioOnOff, class ToAudioParameter, AudioOnOff, AudioParameter, toAudioOnOff, toAudioParameter)
 import WAGS.WebAPI (BrowserAudioBuffer)
 
 -- props
