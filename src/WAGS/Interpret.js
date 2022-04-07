@@ -64,6 +64,25 @@ var workletSetter = function (unit, paramName, deprecatedTimeToSet, param) {
 var genericSetter = function (unit, name, deprecatedTimeToSet, param) {
 	return protoSetter(unit[name], deprecatedTimeToSet, param);
 };
+var doDeferredConnections = function (ptr, state) {
+	if (state.toConnect[ptr]) {
+		state.toConnect[ptr].forEach(function (conn) {
+			if (conn.w) {
+				if (state.units[conn.w]) {
+					conn.f();
+				} else {
+					if (!state.toConnect[conn.w]) {
+						state.toConnect[conn.w] = [];
+					}
+					state.toConnect[conn.w].push({ f: conn.f });
+				}
+			} else {
+				conn.f();
+			}
+		});
+		delete state.toConnect[ptr];
+	}
+};
 var mConnectXToY_ = function (x) {
 	return function (y) {
 		return function (state) {
@@ -79,12 +98,37 @@ var connectXToY_ = function (x) {
 	return function (y) {
 		return function (state) {
 			return function () {
-				state.units[x].outgoing.push(y);
-				state.units[y].incoming.push(x);
-				state.units[x].main.connect(state.units[y].main);
-				if (state.units[y].se) {
-					state.units[x].main.connect(state.units[y].se);
+				var connectF = function () {
+					state.units[x].outgoing.push(y);
+					state.units[y].incoming.push(x);
+					state.units[x].main.connect(state.units[y].main);
+					if (state.units[y].se) {
+						state.units[x].main.connect(state.units[y].se);
+					}
+				};
+				if (!state.units[x]) {
+					if (!state.toConnect[x]) {
+						state.toConnect[x] = [];
+					}
+					var conn = { f: connectF };
+					if (y !== x && !state.units[y]) {
+						conn.w = y;
+					}
+					state.toConnect[x].push(conn);
+					return;
 				}
+				if (!state.units[y]) {
+					if (!state.toConnect[y]) {
+						state.toConnect[y] = [];
+					}
+					var conn = { f: connectF };
+					if (y !== x && !state.units[x]) {
+						conn.w = x;
+					}
+					state.toConnect[y].push(conn);
+					return;
+				}
+				connectF();
 			};
 		};
 	};
@@ -92,9 +136,7 @@ var connectXToY_ = function (x) {
 exports.connectXToY_ = function (parameters) {
 	return function (state) {
 		return function () {
-			setTimeout(function () {
-				connectXToY_(parameters["from"])(parameters["to"])(state)();
-			}, 0);
+			connectXToY_(parameters["from"])(parameters["to"])(state)();
 		};
 	};
 };
@@ -154,6 +196,7 @@ exports.makeAllpass_ = function (a) {
 					frequency: a.frequency,
 				}),
 			};
+			doDeferredConnections(ptr, state);
 			mConnectXToY_(ptr)(a.parent)(state)();
 		};
 	};
@@ -176,6 +219,7 @@ exports.makeAnalyser_ = function (a) {
 				main: state.context.createGain(),
 				se: dest,
 			};
+			doDeferredConnections(ptr, state);
 			mConnectXToY_(ptr)(a.parent)(state)();
 		};
 	};
@@ -198,6 +242,7 @@ exports.makeAudioWorkletNode_ = function (aa) {
 					processorOptions: a.processorOptions,
 				}),
 			};
+			doDeferredConnections(ptr, state);
 			mConnectXToY_(ptr)(aa.parent)(state)();
 		};
 	};
@@ -217,6 +262,7 @@ exports.makeBandpass_ = function (a) {
 					frequency: a.frequency,
 				}),
 			};
+			doDeferredConnections(ptr, state);
 			mConnectXToY_(ptr)(a.parent)(state)();
 		};
 	};
@@ -240,6 +286,7 @@ exports.makeConstant_ = function (a) {
 				createClosure: createClosure,
 				main: createClosure(state.context, resume),
 			};
+			doDeferredConnections(ptr, state);
 			mConnectXToY_(ptr)(a.parent)(state)();
 			// var oo = isOn(onOff.onOff);
 			// if (oo) {
@@ -261,6 +308,7 @@ exports.makeConvolver_ = function (a) {
 				incoming: [],
 				main: new ConvolverNode(state.context, { buffer: a.buffer }),
 			};
+			doDeferredConnections(ptr, state);
 			mConnectXToY_(ptr)(a.parent)(state)();
 		};
 	};
@@ -278,6 +326,7 @@ exports.makeDelay_ = function (a) {
 					delayTime: a.delayTime,
 				}),
 			};
+			doDeferredConnections(ptr, state);
 			mConnectXToY_(ptr)(a.parent)(state)();
 		};
 	};
@@ -299,6 +348,7 @@ exports.makeDynamicsCompressor_ = function (a) {
 					release: a.release,
 				}),
 			};
+			doDeferredConnections(ptr, state);
 			mConnectXToY_(ptr)(a.parent)(state)();
 		};
 	};
@@ -316,6 +366,7 @@ var makeGain_ = function (a) {
 					gain: a.gain,
 				}),
 			};
+			doDeferredConnections(ptr, state);
 			mConnectXToY_(ptr)(a.parent)(state)();
 		};
 	};
@@ -335,6 +386,7 @@ exports.makeHighpass_ = function (a) {
 					frequency: a.frequency,
 				}),
 			};
+			doDeferredConnections(ptr, state);
 			mConnectXToY_(ptr)(a.parent)(state)();
 		};
 	};
@@ -354,6 +406,7 @@ exports.makeHighshelf_ = function (a) {
 					gain: a.gain,
 				}),
 			};
+			doDeferredConnections(ptr, state);
 			mConnectXToY_(ptr)(a.parent)(state)();
 		};
 	};
@@ -365,9 +418,8 @@ exports.makeInput_ = function (a) {
 		return function () {
 			var ptr = a.id;
 			var parent = a.parent;
-			setTimeout(function () {
-				mConnectXToY_(ptr)(parent)(state)();
-			}, 0);
+			doDeferredConnections(ptr, state);
+			mConnectXToY_(ptr)(parent)(state)();
 		};
 	};
 };
@@ -396,6 +448,7 @@ exports.makeLoopBuf_ = function (a) {
 				createClosure: createClosure,
 				main: createClosure(state.context, resume),
 			};
+			doDeferredConnections(ptr, state);
 			mConnectXToY_(ptr)(a.parent)(state)();
 			// var oo = isOn(onOff.onOff);
 			// if (oo) {
@@ -422,6 +475,7 @@ exports.makeLowpass_ = function (a) {
 					frequency: a.frequency,
 				}),
 			};
+			doDeferredConnections(ptr, state);
 			mConnectXToY_(ptr)(a.parent)(state)();
 		};
 	};
@@ -441,6 +495,7 @@ exports.makeLowshelf_ = function (a) {
 					gain: a.gain,
 				}),
 			};
+			doDeferredConnections(ptr, state);
 			mConnectXToY_(ptr)(a.parent)(state)();
 		};
 	};
@@ -464,6 +519,7 @@ exports.makeMediaElement_ = function (a) {
 				resumeClosure: {},
 				main: createClosure(),
 			};
+			doDeferredConnections(ptr, state);
 			mConnectXToY_(ptr)(a.parent)(state)();
 		};
 	};
@@ -496,6 +552,7 @@ exports.makeNotch_ = function (a) {
 					Q: a.q,
 				}),
 			};
+			doDeferredConnections(ptr, state);
 			mConnectXToY_(ptr)(a.parent)(state)();
 		};
 	};
@@ -516,6 +573,7 @@ exports.makePeaking_ = function (a) {
 					gain: a.gain,
 				}),
 			};
+			doDeferredConnections(ptr, state);
 			mConnectXToY_(ptr)(a.parent)(state)();
 		};
 	};
@@ -549,6 +607,7 @@ exports.makePeriodicOsc_ = function (a) {
 				createClosure: createClosure,
 				main: createClosure(state.context, resume),
 			};
+			doDeferredConnections(ptr, state);
 			mConnectXToY_(ptr)(a.parent)(state)();
 			// var oo = isOn(onOff.onOff);
 			// if (oo) {
@@ -585,6 +644,7 @@ exports.makePlayBuf_ = function (a) {
 				createClosure: createClosure,
 				main: createClosure(state.context, resume),
 			};
+			doDeferredConnections(ptr, state);
 			mConnectXToY_(ptr)(a.parent)(state)();
 			// var oo = isOn(onOff.onOff);
 			// if (oo) {
@@ -617,6 +677,7 @@ exports.makeRecorder_ = function (aa) {
 				main: state.context.createGain(),
 				se: dest,
 			};
+			doDeferredConnections(ptr, state);
 			mConnectXToY_(ptr)(aa.parent)(state)();
 		};
 	};
@@ -640,6 +701,7 @@ exports.makeSawtoothOsc_ = function (a) {
 				createClosure: createClosure,
 				main: createClosure(state.context, resume),
 			};
+			doDeferredConnections(ptr, state);
 			mConnectXToY_(ptr)(a.parent)(state)();
 			// var oo = isOn(onOff.onOff);
 			// if (oo) {
@@ -670,6 +732,7 @@ exports.makeSinOsc_ = function (a) {
 				createClosure: createClosure,
 				main: createClosure(state.context, resume),
 			};
+			doDeferredConnections(ptr, state);
 			mConnectXToY_(ptr)(a.parent)(state)();
 			// var oo = isOn(onOff.onOff);
 			// if (oo) {
@@ -707,7 +770,10 @@ exports.removeSubgraph_ = function (a) {
 			var pj = `${ptr}-${j}`;
 			if (state.unsu[pj] !== undefined) {
 				state.unsu[pj]();
-				state.units[state.units[ptr].cache[j]].disconnect();
+				state.units[state.units[ptr].cache[j]].main.disconnect();
+				if (state.units[state.units[ptr].cache[j]].se) {
+					state.units[state.units[ptr].cache[j]].se.disconnect();
+				}
 				delete state.units[state.units[ptr].cache[j]];
 				delete state.units[ptr].cache[j];
 				delete state.unsu[pj];
@@ -766,6 +832,7 @@ exports.makeStereoPanner_ = function (a) {
 					pan: a.pan,
 				}),
 			};
+			doDeferredConnections(ptr, state);
 			mConnectXToY_(ptr)(a.parent)(state)();
 		};
 	};
@@ -789,6 +856,7 @@ exports.makeSquareOsc_ = function (a) {
 				createClosure: createClosure,
 				main: createClosure(state.context, resume),
 			};
+			doDeferredConnections(ptr, state);
 			mConnectXToY_(ptr)(a.parent)(state)();
 			// var oo = isOn(onOff.onOff);
 			// if (oo) {
@@ -819,6 +887,7 @@ exports.makeTriangleOsc_ = function (a) {
 				createClosure: createClosure,
 				main: createClosure(state.context, resume),
 			};
+			doDeferredConnections(ptr, state);
 			mConnectXToY_(ptr)(a.parent)(state)();
 			// var oo = isOn(onOff.onOff);
 			// if (oo) {
@@ -845,6 +914,7 @@ exports.makeWaveShaper_ = function (aa) {
 					oversample: b.type,
 				}),
 			};
+			doDeferredConnections(ptr, state);
 			mConnectXToY_(ptr)(a.parent)(state)();
 		};
 	};
@@ -1482,6 +1552,7 @@ exports.makeFFIAudioSnapshot = function (audioCtx) {
 			unqidfr: makeid(10),
 			pushers: {},
 			unsu: {},
+			toConnect: {},
 		};
 	};
 };
