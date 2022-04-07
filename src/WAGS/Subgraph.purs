@@ -24,10 +24,10 @@ data SubgraphAction env
 
 class MakeInputs :: forall k. k -> Row Type -> Constraint
 class MakeInputs consumedRL consumed | consumedRL -> consumed where
-  inputs :: forall proxy. proxy consumedRL -> { | consumed }
+  inputs :: forall proxy. String -> proxy consumedRL -> { | consumed }
 
 instance inputsNil :: MakeInputs (RL.Nil) () where
-  inputs _ = {}
+  inputs _ _ = {}
 
 instance inputsCons ::
   ( IsSymbol key
@@ -36,11 +36,11 @@ instance inputsCons ::
   , MakeInputs rest consumed'
   ) =>
   MakeInputs (RL.Cons key Input rest) consumed where
-  inputs _ =
+  inputs scope _ =
     let
       px = (Proxy :: _ key)
     in
-      Record.insert px (Input (reflectSymbol px)) (inputs (Proxy :: _ rest))
+      Record.insert px (Input (reflectSymbol px <> "!" <> scope)) (inputs scope (Proxy :: _ rest))
 
 __subgraph
   :: forall index env outputChannels produced consumed consumedRL sgProduced
@@ -57,26 +57,28 @@ __subgraph
   -> C.Node outputChannels produced consumed event payload
 __subgraph mId mods elt = C.Node go
   where
-  subg = elt (inputs (Proxy :: _ consumedRL))
   go
     parent
     ( C.AudioInterpret
         { ids, scope, makeSubgraph, insertOrUpdateSubgraph, removeSubgraph }
     ) =
-    keepLatest
-      ( (sample_ ids (pure unit)) <#> __mId mId \me ->
-          pure
-            ( makeSubgraph
-                { id: me, parent: parent, scenes: subg, scope }
-            )
-            <|> map
-              ( \(index /\ instr) -> case instr of
-                  Remove -> removeSubgraph { id: me, pos: hash index, index }
-                  InsertOrUpdate env -> insertOrUpdateSubgraph
-                    { id: me, pos: hash index, index, env }
+    let
+      subg = elt (inputs scope (Proxy :: _ consumedRL))
+    in
+      keepLatest
+        ( (sample_ ids (pure unit)) <#> __mId scope mId \me ->
+            pure
+              ( makeSubgraph
+                  { id: me, parent: parent, scenes: subg, scope }
               )
-              mods
-      )
+              <|> map
+                ( \(index /\ instr) -> case instr of
+                    Remove -> removeSubgraph { id: me, pos: hash index, index }
+                    InsertOrUpdate env -> insertOrUpdateSubgraph
+                      { id: me, pos: hash index, index, env }
+                )
+                mods
+        )
 
 subgraph
   :: forall index env outputChannels consumed consumedRL sgProduced
@@ -93,7 +95,8 @@ subgraph
 subgraph = __subgraph nothing
 
 subgraph'
-  :: forall proxy sym index env outputChannels produced consumed consumedRL sgProduced
+  :: forall proxy sym index env outputChannels produced consumed consumedRL
+       sgProduced
        sgConsumed event payload
    . IsEvent event
   => Hashable index
