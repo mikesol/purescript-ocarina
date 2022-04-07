@@ -65,7 +65,8 @@ instance allpassCtor1 ::
 else instance allpassCtor2 ::
   ToAudioParameter a =>
   AllpassCtor a (b -> CTOR.Allpass /\ b) where
-  allpass a b = CTOR.Allpass { frequency: toAudioParameter a, q: defaultAllpass.q } /\ b
+  allpass a b =
+    CTOR.Allpass { frequency: toAudioParameter a, q: defaultAllpass.q } /\ b
 
 type CAllpass a = CTOR.Allpass /\ a
 
@@ -168,7 +169,8 @@ instance bandpassCtor1 ::
 else instance bandpassCtor2 ::
   ToAudioParameter a =>
   BandpassCtor a (b -> CTOR.Bandpass /\ b) where
-  bandpass a b = CTOR.Bandpass { frequency: toAudioParameter a, q: defaultBandpass.q } /\ b
+  bandpass a b =
+    CTOR.Bandpass { frequency: toAudioParameter a, q: defaultBandpass.q } /\ b
 
 type CBandpass a = CTOR.Bandpass /\ a
 
@@ -218,7 +220,8 @@ else instance constantCtor2 ::
   ToAudioParameter a =>
   ConstantCtor a (CTOR.Constant /\ {}) where
   constant a =
-    CTOR.Constant { onOff: defaultConstant.onOff, offset: toAudioParameter a } /\ {}
+    CTOR.Constant { onOff: defaultConstant.onOff, offset: toAudioParameter a }
+      /\ {}
 
 type CConstant = CTOR.Constant /\ {}
 
@@ -390,7 +393,8 @@ instance highpassCtor1 ::
 else instance highpassCtor2 ::
   ToAudioParameter a =>
   HighpassCtor a (b -> CTOR.Highpass /\ b) where
-  highpass a = Tuple (CTOR.Highpass { frequency: toAudioParameter a, q: defaultHighpass.q })
+  highpass a = Tuple
+    (CTOR.Highpass { frequency: toAudioParameter a, q: defaultHighpass.q })
 
 type CHighpass a = CTOR.Highpass /\ a
 
@@ -440,7 +444,9 @@ else instance highshelfCtor2 ::
   ToAudioParameter a =>
   HighshelfCtor a (b -> CTOR.Highshelf /\ b) where
   highshelf a = Tuple
-    (CTOR.Highshelf { frequency: toAudioParameter a, gain: defaultHighshelf.gain })
+    ( CTOR.Highshelf
+        { frequency: toAudioParameter a, gain: defaultHighshelf.gain }
+    )
 
 type CHighshelf a = CTOR.Highshelf /\ a
 
@@ -626,7 +632,9 @@ else instance lowshelfCtor2 ::
   ToAudioParameter a =>
   LowshelfCtor a (b -> CTOR.Lowshelf /\ b) where
   lowshelf a = Tuple
-    (CTOR.Lowshelf { frequency: toAudioParameter a, gain: defaultLowshelf.gain })
+    ( CTOR.Lowshelf
+        { frequency: toAudioParameter a, gain: defaultLowshelf.gain }
+    )
 
 type CLowshelf a = CTOR.Lowshelf /\ a
 
@@ -688,8 +696,11 @@ instance notchCtor1 ::
     where
     all :: { | NotchAll }
     all = convertOptionsWithDefaults Notch defaultNotch provided
-else instance notchCtor2 :: ToAudioParameter a => NotchCtor a (b -> CTOR.Notch /\ b) where
-  notch a = Tuple (CTOR.Notch { frequency: toAudioParameter a, q: defaultNotch.q })
+else instance notchCtor2 ::
+  ToAudioParameter a =>
+  NotchCtor a (b -> CTOR.Notch /\ b) where
+  notch a = Tuple
+    (CTOR.Notch { frequency: toAudioParameter a, q: defaultNotch.q })
 
 type CNotch a = CTOR.Notch /\ a
 
@@ -745,7 +756,10 @@ else instance peakingCtor2 ::
   PeakingCtor a (b -> CTOR.Peaking /\ b) where
   peaking a = Tuple
     ( CTOR.Peaking
-        { frequency: toAudioParameter a, q: defaultPeaking.q, gain: defaultPeaking.gain }
+        { frequency: toAudioParameter a
+        , q: defaultPeaking.q
+        , gain: defaultPeaking.gain
+        }
     )
 
 type CPeaking a = CTOR.Peaking /\ a
@@ -815,7 +829,8 @@ else instance periodicOscCtor2 ::
   ) =>
   PeriodicOscCtor wave (a -> CTOR.PeriodicOsc wave /\ {}) where
   periodicOsc wave a =
-    CTOR.PeriodicOsc { wave, onOff: defaultPeriodicOsc.onOff, frequency: toAudioParameter a }
+    CTOR.PeriodicOsc
+      { wave, onOff: defaultPeriodicOsc.onOff, frequency: toAudioParameter a }
       /\ {}
 
 type CPeriodicOsc periodicOsc = CTOR.PeriodicOsc periodicOsc /\ {}
@@ -846,7 +861,10 @@ type PlayBufAll = (| PlayBufOptional)
 
 defaultPlayBuf :: { | PlayBufOptional }
 defaultPlayBuf =
-  { playbackRate: toAudioParameter 1.0, onOff: toAudioOnOff _on, bufferOffset: 0.0 }
+  { playbackRate: toAudioParameter 1.0
+  , onOff: toAudioOnOff _on
+  , bufferOffset: 0.0
+  }
 
 class PlayBufCtor i playBuf | i -> playBuf where
   -- | Make a unit that plays from a buffer.
@@ -952,7 +970,8 @@ else instance sawtoothOscCtor2 ::
   ToAudioParameter a =>
   SawtoothOscCtor a (CTOR.SawtoothOsc /\ {}) where
   sawtoothOsc a =
-    CTOR.SawtoothOsc { onOff: defaultSawtoothOsc.onOff, frequency: toAudioParameter a } /\ {}
+    CTOR.SawtoothOsc
+      { onOff: defaultSawtoothOsc.onOff, frequency: toAudioParameter a } /\ {}
 
 type CSawtoothOsc = CTOR.SawtoothOsc /\ {}
 
@@ -998,8 +1017,12 @@ instance sinOscCtor1 ::
     where
     all :: { | SinOscAll }
     all = convertOptionsWithDefaults SinOsc defaultSinOsc provided
-else instance sinOscCtor2 :: ToAudioParameter a => SinOscCtor a (CTOR.SinOsc /\ {}) where
-  sinOsc a = CTOR.SinOsc { onOff: defaultSinOsc.onOff, frequency: toAudioParameter a } /\ {}
+else instance sinOscCtor2 ::
+  ToAudioParameter a =>
+  SinOscCtor a (CTOR.SinOsc /\ {}) where
+  sinOsc a =
+    CTOR.SinOsc { onOff: defaultSinOsc.onOff, frequency: toAudioParameter a } /\
+      {}
 
 type CSinOsc = CTOR.SinOsc /\ {}
 
@@ -1065,7 +1088,8 @@ else instance squareOscCtor2 ::
   ToAudioParameter a =>
   SquareOscCtor a (CTOR.SquareOsc /\ {}) where
   squareOsc a =
-    CTOR.SquareOsc { onOff: defaultSquareOsc.onOff, frequency: (toAudioParameter a) } /\ {}
+    CTOR.SquareOsc
+      { onOff: defaultSquareOsc.onOff, frequency: (toAudioParameter a) } /\ {}
 
 type CSquareOsc = CTOR.SquareOsc /\ {}
 
@@ -1134,7 +1158,8 @@ else instance triangleOscCtor2 ::
   ToAudioParameter a =>
   TriangleOscCtor a (CTOR.TriangleOsc /\ {}) where
   triangleOsc a =
-    CTOR.TriangleOsc { onOff: defaultTriangleOsc.onOff, frequency: (toAudioParameter a) } /\
+    CTOR.TriangleOsc
+      { onOff: defaultTriangleOsc.onOff, frequency: (toAudioParameter a) } /\
       {}
 
 type CTriangleOsc = CTOR.TriangleOsc /\ {}

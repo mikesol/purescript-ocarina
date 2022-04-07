@@ -169,6 +169,7 @@ instance typeToSymHighshelf :: TypeToSym Highshelf "Highshelf"
 -- | Term-level constructor for arbitrary input (ie from another audio graph)
 -- | - `input` - the input to use.
 data Input (input :: Symbol) = Input
+
 instance typeToSymInput :: TypeToSym (Input input) "Input"
 instance typeToSymCoreInput :: TypeToSym Core.Input "Input"
 
@@ -282,6 +283,7 @@ instance typeToSymPlayBuf :: TypeToSym PlayBuf "PlayBuf"
 -- | - `recorder` - the recorder to which we write data.
 type Recorder' = (cb :: MediaRecorderCb)
 newtype Recorder = Recorder { | Recorder' }
+
 derive instance newtypeRecorder :: Newtype Recorder _
 instance typeToSymRecorder :: TypeToSym (Recorder) "Recorder"
 
@@ -330,6 +332,7 @@ instance typeToSymStereoPanner :: TypeToSym StereoPanner "StereoPanner"
 -- | - `frequency` - the frequency of the oscillator.
 type TriangleOsc' = (onOff :: AudioOnOff, frequency :: AudioParameter)
 newtype TriangleOsc = TriangleOsc { | TriangleOsc' }
+
 derive instance newtypeTriangleOsc :: Newtype TriangleOsc _
 instance typeToSymTriangleOsc :: TypeToSym TriangleOsc "TriangleOsc"
 
@@ -341,6 +344,7 @@ type WaveShaper' oversample =
 
 newtype WaveShaper oversample = WaveShaper
   { | WaveShaper' oversample }
+
 derive instance newtypeWaveShaper :: Newtype (WaveShaper oversample) _
 instance typeToSymWaveShaper ::
   TypeToSym (WaveShaper oversample) "WaveShaper"
@@ -810,7 +814,6 @@ instance monoidTTriangleOsc :: Monoid TTriangleOsc where
 
 instance reifyTTriangleOsc :: ReifyAU (TriangleOsc) TTriangleOsc where
   reifyAU = const mempty
-
 
 -- | Type-level constructor for a wave shaper.
 data TWaveShaper (oversample :: Type) = TWaveShaper oversample

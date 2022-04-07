@@ -34,8 +34,7 @@ import Unsafe.Reference (unsafeRefEq)
 -- | combined using the various functions and instances provided in this module.
 -- |
 -- | PureEvents are consumed by providing a callback using the `subscribe` function.
-newtype PureEvent r a
-  = PureEvent ((a -> ST r Unit) -> ST r (ST r Unit))
+newtype PureEvent r a = PureEvent ((a -> ST r Unit) -> ST r (ST r Unit))
 
 instance functorPureEvent :: Functor (PureEvent r) where
   map f (PureEvent e) = PureEvent \k -> e (k <<< f)
@@ -169,7 +168,10 @@ unsafeRecastST :: forall r0 r1. ST r0 ~> ST r1
 unsafeRecastST = unsafeCoerce
 
 -- | Compute a fixed point
-fix :: forall r i o. (PureEvent r i -> { input :: PureEvent r i, output :: PureEvent r o }) -> PureEvent r o
+fix
+  :: forall r i o
+   . (PureEvent r i -> { input :: PureEvent r i, output :: PureEvent r o })
+  -> PureEvent r o
 fix f =
   PureEvent \k -> do
     c1 <- subscribe input push
@@ -183,11 +185,11 @@ fix f =
 -- | Subscribe to an `PureEvent` by providing a callback.
 -- |
 -- | `subscribe` returns a canceller function.
-subscribe ::
-  forall r a.
-  PureEvent r a ->
-  (a -> ST r Unit) ->
-  ST r (ST r Unit)
+subscribe
+  :: forall r a
+   . PureEvent r a
+  -> (a -> ST r Unit)
+  -> ST r (ST r Unit)
 subscribe (PureEvent e) k = e k
 
 -- | Make an `PureEvent` from a function which accepts a callback and returns an
@@ -195,21 +197,21 @@ subscribe (PureEvent e) k = e k
 -- |
 -- | Note: you probably want to use `create` instead, unless you need explicit
 -- | control over unsubscription.
-makePureEvent ::
-  forall r a.
-  ((a -> ST r Unit) -> ST r (ST r Unit)) ->
-  PureEvent r a
+makePureEvent
+  :: forall r a
+   . ((a -> ST r Unit) -> ST r (ST r Unit))
+  -> PureEvent r a
 makePureEvent = PureEvent
 
-type PureEventIO r a
-  = { event :: PureEvent r a
-    , push :: a -> ST r Unit
-    }
+type PureEventIO r a =
+  { event :: PureEvent r a
+  , push :: a -> ST r Unit
+  }
 
 -- | Create an event and a function which supplies a value to that event.
-create ::
-  forall r a.
-  ST r (PureEventIO r a)
+create
+  :: forall r a
+   . ST r (PureEventIO r a)
 create = do
   subscribers <- Ref.new []
   pure

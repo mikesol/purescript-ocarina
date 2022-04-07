@@ -175,6 +175,7 @@ type DisconnectXFromY_ = (from :: String, to :: String)
 type DisconnectXFromY = { | DisconnectXFromY_ }
 type DisconnectXFromY' =
   { fromUnit :: String, toUnit :: String | DisconnectXFromY_ }
+
 type DestroyUnit_ = (id :: String)
 type DestroyUnit = { | DestroyUnit_ }
 type DestroyUnit' = { unit :: String | DestroyUnit_ }

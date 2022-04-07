@@ -88,7 +88,8 @@ instance createStepRLCons ::
           :: CreateStepRLSig edgesRL newPrefix newMap edges graph1 graph2
       ) Proxy Proxy Proxy (Object.union inputCache1 o) edges
         (step1)
-    step3 /\ inputCache3 = createStepRL (Proxy :: _ rest) (Proxy :: _ prefix) (Proxy :: _ map)
+    step3 /\ inputCache3 = createStepRL (Proxy :: _ rest) (Proxy :: _ prefix)
+      (Proxy :: _ map)
       inputCache2
       rx
       (step2)
@@ -119,7 +120,9 @@ instance connectEdgesToNodeCons ::
   ConnectEdgesToNode (RL.Cons key ignore rest) dest inGraph outGraph where
   connectEdgesToNode _ px o w = step2
     where
-    step1 = connect (Object.lookup (reflectSymbol (Proxy :: _ key)) o) { source: (Proxy :: _ key), dest: (Proxy :: _ dest) } (w)
+    step1 = connect (Object.lookup (reflectSymbol (Proxy :: _ key)) o)
+      { source: (Proxy :: _ key), dest: (Proxy :: _ dest) }
+      (w)
 
     step2 = connectEdgesToNode (Proxy :: _ rest) px o (step1)
 
@@ -168,11 +171,13 @@ instance connectAfterCreateCons ::
     step1 = connectEdgesToNode (Proxy :: _ oel) (Proxy :: _ newKey) o (w)
 
     step2 = connectAfterCreate (Proxy :: _ newPrefix) (Proxy :: _ newMap)
-      (Proxy :: _ edgesList) o
+      (Proxy :: _ edgesList)
+      o
       (step1)
 
     step3 = connectAfterCreate (Proxy :: _ prefix) (Proxy :: _ map)
-      (Proxy :: _ rest) o
+      (Proxy :: _ rest)
+      o
       (step2)
 
 type CreateInternalSig
@@ -206,16 +211,18 @@ instance createInternalAll ::
   CreateInternal prefix map r inGraph outGraph where
   createInternal _ _ z r = step1
     where
-    step0 /\ inputCache = (createStepRL :: CreateStepRLSig rl prefix map r inGraph midGraph)
-      Proxy
-      Proxy
-      Proxy
-      Object.empty
-      z
-      r
+    step0 /\ inputCache =
+      (createStepRL :: CreateStepRLSig rl prefix map r inGraph midGraph)
+        Proxy
+        Proxy
+        Proxy
+        Object.empty
+        z
+        r
 
     step1 = connectAfterCreate (Proxy :: _ prefix) (Proxy :: _ map)
-      (Proxy :: _ rl) inputCache
+      (Proxy :: _ rl)
+      inputCache
       (step0)
 
 class
@@ -373,7 +380,8 @@ instance createAudioWorkletNode ::
     )
     graphi
     grapho where
-  create' ptr (CTOR.AudioWorkletNode _ (AudioWorkletNodeOptions options)) w = o /\ Object.empty
+  create' ptr (CTOR.AudioWorkletNode _ (AudioWorkletNodeOptions options)) w = o
+    /\ Object.empty
     where
     WAG { instructions } = w
 
@@ -759,7 +767,8 @@ instance createPeriodicOsc ::
   , R.Cons ptr (NodeC CTOR.TPeriodicOsc {}) graphi grapho
   ) =>
   Create' ptr (CTOR.PeriodicOsc BrowserPeriodicWave) graphi grapho where
-  create' ptr (CTOR.PeriodicOsc { wave, onOff, frequency }) w = o /\ Object.empty
+  create' ptr (CTOR.PeriodicOsc { wave, onOff, frequency }) w = o /\
+    Object.empty
     where
     WAG { instructions } = w
 
@@ -784,7 +793,8 @@ instance createPeriodicOsc2 ::
     (CTOR.PeriodicOsc (V.Vec a Number /\ V.Vec a Number))
     graphi
     grapho where
-  create' ptr (CTOR.PeriodicOsc { wave, onOff, frequency }) w = o /\ Object.empty
+  create' ptr (CTOR.PeriodicOsc { wave, onOff, frequency }) w = o /\
+    Object.empty
     where
     WAG { instructions } = w
 
@@ -960,7 +970,8 @@ instance createWaveShaper ::
   , R.Cons ptr (NodeC (CTOR.TWaveShaper oversample) {}) graphi grapho
   ) =>
   Create' ptr (CTOR.WaveShaper oversample) graphi grapho where
-  create' ptr (CTOR.WaveShaper { floatArray, oversample: oversample' }) w = o /\ Object.empty
+  create' ptr (CTOR.WaveShaper { floatArray, oversample: oversample' }) w = o /\
+    Object.empty
     where
     WAG { instructions } = w
 

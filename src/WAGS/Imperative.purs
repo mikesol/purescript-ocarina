@@ -246,8 +246,12 @@ createPlayBuf
   -> GraphBuilder e p i o (GraphUnit id PlayBuf)
 createPlayBuf _ initialPlayBuf attributes = GraphBuilder go
   where
-  { buffer, playbackRate, bufferOffset, duration } = unwrap $ Common.toInitializePlayBuf initialPlayBuf
-  go (Core.AudioInterpret { makePlayBuf, setBuffer, setOnOff, setPlaybackRate, setBufferOffset }) =
+  { buffer, playbackRate, bufferOffset, duration } = unwrap $
+    Common.toInitializePlayBuf initialPlayBuf
+  go
+    ( Core.AudioInterpret
+        { makePlayBuf, setBuffer, setOnOff, setPlaybackRate, setBufferOffset }
+    ) =
     { event:
         let
           id = reflectSymbol (Proxy :: _ id)
@@ -269,7 +273,6 @@ createPlayBuf _ initialPlayBuf attributes = GraphBuilder go
           event0 <|> eventN
     , result: GraphUnit
     }
-
 
 class IntoIsTerminal :: Boolean -> Constraint
 class IntoIsTerminal isTerminal

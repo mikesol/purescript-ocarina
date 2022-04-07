@@ -70,7 +70,6 @@ onOff
   -> nt
 onOff = wrap <<< inj (Proxy :: Proxy "onOff") <<< toAudioOnOff
 
-
 playbackRate
   :: forall nt r ap
    . Newtype nt (Variant (playbackRate :: AudioParameter | r))

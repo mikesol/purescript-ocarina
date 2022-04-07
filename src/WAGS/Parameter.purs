@@ -142,7 +142,8 @@ derive instance ordAudioOnOff :: Ord AudioOnOff
 derive instance newtypeAudioOnOff :: Newtype AudioOnOff _
 derive instance genericAudioOnOff :: Generic AudioOnOff _
 
-type ACTime = { concreteTime :: Number, abstractTime :: Number, lookAhead :: Number }
+type ACTime =
+  { concreteTime :: Number, abstractTime :: Number, lookAhead :: Number }
 
 type WriteHead (f :: Type -> Type) = f
   { concreteTime :: Number, abstractTime :: Number, lookAhead :: Number }
@@ -150,7 +151,8 @@ type WriteHead (f :: Type -> Type) = f
 cp :: forall f. Applicative f => Number -> f AudioParameter
 cp n = pure (_sudden (AudioSudden { n }))
 
-oo :: forall f
+oo
+  :: forall f
    . Functor f
   => WriteHead f
   -> (Number -> AudioOnOff)
@@ -202,9 +204,9 @@ at_' wh f = wh # map
 
 ovnn :: (Number -> Number) -> AudioNumeric -> AudioNumeric
 ovnn = over (unto AudioNumeric <<< prop (Proxy :: Proxy "n"))
+
 vwnn :: AudioNumeric -> Number
 vwnn = view (unto AudioNumeric <<< prop (Proxy :: Proxy "n"))
-
 
 class ToAudioOnOff i where
   toAudioOnOff :: i -> AudioOnOff

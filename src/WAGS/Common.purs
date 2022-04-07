@@ -8,7 +8,6 @@ import WAGS.Core as Core
 import WAGS.Parameter (InitialAudioParameter)
 import WAGS.WebAPI (BrowserAudioBuffer)
 
-
 -- Gain
 class InitialGain i where
   toInitializeGain :: i -> Core.InitializeGain
@@ -19,7 +18,6 @@ instance InitialGain Core.InitializeGain where
 instance InitialGain Number where
   toInitializeGain = Core.InitializeGain <<< { gain: _ }
 
-
 -- SinOsc
 class InitialSinOsc i where
   toInitializeSinOsc :: i -> Core.InitializeSinOsc
@@ -29,7 +27,6 @@ instance InitialSinOsc Core.InitializeSinOsc where
 
 instance InitialSinOsc Number where
   toInitializeSinOsc = Core.InitializeSinOsc <<< { frequency: _ }
-
 
 -- PlayBuf
 data PlayBufOptions = PlayBufOptions

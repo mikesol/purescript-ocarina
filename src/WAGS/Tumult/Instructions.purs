@@ -105,7 +105,8 @@ iSetAnalyserNodeCb :: C.SetAnalyserNodeCb -> C.Instruction
 iSetAnalyserNodeCb = C.Instruction <<< inj (Proxy :: Proxy "setAnalyserNodeCb")
 
 iSetMediaRecorderCb :: C.SetMediaRecorderCb -> C.Instruction
-iSetMediaRecorderCb = C.Instruction <<< inj (Proxy :: Proxy "setMediaRecorderCb")
+iSetMediaRecorderCb = C.Instruction <<< inj
+  (Proxy :: Proxy "setMediaRecorderCb")
 
 iSetAudioWorkletParameter :: C.SetAudioWorkletParameter -> C.Instruction
 iSetAudioWorkletParameter = C.Instruction <<< inj
@@ -115,7 +116,8 @@ iSetBuffer :: C.SetBuffer -> C.Instruction
 iSetBuffer = C.Instruction <<< inj (Proxy :: Proxy "setBuffer")
 
 iSetConvolverBuffer :: C.SetConvolverBuffer -> C.Instruction
-iSetConvolverBuffer = C.Instruction <<< inj (Proxy :: Proxy "setConvolverBuffer")
+iSetConvolverBuffer = C.Instruction <<< inj
+  (Proxy :: Proxy "setConvolverBuffer")
 
 iSetPeriodicOsc :: C.SetPeriodicOsc -> C.Instruction
 iSetPeriodicOsc = C.Instruction <<< inj (Proxy :: Proxy "setPeriodicOsc")
@@ -169,4 +171,5 @@ iSetFrequency :: C.SetFrequency -> C.Instruction
 iSetFrequency = C.Instruction <<< inj (Proxy :: Proxy "setFrequency")
 
 iSetWaveShaperCurve :: C.SetWaveShaperCurve -> C.Instruction
-iSetWaveShaperCurve = C.Instruction <<< inj (Proxy :: Proxy "setWaveShaperCurve")
+iSetWaveShaperCurve = C.Instruction <<< inj
+  (Proxy :: Proxy "setWaveShaperCurve")

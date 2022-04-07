@@ -21,12 +21,13 @@ class
   | source dest i -> o where
   connect
     :: forall proxy
-     -- this is a manual override for the source node
-     -- we need this if we are working with an Input
-     -- inputs are just phantom nodes, which means that whatever they are
-     -- in the tumult graph is not used
-     -- so we emit an instruction for the phantom node
-     . Maybe String
+     
+    -- this is a manual override for the source node
+    -- we need this if we are working with an Input
+    -- inputs are just phantom nodes, which means that whatever they are
+    -- in the tumult graph is not used
+    -- so we emit an instruction for the phantom node
+    . Maybe String
     -> { source :: proxy source, dest :: proxy dest }
     -> WAG i
     -> WAG o

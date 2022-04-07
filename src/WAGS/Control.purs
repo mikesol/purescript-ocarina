@@ -101,7 +101,11 @@ __allpass mId (C.InitializeAllpass i) atts elt = C.Node go
       ( (sample_ ids (pure unit)) <#> __mId mId \me ->
           ( pure
               ( makeAllpass
-                  { id: me, parent: just parent, frequency: i.frequency, q: i.q }
+                  { id: me
+                  , parent: just parent
+                  , frequency: i.frequency
+                  , q: i.q
+                  }
               )
           )
             <|> map
@@ -434,7 +438,6 @@ __bandpass mId (C.InitializeBandpass i) atts elt = C.Node go
             <|> ((\y -> let C.Node x = y in x) elt) me di
       )
 
-
 bandpass
   :: forall outputChannels produced consumed event payload
    . IsEvent event
@@ -656,6 +659,7 @@ __dynamicsCompressor mId (C.InitializeDynamicsCompressor i) atts elt = C.Node go
               atts
             <|> ((\y -> let C.Node x = y in x) elt) me di
       )
+
 dynamicsCompressor
   :: forall outputChannels produced consumed event payload
    . IsEvent event
@@ -701,7 +705,8 @@ gain_
 gain_ i atts h t = gain i atts (C.GainInput (NEA.fromNonEmpty (h :| t)))
 
 __gain
-  :: forall i outputChannels producedI consumedI producedO consumedO event payload
+  :: forall i outputChannels producedI consumedI producedO consumedO event
+       payload
    . IsEvent event
   => Common.InitialGain i
   => Maybe String
@@ -820,7 +825,11 @@ __highshelf mId (C.InitializeHighshelf i) atts elt = C.Node go
       ( (sample_ ids (pure unit)) <#> __mId mId \me ->
           pure
             ( makeHighshelf
-                { id: me, parent: just parent, frequency: i.frequency, gain: i.gain }
+                { id: me
+                , parent: just parent
+                , frequency: i.frequency
+                , gain: i.gain
+                }
             )
             <|> map
               ( \(C.Highshelf e) -> match
@@ -938,7 +947,11 @@ __lowshelf mId (C.InitializeLowshelf i) atts elt = C.Node go
       ( (sample_ ids (pure unit)) <#> __mId mId \me ->
           pure
             ( makeLowshelf
-                { id: me, parent: just parent, frequency: i.frequency, gain: i.gain }
+                { id: me
+                , parent: just parent
+                , frequency: i.frequency
+                , gain: i.gain
+                }
             )
             <|> map
               ( \(C.Lowshelf e) -> match
