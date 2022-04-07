@@ -246,7 +246,6 @@ audioBuffer
   -> AudioBuffer
 audioBuffer i v = AudioBuffer i (map V.toArray $ V.toArray v)
 
-
 writeHead :: Number -> WebAPI.AudioContext -> WriteHead Behavior
 writeHead lookAhead ctx = behavior \eab -> makeEvent \k ->
   subscribe eab \ab -> do
@@ -257,40 +256,75 @@ writeHead lookAhead ctx = behavior \eab -> makeEvent \k ->
 data FFIAudioSnapshot
 
 foreign import destroyUnit_ :: C.DestroyUnit -> FFIAudioSnapshot -> Effect Unit
-foreign import disconnectXFromY_ :: C.DisconnectXFromY -> FFIAudioSnapshot -> Effect Unit
+foreign import disconnectXFromY_
+  :: C.DisconnectXFromY -> FFIAudioSnapshot -> Effect Unit
+
 foreign import connectXToY_ :: C.ConnectXToY -> FFIAudioSnapshot -> Effect Unit
 foreign import makeAllpass_ :: C.MakeAllpass -> FFIAudioSnapshot -> Effect Unit
-foreign import makeAnalyser_ :: C.MakeAnalyser -> FFIAudioSnapshot -> Effect Unit
-foreign import makeAudioWorkletNode_ :: C.MakeAudioWorkletNode -> FFIAudioSnapshot -> Effect Unit
-foreign import makeBandpass_ :: C.MakeBandpass -> FFIAudioSnapshot -> Effect Unit
-foreign import makeConstant_ :: C.MakeConstant -> FFIAudioSnapshot -> Effect Unit
-foreign import makeConvolver_ :: C.MakeConvolver -> FFIAudioSnapshot -> Effect Unit
+foreign import makeAnalyser_
+  :: C.MakeAnalyser -> FFIAudioSnapshot -> Effect Unit
+
+foreign import makeAudioWorkletNode_
+  :: C.MakeAudioWorkletNode -> FFIAudioSnapshot -> Effect Unit
+
+foreign import makeBandpass_
+  :: C.MakeBandpass -> FFIAudioSnapshot -> Effect Unit
+
+foreign import makeConstant_
+  :: C.MakeConstant -> FFIAudioSnapshot -> Effect Unit
+
+foreign import makeConvolver_
+  :: C.MakeConvolver -> FFIAudioSnapshot -> Effect Unit
+
 foreign import makeDelay_ :: C.MakeDelay -> FFIAudioSnapshot -> Effect Unit
-foreign import makeDynamicsCompressor_ :: C.MakeDynamicsCompressor -> FFIAudioSnapshot -> Effect Unit
+foreign import makeDynamicsCompressor_
+  :: C.MakeDynamicsCompressor -> FFIAudioSnapshot -> Effect Unit
+
 foreign import makeGain_ :: C.MakeGain -> FFIAudioSnapshot -> Effect Unit
-foreign import makeHighpass_ :: C.MakeHighpass -> FFIAudioSnapshot -> Effect Unit
-foreign import makeHighshelf_ :: C.MakeHighshelf -> FFIAudioSnapshot -> Effect Unit
+foreign import makeHighpass_
+  :: C.MakeHighpass -> FFIAudioSnapshot -> Effect Unit
+
+foreign import makeHighshelf_
+  :: C.MakeHighshelf -> FFIAudioSnapshot -> Effect Unit
+
 foreign import makeInput_ :: C.MakeInput -> FFIAudioSnapshot -> Effect Unit
 foreign import makeLoopBuf_ :: C.MakeLoopBuf -> FFIAudioSnapshot -> Effect Unit
 foreign import makeLowpass_ :: C.MakeLowpass -> FFIAudioSnapshot -> Effect Unit
-foreign import makeLowshelf_ :: C.MakeLowshelf -> FFIAudioSnapshot -> Effect Unit
-foreign import makeMediaElement_ :: C.MakeMediaElement -> FFIAudioSnapshot -> Effect Unit
-foreign import makeMicrophone_ :: C.MakeMicrophone -> FFIAudioSnapshot -> Effect Unit
+foreign import makeLowshelf_
+  :: C.MakeLowshelf -> FFIAudioSnapshot -> Effect Unit
+
+foreign import makeMediaElement_
+  :: C.MakeMediaElement -> FFIAudioSnapshot -> Effect Unit
+
+foreign import makeMicrophone_
+  :: C.MakeMicrophone -> FFIAudioSnapshot -> Effect Unit
+
 foreign import makeNotch_ :: C.MakeNotch -> FFIAudioSnapshot -> Effect Unit
 foreign import makePeaking_ :: C.MakePeaking -> FFIAudioSnapshot -> Effect Unit
-foreign import makePeriodicOsc_ :: C.MakePeriodicOsc -> FFIAudioSnapshot -> Effect Unit
+foreign import makePeriodicOsc_
+  :: C.MakePeriodicOsc -> FFIAudioSnapshot -> Effect Unit
+
 foreign import makePlayBuf_ :: C.MakePlayBuf -> FFIAudioSnapshot -> Effect Unit
-foreign import makeRecorder_ :: C.MakeRecorder -> FFIAudioSnapshot -> Effect Unit
-foreign import makeSawtoothOsc_ :: C.MakeSawtoothOsc -> FFIAudioSnapshot -> Effect Unit
+foreign import makeRecorder_
+  :: C.MakeRecorder -> FFIAudioSnapshot -> Effect Unit
+
+foreign import makeSawtoothOsc_
+  :: C.MakeSawtoothOsc -> FFIAudioSnapshot -> Effect Unit
+
 foreign import makeSinOsc_ :: C.MakeSinOsc -> FFIAudioSnapshot -> Effect Unit
 foreign import makeSpeaker_ :: C.MakeSpeaker -> FFIAudioSnapshot -> Effect Unit
-foreign import makeSquareOsc_ :: C.MakeSquareOsc -> FFIAudioSnapshot -> Effect Unit
-foreign import makeStereoPanner_ :: C.MakeStereoPanner -> FFIAudioSnapshot -> Effect Unit
+foreign import makeSquareOsc_
+  :: C.MakeSquareOsc -> FFIAudioSnapshot -> Effect Unit
+
+foreign import makeStereoPanner_
+  :: C.MakeStereoPanner -> FFIAudioSnapshot -> Effect Unit
+
 foreign import makeSubgraph_
   :: forall index env
    . String
   -> String
   -> ( index
+       -> String
        -> Effect
             { actualized ::
                 Event (FFIAudioSnapshot -> Effect Unit)
@@ -299,33 +333,67 @@ foreign import makeSubgraph_
      )
   -> FFIAudioSnapshot
   -> Effect Unit
-foreign import makeTriangleOsc_ :: C.MakeTriangleOsc -> FFIAudioSnapshot -> Effect Unit
-foreign import makeWaveShaper_ :: C.MakeWaveShaper -> FFIAudioSnapshot -> Effect Unit
-foreign import setAnalyserNodeCb_ :: C.SetAnalyserNodeCb -> FFIAudioSnapshot -> Effect Unit
-foreign import setMediaRecorderCb_ :: C.SetMediaRecorderCb -> FFIAudioSnapshot -> Effect Unit
-foreign import setWaveShaperCurve_ :: C.SetWaveShaperCurve -> FFIAudioSnapshot -> Effect Unit
-foreign import setAudioWorkletParameter_ :: C.SetAudioWorkletParameter -> FFIAudioSnapshot -> Effect Unit
+
+foreign import makeTriangleOsc_
+  :: C.MakeTriangleOsc -> FFIAudioSnapshot -> Effect Unit
+
+foreign import makeWaveShaper_
+  :: C.MakeWaveShaper -> FFIAudioSnapshot -> Effect Unit
+
+foreign import setAnalyserNodeCb_
+  :: C.SetAnalyserNodeCb -> FFIAudioSnapshot -> Effect Unit
+
+foreign import setMediaRecorderCb_
+  :: C.SetMediaRecorderCb -> FFIAudioSnapshot -> Effect Unit
+
+foreign import setWaveShaperCurve_
+  :: C.SetWaveShaperCurve -> FFIAudioSnapshot -> Effect Unit
+
+foreign import setAudioWorkletParameter_
+  :: C.SetAudioWorkletParameter -> FFIAudioSnapshot -> Effect Unit
+
 foreign import setBuffer_ :: C.SetBuffer -> FFIAudioSnapshot -> Effect Unit
-foreign import setConvolverBuffer_ :: C.SetConvolverBuffer -> FFIAudioSnapshot -> Effect Unit
-foreign import setPeriodicOsc_ :: C.SetPeriodicOsc -> FFIAudioSnapshot -> Effect Unit
+foreign import setConvolverBuffer_
+  :: C.SetConvolverBuffer -> FFIAudioSnapshot -> Effect Unit
+
+foreign import setPeriodicOsc_
+  :: C.SetPeriodicOsc -> FFIAudioSnapshot -> Effect Unit
+
 foreign import setOnOff_ :: C.SetOnOff -> FFIAudioSnapshot -> Effect Unit
-foreign import setBufferOffset_ :: C.SetBufferOffset -> FFIAudioSnapshot -> Effect Unit
-foreign import setLoopStart_ :: C.SetLoopStart -> FFIAudioSnapshot -> Effect Unit
+foreign import setBufferOffset_
+  :: C.SetBufferOffset -> FFIAudioSnapshot -> Effect Unit
+
+foreign import setLoopStart_
+  :: C.SetLoopStart -> FFIAudioSnapshot -> Effect Unit
+
 foreign import setLoopEnd_ :: C.SetLoopEnd -> FFIAudioSnapshot -> Effect Unit
 foreign import setRatio_ :: C.SetRatio -> FFIAudioSnapshot -> Effect Unit
 foreign import setOffset_ :: C.SetOffset -> FFIAudioSnapshot -> Effect Unit
 foreign import setGain_ :: C.SetGain -> FFIAudioSnapshot -> Effect Unit
 foreign import setQ_ :: C.SetQ -> FFIAudioSnapshot -> Effect Unit
-foreign import setFrequency_ :: C.SetFrequency -> FFIAudioSnapshot -> Effect Unit
+foreign import setFrequency_
+  :: C.SetFrequency -> FFIAudioSnapshot -> Effect Unit
+
 foreign import setKnee_ :: C.SetKnee -> FFIAudioSnapshot -> Effect Unit
 foreign import setAttack_ :: C.SetAttack -> FFIAudioSnapshot -> Effect Unit
 foreign import setRelease_ :: C.SetRelease -> FFIAudioSnapshot -> Effect Unit
 foreign import setPan_ :: C.SetPan -> FFIAudioSnapshot -> Effect Unit
-foreign import setThreshold_ :: C.SetThreshold -> FFIAudioSnapshot -> Effect Unit
+foreign import setThreshold_
+  :: C.SetThreshold -> FFIAudioSnapshot -> Effect Unit
+
 foreign import setDelay_ :: C.SetDelay -> FFIAudioSnapshot -> Effect Unit
-foreign import setPlaybackRate_ :: C.SetPlaybackRate -> FFIAudioSnapshot -> Effect Unit
-foreign import removeSubgraph_ :: forall index. C.RemoveSubgraph index -> FFIAudioSnapshot -> Effect Unit
-foreign import insertOrUpdateSubgraph_ :: forall index env. C.InsertOrUpdateSubgraph index env -> FFIAudioSnapshot -> Effect Unit
+foreign import setPlaybackRate_
+  :: C.SetPlaybackRate -> FFIAudioSnapshot -> Effect Unit
+
+foreign import removeSubgraph_
+  :: forall index. C.RemoveSubgraph index -> FFIAudioSnapshot -> Effect Unit
+
+foreign import insertOrUpdateSubgraph_
+  :: forall index env
+   . C.InsertOrUpdateSubgraph index env
+  -> FFIAudioSnapshot
+  -> Effect Unit
+
 effectfulAudioInterpret
   :: C.AudioInterpret Event (FFIAudioSnapshot -> Effect Unit)
 effectfulAudioInterpret = C.AudioInterpret
@@ -362,8 +430,8 @@ effectfulAudioInterpret = C.AudioInterpret
   , makeSpeaker: makeSpeaker_
   , makeSquareOsc: makeSquareOsc_
   , makeStereoPanner: makeStereoPanner_
-  , makeSubgraph: \{ id, parent, scenes } dom ->
-      flip (makeSubgraph_ id parent) dom \index ->
+  , makeSubgraph: \{ id, parent, scenes } audio ->
+      flip (makeSubgraph_ id parent) audio \index toplevelGain ->
         do
           evt <- create
           let event = evt.event
@@ -372,7 +440,7 @@ effectfulAudioInterpret = C.AudioInterpret
               let
                 C.Node elt = (let C.Subgraph sg = scenes in sg) index event
               in
-                elt parent effectfulAudioInterpret
+                elt toplevelGain effectfulAudioInterpret
           pure { actualized, pusher: evt.push }
   , makeTriangleOsc: makeTriangleOsc_
   , makeTumult: \_ _ -> pure unit -- todo: makeTumult_

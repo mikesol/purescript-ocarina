@@ -11,8 +11,6 @@ import Data.Profunctor (lcmap)
 import Data.Tuple (Tuple(..))
 import Data.Tuple.Nested ((/\))
 import Data.Typelevel.Num (D2)
-import Data.Vec ((+>))
-import Data.Vec as V
 import Deku.Attribute (cb, (:=))
 import Deku.Control (deku, text, text_)
 import Deku.Core (SubgraphF(..))
@@ -24,17 +22,15 @@ import Effect.Aff (Aff, launchAff_)
 import Effect.Class (liftEffect)
 import FRP.Behavior (sample_)
 import FRP.Event (class IsEvent, subscribe)
-import Math (pi, sin, (%))
+import Math (pi, sin)
 import Type.Proxy (Proxy(..))
-import WAGS.Control (gain', gain__, loopBuf, lowpass, sinOsc, speaker2, (:*))
+import WAGS.Control (gain, gain', gain__, input, loopBuf, lowpass, sinOsc, speaker2, (:*))
 import WAGS.Core (GainInput, Input, Subgraph(..))
 import WAGS.Example.Utils (RaiseCancellation, animationFrameEvent)
 import WAGS.Interpret (close, context, decodeAudioDataFromUri, effectfulAudioInterpret, makeFFIAudioSnapshot, writeHead)
-import WAGS.Parameter (AudioNumeric(..), WriteHead, at_, ovnn, pureOn)
+import WAGS.Parameter (WriteHead, at_, ovnn, pureOn)
+import WAGS.Properties (frequency)
 import WAGS.Subgraph as Wsg
-import WAGS.Tumult (tumult)
-import WAGS.Tumult.Create.Optionals as Opt
-import WAGS.Tumult.Tumult.Make (tumultuously)
 import WAGS.WebAPI (AudioContext, BrowserAudioBuffer)
 import Web.HTML (window)
 import Web.HTML.HTMLDocument (body)
@@ -56,13 +52,21 @@ scene loopy wh =
           (loopBuf loopy pureOn :* [])
       ) :*
       [ Wsg.subgraph (pure (0 /\ Wsg.InsertOrUpdate unit))
-          ( \({ toSubg } :: { toSubg :: Input }) -> Subgraph \i ->
+          ( \({ toSubg } :: { toSubg :: Input }) -> Subgraph \i e ->
               let
                 ooo
-                  | otherwise = \e ->
-                      lowpass 1100.0
-                        (map (ovnn (\x -> 1100.0 + 1000.0 * sin x)) tr)
-                        toSubg :* (gain__ 0.03 (sinOsc 220.0 empty))
+                  | otherwise =
+                      gain 1.0 empty
+                        ( lowpass 1100.0
+                            ( map
+                                ( frequency <<< ovnn
+                                    (\x -> 1100.0 + 1000.0 * sin x)
+                                )
+                                tr
+                            )
+                            (input toSubg) :*
+                            [ gain__ 0.03 empty (sinOsc 220.0 empty) ]
+                        )
               -- | i == 1 = \e -> tumultuously
               --           { output: Opt.gain 1.0
               --               { bp: Opt.bandpass
@@ -116,23 +120,23 @@ type UIAction = Maybe { unsub :: Effect Unit, ctx :: AudioContext }
 
 type Init = BrowserAudioBuffer
 
-initializeTumult :: Aff Init
-initializeTumult = do
+initializeSubgraph :: Aff Init
+initializeSubgraph = do
   atar <- liftEffect context >>= flip decodeAudioDataFromUri
     "https://freesound.org/data/previews/36/36132_321601-hq.mp3"
   pure atar
 
-tumultExample
+subgraphExample
   :: forall event payload
    . IsEvent event
   => BrowserAudioBuffer
   -> RaiseCancellation
   -> Exists (SubgraphF Unit event payload)
-tumultExample loopy rc = mkExists $ SubgraphF \push -> lcmap
+subgraphExample loopy rc = mkExists $ SubgraphF \push -> lcmap
   (map (either (const Nothing) identity))
   \event ->
     DOM.div_
-      [ DOM.h1_ [ text_ "Tumult" ]
+      [ DOM.h1_ [ text_ "Subgraph" ]
       , DOM.button
           ( map
               ( \i -> DOM.OnClick := cb
@@ -169,7 +173,7 @@ tumultExample loopy rc = mkExists $ SubgraphF \push -> lcmap
 
 main :: Effect Unit
 main = launchAff_ do
-  init <- initializeTumult
+  init <- initializeSubgraph
   liftEffect do
     b' <- window >>= document >>= body
     for_ (toElement <$> b') \elt -> do
@@ -177,7 +181,7 @@ main = launchAff_ do
       let
         evt = deku elt
           ( Sg.subgraph (pure (Tuple unit (Sg.InsertOrUpdate unit)))
-              (const $ tumultExample init (const $ pure unit))
+              (const $ subgraphExample init (const $ pure unit))
           )
           effectfulDOMInterpret
       _ <- subscribe evt \i -> i ffi

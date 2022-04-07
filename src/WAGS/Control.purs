@@ -25,7 +25,7 @@ import Safe.Coerce (coerce)
 import Simple.JSON as JSON
 import Type.Proxy (Proxy(..))
 import Type.Row.Homogeneous (class Homogeneous)
-import WAGS.Common (class InitialGain, class InitialLoopBuf, class InitialSinOsc, toInitializeGain, toInitialLoopBuf, toInitializeSinOsc)
+import WAGS.Common (class InitialGain, class InitialLoopBuf, class InitialLowpass, class InitialSinOsc, toInitialLoopBuf, toInitialLowpass, toInitializeGain, toInitializeSinOsc)
 import WAGS.Core (ChannelCountMode(..), ChannelInterpretation(..), Po2(..))
 import WAGS.Core as C
 import WAGS.Parameter (AudioParameter, InitialAudioParameter)
@@ -867,10 +867,10 @@ highshelf' px = __highshelf (just (reflectSymbol px))
 -- input
 
 input
-  :: forall outputChannels produced consumed event payload
+  :: forall outputChannels event payload
    . IsEvent event
   => C.Input
-  -> C.Node outputChannels produced consumed event payload
+  -> C.Node outputChannels () () event payload
 input (C.Input me) = C.Node go
   where
   go parent (C.AudioInterpret { makeInput }) = pure
@@ -881,15 +881,17 @@ input (C.Input me) = C.Node go
 -- lowpass
 
 __lowpass
-  :: forall outputChannels producedI consumedI producedO consumedO event payload
+  :: forall i outputChannels producedI consumedI producedO consumedO event payload
    . IsEvent event
+  => InitialLowpass i
   => Maybe String
-  -> C.InitializeLowpass
+  -> i
   -> event C.Lowpass
   -> C.Node outputChannels producedI consumedI event payload
   -> C.Node outputChannels producedO consumedO event payload
-__lowpass mId (C.InitializeLowpass i) atts elt = C.Node go
+__lowpass mId i' atts elt = C.Node go
   where
+  C.InitializeLowpass i = toInitialLowpass i'
   go parent di@(C.AudioInterpret { ids, makeLowpass, setFrequency, setQ }) =
     keepLatest
       ( (sample_ ids (pure unit)) <#> __mId mId \me ->
@@ -910,21 +912,23 @@ __lowpass mId (C.InitializeLowpass i) atts elt = C.Node go
       )
 
 lowpass
-  :: forall outputChannels produced consumed event payload
+  :: forall i outputChannels produced consumed event payload
    . IsEvent event
-  => C.InitializeLowpass
+  => InitialLowpass i
+  => i
   -> event C.Lowpass
   -> C.Node outputChannels produced consumed event payload
   -> C.Node outputChannels produced consumed event payload
 lowpass = __lowpass nothing
 
 lowpass'
-  :: forall proxy sym outputChannels produced produced' consumed event payload
+  :: forall i proxy sym outputChannels produced produced' consumed event payload
    . IsEvent event
   => IsSymbol sym
   => Cons sym C.Input produced' produced
+  => InitialLowpass i
   => proxy sym
-  -> C.InitializeLowpass
+  -> i
   -> event C.Lowpass
   -> C.Node outputChannels produced' consumed event payload
   -> C.Node outputChannels produced consumed event payload

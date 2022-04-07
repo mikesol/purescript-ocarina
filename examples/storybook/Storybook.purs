@@ -25,6 +25,7 @@ import FRP.Event (class IsEvent, create, filterMap, fold, keepLatest, mapAccum, 
 import WAGS.Example.AtariSpeaks as AtariSpeaks
 import WAGS.Example.HelloWorld as HelloWorld
 import WAGS.Example.MultiBuf as MultiBuf
+import WAGS.Example.Subgraph as Subg
 import WAGS.Example.Tumult as Tummult
 import WAGS.Example.Tumult as Tumult
 import WAGS.Example.Utils (ToCancel)
@@ -39,6 +40,7 @@ data Page
   | AtariSpeaks AtariSpeaks.Init
   | MultiBuf MultiBuf.Init
   | Tumult Tummult.Init
+  | Subg Subg.Init
   | ErrorPage String
   | LoadingPage
 
@@ -122,6 +124,9 @@ scene push event =
           , (Tumult <$> Tumult.initializeTumult)
               /\ "Tumult"
               /\ true
+          , (Subg <$> Subg.initializeSubgraph)
+              /\ "Subgraph"
+              /\ true
           ]
     , subgraph
         ( mapAccum (\a b -> Just a /\ (b /\ a))
@@ -152,6 +157,7 @@ scene push event =
   page cancelCb (AtariSpeaks ati) = AtariSpeaks.atariSpeaks ati cancelCb
   page cancelCb (MultiBuf mbi) = MultiBuf.multiBuf mbi cancelCb
   page cancelCb (Tumult ti) = Tumult.tumultExample ti cancelCb
+  page cancelCb (Subg ti) = Subg.subgraphExample ti cancelCb
   page _ (ErrorPage s) = mkExists $ SubgraphF \_ _ -> D.p_
     [ text_ ("Well, this is embarassing. The following error occurred: " <> s) ]
   page _ LoadingPage = mkExists $ SubgraphF \_ _ -> D.p_

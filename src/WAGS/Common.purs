@@ -78,6 +78,51 @@ instance
   toInitialLoopBuf provided = C.InitializeLoopBuf
     (convertOptionsWithDefaults LoopBufOptions defaultLoopBuf provided)
 
+-- Lowpass
+data LowpassOptions = LowpassOptions
+
+instance
+  ConvertOption LowpassOptions
+    "frequency"
+    InitialAudioParameter
+    InitialAudioParameter where
+  convertOption _ _ = identity
+
+instance
+  ConvertOption LowpassOptions
+    "q"
+    InitialAudioParameter
+    InitialAudioParameter where
+  convertOption _ _ = identity
+
+type LowpassOptional =
+  (  q :: InitialAudioParameter
+  )
+
+type LowpassAll =
+  ( frequency :: InitialAudioParameter
+  | LowpassOptional
+  )
+
+defaultLowpass :: { | LowpassOptional }
+defaultLowpass =
+  { q: 1.0 }
+
+class InitialLowpass i where
+  toInitialLowpass :: i -> C.InitializeLowpass
+
+instance InitialLowpass C.InitializeLowpass where
+  toInitialLowpass = identity
+
+instance InitialLowpass InitialAudioParameter where
+  toInitialLowpass = toInitialLowpass <<< { frequency: _ }
+
+instance
+  ConvertOptionsWithDefaults LowpassOptions { | LowpassOptional } { | provided }
+    { | LowpassAll } =>
+  InitialLowpass { | provided } where
+  toInitialLowpass provided = C.InitializeLowpass
+    (convertOptionsWithDefaults LowpassOptions defaultLowpass provided)
 
 -- SinOsc
 class InitialSinOsc i where
