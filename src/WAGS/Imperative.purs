@@ -127,6 +127,8 @@ foreign import data Gain :: Node
 
 foreign import data SinOsc :: Node
 
+foreign import data PlayBuf :: Node
+
 data GraphUnit :: Symbol -> Node -> Type
 data GraphUnit id node = GraphUnit
 
@@ -142,11 +144,13 @@ class HasOutput node
 instance hasOutputSpeaker :: HasOutput Speaker
 instance hasOutputGain :: HasOutput Gain
 instance hasOutputSinOsc :: HasOutput SinOsc
+instance hasOutputPlayBuf :: HasOutput PlayBuf
 
 class HasSound :: Node -> Boolean -> Constraint
 class HasSound node tOrF | node -> tOrF
 
 instance hasSoundSinOsc :: HasSound SinOsc True
+instance hasSoundPlayBuf :: HasSound PlayBuf True
 instance hasSoundGain :: HasSound Gain False
 instance hasSoundSpeaker :: HasSound Speaker False
 
@@ -229,6 +233,43 @@ createSinOsc _ initialSinOsc attributes = GraphBuilder go
           event0 <|> eventN
     , result: GraphUnit
     }
+
+createPlayBuf
+  :: forall e p i o id initialPlayBuf
+   . IsEvent e
+  => IsSymbol id
+  => Common.InitialPlayBuf initialPlayBuf
+  => InsertTerminal i id False o
+  => Proxy id
+  -> initialPlayBuf
+  -> e Core.PlayBuf
+  -> GraphBuilder e p i o (GraphUnit id PlayBuf)
+createPlayBuf _ initialPlayBuf attributes = GraphBuilder go
+  where
+  { buffer, playbackRate, bufferOffset, duration } = unwrap $ Common.toInitializePlayBuf initialPlayBuf
+  go (Core.AudioInterpret { makePlayBuf, setBuffer, setOnOff, setPlaybackRate, setBufferOffset }) =
+    { event:
+        let
+          id = reflectSymbol (Proxy :: _ id)
+          event0 = pure $ makePlayBuf
+            { id
+            , parent: nothing
+            , buffer
+            , playbackRate
+            , bufferOffset
+            , duration
+            }
+          eventN = attributes <#> unwrap >>> match
+            { buffer: setBuffer <<< { id, buffer: _ }
+            , playbackRate: setPlaybackRate <<< { id, playbackRate: _ }
+            , bufferOffset: setBufferOffset <<< { id, bufferOffset: _ }
+            , onOff: setOnOff <<< { id, onOff: _ }
+            }
+        in
+          event0 <|> eventN
+    , result: GraphUnit
+    }
+
 
 class IntoIsTerminal :: Boolean -> Constraint
 class IntoIsTerminal isTerminal

@@ -25,7 +25,7 @@ import Safe.Coerce (coerce)
 import Simple.JSON as JSON
 import Type.Proxy (Proxy(..))
 import Type.Row.Homogeneous (class Homogeneous)
-import WAGS.Common (class InitialGain, class InitialSinOsc, toInitializeGain, toInitializeSinOsc)
+import WAGS.Common as Common
 import WAGS.Core (ChannelCountMode(..), ChannelInterpretation(..), Po2(..))
 import WAGS.Core as C
 import WAGS.Parameter (AudioParameter, InitialAudioParameter)
@@ -681,7 +681,7 @@ dynamicsCompressor' px = __dynamicsCompressor (just (reflectSymbol px))
 gain__
   :: forall i outputChannels produced consumed event payload
    . IsEvent event
-  => InitialGain i
+  => Common.InitialGain i
   => i
   -> event C.Gain
   -> C.Node outputChannels produced consumed event payload
@@ -692,7 +692,7 @@ gain__ i atts h = gain i atts
 gain_
   :: forall i outputChannels produced consumed event payload
    . IsEvent event
-  => InitialGain i
+  => Common.InitialGain i
   => i
   -> event C.Gain
   -> C.Node outputChannels produced consumed event payload
@@ -703,7 +703,7 @@ gain_ i atts h t = gain i atts (C.GainInput (NEA.fromNonEmpty (h :| t)))
 __gain
   :: forall i outputChannels producedI consumedI producedO consumedO event payload
    . IsEvent event
-  => InitialGain i
+  => Common.InitialGain i
   => Maybe String
   -> i
   -> event C.Gain
@@ -711,7 +711,7 @@ __gain
   -> C.Node outputChannels producedO consumedO event payload
 __gain mId i' atts (C.GainInput elts) = C.Node go
   where
-  C.InitializeGain i = toInitializeGain i'
+  C.InitializeGain i = Common.toInitializeGain i'
   go parent di@(C.AudioInterpret { ids, makeGain, setGain }) = keepLatest
     ( (sample_ ids (pure unit)) <#> __mId mId \me ->
         pure (makeGain { id: me, parent: just parent, gain: i.gain })
@@ -731,7 +731,7 @@ __gain mId i' atts (C.GainInput elts) = C.Node go
 gain
   :: forall i outputChannels produced consumed event payload
    . IsEvent event
-  => InitialGain i
+  => Common.InitialGain i
   => i
   -> event C.Gain
   -> C.GainInput outputChannels produced consumed event payload
@@ -743,7 +743,7 @@ gain'
    . IsEvent event
   => IsSymbol sym
   => Cons sym C.Input produced' produced
-  => InitialGain i
+  => Common.InitialGain i
   => proxy sym
   -> i
   -> event C.Gain
@@ -1560,14 +1560,14 @@ sawtoothOsc' px = __sawtoothOsc (just (reflectSymbol px))
 __sinOsc
   :: forall i outputChannels produced consumed event payload
    . IsEvent event
-  => InitialSinOsc i
+  => Common.InitialSinOsc i
   => Maybe String
   -> i
   -> event C.SinOsc
   -> C.Node outputChannels produced consumed event payload
 __sinOsc mId i' atts = C.Node go
   where
-  C.InitializeSinOsc i = toInitializeSinOsc i'
+  C.InitializeSinOsc i = Common.toInitializeSinOsc i'
   go parent (C.AudioInterpret { ids, makeSinOsc, setFrequency, setOnOff }) =
     keepLatest
       ( (sample_ ids (pure unit)) <#> __mId mId \me ->
@@ -1592,7 +1592,7 @@ __sinOsc mId i' atts = C.Node go
 sinOsc
   :: forall i outputChannels event payload
    . IsEvent event
-  => InitialSinOsc i
+  => Common.InitialSinOsc i
   => i
   -> event C.SinOsc
   -> C.Node outputChannels () () event payload
@@ -1602,7 +1602,7 @@ sinOsc'
   :: forall proxy sym i outputChannels produced event payload
    . IsEvent event
   => IsSymbol sym
-  => InitialSinOsc i
+  => Common.InitialSinOsc i
   => Cons sym C.Input () produced
   => proxy sym
   -> i
