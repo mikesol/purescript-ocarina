@@ -61,13 +61,13 @@ __subgraph mId mods elt = C.Node go
   go
     parent
     ( C.AudioInterpret
-        { ids, makeSubgraph, insertOrUpdateSubgraph, removeSubgraph }
+        { ids, scope, makeSubgraph, insertOrUpdateSubgraph, removeSubgraph }
     ) =
     keepLatest
       ( (sample_ ids (pure unit)) <#> __mId mId \me ->
           pure
             ( makeSubgraph
-                { id: me, parent: parent, scenes: subg }
+                { id: me, parent: parent, scenes: subg, scope }
             )
             <|> map
               ( \(index /\ instr) -> case instr of

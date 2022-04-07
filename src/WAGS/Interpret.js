@@ -64,6 +64,11 @@ var workletSetter = function (unit, paramName, deprecatedTimeToSet, param) {
 var genericSetter = function (unit, name, deprecatedTimeToSet, param) {
 	return protoSetter(unit[name], deprecatedTimeToSet, param);
 };
+var addToScope = function (ptr, scope, state) {
+	if (scope.type === "just") {
+		state.scopes[scope.value].push(ptr);
+	}
+};
 var doDeferredConnections = function (ptr, state) {
 	if (state.toConnect[ptr]) {
 		state.toConnect[ptr].forEach(function (conn) {
@@ -83,60 +88,49 @@ var doDeferredConnections = function (ptr, state) {
 		delete state.toConnect[ptr];
 	}
 };
-var mConnectXToY_ = function (x) {
-	return function (y) {
-		return function (state) {
-			return function () {
-				if (y.type === "just") {
-					connectXToY_(x)(y.value)(state)();
-				}
-			};
-		};
-	};
+var mConnectXToY_ = function (x, y, state) {
+	if (y.type === "just") {
+		connectXToY_(x, y.value, state);
+	}
 };
-var connectXToY_ = function (x) {
-	return function (y) {
-		return function (state) {
-			return function () {
-				var connectF = function () {
-					state.units[x].outgoing.push(y);
-					state.units[y].incoming.push(x);
-					state.units[x].main.connect(state.units[y].main);
-					if (state.units[y].se) {
-						state.units[x].main.connect(state.units[y].se);
-					}
-				};
-				if (!state.units[x]) {
-					if (!state.toConnect[x]) {
-						state.toConnect[x] = [];
-					}
-					var conn = { f: connectF };
-					if (y !== x && !state.units[y]) {
-						conn.w = y;
-					}
-					state.toConnect[x].push(conn);
-					return;
-				}
-				if (!state.units[y]) {
-					if (!state.toConnect[y]) {
-						state.toConnect[y] = [];
-					}
-					var conn = { f: connectF };
-					if (y !== x && !state.units[x]) {
-						conn.w = x;
-					}
-					state.toConnect[y].push(conn);
-					return;
-				}
-				connectF();
-			};
-		};
+var connectXToY_ = function (x, y, state) {
+	var connectF = function () {
+		state.units[x].outgoing.push(y);
+		state.units[y].incoming.push(x);
+		state.units[x].main.connect(state.units[y].main);
+		if (state.units[y].se) {
+			state.units[x].main.connect(state.units[y].se);
+		}
 	};
+	if (!state.units[x]) {
+		if (!state.toConnect[x]) {
+			state.toConnect[x] = [];
+		}
+		var conn = { f: connectF };
+		if (y !== x && !state.units[y]) {
+			conn.w = y;
+		}
+		state.toConnect[x].push(conn);
+		return;
+	}
+	if (!state.units[y]) {
+		if (!state.toConnect[y]) {
+			state.toConnect[y] = [];
+		}
+		var conn = { f: connectF };
+		if (y !== x && !state.units[x]) {
+			conn.w = x;
+		}
+		state.toConnect[y].push(conn);
+		return;
+	}
+	connectF();
 };
+
 exports.connectXToY_ = function (parameters) {
 	return function (state) {
 		return function () {
-			connectXToY_(parameters["from"])(parameters["to"])(state)();
+			connectXToY_(parameters["from"], parameters["to"], state);
 		};
 	};
 };
@@ -196,8 +190,9 @@ exports.makeAllpass_ = function (a) {
 					frequency: a.frequency,
 				}),
 			};
+			addToScope(ptr, a.scope, state);
 			doDeferredConnections(ptr, state);
-			mConnectXToY_(ptr)(a.parent)(state)();
+			mConnectXToY_(ptr, a.parent, state);
 		};
 	};
 };
@@ -219,31 +214,33 @@ exports.makeAnalyser_ = function (a) {
 				main: state.context.createGain(),
 				se: dest,
 			};
+			addToScope(ptr, a.scope, state);
 			doDeferredConnections(ptr, state);
-			mConnectXToY_(ptr)(a.parent)(state)();
+			mConnectXToY_(ptr, a.parent, state);
 		};
 	};
 };
 
 // audio worklet node
-exports.makeAudioWorkletNode_ = function (aa) {
+exports.makeAudioWorkletNode_ = function (a) {
 	return function (state) {
 		return function () {
-			var ptr = aa.id;
-			var a = aa.options;
+			var ptr = a.id;
+			var opts = a.options;
 			state.units[ptr] = {
 				outgoing: [],
 				incoming: [],
-				main: new AudioWorkletNode(state.context, a.name, {
-					numberOfInputs: a.numberOfInputs,
-					numberOfOutputs: a.numberOfOutputs,
-					outputChannelCount: a.outputChannelCount,
-					parameterData: a.parameterData,
-					processorOptions: a.processorOptions,
+				main: new AudioWorkletNode(state.context, opts.name, {
+					numberOfInputs: opts.numberOfInputs,
+					numberOfOutputs: opts.numberOfOutputs,
+					outputChannelCount: opts.outputChannelCount,
+					parameterData: opts.parameterData,
+					processorOptions: opts.processorOptions,
 				}),
 			};
+			addToScope(ptr, a.scope, state);
 			doDeferredConnections(ptr, state);
-			mConnectXToY_(ptr)(aa.parent)(state)();
+			mConnectXToY_(ptr, a.parent, state);
 		};
 	};
 };
@@ -262,8 +259,9 @@ exports.makeBandpass_ = function (a) {
 					frequency: a.frequency,
 				}),
 			};
+			addToScope(ptr, a.scope, state);
 			doDeferredConnections(ptr, state);
-			mConnectXToY_(ptr)(a.parent)(state)();
+			mConnectXToY_(ptr, a.parent, state);
 		};
 	};
 };
@@ -286,8 +284,9 @@ exports.makeConstant_ = function (a) {
 				createClosure: createClosure,
 				main: createClosure(state.context, resume),
 			};
+			addToScope(ptr, a.scope, state);
 			doDeferredConnections(ptr, state);
-			mConnectXToY_(ptr)(a.parent)(state)();
+			mConnectXToY_(ptr, a.parent, state);
 			// var oo = isOn(onOff.onOff);
 			// if (oo) {
 			// 	state.units[ptr].main.start(
@@ -308,8 +307,9 @@ exports.makeConvolver_ = function (a) {
 				incoming: [],
 				main: new ConvolverNode(state.context, { buffer: a.buffer }),
 			};
+			addToScope(ptr, a.scope, state);
 			doDeferredConnections(ptr, state);
-			mConnectXToY_(ptr)(a.parent)(state)();
+			mConnectXToY_(ptr, a.parent, state);
 		};
 	};
 };
@@ -326,8 +326,9 @@ exports.makeDelay_ = function (a) {
 					delayTime: a.delayTime,
 				}),
 			};
+			addToScope(ptr, a.scope, state);
 			doDeferredConnections(ptr, state);
-			mConnectXToY_(ptr)(a.parent)(state)();
+			mConnectXToY_(ptr, a.parent, state);
 		};
 	};
 };
@@ -348,8 +349,9 @@ exports.makeDynamicsCompressor_ = function (a) {
 					release: a.release,
 				}),
 			};
+			addToScope(ptr, a.scope, state);
 			doDeferredConnections(ptr, state);
-			mConnectXToY_(ptr)(a.parent)(state)();
+			mConnectXToY_(ptr, a.parent, state);
 		};
 	};
 };
@@ -366,8 +368,9 @@ var makeGain_ = function (a) {
 					gain: a.gain,
 				}),
 			};
+			addToScope(ptr, a.scope, state);
 			doDeferredConnections(ptr, state);
-			mConnectXToY_(ptr)(a.parent)(state)();
+			mConnectXToY_(ptr, a.parent, state);
 		};
 	};
 };
@@ -386,8 +389,9 @@ exports.makeHighpass_ = function (a) {
 					frequency: a.frequency,
 				}),
 			};
+			addToScope(ptr, a.scope, state);
 			doDeferredConnections(ptr, state);
-			mConnectXToY_(ptr)(a.parent)(state)();
+			mConnectXToY_(ptr, a.parent, state);
 		};
 	};
 };
@@ -406,8 +410,9 @@ exports.makeHighshelf_ = function (a) {
 					gain: a.gain,
 				}),
 			};
+			addToScope(ptr, a.scope, state);
 			doDeferredConnections(ptr, state);
-			mConnectXToY_(ptr)(a.parent)(state)();
+			mConnectXToY_(ptr, a.parent, state);
 		};
 	};
 };
@@ -417,9 +422,8 @@ exports.makeInput_ = function (a) {
 	return function (state) {
 		return function () {
 			var ptr = a.id;
-			var parent = a.parent;
 			doDeferredConnections(ptr, state);
-			mConnectXToY_(ptr)(parent)(state)();
+			mConnectXToY_(ptr, a.parent, state);
 		};
 	};
 };
@@ -448,8 +452,9 @@ exports.makeLoopBuf_ = function (a) {
 				createClosure: createClosure,
 				main: createClosure(state.context, resume),
 			};
+			addToScope(ptr, a.scope, state);
 			doDeferredConnections(ptr, state);
-			mConnectXToY_(ptr)(a.parent)(state)();
+			mConnectXToY_(ptr, a.parent, state);
 			// var oo = isOn(onOff.onOff);
 			// if (oo) {
 			// 	state.units[ptr].main.start(
@@ -475,8 +480,9 @@ exports.makeLowpass_ = function (a) {
 					frequency: a.frequency,
 				}),
 			};
+			addToScope(ptr, a.scope, state);
 			doDeferredConnections(ptr, state);
-			mConnectXToY_(ptr)(a.parent)(state)();
+			mConnectXToY_(ptr, a.parent, state);
 		};
 	};
 };
@@ -495,8 +501,9 @@ exports.makeLowshelf_ = function (a) {
 					gain: a.gain,
 				}),
 			};
+			addToScope(ptr, a.scope, state);
 			doDeferredConnections(ptr, state);
-			mConnectXToY_(ptr)(a.parent)(state)();
+			mConnectXToY_(ptr, a.parent, state);
 		};
 	};
 };
@@ -519,8 +526,9 @@ exports.makeMediaElement_ = function (a) {
 				resumeClosure: {},
 				main: createClosure(),
 			};
+			addToScope(ptr, a.scope, state);
 			doDeferredConnections(ptr, state);
-			mConnectXToY_(ptr)(a.parent)(state)();
+			mConnectXToY_(ptr, a.parent, state);
 		};
 	};
 };
@@ -552,8 +560,9 @@ exports.makeNotch_ = function (a) {
 					Q: a.q,
 				}),
 			};
+			addToScope(ptr, a.scope, state);
 			doDeferredConnections(ptr, state);
-			mConnectXToY_(ptr)(a.parent)(state)();
+			mConnectXToY_(ptr, a.parent, state);
 		};
 	};
 };
@@ -573,8 +582,9 @@ exports.makePeaking_ = function (a) {
 					gain: a.gain,
 				}),
 			};
+			addToScope(ptr, a.scope, state);
 			doDeferredConnections(ptr, state);
-			mConnectXToY_(ptr)(a.parent)(state)();
+			mConnectXToY_(ptr, a.parent, state);
 		};
 	};
 };
@@ -607,8 +617,9 @@ exports.makePeriodicOsc_ = function (a) {
 				createClosure: createClosure,
 				main: createClosure(state.context, resume),
 			};
+			addToScope(ptr, a.scope, state);
 			doDeferredConnections(ptr, state);
-			mConnectXToY_(ptr)(a.parent)(state)();
+			mConnectXToY_(ptr, a.parent, state);
 			// var oo = isOn(onOff.onOff);
 			// if (oo) {
 			// 	state.units[ptr].main.start(
@@ -644,8 +655,9 @@ exports.makePlayBuf_ = function (a) {
 				createClosure: createClosure,
 				main: createClosure(state.context, resume),
 			};
+			addToScope(ptr, a.scope, state);
 			doDeferredConnections(ptr, state);
-			mConnectXToY_(ptr)(a.parent)(state)();
+			mConnectXToY_(ptr, a.parent, state);
 			// var oo = isOn(onOff.onOff);
 			// if (oo) {
 			// 	state.units[ptr].main.start(
@@ -660,11 +672,11 @@ exports.makePlayBuf_ = function (a) {
 };
 
 // recorder
-exports.makeRecorder_ = function (aa) {
+exports.makeRecorder_ = function (a) {
 	return function (state) {
 		return function () {
-			var ptr = aa.id;
-			var mediaRecorderSideEffectFn = aa.cb;
+			var ptr = a.id;
+			var mediaRecorderSideEffectFn = a.cb;
 			var dest = state.context.createMediaStreamDestination();
 			var mediaRecorder = new MediaRecorder(dest.stream);
 			mediaRecorderSideEffectFn(mediaRecorder)();
@@ -677,8 +689,9 @@ exports.makeRecorder_ = function (aa) {
 				main: state.context.createGain(),
 				se: dest,
 			};
+			addToScope(ptr, a.scope, state);
 			doDeferredConnections(ptr, state);
-			mConnectXToY_(ptr)(aa.parent)(state)();
+			mConnectXToY_(ptr, a.parent, state);
 		};
 	};
 };
@@ -701,8 +714,9 @@ exports.makeSawtoothOsc_ = function (a) {
 				createClosure: createClosure,
 				main: createClosure(state.context, resume),
 			};
+			addToScope(ptr, a.scope, state);
 			doDeferredConnections(ptr, state);
-			mConnectXToY_(ptr)(a.parent)(state)();
+			mConnectXToY_(ptr, a.parent, state);
 			// var oo = isOn(onOff.onOff);
 			// if (oo) {
 			// 	state.units[ptr].main.start(
@@ -732,8 +746,9 @@ exports.makeSinOsc_ = function (a) {
 				createClosure: createClosure,
 				main: createClosure(state.context, resume),
 			};
+			addToScope(ptr, a.scope, state);
 			doDeferredConnections(ptr, state);
-			mConnectXToY_(ptr)(a.parent)(state)();
+			mConnectXToY_(ptr, a.parent, state);
 			// var oo = isOn(onOff.onOff);
 			// if (oo) {
 			// 	state.units[ptr].main.start(
@@ -746,16 +761,18 @@ exports.makeSinOsc_ = function (a) {
 };
 exports.makeSubgraph_ = function (ptr) {
 	return function (parent) {
-		return function (sceneM) {
-			return function (state) {
-				return function () {
-					makeGain_({
-						id: ptr,
-						parent: { type: "just", value: parent },
-						gain: 1.0,
-					})(state)();
-					state.units[ptr].sceneM = sceneM;
-					state.units[ptr].cache = {};
+		return function (enclosingScope) {
+			return function (sceneM) {
+				return function (state) {
+					return function () {
+						makeGain_({
+							id: ptr,
+							parent: { type: "just", value: parent },
+							scope: { type: "just", value: enclosingScope },
+							gain: 1.0,
+						})(state)();
+						state.units[ptr].sceneM = sceneM;
+					};
 				};
 			};
 		};
@@ -770,14 +787,17 @@ exports.removeSubgraph_ = function (a) {
 			var pj = `${ptr}-${j}`;
 			if (state.unsu[pj] !== undefined) {
 				state.unsu[pj]();
-				state.units[state.units[ptr].cache[j]].main.disconnect();
-				if (state.units[state.units[ptr].cache[j]].se) {
-					state.units[state.units[ptr].cache[j]].se.disconnect();
+				for (var i = 0; i < state.scopes[pj].length; i++) {
+					state.units[state.scopes[pj][i]].main.disconnect();
+					if (state.units[state.scopes[pj][i]].se) {
+						state.units[state.scopes[pj][i]].se.disconnect();
+					}
+					delete state.units[state.scopes[pj][i]];
 				}
-				delete state.units[state.units[ptr].cache[j]];
-				delete state.units[ptr].cache[j];
+				delete state.scopes[pj];
 				delete state.unsu[pj];
 				delete state.pushers[pj];
+				delete state.scopes[pj];
 			}
 		};
 	};
@@ -792,14 +812,8 @@ exports.insertOrUpdateSubgraph_ = function (a) {
 			var index = a.index;
 			var pj = `${ptr}-${j}`;
 			if (env !== null && state.unsu[pj] === undefined) {
-				var newId = `${Math.random()}`;
-				makeGain_({
-					id: newId,
-					parent: { type: "just", value: a.id },
-					gain: 1.0,
-				})(state)();
-				state.units[ptr].cache[j] = newId;
-				var sg = state.units[ptr].sceneM(index)(newId)();
+				state.scopes[pj] = [];
+				var sg = state.units[ptr].sceneM(index)(pj)();
 				state.unsu[pj] = sg.actualized((instr) => () => instr(state)())();
 				state.pushers[pj] = sg.pusher;
 			}
@@ -832,8 +846,9 @@ exports.makeStereoPanner_ = function (a) {
 					pan: a.pan,
 				}),
 			};
+			addToScope(ptr, a.scope, state);
 			doDeferredConnections(ptr, state);
-			mConnectXToY_(ptr)(a.parent)(state)();
+			mConnectXToY_(ptr, a.parent, state);
 		};
 	};
 };
@@ -856,8 +871,9 @@ exports.makeSquareOsc_ = function (a) {
 				createClosure: createClosure,
 				main: createClosure(state.context, resume),
 			};
+			addToScope(ptr, a.scope, state);
 			doDeferredConnections(ptr, state);
-			mConnectXToY_(ptr)(a.parent)(state)();
+			mConnectXToY_(ptr, a.parent, state);
 			// var oo = isOn(onOff.onOff);
 			// if (oo) {
 			// 	state.units[ptr].main.start(
@@ -887,8 +903,9 @@ exports.makeTriangleOsc_ = function (a) {
 				createClosure: createClosure,
 				main: createClosure(state.context, resume),
 			};
+			addToScope(ptr, a.scope, state);
 			doDeferredConnections(ptr, state);
-			mConnectXToY_(ptr)(a.parent)(state)();
+			mConnectXToY_(ptr, a.parent, state);
 			// var oo = isOn(onOff.onOff);
 			// if (oo) {
 			// 	state.units[ptr].main.start(
@@ -914,8 +931,9 @@ exports.makeWaveShaper_ = function (aa) {
 					oversample: b.type,
 				}),
 			};
+			addToScope(ptr, a.scope, state);
 			doDeferredConnections(ptr, state);
-			mConnectXToY_(ptr)(a.parent)(state)();
+			mConnectXToY_(ptr, a.parent, state);
 		};
 	};
 };
@@ -1550,6 +1568,7 @@ exports.makeFFIAudioSnapshot = function (audioCtx) {
 			deprecatedWriteHead: 0.0,
 			units: {},
 			unqidfr: makeid(10),
+			scopes: { root: [] },
 			pushers: {},
 			unsu: {},
 			toConnect: {},
