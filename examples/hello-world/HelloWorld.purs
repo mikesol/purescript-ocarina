@@ -5,7 +5,7 @@ import Prelude
 import Control.Alt ((<|>))
 import Control.Monad.Indexed.Qualified as Ix
 import Control.Plus (empty)
-import Data.Either (Either, either)
+import Data.Either (either)
 import Data.Exists (Exists, mkExists)
 import Data.Foldable (for_)
 import Data.Maybe (Maybe(..), maybe)
@@ -14,7 +14,7 @@ import Data.Tuple (Tuple(..))
 import Data.Typelevel.Num (D2)
 import Deku.Attribute (cb, (:=))
 import Deku.Control (deku, text, text_)
-import Deku.Core (Element, SubgraphF(..))
+import Deku.Core (SubgraphF(..))
 import Deku.DOM as DOM
 import Deku.Interpret (effectfulDOMInterpret, makeFFIDOMSnapshot)
 import Deku.Subgraph (SubgraphAction(..), subgraph)
@@ -28,7 +28,10 @@ import Type.Proxy (Proxy(..))
 import WAGS.Control (gain__, sinOsc, speaker2, (:*))
 import WAGS.Core (GainInput)
 import WAGS.Example.Utils (RaiseCancellation, animationFrameEvent)
-import WAGS.Imperative (GraphBuilder, InitialGraphBuilderIndex, connect, createGain, createSinOsc, createSpeaker, runGraphBuilder)
+-- import WAGS.Imperative (GraphBuilder, InitialGraphBuilderIndex, connect, createGain, createSinOsc, createSpeaker, runGraphBuilder)
+import WAGS.Imperative.Monad (InitialGraphBuilder, runGraphBuilder)
+import WAGS.Imperative.Connect as Connect
+import WAGS.Imperative.Create as Create
 import WAGS.Interpret (close, context, effectfulAudioInterpret, makeFFIAudioSnapshot, writeHead)
 import WAGS.Parameter (WriteHead, at_, ovnn, pureOn)
 import WAGS.Properties (frequency)
@@ -59,29 +62,29 @@ scene'
   :: forall event payload
    . IsEvent event
   => WriteHead event
-  -> GraphBuilder event payload InitialGraphBuilderIndex _ Unit
+  -> InitialGraphBuilder event payload _ Unit
 scene' wh = Ix.do
-  speaker <- createSpeaker (Proxy :: Proxy "speaker")
-  gain0 <- createGain (Proxy :: Proxy "gain0") 0.1 empty
-  gain1 <- createGain (Proxy :: Proxy "gain1") 0.25 empty
-  gain2 <- createGain (Proxy :: Proxy "gain2") 0.20 empty
-  gain3 <- createGain (Proxy :: Proxy "gain3") 0.10 empty
-  sinOsc0 <- createSinOsc (Proxy :: Proxy "sinOsc0") 440.0
+  speaker <- Create.speaker (Proxy :: Proxy "speaker")
+  gain0 <- Create.gain (Proxy :: Proxy "gain0") 0.1 empty
+  gain1 <- Create.gain (Proxy :: Proxy "gain1") 0.25 empty
+  gain2 <- Create.gain (Proxy :: Proxy "gain2") 0.20 empty
+  gain3 <- Create.gain (Proxy :: Proxy "gain3") 0.10 empty
+  sinOsc0 <- Create.sinOsc (Proxy :: Proxy "sinOsc0") 440.0
     (so \rad -> 440.0 + (10.0 * sin (2.3 * rad)))
-  sinOsc1 <- createSinOsc (Proxy :: Proxy "sinOsc1") 235.0
+  sinOsc1 <- Create.sinOsc (Proxy :: Proxy "sinOsc1") 235.0
     (so \rad -> 235.0 + (10.0 * sin (1.7 * rad)))
-  sinOsc2 <- createSinOsc (Proxy :: Proxy "sinOsc2") 337.0
+  sinOsc2 <- Create.sinOsc (Proxy :: Proxy "sinOsc2") 337.0
     (so \rad -> 337.0 + (10.0 * sin rad))
-  sinOsc3 <- createSinOsc (Proxy :: Proxy "sinOsc3") 530.0
+  sinOsc3 <- Create.sinOsc (Proxy :: Proxy "sinOsc3") 530.0
     (so \rad -> 530.0 + (19.0 * (5.0 * sin rad)))
-  connect { from: gain0, into: speaker }
-  connect { from: gain1, into: speaker }
-  connect { from: gain2, into: speaker }
-  connect { from: gain3, into: speaker }
-  connect { from: sinOsc0, into: gain0 }
-  connect { from: sinOsc1, into: gain1 }
-  connect { from: sinOsc2, into: gain2 }
-  connect { from: sinOsc3, into: gain3 }
+  Connect.connect { from: gain0, into: speaker }
+  Connect.connect { from: gain1, into: speaker }
+  Connect.connect { from: gain2, into: speaker }
+  Connect.connect { from: gain3, into: speaker }
+  Connect.connect { from: sinOsc0, into: gain0 }
+  Connect.connect { from: sinOsc1, into: gain1 }
+  Connect.connect { from: sinOsc2, into: gain2 }
+  Connect.connect { from: sinOsc3, into: gain3 }
   where
   tr = at_ wh (mul pi)
   so f = pureOn <|> (frequency <<< (ovnn f) <$> tr)
@@ -102,7 +105,7 @@ helloWorld
 helloWorld _ rc = mkExists $ SubgraphF \push -> lcmap (map (either (const Nothing) identity)) \event ->
   DOM.div_
     [ DOM.h1_ [ text_ "Hello world" ]
-    , musicButton push event (runGraphBuilder effectfulAudioInterpret <<< scene')
+    , musicButton push event (flip runGraphBuilder effectfulAudioInterpret <<< scene')
     , musicButton push event (flip speaker2 effectfulAudioInterpret <<< scene)
     ]
   where

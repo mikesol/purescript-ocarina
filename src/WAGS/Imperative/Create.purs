@@ -15,6 +15,8 @@ import Data.Variant.Maybe (nothing)
 import FRP.Event.Class (class IsEvent)
 import Prim.Boolean (True, False)
 import Prim.Row as Row
+import Prim.TypeError (class Fail, Beside, Text)
+import Row.Extra as RowExtra
 import Type.Prelude (class IsSymbol, Proxy(..), reflectSymbol)
 import WAGS.Common as Common
 import WAGS.Core as Core
@@ -22,13 +24,33 @@ import WAGS.Imperative.Monad (GraphBuilder(..))
 import WAGS.Imperative.Types (type (\/))
 import WAGS.Imperative.Types as T
 
+-- | Fails if `tOrF` resolves to `False`.
+class IdNotInUse :: Symbol -> Boolean -> Constraint
+class IdNotInUse id tOrF
+
+instance idNotInUseFalse :: IdNotInUse id True
+instance idNotInUseTrue ::
+  ( Fail
+    ( Beside
+      ( Beside
+        ( Text "CreateNode: A node with the id '"
+        )
+        ( Text id
+        )
+      )
+      ( Text "' has already been created."
+      )
+    )
+  ) => IdNotInUse id False
+
 -- | A constraint that modifies the graph builder index such that the
 -- | terminality of freshly-created nodes are tracked.
 class CreateNode :: Type -> Symbol -> Boolean -> Type -> Constraint
 class CreateNode i id isTerminal o | i id isTerminal -> o
 
 instance createNodeDefault ::
-  ( Row.Lacks id t
+  ( RowExtra.Lacks id t idNotInUse
+  , IdNotInUse id idNotInUse
   , Row.Cons id isTerminal t t'
   ) =>
   CreateNode (c \/ t \/ s) id isTerminal (c \/ t' \/ s)
