@@ -8,7 +8,6 @@ import WAGS.Core as Core
 import WAGS.Parameter (InitialAudioParameter)
 import WAGS.WebAPI (BrowserAudioBuffer)
 
-
 -- Gain
 class InitialGain i where
   toInitializeGain :: i -> Core.InitializeGain
@@ -96,7 +95,7 @@ instance
   convertOption _ _ = identity
 
 type LowpassOptional =
-  (  q :: InitialAudioParameter
+  ( q :: InitialAudioParameter
   )
 
 type LowpassAll =

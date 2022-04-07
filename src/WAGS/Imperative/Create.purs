@@ -11,7 +11,7 @@ import Prelude
 import Control.Alternative ((<|>))
 import Data.Newtype (unwrap)
 import Data.Variant (match)
-import Data.Variant.Maybe (nothing)
+import Data.Variant.Maybe (just, nothing)
 import FRP.Event.Class (class IsEvent)
 import Prim.Boolean (True, False)
 import Prim.Row as Row
@@ -31,17 +31,18 @@ class IdNotInUse id tOrF
 instance idNotInUseFalse :: IdNotInUse id True
 instance idNotInUseTrue ::
   ( Fail
-    ( Beside
       ( Beside
-        ( Text "CreateNode: A node with the id '"
-        )
-        ( Text id
-        )
+          ( Beside
+              ( Text "CreateNode: A node with the id '"
+              )
+              ( Text id
+              )
+          )
+          ( Text "' has already been created."
+          )
       )
-      ( Text "' has already been created."
-      )
-    )
-  ) => IdNotInUse id False
+  ) =>
+  IdNotInUse id False
 
 -- | A constraint that modifies the graph builder index such that the
 -- | terminality of freshly-created nodes are tracked.
@@ -95,12 +96,17 @@ gain
 gain _ initialGain attributes = GraphBuilder go
   where
   initializeGain = unwrap $ Common.toInitializeGain initialGain
-  go (Core.AudioInterpret { makeGain, setGain }) =
+  go (Core.AudioInterpret { scope, makeGain, setGain }) =
     { event:
         let
           id = reflectSymbol (Proxy :: _ id)
           event0 = pure $
-            makeGain { id, parent: nothing, gain: initializeGain.gain }
+            makeGain
+              { id
+              , parent: nothing
+              , gain: initializeGain.gain
+              , scope: just scope
+              }
           eventN = attributes <#> unwrap >>> match
             { gain: setGain <<< { id, gain: _ }
             }
@@ -127,12 +133,12 @@ sinOsc
 sinOsc _ initialSinOsc attributes = GraphBuilder go
   where
   { frequency } = unwrap $ Common.toInitializeSinOsc initialSinOsc
-  go (Core.AudioInterpret { makeSinOsc, setFrequency, setOnOff }) =
+  go (Core.AudioInterpret { scope, makeSinOsc, setFrequency, setOnOff }) =
     { event:
         let
           id = reflectSymbol (Proxy :: _ id)
           event0 = pure $
-            makeSinOsc { id, parent: nothing, frequency }
+            makeSinOsc { id, parent: nothing, frequency, scope: just scope }
           eventN = attributes <#> unwrap >>> match
             { frequency: setFrequency <<< { id, frequency: _ }
             , onOff: setOnOff <<< { id, onOff: _ }
@@ -163,7 +169,13 @@ playBuf _ initialPlayBuf attributes = GraphBuilder go
     Common.toInitializePlayBuf initialPlayBuf
   go
     ( Core.AudioInterpret
-        { makePlayBuf, setBuffer, setOnOff, setPlaybackRate, setBufferOffset }
+        { scope
+        , makePlayBuf
+        , setBuffer
+        , setOnOff
+        , setPlaybackRate
+        , setBufferOffset
+        }
     ) =
     { event:
         let
@@ -175,6 +187,7 @@ playBuf _ initialPlayBuf attributes = GraphBuilder go
             , playbackRate
             , bufferOffset
             , duration
+            , scope: just scope
             }
           eventN = attributes <#> unwrap >>> match
             { buffer: setBuffer <<< { id, buffer: _ }

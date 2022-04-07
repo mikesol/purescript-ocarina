@@ -40,7 +40,8 @@ instance inputsCons ::
     let
       px = (Proxy :: _ key)
     in
-      Record.insert px (Input (reflectSymbol px <> "!" <> scope)) (inputs scope (Proxy :: _ rest))
+      Record.insert px (Input (reflectSymbol px <> "!" <> scope))
+        (inputs scope (Proxy :: _ rest))
 
 __subgraph
   :: forall index env outputChannels produced consumed consumedRL sgProduced

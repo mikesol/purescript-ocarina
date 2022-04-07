@@ -21,18 +21,18 @@ class IsTerminalNode id tOrF
 instance isTerminalTrue :: IsTerminalNode id True
 instance isTerminalFalse ::
   ( Fail
-    ( Beside
       ( Beside
-        ( Text "ConnectNodes: A node with the id '"
-        )
-        ( Text id
-        )
+          ( Beside
+              ( Text "ConnectNodes: A node with the id '"
+              )
+              ( Text id
+              )
+          )
+          ( Text "' is not a terminal node."
+          )
       )
-      ( Text "' is not a terminal node."
-      )
-    )
-  ) => IsTerminalNode id False
-
+  ) =>
+  IsTerminalNode id False
 
 -- | Fails if `tOrF` resolves to `False`.
 class IsNewConnection :: Symbol -> Symbol -> Boolean -> Constraint
@@ -41,25 +41,26 @@ class IsNewConnection fId iId tOrF
 instance alreadyConnectedTrue :: IsNewConnection fId iId True
 instance alreadyConnectedFalse ::
   ( Fail
-    ( Beside
       ( Beside
-        ( Text "ConnectNodes: A node with the id '"
-        )
-        ( Text fId
-        )
-      )
-      ( Beside
-        ( Text "' is already connected to a node with the id '"
-        )
-        ( Beside
-          ( Text iId
+          ( Beside
+              ( Text "ConnectNodes: A node with the id '"
+              )
+              ( Text fId
+              )
           )
-          ( Text "'."
+          ( Beside
+              ( Text "' is already connected to a node with the id '"
+              )
+              ( Beside
+                  ( Text iId
+                  )
+                  ( Text "'."
+                  )
+              )
           )
-        )
       )
-    )
-  ) => IsNewConnection fId iId False
+  ) =>
+  IsNewConnection fId iId False
 
 -- | An `or` operation between a node and the current state.
 class MakesSound :: T.Node -> Boolean -> Boolean -> Constraint
