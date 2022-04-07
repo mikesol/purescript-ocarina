@@ -94,11 +94,11 @@ initializeHelloWorld :: Aff Init
 initializeHelloWorld = pure unit
 
 helloWorld
-  :: forall index event payload
+  :: forall event payload
    . IsEvent event
   => Unit
   -> RaiseCancellation
-  -> Exists (SubgraphF index Unit event payload)
+  -> Exists (SubgraphF Unit event payload)
 helloWorld _ rc = mkExists $ SubgraphF \push -> lcmap (map (either (const Nothing) identity)) \event ->
   DOM.div_
     [ DOM.h1_ [ text_ "Hello world" ]

@@ -97,11 +97,11 @@ initializeAtariSpeaks = do
   pure atar
 
 atariSpeaks
-  :: forall index event payload
+  :: forall event payload
    . IsEvent event
   => BrowserAudioBuffer
   -> RaiseCancellation
-  -> Exists (SubgraphF index Unit event payload)
+  -> Exists (SubgraphF Unit event payload)
 atariSpeaks atar rc = mkExists $ SubgraphF \push -> lcmap
   (map (either (const $ TurnOn) identity))
   \event ->

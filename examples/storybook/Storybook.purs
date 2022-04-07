@@ -6,12 +6,10 @@ import Control.Alt ((<|>))
 import Control.Plus (class Plus, empty)
 import Data.Either (Either(..))
 import Data.Exists (mkExists)
-import Data.Foldable (for_, oneOfMap)
-import Data.Functor (mapFlipped)
+import Data.Foldable (for_)
 import Data.Generic.Rep (class Generic)
 import Data.Hashable (class Hashable, hash)
 import Data.Maybe (Maybe(..))
-import Data.Profunctor (lcmap)
 import Data.Show.Generic (genericShow)
 import Data.Tuple.Nested ((/\))
 import Deku.Attribute (cb, (:=))
@@ -23,7 +21,7 @@ import Deku.Subgraph (SubgraphAction(..), subgraph)
 import Effect (Effect)
 import Effect.Aff (launchAff_, try)
 import Effect.Class (liftEffect)
-import FRP.Event (class IsEvent, create, filterMap, keepLatest, mapAccum, subscribe)
+import FRP.Event (class IsEvent, create, filterMap, fold, keepLatest, mapAccum, subscribe)
 import WAGS.Example.AtariSpeaks as AtariSpeaks
 import WAGS.Example.HelloWorld as HelloWorld
 import WAGS.Example.MultiBuf as MultiBuf
@@ -42,6 +40,7 @@ data Page
   | MultiBuf MultiBuf.Init
   | Tumult Tummult.Init
   | ErrorPage String
+  | LoadingPage
 
 derive instance eqPage :: Eq Page
 derive instance genericPage :: Generic Page _
@@ -54,6 +53,8 @@ instance Hashable Page where
 
 data UIAction = PageLoading | Page Page | StashCancel (Maybe ToCancel) | Start
 
+data OnClickAction = Loaded | Loading
+
 scene
   :: forall event payload
    . IsEvent event
@@ -61,86 +62,90 @@ scene
   => (UIAction -> Effect Unit)
   -> event UIAction
   -> Element event payload
-scene push = lcmap
-  ( \e ->
-      mapAccum
-        ( \a b -> case a of
-            StashCancel sc -> sc /\ (a /\ sc)
-            _ -> b /\ (a /\ b)
-        )
-        e
-        Nothing
-  )
-  \event ->
-    flatten
-      [ D.div_
-          $ map
-              ( \(x' /\ y /\ z) -> D.span_
-                  [ D.a
-                      ( oneOfMap (mapFlipped event)
-                          [ \(_ /\ stash) -> D.OnClick := cb
-                              ( const $ launchAff_ $
-                                  ( try do
-                                      liftEffect $ push PageLoading
-                                      for_ stash \{ unsub, ctx } -> liftEffect
-                                        do
-                                          close ctx
-                                          unsub
-                                      x <- x'
-                                      liftEffect $ push (Page x)
-                                  ) >>= case _ of
-                                    Left e -> liftEffect
-                                      (push (Page $ ErrorPage $ show e))
-                                    Right _ -> pure unit
+scene push event =
+  flatten
+    [ D.div_
+        $ map
+            ( \(x' /\ y /\ z) -> D.span_
+                [ D.a
+                    ( pure (D.Style := "cursor:pointer;") <|>
+                        ( ( fold
+                              ( \a (i /\ stash) -> case a of
+                                  Start -> Loaded /\ stash
+                                  PageLoading -> Loading /\ stash
+                                  StashCancel newStash -> i /\ newStash
+                                  Page _ -> Loaded /\ stash
                               )
-                          , const $ D.Style := "cursor:pointer;"
-                          ]
-                      )
-                      [ text_ y ]
-                  , D.span
-                      ( pure $ D.Style :=
-                          if z then ""
-                          else "display:none;"
-                      )
-                      [ text_ " | " ]
-                  ]
-              )
-          $
-            [ (HelloWorld <$> HelloWorld.initializeHelloWorld)
-                /\ "Hello World"
-                /\ true
-            , (AtariSpeaks <$> AtariSpeaks.initializeAtariSpeaks)
-                /\ "Atari speaks"
-                /\ true
-            , (MultiBuf <$> MultiBuf.initializeMultiBuf)
-                /\ "Multi-buf"
-                /\ true
-            , (Tumult <$> Tumult.initializeTumult)
-                /\ "Tumult"
-                /\ true
-            ]
-      , subgraph
-          ( mapAccum (\a b -> Just a /\ (b /\ a))
-              ( filterMap
-                  ( case _ of
-                      Page p /\ _ -> Just p
-                      _ -> Nothing
-                  )
-                  event
-              )
-              Nothing
-              # map
-                  ( \(prev /\ cur) ->
-                      ( case prev of
-                          Nothing -> empty
-                          Just x -> pure (x /\ Remove)
-                      ) <|> pure (cur /\ InsertOrUpdate unit)
-                  )
-              # keepLatest
-          )
-          (page (StashCancel >>> push))
+                              event
+                              (Loaded /\ Nothing)
+                          ) <#>
+                            \(loadingState /\ stash) ->
+                              case loadingState of
+                                Loading -> D.OnClick := cb (const $ pure unit)
+                                Loaded -> D.OnClick := cb
+                                  ( const $ launchAff_ $
+                                      ( try do
+                                          liftEffect $ push PageLoading
+                                          for_ stash \{ unsub, ctx } ->
+                                            liftEffect
+                                              do
+                                                close ctx
+                                                unsub
+                                          x <- x'
+                                          liftEffect $ push (Page x)
+                                      ) >>= case _ of
+                                        Left e -> liftEffect
+                                          (push (Page $ ErrorPage $ show e))
+                                        Right _ -> pure unit
+                                  )
+                        )
+                    )
+                    [ text_ y ]
+                , D.span
+                    ( pure $ D.Style :=
+                        if z then ""
+                        else "display:none;"
+                    )
+                    [ text_ " | " ]
+                ]
+            )
+        $
+          [ (HelloWorld <$> HelloWorld.initializeHelloWorld)
+              /\ "Hello World"
+              /\ true
+          , (AtariSpeaks <$> AtariSpeaks.initializeAtariSpeaks)
+              /\ "Atari speaks"
+              /\ true
+          , (MultiBuf <$> MultiBuf.initializeMultiBuf)
+              /\ "Multi-buf"
+              /\ true
+          , (Tumult <$> Tumult.initializeTumult)
+              /\ "Tumult"
+              /\ true
+          ]
+    , subgraph
+        ( mapAccum (\a b -> Just a /\ (b /\ a))
+            ( filterMap
+                ( case _ of
+                    Page p -> Just p
+                    PageLoading -> Just LoadingPage
+                    _ -> Nothing
+                )
+                event
+            )
+            Nothing
+            # map
+                ( \(prev /\ cur) ->
+                    ( case prev of
+                        Nothing -> empty
+                        Just x -> pure (x /\ Remove)
+                    ) <|> pure (cur /\ InsertOrUpdate unit)
+                )
+            # keepLatest
+        )
+        (page (StashCancel >>> push))
 
-      ]
+    ]
   where
   page :: (Maybe ToCancel -> Effect Unit) -> Subgraph Page Unit event payload
   page cancelCb (HelloWorld hwi) = HelloWorld.helloWorld hwi cancelCb
@@ -149,6 +154,8 @@ scene push = lcmap
   page cancelCb (Tumult ti) = Tumult.tumultExample ti cancelCb
   page _ (ErrorPage s) = mkExists $ SubgraphF \_ _ -> D.p_
     [ text_ ("Well, this is embarassing. The following error occurred: " <> s) ]
+  page _ LoadingPage = mkExists $ SubgraphF \_ _ -> D.p_
+    [ text_ "Loading..." ]
 
 main :: Effect Unit
 main = do

@@ -130,11 +130,11 @@ initializeTumult = do
   pure atar
 
 tumultExample
-  :: forall index event payload
+  :: forall event payload
    . IsEvent event
   => BrowserAudioBuffer
   -> RaiseCancellation
-  -> Exists (SubgraphF index Unit event payload)
+  -> Exists (SubgraphF Unit event payload)
 tumultExample loopy rc = mkExists $ SubgraphF \push -> lcmap
   (map (either (const Nothing) identity))
   \event ->

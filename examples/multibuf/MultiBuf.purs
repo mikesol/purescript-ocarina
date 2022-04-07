@@ -153,11 +153,11 @@ initializeMultiBuf = do
   pure { kick, snare }
 
 multiBuf
-  :: forall index event payload
+  :: forall event payload
    . IsEvent event
   => KickSnare
   -> RaiseCancellation
-  -> Exists (SubgraphF index Unit event payload)
+  -> Exists (SubgraphF Unit event payload)
 multiBuf ks rc = mkExists $ SubgraphF \push -> lcmap
   (map (either (const Nothing) identity))
   \event ->
