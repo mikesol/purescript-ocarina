@@ -304,8 +304,8 @@ exports.makeDynamicsCompressor_ = function (a) {
 	};
 };
 
-// dynamicsCompressor
-exports.makeGain_ = function (a) {
+// gain
+var makeGain_ = function (a) {
 	return function (state) {
 		return function () {
 			var ptr = a.id;
@@ -320,6 +320,7 @@ exports.makeGain_ = function (a) {
 		};
 	};
 };
+exports.makeGain_ = makeGain_;
 // highpass
 exports.makeHighpass_ = function (a) {
 	return function (state) {
@@ -365,7 +366,7 @@ exports.makeInput_ = function (a) {
 			var ptr = a.id;
 			var parent = a.parent;
 			setTimeout(function () {
-				connectXToY_(ptr)(parent)(state)();
+				mConnectXToY_(ptr)(parent)(state)();
 			}, 0);
 		};
 	};
@@ -685,16 +686,13 @@ exports.makeSubgraph_ = function (ptr) {
 		return function (sceneM) {
 			return function (state) {
 				return function () {
-					var children = {};
-					var pushers = {};
-					var unsu = {};
-					state.units[ptr] = {
-						parent: parent,
-						sceneM: sceneM,
-						pushers: pushers,
-						children: children,
-						unsu: unsu,
-					};
+					makeGain_({
+						id: ptr,
+						parent: { type: "just", value: parent },
+						gain: 1.0,
+					})(state)();
+					state.units[ptr].sceneM = sceneM;
+					state.units[ptr].cache = {};
 				};
 			};
 		};
@@ -706,21 +704,15 @@ exports.removeSubgraph_ = function (a) {
 		return function () {
 			var ptr = a.id;
 			var j = a.pos;
-			var children = state.units[ptr].children;
-			var unsu = state.units[ptr].unsu;
-			if (children[j] === undefined) {
-				return;
+			var pj = `${ptr}-${j}`;
+			if (state.unsu[pj] !== undefined) {
+				state.unsu[pj]();
+				state.units[state.units[ptr].cache[j]].disconnect();
+				delete state.units[state.units[ptr].cache[j]];
+				delete state.units[ptr].cache[j];
+				delete state.unsu[pj];
+				delete state.pushers[pj];
 			}
-			for (var k = 0; k < children[j].terminalPtrs.length; k++) {
-				disconnectXFromY_(children[j].terminalPtrs[k])(state.units[ptr].parent)(
-					children[j]
-				)();
-			}
-			// unsubscribe
-			unsu[j]();
-			// delete unused
-			delete children[j];
-			delete unsu[j];
 		};
 	};
 };
@@ -732,40 +724,20 @@ exports.insertOrUpdateSubgraph_ = function (a) {
 			var env = a.env;
 			var j = a.pos;
 			var index = a.index;
-			var children = state.units[ptr].children;
-			var unsu = state.units[ptr].unsu;
-			var pushers = state.units[ptr].pushers;
-			var needsConnecting = false;
-			if (env !== null && unsu[j] === undefined) {
-				children[j] = {
-					units: {},
-					terminus: state.units[ptr].parent,
-					unqidfr: makeid(10),
-					parent: ptr,
-					terminalPtrs: [],
-					context: state.context,
-					deprecatedWriteHead: state.deprecatedWriteHead,
-				};
-				children[j].units[state.units[ptr].parent] =
-					state.units[state.units[ptr].parent];
-				var sg = state.units[ptr].sceneM(index)();
-				unsu[j] = sg.actualized(
-					(
-						(jIs) => (instr) => () =>
-							instr(children[jIs])()
-					)(j)
-				)();
-				pushers[j] = sg.pusher;
-				needsConnecting = true;
+			var pj = `${ptr}-${j}`;
+			if (env !== null && state.unsu[pj] === undefined) {
+				var newId = `${Math.random()}`;
+				makeGain_({
+					id: newId,
+					parent: { type: "just", value: a.id },
+					gain: 1.0,
+				})(state)();
+				state.units[ptr].cache[j] = newId;
+				var sg = state.units[ptr].sceneM(index)(newId)();
+				state.unsu[pj] = sg.actualized((instr) => () => instr(state)())();
+				state.pushers[pj] = sg.pusher;
 			}
-			pushers[j](env)();
-			if (needsConnecting) {
-				for (var k = 0; k < children[j].terminalPtrs.length; k++) {
-					connectXToY_(children[j].terminalPtrs[k])(state.units[ptr].parent)(
-						children[j]
-					)();
-				}
-			}
+			state.pushers[pj](env)();
 		};
 	};
 };
@@ -1508,6 +1480,8 @@ exports.makeFFIAudioSnapshot = function (audioCtx) {
 			deprecatedWriteHead: 0.0,
 			units: {},
 			unqidfr: makeid(10),
+			pushers: {},
+			unsu: {},
 		};
 	};
 };

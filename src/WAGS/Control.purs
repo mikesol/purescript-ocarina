@@ -867,10 +867,10 @@ highshelf' px = __highshelf (just (reflectSymbol px))
 -- input
 
 input
-  :: forall outputChannels produced consumed event payload
+  :: forall outputChannels event payload
    . IsEvent event
   => C.Input
-  -> C.Node outputChannels produced consumed event payload
+  -> C.Node outputChannels () () event payload
 input (C.Input me) = C.Node go
   where
   go parent (C.AudioInterpret { makeInput }) = pure
@@ -881,15 +881,17 @@ input (C.Input me) = C.Node go
 -- lowpass
 
 __lowpass
-  :: forall outputChannels producedI consumedI producedO consumedO event payload
+  :: forall i outputChannels producedI consumedI producedO consumedO event payload
    . IsEvent event
+  => Common.InitialLowpass i
   => Maybe String
-  -> C.InitializeLowpass
+  -> i
   -> event C.Lowpass
   -> C.Node outputChannels producedI consumedI event payload
   -> C.Node outputChannels producedO consumedO event payload
-__lowpass mId (C.InitializeLowpass i) atts elt = C.Node go
+__lowpass mId i' atts elt = C.Node go
   where
+  C.InitializeLowpass i = Common.toInitialLowpass i'
   go parent di@(C.AudioInterpret { ids, makeLowpass, setFrequency, setQ }) =
     keepLatest
       ( (sample_ ids (pure unit)) <#> __mId mId \me ->
@@ -910,21 +912,23 @@ __lowpass mId (C.InitializeLowpass i) atts elt = C.Node go
       )
 
 lowpass
-  :: forall outputChannels produced consumed event payload
+  :: forall i outputChannels produced consumed event payload
    . IsEvent event
-  => C.InitializeLowpass
+  => Common.InitialLowpass i
+  => i
   -> event C.Lowpass
   -> C.Node outputChannels produced consumed event payload
   -> C.Node outputChannels produced consumed event payload
 lowpass = __lowpass nothing
 
 lowpass'
-  :: forall proxy sym outputChannels produced produced' consumed event payload
+  :: forall i proxy sym outputChannels produced produced' consumed event payload
    . IsEvent event
   => IsSymbol sym
   => Cons sym C.Input produced' produced
+  => Common.InitialLowpass i
   => proxy sym
-  -> C.InitializeLowpass
+  -> i
   -> event C.Lowpass
   -> C.Node outputChannels produced' consumed event payload
   -> C.Node outputChannels produced consumed event payload
@@ -988,75 +992,17 @@ lowshelf' px = __lowshelf (just (reflectSymbol px))
 
 -- loopBuf
 
-data LoopBufOptions = LoopBufOptions
-
-instance
-  ConvertOption LoopBufOptions
-    "playbackRate"
-    InitialAudioParameter
-    InitialAudioParameter where
-  convertOption _ _ = identity
-
-instance ConvertOption LoopBufOptions "duration" Number (Maybe Number) where
-  convertOption _ _ = just
-
-instance ConvertOption LoopBufOptions "loopStart" Number Number where
-  convertOption _ _ = identity
-
-instance ConvertOption LoopBufOptions "loopEnd" Number Number where
-  convertOption _ _ = identity
-
-instance
-  ConvertOption LoopBufOptions "buffer" BrowserAudioBuffer BrowserAudioBuffer where
-  convertOption _ _ = identity
-
-type LoopBufOptional =
-  ( loopStart :: Number
-  , loopEnd :: Number
-  , playbackRate :: InitialAudioParameter
-  , duration :: Maybe Number
-  )
-
-type LoopBufAll =
-  ( buffer :: BrowserAudioBuffer
-  | LoopBufOptional
-  )
-
-defaultLoopBuf :: { | LoopBufOptional }
-defaultLoopBuf =
-  { loopStart: 0.0
-  , loopEnd: 0.0
-  , playbackRate: 1.0
-  , duration: nothing
-  }
-
-class InitialLoopBuf i where
-  toInitialLoopBuf :: i -> C.InitializeLoopBuf
-
-instance InitialLoopBuf C.InitializeLoopBuf where
-  toInitialLoopBuf = identity
-
-instance InitialLoopBuf BrowserAudioBuffer where
-  toInitialLoopBuf = toInitialLoopBuf <<< { buffer: _ }
-
-instance
-  ConvertOptionsWithDefaults LoopBufOptions { | LoopBufOptional } { | provided }
-    { | LoopBufAll } =>
-  InitialLoopBuf { | provided } where
-  toInitialLoopBuf provided = C.InitializeLoopBuf
-    (convertOptionsWithDefaults LoopBufOptions defaultLoopBuf provided)
-
 __loopBuf
   :: forall i outputChannels produced consumed event payload
    . IsEvent event
-  => InitialLoopBuf i
+  => Common.InitialLoopBuf i
   => Maybe String
   -> i
   -> event C.LoopBuf
   -> C.Node outputChannels produced consumed event payload
 __loopBuf mId i' atts = C.Node go
   where
-  C.InitializeLoopBuf i = toInitialLoopBuf i'
+  C.InitializeLoopBuf i = Common.toInitialLoopBuf i'
   go
     parent
     ( C.AudioInterpret
@@ -1099,7 +1045,7 @@ __loopBuf mId i' atts = C.Node go
 loopBuf
   :: forall i outputChannels event payload
    . IsEvent event
-  => InitialLoopBuf i
+  => Common.InitialLoopBuf i
   => i
   -> event C.LoopBuf
   -> C.Node outputChannels () () event payload
@@ -1139,7 +1085,7 @@ __mediaElement mId (C.InitializeMediaElement i) = C.Node go
       )
 
 mediaElement
-  :: forall outputChannels produced consumed event payload
+  :: forall outputChannels event payload
    . IsEvent event
   => C.InitializeMediaElement
   -> C.Node outputChannels () () event payload
@@ -1178,7 +1124,7 @@ __microphone mId (C.InitializeMicrophone i) = C.Node go
       )
 
 microphone
-  :: forall outputChannels produced consumed event payload
+  :: forall outputChannels event payload
    . IsEvent event
   => C.InitializeMicrophone
   -> C.Node outputChannels () () event payload
@@ -1345,7 +1291,7 @@ __periodicOsc mId (C.InitializePeriodicOsc i) atts = C.Node go
       )
 
 periodicOsc
-  :: forall outputChannels produced consumed event payload
+  :: forall outputChannels event payload
    . IsEvent event
   => C.InitializePeriodicOsc
   -> event C.PeriodicOsc
@@ -1757,7 +1703,7 @@ pan' px = __pan (just (reflectSymbol px))
 -- triangleOsc
 
 __triangleOsc
-  :: forall produced consumed outputChannels produced consumed event payload
+  :: forall outputChannels produced consumed event payload
    . IsEvent event
   => Maybe String
   -> C.InitializeTriangleOsc
@@ -1787,7 +1733,7 @@ __triangleOsc mId (C.InitializeTriangleOsc i) atts = C.Node go
       )
 
 triangleOsc
-  :: forall outputChannels produced consumed event payload
+  :: forall outputChannels event payload
    . IsEvent event
   => C.InitializeTriangleOsc
   -> event C.TriangleOsc
@@ -1808,14 +1754,15 @@ triangleOsc' px = __triangleOsc (just (reflectSymbol px))
 -- waveshaper
 
 __waveshaper
-  :: forall produced consumed outputChannels produced consumed event payload
+  :: forall outputChannels producedI consumedI producedO consumedO event payload
    . IsEvent event
   => Maybe String
   -> C.InitializeWaveshaper
-  -> C.Node outputChannels produced consumed event payload
-__waveshaper mId (C.InitializeWaveshaper i) = C.Node go
+  -> C.Node outputChannels producedI consumedI event payload
+  -> C.Node outputChannels producedO consumedO event payload
+__waveshaper mId (C.InitializeWaveshaper i) elt = C.Node go
   where
-  go parent (C.AudioInterpret { ids, makeWaveShaper }) =
+  go parent di@(C.AudioInterpret { ids, makeWaveShaper }) =
     keepLatest
       ( (sample_ ids (pure unit)) <#> __mId mId \me ->
           pure
@@ -1825,24 +1772,26 @@ __waveshaper mId (C.InitializeWaveshaper i) = C.Node go
                 , curve: i.curve
                 , oversample: i.oversample
                 }
-            )
+            ) <|> ((\y -> let C.Node x = y in x) elt) me di
       )
 
 waveshaper
   :: forall outputChannels produced consumed event payload
    . IsEvent event
   => C.InitializeWaveshaper
-  -> C.Node outputChannels () () event payload
+  -> C.Node outputChannels produced consumed event payload
+  -> C.Node outputChannels produced consumed event payload
 waveshaper = __waveshaper nothing
 
 waveshaper'
-  :: forall proxy sym outputChannels produced event payload
+  :: forall proxy sym outputChannels produced' produced consumed event payload
    . IsEvent event
   => IsSymbol sym
-  => Cons sym C.Input () produced
+  => Cons sym C.Input produced' produced
   => proxy sym
   -> C.InitializeWaveshaper
-  -> C.Node outputChannels produced () event payload
+  -> C.Node outputChannels produced' consumed event payload
+  -> C.Node outputChannels produced consumed event payload
 waveshaper' px = __waveshaper (just (reflectSymbol px))
 
 -- todo: tumult

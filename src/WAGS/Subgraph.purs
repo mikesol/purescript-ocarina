@@ -6,8 +6,7 @@ import Control.Alt ((<|>))
 import Data.Hashable (class Hashable, hash)
 import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.Tuple.Nested (type (/\), (/\))
-import WAGS.Core (Input(..), Subgraph)
-import WAGS.Core as C
+import Data.Variant.Maybe (Maybe, just, nothing)
 import FRP.Behavior (sample_)
 import FRP.Event (class IsEvent, keepLatest)
 import Prim.Row as Row
@@ -15,6 +14,9 @@ import Prim.RowList (class RowToList)
 import Prim.RowList as RL
 import Record as Record
 import Type.Proxy (Proxy(..))
+import WAGS.Control (__mId)
+import WAGS.Core (Input(..), Subgraph)
+import WAGS.Core as C
 
 data SubgraphAction env
   = InsertOrUpdate env
@@ -40,19 +42,20 @@ instance inputsCons ::
     in
       Record.insert px (Input (reflectSymbol px)) (inputs (Proxy :: _ rest))
 
-subgraph
+__subgraph
   :: forall index env outputChannels produced consumed consumedRL sgProduced
        sgConsumed event payload
    . IsEvent event
   => Hashable index
   => RowToList consumed consumedRL
   => MakeInputs consumedRL consumed
-  => event (index /\ SubgraphAction env)
+  => Maybe String
+  -> event (index /\ SubgraphAction env)
   -> ( { | consumed }
        -> Subgraph index env outputChannels sgProduced sgConsumed event payload
      )
   -> C.Node outputChannels produced consumed event payload
-subgraph mods elt = C.Node go
+__subgraph mId mods elt = C.Node go
   where
   subg = elt (inputs (Proxy :: _ consumedRL))
   go
@@ -61,7 +64,7 @@ subgraph mods elt = C.Node go
         { ids, makeSubgraph, insertOrUpdateSubgraph, removeSubgraph }
     ) =
     keepLatest
-      ( (sample_ ids (pure unit)) <#> \me ->
+      ( (sample_ ids (pure unit)) <#> __mId mId \me ->
           pure
             ( makeSubgraph
                 { id: me, parent: parent, scenes: subg }
@@ -75,21 +78,35 @@ subgraph mods elt = C.Node go
               mods
       )
 
-subgraph'
-  :: forall proxy sym index env outputChannels produced consumed' consumed
-       consumedRL
-       sgProduced sgConsumed event payload
+subgraph
+  :: forall index env outputChannels consumed consumedRL sgProduced
+       sgConsumed event payload
    . IsEvent event
   => Hashable index
   => RowToList consumed consumedRL
   => MakeInputs consumedRL consumed
-  => Row.Cons sym C.Input consumed' consumed
+  => event (index /\ SubgraphAction env)
+  -> ( { | consumed }
+       -> Subgraph index env outputChannels sgProduced sgConsumed event payload
+     )
+  -> C.Node outputChannels () consumed event payload
+subgraph = __subgraph nothing
+
+subgraph'
+  :: forall proxy sym index env outputChannels produced consumed consumedRL sgProduced
+       sgConsumed event payload
+   . IsEvent event
+  => Hashable index
+  => RowToList consumed consumedRL
+  => MakeInputs consumedRL consumed
+  => IsSymbol sym
+  => Row.Cons sym C.Input () produced
   => proxy sym
   -> event (index /\ SubgraphAction env)
   -> ( { | consumed }
        -> Subgraph index env outputChannels sgProduced sgConsumed event payload
      )
-  -> C.Node outputChannels produced consumed event payload
-subgraph' _ mods elt = let C.Node n = subgraph mods elt in C.Node n
+  -> C.Node outputChannels () consumed event payload
+subgraph' px = __subgraph (just (reflectSymbol px))
 
 infixr 6 subgraph as @@

@@ -2,141 +2,187 @@ module WAGS.Example.Subgraph where
 
 import Prelude
 
-import Control.Comonad.Cofree (Cofree, mkCofree)
-import Data.Array ((..))
+import Control.Plus (empty)
+import Data.Either (either)
+import Data.Exists (Exists, mkExists)
 import Data.Foldable (for_)
-import Data.Int (toNumber)
-import Data.Map (fromFoldable)
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), maybe)
+import Data.Profunctor (lcmap)
+import Data.Tuple (Tuple(..))
 import Data.Tuple.Nested ((/\))
-import Data.Typelevel.Num (D40)
-import Data.Variant.Maybe (just)
-import Data.Vec as V
+import Data.Typelevel.Num (D2)
+import Deku.Attribute (cb, (:=))
+import Deku.Control (deku, text, text_)
+import Deku.Core (SubgraphF(..))
+import Deku.DOM as DOM
+import Deku.Interpret (effectfulDOMInterpret, makeFFIDOMSnapshot)
+import Deku.Subgraph as Sg
 import Effect (Effect)
-import Effect.Aff.Class (class MonadAff)
-import Effect.Class (class MonadEffect)
-import FRP.Event (subscribe)
+import Effect.Aff (Aff, launchAff_)
+import Effect.Class (liftEffect)
+import FRP.Behavior (sample_)
+import FRP.Event (class IsEvent, subscribe)
+import Math (pi, sin)
+import Type.Proxy (Proxy(..))
+import WAGS.Control (gain, gain', gain__, input, loopBuf, lowpass, sinOsc, speaker2, (:*))
+import WAGS.Core (GainInput, Input, Subgraph(..))
+import WAGS.Example.Utils (RaiseCancellation, animationFrameEvent)
+import WAGS.Interpret (close, context, decodeAudioDataFromUri, effectfulAudioInterpret, makeFFIAudioSnapshot, writeHead)
+import WAGS.Parameter (WriteHead, at_, ovnn, pureOn)
+import WAGS.Properties (frequency)
+import WAGS.Subgraph as Wsg
+import WAGS.WebAPI (AudioContext, BrowserAudioBuffer)
+import Web.HTML (window)
+import Web.HTML.HTMLDocument (body)
+import Web.HTML.HTMLElement (toElement)
+import Web.HTML.Window (document)
 
--- type World = { atar :: BrowserAudioBuffer }
+scene
+  :: forall event payload
+   . IsEvent event
+  => BrowserAudioBuffer
+  -> WriteHead event
+  -> GainInput D2 (toSubg :: Input) (toSubg :: Input) event payload
+scene loopy wh =
+  let
+    tr = at_ wh (mul pi)
+  in
+    gain__ 0.0 empty
+      ( gain' (Proxy :: _ "toSubg") 1.0 empty
+          (loopBuf loopy pureOn :* [])
+      ) :*
+      [ Wsg.subgraph (pure (0 /\ Wsg.InsertOrUpdate unit))
+          ( \({ toSubg } :: { toSubg :: Input }) -> Subgraph \i e ->
+              let
+                ooo
+                  | otherwise =
+                      gain 1.0 empty
+                        ( lowpass 1100.0
+                            ( map
+                                ( frequency <<< ovnn
+                                    (\x -> 1100.0 + 1000.0 * sin x)
+                                )
+                                tr
+                            )
+                            (input toSubg) :*
+                            [ gain__ 0.03 empty (sinOsc 220.0 empty) ]
+                        )
+              -- | i == 1 = \e -> tumultuously
+              --           { output: Opt.gain 1.0
+              --               { bp: Opt.bandpass
+              --                   (ovnn (\x -> 2000.0 + 1500.0 * sin x) anum)
+              --                   toSubg
+              --               , osc: Opt.gain 0.03 (Opt.sawtoothOsc 330.0)
+              --               }
+              --           }
+              --   | i == 2 = \e -> tumultuously
+              --           { output: Opt.gain 1.0
+              --               { hs: Opt.gain 1.0
+              --                   { x0: Opt.highshelf
+              --                       ( ovnn (\x -> 2600.0 + 1000.0 * sin x)
+              --                           anum
+              --                       )
+              --                       toSubg
+              --                   , x1: Opt.delay 0.04
+              --                       (Opt.gain 0.3 { x0: Opt.ref })
+              --                   }
+              --               , osc: Opt.gain 0.03 (Opt.triangleOsc 550.0)
+              --               }
+              --           }
+              --   | i == 3 = \e -> tumultuously
+              --           { output: Opt.gain 1.0
+              --               { ls: Opt.lowshelf
+              --                   (ovnn (\x -> 2600.0 + 1000.0 * sin x) anum)
+              --                   toSubg
+              --               , osc: Opt.gain 0.03 (Opt.squareOsc 810.0)
+              --               }
+              --           }
+              --   | otherwise = \e -> tumultuously
+              --           { output: Opt.gain 1.0
+              --               { hp: Opt.highpass
+              --                   (ovnn (\x -> 2600.0 + 1000.0 * sin x) anum)
+              --                   toSubg
+              --               , osc: Opt.gain 0.03
+              --                   ( Opt.periodicOsc
+              --                       ( (0.1 +> 0.1 +> 0.02 +> V.empty) /\
+              --                           (0.05 +> 0.4 +> 0.1 +> V.empty)
+              --                       )
+              --                       1020.0
+              --                   )
+              --               }
+              --           }
+              in
+                ooo
+          )
+      ]
 
--- newtype SGWorld = SGWorld Number
+type UIAction = Maybe { unsub :: Effect Unit, ctx :: AudioContext }
 
--- vec :: V.Vec D40 Unit
--- vec = V.fill (const unit)
+type Init = BrowserAudioBuffer
 
--- subPiece0
---   :: forall audio engine
---    . AudioInterpret audio engine
---   => Int
---   -> BrowserAudioBuffer
---   -> SubScene "buffy" () SGWorld audio engine Frame0 Unit
--- subPiece0 i atar = mempty # SG.loopUsingScene \(SGWorld time) _ ->
---   { control: unit
---   , scene: { buffy: playBuf { onOff: if time < toNumber (i * 2) + 1.0 then _off else _on } atar }
---   }
+initializeSubgraph :: Aff Init
+initializeSubgraph = do
+  atar <- liftEffect context >>= flip decodeAudioDataFromUri
+    "https://freesound.org/data/previews/36/36132_321601-hq.mp3"
+  pure atar
 
--- subPiece1
---   :: forall audio engine
---    . AudioInterpret audio engine
---   => Int
---   -> SubScene "gnn" (beep :: Unit) SGWorld audio engine Frame0 Unit
--- subPiece1 i = mempty # SG.loopUsingScene \(SGWorld time) _ ->
---   { control: unit
---   , scene:
---       { gnn: gain
---           (if time >= toNumber (i * 2) + 1.0 && time < toNumber (i * 2) + 1.2 then 0.10 else 0.0)
---           (input (Proxy :: _ "beep"))
---       }
---   }
+subgraphExample
+  :: forall event payload
+   . IsEvent event
+  => BrowserAudioBuffer
+  -> RaiseCancellation
+  -> Exists (SubgraphF Unit event payload)
+subgraphExample loopy rc = mkExists $ SubgraphF \push -> lcmap
+  (map (either (const Nothing) identity))
+  \event ->
+    DOM.div_
+      [ DOM.h1_ [ text_ "Subgraph" ]
+      , DOM.button
+          ( map
+              ( \i -> DOM.OnClick := cb
+                  ( const $
+                      maybe
+                        ( do
+                            ctx <- context
+                            ffi2 <- makeFFIAudioSnapshot ctx
+                            let wh = writeHead 0.04 ctx
+                            unsub <- subscribe
+                              ( speaker2
+                                  (scene loopy (sample_ wh animationFrameEvent))
+                                  effectfulAudioInterpret
+                              )
+                              ((#) ffi2)
+                            rc $ Just { unsub, ctx }
+                            push $ Just { unsub, ctx }
+                        )
+                        ( \{ unsub, ctx } -> do
+                            rc Nothing
+                            unsub
+                            close ctx
+                            push Nothing
+                        )
+                        i
+                  )
+              )
+              event
+          )
+          [ text
+              (map (maybe "Turn on" (const "Turn off")) event)
+          ]
+      ]
 
--- piece :: Scene (BehavingScene Unit World ()) RunAudio RunEngine Frame0 Unit
--- piece = mempty # loopUsingScene \(BehavingScene env) _ ->
---   { control: unit
---   , scene: speaker
---       let
---         envs = fromFoldable (map (\i -> i /\ (just $ SGWorld env.time)) (0 .. 40))
---       in
---         { gn: gain 1.0
---             { sg: subgraph envs
---                 (flip subPiece0 env.world.atar)
---                 {}
---             , sg2: subgraph envs
---                 (subPiece1)
---                 { beep: sinOsc 440.0 }
---             }
---         }
---   }
-
--- easingAlgorithm :: Cofree ((->) Int) Int
--- easingAlgorithm =
---   let
---     fOf initialTime = mkCofree initialTime \adj -> fOf $ max 20 (initialTime - adj)
---   in
---     fOf 20
-
--- main :: Effect Unit
--- main =
---   runHalogenAff do
---     body <- awaitBody
---     runUI component unit body
-
--- type State =
---   { unsubscribe :: Effect Unit
---   , audioCtx :: Maybe AudioContext
---   , freqz :: Array String
---   }
-
--- data Action
---   = StartAudio
---   | StopAudio
-
--- component :: forall query input output m. MonadEffect m => MonadAff m => H.Component query input output m
--- component =
---   H.mkComponent
---     { initialState
---     , render
---     , eval: H.mkEval $ H.defaultEval { handleAction = handleAction }
---     }
-
--- initialState :: forall input. input -> State
--- initialState _ =
---   { unsubscribe: pure unit
---   , audioCtx: Nothing
---   , freqz: []
---   }
-
--- render :: forall m. State -> H.ComponentHTML Action () m
--- render { freqz } = do
---   HH.div_
---     $
---       [ HH.h1_
---           [ HH.text "Subgraph test" ]
---       , HH.button
---           [ HE.onClick \_ -> StartAudio ]
---           [ HH.text "Start audio" ]
---       , HH.button
---           [ HE.onClick \_ -> StopAudio ]
---           [ HH.text "Stop audio" ]
---       ]
---         <> map (\freq -> HH.p [] [ HH.text freq ]) freqz
-
--- handleAction :: forall output m. MonadEffect m => MonadAff m => Action -> H.HalogenM State Action () output m Unit
--- handleAction = case _ of
---   StartAudio -> do
---     audioCtx <- H.liftEffect context
---     ffiAudio <- H.liftEffect $ makeFFIAudioSnapshot audioCtx
---     atar <-
---       H.liftAff $ decodeAudioDataFromUri
---         audioCtx
---         "https://freesound.org/data/previews/100/100981_1234256-lq.mp3"
---     unsubscribe <-
---       H.liftEffect
---         $ subscribe
---             (run (pure unit) (pure { atar }) { easingAlgorithm } (ffiAudio) piece)
---             (\(_ :: BehavingRun Unit ()) -> pure unit)
---     H.modify_ _ { unsubscribe = unsubscribe, audioCtx = Just audioCtx }
---   StopAudio -> do
---     { unsubscribe, audioCtx } <- H.get
---     H.liftEffect unsubscribe
---     for_ audioCtx (H.liftEffect <<< close)
---     H.modify_ _ { unsubscribe = pure unit, audioCtx = Nothing }
+main :: Effect Unit
+main = launchAff_ do
+  init <- initializeSubgraph
+  liftEffect do
+    b' <- window >>= document >>= body
+    for_ (toElement <$> b') \elt -> do
+      ffi <- makeFFIDOMSnapshot
+      let
+        evt = deku elt
+          ( Sg.subgraph (pure (Tuple unit (Sg.InsertOrUpdate unit)))
+              (const $ subgraphExample init (const $ pure unit))
+          )
+          effectfulDOMInterpret
+      _ <- subscribe evt \i -> i ffi
+      pure unit

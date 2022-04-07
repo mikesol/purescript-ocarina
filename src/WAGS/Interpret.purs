@@ -324,6 +324,7 @@ foreign import makeSubgraph_
    . String
   -> String
   -> ( index
+       -> String
        -> Effect
             { actualized ::
                 Event (FFIAudioSnapshot -> Effect Unit)
@@ -429,8 +430,8 @@ effectfulAudioInterpret = C.AudioInterpret
   , makeSpeaker: makeSpeaker_
   , makeSquareOsc: makeSquareOsc_
   , makeStereoPanner: makeStereoPanner_
-  , makeSubgraph: \{ id, parent, scenes } dom ->
-      flip (makeSubgraph_ id parent) dom \index ->
+  , makeSubgraph: \{ id, parent, scenes } audio ->
+      flip (makeSubgraph_ id parent) audio \index toplevelGain ->
         do
           evt <- create
           let event = evt.event
@@ -439,7 +440,7 @@ effectfulAudioInterpret = C.AudioInterpret
               let
                 C.Node elt = (let C.Subgraph sg = scenes in sg) index event
               in
-                elt parent effectfulAudioInterpret
+                elt toplevelGain effectfulAudioInterpret
           pure { actualized, pusher: evt.push }
   , makeTriangleOsc: makeTriangleOsc_
   , makeTumult: \_ _ -> pure unit -- todo: makeTumult_
