@@ -24,6 +24,7 @@ import Effect.Aff (Aff, launchAff_)
 import Effect.Class (liftEffect)
 import FRP.Behavior (sample_)
 import FRP.Event (class IsEvent, subscribe)
+import FRP.Event.Phantom (PhantomEvent, proof0, toEvent)
 import Math (pi, sin, (%))
 import Type.Proxy (Proxy(..))
 import WAGS.Control (gain', gain__, loopBuf, speaker2, (:*))
@@ -41,11 +42,11 @@ import Web.HTML.HTMLElement (toElement)
 import Web.HTML.Window (document)
 
 scene
-  :: forall event payload
-   . IsEvent event
+  :: forall event proof payload
+   . IsEvent (event proof)
   => BrowserAudioBuffer
-  -> WriteHead event
-  -> GainInput D2 (tmlt :: Input) (tmlt :: Input) event payload
+  -> WriteHead (event proof)
+  -> GainInput D2 (tmlt :: Input) (tmlt :: Input) event proof payload
 scene loopy wh =
   let
     tr = at_ wh (mul pi)
@@ -130,11 +131,10 @@ initializeTumult = do
   pure atar
 
 tumultExample
-  :: forall event payload
-   . IsEvent event
-  => BrowserAudioBuffer
+  :: forall payload
+   . BrowserAudioBuffer
   -> RaiseCancellation
-  -> Exists (SubgraphF Unit event payload)
+  -> Exists (SubgraphF Unit PhantomEvent payload)
 tumultExample loopy rc = mkExists $ SubgraphF \push -> lcmap
   (map (either (const Nothing) identity))
   \event ->
@@ -150,8 +150,10 @@ tumultExample loopy rc = mkExists $ SubgraphF \push -> lcmap
                             ffi2 <- makeFFIAudioSnapshot ctx
                             let wh = writeHead 0.04 ctx
                             unsub <- subscribe
-                              ( speaker2
-                                  (scene loopy (sample_ wh animationFrameEvent))
+                              ( toEvent $ speaker2
+                                  ( scene loopy
+                                      (proof0 (sample_ wh animationFrameEvent))
+                                  )
                                   effectfulAudioInterpret
                               )
                               ((#) ffi2)
@@ -187,5 +189,5 @@ main = launchAff_ do
               (const $ tumultExample init (const $ pure unit))
           )
           effectfulDOMInterpret
-      _ <- subscribe evt \i -> i ffi
+      _ <- subscribe (toEvent evt) \i -> i ffi
       pure unit

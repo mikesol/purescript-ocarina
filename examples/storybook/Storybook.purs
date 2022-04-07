@@ -3,7 +3,7 @@ module WAGS.Example.Storybook where
 import Prelude
 
 import Control.Alt ((<|>))
-import Control.Plus (class Plus, empty)
+import Control.Plus (empty)
 import Data.Either (Either(..))
 import Data.Exists (mkExists)
 import Data.Foldable (for_)
@@ -21,7 +21,8 @@ import Deku.Subgraph (SubgraphAction(..), subgraph)
 import Effect (Effect)
 import Effect.Aff (launchAff_, try)
 import Effect.Class (liftEffect)
-import FRP.Event (class IsEvent, create, filterMap, fold, keepLatest, mapAccum, subscribe)
+import FRP.Event (create, filterMap, fold, keepLatest, mapAccum, subscribe)
+import FRP.Event.Phantom (PhantomEvent, proof0, toEvent)
 import WAGS.Example.AtariSpeaks as AtariSpeaks
 import WAGS.Example.HelloWorld as HelloWorld
 import WAGS.Example.MultiBuf as MultiBuf
@@ -58,12 +59,10 @@ data UIAction = PageLoading | Page Page | StashCancel (Maybe ToCancel) | Start
 data OnClickAction = Loaded | Loading
 
 scene
-  :: forall event payload
-   . IsEvent event
-  => Plus event
-  => (UIAction -> Effect Unit)
-  -> event UIAction
-  -> Element event payload
+  :: forall proof payload
+   . (UIAction -> Effect Unit)
+  -> PhantomEvent proof UIAction
+  -> Element PhantomEvent proof payload
 scene push event =
   flatten
     [ D.div_
@@ -153,7 +152,7 @@ scene push event =
 
     ]
   where
-  page :: (Maybe ToCancel -> Effect Unit) -> Subgraph Page Unit event payload
+  page :: (Maybe ToCancel -> Effect Unit) -> Subgraph Page Unit PhantomEvent payload
   page cancelCb (HelloWorld hwi) = HelloWorld.helloWorld hwi cancelCb
   page cancelCb (AtariSpeaks ati) = AtariSpeaks.atariSpeaks ati cancelCb
   page cancelCb (MultiBuf mbi) = MultiBuf.multiBuf mbi cancelCb
@@ -170,6 +169,6 @@ main = do
   for_ (toElement <$> b') \b -> do
     ffi <- makeFFIDOMSnapshot
     { push, event } <- create
-    let evt = deku b (scene push event) effectfulDOMInterpret
-    void $ subscribe evt \i -> i ffi
+    let evt = deku b (scene push (proof0 event)) effectfulDOMInterpret
+    void $ subscribe (toEvent evt) \i -> i ffi
     push (Page (HelloWorld unit))

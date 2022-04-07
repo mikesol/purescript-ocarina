@@ -31,7 +31,8 @@ import Effect (Effect)
 import Effect.Aff (Aff, launchAff_)
 import Effect.Class (liftEffect)
 import FRP.Behavior (sample_)
-import FRP.Event (class IsEvent, keepLatest, mapAccum, subscribe)
+import FRP.Event (keepLatest, mapAccum, subscribe)
+import FRP.Event.Phantom (PhantomEvent, proof0, toEvent)
 import FRP.Event.Time (interval)
 import WAGS.Control (gain__, playBuf, singleton, speaker2)
 import WAGS.Core (GainInput, Subgraph(..))
@@ -93,19 +94,16 @@ accLoop time { cf, prevs } =
 
 sg
   :: KickSnare
-  -> forall event payload
-   . IsEvent event
-  => Subgraph Int (Number /\ ACTime) D2 () () event payload
-sg ks = Subgraph go
-  where
-  go i n = gain__ 1.0 empty
-    ( playBuf (if i `mod` 2 == 0 then ks.kick else ks.snare)
-        ( n # map \(t /\ { lookAhead }) -> onOff $ AudioOnOff
-            { onOff: _on
-            , timeOffset: lookAhead + t
-            }
-        )
-    )
+  -> forall payload
+   . Subgraph Int (Number /\ ACTime) D2 () () PhantomEvent payload
+sg ks = Subgraph \i n -> gain__ 1.0 empty
+  ( playBuf (if i `mod` 2 == 0 then ks.kick else ks.snare)
+      ( n # map \(t /\ { lookAhead }) -> onOff $ AudioOnOff
+          { onOff: _on
+          , timeOffset: lookAhead + t
+          }
+      )
+  )
 
 sgActionMaker
   :: forall event
@@ -119,11 +117,10 @@ sgActionMaker (ac /\ { head, no }) =
       (map (\i -> pure $ i /\ Sg.Remove) $ values no)
 
 scene
-  :: forall event payload
-   . IsEvent event
-  => KickSnare
-  -> WriteHead event
-  -> GainInput D2 () () event payload
+  :: forall proof payload
+   . KickSnare
+  -> WriteHead (PhantomEvent proof)
+  -> GainInput D2 () () PhantomEvent proof payload
 scene ks wh =
   let
     mapped = mapAccum
@@ -153,11 +150,10 @@ initializeMultiBuf = do
   pure { kick, snare }
 
 multiBuf
-  :: forall event payload
-   . IsEvent event
-  => KickSnare
+  :: forall payload
+   . KickSnare
   -> RaiseCancellation
-  -> Exists (SubgraphF Unit event payload)
+  -> Exists (SubgraphF Unit PhantomEvent payload)
 multiBuf ks rc = mkExists $ SubgraphF \push -> lcmap
   (map (either (const Nothing) identity))
   \event ->
@@ -173,9 +169,9 @@ multiBuf ks rc = mkExists $ SubgraphF \push -> lcmap
                             ffi2 <- makeFFIAudioSnapshot ctx
                             let wh = writeHead 0.04 ctx
                             unsub <- subscribe
-                              ( speaker2
+                              ( toEvent $ speaker2
                                   ( scene ks
-                                      ( sample_ wh
+                                      ( proof0 $ sample_ wh
                                           ( pure unit <|>
                                               (interval 4900 $> unit)
                                           )
@@ -216,5 +212,5 @@ main = launchAff_ do
               (const $ multiBuf init (const $ pure unit))
           )
           effectfulDOMInterpret
-      _ <- subscribe evt \i -> i ffi
+      _ <- subscribe (toEvent evt) \i -> i ffi
       pure unit

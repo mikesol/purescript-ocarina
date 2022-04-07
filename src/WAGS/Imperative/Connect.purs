@@ -74,14 +74,15 @@ else instance makesSoundNotYet ::
 
 class ConnectNodes
   :: Type
-  -> (Type -> Type)
+  -> (Type -> Type -> Type)
+  -> Type
   -> Symbol
   -> T.Node
   -> Symbol
   -> T.Node
   -> Type
   -> Constraint
-class ConnectNodes i e fId fNode iId iNode o | i fId fNode iId iNode -> o where
+class ConnectNodes i e x fId fNode iId iNode o | i fId fNode iId iNode -> o where
   -- | Connects a `from` node to an `into` node.
   -- |
   -- | ```purescript
@@ -92,10 +93,10 @@ class ConnectNodes i e fId fNode iId iNode o | i fId fNode iId iNode -> o where
      . { from :: T.GraphUnit fId fNode
        , into :: T.GraphUnit iId iNode
        }
-    -> GraphBuilder e p i o Unit
+    -> GraphBuilder e x p i o Unit
 
 instance connectDefault ::
-  ( IsEvent e
+  ( IsEvent (e x)
   , IsSymbol fId
   , IsSymbol iId
   , T.HasOutput fNode
@@ -111,7 +112,7 @@ instance connectDefault ::
   , Row.Cons cId Unit c c'
   , MakesSound fNode s s'
   ) =>
-  ConnectNodes (c \/ t \/ s) e fId fNode iId iNode (c' \/ t'' \/ s') where
+  ConnectNodes (c \/ t \/ s) e x fId fNode iId iNode (c' \/ t'' \/ s') where
   connect _ = GraphBuilder go
     where
     go (Core.AudioInterpret { connectXToY }) =
