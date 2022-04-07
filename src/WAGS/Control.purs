@@ -96,13 +96,13 @@ __allpass
   -> C.Node outputChannels producedO consumedO event payload
 __allpass mId (C.InitializeAllpass i) atts elt = C.Node go
   where
-  go parent di@(C.AudioInterpret { ids, makeAllpass, setFrequency, setQ }) =
+  go parent di@(C.AudioInterpret { ids, scope, makeAllpass, setFrequency, setQ }) =
     keepLatest
       ( (sample_ ids (pure unit)) <#> __mId mId \me ->
           ( pure
               ( makeAllpass
                   { id: me
-                  , parent: just parent
+                  , parent: just parent, scope: just scope
                   , frequency: i.frequency
                   , q: i.q
                   }
@@ -239,13 +239,13 @@ analyser
 analyser i' atts elt = C.Node go
   where
   C.InitializeAnalyser i = toInitialAnalyser i'
-  go parent di@(C.AudioInterpret { ids, makeAnalyser, setAnalyserNodeCb }) =
+  go parent di@(C.AudioInterpret { ids, scope, makeAnalyser, setAnalyserNodeCb }) =
     keepLatest
       ( (sample_ ids (pure unit)) <#> \me ->
           pure
             ( makeAnalyser
                 { id: me
-                , parent: just parent
+                , parent: just parent, scope: just scope
                 , cb: i.cb
                 , fftSize: 2 `pow`
                     ( case i.fftSize of
@@ -331,13 +331,13 @@ __audioWorklet mId (C.InitializeAudioWorkletNode i) atts elt = C.Node go
   go
     parent
     di@
-      (C.AudioInterpret { ids, makeAudioWorkletNode, setAudioWorkletParameter }) =
+      (C.AudioInterpret { ids, scope, makeAudioWorkletNode, setAudioWorkletParameter }) =
     keepLatest
       ( (sample_ ids (pure unit)) <#> __mId mId \me ->
           pure
             ( makeAudioWorkletNode
                 { id: me
-                , parent: just parent
+                , parent: just parent, scope: just scope
                 , options:
                     C.AudioWorkletNodeOptions_
                       { name: reflectSymbol (Proxy :: _ name)
@@ -419,12 +419,12 @@ __bandpass
   -> C.Node outputChannels producedO consumedO event payload
 __bandpass mId (C.InitializeBandpass i) atts elt = C.Node go
   where
-  go parent di@(C.AudioInterpret { ids, makeBandpass, setFrequency, setQ }) =
+  go parent di@(C.AudioInterpret { ids, scope, makeBandpass, setFrequency, setQ }) =
     keepLatest
       ( (sample_ ids (pure unit)) <#> __mId mId \me ->
           pure
             ( makeBandpass
-                { id: me, parent: just parent, frequency: i.frequency, q: i.q }
+                { id: me, parent: just parent, scope: just scope, frequency: i.frequency, q: i.q }
             )
             <|> map
               ( \(C.Bandpass e) -> match
@@ -470,13 +470,13 @@ __constant
   -> C.Node outputChannels produced consumed event payload
 __constant mId (C.InitializeConstant i) atts = C.Node go
   where
-  go parent (C.AudioInterpret { ids, makeConstant, setOffset, setOnOff }) =
+  go parent (C.AudioInterpret { ids, scope, makeConstant, setOffset, setOnOff }) =
     keepLatest
       ( (sample_ ids (pure unit)) <#> __mId mId \me ->
           pure
             ( makeConstant
                 { id: me
-                , parent: just parent
+                , parent: just parent, scope: just scope
                 , offset: i.offset
                 }
             )
@@ -521,13 +521,13 @@ __convolver
   -> C.Node outputChannels producedO consumedO event payload
 __convolver mId (C.InitializeConvolver i) elt = C.Node go
   where
-  go parent di@(C.AudioInterpret { ids, makeConvolver }) =
+  go parent di@(C.AudioInterpret { ids, scope, makeConvolver }) =
     keepLatest
       ( (sample_ ids (pure unit)) <#> __mId mId \me ->
           pure
             ( makeConvolver
                 { id: me
-                , parent: just parent
+                , parent: just parent, scope: just scope
                 , buffer: i.buffer
                 }
             ) <|> ((\y -> let C.Node x = y in x) elt) me di
@@ -564,12 +564,12 @@ __delay
   -> C.Node outputChannels producedO consumedO event payload
 __delay mId (C.InitializeDelay i) atts elt = C.Node go
   where
-  go parent di@(C.AudioInterpret { ids, makeDelay, setDelay }) =
+  go parent di@(C.AudioInterpret { ids, scope, makeDelay, setDelay }) =
     keepLatest
       ( (sample_ ids (pure unit)) <#> __mId mId \me ->
           pure
             ( makeDelay
-                { id: me, parent: just parent, delayTime: i.delayTime }
+                { id: me, parent: just parent, scope: just scope, delayTime: i.delayTime }
             )
             <|> map
               ( \(C.Delay e) -> match
@@ -620,6 +620,7 @@ __dynamicsCompressor mId (C.InitializeDynamicsCompressor i) atts elt = C.Node go
     di@
       ( C.AudioInterpret
           { ids
+          , scope
           , makeDynamicsCompressor
           , setThreshold
           , setRatio
@@ -633,7 +634,7 @@ __dynamicsCompressor mId (C.InitializeDynamicsCompressor i) atts elt = C.Node go
           pure
             ( makeDynamicsCompressor
                 { id: me
-                , parent: just parent
+                , parent: just parent, scope: just scope
                 , threshold: i.threshold
                 , ratio: i.ratio
                 , knee: i.knee
@@ -717,9 +718,9 @@ __gain
 __gain mId i' atts (C.GainInput elts) = C.Node go
   where
   C.InitializeGain i = toInitializeGain i'
-  go parent di@(C.AudioInterpret { ids, makeGain, setGain }) = keepLatest
+  go parent di@(C.AudioInterpret { ids, scope, makeGain, setGain }) = keepLatest
     ( (sample_ ids (pure unit)) <#> __mId mId \me ->
-        pure (makeGain { id: me, parent: just parent, gain: i.gain })
+        pure (makeGain { id: me, parent: just parent, scope: just scope, gain: i.gain })
           <|> map
             ( \(C.Gain e) -> match
                 { gain: \g -> setGain { id: me, gain: g }
@@ -768,12 +769,12 @@ __highpass
   -> C.Node outputChannels producedO consumedO event payload
 __highpass mId (C.InitializeHighpass i) atts elt = C.Node go
   where
-  go parent di@(C.AudioInterpret { ids, makeHighpass, setFrequency, setQ }) =
+  go parent di@(C.AudioInterpret { ids, scope, makeHighpass, setFrequency, setQ }) =
     keepLatest
       ( (sample_ ids (pure unit)) <#> __mId mId \me ->
           pure
             ( makeHighpass
-                { id: me, parent: just parent, frequency: i.frequency, q: i.q }
+                { id: me, parent: just parent, scope: just scope, frequency: i.frequency, q: i.q }
             )
             <|> map
               ( \(C.Highpass e) -> match
@@ -820,13 +821,13 @@ __highshelf
   -> C.Node outputChannels producedO consumedO event payload
 __highshelf mId (C.InitializeHighshelf i) atts elt = C.Node go
   where
-  go parent di@(C.AudioInterpret { ids, makeHighshelf, setFrequency, setGain }) =
+  go parent di@(C.AudioInterpret { ids, scope, makeHighshelf, setFrequency, setGain }) =
     keepLatest
       ( (sample_ ids (pure unit)) <#> __mId mId \me ->
           pure
             ( makeHighshelf
                 { id: me
-                , parent: just parent
+                , parent: just parent, scope: just scope
                 , frequency: i.frequency
                 , gain: i.gain
                 }
@@ -873,9 +874,9 @@ input
   -> C.Node outputChannels () () event payload
 input (C.Input me) = C.Node go
   where
-  go parent (C.AudioInterpret { makeInput }) = pure
+  go parent (C.AudioInterpret { scope, makeInput }) = pure
     ( makeInput
-        { id: me, parent: just parent }
+        { id: me, parent: just parent, scope: just scope }
     )
 
 -- lowpass
@@ -892,12 +893,12 @@ __lowpass
 __lowpass mId i' atts elt = C.Node go
   where
   C.InitializeLowpass i = toInitialLowpass i'
-  go parent di@(C.AudioInterpret { ids, makeLowpass, setFrequency, setQ }) =
+  go parent di@(C.AudioInterpret { ids, scope, makeLowpass, setFrequency, setQ }) =
     keepLatest
       ( (sample_ ids (pure unit)) <#> __mId mId \me ->
           pure
             ( makeLowpass
-                { id: me, parent: just parent, frequency: i.frequency, q: i.q }
+                { id: me, parent: just parent, scope: just scope, frequency: i.frequency, q: i.q }
             )
             <|> map
               ( \(C.Lowpass e) -> match
@@ -946,13 +947,13 @@ __lowshelf
   -> C.Node outputChannels producedO consumedO event payload
 __lowshelf mId (C.InitializeLowshelf i) atts elt = C.Node go
   where
-  go parent di@(C.AudioInterpret { ids, makeLowshelf, setFrequency, setGain }) =
+  go parent di@(C.AudioInterpret { ids, scope, makeLowshelf, setFrequency, setGain }) =
     keepLatest
       ( (sample_ ids (pure unit)) <#> __mId mId \me ->
           pure
             ( makeLowshelf
                 { id: me
-                , parent: just parent
+                , parent: just parent, scope: just scope
                 , frequency: i.frequency
                 , gain: i.gain
                 }
@@ -1007,6 +1008,7 @@ __loopBuf mId i' atts = C.Node go
     parent
     ( C.AudioInterpret
         { ids
+        , scope
         , makeLoopBuf
         , setBuffer
         , setOnOff
@@ -1020,7 +1022,7 @@ __loopBuf mId i' atts = C.Node go
           pure
             ( makeLoopBuf
                 { id: me
-                , parent: just parent
+                , parent: just parent, scope: just scope
                 , buffer: i.buffer
                 , playbackRate: i.playbackRate
                 , loopStart: i.loopStart
@@ -1072,13 +1074,13 @@ __mediaElement
   -> C.Node outputChannels produced consumed event payload
 __mediaElement mId (C.InitializeMediaElement i) = C.Node go
   where
-  go parent (C.AudioInterpret { ids, makeMediaElement }) =
+  go parent (C.AudioInterpret { ids, scope, makeMediaElement }) =
     keepLatest
       ( (sample_ ids (pure unit)) <#> __mId mId \me ->
           pure
             ( makeMediaElement
                 { id: me
-                , parent: just parent
+                , parent: just parent, scope: just scope
                 , element: i.element
                 }
             )
@@ -1111,13 +1113,13 @@ __microphone
   -> C.Node outputChannels produced consumed event payload
 __microphone mId (C.InitializeMicrophone i) = C.Node go
   where
-  go parent (C.AudioInterpret { ids, makeMicrophone }) =
+  go parent (C.AudioInterpret { ids, scope, makeMicrophone }) =
     keepLatest
       ( (sample_ ids (pure unit)) <#> __mId mId \me ->
           pure
             ( makeMicrophone
                 { id: me
-                , parent: just parent
+                , parent: just parent, scope: just scope
                 , microphone: i.microphone
                 }
             )
@@ -1152,12 +1154,12 @@ __notch
   -> C.Node outputChannels producedO consumedO event payload
 __notch mId (C.InitializeNotch i) atts elt = C.Node go
   where
-  go parent di@(C.AudioInterpret { ids, makeNotch, setFrequency, setQ }) =
+  go parent di@(C.AudioInterpret { ids, scope, makeNotch, setFrequency, setQ }) =
     keepLatest
       ( (sample_ ids (pure unit)) <#> __mId mId \me ->
           pure
             ( makeNotch
-                { id: me, parent: just parent, frequency: i.frequency, q: i.q }
+                { id: me, parent: just parent, scope: just scope, frequency: i.frequency, q: i.q }
             )
             <|> map
               ( \(C.Notch e) -> match
@@ -1206,13 +1208,13 @@ __peaking mId (C.InitializePeaking i) atts elt = C.Node go
   where
   go
     parent
-    di@(C.AudioInterpret { ids, makePeaking, setFrequency, setQ, setGain }) =
+    di@(C.AudioInterpret { ids, scope, makePeaking, setFrequency, setQ, setGain }) =
     keepLatest
       ( (sample_ ids (pure unit)) <#> __mId mId \me ->
           pure
             ( makePeaking
                 { id: me
-                , parent: just parent
+                , parent: just parent, scope: just scope
                 , frequency: i.frequency
                 , q: i.q
                 , gain: i.gain
@@ -1266,14 +1268,14 @@ __periodicOsc mId (C.InitializePeriodicOsc i) atts = C.Node go
   go
     parent
     ( C.AudioInterpret
-        { ids, makePeriodicOsc, setFrequency, setOnOff, setPeriodicOsc }
+        { ids, scope, makePeriodicOsc, setFrequency, setOnOff, setPeriodicOsc }
     ) =
     keepLatest
       ( (sample_ ids (pure unit)) <#> __mId mId \me ->
           pure
             ( makePeriodicOsc
                 { id: me
-                , parent: just parent
+                , parent: just parent, scope: just scope
                 , frequency: i.frequency
                 , spec: i.spec
                 }
@@ -1379,6 +1381,7 @@ __playBuf mId i' atts = C.Node go
     parent
     ( C.AudioInterpret
         { ids
+        , scope
         , makePlayBuf
         , setBuffer
         , setOnOff
@@ -1391,7 +1394,7 @@ __playBuf mId i' atts = C.Node go
           pure
             ( makePlayBuf
                 { id: me
-                , parent: just parent
+                , parent: just parent, scope: just scope
                 , buffer: i.buffer
                 , playbackRate: i.playbackRate
                 , bufferOffset: i.bufferOffset
@@ -1441,10 +1444,10 @@ recorder
   -> C.Node outputChannels produced consumed event payload
 recorder (C.InitializeRecorder i) elt = C.Node go
   where
-  go parent di@(C.AudioInterpret { ids, makeRecorder }) =
+  go parent di@(C.AudioInterpret { ids, scope, makeRecorder }) =
     keepLatest
       ( (sample_ ids (pure unit)) <#> \me ->
-          pure (makeRecorder { id: me, parent: just parent, cb: i.cb })
+          pure (makeRecorder { id: me, parent: just parent, scope: just scope, cb: i.cb })
             <|> ((\y -> let C.Node x = y in x) elt) me di
 
       )
@@ -1474,13 +1477,13 @@ __sawtoothOsc
   -> C.Node outputChannels produced consumed event payload
 __sawtoothOsc mId (C.InitializeSawtoothOsc i) atts = C.Node go
   where
-  go parent (C.AudioInterpret { ids, makeSawtoothOsc, setFrequency, setOnOff }) =
+  go parent (C.AudioInterpret { ids, scope, makeSawtoothOsc, setFrequency, setOnOff }) =
     keepLatest
       ( (sample_ ids (pure unit)) <#> __mId mId \me ->
           pure
             ( makeSawtoothOsc
                 { id: me
-                , parent: just parent
+                , parent: just parent, scope: just scope
                 , frequency: i.frequency
                 }
             )
@@ -1527,13 +1530,13 @@ __sinOsc
 __sinOsc mId i' atts = C.Node go
   where
   C.InitializeSinOsc i = toInitializeSinOsc i'
-  go parent (C.AudioInterpret { ids, makeSinOsc, setFrequency, setOnOff }) =
+  go parent (C.AudioInterpret { ids, scope, makeSinOsc, setFrequency, setOnOff }) =
     keepLatest
       ( (sample_ ids (pure unit)) <#> __mId mId \me ->
           pure
             ( makeSinOsc
                 { id: me
-                , parent: just parent
+                , parent: just parent, scope: just scope
                 , frequency: i.frequency
                 }
             )
@@ -1580,13 +1583,13 @@ __squareOsc
   -> C.Node outputChannels produced consumed event payload
 __squareOsc mId (C.InitializeSquareOsc i) atts = C.Node go
   where
-  go parent (C.AudioInterpret { ids, makeSquareOsc, setFrequency, setOnOff }) =
+  go parent (C.AudioInterpret { ids, scope, makeSquareOsc, setFrequency, setOnOff }) =
     keepLatest
       ( (sample_ ids (pure unit)) <#> __mId mId \me ->
           pure
             ( makeSquareOsc
                 { id: me
-                , parent: just parent
+                , parent: just parent, scope: just scope
                 , frequency: i.frequency
                 }
             )
@@ -1661,12 +1664,12 @@ __pan
   -> C.Node outputChannels producedO consumedO event payload
 __pan mId (C.InitializeStereoPanner i) atts elt = C.Node go
   where
-  go parent di@(C.AudioInterpret { ids, makeStereoPanner, setPan }) =
+  go parent di@(C.AudioInterpret { ids, scope, makeStereoPanner, setPan }) =
     keepLatest
       ( (sample_ ids (pure unit)) <#> __mId mId \me ->
           pure
             ( makeStereoPanner
-                { id: me, parent: just parent, pan: i.pan }
+                { id: me, parent: just parent, scope: just scope, pan: i.pan }
             )
             <|> map
               ( \(C.StereoPanner e) -> match
@@ -1711,13 +1714,13 @@ __triangleOsc
   -> C.Node outputChannels produced consumed event payload
 __triangleOsc mId (C.InitializeTriangleOsc i) atts = C.Node go
   where
-  go parent (C.AudioInterpret { ids, makeTriangleOsc, setFrequency, setOnOff }) =
+  go parent (C.AudioInterpret { ids, scope, makeTriangleOsc, setFrequency, setOnOff }) =
     keepLatest
       ( (sample_ ids (pure unit)) <#> __mId mId \me ->
           pure
             ( makeTriangleOsc
                 { id: me
-                , parent: just parent
+                , parent: just parent, scope: just scope
                 , frequency: i.frequency
                 }
             )
@@ -1762,13 +1765,13 @@ __waveshaper
   -> C.Node outputChannels producedO consumedO event payload
 __waveshaper mId (C.InitializeWaveshaper i) elt = C.Node go
   where
-  go parent di@(C.AudioInterpret { ids, makeWaveShaper }) =
+  go parent di@(C.AudioInterpret { ids, scope, makeWaveShaper }) =
     keepLatest
       ( (sample_ ids (pure unit)) <#> __mId mId \me ->
           pure
             ( makeWaveShaper
                 { id: me
-                , parent: just parent
+                , parent: just parent, scope: just scope
                 , curve: i.curve
                 , oversample: i.oversample
                 }

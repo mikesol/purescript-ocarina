@@ -14,6 +14,7 @@ import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.Tuple (fst)
 import Data.Tuple.Nested ((/\))
 import Data.Variant (match)
+import Data.Variant.Maybe (just)
 import FRP.Behavior (sample_)
 import FRP.Event (class IsEvent, fold, keepLatest)
 import Prim.RowList (class RowToList)
@@ -49,7 +50,7 @@ tumult atts' = C.Node go
   atts = map fst $ fold (\a (_ /\ b1) -> reconcileTumult a b1 /\ a)
     (map (\t -> safeUntumult (t (inputs (Proxy :: _ inputsRL)))) atts')
     (Set.empty /\ Set.empty)
-  go prnt (C.AudioInterpret ai@{ ids, connectXToY }) =
+  go prnt (C.AudioInterpret ai@{ ids, scope, connectXToY }) =
     keepLatest
       ( (sample_ ids (pure unit)) <#> \msfx' ->
           let
@@ -67,7 +68,7 @@ tumult atts' = C.Node go
                       ( \b (Instruction i) -> b <|> match
                           { makeAllpass: \{ id, frequency, q, parent } -> pure $
                               ai.makeAllpass
-                                { id: sfx id
+                                { id: sfx id, scope: just scope
                                 , frequency: asNumber frequency
                                 , q: asNumber q
                                 , parent
@@ -85,7 +86,7 @@ tumult atts' = C.Node go
                                , smoothingTimeConstant
                                } -> pure $
                                 ai.makeAnalyser
-                                  { id: sfx id
+                                  { id: sfx id, scope: just scope
                                   , channelCount
                                   , channelCountMode
                                   , channelInterpretation
@@ -111,7 +112,7 @@ tumult atts' = C.Node go
                                , parent
                                } ->
                                 pure $ ai.makeAudioWorkletNode
-                                  { id: sfx id
+                                  { id: sfx id, scope: just scope
                                   , options:
                                       AudioWorkletNodeOptions_
                                         { name
@@ -127,7 +128,7 @@ tumult atts' = C.Node go
                           , makeBandpass: \{ id, frequency, q, parent } -> pure
                               $
                                 ai.makeBandpass
-                                  { id: sfx id
+                                  { id: sfx id, scope: just scope
                                   , frequency: asNumber frequency
                                   , q: asNumber q
                                   , parent
@@ -136,20 +137,20 @@ tumult atts' = C.Node go
                               ( pure
                                   $
                                     ai.makeConstant
-                                      { id: sfx id
+                                      { id: sfx id, scope: just scope
                                       , offset: asNumber offset
                                       , parent
                                       }
                               ) <|> (pure $ ai.setOnOff { id: sfx id, onOff })
                           , makeConvolver: \{ id, buffer, parent } -> pure $
                               ai.makeConvolver
-                                { id: sfx id
+                                { id: sfx id, scope: just scope
                                 , buffer
                                 , parent
                                 }
                           , makeDelay: \{ id, delayTime, parent } -> pure $
                               ai.makeDelay
-                                { id: sfx id
+                                { id: sfx id, scope: just scope
                                 , delayTime: asNumber delayTime
                                 , parent
                                 }
@@ -163,7 +164,7 @@ tumult atts' = C.Node go
                                , parent
                                } -> pure $
                                 ai.makeDynamicsCompressor
-                                  { id: sfx id
+                                  { id: sfx id, scope: just scope
                                   , knee: asNumber knee
                                   , threshold: asNumber threshold
                                   , ratio: asNumber ratio
@@ -173,14 +174,14 @@ tumult atts' = C.Node go
                                   }
                           , makeGain: \{ id, gain, parent } -> pure $
                               ai.makeGain
-                                { id: sfx id
+                                { id: sfx id, scope: just scope
                                 , gain: asNumber gain
                                 , parent
                                 }
                           , makeHighpass: \{ id, frequency, q, parent } -> pure
                               $
                                 ai.makeHighpass
-                                  { id: sfx id
+                                  { id: sfx id, scope: just scope
                                   , frequency: asNumber frequency
                                   , q: asNumber q
                                   , parent
@@ -189,7 +190,7 @@ tumult atts' = C.Node go
                               pure
                                 $
                                   ai.makeHighshelf
-                                    { id: sfx id
+                                    { id: sfx id, scope: just scope
                                     , frequency: asNumber frequency
                                     , gain: asNumber gain
                                     , parent
@@ -206,7 +207,7 @@ tumult atts' = C.Node go
                                } ->
                                 ( pure $
                                     ai.makeLoopBuf
-                                      { id: sfx id
+                                      { id: sfx id, scope: just scope
                                       , loopStart
                                       , loopEnd
                                       , buffer
@@ -217,7 +218,7 @@ tumult atts' = C.Node go
                                 ) <|> (pure $ ai.setOnOff { id: sfx id, onOff })
                           , makeLowpass: \{ id, frequency, q, parent } -> pure $
                               ai.makeLowpass
-                                { id: sfx id
+                                { id: sfx id, scope: just scope
                                 , frequency: asNumber frequency
                                 , q: asNumber q
                                 , parent
@@ -226,7 +227,7 @@ tumult atts' = C.Node go
                               pure
                                 $
                                   ai.makeLowshelf
-                                    { id: sfx id
+                                    { id: sfx id, scope: just scope
                                     , frequency: asNumber frequency
                                     , gain: asNumber gain
                                     , parent
@@ -234,20 +235,20 @@ tumult atts' = C.Node go
                           , makeMediaElement: \{ id, element, parent } -> pure
                               $
                                 ai.makeMediaElement
-                                  { id: sfx id
+                                  { id: sfx id, scope: just scope
                                   , element
                                   , parent
                                   }
                           , makeMicrophone: \{ id, microphone, parent } -> pure
                               $
                                 ai.makeMicrophone
-                                  { id: sfx id
+                                  { id: sfx id, scope: just scope
                                   , microphone
                                   , parent
                                   }
                           , makeNotch: \{ id, frequency, q, parent } -> pure $
                               ai.makeNotch
-                                { id: sfx id
+                                { id: sfx id, scope: just scope
                                 , frequency: asNumber frequency
                                 , q: asNumber q
                                 , parent
@@ -255,7 +256,7 @@ tumult atts' = C.Node go
                           , makePeaking: \{ id, frequency, q, gain, parent } ->
                               pure $
                                 ai.makePeaking
-                                  { id: sfx id
+                                  { id: sfx id, scope: just scope
                                   , frequency: asNumber frequency
                                   , gain: asNumber gain
                                   , q: asNumber q
@@ -265,7 +266,7 @@ tumult atts' = C.Node go
                               \{ id, frequency, spec, onOff, parent } ->
                                 ( pure $
                                     ai.makePeriodicOsc
-                                      { id: sfx id
+                                      { id: sfx id, scope: just scope
                                       , frequency: asNumber frequency
                                       , spec: spec
                                       , parent
@@ -282,7 +283,7 @@ tumult atts' = C.Node go
                                } ->
                                 ( pure $
                                     ai.makePlayBuf
-                                      { id: sfx id
+                                      { id: sfx id, scope: just scope
                                       , playbackRate: asNumber playbackRate
                                       , buffer
                                       , bufferOffset
@@ -291,12 +292,12 @@ tumult atts' = C.Node go
                                       }
                                 ) <|> (pure $ ai.setOnOff { id: sfx id, onOff })
                           , makeRecorder: \{ id, cb, parent } -> pure $
-                              ai.makeRecorder { id: sfx id, cb, parent }
+                              ai.makeRecorder { id: sfx id, scope: just scope, cb, parent }
                           , makeSawtoothOsc:
                               \{ id, frequency, onOff, parent } ->
                                 ( pure $
                                     ai.makeSawtoothOsc
-                                      { id: sfx id
+                                      { id: sfx id, scope: just scope
                                       , frequency: asNumber frequency
                                       , parent
                                       }
@@ -304,7 +305,7 @@ tumult atts' = C.Node go
                           , makeSinOsc: \{ id, frequency, onOff, parent } ->
                               ( pure $
                                   ai.makeSinOsc
-                                    { id: sfx id
+                                    { id: sfx id, scope: just scope
                                     , frequency: asNumber frequency
                                     , parent
                                     }
@@ -312,14 +313,14 @@ tumult atts' = C.Node go
                           , makeSquareOsc: \{ id, frequency, onOff, parent } ->
                               ( pure $
                                   ai.makeSquareOsc
-                                    { id: sfx id
+                                    { id: sfx id, scope: just scope
                                     , frequency: asNumber frequency
                                     , parent
                                     }
                               ) <|> (pure $ ai.setOnOff { id: sfx id, onOff })
                           , makeStereoPanner: \{ id, pan, parent } -> pure $
                               ai.makeStereoPanner
-                                { id: sfx id
+                                { id: sfx id, scope: just scope
                                 , pan: asNumber pan
                                 , parent
                                 }
@@ -327,7 +328,7 @@ tumult atts' = C.Node go
                               \{ id, frequency, onOff, parent } ->
                                 ( pure $
                                     ai.makeTriangleOsc
-                                      { id: sfx id
+                                      { id: sfx id, scope: just scope
                                       , frequency: asNumber frequency
                                       , parent
                                       }
@@ -335,7 +336,7 @@ tumult atts' = C.Node go
                           , makeWaveShaper:
                               \{ id, oversample, curve, parent } -> pure $
                                 ai.makeWaveShaper
-                                  { id: sfx id
+                                  { id: sfx id, scope: just scope
                                   , oversample
                                   , curve
                                   , parent

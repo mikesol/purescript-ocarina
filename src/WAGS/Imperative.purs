@@ -193,7 +193,7 @@ createGain _ initialGain attributes = GraphBuilder go
         let
           id = reflectSymbol (Proxy :: _ id)
           event0 = pure $
-            makeGain { id, parent: nothing, gain }
+            makeGain { id, parent: nothing, scope: nothing, gain }
           eventN = attributes <#> unwrap >>> match
             { gain: setGain <<< { id, gain: _ }
             }
@@ -220,7 +220,7 @@ createSinOsc _ initialSinOsc attributes = GraphBuilder go
         let
           id = reflectSymbol (Proxy :: _ id)
           event0 = pure $
-            makeSinOsc { id, parent: nothing, frequency }
+            makeSinOsc { id, parent: nothing, scope: nothing, frequency }
           eventN = attributes <#> unwrap >>> match
             { frequency: setFrequency <<< { id, frequency: _ }
             , onOff: setOnOff <<< { id, onOff: _ }
