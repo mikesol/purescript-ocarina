@@ -23,6 +23,7 @@
   , "newtype"
   , "nonempty"
   , "ordered-collections"
+  , "phantom-event"
   , "prelude"
   , "profunctor"
   , "profunctor-lenses"

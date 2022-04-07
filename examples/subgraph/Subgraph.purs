@@ -22,6 +22,7 @@ import Effect.Aff (Aff, launchAff_)
 import Effect.Class (liftEffect)
 import FRP.Behavior (sample_)
 import FRP.Event (class IsEvent, subscribe)
+import FRP.Event.Phantom (PhantomEvent, toEvent)
 import Math (pi, sin)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (gain, gain', gain__, input, loopBuf, lowpass, sinOsc, speaker2, (:*))
@@ -127,11 +128,10 @@ initializeSubgraph = do
   pure atar
 
 subgraphExample
-  :: forall event payload
-   . IsEvent event
-  => BrowserAudioBuffer
+  :: forall payload
+   . BrowserAudioBuffer
   -> RaiseCancellation
-  -> Exists (SubgraphF Unit event payload)
+  -> Exists (SubgraphF Unit PhantomEvent payload)
 subgraphExample loopy rc = mkExists $ SubgraphF \push -> lcmap
   (map (either (const Nothing) identity))
   \event ->
@@ -184,5 +184,5 @@ main = launchAff_ do
               (const $ subgraphExample init (const $ pure unit))
           )
           effectfulDOMInterpret
-      _ <- subscribe evt \i -> i ffi
+      _ <- subscribe (toEvent evt) \i -> i ffi
       pure unit

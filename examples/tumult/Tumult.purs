@@ -24,6 +24,7 @@ import Effect.Aff (Aff, launchAff_)
 import Effect.Class (liftEffect)
 import FRP.Behavior (sample_)
 import FRP.Event (class IsEvent, subscribe)
+import FRP.Event.Phantom (PhantomEvent, toEvent)
 import Math (pi, sin, (%))
 import Type.Proxy (Proxy(..))
 import WAGS.Control (gain', gain__, loopBuf, speaker2, (:*))
@@ -130,11 +131,9 @@ initializeTumult = do
   pure atar
 
 tumultExample
-  :: forall event payload
-   . IsEvent event
-  => BrowserAudioBuffer
+  :: forall payload. BrowserAudioBuffer
   -> RaiseCancellation
-  -> Exists (SubgraphF Unit event payload)
+  -> Exists (SubgraphF Unit PhantomEvent payload)
 tumultExample loopy rc = mkExists $ SubgraphF \push -> lcmap
   (map (either (const Nothing) identity))
   \event ->
@@ -187,5 +186,5 @@ main = launchAff_ do
               (const $ tumultExample init (const $ pure unit))
           )
           effectfulDOMInterpret
-      _ <- subscribe evt \i -> i ffi
+      _ <- subscribe (toEvent evt) \i -> i ffi
       pure unit

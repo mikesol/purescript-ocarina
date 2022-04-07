@@ -32,6 +32,7 @@ import Effect.Aff (Aff, launchAff_)
 import Effect.Class (liftEffect)
 import FRP.Behavior (sample_)
 import FRP.Event (class IsEvent, keepLatest, mapAccum, subscribe)
+import FRP.Event.Phantom (PhantomEvent, toEvent)
 import FRP.Event.Time (interval)
 import WAGS.Control (gain__, playBuf, singleton, speaker2)
 import WAGS.Core (GainInput, Subgraph(..))
@@ -153,11 +154,10 @@ initializeMultiBuf = do
   pure { kick, snare }
 
 multiBuf
-  :: forall event payload
-   . IsEvent event
-  => KickSnare
+  :: forall payload
+   . KickSnare
   -> RaiseCancellation
-  -> Exists (SubgraphF Unit event payload)
+  -> Exists (SubgraphF Unit PhantomEvent payload)
 multiBuf ks rc = mkExists $ SubgraphF \push -> lcmap
   (map (either (const Nothing) identity))
   \event ->
@@ -216,5 +216,5 @@ main = launchAff_ do
               (const $ multiBuf init (const $ pure unit))
           )
           effectfulDOMInterpret
-      _ <- subscribe evt \i -> i ffi
+      _ <- subscribe (toEvent evt) \i -> i ffi
       pure unit

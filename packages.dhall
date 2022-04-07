@@ -133,8 +133,14 @@ let additions =
   , "web-dom"
   , "web-events"
   ], repo = "https://github.com/mikesol/purescript-deku.git"
-        , version = "v0.1.3"
-      },deku-toplevel = {
+        , version = "v0.2.0"
+      }, phantom-event =
+        { dependencies =
+          [ "event"
+          ]
+        , repo = "https://github.com/mikesol/purescript-phantom-event.git"
+        , version = "v0.0.1"
+        },deku-toplevel = {
         dependencies =  [ "arrays"
   , "behaviors"
   , "control"

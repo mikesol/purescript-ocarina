@@ -25,6 +25,7 @@ import Effect.Aff (Aff, launchAff_)
 import Effect.Class (liftEffect)
 import FRP.Behavior (sample_)
 import FRP.Event (class IsEvent, create, filterMap, sampleOn, subscribe)
+import FRP.Event.Phantom (PhantomEvent, toEvent)
 import Math (pi, sin)
 import WAGS.Control (analyser, gain, gain__, loopBuf, singleton, speaker2, (:*))
 import WAGS.Core (GainInput)
@@ -97,11 +98,10 @@ initializeAtariSpeaks = do
   pure atar
 
 atariSpeaks
-  :: forall event payload
-   . IsEvent event
-  => BrowserAudioBuffer
+  :: forall payload
+   . BrowserAudioBuffer
   -> RaiseCancellation
-  -> Exists (SubgraphF Unit event payload)
+  -> Exists (SubgraphF Unit PhantomEvent payload)
 atariSpeaks atar rc = mkExists $ SubgraphF \push -> lcmap
   (map (either (const $ TurnOn) identity))
   \event ->
@@ -196,5 +196,5 @@ main = launchAff_ do
               (const $ atariSpeaks atar (const $ pure unit))
           )
           effectfulDOMInterpret
-      _ <- subscribe evt \i -> i ffi
+      _ <- subscribe (toEvent evt) \i -> i ffi
       pure unit
