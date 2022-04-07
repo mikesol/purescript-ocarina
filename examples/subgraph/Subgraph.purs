@@ -21,15 +21,15 @@ import Effect (Effect)
 import Effect.Aff (Aff, launchAff_)
 import Effect.Class (liftEffect)
 import FRP.Behavior (sample_)
-import FRP.Event (class IsEvent, subscribe)
-import FRP.Event.Phantom (PhantomEvent, toEvent)
-import Math (pi, sin)
+import FRP.Event (subscribe)
+import FRP.Event.Phantom (PhantomEvent, proof0, toEvent)
+import Math (pi)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (gain, gain', gain__, input, loopBuf, lowpass, sinOsc, speaker2, (:*))
 import WAGS.Core (GainInput, Input, Subgraph(..))
 import WAGS.Example.Utils (RaiseCancellation, animationFrameEvent)
 import WAGS.Interpret (close, context, decodeAudioDataFromUri, effectfulAudioInterpret, makeFFIAudioSnapshot, writeHead)
-import WAGS.Parameter (WriteHead, at_, ovnn, pureOn)
+import WAGS.Parameter (WriteHead, at_, pureOn)
 import WAGS.Properties (frequency)
 import WAGS.Subgraph as Wsg
 import WAGS.WebAPI (AudioContext, BrowserAudioBuffer)
@@ -39,11 +39,10 @@ import Web.HTML.HTMLElement (toElement)
 import Web.HTML.Window (document)
 
 scene
-  :: forall event payload
-   . IsEvent event
-  => BrowserAudioBuffer
-  -> WriteHead event
-  -> GainInput D2 (toSubg :: Input) (toSubg :: Input) event payload
+  :: forall proof payload
+   . BrowserAudioBuffer
+  -> WriteHead (PhantomEvent proof)
+  -> GainInput D2 (toSubg :: Input) (toSubg :: Input) PhantomEvent proof payload
 scene loopy wh =
   let
     tr = at_ wh (mul pi)
@@ -53,18 +52,13 @@ scene loopy wh =
           (loopBuf loopy pureOn :* [])
       ) :*
       [ Wsg.subgraph (pure (0 /\ Wsg.InsertOrUpdate unit))
-          ( \({ toSubg } :: { toSubg :: Input }) -> Subgraph \i e ->
+          ( \({ toSubg } :: { toSubg :: Input }) -> Subgraph \_ _ ->
               let
                 ooo
                   | otherwise =
                       gain 1.0 empty
                         ( lowpass 1100.0
-                            ( map
-                                ( frequency <<< ovnn
-                                    (\x -> 1100.0 + 1000.0 * sin x)
-                                )
-                                tr
-                            )
+                            (pure (frequency 1100.0))
                             (input toSubg) :*
                             [ gain__ 0.03 empty (sinOsc 220.0 empty) ]
                         )
@@ -147,8 +141,10 @@ subgraphExample loopy rc = mkExists $ SubgraphF \push -> lcmap
                             ffi2 <- makeFFIAudioSnapshot ctx
                             let wh = writeHead 0.04 ctx
                             unsub <- subscribe
-                              ( speaker2
-                                  (scene loopy (sample_ wh animationFrameEvent))
+                              ( toEvent $ speaker2
+                                  ( scene loopy
+                                      (proof0 (sample_ wh animationFrameEvent))
+                                  )
                                   effectfulAudioInterpret
                               )
                               ((#) ffi2)

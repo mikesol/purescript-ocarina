@@ -24,34 +24,34 @@ data TypePair a b
 infixr 6 type TypePair as \/
 
 --
-newtype GraphBuilder :: (Type -> Type) -> Type -> Type -> Type -> Type -> Type
-newtype GraphBuilder e p i o a = GraphBuilder
-  (Core.AudioInterpret e p -> { event :: e p, result :: a })
+newtype GraphBuilder :: (Type -> Type -> Type) -> Type -> Type -> Type -> Type -> Type -> Type
+newtype GraphBuilder e x p i o a = GraphBuilder
+  (Core.AudioInterpret e x p -> { event :: e x p, result :: a })
 
 type InitialGraphBuilderIndex :: Type
 type InitialGraphBuilderIndex = (() :: Row Type) \/ (() :: Row Boolean) \/ False
 
 runGraphBuilder_
-  :: forall e p o a
-   . IsEvent e
-  => Core.AudioInterpret e p
-  -> GraphBuilder e p InitialGraphBuilderIndex o a
-  -> { event :: e p, result :: a }
+  :: forall e x p o a
+   . IsEvent (e x)
+  => Core.AudioInterpret e x p
+  -> GraphBuilder e x p InitialGraphBuilderIndex o a
+  -> { event :: e x p, result :: a }
 runGraphBuilder_ audioInterpret (GraphBuilder graphBuilder) =
   graphBuilder audioInterpret
 
 runGraphBuilder
-  :: forall e p o a
-   . IsEvent e
-  => Core.AudioInterpret e p
-  -> GraphBuilder e p InitialGraphBuilderIndex o a
-  -> e p
+  :: forall e x p o a
+   . IsEvent (e x)
+  => Core.AudioInterpret e x p
+  -> GraphBuilder e x p InitialGraphBuilderIndex o a
+  -> e x p
 runGraphBuilder audioInterpret = runGraphBuilder_ audioInterpret >>> _.event
 
-instance functorGraphBuilder :: Functor (GraphBuilder e p i i) where
+instance functorGraphBuilder :: Functor (GraphBuilder e x p i i) where
   map f (GraphBuilder g) = GraphBuilder (g >>> \n -> n { result = f n.result })
 
-instance applyGraphBuilder :: IsEvent e => Apply (GraphBuilder e p i i) where
+instance applyGraphBuilder :: IsEvent (e x) => Apply (GraphBuilder e x p i i) where
   apply (GraphBuilder f) (GraphBuilder g) = GraphBuilder h
     where
     h audioInterpret =
@@ -64,11 +64,11 @@ instance applyGraphBuilder :: IsEvent e => Apply (GraphBuilder e p i i) where
         }
 
 instance applicativeGraphBuilder ::
-  IsEvent e =>
-  Applicative (GraphBuilder e p i i) where
+  IsEvent (e x) =>
+  Applicative (GraphBuilder e x p i i) where
   pure result = GraphBuilder \_ -> { event: empty, result }
 
-instance bindGraphBuilder :: IsEvent e => Bind (GraphBuilder e p i i) where
+instance bindGraphBuilder :: IsEvent (e x) => Bind (GraphBuilder e x p i i) where
   bind (GraphBuilder f) mkG = GraphBuilder h
     where
     h audioInterpret =
@@ -81,12 +81,12 @@ instance bindGraphBuilder :: IsEvent e => Bind (GraphBuilder e p i i) where
         , result: g'.result
         }
 
-instance monadGraphBuilder :: IsEvent e => Monad (GraphBuilder e p i i)
+instance monadGraphBuilder :: IsEvent (e x) => Monad (GraphBuilder e x p i i)
 
-instance ixFunctorGraphBuilder :: IxFunctor (GraphBuilder e p) where
+instance ixFunctorGraphBuilder :: IxFunctor (GraphBuilder e x p) where
   imap f (GraphBuilder g) = GraphBuilder (g >>> \n -> n { result = f n.result })
 
-instance ixApplyGraphBuilder :: IsEvent e => IxApply (GraphBuilder e p) where
+instance ixApplyGraphBuilder :: IsEvent (e x) => IxApply (GraphBuilder e x p) where
   iapply (GraphBuilder f) (GraphBuilder g) = GraphBuilder h
     where
     h audioInterpret =
@@ -99,11 +99,11 @@ instance ixApplyGraphBuilder :: IsEvent e => IxApply (GraphBuilder e p) where
         }
 
 instance ixApplicativeGraphBuilder ::
-  IsEvent e =>
-  IxApplicative (GraphBuilder e p) where
+  IsEvent (e x) =>
+  IxApplicative (GraphBuilder e x p) where
   ipure result = GraphBuilder \_ -> { event: empty, result }
 
-instance ixBindGraphBuilder :: IsEvent e => IxBind (GraphBuilder e p) where
+instance ixBindGraphBuilder :: IsEvent (e x) => IxBind (GraphBuilder e x p) where
   ibind (GraphBuilder f) mkG = GraphBuilder h
     where
     h audioInterpret =
@@ -116,7 +116,7 @@ instance ixBindGraphBuilder :: IsEvent e => IxBind (GraphBuilder e p) where
         , result: g'.result
         }
 
-instance ixMonadGraphBuilder :: IsEvent e => IxMonad (GraphBuilder e p)
+instance ixMonadGraphBuilder :: IsEvent (e x) => IxMonad (GraphBuilder e x p)
 
 --
 data Node
@@ -162,12 +162,12 @@ instance insertTerminalDefault ::
 
 --
 createSpeaker
-  :: forall e p i o id
-   . IsEvent e
+  :: forall e x p i o id
+   . IsEvent (e x)
   => IsSymbol id
   => InsertTerminal i id True o
   => Proxy id
-  -> GraphBuilder e p i o (GraphUnit id Speaker)
+  -> GraphBuilder e x p i o (GraphUnit id Speaker)
 createSpeaker _ = GraphBuilder go
   where
   go (Core.AudioInterpret { makeSpeaker }) =
@@ -176,15 +176,15 @@ createSpeaker _ = GraphBuilder go
     }
 
 createGain
-  :: forall e p i o id initialGain
-   . IsEvent e
+  :: forall e x p i o id initialGain
+   . IsEvent (e x)
   => IsSymbol id
   => Common.InitialGain initialGain
   => InsertTerminal i id False o
   => Proxy id
   -> initialGain
-  -> e Core.Gain
-  -> GraphBuilder e p i o (GraphUnit id Gain)
+  -> e x Core.Gain
+  -> GraphBuilder e x p i o (GraphUnit id Gain)
 createGain _ initialGain attributes = GraphBuilder go
   where
   { gain } = unwrap $ Common.toInitializeGain initialGain
@@ -203,15 +203,15 @@ createGain _ initialGain attributes = GraphBuilder go
     }
 
 createSinOsc
-  :: forall e p i o id initialSinOsc
-   . IsEvent e
+  :: forall e x p i o id initialSinOsc
+   . IsEvent (e x)
   => IsSymbol id
   => Common.InitialSinOsc initialSinOsc
   => InsertTerminal i id False o
   => Proxy id
   -> initialSinOsc
-  -> e Core.SinOsc
-  -> GraphBuilder e p i o (GraphUnit id SinOsc)
+  -> e x Core.SinOsc
+  -> GraphBuilder e x p i o (GraphUnit id SinOsc)
 createSinOsc _ initialSinOsc attributes = GraphBuilder go
   where
   { frequency } = unwrap $ Common.toInitializeSinOsc initialSinOsc
@@ -246,7 +246,7 @@ else instance makesSoundNotYet ::
 
 class Connect
   :: Type
-  -> (Type -> Type)
+  -> (Type -> Type -> Type)
   -> Symbol
   -> Node
   -> Symbol
@@ -255,14 +255,14 @@ class Connect
   -> Constraint
 class Connect i e fId fNode iId iNode o | i fId fNode iId iNode -> o where
   connect
-    :: forall p
-     . { from :: GraphUnit fId fNode
+    :: forall x p
+     . Applicative (e x) => { from :: GraphUnit fId fNode
        , into :: GraphUnit iId iNode
        }
-    -> GraphBuilder e p i o Unit
+    -> GraphBuilder e x p i o Unit
 
 instance connectDefault ::
-  ( IsEvent e
+  ( IsEvent (e x)
   , IsSymbol fId
   , IsSymbol iId
   , HasOutput fNode

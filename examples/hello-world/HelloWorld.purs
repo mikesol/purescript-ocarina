@@ -23,7 +23,7 @@ import Effect.Aff (Aff, launchAff_)
 import Effect.Class (liftEffect)
 import FRP.Behavior (sample_)
 import FRP.Event (class IsEvent, subscribe)
-import FRP.Event.Phantom (PhantomEvent, toEvent)
+import FRP.Event.Phantom (PhantomEvent, proof0, toEvent)
 import Math (pi, sin)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (gain__, sinOsc, speaker2, (:*))
@@ -40,10 +40,9 @@ import Web.HTML.HTMLElement (toElement)
 import Web.HTML.Window (document)
 
 scene
-  :: forall event payload
-   . IsEvent event
-  => WriteHead event
-  -> GainInput D2 () () event payload
+  :: forall proof payload
+   . WriteHead (PhantomEvent proof)
+  -> GainInput D2 () () PhantomEvent proof payload
 scene wh =
   let
     tr = at_ wh (mul pi)
@@ -57,10 +56,9 @@ scene wh =
       ]
 
 scene'
-  :: forall event payload
-   . IsEvent event
-  => WriteHead event
-  -> GraphBuilder event payload InitialGraphBuilderIndex _ Unit
+  :: forall proof payload
+   . WriteHead (PhantomEvent proof)
+  -> GraphBuilder PhantomEvent proof payload InitialGraphBuilderIndex _ Unit
 scene' wh = Ix.do
   speaker <- createSpeaker (Proxy :: Proxy "speaker")
   gain0 <- createGain (Proxy :: Proxy "gain0") 0.1 empty
@@ -99,44 +97,48 @@ helloWorld
    . Unit
   -> RaiseCancellation
   -> Exists (SubgraphF Unit PhantomEvent payload)
-helloWorld _ rc = mkExists $ SubgraphF \push -> lcmap (map (either (const Nothing) identity)) \event -> let
-                musicButton push event audioEvent =
-                  DOM.button
-                    ( map
-                        ( \i -> DOM.OnClick := cb
-                            ( const $
-                                maybe
-                                  ( do
-                                      ctx <- context
-                                      ffi2 <- makeFFIAudioSnapshot ctx
-                                      let wh = writeHead 0.04 ctx
-                                      unsub <- subscribe
-                                        (audioEvent (sample_ wh animationFrameEvent))
-                                        ((#) ffi2)
-                                      rc $ Just { unsub, ctx }
-                                      push $ Just { unsub, ctx }
-                                  )
-                                  ( \{ unsub, ctx } -> do
-                                      unsub
-                                      close ctx
-                                      rc Nothing
-                                      push Nothing
-                                  )
-                                  i
-                            )
+helloWorld _ rc = mkExists $ SubgraphF \push -> lcmap
+  (map (either (const Nothing) identity))
+  \event ->
+    let
+      musicButton push event audioEvent =
+        DOM.button
+          ( map
+              ( \i -> DOM.OnClick := cb
+                  ( const $
+                      maybe
+                        ( do
+                            ctx <- context
+                            ffi2 <- makeFFIAudioSnapshot ctx
+                            let wh = writeHead 0.04 ctx
+                            unsub <- subscribe
+                              (toEvent $ audioEvent (proof0 $ sample_ wh animationFrameEvent))
+                              ((#) ffi2)
+                            rc $ Just { unsub, ctx }
+                            push $ Just { unsub, ctx }
                         )
-                        event
-                    )
-                    [ text
-                        (map (maybe "Turn on" (const "Turn off")) event)
-                    ]
-      in
-                DOM.div_
-                  [ DOM.h1_ [ text_ "Hello world" ]
-                  , musicButton push event (runGraphBuilder effectfulAudioInterpret <<< scene')
-                  , musicButton push event (flip speaker2 effectfulAudioInterpret <<< scene)
-                  ]
-
+                        ( \{ unsub, ctx } -> do
+                            unsub
+                            close ctx
+                            rc Nothing
+                            push Nothing
+                        )
+                        i
+                  )
+              )
+              event
+          )
+          [ text
+              (map (maybe "Turn on" (const "Turn off")) event)
+          ]
+    in
+      DOM.div_
+        [ DOM.h1_ [ text_ "Hello world" ]
+        , musicButton push event
+            (runGraphBuilder effectfulAudioInterpret <<< scene')
+        , musicButton push event
+            (flip speaker2 effectfulAudioInterpret <<< scene)
+        ]
 
 main :: Effect Unit
 main = launchAff_ do

@@ -24,8 +24,8 @@ import Effect (Effect)
 import Effect.Aff (Aff, launchAff_)
 import Effect.Class (liftEffect)
 import FRP.Behavior (sample_)
-import FRP.Event (class IsEvent, create, filterMap, sampleOn, subscribe)
-import FRP.Event.Phantom (PhantomEvent, toEvent)
+import FRP.Event (create, filterMap, sampleOn, subscribe)
+import FRP.Event.Phantom (PhantomEvent, proof0, toEvent)
 import Math (pi, sin)
 import WAGS.Control (analyser, gain, gain__, loopBuf, singleton, speaker2, (:*))
 import WAGS.Core (GainInput)
@@ -40,12 +40,11 @@ import Web.HTML.HTMLElement (toElement)
 import Web.HTML.Window (document)
 
 scene
-  :: forall event payload
-   . IsEvent event
-  => BrowserAudioBuffer
+  :: forall proof payload
+   . BrowserAudioBuffer
   -> AnalyserNodeCb
-  -> WriteHead event
-  -> GainInput D2 () () event payload
+  -> WriteHead (PhantomEvent proof)
+  -> GainInput D2 () () PhantomEvent proof payload
 scene atar cb wh =
   let
     tr = at_ wh (mul pi)
@@ -126,14 +125,14 @@ atariSpeaks atar rc = mkExists $ SubgraphF \push -> lcmap
                                           pure (analyserE.push Nothing)
                                       )
                                   )
-                                  (sample_ wh animationFrameEvent)
+                                  (proof0 $ sample_ wh animationFrameEvent)
                               )
                               effectfulAudioInterpret
 
                           unsub <- subscribe
                             ( sampleOn
                                 (analyserE.event <|> pure Nothing)
-                                (map Tuple audioE)
+                                (map Tuple (toEvent audioE))
                             )
                             ( \(Tuple audio analyser) -> do
                                 audio ffi2

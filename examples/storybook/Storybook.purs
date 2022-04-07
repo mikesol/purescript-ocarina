@@ -3,7 +3,7 @@ module WAGS.Example.Storybook where
 import Prelude
 
 import Control.Alt ((<|>))
-import Control.Plus (class Plus, empty)
+import Control.Plus (empty)
 import Data.Either (Either(..))
 import Data.Exists (mkExists)
 import Data.Foldable (for_)
@@ -21,7 +21,7 @@ import Deku.Subgraph (SubgraphAction(..), subgraph)
 import Effect (Effect)
 import Effect.Aff (launchAff_, try)
 import Effect.Class (liftEffect)
-import FRP.Event (class IsEvent, create, filterMap, fold, keepLatest, mapAccum, subscribe)
+import FRP.Event (create, filterMap, fold, keepLatest, mapAccum, subscribe)
 import FRP.Event.Phantom (PhantomEvent, proof0, toEvent)
 import WAGS.Example.AtariSpeaks as AtariSpeaks
 import WAGS.Example.HelloWorld as HelloWorld
