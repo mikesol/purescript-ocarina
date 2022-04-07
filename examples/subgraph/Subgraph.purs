@@ -28,8 +28,8 @@ import FRP.Event.Phantom (PhantomEvent, proof0, toEvent)
 import FRP.Event.Time (interval)
 import Math (pi, sin)
 import Type.Proxy (Proxy(..))
-import WAGS.Control (gain, gain', gain__, highpass, input, loopBuf, lowpass, sinOsc, speaker2, (:*))
-import WAGS.Core (GainInput, Input, Subgraph(..))
+import WAGS.Control (convolver, gain, gain', gain__, highpass, input, loopBuf, lowpass, sinOsc, speaker2, (:*))
+import WAGS.Core (GainInput, InitializeConvolver(..), Input, Subgraph(..))
 import WAGS.Example.Utils (RaiseCancellation, animationFrameEvent)
 import WAGS.Interpret (close, context, decodeAudioDataFromUri, effectfulAudioInterpret, makeFFIAudioSnapshot, writeHead)
 import WAGS.Parameter (ACTime, ovnn, pureOn, uat_)
@@ -51,10 +51,10 @@ counter_ = map snd <<< counter
 
 scene
   :: forall proof payload
-   . BrowserAudioBuffer
+   . Init
   -> PhantomEvent proof (ACTime /\ Int)
   -> GainInput D2 (toSubg :: Input) (toSubg :: Input) PhantomEvent proof payload
-scene loopy wh =
+scene { loopy, conny } wh =
   let
     topE = map (over _1 (flip uat_ (mul pi))) wh
   in
@@ -75,16 +75,18 @@ scene loopy wh =
               let
                 ooo
                   | ix == 0 =
-                      gain 1.0 empty
-                        ( highpass 1100.0
-                            ( map
-                                ( frequency <<< ovnn
-                                    (\x -> 3100.0 + 1000.0 * sin (0.5 * x))
+                      convolver (InitializeConvolver { buffer: conny })
+                        ( gain 1.0 empty
+                            ( highpass 1100.0
+                                ( map
+                                    ( frequency <<< ovnn
+                                        (\x -> 3100.0 + 1000.0 * sin (0.5 * x))
+                                    )
+                                    tr
                                 )
-                                tr
+                                (input toSubg) :*
+                                [ gain__ 0.03 empty (sinOsc 220.0 pureOn) ]
                             )
-                            (input toSubg) :*
-                            [ gain__ 0.03 empty (sinOsc 220.0 pureOn) ]
                         )
 
                   | otherwise =
@@ -119,17 +121,19 @@ scene loopy wh =
 
 type UIAction = Maybe { unsub :: Effect Unit, ctx :: AudioContext }
 
-type Init = BrowserAudioBuffer
+type Init = { loopy :: BrowserAudioBuffer, conny :: BrowserAudioBuffer }
 
 initializeSubgraph :: Aff Init
 initializeSubgraph = do
-  atar <- liftEffect context >>= flip decodeAudioDataFromUri
+  loopy <- liftEffect context >>= flip decodeAudioDataFromUri
     "https://freesound.org/data/previews/36/36132_321601-hq.mp3"
-  pure atar
+  conny <- liftEffect context >>= flip decodeAudioDataFromUri
+    "https://cdn.jsdelivr.net/gh/andibrae/Reverb.js/Library/StMarysAbbeyReconstructionPhase3.m4a"
+  pure { loopy, conny }
 
 subgraphExample
   :: forall payload
-   . BrowserAudioBuffer
+   . Init
   -> RaiseCancellation
   -> Exists (SubgraphF Unit PhantomEvent payload)
 subgraphExample loopy rc = mkExists $ SubgraphF \push -> lcmap

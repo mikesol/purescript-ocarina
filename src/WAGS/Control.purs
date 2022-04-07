@@ -89,16 +89,18 @@ infixr 6 gainInputAppend as <>*
 -- allpass
 
 __allpass
-  :: forall outputChannels producedI consumedI producedO consumedO event proof
+  :: forall i outputChannels producedI consumedI producedO consumedO event proof
        payload
    . IsEvent (event proof)
+  => Common.InitialAllpass i
   => Maybe String
-  -> C.InitializeAllpass
+  -> i
   -> event proof C.Allpass
   -> C.Node outputChannels producedI consumedI event proof payload
   -> C.Node outputChannels producedO consumedO event proof payload
-__allpass mId (C.InitializeAllpass i) atts elt = C.Node go
+__allpass mId i' atts elt = C.Node go
   where
+  C.InitializeAllpass i = Common.toInitialAllpass i'
   go
     parent
     di@(C.AudioInterpret { ids, scope, makeAllpass, setFrequency, setQ }) =
@@ -128,22 +130,24 @@ __allpass mId (C.InitializeAllpass i) atts elt = C.Node go
       )
 
 allpass
-  :: forall outputChannels produced consumed event proof payload
+  :: forall i outputChannels produced consumed event proof payload
    . IsEvent (event proof)
-  => C.InitializeAllpass
+  => Common.InitialAllpass i
+  => i
   -> event proof C.Allpass
   -> C.Node outputChannels produced consumed event proof payload
   -> C.Node outputChannels produced consumed event proof payload
 allpass = __allpass nothing
 
 allpass'
-  :: forall proxy sym outputChannels produced produced' consumed event proof
+  :: forall proxy sym i outputChannels produced produced' consumed event proof
        payload
    . IsEvent (event proof)
+  => Common.InitialAllpass i
   => IsSymbol sym
   => Cons sym C.Input produced' produced
   => proxy sym
-  -> C.InitializeAllpass
+  -> i
   -> event proof C.Allpass
   -> C.Node outputChannels produced' consumed event proof payload
   -> C.Node outputChannels produced consumed event proof payload
@@ -423,16 +427,18 @@ audioWorklet' px = __audioWorklet (just (reflectSymbol px))
 -- bandpass
 
 __bandpass
-  :: forall outputChannels producedI consumedI producedO consumedO event proof
+  :: forall i outputChannels producedI consumedI producedO consumedO event proof
        payload
    . IsEvent (event proof)
+  => Common.InitialBandpass i
   => Maybe String
-  -> C.InitializeBandpass
+  -> i
   -> event proof C.Bandpass
   -> C.Node outputChannels producedI consumedI event proof payload
   -> C.Node outputChannels producedO consumedO event proof payload
-__bandpass mId (C.InitializeBandpass i) atts elt = C.Node go
+__bandpass mId i' atts elt = C.Node go
   where
+  C.InitializeBandpass i = Common.toInitialBandpass i'
   go
     parent
     di@(C.AudioInterpret { ids, scope, makeBandpass, setFrequency, setQ }) =
@@ -460,22 +466,24 @@ __bandpass mId (C.InitializeBandpass i) atts elt = C.Node go
       )
 
 bandpass
-  :: forall outputChannels produced consumed event proof payload
+  :: forall i outputChannels produced consumed event proof payload
    . IsEvent (event proof)
-  => C.InitializeBandpass
+  => Common.InitialBandpass i
+  => i
   -> event proof C.Bandpass
   -> C.Node outputChannels produced consumed event proof payload
   -> C.Node outputChannels produced consumed event proof payload
 bandpass = __bandpass nothing
 
 bandpass'
-  :: forall proxy sym outputChannels produced produced' consumed event proof
+  :: forall proxy sym i outputChannels produced produced' consumed event proof
        payload
    . IsEvent (event proof)
   => IsSymbol sym
+  => Common.InitialBandpass i
   => Cons sym C.Input produced' produced
   => proxy sym
-  -> C.InitializeBandpass
+  -> i
   -> event proof C.Bandpass
   -> C.Node outputChannels produced' consumed event proof payload
   -> C.Node outputChannels produced consumed event proof payload
@@ -864,16 +872,18 @@ highpass' px = __highpass (just (reflectSymbol px))
 -- highshelf
 
 __highshelf
-  :: forall outputChannels producedI consumedI producedO consumedO event proof
+  :: forall i outputChannels producedI consumedI producedO consumedO event proof
        payload
    . IsEvent (event proof)
+  => Common.InitialHighshelf i
   => Maybe String
-  -> C.InitializeHighshelf
+  -> i
   -> event proof C.Highshelf
   -> C.Node outputChannels producedI consumedI event proof payload
   -> C.Node outputChannels producedO consumedO event proof payload
-__highshelf mId (C.InitializeHighshelf i) atts elt = C.Node go
+__highshelf mId i' atts elt = C.Node go
   where
+  C.InitializeHighshelf i = Common.toInitialHighshelf i'
   go
     parent
     di@(C.AudioInterpret { ids, scope, makeHighshelf, setFrequency, setGain }) =
@@ -901,22 +911,24 @@ __highshelf mId (C.InitializeHighshelf i) atts elt = C.Node go
       )
 
 highshelf
-  :: forall outputChannels produced consumed event proof payload
+  :: forall i outputChannels produced consumed event proof payload
    . IsEvent (event proof)
-  => C.InitializeHighshelf
+  => Common.InitialHighshelf i
+  => i
   -> event proof C.Highshelf
   -> C.Node outputChannels produced consumed event proof payload
   -> C.Node outputChannels produced consumed event proof payload
 highshelf = __highshelf nothing
 
 highshelf'
-  :: forall proxy sym outputChannels produced produced' consumed event proof
+  :: forall proxy sym i outputChannels produced produced' consumed event proof
        payload
    . IsEvent (event proof)
+  => Common.InitialHighshelf i
   => IsSymbol sym
   => Cons sym C.Input produced' produced
   => proxy sym
-  -> C.InitializeHighshelf
+  -> i
   -> event proof C.Highshelf
   -> C.Node outputChannels produced' consumed event proof payload
   -> C.Node outputChannels produced consumed event proof payload
@@ -1004,16 +1016,18 @@ lowpass' px = __lowpass (just (reflectSymbol px))
 -- lowshelf
 
 __lowshelf
-  :: forall outputChannels producedI consumedI producedO consumedO event proof
+  :: forall i outputChannels producedI consumedI producedO consumedO event proof
        payload
    . IsEvent (event proof)
+  => Common.InitialLowshelf i
   => Maybe String
-  -> C.InitializeLowshelf
+  -> i
   -> event proof C.Lowshelf
   -> C.Node outputChannels producedI consumedI event proof payload
   -> C.Node outputChannels producedO consumedO event proof payload
-__lowshelf mId (C.InitializeLowshelf i) atts elt = C.Node go
+__lowshelf mId i' atts elt = C.Node go
   where
+  C.InitializeLowshelf i = Common.toInitialLowshelf i'
   go
     parent
     di@(C.AudioInterpret { ids, scope, makeLowshelf, setFrequency, setGain }) =
@@ -1041,22 +1055,24 @@ __lowshelf mId (C.InitializeLowshelf i) atts elt = C.Node go
       )
 
 lowshelf
-  :: forall outputChannels produced consumed event proof payload
+  :: forall i outputChannels produced consumed event proof payload
    . IsEvent (event proof)
-  => C.InitializeLowshelf
+  => Common.InitialLowshelf i
+  => i
   -> event proof C.Lowshelf
   -> C.Node outputChannels produced consumed event proof payload
   -> C.Node outputChannels produced consumed event proof payload
 lowshelf = __lowshelf nothing
 
 lowshelf'
-  :: forall proxy sym outputChannels produced produced' consumed event proof
+  :: forall proxy sym i outputChannels produced produced' consumed event proof
        payload
    . IsEvent (event proof)
   => IsSymbol sym
+  => Common.InitialLowshelf i
   => Cons sym C.Input produced' produced
   => proxy sym
-  -> C.InitializeLowshelf
+  -> i
   -> event proof C.Lowshelf
   -> C.Node outputChannels produced' consumed event proof payload
   -> C.Node outputChannels produced consumed event proof payload
@@ -1219,16 +1235,18 @@ microphone' px = __microphone (just (reflectSymbol px))
 -- notch
 
 __notch
-  :: forall outputChannels producedI consumedI producedO consumedO event proof
+  :: forall i outputChannels producedI consumedI producedO consumedO event proof
        payload
    . IsEvent (event proof)
+  => Common.InitialNotch i
   => Maybe String
-  -> C.InitializeNotch
+  -> i
   -> event proof C.Notch
   -> C.Node outputChannels producedI consumedI event proof payload
   -> C.Node outputChannels producedO consumedO event proof payload
-__notch mId (C.InitializeNotch i) atts elt = C.Node go
+__notch mId i' atts elt = C.Node go
   where
+  C.InitializeNotch i = Common.toInitialNotch i'
   go parent di@(C.AudioInterpret { ids, scope, makeNotch, setFrequency, setQ }) =
     keepLatest
       ( (sample_ ids (pure unit)) <#> __maybeUseName scope mId \me ->
@@ -1254,22 +1272,24 @@ __notch mId (C.InitializeNotch i) atts elt = C.Node go
       )
 
 notch
-  :: forall outputChannels produced consumed event proof payload
+  :: forall i outputChannels produced consumed event proof payload
    . IsEvent (event proof)
-  => C.InitializeNotch
+  => Common.InitialNotch i
+  => i
   -> event proof C.Notch
   -> C.Node outputChannels produced consumed event proof payload
   -> C.Node outputChannels produced consumed event proof payload
 notch = __notch nothing
 
 notch'
-  :: forall proxy sym outputChannels produced produced' consumed event proof
+  :: forall proxy sym i outputChannels produced produced' consumed event proof
        payload
    . IsEvent (event proof)
   => IsSymbol sym
+  => Common.InitialNotch i
   => Cons sym C.Input produced' produced
   => proxy sym
-  -> C.InitializeNotch
+  -> i
   -> event proof C.Notch
   -> C.Node outputChannels produced' consumed event proof payload
   -> C.Node outputChannels produced consumed event proof payload
@@ -1278,16 +1298,18 @@ notch' px = __notch (just (reflectSymbol px))
 -- peaking
 
 __peaking
-  :: forall outputChannels producedI consumedI producedO consumedO event proof
+  :: forall i outputChannels producedI consumedI producedO consumedO event proof
        payload
    . IsEvent (event proof)
+  => Common.InitialPeaking i
   => Maybe String
-  -> C.InitializePeaking
+  -> i
   -> event proof C.Peaking
   -> C.Node outputChannels producedI consumedI event proof payload
   -> C.Node outputChannels producedO consumedO event proof payload
-__peaking mId (C.InitializePeaking i) atts elt = C.Node go
+__peaking mId i' atts elt = C.Node go
   where
+  C.InitializePeaking i = Common.toInitialPeaking i'
   go
     parent
     di@
@@ -1320,22 +1342,24 @@ __peaking mId (C.InitializePeaking i) atts elt = C.Node go
       )
 
 peaking
-  :: forall outputChannels produced consumed event proof payload
+  :: forall i outputChannels produced consumed event proof payload
    . IsEvent (event proof)
-  => C.InitializePeaking
+  => Common.InitialPeaking i
+  => i
   -> event proof C.Peaking
   -> C.Node outputChannels produced consumed event proof payload
   -> C.Node outputChannels produced consumed event proof payload
 peaking = __peaking nothing
 
 peaking'
-  :: forall proxy sym outputChannels produced produced' consumed event proof
+  :: forall proxy sym i outputChannels produced produced' consumed event proof
        payload
    . IsEvent (event proof)
   => IsSymbol sym
+  => Common.InitialPeaking i
   => Cons sym C.Input produced' produced
   => proxy sym
-  -> C.InitializePeaking
+  -> i
   -> event proof C.Peaking
   -> C.Node outputChannels produced' consumed event proof payload
   -> C.Node outputChannels produced consumed event proof payload
