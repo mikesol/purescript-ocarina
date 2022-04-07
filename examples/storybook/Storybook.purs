@@ -93,6 +93,7 @@ scene push event =
                                               do
                                                 close ctx
                                                 unsub
+                                                push (StashCancel Nothing)
                                           x <- x'
                                           liftEffect $ push (Page x)
                                       ) >>= case _ of
