@@ -16,42 +16,7 @@ import WAGS.Common as Common
 import WAGS.Core as Core
 import WAGS.Imperative.Monad (GraphBuilder(..))
 import WAGS.Imperative.Types (type (\/))
-
---
-data Node
-
-foreign import data Speaker :: Node
-
-foreign import data Gain :: Node
-
-foreign import data SinOsc :: Node
-
-foreign import data PlayBuf :: Node
-
-data GraphUnit :: Symbol -> Node -> Type
-data GraphUnit id node = GraphUnit
-
-class HasInput :: Node -> Constraint
-class HasInput node
-
-instance hasInputSpeaker :: HasInput Speaker
-instance hasInputGain :: HasInput Gain
-
-class HasOutput :: Node -> Constraint
-class HasOutput node
-
-instance hasOutputSpeaker :: HasOutput Speaker
-instance hasOutputGain :: HasOutput Gain
-instance hasOutputSinOsc :: HasOutput SinOsc
-instance hasOutputPlayBuf :: HasOutput PlayBuf
-
-class HasSound :: Node -> Boolean -> Constraint
-class HasSound node tOrF | node -> tOrF
-
-instance hasSoundSinOsc :: HasSound SinOsc True
-instance hasSoundPlayBuf :: HasSound PlayBuf True
-instance hasSoundGain :: HasSound Gain False
-instance hasSoundSpeaker :: HasSound Speaker False
+import WAGS.Imperative.Types as T
 
 --
 class InsertTerminal :: Type -> Symbol -> Boolean -> Type -> Constraint
@@ -70,12 +35,12 @@ createSpeaker
   => IsSymbol id
   => InsertTerminal i id True o
   => Proxy id
-  -> GraphBuilder e p i o (GraphUnit id Speaker)
+  -> GraphBuilder e p i o (T.GraphUnit id T.Speaker)
 createSpeaker _ = GraphBuilder go
   where
   go (Core.AudioInterpret { makeSpeaker }) =
     { event: pure $ makeSpeaker { id: reflectSymbol (Proxy :: _ id) }
-    , result: GraphUnit
+    , result: T.GraphUnit
     }
 
 createGain
@@ -87,7 +52,7 @@ createGain
   => Proxy id
   -> initialGain
   -> e Core.Gain
-  -> GraphBuilder e p i o (GraphUnit id Gain)
+  -> GraphBuilder e p i o (T.GraphUnit id T.Gain)
 createGain _ initialGain attributes = GraphBuilder go
   where
   { gain } = unwrap $ Common.toInitializeGain initialGain
@@ -102,7 +67,7 @@ createGain _ initialGain attributes = GraphBuilder go
             }
         in
           event0 <|> eventN
-    , result: GraphUnit
+    , result: T.GraphUnit
     }
 
 createSinOsc
@@ -114,7 +79,7 @@ createSinOsc
   => Proxy id
   -> initialSinOsc
   -> e Core.SinOsc
-  -> GraphBuilder e p i o (GraphUnit id SinOsc)
+  -> GraphBuilder e p i o (T.GraphUnit id T.SinOsc)
 createSinOsc _ initialSinOsc attributes = GraphBuilder go
   where
   { frequency } = unwrap $ Common.toInitializeSinOsc initialSinOsc
@@ -130,7 +95,7 @@ createSinOsc _ initialSinOsc attributes = GraphBuilder go
             }
         in
           event0 <|> eventN
-    , result: GraphUnit
+    , result: T.GraphUnit
     }
 
 createPlayBuf
@@ -142,7 +107,7 @@ createPlayBuf
   => Proxy id
   -> initialPlayBuf
   -> e Core.PlayBuf
-  -> GraphBuilder e p i o (GraphUnit id PlayBuf)
+  -> GraphBuilder e p i o (T.GraphUnit id T.PlayBuf)
 createPlayBuf _ initialPlayBuf attributes = GraphBuilder go
   where
   { buffer, playbackRate, bufferOffset, duration } = unwrap $
@@ -170,7 +135,7 @@ createPlayBuf _ initialPlayBuf attributes = GraphBuilder go
             }
         in
           event0 <|> eventN
-    , result: GraphUnit
+    , result: T.GraphUnit
     }
 
 class IntoIsTerminal :: Boolean -> Constraint
@@ -178,12 +143,12 @@ class IntoIsTerminal isTerminal
 
 instance intoIsTerminalTrue :: IntoIsTerminal True
 
-class MakesSound :: Node -> Boolean -> Boolean -> Constraint
+class MakesSound :: T.Node -> Boolean -> Boolean -> Constraint
 class MakesSound node n f | node n -> f
 
 instance makesSoundAlready :: MakesSound node True True
 else instance makesSoundNotYet ::
-  ( HasSound node hasSound
+  ( T.HasSound node hasSound
   ) =>
   MakesSound node tOrF hasSound
 
@@ -191,16 +156,16 @@ class Connect
   :: Type
   -> (Type -> Type)
   -> Symbol
-  -> Node
+  -> T.Node
   -> Symbol
-  -> Node
+  -> T.Node
   -> Type
   -> Constraint
 class Connect i e fId fNode iId iNode o | i fId fNode iId iNode -> o where
   connect
     :: forall p
-     . { from :: GraphUnit fId fNode
-       , into :: GraphUnit iId iNode
+     . { from :: T.GraphUnit fId fNode
+       , into :: T.GraphUnit iId iNode
        }
     -> GraphBuilder e p i o Unit
 
@@ -208,8 +173,8 @@ instance connectDefault ::
   ( IsEvent e
   , IsSymbol fId
   , IsSymbol iId
-  , HasOutput fNode
-  , HasInput iNode
+  , T.HasOutput fNode
+  , T.HasInput iNode
   , Row.Cons iId iIsTerminal t_ t
   , IntoIsTerminal iIsTerminal
   , Row.Cons fId tOrF t' t
