@@ -145,8 +145,7 @@ derive instance genericAudioOnOff :: Generic AudioOnOff _
 type ACTime =
   { concreteTime :: Number, abstractTime :: Number, lookAhead :: Number }
 
-type WriteHead (f :: Type -> Type) = f
-  { concreteTime :: Number, abstractTime :: Number, lookAhead :: Number }
+type WriteHead (f :: Type -> Type) = f ACTime
 
 cp :: forall f. Applicative f => Number -> f AudioParameter
 cp n = pure (_sudden (AudioSudden { n }))
@@ -198,6 +197,21 @@ at_'
 at_' wh f = wh # map
   \{ concreteTime, abstractTime } ->
     let
+      { n, o } = f abstractTime
+    in
+      AudioNumeric { t: _linear, o: o + concreteTime, n }
+
+uat_
+  :: ACTime
+  -> (Number -> Number)
+  -> AudioNumeric
+uat_ wh f = uat_' wh (map (\n -> { o: 0.0, n: n }) f)
+
+uat_'
+  :: ACTime
+  -> (Number -> { n :: Number, o :: Number })
+  -> AudioNumeric
+uat_' { concreteTime, abstractTime } f =  let
       { n, o } = f abstractTime
     in
       AudioNumeric { t: _linear, o: o + concreteTime, n }

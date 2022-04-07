@@ -18,6 +18,54 @@ instance InitialGain Core.InitializeGain where
 instance InitialGain Number where
   toInitializeGain = Core.InitializeGain <<< { gain: _ }
 
+-- Highpass
+
+data HighpassOptions = HighpassOptions
+
+instance
+  ConvertOption HighpassOptions
+    "frequency"
+    InitialAudioParameter
+    InitialAudioParameter where
+  convertOption _ _ = identity
+
+instance
+  ConvertOption HighpassOptions
+    "q"
+    InitialAudioParameter
+    InitialAudioParameter where
+  convertOption _ _ = identity
+
+type HighpassOptional =
+  ( q :: InitialAudioParameter
+  )
+
+type HighpassAll =
+  ( frequency :: InitialAudioParameter
+  | HighpassOptional
+  )
+
+defaultHighpass :: { | HighpassOptional }
+defaultHighpass =
+  { q: 1.0 }
+
+class InitialHighpass i where
+  toInitialHighpass :: i -> Core.InitializeHighpass
+
+instance InitialHighpass Core.InitializeHighpass where
+  toInitialHighpass = identity
+
+instance InitialHighpass InitialAudioParameter where
+  toInitialHighpass = toInitialHighpass <<< { frequency: _ }
+
+instance
+  ConvertOptionsWithDefaults HighpassOptions { | HighpassOptional } { | provided }
+    { | HighpassAll } =>
+  InitialHighpass { | provided } where
+  toInitialHighpass provided = Core.InitializeHighpass
+    (convertOptionsWithDefaults HighpassOptions defaultHighpass provided)
+
+
 -- LoopBuf
 data LoopBufOptions = LoopBufOptions
 

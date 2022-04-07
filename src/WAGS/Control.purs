@@ -796,16 +796,18 @@ gain' px = __gain (just (reflectSymbol px))
 -- highpass
 
 __highpass
-  :: forall outputChannels producedI consumedI producedO consumedO event proof
+  :: forall i outputChannels producedI consumedI producedO consumedO event proof
        payload
    . IsEvent (event proof)
+  => Common.InitialHighpass i
   => Maybe String
-  -> C.InitializeHighpass
+  -> i
   -> event proof C.Highpass
   -> C.Node outputChannels producedI consumedI event proof payload
   -> C.Node outputChannels producedO consumedO event proof payload
-__highpass mId (C.InitializeHighpass i) atts elt = C.Node go
+__highpass mId i' atts elt = C.Node go
   where
+  C.InitializeHighpass i = Common.toInitialHighpass i'
   go
     parent
     di@(C.AudioInterpret { ids, scope, makeHighpass, setFrequency, setQ }) =
@@ -833,22 +835,24 @@ __highpass mId (C.InitializeHighpass i) atts elt = C.Node go
       )
 
 highpass
-  :: forall outputChannels produced consumed event proof payload
+  :: forall i outputChannels produced consumed event proof payload
    . IsEvent (event proof)
-  => C.InitializeHighpass
+  => Common.InitialHighpass i
+  => i
   -> event proof C.Highpass
   -> C.Node outputChannels produced consumed event proof payload
   -> C.Node outputChannels produced consumed event proof payload
 highpass = __highpass nothing
 
 highpass'
-  :: forall proxy sym outputChannels produced produced' consumed event proof
+  :: forall proxy sym i outputChannels produced produced' consumed event proof
        payload
    . IsEvent (event proof)
   => IsSymbol sym
+  => Common.InitialHighpass i
   => Cons sym C.Input produced' produced
   => proxy sym
-  -> C.InitializeHighpass
+  -> i
   -> event proof C.Highpass
   -> C.Node outputChannels produced' consumed event proof payload
   -> C.Node outputChannels produced consumed event proof payload

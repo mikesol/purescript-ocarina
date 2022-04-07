@@ -2,14 +2,16 @@ module WAGS.Example.Subgraph where
 
 import Prelude
 
+import Control.Alt ((<|>))
 import Control.Plus (empty)
 import Data.Either (either)
 import Data.Exists (Exists, mkExists)
 import Data.Foldable (for_)
+import Data.Lens (_1, over)
 import Data.Maybe (Maybe(..), maybe)
 import Data.Profunctor (lcmap)
-import Data.Tuple (Tuple(..))
-import Data.Tuple.Nested ((/\))
+import Data.Tuple (Tuple(..), snd)
+import Data.Tuple.Nested (type (/\), (/\))
 import Data.Typelevel.Num (D2)
 import Deku.Attribute (cb, (:=))
 import Deku.Control (deku, text, text_)
@@ -21,15 +23,16 @@ import Effect (Effect)
 import Effect.Aff (Aff, launchAff_)
 import Effect.Class (liftEffect)
 import FRP.Behavior (sample_)
-import FRP.Event (subscribe)
+import FRP.Event (Event, keepLatest, mapAccum, sampleOn, subscribe)
 import FRP.Event.Phantom (PhantomEvent, proof0, toEvent)
-import Math (pi)
+import FRP.Event.Time (interval)
+import Math (pi, sin)
 import Type.Proxy (Proxy(..))
-import WAGS.Control (gain, gain', gain__, input, loopBuf, lowpass, sinOsc, speaker2, (:*))
+import WAGS.Control (gain, gain', gain__, highpass, input, loopBuf, lowpass, sinOsc, speaker2, (:*))
 import WAGS.Core (GainInput, Input, Subgraph(..))
 import WAGS.Example.Utils (RaiseCancellation, animationFrameEvent)
 import WAGS.Interpret (close, context, decodeAudioDataFromUri, effectfulAudioInterpret, makeFFIAudioSnapshot, writeHead)
-import WAGS.Parameter (WriteHead, at_, pureOn)
+import WAGS.Parameter (ACTime, ovnn, pureOn, uat_)
 import WAGS.Properties (frequency)
 import WAGS.Subgraph as Wsg
 import WAGS.WebAPI (AudioContext, BrowserAudioBuffer)
@@ -38,74 +41,77 @@ import Web.HTML.HTMLDocument (body)
 import Web.HTML.HTMLElement (toElement)
 import Web.HTML.Window (document)
 
+counter :: forall a. Event a → Event (Tuple a Int)
+counter event = mapAccum f event 0
+  where
+  f a b = Tuple (b + 1) (Tuple a b)
+
+counter_ :: forall a. Event a -> Event Int
+counter_ = map snd <<< counter
+
 scene
   :: forall proof payload
    . BrowserAudioBuffer
-  -> WriteHead (PhantomEvent proof)
+  -> PhantomEvent proof (ACTime /\ Int)
   -> GainInput D2 (toSubg :: Input) (toSubg :: Input) PhantomEvent proof payload
 scene loopy wh =
   let
-    tr = at_ wh (mul pi)
+    topE = map (over _1 (flip uat_ (mul pi))) wh
   in
     gain__ 0.0 empty
       ( gain' (Proxy :: _ "toSubg") 1.0 empty
           (loopBuf loopy pureOn :* [])
       ) :*
-      [ Wsg.subgraph (pure (0 /\ Wsg.InsertOrUpdate unit))
-          ( \({ toSubg } :: { toSubg :: Input }) -> Subgraph \_ _ ->
+      [ Wsg.subgraph
+          ( keepLatest $ map
+              ( \(tr' /\ ix) ->
+                  ( pure (ix /\ Wsg.InsertOrUpdate tr') <|> pure
+                      ((ix - 1) /\ Wsg.Remove)
+                  )
+              )
+              topE
+          )
+          ( \({ toSubg } :: { toSubg :: Input }) -> Subgraph \ix tr ->
               let
                 ooo
+                  | ix == 0 =
+                      gain 1.0 empty
+                        ( highpass 1100.0
+                            ( map
+                                ( frequency <<< ovnn
+                                    (\x -> 3100.0 + 1000.0 * sin (0.5 * x))
+                                )
+                                tr
+                            )
+                            (input toSubg) :*
+                            [ gain__ 0.03 empty (sinOsc 220.0 pureOn) ]
+                        )
+
                   | otherwise =
                       gain 1.0 empty
                         ( lowpass 1100.0
-                            (pure (frequency 1100.0))
+                            ( map
+                                ( frequency <<< ovnn
+                                    (\x -> 1100.0 + 1000.0 * sin (0.5 * x))
+                                )
+                                tr
+                            )
                             (input toSubg) :*
-                            [ gain__ 0.03 empty (sinOsc 220.0 empty) ]
+                            [ gain__ 0.03 empty
+                                ( sinOsc 820.0
+                                    ( pureOn <|>
+                                        ( map
+                                            ( frequency <<< ovnn
+                                                ( \x -> 1100.0 + 1000.0 * sin
+                                                    (0.5 * x)
+                                                )
+                                            )
+                                            tr
+                                        )
+                                    )
+                                )
+                            ]
                         )
-              -- | i == 1 = \e -> tumultuously
-              --           { output: Opt.gain 1.0
-              --               { bp: Opt.bandpass
-              --                   (ovnn (\x -> 2000.0 + 1500.0 * sin x) anum)
-              --                   toSubg
-              --               , osc: Opt.gain 0.03 (Opt.sawtoothOsc 330.0)
-              --               }
-              --           }
-              --   | i == 2 = \e -> tumultuously
-              --           { output: Opt.gain 1.0
-              --               { hs: Opt.gain 1.0
-              --                   { x0: Opt.highshelf
-              --                       ( ovnn (\x -> 2600.0 + 1000.0 * sin x)
-              --                           anum
-              --                       )
-              --                       toSubg
-              --                   , x1: Opt.delay 0.04
-              --                       (Opt.gain 0.3 { x0: Opt.ref })
-              --                   }
-              --               , osc: Opt.gain 0.03 (Opt.triangleOsc 550.0)
-              --               }
-              --           }
-              --   | i == 3 = \e -> tumultuously
-              --           { output: Opt.gain 1.0
-              --               { ls: Opt.lowshelf
-              --                   (ovnn (\x -> 2600.0 + 1000.0 * sin x) anum)
-              --                   toSubg
-              --               , osc: Opt.gain 0.03 (Opt.squareOsc 810.0)
-              --               }
-              --           }
-              --   | otherwise = \e -> tumultuously
-              --           { output: Opt.gain 1.0
-              --               { hp: Opt.highpass
-              --                   (ovnn (\x -> 2600.0 + 1000.0 * sin x) anum)
-              --                   toSubg
-              --               , osc: Opt.gain 0.03
-              --                   ( Opt.periodicOsc
-              --                       ( (0.1 +> 0.1 +> 0.02 +> V.empty) /\
-              --                           (0.05 +> 0.4 +> 0.1 +> V.empty)
-              --                       )
-              --                       1020.0
-              --                   )
-              --               }
-              --           }
               in
                 ooo
           )
@@ -143,7 +149,17 @@ subgraphExample loopy rc = mkExists $ SubgraphF \push -> lcmap
                             unsub <- subscribe
                               ( toEvent $ speaker2
                                   ( scene loopy
-                                      (proof0 (sample_ wh animationFrameEvent))
+                                      ( proof0
+                                          ( sampleOn
+                                              ( ( map (add 1) $ counter_
+                                                    (interval 3000)
+                                                ) <|> pure 0
+                                              )
+                                              ( map Tuple $ sample_ wh
+                                                  animationFrameEvent
+                                              )
+                                          )
+                                      )
                                   )
                                   effectfulAudioInterpret
                               )
