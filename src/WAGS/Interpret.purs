@@ -19,6 +19,7 @@ import Simple.JSON as JSON
 import Type.Row.Homogeneous (class Homogeneous)
 import Unsafe.Coerce (unsafeCoerce)
 import WAGS.Control (class ValidateOutputChannelCount)
+import WAGS.Core (AudioInterpret(..))
 import WAGS.Core as C
 import WAGS.Parameter (AudioParameter, WriteHead)
 import WAGS.WebAPI (BrowserAudioBuffer)
@@ -323,7 +324,9 @@ foreign import makeSubgraph_
   :: forall index env
    . String
   -> String
+  -> String
   -> ( index
+       -> String
        -> Effect
             { actualized ::
                 Event (FFIAudioSnapshot -> Effect Unit)
@@ -396,7 +399,8 @@ foreign import insertOrUpdateSubgraph_
 effectfulAudioInterpret
   :: C.AudioInterpret Event (FFIAudioSnapshot -> Effect Unit)
 effectfulAudioInterpret = C.AudioInterpret
-  { ids: map show $ behavior \f -> makeEvent \k -> do
+  { scope: "root"
+  , ids: map show $ behavior \f -> makeEvent \k -> do
       r <- R.random
       subscribe f \x -> k (x r)
   , destroyUnit: destroyUnit_
@@ -429,8 +433,8 @@ effectfulAudioInterpret = C.AudioInterpret
   , makeSpeaker: makeSpeaker_
   , makeSquareOsc: makeSquareOsc_
   , makeStereoPanner: makeStereoPanner_
-  , makeSubgraph: \{ id, parent, scenes } dom ->
-      flip (makeSubgraph_ id parent) dom \index ->
+  , makeSubgraph: \{ id, parent, scope, scenes } audio ->
+      flip (makeSubgraph_ id parent scope) audio \index newScope ->
         do
           evt <- create
           let event = evt.event
@@ -439,7 +443,12 @@ effectfulAudioInterpret = C.AudioInterpret
               let
                 C.Node elt = (let C.Subgraph sg = scenes in sg) index event
               in
-                elt parent effectfulAudioInterpret
+                elt id
+                  ( let
+                      AudioInterpret ai = effectfulAudioInterpret
+                    in
+                      AudioInterpret ai { scope = newScope }
+                  )
           pure { actualized, pusher: evt.push }
   , makeTriangleOsc: makeTriangleOsc_
   , makeTumult: \_ _ -> pure unit -- todo: makeTumult_

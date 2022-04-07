@@ -301,6 +301,7 @@ instance createAnalyser ::
                 , minDecibels: -100.0
                 , smoothingTimeConstant: 0.8
                 , parent: nothing
+                , scope: nothing
                 }
             )
             instructions
@@ -319,7 +320,9 @@ instance createAllpass ::
     o =
       WAG
         { instructions: insert
-            (I.iMakeAllpass { id, frequency, q, parent: nothing })
+            ( I.iMakeAllpass
+                { id, frequency, q, parent: nothing, scope: nothing }
+            )
             instructions
         }
 
@@ -406,6 +409,7 @@ instance createAudioWorkletNode ::
                         (mempty :: { | processorOptions })
                     }
                 , parent: nothing
+                , scope: nothing
                 }
             )
             instructions
@@ -429,6 +433,7 @@ instance createBandpass ::
                 , frequency
                 , q
                 , parent: nothing
+                , scope: nothing
                 }
             )
             instructions
@@ -455,6 +460,7 @@ instance createConstant ::
                 , onOff
                 , offset
                 , parent: nothing
+                , scope: nothing
                 }
             )
             instructions
@@ -476,7 +482,7 @@ instance createConvolver ::
     o =
       WAG
         { instructions: insert
-            (I.iMakeConvolver { id, buffer, parent: nothing })
+            (I.iMakeConvolver { id, buffer, parent: nothing, scope: nothing })
             instructions
         }
 
@@ -499,6 +505,7 @@ instance createDelay ::
                 { id
                 , delayTime
                 , parent: nothing
+                , scope: nothing
                 }
             )
             instructions
@@ -531,6 +538,7 @@ instance createDynamicsCompressor ::
                 , attack
                 , release
                 , parent: nothing
+                , scope: nothing
                 }
             )
             instructions
@@ -549,7 +557,8 @@ instance createGain ::
     id = reflectSymbol ptr
 
     o = WAG
-      { instructions: insert (I.iMakeGain { id, gain, parent: nothing })
+      { instructions: insert
+          (I.iMakeGain { id, gain, parent: nothing, scope: nothing })
           instructions
       }
 
@@ -571,6 +580,7 @@ instance createHighpass ::
               , frequency
               , q
               , parent: nothing
+              , scope: nothing
               }
           )
           instructions
@@ -596,6 +606,7 @@ instance createHighshelf ::
               , frequency
               , gain
               , parent: nothing
+              , scope: nothing
               }
           )
           instructions
@@ -628,6 +639,7 @@ instance createLoopBuf ::
               , loopEnd
               , duration
               , parent: nothing
+              , scope: nothing
               }
           )
           instructions
@@ -654,6 +666,7 @@ instance createLowpass ::
                 , frequency
                 , q
                 , parent: nothing
+                , scope: nothing
                 }
             )
             instructions
@@ -679,6 +692,7 @@ instance createLowshelf ::
               , frequency
               , gain
               , parent: nothing
+              , scope: nothing
               }
           )
           instructions
@@ -699,7 +713,7 @@ instance createMediaElement ::
 
     o = WAG
       { instructions: insert
-          (I.iMakeMediaElement { id, element, parent: nothing })
+          (I.iMakeMediaElement { id, element, parent: nothing, scope: nothing })
           instructions
       }
 
@@ -714,7 +728,9 @@ instance createMicrophone ::
 
     o = WAG
       { instructions: insert
-          (I.iMakeMicrophone { id: "microphone", microphone, parent: nothing })
+          ( I.iMakeMicrophone
+              { id: "microphone", microphone, parent: nothing, scope: nothing }
+          )
           instructions
 
       }
@@ -738,6 +754,7 @@ instance createNotch ::
               , frequency
               , q
               , parent: nothing
+              , scope: nothing
               }
           )
           instructions
@@ -757,7 +774,9 @@ instance createPeaking ::
 
     o = WAG
       { instructions: insert
-          (I.iMakePeaking { id, frequency, gain, q, parent: nothing })
+          ( I.iMakePeaking
+              { id, frequency, gain, q, parent: nothing, scope: nothing }
+          )
           instructions
       }
 
@@ -777,7 +796,13 @@ instance createPeriodicOsc ::
     o = WAG
       { instructions: insert
           ( I.iMakePeriodicOsc
-              { id, spec: _wave wave, onOff, frequency, parent: nothing }
+              { id
+              , spec: _wave wave
+              , onOff
+              , frequency
+              , parent: nothing
+              , scope: nothing
+              }
           )
           instructions
 
@@ -811,6 +836,7 @@ instance createPeriodicOsc2 ::
               , onOff: onOff
               , frequency
               , parent: nothing
+              , scope: nothing
               }
           )
           instructions
@@ -840,6 +866,7 @@ instance createPlayBuf ::
               , playbackRate
               , duration
               , parent: nothing
+              , scope: nothing
               }
           )
           instructions
@@ -864,6 +891,7 @@ instance createRecorder ::
               { id
               , cb
               , parent: nothing
+              , scope: nothing
               }
           )
           instructions
@@ -884,7 +912,9 @@ instance createSawtoothOsc ::
 
     o = WAG
       { instructions: insert
-          (I.iMakeSawtoothOsc { id, onOff, frequency, parent: nothing })
+          ( I.iMakeSawtoothOsc
+              { id, onOff, frequency, parent: nothing, scope: nothing }
+          )
           instructions
       }
 
@@ -902,7 +932,9 @@ instance createSinOsc ::
 
     o = WAG
       { instructions: insert
-          (I.iMakeSinOsc { id, onOff, frequency, parent: nothing })
+          ( I.iMakeSinOsc
+              { id, onOff, frequency, parent: nothing, scope: nothing }
+          )
           instructions
 
       }
@@ -921,7 +953,9 @@ instance createSquareOsc ::
 
     o = WAG
       { instructions: insert
-          (I.iMakeSquareOsc { id, onOff, frequency, parent: nothing })
+          ( I.iMakeSquareOsc
+              { id, onOff, frequency, parent: nothing, scope: nothing }
+          )
           instructions
 
       }
@@ -939,7 +973,8 @@ instance createStereoPanner ::
     id = reflectSymbol ptr
 
     o = WAG
-      { instructions: insert (I.iMakeStereoPanner { id, pan, parent: nothing })
+      { instructions: insert
+          (I.iMakeStereoPanner { id, pan, parent: nothing, scope: nothing })
           instructions
       }
 
@@ -958,7 +993,7 @@ instance createTriangleOsc ::
     o = WAG
       { instructions: insert
           ( I.iMakeTriangleOsc
-              { id, onOff, frequency, parent: nothing }
+              { id, onOff, frequency, parent: nothing, scope: nothing }
           )
           instructions
       }
@@ -983,7 +1018,12 @@ instance createWaveShaper ::
       WAG
         { instructions: insert
             ( I.iMakeWaveShaper
-                { id, curve: floatArray, oversample, parent: nothing }
+                { id
+                , curve: floatArray
+                , oversample
+                , parent: nothing
+                , scope: nothing
+                }
             )
             instructions
 
