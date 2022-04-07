@@ -25,7 +25,7 @@ import Safe.Coerce (coerce)
 import Simple.JSON as JSON
 import Type.Proxy (Proxy(..))
 import Type.Row.Homogeneous (class Homogeneous)
-import WAGS.Common (class InitialGain, class InitialSinOsc, toInitializeGain, toInitializeSinOsc)
+import WAGS.Common (class InitialGain, class InitialLoopBuf, class InitialSinOsc, toInitializeGain, toInitialLoopBuf, toInitializeSinOsc)
 import WAGS.Core (ChannelCountMode(..), ChannelInterpretation(..), Po2(..))
 import WAGS.Core as C
 import WAGS.Parameter (AudioParameter, InitialAudioParameter)
@@ -101,7 +101,11 @@ __allpass mId (C.InitializeAllpass i) atts elt = C.Node go
       ( (sample_ ids (pure unit)) <#> __mId mId \me ->
           ( pure
               ( makeAllpass
-                  { id: me, parent: just parent, frequency: i.frequency, q: i.q }
+                  { id: me
+                  , parent: just parent
+                  , frequency: i.frequency
+                  , q: i.q
+                  }
               )
           )
             <|> map
@@ -434,7 +438,6 @@ __bandpass mId (C.InitializeBandpass i) atts elt = C.Node go
             <|> ((\y -> let C.Node x = y in x) elt) me di
       )
 
-
 bandpass
   :: forall outputChannels produced consumed event payload
    . IsEvent event
@@ -656,6 +659,7 @@ __dynamicsCompressor mId (C.InitializeDynamicsCompressor i) atts elt = C.Node go
               atts
             <|> ((\y -> let C.Node x = y in x) elt) me di
       )
+
 dynamicsCompressor
   :: forall outputChannels produced consumed event payload
    . IsEvent event
@@ -701,7 +705,8 @@ gain_
 gain_ i atts h t = gain i atts (C.GainInput (NEA.fromNonEmpty (h :| t)))
 
 __gain
-  :: forall i outputChannels producedI consumedI producedO consumedO event payload
+  :: forall i outputChannels producedI consumedI producedO consumedO event
+       payload
    . IsEvent event
   => InitialGain i
   => Maybe String
@@ -820,7 +825,11 @@ __highshelf mId (C.InitializeHighshelf i) atts elt = C.Node go
       ( (sample_ ids (pure unit)) <#> __mId mId \me ->
           pure
             ( makeHighshelf
-                { id: me, parent: just parent, frequency: i.frequency, gain: i.gain }
+                { id: me
+                , parent: just parent
+                , frequency: i.frequency
+                , gain: i.gain
+                }
             )
             <|> map
               ( \(C.Highshelf e) -> match
@@ -938,7 +947,11 @@ __lowshelf mId (C.InitializeLowshelf i) atts elt = C.Node go
       ( (sample_ ids (pure unit)) <#> __mId mId \me ->
           pure
             ( makeLowshelf
-                { id: me, parent: just parent, frequency: i.frequency, gain: i.gain }
+                { id: me
+                , parent: just parent
+                , frequency: i.frequency
+                , gain: i.gain
+                }
             )
             <|> map
               ( \(C.Lowshelf e) -> match
@@ -974,64 +987,6 @@ lowshelf'
 lowshelf' px = __lowshelf (just (reflectSymbol px))
 
 -- loopBuf
-
-data LoopBufOptions = LoopBufOptions
-
-instance
-  ConvertOption LoopBufOptions
-    "playbackRate"
-    InitialAudioParameter
-    InitialAudioParameter where
-  convertOption _ _ = identity
-
-instance ConvertOption LoopBufOptions "duration" Number (Maybe Number) where
-  convertOption _ _ = just
-
-instance ConvertOption LoopBufOptions "loopStart" Number Number where
-  convertOption _ _ = identity
-
-instance ConvertOption LoopBufOptions "loopEnd" Number Number where
-  convertOption _ _ = identity
-
-instance
-  ConvertOption LoopBufOptions "buffer" BrowserAudioBuffer BrowserAudioBuffer where
-  convertOption _ _ = identity
-
-type LoopBufOptional =
-  ( loopStart :: Number
-  , loopEnd :: Number
-  , playbackRate :: InitialAudioParameter
-  , duration :: Maybe Number
-  )
-
-type LoopBufAll =
-  ( buffer :: BrowserAudioBuffer
-  | LoopBufOptional
-  )
-
-defaultLoopBuf :: { | LoopBufOptional }
-defaultLoopBuf =
-  { loopStart: 0.0
-  , loopEnd: 0.0
-  , playbackRate: 1.0
-  , duration: nothing
-  }
-
-class InitialLoopBuf i where
-  toInitialLoopBuf :: i -> C.InitializeLoopBuf
-
-instance InitialLoopBuf C.InitializeLoopBuf where
-  toInitialLoopBuf = identity
-
-instance InitialLoopBuf BrowserAudioBuffer where
-  toInitialLoopBuf = toInitialLoopBuf <<< { buffer: _ }
-
-instance
-  ConvertOptionsWithDefaults LoopBufOptions { | LoopBufOptional } { | provided }
-    { | LoopBufAll } =>
-  InitialLoopBuf { | provided } where
-  toInitialLoopBuf provided = C.InitializeLoopBuf
-    (convertOptionsWithDefaults LoopBufOptions defaultLoopBuf provided)
 
 __loopBuf
   :: forall i outputChannels produced consumed event payload
@@ -1126,7 +1081,7 @@ __mediaElement mId (C.InitializeMediaElement i) = C.Node go
       )
 
 mediaElement
-  :: forall outputChannels produced consumed event payload
+  :: forall outputChannels event payload
    . IsEvent event
   => C.InitializeMediaElement
   -> C.Node outputChannels () () event payload
@@ -1165,7 +1120,7 @@ __microphone mId (C.InitializeMicrophone i) = C.Node go
       )
 
 microphone
-  :: forall outputChannels produced consumed event payload
+  :: forall outputChannels event payload
    . IsEvent event
   => C.InitializeMicrophone
   -> C.Node outputChannels () () event payload
@@ -1332,7 +1287,7 @@ __periodicOsc mId (C.InitializePeriodicOsc i) atts = C.Node go
       )
 
 periodicOsc
-  :: forall outputChannels produced consumed event payload
+  :: forall outputChannels event payload
    . IsEvent event
   => C.InitializePeriodicOsc
   -> event C.PeriodicOsc
@@ -1744,7 +1699,7 @@ pan' px = __pan (just (reflectSymbol px))
 -- triangleOsc
 
 __triangleOsc
-  :: forall produced consumed outputChannels produced consumed event payload
+  :: forall outputChannels produced consumed event payload
    . IsEvent event
   => Maybe String
   -> C.InitializeTriangleOsc
@@ -1774,7 +1729,7 @@ __triangleOsc mId (C.InitializeTriangleOsc i) atts = C.Node go
       )
 
 triangleOsc
-  :: forall outputChannels produced consumed event payload
+  :: forall outputChannels event payload
    . IsEvent event
   => C.InitializeTriangleOsc
   -> event C.TriangleOsc
@@ -1795,14 +1750,15 @@ triangleOsc' px = __triangleOsc (just (reflectSymbol px))
 -- waveshaper
 
 __waveshaper
-  :: forall produced consumed outputChannels produced consumed event payload
+  :: forall outputChannels producedI consumedI producedO consumedO event payload
    . IsEvent event
   => Maybe String
   -> C.InitializeWaveshaper
-  -> C.Node outputChannels produced consumed event payload
-__waveshaper mId (C.InitializeWaveshaper i) = C.Node go
+  -> C.Node outputChannels producedI consumedI event payload
+  -> C.Node outputChannels producedO consumedO event payload
+__waveshaper mId (C.InitializeWaveshaper i) elt = C.Node go
   where
-  go parent (C.AudioInterpret { ids, makeWaveShaper }) =
+  go parent di@(C.AudioInterpret { ids, makeWaveShaper }) =
     keepLatest
       ( (sample_ ids (pure unit)) <#> __mId mId \me ->
           pure
@@ -1812,24 +1768,26 @@ __waveshaper mId (C.InitializeWaveshaper i) = C.Node go
                 , curve: i.curve
                 , oversample: i.oversample
                 }
-            )
+            ) <|> ((\y -> let C.Node x = y in x) elt) me di
       )
 
 waveshaper
   :: forall outputChannels produced consumed event payload
    . IsEvent event
   => C.InitializeWaveshaper
-  -> C.Node outputChannels () () event payload
+  -> C.Node outputChannels produced consumed event payload
+  -> C.Node outputChannels produced consumed event payload
 waveshaper = __waveshaper nothing
 
 waveshaper'
-  :: forall proxy sym outputChannels produced event payload
+  :: forall proxy sym outputChannels produced' produced consumed event payload
    . IsEvent event
   => IsSymbol sym
-  => Cons sym C.Input () produced
+  => Cons sym C.Input produced' produced
   => proxy sym
   -> C.InitializeWaveshaper
-  -> C.Node outputChannels produced () event payload
+  -> C.Node outputChannels produced' consumed event payload
+  -> C.Node outputChannels produced consumed event payload
 waveshaper' px = __waveshaper (just (reflectSymbol px))
 
 -- todo: tumult
