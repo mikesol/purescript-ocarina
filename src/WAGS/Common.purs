@@ -96,7 +96,8 @@ instance InitialBandpass InitialAudioParameter where
   toInitialBandpass = toInitialBandpass <<< { frequency: _ }
 
 instance
-  ConvertOptionsWithDefaults BandpassOptions { | BandpassOptional } { | provided }
+  ConvertOptionsWithDefaults BandpassOptions { | BandpassOptional }
+    { | provided }
     { | BandpassAll } =>
   InitialBandpass { | provided } where
   toInitialBandpass provided = Core.InitializeBandpass
@@ -153,7 +154,8 @@ instance InitialHighpass InitialAudioParameter where
   toInitialHighpass = toInitialHighpass <<< { frequency: _ }
 
 instance
-  ConvertOptionsWithDefaults HighpassOptions { | HighpassOptional } { | provided }
+  ConvertOptionsWithDefaults HighpassOptions { | HighpassOptional }
+    { | provided }
     { | HighpassAll } =>
   InitialHighpass { | provided } where
   toInitialHighpass provided = Core.InitializeHighpass
@@ -200,7 +202,8 @@ instance InitialHighshelf InitialAudioParameter where
   toInitialHighshelf = toInitialHighshelf <<< { frequency: _ }
 
 instance
-  ConvertOptionsWithDefaults HighshelfOptions { | HighshelfOptional } { | provided }
+  ConvertOptionsWithDefaults HighshelfOptions { | HighshelfOptional }
+    { | provided }
     { | HighshelfAll } =>
   InitialHighshelf { | provided } where
   toInitialHighshelf provided = Core.InitializeHighshelf
@@ -352,7 +355,8 @@ instance InitialLowshelf InitialAudioParameter where
   toInitialLowshelf = toInitialLowshelf <<< { frequency: _ }
 
 instance
-  ConvertOptionsWithDefaults LowshelfOptions { | LowshelfOptional } { | provided }
+  ConvertOptionsWithDefaults LowshelfOptions { | LowshelfOptional }
+    { | provided }
     { | LowshelfAll } =>
   InitialLowshelf { | provided } where
   toInitialLowshelf provided = Core.InitializeLowshelf

@@ -31,8 +31,7 @@ import Effect (Effect)
 import Effect.Aff (Aff, launchAff_)
 import Effect.Class (liftEffect)
 import FRP.Behavior (sample_)
-import FRP.Event (keepLatest, mapAccum, subscribe)
-import FRP.Event.Phantom (PhantomEvent, proof0, toEvent)
+import FRP.Event (Event, keepLatest, mapAccum, subscribe)
 import FRP.Event.Time (interval)
 import WAGS.Control (gain__, playBuf, singleton, speaker2)
 import WAGS.Core (GainInput, Subgraph(..))
@@ -95,7 +94,7 @@ accLoop time { cf, prevs } =
 sg
   :: KickSnare
   -> forall payload
-   . Subgraph Int (Number /\ ACTime) D2 () () PhantomEvent payload
+   . Subgraph Int (Number /\ ACTime) D2 () () Event payload
 sg ks = Subgraph \i n -> gain__ 1.0 empty
   ( playBuf (if i `mod` 2 == 0 then ks.kick else ks.snare)
       ( n # map \(t /\ { lookAhead }) -> onOff $ AudioOnOff
@@ -117,10 +116,10 @@ sgActionMaker (ac /\ { head, no }) =
       (map (\i -> pure $ i /\ Sg.Remove) $ values no)
 
 scene
-  :: forall proof payload
+  :: forall payload
    . KickSnare
-  -> WriteHead (PhantomEvent proof)
-  -> GainInput D2 () () PhantomEvent proof payload
+  -> WriteHead Event
+  -> GainInput D2 () () Event payload
 scene ks wh =
   let
     mapped = mapAccum
@@ -153,7 +152,7 @@ multiBuf
   :: forall payload
    . KickSnare
   -> RaiseCancellation
-  -> Exists (SubgraphF Unit PhantomEvent payload)
+  -> Exists (SubgraphF Unit Event payload)
 multiBuf ks rc = mkExists $ SubgraphF \push -> lcmap
   (map (either (const Nothing) identity))
   \event ->
@@ -169,9 +168,9 @@ multiBuf ks rc = mkExists $ SubgraphF \push -> lcmap
                             ffi2 <- makeFFIAudioSnapshot ctx
                             let wh = writeHead 0.04 ctx
                             unsub <- subscribe
-                              ( toEvent $ speaker2
+                              ( speaker2
                                   ( scene ks
-                                      ( proof0 $ sample_ wh
+                                      ( sample_ wh
                                           ( pure unit <|>
                                               (interval 4900 $> unit)
                                           )
@@ -212,5 +211,5 @@ main = launchAff_ do
               (const $ multiBuf init (const $ pure unit))
           )
           effectfulDOMInterpret
-      _ <- subscribe (toEvent evt) \i -> i ffi
+      _ <- subscribe evt \i -> i ffi
       pure unit

@@ -98,24 +98,22 @@ instance showAudioWorkletNodeOptions_ ::
 derive instance newtypeInput :: Newtype Input _
 newtype Input = Input String
 
-newtype Node outputChannels produced consumed event proof payload = Node
-  (String -> AudioInterpret event proof payload -> event proof payload)
+newtype Node outputChannels produced consumed event payload = Node
+  (String -> AudioInterpret event payload -> event payload)
 
-newtype GainInput :: forall k. Type -> Row Type -> Row Type -> (k -> Type -> Type) -> k -> Type -> Type
-newtype GainInput outputChannels produced consumed event proof payload = GainInput
-  (NonEmptyArray (Node outputChannels produced consumed event proof payload))
+newtype GainInput outputChannels produced consumed event payload = GainInput
+  (NonEmptyArray (Node outputChannels produced consumed event payload))
 
-type SubgraphSig :: forall k. Type -> Type -> Type -> Row Type -> Row Type -> (k -> Type -> Type) -> Type -> Type
 type SubgraphSig index env outputChannels sgProduced sgConsumed event payload =
-  forall proof. index
-  -> event proof env
-  -> Node outputChannels sgProduced sgConsumed event proof payload
+  index
+  -> event env
+  -> Node outputChannels sgProduced sgConsumed event payload
 
 newtype Subgraph index env outputChannels sgProduced sgConsumed event payload =
   Subgraph
-    ( forall proof. index
-      -> event proof env
-      -> Node outputChannels sgProduced sgConsumed event proof payload
+    ( index
+      -> event env
+      -> Node outputChannels sgProduced sgConsumed event payload
     )
 
 newtype RealImg = RealImg { real :: Array Number, img :: Array Number }
@@ -897,9 +895,9 @@ type SetTumultInternal =
   , instructions :: Set Instruction
   }
 
-newtype AudioInterpret event proof payload = AudioInterpret
+newtype AudioInterpret event payload = AudioInterpret
   { scope :: String
-  , ids :: ABehavior (event proof) String
+  , ids :: ABehavior (event) String
   , destroyUnit :: DestroyUnit -> payload
   , disconnectXFromY :: DisconnectXFromY -> payload
   , connectXToY :: ConnectXToY -> payload

@@ -46,17 +46,17 @@ instance inputsCons ::
 
 __subgraph
   :: forall index env outputChannels produced consumed consumedRL sgProduced
-       sgConsumed event proof payload
-   . IsEvent (event proof)
+       sgConsumed event payload
+   . IsEvent event
   => Hashable index
   => RowToList consumed consumedRL
   => MakeInputs consumedRL consumed
   => Maybe String
-  -> event proof (index /\ SubgraphAction env)
+  -> event (index /\ SubgraphAction env)
   -> ( { | consumed }
        -> Subgraph index env outputChannels sgProduced sgConsumed event payload
      )
-  -> C.Node outputChannels produced consumed event proof payload
+  -> C.Node outputChannels produced consumed event payload
 __subgraph mId mods elt = C.Node go
   where
   go
@@ -84,34 +84,34 @@ __subgraph mId mods elt = C.Node go
 
 subgraph
   :: forall index env outputChannels consumed consumedRL sgProduced
-       sgConsumed event proof payload
-   . IsEvent (event proof)
+       sgConsumed event payload
+   . IsEvent event
   => Hashable index
   => RowToList consumed consumedRL
   => MakeInputs consumedRL consumed
-  => event proof (index /\ SubgraphAction env)
+  => event (index /\ SubgraphAction env)
   -> ( { | consumed }
        -> Subgraph index env outputChannels sgProduced sgConsumed event payload
      )
-  -> C.Node outputChannels () consumed event proof payload
+  -> C.Node outputChannels () consumed event payload
 subgraph = __subgraph nothing
 
 subgraph'
   :: forall proxy sym index env outputChannels produced consumed consumedRL
        sgProduced
-       sgConsumed event proof payload
-   . IsEvent (event proof)
+       sgConsumed event payload
+   . IsEvent event
   => Hashable index
   => RowToList consumed consumedRL
   => MakeInputs consumedRL consumed
   => IsSymbol sym
   => Row.Cons sym C.Input () produced
   => proxy sym
-  -> event proof (index /\ SubgraphAction env)
+  -> event (index /\ SubgraphAction env)
   -> ( { | consumed }
        -> Subgraph index env outputChannels sgProduced sgConsumed event payload
      )
-  -> C.Node outputChannels () consumed event proof payload
+  -> C.Node outputChannels () consumed event payload
 subgraph' px = __subgraph (just (reflectSymbol px))
 
 infixr 6 subgraph as @@

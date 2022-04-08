@@ -211,10 +211,11 @@ uat_'
   :: ACTime
   -> (Number -> { n :: Number, o :: Number })
   -> AudioNumeric
-uat_' { concreteTime, abstractTime } f =  let
-      { n, o } = f abstractTime
-    in
-      AudioNumeric { t: _linear, o: o + concreteTime, n }
+uat_' { concreteTime, abstractTime } f =
+  let
+    { n, o } = f abstractTime
+  in
+    AudioNumeric { t: _linear, o: o + concreteTime, n }
 
 ovnn :: (Number -> Number) -> AudioNumeric -> AudioNumeric
 ovnn = over (unto AudioNumeric <<< prop (Proxy :: Proxy "n"))

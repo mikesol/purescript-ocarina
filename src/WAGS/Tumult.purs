@@ -30,13 +30,13 @@ import WAGS.Tumult.Tumult.Reconciliation (reconcileTumult)
 -- tumult
 
 tumult
-  :: forall outputChannels terminus inputs inputsRL event proof payload
-   . IsEvent (event proof)
+  :: forall outputChannels terminus inputs inputsRL event payload
+   . IsEvent event
   => IsSymbol terminus
   => RowToList inputs inputsRL
   => MakeInputs inputsRL inputs
-  => event proof ({ | inputs } -> Tumultuous terminus inputs)
-  -> C.Node outputChannels () inputs event proof payload
+  => event ({ | inputs } -> Tumultuous terminus inputs)
+  -> C.Node outputChannels () inputs event payload
 tumult atts' = C.Node go
   where
   asNumber (AudioParameter v) = match

@@ -24,7 +24,6 @@ import Effect.Aff (Aff, launchAff_)
 import Effect.Class (liftEffect)
 import FRP.Behavior (sample_)
 import FRP.Event (Event, keepLatest, mapAccum, sampleOn, subscribe)
-import FRP.Event.Phantom (PhantomEvent, proof0, toEvent)
 import FRP.Event.Time (interval)
 import Math (pi, sin)
 import Type.Proxy (Proxy(..))
@@ -50,10 +49,10 @@ counter_ :: forall a. Event a -> Event Int
 counter_ = map snd <<< counter
 
 scene
-  :: forall proof payload
+  :: forall payload
    . Init
-  -> PhantomEvent proof (ACTime /\ Int)
-  -> GainInput D2 (toSubg :: Input) (toSubg :: Input) PhantomEvent proof payload
+  -> Event (ACTime /\ Int)
+  -> GainInput D2 (toSubg :: Input) (toSubg :: Input) Event payload
 scene { loopy, conny } wh =
   let
     topE = map (over _1 (flip uat_ (mul pi))) wh
@@ -135,7 +134,7 @@ subgraphExample
   :: forall payload
    . Init
   -> RaiseCancellation
-  -> Exists (SubgraphF Unit PhantomEvent payload)
+  -> Exists (SubgraphF Unit Event payload)
 subgraphExample loopy rc = mkExists $ SubgraphF \push -> lcmap
   (map (either (const Nothing) identity))
   \event ->
@@ -151,18 +150,17 @@ subgraphExample loopy rc = mkExists $ SubgraphF \push -> lcmap
                             ffi2 <- makeFFIAudioSnapshot ctx
                             let wh = writeHead 0.04 ctx
                             unsub <- subscribe
-                              ( toEvent $ speaker2
+                              ( speaker2
                                   ( scene loopy
-                                      ( proof0
-                                          ( sampleOn
-                                              ( ( map (add 1) $ counter_
-                                                    (interval 3000)
-                                                ) <|> pure 0
-                                              )
-                                              ( map Tuple $ sample_ wh
-                                                  animationFrameEvent
-                                              )
-                                          )
+                                      ( ( sampleOn
+                                            ( ( map (add 1) $ counter_
+                                                  (interval 3000)
+                                              ) <|> pure 0
+                                            )
+                                            ( map Tuple $ sample_ wh
+                                                animationFrameEvent
+                                            )
+                                        )
                                       )
                                   )
                                   effectfulAudioInterpret
@@ -200,5 +198,5 @@ main = launchAff_ do
               (const $ subgraphExample init (const $ pure unit))
           )
           effectfulDOMInterpret
-      _ <- subscribe (toEvent evt) \i -> i ffi
+      _ <- subscribe evt \i -> i ffi
       pure unit

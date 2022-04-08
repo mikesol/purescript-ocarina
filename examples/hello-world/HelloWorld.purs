@@ -21,8 +21,7 @@ import Effect (Effect)
 import Effect.Aff (Aff, launchAff_)
 import Effect.Class (liftEffect)
 import FRP.Behavior (sample_)
-import FRP.Event (class IsEvent, subscribe)
-import FRP.Event.Phantom (PhantomEvent, Proof0, proof0, toEvent)
+import FRP.Event (class IsEvent, Event, subscribe)
 import Math (pi, sin)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (gain__, sinOsc, speaker2, (:*))
@@ -40,9 +39,9 @@ import Web.HTML.HTMLElement (toElement)
 import Web.HTML.Window (document)
 
 scene
-  :: forall proof payload
-   . WriteHead (PhantomEvent proof)
-  -> GainInput D2 () () PhantomEvent proof payload
+  :: forall payload
+   . WriteHead (Event)
+  -> GainInput D2 () () Event payload
 scene wh =
   let
     tr = at_ wh (mul pi)
@@ -57,8 +56,8 @@ scene wh =
 
 scene'
   :: forall payload
-   . WriteHead (PhantomEvent Proof0)
-  -> InitialGraphBuilder PhantomEvent Proof0 payload _ Unit
+   . WriteHead (Event)
+  -> InitialGraphBuilder Event payload _ Unit
 scene' wh = I.do
   speaker <- I.speaker (Proxy :: Proxy "speaker")
   gain0 <- I.gain (Proxy :: Proxy "gain0") 0.1 empty
@@ -96,7 +95,7 @@ helloWorld
   :: forall payload
    . Unit
   -> RaiseCancellation
-  -> Exists (SubgraphF Unit PhantomEvent payload)
+  -> Exists (SubgraphF Unit Event payload)
 helloWorld _ rc = mkExists $ SubgraphF \p -> lcmap
   (map (either (const Nothing) identity))
   \e ->
@@ -111,7 +110,7 @@ helloWorld _ rc = mkExists $ SubgraphF \p -> lcmap
                           ffi2 <- makeFFIAudioSnapshot ctx
                           let wh = writeHead 0.04 ctx
                           unsub <- subscribe
-                            (toEvent $ audioEvent (proof0 $ sample_ wh animationFrameEvent))
+                            (audioEvent (sample_ wh animationFrameEvent))
                             ((#) ffi2)
                           rc $ Just { unsub, ctx }
                           push $ Just { unsub, ctx }
@@ -152,5 +151,5 @@ main = launchAff_ do
               (const $ helloWorld init (const $ pure unit))
           )
           effectfulDOMInterpret
-      _ <- subscribe (toEvent evt) \i -> i ffi
+      _ <- subscribe (evt) \i -> i ffi
       pure unit

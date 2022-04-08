@@ -13,7 +13,6 @@ import Data.Newtype (unwrap)
 import Data.Variant (match)
 import Data.Variant.Maybe (just, nothing)
 import FRP.Event.Class (class IsEvent)
-import FRP.Event.Phantom (Proof0)
 import Prim.Boolean (True, False)
 import Prim.Row as Row
 import Prim.TypeError (class Fail, Beside, Text)
@@ -67,11 +66,11 @@ instance createNodeDefault ::
 -- | ```
 speaker
   :: forall e p i o id
-   . IsEvent (e Proof0)
+   . IsEvent e
   => IsSymbol id
   => CreateNode i id True o
   => Proxy id
-  -> GraphBuilder e Proof0 p i o (T.GraphUnit id T.Speaker)
+  -> GraphBuilder e p i o (T.GraphUnit id T.Speaker)
 speaker _ = GraphBuilder go
   where
   go (Core.AudioInterpret { makeSpeaker }) =
@@ -85,15 +84,15 @@ speaker _ = GraphBuilder go
 -- | gain <- Create.gain (Proxy :: _ "gain") 1.0 empty
 -- | ```
 gain
-  :: forall e x p i o id initialGain
-   . IsEvent (e x)
+  :: forall e p i o id initialGain
+   . IsEvent e
   => IsSymbol id
   => Common.InitialGain initialGain
   => CreateNode i id False o
   => Proxy id
   -> initialGain
-  -> e x Core.Gain
-  -> GraphBuilder e x p i o (T.GraphUnit id T.Gain)
+  -> e Core.Gain
+  -> GraphBuilder e p i o (T.GraphUnit id T.Gain)
 gain _ initialGain attributes = GraphBuilder go
   where
   initializeGain = unwrap $ Common.toInitializeGain initialGain
@@ -122,15 +121,15 @@ gain _ initialGain attributes = GraphBuilder go
 -- | sinOsc <- Create.sinOsc (Proxy :: _ "sinOsc") 440.0 pureOn
 -- | ```
 sinOsc
-  :: forall e x p i o id initialSinOsc
-   . IsEvent (e x)
+  :: forall e p i o id initialSinOsc
+   . IsEvent e
   => IsSymbol id
   => Common.InitialSinOsc initialSinOsc
   => CreateNode i id False o
   => Proxy id
   -> initialSinOsc
-  -> e x Core.SinOsc
-  -> GraphBuilder e x p i o (T.GraphUnit id T.SinOsc)
+  -> e Core.SinOsc
+  -> GraphBuilder e p i o (T.GraphUnit id T.SinOsc)
 sinOsc _ initialSinOsc attributes = GraphBuilder go
   where
   { frequency } = unwrap $ Common.toInitializeSinOsc initialSinOsc
@@ -155,15 +154,15 @@ sinOsc _ initialSinOsc attributes = GraphBuilder go
 -- | playBuf <- Create.playBuf (Proxy :: _ "playBuf") audioBuffer pureOn
 -- | ```
 playBuf
-  :: forall e x p i o id initialPlayBuf
-   . IsEvent (e x)
+  :: forall e p i o id initialPlayBuf
+   . IsEvent e
   => IsSymbol id
   => Common.InitialPlayBuf initialPlayBuf
   => CreateNode i id False o
   => Proxy id
   -> initialPlayBuf
-  -> e x Core.PlayBuf
-  -> GraphBuilder e x p i o (T.GraphUnit id T.PlayBuf)
+  -> e Core.PlayBuf
+  -> GraphBuilder e p i o (T.GraphUnit id T.PlayBuf)
 playBuf _ initialPlayBuf attributes = GraphBuilder go
   where
   { buffer, playbackRate, bufferOffset, duration } = unwrap $

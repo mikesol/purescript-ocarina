@@ -14,8 +14,7 @@ import Effect (Effect)
 import Effect.Aff (Aff)
 import Effect.Random as R
 import FRP.Behavior (Behavior, behavior)
-import FRP.Event (create, makeEvent, subscribe)
-import FRP.Event.Phantom (PhantomEvent, Proof0, proof0, toEvent, unsafePhantom)
+import FRP.Event (Event, create, makeEvent, subscribe)
 import Simple.JSON as JSON
 import Type.Row.Homogeneous (class Homogeneous)
 import Unsafe.Coerce (unsafeCoerce)
@@ -322,7 +321,7 @@ foreign import makeStereoPanner_
   :: C.MakeStereoPanner -> FFIAudioSnapshot -> Effect Unit
 
 foreign import makeSubgraph_
-  :: forall index env proof
+  :: forall index env
    . String
   -> String
   -> String
@@ -330,7 +329,7 @@ foreign import makeSubgraph_
        -> String
        -> Effect
             { actualized ::
-                PhantomEvent proof (FFIAudioSnapshot -> Effect Unit)
+                Event (FFIAudioSnapshot -> Effect Unit)
             , pusher :: env -> Effect Unit
             }
      )
@@ -398,12 +397,12 @@ foreign import insertOrUpdateSubgraph_
   -> Effect Unit
 
 effectfulAudioInterpret
-  :: C.AudioInterpret PhantomEvent Proof0 (FFIAudioSnapshot -> Effect Unit)
+  :: C.AudioInterpret Event (FFIAudioSnapshot -> Effect Unit)
 effectfulAudioInterpret = C.AudioInterpret
   { scope: "root"
-  , ids: map show $ behavior \f -> proof0 $ makeEvent \k -> do
+  , ids: map show $ behavior \f -> makeEvent \k -> do
       r <- R.random
-      subscribe (toEvent f) \x -> k (x r)
+      subscribe f \x -> k (x r)
   , destroyUnit: destroyUnit_
   , disconnectXFromY: disconnectXFromY_
   , connectXToY: connectXToY_
@@ -442,7 +441,7 @@ effectfulAudioInterpret = C.AudioInterpret
           let
             actualized =
               let
-                C.Node elt = (let C.Subgraph sg = scenes in sg) index (unsafePhantom event)
+                C.Node elt = (let C.Subgraph sg = scenes in sg) index event
               in
                 elt id
                   ( let

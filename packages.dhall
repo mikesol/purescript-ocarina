@@ -133,7 +133,7 @@ let additions =
   , "web-dom"
   , "web-events"
   ], repo = "https://github.com/mikesol/purescript-deku.git"
-        , version = "v0.2.0"
+        , version = "v0.2.1"
       }, phantom-event =
         { dependencies =
           [ "event"
