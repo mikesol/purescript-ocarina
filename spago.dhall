@@ -32,7 +32,6 @@
   , "safe-coerce"
   , "simple-json"
   , "sized-vectors"
-  , "st"
   , "strings"
   , "tuples"
   , "typelevel"

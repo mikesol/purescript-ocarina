@@ -806,7 +806,6 @@ type MakeWaveShaper =
   , oversample :: Oversample
   }
 
-
 type MakeTumultInternal =
   { id :: String
   , parent :: String
@@ -866,7 +865,6 @@ type SetDelay = { id :: String, delayTime :: AudioParameter }
 type SetPlaybackRate = { id :: String, playbackRate :: AudioParameter }
 type SetFrequency = { id :: String, frequency :: AudioParameter }
 type SetWaveShaperCurve = { id :: String, curve :: BrowserFloatArray }
-
 
 type SetTumultInternal =
   { id :: String

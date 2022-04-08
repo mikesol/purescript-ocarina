@@ -1,10 +1,20 @@
-exports.mmzUnsafeStart = function (r) {
+exports.actualizeMMZ_ = function (mmz) {
+	return function () {
+		if (!mmz.ctx.start.actualized) {
+			mmz.ctx.start.actualized = true;
+			mmz.ctx.start.event()();
+		}
+	};
+};
+exports.mmzStart_ = function (e) {
 	const next = {
 		type: "start",
-		value: r,
+		value: undefined,
 		cbs: [],
 		next: [],
 		memo: undefined,
+		actualized: false,
+		event: e,
 		ctx: [],
 	};
 	next.ctx.push(next);
@@ -185,6 +195,23 @@ exports.addSubscription_ = function (sub) {
 		return function () {
 			if (mmz.type !== "empty") {
 				mmz.cbs.push(sub);
+				if (mmz.memo) {
+					for (var j = 0; j < mmz.memo.length; j++) {
+						sub(mmz.memo[j])();
+					}
+				}
+			}
+		};
+	};
+};
+
+exports.removeSubscription_ = function (sub) {
+	return function (mmz) {
+		return function () {
+			if (mmz.type !== "empty") {
+				mmz.cbs.filter(function (x) {
+					return x !== sub;
+				});
 			}
 		};
 	};
