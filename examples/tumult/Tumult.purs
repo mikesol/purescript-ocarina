@@ -148,14 +148,15 @@ tumultExample loopy rc = mkExists $ SubgraphF \push -> lcmap
                             ctx <- context
                             ffi2 <- makeFFIAudioSnapshot ctx
                             let wh = writeHead 0.04 ctx
-                            unsub <- subscribe
+                            e /\ unsub0 <- animationFrameEvent
+                            unsub1 <- subscribe
                               ( speaker2
-                                  ( scene loopy
-                                      ((sample_ wh animationFrameEvent))
+                                  ( scene loopy  (sample_ wh e)
                                   )
                                   effectfulAudioInterpret
                               )
                               ((#) ffi2)
+                            let unsub = unsub0 *> unsub1
                             rc $ Just { unsub, ctx }
                             push $ Just { unsub, ctx }
                         )

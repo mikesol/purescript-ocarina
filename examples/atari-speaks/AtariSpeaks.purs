@@ -12,6 +12,7 @@ import Data.Maybe (Maybe(..))
 import Data.Profunctor (lcmap)
 import Data.String.Utils (unsafeRepeat)
 import Data.Tuple (Tuple(..))
+import Data.Tuple.Nested ((/\))
 import Data.Typelevel.Num (D2)
 import Data.UInt (toInt)
 import Deku.Attribute (cb, (:=))
@@ -114,6 +115,7 @@ atariSpeaks atar rc = mkExists $ SubgraphF \push -> lcmap
                           analyserE <- create
                           ctx <- context
                           ffi2 <- makeFFIAudioSnapshot ctx
+                          e /\ unsub0 <- animationFrameEvent
                           let wh = writeHead 0.04 ctx
                           let
                             audioE = speaker2
@@ -124,11 +126,11 @@ atariSpeaks atar rc = mkExists $ SubgraphF \push -> lcmap
                                           pure (analyserE.push Nothing)
                                       )
                                   )
-                                  (sample_ wh animationFrameEvent)
+                                  (sample_ wh e)
                               )
                               effectfulAudioInterpret
 
-                          unsub <- subscribe
+                          unsub1 <- subscribe
                             ( sampleOn
                                 (analyserE.event <|> pure Nothing)
                                 (map Tuple audioE)
@@ -150,6 +152,7 @@ atariSpeaks atar rc = mkExists $ SubgraphF \push -> lcmap
                                           arr
                                       )
                             )
+                          let unsub = unsub0 *> unsub1
                           rc $ Just { unsub, ctx }
                           push $ TurnOff { unsub, ctx }
                         Just { unsub, ctx } -> do

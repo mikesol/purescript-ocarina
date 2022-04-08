@@ -10,6 +10,7 @@ import Data.Foldable (for_)
 import Data.Maybe (Maybe(..), maybe)
 import Data.Profunctor (lcmap)
 import Data.Tuple (Tuple(..))
+import Data.Tuple.Nested ((/\))
 import Data.Typelevel.Num (D2)
 import Deku.Attribute (cb, (:=))
 import Deku.Control (deku, text, text_)
@@ -109,9 +110,11 @@ helloWorld _ rc = mkExists $ SubgraphF \p -> lcmap
                           ctx <- context
                           ffi2 <- makeFFIAudioSnapshot ctx
                           let wh = writeHead 0.04 ctx
-                          unsub <- subscribe
-                            (audioEvent (sample_ wh animationFrameEvent))
+                          ev /\ unsub0 <- animationFrameEvent
+                          unsub1 <- subscribe
+                            (audioEvent (sample_ wh ev))
                             ((#) ffi2)
+                          let unsub = unsub0 *> unsub1
                           rc $ Just { unsub, ctx }
                           push $ Just { unsub, ctx }
                       )
