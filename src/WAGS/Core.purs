@@ -11,6 +11,7 @@ import Data.Show.Generic (genericShow)
 import Data.Variant (Variant, inj, match)
 import Data.Variant.Maybe (Maybe)
 import FRP.Behavior (ABehavior)
+import FRP.Event.Pure (PureEvent)
 import Foreign (Foreign)
 import Foreign.Object (Object)
 import Simple.JSON as JSON
@@ -806,6 +807,22 @@ type MakeWaveShaper =
   , oversample :: Oversample
   }
 
+newtype Tumult =
+  Tumuilt
+    ( Variant
+        (instructions :: forall r. PureEvent r Unit -> PureEvent r Instruction)
+    )
+
+newtype InitializeTumult = InitializeTumult
+  { instructions :: forall r. PureEvent r Unit -> PureEvent r Instruction
+  }
+
+type MakeTumult =
+  { id :: String
+  , parent :: String
+  , scope :: String
+  , instructions :: forall r. PureEvent r Unit -> PureEvent r Instruction
+  }
 
 type MakeTumultInternal =
   { id :: String
@@ -866,7 +883,11 @@ type SetDelay = { id :: String, delayTime :: AudioParameter }
 type SetPlaybackRate = { id :: String, playbackRate :: AudioParameter }
 type SetFrequency = { id :: String, frequency :: AudioParameter }
 type SetWaveShaperCurve = { id :: String, curve :: BrowserFloatArray }
-
+type SetTumult =
+  { id :: String
+  , terminus :: String
+  , instructions :: forall r. PureEvent r Unit -> PureEvent r Instruction
+  }
 
 type SetTumultInternal =
   { id :: String
