@@ -10,7 +10,6 @@ import Data.Foldable (for_)
 import Data.Maybe (Maybe(..), maybe)
 import Data.Profunctor (lcmap)
 import Data.Tuple (Tuple(..))
-import Data.Tuple.Nested ((/\))
 import Data.Typelevel.Num (D2)
 import Deku.Attribute (cb, (:=))
 import Deku.Control (deku, text, text_)
@@ -22,12 +21,13 @@ import Effect (Effect)
 import Effect.Aff (Aff, launchAff_)
 import Effect.Class (liftEffect)
 import FRP.Behavior (sample_)
-import FRP.Event (class IsEvent, Event, subscribe)
+import FRP.Event (Event, subscribe)
+import FRP.Event.Animate (animationFrameEvent)
 import Math (pi, sin)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (gain__, sinOsc, speaker2, (:*))
 import WAGS.Core (GainInput)
-import WAGS.Example.Utils (RaiseCancellation, animationFrameEvent)
+import WAGS.Example.Utils (RaiseCancellation)
 import WAGS.Imperative (InitialGraphBuilder, runGraphBuilder)
 import WAGS.Imperative as I
 import WAGS.Interpret (close, context, effectfulAudioInterpret, makeFFIAudioSnapshot, writeHead)
@@ -110,11 +110,9 @@ helloWorld _ rc = mkExists $ SubgraphF \p -> lcmap
                           ctx <- context
                           ffi2 <- makeFFIAudioSnapshot ctx
                           let wh = writeHead 0.04 ctx
-                          ev /\ unsub0 <- animationFrameEvent
-                          unsub1 <- subscribe
-                            (audioEvent (sample_ wh ev))
+                          unsub <- subscribe
+                            (audioEvent (sample_ wh animationFrameEvent))
                             ((#) ffi2)
-                          let unsub = unsub0 *> unsub1
                           rc $ Just { unsub, ctx }
                           push $ Just { unsub, ctx }
                       )

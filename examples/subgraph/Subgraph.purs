@@ -24,12 +24,13 @@ import Effect.Aff (Aff, launchAff_)
 import Effect.Class (liftEffect)
 import FRP.Behavior (sample_)
 import FRP.Event (Event, keepLatest, mapAccum, sampleOn, subscribe)
+import FRP.Event.Animate (animationFrameEvent)
 import FRP.Event.Time (interval)
 import Math (pi, sin)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (convolver, gain, gain', gain__, highpass, input, loopBuf, lowpass, sinOsc, speaker2, (:*))
 import WAGS.Core (GainInput, InitializeConvolver(..), Input, Subgraph(..))
-import WAGS.Example.Utils (RaiseCancellation, animationFrameEvent)
+import WAGS.Example.Utils (RaiseCancellation)
 import WAGS.Interpret (close, context, decodeAudioDataFromUri, effectfulAudioInterpret, makeFFIAudioSnapshot, writeHead)
 import WAGS.Parameter (ACTime, ovnn, pureOn, uat_)
 import WAGS.Properties (frequency)
@@ -149,8 +150,7 @@ subgraphExample loopy rc = mkExists $ SubgraphF \push -> lcmap
                             ctx <- context
                             ffi2 <- makeFFIAudioSnapshot ctx
                             let wh = writeHead 0.04 ctx
-                            e /\ unsub0 <- animationFrameEvent
-                            unsub1 <- subscribe
+                            unsub <- subscribe
                               ( speaker2
                                   ( scene loopy
                                       ( ( sampleOn
@@ -158,14 +158,13 @@ subgraphExample loopy rc = mkExists $ SubgraphF \push -> lcmap
                                                   (interval 3000)
                                               ) <|> pure 0
                                             )
-                                            ( map Tuple $ sample_ wh e)
+                                            ( map Tuple $ sample_ wh animationFrameEvent)
                                         )
                                       )
                                   )
                                   effectfulAudioInterpret
                               )
                               ((#) ffi2)
-                            let unsub = unsub0 *> unsub1
                             rc $ Just { unsub, ctx }
                             push $ Just { unsub, ctx }
                         )

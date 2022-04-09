@@ -24,11 +24,12 @@ import Effect.Aff (Aff, launchAff_)
 import Effect.Class (liftEffect)
 import FRP.Behavior (sample_)
 import FRP.Event (Event, class IsEvent, subscribe)
+import FRP.Event.Animate (animationFrameEvent)
 import Math (pi, sin, (%))
 import Type.Proxy (Proxy(..))
 import WAGS.Control (gain', gain__, loopBuf, speaker2, (:*))
 import WAGS.Core (GainInput, Input)
-import WAGS.Example.Utils (RaiseCancellation, animationFrameEvent)
+import WAGS.Example.Utils (RaiseCancellation)
 import WAGS.Interpret (close, context, decodeAudioDataFromUri, effectfulAudioInterpret, makeFFIAudioSnapshot, writeHead)
 import WAGS.Parameter (AudioNumeric(..), WriteHead, at_, ovnn, pureOn)
 import WAGS.Tumult (tumult)
@@ -148,15 +149,13 @@ tumultExample loopy rc = mkExists $ SubgraphF \push -> lcmap
                             ctx <- context
                             ffi2 <- makeFFIAudioSnapshot ctx
                             let wh = writeHead 0.04 ctx
-                            e /\ unsub0 <- animationFrameEvent
-                            unsub1 <- subscribe
+                            unsub <- subscribe
                               ( speaker2
-                                  ( scene loopy  (sample_ wh e)
+                                  ( scene loopy  (sample_ wh animationFrameEvent)
                                   )
                                   effectfulAudioInterpret
                               )
                               ((#) ffi2)
-                            let unsub = unsub0 *> unsub1
                             rc $ Just { unsub, ctx }
                             push $ Just { unsub, ctx }
                         )

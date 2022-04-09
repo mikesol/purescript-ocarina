@@ -13,21 +13,3 @@ import Web.HTML.Window (requestAnimationFrame)
 
 type ToCancel = { unsub :: Effect Unit, ctx :: AudioContext }
 type RaiseCancellation = Maybe ToCancel -> Effect Unit
-
-animationFrameEvent :: Effect (Event Unit /\ Effect Unit)
-animationFrameEvent = do
-  { push, event } <- create
-  let
-    e = makeEvent \k -> do
-      w <- window
-      running <- Ref.new true
-      let
-        fx = void $ flip requestAnimationFrame w do
-          r' <- Ref.read running
-          when r' do
-            k unit
-            fx
-      fx
-      pure $ Ref.write false running
-  unsub <- subscribe e push
-  pure (event /\ unsub)
