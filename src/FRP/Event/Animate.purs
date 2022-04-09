@@ -9,7 +9,10 @@ import Web.HTML (window)
 import Web.HTML.Window (requestAnimationFrame)
 
 animationFrameEvent :: Event Unit
-animationFrameEvent = memoize $ makeEvent \k -> do
+animationFrameEvent = memoize $ animationFrameEvent'
+
+animationFrameEvent' :: Event Unit
+animationFrameEvent' = makeEvent \k -> do
   w <- window
   running <- Ref.new true
   let
