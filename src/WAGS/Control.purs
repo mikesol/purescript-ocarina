@@ -25,6 +25,7 @@ import Safe.Coerce (coerce)
 import Simple.JSON as JSON
 import Type.Proxy (Proxy(..))
 import Type.Row.Homogeneous (class Homogeneous)
+import WAGS.Common (class InitialTriangleOsc)
 import WAGS.Common as Common
 import WAGS.Core (ChannelCountMode(..), ChannelInterpretation(..), Po2(..))
 import WAGS.Core as C
@@ -1840,14 +1841,16 @@ pan' px = __pan (just (reflectSymbol px))
 -- triangleOsc
 
 __triangleOsc
-  :: forall outputChannels produced consumed event payload
+  :: forall i outputChannels produced consumed event payload
    . IsEvent event
+  => Common.InitialTriangleOsc i
   => Maybe String
-  -> C.InitializeTriangleOsc
+  -> i
   -> event C.TriangleOsc
   -> C.Node outputChannels produced consumed event payload
-__triangleOsc mId (C.InitializeTriangleOsc i) atts = C.Node go
+__triangleOsc mId i' atts = C.Node go
   where
+  C.InitializeTriangleOsc i = Common.toInitializeTriangleOsc i'
   go
     parent
     (C.AudioInterpret { ids, scope, makeTriangleOsc, setFrequency, setOnOff }) =
@@ -1873,20 +1876,22 @@ __triangleOsc mId (C.InitializeTriangleOsc i) atts = C.Node go
       )
 
 triangleOsc
-  :: forall outputChannels event payload
+  :: forall i outputChannels event payload
    . IsEvent event
-  => C.InitializeTriangleOsc
+  => Common.InitialTriangleOsc i
+  => i
   -> event C.TriangleOsc
   -> C.Node outputChannels () () event payload
 triangleOsc = __triangleOsc nothing
 
 triangleOsc'
-  :: forall proxy sym outputChannels produced event payload
+  :: forall proxy sym i outputChannels produced event payload
    . IsEvent event
+  => Common.InitialTriangleOsc i
   => IsSymbol sym
   => Cons sym C.Input () produced
   => proxy sym
-  -> C.InitializeTriangleOsc
+  -> i
   -> event C.TriangleOsc
   -> C.Node outputChannels produced () event payload
 triangleOsc' px = __triangleOsc (just (reflectSymbol px))

@@ -7,11 +7,10 @@ import Control.Plus (empty)
 import Data.Either (either)
 import Data.Exists (Exists, mkExists)
 import Data.Foldable (for_)
-import Data.Lens (_1, over)
 import Data.Maybe (Maybe(..), maybe)
 import Data.Profunctor (lcmap)
 import Data.Tuple (Tuple(..), snd)
-import Data.Tuple.Nested (type (/\), (/\))
+import Data.Tuple.Nested ((/\))
 import Data.Typelevel.Num (D2)
 import Deku.Attribute (cb, (:=))
 import Deku.Control (deku, text, text_)
@@ -23,16 +22,16 @@ import Effect (Effect)
 import Effect.Aff (Aff, launchAff_)
 import Effect.Class (liftEffect)
 import FRP.Behavior (sample_)
-import FRP.Event (Event, keepLatest, mapAccum, sampleOn, subscribe)
+import FRP.Event (Event, fold, keepLatest, mapAccum, subscribe)
 import FRP.Event.Animate (animationFrameEvent)
 import FRP.Event.Time (interval)
 import Math (pi, sin)
 import Type.Proxy (Proxy(..))
-import WAGS.Control (convolver, gain, gain', gain__, highpass, input, loopBuf, lowpass, sinOsc, speaker2, (:*))
+import WAGS.Control (convolver, gain, gain', gain__, highpass, input, loopBuf, lowpass, sinOsc, speaker2, triangleOsc, (:*))
 import WAGS.Core (GainInput, InitializeConvolver(..), Input, Subgraph(..))
 import WAGS.Example.Utils (RaiseCancellation)
 import WAGS.Interpret (close, context, decodeAudioDataFromUri, effectfulAudioInterpret, makeFFIAudioSnapshot, writeHead)
-import WAGS.Parameter (ACTime, ovnn, pureOn, uat_)
+import WAGS.Parameter (WriteHead, at_, ovnn, pureOn)
 import WAGS.Properties (frequency)
 import WAGS.Subgraph as Wsg
 import WAGS.WebAPI (AudioContext, BrowserAudioBuffer)
@@ -52,11 +51,11 @@ counter_ = map snd <<< counter
 scene
   :: forall payload
    . Init
-  -> Event (ACTime /\ Int)
+  -> WriteHead Event
   -> GainInput D2 (toSubg :: Input) (toSubg :: Input) Event payload
 scene { loopy, conny } wh =
   let
-    topE = map (over _1 (flip uat_ (mul pi))) wh
+    tr = at_ wh (mul pi)
   in
     gain__ 0.0 empty
       ( gain' (Proxy :: _ "toSubg") 1.0 empty
@@ -64,14 +63,14 @@ scene { loopy, conny } wh =
       ) :*
       [ Wsg.subgraph
           ( keepLatest $ map
-              ( \(tr' /\ ix) ->
-                  ( pure (ix /\ Wsg.InsertOrUpdate tr') <|> pure
+              ( \ix ->
+                  ( pure (ix /\ Wsg.InsertOrUpdate unit) <|> pure
                       ((ix - 1) /\ Wsg.Remove)
                   )
               )
-              topE
+              (fold (\_ b -> b + 1) (interval 3000 $> unit <|> pure unit) (-1))
           )
-          ( \({ toSubg } :: { toSubg :: Input }) -> Subgraph \ix tr ->
+          ( \({ toSubg } :: { toSubg :: Input }) -> Subgraph \ix _ ->
               let
                 ooo
                   | ix == 0 =
@@ -88,7 +87,31 @@ scene { loopy, conny } wh =
                                 [ gain__ 0.03 empty (sinOsc 220.0 pureOn) ]
                             )
                         )
-
+                  | ix == 1 =
+                      gain 1.0 empty
+                        ( highpass 2200.0
+                            ( map
+                                ( frequency <<< ovnn
+                                    (\x -> 2200.0 + 1000.0 * sin (0.5 * x))
+                                )
+                                tr
+                            )
+                            (input toSubg) :*
+                            [ gain__ 0.03 empty
+                                ( triangleOsc 2000.0
+                                    ( pureOn <|>
+                                        ( map
+                                            ( frequency <<< ovnn
+                                                ( \x -> 2000.0 + 300.0 * sin
+                                                    (0.5 * x)
+                                                )
+                                            )
+                                            tr
+                                        )
+                                    )
+                                )
+                            ]
+                        )
                   | otherwise =
                       gain 1.0 empty
                         ( lowpass 1100.0
@@ -153,13 +176,10 @@ subgraphExample loopy rc = mkExists $ SubgraphF \push -> lcmap
                             unsub <- subscribe
                               ( speaker2
                                   ( scene loopy
-                                      ( ( sampleOn
-                                            ( ( map (add 1) $ counter_
-                                                  (interval 3000)
-                                              ) <|> pure 0
-                                            )
-                                            ( map Tuple $ sample_ wh animationFrameEvent)
+                                      ( ( sample_ wh
+                                            animationFrameEvent
                                         )
+
                                       )
                                   )
                                   effectfulAudioInterpret

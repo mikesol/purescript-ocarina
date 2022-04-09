@@ -527,3 +527,13 @@ instance InitialSinOsc Core.InitializeSinOsc where
 
 instance InitialSinOsc Number where
   toInitializeSinOsc = Core.InitializeSinOsc <<< { frequency: _ }
+
+-- TriangleOsc
+class InitialTriangleOsc i where
+  toInitializeTriangleOsc :: i -> Core.InitializeTriangleOsc
+
+instance InitialTriangleOsc Core.InitializeTriangleOsc where
+  toInitializeTriangleOsc = identity
+
+instance InitialTriangleOsc Number where
+  toInitializeTriangleOsc = Core.InitializeTriangleOsc <<< { frequency: _ }
