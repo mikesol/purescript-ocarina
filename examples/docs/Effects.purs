@@ -223,5 +223,5 @@ main = Initial 🚀 \push event ->
                   )
                   [ D.pre_ [ D.code_ [ text (bang "" <|> result) ] ] ]
               ])
-  , next: bang (D.OnClick := (cb (const $ dpage PURSX2 *> scrollToTop)))
+  , next: bang (D.OnClick := (cb (const $ dpage Intro *> scrollToTop)))
   }

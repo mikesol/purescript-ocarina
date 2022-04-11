@@ -95,5 +95,5 @@ main = unit 🚀 \_ _ ->
               ]
           ]
       )
-    , next: bang (D.OnClick := (cb (const $ dpage PURSX1 *> scrollToTop)))
+    , next: bang (D.OnClick := (cb (const $ dpage Intro *> scrollToTop)))
   }

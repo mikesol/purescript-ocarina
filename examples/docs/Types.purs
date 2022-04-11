@@ -8,13 +8,13 @@ import Data.Show.Generic (genericShow)
 data Page
   = Intro
   | HelloWorld
-  | SimpleComponent
-  | PURSX1
-  | PURSX2
+  | AudioUnits
   | Events
-  | Effects
+  | AudioWorklets
+  | Imperative
+  | State
   | Subgraph
-  | Portals
+  | Tumult
 derive instance Eq Page
 derive instance Ord Page
 derive instance Generic Page _

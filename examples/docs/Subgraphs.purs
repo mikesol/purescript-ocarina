@@ -256,5 +256,5 @@ main = Nothing 🚀 \push event ->
                   )
             ) @@ mySub (push <<< Just)
       )
-  , next: bang (D.OnClick := (cb (const $ dpage Portals *> scrollToTop)))
+  , next: bang (D.OnClick := (cb (const $ dpage Intro *> scrollToTop)))
   }

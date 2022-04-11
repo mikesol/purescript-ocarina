@@ -54,5 +54,5 @@ import Effect (Effect)
 main :: Effect Unit
 main = unit 🚀 \_ _ -> text_ "Hello world""""]])
   , result: nut (D.div_ [text_ "Hello world"])
-  , next: bang (D.OnClick := (cb (const $ dpage SimpleComponent *> scrollToTop)))
+  , next: bang (D.OnClick := (cb (const $ dpage Intro *> scrollToTop)))
   }

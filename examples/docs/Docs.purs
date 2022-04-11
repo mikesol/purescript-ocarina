@@ -66,26 +66,26 @@ scene push event =
           , HelloWorld
               /\ "Hello world"
               /\ true
-          , SimpleComponent
-              /\ "Component"
-              /\ true
-          , PURSX1
-              /\ "Pursx 1"
+          , AudioUnits
+              /\ "Audio units"
               /\ true
           , Events
               /\ "Events"
               /\ true
-          , Effects
-              /\ "Effects"
+          , AudioWorklets
+              /\ "Audio worklets"
               /\ true
-          , PURSX2
-              /\ "Pursx 2"
+          , State
+              /\ "State"
+              /\ true
+          , Imperative
+              /\ "Imperative"
               /\ true
           , Subgraph
               /\ "Subgraphs"
               /\ true
-          , Portals
-              /\ "Portals"
+          , Tumult
+              /\ "Tumult"
               /\ false
           ]
     , subgraph
@@ -107,14 +107,14 @@ scene push event =
   page dpage Intro = mkExists $ SubgraphF \_ _ -> Intro.intro dpage
   page dpage HelloWorld = mkExists $ SubgraphF \_ _ -> HelloWorld.helloWorld
     dpage
-  page dpage SimpleComponent = mkExists $ SubgraphF \_ _ -> Component.components
+  page dpage AudioUnits = mkExists $ SubgraphF \_ _ -> Component.components
     dpage
-  page dpage PURSX1 = mkExists $ SubgraphF \_ _ -> Pursx1.pursx1 dpage
+  page dpage AudioWorklets = mkExists $ SubgraphF \_ _ -> Pursx1.pursx1 dpage
   page dpage Events = mkExists $ SubgraphF \_ _ -> Events.events dpage
-  page dpage Effects = mkExists $ SubgraphF \_ _ -> Effects.effects dpage
-  page dpage PURSX2 = mkExists $ SubgraphF \_ _ -> Pursx2.pursx2 dpage
+  page dpage State = mkExists $ SubgraphF \_ _ -> Effects.effects dpage
+  page dpage Imperative = mkExists $ SubgraphF \_ _ -> Pursx2.pursx2 dpage
   page dpage Subgraph = mkExists $ SubgraphF \_ _ -> Subgraph.subgraphs dpage
-  page dpage Portals = mkExists $ SubgraphF \_ _ -> Portals.portals dpage
+  page dpage Tumult = mkExists $ SubgraphF \_ _ -> Portals.portals dpage
 
 main :: Effect Unit
 main = do

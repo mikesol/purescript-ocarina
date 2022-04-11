@@ -183,5 +183,5 @@ main = UIShown 🚀 \push event ->
                   ]
               ]
       )
-  , next: bang (D.OnClick := (cb (const $ dpage Effects *> scrollToTop)))
+  , next: bang (D.OnClick := (cb (const $ dpage Intro *> scrollToTop)))
   }
