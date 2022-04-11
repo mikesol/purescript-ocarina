@@ -64,16 +64,25 @@ scene wh =
     gso a b c st ed = gain__ 0.0
       ( Common.gain <$>
           ( filterMap
-              ( \(AudioNumeric x@{ o }) -> let olen = o % len in
-                  if olen < ed + 0.6 && olen > ed then
-                    ( Just
-                        ( AudioNumeric
-                            (x { n = min a $ max 0.0 $ calcSlope ed a (ed + 0.5) 0.0 olen })
-                        )
-                    )
-                  else if olen < st + 0.5 && olen > st then
-                    (Just (AudioNumeric (x { n = a })))
-                  else Nothing
+              ( \(AudioNumeric x@{ o }) ->
+                  let
+                    olen = o % len
+                  in
+                    if olen < ed + 0.6 && olen > ed then
+                      ( Just
+                          ( AudioNumeric
+                              ( x
+                                  { n = min a $ max 0.0 $ calcSlope ed a
+                                      (ed + 0.5)
+                                      0.0
+                                      olen
+                                  }
+                              )
+                          )
+                      )
+                    else if olen < st + 0.5 && olen > st then
+                      (Just (AudioNumeric (x { n = a })))
+                    else Nothing
               )
               tr
           )
@@ -124,6 +133,9 @@ type Init = Unit
 initializeStressTest :: Aff Init
 initializeStressTest = pure unit
 
+foreign import stressTest_
+  :: forall event. AudioContext -> WriteHead event -> event (FFIAudioSnapshot -> Effect Unit)
+
 stressTest
   :: forall payload
    . Unit
@@ -141,7 +153,7 @@ stressTest _ rc = mkExists $ SubgraphF \p -> lcmap
         -> (event ~> Event)
         -> (UIAction -> Effect Unit)
         -> Event UIAction
-        -> (WriteHead event -> event (FFIAudioSnapshot -> Effect Unit))
+        -> (AudioContext -> WriteHead event -> event (FFIAudioSnapshot -> Effect Unit))
         -> Element Event payload
       musicButton label toE fromE push event audioEvent = DOM.button
         ( map
@@ -154,7 +166,7 @@ stressTest _ rc = mkExists $ SubgraphF \p -> lcmap
                           let wh = writeHead 0.04 ctx
                           afe <- animationFrameEvent
                           unsub <- subscribe
-                            (fromE (audioEvent (toE (sample_ wh afe))))
+                            (fromE (audioEvent ctx (toE (sample_ wh afe))))
                             ((#) ffi2)
                           rc $ Just { unsub, ctx }
                           push $ Just { unsub, ctx }
@@ -177,11 +189,11 @@ stressTest _ rc = mkExists $ SubgraphF \p -> lcmap
       DOM.div_
         [ DOM.h1_ [ text_ "Stress test" ]
         , musicButton "Event" identity identity p e
-            ( flip speaker2 (effectfulAudioInterpret' identity identity) <<<
+            (\_ -> flip speaker2 (effectfulAudioInterpret' identity identity) <<<
                 scene
             )
         , musicButton "MemoizedEvent" Memoized.fromEvent Memoized.toEvent p e
-            ( flip speaker2
+            (\_ -> flip speaker2
                 (effectfulAudioInterpret' Memoized.fromEvent Memoized.toEvent)
                 <<<
                   scene
@@ -189,12 +201,13 @@ stressTest _ rc = mkExists $ SubgraphF \p -> lcmap
         , musicButton "MemoizableEvent" Memoizable.fromEvent Memoizable.toEvent
             p
             e
-            ( flip speaker2
+            (\_ -> flip speaker2
                 ( effectfulAudioInterpret' Memoizable.fromEvent
                     Memoizable.toEvent
                 ) <<<
                 scene
             )
+        , musicButton "NativeJS" identity identity p e (stressTest_)
         ]
 
 main :: Effect Unit
