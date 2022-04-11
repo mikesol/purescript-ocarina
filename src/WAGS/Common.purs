@@ -103,6 +103,17 @@ instance
   toInitialBandpass provided = Core.InitializeBandpass
     (convertOptionsWithDefaults BandpassOptions defaultBandpass provided)
 
+
+-- Delay
+class InitialDelay i where
+  toInitializeDelay :: i -> Core.InitializeDelay
+
+instance InitialDelay Core.InitializeDelay where
+  toInitializeDelay = identity
+
+instance InitialDelay Number where
+  toInitializeDelay = Core.InitializeDelay <<< { delayTime: _ }
+
 -- Gain
 class InitialGain i where
   toInitializeGain :: i -> Core.InitializeGain
@@ -409,6 +420,16 @@ instance
   toInitialNotch provided = Core.InitializeNotch
     (convertOptionsWithDefaults NotchOptions defaultNotch provided)
 
+-- StereoPanner
+class InitialStereoPanner i where
+  toInitializeStereoPanner :: i -> Core.InitializeStereoPanner
+
+instance InitialStereoPanner Core.InitializeStereoPanner where
+  toInitializeStereoPanner = identity
+
+instance InitialStereoPanner Number where
+  toInitializeStereoPanner = Core.InitializeStereoPanner <<< { pan: _ }
+
 -- Peaking
 
 data PeakingOptions = PeakingOptions
@@ -517,6 +538,27 @@ instance
   InitialPlayBuf { | provided } where
   toInitializePlayBuf provided = Core.InitializePlayBuf
     (convertOptionsWithDefaults PlayBufOptions defaultPlayBuf provided)
+
+-- SawtoothOsc
+class InitialSawtoothOsc i where
+  toInitializeSawtoothOsc :: i -> Core.InitializeSawtoothOsc
+
+instance InitialSawtoothOsc Core.InitializeSawtoothOsc where
+  toInitializeSawtoothOsc = identity
+
+instance InitialSawtoothOsc Number where
+  toInitializeSawtoothOsc = Core.InitializeSawtoothOsc <<< { frequency: _ }
+
+-- SquareOsc
+class InitialSquareOsc i where
+  toInitializeSquareOsc :: i -> Core.InitializeSquareOsc
+
+instance InitialSquareOsc Core.InitializeSquareOsc where
+  toInitializeSquareOsc = identity
+
+instance InitialSquareOsc Number where
+  toInitializeSquareOsc = Core.InitializeSquareOsc <<< { frequency: _ }
+
 
 -- SinOsc
 class InitialSinOsc i where

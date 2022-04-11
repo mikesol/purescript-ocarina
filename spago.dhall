@@ -8,7 +8,6 @@
   , "control"
   , "convertable-options"
   , "effect"
-  , "either"
   , "event"
   , "everythings-better-with-variants"
   , "foldable-traversable"
