@@ -23,6 +23,7 @@ import Effect.Class (liftEffect)
 import FRP.Behavior (sample_)
 import FRP.Event (Event, subscribe)
 import FRP.Event.Animate (animationFrameEvent)
+import FRP.Event.Class (bang)
 import Math (pi, sin)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (gain__, sinOsc, speaker2, (:*))
@@ -110,8 +111,9 @@ helloWorld _ rc = mkExists $ SubgraphF \p -> lcmap
                           ctx <- context
                           ffi2 <- makeFFIAudioSnapshot ctx
                           let wh = writeHead 0.04 ctx
+                          afe <- animationFrameEvent
                           unsub <- subscribe
-                            (audioEvent (sample_ wh animationFrameEvent))
+                            (audioEvent (sample_ wh afe))
                             ((#) ffi2)
                           rc $ Just { unsub, ctx }
                           push $ Just { unsub, ctx }
@@ -148,7 +150,7 @@ main = launchAff_ do
       ffi <- makeFFIDOMSnapshot
       let
         evt = deku elt
-          ( subgraph (pure (Tuple unit (InsertOrUpdate unit)))
+          ( subgraph (bang (Tuple unit (InsertOrUpdate unit)))
               (const $ helloWorld init (const $ pure unit))
           )
           effectfulDOMInterpret

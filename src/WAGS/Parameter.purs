@@ -8,6 +8,8 @@ import Data.Lens.Iso.Newtype (unto)
 import Data.Lens.Record (prop)
 import Data.Newtype (class Newtype, unwrap, wrap)
 import Data.Variant (Variant, inj, match)
+import FRP.Event (class IsEvent)
+import FRP.Event.Class (bang)
 import Type.Proxy (Proxy(..))
 
 newtype Transition = Transition
@@ -126,10 +128,10 @@ apOn = AudioOnOff { onOff: _on, timeOffset: 0.0 }
 
 pureOn
   :: forall event nt r
-   . Applicative event
+   . IsEvent event
   => Newtype nt (Variant (onOff :: AudioOnOff | r))
   => event nt
-pureOn = pure (wrap $ inj (Proxy :: _ "onOff") apOn)
+pureOn = bang (wrap $ inj (Proxy :: _ "onOff") apOn)
 
 apOff :: AudioOnOff
 apOff = AudioOnOff { onOff: _off, timeOffset: 0.0 }

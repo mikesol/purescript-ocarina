@@ -2,7 +2,7 @@ module WAGS.Imperative.Connect where
 
 import Prelude
 
-import FRP.Event.Class (class IsEvent)
+import FRP.Event.Class (class IsEvent, bang)
 import Prim.Boolean (True, False)
 import Prim.Row as Row
 import Prim.Symbol as Symbol
@@ -115,7 +115,7 @@ instance connectDefault ::
   connect _ = GraphBuilder go
     where
     go (Core.AudioInterpret { connectXToY }) =
-      { event: pure $ connectXToY
+      { event: bang $ connectXToY
           { from: reflectSymbol (Proxy :: _ fId)
           , to: reflectSymbol (Proxy :: _ iId)
           }

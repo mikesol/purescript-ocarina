@@ -9,6 +9,7 @@ import Data.Tuple.Nested (type (/\), (/\))
 import Data.Variant.Maybe (Maybe, just, nothing)
 import FRP.Behavior (sample_)
 import FRP.Event (class IsEvent, keepLatest)
+import FRP.Event.Class (bang)
 import Prim.Row as Row
 import Prim.RowList (class RowToList)
 import Prim.RowList as RL
@@ -68,8 +69,8 @@ __subgraph mId mods elt = C.Node go
       subg = elt (inputs scope (Proxy :: _ consumedRL))
     in
       keepLatest
-        ( (sample_ ids (pure unit)) <#> __maybeUseName scope mId \me ->
-            pure
+        ( (sample_ ids (bang unit)) <#> __maybeUseName scope mId \me ->
+            bang
               ( makeSubgraph
                   { id: me, parent: parent, scenes: subg, scope }
               )

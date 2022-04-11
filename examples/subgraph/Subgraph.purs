@@ -24,6 +24,7 @@ import Effect.Class (liftEffect)
 import FRP.Behavior (sample_)
 import FRP.Event (Event, fold, keepLatest, mapAccum, subscribe)
 import FRP.Event.Animate (animationFrameEvent)
+import FRP.Event.Class (bang)
 import FRP.Event.Time (interval)
 import Math (pi, sin)
 import Type.Proxy (Proxy(..))
@@ -64,11 +65,11 @@ scene { loopy, conny } wh =
       [ Wsg.subgraph
           ( keepLatest $ map
               ( \ix ->
-                  ( pure (ix /\ Wsg.InsertOrUpdate unit) <|> pure
+                  ( bang (ix /\ Wsg.InsertOrUpdate unit) <|> bang
                       ((ix - 1) /\ Wsg.Remove)
                   )
               )
-              (fold (\_ b -> b + 1) (interval 3000 $> unit <|> pure unit) (-1))
+              (fold (\_ b -> b + 1) (interval 3000 $> unit <|> bang unit) (-1))
           )
           ( \({ toSubg } :: { toSubg :: Input }) -> Subgraph \ix _ ->
               let
@@ -173,15 +174,10 @@ subgraphExample loopy rc = mkExists $ SubgraphF \push -> lcmap
                             ctx <- context
                             ffi2 <- makeFFIAudioSnapshot ctx
                             let wh = writeHead 0.04 ctx
+                            afe <- animationFrameEvent
                             unsub <- subscribe
                               ( speaker2
-                                  ( scene loopy
-                                      ( ( sample_ wh
-                                            animationFrameEvent
-                                        )
-
-                                      )
-                                  )
+                                  (scene loopy (sample_ wh afe))
                                   effectfulAudioInterpret
                               )
                               ((#) ffi2)
@@ -213,7 +209,7 @@ main = launchAff_ do
       ffi <- makeFFIDOMSnapshot
       let
         evt = deku elt
-          ( Sg.subgraph (pure (Tuple unit (Sg.InsertOrUpdate unit)))
+          ( Sg.subgraph (bang (Tuple unit (Sg.InsertOrUpdate unit)))
               (const $ subgraphExample init (const $ pure unit))
           )
           effectfulDOMInterpret

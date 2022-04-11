@@ -271,7 +271,7 @@ exports.makeConstant_ = function (a) {
 	return function (state) {
 		return function () {
 			var ptr = a.id;
-			var onOff = a.onOff;
+			// var onOff = a.onOff;
 			var createClosure = function (context, i) {
 				return new ConstantSourceNode(context, i);
 			};
@@ -433,7 +433,7 @@ exports.makeLoopBuf_ = function (a) {
 	return function (state) {
 		return function () {
 			var ptr = a.id;
-			var onOff = a.onOff;
+			// var onOff = a.onOff;
 			var createClosure = function (context, i) {
 				return new AudioBufferSourceNode(context, i);
 			};
@@ -594,7 +594,7 @@ exports.makePeriodicOsc_ = function (a) {
 	return function (state) {
 		return function () {
 			var ptr = a.id;
-			var onOff = a.onOff;
+			// var onOff = a.onOff;
 			var createClosure = function (context, i) {
 				var opts = {
 					frequency: i.frequency,
@@ -636,7 +636,7 @@ exports.makePlayBuf_ = function (a) {
 	return function (state) {
 		return function () {
 			var ptr = a.id;
-			var onOff = a.onOff;
+			// var onOff = a.onOff;
 			var createClosure = function (context, i) {
 				return new AudioBufferSourceNode(context, i);
 			};
@@ -701,7 +701,7 @@ exports.makeSawtoothOsc_ = function (a) {
 	return function (state) {
 		return function () {
 			var ptr = a.id;
-			var onOff = a.onOff;
+			// var onOff = a.onOff;
 			var createClosure = function (context, i) {
 				return new OscillatorNode(context, i);
 			};
@@ -733,7 +733,7 @@ exports.makeSinOsc_ = function (a) {
 	return function (state) {
 		return function () {
 			var ptr = a.id;
-			var onOff = a.onOff;
+			// var onOff = a.onOff;
 			var createClosure = function (context, i) {
 				return new OscillatorNode(context, i);
 			};
@@ -858,7 +858,7 @@ exports.makeSquareOsc_ = function (a) {
 	return function (state) {
 		return function () {
 			var ptr = a.id;
-			var onOff = a.onOff;
+			// var onOff = a.onOff;
 			var createClosure = function (context, i) {
 				return new OscillatorNode(context, i);
 			};
@@ -890,7 +890,7 @@ exports.makeTriangleOsc_ = function (a) {
 	return function (state) {
 		return function () {
 			var ptr = a.id;
-			var onOff = a.onOff;
+			// var onOff = a.onOff;
 			var createClosure = function (context, i) {
 				return new OscillatorNode(context, i);
 			};
@@ -997,6 +997,13 @@ exports.setAudioWorkletParameter_ = function (aa) {
 		};
 	};
 };
+const recalcResume = function (a, u, v) {
+	if (u.resume) {
+		if (a.value.n !== undefined) {
+			u.resume[v] = a.value.n;
+		}
+	}
+};
 exports.setGain_ = function (aa) {
 	return function (state) {
 		return function () {
@@ -1008,9 +1015,7 @@ exports.setGain_ = function (aa) {
 				state.deprecatedWriteHead,
 				a
 			);
-			if (state.units[ptr].resume) {
-				state.units[ptr].resume.gain = a;
-			}
+			recalcResume(a, state.units[ptr], "gain");
 		};
 	};
 };
@@ -1021,9 +1026,7 @@ exports.setQ_ = function (aa) {
 			var ptr = aa.id;
 			var a = aa.q;
 			genericSetter(state.units[ptr].main, "Q", state.deprecatedWriteHead, a);
-			if (state.units[ptr].resume) {
-				state.units[ptr].resume.Q = a;
-			}
+			recalcResume(a, state.units[ptr], "Q");
 		};
 	};
 };
@@ -1064,9 +1067,7 @@ exports.setPan_ = function (aa) {
 			var ptr = aa.id;
 			var a = aa.pan;
 			genericSetter(state.units[ptr].main, "pan", state.deprecatedWriteHead, a);
-			if (state.units[ptr].resume) {
-				state.units[ptr].resume.pan = a;
-			}
+			recalcResume(a, state.units[ptr], "pan");
 		};
 	};
 };
@@ -1081,9 +1082,7 @@ exports.setThreshold_ = function (aa) {
 				state.deprecatedWriteHead,
 				a
 			);
-			if (state.units[ptr].resume) {
-				state.units[ptr].resume.threshold = a;
-			}
+			recalcResume(a, state.units[ptr], "threshold");
 		};
 	};
 };
@@ -1127,9 +1126,7 @@ exports.setRelease_ = function (aa) {
 				state.deprecatedWriteHead,
 				a
 			);
-			if (state.units[ptr].resume) {
-				state.units[ptr].resume.release = a;
-			}
+			recalcResume(a, state.units[ptr], "release");
 		};
 	};
 };
@@ -1144,9 +1141,7 @@ exports.setOffset_ = function (aa) {
 				state.deprecatedWriteHead,
 				a
 			);
-			if (state.units[ptr].resume) {
-				state.units[ptr].resume.offset = a;
-			}
+			recalcResume(a, state.units[ptr], "offset");
 		};
 	};
 };
@@ -1162,9 +1157,7 @@ exports.setRatio_ = function (aa) {
 				state.deprecatedWriteHead,
 				a
 			);
-			if (state.units[ptr].resume) {
-				state.units[ptr].resume.ratio = a;
-			}
+			recalcResume(a, state.units[ptr], "ratio");
 		};
 	};
 };
@@ -1179,9 +1172,7 @@ exports.setAttack_ = function (aa) {
 				state.deprecatedWriteHead,
 				a
 			);
-			if (state.units[ptr].resume) {
-				state.units[ptr].resume.attack = a;
-			}
+			recalcResume(a, state.units[ptr], "attack");
 		};
 	};
 };
@@ -1196,9 +1187,7 @@ exports.setKnee_ = function (aa) {
 				state.deprecatedWriteHead,
 				a
 			);
-			if (state.units[ptr].resume) {
-				state.units[ptr].resume.knee = a;
-			}
+			recalcResume(a, state.units[ptr], "knee");
 		};
 	};
 };
@@ -1213,9 +1202,7 @@ exports.setDelay_ = function (aa) {
 				state.deprecatedWriteHead,
 				a
 			);
-			if (state.units[ptr].resume) {
-				state.units[ptr].resume.delayTime = a;
-			}
+			recalcResume(a, state.units[ptr], "delayTime");
 		};
 	};
 };
@@ -1230,9 +1217,7 @@ exports.setPlaybackRate_ = function (aa) {
 				state.deprecatedWriteHead,
 				a
 			);
-			if (state.units[ptr].resume) {
-				state.units[ptr].resume.playbackRate = a;
-			}
+			recalcResume(a, state.units[ptr], "playbackRate");
 		};
 	};
 };
@@ -1247,11 +1232,7 @@ exports.setFrequency_ = function (aa) {
 				state.deprecatedWriteHead,
 				a
 			);
-			// frequency defined for some non-generators
-			// so check first for existence of resumeClosure
-			if (state.units[ptr].resume) {
-				state.units[ptr].resume.frequency = a;
-			}
+			recalcResume(a, state.units[ptr], "frequency");
 		};
 	};
 };

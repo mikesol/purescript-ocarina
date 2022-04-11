@@ -22,9 +22,11 @@ import Effect (Effect)
 import Effect.Aff (launchAff_, try)
 import Effect.Class (liftEffect)
 import FRP.Event (Event, create, filterMap, fold, keepLatest, mapAccum, subscribe)
+import FRP.Event.Class (bang)
 import WAGS.Example.AtariSpeaks as AtariSpeaks
 import WAGS.Example.HelloWorld as HelloWorld
 import WAGS.Example.MultiBuf as MultiBuf
+import WAGS.Example.StressTest as StressTest
 import WAGS.Example.Subgraph as Subg
 import WAGS.Example.Tumult as Tummult
 import WAGS.Example.Tumult as Tumult
@@ -37,6 +39,7 @@ import Web.HTML.Window (document)
 
 data Page
   = HelloWorld HelloWorld.Init
+  | StressTest StressTest.Init
   | AtariSpeaks AtariSpeaks.Init
   | MultiBuf MultiBuf.Init
   | Tumult Tummult.Init
@@ -68,7 +71,7 @@ scene push event =
         $ map
             ( \(x' /\ y /\ z) -> D.span_
                 [ D.a
-                    ( pure (D.Style := "cursor:pointer;") <|>
+                    ( bang (D.Style := "cursor:pointer;") <|>
                         ( ( fold
                               ( \a (i /\ stash) -> case a of
                                   Start -> Loaded /\ stash
@@ -103,7 +106,7 @@ scene push event =
                     )
                     [ text_ y ]
                 , D.span
-                    ( pure $ D.Style :=
+                    ( bang $ D.Style :=
                         if z then ""
                         else "display:none;"
                     )
@@ -113,6 +116,9 @@ scene push event =
         $
           [ (HelloWorld <$> HelloWorld.initializeHelloWorld)
               /\ "Hello World"
+              /\ true
+          , (StressTest <$> StressTest.initializeStressTest)
+              /\ "Stress test"
               /\ true
           , (AtariSpeaks <$> AtariSpeaks.initializeAtariSpeaks)
               /\ "Atari speaks"
@@ -142,8 +148,8 @@ scene push event =
                 ( \(prev /\ cur) ->
                     ( case prev of
                         Nothing -> empty
-                        Just x -> pure (x /\ Remove)
-                    ) <|> pure (cur /\ InsertOrUpdate unit)
+                        Just x -> bang (x /\ Remove)
+                    ) <|> bang (cur /\ InsertOrUpdate unit)
                 )
             # keepLatest
         )
@@ -153,6 +159,7 @@ scene push event =
   where
   page :: (Maybe ToCancel -> Effect Unit) -> Subgraph Page Unit Event payload
   page cancelCb (HelloWorld hwi) = HelloWorld.helloWorld hwi cancelCb
+  page cancelCb (StressTest hwi) = StressTest.stressTest hwi cancelCb
   page cancelCb (AtariSpeaks ati) = AtariSpeaks.atariSpeaks ati cancelCb
   page cancelCb (MultiBuf mbi) = MultiBuf.multiBuf mbi cancelCb
   page cancelCb (Tumult ti) = Tumult.tumultExample ti cancelCb

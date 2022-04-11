@@ -48,7 +48,7 @@ let additions =
           , "now"
           ]
         , repo = "https://github.com/mikesol/purescript-event.git"
-        , version = "v1.4.2"
+        , version = "v1.5.0"
         }
       , everythings-better-with-variants =
         { dependencies =
@@ -87,7 +87,7 @@ let additions =
           , "web-uievents"
           ]
         , repo = "https://github.com/mikesol/purescript-behaviors.git"
-        , version = "v8.1.0"
+        , version = "v8.2.0"
         }
       , row-options =
         { dependencies = [ "homogeneous", "heterogeneous" ]
@@ -133,14 +133,8 @@ let additions =
   , "web-dom"
   , "web-events"
   ], repo = "https://github.com/mikesol/purescript-deku.git"
-        , version = "v0.2.1"
-      }, phantom-event =
-        { dependencies =
-          [ "event"
-          ]
-        , repo = "https://github.com/mikesol/purescript-phantom-event.git"
-        , version = "v0.0.1"
-        },deku-toplevel = {
+        , version = "v0.2.2"
+      },deku-toplevel = {
         dependencies =  [ "arrays"
   , "behaviors"
   , "control"
