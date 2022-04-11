@@ -31,7 +31,8 @@ import Effect (Effect)
 import Effect.Aff (Aff, launchAff_)
 import Effect.Class (liftEffect)
 import FRP.Behavior (sample_)
-import FRP.Event (Event, keepLatest, mapAccum, subscribe)
+import FRP.Event (class IsEvent, Event, keepLatest, mapAccum, subscribe)
+import FRP.Event.Class (bang)
 import FRP.Event.Time (interval)
 import WAGS.Control (gain__, playBuf, singleton, speaker2)
 import WAGS.Core (GainInput, Subgraph(..))
@@ -106,14 +107,13 @@ sg ks = Subgraph \i n -> gain__ 1.0 empty
 
 sgActionMaker
   :: forall event
-   . Plus event
-  => Applicative event
+   . IsEvent event
   => ACTime /\ Acc1
   -> event (Int /\ Sg.SubgraphAction (Number /\ ACTime))
 sgActionMaker (ac /\ { head, no }) =
-  oneOf (map (\(i /\ n) -> pure $ i /\ Sg.InsertOrUpdate (n /\ ac)) head) <|>
+  oneOf (map (\(i /\ n) -> bang $ i /\ Sg.InsertOrUpdate (n /\ ac)) head) <|>
     oneOf
-      (map (\i -> pure $ i /\ Sg.Remove) $ values no)
+      (map (\i -> bang $ i /\ Sg.Remove) $ values no)
 
 scene
   :: forall payload
@@ -171,7 +171,7 @@ multiBuf ks rc = mkExists $ SubgraphF \push -> lcmap
                               ( speaker2
                                   ( scene ks
                                       ( sample_ wh
-                                          ( pure unit <|>
+                                          ( bang unit <|>
                                               (interval 4900 $> unit)
                                           )
                                       )
@@ -207,7 +207,7 @@ main = launchAff_ do
       ffi <- makeFFIDOMSnapshot
       let
         evt = deku elt
-          ( subgraph (pure (Tuple unit (InsertOrUpdate unit)))
+          ( subgraph (bang (Tuple unit (InsertOrUpdate unit)))
               (const $ multiBuf init (const $ pure unit))
           )
           effectfulDOMInterpret

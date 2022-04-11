@@ -12,7 +12,7 @@ import Control.Alternative ((<|>))
 import Data.Newtype (unwrap)
 import Data.Variant (match)
 import Data.Variant.Maybe (just, nothing)
-import FRP.Event.Class (class IsEvent)
+import FRP.Event.Class (class IsEvent, bang)
 import Prim.Boolean (True, False)
 import Prim.Row as Row
 import Prim.TypeError (class Fail, Beside, Text)
@@ -74,7 +74,7 @@ speaker
 speaker _ = GraphBuilder go
   where
   go (Core.AudioInterpret { makeSpeaker }) =
-    { event: pure $ makeSpeaker { id: reflectSymbol (Proxy :: _ id) }
+    { event: bang $ makeSpeaker { id: reflectSymbol (Proxy :: _ id) }
     , result: T.GraphUnit
     }
 
@@ -100,7 +100,7 @@ gain _ initialGain attributes = GraphBuilder go
     { event:
         let
           id = reflectSymbol (Proxy :: _ id)
-          event0 = pure $
+          event0 = bang $
             makeGain
               { id
               , parent: nothing
@@ -137,7 +137,7 @@ sinOsc _ initialSinOsc attributes = GraphBuilder go
     { event:
         let
           id = reflectSymbol (Proxy :: _ id)
-          event0 = pure $
+          event0 = bang $
             makeSinOsc { id, parent: nothing, frequency, scope: just scope }
           eventN = attributes <#> unwrap >>> match
             { frequency: setFrequency <<< { id, frequency: _ }
@@ -180,7 +180,7 @@ playBuf _ initialPlayBuf attributes = GraphBuilder go
     { event:
         let
           id = reflectSymbol (Proxy :: _ id)
-          event0 = pure $ makePlayBuf
+          event0 = bang $ makePlayBuf
             { id
             , parent: nothing
             , buffer

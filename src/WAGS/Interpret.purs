@@ -14,7 +14,7 @@ import Effect (Effect)
 import Effect.Aff (Aff)
 import Effect.Random as R
 import FRP.Behavior (Behavior, behavior)
-import FRP.Event (Event, create, makeEvent, subscribe)
+import FRP.Event (class IsEvent, Event, create, makeEvent, subscribe)
 import Simple.JSON as JSON
 import Type.Row.Homogeneous (class Homogeneous)
 import Unsafe.Coerce (unsafeCoerce)
@@ -321,7 +321,7 @@ foreign import makeStereoPanner_
   :: C.MakeStereoPanner -> FFIAudioSnapshot -> Effect Unit
 
 foreign import makeSubgraph_
-  :: forall index env
+  :: forall index env event
    . String
   -> String
   -> String
@@ -329,7 +329,7 @@ foreign import makeSubgraph_
        -> String
        -> Effect
             { actualized ::
-                Event (FFIAudioSnapshot -> Effect Unit)
+                event (FFIAudioSnapshot -> Effect Unit)
             , pusher :: env -> Effect Unit
             }
      )
@@ -396,13 +396,17 @@ foreign import insertOrUpdateSubgraph_
   -> FFIAudioSnapshot
   -> Effect Unit
 
-effectfulAudioInterpret
-  :: C.AudioInterpret Event (FFIAudioSnapshot -> Effect Unit)
-effectfulAudioInterpret = C.AudioInterpret
+effectfulAudioInterpret'
+  :: forall event
+   . IsEvent event
+  => (Event ~> event)
+  -> (event ~> Event)
+  -> C.AudioInterpret event (FFIAudioSnapshot -> Effect Unit)
+effectfulAudioInterpret' toE fromE = C.AudioInterpret
   { scope: "root"
-  , ids: map show $ behavior \f -> makeEvent \k -> do
+  , ids: map show $ behavior \f -> toE $ makeEvent \k -> do
       r <- R.random
-      subscribe f \x -> k (x r)
+      subscribe (fromE f) \x -> k (x r)
   , destroyUnit: destroyUnit_
   , disconnectXFromY: disconnectXFromY_
   , connectXToY: connectXToY_
@@ -437,7 +441,7 @@ effectfulAudioInterpret = C.AudioInterpret
       flip (makeSubgraph_ id parent scope) audio \index newScope ->
         do
           evt <- create
-          let event = evt.event
+          let event = toE evt.event
           let
             actualized =
               let
@@ -445,7 +449,7 @@ effectfulAudioInterpret = C.AudioInterpret
               in
                 elt id
                   ( let
-                      AudioInterpret ai = effectfulAudioInterpret
+                      AudioInterpret ai = effectfulAudioInterpret' toE fromE
                     in
                       AudioInterpret ai { scope = newScope }
                   )
@@ -480,3 +484,6 @@ effectfulAudioInterpret = C.AudioInterpret
   , insertOrUpdateSubgraph: insertOrUpdateSubgraph_
   , setTumult: \_ _ -> pure unit -- todo: setTumult_
   }
+
+effectfulAudioInterpret :: C.AudioInterpret Event (FFIAudioSnapshot -> Effect Unit)
+effectfulAudioInterpret = effectfulAudioInterpret' identity identity

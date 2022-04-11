@@ -19,6 +19,7 @@ import Data.Variant (Unvariant(..), match, unvariant)
 import Data.Variant.Maybe (Maybe, just, maybe, nothing)
 import FRP.Behavior (sample_)
 import FRP.Event (class IsEvent, keepLatest)
+import FRP.Event.Class (bang)
 import Foreign.Object (fromHomogeneous)
 import Prim.Row (class Cons, class Nub, class Union)
 import Safe.Coerce (coerce)
@@ -108,8 +109,8 @@ __allpass mId i' atts elt = C.Node go
     parent
     di@(C.AudioInterpret { ids, scope, makeAllpass, setFrequency, setQ }) =
     keepLatest
-      ( (sample_ ids (pure unit)) <#> __maybeUseName scope mId \me ->
-          ( pure
+      ( (sample_ ids (bang unit)) <#> __maybeUseName scope mId \me ->
+          ( bang
               ( makeAllpass
                   { id: me
                   , parent: just parent
@@ -257,8 +258,8 @@ analyser i' atts elt = C.Node go
     parent
     di@(C.AudioInterpret { ids, scope, makeAnalyser, setAnalyserNodeCb }) =
     keepLatest
-      ( (sample_ ids (pure unit)) <#> \me ->
-          pure
+      ( (sample_ ids (bang unit)) <#> \me ->
+          bang
             ( makeAnalyser
                 { id: me
                 , parent: just parent
@@ -352,8 +353,8 @@ __audioWorklet mId (C.InitializeAudioWorkletNode i) atts elt = C.Node go
           { ids, scope, makeAudioWorkletNode, setAudioWorkletParameter }
       ) =
     keepLatest
-      ( (sample_ ids (pure unit)) <#> __maybeUseName scope mId \me ->
-          pure
+      ( (sample_ ids (bang unit)) <#> __maybeUseName scope mId \me ->
+          bang
             ( makeAudioWorkletNode
                 { id: me
                 , parent: just parent
@@ -446,8 +447,8 @@ __bandpass mId i' atts elt = C.Node go
     parent
     di@(C.AudioInterpret { ids, scope, makeBandpass, setFrequency, setQ }) =
     keepLatest
-      ( (sample_ ids (pure unit)) <#> __maybeUseName scope mId \me ->
-          pure
+      ( (sample_ ids (bang unit)) <#> __maybeUseName scope mId \me ->
+          bang
             ( makeBandpass
                 { id: me
                 , parent: just parent
@@ -505,8 +506,8 @@ __constant mId (C.InitializeConstant i) atts = C.Node go
   where
   go parent (C.AudioInterpret { ids, scope, makeConstant, setOffset, setOnOff }) =
     keepLatest
-      ( (sample_ ids (pure unit)) <#> __maybeUseName scope mId \me ->
-          pure
+      ( (sample_ ids (bang unit)) <#> __maybeUseName scope mId \me ->
+          bang
             ( makeConstant
                 { id: me
                 , parent: just parent
@@ -558,8 +559,8 @@ __convolver mId (C.InitializeConvolver i) elt = C.Node go
   where
   go parent di@(C.AudioInterpret { ids, scope, makeConvolver }) =
     keepLatest
-      ( (sample_ ids (pure unit)) <#> __maybeUseName scope mId \me ->
-          pure
+      ( (sample_ ids (bang unit)) <#> __maybeUseName scope mId \me ->
+          bang
             ( makeConvolver
                 { id: me
                 , parent: just parent
@@ -604,8 +605,8 @@ __delay mId (C.InitializeDelay i) atts elt = C.Node go
   where
   go parent di@(C.AudioInterpret { ids, scope, makeDelay, setDelay }) =
     keepLatest
-      ( (sample_ ids (pure unit)) <#> __maybeUseName scope mId \me ->
-          pure
+      ( (sample_ ids (bang unit)) <#> __maybeUseName scope mId \me ->
+          bang
             ( makeDelay
                 { id: me
                 , parent: just parent
@@ -674,8 +675,8 @@ __dynamicsCompressor mId (C.InitializeDynamicsCompressor i) atts elt = C.Node go
           }
       ) =
     keepLatest
-      ( (sample_ ids (pure unit)) <#> __maybeUseName scope mId \me ->
-          pure
+      ( (sample_ ids (bang unit)) <#> __maybeUseName scope mId \me ->
+          bang
             ( makeDynamicsCompressor
                 { id: me
                 , parent: just parent
@@ -765,8 +766,8 @@ __gain mId i' atts (C.GainInput elts) = C.Node go
   where
   C.InitializeGain i = Common.toInitializeGain i'
   go parent di@(C.AudioInterpret { ids, scope, makeGain, setGain }) = keepLatest
-    ( (sample_ ids (pure unit)) <#> __maybeUseName scope mId \me ->
-        pure
+    ( (sample_ ids (bang unit)) <#> __maybeUseName scope mId \me ->
+        bang
           ( makeGain
               { id: me, parent: just parent, scope: just scope, gain: i.gain }
           )
@@ -826,8 +827,8 @@ __highpass mId i' atts elt = C.Node go
     parent
     di@(C.AudioInterpret { ids, scope, makeHighpass, setFrequency, setQ }) =
     keepLatest
-      ( (sample_ ids (pure unit)) <#> __maybeUseName scope mId \me ->
-          pure
+      ( (sample_ ids (bang unit)) <#> __maybeUseName scope mId \me ->
+          bang
             ( makeHighpass
                 { id: me
                 , parent: just parent
@@ -891,8 +892,8 @@ __highshelf mId i' atts elt = C.Node go
     parent
     di@(C.AudioInterpret { ids, scope, makeHighshelf, setFrequency, setGain }) =
     keepLatest
-      ( (sample_ ids (pure unit)) <#> __maybeUseName scope mId \me ->
-          pure
+      ( (sample_ ids (bang unit)) <#> __maybeUseName scope mId \me ->
+          bang
             ( makeHighshelf
                 { id: me
                 , parent: just parent
@@ -946,7 +947,7 @@ input
   -> C.Node outputChannels () () event payload
 input (C.Input me) = C.Node go
   where
-  go parent (C.AudioInterpret { scope, makeInput }) = pure
+  go parent (C.AudioInterpret { scope, makeInput }) = bang
     ( makeInput
         { id: me, parent: just parent, scope: just scope }
     )
@@ -970,8 +971,8 @@ __lowpass mId i' atts elt = C.Node go
     parent
     di@(C.AudioInterpret { ids, scope, makeLowpass, setFrequency, setQ }) =
     keepLatest
-      ( (sample_ ids (pure unit)) <#> __maybeUseName scope mId \me ->
-          pure
+      ( (sample_ ids (bang unit)) <#> __maybeUseName scope mId \me ->
+          bang
             ( makeLowpass
                 { id: me
                 , parent: just parent
@@ -1035,8 +1036,8 @@ __lowshelf mId i' atts elt = C.Node go
     parent
     di@(C.AudioInterpret { ids, scope, makeLowshelf, setFrequency, setGain }) =
     keepLatest
-      ( (sample_ ids (pure unit)) <#> __maybeUseName scope mId \me ->
-          pure
+      ( (sample_ ids (bang unit)) <#> __maybeUseName scope mId \me ->
+          bang
             ( makeLowshelf
                 { id: me
                 , parent: just parent
@@ -1108,8 +1109,8 @@ __loopBuf mId i' atts = C.Node go
         }
     ) =
     keepLatest
-      ( (sample_ ids (pure unit)) <#> __maybeUseName scope mId \me ->
-          pure
+      ( (sample_ ids (bang unit)) <#> __maybeUseName scope mId \me ->
+          bang
             ( makeLoopBuf
                 { id: me
                 , parent: just parent
@@ -1167,8 +1168,8 @@ __mediaElement mId (C.InitializeMediaElement i) = C.Node go
   where
   go parent (C.AudioInterpret { ids, scope, makeMediaElement }) =
     keepLatest
-      ( (sample_ ids (pure unit)) <#> __maybeUseName scope mId \me ->
-          pure
+      ( (sample_ ids (bang unit)) <#> __maybeUseName scope mId \me ->
+          bang
             ( makeMediaElement
                 { id: me
                 , parent: just parent
@@ -1207,8 +1208,8 @@ __microphone mId (C.InitializeMicrophone i) = C.Node go
   where
   go parent (C.AudioInterpret { ids, scope, makeMicrophone }) =
     keepLatest
-      ( (sample_ ids (pure unit)) <#> __maybeUseName scope mId \me ->
-          pure
+      ( (sample_ ids (bang unit)) <#> __maybeUseName scope mId \me ->
+          bang
             ( makeMicrophone
                 { id: me
                 , parent: just parent
@@ -1252,8 +1253,8 @@ __notch mId i' atts elt = C.Node go
   C.InitializeNotch i = Common.toInitialNotch i'
   go parent di@(C.AudioInterpret { ids, scope, makeNotch, setFrequency, setQ }) =
     keepLatest
-      ( (sample_ ids (pure unit)) <#> __maybeUseName scope mId \me ->
-          pure
+      ( (sample_ ids (bang unit)) <#> __maybeUseName scope mId \me ->
+          bang
             ( makeNotch
                 { id: me
                 , parent: just parent
@@ -1320,8 +1321,8 @@ __peaking mId i' atts elt = C.Node go
           { ids, scope, makePeaking, setFrequency, setQ, setGain }
       ) =
     keepLatest
-      ( (sample_ ids (pure unit)) <#> __maybeUseName scope mId \me ->
-          pure
+      ( (sample_ ids (bang unit)) <#> __maybeUseName scope mId \me ->
+          bang
             ( makePeaking
                 { id: me
                 , parent: just parent
@@ -1385,8 +1386,8 @@ __periodicOsc mId (C.InitializePeriodicOsc i) atts = C.Node go
         { ids, scope, makePeriodicOsc, setFrequency, setOnOff, setPeriodicOsc }
     ) =
     keepLatest
-      ( (sample_ ids (pure unit)) <#> __maybeUseName scope mId \me ->
-          pure
+      ( (sample_ ids (bang unit)) <#> __maybeUseName scope mId \me ->
+          bang
             ( makePeriodicOsc
                 { id: me
                 , parent: just parent
@@ -1505,8 +1506,8 @@ __playBuf mId i' atts = C.Node go
         }
     ) =
     keepLatest
-      ( (sample_ ids (pure unit)) <#> __maybeUseName scope mId \me ->
-          pure
+      ( (sample_ ids (bang unit)) <#> __maybeUseName scope mId \me ->
+          bang
             ( makePlayBuf
                 { id: me
                 , parent: just parent
@@ -1562,8 +1563,8 @@ recorder (C.InitializeRecorder i) elt = C.Node go
   where
   go parent di@(C.AudioInterpret { ids, scope, makeRecorder }) =
     keepLatest
-      ( (sample_ ids (pure unit)) <#> \me ->
-          pure
+      ( (sample_ ids (bang unit)) <#> \me ->
+          bang
             ( makeRecorder
                 { id: me, parent: just parent, scope: just scope, cb: i.cb }
             )
@@ -1583,7 +1584,7 @@ ref
 ref px = C.Node go
   where
   go parent (C.AudioInterpret { scope, connectXToY }) =
-    pure
+    bang
       ( connectXToY
           { from: __appendScopeToNamedInput (reflectSymbol px) scope
           , to: parent
@@ -1605,8 +1606,8 @@ __sawtoothOsc mId (C.InitializeSawtoothOsc i) atts = C.Node go
     parent
     (C.AudioInterpret { ids, scope, makeSawtoothOsc, setFrequency, setOnOff }) =
     keepLatest
-      ( (sample_ ids (pure unit)) <#> __maybeUseName scope mId \me ->
-          pure
+      ( (sample_ ids (bang unit)) <#> __maybeUseName scope mId \me ->
+          bang
             ( makeSawtoothOsc
                 { id: me
                 , parent: just parent
@@ -1661,8 +1662,8 @@ __sinOsc mId i' atts = C.Node go
     parent
     (C.AudioInterpret { ids, scope, makeSinOsc, setFrequency, setOnOff }) =
     keepLatest
-      ( (sample_ ids (pure unit)) <#> __maybeUseName scope mId \me ->
-          pure
+      ( (sample_ ids (bang unit)) <#> __maybeUseName scope mId \me ->
+          bang
             ( makeSinOsc
                 { id: me
                 , parent: just parent
@@ -1717,8 +1718,8 @@ __squareOsc mId (C.InitializeSquareOsc i) atts = C.Node go
     parent
     (C.AudioInterpret { ids, scope, makeSquareOsc, setFrequency, setOnOff }) =
     keepLatest
-      ( (sample_ ids (pure unit)) <#> __maybeUseName scope mId \me ->
-          pure
+      ( (sample_ ids (bang unit)) <#> __maybeUseName scope mId \me ->
+          bang
             ( makeSquareOsc
                 { id: me
                 , parent: just parent
@@ -1768,8 +1769,8 @@ speaker
   -> event payload
 speaker (C.GainInput elts) di@(C.AudioInterpret { ids, makeSpeaker }) =
   keepLatest
-    ( (sample_ ids (pure unit)) <#> \me ->
-        pure (makeSpeaker { id: me })
+    ( (sample_ ids (bang unit)) <#> \me ->
+        bang (makeSpeaker { id: me })
           <|> oneOf
             (map (\elt -> ((\y -> let C.Node x = y in x) elt) me di) elts)
     )
@@ -1800,8 +1801,8 @@ __pan mId (C.InitializeStereoPanner i) atts elt = C.Node go
   where
   go parent di@(C.AudioInterpret { ids, scope, makeStereoPanner, setPan }) =
     keepLatest
-      ( (sample_ ids (pure unit)) <#> __maybeUseName scope mId \me ->
-          pure
+      ( (sample_ ids (bang unit)) <#> __maybeUseName scope mId \me ->
+          bang
             ( makeStereoPanner
                 { id: me, parent: just parent, scope: just scope, pan: i.pan }
             )
@@ -1855,8 +1856,8 @@ __triangleOsc mId i' atts = C.Node go
     parent
     (C.AudioInterpret { ids, scope, makeTriangleOsc, setFrequency, setOnOff }) =
     keepLatest
-      ( (sample_ ids (pure unit)) <#> __maybeUseName scope mId \me ->
-          pure
+      ( (sample_ ids (bang unit)) <#> __maybeUseName scope mId \me ->
+          bang
             ( makeTriangleOsc
                 { id: me
                 , parent: just parent
@@ -1910,8 +1911,8 @@ __waveshaper mId (C.InitializeWaveshaper i) elt = C.Node go
   where
   go parent di@(C.AudioInterpret { ids, scope, makeWaveShaper }) =
     keepLatest
-      ( (sample_ ids (pure unit)) <#> __maybeUseName scope mId \me ->
-          pure
+      ( (sample_ ids (bang unit)) <#> __maybeUseName scope mId \me ->
+          bang
             ( makeWaveShaper
                 { id: me
                 , parent: just parent

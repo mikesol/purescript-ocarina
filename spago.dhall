@@ -11,7 +11,6 @@
   , "either"
   , "event"
   , "everythings-better-with-variants"
-  , "filterable"
   , "foldable-traversable"
   , "foreign"
   , "foreign-object"
@@ -28,10 +27,10 @@
   , "profunctor-lenses"
   , "random"
   , "record"
+  , "refs"
   , "safe-coerce"
   , "simple-json"
   , "sized-vectors"
-  , "st"
   , "strings"
   , "tuples"
   , "typelevel"
@@ -43,6 +42,7 @@
   , "variant"
   , "web-events"
   , "web-file"
+  , "web-html"
   ]
 , packages = ./packages.dhall
 , sources = [ "src/**/*.purs" ]

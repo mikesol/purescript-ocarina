@@ -26,6 +26,7 @@ import Effect.Class (liftEffect)
 import FRP.Behavior (sample_)
 import FRP.Event (Event, create, filterMap, sampleOn, subscribe)
 import FRP.Event.Animate (animationFrameEvent)
+import FRP.Event.Class (bang)
 import Math (pi, sin)
 import WAGS.Control (analyser, gain, gain__, loopBuf, singleton, speaker2, (:*))
 import WAGS.Core (GainInput)
@@ -115,6 +116,7 @@ atariSpeaks atar rc = mkExists $ SubgraphF \push -> lcmap
                           analyserE <- create
                           ctx <- context
                           ffi2 <- makeFFIAudioSnapshot ctx
+                          afe <- animationFrameEvent
                           let wh = writeHead 0.04 ctx
                           let
                             audioE = speaker2
@@ -125,13 +127,13 @@ atariSpeaks atar rc = mkExists $ SubgraphF \push -> lcmap
                                           pure (analyserE.push Nothing)
                                       )
                                   )
-                                 (sample_ wh animationFrameEvent)
+                                 (sample_ wh afe)
                               )
                               effectfulAudioInterpret
 
                           unsub <- subscribe
                             ( sampleOn
-                                (analyserE.event <|> pure Nothing)
+                                (analyserE.event <|> bang Nothing)
                                 (map Tuple audioE)
                             )
                             ( \(Tuple audio analyser) -> do
@@ -191,7 +193,7 @@ main = launchAff_ do
       ffi <- makeFFIDOMSnapshot
       let
         evt = deku elt
-          ( subgraph (pure (Tuple unit (InsertOrUpdate unit)))
+          ( subgraph (bang (Tuple unit (InsertOrUpdate unit)))
               (const $ atariSpeaks atar (const $ pure unit))
           )
           effectfulDOMInterpret
