@@ -18,6 +18,7 @@
   , "indexed-monad"
   , "integers"
   , "lists"
+  , "math"
   , "maybe"
   , "newtype"
   , "nonempty"
