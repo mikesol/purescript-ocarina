@@ -78,14 +78,14 @@ scene push event =
           , State
               /\ "State"
               /\ true
-          , Imperative
-              /\ "Imperative API"
-              /\ true
           , Subgraph
               /\ "Subgraphs"
               /\ true
           , Tumult
               /\ "Tumult"
+              /\ true
+          , Imperative
+              /\ "Imperative API"
               /\ false
           ]
     , subgraph
