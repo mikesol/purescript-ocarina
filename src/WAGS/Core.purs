@@ -109,14 +109,13 @@ newtype Input (produced :: Symbol) (consumed :: Row Type) = Input String
 
 fan
   :: forall outputChannels produced newProduced consumed event payload
-   . ( forall newConsumed newerProduced ncDiff newerConsumed a
+   . ( forall newConsumed a
         . Row.Cons newProduced a consumed newConsumed
-       => Row.Union newConsumed ncDiff newerConsumed
        => IsEvent event
        => Sym.Append produced "_" newProduced
        => Node outputChannels produced consumed event payload
        -> ( Input newProduced newConsumed
-            -> Node outputChannels newerProduced newerConsumed event payload
+            -> Node outputChannels newProduced newConsumed event payload
           )
        -> Node outputChannels produced consumed event payload
      )
@@ -127,13 +126,12 @@ fan (Node elt) f = Node go
 
 fix
   :: forall outputChannels produced newProduced consumed event payload
-   . ( forall newConsumed newerProduced ncDiff newerConsumed a
+   . ( forall newConsumed a
         . Row.Cons newProduced a consumed newConsumed
-       => Row.Union newConsumed ncDiff newerConsumed
        => IsEvent event
        => Sym.Append produced "_" newProduced
        => ( Input newProduced newConsumed
-            -> Node outputChannels newerProduced newerConsumed event payload
+            -> Node outputChannels newProduced newConsumed event payload
           )
        -> Node outputChannels produced consumed event payload
      )
@@ -203,14 +201,6 @@ mkSubgraph
   => Node outputChannels newProduced newConsumed event payload
   -> Subgraph outputChannels produced consumed event payload
 mkSubgraph (Node n) = Subgraph (Node n)
-
-mkSubgraph2
-  :: forall outputChannels produced consumed event payload newProduced diff newConsumed
-   . Row.Union consumed diff newConsumed
-  => Node outputChannels produced consumed event payload
-  -> Node outputChannels newProduced newConsumed event payload
-  -> Subgraph outputChannels produced consumed event payload
-mkSubgraph2 _ (Node n) = Subgraph (Node n)
 
 -- subgraph
 

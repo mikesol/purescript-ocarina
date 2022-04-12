@@ -28,7 +28,7 @@ import FRP.Event.Class (bang)
 import FRP.Event.Time (interval)
 import Math (pi, sin)
 import WAGS.Control (convolver, gain, gainx, highpass, loopBuf, lowpass, sinOsc, singleton, speaker2, triangleOsc, (:*))
-import WAGS.Core (GainInput, InitializeConvolver(..), fan, input, mkSubgraph, mkSubgraph2, subgraph)
+import WAGS.Core (GainInput, InitializeConvolver(..), fan, input, mkSubgraph, subgraph)
 import WAGS.Core as C
 import WAGS.Example.Utils (RaiseCancellation)
 import WAGS.Interpret (close, context, decodeAudioDataFromUri, effectfulAudioInterpret, makeFFIAudioSnapshot, writeHead)
@@ -74,7 +74,7 @@ scene { loopy, conny } wh =
             let
               ooo
                 | ix == 0 =
-                    mkSubgraph2 (input toSubg) $ convolver (InitializeConvolver { buffer: conny })
+                    mkSubgraph $ convolver (InitializeConvolver { buffer: conny })
                       ( gainx 1.0 empty
                           ( highpass 1100.0
                               ( map
