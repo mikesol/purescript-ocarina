@@ -19,7 +19,7 @@ import Deku.Subgraph as Sg
 import Effect (Effect)
 import Effect.Class.Console (log)
 import FRP.Event.Class (bang, class IsEvent)
-import Run (run2_)
+import WAGS.Run (run2_)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (gain_, sinOsc)
 import WAGS.Example.Docs.Types (Page(..))

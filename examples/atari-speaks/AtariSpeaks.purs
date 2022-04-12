@@ -45,7 +45,7 @@ scene
    . BrowserAudioBuffer
   -> AnalyserNodeCb
   -> WriteHead Event
-  -> GainInput D2 () () Event payload
+  -> GainInput D2 "" () Event payload
 scene atar cb wh =
   let
     tr = at_ wh (mul pi)

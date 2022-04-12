@@ -43,7 +43,7 @@ import Web.HTML.Window (document)
 scene
   :: forall payload
    . WriteHead (Event)
-  -> GainInput D2 () () Event payload
+  -> GainInput D2 "" () Event payload
 scene wh =
   let
     tr = at_ wh (mul pi)

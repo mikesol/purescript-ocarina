@@ -57,7 +57,7 @@ scene
    . IsEvent event
   => MemoizableEvent event
   => WriteHead event
-  -> GainInput D2 () () event payload
+  -> GainInput D2 "" () event payload
 scene wh =
   let
     tr = memoizeIfMemoizable (at_ wh (mul pi))

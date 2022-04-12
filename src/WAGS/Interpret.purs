@@ -8,6 +8,7 @@ import Data.ArrayBuffer.Types (ArrayBuffer, Float32Array, Uint8Array)
 import Data.Maybe (Maybe(..))
 import Data.Symbol (class IsSymbol)
 import Data.Typelevel.Num (class Lt, class Nat, class Pos, D1)
+import Data.Variant.Maybe as VM
 import Data.Vec (Vec)
 import Data.Vec as V
 import Effect (Effect)
@@ -19,7 +20,7 @@ import Simple.JSON as JSON
 import Type.Row.Homogeneous (class Homogeneous)
 import Unsafe.Coerce (unsafeCoerce)
 import WAGS.Control (class ValidateOutputChannelCount)
-import WAGS.Core (AudioInterpret(..))
+import WAGS.Core (AudioInterpret(..), MeOrParent(..))
 import WAGS.Core as C
 import WAGS.Parameter (AudioParameter, WriteHead)
 import WAGS.WebAPI (BrowserAudioBuffer)
@@ -323,7 +324,7 @@ foreign import makeStereoPanner_
 foreign import makeSubgraph_
   :: forall index env event
    . String
-  -> String
+  -> VM.Maybe String
   -> String
   -> ( index
        -> String
@@ -445,9 +446,9 @@ effectfulAudioInterpret' toE fromE = C.AudioInterpret
           let
             actualized =
               let
-                C.Node elt = (let C.Subgraph sg = scenes in sg) index event
+                elt = scenes index event
               in
-                elt id
+                elt (Parent id)
                   ( let
                       AudioInterpret ai = effectfulAudioInterpret' toE fromE
                     in
