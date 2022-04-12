@@ -26,7 +26,7 @@ import FRP.Event.Animate (animationFrameEvent)
 import FRP.Event.Class (bang)
 import Math (pi, sin)
 import Type.Proxy (Proxy(..))
-import WAGS.Control (gain__, sinOsc, speaker2, (:*))
+import WAGS.Control (gain, sinOsc, speaker2, (:*))
 import WAGS.Core (GainInput)
 import WAGS.Example.Utils (RaiseCancellation)
 import WAGS.Imperative (InitialGraphBuilder, runGraphBuilder)
@@ -47,8 +47,8 @@ scene
 scene wh =
   let
     tr = at_ wh (mul pi)
-    gso a b c = gain__ a empty
-      (sinOsc b (pureOn <|> (frequency <<< (ovnn c) <$> tr)))
+    gso a b c = gain a empty
+      [sinOsc b (pureOn <|> (frequency <<< (ovnn c) <$> tr))]
   in
     gso 0.1 440.0 (\rad -> 440.0 + (10.0 * sin (2.3 * rad))) :*
       [ gso 0.25 235.0 (\rad -> 235.0 + (10.0 * sin (1.7 * rad)))

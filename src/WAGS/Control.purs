@@ -4,13 +4,16 @@ import Prelude
 
 import Control.Alt ((<|>))
 import Control.Comonad (extract)
+import Control.Plus (empty)
 import ConvertableOptions (class ConvertOption, class ConvertOptionsWithDefaults, convertOptionsWithDefaults)
+import Data.Array (uncons)
 import Data.Array.NonEmpty (fromNonEmpty)
 import Data.Array.NonEmpty as NEA
 import Data.Foldable (oneOf)
 import Data.Homogeneous (class HomogeneousRowLabels)
 import Data.Homogeneous.Variant (homogeneous)
 import Data.Int (pow)
+import Data.Maybe as DM
 import Data.NonEmpty ((:|))
 import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.Tuple.Nested (type (/\), (/\))
@@ -77,6 +80,17 @@ gainInputCons2 a b = C.GainInput (NEA.cons (coerce a) (coerce b))
 
 infixr 6 gainInputCons2 as ::*
 
+gainInputCons3
+  :: forall outputChannels produced consumed event payload
+   . IsEvent event
+  => C.Node outputChannels produced consumed event payload
+  -> Array (C.Node outputChannels produced consumed event payload)
+  -> C.GainInput outputChannels produced consumed event payload
+gainInputCons3 a b = C.GainInput (fromNonEmpty (a :| b))
+
+infixr 6 gainInputCons3 as :::*
+
+
 gainInputAppend
   :: forall outputChannels produced0 produced1 produced2 consumed0 consumed1
        consumed2 event payload
@@ -104,7 +118,7 @@ __allpass
   -> C.Node outputChannels producedO consumedO event payload
 __allpass mId i' atts elt = C.Node go
   where
-  C.InitializeAllpass i = Common.toInitialAllpass i'
+  C.InitializeAllpass i = Common.toInitializeAllpass i'
   go
     parent
     di@(C.AudioInterpret { ids, scope, makeAllpass, setFrequency, setQ }) =
@@ -227,20 +241,20 @@ defaultAnalyser =
   }
 
 class InitialAnalyser i where
-  toInitialAnalyser :: i -> C.InitializeAnalyser
+  toInitializeAnalyser :: i -> C.InitializeAnalyser
 
 instance InitialAnalyser C.InitializeAnalyser where
-  toInitialAnalyser = identity
+  toInitializeAnalyser = identity
 
 instance InitialAnalyser AnalyserNodeCb where
-  toInitialAnalyser cb = toInitialAnalyser { cb }
+  toInitializeAnalyser cb = toInitializeAnalyser { cb }
 
 instance
   ConvertOptionsWithDefaults AnalyserOptions { | AnalyserOptional }
     { | provided }
     { | AnalyserAll } =>
   InitialAnalyser { | provided } where
-  toInitialAnalyser provided = C.InitializeAnalyser
+  toInitializeAnalyser provided = C.InitializeAnalyser
     (convertOptionsWithDefaults AnalyserOptions defaultAnalyser provided)
 
 analyser
@@ -253,7 +267,7 @@ analyser
   -> C.Node outputChannels produced consumed event payload
 analyser i' atts elt = C.Node go
   where
-  C.InitializeAnalyser i = toInitialAnalyser i'
+  C.InitializeAnalyser i = toInitializeAnalyser i'
   go
     parent
     di@(C.AudioInterpret { ids, scope, makeAnalyser, setAnalyserNodeCb }) =
@@ -442,7 +456,7 @@ __bandpass
   -> C.Node outputChannels producedO consumedO event payload
 __bandpass mId i' atts elt = C.Node go
   where
-  C.InitializeBandpass i = Common.toInitialBandpass i'
+  C.InitializeBandpass i = Common.toInitializeBandpass i'
   go
     parent
     di@(C.AudioInterpret { ids, scope, makeBandpass, setFrequency, setQ }) =
@@ -496,14 +510,16 @@ bandpass' px = __bandpass (just (reflectSymbol px))
 -- constant
 
 __constant
-  :: forall outputChannels produced consumed event payload
+  :: forall i outputChannels produced consumed event payload
    . IsEvent event
+  => Common.InitialConstant i
   => Maybe String
-  -> C.InitializeConstant
+  -> i
   -> event C.Constant
   -> C.Node outputChannels produced consumed event payload
-__constant mId (C.InitializeConstant i) atts = C.Node go
+__constant mId i' atts = C.Node go
   where
+  C.InitializeConstant i = Common.toInitializeConstant i'
   go parent (C.AudioInterpret { ids, scope, makeConstant, setOffset, setOnOff }) =
     keepLatest
       ( (sample_ ids (bang unit)) <#> __maybeUseName scope mId \me ->
@@ -527,20 +543,22 @@ __constant mId (C.InitializeConstant i) atts = C.Node go
       )
 
 constant
-  :: forall outputChannels event payload
+  :: forall i outputChannels event payload
    . IsEvent event
-  => C.InitializeConstant
+  => Common.InitialConstant i
+  => i
   -> event C.Constant
   -> C.Node outputChannels () () event payload
 constant = __constant nothing
 
 constant'
-  :: forall proxy sym outputChannels produced event payload
+  :: forall proxy sym i outputChannels produced event payload
    . IsEvent event
   => IsSymbol sym
+  => Common.InitialConstant i
   => Cons sym C.Input () produced
   => proxy sym
-  -> C.InitializeConstant
+  -> i
   -> event C.Constant
   -> C.Node outputChannels produced () event payload
 constant' px = __constant (just (reflectSymbol px))
@@ -734,28 +752,6 @@ dynamicsCompressor'
 dynamicsCompressor' px = __dynamicsCompressor (just (reflectSymbol px))
 
 -- gain
-gain__
-  :: forall i outputChannels produced consumed event payload
-   . IsEvent event
-  => Common.InitialGain i
-  => i
-  -> event C.Gain
-  -> C.Node outputChannels produced consumed event payload
-  -> C.Node outputChannels produced consumed event payload
-gain__ i atts h = gain i atts
-  (C.GainInput (NEA.fromNonEmpty (h :| [])))
-
-gain_
-  :: forall i outputChannels produced consumed event payload
-   . IsEvent event
-  => Common.InitialGain i
-  => i
-  -> event C.Gain
-  -> C.Node outputChannels produced consumed event payload
-  -> Array (C.Node outputChannels produced consumed event payload)
-  -> C.Node outputChannels produced consumed event payload
-gain_ i atts h t = gain i atts (C.GainInput (NEA.fromNonEmpty (h :| t)))
-
 __gain
   :: forall i outputChannels producedI consumedI producedO consumedO event
        payload
@@ -794,9 +790,12 @@ gain
   => Common.InitialGain i
   => i
   -> event C.Gain
-  -> C.GainInput outputChannels produced consumed event payload
+  -> Array (C.Node outputChannels produced consumed event payload)
   -> C.Node outputChannels produced consumed event payload
-gain = __gain nothing
+gain i e a = case uncons a of
+  DM.Nothing -> gainx i e (constant 0.0 empty :* [])
+  DM.Just { head, tail } -> gainx i e (head :::* tail)
+gain_ i a = gain i empty a
 
 gain'
   :: forall proxy sym i outputChannels produced produced' consumed event
@@ -808,9 +807,36 @@ gain'
   => proxy sym
   -> i
   -> event C.Gain
+  -> Array (C.Node outputChannels produced' consumed event payload)
+  -> C.Node outputChannels produced consumed event payload
+gain' p i e a = case uncons a of
+  DM.Nothing -> gainx' p i e (constant 0.0 empty :* [])
+  DM.Just { head, tail } -> gainx' p i e (head :::* tail)
+gain'_ px i a = gain' px i empty a
+
+gainx
+  :: forall i outputChannels produced consumed event payload
+   . IsEvent event
+  => Common.InitialGain i
+  => i
+  -> event C.Gain
+  -> C.GainInput outputChannels produced consumed event payload
+  -> C.Node outputChannels produced consumed event payload
+gainx = __gain nothing
+
+gainx'
+  :: forall proxy sym i outputChannels produced produced' consumed event
+       payload
+   . IsEvent event
+  => IsSymbol sym
+  => Cons sym C.Input produced' produced
+  => Common.InitialGain i
+  => proxy sym
+  -> i
+  -> event C.Gain
   -> C.GainInput outputChannels produced' consumed event payload
   -> C.Node outputChannels produced consumed event payload
-gain' px = __gain (just (reflectSymbol px))
+gainx' px = __gain (just (reflectSymbol px))
 
 -- highpass
 
@@ -826,7 +852,7 @@ __highpass
   -> C.Node outputChannels producedO consumedO event payload
 __highpass mId i' atts elt = C.Node go
   where
-  C.InitializeHighpass i = Common.toInitialHighpass i'
+  C.InitializeHighpass i = Common.toInitializeHighpass i'
   go
     parent
     di@(C.AudioInterpret { ids, scope, makeHighpass, setFrequency, setQ }) =
@@ -891,7 +917,7 @@ __highshelf
   -> C.Node outputChannels producedO consumedO event payload
 __highshelf mId i' atts elt = C.Node go
   where
-  C.InitializeHighshelf i = Common.toInitialHighshelf i'
+  C.InitializeHighshelf i = Common.toInitializeHighshelf i'
   go
     parent
     di@(C.AudioInterpret { ids, scope, makeHighshelf, setFrequency, setGain }) =
@@ -970,7 +996,7 @@ __lowpass
   -> C.Node outputChannels producedO consumedO event payload
 __lowpass mId i' atts elt = C.Node go
   where
-  C.InitializeLowpass i = Common.toInitialLowpass i'
+  C.InitializeLowpass i = Common.toInitializeLowpass i'
   go
     parent
     di@(C.AudioInterpret { ids, scope, makeLowpass, setFrequency, setQ }) =
@@ -1035,7 +1061,7 @@ __lowshelf
   -> C.Node outputChannels producedO consumedO event payload
 __lowshelf mId i' atts elt = C.Node go
   where
-  C.InitializeLowshelf i = Common.toInitialLowshelf i'
+  C.InitializeLowshelf i = Common.toInitializeLowshelf i'
   go
     parent
     di@(C.AudioInterpret { ids, scope, makeLowshelf, setFrequency, setGain }) =
@@ -1098,7 +1124,7 @@ __loopBuf
   -> C.Node outputChannels produced consumed event payload
 __loopBuf mId i' atts = C.Node go
   where
-  C.InitializeLoopBuf i = Common.toInitialLoopBuf i'
+  C.InitializeLoopBuf i = Common.toInitializeLoopBuf i'
   go
     parent
     ( C.AudioInterpret
@@ -1254,7 +1280,7 @@ __notch
   -> C.Node outputChannels producedO consumedO event payload
 __notch mId i' atts elt = C.Node go
   where
-  C.InitializeNotch i = Common.toInitialNotch i'
+  C.InitializeNotch i = Common.toInitializeNotch i'
   go parent di@(C.AudioInterpret { ids, scope, makeNotch, setFrequency, setQ }) =
     keepLatest
       ( (sample_ ids (bang unit)) <#> __maybeUseName scope mId \me ->
@@ -1317,7 +1343,7 @@ __peaking
   -> C.Node outputChannels producedO consumedO event payload
 __peaking mId i' atts elt = C.Node go
   where
-  C.InitializePeaking i = Common.toInitialPeaking i'
+  C.InitializePeaking i = Common.toInitializePeaking i'
   go
     parent
     di@
@@ -1471,19 +1497,19 @@ defaultPlayBuf =
   }
 
 class InitialPlayBuf i where
-  toInitialPlayBuf :: i -> C.InitializePlayBuf
+  toInitializePlayBuf :: i -> C.InitializePlayBuf
 
 instance InitialPlayBuf C.InitializePlayBuf where
-  toInitialPlayBuf = identity
+  toInitializePlayBuf = identity
 
 instance InitialPlayBuf BrowserAudioBuffer where
-  toInitialPlayBuf = toInitialPlayBuf <<< { buffer: _ }
+  toInitializePlayBuf = toInitializePlayBuf <<< { buffer: _ }
 
 instance
   ConvertOptionsWithDefaults PlayBufOptions { | PlayBufOptional } { | provided }
     { | PlayBufAll } =>
   InitialPlayBuf { | provided } where
-  toInitialPlayBuf provided = C.InitializePlayBuf
+  toInitializePlayBuf provided = C.InitializePlayBuf
     (convertOptionsWithDefaults PlayBufOptions defaultPlayBuf provided)
 
 __playBuf
@@ -1699,6 +1725,7 @@ sinOsc
   -> event C.SinOsc
   -> C.Node outputChannels () () event payload
 sinOsc = __sinOsc nothing
+sinOsc_ a = sinOsc a empty
 
 sinOsc'
   :: forall proxy sym i outputChannels produced event payload
@@ -1711,6 +1738,7 @@ sinOsc'
   -> event C.SinOsc
   -> C.Node outputChannels produced () event payload
 sinOsc' px = __sinOsc (just (reflectSymbol px))
+sinOsc'_ px a = sinOsc' px a empty
 
 -- squareOsc
 

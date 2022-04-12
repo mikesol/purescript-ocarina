@@ -44,11 +44,14 @@ px = Proxy :: Proxy """<div>
 
   <p>This is the Wags documentation. I hope it gets you started off on the right foot. If you have any questions, feel free ping me on the PureScript Discord.</p>
 
-  <p>This documentation is written in Deku and can be found <a href="https://github.com/mikesol/purescript-wags/tree/main/examples/docs">here</a>.</p>
+  <p>This documentation can be found <a href="https://github.com/mikesol/purescript-wags/tree/main/examples/docs">here</a>.</p>
 
   <p>And now, without further ado, check out the <a ~next~ style="cursor:pointer;">hello world section</a>!</p>
 </div>"""
 
-intro :: forall event payload. IsEvent event => Plus event => (Page -> Effect Unit) -> Element event payload
+intro :: forall event payload.
+  IsEvent event =>
+  Plus event =>
+  (Page -> Effect Unit) -> Element event payload
 intro dpage  = px ~~
   { next: bang (D.OnClick := (cb (const $ dpage HelloWorld *> scrollToTop))) }

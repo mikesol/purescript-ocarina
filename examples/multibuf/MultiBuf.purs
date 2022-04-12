@@ -3,7 +3,6 @@ module WAGS.Example.MultiBuf where
 import Prelude
 
 import Control.Alt ((<|>))
-import Control.Alternative (class Plus)
 import Control.Comonad (extract)
 import Control.Comonad.Cofree (Cofree, deferCofree)
 import Control.Comonad.Cofree.Class (unwrapCofree)
@@ -34,7 +33,7 @@ import FRP.Behavior (sample_)
 import FRP.Event (class IsEvent, Event, keepLatest, mapAccum, subscribe)
 import FRP.Event.Class (bang)
 import FRP.Event.Time (interval)
-import WAGS.Control (gain__, playBuf, singleton, speaker2)
+import WAGS.Control (gain, playBuf, singleton, speaker2)
 import WAGS.Core (GainInput, Subgraph(..))
 import WAGS.Example.Utils (RaiseCancellation)
 import WAGS.Interpret (close, context, decodeAudioDataFromUri, effectfulAudioInterpret, makeFFIAudioSnapshot, writeHead)
@@ -96,14 +95,14 @@ sg
   :: KickSnare
   -> forall payload
    . Subgraph Int (Number /\ ACTime) D2 () () Event payload
-sg ks = Subgraph \i n -> gain__ 1.0 empty
-  ( playBuf (if i `mod` 2 == 0 then ks.kick else ks.snare)
+sg ks = Subgraph \i n -> gain 1.0 empty
+  [ playBuf (if i `mod` 2 == 0 then ks.kick else ks.snare)
       ( n # map \(t /\ { lookAhead }) -> onOff $ AudioOnOff
           { onOff: _on
           , timeOffset: lookAhead + t
           }
       )
-  )
+  ]
 
 sgActionMaker
   :: forall event
