@@ -56,13 +56,13 @@ px = Proxy :: Proxy """<div>
 
   <h2>Our audio</h2>
 
-  <p>Our audio is expressed with the statement <code>gain_ 0.05 (sinOsc_ 440.0)</code>. The first function, <code>gain_</code>, creates a gain node with a volume of <code>0.05</code>. In WebAudio, gain ranges from <code>0.0</code> to <code>1.0</code> and can be converted to decibels using the following equation:</p>
+  <p>Our audio is expressed with the statement <code>gain_ 0.05 (sinOsc 440.0 pureOn)</code>. The first function, <code>gain_</code>, creates a gain node with a volume of <code>0.05</code>. In WebAudio, gain ranges from <code>0.0</code> to <code>1.0</code> and can be converted to decibels using the following equation:</p>
 
   <pre><code>decibels = 20 * log10( gain );</code></pre>
 
   <p>In our case, a gain of <code>0.05</code> is roughly <code>-26dB</code></p>.
 
-  <p>Our sine wave oscillator is set to a frequency of <code>440Hz</code>. That means that your loudspeaker or headphones will vibrate back and forth in sinusoidal motion 440 times per second, which most folks perceive as the <a href="https://en.wikipedia.org/wiki/A440_(pitch_standard)">note A</a>.</p>
+  <p>Our sine wave oscillator is set to a frequency of <code>440Hz</code>. That means that your loudspeaker or headphones will vibrate back and forth in sinusoidal motion 440 times per second, which most folks perceive as the <a href="https://en.wikipedia.org/wiki/A440_(pitch_standard)">note A</a>. And we turn on the oscillator with <code>pureOn</code>, as the default is off for <i>all</i> sound generators in Wags. This is a design decision to help preserve the hearing of those that work frequently with audio.</p>
 
   <h2>Next steps</h2>
   <p>Now that we have our setup running, let's explore more <a ~next~ style="cursor:pointer;">audio units</a>.</p>
