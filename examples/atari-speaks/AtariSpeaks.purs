@@ -28,7 +28,7 @@ import FRP.Event (Event, create, filterMap, sampleOn, subscribe)
 import FRP.Event.Animate (animationFrameEvent)
 import FRP.Event.Class (bang)
 import Math (pi, sin)
-import WAGS.Control (analyser, gain, gain__, loopBuf, singleton, speaker2, (:*))
+import WAGS.Control (analyser, gain, loopBuf, singleton, speaker2)
 import WAGS.Core (GainInput)
 import WAGS.Example.Utils (RaiseCancellation)
 import WAGS.Interpret (close, context, decodeAudioDataFromUri, effectfulAudioInterpret, getByteFrequencyData, makeFFIAudioSnapshot, writeHead)
@@ -45,7 +45,7 @@ scene
    . BrowserAudioBuffer
   -> AnalyserNodeCb
   -> WriteHead Event
-  -> GainInput D2 () () Event payload
+  -> GainInput D2 "" () Event payload
 scene atar cb wh =
   let
     tr = at_ wh (mul pi)
@@ -53,34 +53,32 @@ scene atar cb wh =
     singleton
       ( analyser { cb } empty
           ( gain 1.0 empty
-              $
-                gain__ 0.3 empty
-                  ( loopBuf { buffer: atar, playbackRate: 1.0 }
+              [ gain 0.3 empty
+                  [ loopBuf { buffer: atar, playbackRate: 1.0 }
                       ( pureOn <|>
                           playbackRate <<<
                             (ovnn (\rad -> 1.0 + 0.1 * sin rad)) <$> tr
                       )
-                  )
-                  :*
-                    [ gain__ 0.15 empty
-                        ( loopBuf { buffer: atar, playbackRate: 1.0 }
-                            ( pureOn
-                                <|>
-                                  playbackRate <<<
-                                    (ovnn (\rad -> 1.5 + 0.1 * sin (2.0 * rad)))
-                                    <$> tr
-                                <|>
-                                  loopStart <<< (\rad -> 0.1 + 0.1 * sin rad)
-                                    <<< vwnn <$> tr
-                                <|>
-                                  loopEnd
-                                    <<< (\rad -> 0.5 + 0.25 * sin (2.0 * rad))
-                                    <<< vwnn <$> tr
-                            )
-                        )
-                    , gain__ 0.3 empty
-                        (loopBuf { buffer: atar, playbackRate: 0.25 } pureOn)
-                    ]
+                  ]
+              , gain 0.15 empty
+                  [ loopBuf { buffer: atar, playbackRate: 1.0 }
+                      ( pureOn
+                          <|>
+                            playbackRate <<<
+                              (ovnn (\rad -> 1.5 + 0.1 * sin (2.0 * rad)))
+                              <$> tr
+                          <|>
+                            loopStart <<< (\rad -> 0.1 + 0.1 * sin rad)
+                              <<< vwnn <$> tr
+                          <|>
+                            loopEnd
+                              <<< (\rad -> 0.5 + 0.25 * sin (2.0 * rad))
+                              <<< vwnn <$> tr
+                      )
+                  ]
+              , gain 0.3 empty
+                  [ loopBuf { buffer: atar, playbackRate: 0.25 } pureOn ]
+              ]
           )
       )
 
@@ -127,7 +125,7 @@ atariSpeaks atar rc = mkExists $ SubgraphF \push -> lcmap
                                           pure (analyserE.push Nothing)
                                       )
                                   )
-                                 (sample_ wh afe)
+                                  (sample_ wh afe)
                               )
                               effectfulAudioInterpret
 

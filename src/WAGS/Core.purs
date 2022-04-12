@@ -2,17 +2,26 @@ module WAGS.Core where
 
 import Prelude
 
+import Control.Alt ((<|>))
+import Control.Plus (empty)
 import Data.Array.NonEmpty (NonEmptyArray)
 import Data.Function (on)
 import Data.Generic.Rep (class Generic)
+import Data.Hashable (class Hashable, hash)
 import Data.Newtype (class Newtype, unwrap)
 import Data.Set (Set)
 import Data.Show.Generic (genericShow)
+import Data.Tuple.Nested (type (/\), (/\))
 import Data.Variant (Variant, inj, match)
-import Data.Variant.Maybe (Maybe)
-import FRP.Behavior (ABehavior)
+import Data.Variant.Maybe (Maybe, just, nothing)
+import FRP.Behavior (ABehavior, sample_)
+import FRP.Event (class IsEvent, keepLatest)
+import FRP.Event.Class (bang)
 import Foreign (Foreign)
 import Foreign.Object (Object)
+import Prim.Ordering as O
+import Prim.Row as Row
+import Prim.Symbol as Sym
 import Simple.JSON as JSON
 import Type.Proxy (Proxy(..))
 import WAGS.Parameter (AudioOnOff, AudioParameter, InitialAudioParameter)
@@ -94,26 +103,163 @@ instance showAudioWorkletNodeOptions_ ::
     <> JSON.writeJSON a.numberOfInputs
     <> " >"
 
-derive instance newtypeInput :: Newtype Input _
-newtype Input = Input String
+newtype Input (produced :: Symbol) (consumed :: Row Type) = Input String
 
-newtype Node outputChannels produced consumed event payload = Node
-  (String -> AudioInterpret event payload -> event payload)
+-- input
 
+fan
+  :: forall outputChannels produced newProduced consumed event payload
+   . ( forall newConsumed newerProduced ncDiff newerConsumed a
+        . Row.Cons newProduced a consumed newConsumed
+       => Row.Union newConsumed ncDiff newerConsumed
+       => IsEvent event
+       => Sym.Append produced "_" newProduced
+       => Node outputChannels produced consumed event payload
+       -> ( Input newProduced newConsumed
+            -> Node outputChannels newerProduced newerConsumed event payload
+          )
+       -> Node outputChannels produced consumed event payload
+     )
+fan (Node elt) f = Node go
+  where
+  go parentOrMe di@(AudioInterpret { ids }) = keepLatest
+    ((sample_ ids (bang unit)) <#> \me' -> let me = useMeIfMe parentOrMe me' in let Node nn = f (Input me) in elt (Me me) di <|> nn parentOrMe di)
+
+fix
+  :: forall outputChannels produced newProduced consumed event payload
+   . ( forall newConsumed newerProduced ncDiff newerConsumed a
+        . Row.Cons newProduced a consumed newConsumed
+       => Row.Union newConsumed ncDiff newerConsumed
+       => IsEvent event
+       => Sym.Append produced "_" newProduced
+       => ( Input newProduced newConsumed
+            -> Node outputChannels newerProduced newerConsumed event payload
+          )
+       -> Node outputChannels produced consumed event payload
+     )
+fix f = Node go
+  where
+  go parentOrMe di@(AudioInterpret { ids, connectXToY }) = keepLatest
+    ( (sample_ ids (bang unit)) <#> \me' -> do
+        let me = useMeIfMe parentOrMe me'
+        let Node nn = f (Input me)
+        nn (Me me) di <|> case parentOrMe of
+          Parent parent -> bang (connectXToY { from: me, to: parent })
+          Me _ -> empty
+    )
+
+useMeIfMe :: MeOrParent -> String -> String
+useMeIfMe (Me me) _ = me
+useMeIfMe _ me = me
+
+useParentIfParent :: MeOrParent -> Maybe String
+useParentIfParent (Parent parent) = just parent
+useParentIfParent _ = nothing
+
+input
+  :: forall outputChannels produced consumed event payload
+   . IsEvent event
+  => Input produced consumed
+  -> Node outputChannels produced consumed event payload
+input (Input me) = Node go
+  where
+  go meOrParent (AudioInterpret { scope, makeInput }) = bang
+    ( makeInput
+        { id: useMeIfMe meOrParent me, parent: useParentIfParent meOrParent, scope: just scope }
+    )
+
+data MeOrParent = Me String | Parent String
+
+type Node' event payload = MeOrParent -> AudioInterpret event payload -> event payload
+
+newtype Node :: forall k. k -> Symbol -> Row Type -> (Type -> Type) -> Type -> Type
+newtype Node outputChannels (produced :: Symbol) (consumed :: Row Type) event payload = Node
+  (Node' event payload)
+
+class TLOrd :: forall k. O.Ordering -> k -> k -> k -> k -> Constraint
+class TLOrd o lt eq gt r | o lt eq gt -> r
+
+instance ordLt :: TLOrd O.LT lt eq gt lt
+instance ordEq :: TLOrd O.EQ lt eq gt eq
+instance ordGt :: TLOrd O.GT lt eq gt gt
+
+newtype GainInput :: forall k. k -> Symbol -> Row Type -> (Type -> Type) -> Type -> Type
 newtype GainInput outputChannels produced consumed event payload = GainInput
   (NonEmptyArray (Node outputChannels produced consumed event payload))
 
-type SubgraphSig index env outputChannels sgProduced sgConsumed event payload =
+type SubgraphSig :: forall k. Type -> Type -> k -> Symbol -> Row Type -> (Type -> Type) -> Type -> Type
+type SubgraphSig index env outputChannels (produced :: Symbol) consumed event payload =
   index
   -> event env
-  -> Node outputChannels sgProduced sgConsumed event payload
+  -> Node outputChannels produced consumed event payload
 
-newtype Subgraph index env outputChannels sgProduced sgConsumed event payload =
-  Subgraph
-    ( index
-      -> event env
-      -> Node outputChannels sgProduced sgConsumed event payload
-    )
+newtype Subgraph :: forall k. k -> Symbol -> Row Type -> (Type -> Type) -> Type -> Type
+newtype Subgraph outputChannels produced consumed event payload =
+  Subgraph (Node outputChannels produced consumed event payload)
+
+mkSubgraph
+  :: forall outputChannels produced consumed event payload newProduced diff newConsumed
+   . Row.Union consumed diff newConsumed
+  => Node outputChannels newProduced newConsumed event payload
+  -> Subgraph outputChannels produced consumed event payload
+mkSubgraph (Node n) = Subgraph (Node n)
+
+mkSubgraph2
+  :: forall outputChannels produced consumed event payload newProduced diff newConsumed
+   . Row.Union consumed diff newConsumed
+  => Node outputChannels produced consumed event payload
+  -> Node outputChannels newProduced newConsumed event payload
+  -> Subgraph outputChannels produced consumed event payload
+mkSubgraph2 _ (Node n) = Subgraph (Node n)
+
+-- subgraph
+
+data SubgraphAction env
+  = InsertOrUpdate env
+  | Remove
+
+__subgraph
+  :: forall index env outputChannels produced consumed event payload
+   . IsEvent event
+  => Hashable index
+  => event (index /\ SubgraphAction env)
+  -> (index -> event env -> Subgraph outputChannels produced consumed event payload)
+  -> Node outputChannels produced consumed event payload
+__subgraph mods scenes = Node go
+  where
+  go
+    parentOrMe
+    ( AudioInterpret
+        { ids, scope, makeSubgraph, insertOrUpdateSubgraph, removeSubgraph }
+    ) =
+    keepLatest
+      ( (sample_ ids (bang unit)) <#> \me' ->
+          let
+            me = useMeIfMe parentOrMe me'
+          in
+            bang
+              ( makeSubgraph
+                  { id: me, parent: useParentIfParent parentOrMe, scenes: ((map <<< map) (\x -> let Subgraph (Node n) = x in n) scenes), scope }
+              )
+              <|> map
+                ( \(index /\ instr) -> case instr of
+                    Remove -> removeSubgraph { id: me, pos: hash index, index }
+                    InsertOrUpdate env -> insertOrUpdateSubgraph
+                      { id: me, pos: hash index, index, env }
+                )
+                mods
+      )
+
+subgraph
+  :: forall index env outputChannels produced consumed event payload
+   . IsEvent event
+  => Hashable index
+  => event (index /\ SubgraphAction env)
+  -> (index -> event env -> Subgraph outputChannels produced consumed event payload)
+  -> Node outputChannels produced consumed event payload
+subgraph = __subgraph
+
+infixr 6 subgraph as @@
 
 newtype RealImg = RealImg { real :: Array Number, img :: Array Number }
 
@@ -806,7 +952,6 @@ type MakeWaveShaper =
   , oversample :: Oversample
   }
 
-
 type MakeTumultInternal =
   { id :: String
   , parent :: String
@@ -816,16 +961,15 @@ type MakeTumultInternal =
 type MakeSubgraph
   index
   env
-  (outputChannels :: Type)
-  (sgProduced :: Row Type)
-  (sgConsumed :: Row Type)
   event
   payload =
   { id :: String
-  , parent :: String
+  , parent :: Maybe String
   , scope :: String
   , scenes ::
-      Subgraph index env outputChannels sgProduced sgConsumed event payload
+      index
+      -> event env
+      -> Node' event payload
   }
 
 type InsertOrUpdateSubgraph index env =
@@ -867,7 +1011,6 @@ type SetPlaybackRate = { id :: String, playbackRate :: AudioParameter }
 type SetFrequency = { id :: String, frequency :: AudioParameter }
 type SetWaveShaperCurve = { id :: String, curve :: BrowserFloatArray }
 
-
 type SetTumultInternal =
   { id :: String
   , terminus :: String
@@ -908,9 +1051,8 @@ newtype AudioInterpret event payload = AudioInterpret
   , makeSquareOsc :: MakeSquareOsc -> payload
   , makeStereoPanner :: MakeStereoPanner -> payload
   , makeSubgraph ::
-      forall index env outputChannels sgProduced sgConsumed
-       . MakeSubgraph index env outputChannels sgProduced sgConsumed event
-           payload
+      forall index env
+       . MakeSubgraph index env event payload
       -> payload
   , makeTriangleOsc :: MakeTriangleOsc -> payload
   , makeTumult :: MakeTumultInternal -> payload

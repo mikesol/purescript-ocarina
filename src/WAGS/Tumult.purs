@@ -18,12 +18,10 @@ import Data.Variant.Maybe (just)
 import FRP.Behavior (sample_)
 import FRP.Event (class IsEvent, fold, keepLatest)
 import FRP.Event.Class (bang)
-import Prim.RowList (class RowToList)
 import Type.Proxy (Proxy(..))
-import WAGS.Core (AudioWorkletNodeOptions_(..), Instruction(..))
+import WAGS.Core (AudioWorkletNodeOptions_(..), Instruction(..), MeOrParent(..), useMeIfMe)
 import WAGS.Core as C
 import WAGS.Parameter (AudioCancel(..), AudioEnvelope(..), AudioNumeric(..), AudioParameter(..), AudioSudden(..))
-import WAGS.Subgraph (class MakeInputs, inputs)
 import WAGS.Tumult.Connect (__inputMonicker)
 import WAGS.Tumult.Tumult (Tumultuous, safeUntumult)
 import WAGS.Tumult.Tumult.Reconciliation (reconcileTumult)
@@ -31,13 +29,11 @@ import WAGS.Tumult.Tumult.Reconciliation (reconcileTumult)
 -- tumult
 
 tumult
-  :: forall outputChannels terminus inputs inputsRL event payload
+  :: forall outputChannels terminus produced inputs inputsRL event payload
    . IsEvent event
   => IsSymbol terminus
-  => RowToList inputs inputsRL
-  => MakeInputs inputsRL inputs
-  => event ({ | inputs } -> Tumultuous terminus inputs)
-  -> C.Node outputChannels () inputs event payload
+  => event (Tumultuous terminus inputs)
+  -> C.Node outputChannels produced inputs event payload
 tumult atts' = C.Node go
   where
   asNumber (AudioParameter v) = match
@@ -51,14 +47,15 @@ tumult atts' = C.Node go
   go prnt (C.AudioInterpret ai@{ ids, scope, connectXToY }) =
     let
       atts = map fst $ fold (\a (_ /\ b1) -> reconcileTumult a b1 /\ a)
-        ( map (\t -> safeUntumult (t (inputs scope (Proxy :: _ inputsRL))))
+        ( map (\t -> safeUntumult t)
             atts'
         )
         (Set.empty /\ Set.empty)
     in
       keepLatest
-        ( (sample_ ids (bang unit)) <#> \msfx' ->
+        ( (sample_ ids (bang unit)) <#> \msfx'' ->
             let
+              msfx' = useMeIfMe prnt msfx''
               sfx i = i <> "_" <> msfx'
 
               isfx
@@ -464,5 +461,7 @@ tumult atts' = C.Node go
                     )
                     atts
                 )
-                <|> bang (connectXToY { from: sfx terminus, to: prnt })
+                <|> case prnt of
+                            Parent prnnnnt -> bang (connectXToY { from: sfx terminus, to: prnnnnt })
+                            Me _ -> empty
         )

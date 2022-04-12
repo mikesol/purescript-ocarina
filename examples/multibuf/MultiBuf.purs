@@ -3,7 +3,6 @@ module WAGS.Example.MultiBuf where
 import Prelude
 
 import Control.Alt ((<|>))
-import Control.Alternative (class Plus)
 import Control.Comonad (extract)
 import Control.Comonad.Cofree (Cofree, deferCofree)
 import Control.Comonad.Cofree.Class (unwrapCofree)
@@ -34,13 +33,13 @@ import FRP.Behavior (sample_)
 import FRP.Event (class IsEvent, Event, keepLatest, mapAccum, subscribe)
 import FRP.Event.Class (bang)
 import FRP.Event.Time (interval)
-import WAGS.Control (gain__, playBuf, singleton, speaker2)
-import WAGS.Core (GainInput, Subgraph(..))
+import WAGS.Control (gain, playBuf, singleton, speaker2)
+import WAGS.Core (GainInput, Subgraph)
+import WAGS.Core as C
 import WAGS.Example.Utils (RaiseCancellation)
 import WAGS.Interpret (close, context, decodeAudioDataFromUri, effectfulAudioInterpret, makeFFIAudioSnapshot, writeHead)
 import WAGS.Parameter (ACTime, AudioOnOff(..), WriteHead, _on)
 import WAGS.Properties (onOff)
-import WAGS.Subgraph as Sg
 import WAGS.WebAPI (AudioContext, BrowserAudioBuffer)
 import Web.HTML (window)
 import Web.HTML.HTMLDocument (body)
@@ -93,33 +92,36 @@ accLoop time { cf, prevs } =
     prevs
 
 sg
-  :: KickSnare
-  -> forall payload
-   . Subgraph Int (Number /\ ACTime) D2 () () Event payload
-sg ks = Subgraph \i n -> gain__ 1.0 empty
-  ( playBuf (if i `mod` 2 == 0 then ks.kick else ks.snare)
+  :: forall event payload
+   . IsEvent event
+  => KickSnare
+  -> Int
+  -> event (Number /\ ACTime)
+  -> Subgraph D2 "" () event payload
+sg ks = \i n -> C.mkSubgraph $ gain 1.0 empty
+  [ playBuf (if i `mod` 2 == 0 then ks.kick else ks.snare)
       ( n # map \(t /\ { lookAhead }) -> onOff $ AudioOnOff
           { onOff: _on
           , timeOffset: lookAhead + t
           }
       )
-  )
+  ]
 
 sgActionMaker
   :: forall event
    . IsEvent event
   => ACTime /\ Acc1
-  -> event (Int /\ Sg.SubgraphAction (Number /\ ACTime))
+  -> event (Int /\ C.SubgraphAction (Number /\ ACTime))
 sgActionMaker (ac /\ { head, no }) =
-  oneOf (map (\(i /\ n) -> bang $ i /\ Sg.InsertOrUpdate (n /\ ac)) head) <|>
+  oneOf (map (\(i /\ n) -> bang $ i /\ C.InsertOrUpdate (n /\ ac)) head) <|>
     oneOf
-      (map (\i -> bang $ i /\ Sg.Remove) $ values no)
+      (map (\i -> bang $ i /\ C.Remove) $ values no)
 
 scene
   :: forall payload
    . KickSnare
   -> WriteHead Event
-  -> GainInput D2 () () Event payload
+  -> GainInput D2 "" () Event payload
 scene ks wh =
   let
     mapped = mapAccum
@@ -128,9 +130,7 @@ scene ks wh =
       acc
   in
     singleton
-      ( Sg.subgraph (keepLatest (map sgActionMaker mapped))
-          (\({} :: {}) -> sg ks)
-      )
+      ( C.subgraph (keepLatest (map sgActionMaker mapped)) (sg ks))
 
 type UIAction = Maybe { unsub :: Effect Unit, ctx :: AudioContext }
 type KickSnare = { kick :: BrowserAudioBuffer, snare :: BrowserAudioBuffer }

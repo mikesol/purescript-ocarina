@@ -40,19 +40,19 @@ defaultAllpass =
   { q: 1.0 }
 
 class InitialAllpass i where
-  toInitialAllpass :: i -> Core.InitializeAllpass
+  toInitializeAllpass :: i -> Core.InitializeAllpass
 
 instance InitialAllpass Core.InitializeAllpass where
-  toInitialAllpass = identity
+  toInitializeAllpass = identity
 
 instance InitialAllpass InitialAudioParameter where
-  toInitialAllpass = toInitialAllpass <<< { frequency: _ }
+  toInitializeAllpass = toInitializeAllpass <<< { frequency: _ }
 
 instance
   ConvertOptionsWithDefaults AllpassOptions { | AllpassOptional } { | provided }
     { | AllpassAll } =>
   InitialAllpass { | provided } where
-  toInitialAllpass provided = Core.InitializeAllpass
+  toInitializeAllpass provided = Core.InitializeAllpass
     (convertOptionsWithDefaults AllpassOptions defaultAllpass provided)
 
 -- Bandpass
@@ -87,21 +87,41 @@ defaultBandpass =
   { q: 1.0 }
 
 class InitialBandpass i where
-  toInitialBandpass :: i -> Core.InitializeBandpass
+  toInitializeBandpass :: i -> Core.InitializeBandpass
 
 instance InitialBandpass Core.InitializeBandpass where
-  toInitialBandpass = identity
+  toInitializeBandpass = identity
 
 instance InitialBandpass InitialAudioParameter where
-  toInitialBandpass = toInitialBandpass <<< { frequency: _ }
+  toInitializeBandpass = toInitializeBandpass <<< { frequency: _ }
 
 instance
   ConvertOptionsWithDefaults BandpassOptions { | BandpassOptional }
     { | provided }
     { | BandpassAll } =>
   InitialBandpass { | provided } where
-  toInitialBandpass provided = Core.InitializeBandpass
+  toInitializeBandpass provided = Core.InitializeBandpass
     (convertOptionsWithDefaults BandpassOptions defaultBandpass provided)
+
+-- Constant
+class InitialConstant i where
+  toInitializeConstant :: i -> Core.InitializeConstant
+
+instance InitialConstant Core.InitializeConstant where
+  toInitializeConstant = identity
+
+instance InitialConstant Number where
+  toInitializeConstant = Core.InitializeConstant <<< { offset: _ }
+
+-- Delay
+class InitialDelay i where
+  toInitializeDelay :: i -> Core.InitializeDelay
+
+instance InitialDelay Core.InitializeDelay where
+  toInitializeDelay = identity
+
+instance InitialDelay Number where
+  toInitializeDelay = Core.InitializeDelay <<< { delayTime: _ }
 
 -- Gain
 class InitialGain i where
@@ -145,20 +165,20 @@ defaultHighpass =
   { q: 1.0 }
 
 class InitialHighpass i where
-  toInitialHighpass :: i -> Core.InitializeHighpass
+  toInitializeHighpass :: i -> Core.InitializeHighpass
 
 instance InitialHighpass Core.InitializeHighpass where
-  toInitialHighpass = identity
+  toInitializeHighpass = identity
 
 instance InitialHighpass InitialAudioParameter where
-  toInitialHighpass = toInitialHighpass <<< { frequency: _ }
+  toInitializeHighpass = toInitializeHighpass <<< { frequency: _ }
 
 instance
   ConvertOptionsWithDefaults HighpassOptions { | HighpassOptional }
     { | provided }
     { | HighpassAll } =>
   InitialHighpass { | provided } where
-  toInitialHighpass provided = Core.InitializeHighpass
+  toInitializeHighpass provided = Core.InitializeHighpass
     (convertOptionsWithDefaults HighpassOptions defaultHighpass provided)
 
 -- Highshelf
@@ -193,20 +213,20 @@ defaultHighshelf =
   { gain: 0.0 }
 
 class InitialHighshelf i where
-  toInitialHighshelf :: i -> Core.InitializeHighshelf
+  toInitializeHighshelf :: i -> Core.InitializeHighshelf
 
 instance InitialHighshelf Core.InitializeHighshelf where
-  toInitialHighshelf = identity
+  toInitializeHighshelf = identity
 
 instance InitialHighshelf InitialAudioParameter where
-  toInitialHighshelf = toInitialHighshelf <<< { frequency: _ }
+  toInitializeHighshelf = toInitializeHighshelf <<< { frequency: _ }
 
 instance
   ConvertOptionsWithDefaults HighshelfOptions { | HighshelfOptional }
     { | provided }
     { | HighshelfAll } =>
   InitialHighshelf { | provided } where
-  toInitialHighshelf provided = Core.InitializeHighshelf
+  toInitializeHighshelf provided = Core.InitializeHighshelf
     (convertOptionsWithDefaults HighshelfOptions defaultHighshelf provided)
 
 -- LoopBuf
@@ -253,19 +273,19 @@ defaultLoopBuf =
   }
 
 class InitialLoopBuf i where
-  toInitialLoopBuf :: i -> Core.InitializeLoopBuf
+  toInitializeLoopBuf :: i -> Core.InitializeLoopBuf
 
 instance InitialLoopBuf Core.InitializeLoopBuf where
-  toInitialLoopBuf = identity
+  toInitializeLoopBuf = identity
 
 instance InitialLoopBuf BrowserAudioBuffer where
-  toInitialLoopBuf = toInitialLoopBuf <<< { buffer: _ }
+  toInitializeLoopBuf = toInitializeLoopBuf <<< { buffer: _ }
 
 instance
   ConvertOptionsWithDefaults LoopBufOptions { | LoopBufOptional } { | provided }
     { | LoopBufAll } =>
   InitialLoopBuf { | provided } where
-  toInitialLoopBuf provided = Core.InitializeLoopBuf
+  toInitializeLoopBuf provided = Core.InitializeLoopBuf
     (convertOptionsWithDefaults LoopBufOptions defaultLoopBuf provided)
 
 -- Lowpass
@@ -299,19 +319,19 @@ defaultLowpass =
   { q: 1.0 }
 
 class InitialLowpass i where
-  toInitialLowpass :: i -> Core.InitializeLowpass
+  toInitializeLowpass :: i -> Core.InitializeLowpass
 
 instance InitialLowpass Core.InitializeLowpass where
-  toInitialLowpass = identity
+  toInitializeLowpass = identity
 
 instance InitialLowpass InitialAudioParameter where
-  toInitialLowpass = toInitialLowpass <<< { frequency: _ }
+  toInitializeLowpass = toInitializeLowpass <<< { frequency: _ }
 
 instance
   ConvertOptionsWithDefaults LowpassOptions { | LowpassOptional } { | provided }
     { | LowpassAll } =>
   InitialLowpass { | provided } where
-  toInitialLowpass provided = Core.InitializeLowpass
+  toInitializeLowpass provided = Core.InitializeLowpass
     (convertOptionsWithDefaults LowpassOptions defaultLowpass provided)
 
 -- Lowshelf
@@ -346,20 +366,20 @@ defaultLowshelf =
   { gain: 0.0 }
 
 class InitialLowshelf i where
-  toInitialLowshelf :: i -> Core.InitializeLowshelf
+  toInitializeLowshelf :: i -> Core.InitializeLowshelf
 
 instance InitialLowshelf Core.InitializeLowshelf where
-  toInitialLowshelf = identity
+  toInitializeLowshelf = identity
 
 instance InitialLowshelf InitialAudioParameter where
-  toInitialLowshelf = toInitialLowshelf <<< { frequency: _ }
+  toInitializeLowshelf = toInitializeLowshelf <<< { frequency: _ }
 
 instance
   ConvertOptionsWithDefaults LowshelfOptions { | LowshelfOptional }
     { | provided }
     { | LowshelfAll } =>
   InitialLowshelf { | provided } where
-  toInitialLowshelf provided = Core.InitializeLowshelf
+  toInitializeLowshelf provided = Core.InitializeLowshelf
     (convertOptionsWithDefaults LowshelfOptions defaultLowshelf provided)
 
 -- Notch
@@ -394,20 +414,30 @@ defaultNotch =
   { q: 1.0 }
 
 class InitialNotch i where
-  toInitialNotch :: i -> Core.InitializeNotch
+  toInitializeNotch :: i -> Core.InitializeNotch
 
 instance InitialNotch Core.InitializeNotch where
-  toInitialNotch = identity
+  toInitializeNotch = identity
 
 instance InitialNotch InitialAudioParameter where
-  toInitialNotch = toInitialNotch <<< { frequency: _ }
+  toInitializeNotch = toInitializeNotch <<< { frequency: _ }
 
 instance
   ConvertOptionsWithDefaults NotchOptions { | NotchOptional } { | provided }
     { | NotchAll } =>
   InitialNotch { | provided } where
-  toInitialNotch provided = Core.InitializeNotch
+  toInitializeNotch provided = Core.InitializeNotch
     (convertOptionsWithDefaults NotchOptions defaultNotch provided)
+
+-- StereoPanner
+class InitialStereoPanner i where
+  toInitializeStereoPanner :: i -> Core.InitializeStereoPanner
+
+instance InitialStereoPanner Core.InitializeStereoPanner where
+  toInitializeStereoPanner = identity
+
+instance InitialStereoPanner Number where
+  toInitializeStereoPanner = Core.InitializeStereoPanner <<< { pan: _ }
 
 -- Peaking
 
@@ -449,19 +479,19 @@ defaultPeaking =
   { q: 1.0, gain: 0.0 }
 
 class InitialPeaking i where
-  toInitialPeaking :: i -> Core.InitializePeaking
+  toInitializePeaking :: i -> Core.InitializePeaking
 
 instance InitialPeaking Core.InitializePeaking where
-  toInitialPeaking = identity
+  toInitializePeaking = identity
 
 instance InitialPeaking InitialAudioParameter where
-  toInitialPeaking = toInitialPeaking <<< { frequency: _ }
+  toInitializePeaking = toInitializePeaking <<< { frequency: _ }
 
 instance
   ConvertOptionsWithDefaults PeakingOptions { | PeakingOptional } { | provided }
     { | PeakingAll } =>
   InitialPeaking { | provided } where
-  toInitialPeaking provided = Core.InitializePeaking
+  toInitializePeaking provided = Core.InitializePeaking
     (convertOptionsWithDefaults PeakingOptions defaultPeaking provided)
 
 -- PlayBuf
@@ -517,6 +547,27 @@ instance
   InitialPlayBuf { | provided } where
   toInitializePlayBuf provided = Core.InitializePlayBuf
     (convertOptionsWithDefaults PlayBufOptions defaultPlayBuf provided)
+
+-- SawtoothOsc
+class InitialSawtoothOsc i where
+  toInitializeSawtoothOsc :: i -> Core.InitializeSawtoothOsc
+
+instance InitialSawtoothOsc Core.InitializeSawtoothOsc where
+  toInitializeSawtoothOsc = identity
+
+instance InitialSawtoothOsc Number where
+  toInitializeSawtoothOsc = Core.InitializeSawtoothOsc <<< { frequency: _ }
+
+-- SquareOsc
+class InitialSquareOsc i where
+  toInitializeSquareOsc :: i -> Core.InitializeSquareOsc
+
+instance InitialSquareOsc Core.InitializeSquareOsc where
+  toInitializeSquareOsc = identity
+
+instance InitialSquareOsc Number where
+  toInitializeSquareOsc = Core.InitializeSquareOsc <<< { frequency: _ }
+
 
 -- SinOsc
 class InitialSinOsc i where

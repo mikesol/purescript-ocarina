@@ -2,7 +2,6 @@ module WAGS.Example.Tumult where
 
 import Prelude
 
-import Control.Plus (empty)
 import Data.Either (either)
 import Data.Exists (Exists, mkExists)
 import Data.Foldable (for_)
@@ -27,9 +26,8 @@ import FRP.Event (Event, class IsEvent, subscribe)
 import FRP.Event.Animate (animationFrameEvent)
 import FRP.Event.Class (bang)
 import Math (pi, sin, (%))
-import Type.Proxy (Proxy(..))
-import WAGS.Control (gain', gain__, loopBuf, speaker2, (:*))
-import WAGS.Core (GainInput, Input)
+import WAGS.Control (loopBuf, singleton, speaker2)
+import WAGS.Core (GainInput, fan)
 import WAGS.Example.Utils (RaiseCancellation)
 import WAGS.Interpret (close, context, decodeAudioDataFromUri, effectfulAudioInterpret, makeFFIAudioSnapshot, writeHead)
 import WAGS.Parameter (AudioNumeric(..), WriteHead, at_, ovnn, pureOn)
@@ -47,79 +45,81 @@ scene
    . IsEvent event
   => BrowserAudioBuffer
   -> WriteHead event
-  -> GainInput D2 (tmlt :: Input) (tmlt :: Input) event payload
+  -> GainInput D2 "" () event payload
 scene loopy wh =
   let
     tr = at_ wh (mul pi)
   in
-    gain__ 0.0 empty
-      ( gain' (Proxy :: _ "tmlt") 1.0 empty
-          (loopBuf loopy pureOn :* [])
-      ) :*
-      [ tumult
-          ( tr <#> \anum@(AudioNumeric { o }) ->
-              let
-                oo = o % 10.0
-              in
-                \({ tmlt } :: { tmlt :: Input }) ->
-                  let
-                    ooo
-                      | oo < 2.0 = tumultuously
-                          { output: Opt.gain 1.0
-                              { lp: Opt.lowpass
-                                  (ovnn (\x -> 1100.0 + 1000.0 * sin x) anum)
-                                  tmlt
-                              , osc: Opt.gain 0.03 (Opt.sinOsc 220.0)
-                              }
-                          }
-                      | oo < 4.0 = tumultuously
-                          { output: Opt.gain 1.0
-                              { bp: Opt.bandpass
-                                  (ovnn (\x -> 2000.0 + 1500.0 * sin x) anum)
-                                  tmlt
-                              , osc: Opt.gain 0.03 (Opt.sawtoothOsc 330.0)
-                              }
-                          }
-                      | oo < 6.0 = tumultuously
-                          { output: Opt.gain 1.0
-                              { hs: Opt.gain 1.0
-                                  { x0: Opt.highshelf
-                                      ( ovnn (\x -> 2600.0 + 1000.0 * sin x)
-                                          anum
-                                      )
-                                      tmlt
-                                  , x1: Opt.delay 0.04
-                                      (Opt.gain 0.3 { x0: Opt.ref })
-                                  }
-                              , osc: Opt.gain 0.03 (Opt.triangleOsc 550.0)
-                              }
-                          }
-                      | oo < 8.0 = tumultuously
-                          { output: Opt.gain 1.0
-                              { ls: Opt.lowshelf
-                                  (ovnn (\x -> 2600.0 + 1000.0 * sin x) anum)
-                                  tmlt
-                              , osc: Opt.gain 0.03 (Opt.squareOsc 810.0)
-                              }
-                          }
-                      | otherwise = tumultuously
-                          { output: Opt.gain 1.0
-                              { hp: Opt.highpass
-                                  (ovnn (\x -> 2600.0 + 1000.0 * sin x) anum)
-                                  tmlt
-                              , osc: Opt.gain 0.03
-                                  ( Opt.periodicOsc
-                                      ( (0.1 +> 0.1 +> 0.02 +> V.empty) /\
-                                          (0.05 +> 0.4 +> 0.1 +> V.empty)
-                                      )
-                                      1020.0
-                                  )
-                              }
-                          }
-                  in
-                    ooo
-          )
-      ]
+    singleton $ fan (loopBuf loopy pureOn) \tmlt ->
+      tumult
+        ( tr <#> \anum@(AudioNumeric { o }) ->
+            let
+              oo = o % 10.0
+              ooo
+                | oo < 2.0 = tumultuously
+                    { output: Opt.gain 1.0
+                        { lp: Opt.lowpass
+                            ( ovnn (\x -> 1100.0 + 1000.0 * sin x)
+                                anum
+                            )
+                            tmlt
+                        , osc: Opt.gain 0.03 (Opt.sinOsc 220.0)
+                        }
+                    }
+                | oo < 4.0 = tumultuously
+                    { output: Opt.gain 1.0
+                        { bp: Opt.bandpass
+                            ( ovnn (\x -> 2000.0 + 1500.0 * sin x)
+                                anum
+                            )
+                            tmlt
+                        , osc: Opt.gain 0.03 (Opt.sawtoothOsc 330.0)
+                        }
+                    }
+                | oo < 6.0 = tumultuously
+                    { output: Opt.gain 1.0
+                        { hs: Opt.gain 1.0
+                            { x0: Opt.highshelf
+                                ( ovnn
+                                    (\x -> 2600.0 + 1000.0 * sin x)
+                                    anum
+                                )
+                                tmlt
+                            , x1: Opt.delay 0.04
+                                (Opt.gain 0.3 { x0: Opt.ref })
+                            }
+                        , osc: Opt.gain 0.03 (Opt.triangleOsc 550.0)
+                        }
+                    }
+                | oo < 8.0 = tumultuously
+                    { output: Opt.gain 1.0
+                        { ls: Opt.lowshelf
+                            ( ovnn (\x -> 2600.0 + 1000.0 * sin x)
+                                anum
+                            )
+                            tmlt
+                        , osc: Opt.gain 0.03 (Opt.squareOsc 810.0)
+                        }
+                    }
+                | otherwise = tumultuously
+                    { output: Opt.gain 1.0
+                        { hp: Opt.highpass
+                            ( ovnn (\x -> 2600.0 + 1000.0 * sin x)
+                                anum
+                            )
+                            tmlt
+                        , osc: Opt.gain 0.03
+                            ( Opt.periodicOsc
+                                ( (0.1 +> 0.1 +> 0.02 +> V.empty) /\
+                                    (0.05 +> 0.4 +> 0.1 +> V.empty)
+                                )
+                                1020.0
+                            )
+                        }
+                    }
+            in
+              ooo
+        )
 
 type UIAction = Maybe { unsub :: Effect Unit, ctx :: AudioContext }
 
@@ -153,7 +153,7 @@ tumultExample loopy rc = mkExists $ SubgraphF \push -> lcmap
                             afe <- animationFrameEvent
                             unsub <- subscribe
                               ( speaker2
-                                  ( scene loopy  (sample_ wh afe)
+                                  ( scene loopy (sample_ wh afe)
                                   )
                                   effectfulAudioInterpret
                               )

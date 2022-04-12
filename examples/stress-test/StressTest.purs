@@ -30,7 +30,7 @@ import FRP.Event.Memoizable as Memoizable
 import FRP.Event.Memoize (class MemoizableEvent, memoizeIfMemoizable)
 import FRP.Event.Memoized as Memoized
 import Math (pi, sin, (%))
-import WAGS.Control (gain__, sinOsc, speaker2, (:*))
+import WAGS.Control (gain, sinOsc, speaker2, (:*))
 import WAGS.Core (GainInput)
 import WAGS.Example.Utils (RaiseCancellation)
 import WAGS.Interpret (FFIAudioSnapshot, close, context, effectfulAudioInterpret', makeFFIAudioSnapshot, writeHead)
@@ -57,11 +57,11 @@ scene
    . IsEvent event
   => MemoizableEvent event
   => WriteHead event
-  -> GainInput D2 () () event payload
+  -> GainInput D2 "" () event payload
 scene wh =
   let
     tr = memoizeIfMemoizable (at_ wh (mul pi))
-    gso a b c st ed = gain__ 0.0
+    gso a b c st ed = gain 0.0
       ( Common.gain <$>
           ( filterMap
               ( \(AudioNumeric x@{ o }) ->
@@ -87,7 +87,7 @@ scene wh =
               tr
           )
       )
-      ( sinOsc b
+      [ sinOsc b
           ( Common.frequency <<< (ovnn c) <$>
               ( filter
                   (\(AudioNumeric { o }) -> o % len < ed && o % len > st)
@@ -105,7 +105,7 @@ scene wh =
                     tr
                 )
           )
-      )
+      ]
   in
     gso 0.1 440.0 (\rad -> 440.0 + (10.0 * sin (2.3 * rad))) 0.0 0.2 :*
       ( map

@@ -27,14 +27,13 @@ import FRP.Event.Animate (animationFrameEvent)
 import FRP.Event.Class (bang)
 import FRP.Event.Time (interval)
 import Math (pi, sin)
-import Type.Proxy (Proxy(..))
-import WAGS.Control (convolver, gain, gain', gain__, highpass, input, loopBuf, lowpass, sinOsc, speaker2, triangleOsc, (:*))
-import WAGS.Core (GainInput, InitializeConvolver(..), Input, Subgraph(..))
+import WAGS.Control (convolver, gain, gainx, highpass, loopBuf, lowpass, sinOsc, singleton, speaker2, triangleOsc, (:*))
+import WAGS.Core (GainInput, InitializeConvolver(..), fan, input, mkSubgraph, mkSubgraph2, subgraph)
+import WAGS.Core as C
 import WAGS.Example.Utils (RaiseCancellation)
 import WAGS.Interpret (close, context, decodeAudioDataFromUri, effectfulAudioInterpret, makeFFIAudioSnapshot, writeHead)
 import WAGS.Parameter (WriteHead, at_, ovnn, pureOn)
 import WAGS.Properties (frequency)
-import WAGS.Subgraph as Wsg
 import WAGS.WebAPI (AudioContext, BrowserAudioBuffer)
 import Web.HTML (window)
 import Web.HTML.HTMLDocument (body)
@@ -53,53 +52,58 @@ scene
   :: forall payload
    . Init
   -> WriteHead Event
-  -> GainInput D2 (toSubg :: Input) (toSubg :: Input) Event payload
+  -> GainInput D2 "" () Event payload
 scene { loopy, conny } wh =
   let
     tr = at_ wh (mul pi)
   in
-    gain__ 0.0 empty
-      ( gain' (Proxy :: _ "toSubg") 1.0 empty
-          (loopBuf loopy pureOn :* [])
-      ) :*
-      [ Wsg.subgraph
-          ( keepLatest $ map
-              ( \ix ->
-                  ( bang (ix /\ Wsg.InsertOrUpdate unit) <|> bang
-                      ((ix - 1) /\ Wsg.Remove)
-                  )
-              )
-              (fold (\_ b -> b + 1) (interval 3000 $> unit <|> bang unit) (-1))
-          )
-          ( \({ toSubg } :: { toSubg :: Input }) -> Subgraph \ix _ ->
-              let
-                ooo
-                  | ix == 0 =
-                      convolver (InitializeConvolver { buffer: conny })
-                        ( gain 1.0 empty
-                            ( highpass 1100.0
-                                ( map
-                                    ( frequency <<< ovnn
-                                        (\x -> 3100.0 + 1000.0 * sin (0.5 * x))
-                                    )
-                                    tr
-                                )
-                                (input toSubg) :*
-                                [ gain__ 0.03 empty (sinOsc 220.0 pureOn) ]
-                            )
-                        )
-                  | ix == 1 =
-                      gain 1.0 empty
-                        ( highpass 2200.0
-                            ( map
-                                ( frequency <<< ovnn
-                                    (\x -> 2200.0 + 1000.0 * sin (0.5 * x))
-                                )
-                                tr
-                            )
-                            (input toSubg) :*
-                            [ gain__ 0.03 empty
-                                ( triangleOsc 2000.0
+    singleton $ fan (gain 1.0 empty [ loopBuf loopy pureOn ]) \(toSubg) ->
+      subgraph
+        ( keepLatest $ map
+            ( \ix ->
+                ( bang (ix /\ C.InsertOrUpdate unit) <|> bang
+                    ((ix - 1) /\ C.Remove)
+                )
+            )
+            ( fold (\_ b -> b + 1)
+                (interval 3000 $> unit <|> bang unit)
+                (-1)
+            )
+        )
+        ( \ix _ ->
+            let
+              ooo
+                | ix == 0 =
+                    mkSubgraph2 (input toSubg) $ convolver (InitializeConvolver { buffer: conny })
+                      ( gainx 1.0 empty
+                          ( highpass 1100.0
+                              ( map
+                                  ( frequency <<< ovnn
+                                      ( \x -> 3100.0 + 1000.0 * sin
+                                          (0.5 * x)
+                                      )
+                                  )
+                                  tr
+                              )
+                              (input toSubg)
+                              :* [ gain 0.03 empty [ sinOsc 220.0 pureOn ] ]
+                          )
+                      )
+                | ix == 1 =
+                    mkSubgraph $ gainx 1.0 empty
+                      ( highpass 2200.0
+                          ( map
+                              ( frequency <<< ovnn
+                                  ( \x -> 2200.0 + 1000.0 * sin
+                                      (0.5 * x)
+                                  )
+                              )
+                              tr
+                          )
+                          (input toSubg)
+                          :*
+                            [ gain 0.03 empty
+                                [ triangleOsc 2000.0
                                     ( pureOn <|>
                                         ( map
                                             ( frequency <<< ovnn
@@ -110,38 +114,41 @@ scene { loopy, conny } wh =
                                             tr
                                         )
                                     )
-                                )
+                                ]
                             ]
-                        )
-                  | otherwise =
-                      gain 1.0 empty
-                        ( lowpass 1100.0
-                            ( map
-                                ( frequency <<< ovnn
-                                    (\x -> 1100.0 + 1000.0 * sin (0.5 * x))
-                                )
-                                tr
-                            )
-                            (input toSubg) :*
-                            [ gain__ 0.03 empty
-                                ( sinOsc 820.0
+                      )
+                | otherwise =
+                    mkSubgraph $ gainx 1.0 empty
+                      ( lowpass 1100.0
+                          ( map
+                              ( frequency <<< ovnn
+                                  ( \x -> 1100.0 + 1000.0 * sin
+                                      (0.5 * x)
+                                  )
+                              )
+                              tr
+                          )
+                          (input toSubg)
+                          :*
+                            [ gain 0.03 empty
+                                [ sinOsc 820.0
                                     ( pureOn <|>
                                         ( map
                                             ( frequency <<< ovnn
-                                                ( \x -> 1100.0 + 1000.0 * sin
-                                                    (0.5 * x)
+                                                ( \x -> 1100.0 + 1000.0 *
+                                                    sin
+                                                      (0.5 * x)
                                                 )
                                             )
                                             tr
                                         )
                                     )
-                                )
+                                ]
                             ]
-                        )
-              in
-                ooo
-          )
-      ]
+                      )
+            in
+              ooo
+        )
 
 type UIAction = Maybe { unsub :: Effect Unit, ctx :: AudioContext }
 

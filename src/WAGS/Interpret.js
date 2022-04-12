@@ -767,7 +767,7 @@ exports.makeSubgraph_ = function (ptr) {
 					return function () {
 						makeGain_({
 							id: ptr,
-							parent: { type: "just", value: parent },
+							parent: parent,
 							scope: { type: "just", value: enclosingScope },
 							gain: 1.0,
 						})(state)();
