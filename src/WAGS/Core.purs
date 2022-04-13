@@ -185,12 +185,6 @@ newtype GainInput :: forall k. k -> Symbol -> Row Type -> (Type -> Type) -> Type
 newtype GainInput outputChannels produced consumed event payload = GainInput
   (NonEmptyArray (Node outputChannels produced consumed event payload))
 
-type SubgraphSig :: forall k. Type -> Type -> k -> Symbol -> Row Type -> (Type -> Type) -> Type -> Type
-type SubgraphSig index env outputChannels (produced :: Symbol) consumed event payload =
-  index
-  -> event env
-  -> Node outputChannels produced consumed event payload
-
 newtype Subgraph :: forall k. k -> Symbol -> Row Type -> (Type -> Type) -> Type -> Type
 newtype Subgraph outputChannels produced consumed event payload =
   Subgraph (Node outputChannels produced consumed event payload)
@@ -204,23 +198,23 @@ mkSubgraph (Node n) = Subgraph (Node n)
 
 -- subgraph
 
-data SubgraphAction env
-  = InsertOrUpdate env
+data SubgraphAction
+  = Insert
   | Remove
 
 __subgraph
-  :: forall index env outputChannels produced consumed event payload
+  :: forall index outputChannels produced consumed event payload
    . IsEvent event
   => Hashable index
-  => event (index /\ SubgraphAction env)
-  -> (index -> event env -> Subgraph outputChannels produced consumed event payload)
+  => event (index /\ SubgraphAction)
+  -> (index -> Subgraph outputChannels produced consumed event payload)
   -> Node outputChannels produced consumed event payload
 __subgraph mods scenes = Node go
   where
   go
     parentOrMe
     ( AudioInterpret
-        { ids, scope, makeSubgraph, insertOrUpdateSubgraph, removeSubgraph }
+        { ids, scope, makeSubgraph, insertSubgraph, removeSubgraph }
     ) =
     keepLatest
       ( (sample_ ids (bang unit)) <#> \me' ->
@@ -229,23 +223,23 @@ __subgraph mods scenes = Node go
           in
             bang
               ( makeSubgraph
-                  { id: me, parent: useParentIfParent parentOrMe, scenes: ((map <<< map) (\x -> let Subgraph (Node n) = x in n) scenes), scope }
+                  { id: me, parent: useParentIfParent parentOrMe, scenes: (map (\x -> let Subgraph (Node n) = x in n) scenes), scope }
               )
               <|> map
                 ( \(index /\ instr) -> case instr of
                     Remove -> removeSubgraph { id: me, pos: hash index, index }
-                    InsertOrUpdate env -> insertOrUpdateSubgraph
-                      { id: me, pos: hash index, index, env }
+                    Insert -> insertSubgraph
+                      { id: me, pos: hash index, index }
                 )
                 mods
       )
 
 subgraph
-  :: forall index env outputChannels produced consumed event payload
+  :: forall index outputChannels produced consumed event payload
    . IsEvent event
   => Hashable index
-  => event (index /\ SubgraphAction env)
-  -> (index -> event env -> Subgraph outputChannels produced consumed event payload)
+  => event (index /\ SubgraphAction)
+  -> (index -> Subgraph outputChannels produced consumed event payload)
   -> Node outputChannels produced consumed event payload
 subgraph = __subgraph
 
@@ -950,7 +944,6 @@ type MakeTumultInternal =
 
 type MakeSubgraph
   index
-  env
   event
   payload =
   { id :: String
@@ -958,14 +951,12 @@ type MakeSubgraph
   , scope :: String
   , scenes ::
       index
-      -> event env
       -> Node' event payload
   }
 
-type InsertOrUpdateSubgraph index env =
+type InsertSubgraph index =
   { id :: String
   , index :: index
-  , env :: env
   , pos :: Int
   }
 
@@ -1041,8 +1032,8 @@ newtype AudioInterpret event payload = AudioInterpret
   , makeSquareOsc :: MakeSquareOsc -> payload
   , makeStereoPanner :: MakeStereoPanner -> payload
   , makeSubgraph ::
-      forall index env
-       . MakeSubgraph index env event payload
+      forall index
+       . MakeSubgraph index event payload
       -> payload
   , makeTriangleOsc :: MakeTriangleOsc -> payload
   , makeTumult :: MakeTumultInternal -> payload
@@ -1074,9 +1065,9 @@ newtype AudioInterpret event payload = AudioInterpret
       forall index
        . RemoveSubgraph index
       -> payload
-  , insertOrUpdateSubgraph ::
-      forall index env
-       . InsertOrUpdateSubgraph index env
+  , insertSubgraph ::
+      forall index
+       . InsertSubgraph index
       -> payload
   , setTumult :: SetTumultInternal -> payload
   }

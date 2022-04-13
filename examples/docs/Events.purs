@@ -164,7 +164,7 @@ type Behavior = ABehavior Event
   <p>You can try it yourself by <a>following this trypurescript link.</a></p>
 
   <h2>Next steps</h2>
-  <p>In this section, saw how to build rich audio applications using the <code>Event</code> and <code>Behavior types</code>. In the next section, we'll build more complex signal processing flows using a pair of functions called <a ~next~ style="cursor:pointer;"><code>fix</code> and <code>fan</code></a>.</p>
+  <p>In this section, saw how to build rich audio applications using the <code>Event</code> and <code>Behavior</code> types. In the next section, we'll build more complex signal processing flows using a pair of functions called <a ~next~ style="cursor:pointer;"><code>fix</code> and <code>fan</code></a>.</p>
 </div>"""
 
 events :: forall event payload. IsEvent event => Plus event => (Page -> Effect Unit) -> Element event payload

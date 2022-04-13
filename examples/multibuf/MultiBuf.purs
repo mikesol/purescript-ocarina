@@ -8,16 +8,18 @@ import Control.Comonad.Cofree (Cofree, deferCofree)
 import Control.Comonad.Cofree.Class (unwrapCofree)
 import Control.Plus (empty)
 import Data.Array as Array
+import Data.Compactable (compact)
 import Data.Either (either)
 import Data.Exists (Exists, mkExists)
 import Data.Foldable (for_, oneOf)
 import Data.FoldableWithIndex (foldlWithIndex)
 import Data.Identity (Identity(..))
 import Data.Map (Map, fromFoldable, insert, union, values)
+import Data.Map as Map
 import Data.Maybe (Maybe(..), maybe)
 import Data.Newtype (unwrap)
 import Data.Profunctor (lcmap)
-import Data.Tuple (Tuple(..), swap)
+import Data.Tuple (Tuple(..), fst, swap)
 import Data.Tuple.Nested (type (/\), (/\))
 import Data.Typelevel.Num (D2)
 import Deku.Attribute (cb, (:=))
@@ -30,7 +32,7 @@ import Effect (Effect)
 import Effect.Aff (Aff, launchAff_)
 import Effect.Class (liftEffect)
 import FRP.Behavior (sample_)
-import FRP.Event (class IsEvent, Event, keepLatest, mapAccum, subscribe)
+import FRP.Event (class IsEvent, Event, fold, keepLatest, mapAccum, subscribe)
 import FRP.Event.Class (bang)
 import FRP.Event.Time (interval)
 import WAGS.Control (gain, playBuf, singleton, speaker2)
@@ -95,14 +97,13 @@ sg
   :: forall event payload
    . IsEvent event
   => KickSnare
-  -> Int
-  -> event (Number /\ ACTime)
+  -> Int /\ Number /\ ACTime
   -> Subgraph D2 "" () event payload
-sg ks = \i n -> C.mkSubgraph $ gain 1.0 empty
+sg ks = \(i /\ t /\ { lookAhead }) -> C.mkSubgraph $ gain 1.0 empty
   [ playBuf (if i `mod` 2 == 0 then ks.kick else ks.snare)
-      ( n # map \(t /\ { lookAhead }) -> onOff $ AudioOnOff
-          { onOff: _on
-          , timeOffset: lookAhead + t
+      ( bang $ onOff $ AudioOnOff
+          { n: _on
+          , o: lookAhead + t
           }
       )
   ]
@@ -111,11 +112,29 @@ sgActionMaker
   :: forall event
    . IsEvent event
   => ACTime /\ Acc1
-  -> event (Int /\ C.SubgraphAction (Number /\ ACTime))
+  -> event ((Int /\ Number /\ ACTime) /\ C.SubgraphAction)
 sgActionMaker (ac /\ { head, no }) =
-  oneOf (map (\(i /\ n) -> bang $ i /\ C.InsertOrUpdate (n /\ ac)) head) <|>
-    oneOf
-      (map (\i -> bang $ i /\ C.Remove) $ values no)
+  compact $ map fst $ fold
+    ( \x@((i /\ n /\ t) /\ a) (_ /\ m) -> case a of
+        C.Insert -> Just x /\ Map.insert i (n /\ t) m
+        C.Remove -> case Map.lookup i m of
+          Nothing -> Nothing /\ m
+          Just v -> Just ((i /\ v) /\ a) /\ Map.delete i m
+    )
+    ( oneOf (map (\(i /\ n) -> bang $ (i /\ n /\ ac) /\ C.Insert) head) <|>
+        oneOf
+          ( map
+              ( \i -> bang $
+                  ( i /\ 0.0 /\
+                      { abstractTime: 0.0
+                      , concreteTime: 0.0
+                      , lookAhead: 0.0
+                      }
+                  ) /\ C.Remove
+              ) $ values no
+          )
+    )
+    (Nothing /\ Map.empty)
 
 scene
   :: forall payload
@@ -130,7 +149,7 @@ scene ks wh =
       acc
   in
     singleton
-      ( C.subgraph (keepLatest (map sgActionMaker mapped)) (sg ks))
+      (C.subgraph (keepLatest (map sgActionMaker mapped)) (sg ks))
 
 type UIAction = Maybe { unsub :: Effect Unit, ctx :: AudioContext }
 type KickSnare = { kick :: BrowserAudioBuffer, snare :: BrowserAudioBuffer }

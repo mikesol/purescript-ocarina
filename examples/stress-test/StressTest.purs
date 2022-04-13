@@ -97,9 +97,9 @@ scene wh =
                 ( filterMap
                     ( \(AudioNumeric { o }) ->
                         if o % len < st + 0.5 && o % len > st then
-                          (Just (AudioOnOff { onOff: _on, timeOffset: o }))
+                          (Just (AudioOnOff { n: _on, o }))
                         else if o % len < ed + 0.5 && o % len > ed then
-                          (Just (AudioOnOff { onOff: _off, timeOffset: o }))
+                          (Just (AudioOnOff { n: _off, o }))
                         else Nothing
                     )
                     tr

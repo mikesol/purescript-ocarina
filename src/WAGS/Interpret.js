@@ -796,18 +796,16 @@ exports.removeSubgraph_ = function (a) {
 				}
 				delete state.scopes[pj];
 				delete state.unsu[pj];
-				delete state.pushers[pj];
 				delete state.scopes[pj];
 			}
 		};
 	};
 };
 
-exports.insertOrUpdateSubgraph_ = function (a) {
+exports.insertSubgraph_ = function (a) {
 	return function (state) {
 		return function () {
 			var ptr = a.id;
-			var env = a.env;
 			var j = a.pos;
 			var index = a.index;
 			var pj = `${ptr}-${j}`;
@@ -815,9 +813,7 @@ exports.insertOrUpdateSubgraph_ = function (a) {
 				state.scopes[pj] = [];
 				var sg = state.units[ptr].sceneM(index)(pj)();
 				state.unsu[pj] = sg.actualized((instr) => () => instr(state)())();
-				state.pushers[pj] = sg.pusher;
 			}
-			state.pushers[pj](env)();
 		};
 	};
 };
@@ -1550,7 +1546,6 @@ exports.makeFFIAudioSnapshot = function (audioCtx) {
 			units: {},
 			unqidfr: makeid(10),
 			scopes: { root: [] },
-			pushers: {},
 			unsu: {},
 			toConnect: {},
 		};

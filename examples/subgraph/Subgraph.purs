@@ -61,7 +61,7 @@ scene { loopy, conny } wh =
       subgraph
         ( keepLatest $ map
             ( \ix ->
-                ( bang (ix /\ C.InsertOrUpdate unit) <|> bang
+                ( bang (ix /\ C.Insert) <|> bang
                     ((ix - 1) /\ C.Remove)
                 )
             )
@@ -70,7 +70,7 @@ scene { loopy, conny } wh =
                 (-1)
             )
         )
-        ( \ix _ ->
+        ( \ix ->
             let
               ooo
                 | ix == 0 =

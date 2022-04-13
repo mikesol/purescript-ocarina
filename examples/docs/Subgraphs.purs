@@ -95,166 +95,55 @@ mySub raise Sg1 = mkExists $ SubgraphF \push event ->
 px =  Proxy :: Proxy """<div>
   <h1>Subgraphs</h1>
 
-  <h2>Inter-component communication</h2>
+  <h2>Making audio even more dynamic</h2>
   <p>
-    As your app gets larger, you'll want to split up your code into logical components. Besides making the code easier to work with, in Deku, this allows us to change child components on the fly without changing the type of the parent graph. We call these subgraphs.</p>
+    When we're creating video games or other types of interactive work, it's rare that we'll be able to anticipate the exact web audio graph we'll need for an entire session. As an example, imagine that in a video game a certain sound effects accompany various characters, and those characters come in and out based on your progress through the game. One way to solve this would be to anticipate the maximum number of characters that are present in a game and do some sort of round-robin assignment of nodes in the audio graph as characters enter and leave your game. But sometimes that's not ergonomic, and in certain cases its downright inefficient. Another downside is that it does not allow for specialization of the web audio graph based on new data, like for example a character to play a custom sound once you've earned a certain badge.
+  </p>
 
-  <p>In the code below, two subgraphs are divided by a horizontal line. They communicate with each other via message passing, and they also have internal messaging.</p>
+  <p>
+    Subgraphs fix this problem. They provide a concise and elegant mechansim to dynamically insert new fixed audio graphs based on new input. The other mechanism we will discuss in the next section, tumult, allows you to insert new <i>dynamic</i> audio graphs based on new input. When to use tumult vs subgraph is up to your particular requirements, but my experience dictates a 90/10 rule. 90% subgraph, 10% tumult (but that 10% tumult is like magic stardust, so it's worth it!).
+  </p>
 
-  ~code~
+  <h2>Hello subgraph</h2>
 
-  <p>And here's what it produces:</p>
+  <p>To make a subgraph, you need two things:</p>
 
-  <blockquote> ~result~ </blockquote>
+  <ol>
+    <li>An index type. This type needs to implement the <code>Hashable</code> typeclass. You can use this to mega-super-customize whatever the resulting subgraph will be.</li>
+    <li>The subgraph itself, which is a single audio node that must be prefaced by <code>mkSubgraph</code>.</li>
+  </ol>
 
-  <h2>Subgraph anatomy</h2>
+  <p>Here's a simple subgraph that is connected to a slider. As you slide through the slider, new nodes are provisioned. Each one has a pseudo-random pitch and uses a randomly chosen oscillator.</p>
 
-  <p>Subgraphs are not unlike the root components we've been working with all along. There are, however, a few key differences to be aware of.</p>
+  <pre><code>placeholder</code></pre>
 
-  <h3>The event</h3>
+  <p>And here's the result:</p>
 
-  <code>Subgraph</code>-s, like <code>Element</code>-s, receive an <code>Event</code> as their first arguemnt. However, unlike <code>Element</code>-s, this <code>Event</code> contains a <code>Tuple</code> of shape <code>Tuple index  (SubgraphAction env)</code>.
+  <blockquote>placeholder</blockquote>
 
-  The first part of the <code>Tuple</code> is the index of the subgraph. Each subgraph has a unique hashable index.
+  <p>You can try it yourself by <a>following this trypurescript link.</a></p>
 
-  The second part of the <code>Tuple</code> is a <code>SubgraphAction</code>, which is one of the three following things:
+  <p>Note how, in this example, we use a delay to turn off audio nodes. One nice thing about subgraphs is that, when they are removed, their nodes are turned off <i>and</i> their events are cancelled, which means that there will never be a case where a subgraph keeps playing or consuming events after it has been removed.</p>
 
-  <ul>
-    <li><code>InsertOrUpdate env</code>: Inserts or updates a subgraph, pushing the contents of <code>env</code> to it. We'll see how the subgraph receives this content in a bit.</li>
-    <li><code>SendToTop</code>: Sends the subgraph to the top of its enclosing element. Note that, if the enclosing element contains other elements besides the subgraph, it will leapfrog those as well, which is not what you want in most cases. To avoid this, as standard practice, a subgraph should be the unique child of its enclosing element.</li>
-    <li><code>Remove</code>: Remove a subgraph from the DOM.</li>
-  </ul>
+  <h2>Subgraphs inside subgraphs</h2>
 
-  <h3>The creation function</h3>
-  The second and last argument to <code>subgraph</code> is the subgraph creation function. This takes three arguments:
+  <p>Subgraphs are versatile in that the index can be interpreted as any web audio graph. But they're <i>also</i> versatile in that they can contain arbitrarily many subgraphs within them. In the example below, we get inception-y, where each subgraph contains a copy of itself that is used to create a nested feedback loop as you increase the counter. That's a lot of feedback!</p>
 
-  <ul>
-    <li>The index of this particular subgraph</li>
-    <li>A pusher for this subgraph. Things pushed to this pusher will be propagated <i>only</i> to this particular subgraph, meaning its parent and its siblings will not receive these pushes.</li>
-    <li>An event of type <code>Event (Either env push)</code>. It responds to <i>both</i> external communication when created and updated (on the <code>Left</code>) <i>and</i> to input from the pusher (on the <code>Right</code>).</li>
-  </ul>
+  <p>Here's the code:</p>
 
-  <p>Note that the last two arguments, the <i>pusher</i> and the <i>event</i>, are part of an existential type and <i>must</i> come after a call to <code>mkExists</code> followed by the <code>newtype</code> constructor <code>SubgraphF</code>, as seen in the example above. This pattern allows you to have arbitrary pushers for each subgraph.</p>
+  <pre><code>placeholder</code></pre>
 
-  <p>Using this pattern, you can create the behavior of dynamic websites with little or no overhead. For example, the navigation links on this page are implemented as subgraph, and as you can see, they are quite fast!</p>
+  <p>And here's the result:</p>
+
+  <blockquote>placeholder</blockquote>
+
+  <p>You can try it yourself by <a>following this trypurescript link.</a></p>
 
   <h2>Next steps</h2>
-  <p>Subgraphs are a great way to bring elements in and out of the DOM, but what if you want to take an existing element and ship it somewhere else? In these cases, the best bet is often to use CSS, but if CSS won't cut it, there are <a ~next~ style="cursor:pointer;">portals</a>.</p>
+  <p>Subgraphs are great when the domain is known, meaning it's <i>your</i> application and <i>your</i> rules. But what if you have a more open context, like for example a live-coding environment? Often times, these applications simply do not work with fixed graphs. For example, if you're live-coding two deeply-nested graphs and find yourself needing to create a feedback loop between them, you're out of luck. This is when you use the subject of our next section: <a ~next~ style="cursor:pointer;">tumult</a>.</p>
 </div>"""
 
 subgraphs :: forall event payload. IsEvent event => Plus event => (Page -> Effect Unit) -> Element event payload
 subgraphs dpage = px ~~
-  { code: nut
-      ( D.pre_
-          [ D.code_
-              [ text_
-                  """module Main where
-
-import Prelude
-
-import Control.Alt ((<|>))
-import Data.Exists (mkExists)
-import Data.Filterable (class Filterable, compact, partitionMap)
-import Data.Hashable (class Hashable, hash)
-import Data.Maybe (Maybe(..))
-import Data.Tuple (snd)
-import Data.Tuple.Nested ((/\))
-import Deku.Attribute (cb, (:=))
-import Deku.Control (text, text_)
-import Deku.Core (Subgraph, SubgraphF(..))
-import Deku.DOM as D
-import Deku.Subgraph (SubgraphAction(..), (@@))
-import Deku.Toplevel ((🚀))
-import Effect (Effect)
-import FRP.Event (class IsEvent, mapAccum)
-
-data UIevents = UIShown | ButtonClicked | SliderMoved Number
-derive instance Eq UIevents
-
-data Sgs = Sg0 | Sg1
-derive instance Eq Sgs
-derive instance Ord Sgs
-instance Show Sgs where
-  show Sg0 = "Sg0"
-  show Sg1 = "Sg1"
-instance Hashable Sgs where
-  hash = show >>> hash
-
-counter :: forall event a. IsEvent event => event a → event Int
-counter event = map snd $ mapAccum f event 0
-  where
-  f a b = (b + 1) /\ (a /\ b)
-
-mySub
-  :: forall event payload
-   . Filterable event
-  => IsEvent event
-  => (Sgs -> Effect Unit)
-  -> Subgraph Sgs Unit event payload
-mySub raise Sg0 = mkExists $ SubgraphF \push event ->
-  let
-    { left, right } = partitionMap identity event
-  in
-    D.div_
-      [ D.div_
-          [ D.button
-              (bang $ D.OnClick := cb (const $ raise Sg0))
-              [ text_ "Send to B" ]
-          , D.div_ [ text (map (append "A: " <<< show) (counter left)) ]
-          , D.button
-              (bang $ D.OnClick := cb (const $ push unit))
-              [ text_ "Send to C" ]
-          , D.div_ [ text (map (append "C: " <<< show) (counter right)) ]
-          , D.hr_ []
-          ]
-      ]
-mySub raise Sg1 = mkExists $ SubgraphF \push event ->
-  let
-    { left, right } = partitionMap identity event
-  in
-    D.div_
-      [ D.div_
-          [ D.button
-              (bang $ D.OnClick := cb (const $ raise Sg0))
-              [ text_ "Send to A" ]
-          , D.div_ [ text (map (append "B: " <<< show) (counter (left))) ]
-          , D.button
-              (bang $ D.OnClick := cb (const $ push unit))
-              [ text_ "Send to D" ]
-          , D.div_ [ text (map (append "D: " <<< show) (counter right)) ]
-          ]
-      ]
-
-main :: Effect Unit
-main = Nothing 🚀 \push event ->
-  ( bang (Sg0 /\ InsertOrUpdate unit)
-      <|> bang (Sg1 /\ InsertOrUpdate unit)
-      <|>
-        ( compact event # map
-            ( case _ of
-                Sg0 -> Sg1 /\ InsertOrUpdate unit
-                Sg1 -> Sg0 /\ InsertOrUpdate unit
-            )
-        )
-  ) @@ mySub (push <<< Just)"""
-              ]
-          ]
-      )
-  , result: nut
-      ( bang (unit /\ InsertOrUpdate unit) @@ \_ -> mkExists $ SubgraphF \push event' ->
-          let
-            event = compact (map hush event')
-          in
-            ( bang (Sg0 /\ InsertOrUpdate unit)
-                <|> bang (Sg1 /\ InsertOrUpdate unit)
-                <|>
-                  ( compact event # map
-                      ( case _ of
-                          Sg0 -> Sg1 /\ InsertOrUpdate unit
-                          Sg1 -> Sg0 /\ InsertOrUpdate unit
-                      )
-                  )
-            ) @@ mySub (push <<< Just)
-      )
-  , next: bang (D.OnClick := (cb (const $ dpage Intro *> scrollToTop)))
+  { next: bang (D.OnClick := (cb (const $ dpage Intro *> scrollToTop)))
   }

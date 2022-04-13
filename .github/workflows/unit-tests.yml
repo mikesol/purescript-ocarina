@@ -22,10 +22,10 @@ jobs:
       #- name: Spago test
       #  run: npx spago -x test.dhall test
       - name: Build qc
-        run: npx spago -x examples.dhall bundle-app --main WAGS.Example.Storybook --to examples/storybook/index.js
+        run: npx spago -x examples.dhall bundle-app --main WAGS.Example.Docs --to examples/docs/index.js
       - name: Deploy
         if: ${{ github.ref == 'refs/heads/main' }}
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GH_TOKEN }}
-          publish_dir: ./examples/storybook
+          publish_dir: ./examples/docs

@@ -2,6 +2,7 @@ module WAGS.Interpret where
 
 import Prelude
 
+import Control.Alt ((<|>))
 import Control.Bind (bindFlipped)
 import Control.Promise (Promise, toAffE)
 import Data.ArrayBuffer.Types (ArrayBuffer, Float32Array, Uint8Array)
@@ -15,7 +16,8 @@ import Effect (Effect)
 import Effect.Aff (Aff)
 import Effect.Random as R
 import FRP.Behavior (Behavior, behavior)
-import FRP.Event (class IsEvent, Event, create, makeEvent, subscribe)
+import FRP.Event (class IsEvent, Event, makeEvent, subscribe)
+import FRP.Event.Class (bang)
 import Simple.JSON as JSON
 import Type.Row.Homogeneous (class Homogeneous)
 import Unsafe.Coerce (unsafeCoerce)
@@ -322,17 +324,13 @@ foreign import makeStereoPanner_
   :: C.MakeStereoPanner -> FFIAudioSnapshot -> Effect Unit
 
 foreign import makeSubgraph_
-  :: forall index env event
+  :: forall index
    . String
   -> VM.Maybe String
   -> String
   -> ( index
        -> String
-       -> Effect
-            { actualized ::
-                event (FFIAudioSnapshot -> Effect Unit)
-            , pusher :: env -> Effect Unit
-            }
+       -> { actualized :: Event (FFIAudioSnapshot -> Effect Unit) }
      )
   -> FFIAudioSnapshot
   -> Effect Unit
@@ -391,9 +389,9 @@ foreign import setPlaybackRate_
 foreign import removeSubgraph_
   :: forall index. C.RemoveSubgraph index -> FFIAudioSnapshot -> Effect Unit
 
-foreign import insertOrUpdateSubgraph_
-  :: forall index env
-   . C.InsertOrUpdateSubgraph index env
+foreign import insertSubgraph_
+  :: forall index
+   . C.InsertSubgraph index
   -> FFIAudioSnapshot
   -> Effect Unit
 
@@ -440,21 +438,19 @@ effectfulAudioInterpret' toE fromE = C.AudioInterpret
   , makeStereoPanner: makeStereoPanner_
   , makeSubgraph: \{ id, parent, scope, scenes } audio ->
       flip (makeSubgraph_ id parent scope) audio \index newScope ->
-        do
-          evt <- create
-          let event = toE evt.event
-          let
-            actualized =
-              let
-                elt = scenes index event
-              in
-                elt (Parent id)
-                  ( let
-                      AudioInterpret ai = effectfulAudioInterpret' toE fromE
-                    in
-                      AudioInterpret ai { scope = newScope }
-                  )
-          pure { actualized, pusher: evt.push }
+        let
+          actualized =
+            let
+              elt = scenes index
+            in
+              fromE $ elt (Parent id)
+                ( let
+                    AudioInterpret ai = effectfulAudioInterpret' toE fromE
+                  in
+                    AudioInterpret ai { scope = newScope }
+                )
+        in
+          { actualized }
   , makeTriangleOsc: makeTriangleOsc_
   , makeTumult: \_ _ -> pure unit -- todo: makeTumult_
   , makeWaveShaper: makeWaveShaper_
@@ -482,7 +478,7 @@ effectfulAudioInterpret' toE fromE = C.AudioInterpret
   , setPlaybackRate: setPlaybackRate_
   , setFrequency: setFrequency_
   , removeSubgraph: removeSubgraph_
-  , insertOrUpdateSubgraph: insertOrUpdateSubgraph_
+  , insertSubgraph: insertSubgraph_
   , setTumult: \_ _ -> pure unit -- todo: setTumult_
   }
 

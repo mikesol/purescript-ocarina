@@ -20,7 +20,7 @@ px = Proxy :: Proxy """<div>
 
   <h3>There sure are a lot of them!</h3>
   <p>
-    Web audio lets you do basically anything, and when anything isn't enough, there are custom Audio Worklets. This section has a tour of the web audio nodes provided by the Web Audio API and, by extension, Wags. There are only two omissions:</p>
+    This section provides a tour of the web audio nodes provided by the Web Audio API and, by extension, Wags. There are only two omissions:</p>
     <ul>
       <li>Audio Worklet Nodes</li>
       <li>Multi-channel audio</li>
