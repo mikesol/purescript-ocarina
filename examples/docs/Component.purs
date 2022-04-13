@@ -130,21 +130,37 @@ px = Proxy :: Proxy """<div>
   <p>A <a href="https://developer.mozilla.org/en-US/docs/Web/API/BiquadFilterNode">peaking filter</a> is sort of like a notch/bandpass combo. It sounds different than bandpass or notch, and is often a better choice depending on what you're making. The Q works as normal, but the gain either boosts or attenuates the frequency in question if it is positive or negative.</p>
 
   <h2 id="playbuf">Playing a buffer</h2>
+  <p><a href="https://developer.mozilla.org/en-US/docs/Web/API/AudioBufferSourceNode">Playback from a buffer</a> is one of the bread-and-butter operations in Web Audio (or any audio). The buffered audio is usually a sound file, but it'll play anything you write to a buffer. Like in the Web Audio API, you can set the buffer's start time and optionally its duration.</p>
+
   <h2 id="recorder">Recorder</h2>
+  <p>The <a href="https://developer.mozilla.org/en-US/docs/Web/API/MediaStreamAudioDestinationNode">recorder</a> allows you to record audio. It takes a callback that you can use to stash the recorded audio somewhere, like in a file for example, as the example below does. You can use it as a simple note-taking app 🎙️.</p>
+
   <h2 id="sawtooth">Sawtooth wave oscillator</h2>
+  <p>The <a href="https://developer.mozilla.org/en-US/docs/Web/API/OscillatorNode">sawtooth wave oscillator</a> plays back a sawtooth wave at a given frequency.</p>
+
   <h2 id="sine">Sine wave oscillator</h2>
+  <p>The <a href="https://developer.mozilla.org/en-US/docs/Web/API/OscillatorNode">sine wave oscillator</a> plays back a sawtooth wave at a given frequency.</p>
+
   <h2 id="square">Square wave oscillator</h2>
+  <p>The <a href="https://developer.mozilla.org/en-US/docs/Web/API/OscillatorNode">square wave oscillator</a> plays back a square wave at a given frequency.</p>
+
   <h2 id="pan">Stereo panner</h2>
+  <p>The <a href="https://developer.mozilla.org/en-US/docs/Web/API/StereoPannerNode">stereo panner</a> pans audio in the stereo plane..</p>
+
+
   <h2 id="triangle">Triangle wave oscillator</h2>
+  <p>The <a href="https://developer.mozilla.org/en-US/docs/Web/API/OscillatorNode">triangle wave oscillator</a> plays back a triangle wave at a given frequency.</p>
+
   <h2 id="waveshaper">Waveshaper</h2>
+  <p>The <a href="https://developer.mozilla.org/en-US/docs/Web/API/WaveshaperNode">waveshaper node</a>, aka distortion, uses a <a href="https://en.wikipedia.org/wiki/Waveshaper">waveshaping function</a> to add warmth to a sound.</p>
 
   <h2>Next steps</h2>
-  <p>In this section, we built a simple component. In the next section, we'll recreate the exact same element using a different input syntax called <a ~next~ style="cursor:pointer;">Pursx</a>.</p>
+  <p>Phew, that was a lot of audio units! In the next section, we'll make them come alive thanks to the magic of <a ~next~ style="cursor:pointer;">events</a>.</p>
 </div>"""
 
 components :: forall event payload. IsEvent event => Plus event => (Page -> Effect Unit) -> Element event payload
 components dpage = px ~~
   {
       drumroll: nut (text_ "PLACEHOLDER")
-      , next: bang (D.OnClick := (cb (const $ dpage Intro *> scrollToTop)))
+      , next: bang (D.OnClick := (cb (const $ dpage Events *> scrollToTop)))
   }

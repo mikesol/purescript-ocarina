@@ -10,6 +10,7 @@ data Page
   | HelloWorld
   | AudioUnits
   | Events
+  | FixFan
   | AudioWorklets
   | Imperative
   | State

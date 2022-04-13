@@ -24,7 +24,7 @@ import FRP.Behavior (sample_)
 import FRP.Event (class IsEvent, keepLatest)
 import FRP.Event.Class (bang)
 import Foreign.Object (fromHomogeneous)
-import Prim.Row (class Union)
+import Prim.Row (class Nub, class Union)
 import Prim.Symbol as Sym
 import Safe.Coerce (coerce)
 import Simple.JSON as JSON
@@ -60,28 +60,30 @@ singleton a = C.GainInput (NEA.singleton a)
 
 gainInputCons
   :: forall outputChannels produced0 produced1 produced2 ord consumed0 consumed1
-       consumed2 event payload
+       consumed2 consumed3 event payload
    . IsEvent event
   => Sym.Compare produced0 produced1 ord
   => TLOrd ord produced1 produced1 produced0 produced2
   => Union consumed0 consumed1 consumed2
+  => Nub consumed2 consumed3
   => C.Node outputChannels produced0 consumed0 event payload
   -> Array (C.Node outputChannels produced1 consumed1 event payload)
-  -> C.GainInput outputChannels produced2 consumed2 event payload
+  -> C.GainInput outputChannels produced2 consumed3 event payload
 gainInputCons a b = C.GainInput (fromNonEmpty (coerce a :| coerce b))
 
 infixr 6 gainInputCons as :*
 
 gainInputCons2
   :: forall outputChannels produced0 produced1 produced2 ord consumed0 consumed1
-       consumed2 event payload
+       consumed2 consumed3 event payload
    . IsEvent event
   => Sym.Compare produced0 produced1 ord
   => TLOrd ord produced1 produced1 produced0 produced2
   => Union consumed0 consumed1 consumed2
+  => Nub consumed2 consumed3
   => C.Node outputChannels produced0 consumed0 event payload
   -> C.GainInput outputChannels produced1 consumed1 event payload
-  -> C.GainInput outputChannels produced2 consumed2 event payload
+  -> C.GainInput outputChannels produced2 consumed3 event payload
 gainInputCons2 a b = C.GainInput (NEA.cons (coerce a) (coerce b))
 
 infixr 6 gainInputCons2 as ::*
@@ -98,14 +100,15 @@ infixr 6 gainInputCons3 as :::*
 
 gainInputAppend
   :: forall outputChannels produced0 produced1 produced2 ord consumed0 consumed1
-       consumed2 event payload
+       consumed2 consumed3 event payload
    . IsEvent event
   => Sym.Compare produced0 produced1 ord
   => TLOrd ord produced1 produced1 produced0 produced2
   => Union consumed0 consumed1 consumed2
+  => Nub consumed2 consumed3
   => C.GainInput outputChannels produced0 consumed0 event payload
   -> C.GainInput outputChannels produced1 consumed1 event payload
-  -> C.GainInput outputChannels produced2 consumed2 event payload
+  -> C.GainInput outputChannels produced2 consumed3 event payload
 gainInputAppend a b = C.GainInput (coerce a <> coerce b)
 
 infixr 6 gainInputAppend as <>*
@@ -686,6 +689,7 @@ gain
   => Common.InitialGain i
   => Sym.Compare "" produced ord
   => TLOrd ord produced produced "" produced
+  => Nub consumed consumed
   => i
   -> event C.Gain
   -> Array (C.Node outputChannels produced consumed event payload)

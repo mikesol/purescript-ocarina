@@ -12,9 +12,15 @@ import Deku.Attribute (cb, (:=))
 import Deku.Control (deku, flatten, text_)
 import Deku.Core (Element, Subgraph, SubgraphF(..))
 import Deku.DOM as D
+import Deku.Interpret (effectfulDOMInterpret, makeFFIDOMSnapshot)
+import Deku.Subgraph (SubgraphAction(..), subgraph)
+import Effect (Effect)
+import FRP.Event (class IsEvent, create, keepLatest, mapAccum, subscribe)
+import FRP.Event.Class (bang)
 import WAGS.Example.Docs.Component as Component
 import WAGS.Example.Docs.Effects as Effects
 import WAGS.Example.Docs.Events as Events
+import WAGS.Example.Docs.FixFan as FixFan
 import WAGS.Example.Docs.HelloWorld as HelloWorld
 import WAGS.Example.Docs.Intro as Intro
 import WAGS.Example.Docs.Portals as Portals
@@ -22,11 +28,6 @@ import WAGS.Example.Docs.Pursx1 as Pursx1
 import WAGS.Example.Docs.Pursx2 as Pursx2
 import WAGS.Example.Docs.Subgraphs as Subgraph
 import WAGS.Example.Docs.Types (Page(..))
-import Deku.Interpret (effectfulDOMInterpret, makeFFIDOMSnapshot)
-import Deku.Subgraph (SubgraphAction(..), subgraph)
-import Effect (Effect)
-import FRP.Event (class IsEvent, create, keepLatest, mapAccum, subscribe)
-import FRP.Event.Class (bang)
 import Web.HTML (window)
 import Web.HTML.HTMLDocument (body)
 import Web.HTML.HTMLElement (toElement)
@@ -72,6 +73,9 @@ scene push event =
           , Events
               /\ "Events"
               /\ true
+          , FixFan
+              /\ "Fan and fix"
+              /\ true
           , AudioWorklets
               /\ "Audio worklets"
               /\ true
@@ -111,6 +115,7 @@ scene push event =
     dpage
   page dpage AudioWorklets = mkExists $ SubgraphF \_ _ -> Pursx1.pursx1 dpage
   page dpage Events = mkExists $ SubgraphF \_ _ -> Events.events dpage
+  page dpage FixFan = mkExists $ SubgraphF \_ _ -> FixFan.fixFan dpage
   page dpage State = mkExists $ SubgraphF \_ _ -> Effects.effects dpage
   page dpage Imperative = mkExists $ SubgraphF \_ _ -> Pursx2.pursx2 dpage
   page dpage Subgraph = mkExists $ SubgraphF \_ _ -> Subgraph.subgraphs dpage

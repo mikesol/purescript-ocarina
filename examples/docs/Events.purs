@@ -2,29 +2,17 @@ module WAGS.Example.Docs.Events where
 
 import Prelude
 
-import Control.Alt ((<|>))
 import Control.Plus (class Plus)
-import Data.Either (hush)
-import Data.Exists (mkExists)
-import Data.Filterable (compact, filter, filterMap)
-import Data.Foldable (for_, oneOfMap)
-import Data.Maybe (Maybe(..))
-import Data.Tuple.Nested ((/\))
 import Deku.Attribute (cb, (:=))
-import Deku.Control (flatten, text, text_)
-import Deku.Core (Element, SubgraphF(..))
+import Deku.Core (Element)
 import Deku.DOM as D
 import WAGS.Example.Docs.Types (Page(..))
 import WAGS.Example.Docs.Util (scrollToTop)
-import Deku.Pursx (nut, (~~))
-import Deku.Subgraph (SubgraphAction(..), (@@))
+import Deku.Pursx ((~~))
 import Effect (Effect)
-import FRP.Event (class IsEvent, mapAccum)
+import FRP.Event (class IsEvent)
 import FRP.Event.Class (bang)
 import Type.Proxy (Proxy(..))
-import Web.DOM.Element (fromEventTarget)
-import Web.Event.Event (target)
-import Web.HTML.HTMLInputElement (fromElement, valueAsNumber)
 
 data UIEvents = UIShown | ButtonClicked | SliderMoved Number
 derive instance Eq UIEvents
@@ -32,156 +20,26 @@ px = Proxy :: Proxy
       """<div>
   <h1>Events</h1>
 
-  <h2>Listening to the DOM</h2>
+  <h3>Clicks, wiggles and loops, oh my!</h3>
   <p>
-    We'll spice up the previous example by adding an event listener to our button. When we do, Deku will keep track of how many times we clicked it. The same goes for a range slider, whose current value is displayed underneath it.
+    The true magic of web audio lies in its ability to harness the rich interactivity built into the browser. We can use mouse clicks, finger swipes and animation loops to create beautiful audio landscapes. But how can we tame the complexity of all these events in an expressive, declarative, functional manner? Enter <code>Event</code>, the abstraction that allows us to build rich reactive works using Wags.
   </p>
 
-  ~code~
+  <h2>Events, a primer</h2>
 
-  <p>And here's what it produces:</p>
+  <h2>Example 1: A slider</h2>
 
-  <blockquote> ~result~ </blockquote>
+  <h2>Example 2: A counter</h2>
 
-  <h1>Event handling</h1>
-  <p>All DOM event handlers, like <code>OnClick</code> and <code>OnInput</code>, can be set with a value of type <code>Cb</code>. This type is a newtype around <code>(Event -> Effect Boolean)</code>. In order to actually trigger the event, you'll use the <code>push</code> function passed to the creation function. The push function has a signature of <code>(push -> Effect Unit)</code>. Here, the type one can push in to <code>push</code> is UIEvents. Whenever a push happens, our `Event` receives it and all attributes are updated accordingly.</p>
+  <h2>Example 3: requestAnimationFrame</h2>
 
-  <h1>Attribute updates</h1>
-  <p>In Deku, attributes are `Event`-s. This means that, when you send something to `push`, if you want an attribute to change, the event being pushed to needs to be used to create the attribute event. That's what's happening in our example: the event is used <i>both</i> to control the click and the range slider.</p>
-
-  <p>If every attribute responded to every event, Deku would become very slow. Thankfully, there's a solution. `Event` implements the `Filterable` typeclass, and when you filter an `Event`, you mute the filtered-out parts for downstream consumers.</p>
+  <h2>Example 4: Composing events</h2>
 
   <h2>Next steps</h2>
-  <p>In this section, saw how to react to events using the looping function in combination with change. In the next section, we'll use a similar mechanism to deal with arbitrary <a ~next~ style="cursor:pointer;">effects</a>.</p>
+  <p>In this section, saw how to react to events. In the next section, we'll build more complex graphs using a pair of functions called <a ~next~ style="cursor:pointer;"><code>fix</code> and <code>fan</code></a>.</p>
 </div>"""
 
 events :: forall event payload. IsEvent event => Plus event => (Page -> Effect Unit) -> Element event payload
 events dpage = px ~~
-  { code: nut
-      ( D.pre_
-          [ D.code_
-              [ text_
-                  """module Main where
-
-import Prelude
-
-import Control.Alt ((<|>))
-import Data.Filterable (filter, filterMap)
-import Data.Foldable (for_, oneOfMap)
-import Data.Maybe (Maybe(..))
-import Data.Tuple.Nested ((/\))
-import Deku.Attribute (cb, (:=))
-import Deku.Control (text, text_)
-import Deku.DOM as D
-import Deku.Toplevel ((🚀))
-import Effect (Effect)
-import FRP.Event (mapAccum)
-import Web.DOM.Element (fromEventTarget)
-import Web.Event.Event (target)
-import Web.HTML.HTMLInputElement (fromElement, valueAsNumber)
-
-data UIEvents = UIShown | ButtonClicked | SliderMoved Number
-derive instance Eq UIEvents
-
-main :: Effect Unit
-main = UIShown 🚀 \push event ->
-  D.div_
-    [ D.button
-        (bang (D.OnClick := cb (const $ push ButtonClicked)))
-        [ text_ "Click" ]
-    , D.div_
-        [ text
-            ( (bang "Val: 0") <|>
-                ( mapAccum (const $ \x -> (x + 1) /\ x)
-                    (filter (eq ButtonClicked) event)
-                    0
-                    # map (append "Val: " <<< show)
-                )
-            )
-        ]
-    , D.div_
-        [ D.input
-            ( oneOfMap bang
-                [ D.Xtype := "range"
-                , D.OnInput := cb \e -> for_
-                    ( target e
-                        >>= fromEventTarget
-                        >>= fromElement
-                    )
-                    ( valueAsNumber
-                        >=> push <<< SliderMoved
-                    )
-                ]
-            )
-            []
-        , D.div_
-            [ text
-                ( (bang "Val: 50") <|>
-                    ( filterMap
-                        ( case _ of
-                            SliderMoved n -> Just n
-                            _ -> Nothing
-                        )
-                        event
-                        # map (append "Val: " <<< show)
-                    )
-                )
-            ]
-        ]
-    ]
-"""
-              ]
-          ]
-      )
-  , result: nut
-      ( bang (unit /\ InsertOrUpdate unit) @@ \_ -> mkExists $ SubgraphF \push event' ->
-          let
-            event = compact (map hush event')
-          in
-            flatten
-              [ D.button
-                  (bang (D.OnClick := cb (const $ push ButtonClicked)))
-                  [ text_ "Click" ]
-              , D.div_
-                  [ text
-                      ( (bang "Val: 0") <|>
-                          ( mapAccum (const $ \x -> (x + 1) /\ x)
-                              (filter (eq ButtonClicked) event)
-                              1
-                              # map (append "Val: " <<< show)
-                          )
-                      )
-                  ]
-              , D.div_
-                  [ D.input
-                      ( oneOfMap bang
-                          [ D.Xtype := "range"
-                          , D.OnInput := cb \e -> for_
-                              ( target e
-                                  >>= fromEventTarget
-                                  >>= fromElement
-                              )
-                              ( valueAsNumber
-                                  >=> push <<< SliderMoved
-                              )
-                          ]
-                      )
-                      []
-                  , D.div_
-                      [ text
-                          ( (bang "Val: 50") <|>
-                              ( filterMap
-                                  ( case _ of
-                                      SliderMoved n -> Just n
-                                      _ -> Nothing
-                                  )
-                                  event
-                                  # map (append "Val: " <<< show)
-                              )
-                          )
-                      ]
-                  ]
-              ]
-      )
-  , next: bang (D.OnClick := (cb (const $ dpage Intro *> scrollToTop)))
+  { next: bang (D.OnClick := (cb (const $ dpage FixFan *> scrollToTop)))
   }
