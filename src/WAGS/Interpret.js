@@ -1238,13 +1238,13 @@ exports.setOnOff_ = function (aa) {
 		return function () {
 			var ptr = aa.id;
 			var onOff = aa.onOff;
-			if (onOff.onOff.type === "on") {
+			if (onOff.n.type === "on") {
 				setOn_(ptr)(onOff)(state)();
-			} else if (onOff.onOff.type === "off") {
+			} else if (onOff.n.type === "off") {
 				setOff_(ptr)(onOff)(state)();
-			} else if (onOff.onOff.type === "offOn") {
-				setOff_(ptr)({ onOff: { type: "off" }, timeOffset: 0.0 })(state)();
-				setOn_(ptr)({ onOff: { type: "on" }, timeOffset: onOff.timeOffset })(
+			} else if (onOff.n.type === "offOn") {
+				setOff_(ptr)({ n: { type: "off" }, o: 0.0 })(state)();
+				setOn_(ptr)({ n: { type: "on" }, o: onOff.o })(
 					state
 				)();
 			}
@@ -1273,12 +1273,12 @@ var setOn_ = function (ptr) {
 				}
 				if (state.units[ptr].bufferOffset) {
 					state.units[ptr].main.start(
-						state.deprecatedWriteHead + onOffInstr.timeOffset,
+						state.deprecatedWriteHead + onOffInstr.o,
 						state.units[ptr].bufferOffset
 					);
 				} else {
 					state.units[ptr].main.start(
-						state.deprecatedWriteHead + onOffInstr.timeOffset
+						state.deprecatedWriteHead + onOffInstr.o
 					);
 				}
 			};
@@ -1296,7 +1296,7 @@ var setOff_ = function (ptr) {
 				state.units[ptr].onOff = false;
 				var oldMain = state.units[ptr].main;
 				var oldOutgoing = state.units[ptr].outgoing.slice();
-				oldMain.stop(state.deprecatedWriteHead + onOffInstr.timeOffset);
+				oldMain.stop(state.deprecatedWriteHead + onOffInstr.o);
 				// defer disconnection until stop has happened
 				setTimeout(() => {
 					for (var i = 0; i < oldOutgoing.length; i++) {
@@ -1313,7 +1313,7 @@ var setOff_ = function (ptr) {
 							continue;
 						}
 					}
-				}, 1000.0 * (state.deprecatedWriteHead + onOffInstr.timeOffset + 0.2 - state.context.currentTime));
+				}, 1000.0 * (state.deprecatedWriteHead + onOffInstr.o + 0.2 - state.context.currentTime));
 			};
 		};
 	};

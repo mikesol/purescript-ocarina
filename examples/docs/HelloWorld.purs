@@ -96,7 +96,7 @@ helloWorld dpage = px ~~
                 ( map
                     ( \e -> D.OnClick :=
                         ( cb $
-                            (const $ log "hello" *> case e of
+                            (const $ case e of
                                 Just x -> x *> push Nothing
                                 _ -> run2_ [ gain_ 0.05 [ sinOsc 440.0 pureOn ] ]
                                        >>= Just >>> push
