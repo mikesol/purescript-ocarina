@@ -20,7 +20,7 @@ px = Proxy :: Proxy
       """<div>
   <h1>Fan and fix</h1>
 
-  <h3>Glorious graphs for fun and profit</h3>
+  <h3>Getting serious with signal flow</h3>
   <p>
     Up until now, we've been treating audio sort of like one would treat a webpage. There are elements (like an oscillator) inside other elements (like a gain node) that dutifully trickle up to a terminal node, like a speaker or recorder. But this overlooks two crucial features of audio:
   </p>

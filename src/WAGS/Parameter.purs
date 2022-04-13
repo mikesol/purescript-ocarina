@@ -4,7 +4,7 @@ import Prelude
 
 import Data.Generic.Rep (class Generic)
 import Data.Lens (over, view)
-import Data.Lens.Iso.Newtype (unto)
+import Data.Lens.Iso.Newtype (_Newtype, unto)
 import Data.Lens.Record (prop)
 import Data.Newtype (class Newtype, unwrap, wrap)
 import Data.Variant (Variant, inj, match)
@@ -119,12 +119,12 @@ instance showOnOff :: Show OnOff where
     { on: const "on", off: const "off", offOn: const "offOn" }
 
 newtype AudioOnOff = AudioOnOff
-  { onOff :: OnOff
-  , timeOffset :: Number
+  { n :: OnOff
+  , o :: Number
   }
 
 apOn :: AudioOnOff
-apOn = AudioOnOff { onOff: _on, timeOffset: 0.0 }
+apOn = AudioOnOff { n: _on, o: 0.0 }
 
 pureOn
   :: forall event nt r
@@ -134,10 +134,18 @@ pureOn
 pureOn = bang (wrap $ inj (Proxy :: _ "onOff") apOn)
 
 apOff :: AudioOnOff
-apOff = AudioOnOff { onOff: _off, timeOffset: 0.0 }
+apOff = AudioOnOff { n: _off, o: 0.0 }
 
 apOffOn :: AudioOnOff
-apOffOn = AudioOnOff { onOff: _offOn, timeOffset: 0.0 }
+apOffOn = AudioOnOff { n: _offOn, o: 0.0 }
+
+ffwd
+  :: forall nt r
+   . Newtype nt { o :: Number | r }
+  => (Number -> Number)
+  -> nt
+  -> nt
+ffwd = over (_Newtype <<< prop (Proxy :: _ "o"))
 
 derive instance eqAudioOnOff :: Eq AudioOnOff
 derive instance ordAudioOnOff :: Ord AudioOnOff
@@ -161,9 +169,9 @@ oo
 oo wh f = wh # map
   \{ concreteTime, abstractTime } ->
     let
-      AudioOnOff { onOff, timeOffset } = f abstractTime
+      AudioOnOff { o, n } = f abstractTime
     in
-      AudioOnOff { onOff, timeOffset: timeOffset + concreteTime }
+      AudioOnOff { n, o: o + concreteTime }
 
 at
   :: forall f
@@ -229,10 +237,10 @@ class ToAudioOnOff i where
   toAudioOnOff :: i -> AudioOnOff
 
 instance ToAudioOnOff Number where
-  toAudioOnOff = AudioOnOff <<< { timeOffset: _, onOff: _on }
+  toAudioOnOff = AudioOnOff <<< { o: _, n: _on }
 
 instance ToAudioOnOff OnOff where
-  toAudioOnOff = AudioOnOff <<< { timeOffset: 0.0, onOff: _ }
+  toAudioOnOff = AudioOnOff <<< { o: 0.0, n: _ }
 
 instance ToAudioOnOff AudioOnOff where
   toAudioOnOff = identity
