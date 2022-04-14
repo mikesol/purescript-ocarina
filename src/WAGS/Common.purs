@@ -3,8 +3,6 @@ module WAGS.Common where
 import Prelude
 
 import ConvertableOptions (class ConvertOption, class ConvertOptionsWithDefaults, convertOptionsWithDefaults)
-import Data.Identity (Identity(..))
-import Data.Newtype (unwrap)
 import Data.Tuple.Nested (type (/\), (/\))
 import Data.Variant.Maybe (Maybe, just, nothing)
 import Data.Vec (Vec)

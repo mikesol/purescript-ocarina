@@ -78,6 +78,10 @@ px = Proxy :: Proxy """<div>
   <p>The <a href="https://developer.mozilla.org/en-US/docs/Web/API/PannerNode">panner</a> is absolutely essential if you're making any sort of video game or animation with a camera, for example using WebGL. It is a cheap way for you to distribute your sounds in space without worrying about panning, filtering, volume and lots of other parameters you'd need to tweak if you did this manually. It's my favorite Web Audio node (my favorite <i>today</i>, I rotate them regularly to avoid jealousy...).</p>
 
   ~peaking~
+
+  <h2 id="periodic">Periodic wave oscillator</h2>
+  <p>The <a href="https://developer.mozilla.org/en-US/docs/Web/API/OscillatorNode">periodic wave oscillator</a> plays back a custom periodic waveform at a given frequency. The custom waveform must be set as part of the initialization and can be changed after initialization. Note that the change will not go into effect if the oscillator is on: it must be turned off and on again.</p>
+
   ~playBuf~
   <h2 id="recorder">Recorder</h2>
   <p>The <a href="https://developer.mozilla.org/en-US/docs/Web/API/MediaStreamAudioDestinationNode">recorder</a> allows you to record audio. It takes a callback that you can use to stash the recorded audio somewhere, like in a file for example, as the example below does. You can use it as a simple note-taking app 🎙️.</p>
@@ -92,7 +96,7 @@ px = Proxy :: Proxy """<div>
   <p>The <a href="https://developer.mozilla.org/en-US/docs/Web/API/OscillatorNode">square wave oscillator</a> plays back a square wave at a given frequency.</p>
 
   <h2 id="pan">Stereo panner</h2>
-  <p>The <a href="https://developer.mozilla.org/en-US/docs/Web/API/StereoPannerNode">stereo panner</a> pans audio in the stereo plane..</p>
+  <p>The <a href="https://developer.mozilla.org/en-US/docs/Web/API/StereoPannerNode">stereo panner</a> pans audio in the stereo plane.</p>
 
   <h2 id="triangle">Triangle wave oscillator</h2>
   <p>The <a href="https://developer.mozilla.org/en-US/docs/Web/API/OscillatorNode">triangle wave oscillator</a> plays back a triangle wave at a given frequency.</p>

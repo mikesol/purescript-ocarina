@@ -27,6 +27,7 @@ px = Proxy :: Proxy """<ul>
   <li><a href="#notch">Notch filter</a></li>
   <li><a href="#panner">Panner</a></li>
   <li><a href="#peaking">Peaking filter</a></li>
+  <li><a href="#periodic">Periodic wave oscillator</a></li>
   <li><a href="#playbuf">Playing a buffer</a></li>
   <li><a href="#recorder">Recorder</a></li>
   <li><a href="#sawtooth">Sawtooth wave oscillator</a></li>
