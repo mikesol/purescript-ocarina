@@ -22,6 +22,7 @@ import WAGS.Example.Docs.AudioUnits.Lowpass as Lowpass
 import WAGS.Example.Docs.AudioUnits.Highshelf as Highshelf
 import WAGS.Example.Docs.AudioUnits.Lowshelf as Lowshelf
 import WAGS.Example.Docs.AudioUnits.Notch as Notch
+import WAGS.Example.Docs.AudioUnits.Peaking as Peaking
 import WAGS.Example.Docs.AudioUnits.TOC as TOC
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
 import WAGS.Example.Docs.Util (audioWrapperSpan, ccassp, ctxAff, mkNext, scrollToTop)
@@ -85,8 +86,7 @@ px = Proxy :: Proxy """<div>
   <h2 id="panner">Panner</h2>
   <p>The <a href="https://developer.mozilla.org/en-US/docs/Web/API/PannerNode">panner</a> is absolutely essential if you're making any sort of video game or animation with a camera, for example using WebGL. It is a cheap way for you to distribute your sounds in space without worrying about panning, filtering, volume and lots of other parameters you'd need to tweak if you did this manually. It's my favorite Web Audio node (my favorite <i>today</i>, I rotate them regularly to avoid jealousy, which I probably should do with my own kids but oh well...).</p>
 
-  <h2 id="peaking">Peaking filter</h2>
-  <p>A <a href="https://developer.mozilla.org/en-US/docs/Web/API/BiquadFilterNode">peaking filter</a> is sort of like a notch/bandpass combo. It sounds different than bandpass or notch, and is often a better choice depending on what you're making. The Q works as normal, but the gain either boosts or attenuates the frequency in question if it is positive or negative.</p>
+  ~peaking~
 
   <h2 id="playbuf">Playing a buffer</h2>
   <p><a href="https://developer.mozilla.org/en-US/docs/Web/API/AudioBufferSourceNode">Playback from a buffer</a> is one of the bread-and-butter operations in Web Audio (or any audio). The buffered audio is usually a sound file, but it'll play anything you write to a buffer. Like in the Web Audio API, you can set the buffer's start time and optionally its duration.</p>
@@ -137,6 +137,7 @@ components cca' dpage ssp ev = px ~~
   , lowshelf: nut $ Lowshelf.lowshelf ccb dpage ev
   , lowpass: nut $ Lowpass.lowpass ccb dpage ev
   , notch: nut $ Notch.notch ccb dpage ev
+  , peaking: nut $ Peaking.peaking ccb dpage ev
   , next: mkNext ev cpage
   }
   where

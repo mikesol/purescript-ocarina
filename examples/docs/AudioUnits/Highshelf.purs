@@ -18,10 +18,12 @@ import WAGS.Run (run2_)
 
 px = Proxy :: Proxy """<section>
   <h2 id="highshelf">Highshelf filter</h2>
-  <p>A <a href="https://developer.mozilla.org/en-US/docs/Web/API/BiquadFilterNode">highshelf filter</a> boosts high frequencies using a <code>gain</code> parameter.</p>
+  <p>A <a href="https://developer.mozilla.org/en-US/docs/Web/API/BiquadFilterNode">highshelf filter</a> boosts or attenuates high frequencies using a <code>gain</code> parameter, where gain is expressed in decibels from -40.0 to 40.0.</p>
 
   <pre><code>\buf -> run2_
-  [ highshelf_ {frequency: 2000.0, gain: 0.4 } [loopBuf buf pureOn] ]
+  [ highshelf_ { frequency: 2000.0, gain: 0. }
+      [loopBuf buf pureOn]
+  ]
 </code></pre>
 
   ~highshelf~
