@@ -3,14 +3,10 @@ module WAGS.Example.Docs.Component where
 import Prelude
 
 import Control.Plus (class Plus)
-import Deku.Attribute (cb, (:=))
-import Deku.Control (text_)
 import Deku.Core (Element)
-import Deku.DOM as D
 import Deku.Pursx (nut, (~~))
 import Effect (Effect)
 import FRP.Event (class IsEvent)
-import FRP.Event.Class (bang)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (gain_, loopBuf)
 import WAGS.Example.Docs.AudioUnits.Allpass as Allpass
@@ -25,6 +21,7 @@ import WAGS.Example.Docs.AudioUnits.Highpass as Highpass
 import WAGS.Example.Docs.AudioUnits.Lowpass as Lowpass
 import WAGS.Example.Docs.AudioUnits.Highshelf as Highshelf
 import WAGS.Example.Docs.AudioUnits.Lowshelf as Lowshelf
+import WAGS.Example.Docs.AudioUnits.Notch as Notch
 import WAGS.Example.Docs.AudioUnits.TOC as TOC
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
 import WAGS.Example.Docs.Util (audioWrapperSpan, ccassp, ctxAff, mkNext, scrollToTop)
@@ -83,8 +80,7 @@ px = Proxy :: Proxy """<div>
   <h2 id="microphone">Microphone</h2>
   <p>The <a href="https://developer.mozilla.org/en-US/docs/Web/API/MediaStreamAudioSourceNode">microphone</a> will use your microphone if you give the browser permission to do so. Use it for Web Audio kereoke!</p>
 
-  <h2 id="notch">Notch filter</h2>
-  <p>A <a href="https://developer.mozilla.org/en-US/docs/Web/API/BiquadFilterNode">notch filter</a>, also known as a band-reject filter, attenuates a single frequency range of a source. When you crank up their Q value, the attenuation gets more intense. At the extreme, it sounds like part of the source got sucked into a vacuum, which is not un-interesting!</p>
+  ~notch~
 
   <h2 id="panner">Panner</h2>
   <p>The <a href="https://developer.mozilla.org/en-US/docs/Web/API/PannerNode">panner</a> is absolutely essential if you're making any sort of video game or animation with a camera, for example using WebGL. It is a cheap way for you to distribute your sounds in space without worrying about panning, filtering, volume and lots of other parameters you'd need to tweak if you did this manually. It's my favorite Web Audio node (my favorite <i>today</i>, I rotate them regularly to avoid jealousy, which I probably should do with my own kids but oh well...).</p>
@@ -140,6 +136,7 @@ components cca' dpage ssp ev = px ~~
   , highshelf: nut $ Highshelf.highshelf ccb dpage ev
   , lowshelf: nut $ Lowshelf.lowshelf ccb dpage ev
   , lowpass: nut $ Lowpass.lowpass ccb dpage ev
+  , notch: nut $ Notch.notch ccb dpage ev
   , next: mkNext ev cpage
   }
   where
