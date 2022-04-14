@@ -97,9 +97,11 @@ var connectXToY_ = function (x, y, state) {
 	var connectF = function () {
 		state.units[x].outgoing.push(y);
 		state.units[y].incoming.push(x);
-		state.units[x].main.connect(state.units[y].main);
-		if (state.units[y].se) {
-			state.units[x].main.connect(state.units[y].se);
+		if (!state.units[x].pendingOn) {
+			state.units[x].main.connect(state.units[y].main);
+			if (state.units[y].se) {
+				state.units[x].main.connect(state.units[y].se);
+			}
 		}
 	};
 	if (!state.units[x]) {
@@ -277,16 +279,18 @@ exports.makeConstant_ = function (a) {
 			};
 			var resume = { offset: a.offset };
 			state.units[ptr] = {
-				outgoing: [a.parent],
+				//outgoing: [a.parent],
 				outgoing: [],
 				incoming: [],
 				resume: resume,
 				createClosure: createClosure,
+				onOff: false,
+				pendingOn: true,
 				//lazy main: createClosure(state.context, resume),
 			};
 			addToScope(ptr, a.scope, state);
-			//lazy doDeferredConnections(ptr, state);
-			//lazy mConnectXToY_(ptr, a.parent, state);
+			doDeferredConnections(ptr, state);
+			mConnectXToY_(ptr, a.parent, state);
 			// var oo = isOn(onOff.onOff);
 			// if (oo) {
 			// 	state.units[ptr].main.start(
@@ -450,11 +454,13 @@ exports.makeLoopBuf_ = function (a) {
 				incoming: [],
 				resume: resume,
 				createClosure: createClosure,
+				onOff: false,
+				pendingOn: true,
 				//lazy main: createClosure(state.context, resume),
 			};
 			addToScope(ptr, a.scope, state);
-			//lazy doDeferredConnections(ptr, state);
-			//lazy mConnectXToY_(ptr, a.parent, state);
+			doDeferredConnections(ptr, state);
+			mConnectXToY_(ptr, a.parent, state);
 			// var oo = isOn(onOff.onOff);
 			// if (oo) {
 			// 	state.units[ptr].main.start(
@@ -615,11 +621,13 @@ exports.makePeriodicOsc_ = function (a) {
 				incoming: [],
 				resume: resume,
 				createClosure: createClosure,
+				onOff: false,
+				pendingOn: true,
 				//lazy main: createClosure(state.context, resume),
 			};
 			addToScope(ptr, a.scope, state);
-			//lazy doDeferredConnections(ptr, state);
-			//lazy mConnectXToY_(ptr, a.parent, state);
+			doDeferredConnections(ptr, state);
+			mConnectXToY_(ptr, a.parent, state);
 			// var oo = isOn(onOff.onOff);
 			// if (oo) {
 			// 	state.units[ptr].main.start(
@@ -653,11 +661,13 @@ exports.makePlayBuf_ = function (a) {
 				duration: a.duration,
 				resume: resume,
 				createClosure: createClosure,
+				onOff: false,
+				pendingOn: true,
 				//lazy main: createClosure(state.context, resume),
 			};
 			addToScope(ptr, a.scope, state);
-			//lazy doDeferredConnections(ptr, state);
-			//lazy mConnectXToY_(ptr, a.parent, state);
+			doDeferredConnections(ptr, state);
+			mConnectXToY_(ptr, a.parent, state);
 			// var oo = isOn(onOff.onOff);
 			// if (oo) {
 			// 	state.units[ptr].main.start(
@@ -712,11 +722,13 @@ exports.makeSawtoothOsc_ = function (a) {
 				incoming: [],
 				resume: resume,
 				createClosure: createClosure,
+				onOff: false,
+				pendingOn: true,
 				//lazy main: createClosure(state.context, resume),
 			};
 			addToScope(ptr, a.scope, state);
-			//lazy doDeferredConnections(ptr, state);
-			//lazy mConnectXToY_(ptr, a.parent, state);
+			doDeferredConnections(ptr, state);
+			mConnectXToY_(ptr, a.parent, state);
 			// var oo = isOn(onOff.onOff);
 			// if (oo) {
 			// 	state.units[ptr].main.start(
@@ -744,11 +756,13 @@ exports.makeSinOsc_ = function (a) {
 				incoming: [],
 				resume: resume,
 				createClosure: createClosure,
+				onOff: false,
+				pendingOn: true,
 				//lazy main: createClosure(state.context, resume),
 			};
 			addToScope(ptr, a.scope, state);
-			//lazy doDeferredConnections(ptr, state);
-			//lazy mConnectXToY_(ptr, a.parent, state);
+			doDeferredConnections(ptr, state);
+			mConnectXToY_(ptr, a.parent, state);
 			// var oo = isOn(onOff.onOff);
 			// if (oo) {
 			// 	state.units[ptr].main.start(
@@ -865,11 +879,13 @@ exports.makeSquareOsc_ = function (a) {
 				incoming: [],
 				resume: resume,
 				createClosure: createClosure,
+				onOff: false,
+				pendingOn: true,
 				//lazy main: createClosure(state.context, resume),
 			};
 			addToScope(ptr, a.scope, state);
-			//lazy doDeferredConnections(ptr, state);
-			//lazy mConnectXToY_(ptr, a.parent, state);
+			doDeferredConnections(ptr, state);
+			mConnectXToY_(ptr, a.parent, state);
 			// var oo = isOn(onOff.onOff);
 			// if (oo) {
 			// 	state.units[ptr].main.start(
@@ -897,11 +913,13 @@ exports.makeTriangleOsc_ = function (a) {
 				incoming: [],
 				resume: resume,
 				createClosure: createClosure,
+				onOff: false,
+				pendingOn: true,
 				//lazy main: createClosure(state.context, resume),
 			};
 			addToScope(ptr, a.scope, state);
-			//lazy doDeferredConnections(ptr, state);
-			//lazy mConnectXToY_(ptr, a.parent, state);
+			doDeferredConnections(ptr, state);
+			mConnectXToY_(ptr, a.parent, state);
 			// var oo = isOn(onOff.onOff);
 			// if (oo) {
 			// 	state.units[ptr].main.start(
@@ -1244,9 +1262,7 @@ exports.setOnOff_ = function (aa) {
 				setOff_(ptr)(onOff)(state)();
 			} else if (onOff.n.type === "offOn") {
 				setOff_(ptr)({ n: { type: "off" }, o: 0.0 })(state)();
-				setOn_(ptr)({ n: { type: "on" }, o: onOff.o })(
-					state
-				)();
+				setOn_(ptr)({ n: { type: "on" }, o: onOff.o })(state)();
 			}
 		};
 	};
@@ -1259,6 +1275,7 @@ var setOn_ = function (ptr) {
 				if (state.units[ptr].onOff) {
 					return;
 				}
+				state.units[ptr].pendingOn = false;
 				state.units[ptr].onOff = true;
 				state.units[ptr].main = state.units[ptr].createClosure(
 					state.context,
@@ -1277,9 +1294,7 @@ var setOn_ = function (ptr) {
 						state.units[ptr].bufferOffset
 					);
 				} else {
-					state.units[ptr].main.start(
-						state.deprecatedWriteHead + onOffInstr.o
-					);
+					state.units[ptr].main.start(state.deprecatedWriteHead + onOffInstr.o);
 				}
 			};
 		};

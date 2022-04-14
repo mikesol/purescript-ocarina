@@ -36,7 +36,7 @@ px = Proxy :: Proxy """<div>
     <p>Both of these will be covered in later sections.</p>
 
   <p>
-    This section is long and should be read like those passages in the Bible that list who was the child of who: DILIGENTLY AND COPIOUSLY. That said, if you want to skip around, here is a table of contents.
+    This section is long and should be read like those passages in the Bible that list who was the child of who: DILIGENTLY AND COPIOUSLY. That said, if you want to skip around, here's a table of contents.
   </p>
   ~toc~
   <p>And now, without further ado... (~drumroll~) Here are some audio nodes!</p>
