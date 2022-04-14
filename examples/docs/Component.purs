@@ -12,6 +12,7 @@ import Effect (Effect)
 import FRP.Event (class IsEvent)
 import FRP.Event.Class (bang)
 import Type.Proxy (Proxy(..))
+import WAGS.Control (gain_, loopBuf)
 import WAGS.Example.Docs.AudioUnits.Allpass as Allpass
 import WAGS.Example.Docs.AudioUnits.Analyser as Analyser
 import WAGS.Example.Docs.AudioUnits.Bandpass as Bandpass
@@ -19,9 +20,17 @@ import WAGS.Example.Docs.AudioUnits.Compression as Compression
 import WAGS.Example.Docs.AudioUnits.Constant as Constant
 import WAGS.Example.Docs.AudioUnits.Convolution as Convolution
 import WAGS.Example.Docs.AudioUnits.Delay as Delay
+import WAGS.Example.Docs.AudioUnits.Gain as Gain
+import WAGS.Example.Docs.AudioUnits.Highpass as Highpass
+import WAGS.Example.Docs.AudioUnits.Lowpass as Lowpass
+import WAGS.Example.Docs.AudioUnits.Highshelf as Highshelf
+import WAGS.Example.Docs.AudioUnits.Lowshelf as Lowshelf
 import WAGS.Example.Docs.AudioUnits.TOC as TOC
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
-import WAGS.Example.Docs.Util (ccassp, mkNext, scrollToTop)
+import WAGS.Example.Docs.Util (audioWrapperSpan, ccassp, ctxAff, mkNext, scrollToTop)
+import WAGS.Interpret (decodeAudioDataFromUri)
+import WAGS.Parameter (pureOn)
+import WAGS.Run (run2_)
 
 px = Proxy :: Proxy """<div>
   <h1>Audio Units</h1>
@@ -48,17 +57,9 @@ px = Proxy :: Proxy """<div>
   ~compression~
   ~convolution~
   ~delay~
-
-  <h2 id="gain">Gain</h2>
-  <p>The almighty <a href="https://developer.mozilla.org/en-US/docs/Web/API/GainNode">gain</a> node is your friendly neighborhood volume control. Volume in the web-audio API goes from 0 to 1 whereas we hear logarithmically, so when you're using this, make sure to convert between decibels and gain if you want to work with more intuitive units. The conversion formula is as follows:</p>
-
-  <pre><code>decibels = 20 * log10( gain );</code></pre>
-
-  <h2 id="highpass">Highpass filter</h2>
-  <p>A <a href="https://developer.mozilla.org/en-US/docs/Web/API/BiquadFilterNode">highpass filter</a> lets higher frequencies pass and amortizes lower ones. If you amp up the Q value, the effect will be sharper.</p>
-
-  <h2 id="highshelf">Highshelf filter</h2>
-  <p>A <a href="https://developer.mozilla.org/en-US/docs/Web/API/BiquadFilterNode">highshelf filter</a> boosts high frequencies using a <code>gain</code> parameter.</p>
+  ~gain~
+  ~highpass~
+  ~highshelf~
 
   <h2 id="iir">IIR filter</h2>
   <p>The <a href="https://developer.mozilla.org/en-US/docs/Web/API/IIRFilterNode">IIR filter</a>, or infinite impulse response filter, is the Swiss Army Knife of filters. You can carve out and boost parts of the spectrum with amazing precision. But it comes with a catch: you can't automate the parameters. The parameters are also tough to work with if you're new to IIR filters. In short, you're setting up coefficients for a filter of type:</p>
@@ -73,11 +74,8 @@ px = Proxy :: Proxy """<div>
 
   <p>A <a href="https://developer.mozilla.org/en-US/docs/Web/API/AudioBufferSourceNode">looping buffer</a> is buffered audio that loops. The buffered audio is usually a sound file, but it'll play anything you write to a buffer. Like in the Web Audio API, you can set the buffer's start and end and optionally its duration.</p>
 
-  <h2 id="lowpass">Lowpass filter</h2>
-  <p>A <a href="https://developer.mozilla.org/en-US/docs/Web/API/BiquadFilterNode">lowpass filter filter</a> lets lower frequencies pass and amortizes lower ones. If you amp up the Q value, the effect will be sharper.</p>
-
-  <h2 id="lowshelf">Lowshelf filter</h2>
-  <p>A <a href="https://developer.mozilla.org/en-US/docs/Web/API/BiquadFilterNode">lowshelf filter</a> boosts low frequencies using a <code>gain</code> parameter.</p>
+  ~lowpass~
+  ~lowshelf~
 
   <h2 id="media">Media element</h2>
   <p>A <a href="https://developer.mozilla.org/en-US/docs/Web/API/MediaElementAudioSourceNode">media element</a> takes as input a random media element, like audio or a video from the browser. I've used this to filter streams from Spotify through the Web Audio API, for example, but you can use this for any streaming audio or non-streaming audio (basically anything you can cram into an <code>audio</code> or <code>video</code> tag).</p>
@@ -112,7 +110,6 @@ px = Proxy :: Proxy """<div>
   <h2 id="pan">Stereo panner</h2>
   <p>The <a href="https://developer.mozilla.org/en-US/docs/Web/API/StereoPannerNode">stereo panner</a> pans audio in the stereo plane..</p>
 
-
   <h2 id="triangle">Triangle wave oscillator</h2>
   <p>The <a href="https://developer.mozilla.org/en-US/docs/Web/API/OscillatorNode">triangle wave oscillator</a> plays back a triangle wave at a given frequency.</p>
 
@@ -125,7 +122,11 @@ px = Proxy :: Proxy """<div>
 
 components :: forall event payload. IsEvent event => Plus event => CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> event SingleSubgraphEvent  -> Element event payload
 components cca' dpage ssp ev = px ~~
-  { drumroll: nut (text_ "PLACEHOLDER")
+  { drumroll: nut
+      ( audioWrapperSpan "🥁" ev ccb (ctxAff >>= \ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/50/50711_179538-lq.mp3")
+          \buf -> run2_
+            [ gain_ 1.0 [loopBuf buf pureOn] ]
+      )
   , toc: nut TOC.toc
   , allpass: nut $ Allpass.allpass ccb dpage ev
   , analyser: nut $ Analyser.analyser ccb dpage ev
@@ -134,6 +135,11 @@ components cca' dpage ssp ev = px ~~
   , compression: nut $ Compression.compression ccb dpage ev
   , convolution: nut $ Convolution.convolution ccb dpage ev
   , delay: nut $ Delay.delay ccb dpage ev
+  , gain: nut $ Gain.gain ccb dpage ev
+  , highpass: nut $ Highpass.highpass ccb dpage ev
+  , highshelf: nut $ Highshelf.highshelf ccb dpage ev
+  , lowshelf: nut $ Lowshelf.lowshelf ccb dpage ev
+  , lowpass: nut $ Lowpass.lowpass ccb dpage ev
   , next: mkNext ev cpage
   }
   where

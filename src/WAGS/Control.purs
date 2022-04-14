@@ -590,6 +590,7 @@ convolverx = __convolver
 
 -- delay
 
+-- delay
 __delay
   :: forall i outputChannels producedI consumedI producedO consumedO event
        payload
@@ -597,42 +598,56 @@ __delay
   => Common.InitialDelay i
   => i
   -> event C.Delay
-  -> C.Node outputChannels producedI consumedI event payload
+  -> C.AudioInput outputChannels producedI consumedI event payload
   -> C.Node outputChannels producedO consumedO event payload
-__delay i' atts elt = C.Node go
+__delay i' atts (C.AudioInput elts) = C.Node go
   where
   C.InitializeDelay i = Common.toInitializeDelay i'
-  go parent di@(C.AudioInterpret { ids, scope, makeDelay, setDelay }) =
-    keepLatest
-      ( (sample_ ids (bang unit)) <#> tmpIdentity \me ->
-          bang
-            ( makeDelay
-                { id: useMeIfMe parent me
-                , parent: useParentIfParent parent
-                , scope: just scope
-                , delayTime: i.delayTime
+  go parent di@(C.AudioInterpret { ids, scope, makeDelay, setDelay }) = keepLatest
+    ( (sample_ ids (bang unit)) <#> tmpIdentity \me ->
+        bang
+          ( makeDelay
+              { id: useMeIfMe parent me, parent: useParentIfParent parent, scope: just scope, delayTime: i.delayTime }
+          )
+          <|> map
+            ( \(C.Delay e) -> match
+                { delayTime: \g -> setDelay { id: useMeIfMe parent me, delayTime: g }
                 }
+                e
             )
-            <|> map
-              ( \(C.Delay e) -> match
-                  { delayTime: \delayTime -> setDelay
-                      { id: useMeIfMe parent me, delayTime }
-                  }
-                  e
-              )
-              atts
-            <|> ((\y -> let C.Node x = y in x) elt) (Parent me) di
-      )
+            atts
+          <|> oneOf
+            ( NEA.toArray
+                (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
+            )
+    )
 
 delay
+  :: forall i outputChannels produced consumed ord event payload
+   . IsEvent event
+  => Common.InitialDelay i
+  => Sym.Compare "" produced ord
+  => TLOrd ord produced produced "" produced
+  => Nub consumed consumed
+  => i
+  -> event C.Delay
+  -> Array (C.Node outputChannels produced consumed event payload)
+  -> C.Node outputChannels produced consumed event payload
+delay i e a = case uncons a of
+  DM.Nothing -> delayx i e (constant 0.0 empty :* ([] :: Array (C.Node outputChannels produced consumed event payload)))
+  DM.Just { head, tail } -> delayx i e (head :::* tail)
+
+delay_ i a = delay i empty a
+
+delayx
   :: forall i outputChannels produced consumed event payload
    . IsEvent event
   => Common.InitialDelay i
   => i
   -> event C.Delay
+  -> C.AudioInput outputChannels produced consumed event payload
   -> C.Node outputChannels produced consumed event payload
-  -> C.Node outputChannels produced consumed event payload
-delay = __delay
+delayx = __delay
 
 -- dynamics compressor
 

@@ -37,16 +37,16 @@ constantEx
 constantEx ccb _ ev = px ~~
   { tf: nut (text_ "<|>")
   , txt: nut (text_ """run2_
-  [ gain_ 0.1
+  [ gain_ 0.5
       [ constant 0.0
           ( pureOn <|>
               ( bang $ offset $ AudioEnvelope
                   { d: 5.0
-                  , o: 0.3
+                  , o: 0.1
                   , p: 0 .. 1920 # mapWithIndex
                         \i -> const $
                             if i `mod` 3 == 0
-                            then 0.5 else 0.0
+                            then 1.0 else 0.0
                   }
               )
           )
@@ -54,16 +54,16 @@ constantEx ccb _ ev = px ~~
   ]""")
   , constant: nut
       ( audioWrapper ev ccb (pure unit) \_ -> run2_
-          [ gain_ 0.1
+          [ gain_ 0.5
               [ constant 0.0
                   ( pureOn <|>
                       ( bang $ offset $ AudioEnvelope
                           { d: 5.0
-                          , o: 0.3
+                          , o: 0.1
                           , p: 0 .. 1920 # mapWithIndex
                                 \i -> const $
                                     if i `mod` 3 == 0
-                                    then 0.5 else 0.0
+                                    then 1.0 else 0.0
                           }
                       )
                   )
