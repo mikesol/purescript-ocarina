@@ -792,6 +792,7 @@ newtype PlayBuf =
         , bufferOffset :: Number
         , onOff :: AudioOnOff
         , playbackRate :: AudioParameter
+        , duration :: Maybe Number
         )
     )
 
@@ -990,6 +991,7 @@ type SetConvolverBuffer = { id :: String, buffer :: BrowserAudioBuffer }
 type SetPeriodicOsc = { id :: String, spec :: PeriodicOscSpec }
 type SetOnOff = { id :: String, onOff :: AudioOnOff }
 type SetBufferOffset = { id :: String, bufferOffset :: Number }
+type SetDuration = { id :: String, duration :: Maybe Number }
 type SetLoopStart = { id :: String, loopStart :: Number }
 type SetLoopEnd = { id :: String, loopEnd :: Number }
 type SetRatio = { id :: String, ratio :: AudioParameter }
@@ -1062,6 +1064,7 @@ newtype AudioInterpret event payload = AudioInterpret
   , setPeriodicOsc :: SetPeriodicOsc -> payload
   , setOnOff :: SetOnOff -> payload
   , setBufferOffset :: SetBufferOffset -> payload
+  , setDuration :: SetDuration -> payload
   , setLoopStart :: SetLoopStart -> payload
   , setLoopEnd :: SetLoopEnd -> payload
   , setRatio :: SetRatio -> payload
@@ -1127,6 +1130,7 @@ type Instruction' =
   , setPeriodicOsc :: SetPeriodicOsc
   , setOnOff :: SetOnOff
   , setBufferOffset :: SetBufferOffset
+  , setDuration :: SetDuration
   , setLoopStart :: SetLoopStart
   , setLoopEnd :: SetLoopEnd
   , setRatio :: SetRatio
@@ -1187,6 +1191,7 @@ instructionWeight (Instruction v) = v # match
   , setPeriodicOsc: const 6
   , setOnOff: const 6
   , setBufferOffset: const 6
+  , setDuration: const 6
   , setLoopStart: const 6
   , setLoopEnd: const 6
   , setRatio: const 6
@@ -1245,6 +1250,7 @@ instructionId (Instruction v) = v # match
   , setPeriodicOsc: _.id
   , setOnOff: _.id
   , setBufferOffset: _.id
+  , setDuration: _.id
   , setLoopStart: _.id
   , setLoopEnd: _.id
   , setRatio: _.id

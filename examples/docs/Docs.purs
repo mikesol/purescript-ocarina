@@ -5,7 +5,7 @@ import Prelude
 import Control.Alt ((<|>))
 import Control.Plus (class Plus, empty)
 import Data.Exists (mkExists)
-import Data.Filterable (filter, filterMap)
+import Data.Filterable (filter)
 import Data.Foldable (for_, oneOfMap)
 import Data.Function (on)
 import Data.Hashable (class Hashable, hash)

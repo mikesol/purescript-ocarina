@@ -363,6 +363,9 @@ foreign import setPeriodicOsc_
   :: C.SetPeriodicOsc -> FFIAudioSnapshot -> Effect Unit
 
 foreign import setOnOff_ :: C.SetOnOff -> FFIAudioSnapshot -> Effect Unit
+foreign import setDuration_
+  :: C.SetDuration -> FFIAudioSnapshot -> Effect Unit
+
 foreign import setBufferOffset_
   :: C.SetBufferOffset -> FFIAudioSnapshot -> Effect Unit
 
@@ -437,6 +440,7 @@ effectfulAudioInterpret' toE fromE = C.AudioInterpret
   , makeSawtoothOsc: makeSawtoothOsc_
   , makeSinOsc: makeSinOsc_
   , makeSpeaker: makeSpeaker_
+  , setDuration: setDuration_
   , makeSquareOsc: makeSquareOsc_
   , makeStereoPanner: makeStereoPanner_
   , makeSubgraph: \{ id, parent, scope, scenes } audio ->

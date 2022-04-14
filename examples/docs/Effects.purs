@@ -2,25 +2,16 @@ module WAGS.Example.Docs.Effects where
 
 import Prelude
 
-import Affjax as AX
-import Affjax.ResponseFormat as ResponseFormat
 import Control.Plus (class Plus)
-import Data.Argonaut.Core (stringifyWithIndent)
-import Data.Either (Either(..))
-import Data.HTTP.Method (Method(..))
-import Deku.Attribute (Cb, cb, (:=))
+import Deku.Attribute (cb, (:=))
 import Deku.Core (Element)
 import Deku.DOM as D
 import Deku.Pursx ((~~))
 import Effect (Effect)
-import Effect.Aff (launchAff_)
-import Effect.Class (liftEffect)
-import FRP.Event (class IsEvent)
-import FRP.Event.Class (bang)
+import FRP.Event.Class (class IsEvent, bang)
 import Type.Proxy (Proxy(..))
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
 import WAGS.Example.Docs.Util (scrollToTop)
-
 
 px = Proxy :: Proxy """<div>
   <h1>State</h1>

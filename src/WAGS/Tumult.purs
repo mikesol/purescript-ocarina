@@ -432,6 +432,8 @@ tumult atts' = C.Node go
                             , setOnOff: isfx \ii -> bang $ ai.setOnOff ii
                             , setBufferOffset: isfx \ii -> bang $
                                 ai.setBufferOffset ii
+                            , setDuration: isfx \ii -> bang $
+                                ai.setDuration ii
                             , setLoopStart: isfx \ii -> bang $ ai.setLoopStart
                                 ii
                             , setLoopEnd: isfx \ii -> bang $ ai.setLoopEnd ii

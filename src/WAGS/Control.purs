@@ -1473,6 +1473,7 @@ __playBuf i' atts = C.Node go
         , makePlayBuf
         , setBuffer
         , setOnOff
+        , setDuration
         , setPlaybackRate
         , setBufferOffset
         }
@@ -1498,6 +1499,7 @@ __playBuf i' atts = C.Node go
                   , bufferOffset: \bufferOffset -> setBufferOffset
                       { id: useMeIfMe parent me, bufferOffset }
                   , onOff: \onOff -> setOnOff { id: useMeIfMe parent me, onOff }
+                  , duration: \duration -> setDuration { id: useMeIfMe parent me, duration }
                   }
                   e
               )

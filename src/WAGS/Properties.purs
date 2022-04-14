@@ -4,6 +4,7 @@ import Prelude
 
 import Data.Newtype (class Newtype, wrap)
 import Data.Variant (Variant, inj)
+import Data.Variant.Maybe (Maybe)
 import Type.Proxy (Proxy(..))
 import WAGS.Parameter (class ToAudioOnOff, class ToAudioParameter, AudioOnOff, AudioParameter, toAudioOnOff, toAudioParameter)
 import WAGS.WebAPI (BrowserAudioBuffer)
@@ -39,6 +40,13 @@ gain
   => ap
   -> nt
 gain = wrap <<< inj (Proxy :: Proxy "gain") <<< toAudioParameter
+
+duration
+  :: forall nt r
+   . Newtype nt (Variant (duration :: Maybe Number | r))
+  => Maybe Number
+  -> nt
+duration = wrap <<< inj (Proxy :: Proxy "duration")
 
 loopEnd
   :: forall nt r

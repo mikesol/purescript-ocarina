@@ -25,6 +25,7 @@ import WAGS.Example.Docs.AudioUnits.Lowpass as Lowpass
 import WAGS.Example.Docs.AudioUnits.Lowshelf as Lowshelf
 import WAGS.Example.Docs.AudioUnits.Notch as Notch
 import WAGS.Example.Docs.AudioUnits.Peaking as Peaking
+import WAGS.Example.Docs.AudioUnits.PlayBuf as PlayBuf
 import WAGS.Example.Docs.AudioUnits.TOC as TOC
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
 import WAGS.Example.Docs.Util (audioWrapperSpan, ccassp, ctxAff, mkNext, scrollToTop)
@@ -74,13 +75,10 @@ px = Proxy :: Proxy """<div>
   ~notch~
 
   <h2 id="panner">Panner</h2>
-  <p>The <a href="https://developer.mozilla.org/en-US/docs/Web/API/PannerNode">panner</a> is absolutely essential if you're making any sort of video game or animation with a camera, for example using WebGL. It is a cheap way for you to distribute your sounds in space without worrying about panning, filtering, volume and lots of other parameters you'd need to tweak if you did this manually. It's my favorite Web Audio node (my favorite <i>today</i>, I rotate them regularly to avoid jealousy, which I probably should do with my own kids but oh well...).</p>
+  <p>The <a href="https://developer.mozilla.org/en-US/docs/Web/API/PannerNode">panner</a> is absolutely essential if you're making any sort of video game or animation with a camera, for example using WebGL. It is a cheap way for you to distribute your sounds in space without worrying about panning, filtering, volume and lots of other parameters you'd need to tweak if you did this manually. It's my favorite Web Audio node (my favorite <i>today</i>, I rotate them regularly to avoid jealousy...).</p>
 
   ~peaking~
-
-  <h2 id="playbuf">Playing a buffer</h2>
-  <p><a href="https://developer.mozilla.org/en-US/docs/Web/API/AudioBufferSourceNode">Playback from a buffer</a> is one of the bread-and-butter operations in Web Audio (or any audio). The buffered audio is usually a sound file, but it'll play anything you write to a buffer. Like in the Web Audio API, you can set the buffer's start time and optionally its duration.</p>
-
+  ~playBuf~
   <h2 id="recorder">Recorder</h2>
   <p>The <a href="https://developer.mozilla.org/en-US/docs/Web/API/MediaStreamAudioDestinationNode">recorder</a> allows you to record audio. It takes a callback that you can use to stash the recorded audio somewhere, like in a file for example, as the example below does. You can use it as a simple note-taking app 🎙️.</p>
 
@@ -124,11 +122,12 @@ components cca' dpage ssp ev = px ~~
   , gain: nut $ Gain.gain ccb dpage ev
   , highpass: nut $ Highpass.highpass ccb dpage ev
   , highshelf: nut $ Highshelf.highshelf ccb dpage ev
+  , iirFilter: nut $ IIRFilter.iirFilterEx ccb dpage ev
   , loopBuf: nut $ LoopBuf.loopBufEx ccb dpage ev
   , lowshelf: nut $ Lowshelf.lowshelf ccb dpage ev
   , lowpass: nut $ Lowpass.lowpass ccb dpage ev
   , notch: nut $ Notch.notch ccb dpage ev
-  , iirFilter: nut $ IIRFilter.iirFilterEx ccb dpage ev
+  , playBuf: nut $ PlayBuf.playBufEx ccb dpage ev
   , peaking: nut $ Peaking.peaking ccb dpage ev
   , next: mkNext ev cpage
   }

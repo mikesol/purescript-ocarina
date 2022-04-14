@@ -1147,6 +1147,15 @@ exports.setBufferOffset_ = function (aa) {
 		};
 	};
 };
+exports.setDuration_ = function (aa) {
+	return function (state) {
+		return function () {
+			var ptr = aa.id;
+			var a = aa.duration;
+			state.units[ptr].duration = a;
+		};
+	};
+};
 exports.setRelease_ = function (aa) {
 	return function (state) {
 		return function () {
@@ -1307,10 +1316,18 @@ var setOn_ = function (ptr) {
 					}
 				}
 				if (state.units[ptr].bufferOffset) {
-					state.units[ptr].main.start(
-						state.deprecatedWriteHead + onOffInstr.o,
-						state.units[ptr].bufferOffset
-					);
+					if (state.units[ptr].duration.type === "just") {
+						state.units[ptr].main.start(
+							state.deprecatedWriteHead + onOffInstr.o,
+							state.units[ptr].bufferOffset,
+							state.units[ptr].duration.value
+						);
+					} else {
+						state.units[ptr].main.start(
+							state.deprecatedWriteHead + onOffInstr.o,
+							state.units[ptr].bufferOffset
+						);
+					}
 				} else {
 					state.units[ptr].main.start(state.deprecatedWriteHead + onOffInstr.o);
 				}

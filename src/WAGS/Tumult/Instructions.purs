@@ -128,6 +128,9 @@ iSetOnOff = C.Instruction <<< inj (Proxy :: Proxy "setOnOff")
 iSetBufferOffset :: C.SetBufferOffset -> C.Instruction
 iSetBufferOffset = C.Instruction <<< inj (Proxy :: Proxy "setBufferOffset")
 
+iSetDuration :: C.SetDuration -> C.Instruction
+iSetDuration = C.Instruction <<< inj (Proxy :: Proxy "setDuration")
+
 iSetLoopStart :: C.SetLoopStart -> C.Instruction
 iSetLoopStart = C.Instruction <<< inj (Proxy :: Proxy "setLoopStart")
 

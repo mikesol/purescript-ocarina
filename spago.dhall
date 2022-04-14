@@ -33,6 +33,7 @@
   , "sized-vectors"
   , "strings"
   , "tuples"
+  , "type-equality"
   , "typelevel"
   , "typelevel-peano"
   , "typelevel-prelude"

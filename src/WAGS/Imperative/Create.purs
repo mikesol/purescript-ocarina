@@ -173,6 +173,7 @@ playBuf _ initialPlayBuf attributes = GraphBuilder go
         , makePlayBuf
         , setBuffer
         , setOnOff
+        , setDuration
         , setPlaybackRate
         , setBufferOffset
         }
@@ -193,6 +194,7 @@ playBuf _ initialPlayBuf attributes = GraphBuilder go
             { buffer: setBuffer <<< { id, buffer: _ }
             , playbackRate: setPlaybackRate <<< { id, playbackRate: _ }
             , bufferOffset: setBufferOffset <<< { id, bufferOffset: _ }
+            , duration: setDuration <<< { id, duration: _ }
             , onOff: setOnOff <<< { id, onOff: _ }
             }
         in
