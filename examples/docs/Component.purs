@@ -20,6 +20,7 @@ import WAGS.Example.Docs.AudioUnits.Gain as Gain
 import WAGS.Example.Docs.AudioUnits.Highpass as Highpass
 import WAGS.Example.Docs.AudioUnits.Highshelf as Highshelf
 import WAGS.Example.Docs.AudioUnits.IIRFilter as IIRFilter
+import WAGS.Example.Docs.AudioUnits.LoopBuf as LoopBuf
 import WAGS.Example.Docs.AudioUnits.Lowpass as Lowpass
 import WAGS.Example.Docs.AudioUnits.Lowshelf as Lowshelf
 import WAGS.Example.Docs.AudioUnits.Notch as Notch
@@ -60,11 +61,7 @@ px = Proxy :: Proxy """<div>
   ~highpass~
   ~highshelf~
   ~iirFilter~
-
-  <h2 id="loopbuf">Looping buffer</h2>
-
-  <p>A <a href="https://developer.mozilla.org/en-US/docs/Web/API/AudioBufferSourceNode">looping buffer</a> is buffered audio that loops. The buffered audio is usually a sound file, but it'll play anything you write to a buffer. Like in the Web Audio API, you can set the buffer's start and end and optionally its duration.</p>
-
+  ~loopBuf~
   ~lowpass~
   ~lowshelf~
 
@@ -127,6 +124,7 @@ components cca' dpage ssp ev = px ~~
   , gain: nut $ Gain.gain ccb dpage ev
   , highpass: nut $ Highpass.highpass ccb dpage ev
   , highshelf: nut $ Highshelf.highshelf ccb dpage ev
+  , loopBuf: nut $ LoopBuf.loopBufEx ccb dpage ev
   , lowshelf: nut $ Lowshelf.lowshelf ccb dpage ev
   , lowpass: nut $ Lowpass.lowpass ccb dpage ev
   , notch: nut $ Notch.notch ccb dpage ev
