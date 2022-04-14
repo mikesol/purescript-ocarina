@@ -11,11 +11,9 @@ import Effect (Effect)
 import FRP.Event (class IsEvent)
 import FRP.Event.Class (bang)
 import Type.Proxy (Proxy(..))
-import WAGS.Example.Docs.Types (Navigation, PageAction, Page(..), CancelCurrentAudio)
+import WAGS.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
 import WAGS.Example.Docs.Util (scrollToTop)
 
-data UIEvents = UIShown | ButtonClicked | SliderMoved Number
-derive instance Eq UIEvents
 px = Proxy :: Proxy
       """<div>
   <h1>Merge and split</h1>
@@ -37,7 +35,7 @@ px = Proxy :: Proxy
   <p>In this section, saw how to merge and split audio. In the next section, we'll look at how to work with <a ~next~ style="cursor:pointer;">custom audio worklets</a>.</p>
 </div>"""
 
-multiChannel :: forall event payload. IsEvent event => Plus event => CancelCurrentAudio -> (Page -> Effect Unit) -> event PageAction -> Element event payload
-multiChannel _ dpage _ = px ~~
+multiChannel :: forall event payload. IsEvent event => Plus event => CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> event SingleSubgraphEvent  -> Element event payload
+multiChannel _ dpage _ _ = px ~~
   { next: bang (D.OnClick := (cb (const $ dpage AudioWorklets *> scrollToTop)))
   }

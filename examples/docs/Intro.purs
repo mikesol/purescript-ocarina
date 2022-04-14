@@ -11,7 +11,7 @@ import Effect (Effect)
 import FRP.Event (class IsEvent)
 import FRP.Event.Class (bang)
 import Type.Proxy (Proxy(..))
-import WAGS.Example.Docs.Types (Navigation, Page(..), CancelCurrentAudio)
+import WAGS.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
 import WAGS.Example.Docs.Util (scrollToTop)
 
 px = Proxy :: Proxy """<div>
@@ -52,6 +52,6 @@ px = Proxy :: Proxy """<div>
 intro :: forall event payload.
   IsEvent event =>
   Plus event =>
-  CancelCurrentAudio -> (Page -> Effect Unit) -> event Navigation -> Element event payload
-intro _ dpage _ = px ~~
+  CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> event SingleSubgraphEvent -> Element event payload
+intro _ dpage _ _ = px ~~
   { next: bang (D.OnClick := (cb (const $ dpage HelloWorld *> scrollToTop))) }

@@ -4,15 +4,14 @@ import Prelude
 
 import Control.Plus (class Plus)
 import Deku.Attribute (cb, (:=))
-import Deku.Control (text_)
 import Deku.Core (Element)
 import Deku.DOM as D
-import Deku.Pursx (nut, psx, (~~))
+import Deku.Pursx ((~~))
 import Effect (Effect)
 import FRP.Event (class IsEvent)
 import FRP.Event.Class (bang)
 import Type.Proxy (Proxy(..))
-import WAGS.Example.Docs.Types (Navigation, PageAction, Page(..), CancelCurrentAudio)
+import WAGS.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
 import WAGS.Example.Docs.Util (scrollToTop)
 
 myDom = Proxy :: Proxy """<div>
@@ -130,7 +129,7 @@ px = Proxy :: Proxy """<div>
 </div>"""
 
 
-pursx1 :: forall event payload. IsEvent event => Plus event => CancelCurrentAudio -> (Page -> Effect Unit) -> event PageAction -> Element event payload
-pursx1 _ dpage _ = px ~~
+pursx1 :: forall event payload. IsEvent event => Plus event => CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> event SingleSubgraphEvent -> Element event payload
+pursx1 _ dpage _ _ = px ~~
   { next: bang (D.OnClick := (cb (const $ dpage Events *> scrollToTop)))
   }

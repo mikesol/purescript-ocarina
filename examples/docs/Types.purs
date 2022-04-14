@@ -30,4 +30,8 @@ instance Hashable Page where
 
 type CancelCurrentAudio = Effect Unit -> Effect Unit
 
-data PageAction = SetCancel CancelCurrentAudio
+data ToplevelEvent = ChangePage Page | SetCancelation (Effect Unit)
+
+data SingleSubgraphEvent = SetCancel (Effect Unit)
+
+type SingleSubgraphPusher = SingleSubgraphEvent -> Effect Unit

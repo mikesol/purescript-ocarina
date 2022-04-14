@@ -2,95 +2,17 @@ module WAGS.Example.Docs.Subgraphs where
 
 import Prelude
 
-import Control.Alt ((<|>))
 import Control.Plus (class Plus)
-import Data.Either (hush)
-import Data.Exists (mkExists)
-import Data.Filterable (class Filterable, compact, partitionMap)
-import Data.Hashable (class Hashable, hash)
-import Data.Maybe (Maybe(..))
-import Data.Tuple (snd)
-import Data.Tuple.Nested ((/\))
 import Deku.Attribute (cb, (:=))
-import Deku.Control (text, text_)
-import Deku.Core (Element, Subgraph, SubgraphF(..))
+import Deku.Core (Element)
 import Deku.DOM as D
-import Deku.Pursx (nut, (~~))
-import Deku.Subgraph (SubgraphAction(..), (@@))
+import Deku.Pursx ((~~))
 import Effect (Effect)
-import FRP.Event (class IsEvent, mapAccum)
+import FRP.Event (class IsEvent)
 import FRP.Event.Class (bang)
 import Type.Proxy (Proxy(..))
-import WAGS.Example.Docs.Types (Navigation, PageAction, Page(..), CancelCurrentAudio)
+import WAGS.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
 import WAGS.Example.Docs.Util (scrollToTop)
-
-data UIEvents = UIShown | ButtonClicked | SliderMoved Number
-derive instance Eq UIEvents
-
-data Sgs = Sg0 | Sg1
-derive instance Eq Sgs
-derive instance Ord Sgs
-instance Show Sgs where
-  show Sg0 = "Sg0"
-  show Sg1 = "Sg1"
-instance Hashable Sgs where
-  hash = show >>> hash
-
-counter :: forall event a. IsEvent event => event a → event Int
-counter event = map snd $ mapAccum f event 0
-  where
-  f a b = (b + 1) /\ (a /\ b)
-
-mySub
-  :: forall event payload
-   . Filterable event
-  => IsEvent event
-  => (Sgs -> Effect Unit)
-  -> Subgraph Sgs Unit event payload
-mySub raise Sg0 = mkExists $ SubgraphF \push event ->
-  let
-    { left, right } = partitionMap identity event
-  in
-    D.div_
-      [ D.div_
-          [ D.button
-              (bang $ D.OnClick := cb (const $ raise Sg0))
-              [ text_ "Send to B" ]
-          , D.div_ [ text (map (append "A: " <<< show) (counter left)) ]
-          , D.button
-              (bang $ D.OnClick := cb (const $ push unit))
-              [ text_ "Send to C" ]
-          , D.div_
-              [ text
-                  ( map (append "C: " <<< show)
-                      (map (add 1) (counter right) <|> bang 0)
-                  )
-              ]
-          , D.hr_ []
-
-          ]
-      ]
-mySub raise Sg1 = mkExists $ SubgraphF \push event ->
-  let
-    { left, right } = partitionMap identity event
-  in
-    D.div_
-      [ D.div_
-          [ D.button
-              (bang $ D.OnClick := cb (const $ raise Sg1))
-              [ text_ "Send to A" ]
-          , D.div_ [ text (map (append "B: " <<< show) (counter (left))) ]
-          , D.button
-              (bang $ D.OnClick := cb (const $ push unit))
-              [ text_ "Send to D" ]
-          , D.div_
-              [ text
-                  ( map (append "D: " <<< show)
-                      (map (add 1) (counter right) <|> bang 0)
-                  )
-              ]
-          ]
-      ]
 
 px =  Proxy :: Proxy """<div>
   <h1>Subgraphs</h1>
@@ -143,7 +65,7 @@ px =  Proxy :: Proxy """<div>
   <p>Subgraphs are great when the domain is known, meaning it's <i>your</i> application and <i>your</i> rules. But what if you have a more open context, like for example a live-coding environment? Often times, these applications simply do not work with fixed graphs. For example, if you're live-coding two deeply-nested graphs and find yourself needing to create a feedback loop between them, you're out of luck. This is when you use the subject of our next section: <a ~next~ style="cursor:pointer;">tumult</a>.</p>
 </div>"""
 
-subgraphs :: forall event payload. IsEvent event => Plus event => CancelCurrentAudio -> (Page -> Effect Unit) -> event PageAction -> Element event payload
-subgraphs _ dpage _ = px ~~
+subgraphs :: forall event payload. IsEvent event => Plus event => CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> event SingleSubgraphEvent  -> Element event payload
+subgraphs _ dpage _ _ = px ~~
   { next: bang (D.OnClick := (cb (const $ dpage Intro *> scrollToTop)))
   }

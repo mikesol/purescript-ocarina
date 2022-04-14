@@ -18,34 +18,9 @@ import Effect.Class (liftEffect)
 import FRP.Event (class IsEvent)
 import FRP.Event.Class (bang)
 import Type.Proxy (Proxy(..))
-import WAGS.Example.Docs.Types (PageAction, Page(..))
+import WAGS.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
 import WAGS.Example.Docs.Util (scrollToTop)
 
-data UIAction = Initial | Loading | Result String
-
-clickCb :: (UIAction -> Effect Unit) -> Cb
-clickCb push = cb
-  ( const do
-      push Loading
-      launchAff_ $ do
-        result <- AX.request
-          ( AX.defaultRequest
-              { url = "https://randomuser.me/api/"
-              , method = Left GET
-              , responseFormat = ResponseFormat.json
-              }
-          )
-        case result of
-          Left err -> liftEffect $ push
-            $ Result
-              ( "GET /api response failed to decode: " <>
-                  AX.printError err
-              )
-          Right response -> liftEffect $ push $ Result $
-            stringifyWithIndent 2 response.body
-  )
-
-clickText = "Click to get some random user data." :: String
 
 px = Proxy :: Proxy """<div>
   <h1>State</h1>
@@ -120,7 +95,7 @@ px = Proxy :: Proxy """<div>
   <p>Using <code>fold</code> and <code>fix</code>, we can create internal state in our Web Audio works that would be really tedious and error-prone to achieve in vanilla JS or other compile-to-JS languages. There's still one nagging issue that we haven't addressed, though. For all of the flexibility we can achieve with events, we still can't flex the audio graph itself, meaning that we can't add or remove components. In the next two sections, we'll learn two ways to do that. Let's start with exploring <a ~next~ style="cursor:pointer;">subgraphs</a>.</p>
 </div>"""
 
-effects :: forall event payload. IsEvent event => Plus event => (Page -> Effect Unit) -> Element event payload
-effects dpage = px ~~
+effects :: forall event payload. IsEvent event => Plus event => CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> event SingleSubgraphEvent   -> Element event payload
+effects ccb dpage _ _= px ~~
   { next: bang (D.OnClick := (cb (const $ dpage Subgraph *> scrollToTop)))
   }

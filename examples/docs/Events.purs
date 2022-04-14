@@ -11,7 +11,7 @@ import Effect (Effect)
 import FRP.Event (class IsEvent)
 import FRP.Event.Class (bang)
 import Type.Proxy (Proxy(..))
-import WAGS.Example.Docs.Types (Navigation, PageAction, Page(..))
+import WAGS.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
 import WAGS.Example.Docs.Util (scrollToTop)
 
 data UIEvents = UIShown | ButtonClicked | SliderMoved Number
@@ -167,7 +167,7 @@ type Behavior = ABehavior Event
   <p>In this section, saw how to build rich audio applications using the <code>Event</code> and <code>Behavior</code> types. In the next section, we'll build more complex signal processing flows using a pair of functions called <a ~next~ style="cursor:pointer;"><code>fix</code> and <code>fan</code></a>.</p>
 </div>"""
 
-events :: forall event payload. IsEvent event => Plus event => (Page -> Effect Unit) -> Element event payload
-events dpage = px ~~
+events :: forall event payload. IsEvent event => Plus event => CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> event SingleSubgraphEvent -> Element event payload
+events ccb dpage _ _ = px ~~
   { next: bang (D.OnClick := (cb (const $ dpage FixFan *> scrollToTop)))
   }

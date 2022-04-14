@@ -2,26 +2,17 @@ module WAGS.Example.Docs.HelloWorld where
 
 import Prelude
 
-import Control.Alt ((<|>))
 import Control.Plus (class Plus)
-import Data.Compactable (compact)
-import Data.Either (hush)
-import Data.Exists (mkExists)
-import Data.Maybe (Maybe(..), maybe)
-import Data.Tuple.Nested ((/\))
 import Deku.Attribute (cb, (:=))
-import Deku.Control (text, text_)
-import Deku.Core (Element, SubgraphF(..))
+import Deku.Control (text_)
+import Deku.Core (Element)
 import Deku.DOM as D
 import Deku.Pursx (nut, (~~))
-import Deku.Subgraph ((@@))
-import Deku.Subgraph as Sg
 import Effect (Effect)
-import Effect.Class.Console (log)
 import FRP.Event.Class (bang, class IsEvent)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (gain_, sinOsc)
-import WAGS.Example.Docs.Types (Navigation, PageAction, Page(..), CancelCurrentAudio)
+import WAGS.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
 import WAGS.Example.Docs.Util (audioWrapper, scrollToTop)
 import WAGS.Parameter (pureOn)
 import WAGS.Run (run2_)
@@ -72,10 +63,12 @@ helloWorld
   :: forall event payload
    . Plus event
   => IsEvent event
-  => CancelCurrentAudio -> (Page -> Effect Unit)
-  -> event PageAction
+  => CancelCurrentAudio
+  -> (Page -> Effect Unit)
+  -> SingleSubgraphPusher
+  -> event SingleSubgraphEvent
   -> Element event payload
-helloWorld cca dpage _ = px ~~
+helloWorld cca dpage _ _ = px ~~
   { code: nut
       ( D.pre_
           [ D.code_

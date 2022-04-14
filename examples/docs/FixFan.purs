@@ -11,7 +11,7 @@ import Effect (Effect)
 import FRP.Event (class IsEvent)
 import FRP.Event.Class (bang)
 import Type.Proxy (Proxy(..))
-import WAGS.Example.Docs.Types (Navigation, PageAction, Page(..))
+import WAGS.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
 import WAGS.Example.Docs.Util (scrollToTop)
 
 data UIEvents = UIShown | ButtonClicked | SliderMoved Number
@@ -58,7 +58,7 @@ px = Proxy :: Proxy
   <p>In this section, saw how to fan one audio node to many processing chains and how to create a fixed point, aka feedback, for a node. In the next section, we'll look at how to <a ~next~ style="cursor:pointer;">merge and split audio</a>.</p>
 </div>"""
 
-fixFan :: forall event payload. IsEvent event => Plus event => (Page -> Effect Unit) ->  Element event payload
-fixFan dpage = px ~~
+fixFan :: forall event payload. IsEvent event => Plus event => CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> event SingleSubgraphEvent  -> Element event payload
+fixFan ccb dpage _ _ = px ~~
   { next: bang (D.OnClick := (cb (const $ dpage MultiChannel *> scrollToTop)))
   }

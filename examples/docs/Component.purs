@@ -20,7 +20,7 @@ import WAGS.Example.Docs.AudioUnits.Constant as Constant
 import WAGS.Example.Docs.AudioUnits.Convolution as Convolution
 import WAGS.Example.Docs.AudioUnits.Delay as Delay
 import WAGS.Example.Docs.AudioUnits.TOC as TOC
-import WAGS.Example.Docs.Types (CancelCurrentAudio, Page(..))
+import WAGS.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
 import WAGS.Example.Docs.Util (scrollToTop)
 
 px = Proxy :: Proxy """<div>
@@ -123,8 +123,8 @@ px = Proxy :: Proxy """<div>
   <p>Phew, that was a lot of audio units! In the next section, we'll make them come alive thanks to the magic of <a ~next~ style="cursor:pointer;">events</a>.</p>
 </div>"""
 
-components :: forall event payload. IsEvent event => Plus event => CancelCurrentAudio -> (Page -> Effect Unit) -> Element event payload
-components ccb dpage = px ~~
+components :: forall event payload. IsEvent event => Plus event => CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> event SingleSubgraphEvent  -> Element event payload
+components ccb dpage _ _ = px ~~
   { drumroll: nut (text_ "PLACEHOLDER")
   , toc: nut TOC.toc
   , allpass: nut $ Allpass.allpass ccb dpage

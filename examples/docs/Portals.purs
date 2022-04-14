@@ -2,70 +2,17 @@ module WAGS.Example.Docs.Portals where
 
 import Prelude
 
-import Control.Alt ((<|>))
 import Control.Plus (class Plus)
-import Data.Either (hush)
-import Data.Exists (mkExists)
-import Data.Filterable (compact)
-import Data.Hashable (class Hashable, hash)
-import Data.Tuple (snd)
-import Data.Tuple.Nested ((/\))
 import Deku.Attribute (cb, (:=))
-import Deku.Control (flatten, text_)
-import Deku.Core (Element, Element, Subgraph, SubgraphF(..))
+import Deku.Core (Element)
 import Deku.DOM as D
-import Deku.Portal (portal)
-import Deku.Pursx (nut, (~~))
-import Deku.Subgraph (SubgraphAction(..), (@@))
+import Deku.Pursx ((~~))
 import Effect (Effect)
-import FRP.Event (class IsEvent, Event, mapAccum)
+import FRP.Event (class IsEvent)
 import FRP.Event.Class (bang)
 import Type.Proxy (Proxy(..))
-import WAGS.Example.Docs.Types (Navigation, PageAction, Page(..), CancelCurrentAudio)
+import WAGS.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
 import WAGS.Example.Docs.Util (scrollToTop)
-
-data UIEvents = UIShown | ButtonClicked | SliderMoved Number
-derive instance Eq UIEvents
-
-data Sgs = Sg0 | Sg1
-derive instance Eq Sgs
-derive instance Ord Sgs
-instance Show Sgs where
-  show Sg0 = "Sg0"
-  show Sg1 = "Sg1"
-instance Hashable Sgs where
-  hash = show >>> hash
-
-counter :: forall a. Event a → Event Int
-counter event = map snd $ mapAccum f event 0
-  where
-  f a b = (b + 1) /\ (a /\ b)
-
-
-mySub
-  :: forall env event payload
-   . IsEvent event => event Boolean
-  -> (event Boolean -> Element event payload)
-  -> (event Boolean -> Element event payload)
-  -> Subgraph Sgs env event payload
-mySub event gateway0 gateway1 sg = mkExists $ SubgraphF \_ _ -> D.div_
-  [ gateway0
-      ( map
-          ( case sg of
-              Sg0 -> identity
-              Sg1 -> not
-          )
-          event
-      )
-  , gateway1
-      ( map
-          ( case sg of
-              Sg0 -> not
-              Sg1 -> identity
-          )
-          event
-      )
-  ]
 
 px =  Proxy :: Proxy """<div>
   <h1>Tumult</h1>
@@ -98,7 +45,7 @@ px =  Proxy :: Proxy """<div>
   <p>In the next section, we'll look at how to create audio graphs via an <a ~next~ style="cursor:pointer;">imperative API that more closely resembles Web Audio while providing additional type-safety benefits</a>.</p>
 </div>"""
 
-portals :: forall event payload. IsEvent event => Plus event => CancelCurrentAudio -> (Page -> Effect Unit) -> event PageAction -> Element event payload
-portals _ dpage _ = px ~~
+portals :: forall event payload. IsEvent event => Plus event => CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> event SingleSubgraphEvent -> Element event payload
+portals _ dpage _ _ = px ~~
   { next: bang (D.OnClick := (cb (const $ dpage Imperative *> scrollToTop)))
   }
