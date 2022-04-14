@@ -9,7 +9,7 @@ import Effect (Effect)
 import FRP.Event (class IsEvent)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (gain_, sinOsc)
-import WAGS.Example.Docs.Types (CancelCurrentAudio, Page)
+import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import WAGS.Example.Docs.Util (audioWrapper)
 import WAGS.Parameter (pureOn)
 import WAGS.Run (run2_)
@@ -22,9 +22,9 @@ px = Proxy :: Proxy """<section>
   </section>
 """
 
-allpass :: forall event payload. IsEvent event => Plus event => CancelCurrentAudio -> (Page -> Effect Unit) -> Element event payload
-allpass ccb _ = px ~~
+allpass :: forall event payload. IsEvent event => Plus event => CancelCurrentAudio -> (Page -> Effect Unit) -> event SingleSubgraphEvent -> Element event payload
+allpass ccb _ ev = px ~~
   { allpass: nut
-      ( audioWrapper ccb (pure unit) \_ -> run2_ [ gain_ 0.05 [ sinOsc 440.0 pureOn ] ]
+      ( audioWrapper ev ccb (pure unit) \_ -> run2_ [ gain_ 0.05 [ sinOsc 440.0 pureOn ] ]
       )
   }

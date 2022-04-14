@@ -21,7 +21,7 @@ import WAGS.Example.Docs.AudioUnits.Convolution as Convolution
 import WAGS.Example.Docs.AudioUnits.Delay as Delay
 import WAGS.Example.Docs.AudioUnits.TOC as TOC
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
-import WAGS.Example.Docs.Util (scrollToTop)
+import WAGS.Example.Docs.Util (ccassp, mkNext, scrollToTop)
 
 px = Proxy :: Proxy """<div>
   <h1>Audio Units</h1>
@@ -124,15 +124,18 @@ px = Proxy :: Proxy """<div>
 </div>"""
 
 components :: forall event payload. IsEvent event => Plus event => CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> event SingleSubgraphEvent  -> Element event payload
-components ccb dpage _ _ = px ~~
+components cca' dpage ssp ev = px ~~
   { drumroll: nut (text_ "PLACEHOLDER")
   , toc: nut TOC.toc
-  , allpass: nut $ Allpass.allpass ccb dpage
-  , analyser: nut $ Analyser.analyser ccb dpage
-  , bandpass: nut $ Bandpass.bandpass ccb dpage
-  , constant: nut $ Constant.constant ccb dpage
-  , compression: nut $ Compression.compression ccb dpage
-  , convolution: nut $ Convolution.convolution ccb dpage
-  , delay: nut $ Delay.delay ccb dpage
-  , next: bang (D.OnClick := (cb (const $ dpage Events *> scrollToTop)))
+  , allpass: nut $ Allpass.allpass ccb dpage ev
+  , analyser: nut $ Analyser.analyser ccb dpage ev
+  , bandpass: nut $ Bandpass.bandpass ccb dpage ev
+  , constant: nut $ Constant.constant ccb dpage ev
+  , compression: nut $ Compression.compression ccb dpage ev
+  , convolution: nut $ Convolution.convolution ccb dpage ev
+  , delay: nut $ Delay.delay ccb dpage ev
+  , next: mkNext ev cpage
   }
+  where
+  cpage = dpage Events *> scrollToTop
+  ccb = ccassp cca' ssp

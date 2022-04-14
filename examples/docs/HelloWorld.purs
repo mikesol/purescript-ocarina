@@ -2,6 +2,7 @@ module WAGS.Example.Docs.HelloWorld where
 
 import Prelude
 
+import Control.Alt ((<|>))
 import Control.Plus (class Plus)
 import Deku.Attribute (cb, (:=))
 import Deku.Control (text_)
@@ -12,8 +13,8 @@ import Effect (Effect)
 import FRP.Event.Class (bang, class IsEvent)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (gain_, sinOsc)
-import WAGS.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
-import WAGS.Example.Docs.Util (audioWrapper, scrollToTop)
+import WAGS.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent(..), SingleSubgraphPusher)
+import WAGS.Example.Docs.Util (audioWrapper, ccassp, mkNext, scrollToTop)
 import WAGS.Parameter (pureOn)
 import WAGS.Run (run2_)
 
@@ -68,7 +69,7 @@ helloWorld
   -> SingleSubgraphPusher
   -> event SingleSubgraphEvent
   -> Element event payload
-helloWorld cca dpage _ _ = px ~~
+helloWorld cca' dpage ssp ev = px ~~
   { code: nut
       ( D.pre_
           [ D.code_
@@ -81,7 +82,10 @@ helloWorld cca dpage _ _ = px ~~
           ]
       )
   , result: nut
-      ( audioWrapper cca (pure unit) $ \_ -> run2_ [ gain_ 0.05 [ sinOsc 440.0 pureOn ] ]
+      ( audioWrapper ev cca (pure unit) $ \_ -> run2_ [ gain_ 0.05 [ sinOsc 440.0 pureOn ] ]
       )
-  , next: bang (D.OnClick := (cb (const $ dpage AudioUnits *> scrollToTop)))
+  , next: mkNext ev cpage
   }
+  where
+  cpage = dpage AudioUnits *> scrollToTop
+  cca = ccassp cca' ssp
