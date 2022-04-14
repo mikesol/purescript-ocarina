@@ -14,6 +14,7 @@ import Data.Show.Generic (genericShow)
 import Data.Tuple.Nested (type (/\), (/\))
 import Data.Variant (Variant, inj, match)
 import Data.Variant.Maybe (Maybe, just, nothing)
+import Data.Vec (Vec)
 import FRP.Behavior (ABehavior, sample_)
 import FRP.Event (class IsEvent, keepLatest)
 import FRP.Event.Class (bang)
@@ -576,6 +577,19 @@ type MakeHighshelf' = MakeHighshelf_ AudioParameter
 type MakeInput = { id :: String, parent :: Maybe String, scope :: Maybe String }
 type MakeTumultInput = { id :: String, input :: String }
 
+derive instance newtypeInitializeIIRFilter :: Newtype (InitializeIIRFilter feedforward feedback) _
+newtype InitializeIIRFilter (feedforward :: Type) (feedback :: Type)= InitializeIIRFilter
+  { feedforward :: Vec feedforward Number, feedback :: Vec feedback Number }
+
+type MakeIIRFilter =
+  { id :: String
+  , parent :: Maybe String
+  , scope :: Maybe String
+  , feedforward :: Array Number
+  , feedback :: Array Number
+  }
+
+
 derive instance newtypeLoopBuf :: Newtype LoopBuf _
 newtype LoopBuf = LoopBuf
   ( Variant
@@ -1016,6 +1030,7 @@ newtype AudioInterpret event payload = AudioInterpret
   , makeHighpass :: MakeHighpass -> payload
   , makeHighshelf :: MakeHighshelf -> payload
   , makeInput :: MakeInput -> payload
+  , makeIIRFilter :: MakeIIRFilter -> payload
   , makeLoopBuf :: MakeLoopBuf -> payload
   , makeLowpass :: MakeLowpass -> payload
   , makeLowshelf :: MakeLowshelf -> payload

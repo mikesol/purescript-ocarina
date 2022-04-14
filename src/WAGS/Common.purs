@@ -3,7 +3,13 @@ module WAGS.Common where
 import Prelude
 
 import ConvertableOptions (class ConvertOption, class ConvertOptionsWithDefaults, convertOptionsWithDefaults)
+import Data.Identity (Identity(..))
+import Data.Newtype (unwrap)
+import Data.Tuple.Nested (type (/\), (/\))
 import Data.Variant.Maybe (Maybe, just, nothing)
+import Data.Vec (Vec)
+import Safe.Coerce (coerce)
+import Type.Equality (class TypeEquals, proof)
 import WAGS.Core as Core
 import WAGS.Parameter (InitialAudioParameter)
 import WAGS.WebAPI (BrowserAudioBuffer)
@@ -113,7 +119,7 @@ instance InitialConstant Core.InitializeConstant where
 instance InitialConstant Number where
   toInitializeConstant = Core.InitializeConstant <<< { offset: _ }
 
--- Constant
+-- Convolver
 class InitialConvolver i where
   toInitializeConvolver :: i -> Core.InitializeConvolver
 
@@ -122,6 +128,25 @@ instance InitialConvolver Core.InitializeConvolver where
 
 instance InitialConvolver BrowserAudioBuffer where
   toInitializeConvolver = Core.InitializeConvolver <<< { buffer: _ }
+
+-- IIRFilter
+class InitialIIRFilter i feedforward feedback where
+  toInitializeIIRFilter :: i -> (Core.InitializeIIRFilter feedforward feedback)
+
+instance
+  ( TypeEquals feedforwardI feedforwardO
+  , TypeEquals feedbackI feedbackO
+  ) =>
+  InitialIIRFilter (Core.InitializeIIRFilter feedforwardI feedbackI) feedforwardO feedbackO where
+  toInitializeIIRFilter (Core.InitializeIIRFilter { feedforward, feedback }) = Core.InitializeIIRFilter
+    { feedforward: proof (coerce feedforward), feedback: proof (coerce feedback) }
+
+instance
+  ( TypeEquals feedforwardI feedforwardO
+  , TypeEquals feedbackI feedbackO
+  ) =>
+  InitialIIRFilter (Vec feedforwardI Number /\ Vec feedbackI Number) feedforwardO feedbackO where
+  toInitializeIIRFilter (feedforward /\ feedback) = Core.InitializeIIRFilter { feedforward: proof (coerce feedforward), feedback: proof (coerce feedback) }
 
 -- Delay
 class InitialDelay i where

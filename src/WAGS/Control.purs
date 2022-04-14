@@ -17,9 +17,10 @@ import Data.Maybe as DM
 import Data.NonEmpty ((:|))
 import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.Tuple.Nested (type (/\), (/\))
-import Data.Typelevel.Num (class Nat, class Pos, class Pred, D1, D2, pred, toInt)
+import Data.Typelevel.Num (class Lt, class Nat, class Pos, class Pred, D1, D2, pred, toInt)
 import Data.Variant (Unvariant(..), match, unvariant)
 import Data.Variant.Maybe (Maybe, just, maybe, nothing)
+import Data.Vec (Vec, toArray)
 import FRP.Behavior (sample_)
 import FRP.Event (class IsEvent, keepLatest)
 import FRP.Event.Class (bang)
@@ -589,8 +590,6 @@ convolverx
 convolverx = __convolver
 
 -- delay
-
--- delay
 __delay
   :: forall i outputChannels producedI consumedI producedO consumedO event
        payload
@@ -920,6 +919,77 @@ highshelfx
   -> C.AudioInput outputChannels produced consumed event payload
   -> C.Node outputChannels produced consumed event payload
 highshelfx = __highshelf
+
+-- iir filter
+-- iirFilter
+
+__iirFilter
+  :: forall i proxy feedforward feedback outputChannels producedI consumedI producedO consumedO event
+       payload
+   . IsEvent event
+  => Lt D2 feedforward
+  => Lt D2 feedback
+  => Common.InitialIIRFilter i feedforward feedback
+  => proxy feedforward
+  -> proxy feedback
+  -> i
+  -> C.AudioInput outputChannels producedI consumedI event payload
+  -> C.Node outputChannels producedO consumedO event payload
+__iirFilter _ _ i' (C.AudioInput elts) = C.Node go
+  where
+  C.InitializeIIRFilter i = (Common.toInitializeIIRFilter :: i -> C.InitializeIIRFilter feedforward feedback) i'
+  go
+    parent
+    di@
+      ( C.AudioInterpret
+          { ids
+          , scope
+          , makeIIRFilter
+          }
+      ) =
+    keepLatest
+      ( (sample_ ids (bang unit)) <#> tmpIdentity \me ->
+          bang
+            ( makeIIRFilter
+                { id: useMeIfMe parent me
+                , parent: useParentIfParent parent
+                , scope: just scope
+                , feedforward: toArray i.feedforward
+                , feedback: toArray i.feedback
+                }
+            )
+          <|> oneOf
+            ( NEA.toArray
+                (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
+            )
+    )
+
+iirFilter
+  :: forall i feedforward feedback outputChannels produced consumed ord event payload
+   . IsEvent event
+  => Lt D2 feedforward
+  => Lt D2 feedback
+  => Common.InitialIIRFilter i feedforward feedback
+  => Sym.Compare "" produced ord
+  => TLOrd ord produced produced "" produced
+  => Nub consumed consumed
+  => i
+  -> Array (C.Node outputChannels produced consumed event payload)
+  -> C.Node outputChannels produced consumed event payload
+iirFilter i a = case uncons a of
+  DM.Nothing -> __iirFilter (Proxy :: _ feedforward) (Proxy :: _ feedback) i (constant 0.0 empty :* ([] :: Array (C.Node outputChannels produced consumed event payload)))
+  DM.Just { head, tail } -> __iirFilter (Proxy :: _ feedforward) (Proxy :: _ feedback) i (head :::* tail)
+
+iirFilterx
+  :: forall i feedforward feedback outputChannels produced consumed event payload
+   . IsEvent event
+  => Lt D2 feedforward
+  => Lt D2 feedback
+  => Common.InitialIIRFilter i feedforward feedback
+  => i
+  -> C.AudioInput outputChannels produced consumed event payload
+  -> C.Node outputChannels produced consumed event payload
+iirFilterx = __iirFilter (Proxy :: _ feedforward) (Proxy :: _ feedback)
 
 -- lowpass
 __lowpass

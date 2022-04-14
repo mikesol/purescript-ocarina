@@ -18,8 +18,9 @@ import WAGS.Example.Docs.AudioUnits.Convolution as Convolution
 import WAGS.Example.Docs.AudioUnits.Delay as Delay
 import WAGS.Example.Docs.AudioUnits.Gain as Gain
 import WAGS.Example.Docs.AudioUnits.Highpass as Highpass
-import WAGS.Example.Docs.AudioUnits.Lowpass as Lowpass
 import WAGS.Example.Docs.AudioUnits.Highshelf as Highshelf
+import WAGS.Example.Docs.AudioUnits.IIRFilter as IIRFilter
+import WAGS.Example.Docs.AudioUnits.Lowpass as Lowpass
 import WAGS.Example.Docs.AudioUnits.Lowshelf as Lowshelf
 import WAGS.Example.Docs.AudioUnits.Notch as Notch
 import WAGS.Example.Docs.AudioUnits.Peaking as Peaking
@@ -58,15 +59,7 @@ px = Proxy :: Proxy """<div>
   ~gain~
   ~highpass~
   ~highshelf~
-
-  <h2 id="iir">IIR filter</h2>
-  <p>The <a href="https://developer.mozilla.org/en-US/docs/Web/API/IIRFilterNode">IIR filter</a>, or infinite impulse response filter, is the Swiss Army Knife of filters. You can carve out and boost parts of the spectrum with amazing precision. But it comes with a catch: you can't automate the parameters. The parameters are also tough to work with if you're new to IIR filters. In short, you're setting up coefficients for a filter of type:</p>
-
-  <pre><code>x0s0 + x1s1 + x2s2 + ... + y0S0 + y1S1 + y2S2 + ...</code></pre>
-
-  <p>Where <code>s1</code> is the unfiltered signal at time <code>t-1</code>, <code>S0</code> is the <i>filtered</i> signal at time <code>t-1</code>, etc. The xs and ys are often called <i>feedforward</i> and <i>feedback</i> coefficients respectively.</p>
-
-  <p>Because the Web Audio API accepts between 3 and 20 parameters for feedforward and feedback coefficients, Wags enforces that through a <a href="https://github.com/bodil/purescript-sized-vectors">sized vector</a>.</p>
+  ~iirFilter~
 
   <h2 id="loopbuf">Looping buffer</h2>
 
@@ -137,6 +130,7 @@ components cca' dpage ssp ev = px ~~
   , lowshelf: nut $ Lowshelf.lowshelf ccb dpage ev
   , lowpass: nut $ Lowpass.lowpass ccb dpage ev
   , notch: nut $ Notch.notch ccb dpage ev
+  , iirFilter: nut $ IIRFilter.iirFilterEx ccb dpage ev
   , peaking: nut $ Peaking.peaking ccb dpage ev
   , next: mkNext ev cpage
   }

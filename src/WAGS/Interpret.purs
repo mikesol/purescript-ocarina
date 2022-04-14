@@ -292,6 +292,8 @@ foreign import makeHighshelf_
   :: C.MakeHighshelf -> FFIAudioSnapshot -> Effect Unit
 
 foreign import makeInput_ :: C.MakeInput -> FFIAudioSnapshot -> Effect Unit
+foreign import makeIIRFilter_
+  :: C.MakeIIRFilter -> FFIAudioSnapshot -> Effect Unit
 foreign import makeLoopBuf_ :: C.MakeLoopBuf -> FFIAudioSnapshot -> Effect Unit
 foreign import makeLowpass_ :: C.MakeLowpass -> FFIAudioSnapshot -> Effect Unit
 foreign import makeLowshelf_
@@ -420,6 +422,7 @@ effectfulAudioInterpret' toE fromE = C.AudioInterpret
   , makeGain: makeGain_
   , makeHighpass: makeHighpass_
   , makeHighshelf: makeHighshelf_
+  , makeIIRFilter: makeIIRFilter_
   , makeInput: makeInput_
   , makeLoopBuf: makeLoopBuf_
   , makeLowpass: makeLowpass_

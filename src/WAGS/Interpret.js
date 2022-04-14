@@ -431,6 +431,24 @@ exports.makeInput_ = function (a) {
 		};
 	};
 };
+exports.makeIIRFilter_ = function (a) {
+	return function (state) {
+		return function () {
+			var ptr = a.id;
+			state.units[ptr] = {
+				outgoing: [],
+				incoming: [],
+				main: new IIRFilterNode(state.context, {
+					feedforward: a.feedforward,
+					feedback: a.feedback,
+				}),
+			};
+			addToScope(ptr, a.scope, state);
+			doDeferredConnections(ptr, state);
+			mConnectXToY_(ptr, a.parent, state);
+		};
+	};
+};
 
 // loopBuf
 exports.makeLoopBuf_ = function (a) {
