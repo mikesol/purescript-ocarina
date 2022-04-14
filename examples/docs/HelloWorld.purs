@@ -52,7 +52,7 @@ px = Proxy :: Proxy """<div>
 
   <pre><code>decibels = 20 * log10( gain );</code></pre>
 
-  <p>In our case, a gain of <code>0.05</code> is roughly <code>-26dB</code></p>.
+  <p>In our case, a gain of <code>0.05</code> is roughly <code>-26dB</code>.</p>
 
   <p>Our sine wave oscillator is set to a frequency of <code>440Hz</code>. That means that your loudspeaker or headphones will vibrate back and forth in sinusoidal motion 440 times per second, which most folks perceive as the <a href="https://en.wikipedia.org/wiki/A440_(pitch_standard)">note A</a>. And we turn on the oscillator with <code>pureOn</code>, as the default is off for <i>all</i> sound generators in Wags. This is a design decision to help preserve the hearing of those that work frequently with audio.</p>
 

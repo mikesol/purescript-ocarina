@@ -130,7 +130,7 @@ components cca' dpage ssp ev = px ~~
   , allpass: nut $ Allpass.allpass ccb dpage ev
   , analyser: nut $ Analyser.analyser ccb dpage ev
   , bandpass: nut $ Bandpass.bandpass ccb dpage ev
-  , constant: nut $ Constant.constant ccb dpage ev
+  , constant: nut $ Constant.constantEx ccb dpage ev
   , compression: nut $ Compression.compression ccb dpage ev
   , convolution: nut $ Convolution.convolution ccb dpage ev
   , delay: nut $ Delay.delay ccb dpage ev

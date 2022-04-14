@@ -113,6 +113,16 @@ instance InitialConstant Core.InitializeConstant where
 instance InitialConstant Number where
   toInitializeConstant = Core.InitializeConstant <<< { offset: _ }
 
+-- Constant
+class InitialConvolver i where
+  toInitializeConvolver :: i -> Core.InitializeConvolver
+
+instance InitialConvolver Core.InitializeConvolver where
+  toInitializeConvolver = identity
+
+instance InitialConvolver BrowserAudioBuffer where
+  toInitializeConvolver = Core.InitializeConvolver <<< { buffer: _ }
+
 -- Delay
 class InitialDelay i where
   toInitializeDelay :: i -> Core.InitializeDelay
@@ -122,6 +132,79 @@ instance InitialDelay Core.InitializeDelay where
 
 instance InitialDelay Number where
   toInitializeDelay = Core.InitializeDelay <<< { delayTime: _ }
+
+-- DynamicsCompressor
+
+data DynamicsCompressorOptions = DynamicsCompressorOptions
+
+instance
+  ConvertOption DynamicsCompressorOptions
+    "threshold"
+    InitialAudioParameter
+    InitialAudioParameter where
+  convertOption _ _ = identity
+
+instance
+  ConvertOption DynamicsCompressorOptions
+    "ratio"
+    InitialAudioParameter
+    InitialAudioParameter where
+  convertOption _ _ = identity
+
+instance
+  ConvertOption DynamicsCompressorOptions
+    "knee"
+    InitialAudioParameter
+    InitialAudioParameter where
+  convertOption _ _ = identity
+
+instance
+  ConvertOption DynamicsCompressorOptions
+    "attack"
+    InitialAudioParameter
+    InitialAudioParameter where
+  convertOption _ _ = identity
+
+instance
+  ConvertOption DynamicsCompressorOptions
+    "release"
+    InitialAudioParameter
+    InitialAudioParameter where
+  convertOption _ _ = identity
+
+type DynamicsCompressorOptional =
+  ( ratio :: InitialAudioParameter
+  , threshold :: InitialAudioParameter
+  , attack :: InitialAudioParameter
+  , release :: InitialAudioParameter
+  , knee :: InitialAudioParameter
+  )
+
+type DynamicsCompressorAll =
+  (| DynamicsCompressorOptional)
+
+defaultDynamicsCompressor :: { | DynamicsCompressorOptional }
+defaultDynamicsCompressor =
+  { ratio: 12.0
+  , attack: 0.003
+  , release: 0.25
+  , knee: 30.0
+  , threshold: -24.0
+  }
+
+class InitialDynamicsCompressor i where
+  toInitializeDynamicsCompressor :: i -> Core.InitializeDynamicsCompressor
+
+instance InitialDynamicsCompressor Core.InitializeDynamicsCompressor where
+  toInitializeDynamicsCompressor = identity
+
+instance
+  ConvertOptionsWithDefaults DynamicsCompressorOptions { | DynamicsCompressorOptional }
+    { | provided }
+    { | DynamicsCompressorAll } =>
+  InitialDynamicsCompressor { | provided } where
+  toInitializeDynamicsCompressor provided = Core.InitializeDynamicsCompressor
+    (convertOptionsWithDefaults DynamicsCompressorOptions defaultDynamicsCompressor provided)
 
 -- Gain
 class InitialGain i where
@@ -567,7 +650,6 @@ instance InitialSquareOsc Core.InitializeSquareOsc where
 
 instance InitialSquareOsc Number where
   toInitializeSquareOsc = Core.InitializeSquareOsc <<< { frequency: _ }
-
 
 -- SinOsc
 class InitialSinOsc i where

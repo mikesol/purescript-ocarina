@@ -17,6 +17,7 @@ import Effect.Aff (Aff, error, joinFiber, killFiber, launchAff, launchAff_)
 import Effect.Class (liftEffect)
 import FRP.Event.Class (class IsEvent, bang, sampleOn)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, SingleSubgraphEvent(..), SingleSubgraphPusher)
+import WAGS.Interpret (context)
 
 foreign import scrollToTop_ :: Effect Unit
 
@@ -84,3 +85,5 @@ audioWrapper ev cca init i = bang (unit /\ Sg.Insert)
 
 mkNext ev cpage = bang (D.OnClick := cb (const cpage))
               <|> map (\cncl -> D.OnClick := cb (const (cncl *> cpage))) (map (\(SetCancel c) -> c) ev)
+
+ctxAff = liftEffect context

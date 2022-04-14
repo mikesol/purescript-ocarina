@@ -29,42 +29,56 @@ derive instance ordTransition :: Ord Transition
 derive instance newtypeTransition :: Newtype Transition _
 derive newtype instance showTransition :: Show Transition
 
+_numeric' :: AudioNumeric' -> AudioParameter
+_numeric' = _numeric <<< AudioNumeric
+
 _numeric :: AudioNumeric -> AudioParameter
 _numeric = AudioParameter <<< inj (Proxy :: _ "numeric")
 
 _envelope :: AudioEnvelope -> AudioParameter
 _envelope = AudioParameter <<< inj (Proxy :: _ "envelope")
 
+_envelope' :: AudioEnvelope' -> AudioParameter
+_envelope' = _envelope <<< AudioEnvelope
+
 _cancel :: AudioCancel -> AudioParameter
 _cancel = AudioParameter <<< inj (Proxy :: _ "cancel")
+
+_cancel' :: AudioCancel' -> AudioParameter
+_cancel' = _cancel <<< AudioCancel
 
 _sudden :: AudioSudden -> AudioParameter
 _sudden = AudioParameter <<< inj (Proxy :: _ "sudden")
 
-newtype AudioNumeric = AudioNumeric
-  { n :: Number, o :: Number, t :: Transition }
+_sudden' :: AudioSudden' -> AudioParameter
+_sudden' = _sudden <<< AudioSudden
+
+type AudioNumeric' = { n :: Number, o :: Number, t :: Transition }
+newtype AudioNumeric = AudioNumeric AudioNumeric'
 
 derive instance Eq AudioNumeric
 derive instance Ord AudioNumeric
 derive instance Newtype AudioNumeric _
 derive newtype instance Show AudioNumeric
 
-newtype AudioEnvelope = AudioEnvelope
-  { p :: Array Number, o :: Number, d :: Number }
+type AudioEnvelope' = { p :: Array Number, o :: Number, d :: Number }
+newtype AudioEnvelope = AudioEnvelope AudioEnvelope'
 
 derive instance Eq AudioEnvelope
 derive instance Ord AudioEnvelope
 derive instance Newtype AudioEnvelope _
 derive newtype instance Show AudioEnvelope
 
-newtype AudioCancel = AudioCancel { o :: Number }
+type AudioCancel' = { o :: Number }
+newtype AudioCancel = AudioCancel AudioCancel'
 
 derive instance Eq AudioCancel
 derive instance Ord AudioCancel
 derive instance Newtype AudioCancel _
 derive newtype instance Show AudioCancel
 
-newtype AudioSudden = AudioSudden { n :: Number }
+type AudioSudden' = { n :: Number }
+newtype AudioSudden = AudioSudden AudioSudden'
 
 derive instance Eq AudioSudden
 derive instance Ord AudioSudden
@@ -250,6 +264,9 @@ class ToAudioParameter i where
 
 instance ToAudioParameter Number where
   toAudioParameter n = _sudden (AudioSudden { n })
+
+instance ToAudioParameter AudioParameter where
+  toAudioParameter = identity
 
 instance ToAudioParameter AudioNumeric where
   toAudioParameter = _numeric

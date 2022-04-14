@@ -73,7 +73,7 @@ scene { loopy, conny } wh =
               ooo
                 | ix == 0 =
                     mkSubgraph $ convolver (InitializeConvolver { buffer: conny })
-                      ( gainx 1.0 empty
+                      [gainx 1.0 empty
                           ( highpass 1100.0
                               ( map
                                   ( frequency <<< ovnn
@@ -83,10 +83,10 @@ scene { loopy, conny } wh =
                                   )
                                   tr
                               )
-                              (input toSubg)
+                              [input toSubg]
                               :* [ gain 0.03 empty [ sinOsc 220.0 pureOn ] ]
                           )
-                      )
+                      ]
                 | ix == 1 =
                     mkSubgraph $ gainx 1.0 empty
                       ( highpass 2200.0
@@ -98,7 +98,7 @@ scene { loopy, conny } wh =
                               )
                               tr
                           )
-                          (input toSubg)
+                          [input toSubg]
                           :*
                             [ gain 0.03 empty
                                 [ triangleOsc 2000.0
@@ -126,7 +126,7 @@ scene { loopy, conny } wh =
                               )
                               tr
                           )
-                          (input toSubg)
+                          [input toSubg]
                           :*
                             [ gain 0.03 empty
                                 [ sinOsc 820.0
