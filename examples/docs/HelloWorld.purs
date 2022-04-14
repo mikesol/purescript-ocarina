@@ -19,12 +19,12 @@ import Deku.Subgraph as Sg
 import Effect (Effect)
 import Effect.Class.Console (log)
 import FRP.Event.Class (bang, class IsEvent)
-import WAGS.Run (run2_)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (gain_, sinOsc)
-import WAGS.Example.Docs.Types (Page(..))
-import WAGS.Example.Docs.Util (scrollToTop)
+import WAGS.Example.Docs.Types (Navigation, PageAction, Page(..), CancelCurrentAudio)
+import WAGS.Example.Docs.Util (audioWrapper, scrollToTop)
 import WAGS.Parameter (pureOn)
+import WAGS.Run (run2_)
 
 px = Proxy :: Proxy """<div>
   <h1>Hello world</h1>
@@ -72,9 +72,10 @@ helloWorld
   :: forall event payload
    . Plus event
   => IsEvent event
-  => (Page -> Effect Unit)
+  => CancelCurrentAudio -> (Page -> Effect Unit)
+  -> event PageAction
   -> Element event payload
-helloWorld dpage = px ~~
+helloWorld cca dpage _ = px ~~
   { code: nut
       ( D.pre_
           [ D.code_
@@ -87,25 +88,7 @@ helloWorld dpage = px ~~
           ]
       )
   , result: nut
-      ( bang (unit /\ Sg.InsertOrUpdate unit)
-          @@ \_ -> mkExists $ SubgraphF \push event' ->
-            let
-              event = (compact (map hush event') <|> bang Nothing)
-            in
-              D.button
-                ( map
-                    ( \e -> D.OnClick :=
-                        ( cb $
-                            (const $ case e of
-                                Just x -> x *> push Nothing
-                                _ -> run2_ [ gain_ 0.05 [ sinOsc 440.0 pureOn ] ]
-                                       >>= Just >>> push
-                            )
-                        )
-                    )
-                    event
-                )
-                [ text (map (maybe "Turn on" (const "Turn off")) event) ]
+      ( audioWrapper cca (pure unit) $ \_ -> run2_ [ gain_ 0.05 [ sinOsc 440.0 pureOn ] ]
       )
   , next: bang (D.OnClick := (cb (const $ dpage AudioUnits *> scrollToTop)))
   }

@@ -181,8 +181,8 @@ instance ordLt :: TLOrd O.LT lt eq gt lt
 instance ordEq :: TLOrd O.EQ lt eq gt eq
 instance ordGt :: TLOrd O.GT lt eq gt gt
 
-newtype GainInput :: forall k. k -> Symbol -> Row Type -> (Type -> Type) -> Type -> Type
-newtype GainInput outputChannels produced consumed event payload = GainInput
+newtype AudioInput :: forall k. k -> Symbol -> Row Type -> (Type -> Type) -> Type -> Type
+newtype AudioInput outputChannels produced consumed event payload = AudioInput
   (NonEmptyArray (Node outputChannels produced consumed event payload))
 
 newtype Subgraph :: forall k. k -> Symbol -> Row Type -> (Type -> Type) -> Type -> Type

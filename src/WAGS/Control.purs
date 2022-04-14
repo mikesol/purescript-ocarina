@@ -24,7 +24,7 @@ import FRP.Behavior (sample_)
 import FRP.Event (class IsEvent, keepLatest)
 import FRP.Event.Class (bang)
 import Foreign.Object (fromHomogeneous)
-import Prim.Row (class Nub, class Union)
+import Prim.Row (class Union, class Nub)
 import Prim.Symbol as Sym
 import Safe.Coerce (coerce)
 import Simple.JSON as JSON
@@ -55,8 +55,8 @@ singleton
   :: forall outputChannels produced consumed event payload
    . IsEvent event
   => C.Node outputChannels produced consumed event payload
-  -> C.GainInput outputChannels produced consumed event payload
-singleton a = C.GainInput (NEA.singleton a)
+  -> C.AudioInput outputChannels produced consumed event payload
+singleton a = C.AudioInput (NEA.singleton a)
 
 gainInputCons
   :: forall outputChannels produced0 produced1 produced2 ord consumed0 consumed1
@@ -68,8 +68,8 @@ gainInputCons
   => Nub consumed2 consumed3
   => C.Node outputChannels produced0 consumed0 event payload
   -> Array (C.Node outputChannels produced1 consumed1 event payload)
-  -> C.GainInput outputChannels produced2 consumed3 event payload
-gainInputCons a b = C.GainInput (fromNonEmpty (coerce a :| coerce b))
+  -> C.AudioInput outputChannels produced2 consumed3 event payload
+gainInputCons a b = C.AudioInput (fromNonEmpty (coerce a :| coerce b))
 
 infixr 6 gainInputCons as :*
 
@@ -82,9 +82,9 @@ gainInputCons2
   => Union consumed0 consumed1 consumed2
   => Nub consumed2 consumed3
   => C.Node outputChannels produced0 consumed0 event payload
-  -> C.GainInput outputChannels produced1 consumed1 event payload
-  -> C.GainInput outputChannels produced2 consumed3 event payload
-gainInputCons2 a b = C.GainInput (NEA.cons (coerce a) (coerce b))
+  -> C.AudioInput outputChannels produced1 consumed1 event payload
+  -> C.AudioInput outputChannels produced2 consumed3 event payload
+gainInputCons2 a b = C.AudioInput (NEA.cons (coerce a) (coerce b))
 
 infixr 6 gainInputCons2 as ::*
 
@@ -93,8 +93,8 @@ gainInputCons3
    . IsEvent event
   => C.Node outputChannels produced consumed event payload
   -> Array (C.Node outputChannels produced consumed event payload)
-  -> C.GainInput outputChannels produced consumed event payload
-gainInputCons3 a b = C.GainInput (fromNonEmpty (a :| b))
+  -> C.AudioInput outputChannels produced consumed event payload
+gainInputCons3 a b = C.AudioInput (fromNonEmpty (a :| b))
 
 infixr 6 gainInputCons3 as :::*
 
@@ -106,10 +106,10 @@ gainInputAppend
   => TLOrd ord produced1 produced1 produced0 produced2
   => Union consumed0 consumed1 consumed2
   => Nub consumed2 consumed3
-  => C.GainInput outputChannels produced0 consumed0 event payload
-  -> C.GainInput outputChannels produced1 consumed1 event payload
-  -> C.GainInput outputChannels produced2 consumed3 event payload
-gainInputAppend a b = C.GainInput (coerce a <> coerce b)
+  => C.AudioInput outputChannels produced0 consumed0 event payload
+  -> C.AudioInput outputChannels produced1 consumed1 event payload
+  -> C.AudioInput outputChannels produced2 consumed3 event payload
+gainInputAppend a b = C.AudioInput (coerce a <> coerce b)
 
 infixr 6 gainInputAppend as <>*
 
@@ -659,9 +659,9 @@ __gain
   => Common.InitialGain i
   => i
   -> event C.Gain
-  -> C.GainInput outputChannels producedI consumedI event payload
+  -> C.AudioInput outputChannels producedI consumedI event payload
   -> C.Node outputChannels producedO consumedO event payload
-__gain i' atts (C.GainInput elts) = C.Node go
+__gain i' atts (C.AudioInput elts) = C.Node go
   where
   C.InitializeGain i = Common.toInitializeGain i'
   go parent di@(C.AudioInterpret { ids, scope, makeGain, setGain }) = keepLatest
@@ -706,7 +706,7 @@ gainx
   => Common.InitialGain i
   => i
   -> event C.Gain
-  -> C.GainInput outputChannels produced consumed event payload
+  -> C.AudioInput outputChannels produced consumed event payload
   -> C.Node outputChannels produced consumed event payload
 gainx = __gain
 
@@ -1453,10 +1453,10 @@ squareOsc = __squareOsc
 speaker
   :: forall outputChannels event payload
    . IsEvent event
-  => C.GainInput outputChannels "" () event payload
+  => C.AudioInput outputChannels "" () event payload
   -> C.AudioInterpret event payload
   -> event payload
-speaker (C.GainInput elts) di@(C.AudioInterpret { ids, makeSpeaker }) =
+speaker (C.AudioInput elts) di@(C.AudioInterpret { ids, makeSpeaker }) =
   keepLatest
     ( (sample_ ids (bang unit)) <#> \me ->
         bang (makeSpeaker { id: me })
@@ -1467,7 +1467,7 @@ speaker (C.GainInput elts) di@(C.AudioInterpret { ids, makeSpeaker }) =
 speaker2
   :: forall event payload
    . IsEvent event
-  => C.GainInput D2 "" () event payload
+  => C.AudioInput D2 "" () event payload
   -> C.AudioInterpret event payload
   -> event payload
 speaker2 = speaker

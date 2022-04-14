@@ -15,14 +15,14 @@ import Deku.Attribute (cb, (:=))
 import Deku.Control (text, text_)
 import Deku.Core (Element, Subgraph, SubgraphF(..))
 import Deku.DOM as D
-import WAGS.Example.Docs.Types (Page(..))
-import WAGS.Example.Docs.Util (scrollToTop)
 import Deku.Pursx (nut, (~~))
 import Deku.Subgraph (SubgraphAction(..), (@@))
 import Effect (Effect)
 import FRP.Event (class IsEvent, mapAccum)
 import FRP.Event.Class (bang)
 import Type.Proxy (Proxy(..))
+import WAGS.Example.Docs.Types (Navigation, PageAction, Page(..), CancelCurrentAudio)
+import WAGS.Example.Docs.Util (scrollToTop)
 
 data UIEvents = UIShown | ButtonClicked | SliderMoved Number
 derive instance Eq UIEvents
@@ -143,7 +143,7 @@ px =  Proxy :: Proxy """<div>
   <p>Subgraphs are great when the domain is known, meaning it's <i>your</i> application and <i>your</i> rules. But what if you have a more open context, like for example a live-coding environment? Often times, these applications simply do not work with fixed graphs. For example, if you're live-coding two deeply-nested graphs and find yourself needing to create a feedback loop between them, you're out of luck. This is when you use the subject of our next section: <a ~next~ style="cursor:pointer;">tumult</a>.</p>
 </div>"""
 
-subgraphs :: forall event payload. IsEvent event => Plus event => (Page -> Effect Unit) -> Element event payload
-subgraphs dpage = px ~~
+subgraphs :: forall event payload. IsEvent event => Plus event => CancelCurrentAudio -> (Page -> Effect Unit) -> event PageAction -> Element event payload
+subgraphs _ dpage _ = px ~~
   { next: bang (D.OnClick := (cb (const $ dpage Intro *> scrollToTop)))
   }

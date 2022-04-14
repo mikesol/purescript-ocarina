@@ -5,6 +5,7 @@ import Prelude
 import Control.Alt ((<|>))
 import Control.Plus (class Plus, empty)
 import Data.Exists (mkExists)
+import Data.Filterable (partitionMap)
 import Data.Foldable (for_, oneOfMap)
 import Data.Maybe (Maybe(..))
 import Data.Tuple.Nested ((/\))
@@ -23,11 +24,12 @@ import WAGS.Example.Docs.Events as Events
 import WAGS.Example.Docs.FixFan as FixFan
 import WAGS.Example.Docs.HelloWorld as HelloWorld
 import WAGS.Example.Docs.Intro as Intro
+import WAGS.Example.Docs.MultiChannel as Multichannel
 import WAGS.Example.Docs.Portals as Portals
 import WAGS.Example.Docs.Pursx1 as Pursx1
 import WAGS.Example.Docs.Pursx2 as Pursx2
 import WAGS.Example.Docs.Subgraphs as Subgraph
-import WAGS.Example.Docs.Types (Page(..))
+import WAGS.Example.Docs.Types (Navigation(..), Page(..))
 import Web.HTML (window)
 import Web.HTML.HTMLDocument (body)
 import Web.HTML.HTMLElement (toElement)
@@ -44,22 +46,22 @@ scene push event =
   flatten
     [ D.div_
         $ map
-          ( \(x /\ y /\ z) -> D.span_
-              [ D.a
-                  ( oneOfMap bang
-                      [ D.OnClick := cb (const $ push x)
-                      , D.Style := "cursor:pointer;"
-                      ]
-                  )
-                  [ text_ y ]
-              , D.span
-                  ( bang $ D.Style :=
-                      if z then ""
-                      else "display:none;"
-                  )
-                  [ text_ " | " ]
-              ]
-          )
+            ( \(x /\ y /\ z) -> D.span_
+                [ D.a
+                    ( oneOfMap bang
+                        [ D.OnClick := cb (const $ push x)
+                        , D.Style := "cursor:pointer;"
+                        ]
+                    )
+                    [ text_ y ]
+                , D.span
+                    ( bang $ D.Style :=
+                        if z then ""
+                        else "display:none;"
+                    )
+                    [ text_ " | " ]
+                ]
+            )
         $
           [ Intro
               /\ "Home"
@@ -75,6 +77,9 @@ scene push event =
               /\ true
           , FixFan
               /\ "Fan and fix"
+              /\ true
+          , MultiChannel
+              /\ "Merging and splitting"
               /\ true
           , AudioWorklets
               /\ "Audio worklets"
@@ -95,31 +100,32 @@ scene push event =
     , subgraph
         ( mapAccum (\a b -> Just a /\ (b /\ a)) event Nothing
             # map
-              ( \(prev /\ cur) ->
-                  ( case prev of
-                      Nothing -> empty
-                      Just x -> bang (x /\ Remove)
-                  ) <|> bang (cur /\ InsertOrUpdate unit)
-              )
+                ( \(prev /\ cur) ->
+                    ( case prev of
+                        Nothing -> empty
+                        Just x -> bang (x /\ Remove)
+                    ) <|> bang (cur /\ Insert)
+                )
             # keepLatest
         )
-        (page push)
+        (page (\_ -> pure unit) push)
 
     ]
   where
-  page :: (Page -> Effect Unit) -> Subgraph Page Unit event payload
-  page dpage Intro = mkExists $ SubgraphF \_ _ -> Intro.intro dpage
-  page dpage HelloWorld = mkExists $ SubgraphF \_ _ -> HelloWorld.helloWorld
-    dpage
-  page dpage AudioUnits = mkExists $ SubgraphF \_ _ -> Component.components
-    dpage
-  page dpage AudioWorklets = mkExists $ SubgraphF \_ _ -> Pursx1.pursx1 dpage
-  page dpage Events = mkExists $ SubgraphF \_ _ -> Events.events dpage
-  page dpage FixFan = mkExists $ SubgraphF \_ _ -> FixFan.fixFan dpage
-  page dpage State = mkExists $ SubgraphF \_ _ -> Effects.effects dpage
-  page dpage Imperative = mkExists $ SubgraphF \_ _ -> Pursx2.pursx2 dpage
-  page dpage Subgraph = mkExists $ SubgraphF \_ _ -> Subgraph.subgraphs dpage
-  page dpage Tumult = mkExists $ SubgraphF \_ _ -> Portals.portals dpage
+  page :: (Effect Unit -> Effect Unit) -> (Page -> Effect Unit) -> Subgraph Page event payload
+  page cancelCb dpage = go
+    where
+    go Intro = mkExists $ SubgraphF \_ e -> Intro.intro cancelCb dpage
+    go HelloWorld = mkExists $ SubgraphF \_ e -> HelloWorld.helloWorld cancelCb dpage
+    go AudioUnits = mkExists $ SubgraphF \_ e -> Component.components cancelCb dpage
+    go AudioWorklets = mkExists $ SubgraphF \_ e -> Pursx1.pursx1 cancelCb dpage
+    go Events = mkExists $ SubgraphF \_ e -> Events.events cancelCb dpage
+    go FixFan = mkExists $ SubgraphF \_ e -> FixFan.fixFan cancelCb dpage
+    go State = mkExists $ SubgraphF \_ e -> Effects.effects cancelCb dpage
+    go Imperative = mkExists $ SubgraphF \_ e -> Pursx2.pursx2 cancelCb dpage
+    go MultiChannel = mkExists $ SubgraphF \_ e -> Multichannel.multiChannel cancelCb dpage
+    go Subgraph = mkExists $ SubgraphF \_ e -> Subgraph.subgraphs cancelCb dpage
+    go Tumult = mkExists $ SubgraphF \_ e -> Portals.portals cancelCb dpage
 
 main :: Effect Unit
 main = do

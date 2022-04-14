@@ -149,7 +149,7 @@ scene push event =
                     ( case prev of
                         Nothing -> empty
                         Just x -> bang (x /\ Remove)
-                    ) <|> bang (cur /\ InsertOrUpdate unit)
+                    ) <|> bang (cur /\ Insert)
                 )
             # keepLatest
         )
@@ -157,7 +157,7 @@ scene push event =
 
     ]
   where
-  page :: (Maybe ToCancel -> Effect Unit) -> Subgraph Page Unit Event payload
+  page :: (Maybe ToCancel -> Effect Unit) -> Subgraph Page Event payload
   page cancelCb (HelloWorld hwi) = HelloWorld.helloWorld hwi cancelCb
   page cancelCb (StressTest hwi) = StressTest.stressTest hwi cancelCb
   page cancelCb (AtariSpeaks ati) = AtariSpeaks.atariSpeaks ati cancelCb

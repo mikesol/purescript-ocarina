@@ -4,11 +4,9 @@ import Prelude
 
 import Control.Alt ((<|>))
 import Control.Plus (empty)
-import Data.Either (either)
 import Data.Exists (Exists, mkExists)
 import Data.Foldable (for_)
 import Data.Maybe (Maybe(..), maybe)
-import Data.Profunctor (lcmap)
 import Data.Tuple (Tuple(..), snd)
 import Data.Tuple.Nested ((/\))
 import Data.Typelevel.Num (D2)
@@ -28,7 +26,7 @@ import FRP.Event.Class (bang)
 import FRP.Event.Time (interval)
 import Math (pi, sin)
 import WAGS.Control (convolver, gain, gainx, highpass, loopBuf, lowpass, sinOsc, singleton, speaker2, triangleOsc, (:*))
-import WAGS.Core (GainInput, InitializeConvolver(..), fan, input, mkSubgraph, subgraph)
+import WAGS.Core (AudioInput, InitializeConvolver(..), fan, input, mkSubgraph, subgraph)
 import WAGS.Core as C
 import WAGS.Example.Utils (RaiseCancellation)
 import WAGS.Interpret (close, context, decodeAudioDataFromUri, effectfulAudioInterpret, makeFFIAudioSnapshot, writeHead)
@@ -52,7 +50,7 @@ scene
   :: forall payload
    . Init
   -> WriteHead Event
-  -> GainInput D2 "" () Event payload
+  -> AudioInput D2 "" () Event payload
 scene { loopy, conny } wh =
   let
     tr = at_ wh (mul pi)
@@ -166,10 +164,8 @@ subgraphExample
   :: forall payload
    . Init
   -> RaiseCancellation
-  -> Exists (SubgraphF Unit Event payload)
-subgraphExample loopy rc = mkExists $ SubgraphF \push -> lcmap
-  (map (either (const Nothing) identity))
-  \event ->
+  -> Exists (SubgraphF Event payload)
+subgraphExample loopy rc = mkExists $ SubgraphF \push event ->
     DOM.div_
       [ DOM.h1_ [ text_ "Subgraph" ]
       , DOM.button
@@ -216,7 +212,7 @@ main = launchAff_ do
       ffi <- makeFFIDOMSnapshot
       let
         evt = deku elt
-          ( Sg.subgraph (bang (Tuple unit (Sg.InsertOrUpdate unit)))
+          ( Sg.subgraph (bang (Tuple unit Sg.Insert))
               (const $ subgraphExample init (const $ pure unit))
           )
           effectfulDOMInterpret

@@ -6,13 +6,13 @@ import Control.Plus (class Plus)
 import Deku.Attribute (cb, (:=))
 import Deku.Core (Element)
 import Deku.DOM as D
-import WAGS.Example.Docs.Types (Page(..))
-import WAGS.Example.Docs.Util (scrollToTop)
 import Deku.Pursx ((~~))
 import Effect (Effect)
 import FRP.Event (class IsEvent)
 import FRP.Event.Class (bang)
 import Type.Proxy (Proxy(..))
+import WAGS.Example.Docs.Types (Navigation, PageAction, Page(..))
+import WAGS.Example.Docs.Util (scrollToTop)
 
 data UIEvents = UIShown | ButtonClicked | SliderMoved Number
 derive instance Eq UIEvents
@@ -55,10 +55,10 @@ px = Proxy :: Proxy
   <p>Yikes! Who wants that? To avoid it, use <code>gainx</code> when working with <code>fan</code> and <code>fix</code>.</p>
 
   <h2>Next steps</h2>
-  <p>In this section, saw how to fan one audio node to many processing chains and how to create a fixed point, aka feedback, for a node. In the next section, we'll look at how to work with <a ~next~ style="cursor:pointer;">custom audio worklets</a>.</p>
+  <p>In this section, saw how to fan one audio node to many processing chains and how to create a fixed point, aka feedback, for a node. In the next section, we'll look at how to <a ~next~ style="cursor:pointer;">merge and split audio</a>.</p>
 </div>"""
 
-fixFan :: forall event payload. IsEvent event => Plus event => (Page -> Effect Unit) -> Element event payload
+fixFan :: forall event payload. IsEvent event => Plus event => (Page -> Effect Unit) ->  Element event payload
 fixFan dpage = px ~~
-  { next: bang (D.OnClick := (cb (const $ dpage AudioWorklets *> scrollToTop)))
+  { next: bang (D.OnClick := (cb (const $ dpage MultiChannel *> scrollToTop)))
   }

@@ -11,8 +11,6 @@ import Data.HTTP.Method (Method(..))
 import Deku.Attribute (Cb, cb, (:=))
 import Deku.Core (Element)
 import Deku.DOM as D
-import WAGS.Example.Docs.Types (Page(..))
-import WAGS.Example.Docs.Util (scrollToTop)
 import Deku.Pursx ((~~))
 import Effect (Effect)
 import Effect.Aff (launchAff_)
@@ -20,6 +18,8 @@ import Effect.Class (liftEffect)
 import FRP.Event (class IsEvent)
 import FRP.Event.Class (bang)
 import Type.Proxy (Proxy(..))
+import WAGS.Example.Docs.Types (PageAction, Page(..))
+import WAGS.Example.Docs.Util (scrollToTop)
 
 data UIAction = Initial | Loading | Result String
 
@@ -121,6 +121,6 @@ px = Proxy :: Proxy """<div>
 </div>"""
 
 effects :: forall event payload. IsEvent event => Plus event => (Page -> Effect Unit) -> Element event payload
-effects dpage  = px ~~
-  { next: bang (D.OnClick := (cb (const $ dpage Subgraphs *> scrollToTop)))
+effects dpage = px ~~
+  { next: bang (D.OnClick := (cb (const $ dpage Subgraph *> scrollToTop)))
   }

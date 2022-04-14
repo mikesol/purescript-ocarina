@@ -6,13 +6,13 @@ import Control.Plus (class Plus)
 import Deku.Attribute (cb, (:=))
 import Deku.Core (Element)
 import Deku.DOM as D
-import WAGS.Example.Docs.Types (Page(..))
-import WAGS.Example.Docs.Util (scrollToTop)
 import Deku.Pursx ((~~))
 import Effect (Effect)
 import FRP.Event (class IsEvent)
 import FRP.Event.Class (bang)
 import Type.Proxy (Proxy(..))
+import WAGS.Example.Docs.Types (Navigation, Page(..), CancelCurrentAudio)
+import WAGS.Example.Docs.Util (scrollToTop)
 
 px = Proxy :: Proxy """<div>
   <h1>Wags</h1>
@@ -52,6 +52,6 @@ px = Proxy :: Proxy """<div>
 intro :: forall event payload.
   IsEvent event =>
   Plus event =>
-  (Page -> Effect Unit) -> Element event payload
-intro dpage  = px ~~
+  CancelCurrentAudio -> (Page -> Effect Unit) -> event Navigation -> Element event payload
+intro _ dpage _ = px ~~
   { next: bang (D.OnClick := (cb (const $ dpage HelloWorld *> scrollToTop))) }

@@ -6,13 +6,13 @@ import Control.Plus (class Plus)
 import Deku.Attribute (cb, (:=))
 import Deku.Core (Element)
 import Deku.DOM as D
-import WAGS.Example.Docs.Types (Page(..))
-import WAGS.Example.Docs.Util (scrollToTop)
 import Deku.Pursx ((~~))
 import Effect (Effect)
 import FRP.Event (class IsEvent)
 import FRP.Event.Class (bang)
 import Type.Proxy (Proxy(..))
+import WAGS.Example.Docs.Types (Navigation, PageAction, Page(..))
+import WAGS.Example.Docs.Util (scrollToTop)
 
 data UIEvents = UIShown | ButtonClicked | SliderMoved Number
 derive instance Eq UIEvents

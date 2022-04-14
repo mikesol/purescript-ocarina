@@ -27,7 +27,7 @@ import FRP.Event.Class (bang)
 import Math (pi, sin)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (gain, sinOsc, speaker2, (:*))
-import WAGS.Core (GainInput)
+import WAGS.Core (AudioInput)
 import WAGS.Example.Utils (RaiseCancellation)
 import WAGS.Imperative (InitialGraphBuilder, runGraphBuilder)
 import WAGS.Imperative as I
@@ -43,7 +43,7 @@ import Web.HTML.Window (document)
 scene
   :: forall payload
    . WriteHead (Event)
-  -> GainInput D2 "" () Event payload
+  -> AudioInput D2 "" () Event payload
 scene wh =
   let
     tr = at_ wh (mul pi)
@@ -97,10 +97,8 @@ helloWorld
   :: forall payload
    . Unit
   -> RaiseCancellation
-  -> Exists (SubgraphF Unit Event payload)
-helloWorld _ rc = mkExists $ SubgraphF \p -> lcmap
-  (map (either (const Nothing) identity))
-  \e ->
+  -> Exists (SubgraphF Event payload)
+helloWorld _ rc = mkExists $ SubgraphF \p e ->
     let
       musicButton push event audioEvent = DOM.button
         ( map
@@ -150,7 +148,7 @@ main = launchAff_ do
       ffi <- makeFFIDOMSnapshot
       let
         evt = deku elt
-          ( subgraph (bang (Tuple unit (InsertOrUpdate unit)))
+          ( subgraph (bang (Tuple unit Insert))
               (const $ helloWorld init (const $ pure unit))
           )
           effectfulDOMInterpret

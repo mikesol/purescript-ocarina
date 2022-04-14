@@ -2,11 +2,9 @@ module WAGS.Example.Tumult where
 
 import Prelude
 
-import Data.Either (either)
 import Data.Exists (Exists, mkExists)
 import Data.Foldable (for_)
 import Data.Maybe (Maybe(..), maybe)
-import Data.Profunctor (lcmap)
 import Data.Tuple (Tuple(..))
 import Data.Tuple.Nested ((/\))
 import Data.Typelevel.Num (D2)
@@ -27,7 +25,7 @@ import FRP.Event.Animate (animationFrameEvent)
 import FRP.Event.Class (bang)
 import Math (pi, sin, (%))
 import WAGS.Control (loopBuf, singleton, speaker2)
-import WAGS.Core (GainInput, fan)
+import WAGS.Core (AudioInput, fan)
 import WAGS.Example.Utils (RaiseCancellation)
 import WAGS.Interpret (close, context, decodeAudioDataFromUri, effectfulAudioInterpret, makeFFIAudioSnapshot, writeHead)
 import WAGS.Parameter (AudioNumeric(..), WriteHead, at_, ovnn, pureOn)
@@ -45,7 +43,7 @@ scene
    . IsEvent event
   => BrowserAudioBuffer
   -> WriteHead event
-  -> GainInput D2 "" () event payload
+  -> AudioInput D2 "" () event payload
 scene loopy wh =
   let
     tr = at_ wh (mul pi)
@@ -135,10 +133,8 @@ tumultExample
   :: forall payload
    . BrowserAudioBuffer
   -> RaiseCancellation
-  -> Exists (SubgraphF Unit Event payload)
-tumultExample loopy rc = mkExists $ SubgraphF \push -> lcmap
-  (map (either (const Nothing) identity))
-  \event ->
+  -> Exists (SubgraphF Event payload)
+tumultExample loopy rc = mkExists $ SubgraphF \push event ->
     DOM.div_
       [ DOM.h1_ [ text_ "Tumult" ]
       , DOM.button
@@ -186,7 +182,7 @@ main = launchAff_ do
       ffi <- makeFFIDOMSnapshot
       let
         evt = deku elt
-          ( subgraph (bang (Tuple unit (InsertOrUpdate unit)))
+          ( subgraph (bang (Tuple unit (Insert)))
               (const $ tumultExample init (const $ pure unit))
           )
           effectfulDOMInterpret

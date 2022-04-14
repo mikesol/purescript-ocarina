@@ -4,11 +4,11 @@ import Prelude
 
 import Control.Plus (class Plus)
 import Deku.Core (Element)
-import WAGS.Example.Docs.Types (Page)
 import Deku.Pursx (makePursx')
 import Effect (Effect)
 import FRP.Event (class IsEvent)
 import Type.Proxy (Proxy(..))
+import WAGS.Example.Docs.Types (Navigation, Page, PageAction, CancelCurrentAudio)
 
 px =
   Proxy   :: Proxy      """<div>
@@ -28,7 +28,8 @@ pursx2
   :: forall event payload
    . IsEvent event
   => Plus event
-  => (Page -> Effect Unit)
+  => CancelCurrentAudio -> (Page -> Effect Unit)
+  -> event PageAction
   -> Element event payload
-pursx2 dpage = makePursx' (Proxy :: _ "~") px
+pursx2 _ dpage _ = makePursx' (Proxy :: _ "~") px
   { }

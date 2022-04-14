@@ -2,15 +2,14 @@ module WAGS.Example.StressTest where
 
 import Prelude
 
+
 import Control.Alt ((<|>))
 import Data.Array ((..))
-import Data.Either (either)
 import Data.Exists (Exists, mkExists)
 import Data.Filterable (filter, filterMap)
 import Data.Foldable (for_)
 import Data.Int (toNumber)
 import Data.Maybe (Maybe(..), maybe)
-import Data.Profunctor (lcmap)
 import Data.Tuple (Tuple(..))
 import Data.Typelevel.Num (D2)
 import Deku.Attribute (cb, (:=))
@@ -31,7 +30,7 @@ import FRP.Event.Memoize (class MemoizableEvent, memoizeIfMemoizable)
 import FRP.Event.Memoized as Memoized
 import Math (pi, sin, (%))
 import WAGS.Control (gain, sinOsc, speaker2, (:*))
-import WAGS.Core (GainInput)
+import WAGS.Core (AudioInput)
 import WAGS.Example.Utils (RaiseCancellation)
 import WAGS.Interpret (FFIAudioSnapshot, close, context, effectfulAudioInterpret', makeFFIAudioSnapshot, writeHead)
 import WAGS.Math (calcSlope)
@@ -57,7 +56,7 @@ scene
    . IsEvent event
   => MemoizableEvent event
   => WriteHead event
-  -> GainInput D2 "" () event payload
+  -> AudioInput D2 "" () event payload
 scene wh =
   let
     tr = memoizeIfMemoizable (at_ wh (mul pi))
@@ -140,10 +139,8 @@ stressTest
   :: forall payload
    . Unit
   -> RaiseCancellation
-  -> Exists (SubgraphF Unit Event payload)
-stressTest _ rc = mkExists $ SubgraphF \p -> lcmap
-  (map (either (const Nothing) identity))
-  \e ->
+  -> Exists (SubgraphF Event payload)
+stressTest _ rc = mkExists $ SubgraphF \p e ->
     let
       musicButton
         :: forall event
@@ -219,7 +216,7 @@ main = launchAff_ do
       ffi <- makeFFIDOMSnapshot
       let
         evt = deku elt
-          ( subgraph (bang (Tuple unit (InsertOrUpdate unit)))
+          ( subgraph (bang (Tuple unit Insert))
               (const $ stressTest init (const $ pure unit))
           )
           effectfulDOMInterpret

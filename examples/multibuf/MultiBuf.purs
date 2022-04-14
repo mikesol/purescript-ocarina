@@ -9,7 +9,6 @@ import Control.Comonad.Cofree.Class (unwrapCofree)
 import Control.Plus (empty)
 import Data.Array as Array
 import Data.Compactable (compact)
-import Data.Either (either)
 import Data.Exists (Exists, mkExists)
 import Data.Foldable (for_, oneOf)
 import Data.FoldableWithIndex (foldlWithIndex)
@@ -18,7 +17,6 @@ import Data.Map (Map, fromFoldable, insert, union, values)
 import Data.Map as Map
 import Data.Maybe (Maybe(..), maybe)
 import Data.Newtype (unwrap)
-import Data.Profunctor (lcmap)
 import Data.Tuple (Tuple(..), fst, swap)
 import Data.Tuple.Nested (type (/\), (/\))
 import Data.Typelevel.Num (D2)
@@ -36,7 +34,7 @@ import FRP.Event (class IsEvent, Event, fold, keepLatest, mapAccum, subscribe)
 import FRP.Event.Class (bang)
 import FRP.Event.Time (interval)
 import WAGS.Control (gain, playBuf, singleton, speaker2)
-import WAGS.Core (GainInput, Subgraph)
+import WAGS.Core (AudioInput, Subgraph)
 import WAGS.Core as C
 import WAGS.Example.Utils (RaiseCancellation)
 import WAGS.Interpret (close, context, decodeAudioDataFromUri, effectfulAudioInterpret, makeFFIAudioSnapshot, writeHead)
@@ -140,7 +138,7 @@ scene
   :: forall payload
    . KickSnare
   -> WriteHead Event
-  -> GainInput D2 "" () Event payload
+  -> AudioInput D2 "" () Event payload
 scene ks wh =
   let
     mapped = mapAccum
@@ -171,10 +169,8 @@ multiBuf
   :: forall payload
    . KickSnare
   -> RaiseCancellation
-  -> Exists (SubgraphF Unit Event payload)
-multiBuf ks rc = mkExists $ SubgraphF \push -> lcmap
-  (map (either (const Nothing) identity))
-  \event ->
+  -> Exists (SubgraphF Event payload)
+multiBuf ks rc = mkExists $ SubgraphF \push event ->
     DOM.div_
       [ DOM.h1_ [ text_ "Multi Buf" ]
       , DOM.button
@@ -226,7 +222,7 @@ main = launchAff_ do
       ffi <- makeFFIDOMSnapshot
       let
         evt = deku elt
-          ( subgraph (bang (Tuple unit (InsertOrUpdate unit)))
+          ( subgraph (bang (Tuple unit Insert))
               (const $ multiBuf init (const $ pure unit))
           )
           effectfulDOMInterpret

@@ -5,11 +5,9 @@ import Prelude
 import Control.Alt ((<|>))
 import Control.Plus (empty)
 import Data.ArrayBuffer.Typed (toArray)
-import Data.Either (either)
 import Data.Exists (Exists, mkExists)
 import Data.Foldable (for_, intercalate)
 import Data.Maybe (Maybe(..))
-import Data.Profunctor (lcmap)
 import Data.String.Utils (unsafeRepeat)
 import Data.Tuple (Tuple(..))
 import Data.Typelevel.Num (D2)
@@ -29,7 +27,7 @@ import FRP.Event.Animate (animationFrameEvent)
 import FRP.Event.Class (bang)
 import Math (pi, sin)
 import WAGS.Control (analyser, gain, loopBuf, singleton, speaker2)
-import WAGS.Core (GainInput)
+import WAGS.Core (AudioInput)
 import WAGS.Example.Utils (RaiseCancellation)
 import WAGS.Interpret (close, context, decodeAudioDataFromUri, effectfulAudioInterpret, getByteFrequencyData, makeFFIAudioSnapshot, writeHead)
 import WAGS.Parameter (WriteHead, at_, ovnn, pureOn, vwnn)
@@ -45,7 +43,7 @@ scene
    . BrowserAudioBuffer
   -> AnalyserNodeCb
   -> WriteHead Event
-  -> GainInput D2 "" () Event payload
+  -> AudioInput D2 "" () Event payload
 scene atar cb wh =
   let
     tr = at_ wh (mul pi)
@@ -99,10 +97,8 @@ atariSpeaks
   :: forall payload
    . BrowserAudioBuffer
   -> RaiseCancellation
-  -> Exists (SubgraphF Unit Event payload)
-atariSpeaks atar rc = mkExists $ SubgraphF \push -> lcmap
-  (map (either (const $ TurnOn) identity))
-  \event ->
+  -> Exists (SubgraphF Event payload)
+atariSpeaks atar rc = mkExists $ SubgraphF \push event ->
     DOM.div_
       [ DOM.h1_ [ text_ "Atari speaks" ]
       , DOM.button
@@ -191,7 +187,7 @@ main = launchAff_ do
       ffi <- makeFFIDOMSnapshot
       let
         evt = deku elt
-          ( subgraph (bang (Tuple unit (InsertOrUpdate unit)))
+          ( subgraph (bang (Tuple unit Insert))
               (const $ atariSpeaks atar (const $ pure unit))
           )
           effectfulDOMInterpret

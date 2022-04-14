@@ -7,7 +7,7 @@ import Effect (Effect)
 import FRP.Event (Event, subscribe)
 import WAGS.Control (gain_, singleton, speaker2)
 import WAGS.Core as C
-import WAGS.Interpret (FFIAudioSnapshot, close, context, effectfulAudioInterpret, makeFFIAudioSnapshot)
+import WAGS.Interpret (FFIAudioSnapshot, close, context, contextState, effectfulAudioInterpret, makeFFIAudioSnapshot)
 
 run2_
   :: Array (C.Node D2 "" () Event (FFIAudioSnapshot -> Effect Unit))
@@ -19,4 +19,4 @@ run2_ s = do
   -- like in Control.purs
   u <- subscribe (speaker2 (singleton (gain_ 1.0 s)) effectfulAudioInterpret)
     \f -> f ffi
-  pure (u *> close ctx)
+  pure (u *> contextState ctx >>= \st -> when (st /= "closed") (close ctx))

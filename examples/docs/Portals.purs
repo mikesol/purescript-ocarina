@@ -21,7 +21,7 @@ import Effect (Effect)
 import FRP.Event (class IsEvent, Event, mapAccum)
 import FRP.Event.Class (bang)
 import Type.Proxy (Proxy(..))
-import WAGS.Example.Docs.Types (Page(..))
+import WAGS.Example.Docs.Types (Navigation, PageAction, Page(..), CancelCurrentAudio)
 import WAGS.Example.Docs.Util (scrollToTop)
 
 data UIEvents = UIShown | ButtonClicked | SliderMoved Number
@@ -98,7 +98,7 @@ px =  Proxy :: Proxy """<div>
   <p>In the next section, we'll look at how to create audio graphs via an <a ~next~ style="cursor:pointer;">imperative API that more closely resembles Web Audio while providing additional type-safety benefits</a>.</p>
 </div>"""
 
-portals :: forall event payload. IsEvent event => Plus event => (Page -> Effect Unit) -> Element event payload
-portals dpage = px ~~
+portals :: forall event payload. IsEvent event => Plus event => CancelCurrentAudio -> (Page -> Effect Unit) -> event PageAction -> Element event payload
+portals _ dpage _ = px ~~
   { next: bang (D.OnClick := (cb (const $ dpage Imperative *> scrollToTop)))
   }

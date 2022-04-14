@@ -12,7 +12,15 @@ import Effect (Effect)
 import FRP.Event (class IsEvent)
 import FRP.Event.Class (bang)
 import Type.Proxy (Proxy(..))
-import WAGS.Example.Docs.Types (Page(..))
+import WAGS.Example.Docs.AudioUnits.Allpass as Allpass
+import WAGS.Example.Docs.AudioUnits.Analyser as Analyser
+import WAGS.Example.Docs.AudioUnits.Bandpass as Bandpass
+import WAGS.Example.Docs.AudioUnits.Compression as Compression
+import WAGS.Example.Docs.AudioUnits.Constant as Constant
+import WAGS.Example.Docs.AudioUnits.Convolution as Convolution
+import WAGS.Example.Docs.AudioUnits.Delay as Delay
+import WAGS.Example.Docs.AudioUnits.TOC as TOC
+import WAGS.Example.Docs.Types (CancelCurrentAudio, Page(..))
 import WAGS.Example.Docs.Util (scrollToTop)
 
 px = Proxy :: Proxy """<div>
@@ -30,59 +38,16 @@ px = Proxy :: Proxy """<div>
   <p>
     This section is long and should be read like those passages in the Bible that list who was the child of who: DILIGENTLY AND COPIOUSLY. That said, if you want to skip around, here is a table of contents.
   </p>
-    <ul>
-  <li><a href="#allpass">All-pass filter</a></li>
-  <li><a href="#analyser">Analyser</a></li>
-  <li><a href="#bandpass">Bandpass filter</a></li>
-  <li><a href="#constant">Constant value</a></li>
-  <li><a href="#compression">Compression</a></li>
-  <li><a href="#convolution">Convolution</a></li>
-  <li><a href="#delay">Delay</a></li>
-  <li><a href="#gain">Gain</a></li>
-  <li><a href="#highpass">Highpass filter</a></li>
-  <li><a href="#highshelf">Highshelf filter</a></li>
-  <li><a href="#iir">IIR filter</a></li>
-  <li><a href="#loopbuf">Looping buffer</a></li>
-  <li><a href="#lowpass">Lowpass filter</a></li>
-  <li><a href="#lowshelf">Lowshelf filter</a></li>
-  <li><a href="#media">Media element</a></li>
-  <li><a href="#microphone">Microphone</a></li>
-  <li><a href="#notch">Notch filter</a></li>
-  <li><a href="#panner">Panner</a></li>
-  <li><a href="#peaking">Peaking filter</a></li>
-  <li><a href="#playbuf">Playing a buffer</a></li>
-  <li><a href="#recorder">Recorder</a></li>
-  <li><a href="#sawtooth">Sawtooth wave oscillator</a></li>
-  <li><a href="#sine">Sine wave oscillator</a></li>
-  <li><a href="#square">Square wave oscillator</a></li>
-  <li><a href="#pan">Stereo panner</a></li>
-  <li><a href="#triangle">Triangle wave oscillator</a></li>
-  <li><a href="#waveshaper">Waveshaper</a></li>
-    </ul>
+  ~toc~
   <p>And now, without further ado... (~drumroll~) Here are some audio nodes!</p>
 
-  <h2 id="allpass">Allpass filter</h2>
-  <p>An <a href="https://developer.mozilla.org/en-US/docs/Web/API/BiquadFilterNode">all-pass filter</a> <a href="https://en.wikipedia.org/wiki/All-pass_filter">passes through all frequencies of a source at equal volume but changes their phase</a>. Its use by itself is imperceptible, as the human ear (mostly) does not pick up on phase shifts by themselves. However, when an all-pass filter's output is mixed with several chained all-pass filters plus the original source, you hear a neat phaser effect.</p>
-
-  <h2 id="analyser">Analyser</h2>
-  <p>An <a href="https://developer.mozilla.org/en-US/docs/Web/API/AnalyserNode">analyser node</a> provides methods to recuperate the analysed data of an input. This is how, for example, Google Meet shows the little animation around a microphone icon. Wags provides the possibility to use the analyser as the terminus of an audio graph <i>or</i> as part of a longer DSP chain, as in the following example.</p>
-
-  <h2 id="bandpass">Bandpass filter</h2>
-  <p>A <a href="https://developer.mozilla.org/en-US/docs/Web/API/BiquadFilterNode">bandpass filter</a> isolates a single frequency range of a source. When you crank up their Q value, the isolation gets more intense. At the extreme, the source signal is almost lost and you get a pure sound that resembles a sine-wave oscillator.</p>
-
-  <h2 id="constant">Constant value</h2>
-  <p><a href="https://developer.mozilla.org/en-US/docs/Web/API/ConstantSourceNode">Constant values</a>, or DC offset, is a way to output an unchanging stream of values. This is only really useful when testing the performance of speakers or microphones and/or when working with a custom audio node that supports constant streaming values. Note that the constant source node in the web audio API can <i>also</i> be used to control audio parameters. Wags uses this feature of constant nodes under the hood to optimize certain computations.</p>
-
-  <h2 id="compression">Compression</h2>
-  <p><a href="https://developer.mozilla.org/en-US/docs/Web/API/DynamicsCompressorNode">Compression</a>, when used judiciously, can make certain sounds sit better in a mix, like for example vocals. The <a href="https://developer.mozilla.org/en-US/docs/Web/API/DynamicsCompressorNode">MDN Web Audio documentation</a> does an excellent job explaining how its parameters work. When used not-judiciously, it makes everything sound loud, and who likes that? So let's use it judiciously, like in the example below!</p>
-
-  <h2 id="convolution">Convolution</h2>
-  <p><a href="https://developer.mozilla.org/en-US/docs/Web/API/ConvolverNode">Convolution</a>, aka reverb, is a way to graft the shape of one sound (usually an <a href="https://en.wikipedia.org/wiki/Impulse_response">impulse response</a>) onto another. Convolution can sound great, but it is a <i>very expensive operation</i> that will cause noticeable artifacts on low-end devices. When shipping audio code to production, you're usually better off using an Audio Worklet Node with reverb optimized for your specific case. That said, for PoCs or hobbyist projects, convolution is great!</p>
-
-  <h2 id="delay">Delay</h2>
-  <p><a href="https://developer.mozilla.org/en-US/docs/Web/API/DelayNode">Delay</a>, as its name suggests, delays a signal. Using multiple delay nodes, you can create a decent echo effect.</p>
-
-  <p>To create an even <i>better</i> echo effect, you can used fixed points, which is covered in the <a>Fix and fan</a> section of this documentation.</p>
+  ~allpass~
+  ~analyser~
+  ~bandpass~
+  ~constant~
+  ~compression~
+  ~convolution~
+  ~delay~
 
   <h2 id="gain">Gain</h2>
   <p>The almighty <a href="https://developer.mozilla.org/en-US/docs/Web/API/GainNode">gain</a> node is your friendly neighborhood volume control. Volume in the web-audio API goes from 0 to 1 whereas we hear logarithmically, so when you're using this, make sure to convert between decibels and gain if you want to work with more intuitive units. The conversion formula is as follows:</p>
@@ -158,9 +123,16 @@ px = Proxy :: Proxy """<div>
   <p>Phew, that was a lot of audio units! In the next section, we'll make them come alive thanks to the magic of <a ~next~ style="cursor:pointer;">events</a>.</p>
 </div>"""
 
-components :: forall event payload. IsEvent event => Plus event => (Page -> Effect Unit) -> Element event payload
-components dpage = px ~~
-  {
-      drumroll: nut (text_ "PLACEHOLDER")
-      , next: bang (D.OnClick := (cb (const $ dpage Events *> scrollToTop)))
+components :: forall event payload. IsEvent event => Plus event => CancelCurrentAudio -> (Page -> Effect Unit) -> Element event payload
+components ccb dpage = px ~~
+  { drumroll: nut (text_ "PLACEHOLDER")
+  , toc: nut TOC.toc
+  , allpass: nut $ Allpass.allpass ccb dpage
+  , analyser: nut $ Analyser.analyser ccb dpage
+  , bandpass: nut $ Bandpass.bandpass ccb dpage
+  , constant: nut $ Constant.constant ccb dpage
+  , compression: nut $ Compression.compression ccb dpage
+  , convolution: nut $ Convolution.convolution ccb dpage
+  , delay: nut $ Delay.delay ccb dpage
+  , next: bang (D.OnClick := (cb (const $ dpage Events *> scrollToTop)))
   }

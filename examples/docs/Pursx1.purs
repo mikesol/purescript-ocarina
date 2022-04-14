@@ -7,13 +7,13 @@ import Deku.Attribute (cb, (:=))
 import Deku.Control (text_)
 import Deku.Core (Element)
 import Deku.DOM as D
-import WAGS.Example.Docs.Types (Page(..))
-import WAGS.Example.Docs.Util (scrollToTop)
 import Deku.Pursx (nut, psx, (~~))
 import Effect (Effect)
 import FRP.Event (class IsEvent)
 import FRP.Event.Class (bang)
 import Type.Proxy (Proxy(..))
+import WAGS.Example.Docs.Types (Navigation, PageAction, Page(..), CancelCurrentAudio)
+import WAGS.Example.Docs.Util (scrollToTop)
 
 myDom = Proxy :: Proxy """<div>
     <button>I do nothing</button>
@@ -130,7 +130,7 @@ px = Proxy :: Proxy """<div>
 </div>"""
 
 
-pursx1 :: forall event payload. IsEvent event => Plus event => (Page -> Effect Unit) -> Element event payload
-pursx1 dpage  = px ~~
+pursx1 :: forall event payload. IsEvent event => Plus event => CancelCurrentAudio -> (Page -> Effect Unit) -> event PageAction -> Element event payload
+pursx1 _ dpage _ = px ~~
   { next: bang (D.OnClick := (cb (const $ dpage Events *> scrollToTop)))
   }

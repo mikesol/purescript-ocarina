@@ -5,12 +5,15 @@ import Prelude
 import Data.Generic.Rep (class Generic)
 import Data.Hashable (class Hashable, hash)
 import Data.Show.Generic (genericShow)
+import Effect (Effect)
+
 data Page
   = Intro
   | HelloWorld
   | AudioUnits
   | Events
   | FixFan
+  | MultiChannel
   | AudioWorklets
   | Imperative
   | State
@@ -24,3 +27,7 @@ instance showPage :: Show Page where
 
 instance Hashable Page where
   hash = show >>> hash
+
+type CancelCurrentAudio = Effect Unit -> Effect Unit
+
+data PageAction = SetCancel CancelCurrentAudio
