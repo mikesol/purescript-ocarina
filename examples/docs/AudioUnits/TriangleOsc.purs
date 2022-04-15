@@ -8,9 +8,10 @@ import Deku.Pursx (nut, (~~))
 import Effect (Effect)
 import FRP.Event (class IsEvent)
 import Type.Proxy (Proxy(..))
-import WAGS.Control (gain_, triangleOsc_)
+import WAGS.Control (gain_, triangleOsc)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import WAGS.Example.Docs.Util (audioWrapper)
+import WAGS.Parameter (pureOn)
 import WAGS.Run (run2_)
 
 px =
@@ -21,7 +22,7 @@ px =
 
   <pre><code>\buf -> run2_
   [ gain_ 0.2
-      [ triangleOsc_ 448.0]
+      [ triangleOsc 448.0 pureOn]
   ]
 </code></pre>
 
@@ -36,7 +37,7 @@ triangle ccb _ ev = px ~~
       ( audioWrapper ev ccb (pure unit)
           \_ -> run2_
   [ gain_ 0.2
-      [ triangleOsc_ 448.0]
+      [ triangleOsc 448.0 pureOn]
   ]
       )
   }
