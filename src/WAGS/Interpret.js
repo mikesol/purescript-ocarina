@@ -967,9 +967,9 @@ exports.makeWaveShaper_ = function (aa) {
 					oversample: b.type,
 				}),
 			};
-			addToScope(ptr, a.scope, state);
+			addToScope(ptr, aa.scope, state);
 			doDeferredConnections(ptr, state);
-			mConnectXToY_(ptr, a.parent, state);
+			mConnectXToY_(ptr, aa.parent, state);
 		};
 	};
 };
