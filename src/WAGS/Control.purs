@@ -1528,13 +1528,15 @@ playBuf = __playBuf
 
 -- recorder
 recorder
-  :: forall outputChannels produced consumed event payload
+  :: forall i outputChannels produced consumed event payload
    . IsEvent event
-  => C.InitializeRecorder
+  => Common.InitialRecorder i
+  => i
   -> C.Node outputChannels produced consumed event payload
   -> C.Node outputChannels produced consumed event payload
-recorder (C.InitializeRecorder i) elt = C.Node go
+recorder i' elt = C.Node go
   where
+  C.InitializeRecorder i = Common.toInitializeRecorder i'
   go parent di@(C.AudioInterpret { ids, scope, makeRecorder }) =
     keepLatest
       ( (sample_ ids (bang unit)) <#> parentalSupervision parent \me ->
@@ -1810,17 +1812,19 @@ triangleOsc
   -> C.Node outputChannels "" () event payload
 triangleOsc = __triangleOsc
 triangleOsc_ i = triangleOsc i empty
--- waveshaper
+-- waveShaper
 
-__waveshaper
-  :: forall outputChannels producedI consumedI producedO consumedO event
+__waveShaper
+  :: forall i outputChannels producedI consumedI producedO consumedO event
        payload
    . IsEvent event
-  => C.InitializeWaveshaper
-  -> C.Node outputChannels producedI consumedI event payload
+  => Common.InitialWaveShaper i
+  => i
+  -> C.AudioInput outputChannels producedI consumedI event payload
   -> C.Node outputChannels producedO consumedO event payload
-__waveshaper (C.InitializeWaveshaper i) elt = C.Node go
+__waveShaper i' (C.AudioInput elts) = C.Node go
   where
+  C.InitializeWaveShaper i = Common.toInitializeWaveShaper i'
   go parent di@(C.AudioInterpret { ids, scope, makeWaveShaper }) =
     keepLatest
       ( (sample_ ids (bang unit)) <#> parentalSupervision parent \me ->
@@ -1832,13 +1836,32 @@ __waveshaper (C.InitializeWaveshaper i) elt = C.Node go
                 , curve: i.curve
                 , oversample: i.oversample
                 }
-            ) <|> ((\y -> let C.Node x = y in x) elt) (Parent me) di
+            ) <|> oneOf
+            ( NEA.toArray
+                (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
+            )--((\y -> let C.Node x = y in x) elt) (Parent me) di
       )
 
-waveshaper
-  :: forall outputChannels produced consumed event payload
+
+waveShaper
+  :: forall i outputChannels produced consumed ord event payload
    . IsEvent event
-  => C.InitializeWaveshaper
+  => Common.InitialWaveShaper i
+  => Sym.Compare "" produced ord
+  => TLOrd ord produced produced "" produced
+  => Nub consumed consumed
+  => i
+  -> Array (C.Node outputChannels produced consumed event payload)
   -> C.Node outputChannels produced consumed event payload
+waveShaper i a = case uncons a of
+  DM.Nothing -> waveShaperx i (constant 0.0 empty :* ([] :: Array (C.Node outputChannels produced consumed event payload)))
+  DM.Just { head, tail } -> waveShaperx i (head :::* tail)
+
+waveShaperx
+  :: forall i outputChannels produced consumed event payload
+   . IsEvent event
+  => Common.InitialWaveShaper i
+  => i
+  -> C.AudioInput outputChannels produced consumed event payload
   -> C.Node outputChannels produced consumed event payload
-waveshaper = __waveshaper
+waveShaperx = __waveShaper

@@ -28,17 +28,29 @@ import WAGS.Example.Docs.AudioUnits.Notch as Notch
 import WAGS.Example.Docs.AudioUnits.Peaking as Peaking
 import WAGS.Example.Docs.AudioUnits.PeriodicOsc as PeriodicOsc
 import WAGS.Example.Docs.AudioUnits.PlayBuf as PlayBuf
-import WAGS.Example.Docs.AudioUnits.StereoPanner as StereoPanner
+import WAGS.Example.Docs.AudioUnits.Recorder as Recorder
 import WAGS.Example.Docs.AudioUnits.SawtoothOsc as SawtoothOsc
-import WAGS.Example.Docs.AudioUnits.SquareOsc as SquareOsc
 import WAGS.Example.Docs.AudioUnits.SinOsc as SinOsc
-import WAGS.Example.Docs.AudioUnits.TriangleOsc as TriangleOsc
+import WAGS.Example.Docs.AudioUnits.SquareOsc as SquareOsc
+import WAGS.Example.Docs.AudioUnits.StereoPanner as StereoPanner
 import WAGS.Example.Docs.AudioUnits.TOC as TOC
+import WAGS.Example.Docs.AudioUnits.TriangleOsc as TriangleOsc
+import WAGS.Example.Docs.AudioUnits.WaveShaper as WaveShaper
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
 import WAGS.Example.Docs.Util (audioWrapperSpan, ccassp, ctxAff, mkNext, scrollToTop)
 import WAGS.Interpret (decodeAudioDataFromUri)
 import WAGS.Parameter (pureOn)
 import WAGS.Run (run2_)
+
+
+  -- todo
+  -- <h2 id="media">Media element</h2>
+  -- <p>A <a href="https://developer.mozilla.org/en-US/docs/Web/API/MediaElementAudioSourceNode">media element</a> takes as input a random media element, like audio or a video from the browser. I've used this to filter streams from Spotify through the Web Audio API, for example, but you can use this for any streaming audio or non-streaming audio (basically anything you can cram into an <code>audio</code> or <code>video</code> tag).</p>
+
+
+  -- todo
+  -- <h2 id="panner">Panner</h2>
+  -- <p>The <a href="https://developer.mozilla.org/en-US/docs/Web/API/PannerNode">panner</a> is absolutely essential if you're making any sort of video game or animation with a camera, for example using WebGL. It is a cheap way for you to distribute your sounds in space without worrying about panning, filtering, volume and lots of other parameters you'd need to tweak if you did this manually. It's my favorite Web Audio node (my favorite <i>today</i>, I rotate them regularly to avoid jealousy...).</p>
 
 px = Proxy :: Proxy """<div>
   <h1>Audio Units</h1>
@@ -72,31 +84,18 @@ px = Proxy :: Proxy """<div>
   ~loopBuf~
   ~lowpass~
   ~lowshelf~
-
-  <h2 id="media">Media element</h2>
-  <p>A <a href="https://developer.mozilla.org/en-US/docs/Web/API/MediaElementAudioSourceNode">media element</a> takes as input a random media element, like audio or a video from the browser. I've used this to filter streams from Spotify through the Web Audio API, for example, but you can use this for any streaming audio or non-streaming audio (basically anything you can cram into an <code>audio</code> or <code>video</code> tag).</p>
-
   ~microphone~
   ~notch~
-
-  <h2 id="panner">Panner</h2>
-  <p>The <a href="https://developer.mozilla.org/en-US/docs/Web/API/PannerNode">panner</a> is absolutely essential if you're making any sort of video game or animation with a camera, for example using WebGL. It is a cheap way for you to distribute your sounds in space without worrying about panning, filtering, volume and lots of other parameters you'd need to tweak if you did this manually. It's my favorite Web Audio node (my favorite <i>today</i>, I rotate them regularly to avoid jealousy...).</p>
-
   ~peaking~
   ~periodicOsc~
   ~playBuf~
-
-  <h2 id="recorder">Recorder</h2>
-  <p>The <a href="https://developer.mozilla.org/en-US/docs/Web/API/MediaStreamAudioDestinationNode">recorder</a> allows you to record audio. It takes a callback that you can use to stash the recorded audio somewhere, like in a file for example, as the example below does. You can use it as a simple note-taking app 🎙️.</p>
-
+  ~recorder~
   ~sawtoothOsc~
   ~sinOsc~
   ~squareOsc~
   ~pan~
   ~triangleOsc~
-
-  <h2 id="waveshaper">Waveshaper</h2>
-  <p>The <a href="https://developer.mozilla.org/en-US/docs/Web/API/WaveshaperNode">waveshaper node</a>, aka distortion, uses a <a href="https://en.wikipedia.org/wiki/Waveshaper">waveshaping function</a> to add warmth to a sound.</p>
+  ~waveShaper~
 
   <h2>Next steps</h2>
   <p>Phew, that was a lot of audio units! In the next section, we'll make them come alive thanks to the magic of <a ~next~ style="cursor:pointer;">events</a>.</p>
@@ -130,10 +129,12 @@ components cca' dpage ssp ev = px ~~
   , microphone: nut $ Microphone.microphoneEx ccb dpage ev
   , pan: nut $ StereoPanner.pan ccb dpage ev
   , periodicOsc: nut $ PeriodicOsc.periodic ccb dpage ev
+  , recorder: nut $ Recorder.recorderEx ccb dpage ev
   , sawtoothOsc: nut $ SawtoothOsc.sawtooth ccb dpage ev
   , sinOsc: nut $ SinOsc.sine ccb dpage ev
   , squareOsc: nut $ SquareOsc.square ccb dpage ev
   , triangleOsc: nut $ TriangleOsc.triangle ccb dpage ev
+  , waveShaper: nut $ WaveShaper.waveShaperEx ccb dpage ev
   , next: mkNext ev cpage
   }
   where

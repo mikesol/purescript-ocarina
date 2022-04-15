@@ -3,8 +3,6 @@ module WAGS.Example.Docs.AudioUnits.TriangleOsc where
 import Prelude
 
 import Control.Plus (class Plus)
-import Data.Tuple.Nested ((/\))
-import Data.Vec (empty, (+>))
 import Deku.Core (Element)
 import Deku.Pursx (nut, (~~))
 import Effect (Effect)

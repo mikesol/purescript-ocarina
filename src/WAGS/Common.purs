@@ -11,10 +11,10 @@ import Data.Vec (Vec, toArray)
 import Safe.Coerce (coerce)
 import Type.Equality (class TypeEquals, proof)
 import Type.Proxy (Proxy(..))
-import WAGS.Core (PeriodicOscSpec(..), RealImg(..))
+import WAGS.Core (Oversample, PeriodicOscSpec(..), RealImg(..), _twoX)
 import WAGS.Core as Core
 import WAGS.Parameter (InitialAudioParameter)
-import WAGS.WebAPI (BrowserAudioBuffer, BrowserMicrophone, BrowserPeriodicWave)
+import WAGS.WebAPI (BrowserAudioBuffer, BrowserFloatArray, BrowserMicrophone, BrowserPeriodicWave, MediaRecorderCb(..))
 
 -- Allpass
 
@@ -741,6 +741,16 @@ instance InitialSquareOsc Core.InitializeSquareOsc where
 instance InitialSquareOsc Number where
   toInitializeSquareOsc = Core.InitializeSquareOsc <<< { frequency: _ }
 
+-- Recorder
+class InitialRecorder i where
+  toInitializeRecorder :: i -> Core.InitializeRecorder
+
+instance InitialRecorder Core.InitializeRecorder where
+  toInitializeRecorder = identity
+
+instance InitialRecorder MediaRecorderCb where
+  toInitializeRecorder = Core.InitializeRecorder <<< { cb: _ }
+
 -- SinOsc
 class InitialSinOsc i where
   toInitializeSinOsc :: i -> Core.InitializeSinOsc
@@ -760,3 +770,50 @@ instance InitialTriangleOsc Core.InitializeTriangleOsc where
 
 instance InitialTriangleOsc Number where
   toInitializeTriangleOsc = Core.InitializeTriangleOsc <<< { frequency: _ }
+
+-- WaveShaper
+
+data WaveShaperOptions = WaveShaperOptions
+
+instance
+  ConvertOption WaveShaperOptions
+    "curve"
+    BrowserFloatArray
+    BrowserFloatArray where
+  convertOption _ _ = identity
+
+instance
+  ConvertOption WaveShaperOptions
+    "oversample"
+    Oversample
+    Oversample where
+  convertOption _ _ = identity
+
+type WaveShaperOptional =
+  ( oversample :: Oversample
+  )
+
+type WaveShaperAll =
+  ( curve :: BrowserFloatArray
+  | WaveShaperOptional
+  )
+
+defaultWaveShaper :: { | WaveShaperOptional }
+defaultWaveShaper =
+  { oversample: _twoX }
+
+class InitialWaveShaper i where
+  toInitializeWaveShaper :: i -> Core.InitializeWaveShaper
+
+instance InitialWaveShaper Core.InitializeWaveShaper where
+  toInitializeWaveShaper = identity
+
+instance InitialWaveShaper BrowserFloatArray where
+  toInitializeWaveShaper = toInitializeWaveShaper <<< { curve: _ }
+
+instance
+  ConvertOptionsWithDefaults WaveShaperOptions { | WaveShaperOptional } { | provided }
+    { | WaveShaperAll } =>
+  InitialWaveShaper { | provided } where
+  toInitializeWaveShaper provided = Core.InitializeWaveShaper
+    (convertOptionsWithDefaults WaveShaperOptions defaultWaveShaper provided)

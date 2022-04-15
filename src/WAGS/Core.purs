@@ -935,8 +935,8 @@ type MakeTriangleOsc = { | MakeTriangleOsc_ InitialAudioParameter }
 type MakeTriangleOsc' =
   { onOff :: AudioOnOff | MakeTriangleOsc_ AudioParameter }
 
-derive instance newtypeInitializeWaveshaper :: Newtype InitializeWaveshaper _
-newtype InitializeWaveshaper = InitializeWaveshaper
+derive instance newtypeInitializeWaveShaper :: Newtype InitializeWaveShaper _
+newtype InitializeWaveShaper = InitializeWaveShaper
   { curve :: BrowserFloatArray
   , oversample :: Oversample
   }
