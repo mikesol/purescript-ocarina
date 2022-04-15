@@ -26,10 +26,7 @@ px = Proxy :: Proxy """<div>
   <p>Here is "hello world" in Wags. In this and all the following sections, we'll start with a full example, and we'll pick it apart afterwards.</p>
 
   ~code~
-
-  <p>And here's what it produces:</p>
-
-  <blockquote> ~result~ </blockquote>
+  ~result~
 
   <p>You gotta start somewhere!</p>
 

@@ -22,7 +22,7 @@ px = Proxy :: Proxy """<section>
 
   <pre><code>\buf -> run2_
   [ fan (loopBuf buf pureOn)
-      \b -> gain_ 0.2
+      \b -> gain_ 0.8
         [ bandpass_ { frequency: 400.0, q: 1.0 } [ input b ]
         , bandpass_ { frequency: 880.0, q: 5.0 } [ input b ]
         , bandpass_ { frequency: 1200.0, q: 10.0 } [ input b ]
@@ -42,7 +42,7 @@ bandpass ccb _ ev = px ~~
       ( audioWrapper ev ccb (ctxAff \ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
           \buf -> run2_
             [ fan (loopBuf buf pureOn)
-                \b -> gain_ 0.2
+                \b -> gain_ 0.8
                   [ bandpass_ { frequency: 400.0, q: 1.0 } [ input b ]
                   , bandpass_ { frequency: 880.0, q: 5.0 } [ input b ]
                   , bandpass_ { frequency: 1200.0, q: 10.0 } [ input b ]
