@@ -45,11 +45,11 @@ px = Proxy :: Proxy """<div>
 
   <h2>Our audio</h2>
 
-  <p>Our audio is expressed with the statement <code>gain_ 0.05 (sinOsc 440.0 pureOn)</code>. The first function, <code>gain_</code>, creates a gain node with a volume of <code>0.05</code>. In WebAudio, gain ranges from <code>0.0</code> to <code>1.0</code> and can be converted to decibels using the following equation:</p>
+  <p>Our audio is expressed with the statement <code>gain_ 0.15 (sinOsc 440.0 pureOn)</code>. The first function, <code>gain_</code>, creates a gain node with a volume of <code>0.15</code>. In WebAudio, gain ranges from <code>0.0</code> to <code>1.0</code> and can be converted to decibels using the following equation:</p>
 
   <pre><code>decibels = 20 * log10( gain );</code></pre>
 
-  <p>In our case, a gain of <code>0.05</code> is roughly <code>-26dB</code>.</p>
+  <p>In our case, a gain of <code>0.15</code> is roughly <code>-16.5 dB</code>.</p>
 
   <p>Our sine wave oscillator is set to a frequency of <code>440Hz</code>. That means that your loudspeaker or headphones will vibrate back and forth in sinusoidal motion 440 times per second, which most folks perceive as the <a href="https://en.wikipedia.org/wiki/A440_(pitch_standard)">note A</a>. And we turn on the oscillator with <code>pureOn</code>, as the default is off for <i>all</i> sound generators in Wags. This is a design decision to help preserve the hearing of those that work frequently with audio.</p>
 
@@ -73,13 +73,13 @@ helloWorld cca' dpage ssp ev = px ~~
               [ text_
                   """case e of
   Just x -> x *> push Nothing
-  _ -> run2_ [ gain_ 0.05 [ sinOsc 440.0 pureOn ] ]
+  _ -> run2_ [ gain_ 0.15 [ sinOsc 440.0 pureOn ] ]
          >>= Just >>> push"""
               ]
           ]
       )
   , result: nut
-      ( audioWrapper ev cca (pure unit) $ \_ -> run2_ [ gain_ 0.05 [ sinOsc 440.0 pureOn ] ]
+      ( audioWrapper ev cca (pure unit) $ \_ -> run2_ [ gain_ 0.15 [ sinOsc 440.0 pureOn ] ]
       )
   , next: mkNext ev cpage
   }
