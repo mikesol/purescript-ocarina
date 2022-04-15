@@ -23,9 +23,16 @@ import WAGS.Example.Docs.AudioUnits.IIRFilter as IIRFilter
 import WAGS.Example.Docs.AudioUnits.LoopBuf as LoopBuf
 import WAGS.Example.Docs.AudioUnits.Lowpass as Lowpass
 import WAGS.Example.Docs.AudioUnits.Lowshelf as Lowshelf
+import WAGS.Example.Docs.AudioUnits.Microphone as Microphone
 import WAGS.Example.Docs.AudioUnits.Notch as Notch
 import WAGS.Example.Docs.AudioUnits.Peaking as Peaking
+import WAGS.Example.Docs.AudioUnits.PeriodicOsc as PeriodicOsc
 import WAGS.Example.Docs.AudioUnits.PlayBuf as PlayBuf
+import WAGS.Example.Docs.AudioUnits.StereoPanner as StereoPanner
+import WAGS.Example.Docs.AudioUnits.SawtoothOsc as SawtoothOsc
+import WAGS.Example.Docs.AudioUnits.SquareOsc as SquareOsc
+import WAGS.Example.Docs.AudioUnits.SinOsc as SinOsc
+import WAGS.Example.Docs.AudioUnits.TriangleOsc as TriangleOsc
 import WAGS.Example.Docs.AudioUnits.TOC as TOC
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
 import WAGS.Example.Docs.Util (audioWrapperSpan, ccassp, ctxAff, mkNext, scrollToTop)
@@ -69,37 +76,24 @@ px = Proxy :: Proxy """<div>
   <h2 id="media">Media element</h2>
   <p>A <a href="https://developer.mozilla.org/en-US/docs/Web/API/MediaElementAudioSourceNode">media element</a> takes as input a random media element, like audio or a video from the browser. I've used this to filter streams from Spotify through the Web Audio API, for example, but you can use this for any streaming audio or non-streaming audio (basically anything you can cram into an <code>audio</code> or <code>video</code> tag).</p>
 
-  <h2 id="microphone">Microphone</h2>
-  <p>The <a href="https://developer.mozilla.org/en-US/docs/Web/API/MediaStreamAudioSourceNode">microphone</a> will use your microphone if you give the browser permission to do so. Use it for Web Audio kereoke!</p>
-
+  ~microphone~
   ~notch~
 
   <h2 id="panner">Panner</h2>
   <p>The <a href="https://developer.mozilla.org/en-US/docs/Web/API/PannerNode">panner</a> is absolutely essential if you're making any sort of video game or animation with a camera, for example using WebGL. It is a cheap way for you to distribute your sounds in space without worrying about panning, filtering, volume and lots of other parameters you'd need to tweak if you did this manually. It's my favorite Web Audio node (my favorite <i>today</i>, I rotate them regularly to avoid jealousy...).</p>
 
   ~peaking~
-
-  <h2 id="periodic">Periodic wave oscillator</h2>
-  <p>The <a href="https://developer.mozilla.org/en-US/docs/Web/API/OscillatorNode">periodic wave oscillator</a> plays back a custom periodic waveform at a given frequency. The custom waveform must be set as part of the initialization and can be changed after initialization. Note that the change will not go into effect if the oscillator is on: it must be turned off and on again.</p>
-
+  ~periodicOsc~
   ~playBuf~
+
   <h2 id="recorder">Recorder</h2>
   <p>The <a href="https://developer.mozilla.org/en-US/docs/Web/API/MediaStreamAudioDestinationNode">recorder</a> allows you to record audio. It takes a callback that you can use to stash the recorded audio somewhere, like in a file for example, as the example below does. You can use it as a simple note-taking app 🎙️.</p>
 
-  <h2 id="sawtooth">Sawtooth wave oscillator</h2>
-  <p>The <a href="https://developer.mozilla.org/en-US/docs/Web/API/OscillatorNode">sawtooth wave oscillator</a> plays back a sawtooth wave at a given frequency.</p>
-
-  <h2 id="sine">Sine wave oscillator</h2>
-  <p>The <a href="https://developer.mozilla.org/en-US/docs/Web/API/OscillatorNode">sine wave oscillator</a> plays back a sawtooth wave at a given frequency.</p>
-
-  <h2 id="square">Square wave oscillator</h2>
-  <p>The <a href="https://developer.mozilla.org/en-US/docs/Web/API/OscillatorNode">square wave oscillator</a> plays back a square wave at a given frequency.</p>
-
-  <h2 id="pan">Stereo panner</h2>
-  <p>The <a href="https://developer.mozilla.org/en-US/docs/Web/API/StereoPannerNode">stereo panner</a> pans audio in the stereo plane.</p>
-
-  <h2 id="triangle">Triangle wave oscillator</h2>
-  <p>The <a href="https://developer.mozilla.org/en-US/docs/Web/API/OscillatorNode">triangle wave oscillator</a> plays back a triangle wave at a given frequency.</p>
+  ~sawtoothOsc~
+  ~sinOsc~
+  ~squareOsc~
+  ~pan~
+  ~triangleOsc~
 
   <h2 id="waveshaper">Waveshaper</h2>
   <p>The <a href="https://developer.mozilla.org/en-US/docs/Web/API/WaveshaperNode">waveshaper node</a>, aka distortion, uses a <a href="https://en.wikipedia.org/wiki/Waveshaper">waveshaping function</a> to add warmth to a sound.</p>
@@ -111,13 +105,13 @@ px = Proxy :: Proxy """<div>
 components :: forall event payload. IsEvent event => Plus event => CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> event SingleSubgraphEvent  -> Element event payload
 components cca' dpage ssp ev = px ~~
   { drumroll: nut
-      ( audioWrapperSpan "🥁" ev ccb (ctxAff >>= \ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/50/50711_179538-lq.mp3")
+      ( audioWrapperSpan "🥁" ev ccb (ctxAff \ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/50/50711_179538-lq.mp3")
           \buf -> run2_
             [ gain_ 1.0 [loopBuf buf pureOn] ]
       )
   , toc: nut TOC.toc
   , allpass: nut $ Allpass.allpass ccb dpage ev
-  , analyser: nut $ Analyser.analyser ccb dpage ev
+  , analyser: nut $ Analyser.analyserEx ccb dpage ev
   , bandpass: nut $ Bandpass.bandpass ccb dpage ev
   , constant: nut $ Constant.constantEx ccb dpage ev
   , compression: nut $ Compression.compression ccb dpage ev
@@ -133,6 +127,13 @@ components cca' dpage ssp ev = px ~~
   , notch: nut $ Notch.notch ccb dpage ev
   , playBuf: nut $ PlayBuf.playBufEx ccb dpage ev
   , peaking: nut $ Peaking.peaking ccb dpage ev
+  , microphone: nut $ Microphone.microphoneEx ccb dpage ev
+  , pan: nut $ StereoPanner.pan ccb dpage ev
+  , periodicOsc: nut $ PeriodicOsc.periodic ccb dpage ev
+  , sawtoothOsc: nut $ SawtoothOsc.sawtooth ccb dpage ev
+  , sinOsc: nut $ SinOsc.sine ccb dpage ev
+  , squareOsc: nut $ SquareOsc.square ccb dpage ev
+  , triangleOsc: nut $ TriangleOsc.triangle ccb dpage ev
   , next: mkNext ev cpage
   }
   where

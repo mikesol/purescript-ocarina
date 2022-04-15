@@ -32,7 +32,7 @@ px = Proxy :: Proxy """<section>
 highshelf :: forall event payload. IsEvent event => Plus event => CancelCurrentAudio -> (Page -> Effect Unit) -> event SingleSubgraphEvent -> Element event payload
 highshelf ccb _ ev = px ~~
   { highshelf: nut
-      ( audioWrapper ev ccb (ctxAff >>= \ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
+      ( audioWrapper ev ccb (ctxAff \ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
           \buf -> run2_
             [ highshelf_ {frequency: 2000.0, gain: 0.4 } [loopBuf buf pureOn] ]
       )

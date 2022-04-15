@@ -41,7 +41,7 @@ px =  Proxy :: Proxy   """<section>
 notch :: forall event payload. IsEvent event => Plus event => CancelCurrentAudio -> (Page -> Effect Unit) -> event SingleSubgraphEvent -> Element event payload
 notch ccb _ ev = px ~~
   { notch: nut
-      ( audioWrapper ev ccb (ctxAff >>= \ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
+      ( audioWrapper ev ccb (ctxAff \ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
           \buf -> run2_
             [ notch_ { frequency: 400.0, q: 1.0 }
                 [ notch_ { frequency: 880.0, q: 5.0 }

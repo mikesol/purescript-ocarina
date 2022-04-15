@@ -29,7 +29,7 @@ px = Proxy :: Proxy """<section>
 convolution :: forall event payload. IsEvent event => Plus event => CancelCurrentAudio -> (Page -> Effect Unit) -> event SingleSubgraphEvent -> Element event payload
 convolution ccb _ ev = px ~~
   { convolution: nut
-      ( audioWrapper ev ccb (ctxAff >>= \ctx -> { loop: _, verb: _ }
+      ( audioWrapper ev ccb (ctxAff \ctx -> { loop: _, verb: _ }
          <$> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3" <*> decodeAudioDataFromUri ctx "https://cdn.jsdelivr.net/gh/andibrae/Reverb.js/Library/StMarysAbbeyReconstructionPhase3.m4a")
           \{loop, verb} -> run2_
             [ convolver verb [loopBuf loop pureOn]]

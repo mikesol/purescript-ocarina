@@ -33,7 +33,7 @@ px = Proxy :: Proxy """<section>
 gain :: forall event payload. IsEvent event => Plus event => CancelCurrentAudio -> (Page -> Effect Unit) -> event SingleSubgraphEvent -> Element event payload
 gain ccb _ ev = px ~~
   { gain: nut
-      ( audioWrapper ev ccb (ctxAff >>= \ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/339/339822_5121236-lq.mp3")
+      ( audioWrapper ev ccb (ctxAff \ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/339/339822_5121236-lq.mp3")
           \buf -> run2_
             [ gain_ 0.1 [loopBuf buf pureOn] ]
       )

@@ -561,11 +561,15 @@ exports.makeMediaElement_ = function (a) {
 exports.makeMicrophone_ = function (a) {
 	return function (state) {
 		return function () {
+			var ptr = a.id;
 			state.units[a.id] = {
 				main: state.context.createMediaStreamSource(a.microphone),
 				outgoing: [a.parent],
 				incoming: [],
 			};
+			addToScope(ptr, a.scope, state);
+			doDeferredConnections(ptr, state);
+			mConnectXToY_(ptr, a.parent, state);
 		};
 	};
 };
@@ -1346,9 +1350,8 @@ var setOff_ = function (ptr) {
 				state.units[ptr].onOff = false;
 				var oldMain = state.units[ptr].main;
 				var oldOutgoing = state.units[ptr].outgoing.slice();
-				oldMain.stop(state.deprecatedWriteHead + onOffInstr.o);
 				// defer disconnection until stop has happened
-				setTimeout(() => {
+				oldMain.addEventListener("ended", () => {
 					for (var i = 0; i < oldOutgoing.length; i++) {
 						var oogi = oldOutgoing[i];
 						try {
@@ -1363,7 +1366,8 @@ var setOff_ = function (ptr) {
 							continue;
 						}
 					}
-				}, 1000.0 * (state.deprecatedWriteHead + onOffInstr.o + 0.2 - state.context.currentTime));
+				});
+				oldMain.stop(state.deprecatedWriteHead + onOffInstr.o);
 			};
 		};
 	};

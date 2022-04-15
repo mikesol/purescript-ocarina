@@ -13,11 +13,11 @@ import Deku.DOM as D
 import Deku.Subgraph ((@@))
 import Deku.Subgraph as Sg
 import Effect (Effect)
-import Effect.Aff (Aff, error, joinFiber, killFiber, launchAff, launchAff_)
+import Effect.Aff (Aff, bracket, error, joinFiber, killFiber, launchAff, launchAff_)
 import Effect.Class (liftEffect)
 import FRP.Event.Class (class IsEvent, bang, sampleOn)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, SingleSubgraphEvent(..), SingleSubgraphPusher)
-import WAGS.Interpret (context)
+import WAGS.Interpret (close, context)
 
 foreign import scrollToTop_ :: Effect Unit
 
@@ -30,6 +30,34 @@ ccassp :: CancelCurrentAudio -> SingleSubgraphPusher -> CancelCurrentAudio
 ccassp cca ssp e = do
   cca e
   ssp (SetCancel e)
+
+clickCb cca push init i ev event = map
+            ( \(e /\ cncl) -> D.OnClick :=
+                ( cb $
+                    ( const $ case e of
+                        Loading -> pure unit
+                        Playing x -> x *> cca (pure unit) *> push Stopped
+                        Stopped -> do
+                          cncl
+                          push Loading
+                          fib <- launchAff do
+                            x <- init
+                            liftEffect do
+                              res <- i x
+                              push (Playing res)
+                              pure res
+                          cca do
+                            toKill <- launchAff do
+                              joinFiber fib >>= liftEffect
+                            launchAff_ $ killFiber
+                              (error "We navigated away from the page")
+                              toKill
+                          pure unit
+                    )
+                )
+            )
+            (sampleOn (bang (pure unit) <|> (map (\(SetCancel x) -> x) ev)) (map Tuple event))
+
 
 audioWrapper
   :: forall a event payload
@@ -45,33 +73,7 @@ audioWrapper ev cca init i = bang (unit /\ Sg.Insert)
       event = bang Stopped <|> event'
     in
       D.button
-        ( map
-            ( \(e /\ cncl) -> D.OnClick :=
-                ( cb $
-                    ( const $ case e of
-                        Loading -> pure unit
-                        Playing x -> x *> cca (pure unit) *> push Stopped
-                        Stopped -> do
-                          cncl
-                          push Loading
-                          fib <- launchAff do
-                            x <- init
-                            liftEffect do
-                              res <- i x
-                              push (Playing res)
-                              pure res
-                          cca do
-                            toKill <- launchAff do
-                              joinFiber fib >>= liftEffect
-                            launchAff_ $ killFiber
-                              (error "We navigated away from the page")
-                              toKill
-                          pure unit
-                    )
-                )
-            )
-            (sampleOn (bang (pure unit) <|> (map (\(SetCancel x) -> x) ev)) (map Tuple event))
-        )
+        (clickCb cca push init i ev event)
         [ text
             ( map
                 ( case _ of
@@ -83,7 +85,6 @@ audioWrapper ev cca init i = bang (unit /\ Sg.Insert)
             )
         ]
 
--- todo: merge with above?
 audioWrapperSpan
   :: forall a event payload
    . IsEvent event
@@ -99,32 +100,7 @@ audioWrapperSpan txt ev cca init i = bang (unit /\ Sg.Insert)
       event = bang Stopped <|> event'
     in
       D.span
-        ((bang (D.Style := "cursor: pointer;")) <|>  map
-            ( \(e /\ cncl) -> D.OnClick :=
-                ( cb $
-                    ( const $ case e of
-                        Loading -> pure unit
-                        Playing x -> x *> cca (pure unit) *> push Stopped
-                        Stopped -> do
-                          cncl
-                          push Loading
-                          fib <- launchAff do
-                            x <- init
-                            liftEffect do
-                              res <- i x
-                              push (Playing res)
-                              pure res
-                          cca do
-                            toKill <- launchAff do
-                              joinFiber fib >>= liftEffect
-                            launchAff_ $ killFiber
-                              (error "We navigated away from the page")
-                              toKill
-                          pure unit
-                    )
-                )
-            )
-            (sampleOn (bang (pure unit) <|> (map (\(SetCancel x) -> x) ev)) (map Tuple event))
+        ((bang (D.Style := "cursor: pointer;")) <|>  (clickCb cca push init i ev event)
         )
         [  text
             ( map
@@ -140,4 +116,4 @@ audioWrapperSpan txt ev cca init i = bang (unit /\ Sg.Insert)
 mkNext ev cpage = bang (D.OnClick := cb (const cpage))
               <|> map (\cncl -> D.OnClick := cb (const (cncl *> cpage))) (map (\(SetCancel c) -> c) ev)
 
-ctxAff = liftEffect context
+ctxAff = bracket (liftEffect context) (liftEffect <<< close)

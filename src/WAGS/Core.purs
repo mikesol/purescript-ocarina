@@ -692,8 +692,6 @@ type MakeMediaElement =
 derive instance newtypeInitializeMicrophone :: Newtype InitializeMicrophone _
 newtype InitializeMicrophone = InitializeMicrophone
   { microphone :: BrowserMicrophone
-  , parent :: Maybe String
-  , scope :: Maybe String
   }
 
 type MakeMicrophone =

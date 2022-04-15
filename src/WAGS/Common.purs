@@ -4,13 +4,17 @@ import Prelude
 
 import ConvertableOptions (class ConvertOption, class ConvertOptionsWithDefaults, convertOptionsWithDefaults)
 import Data.Tuple.Nested (type (/\), (/\))
+import Data.Typelevel.Num (class Pos)
+import Data.Variant (inj)
 import Data.Variant.Maybe (Maybe, just, nothing)
-import Data.Vec (Vec)
+import Data.Vec (Vec, toArray)
 import Safe.Coerce (coerce)
 import Type.Equality (class TypeEquals, proof)
+import Type.Proxy (Proxy(..))
+import WAGS.Core (PeriodicOscSpec(..), RealImg(..))
 import WAGS.Core as Core
 import WAGS.Parameter (InitialAudioParameter)
-import WAGS.WebAPI (BrowserAudioBuffer)
+import WAGS.WebAPI (BrowserAudioBuffer, BrowserMicrophone, BrowserPeriodicWave)
 
 -- Allpass
 
@@ -488,6 +492,18 @@ instance
   toInitializeLowshelf provided = Core.InitializeLowshelf
     (convertOptionsWithDefaults LowshelfOptions defaultLowshelf provided)
 
+-- Microphone
+class InitialMicrophone i where
+  toInitializeMicrophone :: i -> Core.InitializeMicrophone
+
+instance InitialMicrophone Core.InitializeMicrophone where
+  toInitializeMicrophone = identity
+
+instance InitialMicrophone BrowserMicrophone where
+  toInitializeMicrophone = Core.InitializeMicrophone <<< { microphone: _ }
+
+-- IIRFilter
+
 -- Notch
 
 data NotchOptions = NotchOptions
@@ -653,6 +669,57 @@ instance
   InitialPlayBuf { | provided } where
   toInitializePlayBuf provided = Core.InitializePlayBuf
     (convertOptionsWithDefaults PlayBufOptions defaultPlayBuf provided)
+
+-- Periodic Osc
+-- PeriodicOsc
+
+data PeriodicOscOptions = PeriodicOscOptions
+
+instance
+  ConvertOption PeriodicOscOptions
+    "frequency"
+    InitialAudioParameter
+    InitialAudioParameter where
+  convertOption _ _ = identity
+
+class PeriodicOscSpecable i where
+  toPeriodicOscSpec :: i -> PeriodicOscSpec
+
+instance PeriodicOscSpecable BrowserPeriodicWave where
+  toPeriodicOscSpec = PeriodicOscSpec <<< inj (Proxy :: _ "wave")
+
+instance Pos n => PeriodicOscSpecable (Vec n Number /\ Vec n Number) where
+  toPeriodicOscSpec (real /\ img) = PeriodicOscSpec $ inj (Proxy :: _ "realImg") $ RealImg { real: toArray real, img: toArray img }
+
+instance PeriodicOscSpecable i =>
+  ConvertOption PeriodicOscOptions
+    "spec"
+    i
+    PeriodicOscSpec where
+  convertOption _ _ = toPeriodicOscSpec
+
+
+type PeriodicOscAll =
+  ( frequency :: InitialAudioParameter
+  , spec :: PeriodicOscSpec
+  )
+
+defaultPeriodicOsc :: { }
+defaultPeriodicOsc = {  }
+
+class InitialPeriodicOsc i where
+  toInitializePeriodicOsc :: i -> Core.InitializePeriodicOsc
+
+instance InitialPeriodicOsc Core.InitializePeriodicOsc where
+  toInitializePeriodicOsc = identity
+
+instance
+  ConvertOptionsWithDefaults PeriodicOscOptions { } { | provided }
+    { | PeriodicOscAll } =>
+  InitialPeriodicOsc { | provided } where
+  toInitializePeriodicOsc provided = Core.InitializePeriodicOsc
+    (convertOptionsWithDefaults PeriodicOscOptions defaultPeriodicOsc provided)
+
 
 -- SawtoothOsc
 class InitialSawtoothOsc i where

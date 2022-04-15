@@ -39,7 +39,7 @@ px = Proxy :: Proxy """<section>
 delay :: forall event payload. IsEvent event => Plus event => CancelCurrentAudio -> (Page -> Effect Unit) -> event SingleSubgraphEvent -> Element event payload
 delay ccb _ ev = px ~~
   { delay: nut
-      ( audioWrapper ev ccb (ctxAff >>= \ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/339/339822_5121236-lq.mp3")
+      ( audioWrapper ev ccb (ctxAff \ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/339/339822_5121236-lq.mp3")
           \buf -> run2_
             [ fan (playBuf buf pureOn)
                 \b -> gain_ 0.2

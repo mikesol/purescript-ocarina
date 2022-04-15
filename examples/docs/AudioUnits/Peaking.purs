@@ -43,7 +43,7 @@ peaking
   :: forall event payload. IsEvent event => Plus event => CancelCurrentAudio -> (Page -> Effect Unit) -> event SingleSubgraphEvent -> Element event payload
 peaking ccb _ ev = px ~~
   { peaking: nut
-      ( audioWrapper ev ccb (ctxAff >>= \ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
+      ( audioWrapper ev ccb (ctxAff \ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
           \buf -> run2_
             [ peaking_ { frequency: 400.0, q: 1.0, gain: -20.0 }
                 [ peaking_ { frequency: 880.0, q: 5.0, gain: 20.0 }
