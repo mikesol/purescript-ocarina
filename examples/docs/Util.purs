@@ -6,6 +6,7 @@ import Control.Alt ((<|>))
 import Data.Exists (mkExists)
 import Data.Tuple (Tuple(..))
 import Data.Tuple.Nested ((/\))
+--import Debug (spy)
 import Deku.Attribute (cb, (:=))
 import Deku.Control (text, text_)
 import Deku.Core (Element, SubgraphF(..))
@@ -15,7 +16,8 @@ import Deku.Subgraph as Sg
 import Effect (Effect)
 import Effect.Aff (Aff, bracket, error, joinFiber, killFiber, launchAff, launchAff_)
 import Effect.Class (liftEffect)
-import FRP.Event.Class (class IsEvent, bang, sampleOn)
+-- import Effect.Class.Console (info)
+import FRP.Event.Class (class IsEvent, bang, biSampleOn)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, SingleSubgraphEvent(..), SingleSubgraphPusher)
 import WAGS.Interpret (close, context)
 
@@ -56,7 +58,7 @@ clickCb cca push init i ev event = map
                     )
                 )
             )
-            (sampleOn (bang (pure unit) <|> (map (\(SetCancel x) -> x) ev)) (map Tuple event))
+            (biSampleOn (bang (pure unit) <|> (map (\(SetCancel x) -> x) ev)) (map Tuple event))
 
 
 audioWrapper
