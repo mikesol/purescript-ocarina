@@ -49,6 +49,7 @@ clickCb cca push init i ev event = map
                               push (Playing res)
                               pure res
                           cca do
+                            push Stopped
                             toKill <- launchAff do
                               joinFiber fib >>= liftEffect
                             launchAff_ $ killFiber
@@ -60,6 +61,7 @@ clickCb cca push init i ev event = map
             )
             (biSampleOn (bang (pure unit) <|> (map (\(SetCancel x) -> x) ev)) (map Tuple event))
 
+mkWrapperEvent ev event' = bang Stopped <|> event'
 
 audioWrapper
   :: forall a event payload
@@ -72,7 +74,7 @@ audioWrapper
 audioWrapper ev cca init i = bang (unit /\ Sg.Insert)
   @@ \_ -> mkExists $ SubgraphF \push event' ->
     let
-      event = bang Stopped <|> event'
+      event = mkWrapperEvent ev event'
     in
       D.button
         (clickCb cca push init i ev event)
@@ -99,7 +101,7 @@ audioWrapperSpan
 audioWrapperSpan txt ev cca init i = bang (unit /\ Sg.Insert)
   @@ \_ -> mkExists $ SubgraphF \push event' ->
     let
-      event = bang Stopped <|> event'
+      event = mkWrapperEvent ev event'
     in
       D.span
         ((bang (D.Style := "cursor: pointer;")) <|>  (clickCb cca push init i ev event)

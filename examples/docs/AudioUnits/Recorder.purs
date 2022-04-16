@@ -24,7 +24,7 @@ import Type.Proxy (Proxy(..))
 import WAGS.Control (microphone, recorder, singleton, speaker2)
 import WAGS.Core (AudioInput)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
-import WAGS.Example.Docs.Util (WrapperStates(..), clickCb)
+import WAGS.Example.Docs.Util (WrapperStates(..), clickCb, mkWrapperEvent)
 import WAGS.Interpret (close, context, contextState, effectfulAudioInterpret, getMicrophoneAndCamera, makeFFIAudioSnapshot, mediaRecorderToUrl)
 import WAGS.WebAPI (BrowserMicrophone, MediaRecorderCb(..))
 
@@ -58,7 +58,7 @@ recorderEx ccb _ ev = px ~~
           @@ \_ -> mkExists $ SubgraphF \push (event' :: event RecorderStates) ->
             let
               ptn = partitionMap identity event'
-              event = (bang Stopped <|> _.right ptn)
+              event = mkWrapperEvent ev (_.right ptn)
               aEv = _.left ptn
             in
               D.div_

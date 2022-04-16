@@ -33,7 +33,7 @@ import Type.Proxy (Proxy(..))
 import WAGS.Control (analyser_, loopBuf, singleton, speaker2)
 import WAGS.Core (AudioInput, Po2(..))
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
-import WAGS.Example.Docs.Util (WrapperStates(..), clickCb, ctxAff)
+import WAGS.Example.Docs.Util (WrapperStates(..), clickCb, ctxAff, mkWrapperEvent)
 import WAGS.Interpret (close, context, contextState, decodeAudioDataFromUri, effectfulAudioInterpret, getByteFrequencyData, makeFFIAudioSnapshot)
 import WAGS.Parameter (pureOn)
 import WAGS.WebAPI (AnalyserNodeCb(..), BrowserAudioBuffer)
@@ -106,7 +106,7 @@ analyserEx ccb _ ev = px ~~
           @@ \_ -> mkExists $ SubgraphF \push (event' :: event AnalyserStates) ->
             let
               ptn = partitionMap identity event'
-              event = (bang Stopped <|> _.right ptn)
+              event = mkWrapperEvent ev  (_.right ptn)
               aEv = _.left ptn
             in
               D.div_
