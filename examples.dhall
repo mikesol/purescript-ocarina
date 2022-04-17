@@ -12,6 +12,7 @@ in      conf
               , "console"
               , "either"
               , "debug"
+              , "parallel"
               , "exists"
               , "filterable"
               , "nonempty"

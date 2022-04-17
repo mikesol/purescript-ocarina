@@ -35,7 +35,7 @@ px = Proxy :: Proxy
       <ul>
         <li><code>delay</code>: A delay node</li>
         <li><code>bandpass</code>: A bandpass filter, meaning a filter that lets a single frequency band pass through.</li>
-        <li><code>playBuf</code>: Playback of a buffer. We'll use some MP3 files from freesound.org.</li>
+        <li><code>playBuf</code> and <code>loopBuf</code>: Playback or looping playback of a buffer. We'll use some MP3 files from freesound.org.</li>
       </ul>
   </section>"""
 

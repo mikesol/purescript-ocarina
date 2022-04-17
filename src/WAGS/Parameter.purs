@@ -153,13 +153,13 @@ apOff = AudioOnOff { n: _off, o: 0.0 }
 apOffOn :: AudioOnOff
 apOffOn = AudioOnOff { n: _offOn, o: 0.0 }
 
-ffwd
+dt
   :: forall nt r
    . Newtype nt { o :: Number | r }
   => (Number -> Number)
   -> nt
   -> nt
-ffwd = over (_Newtype <<< prop (Proxy :: _ "o"))
+dt = over (_Newtype <<< prop (Proxy :: _ "o"))
 
 derive instance eqAudioOnOff :: Eq AudioOnOff
 derive instance ordAudioOnOff :: Ord AudioOnOff

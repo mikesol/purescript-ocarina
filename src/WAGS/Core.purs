@@ -23,6 +23,7 @@ import Foreign.Object (Object)
 import Prim.Ordering as O
 import Prim.Row as Row
 import Prim.Symbol as Sym
+import Safe.Coerce (coerce)
 import Simple.JSON as JSON
 import Type.Proxy (Proxy(..))
 import WAGS.Parameter (AudioOnOff, AudioParameter, InitialAudioParameter)
@@ -125,6 +126,14 @@ fan (Node elt) f = Node go
   go parentOrMe di@(AudioInterpret { ids }) = keepLatest
     ((sample_ ids (bang unit)) <#> \me' -> let me = useMeIfMe parentOrMe me' in let Node nn = f (Input me) in elt (Me me) di <|> nn parentOrMe di)
 
+hint
+  :: forall outputChannels produced consumed event payload
+   . IsEvent event
+  => Node outputChannels produced consumed event payload
+  -> Node outputChannels produced consumed event payload
+  -> Node outputChannels produced consumed event payload
+hint _ = identity
+
 fix
   :: forall outputChannels produced newProduced consumed event payload
    . ( forall newConsumed a
@@ -187,6 +196,15 @@ instance ordGt :: TLOrd O.GT lt eq gt gt
 newtype AudioInput :: forall k. k -> Symbol -> Row Type -> (Type -> Type) -> Type -> Type
 newtype AudioInput outputChannels produced consumed event payload = AudioInput
   (NonEmptyArray (Node outputChannels produced consumed event payload))
+
+ai
+  :: forall outputChannels produced consumed event payload
+   . NonEmptyArray (Node outputChannels produced consumed event payload)
+  -> AudioInput outputChannels produced consumed event payload
+ai = AudioInput
+
+instance Semigroup (AudioInput outputChannels produced consumed event payload) where
+  append a b = AudioInput (coerce a <> coerce b)
 
 newtype Subgraph :: forall k. k -> Symbol -> Row Type -> (Type -> Type) -> Type -> Type
 newtype Subgraph outputChannels produced consumed event payload =
@@ -580,7 +598,7 @@ type MakeInput = { id :: String, parent :: Maybe String, scope :: Maybe String }
 type MakeTumultInput = { id :: String, input :: String }
 
 derive instance newtypeInitializeIIRFilter :: Newtype (InitializeIIRFilter feedforward feedback) _
-newtype InitializeIIRFilter (feedforward :: Type) (feedback :: Type)= InitializeIIRFilter
+newtype InitializeIIRFilter (feedforward :: Type) (feedback :: Type) = InitializeIIRFilter
   { feedforward :: Vec feedforward Number, feedback :: Vec feedback Number }
 
 type MakeIIRFilter =
@@ -590,7 +608,6 @@ type MakeIIRFilter =
   , feedforward :: Array Number
   , feedback :: Array Number
   }
-
 
 derive instance newtypeLoopBuf :: Newtype LoopBuf _
 newtype LoopBuf = LoopBuf

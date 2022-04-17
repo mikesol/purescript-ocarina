@@ -4,10 +4,16 @@ import Prelude
 
 import Control.Plus (class Plus)
 import Deku.Core (Element)
-import Deku.Pursx (makePursx', nut, (~~))
+import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
 import FRP.Event (class IsEvent)
 import Type.Proxy (Proxy(..))
+import WAGS.Example.Docs.FixFan.AI0 as AI0
+import WAGS.Example.Docs.FixFan.AI1 as AI1
+import WAGS.Example.Docs.FixFan.Fan0 as Fan0
+import WAGS.Example.Docs.FixFan.Fan1 as Fan1
+import WAGS.Example.Docs.FixFan.Fix0 as Fix0
+import WAGS.Example.Docs.FixFan.Fix1 as Fix1
 import WAGS.Example.Docs.FixFan.Intro as FFIntro
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
 import WAGS.Example.Docs.Util (ccassp, mkNext, scrollToTop)
@@ -28,6 +34,8 @@ px = Proxy :: Proxy
 
   @code0@
 
+  <p>Sometimes, instead of chaining units together, we want to work with higher-level abstractions. In this case, we can work directly with a <code>NonEmptyArray</code> and use the <code>ai</code> function to make the array consumable by other audio units.</p>
+
   @code1@
 
   <h2>Fan</h2>
@@ -45,7 +53,7 @@ px = Proxy :: Proxy
 
   <blockquote>The second argument to <code>fan</code> accepts a reference to the first node, <i>not</i> the node itself. To use this reference, you need to use the <code>input</code> function.</blockquote>
 
-  <p>Just for kicks, let's jack it up to forty bandpass filters. Because we're using PureScript, we have the full power of its functional syntax to do our bidding.</p>
+  <p>Just for kicks, let's jack it up to forty bandpass filters.</p>
 
   @code3@
 
@@ -55,9 +63,9 @@ px = Proxy :: Proxy
 
   @code4@
 
-  <blockquote>If you don't have some sort of delay line in your processing chain, either the WebAudio-provided delay line or a custom delay node, Web Audio will raise a runtime error. Wags doesn't check for this, so make sure you test your audio to guarantee that it's feedback-explosion-free!</blockquote>
+  <blockquote>If you don't have some sort of delay line in your processing chain, either the Web-Audio-provided delay line or a custom delay node, Web Audio will raise a runtime error. Wags doesn't check for this, so make sure you test your audio to guarantee that it's feedback-explosion-free!</blockquote>
 
-  <p>Let's use some good old-fashioned functional programming to create a mega-feedback loop!</p>
+  <p>Nothing stops you from nesting fixes to create a mega-feedback loop! I've added a couple fades to make sure the experience isn't too unpleasant. We'll talk more about fades in the events section 🎸</p>
 
   @code5@
 
@@ -69,13 +77,13 @@ fixFan :: forall event payload. IsEvent event => Plus event => CancelCurrentAudi
 fixFan cca' dpage ssp ev = makePursx'  (Proxy :: _ "@") px
   { intro: nut (FFIntro.ffIntro cca' dpage ssp ev)
   , next: mnx AudioUnits
-  , code0: nut ((Proxy :: _ """<pre><code></code></pre>""") ~~ {})
-  , code1: nut ((Proxy :: _ """<pre><code></code></pre>""") ~~ {})
-  , code2: nut ((Proxy :: _ """<pre><code></code></pre>""") ~~ {})
-  , code3: nut ((Proxy :: _ """<pre><code></code></pre>""") ~~ {})
-  , code4: nut ((Proxy :: _ """<pre><code></code></pre>""") ~~ {})
-  , code5: nut ((Proxy :: _ """<pre><code></code></pre>""") ~~ {})
+  , code0: nut $ AI0.ai0 ccb dpage ev
+  , code1: nut $ AI1.ai1 ccb dpage ev
+  , code2: nut $ Fan0.fan0 ccb dpage ev
+  , code3: nut $ Fan1.fan1 ccb dpage ev
+  , code4: nut $ Fix0.fix0 ccb dpage ev
+  , code5: nut $ Fix1.fix1 ccb dpage ev
   }
   where
   mnx i = mkNext ev (dpage i *> scrollToTop)
-  cca = ccassp cca' ssp
+  ccb = ccassp cca' ssp

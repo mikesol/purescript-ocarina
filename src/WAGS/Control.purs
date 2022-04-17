@@ -104,7 +104,7 @@ audioInputAdd a b = C.AudioInput (NEA.cons (coerce a) (NEA.singleton (coerce b))
 
 class AudioInputSmoosh f where
   audioInputSmoosh
-    :: forall outputChannels produced0 produced1 produced2 ord consumed0 consumed1
+    :: forall (outputChannels :: Type) produced0 produced1 produced2 ord consumed0 consumed1
          consumed2 consumed3 event payload
      . IsEvent event
     => Sym.Compare produced0 produced1 ord
@@ -1305,6 +1305,8 @@ playBuf
   -> event C.PlayBuf
   -> C.Node outputChannels "" C.G_ event payload
 playBuf = __playBuf
+
+playBuf_ i = playBuf i empty
 
 -- recorder
 recorder
