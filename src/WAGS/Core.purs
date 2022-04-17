@@ -197,11 +197,18 @@ newtype AudioInput :: forall k. k -> Symbol -> Row Type -> (Type -> Type) -> Typ
 newtype AudioInput outputChannels produced consumed event payload = AudioInput
   (NonEmptyArray (Node outputChannels produced consumed event payload))
 
-ai
-  :: forall outputChannels produced consumed event payload
-   . NonEmptyArray (Node outputChannels produced consumed event payload)
-  -> AudioInput outputChannels produced consumed event payload
-ai = AudioInput
+class AI f where
+  ai
+    :: forall (outputChannels :: Type) produced consumed event payload
+    . NonEmptyArray (f outputChannels produced consumed event payload)
+    -> AudioInput outputChannels produced consumed event payload
+
+instance AI Node where
+  ai = AudioInput
+
+instance AI AudioInput where
+  ai = AudioInput <<< join <<< coerce
+
 
 instance Semigroup (AudioInput outputChannels produced consumed event payload) where
   append a b = AudioInput (coerce a <> coerce b)

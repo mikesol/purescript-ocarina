@@ -73,7 +73,7 @@ helloWorld cca' dpage ssp ev = makePursx' (Proxy :: _ "@") px
               [ text_
                   """case e of
   Just x -> x *> push Nothing
-  _ -> run2_ $ gain_ 0.15 $ sinOsc 440.0 pureOn
+  _ -> (run2_ $ gain_ 0.15 $ sinOsc 440.0 pureOn)
          >>= Just >>> push"""
               ]
           ]
