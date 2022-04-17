@@ -26,7 +26,7 @@ import FRP.Event (Event, create, filterMap, sampleOn, subscribe)
 import FRP.Event.Animate (animationFrameEvent)
 import FRP.Event.Class (bang)
 import Math (pi, sin)
-import WAGS.Control (analyser, gain, loopBuf, singleton, speaker2, (!), (~))
+import WAGS.Control (analyser, gain, loopBuf, singleton, speaker2, (~))
 import WAGS.Core (AudioInput)
 import WAGS.Example.Utils (RaiseCancellation)
 import WAGS.Interpret (close, context, decodeAudioDataFromUri, effectfulAudioInterpret, getByteFrequencyData, makeFFIAudioSnapshot, writeHead)
@@ -74,7 +74,7 @@ scene atar cb wh =
                                   <<< vwnn <$> tr
                           )
                       )
-                  ! gain 0.3 empty
+                  ~ gain 0.3 empty
                       (loopBuf { buffer: atar, playbackRate: 0.25 } pureOn)
               )
           )

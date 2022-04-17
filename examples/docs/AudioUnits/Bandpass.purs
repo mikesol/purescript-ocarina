@@ -8,7 +8,7 @@ import Deku.Pursx (makePursx', nut, (~~))
 import Effect (Effect)
 import FRP.Event (class IsEvent)
 import Type.Proxy (Proxy(..))
-import WAGS.Control (bandpass_, loopBuf, gain_, (!), (~))
+import WAGS.Control (bandpass_, loopBuf, gain_, (~))
 import WAGS.Core (fan, input)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import WAGS.Example.Docs.Util (audioWrapper, ctxAff)
@@ -27,7 +27,7 @@ px = Proxy :: Proxy """<section>
         ~ bandpass_ { frequency: 880.0, q: 5.0 } (input b)
         ~ bandpass_ { frequency: 1200.0, q: 10.0 } (input b)
         ~ bandpass_ { frequency: 2000.0, q: 20.0 } (input b)
-        ! bandpass_ { frequency: 3000.0, q: 30.0 } (input b)
+        ~ bandpass_ { frequency: 3000.0, q: 30.0 } (input b)
         )</code></pre>
 
   @bandpass@
@@ -45,7 +45,7 @@ bandpass ccb _ ev = makePursx' (Proxy :: _ "@") px
                   ~ bandpass_ { frequency: 880.0, q: 5.0 } (input b)
                   ~ bandpass_ { frequency: 1200.0, q: 10.0 } (input b)
                   ~ bandpass_ { frequency: 2000.0, q: 20.0 } (input b)
-                  ! bandpass_ { frequency: 3000.0, q: 30.0 } (input b)
+                  ~ bandpass_ { frequency: 3000.0, q: 30.0 } (input b)
                   )
 
       )

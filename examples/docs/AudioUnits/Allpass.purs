@@ -4,11 +4,11 @@ import Prelude
 
 import Control.Plus (class Plus)
 import Deku.Core (Element)
-import Deku.Pursx (nut, (~~))
+import Deku.Pursx (makePursx', nut, (~~))
 import Effect (Effect)
 import FRP.Event (class IsEvent)
 import Type.Proxy (Proxy(..))
-import WAGS.Control (gain_, allpass_, (!), loopBuf)
+import WAGS.Control (gain_, allpass_, (~), loopBuf)
 import WAGS.Core (fan, input)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import WAGS.Example.Docs.Util (audioWrapper, ctxAff)
@@ -27,34 +27,34 @@ px =
   $ fan (loopBuf buf pureOn)
       \b -> gain_ 0.2
         (input b
-        ! allpass_ 700.0
+        ~ allpass_ 700.0
             (allpass_ { frequency: 990.0, q: 20.0 } (input b)
-            ! allpass_ 1110.0
+            ~ allpass_ 1110.0
                 ( input b
-                ! allpass_ { frequency: 2010.0, q: 30.0 } (input b)
+                ~ allpass_ { frequency: 2010.0, q: 30.0 } (input b)
                 )
             )
         )
 </code></pre>
 
-  ~allpass~
+  @allpass@
   </section>
 """
 
 allpass
   :: forall event payload. IsEvent event => Plus event => CancelCurrentAudio -> (Page -> Effect Unit) -> event SingleSubgraphEvent -> Element event payload
-allpass ccb _ ev = px ~~
+allpass ccb _ ev = makePursx' (Proxy :: _ "@") px
   { allpass: nut
       ( audioWrapper ev ccb (ctxAff \ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
           \buf -> run2_
             $ fan (loopBuf buf pureOn)
                 \b -> gain_ 0.2
                   (input b
-                  ! allpass_ 700.0
+                  ~ allpass_ 700.0
                       (allpass_ { frequency: 990.0, q: 20.0 } (input b)
-                      ! allpass_ 1110.0
+                      ~ allpass_ 1110.0
                           ( input b
-                          ! allpass_ { frequency: 2010.0, q: 30.0 } (input b)
+                          ~ allpass_ { frequency: 2010.0, q: 30.0 } (input b)
                           )
                       )
                   )

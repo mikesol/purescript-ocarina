@@ -8,7 +8,7 @@ import Deku.Pursx (makePursx', nut, (~~))
 import Effect (Effect)
 import FRP.Event (class IsEvent)
 import Type.Proxy (Proxy(..))
-import WAGS.Control (delay_, gain_, playBuf, (~), (!))
+import WAGS.Control (delay_, gain_, playBuf, (~))
 import WAGS.Core (input, fan)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import WAGS.Example.Docs.Util (audioWrapper, ctxAff)
@@ -29,7 +29,7 @@ px =
         ( delay_ 0.03 (input b)
             ~ delay_ 0.1 (input b)
             ~ delay_ 0.3 (input b)
-            ! delay_ 0.7 (input b)
+            ~ delay_ 0.7 (input b)
         )</code></pre>
 
   @delay@
@@ -46,7 +46,7 @@ delay ccb _ ev = makePursx' (Proxy :: _ "@") px
                   ( delay_ 0.03 (input b)
                       ~ delay_ 0.1 (input b)
                       ~ delay_ 0.3 (input b)
-                      ! delay_ 0.7 (input b)
+                      ~ delay_ 0.7 (input b)
                   )
 
       )

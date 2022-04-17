@@ -13,7 +13,6 @@ import Data.Foldable (oneOf)
 import Data.Homogeneous (class HomogeneousRowLabels)
 import Data.Homogeneous.Variant (homogeneous)
 import Data.Int (pow)
-import Data.Maybe as DM
 import Data.NonEmpty ((:|))
 import Data.Profunctor (lcmap)
 import Data.Symbol (class IsSymbol, reflectSymbol)
@@ -21,7 +20,7 @@ import Data.Tuple.Nested (type (/\), (/\))
 import Data.Typelevel.Num (class Lt, class Nat, class Pos, class Pred, D1, D2, pred, toInt)
 import Data.Variant (Unvariant(..), match, unvariant)
 import Data.Variant.Maybe (Maybe, just, maybe, nothing)
-import Data.Vec (Vec, toArray)
+import Data.Vec (toArray)
 import FRP.Behavior (sample_)
 import FRP.Event (class IsEvent, keepLatest)
 import FRP.Event.Class (bang)
@@ -90,8 +89,6 @@ audioInputCons2
   -> C.AudioInput outputChannels produced2 consumed3 event payload
 audioInputCons2 a b = C.AudioInput (NEA.cons (coerce a) (coerce b))
 
-infixr 6 audioInputCons2 as ~
-
 audioInputAdd
   :: forall outputChannels produced0 produced1 produced2 ord consumed0 consumed1
        consumed2 consumed3 event payload
@@ -105,7 +102,26 @@ audioInputAdd
   -> C.AudioInput outputChannels produced2 consumed3 event payload
 audioInputAdd a b = C.AudioInput (NEA.cons (coerce a) (NEA.singleton (coerce b)))
 
-infixr 6 audioInputAdd as !
+class AudioInputSmoosh f where
+  audioInputSmoosh
+    :: forall outputChannels produced0 produced1 produced2 ord consumed0 consumed1
+         consumed2 consumed3 event payload
+     . IsEvent event
+    => Sym.Compare produced0 produced1 ord
+    => TLOrd ord produced1 produced1 produced0 produced2
+    => Union consumed0 consumed1 consumed2
+    => Nub consumed2 consumed3
+    => C.Node outputChannels produced0 consumed0 event payload
+    -> f outputChannels produced1 consumed1 event payload
+    -> C.AudioInput outputChannels produced2 consumed3 event payload
+
+instance AudioInputSmoosh C.AudioInput where
+  audioInputSmoosh = audioInputCons2
+
+instance AudioInputSmoosh C.Node where
+  audioInputSmoosh = audioInputAdd
+
+infixr 6 audioInputSmoosh as ~
 
 audioInputCons3
   :: forall outputChannels produced consumed event payload
@@ -501,7 +517,7 @@ constant
   => Common.InitialConstant i
   => i
   -> event C.Constant
-  -> C.Node outputChannels "" () event payload
+  -> C.Node outputChannels "" C.G_ event payload
 constant = __constant
 
 constant_ i = constant i empty
@@ -511,7 +527,7 @@ constant_ i = constant i empty
 class ConvolverCtor f where
   convolver
     :: forall i (outputChannels :: Type) produced consumed event payload
-    . IsEvent event
+     . IsEvent event
     => Common.InitialConvolver i
     => i
     -> f outputChannels produced consumed event payload
@@ -549,12 +565,11 @@ instance ConvolverCtor C.AudioInput where
 instance ConvolverCtor C.Node where
   convolver i' n = convolver i' (singleton n)
 
-
 -- delay
 class DelayCtor f where
   delay
     :: forall i (outputChannels :: Type) produced consumed event payload
-    . IsEvent event
+     . IsEvent event
     => Common.InitialDelay i
     => i
     -> event C.Delay
@@ -593,7 +608,7 @@ delay_ i a = delay i empty a
 class DynamicsCompressorCtor f where
   dynamicsCompressor
     :: forall i (outputChannels :: Type) produced consumed event payload
-    . IsEvent event
+     . IsEvent event
     => Common.InitialDynamicsCompressor i
     => i
     -> event C.DynamicsCompressor
@@ -979,7 +994,7 @@ loopBuf
   => Common.InitialLoopBuf i
   => i
   -> event C.LoopBuf
-  -> C.Node outputChannels "" () event payload
+  -> C.Node outputChannels "" C.G_ event payload
 loopBuf = __loopBuf
 
 loopBuf_ i = loopBuf i empty
@@ -1010,7 +1025,7 @@ mediaElement
   :: forall outputChannels event payload
    . IsEvent event
   => C.InitializeMediaElement
-  -> C.Node outputChannels "" () event payload
+  -> C.Node outputChannels "" C.G_ event payload
 mediaElement = __mediaElement
 
 -- microphone
@@ -1042,7 +1057,7 @@ microphone
    . IsEvent event
   => Common.InitialMicrophone i
   => i
-  -> C.Node outputChannels "" () event payload
+  -> C.Node outputChannels "" C.G_ event payload
 microphone = __microphone
 
 -- notch
@@ -1172,7 +1187,7 @@ periodicOsc
   => Common.InitialPeriodicOsc i
   => i
   -> event C.PeriodicOsc
-  -> C.Node outputChannels "" () event payload
+  -> C.Node outputChannels "" C.G_ event payload
 periodicOsc = __periodicOsc
 
 periodicOsc_ i = periodicOsc i empty
@@ -1288,7 +1303,7 @@ playBuf
   => Common.InitialPlayBuf i
   => i
   -> event C.PlayBuf
-  -> C.Node outputChannels "" () event payload
+  -> C.Node outputChannels "" C.G_ event payload
 playBuf = __playBuf
 
 -- recorder
@@ -1355,7 +1370,7 @@ sawtoothOsc
   => Common.InitialSawtoothOsc i
   => i
   -> event C.SawtoothOsc
-  -> C.Node outputChannels "" () event payload
+  -> C.Node outputChannels "" C.G_ event payload
 sawtoothOsc = __sawtoothOsc
 
 sawtoothOsc_ i = sawtoothOsc i empty
@@ -1402,7 +1417,7 @@ sinOsc
   => Common.InitialSinOsc i
   => i
   -> event C.SinOsc
-  -> C.Node outputChannels "" () event payload
+  -> C.Node outputChannels "" C.G_ event payload
 sinOsc = __sinOsc
 
 sinOsc_ a = sinOsc a empty
@@ -1449,7 +1464,7 @@ squareOsc
   => Common.InitialSquareOsc i
   => i
   -> event C.SquareOsc
-  -> C.Node outputChannels "" () event payload
+  -> C.Node outputChannels "" C.G_ event payload
 squareOsc = __squareOsc
 
 squareOsc_ i = squareOsc i empty
@@ -1458,7 +1473,7 @@ squareOsc_ i = squareOsc i empty
 speaker
   :: forall outputChannels event payload
    . IsEvent event
-  => C.AudioInput outputChannels "" () event payload
+  => C.AudioInput outputChannels "" C.G_ event payload
   -> C.AudioInterpret event payload
   -> event payload
 speaker (C.AudioInput elts) di@(C.AudioInterpret { ids, makeSpeaker }) =
@@ -1472,7 +1487,7 @@ speaker (C.AudioInput elts) di@(C.AudioInterpret { ids, makeSpeaker }) =
 speaker2
   :: forall event payload
    . IsEvent event
-  => C.AudioInput D2 "" () event payload
+  => C.AudioInput D2 "" C.G_ event payload
   -> C.AudioInterpret event payload
   -> event payload
 speaker2 = speaker
@@ -1481,7 +1496,7 @@ speaker2 = speaker
 class StereoPannerCtor f where
   pan
     :: forall i (outputChannels :: Type) produced consumed event payload
-    . IsEvent event
+     . IsEvent event
     => Common.InitialStereoPanner i
     => i
     -> event C.StereoPanner
@@ -1515,6 +1530,7 @@ instance StereoPannerCtor C.AudioInput where
       )
 
 pan_ i a = pan i empty a
+
 -- triangleOsc
 
 __triangleOsc
@@ -1557,7 +1573,7 @@ triangleOsc
   => Common.InitialTriangleOsc i
   => i
   -> event C.TriangleOsc
-  -> C.Node outputChannels "" () event payload
+  -> C.Node outputChannels "" C.G_ event payload
 triangleOsc = __triangleOsc
 
 triangleOsc_ i = triangleOsc i empty
@@ -1567,7 +1583,7 @@ triangleOsc_ i = triangleOsc i empty
 class WaveShaperCtor f where
   waveShaper
     :: forall i (outputChannels :: Type) produced consumed event payload
-    . IsEvent event
+     . IsEvent event
     => Common.InitialWaveShaper i
     => i
     -> f outputChannels produced consumed event payload
@@ -1575,6 +1591,7 @@ class WaveShaperCtor f where
 
 instance WaveShaperCtor C.Node where
   waveShaper i' n = waveShaper i' (singleton n)
+
 instance WaveShaperCtor C.AudioInput where
   waveShaper i' (C.AudioInput elts) = C.Node go
     where

@@ -171,6 +171,8 @@ data MeOrParent = Me String | Parent String
 
 type Node' event payload = MeOrParent -> AudioInterpret event payload -> event payload
 
+type G_ = ()
+
 newtype Node :: forall k. k -> Symbol -> Row Type -> (Type -> Type) -> Type -> Type
 newtype Node outputChannels (produced :: Symbol) (consumed :: Row Type) event payload = Node
   (Node' event payload)

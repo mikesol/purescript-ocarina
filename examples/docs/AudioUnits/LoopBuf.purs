@@ -8,7 +8,7 @@ import Deku.Pursx (makePursx', nut, (~~))
 import Effect (Effect)
 import FRP.Event (class IsEvent)
 import Type.Proxy (Proxy(..))
-import WAGS.Control (loopBuf, (~), (!))
+import WAGS.Control (loopBuf, (~))
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import WAGS.Example.Docs.Util (audioWrapper, ctxAff)
 import WAGS.Interpret (decodeAudioDataFromUri)
@@ -35,7 +35,7 @@ px =  Proxy   :: Proxy  """<section>
         , loopEnd: 1.2
         }
         pureOn
-    ! loopBuf
+    ~ loopBuf
         { buffer: buf
         , playbackRate: 1.7
         }
@@ -66,7 +66,7 @@ loopBufEx ccb _ ev = makePursx' (Proxy :: _ "@") px
                 , loopEnd: 1.2
                 }
                 pureOn
-            ! loopBuf
+            ~ loopBuf
                 { buffer: buf
                 , playbackRate: 1.7
                 }
