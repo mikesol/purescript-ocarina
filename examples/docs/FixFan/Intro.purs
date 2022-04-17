@@ -30,7 +30,7 @@ px = Proxy :: Proxy
     </ul>
     <h2>The setup</h2>
     <p>
-      To illustrate how <code>~</code>, <code>fan</code> and <code>fix</code> work, we're going to use three new audio units.
+      To illustrate how <code>~</code>, <code>fan</code> and <code>fix</code> work, we're going to use a few new audio units.
     </p>
       <ul>
         <li><code>delay</code>: A delay node</li>
