@@ -3,62 +3,85 @@ module WAGS.Example.Docs.FixFan where
 import Prelude
 
 import Control.Plus (class Plus)
-import Deku.Attribute (cb, (:=))
 import Deku.Core (Element)
-import Deku.DOM as D
-import Deku.Pursx ((~~))
+import Deku.Pursx (makePursx')
 import Effect (Effect)
 import FRP.Event (class IsEvent)
-import FRP.Event.Class (bang)
 import Type.Proxy (Proxy(..))
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
-import WAGS.Example.Docs.Util (scrollToTop)
+import WAGS.Example.Docs.Util (ccassp, mkNext, scrollToTop)
 
 data UIEvents = UIShown | ButtonClicked | SliderMoved Number
 derive instance Eq UIEvents
 px = Proxy :: Proxy
       """<div>
-  <h1>Fan and fix</h1>
+  <h1>Fan, fix, and squiggles</h1>
 
-  <h3>Getting serious with signal flow</h3>
+  <h3>The anatomy of a Wags graph</h3>
   <p>
-    Up until now, we've been treating audio sort of like one would treat a webpage. There are elements (like an oscillator) inside other elements (like a gain node) that dutifully trickle up to a terminal node, like a speaker or recorder. But this overlooks two crucial features of audio:
-  </p>
-  <ul>
-    <li>The ability for a signal to be processed via multiple pathways.</li>
-    <li>Feedback loops.</li>
-  </ul>
-  <p>This section fixes that using a pair of functions: <code>fan</code> to fan out a node to multiple processing chains, and <code>fix</code> to create feedback.</p>
+    In the <a @hwLink@ style="cursor:pointer;">hello world</a> section, we saw how to create and wire up two audio nodes: a <code>sinOsc</code>, or a sine-wave oscillator, is hooked up to a <code>gain</code> node. For some cases, feeding one audio node to another all the way up to a loudspeaker will be all you need. However, in most cases, you'll need to exploit three additional relationships:</p>
+    <ul>
+      <li><span style="font-weight:800px;">Many to one</span>, where many audio units pass through one.</li>
+      <li><span style="font-weight:800px;">One to many</span>, where a single audio unit passes through many different ones.</li>
+      <li><span style="font-weight:800px;">Feedback</span>, where an audio unit is an input to itself.</li>
+    </ul>
+    <p>This section will show how wags handles all three cases:</p>
+    <ul>
+      <li><span style="font-weight:800px;">~</span> or a squiggly or tilde, is the operation we'll use to send many audio units into one.</li>
+      <li><span style="font-weight:800px;"><code>fan</code></span> is a function that we'll use to "fan" one audio node out to many.</li>
+      <li><span style="font-weight:800px;"><code>fix</code></span> is the function we'll use to make an audio unit an input into itself.</li>
+    </ul>
+    <h2>The setup</h2>
+    <p>
+      To illustrate how <code>~</code>, <code>fan</code> and <code>fix</code> work, we're going to use three new audio units.
+    </p>
+      <ul>
+        <li><code>delay</code>: A delay node</li>
+        <li><code>bandpass</code>: A bandpass filter, meaning a filter that lets a single frequency band pass through.</li>
+        <li><code>loopBuf</code>: Looped playback of a buffer. We'll use an MP3 file from freesound.org.</li>
+      </ul>
+  <h2>Squiggle, or tilde, or <code>~</code></h2>
+
+  <p>To send several audio units through one, we use the tilde to chain the units together.</p>
+
+  <pre><code></code></pre>
 
   <h2>Fan</h2>
 
-  <p><span style="font-weight:800;">Fan</span> takes an audio signal and fans it out to multiple processing chains. For example, if you have a looping buffer and you'd like to filter it through a bank of different filters, you can do this via fan. Note that fan passes an argument of type <code>Input p c</code> to its callback, so you can't use it as a node. Instead, you'll need to use the <code>input</code> function to get a node out of it.</p>
+  <p><span style="font-weight:800;">Fan</span> takes an audio signal and fans it out to multiple processing chains. For example, if you have a looping buffer and you'd like to filter it through a bank of different filters, you can do this via fan. Fan takes two arguments:</p>
+
+  <ul>
+    <li>The node to fan out.</li>
+    <li>A function that accepts a reference to this node and returns a new node that contains the input <i>at least</i> once.</li>
+  </ul>
+
+  <p>Let's see an example below that fans one <code>loopBuf</code> to five bandpass filters.</p>
+
+  <pre><code></code></pre>
+
+  <blockquote>The second argument to <code>fan</code> accepts a reference to the first node, <i>not</i> the node itself. To use this reference, you need to use the <code>input</code> function.</blockquote>
+
+  <p>Just for kicks, let's jack it up to forty bandpass filters. Because we're using PureScript, we have the full power of its functional syntax to do our bidding.</p>
+
+  <pre><code></code></pre>
 
   <h2>Fix</h2>
 
   <p><span style="font-weight:800;">Fix</span> is a fixed point operator. It accepts as an argument of type <code>Input p c</code> representing itself and returns... itself 🤯. Like with <code>fan</code>, you'll need to use <code>input</code> to get an audio node out of the input. You use <code>fix</code> to create feedback!</p>
 
-  <h2>Gain revisited</h2>
+  <pre><code></code></pre>
 
-  <p>Up until now, we've been using gain nodes in a relatively innocuous way. But now that we're in the land of <code>fix</code> and <code>fan</code>, certain complications arise. Specifically, if you're mixing two different input sources, or if you're mixing an input source with a generator, you'll need to use a different flavor of gain called <code>gainx</code>.</p>
-
-  <p><code>gainx</code>, like <code>gain</code>, accepts a bunch of incoming audio units, but the difference is that gainx accumulates its children's scopes. So what the heck is a scope? Every time you use <code>fan</code> or <code>fix</code>, a new scope is created for each fanned or fixed audio unit. These scopes are hermetic. Without scopes, we could (for example) sneak an audio unit in a callback (ie the analyser or recorder callback), pass it to a top-level DOM component, and then spread it all over the place. At this point, the audio unit has gone rogue. It may or may not have a viable context, may or may not have been deleted, etc. And no one likes rogue audio units.</p>
-
-  <p>Scopes solve this problem, but because different <code>Input</code>-s have different scopes, you need a safe way to blend them together. Enter <code>gainx</code>.</p>
-
-  <p>Here's an example of how <code>gainx</code> can mix an match units from the same scope.</p>
-
-  <p>Without <code>gainx</code>, you'd get a compile error. Go on, try to compile the code below, I dare you!</p>
-
-  <p>Ok, ok, just kidding, I wouldn't wish a compile error on you. I've bitten the bullet and done this one for you. Here's what it looks like.</p>
-
-  <p>Yikes! Who wants that? To avoid it, use <code>gainx</code> when working with <code>fan</code> and <code>fix</code>.</p>
+  <blockquote>If you don't have some sort of delay line in your processing chain, either the WebAudio-provided delay line or a custom delay node, Web Audio will raise a runtime error. Wags doesn't check for this, so make sure you test your audio to guarantee that it's feedback-explosion-free!</blockquote>
 
   <h2>Next steps</h2>
-  <p>In this section, saw how to fan one audio node to many processing chains and how to create a fixed point, aka feedback, for a node. In the next section, we'll look at how to <a ~next~ style="cursor:pointer;">merge and split audio</a>.</p>
+  <p>In this section, saw how to combine together audio nodes with squiggles, fan one audio node to many processing chains via <code>fan</code>, and how to create a fixed point, aka feedback, for a node via <code>fix</code>. In the next section, we'll ramp up on all of the yummy <a @next@ style="cursor:pointer;">audio nodes you can use</a>.</p>
 </div>"""
 
 fixFan :: forall event payload. IsEvent event => Plus event => CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> event SingleSubgraphEvent  -> Element event payload
-fixFan ccb dpage _ _ = px ~~
-  { next: bang (D.OnClick := (cb (const $ dpage MultiChannel *> scrollToTop)))
+fixFan cca' dpage ssp ev = makePursx'  (Proxy :: _ "@") px
+  { hwLink: mnx HelloWorld
+  , next: mnx AudioUnits
   }
+  where
+  mnx i = mkNext ev (dpage i *> scrollToTop)
+  cca = ccassp cca' ssp

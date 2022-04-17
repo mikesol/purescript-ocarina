@@ -21,7 +21,7 @@ px =
   <h2 id="allpass">Allpass filter</h2>
   <p>An <a href="https://developer.mozilla.org/en-US/docs/Web/API/BiquadFilterNode">all-pass filter</a> <a href="https://en.wikipedia.org/wiki/All-pass_filter">passes through all frequencies of a source at equal volume but changes their phase</a>. Its use by itself is imperceptible, as the human ear (mostly) does not pick up on phase shifts by themselves. However, when an all-pass filter's output is mixed with several chained all-pass filters plus the original source, you hear a neat phaser effect.</p>
 
-  <p>The <code>fan</code> function in this and subsequent examples takes an audio node and fans it out to other audio nodes. We'll learn more about it in the "Fan and fix" section. Also, the <code>pureOn</code> is an event that turns the loop buffer on. We'll learn more about turning things on and off in the "Events" section.</p>
+  <p>The <code>pureOn</code> is an event that turns the loop buffer on. We'll learn more about turning things on and off in the "Events" section.</p>
 
   <pre><code>\buf -> run2_
   $ fan (loopBuf buf pureOn)

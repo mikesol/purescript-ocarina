@@ -165,10 +165,10 @@ type Behavior = ABehavior Event
   <p>You can try it yourself by <a>following this trypurescript link.</a></p>
 
   <h2>Next steps</h2>
-  <p>In this section, saw how to build rich audio applications using the <code>Event</code> and <code>Behavior</code> types. In the next section, we'll build more complex signal processing flows using a pair of functions called <a ~next~ style="cursor:pointer;"><code>fix</code> and <code>fan</code></a>.</p>
+  <p>In this section, saw how to build rich audio applications using the <code>Event</code> and <code>Behavior</code> types. In the next section, we'll look at how to <a ~next~ style="cursor:pointer;">merge and split audio</a>.</p>
 </div>"""
 
 events :: forall event payload. IsEvent event => Plus event => CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> event SingleSubgraphEvent -> Element event payload
 events ccb dpage _ _ = px ~~
-  { next: bang (D.OnClick := (cb (const $ dpage FixFan *> scrollToTop)))
+  { next: bang (D.OnClick := (cb (const $ dpage MultiChannel *> scrollToTop)))
   }

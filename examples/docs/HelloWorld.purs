@@ -8,7 +8,7 @@ import Deku.Attribute (cb, (:=))
 import Deku.Control (text_)
 import Deku.Core (Element)
 import Deku.DOM as D
-import Deku.Pursx (nut, (~~))
+import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
 import FRP.Event.Class (bang, class IsEvent)
 import Type.Proxy (Proxy(..))
@@ -25,8 +25,8 @@ px = Proxy :: Proxy """<div>
 
   <p>Here is "hello world" in Wags. In this and all the following sections, we'll start with a full example, and we'll pick it apart afterwards.</p>
 
-  ~code~
-  ~result~
+  @code@
+  @result@
 
   <p>You gotta start somewhere!</p>
 
@@ -54,7 +54,7 @@ px = Proxy :: Proxy """<div>
   <p>Our sine wave oscillator is set to a frequency of <code>440Hz</code>. That means that your loudspeaker or headphones will vibrate back and forth in sinusoidal motion 440 times per second, which most folks perceive as the <a href="https://en.wikipedia.org/wiki/A440_(pitch_standard)">note A</a>. And we turn on the oscillator with <code>pureOn</code>, as the default is off for <i>all</i> sound generators in Wags. This is a design decision to help preserve the hearing of those that work frequently with audio.</p>
 
   <h2>Next steps</h2>
-  <p>Now that we have our setup running, let's explore more <a ~next~ style="cursor:pointer;">audio units</a>.</p>
+  <p>Now that we have our setup running, let's explore the anatomy of a Wags graph. Irrespective of the nodes comprising the graph, there are three basic operations you need to be familiar with before you start diving into audio units: <a @next@ style="cursor:pointer;">fan, fix, and squiggle (aka <code>~</code>)</a>.</p>
 </div>"""
 
 helloWorld
@@ -66,23 +66,23 @@ helloWorld
   -> SingleSubgraphPusher
   -> event SingleSubgraphEvent
   -> Element event payload
-helloWorld cca' dpage ssp ev = px ~~
+helloWorld cca' dpage ssp ev = makePursx' (Proxy :: _ "@") px
   { code: nut
       ( D.pre_
           [ D.code_
               [ text_
                   """case e of
   Just x -> x *> push Nothing
-  _ -> run2_ (gain_ 0.15 (sinOsc 440.0 pureOn))
+  _ -> run2_ $ gain_ 0.15 $ sinOsc 440.0 pureOn
          >>= Just >>> push"""
               ]
           ]
       )
   , result: nut
-      ( audioWrapper ev cca (pure unit) $ \_ -> run2_ (gain_ 0.15 (sinOsc 440.0 pureOn))
+      ( audioWrapper ev cca (pure unit) $ \_ -> run2_ $ gain_ 0.15 $ sinOsc 440.0 pureOn
       )
   , next: mkNext ev cpage
   }
   where
-  cpage = dpage AudioUnits *> scrollToTop
+  cpage = dpage FixFan *> scrollToTop
   cca = ccassp cca' ssp

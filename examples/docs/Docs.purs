@@ -98,14 +98,14 @@ scene push event' =
           , HelloWorld
               /\ "Hello world"
               /\ true
+          , FixFan
+              /\ "Fan, fix, and squiggles"
+              /\ true
           , AudioUnits
               /\ "Audio units"
               /\ true
           , Events
               /\ "Events"
-              /\ true
-          , FixFan
-              /\ "Fan and fix"
               /\ true
           , MultiChannel
               /\ "Merging and splitting"
@@ -159,10 +159,10 @@ scene push event' =
     where
     go Intro = mkExists $ SubgraphF (Intro.intro setCancellation setPage)
     go HelloWorld = mkExists $ SubgraphF (HelloWorld.helloWorld setCancellation setPage)
+    go FixFan = mkExists $ SubgraphF (FixFan.fixFan setCancellation setPage)
     go AudioUnits = mkExists $ SubgraphF (Component.components setCancellation setPage)
     go AudioWorklets = mkExists $ SubgraphF (Pursx1.pursx1 setCancellation setPage)
     go Events = mkExists $ SubgraphF (Events.events setCancellation setPage)
-    go FixFan = mkExists $ SubgraphF (FixFan.fixFan setCancellation setPage)
     go State = mkExists $ SubgraphF (Effects.effects setCancellation setPage)
     go Imperative = mkExists $ SubgraphF (Pursx2.pursx2 setCancellation setPage)
     go MultiChannel = mkExists $ SubgraphF (Multichannel.multiChannel setCancellation setPage)

@@ -19,7 +19,7 @@ import WAGS.Run (run2_)
 px =
   Proxy    :: Proxy         """<section>
   <h2 id="microphone">Microphone</h2>
-  <p>The <a href="https://developer.mozilla.org/en-US/docs/Web/API/MediaStreamAudioSourceNode">microphone</a> will use your microphone if you give the browser permission to do so. The <code>fix</code> in the example below will be explained more in the "Fan and fix" section.</p>
+  <p>The <a href="https://developer.mozilla.org/en-US/docs/Web/API/MediaStreamAudioSourceNode">microphone</a> will use your microphone if you give the browser permission to do so.</p>
 
   <blockquote>Make sure to use 🎧 when you run this example! Otherwise, you'll cause quite a stir in whatever internet cafe, household or public restroom you're perusing this documentation in.</blockquote>
 
