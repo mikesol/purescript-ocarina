@@ -73,13 +73,13 @@ helloWorld cca' dpage ssp ev = px ~~
               [ text_
                   """case e of
   Just x -> x *> push Nothing
-  _ -> run2_ [ gain_ 0.15 [ sinOsc 440.0 pureOn ] ]
+  _ -> run2_ (gain_ 0.15 (sinOsc 440.0 pureOn))
          >>= Just >>> push"""
               ]
           ]
       )
   , result: nut
-      ( audioWrapper ev cca (pure unit) $ \_ -> run2_ [ gain_ 0.15 [ sinOsc 440.0 pureOn ] ]
+      ( audioWrapper ev cca (pure unit) $ \_ -> run2_ (gain_ 0.15 (sinOsc 440.0 pureOn))
       )
   , next: mkNext ev cpage
   }

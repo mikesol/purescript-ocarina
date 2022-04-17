@@ -133,14 +133,14 @@ instance InitialConvolver BrowserAudioBuffer where
 
 -- IIRFilter
 class InitialIIRFilter i feedforward feedback where
-  toInitializeIIRFilter :: i -> (Core.InitializeIIRFilter feedforward feedback)
+  toInitializeIIRFilter :: forall proxy. i -> proxy feedforward -> proxy feedback -> (Core.InitializeIIRFilter feedforward feedback)
 
 instance
   ( TypeEquals feedforwardI feedforwardO
   , TypeEquals feedbackI feedbackO
   ) =>
   InitialIIRFilter (Core.InitializeIIRFilter feedforwardI feedbackI) feedforwardO feedbackO where
-  toInitializeIIRFilter (Core.InitializeIIRFilter { feedforward, feedback }) = Core.InitializeIIRFilter
+  toInitializeIIRFilter (Core.InitializeIIRFilter { feedforward, feedback }) _ _ = Core.InitializeIIRFilter
     { feedforward: proof (coerce feedforward), feedback: proof (coerce feedback) }
 
 instance
@@ -148,7 +148,7 @@ instance
   , TypeEquals feedbackI feedbackO
   ) =>
   InitialIIRFilter (Vec feedforwardI Number /\ Vec feedbackI Number) feedforwardO feedbackO where
-  toInitializeIIRFilter (feedforward /\ feedback) = Core.InitializeIIRFilter { feedforward: proof (coerce feedforward), feedback: proof (coerce feedback) }
+  toInitializeIIRFilter (feedforward /\ feedback) _ _ = Core.InitializeIIRFilter { feedforward: proof (coerce feedforward), feedback: proof (coerce feedback) }
 
 -- Delay
 class InitialDelay i where

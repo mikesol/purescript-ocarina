@@ -21,9 +21,8 @@ px =
 
 
   <pre><code>\buf -> run2_
-  [ gain_ 0.2
-      [ triangleOsc 448.0 pureOn]
-  ]
+  $ gain_ 0.2
+      $ triangleOsc 448.0 pureOn
 </code></pre>
 
   ~periodic~
@@ -36,8 +35,8 @@ triangle ccb _ ev = px ~~
   { periodic: nut
       ( audioWrapper ev ccb (pure unit)
           \_ -> run2_
-  [ gain_ 0.2
-      [ triangleOsc 448.0 pureOn]
-  ]
+  $ gain_ 0.2
+      $ triangleOsc 448.0 pureOn
+
       )
   }

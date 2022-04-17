@@ -98,13 +98,12 @@ sg
   -> Int /\ Number /\ ACTime
   -> Subgraph D2 "" () event payload
 sg ks = \(i /\ t /\ { lookAhead }) -> C.mkSubgraph $ gain 1.0 empty
-  [ playBuf (if i `mod` 2 == 0 then ks.kick else ks.snare)
+  $ playBuf (if i `mod` 2 == 0 then ks.kick else ks.snare)
       ( bang $ onOff $ AudioOnOff
           { n: _on
           , o: lookAhead + t
           }
       )
-  ]
 
 sgActionMaker
   :: forall event
@@ -171,47 +170,47 @@ multiBuf
   -> RaiseCancellation
   -> Exists (SubgraphF Event payload)
 multiBuf ks rc = mkExists $ SubgraphF \push event ->
-    DOM.div_
-      [ DOM.h1_ [ text_ "Multi Buf" ]
-      , DOM.button
-          ( map
-              ( \i -> DOM.OnClick := cb
-                  ( const $
-                      maybe
-                        ( do
-                            ctx <- context
-                            ffi2 <- makeFFIAudioSnapshot ctx
-                            let wh = writeHead 0.04 ctx
-                            unsub <- subscribe
-                              ( speaker2
-                                  ( scene ks
-                                      ( sample_ wh
-                                          ( bang unit <|>
-                                              (interval 4900 $> unit)
-                                          )
-                                      )
-                                  )
-                                  effectfulAudioInterpret
-                              )
-                              ((#) ffi2)
-                            rc $ Just { unsub, ctx }
-                            push $ Just { unsub, ctx }
-                        )
-                        ( \{ unsub, ctx } -> do
-                            rc Nothing
-                            unsub
-                            close ctx
-                            push Nothing
-                        )
-                        i
-                  )
-              )
-              event
-          )
-          [ text
-              (map (maybe "Turn on" (const "Turn off")) event)
-          ]
-      ]
+  DOM.div_
+    [ DOM.h1_ [ text_ "Multi Buf" ]
+    , DOM.button
+        ( map
+            ( \i -> DOM.OnClick := cb
+                ( const $
+                    maybe
+                      ( do
+                          ctx <- context
+                          ffi2 <- makeFFIAudioSnapshot ctx
+                          let wh = writeHead 0.04 ctx
+                          unsub <- subscribe
+                            ( speaker2
+                                ( scene ks
+                                    ( sample_ wh
+                                        ( bang unit <|>
+                                            (interval 4900 $> unit)
+                                        )
+                                    )
+                                )
+                                effectfulAudioInterpret
+                            )
+                            ((#) ffi2)
+                          rc $ Just { unsub, ctx }
+                          push $ Just { unsub, ctx }
+                      )
+                      ( \{ unsub, ctx } -> do
+                          rc Nothing
+                          unsub
+                          close ctx
+                          push Nothing
+                      )
+                      i
+                )
+            )
+            event
+        )
+        [ text
+            (map (maybe "Turn on" (const "Turn off")) event)
+        ]
+    ]
 
 main :: Effect Unit
 main = launchAff_ do

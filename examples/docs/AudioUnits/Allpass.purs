@@ -8,7 +8,7 @@ import Deku.Pursx (nut, (~~))
 import Effect (Effect)
 import FRP.Event (class IsEvent)
 import Type.Proxy (Proxy(..))
-import WAGS.Control (gain_, allpass_, loopBuf)
+import WAGS.Control (gain_, allpass_, (!), loopBuf)
 import WAGS.Core (fan, input)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import WAGS.Example.Docs.Util (audioWrapper, ctxAff)
@@ -24,19 +24,17 @@ px =
   <p>The <code>fan</code> function in this and subsequent examples takes an audio node and fans it out to other audio nodes. We'll learn more about it in the "Fan and fix" section. Also, the <code>pureOn</code> is an event that turns the loop buffer on. We'll learn more about turning things on and off in the "Events" section.</p>
 
   <pre><code>\buf -> run2_
-  [ fan (loopBuf buf pureOn)
+  $ fan (loopBuf buf pureOn)
       \b -> gain_ 0.2
-        [ input b
-        , allpass_ 700.0
-            [ allpass_ { frequency: 990.0, q: 20.0 } [ input b ]
-            , allpass_ 1110.0
-                [ input b
-                , allpass_
-                   { frequency: 2010.0, q: 30.0 } [ input b ]
-                ]
-            ]
-        ]
-  ]
+        (input b
+        ! allpass_ 700.0
+            (allpass_ { frequency: 990.0, q: 20.0 } (input b)
+            ! allpass_ 1110.0
+                ( input b
+                ! allpass_ { frequency: 2010.0, q: 30.0 } (input b)
+                )
+            )
+        )
 </code></pre>
 
   ~allpass~
@@ -49,17 +47,16 @@ allpass ccb _ ev = px ~~
   { allpass: nut
       ( audioWrapper ev ccb (ctxAff \ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
           \buf -> run2_
-            [ fan (loopBuf buf pureOn)
+            $ fan (loopBuf buf pureOn)
                 \b -> gain_ 0.2
-                  [ input b
-                  , allpass_ 700.0
-                      [ allpass_ { frequency: 990.0, q: 20.0 } [ input b ]
-                      , allpass_ 1110.0
-                          [ input b
-                          , allpass_ { frequency: 2010.0, q: 30.0 } [ input b ]
-                          ]
-                      ]
-                  ]
-            ]
+                  (input b
+                  ! allpass_ 700.0
+                      (allpass_ { frequency: 990.0, q: 20.0 } (input b)
+                      ! allpass_ 1110.0
+                          ( input b
+                          ! allpass_ { frequency: 2010.0, q: 30.0 } (input b)
+                          )
+                      )
+                  )
       )
   }

@@ -86,7 +86,7 @@ scene wh =
               tr
           )
       )
-      [ sinOsc b
+      (sinOsc b
           ( Common.frequency <<< (ovnn c) <$>
               ( filter
                   (\(AudioNumeric { o }) -> o % len < ed && o % len > st)
@@ -104,7 +104,7 @@ scene wh =
                     tr
                 )
           )
-      ]
+      )
   in
     gso 0.1 440.0 (\rad -> 440.0 + (10.0 * sin (2.3 * rad))) 0.0 0.2 :*
       ( map

@@ -48,7 +48,7 @@ scene wh =
   let
     tr = at_ wh (mul pi)
     gso a b c = gain a empty
-      [sinOsc b (pureOn <|> (frequency <<< (ovnn c) <$> tr))]
+      $ sinOsc b (pureOn <|> (frequency <<< (ovnn c) <$> tr))
   in
     gso 0.1 440.0 (\rad -> 440.0 + (10.0 * sin (2.3 * rad))) :*
       [ gso 0.25 235.0 (\rad -> 235.0 + (10.0 * sin (1.7 * rad)))

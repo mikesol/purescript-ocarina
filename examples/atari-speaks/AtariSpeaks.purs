@@ -26,7 +26,7 @@ import FRP.Event (Event, create, filterMap, sampleOn, subscribe)
 import FRP.Event.Animate (animationFrameEvent)
 import FRP.Event.Class (bang)
 import Math (pi, sin)
-import WAGS.Control (analyser, gain, loopBuf, singleton, speaker2)
+import WAGS.Control (analyser, gain, loopBuf, singleton, speaker2, (!), (~))
 import WAGS.Core (AudioInput)
 import WAGS.Example.Utils (RaiseCancellation)
 import WAGS.Interpret (close, context, decodeAudioDataFromUri, effectfulAudioInterpret, getByteFrequencyData, makeFFIAudioSnapshot, writeHead)
@@ -51,32 +51,32 @@ scene atar cb wh =
     singleton
       ( analyser { cb } empty
           ( gain 1.0 empty
-              [ gain 0.3 empty
-                  [ loopBuf { buffer: atar, playbackRate: 1.0 }
+              ( gain 0.3 empty
+                  ( loopBuf { buffer: atar, playbackRate: 1.0 }
                       ( pureOn <|>
                           playbackRate <<<
                             (ovnn (\rad -> 1.0 + 0.1 * sin rad)) <$> tr
                       )
-                  ]
-              , gain 0.15 empty
-                  [ loopBuf { buffer: atar, playbackRate: 1.0 }
-                      ( pureOn
-                          <|>
-                            playbackRate <<<
-                              (ovnn (\rad -> 1.5 + 0.1 * sin (2.0 * rad)))
-                              <$> tr
-                          <|>
-                            loopStart <<< (\rad -> 0.1 + 0.1 * sin rad)
-                              <<< vwnn <$> tr
-                          <|>
-                            loopEnd
-                              <<< (\rad -> 0.5 + 0.25 * sin (2.0 * rad))
-                              <<< vwnn <$> tr
+                  )
+                  ~ gain 0.15 empty
+                      ( loopBuf { buffer: atar, playbackRate: 1.0 }
+                          ( pureOn
+                              <|>
+                                playbackRate <<<
+                                  (ovnn (\rad -> 1.5 + 0.1 * sin (2.0 * rad)))
+                                  <$> tr
+                              <|>
+                                loopStart <<< (\rad -> 0.1 + 0.1 * sin rad)
+                                  <<< vwnn <$> tr
+                              <|>
+                                loopEnd
+                                  <<< (\rad -> 0.5 + 0.25 * sin (2.0 * rad))
+                                  <<< vwnn <$> tr
+                          )
                       )
-                  ]
-              , gain 0.3 empty
-                  [ loopBuf { buffer: atar, playbackRate: 0.25 } pureOn ]
-              ]
+                  ! gain 0.3 empty
+                      (loopBuf { buffer: atar, playbackRate: 0.25 } pureOn)
+              )
           )
       )
 
@@ -99,84 +99,84 @@ atariSpeaks
   -> RaiseCancellation
   -> Exists (SubgraphF Event payload)
 atariSpeaks atar rc = mkExists $ SubgraphF \push event ->
-    DOM.div_
-      [ DOM.h1_ [ text_ "Atari speaks" ]
-      , DOM.button
-          ( map
-              ( \i -> DOM.OnClick := cb
-                  ( const $
-                      case i of
-                        Nothing -> do
-                          analyserE <- create
-                          ctx <- context
-                          ffi2 <- makeFFIAudioSnapshot ctx
-                          afe <- animationFrameEvent
-                          let wh = writeHead 0.04 ctx
-                          let
-                            audioE = speaker2
-                              ( scene atar
-                                  ( AnalyserNodeCb
-                                      ( \a -> do
-                                          analyserE.push (Just a)
-                                          pure (analyserE.push Nothing)
-                                      )
-                                  )
-                                  (sample_ wh afe)
-                              )
-                              effectfulAudioInterpret
-
-                          unsub <- subscribe
-                            ( sampleOn
-                                (analyserE.event <|> bang Nothing)
-                                (map Tuple audioE)
+  DOM.div_
+    [ DOM.h1_ [ text_ "Atari speaks" ]
+    , DOM.button
+        ( map
+            ( \i -> DOM.OnClick := cb
+                ( const $
+                    case i of
+                      Nothing -> do
+                        analyserE <- create
+                        ctx <- context
+                        ffi2 <- makeFFIAudioSnapshot ctx
+                        afe <- animationFrameEvent
+                        let wh = writeHead 0.04 ctx
+                        let
+                          audioE = speaker2
+                            ( scene atar
+                                ( AnalyserNodeCb
+                                    ( \a -> do
+                                        analyserE.push (Just a)
+                                        pure (analyserE.push Nothing)
+                                    )
+                                )
+                                (sample_ wh afe)
                             )
-                            ( \(Tuple audio analyser) -> do
-                                audio ffi2
-                                for_ analyser \a -> do
-                                  frequencyData <-
-                                    getByteFrequencyData a
-                                  arr <- toArray frequencyData
-                                  push $ AsciiMixer $
-                                    intercalate "\n"
-                                      ( map
-                                          ( \ii ->
-                                              unsafeRepeat
-                                                (toInt ii + 1)
-                                                ">"
-                                          )
-                                          arr
-                                      )
-                            )
-                          rc $ Just { unsub, ctx }
-                          push $ TurnOff { unsub, ctx }
-                        Just { unsub, ctx } -> do
-                          unsub
-                          close ctx
-                          rc Nothing
-                          push TurnOn
+                            effectfulAudioInterpret
 
-                  )
-              )
-              ( event # filterMap case _ of
-                  AsciiMixer _ -> Nothing
-                  TurnOff a -> Just (Just a)
-                  TurnOn -> Just Nothing
-              )
-          )
-          [ text
-              ( event # map case _ of
-                  TurnOn -> "Turn on"
-                  _ -> "Turn off"
-              )
-          ]
-      , DOM.p_
-          [ text
-              ( event # map case _ of
-                  AsciiMixer s -> s
-                  _ -> ""
-              )
-          ]
-      ]
+                        unsub <- subscribe
+                          ( sampleOn
+                              (analyserE.event <|> bang Nothing)
+                              (map Tuple audioE)
+                          )
+                          ( \(Tuple audio analyser) -> do
+                              audio ffi2
+                              for_ analyser \a -> do
+                                frequencyData <-
+                                  getByteFrequencyData a
+                                arr <- toArray frequencyData
+                                push $ AsciiMixer $
+                                  intercalate "\n"
+                                    ( map
+                                        ( \ii ->
+                                            unsafeRepeat
+                                              (toInt ii + 1)
+                                              ">"
+                                        )
+                                        arr
+                                    )
+                          )
+                        rc $ Just { unsub, ctx }
+                        push $ TurnOff { unsub, ctx }
+                      Just { unsub, ctx } -> do
+                        unsub
+                        close ctx
+                        rc Nothing
+                        push TurnOn
+
+                )
+            )
+            ( event # filterMap case _ of
+                AsciiMixer _ -> Nothing
+                TurnOff a -> Just (Just a)
+                TurnOn -> Just Nothing
+            )
+        )
+        [ text
+            ( event # map case _ of
+                TurnOn -> "Turn on"
+                _ -> "Turn off"
+            )
+        ]
+    , DOM.p_
+        [ text
+            ( event # map case _ of
+                AsciiMixer s -> s
+                _ -> ""
+            )
+        ]
+    ]
 
 main :: Effect Unit
 main = launchAff_ do

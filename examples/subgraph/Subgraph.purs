@@ -25,7 +25,7 @@ import FRP.Event.Animate (animationFrameEvent)
 import FRP.Event.Class (bang)
 import FRP.Event.Time (interval)
 import Math (pi, sin)
-import WAGS.Control (convolver, gain, gainx, highpass, loopBuf, lowpass, sinOsc, singleton, speaker2, triangleOsc, (:*))
+import WAGS.Control (convolver, gain, highpass, loopBuf, lowpass, sinOsc, singleton, speaker2, triangleOsc, (:*))
 import WAGS.Core (AudioInput, InitializeConvolver(..), fan, input, mkSubgraph, subgraph)
 import WAGS.Core as C
 import WAGS.Example.Utils (RaiseCancellation)
@@ -55,7 +55,7 @@ scene { loopy, conny } wh =
   let
     tr = at_ wh (mul pi)
   in
-    singleton $ fan (gain 1.0 empty [ loopBuf loopy pureOn ]) \(toSubg) ->
+    singleton $ fan (gain 1.0 empty (loopBuf loopy pureOn)) \(toSubg) ->
       subgraph
         ( keepLatest $ map
             ( \ix ->
@@ -73,7 +73,7 @@ scene { loopy, conny } wh =
               ooo
                 | ix == 0 =
                     mkSubgraph $ convolver (InitializeConvolver { buffer: conny })
-                      [gainx 1.0 empty
+                      (gain 1.0 empty
                           ( highpass 1100.0
                               ( map
                                   ( frequency <<< ovnn
@@ -83,12 +83,12 @@ scene { loopy, conny } wh =
                                   )
                                   tr
                               )
-                              [input toSubg]
-                              :* [ gain 0.03 empty [ sinOsc 220.0 pureOn ] ]
+                              (input toSubg)
+                              :* [ gain 0.03 empty (sinOsc 220.0 pureOn) ]
                           )
-                      ]
+                      )
                 | ix == 1 =
-                    mkSubgraph $ gainx 1.0 empty
+                    mkSubgraph $ gain 1.0 empty
                       ( highpass 2200.0
                           ( map
                               ( frequency <<< ovnn
@@ -98,10 +98,10 @@ scene { loopy, conny } wh =
                               )
                               tr
                           )
-                          [input toSubg]
+                          (input toSubg)
                           :*
                             [ gain 0.03 empty
-                                [ triangleOsc 2000.0
+                                (triangleOsc 2000.0
                                     ( pureOn <|>
                                         ( map
                                             ( frequency <<< ovnn
@@ -112,11 +112,11 @@ scene { loopy, conny } wh =
                                             tr
                                         )
                                     )
-                                ]
+                                )
                             ]
                       )
                 | otherwise =
-                    mkSubgraph $ gainx 1.0 empty
+                    mkSubgraph $ gain 1.0 empty
                       ( lowpass 1100.0
                           ( map
                               ( frequency <<< ovnn
@@ -126,10 +126,10 @@ scene { loopy, conny } wh =
                               )
                               tr
                           )
-                          [input toSubg]
+                          (input toSubg)
                           :*
                             [ gain 0.03 empty
-                                [ sinOsc 820.0
+                                (sinOsc 820.0
                                     ( pureOn <|>
                                         ( map
                                             ( frequency <<< ovnn
@@ -141,7 +141,7 @@ scene { loopy, conny } wh =
                                             tr
                                         )
                                     )
-                                ]
+                                )
                             ]
                       )
             in

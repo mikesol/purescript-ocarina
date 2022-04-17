@@ -62,7 +62,7 @@ singleton
   -> C.AudioInput outputChannels produced consumed event payload
 singleton a = C.AudioInput (NEA.singleton a)
 
-gainInputCons
+audioInputCons
   :: forall outputChannels produced0 produced1 produced2 ord consumed0 consumed1
        consumed2 consumed3 event payload
    . IsEvent event
@@ -73,11 +73,11 @@ gainInputCons
   => C.Node outputChannels produced0 consumed0 event payload
   -> Array (C.Node outputChannels produced1 consumed1 event payload)
   -> C.AudioInput outputChannels produced2 consumed3 event payload
-gainInputCons a b = C.AudioInput (fromNonEmpty (coerce a :| coerce b))
+audioInputCons a b = C.AudioInput (fromNonEmpty (coerce a :| coerce b))
 
-infixr 6 gainInputCons as :*
+infixr 6 audioInputCons as :*
 
-gainInputCons2
+audioInputCons2
   :: forall outputChannels produced0 produced1 produced2 ord consumed0 consumed1
        consumed2 consumed3 event payload
    . IsEvent event
@@ -88,21 +88,36 @@ gainInputCons2
   => C.Node outputChannels produced0 consumed0 event payload
   -> C.AudioInput outputChannels produced1 consumed1 event payload
   -> C.AudioInput outputChannels produced2 consumed3 event payload
-gainInputCons2 a b = C.AudioInput (NEA.cons (coerce a) (coerce b))
+audioInputCons2 a b = C.AudioInput (NEA.cons (coerce a) (coerce b))
 
-infixr 6 gainInputCons2 as ::*
+infixr 6 audioInputCons2 as ~
 
-gainInputCons3
+audioInputAdd
+  :: forall outputChannels produced0 produced1 produced2 ord consumed0 consumed1
+       consumed2 consumed3 event payload
+   . IsEvent event
+  => Sym.Compare produced0 produced1 ord
+  => TLOrd ord produced1 produced1 produced0 produced2
+  => Union consumed0 consumed1 consumed2
+  => Nub consumed2 consumed3
+  => C.Node outputChannels produced0 consumed0 event payload
+  -> C.Node outputChannels produced1 consumed1 event payload
+  -> C.AudioInput outputChannels produced2 consumed3 event payload
+audioInputAdd a b = C.AudioInput (NEA.cons (coerce a) (NEA.singleton (coerce b)))
+
+infixr 6 audioInputAdd as !
+
+audioInputCons3
   :: forall outputChannels produced consumed event payload
    . IsEvent event
   => C.Node outputChannels produced consumed event payload
   -> Array (C.Node outputChannels produced consumed event payload)
   -> C.AudioInput outputChannels produced consumed event payload
-gainInputCons3 a b = C.AudioInput (fromNonEmpty (a :| b))
+audioInputCons3 a b = C.AudioInput (fromNonEmpty (a :| b))
 
-infixr 6 gainInputCons3 as :::*
+infixr 6 audioInputCons3 as :::*
 
-gainInputAppend
+audioInputAppend
   :: forall outputChannels produced0 produced1 produced2 ord consumed0 consumed1
        consumed2 consumed3 event payload
    . IsEvent event
@@ -113,71 +128,50 @@ gainInputAppend
   => C.AudioInput outputChannels produced0 consumed0 event payload
   -> C.AudioInput outputChannels produced1 consumed1 event payload
   -> C.AudioInput outputChannels produced2 consumed3 event payload
-gainInputAppend a b = C.AudioInput (coerce a <> coerce b)
+audioInputAppend a b = C.AudioInput (coerce a <> coerce b)
 
-infixr 6 gainInputAppend as <>*
-
--- allpass
+infixr 6 audioInputAppend as <>*
 
 -- allpass
-__allpass
-  :: forall i outputChannels producedI consumedI producedO consumedO event
-       payload
-   . IsEvent event
-  => Common.InitialAllpass i
-  => i
-  -> event C.Allpass
-  -> C.AudioInput outputChannels producedI consumedI event payload
-  -> C.Node outputChannels producedO consumedO event payload
-__allpass i' atts (C.AudioInput elts) = C.Node go
-  where
-  C.InitializeAllpass i = Common.toInitializeAllpass i'
-  go parent di@(C.AudioInterpret { ids, scope, makeAllpass, setFrequency, setQ }) = keepLatest
-    ( (sample_ ids (bang unit)) <#> parentalSupervision parent \me ->
-        bang
-          ( makeAllpass
-              { id: me, parent: useParentIfParent parent, scope: just scope, frequency: i.frequency, q: i.q }
-          )
-          <|> map
-            ( \(C.Allpass e) -> match
-                { frequency: \g -> setFrequency { id: me, frequency: g }
-                , q: \g -> setQ { id: me, q: g }
-                }
-                e
-            )
-            atts
-          <|> oneOf
-            ( NEA.toArray
-                (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
-            )
-    )
 
-allpass
-  :: forall i outputChannels produced consumed ord event payload
-   . IsEvent event
-  => Common.InitialAllpass i
-  => Sym.Compare "" produced ord
-  => TLOrd ord produced produced "" produced
-  => Nub consumed consumed
-  => i
-  -> event C.Allpass
-  -> Array (C.Node outputChannels produced consumed event payload)
-  -> C.Node outputChannels produced consumed event payload
-allpass i e a = case uncons a of
-  DM.Nothing -> allpassx i e (constant 0.0 empty :* ([] :: Array (C.Node outputChannels produced consumed event payload)))
-  DM.Just { head, tail } -> allpassx i e (head :::* tail)
+class AllpassCtor f where
+  allpass
+    :: forall i (outputChannels :: Type) produced consumed event payload
+     . IsEvent event
+    => Common.InitialAllpass i
+    => i
+    -> event C.Allpass
+    -> f outputChannels produced consumed event payload
+    -> C.Node outputChannels produced consumed event payload
+
+instance AllpassCtor C.Node where
+  allpass i' atts n = allpass i' atts (singleton n)
+
+instance AllpassCtor C.AudioInput where
+  allpass i' atts (C.AudioInput elts) = C.Node go
+    where
+    C.InitializeAllpass i = Common.toInitializeAllpass i'
+    go parent di@(C.AudioInterpret { ids, scope, makeAllpass, setFrequency, setQ }) = keepLatest
+      ( (sample_ ids (bang unit)) <#> parentalSupervision parent \me ->
+          bang
+            ( makeAllpass
+                { id: me, parent: useParentIfParent parent, scope: just scope, frequency: i.frequency, q: i.q }
+            )
+            <|> map
+              ( \(C.Allpass e) -> match
+                  { frequency: \g -> setFrequency { id: me, frequency: g }
+                  , q: \g -> setQ { id: me, q: g }
+                  }
+                  e
+              )
+              atts
+            <|> oneOf
+              ( NEA.toArray
+                  (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
+              )
+      )
 
 allpass_ i a = allpass i empty a
-
-allpassx
-  :: forall i outputChannels produced consumed event payload
-   . IsEvent event
-  => Common.InitialAllpass i
-  => i
-  -> event C.Allpass
-  -> C.AudioInput outputChannels produced consumed event payload
-  -> C.Node outputChannels produced consumed event payload
-allpassx = __allpass
 
 -- analyser
 
@@ -428,64 +422,44 @@ audioWorklet
 audioWorklet = __audioWorklet
 
 -- bandpass
-__bandpass
-  :: forall i outputChannels producedI consumedI producedO consumedO event
-       payload
-   . IsEvent event
-  => Common.InitialBandpass i
-  => i
-  -> event C.Bandpass
-  -> C.AudioInput outputChannels producedI consumedI event payload
-  -> C.Node outputChannels producedO consumedO event payload
-__bandpass i' atts (C.AudioInput elts) = C.Node go
-  where
-  C.InitializeBandpass i = Common.toInitializeBandpass i'
-  go parent di@(C.AudioInterpret { ids, scope, makeBandpass, setFrequency, setQ }) = keepLatest
-    ( (sample_ ids (bang unit)) <#> parentalSupervision parent \me ->
-        bang
-          ( makeBandpass
-              { id: me, parent: useParentIfParent parent, scope: just scope, frequency: i.frequency, q: i.q }
-          )
-          <|> map
-            ( \(C.Bandpass e) -> match
-                { frequency: \g -> setFrequency { id: me, frequency: g }
-                , q: \g -> setQ { id: me, q: g }
-                }
-                e
-            )
-            atts
-          <|> oneOf
-            ( NEA.toArray
-                (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
-            )
-    )
+class BandpassCtor f where
+  bandpass
+    :: forall i (outputChannels :: Type) produced consumed event payload
+     . IsEvent event
+    => Common.InitialBandpass i
+    => i
+    -> event C.Bandpass
+    -> f outputChannels produced consumed event payload
+    -> C.Node outputChannels produced consumed event payload
 
-bandpass
-  :: forall i outputChannels produced consumed ord event payload
-   . IsEvent event
-  => Common.InitialBandpass i
-  => Sym.Compare "" produced ord
-  => TLOrd ord produced produced "" produced
-  => Nub consumed consumed
-  => i
-  -> event C.Bandpass
-  -> Array (C.Node outputChannels produced consumed event payload)
-  -> C.Node outputChannels produced consumed event payload
-bandpass i e a = case uncons a of
-  DM.Nothing -> bandpassx i e (constant 0.0 empty :* ([] :: Array (C.Node outputChannels produced consumed event payload)))
-  DM.Just { head, tail } -> bandpassx i e (head :::* tail)
+instance BandpassCtor C.Node where
+  bandpass i' atts n = bandpass i' atts (singleton n)
+
+instance BandpassCtor C.AudioInput where
+  bandpass i' atts (C.AudioInput elts) = C.Node go
+    where
+    C.InitializeBandpass i = Common.toInitializeBandpass i'
+    go parent di@(C.AudioInterpret { ids, scope, makeBandpass, setFrequency, setQ }) = keepLatest
+      ( (sample_ ids (bang unit)) <#> parentalSupervision parent \me ->
+          bang
+            ( makeBandpass
+                { id: me, parent: useParentIfParent parent, scope: just scope, frequency: i.frequency, q: i.q }
+            )
+            <|> map
+              ( \(C.Bandpass e) -> match
+                  { frequency: \g -> setFrequency { id: me, frequency: g }
+                  , q: \g -> setQ { id: me, q: g }
+                  }
+                  e
+              )
+              atts
+            <|> oneOf
+              ( NEA.toArray
+                  (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
+              )
+      )
 
 bandpass_ i a = bandpass i empty a
-
-bandpassx
-  :: forall i outputChannels produced consumed event payload
-   . IsEvent event
-  => Common.InitialBandpass i
-  => i
-  -> event C.Bandpass
-  -> C.AudioInput outputChannels produced consumed event payload
-  -> C.Node outputChannels produced consumed event payload
-bandpassx = __bandpass
 
 -- constant
 
@@ -534,587 +508,417 @@ constant_ i = constant i empty
 
 -- convolver
 
-__convolver
-  :: forall i outputChannels producedI consumedI producedO consumedO event
-       payload
-   . IsEvent event
-  => Common.InitialConvolver i
-  => i
-  -> C.AudioInput outputChannels producedI consumedI event payload
-  -> C.Node outputChannels producedO consumedO event payload
-__convolver i' (C.AudioInput elts) = C.Node go
-  where
-  C.InitializeConvolver i = Common.toInitializeConvolver i'
-  go
-    parent
-    di@
-      ( C.AudioInterpret
-          { ids
-          , scope
-          , makeConvolver
-          }
-      ) =
-    keepLatest
-      ( (sample_ ids (bang unit)) <#> parentalSupervision parent \me ->
-          bang
-            ( makeConvolver
-                { id: me
-                , parent: useParentIfParent parent
-                , scope: just scope
-                , buffer: i.buffer
-                }
-            )
-          <|> oneOf
-            ( NEA.toArray
-                (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
-            )
-    )
+class ConvolverCtor f where
+  convolver
+    :: forall i (outputChannels :: Type) produced consumed event payload
+    . IsEvent event
+    => Common.InitialConvolver i
+    => i
+    -> f outputChannels produced consumed event payload
+    -> C.Node outputChannels produced consumed event payload
 
-convolver
-  :: forall i outputChannels produced consumed ord event payload
-   . IsEvent event
-  => Common.InitialConvolver i
-  => Sym.Compare "" produced ord
-  => TLOrd ord produced produced "" produced
-  => Nub consumed consumed
-  => i
-  -> Array (C.Node outputChannels produced consumed event payload)
-  -> C.Node outputChannels produced consumed event payload
-convolver i a = case uncons a of
-  DM.Nothing -> convolverx i (constant 0.0 empty :* ([] :: Array (C.Node outputChannels produced consumed event payload)))
-  DM.Just { head, tail } -> convolverx i (head :::* tail)
+instance ConvolverCtor C.AudioInput where
+  convolver i' (C.AudioInput elts) = C.Node go
+    where
+    C.InitializeConvolver i = Common.toInitializeConvolver i'
+    go
+      parent
+      di@
+        ( C.AudioInterpret
+            { ids
+            , scope
+            , makeConvolver
+            }
+        ) =
+      keepLatest
+        ( (sample_ ids (bang unit)) <#> parentalSupervision parent \me ->
+            bang
+              ( makeConvolver
+                  { id: me
+                  , parent: useParentIfParent parent
+                  , scope: just scope
+                  , buffer: i.buffer
+                  }
+              )
+              <|> oneOf
+                ( NEA.toArray
+                    (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
+                )
+        )
 
-convolverx
-  :: forall i outputChannels produced consumed event payload
-   . IsEvent event
-  => Common.InitialConvolver i
-  => i
-  -> C.AudioInput outputChannels produced consumed event payload
-  -> C.Node outputChannels produced consumed event payload
-convolverx = __convolver
+instance ConvolverCtor C.Node where
+  convolver i' n = convolver i' (singleton n)
+
 
 -- delay
-__delay
-  :: forall i outputChannels producedI consumedI producedO consumedO event
-       payload
-   . IsEvent event
-  => Common.InitialDelay i
-  => i
-  -> event C.Delay
-  -> C.AudioInput outputChannels producedI consumedI event payload
-  -> C.Node outputChannels producedO consumedO event payload
-__delay i' atts (C.AudioInput elts) = C.Node go
-  where
-  C.InitializeDelay i = Common.toInitializeDelay i'
-  go parent di@(C.AudioInterpret { ids, scope, makeDelay, setDelay }) = keepLatest
-    ( (sample_ ids (bang unit)) <#> parentalSupervision parent \me ->
-        bang
-          ( makeDelay
-              { id: me, parent: useParentIfParent parent, scope: just scope, delayTime: i.delayTime }
-          )
-          <|> map
-            ( \(C.Delay e) -> match
-                { delayTime: \g -> setDelay { id: me, delayTime: g }
-                }
-                e
-            )
-            atts
-          <|> oneOf
-            ( NEA.toArray
-                (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
-            )
-    )
+class DelayCtor f where
+  delay
+    :: forall i (outputChannels :: Type) produced consumed event payload
+    . IsEvent event
+    => Common.InitialDelay i
+    => i
+    -> event C.Delay
+    -> f outputChannels produced consumed event payload
+    -> C.Node outputChannels produced consumed event payload
 
-delay
-  :: forall i outputChannels produced consumed ord event payload
-   . IsEvent event
-  => Common.InitialDelay i
-  => Sym.Compare "" produced ord
-  => TLOrd ord produced produced "" produced
-  => Nub consumed consumed
-  => i
-  -> event C.Delay
-  -> Array (C.Node outputChannels produced consumed event payload)
-  -> C.Node outputChannels produced consumed event payload
-delay i e a = case uncons a of
-  DM.Nothing -> delayx i e (constant 0.0 empty :* ([] :: Array (C.Node outputChannels produced consumed event payload)))
-  DM.Just { head, tail } -> delayx i e (head :::* tail)
+instance DelayCtor C.Node where
+  delay i' atts n = delay i' atts (singleton n)
 
-delay_ i a = delay i empty a
-
-delayx
-  :: forall i outputChannels produced consumed event payload
-   . IsEvent event
-  => Common.InitialDelay i
-  => i
-  -> event C.Delay
-  -> C.AudioInput outputChannels produced consumed event payload
-  -> C.Node outputChannels produced consumed event payload
-delayx = __delay
-
--- dynamics compressor
-
-__dynamicsCompressor
-  :: forall i outputChannels producedI consumedI producedO consumedO event
-       payload
-   . IsEvent event
-  => Common.InitialDynamicsCompressor i
-  => i
-  -> event C.DynamicsCompressor
-  -> C.AudioInput outputChannels producedI consumedI event payload
-  -> C.Node outputChannels producedO consumedO event payload
-__dynamicsCompressor i' atts (C.AudioInput elts) = C.Node go
-  where
-  C.InitializeDynamicsCompressor i = Common.toInitializeDynamicsCompressor i'
-  go
-    parent
-    di@
-      ( C.AudioInterpret
-          { ids
-          , scope
-          , makeDynamicsCompressor
-          , setThreshold
-          , setRatio
-          , setKnee
-          , setAttack
-          , setRelease
-          }
-      ) =
-    keepLatest
+instance DelayCtor C.AudioInput where
+  delay i' atts (C.AudioInput elts) = C.Node go
+    where
+    C.InitializeDelay i = Common.toInitializeDelay i'
+    go parent di@(C.AudioInterpret { ids, scope, makeDelay, setDelay }) = keepLatest
       ( (sample_ ids (bang unit)) <#> parentalSupervision parent \me ->
           bang
-            ( makeDynamicsCompressor
-                { id: me
-                , parent: useParentIfParent parent
-                , scope: just scope
-                , threshold: i.threshold
-                , ratio: i.ratio
-                , knee: i.knee
-                , attack: i.attack
-                , release: i.release
-                }
+            ( makeDelay
+                { id: me, parent: useParentIfParent parent, scope: just scope, delayTime: i.delayTime }
             )
             <|> map
-              ( \(C.DynamicsCompressor e) -> match
-                  { threshold: \threshold -> setThreshold
-                      { id: me, threshold }
-                  , ratio: \ratio -> setRatio
-                      { id: me, ratio }
-                  , knee: \knee -> setKnee
-                      { id: me, knee }
-                  , attack: \attack -> setAttack
-                      { id: me, attack }
-                  , release: \release -> setRelease
-                      { id: me, release }
+              ( \(C.Delay e) -> match
+                  { delayTime: \g -> setDelay { id: me, delayTime: g }
                   }
                   e
               )
               atts
-          <|> oneOf
-            ( NEA.toArray
-                (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
-            )
-    )
+            <|> oneOf
+              ( NEA.toArray
+                  (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
+              )
+      )
 
-dynamicsCompressor
-  :: forall i outputChannels produced consumed ord event payload
-   . IsEvent event
-  => Common.InitialDynamicsCompressor i
-  => Sym.Compare "" produced ord
-  => TLOrd ord produced produced "" produced
-  => Nub consumed consumed
-  => i
-  -> event C.DynamicsCompressor
-  -> Array (C.Node outputChannels produced consumed event payload)
-  -> C.Node outputChannels produced consumed event payload
-dynamicsCompressor i e a = case uncons a of
-  DM.Nothing -> dynamicsCompressorx i e (constant 0.0 empty :* ([] :: Array (C.Node outputChannels produced consumed event payload)))
-  DM.Just { head, tail } -> dynamicsCompressorx i e (head :::* tail)
+delay_ i a = delay i empty a
 
-dynamicsCompressor_ i a = dynamicsCompressor i empty a
+-- dynamics compressor
+class DynamicsCompressorCtor f where
+  dynamicsCompressor
+    :: forall i (outputChannels :: Type) produced consumed event payload
+    . IsEvent event
+    => Common.InitialDynamicsCompressor i
+    => i
+    -> event C.DynamicsCompressor
+    -> f outputChannels produced consumed event payload
+    -> C.Node outputChannels produced consumed event payload
 
-dynamicsCompressorx
-  :: forall i outputChannels produced consumed event payload
-   . IsEvent event
-  => Common.InitialDynamicsCompressor i
-  => i
-  -> event C.DynamicsCompressor
-  -> C.AudioInput outputChannels produced consumed event payload
-  -> C.Node outputChannels produced consumed event payload
-dynamicsCompressorx = __dynamicsCompressor
+instance DynamicsCompressorCtor C.Node where
+  dynamicsCompressor i' atts n = dynamicsCompressor i' atts (singleton n)
+
+instance DynamicsCompressorCtor C.AudioInput where
+  dynamicsCompressor i' atts (C.AudioInput elts) = C.Node go
+    where
+    C.InitializeDynamicsCompressor i = Common.toInitializeDynamicsCompressor i'
+    go
+      parent
+      di@
+        ( C.AudioInterpret
+            { ids
+            , scope
+            , makeDynamicsCompressor
+            , setThreshold
+            , setRatio
+            , setKnee
+            , setAttack
+            , setRelease
+            }
+        ) =
+      keepLatest
+        ( (sample_ ids (bang unit)) <#> parentalSupervision parent \me ->
+            bang
+              ( makeDynamicsCompressor
+                  { id: me
+                  , parent: useParentIfParent parent
+                  , scope: just scope
+                  , threshold: i.threshold
+                  , ratio: i.ratio
+                  , knee: i.knee
+                  , attack: i.attack
+                  , release: i.release
+                  }
+              )
+              <|> map
+                ( \(C.DynamicsCompressor e) -> match
+                    { threshold: \threshold -> setThreshold
+                        { id: me, threshold }
+                    , ratio: \ratio -> setRatio
+                        { id: me, ratio }
+                    , knee: \knee -> setKnee
+                        { id: me, knee }
+                    , attack: \attack -> setAttack
+                        { id: me, attack }
+                    , release: \release -> setRelease
+                        { id: me, release }
+                    }
+                    e
+                )
+                atts
+              <|> oneOf
+                ( NEA.toArray
+                    (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
+                )
+        )
+
+dynamicsCompressor_ i = dynamicsCompressor i empty
 
 -- gain
-__gain
-  :: forall i outputChannels producedI consumedI producedO consumedO event
-       payload
-   . IsEvent event
-  => Common.InitialGain i
-  => i
-  -> event C.Gain
-  -> C.AudioInput outputChannels producedI consumedI event payload
-  -> C.Node outputChannels producedO consumedO event payload
-__gain i' atts (C.AudioInput elts) = C.Node go
-  where
-  C.InitializeGain i = Common.toInitializeGain i'
-  go parent di@(C.AudioInterpret { ids, scope, makeGain, setGain }) = keepLatest
-    ( (sample_ ids (bang unit)) <#> parentalSupervision parent \me ->
-        bang
-          ( makeGain
-              { id: me, parent: useParentIfParent parent, scope: just scope, gain: i.gain }
-          )
-          <|> map
-            ( \(C.Gain e) -> match
-                { gain: \g -> setGain { id: me, gain: g }
-                }
-                e
-            )
-            atts
-          <|> oneOf
-            ( NEA.toArray
-                (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
-            )
-    )
+class GainCtor f where
+  gain
+    :: forall i (outputChannels :: Type) produced consumed event payload
+     . IsEvent event
+    => Common.InitialGain i
+    => i
+    -> event C.Gain
+    -> f outputChannels produced consumed event payload
+    -> C.Node outputChannels produced consumed event payload
 
-gain
-  :: forall i outputChannels produced consumed ord event payload
-   . IsEvent event
-  => Common.InitialGain i
-  => Sym.Compare "" produced ord
-  => TLOrd ord produced produced "" produced
-  => Nub consumed consumed
-  => i
-  -> event C.Gain
-  -> Array (C.Node outputChannels produced consumed event payload)
-  -> C.Node outputChannels produced consumed event payload
-gain i e a = case uncons a of
-  DM.Nothing -> gainx i e (constant 0.0 empty :* ([] :: Array (C.Node outputChannels produced consumed event payload)))
-  DM.Just { head, tail } -> gainx i e (head :::* tail)
+instance GainCtor C.Node where
+  gain i' atts n = gain i' atts (singleton n)
+
+instance GainCtor C.AudioInput where
+  gain i' atts (C.AudioInput elts) = C.Node go
+    where
+    C.InitializeGain i = Common.toInitializeGain i'
+    go parent di@(C.AudioInterpret { ids, scope, makeGain, setGain }) = keepLatest
+      ( (sample_ ids (bang unit)) <#> parentalSupervision parent \me ->
+          bang
+            ( makeGain
+                { id: me, parent: useParentIfParent parent, scope: just scope, gain: i.gain }
+            )
+            <|> map
+              ( \(C.Gain e) -> match
+                  { gain: \g -> setGain { id: me, gain: g }
+                  }
+                  e
+              )
+              atts
+            <|> oneOf
+              ( NEA.toArray
+                  (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
+              )
+      )
 
 gain_ i a = gain i empty a
 
-gainx
-  :: forall i outputChannels produced consumed event payload
-   . IsEvent event
-  => Common.InitialGain i
-  => i
-  -> event C.Gain
-  -> C.AudioInput outputChannels produced consumed event payload
-  -> C.Node outputChannels produced consumed event payload
-gainx = __gain
-gainx_ i = gainx i empty
-
 -- highpass
+class HighpassCtor f where
+  highpass
+    :: forall i (outputChannels :: Type) produced consumed event payload
+     . IsEvent event
+    => Common.InitialHighpass i
+    => i
+    -> event C.Highpass
+    -> f outputChannels produced consumed event payload
+    -> C.Node outputChannels produced consumed event payload
 
--- highpass
-__highpass
-  :: forall i outputChannels producedI consumedI producedO consumedO event
-       payload
-   . IsEvent event
-  => Common.InitialHighpass i
-  => i
-  -> event C.Highpass
-  -> C.AudioInput outputChannels producedI consumedI event payload
-  -> C.Node outputChannels producedO consumedO event payload
-__highpass i' atts (C.AudioInput elts) = C.Node go
-  where
-  C.InitializeHighpass i = Common.toInitializeHighpass i'
-  go parent di@(C.AudioInterpret { ids, scope, makeHighpass, setFrequency, setQ }) = keepLatest
-    ( (sample_ ids (bang unit)) <#> parentalSupervision parent \me ->
-        bang
-          ( makeHighpass
-              { id: me, parent: useParentIfParent parent, scope: just scope, frequency: i.frequency, q: i.q }
-          )
-          <|> map
-            ( \(C.Highpass e) -> match
-                { frequency: \g -> setFrequency { id: me, frequency: g }
-                , q: \g -> setQ { id: me, q: g }
-                }
-                e
-            )
-            atts
-          <|> oneOf
-            ( NEA.toArray
-                (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
-            )
-    )
+instance HighpassCtor C.Node where
+  highpass i' atts n = highpass i' atts (singleton n)
 
-highpass
-  :: forall i outputChannels produced consumed ord event payload
-   . IsEvent event
-  => Common.InitialHighpass i
-  => Sym.Compare "" produced ord
-  => TLOrd ord produced produced "" produced
-  => Nub consumed consumed
-  => i
-  -> event C.Highpass
-  -> Array (C.Node outputChannels produced consumed event payload)
-  -> C.Node outputChannels produced consumed event payload
-highpass i e a = case uncons a of
-  DM.Nothing -> highpassx i e (constant 0.0 empty :* ([] :: Array (C.Node outputChannels produced consumed event payload)))
-  DM.Just { head, tail } -> highpassx i e (head :::* tail)
+instance HighpassCtor C.AudioInput where
+  highpass i' atts (C.AudioInput elts) = C.Node go
+    where
+    C.InitializeHighpass i = Common.toInitializeHighpass i'
+    go parent di@(C.AudioInterpret { ids, scope, makeHighpass, setFrequency, setQ }) = keepLatest
+      ( (sample_ ids (bang unit)) <#> parentalSupervision parent \me ->
+          bang
+            ( makeHighpass
+                { id: me, parent: useParentIfParent parent, scope: just scope, frequency: i.frequency, q: i.q }
+            )
+            <|> map
+              ( \(C.Highpass e) -> match
+                  { frequency: \g -> setFrequency { id: me, frequency: g }
+                  , q: \g -> setQ { id: me, q: g }
+                  }
+                  e
+              )
+              atts
+            <|> oneOf
+              ( NEA.toArray
+                  (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
+              )
+      )
 
 highpass_ i a = highpass i empty a
 
-highpassx
-  :: forall i outputChannels produced consumed event payload
-   . IsEvent event
-  => Common.InitialHighpass i
-  => i
-  -> event C.Highpass
-  -> C.AudioInput outputChannels produced consumed event payload
-  -> C.Node outputChannels produced consumed event payload
-highpassx = __highpass
-
 -- highshelf
-__highshelf
-  :: forall i outputChannels producedI consumedI producedO consumedO event
-       payload
-   . IsEvent event
-  => Common.InitialHighshelf i
-  => i
-  -> event C.Highshelf
-  -> C.AudioInput outputChannels producedI consumedI event payload
-  -> C.Node outputChannels producedO consumedO event payload
-__highshelf i' atts (C.AudioInput elts) = C.Node go
-  where
-  C.InitializeHighshelf i = Common.toInitializeHighshelf i'
-  go parent di@(C.AudioInterpret { ids, scope, makeHighshelf, setFrequency, setGain }) = keepLatest
-    ( (sample_ ids (bang unit)) <#> parentalSupervision parent \me ->
-        bang
-          ( makeHighshelf
-              { id: me, parent: useParentIfParent parent, scope: just scope, frequency: i.frequency, gain: i.gain }
-          )
-          <|> map
-            ( \(C.Highshelf e) -> match
-                { frequency: \g -> setFrequency { id: me, frequency: g }
-                , gain: \g -> setGain { id: me, gain: g }
-                }
-                e
-            )
-            atts
-          <|> oneOf
-            ( NEA.toArray
-                (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
-            )
-    )
+class HighshelfCtor f where
+  highshelf
+    :: forall i (outputChannels :: Type) produced consumed event payload
+     . IsEvent event
+    => Common.InitialHighshelf i
+    => i
+    -> event C.Highshelf
+    -> f outputChannels produced consumed event payload
+    -> C.Node outputChannels produced consumed event payload
 
-highshelf
-  :: forall i outputChannels produced consumed ord event payload
-   . IsEvent event
-  => Common.InitialHighshelf i
-  => Sym.Compare "" produced ord
-  => TLOrd ord produced produced "" produced
-  => Nub consumed consumed
-  => i
-  -> event C.Highshelf
-  -> Array (C.Node outputChannels produced consumed event payload)
-  -> C.Node outputChannels produced consumed event payload
-highshelf i e a = case uncons a of
-  DM.Nothing -> highshelfx i e (constant 0.0 empty :* ([] :: Array (C.Node outputChannels produced consumed event payload)))
-  DM.Just { head, tail } -> highshelfx i e (head :::* tail)
+instance HighshelfCtor C.Node where
+  highshelf i' atts n = highshelf i' atts (singleton n)
+
+instance HighshelfCtor C.AudioInput where
+  highshelf i' atts (C.AudioInput elts) = C.Node go
+    where
+    C.InitializeHighshelf i = Common.toInitializeHighshelf i'
+    go parent di@(C.AudioInterpret { ids, scope, makeHighshelf, setFrequency, setGain }) = keepLatest
+      ( (sample_ ids (bang unit)) <#> parentalSupervision parent \me ->
+          bang
+            ( makeHighshelf
+                { id: me, parent: useParentIfParent parent, scope: just scope, frequency: i.frequency, gain: i.gain }
+            )
+            <|> map
+              ( \(C.Highshelf e) -> match
+                  { frequency: \g -> setFrequency { id: me, frequency: g }
+                  , gain: \g -> setGain { id: me, gain: g }
+                  }
+                  e
+              )
+              atts
+            <|> oneOf
+              ( NEA.toArray
+                  (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
+              )
+      )
 
 highshelf_ i a = highshelf i empty a
 
-highshelfx
-  :: forall i outputChannels produced consumed event payload
-   . IsEvent event
-  => Common.InitialHighshelf i
-  => i
-  -> event C.Highshelf
-  -> C.AudioInput outputChannels produced consumed event payload
-  -> C.Node outputChannels produced consumed event payload
-highshelfx = __highshelf
-
--- iir filter
 -- iirFilter
 
-__iirFilter
-  :: forall i proxy feedforward feedback outputChannels producedI consumedI producedO consumedO event
+iirFilter
+  :: forall i f proxy (feedforward :: Type) (feedback :: Type) (outputChannels :: Type) produced consumed event
        payload
    . IsEvent event
-  => Lt D2 feedforward
-  => Lt D2 feedback
-  => Common.InitialIIRFilter i feedforward feedback
-  => proxy feedforward
-  -> proxy feedback
-  -> i
-  -> C.AudioInput outputChannels producedI consumedI event payload
-  -> C.Node outputChannels producedO consumedO event payload
-__iirFilter _ _ i' (C.AudioInput elts) = C.Node go
-  where
-  C.InitializeIIRFilter i = (Common.toInitializeIIRFilter :: i -> C.InitializeIIRFilter feedforward feedback) i'
-  go
-    parent
-    di@
-      ( C.AudioInterpret
-          { ids
-          , scope
-          , makeIIRFilter
-          }
-      ) =
-    keepLatest
-      ( (sample_ ids (bang unit)) <#> parentalSupervision parent \me ->
-          bang
-            ( makeIIRFilter
-                { id: me
-                , parent: useParentIfParent parent
-                , scope: just scope
-                , feedforward: toArray i.feedforward
-                , feedback: toArray i.feedback
-                }
-            )
-          <|> oneOf
-            ( NEA.toArray
-                (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
-            )
-    )
-
-iirFilter
-  :: forall i feedforward feedback outputChannels produced consumed ord event payload
-   . IsEvent event
-  => Lt D2 feedforward
-  => Lt D2 feedback
-  => Common.InitialIIRFilter i feedforward feedback
-  => Sym.Compare "" produced ord
-  => TLOrd ord produced produced "" produced
-  => Nub consumed consumed
-  => i
-  -> Array (C.Node outputChannels produced consumed event payload)
-  -> C.Node outputChannels produced consumed event payload
-iirFilter i a = case uncons a of
-  DM.Nothing -> __iirFilter (Proxy :: _ feedforward) (Proxy :: _ feedback) i (constant 0.0 empty :* ([] :: Array (C.Node outputChannels produced consumed event payload)))
-  DM.Just { head, tail } -> __iirFilter (Proxy :: _ feedforward) (Proxy :: _ feedback) i (head :::* tail)
-
-iirFilterx
-  :: forall i feedforward feedback outputChannels produced consumed event payload
-   . IsEvent event
+  => IIRFilterCtor f
   => Lt D2 feedforward
   => Lt D2 feedback
   => Common.InitialIIRFilter i feedforward feedback
   => i
-  -> C.AudioInput outputChannels produced consumed event payload
+  -> f outputChannels produced consumed event payload
   -> C.Node outputChannels produced consumed event payload
-iirFilterx = __iirFilter (Proxy :: _ feedforward) (Proxy :: _ feedback)
+iirFilter = iirFilter' (Proxy :: _ feedforward) (Proxy :: _ feedback)
+
+class IIRFilterCtor f where
+  iirFilter'
+    :: forall i proxy (feedforward :: Type) (feedback :: Type) (outputChannels :: Type) produced consumed event
+         payload
+     . IsEvent event
+    => Lt D2 feedforward
+    => Lt D2 feedback
+    => Common.InitialIIRFilter i feedforward feedback
+    => proxy feedforward
+    -> proxy feedback
+    -> i
+    -> f outputChannels produced consumed event payload
+    -> C.Node outputChannels produced consumed event payload
+
+instance IIRFilterCtor C.Node where
+  iirFilter' fwd bk i' n = iirFilter' fwd bk i' (singleton n)
+
+instance IIRFilterCtor C.AudioInput where
+  iirFilter' fwd bk i' (C.AudioInput elts) = C.Node go
+    where
+    C.InitializeIIRFilter i = Common.toInitializeIIRFilter i' fwd bk
+    go
+      parent
+      di@
+        ( C.AudioInterpret
+            { ids
+            , scope
+            , makeIIRFilter
+            }
+        ) =
+      keepLatest
+        ( (sample_ ids (bang unit)) <#> parentalSupervision parent \me ->
+            bang
+              ( makeIIRFilter
+                  { id: me
+                  , parent: useParentIfParent parent
+                  , scope: just scope
+                  , feedforward: toArray i.feedforward
+                  , feedback: toArray i.feedback
+                  }
+              )
+              <|> oneOf
+                ( NEA.toArray
+                    (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
+                )
+        )
 
 -- lowpass
-__lowpass
-  :: forall i outputChannels producedI consumedI producedO consumedO event
-       payload
-   . IsEvent event
-  => Common.InitialLowpass i
-  => i
-  -> event C.Lowpass
-  -> C.AudioInput outputChannels producedI consumedI event payload
-  -> C.Node outputChannels producedO consumedO event payload
-__lowpass i' atts (C.AudioInput elts) = C.Node go
-  where
-  C.InitializeLowpass i = Common.toInitializeLowpass i'
-  go parent di@(C.AudioInterpret { ids, scope, makeLowpass, setFrequency, setQ }) = keepLatest
-    ( (sample_ ids (bang unit)) <#> parentalSupervision parent \me ->
-        bang
-          ( makeLowpass
-              { id: me, parent: useParentIfParent parent, scope: just scope, frequency: i.frequency, q: i.q }
-          )
-          <|> map
-            ( \(C.Lowpass e) -> match
-                { frequency: \g -> setFrequency { id: me, frequency: g }
-                , q: \g -> setQ { id: me, q: g }
-                }
-                e
-            )
-            atts
-          <|> oneOf
-            ( NEA.toArray
-                (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
-            )
-    )
+class LowpassCtor f where
+  lowpass
+    :: forall i (outputChannels :: Type) produced consumed event payload
+     . IsEvent event
+    => Common.InitialLowpass i
+    => i
+    -> event C.Lowpass
+    -> f outputChannels produced consumed event payload
+    -> C.Node outputChannels produced consumed event payload
 
-lowpass
-  :: forall i outputChannels produced consumed ord event payload
-   . IsEvent event
-  => Common.InitialLowpass i
-  => Sym.Compare "" produced ord
-  => TLOrd ord produced produced "" produced
-  => Nub consumed consumed
-  => i
-  -> event C.Lowpass
-  -> Array (C.Node outputChannels produced consumed event payload)
-  -> C.Node outputChannels produced consumed event payload
-lowpass i e a = case uncons a of
-  DM.Nothing -> lowpassx i e (constant 0.0 empty :* ([] :: Array (C.Node outputChannels produced consumed event payload)))
-  DM.Just { head, tail } -> lowpassx i e (head :::* tail)
+instance LowpassCtor C.Node where
+  lowpass i' atts n = lowpass i' atts (singleton n)
+
+instance LowpassCtor C.AudioInput where
+  lowpass i' atts (C.AudioInput elts) = C.Node go
+    where
+    C.InitializeLowpass i = Common.toInitializeLowpass i'
+    go parent di@(C.AudioInterpret { ids, scope, makeLowpass, setFrequency, setQ }) = keepLatest
+      ( (sample_ ids (bang unit)) <#> parentalSupervision parent \me ->
+          bang
+            ( makeLowpass
+                { id: me, parent: useParentIfParent parent, scope: just scope, frequency: i.frequency, q: i.q }
+            )
+            <|> map
+              ( \(C.Lowpass e) -> match
+                  { frequency: \g -> setFrequency { id: me, frequency: g }
+                  , q: \g -> setQ { id: me, q: g }
+                  }
+                  e
+              )
+              atts
+            <|> oneOf
+              ( NEA.toArray
+                  (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
+              )
+      )
 
 lowpass_ i a = lowpass i empty a
 
-lowpassx
-  :: forall i outputChannels produced consumed event payload
-   . IsEvent event
-  => Common.InitialLowpass i
-  => i
-  -> event C.Lowpass
-  -> C.AudioInput outputChannels produced consumed event payload
-  -> C.Node outputChannels produced consumed event payload
-lowpassx = __lowpass
-
 -- lowshelf
-__lowshelf
-  :: forall i outputChannels producedI consumedI producedO consumedO event
-       payload
-   . IsEvent event
-  => Common.InitialLowshelf i
-  => i
-  -> event C.Lowshelf
-  -> C.AudioInput outputChannels producedI consumedI event payload
-  -> C.Node outputChannels producedO consumedO event payload
-__lowshelf i' atts (C.AudioInput elts) = C.Node go
-  where
-  C.InitializeLowshelf i = Common.toInitializeLowshelf i'
-  go parent di@(C.AudioInterpret { ids, scope, makeLowshelf, setFrequency, setGain }) = keepLatest
-    ( (sample_ ids (bang unit)) <#> parentalSupervision parent \me ->
-        bang
-          ( makeLowshelf
-              { id: me, parent: useParentIfParent parent, scope: just scope, frequency: i.frequency, gain: i.gain }
-          )
-          <|> map
-            ( \(C.Lowshelf e) -> match
-                { frequency: \g -> setFrequency { id: me, frequency: g }
-                , gain: \g -> setGain { id: me, gain: g }
-                }
-                e
-            )
-            atts
-          <|> oneOf
-            ( NEA.toArray
-                (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
-            )
-    )
+class LowshelfCtor f where
+  lowshelf
+    :: forall i (outputChannels :: Type) produced consumed event payload
+     . IsEvent event
+    => Common.InitialLowshelf i
+    => i
+    -> event C.Lowshelf
+    -> f outputChannels produced consumed event payload
+    -> C.Node outputChannels produced consumed event payload
 
-lowshelf
-  :: forall i outputChannels produced consumed ord event payload
-   . IsEvent event
-  => Common.InitialLowshelf i
-  => Sym.Compare "" produced ord
-  => TLOrd ord produced produced "" produced
-  => Nub consumed consumed
-  => i
-  -> event C.Lowshelf
-  -> Array (C.Node outputChannels produced consumed event payload)
-  -> C.Node outputChannels produced consumed event payload
-lowshelf i e a = case uncons a of
-  DM.Nothing -> lowshelfx i e (constant 0.0 empty :* ([] :: Array (C.Node outputChannels produced consumed event payload)))
-  DM.Just { head, tail } -> lowshelfx i e (head :::* tail)
+instance LowshelfCtor C.Node where
+  lowshelf i' atts n = lowshelf i' atts (singleton n)
+
+instance LowshelfCtor C.AudioInput where
+  lowshelf i' atts (C.AudioInput elts) = C.Node go
+    where
+    C.InitializeLowshelf i = Common.toInitializeLowshelf i'
+    go parent di@(C.AudioInterpret { ids, scope, makeLowshelf, setFrequency, setGain }) = keepLatest
+      ( (sample_ ids (bang unit)) <#> parentalSupervision parent \me ->
+          bang
+            ( makeLowshelf
+                { id: me, parent: useParentIfParent parent, scope: just scope, frequency: i.frequency, gain: i.gain }
+            )
+            <|> map
+              ( \(C.Lowshelf e) -> match
+                  { frequency: \g -> setFrequency { id: me, frequency: g }
+                  , gain: \g -> setGain { id: me, gain: g }
+                  }
+                  e
+              )
+              atts
+            <|> oneOf
+              ( NEA.toArray
+                  (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
+              )
+      )
 
 lowshelf_ i a = lowshelf i empty a
-
-lowshelfx
-  :: forall i outputChannels produced consumed event payload
-   . IsEvent event
-  => Common.InitialLowshelf i
-  => i
-  -> event C.Lowshelf
-  -> C.AudioInput outputChannels produced consumed event payload
-  -> C.Node outputChannels produced consumed event payload
-lowshelfx = __lowshelf
 
 -- loopBuf
 
@@ -1242,125 +1046,85 @@ microphone
 microphone = __microphone
 
 -- notch
-__notch
-  :: forall i outputChannels producedI consumedI producedO consumedO event
-       payload
-   . IsEvent event
-  => Common.InitialNotch i
-  => i
-  -> event C.Notch
-  -> C.AudioInput outputChannels producedI consumedI event payload
-  -> C.Node outputChannels producedO consumedO event payload
-__notch i' atts (C.AudioInput elts) = C.Node go
-  where
-  C.InitializeNotch i = Common.toInitializeNotch i'
-  go parent di@(C.AudioInterpret { ids, scope, makeNotch, setFrequency, setQ }) = keepLatest
-    ( (sample_ ids (bang unit)) <#> parentalSupervision parent \me ->
-        bang
-          ( makeNotch
-              { id: me, parent: useParentIfParent parent, scope: just scope, frequency: i.frequency, q: i.q }
-          )
-          <|> map
-            ( \(C.Notch e) -> match
-                { frequency: \g -> setFrequency { id: me, frequency: g }
-                , q: \g -> setQ { id: me, q: g }
-                }
-                e
-            )
-            atts
-          <|> oneOf
-            ( NEA.toArray
-                (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
-            )
-    )
+class NotchCtor f where
+  notch
+    :: forall i (outputChannels :: Type) produced consumed event payload
+     . IsEvent event
+    => Common.InitialNotch i
+    => i
+    -> event C.Notch
+    -> f outputChannels produced consumed event payload
+    -> C.Node outputChannels produced consumed event payload
 
-notch
-  :: forall i outputChannels produced consumed ord event payload
-   . IsEvent event
-  => Common.InitialNotch i
-  => Sym.Compare "" produced ord
-  => TLOrd ord produced produced "" produced
-  => Nub consumed consumed
-  => i
-  -> event C.Notch
-  -> Array (C.Node outputChannels produced consumed event payload)
-  -> C.Node outputChannels produced consumed event payload
-notch i e a = case uncons a of
-  DM.Nothing -> notchx i e (constant 0.0 empty :* ([] :: Array (C.Node outputChannels produced consumed event payload)))
-  DM.Just { head, tail } -> notchx i e (head :::* tail)
+instance NotchCtor C.Node where
+  notch i' atts n = notch i' atts (singleton n)
+
+instance NotchCtor C.AudioInput where
+  notch i' atts (C.AudioInput elts) = C.Node go
+    where
+    C.InitializeNotch i = Common.toInitializeNotch i'
+    go parent di@(C.AudioInterpret { ids, scope, makeNotch, setFrequency, setQ }) = keepLatest
+      ( (sample_ ids (bang unit)) <#> parentalSupervision parent \me ->
+          bang
+            ( makeNotch
+                { id: me, parent: useParentIfParent parent, scope: just scope, frequency: i.frequency, q: i.q }
+            )
+            <|> map
+              ( \(C.Notch e) -> match
+                  { frequency: \g -> setFrequency { id: me, frequency: g }
+                  , q: \g -> setQ { id: me, q: g }
+                  }
+                  e
+              )
+              atts
+            <|> oneOf
+              ( NEA.toArray
+                  (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
+              )
+      )
 
 notch_ i a = notch i empty a
 
-notchx
-  :: forall i outputChannels produced consumed event payload
-   . IsEvent event
-  => Common.InitialNotch i
-  => i
-  -> event C.Notch
-  -> C.AudioInput outputChannels produced consumed event payload
-  -> C.Node outputChannels produced consumed event payload
-notchx = __notch
-
 -- peaking
-__peaking
-  :: forall i outputChannels producedI consumedI producedO consumedO event
-       payload
-   . IsEvent event
-  => Common.InitialPeaking i
-  => i
-  -> event C.Peaking
-  -> C.AudioInput outputChannels producedI consumedI event payload
-  -> C.Node outputChannels producedO consumedO event payload
-__peaking i' atts (C.AudioInput elts) = C.Node go
-  where
-  C.InitializePeaking i = Common.toInitializePeaking i'
-  go parent di@(C.AudioInterpret { ids, scope, makePeaking, setFrequency, setQ, setGain }) = keepLatest
-    ( (sample_ ids (bang unit)) <#> parentalSupervision parent \me ->
-        bang
-          ( makePeaking
-              { id: me, parent: useParentIfParent parent, scope: just scope, frequency: i.frequency, gain: i.gain, q: i.q }
-          )
-          <|> map
-            ( \(C.Peaking e) -> match
-                { frequency: \g -> setFrequency { id: me, frequency: g }
-                , q: \g -> setQ { id: me, q: g }
-                , gain: \g -> setGain { id: me, gain: g }
-                }
-                e
-            )
-            atts
-          <|> oneOf
-            ( NEA.toArray
-                (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
-            )
-    )
+class PeakingCtor f where
+  peaking
+    :: forall i (outputChannels :: Type) produced consumed event payload
+     . IsEvent event
+    => Common.InitialPeaking i
+    => i
+    -> event C.Peaking
+    -> f outputChannels produced consumed event payload
+    -> C.Node outputChannels produced consumed event payload
 
-peaking
-  :: forall i outputChannels produced consumed ord event payload
-   . IsEvent event
-  => Common.InitialPeaking i
-  => Sym.Compare "" produced ord
-  => TLOrd ord produced produced "" produced
-  => Nub consumed consumed
-  => i
-  -> event C.Peaking
-  -> Array (C.Node outputChannels produced consumed event payload)
-  -> C.Node outputChannels produced consumed event payload
-peaking i e a = case uncons a of
-  DM.Nothing -> peakingx i e (constant 0.0 empty :* ([] :: Array (C.Node outputChannels produced consumed event payload)))
-  DM.Just { head, tail } -> peakingx i e (head :::* tail)
+instance PeakingCtor C.Node where
+  peaking i' atts n = peaking i' atts (singleton n)
+
+instance PeakingCtor C.AudioInput where
+  peaking i' atts (C.AudioInput elts) = C.Node go
+    where
+    C.InitializePeaking i = Common.toInitializePeaking i'
+    go parent di@(C.AudioInterpret { ids, scope, makePeaking, setFrequency, setQ, setGain }) = keepLatest
+      ( (sample_ ids (bang unit)) <#> parentalSupervision parent \me ->
+          bang
+            ( makePeaking
+                { id: me, parent: useParentIfParent parent, scope: just scope, frequency: i.frequency, q: i.q, gain: i.gain }
+            )
+            <|> map
+              ( \(C.Peaking e) -> match
+                  { frequency: \g -> setFrequency { id: me, frequency: g }
+                  , q: \g -> setQ { id: me, q: g }
+                  , gain: \g -> setGain { id: me, gain: g }
+                  }
+                  e
+              )
+              atts
+            <|> oneOf
+              ( NEA.toArray
+                  (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
+              )
+      )
 
 peaking_ i a = peaking i empty a
-
-peakingx
-  :: forall i outputChannels produced consumed event payload
-   . IsEvent event
-  => Common.InitialPeaking i
-  => i
-  -> event C.Peaking
-  -> C.AudioInput outputChannels produced consumed event payload
-  -> C.Node outputChannels produced consumed event payload
-peakingx = __peaking
 
 -- periodicOsc
 
@@ -1410,6 +1174,7 @@ periodicOsc
   -> event C.PeriodicOsc
   -> C.Node outputChannels "" () event payload
 periodicOsc = __periodicOsc
+
 periodicOsc_ i = periodicOsc i empty
 -- playBuf
 
@@ -1592,7 +1357,9 @@ sawtoothOsc
   -> event C.SawtoothOsc
   -> C.Node outputChannels "" () event payload
 sawtoothOsc = __sawtoothOsc
+
 sawtoothOsc_ i = sawtoothOsc i empty
+
 -- sinOsc
 
 __sinOsc
@@ -1684,6 +1451,7 @@ squareOsc
   -> event C.SquareOsc
   -> C.Node outputChannels "" () event payload
 squareOsc = __squareOsc
+
 squareOsc_ i = squareOsc i empty
 
 -- speaker
@@ -1709,64 +1477,44 @@ speaker2
   -> event payload
 speaker2 = speaker
 
-__pan
-  :: forall i outputChannels producedI consumedI producedO consumedO event
-       payload
-   . IsEvent event
-  => Common.InitialStereoPanner i
-  => i
-  -> event C.StereoPanner
-  -> C.AudioInput outputChannels producedI consumedI event payload
-  -> C.Node outputChannels producedO consumedO event payload
-__pan i' atts (C.AudioInput elts) = C.Node go
-  where
-  C.InitializeStereoPanner i = Common.toInitializeStereoPanner i'
-  go parent di@(C.AudioInterpret { ids, scope, makeStereoPanner, setPan }) = keepLatest
-    ( (sample_ ids (bang unit)) <#> parentalSupervision parent \me ->
-        bang
-          ( makeStereoPanner
-              { id: me, parent: useParentIfParent parent, scope: just scope, pan: i.pan }
-          )
-          <|> map
-            ( \(C.StereoPanner e) -> match
-                { pan: \g -> setPan { id: me, pan: g }
-                }
-                e
-            )
-            atts
-          <|> oneOf
-            ( NEA.toArray
-                (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
-            )
-    )
+-- pan
+class StereoPannerCtor f where
+  pan
+    :: forall i (outputChannels :: Type) produced consumed event payload
+    . IsEvent event
+    => Common.InitialStereoPanner i
+    => i
+    -> event C.StereoPanner
+    -> f outputChannels produced consumed event payload
+    -> C.Node outputChannels produced consumed event payload
 
-pan
-  :: forall i outputChannels produced consumed ord event payload
-   . IsEvent event
-  => Common.InitialStereoPanner i
-  => Sym.Compare "" produced ord
-  => TLOrd ord produced produced "" produced
-  => Nub consumed consumed
-  => i
-  -> event C.StereoPanner
-  -> Array (C.Node outputChannels produced consumed event payload)
-  -> C.Node outputChannels produced consumed event payload
-pan i e a = case uncons a of
-  DM.Nothing -> panx i e (constant 0.0 empty :* ([] :: Array (C.Node outputChannels produced consumed event payload)))
-  DM.Just { head, tail } -> panx i e (head :::* tail)
+instance StereoPannerCtor C.Node where
+  pan i' atts n = pan i' atts (singleton n)
+
+instance StereoPannerCtor C.AudioInput where
+  pan i' atts (C.AudioInput elts) = C.Node go
+    where
+    C.InitializeStereoPanner i = Common.toInitializeStereoPanner i'
+    go parent di@(C.AudioInterpret { ids, scope, makeStereoPanner, setPan }) = keepLatest
+      ( (sample_ ids (bang unit)) <#> parentalSupervision parent \me ->
+          bang
+            ( makeStereoPanner
+                { id: me, parent: useParentIfParent parent, scope: just scope, pan: i.pan }
+            )
+            <|> map
+              ( \(C.StereoPanner e) -> match
+                  { pan: \g -> setPan { id: me, pan: g }
+                  }
+                  e
+              )
+              atts
+            <|> oneOf
+              ( NEA.toArray
+                  (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
+              )
+      )
 
 pan_ i a = pan i empty a
-
-panx
-  :: forall i outputChannels produced consumed event payload
-   . IsEvent event
-  => Common.InitialStereoPanner i
-  => i
-  -> event C.StereoPanner
-  -> C.AudioInput outputChannels produced consumed event payload
-  -> C.Node outputChannels produced consumed event payload
-panx = __pan
-
 -- triangleOsc
 
 __triangleOsc
@@ -1811,57 +1559,39 @@ triangleOsc
   -> event C.TriangleOsc
   -> C.Node outputChannels "" () event payload
 triangleOsc = __triangleOsc
+
 triangleOsc_ i = triangleOsc i empty
+
 -- waveShaper
 
-__waveShaper
-  :: forall i outputChannels producedI consumedI producedO consumedO event
-       payload
-   . IsEvent event
-  => Common.InitialWaveShaper i
-  => i
-  -> C.AudioInput outputChannels producedI consumedI event payload
-  -> C.Node outputChannels producedO consumedO event payload
-__waveShaper i' (C.AudioInput elts) = C.Node go
-  where
-  C.InitializeWaveShaper i = Common.toInitializeWaveShaper i'
-  go parent di@(C.AudioInterpret { ids, scope, makeWaveShaper }) =
-    keepLatest
-      ( (sample_ ids (bang unit)) <#> parentalSupervision parent \me ->
-          bang
-            ( makeWaveShaper
-                { id: me
-                , parent: useParentIfParent parent
-                , scope: just scope
-                , curve: i.curve
-                , oversample: i.oversample
-                }
-            ) <|> oneOf
-            ( NEA.toArray
-                (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
-            )--((\y -> let C.Node x = y in x) elt) (Parent me) di
-      )
+class WaveShaperCtor f where
+  waveShaper
+    :: forall i (outputChannels :: Type) produced consumed event payload
+    . IsEvent event
+    => Common.InitialWaveShaper i
+    => i
+    -> f outputChannels produced consumed event payload
+    -> C.Node outputChannels produced consumed event payload
 
-
-waveShaper
-  :: forall i outputChannels produced consumed ord event payload
-   . IsEvent event
-  => Common.InitialWaveShaper i
-  => Sym.Compare "" produced ord
-  => TLOrd ord produced produced "" produced
-  => Nub consumed consumed
-  => i
-  -> Array (C.Node outputChannels produced consumed event payload)
-  -> C.Node outputChannels produced consumed event payload
-waveShaper i a = case uncons a of
-  DM.Nothing -> waveShaperx i (constant 0.0 empty :* ([] :: Array (C.Node outputChannels produced consumed event payload)))
-  DM.Just { head, tail } -> waveShaperx i (head :::* tail)
-
-waveShaperx
-  :: forall i outputChannels produced consumed event payload
-   . IsEvent event
-  => Common.InitialWaveShaper i
-  => i
-  -> C.AudioInput outputChannels produced consumed event payload
-  -> C.Node outputChannels produced consumed event payload
-waveShaperx = __waveShaper
+instance WaveShaperCtor C.Node where
+  waveShaper i' n = waveShaper i' (singleton n)
+instance WaveShaperCtor C.AudioInput where
+  waveShaper i' (C.AudioInput elts) = C.Node go
+    where
+    C.InitializeWaveShaper i = Common.toInitializeWaveShaper i'
+    go parent di@(C.AudioInterpret { ids, scope, makeWaveShaper }) =
+      keepLatest
+        ( (sample_ ids (bang unit)) <#> parentalSupervision parent \me ->
+            bang
+              ( makeWaveShaper
+                  { id: me
+                  , parent: useParentIfParent parent
+                  , scope: just scope
+                  , curve: i.curve
+                  , oversample: i.oversample
+                  }
+              ) <|> oneOf
+              ( NEA.toArray
+                  (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
+              )
+        )

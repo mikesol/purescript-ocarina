@@ -20,9 +20,8 @@ px = Proxy :: Proxy """<section>
   <p>A <a href="https://developer.mozilla.org/en-US/docs/Web/API/BiquadFilterNode">lowshelf filter</a> boosts or attenuates lower frequencies using a <code>gain</code> parameter, where gain is expressed in decibels from -40.0 to 40.0.</p>
 
   <pre><code>\buf -> run2_
-  [ lowshelf_ {frequency: 91.0, gain: 10.0 }
-      [loopBuf buf pureOn]
-  ]
+   $ lowshelf_ { frequency: 91.0, gain: 10.0 }
+   $ loopBuf buf pureOn
 </code></pre>
 
   ~lowshelf~
@@ -34,6 +33,6 @@ lowshelf ccb _ ev = px ~~
   { lowshelf: nut
       ( audioWrapper ev ccb (ctxAff \ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
           \buf -> run2_
-            [ lowshelf_ {frequency: 91.0, gain: 0.4 } [loopBuf buf pureOn] ]
+            $ lowshelf_ {frequency: 91.0, gain: 0.4 } $ loopBuf buf pureOn
       )
   }

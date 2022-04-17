@@ -28,7 +28,8 @@ px = Proxy :: Proxy """<section>
 --   , threshold: -24.0
 --   }
 run2_
-  [ dynamicsCompressor_ { threshold: -50.0 } [loopBuf buf pureOn]]</code></pre>
+  $ dynamicsCompressor_ { threshold: -50.0 }
+  $ loopBuf buf pureOn</code></pre>
 
   ~compression~
   </section>
@@ -39,6 +40,6 @@ compression ccb _ ev = px ~~
   { compression: nut
       ( audioWrapper ev ccb (ctxAff \ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
           \buf -> run2_
-            [ dynamicsCompressor_ {} [loopBuf buf pureOn]]
+            $ dynamicsCompressor_ {} $ loopBuf buf pureOn
       )
   }

@@ -9,7 +9,7 @@ import Deku.Pursx (nut, (~~))
 import Effect (Effect)
 import FRP.Event (class IsEvent)
 import Type.Proxy (Proxy(..))
-import WAGS.Control (delay_, gain_, gainx_, microphone, sinOsc_, (:*))
+import WAGS.Control (delay_, gain_, microphone, sinOsc_, (!), (~), (:*))
 import WAGS.Core (fix, input)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import WAGS.Example.Docs.Util (audioWrapper)
@@ -24,12 +24,11 @@ px =
   <blockquote>Make sure to use 🎧 when you run this example! Otherwise, you'll cause quite a stir in whatever internet cafe, household or public restroom you're perusing this documentation in.</blockquote>
 
   <pre><code>\mic -> run2_
-  [ fix
-      ( \i -> gainx_ 1.0
-          $ microphone mic :*
-              [ delay_ 0.1 [ gain_ 0.2 [ input i ] ] ]
-      )
-  ]
+  case mic of
+    Just m -> fix \i -> gain_ 1.0
+      $ microphone m !
+          (delay_ 0.1 $ gain_ 0.2 $ input i)
+    Nothing -> gain_ 0.02 $ sinOsc_ 440.0
 </code></pre>
 
   ~microphone~
@@ -42,13 +41,10 @@ microphoneEx ccb _ ev = px ~~
   { microphone: nut
       ( audioWrapper ev ccb (getMicrophoneAndCamera true false)
           \{ microphone: mic } -> run2_
-            [ case mic of
-                Just m -> fix
-                  ( \i -> gainx_ 1.0
-                      $ microphone m :*
-                          [ delay_ 0.1 [ gain_ 0.2 [ input i ] ] ]
-                  )
-                Nothing -> gain_ 0.02 [ sinOsc_ 440.0 ]
-            ]
+            case mic of
+              Just m -> fix \i -> gain_ 1.0
+                $ microphone m !
+                    (delay_ 0.1 $ gain_ 0.2 $ input i)
+              Nothing -> gain_ 0.02 $ sinOsc_ 440.0
       )
   }
