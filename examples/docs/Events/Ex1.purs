@@ -30,6 +30,7 @@ import WAGS.Control (loopBuf)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..))
 import WAGS.Example.Docs.Util (raceSelf)
 import WAGS.Interpret (ctxAff, decodeAudioDataFromUri)
+import WAGS.Math (calcSlope)
 import WAGS.Parameter (pureOn)
 import WAGS.Properties (loopEnd, loopStart, playbackRate)
 import WAGS.Run (run2_)
@@ -47,7 +48,7 @@ px =
 
   <pre><code>@wagtxt@</code></pre>
 
-  <p>Note that our loopBuf consumes four events: in addition to the three sliders, there is a <code>pureOn</code> event that turns it on.</p>
+  <p>Note that our loopBuf consumes four events: in addition to the three sliders, there is a <code>pureOn</code> event that turns it on. For the events belonging to range sliders, we use <code>calcSlope</code> to normalize the range to sensible values for these parameters.</p>
 
   <p>Because each slider event contains a number, we can compose it with a function from <code>WAGS.Properties</code>, like <code>playbackRate</code> or <code>loopStart</code>, to create an event that controls a Wags parameter. The <code>oneOf</code> directive indicates that the incoming event will be "one of" the events in the array. It's also possible to use the tie-fighter, aka <code>alt</code>, to separate each event, but I like the array syntax when possible as tie fighters do, after all, work for the Empire, and who likes the Empire?</p>
 
@@ -87,6 +88,7 @@ import FRP.Event.Class (bang, biSampleOn, filterMap, keepLatest)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (loopBuf)
 import WAGS.Interpret (ctxAff, decodeAudioDataFromUri)
+import WAGS.Math (calcSlope)
 import WAGS.Parameter (pureOn)
 import WAGS.Properties (loopEnd, loopStart, playbackRate)
 import WAGS.Run (run2_)
@@ -151,24 +153,31 @@ main = do
             sl1 = filterMap slp.s1 sl
             sl2 = filterMap slp.s2 sl
             music = run2_
-              $ loopBuf buffer
+              $ loopBuf
+                  { buffer: buffer
+                  , playbackRate: 2.6
+                  , loopStart: 0.6
+                  , loopEnd: 1.1
+                  }
               $ oneOf
                   [ pureOn
-                  , playbackRate <$> sl0
-                  , loopStart <$> sl1
-                  , loopEnd <$> biSampleOn sl2
+                  , (calcSlope 0.0 0.2 100.0 5.0 >>> playbackRate) <$> sl0
+                  , (calcSlope 0.0 0.0 100.0 1.2 >>> loopStart) <$> sl1
+                  , (calcSlope 0.0 0.05 100.0 1.0 >>> loopEnd) <$> biSampleOn sl2
                       (add <$> (bang 0.0 <|> sl1))
                   ]
           D.div_
             $
               map
-                ( \{ l, mn, mx, f } -> D.div_
+                ( \{ l, f } -> D.div_
                     [ text_ l
                     , D.input
                         ( oneOfMap bang
                             [ D.Xtype := "range"
-                            , D.Min := mn
-                            , D.Max := mx
+                            , D.Min := "0"
+                            , D.Max := "100"
+                            , D.Step := "1"
+                            , D.Value := "50"
                             , D.OnInput := cb
                                 ( traverse_
                                     ( valueAsNumber
@@ -182,9 +191,9 @@ main = do
                         []
                     ]
                 )
-                [ { l: "Playback rate", mn: "0.5", mx: "5.0", f: sli.s0 }
-                , { l: "Loop start", mn: "0.0", mx: "1.0", f: sli.s1 }
-                , { l: "Loop end", mn: "0.01", mx: "1.0", f: sli.s2 }
+                [ { l: "Playback rate", f: sli.s0 }
+                , { l: "Loop start", f: sli.s1 }
+                , { l: "Loop end", f: sli.s2 }
                 ] <>
                 [ D.button
                     ( ss <#>
@@ -232,12 +241,17 @@ ex1 ccb _ ev = makePursx' (Proxy :: _ "@") px
   { wagtxt: nut
       ( text_
           """run2_
-  $ loopBuf buffer
+  $ loopBuf
+      { buffer: buffer
+      , playbackRate: 2.6
+      , loopStart: 0.6
+      , loopEnd: 1.1
+      }
   $ oneOf
       [ pureOn
-      , playbackRate <$> sl0
-      , loopStart <$> sl1
-      , loopEnd <$> biSampleOn sl2
+      , (calcSlope 0.0 0.2 100.0 5.0 >>> playbackRate) <$> sl0
+      , (calcSlope 0.0 0.0 100.0 1.2 >>> loopStart) <$> sl1
+      , (calcSlope 0.0 0.05 100.0 1.0 >>> loopEnd) <$> biSampleOn sl2
           (add <$> (bang 0.0 <|> sl1))
       ]"""
       )
@@ -245,6 +259,7 @@ ex1 ccb _ ev = makePursx' (Proxy :: _ "@") px
   , ex1: nut
       ( bang (unit /\ Sg.Insert)
           @@ \_ -> mkExists $ SubgraphF \push event -> -- here
+
             do
               let
                 ss = bang (ssi.start unit) <|> filterMap uip.startStop event
@@ -257,24 +272,32 @@ ex1 ccb _ ev = makePursx' (Proxy :: _ "@") px
                 -- ugh, problem is that if we are in the land of run
                 -- then we need to be using Event
                 -- but we are inheriting something of type Event
-                music buffer = loopBuf buffer
-                  $ oneOf
-                      [ pureOn
-                      , playbackRate <$> sl0
-                      , loopStart <$> sl1
-                      , loopEnd <$> biSampleOn sl2
-                          (add <$> (bang 0.0 <|> sl1))
-                      ]
+                music buffer =
+                  loopBuf
+                    { buffer: buffer
+                    , playbackRate: 2.6
+                    , loopStart: 0.6
+                    , loopEnd: 1.1
+                    }
+                    $ oneOf
+                        [ pureOn
+                        , (calcSlope 0.0 0.2 100.0 5.0 >>> playbackRate) <$> sl0
+                        , (calcSlope 0.0 0.0 100.0 1.2 >>> loopStart) <$> sl1
+                        , (calcSlope 0.0 0.05 100.0 1.0 >>> loopEnd) <$> biSampleOn sl2
+                            (add <$> (bang 0.0 <|> sl1))
+                        ]
               D.div_
                 $
                   map
-                    ( \{ l, mn, mx, f } -> D.div_
+                    ( \{ l, f } -> D.div_
                         [ text_ l
                         , D.input
                             ( oneOfMap bang
                                 [ D.Xtype := "range"
-                                , D.Min := mn
-                                , D.Max := mx
+                                , D.Min := "0"
+                                , D.Max := "100"
+                                , D.Step := "1"
+                                , D.Value := "50"
                                 , D.OnInput := cb
                                     ( traverse_
                                         ( valueAsNumber
@@ -288,9 +311,9 @@ ex1 ccb _ ev = makePursx' (Proxy :: _ "@") px
                             []
                         ]
                     )
-                    [ { l: "Playback rate", mn: "0.5", mx: "5.0", f: sli.s0 }
-                    , { l: "Loop start", mn: "0.0", mx: "1.0", f: sli.s1 }
-                    , { l: "Loop end", mn: "0.01", mx: "1.0", f: sli.s2 }
+                    [ { l: "Playback rate", f: sli.s0 }
+                    , { l: "Loop start", f: sli.s1 }
+                    , { l: "Loop end", f: sli.s2 }
                     ] <>
                     [ D.button
                         ( (biSampleOn (bang (pure unit) <|> (map (\(SetCancel x) -> x) ev)) (map Tuple ss)) <#>
@@ -316,7 +339,7 @@ ex1 ccb _ ev = makePursx' (Proxy :: _ "@") px
                                   }
                               )
                         )
-                        [ text $ oneOf [map (const "Turn off") stopE, map (const "Turn on") startE]
+                        [ text $ oneOf [ map (const "Turn off") stopE, map (const "Turn on") startE ]
                         ]
                     ]
       )

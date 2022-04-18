@@ -23,6 +23,7 @@ import FRP.Event.Class (bang, biSampleOn, filterMap, keepLatest)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (loopBuf)
 import WAGS.Interpret (ctxAff, decodeAudioDataFromUri)
+import WAGS.Math (calcSlope)
 import WAGS.Parameter (pureOn)
 import WAGS.Properties (loopEnd, loopStart, playbackRate)
 import WAGS.Run (run2_)
@@ -87,24 +88,31 @@ main = do
             sl1 = filterMap slp.s1 sl
             sl2 = filterMap slp.s2 sl
             music = run2_
-              $ loopBuf buffer
+              $ loopBuf
+                  { buffer: buffer
+                  , playbackRate: 2.6
+                  , loopStart: 0.6
+                  , loopEnd: 1.1
+                  }
               $ oneOf
                   [ pureOn
-                  , playbackRate <$> sl0
-                  , loopStart <$> sl1
-                  , loopEnd <$> biSampleOn sl2
+                  , (calcSlope 0.0 0.2 100.0 5.0 >>> playbackRate) <$> sl0
+                  , (calcSlope 0.0 0.0 100.0 1.2 >>> loopStart) <$> sl1
+                  , (calcSlope 0.0 0.05 100.0 1.0 >>> loopEnd) <$> biSampleOn sl2
                       (add <$> (bang 0.0 <|> sl1))
                   ]
           D.div_
             $
               map
-                ( \{ l, mn, mx, f } -> D.div_
+                ( \{ l, f } -> D.div_
                     [ text_ l
                     , D.input
                         ( oneOfMap bang
                             [ D.Xtype := "range"
-                            , D.Min := mn
-                            , D.Max := mx
+                            , D.Min := "0"
+                            , D.Max := "100"
+                            , D.Step := "1"
+                            , D.Value := "50"
                             , D.OnInput := cb
                                 ( traverse_
                                     ( valueAsNumber
@@ -118,9 +126,9 @@ main = do
                         []
                     ]
                 )
-                [ { l: "Playback rate", mn: "0.5", mx: "5.0", f: sli.s0 }
-                , { l: "Loop start", mn: "0.0", mx: "1.0", f: sli.s1 }
-                , { l: "Loop end", mn: "0.01", mx: "1.0", f: sli.s2 }
+                [ { l: "Playback rate", f: sli.s0 }
+                , { l: "Loop start", f: sli.s1 }
+                , { l: "Loop end", f: sli.s2 }
                 ] <>
                 [ D.button
                     ( ss <#>
