@@ -2,15 +2,15 @@ module WAGS.Example.Docs.Events where
 
 import Prelude
 
-import Control.Plus (class Plus)
 import Deku.Core (Element)
 import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
-import FRP.Event (Event, class IsEvent)
+import FRP.Event (Event)
 import Type.Proxy (Proxy(..))
 import WAGS.Example.Docs.Events.Ex0 as Ex0
 import WAGS.Example.Docs.Events.Ex1 as Ex1
 import WAGS.Example.Docs.Events.Ex2 as Ex2
+import WAGS.Example.Docs.Events.Flavors as Flavors
 import WAGS.Example.Docs.Events.InWags as InWags
 import WAGS.Example.Docs.Events.Primer as Primer
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
@@ -29,17 +29,7 @@ px = Proxy :: Proxy
 
   @primer@
   @inWags@
-
-  <h2>Three flavors of events.</h2>
-
-  <p>When we're in the browser, events tend to come in three broad categories:</p>
-
-  <ul>
-    <li>Things that need to happen <span style="font-weight: 800;">now</span>.</li>
-    <li>Things that happen as the result of a user interaction.</li>
-    <li>Things that are scheduled to happen in the future, for example with <code>setTimeout</code>.</li>
-  </ul>
-
+  @flavors@
   @ex0@
   @ex1@
   @ex2@
@@ -53,6 +43,7 @@ events cca' dpage ssp ev = makePursx'  (Proxy :: _ "@") px
   { next: mnx MultiChannel
   , primer: nut $ Primer.primer
   , inWags: nut $ InWags.inWags
+  , flavors: nut $ Flavors.flavors
   , ex0: nut $ Ex0.ex0 ccb dpage ev
   , ex1: nut $ Ex1.ex1 ccb dpage ev
   , ex2: nut $ Ex2.ex2 ccb dpage ev
