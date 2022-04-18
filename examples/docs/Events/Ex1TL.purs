@@ -4,7 +4,7 @@ import Prelude
 
 import Control.Alt ((<|>))
 import Data.Exists (mkExists)
-import Data.Foldable (for_, oneOfMap)
+import Data.Foldable (oneOf, oneOfMap, traverse_)
 import Data.Hashable (class Hashable)
 import Data.Newtype (class Newtype, unwrap)
 import Data.Tuple.Nested ((/\))
@@ -86,35 +86,41 @@ main = do
             sl0 = filterMap slp.s0 sl
             sl1 = filterMap slp.s1 sl
             sl2 = filterMap slp.s2 sl
-            music = run2_ $ loopBuf buffer
-              ( pureOn
-                  <|> playbackRate <$> sl0
-                  <|> loopStart <$> sl1
-                  <|> loopEnd <$> biSampleOn sl2
-                    (add <$> (bang 0.0 <|> sl1))
-              )
+            music = run2_
+              $ loopBuf buffer
+              $ oneOf
+                  [ pureOn
+                  , playbackRate <$> sl0
+                  , loopStart <$> sl1
+                  , loopEnd <$> biSampleOn sl2
+                      (add <$> (bang 0.0 <|> sl1))
+                  ]
           D.div_
             $
               map
-                ( \{ mn, mx, f } -> D.input
-                    ( oneOfMap bang
-                        [ D.Xtype := "range"
-                        , D.Max := mx
-                        , D.Min := mn
-                        , D.OnInput := cb \e -> for_
-                            ( target e
-                                >>= fromEventTarget
-                            )
-                            ( valueAsNumber
-                                >=> push <<< uii.slider <<< f
-                            )
-                        ]
-                    )
-                    []
+                ( \{ l, mn, mx, f } -> D.div_
+                    [ text_ l
+                    , D.input
+                        ( oneOfMap bang
+                            [ D.Xtype := "range"
+                            , D.Min := mn
+                            , D.Max := mx
+                            , D.OnInput := cb
+                                ( traverse_
+                                    ( valueAsNumber
+                                        >=> push <<< uii.slider <<< f
+                                    )
+                                    <<< (=<<) fromEventTarget
+                                    <<< target
+                                )
+                            ]
+                        )
+                        []
+                    ]
                 )
-                [ { mn: "0.5", mx: "5.0", f: sli.s0 }
-                , { mn: "0.0", mx: "1.0", f: sli.s1 }
-                , { mn: "0.01", mx: "1.0", f: sli.s2 }
+                [ { l: "Playback rate", mn: "0.5", mx: "5.0", f: sli.s0 }
+                , { l: "Loop start", mn: "0.0", mx: "1.0", f: sli.s1 }
+                , { l: "Loop end", mn: "0.01", mx: "1.0", f: sli.s2 }
                 ] <>
                 [ D.button
                     ( ss <#>

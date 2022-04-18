@@ -54,7 +54,16 @@ px =
   <h2>Example 2: Three sliders</h2>
 
   <p>In this example, we'll use three sliders to control the playback rate, the start time, and the end time of a looping buffer.</p>
-  <p>Note that our loopBuf consumes four events: in addition to the three sliders, there is a pureOn event that turns it on. On and off states can be controlled with events as well, as we'll see in the example below.</p>
+
+  <p>There is a fair bit of DOM-related code in this example, so before showing the whole thing, let's isolate the Wags bit.</p>
+
+  <pre><code>@wagtxt@</code></pre>
+
+  <p>Note that our loopBuf consumes four events: in addition to the three sliders, there is a <code>pureOn</code> event that turns it on.</p>
+
+  <p>Because each slider event contains a number, we can compose it with a function from <code>WAGS.Properties</code>, like <code>playbackRate</code> or <code>loopStart</code>, to create an event that controls a Wags parameter. The <code>oneOf</code> directive indicates that the incoming event will be "one of" the events in the array. It's also possible to use the tie-fighter, aka <code>alt</code>, to separate each event, but I like the array syntax when possible as tie fighters do, after all, work for the Empire, and who likes the Empire?</p>
+
+  <p>And below you'll find the full example. It also shows useful patterns like downloading audio files and filtering events.</p>
 
   <pre><code>@txt@</code></pre>
 
@@ -107,7 +116,7 @@ import Prelude
 
 import Control.Alt ((<|>))
 import Data.Exists (mkExists)
-import Data.Foldable (for_, oneOfMap)
+import Data.Foldable (oneOf, oneOfMap, traverse_)
 import Data.Hashable (class Hashable)
 import Data.Newtype (class Newtype, unwrap)
 import Data.Tuple.Nested ((/\))
@@ -184,40 +193,46 @@ main = do
     scene = unwrap >>> match
       { loaded: \buffer -> mkExists $ SubgraphF \push event -> do
           let
-            ss = filterMap uip.startStop event
+            ss = bang (ssi.start unit) <|> filterMap uip.startStop event
             sl = filterMap uip.slider event
             sl0 = filterMap slp.s0 sl
             sl1 = filterMap slp.s1 sl
             sl2 = filterMap slp.s2 sl
-            music = run2_ $ loopBuf buffer
-              ( pureOn
-                  <|> playbackRate <$> sl0
-                  <|> loopStart <$> sl1
-                  <|> loopEnd <$> biSampleOn sl2
-                    (add <$> (bang 0.0 <|> sl1))
-              )
+            music = run2_
+              $ loopBuf buffer
+              $ oneOf
+                  [ pureOn
+                  , playbackRate <$> sl0
+                  , loopStart <$> sl1
+                  , loopEnd <$> biSampleOn sl2
+                      (add <$> (bang 0.0 <|> sl1))
+                  ]
           D.div_
             $
               map
-                ( \{ mn, mx, f } -> D.input
-                    ( oneOfMap bang
-                        [ D.Xtype := "range"
-                        , D.Max := mx
-                        , D.Min := mn
-                        , D.OnInput := cb \e -> for_
-                            ( target e
-                                >>= fromEventTarget
-                            )
-                            ( valueAsNumber
-                                >=> push <<< uii.slider <<< f
-                            )
-                        ]
-                    )
-                    []
+                ( \{ l, mn, mx, f } -> D.div_
+                    [ text_ l
+                    , D.input
+                        ( oneOfMap bang
+                            [ D.Xtype := "range"
+                            , D.Min := mn
+                            , D.Max := mx
+                            , D.OnInput := cb
+                                ( traverse_
+                                    ( valueAsNumber
+                                        >=> push <<< uii.slider <<< f
+                                    )
+                                    <<< (=<<) fromEventTarget
+                                    <<< target
+                                )
+                            ]
+                        )
+                        []
+                    ]
                 )
-                [ { mn: "0.5", mx: "5.0", f: sli.s0 }
-                , { mn: "0.0", mx: "1.0", f: sli.s1 }
-                , { mn: "0.01", mx: "1.0", f: sli.s2 }
+                [ { l: "Playback rate", mn: "0.5", mx: "5.0", f: sli.s0 }
+                , { l: "Loop start", mn: "0.0", mx: "1.0", f: sli.s1 }
+                , { l: "Loop end", mn: "0.01", mx: "1.0", f: sli.s2 }
                 ] <>
                 [ D.button
                     ( ss <#>
@@ -239,13 +254,20 @@ main = do
                 ]
       , loading: \_ -> mkExists
           $ SubgraphF \_ _ -> D.div_ [ text_ "Loading..." ]
-      }
-"""
+      }"""
 
 ex1
   :: forall event payload. IsEvent event => Plus event => CancelCurrentAudio -> (Page -> Effect Unit) -> event SingleSubgraphEvent -> Element event payload
 ex1 ccb _ ev = makePursx' (Proxy :: _ "@") px
-  { txt: nut (text_ txt)
+  { wagtxt: nut (text_ """run2_
+  $ loopBuf buffer
+  $ oneOf
+      [ pureOn
+      , playbackRate <$> sl0
+      , loopStart <$> sl1
+      , loopEnd <$> biSampleOn sl2
+          (add <$> (bang 0.0 <|> sl1))
+      ]"""), txt: nut (text_ txt)
   , ex1: nut
       ( bang (unit /\ Sg.Insert)
           @@ \_ -> mkExists $ SubgraphF \push -> lcmap (alt (bang Init)) \event -> -- here
