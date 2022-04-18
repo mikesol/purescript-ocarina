@@ -75,9 +75,6 @@ px =
 </section>
 """
 
-
-type ExampleStates = Either UIEvents WrapperStates
-
 scene
   :: forall payload
    . BrowserMicrophone
