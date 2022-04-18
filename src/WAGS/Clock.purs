@@ -2,16 +2,55 @@ module WAGS.Clock where
 
 import Prelude
 
+import Data.Foldable (for_, traverse_)
+import Data.Int (round)
+import Data.Maybe (Maybe(..))
+import Effect.Ref (new, read, write)
+import Effect.Timer (clearTimeout, setTimeout)
 import FRP.Behavior (Behavior, behavior)
-import FRP.Event (makeEvent, subscribe)
+import FRP.Event (Event, makeEvent, subscribe)
 import WAGS.Interpret (getAudioClockTime)
-import WAGS.Parameter (AudioNumeric(..), AudioOnOff(..), AudioParameter, AudioSudden(..), _linear, _numeric, _sudden)
+import WAGS.Parameter (AudioNumeric(..), AudioOnOff(..), _linear)
+import WAGS.WebAPI (AudioContext)
 import WAGS.WebAPI as WebAPI
 
 type ACTime =
   { concreteTime :: Number, abstractTime :: Number, lookAhead :: Number }
 
 type WriteHead (f :: Type -> Type) = f ACTime
+
+withACTime :: forall a. AudioContext -> Event a -> Event { acTime :: Number, value :: a }
+withACTime ctx e = makeEvent \k -> do
+  subscribe e \value -> do
+    acTime <- getAudioClockTime ctx
+    k { acTime, value }
+
+interval :: AudioContext -> Number -> Event Number -> Event Number
+interval ctx iN e = makeEvent \k -> do
+  cref <- new true
+  iref <- new Nothing
+  acTime <- getAudioClockTime ctx
+  vref <- new (acTime + iN)
+  mkTimeout k iN cref iref vref iN
+  unsub <- subscribe e \newN -> do
+    read iref >>= traverse_ clearTimeout
+    cT <- read vref
+    mkTimeout k (cT + newN) cref iref vref newN
+  pure (unsub *> write false cref *> (read iref >>= traverse_ clearTimeout))
+  where
+  lookAhead = 0.04
+  minVal = 0.01
+  mkTimeout k n cref iref vref rt = do
+    go0 <- read cref
+    when go0 do
+      t <- getAudioClockTime ctx
+      tid <- setTimeout (round ((max (n - t - lookAhead) minVal) * 1000.0)) do
+        go1 <- read cref
+        when go1 do
+          write n vref
+          k n
+          mkTimeout k (n + rt) cref iref vref rt
+      write (Just tid) iref
 
 writeHead :: Number -> WebAPI.AudioContext -> WriteHead Behavior
 writeHead lookAhead ctx = behavior \eab -> makeEvent \k ->
