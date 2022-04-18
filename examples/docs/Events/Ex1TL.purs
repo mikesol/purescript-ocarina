@@ -36,6 +36,8 @@ sli = injs_ (Proxy :: _ Slider)
 slp = prjs_ (Proxy :: _ Slider)
 type StartStop = Variant (start :: Unit, stop :: Effect Unit)
 ssi = injs_ (Proxy :: _ StartStop)
+start = uii.startStop (ssi.start unit)
+stop r = uii.startStop (ssi.stop r)
 ssp = prjs_ (Proxy :: _ StartStop)
 type UIEvents = Variant (startStop :: StartStop, slider :: Slider)
 uii = injs_ (Proxy :: _ UIEvents)
@@ -77,11 +79,19 @@ main = do
     where
     scene = unwrap >>> match
       { loaded: \buffer -> mkExists $ SubgraphF \push event -> do
-          let ss = filterMap uip.startStop event
-          let sl = filterMap uip.slider event
-          let sl0 = filterMap slp.s0 sl
-          let sl1 = filterMap slp.s1 sl
-          let sl2 = filterMap slp.s2 sl
+          let
+            ss = filterMap uip.startStop event
+            sl = filterMap uip.slider event
+            sl0 = filterMap slp.s0 sl
+            sl1 = filterMap slp.s1 sl
+            sl2 = filterMap slp.s2 sl
+            music = run2_ $ loopBuf buffer
+              ( pureOn
+                  <|> playbackRate <$> sl0
+                  <|> loopStart <$> sl1
+                  <|> loopEnd <$> biSampleOn sl2
+                    (add <$> (bang 0.0 <|> sl1))
+              )
           D.div_
             $
               map
@@ -110,16 +120,10 @@ main = do
                         \e -> D.OnClick := cb
                           ( const $ e # match
                               { stop: \u -> u *>
-                                  push (uii.startStop (ssi.start unit))
+                                  push start
                               , start: \_ -> do
-                                  r <- run2_ $ loopBuf buffer
-                                    (pureOn
-                                        <|> playbackRate <$> sl0
-                                        <|> loopStart <$> sl1
-                                        <|> loopEnd <$> biSampleOn sl2
-                                          (add <$> (bang 0.0 <|> sl1))
-                                    )
-                                  push (uii.startStop (ssi.stop r))
+                                  r <- music
+                                  push (stop r)
                               }
                           )
                     )
