@@ -123,5 +123,3 @@ audioWrapperSpan txt ev cca init i = bang (unit /\ Sg.Insert)
 
 mkNext ev cpage = bang (D.OnClick := cb (const cpage))
   <|> map (\cncl -> D.OnClick := cb (const (cncl *> cpage))) (map (\(SetCancel c) -> c) ev)
-
-ctxAff = bracket (liftEffect context) (liftEffect <<< close)

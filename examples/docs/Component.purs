@@ -37,8 +37,8 @@ import WAGS.Example.Docs.AudioUnits.TOC as TOC
 import WAGS.Example.Docs.AudioUnits.TriangleOsc as TriangleOsc
 import WAGS.Example.Docs.AudioUnits.WaveShaper as WaveShaper
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
-import WAGS.Example.Docs.Util (audioWrapperSpan, ccassp, ctxAff, mkNext, scrollToTop)
-import WAGS.Interpret (decodeAudioDataFromUri)
+import WAGS.Example.Docs.Util (audioWrapperSpan, ccassp, mkNext, scrollToTop)
+import WAGS.Interpret (ctxAff, decodeAudioDataFromUri)
 import WAGS.Parameter (pureOn)
 import WAGS.Run (run2_)
 

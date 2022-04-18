@@ -167,7 +167,7 @@ let additions =
   , "web-dom"
   , "web-events"
   ], repo = "https://github.com/mikesol/purescript-deku-toplevel.git"
-        , version = "v0.1.0.1"
+        , version = "v0.2.3.0"
       }
       }
 

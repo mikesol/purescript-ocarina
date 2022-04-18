@@ -13,7 +13,8 @@ import Data.Variant.Maybe as VM
 import Data.Vec (Vec)
 import Data.Vec as V
 import Effect (Effect)
-import Effect.Aff (Aff)
+import Effect.Aff (Aff, bracket)
+import Effect.Class (liftEffect)
 import Effect.Random as R
 import FRP.Behavior (Behavior, behavior)
 import FRP.Event (class IsEvent, Event, makeEvent, subscribe)
@@ -25,7 +26,7 @@ import WAGS.Control (class ValidateOutputChannelCount)
 import WAGS.Core (AudioInterpret(..), MeOrParent(..))
 import WAGS.Core as C
 import WAGS.Parameter (AudioParameter, WriteHead)
-import WAGS.WebAPI (BrowserAudioBuffer)
+import WAGS.WebAPI (AudioContext, BrowserAudioBuffer)
 import WAGS.WebAPI as WebAPI
 import Web.File.Blob (Blob)
 import Web.File.Url (createObjectURL)
@@ -112,6 +113,9 @@ decodeAudioDataFromUri
 decodeAudioDataFromUri ctx s =
   toAffE (fetchArrayBuffer s) >>=
     (toAffE <<< decodeAudioDataFromArrayBuffer ctx)
+
+ctxAff :: forall a. (AudioContext -> Aff a) -> Aff a
+ctxAff = bracket (liftEffect context) (liftEffect <<< close)
 
 foreign import fetchArrayBuffer :: String -> Effect (Promise ArrayBuffer)
 
