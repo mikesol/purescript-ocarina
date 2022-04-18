@@ -2,7 +2,6 @@ module WAGS.Example.StressTest where
 
 import Prelude
 
-
 import Control.Alt ((<|>))
 import Data.Array ((..))
 import Data.Exists (Exists, mkExists)
@@ -29,12 +28,13 @@ import FRP.Event.Memoizable as Memoizable
 import FRP.Event.Memoize (class MemoizableEvent, memoizeIfMemoizable)
 import FRP.Event.Memoized as Memoized
 import Math (pi, sin, (%))
+import WAGS.Clock (WriteHead, at_, ovnn, writeHead)
 import WAGS.Control (gain, sinOsc, speaker2, (:*))
 import WAGS.Core (AudioInput)
 import WAGS.Example.Utils (RaiseCancellation)
-import WAGS.Interpret (FFIAudioSnapshot, close, context, effectfulAudioInterpret', makeFFIAudioSnapshot, writeHead)
+import WAGS.Interpret (FFIAudioSnapshot, close, context, effectfulAudioInterpret', makeFFIAudioSnapshot)
 import WAGS.Math (calcSlope)
-import WAGS.Parameter (AudioNumeric(..), AudioOnOff(..), WriteHead, _off, _on, at_, ovnn)
+import WAGS.Parameter (AudioNumeric(..), AudioOnOff(..), _off, _on)
 import WAGS.Properties as Common
 import WAGS.WebAPI (AudioContext)
 import Web.HTML (window)

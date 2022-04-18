@@ -2,58 +2,40 @@ module WAGS.Example.Docs.Events.Ex0 where
 
 import Prelude
 
-import Control.Alt ((<|>))
 import Control.Alt (alt, (<|>))
-import Control.Plus (class Plus)
 import Data.Array.NonEmpty ((..))
-import Data.Either (Either(..))
 import Data.Exists (mkExists)
-import Data.Filterable (partitionMap)
 import Data.Int (toNumber)
-import Data.Int (toNumber)
-import Data.Maybe (maybe)
-import Data.Profunctor (lcmap)
 import Data.Profunctor (lcmap)
 import Data.Tuple (Tuple(..))
 import Data.Tuple.Nested ((/\))
 import Data.Typelevel.Num (D2)
 import Deku.Attribute (cb, (:=))
-import Deku.Attribute (cb, (:=))
-import Deku.Control (text)
 import Deku.Control (text, text_)
 import Deku.Core (Element, SubgraphF(..))
-import Deku.DOM as D
 import Deku.DOM as D
 import Deku.Pursx (makePursx', nut)
 import Deku.Subgraph ((@@))
 import Deku.Subgraph as Sg
-import Deku.Toplevel ((🚀))
 import Effect (Effect)
-import Effect (Effect)
-import FRP.Event (Event, class IsEvent, Event, subscribe)
-import FRP.Event.Class (bang)
+import FRP.Event (Event)
 import FRP.Event.Class (bang, biSampleOn)
 import Math (pow)
 import Type.Proxy (Proxy(..))
-import WAGS.Control (gain_, gain, sinOsc, (~))
-import WAGS.Control (microphone, recorder, singleton, speaker2)
-import WAGS.Core (AudioInput)
-import WAGS.Core (ai)
+import WAGS.Control (gain, gain_, microphone, recorder, sinOsc, singleton, (~))
+import WAGS.Core (AudioInput, ai)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..))
-import WAGS.Example.Docs.Util (WrapperStates(..), clickCb, mkWrapperEvent)
-import WAGS.Interpret (close, context, contextState, effectfulAudioInterpret, getMicrophoneAndCamera, makeFFIAudioSnapshot, mediaRecorderToUrl)
-import WAGS.Parameter (AudioEnvelope(..), AudioOnOff(..), _off, _on, apOff, apOn, dt)
-import WAGS.Properties (onOff)
+import WAGS.Parameter (AudioEnvelope(..), AudioOnOff(..), _off, _on)
 import WAGS.Properties (onOff)
 import WAGS.Properties as P
 import WAGS.Run (run2_)
-import WAGS.WebAPI (BrowserMicrophone, MediaRecorderCb(..))
+import WAGS.WebAPI (BrowserMicrophone, MediaRecorderCb)
 
 px =
   Proxy    :: Proxy   """<section>
   <h2>Example 1: Hello events</h2>
 
-  <p>Let's say hi to events! The simplest of events, which we've seen already, are the ones that occur immediately upon subscription. You create those types of events using <code>bang</code>. In this section, we'll use <code>bang</code> to set several different types of values:</p>
+  <p>Let's say hi to events! The simplest of events, which we've seen already, are the ones that occur <span style="font-weight:800;">now</span>, that is to say, immediately upon subscription. You create those types of events using <code>bang</code>. In this section, we'll use <code>bang</code> to set several different types of values:</p>
 
   <ul>
     <li><code>AudioEnvelope</code> to create an envelope for the gain node. To construct one, use a record with the following parameters:<ul><li><code>p</code>: a list of numbers that will be interpolated over.</li><li><code>o</code>: the offset in time from the AudioContext clock's start time.</li><li><code>d</code>: the duration of the envelope.</li></ul></li>
@@ -86,6 +68,7 @@ scene m cb =
 
 
 data UIEvents = Init | Start | Stop (Effect Unit)
+
 
 oon o = bang $ onOff $ AudioOnOff { n: _on, o }
 oof o = bang $ onOff $ AudioOnOff { n: _off, o }

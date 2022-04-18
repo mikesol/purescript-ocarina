@@ -25,7 +25,7 @@ import Unsafe.Coerce (unsafeCoerce)
 import WAGS.Control (class ValidateOutputChannelCount)
 import WAGS.Core (AudioInterpret(..), MeOrParent(..))
 import WAGS.Core as C
-import WAGS.Parameter (AudioParameter, WriteHead)
+import WAGS.Parameter (AudioParameter)
 import WAGS.WebAPI (AudioContext, BrowserAudioBuffer)
 import WAGS.WebAPI as WebAPI
 import Web.File.Blob (Blob)
@@ -253,12 +253,6 @@ audioBuffer
   -> Vec bch (Vec blen Number)
   -> AudioBuffer
 audioBuffer i v = AudioBuffer i (map V.toArray $ V.toArray v)
-
-writeHead :: Number -> WebAPI.AudioContext -> WriteHead Behavior
-writeHead lookAhead ctx = behavior \eab -> makeEvent \k ->
-  subscribe eab \ab -> do
-    t <- getAudioClockTime ctx
-    k (ab { concreteTime: t, abstractTime: t - lookAhead, lookAhead })
 
 -- foreign
 data FFIAudioSnapshot

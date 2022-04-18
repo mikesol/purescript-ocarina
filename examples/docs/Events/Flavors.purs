@@ -18,6 +18,8 @@ px = Proxy :: Proxy
     <li>Things that are scheduled to happen in the future, for example with <code>setTimeout</code>.</li>
   </ul>
 
+  <p>The next three examples cover all three cases.</p>
+
 </section>"""
 
 flavors :: forall payload. Element Event payload

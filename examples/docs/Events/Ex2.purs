@@ -1,8 +1,7 @@
-module WAGS.Example.Docs.Events.Ex1 where
+module WAGS.Example.Docs.Events.Ex2 where
 
 import Prelude
 
-import Control.Alt ((<|>))
 import Control.Alt ((<|>))
 import Control.Alt (alt, (<|>))
 import Control.Plus (class Plus)
@@ -79,23 +78,27 @@ import Web.HTML.HTMLInputElement (fromEventTarget, valueAsNumber)
 
 px =
   Proxy    :: Proxy         """<section>
-  <h2>Example 2: Three sliders</h2>
+  <h2>Example 3: Fascinating rhyhtm</h2>
 
-  <p>In this example, we'll use three sliders to control the playback rate, the start time, and the end time of a looping buffer.</p>
+  <p>Wags comes with several different ways to hook into the Web Audio API's sample-accurate timers. In this section, we'll use a Wags <code>interval</code> event to create a sample-accurate ticker. We'll also use a <code>random</code> beahvior to change up our samples.</p>
 
-  <p>There is a fair bit of DOM-related code in this example, so before showing the whole thing, let's isolate the Wags bit.</p>
+  <p><code>interval :: AudioContext -> Event Number -> Event Number</code> in wags is similar to <a href=""><code>interval :: Int -> Event Instant</code></a> from the <code>Event</code> library with a few important exceptions.</p>
+
+  <ul>
+    <li>The wags interval works in seconds (<code>Number</code>) instead of milliseconds.</li>
+    <li>The wags interval needs an audio context to work.</li>
+    <li>The wags interval gets its timing from an <code>Event Number</code> instead of a plain old <code>Number</code>. This is necessary to have variable rates.</li>
+  </ul>
+
+  <blockquote><code>interval</code> works fine for a stream of events where each event is separated by more than ~100 milliseconds. For anything faster, you'll likely want to use <code>requestAnimationLoop</code> coupled with a local state, as it will be more efficient for older and battery-sensitive devices.</blockquote>
 
   <pre><code>@wagtxt@</code></pre>
 
-  <p>Note that our loopBuf consumes four events: in addition to the three sliders, there is a <code>pureOn</code> event that turns it on.</p>
-
-  <p>Because each slider event contains a number, we can compose it with a function from <code>WAGS.Properties</code>, like <code>playbackRate</code> or <code>loopStart</code>, to create an event that controls a Wags parameter. The <code>oneOf</code> directive indicates that the incoming event will be "one of" the events in the array. It's also possible to use the tie-fighter, aka <code>alt</code>, to separate each event, but I like the array syntax when possible as tie fighters do, after all, work for the Empire, and who likes the Empire?</p>
-
-  <p>And below you'll find the full example. It also shows useful patterns like downloading audio files and filtering events.</p>
+  <p></p>
 
   <pre><code>@txt@</code></pre>
 
-  @ex1@
+  @ex2@
 
   <p>Unlike the previous examples, this one and all subsequent ones are "batteries included", meaning they are single-file, self-contained PureScript examples that you can compile and run yourself.</p>
 
@@ -266,9 +269,9 @@ uip = prjs_ (Proxy :: _ UIEvents)
 atari =
   "https://freesound.org/data/previews/100/100981_1234256-lq.mp3"
 
-ex1
+ex2
   :: forall payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Element Event payload
-ex1 ccb _ ev = makePursx' (Proxy :: _ "@") px
+ex2 ccb _ ev = makePursx' (Proxy :: _ "@") px
   { wagtxt: nut
       ( text_
           """run2_
@@ -282,7 +285,7 @@ ex1 ccb _ ev = makePursx' (Proxy :: _ "@") px
       ]"""
       )
   , txt: nut (text_ txt)
-  , ex1: nut
+  , ex2: nut
       ( bang (unit /\ Sg.Insert)
           @@ \_ -> mkExists $ SubgraphF \push event -> -- here
             do
