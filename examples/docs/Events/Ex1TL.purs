@@ -55,7 +55,8 @@ derive instance Eq State
 instance Hashable State where
   hash (State v) = match { loading: \_ -> 0, loaded: \_ -> 1 } v
 
-atari = "https://freesound.org/data/previews/100/100981_1234256-lq.mp3"
+atari =
+  "https://freesound.org/data/previews/100/100981_1234256-lq.mp3"
 
 main :: Effect Unit
 main = do
