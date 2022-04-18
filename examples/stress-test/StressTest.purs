@@ -22,7 +22,7 @@ import Effect (Effect)
 import Effect.Aff (Aff, launchAff_)
 import Effect.Class (liftEffect)
 import FRP.Behavior (sample_)
-import FRP.Event (class IsEvent, Event, subscribe)
+import FRP.Event (Event, class IsEvent, Event, subscribe)
 import FRP.Event.Animate (animationFrameEvent)
 import FRP.Event.Class (bang)
 import FRP.Event.Memoizable as Memoizable

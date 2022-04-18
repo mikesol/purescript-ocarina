@@ -6,7 +6,7 @@ import Control.Plus (class Plus)
 import Deku.Core (Element)
 import Deku.Pursx (makePursx')
 import Effect (Effect)
-import FRP.Event (class IsEvent)
+import FRP.Event (Event, class IsEvent)
 import Type.Proxy (Proxy(..))
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
 import WAGS.Example.Docs.Util (ccassp, mkNext, scrollToTop)
@@ -39,7 +39,7 @@ px = Proxy :: Proxy
       </ul>
   </section>"""
 
-ffIntro :: forall event payload. IsEvent event => Plus event => CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> event SingleSubgraphEvent  -> Element event payload
+ffIntro :: forall payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent  -> Element Event payload
 ffIntro cca' dpage ssp ev = makePursx'  (Proxy :: _ "@") px
   { hwLink: mnx HelloWorld
   }

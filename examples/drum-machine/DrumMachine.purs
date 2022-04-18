@@ -15,7 +15,7 @@ import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect)
 import Effect.Ref as Ref
 import FRP.Behavior (behavior)
-import FRP.Event (makeEvent, subscribe)
+import FRP.Event (Event, makeEvent, subscribe)
 import FRP.Event.Time (interval)
 
 -- type SceneTemplate

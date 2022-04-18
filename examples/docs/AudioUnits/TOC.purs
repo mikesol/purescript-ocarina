@@ -4,7 +4,7 @@ module WAGS.Example.Docs.AudioUnits.TOC where
 import Control.Plus (class Plus)
 import Deku.Core (Element)
 import Deku.Pursx ((~~))
-import FRP.Event (class IsEvent)
+import FRP.Event (Event, class IsEvent)
 import Type.Proxy (Proxy(..))
 
 px = Proxy :: Proxy """<ul>
@@ -39,7 +39,7 @@ px = Proxy :: Proxy """<ul>
     </ul>
 """
 
-toc :: forall event payload. IsEvent event => Plus event => Element event payload
+toc :: forall payload. Element Event payload
 toc = px ~~
   {
   }

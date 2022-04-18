@@ -10,7 +10,7 @@ import Deku.Control (text_)
 import Deku.Core (Element)
 import Deku.Pursx (nut, (~~))
 import Effect (Effect)
-import FRP.Event (class IsEvent)
+import FRP.Event (Event, class IsEvent)
 import Math (pi)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (loopBuf, waveShaper)
@@ -32,7 +32,7 @@ px =
 """
 
 waveShaperEx
-  :: forall event payload. IsEvent event => Plus event => CancelCurrentAudio -> (Page -> Effect Unit) -> event SingleSubgraphEvent -> Element event payload
+  :: forall payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Element Event payload
 waveShaperEx ccb _ ev = px ~~
   { code: nut
       ( text_

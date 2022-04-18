@@ -6,7 +6,7 @@ import Control.Plus (class Plus)
 import Deku.Core (Element)
 import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
-import FRP.Event (class IsEvent)
+import FRP.Event (Event, class IsEvent)
 import Type.Proxy (Proxy(..))
 import WAGS.Example.Docs.FixFan.AI0 as AI0
 import WAGS.Example.Docs.FixFan.AI1 as AI1
@@ -75,7 +75,7 @@ px = Proxy :: Proxy
   <p>In this section, saw how to combine together audio nodes with squiggles, fan one audio node to many processing chains via <code>fan</code>, and how to create a fixed point, aka feedback, for a node via <code>fix</code>. In the next section, we'll ramp up on all of the yummy <a @next@ style="cursor:pointer;">audio nodes you can use</a>.</p>
 </div>"""
 
-fixFan :: forall event payload. IsEvent event => Plus event => CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> event SingleSubgraphEvent  -> Element event payload
+fixFan :: forall payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent  -> Element Event payload
 fixFan cca' dpage ssp ev = makePursx'  (Proxy :: _ "@") px
   { intro: nut (FFIntro.ffIntro cca' dpage ssp ev)
   , next: mnx AudioUnits

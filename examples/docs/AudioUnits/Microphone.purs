@@ -7,7 +7,7 @@ import Data.Maybe (Maybe(..))
 import Deku.Core (Element)
 import Deku.Pursx (makePursx', nut, (~~))
 import Effect (Effect)
-import FRP.Event (class IsEvent)
+import FRP.Event (Event, class IsEvent)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (delay_, gain_, microphone, sinOsc_, (~), (:*))
 import WAGS.Core (fix, input)
@@ -36,7 +36,7 @@ px =
 """
 
 microphoneEx
-  :: forall event payload. IsEvent event => Plus event => CancelCurrentAudio -> (Page -> Effect Unit) -> event SingleSubgraphEvent -> Element event payload
+  :: forall payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Element Event payload
 microphoneEx ccb _ ev = makePursx' (Proxy :: _ "@") px
   { microphone: nut
       ( audioWrapper ev ccb (getMicrophoneAndCamera true false)

@@ -20,7 +20,7 @@ import Effect (Effect)
 import Effect.Aff (Aff, launchAff_)
 import Effect.Class (liftEffect)
 import FRP.Behavior (sample_)
-import FRP.Event (Event, class IsEvent, subscribe)
+import FRP.Event (Event, Event, class IsEvent, subscribe)
 import FRP.Event.Animate (animationFrameEvent)
 import FRP.Event.Class (bang)
 import Math (pi, sin, (%))
@@ -39,11 +39,10 @@ import Web.HTML.HTMLElement (toElement)
 import Web.HTML.Window (document)
 
 scene
-  :: forall event payload
-   . IsEvent event
-  => BrowserAudioBuffer
-  -> WriteHead event
-  -> AudioInput D2 "" () event payload
+  :: forall payload
+   . BrowserAudioBuffer
+  -> WriteHead Event
+  -> AudioInput D2 "" () Event payload
 scene loopy wh =
   let
     tr = at_ wh (mul pi)

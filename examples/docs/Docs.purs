@@ -19,7 +19,7 @@ import Deku.DOM as D
 import Deku.Interpret (effectfulDOMInterpret, makeFFIDOMSnapshot)
 import Deku.Subgraph (SubgraphAction(..), subgraph)
 import Effect (Effect)
-import FRP.Event (class IsEvent, create, fold, keepLatest, subscribe)
+import FRP.Event (Event, class IsEvent, create, fold, keepLatest, subscribe)
 import FRP.Event.Class (bang)
 import WAGS.Example.Docs.Component as Component
 import WAGS.Example.Docs.Effects as Effects
@@ -55,12 +55,10 @@ p2tl :: Page -> TopLevelSg
 p2tl page = TopLevelSg { page, setPage: mempty, setCancellation: mempty }
 
 scene
-  :: forall event payload
-   . IsEvent event
-  => Plus event
-  => (ToplevelEvent -> Effect Unit)
-  -> event ToplevelEvent
-  -> Element event payload
+  :: forall payload
+   . (ToplevelEvent -> Effect Unit)
+  -> Event ToplevelEvent
+  -> Element Event payload
 scene push event' =
   flatten
     [ D.div_
@@ -154,7 +152,7 @@ scene push event' =
     event'
     { prevPage: Nothing, curPage: Intro, cancel: pure unit, pageChange: true }
 
-  page :: Subgraph TopLevelSg event payload
+  page :: Subgraph TopLevelSg Event payload
   page (TopLevelSg { page: pg, setCancellation, setPage }) = go pg
     where
     go Intro = mkExists $ SubgraphF (Intro.intro setCancellation setPage)

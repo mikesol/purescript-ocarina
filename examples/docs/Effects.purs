@@ -8,6 +8,7 @@ import Deku.Core (Element)
 import Deku.DOM as D
 import Deku.Pursx ((~~))
 import Effect (Effect)
+import FRP.Event (Event)
 import FRP.Event.Class (class IsEvent, bang)
 import Type.Proxy (Proxy(..))
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
@@ -86,7 +87,7 @@ px = Proxy :: Proxy """<div>
   <p>Using <code>fold</code> and <code>fix</code>, we can create internal state in our Web Audio works that would be really tedious and error-prone to achieve in vanilla JS or other compile-to-JS languages. There's still one nagging issue that we haven't addressed, though. For all of the flexibility we can achieve with events, we still can't flex the audio graph itself, meaning that we can't add or remove components. In the next two sections, we'll learn two ways to do that. Let's start with exploring <a ~next~ style="cursor:pointer;">subgraphs</a>.</p>
 </div>"""
 
-effects :: forall event payload. IsEvent event => Plus event => CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> event SingleSubgraphEvent   -> Element event payload
+effects :: forall payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent   -> Element Event payload
 effects ccb dpage _ _= px ~~
   { next: bang (D.OnClick := (cb (const $ dpage Subgraph *> scrollToTop)))
   }

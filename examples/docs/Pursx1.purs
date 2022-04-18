@@ -8,7 +8,7 @@ import Deku.Core (Element)
 import Deku.DOM as D
 import Deku.Pursx ((~~))
 import Effect (Effect)
-import FRP.Event (class IsEvent)
+import FRP.Event (Event, class IsEvent)
 import FRP.Event.Class (bang)
 import Type.Proxy (Proxy(..))
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
@@ -129,7 +129,7 @@ px = Proxy :: Proxy """<div>
 </div>"""
 
 
-pursx1 :: forall event payload. IsEvent event => Plus event => CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> event SingleSubgraphEvent -> Element event payload
+pursx1 :: forall payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent -> Element Event payload
 pursx1 _ dpage _ _ = px ~~
   { next: bang (D.OnClick := (cb (const $ dpage Events *> scrollToTop)))
   }

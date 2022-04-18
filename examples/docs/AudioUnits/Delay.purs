@@ -6,7 +6,7 @@ import Control.Plus (class Plus)
 import Deku.Core (Element)
 import Deku.Pursx (makePursx', nut, (~~))
 import Effect (Effect)
-import FRP.Event (class IsEvent)
+import FRP.Event (Event, class IsEvent)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (delay_, gain_, playBuf, (~))
 import WAGS.Core (input, fan)
@@ -36,7 +36,7 @@ px =
   </section>
 """
 
-delay :: forall event payload. IsEvent event => Plus event => CancelCurrentAudio -> (Page -> Effect Unit) -> event SingleSubgraphEvent -> Element event payload
+delay :: forall payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Element Event payload
 delay ccb _ ev = makePursx' (Proxy :: _ "@") px
   { delay: nut
       ( audioWrapper ev ccb (ctxAff \ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/339/339822_5121236-lq.mp3")

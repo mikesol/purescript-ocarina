@@ -21,7 +21,7 @@ import Deku.Subgraph (SubgraphAction(..), subgraph)
 import Effect (Effect)
 import Effect.Aff (launchAff_, try)
 import Effect.Class (liftEffect)
-import FRP.Event (Event, create, filterMap, fold, keepLatest, mapAccum, subscribe)
+import FRP.Event (Event, Event, create, filterMap, fold, keepLatest, mapAccum, subscribe)
 import FRP.Event.Class (bang)
 import WAGS.Example.AtariSpeaks as AtariSpeaks
 import WAGS.Example.HelloWorld as HelloWorld

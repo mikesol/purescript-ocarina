@@ -15,7 +15,7 @@ module WAGS.Example.MediaElement where
 -- import Effect.Aff.Class (class MonadAff)
 -- import Effect.Class (class MonadEffect)
 -- import Effect.Console as Log
--- import FRP.Event (subscribe)
+-- import FRP.Event (Event, subscribe)
 
 -- vol = 1.4 :: Number
 

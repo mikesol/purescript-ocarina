@@ -11,7 +11,7 @@ import Data.Tuple (Tuple(..))
 import Deku.Core (Element)
 import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
-import FRP.Event (class IsEvent)
+import FRP.Event (Event, class IsEvent)
 import FRP.Event.Class (bang)
 import Math (pow)
 import Type.Proxy (Proxy(..))
@@ -48,7 +48,7 @@ px =
   </div>
 """
 
-ai1 :: forall event payload. IsEvent event => Plus event => CancelCurrentAudio -> (Page -> Effect Unit) -> event SingleSubgraphEvent -> Element event payload
+ai1 :: forall payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Element Event payload
 ai1 ccb _ ev = makePursx' (Proxy :: _ "@") px
   { ai0: nut
       ( audioWrapper ev ccb

@@ -19,7 +19,7 @@ import Deku.Pursx (makePursx', nut)
 import Deku.Subgraph ((@@))
 import Deku.Subgraph as Sg
 import Effect (Effect)
-import FRP.Event (class IsEvent, Event, subscribe)
+import FRP.Event (Event, class IsEvent, Event, subscribe)
 import FRP.Event.Class (bang)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (gain_, microphone, playBuf, recorder, singleton, speaker2, (~))
@@ -60,11 +60,11 @@ scene m cb =
     (recorder cb (microphone m))
 
 ex5
-  :: forall event payload. IsEvent event => Plus event => CancelCurrentAudio -> (Page -> Effect Unit) -> event SingleSubgraphEvent -> Element event payload
+  :: forall payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Element Event payload
 ex5 ccb _ ev = makePursx' (Proxy :: _ "@") px
   { ex5: nut
       ( bang (unit /\ Sg.Insert)
-          @@ \_ -> mkExists $ SubgraphF \push (event' :: event RecorderStates) ->
+          @@ \_ -> mkExists $ SubgraphF \push (event' :: Event RecorderStates) ->
             let
               ptn = partitionMap identity event'
               event = mkWrapperEvent ev (_.right ptn)

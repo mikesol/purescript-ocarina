@@ -6,7 +6,7 @@ import Control.Plus (class Plus)
 import Deku.Core (Element)
 import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
-import FRP.Event (class IsEvent)
+import FRP.Event (Event, class IsEvent)
 import Type.Proxy (Proxy(..))
 import WAGS.Example.Docs.Events.Ex0 as Ex0
 import WAGS.Example.Docs.Events.Ex1 as Ex1
@@ -74,7 +74,7 @@ type Behavior = ABehavior Event
   <p>In this section, saw how to build rich audio applications using the <code>Event</code> and <code>Behavior</code> types. In the next section, we'll look at how to <a @next@ style="cursor:pointer;">merge and split audio</a>.</p>
 </div>"""
 
-events :: forall event payload. IsEvent event => Plus event => CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> event SingleSubgraphEvent -> Element event payload
+events :: forall payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent -> Element Event payload
 events cca' dpage ssp ev = makePursx'  (Proxy :: _ "@") px
   { next: mnx MultiChannel
   , ex0: nut $ Ex0.ex0 ccb dpage ev

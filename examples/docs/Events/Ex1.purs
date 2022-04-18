@@ -47,7 +47,7 @@ import Effect (Effect)
 import Effect (Effect)
 import Effect.Aff (launchAff, launchAff_)
 import Effect.Class (liftEffect)
-import FRP.Event (class IsEvent)
+import FRP.Event (Event, class IsEvent)
 import FRP.Event.Class (bang)
 import FRP.Event.Class (bang, biSampleOn)
 import FRP.Event.Class (bang, biSampleOn, filterMap, keepLatest)
@@ -267,7 +267,7 @@ atari =
   "https://freesound.org/data/previews/100/100981_1234256-lq.mp3"
 
 ex1
-  :: forall event payload. IsEvent event => Plus event => CancelCurrentAudio -> (Page -> Effect Unit) -> event SingleSubgraphEvent -> Element event payload
+  :: forall payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Element Event payload
 ex1 ccb _ ev = makePursx' (Proxy :: _ "@") px
   { wagtxt: nut
       ( text_
@@ -284,10 +284,12 @@ ex1 ccb _ ev = makePursx' (Proxy :: _ "@") px
   , txt: nut (text_ txt)
   , ex1: nut
       ( bang (unit /\ Sg.Insert)
-          @@ \_ -> mkExists $ SubgraphF \push (event :: event UIEvents) -> -- here
+          @@ \_ -> mkExists $ SubgraphF \push event -> -- here
             do
               let
                 ss = bang (ssi.start unit) <|> filterMap uip.startStop event
+                startE = filterMap ssp.start ss
+                stopE = filterMap ssp.stop ss
                 sl = filterMap uip.slider event
                 sl0 = filterMap slp.s0 sl
                 sl1 = filterMap slp.s1 sl
@@ -295,7 +297,6 @@ ex1 ccb _ ev = makePursx' (Proxy :: _ "@") px
                 -- ugh, problem is that if we are in the land of run
                 -- then we need to be using Event
                 -- but we are inheriting something of type Event
-                music :: BrowserAudioBuffer -> Node D2 "" () event payload
                 music buffer = loopBuf buffer
                   $ oneOf
                       [ pureOn
@@ -355,10 +356,7 @@ ex1 ccb _ ev = makePursx' (Proxy :: _ "@") px
                                   }
                               )
                         )
-                        [ text $ ss <#> match
-                            { stop: \_ -> "Turn off"
-                            , start: \_ -> "Turn on"
-                            }
+                        [ text $ oneOf [map (const "Turn off") stopE, map (const "Turn on") startE]
                         ]
                     ]
       -- D.div_

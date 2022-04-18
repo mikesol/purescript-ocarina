@@ -30,7 +30,7 @@ import Deku.Subgraph as Sg
 import Deku.Toplevel ((🚀))
 import Effect (Effect)
 import Effect (Effect)
-import FRP.Event (class IsEvent, Event, subscribe)
+import FRP.Event (Event, class IsEvent, Event, subscribe)
 import FRP.Event.Class (bang)
 import FRP.Event.Class (bang, biSampleOn)
 import Math (pow)
@@ -183,7 +183,7 @@ main = Init 🚀 \push event ->
 """
 
 ex0
-  :: forall event payload. IsEvent event => Plus event => CancelCurrentAudio -> (Page -> Effect Unit) -> event SingleSubgraphEvent -> Element event payload
+  :: forall payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Element Event payload
 ex0 ccb _ ev = makePursx' (Proxy :: _ "@") px
   { txt: nut (text_ txt)
   , ex0: nut

@@ -11,7 +11,7 @@ import Data.Typelevel.Num (D0, D1, d0, d1)
 import Effect (Effect)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect)
-import FRP.Event (subscribe)
+import FRP.Event (Event, subscribe)
 import Math (cos, pi)
 import Web.File.Blob as Blob
 import Web.File.Url (createObjectURL)

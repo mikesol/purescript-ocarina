@@ -6,7 +6,7 @@ import Control.Plus (class Plus)
 import Deku.Core (Element)
 import Deku.Pursx (makePursx')
 import Effect (Effect)
-import FRP.Event (class IsEvent)
+import FRP.Event (Event, class IsEvent)
 import Type.Proxy (Proxy(..))
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent, SingleSubgraphPusher)
 
@@ -25,10 +25,8 @@ px =
 
 
 pursx2
-  :: forall event payload
-   . IsEvent event
-  => Plus event
-  => CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> event SingleSubgraphEvent
-  -> Element event payload
+  :: forall payload
+   . CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent
+  -> Element Event payload
 pursx2 _ dpage _ _ = makePursx' (Proxy :: _ "~") px
   { }

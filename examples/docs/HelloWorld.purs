@@ -10,6 +10,7 @@ import Deku.Core (Element)
 import Deku.DOM as D
 import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
+import FRP.Event (Event)
 import FRP.Event.Class (bang, class IsEvent)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (gain_, sinOsc)
@@ -58,14 +59,12 @@ px = Proxy :: Proxy """<div>
 </div>"""
 
 helloWorld
-  :: forall event payload
-   . Plus event
-  => IsEvent event
-  => CancelCurrentAudio
+  :: forall payload
+   . CancelCurrentAudio
   -> (Page -> Effect Unit)
   -> SingleSubgraphPusher
-  -> event SingleSubgraphEvent
-  -> Element event payload
+  -> Event SingleSubgraphEvent
+  -> Element Event payload
 helloWorld cca' dpage ssp ev = makePursx' (Proxy :: _ "@") px
   { code: nut
       ( D.pre_

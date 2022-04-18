@@ -6,7 +6,7 @@ import Data.Maybe (Maybe)
 import Data.Tuple.Nested (type (/\), (/\))
 import Effect (Effect)
 import Effect.Ref as Ref
-import FRP.Event (Event, create, makeEvent, subscribe)
+import FRP.Event (Event, Event, create, makeEvent, subscribe)
 import WAGS.WebAPI (AudioContext)
 import Web.HTML (window)
 import Web.HTML.Window (requestAnimationFrame)

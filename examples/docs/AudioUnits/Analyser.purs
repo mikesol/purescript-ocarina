@@ -26,7 +26,7 @@ import Deku.Subgraph ((@@))
 import Deku.Subgraph as Sg
 import Effect (Effect, foreachE)
 import Effect.Ref (modify_, new, read, write)
-import FRP.Event (class IsEvent, Event, create, sampleOn_, subscribe)
+import FRP.Event (Event, class IsEvent, Event, create, sampleOn_, subscribe)
 import FRP.Event.Animate (animationFrameEvent)
 import FRP.Event.Class (bang)
 import Type.Proxy (Proxy(..))
@@ -99,11 +99,11 @@ stys = V.fill (\_ -> style4 +> style3 +> style2 +> style1 +> style0 +> V.empty) 
 mkSt i0 i1 e = map (\v -> if V.index (V.index v i0) i1 then D.Style := V.index (V.index stys i0) i1 else D.Style := bgWhite) e
 
 analyserEx
-  :: forall event payload. IsEvent event => Plus event => CancelCurrentAudio -> (Page -> Effect Unit) -> event SingleSubgraphEvent -> Element event payload
+  :: forall payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Element Event payload
 analyserEx ccb _ ev = px ~~
   { analyser: nut
       ( bang (unit /\ Sg.Insert)
-          @@ \_ -> mkExists $ SubgraphF \push (event' :: event AnalyserStates) ->
+          @@ \_ -> mkExists $ SubgraphF \push (event' :: Event AnalyserStates) ->
             let
               ptn = partitionMap identity event'
               event = mkWrapperEvent ev  (_.right ptn)

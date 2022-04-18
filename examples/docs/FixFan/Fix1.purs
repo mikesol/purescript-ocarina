@@ -7,7 +7,7 @@ import Deku.Control (text_)
 import Deku.Core (Element)
 import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
-import FRP.Event (class IsEvent)
+import FRP.Event (Event, class IsEvent)
 import FRP.Event.Class (bang)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (delay_, gain, gain_, highpass_, playBuf, (~))
@@ -38,7 +38,7 @@ fade1 = bang
   $ P.gain
   $ AudioEnvelope { p: [ 1.0, 1.0, 0.0 ], o: 0.0, d: 10.0 }
 
-fix1 :: forall event payload. IsEvent event => Plus event => CancelCurrentAudio -> (Page -> Effect Unit) -> event SingleSubgraphEvent -> Element event payload
+fix1 :: forall payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Element Event payload
 fix1 ccb _ ev = makePursx' (Proxy :: _ "@") px
   { txt: nut $ text_
       """dgh d g h i =

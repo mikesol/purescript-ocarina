@@ -15,6 +15,7 @@ import Deku.Subgraph as Sg
 import Effect (Effect)
 import Effect.Aff (Aff, Fiber, bracket, error, joinFiber, killFiber, launchAff, launchAff_, parallel, sequential)
 import Effect.Class (liftEffect)
+import FRP.Event (Event)
 import FRP.Event.Class (class IsEvent, bang, biSampleOn)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, SingleSubgraphEvent(..), SingleSubgraphPusher)
 import WAGS.Interpret (close, context)
@@ -68,13 +69,12 @@ clickCb cca push init i ev event = map
 mkWrapperEvent ev event' = bang Stopped <|> event'
 
 audioWrapper
-  :: forall a event payload
-   . IsEvent event
-  => event SingleSubgraphEvent
+  :: forall a payload
+   . Event SingleSubgraphEvent
   -> CancelCurrentAudio
   -> Aff a
   -> (a -> Effect (Effect Unit))
-  -> Element event payload
+  -> Element Event payload
 audioWrapper ev cca init i = bang (unit /\ Sg.Insert)
   @@ \_ -> mkExists $ SubgraphF \push event' ->
     let
@@ -94,14 +94,13 @@ audioWrapper ev cca init i = bang (unit /\ Sg.Insert)
         ]
 
 audioWrapperSpan
-  :: forall a event payload
-   . IsEvent event
-  => String
-  -> event SingleSubgraphEvent
+  :: forall a payload
+   . String
+  -> Event SingleSubgraphEvent
   -> CancelCurrentAudio
   -> Aff a
   -> (a -> Effect (Effect Unit))
-  -> Element event payload
+  -> Element Event payload
 audioWrapperSpan txt ev cca init i = bang (unit /\ Sg.Insert)
   @@ \_ -> mkExists $ SubgraphF \push event' ->
     let
