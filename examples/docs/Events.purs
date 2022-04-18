@@ -11,6 +11,7 @@ import Type.Proxy (Proxy(..))
 import WAGS.Example.Docs.Events.Ex0 as Ex0
 import WAGS.Example.Docs.Events.Ex1 as Ex1
 import WAGS.Example.Docs.Events.Ex2 as Ex2
+import WAGS.Example.Docs.Events.Primer as Primer
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
 import WAGS.Example.Docs.Util (ccassp, mkNext, scrollToTop)
 
@@ -25,41 +26,7 @@ px = Proxy :: Proxy
     The true magic of web audio lies in its ability to harness the rich interactivity built into the browser. We can use mouse clicks, finger swipes and animation loops to create beautiful audio landscapes. But how can we tame the complexity of all these events in an expressive, declarative, functional manner? Enter <code>Event</code>, the abstraction that allows us to build rich reactive works using Wags.
   </p>
 
-  <h2>Events, a primer</h2>
-
-  <p>The <code>Event</code> and <code>Behavior</code> types in PureScript are defined as such:</p>
-
-  <pre><code>newtype Event a =
-    Event ((a -> Effect Unit) -> Effect (Effect Unit))
-
-newtype ABehavior event a =
-  ABehavior (forall b. event (a -> b) -> event b)
-type Behavior = ABehavior Event
-</code></pre>
-
-  <p>Let's unpack what the contract of both types are saying.</p>
-
-  <h3>Event</h3>
-
-  <p>An event takes a pusher of type <code>a -> Effect Unit</code> to which you can push values of type <code>a</code>. What are the values? Whatever you want! It could be a mouse click, a slider's input, an animation loop thunk, whatever. The event returns a nested <code>Effect</code> - the outer one is triggered on event subscription and the inner one is triggered on event unsubscription. In the case of a click listener, for example, the outer effect will likely call <code>addEventListener</code> and the inner will likely call <code>removeEventListener</code>.</p>
-
-  <p>
-    When using Wags, you have to get your events from somewhere. At a minimum, you'll consume a browser interaction like a click or swipe that turns on the audio. In fact, without some form of human interaction, most browsers will block the Web Audio API from turning on.
-  </p>
-  <p>
-    <code>Events</code> are often produced within a web framework like <a href="https://github.com/mikesol/purescript-deku">Deku</a>, Halogen or React. They don't have to be, though - you can create and consume your own events.
-  </p>
-
-  <h3>Behavior</h3>
-
-  <p>
-    The <code>Behavior</code> type takes an event that needs to be "unlocked" (meaning in the form of <code>a -> b</code>, so an <code>a</code> is needed to unlock a <code>b</code>) and unlocks it with an <code>a</code>. Behaviors don't need to produce their <code>a</code> immediately. In fact, they don't need to produce it at all: it's entirely possible to create <code>Behavior (const empty)</code> that "mutes" the event. This resembles the physical world: when we want to observe a behavior, like the weather outside or the axial rotation of the Earth, there is a time-cost to observing anything that ranges from instantaneous to infinite.
-  </p>
-
-  <p>
-    In Wags, we usually want to observe the behavior of things like the mouse's position or an audio buffer's content. We'll do both in the following examples.
-  </p>
-
+  @primer@
   <h2>Events in Wags</h2>
   <p>Wags follows a consistent pattern: every audio unit accepts an event containing a <code>newtype</code> around a <code>Variant</code> of parameters that can be changed. Let's see a few examples:</p>
 
@@ -83,10 +50,18 @@ type Behavior = ABehavior Event
   </ul>
 
   <p>
-    This gets to one of the core design principles of Wags. It is built to get out of the way and let PureScript primitives shine. Idiomatic Wags projects use functional reactive programming as a way to "steer" web audio, and Wags aims to be a minimal viable framework to shepherd events to their web-audio destinations.
+    This gets to one of the core design principles of Wags. Idiomatic Wags projects use functional reactive programming as a way to "steer" web audio, and Wags aims to be a minimal viable framework to shepherd events to their web-audio destinations.
   </p>
 
   <h2>Three flavors of events.</h2>
+
+  <p>When we're in the browser, events tend to come in three broad categories:</p>
+
+  <ul>
+    <li>Things that need to happen <span style="font-weight: 800;">now</span>.</li>
+    <li>Things that happen as the result of a user interaction.</li>
+    <li>Things that are scheduled to happen in the future, for example with <code>setTimeout</code>.</li>
+  </ul>
 
   @ex0@
   @ex1@
@@ -99,6 +74,7 @@ type Behavior = ABehavior Event
 events :: forall payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent -> Element Event payload
 events cca' dpage ssp ev = makePursx'  (Proxy :: _ "@") px
   { next: mnx MultiChannel
+  , primer: nut $ Primer.primer
   , ex0: nut $ Ex0.ex0 ccb dpage ev
   , ex1: nut $ Ex1.ex1 ccb dpage ev
   , ex2: nut $ Ex2.ex2 ccb dpage ev
