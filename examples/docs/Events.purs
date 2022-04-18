@@ -32,7 +32,8 @@ px = Proxy :: Proxy
 
   <p>The <code>Event</code> and <code>Behavior</code> types in PureScript are defined as such:</p>
 
-  <pre><code>newtype Event a= Event ((a -> Effect Unit) -> Effect (Effect Unit))
+  <pre><code>newtype Event a =
+    Event ((a -> Effect Unit) -> Effect (Effect Unit))
 
 newtype ABehavior event a =
   ABehavior (forall b. event (a -> b) -> event b)

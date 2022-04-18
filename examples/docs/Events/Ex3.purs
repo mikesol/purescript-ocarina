@@ -30,7 +30,7 @@ import WAGS.WebAPI (BrowserMicrophone, MediaRecorderCb(..))
 
 px =
   Proxy    :: Proxy   """<section>
-  <h2>Example 4: requestAnimationFrame</h2>
+  <h2 id="example4">Example 4: requestAnimationFrame</h2>
 
   <p>When you're working with canvas animations, you'll almost always use <code>requestAnimationFrame</code> to create a loop for the animation. You can use <code>requestAnimationFrame</code> to "animate" your audio as well.</p>
 

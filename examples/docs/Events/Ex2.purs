@@ -30,7 +30,7 @@ import WAGS.WebAPI (BrowserMicrophone, MediaRecorderCb(..))
 
 px =
   Proxy    :: Proxy   """<section>
-  <h2>Example 3: A counter</h2>
+  <h2 id="example3">Example 3: A counter</h2>
 
   <p>In the following example, we emit as many sounds as clicks. So when we click once, we hear one sound, when we click twice, we hear two sounds, when we click thrice, we hear three sounds, and so forth and so on.</p>
 
