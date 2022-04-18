@@ -81,7 +81,7 @@ main = do
     scene = unwrap >>> match
       { loaded: \buffer -> mkExists $ SubgraphF \push event -> do
           let
-            ss = filterMap uip.startStop event
+            ss = bang (ssi.start unit) <|> filterMap uip.startStop event
             sl = filterMap uip.slider event
             sl0 = filterMap slp.s0 sl
             sl1 = filterMap slp.s1 sl
