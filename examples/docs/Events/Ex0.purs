@@ -70,6 +70,8 @@ px =
 
   @ex0@
 
+  <p>Unlike the previous examples, this one and all subsequent ones are "batteries included", meaning they are single-file, self-contained PureScript examples that you can compile and run yourself.</p>
+
 </section>
 """
 

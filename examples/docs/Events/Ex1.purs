@@ -33,7 +33,7 @@ px =
 
   <h2>Example 2: Three sliders</h2>
 
-  <p>In this example, we'll use a slider to control the playback rate of a buffer. Unlike the previous examples, this one and all subsequent ones will come "batteries included", meaning they'll be self-contained PureScript files that you can compile and run yourself on this <a>trypurescript</a> instance.</p>
+  <p>In this example, we'll use a slider to control the playback rate of a buffer.</p>
 
   <pre><code>placeholder</code></pre>
 
