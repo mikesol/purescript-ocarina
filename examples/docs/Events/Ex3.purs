@@ -1,4 +1,4 @@
-module WAGS.Example.Docs.Events.Ex3 where
+module WAGS.Example.Docs.Events.Ex2 where
 
 import Prelude
 
@@ -30,7 +30,7 @@ import WAGS.WebAPI (BrowserMicrophone, MediaRecorderCb(..))
 
 px =
   Proxy    :: Proxy   """<section>
-  <h2 id="example4">Example 4: requestAnimationFrame</h2>
+  <h2 id="example4">Example 3: requestAnimationFrame</h2>
 
   <p>When you're working with canvas animations, you'll almost always use <code>requestAnimationFrame</code> to create a loop for the animation. You can use <code>requestAnimationFrame</code> to "animate" your audio as well.</p>
 
@@ -40,7 +40,7 @@ px =
 
   <pre><code>placeholder</code></pre>
 
-  @ex3@
+  @ex2@
 
   <p>You can try it yourself by <a>following this trypurescript link.</a></p>
 
@@ -60,10 +60,10 @@ scene m cb =
   singleton
     (recorder cb (microphone m))
 
-ex3
+ex2
   :: forall payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Element Event payload
-ex3 ccb _ ev = makePursx' (Proxy :: _ "@") px
-  { ex3: nut
+ex2 ccb _ ev = makePursx' (Proxy :: _ "@") px
+  { ex2: nut
       ( bang (unit /\ Sg.Insert)
           @@ \_ -> mkExists $ SubgraphF \push (event' :: Event RecorderStates) ->
             let

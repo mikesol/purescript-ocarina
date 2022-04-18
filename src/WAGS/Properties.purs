@@ -33,6 +33,14 @@ frequency
   -> nt
 frequency = wrap <<< inj (Proxy :: Proxy "frequency") <<< toAudioParameter
 
+q
+  :: forall nt r ap
+   . Newtype nt (Variant (q :: AudioParameter | r))
+  => ToAudioParameter ap
+  => ap
+  -> nt
+q = wrap <<< inj (Proxy :: Proxy "q") <<< toAudioParameter
+
 gain
   :: forall nt r ap
    . Newtype nt (Variant (gain :: AudioParameter | r))
