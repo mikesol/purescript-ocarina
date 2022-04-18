@@ -1,13 +1,10 @@
 module WAGS.Example.Docs.Events.Primer where
 
-import Prelude
 
 import Deku.Core (Element)
 import Deku.Pursx (makePursx')
-import Effect (Effect)
 import FRP.Event (Event)
 import Type.Proxy (Proxy(..))
-import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent, SingleSubgraphPusher)
 
 px = Proxy :: Proxy
       """<section>
