@@ -8,6 +8,7 @@ import Data.Exists (Exists, mkExists)
 import Data.Filterable (filter, filterMap)
 import Data.Foldable (for_)
 import Data.Int (toNumber)
+import Data.Lens (over)
 import Data.Maybe (Maybe(..), maybe)
 import Data.Tuple (Tuple(..))
 import Data.Typelevel.Num (D2)
@@ -28,13 +29,13 @@ import FRP.Event.Memoizable as Memoizable
 import FRP.Event.Memoize (class MemoizableEvent, memoizeIfMemoizable)
 import FRP.Event.Memoized as Memoized
 import Math (pi, sin, (%))
-import WAGS.Clock (WriteHead, at_, ovnn, writeHead)
+import WAGS.Clock (WriteHead, fot, writeHead)
 import WAGS.Control (gain, sinOsc, speaker2, (:*))
 import WAGS.Core (AudioInput)
 import WAGS.Example.Utils (RaiseCancellation)
 import WAGS.Interpret (FFIAudioSnapshot, close, context, effectfulAudioInterpret', makeFFIAudioSnapshot)
 import WAGS.Math (calcSlope)
-import WAGS.Parameter (AudioNumeric(..), AudioOnOff(..), _off, _on)
+import WAGS.Parameter (AudioNumeric(..), AudioOnOff(..), _off, _on, opticN)
 import WAGS.Properties as Common
 import WAGS.WebAPI (AudioContext)
 import Web.HTML (window)
@@ -59,7 +60,7 @@ scene
   -> AudioInput D2 "" () event payload
 scene wh =
   let
-    tr = memoizeIfMemoizable (at_ wh (mul pi))
+    tr = memoizeIfMemoizable (fot wh (mul pi))
     gso a b c st ed = gain 0.0
       ( Common.gain <$>
           ( filterMap
@@ -87,7 +88,7 @@ scene wh =
           )
       )
       (sinOsc b
-          ( Common.frequency <<< (ovnn c) <$>
+          ( Common.frequency <<< (over opticN c) <$>
               ( filter
                   (\(AudioNumeric { o }) -> o % len < ed && o % len > st)
                   tr
@@ -96,9 +97,9 @@ scene wh =
                 ( filterMap
                     ( \(AudioNumeric { o }) ->
                         if o % len < st + 0.5 && o % len > st then
-                          (Just (AudioOnOff { n: _on, o }))
+                          (Just (AudioOnOff { x: _on, o }))
                         else if o % len < ed + 0.5 && o % len > ed then
-                          (Just (AudioOnOff { n: _off, o }))
+                          (Just (AudioOnOff { x: _off, o }))
                         else Nothing
                     )
                     tr

@@ -70,8 +70,8 @@ scene m cb =
 data UIEvents = Init | Start | Stop (Effect Unit)
 
 
-oon o = bang $ onOff $ AudioOnOff { n: _on, o }
-oof o = bang $ onOff $ AudioOnOff { n: _off, o }
+oon o = bang $ onOff $ AudioOnOff { x: _on, o }
+oof o = bang $ onOff $ AudioOnOff { x: _off, o }
 cell = lcmap toNumber \i -> do
   let
     ooo' x = oon (x + 0.27 * (i * (1.005 `pow` i)))
@@ -116,9 +116,9 @@ import WAGS.Run (run2_)
 data UIEvents = Init | Start | Stop (Effect Unit)
 
 -- an event to turn our oscillators on
-oon o = bang $ onOff $ AudioOnOff { n: _on, o }
+oon o = bang $ onOff $ AudioOnOff { x: _on, o }
 -- an event to turn our oscillators off
-oof o = bang $ onOff $ AudioOnOff { n: _off, o }
+oof o = bang $ onOff $ AudioOnOff { x: _off, o }
 -- an event with an envelope for our gain
 env o = bang $ P.gain
   $ AudioEnvelope

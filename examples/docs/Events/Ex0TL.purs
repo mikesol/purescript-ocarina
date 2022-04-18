@@ -23,9 +23,9 @@ import WAGS.Run (run2_)
 data UIEvents = Init | Start | Stop (Effect Unit)
 
 -- an event to turn our oscillators on
-oon o = bang $ onOff $ AudioOnOff { n: _on, o }
+oon o = bang $ onOff $ AudioOnOff { x: _on, o }
 -- an event to turn our oscillators off
-oof o = bang $ onOff $ AudioOnOff { n: _off, o }
+oof o = bang $ onOff $ AudioOnOff { x: _off, o }
 -- an event with an envelope for our gain
 env o = bang $ P.gain
   $ AudioEnvelope

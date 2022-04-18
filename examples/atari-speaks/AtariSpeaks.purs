@@ -7,6 +7,7 @@ import Control.Plus (empty)
 import Data.ArrayBuffer.Typed (toArray)
 import Data.Exists (Exists, mkExists)
 import Data.Foldable (for_, intercalate)
+import Data.Lens (over, view)
 import Data.Maybe (Maybe(..))
 import Data.String.Utils (unsafeRepeat)
 import Data.Tuple (Tuple(..))
@@ -26,12 +27,12 @@ import FRP.Event (Event, Event, create, filterMap, sampleOn, subscribe)
 import FRP.Event.Animate (animationFrameEvent)
 import FRP.Event.Class (bang)
 import Math (pi, sin)
-import WAGS.Clock (WriteHead, at_, ovnn, vwnn, writeHead)
+import WAGS.Clock (WriteHead, fot, writeHead)
 import WAGS.Control (analyser, gain, loopBuf, singleton, speaker2, (~))
 import WAGS.Core (AudioInput)
 import WAGS.Example.Utils (RaiseCancellation)
 import WAGS.Interpret (close, context, decodeAudioDataFromUri, effectfulAudioInterpret, getByteFrequencyData, makeFFIAudioSnapshot)
-import WAGS.Parameter (pureOn)
+import WAGS.Parameter (opticN, pureOn)
 import WAGS.Properties (loopEnd, loopStart, playbackRate)
 import WAGS.WebAPI (AnalyserNodeCb(..), AudioContext, BrowserAudioBuffer)
 import Web.HTML (window)
@@ -47,7 +48,7 @@ scene
   -> AudioInput D2 "" () Event payload
 scene atar cb wh =
   let
-    tr = at_ wh (mul pi)
+    tr = fot wh (mul pi)
   in
     singleton
       ( analyser { cb } empty
@@ -56,7 +57,7 @@ scene atar cb wh =
                   ( loopBuf { buffer: atar, playbackRate: 1.0 }
                       ( pureOn <|>
                           playbackRate <<<
-                            (ovnn (\rad -> 1.0 + 0.1 * sin rad)) <$> tr
+                            (over opticN (\rad -> 1.0 + 0.1 * sin rad)) <$> tr
                       )
                   )
                   ~ gain 0.15 empty
@@ -64,15 +65,15 @@ scene atar cb wh =
                           ( pureOn
                               <|>
                                 playbackRate <<<
-                                  (ovnn (\rad -> 1.5 + 0.1 * sin (2.0 * rad)))
+                                  (over opticN (\rad -> 1.5 + 0.1 * sin (2.0 * rad)))
                                   <$> tr
                               <|>
                                 loopStart <<< (\rad -> 0.1 + 0.1 * sin rad)
-                                  <<< vwnn <$> tr
+                                  <<< view opticN <$> tr
                               <|>
                                 loopEnd
                                   <<< (\rad -> 0.5 + 0.25 * sin (2.0 * rad))
-                                  <<< vwnn <$> tr
+                                  <<< view opticN <$> tr
                           )
                       )
                   ~ gain 0.3 empty

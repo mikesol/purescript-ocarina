@@ -4,6 +4,7 @@ import Prelude
 
 import Data.Exists (Exists, mkExists)
 import Data.Foldable (for_)
+import Data.Lens (over)
 import Data.Maybe (Maybe(..), maybe)
 import Data.Tuple (Tuple(..))
 import Data.Tuple.Nested ((/\))
@@ -24,12 +25,12 @@ import FRP.Event (Event, Event, class IsEvent, subscribe)
 import FRP.Event.Animate (animationFrameEvent)
 import FRP.Event.Class (bang)
 import Math (pi, sin, (%))
-import WAGS.Clock (WriteHead, at_, ovnn, writeHead)
+import WAGS.Clock (WriteHead, fot, writeHead)
 import WAGS.Control (loopBuf, singleton, speaker2)
 import WAGS.Core (AudioInput, fan)
 import WAGS.Example.Utils (RaiseCancellation)
 import WAGS.Interpret (close, context, decodeAudioDataFromUri, effectfulAudioInterpret, makeFFIAudioSnapshot)
-import WAGS.Parameter (AudioNumeric(..), pureOn)
+import WAGS.Parameter (AudioNumeric(..), opticN, pureOn)
 import WAGS.Tumult (tumult)
 import WAGS.Tumult.Create.Optionals as Opt
 import WAGS.Tumult.Tumult.Make (tumultuously)
@@ -46,7 +47,7 @@ scene
   -> AudioInput D2 "" () Event payload
 scene loopy wh =
   let
-    tr = at_ wh (mul pi)
+    tr = fot wh (mul pi)
   in
     singleton $ fan (loopBuf loopy pureOn) \tmlt ->
       tumult
@@ -57,7 +58,7 @@ scene loopy wh =
                 | oo < 2.0 = tumultuously
                     { output: Opt.gain 1.0
                         { lp: Opt.lowpass
-                            ( ovnn (\x -> 1100.0 + 1000.0 * sin x)
+                            ( over opticN (\x -> 1100.0 + 1000.0 * sin x)
                                 anum
                             )
                             tmlt
@@ -67,7 +68,7 @@ scene loopy wh =
                 | oo < 4.0 = tumultuously
                     { output: Opt.gain 1.0
                         { bp: Opt.bandpass
-                            ( ovnn (\x -> 2000.0 + 1500.0 * sin x)
+                            ( over opticN (\x -> 2000.0 + 1500.0 * sin x)
                                 anum
                             )
                             tmlt
@@ -78,7 +79,7 @@ scene loopy wh =
                     { output: Opt.gain 1.0
                         { hs: Opt.gain 1.0
                             { x0: Opt.highshelf
-                                ( ovnn
+                                ( over opticN
                                     (\x -> 2600.0 + 1000.0 * sin x)
                                     anum
                                 )
@@ -92,7 +93,7 @@ scene loopy wh =
                 | oo < 8.0 = tumultuously
                     { output: Opt.gain 1.0
                         { ls: Opt.lowshelf
-                            ( ovnn (\x -> 2600.0 + 1000.0 * sin x)
+                            ( over opticN (\x -> 2600.0 + 1000.0 * sin x)
                                 anum
                             )
                             tmlt
@@ -102,7 +103,7 @@ scene loopy wh =
                 | otherwise = tumultuously
                     { output: Opt.gain 1.0
                         { hp: Opt.highpass
-                            ( ovnn (\x -> 2600.0 + 1000.0 * sin x)
+                            ( over opticN (\x -> 2600.0 + 1000.0 * sin x)
                                 anum
                             )
                             tmlt

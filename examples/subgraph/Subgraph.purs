@@ -6,6 +6,7 @@ import Control.Alt ((<|>))
 import Control.Plus (empty)
 import Data.Exists (Exists, mkExists)
 import Data.Foldable (for_)
+import Data.Lens (over)
 import Data.Maybe (Maybe(..), maybe)
 import Data.Tuple (Tuple(..), snd)
 import Data.Tuple.Nested ((/\))
@@ -25,13 +26,13 @@ import FRP.Event.Animate (animationFrameEvent)
 import FRP.Event.Class (bang)
 import FRP.Event.Time (interval)
 import Math (pi, sin)
-import WAGS.Clock (WriteHead, at_, ovnn, writeHead)
+import WAGS.Clock (WriteHead, fot, writeHead)
 import WAGS.Control (convolver, gain, highpass, loopBuf, lowpass, sinOsc, singleton, speaker2, triangleOsc, (:*))
 import WAGS.Core (AudioInput, InitializeConvolver(..), fan, input, mkSubgraph, subgraph)
 import WAGS.Core as C
 import WAGS.Example.Utils (RaiseCancellation)
 import WAGS.Interpret (close, context, decodeAudioDataFromUri, effectfulAudioInterpret, makeFFIAudioSnapshot)
-import WAGS.Parameter (pureOn)
+import WAGS.Parameter (opticN, pureOn)
 import WAGS.Properties (frequency)
 import WAGS.WebAPI (AudioContext, BrowserAudioBuffer)
 import Web.HTML (window)
@@ -54,7 +55,7 @@ scene
   -> AudioInput D2 "" () Event payload
 scene { loopy, conny } wh =
   let
-    tr = at_ wh (mul pi)
+    tr = fot wh (mul pi)
   in
     singleton $ fan (gain 1.0 empty (loopBuf loopy pureOn)) \(toSubg) ->
       subgraph
@@ -77,7 +78,7 @@ scene { loopy, conny } wh =
                       (gain 1.0 empty
                           ( highpass 1100.0
                               ( map
-                                  ( frequency <<< ovnn
+                                  ( frequency <<< over opticN
                                       ( \x -> 3100.0 + 1000.0 * sin
                                           (0.5 * x)
                                       )
@@ -92,7 +93,7 @@ scene { loopy, conny } wh =
                     mkSubgraph $ gain 1.0 empty
                       ( highpass 2200.0
                           ( map
-                              ( frequency <<< ovnn
+                              ( frequency <<< over opticN
                                   ( \x -> 2200.0 + 1000.0 * sin
                                       (0.5 * x)
                                   )
@@ -105,7 +106,7 @@ scene { loopy, conny } wh =
                                 (triangleOsc 2000.0
                                     ( pureOn <|>
                                         ( map
-                                            ( frequency <<< ovnn
+                                            ( frequency <<< over opticN
                                                 ( \x -> 2000.0 + 300.0 * sin
                                                     (0.5 * x)
                                                 )
@@ -120,7 +121,7 @@ scene { loopy, conny } wh =
                     mkSubgraph $ gain 1.0 empty
                       ( lowpass 1100.0
                           ( map
-                              ( frequency <<< ovnn
+                              ( frequency <<< over opticN
                                   ( \x -> 1100.0 + 1000.0 * sin
                                       (0.5 * x)
                                   )
@@ -133,7 +134,7 @@ scene { loopy, conny } wh =
                                 (sinOsc 820.0
                                     ( pureOn <|>
                                         ( map
-                                            ( frequency <<< ovnn
+                                            ( frequency <<< over opticN
                                                 ( \x -> 1100.0 + 1000.0 *
                                                     sin
                                                       (0.5 * x)

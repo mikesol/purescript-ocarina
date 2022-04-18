@@ -3,13 +3,15 @@ module WAGS.Parameter where
 import Prelude
 
 import Data.Generic.Rep (class Generic)
-import Data.Lens (over, view)
+import Data.Lens (Optic', over)
 import Data.Lens.Iso.Newtype (_Newtype, unto)
 import Data.Lens.Record (prop)
 import Data.Newtype (class Newtype, unwrap, wrap)
+import Data.Profunctor.Strong (class Strong)
 import Data.Variant (Variant, inj, match)
 import FRP.Event (class IsEvent)
 import FRP.Event.Class (bang)
+import Prim.Row (class Cons)
 import Type.Proxy (Proxy(..))
 
 newtype Transition = Transition
@@ -133,12 +135,12 @@ instance showOnOff :: Show OnOff where
     { on: const "on", off: const "off", offOn: const "offOn" }
 
 newtype AudioOnOff = AudioOnOff
-  { n :: OnOff
+  { x :: OnOff
   , o :: Number
   }
 
 apOn :: AudioOnOff
-apOn = AudioOnOff { n: _on, o: 0.0 }
+apOn = AudioOnOff { x: _on, o: 0.0 }
 
 pureOn
   :: forall event nt r
@@ -148,10 +150,10 @@ pureOn
 pureOn = bang (wrap $ inj (Proxy :: _ "onOff") apOn)
 
 apOff :: AudioOnOff
-apOff = AudioOnOff { n: _off, o: 0.0 }
+apOff = AudioOnOff { x: _off, o: 0.0 }
 
 apOffOn :: AudioOnOff
-apOffOn = AudioOnOff { n: _offOn, o: 0.0 }
+apOffOn = AudioOnOff { x: _offOn, o: 0.0 }
 
 dt
   :: forall nt r
@@ -170,10 +172,10 @@ class ToAudioOnOff i where
   toAudioOnOff :: i -> AudioOnOff
 
 instance ToAudioOnOff Number where
-  toAudioOnOff = AudioOnOff <<< { o: _, n: _on }
+  toAudioOnOff = AudioOnOff <<< { o: _, x: _on }
 
 instance ToAudioOnOff OnOff where
-  toAudioOnOff = AudioOnOff <<< { o: 0.0, n: _ }
+  toAudioOnOff = AudioOnOff <<< { o: 0.0, x: _ }
 
 instance ToAudioOnOff AudioOnOff where
   toAudioOnOff = identity
@@ -198,3 +200,27 @@ instance ToAudioParameter AudioCancel where
 
 instance ToAudioParameter AudioEnvelope where
   toAudioParameter = _envelope
+
+class OpticN s where
+  opticN :: forall p. Strong p => Optic' p s Number
+
+instance (Cons "n" Number r' r) => OpticN AudioNumeric where
+  opticN = unto AudioNumeric <<< prop (Proxy :: _ "n")
+
+instance (Cons "n" Number r' r) => OpticN AudioSudden where
+  opticN = unto AudioSudden <<< prop (Proxy :: _ "n")
+
+class OpticO s where
+  opticO :: forall p. Strong p => Optic' p s Number
+
+instance (Cons "n" Number r' r) => OpticO AudioOnOff where
+  opticO = unto AudioOnOff <<< prop (Proxy :: _ "o")
+
+instance (Cons "n" Number r' r) => OpticO AudioNumeric where
+  opticO = unto AudioNumeric <<< prop (Proxy :: _ "o")
+
+instance (Cons "n" Number r' r) => OpticO AudioEnvelope where
+  opticO = unto AudioEnvelope <<< prop (Proxy :: _ "o")
+
+instance (Cons "n" Number r' r) => OpticO AudioCancel where
+  opticO = unto AudioCancel <<< prop (Proxy :: _ "o")

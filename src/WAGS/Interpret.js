@@ -1284,13 +1284,13 @@ exports.setOnOff_ = function (aa) {
 		return function () {
 			var ptr = aa.id;
 			var onOff = aa.onOff;
-			if (onOff.n.type === "on") {
+			if (onOff.x.type === "on") {
 				setOn_(ptr)(onOff)(state)();
-			} else if (onOff.n.type === "off") {
+			} else if (onOff.x.type === "off") {
 				setOff_(ptr)(onOff)(state)();
-			} else if (onOff.n.type === "offOn") {
-				setOff_(ptr)({ n: { type: "off" }, o: 0.0 })(state)();
-				setOn_(ptr)({ n: { type: "on" }, o: onOff.o })(state)();
+			} else if (onOff.x.type === "offOn") {
+				setOff_(ptr)({ x: { type: "off" }, o: 0.0 })(state)();
+				setOn_(ptr)({ x: { type: "on" }, o: onOff.o })(state)();
 			}
 		};
 	};

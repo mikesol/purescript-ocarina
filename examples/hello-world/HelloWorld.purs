@@ -7,6 +7,7 @@ import Control.Plus (empty)
 import Data.Either (either)
 import Data.Exists (Exists, mkExists)
 import Data.Foldable (for_)
+import Data.Lens (over)
 import Data.Maybe (Maybe(..), maybe)
 import Data.Profunctor (lcmap)
 import Data.Tuple (Tuple(..))
@@ -26,14 +27,14 @@ import FRP.Event.Animate (animationFrameEvent)
 import FRP.Event.Class (bang)
 import Math (pi, sin)
 import Type.Proxy (Proxy(..))
-import WAGS.Clock (WriteHead, at_, ovnn, writeHead)
+import WAGS.Clock (WriteHead, fot, writeHead)
 import WAGS.Control (gain, sinOsc, speaker2, (:*))
 import WAGS.Core (AudioInput)
 import WAGS.Example.Utils (RaiseCancellation)
 import WAGS.Imperative (InitialGraphBuilder, runGraphBuilder)
 import WAGS.Imperative as I
 import WAGS.Interpret (close, context, effectfulAudioInterpret, makeFFIAudioSnapshot)
-import WAGS.Parameter (pureOn)
+import WAGS.Parameter (opticN, pureOn)
 import WAGS.Properties (frequency)
 import WAGS.WebAPI (AudioContext)
 import Web.HTML (window)
@@ -47,9 +48,9 @@ scene
   -> AudioInput D2 "" () Event payload
 scene wh =
   let
-    tr = at_ wh (mul pi)
+    tr = fot wh (mul pi)
     gso a b c = gain a empty
-      $ sinOsc b (pureOn <|> (frequency <<< (ovnn c) <$> tr))
+      $ sinOsc b (pureOn <|> (frequency <<< (over opticN c) <$> tr))
   in
     gso 0.1 440.0 (\rad -> 440.0 + (10.0 * sin (2.3 * rad))) :*
       [ gso 0.25 235.0 (\rad -> 235.0 + (10.0 * sin (1.7 * rad)))
@@ -84,8 +85,8 @@ scene' wh = I.do
   I.connect { from: sinOsc2, into: gain2 }
   I.connect { from: sinOsc3, into: gain3 }
   where
-  tr = at_ wh (mul pi)
-  so f = pureOn <|> (frequency <<< (ovnn f) <$> tr)
+  tr = fot wh (mul pi)
+  so f = pureOn <|> (frequency <<< (over opticN f) <$> tr)
 
 type UIAction = Maybe { unsub :: Effect Unit, ctx :: AudioContext }
 

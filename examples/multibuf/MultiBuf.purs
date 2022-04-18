@@ -101,7 +101,7 @@ sg
 sg ks = \(i /\ t /\ { lookAhead }) -> C.mkSubgraph $ gain 1.0 empty
   $ playBuf (if i `mod` 2 == 0 then ks.kick else ks.snare)
       ( bang $ onOff $ AudioOnOff
-          { n: _on
+          { x: _on
           , o: lookAhead + t
           }
       )
