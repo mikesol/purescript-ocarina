@@ -1,4 +1,4 @@
-module WAGS.Example.Docs.Events.Ex2 where
+module WAGS.Example.Docs.Events.Ex1 where
 
 import Prelude
 
@@ -95,7 +95,7 @@ px =
 
   <pre><code>@txt@</code></pre>
 
-  @ex2@
+  @ex1@
 
   <p>Unlike the previous examples, this one and all subsequent ones are "batteries included", meaning they are single-file, self-contained PureScript examples that you can compile and run yourself.</p>
 
@@ -266,9 +266,9 @@ uip = prjs_ (Proxy :: _ UIEvents)
 atari =
   "https://freesound.org/data/previews/100/100981_1234256-lq.mp3"
 
-ex2
+ex1
   :: forall payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Element Event payload
-ex2 ccb _ ev = makePursx' (Proxy :: _ "@") px
+ex1 ccb _ ev = makePursx' (Proxy :: _ "@") px
   { wagtxt: nut
       ( text_
           """run2_
@@ -282,7 +282,7 @@ ex2 ccb _ ev = makePursx' (Proxy :: _ "@") px
       ]"""
       )
   , txt: nut (text_ txt)
-  , ex2: nut
+  , ex1: nut
       ( bang (unit /\ Sg.Insert)
           @@ \_ -> mkExists $ SubgraphF \push event -> -- here
             do
