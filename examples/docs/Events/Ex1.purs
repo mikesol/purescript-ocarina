@@ -4,84 +4,44 @@ import Prelude
 
 import Control.Alt ((<|>))
 import Control.Alt ((<|>))
-import Control.Alt (alt, (<|>))
-import Control.Plus (class Plus)
-import Data.Array.NonEmpty ((..))
-import Data.Either (Either(..))
 import Data.Exists (mkExists)
-import Data.Exists (mkExists)
-import Data.Filterable (partitionMap)
 import Data.Foldable (oneOf, oneOfMap, traverse_)
-import Data.Hashable (class Hashable)
-import Data.Int (toNumber)
-import Data.Int (toNumber)
-import Data.Maybe (maybe)
-import Data.Newtype (class Newtype, unwrap)
-import Data.Profunctor (lcmap)
-import Data.Profunctor (lcmap)
 import Data.Tuple (Tuple(..))
 import Data.Tuple.Nested ((/\))
-import Data.Tuple.Nested ((/\))
-import Data.Typelevel.Num (D2)
 import Data.Variant (Variant, match)
 import Deku.Attribute (cb, (:=))
-import Deku.Attribute (cb, (:=))
-import Deku.Attribute (cb, (:=))
 import Deku.Control (text)
-import Deku.Control (text, text_)
 import Deku.Control (text, text_)
 import Deku.Core (Element, SubgraphF(..))
 import Deku.Core (SubgraphF(..))
 import Deku.DOM as D
-import Deku.DOM as D
-import Deku.DOM as D
 import Deku.Pursx (makePursx', nut)
 import Deku.Subgraph ((@@))
-import Deku.Subgraph ((@@))
 import Deku.Subgraph as Sg
-import Deku.Subgraph as Sg
-import Deku.Toplevel ((🚀))
-import Deku.Toplevel ((🚆))
-import Effect (Effect)
-import Effect (Effect)
 import Effect (Effect)
 import Effect.Aff (launchAff, launchAff_)
 import Effect.Class (liftEffect)
-import FRP.Event (Event, class IsEvent)
+import FRP.Event (Event)
 import FRP.Event.Class (bang)
 import FRP.Event.Class (bang, biSampleOn)
-import FRP.Event.Class (bang, biSampleOn, filterMap, keepLatest)
-import Math (pow)
+import FRP.Event.Class (bang, biSampleOn, filterMap)
 import Type.Proxy (Proxy(..))
-import Type.Proxy (Proxy(..))
-import WAGS.Control (gain_, gain, sinOsc, (~))
 import WAGS.Control (loopBuf)
-import WAGS.Control (microphone, recorder, singleton, speaker2)
-import WAGS.Core (AudioInput, Node)
-import WAGS.Core (ai)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..))
-import WAGS.Example.Docs.Util (WrapperStates(..), clickCb, mkWrapperEvent, raceSelf)
-import WAGS.Interpret (close, context, contextState, effectfulAudioInterpret, getMicrophoneAndCamera, makeFFIAudioSnapshot, mediaRecorderToUrl)
+import WAGS.Example.Docs.Util (raceSelf)
 import WAGS.Interpret (ctxAff, decodeAudioDataFromUri)
-import WAGS.Parameter (AudioEnvelope(..), AudioOnOff(..), _off, _on, apOff, apOn, dt)
 import WAGS.Parameter (pureOn)
 import WAGS.Properties (loopEnd, loopStart, playbackRate)
-import WAGS.Properties (onOff)
-import WAGS.Properties (onOff)
-import WAGS.Properties as P
-import WAGS.Run (run2_)
 import WAGS.Run (run2_)
 import WAGS.Variant (injs_, prjs_)
-import WAGS.WebAPI (BrowserAudioBuffer)
-import WAGS.WebAPI (BrowserMicrophone, MediaRecorderCb(..))
 import Web.Event.Event (target)
 import Web.HTML.HTMLInputElement (fromEventTarget, valueAsNumber)
 
 px =
   Proxy    :: Proxy         """<section>
-  <h2>Example 3: Fascinating rhythm</h2>
+ <h2>Example 2: Three sliders</h2>
 
-  <p>In this example, we'll create a timer using the .</p>
+  <p>In this example, we'll use three sliders to control the playback rate, the start time, and the end time of a looping buffer.</p>
 
   <p>There is a fair bit of DOM-related code in this example, so before showing the whole thing, let's isolate the Wags bit.</p>
 
@@ -96,8 +56,6 @@ px =
   <pre><code>@txt@</code></pre>
 
   @ex1@
-
-  <p>Unlike the previous examples, this one and all subsequent ones are "batteries included", meaning they are single-file, self-contained PureScript examples that you can compile and run yourself.</p>
 
 </section>
 """
@@ -251,18 +209,20 @@ main = do
       }"""
 
 type Slider = Variant (s0 :: Number, s1 :: Number, s2 :: Number)
-sli = injs_ (Proxy :: _ Slider)
-slp = prjs_ (Proxy :: _ Slider)
+sli = injs_ (Proxy :: Proxy Slider)
+slp = prjs_ (Proxy :: Proxy Slider)
 type StartStop = Variant (start :: Unit, stop :: Effect Unit, loading :: Unit)
-ssi = injs_ (Proxy :: _ StartStop)
-ssp = prjs_ (Proxy :: _ StartStop)
+ssi = injs_ (Proxy :: Proxy StartStop)
+ssp = prjs_ (Proxy :: Proxy StartStop)
 start = uii.startStop (ssi.start unit)
 loading = uii.startStop (ssi.loading unit)
 stop r = uii.startStop (ssi.stop r)
 type UIEvents = Variant (startStop :: StartStop, slider :: Slider)
-uii = injs_ (Proxy :: _ UIEvents)
-uip = prjs_ (Proxy :: _ UIEvents)
+uii = injs_ (Proxy :: Proxy UIEvents)
 
+uip = prjs_ (Proxy :: Proxy UIEvents)
+
+atari :: String
 atari =
   "https://freesound.org/data/previews/100/100981_1234256-lq.mp3"
 
@@ -359,24 +319,5 @@ ex1 ccb _ ev = makePursx' (Proxy :: _ "@") px
                         [ text $ oneOf [map (const "Turn off") stopE, map (const "Turn on") startE]
                         ]
                     ]
-      -- D.div_
-      --   [ D.button
-      --       ( (biSampleOn (bang (pure unit) <|> (map (\(SetCancel x) -> x) ev)) (map Tuple event)) <#> -- here
-      --           \(e /\ c) -> D.OnClick := cb -- here
-      --             ( const $ case e of
-      --                 Stop u -> u *> push Start *> ccb (pure unit) -- here
-      --                 _ -> do
-      --                   c -- here
-      --                   r <- run2_ $ gain_ 1.0
-      --                     $ ai $ 0 .. 100 <#> cell
-      --                   ccb (r *> push Start) -- here
-      --                   push $ Stop r
-      --             )
-      --       )
-      --       [ text $ event <#> case _ of
-      --           Stop _ -> "Turn off"
-      --           _ -> "Turn on"
-      --       ]
-      --   ]
       )
   }
