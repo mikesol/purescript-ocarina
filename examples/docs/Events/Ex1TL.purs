@@ -23,6 +23,7 @@ import FRP.Event.Class (bang, biSampleOn, filterMap, keepLatest)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (loopBuf)
 import WAGS.Interpret (ctxAff, decodeAudioDataFromUri)
+import WAGS.Parameter (pureOn)
 import WAGS.Properties (loopEnd, loopStart, playbackRate)
 import WAGS.Run (run2_)
 import WAGS.Variant (injs_, prjs_)
@@ -101,8 +102,8 @@ main = do
                     []
                 )
                 [ { mn: "0.5", mx: "5.0", f: sli.s0 }
-                , { mn: "0.5", mx: "5.0", f: sli.s1 }
-                , { mn: "0.5", mx: "5.0", f: sli.s2 }
+                , { mn: "0.0", mx: "1.0", f: sli.s1 }
+                , { mn: "0.01", mx: "1.0", f: sli.s2 }
                 ] <>
                 [ D.button
                     ( ss <#>
@@ -112,7 +113,8 @@ main = do
                                   push (uii.startStop (ssi.start unit))
                               , start: \_ -> do
                                   r <- run2_ $ loopBuf buffer
-                                    ( playbackRate <$> sl0
+                                    (pureOn
+                                        <|> playbackRate <$> sl0
                                         <|> loopStart <$> sl1
                                         <|> loopEnd <$> biSampleOn sl2
                                           (add <$> (bang 0.0 <|> sl1))
@@ -127,5 +129,6 @@ main = do
                         }
                     ]
                 ]
-      , loading: \_ -> mkExists $ SubgraphF \_ _ -> D.div_ [ text_ "Loading..." ]
+      , loading: \_ -> mkExists
+          $ SubgraphF \_ _ -> D.div_ [ text_ "Loading..." ]
       }
