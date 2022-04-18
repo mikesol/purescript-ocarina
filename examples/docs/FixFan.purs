@@ -65,7 +65,9 @@ px = Proxy :: Proxy
 
   <blockquote>If you don't have some sort of delay line in your processing chain, either the Web-Audio-provided delay line or a custom delay node, Web Audio will raise a runtime error. Wags doesn't check for this, so make sure you test your audio to guarantee that it's feedback-explosion-free!</blockquote>
 
-  <p>Nothing stops you from nesting fixes to create a mega-feedback loop! I've added a couple fades to make sure the experience isn't too unpleasant. We'll talk more about fades in the events section 🎸</p>
+  <p>Nothing stops you from nesting fixes to create a mega-feedback loop! When doing so, you'll likely have nested fixes. In this case, you'll need to use the <code>hint</code> function along with the input to the outer loop. <code>hint</code> helps the compiler with type inference: otherwise, it can't infer the type of the fixed point because of an otherwise-intractable situation where two fixed points' types depend on each other.</p>
+
+  <blockquote>In the example below, I've added a couple fades to make sure the experience isn't too unpleasant. We'll talk more about fades in the events section 🎸</blockquote>
 
   @code5@
 

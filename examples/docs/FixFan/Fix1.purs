@@ -57,17 +57,17 @@ scene buf = run2_
       \g0 -> gain_ 1.0
         ( input b
             ~ dgh 0.15 0.7 1500.0
-                ( hint (input g0) $ fix
+                ( hint g0 $ fix
                     \g1 -> gain 1.0 fade1
                       $ dgh 0.4 0.5 2500.0
                       $ input g0 ~ input g1
                 )
             ~ dgh 0.29 0.85 2000.0
-                ( hint (input g0) $ fix
+                ( hint g0 $ fix
                     \g1 -> gain_ 1.0
                       $ dgh 0.6 0.6 3500.0
                       $ input g0 ~
-                          ( hint (input g1) $ fix
+                          ( hint g1 $ fix
                               \g2 -> gain 1.0 fade0
                                 ( dgh 0.75 0.6 4000.0
                                     (input g1 ~ input g2)
@@ -83,17 +83,17 @@ scene buf = run2_
                 \g0 -> gain_ 1.0
                   ( input b
                       ~ dgh 0.15 0.7 1500.0
-                          ( hint (input g0) $ fix
+                          ( hint g0 $ fix
                               \g1 -> gain 1.0 fade1
                                 $ dgh 0.4 0.5 2500.0
                                 $ input g0 ~ input g1
                           )
                       ~ dgh 0.29 0.85 2000.0
-                          ( hint (input g0) $ fix
+                          ( hint g0 $ fix
                               \g1 -> gain_ 1.0
                                 $ dgh 0.6 0.6 3500.0
                                 $ input g0 ~
-                                    ( hint (input g1) $ fix
+                                    ( hint g1 $ fix
                                         \g2 -> gain 1.0 fade0
                                           ( dgh 0.75 0.6 4000.0
                                               (input g1 ~ input g2)

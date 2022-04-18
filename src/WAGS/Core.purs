@@ -129,7 +129,7 @@ fan (Node elt) f = Node go
 hint
   :: forall outputChannels produced consumed event payload
    . IsEvent event
-  => Node outputChannels produced consumed event payload
+  => Input produced consumed
   -> Node outputChannels produced consumed event payload
   -> Node outputChannels produced consumed event payload
 hint _ = identity

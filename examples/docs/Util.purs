@@ -6,7 +6,6 @@ import Control.Alt ((<|>))
 import Data.Exists (mkExists)
 import Data.Tuple (Tuple(..))
 import Data.Tuple.Nested ((/\))
---import Debug (spy)
 import Deku.Attribute (cb, (:=))
 import Deku.Control (text, text_)
 import Deku.Core (Element, SubgraphF(..))
@@ -14,9 +13,8 @@ import Deku.DOM as D
 import Deku.Subgraph ((@@))
 import Deku.Subgraph as Sg
 import Effect (Effect)
-import Effect.Aff (Aff, bracket, error, joinFiber, killFiber, launchAff, launchAff_)
+import Effect.Aff (Aff, Fiber, bracket, error, joinFiber, killFiber, launchAff, launchAff_, parallel, sequential)
 import Effect.Class (liftEffect)
--- import Effect.Class.Console (info)
 import FRP.Event.Class (class IsEvent, bang, biSampleOn)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, SingleSubgraphEvent(..), SingleSubgraphPusher)
 import WAGS.Interpret (close, context)
@@ -33,33 +31,39 @@ ccassp cca ssp e = do
   cca e
   ssp (SetCancel e)
 
+raceSelf :: Fiber (Effect Unit) -> Aff Unit
+raceSelf fib = sequential
+  ( parallel (joinFiber fib >>= liftEffect)
+      <|> parallel
+        ( killFiber
+            (error "We navigated away from the page")
+            fib
+        )
+  )
+
 clickCb cca push init i ev event = map
-            ( \(e /\ cncl) -> D.OnClick :=
-                ( cb $
-                    ( const $ case e of
-                        Loading -> pure unit
-                        Playing x -> x *> cca (pure unit) *> push Stopped
-                        Stopped -> do
-                          cncl
-                          push Loading
-                          fib <- launchAff do
-                            x <- init
-                            liftEffect do
-                              res <- i x
-                              push (Playing res)
-                              pure res
-                          cca do
-                            push Stopped
-                            toKill <- launchAff do
-                              joinFiber fib >>= liftEffect
-                            launchAff_ $ killFiber
-                              (error "We navigated away from the page")
-                              toKill
-                          pure unit
-                    )
-                )
-            )
-            (biSampleOn (bang (pure unit) <|> (map (\(SetCancel x) -> x) ev)) (map Tuple event))
+  ( \(e /\ cncl) -> D.OnClick :=
+      ( cb $
+          ( const $ case e of
+              Loading -> pure unit
+              Playing x -> x *> cca (pure unit) *> push Stopped
+              Stopped -> do
+                cncl
+                push Loading
+                fib <- launchAff do
+                  x <- init
+                  liftEffect do
+                    res <- i x
+                    push (Playing res)
+                    pure res
+                cca do
+                  push Stopped
+                  launchAff_ $ raceSelf fib
+                pure unit
+          )
+      )
+  )
+  (biSampleOn (bang (pure unit) <|> (map (\(SetCancel x) -> x) ev)) (map Tuple event))
 
 mkWrapperEvent ev event' = bang Stopped <|> event'
 
@@ -104,9 +108,9 @@ audioWrapperSpan txt ev cca init i = bang (unit /\ Sg.Insert)
       event = mkWrapperEvent ev event'
     in
       D.span
-        ((bang (D.Style := "cursor: pointer;")) <|>  (clickCb cca push init i ev event)
+        ( (bang (D.Style := "cursor: pointer;")) <|> (clickCb cca push init i ev event)
         )
-        [  text
+        [ text
             ( map
                 ( case _ of
                     Stopped -> txt
@@ -118,6 +122,6 @@ audioWrapperSpan txt ev cca init i = bang (unit /\ Sg.Insert)
         ]
 
 mkNext ev cpage = bang (D.OnClick := cb (const cpage))
-              <|> map (\cncl -> D.OnClick := cb (const (cncl *> cpage))) (map (\(SetCancel c) -> c) ev)
+  <|> map (\cncl -> D.OnClick := cb (const (cncl *> cpage))) (map (\(SetCancel c) -> c) ev)
 
 ctxAff = bracket (liftEffect context) (liftEffect <<< close)
