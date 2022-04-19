@@ -1327,6 +1327,11 @@ var setOn_ = function (ptr) {
 							state.units[ptr].bufferOffset
 						);
 					}
+				} else if (state.units[ptr].loopStart) {
+					state.units[ptr].main.start(
+						state.deprecatedWriteHead + onOffInstr.o,
+						state.units[ptr].loopStart
+					);
 				} else {
 					state.units[ptr].main.start(state.deprecatedWriteHead + onOffInstr.o);
 				}

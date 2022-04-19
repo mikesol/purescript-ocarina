@@ -158,7 +158,7 @@ main = uii.init unit 🚀 \push event -> do
         f0 = bangOn <|> frequency <<< cp <$> pitch
       ( fan (triangleOsc 0.0 f0) \tosc -> do
           let ipt = input tosc
-          gain_ 2.0
+          gain_ 3.0
             ( gain 0.0 (P.gain <$> e0)
                 ( bandpass_
                     { frequency: 1000.0
@@ -213,7 +213,7 @@ main = uii.init unit 🚀 \push event -> do
                   , start: \_ -> do
                       ctx <- context
                       myIvl <- memoize
-                        $ interval ctx 0.5
+                        $ interval ctx 0.91
                         $ map (calcSlope 0.0 0.42 100.0 1.4) sl
                       r <- run2 ctx (music (sampleBy Tuple random myIvl))
                       push (stop r)
@@ -293,7 +293,7 @@ ex2 ccb _ ev = makePursx' (Proxy :: _ "@") px
                     f0 = bangOn <|> frequency <<< cp <$> pitch
                   ( fan (triangleOsc 0.0 f0) \tosc -> do
                       let ipt = input tosc
-                      gain_ 2.0
+                      gain_ 3.0
                         ( gain 0.0 (P.gain <$> e0)
                             ( bandpass_
                                 { frequency: 1000.0
@@ -351,7 +351,7 @@ ex2 ccb _ ev = makePursx' (Proxy :: _ "@") px
                                   c
                                   ctx <- context
                                   myIvl <- memoize
-                                    $ interval ctx 0.5
+                                    $ interval ctx 0.91
                                     $ map (calcSlope 0.0 0.42 100.0 1.4) sl
                                   r <- run2 ctx (music (sampleBy Tuple random myIvl))
                                   ccb (r *> push start) -- here

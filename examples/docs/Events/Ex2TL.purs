@@ -144,7 +144,7 @@ main = uii.init unit 🚀 \push event -> do
                   , start: \_ -> do
                       ctx <- context
                       myIvl <- memoize
-                        $ interval ctx 0.5
+                        $ interval ctx 0.91
                         $ map (calcSlope 0.0 0.42 100.0 1.4) sl
                       r <- run2 ctx (music (sampleBy Tuple random myIvl))
                       push (stop r)
