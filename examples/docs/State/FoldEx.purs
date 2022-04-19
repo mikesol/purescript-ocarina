@@ -37,7 +37,7 @@ import WAGS.Run (run2)
 import WAGS.Variant (injs_, prjs_)
 
 px = Proxy :: Proxy """<section>
-  <h2>Folding</h2>
+  <h2>Fold</h2>
 
   <p>The type of <code>fold</code> is:</p>
 
