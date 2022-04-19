@@ -1,4 +1,4 @@
-module WAGS.Example.Docs.Events.Ex1TL where
+module WAGS.Example.Docs.Events.Ex2TL where
 
 import Prelude
 
@@ -22,7 +22,6 @@ import WAGS.Parameter (bangOn)
 import WAGS.Properties (loopEnd, loopStart, playbackRate)
 import WAGS.Run (run2, run2_)
 import WAGS.Variant (injs_, prjs_)
-import WAGS.WebAPI (BrowserAudioBuffer)
 import Web.Event.Event (target)
 import Web.HTML.HTMLInputElement (fromEventTarget, valueAsNumber)
 
