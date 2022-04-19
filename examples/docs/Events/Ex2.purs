@@ -29,7 +29,7 @@ import WAGS.Control (bandpass_, gain, gain_, highpass_, loopBuf, triangleOsc, (~
 import WAGS.Core (fan, input)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..))
 import WAGS.Example.Docs.Util (raceSelf)
-import WAGS.Interpret (context, ctxAff, decodeAudioDataFromUri)
+import WAGS.Interpret (close, context, ctxAff, decodeAudioDataFromUri)
 import WAGS.Math (calcSlope)
 import WAGS.Parameter (AudioEnvelope(..), bangOn)
 import WAGS.Properties (frequency, loopEnd, loopStart, playbackRate)
@@ -89,7 +89,7 @@ import Type.Proxy (Proxy(..))
 import WAGS.Clock (interval)
 import WAGS.Control (bandpass_, gain, gain_, highpass_, triangleOsc, (~))
 import WAGS.Core (fan, input)
-import WAGS.Interpret (context)
+import WAGS.Interpret (context, close)
 import WAGS.Math (calcSlope)
 import WAGS.Parameter (AudioEnvelope(..), bangOn)
 import WAGS.Properties (frequency)
@@ -216,7 +216,7 @@ main = uii.init unit 🚀 \push event -> do
                         $ interval ctx 0.91
                         $ map (calcSlope 0.0 0.42 100.0 1.4) sl
                       r <- run2 ctx (music (sampleBy Tuple random myIvl))
-                      push (stop r)
+                      push (stop (r *> close ctx))
                   }
               )
         )
@@ -353,7 +353,8 @@ ex2 ccb _ ev = makePursx' (Proxy :: _ "@") px
                                   myIvl <- memoize
                                     $ interval ctx 0.91
                                     $ map (calcSlope 0.0 0.42 100.0 1.4) sl
-                                  r <- run2 ctx (music (sampleBy Tuple random myIvl))
+                                  r' <- run2 ctx (music (sampleBy Tuple random myIvl))
+                                  let r = r' *> close ctx
                                   ccb (r *> push start) -- here
                                   push (stop r)
                               }

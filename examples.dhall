@@ -8,6 +8,7 @@ in      conf
               , "arraybuffer"
               , "deku"
               , "deku-toplevel"
+              , "transformers"
               , "js-timers"
               , "nonempty"
               , "identity"

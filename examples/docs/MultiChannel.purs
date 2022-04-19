@@ -25,7 +25,7 @@ px = Proxy :: Proxy
 
   <h2>Merging</h2>
 
-  <p>Merging audio in wags looks like any node that takes multiple inputs, but instead of accepting something of type <code>AudioInput</code>, it accepts a <i>tuple of audio inputs</i>.</p>
+  <p>Merging audio in wags looks like any node that takes multiple inputs, but instead of accepting something of type <code>AudioInput</code>, it accepts a <i>vector of audio inputs</i>.</p>
 
   <h2>Splitting</h2>
 

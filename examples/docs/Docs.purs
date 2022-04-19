@@ -105,24 +105,24 @@ scene push event' =
           , Events
               /\ "Events"
               /\ true
-          , MultiChannel
-              /\ "Merging and splitting"
-              /\ true
-          , AudioWorklets
-              /\ "Audio worklets"
-              /\ true
+        --   , MultiChannel
+        --       /\ "Merging and splitting"
+        --       /\ true
+        --   , AudioWorklets
+        --       /\ "Audio worklets"
+        --       /\ true
           , State
               /\ "State"
               /\ true
           , Subgraph
               /\ "Subgraphs"
               /\ true
-          , Tumult
-              /\ "Tumult"
-              /\ true
-          , Imperative
-              /\ "Imperative API"
-              /\ false
+        --   , Tumult
+        --       /\ "Tumult"
+        --       /\ true
+        --   , Imperative
+        --       /\ "Imperative API"
+        --       /\ false
           ]
     , subgraph
         ( event

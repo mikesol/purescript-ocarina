@@ -10,20 +10,24 @@ import Data.Array (uncons)
 import Data.Array.NonEmpty (fromNonEmpty)
 import Data.Array.NonEmpty as NEA
 import Data.Foldable (oneOf)
+import Data.FunctorWithIndex (mapWithIndex)
 import Data.Homogeneous (class HomogeneousRowLabels)
 import Data.Homogeneous.Variant (homogeneous)
 import Data.Int (pow)
 import Data.NonEmpty ((:|))
 import Data.Profunctor (lcmap)
 import Data.Symbol (class IsSymbol, reflectSymbol)
+import Data.Traversable (traverse)
+import Data.Tuple (Tuple(..))
 import Data.Tuple.Nested (type (/\), (/\))
 import Data.Typelevel.Num (class Lt, class Nat, class Pos, class Pred, D1, D2, pred, toInt)
 import Data.Variant (Unvariant(..), match, unvariant)
 import Data.Variant.Maybe (Maybe, just, maybe, nothing)
-import Data.Vec (toArray)
-import FRP.Behavior (sample_)
-import FRP.Event (class IsEvent, keepLatest)
+import Data.Vec (Vec, fill, toArray, zipWithE)
+import FRP.Behavior (ABehavior, sample_)
+import FRP.Event (class IsEvent, keepLatest, sampleOn)
 import FRP.Event.Class (bang)
+import FRP.Event.Legacy (makeEvent)
 import Foreign.Object (fromHomogeneous)
 import Prim.Row (class Union, class Nub)
 import Prim.Symbol as Sym
@@ -182,9 +186,7 @@ instance AllpassCtor C.AudioInput where
               )
               atts
             <|> oneOf
-              ( NEA.toArray
-                  (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
-              )
+              (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
       )
 
 allpass_ i a = allpass i empty a
@@ -470,8 +472,7 @@ instance BandpassCtor C.AudioInput where
               )
               atts
             <|> oneOf
-              ( NEA.toArray
-                  (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
+              ( (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
               )
       )
 
@@ -557,8 +558,7 @@ instance ConvolverCtor C.AudioInput where
                   }
               )
               <|> oneOf
-                ( NEA.toArray
-                    (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
+                ( (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
                 )
         )
 
@@ -597,8 +597,7 @@ instance DelayCtor C.AudioInput where
               )
               atts
             <|> oneOf
-              ( NEA.toArray
-                  (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
+              ( (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
               )
       )
 
@@ -667,8 +666,7 @@ instance DynamicsCompressorCtor C.AudioInput where
                 )
                 atts
               <|> oneOf
-                ( NEA.toArray
-                    (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
+                ( (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
                 )
         )
 
@@ -706,8 +704,7 @@ instance GainCtor C.AudioInput where
               )
               atts
             <|> oneOf
-              ( NEA.toArray
-                  (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
+              ( (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
               )
       )
 
@@ -746,8 +743,7 @@ instance HighpassCtor C.AudioInput where
               )
               atts
             <|> oneOf
-              ( NEA.toArray
-                  (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
+              ( (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
               )
       )
 
@@ -786,8 +782,7 @@ instance HighshelfCtor C.AudioInput where
               )
               atts
             <|> oneOf
-              ( NEA.toArray
-                  (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
+              ( (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
               )
       )
 
@@ -850,8 +845,7 @@ instance IIRFilterCtor C.AudioInput where
                   }
               )
               <|> oneOf
-                ( NEA.toArray
-                    (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
+                ( (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
                 )
         )
 
@@ -888,8 +882,7 @@ instance LowpassCtor C.AudioInput where
               )
               atts
             <|> oneOf
-              ( NEA.toArray
-                  (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
+              ( (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
               )
       )
 
@@ -928,8 +921,7 @@ instance LowshelfCtor C.AudioInput where
               )
               atts
             <|> oneOf
-              ( NEA.toArray
-                  (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
+              ( (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
               )
       )
 
@@ -1093,8 +1085,7 @@ instance NotchCtor C.AudioInput where
               )
               atts
             <|> oneOf
-              ( NEA.toArray
-                  (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
+              ( (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
               )
       )
 
@@ -1134,8 +1125,7 @@ instance PeakingCtor C.AudioInput where
               )
               atts
             <|> oneOf
-              ( NEA.toArray
-                  (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
+              ( (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
               )
       )
 
@@ -1526,8 +1516,7 @@ instance StereoPannerCtor C.AudioInput where
               )
               atts
             <|> oneOf
-              ( NEA.toArray
-                  (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
+              ( (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
               )
       )
 
@@ -1610,7 +1599,44 @@ instance WaveShaperCtor C.AudioInput where
                   , oversample: i.oversample
                   }
               ) <|> oneOf
-              ( NEA.toArray
-                  (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
+              ( (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
               )
         )
+
+-----
+-- starts work on merge
+-- merge
+--   :: forall i n produced consumed event payload
+--    . IsEvent event
+--   => Pos n
+--   => Vec n (C.Node D1 produced consumed event payload)
+--   -> C.Node n produced consumed event payload
+-- merge elts = C.Node go
+--   where
+--   go
+--     parent
+--     di@
+--       ( C.AudioInterpret
+--           { ids
+--           , scope
+--           , makeMerger
+--           }
+--       ) =
+--     keepLatest
+--       ( (sample_ ids (bang unit)) <#> parentalSupervision parent \me ->
+--           bang
+--             ( makeMerger
+--                 { id: me
+--                 , parent: useParentIfParent parent
+--                 , scope: just scope
+--                 }
+--             )
+--             <|> oneOf
+--               ( ( mapWithIndex
+--                     -- parent needs to accept an ix for this to work
+--                     ( \ix (id /\ elt) -> (((\y -> let C.Node x = y in x) elt) (Parent me ix) di)
+--                     )
+--                     elts
+--                 )
+--               )
+--       )
