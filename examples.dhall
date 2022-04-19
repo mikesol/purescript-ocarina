@@ -6,6 +6,7 @@ in      conf
               conf.dependencies
             # [ "arrays"
               , "arraybuffer"
+              , "quickcheck"
               , "deku"
               , "deku-toplevel"
               , "transformers"
