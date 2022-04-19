@@ -5,7 +5,7 @@ import Prelude
 import Control.Alt ((<|>))
 import Data.Exists (mkExists)
 import Data.Foldable (oneOf, oneOfMap, traverse_)
-import Data.Tuple (Tuple(..))
+import Data.Tuple (Tuple(..), fst, snd)
 import Data.Tuple.Nested ((/\))
 import Data.Variant (Variant, match)
 import Deku.Attribute (cb, (:=))
@@ -18,16 +18,23 @@ import Deku.Subgraph as Sg
 import Effect (Effect)
 import Effect.Aff (launchAff, launchAff_)
 import Effect.Class (liftEffect)
-import FRP.Event (Event)
+import Effect.Random as Random
+import FRP.Behavior (behavior, sampleBy)
+import FRP.Event (Event, makeEvent, subscribe)
 import FRP.Event.Class (bang, biSampleOn, filterMap)
+import FRP.Event.Memoize (memoize)
 import Type.Proxy (Proxy(..))
-import WAGS.Control (loopBuf)
+import WAGS.Clock (interval)
+import WAGS.Control (bandpass_, gain, gain_, highpass_, loopBuf, triangleOsc, (~))
+import WAGS.Core (fan, input)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..))
 import WAGS.Example.Docs.Util (raceSelf)
-import WAGS.Interpret (ctxAff, decodeAudioDataFromUri)
-import WAGS.Parameter (bangOn)
-import WAGS.Properties (loopEnd, loopStart, playbackRate)
-import WAGS.Run (run2_)
+import WAGS.Interpret (context, ctxAff, decodeAudioDataFromUri)
+import WAGS.Math (calcSlope)
+import WAGS.Parameter (AudioEnvelope(..), bangOn)
+import WAGS.Properties (frequency, loopEnd, loopStart, playbackRate)
+import WAGS.Properties as P
+import WAGS.Run (run2, run2_)
 import WAGS.Variant (injs_, prjs_)
 import Web.Event.Event (target)
 import Web.HTML.HTMLInputElement (fromEventTarget, valueAsNumber)
@@ -50,132 +57,281 @@ px =
 
   <p>In the following example, we use <code>interval</code> to control the playback rate of an analogue synth. We'll also use a custom behavior called <code>random</code> to control the pitch.</p>
 
-  <pre><code>@wagtxt@</code></pre>
-
-  <p></p>
+  <p>One important optimization we make here is the use of the function <code>memoize</code>. Whenever we're dealing with audio-clock timing, we want to limit the number of subscriptions to receive events from the audio clock. Ideally, there is only one subscription that takes a reading of the clock as a single source of truth. Because we are in PureScript-land, events (like everything else), are referrentially transparent, meaning that new ones will get created every time you use them (just like a new <code>2</code> is created every time you type the value <code>2</code>: they don't all refer to one uber-<code>2</code>). To sync all the events to the <i>same</i> source, we use <code>memoize</code>. While this optimization is not necessary, I recommend it: it will make sure the timing is 100% accurate at a very small energy cost (meaning <code>memoize</code> will eat up slightly more power from a phone's battery, but still not much).</p>
 
   <pre><code>@txt@</code></pre>
 
   @ex2@
 
-  <p>Unlike the previous examples, this one and all subsequent ones are "batteries included", meaning they are single-file, self-contained PureScript examples that you can compile and run yourself.</p>
-
 </section>
 """
 
 txt :: String
-txt =
-  """module Main where
+txt = """module Main where
 
 import Prelude
 
 import Control.Alt ((<|>))
-import Data.Exists (mkExists)
-import Data.Foldable (oneOf, oneOfMap, traverse_)
-import Data.Hashable (class Hashable)
-import Data.Newtype (class Newtype, unwrap)
-import Data.Tuple.Nested ((/\))
+import Data.Foldable (oneOfMap, traverse_)
+import Data.Tuple (Tuple(..), fst, snd)
 import Data.Variant (Variant, match)
 import Deku.Attribute (cb, (:=))
 import Deku.Control (text, text_)
-import Deku.Core (SubgraphF(..))
 import Deku.DOM as D
-import Deku.Subgraph ((@@))
-import Deku.Subgraph as Sg
-import Deku.Toplevel ((🚆))
+import Deku.Toplevel ((🚀))
 import Effect (Effect)
-import Effect.Aff (launchAff_)
-import Effect.Class (liftEffect)
-import FRP.Event.Class (bang, biSampleOn, filterMap, keepLatest)
+import Effect.Random as Random
+import FRP.Behavior (behavior, sampleBy)
+import FRP.Event (makeEvent, subscribe)
+import FRP.Event.Class (bang, filterMap)
+import FRP.Event.Memoize (memoize)
 import Type.Proxy (Proxy(..))
-import WAGS.Control (loopBuf)
-import WAGS.Interpret (ctxAff, decodeAudioDataFromUri)
-import WAGS.Parameter (bangOn)
-import WAGS.Properties (loopEnd, loopStart, playbackRate)
-import WAGS.Run (run2_)
+import WAGS.Clock (interval)
+import WAGS.Control (bandpass_, gain, gain_, highpass_, triangleOsc, (~))
+import WAGS.Core (fan, input)
+import WAGS.Interpret (context)
+import WAGS.Math (calcSlope)
+import WAGS.Parameter (AudioEnvelope(..), bangOn)
+import WAGS.Properties (frequency)
+import WAGS.Properties as P
+import WAGS.Run (run2)
 import WAGS.Variant (injs_, prjs_)
-import WAGS.WebAPI (BrowserAudioBuffer)
 import Web.Event.Event (target)
 import Web.HTML.HTMLInputElement (fromEventTarget, valueAsNumber)
 
-type Slider = Variant (s0 :: Number, s1 :: Number, s2 :: Number)
-sli = injs_ (Proxy :: _ Slider)
-slp = prjs_ (Proxy :: _ Slider)
 type StartStop = Variant (start :: Unit, stop :: Effect Unit)
 ssi = injs_ (Proxy :: _ StartStop)
 start = uii.startStop (ssi.start unit)
 stop r = uii.startStop (ssi.stop r)
-ssp = prjs_ (Proxy :: _ StartStop)
-type UIEvents = Variant (startStop :: StartStop, slider :: Slider)
+
+type UIEvents = Variant
+  ( init :: Unit
+  , startStop :: StartStop
+  , slider :: Number
+  )
+
+random = behavior \e ->
+  makeEvent \k -> subscribe e \f ->
+    Random.random >>= k <<< f
+
 uii = injs_ (Proxy :: _ UIEvents)
 uip = prjs_ (Proxy :: _ UIEvents)
-type State' = Variant (loading :: Unit, loaded :: BrowserAudioBuffer)
 
-derive instance Newtype State _
-newtype State = State State'
-sti = injs_ (Proxy :: _ State')
-loading = State $ sti.loading unit
-stp = prjs_ (Proxy :: _ State')
-
-derive instance Eq State
-
-instance Hashable State where
-  hash (State v) = match { loading: \_ -> 0, loaded: \_ -> 1 } v
-
-atari =
-  "https://freesound.org/data/previews/100/100981_1234256-lq.mp3"
+-- pentatonic scale
+cp n
+  | n < 0.142857 = 261.625565
+  | n < 0.285714 = 293.664768
+  | n < 0.428571 = 349.228231
+  | n < 0.571429 = 391.995436
+  | n < 0.714286 = 440.000000
+  | n < 0.857143 = 523.251131
+  | otherwise = 587.329536
 
 main :: Effect Unit
-main = do
-  { push } <- loading 🚆 go
-  launchAff_ $ ctxAff
-    \ctx -> decodeAudioDataFromUri ctx atari >>= liftEffect
-      <<< push
-      <<< State
-      <<< sti.loaded
-  where
-  go _ ev =
-    ( keepLatest $
-        ( \i@(State i') -> match
-            { loading: \_ -> bang (i /\ Sg.Insert)
-            , loaded: \_ -> bang (loading /\ Sg.Remove)
-                <|> bang (i /\ Sg.Insert)
-            }
-            i'
-        ) <$> ev
-    ) @@ scene
-    where
-    scene = unwrap >>> match
-      { loaded: \buffer -> mkExists $ SubgraphF \push event -> do
-          let
-            ss = bang (ssi.start unit) <|> filterMap uip.startStop event
-            sl = filterMap uip.slider event
-            sl0 = filterMap slp.s0 sl
-            sl1 = filterMap slp.s1 sl
-            sl2 = filterMap slp.s2 sl
-            music = run2_
-              $ loopBuf buffer
-              $ oneOf
-                  [ bangOn
-                  , playbackRate <$> sl0
-                  , loopStart <$> sl1
-                  , loopEnd <$> biSampleOn sl2
-                      (add <$> (bang 0.0 <|> sl1))
-                  ]
-          D.div_
-            $
-              map
-                ( \{ l, mn, mx, f } -> D.div_
-                    [ text_ l
+main = uii.init unit 🚀 \push event -> do
+  let
+    ss = bang (ssi.start unit) <|> filterMap uip.startStop event
+    sl = filterMap uip.slider event
+    music evt = do
+      let
+        pitch = map fst evt
+        -- to avoid artifacts in the pitch change
+        time = map (add 0.01 <<< snd) evt
+        e0 =
+          AudioEnvelope <<<
+            { p: [ 0.0, 0.6, 0.2, 0.1, 0.5, 0.03, 0.0 ]
+            , d: 0.4
+            , o: _
+            } <$> time
+        e1 =
+          AudioEnvelope <<<
+            { p: [ 0.0, 0.3, 0.1, 0.05, 0.01, 0.005, 0.0 ]
+            , d: 0.4
+            , o: _
+            } <$> time
+        e2 =
+          AudioEnvelope <<<
+            { p: [ 0.0, 0.15, 0.05, 0.01, 0.005, 0.0005, 0.0 ]
+            , d: 0.4
+            , o: _
+            } <$> time
+        f0 = bangOn <|> frequency <<< cp <$> pitch
+      ( fan (triangleOsc 0.0 f0) \tosc -> do
+          let ipt = input tosc
+          gain_ 2.0
+            ( gain 0.0 (P.gain <$> e0)
+                ( bandpass_
+                    { frequency: 1000.0
+                    , q: 20.0
+                    }
+                    ipt
+                )
+                ~ gain 0.0 (P.gain <$> e1)
+                    ( bandpass_
+                        { frequency: 2000.0
+                        , q: 20.0
+                        }
+                        ipt
+                    )
+                ~ gain 0.0 (P.gain <$> e2)
+                    ( highpass_
+                        { frequency: 4000.0
+                        , q: 20.0
+                        }
+                        ipt
+                    )
+            )
+      )
+  D.div_
+    [ D.div_
+        [ text_ "tempo"
+        , D.input
+            ( oneOfMap bang
+                [ D.Xtype := "range"
+                , D.Min := "0"
+                , D.Max := "100"
+                , D.Step := "1"
+                , D.Value := "50"
+                , D.OnInput := cb
+                    ( traverse_
+                        ( valueAsNumber
+                            >=> push <<< uii.slider
+                        )
+                        <<< (=<<) fromEventTarget
+                        <<< target
+                    )
+                ]
+            )
+            []
+        ]
+    , D.button
+        ( ss <#>
+            \e -> D.OnClick := cb
+              ( const $ e # match
+                  { stop: \u -> u *>
+                      push start
+                  , start: \_ -> do
+                      ctx <- context
+                      myIvl <- memoize
+                        $ interval ctx 0.5
+                        $ map (calcSlope 0.0 0.42 100.0 1.4) sl
+                      r <- run2 ctx (music (sampleBy Tuple random myIvl))
+                      push (stop r)
+                  }
+              )
+        )
+        [ text $
+            match
+              { stop: \_ -> "Turn off"
+              , start: \_ -> "Turn on"
+              } <$> ss
+        ]
+    ]"""
+
+type StartStop = Variant (start :: Unit, stop :: Effect Unit)
+ssi = injs_ (Proxy :: _ StartStop)
+start = uii.startStop (ssi.start unit)
+stop r = uii.startStop (ssi.stop r)
+
+type UIEvents = Variant
+  ( init :: Unit
+  , startStop :: StartStop
+  , slider :: Number
+  )
+
+random = behavior \e ->
+  makeEvent \k -> subscribe e \f ->
+    Random.random >>= k <<< f
+
+uii = injs_ (Proxy :: _ UIEvents)
+uip = prjs_ (Proxy :: _ UIEvents)
+
+-- pentatonic scale
+cp n
+  | n < 0.142857 = 261.625565
+  | n < 0.285714 = 293.664768
+  | n < 0.428571 = 349.228231
+  | n < 0.571429 = 391.995436
+  | n < 0.714286 = 440.000000
+  | n < 0.857143 = 523.251131
+  | otherwise = 587.329536
+
+
+ex2
+  :: forall payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Element Event payload
+ex2 ccb _ ev = makePursx' (Proxy :: _ "@") px
+  { txt: nut (text_ txt)
+  , ex2: nut
+      ( bang (unit /\ Sg.Insert)
+          @@ \_ -> mkExists $ SubgraphF \push event -> -- here
+            let
+                ss = bang (ssi.start unit) <|> filterMap uip.startStop event
+                sl = filterMap uip.slider event
+                music evt = do
+                  let
+                    pitch = map fst evt
+                    -- to avoid artifacts in the pitch change
+                    time = map (add 0.01 <<< snd) evt
+                    e0 =
+                      AudioEnvelope <<<
+                        { p: [ 0.0, 0.6, 0.2, 0.1, 0.5, 0.03, 0.0 ]
+                        , d: 0.4
+                        , o: _
+                        } <$> time
+                    e1 =
+                      AudioEnvelope <<<
+                        { p: [ 0.0, 0.3, 0.1, 0.05, 0.01, 0.005, 0.0 ]
+                        , d: 0.4
+                        , o: _
+                        } <$> time
+                    e2 =
+                      AudioEnvelope <<<
+                        { p: [ 0.0, 0.15, 0.05, 0.01, 0.005, 0.0005, 0.0 ]
+                        , d: 0.4
+                        , o: _
+                        } <$> time
+                    f0 = bangOn <|> frequency <<< cp <$> pitch
+                  ( fan (triangleOsc 0.0 f0) \tosc -> do
+                      let ipt = input tosc
+                      gain_ 2.0
+                        ( gain 0.0 (P.gain <$> e0)
+                            ( bandpass_
+                                { frequency: 1000.0
+                                , q: 20.0
+                                }
+                                ipt
+                            )
+                            ~ gain 0.0 (P.gain <$> e1)
+                                ( bandpass_
+                                    { frequency: 2000.0
+                                    , q: 20.0
+                                    }
+                                    ipt
+                                )
+                            ~ gain 0.0 (P.gain <$> e2)
+                                ( highpass_
+                                    { frequency: 4000.0
+                                    , q: 20.0
+                                    }
+                                    ipt
+                                )
+                        )
+                  )
+            in
+              D.div_
+                [ D.div_
+                    [ text_ "tempo"
                     , D.input
                         ( oneOfMap bang
                             [ D.Xtype := "range"
-                            , D.Min := mn
-                            , D.Max := mx
+                            , D.Min := "0"
+                            , D.Max := "100"
+                            , D.Step := "1"
+                            , D.Value := "50"
                             , D.OnInput := cb
                                 ( traverse_
                                     ( valueAsNumber
-                                        >=> push <<< uii.slider <<< f
+                                        >=> push <<< uii.slider
                                     )
                                     <<< (=<<) fromEventTarget
                                     <<< target
@@ -184,142 +340,31 @@ main = do
                         )
                         []
                     ]
-                )
-                [ { l: "Playback rate", mn: "0.5", mx: "5.0", f: sli.s0 }
-                , { l: "Loop start", mn: "0.0", mx: "1.0", f: sli.s1 }
-                , { l: "Loop end", mn: "0.01", mx: "1.0", f: sli.s2 }
-                ] <>
-                [ D.button
-                    ( ss <#>
-                        \e -> D.OnClick := cb
+                , D.button
+                    ( (biSampleOn (bang (pure unit) <|> (map (\(SetCancel x) -> x) ev)) (map Tuple ss)) <#>
+                        \(e /\ c) -> D.OnClick := cb
                           ( const $ e # match
-                              { stop: \u -> u *>
-                                  push start
+                              { stop: \u -> u
+                                  *> push start
+                                  *> ccb (pure unit)
                               , start: \_ -> do
-                                  r <- music
+                                  c
+                                  ctx <- context
+                                  myIvl <- memoize
+                                    $ interval ctx 0.5
+                                    $ map (calcSlope 0.0 0.42 100.0 1.4) sl
+                                  r <- run2 ctx (music (sampleBy Tuple random myIvl))
+                                  ccb (r *> push start) -- here
                                   push (stop r)
                               }
                           )
                     )
-                    [ text $ ss <#> match
-                        { stop: \_ -> "Turn off"
-                        , start: \_ -> "Turn on"
-                        }
+                    [ text $
+                        match
+                          { stop: \_ -> "Turn off"
+                          , start: \_ -> "Turn on"
+                          } <$> ss
                     ]
                 ]
-      , loading: \_ -> mkExists
-          $ SubgraphF \_ _ -> D.div_ [ text_ "Loading..." ]
-      }"""
-type Slider = Variant (s0 :: Number, s1 :: Number, s2 :: Number)
-sli = injs_ (Proxy :: Proxy Slider)
-slp = prjs_ (Proxy :: Proxy Slider)
-type StartStop = Variant (start :: Unit, stop :: Effect Unit, loading :: Unit)
-ssi = injs_ (Proxy :: Proxy StartStop)
-ssp = prjs_ (Proxy :: Proxy StartStop)
-start = uii.startStop (ssi.start unit)
-loading = uii.startStop (ssi.loading unit)
-stop r = uii.startStop (ssi.stop r)
-type UIEvents = Variant (startStop :: StartStop, slider :: Slider)
-uii = injs_ (Proxy :: Proxy UIEvents)
-
-uip = prjs_ (Proxy :: Proxy UIEvents)
-
-atari :: String
-atari =
-  "https://freesound.org/data/previews/100/100981_1234256-lq.mp3"
-
-ex2
-  :: forall payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Element Event payload
-ex2 ccb _ ev = makePursx' (Proxy :: _ "@") px
-  { wagtxt: nut
-      ( text_
-          """run2_
-  $ loopBuf buffer
-  $ oneOf
-      [ bangOn
-      , playbackRate <$> sl0
-      , loopStart <$> sl1
-      , loopEnd <$> biSampleOn sl2
-          (add <$> (bang 0.0 <|> sl1))
-      ]"""
-      )
-  , txt: nut (text_ txt)
-  , ex2: nut
-      ( bang (unit /\ Sg.Insert)
-          @@ \_ -> mkExists $ SubgraphF \push event -> -- here
-            do
-              let
-                ss = bang (ssi.start unit) <|> filterMap uip.startStop event
-                startE = filterMap ssp.start ss
-                stopE = filterMap ssp.stop ss
-                sl = filterMap uip.slider event
-                sl0 = filterMap slp.s0 sl
-                sl1 = filterMap slp.s1 sl
-                sl2 = filterMap slp.s2 sl
-                -- ugh, problem is that if we are in the land of run
-                -- then we need to be using Event
-                -- but we are inheriting something of type Event
-                music buffer = loopBuf buffer
-                  $ oneOf
-                      [ bangOn
-                      , playbackRate <$> sl0
-                      , loopStart <$> sl1
-                      , loopEnd <$> biSampleOn sl2
-                          (add <$> (bang 0.0 <|> sl1))
-                      ]
-              D.div_
-                $
-                  map
-                    ( \{ l, mn, mx, f } -> D.div_
-                        [ text_ l
-                        , D.input
-                            ( oneOfMap bang
-                                [ D.Xtype := "range"
-                                , D.Min := mn
-                                , D.Max := mx
-                                , D.OnInput := cb
-                                    ( traverse_
-                                        ( valueAsNumber
-                                            >=> push <<< uii.slider <<< f
-                                        )
-                                        <<< (=<<) fromEventTarget
-                                        <<< target
-                                    )
-                                ]
-                            )
-                            []
-                        ]
-                    )
-                    [ { l: "Playback rate", mn: "0.5", mx: "5.0", f: sli.s0 }
-                    , { l: "Loop start", mn: "0.0", mx: "1.0", f: sli.s1 }
-                    , { l: "Loop end", mn: "0.01", mx: "1.0", f: sli.s2 }
-                    ] <>
-                    [ D.button
-                        ( (biSampleOn (bang (pure unit) <|> (map (\(SetCancel x) -> x) ev)) (map Tuple ss)) <#>
-                            \(e /\ cncl) -> D.OnClick := cb
-                              ( const $ e # match
-                                  { loading: \_ -> pure unit
-                                  , stop: \u -> u
-                                      *> ccb (pure unit)
-                                      *> push start
-                                  , start: \_ -> do
-                                      cncl
-                                      push loading
-                                      fib <- launchAff do
-                                        buffer <- ctxAff \ctx -> decodeAudioDataFromUri ctx atari
-                                        liftEffect do
-                                          res <- run2_ (music buffer)
-                                          push (stop res)
-                                          pure res
-                                      ccb do
-                                        push start
-                                        launchAff_ $ raceSelf fib
-                                      pure unit
-                                  }
-                              )
-                        )
-                        [ text $ oneOf [map (const "Turn off") stopE, map (const "Turn on") startE]
-                        ]
-                    ]
       )
   }

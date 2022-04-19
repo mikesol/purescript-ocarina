@@ -41,11 +41,9 @@ var protoSetter = function (thingee, deprecatedTimeToSet, param) {
 				: thingee.cancelScheduledValues(deprecatedTimeToSet + param.value.o);
 		} else if (param.type === ENVELOPE) {
 			// envelope is last option
-			thingee.setValueCurveAtTime(
-				param.value.p,
-				deprecatedTimeToSet + param.value.o,
-				param.value.d
-			);
+			const tm = deprecatedTimeToSet + param.value.o;
+			thingee.cancelScheduledValues(Math.max(0.0, tm));
+			thingee.setValueCurveAtTime(param.value.p, tm, param.value.d);
 		} else {
 			throw new Error("No idea what to do with " + JSON.stringify(param));
 		}
