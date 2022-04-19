@@ -71,33 +71,11 @@ px = Proxy :: Proxy """<div>
   <p>Fix, like it's equivalent in wags that we've already seen, creates a feedback loop. However, in this case, we are talking about a feedback loop of <i>events</i>, not sound.</p>
 
   <p>At first glance, it may not be clear why we need an event stream to feed back into itself? It seems prone to saturation: if you have a counter that feeds back into itself with a delay, after a few seconds you'll have so many events that it will crash your browser (I've tried it!).</p>
-  <p>However, there's one important circumstance where you need fixed points: when (a) the initial state is in an event; and (b) extracting it is costly. In this case, we want a way to mute <code>a</code> when we don't need it and process it when we do. Enter <code>fix</code>. Because the signal feeds back into itself, we can gate and ungate it based on arbitrary conditions. Another way of thinking about this is that <code>fold</code> starts with a <i>pure</i> state and inserts it into our event stream, whereas <code>fix</code> uses current elements of a stream to interact with future ones.</p>
 
-  <p>As an example, imagine that we have a stream whose current elements somehow determine what future elements will be throttled and which ones will pass through. This is also called <i>debouncing</i>. If we implemented debouncing using <code>fold</code>, we'd have to have a one-to-one relationship between elements in an event stream and how they're throttled. But if the stream becomes more or less dense as a result of throttling, we have a problem: the throttling is a function of the density of the stream, but the density of the stream is by definition a function of throttling. Circular dependencies like this can only be solved by fixed-point operators.</p>
+  <p>However, there's one important circumstance where you need fixed points: when an event can only be defined in terms of itself. One classic category of this is the <i>differential equation</i>. Differential equations allow you to produce <a href="https://en.wikipedia.org/wiki/Simple_harmonic_motion">Slinky effects, aka simple harmonic motion,</a> and a lot of other neat behaviors that are difficult to produce via other means. Let's listen to the sound of simple harmonic motion in the example below, courtesy of <code>fix</code>.</p>
 
-  <p>But don't take my word for it! Let's implement our own debouncer. We'll create a somewhat whacky event where the input from a slider results in multiple events with variable millisecond debouncings and then hit it with an incessant timer that triggers a sound file. We'll also use a <code>fold</code> to control round-robin playback of buffers. You can slide the slider to change the debouncing!</p>
 
-  <p>Here's the code:</p>
-
-  <pre><code>placeholder</code></pre>
-
-  <p>And here's the result:</p>
-
-  <blockquote>placeholder</blockquote>
-
-  <p>You can try it yourself by <a>following this trypurescript link.</a></p>
-
-  <p>There's a special type of system where the output is a function of change in input called a <i>differential equation</i>. Differential equations allow you to produce <a href="https://en.wikipedia.org/wiki/Simple_harmonic_motion">Slinky effects</a> and a lot of other neat behaviors that are difficult to produce via other means. In fact, the <a href="https://github.com/mikesol/purescript-behaviors">purescript-behaviors</a> library contains some cool differential equation solvers that are powered by <code>fix</code> under the hood via <a href="https://github.com/paf31/purescript-behaviors/blob/0fc50530f71a3026bba12dd8df435bdbd9ef076a/src/FRP/Behavior.purs#L194"><code>fixB</code></a>. Let's listen to one now that creates smooth ramp-up and ramp-down whenever we click and hold a button.</p>
-
-  <p>Here's the code:</p>
-
-  <pre><code>placeholder</code></pre>
-
-  <p>And here's the result:</p>
-
-  <blockquote>placeholder</blockquote>
-
-  <p>You can try it yourself by <a>following this trypurescript link.</a></p>
+  <p>When working with stateful events, a good way to decide if you should use <code>fold</code> versus <code>fix</code> is to ask the following question: can I incrementally change my state based on an initial state, or is my state defined in terms of how it changes? If you can incrementally change your state, go with <code>fold</code>. If, on the other hand, your current state is defined in terms of how it changes, go with <code>fix</code>.</p>
 
   <h2>Next steps</h2>
   <p>Using <code>fold</code> and <code>fix</code>, we can create internal state in our Web Audio works that would be really tedious and error-prone to achieve in vanilla JS or other compile-to-JS languages. There's still one nagging issue that we haven't addressed, though. For all of the flexibility we can achieve with events, we still can't flex the audio graph itself, meaning that we can't add or remove components. In the next two sections, we'll learn two ways to do that. Let's start with exploring <a ~next~ style="cursor:pointer;">subgraphs</a>.</p>

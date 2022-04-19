@@ -16,6 +16,7 @@
   , "homogeneous"
   , "indexed-monad"
   , "integers"
+  , "js-timers"
   , "lists"
   , "math"
   , "maybe"
