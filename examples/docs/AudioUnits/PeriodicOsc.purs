@@ -13,7 +13,7 @@ import Type.Proxy (Proxy(..))
 import WAGS.Control (gain_, periodicOsc, periodicOsc_)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import WAGS.Example.Docs.Util (audioWrapper)
-import WAGS.Parameter (pureOn)
+import WAGS.Parameter (bangOn)
 import WAGS.Run (run2_)
 
 px =
@@ -30,7 +30,7 @@ px =
               /\ (0.4 +> 0.3 +> 0.2 +> 0.1 +> empty)
           )
       }
-      pureOn
+      bangOn
 </code></pre>
 
   ~periodic~
@@ -51,7 +51,7 @@ periodic ccb _ ev = px ~~
                         /\ (0.4 +> 0.3 +> 0.2 +> 0.1 +> empty)
                     )
                 }
-                pureOn
+                bangOn
 
       )
   }

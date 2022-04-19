@@ -35,7 +35,7 @@ import WAGS.Core (AudioInput, Po2(..))
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import WAGS.Example.Docs.Util (WrapperStates(..), clickCb, mkWrapperEvent)
 import WAGS.Interpret (close, context, contextState, ctxAff, decodeAudioDataFromUri, effectfulAudioInterpret, getByteFrequencyData, makeFFIAudioSnapshot)
-import WAGS.Parameter (pureOn)
+import WAGS.Parameter (bangOn)
 import WAGS.WebAPI (AnalyserNodeCb(..), BrowserAudioBuffer)
 
 px =
@@ -43,7 +43,7 @@ px =
   <h2 id="analyser">Analyser</h2>
   <p>An <a href="https://developer.mozilla.org/en-US/docs/Web/API/AnalyserNode">analyser node</a> provides methods to recuperate the analysed data of an input. This is how, for example, Google Meet shows the little animation around a microphone icon. Wags provides the possibility to use the analyser as the terminus of an audio graph <i>or</i> as part of a longer DSP chain, as in the following example. The example uses an FFT size of 256, which is indicated in Wags as <code>TTT8</code> (two to the eighth power).</p>
 
-  <pre><code>analyser_ { cb, fftSize: TTT8 } (loopBuf atar pureOn)</code></pre>
+  <pre><code>analyser_ { cb, fftSize: TTT8 } (loopBuf atar bangOn)</code></pre>
 
   ~analyser~
   </section>
@@ -75,7 +75,7 @@ scene
   -> AudioInput D2 "" () Event payload
 scene atar cb =
   singleton
-    (analyser_ { cb, fftSize: TTT8 } (loopBuf atar pureOn))
+    (analyser_ { cb, fftSize: TTT8 } (loopBuf atar bangOn))
 
 b0 :: Number
 b0 = 1.0 / 40.0

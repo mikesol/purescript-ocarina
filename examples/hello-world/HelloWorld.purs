@@ -32,7 +32,7 @@ import WAGS.Example.Utils (RaiseCancellation)
 import WAGS.Imperative (InitialGraphBuilder, runGraphBuilder)
 import WAGS.Imperative as I
 import WAGS.Interpret (close, context, effectfulAudioInterpret, makeFFIAudioSnapshot)
-import WAGS.Parameter (opticN, pureOn)
+import WAGS.Parameter (opticN, bangOn)
 import WAGS.Properties (frequency)
 import WAGS.WebAPI (AudioContext)
 import Web.HTML (window)
@@ -48,7 +48,7 @@ scene wh =
   let
     tr = fot wh (mul pi)
     gso a b c = gain a empty
-      $ sinOsc b (pureOn <|> (frequency <<< (over opticN c) <$> tr))
+      $ sinOsc b (bangOn <|> (frequency <<< (over opticN c) <$> tr))
   in
     gso 0.1 440.0 (\rad -> 440.0 + (10.0 * sin (2.3 * rad))) :*
       [ gso 0.25 235.0 (\rad -> 235.0 + (10.0 * sin (1.7 * rad)))
@@ -84,7 +84,7 @@ scene' wh = I.do
   I.connect { from: sinOsc3, into: gain3 }
   where
   tr = fot wh (mul pi)
-  so f = pureOn <|> (frequency <<< (over opticN f) <$> tr)
+  so f = bangOn <|> (frequency <<< (over opticN f) <$> tr)
 
 type UIAction = Maybe { unsub :: Effect Unit, ctx :: AudioContext }
 

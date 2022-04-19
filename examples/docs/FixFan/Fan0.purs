@@ -13,12 +13,12 @@ import WAGS.Core (fan, input)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import WAGS.Example.Docs.Util (audioWrapper)
 import WAGS.Interpret (ctxAff, decodeAudioDataFromUri)
-import WAGS.Parameter (pureOn)
+import WAGS.Parameter (bangOn)
 import WAGS.Run (run2_)
 
 px = Proxy :: Proxy """<div>
   <pre><code>run2_
-  $ fan (loopBuf buf pureOn)
+  $ fan (loopBuf buf bangOn)
       \b -> gain_ 0.8
         ( bandpass_ { frequency: 400.0, q: 1.0 } (input b)
         ~ bandpass_ { frequency: 880.0, q: 5.0 } (input b)
@@ -36,7 +36,7 @@ fan0 ccb _ ev = makePursx' (Proxy :: _ "@") px
   { ai0: nut
       ( audioWrapper ev ccb (ctxAff \ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
           \buf -> run2_
-            $ fan (loopBuf buf pureOn)
+            $ fan (loopBuf buf bangOn)
                 \b -> gain_ 0.8
                   ( bandpass_ { frequency: 400.0, q: 1.0 } (input b)
                   ~ bandpass_ { frequency: 880.0, q: 5.0 } (input b)
@@ -49,7 +49,7 @@ fan0 ccb _ ev = makePursx' (Proxy :: _ "@") px
   }
 
   {-
-fan (loopBuf buf pureOn)
+fan (loopBuf buf bangOn)
   \b -> gain_ 0.8
     ( bandpass_ { frequency: 400.0, q: 1.0 } (input b)
     ~ bandpass_ { frequency: 880.0, q: 5.0 } (input b)

@@ -13,14 +13,14 @@ import WAGS.Core (fan, fix, input)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import WAGS.Example.Docs.Util (audioWrapper)
 import WAGS.Interpret (ctxAff, decodeAudioDataFromUri)
-import WAGS.Parameter (pureOn)
+import WAGS.Parameter (bangOn)
 import WAGS.Run (run2_)
 
 px = Proxy :: Proxy """<div>
   <pre><code>run2_
   $ fix
       \b -> gain_ 1.0
-        ( playBuf buf pureOn
+        ( playBuf buf bangOn
         ~ delay_ 0.1 (gain_ 0.6 (input b))
         )</code></pre>
 
@@ -35,7 +35,7 @@ fix0 ccb _ ev = makePursx' (Proxy :: _ "@") px
           \buf -> run2_
             $ fix
                 \b -> gain_ 1.0
-                  ( playBuf buf pureOn
+                  ( playBuf buf bangOn
                   ~ delay_ 0.1 (gain_ 0.6 (input b))
                   )
       )

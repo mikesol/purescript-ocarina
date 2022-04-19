@@ -16,7 +16,7 @@ import Type.Proxy (Proxy(..))
 import WAGS.Control (gain_, sinOsc)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent(..), SingleSubgraphPusher)
 import WAGS.Example.Docs.Util (audioWrapper, ccassp, mkNext, scrollToTop)
-import WAGS.Parameter (pureOn)
+import WAGS.Parameter (bangOn)
 import WAGS.Run (run2_)
 
 px = Proxy :: Proxy """<div>
@@ -46,13 +46,13 @@ px = Proxy :: Proxy """<div>
 
   <h2>Our audio</h2>
 
-  <p>Our audio is expressed with the statement <code>gain_ 0.15 (sinOsc 440.0 pureOn)</code>. The first function, <code>gain_</code>, creates a gain node with a volume of <code>0.15</code>. In WebAudio, gain ranges from <code>0.0</code> to <code>1.0</code> and can be converted to decibels using the following equation:</p>
+  <p>Our audio is expressed with the statement <code>gain_ 0.15 (sinOsc 440.0 bangOn)</code>. The first function, <code>gain_</code>, creates a gain node with a volume of <code>0.15</code>. In WebAudio, gain ranges from <code>0.0</code> to <code>1.0</code> and can be converted to decibels using the following equation:</p>
 
   <pre><code>decibels = 20 * log10( gain );</code></pre>
 
   <p>In our case, a gain of <code>0.15</code> is roughly <code>-16.5 dB</code>.</p>
 
-  <p>Our sine wave oscillator is set to a frequency of <code>440Hz</code>. That means that your loudspeaker or headphones will vibrate back and forth in sinusoidal motion 440 times per second, which most folks perceive as the <a href="https://en.wikipedia.org/wiki/A440_(pitch_standard)">note A</a>. And we turn on the oscillator with <code>pureOn</code>, as the default is off for <i>all</i> sound generators in Wags. This is a design decision to help preserve the hearing of those that work frequently with audio.</p>
+  <p>Our sine wave oscillator is set to a frequency of <code>440Hz</code>. That means that your loudspeaker or headphones will vibrate back and forth in sinusoidal motion 440 times per second, which most folks perceive as the <a href="https://en.wikipedia.org/wiki/A440_(pitch_standard)">note A</a>. And we turn on the oscillator with <code>bangOn</code>, as the default is off for <i>all</i> sound generators in Wags. This is a design decision to help preserve the hearing of those that work frequently with audio.</p>
 
   <h2>Next steps</h2>
   <p>Now that we have our setup running, let's explore the anatomy of a Wags graph. Irrespective of the nodes comprising the graph, there are three basic operations you need to be familiar with before you start diving into audio units: <a @next@ style="cursor:pointer;">fan, fix, and squiggle (aka <code>~</code>)</a>.</p>
@@ -72,13 +72,13 @@ helloWorld cca' dpage ssp ev = makePursx' (Proxy :: _ "@") px
               [ text_
                   """case e of
   Just x -> x *> push Nothing
-  _ -> (run2_ $ gain_ 0.15 $ sinOsc 440.0 pureOn)
+  _ -> (run2_ $ gain_ 0.15 $ sinOsc 440.0 bangOn)
          >>= Just >>> push"""
               ]
           ]
       )
   , result: nut
-      ( audioWrapper ev cca (pure unit) $ \_ -> run2_ $ gain_ 0.15 $ sinOsc 440.0 pureOn
+      ( audioWrapper ev cca (pure unit) $ \_ -> run2_ $ gain_ 0.15 $ sinOsc 440.0 bangOn
       )
   , next: mkNext ev cpage
   }

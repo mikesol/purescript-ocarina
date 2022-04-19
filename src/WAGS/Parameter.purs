@@ -142,12 +142,12 @@ newtype AudioOnOff = AudioOnOff
 apOn :: AudioOnOff
 apOn = AudioOnOff { x: _on, o: 0.0 }
 
-pureOn
+bangOn
   :: forall event nt r
    . IsEvent event
   => Newtype nt (Variant (onOff :: AudioOnOff | r))
   => event nt
-pureOn = bang (wrap $ inj (Proxy :: _ "onOff") apOn)
+bangOn = bang (wrap $ inj (Proxy :: _ "onOff") apOn)
 
 apOff :: AudioOnOff
 apOff = AudioOnOff { x: _off, o: 0.0 }

@@ -16,7 +16,7 @@ import Type.Proxy (Proxy(..))
 import WAGS.Control (gain_, constant)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import WAGS.Example.Docs.Util (audioWrapper)
-import WAGS.Parameter (AudioEnvelope(..), pureOn)
+import WAGS.Parameter (AudioEnvelope(..), bangOn)
 import WAGS.Properties (offset)
 import WAGS.Run (run2_)
 
@@ -42,7 +42,7 @@ constantEx ccb _ ev = px ~~
           """run2_
   $ gain_ 0.5
   $ constant 0.0
-      ( pureOn <|>
+      ( bangOn <|>
           ( bang $ offset $ AudioEnvelope
               { d: 5.0
               , o: 0.1
@@ -58,7 +58,7 @@ constantEx ccb _ ev = px ~~
       ( audioWrapper ev ccb (pure unit) \_ -> run2_
           $ gain_ 0.5
           $ constant 0.0
-              ( pureOn <|>
+              ( bangOn <|>
                   ( bang $ offset $ AudioEnvelope
                       { d: 5.0
                       , o: 0.1

@@ -25,7 +25,7 @@ import WAGS.Control (loopBuf)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..))
 import WAGS.Example.Docs.Util (raceSelf)
 import WAGS.Interpret (ctxAff, decodeAudioDataFromUri)
-import WAGS.Parameter (pureOn)
+import WAGS.Parameter (bangOn)
 import WAGS.Properties (loopEnd, loopStart, playbackRate)
 import WAGS.Run (run2_)
 import WAGS.Variant (injs_, prjs_)
@@ -47,6 +47,8 @@ px =
   </ul>
 
   <blockquote><code>interval</code> works fine for a stream of events where each event is separated by more than ~100 milliseconds. For anything faster, you'll likely want to use <code>requestAnimationLoop</code> coupled with a local state, as it will be more efficient for older and battery-sensitive devices.</blockquote>
+
+  <p>In the following example, we use <code>interval</code> to control the playback rate of an analogue synth. We'll also use a custom behavior called <code>random</code> to control the pitch.</p>
 
   <pre><code>@wagtxt@</code></pre>
 
@@ -88,7 +90,7 @@ import FRP.Event.Class (bang, biSampleOn, filterMap, keepLatest)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (loopBuf)
 import WAGS.Interpret (ctxAff, decodeAudioDataFromUri)
-import WAGS.Parameter (pureOn)
+import WAGS.Parameter (bangOn)
 import WAGS.Properties (loopEnd, loopStart, playbackRate)
 import WAGS.Run (run2_)
 import WAGS.Variant (injs_, prjs_)
@@ -154,7 +156,7 @@ main = do
             music = run2_
               $ loopBuf buffer
               $ oneOf
-                  [ pureOn
+                  [ bangOn
                   , playbackRate <$> sl0
                   , loopStart <$> sl1
                   , loopEnd <$> biSampleOn sl2
@@ -234,7 +236,7 @@ ex2 ccb _ ev = makePursx' (Proxy :: _ "@") px
           """run2_
   $ loopBuf buffer
   $ oneOf
-      [ pureOn
+      [ bangOn
       , playbackRate <$> sl0
       , loopStart <$> sl1
       , loopEnd <$> biSampleOn sl2
@@ -259,7 +261,7 @@ ex2 ccb _ ev = makePursx' (Proxy :: _ "@") px
                 -- but we are inheriting something of type Event
                 music buffer = loopBuf buffer
                   $ oneOf
-                      [ pureOn
+                      [ bangOn
                       , playbackRate <$> sl0
                       , loopStart <$> sl1
                       , loopEnd <$> biSampleOn sl2

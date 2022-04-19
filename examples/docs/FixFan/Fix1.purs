@@ -15,7 +15,7 @@ import WAGS.Core (fan, fix, hint, input)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import WAGS.Example.Docs.Util (audioWrapper)
 import WAGS.Interpret (ctxAff, decodeAudioDataFromUri)
-import WAGS.Parameter (AudioEnvelope(..), pureOn)
+import WAGS.Parameter (AudioEnvelope(..), bangOn)
 import WAGS.Properties as P
 import WAGS.Run (run2_)
 
@@ -53,7 +53,7 @@ fade1 = bang
   $ AudioEnvelope { p: [1.0, 1.0, 0.0], o: 0.0, d: 10.0 }
 
 scene buf = run2_
-  $ fan (playBuf buf pureOn) \b -> fix
+  $ fan (playBuf buf bangOn) \b -> fix
       \g0 -> gain_ 1.0
         ( input b
             ~ dgh 0.15 0.7 1500.0
@@ -79,7 +79,7 @@ scene buf = run2_
   , ai0: nut
       ( audioWrapper ev ccb (ctxAff \ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/178/178660_717950-lq.mp3")
           \buf -> run2_
-            $ fan (playBuf buf pureOn) \b -> fix
+            $ fan (playBuf buf bangOn) \b -> fix
                 \g0 -> gain_ 1.0
                   ( input b
                       ~ dgh 0.15 0.7 1500.0

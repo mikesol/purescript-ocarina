@@ -12,7 +12,7 @@ import WAGS.Control (playBuf)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import WAGS.Example.Docs.Util (audioWrapper)
 import WAGS.Interpret (ctxAff, decodeAudioDataFromUri)
-import WAGS.Parameter (pureOn)
+import WAGS.Parameter (bangOn)
 import WAGS.Run (run2_)
 
 px =  Proxy :: Proxy   """<section>
@@ -25,7 +25,7 @@ px =  Proxy :: Proxy   """<section>
       , duration: 3.0
       , bufferOffset: 4.2
       }
-      pureOn
+      bangOn
 </code></pre>
 
   ~playBuf~
@@ -43,6 +43,6 @@ playBufEx ccb _ ev = px ~~
                 , duration: 3.0
                 , bufferOffset: 4.2
                 }
-                pureOn
+                bangOn
       )
   }

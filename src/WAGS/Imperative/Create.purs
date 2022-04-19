@@ -118,7 +118,7 @@ gain _ initialGain attributes = GraphBuilder go
 -- | Creates a `SinOsc` node.
 -- |
 -- | ```purescript
--- | sinOsc <- Create.sinOsc (Proxy :: _ "sinOsc") 440.0 pureOn
+-- | sinOsc <- Create.sinOsc (Proxy :: _ "sinOsc") 440.0 bangOn
 -- | ```
 sinOsc
   :: forall e p i o id initialSinOsc
@@ -151,7 +151,7 @@ sinOsc _ initialSinOsc attributes = GraphBuilder go
 -- | Creates a `PlayBuf` node.
 -- |
 -- | ```purescript
--- | playBuf <- Create.playBuf (Proxy :: _ "playBuf") audioBuffer pureOn
+-- | playBuf <- Create.playBuf (Proxy :: _ "playBuf") audioBuffer bangOn
 -- | ```
 playBuf
   :: forall e p i o id initialPlayBuf

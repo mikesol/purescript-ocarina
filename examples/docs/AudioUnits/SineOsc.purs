@@ -11,7 +11,7 @@ import Type.Proxy (Proxy(..))
 import WAGS.Control (gain_, sinOsc)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import WAGS.Example.Docs.Util (audioWrapper)
-import WAGS.Parameter (pureOn)
+import WAGS.Parameter (bangOn)
 import WAGS.Run (run2_)
 
 px =  Proxy   :: Proxy    """<section>
@@ -20,7 +20,7 @@ px =  Proxy   :: Proxy    """<section>
 
 
   <pre><code>\buf -> run2_
-  $ gain_ 0.2 $ sinOsc 448.0 pureOn
+  $ gain_ 0.2 $ sinOsc 448.0 bangOn
 </code></pre>
 
   ~periodic~
@@ -34,6 +34,6 @@ sine ccb _ ev = px ~~
       ( audioWrapper ev ccb (pure unit)
           \_ -> run2_
             $ gain_ 0.2
-            $ sinOsc 448.0 pureOn
+            $ sinOsc 448.0 bangOn
       )
   }

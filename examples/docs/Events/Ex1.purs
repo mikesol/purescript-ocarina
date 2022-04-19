@@ -31,7 +31,7 @@ import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..
 import WAGS.Example.Docs.Util (raceSelf)
 import WAGS.Interpret (ctxAff, decodeAudioDataFromUri)
 import WAGS.Math (calcSlope)
-import WAGS.Parameter (pureOn)
+import WAGS.Parameter (bangOn)
 import WAGS.Properties (loopEnd, loopStart, playbackRate)
 import WAGS.Run (run2_)
 import WAGS.Variant (injs_, prjs_)
@@ -48,7 +48,7 @@ px =
 
   <pre><code>@wagtxt@</code></pre>
 
-  <p>Note that our loopBuf consumes four events: in addition to the three sliders, there is a <code>pureOn</code> event that turns it on. For the events belonging to range sliders, we use <code>calcSlope</code> to normalize the range to sensible values for these parameters.</p>
+  <p>Note that our loopBuf consumes four events: in addition to the three sliders, there is a <code>bangOn</code> event that turns it on. For the events belonging to range sliders, we use <code>calcSlope</code> to normalize the range to sensible values for these parameters.</p>
 
   <p>Because each slider event contains a number, we can compose it with a function from <code>WAGS.Properties</code>, like <code>playbackRate</code> or <code>loopStart</code>, to create an event that controls a Wags parameter. The <code>oneOf</code> directive indicates that the incoming event will be "one of" the events in the array. It's also possible to use the tie-fighter, aka <code>alt</code>, to separate each event, but I like the array syntax when possible as tie fighters do, after all, work for the Empire, and who likes the Empire?</p>
 
@@ -89,7 +89,7 @@ import Type.Proxy (Proxy(..))
 import WAGS.Control (loopBuf)
 import WAGS.Interpret (ctxAff, decodeAudioDataFromUri)
 import WAGS.Math (calcSlope)
-import WAGS.Parameter (pureOn)
+import WAGS.Parameter (bangOn)
 import WAGS.Properties (loopEnd, loopStart, playbackRate)
 import WAGS.Run (run2_)
 import WAGS.Variant (injs_, prjs_)
@@ -160,7 +160,7 @@ main = do
                   , loopEnd: 1.1
                   }
               $ oneOf
-                  [ pureOn
+                  [ bangOn
                   , (calcSlope 0.0 0.2 100.0 5.0 >>> playbackRate) <$> sl0
                   , (calcSlope 0.0 0.0 100.0 1.2 >>> loopStart) <$> sl1
                   , (calcSlope 0.0 0.05 100.0 1.0 >>> loopEnd) <$> biSampleOn sl2
@@ -248,7 +248,7 @@ ex1 ccb _ ev = makePursx' (Proxy :: _ "@") px
       , loopEnd: 1.1
       }
   $ oneOf
-      [ pureOn
+      [ bangOn
       , (calcSlope 0.0 0.2 100.0 5.0 >>> playbackRate) <$> sl0
       , (calcSlope 0.0 0.0 100.0 1.2 >>> loopStart) <$> sl1
       , (calcSlope 0.0 0.05 100.0 1.0 >>> loopEnd) <$> biSampleOn sl2
@@ -280,7 +280,7 @@ ex1 ccb _ ev = makePursx' (Proxy :: _ "@") px
                     , loopEnd: 1.1
                     }
                     $ oneOf
-                        [ pureOn
+                        [ bangOn
                         , (calcSlope 0.0 0.2 100.0 5.0 >>> playbackRate) <$> sl0
                         , (calcSlope 0.0 0.0 100.0 1.2 >>> loopStart) <$> sl1
                         , (calcSlope 0.0 0.05 100.0 1.0 >>> loopEnd) <$> biSampleOn sl2

@@ -14,7 +14,7 @@ import WAGS.Control (iirFilter, loopBuf)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import WAGS.Example.Docs.Util (audioWrapper)
 import WAGS.Interpret (ctxAff, decodeAudioDataFromUri)
-import WAGS.Parameter (pureOn)
+import WAGS.Parameter (bangOn)
 import WAGS.Run (run2_)
 
 px =
@@ -33,7 +33,7 @@ px =
                 ( (0.00020298 +> 0.0004059599 +> 0.00020298 +> empty)
                     /\ (1.0126964558 +> -1.9991880801 +> 0.9873035442 +> empty)
                 )
-            $ loopBuf buf pureOn</code></pre>
+            $ loopBuf buf bangOn</code></pre>
   ~iirFilterEx~
   </section>
 """
@@ -48,6 +48,6 @@ iirFilterEx ccb _ ev = px ~~
                 ( (0.00020298 +> 0.0004059599 +> 0.00020298 +> empty)
                     /\ (1.0126964558 +> -1.9991880801 +> 0.9873035442 +> empty)
                 )
-            $ loopBuf buf pureOn
+            $ loopBuf buf bangOn
       )
   }

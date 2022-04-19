@@ -12,7 +12,7 @@ import WAGS.Control (dynamicsCompressor_, loopBuf)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import WAGS.Example.Docs.Util (audioWrapper)
 import WAGS.Interpret (ctxAff, decodeAudioDataFromUri)
-import WAGS.Parameter (pureOn)
+import WAGS.Parameter (bangOn)
 import WAGS.Run (run2_)
 
 px = Proxy :: Proxy """<section>
@@ -29,7 +29,7 @@ px = Proxy :: Proxy """<section>
 --   }
 run2_
   $ dynamicsCompressor_ { threshold: -50.0 }
-  $ loopBuf buf pureOn</code></pre>
+  $ loopBuf buf bangOn</code></pre>
 
   ~compression~
   </section>
@@ -40,6 +40,6 @@ compression ccb _ ev = px ~~
   { compression: nut
       ( audioWrapper ev ccb (ctxAff \ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
           \buf -> run2_
-            $ dynamicsCompressor_ {} $ loopBuf buf pureOn
+            $ dynamicsCompressor_ {} $ loopBuf buf bangOn
       )
   }

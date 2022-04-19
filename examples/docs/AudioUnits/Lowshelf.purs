@@ -12,7 +12,7 @@ import WAGS.Control (loopBuf, lowshelf_)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import WAGS.Example.Docs.Util (audioWrapper)
 import WAGS.Interpret (ctxAff, decodeAudioDataFromUri)
-import WAGS.Parameter (pureOn)
+import WAGS.Parameter (bangOn)
 import WAGS.Run (run2_)
 
 px = Proxy :: Proxy """<section>
@@ -21,7 +21,7 @@ px = Proxy :: Proxy """<section>
 
   <pre><code>\buf -> run2_
    $ lowshelf_ { frequency: 91.0, gain: 10.0 }
-   $ loopBuf buf pureOn
+   $ loopBuf buf bangOn
 </code></pre>
 
   ~lowshelf~
@@ -33,6 +33,6 @@ lowshelf ccb _ ev = px ~~
   { lowshelf: nut
       ( audioWrapper ev ccb (ctxAff \ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
           \buf -> run2_
-            $ lowshelf_ {frequency: 91.0, gain: 0.4 } $ loopBuf buf pureOn
+            $ lowshelf_ {frequency: 91.0, gain: 0.4 } $ loopBuf buf bangOn
       )
   }

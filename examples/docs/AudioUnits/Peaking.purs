@@ -12,7 +12,7 @@ import WAGS.Control (loopBuf, peaking_)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import WAGS.Example.Docs.Util (audioWrapper)
 import WAGS.Interpret (ctxAff, decodeAudioDataFromUri)
-import WAGS.Parameter (pureOn)
+import WAGS.Parameter (bangOn)
 import WAGS.Run (run2_)
 
 px =
@@ -26,7 +26,7 @@ px =
   $ peaking_ { frequency: 1200.0, q: 10.0, gain: -20.0 }
   $ peaking_ { frequency: 2000.0, q: 20.0, gain: 20.0 }
   $ peaking_ { frequency: 3000.0, q: 30.0, gain: -20.0 }
-  $ loopBuf buf pureOn
+  $ loopBuf buf bangOn
 </code></pre>
 
   ~peaking~
@@ -44,6 +44,6 @@ peaking ccb _ ev = px ~~
             $ peaking_ { frequency: 1200.0, q: 10.0, gain: -20.0 }
             $ peaking_ { frequency: 2000.0, q: 20.0, gain: 20.0 }
             $ peaking_ { frequency: 3000.0, q: 30.0, gain: -20.0 }
-            $ loopBuf buf pureOn
+            $ loopBuf buf bangOn
       )
   }

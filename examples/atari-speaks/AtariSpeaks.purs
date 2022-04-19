@@ -32,7 +32,7 @@ import WAGS.Control (analyser, gain, loopBuf, singleton, speaker2, (~))
 import WAGS.Core (AudioInput)
 import WAGS.Example.Utils (RaiseCancellation)
 import WAGS.Interpret (close, context, decodeAudioDataFromUri, effectfulAudioInterpret, getByteFrequencyData, makeFFIAudioSnapshot)
-import WAGS.Parameter (opticN, pureOn)
+import WAGS.Parameter (opticN, bangOn)
 import WAGS.Properties (loopEnd, loopStart, playbackRate)
 import WAGS.WebAPI (AnalyserNodeCb(..), AudioContext, BrowserAudioBuffer)
 import Web.HTML (window)
@@ -55,14 +55,14 @@ scene atar cb wh =
           ( gain 1.0 empty
               ( gain 0.3 empty
                   ( loopBuf { buffer: atar, playbackRate: 1.0 }
-                      ( pureOn <|>
+                      ( bangOn <|>
                           playbackRate <<<
                             (over opticN (\rad -> 1.0 + 0.1 * sin rad)) <$> tr
                       )
                   )
                   ~ gain 0.15 empty
                       ( loopBuf { buffer: atar, playbackRate: 1.0 }
-                          ( pureOn
+                          ( bangOn
                               <|>
                                 playbackRate <<<
                                   (over opticN (\rad -> 1.5 + 0.1 * sin (2.0 * rad)))
@@ -77,7 +77,7 @@ scene atar cb wh =
                           )
                       )
                   ~ gain 0.3 empty
-                      (loopBuf { buffer: atar, playbackRate: 0.25 } pureOn)
+                      (loopBuf { buffer: atar, playbackRate: 0.25 } bangOn)
               )
           )
       )

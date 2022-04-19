@@ -12,7 +12,7 @@ import WAGS.Control (loopBuf, (~))
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import WAGS.Example.Docs.Util (audioWrapper)
 import WAGS.Interpret (ctxAff, decodeAudioDataFromUri)
-import WAGS.Parameter (pureOn)
+import WAGS.Parameter (bangOn)
 import WAGS.Run (run2_)
 
 px =  Proxy   :: Proxy  """<section>
@@ -27,19 +27,19 @@ px =  Proxy   :: Proxy  """<section>
         , loopStart: 0.1
         , loopEnd: 0.6
         }
-        pureOn
+        bangOn
     ~ loopBuf
         { buffer: buf
         , playbackRate: 1.0
         , loopStart: 0.5
         , loopEnd: 1.2
         }
-        pureOn
+        bangOn
     ~ loopBuf
         { buffer: buf
         , playbackRate: 1.7
         }
-        pureOn
+        bangOn
 </code></pre>
 
   @loopBuf@
@@ -58,19 +58,19 @@ loopBufEx ccb _ ev = makePursx' (Proxy :: _ "@") px
                 , loopStart: 0.1
                 , loopEnd: 0.6
                 }
-                pureOn
+                bangOn
             ~ loopBuf
                 { buffer: buf
                 , playbackRate: 1.0
                 , loopStart: 0.5
                 , loopEnd: 1.2
                 }
-                pureOn
+                bangOn
             ~ loopBuf
                 { buffer: buf
                 , playbackRate: 1.7
                 }
-                pureOn
+                bangOn
 
       )
   }

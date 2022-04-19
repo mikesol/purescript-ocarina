@@ -17,7 +17,7 @@ import WAGS.Control (loopBuf, waveShaper)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import WAGS.Example.Docs.Util (audioWrapper)
 import WAGS.Interpret (ctxAff, decodeAudioDataFromUri, makeFloatArray)
-import WAGS.Parameter (pureOn)
+import WAGS.Parameter (bangOn)
 import WAGS.Run (run2_)
 
 px =
@@ -54,7 +54,7 @@ waveShaperEx ccb _ ev = px ~~
       deg = pi / 180.0
   wicked <- makeFloatArray (makeDistortionCurve 400.0)
   run2_
-    $ waveShaper wicked $ loopBuf buf pureOn"""
+    $ waveShaper wicked $ loopBuf buf bangOn"""
       )
   , waveShaper: nut
       ( audioWrapper ev ccb (ctxAff \ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/339/339822_5121236-lq.mp3")
@@ -76,6 +76,6 @@ waveShaperEx ccb _ ev = px ~~
                 deg = pi / 180.0
             wicked <- makeFloatArray (makeDistortionCurve 400.0)
             run2_
-              $ waveShaper wicked $ loopBuf buf pureOn
+              $ waveShaper wicked $ loopBuf buf bangOn
       )
   }

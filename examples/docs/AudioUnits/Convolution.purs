@@ -12,7 +12,7 @@ import WAGS.Control (convolver, loopBuf)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import WAGS.Example.Docs.Util (audioWrapper)
 import WAGS.Interpret (ctxAff, decodeAudioDataFromUri)
-import WAGS.Parameter (pureOn)
+import WAGS.Parameter (bangOn)
 import WAGS.Run (run2_)
 
 px = Proxy :: Proxy """<section>
@@ -21,7 +21,7 @@ px = Proxy :: Proxy """<section>
 
   <pre><code>\{loop, verb} -> run2_
   $ convolver verb
-  $ loopBuf loop pureOn</code></pre>
+  $ loopBuf loop bangOn</code></pre>
 
   ~convolution~
   </section>
@@ -33,6 +33,6 @@ convolution ccb _ ev = px ~~
       ( audioWrapper ev ccb (ctxAff \ctx -> { loop: _, verb: _ }
          <$> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3" <*> decodeAudioDataFromUri ctx "https://cdn.jsdelivr.net/gh/andibrae/Reverb.js/Library/StMarysAbbeyReconstructionPhase3.m4a")
           \{loop, verb} -> run2_
-            $ convolver verb $ loopBuf loop pureOn
+            $ convolver verb $ loopBuf loop bangOn
       )
   }

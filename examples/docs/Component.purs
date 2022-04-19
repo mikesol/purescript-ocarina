@@ -39,7 +39,7 @@ import WAGS.Example.Docs.AudioUnits.WaveShaper as WaveShaper
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
 import WAGS.Example.Docs.Util (audioWrapperSpan, ccassp, mkNext, scrollToTop)
 import WAGS.Interpret (ctxAff, decodeAudioDataFromUri)
-import WAGS.Parameter (pureOn)
+import WAGS.Parameter (bangOn)
 import WAGS.Run (run2_)
 
 
@@ -105,7 +105,7 @@ components :: forall payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Sin
 components cca' dpage ssp ev = px ~~
   { drumroll: nut
       ( audioWrapperSpan "🥁" ev ccb (ctxAff \ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/50/50711_179538-lq.mp3")
-          \buf -> run2_ $ gain_ 1.0 $ loopBuf buf pureOn
+          \buf -> run2_ $ gain_ 1.0 $ loopBuf buf bangOn
       )
   , toc: nut TOC.toc
   , allpass: nut $ Allpass.allpass ccb dpage ev

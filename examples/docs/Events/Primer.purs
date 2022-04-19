@@ -41,7 +41,7 @@ type Behavior = ABehavior Event
   </p>
 
   <p>
-    In Wags, we usually want to observe the behavior of things like the mouse's position or an audio buffer's content. We'll see both in the following examples.
+    In Wags, we usually want to observe the behavior of things like a mouse's position, an audio buffer's content or a random number generator.
   </p>
 </section>"""
 

@@ -24,7 +24,7 @@ import Type.Proxy (Proxy(..))
 import WAGS.Control (loopBuf)
 import WAGS.Interpret (ctxAff, decodeAudioDataFromUri)
 import WAGS.Math (calcSlope)
-import WAGS.Parameter (pureOn)
+import WAGS.Parameter (bangOn)
 import WAGS.Properties (loopEnd, loopStart, playbackRate)
 import WAGS.Run (run2_)
 import WAGS.Variant (injs_, prjs_)
@@ -95,7 +95,7 @@ main = do
                   , loopEnd: 1.1
                   }
               $ oneOf
-                  [ pureOn
+                  [ bangOn
                   , (calcSlope 0.0 0.2 100.0 5.0 >>> playbackRate) <$> sl0
                   , (calcSlope 0.0 0.0 100.0 1.2 >>> loopStart) <$> sl1
                   , (calcSlope 0.0 0.05 100.0 1.0 >>> loopEnd) <$> biSampleOn sl2

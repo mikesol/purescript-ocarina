@@ -11,7 +11,7 @@ import Type.Proxy (Proxy(..))
 import WAGS.Control (gain_, sawtoothOsc, sawtoothOsc_)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import WAGS.Example.Docs.Util (audioWrapper)
-import WAGS.Parameter (pureOn)
+import WAGS.Parameter (bangOn)
 import WAGS.Run (run2_)
 
 px =
@@ -22,7 +22,7 @@ px =
 
   <pre><code>\buf -> run2_
   $ gain_ 0.2
-  $ sawtoothOsc 448.0 pureOn
+  $ sawtoothOsc 448.0 bangOn
 </code></pre>
 
   ~periodic~
@@ -36,6 +36,6 @@ sawtooth ccb _ ev = px ~~
       ( audioWrapper ev ccb (pure unit)
           \_ -> run2_
   $ gain_ 0.2
-      $ sawtoothOsc 448.0 pureOn
+      $ sawtoothOsc 448.0 bangOn
       )
   }

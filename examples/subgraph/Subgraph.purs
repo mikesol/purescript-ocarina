@@ -32,7 +32,7 @@ import WAGS.Core (AudioInput, InitializeConvolver(..), fan, input, mkSubgraph, s
 import WAGS.Core as C
 import WAGS.Example.Utils (RaiseCancellation)
 import WAGS.Interpret (close, context, decodeAudioDataFromUri, effectfulAudioInterpret, makeFFIAudioSnapshot)
-import WAGS.Parameter (opticN, pureOn)
+import WAGS.Parameter (opticN, bangOn)
 import WAGS.Properties (frequency)
 import WAGS.WebAPI (AudioContext, BrowserAudioBuffer)
 import Web.HTML (window)
@@ -57,7 +57,7 @@ scene { loopy, conny } wh =
   let
     tr = fot wh (mul pi)
   in
-    singleton $ fan (gain 1.0 empty (loopBuf loopy pureOn)) \(toSubg) ->
+    singleton $ fan (gain 1.0 empty (loopBuf loopy bangOn)) \(toSubg) ->
       subgraph
         ( keepLatest $ map
             ( \ix ->
@@ -86,7 +86,7 @@ scene { loopy, conny } wh =
                                   tr
                               )
                               (input toSubg)
-                              :* [ gain 0.03 empty (sinOsc 220.0 pureOn) ]
+                              :* [ gain 0.03 empty (sinOsc 220.0 bangOn) ]
                           )
                       )
                 | ix == 1 =
@@ -104,7 +104,7 @@ scene { loopy, conny } wh =
                           :*
                             [ gain 0.03 empty
                                 (triangleOsc 2000.0
-                                    ( pureOn <|>
+                                    ( bangOn <|>
                                         ( map
                                             ( frequency <<< over opticN
                                                 ( \x -> 2000.0 + 300.0 * sin
@@ -132,7 +132,7 @@ scene { loopy, conny } wh =
                           :*
                             [ gain 0.03 empty
                                 (sinOsc 820.0
-                                    ( pureOn <|>
+                                    ( bangOn <|>
                                         ( map
                                             ( frequency <<< over opticN
                                                 ( \x -> 1100.0 + 1000.0 *

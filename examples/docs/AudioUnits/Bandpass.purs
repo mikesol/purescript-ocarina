@@ -13,7 +13,7 @@ import WAGS.Core (fan, input)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import WAGS.Example.Docs.Util (audioWrapper)
 import WAGS.Interpret (ctxAff, decodeAudioDataFromUri)
-import WAGS.Parameter (pureOn)
+import WAGS.Parameter (bangOn)
 import WAGS.Run (run2_)
 
 px = Proxy :: Proxy """<section>
@@ -21,7 +21,7 @@ px = Proxy :: Proxy """<section>
   <p>A <a href="https://developer.mozilla.org/en-US/docs/Web/API/BiquadFilterNode">bandpass filter</a> isolates a single frequency range of a source. When you crank up a bandpass node's Q value, the isolation gets more intense. At the extreme, the source signal is almost lost and you get a pure sound that resembles a sine-wave oscillator.</p>
 
   <pre><code>run2_
-  $ fan (loopBuf buf pureOn)
+  $ fan (loopBuf buf bangOn)
       \b -> gain_ 0.8
         ( bandpass_ { frequency: 400.0, q: 1.0 } (input b)
         ~ bandpass_ { frequency: 880.0, q: 5.0 } (input b)
@@ -39,7 +39,7 @@ bandpass ccb _ ev = makePursx' (Proxy :: _ "@") px
   { bandpass: nut
       ( audioWrapper ev ccb (ctxAff \ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
           \buf -> run2_
-            $ fan (loopBuf buf pureOn)
+            $ fan (loopBuf buf bangOn)
                 \b -> gain_ 0.8
                   ( bandpass_ { frequency: 400.0, q: 1.0 } (input b)
                   ~ bandpass_ { frequency: 880.0, q: 5.0 } (input b)
@@ -52,7 +52,7 @@ bandpass ccb _ ev = makePursx' (Proxy :: _ "@") px
   }
 
   {-
-fan (loopBuf buf pureOn)
+fan (loopBuf buf bangOn)
   \b -> gain_ 0.8
     ( bandpass_ { frequency: 400.0, q: 1.0 } (input b)
     ~ bandpass_ { frequency: 880.0, q: 5.0 } (input b)

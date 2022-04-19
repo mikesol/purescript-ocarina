@@ -12,7 +12,7 @@ import WAGS.Control (loopBuf, lowpass_)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import WAGS.Example.Docs.Util (audioWrapper)
 import WAGS.Interpret (ctxAff, decodeAudioDataFromUri)
-import WAGS.Parameter (pureOn)
+import WAGS.Parameter (bangOn)
 import WAGS.Run (run2_)
 
 px = Proxy :: Proxy """<section>
@@ -20,7 +20,7 @@ px = Proxy :: Proxy """<section>
   <p>A <a href="https://developer.mozilla.org/en-US/docs/Web/API/BiquadFilterNode">lowpass filter</a> lets lower frequencies pass and amortizes higher ones. If you amp up the Q value, the effect will be sharper.</p>
 
   <pre><code>\buf -> run2_
-  $ lowpass_ 215.0 $ loopBuf buf pureOn
+  $ lowpass_ 215.0 $ loopBuf buf bangOn
 </code></pre>
 
   ~lowpass~
@@ -32,6 +32,6 @@ lowpass ccb _ ev = px ~~
   { lowpass: nut
       ( audioWrapper ev ccb (ctxAff \ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
           \buf -> run2_
-            $ lowpass_ 215.0 $ loopBuf buf pureOn
+            $ lowpass_ 215.0 $ loopBuf buf bangOn
       )
   }

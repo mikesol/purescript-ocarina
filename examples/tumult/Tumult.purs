@@ -30,7 +30,7 @@ import WAGS.Control (loopBuf, singleton, speaker2)
 import WAGS.Core (AudioInput, fan)
 import WAGS.Example.Utils (RaiseCancellation)
 import WAGS.Interpret (close, context, decodeAudioDataFromUri, effectfulAudioInterpret, makeFFIAudioSnapshot)
-import WAGS.Parameter (AudioNumeric(..), opticN, pureOn)
+import WAGS.Parameter (AudioNumeric(..), opticN, bangOn)
 import WAGS.Tumult (tumult)
 import WAGS.Tumult.Create.Optionals as Opt
 import WAGS.Tumult.Tumult.Make (tumultuously)
@@ -49,7 +49,7 @@ scene loopy wh =
   let
     tr = fot wh (mul pi)
   in
-    singleton $ fan (loopBuf loopy pureOn) \tmlt ->
+    singleton $ fan (loopBuf loopy bangOn) \tmlt ->
       tumult
         ( tr <#> \anum@(AudioNumeric { o }) ->
             let
