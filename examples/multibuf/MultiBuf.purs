@@ -1,61 +1,51 @@
 module WAGS.Example.MultiBuf where
 
--- should continue scheduling things at 0.25s intervals ad infinitum
-
 import Prelude
 
 import Control.Alt ((<|>))
 import Control.Comonad (extract)
-import Control.Comonad.Cofree (Cofree, deferCofree, mkCofree)
+import Control.Comonad.Cofree (Cofree, deferCofree)
 import Control.Comonad.Cofree.Class (unwrapCofree)
+import Control.Plus (empty)
 import Data.Array as Array
-import Data.Foldable (for_)
+import Data.Compactable (compact)
+import Data.Exists (Exists, mkExists)
+import Data.Foldable (for_, oneOf)
 import Data.FoldableWithIndex (foldlWithIndex)
 import Data.Identity (Identity(..))
-import Data.Map (empty, fromFoldable, insert, toUnfoldable, union)
-import Data.Maybe (Maybe(..))
+import Data.Map (Map, fromFoldable, insert, union, values)
+import Data.Map as Map
+import Data.Maybe (Maybe(..), maybe)
 import Data.Newtype (unwrap)
-import Data.Tuple (swap)
-import Data.Tuple.Nested ((/\))
-import Data.Typelevel.Num (D40)
-import Data.Variant.Maybe (just, nothing)
+import Data.Tuple (Tuple(..), fst, swap)
+import Data.Tuple.Nested (type (/\), (/\))
+import Data.Typelevel.Num (D2)
+import Deku.Attribute (cb, (:=))
+import Deku.Control (deku, text, text_)
+import Deku.Core (SubgraphF(..))
+import Deku.DOM as DOM
+import Deku.Interpret (effectfulDOMInterpret, makeFFIDOMSnapshot)
+import Deku.Subgraph (SubgraphAction(..), subgraph)
 import Effect (Effect)
-import Effect.Aff.Class (class MonadAff)
-import Effect.Class (class MonadEffect)
-import FRP.Event (subscribe)
+import Effect.Aff (Aff, launchAff_)
+import Effect.Class (liftEffect)
+import FRP.Behavior (sample_)
+import FRP.Event (Event, class IsEvent, fold, keepLatest, mapAccum, subscribe)
+import FRP.Event.Class (bang)
 import FRP.Event.Time (interval)
-import Halogen as H
-import Halogen.Aff (awaitBody, runHalogenAff)
-import Halogen.HTML as HH
-import Halogen.HTML.Events as HE
-import Halogen.VDom.Driver (runUI)
-import WAGS.Control.Functions.Graph (loopUsingScene)
-import WAGS.Control.Functions.Subgraph as SG
-import WAGS.Control.Types (Frame0, Scene, SubScene)
-import WAGS.Create.Optionals (gain, playBuf, speaker, subgraph)
-import WAGS.Graph.Parameter (AudioOnOff(..), _on)
-import WAGS.Interpret (class AudioInterpret, close, context, decodeAudioDataFromUri, makeFFIAudioSnapshot)
-import WAGS.Run (RunAudio, RunEngine, TriggeredRun, TriggeredScene(..), runNoLoop)
+import WAGS.Clock (ACTime, WriteHead, writeHead)
+import WAGS.Control (gain, playBuf, speaker2)
+import WAGS.Core (Node, Subgraph)
+import WAGS.Core as C
+import WAGS.Example.Utils (RaiseCancellation)
+import WAGS.Interpret (close, context, decodeAudioDataFromUri, effectfulAudioInterpret, makeFFIAudioSnapshot)
+import WAGS.Parameter (AudioOnOff(..), _on)
+import WAGS.Properties (onOff)
 import WAGS.WebAPI (AudioContext, BrowserAudioBuffer)
-
-type World = { kick :: BrowserAudioBuffer, snare :: BrowserAudioBuffer }
-
-newtype SGWorld = SGWorld Number
-
-subPiece0
-  :: forall audio engine
-   . AudioInterpret audio engine
-  => { kick :: BrowserAudioBuffer, snare :: BrowserAudioBuffer }
-  -> Int
-  -> SubScene "buffy" () SGWorld audio engine Frame0 Unit
-subPiece0 { kick, snare } i = mempty # SG.loopUsingScene \(SGWorld time) _ ->
-  { control: unit
-  , scene:
-      { buffy: playBuf
-          { onOff: AudioOnOff { onOff: _on, timeOffset: time } }
-          (if i `mod` 2 == 0 then kick else snare)
-      }
-  }
+import Web.HTML (window)
+import Web.HTML.HTMLDocument (body)
+import Web.HTML.HTMLElement (toElement)
+import Web.HTML.Window (document)
 
 unrollCofree
   :: forall a
@@ -71,128 +61,172 @@ unrollCofree n cf =
   in
     { head: Array.cons h v.head, rest: v.rest }
 
-piece :: Scene (TriggeredScene Unit World ()) RunAudio RunEngine Frame0 Unit
-piece =
-  ( const
-      $
-        let
-          f i x = deferCofree \_ -> (i /\ x) /\ Identity
-            (f (i + 1) (x + 0.25))
+type Acc0 =
+  { cf :: Cofree Identity (Int /\ Number)
+  , prevs :: Map Number Int
+  }
 
-        in
-          { cf: f 0 0.0, prevs: empty }
-  ) # loopUsingScene \(TriggeredScene env) { cf, prevs } ->
-    let
-      { head, rest } = unrollCofree 20 cf
-      -- (i → b → a → b) → b → f a → b
-      { yes, no } = foldlWithIndex
-        ( \k yn v ->
-            if k < (env.time - 2.0) then yn { no = insert k v yn.no }
-            else yn { yes = insert k v yn.yes }
+type Acc1 =
+  { head :: Array (Int /\ Number)
+  , no :: Map Number Int
+  }
+
+acc :: Acc0
+acc =
+  let
+    f i x = deferCofree \_ -> (i /\ x) /\ Identity
+      (f (i + 1) (x + 0.25))
+  in
+    { cf: f 0 0.0, prevs: empty }
+
+accLoop :: Number -> Acc0 -> Acc0 /\ Acc1
+accLoop time { cf, prevs } =
+  { cf: rest, prevs: union yes $ fromFoldable (map swap head) } /\ { head, no }
+  where
+  { head, rest } = unrollCofree 20 cf
+  { yes, no } = foldlWithIndex
+    ( \k yn v ->
+        if k < (time - 2.0) then yn { no = insert k v yn.no }
+        else yn { yes = insert k v yn.yes }
+    )
+    { yes: empty, no: empty }
+    prevs
+
+sg
+  :: forall lock event payload
+   . IsEvent event
+  => KickSnare
+  -> Int /\ Number /\ ACTime
+  -> Subgraph D2 lock event payload
+sg ks = \(i /\ t /\ { lookAhead }) -> C.mkSubgraph
+  $ gain 1.0 empty
+  $ pure
+  $ playBuf (if i `mod` 2 == 0 then ks.kick else ks.snare)
+      ( bang $ onOff $ AudioOnOff
+          { x: _on
+          , o: lookAhead + t
+          }
+      )
+
+sgActionMaker
+  :: forall event
+   . IsEvent event
+  => ACTime /\ Acc1
+  -> event ((Int /\ Number /\ ACTime) /\ C.SubgraphAction)
+sgActionMaker (ac /\ { head, no }) =
+  compact $ map fst $ fold
+    ( \x@((i /\ n /\ t) /\ a) (_ /\ m) -> case a of
+        C.Insert -> Just x /\ Map.insert i (n /\ t) m
+        C.Remove -> case Map.lookup i m of
+          Nothing -> Nothing /\ m
+          Just v -> Just ((i /\ v) /\ a) /\ Map.delete i m
+    )
+    ( oneOf (map (\(i /\ n) -> bang $ (i /\ n /\ ac) /\ C.Insert) head) <|>
+        oneOf
+          ( map
+              ( \i -> bang $
+                  ( i /\ 0.0 /\
+                      { abstractTime: 0.0
+                      , concreteTime: 0.0
+                      , lookAhead: 0.0
+                      }
+                  ) /\ C.Remove
+              ) $ values no
+          )
+    )
+    (Nothing /\ Map.empty)
+
+scene
+  :: forall lock payload
+   . KickSnare
+  -> WriteHead Event
+  -> Array (Node D2 lock Event payload)
+scene ks wh =
+  let
+    mapped = mapAccum
+      (\a b -> let b' /\ c = accLoop a.abstractTime b in b' /\ (a /\ c))
+      wh
+      acc
+  in
+    pure
+      (C.subgraph (keepLatest (map sgActionMaker mapped)) (sg ks))
+
+type UIAction = Maybe { unsub :: Effect Unit, ctx :: AudioContext }
+type KickSnare = { kick :: BrowserAudioBuffer, snare :: BrowserAudioBuffer }
+
+type Init = { kick :: BrowserAudioBuffer, snare :: BrowserAudioBuffer }
+
+initializeMultiBuf :: Aff Init
+initializeMultiBuf = do
+  audioCtx <- liftEffect context
+  kick <- decodeAudioDataFromUri
+    audioCtx
+    "https://freesound.org/data/previews/344/344757_1676145-hq.mp3"
+  snare <- decodeAudioDataFromUri
+    audioCtx
+    "https://freesound.org/data/previews/387/387186_7255534-hq.mp3"
+  pure { kick, snare }
+
+multiBuf
+  :: forall payload
+   . KickSnare
+  -> RaiseCancellation
+  -> Exists (SubgraphF Event payload)
+multiBuf ks rc = mkExists $ SubgraphF \push event ->
+  DOM.div_
+    [ DOM.h1_ [ text_ "Multi Buf" ]
+    , DOM.button
+        ( map
+            ( \i -> DOM.OnClick := cb
+                ( const $
+                    maybe
+                      ( do
+                          ctx <- context
+                          ffi2 <- makeFFIAudioSnapshot ctx
+                          let wh = writeHead 0.04 ctx
+                          unsub <- subscribe
+                            ( speaker2
+                                ( scene ks
+                                    ( sample_ wh
+                                        ( bang unit <|>
+                                            (interval 4900 $> unit)
+                                        )
+                                    )
+                                )
+                                effectfulAudioInterpret
+                            )
+                            ((#) ffi2)
+                          rc $ Just { unsub, ctx }
+                          push $ Just { unsub, ctx }
+                      )
+                      ( \{ unsub, ctx } -> do
+                          rc Nothing
+                          unsub
+                          close ctx
+                          push Nothing
+                      )
+                      i
+                )
+            )
+            event
         )
-        { yes: empty, no: empty }
-        prevs
-    in
-      { control: { cf: rest, prevs: union yes $ fromFoldable (map swap head) }
-      , scene: speaker
-          let
-            envs = fromFoldable
-              ( ( map
-                    ( \(x /\ y) -> x /\
-                        (just $ SGWorld (max 0.0 (y - env.time)))
-                    )
-                    head
-                ) <> (map <<< map) (const nothing) (map swap (toUnfoldable no))
-              )
-          in
-            { gn: gain 1.0
-                { sg: subgraph envs
-                    (subPiece0 { kick: env.world.kick, snare: env.world.snare })
-                    {}
-                }
-            }
-      }
+        [ text
+            (map (maybe "Turn on" (const "Turn off")) event)
+        ]
+    ]
 
 main :: Effect Unit
-main =
-  runHalogenAff do
-    body <- awaitBody
-    runUI component unit body
-
-type State =
-  { unsubscribe :: Effect Unit
-  , audioCtx :: Maybe AudioContext
-  , freqz :: Array String
-  }
-
-data Action
-  = StartAudio
-  | StopAudio
-
-component
-  :: forall query input output m
-   . MonadEffect m
-  => MonadAff m
-  => H.Component query input output m
-component =
-  H.mkComponent
-    { initialState
-    , render
-    , eval: H.mkEval $ H.defaultEval { handleAction = handleAction }
-    }
-
-initialState :: forall input. input -> State
-initialState _ =
-  { unsubscribe: pure unit
-  , audioCtx: Nothing
-  , freqz: []
-  }
-
-render :: forall m. State -> H.ComponentHTML Action () m
-render { freqz } = do
-  HH.div_
-    $
-      [ HH.h1_
-          [ HH.text "MultiBuf test" ]
-      , HH.button
-          [ HE.onClick \_ -> StartAudio ]
-          [ HH.text "Start audio" ]
-      , HH.button
-          [ HE.onClick \_ -> StopAudio ]
-          [ HH.text "Stop audio" ]
-      ]
-        <> map (\freq -> HH.p [] [ HH.text freq ]) freqz
-
-handleAction
-  :: forall output m
-   . MonadEffect m
-  => MonadAff m
-  => Action
-  -> H.HalogenM State Action () output m Unit
-handleAction = case _ of
-  StartAudio -> do
-    audioCtx <- H.liftEffect context
-    ffiAudio <- H.liftEffect $ makeFFIAudioSnapshot audioCtx
-    kick <-
-      H.liftAff $ decodeAudioDataFromUri
-        audioCtx
-        "https://freesound.org/data/previews/344/344757_1676145-hq.mp3"
-    snare <- H.liftAff $ decodeAudioDataFromUri
-      audioCtx
-      "https://freesound.org/data/previews/387/387186_7255534-hq.mp3"
-    unsubscribe <-
-      H.liftEffect
-        $ subscribe
-            ( runNoLoop (pure unit <|> (interval 4900 $> unit))
-                (pure { kick, snare })
-                {}
-                (ffiAudio)
-                piece
-            )
-            (\(_ :: TriggeredRun Unit ()) -> pure unit)
-    H.modify_ _ { unsubscribe = unsubscribe, audioCtx = Just audioCtx }
-  StopAudio -> do
-    { unsubscribe, audioCtx } <- H.get
-    H.liftEffect unsubscribe
-    for_ audioCtx (H.liftEffect <<< close)
-    H.modify_ _ { unsubscribe = pure unit, audioCtx = Nothing }
+main = launchAff_ do
+  init <- initializeMultiBuf
+  liftEffect do
+    b' <- window >>= document >>= body
+    for_ (toElement <$> b') \elt -> do
+      ffi <- makeFFIDOMSnapshot
+      let
+        evt = deku elt
+          ( subgraph (bang (Tuple unit Insert))
+              (const $ multiBuf init (const $ pure unit))
+          )
+          effectfulDOMInterpret
+      _ <- subscribe evt \i -> i ffi
+      pure unit

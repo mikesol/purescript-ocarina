@@ -2,53 +2,179 @@ module WAGS.Example.Storybook where
 
 import Prelude
 
-import Control.Monad.Error.Class (class MonadThrow)
+import Control.Alt ((<|>))
+import Control.Plus (empty)
+import Data.Either (Either(..))
+import Data.Exists (mkExists)
+import Data.Foldable (for_)
+import Data.Generic.Rep (class Generic)
+import Data.Hashable (class Hashable, hash)
 import Data.Maybe (Maybe(..))
-import Data.Tuple (Tuple(..))
+import Data.Show.Generic (genericShow)
+import Data.Tuple.Nested ((/\))
+import Deku.Attribute (cb, (:=))
+import Deku.Control (deku, flatten, text_)
+import Deku.Core (Element, Subgraph, SubgraphF(..))
+import Deku.DOM as D
+import Deku.Interpret (effectfulDOMInterpret, makeFFIDOMSnapshot)
+import Deku.Subgraph (SubgraphAction(..), subgraph)
 import Effect (Effect)
-import Effect.Aff.Class (class MonadAff)
-import Effect.Class (class MonadEffect)
-import Effect.Exception (Error)
-import Foreign.Object as Object
-import Halogen.Aff as HA
-import Halogen.HTML as HH
-import Halogen.Storybook (Stories, runStorybook, proxy)
+import Effect.Aff (launchAff_, try)
+import Effect.Class (liftEffect)
+import FRP.Event (Event, Event, create, filterMap, fold, keepLatest, mapAccum, subscribe)
+import FRP.Event.Class (bang)
 import WAGS.Example.AtariSpeaks as AtariSpeaks
-import WAGS.Example.DrumMachine as DrumMachine
 import WAGS.Example.HelloWorld as HelloWorld
-import WAGS.Example.KitchenSink as KitchenSink
-import WAGS.Example.Makenna as Makenna
-import WAGS.Example.NoLoop as NoLoop
-import WAGS.Example.SMC2022 as SMC2022
-import WAGS.Example.SkipMachine as SkipMachine
-import WAGS.Example.Subgraph as Subgraph
+import WAGS.Example.MultiBuf as MultiBuf
+import WAGS.Example.StressTest as StressTest
+import WAGS.Example.Subgraph as Subg
+import WAGS.Example.Tumult as Tummult
 import WAGS.Example.Tumult as Tumult
-import WAGS.Example.WTK as WTK
-import WAGS.Example.WhiteNoise as WhiteNoise
+import WAGS.Example.Utils (ToCancel)
+import WAGS.Interpret (close)
+import Web.HTML (window)
+import Web.HTML.HTMLDocument (body)
+import Web.HTML.HTMLElement (toElement)
+import Web.HTML.Window (document)
 
-stories :: forall m. MonadEffect m => MonadAff m => MonadThrow Error m => Stories m
-stories = Object.fromFoldable
-  [ Tuple "atari speaks" $ proxy AtariSpeaks.component
-  , Tuple "drum machine" $ proxy DrumMachine.component
-  , Tuple "hello world" $ proxy HelloWorld.component
-  , Tuple "kitchen sink" $ proxy KitchenSink.component
-  , Tuple "happy birthday" $ proxy Makenna.component
-  -- media element currently doen't work
-  -- needs to be updated to use halogen ref
-  -- , Tuple "media element" $ proxy MediaElement.component
-  , Tuple "no loop" $ proxy NoLoop.component
-  , Tuple "skip machine" $ proxy SkipMachine.component
-  , Tuple "smc2022" $ proxy SMC2022.component
-  , Tuple "subgraph" $ proxy Subgraph.component
-  , Tuple "tumult" $ proxy Tumult.component
-  , Tuple "white noise" $ proxy WhiteNoise.component
-  , Tuple "wtk" $ proxy WTK.component
-  ]
+data Page
+  = HelloWorld HelloWorld.Init
+  | StressTest StressTest.Init
+  | AtariSpeaks AtariSpeaks.Init
+  | MultiBuf MultiBuf.Init
+  -- | Tumult Tummult.Init
+  | Subg Subg.Init
+  | ErrorPage String
+  | LoadingPage
+
+derive instance eqPage :: Eq Page
+derive instance genericPage :: Generic Page _
+
+instance Show Page where
+  show p = genericShow p
+
+instance Hashable Page where
+  hash = hash <<< show
+
+data UIAction = PageLoading | Page Page | StashCancel (Maybe ToCancel) | Start
+
+data OnClickAction = Loaded | Loading
+
+scene
+  :: forall payload
+   . (UIAction -> Effect Unit)
+  -> Event UIAction
+  -> Element Event payload
+scene push event =
+  flatten
+    [ D.div_
+        $ map
+            ( \(x' /\ y /\ z) -> D.span_
+                [ D.a
+                    ( bang (D.Style := "cursor:pointer;") <|>
+                        ( ( fold
+                              ( \a (i /\ stash) -> case a of
+                                  Start -> Loaded /\ stash
+                                  PageLoading -> Loading /\ stash
+                                  StashCancel newStash -> i /\ newStash
+                                  Page _ -> Loaded /\ stash
+                              )
+                              event
+                              (Loaded /\ Nothing)
+                          ) <#>
+                            \(loadingState /\ stash) ->
+                              case loadingState of
+                                Loading -> D.OnClick := cb (const $ pure unit)
+                                Loaded -> D.OnClick := cb
+                                  ( const $ launchAff_ $
+                                      ( try do
+                                          liftEffect $ push PageLoading
+                                          for_ stash \{ unsub, ctx } ->
+                                            liftEffect
+                                              do
+                                                close ctx
+                                                unsub
+                                                push (StashCancel Nothing)
+                                          x <- x'
+                                          liftEffect $ push (Page x)
+                                      ) >>= case _ of
+                                        Left e -> liftEffect
+                                          (push (Page $ ErrorPage $ show e))
+                                        Right _ -> pure unit
+                                  )
+                        )
+                    )
+                    [ text_ y ]
+                , D.span
+                    ( bang $ D.Style :=
+                        if z then ""
+                        else "display:none;"
+                    )
+                    [ text_ " | " ]
+                ]
+            )
+        $
+          [ (HelloWorld <$> HelloWorld.initializeHelloWorld)
+              /\ "Hello World"
+              /\ true
+          , (StressTest <$> StressTest.initializeStressTest)
+              /\ "Stress test"
+              /\ true
+          , (AtariSpeaks <$> AtariSpeaks.initializeAtariSpeaks)
+              /\ "Atari speaks"
+              /\ true
+          , (MultiBuf <$> MultiBuf.initializeMultiBuf)
+              /\ "Multi-buf"
+              /\ true
+          -- , (Tumult <$> Tumult.initializeTumult)
+          --     /\ "Tumult"
+          --     /\ true
+          , (Subg <$> Subg.initializeSubgraph)
+              /\ "Subgraph"
+              /\ true
+          ]
+    , subgraph
+        ( mapAccum (\a b -> Just a /\ (b /\ a))
+            ( filterMap
+                ( case _ of
+                    Page p -> Just p
+                    PageLoading -> Just LoadingPage
+                    _ -> Nothing
+                )
+                event
+            )
+            Nothing
+            # map
+                ( \(prev /\ cur) ->
+                    ( case prev of
+                        Nothing -> empty
+                        Just x -> bang (x /\ Remove)
+                    ) <|> bang (cur /\ Insert)
+                )
+            # keepLatest
+        )
+        (page (StashCancel >>> push))
+
+    ]
+  where
+  page :: (Maybe ToCancel -> Effect Unit) -> Subgraph Page Event payload
+  page cancelCb (HelloWorld hwi) = HelloWorld.helloWorld hwi cancelCb
+  page cancelCb (StressTest hwi) = StressTest.stressTest hwi cancelCb
+  page cancelCb (AtariSpeaks ati) = AtariSpeaks.atariSpeaks ati cancelCb
+  page cancelCb (MultiBuf mbi) = MultiBuf.multiBuf mbi cancelCb
+  -- page cancelCb (Tumult ti) = Tumult.tumultExample ti cancelCb
+  page cancelCb (Subg ti) = Subg.subgraphExample ti cancelCb
+  page _ (ErrorPage s) = mkExists $ SubgraphF \_ _ -> D.p_
+    [ text_ ("Well, this is embarassing. The following error occurred: " <> s) ]
+  page _ LoadingPage = mkExists $ SubgraphF \_ _ -> D.p_
+    [ text_ "Loading..." ]
 
 main :: Effect Unit
-main = HA.runHalogenAff do
-  HA.awaitBody >>=
-    runStorybook
-      { stories
-      , logo: Just (HH.text "Wags acceptance tests")  -- pass `Just HH.PlainHTML` to override the logo
-      }
+main = do
+  b' <- window >>= document >>= body
+  for_ (toElement <$> b') \b -> do
+    ffi <- makeFFIDOMSnapshot
+    { push, event } <- create
+    let evt = deku b (scene push event) effectfulDOMInterpret
+    void $ subscribe evt \i -> i ffi
+    push (Page (HelloWorld unit))

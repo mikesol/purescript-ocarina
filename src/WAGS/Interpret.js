@@ -1,26 +1,3 @@
-var SINGLE_NUMBER = "singleNumber";
-var CANCELLATION = "cancellation";
-var IMMEDIATELY = "immediately";
-var NO_RAMP = "noRamp";
-var LINEAR_RAMP = "linearRamp";
-var EXPONENTIAL_RAMP = "exponentialRamp";
-var ENVELOPE = "envelope";
-exports.context = function () {
-	return new (window.AudioContext || window.webkitAudioContext)();
-};
-exports.contextState = function (audioCtx) {
-	return function () {
-		return audioCtx.state;
-	};
-};
-exports.contextResume = function (audioCtx) {
-	return function () {
-		return audioCtx.resume();
-	};
-};
-var isOn = function (param) {
-	return param.type === "on" || param.type === "offOn";
-};
 var makeid = function (length) {
 	var result = "";
 	var characters =
@@ -31,150 +8,152 @@ var makeid = function (length) {
 	}
 	return result;
 };
-
-exports.makeFFIAudioSnapshot = function (audioCtx) {
-	return function () {
-		return {
-			context: audioCtx,
-			writeHead: 0.0,
-			units: {},
-			unqidfr: makeid(10),
-		};
-	};
+var NUMERIC = "numeric";
+var SUDDEN = "sudden";
+var CANCELLATION = "cancellation";
+var NO_RAMP = "noRamp";
+var LINEAR_RAMP = "linearRamp";
+var EXPONENTIAL_RAMP = "exponentialRamp";
+var ENVELOPE = "envelope";
+var isOn = function (param) {
+	return param.type === "on" || param.type === "offOn";
 };
-
-exports.contextFromSnapshot = function (snapshot) {
-	return snapshot.context;
+var isCancellation = function (a) {
+	return a.type === CANCELLATION;
 };
-
-exports.advanceWriteHead = function (snapshot) {
-	return function (writeHead) {
-		return function () {
-			snapshot.writeHead = writeHead;
-		};
-	};
-};
-
-exports.close = function (audioCtx) {
-	return function () {
-		audioCtx.close();
-	};
-};
-var genericStarter = function (unit, name, param) {
-	if (param.type === ENVELOPE) {
-		unit[name].setValueCurveAtTime(
-			param.value.values,
-			0.0,
-			param.value.duration
-		);
-	} else if (param.type === SINGLE_NUMBER) {
-		unit[name].value = param.value.param;
-	}
-};
-var protoSetter = function (thingee, timeToSet, param) {
-	if (
-		param.type === SINGLE_NUMBER &&
-		param.value.transition.type === IMMEDIATELY
-	) {
-		thingee.value = param.value.param;
+var protoSetter = function (thingee, deprecatedTimeToSet, param) {
+	if (param.type === SUDDEN) {
+		thingee.value = param.value.n;
 	} else {
-		if (param.type === SINGLE_NUMBER) {
+		if (param.type === NUMERIC) {
 			thingee[
-				param.value.transition.type === NO_RAMP
+				param.value.t.type === NO_RAMP
 					? "setValueAtTime"
-					: param.value.transition.type === LINEAR_RAMP
+					: param.value.t.type === LINEAR_RAMP
 					? "linearRampToValueAtTime"
-					: param.value.transition.type === EXPONENTIAL_RAMP
+					: param.value.t.type === EXPONENTIAL_RAMP
 					? "exponentialRampToValueAtTime"
 					: "linearRampToValueAtTime"
-			](param.value.param, timeToSet + param.value.timeOffset);
+			](param.value.n, deprecatedTimeToSet + param.value.o);
 		} else if (isCancellation(param)) {
 			param.value.hold
-				? thingee.cancelAndHoldAtTime(timeToSet + param.value.timeOffset)
-				: thingee.cancelScheduledValues(timeToSet + param.value.timeOffset);
+				? thingee.cancelAndHoldAtTime(deprecatedTimeToSet + param.value.o)
+				: thingee.cancelScheduledValues(deprecatedTimeToSet + param.value.o);
 		} else if (param.type === ENVELOPE) {
 			// envelope is last option
-			thingee.cancelScheduledValues(timeToSet + param.value.timeOffset - 0.001);
-			thingee.setValueCurveAtTime(
-				param.value.values,
-				timeToSet + param.value.timeOffset,
-				param.value.duration
-			);
+			const tm = deprecatedTimeToSet + param.value.o;
+			thingee.cancelScheduledValues(Math.max(0.0, tm));
+			thingee.setValueCurveAtTime(param.value.p, tm, param.value.d);
 		} else {
 			throw new Error("No idea what to do with " + JSON.stringify(param));
 		}
 	}
 };
-var workletSetter = function (unit, paramName, timeToSet, param) {
-	return protoSetter(unit.parameters.get(paramName), timeToSet, param);
+var workletSetter = function (unit, paramName, deprecatedTimeToSet, param) {
+	return protoSetter(
+		unit.parameters.get(paramName),
+		deprecatedTimeToSet,
+		param
+	);
 };
-var genericSetter = function (unit, name, timeToSet, param) {
-	return protoSetter(unit[name], timeToSet, param);
+var genericSetter = function (unit, name, deprecatedTimeToSet, param) {
+	return protoSetter(unit[name], deprecatedTimeToSet, param);
 };
-var connectXToY = function (calledExternally) {
-	return function (x) {
-		return function (y) {
-			return function (stateX) {
-				return function (stateY) {
-					return function () {
-						if (
-							calledExternally &&
-							(stateY.units[y].isSubgraph || stateY.units[y].isTumult)
-						) {
-							return;
-						}
-						stateX.units[x].main.connect(stateY.units[y].main);
-						stateX.units[x].outgoing.push({ unit: y, state: stateY });
-						stateY.units[y].incoming.push({ unit: x, state: stateX });
-						if (stateY.units[y].se) {
-							stateX.units[x].main.connect(stateY.units[y].se);
-						}
-					};
-				};
+var addToScope = function (ptr, scope, state) {
+	if (scope.type === "just") {
+		state.scopes[scope.value].push(ptr);
+	}
+};
+var doDeferredConnections = function (ptr, state) {
+	if (state.toConnect[ptr]) {
+		state.toConnect[ptr].forEach(function (conn) {
+			if (conn.w) {
+				if (state.units[conn.w]) {
+					conn.f();
+				} else {
+					if (!state.toConnect[conn.w]) {
+						state.toConnect[conn.w] = [];
+					}
+					state.toConnect[conn.w].push({ f: conn.f });
+				}
+			} else {
+				conn.f();
+			}
+		});
+		delete state.toConnect[ptr];
+	}
+};
+var mConnectXToY_ = function (x, y, state) {
+	if (y.type === "just") {
+		connectXToY_(x, y.value, state);
+	}
+};
+var connectXToY_ = function (x, y, state) {
+	var connectF = function () {
+		state.units[x].outgoing.push(y);
+		state.units[y].incoming.push(x);
+		if (!state.units[x].pendingOn) {
+			state.units[x].main.connect(state.units[y].main);
+			if (state.units[y].se) {
+				state.units[x].main.connect(state.units[y].se);
+			}
+		}
+	};
+	if (!state.units[x]) {
+		if (!state.toConnect[x]) {
+			state.toConnect[x] = [];
+		}
+		var conn = { f: connectF };
+		if (y !== x && !state.units[y]) {
+			conn.w = y;
+		}
+		state.toConnect[x].push(conn);
+		return;
+	}
+	if (!state.units[y]) {
+		if (!state.toConnect[y]) {
+			state.toConnect[y] = [];
+		}
+		var conn = { f: connectF };
+		if (y !== x && !state.units[x]) {
+			conn.w = x;
+		}
+		state.toConnect[y].push(conn);
+		return;
+	}
+	connectF();
+};
+
+exports.connectXToY_ = function (parameters) {
+	return function (state) {
+		return function () {
+			connectXToY_(parameters["from"], parameters["to"], state);
+		};
+	};
+};
+var disconnectXFromY_ = function (x) {
+	return function (y) {
+		return function (state) {
+			return function () {
+				state.units[x].outgoing = state.units[x].outgoing.filter(function (i) {
+					return !(i === y);
+				});
+				state.units[y].incoming = state.units[y].incoming.filter(function (i) {
+					return !(i === x);
+				});
+				state.units[x].main.disconnect(state.units[y].main);
+				if (state.units[y].se) {
+					state.units[x].main.disconnect(state.units[y].se);
+				}
 			};
 		};
 	};
 };
-exports.connectXToY_ = function (x) {
+exports.disconnectXFromY_ = function (a) {
 	return function (state) {
-		return connectXToY(true)(x.fromId)(x.toId)(state)(state);
-	};
-};
-var disconnectXFromY = function (calledExternally) {
-	return function (x) {
-		return function (y) {
-			return function (stateX) {
-				return function (stateY) {
-					return function () {
-						if (
-							calledExternally &&
-							(stateY.units[y].isSubgraph || stateY.units[y].isTumult)
-						) {
-							return;
-						}
-						stateX.units[x].main.disconnect(stateY.units[y].main);
-						stateX.units[x].outgoing = stateX.units[x].outgoing.filter(
-							function (i) {
-								return !(i.unit === y && i.state.unqidfr === stateY.unqidfr);
-							}
-						);
-						stateY.units[y].incoming = stateY.units[y].incoming.filter(
-							function (i) {
-								return !(i.unit === x && i.state.unqidfr === stateX.unqidfr);
-							}
-						);
-						if (stateY.units[y].se) {
-							stateX.units[x].main.disconnect(stateY.units[y].se);
-						}
-					};
-				};
-			};
+		return function () {
+			return disconnectXFromY_(a.from)(a.to)(state)();
 		};
-	};
-};
-exports.disconnectXFromY_ = function (x) {
-	return function (state) {
-		return disconnectXFromY(true)(x.fromId)(x.toId)(state)(state);
 	};
 };
 exports.destroyUnit_ = function (a) {
@@ -190,51 +169,38 @@ exports.destroyUnit_ = function (a) {
 				// effectful unsubscribe
 				state.units[ptr].analyser();
 			}
-			if (state.units[ptr].input) {
-				// input sources are never disconnected on disconnect, so we have to manually trigger this
-				disconnectXFromY(false)(state.units[ptr].input)(ptr)(
-					state.units[ptr].parent
-				)(state)();
-			}
 			delete state.units[ptr];
 		};
 	};
 };
-exports.renderAudio = function (arrayToApply) {
-	return function () {
-		for (var i = 0; i < arrayToApply.length; i++) {
-			arrayToApply[i]();
-		}
-	};
-};
-exports.getAudioClockTime = function (ctx) {
-	return function () {
-		return ctx.currentTime;
-	};
-};
+// allpass
 exports.makeAllpass_ = function (a) {
 	return function (state) {
 		return function () {
 			var ptr = a.id;
 			state.units[ptr] = {
-				outgoing: [],
+				outgoing: [a.parent],
 				incoming: [],
-				main: state.context.createBiquadFilter(),
+				main: new BiquadFilterNode(state.context, {
+					type: "allpass",
+					Q: a.q,
+					frequency: a.frequency,
+				}),
 			};
-			state.units[ptr].main.type = "allpass";
-			genericStarter(state.units[ptr].main, "frequency", a.freq);
-			genericStarter(state.units[ptr].main, "Q", a.q);
+			addToScope(ptr, a.scope, state);
+			doDeferredConnections(ptr, state);
+			mConnectXToY_(ptr, a.parent, state);
 		};
 	};
 };
+
+// analyser
 exports.makeAnalyser_ = function (a) {
 	return function (state) {
 		return function () {
 			var ptr = a.id;
 			var analyserSideEffectFunction = a.cb;
-			var dest = state.context.createAnalyser();
-			// todo - unhardcode?
-			dest.fftSize = 2048;
+			var dest = new AnalyserNode(state.context, a);
 			// unsubscribe is effect unit
 			var unsubscribe = analyserSideEffectFunction(dest)();
 			state.units[ptr] = {
@@ -245,9 +211,771 @@ exports.makeAnalyser_ = function (a) {
 				main: state.context.createGain(),
 				se: dest,
 			};
+			addToScope(ptr, a.scope, state);
+			doDeferredConnections(ptr, state);
+			mConnectXToY_(ptr, a.parent, state);
 		};
 	};
 };
+
+// audio worklet node
+exports.makeAudioWorkletNode_ = function (a) {
+	return function (state) {
+		return function () {
+			var ptr = a.id;
+			var opts = a.options;
+			state.units[ptr] = {
+				outgoing: [],
+				incoming: [],
+				main: new AudioWorkletNode(state.context, opts.name, {
+					numberOfInputs: opts.numberOfInputs,
+					numberOfOutputs: opts.numberOfOutputs,
+					outputChannelCount: opts.outputChannelCount,
+					parameterData: opts.parameterData,
+					processorOptions: opts.processorOptions,
+				}),
+			};
+			addToScope(ptr, a.scope, state);
+			doDeferredConnections(ptr, state);
+			mConnectXToY_(ptr, a.parent, state);
+		};
+	};
+};
+
+// bandpass
+exports.makeBandpass_ = function (a) {
+	return function (state) {
+		return function () {
+			var ptr = a.id;
+			state.units[ptr] = {
+				outgoing: [a.parent],
+				incoming: [],
+				main: new BiquadFilterNode(state.context, {
+					type: "bandpass",
+					Q: a.q,
+					frequency: a.frequency,
+				}),
+			};
+			addToScope(ptr, a.scope, state);
+			doDeferredConnections(ptr, state);
+			mConnectXToY_(ptr, a.parent, state);
+		};
+	};
+};
+
+// constant
+exports.makeConstant_ = function (a) {
+	return function (state) {
+		return function () {
+			var ptr = a.id;
+			// var onOff = a.onOff;
+			var createClosure = function (context, i) {
+				return new ConstantSourceNode(context, i);
+			};
+			var resume = { offset: a.offset };
+			state.units[ptr] = {
+				//outgoing: [a.parent],
+				outgoing: [],
+				incoming: [],
+				resume: resume,
+				createClosure: createClosure,
+				onOff: false,
+				pendingOn: true,
+				//lazy main: createClosure(state.context, resume),
+			};
+			addToScope(ptr, a.scope, state);
+			doDeferredConnections(ptr, state);
+			mConnectXToY_(ptr, a.parent, state);
+			// var oo = isOn(onOff.onOff);
+			// if (oo) {
+			// 	state.units[ptr].main.start(
+			// 		state.deprecatedWriteHead + onOff.timeOffset
+			// 	);
+			// }
+			// state.units[ptr].onOff = oo;
+		};
+	};
+};
+
+exports.makeConvolver_ = function (a) {
+	return function (state) {
+		return function () {
+			var ptr = a.id;
+			state.units[ptr] = {
+				outgoing: [],
+				incoming: [],
+				main: new ConvolverNode(state.context, { buffer: a.buffer }),
+			};
+			addToScope(ptr, a.scope, state);
+			doDeferredConnections(ptr, state);
+			mConnectXToY_(ptr, a.parent, state);
+		};
+	};
+};
+
+// delay
+exports.makeDelay_ = function (a) {
+	return function (state) {
+		return function () {
+			var ptr = a.id;
+			state.units[ptr] = {
+				outgoing: [a.parent],
+				incoming: [],
+				main: new DelayNode(state.context, {
+					delayTime: a.delayTime,
+				}),
+			};
+			addToScope(ptr, a.scope, state);
+			doDeferredConnections(ptr, state);
+			mConnectXToY_(ptr, a.parent, state);
+		};
+	};
+};
+
+// dynamicsCompressor
+exports.makeDynamicsCompressor_ = function (a) {
+	return function (state) {
+		return function () {
+			var ptr = a.id;
+			state.units[ptr] = {
+				outgoing: [a.parent],
+				incoming: [],
+				main: new DynamicsCompressorNode(state.context, {
+					knee: a.knee,
+					ratio: a.ratio,
+					threshold: a.threshold,
+					attack: a.attack,
+					release: a.release,
+				}),
+			};
+			addToScope(ptr, a.scope, state);
+			doDeferredConnections(ptr, state);
+			mConnectXToY_(ptr, a.parent, state);
+		};
+	};
+};
+
+// gain
+var makeGain_ = function (a) {
+	return function (state) {
+		return function () {
+			var ptr = a.id;
+			state.units[ptr] = {
+				outgoing: [a.parent],
+				incoming: [],
+				main: new GainNode(state.context, {
+					gain: a.gain,
+				}),
+			};
+			addToScope(ptr, a.scope, state);
+			doDeferredConnections(ptr, state);
+			mConnectXToY_(ptr, a.parent, state);
+		};
+	};
+};
+exports.makeGain_ = makeGain_;
+// highpass
+exports.makeHighpass_ = function (a) {
+	return function (state) {
+		return function () {
+			var ptr = a.id;
+			state.units[ptr] = {
+				outgoing: [a.parent],
+				incoming: [],
+				main: new BiquadFilterNode(state.context, {
+					type: "highpass",
+					Q: a.q,
+					frequency: a.frequency,
+				}),
+			};
+			addToScope(ptr, a.scope, state);
+			doDeferredConnections(ptr, state);
+			mConnectXToY_(ptr, a.parent, state);
+		};
+	};
+};
+
+// highshelf
+exports.makeHighshelf_ = function (a) {
+	return function (state) {
+		return function () {
+			var ptr = a.id;
+			state.units[ptr] = {
+				outgoing: [a.parent],
+				incoming: [],
+				main: new BiquadFilterNode(state.context, {
+					type: "highshelf",
+					frequency: a.frequency,
+					gain: a.gain,
+				}),
+			};
+			addToScope(ptr, a.scope, state);
+			doDeferredConnections(ptr, state);
+			mConnectXToY_(ptr, a.parent, state);
+		};
+	};
+};
+
+// input
+exports.makeInput_ = function (a) {
+	return function (state) {
+		return function () {
+			var ptr = a.id;
+			doDeferredConnections(ptr, state);
+			mConnectXToY_(ptr, a.parent, state);
+		};
+	};
+};
+exports.makeIIRFilter_ = function (a) {
+	return function (state) {
+		return function () {
+			var ptr = a.id;
+			state.units[ptr] = {
+				outgoing: [],
+				incoming: [],
+				main: new IIRFilterNode(state.context, {
+					feedforward: a.feedforward,
+					feedback: a.feedback,
+				}),
+			};
+			addToScope(ptr, a.scope, state);
+			doDeferredConnections(ptr, state);
+			mConnectXToY_(ptr, a.parent, state);
+		};
+	};
+};
+
+// loopBuf
+exports.makeLoopBuf_ = function (a) {
+	return function (state) {
+		return function () {
+			var ptr = a.id;
+			// var onOff = a.onOff;
+			var createClosure = function (context, i) {
+				return new AudioBufferSourceNode(context, i);
+			};
+			var resume = {
+				loop: true,
+				buffer: a.buffer,
+				loopStart: a.loopStart,
+				loopEnd: a.loopEnd,
+				playbackRate: a.playbackRate,
+			};
+			state.units[ptr] = {
+				//outgoing: [a.parent],
+				outgoing: [],
+				incoming: [],
+				resume: resume,
+				createClosure: createClosure,
+				onOff: false,
+				pendingOn: true,
+				//lazy main: createClosure(state.context, resume),
+			};
+			addToScope(ptr, a.scope, state);
+			doDeferredConnections(ptr, state);
+			mConnectXToY_(ptr, a.parent, state);
+			// var oo = isOn(onOff.onOff);
+			// if (oo) {
+			// 	state.units[ptr].main.start(
+			// 		state.deprecatedWriteHead + onOff.timeOffset
+			// 	);
+			// }
+			// state.units[ptr].onOff = oo;
+		};
+	};
+};
+
+// lowpass
+exports.makeLowpass_ = function (a) {
+	return function (state) {
+		return function () {
+			var ptr = a.id;
+			state.units[ptr] = {
+				outgoing: [a.parent],
+				incoming: [],
+				main: new BiquadFilterNode(state.context, {
+					type: "lowpass",
+					Q: a.q,
+					frequency: a.frequency,
+				}),
+			};
+			addToScope(ptr, a.scope, state);
+			doDeferredConnections(ptr, state);
+			mConnectXToY_(ptr, a.parent, state);
+		};
+	};
+};
+
+// lowshelf
+exports.makeLowshelf_ = function (a) {
+	return function (state) {
+		return function () {
+			var ptr = a.id;
+			state.units[ptr] = {
+				outgoing: [a.parent],
+				incoming: [],
+				main: new BiquadFilterNode(state.context, {
+					type: "lowshelf",
+					frequency: a.frequency,
+					gain: a.gain,
+				}),
+			};
+			addToScope(ptr, a.scope, state);
+			doDeferredConnections(ptr, state);
+			mConnectXToY_(ptr, a.parent, state);
+		};
+	};
+};
+
+// media element
+
+exports.makeMediaElement_ = function (a) {
+	return function (state) {
+		return function () {
+			var ptr = a.id;
+			var elt = a.element;
+			var createClosure = function () {
+				var unit = state.context.createMediaElementSource(elt);
+				return unit;
+			};
+			state.units[ptr] = {
+				outgoing: [a.parent],
+				incoming: [],
+				createClosure: createClosure,
+				resumeClosure: {},
+				main: createClosure(),
+			};
+			addToScope(ptr, a.scope, state);
+			doDeferredConnections(ptr, state);
+			mConnectXToY_(ptr, a.parent, state);
+		};
+	};
+};
+
+// microphone
+exports.makeMicrophone_ = function (a) {
+	return function (state) {
+		return function () {
+			var ptr = a.id;
+			state.units[a.id] = {
+				main: state.context.createMediaStreamSource(a.microphone),
+				outgoing: [a.parent],
+				incoming: [],
+			};
+			addToScope(ptr, a.scope, state);
+			doDeferredConnections(ptr, state);
+			mConnectXToY_(ptr, a.parent, state);
+		};
+	};
+};
+
+// notch
+exports.makeNotch_ = function (a) {
+	return function (state) {
+		return function () {
+			var ptr = a.id;
+			state.units[ptr] = {
+				outgoing: [a.parent],
+				incoming: [],
+				main: new BiquadFilterNode(state.context, {
+					type: "notch",
+					frequency: a.frequency,
+					Q: a.q,
+				}),
+			};
+			addToScope(ptr, a.scope, state);
+			doDeferredConnections(ptr, state);
+			mConnectXToY_(ptr, a.parent, state);
+		};
+	};
+};
+
+// peaking
+exports.makePeaking_ = function (a) {
+	return function (state) {
+		return function () {
+			var ptr = a.id;
+			state.units[ptr] = {
+				outgoing: [a.parent],
+				incoming: [],
+				main: new BiquadFilterNode(state.context, {
+					type: "peaking",
+					frequency: a.frequency,
+					Q: a.q,
+					gain: a.gain,
+				}),
+			};
+			addToScope(ptr, a.scope, state);
+			doDeferredConnections(ptr, state);
+			mConnectXToY_(ptr, a.parent, state);
+		};
+	};
+};
+
+// periodic osc
+exports.makePeriodicOsc_ = function (a) {
+	return function (state) {
+		return function () {
+			var ptr = a.id;
+			// var onOff = a.onOff;
+			var createClosure = function (context, i) {
+				var opts = {
+					frequency: i.frequency,
+					periodicWave:
+						i.spec.type === "wave"
+							? i.spec.value
+							: makePeriodicWaveImpl(state.context)(i.spec.value.real)(
+									i.spec.value.img
+							  )(),
+				};
+				var o = new OscillatorNode(context, opts);
+				return o;
+			};
+			var resume = { frequency: a.frequency, type: "custom", spec: a.spec };
+			state.units[ptr] = {
+				//outgoing: [a.parent],
+				outgoing: [],
+				incoming: [],
+				resume: resume,
+				createClosure: createClosure,
+				onOff: false,
+				pendingOn: true,
+				//lazy main: createClosure(state.context, resume),
+			};
+			addToScope(ptr, a.scope, state);
+			doDeferredConnections(ptr, state);
+			mConnectXToY_(ptr, a.parent, state);
+			// var oo = isOn(onOff.onOff);
+			// if (oo) {
+			// 	state.units[ptr].main.start(
+			// 		state.deprecatedWriteHead + onOff.timeOffset
+			// 	);
+			// }
+			// state.units[ptr].onOff = oo;
+		};
+	};
+};
+
+// playBuf
+exports.makePlayBuf_ = function (a) {
+	return function (state) {
+		return function () {
+			var ptr = a.id;
+			// var onOff = a.onOff;
+			var createClosure = function (context, i) {
+				var opts = {
+					loop: i.loop,
+					buffer: i.buffer,
+					playbackRate: i.playbackRate,
+				};
+				return new AudioBufferSourceNode(context, opts);
+			};
+			var resume = {
+				loop: false,
+				buffer: a.buffer,
+				playbackRate: a.playbackRate,
+				bufferOffset: a.bufferOffset,
+				duration: a.duration,
+			};
+			state.units[ptr] = {
+				//outgoing: [a.parent],
+				outgoing: [],
+				incoming: [],
+				resume: resume,
+				createClosure: createClosure,
+				onOff: false,
+				pendingOn: true,
+				//lazy main: createClosure(state.context, resume),
+			};
+			addToScope(ptr, a.scope, state);
+			doDeferredConnections(ptr, state);
+			mConnectXToY_(ptr, a.parent, state);
+			// var oo = isOn(onOff.onOff);
+			// if (oo) {
+			// 	state.units[ptr].main.start(
+			// 		state.deprecatedWriteHead + onOff.timeOffset,
+			// 		a.bufferOffset,
+			// 		a.duration.type === "just" ? a.duration.value : undefined
+			// 	);
+			// }
+			// state.units[ptr].onOff = oo;
+		};
+	};
+};
+
+// recorder
+exports.makeRecorder_ = function (a) {
+	return function (state) {
+		return function () {
+			var ptr = a.id;
+			var mediaRecorderSideEffectFn = a.cb;
+			var dest = state.context.createMediaStreamDestination();
+			var mediaRecorder = new MediaRecorder(dest.stream);
+			mediaRecorderSideEffectFn(mediaRecorder)();
+			mediaRecorder.start();
+			state.units[ptr] = {
+				outgoing: [],
+				incoming: [],
+				recorderOrig: mediaRecorderSideEffectFn,
+				recorder: mediaRecorder,
+				main: state.context.createGain(),
+				se: dest,
+			};
+			addToScope(ptr, a.scope, state);
+			doDeferredConnections(ptr, state);
+			mConnectXToY_(ptr, a.parent, state);
+		};
+	};
+};
+
+// sawtooth osc
+exports.makeSawtoothOsc_ = function (a) {
+	return function (state) {
+		return function () {
+			var ptr = a.id;
+			// var onOff = a.onOff;
+			var createClosure = function (context, i) {
+				return new OscillatorNode(context, i);
+			};
+			var resume = { frequency: a.frequency, type: "sawtooth" };
+			state.units[ptr] = {
+				//outgoing: [a.parent],
+				outgoing: [],
+				incoming: [],
+				resume: resume,
+				createClosure: createClosure,
+				onOff: false,
+				pendingOn: true,
+				//lazy main: createClosure(state.context, resume),
+			};
+			addToScope(ptr, a.scope, state);
+			doDeferredConnections(ptr, state);
+			mConnectXToY_(ptr, a.parent, state);
+			// var oo = isOn(onOff.onOff);
+			// if (oo) {
+			// 	state.units[ptr].main.start(
+			// 		state.deprecatedWriteHead + onOff.timeOffset
+			// 	);
+			// }
+			// state.units[ptr].onOff = oo;
+		};
+	};
+};
+
+// sine osc
+exports.makeSinOsc_ = function (a) {
+	return function (state) {
+		return function () {
+			var ptr = a.id;
+			// var onOff = a.onOff;
+			var createClosure = function (context, i) {
+				return new OscillatorNode(context, i);
+			};
+			var resume = { frequency: a.frequency, type: "sine" };
+			state.units[ptr] = {
+				//outgoing: [a.parent],
+				outgoing: [],
+				incoming: [],
+				resume: resume,
+				createClosure: createClosure,
+				onOff: false,
+				pendingOn: true,
+				//lazy main: createClosure(state.context, resume),
+			};
+			addToScope(ptr, a.scope, state);
+			doDeferredConnections(ptr, state);
+			mConnectXToY_(ptr, a.parent, state);
+			// var oo = isOn(onOff.onOff);
+			// if (oo) {
+			// 	state.units[ptr].main.start(
+			// 		state.deprecatedWriteHead + onOff.timeOffset
+			// 	);
+			// }
+			// state.units[ptr].onOff = oo;
+		};
+	};
+};
+exports.makeSubgraph_ = function (ptr) {
+	return function (parent) {
+		return function (enclosingScope) {
+			return function (sceneM) {
+				return function (state) {
+					return function () {
+						makeGain_({
+							id: ptr,
+							parent: parent,
+							scope: { type: "just", value: enclosingScope },
+							gain: 1.0,
+						})(state)();
+						state.units[ptr].sceneM = sceneM;
+					};
+				};
+			};
+		};
+	};
+};
+
+exports.removeSubgraph_ = function (a) {
+	return function (state) {
+		return function () {
+			var ptr = a.id;
+			var j = a.pos;
+			var pj = `${ptr}-${j}`;
+			if (state.unsu[pj] !== undefined) {
+				state.unsu[pj]();
+				for (var i = 0; i < state.scopes[pj].length; i++) {
+					state.units[state.scopes[pj][i]].main.disconnect();
+					if (state.units[state.scopes[pj][i]].se) {
+						state.units[state.scopes[pj][i]].se.disconnect();
+					}
+					delete state.units[state.scopes[pj][i]];
+				}
+				delete state.scopes[pj];
+				delete state.unsu[pj];
+				delete state.scopes[pj];
+			}
+		};
+	};
+};
+
+exports.insertSubgraph_ = function (a) {
+	return function (state) {
+		return function () {
+			var ptr = a.id;
+			var j = a.pos;
+			var index = a.index;
+			var pj = `${ptr}-${j}`;
+			if (state.unsu[pj] === undefined) {
+				state.scopes[pj] = [];
+				var sg = state.units[ptr].sceneM(index)(pj);
+				state.unsu[pj] = sg.actualized((instr) => () => instr(state)())();
+			}
+		};
+	};
+};
+// make speaker
+exports.makeSpeaker_ = function (a) {
+	return function (state) {
+		return function () {
+			state.units[a.id] = {
+				outgoing: [],
+				incoming: [],
+				main: state.context.createGain(),
+				se: state.context.destination,
+			};
+		};
+	};
+};
+// pan
+exports.makeStereoPanner_ = function (a) {
+	return function (state) {
+		return function () {
+			var ptr = a.id;
+			state.units[ptr] = {
+				outgoing: [a.parent],
+				incoming: [],
+				main: new StereoPannerNode(state.context, {
+					pan: a.pan,
+				}),
+			};
+			addToScope(ptr, a.scope, state);
+			doDeferredConnections(ptr, state);
+			mConnectXToY_(ptr, a.parent, state);
+		};
+	};
+};
+
+// square osc
+exports.makeSquareOsc_ = function (a) {
+	return function (state) {
+		return function () {
+			var ptr = a.id;
+			// var onOff = a.onOff;
+			var createClosure = function (context, i) {
+				return new OscillatorNode(context, i);
+			};
+			var resume = { frequency: a.frequency, type: "square" };
+			state.units[ptr] = {
+				//outgoing: [a.parent],
+				outgoing: [],
+				incoming: [],
+				resume: resume,
+				createClosure: createClosure,
+				onOff: false,
+				pendingOn: true,
+				//lazy main: createClosure(state.context, resume),
+			};
+			addToScope(ptr, a.scope, state);
+			doDeferredConnections(ptr, state);
+			mConnectXToY_(ptr, a.parent, state);
+			// var oo = isOn(onOff.onOff);
+			// if (oo) {
+			// 	state.units[ptr].main.start(
+			// 		state.deprecatedWriteHead + onOff.timeOffset
+			// 	);
+			// }
+			// state.units[ptr].onOff = oo;
+		};
+	};
+};
+
+// triangle osc
+exports.makeTriangleOsc_ = function (a) {
+	return function (state) {
+		return function () {
+			var ptr = a.id;
+			// var onOff = a.onOff;
+			var createClosure = function (context, i) {
+				return new OscillatorNode(context, i);
+			};
+			var resume = { frequency: a.frequency, type: "triangle" };
+			state.units[ptr] = {
+				//outgoing: [a.parent],
+				outgoing: [],
+				incoming: [],
+				resume: resume,
+				createClosure: createClosure,
+				onOff: false,
+				pendingOn: true,
+				//lazy main: createClosure(state.context, resume),
+			};
+			addToScope(ptr, a.scope, state);
+			doDeferredConnections(ptr, state);
+			mConnectXToY_(ptr, a.parent, state);
+			// var oo = isOn(onOff.onOff);
+			// if (oo) {
+			// 	state.units[ptr].main.start(
+			// 		state.deprecatedWriteHead + onOff.timeOffset
+			// 	);
+			// }
+			// state.units[ptr].onOff = oo;
+		};
+	};
+};
+// wave shaper
+exports.makeWaveShaper_ = function (aa) {
+	return function (state) {
+		return function () {
+			var ptr = aa.id;
+			var a = aa.curve;
+			var b = aa.oversample;
+			state.units[ptr] = {
+				outgoing: [a.parent],
+				incoming: [],
+				main: new WaveShaperNode(state.context, {
+					curve: a,
+					oversample: b.type,
+				}),
+			};
+			addToScope(ptr, aa.scope, state);
+			doDeferredConnections(ptr, state);
+			mConnectXToY_(ptr, aa.parent, state);
+		};
+	};
+};
+
+// set analyser
+
 exports.setAnalyserNodeCb_ = function (aa) {
 	return function (state) {
 		return function () {
@@ -263,652 +991,9 @@ exports.setAnalyserNodeCb_ = function (aa) {
 		};
 	};
 };
-var isCancellation = function (a) {
-	return a.type === CANCELLATION;
-};
-exports.makeAudioWorkletNode_ = function (aa) {
-	return function (state) {
-		return function () {
-			var ptr = aa.id;
-			var a = aa.options;
-			var parameterData = {};
-			var keys = Object.keys(a.parameterData);
-			for (var i = 0; i < keys.length; i++) {
-				if (a.parameterData[keys[i]].type === SINGLE_NUMBER) {
-					parameterData[keys[i]] = a.parameterData[keys[i]].value.param;
-				}
-			}
-			state.units[ptr] = {
-				outgoing: [],
-				incoming: [],
-				main: new AudioWorkletNode(state.context, a.name, {
-					numberOfInputs: a.numberOfInputs,
-					numberOfOutputs: a.numberOfOutputs,
-					outputChannelCount: a.outputChannelCount,
-					parameterData: parameterData,
-					processorOptions: a.processorOptions,
-				}),
-			};
-		};
-	};
-};
-exports.makeBandpass_ = function (a) {
-	return function (state) {
-		return function () {
-			var ptr = a.id;
-			state.units[ptr] = {
-				outgoing: [],
-				incoming: [],
-				main: state.context.createBiquadFilter(),
-			};
-			state.units[ptr].main.type = "bandpass";
-			genericStarter(state.units[ptr].main, "frequency", a.freq);
-			genericStarter(state.units[ptr].main, "Q", a.q);
-		};
-	};
-};
-exports.makeConstant_ = function (aa) {
-	return function (state) {
-		return function () {
-			var ptr = aa.id;
-			var onOff = aa.onOff;
-			var a = aa.offset;
-			var createFunction = function () {
-				var unit = state.context.createConstantSource();
-				return unit;
-			};
-			state.units[ptr] = {
-				outgoing: [],
-				incoming: [],
-				resumeClosure: {
-					offset: function (i) {
-						genericStarter(i, "offset", a);
-					},
-				},
-				createFunction: createFunction,
-				main: createFunction(),
-			};
-			applyResumeClosure(state.units[ptr]);
-			if (isOn(onOff.onOff)) {
-				state.units[ptr].main.start(state.writeHead + onOff.timeOffset);
-			}
-			state.units[ptr].onOff = isOn(onOff.onOff);
-		};
-	};
-};
 
-exports.makeConvolver_ = function (a) {
-	return function (state) {
-		return function () {
-			var ptr = a.id;
-			state.units[ptr] = {
-				outgoing: [],
-				incoming: [],
-				main: state.context.createConvolver(),
-			};
-			state.units[ptr].main.buffer = a.buffer;
-		};
-	};
-};
+// recorder
 
-exports.makePassthroughConvolver_ = function (a) {
-	return function (state) {
-		return function () {
-			var ptr = a.id;
-			state.units[ptr] = {
-				outgoing: [],
-				incoming: [],
-				main: state.context.createConvolver(),
-			};
-		};
-	};
-};
-exports.makeDelay_ = function (a) {
-	return function (state) {
-		return function () {
-			var ptr = a.id;
-			state.units[ptr] = {
-				outgoing: [],
-				incoming: [],
-				main: state.context.createDelay(),
-			};
-			genericStarter(state.units[ptr].main, "delayTime", a.delayTime);
-		};
-	};
-};
-exports.makeDynamicsCompressor_ = function (a) {
-	return function (state) {
-		return function () {
-			var ptr = a.id;
-			state.units[ptr] = {
-				main: state.context.createDynamicsCompressor(),
-				outgoing: [],
-				incoming: [],
-			};
-			genericStarter(state.units[ptr].main, "threshold", a.threshold);
-			genericStarter(state.units[ptr].main, "knee", a.knee);
-			genericStarter(state.units[ptr].main, "ratio", a.ratio);
-			genericStarter(state.units[ptr].main, "attack", a.attack);
-			genericStarter(state.units[ptr].main, "release", a.release);
-		};
-	};
-};
-exports.makeGain_ = function (a) {
-	return function (state) {
-		return function () {
-			var ptr = a.id;
-			state.units[ptr] = {
-				outgoing: [],
-				incoming: [],
-				main: state.context.createGain(),
-			};
-			genericStarter(state.units[ptr].main, "gain", a.gain);
-		};
-	};
-};
-exports.makeHighpass_ = function (a) {
-	return function (state) {
-		return function () {
-			var ptr = a.id;
-			state.units[ptr] = {
-				outgoing: [],
-				incoming: [],
-				main: state.context.createBiquadFilter(),
-			};
-			state.units[ptr].main.type = "highpass";
-			genericStarter(state.units[ptr].main, "frequency", a.freq);
-			genericStarter(state.units[ptr].main, "Q", a.q);
-		};
-	};
-};
-exports.makeHighshelf_ = function (a) {
-	return function (state) {
-		return function () {
-			var ptr = a.id;
-			state.units[ptr] = {
-				outgoing: [],
-				incoming: [],
-				main: state.context.createBiquadFilter(),
-			};
-			state.units[ptr].main.type = "highshelf";
-			genericStarter(state.units[ptr].main, "frequency", a.freq);
-			genericStarter(state.units[ptr].main, "gain", a.gain);
-		};
-	};
-};
-exports.makeLoopBufWithDeferredBuffer_ = function (a) {
-	return function (state) {
-		return function () {
-			var ptr = a.id;
-			var createFunction = function () {
-				var unit = state.context.createBufferSource();
-				unit.loop = true;
-				return unit;
-			};
-			state.units[ptr] = {
-				outgoing: [],
-				incoming: [],
-				createFunction: createFunction,
-				resumeClosure: {},
-				main: createFunction(),
-			};
-		};
-	};
-};
-exports.makeLoopBuf_ = function (aa) {
-	return function (state) {
-		return function () {
-			var ptr = aa.id;
-			var onOff = aa.onOff;
-			var a = aa.buffer;
-			var b = aa.playbackRate;
-			var c = aa.loopStart;
-			var d = aa.loopEnd;
-			var createFunction = function () {
-				var unit = state.context.createBufferSource();
-				unit.loop = true;
-				return unit;
-			};
-			state.units[ptr] = {
-				outgoing: [],
-				incoming: [],
-				createFunction: createFunction,
-				resumeClosure: {
-					playbackRate: function (i) {
-						genericStarter(i, "playbackRate", b);
-					},
-					loopStart: function (i) {
-						i.loopStart = c;
-					},
-					loopEnd: function (i) {
-						i.loopEnd = d;
-					},
-					buffer: function (i) {
-						i.buffer = a;
-					},
-				},
-				main: createFunction(),
-			};
-			if (isOn(onOff.onOff)) {
-				applyResumeClosure(state.units[ptr]);
-				state.units[ptr].main.start(state.writeHead + onOff.timeOffset, c);
-			}
-			state.units[ptr].onOff = isOn(onOff.onOff);
-		};
-	};
-};
-exports.makeLowpass_ = function (a) {
-	return function (state) {
-		return function () {
-			var ptr = a.id;
-			state.units[ptr] = {
-				outgoing: [],
-				incoming: [],
-				main: state.context.createBiquadFilter(),
-			};
-			state.units[ptr].main.type = "lowpass";
-			genericStarter(state.units[ptr].main, "frequency", a.freq);
-			genericStarter(state.units[ptr].main, "Q", a.q);
-		};
-	};
-};
-exports.makeLowshelf_ = function (a) {
-	return function (state) {
-		return function () {
-			var ptr = a.id;
-			state.units[ptr] = {
-				outgoing: [],
-				incoming: [],
-				main: state.context.createBiquadFilter(),
-			};
-			state.units[ptr].main.type = "lowshelf";
-			genericStarter(state.units[ptr].main, "frequency", a.freq);
-			genericStarter(state.units[ptr].main, "gain", a.gain);
-		};
-	};
-};
-exports.makeMediaElement_ = function (a) {
-	return function (state) {
-		return function () {
-			var ptr = a.id;
-			var elt = a.element;
-			var createFunction = function () {
-				var unit = state.context.createMediaElementSource(elt);
-				return unit;
-			};
-			state.units[ptr] = {
-				outgoing: [],
-				incoming: [],
-				createFunction: createFunction,
-				resumeClosure: {},
-				main: createFunction(),
-			};
-		};
-	};
-};
-
-exports.makeMicrophone_ = function (a) {
-	return function (state) {
-		return function () {
-			state.units["microphone"] = {
-				main: state.context.createMediaStreamSource(a.microphone),
-				outgoing: [],
-				incoming: [],
-			};
-		};
-	};
-};
-exports.makeNotch_ = function (a) {
-	return function (state) {
-		return function () {
-			var ptr = a.id;
-			state.units[ptr] = {
-				outgoing: [],
-				incoming: [],
-				main: state.context.createBiquadFilter(),
-			};
-			state.units[ptr].main.type = "notch";
-			genericStarter(state.units[ptr].main, "frequency", a.freq);
-			genericStarter(state.units[ptr].main, "Q", a.q);
-		};
-	};
-};
-
-exports.makePeaking_ = function (a) {
-	return function (state) {
-		return function () {
-			var ptr = a.id;
-			state.units[ptr] = {
-				outgoing: [],
-				incoming: [],
-				main: state.context.createBiquadFilter(),
-			};
-			state.units[ptr].main.type = "peaking";
-			genericStarter(state.units[ptr].main, "frequency", a.freq);
-			genericStarter(state.units[ptr].main, "Q", a.q);
-			genericStarter(state.units[ptr].main, "gain", a.gain);
-		};
-	};
-};
-
-exports.makePeriodicOscWithDeferredOsc_ = function (a) {
-	return function (state) {
-		return function () {
-			var ptr = a.id;
-			var createFunction = function () {
-				var unit = state.context.createOscillator();
-				return unit;
-			};
-			state.units[ptr] = {
-				outgoing: [],
-				incoming: [],
-				createFunction: createFunction,
-				resumeClosure: {},
-				main: createFunction(),
-			};
-		};
-	};
-};
-
-exports.makePeriodicOsc_ = function (aa) {
-	return function (state) {
-		return function () {
-			var ptr = aa.id;
-			var a = aa.wave;
-			var onOff = aa.onOff;
-			var b = aa.freq;
-			var createFunction = function () {
-				var unit = state.context.createOscillator();
-				return unit;
-			};
-			state.units[ptr] = {
-				outgoing: [],
-				incoming: [],
-				createFunction: createFunction,
-				resumeClosure: {
-					frequency: function (i) {
-						genericStarter(i, "frequency", b);
-					},
-					periodicOsc: function (i) {
-						i.setPeriodicWave(a);
-					},
-				},
-				main: createFunction(),
-			};
-			applyResumeClosure(state.units[ptr]);
-			if (isOn(onOff.onOff)) {
-				state.units[ptr].main.start(state.writeHead + onOff.timeOffset);
-			}
-			state.units[ptr].onOff = isOn(onOff.onOff);
-		};
-	};
-};
-exports.makePeriodicOscV_ = function (aa) {
-	return function (state) {
-		return function () {
-			var ptr = aa.id;
-			var a = aa.realImg;
-			var onOff = aa.onOff;
-			var b = aa.freq;
-
-			var createFunction = function () {
-				var unit = state.context.createOscillator();
-				return unit;
-			};
-			state.units[ptr] = {
-				outgoing: [],
-				incoming: [],
-				createFunction: createFunction,
-				resumeClosure: {
-					frequency: function (i) {
-						genericStarter(i, "frequency", b);
-					},
-					periodicOsc: function (i) {
-						i.setPeriodicWave(
-							makePeriodicWaveImpl(state.context)(a.real)(a.img)()
-						);
-					},
-				},
-				main: createFunction(),
-			};
-			applyResumeClosure(state.units[ptr]);
-			if (isOn(onOff.onOff)) {
-				state.units[ptr].main.start(state.writeHead + onOff.timeOffset);
-			}
-			state.units[ptr].onOff = isOn(onOff.onOff);
-		};
-	};
-};
-exports.makePlayBufWithDeferredBuffer_ = function (a) {
-	return function (state) {
-		return function () {
-			var ptr = a.id;
-			var createFunction = function () {
-				var unit = state.context.createBufferSource();
-				return unit;
-			};
-			state.units[ptr] = {
-				outgoing: [],
-				incoming: [],
-				createFunction: createFunction,
-				resumeClosure: {},
-				main: createFunction(),
-			};
-		};
-	};
-};
-exports.makeInput_ = function (a) {
-	return function (state) {
-		return function () {
-			var ptr = a.id;
-			state.units[ptr] = {
-				outgoing: [],
-				incoming: [],
-				main: state.context.createGain(),
-				parent: state.parent,
-				input: a.input,
-			};
-			connectXToY(false)(a.input)(ptr)(state.parent)(state)();
-			state.units[ptr].main.gain.value = 1.0;
-		};
-	};
-};
-/**
- *
- *   String
-  -> String
-  -> Array (Pie index env)
-  -> (index -> scene)
-  -> ( env
-       -> scene
-       -> { instructions :: Array (FFIAudioSnapshot -> Effect Unit)
-          , nextScene :: scene
-          }
-     )
-  -> FFIAudioSnapshot
-  -> Effect Unit} ptr
- * @returns
- */
-exports.makeSubgraph_ = function (ptr) {
-	return function (terminalPtr) {
-		return function (envs) {
-			return function (sceneM) {
-				return function (funkyFx) {
-					return function (state) {
-						return function () {
-							/*
-							var children = [];
-							var scenes = [];
-							for (var i = 0; i < envs.length; i++) {
-								children[i] = {
-									context: state.context,
-									writeHead: state.writeHead,
-									units: {},
-									unqidfr: makeid(10),
-									parent: state,
-								};
-								scenes[i] = sceneM(i);
-							}
-							state.units[ptr] = {
-								outgoing: [],
-								incoming: [],
-								main: state.context.createGain(),
-								children: children,
-								funk: funk,
-								isSubgraph: true,
-								scenes: scenes,
-							};
-							state.units[ptr].main.gain.value = 1.0;
-							for (var i = 0; i < scenes.length; i++) {
-								var applied = funk(envs[i])(scenes[i]);
-								for (var j = 0; j < applied.instructions.length; j++) {
-									// thunk
-									applied.instructions[j](children[i])();
-								}
-								scenes[i] = applied.nextScene;
-							}
-							for (var i = 0; i < children.length; i++) {
-								connectXToY(false)(terminalPtr)(ptr)(children[i])(state)();
-							}*/
-							var children = {};
-							var scenes = {};
-							var funk = {};
-							state.units[ptr] = {
-								outgoing: [],
-								incoming: [],
-								sceneM: sceneM,
-								main: state.context.createGain(),
-								funkyFx: funkyFx,
-								terminalPtr: terminalPtr,
-								isSubgraph: true,
-								scenes: scenes,
-								children: children,
-								funk: funk,
-							};
-							setSubgraph_(ptr)(envs)(state)();
-						};
-					};
-				};
-			};
-		};
-	};
-};
-/**
- *
- * String
-  -> String
-  -> Array (Set Instruction)
-  -> Maybe (Set Instruction)
-  -> (Set Instruction -> Maybe (Set Instruction))
-  -> (Set Instruction -> Maybe (Set Instruction) -> Array (FFIAudioSnapshot' -> Effect Unit))
-  -> FFIAudioSnapshot'
-  -> Effect Unit
- */
-exports.makeTumult_ = function (ptr) {
-	return function (terminalPtr) {
-		return function (scenes) {
-			return function (nothing) {
-				return function () {
-					return function (arrMaker) {
-						return function (state) {
-							return function () {
-								var children = [];
-								for (var i = 0; i < scenes.length; i++) {
-									children[i] = {
-										context: state.context,
-										writeHead: state.writeHead,
-										units: {},
-										parent: state,
-										unqidfr: makeid(10),
-									};
-								}
-								state.units[ptr] = {
-									outgoing: [],
-									incoming: [],
-									main: state.context.createGain(),
-									children: children,
-									isTumult: true,
-									scenes: scenes,
-								};
-								state.units[ptr].main.gain.value = 1.0;
-								for (var i = 0; i < scenes.length; i++) {
-									var curScene = arrMaker(scenes[i])(nothing);
-									for (var j = 0; j < curScene.length; j++) {
-										// thunk
-										curScene[j](children[i])();
-									}
-								}
-								var heads = [];
-								for (var i = 0; i < children.length; i++) {
-									heads[i] = children[i].units[terminalPtr];
-								}
-								state.units[ptr].heads = heads;
-								for (var i = 0; i < children.length; i++) {
-									connectXToY(false)(terminalPtr)(ptr)(children[i])(state)();
-								}
-							};
-						};
-					};
-				};
-			};
-		};
-	};
-};
-exports.makePlayBuf_ = function (aa) {
-	return function (state) {
-		return function () {
-			var ptr = aa.id;
-			var a = aa.buffer;
-			var b = aa.bufferOffset;
-			var onOff = aa.onOff;
-			var c = aa.playbackRate;
-			var createFunction = function () {
-				var unit = state.context.createBufferSource();
-				return unit;
-			};
-			state.units[ptr] = {
-				outgoing: [],
-				incoming: [],
-				bufferOffset: b,
-				createFunction: createFunction,
-				resumeClosure: {
-					playbackRate: function (i) {
-						genericStarter(i, "playbackRate", c);
-					},
-					buffer: function (i) {
-						i.buffer = a;
-					},
-				},
-				main: createFunction(),
-			};
-			if (isOn(onOff.onOff)) {
-				applyResumeClosure(state.units[ptr]);
-				state.units[ptr].main.start(state.writeHead + onOff.timeOffset, b);
-			}
-			state.units[ptr].onOff = isOn(onOff.onOff);
-		};
-	};
-};
-exports.makeRecorder_ = function (aa) {
-	return function (state) {
-		return function () {
-			var ptr = aa.id;
-			var mediaRecorderSideEffectFn = aa.cb;
-			var dest = state.context.createMediaStreamDestination();
-			var mediaRecorder = new MediaRecorder(dest.stream);
-			mediaRecorderSideEffectFn(mediaRecorder)();
-			mediaRecorder.start();
-			state.units[ptr] = {
-				outgoing: [],
-				incoming: [],
-				recorderOrig: mediaRecorderSideEffectFn,
-				recorder: mediaRecorder,
-				main: state.context.createGain(),
-				se: dest,
-			};
-		};
-	};
-};
 // setting makes us stop the previous one if it exists
 exports.setMediaRecorderCb_ = function (aa) {
 	return function (state) {
@@ -928,175 +1013,7 @@ exports.setMediaRecorderCb_ = function (aa) {
 	};
 };
 
-exports.makeSawtoothOsc_ = function (aa) {
-	return function (state) {
-		return function () {
-			var ptr = aa.id;
-			var onOff = aa.onOff;
-			var a = aa.freq;
-			var createFunction = function () {
-				var unit = state.context.createOscillator();
-				unit.type = "sawtooth";
-				return unit;
-			};
-			state.units[ptr] = {
-				outgoing: [],
-				incoming: [],
-				createFunction: createFunction,
-				resumeClosure: {
-					frequency: function (i) {
-						genericStarter(i, "frequency", a);
-					},
-				},
-				main: createFunction(),
-			};
-			applyResumeClosure(state.units[ptr]);
-			if (isOn(onOff.onOff)) {
-				state.units[ptr].main.start(state.writeHead + onOff.timeOffset);
-			}
-			state.units[ptr].onOff = isOn(onOff.onOff);
-		};
-	};
-};
-exports.makeSinOsc_ = function (aa) {
-	return function (state) {
-		return function () {
-			var ptr = aa.id;
-			var onOff = aa.onOff;
-			var a = aa.freq;
-
-			var createFunction = function () {
-				var unit = state.context.createOscillator();
-				unit.type = "sine";
-				return unit;
-			};
-			state.units[ptr] = {
-				outgoing: [],
-				incoming: [],
-				createFunction: createFunction,
-				resumeClosure: {
-					frequency: function (i) {
-						genericStarter(i, "frequency", a);
-					},
-				},
-				main: createFunction(),
-			};
-			applyResumeClosure(state.units[ptr]);
-			if (isOn(onOff.onOff)) {
-				state.units[ptr].main.start(state.writeHead + onOff.timeOffset);
-			}
-			state.units[ptr].onOff = isOn(onOff.onOff);
-		};
-	};
-};
-
-exports.makeSpeaker_ = function (state) {
-	return function () {
-		state.units["speaker"] = {
-			outgoing: [],
-			incoming: [],
-			main: state.context.createGain(),
-			se: state.context.destination,
-		};
-	};
-};
-
-exports.makeSquareOsc_ = function (aa) {
-	return function (state) {
-		return function () {
-			var ptr = aa.id;
-			var onOff = aa.onOff;
-			var a = aa.freq;
-
-			var createFunction = function () {
-				var unit = state.context.createOscillator();
-				unit.type = "square";
-				return unit;
-			};
-			state.units[ptr] = {
-				outgoing: [],
-				incoming: [],
-				createFunction: createFunction,
-				resumeClosure: {
-					frequency: function (i) {
-						genericStarter(i, "frequency", a);
-					},
-				},
-				main: createFunction(),
-			};
-			applyResumeClosure(state.units[ptr]);
-			if (isOn(onOff.onOff)) {
-				state.units[ptr].main.start(state.writeHead + onOff.timeOffset);
-			}
-			state.units[ptr].onOff = isOn(onOff.onOff);
-		};
-	};
-};
-
-exports.makeStereoPanner_ = function (aa) {
-	return function (state) {
-		return function () {
-			var ptr = aa.id;
-			var a = aa.pan;
-			state.units[ptr] = {
-				outgoing: [],
-				incoming: [],
-				main: state.context.createStereoPanner(),
-			};
-			genericStarter(state.units[ptr].main, "pan", a);
-		};
-	};
-};
-exports.makeTriangleOsc_ = function (aa) {
-	return function (state) {
-		var ptr = aa.id;
-		var onOff = aa.onOff;
-		var a = aa.freq;
-
-		return function () {
-			var createFunction = function () {
-				var unit = state.context.createOscillator();
-				unit.type = "triangle";
-				return unit;
-			};
-			state.units[ptr] = {
-				outgoing: [],
-				incoming: [],
-				createFunction: createFunction,
-				resumeClosure: {
-					frequency: function (i) {
-						genericStarter(i, "frequency", a);
-					},
-				},
-				main: createFunction(),
-			};
-			applyResumeClosure(state.units[ptr]);
-			if (isOn(onOff.onOff)) {
-				state.units[ptr].main.start(state.writeHead + onOff.timeOffset);
-			}
-			state.units[ptr].onOff = isOn(onOff.onOff);
-		};
-	};
-};
-
-exports.makeWaveShaper_ = function (aa) {
-	return function (state) {
-		var ptr = aa.id;
-		var a = aa.curve;
-		var b = aa.oversample;
-		return function () {
-			state.units[ptr] = {
-				outgoing: [],
-				incoming: [],
-				main: state.context.createWaveShaper(),
-			};
-			state.units[ptr].main.curve = a;
-			// .type because it's a key-only variant
-			state.units[ptr].main.oversample = b.type;
-		};
-	};
-};
-
+// waveshaper curve
 exports.setWaveShaperCurve_ = function (aa) {
 	return function (state) {
 		return function () {
@@ -1106,185 +1023,57 @@ exports.setWaveShaperCurve_ = function (aa) {
 		};
 	};
 };
+exports.setAudioWorkletParameter_ = function (aa) {
+	return function (state) {
+		return function () {
+			var ptr = aa.id;
+			var a = aa.paramName;
+			var b = aa.paramValue;
+			workletSetter(state.units[ptr].main, a, state.deprecatedWriteHead, b);
+		};
+	};
+};
+const recalcResume = function (a, u, v) {
+	if (u.resume) {
+		if (a.value.n !== undefined) {
+			u.resume[v] = a.value.n;
+		}
+	}
+};
+exports.setGain_ = function (aa) {
+	return function (state) {
+		return function () {
+			var ptr = aa.id;
+			var a = aa.gain;
+			genericSetter(
+				state.units[ptr].main,
+				"gain",
+				state.deprecatedWriteHead,
+				a
+			);
+			recalcResume(a, state.units[ptr], "gain");
+		};
+	};
+};
 
+exports.setQ_ = function (aa) {
+	return function (state) {
+		return function () {
+			var ptr = aa.id;
+			var a = aa.q;
+			genericSetter(state.units[ptr].main, "Q", state.deprecatedWriteHead, a);
+			recalcResume(a, state.units[ptr], "Q");
+		};
+	};
+};
 exports.setBuffer_ = function (aa) {
 	return function (state) {
 		return function () {
 			var ptr = aa.id;
-			var buffer = aa.buffer;
-			state.units[ptr].resumeClosure.buffer = function (i) {
-				i.buffer = buffer;
-			};
-		};
-	};
-};
-
-exports.setInput_ = function (aa) {
-	return function (state) {
-		return function () {
-			var ptr = aa.id;
-			var a = aa.input;
-			if (state.units[ptr].input && state.units[ptr].input === a) {
-				return;
+			var a = aa.buffer;
+			if (state.units[ptr].resume) {
+				state.units[ptr].resume.buffer = a;
 			}
-			if (state.units[ptr].input) {
-				disconnectXFromY(false)(
-					state.units[ptr].input,
-					ptr,
-					state.parent,
-					state
-				);
-			}
-			state.units[ptr].input = a;
-			connectXToY(false)(a)(ptr)(state.parent)(state)();
-			state.units[ptr].main.gain.value = 1.0;
-		};
-	};
-};
-
-var setSubgraph_ = function (ptr) {
-	return function (envs) {
-		return function (state) {
-			return function () {
-				// for (var i = 0; i < envs.length; i++) {
-				// 	state.units[ptr].children[i].writeHead = state.writeHead;
-				// }
-				// var scenes = state.units[ptr].scenes;
-				// var children = state.units[ptr].children;
-				// for (var i = 0; i < scenes.length; i++) {
-				// 	var applied = state.units[ptr].funk(envs[i])(scenes[i]);
-				// 	for (var j = 0; j < applied.instructions.length; j++) {
-				// 		// thunk
-				// 		applied.instructions[j](children[i])();
-				// 	}
-				// 	scenes[i] = applied.nextScene;
-				// }
-				var scenes = state.units[ptr].scenes;
-				var children = state.units[ptr].children;
-				var funk = state.units[ptr].funk;
-				var needsConnecting = [];
-				for (var i = 0; i < envs.length; i++) {
-					var j = envs[i].pos;
-					if (envs[i].env === null && scenes[j] === undefined) {
-					} else if (envs[i].env !== null && scenes[j] !== undefined) {
-					} else if (envs[i].env !== null && scenes[j] === undefined) {
-						children[j] = {
-							units: {},
-							unqidfr: makeid(10),
-							parent: state,
-							context: state.context,
-							writeHead: state.writeHead,
-						};
-						scenes[j] = state.units[ptr].sceneM(envs[i].index);
-						var funkworthy = state.units[ptr].funkyFx;
-						// todo: this is copied from deku, but as
-						// the creation of funk[j] is not effectful,
-						// this seems like one layer of indirection
-						// too much. funkyFx currently never changes
-						// so we can likely get away with nixing it.
-						funk[j] = funkworthy;
-						needsConnecting.push(j);
-					} else {
-						disconnectXFromY(false)(state.units[ptr].terminalPtr)(ptr)(
-							children[j]
-						)(state)();
-						// delete unused
-						delete scenes[j];
-						delete children[j];
-						delete funk[j];
-					}
-				}
-				var sortable = [];
-				for (var m = 0; m < envs.length; m++) {
-					if (envs[m].env === null) {
-						continue;
-					}
-					var i = envs[m].pos;
-					var applied = funk[i](envs[m].env)(scenes[i]);
-					for (var j = 0; j < applied.instructions.length; j++) {
-						// thunk
-						applied.instructions[j](children[i])();
-					}
-					scenes[i] = applied.nextScene;
-				}
-				for (var i = 0; i < needsConnecting.length; i++) {
-					var j = needsConnecting[i];
-					connectXToY(false)(state.units[ptr].terminalPtr)(ptr)(children[j])(
-						state
-					)();
-				}
-			};
-		};
-	};
-};
-exports.setSubgraph_ = setSubgraph_;
-exports.setTumult_ = function (ptr) {
-	return function (terminalPtr) {
-		return function (scenes) {
-			return function (nothing) {
-				return function (just) {
-					return function (arrMaker) {
-						return function (state) {
-							return function () {
-								var needsCreation = !(
-									state.units[ptr] &&
-									state.units[ptr].children &&
-									state.units[ptr].scenes
-								);
-								if (needsCreation) {
-									var children = [];
-									for (var i = 0; i < scenes.length; i++) {
-										children[i] = {
-											context: state.context,
-											writeHead: state.writeHead,
-											units: {},
-											parent: state,
-											unqidfr: makeid(10),
-										};
-									}
-									state.units[ptr].incoming = [];
-									state.units[ptr].outgoing = [];
-									state.units[ptr].children = children;
-									state.units[ptr].isTumult = true;
-								} else {
-									for (var i = 0; i < scenes.length; i++) {
-										state.units[ptr].children[i].writeHead = state.writeHead;
-									}
-								}
-								var oldScenes = state.units[ptr].scenes;
-								var children = state.units[ptr].children;
-								for (var i = 0; i < scenes.length; i++) {
-									var oldScene =
-										oldScenes && oldScenes[i] ? just(oldScenes[i]) : nothing;
-									var curScene = arrMaker(scenes[i])(oldScene);
-									for (var j = 0; j < curScene.length; j++) {
-										// thunk
-										curScene[j](children[i])();
-									}
-								}
-								state.units[ptr].scenes = scenes;
-								// todo - add this logic to subgraph
-								var heads = [];
-								for (var i = 0; i < children.length; i++) {
-									heads[i] = children[i].units[terminalPtr];
-									if (state.units[ptr].heads[i] !== heads[i]) {
-										var tmp = { units: {} };
-										tmp.units[terminalPtr] = state.units[ptr].heads[i];
-										disconnectXFromY(false)(terminalPtr)(ptr)(tmp)(state)();
-										connectXToY(false)(terminalPtr)(ptr)(children[i])(state)();
-									}
-								}
-								state.units[ptr].heads = heads;
-								if (needsCreation) {
-									for (var i = 0; i < children.length; i++) {
-										connectXToY(false)(terminalPtr)(ptr)(children[i])(state)();
-									}
-								}
-							};
-						};
-					};
-				};
-			};
 		};
 	};
 };
@@ -1301,52 +1090,210 @@ exports.setPeriodicOsc_ = function (aa) {
 	return function (state) {
 		return function () {
 			var ptr = aa.id;
-			var periodicOsc = aa.wave;
-			state.units[ptr].resumeClosure.periodicOsc = function (i) {
-				i.setPeriodicWave(periodicOsc);
-			};
+			var a = aa.spec;
+			if (state.units[ptr].resume) {
+				state.units[ptr].resume.spec = a;
+			}
 		};
 	};
 };
-
-exports.setPeriodicOscV_ = function (aa) {
+exports.setPan_ = function (aa) {
 	return function (state) {
 		return function () {
 			var ptr = aa.id;
-			var periodicOsc = aa.realImg;
-			state.units[ptr].resumeClosure.periodicOsc = function (i) {
-				i.setPeriodicWave(
-					makePeriodicWaveImpl(state.context)(periodicOsc.real)(
-						periodicOsc.img
-					)()
-				);
-			};
+			var a = aa.pan;
+			genericSetter(state.units[ptr].main, "pan", state.deprecatedWriteHead, a);
+			recalcResume(a, state.units[ptr], "pan");
+		};
+	};
+};
+exports.setThreshold_ = function (aa) {
+	return function (state) {
+		return function () {
+			var ptr = aa.id;
+			var a = aa.threshold;
+			genericSetter(
+				state.units[ptr].main,
+				"threshold",
+				state.deprecatedWriteHead,
+				a
+			);
+			recalcResume(a, state.units[ptr], "threshold");
+		};
+	};
+};
+exports.setLoopStart_ = function (aa) {
+	return function (state) {
+		return function () {
+			var ptr = aa.id;
+			var a = aa.loopStart;
+			state.units[ptr].main.loopStart = a;
+			state.units[ptr].resume.loopStart = a;
+		};
+	};
+};
+exports.setLoopEnd_ = function (aa) {
+	return function (state) {
+		return function () {
+			var ptr = aa.id;
+			var a = aa.loopEnd;
+			state.units[ptr].main.loopEnd = a;
+			state.units[ptr].resume.loopEnd = a;
+		};
+	};
+};
+exports.setBufferOffset_ = function (aa) {
+	return function (state) {
+		return function () {
+			var ptr = aa.id;
+			var a = aa.bufferOffset;
+			state.units[ptr].resume.bufferOffset = a;
+		};
+	};
+};
+exports.setDuration_ = function (aa) {
+	return function (state) {
+		return function () {
+			var ptr = aa.id;
+			var a = aa.duration;
+			state.units[ptr].duration = a;
+		};
+	};
+};
+exports.setRelease_ = function (aa) {
+	return function (state) {
+		return function () {
+			var ptr = aa.id;
+			var a = aa.release;
+			genericSetter(
+				state.units[ptr].main,
+				"release",
+				state.deprecatedWriteHead,
+				a
+			);
+			recalcResume(a, state.units[ptr], "release");
+		};
+	};
+};
+exports.setOffset_ = function (aa) {
+	return function (state) {
+		return function () {
+			var ptr = aa.id;
+			var a = aa.offset;
+			genericSetter(
+				state.units[ptr].main,
+				"offset",
+				state.deprecatedWriteHead,
+				a
+			);
+			recalcResume(a, state.units[ptr], "offset");
 		};
 	};
 };
 
-var applyResumeClosure = function (i) {
-	for (var key in i.resumeClosure) {
-		if (i.resumeClosure.hasOwnProperty(key)) {
-			i.resumeClosure[key](i.main);
-		}
-	}
+exports.setRatio_ = function (aa) {
+	return function (state) {
+		return function () {
+			var ptr = aa.id;
+			var a = aa.ratio;
+			genericSetter(
+				state.units[ptr].main,
+				"ratio",
+				state.deprecatedWriteHead,
+				a
+			);
+			recalcResume(a, state.units[ptr], "ratio");
+		};
+	};
 };
-
+exports.setAttack_ = function (aa) {
+	return function (state) {
+		return function () {
+			var ptr = aa.id;
+			var a = aa.attack;
+			genericSetter(
+				state.units[ptr].main,
+				"attack",
+				state.deprecatedWriteHead,
+				a
+			);
+			recalcResume(a, state.units[ptr], "attack");
+		};
+	};
+};
+exports.setKnee_ = function (aa) {
+	return function (state) {
+		return function () {
+			var ptr = aa.id;
+			var a = aa.knee;
+			genericSetter(
+				state.units[ptr].main,
+				"knee",
+				state.deprecatedWriteHead,
+				a
+			);
+			recalcResume(a, state.units[ptr], "knee");
+		};
+	};
+};
+exports.setDelay_ = function (aa) {
+	return function (state) {
+		return function () {
+			var ptr = aa.id;
+			var a = aa.delayTime;
+			genericSetter(
+				state.units[ptr].main,
+				"delayTime",
+				state.deprecatedWriteHead,
+				a
+			);
+			recalcResume(a, state.units[ptr], "delayTime");
+		};
+	};
+};
+exports.setPlaybackRate_ = function (aa) {
+	return function (state) {
+		return function () {
+			var ptr = aa.id;
+			var a = aa.playbackRate;
+			genericSetter(
+				state.units[ptr].main,
+				"playbackRate",
+				state.deprecatedWriteHead,
+				a
+			);
+			recalcResume(a, state.units[ptr], "playbackRate");
+		};
+	};
+};
+exports.setFrequency_ = function (aa) {
+	return function (state) {
+		return function () {
+			var ptr = aa.id;
+			var a = aa.frequency;
+			genericSetter(
+				state.units[ptr].main,
+				"frequency",
+				state.deprecatedWriteHead,
+				a
+			);
+			recalcResume(a, state.units[ptr], "frequency");
+		};
+	};
+};
+///////////
 exports.setOnOff_ = function (aa) {
 	return function (state) {
 		return function () {
 			var ptr = aa.id;
 			var onOff = aa.onOff;
-			if (onOff.onOff.type === "on") {
+			if (onOff.x.type === "on") {
 				setOn_(ptr)(onOff)(state)();
-			} else if (onOff.onOff.type === "off") {
+			} else if (onOff.x.type === "off") {
 				setOff_(ptr)(onOff)(state)();
-			} else if (onOff.onOff.type === "offOn") {
-				setOff_(ptr)({ onOff: { type: "off" }, timeOffset: 0.0 })(state)();
-				setOn_(ptr)({ onOff: { type: "on" }, timeOffset: onOff.timeOffset })(
-					state
-				)();
+			} else if (onOff.x.type === "offOn") {
+				setOff_(ptr)({ x: { type: "off" }, o: 0.0 })(state)();
+				setOn_(ptr)({ x: { type: "on" }, o: onOff.o })(state)();
 			}
 		};
 	};
@@ -1359,17 +1306,42 @@ var setOn_ = function (ptr) {
 				if (state.units[ptr].onOff) {
 					return;
 				}
+				state.units[ptr].pendingOn = false;
 				state.units[ptr].onOff = true;
-				if (state.units[ptr].resumeClosure) {
-					applyResumeClosure(state.units[ptr]);
+				state.units[ptr].main = state.units[ptr].createClosure(
+					state.context,
+					state.units[ptr].resume
+				);
+				for (var i = 0; i < state.units[ptr].outgoing.length; i++) {
+					var ogi = state.units[ptr].outgoing[i];
+					state.units[ptr].main.connect(state.units[ogi].main);
+					if (state.units[ogi].se) {
+						state.units[ptr].main.connect(state.units[ogi].se);
+					}
 				}
-				if (state.units[ptr].bufferOffset) {
+				if (state.units[ptr].resume && state.units[ptr].resume.bufferOffset) {
+					if (state.units[ptr].resume.duration.type === "just") {
+						state.units[ptr].main.start(
+							state.deprecatedWriteHead + onOffInstr.o,
+							state.units[ptr].resume.bufferOffset,
+							state.units[ptr].resume.duration.value
+						);
+					} else {
+						state.units[ptr].main.start(
+							state.deprecatedWriteHead + onOffInstr.o,
+							state.units[ptr].resume.bufferOffset
+						);
+					}
+				} else if (
+					state.units[ptr].resume &&
+					state.units[ptr].resume.loopStart
+				) {
 					state.units[ptr].main.start(
-						state.writeHead + onOffInstr.timeOffset,
-						state.units[ptr].bufferOffset
+						state.deprecatedWriteHead + onOffInstr.o,
+						state.units[ptr].resume.loopStart
 					);
 				} else {
-					state.units[ptr].main.start(state.writeHead + onOffInstr.timeOffset);
+					state.units[ptr].main.start(state.deprecatedWriteHead + onOffInstr.o);
 				}
 			};
 		};
@@ -1386,15 +1358,14 @@ var setOff_ = function (ptr) {
 				state.units[ptr].onOff = false;
 				var oldMain = state.units[ptr].main;
 				var oldOutgoing = state.units[ptr].outgoing.slice();
-				oldMain.stop(state.writeHead + onOffInstr.timeOffset);
 				// defer disconnection until stop has happened
-				setTimeout(() => {
+				oldMain.addEventListener("ended", () => {
 					for (var i = 0; i < oldOutgoing.length; i++) {
 						var oogi = oldOutgoing[i];
 						try {
-							oldMain.disconnect(oogi.state.units[oogi.unit].main);
-							if (oogi.state.units[oogi.unit].se) {
-								oldMain.disconnect(oogi.state.units[oogi.unit].se);
+							oldMain.disconnect(state.units[oogi].main);
+							if (state.units[oogi].se) {
+								oldMain.disconnect(state.units[oogi].se);
 							}
 						} catch (e) {
 							console.log(e);
@@ -1403,299 +1374,14 @@ var setOff_ = function (ptr) {
 							continue;
 						}
 					}
-				}, 1000.0 * (state.writeHead + onOffInstr.timeOffset + 0.2 - state.context.currentTime));
-				state.units[ptr].main = state.units[ptr].createFunction();
-				for (var i = 0; i < state.units[ptr].outgoing.length; i++) {
-					var ogi = state.units[ptr].outgoing[i];
-					state.units[ptr].main.connect(ogi.state.units[ogi.unit].main);
-					if (ogi.state.units[ogi.unit].se) {
-						state.units[ptr].main.connect(ogi.state.units[ogi.unit].se);
-					}
-				}
-			};
-		};
-	};
-};
-exports.setLoopStart_ = function (aa) {
-	return function (state) {
-		return function () {
-			var ptr = aa.id;
-			var a = aa.loopStart;
-			state.units[ptr].main.loopStart = a;
-			state.units[ptr].resumeClosure.loopStart = function (i) {
-				i.loopStart = a;
-			};
-		};
-	};
-};
-
-exports.setBufferOffset_ = function (aa) {
-	return function (state) {
-		return function () {
-			var ptr = aa.id;
-			var a = aa.bufferOffset;
-			state.units[ptr].bufferOffset = a;
-		};
-	};
-};
-exports.setLoopEnd_ = function (aa) {
-	return function (state) {
-		return function () {
-			var ptr = aa.id;
-			var a = aa.loopEnd;
-
-			state.units[ptr].main.loopEnd = a;
-			state.units[ptr].resumeClosure.loopEnd = function (i) {
-				i.loopEnd = a;
-			};
-		};
-	};
-};
-
-exports.setRatio_ = function (aa) {
-	return function (state) {
-		return function () {
-			var ptr = aa.id;
-			var a = aa.ratio;
-			genericSetter(state.units[ptr].main, "ratio", state.writeHead, a);
-		};
-	};
-};
-
-exports.setOffset_ = function (aa) {
-	return function (state) {
-		return function () {
-			var ptr = aa.id;
-			var a = aa.offset;
-
-			genericSetter(state.units[ptr].main, "offset", state.writeHead, a);
-			state.units[ptr].resumeClosure.offset = function (i) {
-				genericStarter(i, "offset", a);
-			};
-		};
-	};
-};
-
-exports.setAttack_ = function (aa) {
-	return function (state) {
-		return function () {
-			var ptr = aa.id;
-			var a = aa.attack;
-
-			genericSetter(state.units[ptr].main, "attack", state.writeHead, a);
-		};
-	};
-};
-
-exports.setAudioWorkletParameter_ = function (aa) {
-	return function (state) {
-		return function () {
-			var ptr = aa.id;
-			var a = aa.paramName;
-			var b = aa.paramValue;
-			workletSetter(state.units[ptr].main, a, state.writeHead, b);
-		};
-	};
-};
-exports.setGain_ = function (aa) {
-	return function (state) {
-		return function () {
-			var ptr = aa.id;
-			var a = aa.gain;
-			// TODO: test removing this hack
-			// this was added at a time when there was a bug in the
-			// transition names. the FFI was getting incorrect name strings
-			// and, as a result, wound up always using linear transitions
-			// this sounded fine except in cases when the transition was
-			// immediate, in which case no transition happened.
-			// now that that bug is fixed, this may no longer be needed
-			// a way to test would be any of the synth-intensive works
-			// like a fast back prelude or fugue
-			// if you remove this and they are click free
-			// then it is safe to remove
-			if (!state.units[ptr].main.gain.value && a.param) {
-				state.units[ptr].main.gain.value = 0.0;
-			}
-			genericSetter(state.units[ptr].main, "gain", state.writeHead, a);
-		};
-	};
-};
-
-exports.setQ_ = function (aa) {
-	return function (state) {
-		return function () {
-			var ptr = aa.id;
-			var a = aa.q;
-			genericSetter(state.units[ptr].main, "Q", state.writeHead, a);
-		};
-	};
-};
-exports.setPan_ = function (aa) {
-	return function (state) {
-		return function () {
-			var ptr = aa.id;
-			var a = aa.pan;
-			genericSetter(state.units[ptr].main, "pan", state.writeHead, a);
-		};
-	};
-};
-exports.setThreshold_ = function (aa) {
-	return function (state) {
-		return function () {
-			var ptr = aa.id;
-			var a = aa.threshold;
-			genericSetter(state.units[ptr].main, "threshold", state.writeHead, a);
-		};
-	};
-};
-exports.setRelease_ = function (aa) {
-	return function (state) {
-		return function () {
-			var ptr = aa.id;
-			var a = aa.release;
-			genericSetter(state.units[ptr].main, "release", state.writeHead, a);
-		};
-	};
-};
-exports.setKnee_ = function (aa) {
-	return function (state) {
-		return function () {
-			var ptr = aa.id;
-			var a = aa.knee;
-			genericSetter(state.units[ptr].main, "knee", state.writeHead, a);
-		};
-	};
-};
-exports.setDelay_ = function (aa) {
-	return function (state) {
-		return function () {
-			var ptr = aa.id;
-			var a = aa.delay;
-			genericSetter(state.units[ptr].main, "delayTime", state.writeHead, a);
-		};
-	};
-};
-exports.setPlaybackRate_ = function (aa) {
-	return function (state) {
-		return function () {
-			var ptr = aa.id;
-			var a = aa.playbackRate;
-			genericSetter(state.units[ptr].main, "playbackRate", state.writeHead, a);
-			state.units[ptr].resumeClosure.playbackRate = function (i) {
-				genericStarter(i, "playbackRate", a);
-			};
-		};
-	};
-};
-exports.setFrequency_ = function (aa) {
-	return function (state) {
-		return function () {
-			var ptr = aa.id;
-			var a = aa.frequency;
-			genericSetter(state.units[ptr].main, "frequency", state.writeHead, a);
-			// frequency defined for some non-generators
-			// so check first for existence of resumeClosure
-			if (state.units[ptr].resumeClosure) {
-				state.units[ptr].resumeClosure.frequency = function (i) {
-					genericStarter(i, "frequency", a);
-				};
-			}
-		};
-	};
-};
-
-exports.decodeAudioDataFromBase64EncodedString = function (ctx) {
-	return function (s) {
-		return function () {
-			{
-				function base64ToArrayBuffer(base64) {
-					var binaryString = window.atob(base64);
-					var len = binaryString.length;
-					var bytes = new Uint8Array(len);
-					for (var i = 0; i < len; i++) {
-						bytes[i] = binaryString.charCodeAt(i);
-					}
-					return bytes.buffer;
-				}
-				return ctx.decodeAudioData(base64ToArrayBuffer(s));
-			}
-		};
-	};
-};
-exports.fetchArrayBuffer = function (s) {
-	return function () {
-		{
-			return fetch(s).then(
-				function (b) {
-					return b.arrayBuffer();
-				},
-				function (e) {
-					console.error("Error fetching buffer", e);
-					return Promise.reject(e);
-				}
-			);
-		}
-	};
-};
-exports.decodeAudioDataFromArrayBuffer = function (ctx) {
-	return function (b) {
-		return function () {
-			return ctx.decodeAudioData(b);
-		};
-	};
-};
-exports.audioWorkletAddModule_ = function (ctx) {
-	return function (s) {
-		return function () {
-			{
-				return ctx.audioWorklet.addModule(s);
-			}
-		};
-	};
-};
-exports.makeAudioBuffer = function (ctx) {
-	return function (b) {
-		return function () {
-			var myArrayBuffer = ctx.createBuffer(
-				b.value1.length,
-				b.value1[0].length,
-				b.value0
-			);
-			for (
-				var channel = 0;
-				channel < myArrayBuffer.numberOfChannels;
-				channel++
-			) {
-				var nowBuffering = myArrayBuffer.getChannelData(channel);
-				for (var i = 0; i < myArrayBuffer.length; i++) {
-					nowBuffering[i] = b.value1[channel][i];
-				}
-			}
-			return myArrayBuffer;
-		};
-	};
-};
-
-var makePeriodicWaveImpl = function (ctx) {
-	return function (real_) {
-		return function (imag_) {
-			return function () {
-				var real = new Float32Array(real_.length);
-				var imag = new Float32Array(imag_.length);
-				for (var i = 0; i < real_.length; i++) {
-					real[i] = real_[i];
-				}
-				for (var i = 0; i < imag_.length; i++) {
-					imag[i] = imag_[i];
-				}
-				return ctx.createPeriodicWave(real, imag, {
-					disableNormalization: true,
 				});
+				oldMain.stop(state.deprecatedWriteHead + onOffInstr.o);
 			};
 		};
 	};
 };
-exports.makePeriodicWaveImpl = makePeriodicWaveImpl;
+///////////
+// various and sundry... mostly sundry... //
 exports.makeFloatArray = function (fa) {
 	return function () {
 		var r = new Float32Array(fa.length);
@@ -1872,6 +1558,147 @@ exports.constant0Hack = function (context) {
 		return function () {
 			constant.stop();
 			constant.disconnect(context.destination);
+		};
+	};
+};
+
+var makePeriodicWaveImpl = function (ctx) {
+	return function (real_) {
+		return function (imag_) {
+			return function () {
+				var real = new Float32Array(real_.length);
+				var imag = new Float32Array(imag_.length);
+				for (var i = 0; i < real_.length; i++) {
+					real[i] = real_[i];
+				}
+				for (var i = 0; i < imag_.length; i++) {
+					imag[i] = imag_[i];
+				}
+				return ctx.createPeriodicWave(real, imag, {
+					disableNormalization: true,
+				});
+			};
+		};
+	};
+};
+exports.makePeriodicWaveImpl = makePeriodicWaveImpl;
+exports.makeFFIAudioSnapshot = function (audioCtx) {
+	return function () {
+		return {
+			context: audioCtx,
+			deprecatedWriteHead: 0.0,
+			units: {},
+			unqidfr: makeid(10),
+			scopes: { root: [] },
+			unsu: {},
+			toConnect: {},
+		};
+	};
+};
+exports.audioWorkletAddModule_ = function (ctx) {
+	return function (s) {
+		return function () {
+			{
+				return ctx.audioWorklet.addModule(s);
+			}
+		};
+	};
+};
+
+exports.contextFromSnapshot = function (snapshot) {
+	return snapshot.context;
+};
+
+exports.advanceWriteHead = function (snapshot) {
+	return function (deprecatedWriteHead) {
+		return function () {
+			snapshot.deprecatedWriteHead = deprecatedWriteHead;
+		};
+	};
+};
+
+exports.close = function (audioCtx) {
+	return function () {
+		audioCtx.close();
+	};
+};
+exports.decodeAudioDataFromBase64EncodedString = function (ctx) {
+	return function (s) {
+		return function () {
+			{
+				function base64ToArrayBuffer(base64) {
+					var binaryString = window.atob(base64);
+					var len = binaryString.length;
+					var bytes = new Uint8Array(len);
+					for (var i = 0; i < len; i++) {
+						bytes[i] = binaryString.charCodeAt(i);
+					}
+					return bytes.buffer;
+				}
+				return ctx.decodeAudioData(base64ToArrayBuffer(s));
+			}
+		};
+	};
+};
+exports.fetchArrayBuffer = function (s) {
+	return function () {
+		{
+			return fetch(s).then(
+				function (b) {
+					return b.arrayBuffer();
+				},
+				function (e) {
+					console.error("Error fetching buffer", e);
+					return Promise.reject(e);
+				}
+			);
+		}
+	};
+};
+exports.decodeAudioDataFromArrayBuffer = function (ctx) {
+	return function (b) {
+		return function () {
+			return ctx.decodeAudioData(b);
+		};
+	};
+};
+exports.context = function () {
+	return new (window.AudioContext || window.webkitAudioContext)();
+};
+exports.contextState = function (audioCtx) {
+	return function () {
+		return audioCtx.state;
+	};
+};
+exports.contextResume = function (audioCtx) {
+	return function () {
+		return audioCtx.resume();
+	};
+};
+exports.getAudioClockTime = function (ctx) {
+	return function () {
+		return ctx.currentTime;
+	};
+};
+exports.makeAudioBuffer = function (ctx) {
+	return function (b) {
+		return function () {
+			var myArrayBuffer = ctx.createBuffer(
+				b.value1.length,
+				b.value1[0].length,
+				b.value0
+			);
+			for (
+				var channel = 0;
+				channel < myArrayBuffer.numberOfChannels;
+				channel++
+			) {
+				var nowBuffering = myArrayBuffer.getChannelData(channel);
+				for (var i = 0; i < myArrayBuffer.length; i++) {
+					nowBuffering[i] = b.value1[channel][i];
+				}
+			}
+			return myArrayBuffer;
 		};
 	};
 };

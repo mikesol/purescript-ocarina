@@ -2,162 +2,195 @@ module WAGS.Example.Tumult where
 
 import Prelude
 
-import Control.Comonad.Cofree (Cofree, mkCofree)
+import Data.Exists (Exists, mkExists)
 import Data.Foldable (for_)
-import Data.Map (singleton)
-import Data.Maybe (Maybe(..))
-import Data.Typelevel.Num (D1)
-import Data.Variant.Maybe (just)
+import Data.Lens (over)
+import Data.Maybe (Maybe(..), maybe)
+import Data.Tuple (Tuple(..))
+import Data.Tuple.Nested ((/\))
+import Data.Typelevel.Num (D2)
 import Data.Vec ((+>))
 import Data.Vec as V
+import Deku.Attribute (cb, (:=))
+import Deku.Control (deku, text, text_)
+import Deku.Core (SubgraphF(..))
+import Deku.DOM as DOM
+import Deku.Interpret (effectfulDOMInterpret, makeFFIDOMSnapshot)
+import Deku.Subgraph (SubgraphAction(..), subgraph)
 import Effect (Effect)
-import Effect.Aff.Class (class MonadAff)
-import Effect.Class (class MonadEffect)
-import FRP.Event (subscribe)
-import Halogen as H
-import Halogen.Aff (awaitBody, runHalogenAff)
-import Halogen.HTML as HH
-import Halogen.HTML.Events as HE
-import Halogen.VDom.Driver (runUI)
+import Effect.Aff (Aff, launchAff_)
+import Effect.Class (liftEffect)
+import FRP.Behavior (sample_)
+import FRP.Event (Event, subscribe)
+import FRP.Event.Animate (animationFrameEvent)
+import FRP.Event.Class (bang)
 import Math (pi, sin, (%))
-import Type.Proxy (Proxy(..))
-import WAGS.Control.Functions.Graph (loopUsingScene)
-import WAGS.Control.Functions.Subgraph as SG
-import WAGS.Control.Types (Frame0, Scene, SubScene)
-import WAGS.Create.Optionals (bandpass, gain, highpass, input, loopBuf, sinOsc, speaker, subgraph, tumult)
-import WAGS.Graph.Paramable (paramize)
-import WAGS.Graph.Parameter (AudioParameter, ff)
-import WAGS.Interpret (class AudioInterpret, close, context, decodeAudioDataFromUri, makeFFIAudioSnapshot)
-import WAGS.Run (BehavingRun, RunAudio, RunEngine, BehavingScene(..), run)
-import WAGS.Tumult.Make (tumultuously)
+import WAGS.Clock (WriteHead, fot, writeHead)
+import WAGS.Control (loopBuf, speaker2)
+import WAGS.Core (Node, fan)
+import WAGS.Example.Utils (RaiseCancellation)
+import WAGS.Interpret (close, context, decodeAudioDataFromUri, effectfulAudioInterpret, makeFFIAudioSnapshot)
+import WAGS.Parameter (AudioNumeric(..), opticN, bangOn)
+import WAGS.Tumult (tumult)
+import WAGS.Tumult.Create.Optionals as Opt
+import WAGS.Tumult.Tumult.Make (tumultuously)
 import WAGS.WebAPI (AudioContext, BrowserAudioBuffer)
+import Web.HTML (window)
+import Web.HTML.HTMLDocument (body)
+import Web.HTML.HTMLElement (toElement)
+import Web.HTML.Window (document)
 
-type World = { shruti :: BrowserAudioBuffer }
+-- bring tumult back eventually
+-- most of the work is done, but we need to be able to:
+-- a) accept arbitrary nodes instead of relying on input
+-- b) allow for events on _each_ node, which lowers the amount of diffing
 
-newtype SGWorld = SGWorld Number
+-- scene
+--   :: forall lock payload
+--    . BrowserAudioBuffer
+--   -> WriteHead Event
+--   -> Array (Node D2 lock Event payload)
+-- scene loopy wh =
+--   let
+--     tr = fot wh (mul pi)
+--   in
+--     pure $ fan (loopBuf loopy bangOn) \tmlt ->
+--       tumult
+--         ( tr <#> \anum@(AudioNumeric { o }) ->
+--             let
+--               oo = o % 10.0
+--               ooo
+--                 | oo < 2.0 = tumultuously
+--                     { output: Opt.gain 1.0
+--                         { lp: Opt.lowpass
+--                             ( over opticN (\x -> 1100.0 + 1000.0 * sin x)
+--                                 anum
+--                             )
+--                             tmlt
+--                         , osc: Opt.gain 0.03 (Opt.sinOsc 220.0)
+--                         }
+--                     }
+--                 | oo < 4.0 = tumultuously
+--                     { output: Opt.gain 1.0
+--                         { bp: Opt.bandpass
+--                             ( over opticN (\x -> 2000.0 + 1500.0 * sin x)
+--                                 anum
+--                             )
+--                             tmlt
+--                         , osc: Opt.gain 0.03 (Opt.sawtoothOsc 330.0)
+--                         }
+--                     }
+--                 | oo < 6.0 = tumultuously
+--                     { output: Opt.gain 1.0
+--                         { hs: Opt.gain 1.0
+--                             { x0: Opt.highshelf
+--                                 ( over opticN
+--                                     (\x -> 2600.0 + 1000.0 * sin x)
+--                                     anum
+--                                 )
+--                                 tmlt
+--                             , x1: Opt.delay 0.04
+--                                 (Opt.gain 0.3 { x0: Opt.ref })
+--                             }
+--                         , osc: Opt.gain 0.03 (Opt.triangleOsc 550.0)
+--                         }
+--                     }
+--                 | oo < 8.0 = tumultuously
+--                     { output: Opt.gain 1.0
+--                         { ls: Opt.lowshelf
+--                             ( over opticN (\x -> 2600.0 + 1000.0 * sin x)
+--                                 anum
+--                             )
+--                             tmlt
+--                         , osc: Opt.gain 0.03 (Opt.squareOsc 810.0)
+--                         }
+--                     }
+--                 | otherwise = tumultuously
+--                     { output: Opt.gain 1.0
+--                         { hp: Opt.highpass
+--                             ( over opticN (\x -> 2600.0 + 1000.0 * sin x)
+--                                 anum
+--                             )
+--                             tmlt
+--                         , osc: Opt.gain 0.03
+--                             ( Opt.periodicOsc
+--                                 ( (0.1 +> 0.1 +> 0.02 +> V.empty) /\
+--                                     (0.05 +> 0.4 +> 0.1 +> V.empty)
+--                                 )
+--                                 1020.0
+--                             )
+--                         }
+--                     }
+--             in
+--               ooo
+--         )
 
-globalFF = ff 0.06 :: AudioParameter -> AudioParameter
+-- type UIAction = Maybe { unsub :: Effect Unit, ctx :: AudioContext }
 
-vec :: V.Vec D1 Unit
-vec = V.fill (const unit)
+-- type Init = BrowserAudioBuffer
 
-subPiece1
-  :: forall audio engine
-   . AudioInterpret audio engine
-  => Int
-  -> SubScene "gnn" (beep :: Unit) SGWorld audio engine Frame0 Unit
-subPiece1 _ = mempty # SG.loopUsingScene \(SGWorld time) _ ->
-  { control: unit
-  , scene:
-      { gnn: tumult
-          ( let
-              sweep =
-                { freq: globalFF $ paramize $ 3000.0 + sin (pi * time * 0.2) * 2990.0
-                , q: globalFF $ paramize $ 1.0
-                }
-              tmod = time % 10.0
-              tumult
-                | tmod < 2.0 = tumultuously ({ output: input (Proxy :: _ "shruti") } +> V.empty)
-                | tmod < 6.0 = tumultuously ({ output: highpass sweep (input (Proxy :: _ "shruti")) } +> V.empty)
-                | otherwise = tumultuously
-                    ( { output: gain 1.0
-                          { hpf: bandpass sweep (input (Proxy :: _ "shruti"))
-                          , bpf: bandpass { freq: 200.0 } (input (Proxy :: _ "shruti"))
-                          , beep: gain (sin (time * pi * 10.0) * 0.2 + 0.1) { sosc: sinOsc 440.0 }
-                          }
-                      } +> V.empty
-                    )
-            in
-              tumult
-          )
-          { shruti: input (Proxy :: _ "beep") }
+-- initializeTumult :: Aff Init
+-- initializeTumult = do
+--   atar <- liftEffect context >>= flip decodeAudioDataFromUri
+--     "https://freesound.org/data/previews/36/36132_321601-hq.mp3"
+--   pure atar
 
-      }
-  }
+-- tumultExample
+--   :: forall payload
+--    . BrowserAudioBuffer
+--   -> RaiseCancellation
+--   -> Exists (SubgraphF Event payload)
+-- tumultExample loopy rc = mkExists $ SubgraphF \push event ->
+--     DOM.div_
+--       [ DOM.h1_ [ text_ "Tumult" ]
+--       , DOM.button
+--           ( map
+--               ( \i -> DOM.OnClick := cb
+--                   ( const $
+--                       maybe
+--                         ( do
+--                             ctx <- context
+--                             ffi2 <- makeFFIAudioSnapshot ctx
+--                             let wh = writeHead 0.04 ctx
+--                             afe <- animationFrameEvent
+--                             unsub <- subscribe
+--                               ( speaker2
+--                                   ( scene loopy (sample_ wh afe)
+--                                   )
+--                                   effectfulAudioInterpret
+--                               )
+--                               ((#) ffi2)
+--                             rc $ Just { unsub, ctx }
+--                             push $ Just { unsub, ctx }
+--                         )
+--                         ( \{ unsub, ctx } -> do
+--                             rc Nothing
+--                             unsub
+--                             close ctx
+--                             push Nothing
+--                         )
+--                         i
+--                   )
+--               )
+--               event
+--           )
+--           [ text
+--               (map (maybe "Turn on" (const "Turn off")) event)
+--           ]
+--       ]
 
-piece :: Scene (BehavingScene Unit World ()) RunAudio RunEngine Frame0 Unit
-piece = mempty # loopUsingScene \(BehavingScene env) _ ->
-  { control: unit
-  , scene: speaker
-      { gn: gain 1.0
-          { sg2: subgraph (singleton 0 (just $ SGWorld env.time))
-              (subPiece1)
-              { beep: loopBuf env.world.shruti }
-          }
-      }
-  }
-
-easingAlgorithm :: Cofree ((->) Int) Int
-easingAlgorithm =
-  let
-    fOf initialTime = mkCofree initialTime \adj -> fOf $ max 20 (initialTime - adj)
-  in
-    fOf 20
-
-main :: Effect Unit
-main =
-  runHalogenAff do
-    body <- awaitBody
-    runUI component unit body
-
-type State
-  =
-  { unsubscribe :: Effect Unit
-  , audioCtx :: Maybe AudioContext
-  , freqz :: Array String
-  }
-
-data Action
-  = StartAudio
-  | StopAudio
-
-component :: forall query input output m. MonadEffect m => MonadAff m => H.Component query input output m
-component =
-  H.mkComponent
-    { initialState
-    , render
-    , eval: H.mkEval $ H.defaultEval { handleAction = handleAction }
-    }
-
-initialState :: forall input. input -> State
-initialState _ =
-  { unsubscribe: pure unit
-  , audioCtx: Nothing
-  , freqz: []
-  }
-
-render :: forall m. State -> H.ComponentHTML Action () m
-render { freqz } = do
-  HH.div_
-    $
-      [ HH.h1_
-          [ HH.text "Tumult test" ]
-      , HH.button
-          [ HE.onClick \_ -> StartAudio ]
-          [ HH.text "Start audio" ]
-      , HH.button
-          [ HE.onClick \_ -> StopAudio ]
-          [ HH.text "Stop audio" ]
-      ]
-        <> map (\freq -> HH.p [] [ HH.text freq ]) freqz
-
-handleAction :: forall output m. MonadEffect m => MonadAff m => Action -> H.HalogenM State Action () output m Unit
-handleAction = case _ of
-  StartAudio -> do
-    audioCtx <- H.liftEffect context
-    ffiAudio <- H.liftEffect $ makeFFIAudioSnapshot audioCtx
-    shruti <-
-      H.liftAff $ decodeAudioDataFromUri
-          audioCtx
-          "https://freesound.org/data/previews/513/513742_153257-hq.mp3"
-    unsubscribe <-
-      H.liftEffect
-        $ subscribe
-          (run (pure unit) (pure { shruti }) { easingAlgorithm } (ffiAudio) piece)
-          (\(_ :: BehavingRun Unit ()) -> pure unit)
-    H.modify_ _ { unsubscribe = unsubscribe, audioCtx = Just audioCtx }
-  StopAudio -> do
-    { unsubscribe, audioCtx } <- H.get
-    H.liftEffect unsubscribe
-    for_ audioCtx (H.liftEffect <<< close)
-    H.modify_ _ { unsubscribe = pure unit, audioCtx = Nothing }
+-- main :: Effect Unit
+-- main = launchAff_ do
+--   init <- initializeTumult
+--   liftEffect do
+--     b' <- window >>= document >>= body
+--     for_ (toElement <$> b') \elt -> do
+--       ffi <- makeFFIDOMSnapshot
+--       let
+--         evt = deku elt
+--           ( subgraph (bang (Tuple unit (Insert)))
+--               (const $ tumultExample init (const $ pure unit))
+--           )
+--           effectfulDOMInterpret
+--       _ <- subscribe evt \i -> i ffi
+--       pure unit

@@ -2,131 +2,155 @@ module WAGS.Example.HelloWorld where
 
 import Prelude
 
-import Control.Comonad.Cofree (Cofree, mkCofree)
+import Control.Alt ((<|>))
+import Control.Plus (empty)
+import Data.Exists (Exists, mkExists)
 import Data.Foldable (for_)
-import Data.Functor.Indexed (ivoid)
-import Data.Maybe (Maybe(..))
-import Data.Newtype (unwrap)
-import Data.Tuple.Nested (type (/\))
+import Data.Lens (over)
+import Data.Maybe (Maybe(..), maybe)
+import Data.Tuple (Tuple(..))
+import Data.Typelevel.Num (D2)
+import Deku.Attribute (cb, (:=))
+import Deku.Control (deku, text, text_)
+import Deku.Core (SubgraphF(..))
+import Deku.DOM as DOM
+import Deku.Interpret (effectfulDOMInterpret, makeFFIDOMSnapshot)
+import Deku.Subgraph (SubgraphAction(..), subgraph)
 import Effect (Effect)
-import Effect.Aff.Class (class MonadAff)
-import Effect.Class (class MonadEffect)
-import FRP.Event (subscribe)
-import Halogen as H
-import Halogen.Aff (awaitBody, runHalogenAff)
-import Halogen.HTML as HH
-import Halogen.HTML.Events as HE
-import Halogen.VDom.Driver (runUI)
+import Effect.Aff (Aff, launchAff_)
+import Effect.Class (liftEffect)
+import FRP.Behavior (sample_)
+import FRP.Event (Event, subscribe)
+import FRP.Event.Animate (animationFrameEvent)
+import FRP.Event.Class (bang)
 import Math (pi, sin)
-import WAGS.Change (ichange)
-import WAGS.Control.Functions.Graph (iloop, (@!>))
-import WAGS.Control.Types (Frame0, Scene)
-import WAGS.Create (icreate)
-import WAGS.Create.Optionals (CGain, CSpeaker, CSinOsc, gain, sinOsc, speaker)
-import WAGS.Graph.AudioUnit (TGain, TSinOsc, TSpeaker)
-import WAGS.Interpret (close, context, makeFFIAudioSnapshot)
-import WAGS.Run (RunAudio, RunEngine, BehavingScene(..), BehavingRun, run)
+import Type.Proxy (Proxy(..))
+import WAGS.Clock (WriteHead, fot, writeHead)
+import WAGS.Control (gain, sinOsc, speaker2)
+import WAGS.Core (Node)
+import WAGS.Example.Utils (RaiseCancellation)
+import WAGS.Imperative (InitialGraphBuilder, runGraphBuilder)
+import WAGS.Imperative as I
+import WAGS.Interpret (close, context, effectfulAudioInterpret, makeFFIAudioSnapshot)
+import WAGS.Parameter (opticN, bangOn)
+import WAGS.Properties (frequency)
 import WAGS.WebAPI (AudioContext)
+import Web.HTML (window)
+import Web.HTML.HTMLDocument (body)
+import Web.HTML.HTMLElement (toElement)
+import Web.HTML.Window (document)
 
-type SceneTemplate
-  = CSpeaker
-  { gain0 :: CGain { sin0 :: CSinOsc }
-  , gain1 :: CGain { sin1 :: CSinOsc }
-  , gain2 :: CGain { sin2 :: CSinOsc }
-  , gain3 :: CGain { sin3 :: CSinOsc }
-  }
-
-type SceneType
-  =
-  { speaker :: TSpeaker /\ { gain0 :: Unit, gain1 :: Unit, gain2 :: Unit, gain3 :: Unit }
-  , gain0 :: TGain /\ { sin0 :: Unit }
-  , sin0 :: TSinOsc /\ {}
-  , gain1 :: TGain /\ { sin1 :: Unit }
-  , sin1 :: TSinOsc /\ {}
-  , gain2 :: TGain /\ { sin2 :: Unit }
-  , sin2 :: TSinOsc /\ {}
-  , gain3 :: TGain /\ { sin3 :: Unit }
-  , sin3 :: TSinOsc /\ {}
-  }
-
-scene :: Number -> SceneTemplate
-scene time =
+scene
+  :: forall lock payload
+   . WriteHead Event
+  -> Array (Node D2 lock Event payload)
+scene wh =
   let
-    rad = pi * time
+    tr = fot wh (mul pi)
+    gso a b c = gain a empty
+      [ sinOsc b (bangOn <|> (frequency <<< (over opticN c) <$> tr)) ]
   in
-    speaker
-      { gain0: gain 0.1 { sin0: sinOsc (440.0 + (10.0 * sin (2.3 * rad))) }
-      , gain1: gain 0.25 { sin1: sinOsc (235.0 + (10.0 * sin (1.7 * rad))) }
-      , gain2: gain 0.2 { sin2: sinOsc (337.0 + (10.0 * sin rad)) }
-      , gain3: gain 0.1 { sin3: sinOsc (530.0 + (19.0 * (5.0 * sin rad))) }
-      }
-
-piece :: Scene (BehavingScene Unit Unit ()) RunAudio RunEngine Frame0 Unit
-piece = (unwrap >>> _.time >>> scene >>> icreate) @!> iloop \(BehavingScene { time }) _ -> ivoid $ ichange (scene time)
-
-easingAlgorithm :: Cofree ((->) Int) Int
-easingAlgorithm =
-  let
-    fOf initialTime = mkCofree initialTime \adj -> fOf $ max 20 (initialTime - adj)
-  in
-    fOf 20
-
-main :: Effect Unit
-main =
-  runHalogenAff do
-    body <- awaitBody
-    runUI component unit body
-
-type State
-  =
-  { unsubscribe :: Effect Unit
-  , audioCtx :: Maybe AudioContext
-  }
-
-data Action
-  = StartAudio
-  | StopAudio
-
-component :: forall query input output m. MonadEffect m => MonadAff m => H.Component query input output m
-component =
-  H.mkComponent
-    { initialState
-    , render
-    , eval: H.mkEval $ H.defaultEval { handleAction = handleAction }
-    }
-
-initialState :: forall input. input -> State
-initialState _ =
-  { unsubscribe: pure unit
-  , audioCtx: Nothing
-  }
-
-render :: forall m. State -> H.ComponentHTML Action () m
-render _ = do
-  HH.div_
-    [ HH.h1_
-        [ HH.text "Hello world" ]
-    , HH.button
-        [ HE.onClick \_ -> StartAudio ]
-        [ HH.text "Start audio" ]
-    , HH.button
-        [ HE.onClick \_ -> StopAudio ]
-        [ HH.text "Stop audio" ]
+    [ gso 0.1 440.0 (\rad -> 440.0 + (10.0 * sin (2.3 * rad)))
+    , gso 0.25 235.0 (\rad -> 235.0 + (10.0 * sin (1.7 * rad)))
+    , gso 0.2 337.0 (\rad -> 337.0 + (10.0 * sin rad))
+    , gso 0.1 530.0 (\rad -> 530.0 + (19.0 * (5.0 * sin rad)))
     ]
 
-handleAction :: forall output m. MonadEffect m => MonadAff m => Action -> H.HalogenM State Action () output m Unit
-handleAction = case _ of
-  StartAudio -> do
-    audioCtx <- H.liftEffect context
-    ffiAudio <- H.liftEffect $ makeFFIAudioSnapshot audioCtx
-    unsubscribe <-
-      H.liftEffect
-        $ subscribe
-          (run (pure unit) (pure unit) { easingAlgorithm } ffiAudio piece)
-          (\(_ :: BehavingRun Unit ()) -> pure unit)
-    H.modify_ _ { unsubscribe = unsubscribe, audioCtx = Just audioCtx }
-  StopAudio -> do
-    { unsubscribe, audioCtx } <- H.get
-    H.liftEffect unsubscribe
-    for_ audioCtx (H.liftEffect <<< close)
-    H.modify_ _ { unsubscribe = pure unit, audioCtx = Nothing }
+scene'
+  :: forall payload
+   . WriteHead (Event)
+  -> InitialGraphBuilder Event payload _ Unit
+scene' wh = I.do
+  speaker <- I.speaker (Proxy :: Proxy "speaker")
+  gain0 <- I.gain (Proxy :: Proxy "gain0") 0.1 empty
+  gain1 <- I.gain (Proxy :: Proxy "gain1") 0.25 empty
+  gain2 <- I.gain (Proxy :: Proxy "gain2") 0.20 empty
+  gain3 <- I.gain (Proxy :: Proxy "gain3") 0.10 empty
+  sinOsc0 <- I.sinOsc (Proxy :: Proxy "sinOsc0") 440.0
+    (so \rad -> 440.0 + (10.0 * sin (2.3 * rad)))
+  sinOsc1 <- I.sinOsc (Proxy :: Proxy "sinOsc1") 235.0
+    (so \rad -> 235.0 + (10.0 * sin (1.7 * rad)))
+  sinOsc2 <- I.sinOsc (Proxy :: Proxy "sinOsc2") 337.0
+    (so \rad -> 337.0 + (10.0 * sin rad))
+  sinOsc3 <- I.sinOsc (Proxy :: Proxy "sinOsc3") 530.0
+    (so \rad -> 530.0 + (19.0 * (5.0 * sin rad)))
+  I.connect { from: gain0, into: speaker }
+  I.connect { from: gain1, into: speaker }
+  I.connect { from: gain2, into: speaker }
+  I.connect { from: gain3, into: speaker }
+  I.connect { from: sinOsc0, into: gain0 }
+  I.connect { from: sinOsc1, into: gain1 }
+  I.connect { from: sinOsc2, into: gain2 }
+  I.connect { from: sinOsc3, into: gain3 }
+  where
+  tr = fot wh (mul pi)
+  so f = bangOn <|> (frequency <<< (over opticN f) <$> tr)
+
+type UIAction = Maybe { unsub :: Effect Unit, ctx :: AudioContext }
+
+type Init = Unit
+
+initializeHelloWorld :: Aff Init
+initializeHelloWorld = pure unit
+
+helloWorld
+  :: forall payload
+   . Unit
+  -> RaiseCancellation
+  -> Exists (SubgraphF Event payload)
+helloWorld _ rc = mkExists $ SubgraphF \p e ->
+  let
+    musicButton push event audioEvent = DOM.button
+      ( map
+          ( \i -> DOM.OnClick := cb
+              ( const $
+                  maybe
+                    ( do
+                        ctx <- context
+                        ffi2 <- makeFFIAudioSnapshot ctx
+                        let wh = writeHead 0.04 ctx
+                        afe <- animationFrameEvent
+                        unsub <- subscribe
+                          (audioEvent (sample_ wh afe))
+                          ((#) ffi2)
+                        rc $ Just { unsub, ctx }
+                        push $ Just { unsub, ctx }
+                    )
+                    ( \{ unsub, ctx } -> do
+                        unsub
+                        close ctx
+                        rc Nothing
+                        push Nothing
+                    )
+                    i
+              )
+          )
+          event
+      )
+      [ text
+          (map (maybe "Turn on" (const "Turn off")) event)
+      ]
+  in
+    DOM.div_
+      [ DOM.h1_ [ text_ "Hello world" ]
+      , musicButton p e
+          (flip runGraphBuilder effectfulAudioInterpret <<< scene')
+      , musicButton p e
+          (\i -> speaker2 (scene i) effectfulAudioInterpret)
+      ]
+
+main :: Effect Unit
+main = launchAff_ do
+  init <- initializeHelloWorld
+  liftEffect do
+    b' <- window >>= document >>= body
+    for_ (toElement <$> b') \elt -> do
+      ffi <- makeFFIDOMSnapshot
+      let
+        evt = deku elt
+          ( subgraph (bang (Tuple unit Insert))
+              (const $ helloWorld init (const $ pure unit))
+          )
+          effectfulDOMInterpret
+      _ <- subscribe (evt) \i -> i ffi
+      pure unit
