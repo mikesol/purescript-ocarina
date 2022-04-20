@@ -504,6 +504,7 @@ instance createDelay ::
             ( I.iMakeDelay
                 { id
                 , delayTime
+                , maxDelayTime: 1.0
                 , parent: nothing
                 , scope: nothing
                 }

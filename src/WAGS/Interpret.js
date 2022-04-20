@@ -323,6 +323,7 @@ exports.makeDelay_ = function (a) {
 				incoming: [],
 				main: new DelayNode(state.context, {
 					delayTime: a.delayTime,
+					maxDelayTime: a.maxDelayTime,
 				}),
 			};
 			addToScope(ptr, a.scope, state);

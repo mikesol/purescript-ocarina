@@ -158,10 +158,11 @@ tumult atts' = C.Node go
                                   , buffer
                                   , parent
                                   }
-                            , makeDelay: \{ id, delayTime, parent } -> bang $
+                            , makeDelay: \{ id, delayTime, maxDelayTime, parent } -> bang $
                                 ai.makeDelay
                                   { id: sfx id
                                   , scope: just scope
+                                  , maxDelayTime
                                   , delayTime: asNumber delayTime
                                   , parent
                                   }

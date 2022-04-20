@@ -153,6 +153,8 @@ introEx ccb _ ev = makePursx' (Proxy :: _ "@") px
                       } $ fan (playBuf buffer (bangOn <|> (P.playbackRate <<< calcSlope 0.0 0.96 100.0 1.04) <$> sliderE)) \b -> fix
                       \g0 -> gain_ 1.0
                         [ b
+                        , delay { maxDelayTime: 2.5, delayTime: 1.0 } ((P.delayTime <<< calcSlope 0.0 0.5 100.0 2.45) <$> sliderE)
+                            [ gain 0.4 ((P.gain <<< calcSlope 0.0 0.6 100.0 0.9) <$> sliderE) [ b ] ]
                         , dgh 0.15 empty 0.7 empty 1500.0 (fenv 1500.0 3000.0)
                             [ fix
                                 \g1 -> gain 1.0 fade1
@@ -160,14 +162,14 @@ introEx ccb _ ev = makePursx' (Proxy :: _ "@") px
                                       [ g0, g1 ]
                                   ]
                             ]
-                        , dgh 0.29 ((P.delayTime <<< calcSlope 0.0 0.1 100.0 0.4) <$> sliderE) {-(denv 0.29 0.9)-}  0.85 empty 2000.0 (fenv 2000.0 5000.0)
+                        , dgh 0.29 ((P.delayTime <<< calcSlope 0.0 0.1 100.0 0.4) <$> sliderE) {-(denv 0.29 0.9)-} 0.85 empty 2000.0 (fenv 2000.0 5000.0)
                             [ fix
                                 \g1 -> gain_ 1.0
-                                  [ dgh 0.6 ((P.delayTime <<< calcSlope 0.0 0.8 100.0 0.3) <$> sliderE) {-(denv 0.6 0.2)-}  0.6 empty 3500.0 (fenv 3500.0 100.0)
+                                  [ dgh 0.6 ((P.delayTime <<< calcSlope 0.0 0.8 100.0 0.3) <$> sliderE) {-(denv 0.6 0.2)-} 0.6 empty 3500.0 (fenv 3500.0 100.0)
                                       [ g0
                                       , ( fix
                                             \g2 -> gain 1.0 fade0
-                                              [ dgb 0.75 ((P.delayTime <<< calcSlope 0.0 0.9 100.0 0.1) <$> sliderE) {-(denv 0.75 0.99)-}  0.6 empty 4000.0
+                                              [ dgb 0.75 ((P.delayTime <<< calcSlope 0.0 0.9 100.0 0.1) <$> sliderE) {-(denv 0.75 0.99)-} 0.6 empty 4000.0
                                                   (fenv 4000.0 200.0)
                                                   [ g1, g2 ]
                                               , dgb 0.75 (denv 0.75 0.2) 0.55 empty 200.0 (fenv 200.0 4000.0) [ b ]

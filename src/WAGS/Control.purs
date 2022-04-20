@@ -484,7 +484,7 @@ delay i' atts elts = C.Node go
     ( (sample_ ids (bang unit)) <#> parentalSupervision parent \me ->
         bang
           ( makeDelay
-              { id: me, parent: useParentIfParent parent, scope: just scope, delayTime: i.delayTime }
+              { id: me, parent: useParentIfParent parent, scope: just scope, delayTime: i.delayTime, maxDelayTime: i.maxDelayTime }
           )
           <|> map
             ( \(C.Delay e) -> match

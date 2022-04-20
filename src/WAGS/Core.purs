@@ -443,12 +443,13 @@ derive instance newtypeDelay :: Newtype Delay _
 newtype Delay = Delay (Variant (delayTime :: AudioParameter))
 
 derive instance newtypeInitializeDelay :: Newtype InitializeDelay _
-newtype InitializeDelay = InitializeDelay { delayTime :: InitialAudioParameter }
+newtype InitializeDelay = InitializeDelay { delayTime :: InitialAudioParameter, maxDelayTime :: InitialAudioParameter }
 type MakeDelay_ param =
   { id :: String
   , parent :: Maybe String
   , scope :: Maybe String
   , delayTime :: param
+  , maxDelayTime :: Number
   }
 
 type MakeDelay = MakeDelay_ InitialAudioParameter

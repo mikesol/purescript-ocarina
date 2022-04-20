@@ -14,7 +14,7 @@ import Type.Proxy (Proxy(..))
 import WAGS.Core (Oversample, PeriodicOscSpec(..), RealImg(..), _twoX)
 import WAGS.Core as Core
 import WAGS.Parameter (InitialAudioParameter)
-import WAGS.WebAPI (BrowserAudioBuffer, BrowserFloatArray, BrowserMicrophone, BrowserPeriodicWave, MediaRecorderCb(..))
+import WAGS.WebAPI (BrowserAudioBuffer, BrowserFloatArray, BrowserMicrophone, BrowserPeriodicWave, MediaRecorderCb)
 
 -- Allpass
 
@@ -151,14 +151,52 @@ instance
   toInitializeIIRFilter (feedforward /\ feedback) _ _ = Core.InitializeIIRFilter { feedforward: proof (coerce feedforward), feedback: proof (coerce feedback) }
 
 -- Delay
+
+data DelayOptions = DelayOptions
+
+instance
+  ConvertOption DelayOptions
+    "delayTime"
+    InitialAudioParameter
+    InitialAudioParameter where
+  convertOption _ _ = identity
+
+instance
+  ConvertOption DelayOptions
+    "maxDelayTime"
+    Number
+    Number where
+  convertOption _ _ = identity
+
+type DelayOptional =
+  ( maxDelayTime :: Number
+  )
+
+type DelayAll =
+  ( delayTime :: InitialAudioParameter
+  | DelayOptional
+  )
+
+defaultDelay :: { | DelayOptional }
+defaultDelay =
+  { maxDelayTime: 1.0 }
+
 class InitialDelay i where
   toInitializeDelay :: i -> Core.InitializeDelay
 
 instance InitialDelay Core.InitializeDelay where
   toInitializeDelay = identity
 
-instance InitialDelay Number where
-  toInitializeDelay = Core.InitializeDelay <<< { delayTime: _ }
+instance InitialDelay InitialAudioParameter where
+  toInitializeDelay = toInitializeDelay <<< { delayTime: _ }
+
+instance
+  ConvertOptionsWithDefaults DelayOptions { | DelayOptional }
+    { | provided }
+    { | DelayAll } =>
+  InitialDelay { | provided } where
+  toInitializeDelay provided = Core.InitializeDelay
+    (convertOptionsWithDefaults DelayOptions defaultDelay provided)
 
 -- DynamicsCompressor
 
