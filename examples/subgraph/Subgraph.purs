@@ -2,12 +2,13 @@ module WAGS.Example.Subgraph where
 
 import Prelude
 
-import Control.Alt ((<|>))
+import Control.Alt (alt, (<|>))
 import Control.Plus (empty)
 import Data.Exists (Exists, mkExists)
 import Data.Foldable (for_)
 import Data.Lens (over)
 import Data.Maybe (Maybe(..), maybe)
+import Data.Profunctor (lcmap)
 import Data.Tuple (Tuple(..), snd)
 import Data.Tuple.Nested ((/\))
 import Data.Typelevel.Num (D2)
@@ -163,7 +164,7 @@ subgraphExample
    . Init
   -> RaiseCancellation
   -> Exists (SubgraphF Event payload)
-subgraphExample loopy rc = mkExists $ SubgraphF \push event ->
+subgraphExample loopy rc = mkExists $ SubgraphF \push -> lcmap (alt (bang Nothing)) \event ->
   DOM.div_
     [ DOM.h1_ [ text_ "Subgraph" ]
     , DOM.button
