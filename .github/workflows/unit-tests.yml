@@ -9,6 +9,19 @@ jobs:
     steps:
       - name: Check out repository code
         uses: actions/checkout@v2
+      - name: Cache purescript dependencies
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.npm
+            .spago
+            ${{ env.spago_global_cache }}
+            output
+          key: >-
+            ${{ hashFiles('package-lock.json') }}-
+            ${{ hashFiles('spago.dhall') }}-
+            ${{ hashFiles('examples.dhall') }}-
+            ${{ hashFiles('packages.dhall') }}
       - name: Install dependencies
         run: npm ci
       - name: Spago install
@@ -31,3 +44,13 @@ jobs:
         with:
           github_token: ${{ secrets.GH_TOKEN }}
           publish_dir: ./examples/docs
+      # the new wags breaks the old wags, so we want the old assets to point to the new docs
+      # as much as possible
+      - name: deploy to netlify @ wags.fm
+        run: NETLIFY_SITE_ID=${{ secrets.NETLIFY_WAGS_FM_SITE_ID }} NETLIFY_AUTH_TOKEN=${{ secrets.NETLIFY_AUTH_TOKEN }} netlify deploy --dir=dist --prod
+      - name: deploy to netlify @ yap.wags.fm
+        run: NETLIFY_SITE_ID=${{ secrets.NETLIFY_YAP_SITE_ID }} NETLIFY_AUTH_TOKEN=${{ secrets.NETLIFY_AUTH_TOKEN }} netlify deploy --dir=dist --prod
+      - name: deploy to netlify @ docs.wags.fm
+        run: NETLIFY_SITE_ID=${{ secrets.NETLIFY_WAGS_DOCS_SITE_ID }} NETLIFY_AUTH_TOKEN=${{ secrets.NETLIFY_AUTH_TOKEN }} netlify deploy --dir=dist --prod
+      - name: deploy to netlify @ whatis.wags.fm
+        run: NETLIFY_SITE_ID=${{ secrets.NETLIFY_WHAT_IS_WAGS_SITE_ID }} NETLIFY_AUTH_TOKEN=${{ secrets.NETLIFY_AUTH_TOKEN }} netlify deploy --dir=dist --prod

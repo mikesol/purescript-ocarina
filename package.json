@@ -16,7 +16,7 @@
     "esbuild": "^0.14.36",
     "psc-package": "^4.0.1",
     "pulp": "^15.0.0",
-    "purescript": "^0.14.4",
+    "purescript": "^0.14.7",
     "spago": "^0.20.3"
   },
   "dependencies": {
