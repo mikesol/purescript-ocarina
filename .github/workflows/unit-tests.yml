@@ -48,8 +48,6 @@ jobs:
       # as much as possible
       - name: deploy to netlify @ wags.fm
         run: NETLIFY_SITE_ID=${{ secrets.NETLIFY_WAGS_FM_SITE_ID }} NETLIFY_AUTH_TOKEN=${{ secrets.NETLIFY_AUTH_TOKEN }} netlify deploy --dir=dist --prod
-      - name: deploy to netlify @ yap.wags.fm
-        run: NETLIFY_SITE_ID=${{ secrets.NETLIFY_YAP_SITE_ID }} NETLIFY_AUTH_TOKEN=${{ secrets.NETLIFY_AUTH_TOKEN }} netlify deploy --dir=dist --prod
       - name: deploy to netlify @ docs.wags.fm
         run: NETLIFY_SITE_ID=${{ secrets.NETLIFY_WAGS_DOCS_SITE_ID }} NETLIFY_AUTH_TOKEN=${{ secrets.NETLIFY_AUTH_TOKEN }} netlify deploy --dir=dist --prod
       - name: deploy to netlify @ whatis.wags.fm
