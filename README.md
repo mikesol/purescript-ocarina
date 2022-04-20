@@ -1,27 +1,10 @@
 # purescript-wags
 
-PureScript Web Audio Graphs as a Stream.
+A library for web-based interactive audio and audio gaming.
 
-## Main idea
+## Documentation
 
-This library is comprised of two parts.
-
-1. An API for creating streams of web audio graphs.
-1. An API for rendering the streams to web audio.
-
-# Examples
-
-There are some other examples to get you started:
-
-- **Atari speaks** ([code](./examples/atari-speaks) | [sound](https://purescript-wags-atari-speaks.surge.sh/))
-- **Kitchen sink** ([code](./examples/kitchen-sink) | [sound](https://purescript-wags-kitchen-sink.surge.sh/))
-- **The Well-Typed Klavier** ([code](./examples/wtk) | [sound](https://twitter.com/stronglynormal/status/1382221415802408960))
-
-The examples also show how to use `purescript-wags` in a [Halogen](https://github.com/purescript-halogen/purescript-halogen) app.
-
-## In the wild
-
-The blog [Soundly functional](https://mikesol.github.io/sf) is powered by wags, as is the [wagsi](https://github.com/mikesol/wagsi) project.
+Wags's documentation is online [here](https://mikesol.github.io/purescript-wags) and the source [in this repository](./examples/docs/).
 
 ## Bundling on your site
 
