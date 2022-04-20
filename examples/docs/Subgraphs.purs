@@ -6,13 +6,14 @@ import Control.Plus (class Plus)
 import Deku.Attribute (cb, (:=))
 import Deku.Core (Element)
 import Deku.DOM as D
-import Deku.Pursx ((~~))
+import Deku.Pursx (nut, (~~))
 import Effect (Effect)
 import FRP.Event (Event, class IsEvent)
 import FRP.Event.Class (bang)
 import Type.Proxy (Proxy(..))
+import WAGS.Example.Docs.Subgraph.SliderEx as SliderEx
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
-import WAGS.Example.Docs.Util (scrollToTop)
+import WAGS.Example.Docs.Util (ccassp, scrollToTop)
 
 px =  Proxy :: Proxy """<div>
   <h1>Subgraphs</h1>
@@ -26,32 +27,17 @@ px =  Proxy :: Proxy """<div>
     Subgraphs fix this problem. They provide a concise mechansim to dynamically insert audio graphs based on events.
   </p>
 
-  <h2>Hello subgraph</h2>
-
-  <p>To make a subgraph, you need two things:</p>
-
-  <ol>
-    <li>An index type. This type needs to implement the <code>Hashable</code> typeclass. You can use this to customize whatever the resulting subgraph will be.</li>
-    <li>The subgraph itself, which is a single audio node that must be prefaced by <code>mkSubgraph</code>.</li>
-  </ol>
-
-  <p>Here's a simple subgraph that is connected to a slider. As you slide the slider, new nodes are provisioned. Each one has a pseudo-random pitch.</p>
-
-  <pre><code>placeholder</code></pre>
-
-  <p>And here's the result:</p>
-
-  <blockquote>placeholder</blockquote>
-
-  <p>You can try it yourself by <a>following this trypurescript link.</a></p>
-
-  <p>Note how, in this example, we use a delay to turn off audio nodes. One nice thing about subgraphs is that, when they are removed, their nodes are turned off <i>and</i> their events are cancelled, which means that there will never be a case where a subgraph keeps playing or consuming events after it has been removed.</p>
+  ~suby~
 
   <h2>Go forth and be brilliant!</h2>
   <p>And thus ends the first version of the wags documentation. Alas, some features remain undocumented, like audio worklets, an imperative API, and an experimental rendering engine called <code>tumult</code> that allows for efficient "VDOM"-esque audio unit diffing in portions of a graph. At some point I hope to document all of these, but hopefully this should be enough to get anyone interested up and running. If you need to use any of those features before I document them, ping me on the <a href="https://purescript.org/chat">PureScript Discord</a>. Otherwise, happy music making with Wags!</p>
 </div>"""
 
 subgraphs :: forall payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent  -> Element Event payload
-subgraphs _ dpage _ _ = px ~~
-  { -- next: bang (D.OnClick := (cb (const $ dpage Intro *> scrollToTop)))
+subgraphs cca' dpage ssp ev = px ~~
+  {
+    suby: nut $ SliderEx.sgSliderEx ccb dpage ev
+    -- next: bang (D.OnClick := (cb (const $ dpage Intro *> scrollToTop)))
   }
+  where
+  ccb = ccassp cca' ssp

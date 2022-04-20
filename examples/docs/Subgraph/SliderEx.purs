@@ -47,23 +47,21 @@ import Web.HTML.HTMLInputElement (fromEventTarget, valueAsNumber)
 
 px =
   Proxy    :: Proxy         """<section>
- <h2>Example 2: Three sliders</h2>
+  <h2>Hello subgraph</h2>
 
-  <p>In this example, we'll use three sliders to control the playback rate, the start time, and the end time of a looping buffer.</p>
+  <p>To make a subgraph, you need two things:</p>
 
-  <p>There is a fair bit of DOM-related code in this example, so before showing the whole thing, let's isolate the Wags bit.</p>
+  <ol>
+    <li>An index type. This type needs to implement the <code>Hashable</code> typeclass. You can use this to customize whatever the resulting subgraph will be.</li>
+    <li>The subgraph itself, which is a single audio node that must be prefaced by <code>mkSubgraph</code>.</li>
+  </ol>
 
-  <pre><code>@wagtxt@</code></pre>
+  <p>Here's a simple subgraph that is connected to a slider. As you slide the slider, new nodes are provisioned. Each one has a pseudo-random pitch.</p>
 
-  <p>Note that our loopBuf consumes four events: in addition to the three sliders, there is a <code>bangOn</code> event that turns it on. For the events belonging to range sliders, we use <code>calcSlope</code> to normalize the range to sensible values for these parameters.</p>
-
-  <p>Because each slider event contains a number, we can compose it with a function from <code>WAGS.Properties</code>, like <code>playbackRate</code> or <code>loopStart</code>, to create an event that controls a Wags parameter. The <code>oneOf</code> directive indicates that the incoming event will be "one of" the events in the array. It's also possible to use the tie-fighter, aka <code>alt</code>, to separate each event, but I like the array syntax when possible as tie fighters do, after all, work for the Empire, and who likes the Empire?</p>
-
-  <p>And below you'll find the full example. It also shows useful patterns like downloading audio files and filtering events.</p>
-
-  <pre><code>@txt@</code></pre>
-
+  @txt@
   @ex1@
+
+  <p>Note how, in this example, we use a delay to turn off audio nodes. One nice thing about subgraphs is that, when they are removed, their nodes are turned off <i>and</i> their events are cancelled, which means that there will never be a case where a subgraph keeps playing or consuming events after it has been removed.</p>
 
 </section>
 """
@@ -234,27 +232,10 @@ random = behavior \e ->
   makeEvent \k -> subscribe e \f ->
     Random.random >>= k <<< f
 
-ex1
+sgSliderEx
   :: forall payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Element Event payload
-ex1 ccb _ ev = makePursx' (Proxy :: _ "@") px
-  { wagtxt: nut
-      ( text_
-          """run2_
-  $ loopBuf
-      { buffer: buffer
-      , playbackRate: 2.6
-      , loopStart: 0.6
-      , loopEnd: 1.1
-      }
-  $ oneOf
-      [ bangOn
-      , (calcSlope 0.0 0.2 100.0 5.0 >>> playbackRate) <$> sl0
-      , (calcSlope 0.0 0.0 100.0 1.2 >>> loopStart) <$> sl1
-      , (calcSlope 0.0 0.05 100.0 1.0 >>> loopEnd) <$> biSampleOn sl2
-          (add <$> (bang 0.0 <|> sl1))
-      ]"""
-      )
-  , txt: nut (text_ txt)
+sgSliderEx ccb _ ev = makePursx' (Proxy :: _ "@") px
+  { txt: nut (text_ txt)
   , ex1: nut
       ( bang (unit /\ Sg.Insert)
           @@ \_ -> mkExists $ SubgraphF \push event -> -- here
