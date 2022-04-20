@@ -10,7 +10,7 @@ import FRP.Event (Event)
 import FRP.Event.Class (bang)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (delay_, gain, gain_, highpass_, playBuf)
-import WAGS.Core (fan, fix, input)
+import WAGS.Core (fan, fix)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import WAGS.Example.Docs.Util (audioWrapper)
 import WAGS.Interpret (ctxAff, decodeAudioDataFromUri)
@@ -54,24 +54,24 @@ fade1 = bang
 scene buf = run2_
   [ fan (playBuf buf bangOn) \b -> fix
       \g0 -> gain_ 1.0
-        [ input b
+        [ b
         , dgh 0.15 0.7 1500.0
             [ fix
                 \g1 -> gain 1.0 fade1
                   [ dgh 0.4 0.5 2500.0
-                      [ input g0, input g1 ]
+                      [ g0, g1 ]
                   ]
             ]
         , dgh 0.29 0.85 2000.0
             [ fix
                 \g1 -> gain_ 1.0
                   [ dgh 0.6 0.6 3500.0
-                      [ input g0
+                      [ g0
                       , ( fix
                             \g2 -> gain 1.0 fade0
                               [ dgh 0.75 0.6 4000.0
-                                  [ input g1, input g2 ]
-                              , dgh 0.75 0.55 3000.0 [ input b ]
+                                  [ g1, g2 ]
+                              , dgh 0.75 0.55 3000.0 [ b ]
                               ]
                         )
                       ]
@@ -84,24 +84,24 @@ scene buf = run2_
           \buf -> run2_
             [ fan (playBuf buf bangOn) \b -> fix
                 \g0 -> gain_ 1.0
-                  [ input b
+                  [ b
                   , dgh 0.15 0.7 1500.0
                       [ fix
                           \g1 -> gain 1.0 fade1
                             [ dgh 0.4 0.5 2500.0
-                                [ input g0, input g1 ]
+                                [ g0, g1 ]
                             ]
                       ]
                   , dgh 0.29 0.85 2000.0
                       [ fix
                           \g1 -> gain_ 1.0
                             [ dgh 0.6 0.6 3500.0
-                                [ input g0
+                                [ g0
                                 , ( fix
                                       \g2 -> gain 1.0 fade0
                                         [ dgh 0.75 0.6 4000.0
-                                            [ input g1, input g2 ]
-                                        , dgh 0.75 0.55 3000.0 [ input b ]
+                                            [ g1, g2 ]
+                                        , dgh 0.75 0.55 3000.0 [ b ]
                                         ]
                                   )
                                 ]

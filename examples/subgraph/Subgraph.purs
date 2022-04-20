@@ -85,7 +85,7 @@ scene { loopy, conny } wh =
                                   )
                                   tr
                               )
-                              [ input toSubg ]
+                              [ toSubg ]
                           , gain 0.03 empty [ sinOsc 220.0 bangOn ]
                           ]
                       ]
@@ -100,7 +100,7 @@ scene { loopy, conny } wh =
                               )
                               tr
                           )
-                          [ input toSubg ]
+                          [ toSubg ]
                       , gain 0.03 empty
                           [ triangleOsc 2000.0
                               ( bangOn <|>
@@ -126,7 +126,7 @@ scene { loopy, conny } wh =
                               )
                               tr
                           )
-                          [ input toSubg ]
+                          [ toSubg ]
                       , gain 0.03 empty
                           [ sinOsc 820.0
                               ( bangOn <|>

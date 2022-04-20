@@ -25,6 +25,14 @@ bufferOffset
   -> nt
 bufferOffset = wrap <<< inj (Proxy :: Proxy "bufferOffset")
 
+delayTime
+  :: forall nt r ap
+   . Newtype nt (Variant (delayTime :: AudioParameter | r))
+  => ToAudioParameter ap
+  => ap
+  -> nt
+delayTime = wrap <<< inj (Proxy :: Proxy "delayTime") <<< toAudioParameter
+
 frequency
   :: forall nt r ap
    . Newtype nt (Variant (frequency :: AudioParameter | r))

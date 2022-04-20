@@ -2,13 +2,12 @@ module WAGS.Example.Docs.AudioUnits.IIRFilter where
 
 import Prelude
 
-import Control.Plus (class Plus)
 import Data.Tuple.Nested ((/\))
 import Data.Vec (empty, (+>))
 import Deku.Core (Element)
 import Deku.Pursx (nut, (~~))
 import Effect (Effect)
-import FRP.Event (Event, class IsEvent)
+import FRP.Event (Event)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (iirFilter, loopBuf)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)

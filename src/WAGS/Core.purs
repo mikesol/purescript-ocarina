@@ -108,18 +108,18 @@ fan
   :: forall outputChannels lock event payload
    . IsEvent event
   => ( Node outputChannels lock event payload
-       -> (Input lock -> Node outputChannels lock event payload)
+       -> (Node outputChannels lock event payload -> Node outputChannels lock event payload)
        -> Node outputChannels lock event payload
      )
 fan (Node elt) f = Node go
   where
   go parentOrMe di@(AudioInterpret { ids }) = keepLatest
-    ((sample_ ids (bang unit)) <#> \me' -> let me = useMeIfMe parentOrMe me' in let Node nn = f (Input me) in elt (Me me) di <|> nn parentOrMe di)
+    ((sample_ ids (bang unit)) <#> \me' -> let me = useMeIfMe parentOrMe me' in let Node nn = f (input (Input me)) in elt (Me me) di <|> nn parentOrMe di)
 
 fix
   :: forall outputChannels lock event payload
    . IsEvent event
-  => (Input lock -> Node outputChannels lock event payload)
+  => (Node outputChannels lock event payload -> Node outputChannels lock event payload)
   -> Node outputChannels lock event payload
 
 fix f = Node go
@@ -127,7 +127,7 @@ fix f = Node go
   go parentOrMe di@(AudioInterpret { ids, connectXToY }) = keepLatest
     ( (sample_ ids (bang unit)) <#> \me' -> do
         let me = useMeIfMe parentOrMe me'
-        let Node nn = f (Input me)
+        let Node nn = f (input (Input me))
         nn (Me me) di <|> case parentOrMe of
           Parent parent -> bang (connectXToY { from: me, to: parent })
           Me _ -> empty

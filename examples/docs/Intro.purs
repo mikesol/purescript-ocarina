@@ -6,13 +6,14 @@ import Control.Plus (class Plus)
 import Deku.Attribute (cb, (:=))
 import Deku.Core (Element)
 import Deku.DOM as D
-import Deku.Pursx ((~~))
+import Deku.Pursx (nut, (~~))
 import Effect (Effect)
 import FRP.Event (Event, class IsEvent)
 import FRP.Event.Class (bang)
 import Type.Proxy (Proxy(..))
+import WAGS.Example.Docs.Intro.IntroEx as Intro
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
-import WAGS.Example.Docs.Util (scrollToTop)
+import WAGS.Example.Docs.Util (ccassp, scrollToTop)
 
 px = Proxy :: Proxy """<div>
   <h1>Wags</h1>
@@ -33,7 +34,9 @@ px = Proxy :: Proxy """<div>
 
   <h2>How does it sound?</h2>
 
-  <p>Here's a small example written in wags that mixes together bells and pure tones to create a shimmering soundscape. It uses the position of the mouse or your finger on the touch screen to modulate the pitch.</p>
+  <p>Here's a small example in wags that, when you turn it on, emits a single sound and then uses feedback loops to create long tail. You can use the slider to change the properties of the tail in real time.</p>
+
+  ~ex~
 
   <p>By the end of this documentation, you'll know all of the concepts you need to create snippets like this. This is here to illustrated the following ideas:
   <ul>
@@ -49,7 +52,10 @@ px = Proxy :: Proxy """<div>
   <p>And now, without further ado, check out the <a ~next~ style="cursor:pointer;">hello world section</a>!</p>
 </div>"""
 
-intro :: forall payload.
-  CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent -> Element Event payload
-intro _ dpage _ _ = px ~~
-  { next: bang (D.OnClick := (cb (const $ dpage HelloWorld *> scrollToTop))) }
+intro :: forall payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent   -> Element Event payload
+intro cca' dpage ssp ev = px ~~
+  { next: bang (D.OnClick := (cb (const $ dpage HelloWorld *> scrollToTop)))
+  , ex: nut $ Intro.introEx ccb dpage ev
+  }
+  where
+  ccb = ccassp cca' ssp

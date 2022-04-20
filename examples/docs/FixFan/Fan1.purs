@@ -12,7 +12,7 @@ import Effect (Effect)
 import FRP.Event (Event, class IsEvent)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (bandpass_, loopBuf, gain_)
-import WAGS.Core (fan, input)
+import WAGS.Core (fan)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import WAGS.Example.Docs.Util (audioWrapper)
 import WAGS.Interpret (ctxAff, decodeAudioDataFromUri)
@@ -27,7 +27,7 @@ px =
         $ 0 .. 40 &lt;#&gt; lcmap toNumber
             \i -> bandpass_
               { frequency: 200.0 + i * 150.0, q: 30.0 }
-              [ input b ]
+              [ b ]
   ]</code></pre>
 
   @ai0@
@@ -44,7 +44,7 @@ fan1 ccb _ ev = makePursx' (Proxy :: _ "@") px
                   $ 0 .. 40 <#> lcmap toNumber
                       \i -> bandpass_
                         { frequency: 200.0 + i * 150.0, q: 30.0 }
-                        [ input b ]
+                        [ b ]
             ]
       )
   }

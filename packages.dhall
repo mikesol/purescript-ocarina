@@ -130,10 +130,11 @@ let additions =
   , "unordered-collections"
   , "unsafe-coerce"
   , "variant"
+  , "canvas"
   , "web-dom"
   , "web-events"
   ], repo = "https://github.com/mikesol/purescript-deku.git"
-        , version = "v0.2.5"
+        , version = "v0.2.6"
       },deku-toplevel = {
         dependencies =  [ "arrays"
   , "behaviors"

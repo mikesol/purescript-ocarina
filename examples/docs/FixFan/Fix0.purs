@@ -8,7 +8,7 @@ import Effect (Effect)
 import FRP.Event (Event)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (delay_, gain_, playBuf)
-import WAGS.Core (fix, input)
+import WAGS.Core (fix)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import WAGS.Example.Docs.Util (audioWrapper)
 import WAGS.Interpret (ctxAff, decodeAudioDataFromUri)
@@ -21,7 +21,7 @@ px =
   [ fix
       \b -> gain_ 1.0
         [ playBuf buf bangOn
-        , delay_ 0.1 [ gain_ 0.6 [ input b ] ]
+        , delay_ 0.1 [ gain_ 0.6 [ b ] ]
         ]
   ]</code></pre>
 
@@ -37,7 +37,7 @@ fix0 ccb _ ev = makePursx' (Proxy :: _ "@") px
             [ fix
                 \b -> gain_ 1.0
                   [ playBuf buf bangOn
-                  , delay_ 0.1 [ gain_ 0.6 [ input b ] ]
+                  , delay_ 0.1 [ gain_ 0.6 [ b ] ]
                   ]
             ]
       )

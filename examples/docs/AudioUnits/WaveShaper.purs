@@ -2,7 +2,6 @@ module WAGS.Example.Docs.AudioUnits.WaveShaper where
 
 import Prelude
 
-import Control.Plus (class Plus)
 import Data.Array ((..))
 import Data.Int (toNumber)
 import Data.Ord (abs)
@@ -10,7 +9,7 @@ import Deku.Control (text_)
 import Deku.Core (Element)
 import Deku.Pursx (nut, (~~))
 import Effect (Effect)
-import FRP.Event (Event, class IsEvent)
+import FRP.Event (Event)
 import Math (pi)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (loopBuf, waveShaper)

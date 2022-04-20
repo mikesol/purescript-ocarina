@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] - 2022-04-20
+
+- Migrates wags to an event-based architecture
+- Significantly reduces type-level machinery.
+- Adds documentation. As this is a complete rewrite of wags, please see the documentation (https://mikesol.github.io/purescript-wags) for information on how it all works.
+
 ## [0.8.0] - 2022-03-29
 
 - Adds dynamic subgraphs.

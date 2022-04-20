@@ -8,7 +8,7 @@ import Effect (Effect)
 import FRP.Event (Event)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (bandpass_, loopBuf, gain_)
-import WAGS.Core (fan, input)
+import WAGS.Core (fan)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import WAGS.Example.Docs.Util (audioWrapper)
 import WAGS.Interpret (ctxAff, decodeAudioDataFromUri)
@@ -20,11 +20,11 @@ px =
   <pre><code>run2_
   [ fan (loopBuf buf bangOn)
       \b -> gain_ 0.8
-        [ bandpass_ { frequency: 400.0, q: 1.0 } [ input b ]
-        , bandpass_ { frequency: 880.0, q: 5.0 } [ input b ]
-        , bandpass_ { frequency: 1200.0, q: 10.0 } [ input b ]
-        , bandpass_ { frequency: 2000.0, q: 20.0 } [ input b ]
-        , bandpass_ { frequency: 3000.0, q: 30.0 } [ input b ]
+        [ bandpass_ { frequency: 400.0, q: 1.0 } [ b ]
+        , bandpass_ { frequency: 880.0, q: 5.0 } [ b ]
+        , bandpass_ { frequency: 1200.0, q: 10.0 } [ b ]
+        , bandpass_ { frequency: 2000.0, q: 20.0 } [ b ]
+        , bandpass_ { frequency: 3000.0, q: 30.0 } [ b ]
         ]
   ]</code></pre>
 
@@ -39,11 +39,11 @@ fan0 ccb _ ev = makePursx' (Proxy :: _ "@") px
           \buf -> run2_
             [ fan (loopBuf buf bangOn)
                 \b -> gain_ 0.8
-                  [ bandpass_ { frequency: 400.0, q: 1.0 } [ input b ]
-                  , bandpass_ { frequency: 880.0, q: 5.0 } [ input b ]
-                  , bandpass_ { frequency: 1200.0, q: 10.0 } [ input b ]
-                  , bandpass_ { frequency: 2000.0, q: 20.0 } [ input b ]
-                  , bandpass_ { frequency: 3000.0, q: 30.0 } [ input b ]
+                  [ bandpass_ { frequency: 400.0, q: 1.0 } [ b ]
+                  , bandpass_ { frequency: 880.0, q: 5.0 } [ b ]
+                  , bandpass_ { frequency: 1200.0, q: 10.0 } [ b ]
+                  , bandpass_ { frequency: 2000.0, q: 20.0 } [ b ]
+                  , bandpass_ { frequency: 3000.0, q: 30.0 } [ b ]
                   ]
             ]
 
@@ -53,11 +53,11 @@ fan0 ccb _ ev = makePursx' (Proxy :: _ "@") px
 {-
 fan (loopBuf buf bangOn)
   \b -> gain_ 0.8
-    ( bandpass_ { frequency: 400.0, q: 1.0 } [input b]
-    ~ bandpass_ { frequency: 880.0, q: 5.0 } [input b]
-    ~ bandpass_ { frequency: 1200.0, q: 10.0 } [input b]
-    ~ bandpass_ { frequency: 2000.0, q: 20.0 } [input b]
-    ! bandpass_ { frequency: 3000.0, q: 30.0 } [input b]
+    ( bandpass_ { frequency: 400.0, q: 1.0 } [b]
+    ~ bandpass_ { frequency: 880.0, q: 5.0 } [b]
+    ~ bandpass_ { frequency: 1200.0, q: 10.0 } [b]
+    ~ bandpass_ { frequency: 2000.0, q: 20.0 } [b]
+    ! bandpass_ { frequency: 3000.0, q: 30.0 } [b]
     )
 
 

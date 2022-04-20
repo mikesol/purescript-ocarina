@@ -2,11 +2,10 @@ module WAGS.Example.Docs.AudioUnits.LoopBuf where
 
 import Prelude
 
-import Control.Plus (class Plus)
 import Deku.Core (Element)
-import Deku.Pursx (makePursx', nut, (~~))
+import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
-import FRP.Event (Event, class IsEvent)
+import FRP.Event (Event)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (loopBuf)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)

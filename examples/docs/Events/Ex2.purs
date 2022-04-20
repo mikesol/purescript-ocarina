@@ -157,8 +157,7 @@ main = uii.init unit 🚀 \push event -> do
             , o: _
             } <$> time
         f0 = bangOn <|> frequency <<< cp <$> pitch
-      [ fan (triangleOsc 0.0 f0) \tosc -> do
-          let ipt = input tosc
+      [ fan (triangleOsc 0.0 f0) \ipt -> do
           gain_ 2.0
             [ gain 0.0 (P.gain <$> e0)
                 [ bandpass_
@@ -293,8 +292,7 @@ ex2 ccb _ ev = makePursx' (Proxy :: _ "@") px
                         , o: _
                         } <$> time
                     f0 = bangOn <|> frequency <<< cp <$> pitch
-                  [ fan (triangleOsc 0.0 f0) \tosc -> do
-                      let ipt = input tosc
+                  [ fan (triangleOsc 0.0 f0) \ipt -> do
                       gain_ 2.0
                         [ gain 0.0 (P.gain <$> e0)
                             [ bandpass_

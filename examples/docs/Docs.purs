@@ -125,7 +125,7 @@ scene push event' =
         --       /\ false
           ]
     , subgraph
-        ( event
+        ( (event # filter _.pageChange)
             # map
                 ( \{ prevPage, curPage } ->
                     ( case prevPage of

@@ -2,14 +2,13 @@ module WAGS.Example.Docs.AudioUnits.Allpass where
 
 import Prelude
 
-import Control.Plus (class Plus)
 import Deku.Core (Element)
-import Deku.Pursx (makePursx', nut, (~~))
+import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
-import FRP.Event (Event, class IsEvent)
+import FRP.Event (Event)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (gain_, allpass_, loopBuf)
-import WAGS.Core (fan, input)
+import WAGS.Core (fan)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import WAGS.Example.Docs.Util (audioWrapper)
 import WAGS.Interpret (ctxAff, decodeAudioDataFromUri)
@@ -26,12 +25,12 @@ px =
   <pre><code>\buf -> run2_
   [ fan (loopBuf buf bangOn)
       \b -> gain_ 0.2
-        [ input b
+        [ b
         , allpass_ 700.0
-            [ allpass_ { frequency: 990.0, q: 20.0 } [ input b ]
+            [ allpass_ { frequency: 990.0, q: 20.0 } [ b ]
             , allpass_ 1110.0
-                [ input b
-                , allpass_ { frequency: 2010.0, q: 30.0 } [ input b ]
+                [ b
+                , allpass_ { frequency: 2010.0, q: 30.0 } [ b ]
                 ]
             ]
         ]
@@ -50,12 +49,12 @@ allpass ccb _ ev = makePursx' (Proxy :: _ "@") px
           \buf -> run2_
             [ fan (loopBuf buf bangOn)
                 \b -> gain_ 0.2
-                  [ input b
+                  [ b
                   , allpass_ 700.0
-                      [ allpass_ { frequency: 990.0, q: 20.0 } [ input b ]
+                      [ allpass_ { frequency: 990.0, q: 20.0 } [ b ]
                       , allpass_ 1110.0
-                          [ input b
-                          , allpass_ { frequency: 2010.0, q: 30.0 } [ input b ]
+                          [ b
+                          , allpass_ { frequency: 2010.0, q: 30.0 } [ b ]
                           ]
                       ]
                   ]

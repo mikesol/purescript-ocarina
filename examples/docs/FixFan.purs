@@ -44,14 +44,12 @@ px = Proxy :: Proxy
 
   <ul>
     <li>The node to fan out.</li>
-    <li>A function that accepts a reference to this node and returns a new node that contains the input <i>at least</i> once.</li>
+    <li>A function that accepts a reference to this node and returns a new node that may or may not contain the input.</li>
   </ul>
 
   <p>Let's see an example below that fans one <code>playBuf</code> to five bandpass filters.</p>
 
   @code2@
-
-  <blockquote>The second argument to <code>fan</code> accepts a reference to the first node, <i>not</i> the node itself. To use this reference, you need to use the <code>input</code> function.</blockquote>
 
   <p>Just for kicks, let's jack it up to forty bandpass filters.</p>
 
@@ -59,11 +57,11 @@ px = Proxy :: Proxy
 
   <h2>Fix</h2>
 
-  <p><span style="font-weight:800;">Fix</span> is a fixed point operator. It accepts as an argument of type <code>Input p c</code> representing itself and returns... itself 🤯. Like with <code>fan</code>, you'll need to use <code>input</code> to get an audio node out of the input. You use <code>fix</code> to create feedback!</p>
+  <p><span style="font-weight:800;">Fix</span> is a fixed point operator. It accepts itself as an argument and returns... itself 🤯. You can use <code>fix</code> to create feedback loops!</p>
 
   @code4@
 
-  <blockquote>If you don't have some sort of delay line in your processing chain, either the Web-Audio-provided delay line or a custom delay node, Web Audio will raise a runtime error. Wags doesn't check for this, so make sure you test your audio to guarantee that it's feedback-explosion-free!</blockquote>
+  <blockquote>If you don't have some sort of delay line in your processing chain, either via the Web-Audio-provided delay line or a custom delay node, Web Audio will raise a runtime error. Wags doesn't check for this, so make sure you test your audio to guarantee that it's feedback-explosion-free!</blockquote>
 
   <p>Nothing stops you from nesting <code>fix</code>-s to create a mega-feedback loop!</p>
 

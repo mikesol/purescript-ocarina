@@ -42,7 +42,7 @@ data Page
   | StressTest StressTest.Init
   | AtariSpeaks AtariSpeaks.Init
   | MultiBuf MultiBuf.Init
-  | Tumult Tummult.Init
+  -- | Tumult Tummult.Init
   | Subg Subg.Init
   | ErrorPage String
   | LoadingPage
@@ -126,9 +126,9 @@ scene push event =
           , (MultiBuf <$> MultiBuf.initializeMultiBuf)
               /\ "Multi-buf"
               /\ true
-          , (Tumult <$> Tumult.initializeTumult)
-              /\ "Tumult"
-              /\ true
+          -- , (Tumult <$> Tumult.initializeTumult)
+          --     /\ "Tumult"
+          --     /\ true
           , (Subg <$> Subg.initializeSubgraph)
               /\ "Subgraph"
               /\ true
@@ -162,7 +162,7 @@ scene push event =
   page cancelCb (StressTest hwi) = StressTest.stressTest hwi cancelCb
   page cancelCb (AtariSpeaks ati) = AtariSpeaks.atariSpeaks ati cancelCb
   page cancelCb (MultiBuf mbi) = MultiBuf.multiBuf mbi cancelCb
-  page cancelCb (Tumult ti) = Tumult.tumultExample ti cancelCb
+  -- page cancelCb (Tumult ti) = Tumult.tumultExample ti cancelCb
   page cancelCb (Subg ti) = Subg.subgraphExample ti cancelCb
   page _ (ErrorPage s) = mkExists $ SubgraphF \_ _ -> D.p_
     [ text_ ("Well, this is embarassing. The following error occurred: " <> s) ]

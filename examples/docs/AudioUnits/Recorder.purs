@@ -3,15 +3,12 @@ module WAGS.Example.Docs.AudioUnits.Recorder where
 import Prelude
 
 import Control.Alt ((<|>))
-import Control.Plus (class Plus)
 import Data.Either (Either(..))
 import Data.Exists (mkExists)
 import Data.Filterable (partitionMap)
 import Data.Foldable (for_, traverse_)
 import Data.Maybe (Maybe(..), maybe)
-import Data.Tuple (Tuple(..))
 import Data.Tuple.Nested ((/\))
-import Data.Typelevel.Num (D2)
 import Deku.Attribute (cb, (:=))
 import Deku.Control (text)
 import Deku.Core (Element, SubgraphF(..))
@@ -23,14 +20,14 @@ import Effect (Effect)
 import Effect.AVar as AVar
 import Effect.Aff (launchAff, launchAff_, try)
 import Effect.Class (liftEffect)
-import FRP.Event (Event, class IsEvent, Event, subscribe)
+import FRP.Event (Event, subscribe)
 import FRP.Event.Class (bang, biSampleOn)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (microphone, recorder, speaker2)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..))
-import WAGS.Example.Docs.Util (WrapperStates(..), clickCb, mkWrapperEvent, raceSelf)
+import WAGS.Example.Docs.Util (WrapperStates(..), mkWrapperEvent, raceSelf)
 import WAGS.Interpret (close, context, contextState, effectfulAudioInterpret, getMicrophoneAndCamera, makeFFIAudioSnapshot, mediaRecorderToUrl, stopMediaRecorder)
-import WAGS.WebAPI (BrowserMicrophone, MediaRecorder, MediaRecorderCb(..))
+import WAGS.WebAPI (MediaRecorder, MediaRecorderCb(..))
 
 px =
   Proxy    :: Proxy         """<section>

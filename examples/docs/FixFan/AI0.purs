@@ -23,10 +23,10 @@ px =
   <pre><code>\{ tink0, tink1, tink2, tink3 } -> run2_
   [ gain_ 1.0 do
       let ooo n = bang $ onOff $ dt (add n) apOn
-      [ playBuf tink0 (ooo 0.2)
-      , playBuf tink1 (ooo 0.4)
+      [ playBuf tink0 (ooo 0.1)
+      , playBuf tink1 (ooo 0.2)
       , playBuf tink2 (ooo 0.9)
-      , playBuf tink3 (ooo 1.2)
+      , playBuf tink3 (ooo 1.8)
       ]
   ]</code></pre>
 
@@ -47,10 +47,10 @@ ai0 ccb _ ev = makePursx' (Proxy :: _ "@") px
           \{ tink0, tink1, tink2, tink3 } -> run2_
             [ gain_ 1.0 do
                 let ooo n = bang $ onOff $ dt (add n) apOn
-                [ playBuf tink0 (ooo 0.2)
-                , playBuf tink1 (ooo 0.4)
+                [ playBuf tink0 (ooo 0.1)
+                , playBuf tink1 (ooo 0.2)
                 , playBuf tink2 (ooo 0.9)
-                , playBuf tink3 (ooo 1.2)
+                , playBuf tink3 (ooo 1.8)
                 ]
             ]
       )

@@ -2,15 +2,14 @@ module WAGS.Example.Docs.AudioUnits.PeriodicOsc where
 
 import Prelude
 
-import Control.Plus (class Plus)
 import Data.Tuple.Nested ((/\))
 import Data.Vec (empty, (+>))
 import Deku.Core (Element)
 import Deku.Pursx (nut, (~~))
 import Effect (Effect)
-import FRP.Event (Event, class IsEvent)
+import FRP.Event (Event)
 import Type.Proxy (Proxy(..))
-import WAGS.Control (gain_, periodicOsc, periodicOsc_)
+import WAGS.Control (gain_, periodicOsc)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import WAGS.Example.Docs.Util (audioWrapper)
 import WAGS.Parameter (bangOn)

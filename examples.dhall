@@ -8,6 +8,8 @@ in      conf
               , "arraybuffer"
               , "avar"
               , "quickcheck"
+              , "canvas"
+              , "lcg"
               , "deku"
               , "deku-toplevel"
               , "transformers"

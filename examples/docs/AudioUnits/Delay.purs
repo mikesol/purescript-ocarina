@@ -2,14 +2,13 @@ module WAGS.Example.Docs.AudioUnits.Delay where
 
 import Prelude
 
-import Control.Plus (class Plus)
 import Deku.Core (Element)
-import Deku.Pursx (makePursx', nut, (~~))
+import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
-import FRP.Event (Event, class IsEvent)
+import FRP.Event (Event)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (delay_, gain_, playBuf)
-import WAGS.Core (input, fan)
+import WAGS.Core (fan)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import WAGS.Example.Docs.Util (audioWrapper)
 import WAGS.Interpret (ctxAff, decodeAudioDataFromUri)
@@ -26,10 +25,10 @@ px =
   <pre><code>\buf -> run2_
   [ fan (playBuf buf bangOn)
       \b -> gain_ 0.2
-        [ delay_ 0.03 [ input b ]
-        , delay_ 0.1 [ input b ]
-        , delay_ 0.3 [ input b ]
-        , delay_ 0.7 [ input b ]
+        [ delay_ 0.03 [ b ]
+        , delay_ 0.1 [ b ]
+        , delay_ 0.3 [ b ]
+        , delay_ 0.7 [ b ]
         ]
   ]</code></pre>
 
@@ -44,10 +43,10 @@ delay ccb _ ev = makePursx' (Proxy :: _ "@") px
           \buf -> run2_
             [ fan (playBuf buf bangOn)
                 \b -> gain_ 0.2
-                  [ delay_ 0.03 [ input b ]
-                  , delay_ 0.1 [ input b ]
-                  , delay_ 0.3 [ input b ]
-                  , delay_ 0.7 [ input b ]
+                  [ delay_ 0.03 [ b ]
+                  , delay_ 0.1 [ b ]
+                  , delay_ 0.3 [ b ]
+                  , delay_ 0.7 [ b ]
                   ]
             ]
 

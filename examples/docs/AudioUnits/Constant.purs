@@ -3,14 +3,13 @@ module WAGS.Example.Docs.AudioUnits.Constant where
 import Prelude
 
 import Control.Alt ((<|>))
-import Control.Plus (class Plus)
 import Data.Array ((..))
 import Data.FunctorWithIndex (mapWithIndex)
 import Deku.Control (text_)
 import Deku.Core (Element)
 import Deku.Pursx (nut, (~~))
 import Effect (Effect)
-import FRP.Event (Event, class IsEvent)
+import FRP.Event (Event)
 import FRP.Event.Class (bang)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (gain_, constant)
