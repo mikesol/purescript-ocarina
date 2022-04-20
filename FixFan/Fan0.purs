@@ -1,0 +1,64 @@
+module WAGS.Example.Docs.FixFan.Fan0 where
+
+import Prelude
+
+import Deku.Core (Element)
+import Deku.Pursx (makePursx', nut)
+import Effect (Effect)
+import FRP.Event (Event)
+import Type.Proxy (Proxy(..))
+import WAGS.Control (bandpass_, loopBuf, gain_)
+import WAGS.Core (fan)
+import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
+import WAGS.Example.Docs.Util (audioWrapper)
+import WAGS.Interpret (ctxAff, decodeAudioDataFromUri)
+import WAGS.Parameter (bangOn)
+import WAGS.Run (run2_)
+
+px =
+  Proxy    :: Proxy         """<div>
+  <pre><code>run2_
+  [ fan (loopBuf buf bangOn)
+      \b -> gain_ 0.8
+        [ bandpass_ { frequency: 400.0, q: 1.0 } [ b ]
+        , bandpass_ { frequency: 880.0, q: 5.0 } [ b ]
+        , bandpass_ { frequency: 1200.0, q: 10.0 } [ b ]
+        , bandpass_ { frequency: 2000.0, q: 20.0 } [ b ]
+        , bandpass_ { frequency: 3000.0, q: 30.0 } [ b ]
+        ]
+  ]</code></pre>
+
+  @ai0@
+  </div>
+"""
+
+fan0 :: forall payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Element Event payload
+fan0 ccb _ ev = makePursx' (Proxy :: _ "@") px
+  { ai0: nut
+      ( audioWrapper ev ccb (ctxAff \ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
+          \buf -> run2_
+            [ fan (loopBuf buf bangOn)
+                \b -> gain_ 0.8
+                  [ bandpass_ { frequency: 400.0, q: 1.0 } [ b ]
+                  , bandpass_ { frequency: 880.0, q: 5.0 } [ b ]
+                  , bandpass_ { frequency: 1200.0, q: 10.0 } [ b ]
+                  , bandpass_ { frequency: 2000.0, q: 20.0 } [ b ]
+                  , bandpass_ { frequency: 3000.0, q: 30.0 } [ b ]
+                  ]
+            ]
+
+      )
+  }
+
+{-
+fan (loopBuf buf bangOn)
+  \b -> gain_ 0.8
+    ( bandpass_ { frequency: 400.0, q: 1.0 } [b]
+    ~ bandpass_ { frequency: 880.0, q: 5.0 } [b]
+    ~ bandpass_ { frequency: 1200.0, q: 10.0 } [b]
+    ~ bandpass_ { frequency: 2000.0, q: 20.0 } [b]
+    ! bandpass_ { frequency: 3000.0, q: 30.0 } [b]
+    )
+
+
+  -}
