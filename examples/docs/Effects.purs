@@ -30,7 +30,7 @@ import WAGS.Control (gain, periodicOsc)
 import WAGS.Example.Docs.Effects.FoldEx as Fold
 import WAGS.Example.Docs.FixEx as Fix
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent(..), SingleSubgraphPusher)
-import WAGS.Example.Docs.Util (ccassp, scrollToTop)
+import WAGS.Example.Docs.Util (ccassp, mkNext, scrollToTop)
 import WAGS.Interpret (close, context)
 import WAGS.Math (calcSlope)
 import WAGS.Parameter (AudioNumeric(..), _linear, bangOn)
@@ -55,7 +55,7 @@ px = Proxy :: Proxy """<div>
 
 effects :: forall payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent   -> Element Event payload
 effects cca' dpage ssp ev = px ~~
-  { next: bang (D.OnClick := (cb (const $ dpage Subgraph *> scrollToTop)))
+  { next: mkNext ev (dpage Subgraph *> scrollToTop)
   , fold: nut $ Fold.foldEx ccb dpage ssp ev
   , fix: nut $ Fix.fixEx ccb dpage ssp ev
   }

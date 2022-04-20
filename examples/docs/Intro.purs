@@ -13,7 +13,7 @@ import FRP.Event.Class (bang)
 import Type.Proxy (Proxy(..))
 import WAGS.Example.Docs.Intro.IntroEx as Intro
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
-import WAGS.Example.Docs.Util (ccassp, scrollToTop)
+import WAGS.Example.Docs.Util (ccassp, mkNext, scrollToTop)
 
 px = Proxy :: Proxy """<div>
   <h1>Wags</h1>
@@ -22,39 +22,30 @@ px = Proxy :: Proxy """<div>
 
   <p>Hi! You've found <a href="https://github.com/mikesol/purescript-wags">Wags</a>.</p>
 
-  <p>Wags is short for "web audio graphs as a stream." The idea is straightforward: events like mouse clicks or MIDI notes or tweens are streamed to an audio rendering engine and, in response to these events, sound happens.</p>
+  <p>Wags is a web-audio framework designed for interactive media and games. Events like mouse clicks, MIDI notes and tweening frames are streamed to an audio rendering engine and, in response to these events, sound happens.</p>
 
   <h2>Why?</h2>
 
-  <p>The <a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API">Web Audio API</a> is my favorite browser API. It is clear, concise, straightforward and ergonomic. So why build a framework on top of it?</p>
+  <p>The <a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API">Web Audio API</a> is an amazing piece of technology. It is clear, concise, straightforward and ergonomic. So why build a framework on top of it?</p>
 
-  <p>As audio projects become more and more ambitious, like <a href="">video games</a>, <a href="">interactive artwork</a>, <a href="">instruments</a>, <a href="">long-form pieces</a> and <a href="">live coding</a>, a need emerges for powerful abstractions to handle events and scheduling.</p>
-
-  <p>Wags's goal is to be the scheduling layer that Web Audio lacks. In doing so, it aims to be concise, expressive, and as fast as manually-optimized hand-written JavaScript. In the best of cases, it will lead you to ask and answer questions about the flow of time that will result in creative work you wouldn't have otherwise made.</p>
+  <p>As audio projects become more and more ambitious, a need emerges for powerful abstractions to handle browser events and scheduling. Wags aims to tackle this problem through a small set of <a href="https://en.wikipedia.org/wiki/Functional_reactive_programming">FRP</a>-based abstractions. In doing so, it aims to be concise, expressive, and as fast as manually-optimized hand-written JavaScript.</p>
 
   <h2>How does it sound?</h2>
 
-  <p>Here's a small example in wags that, when you turn it on, emits a single sound and then uses feedback loops to create long tail. You can use the slider to change the properties of the tail in real time.</p>
+  <p>Here's a small example in Wags that, when you turn it on, emits a single sound and then uses feedback loops to create long tail. You can use the slider to change the properties of the tail in real time.</p>
 
   ~ex~
 
-  <p>By the end of this documentation, you'll know all of the concepts you need to create snippets like this. This is here to illustrated the following ideas:
-  <ul>
-    <li>Wags sticks to vanilla PureScript primitives and patterns.</li>
-    <li>Wags is performant, with no audible lag on mobile devices.</li>
-    <li>Wags is concise, which allows you to move at the speed of your ideas.</li>
-  </ul></p>
+  <p>By the end of this documentation, you'll know all of the concepts you need to create interactive audio like the example above.</p>
 
-  <p>This is the Wags documentation. I hope it gets you started off on the right foot. If you have any questions, feel free ping me on the PureScript Discord.</p>
+  <p>If you'd like to use this documentation as a springboard for your own work, it can be found <a href="https://github.com/mikesol/purescript-wags/tree/main/examples/docs">here</a>.</p>
 
-  <p>This documentation can be found <a href="https://github.com/mikesol/purescript-wags/tree/main/examples/docs">here</a>.</p>
-
-  <p>And now, without further ado, check out the <a ~next~ style="cursor:pointer;">hello world section</a>!</p>
+  <p>And now, without further ado, let's write a small <a ~next~ style="cursor:pointer;">hello world à la wags</a>!</p>
 </div>"""
 
 intro :: forall payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent   -> Element Event payload
 intro cca' dpage ssp ev = px ~~
-  { next: bang (D.OnClick := (cb (const $ dpage HelloWorld *> scrollToTop)))
+  { next: mkNext ev (dpage HelloWorld *> scrollToTop)
   , ex: nut $ Intro.introEx ccb dpage ev
   }
   where
