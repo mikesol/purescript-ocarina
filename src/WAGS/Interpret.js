@@ -845,9 +845,9 @@ exports.insertSubgraph_ = function (a) {
 			var j = a.pos;
 			var index = a.index;
 			var pj = `${ptr}-${j}`;
-			if (env !== null && state.unsu[pj] === undefined) {
+			if (state.unsu[pj] === undefined) {
 				state.scopes[pj] = [];
-				var sg = state.units[ptr].sceneM(index)(pj)();
+				var sg = state.units[ptr].sceneM(index)(pj);
 				state.unsu[pj] = sg.actualized((instr) => () => instr(state)())();
 			}
 		};

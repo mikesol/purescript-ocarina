@@ -35,7 +35,7 @@ px =  Proxy :: Proxy """<div>
     <li>The subgraph itself, which is a single audio node that must be prefaced by <code>mkSubgraph</code>.</li>
   </ol>
 
-  <p>Here's a simple subgraph that is connected to a slider. As you slide the slider, new nodes are provisioned. Each one has a pseudo-random pitch and uses a randomly chosen oscillator.</p>
+  <p>Here's a simple subgraph that is connected to a slider. As you slide the slider, new nodes are provisioned. Each one has a pseudo-random pitch.</p>
 
   <pre><code>placeholder</code></pre>
 
@@ -46,7 +46,6 @@ px =  Proxy :: Proxy """<div>
   <p>You can try it yourself by <a>following this trypurescript link.</a></p>
 
   <p>Note how, in this example, we use a delay to turn off audio nodes. One nice thing about subgraphs is that, when they are removed, their nodes are turned off <i>and</i> their events are cancelled, which means that there will never be a case where a subgraph keeps playing or consuming events after it has been removed.</p>
-
 
   <h2>Go forth and be brilliant!</h2>
   <p>And thus ends the first version of the wags documentation. Alas, some features remain undocumented, like audio worklets, an imperative API, and an experimental rendering engine called <code>tumult</code> that allows for efficient "VDOM"-esque audio unit diffing in portions of a graph. At some point I hope to document all of these, but hopefully this should be enough to get anyone interested up and running. If you need to use any of those features before I document them, ping me on the <a href="https://purescript.org/chat">PureScript Discord</a>. Otherwise, happy music making with Wags!</p>
