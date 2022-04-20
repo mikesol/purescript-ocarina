@@ -8,7 +8,7 @@ import Deku.Pursx (makePursx', nut, (~~))
 import Effect (Effect)
 import FRP.Event (Event, class IsEvent)
 import Type.Proxy (Proxy(..))
-import WAGS.Control (delay_, gain_, playBuf, (~))
+import WAGS.Control (delay_, gain_, playBuf)
 import WAGS.Core (input, fan)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import WAGS.Example.Docs.Util (audioWrapper)
@@ -24,13 +24,14 @@ px =
   <p>To create an even <i>better</i> echo effect, you can used fixed points, which is covered in the <a>Fix and fan</a> section of this documentation.</p>
 
   <pre><code>\buf -> run2_
-  $ fan (playBuf buf bangOn)
+  [ fan (playBuf buf bangOn)
       \b -> gain_ 0.2
-        ( delay_ 0.03 (input b)
-            ~ delay_ 0.1 (input b)
-            ~ delay_ 0.3 (input b)
-            ~ delay_ 0.7 (input b)
-        )</code></pre>
+        [ delay_ 0.03 [ input b ]
+        , delay_ 0.1 [ input b ]
+        , delay_ 0.3 [ input b ]
+        , delay_ 0.7 [ input b ]
+        ]
+  ]</code></pre>
 
   @delay@
   </section>
@@ -41,13 +42,14 @@ delay ccb _ ev = makePursx' (Proxy :: _ "@") px
   { delay: nut
       ( audioWrapper ev ccb (ctxAff \ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/339/339822_5121236-lq.mp3")
           \buf -> run2_
-            $ fan (playBuf buf bangOn)
+            [ fan (playBuf buf bangOn)
                 \b -> gain_ 0.2
-                  ( delay_ 0.03 (input b)
-                      ~ delay_ 0.1 (input b)
-                      ~ delay_ 0.3 (input b)
-                      ~ delay_ 0.7 (input b)
-                  )
+                  [ delay_ 0.03 [ input b ]
+                  , delay_ 0.1 [ input b ]
+                  , delay_ 0.3 [ input b ]
+                  , delay_ 0.7 [ input b ]
+                  ]
+            ]
 
       )
   }

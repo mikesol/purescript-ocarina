@@ -21,8 +21,7 @@ px =
 
 
   <pre><code>\buf -> run2_
-  $ gain_ 0.2 $ squareOsc 448.0 bangOn
-</code></pre>
+  [ gain_ 0.2 [ squareOsc 448.0 bangOn ] ]</code></pre>
 
   ~periodic~
   </section>
@@ -38,6 +37,6 @@ square ccb _ ev = px ~~
   { periodic: nut
       ( audioWrapper ev ccb (pure unit)
           \_ -> run2_
-            $ gain_ 0.2 $ squareOsc 448.0 bangOn
+            [gain_ 0.2 [squareOsc 448.0 bangOn]]
       )
   }

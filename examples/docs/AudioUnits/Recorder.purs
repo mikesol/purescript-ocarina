@@ -7,10 +7,12 @@ import Control.Plus (class Plus)
 import Data.Either (Either(..))
 import Data.Exists (mkExists)
 import Data.Filterable (partitionMap)
-import Data.Maybe (maybe)
+import Data.Foldable (for_, traverse_)
+import Data.Maybe (Maybe(..), maybe)
+import Data.Tuple (Tuple(..))
 import Data.Tuple.Nested ((/\))
 import Data.Typelevel.Num (D2)
-import Deku.Attribute ((:=))
+import Deku.Attribute (cb, (:=))
 import Deku.Control (text)
 import Deku.Core (Element, SubgraphF(..))
 import Deku.DOM as D
@@ -18,15 +20,17 @@ import Deku.Pursx (nut, (~~))
 import Deku.Subgraph ((@@))
 import Deku.Subgraph as Sg
 import Effect (Effect)
+import Effect.AVar as AVar
+import Effect.Aff (launchAff, launchAff_, try)
+import Effect.Class (liftEffect)
 import FRP.Event (Event, class IsEvent, Event, subscribe)
-import FRP.Event.Class (bang)
+import FRP.Event.Class (bang, biSampleOn)
 import Type.Proxy (Proxy(..))
-import WAGS.Control (microphone, recorder, singleton, speaker2)
-import WAGS.Core (AudioInput)
-import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
-import WAGS.Example.Docs.Util (WrapperStates(..), clickCb, mkWrapperEvent)
-import WAGS.Interpret (close, context, contextState, effectfulAudioInterpret, getMicrophoneAndCamera, makeFFIAudioSnapshot, mediaRecorderToUrl)
-import WAGS.WebAPI (BrowserMicrophone, MediaRecorderCb(..))
+import WAGS.Control (microphone, recorder, speaker2)
+import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..))
+import WAGS.Example.Docs.Util (WrapperStates(..), clickCb, mkWrapperEvent, raceSelf)
+import WAGS.Interpret (close, context, contextState, effectfulAudioInterpret, getMicrophoneAndCamera, makeFFIAudioSnapshot, mediaRecorderToUrl, stopMediaRecorder)
+import WAGS.WebAPI (BrowserMicrophone, MediaRecorder, MediaRecorderCb(..))
 
 px =
   Proxy    :: Proxy         """<section>
@@ -39,16 +43,9 @@ px =
   </section>
 """
 
-type RecorderStates = Either String WrapperStates
+type RecorderStates = Either (Either String MediaRecorder) WrapperStates
 
-scene
-  :: forall payload
-   . BrowserMicrophone
-  -> MediaRecorderCb
-  -> AudioInput D2 "" () Event payload
-scene m cb =
-  singleton
-    (recorder cb (microphone m))
+scene m cb = recorder cb (microphone m)
 
 recorderEx
   :: forall payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Element Event payload
@@ -59,35 +56,66 @@ recorderEx ccb _ ev = px ~~
             let
               ptn = partitionMap identity event'
               event = mkWrapperEvent ev (_.right ptn)
-              aEv = _.left ptn
+              ls = partitionMap identity (_.left ptn)
+              aEv = _.left ls
+              rEv = _.right ls
             in
               D.div_
                 [ D.button
                     ( (bang (D.Style := "cursor: pointer;")) <|>
-                        ( clickCb ccb (Right >>> push)
-                            (_.microphone <$> getMicrophoneAndCamera true false)
-                            ( maybe (pure $ pure unit) \mc -> do
-                                ctx <- context
-                                ffi2 <- makeFFIAudioSnapshot ctx
-                                let
-                                  audioE = speaker2
-                                    ( scene mc
-                                        ( MediaRecorderCb $ mediaRecorderToUrl
-                                            "audio/ogg; codecs=opus"
-                                            (Left >>> push)
-                                        )
+                        ( map
+                            ( \{ e, cncl, rec } -> D.OnClick :=
+                                ( cb $
+                                    ( const $ case e of
+                                        Loading -> pure unit
+                                        Playing x -> x *> ccb (pure unit)
+                                          *> for_ rec (try <<< stopMediaRecorder)
+                                          *> (Right >>> push) Stopped
+                                        Stopped -> do
+                                          cncl
+                                          av <- AVar.empty
+                                          push (Right Loading)
+                                          fib <- launchAff do
+                                            x <- (_.microphone <$> getMicrophoneAndCamera true false)
+                                            liftEffect do
+                                              res <-
+                                                ( maybe (pure $ pure unit) \mc -> do
+                                                    ctx <- context
+                                                    ffi2 <- makeFFIAudioSnapshot ctx
+                                                    let
+                                                      audioE = speaker2
+                                                        [ scene mc
+                                                            ( MediaRecorderCb $ \mr -> do
+                                                                push (Left (Right mr))
+                                                                void $ AVar.tryPut mr av
+                                                                mediaRecorderToUrl
+                                                                  "audio/ogg; codecs=opus"
+                                                                  (Left >>> Left >>> push)
+                                                                  mr
+                                                            )
+                                                        ]
+                                                        effectfulAudioInterpret
+                                                    unsub <- subscribe
+                                                      audioE
+                                                      ( \audio -> audio ffi2
+                                                      )
+                                                    pure do
+                                                      unsub
+                                                      AVar.tryTake av >>= traverse_ (try <<< stopMediaRecorder)
+                                                      contextState ctx >>= \st -> when (st /= "closed") (close ctx)
+                                                ) x
+                                              push (Right $ Playing res)
+                                              pure res
+                                          ccb do
+                                            (Right >>> push) Stopped
+                                            launchAff_ $ raceSelf fib
+                                          pure unit
                                     )
-                                    effectfulAudioInterpret
-                                unsub <- subscribe
-                                  audioE
-                                  ( \audio -> audio ffi2
-                                  )
-                                pure do
-                                  unsub
-                                  contextState ctx >>= \st -> when (st /= "closed") (close ctx)
+                                )
                             )
-                            ev
-                            event
+                            ( biSampleOn (bang Nothing <|> map Just rEv)
+                                (map ($) (biSampleOn (bang (pure unit) <|> (map (\(SetCancel x) -> x) ev)) (map { e: _, cncl: _, rec: _ } event)))
+                            )
                         )
                     )
                     [ text
@@ -100,7 +128,14 @@ recorderEx ccb _ ev = px ~~
                             event
                         )
                     ]
-                , D.div_ [ D.audio ((bang (D.Controls := "true")) <|> (bang (D.Style := "display:none;")) <|> map (\src -> (D.Src := src)) aEv <|> map (const (D.Style := "display:block;")) aEv )  [] ]
+                , D.div_
+                    [ D.audio
+                        ( (bang (D.Controls := "true")) <|> (bang (D.Style := "display:none;")) <|> map (\src -> (D.Src := src)) aEv <|> map
+                            (const (D.Style := "display:block;"))
+                            aEv
+                        )
+                        []
+                    ]
                 ]
       )
   }

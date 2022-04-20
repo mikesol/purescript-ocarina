@@ -261,7 +261,7 @@ instance createInput ::
   , R.Lacks ptr graphi
   , R.Cons ptr (NodeC CTOR.TInput {}) graphi grapho
   ) =>
-  Create' ptr (Core.Input produced consumed) graphi grapho where
+  Create' ptr (Core.Input lock) graphi grapho where
   create' ptr (Core.Input input) w = o /\ Object.singleton id input
     where
     WAG { instructions } = w

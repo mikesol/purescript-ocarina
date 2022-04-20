@@ -171,7 +171,7 @@ instance typeToSymHighshelf :: TypeToSym Highshelf "Highshelf"
 data Input (input :: Symbol) = Input
 
 instance typeToSymInput :: TypeToSym (Input input) "Input"
-instance typeToSymCoreInput :: TypeToSym (Core.Input produced consumed) "Input"
+instance typeToSymCoreInput :: TypeToSym (Core.Input lock) "Input"
 
 -- | Term-level constructor for a looping buffer.
 -- | - `buffer` - the buffer to use. Note that this symbol, when reset, will only reset the buffer when it is stopped.

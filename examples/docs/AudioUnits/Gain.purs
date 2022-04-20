@@ -24,8 +24,9 @@ px = Proxy :: Proxy """<section>
   <p>And here's a little example of a single gain node:</p>
 
   <pre><code>run2_
-  $ gain_ 0.1
-  $ loopBuf buf bangOn</code></pre>
+  [ gain_ 0.1
+    [ loopBuf buf bangOn ]
+  ] </code></pre>
 
   ~gain~
   </section>
@@ -36,6 +37,6 @@ gain ccb _ ev = px ~~
   { gain: nut
       ( audioWrapper ev ccb (ctxAff \ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/339/339822_5121236-lq.mp3")
           \buf -> run2_
-            $ gain_ 0.1 $ loopBuf buf bangOn
+            [ gain_ 0.1  [ loopBuf buf bangOn ]]
       )
   }

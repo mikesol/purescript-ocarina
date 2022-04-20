@@ -3,7 +3,6 @@ module WAGS.Example.Docs.Effects.FoldEx where
 import Prelude
 
 import Control.Alt ((<|>))
-import Control.Plus (class Plus)
 import Data.Exists (mkExists)
 import Data.Foldable (oneOf)
 import Data.Tuple.Nested ((/\))
@@ -21,14 +20,13 @@ import Effect (Effect)
 import FRP.Behavior (sampleBy, sample_, step)
 import FRP.Event (Event, filterMap, fold, mapAccum, sampleOn)
 import FRP.Event.Animate (animationFrameEvent)
-import FRP.Event.Class (class IsEvent, bang, biSampleOn)
+import FRP.Event.Class (bang, biSampleOn)
 import FRP.Event.Memoize (memoize)
 import Math (pi, sin)
 import Type.Proxy (Proxy(..))
 import WAGS.Clock (withACTime)
 import WAGS.Control (gain, periodicOsc)
-import WAGS.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent(..), SingleSubgraphPusher)
-import WAGS.Example.Docs.Util (scrollToTop)
+import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..), SingleSubgraphPusher)
 import WAGS.Interpret (close, context)
 import WAGS.Math (calcSlope)
 import WAGS.Parameter (AudioNumeric(..), _linear, bangOn)
@@ -36,7 +34,8 @@ import WAGS.Properties as P
 import WAGS.Run (run2)
 import WAGS.Variant (injs_, prjs_)
 
-px = Proxy :: Proxy """<section>
+px =
+  Proxy    :: Proxy         """<section>
   <h2>Fold</h2>
 
   <p>The type of <code>fold</code> is:</p>
@@ -61,7 +60,6 @@ px = Proxy :: Proxy """<section>
 
 </section>"""
 
-
 type Cbx = Variant (cbx0 :: Unit, cbx1 :: Unit, cbx2 :: Unit, cbx3 :: Unit)
 cbi = injs_ (Proxy :: _ Cbx)
 cbp = prjs_ (Proxy :: _ Cbx)
@@ -80,9 +78,10 @@ type UIEvents = Variant
 uii = injs_ (Proxy :: _ UIEvents)
 uip = prjs_ (Proxy :: _ UIEvents)
 
-foldEx :: forall payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent   -> Element Event payload
+foldEx :: forall payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent -> Element Event payload
 foldEx ccb dpage _ ev = px ~~
-  { txt: nut $ text_ """module Main where
+  { txt: nut $ text_
+      """module Main where
 
 import Prelude
 
@@ -150,8 +149,8 @@ main = start 🚀 \push event -> do
                       ctx <- context
                       afe <- animationFrameEvent
                       acTime <- memoize
-                         $ map (add 0.04 <<< _.acTime)
-                         $ withACTime ctx afe
+                        $ map (add 0.04 <<< _.acTime)
+                        $ withACTime ctx afe
                       let
                         cevt fast b tm = mapAccum
                           ( \(oo /\ act) (pact /\ pt) ->
@@ -173,30 +172,32 @@ main = start 🚀 \push event -> do
                           $ map ($)
                           $ sampleOn a
                           $ { f: _, a: _, t: _ } <$> f
-                      r <- run2 ctx $ gain 0.0
-                        ( evs ev0 ev1 <#> \{ f, a, t } -> P.gain $ AudioNumeric
-                            { n: calcSlope 1.0 0.01 4.0 0.15 a * sin (pi * f) + 0.15
-                            , o: t
-                            , t: _linear
-                            }
-                        )
-                        ( periodicOsc
-                            { frequency: 325.6
-                            , spec: (0.3 +> -0.1 +> 0.7 +> -0.4 +> V.empty)
-                                /\ (0.6 +> 0.3 +> 0.2 +> 0.0 +> V.empty)
-                            }
-                            ( oneOf
-                                [ bangOn
-                                , evs ev2 ev3 <#> \{ f, a, t } -> P.frequency
-                                    $ AudioNumeric
-                                        { n: 325.6 +
-                                            (calcSlope 1.0 3.0 4.0 15.5 a * sin (pi * f))
-                                        , o: t
-                                        , t: _linear
-                                        }
-                                ]
+                      r <- run2 ctx
+                        [ gain 0.0
+                            ( evs ev0 ev1 <#> \{ f, a, t } -> P.gain $ AudioNumeric
+                                { n: calcSlope 1.0 0.01 4.0 0.15 a * sin (pi * f) + 0.15
+                                , o: t
+                                , t: _linear
+                                }
                             )
-                        )
+                            [ periodicOsc
+                                { frequency: 325.6
+                                , spec: (0.3 +> -0.1 +> 0.7 +> -0.4 +> V.empty)
+                                    /\ (0.6 +> 0.3 +> 0.2 +> 0.0 +> V.empty)
+                                }
+                                ( oneOf
+                                    [ bangOn
+                                    , evs ev2 ev3 <#> \{ f, a, t } -> P.frequency
+                                        $ AudioNumeric
+                                            { n: 325.6 +
+                                                (calcSlope 1.0 3.0 4.0 15.5 a * sin (pi * f))
+                                            , o: t
+                                            , t: _linear
+                                            }
+                                    ]
+                                )
+                            ]
+                        ]
                       push $ (stop (r *> close ctx))
                   }
               )
@@ -228,7 +229,7 @@ main = start 🚀 \push event -> do
   , empl: nut
       ( bang (unit /\ Sg.Insert)
           @@ \_ -> mkExists $ SubgraphF \push event -> do -- here
-           let
+            let
               ss = bang (ssi.start unit) <|> filterMap uip.startStop event
               cbx = filterMap uip.cbx event
               chkState e = step false $ fold (const not) (filterMap e cbx) false
@@ -236,7 +237,7 @@ main = start 🚀 \push event -> do
               cbx1 = chkState cbp.cbx1
               cbx2 = chkState cbp.cbx2
               cbx3 = chkState cbp.cbx3
-           D.div_
+            D.div_
               [ D.button
                   ( (biSampleOn (bang (pure unit) <|> (map (\(SetCancel x) -> x) ev)) (map (/\) ss)) <#>
                       \(e /\ c) -> D.OnClick := cb
@@ -270,30 +271,32 @@ main = start 🚀 \push event -> do
                                     $ map ($)
                                     $ sampleOn a
                                     $ { f: _, a: _, t: _ } <$> f
-                                r' <- run2 ctx $ gain 0.0
-                                  ( evs ev0 ev1 <#> \{ f, a, t } -> P.gain $ AudioNumeric
-                                      { n: calcSlope 1.0 0.01 4.0 0.15 a * sin (pi * f) + 0.15
-                                      , o: t
-                                      , t: _linear
-                                      }
-                                  )
-                                  ( periodicOsc
-                                      { frequency: 325.6
-                                      , spec: (0.3 +> -0.1 +> 0.7 +> -0.4 +> V.empty)
-                                          /\ (0.6 +> 0.3 +> 0.2 +> 0.0 +> V.empty)
-                                      }
-                                      ( oneOf
-                                          [ bangOn
-                                          , evs ev2 ev3 <#> \{ f, a, t } -> P.frequency
-                                              $ AudioNumeric
-                                                  { n: 325.6 +
-                                                      (calcSlope 1.0 3.0 4.0 15.5 a * sin (pi * f))
-                                                  , o: t
-                                                  , t: _linear
-                                                  }
-                                          ]
+                                r' <- run2 ctx
+                                  [ gain 0.0
+                                      ( evs ev0 ev1 <#> \{ f, a, t } -> P.gain $ AudioNumeric
+                                          { n: calcSlope 1.0 0.01 4.0 0.15 a * sin (pi * f) + 0.15
+                                          , o: t
+                                          , t: _linear
+                                          }
                                       )
-                                  )
+                                      [ periodicOsc
+                                          { frequency: 325.6
+                                          , spec: (0.3 +> -0.1 +> 0.7 +> -0.4 +> V.empty)
+                                              /\ (0.6 +> 0.3 +> 0.2 +> 0.0 +> V.empty)
+                                          }
+                                          ( oneOf
+                                              [ bangOn
+                                              , evs ev2 ev3 <#> \{ f, a, t } -> P.frequency
+                                                  $ AudioNumeric
+                                                      { n: 325.6 +
+                                                          (calcSlope 1.0 3.0 4.0 15.5 a * sin (pi * f))
+                                                      , o: t
+                                                      , t: _linear
+                                                      }
+                                              ]
+                                          )
+                                      ]
+                                  ]
                                 let r = r' *> close ctx
                                 ccb (r *> push start) -- here
                                 push (stop r)

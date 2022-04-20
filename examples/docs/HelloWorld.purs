@@ -19,7 +19,8 @@ import WAGS.Example.Docs.Util (audioWrapper, ccassp, mkNext, scrollToTop)
 import WAGS.Parameter (bangOn)
 import WAGS.Run (run2_)
 
-px = Proxy :: Proxy """<div>
+px =
+  Proxy    :: Proxy         """<div>
   <h1>Hello world</h1>
 
   <h3>Making A440</h3>
@@ -55,7 +56,7 @@ px = Proxy :: Proxy """<div>
   <p>Our sine wave oscillator is set to a frequency of <code>440Hz</code>. That means that your loudspeaker or headphones will vibrate back and forth in sinusoidal motion 440 times per second, which most folks perceive as the <a href="https://en.wikipedia.org/wiki/A440_(pitch_standard)">note A</a>. And we turn on the oscillator with <code>bangOn</code>, as the default is off for <i>all</i> sound generators in Wags. This is a design decision to help preserve the hearing of those that work frequently with audio.</p>
 
   <h2>Next steps</h2>
-  <p>Now that we have our setup running, let's explore the anatomy of a Wags graph. Irrespective of the nodes comprising the graph, there are three basic operations you need to be familiar with before you start diving into audio units: <a @next@ style="cursor:pointer;">fan, fix, and squiggle (aka <code>~</code>)</a>.</p>
+  <p>Now that we have our setup running, let's explore the anatomy of a Wags graph. Irrespective of the nodes comprising the graph, there are three basic concepts you need to be familiar with before you start diving into audio units: <a @next@ style="cursor:pointer;">array, fan, and fix</a>.</p>
 </div>"""
 
 helloWorld
@@ -72,13 +73,13 @@ helloWorld cca' dpage ssp ev = makePursx' (Proxy :: _ "@") px
               [ text_
                   """case e of
   Just x -> x *> push Nothing
-  _ -> (run2_ $ gain_ 0.15 $ sinOsc 440.0 bangOn)
+  _ -> (run2_ [ gain_ 0.15 [ sinOsc 440.0 bangOn ] ]
          >>= Just >>> push"""
               ]
           ]
       )
   , result: nut
-      ( audioWrapper ev cca (pure unit) $ \_ -> run2_ $ gain_ 0.15 $ sinOsc 440.0 bangOn
+      ( audioWrapper ev cca (pure unit) $ \_ -> run2_ [ gain_ 0.15 [ sinOsc 440.0 bangOn ] ]
       )
   , next: mkNext ev cpage
   }

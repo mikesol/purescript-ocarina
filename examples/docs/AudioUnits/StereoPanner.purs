@@ -20,7 +20,7 @@ px =
   <p>The <a href="https://developer.mozilla.org/en-US/docs/Web/API/StereoPannerNode">stereo panner</a> pans audio in the stereo plane. <code>-1.0</code> represents hard left, and <code>1.0</code> represents hard right, as in the example below.</p>
 
   <pre><code>\buf -> run2_
-  $ pan_ 1.0 $ loopBuf buf bangOn </code></pre>
+  [ pan_ 1.0 [ loopBuf buf bangOn ] ]</code></pre>
 
   ~pan~
   </section>
@@ -31,6 +31,6 @@ pan ccb _ ev = px ~~
   { pan: nut
       ( audioWrapper ev ccb (ctxAff \ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/339/339822_5121236-lq.mp3")
           \buf -> run2_
-            $ pan_ 1.0 $ loopBuf buf bangOn
+            [pan_ 1.0 [loopBuf buf bangOn]]
       )
   }

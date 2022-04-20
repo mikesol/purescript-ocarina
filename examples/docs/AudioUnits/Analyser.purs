@@ -30,8 +30,8 @@ import FRP.Event (Event, class IsEvent, Event, create, sampleOn_, subscribe)
 import FRP.Event.Animate (animationFrameEvent)
 import FRP.Event.Class (bang)
 import Type.Proxy (Proxy(..))
-import WAGS.Control (analyser_, loopBuf, singleton, speaker2)
-import WAGS.Core (AudioInput, Po2(..))
+import WAGS.Control (analyser_, loopBuf, speaker2)
+import WAGS.Core (Po2(..))
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import WAGS.Example.Docs.Util (WrapperStates(..), clickCb, mkWrapperEvent)
 import WAGS.Interpret (close, context, contextState, ctxAff, decodeAudioDataFromUri, effectfulAudioInterpret, getByteFrequencyData, makeFFIAudioSnapshot)
@@ -68,14 +68,7 @@ style3 = "background-color: rgb(130,60,10);"
 style4 :: String
 style4 = "background-color: rgb(150,30,10);"
 
-scene
-  :: forall payload
-   . BrowserAudioBuffer
-  -> AnalyserNodeCb
-  -> AudioInput D2 "" () Event payload
-scene atar cb =
-  singleton
-    (analyser_ { cb, fftSize: TTT8 } (loopBuf atar bangOn))
+scene atar cb =   analyser_ { cb, fftSize: TTT8 } (loopBuf atar bangOn)
 
 b0 :: Number
 b0 = 1.0 / 40.0
@@ -121,14 +114,14 @@ analyserEx ccb _ ev = px ~~
                                 afe <- animationFrameEvent
                                 let
                                   audioE = speaker2
-                                    ( scene atar
+                                    [scene atar
                                         ( AnalyserNodeCb
                                             ( \a -> do
                                                 write (Just a) analyserE
                                                 pure (write Nothing analyserE)
                                             )
                                         )
-                                    )
+                                    ]
                                     effectfulAudioInterpret
                                 unsub <- subscribe
                                   ( map Right audioE <|> map Left afe

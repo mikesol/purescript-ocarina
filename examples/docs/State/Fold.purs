@@ -66,8 +66,8 @@ main = start 🚀 \push event -> do
                       ctx <- context
                       afe <- animationFrameEvent
                       acTime <- memoize
-                         $ map (add 0.04 <<< _.acTime)
-                         $ withACTime ctx afe
+                        $ map (add 0.04 <<< _.acTime)
+                        $ withACTime ctx afe
                       let
                         cevt fast b tm = mapAccum
                           ( \(oo /\ act) (pact /\ pt) ->
@@ -89,30 +89,32 @@ main = start 🚀 \push event -> do
                           $ map ($)
                           $ sampleOn a
                           $ { f: _, a: _, t: _ } <$> f
-                      r <- run2 ctx $ gain 0.0
-                        ( evs ev0 ev1 <#> \{ f, a, t } -> P.gain $ AudioNumeric
-                            { n: calcSlope 1.0 0.01 4.0 0.15 a * sin (pi * f) + 0.15
-                            , o: t
-                            , t: _linear
-                            }
-                        )
-                        ( periodicOsc
-                            { frequency: 325.6
-                            , spec: (0.3 +> -0.1 +> 0.7 +> -0.4 +> V.empty)
-                                /\ (0.6 +> 0.3 +> 0.2 +> 0.0 +> V.empty)
-                            }
-                            ( oneOf
-                                [ bangOn
-                                , evs ev2 ev3 <#> \{ f, a, t } -> P.frequency
-                                    $ AudioNumeric
-                                        { n: 325.6 +
-                                            (calcSlope 1.0 3.0 4.0 15.5 a * sin (pi * f))
-                                        , o: t
-                                        , t: _linear
-                                        }
-                                ]
+                      r <- run2 ctx
+                        [ gain 0.0
+                            ( evs ev0 ev1 <#> \{ f, a, t } -> P.gain $ AudioNumeric
+                                { n: calcSlope 1.0 0.01 4.0 0.15 a * sin (pi * f) + 0.15
+                                , o: t
+                                , t: _linear
+                                }
                             )
-                        )
+                            [ periodicOsc
+                                { frequency: 325.6
+                                , spec: (0.3 +> -0.1 +> 0.7 +> -0.4 +> V.empty)
+                                    /\ (0.6 +> 0.3 +> 0.2 +> 0.0 +> V.empty)
+                                }
+                                ( oneOf
+                                    [ bangOn
+                                    , evs ev2 ev3 <#> \{ f, a, t } -> P.frequency
+                                        $ AudioNumeric
+                                            { n: 325.6 +
+                                                (calcSlope 1.0 3.0 4.0 15.5 a * sin (pi * f))
+                                            , o: t
+                                            , t: _linear
+                                            }
+                                    ]
+                                )
+                            ]
+                        ]
                       push $ (stop (r *> close ctx))
                   }
               )

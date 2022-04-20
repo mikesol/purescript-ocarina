@@ -24,13 +24,13 @@ px = Proxy :: Proxy
     </ul>
     <p>This section will show how wags handles all three cases:</p>
     <ul>
-      <li><span style="font-weight:800px;">~</span> or a squiggly or tilde, is the operation we'll use to send many audio units into one.</li>
+      <li><span style="font-weight:800px;"><code>Array</code></span> is the data structure we'll use to send many audio units into one.</li>
       <li><span style="font-weight:800px;"><code>fan</code></span> is a function that we'll use to "fan" one audio node out to many.</li>
       <li><span style="font-weight:800px;"><code>fix</code></span> is the function we'll use to make an audio unit an input into itself.</li>
     </ul>
     <h2>The setup</h2>
     <p>
-      To illustrate how <code>~</code>, <code>fan</code> and <code>fix</code> work, we're going to use a few new audio units.
+      To illustrate how <code>Array</code>, <code>fan</code> and <code>fix</code> work, we're going to use a few new audio units.
     </p>
       <ul>
         <li><code>delay</code>: A delay node</li>

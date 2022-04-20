@@ -22,7 +22,7 @@ import Effect (Effect)
 import Effect.Aff (Aff, launchAff_)
 import Effect.Class (liftEffect)
 import FRP.Behavior (sample_)
-import FRP.Event (Event, class IsEvent, Event, subscribe)
+import FRP.Event (Event, class IsEvent, subscribe)
 import FRP.Event.Animate (animationFrameEvent)
 import FRP.Event.Class (bang)
 import FRP.Event.Memoizable as Memoizable
@@ -30,8 +30,8 @@ import FRP.Event.Memoize (class MemoizableEvent, memoizeIfMemoizable)
 import FRP.Event.Memoized as Memoized
 import Math (pi, sin, (%))
 import WAGS.Clock (WriteHead, fot, writeHead)
-import WAGS.Control (gain, sinOsc, speaker2, (:*))
-import WAGS.Core (AudioInput)
+import WAGS.Control (gain, sinOsc, speaker2)
+import WAGS.Core (Node)
 import WAGS.Example.Utils (RaiseCancellation)
 import WAGS.Interpret (FFIAudioSnapshot, close, context, effectfulAudioInterpret', makeFFIAudioSnapshot)
 import WAGS.Math (calcSlope)
@@ -53,11 +53,11 @@ lm2 :: Number
 lm2 = len - 2.0
 
 scene
-  :: forall event payload
+  :: forall lock event payload
    . IsEvent event
   => MemoizableEvent event
   => WriteHead event
-  -> AudioInput D2 "" () event payload
+  -> Array (Node D2 lock event payload)
 scene wh =
   let
     tr = memoizeIfMemoizable (fot wh (mul pi))
@@ -87,7 +87,7 @@ scene wh =
               tr
           )
       )
-      (sinOsc b
+      [ sinOsc b
           ( Common.frequency <<< (over opticN c) <$>
               ( filter
                   (\(AudioNumeric { o }) -> o % len < ed && o % len > st)
@@ -105,9 +105,9 @@ scene wh =
                     tr
                 )
           )
-      )
+      ]
   in
-    gso 0.1 440.0 (\rad -> 440.0 + (10.0 * sin (2.3 * rad))) 0.0 0.2 :*
+    [ gso 0.1 440.0 (\rad -> 440.0 + (10.0 * sin (2.3 * rad))) 0.0 0.2 ] <>
       ( map
           ( \i ->
               let
@@ -142,71 +142,69 @@ stressTest
   -> RaiseCancellation
   -> Exists (SubgraphF Event payload)
 stressTest _ rc = mkExists $ SubgraphF \p e ->
-    let
-      musicButton
-        :: forall event
-         . IsEvent event
-        => String
-        -> (Event ~> event)
-        -> (event ~> Event)
-        -> (UIAction -> Effect Unit)
-        -> Event UIAction
-        -> (AudioContext -> WriteHead event -> event (FFIAudioSnapshot -> Effect Unit))
-        -> Element Event payload
-      musicButton label toE fromE push event audioEvent = DOM.button
-        ( map
-            ( \i -> DOM.OnClick := cb
-                ( const $
-                    maybe
-                      ( do
-                          ctx <- context
-                          ffi2 <- makeFFIAudioSnapshot ctx
-                          let wh = writeHead 0.04 ctx
-                          afe <- animationFrameEvent
-                          unsub <- subscribe
-                            (fromE (audioEvent ctx (toE (sample_ wh afe))))
-                            ((#) ffi2)
-                          rc $ Just { unsub, ctx }
-                          push $ Just { unsub, ctx }
-                      )
-                      ( \{ unsub, ctx } -> do
-                          unsub
-                          close ctx
-                          rc Nothing
-                          push Nothing
-                      )
-                      i
-                )
-            )
-            event
-        )
-        [ text
-            (map (maybe ("Turn on " <> label) (const "Turn off")) event)
-        ]
-    in
-      DOM.div_
-        [ DOM.h1_ [ text_ "Stress test" ]
-        , musicButton "Event" identity identity p e
-            (\_ -> flip speaker2 (effectfulAudioInterpret' identity identity) <<<
-                scene
-            )
-        , musicButton "MemoizedEvent" Memoized.fromEvent Memoized.toEvent p e
-            (\_ -> flip speaker2
-                (effectfulAudioInterpret' Memoized.fromEvent Memoized.toEvent)
-                <<<
-                  scene
-            )
-        , musicButton "MemoizableEvent" Memoizable.fromEvent Memoizable.toEvent
-            p
-            e
-            (\_ -> flip speaker2
-                ( effectfulAudioInterpret' Memoizable.fromEvent
-                    Memoizable.toEvent
-                ) <<<
-                scene
-            )
-        , musicButton "NativeJS" identity identity p e (stressTest_)
-        ]
+  let
+    musicButton
+      :: forall event
+       . IsEvent event
+      => String
+      -> (Event ~> event)
+      -> (event ~> Event)
+      -> (UIAction -> Effect Unit)
+      -> Event UIAction
+      -> (AudioContext -> WriteHead event -> event (FFIAudioSnapshot -> Effect Unit))
+      -> Element Event payload
+    musicButton label toE fromE push event audioEvent = DOM.button
+      ( map
+          ( \i -> DOM.OnClick := cb
+              ( const $
+                  maybe
+                    ( do
+                        ctx <- context
+                        ffi2 <- makeFFIAudioSnapshot ctx
+                        let wh = writeHead 0.04 ctx
+                        afe <- animationFrameEvent
+                        unsub <- subscribe
+                          (fromE (audioEvent ctx (toE (sample_ wh afe))))
+                          ((#) ffi2)
+                        rc $ Just { unsub, ctx }
+                        push $ Just { unsub, ctx }
+                    )
+                    ( \{ unsub, ctx } -> do
+                        unsub
+                        close ctx
+                        rc Nothing
+                        push Nothing
+                    )
+                    i
+              )
+          )
+          event
+      )
+      [ text
+          (map (maybe ("Turn on " <> label) (const "Turn off")) event)
+      ]
+  in
+    DOM.div_
+      [ DOM.h1_ [ text_ "Stress test" ]
+      , musicButton "Event" identity identity p e
+          ( \_ ip -> speaker2 (scene ip) (effectfulAudioInterpret' identity identity)
+
+          )
+      , musicButton "MemoizedEvent" Memoized.fromEvent Memoized.toEvent p e
+          ( \_ ip -> speaker2 (scene ip)
+              (effectfulAudioInterpret' Memoized.fromEvent Memoized.toEvent)
+
+          )
+      , musicButton "MemoizableEvent" Memoizable.fromEvent Memoizable.toEvent
+          p
+          e
+          ( \_ ip -> speaker2 (scene ip)
+              ( effectfulAudioInterpret' Memoizable.fromEvent
+                  Memoizable.toEvent
+              )
+          )
+      , musicButton "NativeJS" identity identity p e (stressTest_)
+      ]
 
 main :: Effect Unit
 main = launchAff_ do

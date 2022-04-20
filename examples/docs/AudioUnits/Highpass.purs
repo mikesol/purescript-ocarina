@@ -20,8 +20,9 @@ px = Proxy :: Proxy """<section>
   <p>A <a href="https://developer.mozilla.org/en-US/docs/Web/API/BiquadFilterNode">highpass filter</a> lets higher frequencies pass and amortizes lower ones. If you amp up the Q value, the effect will be sharper.</p>
 
   <pre><code>\buf -> run2_
-  $ highpass_ 2000.0
-  $ loopBuf buf bangOn
+  [ highpass_ 2000.0
+      [ loopBuf buf bangOn ]
+  ]
 </code></pre>
 
   ~highpass~
@@ -33,6 +34,6 @@ highpass ccb _ ev = px ~~
   { highpass: nut
       ( audioWrapper ev ccb (ctxAff \ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
           \buf -> run2_
-            $ highpass_ 2000.0 $ loopBuf buf bangOn
+            [highpass_ 2000.0  [loopBuf buf bangOn]]
       )
   }

@@ -88,19 +88,20 @@ main = do
             sl1 = filterMap slp.s1 sl
             sl2 = filterMap slp.s2 sl
             music = run2_
-              $ loopBuf
+              [ loopBuf
                   { buffer: buffer
                   , playbackRate: 2.6
                   , loopStart: 0.6
                   , loopEnd: 1.1
                   }
-              $ oneOf
-                  [ bangOn
-                  , (calcSlope 0.0 0.2 100.0 5.0 >>> playbackRate) <$> sl0
-                  , (calcSlope 0.0 0.0 100.0 1.2 >>> loopStart) <$> sl1
-                  , (calcSlope 0.0 0.05 100.0 1.0 >>> loopEnd) <$> biSampleOn sl2
-                      (add <$> (bang 0.0 <|> sl1))
-                  ]
+                  $ oneOf
+                      [ bangOn
+                      , (calcSlope 0.0 0.2 100.0 5.0 >>> playbackRate) <$> sl0
+                      , (calcSlope 0.0 0.0 100.0 1.2 >>> loopStart) <$> sl1
+                      , (calcSlope 0.0 0.05 100.0 1.0 >>> loopEnd) <$> biSampleOn sl2
+                          (add <$> (bang 0.0 <|> sl1))
+                      ]
+              ]
           D.div_
             $
               map

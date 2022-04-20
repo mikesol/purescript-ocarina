@@ -4,7 +4,6 @@ import Prelude
 
 import Control.Alt ((<|>))
 import Control.Plus (empty)
-import Data.Array.NonEmpty (NonEmptyArray)
 import Data.Function (on)
 import Data.Generic.Rep (class Generic)
 import Data.Hashable (class Hashable, hash)
@@ -20,10 +19,6 @@ import FRP.Event (class IsEvent, keepLatest)
 import FRP.Event.Class (bang)
 import Foreign (Foreign)
 import Foreign.Object (Object)
-import Prim.Ordering as O
-import Prim.Row as Row
-import Prim.Symbol as Sym
-import Safe.Coerce (coerce)
 import Simple.JSON as JSON
 import Type.Proxy (Proxy(..))
 import WAGS.Parameter (AudioOnOff, AudioParameter, InitialAudioParameter)
@@ -105,46 +100,28 @@ instance showAudioWorkletNodeOptions_ ::
     <> JSON.writeJSON a.numberOfInputs
     <> " >"
 
-newtype Input (produced :: Symbol) (consumed :: Row Type) = Input String
+newtype Input (lock :: Type) = Input String
 
 -- input
 
 fan
-  :: forall outputChannels produced newProduced consumed event payload
-   . ( forall newConsumed a
-        . Row.Cons newProduced a consumed newConsumed
-       => IsEvent event
-       => Sym.Append produced "_" newProduced
-       => Node outputChannels produced consumed event payload
-       -> ( Input newProduced newConsumed
-            -> Node outputChannels newProduced newConsumed event payload
-          )
-       -> Node outputChannels produced consumed event payload
+  :: forall outputChannels lock event payload
+   . IsEvent event
+  => ( Node outputChannels lock event payload
+       -> (Input lock -> Node outputChannels lock event payload)
+       -> Node outputChannels lock event payload
      )
 fan (Node elt) f = Node go
   where
   go parentOrMe di@(AudioInterpret { ids }) = keepLatest
     ((sample_ ids (bang unit)) <#> \me' -> let me = useMeIfMe parentOrMe me' in let Node nn = f (Input me) in elt (Me me) di <|> nn parentOrMe di)
 
-hint
-  :: forall outputChannels produced consumed event payload
-   . IsEvent event
-  => Input produced consumed
-  -> Node outputChannels produced consumed event payload
-  -> Node outputChannels produced consumed event payload
-hint _ = identity
-
 fix
-  :: forall outputChannels produced newProduced consumed event payload
-   . ( forall newConsumed a
-        . Row.Cons newProduced a consumed newConsumed
-       => IsEvent event
-       => Sym.Append produced "_" newProduced
-       => ( Input newProduced newConsumed
-            -> Node outputChannels newProduced newConsumed event payload
-          )
-       -> Node outputChannels produced consumed event payload
-     )
+  :: forall outputChannels lock event payload
+   . IsEvent event
+  => (Input lock -> Node outputChannels lock event payload)
+  -> Node outputChannels lock event payload
+
 fix f = Node go
   where
   go parentOrMe di@(AudioInterpret { ids, connectXToY }) = keepLatest
@@ -165,10 +142,10 @@ useParentIfParent (Parent parent) = just parent
 useParentIfParent _ = nothing
 
 input
-  :: forall outputChannels produced consumed event payload
+  :: forall outputChannels lock event payload
    . IsEvent event
-  => Input produced consumed
-  -> Node outputChannels produced consumed event payload
+  => Input lock
+  -> Node outputChannels lock event payload
 input (Input me) = Node go
   where
   go meOrParent (AudioInterpret { scope, makeInput }) = bang
@@ -180,48 +157,21 @@ data MeOrParent = Me String | Parent String
 
 type Node' event payload = MeOrParent -> AudioInterpret event payload -> event payload
 
+type G_ :: forall k. Row k
 type G_ = ()
 
-newtype Node :: forall k. k -> Symbol -> Row Type -> (Type -> Type) -> Type -> Type
-newtype Node outputChannels (produced :: Symbol) (consumed :: Row Type) event payload = Node
+newtype Node :: Type -> Type -> (Type -> Type) -> Type -> Type
+newtype Node outputChannels lock event payload = Node
   (Node' event payload)
 
-class TLOrd :: forall k. O.Ordering -> k -> k -> k -> k -> Constraint
-class TLOrd o lt eq gt r | o lt eq gt -> r
-
-instance ordLt :: TLOrd O.LT lt eq gt lt
-instance ordEq :: TLOrd O.EQ lt eq gt eq
-instance ordGt :: TLOrd O.GT lt eq gt gt
-
-newtype AudioInput :: forall k. k -> Symbol -> Row Type -> (Type -> Type) -> Type -> Type
-newtype AudioInput outputChannels produced consumed event payload = AudioInput
-  (NonEmptyArray (Node outputChannels produced consumed event payload))
-
-class AI f where
-  ai
-    :: forall (outputChannels :: Type) produced consumed event payload
-    . NonEmptyArray (f outputChannels produced consumed event payload)
-    -> AudioInput outputChannels produced consumed event payload
-
-instance AI Node where
-  ai = AudioInput
-
-instance AI AudioInput where
-  ai = AudioInput <<< join <<< coerce
-
-
-instance Semigroup (AudioInput outputChannels produced consumed event payload) where
-  append a b = AudioInput (coerce a <> coerce b)
-
-newtype Subgraph :: forall k. k -> Symbol -> Row Type -> (Type -> Type) -> Type -> Type
-newtype Subgraph outputChannels produced consumed event payload =
-  Subgraph (Node outputChannels produced consumed event payload)
+newtype Subgraph :: Type -> Type -> (Type -> Type) -> Type -> Type
+newtype Subgraph outputChannels lock event payload =
+  Subgraph (Node outputChannels lock event payload)
 
 mkSubgraph
-  :: forall outputChannels produced consumed event payload newProduced diff newConsumed
-   . Row.Union consumed diff newConsumed
-  => Node outputChannels newProduced newConsumed event payload
-  -> Subgraph outputChannels produced consumed event payload
+  :: forall outputChannels lock event payload
+   . Node outputChannels lock event payload
+  -> Subgraph outputChannels lock event payload
 mkSubgraph (Node n) = Subgraph (Node n)
 
 -- subgraph
@@ -231,12 +181,12 @@ data SubgraphAction
   | Remove
 
 __subgraph
-  :: forall index outputChannels produced consumed event payload
+  :: forall index outputChannels lock event payload
    . IsEvent event
   => Hashable index
   => event (index /\ SubgraphAction)
-  -> (index -> Subgraph outputChannels produced consumed event payload)
-  -> Node outputChannels produced consumed event payload
+  -> (index -> Subgraph outputChannels lock event payload)
+  -> Node outputChannels lock event payload
 __subgraph mods scenes = Node go
   where
   go
@@ -263,12 +213,12 @@ __subgraph mods scenes = Node go
       )
 
 subgraph
-  :: forall index outputChannels produced consumed event payload
+  :: forall index outputChannels lock event payload
    . IsEvent event
   => Hashable index
   => event (index /\ SubgraphAction)
-  -> (index -> Subgraph outputChannels produced consumed event payload)
-  -> Node outputChannels produced consumed event payload
+  -> (index -> Subgraph outputChannels lock event payload)
+  -> Node outputChannels lock event payload
 subgraph = __subgraph
 
 infixr 6 subgraph as @@

@@ -3,7 +3,7 @@ module WAGS.Example.Docs.Events.Ex0TL where
 import Prelude
 
 import Control.Alt ((<|>))
-import Data.Array.NonEmpty ((..))
+import Data.Array ((..))
 import Data.Int (toNumber)
 import Data.Profunctor (lcmap)
 import Deku.Attribute (cb, (:=))
@@ -13,8 +13,7 @@ import Deku.Toplevel ((🚀))
 import Effect (Effect)
 import FRP.Event.Class (bang)
 import Math (pow)
-import WAGS.Control (gain_, gain, sinOsc, (~))
-import WAGS.Core (ai)
+import WAGS.Control (gain_, gain, sinOsc)
 import WAGS.Parameter (AudioEnvelope(..), AudioOnOff(..), _on, _off)
 import WAGS.Properties (onOff)
 import WAGS.Properties as P
@@ -42,12 +41,12 @@ cell = lcmap toNumber \i -> do
       <|> oof (x + 3.0 + 0.3 * (i * (1.005 `pow` i)))
     env' x = env (x + 0.3 * (i * (1.005 `pow` i)))
     strand x y =
-      gain 0.0 (env' x) (sinOsc (200.0 + i * y) (ooo' x))
-  ( strand 0.2 4.0
-  ~ strand 0.3 6.0
-  ~ strand 0.45 14.0
-  ~ strand 0.7 20.0
-  )
+      gain 0.0 (env' x) [ sinOsc (200.0 + i * y) (ooo' x) ]
+  [ strand 0.2 4.0
+  , strand 0.3 6.0
+  , strand 0.45 14.0
+  , strand 0.7 20.0
+  ]
 
 main :: Effect Unit
 main = Init 🚀 \push event ->
@@ -58,10 +57,12 @@ main = Init 🚀 \push event ->
               ( const $ case e of
                   Stop u -> u *> push Start
                   _ -> do
-                    r <- run2_ $ gain_ 1.0
-                      $ ai
-                      -- we create 100 cells
-                      $ 0 .. 100 <#> cell
+                    r <- run2_
+                      [ gain_ 1.0
+                          -- we create 100 cells
+                          $ join
+                          $ cell <$> 0 .. 100
+                      ]
                     push $ Stop r
               )
         )

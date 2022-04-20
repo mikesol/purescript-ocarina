@@ -26,8 +26,8 @@ import FRP.Event.Class (bang)
 import Math (pi, sin)
 import Type.Proxy (Proxy(..))
 import WAGS.Clock (WriteHead, fot, writeHead)
-import WAGS.Control (gain, sinOsc, speaker2, (:*))
-import WAGS.Core (AudioInput)
+import WAGS.Control (gain, sinOsc, speaker2)
+import WAGS.Core (Node)
 import WAGS.Example.Utils (RaiseCancellation)
 import WAGS.Imperative (InitialGraphBuilder, runGraphBuilder)
 import WAGS.Imperative as I
@@ -41,20 +41,20 @@ import Web.HTML.HTMLElement (toElement)
 import Web.HTML.Window (document)
 
 scene
-  :: forall payload
-   . WriteHead (Event)
-  -> AudioInput D2 "" () Event payload
+  :: forall lock payload
+   . WriteHead Event
+  -> Array (Node D2 lock Event payload)
 scene wh =
   let
     tr = fot wh (mul pi)
     gso a b c = gain a empty
-      $ sinOsc b (bangOn <|> (frequency <<< (over opticN c) <$> tr))
+      [ sinOsc b (bangOn <|> (frequency <<< (over opticN c) <$> tr)) ]
   in
-    gso 0.1 440.0 (\rad -> 440.0 + (10.0 * sin (2.3 * rad))) :*
-      [ gso 0.25 235.0 (\rad -> 235.0 + (10.0 * sin (1.7 * rad)))
-      , gso 0.2 337.0 (\rad -> 337.0 + (10.0 * sin rad))
-      , gso 0.1 530.0 (\rad -> 530.0 + (19.0 * (5.0 * sin rad)))
-      ]
+    [ gso 0.1 440.0 (\rad -> 440.0 + (10.0 * sin (2.3 * rad)))
+    , gso 0.25 235.0 (\rad -> 235.0 + (10.0 * sin (1.7 * rad)))
+    , gso 0.2 337.0 (\rad -> 337.0 + (10.0 * sin rad))
+    , gso 0.1 530.0 (\rad -> 530.0 + (19.0 * (5.0 * sin rad)))
+    ]
 
 scene'
   :: forall payload
@@ -99,45 +99,45 @@ helloWorld
   -> RaiseCancellation
   -> Exists (SubgraphF Event payload)
 helloWorld _ rc = mkExists $ SubgraphF \p e ->
-    let
-      musicButton push event audioEvent = DOM.button
-        ( map
-            ( \i -> DOM.OnClick := cb
-                ( const $
-                    maybe
-                      ( do
-                          ctx <- context
-                          ffi2 <- makeFFIAudioSnapshot ctx
-                          let wh = writeHead 0.04 ctx
-                          afe <- animationFrameEvent
-                          unsub <- subscribe
-                            (audioEvent (sample_ wh afe))
-                            ((#) ffi2)
-                          rc $ Just { unsub, ctx }
-                          push $ Just { unsub, ctx }
-                      )
-                      ( \{ unsub, ctx } -> do
-                          unsub
-                          close ctx
-                          rc Nothing
-                          push Nothing
-                      )
-                      i
-                )
-            )
-            event
-        )
-        [ text
-            (map (maybe "Turn on" (const "Turn off")) event)
-        ]
-    in
-      DOM.div_
-        [ DOM.h1_ [ text_ "Hello world" ]
-        , musicButton p e
-            (flip runGraphBuilder effectfulAudioInterpret <<< scene')
-        , musicButton p e
-            (flip speaker2 effectfulAudioInterpret <<< scene)
-        ]
+  let
+    musicButton push event audioEvent = DOM.button
+      ( map
+          ( \i -> DOM.OnClick := cb
+              ( const $
+                  maybe
+                    ( do
+                        ctx <- context
+                        ffi2 <- makeFFIAudioSnapshot ctx
+                        let wh = writeHead 0.04 ctx
+                        afe <- animationFrameEvent
+                        unsub <- subscribe
+                          (audioEvent (sample_ wh afe))
+                          ((#) ffi2)
+                        rc $ Just { unsub, ctx }
+                        push $ Just { unsub, ctx }
+                    )
+                    ( \{ unsub, ctx } -> do
+                        unsub
+                        close ctx
+                        rc Nothing
+                        push Nothing
+                    )
+                    i
+              )
+          )
+          event
+      )
+      [ text
+          (map (maybe "Turn on" (const "Turn off")) event)
+      ]
+  in
+    DOM.div_
+      [ DOM.h1_ [ text_ "Hello world" ]
+      , musicButton p e
+          (flip runGraphBuilder effectfulAudioInterpret <<< scene')
+      , musicButton p e
+          (\i -> speaker2 (scene i) effectfulAudioInterpret)
+      ]
 
 main :: Effect Unit
 main = launchAff_ do

@@ -3,7 +3,7 @@ module WAGS.Example.Docs.Events.Ex0 where
 import Prelude
 
 import Control.Alt (alt, (<|>))
-import Data.Array.NonEmpty ((..))
+import Data.Array ((..))
 import Data.Exists (mkExists)
 import Data.Int (toNumber)
 import Data.Profunctor (lcmap)
@@ -22,8 +22,8 @@ import FRP.Event (Event)
 import FRP.Event.Class (bang, biSampleOn)
 import Math (pow)
 import Type.Proxy (Proxy(..))
-import WAGS.Control (gain, gain_, microphone, recorder, sinOsc, singleton, (~))
-import WAGS.Core (AudioInput, ai)
+import WAGS.Control (gain, gain_, microphone, recorder, sinOsc)
+import WAGS.Core (Node)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..))
 import WAGS.Parameter (AudioEnvelope(..), AudioOnOff(..), _off, _on)
 import WAGS.Properties (onOff)
@@ -32,7 +32,7 @@ import WAGS.Run (run2_)
 import WAGS.WebAPI (BrowserMicrophone, MediaRecorderCb)
 
 px =
-  Proxy    :: Proxy   """<section>
+  Proxy    :: Proxy         """<section>
   <h2>Example 1: Hello events</h2>
 
   <p>Let's say hi to events! The simplest of events, which we've seen already, are the ones that occur <span style="font-weight:800;">now</span>, that is to say, immediately upon subscription. You create those types of events using <code>bang</code>. In this section, we'll use <code>bang</code> to set several different types of values:</p>
@@ -58,17 +58,13 @@ px =
 """
 
 scene
-  :: forall payload
+  :: forall lock payload
    . BrowserMicrophone
   -> MediaRecorderCb
-  -> AudioInput D2 "" () Event payload
-scene m cb =
-  singleton
-    (recorder cb (microphone m))
-
+  -> Node D2 lock Event payload
+scene m cb = recorder cb (microphone m)
 
 data UIEvents = Init | Start | Stop (Effect Unit)
-
 
 oon o = bang $ onOff $ AudioOnOff { x: _on, o }
 oof o = bang $ onOff $ AudioOnOff { x: _off, o }
@@ -83,20 +79,21 @@ cell = lcmap toNumber \i -> do
           , d: 0.8
           }
     strand x y =
-      gain 0.0 (genv x) (sinOsc (200.0 + i * y) (ooo' x))
-  ( strand 0.2 4.0
-      ~ strand 0.3 6.0
-      ~ strand 0.45 14.0
-      ~ strand 0.7 20.0
-  )
+      gain 0.0 (genv x) [sinOsc (200.0 + i * y) (ooo' x)]
+  [strand 0.2 4.0
+      , strand 0.3 6.0
+      , strand 0.45 14.0
+      , strand 0.7 20.0
+  ]
 
 txt :: String
-txt = """module Main where
+txt =
+  """module Main where
 
 import Prelude
 
 import Control.Alt ((<|>))
-import Data.Array.NonEmpty ((..))
+import Data.Array ((..))
 import Data.Int (toNumber)
 import Data.Profunctor (lcmap)
 import Deku.Attribute (cb, (:=))
@@ -106,8 +103,7 @@ import Deku.Toplevel ((🚀))
 import Effect (Effect)
 import FRP.Event.Class (bang)
 import Math (pow)
-import WAGS.Control (gain_, gain, sinOsc, (~))
-import WAGS.Core (ai)
+import WAGS.Control (gain_, gain, sinOsc)
 import WAGS.Parameter (AudioEnvelope(..), AudioOnOff(..), _on, _off)
 import WAGS.Properties (onOff)
 import WAGS.Properties as P
@@ -135,12 +131,12 @@ cell = lcmap toNumber \i -> do
       <|> oof (x + 3.0 + 0.3 * (i * (1.005 `pow` i)))
     env' x = env (x + 0.3 * (i * (1.005 `pow` i)))
     strand x y =
-      gain 0.0 (env' x) (sinOsc (200.0 + i * y) (ooo' x))
-  ( strand 0.2 4.0
-  ~ strand 0.3 6.0
-  ~ strand 0.45 14.0
-  ~ strand 0.7 20.0
-  )
+      gain 0.0 (env' x) [ sinOsc (200.0 + i * y) (ooo' x) ]
+  [ strand 0.2 4.0
+  , strand 0.3 6.0
+  , strand 0.45 14.0
+  , strand 0.7 20.0
+  ]
 
 main :: Effect Unit
 main = Init 🚀 \push event ->
@@ -151,10 +147,12 @@ main = Init 🚀 \push event ->
               ( const $ case e of
                   Stop u -> u *> push Start
                   _ -> do
-                    r <- run2_ $ gain_ 1.0
-                      $ ai
-                      -- we create 100 cells
-                      $ 0 .. 100 <#> cell
+                    r <- run2_
+                      [ gain_ 1.0
+                          -- we create 100 cells
+                          $ join
+                          $ cell <$> 0 .. 100
+                      ]
                     push $ Stop r
               )
         )
@@ -172,24 +170,27 @@ ex0 ccb _ ev = makePursx' (Proxy :: _ "@") px
   , ex0: nut
       ( bang (unit /\ Sg.Insert)
           @@ \_ -> mkExists $ SubgraphF \push -> lcmap (alt (bang Init)) \event -> -- here
-              D.div_
-                [ D.button
-                    ( (biSampleOn (bang (pure unit) <|> (map (\(SetCancel x) -> x) ev)) (map Tuple event)) <#> -- here
-                        \(e /\ c) -> D.OnClick := cb -- here
-                          ( const $ case e of
-                              Stop u -> u *> push Start *> ccb (pure unit) -- here
-                              _ -> do
-                                c -- here
-                                r <- run2_ $ gain_ 1.0
-                                  $ ai $ 0 .. 100 <#> cell
-                                ccb (r *> push Start) -- here
-                                push $ Stop r
-                          )
-                    )
-                    [ text $ event <#> case _ of
-                        Stop _ -> "Turn off"
-                        _ -> "Turn on"
-                    ]
-                ]
+
+            D.div_
+              [ D.button
+                  ( (biSampleOn (bang (pure unit) <|> (map (\(SetCancel x) -> x) ev)) (map Tuple event)) <#> -- here
+
+                      \(e /\ c) -> D.OnClick := cb -- here
+                        ( const $ case e of
+                            Stop u -> u *> push Start *> ccb (pure unit) -- here
+                            _ -> do
+                              c -- here
+                              r <- run2_ [gain_ 1.0
+                                $ join
+                                $ cell <$> 0 .. 100]
+                              ccb (r *> push Start) -- here
+                              push $ Stop r
+                        )
+                  )
+                  [ text $ event <#> case _ of
+                      Stop _ -> "Turn off"
+                      _ -> "Turn on"
+                  ]
+              ]
       )
   }

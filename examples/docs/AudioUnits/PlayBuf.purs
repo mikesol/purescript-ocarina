@@ -20,12 +20,14 @@ px =  Proxy :: Proxy   """<section>
   <p><a href="https://developer.mozilla.org/en-US/docs/Web/API/AudioBufferSourceNode">Playback from a buffer</a> is one of the bread-and-butter operations in Web Audio (or any audio). The buffered audio is usually a sound file, but it'll play anything you write to a buffer. Like in the Web Audio API, you can set the buffer's start time and optionally its duration.</p>
 
   <pre><code>\buf -> run2_
-  $ playBuf
+  [
+    playBuf
       { buffer
       , duration: 3.0
       , bufferOffset: 4.2
       }
       bangOn
+  ]
 </code></pre>
 
   ~playBuf~
@@ -38,11 +40,11 @@ playBufEx ccb _ ev = px ~~
   { playBuf: nut
       ( audioWrapper ev ccb (ctxAff \ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/470/470035_9564355-lq.mp3")
           \buffer -> run2_
-            $ playBuf
+            [playBuf
                 { buffer
                 , duration: 3.0
                 , bufferOffset: 4.2
                 }
-                bangOn
+                bangOn]
       )
   }

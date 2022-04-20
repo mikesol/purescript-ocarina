@@ -29,11 +29,12 @@ px =
   <p>Because the Web Audio API accepts between 3 and 20 parameters for feedforward and feedback coefficients, Wags enforces that through a <a href="https://github.com/bodil/purescript-sized-vectors">sized vector</a>.</p>
 
   <pre><code>\{loop, verb} -> run2_
-            $ iirFilter
-                ( (0.00020298 +> 0.0004059599 +> 0.00020298 +> empty)
-                    /\ (1.0126964558 +> -1.9991880801 +> 0.9873035442 +> empty)
-                )
-            $ loopBuf buf bangOn</code></pre>
+  [ iirFilter
+      ( (0.00020298 +> 0.0004059599 +> 0.00020298 +> empty)
+          /\ (1.0126964558 +> -1.9991880801 +> 0.9873035442 +> empty)
+      )
+      [ loopBuf buf bangOn ]
+  ]</code></pre>
   ~iirFilterEx~
   </section>
 """
@@ -44,10 +45,10 @@ iirFilterEx ccb _ ev = px ~~
   { iirFilterEx: nut
       ( audioWrapper ev ccb (ctxAff \ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
           \buf -> run2_
-            $ iirFilter
+            [iirFilter
                 ( (0.00020298 +> 0.0004059599 +> 0.00020298 +> empty)
                     /\ (1.0126964558 +> -1.9991880801 +> 0.9873035442 +> empty)
                 )
-            $ loopBuf buf bangOn
+            [loopBuf buf bangOn]]
       )
   }

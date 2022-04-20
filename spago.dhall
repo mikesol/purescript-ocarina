@@ -21,7 +21,6 @@
   , "math"
   , "maybe"
   , "newtype"
-  , "nonempty"
   , "ordered-collections"
   , "prelude"
   , "profunctor"

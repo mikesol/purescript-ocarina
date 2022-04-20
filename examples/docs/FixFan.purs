@@ -22,19 +22,19 @@ data UIEvents = UIShown | ButtonClicked | SliderMoved Number
 derive instance Eq UIEvents
 px = Proxy :: Proxy
       """<div>
-  <h1>Fan, fix, and squiggles</h1>
+  <h1>Array, fan, and fix</h1>
 
   <h3>The anatomy of a Wags graph</h3>
 
   @intro@
 
-  <h2>Squiggle, or tilde, or <code>~</code></h2>
+  <h2>Arrays</h2>
 
-  <p>To send several audio units through one, we use the tilde to chain the units together.</p>
+  <p>To send several audio units through one, we use an <code>Array</code>.</p>
 
   @code0@
 
-  <p>Sometimes, instead of chaining units together, we want to work with higher-level abstractions. In this case, we can work directly with a <code>NonEmptyArray</code> and use the <code>ai</code> function to make the array consumable by other audio units.</p>
+  <p>PureScript <code>Array</code>-s are extremely flexible and efficient, so go to town! For example, you can <code>map</code> (aka <code>&lt;#&gt;</code> when flipped) over a range of integers to create audio units, like in the example below.</p>
 
   @code1@
 
@@ -65,14 +65,14 @@ px = Proxy :: Proxy
 
   <blockquote>If you don't have some sort of delay line in your processing chain, either the Web-Audio-provided delay line or a custom delay node, Web Audio will raise a runtime error. Wags doesn't check for this, so make sure you test your audio to guarantee that it's feedback-explosion-free!</blockquote>
 
-  <p>Nothing stops you from nesting fixes to create a mega-feedback loop! When doing so, you'll likely have nested fixes. In this case, you'll need to use the <code>hint</code> function along with the input to the outer loop. <code>hint</code> helps the compiler with type inference: otherwise, it can't infer the type of the fixed point because of an otherwise-intractable situation where two fixed points' types depend on each other.</p>
+  <p>Nothing stops you from nesting <code>fix</code>-s to create a mega-feedback loop!</p>
 
   <blockquote>In the example below, I've added a couple fades to make sure the experience isn't too unpleasant. We'll talk more about fades in the events section 🎸</blockquote>
 
   @code5@
 
   <h2>Next steps</h2>
-  <p>In this section, saw how to combine together audio nodes with squiggles, fan one audio node to many processing chains via <code>fan</code>, and how to create a fixed point, aka feedback, for a node via <code>fix</code>. In the next section, we'll ramp up on all of the yummy <a @next@ style="cursor:pointer;">audio nodes you can use</a>.</p>
+  <p>In this section, saw how to combine together audio nodes with arrays, fan one audio node to many processing chains via <code>fan</code>, and how to create a fixed point, aka feedback, for a node via <code>fix</code>. In the next section, we'll ramp up on all of the yummy <a @next@ style="cursor:pointer;">audio nodes you can use</a>.</p>
 </div>"""
 
 fixFan :: forall payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent  -> Element Event payload

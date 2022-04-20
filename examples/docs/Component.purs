@@ -105,7 +105,7 @@ components :: forall payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Sin
 components cca' dpage ssp ev = px ~~
   { drumroll: nut
       ( audioWrapperSpan "🥁" ev ccb (ctxAff \ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/50/50711_179538-lq.mp3")
-          \buf -> run2_ $ gain_ 1.0 $ loopBuf buf bangOn
+          \buf -> run2_ [ gain_ 1.0 [ loopBuf buf bangOn ] ]
       )
   , toc: nut TOC.toc
   , allpass: nut $ Allpass.allpass ccb dpage ev

@@ -21,13 +21,13 @@ import Effect (Effect)
 import Effect.Aff (Aff, launchAff_)
 import Effect.Class (liftEffect)
 import FRP.Behavior (sample_)
-import FRP.Event (Event, Event, class IsEvent, subscribe)
+import FRP.Event (Event, subscribe)
 import FRP.Event.Animate (animationFrameEvent)
 import FRP.Event.Class (bang)
 import Math (pi, sin, (%))
 import WAGS.Clock (WriteHead, fot, writeHead)
-import WAGS.Control (loopBuf, singleton, speaker2)
-import WAGS.Core (AudioInput, fan)
+import WAGS.Control (loopBuf, speaker2)
+import WAGS.Core (Node, fan)
 import WAGS.Example.Utils (RaiseCancellation)
 import WAGS.Interpret (close, context, decodeAudioDataFromUri, effectfulAudioInterpret, makeFFIAudioSnapshot)
 import WAGS.Parameter (AudioNumeric(..), opticN, bangOn)
@@ -41,15 +41,15 @@ import Web.HTML.HTMLElement (toElement)
 import Web.HTML.Window (document)
 
 scene
-  :: forall payload
+  :: forall lock payload
    . BrowserAudioBuffer
   -> WriteHead Event
-  -> AudioInput D2 "" () Event payload
+  -> Array (Node D2 lock Event payload)
 scene loopy wh =
   let
     tr = fot wh (mul pi)
   in
-    singleton $ fan (loopBuf loopy bangOn) \tmlt ->
+    pure $ fan (loopBuf loopy bangOn) \tmlt ->
       tumult
         ( tr <#> \anum@(AudioNumeric { o }) ->
             let

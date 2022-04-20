@@ -97,7 +97,7 @@ scene push event' =
               /\ "Hello world"
               /\ true
           , FixFan
-              /\ "Fan, fix, and squiggles"
+              /\ "Array, fan, and fix"
               /\ true
           , AudioUnits
               /\ "Audio units"

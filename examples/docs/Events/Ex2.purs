@@ -25,8 +25,8 @@ import FRP.Event.Class (bang, biSampleOn, filterMap)
 import FRP.Event.Memoize (memoize)
 import Type.Proxy (Proxy(..))
 import WAGS.Clock (interval)
-import WAGS.Control (bandpass_, gain, gain_, highpass_, loopBuf, triangleOsc, (~))
-import WAGS.Core (fan, input)
+import WAGS.Control (bandpass_, gain, gain_, highpass_, triangleOsc)
+import WAGS.Core (Node, fan, input)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..))
 import WAGS.Example.Docs.Util (raceSelf)
 import WAGS.Interpret (close, context, ctxAff, decodeAudioDataFromUri)
@@ -87,9 +87,9 @@ import FRP.Event.Class (bang, filterMap)
 import FRP.Event.Memoize (memoize)
 import Type.Proxy (Proxy(..))
 import WAGS.Clock (interval)
-import WAGS.Control (bandpass_, gain, gain_, highpass_, triangleOsc, (~))
-import WAGS.Core (fan, input)
-import WAGS.Interpret (context, close)
+import WAGS.Control (bandpass_, gain, gain_, highpass_, triangleOsc)
+import WAGS.Core (Node, fan, input)
+import WAGS.Interpret (close, context)
 import WAGS.Math (calcSlope)
 import WAGS.Parameter (AudioEnvelope(..), bangOn)
 import WAGS.Properties (frequency)
@@ -132,6 +132,7 @@ main = uii.init unit 🚀 \push event -> do
   let
     ss = bang (ssi.start unit) <|> filterMap uip.startStop event
     sl = filterMap uip.slider event
+    music :: forall lock. _ -> Array (Node _ lock _ _)
     music evt = do
       let
         pitch = map fst evt
@@ -156,32 +157,32 @@ main = uii.init unit 🚀 \push event -> do
             , o: _
             } <$> time
         f0 = bangOn <|> frequency <<< cp <$> pitch
-      ( fan (triangleOsc 0.0 f0) \tosc -> do
+      [ fan (triangleOsc 0.0 f0) \tosc -> do
           let ipt = input tosc
-          gain_ 3.0
-            ( gain 0.0 (P.gain <$> e0)
-                ( bandpass_
+          gain_ 2.0
+            [ gain 0.0 (P.gain <$> e0)
+                [ bandpass_
                     { frequency: 1000.0
                     , q: 20.0
                     }
-                    ipt
-                )
-                ~ gain 0.0 (P.gain <$> e1)
-                    ( bandpass_
-                        { frequency: 2000.0
-                        , q: 20.0
-                        }
-                        ipt
-                    )
-                ~ gain 0.0 (P.gain <$> e2)
-                    ( highpass_
-                        { frequency: 4000.0
-                        , q: 20.0
-                        }
-                        ipt
-                    )
-            )
-      )
+                    [ ipt ]
+                ]
+            , gain 0.0 (P.gain <$> e1)
+                [ bandpass_
+                    { frequency: 2000.0
+                    , q: 20.0
+                    }
+                    [ ipt ]
+                ]
+            , gain 0.0 (P.gain <$> e2)
+                [ highpass_
+                    { frequency: 4000.0
+                    , q: 20.0
+                    }
+                    [ ipt ]
+                ]
+            ]
+      ]
   D.div_
     [ D.div_
         [ text_ "tempo"
@@ -267,6 +268,7 @@ ex2 ccb _ ev = makePursx' (Proxy :: _ "@") px
             let
                 ss = bang (ssi.start unit) <|> filterMap uip.startStop event
                 sl = filterMap uip.slider event
+                music :: forall lock. _ -> Array (Node _ lock _ _)
                 music evt = do
                   let
                     pitch = map fst evt
@@ -291,32 +293,32 @@ ex2 ccb _ ev = makePursx' (Proxy :: _ "@") px
                         , o: _
                         } <$> time
                     f0 = bangOn <|> frequency <<< cp <$> pitch
-                  ( fan (triangleOsc 0.0 f0) \tosc -> do
+                  [ fan (triangleOsc 0.0 f0) \tosc -> do
                       let ipt = input tosc
-                      gain_ 3.0
-                        ( gain 0.0 (P.gain <$> e0)
-                            ( bandpass_
+                      gain_ 2.0
+                        [ gain 0.0 (P.gain <$> e0)
+                            [ bandpass_
                                 { frequency: 1000.0
                                 , q: 20.0
                                 }
-                                ipt
-                            )
-                            ~ gain 0.0 (P.gain <$> e1)
-                                ( bandpass_
-                                    { frequency: 2000.0
-                                    , q: 20.0
-                                    }
-                                    ipt
-                                )
-                            ~ gain 0.0 (P.gain <$> e2)
-                                ( highpass_
-                                    { frequency: 4000.0
-                                    , q: 20.0
-                                    }
-                                    ipt
-                                )
-                        )
-                  )
+                                [ ipt ]
+                            ]
+                        , gain 0.0 (P.gain <$> e1)
+                            [ bandpass_
+                                { frequency: 2000.0
+                                , q: 20.0
+                                }
+                                [ ipt ]
+                            ]
+                        , gain 0.0 (P.gain <$> e2)
+                            [ highpass_
+                                { frequency: 4000.0
+                                , q: 20.0
+                                }
+                                [ ipt ]
+                            ]
+                        ]
+                  ]
             in
               D.div_
                 [ D.div_

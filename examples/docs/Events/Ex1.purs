@@ -27,6 +27,7 @@ import FRP.Event.Class (bang, biSampleOn)
 import FRP.Event.Class (bang, biSampleOn, filterMap)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (loopBuf)
+import WAGS.Core (Node)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..))
 import WAGS.Example.Docs.Util (raceSelf)
 import WAGS.Interpret (ctxAff, decodeAudioDataFromUri)
@@ -153,19 +154,20 @@ main = do
             sl1 = filterMap slp.s1 sl
             sl2 = filterMap slp.s2 sl
             music = run2_
-              $ loopBuf
+              [ loopBuf
                   { buffer: buffer
                   , playbackRate: 2.6
                   , loopStart: 0.6
                   , loopEnd: 1.1
                   }
-              $ oneOf
-                  [ bangOn
-                  , (calcSlope 0.0 0.2 100.0 5.0 >>> playbackRate) <$> sl0
-                  , (calcSlope 0.0 0.0 100.0 1.2 >>> loopStart) <$> sl1
-                  , (calcSlope 0.0 0.05 100.0 1.0 >>> loopEnd) <$> biSampleOn sl2
-                      (add <$> (bang 0.0 <|> sl1))
-                  ]
+                  $ oneOf
+                      [ bangOn
+                      , (calcSlope 0.0 0.2 100.0 5.0 >>> playbackRate) <$> sl0
+                      , (calcSlope 0.0 0.0 100.0 1.2 >>> loopStart) <$> sl1
+                      , (calcSlope 0.0 0.05 100.0 1.0 >>> loopEnd) <$> biSampleOn sl2
+                          (add <$> (bang 0.0 <|> sl1))
+                      ]
+              ]
           D.div_
             $
               map
@@ -215,7 +217,8 @@ main = do
                 ]
       , loading: \_ -> mkExists
           $ SubgraphF \_ _ -> D.div_ [ text_ "Loading..." ]
-      }"""
+      }
+"""
 
 type Slider = Variant (s0 :: Number, s1 :: Number, s2 :: Number)
 sli = injs_ (Proxy :: Proxy Slider)
@@ -272,6 +275,7 @@ ex1 ccb _ ev = makePursx' (Proxy :: _ "@") px
                 -- ugh, problem is that if we are in the land of run
                 -- then we need to be using Event
                 -- but we are inheriting something of type Event
+                music :: forall lock. _ -> Node _ lock _ _
                 music buffer =
                   loopBuf
                     { buffer: buffer
@@ -329,7 +333,7 @@ ex1 ccb _ ev = makePursx' (Proxy :: _ "@") px
                                       fib <- launchAff do
                                         buffer <- ctxAff \ctx -> decodeAudioDataFromUri ctx atari
                                         liftEffect do
-                                          res <- run2_ (music buffer)
+                                          res <- run2_ [music buffer]
                                           push (stop res)
                                           pure res
                                       ccb do

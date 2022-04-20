@@ -21,13 +21,14 @@ px =
   <p>A <a href="https://developer.mozilla.org/en-US/docs/Web/API/BiquadFilterNode">peaking filter</a> is sort of like a notch/bandpass combo. It sounds different than bandpass or notch, and is often a better choice depending on what you're making. The Q works as normal, but the gain either boosts or attenuates the frequency in question if it is positive or negative.</p>
 
   <pre><code>\buf -> run2_
-  $ peaking_ { frequency: 400.0, q: 1.0, gain: -20.0 }
-  $ peaking_ { frequency: 880.0, q: 5.0, gain: 20.0 }
-  $ peaking_ { frequency: 1200.0, q: 10.0, gain: -20.0 }
-  $ peaking_ { frequency: 2000.0, q: 20.0, gain: 20.0 }
-  $ peaking_ { frequency: 3000.0, q: 30.0, gain: -20.0 }
-  $ loopBuf buf bangOn
-</code></pre>
+  [
+    peaking_ { frequency: 400.0, q: 1.0, gain: -20.0 }
+    $ pure $ peaking_ { frequency: 880.0, q: 5.0, gain: 20.0 }
+    $ pure $ peaking_ { frequency: 1200.0, q: 10.0, gain: -20.0 }
+    $ pure $ peaking_ { frequency: 2000.0, q: 20.0, gain: 20.0 }
+    $ pure $ peaking_ { frequency: 3000.0, q: 30.0, gain: -20.0 }
+    $ pure $ loopBuf buf bangOn
+  ]</code></pre>
 
   ~peaking~
   </section>
@@ -39,11 +40,13 @@ peaking ccb _ ev = px ~~
   { peaking: nut
       ( audioWrapper ev ccb (ctxAff \ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
           \buf -> run2_
-            $ peaking_ { frequency: 400.0, q: 1.0, gain: -20.0 }
-            $ peaking_ { frequency: 880.0, q: 5.0, gain: 20.0 }
-            $ peaking_ { frequency: 1200.0, q: 10.0, gain: -20.0 }
-            $ peaking_ { frequency: 2000.0, q: 20.0, gain: 20.0 }
-            $ peaking_ { frequency: 3000.0, q: 30.0, gain: -20.0 }
-            $ loopBuf buf bangOn
+            [
+              peaking_ { frequency: 400.0, q: 1.0, gain: -20.0 }
+              $ pure $ peaking_ { frequency: 880.0, q: 5.0, gain: 20.0 }
+              $ pure $ peaking_ { frequency: 1200.0, q: 10.0, gain: -20.0 }
+              $ pure $ peaking_ { frequency: 2000.0, q: 20.0, gain: 20.0 }
+              $ pure $ peaking_ { frequency: 3000.0, q: 30.0, gain: -20.0 }
+              $ pure $ loopBuf buf bangOn
+            ]
       )
   }

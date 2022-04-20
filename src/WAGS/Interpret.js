@@ -663,19 +663,24 @@ exports.makePlayBuf_ = function (a) {
 			var ptr = a.id;
 			// var onOff = a.onOff;
 			var createClosure = function (context, i) {
-				return new AudioBufferSourceNode(context, i);
+				var opts = {
+					loop: i.loop,
+					buffer: i.buffer,
+					playbackRate: i.playbackRate,
+				};
+				return new AudioBufferSourceNode(context, opts);
 			};
 			var resume = {
 				loop: false,
 				buffer: a.buffer,
 				playbackRate: a.playbackRate,
+				bufferOffset: a.bufferOffset,
+				duration: a.duration,
 			};
 			state.units[ptr] = {
 				//outgoing: [a.parent],
 				outgoing: [],
 				incoming: [],
-				bufferOffset: a.bufferOffset,
-				duration: a.duration,
 				resume: resume,
 				createClosure: createClosure,
 				onOff: false,
@@ -1142,7 +1147,7 @@ exports.setBufferOffset_ = function (aa) {
 		return function () {
 			var ptr = aa.id;
 			var a = aa.bufferOffset;
-			state.units[ptr].bufferOffset = a;
+			state.units[ptr].resume.bufferOffset = a;
 		};
 	};
 };
@@ -1314,23 +1319,26 @@ var setOn_ = function (ptr) {
 						state.units[ptr].main.connect(state.units[ogi].se);
 					}
 				}
-				if (state.units[ptr].bufferOffset) {
-					if (state.units[ptr].duration.type === "just") {
+				if (state.units[ptr].resume && state.units[ptr].resume.bufferOffset) {
+					if (state.units[ptr].resume.duration.type === "just") {
 						state.units[ptr].main.start(
 							state.deprecatedWriteHead + onOffInstr.o,
-							state.units[ptr].bufferOffset,
-							state.units[ptr].duration.value
+							state.units[ptr].resume.bufferOffset,
+							state.units[ptr].resume.duration.value
 						);
 					} else {
 						state.units[ptr].main.start(
 							state.deprecatedWriteHead + onOffInstr.o,
-							state.units[ptr].bufferOffset
+							state.units[ptr].resume.bufferOffset
 						);
 					}
-				} else if (state.units[ptr].loopStart) {
+				} else if (
+					state.units[ptr].resume &&
+					state.units[ptr].resume.loopStart
+				) {
 					state.units[ptr].main.start(
 						state.deprecatedWriteHead + onOffInstr.o,
-						state.units[ptr].loopStart
+						state.units[ptr].resume.loopStart
 					);
 				} else {
 					state.units[ptr].main.start(state.deprecatedWriteHead + onOffInstr.o);
@@ -1418,24 +1426,6 @@ exports.mediaRecorderToBlob = function (mimeType) {
 					chunks = null;
 				};
 			};
-		};
-	};
-};
-// setting makes us stop the previous one if it exists
-exports.setMediaRecorderCb_ = function (aa) {
-	return function (state) {
-		return function () {
-			var a = aa.cb;
-			var ptr = aa.id;
-			if (state.units[ptr].recorderOrig === a) {
-				return;
-			}
-			state.units[ptr].recorder && state.units[ptr].recorder.stop();
-			var mediaRecorderSideEffectFn = a;
-			state.units[ptr].recorderOrig = a;
-			var mediaRecorder = new MediaRecorder(state.units[ptr].se);
-			mediaRecorderSideEffectFn(mediaRecorder)();
-			mediaRecorder.start();
 		};
 	};
 };

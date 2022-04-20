@@ -28,8 +28,8 @@ import FRP.Event.Animate (animationFrameEvent)
 import FRP.Event.Class (bang)
 import Math (pi, sin)
 import WAGS.Clock (WriteHead, fot, writeHead)
-import WAGS.Control (analyser, gain, loopBuf, singleton, speaker2, (~))
-import WAGS.Core (AudioInput)
+import WAGS.Control (analyser, gain, loopBuf, speaker2)
+import WAGS.Core (Node)
 import WAGS.Example.Utils (RaiseCancellation)
 import WAGS.Interpret (close, context, decodeAudioDataFromUri, effectfulAudioInterpret, getByteFrequencyData, makeFFIAudioSnapshot)
 import WAGS.Parameter (opticN, bangOn)
@@ -41,45 +41,43 @@ import Web.HTML.HTMLElement (toElement)
 import Web.HTML.Window (document)
 
 scene
-  :: forall payload
+  :: forall lock payload
    . BrowserAudioBuffer
   -> AnalyserNodeCb
   -> WriteHead Event
-  -> AudioInput D2 "" () Event payload
+  -> Node D2 lock Event payload
 scene atar cb wh =
   let
     tr = fot wh (mul pi)
   in
-    singleton
-      ( analyser { cb } empty
-          ( gain 1.0 empty
-              ( gain 0.3 empty
-                  ( loopBuf { buffer: atar, playbackRate: 1.0 }
-                      ( bangOn <|>
-                          playbackRate <<<
-                            (over opticN (\rad -> 1.0 + 0.1 * sin rad)) <$> tr
-                      )
+    analyser { cb } empty
+      ( gain 1.0 empty
+          [ gain 0.3 empty
+              [ loopBuf { buffer: atar, playbackRate: 1.0 }
+                  ( bangOn <|>
+                      playbackRate <<<
+                        (over opticN (\rad -> 1.0 + 0.1 * sin rad)) <$> tr
                   )
-                  ~ gain 0.15 empty
-                      ( loopBuf { buffer: atar, playbackRate: 1.0 }
-                          ( bangOn
-                              <|>
-                                playbackRate <<<
-                                  (over opticN (\rad -> 1.5 + 0.1 * sin (2.0 * rad)))
-                                  <$> tr
-                              <|>
-                                loopStart <<< (\rad -> 0.1 + 0.1 * sin rad)
-                                  <<< view opticN <$> tr
-                              <|>
-                                loopEnd
-                                  <<< (\rad -> 0.5 + 0.25 * sin (2.0 * rad))
-                                  <<< view opticN <$> tr
-                          )
-                      )
-                  ~ gain 0.3 empty
-                      (loopBuf { buffer: atar, playbackRate: 0.25 } bangOn)
-              )
-          )
+              ]
+          , gain 0.15 empty
+              [ loopBuf { buffer: atar, playbackRate: 1.0 }
+                  ( bangOn
+                      <|>
+                        playbackRate <<<
+                          (over opticN (\rad -> 1.5 + 0.1 * sin (2.0 * rad)))
+                          <$> tr
+                      <|>
+                        loopStart <<< (\rad -> 0.1 + 0.1 * sin rad)
+                          <<< view opticN <$> tr
+                      <|>
+                        loopEnd
+                          <<< (\rad -> 0.5 + 0.25 * sin (2.0 * rad))
+                          <<< view opticN <$> tr
+                  )
+              ]
+          , gain 0.3 empty
+              [ loopBuf { buffer: atar, playbackRate: 0.25 } bangOn ]
+          ]
       )
 
 data UIAction
@@ -116,7 +114,7 @@ atariSpeaks atar rc = mkExists $ SubgraphF \push event ->
                         let wh = writeHead 0.04 ctx
                         let
                           audioE = speaker2
-                            ( scene atar
+                            [ scene atar
                                 ( AnalyserNodeCb
                                     ( \a -> do
                                         analyserE.push (Just a)
@@ -124,7 +122,7 @@ atariSpeaks atar rc = mkExists $ SubgraphF \push event ->
                                     )
                                 )
                                 (sample_ wh afe)
-                            )
+                            ]
                             effectfulAudioInterpret
 
                         unsub <- subscribe

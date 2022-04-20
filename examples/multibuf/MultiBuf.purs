@@ -30,12 +30,12 @@ import Effect (Effect)
 import Effect.Aff (Aff, launchAff_)
 import Effect.Class (liftEffect)
 import FRP.Behavior (sample_)
-import FRP.Event (Event, class IsEvent, Event, fold, keepLatest, mapAccum, subscribe)
+import FRP.Event (Event, class IsEvent, fold, keepLatest, mapAccum, subscribe)
 import FRP.Event.Class (bang)
 import FRP.Event.Time (interval)
 import WAGS.Clock (ACTime, WriteHead, writeHead)
-import WAGS.Control (gain, playBuf, singleton, speaker2)
-import WAGS.Core (AudioInput, Subgraph)
+import WAGS.Control (gain, playBuf, speaker2)
+import WAGS.Core (Node, Subgraph)
 import WAGS.Core as C
 import WAGS.Example.Utils (RaiseCancellation)
 import WAGS.Interpret (close, context, decodeAudioDataFromUri, effectfulAudioInterpret, makeFFIAudioSnapshot)
@@ -93,12 +93,14 @@ accLoop time { cf, prevs } =
     prevs
 
 sg
-  :: forall event payload
+  :: forall lock event payload
    . IsEvent event
   => KickSnare
   -> Int /\ Number /\ ACTime
-  -> Subgraph D2 "" () event payload
-sg ks = \(i /\ t /\ { lookAhead }) -> C.mkSubgraph $ gain 1.0 empty
+  -> Subgraph D2 lock event payload
+sg ks = \(i /\ t /\ { lookAhead }) -> C.mkSubgraph
+  $ gain 1.0 empty
+  $ pure
   $ playBuf (if i `mod` 2 == 0 then ks.kick else ks.snare)
       ( bang $ onOff $ AudioOnOff
           { x: _on
@@ -135,10 +137,10 @@ sgActionMaker (ac /\ { head, no }) =
     (Nothing /\ Map.empty)
 
 scene
-  :: forall payload
+  :: forall lock payload
    . KickSnare
   -> WriteHead Event
-  -> AudioInput D2 "" () Event payload
+  -> Array (Node D2 lock Event payload)
 scene ks wh =
   let
     mapped = mapAccum
@@ -146,7 +148,7 @@ scene ks wh =
       wh
       acc
   in
-    singleton
+    pure
       (C.subgraph (keepLatest (map sgActionMaker mapped)) (sg ks))
 
 type UIAction = Maybe { unsub :: Effect Unit, ctx :: AudioContext }
