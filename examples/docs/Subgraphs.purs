@@ -11,9 +11,13 @@ import Effect (Effect)
 import FRP.Event (Event, class IsEvent)
 import FRP.Event.Class (bang)
 import Type.Proxy (Proxy(..))
+import WAGS.Control (gain_, loopBuf)
 import WAGS.Example.Docs.Subgraph.SliderEx as SliderEx
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
-import WAGS.Example.Docs.Util (ccassp, scrollToTop)
+import WAGS.Example.Docs.Util (audioWrapperSpan, ccassp, scrollToTop)
+import WAGS.Interpret (ctxAff, decodeAudioDataFromUri)
+import WAGS.Parameter (bangOn)
+import WAGS.Run (run2_)
 
 px =  Proxy :: Proxy """<div>
   <h1>Subgraphs</h1>
@@ -30,12 +34,15 @@ px =  Proxy :: Proxy """<div>
   ~suby~
 
   <h2>Go forth and be brilliant!</h2>
-  <p>And thus ends the first version of the wags documentation. Alas, some features remain undocumented, like audio worklets, an imperative API, and an experimental rendering engine called <code>tumult</code> that allows for efficient "VDOM"-esque audio unit diffing in portions of a graph. At some point I hope to document all of these, but hopefully this should be enough to get anyone interested up and running. If you need to use any of those features before I document them, ping me on the <a href="https://purescript.org/chat">PureScript Discord</a>. Otherwise, happy music making with Wags!</p>
+  <p>Thus ends the first version of the wags documentation. Applause is always welcome ~appl~! Alas, some features remain undocumented, like audio worklets, an imperative API, and an experimental rendering engine called <code>tumult</code> that allows for efficient "VDOM"-esque audio unit diffing in portions of a graph. At some point I hope to document all of these, but hopefully this should be enough to get anyone interested up and running. If you need to use any of those features before I document them, ping me on the <a href="https://purescript.org/chat">PureScript Discord</a>. Otherwise, happy music making with Wags!</p>
 </div>"""
 
 subgraphs :: forall payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent  -> Element Event payload
 subgraphs cca' dpage ssp ev = px ~~
-  {
+  { appl: nut
+      ( audioWrapperSpan "👏" ev ccb (ctxAff \ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/277/277021_1402315-lq.mp3")
+          \buf -> run2_ [ gain_ 1.0 [ loopBuf buf bangOn ] ]
+      ),
     suby: nut $ SliderEx.sgSliderEx ccb dpage ev
     -- next: bang (D.OnClick := (cb (const $ dpage Intro *> scrollToTop)))
   }
