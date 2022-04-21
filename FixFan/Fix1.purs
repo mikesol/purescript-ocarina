@@ -13,10 +13,10 @@ import WAGS.Control (delay_, gain, gain_, highpass_, playBuf)
 import WAGS.Core (fan, fix)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import WAGS.Example.Docs.Util (audioWrapper)
-import WAGS.Interpret (ctxAff, decodeAudioDataFromUri)
+import WAGS.Interpret (bracketCtx, decodeAudioDataFromUri)
 import WAGS.Parameter (AudioEnvelope(..), bangOn)
 import WAGS.Properties as P
-import WAGS.Run (run2_)
+import WAGS.Run (run2, run2_)
 
 px =
   Proxy    :: Proxy         """<div>
@@ -80,8 +80,8 @@ scene buf = run2_
         ]
   ]"""
   , ai0: nut
-      ( audioWrapper ev ccb (ctxAff \ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/178/178660_717950-lq.mp3")
-          \buf -> run2_
+      ( audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/178/178660_717950-lq.mp3")
+          \ctx buf -> run2 ctx
             [ fan (playBuf buf bangOn) \b -> fix
                 \g0 -> gain_ 1.0
                   [ b

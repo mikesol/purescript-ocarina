@@ -10,9 +10,9 @@ import Type.Proxy (Proxy(..))
 import WAGS.Control (loopBuf, notch_)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import WAGS.Example.Docs.Util (audioWrapper)
-import WAGS.Interpret (ctxAff, decodeAudioDataFromUri)
+import WAGS.Interpret (decodeAudioDataFromUri)
 import WAGS.Parameter (bangOn)
-import WAGS.Run (run2_)
+import WAGS.Run (run2)
 
 px =
   Proxy    :: Proxy         """<section>
@@ -36,8 +36,8 @@ px =
 notch :: forall payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Element Event payload
 notch ccb _ ev = px ~~
   { notch: nut
-      ( audioWrapper ev ccb (ctxAff \ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
-          \buf -> run2_
+      ( audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
+          \ctx buf -> run2 ctx
             [
               notch_ { frequency: 400.0, q: 1.0 }
               $ pure $ notch_ { frequency: 880.0, q: 5.0 }

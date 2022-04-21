@@ -29,7 +29,7 @@ import Type.Proxy (Proxy(..))
 import WAGS.Control (playBuf)
 import WAGS.Core (mkSubgraph, subgraph)
 import WAGS.Core as C
-import WAGS.Interpret (ctxAff, decodeAudioDataFromUri)
+import WAGS.Interpret (bracketCtx, decodeAudioDataFromUri)
 import WAGS.Parameter (bangOn)
 import WAGS.Run (run2_)
 import WAGS.Variant (injs_, prjs_)
@@ -66,7 +66,7 @@ random = behavior \e ->
 main :: Effect Unit
 main = do
   { push } <- loading 🚆 go
-  launchAff_ $ ctxAff
+  launchAff_ $ bracketCtx
     \ctx -> decodeAudioDataFromUri ctx bell >>= liftEffect
       <<< push
       <<< State

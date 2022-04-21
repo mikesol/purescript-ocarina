@@ -13,7 +13,7 @@ import WAGS.Core (fix)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import WAGS.Example.Docs.Util (audioWrapper)
 import WAGS.Interpret (getMicrophoneAndCamera)
-import WAGS.Run (run2_)
+import WAGS.Run (run2)
 
 px =
   Proxy    :: Proxy         """<section>
@@ -39,8 +39,8 @@ microphoneEx
   :: forall payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Element Event payload
 microphoneEx ccb _ ev = makePursx' (Proxy :: _ "@") px
   { microphone: nut
-      ( audioWrapper ev ccb (getMicrophoneAndCamera true false)
-          \{ microphone: mic } -> run2_
+      ( audioWrapper ev ccb (\_ -> getMicrophoneAndCamera true false)
+          \ctx { microphone: mic } -> run2 ctx
             [ case mic of
                 Just m -> fix \i -> gain_ 1.0
                   [ microphone m

@@ -11,7 +11,7 @@ import WAGS.Control (gain_, squareOsc)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import WAGS.Example.Docs.Util (audioWrapper)
 import WAGS.Parameter (bangOn)
-import WAGS.Run (run2_)
+import WAGS.Run (run2)
 
 px =
   Proxy :: Proxy """<section>
@@ -34,8 +34,8 @@ square
   -> Element Event payload
 square ccb _ ev = px ~~
   { periodic: nut
-      ( audioWrapper ev ccb (pure unit)
-          \_ -> run2_
+      ( audioWrapper ev ccb (\_ -> pure unit)
+          \ctx _ -> run2 ctx
             [gain_ 0.2 [squareOsc 448.0 bangOn]]
       )
   }

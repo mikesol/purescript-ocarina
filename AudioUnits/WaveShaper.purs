@@ -15,9 +15,9 @@ import Type.Proxy (Proxy(..))
 import WAGS.Control (loopBuf, waveShaper)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import WAGS.Example.Docs.Util (audioWrapper)
-import WAGS.Interpret (ctxAff, decodeAudioDataFromUri, makeFloatArray)
+import WAGS.Interpret (decodeAudioDataFromUri, makeFloatArray)
 import WAGS.Parameter (bangOn)
-import WAGS.Run (run2_)
+import WAGS.Run (run2)
 
 px =
   Proxy :: Proxy """<section>
@@ -56,8 +56,8 @@ waveShaperEx ccb _ ev = px ~~
     [ waveShaper wicked [ loopBuf buf bangOn ] ]"""
       )
   , waveShaper: nut
-      ( audioWrapper ev ccb (ctxAff \ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/339/339822_5121236-lq.mp3")
-          \buf -> do
+      ( audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/339/339822_5121236-lq.mp3")
+          \ctx buf -> do
             let
               makeDistortionCurve :: Number -> Array Number
               makeDistortionCurve k =
@@ -74,7 +74,7 @@ waveShaperEx ccb _ ev = px ~~
 
                 deg = pi / 180.0
             wicked <- makeFloatArray (makeDistortionCurve 400.0)
-            run2_
+            run2 ctx
               [waveShaper wicked [loopBuf buf bangOn]]
       )
   }

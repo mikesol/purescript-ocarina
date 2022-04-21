@@ -11,7 +11,7 @@ import WAGS.Control (gain_, sinOsc)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import WAGS.Example.Docs.Util (audioWrapper)
 import WAGS.Parameter (bangOn)
-import WAGS.Run (run2_)
+import WAGS.Run (run2)
 
 px =  Proxy   :: Proxy    """<section>
   <h2 id="sine">Sine wave oscillator</h2>
@@ -29,8 +29,8 @@ sine
   :: forall payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Element Event payload
 sine ccb _ ev = px ~~
   { periodic: nut
-      ( audioWrapper ev ccb (pure unit)
-          \_ -> run2_
+      ( audioWrapper ev ccb (\_ -> pure unit)
+          \ctx _ -> run2 ctx
             [gain_ 0.2
             [sinOsc 448.0 bangOn]]
       )

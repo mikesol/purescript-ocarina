@@ -15,9 +15,9 @@ import WAGS.Control (gain_, loopBuf)
 import WAGS.Example.Docs.Subgraph.SliderEx as SliderEx
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
 import WAGS.Example.Docs.Util (audioWrapperSpan, ccassp, scrollToTop)
-import WAGS.Interpret (ctxAff, decodeAudioDataFromUri)
+import WAGS.Interpret (bracketCtx, decodeAudioDataFromUri)
 import WAGS.Parameter (bangOn)
-import WAGS.Run (run2_)
+import WAGS.Run (run2, run2_)
 
 px =  Proxy :: Proxy """<div>
   <h1>Subgraphs</h1>
@@ -40,8 +40,8 @@ px =  Proxy :: Proxy """<div>
 subgraphs :: forall payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent  -> Element Event payload
 subgraphs cca' dpage ssp ev = px ~~
   { appl: nut
-      ( audioWrapperSpan "👏" ev ccb (ctxAff \ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/277/277021_1402315-lq.mp3")
-          \buf -> run2_ [ gain_ 1.0 [ loopBuf buf bangOn ] ]
+      ( audioWrapperSpan "👏" ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/277/277021_1402315-lq.mp3")
+          \ctx buf -> run2 ctx [ gain_ 1.0 [ loopBuf buf bangOn ] ]
       ),
     suby: nut $ SliderEx.sgSliderEx ccb dpage ev
     -- next: bang (D.OnClick := (cb (const $ dpage Intro *> scrollToTop)))

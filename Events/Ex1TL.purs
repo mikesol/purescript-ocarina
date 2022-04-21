@@ -22,7 +22,7 @@ import Effect.Class (liftEffect)
 import FRP.Event.Class (bang, biSampleOn, filterMap, keepLatest)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (loopBuf)
-import WAGS.Interpret (ctxAff, decodeAudioDataFromUri)
+import WAGS.Interpret (bracketCtx, decodeAudioDataFromUri)
 import WAGS.Math (calcSlope)
 import WAGS.Parameter (bangOn)
 import WAGS.Properties (loopEnd, loopStart, playbackRate)
@@ -62,7 +62,7 @@ atari =
 main :: Effect Unit
 main = do
   { push } <- loading 🚆 go
-  launchAff_ $ ctxAff
+  launchAff_ $ bracketCtx
     \ctx -> decodeAudioDataFromUri ctx atari >>= liftEffect
       <<< push
       <<< State

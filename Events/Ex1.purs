@@ -30,11 +30,11 @@ import WAGS.Control (loopBuf)
 import WAGS.Core (Node)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..))
 import WAGS.Example.Docs.Util (raceSelf)
-import WAGS.Interpret (ctxAff, decodeAudioDataFromUri)
+import WAGS.Interpret (bracketCtx, close, constant0Hack, context, decodeAudioDataFromUri)
 import WAGS.Math (calcSlope)
 import WAGS.Parameter (bangOn)
 import WAGS.Properties (loopEnd, loopStart, playbackRate)
-import WAGS.Run (run2_)
+import WAGS.Run (run2, run2_)
 import WAGS.Variant (injs_, prjs_)
 import Web.Event.Event (target)
 import Web.HTML.HTMLInputElement (fromEventTarget, valueAsNumber)
@@ -88,7 +88,7 @@ import Effect.Class (liftEffect)
 import FRP.Event.Class (bang, biSampleOn, filterMap, keepLatest)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (loopBuf)
-import WAGS.Interpret (ctxAff, decodeAudioDataFromUri)
+import WAGS.Interpret (bracketCtx, decodeAudioDataFromUri)
 import WAGS.Math (calcSlope)
 import WAGS.Parameter (bangOn)
 import WAGS.Properties (loopEnd, loopStart, playbackRate)
@@ -128,7 +128,7 @@ atari =
 main :: Effect Unit
 main = do
   { push } <- loading 🚆 go
-  launchAff_ $ ctxAff
+  launchAff_ $ bracketCtx
     \ctx -> decodeAudioDataFromUri ctx atari >>= liftEffect
       <<< push
       <<< State
@@ -331,9 +331,12 @@ ex1 ccb _ ev = makePursx' (Proxy :: _ "@") px
                                       cncl
                                       push loading
                                       fib <- launchAff do
-                                        buffer <- ctxAff \ctx -> decodeAudioDataFromUri ctx atari
+                                        ctx <- context
+                                        c0h <- constant0Hack ctx
+                                        buffer <- decodeAudioDataFromUri ctx atari
                                         liftEffect do
-                                          res <- run2_ [music buffer]
+                                          res' <- run2 ctx [music buffer]
+                                          let res = res' *> c0h *> close ctx
                                           push (stop res)
                                           pure res
                                       ccb do

@@ -21,7 +21,7 @@ import Math (pi, sin)
 import Type.Proxy (Proxy(..))
 import WAGS.Clock (withACTime)
 import WAGS.Control (gain, periodicOsc)
-import WAGS.Interpret (close, context)
+import WAGS.Interpret (close, constant0Hack, context)
 import WAGS.Math (calcSlope)
 import WAGS.Parameter (AudioNumeric(..), _linear, bangOn)
 import WAGS.Properties as P
@@ -64,6 +64,7 @@ main = start 🚀 \push event -> do
                   { stop: \u -> u *> push start
                   , start: \_ -> do
                       ctx <- context
+                      c0h <- constant0Hack ctx
                       afe <- animationFrameEvent
                       acTime <- memoize
                         $ map (add 0.04 <<< _.acTime)
@@ -115,7 +116,7 @@ main = start 🚀 \push event -> do
                                 )
                             ]
                         ]
-                      push $ (stop (r *> close ctx))
+                      push $ (stop (r *> c0h *> close ctx))
                   }
               )
         )

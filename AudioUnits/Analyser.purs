@@ -34,7 +34,7 @@ import WAGS.Control (analyser_, loopBuf, speaker2)
 import WAGS.Core (Po2(..))
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import WAGS.Example.Docs.Util (WrapperStates(..), clickCb, mkWrapperEvent)
-import WAGS.Interpret (close, context, contextState, ctxAff, decodeAudioDataFromUri, effectfulAudioInterpret, getByteFrequencyData, makeFFIAudioSnapshot)
+import WAGS.Interpret (close, context, contextState, bracketCtx, decodeAudioDataFromUri, effectfulAudioInterpret, getByteFrequencyData, makeFFIAudioSnapshot)
 import WAGS.Parameter (bangOn)
 import WAGS.WebAPI (AnalyserNodeCb(..), BrowserAudioBuffer)
 
@@ -106,10 +106,9 @@ analyserEx ccb _ ev = px ~~
                 [ D.button
                     ( (bang (D.Style := "cursor: pointer;")) <|>
                         ( clickCb ccb (Right >>> push)
-                            (ctxAff \ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
-                            ( \atar -> do
+                            (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
+                            ( \ctx atar -> do
                                 analyserE <- new Nothing
-                                ctx <- context
                                 ffi2 <- makeFFIAudioSnapshot ctx
                                 afe <- animationFrameEvent
                                 let

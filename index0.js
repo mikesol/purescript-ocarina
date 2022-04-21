@@ -2982,14 +2982,6 @@ var PS = {};
 
   exports.makeAff = Aff.Async;
 
-  exports.generalBracket = function (acquire) {
-    return function (options) {
-      return function (k) {
-        return Aff.Bracket(acquire, options, k);
-      };
-    };
-  };
-
   exports._makeFiber = function (util, aff) {
     return function () {
       return Aff.Fiber(util, null, aff);
@@ -3003,10 +2995,19 @@ var PS = {};
   "use strict";
   $PS["Effect.Class"] = $PS["Effect.Class"] || {};
   var exports = $PS["Effect.Class"];
+  var Control_Category = $PS["Control.Category"];
+  var Effect = $PS["Effect"];                
+  var monadEffectEffect = {
+      liftEffect: Control_Category.identity(Control_Category.categoryFn),
+      Monad0: function () {
+          return Effect.monadEffect;
+      }
+  };
   var liftEffect = function (dict) {
       return dict.liftEffect;
   };
   exports["liftEffect"] = liftEffect;
+  exports["monadEffectEffect"] = monadEffectEffect;
 })(PS);
 (function(exports) {
   "use strict";
@@ -3133,15 +3134,6 @@ var PS = {};
           return $40(launchAff($41));
       };
   })();
-  var bracket = function (acquire) {
-      return function (completed) {
-          return $foreign.generalBracket(acquire)({
-              killed: Data_Function["const"](completed),
-              failed: Data_Function["const"](completed),
-              completed: Data_Function["const"](completed)
-          });
-      };
-  };
   var applyParAff = {
       apply: $foreign["_parAffApply"],
       Functor0: function () {
@@ -3251,7 +3243,6 @@ var PS = {};
   exports["launchAff_"] = launchAff_;
   exports["killFiber"] = killFiber;
   exports["joinFiber"] = joinFiber;
-  exports["bracket"] = bracket;
   exports["functorAff"] = functorAff;
   exports["applyAff"] = applyAff;
   exports["applicativeAff"] = applicativeAff;
@@ -11132,6 +11123,18 @@ var PS = {};
 		  return dataArray;
 	  };
   };
+  exports.constant0Hack_ = function (context) {
+	  return function () {
+		  var constant = context.createConstantSource();
+		  constant.offset.value = 0.0;
+		  constant.connect(context.destination);
+		  constant.start();
+		  return function () {
+			  constant.stop();
+			  constant.disconnect(context.destination);
+		  };
+	  };
+  };
 
   var makePeriodicWaveImpl = function (ctx) {
 	  return function (real_) {
@@ -11166,7 +11169,7 @@ var PS = {};
 	  };
   };
 
-  exports.close = function (audioCtx) {
+  exports.close_ = function (audioCtx) {
 	  return function () {
 		  audioCtx.close();
 	  };
@@ -11193,10 +11196,10 @@ var PS = {};
 		  };
 	  };
   };
-  exports.context = function () {
+  exports.context_ = function () {
 	  return new (window.AudioContext || window.webkitAudioContext)();
   };
-  exports.contextState = function (audioCtx) {
+  exports.contextState_ = function (audioCtx) {
 	  return function () {
 		  return audioCtx.state;
 	  };
@@ -11568,9 +11571,9 @@ var PS = {};
       return function (cb) {
           return function (mr) {
               return Data_Function.flip($foreign.mediaRecorderToBlob(s))(mr)((function () {
-                  var $40 = Control_Bind.bindFlipped(Effect.bindEffect)(cb);
-                  return function ($41) {
-                      return $40(Web_File_Url.createObjectURL($41));
+                  var $46 = Control_Bind.bindFlipped(Effect.bindEffect)(cb);
+                  return function ($47) {
+                      return $46(Web_File_Url.createObjectURL($47));
                   };
               })());
           };
@@ -11751,19 +11754,36 @@ var PS = {};
   var decodeAudioDataFromUri = function (ctx) {
       return function (s) {
           return Control_Bind.bind(Effect_Aff.bindAff)(Control_Promise.toAffE($foreign.fetchArrayBuffer(s)))((function () {
-              var $42 = $foreign.decodeAudioDataFromArrayBuffer(ctx);
-              return function ($43) {
-                  return Control_Promise.toAffE($42($43));
+              var $48 = $foreign.decodeAudioDataFromArrayBuffer(ctx);
+              return function ($49) {
+                  return Control_Promise.toAffE($48($49));
               };
           })());
       };
   };
-  var ctxAff = Effect_Aff.bracket(Effect_Class.liftEffect(Effect_Aff.monadEffectAff)($foreign.context))((function () {
-      var $44 = Effect_Class.liftEffect(Effect_Aff.monadEffectAff);
-      return function ($45) {
-          return $44($foreign.close($45));
+  var contextState = function (dictMonadEffect) {
+      var $50 = Effect_Class.liftEffect(dictMonadEffect);
+      return function ($51) {
+          return $50($foreign.contextState_($51));
       };
-  })());
+  };
+  var context = function (dictMonadEffect) {
+      return Effect_Class.liftEffect(dictMonadEffect)($foreign.context_);
+  };
+  var constant0Hack = function (dictMonadEffect) {
+      var $54 = Effect_Class.liftEffect(dictMonadEffect);
+      return function ($55) {
+          return $54($foreign.constant0Hack_($55));
+      };
+  };
+  var close = function (dictMonadEffect) {
+      return function (ctx) {
+          return Effect_Class.liftEffect(dictMonadEffect)(function __do() {
+              var st = contextState(Effect_Class.monadEffectEffect)(ctx)();
+              return Control_Applicative.when(Effect.applicativeEffect)(st !== "closed")($foreign.close_(ctx))();
+          });
+      };
+  };
   var browserMediaStreamToBrowserMicrophone = Unsafe_Coerce.unsafeCoerce;
   var browserMediaStreamToBrowserCamera = Unsafe_Coerce.unsafeCoerce;
   var getMicrophoneAndCamera = function (audio) {
@@ -11788,16 +11808,16 @@ var PS = {};
   };
   exports["mediaRecorderToUrl"] = mediaRecorderToUrl;
   exports["decodeAudioDataFromUri"] = decodeAudioDataFromUri;
-  exports["ctxAff"] = ctxAff;
+  exports["context"] = context;
+  exports["constant0Hack"] = constant0Hack;
+  exports["contextState"] = contextState;
+  exports["close"] = close;
   exports["getMicrophoneAndCamera"] = getMicrophoneAndCamera;
   exports["effectfulAudioInterpret"] = effectfulAudioInterpret;
   exports["getByteFrequencyData"] = $foreign.getByteFrequencyData;
   exports["getAudioClockTime"] = $foreign.getAudioClockTime;
   exports["stopMediaRecorder"] = $foreign.stopMediaRecorder;
   exports["makeFloatArray"] = $foreign.makeFloatArray;
-  exports["context"] = $foreign.context;
-  exports["contextState"] = $foreign.contextState;
-  exports["close"] = $foreign.close;
   exports["makeFFIAudioSnapshot"] = $foreign.makeFFIAudioSnapshot;
 })(PS);
 (function($PS) {
@@ -14520,7 +14540,8 @@ var PS = {};
   var Effect_Exception = $PS["Effect.Exception"];
   var FRP_Event = $PS["FRP.Event"];
   var FRP_Event_Class = $PS["FRP.Event.Class"];
-  var WAGS_Example_Docs_Types = $PS["WAGS.Example.Docs.Types"];                
+  var WAGS_Example_Docs_Types = $PS["WAGS.Example.Docs.Types"];
+  var WAGS_Interpret = $PS["WAGS.Interpret"];                
   var Loading = (function () {
       function Loading() {
 
@@ -14591,11 +14612,16 @@ var PS = {};
                                                   return function __do() {
                                                       v.value1();
                                                       push(Loading.value)();
-                                                      var fib = Effect_Aff.launchAff(Control_Bind.bind(Effect_Aff.bindAff)(init)(function (x) {
-                                                          return Effect_Class.liftEffect(Effect_Aff.monadEffectAff)(function __do() {
-                                                              var res = i(x)();
-                                                              push(new Playing(res))();
-                                                              return res;
+                                                      var fib = Effect_Aff.launchAff(Control_Bind.bind(Effect_Aff.bindAff)(WAGS_Interpret.context(Effect_Aff.monadEffectAff))(function (ctx) {
+                                                          return Control_Bind.bind(Effect_Aff.bindAff)(WAGS_Interpret.constant0Hack(Effect_Aff.monadEffectAff)(ctx))(function (c0h) {
+                                                              return Control_Bind.bind(Effect_Aff.bindAff)(init(ctx))(function (x) {
+                                                                  return Effect_Class.liftEffect(Effect_Aff.monadEffectAff)(function __do() {
+                                                                      var res$prime = i(ctx)(x)();
+                                                                      var res = Control_Apply.applySecond(Effect.applyEffect)(Control_Apply.applySecond(Effect.applyEffect)(res$prime)(c0h))(WAGS_Interpret.close(Effect_Class.monadEffectEffect)(ctx));
+                                                                      push(new Playing(res))();
+                                                                      return res;
+                                                                  });
+                                                              });
                                                           });
                                                       }))();
                                                       return Control_Bind.discard(dictDiscard)(Effect.bindEffect)(cca(function __do() {
@@ -14606,7 +14632,7 @@ var PS = {};
                                                       })();
                                                   };
                                               };
-                                              throw new Error("Failed pattern match at WAGS.Example.Docs.Util (line 48, column 21 - line 63, column 26): " + [ v.value0.constructor.name ]);
+                                              throw new Error("Failed pattern match at WAGS.Example.Docs.Util (line 49, column 21 - line 67, column 26): " + [ v.value0.constructor.name ]);
                                           })())));
                                       })(FRP_Event_Class.biSampleOn(dictIsEvent)(Control_Alt.alt((dictIsEvent.Plus0()).Alt0())(FRP_Event_Class.bang(dictIsEvent)(Control_Applicative.pure(Effect.applicativeEffect)(Data_Unit.unit)))(Data_Functor.map(dictFunctor)(function (v) {
                                           return v.value0;
@@ -14649,7 +14675,7 @@ var PS = {};
                                       if (v1 instanceof Playing) {
                                           return "\ud83d\uded1";
                                       };
-                                      throw new Error("Failed pattern match at WAGS.Example.Docs.Util (line 114, column 19 - line 117, column 37): " + [ v1.constructor.name ]);
+                                      throw new Error("Failed pattern match at WAGS.Example.Docs.Util (line 118, column 19 - line 121, column 37): " + [ v1.constructor.name ]);
                                   })(event)) ]);
                               };
                           });
@@ -14677,7 +14703,7 @@ var PS = {};
                                   if (v1 instanceof Playing) {
                                       return "Turn off";
                                   };
-                                  throw new Error("Failed pattern match at WAGS.Example.Docs.Util (line 87, column 19 - line 90, column 44): " + [ v1.constructor.name ]);
+                                  throw new Error("Failed pattern match at WAGS.Example.Docs.Util (line 91, column 19 - line 94, column 44): " + [ v1.constructor.name ]);
                               })(event)) ]);
                           };
                       });
@@ -14835,6 +14861,7 @@ var PS = {};
   var Control_Applicative = $PS["Control.Applicative"];
   var Control_Apply = $PS["Control.Apply"];
   var Effect = $PS["Effect"];
+  var Effect_Class = $PS["Effect.Class"];
   var FRP_Event = $PS["FRP.Event"];
   var WAGS_Control = $PS["WAGS.Control"];
   var WAGS_Interpret = $PS["WAGS.Interpret"];                
@@ -14851,11 +14878,11 @@ var PS = {};
   };
   var run2_ = function (s) {
       return function __do() {
-          var ctx = WAGS_Interpret.context();
+          var ctx = WAGS_Interpret.context(Effect_Class.monadEffectEffect)();
           var u = run2(ctx)(s)();
           return function __do() {
-              var st = Control_Apply.applySecond(Effect.applyEffect)(u)(WAGS_Interpret.contextState(ctx))();
-              return Control_Applicative.when(Effect.applicativeEffect)(st !== "closed")(WAGS_Interpret.close(ctx))();
+              var st = Control_Apply.applySecond(Effect.applyEffect)(u)(WAGS_Interpret.contextState(Effect_Class.monadEffectEffect)(ctx))();
+              return Control_Applicative.when(Effect.applicativeEffect)(st !== "closed")(WAGS_Interpret.close(Effect_Class.monadEffectEffect)(ctx))();
           };
       };
   };
@@ -14895,34 +14922,36 @@ var PS = {};
                       return "allpass";
                   }
               }))(FRP_Event.eventIsEvent)(Type_Proxy["Proxy"].value)(px)({
-                  allpass: Deku_Pursx.nut(WAGS_Example_Docs_Util.audioWrapper(ev)(ccb)(WAGS_Interpret.ctxAff(function (ctx) {
+                  allpass: Deku_Pursx.nut(WAGS_Example_Docs_Util.audioWrapper(ev)(ccb)(function (ctx) {
                       return WAGS_Interpret.decodeAudioDataFromUri(ctx)("https://freesound.org/data/previews/320/320873_527080-hq.mp3");
-                  }))(function (buf) {
-                      return WAGS_Run.run2_([ WAGS_Core.fan(FRP_Event.eventIsEvent)(WAGS_Control.loopBuf(FRP_Event.eventIsEvent)(WAGS_Common.initialLoopBufBrowserAudi)(buf)(WAGS_Parameter.bangOn(FRP_Event.eventIsEvent)()))(function (b) {
-                          return WAGS_Control.gain_(FRP_Event.eventIsEvent)(WAGS_Common.initialGainNumber)(0.2)([ b, WAGS_Control.allpass_(FRP_Event.eventIsEvent)(WAGS_Common.initialAllpassInitialAudi)(700.0)([ WAGS_Control.allpass_(FRP_Event.eventIsEvent)(WAGS_Common.initialAllpassRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionAllpassOptio)()()()({
-                              reflectSymbol: function () {
-                                  return "q";
-                              }
-                          }))(WAGS_Common.convertOptionAllpassOptio1)()()()({
-                              reflectSymbol: function () {
-                                  return "frequency";
-                              }
-                          })))(ConvertableOptions.defaultsRecord()())))({
-                              frequency: 990.0,
-                              q: 20.0
-                          })([ b ]), WAGS_Control.allpass_(FRP_Event.eventIsEvent)(WAGS_Common.initialAllpassInitialAudi)(1110.0)([ b, WAGS_Control.allpass_(FRP_Event.eventIsEvent)(WAGS_Common.initialAllpassRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionAllpassOptio)()()()({
-                              reflectSymbol: function () {
-                                  return "q";
-                              }
-                          }))(WAGS_Common.convertOptionAllpassOptio1)()()()({
-                              reflectSymbol: function () {
-                                  return "frequency";
-                              }
-                          })))(ConvertableOptions.defaultsRecord()())))({
-                              frequency: 2010.0,
-                              q: 30.0
-                          })([ b ]) ]) ]) ]);
-                      }) ]);
+                  })(function (ctx) {
+                      return function (buf) {
+                          return WAGS_Run.run2(ctx)([ WAGS_Core.fan(FRP_Event.eventIsEvent)(WAGS_Control.loopBuf(FRP_Event.eventIsEvent)(WAGS_Common.initialLoopBufBrowserAudi)(buf)(WAGS_Parameter.bangOn(FRP_Event.eventIsEvent)()))(function (b) {
+                              return WAGS_Control.gain_(FRP_Event.eventIsEvent)(WAGS_Common.initialGainNumber)(0.2)([ b, WAGS_Control.allpass_(FRP_Event.eventIsEvent)(WAGS_Common.initialAllpassInitialAudi)(700.0)([ WAGS_Control.allpass_(FRP_Event.eventIsEvent)(WAGS_Common.initialAllpassRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionAllpassOptio)()()()({
+                                  reflectSymbol: function () {
+                                      return "q";
+                                  }
+                              }))(WAGS_Common.convertOptionAllpassOptio1)()()()({
+                                  reflectSymbol: function () {
+                                      return "frequency";
+                                  }
+                              })))(ConvertableOptions.defaultsRecord()())))({
+                                  frequency: 990.0,
+                                  q: 20.0
+                              })([ b ]), WAGS_Control.allpass_(FRP_Event.eventIsEvent)(WAGS_Common.initialAllpassInitialAudi)(1110.0)([ b, WAGS_Control.allpass_(FRP_Event.eventIsEvent)(WAGS_Common.initialAllpassRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionAllpassOptio)()()()({
+                                  reflectSymbol: function () {
+                                      return "q";
+                                  }
+                              }))(WAGS_Common.convertOptionAllpassOptio1)()()()({
+                                  reflectSymbol: function () {
+                                      return "frequency";
+                                  }
+                              })))(ConvertableOptions.defaultsRecord()())))({
+                                  frequency: 2010.0,
+                                  q: 30.0
+                              })([ b ]) ]) ]) ]);
+                          }) ]);
+                      };
                   }))
               });
           };
@@ -14969,6 +14998,7 @@ var PS = {};
   var Deku_Pursx = $PS["Deku.Pursx"];
   var Deku_Subgraph = $PS["Deku.Subgraph"];
   var Effect = $PS["Effect"];
+  var Effect_Class = $PS["Effect.Class"];
   var Effect_Ref = $PS["Effect.Ref"];
   var FRP_Event = $PS["FRP.Event"];
   var FRP_Event_Animate = $PS["FRP.Event.Animate"];
@@ -15072,98 +15102,99 @@ var PS = {};
                               })(ptn);
                               return Deku_DOM_Elt_Div.div_(FRP_Event.eventIsEvent)([ Deku_DOM_Elt_Button.button(FRP_Event.eventIsEvent)(Control_Alt.alt(FRP_Event.altEvent)(FRP_Event_Class.bang(FRP_Event.eventIsEvent)(Deku_Attribute.attr(Deku_DOM_Attr_Style.attrButton_StyleString)(Deku_DOM_Attr_Style.Style.value)("cursor: pointer;")))(WAGS_Example_Docs_Util.clickCb(FRP_Event.functorEvent)(Control_Bind.discardUnit)(FRP_Event.eventIsEvent)(ccb)(function ($27) {
                                   return push(Data_Either.Right.create($27));
-                              })(WAGS_Interpret.ctxAff(function (ctx) {
+                              })(function (ctx) {
                                   return WAGS_Interpret.decodeAudioDataFromUri(ctx)("https://freesound.org/data/previews/320/320873_527080-hq.mp3");
-                              }))(function (atar) {
-                                  return function __do() {
-                                      var analyserE = Effect_Ref["new"](Data_Maybe.Nothing.value)();
-                                      var ctx = WAGS_Interpret.context();
-                                      var ffi2 = WAGS_Interpret.makeFFIAudioSnapshot(ctx)();
-                                      var afe = FRP_Event_Animate.animationFrameEvent();
-                                      var audioE = WAGS_Control.speaker2(FRP_Event.eventIsEvent)([ scene(FRP_Event.eventIsEvent)(WAGS_Control.convertOptionAnalyserOpti)(WAGS_Common.initialLoopBufBrowserAudi)(atar)(function (a) {
-                                          return function __do() {
-                                              Effect_Ref.write(new Data_Maybe.Just(a))(analyserE)();
-                                              return Effect_Ref.write(Data_Maybe.Nothing.value)(analyserE);
-                                          };
-                                      }) ])(WAGS_Interpret.effectfulAudioInterpret);
-                                      var unsub = FRP_Event.subscribe(Control_Alt.alt(FRP_Event.altEvent)(Data_Functor.map(FRP_Event.functorEvent)(Data_Either.Right.create)(audioE))(Data_Functor.map(FRP_Event.functorEvent)(Data_Either.Left.create)(afe)))(function (analyserOrAudio) {
-                                          if (analyserOrAudio instanceof Data_Either.Right) {
-                                              return analyserOrAudio.value0(ffi2);
-                                          };
-                                          if (analyserOrAudio instanceof Data_Either.Left) {
-                                              return function __do() {
-                                                  var analyser = Effect_Ref.read(analyserE)();
-                                                  return Data_Foldable.for_(Effect.applicativeEffect)(Data_Foldable.foldableMaybe)(analyser)(function (a) {
-                                                      return function __do() {
-                                                          var frequencyData = WAGS_Interpret.getByteFrequencyData(a)();
-                                                          var arr = Data_ArrayBuffer_Typed.toArray(Data_ArrayBuffer_Typed.typedArrayUint8)(frequencyData)();
-                                                          var r0 = Effect_Ref["new"](0)();
-                                                          var r1 = Effect_Ref["new"](0)();
-                                                          var r2 = Effect_Ref["new"](0)();
-                                                          var r3 = Effect_Ref["new"](0)();
-                                                          var r4 = Effect_Ref["new"](0)();
-                                                          var r5 = Effect_Ref["new"](0)();
-                                                          var r6 = Effect_Ref["new"](0)();
-                                                          var r7 = Effect_Ref["new"](0)();
-                                                          var tref = Effect_Ref["new"](0)();
-                                                          var cref = Effect_Ref["new"](0)();
-                                                          var gcref = function (x) {
-                                                              if (x < 32) {
-                                                                  return r0;
-                                                              };
-                                                              if (x < 64) {
-                                                                  return r1;
-                                                              };
-                                                              if (x < 96) {
-                                                                  return r2;
-                                                              };
-                                                              if (x < 128) {
-                                                                  return r3;
-                                                              };
-                                                              if (x < 168) {
-                                                                  return r4;
-                                                              };
-                                                              if (x < 160) {
-                                                                  return r5;
-                                                              };
-                                                              if (x < 224) {
-                                                                  return r6;
-                                                              };
-                                                              if (Data_Boolean.otherwise) {
-                                                                  return r7;
-                                                              };
-                                                              throw new Error("Failed pattern match at WAGS.Example.Docs.AudioUnits.Analyser (line 148, column 45 - line 156, column 63): " + [ x.constructor.name ]);
-                                                          };
-                                                          Effect.foreachE(arr)(function (i$prime) {
-                                                              var i = Data_UInt.toInt(i$prime);
-                                                              return function __do() {
-                                                                  var nref = Effect_Ref.read(cref)();
-                                                                  Effect_Ref.modify_(Data_Semiring.add(Data_Semiring.semiringInt)(i))(tref)();
-                                                                  Effect_Ref.modify_(Data_Semiring.add(Data_Semiring.semiringInt)(i))(gcref(nref))();
-                                                                  return Effect_Ref.modify_(Data_Semiring.add(Data_Semiring.semiringInt)(1))(cref)();
-                                                              };
-                                                          })();
-                                                          var ov = Data_Traversable.traverse(Data_Vec.traversableVec)(Effect.applicativeEffect)(function (i) {
-                                                              return function __do() {
-                                                                  var x = Data_Functor.map(Effect.functorEffect)(Data_Int.toNumber)(Effect_Ref.read(i))();
-                                                                  var v3 = Data_Functor.map(Effect.functorEffect)(Data_EuclideanRing.div(Data_EuclideanRing.euclideanRingNumber)(x))(Data_Functor.map(Effect.functorEffect)(Data_Int.toNumber)(Effect_Ref.read(tref)))();
-                                                                  return Data_Vec.cons(Data_Typelevel_Num_Ops.typelevelSucc(Data_Typelevel_Num_Sets.posD5)()(Data_Typelevel_Num_Ops.divMod10D4D0)()(Data_Typelevel_Num_Ops.divMod10D5D0))(v3 > b4)(Data_Vec.cons(Data_Typelevel_Num_Ops.typelevelSucc(Data_Typelevel_Num_Sets.posD4)()(Data_Typelevel_Num_Ops.divMod10D3D0)()(Data_Typelevel_Num_Ops.divMod10D4D0))(v3 > b3)(Data_Vec.cons(Data_Typelevel_Num_Ops.typelevelSucc(Data_Typelevel_Num_Sets.posD3)()(Data_Typelevel_Num_Ops.divMod10D2D0)()(Data_Typelevel_Num_Ops.divMod10D3D0))(v3 > b2)(Data_Vec.cons(Data_Typelevel_Num_Ops.typelevelSucc(Data_Typelevel_Num_Sets.posD2)()(Data_Typelevel_Num_Ops.divMod10D1D0)()(Data_Typelevel_Num_Ops.divMod10D2D0))(v3 > b1)(Data_Vec.cons(Data_Typelevel_Num_Ops.typelevelSucc(Data_Typelevel_Num_Sets.posD1)()(Data_Typelevel_Num_Ops.divMod10D0D0)()(Data_Typelevel_Num_Ops.divMod10D1D0))(v3 > b0)(Data_Vec.empty)))));
-                                                              };
-                                                          })(Data_Vec.cons(Data_Typelevel_Num_Ops.typelevelSucc(Data_Typelevel_Num_Sets.posD8)()(Data_Typelevel_Num_Ops.divMod10D7D0)()(Data_Typelevel_Num_Ops.divMod10D8D0))(r0)(Data_Vec.cons(Data_Typelevel_Num_Ops.typelevelSucc(Data_Typelevel_Num_Sets.posD7)()(Data_Typelevel_Num_Ops.divMod10D6D0)()(Data_Typelevel_Num_Ops.divMod10D7D0))(r1)(Data_Vec.cons(Data_Typelevel_Num_Ops.typelevelSucc(Data_Typelevel_Num_Sets.posD6)()(Data_Typelevel_Num_Ops.divMod10D5D0)()(Data_Typelevel_Num_Ops.divMod10D6D0))(r2)(Data_Vec.cons(Data_Typelevel_Num_Ops.typelevelSucc(Data_Typelevel_Num_Sets.posD5)()(Data_Typelevel_Num_Ops.divMod10D4D0)()(Data_Typelevel_Num_Ops.divMod10D5D0))(r3)(Data_Vec.cons(Data_Typelevel_Num_Ops.typelevelSucc(Data_Typelevel_Num_Sets.posD4)()(Data_Typelevel_Num_Ops.divMod10D3D0)()(Data_Typelevel_Num_Ops.divMod10D4D0))(r4)(Data_Vec.cons(Data_Typelevel_Num_Ops.typelevelSucc(Data_Typelevel_Num_Sets.posD3)()(Data_Typelevel_Num_Ops.divMod10D2D0)()(Data_Typelevel_Num_Ops.divMod10D3D0))(r5)(Data_Vec.cons(Data_Typelevel_Num_Ops.typelevelSucc(Data_Typelevel_Num_Sets.posD2)()(Data_Typelevel_Num_Ops.divMod10D1D0)()(Data_Typelevel_Num_Ops.divMod10D2D0))(r6)(Data_Vec.cons(Data_Typelevel_Num_Ops.typelevelSucc(Data_Typelevel_Num_Sets.posD1)()(Data_Typelevel_Num_Ops.divMod10D0D0)()(Data_Typelevel_Num_Ops.divMod10D1D0))(r7)(Data_Vec.empty)))))))))();
-                                                          return push(new Data_Either.Left(ov))();
-                                                      };
-                                                  })();
-                                              };
-                                          };
-                                          throw new Error("Failed pattern match at WAGS.Example.Docs.AudioUnits.Analyser (line 129, column 57 - line 167, column 57): " + [ analyserOrAudio.constructor.name ]);
-                                      })();
+                              })(function (ctx) {
+                                  return function (atar) {
                                       return function __do() {
-                                          unsub();
-                                          (function __do() {
-                                              var st = WAGS_Interpret.contextState(ctx)();
-                                              return Control_Applicative.when(Effect.applicativeEffect)(st !== "closed")(WAGS_Interpret.close(ctx))();
+                                          var analyserE = Effect_Ref["new"](Data_Maybe.Nothing.value)();
+                                          var ffi2 = WAGS_Interpret.makeFFIAudioSnapshot(ctx)();
+                                          var afe = FRP_Event_Animate.animationFrameEvent();
+                                          var audioE = WAGS_Control.speaker2(FRP_Event.eventIsEvent)([ scene(FRP_Event.eventIsEvent)(WAGS_Control.convertOptionAnalyserOpti)(WAGS_Common.initialLoopBufBrowserAudi)(atar)(function (a) {
+                                              return function __do() {
+                                                  Effect_Ref.write(new Data_Maybe.Just(a))(analyserE)();
+                                                  return Effect_Ref.write(Data_Maybe.Nothing.value)(analyserE);
+                                              };
+                                          }) ])(WAGS_Interpret.effectfulAudioInterpret);
+                                          var unsub = FRP_Event.subscribe(Control_Alt.alt(FRP_Event.altEvent)(Data_Functor.map(FRP_Event.functorEvent)(Data_Either.Right.create)(audioE))(Data_Functor.map(FRP_Event.functorEvent)(Data_Either.Left.create)(afe)))(function (analyserOrAudio) {
+                                              if (analyserOrAudio instanceof Data_Either.Right) {
+                                                  return analyserOrAudio.value0(ffi2);
+                                              };
+                                              if (analyserOrAudio instanceof Data_Either.Left) {
+                                                  return function __do() {
+                                                      var analyser = Effect_Ref.read(analyserE)();
+                                                      return Data_Foldable.for_(Effect.applicativeEffect)(Data_Foldable.foldableMaybe)(analyser)(function (a) {
+                                                          return function __do() {
+                                                              var frequencyData = WAGS_Interpret.getByteFrequencyData(a)();
+                                                              var arr = Data_ArrayBuffer_Typed.toArray(Data_ArrayBuffer_Typed.typedArrayUint8)(frequencyData)();
+                                                              var r0 = Effect_Ref["new"](0)();
+                                                              var r1 = Effect_Ref["new"](0)();
+                                                              var r2 = Effect_Ref["new"](0)();
+                                                              var r3 = Effect_Ref["new"](0)();
+                                                              var r4 = Effect_Ref["new"](0)();
+                                                              var r5 = Effect_Ref["new"](0)();
+                                                              var r6 = Effect_Ref["new"](0)();
+                                                              var r7 = Effect_Ref["new"](0)();
+                                                              var tref = Effect_Ref["new"](0)();
+                                                              var cref = Effect_Ref["new"](0)();
+                                                              var gcref = function (x) {
+                                                                  if (x < 32) {
+                                                                      return r0;
+                                                                  };
+                                                                  if (x < 64) {
+                                                                      return r1;
+                                                                  };
+                                                                  if (x < 96) {
+                                                                      return r2;
+                                                                  };
+                                                                  if (x < 128) {
+                                                                      return r3;
+                                                                  };
+                                                                  if (x < 168) {
+                                                                      return r4;
+                                                                  };
+                                                                  if (x < 160) {
+                                                                      return r5;
+                                                                  };
+                                                                  if (x < 224) {
+                                                                      return r6;
+                                                                  };
+                                                                  if (Data_Boolean.otherwise) {
+                                                                      return r7;
+                                                                  };
+                                                                  throw new Error("Failed pattern match at WAGS.Example.Docs.AudioUnits.Analyser (line 147, column 45 - line 155, column 63): " + [ x.constructor.name ]);
+                                                              };
+                                                              Effect.foreachE(arr)(function (i$prime) {
+                                                                  var i = Data_UInt.toInt(i$prime);
+                                                                  return function __do() {
+                                                                      var nref = Effect_Ref.read(cref)();
+                                                                      Effect_Ref.modify_(Data_Semiring.add(Data_Semiring.semiringInt)(i))(tref)();
+                                                                      Effect_Ref.modify_(Data_Semiring.add(Data_Semiring.semiringInt)(i))(gcref(nref))();
+                                                                      return Effect_Ref.modify_(Data_Semiring.add(Data_Semiring.semiringInt)(1))(cref)();
+                                                                  };
+                                                              })();
+                                                              var ov = Data_Traversable.traverse(Data_Vec.traversableVec)(Effect.applicativeEffect)(function (i) {
+                                                                  return function __do() {
+                                                                      var x = Data_Functor.map(Effect.functorEffect)(Data_Int.toNumber)(Effect_Ref.read(i))();
+                                                                      var v3 = Data_Functor.map(Effect.functorEffect)(Data_EuclideanRing.div(Data_EuclideanRing.euclideanRingNumber)(x))(Data_Functor.map(Effect.functorEffect)(Data_Int.toNumber)(Effect_Ref.read(tref)))();
+                                                                      return Data_Vec.cons(Data_Typelevel_Num_Ops.typelevelSucc(Data_Typelevel_Num_Sets.posD5)()(Data_Typelevel_Num_Ops.divMod10D4D0)()(Data_Typelevel_Num_Ops.divMod10D5D0))(v3 > b4)(Data_Vec.cons(Data_Typelevel_Num_Ops.typelevelSucc(Data_Typelevel_Num_Sets.posD4)()(Data_Typelevel_Num_Ops.divMod10D3D0)()(Data_Typelevel_Num_Ops.divMod10D4D0))(v3 > b3)(Data_Vec.cons(Data_Typelevel_Num_Ops.typelevelSucc(Data_Typelevel_Num_Sets.posD3)()(Data_Typelevel_Num_Ops.divMod10D2D0)()(Data_Typelevel_Num_Ops.divMod10D3D0))(v3 > b2)(Data_Vec.cons(Data_Typelevel_Num_Ops.typelevelSucc(Data_Typelevel_Num_Sets.posD2)()(Data_Typelevel_Num_Ops.divMod10D1D0)()(Data_Typelevel_Num_Ops.divMod10D2D0))(v3 > b1)(Data_Vec.cons(Data_Typelevel_Num_Ops.typelevelSucc(Data_Typelevel_Num_Sets.posD1)()(Data_Typelevel_Num_Ops.divMod10D0D0)()(Data_Typelevel_Num_Ops.divMod10D1D0))(v3 > b0)(Data_Vec.empty)))));
+                                                                  };
+                                                              })(Data_Vec.cons(Data_Typelevel_Num_Ops.typelevelSucc(Data_Typelevel_Num_Sets.posD8)()(Data_Typelevel_Num_Ops.divMod10D7D0)()(Data_Typelevel_Num_Ops.divMod10D8D0))(r0)(Data_Vec.cons(Data_Typelevel_Num_Ops.typelevelSucc(Data_Typelevel_Num_Sets.posD7)()(Data_Typelevel_Num_Ops.divMod10D6D0)()(Data_Typelevel_Num_Ops.divMod10D7D0))(r1)(Data_Vec.cons(Data_Typelevel_Num_Ops.typelevelSucc(Data_Typelevel_Num_Sets.posD6)()(Data_Typelevel_Num_Ops.divMod10D5D0)()(Data_Typelevel_Num_Ops.divMod10D6D0))(r2)(Data_Vec.cons(Data_Typelevel_Num_Ops.typelevelSucc(Data_Typelevel_Num_Sets.posD5)()(Data_Typelevel_Num_Ops.divMod10D4D0)()(Data_Typelevel_Num_Ops.divMod10D5D0))(r3)(Data_Vec.cons(Data_Typelevel_Num_Ops.typelevelSucc(Data_Typelevel_Num_Sets.posD4)()(Data_Typelevel_Num_Ops.divMod10D3D0)()(Data_Typelevel_Num_Ops.divMod10D4D0))(r4)(Data_Vec.cons(Data_Typelevel_Num_Ops.typelevelSucc(Data_Typelevel_Num_Sets.posD3)()(Data_Typelevel_Num_Ops.divMod10D2D0)()(Data_Typelevel_Num_Ops.divMod10D3D0))(r5)(Data_Vec.cons(Data_Typelevel_Num_Ops.typelevelSucc(Data_Typelevel_Num_Sets.posD2)()(Data_Typelevel_Num_Ops.divMod10D1D0)()(Data_Typelevel_Num_Ops.divMod10D2D0))(r6)(Data_Vec.cons(Data_Typelevel_Num_Ops.typelevelSucc(Data_Typelevel_Num_Sets.posD1)()(Data_Typelevel_Num_Ops.divMod10D0D0)()(Data_Typelevel_Num_Ops.divMod10D1D0))(r7)(Data_Vec.empty)))))))))();
+                                                              return push(new Data_Either.Left(ov))();
+                                                          };
+                                                      })();
+                                                  };
+                                              };
+                                              throw new Error("Failed pattern match at WAGS.Example.Docs.AudioUnits.Analyser (line 128, column 57 - line 166, column 57): " + [ analyserOrAudio.constructor.name ]);
                                           })();
-                                          return push(new Data_Either.Left(Data_Vec.fill(Data_Typelevel_Num_Sets.natD8)(Data_Function["const"](Data_Vec.fill(Data_Typelevel_Num_Sets.natD5)(Data_Function["const"](false))))))();
+                                          return function __do() {
+                                              unsub();
+                                              (function __do() {
+                                                  var st = WAGS_Interpret.contextState(Effect_Class.monadEffectEffect)(ctx)();
+                                                  return Control_Applicative.when(Effect.applicativeEffect)(st !== "closed")(WAGS_Interpret.close(Effect_Class.monadEffectEffect)(ctx))();
+                                              })();
+                                              return push(new Data_Either.Left(Data_Vec.fill(Data_Typelevel_Num_Sets.natD8)(Data_Function["const"](Data_Vec.fill(Data_Typelevel_Num_Sets.natD5)(Data_Function["const"](false))))))();
+                                          };
                                       };
                                   };
                               })(ev)(event)))([ Deku_Control.text(FRP_Event.eventIsEvent)(Data_Functor.map(FRP_Event.functorEvent)(function (v3) {
@@ -15176,7 +15207,7 @@ var PS = {};
                                   if (v3 instanceof WAGS_Example_Docs_Util.Playing) {
                                       return "Turn off";
                                   };
-                                  throw new Error("Failed pattern match at WAGS.Example.Docs.AudioUnits.Analyser (line 180, column 31 - line 183, column 56): " + [ v3.constructor.name ]);
+                                  throw new Error("Failed pattern match at WAGS.Example.Docs.AudioUnits.Analyser (line 179, column 31 - line 182, column 56): " + [ v3.constructor.name ]);
                               })(event)) ]), Deku_DOM_Elt_Div.div(FRP_Event.eventIsEvent)(FRP_Event_Class.bang(FRP_Event.eventIsEvent)(Deku_Attribute.attr(Deku_DOM_Attr_Style.attrDiv_StyleString)(Deku_DOM_Attr_Style.Style.value)("display: grid; grid-template-columns: repeat(8, 1fr); grid-auto-rows: 20px;")))([ Deku_DOM_Elt_Div.div(FRP_Event.eventIsEvent)(Control_Alt.alt(FRP_Event.altEvent)(FRP_Event_Class.bang(FRP_Event.eventIsEvent)(Deku_Attribute.attr(Deku_DOM_Attr_Style.attrDiv_StyleString)(Deku_DOM_Attr_Style.Style.value)(bgWhite)))(mkSt(FRP_Event.functorEvent)(Data_Typelevel_Num_Sets.natD0)(Data_Typelevel_Num_Ops.trichD0D5)(Data_Typelevel_Num_Sets.natD0)(Data_Typelevel_Num_Ops.trichD0D8)(Deku_DOM_Attr_Style.attrDiv_StyleString)(Data_Typelevel_Num_Ops.trichD0D5)(Data_Typelevel_Num_Sets.natD0)(Data_Typelevel_Num_Ops.trichD0D8)(Data_Typelevel_Num_Reps.d0)(Data_Typelevel_Num_Reps.d0)(aEv)))([  ]), Deku_DOM_Elt_Div.div(FRP_Event.eventIsEvent)(Control_Alt.alt(FRP_Event.altEvent)(FRP_Event_Class.bang(FRP_Event.eventIsEvent)(Deku_Attribute.attr(Deku_DOM_Attr_Style.attrDiv_StyleString)(Deku_DOM_Attr_Style.Style.value)(bgWhite)))(mkSt(FRP_Event.functorEvent)(Data_Typelevel_Num_Sets.natD0)(Data_Typelevel_Num_Ops.trichD0D5)(Data_Typelevel_Num_Sets.natD1)(Data_Typelevel_Num_Ops.trichD1D8)(Deku_DOM_Attr_Style.attrDiv_StyleString)(Data_Typelevel_Num_Ops.trichD0D5)(Data_Typelevel_Num_Sets.natD1)(Data_Typelevel_Num_Ops.trichD1D8)(Data_Typelevel_Num_Reps.d1)(Data_Typelevel_Num_Reps.d0)(aEv)))([  ]), Deku_DOM_Elt_Div.div(FRP_Event.eventIsEvent)(Control_Alt.alt(FRP_Event.altEvent)(FRP_Event_Class.bang(FRP_Event.eventIsEvent)(Deku_Attribute.attr(Deku_DOM_Attr_Style.attrDiv_StyleString)(Deku_DOM_Attr_Style.Style.value)(bgWhite)))(mkSt(FRP_Event.functorEvent)(Data_Typelevel_Num_Sets.natD0)(Data_Typelevel_Num_Ops.trichD0D5)(Data_Typelevel_Num_Sets.natD2)(Data_Typelevel_Num_Ops.trichD2D8)(Deku_DOM_Attr_Style.attrDiv_StyleString)(Data_Typelevel_Num_Ops.trichD0D5)(Data_Typelevel_Num_Sets.natD2)(Data_Typelevel_Num_Ops.trichD2D8)(Data_Typelevel_Num_Reps.d2)(Data_Typelevel_Num_Reps.d0)(aEv)))([  ]), Deku_DOM_Elt_Div.div(FRP_Event.eventIsEvent)(Control_Alt.alt(FRP_Event.altEvent)(FRP_Event_Class.bang(FRP_Event.eventIsEvent)(Deku_Attribute.attr(Deku_DOM_Attr_Style.attrDiv_StyleString)(Deku_DOM_Attr_Style.Style.value)(bgWhite)))(mkSt(FRP_Event.functorEvent)(Data_Typelevel_Num_Sets.natD0)(Data_Typelevel_Num_Ops.trichD0D5)(Data_Typelevel_Num_Sets.natD3)(Data_Typelevel_Num_Ops.trichD3D8)(Deku_DOM_Attr_Style.attrDiv_StyleString)(Data_Typelevel_Num_Ops.trichD0D5)(Data_Typelevel_Num_Sets.natD3)(Data_Typelevel_Num_Ops.trichD3D8)(Data_Typelevel_Num_Reps.d3)(Data_Typelevel_Num_Reps.d0)(aEv)))([  ]), Deku_DOM_Elt_Div.div(FRP_Event.eventIsEvent)(Control_Alt.alt(FRP_Event.altEvent)(FRP_Event_Class.bang(FRP_Event.eventIsEvent)(Deku_Attribute.attr(Deku_DOM_Attr_Style.attrDiv_StyleString)(Deku_DOM_Attr_Style.Style.value)(bgWhite)))(mkSt(FRP_Event.functorEvent)(Data_Typelevel_Num_Sets.natD0)(Data_Typelevel_Num_Ops.trichD0D5)(Data_Typelevel_Num_Sets.natD4)(Data_Typelevel_Num_Ops.trichD4D8)(Deku_DOM_Attr_Style.attrDiv_StyleString)(Data_Typelevel_Num_Ops.trichD0D5)(Data_Typelevel_Num_Sets.natD4)(Data_Typelevel_Num_Ops.trichD4D8)(Data_Typelevel_Num_Reps.d4)(Data_Typelevel_Num_Reps.d0)(aEv)))([  ]), Deku_DOM_Elt_Div.div(FRP_Event.eventIsEvent)(Control_Alt.alt(FRP_Event.altEvent)(FRP_Event_Class.bang(FRP_Event.eventIsEvent)(Deku_Attribute.attr(Deku_DOM_Attr_Style.attrDiv_StyleString)(Deku_DOM_Attr_Style.Style.value)(bgWhite)))(mkSt(FRP_Event.functorEvent)(Data_Typelevel_Num_Sets.natD0)(Data_Typelevel_Num_Ops.trichD0D5)(Data_Typelevel_Num_Sets.natD5)(Data_Typelevel_Num_Ops.trichD5D8)(Deku_DOM_Attr_Style.attrDiv_StyleString)(Data_Typelevel_Num_Ops.trichD0D5)(Data_Typelevel_Num_Sets.natD5)(Data_Typelevel_Num_Ops.trichD5D8)(Data_Typelevel_Num_Reps.d5)(Data_Typelevel_Num_Reps.d0)(aEv)))([  ]), Deku_DOM_Elt_Div.div(FRP_Event.eventIsEvent)(Control_Alt.alt(FRP_Event.altEvent)(FRP_Event_Class.bang(FRP_Event.eventIsEvent)(Deku_Attribute.attr(Deku_DOM_Attr_Style.attrDiv_StyleString)(Deku_DOM_Attr_Style.Style.value)(bgWhite)))(mkSt(FRP_Event.functorEvent)(Data_Typelevel_Num_Sets.natD0)(Data_Typelevel_Num_Ops.trichD0D5)(Data_Typelevel_Num_Sets.natD6)(Data_Typelevel_Num_Ops.trichD6D8)(Deku_DOM_Attr_Style.attrDiv_StyleString)(Data_Typelevel_Num_Ops.trichD0D5)(Data_Typelevel_Num_Sets.natD6)(Data_Typelevel_Num_Ops.trichD6D8)(Data_Typelevel_Num_Reps.d6)(Data_Typelevel_Num_Reps.d0)(aEv)))([  ]), Deku_DOM_Elt_Div.div(FRP_Event.eventIsEvent)(Control_Alt.alt(FRP_Event.altEvent)(FRP_Event_Class.bang(FRP_Event.eventIsEvent)(Deku_Attribute.attr(Deku_DOM_Attr_Style.attrDiv_StyleString)(Deku_DOM_Attr_Style.Style.value)(bgWhite)))(mkSt(FRP_Event.functorEvent)(Data_Typelevel_Num_Sets.natD0)(Data_Typelevel_Num_Ops.trichD0D5)(Data_Typelevel_Num_Sets.natD7)(Data_Typelevel_Num_Ops.trichD7D8)(Deku_DOM_Attr_Style.attrDiv_StyleString)(Data_Typelevel_Num_Ops.trichD0D5)(Data_Typelevel_Num_Sets.natD7)(Data_Typelevel_Num_Ops.trichD7D8)(Data_Typelevel_Num_Reps.d7)(Data_Typelevel_Num_Reps.d0)(aEv)))([  ]), Deku_DOM_Elt_Div.div(FRP_Event.eventIsEvent)(Control_Alt.alt(FRP_Event.altEvent)(FRP_Event_Class.bang(FRP_Event.eventIsEvent)(Deku_Attribute.attr(Deku_DOM_Attr_Style.attrDiv_StyleString)(Deku_DOM_Attr_Style.Style.value)(bgWhite)))(mkSt(FRP_Event.functorEvent)(Data_Typelevel_Num_Sets.natD1)(Data_Typelevel_Num_Ops.trichD1D5)(Data_Typelevel_Num_Sets.natD0)(Data_Typelevel_Num_Ops.trichD0D8)(Deku_DOM_Attr_Style.attrDiv_StyleString)(Data_Typelevel_Num_Ops.trichD1D5)(Data_Typelevel_Num_Sets.natD0)(Data_Typelevel_Num_Ops.trichD0D8)(Data_Typelevel_Num_Reps.d0)(Data_Typelevel_Num_Reps.d1)(aEv)))([  ]), Deku_DOM_Elt_Div.div(FRP_Event.eventIsEvent)(Control_Alt.alt(FRP_Event.altEvent)(FRP_Event_Class.bang(FRP_Event.eventIsEvent)(Deku_Attribute.attr(Deku_DOM_Attr_Style.attrDiv_StyleString)(Deku_DOM_Attr_Style.Style.value)(bgWhite)))(mkSt(FRP_Event.functorEvent)(Data_Typelevel_Num_Sets.natD1)(Data_Typelevel_Num_Ops.trichD1D5)(Data_Typelevel_Num_Sets.natD1)(Data_Typelevel_Num_Ops.trichD1D8)(Deku_DOM_Attr_Style.attrDiv_StyleString)(Data_Typelevel_Num_Ops.trichD1D5)(Data_Typelevel_Num_Sets.natD1)(Data_Typelevel_Num_Ops.trichD1D8)(Data_Typelevel_Num_Reps.d1)(Data_Typelevel_Num_Reps.d1)(aEv)))([  ]), Deku_DOM_Elt_Div.div(FRP_Event.eventIsEvent)(Control_Alt.alt(FRP_Event.altEvent)(FRP_Event_Class.bang(FRP_Event.eventIsEvent)(Deku_Attribute.attr(Deku_DOM_Attr_Style.attrDiv_StyleString)(Deku_DOM_Attr_Style.Style.value)(bgWhite)))(mkSt(FRP_Event.functorEvent)(Data_Typelevel_Num_Sets.natD1)(Data_Typelevel_Num_Ops.trichD1D5)(Data_Typelevel_Num_Sets.natD2)(Data_Typelevel_Num_Ops.trichD2D8)(Deku_DOM_Attr_Style.attrDiv_StyleString)(Data_Typelevel_Num_Ops.trichD1D5)(Data_Typelevel_Num_Sets.natD2)(Data_Typelevel_Num_Ops.trichD2D8)(Data_Typelevel_Num_Reps.d2)(Data_Typelevel_Num_Reps.d1)(aEv)))([  ]), Deku_DOM_Elt_Div.div(FRP_Event.eventIsEvent)(Control_Alt.alt(FRP_Event.altEvent)(FRP_Event_Class.bang(FRP_Event.eventIsEvent)(Deku_Attribute.attr(Deku_DOM_Attr_Style.attrDiv_StyleString)(Deku_DOM_Attr_Style.Style.value)(bgWhite)))(mkSt(FRP_Event.functorEvent)(Data_Typelevel_Num_Sets.natD1)(Data_Typelevel_Num_Ops.trichD1D5)(Data_Typelevel_Num_Sets.natD3)(Data_Typelevel_Num_Ops.trichD3D8)(Deku_DOM_Attr_Style.attrDiv_StyleString)(Data_Typelevel_Num_Ops.trichD1D5)(Data_Typelevel_Num_Sets.natD3)(Data_Typelevel_Num_Ops.trichD3D8)(Data_Typelevel_Num_Reps.d3)(Data_Typelevel_Num_Reps.d1)(aEv)))([  ]), Deku_DOM_Elt_Div.div(FRP_Event.eventIsEvent)(Control_Alt.alt(FRP_Event.altEvent)(FRP_Event_Class.bang(FRP_Event.eventIsEvent)(Deku_Attribute.attr(Deku_DOM_Attr_Style.attrDiv_StyleString)(Deku_DOM_Attr_Style.Style.value)(bgWhite)))(mkSt(FRP_Event.functorEvent)(Data_Typelevel_Num_Sets.natD1)(Data_Typelevel_Num_Ops.trichD1D5)(Data_Typelevel_Num_Sets.natD4)(Data_Typelevel_Num_Ops.trichD4D8)(Deku_DOM_Attr_Style.attrDiv_StyleString)(Data_Typelevel_Num_Ops.trichD1D5)(Data_Typelevel_Num_Sets.natD4)(Data_Typelevel_Num_Ops.trichD4D8)(Data_Typelevel_Num_Reps.d4)(Data_Typelevel_Num_Reps.d1)(aEv)))([  ]), Deku_DOM_Elt_Div.div(FRP_Event.eventIsEvent)(Control_Alt.alt(FRP_Event.altEvent)(FRP_Event_Class.bang(FRP_Event.eventIsEvent)(Deku_Attribute.attr(Deku_DOM_Attr_Style.attrDiv_StyleString)(Deku_DOM_Attr_Style.Style.value)(bgWhite)))(mkSt(FRP_Event.functorEvent)(Data_Typelevel_Num_Sets.natD1)(Data_Typelevel_Num_Ops.trichD1D5)(Data_Typelevel_Num_Sets.natD5)(Data_Typelevel_Num_Ops.trichD5D8)(Deku_DOM_Attr_Style.attrDiv_StyleString)(Data_Typelevel_Num_Ops.trichD1D5)(Data_Typelevel_Num_Sets.natD5)(Data_Typelevel_Num_Ops.trichD5D8)(Data_Typelevel_Num_Reps.d5)(Data_Typelevel_Num_Reps.d1)(aEv)))([  ]), Deku_DOM_Elt_Div.div(FRP_Event.eventIsEvent)(Control_Alt.alt(FRP_Event.altEvent)(FRP_Event_Class.bang(FRP_Event.eventIsEvent)(Deku_Attribute.attr(Deku_DOM_Attr_Style.attrDiv_StyleString)(Deku_DOM_Attr_Style.Style.value)(bgWhite)))(mkSt(FRP_Event.functorEvent)(Data_Typelevel_Num_Sets.natD1)(Data_Typelevel_Num_Ops.trichD1D5)(Data_Typelevel_Num_Sets.natD6)(Data_Typelevel_Num_Ops.trichD6D8)(Deku_DOM_Attr_Style.attrDiv_StyleString)(Data_Typelevel_Num_Ops.trichD1D5)(Data_Typelevel_Num_Sets.natD6)(Data_Typelevel_Num_Ops.trichD6D8)(Data_Typelevel_Num_Reps.d6)(Data_Typelevel_Num_Reps.d1)(aEv)))([  ]), Deku_DOM_Elt_Div.div(FRP_Event.eventIsEvent)(Control_Alt.alt(FRP_Event.altEvent)(FRP_Event_Class.bang(FRP_Event.eventIsEvent)(Deku_Attribute.attr(Deku_DOM_Attr_Style.attrDiv_StyleString)(Deku_DOM_Attr_Style.Style.value)(bgWhite)))(mkSt(FRP_Event.functorEvent)(Data_Typelevel_Num_Sets.natD1)(Data_Typelevel_Num_Ops.trichD1D5)(Data_Typelevel_Num_Sets.natD7)(Data_Typelevel_Num_Ops.trichD7D8)(Deku_DOM_Attr_Style.attrDiv_StyleString)(Data_Typelevel_Num_Ops.trichD1D5)(Data_Typelevel_Num_Sets.natD7)(Data_Typelevel_Num_Ops.trichD7D8)(Data_Typelevel_Num_Reps.d7)(Data_Typelevel_Num_Reps.d1)(aEv)))([  ]), Deku_DOM_Elt_Div.div(FRP_Event.eventIsEvent)(Control_Alt.alt(FRP_Event.altEvent)(FRP_Event_Class.bang(FRP_Event.eventIsEvent)(Deku_Attribute.attr(Deku_DOM_Attr_Style.attrDiv_StyleString)(Deku_DOM_Attr_Style.Style.value)(bgWhite)))(mkSt(FRP_Event.functorEvent)(Data_Typelevel_Num_Sets.natD2)(Data_Typelevel_Num_Ops.trichD2D5)(Data_Typelevel_Num_Sets.natD0)(Data_Typelevel_Num_Ops.trichD0D8)(Deku_DOM_Attr_Style.attrDiv_StyleString)(Data_Typelevel_Num_Ops.trichD2D5)(Data_Typelevel_Num_Sets.natD0)(Data_Typelevel_Num_Ops.trichD0D8)(Data_Typelevel_Num_Reps.d0)(Data_Typelevel_Num_Reps.d2)(aEv)))([  ]), Deku_DOM_Elt_Div.div(FRP_Event.eventIsEvent)(Control_Alt.alt(FRP_Event.altEvent)(FRP_Event_Class.bang(FRP_Event.eventIsEvent)(Deku_Attribute.attr(Deku_DOM_Attr_Style.attrDiv_StyleString)(Deku_DOM_Attr_Style.Style.value)(bgWhite)))(mkSt(FRP_Event.functorEvent)(Data_Typelevel_Num_Sets.natD2)(Data_Typelevel_Num_Ops.trichD2D5)(Data_Typelevel_Num_Sets.natD1)(Data_Typelevel_Num_Ops.trichD1D8)(Deku_DOM_Attr_Style.attrDiv_StyleString)(Data_Typelevel_Num_Ops.trichD2D5)(Data_Typelevel_Num_Sets.natD1)(Data_Typelevel_Num_Ops.trichD1D8)(Data_Typelevel_Num_Reps.d1)(Data_Typelevel_Num_Reps.d2)(aEv)))([  ]), Deku_DOM_Elt_Div.div(FRP_Event.eventIsEvent)(Control_Alt.alt(FRP_Event.altEvent)(FRP_Event_Class.bang(FRP_Event.eventIsEvent)(Deku_Attribute.attr(Deku_DOM_Attr_Style.attrDiv_StyleString)(Deku_DOM_Attr_Style.Style.value)(bgWhite)))(mkSt(FRP_Event.functorEvent)(Data_Typelevel_Num_Sets.natD2)(Data_Typelevel_Num_Ops.trichD2D5)(Data_Typelevel_Num_Sets.natD2)(Data_Typelevel_Num_Ops.trichD2D8)(Deku_DOM_Attr_Style.attrDiv_StyleString)(Data_Typelevel_Num_Ops.trichD2D5)(Data_Typelevel_Num_Sets.natD2)(Data_Typelevel_Num_Ops.trichD2D8)(Data_Typelevel_Num_Reps.d2)(Data_Typelevel_Num_Reps.d2)(aEv)))([  ]), Deku_DOM_Elt_Div.div(FRP_Event.eventIsEvent)(Control_Alt.alt(FRP_Event.altEvent)(FRP_Event_Class.bang(FRP_Event.eventIsEvent)(Deku_Attribute.attr(Deku_DOM_Attr_Style.attrDiv_StyleString)(Deku_DOM_Attr_Style.Style.value)(bgWhite)))(mkSt(FRP_Event.functorEvent)(Data_Typelevel_Num_Sets.natD2)(Data_Typelevel_Num_Ops.trichD2D5)(Data_Typelevel_Num_Sets.natD3)(Data_Typelevel_Num_Ops.trichD3D8)(Deku_DOM_Attr_Style.attrDiv_StyleString)(Data_Typelevel_Num_Ops.trichD2D5)(Data_Typelevel_Num_Sets.natD3)(Data_Typelevel_Num_Ops.trichD3D8)(Data_Typelevel_Num_Reps.d3)(Data_Typelevel_Num_Reps.d2)(aEv)))([  ]), Deku_DOM_Elt_Div.div(FRP_Event.eventIsEvent)(Control_Alt.alt(FRP_Event.altEvent)(FRP_Event_Class.bang(FRP_Event.eventIsEvent)(Deku_Attribute.attr(Deku_DOM_Attr_Style.attrDiv_StyleString)(Deku_DOM_Attr_Style.Style.value)(bgWhite)))(mkSt(FRP_Event.functorEvent)(Data_Typelevel_Num_Sets.natD2)(Data_Typelevel_Num_Ops.trichD2D5)(Data_Typelevel_Num_Sets.natD4)(Data_Typelevel_Num_Ops.trichD4D8)(Deku_DOM_Attr_Style.attrDiv_StyleString)(Data_Typelevel_Num_Ops.trichD2D5)(Data_Typelevel_Num_Sets.natD4)(Data_Typelevel_Num_Ops.trichD4D8)(Data_Typelevel_Num_Reps.d4)(Data_Typelevel_Num_Reps.d2)(aEv)))([  ]), Deku_DOM_Elt_Div.div(FRP_Event.eventIsEvent)(Control_Alt.alt(FRP_Event.altEvent)(FRP_Event_Class.bang(FRP_Event.eventIsEvent)(Deku_Attribute.attr(Deku_DOM_Attr_Style.attrDiv_StyleString)(Deku_DOM_Attr_Style.Style.value)(bgWhite)))(mkSt(FRP_Event.functorEvent)(Data_Typelevel_Num_Sets.natD2)(Data_Typelevel_Num_Ops.trichD2D5)(Data_Typelevel_Num_Sets.natD5)(Data_Typelevel_Num_Ops.trichD5D8)(Deku_DOM_Attr_Style.attrDiv_StyleString)(Data_Typelevel_Num_Ops.trichD2D5)(Data_Typelevel_Num_Sets.natD5)(Data_Typelevel_Num_Ops.trichD5D8)(Data_Typelevel_Num_Reps.d5)(Data_Typelevel_Num_Reps.d2)(aEv)))([  ]), Deku_DOM_Elt_Div.div(FRP_Event.eventIsEvent)(Control_Alt.alt(FRP_Event.altEvent)(FRP_Event_Class.bang(FRP_Event.eventIsEvent)(Deku_Attribute.attr(Deku_DOM_Attr_Style.attrDiv_StyleString)(Deku_DOM_Attr_Style.Style.value)(bgWhite)))(mkSt(FRP_Event.functorEvent)(Data_Typelevel_Num_Sets.natD2)(Data_Typelevel_Num_Ops.trichD2D5)(Data_Typelevel_Num_Sets.natD6)(Data_Typelevel_Num_Ops.trichD6D8)(Deku_DOM_Attr_Style.attrDiv_StyleString)(Data_Typelevel_Num_Ops.trichD2D5)(Data_Typelevel_Num_Sets.natD6)(Data_Typelevel_Num_Ops.trichD6D8)(Data_Typelevel_Num_Reps.d6)(Data_Typelevel_Num_Reps.d2)(aEv)))([  ]), Deku_DOM_Elt_Div.div(FRP_Event.eventIsEvent)(Control_Alt.alt(FRP_Event.altEvent)(FRP_Event_Class.bang(FRP_Event.eventIsEvent)(Deku_Attribute.attr(Deku_DOM_Attr_Style.attrDiv_StyleString)(Deku_DOM_Attr_Style.Style.value)(bgWhite)))(mkSt(FRP_Event.functorEvent)(Data_Typelevel_Num_Sets.natD2)(Data_Typelevel_Num_Ops.trichD2D5)(Data_Typelevel_Num_Sets.natD7)(Data_Typelevel_Num_Ops.trichD7D8)(Deku_DOM_Attr_Style.attrDiv_StyleString)(Data_Typelevel_Num_Ops.trichD2D5)(Data_Typelevel_Num_Sets.natD7)(Data_Typelevel_Num_Ops.trichD7D8)(Data_Typelevel_Num_Reps.d7)(Data_Typelevel_Num_Reps.d2)(aEv)))([  ]), Deku_DOM_Elt_Div.div(FRP_Event.eventIsEvent)(Control_Alt.alt(FRP_Event.altEvent)(FRP_Event_Class.bang(FRP_Event.eventIsEvent)(Deku_Attribute.attr(Deku_DOM_Attr_Style.attrDiv_StyleString)(Deku_DOM_Attr_Style.Style.value)(bgWhite)))(mkSt(FRP_Event.functorEvent)(Data_Typelevel_Num_Sets.natD3)(Data_Typelevel_Num_Ops.trichD3D5)(Data_Typelevel_Num_Sets.natD0)(Data_Typelevel_Num_Ops.trichD0D8)(Deku_DOM_Attr_Style.attrDiv_StyleString)(Data_Typelevel_Num_Ops.trichD3D5)(Data_Typelevel_Num_Sets.natD0)(Data_Typelevel_Num_Ops.trichD0D8)(Data_Typelevel_Num_Reps.d0)(Data_Typelevel_Num_Reps.d3)(aEv)))([  ]), Deku_DOM_Elt_Div.div(FRP_Event.eventIsEvent)(Control_Alt.alt(FRP_Event.altEvent)(FRP_Event_Class.bang(FRP_Event.eventIsEvent)(Deku_Attribute.attr(Deku_DOM_Attr_Style.attrDiv_StyleString)(Deku_DOM_Attr_Style.Style.value)(bgWhite)))(mkSt(FRP_Event.functorEvent)(Data_Typelevel_Num_Sets.natD3)(Data_Typelevel_Num_Ops.trichD3D5)(Data_Typelevel_Num_Sets.natD1)(Data_Typelevel_Num_Ops.trichD1D8)(Deku_DOM_Attr_Style.attrDiv_StyleString)(Data_Typelevel_Num_Ops.trichD3D5)(Data_Typelevel_Num_Sets.natD1)(Data_Typelevel_Num_Ops.trichD1D8)(Data_Typelevel_Num_Reps.d1)(Data_Typelevel_Num_Reps.d3)(aEv)))([  ]), Deku_DOM_Elt_Div.div(FRP_Event.eventIsEvent)(Control_Alt.alt(FRP_Event.altEvent)(FRP_Event_Class.bang(FRP_Event.eventIsEvent)(Deku_Attribute.attr(Deku_DOM_Attr_Style.attrDiv_StyleString)(Deku_DOM_Attr_Style.Style.value)(bgWhite)))(mkSt(FRP_Event.functorEvent)(Data_Typelevel_Num_Sets.natD3)(Data_Typelevel_Num_Ops.trichD3D5)(Data_Typelevel_Num_Sets.natD2)(Data_Typelevel_Num_Ops.trichD2D8)(Deku_DOM_Attr_Style.attrDiv_StyleString)(Data_Typelevel_Num_Ops.trichD3D5)(Data_Typelevel_Num_Sets.natD2)(Data_Typelevel_Num_Ops.trichD2D8)(Data_Typelevel_Num_Reps.d2)(Data_Typelevel_Num_Reps.d3)(aEv)))([  ]), Deku_DOM_Elt_Div.div(FRP_Event.eventIsEvent)(Control_Alt.alt(FRP_Event.altEvent)(FRP_Event_Class.bang(FRP_Event.eventIsEvent)(Deku_Attribute.attr(Deku_DOM_Attr_Style.attrDiv_StyleString)(Deku_DOM_Attr_Style.Style.value)(bgWhite)))(mkSt(FRP_Event.functorEvent)(Data_Typelevel_Num_Sets.natD3)(Data_Typelevel_Num_Ops.trichD3D5)(Data_Typelevel_Num_Sets.natD3)(Data_Typelevel_Num_Ops.trichD3D8)(Deku_DOM_Attr_Style.attrDiv_StyleString)(Data_Typelevel_Num_Ops.trichD3D5)(Data_Typelevel_Num_Sets.natD3)(Data_Typelevel_Num_Ops.trichD3D8)(Data_Typelevel_Num_Reps.d3)(Data_Typelevel_Num_Reps.d3)(aEv)))([  ]), Deku_DOM_Elt_Div.div(FRP_Event.eventIsEvent)(Control_Alt.alt(FRP_Event.altEvent)(FRP_Event_Class.bang(FRP_Event.eventIsEvent)(Deku_Attribute.attr(Deku_DOM_Attr_Style.attrDiv_StyleString)(Deku_DOM_Attr_Style.Style.value)(bgWhite)))(mkSt(FRP_Event.functorEvent)(Data_Typelevel_Num_Sets.natD3)(Data_Typelevel_Num_Ops.trichD3D5)(Data_Typelevel_Num_Sets.natD4)(Data_Typelevel_Num_Ops.trichD4D8)(Deku_DOM_Attr_Style.attrDiv_StyleString)(Data_Typelevel_Num_Ops.trichD3D5)(Data_Typelevel_Num_Sets.natD4)(Data_Typelevel_Num_Ops.trichD4D8)(Data_Typelevel_Num_Reps.d4)(Data_Typelevel_Num_Reps.d3)(aEv)))([  ]), Deku_DOM_Elt_Div.div(FRP_Event.eventIsEvent)(Control_Alt.alt(FRP_Event.altEvent)(FRP_Event_Class.bang(FRP_Event.eventIsEvent)(Deku_Attribute.attr(Deku_DOM_Attr_Style.attrDiv_StyleString)(Deku_DOM_Attr_Style.Style.value)(bgWhite)))(mkSt(FRP_Event.functorEvent)(Data_Typelevel_Num_Sets.natD3)(Data_Typelevel_Num_Ops.trichD3D5)(Data_Typelevel_Num_Sets.natD5)(Data_Typelevel_Num_Ops.trichD5D8)(Deku_DOM_Attr_Style.attrDiv_StyleString)(Data_Typelevel_Num_Ops.trichD3D5)(Data_Typelevel_Num_Sets.natD5)(Data_Typelevel_Num_Ops.trichD5D8)(Data_Typelevel_Num_Reps.d5)(Data_Typelevel_Num_Reps.d3)(aEv)))([  ]), Deku_DOM_Elt_Div.div(FRP_Event.eventIsEvent)(Control_Alt.alt(FRP_Event.altEvent)(FRP_Event_Class.bang(FRP_Event.eventIsEvent)(Deku_Attribute.attr(Deku_DOM_Attr_Style.attrDiv_StyleString)(Deku_DOM_Attr_Style.Style.value)(bgWhite)))(mkSt(FRP_Event.functorEvent)(Data_Typelevel_Num_Sets.natD3)(Data_Typelevel_Num_Ops.trichD3D5)(Data_Typelevel_Num_Sets.natD6)(Data_Typelevel_Num_Ops.trichD6D8)(Deku_DOM_Attr_Style.attrDiv_StyleString)(Data_Typelevel_Num_Ops.trichD3D5)(Data_Typelevel_Num_Sets.natD6)(Data_Typelevel_Num_Ops.trichD6D8)(Data_Typelevel_Num_Reps.d6)(Data_Typelevel_Num_Reps.d3)(aEv)))([  ]), Deku_DOM_Elt_Div.div(FRP_Event.eventIsEvent)(Control_Alt.alt(FRP_Event.altEvent)(FRP_Event_Class.bang(FRP_Event.eventIsEvent)(Deku_Attribute.attr(Deku_DOM_Attr_Style.attrDiv_StyleString)(Deku_DOM_Attr_Style.Style.value)(bgWhite)))(mkSt(FRP_Event.functorEvent)(Data_Typelevel_Num_Sets.natD3)(Data_Typelevel_Num_Ops.trichD3D5)(Data_Typelevel_Num_Sets.natD7)(Data_Typelevel_Num_Ops.trichD7D8)(Deku_DOM_Attr_Style.attrDiv_StyleString)(Data_Typelevel_Num_Ops.trichD3D5)(Data_Typelevel_Num_Sets.natD7)(Data_Typelevel_Num_Ops.trichD7D8)(Data_Typelevel_Num_Reps.d7)(Data_Typelevel_Num_Reps.d3)(aEv)))([  ]), Deku_DOM_Elt_Div.div(FRP_Event.eventIsEvent)(Control_Alt.alt(FRP_Event.altEvent)(FRP_Event_Class.bang(FRP_Event.eventIsEvent)(Deku_Attribute.attr(Deku_DOM_Attr_Style.attrDiv_StyleString)(Deku_DOM_Attr_Style.Style.value)(bgWhite)))(mkSt(FRP_Event.functorEvent)(Data_Typelevel_Num_Sets.natD4)(Data_Typelevel_Num_Ops.trichD4D5)(Data_Typelevel_Num_Sets.natD0)(Data_Typelevel_Num_Ops.trichD0D8)(Deku_DOM_Attr_Style.attrDiv_StyleString)(Data_Typelevel_Num_Ops.trichD4D5)(Data_Typelevel_Num_Sets.natD0)(Data_Typelevel_Num_Ops.trichD0D8)(Data_Typelevel_Num_Reps.d0)(Data_Typelevel_Num_Reps.d4)(aEv)))([  ]), Deku_DOM_Elt_Div.div(FRP_Event.eventIsEvent)(Control_Alt.alt(FRP_Event.altEvent)(FRP_Event_Class.bang(FRP_Event.eventIsEvent)(Deku_Attribute.attr(Deku_DOM_Attr_Style.attrDiv_StyleString)(Deku_DOM_Attr_Style.Style.value)(bgWhite)))(mkSt(FRP_Event.functorEvent)(Data_Typelevel_Num_Sets.natD4)(Data_Typelevel_Num_Ops.trichD4D5)(Data_Typelevel_Num_Sets.natD1)(Data_Typelevel_Num_Ops.trichD1D8)(Deku_DOM_Attr_Style.attrDiv_StyleString)(Data_Typelevel_Num_Ops.trichD4D5)(Data_Typelevel_Num_Sets.natD1)(Data_Typelevel_Num_Ops.trichD1D8)(Data_Typelevel_Num_Reps.d1)(Data_Typelevel_Num_Reps.d4)(aEv)))([  ]), Deku_DOM_Elt_Div.div(FRP_Event.eventIsEvent)(Control_Alt.alt(FRP_Event.altEvent)(FRP_Event_Class.bang(FRP_Event.eventIsEvent)(Deku_Attribute.attr(Deku_DOM_Attr_Style.attrDiv_StyleString)(Deku_DOM_Attr_Style.Style.value)(bgWhite)))(mkSt(FRP_Event.functorEvent)(Data_Typelevel_Num_Sets.natD4)(Data_Typelevel_Num_Ops.trichD4D5)(Data_Typelevel_Num_Sets.natD2)(Data_Typelevel_Num_Ops.trichD2D8)(Deku_DOM_Attr_Style.attrDiv_StyleString)(Data_Typelevel_Num_Ops.trichD4D5)(Data_Typelevel_Num_Sets.natD2)(Data_Typelevel_Num_Ops.trichD2D8)(Data_Typelevel_Num_Reps.d2)(Data_Typelevel_Num_Reps.d4)(aEv)))([  ]), Deku_DOM_Elt_Div.div(FRP_Event.eventIsEvent)(Control_Alt.alt(FRP_Event.altEvent)(FRP_Event_Class.bang(FRP_Event.eventIsEvent)(Deku_Attribute.attr(Deku_DOM_Attr_Style.attrDiv_StyleString)(Deku_DOM_Attr_Style.Style.value)(bgWhite)))(mkSt(FRP_Event.functorEvent)(Data_Typelevel_Num_Sets.natD4)(Data_Typelevel_Num_Ops.trichD4D5)(Data_Typelevel_Num_Sets.natD3)(Data_Typelevel_Num_Ops.trichD3D8)(Deku_DOM_Attr_Style.attrDiv_StyleString)(Data_Typelevel_Num_Ops.trichD4D5)(Data_Typelevel_Num_Sets.natD3)(Data_Typelevel_Num_Ops.trichD3D8)(Data_Typelevel_Num_Reps.d3)(Data_Typelevel_Num_Reps.d4)(aEv)))([  ]), Deku_DOM_Elt_Div.div(FRP_Event.eventIsEvent)(Control_Alt.alt(FRP_Event.altEvent)(FRP_Event_Class.bang(FRP_Event.eventIsEvent)(Deku_Attribute.attr(Deku_DOM_Attr_Style.attrDiv_StyleString)(Deku_DOM_Attr_Style.Style.value)(bgWhite)))(mkSt(FRP_Event.functorEvent)(Data_Typelevel_Num_Sets.natD4)(Data_Typelevel_Num_Ops.trichD4D5)(Data_Typelevel_Num_Sets.natD4)(Data_Typelevel_Num_Ops.trichD4D8)(Deku_DOM_Attr_Style.attrDiv_StyleString)(Data_Typelevel_Num_Ops.trichD4D5)(Data_Typelevel_Num_Sets.natD4)(Data_Typelevel_Num_Ops.trichD4D8)(Data_Typelevel_Num_Reps.d4)(Data_Typelevel_Num_Reps.d4)(aEv)))([  ]), Deku_DOM_Elt_Div.div(FRP_Event.eventIsEvent)(Control_Alt.alt(FRP_Event.altEvent)(FRP_Event_Class.bang(FRP_Event.eventIsEvent)(Deku_Attribute.attr(Deku_DOM_Attr_Style.attrDiv_StyleString)(Deku_DOM_Attr_Style.Style.value)(bgWhite)))(mkSt(FRP_Event.functorEvent)(Data_Typelevel_Num_Sets.natD4)(Data_Typelevel_Num_Ops.trichD4D5)(Data_Typelevel_Num_Sets.natD5)(Data_Typelevel_Num_Ops.trichD5D8)(Deku_DOM_Attr_Style.attrDiv_StyleString)(Data_Typelevel_Num_Ops.trichD4D5)(Data_Typelevel_Num_Sets.natD5)(Data_Typelevel_Num_Ops.trichD5D8)(Data_Typelevel_Num_Reps.d5)(Data_Typelevel_Num_Reps.d4)(aEv)))([  ]), Deku_DOM_Elt_Div.div(FRP_Event.eventIsEvent)(Control_Alt.alt(FRP_Event.altEvent)(FRP_Event_Class.bang(FRP_Event.eventIsEvent)(Deku_Attribute.attr(Deku_DOM_Attr_Style.attrDiv_StyleString)(Deku_DOM_Attr_Style.Style.value)(bgWhite)))(mkSt(FRP_Event.functorEvent)(Data_Typelevel_Num_Sets.natD4)(Data_Typelevel_Num_Ops.trichD4D5)(Data_Typelevel_Num_Sets.natD6)(Data_Typelevel_Num_Ops.trichD6D8)(Deku_DOM_Attr_Style.attrDiv_StyleString)(Data_Typelevel_Num_Ops.trichD4D5)(Data_Typelevel_Num_Sets.natD6)(Data_Typelevel_Num_Ops.trichD6D8)(Data_Typelevel_Num_Reps.d6)(Data_Typelevel_Num_Reps.d4)(aEv)))([  ]), Deku_DOM_Elt_Div.div(FRP_Event.eventIsEvent)(Control_Alt.alt(FRP_Event.altEvent)(FRP_Event_Class.bang(FRP_Event.eventIsEvent)(Deku_Attribute.attr(Deku_DOM_Attr_Style.attrDiv_StyleString)(Deku_DOM_Attr_Style.Style.value)(bgWhite)))(mkSt(FRP_Event.functorEvent)(Data_Typelevel_Num_Sets.natD4)(Data_Typelevel_Num_Ops.trichD4D5)(Data_Typelevel_Num_Sets.natD7)(Data_Typelevel_Num_Ops.trichD7D8)(Deku_DOM_Attr_Style.attrDiv_StyleString)(Data_Typelevel_Num_Ops.trichD4D5)(Data_Typelevel_Num_Sets.natD7)(Data_Typelevel_Num_Ops.trichD7D8)(Data_Typelevel_Num_Reps.d7)(Data_Typelevel_Num_Reps.d4)(aEv)))([  ]) ]) ]);
                           };
                       });
@@ -15220,67 +15251,69 @@ var PS = {};
                       return "bandpass";
                   }
               }))(FRP_Event.eventIsEvent)(Type_Proxy["Proxy"].value)(px)({
-                  bandpass: Deku_Pursx.nut(WAGS_Example_Docs_Util.audioWrapper(ev)(ccb)(WAGS_Interpret.ctxAff(function (ctx) {
+                  bandpass: Deku_Pursx.nut(WAGS_Example_Docs_Util.audioWrapper(ev)(ccb)(function (ctx) {
                       return WAGS_Interpret.decodeAudioDataFromUri(ctx)("https://freesound.org/data/previews/320/320873_527080-hq.mp3");
-                  }))(function (buf) {
-                      return WAGS_Run.run2_([ WAGS_Core.fan(FRP_Event.eventIsEvent)(WAGS_Control.loopBuf(FRP_Event.eventIsEvent)(WAGS_Common.initialLoopBufBrowserAudi)(buf)(WAGS_Parameter.bangOn(FRP_Event.eventIsEvent)()))(function (b) {
-                          return WAGS_Control.gain_(FRP_Event.eventIsEvent)(WAGS_Common.initialGainNumber)(0.8)([ WAGS_Control.bandpass_(FRP_Event.eventIsEvent)(WAGS_Common.initialBandpassRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionBandpassOpti)()()()({
-                              reflectSymbol: function () {
-                                  return "q";
-                              }
-                          }))(WAGS_Common.convertOptionBandpassOpti1)()()()({
-                              reflectSymbol: function () {
-                                  return "frequency";
-                              }
-                          })))(ConvertableOptions.defaultsRecord()())))({
-                              frequency: 400.0,
-                              q: 1.0
-                          })([ b ]), WAGS_Control.bandpass_(FRP_Event.eventIsEvent)(WAGS_Common.initialBandpassRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionBandpassOpti)()()()({
-                              reflectSymbol: function () {
-                                  return "q";
-                              }
-                          }))(WAGS_Common.convertOptionBandpassOpti1)()()()({
-                              reflectSymbol: function () {
-                                  return "frequency";
-                              }
-                          })))(ConvertableOptions.defaultsRecord()())))({
-                              frequency: 880.0,
-                              q: 5.0
-                          })([ b ]), WAGS_Control.bandpass_(FRP_Event.eventIsEvent)(WAGS_Common.initialBandpassRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionBandpassOpti)()()()({
-                              reflectSymbol: function () {
-                                  return "q";
-                              }
-                          }))(WAGS_Common.convertOptionBandpassOpti1)()()()({
-                              reflectSymbol: function () {
-                                  return "frequency";
-                              }
-                          })))(ConvertableOptions.defaultsRecord()())))({
-                              frequency: 1200.0,
-                              q: 10.0
-                          })([ b ]), WAGS_Control.bandpass_(FRP_Event.eventIsEvent)(WAGS_Common.initialBandpassRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionBandpassOpti)()()()({
-                              reflectSymbol: function () {
-                                  return "q";
-                              }
-                          }))(WAGS_Common.convertOptionBandpassOpti1)()()()({
-                              reflectSymbol: function () {
-                                  return "frequency";
-                              }
-                          })))(ConvertableOptions.defaultsRecord()())))({
-                              frequency: 2000.0,
-                              q: 20.0
-                          })([ b ]), WAGS_Control.bandpass_(FRP_Event.eventIsEvent)(WAGS_Common.initialBandpassRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionBandpassOpti)()()()({
-                              reflectSymbol: function () {
-                                  return "q";
-                              }
-                          }))(WAGS_Common.convertOptionBandpassOpti1)()()()({
-                              reflectSymbol: function () {
-                                  return "frequency";
-                              }
-                          })))(ConvertableOptions.defaultsRecord()())))({
-                              frequency: 3000.0,
-                              q: 30.0
-                          })([ b ]) ]);
-                      }) ]);
+                  })(function (ctx) {
+                      return function (buf) {
+                          return WAGS_Run.run2(ctx)([ WAGS_Core.fan(FRP_Event.eventIsEvent)(WAGS_Control.loopBuf(FRP_Event.eventIsEvent)(WAGS_Common.initialLoopBufBrowserAudi)(buf)(WAGS_Parameter.bangOn(FRP_Event.eventIsEvent)()))(function (b) {
+                              return WAGS_Control.gain_(FRP_Event.eventIsEvent)(WAGS_Common.initialGainNumber)(0.8)([ WAGS_Control.bandpass_(FRP_Event.eventIsEvent)(WAGS_Common.initialBandpassRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionBandpassOpti)()()()({
+                                  reflectSymbol: function () {
+                                      return "q";
+                                  }
+                              }))(WAGS_Common.convertOptionBandpassOpti1)()()()({
+                                  reflectSymbol: function () {
+                                      return "frequency";
+                                  }
+                              })))(ConvertableOptions.defaultsRecord()())))({
+                                  frequency: 400.0,
+                                  q: 1.0
+                              })([ b ]), WAGS_Control.bandpass_(FRP_Event.eventIsEvent)(WAGS_Common.initialBandpassRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionBandpassOpti)()()()({
+                                  reflectSymbol: function () {
+                                      return "q";
+                                  }
+                              }))(WAGS_Common.convertOptionBandpassOpti1)()()()({
+                                  reflectSymbol: function () {
+                                      return "frequency";
+                                  }
+                              })))(ConvertableOptions.defaultsRecord()())))({
+                                  frequency: 880.0,
+                                  q: 5.0
+                              })([ b ]), WAGS_Control.bandpass_(FRP_Event.eventIsEvent)(WAGS_Common.initialBandpassRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionBandpassOpti)()()()({
+                                  reflectSymbol: function () {
+                                      return "q";
+                                  }
+                              }))(WAGS_Common.convertOptionBandpassOpti1)()()()({
+                                  reflectSymbol: function () {
+                                      return "frequency";
+                                  }
+                              })))(ConvertableOptions.defaultsRecord()())))({
+                                  frequency: 1200.0,
+                                  q: 10.0
+                              })([ b ]), WAGS_Control.bandpass_(FRP_Event.eventIsEvent)(WAGS_Common.initialBandpassRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionBandpassOpti)()()()({
+                                  reflectSymbol: function () {
+                                      return "q";
+                                  }
+                              }))(WAGS_Common.convertOptionBandpassOpti1)()()()({
+                                  reflectSymbol: function () {
+                                      return "frequency";
+                                  }
+                              })))(ConvertableOptions.defaultsRecord()())))({
+                                  frequency: 2000.0,
+                                  q: 20.0
+                              })([ b ]), WAGS_Control.bandpass_(FRP_Event.eventIsEvent)(WAGS_Common.initialBandpassRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionBandpassOpti)()()()({
+                                  reflectSymbol: function () {
+                                      return "q";
+                                  }
+                              }))(WAGS_Common.convertOptionBandpassOpti1)()()()({
+                                  reflectSymbol: function () {
+                                      return "frequency";
+                                  }
+                              })))(ConvertableOptions.defaultsRecord()())))({
+                                  frequency: 3000.0,
+                                  q: 30.0
+                              })([ b ]) ]);
+                          }) ]);
+                      };
                   }))
               });
           };
@@ -15316,10 +15349,12 @@ var PS = {};
                       return "compression";
                   }
               }))(FRP_Event.eventIsEvent)(px)({
-                  compression: Deku_Pursx.nut(WAGS_Example_Docs_Util.audioWrapper(ev)(ccb)(WAGS_Interpret.ctxAff(function (ctx) {
+                  compression: Deku_Pursx.nut(WAGS_Example_Docs_Util.audioWrapper(ev)(ccb)(function (ctx) {
                       return WAGS_Interpret.decodeAudioDataFromUri(ctx)("https://freesound.org/data/previews/320/320873_527080-hq.mp3");
-                  }))(function (buf) {
-                      return WAGS_Run.run2_([ WAGS_Control.dynamicsCompressor_(FRP_Event.eventIsEvent)(WAGS_Common.initialDynamicsCompressor1(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsNil))(ConvertableOptions.defaultsRecord()())))({})([ WAGS_Control.loopBuf(FRP_Event.eventIsEvent)(WAGS_Common.initialLoopBufBrowserAudi)(buf)(WAGS_Parameter.bangOn(FRP_Event.eventIsEvent)()) ]) ]);
+                  })(function (ctx) {
+                      return function (buf) {
+                          return WAGS_Run.run2(ctx)([ WAGS_Control.dynamicsCompressor_(FRP_Event.eventIsEvent)(WAGS_Common.initialDynamicsCompressor1(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsNil))(ConvertableOptions.defaultsRecord()())))({})([ WAGS_Control.loopBuf(FRP_Event.eventIsEvent)(WAGS_Common.initialLoopBufBrowserAudi)(buf)(WAGS_Parameter.bangOn(FRP_Event.eventIsEvent)()) ]) ]);
+                      };
                   }))
               });
           };
@@ -15498,20 +15533,24 @@ var PS = {};
               }))(FRP_Event.eventIsEvent)(px)({
                   tf: Deku_Pursx.nut(Deku_Control.text_(FRP_Event.eventIsEvent)("<|>")),
                   txt: Deku_Pursx.nut(Deku_Control.text_(FRP_Event.eventIsEvent)("run2_\x0a  [ gain_ 0.5\x0a      [ constant 0.0\x0a          ( bangOn <|>\x0a              ( bang $ offset $ AudioEnvelope\x0a                  { d: 5.0\x0a                  , o: 0.1\x0a                  , p: 0 .. 1920 # mapWithIndex\x0a                      \\i -> const $\x0a                      if i `mod` 3 == 0 then 1.0\x0a                      else 0.0\x0a                  }\x0a              )\x0a          )\x0a      ]\x0a  ]")),
-                  constant: Deku_Pursx.nut(WAGS_Example_Docs_Util.audioWrapper(ev)(ccb)(Control_Applicative.pure(Effect_Aff.applicativeAff)(Data_Unit.unit))(function (v1) {
-                      return WAGS_Run.run2_([ WAGS_Control.gain_(FRP_Event.eventIsEvent)(WAGS_Common.initialGainNumber)(0.5)([ WAGS_Control.constant(FRP_Event.eventIsEvent)(WAGS_Common.initialConstantNumber)(0.0)(Control_Alt.alt(FRP_Event.altEvent)(WAGS_Parameter.bangOn(FRP_Event.eventIsEvent)())(FRP_Event_Class.bang(FRP_Event.eventIsEvent)(WAGS_Properties.offset()(WAGS_Parameter.toAudioParameterAudioEnve)({
-                          d: 5.0,
-                          o: 0.1,
-                          p: Data_FunctorWithIndex.mapWithIndex(Data_FunctorWithIndex.functorWithIndexArray)(function (i) {
-                              return Data_Function["const"]((function () {
-                                  var $2 = Data_EuclideanRing.mod(Data_EuclideanRing.euclideanRingInt)(i)(3) === 0;
-                                  if ($2) {
-                                      return 1.0;
-                                  };
-                                  return 0.0;
-                              })());
-                          })(Data_Array.range(0)(1920))
-                      })))) ]) ]);
+                  constant: Deku_Pursx.nut(WAGS_Example_Docs_Util.audioWrapper(ev)(ccb)(function (v1) {
+                      return Control_Applicative.pure(Effect_Aff.applicativeAff)(Data_Unit.unit);
+                  })(function (ctx) {
+                      return function (v1) {
+                          return WAGS_Run.run2(ctx)([ WAGS_Control.gain_(FRP_Event.eventIsEvent)(WAGS_Common.initialGainNumber)(0.5)([ WAGS_Control.constant(FRP_Event.eventIsEvent)(WAGS_Common.initialConstantNumber)(0.0)(Control_Alt.alt(FRP_Event.altEvent)(WAGS_Parameter.bangOn(FRP_Event.eventIsEvent)())(FRP_Event_Class.bang(FRP_Event.eventIsEvent)(WAGS_Properties.offset()(WAGS_Parameter.toAudioParameterAudioEnve)({
+                              d: 5.0,
+                              o: 0.1,
+                              p: Data_FunctorWithIndex.mapWithIndex(Data_FunctorWithIndex.functorWithIndexArray)(function (i) {
+                                  return Data_Function["const"]((function () {
+                                      var $3 = Data_EuclideanRing.mod(Data_EuclideanRing.euclideanRingInt)(i)(3) === 0;
+                                      if ($3) {
+                                          return 1.0;
+                                      };
+                                      return 0.0;
+                                  })());
+                              })(Data_Array.range(0)(1920))
+                          })))) ]) ]);
+                      };
                   }))
               });
           };
@@ -15549,7 +15588,7 @@ var PS = {};
                       return "convolution";
                   }
               }))(FRP_Event.eventIsEvent)(px)({
-                  convolution: Deku_Pursx.nut(WAGS_Example_Docs_Util.audioWrapper(ev)(ccb)(WAGS_Interpret.ctxAff(function (ctx) {
+                  convolution: Deku_Pursx.nut(WAGS_Example_Docs_Util.audioWrapper(ev)(ccb)(function (ctx) {
                       return Control_Apply.apply(Effect_Aff.applyAff)(Data_Functor.map(Effect_Aff.functorAff)(function (v1) {
                           return function (v2) {
                               return {
@@ -15558,8 +15597,10 @@ var PS = {};
                               };
                           };
                       })(WAGS_Interpret.decodeAudioDataFromUri(ctx)("https://freesound.org/data/previews/320/320873_527080-hq.mp3")))(WAGS_Interpret.decodeAudioDataFromUri(ctx)("https://cdn.jsdelivr.net/gh/andibrae/Reverb.js/Library/StMarysAbbeyReconstructionPhase3.m4a"));
-                  }))(function (v1) {
-                      return WAGS_Run.run2_([ WAGS_Control.convolver(FRP_Event.eventIsEvent)(WAGS_Common.initialConvolverBrowserAu)(v1.verb)([ WAGS_Control.loopBuf(FRP_Event.eventIsEvent)(WAGS_Common.initialLoopBufBrowserAudi)(v1.loop)(WAGS_Parameter.bangOn(FRP_Event.eventIsEvent)()) ]) ]);
+                  })(function (ctx) {
+                      return function (v1) {
+                          return WAGS_Run.run2(ctx)([ WAGS_Control.convolver(FRP_Event.eventIsEvent)(WAGS_Common.initialConvolverBrowserAu)(v1.verb)([ WAGS_Control.loopBuf(FRP_Event.eventIsEvent)(WAGS_Common.initialLoopBufBrowserAudi)(v1.loop)(WAGS_Parameter.bangOn(FRP_Event.eventIsEvent)()) ]) ]);
+                      };
                   }))
               });
           };
@@ -15599,12 +15640,14 @@ var PS = {};
                       return "delay";
                   }
               }))(FRP_Event.eventIsEvent)(Type_Proxy["Proxy"].value)(px)({
-                  delay: Deku_Pursx.nut(WAGS_Example_Docs_Util.audioWrapper(ev)(ccb)(WAGS_Interpret.ctxAff(function (ctx) {
+                  delay: Deku_Pursx.nut(WAGS_Example_Docs_Util.audioWrapper(ev)(ccb)(function (ctx) {
                       return WAGS_Interpret.decodeAudioDataFromUri(ctx)("https://freesound.org/data/previews/339/339822_5121236-lq.mp3");
-                  }))(function (buf) {
-                      return WAGS_Run.run2_([ WAGS_Core.fan(FRP_Event.eventIsEvent)(WAGS_Control.playBuf(FRP_Event.eventIsEvent)(WAGS_Common.initialPlayBufBrowserAudi)(buf)(WAGS_Parameter.bangOn(FRP_Event.eventIsEvent)()))(function (b) {
-                          return WAGS_Control.gain_(FRP_Event.eventIsEvent)(WAGS_Common.initialGainNumber)(0.2)([ WAGS_Control.delay_(FRP_Event.eventIsEvent)(WAGS_Common.initialDelayInitialAudioP)(3.0e-2)([ b ]), WAGS_Control.delay_(FRP_Event.eventIsEvent)(WAGS_Common.initialDelayInitialAudioP)(0.1)([ b ]), WAGS_Control.delay_(FRP_Event.eventIsEvent)(WAGS_Common.initialDelayInitialAudioP)(0.3)([ b ]), WAGS_Control.delay_(FRP_Event.eventIsEvent)(WAGS_Common.initialDelayInitialAudioP)(0.7)([ b ]) ]);
-                      }) ]);
+                  })(function (ctx) {
+                      return function (buf) {
+                          return WAGS_Run.run2(ctx)([ WAGS_Core.fan(FRP_Event.eventIsEvent)(WAGS_Control.playBuf(FRP_Event.eventIsEvent)(WAGS_Common.initialPlayBufBrowserAudi)(buf)(WAGS_Parameter.bangOn(FRP_Event.eventIsEvent)()))(function (b) {
+                              return WAGS_Control.gain_(FRP_Event.eventIsEvent)(WAGS_Common.initialGainNumber)(0.2)([ WAGS_Control.delay_(FRP_Event.eventIsEvent)(WAGS_Common.initialDelayInitialAudioP)(3.0e-2)([ b ]), WAGS_Control.delay_(FRP_Event.eventIsEvent)(WAGS_Common.initialDelayInitialAudioP)(0.1)([ b ]), WAGS_Control.delay_(FRP_Event.eventIsEvent)(WAGS_Common.initialDelayInitialAudioP)(0.3)([ b ]), WAGS_Control.delay_(FRP_Event.eventIsEvent)(WAGS_Common.initialDelayInitialAudioP)(0.7)([ b ]) ]);
+                          }) ]);
+                      };
                   }))
               });
           };
@@ -15639,10 +15682,12 @@ var PS = {};
                       return "gain";
                   }
               }))(FRP_Event.eventIsEvent)(px)({
-                  gain: Deku_Pursx.nut(WAGS_Example_Docs_Util.audioWrapper(ev)(ccb)(WAGS_Interpret.ctxAff(function (ctx) {
+                  gain: Deku_Pursx.nut(WAGS_Example_Docs_Util.audioWrapper(ev)(ccb)(function (ctx) {
                       return WAGS_Interpret.decodeAudioDataFromUri(ctx)("https://freesound.org/data/previews/339/339822_5121236-lq.mp3");
-                  }))(function (buf) {
-                      return WAGS_Run.run2_([ WAGS_Control.gain_(FRP_Event.eventIsEvent)(WAGS_Common.initialGainNumber)(0.1)([ WAGS_Control.loopBuf(FRP_Event.eventIsEvent)(WAGS_Common.initialLoopBufBrowserAudi)(buf)(WAGS_Parameter.bangOn(FRP_Event.eventIsEvent)()) ]) ]);
+                  })(function (ctx) {
+                      return function (buf) {
+                          return WAGS_Run.run2(ctx)([ WAGS_Control.gain_(FRP_Event.eventIsEvent)(WAGS_Common.initialGainNumber)(0.1)([ WAGS_Control.loopBuf(FRP_Event.eventIsEvent)(WAGS_Common.initialLoopBufBrowserAudi)(buf)(WAGS_Parameter.bangOn(FRP_Event.eventIsEvent)()) ]) ]);
+                      };
                   }))
               });
           };
@@ -15677,10 +15722,12 @@ var PS = {};
                       return "highpass";
                   }
               }))(FRP_Event.eventIsEvent)(px)({
-                  highpass: Deku_Pursx.nut(WAGS_Example_Docs_Util.audioWrapper(ev)(ccb)(WAGS_Interpret.ctxAff(function (ctx) {
+                  highpass: Deku_Pursx.nut(WAGS_Example_Docs_Util.audioWrapper(ev)(ccb)(function (ctx) {
                       return WAGS_Interpret.decodeAudioDataFromUri(ctx)("https://freesound.org/data/previews/320/320873_527080-hq.mp3");
-                  }))(function (buf) {
-                      return WAGS_Run.run2_([ WAGS_Control.highpass_(FRP_Event.eventIsEvent)(WAGS_Common.initialHighpassInitialAud)(2000.0)([ WAGS_Control.loopBuf(FRP_Event.eventIsEvent)(WAGS_Common.initialLoopBufBrowserAudi)(buf)(WAGS_Parameter.bangOn(FRP_Event.eventIsEvent)()) ]) ]);
+                  })(function (ctx) {
+                      return function (buf) {
+                          return WAGS_Run.run2(ctx)([ WAGS_Control.highpass_(FRP_Event.eventIsEvent)(WAGS_Common.initialHighpassInitialAud)(2000.0)([ WAGS_Control.loopBuf(FRP_Event.eventIsEvent)(WAGS_Common.initialLoopBufBrowserAudi)(buf)(WAGS_Parameter.bangOn(FRP_Event.eventIsEvent)()) ]) ]);
+                      };
                   }))
               });
           };
@@ -15716,21 +15763,23 @@ var PS = {};
                       return "highshelf";
                   }
               }))(FRP_Event.eventIsEvent)(px)({
-                  highshelf: Deku_Pursx.nut(WAGS_Example_Docs_Util.audioWrapper(ev)(ccb)(WAGS_Interpret.ctxAff(function (ctx) {
+                  highshelf: Deku_Pursx.nut(WAGS_Example_Docs_Util.audioWrapper(ev)(ccb)(function (ctx) {
                       return WAGS_Interpret.decodeAudioDataFromUri(ctx)("https://freesound.org/data/previews/320/320873_527080-hq.mp3");
-                  }))(function (buf) {
-                      return WAGS_Run.run2_([ WAGS_Control.highshelf_(FRP_Event.eventIsEvent)(WAGS_Common.initialHighshelfRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionHighshelfOpt)()()()({
-                          reflectSymbol: function () {
-                              return "gain";
-                          }
-                      }))(WAGS_Common.convertOptionHighshelfOpt1)()()()({
-                          reflectSymbol: function () {
-                              return "frequency";
-                          }
-                      })))(ConvertableOptions.defaultsRecord()())))({
-                          frequency: 2000.0,
-                          gain: 0.4
-                      })([ WAGS_Control.loopBuf(FRP_Event.eventIsEvent)(WAGS_Common.initialLoopBufBrowserAudi)(buf)(WAGS_Parameter.bangOn(FRP_Event.eventIsEvent)()) ]) ]);
+                  })(function (ctx) {
+                      return function (buf) {
+                          return WAGS_Run.run2(ctx)([ WAGS_Control.highshelf_(FRP_Event.eventIsEvent)(WAGS_Common.initialHighshelfRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionHighshelfOpt)()()()({
+                              reflectSymbol: function () {
+                                  return "gain";
+                              }
+                          }))(WAGS_Common.convertOptionHighshelfOpt1)()()()({
+                              reflectSymbol: function () {
+                                  return "frequency";
+                              }
+                          })))(ConvertableOptions.defaultsRecord()())))({
+                              frequency: 2000.0,
+                              gain: 0.4
+                          })([ WAGS_Control.loopBuf(FRP_Event.eventIsEvent)(WAGS_Common.initialLoopBufBrowserAudi)(buf)(WAGS_Parameter.bangOn(FRP_Event.eventIsEvent)()) ]) ]);
+                      };
                   }))
               });
           };
@@ -15770,10 +15819,12 @@ var PS = {};
                       return "iirFilterEx";
                   }
               }))(FRP_Event.eventIsEvent)(px)({
-                  iirFilterEx: Deku_Pursx.nut(WAGS_Example_Docs_Util.audioWrapper(ev)(ccb)(WAGS_Interpret.ctxAff(function (ctx) {
+                  iirFilterEx: Deku_Pursx.nut(WAGS_Example_Docs_Util.audioWrapper(ev)(ccb)(function (ctx) {
                       return WAGS_Interpret.decodeAudioDataFromUri(ctx)("https://freesound.org/data/previews/320/320873_527080-hq.mp3");
-                  }))(function (buf) {
-                      return WAGS_Run.run2_([ WAGS_Control.iirFilter(FRP_Event.eventIsEvent)()()(WAGS_Common.initialIIRFilterVecNumber(Type_Equality.refl)(Type_Equality.refl))(new Data_Tuple.Tuple(Data_Vec.cons(Data_Typelevel_Num_Ops.typelevelSucc(Data_Typelevel_Num_Sets.posD3)()(Data_Typelevel_Num_Ops.divMod10D2D0)()(Data_Typelevel_Num_Ops.divMod10D3D0))(2.0298e-4)(Data_Vec.cons(Data_Typelevel_Num_Ops.typelevelSucc(Data_Typelevel_Num_Sets.posD2)()(Data_Typelevel_Num_Ops.divMod10D1D0)()(Data_Typelevel_Num_Ops.divMod10D2D0))(4.059599e-4)(Data_Vec.cons(Data_Typelevel_Num_Ops.typelevelSucc(Data_Typelevel_Num_Sets.posD1)()(Data_Typelevel_Num_Ops.divMod10D0D0)()(Data_Typelevel_Num_Ops.divMod10D1D0))(2.0298e-4)(Data_Vec.empty))), Data_Vec.cons(Data_Typelevel_Num_Ops.typelevelSucc(Data_Typelevel_Num_Sets.posD3)()(Data_Typelevel_Num_Ops.divMod10D2D0)()(Data_Typelevel_Num_Ops.divMod10D3D0))(1.0126964558)(Data_Vec.cons(Data_Typelevel_Num_Ops.typelevelSucc(Data_Typelevel_Num_Sets.posD2)()(Data_Typelevel_Num_Ops.divMod10D1D0)()(Data_Typelevel_Num_Ops.divMod10D2D0))(-1.9991880801)(Data_Vec.cons(Data_Typelevel_Num_Ops.typelevelSucc(Data_Typelevel_Num_Sets.posD1)()(Data_Typelevel_Num_Ops.divMod10D0D0)()(Data_Typelevel_Num_Ops.divMod10D1D0))(0.9873035442)(Data_Vec.empty)))))([ WAGS_Control.loopBuf(FRP_Event.eventIsEvent)(WAGS_Common.initialLoopBufBrowserAudi)(buf)(WAGS_Parameter.bangOn(FRP_Event.eventIsEvent)()) ]) ]);
+                  })(function (ctx) {
+                      return function (buf) {
+                          return WAGS_Run.run2(ctx)([ WAGS_Control.iirFilter(FRP_Event.eventIsEvent)()()(WAGS_Common.initialIIRFilterVecNumber(Type_Equality.refl)(Type_Equality.refl))(new Data_Tuple.Tuple(Data_Vec.cons(Data_Typelevel_Num_Ops.typelevelSucc(Data_Typelevel_Num_Sets.posD3)()(Data_Typelevel_Num_Ops.divMod10D2D0)()(Data_Typelevel_Num_Ops.divMod10D3D0))(2.0298e-4)(Data_Vec.cons(Data_Typelevel_Num_Ops.typelevelSucc(Data_Typelevel_Num_Sets.posD2)()(Data_Typelevel_Num_Ops.divMod10D1D0)()(Data_Typelevel_Num_Ops.divMod10D2D0))(4.059599e-4)(Data_Vec.cons(Data_Typelevel_Num_Ops.typelevelSucc(Data_Typelevel_Num_Sets.posD1)()(Data_Typelevel_Num_Ops.divMod10D0D0)()(Data_Typelevel_Num_Ops.divMod10D1D0))(2.0298e-4)(Data_Vec.empty))), Data_Vec.cons(Data_Typelevel_Num_Ops.typelevelSucc(Data_Typelevel_Num_Sets.posD3)()(Data_Typelevel_Num_Ops.divMod10D2D0)()(Data_Typelevel_Num_Ops.divMod10D3D0))(1.0126964558)(Data_Vec.cons(Data_Typelevel_Num_Ops.typelevelSucc(Data_Typelevel_Num_Sets.posD2)()(Data_Typelevel_Num_Ops.divMod10D1D0)()(Data_Typelevel_Num_Ops.divMod10D2D0))(-1.9991880801)(Data_Vec.cons(Data_Typelevel_Num_Ops.typelevelSucc(Data_Typelevel_Num_Sets.posD1)()(Data_Typelevel_Num_Ops.divMod10D0D0)()(Data_Typelevel_Num_Ops.divMod10D1D0))(0.9873035442)(Data_Vec.empty)))))([ WAGS_Control.loopBuf(FRP_Event.eventIsEvent)(WAGS_Common.initialLoopBufBrowserAudi)(buf)(WAGS_Parameter.bangOn(FRP_Event.eventIsEvent)()) ]) ]);
+                      };
                   }))
               });
           };
@@ -15813,63 +15864,65 @@ var PS = {};
                       return "loopBuf";
                   }
               }))(FRP_Event.eventIsEvent)(Type_Proxy["Proxy"].value)(px)({
-                  loopBuf: Deku_Pursx.nut(WAGS_Example_Docs_Util.audioWrapper(ev)(ccb)(WAGS_Interpret.ctxAff(function (ctx) {
+                  loopBuf: Deku_Pursx.nut(WAGS_Example_Docs_Util.audioWrapper(ev)(ccb)(function (ctx) {
                       return WAGS_Interpret.decodeAudioDataFromUri(ctx)("https://freesound.org/data/previews/100/100981_1234256-lq.mp3");
-                  }))(function (buf) {
-                      return WAGS_Run.run2_([ WAGS_Control.loopBuf(FRP_Event.eventIsEvent)(WAGS_Common.initialLoopBufRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionLoopBufOptio4)()()()({
-                          reflectSymbol: function () {
-                              return "playbackRate";
-                          }
-                      }))(WAGS_Common.convertOptionLoopBufOptio2)()()()({
-                          reflectSymbol: function () {
-                              return "loopStart";
-                          }
-                      }))(WAGS_Common.convertOptionLoopBufOptio1)()()()({
-                          reflectSymbol: function () {
-                              return "loopEnd";
-                          }
-                      }))(WAGS_Common.convertOptionLoopBufOptio)()()()({
-                          reflectSymbol: function () {
-                              return "buffer";
-                          }
-                      })))(ConvertableOptions.defaultsRecord()())))({
-                          buffer: buf,
-                          playbackRate: 0.5,
-                          loopStart: 0.1,
-                          loopEnd: 0.6
-                      })(WAGS_Parameter.bangOn(FRP_Event.eventIsEvent)()), WAGS_Control.loopBuf(FRP_Event.eventIsEvent)(WAGS_Common.initialLoopBufRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionLoopBufOptio4)()()()({
-                          reflectSymbol: function () {
-                              return "playbackRate";
-                          }
-                      }))(WAGS_Common.convertOptionLoopBufOptio2)()()()({
-                          reflectSymbol: function () {
-                              return "loopStart";
-                          }
-                      }))(WAGS_Common.convertOptionLoopBufOptio1)()()()({
-                          reflectSymbol: function () {
-                              return "loopEnd";
-                          }
-                      }))(WAGS_Common.convertOptionLoopBufOptio)()()()({
-                          reflectSymbol: function () {
-                              return "buffer";
-                          }
-                      })))(ConvertableOptions.defaultsRecord()())))({
-                          buffer: buf,
-                          playbackRate: 1.0,
-                          loopStart: 0.5,
-                          loopEnd: 1.2
-                      })(WAGS_Parameter.bangOn(FRP_Event.eventIsEvent)()), WAGS_Control.loopBuf(FRP_Event.eventIsEvent)(WAGS_Common.initialLoopBufRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionLoopBufOptio4)()()()({
-                          reflectSymbol: function () {
-                              return "playbackRate";
-                          }
-                      }))(WAGS_Common.convertOptionLoopBufOptio)()()()({
-                          reflectSymbol: function () {
-                              return "buffer";
-                          }
-                      })))(ConvertableOptions.defaultsRecord()())))({
-                          buffer: buf,
-                          playbackRate: 1.7
-                      })(WAGS_Parameter.bangOn(FRP_Event.eventIsEvent)()) ]);
+                  })(function (ctx) {
+                      return function (buf) {
+                          return WAGS_Run.run2(ctx)([ WAGS_Control.loopBuf(FRP_Event.eventIsEvent)(WAGS_Common.initialLoopBufRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionLoopBufOptio4)()()()({
+                              reflectSymbol: function () {
+                                  return "playbackRate";
+                              }
+                          }))(WAGS_Common.convertOptionLoopBufOptio2)()()()({
+                              reflectSymbol: function () {
+                                  return "loopStart";
+                              }
+                          }))(WAGS_Common.convertOptionLoopBufOptio1)()()()({
+                              reflectSymbol: function () {
+                                  return "loopEnd";
+                              }
+                          }))(WAGS_Common.convertOptionLoopBufOptio)()()()({
+                              reflectSymbol: function () {
+                                  return "buffer";
+                              }
+                          })))(ConvertableOptions.defaultsRecord()())))({
+                              buffer: buf,
+                              playbackRate: 0.5,
+                              loopStart: 0.1,
+                              loopEnd: 0.6
+                          })(WAGS_Parameter.bangOn(FRP_Event.eventIsEvent)()), WAGS_Control.loopBuf(FRP_Event.eventIsEvent)(WAGS_Common.initialLoopBufRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionLoopBufOptio4)()()()({
+                              reflectSymbol: function () {
+                                  return "playbackRate";
+                              }
+                          }))(WAGS_Common.convertOptionLoopBufOptio2)()()()({
+                              reflectSymbol: function () {
+                                  return "loopStart";
+                              }
+                          }))(WAGS_Common.convertOptionLoopBufOptio1)()()()({
+                              reflectSymbol: function () {
+                                  return "loopEnd";
+                              }
+                          }))(WAGS_Common.convertOptionLoopBufOptio)()()()({
+                              reflectSymbol: function () {
+                                  return "buffer";
+                              }
+                          })))(ConvertableOptions.defaultsRecord()())))({
+                              buffer: buf,
+                              playbackRate: 1.0,
+                              loopStart: 0.5,
+                              loopEnd: 1.2
+                          })(WAGS_Parameter.bangOn(FRP_Event.eventIsEvent)()), WAGS_Control.loopBuf(FRP_Event.eventIsEvent)(WAGS_Common.initialLoopBufRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionLoopBufOptio4)()()()({
+                              reflectSymbol: function () {
+                                  return "playbackRate";
+                              }
+                          }))(WAGS_Common.convertOptionLoopBufOptio)()()()({
+                              reflectSymbol: function () {
+                                  return "buffer";
+                              }
+                          })))(ConvertableOptions.defaultsRecord()())))({
+                              buffer: buf,
+                              playbackRate: 1.7
+                          })(WAGS_Parameter.bangOn(FRP_Event.eventIsEvent)()) ]);
+                      };
                   }))
               });
           };
@@ -15904,10 +15957,12 @@ var PS = {};
                       return "lowpass";
                   }
               }))(FRP_Event.eventIsEvent)(px)({
-                  lowpass: Deku_Pursx.nut(WAGS_Example_Docs_Util.audioWrapper(ev)(ccb)(WAGS_Interpret.ctxAff(function (ctx) {
+                  lowpass: Deku_Pursx.nut(WAGS_Example_Docs_Util.audioWrapper(ev)(ccb)(function (ctx) {
                       return WAGS_Interpret.decodeAudioDataFromUri(ctx)("https://freesound.org/data/previews/320/320873_527080-hq.mp3");
-                  }))(function (buf) {
-                      return WAGS_Run.run2_([ WAGS_Control.lowpass_(FRP_Event.eventIsEvent)(WAGS_Common.initialLowpassInitialAudi)(215.0)([ WAGS_Control.loopBuf(FRP_Event.eventIsEvent)(WAGS_Common.initialLoopBufBrowserAudi)(buf)(WAGS_Parameter.bangOn(FRP_Event.eventIsEvent)()) ]) ]);
+                  })(function (ctx) {
+                      return function (buf) {
+                          return WAGS_Run.run2(ctx)([ WAGS_Control.lowpass_(FRP_Event.eventIsEvent)(WAGS_Common.initialLowpassInitialAudi)(215.0)([ WAGS_Control.loopBuf(FRP_Event.eventIsEvent)(WAGS_Common.initialLoopBufBrowserAudi)(buf)(WAGS_Parameter.bangOn(FRP_Event.eventIsEvent)()) ]) ]);
+                      };
                   }))
               });
           };
@@ -15943,21 +15998,23 @@ var PS = {};
                       return "lowshelf";
                   }
               }))(FRP_Event.eventIsEvent)(px)({
-                  lowshelf: Deku_Pursx.nut(WAGS_Example_Docs_Util.audioWrapper(ev)(ccb)(WAGS_Interpret.ctxAff(function (ctx) {
+                  lowshelf: Deku_Pursx.nut(WAGS_Example_Docs_Util.audioWrapper(ev)(ccb)(function (ctx) {
                       return WAGS_Interpret.decodeAudioDataFromUri(ctx)("https://freesound.org/data/previews/320/320873_527080-hq.mp3");
-                  }))(function (buf) {
-                      return WAGS_Run.run2_([ WAGS_Control.lowshelf_(FRP_Event.eventIsEvent)(WAGS_Common.initialLowshelfRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionLowshelfOpti)()()()({
-                          reflectSymbol: function () {
-                              return "gain";
-                          }
-                      }))(WAGS_Common.convertOptionLowshelfOpti1)()()()({
-                          reflectSymbol: function () {
-                              return "frequency";
-                          }
-                      })))(ConvertableOptions.defaultsRecord()())))({
-                          frequency: 91.0,
-                          gain: 0.4
-                      })([ WAGS_Control.loopBuf(FRP_Event.eventIsEvent)(WAGS_Common.initialLoopBufBrowserAudi)(buf)(WAGS_Parameter.bangOn(FRP_Event.eventIsEvent)()) ]) ]);
+                  })(function (ctx) {
+                      return function (buf) {
+                          return WAGS_Run.run2(ctx)([ WAGS_Control.lowshelf_(FRP_Event.eventIsEvent)(WAGS_Common.initialLowshelfRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionLowshelfOpti)()()()({
+                              reflectSymbol: function () {
+                                  return "gain";
+                              }
+                          }))(WAGS_Common.convertOptionLowshelfOpti1)()()()({
+                              reflectSymbol: function () {
+                                  return "frequency";
+                              }
+                          })))(ConvertableOptions.defaultsRecord()())))({
+                              frequency: 91.0,
+                              gain: 0.4
+                          })([ WAGS_Control.loopBuf(FRP_Event.eventIsEvent)(WAGS_Common.initialLoopBufBrowserAudi)(buf)(WAGS_Parameter.bangOn(FRP_Event.eventIsEvent)()) ]) ]);
+                      };
                   }))
               });
           };
@@ -15997,18 +16054,22 @@ var PS = {};
                       return "microphone";
                   }
               }))(FRP_Event.eventIsEvent)(Type_Proxy["Proxy"].value)(px)({
-                  microphone: Deku_Pursx.nut(WAGS_Example_Docs_Util.audioWrapper(ev)(ccb)(WAGS_Interpret.getMicrophoneAndCamera(true)(false))(function (v1) {
-                      return WAGS_Run.run2_([ (function () {
-                          if (v1.microphone instanceof Data_Maybe.Just) {
-                              return WAGS_Core.fix(FRP_Event.eventIsEvent)(function (i) {
-                                  return WAGS_Control.gain_(FRP_Event.eventIsEvent)(WAGS_Common.initialGainNumber)(1.0)([ WAGS_Control.microphone(FRP_Event.eventIsEvent)(WAGS_Common.initialMicrophoneBrowserM)(v1.microphone.value0), WAGS_Control.delay_(FRP_Event.eventIsEvent)(WAGS_Common.initialDelayInitialAudioP)(0.1)([ WAGS_Control.gain_(FRP_Event.eventIsEvent)(WAGS_Common.initialGainNumber)(0.2)([ i ]) ]) ]);
-                              });
-                          };
-                          if (v1.microphone instanceof Data_Maybe.Nothing) {
-                              return WAGS_Control.gain_(FRP_Event.eventIsEvent)(WAGS_Common.initialGainNumber)(2.0e-2)([ WAGS_Control.sinOsc_(FRP_Event.eventIsEvent)(WAGS_Common.initialSinOscNumber)(440.0) ]);
-                          };
-                          throw new Error("Failed pattern match at WAGS.Example.Docs.AudioUnits.Microphone (line 44, column 15 - line 49, column 56): " + [ v1.microphone.constructor.name ]);
-                      })() ]);
+                  microphone: Deku_Pursx.nut(WAGS_Example_Docs_Util.audioWrapper(ev)(ccb)(function (v1) {
+                      return WAGS_Interpret.getMicrophoneAndCamera(true)(false);
+                  })(function (ctx) {
+                      return function (v1) {
+                          return WAGS_Run.run2(ctx)([ (function () {
+                              if (v1.microphone instanceof Data_Maybe.Just) {
+                                  return WAGS_Core.fix(FRP_Event.eventIsEvent)(function (i) {
+                                      return WAGS_Control.gain_(FRP_Event.eventIsEvent)(WAGS_Common.initialGainNumber)(1.0)([ WAGS_Control.microphone(FRP_Event.eventIsEvent)(WAGS_Common.initialMicrophoneBrowserM)(v1.microphone.value0), WAGS_Control.delay_(FRP_Event.eventIsEvent)(WAGS_Common.initialDelayInitialAudioP)(0.1)([ WAGS_Control.gain_(FRP_Event.eventIsEvent)(WAGS_Common.initialGainNumber)(0.2)([ i ]) ]) ]);
+                                  });
+                              };
+                              if (v1.microphone instanceof Data_Maybe.Nothing) {
+                                  return WAGS_Control.gain_(FRP_Event.eventIsEvent)(WAGS_Common.initialGainNumber)(2.0e-2)([ WAGS_Control.sinOsc_(FRP_Event.eventIsEvent)(WAGS_Common.initialSinOscNumber)(440.0) ]);
+                              };
+                              throw new Error("Failed pattern match at WAGS.Example.Docs.AudioUnits.Microphone (line 44, column 15 - line 49, column 56): " + [ v1.microphone.constructor.name ]);
+                          })() ]);
+                      };
                   }))
               });
           };
@@ -16045,65 +16106,67 @@ var PS = {};
                       return "notch";
                   }
               }))(FRP_Event.eventIsEvent)(px)({
-                  notch: Deku_Pursx.nut(WAGS_Example_Docs_Util.audioWrapper(ev)(ccb)(WAGS_Interpret.ctxAff(function (ctx) {
+                  notch: Deku_Pursx.nut(WAGS_Example_Docs_Util.audioWrapper(ev)(ccb)(function (ctx) {
                       return WAGS_Interpret.decodeAudioDataFromUri(ctx)("https://freesound.org/data/previews/320/320873_527080-hq.mp3");
-                  }))(function (buf) {
-                      return WAGS_Run.run2_([ WAGS_Control.notch_(FRP_Event.eventIsEvent)(WAGS_Common.initialNotchRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionNotchOptions)()()()({
-                          reflectSymbol: function () {
-                              return "q";
-                          }
-                      }))(WAGS_Common.convertOptionNotchOptions1)()()()({
-                          reflectSymbol: function () {
-                              return "frequency";
-                          }
-                      })))(ConvertableOptions.defaultsRecord()())))({
-                          frequency: 400.0,
-                          q: 1.0
-                      })(Control_Applicative.pure(Control_Applicative.applicativeArray)(WAGS_Control.notch_(FRP_Event.eventIsEvent)(WAGS_Common.initialNotchRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionNotchOptions)()()()({
-                          reflectSymbol: function () {
-                              return "q";
-                          }
-                      }))(WAGS_Common.convertOptionNotchOptions1)()()()({
-                          reflectSymbol: function () {
-                              return "frequency";
-                          }
-                      })))(ConvertableOptions.defaultsRecord()())))({
-                          frequency: 880.0,
-                          q: 5.0
-                      })(Control_Applicative.pure(Control_Applicative.applicativeArray)(WAGS_Control.notch_(FRP_Event.eventIsEvent)(WAGS_Common.initialNotchRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionNotchOptions)()()()({
-                          reflectSymbol: function () {
-                              return "q";
-                          }
-                      }))(WAGS_Common.convertOptionNotchOptions1)()()()({
-                          reflectSymbol: function () {
-                              return "frequency";
-                          }
-                      })))(ConvertableOptions.defaultsRecord()())))({
-                          frequency: 1200.0,
-                          q: 10.0
-                      })(Control_Applicative.pure(Control_Applicative.applicativeArray)(WAGS_Control.notch_(FRP_Event.eventIsEvent)(WAGS_Common.initialNotchRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionNotchOptions)()()()({
-                          reflectSymbol: function () {
-                              return "q";
-                          }
-                      }))(WAGS_Common.convertOptionNotchOptions1)()()()({
-                          reflectSymbol: function () {
-                              return "frequency";
-                          }
-                      })))(ConvertableOptions.defaultsRecord()())))({
-                          frequency: 2000.0,
-                          q: 20.0
-                      })(Control_Applicative.pure(Control_Applicative.applicativeArray)(WAGS_Control.notch_(FRP_Event.eventIsEvent)(WAGS_Common.initialNotchRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionNotchOptions)()()()({
-                          reflectSymbol: function () {
-                              return "q";
-                          }
-                      }))(WAGS_Common.convertOptionNotchOptions1)()()()({
-                          reflectSymbol: function () {
-                              return "frequency";
-                          }
-                      })))(ConvertableOptions.defaultsRecord()())))({
-                          frequency: 3000.0,
-                          q: 30.0
-                      })(Control_Applicative.pure(Control_Applicative.applicativeArray)(WAGS_Control.loopBuf(FRP_Event.eventIsEvent)(WAGS_Common.initialLoopBufBrowserAudi)(buf)(WAGS_Parameter.bangOn(FRP_Event.eventIsEvent)()))))))))))) ]);
+                  })(function (ctx) {
+                      return function (buf) {
+                          return WAGS_Run.run2(ctx)([ WAGS_Control.notch_(FRP_Event.eventIsEvent)(WAGS_Common.initialNotchRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionNotchOptions)()()()({
+                              reflectSymbol: function () {
+                                  return "q";
+                              }
+                          }))(WAGS_Common.convertOptionNotchOptions1)()()()({
+                              reflectSymbol: function () {
+                                  return "frequency";
+                              }
+                          })))(ConvertableOptions.defaultsRecord()())))({
+                              frequency: 400.0,
+                              q: 1.0
+                          })(Control_Applicative.pure(Control_Applicative.applicativeArray)(WAGS_Control.notch_(FRP_Event.eventIsEvent)(WAGS_Common.initialNotchRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionNotchOptions)()()()({
+                              reflectSymbol: function () {
+                                  return "q";
+                              }
+                          }))(WAGS_Common.convertOptionNotchOptions1)()()()({
+                              reflectSymbol: function () {
+                                  return "frequency";
+                              }
+                          })))(ConvertableOptions.defaultsRecord()())))({
+                              frequency: 880.0,
+                              q: 5.0
+                          })(Control_Applicative.pure(Control_Applicative.applicativeArray)(WAGS_Control.notch_(FRP_Event.eventIsEvent)(WAGS_Common.initialNotchRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionNotchOptions)()()()({
+                              reflectSymbol: function () {
+                                  return "q";
+                              }
+                          }))(WAGS_Common.convertOptionNotchOptions1)()()()({
+                              reflectSymbol: function () {
+                                  return "frequency";
+                              }
+                          })))(ConvertableOptions.defaultsRecord()())))({
+                              frequency: 1200.0,
+                              q: 10.0
+                          })(Control_Applicative.pure(Control_Applicative.applicativeArray)(WAGS_Control.notch_(FRP_Event.eventIsEvent)(WAGS_Common.initialNotchRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionNotchOptions)()()()({
+                              reflectSymbol: function () {
+                                  return "q";
+                              }
+                          }))(WAGS_Common.convertOptionNotchOptions1)()()()({
+                              reflectSymbol: function () {
+                                  return "frequency";
+                              }
+                          })))(ConvertableOptions.defaultsRecord()())))({
+                              frequency: 2000.0,
+                              q: 20.0
+                          })(Control_Applicative.pure(Control_Applicative.applicativeArray)(WAGS_Control.notch_(FRP_Event.eventIsEvent)(WAGS_Common.initialNotchRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionNotchOptions)()()()({
+                              reflectSymbol: function () {
+                                  return "q";
+                              }
+                          }))(WAGS_Common.convertOptionNotchOptions1)()()()({
+                              reflectSymbol: function () {
+                                  return "frequency";
+                              }
+                          })))(ConvertableOptions.defaultsRecord()())))({
+                              frequency: 3000.0,
+                              q: 30.0
+                          })(Control_Applicative.pure(Control_Applicative.applicativeArray)(WAGS_Control.loopBuf(FRP_Event.eventIsEvent)(WAGS_Common.initialLoopBufBrowserAudi)(buf)(WAGS_Parameter.bangOn(FRP_Event.eventIsEvent)()))))))))))) ]);
+                      };
                   }))
               });
           };
@@ -16140,90 +16203,92 @@ var PS = {};
                       return "peaking";
                   }
               }))(FRP_Event.eventIsEvent)(px)({
-                  peaking: Deku_Pursx.nut(WAGS_Example_Docs_Util.audioWrapper(ev)(ccb)(WAGS_Interpret.ctxAff(function (ctx) {
+                  peaking: Deku_Pursx.nut(WAGS_Example_Docs_Util.audioWrapper(ev)(ccb)(function (ctx) {
                       return WAGS_Interpret.decodeAudioDataFromUri(ctx)("https://freesound.org/data/previews/320/320873_527080-hq.mp3");
-                  }))(function (buf) {
-                      return WAGS_Run.run2_([ WAGS_Control.peaking_(FRP_Event.eventIsEvent)(WAGS_Common.initialPeakingRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionPeakingOptio)()()()({
-                          reflectSymbol: function () {
-                              return "q";
-                          }
-                      }))(WAGS_Common.convertOptionPeakingOptio1)()()()({
-                          reflectSymbol: function () {
-                              return "gain";
-                          }
-                      }))(WAGS_Common.convertOptionPeakingOptio2)()()()({
-                          reflectSymbol: function () {
-                              return "frequency";
-                          }
-                      })))(ConvertableOptions.defaultsRecord()())))({
-                          frequency: 400.0,
-                          q: 1.0,
-                          gain: -20.0
-                      })(Control_Applicative.pure(Control_Applicative.applicativeArray)(WAGS_Control.peaking_(FRP_Event.eventIsEvent)(WAGS_Common.initialPeakingRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionPeakingOptio)()()()({
-                          reflectSymbol: function () {
-                              return "q";
-                          }
-                      }))(WAGS_Common.convertOptionPeakingOptio1)()()()({
-                          reflectSymbol: function () {
-                              return "gain";
-                          }
-                      }))(WAGS_Common.convertOptionPeakingOptio2)()()()({
-                          reflectSymbol: function () {
-                              return "frequency";
-                          }
-                      })))(ConvertableOptions.defaultsRecord()())))({
-                          frequency: 880.0,
-                          q: 5.0,
-                          gain: 20.0
-                      })(Control_Applicative.pure(Control_Applicative.applicativeArray)(WAGS_Control.peaking_(FRP_Event.eventIsEvent)(WAGS_Common.initialPeakingRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionPeakingOptio)()()()({
-                          reflectSymbol: function () {
-                              return "q";
-                          }
-                      }))(WAGS_Common.convertOptionPeakingOptio1)()()()({
-                          reflectSymbol: function () {
-                              return "gain";
-                          }
-                      }))(WAGS_Common.convertOptionPeakingOptio2)()()()({
-                          reflectSymbol: function () {
-                              return "frequency";
-                          }
-                      })))(ConvertableOptions.defaultsRecord()())))({
-                          frequency: 1200.0,
-                          q: 10.0,
-                          gain: -20.0
-                      })(Control_Applicative.pure(Control_Applicative.applicativeArray)(WAGS_Control.peaking_(FRP_Event.eventIsEvent)(WAGS_Common.initialPeakingRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionPeakingOptio)()()()({
-                          reflectSymbol: function () {
-                              return "q";
-                          }
-                      }))(WAGS_Common.convertOptionPeakingOptio1)()()()({
-                          reflectSymbol: function () {
-                              return "gain";
-                          }
-                      }))(WAGS_Common.convertOptionPeakingOptio2)()()()({
-                          reflectSymbol: function () {
-                              return "frequency";
-                          }
-                      })))(ConvertableOptions.defaultsRecord()())))({
-                          frequency: 2000.0,
-                          q: 20.0,
-                          gain: 20.0
-                      })(Control_Applicative.pure(Control_Applicative.applicativeArray)(WAGS_Control.peaking_(FRP_Event.eventIsEvent)(WAGS_Common.initialPeakingRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionPeakingOptio)()()()({
-                          reflectSymbol: function () {
-                              return "q";
-                          }
-                      }))(WAGS_Common.convertOptionPeakingOptio1)()()()({
-                          reflectSymbol: function () {
-                              return "gain";
-                          }
-                      }))(WAGS_Common.convertOptionPeakingOptio2)()()()({
-                          reflectSymbol: function () {
-                              return "frequency";
-                          }
-                      })))(ConvertableOptions.defaultsRecord()())))({
-                          frequency: 3000.0,
-                          q: 30.0,
-                          gain: -20.0
-                      })(Control_Applicative.pure(Control_Applicative.applicativeArray)(WAGS_Control.loopBuf(FRP_Event.eventIsEvent)(WAGS_Common.initialLoopBufBrowserAudi)(buf)(WAGS_Parameter.bangOn(FRP_Event.eventIsEvent)()))))))))))) ]);
+                  })(function (ctx) {
+                      return function (buf) {
+                          return WAGS_Run.run2(ctx)([ WAGS_Control.peaking_(FRP_Event.eventIsEvent)(WAGS_Common.initialPeakingRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionPeakingOptio)()()()({
+                              reflectSymbol: function () {
+                                  return "q";
+                              }
+                          }))(WAGS_Common.convertOptionPeakingOptio1)()()()({
+                              reflectSymbol: function () {
+                                  return "gain";
+                              }
+                          }))(WAGS_Common.convertOptionPeakingOptio2)()()()({
+                              reflectSymbol: function () {
+                                  return "frequency";
+                              }
+                          })))(ConvertableOptions.defaultsRecord()())))({
+                              frequency: 400.0,
+                              q: 1.0,
+                              gain: -20.0
+                          })(Control_Applicative.pure(Control_Applicative.applicativeArray)(WAGS_Control.peaking_(FRP_Event.eventIsEvent)(WAGS_Common.initialPeakingRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionPeakingOptio)()()()({
+                              reflectSymbol: function () {
+                                  return "q";
+                              }
+                          }))(WAGS_Common.convertOptionPeakingOptio1)()()()({
+                              reflectSymbol: function () {
+                                  return "gain";
+                              }
+                          }))(WAGS_Common.convertOptionPeakingOptio2)()()()({
+                              reflectSymbol: function () {
+                                  return "frequency";
+                              }
+                          })))(ConvertableOptions.defaultsRecord()())))({
+                              frequency: 880.0,
+                              q: 5.0,
+                              gain: 20.0
+                          })(Control_Applicative.pure(Control_Applicative.applicativeArray)(WAGS_Control.peaking_(FRP_Event.eventIsEvent)(WAGS_Common.initialPeakingRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionPeakingOptio)()()()({
+                              reflectSymbol: function () {
+                                  return "q";
+                              }
+                          }))(WAGS_Common.convertOptionPeakingOptio1)()()()({
+                              reflectSymbol: function () {
+                                  return "gain";
+                              }
+                          }))(WAGS_Common.convertOptionPeakingOptio2)()()()({
+                              reflectSymbol: function () {
+                                  return "frequency";
+                              }
+                          })))(ConvertableOptions.defaultsRecord()())))({
+                              frequency: 1200.0,
+                              q: 10.0,
+                              gain: -20.0
+                          })(Control_Applicative.pure(Control_Applicative.applicativeArray)(WAGS_Control.peaking_(FRP_Event.eventIsEvent)(WAGS_Common.initialPeakingRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionPeakingOptio)()()()({
+                              reflectSymbol: function () {
+                                  return "q";
+                              }
+                          }))(WAGS_Common.convertOptionPeakingOptio1)()()()({
+                              reflectSymbol: function () {
+                                  return "gain";
+                              }
+                          }))(WAGS_Common.convertOptionPeakingOptio2)()()()({
+                              reflectSymbol: function () {
+                                  return "frequency";
+                              }
+                          })))(ConvertableOptions.defaultsRecord()())))({
+                              frequency: 2000.0,
+                              q: 20.0,
+                              gain: 20.0
+                          })(Control_Applicative.pure(Control_Applicative.applicativeArray)(WAGS_Control.peaking_(FRP_Event.eventIsEvent)(WAGS_Common.initialPeakingRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionPeakingOptio)()()()({
+                              reflectSymbol: function () {
+                                  return "q";
+                              }
+                          }))(WAGS_Common.convertOptionPeakingOptio1)()()()({
+                              reflectSymbol: function () {
+                                  return "gain";
+                              }
+                          }))(WAGS_Common.convertOptionPeakingOptio2)()()()({
+                              reflectSymbol: function () {
+                                  return "frequency";
+                              }
+                          })))(ConvertableOptions.defaultsRecord()())))({
+                              frequency: 3000.0,
+                              q: 30.0,
+                              gain: -20.0
+                          })(Control_Applicative.pure(Control_Applicative.applicativeArray)(WAGS_Control.loopBuf(FRP_Event.eventIsEvent)(WAGS_Common.initialLoopBufBrowserAudi)(buf)(WAGS_Parameter.bangOn(FRP_Event.eventIsEvent)()))))))))))) ]);
+                      };
                   }))
               });
           };
@@ -16265,19 +16330,23 @@ var PS = {};
                       return "periodic";
                   }
               }))(FRP_Event.eventIsEvent)(px)({
-                  periodic: Deku_Pursx.nut(WAGS_Example_Docs_Util.audioWrapper(ev)(ccb)(Control_Applicative.pure(Effect_Aff.applicativeAff)(Data_Unit.unit))(function (v1) {
-                      return WAGS_Run.run2_([ WAGS_Control.gain_(FRP_Event.eventIsEvent)(WAGS_Common.initialGainNumber)(0.2)([ WAGS_Control.periodicOsc(FRP_Event.eventIsEvent)(WAGS_Common.initialPeriodicOscRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionPeriodicOscO1(WAGS_Common.periodicOscSpecableVecNum(Data_Typelevel_Num_Sets.posD4)))()()()({
-                          reflectSymbol: function () {
-                              return "spec";
-                          }
-                      }))(WAGS_Common.convertOptionPeriodicOscO)()()()({
-                          reflectSymbol: function () {
-                              return "frequency";
-                          }
-                      })))(ConvertableOptions.defaultsRecord()())))({
-                          frequency: 140.0,
-                          spec: new Data_Tuple.Tuple(Data_Vec.cons(Data_Typelevel_Num_Ops.typelevelSucc(Data_Typelevel_Num_Sets.posD4)()(Data_Typelevel_Num_Ops.divMod10D3D0)()(Data_Typelevel_Num_Ops.divMod10D4D0))(0.1)(Data_Vec.cons(Data_Typelevel_Num_Ops.typelevelSucc(Data_Typelevel_Num_Sets.posD3)()(Data_Typelevel_Num_Ops.divMod10D2D0)()(Data_Typelevel_Num_Ops.divMod10D3D0))(0.2)(Data_Vec.cons(Data_Typelevel_Num_Ops.typelevelSucc(Data_Typelevel_Num_Sets.posD2)()(Data_Typelevel_Num_Ops.divMod10D1D0)()(Data_Typelevel_Num_Ops.divMod10D2D0))(0.3)(Data_Vec.cons(Data_Typelevel_Num_Ops.typelevelSucc(Data_Typelevel_Num_Sets.posD1)()(Data_Typelevel_Num_Ops.divMod10D0D0)()(Data_Typelevel_Num_Ops.divMod10D1D0))(0.4)(Data_Vec.empty)))), Data_Vec.cons(Data_Typelevel_Num_Ops.typelevelSucc(Data_Typelevel_Num_Sets.posD4)()(Data_Typelevel_Num_Ops.divMod10D3D0)()(Data_Typelevel_Num_Ops.divMod10D4D0))(0.4)(Data_Vec.cons(Data_Typelevel_Num_Ops.typelevelSucc(Data_Typelevel_Num_Sets.posD3)()(Data_Typelevel_Num_Ops.divMod10D2D0)()(Data_Typelevel_Num_Ops.divMod10D3D0))(0.3)(Data_Vec.cons(Data_Typelevel_Num_Ops.typelevelSucc(Data_Typelevel_Num_Sets.posD2)()(Data_Typelevel_Num_Ops.divMod10D1D0)()(Data_Typelevel_Num_Ops.divMod10D2D0))(0.2)(Data_Vec.cons(Data_Typelevel_Num_Ops.typelevelSucc(Data_Typelevel_Num_Sets.posD1)()(Data_Typelevel_Num_Ops.divMod10D0D0)()(Data_Typelevel_Num_Ops.divMod10D1D0))(0.1)(Data_Vec.empty)))))
-                      })(WAGS_Parameter.bangOn(FRP_Event.eventIsEvent)()) ]) ]);
+                  periodic: Deku_Pursx.nut(WAGS_Example_Docs_Util.audioWrapper(ev)(ccb)(function (v1) {
+                      return Control_Applicative.pure(Effect_Aff.applicativeAff)(Data_Unit.unit);
+                  })(function (ctx) {
+                      return function (v1) {
+                          return WAGS_Run.run2(ctx)([ WAGS_Control.gain_(FRP_Event.eventIsEvent)(WAGS_Common.initialGainNumber)(0.2)([ WAGS_Control.periodicOsc(FRP_Event.eventIsEvent)(WAGS_Common.initialPeriodicOscRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionPeriodicOscO1(WAGS_Common.periodicOscSpecableVecNum(Data_Typelevel_Num_Sets.posD4)))()()()({
+                              reflectSymbol: function () {
+                                  return "spec";
+                              }
+                          }))(WAGS_Common.convertOptionPeriodicOscO)()()()({
+                              reflectSymbol: function () {
+                                  return "frequency";
+                              }
+                          })))(ConvertableOptions.defaultsRecord()())))({
+                              frequency: 140.0,
+                              spec: new Data_Tuple.Tuple(Data_Vec.cons(Data_Typelevel_Num_Ops.typelevelSucc(Data_Typelevel_Num_Sets.posD4)()(Data_Typelevel_Num_Ops.divMod10D3D0)()(Data_Typelevel_Num_Ops.divMod10D4D0))(0.1)(Data_Vec.cons(Data_Typelevel_Num_Ops.typelevelSucc(Data_Typelevel_Num_Sets.posD3)()(Data_Typelevel_Num_Ops.divMod10D2D0)()(Data_Typelevel_Num_Ops.divMod10D3D0))(0.2)(Data_Vec.cons(Data_Typelevel_Num_Ops.typelevelSucc(Data_Typelevel_Num_Sets.posD2)()(Data_Typelevel_Num_Ops.divMod10D1D0)()(Data_Typelevel_Num_Ops.divMod10D2D0))(0.3)(Data_Vec.cons(Data_Typelevel_Num_Ops.typelevelSucc(Data_Typelevel_Num_Sets.posD1)()(Data_Typelevel_Num_Ops.divMod10D0D0)()(Data_Typelevel_Num_Ops.divMod10D1D0))(0.4)(Data_Vec.empty)))), Data_Vec.cons(Data_Typelevel_Num_Ops.typelevelSucc(Data_Typelevel_Num_Sets.posD4)()(Data_Typelevel_Num_Ops.divMod10D3D0)()(Data_Typelevel_Num_Ops.divMod10D4D0))(0.4)(Data_Vec.cons(Data_Typelevel_Num_Ops.typelevelSucc(Data_Typelevel_Num_Sets.posD3)()(Data_Typelevel_Num_Ops.divMod10D2D0)()(Data_Typelevel_Num_Ops.divMod10D3D0))(0.3)(Data_Vec.cons(Data_Typelevel_Num_Ops.typelevelSucc(Data_Typelevel_Num_Sets.posD2)()(Data_Typelevel_Num_Ops.divMod10D1D0)()(Data_Typelevel_Num_Ops.divMod10D2D0))(0.2)(Data_Vec.cons(Data_Typelevel_Num_Ops.typelevelSucc(Data_Typelevel_Num_Sets.posD1)()(Data_Typelevel_Num_Ops.divMod10D0D0)()(Data_Typelevel_Num_Ops.divMod10D1D0))(0.1)(Data_Vec.empty)))))
+                          })(WAGS_Parameter.bangOn(FRP_Event.eventIsEvent)()) ]) ]);
+                      };
                   }))
               });
           };
@@ -16313,26 +16382,28 @@ var PS = {};
                       return "playBuf";
                   }
               }))(FRP_Event.eventIsEvent)(px)({
-                  playBuf: Deku_Pursx.nut(WAGS_Example_Docs_Util.audioWrapper(ev)(ccb)(WAGS_Interpret.ctxAff(function (ctx) {
+                  playBuf: Deku_Pursx.nut(WAGS_Example_Docs_Util.audioWrapper(ev)(ccb)(function (ctx) {
                       return WAGS_Interpret.decodeAudioDataFromUri(ctx)("https://freesound.org/data/previews/470/470035_9564355-lq.mp3");
-                  }))(function (buffer) {
-                      return WAGS_Run.run2_([ WAGS_Control.playBuf(FRP_Event.eventIsEvent)(WAGS_Common.initialPlayBufRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionPlayBufOptio2)()()()({
-                          reflectSymbol: function () {
-                              return "duration";
-                          }
-                      }))(WAGS_Common.convertOptionPlayBufOptio1)()()()({
-                          reflectSymbol: function () {
-                              return "bufferOffset";
-                          }
-                      }))(WAGS_Common.convertOptionPlayBufOptio)()()()({
-                          reflectSymbol: function () {
-                              return "buffer";
-                          }
-                      })))(ConvertableOptions.defaultsRecord()())))({
-                          buffer: buffer,
-                          duration: 3.0,
-                          bufferOffset: 4.2
-                      })(WAGS_Parameter.bangOn(FRP_Event.eventIsEvent)()) ]);
+                  })(function (ctx) {
+                      return function (buffer) {
+                          return WAGS_Run.run2(ctx)([ WAGS_Control.playBuf(FRP_Event.eventIsEvent)(WAGS_Common.initialPlayBufRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionPlayBufOptio2)()()()({
+                              reflectSymbol: function () {
+                                  return "duration";
+                              }
+                          }))(WAGS_Common.convertOptionPlayBufOptio1)()()()({
+                              reflectSymbol: function () {
+                                  return "bufferOffset";
+                              }
+                          }))(WAGS_Common.convertOptionPlayBufOptio)()()()({
+                              reflectSymbol: function () {
+                                  return "buffer";
+                              }
+                          })))(ConvertableOptions.defaultsRecord()())))({
+                              buffer: buffer,
+                              duration: 3.0,
+                              bufferOffset: 4.2
+                          })(WAGS_Parameter.bangOn(FRP_Event.eventIsEvent)()) ]);
+                      };
                   }))
               });
           };
@@ -16447,7 +16518,7 @@ var PS = {};
                                                   return Effect_Class.liftEffect(Effect_Aff.monadEffectAff)(function __do() {
                                                       var res = Data_Maybe.maybe(Control_Applicative.pure(Effect.applicativeEffect)(Control_Applicative.pure(Effect.applicativeEffect)(Data_Unit.unit)))(function (mc) {
                                                           return function __do() {
-                                                              var ctx = WAGS_Interpret.context();
+                                                              var ctx = WAGS_Interpret.context(Effect_Class.monadEffectEffect)();
                                                               var ffi2 = WAGS_Interpret.makeFFIAudioSnapshot(ctx)();
                                                               var audioE = WAGS_Control.speaker2(FRP_Event.eventIsEvent)([ scene(FRP_Event.eventIsEvent)(WAGS_Common.initialRecorderMediaRecor)(WAGS_Common.initialMicrophoneBrowserM)(mc)(function (mr) {
                                                                   return function __do() {
@@ -16469,8 +16540,8 @@ var PS = {};
                                                                           return $31(WAGS_Interpret.stopMediaRecorder($32));
                                                                       };
                                                                   })()))();
-                                                                  var st = WAGS_Interpret.contextState(ctx)();
-                                                                  return Control_Applicative.when(Effect.applicativeEffect)(st !== "closed")(WAGS_Interpret.close(ctx))();
+                                                                  var st = WAGS_Interpret.contextState(Effect_Class.monadEffectEffect)(ctx)();
+                                                                  return Control_Applicative.when(Effect.applicativeEffect)(st !== "closed")(WAGS_Interpret.close(Effect_Class.monadEffectEffect)(ctx))();
                                                               };
                                                           };
                                                       })(x)();
@@ -16551,8 +16622,12 @@ var PS = {};
                       return "periodic";
                   }
               }))(FRP_Event.eventIsEvent)(px)({
-                  periodic: Deku_Pursx.nut(WAGS_Example_Docs_Util.audioWrapper(ev)(ccb)(Control_Applicative.pure(Effect_Aff.applicativeAff)(Data_Unit.unit))(function (v1) {
-                      return WAGS_Run.run2_([ WAGS_Control.gain_(FRP_Event.eventIsEvent)(WAGS_Common.initialGainNumber)(0.2)([ WAGS_Control.sawtoothOsc(FRP_Event.eventIsEvent)(WAGS_Common.initialSawtoothOscNumber)(448.0)(WAGS_Parameter.bangOn(FRP_Event.eventIsEvent)()) ]) ]);
+                  periodic: Deku_Pursx.nut(WAGS_Example_Docs_Util.audioWrapper(ev)(ccb)(function (v1) {
+                      return Control_Applicative.pure(Effect_Aff.applicativeAff)(Data_Unit.unit);
+                  })(function (ctx) {
+                      return function (v1) {
+                          return WAGS_Run.run2(ctx)([ WAGS_Control.gain_(FRP_Event.eventIsEvent)(WAGS_Common.initialGainNumber)(0.2)([ WAGS_Control.sawtoothOsc(FRP_Event.eventIsEvent)(WAGS_Common.initialSawtoothOscNumber)(448.0)(WAGS_Parameter.bangOn(FRP_Event.eventIsEvent)()) ]) ]);
+                      };
                   }))
               });
           };
@@ -16589,8 +16664,12 @@ var PS = {};
                       return "periodic";
                   }
               }))(FRP_Event.eventIsEvent)(px)({
-                  periodic: Deku_Pursx.nut(WAGS_Example_Docs_Util.audioWrapper(ev)(ccb)(Control_Applicative.pure(Effect_Aff.applicativeAff)(Data_Unit.unit))(function (v1) {
-                      return WAGS_Run.run2_([ WAGS_Control.gain_(FRP_Event.eventIsEvent)(WAGS_Common.initialGainNumber)(0.2)([ WAGS_Control.sinOsc(FRP_Event.eventIsEvent)(WAGS_Common.initialSinOscNumber)(448.0)(WAGS_Parameter.bangOn(FRP_Event.eventIsEvent)()) ]) ]);
+                  periodic: Deku_Pursx.nut(WAGS_Example_Docs_Util.audioWrapper(ev)(ccb)(function (v1) {
+                      return Control_Applicative.pure(Effect_Aff.applicativeAff)(Data_Unit.unit);
+                  })(function (ctx) {
+                      return function (v1) {
+                          return WAGS_Run.run2(ctx)([ WAGS_Control.gain_(FRP_Event.eventIsEvent)(WAGS_Common.initialGainNumber)(0.2)([ WAGS_Control.sinOsc(FRP_Event.eventIsEvent)(WAGS_Common.initialSinOscNumber)(448.0)(WAGS_Parameter.bangOn(FRP_Event.eventIsEvent)()) ]) ]);
+                      };
                   }))
               });
           };
@@ -16627,8 +16706,12 @@ var PS = {};
                       return "periodic";
                   }
               }))(FRP_Event.eventIsEvent)(px)({
-                  periodic: Deku_Pursx.nut(WAGS_Example_Docs_Util.audioWrapper(ev)(ccb)(Control_Applicative.pure(Effect_Aff.applicativeAff)(Data_Unit.unit))(function (v1) {
-                      return WAGS_Run.run2_([ WAGS_Control.gain_(FRP_Event.eventIsEvent)(WAGS_Common.initialGainNumber)(0.2)([ WAGS_Control.squareOsc(FRP_Event.eventIsEvent)(WAGS_Common.initialSquareOscNumber)(448.0)(WAGS_Parameter.bangOn(FRP_Event.eventIsEvent)()) ]) ]);
+                  periodic: Deku_Pursx.nut(WAGS_Example_Docs_Util.audioWrapper(ev)(ccb)(function (v1) {
+                      return Control_Applicative.pure(Effect_Aff.applicativeAff)(Data_Unit.unit);
+                  })(function (ctx) {
+                      return function (v1) {
+                          return WAGS_Run.run2(ctx)([ WAGS_Control.gain_(FRP_Event.eventIsEvent)(WAGS_Common.initialGainNumber)(0.2)([ WAGS_Control.squareOsc(FRP_Event.eventIsEvent)(WAGS_Common.initialSquareOscNumber)(448.0)(WAGS_Parameter.bangOn(FRP_Event.eventIsEvent)()) ]) ]);
+                      };
                   }))
               });
           };
@@ -16663,10 +16746,12 @@ var PS = {};
                       return "pan";
                   }
               }))(FRP_Event.eventIsEvent)(px)({
-                  pan: Deku_Pursx.nut(WAGS_Example_Docs_Util.audioWrapper(ev)(ccb)(WAGS_Interpret.ctxAff(function (ctx) {
+                  pan: Deku_Pursx.nut(WAGS_Example_Docs_Util.audioWrapper(ev)(ccb)(function (ctx) {
                       return WAGS_Interpret.decodeAudioDataFromUri(ctx)("https://freesound.org/data/previews/339/339822_5121236-lq.mp3");
-                  }))(function (buf) {
-                      return WAGS_Run.run2_([ WAGS_Control.pan_(FRP_Event.eventIsEvent)(WAGS_Common.initialStereoPannerNumber)(1.0)([ WAGS_Control.loopBuf(FRP_Event.eventIsEvent)(WAGS_Common.initialLoopBufBrowserAudi)(buf)(WAGS_Parameter.bangOn(FRP_Event.eventIsEvent)()) ]) ]);
+                  })(function (ctx) {
+                      return function (buf) {
+                          return WAGS_Run.run2(ctx)([ WAGS_Control.pan_(FRP_Event.eventIsEvent)(WAGS_Common.initialStereoPannerNumber)(1.0)([ WAGS_Control.loopBuf(FRP_Event.eventIsEvent)(WAGS_Common.initialLoopBufBrowserAudi)(buf)(WAGS_Parameter.bangOn(FRP_Event.eventIsEvent)()) ]) ]);
+                      };
                   }))
               });
           };
@@ -16719,8 +16804,12 @@ var PS = {};
                       return "periodic";
                   }
               }))(FRP_Event.eventIsEvent)(px)({
-                  periodic: Deku_Pursx.nut(WAGS_Example_Docs_Util.audioWrapper(ev)(ccb)(Control_Applicative.pure(Effect_Aff.applicativeAff)(Data_Unit.unit))(function (v1) {
-                      return WAGS_Run.run2_([ WAGS_Control.gain_(FRP_Event.eventIsEvent)(WAGS_Common.initialGainNumber)(0.2)([ WAGS_Control.triangleOsc(FRP_Event.eventIsEvent)(WAGS_Common.initialTriangleOscNumber)(448.0)(WAGS_Parameter.bangOn(FRP_Event.eventIsEvent)()) ]) ]);
+                  periodic: Deku_Pursx.nut(WAGS_Example_Docs_Util.audioWrapper(ev)(ccb)(function (v1) {
+                      return Control_Applicative.pure(Effect_Aff.applicativeAff)(Data_Unit.unit);
+                  })(function (ctx) {
+                      return function (v1) {
+                          return WAGS_Run.run2(ctx)([ WAGS_Control.gain_(FRP_Event.eventIsEvent)(WAGS_Common.initialGainNumber)(0.2)([ WAGS_Control.triangleOsc(FRP_Event.eventIsEvent)(WAGS_Common.initialTriangleOscNumber)(448.0)(WAGS_Parameter.bangOn(FRP_Event.eventIsEvent)()) ]) ]);
+                      };
                   }))
               });
           };
@@ -16767,19 +16856,21 @@ var PS = {};
                   }
               }))(FRP_Event.eventIsEvent)(px)({
                   code: Deku_Pursx.nut(Deku_Control.text_(FRP_Event.eventIsEvent)("do\x0a  let\x0a    makeDistortionCurve :: Number -> Array Number\x0a    makeDistortionCurve k =\x0a      map\x0a        ( \\i ->\x0a            let\x0a              x = (toNumber i * 2.0 / toNumber n_samples) - 1.0\x0a            in\x0a              (3.0 + k) * x * 20.0 * deg / (pi + (k * abs x))\x0a        )\x0a        (0 .. (n_samples - 1))\x0a      where\x0a      n_samples = 44100\x0a\x0a      deg = pi / 180.0\x0a  wicked <- makeFloatArray (makeDistortionCurve 400.0)\x0a  run2_\x0a    [ waveShaper wicked [ loopBuf buf bangOn ] ]")),
-                  waveShaper: Deku_Pursx.nut(WAGS_Example_Docs_Util.audioWrapper(ev)(ccb)(WAGS_Interpret.ctxAff(function (ctx) {
+                  waveShaper: Deku_Pursx.nut(WAGS_Example_Docs_Util.audioWrapper(ev)(ccb)(function (ctx) {
                       return WAGS_Interpret.decodeAudioDataFromUri(ctx)("https://freesound.org/data/previews/339/339822_5121236-lq.mp3");
-                  }))(function (buf) {
-                      var makeDistortionCurve = function (k) {
-                          var deg = $$Math.pi / 180.0;
-                          return Data_Functor.map(Data_Functor.functorArray)(function (i) {
-                              var x = (Data_Int.toNumber(i) * 2.0) / Data_Int.toNumber(44100) - 1.0;
-                              return ((3.0 + k) * x * 20.0 * deg) / ($$Math.pi + k * Data_Ord.abs(Data_Ord.ordNumber)(Data_Ring.ringNumber)(x));
-                          })(Data_Array.range(0)(44100 - 1 | 0));
-                      };
-                      return function __do() {
-                          var wicked = WAGS_Interpret.makeFloatArray(makeDistortionCurve(400.0))();
-                          return WAGS_Run.run2_([ WAGS_Control.waveShaper(FRP_Event.eventIsEvent)(WAGS_Common.initialWaveShaperBrowserF)(wicked)([ WAGS_Control.loopBuf(FRP_Event.eventIsEvent)(WAGS_Common.initialLoopBufBrowserAudi)(buf)(WAGS_Parameter.bangOn(FRP_Event.eventIsEvent)()) ]) ])();
+                  })(function (ctx) {
+                      return function (buf) {
+                          var makeDistortionCurve = function (k) {
+                              var deg = $$Math.pi / 180.0;
+                              return Data_Functor.map(Data_Functor.functorArray)(function (i) {
+                                  var x = (Data_Int.toNumber(i) * 2.0) / Data_Int.toNumber(44100) - 1.0;
+                                  return ((3.0 + k) * x * 20.0 * deg) / ($$Math.pi + k * Data_Ord.abs(Data_Ord.ordNumber)(Data_Ring.ringNumber)(x));
+                              })(Data_Array.range(0)(44100 - 1 | 0));
+                          };
+                          return function __do() {
+                              var wicked = WAGS_Interpret.makeFloatArray(makeDistortionCurve(400.0))();
+                              return WAGS_Run.run2(ctx)([ WAGS_Control.waveShaper(FRP_Event.eventIsEvent)(WAGS_Common.initialWaveShaperBrowserF)(wicked)([ WAGS_Control.loopBuf(FRP_Event.eventIsEvent)(WAGS_Common.initialLoopBufBrowserAudi)(buf)(WAGS_Parameter.bangOn(FRP_Event.eventIsEvent)()) ]) ])();
+                          };
                       };
                   }))
               });
@@ -16960,10 +17051,12 @@ var PS = {};
                           return "allpass";
                       }
                   }))(FRP_Event.eventIsEvent)(px)({
-                      drumroll: Deku_Pursx.nut(WAGS_Example_Docs_Util.audioWrapperSpan("\ud83e\udd41")(ev)(ccb)(WAGS_Interpret.ctxAff(function (ctx) {
+                      drumroll: Deku_Pursx.nut(WAGS_Example_Docs_Util.audioWrapperSpan("\ud83e\udd41")(ev)(ccb)(function (ctx) {
                           return WAGS_Interpret.decodeAudioDataFromUri(ctx)("https://freesound.org/data/previews/50/50711_179538-lq.mp3");
-                      }))(function (buf) {
-                          return WAGS_Run.run2_([ WAGS_Control.gain_(FRP_Event.eventIsEvent)(WAGS_Common.initialGainNumber)(1.0)([ WAGS_Control.loopBuf(FRP_Event.eventIsEvent)(WAGS_Common.initialLoopBufBrowserAudi)(buf)(WAGS_Parameter.bangOn(FRP_Event.eventIsEvent)()) ]) ]);
+                      })(function (ctx) {
+                          return function (buf) {
+                              return WAGS_Run.run2(ctx)([ WAGS_Control.gain_(FRP_Event.eventIsEvent)(WAGS_Common.initialGainNumber)(1.0)([ WAGS_Control.loopBuf(FRP_Event.eventIsEvent)(WAGS_Common.initialLoopBufBrowserAudi)(buf)(WAGS_Parameter.bangOn(FRP_Event.eventIsEvent)()) ]) ]);
+                          };
                       })),
                       toc: Deku_Pursx.nut(WAGS_Example_Docs_AudioUnits_TOC.toc),
                       allpass: Deku_Pursx.nut(WAGS_Example_Docs_AudioUnits_Allpass.allpass(ccb)(dpage)(ev)),
@@ -17147,6 +17240,7 @@ var PS = {};
   var Deku_Pursx = $PS["Deku.Pursx"];
   var Deku_Subgraph = $PS["Deku.Subgraph"];
   var Effect = $PS["Effect"];
+  var Effect_Class = $PS["Effect.Class"];
   var FRP_Behavior = $PS["FRP.Behavior"];
   var FRP_Event = $PS["FRP.Event"];
   var FRP_Event_Animate = $PS["FRP.Event.Animate"];
@@ -17277,7 +17371,7 @@ var PS = {};
                                           start: function (v3) {
                                               return function __do() {
                                                   v2.value1();
-                                                  var ctx = WAGS_Interpret.context();
+                                                  var ctx = WAGS_Interpret.context(Effect_Class.monadEffectEffect)();
                                                   var afe = FRP_Event_Animate.animationFrameEvent();
                                                   var acTime = FRP_Event_Memoize.memoize(FRP_Event_Memoize.memoizableEvent)(Data_Functor.map(FRP_Event.functorEvent)((function () {
                                                       var $41 = Data_Semiring.add(Data_Semiring.semiringNumber)(4.0e-2);
@@ -17357,7 +17451,7 @@ var PS = {};
                                                           t: WAGS_Parameter["_linear"]
                                                       });
                                                   }) ])) ]) ])();
-                                                  var r = Control_Apply.applySecond(Effect.applyEffect)(r$prime)(WAGS_Interpret.close(ctx));
+                                                  var r = Control_Apply.applySecond(Effect.applyEffect)(r$prime)(WAGS_Interpret.close(Effect_Class.monadEffectEffect)(ctx));
                                                   ccb(Control_Apply.applySecond(Effect.applyEffect)(r)(push(start)))();
                                                   return push(stop(r))();
                                               };
@@ -17431,6 +17525,7 @@ var PS = {};
   var Deku_Pursx = $PS["Deku.Pursx"];
   var Deku_Subgraph = $PS["Deku.Subgraph"];
   var Effect = $PS["Effect"];
+  var Effect_Class = $PS["Effect.Class"];
   var Effect_Random = $PS["Effect.Random"];
   var FRP_Behavior = $PS["FRP.Behavior"];
   var FRP_Behavior_Mouse = $PS["FRP.Behavior.Mouse"];
@@ -17593,7 +17688,7 @@ var PS = {};
                                           start: function (v4) {
                                               return function __do() {
                                                   v3.value1();
-                                                  var ctx = WAGS_Interpret.context();
+                                                  var ctx = WAGS_Interpret.context(Effect_Class.monadEffectEffect)();
                                                   var afe = FRP_Event_Animate.animationFrameEvent();
                                                   var mouse = FRP_Event_Mouse.getMouse();
                                                   var swm = FRP_Event_Memoize.memoize(FRP_Event_Memoize.memoizableEvent)(Data_Functor.map(FRP_Event.functorEvent)(function (v5) {
@@ -17799,7 +17894,7 @@ var PS = {};
                                                           return $70(ttap($71($72)));
                                                       };
                                                   })())(swm))) ]) ])();
-                                                  var r = Control_Apply.applySecond(Effect.applyEffect)(r$prime)(WAGS_Interpret.close(ctx));
+                                                  var r = Control_Apply.applySecond(Effect.applyEffect)(r$prime)(WAGS_Interpret.close(Effect_Class.monadEffectEffect)(ctx));
                                                   ccb(Control_Apply.applySecond(Effect.applyEffect)(r)(push(start)))();
                                                   return push(stop(r))();
                                               };
@@ -18137,7 +18232,7 @@ var PS = {};
           return "startStop";
       }
   })(WAGS_Variant.injsNilRow)()()()())()()()())(Type_Proxy["Proxy"].value);
-  var txt = "module Main where\x0a\x0aimport Prelude\x0a\x0aimport Control.Alt ((<|>))\x0aimport Data.Exists (mkExists)\x0aimport Data.Foldable (oneOf, oneOfMap, traverse_)\x0aimport Data.Hashable (class Hashable)\x0aimport Data.Newtype (class Newtype, unwrap)\x0aimport Data.Tuple.Nested ((/\\))\x0aimport Data.Variant (Variant, match)\x0aimport Deku.Attribute (cb, (:=))\x0aimport Deku.Control (text, text_)\x0aimport Deku.Core (SubgraphF(..))\x0aimport Deku.DOM as D\x0aimport Deku.Subgraph ((@@))\x0aimport Deku.Subgraph as Sg\x0aimport Deku.Toplevel ((\ud83d\ude86))\x0aimport Effect (Effect)\x0aimport Effect.Aff (launchAff_)\x0aimport Effect.Class (liftEffect)\x0aimport FRP.Event.Class (bang, biSampleOn, filterMap, keepLatest)\x0aimport Type.Proxy (Proxy(..))\x0aimport WAGS.Control (loopBuf)\x0aimport WAGS.Interpret (ctxAff, decodeAudioDataFromUri)\x0aimport WAGS.Math (calcSlope)\x0aimport WAGS.Parameter (bangOn)\x0aimport WAGS.Properties (loopEnd, loopStart, playbackRate)\x0aimport WAGS.Run (run2_)\x0aimport WAGS.Variant (injs_, prjs_)\x0aimport WAGS.WebAPI (BrowserAudioBuffer)\x0aimport Web.Event.Event (target)\x0aimport Web.HTML.HTMLInputElement (fromEventTarget, valueAsNumber)\x0a\x0atype Slider = Variant (s0 :: Number, s1 :: Number, s2 :: Number)\x0asli = injs_ (Proxy :: _ Slider)\x0aslp = prjs_ (Proxy :: _ Slider)\x0atype StartStop = Variant (start :: Unit, stop :: Effect Unit)\x0assi = injs_ (Proxy :: _ StartStop)\x0astart = uii.startStop (ssi.start unit)\x0astop r = uii.startStop (ssi.stop r)\x0assp = prjs_ (Proxy :: _ StartStop)\x0atype UIEvents = Variant (startStop :: StartStop, slider :: Slider)\x0auii = injs_ (Proxy :: _ UIEvents)\x0auip = prjs_ (Proxy :: _ UIEvents)\x0atype State' = Variant (loading :: Unit, loaded :: BrowserAudioBuffer)\x0a\x0aderive instance Newtype State _\x0anewtype State = State State'\x0asti = injs_ (Proxy :: _ State')\x0aloading = State $ sti.loading unit\x0astp = prjs_ (Proxy :: _ State')\x0a\x0aderive instance Eq State\x0a\x0ainstance Hashable State where\x0a  hash (State v) = match { loading: \\_ -> 0, loaded: \\_ -> 1 } v\x0a\x0aatari =\x0a  \"https://freesound.org/data/previews/100/100981_1234256-lq.mp3\"\x0a\x0amain :: Effect Unit\x0amain = do\x0a  { push } <- loading \ud83d\ude86 go\x0a  launchAff_ $ ctxAff\x0a    \\ctx -> decodeAudioDataFromUri ctx atari >>= liftEffect\x0a      <<< push\x0a      <<< State\x0a      <<< sti.loaded\x0a  where\x0a  go _ ev =\x0a    ( keepLatest $\x0a        ( \\i@(State i') -> match\x0a            { loading: \\_ -> bang (i /\\ Sg.Insert)\x0a            , loaded: \\_ -> bang (loading /\\ Sg.Remove)\x0a                <|> bang (i /\\ Sg.Insert)\x0a            }\x0a            i'\x0a        ) <$> ev\x0a    ) @@ scene\x0a    where\x0a    scene = unwrap >>> match\x0a      { loaded: \\buffer -> mkExists $ SubgraphF \\push event -> do\x0a          let\x0a            ss = bang (ssi.start unit) <|> filterMap uip.startStop event\x0a            sl = filterMap uip.slider event\x0a            sl0 = filterMap slp.s0 sl\x0a            sl1 = filterMap slp.s1 sl\x0a            sl2 = filterMap slp.s2 sl\x0a            music = run2_\x0a              [ loopBuf\x0a                  { buffer: buffer\x0a                  , playbackRate: 2.6\x0a                  , loopStart: 0.6\x0a                  , loopEnd: 1.1\x0a                  }\x0a                  $ oneOf\x0a                      [ bangOn\x0a                      , (calcSlope 0.0 0.2 100.0 5.0 >>> playbackRate) <$> sl0\x0a                      , (calcSlope 0.0 0.0 100.0 1.2 >>> loopStart) <$> sl1\x0a                      , (calcSlope 0.0 0.05 100.0 1.0 >>> loopEnd) <$> biSampleOn sl2\x0a                          (add <$> (bang 0.0 <|> sl1))\x0a                      ]\x0a              ]\x0a          D.div_\x0a            $\x0a              map\x0a                ( \\{ l, f } -> D.div_\x0a                    [ text_ l\x0a                    , D.input\x0a                        ( oneOfMap bang\x0a                            [ D.Xtype := \"range\"\x0a                            , D.Min := \"0\"\x0a                            , D.Max := \"100\"\x0a                            , D.Step := \"1\"\x0a                            , D.Value := \"50\"\x0a                            , D.OnInput := cb\x0a                                ( traverse_\x0a                                    ( valueAsNumber\x0a                                        >=> push <<< uii.slider <<< f\x0a                                    )\x0a                                    <<< (=<<) fromEventTarget\x0a                                    <<< target\x0a                                )\x0a                            ]\x0a                        )\x0a                        []\x0a                    ]\x0a                )\x0a                [ { l: \"Playback rate\", f: sli.s0 }\x0a                , { l: \"Loop start\", f: sli.s1 }\x0a                , { l: \"Loop end\", f: sli.s2 }\x0a                ] <>\x0a                [ D.button\x0a                    ( ss <#>\x0a                        \\e -> D.OnClick := cb\x0a                          ( const $ e # match\x0a                              { stop: \\u -> u *>\x0a                                  push start\x0a                              , start: \\_ -> do\x0a                                  r <- music\x0a                                  push (stop r)\x0a                              }\x0a                          )\x0a                    )\x0a                    [ text $ ss <#> match\x0a                        { stop: \\_ -> \"Turn off\"\x0a                        , start: \\_ -> \"Turn on\"\x0a                        }\x0a                    ]\x0a                ]\x0a      , loading: \\_ -> mkExists\x0a          $ SubgraphF \\_ _ -> D.div_ [ text_ \"Loading...\" ]\x0a      }\x0a";
+  var txt = "module Main where\x0a\x0aimport Prelude\x0a\x0aimport Control.Alt ((<|>))\x0aimport Data.Exists (mkExists)\x0aimport Data.Foldable (oneOf, oneOfMap, traverse_)\x0aimport Data.Hashable (class Hashable)\x0aimport Data.Newtype (class Newtype, unwrap)\x0aimport Data.Tuple.Nested ((/\\))\x0aimport Data.Variant (Variant, match)\x0aimport Deku.Attribute (cb, (:=))\x0aimport Deku.Control (text, text_)\x0aimport Deku.Core (SubgraphF(..))\x0aimport Deku.DOM as D\x0aimport Deku.Subgraph ((@@))\x0aimport Deku.Subgraph as Sg\x0aimport Deku.Toplevel ((\ud83d\ude86))\x0aimport Effect (Effect)\x0aimport Effect.Aff (launchAff_)\x0aimport Effect.Class (liftEffect)\x0aimport FRP.Event.Class (bang, biSampleOn, filterMap, keepLatest)\x0aimport Type.Proxy (Proxy(..))\x0aimport WAGS.Control (loopBuf)\x0aimport WAGS.Interpret (bracketCtx, decodeAudioDataFromUri)\x0aimport WAGS.Math (calcSlope)\x0aimport WAGS.Parameter (bangOn)\x0aimport WAGS.Properties (loopEnd, loopStart, playbackRate)\x0aimport WAGS.Run (run2_)\x0aimport WAGS.Variant (injs_, prjs_)\x0aimport WAGS.WebAPI (BrowserAudioBuffer)\x0aimport Web.Event.Event (target)\x0aimport Web.HTML.HTMLInputElement (fromEventTarget, valueAsNumber)\x0a\x0atype Slider = Variant (s0 :: Number, s1 :: Number, s2 :: Number)\x0asli = injs_ (Proxy :: _ Slider)\x0aslp = prjs_ (Proxy :: _ Slider)\x0atype StartStop = Variant (start :: Unit, stop :: Effect Unit)\x0assi = injs_ (Proxy :: _ StartStop)\x0astart = uii.startStop (ssi.start unit)\x0astop r = uii.startStop (ssi.stop r)\x0assp = prjs_ (Proxy :: _ StartStop)\x0atype UIEvents = Variant (startStop :: StartStop, slider :: Slider)\x0auii = injs_ (Proxy :: _ UIEvents)\x0auip = prjs_ (Proxy :: _ UIEvents)\x0atype State' = Variant (loading :: Unit, loaded :: BrowserAudioBuffer)\x0a\x0aderive instance Newtype State _\x0anewtype State = State State'\x0asti = injs_ (Proxy :: _ State')\x0aloading = State $ sti.loading unit\x0astp = prjs_ (Proxy :: _ State')\x0a\x0aderive instance Eq State\x0a\x0ainstance Hashable State where\x0a  hash (State v) = match { loading: \\_ -> 0, loaded: \\_ -> 1 } v\x0a\x0aatari =\x0a  \"https://freesound.org/data/previews/100/100981_1234256-lq.mp3\"\x0a\x0amain :: Effect Unit\x0amain = do\x0a  { push } <- loading \ud83d\ude86 go\x0a  launchAff_ $ bracketCtx\x0a    \\ctx -> decodeAudioDataFromUri ctx atari >>= liftEffect\x0a      <<< push\x0a      <<< State\x0a      <<< sti.loaded\x0a  where\x0a  go _ ev =\x0a    ( keepLatest $\x0a        ( \\i@(State i') -> match\x0a            { loading: \\_ -> bang (i /\\ Sg.Insert)\x0a            , loaded: \\_ -> bang (loading /\\ Sg.Remove)\x0a                <|> bang (i /\\ Sg.Insert)\x0a            }\x0a            i'\x0a        ) <$> ev\x0a    ) @@ scene\x0a    where\x0a    scene = unwrap >>> match\x0a      { loaded: \\buffer -> mkExists $ SubgraphF \\push event -> do\x0a          let\x0a            ss = bang (ssi.start unit) <|> filterMap uip.startStop event\x0a            sl = filterMap uip.slider event\x0a            sl0 = filterMap slp.s0 sl\x0a            sl1 = filterMap slp.s1 sl\x0a            sl2 = filterMap slp.s2 sl\x0a            music = run2_\x0a              [ loopBuf\x0a                  { buffer: buffer\x0a                  , playbackRate: 2.6\x0a                  , loopStart: 0.6\x0a                  , loopEnd: 1.1\x0a                  }\x0a                  $ oneOf\x0a                      [ bangOn\x0a                      , (calcSlope 0.0 0.2 100.0 5.0 >>> playbackRate) <$> sl0\x0a                      , (calcSlope 0.0 0.0 100.0 1.2 >>> loopStart) <$> sl1\x0a                      , (calcSlope 0.0 0.05 100.0 1.0 >>> loopEnd) <$> biSampleOn sl2\x0a                          (add <$> (bang 0.0 <|> sl1))\x0a                      ]\x0a              ]\x0a          D.div_\x0a            $\x0a              map\x0a                ( \\{ l, f } -> D.div_\x0a                    [ text_ l\x0a                    , D.input\x0a                        ( oneOfMap bang\x0a                            [ D.Xtype := \"range\"\x0a                            , D.Min := \"0\"\x0a                            , D.Max := \"100\"\x0a                            , D.Step := \"1\"\x0a                            , D.Value := \"50\"\x0a                            , D.OnInput := cb\x0a                                ( traverse_\x0a                                    ( valueAsNumber\x0a                                        >=> push <<< uii.slider <<< f\x0a                                    )\x0a                                    <<< (=<<) fromEventTarget\x0a                                    <<< target\x0a                                )\x0a                            ]\x0a                        )\x0a                        []\x0a                    ]\x0a                )\x0a                [ { l: \"Playback rate\", f: sli.s0 }\x0a                , { l: \"Loop start\", f: sli.s1 }\x0a                , { l: \"Loop end\", f: sli.s2 }\x0a                ] <>\x0a                [ D.button\x0a                    ( ss <#>\x0a                        \\e -> D.OnClick := cb\x0a                          ( const $ e # match\x0a                              { stop: \\u -> u *>\x0a                                  push start\x0a                              , start: \\_ -> do\x0a                                  r <- music\x0a                                  push (stop r)\x0a                              }\x0a                          )\x0a                    )\x0a                    [ text $ ss <#> match\x0a                        { stop: \\_ -> \"Turn off\"\x0a                        , start: \\_ -> \"Turn on\"\x0a                        }\x0a                    ]\x0a                ]\x0a      , loading: \\_ -> mkExists\x0a          $ SubgraphF \\_ _ -> D.div_ [ text_ \"Loading...\" ]\x0a      }\x0a";
   var ssp = WAGS_Variant.prjs_()(WAGS_Variant.prjsCons({
       reflectSymbol: function () {
           return "loading";
@@ -18308,13 +18403,16 @@ var PS = {};
                                           return function __do() {
                                               v2.value1();
                                               push(loading)();
-                                              var fib = Effect_Aff.launchAff(Control_Bind.bind(Effect_Aff.bindAff)(WAGS_Interpret.ctxAff(function (ctx) {
-                                                  return WAGS_Interpret.decodeAudioDataFromUri(ctx)(atari);
-                                              }))(function (buffer) {
-                                                  return Effect_Class.liftEffect(Effect_Aff.monadEffectAff)(function __do() {
-                                                      var res = WAGS_Run.run2_([ music(buffer) ])();
-                                                      push(stop(res))();
-                                                      return res;
+                                              var fib = Effect_Aff.launchAff(Control_Bind.bind(Effect_Aff.bindAff)(WAGS_Interpret.context(Effect_Aff.monadEffectAff))(function (ctx) {
+                                                  return Control_Bind.bind(Effect_Aff.bindAff)(WAGS_Interpret.constant0Hack(Effect_Aff.monadEffectAff)(ctx))(function (c0h) {
+                                                      return Control_Bind.bind(Effect_Aff.bindAff)(WAGS_Interpret.decodeAudioDataFromUri(ctx)(atari))(function (buffer) {
+                                                          return Effect_Class.liftEffect(Effect_Aff.monadEffectAff)(function __do() {
+                                                              var res$prime = WAGS_Run.run2(ctx)([ music(buffer) ])();
+                                                              var res = Control_Apply.applySecond(Effect.applyEffect)(Control_Apply.applySecond(Effect.applyEffect)(res$prime)(c0h))(WAGS_Interpret.close(Effect_Class.monadEffectEffect)(ctx));
+                                                              push(stop(res))();
+                                                              return res;
+                                                          });
+                                                      });
                                                   });
                                               }))();
                                               ccb(function __do() {
@@ -18372,6 +18470,7 @@ var PS = {};
   var Deku_Pursx = $PS["Deku.Pursx"];
   var Deku_Subgraph = $PS["Deku.Subgraph"];
   var Effect = $PS["Effect"];
+  var Effect_Class = $PS["Effect.Class"];
   var Effect_Random = $PS["Effect.Random"];
   var FRP_Behavior = $PS["FRP.Behavior"];
   var FRP_Event = $PS["FRP.Event"];
@@ -18587,10 +18686,10 @@ var PS = {};
                                       start: function (v3) {
                                           return function __do() {
                                               v2.value1();
-                                              var ctx = WAGS_Interpret.context();
+                                              var ctx = WAGS_Interpret.context(Effect_Class.monadEffectEffect)();
                                               var myIvl = FRP_Event_Memoize.memoize(FRP_Event_Memoize.memoizableEvent)(WAGS_Clock.interval(ctx)(0.91)(Data_Functor.map(FRP_Event.functorEvent)(WAGS_Math.calcSlope(0.0)(0.42)(100.0)(1.4))(sl)))();
                                               var r$prime = WAGS_Run.run2(ctx)(music(FRP_Behavior.sampleBy(FRP_Event.eventIsEvent)(Data_Tuple.Tuple.create)(random)(myIvl)))();
-                                              var r = Control_Apply.applySecond(Effect.applyEffect)(r$prime)(WAGS_Interpret.close(ctx));
+                                              var r = Control_Apply.applySecond(Effect.applyEffect)(r$prime)(WAGS_Interpret.close(Effect_Class.monadEffectEffect)(ctx));
                                               ccb(Control_Apply.applySecond(Effect.applyEffect)(r)(push(start)))();
                                               return push(stop(r))();
                                           };
@@ -18789,7 +18888,7 @@ var PS = {};
                       return "ai0";
                   }
               }))(FRP_Event.eventIsEvent)(Type_Proxy["Proxy"].value)(px)({
-                  ai0: Deku_Pursx.nut(WAGS_Example_Docs_Util.audioWrapper(ev)(ccb)(WAGS_Interpret.ctxAff(function (ctx) {
+                  ai0: Deku_Pursx.nut(WAGS_Example_Docs_Util.audioWrapper(ev)(ccb)(function (ctx) {
                       return Control_Parallel_Class.sequential(Effect_Aff.parallelAff)(Control_Apply.apply(Effect_Aff.applyParAff)(Control_Apply.apply(Effect_Aff.applyParAff)(Control_Apply.apply(Effect_Aff.applyParAff)(Data_Functor.map(Effect_Aff.functorParAff)(function (v1) {
                           return function (v2) {
                               return function (v3) {
@@ -18804,13 +18903,15 @@ var PS = {};
                               };
                           };
                       })(Control_Parallel_Class.parallel(Effect_Aff.parallelAff)(WAGS_Interpret.decodeAudioDataFromUri(ctx)("https://freesound.org/data/previews/178/178660_717950-lq.mp3"))))(Control_Parallel_Class.parallel(Effect_Aff.parallelAff)(WAGS_Interpret.decodeAudioDataFromUri(ctx)("https://freesound.org/data/previews/178/178660_717950-lq.mp3"))))(Control_Parallel_Class.parallel(Effect_Aff.parallelAff)(WAGS_Interpret.decodeAudioDataFromUri(ctx)("https://freesound.org/data/previews/562/562008_7107243-lq.mp3"))))(Control_Parallel_Class.parallel(Effect_Aff.parallelAff)(WAGS_Interpret.decodeAudioDataFromUri(ctx)("https://freesound.org/data/previews/126/126531_2044671-lq.mp3"))));
-                  }))(function (v1) {
-                      return WAGS_Run.run2_([ WAGS_Control.gain_(FRP_Event.eventIsEvent)(WAGS_Common.initialGainNumber)(1.0)((function () {
-                          var ooo = function (n) {
-                              return FRP_Event_Class.bang(FRP_Event.eventIsEvent)(WAGS_Properties.onOff()(WAGS_Parameter.toAudioOnOffAudioOnOff)(WAGS_Parameter.dt()(Data_Semiring.add(Data_Semiring.semiringNumber)(n))(WAGS_Parameter.apOn)));
-                          };
-                          return [ WAGS_Control.playBuf(FRP_Event.eventIsEvent)(WAGS_Common.initialPlayBufBrowserAudi)(v1.tink0)(ooo(0.1)), WAGS_Control.playBuf(FRP_Event.eventIsEvent)(WAGS_Common.initialPlayBufBrowserAudi)(v1.tink1)(ooo(0.2)), WAGS_Control.playBuf(FRP_Event.eventIsEvent)(WAGS_Common.initialPlayBufBrowserAudi)(v1.tink2)(ooo(0.9)), WAGS_Control.playBuf(FRP_Event.eventIsEvent)(WAGS_Common.initialPlayBufBrowserAudi)(v1.tink3)(ooo(1.8)) ];
-                      })()) ]);
+                  })(function (ctx) {
+                      return function (v1) {
+                          return WAGS_Run.run2(ctx)([ WAGS_Control.gain_(FRP_Event.eventIsEvent)(WAGS_Common.initialGainNumber)(1.0)((function () {
+                              var ooo = function (n) {
+                                  return FRP_Event_Class.bang(FRP_Event.eventIsEvent)(WAGS_Properties.onOff()(WAGS_Parameter.toAudioOnOffAudioOnOff)(WAGS_Parameter.dt()(Data_Semiring.add(Data_Semiring.semiringNumber)(n))(WAGS_Parameter.apOn)));
+                              };
+                              return [ WAGS_Control.playBuf(FRP_Event.eventIsEvent)(WAGS_Common.initialPlayBufBrowserAudi)(v1.tink0)(ooo(0.1)), WAGS_Control.playBuf(FRP_Event.eventIsEvent)(WAGS_Common.initialPlayBufBrowserAudi)(v1.tink1)(ooo(0.2)), WAGS_Control.playBuf(FRP_Event.eventIsEvent)(WAGS_Common.initialPlayBufBrowserAudi)(v1.tink2)(ooo(0.9)), WAGS_Control.playBuf(FRP_Event.eventIsEvent)(WAGS_Common.initialPlayBufBrowserAudi)(v1.tink3)(ooo(1.8)) ];
+                          })()) ]);
+                      };
                   }))
               });
           };
@@ -18860,7 +18961,7 @@ var PS = {};
                       return "ai0";
                   }
               }))(FRP_Event.eventIsEvent)(Type_Proxy["Proxy"].value)(px)({
-                  ai0: Deku_Pursx.nut(WAGS_Example_Docs_Util.audioWrapper(ev)(ccb)(WAGS_Interpret.ctxAff(function (ctx) {
+                  ai0: Deku_Pursx.nut(WAGS_Example_Docs_Util.audioWrapper(ev)(ccb)(function (ctx) {
                       return Control_Parallel_Class.sequential(Effect_Aff.parallelAff)(Control_Apply.apply(Effect_Aff.applyParAff)(Control_Apply.apply(Effect_Aff.applyParAff)(Control_Apply.apply(Effect_Aff.applyParAff)(Data_Functor.map(Effect_Aff.functorParAff)(function (v1) {
                           return function (v2) {
                               return function (v3) {
@@ -18875,29 +18976,31 @@ var PS = {};
                               };
                           };
                       })(Control_Parallel_Class.parallel(Effect_Aff.parallelAff)(WAGS_Interpret.decodeAudioDataFromUri(ctx)("https://freesound.org/data/previews/178/178660_717950-lq.mp3"))))(Control_Parallel_Class.parallel(Effect_Aff.parallelAff)(WAGS_Interpret.decodeAudioDataFromUri(ctx)("https://freesound.org/data/previews/178/178660_717950-lq.mp3"))))(Control_Parallel_Class.parallel(Effect_Aff.parallelAff)(WAGS_Interpret.decodeAudioDataFromUri(ctx)("https://freesound.org/data/previews/562/562008_7107243-lq.mp3"))))(Control_Parallel_Class.parallel(Effect_Aff.parallelAff)(WAGS_Interpret.decodeAudioDataFromUri(ctx)("https://freesound.org/data/previews/126/126531_2044671-lq.mp3"))));
-                  }))(function (v1) {
-                      return WAGS_Run.run2_([ WAGS_Control.gain_(FRP_Event.eventIsEvent)(WAGS_Common.initialGainNumber)(1.0)((function () {
-                          var ooo = function (n) {
-                              return FRP_Event_Class.bang(FRP_Event.eventIsEvent)(WAGS_Properties.onOff()(WAGS_Parameter.toAudioOnOffAudioOnOff)(WAGS_Parameter.dt()(Data_Semiring.add(Data_Semiring.semiringNumber)(n))(WAGS_Parameter.apOn)));
-                          };
-                          var mtk = function (i) {
-                              var v2 = Data_EuclideanRing.mod(Data_EuclideanRing.euclideanRingInt)(i)(4);
-                              if (v2 === 0) {
-                                  return v1.tink0;
+                  })(function (ctx) {
+                      return function (v1) {
+                          return WAGS_Run.run2(ctx)([ WAGS_Control.gain_(FRP_Event.eventIsEvent)(WAGS_Common.initialGainNumber)(1.0)((function () {
+                              var ooo = function (n) {
+                                  return FRP_Event_Class.bang(FRP_Event.eventIsEvent)(WAGS_Properties.onOff()(WAGS_Parameter.toAudioOnOffAudioOnOff)(WAGS_Parameter.dt()(Data_Semiring.add(Data_Semiring.semiringNumber)(n))(WAGS_Parameter.apOn)));
                               };
-                              if (v2 === 1) {
-                                  return v1.tink1;
+                              var mtk = function (i) {
+                                  var v2 = Data_EuclideanRing.mod(Data_EuclideanRing.euclideanRingInt)(i)(4);
+                                  if (v2 === 0) {
+                                      return v1.tink0;
+                                  };
+                                  if (v2 === 1) {
+                                      return v1.tink1;
+                                  };
+                                  if (v2 === 2) {
+                                      return v1.tink2;
+                                  };
+                                  return v1.tink3;
                               };
-                              if (v2 === 2) {
-                                  return v1.tink2;
-                              };
-                              return v1.tink3;
-                          };
-                          return Data_Functor.mapFlipped(Data_Functor.functorArray)(Data_Array.range(0)(100))(function (i$prime) {
-                              var i = Data_Int.toNumber(i$prime);
-                              return WAGS_Control.playBuf(FRP_Event.eventIsEvent)(WAGS_Common.initialPlayBufBrowserAudi)(mtk(i$prime))(ooo(0.3 + 0.3 * (i * $$Math.pow(1.005)(i))));
-                          });
-                      })()) ]);
+                              return Data_Functor.mapFlipped(Data_Functor.functorArray)(Data_Array.range(0)(100))(function (i$prime) {
+                                  var i = Data_Int.toNumber(i$prime);
+                                  return WAGS_Control.playBuf(FRP_Event.eventIsEvent)(WAGS_Common.initialPlayBufBrowserAudi)(mtk(i$prime))(ooo(0.3 + 0.3 * (i * $$Math.pow(1.005)(i))));
+                              });
+                          })()) ]);
+                      };
                   }))
               });
           };
@@ -18938,67 +19041,69 @@ var PS = {};
                       return "ai0";
                   }
               }))(FRP_Event.eventIsEvent)(Type_Proxy["Proxy"].value)(px)({
-                  ai0: Deku_Pursx.nut(WAGS_Example_Docs_Util.audioWrapper(ev)(ccb)(WAGS_Interpret.ctxAff(function (ctx) {
+                  ai0: Deku_Pursx.nut(WAGS_Example_Docs_Util.audioWrapper(ev)(ccb)(function (ctx) {
                       return WAGS_Interpret.decodeAudioDataFromUri(ctx)("https://freesound.org/data/previews/320/320873_527080-hq.mp3");
-                  }))(function (buf) {
-                      return WAGS_Run.run2_([ WAGS_Core.fan(FRP_Event.eventIsEvent)(WAGS_Control.loopBuf(FRP_Event.eventIsEvent)(WAGS_Common.initialLoopBufBrowserAudi)(buf)(WAGS_Parameter.bangOn(FRP_Event.eventIsEvent)()))(function (b) {
-                          return WAGS_Control.gain_(FRP_Event.eventIsEvent)(WAGS_Common.initialGainNumber)(0.8)([ WAGS_Control.bandpass_(FRP_Event.eventIsEvent)(WAGS_Common.initialBandpassRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionBandpassOpti)()()()({
-                              reflectSymbol: function () {
-                                  return "q";
-                              }
-                          }))(WAGS_Common.convertOptionBandpassOpti1)()()()({
-                              reflectSymbol: function () {
-                                  return "frequency";
-                              }
-                          })))(ConvertableOptions.defaultsRecord()())))({
-                              frequency: 400.0,
-                              q: 1.0
-                          })([ b ]), WAGS_Control.bandpass_(FRP_Event.eventIsEvent)(WAGS_Common.initialBandpassRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionBandpassOpti)()()()({
-                              reflectSymbol: function () {
-                                  return "q";
-                              }
-                          }))(WAGS_Common.convertOptionBandpassOpti1)()()()({
-                              reflectSymbol: function () {
-                                  return "frequency";
-                              }
-                          })))(ConvertableOptions.defaultsRecord()())))({
-                              frequency: 880.0,
-                              q: 5.0
-                          })([ b ]), WAGS_Control.bandpass_(FRP_Event.eventIsEvent)(WAGS_Common.initialBandpassRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionBandpassOpti)()()()({
-                              reflectSymbol: function () {
-                                  return "q";
-                              }
-                          }))(WAGS_Common.convertOptionBandpassOpti1)()()()({
-                              reflectSymbol: function () {
-                                  return "frequency";
-                              }
-                          })))(ConvertableOptions.defaultsRecord()())))({
-                              frequency: 1200.0,
-                              q: 10.0
-                          })([ b ]), WAGS_Control.bandpass_(FRP_Event.eventIsEvent)(WAGS_Common.initialBandpassRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionBandpassOpti)()()()({
-                              reflectSymbol: function () {
-                                  return "q";
-                              }
-                          }))(WAGS_Common.convertOptionBandpassOpti1)()()()({
-                              reflectSymbol: function () {
-                                  return "frequency";
-                              }
-                          })))(ConvertableOptions.defaultsRecord()())))({
-                              frequency: 2000.0,
-                              q: 20.0
-                          })([ b ]), WAGS_Control.bandpass_(FRP_Event.eventIsEvent)(WAGS_Common.initialBandpassRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionBandpassOpti)()()()({
-                              reflectSymbol: function () {
-                                  return "q";
-                              }
-                          }))(WAGS_Common.convertOptionBandpassOpti1)()()()({
-                              reflectSymbol: function () {
-                                  return "frequency";
-                              }
-                          })))(ConvertableOptions.defaultsRecord()())))({
-                              frequency: 3000.0,
-                              q: 30.0
-                          })([ b ]) ]);
-                      }) ]);
+                  })(function (ctx) {
+                      return function (buf) {
+                          return WAGS_Run.run2(ctx)([ WAGS_Core.fan(FRP_Event.eventIsEvent)(WAGS_Control.loopBuf(FRP_Event.eventIsEvent)(WAGS_Common.initialLoopBufBrowserAudi)(buf)(WAGS_Parameter.bangOn(FRP_Event.eventIsEvent)()))(function (b) {
+                              return WAGS_Control.gain_(FRP_Event.eventIsEvent)(WAGS_Common.initialGainNumber)(0.8)([ WAGS_Control.bandpass_(FRP_Event.eventIsEvent)(WAGS_Common.initialBandpassRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionBandpassOpti)()()()({
+                                  reflectSymbol: function () {
+                                      return "q";
+                                  }
+                              }))(WAGS_Common.convertOptionBandpassOpti1)()()()({
+                                  reflectSymbol: function () {
+                                      return "frequency";
+                                  }
+                              })))(ConvertableOptions.defaultsRecord()())))({
+                                  frequency: 400.0,
+                                  q: 1.0
+                              })([ b ]), WAGS_Control.bandpass_(FRP_Event.eventIsEvent)(WAGS_Common.initialBandpassRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionBandpassOpti)()()()({
+                                  reflectSymbol: function () {
+                                      return "q";
+                                  }
+                              }))(WAGS_Common.convertOptionBandpassOpti1)()()()({
+                                  reflectSymbol: function () {
+                                      return "frequency";
+                                  }
+                              })))(ConvertableOptions.defaultsRecord()())))({
+                                  frequency: 880.0,
+                                  q: 5.0
+                              })([ b ]), WAGS_Control.bandpass_(FRP_Event.eventIsEvent)(WAGS_Common.initialBandpassRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionBandpassOpti)()()()({
+                                  reflectSymbol: function () {
+                                      return "q";
+                                  }
+                              }))(WAGS_Common.convertOptionBandpassOpti1)()()()({
+                                  reflectSymbol: function () {
+                                      return "frequency";
+                                  }
+                              })))(ConvertableOptions.defaultsRecord()())))({
+                                  frequency: 1200.0,
+                                  q: 10.0
+                              })([ b ]), WAGS_Control.bandpass_(FRP_Event.eventIsEvent)(WAGS_Common.initialBandpassRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionBandpassOpti)()()()({
+                                  reflectSymbol: function () {
+                                      return "q";
+                                  }
+                              }))(WAGS_Common.convertOptionBandpassOpti1)()()()({
+                                  reflectSymbol: function () {
+                                      return "frequency";
+                                  }
+                              })))(ConvertableOptions.defaultsRecord()())))({
+                                  frequency: 2000.0,
+                                  q: 20.0
+                              })([ b ]), WAGS_Control.bandpass_(FRP_Event.eventIsEvent)(WAGS_Common.initialBandpassRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionBandpassOpti)()()()({
+                                  reflectSymbol: function () {
+                                      return "q";
+                                  }
+                              }))(WAGS_Common.convertOptionBandpassOpti1)()()()({
+                                  reflectSymbol: function () {
+                                      return "frequency";
+                                  }
+                              })))(ConvertableOptions.defaultsRecord()())))({
+                                  frequency: 3000.0,
+                                  q: 30.0
+                              })([ b ]) ]);
+                          }) ]);
+                      };
                   }))
               });
           };
@@ -19043,25 +19148,27 @@ var PS = {};
                       return "ai0";
                   }
               }))(FRP_Event.eventIsEvent)(Type_Proxy["Proxy"].value)(px)({
-                  ai0: Deku_Pursx.nut(WAGS_Example_Docs_Util.audioWrapper(ev)(ccb)(WAGS_Interpret.ctxAff(function (ctx) {
+                  ai0: Deku_Pursx.nut(WAGS_Example_Docs_Util.audioWrapper(ev)(ccb)(function (ctx) {
                       return WAGS_Interpret.decodeAudioDataFromUri(ctx)("https://freesound.org/data/previews/320/320873_527080-hq.mp3");
-                  }))(function (buf) {
-                      return WAGS_Run.run2_([ WAGS_Core.fan(FRP_Event.eventIsEvent)(WAGS_Control.loopBuf(FRP_Event.eventIsEvent)(WAGS_Common.initialLoopBufBrowserAudi)(buf)(WAGS_Parameter.bangOn(FRP_Event.eventIsEvent)()))(function (b) {
-                          return WAGS_Control.gain_(FRP_Event.eventIsEvent)(WAGS_Common.initialGainNumber)(0.8)(Data_Functor.mapFlipped(Data_Functor.functorArray)(Data_Array.range(0)(40))(Data_Profunctor.lcmap(Data_Profunctor.profunctorFn)(Data_Int.toNumber)(function (i) {
-                              return WAGS_Control.bandpass_(FRP_Event.eventIsEvent)(WAGS_Common.initialBandpassRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionBandpassOpti)()()()({
-                                  reflectSymbol: function () {
-                                      return "q";
-                                  }
-                              }))(WAGS_Common.convertOptionBandpassOpti1)()()()({
-                                  reflectSymbol: function () {
-                                      return "frequency";
-                                  }
-                              })))(ConvertableOptions.defaultsRecord()())))({
-                                  frequency: 200.0 + i * 150.0,
-                                  q: 30.0
-                              })([ b ]);
-                          })));
-                      }) ]);
+                  })(function (ctx) {
+                      return function (buf) {
+                          return WAGS_Run.run2(ctx)([ WAGS_Core.fan(FRP_Event.eventIsEvent)(WAGS_Control.loopBuf(FRP_Event.eventIsEvent)(WAGS_Common.initialLoopBufBrowserAudi)(buf)(WAGS_Parameter.bangOn(FRP_Event.eventIsEvent)()))(function (b) {
+                              return WAGS_Control.gain_(FRP_Event.eventIsEvent)(WAGS_Common.initialGainNumber)(0.8)(Data_Functor.mapFlipped(Data_Functor.functorArray)(Data_Array.range(0)(40))(Data_Profunctor.lcmap(Data_Profunctor.profunctorFn)(Data_Int.toNumber)(function (i) {
+                                  return WAGS_Control.bandpass_(FRP_Event.eventIsEvent)(WAGS_Common.initialBandpassRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionBandpassOpti)()()()({
+                                      reflectSymbol: function () {
+                                          return "q";
+                                      }
+                                  }))(WAGS_Common.convertOptionBandpassOpti1)()()()({
+                                      reflectSymbol: function () {
+                                          return "frequency";
+                                      }
+                                  })))(ConvertableOptions.defaultsRecord()())))({
+                                      frequency: 200.0 + i * 150.0,
+                                      q: 30.0
+                                  })([ b ]);
+                              })));
+                          }) ]);
+                      };
                   }))
               });
           };
@@ -19101,12 +19208,14 @@ var PS = {};
                       return "ai0";
                   }
               }))(FRP_Event.eventIsEvent)(Type_Proxy["Proxy"].value)(px)({
-                  ai0: Deku_Pursx.nut(WAGS_Example_Docs_Util.audioWrapper(ev)(ccb)(WAGS_Interpret.ctxAff(function (ctx) {
+                  ai0: Deku_Pursx.nut(WAGS_Example_Docs_Util.audioWrapper(ev)(ccb)(function (ctx) {
                       return WAGS_Interpret.decodeAudioDataFromUri(ctx)("https://freesound.org/data/previews/178/178660_717950-lq.mp3");
-                  }))(function (buf) {
-                      return WAGS_Run.run2_([ WAGS_Core.fix(FRP_Event.eventIsEvent)(function (b) {
-                          return WAGS_Control.gain_(FRP_Event.eventIsEvent)(WAGS_Common.initialGainNumber)(1.0)([ WAGS_Control.playBuf(FRP_Event.eventIsEvent)(WAGS_Common.initialPlayBufBrowserAudi)(buf)(WAGS_Parameter.bangOn(FRP_Event.eventIsEvent)()), WAGS_Control.delay_(FRP_Event.eventIsEvent)(WAGS_Common.initialDelayInitialAudioP)(0.1)([ WAGS_Control.gain_(FRP_Event.eventIsEvent)(WAGS_Common.initialGainNumber)(0.6)([ b ]) ]) ]);
-                      }) ]);
+                  })(function (ctx) {
+                      return function (buf) {
+                          return WAGS_Run.run2(ctx)([ WAGS_Core.fix(FRP_Event.eventIsEvent)(function (b) {
+                              return WAGS_Control.gain_(FRP_Event.eventIsEvent)(WAGS_Common.initialGainNumber)(1.0)([ WAGS_Control.playBuf(FRP_Event.eventIsEvent)(WAGS_Common.initialPlayBufBrowserAudi)(buf)(WAGS_Parameter.bangOn(FRP_Event.eventIsEvent)()), WAGS_Control.delay_(FRP_Event.eventIsEvent)(WAGS_Common.initialDelayInitialAudioP)(0.1)([ WAGS_Control.gain_(FRP_Event.eventIsEvent)(WAGS_Common.initialGainNumber)(0.6)([ b ]) ]) ]);
+                          }) ]);
+                      };
                   }))
               });
           };
@@ -19189,20 +19298,22 @@ var PS = {};
                   }
               }))(FRP_Event.eventIsEvent)(Type_Proxy["Proxy"].value)(px)({
                   txt: Deku_Pursx.nut(Deku_Control.text_(FRP_Event.eventIsEvent)("dgh d g h i =\x0a  delay_ d [gain_ g [highpass_ h i]]\x0a\x0afade0 = bang\x0a  $ P.gain\x0a  $ AudioEnvelope { p: [1.0, 1.0, 0.0], o: 0.0, d: 8.0 }\x0a\x0afade1 = bang\x0a  $ P.gain\x0a  $ AudioEnvelope { p: [1.0, 1.0, 0.0], o: 0.0, d: 10.0 }\x0a\x0ascene buf = run2_\x0a  [ fan (playBuf buf bangOn) \\b -> fix\x0a      \\g0 -> gain_ 1.0\x0a        [ b\x0a        , dgh 0.15 0.7 1500.0\x0a            [ fix\x0a                \\g1 -> gain 1.0 fade1\x0a                  [ dgh 0.4 0.5 2500.0\x0a                      [ g0, g1 ]\x0a                  ]\x0a            ]\x0a        , dgh 0.29 0.85 2000.0\x0a            [ fix\x0a                \\g1 -> gain_ 1.0\x0a                  [ dgh 0.6 0.6 3500.0\x0a                      [ g0\x0a                      , ( fix\x0a                            \\g2 -> gain 1.0 fade0\x0a                              [ dgh 0.75 0.6 4000.0\x0a                                  [ g1, g2 ]\x0a                              , dgh 0.75 0.55 3000.0 [ b ]\x0a                              ]\x0a                        )\x0a                      ]\x0a                  ]\x0a            ]\x0a        ]\x0a  ]")),
-                  ai0: Deku_Pursx.nut(WAGS_Example_Docs_Util.audioWrapper(ev)(ccb)(WAGS_Interpret.ctxAff(function (ctx) {
+                  ai0: Deku_Pursx.nut(WAGS_Example_Docs_Util.audioWrapper(ev)(ccb)(function (ctx) {
                       return WAGS_Interpret.decodeAudioDataFromUri(ctx)("https://freesound.org/data/previews/178/178660_717950-lq.mp3");
-                  }))(function (buf) {
-                      return WAGS_Run.run2_([ WAGS_Core.fan(FRP_Event.eventIsEvent)(WAGS_Control.playBuf(FRP_Event.eventIsEvent)(WAGS_Common.initialPlayBufBrowserAudi)(buf)(WAGS_Parameter.bangOn(FRP_Event.eventIsEvent)()))(function (b) {
-                          return WAGS_Core.fix(FRP_Event.eventIsEvent)(function (g0) {
-                              return WAGS_Control.gain_(FRP_Event.eventIsEvent)(WAGS_Common.initialGainNumber)(1.0)([ b, dgh(FRP_Event.eventIsEvent)(WAGS_Common.initialDelayInitialAudioP)(WAGS_Common.initialGainNumber)(WAGS_Common.initialHighpassInitialAud)(0.15)(0.7)(1500.0)([ WAGS_Core.fix(FRP_Event.eventIsEvent)(function (g1) {
-                                  return WAGS_Control.gain(FRP_Event.eventIsEvent)(WAGS_Common.initialGainNumber)(1.0)(fade1(FRP_Event.eventIsEvent)())([ dgh(FRP_Event.eventIsEvent)(WAGS_Common.initialDelayInitialAudioP)(WAGS_Common.initialGainNumber)(WAGS_Common.initialHighpassInitialAud)(0.4)(0.5)(2500.0)([ g0, g1 ]) ]);
-                              }) ]), dgh(FRP_Event.eventIsEvent)(WAGS_Common.initialDelayInitialAudioP)(WAGS_Common.initialGainNumber)(WAGS_Common.initialHighpassInitialAud)(0.29)(0.85)(2000.0)([ WAGS_Core.fix(FRP_Event.eventIsEvent)(function (g1) {
-                                  return WAGS_Control.gain_(FRP_Event.eventIsEvent)(WAGS_Common.initialGainNumber)(1.0)([ dgh(FRP_Event.eventIsEvent)(WAGS_Common.initialDelayInitialAudioP)(WAGS_Common.initialGainNumber)(WAGS_Common.initialHighpassInitialAud)(0.6)(0.6)(3500.0)([ g0, WAGS_Core.fix(FRP_Event.eventIsEvent)(function (g2) {
-                                      return WAGS_Control.gain(FRP_Event.eventIsEvent)(WAGS_Common.initialGainNumber)(1.0)(fade0(FRP_Event.eventIsEvent)())([ dgh(FRP_Event.eventIsEvent)(WAGS_Common.initialDelayInitialAudioP)(WAGS_Common.initialGainNumber)(WAGS_Common.initialHighpassInitialAud)(0.75)(0.6)(4000.0)([ g1, g2 ]), dgh(FRP_Event.eventIsEvent)(WAGS_Common.initialDelayInitialAudioP)(WAGS_Common.initialGainNumber)(WAGS_Common.initialHighpassInitialAud)(0.75)(0.55)(3000.0)([ b ]) ]);
+                  })(function (ctx) {
+                      return function (buf) {
+                          return WAGS_Run.run2(ctx)([ WAGS_Core.fan(FRP_Event.eventIsEvent)(WAGS_Control.playBuf(FRP_Event.eventIsEvent)(WAGS_Common.initialPlayBufBrowserAudi)(buf)(WAGS_Parameter.bangOn(FRP_Event.eventIsEvent)()))(function (b) {
+                              return WAGS_Core.fix(FRP_Event.eventIsEvent)(function (g0) {
+                                  return WAGS_Control.gain_(FRP_Event.eventIsEvent)(WAGS_Common.initialGainNumber)(1.0)([ b, dgh(FRP_Event.eventIsEvent)(WAGS_Common.initialDelayInitialAudioP)(WAGS_Common.initialGainNumber)(WAGS_Common.initialHighpassInitialAud)(0.15)(0.7)(1500.0)([ WAGS_Core.fix(FRP_Event.eventIsEvent)(function (g1) {
+                                      return WAGS_Control.gain(FRP_Event.eventIsEvent)(WAGS_Common.initialGainNumber)(1.0)(fade1(FRP_Event.eventIsEvent)())([ dgh(FRP_Event.eventIsEvent)(WAGS_Common.initialDelayInitialAudioP)(WAGS_Common.initialGainNumber)(WAGS_Common.initialHighpassInitialAud)(0.4)(0.5)(2500.0)([ g0, g1 ]) ]);
+                                  }) ]), dgh(FRP_Event.eventIsEvent)(WAGS_Common.initialDelayInitialAudioP)(WAGS_Common.initialGainNumber)(WAGS_Common.initialHighpassInitialAud)(0.29)(0.85)(2000.0)([ WAGS_Core.fix(FRP_Event.eventIsEvent)(function (g1) {
+                                      return WAGS_Control.gain_(FRP_Event.eventIsEvent)(WAGS_Common.initialGainNumber)(1.0)([ dgh(FRP_Event.eventIsEvent)(WAGS_Common.initialDelayInitialAudioP)(WAGS_Common.initialGainNumber)(WAGS_Common.initialHighpassInitialAud)(0.6)(0.6)(3500.0)([ g0, WAGS_Core.fix(FRP_Event.eventIsEvent)(function (g2) {
+                                          return WAGS_Control.gain(FRP_Event.eventIsEvent)(WAGS_Common.initialGainNumber)(1.0)(fade0(FRP_Event.eventIsEvent)())([ dgh(FRP_Event.eventIsEvent)(WAGS_Common.initialDelayInitialAudioP)(WAGS_Common.initialGainNumber)(WAGS_Common.initialHighpassInitialAud)(0.75)(0.6)(4000.0)([ g1, g2 ]), dgh(FRP_Event.eventIsEvent)(WAGS_Common.initialDelayInitialAudioP)(WAGS_Common.initialGainNumber)(WAGS_Common.initialHighpassInitialAud)(0.75)(0.55)(3000.0)([ b ]) ]);
+                                      }) ]) ]);
                                   }) ]) ]);
-                              }) ]) ]);
-                          });
-                      }) ]);
+                              });
+                          }) ]);
+                      };
                   }))
               });
           };
@@ -19387,8 +19498,12 @@ var PS = {};
                       }
                   }))(FRP_Event.eventIsEvent)(Type_Proxy["Proxy"].value)(px)({
                       code: Deku_Pursx.nut(Deku_DOM_Elt_Pre.pre_(FRP_Event.eventIsEvent)([ Deku_DOM_Elt_Code.code_(FRP_Event.eventIsEvent)([ Deku_Control.text_(FRP_Event.eventIsEvent)("case e of\x0a  Just x -> x *> push Nothing\x0a  _ -> (run2_ [ gain_ 0.15 [ sinOsc 440.0 bangOn ] ]\x0a         >>= Just >>> push") ]) ])),
-                      result: Deku_Pursx.nut(WAGS_Example_Docs_Util.audioWrapper(ev)(cca)(Control_Applicative.pure(Effect_Aff.applicativeAff)(Data_Unit.unit))(function (v) {
-                          return WAGS_Run.run2_([ WAGS_Control.gain_(FRP_Event.eventIsEvent)(WAGS_Common.initialGainNumber)(0.15)([ WAGS_Control.sinOsc(FRP_Event.eventIsEvent)(WAGS_Common.initialSinOscNumber)(440.0)(WAGS_Parameter.bangOn(FRP_Event.eventIsEvent)()) ]) ]);
+                      result: Deku_Pursx.nut(WAGS_Example_Docs_Util.audioWrapper(ev)(cca)(function (v) {
+                          return Control_Applicative.pure(Effect_Aff.applicativeAff)(Data_Unit.unit);
+                      })(function (ctx) {
+                          return function (v) {
+                              return WAGS_Run.run2(ctx)([ WAGS_Control.gain_(FRP_Event.eventIsEvent)(WAGS_Common.initialGainNumber)(0.15)([ WAGS_Control.sinOsc(FRP_Event.eventIsEvent)(WAGS_Common.initialSinOscNumber)(440.0)(WAGS_Parameter.bangOn(FRP_Event.eventIsEvent)()) ]) ]);
+                          };
                       })),
                       next: WAGS_Example_Docs_Util.mkNext(FRP_Event.altEvent)(FRP_Event.eventIsEvent)(ev)(cpage)
                   });
@@ -19807,52 +19922,54 @@ var PS = {};
                                               push(loading)();
                                               var afe = FRP_Event_Animate.animationFrameEvent();
                                               var analyserE = Effect_Ref["new"](Data_Maybe.Nothing.value)();
-                                              var fib = Effect_Aff.launchAff(Control_Bind.bind(Effect_Aff.bindAff)(Data_Functor.map(Effect_Aff.functorAff)(Data_Homogeneous_Record.fromHomogeneous())(WAGS_Interpret.ctxAff(function (ctx) {
-                                                  return Control_Parallel.parTraverse(Effect_Aff.parallelAff)(Data_Homogeneous_Record.traversableHomogeneous)(WAGS_Interpret.decodeAudioDataFromUri(ctx))(Data_Homogeneous_Record.homogeneous()(buffers$prime));
-                                              })))(function (sounds) {
-                                                  return Control_Bind.bind(Effect_Aff.bindAff)(Effect_Class.liftEffect(Effect_Aff.monadEffectAff)(Effect_Random.randomInt(0)(50000)))(function (ri) {
-                                                      var randSound = Test_QuickCheck_Gen.evalGen(Test_QuickCheck_Gen.elements(Data_Maybe.fromMaybe(Data_Array_NonEmpty.singleton(sounds.pluck0))(Data_Array_NonEmpty.fromArray(Foreign_Object.values(Foreign_Object.fromHomogeneous()(sounds))))))({
-                                                          newSeed: Random_LCG.mkSeed(ri),
-                                                          size: 4
-                                                      });
-                                                      return Effect_Class.liftEffect(Effect_Aff.monadEffectAff)(function __do() {
-                                                          var rands = Data_Traversable.traverse(Data_Traversable.traversableArray)(Effect.applicativeEffect)(function (v4) {
-                                                              return function __do() {
-                                                                  var x = Effect_Random.random();
-                                                                  var y = Effect_Random.random();
-                                                                  return {
-                                                                      x: x,
-                                                                      y: y
-                                                                  };
-                                                              };
-                                                          })(Data_Array.range(0)(127))();
-                                                          var ssub = WAGS_Run.run2_(music(randSound)(analyserE))();
-                                                          var anisub = FRP_Event.subscribe(afe)(function (v4) {
-                                                              return function __do() {
-                                                                  var ae = Effect_Ref.read(analyserE)();
-                                                                  return Data_Foldable.for_(Effect.applicativeEffect)(Data_Foldable.foldableMaybe)(ae)(function (a) {
+                                              var fib = Effect_Aff.launchAff(Control_Bind.bind(Effect_Aff.bindAff)(WAGS_Interpret.context(Effect_Aff.monadEffectAff))(function (ctx) {
+                                                  return Control_Bind.bind(Effect_Aff.bindAff)(WAGS_Interpret.constant0Hack(Effect_Aff.monadEffectAff)(ctx))(function (c0h) {
+                                                      return Control_Bind.bind(Effect_Aff.bindAff)(Data_Functor.map(Effect_Aff.functorAff)(Data_Homogeneous_Record.fromHomogeneous())(Control_Parallel.parTraverse(Effect_Aff.parallelAff)(Data_Homogeneous_Record.traversableHomogeneous)(WAGS_Interpret.decodeAudioDataFromUri(ctx))(Data_Homogeneous_Record.homogeneous()(buffers$prime))))(function (sounds) {
+                                                          return Control_Bind.bind(Effect_Aff.bindAff)(Effect_Class.liftEffect(Effect_Aff.monadEffectAff)(Effect_Random.randomInt(0)(50000)))(function (ri) {
+                                                              var randSound = Test_QuickCheck_Gen.evalGen(Test_QuickCheck_Gen.elements(Data_Maybe.fromMaybe(Data_Array_NonEmpty.singleton(sounds.pluck0))(Data_Array_NonEmpty.fromArray(Foreign_Object.values(Foreign_Object.fromHomogeneous()(sounds))))))({
+                                                                  newSeed: Random_LCG.mkSeed(ri),
+                                                                  size: 4
+                                                              });
+                                                              return Effect_Class.liftEffect(Effect_Aff.monadEffectAff)(function __do() {
+                                                                  var rands = Data_Traversable.traverse(Data_Traversable.traversableArray)(Effect.applicativeEffect)(function (v4) {
                                                                       return function __do() {
-                                                                          var frequencyData = WAGS_Interpret.getByteFrequencyData(a)();
-                                                                          var arr = Data_Functor.map(Effect.functorEffect)((function () {
-                                                                              var $63 = Data_Array.zip(rands);
-                                                                              var $64 = Data_Functor.map(Data_Functor.functorArray)(function ($66) {
-                                                                                  return (function (v5) {
-                                                                                      return v5 / 255.0;
-                                                                                  })(Data_UInt.toNumber($66));
-                                                                              });
-                                                                              return function ($65) {
-                                                                                  return $63($64($65));
+                                                                          var x = Effect_Random.random();
+                                                                          var y = Effect_Random.random();
+                                                                          return {
+                                                                              x: x,
+                                                                              y: y
+                                                                          };
+                                                                      };
+                                                                  })(Data_Array.range(0)(127))();
+                                                                  var ssub = WAGS_Run.run2(ctx)(music(randSound)(analyserE))();
+                                                                  var anisub = FRP_Event.subscribe(afe)(function (v4) {
+                                                                      return function __do() {
+                                                                          var ae = Effect_Ref.read(analyserE)();
+                                                                          return Data_Foldable.for_(Effect.applicativeEffect)(Data_Foldable.foldableMaybe)(ae)(function (a) {
+                                                                              return function __do() {
+                                                                                  var frequencyData = WAGS_Interpret.getByteFrequencyData(a)();
+                                                                                  var arr = Data_Functor.map(Effect.functorEffect)((function () {
+                                                                                      var $63 = Data_Array.zip(rands);
+                                                                                      var $64 = Data_Functor.map(Data_Functor.functorArray)(function ($66) {
+                                                                                          return (function (v5) {
+                                                                                              return v5 / 255.0;
+                                                                                          })(Data_UInt.toNumber($66));
+                                                                                      });
+                                                                                      return function ($65) {
+                                                                                          return $63($64($65));
+                                                                                      };
+                                                                                  })())(Data_ArrayBuffer_Typed.toArray(Data_ArrayBuffer_Typed.typedArrayUint8)(frequencyData))();
+                                                                                  push(uii.canvas(arr))();
+                                                                                  return Data_Unit.unit;
                                                                               };
-                                                                          })())(Data_ArrayBuffer_Typed.toArray(Data_ArrayBuffer_Typed.typedArrayUint8)(frequencyData))();
-                                                                          push(uii.canvas(arr))();
-                                                                          return Data_Unit.unit;
+                                                                          })();
                                                                       };
                                                                   })();
-                                                              };
-                                                          })();
-                                                          var res = Control_Apply.applySecond(Effect.applyEffect)(ssub)(anisub);
-                                                          push(stop(res))();
-                                                          return res;
+                                                                  var res = Control_Apply.applySecond(Effect.applyEffect)(Control_Apply.applySecond(Effect.applyEffect)(Control_Apply.applySecond(Effect.applyEffect)(ssub)(c0h))(WAGS_Interpret.close(Effect_Class.monadEffectEffect)(ctx)))(anisub);
+                                                                  push(stop(res))();
+                                                                  return res;
+                                                              });
+                                                          });
                                                       });
                                                   });
                                               }))();
@@ -20125,7 +20242,7 @@ var PS = {};
           return "startStop";
       }
   })(WAGS_Variant.injsNilRow)()()()())()()()())(Type_Proxy["Proxy"].value);
-  var txt = "module Main where\x0a\x0aimport Prelude\x0a\x0aimport Control.Alt ((<|>))\x0aimport Data.Exists (mkExists)\x0aimport Data.Foldable (oneOf, oneOfMap)\x0aimport Data.Hashable (class Hashable)\x0aimport Data.Newtype (class Newtype, unwrap)\x0aimport Data.Tuple (fst)\x0aimport Data.Tuple.Nested ((/\\))\x0aimport Data.Variant (Variant, match)\x0aimport Deku.Attribute (cb, (:=))\x0aimport Deku.Control (text, text_)\x0aimport Deku.Core (SubgraphF(..))\x0aimport Deku.DOM as D\x0aimport Deku.Subgraph ((@@))\x0aimport Deku.Subgraph as Sg\x0aimport Deku.Toplevel ((\ud83d\ude86))\x0aimport Effect (Effect)\x0aimport Effect.Aff (launchAff_)\x0aimport Effect.Class (liftEffect)\x0aimport Effect.Random as Random\x0aimport FRP.Behavior (behavior, sampleBy)\x0aimport FRP.Event (fold, makeEvent, subscribe)\x0aimport FRP.Event.Class (bang, filterMap, keepLatest)\x0aimport FRP.Event.Time (delay)\x0aimport Type.Proxy (Proxy(..))\x0aimport WAGS.Control (playBuf)\x0aimport WAGS.Core (mkSubgraph, subgraph)\x0aimport WAGS.Core as C\x0aimport WAGS.Interpret (ctxAff, decodeAudioDataFromUri)\x0aimport WAGS.Parameter (bangOn)\x0aimport WAGS.Run (run2_)\x0aimport WAGS.Variant (injs_, prjs_)\x0aimport WAGS.WebAPI (BrowserAudioBuffer)\x0a\x0atype StartStop = Variant (start :: Unit, stop :: Effect Unit)\x0assi = injs_ (Proxy :: _ StartStop)\x0astart = uii.startStop (ssi.start unit)\x0astop r = uii.startStop (ssi.stop r)\x0assp = prjs_ (Proxy :: _ StartStop)\x0atype UIEvents = Variant (startStop :: StartStop, slider :: Unit)\x0auii = injs_ (Proxy :: _ UIEvents)\x0auip = prjs_ (Proxy :: _ UIEvents)\x0atype State' = Variant (loading :: Unit, loaded :: BrowserAudioBuffer)\x0a\x0aderive instance Newtype State _\x0anewtype State = State State'\x0asti = injs_ (Proxy :: _ State')\x0aloading = State $ sti.loading unit\x0astp = prjs_ (Proxy :: _ State')\x0a\x0aderive instance Eq State\x0a\x0ainstance Hashable State where\x0a  hash (State v) = match { loading: \\_ -> 0, loaded: \\_ -> 1 } v\x0a\x0abell =\x0a  \"https://freesound.org/data/previews/339/339810_5121236-lq.mp3\"\x0a\x0arandom = behavior \\e ->\x0a  makeEvent \\k -> subscribe e \\f ->\x0a    Random.random >>= k <<< f\x0a\x0amain :: Effect Unit\x0amain = do\x0a  { push } <- loading \ud83d\ude86 go\x0a  launchAff_ $ ctxAff\x0a    \\ctx -> decodeAudioDataFromUri ctx bell >>= liftEffect\x0a      <<< push\x0a      <<< State\x0a      <<< sti.loaded\x0a  where\x0a  go _ ev =\x0a    ( keepLatest $\x0a        ( \\i@(State i') -> match\x0a            { loading: \\_ -> bang (i /\\ Sg.Insert)\x0a            , loaded: \\_ -> bang (loading /\\ Sg.Remove)\x0a                <|> bang (i /\\ Sg.Insert)\x0a            }\x0a            i'\x0a        ) <$> ev\x0a    ) @@ scene\x0a    where\x0a    scene = unwrap >>> match\x0a      { loaded: \\buffer -> mkExists $ SubgraphF \\push event -> do\x0a          let\x0a            ss = bang (ssi.start unit) <|> filterMap uip.startStop event\x0a            sl = sampleBy (/\\) random\x0a              $ fold (\\_ b -> b + 1) (filterMap uip.slider event) 0\x0a            music = run2_\x0a              [ subgraph\x0a                  ( keepLatest $ map\x0a                      (\\i ->\x0a                          oneOf\x0a                            [ bang $ i /\\ C.Insert\x0a                            , delay 5000 $ bang $ i /\\ C.Remove\x0a                            ]\x0a                      )\x0a                      sl\x0a                  )\x0a                  ( \\i -> mkSubgraph\x0a                      ( playBuf\x0a                          { buffer: buffer, playbackRate: 0.7 + (fst i) * 2.0 }\x0a                          bangOn\x0a                      )\x0a                  )\x0a              ]\x0a          D.div_\x0a            [ D.div_\x0a                [ text_ \"Slide me!\"\x0a                , D.input\x0a                    ( oneOfMap bang\x0a                        [ D.Xtype := \"range\"\x0a                        , D.Min := \"0\"\x0a                        , D.Max := \"100\"\x0a                        , D.Step := \"1\"\x0a                        , D.Value := \"50\"\x0a                        , D.OnInput := cb (const (push $ uii.slider unit))\x0a                        ]\x0a                    )\x0a                    []\x0a                ]\x0a            , D.button\x0a                ( ss <#>\x0a                    \\e -> D.OnClick := cb\x0a                      ( const $ e # match\x0a                          { stop: \\u -> u *>\x0a                              push start\x0a                          , start: \\_ -> do\x0a                              r <- music\x0a                              push (stop r)\x0a                          }\x0a                      )\x0a                )\x0a                [ text $ ss <#> match\x0a                    { stop: \\_ -> \"Turn off\"\x0a                    , start: \\_ -> \"Turn on\"\x0a                    }\x0a                ]\x0a            ]\x0a      , loading: \\_ -> mkExists\x0a          $ SubgraphF \\_ _ -> D.div_ [ text_ \"Loading...\" ]\x0a      }\x0a";
+  var txt = "module Main where\x0a\x0aimport Prelude\x0a\x0aimport Control.Alt ((<|>))\x0aimport Data.Exists (mkExists)\x0aimport Data.Foldable (oneOf, oneOfMap)\x0aimport Data.Hashable (class Hashable)\x0aimport Data.Newtype (class Newtype, unwrap)\x0aimport Data.Tuple (fst)\x0aimport Data.Tuple.Nested ((/\\))\x0aimport Data.Variant (Variant, match)\x0aimport Deku.Attribute (cb, (:=))\x0aimport Deku.Control (text, text_)\x0aimport Deku.Core (SubgraphF(..))\x0aimport Deku.DOM as D\x0aimport Deku.Subgraph ((@@))\x0aimport Deku.Subgraph as Sg\x0aimport Deku.Toplevel ((\ud83d\ude86))\x0aimport Effect (Effect)\x0aimport Effect.Aff (launchAff_)\x0aimport Effect.Class (liftEffect)\x0aimport Effect.Random as Random\x0aimport FRP.Behavior (behavior, sampleBy)\x0aimport FRP.Event (fold, makeEvent, subscribe)\x0aimport FRP.Event.Class (bang, filterMap, keepLatest)\x0aimport FRP.Event.Time (delay)\x0aimport Type.Proxy (Proxy(..))\x0aimport WAGS.Control (playBuf)\x0aimport WAGS.Core (mkSubgraph, subgraph)\x0aimport WAGS.Core as C\x0aimport WAGS.Interpret (bracketCtx, decodeAudioDataFromUri)\x0aimport WAGS.Parameter (bangOn)\x0aimport WAGS.Run (run2_)\x0aimport WAGS.Variant (injs_, prjs_)\x0aimport WAGS.WebAPI (BrowserAudioBuffer)\x0a\x0atype StartStop = Variant (start :: Unit, stop :: Effect Unit)\x0assi = injs_ (Proxy :: _ StartStop)\x0astart = uii.startStop (ssi.start unit)\x0astop r = uii.startStop (ssi.stop r)\x0assp = prjs_ (Proxy :: _ StartStop)\x0atype UIEvents = Variant (startStop :: StartStop, slider :: Unit)\x0auii = injs_ (Proxy :: _ UIEvents)\x0auip = prjs_ (Proxy :: _ UIEvents)\x0atype State' = Variant (loading :: Unit, loaded :: BrowserAudioBuffer)\x0a\x0aderive instance Newtype State _\x0anewtype State = State State'\x0asti = injs_ (Proxy :: _ State')\x0aloading = State $ sti.loading unit\x0astp = prjs_ (Proxy :: _ State')\x0a\x0aderive instance Eq State\x0a\x0ainstance Hashable State where\x0a  hash (State v) = match { loading: \\_ -> 0, loaded: \\_ -> 1 } v\x0a\x0abell =\x0a  \"https://freesound.org/data/previews/339/339810_5121236-lq.mp3\"\x0a\x0arandom = behavior \\e ->\x0a  makeEvent \\k -> subscribe e \\f ->\x0a    Random.random >>= k <<< f\x0a\x0amain :: Effect Unit\x0amain = do\x0a  { push } <- loading \ud83d\ude86 go\x0a  launchAff_ $ bracketCtx\x0a    \\ctx -> decodeAudioDataFromUri ctx bell >>= liftEffect\x0a      <<< push\x0a      <<< State\x0a      <<< sti.loaded\x0a  where\x0a  go _ ev =\x0a    ( keepLatest $\x0a        ( \\i@(State i') -> match\x0a            { loading: \\_ -> bang (i /\\ Sg.Insert)\x0a            , loaded: \\_ -> bang (loading /\\ Sg.Remove)\x0a                <|> bang (i /\\ Sg.Insert)\x0a            }\x0a            i'\x0a        ) <$> ev\x0a    ) @@ scene\x0a    where\x0a    scene = unwrap >>> match\x0a      { loaded: \\buffer -> mkExists $ SubgraphF \\push event -> do\x0a          let\x0a            ss = bang (ssi.start unit) <|> filterMap uip.startStop event\x0a            sl = sampleBy (/\\) random\x0a              $ fold (\\_ b -> b + 1) (filterMap uip.slider event) 0\x0a            music = run2_\x0a              [ subgraph\x0a                  ( keepLatest $ map\x0a                      (\\i ->\x0a                          oneOf\x0a                            [ bang $ i /\\ C.Insert\x0a                            , delay 5000 $ bang $ i /\\ C.Remove\x0a                            ]\x0a                      )\x0a                      sl\x0a                  )\x0a                  ( \\i -> mkSubgraph\x0a                      ( playBuf\x0a                          { buffer: buffer, playbackRate: 0.7 + (fst i) * 2.0 }\x0a                          bangOn\x0a                      )\x0a                  )\x0a              ]\x0a          D.div_\x0a            [ D.div_\x0a                [ text_ \"Slide me!\"\x0a                , D.input\x0a                    ( oneOfMap bang\x0a                        [ D.Xtype := \"range\"\x0a                        , D.Min := \"0\"\x0a                        , D.Max := \"100\"\x0a                        , D.Step := \"1\"\x0a                        , D.Value := \"50\"\x0a                        , D.OnInput := cb (const (push $ uii.slider unit))\x0a                        ]\x0a                    )\x0a                    []\x0a                ]\x0a            , D.button\x0a                ( ss <#>\x0a                    \\e -> D.OnClick := cb\x0a                      ( const $ e # match\x0a                          { stop: \\u -> u *>\x0a                              push start\x0a                          , start: \\_ -> do\x0a                              r <- music\x0a                              push (stop r)\x0a                          }\x0a                      )\x0a                )\x0a                [ text $ ss <#> match\x0a                    { stop: \\_ -> \"Turn off\"\x0a                    , start: \\_ -> \"Turn on\"\x0a                    }\x0a                ]\x0a            ]\x0a      , loading: \\_ -> mkExists\x0a          $ SubgraphF \\_ _ -> D.div_ [ text_ \"Loading...\" ]\x0a      }\x0a";
   var ssp = WAGS_Variant.prjs_()(WAGS_Variant.prjsCons({
       reflectSymbol: function () {
           return "loading";
@@ -20233,13 +20350,16 @@ var PS = {};
                                           return function __do() {
                                               v2.value1();
                                               push(loading)();
-                                              var fib = Effect_Aff.launchAff(Control_Bind.bind(Effect_Aff.bindAff)(WAGS_Interpret.ctxAff(function (ctx) {
-                                                  return WAGS_Interpret.decodeAudioDataFromUri(ctx)(bell);
-                                              }))(function (buffer) {
-                                                  return Effect_Class.liftEffect(Effect_Aff.monadEffectAff)(function __do() {
-                                                      var res = WAGS_Run.run2_(music(buffer))();
-                                                      push(stop(res))();
-                                                      return res;
+                                              var fib = Effect_Aff.launchAff(Control_Bind.bind(Effect_Aff.bindAff)(WAGS_Interpret.context(Effect_Aff.monadEffectAff))(function (ctx) {
+                                                  return Control_Bind.bind(Effect_Aff.bindAff)(WAGS_Interpret.constant0Hack(Effect_Aff.monadEffectAff)(ctx))(function (c0h) {
+                                                      return Control_Bind.bind(Effect_Aff.bindAff)(WAGS_Interpret.decodeAudioDataFromUri(ctx)(bell))(function (buffer) {
+                                                          return Effect_Class.liftEffect(Effect_Aff.monadEffectAff)(function __do() {
+                                                              var res$prime = WAGS_Run.run2_(music(buffer))();
+                                                              var res = Control_Apply.applySecond(Effect.applyEffect)(Control_Apply.applySecond(Effect.applyEffect)(res$prime)(c0h))(WAGS_Interpret.close(Effect_Class.monadEffectEffect)(ctx));
+                                                              push(stop(res))();
+                                                              return res;
+                                                          });
+                                                      });
                                                   });
                                               }))();
                                               ccb(function __do() {
@@ -20294,10 +20414,12 @@ var PS = {};
                           return "appl";
                       }
                   }))(FRP_Event.eventIsEvent)(px)({
-                      appl: Deku_Pursx.nut(WAGS_Example_Docs_Util.audioWrapperSpan("\ud83d\udc4f")(ev)(ccb)(WAGS_Interpret.ctxAff(function (ctx) {
+                      appl: Deku_Pursx.nut(WAGS_Example_Docs_Util.audioWrapperSpan("\ud83d\udc4f")(ev)(ccb)(function (ctx) {
                           return WAGS_Interpret.decodeAudioDataFromUri(ctx)("https://freesound.org/data/previews/277/277021_1402315-lq.mp3");
-                      }))(function (buf) {
-                          return WAGS_Run.run2_([ WAGS_Control.gain_(FRP_Event.eventIsEvent)(WAGS_Common.initialGainNumber)(1.0)([ WAGS_Control.loopBuf(FRP_Event.eventIsEvent)(WAGS_Common.initialLoopBufBrowserAudi)(buf)(WAGS_Parameter.bangOn(FRP_Event.eventIsEvent)()) ]) ]);
+                      })(function (ctx) {
+                          return function (buf) {
+                              return WAGS_Run.run2(ctx)([ WAGS_Control.gain_(FRP_Event.eventIsEvent)(WAGS_Common.initialGainNumber)(1.0)([ WAGS_Control.loopBuf(FRP_Event.eventIsEvent)(WAGS_Common.initialLoopBufBrowserAudi)(buf)(WAGS_Parameter.bangOn(FRP_Event.eventIsEvent)()) ]) ]);
+                          };
                       })),
                       suby: Deku_Pursx.nut(WAGS_Example_Docs_Subgraph_SliderEx.sgSliderEx(ccb)(dpage)(ev))
                   });
