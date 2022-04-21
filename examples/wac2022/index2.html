@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Wags documentation</title>
+		<meta charset="UTF-8" />
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.38/Tone.js"></script>
+		<meta name="viewport" content="width=device-width" />
+		<link rel="stylesheet" href="style.css" />
+		<script>
+			function run() {
+				const n = 30;
+				const gainNodes = Array.from(Array(n).keys()).map(() =>
+					new Tone.Gain(0.002).toDestination()
+				);
+				const oscs = Array.from(Array(n).keys()).map((i) =>
+					new Tone.Oscillator(440.0 + i * 80).connect(gainNodes[i])
+				);
+				// repeated event every 8th note
+				Tone.Transport.scheduleRepeat((time) => {
+					// use the callback time to schedule events
+					for (var i = 0; i < n; i++) {
+						oscs[i].start(time).stop(time + 0.1);
+					}
+				}, "8n");
+				// transport must be started before it starts invoking events
+				Tone.Transport.start();
+			}
+		</script>
+	</head>
+	<body>
+		<button onclick="run()">Turn on</button>
+	</body>
+</html>
