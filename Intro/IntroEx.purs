@@ -13,6 +13,7 @@ import Data.Foldable (for_, oneOf, oneOfMap, traverse_)
 import Data.Homogeneous.Record as Rc
 import Data.Int as Int
 import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Profunctor.Strong (second)
 import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..), fst)
 import Data.Tuple.Nested (type (/\), (/\))
@@ -46,6 +47,7 @@ import Math (pi)
 import Random.LCG (mkSeed)
 import Test.QuickCheck.Gen (elements, evalGen)
 import Type.Proxy (Proxy(..))
+import WAGS.Clock (withACTime)
 import WAGS.Control (analyser_, bandpass, delay, gain, gain_, highpass, highpass_, loopBuf, lowpass, playBuf)
 import WAGS.Core (Node, Po2(..), fan, fix, mkSubgraph)
 import WAGS.Core as C
@@ -53,7 +55,7 @@ import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..
 import WAGS.Example.Docs.Util (raceSelf)
 import WAGS.Interpret (bracketCtx, close, constant0Hack, context, decodeAudioDataFromUri, getByteFrequencyData)
 import WAGS.Math (calcSlope)
-import WAGS.Parameter (AudioEnvelope(..), bangOn)
+import WAGS.Parameter (AudioEnvelope(..), AudioNumeric(..), _linear, bangOn)
 import WAGS.Properties (loopEnd, loopStart, playbackRate)
 import WAGS.Properties as P
 import WAGS.Run (run2, run2_)
@@ -123,6 +125,7 @@ fenv s e = bang
 denv s e = bang
   $ P.delayTime
   $ AudioEnvelope { p: [ s, e ], o: 0.0, d: 16.0 }
+ttap (o /\ n) = AudioNumeric { o: o + 0.04, n, t: _linear }
 
 introEx
   :: forall payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Element Event payload
@@ -134,13 +137,14 @@ introEx ccb _ ev = makePursx' (Proxy :: _ "@") px
             do
               let
                 ss = bang (ssi.start unit) <|> filterMap uip.startStop event
-                sliderE = filterMap uip.slider event
                 startE = filterMap ssp.start ss
                 loadingE = filterMap ssp.loading ss
                 stopE = filterMap ssp.stop ss
 
-                music :: forall lock. _ -> _ -> Array (Node _ lock _ _)
-                music buffer analyserE =
+                music :: forall lock. _ -> _ -> _ -> Array (Node _ lock _ _)
+                music ctx buffer analyserE = do
+                  let
+                    sliderE = (\{ acTime, value } -> acTime /\ value) <$> withACTime ctx (filterMap uip.slider event)
                   [ analyser_
                       { cb:
                           ( AnalyserNodeCb
@@ -150,11 +154,11 @@ introEx ccb _ ev = makePursx' (Proxy :: _ "@") px
                               )
                           )
                       , fftSize: TTT7
-                      } $ fan (playBuf buffer (bangOn <|> (P.playbackRate <<< calcSlope 0.0 0.96 100.0 1.04) <$> sliderE)) \b -> fix
+                      } $ fan (playBuf buffer (bangOn <|> (P.playbackRate <<< ttap <<< second (calcSlope 0.0 0.96 100.0 1.04)) <$> sliderE)) \b -> fix
                       \g0 -> gain_ 1.0
                         [ b
-                        , delay { maxDelayTime: 2.5, delayTime: 1.0 } ((P.delayTime <<< calcSlope 0.0 0.5 100.0 2.45) <$> sliderE)
-                            [ gain 0.4 ((P.gain <<< calcSlope 0.0 0.6 100.0 0.9) <$> sliderE) [ b ] ]
+                        , delay { maxDelayTime: 2.5, delayTime: 1.0 } ((P.delayTime <<< ttap <<< second (calcSlope 0.0 0.5 100.0 2.45)) <$> sliderE)
+                            [ gain 0.4 ((P.gain <<< ttap <<< second (calcSlope 0.0 0.6 100.0 0.9)) <$> sliderE) [ b ] ]
                         , dgh 0.15 empty 0.7 empty 1500.0 (fenv 1500.0 3000.0)
                             [ fix
                                 \g1 -> gain 1.0 fade1
@@ -162,14 +166,14 @@ introEx ccb _ ev = makePursx' (Proxy :: _ "@") px
                                       [ g0, g1 ]
                                   ]
                             ]
-                        , dgh 0.29 ((P.delayTime <<< calcSlope 0.0 0.1 100.0 0.4) <$> sliderE) {-(denv 0.29 0.9)-} 0.85 empty 2000.0 (fenv 2000.0 5000.0)
+                        , dgh 0.29 ((P.delayTime <<< ttap <<< second (calcSlope 0.0 0.1 100.0 0.4)) <$> sliderE) {-(denv 0.29 0.9)-} 0.85 empty 2000.0 (fenv 2000.0 5000.0)
                             [ fix
                                 \g1 -> gain_ 1.0
-                                  [ dgh 0.6 ((P.delayTime <<< calcSlope 0.0 0.8 100.0 0.3) <$> sliderE) {-(denv 0.6 0.2)-} 0.6 empty 3500.0 (fenv 3500.0 100.0)
+                                  [ dgh 0.6 ((P.delayTime <<< ttap <<< second (calcSlope 0.0 0.8 100.0 0.3)) <$> sliderE) {-(denv 0.6 0.2)-} 0.6 empty 3500.0 (fenv 3500.0 100.0)
                                       [ g0
                                       , ( fix
                                             \g2 -> gain 1.0 fade0
-                                              [ dgb 0.75 ((P.delayTime <<< calcSlope 0.0 0.9 100.0 0.1) <$> sliderE) {-(denv 0.75 0.99)-} 0.6 empty 4000.0
+                                              [ dgb 0.75 ((P.delayTime <<< ttap <<< second (calcSlope 0.0 0.9 100.0 0.1)) <$> sliderE) {-(denv 0.75 0.99)-} 0.6 empty 4000.0
                                                   (fenv 4000.0 200.0)
                                                   [ g1, g2 ]
                                               , dgb 0.75 (denv 0.75 0.2) 0.55 empty 200.0 (fenv 200.0 4000.0) [ b ]
@@ -256,7 +260,7 @@ introEx ccb _ ev = makePursx' (Proxy :: _ "@") px
                                             x <- Random.random
                                             y <- Random.random
                                             pure { x, y }
-                                          ssub <- run2 ctx (music randSound analyserE)
+                                          ssub <- run2 ctx (music ctx randSound analyserE)
                                           anisub <- subscribe afe \_ -> do
                                             ae <- read analyserE
                                             for_ ae \a -> do
