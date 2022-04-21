@@ -51,12 +51,12 @@ import WAGS.Core (Node, Po2(..), fan, fix, mkSubgraph)
 import WAGS.Core as C
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..))
 import WAGS.Example.Docs.Util (raceSelf)
-import WAGS.Interpret (ctxAff, decodeAudioDataFromUri, getByteFrequencyData)
+import WAGS.Interpret (bracketCtx, close, constant0Hack, context, decodeAudioDataFromUri, getByteFrequencyData)
 import WAGS.Math (calcSlope)
 import WAGS.Parameter (AudioEnvelope(..), bangOn)
 import WAGS.Properties (loopEnd, loopStart, playbackRate)
 import WAGS.Properties as P
-import WAGS.Run (run2_)
+import WAGS.Run (run2, run2_)
 import WAGS.Variant (injs_, prjs_)
 import WAGS.WebAPI (AnalyserNodeCb(..), BrowserAudioBuffer)
 import Web.Event.Event (target)
@@ -238,7 +238,9 @@ introEx ccb _ ev = makePursx' (Proxy :: _ "@") px
                                       afe <- animationFrameEvent
                                       analyserE <- new Nothing
                                       fib <- launchAff do
-                                        sounds <- Rc.fromHomogeneous <$> ctxAff \ctx -> parTraverse (decodeAudioDataFromUri ctx) (Rc.homogeneous buffers')
+                                        ctx <- context
+                                        c0h <- constant0Hack ctx
+                                        sounds <- Rc.fromHomogeneous <$> parTraverse (decodeAudioDataFromUri ctx) (Rc.homogeneous buffers')
                                         ri <- liftEffect $ randomInt 0 50000
                                         let
                                           randSound = evalGen
@@ -254,7 +256,7 @@ introEx ccb _ ev = makePursx' (Proxy :: _ "@") px
                                             x <- Random.random
                                             y <- Random.random
                                             pure { x, y }
-                                          ssub <- run2_ (music randSound analyserE)
+                                          ssub <- run2 ctx (music randSound analyserE)
                                           anisub <- subscribe afe \_ -> do
                                             ae <- read analyserE
                                             for_ ae \a -> do
@@ -263,7 +265,7 @@ introEx ccb _ ev = makePursx' (Proxy :: _ "@") px
                                               arr <- map (zip rands <<< map ((_ / 255.0) <<< toNumber)) (toArray frequencyData)
                                               push (uii.canvas arr)
                                               pure unit
-                                          let res = ssub *> anisub
+                                          let res = ssub *> c0h *> close ctx *> anisub
                                           push (stop res)
                                           pure res
                                       ccb do

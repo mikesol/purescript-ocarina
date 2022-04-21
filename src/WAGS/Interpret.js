@@ -1550,7 +1550,7 @@ exports.bufferDuration = function (buffer) {
 exports.bufferNumberOfChannels = function (buffer) {
 	return buffer.numberOfChannels;
 };
-exports.constant0Hack = function (context) {
+exports.constant0Hack_ = function (context) {
 	return function () {
 		var constant = context.createConstantSource();
 		constant.offset.value = 0.0;
@@ -1618,7 +1618,7 @@ exports.advanceWriteHead = function (snapshot) {
 	};
 };
 
-exports.close = function (audioCtx) {
+exports.close_ = function (audioCtx) {
 	return function () {
 		audioCtx.close();
 	};
@@ -1663,15 +1663,15 @@ exports.decodeAudioDataFromArrayBuffer = function (ctx) {
 		};
 	};
 };
-exports.context = function () {
+exports.context_ = function () {
 	return new (window.AudioContext || window.webkitAudioContext)();
 };
-exports.contextState = function (audioCtx) {
+exports.contextState_ = function (audioCtx) {
 	return function () {
 		return audioCtx.state;
 	};
 };
-exports.contextResume = function (audioCtx) {
+exports.contextResume_ = function (audioCtx) {
 	return function () {
 		return audioCtx.resume();
 	};

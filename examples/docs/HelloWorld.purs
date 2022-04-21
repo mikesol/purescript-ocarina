@@ -17,7 +17,7 @@ import WAGS.Control (gain_, sinOsc)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent(..), SingleSubgraphPusher)
 import WAGS.Example.Docs.Util (audioWrapper, ccassp, mkNext, scrollToTop)
 import WAGS.Parameter (bangOn)
-import WAGS.Run (run2_)
+import WAGS.Run (run2, run2_)
 
 px =
   Proxy    :: Proxy         """<div>
@@ -75,7 +75,7 @@ helloWorld cca' dpage ssp ev = makePursx' (Proxy :: _ "@") px
           ]
       )
   , result: nut
-      ( audioWrapper ev cca (pure unit) $ \_ -> run2_ [ gain_ 0.15 [ sinOsc 440.0 bangOn ] ]
+      ( audioWrapper ev cca (\_ -> pure unit) $ \ctx _ -> run2 ctx [ gain_ 0.15 [ sinOsc 440.0 bangOn ] ]
       )
   , next: mkNext ev cpage
   }

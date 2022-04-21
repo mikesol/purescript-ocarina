@@ -10,9 +10,9 @@ import Type.Proxy (Proxy(..))
 import WAGS.Control (playBuf)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import WAGS.Example.Docs.Util (audioWrapper)
-import WAGS.Interpret (ctxAff, decodeAudioDataFromUri)
+import WAGS.Interpret (decodeAudioDataFromUri)
 import WAGS.Parameter (bangOn)
-import WAGS.Run (run2_)
+import WAGS.Run (run2)
 
 px =  Proxy :: Proxy   """<section>
   <h2 id="playbuf">Playing a buffer</h2>
@@ -37,8 +37,8 @@ playBufEx
   :: forall payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Element Event payload
 playBufEx ccb _ ev = px ~~
   { playBuf: nut
-      ( audioWrapper ev ccb (ctxAff \ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/470/470035_9564355-lq.mp3")
-          \buffer -> run2_
+      ( audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/470/470035_9564355-lq.mp3")
+          \ctx buffer -> run2 ctx
             [playBuf
                 { buffer
                 , duration: 3.0

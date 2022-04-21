@@ -10,9 +10,9 @@ import Type.Proxy (Proxy(..))
 import WAGS.Control (dynamicsCompressor_, loopBuf)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import WAGS.Example.Docs.Util (audioWrapper)
-import WAGS.Interpret (ctxAff, decodeAudioDataFromUri)
+import WAGS.Interpret (decodeAudioDataFromUri)
 import WAGS.Parameter (bangOn)
-import WAGS.Run (run2_)
+import WAGS.Run (run2)
 
 px = Proxy :: Proxy """<section>
   <h2 id="compression">Compression</h2>
@@ -38,8 +38,8 @@ run2_
 compression :: forall payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Element Event payload
 compression ccb _ ev = px ~~
   { compression: nut
-      ( audioWrapper ev ccb (ctxAff \ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
-          \buf -> run2_
+      ( audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
+          \ctx buf -> run2 ctx
             [ dynamicsCompressor_ {} [ loopBuf buf bangOn ] ]
       )
   }

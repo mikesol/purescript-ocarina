@@ -29,7 +29,7 @@ import Test.QuickCheck.Gen (evalGen)
 import Type.Proxy (Proxy(..))
 import WAGS.Clock (withACTime)
 import WAGS.Control (bandpass_, gain, lowpass_, periodicOsc, squareOsc_)
-import WAGS.Interpret (close, context)
+import WAGS.Interpret (close, constant0Hack, context)
 import WAGS.Parameter (AudioNumeric(..), _linear, bangOn)
 import WAGS.Properties as P
 import WAGS.Run (run2)
@@ -140,6 +140,7 @@ main = start 🚀 \push event -> do
                   { stop: \u -> u *> push start
                   , start: \_ -> do
                       ctx <- context
+                      c0h <- constant0Hack ctx
                       afe <- animationFrameEvent
                       mouse <- getMouse
                       swm <- memoize
@@ -240,7 +241,7 @@ main = start 🚀 \push event -> do
                                 )
                             ]
                         ]
-                      push $ (stop (r *> close ctx))
+                      push $ (stop (r *> c0h *> close ctx))
                   }
               )
         )

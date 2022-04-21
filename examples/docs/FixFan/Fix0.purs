@@ -11,9 +11,9 @@ import WAGS.Control (delay_, gain_, playBuf)
 import WAGS.Core (fix)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import WAGS.Example.Docs.Util (audioWrapper)
-import WAGS.Interpret (ctxAff, decodeAudioDataFromUri)
+import WAGS.Interpret (bracketCtx, decodeAudioDataFromUri)
 import WAGS.Parameter (bangOn)
-import WAGS.Run (run2_)
+import WAGS.Run (run2, run2_)
 
 px =
   Proxy    :: Proxy         """<div>
@@ -32,8 +32,8 @@ px =
 fix0 :: forall payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Element Event payload
 fix0 ccb _ ev = makePursx' (Proxy :: _ "@") px
   { ai0: nut
-      ( audioWrapper ev ccb (ctxAff \ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/178/178660_717950-lq.mp3")
-          \buf -> run2_
+      ( audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/178/178660_717950-lq.mp3")
+          \ctx buf -> run2 ctx
             [ fix
                 \b -> gain_ 1.0
                   [ playBuf buf bangOn

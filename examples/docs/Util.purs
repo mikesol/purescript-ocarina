@@ -18,7 +18,8 @@ import Effect.Class (liftEffect)
 import FRP.Event (Event)
 import FRP.Event.Class (class IsEvent, bang, biSampleOn)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, SingleSubgraphEvent(..), SingleSubgraphPusher)
-import WAGS.Interpret (close, context)
+import WAGS.Interpret (close, constant0Hack, context)
+import WAGS.WebAPI (AudioContext)
 
 foreign import scrollToTop_ :: Effect Unit
 
@@ -52,9 +53,12 @@ clickCb cca push init i ev event = map
                 cncl
                 push Loading
                 fib <- launchAff do
-                  x <- init
+                  ctx <- context
+                  c0h <- constant0Hack ctx
+                  x <- init ctx
                   liftEffect do
-                    res <- i x
+                    res' <- i ctx x
+                    let res = res' *> c0h *> close ctx
                     push (Playing res)
                     pure res
                 cca do
@@ -72,8 +76,8 @@ audioWrapper
   :: forall a payload
    . Event SingleSubgraphEvent
   -> CancelCurrentAudio
-  -> Aff a
-  -> (a -> Effect (Effect Unit))
+  -> (AudioContext -> Aff a)
+  -> (AudioContext -> a -> Effect (Effect Unit))
   -> Element Event payload
 audioWrapper ev cca init i = bang (unit /\ Sg.Insert)
   @@ \_ -> mkExists $ SubgraphF \push event' ->
@@ -98,8 +102,8 @@ audioWrapperSpan
    . String
   -> Event SingleSubgraphEvent
   -> CancelCurrentAudio
-  -> Aff a
-  -> (a -> Effect (Effect Unit))
+  -> (AudioContext -> Aff a)
+  -> (AudioContext -> a -> Effect (Effect Unit))
   -> Element Event payload
 audioWrapperSpan txt ev cca init i = bang (unit /\ Sg.Insert)
   @@ \_ -> mkExists $ SubgraphF \push event' ->

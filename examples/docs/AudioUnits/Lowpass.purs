@@ -10,9 +10,9 @@ import Type.Proxy (Proxy(..))
 import WAGS.Control (loopBuf, lowpass_)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import WAGS.Example.Docs.Util (audioWrapper)
-import WAGS.Interpret (ctxAff, decodeAudioDataFromUri)
+import WAGS.Interpret (decodeAudioDataFromUri)
 import WAGS.Parameter (bangOn)
-import WAGS.Run (run2_)
+import WAGS.Run (run2)
 
 px = Proxy :: Proxy """<section>
   <h2 id="lowpass">Lowpass filter</h2>
@@ -29,8 +29,8 @@ px = Proxy :: Proxy """<section>
 lowpass :: forall payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Element Event payload
 lowpass ccb _ ev = px ~~
   { lowpass: nut
-      ( audioWrapper ev ccb (ctxAff \ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
-          \buf -> run2_
+      ( audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
+          \ctx buf -> run2 ctx
             [lowpass_ 215.0 [loopBuf buf bangOn]]
       )
   }

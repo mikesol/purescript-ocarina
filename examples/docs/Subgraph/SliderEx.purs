@@ -35,7 +35,7 @@ import WAGS.Core (Node, mkSubgraph)
 import WAGS.Core as C
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..))
 import WAGS.Example.Docs.Util (raceSelf)
-import WAGS.Interpret (ctxAff, decodeAudioDataFromUri)
+import WAGS.Interpret (bracketCtx, close, constant0Hack, context, decodeAudioDataFromUri)
 import WAGS.Math (calcSlope)
 import WAGS.Parameter (bangOn)
 import WAGS.Properties (loopEnd, loopStart, playbackRate)
@@ -99,7 +99,7 @@ import Type.Proxy (Proxy(..))
 import WAGS.Control (playBuf)
 import WAGS.Core (mkSubgraph, subgraph)
 import WAGS.Core as C
-import WAGS.Interpret (ctxAff, decodeAudioDataFromUri)
+import WAGS.Interpret (bracketCtx, decodeAudioDataFromUri)
 import WAGS.Parameter (bangOn)
 import WAGS.Run (run2_)
 import WAGS.Variant (injs_, prjs_)
@@ -136,7 +136,7 @@ random = behavior \e ->
 main :: Effect Unit
 main = do
   { push } <- loading 🚆 go
-  launchAff_ $ ctxAff
+  launchAff_ $ bracketCtx
     \ctx -> decodeAudioDataFromUri ctx bell >>= liftEffect
       <<< push
       <<< State
@@ -294,9 +294,12 @@ sgSliderEx ccb _ ev = makePursx' (Proxy :: _ "@") px
                                   cncl
                                   push loading
                                   fib <- launchAff do
-                                    buffer <- ctxAff \ctx -> decodeAudioDataFromUri ctx bell
+                                    ctx <- context
+                                    c0h <- constant0Hack ctx
+                                    buffer <- decodeAudioDataFromUri ctx bell
                                     liftEffect do
-                                      res <- run2_ (music buffer)
+                                      res' <- run2_ (music buffer)
+                                      let res = res' *> c0h *> close ctx
                                       push (stop res)
                                       pure res
                                   ccb do

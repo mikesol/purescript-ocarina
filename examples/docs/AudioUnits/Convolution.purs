@@ -10,9 +10,9 @@ import Type.Proxy (Proxy(..))
 import WAGS.Control (convolver, loopBuf)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import WAGS.Example.Docs.Util (audioWrapper)
-import WAGS.Interpret (ctxAff, decodeAudioDataFromUri)
+import WAGS.Interpret (decodeAudioDataFromUri)
 import WAGS.Parameter (bangOn)
-import WAGS.Run (run2_)
+import WAGS.Run (run2)
 
 px = Proxy :: Proxy """<section>
   <h2 id="convolution">Convolution</h2>
@@ -28,9 +28,9 @@ px = Proxy :: Proxy """<section>
 convolution :: forall payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Element Event payload
 convolution ccb _ ev = px ~~
   { convolution: nut
-      ( audioWrapper ev ccb (ctxAff \ctx -> { loop: _, verb: _ }
+      ( audioWrapper ev ccb (\ctx -> { loop: _, verb: _ }
          <$> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3" <*> decodeAudioDataFromUri ctx "https://cdn.jsdelivr.net/gh/andibrae/Reverb.js/Library/StMarysAbbeyReconstructionPhase3.m4a")
-          \{loop, verb} -> run2_
+          \ctx {loop, verb} -> run2 ctx
             [convolver verb [loopBuf loop bangOn]]
       )
   }

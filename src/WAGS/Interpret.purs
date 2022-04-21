@@ -4,7 +4,7 @@ import Prelude
 
 import Control.Alt ((<|>))
 import Control.Bind (bindFlipped)
-import Control.Promise (Promise, toAffE)
+import Control.Promise (Promise, toAff, toAffE)
 import Data.ArrayBuffer.Types (ArrayBuffer, Float32Array, Uint8Array)
 import Data.Maybe (Maybe(..))
 import Data.Symbol (class IsSymbol)
@@ -14,7 +14,7 @@ import Data.Vec (Vec)
 import Data.Vec as V
 import Effect (Effect)
 import Effect.Aff (Aff, bracket)
-import Effect.Class (liftEffect)
+import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Random as R
 import FRP.Behavior (Behavior, behavior)
 import FRP.Event (class IsEvent, Event, makeEvent, subscribe)
@@ -114,8 +114,8 @@ decodeAudioDataFromUri ctx s =
   toAffE (fetchArrayBuffer s) >>=
     (toAffE <<< decodeAudioDataFromArrayBuffer ctx)
 
-ctxAff :: forall a. (AudioContext -> Aff a) -> Aff a
-ctxAff = bracket (liftEffect context) (liftEffect <<< close)
+bracketCtx :: forall a. (AudioContext -> Aff a) -> Aff a
+bracketCtx = bracket (liftEffect context) (liftEffect <<< close)
 
 foreign import fetchArrayBuffer :: String -> Effect (Promise ArrayBuffer)
 
@@ -142,19 +142,38 @@ foreign import makeAudioBuffer
 foreign import makeFloatArray :: Array Number -> Effect WebAPI.BrowserFloatArray
 
 -- | Make a new audio context.
-foreign import context :: Effect WebAPI.AudioContext
+foreign import context_ :: Effect WebAPI.AudioContext
+context :: forall m. MonadEffect m => m WebAPI.AudioContext
+context = liftEffect context_
 
 -- | Send 0s from a context immediately. This is useful on iOS so that the context doesn't switch to a suspended state.
-foreign import constant0Hack :: WebAPI.AudioContext -> Effect (Effect Unit)
+foreign import constant0Hack_ :: WebAPI.AudioContext -> Effect (Effect Unit)
+
+constant0Hack :: forall e. MonadEffect e => WebAPI.AudioContext -> e (Effect Unit)
+constant0Hack = liftEffect <<< constant0Hack_
 
 -- | Get the state of the context
-foreign import contextState :: WebAPI.AudioContext -> Effect String
+foreign import contextState_ :: WebAPI.AudioContext -> Effect String
+contextState :: forall e. MonadEffect e => WebAPI.AudioContext -> e String
+contextState = liftEffect <<< contextState_
 
 -- | Get the state of the context
-foreign import contextResume :: WebAPI.AudioContext -> Effect (Promise Unit)
+
+-- | Get the state of the context
+foreign import contextResume_ :: WebAPI.AudioContext -> Effect (Promise Unit)
+
+contextResume :: forall e. MonadEffect e => WebAPI.AudioContext -> e (Promise Unit)
+contextResume = liftEffect <<< contextResume_
+
+contextResumeAff :: forall e. MonadEffect e => WebAPI.AudioContext -> e (Aff Unit)
+contextResumeAff = (map <<< map) toAff contextResume
 
 -- | Close an audio context.
-foreign import close :: WebAPI.AudioContext -> Effect Unit
+foreign import close_ :: WebAPI.AudioContext -> Effect Unit
+close :: forall e. MonadEffect e => WebAPI.AudioContext -> e Unit
+close ctx = liftEffect do
+  st <- contextState ctx
+  when (st /= "closed") (close_ ctx)
 
 foreign import data BrowserMediaStream :: Type
 

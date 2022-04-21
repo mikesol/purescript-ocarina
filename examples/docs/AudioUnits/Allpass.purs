@@ -11,9 +11,9 @@ import WAGS.Control (gain_, allpass_, loopBuf)
 import WAGS.Core (fan)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import WAGS.Example.Docs.Util (audioWrapper)
-import WAGS.Interpret (ctxAff, decodeAudioDataFromUri)
+import WAGS.Interpret (decodeAudioDataFromUri)
 import WAGS.Parameter (bangOn)
-import WAGS.Run (run2_)
+import WAGS.Run (run2)
 
 px =
   Proxy    :: Proxy         """<section>
@@ -45,8 +45,8 @@ allpass
   :: forall payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Element Event payload
 allpass ccb _ ev = makePursx' (Proxy :: _ "@") px
   { allpass: nut
-      ( audioWrapper ev ccb (ctxAff \ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
-          \buf -> run2_
+      ( audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
+          \ctx buf -> run2 ctx
             [ fan (loopBuf buf bangOn)
                 \b -> gain_ 0.2
                   [ b
