@@ -133,6 +133,12 @@ fix f = Node go
           Me _ -> empty
     )
 
+silence
+  :: forall outputChannels lock event payload
+   . IsEvent event
+  => Node outputChannels lock event payload
+silence = fix identity
+
 useMeIfMe :: MeOrParent -> String -> String
 useMeIfMe (Me me) _ = me
 useMeIfMe _ me = me
