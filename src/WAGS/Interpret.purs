@@ -2,7 +2,6 @@ module WAGS.Interpret where
 
 import Prelude
 
-import Control.Alt ((<|>))
 import Control.Bind (bindFlipped)
 import Control.Promise (Promise, toAff, toAffE)
 import Data.ArrayBuffer.Types (ArrayBuffer, Float32Array, Uint8Array)
@@ -16,9 +15,8 @@ import Effect (Effect)
 import Effect.Aff (Aff, bracket)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Random as R
-import FRP.Behavior (Behavior, behavior)
+import FRP.Behavior (behavior)
 import FRP.Event (class IsEvent, Event, makeEvent, subscribe)
-import FRP.Event.Class (bang)
 import Simple.JSON as JSON
 import Type.Row.Homogeneous (class Homogeneous)
 import Unsafe.Coerce (unsafeCoerce)
@@ -476,7 +474,6 @@ effectfulAudioInterpret' toE fromE = C.AudioInterpret
         in
           { actualized }
   , makeTriangleOsc: makeTriangleOsc_
-  , makeTumult: \_ _ -> pure unit -- todo: makeTumult_
   , makeWaveShaper: makeWaveShaper_
   , setAnalyserNodeCb: setAnalyserNodeCb_
   , setMediaRecorderCb: setMediaRecorderCb_
@@ -503,7 +500,6 @@ effectfulAudioInterpret' toE fromE = C.AudioInterpret
   , setFrequency: setFrequency_
   , removeSubgraph: removeSubgraph_
   , insertSubgraph: insertSubgraph_
-  , setTumult: \_ _ -> pure unit -- todo: setTumult_
   }
 
 effectfulAudioInterpret :: C.AudioInterpret Event (FFIAudioSnapshot -> Effect Unit)

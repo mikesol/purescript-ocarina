@@ -4,13 +4,12 @@ import Prelude
 
 import Effect (Effect)
 import Effect.Ref as Ref
-import FRP.Event (Event, makeEvent)
-import FRP.Event.Memoize (memoize)
+import FRP.Event (Event, makeEvent, memoize, subscribe)
 import Web.HTML (window)
 import Web.HTML.Window (requestAnimationFrame)
 
-animationFrameEvent :: Effect (Event Unit)
-animationFrameEvent = memoize $ makeEvent \k -> do
+animationFrameEvent' :: Event Unit
+animationFrameEvent' = makeEvent \k -> do
   w <- window
   running <- Ref.new true
   let
