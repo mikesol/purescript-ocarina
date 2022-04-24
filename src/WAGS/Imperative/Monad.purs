@@ -8,7 +8,6 @@ import Control.Monad.Indexed (class IxApplicative, class IxApply, class IxBind, 
 import Data.Functor.Indexed (class IxFunctor)
 import Effect (Effect)
 import FRP.Event (Event)
-import FRP.Event.Class (class IsEvent)
 import Prim.Boolean (True, False)
 import Prim.RowList as RL
 import Prim.TypeError (class Fail, Beside, Text)
@@ -28,9 +27,9 @@ import WAGS.Interpret (FFIAudioSnapshot, effectfulAudioInterpret)
 -- | This is implemented internally as a `Reader` whose environment is
 -- | the `AudioInterpret` type, returning a result `a` accompanied by
 -- | an event `e p`.
-newtype GraphBuilder :: (Type -> Type) -> Type -> Type -> Type -> Type -> Type
-newtype GraphBuilder e p i o a = GraphBuilder
-  (AudioInterpret e p -> { event :: e p, result :: a })
+newtype GraphBuilder :: Type -> Type -> Type -> Type -> Type
+newtype GraphBuilder p i o a = GraphBuilder
+  (AudioInterpret p -> { event :: Event p, result :: a })
 
 -- | The initial index of the graph builder.
 -- |
@@ -44,14 +43,14 @@ type InitialIndex = (() :: Row Type) \/ (() :: Row Boolean) \/ False
 -- | A graph builder with the initial index as its input.
 -- |
 -- | This is particularly helpful when writing top-level signatures.
-type InitialGraphBuilder e p = GraphBuilder e p InitialIndex
+type InitialGraphBuilder p = GraphBuilder p InitialIndex
 
 -- .==========================================================================.
 
-instance functorGraphBuilder :: Functor (GraphBuilder e p i i) where
+instance functorGraphBuilder :: Functor (GraphBuilder p i i) where
   map f (GraphBuilder g) = GraphBuilder (g >>> \n -> n { result = f n.result })
 
-instance applyGraphBuilder :: IsEvent e => Apply (GraphBuilder e p i i) where
+instance applyGraphBuilder :: Apply (GraphBuilder p i i) where
   apply (GraphBuilder f) (GraphBuilder g) = GraphBuilder h
     where
     h audioInterpret =
@@ -64,11 +63,10 @@ instance applyGraphBuilder :: IsEvent e => Apply (GraphBuilder e p i i) where
         }
 
 instance applicativeGraphBuilder ::
-  IsEvent e =>
-  Applicative (GraphBuilder e p i i) where
+  Applicative (GraphBuilder p i i) where
   pure result = GraphBuilder \_ -> { event: empty, result }
 
-instance bindGraphBuilder :: IsEvent e => Bind (GraphBuilder e p i i) where
+instance bindGraphBuilder :: Bind (GraphBuilder p i i) where
   bind (GraphBuilder f) mkG = GraphBuilder h
     where
     h audioInterpret =
@@ -81,12 +79,12 @@ instance bindGraphBuilder :: IsEvent e => Bind (GraphBuilder e p i i) where
         , result: g'.result
         }
 
-instance monadGraphBuilder :: IsEvent e => Monad (GraphBuilder e p i i)
+instance monadGraphBuilder :: Monad (GraphBuilder p i i)
 
-instance ixFunctorGraphBuilder :: IxFunctor (GraphBuilder e p) where
+instance ixFunctorGraphBuilder :: IxFunctor (GraphBuilder p) where
   imap f (GraphBuilder g) = GraphBuilder (g >>> \n -> n { result = f n.result })
 
-instance ixApplyGraphBuilder :: IsEvent e => IxApply (GraphBuilder e p) where
+instance ixApplyGraphBuilder :: IxApply (GraphBuilder p) where
   iapply (GraphBuilder f) (GraphBuilder g) = GraphBuilder h
     where
     h audioInterpret =
@@ -99,11 +97,10 @@ instance ixApplyGraphBuilder :: IsEvent e => IxApply (GraphBuilder e p) where
         }
 
 instance ixApplicativeGraphBuilder ::
-  IsEvent e =>
-  IxApplicative (GraphBuilder e p) where
+  IxApplicative (GraphBuilder p) where
   ipure result = GraphBuilder \_ -> { event: empty, result }
 
-instance ixBindGraphBuilder :: IsEvent e => IxBind (GraphBuilder e p) where
+instance ixBindGraphBuilder :: IxBind (GraphBuilder p) where
   ibind (GraphBuilder f) mkG = GraphBuilder h
     where
     h audioInterpret =
@@ -116,7 +113,7 @@ instance ixBindGraphBuilder :: IsEvent e => IxBind (GraphBuilder e p) where
         , result: g'.result
         }
 
-instance ixMonadGraphBuilder :: IsEvent e => IxMonad (GraphBuilder e p)
+instance ixMonadGraphBuilder :: IxMonad (GraphBuilder p)
 
 -- .==========================================================================.
 
@@ -168,33 +165,30 @@ instance graphNodesAreTerminalDefault ::
 
 -- | Run the graph builder without checks.
 unGraphBuilder
-  :: forall e p i o a
-   . IsEvent e
-  => GraphBuilder e p i o a
-  -> AudioInterpret e p
-  -> { event :: e p, result :: a }
+  :: forall p i o a
+   . GraphBuilder p i o a
+  -> AudioInterpret p
+  -> { event :: Event p, result :: a }
 unGraphBuilder (GraphBuilder f) = f
 
 -- | Run the graph builder with checks.
 runGraphBuilder_
-  :: forall e p o a
-   . IsEvent e
-  => GraphMakesSound o
+  :: forall p o a
+   . GraphMakesSound o
   => GraphNodesAreTerminal o
-  => InitialGraphBuilder e p o a
-  -> AudioInterpret e p
-  -> { event :: e p, result :: a }
+  => InitialGraphBuilder p o a
+  -> AudioInterpret p
+  -> { event :: Event p, result :: a }
 runGraphBuilder_ = unGraphBuilder
 
 -- | Run the graph builder with checks, discarding the `result`.
 runGraphBuilder
-  :: forall e p o a
-   . IsEvent e
-  => GraphMakesSound o
+  :: forall p o a
+   . GraphMakesSound o
   => GraphNodesAreTerminal o
-  => InitialGraphBuilder e p o a
-  -> AudioInterpret e p
-  -> e p
+  => InitialGraphBuilder p o a
+  -> AudioInterpret p
+  -> Event p
 runGraphBuilder graphBuilder = runGraphBuilder_ graphBuilder >>> _.event
 
 -- | Run the graph builder with checks using `effectfulAudioInterpret`.
@@ -202,7 +196,7 @@ effectfulGraphBuilder_
   :: forall o a
    . GraphMakesSound o
   => GraphNodesAreTerminal o
-  => InitialGraphBuilder Event (FFIAudioSnapshot -> Effect Unit) o a
+  => InitialGraphBuilder (FFIAudioSnapshot -> Effect Unit) o a
   -> { event :: Event (FFIAudioSnapshot -> Effect Unit)
      , result :: a
      }
@@ -214,6 +208,6 @@ effectfulGraphBuilder
   :: forall o a
    . GraphMakesSound o
   => GraphNodesAreTerminal o
-  => InitialGraphBuilder Event (FFIAudioSnapshot -> Effect Unit) o a
+  => InitialGraphBuilder (FFIAudioSnapshot -> Effect Unit) o a
   -> Event (FFIAudioSnapshot -> Effect Unit)
 effectfulGraphBuilder = effectfulGraphBuilder_ >>> _.event

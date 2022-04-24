@@ -2,7 +2,7 @@ module WAGS.Imperative.Connect where
 
 import Prelude
 
-import FRP.Event.Class (class IsEvent, bang)
+import FRP.Event.Class (bang)
 import Prim.Boolean (True, False)
 import Prim.Row as Row
 import Prim.Symbol as Symbol
@@ -74,14 +74,13 @@ else instance makesSoundNotYet ::
 
 class ConnectNodes
   :: Type
-  -> (Type -> Type)
   -> Symbol
   -> T.Node
   -> Symbol
   -> T.Node
   -> Type
   -> Constraint
-class ConnectNodes i e fId fNode iId iNode o | i fId fNode iId iNode -> o where
+class ConnectNodes i fId fNode iId iNode o | i fId fNode iId iNode -> o where
   -- | Connects a `from` node to an `into` node.
   -- |
   -- | ```purescript
@@ -92,11 +91,10 @@ class ConnectNodes i e fId fNode iId iNode o | i fId fNode iId iNode -> o where
      . { from :: T.GraphUnit fId fNode
        , into :: T.GraphUnit iId iNode
        }
-    -> GraphBuilder e p i o Unit
+    -> GraphBuilder p i o Unit
 
 instance connectDefault ::
-  ( IsEvent e
-  , IsSymbol fId
+  ( IsSymbol fId
   , IsSymbol iId
   , T.HasOutput fNode
   , T.HasInput iNode
@@ -111,7 +109,7 @@ instance connectDefault ::
   , Row.Cons cId Unit c c'
   , MakesSound fNode s s'
   ) =>
-  ConnectNodes (c \/ t \/ s) e fId fNode iId iNode (c' \/ t'' \/ s') where
+  ConnectNodes (c \/ t \/ s) fId fNode iId iNode (c' \/ t'' \/ s') where
   connect _ = GraphBuilder go
     where
     go (Core.AudioInterpret { connectXToY }) =

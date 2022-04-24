@@ -11,8 +11,9 @@ import Prelude
 import Control.Alternative ((<|>))
 import Data.Newtype (unwrap)
 import Data.Variant (match)
-import Data.Variant.Maybe (just, nothing)
-import FRP.Event.Class (class IsEvent, bang)
+import Data.Variant.Maybe (nothing)
+import FRP.Event (Event)
+import FRP.Event.Class (bang)
 import Prim.Boolean (True, False)
 import Prim.Row as Row
 import Prim.TypeError (class Fail, Beside, Text)
@@ -65,12 +66,11 @@ instance createNodeDefault ::
 -- | speaker <- Create.speaker (Proxy :: Proxy "speaker")
 -- | ```
 speaker
-  :: forall e p i o id
-   . IsEvent e
-  => IsSymbol id
+  :: forall p i o id
+   . IsSymbol id
   => CreateNode i id True o
   => Proxy id
-  -> GraphBuilder e p i o (T.GraphUnit id T.Speaker)
+  -> GraphBuilder p i o (T.GraphUnit id T.Speaker)
 speaker _ = GraphBuilder go
   where
   go (Core.AudioInterpret { makeSpeaker }) =
@@ -84,19 +84,18 @@ speaker _ = GraphBuilder go
 -- | gain <- Create.gain (Proxy :: _ "gain") 1.0 empty
 -- | ```
 gain
-  :: forall e p i o id initialGain
-   . IsEvent e
-  => IsSymbol id
+  :: forall p i o id initialGain
+   . IsSymbol id
   => Common.InitialGain initialGain
   => CreateNode i id False o
   => Proxy id
   -> initialGain
-  -> e Core.Gain
-  -> GraphBuilder e p i o (T.GraphUnit id T.Gain)
+  -> Event Core.Gain
+  -> GraphBuilder p i o (T.GraphUnit id T.Gain)
 gain _ initialGain attributes = GraphBuilder go
   where
   initializeGain = unwrap $ Common.toInitializeGain initialGain
-  go (Core.AudioInterpret { scope, makeGain, setGain }) =
+  go (Core.AudioInterpret { makeGain, setGain }) =
     { event:
         let
           id = reflectSymbol (Proxy :: _ id)
@@ -105,7 +104,7 @@ gain _ initialGain attributes = GraphBuilder go
               { id
               , parent: nothing
               , gain: initializeGain.gain
-              , scope: just scope
+              , scope: "imperative"
               }
           eventN = attributes <#> unwrap >>> match
             { gain: setGain <<< { id, gain: _ }
@@ -121,24 +120,23 @@ gain _ initialGain attributes = GraphBuilder go
 -- | sinOsc <- Create.sinOsc (Proxy :: _ "sinOsc") 440.0 bangOn
 -- | ```
 sinOsc
-  :: forall e p i o id initialSinOsc
-   . IsEvent e
-  => IsSymbol id
+  :: forall p i o id initialSinOsc
+   . IsSymbol id
   => Common.InitialSinOsc initialSinOsc
   => CreateNode i id False o
   => Proxy id
   -> initialSinOsc
-  -> e Core.SinOsc
-  -> GraphBuilder e p i o (T.GraphUnit id T.SinOsc)
+  -> Event Core.SinOsc
+  -> GraphBuilder p i o (T.GraphUnit id T.SinOsc)
 sinOsc _ initialSinOsc attributes = GraphBuilder go
   where
   { frequency } = unwrap $ Common.toInitializeSinOsc initialSinOsc
-  go (Core.AudioInterpret { scope, makeSinOsc, setFrequency, setOnOff }) =
+  go (Core.AudioInterpret { makeSinOsc, setFrequency, setOnOff }) =
     { event:
         let
           id = reflectSymbol (Proxy :: _ id)
           event0 = bang $
-            makeSinOsc { id, parent: nothing, frequency, scope: just scope }
+            makeSinOsc { id, parent: nothing, frequency, scope: "imperative" }
           eventN = attributes <#> unwrap >>> match
             { frequency: setFrequency <<< { id, frequency: _ }
             , onOff: setOnOff <<< { id, onOff: _ }
@@ -154,23 +152,21 @@ sinOsc _ initialSinOsc attributes = GraphBuilder go
 -- | playBuf <- Create.playBuf (Proxy :: _ "playBuf") audioBuffer bangOn
 -- | ```
 playBuf
-  :: forall e p i o id initialPlayBuf
-   . IsEvent e
-  => IsSymbol id
+  :: forall p i o id initialPlayBuf
+   . IsSymbol id
   => Common.InitialPlayBuf initialPlayBuf
   => CreateNode i id False o
   => Proxy id
   -> initialPlayBuf
-  -> e Core.PlayBuf
-  -> GraphBuilder e p i o (T.GraphUnit id T.PlayBuf)
+  -> Event Core.PlayBuf
+  -> GraphBuilder p i o (T.GraphUnit id T.PlayBuf)
 playBuf _ initialPlayBuf attributes = GraphBuilder go
   where
   { buffer, playbackRate, bufferOffset, duration } = unwrap $
     Common.toInitializePlayBuf initialPlayBuf
   go
     ( Core.AudioInterpret
-        { scope
-        , makePlayBuf
+        { makePlayBuf
         , setBuffer
         , setOnOff
         , setDuration
@@ -188,7 +184,7 @@ playBuf _ initialPlayBuf attributes = GraphBuilder go
             , playbackRate
             , bufferOffset
             , duration
-            , scope: just scope
+            , scope: "imperative"
             }
           eventN = attributes <#> unwrap >>> match
             { buffer: setBuffer <<< { id, buffer: _ }

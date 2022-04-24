@@ -8,20 +8,16 @@ import Data.ArrayBuffer.Types (ArrayBuffer, Float32Array, Uint8Array)
 import Data.Maybe (Maybe(..))
 import Data.Symbol (class IsSymbol)
 import Data.Typelevel.Num (class Lt, class Nat, class Pos, D1)
-import Data.Variant.Maybe as VM
 import Data.Vec (Vec)
 import Data.Vec as V
 import Effect (Effect)
 import Effect.Aff (Aff, bracket)
 import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Random as R
-import FRP.Behavior (behavior)
-import FRP.Event (class IsEvent, Event, makeEvent, subscribe)
 import Simple.JSON as JSON
 import Type.Row.Homogeneous (class Homogeneous)
 import Unsafe.Coerce (unsafeCoerce)
 import WAGS.Control (class ValidateOutputChannelCount)
-import WAGS.Core (AudioInterpret(..), MeOrParent(..))
 import WAGS.Core as C
 import WAGS.Parameter (AudioParameter)
 import WAGS.WebAPI (AudioContext, BrowserAudioBuffer)
@@ -274,7 +270,6 @@ audioBuffer i v = AudioBuffer i (map V.toArray $ V.toArray v)
 -- foreign
 data FFIAudioSnapshot
 
-foreign import destroyUnit_ :: C.DestroyUnit -> FFIAudioSnapshot -> Effect Unit
 foreign import disconnectXFromY_
   :: C.DisconnectXFromY -> FFIAudioSnapshot -> Effect Unit
 
@@ -306,7 +301,6 @@ foreign import makeHighpass_
 foreign import makeHighshelf_
   :: C.MakeHighshelf -> FFIAudioSnapshot -> Effect Unit
 
-foreign import makeInput_ :: C.MakeInput -> FFIAudioSnapshot -> Effect Unit
 foreign import makeIIRFilter_
   :: C.MakeIIRFilter -> FFIAudioSnapshot -> Effect Unit
 foreign import makeLoopBuf_ :: C.MakeLoopBuf -> FFIAudioSnapshot -> Effect Unit
@@ -339,18 +333,6 @@ foreign import makeSquareOsc_
 
 foreign import makeStereoPanner_
   :: C.MakeStereoPanner -> FFIAudioSnapshot -> Effect Unit
-
-foreign import makeSubgraph_
-  :: forall index
-   . String
-  -> VM.Maybe String
-  -> String
-  -> ( index
-       -> String
-       -> { actualized :: Event (FFIAudioSnapshot -> Effect Unit) }
-     )
-  -> FFIAudioSnapshot
-  -> Effect Unit
 
 foreign import makeTriangleOsc_
   :: C.MakeTriangleOsc -> FFIAudioSnapshot -> Effect Unit
@@ -406,27 +388,10 @@ foreign import setDelay_ :: C.SetDelay -> FFIAudioSnapshot -> Effect Unit
 foreign import setPlaybackRate_
   :: C.SetPlaybackRate -> FFIAudioSnapshot -> Effect Unit
 
-foreign import removeSubgraph_
-  :: forall index. C.RemoveSubgraph index -> FFIAudioSnapshot -> Effect Unit
-
-foreign import insertSubgraph_
-  :: forall index
-   . C.InsertSubgraph index
-  -> FFIAudioSnapshot
-  -> Effect Unit
-
-effectfulAudioInterpret'
-  :: forall event
-   . IsEvent event
-  => (Event ~> event)
-  -> (event ~> Event)
-  -> C.AudioInterpret event (FFIAudioSnapshot -> Effect Unit)
-effectfulAudioInterpret' toE fromE = C.AudioInterpret
-  { scope: "root"
-  , ids: map show $ behavior \f -> toE $ makeEvent \k -> do
-      r <- R.random
-      subscribe (fromE f) \x -> k (x r)
-  , destroyUnit: destroyUnit_
+effectfulAudioInterpret
+  :: C.AudioInterpret (FFIAudioSnapshot -> Effect Unit)
+effectfulAudioInterpret = C.AudioInterpret
+  { ids: map show R.random
   , disconnectXFromY: disconnectXFromY_
   , connectXToY: connectXToY_
   , makeAllpass: makeAllpass_
@@ -441,7 +406,6 @@ effectfulAudioInterpret' toE fromE = C.AudioInterpret
   , makeHighpass: makeHighpass_
   , makeHighshelf: makeHighshelf_
   , makeIIRFilter: makeIIRFilter_
-  , makeInput: makeInput_
   , makeLoopBuf: makeLoopBuf_
   , makeLowpass: makeLowpass_
   , makeLowshelf: makeLowshelf_
@@ -458,21 +422,6 @@ effectfulAudioInterpret' toE fromE = C.AudioInterpret
   , setDuration: setDuration_
   , makeSquareOsc: makeSquareOsc_
   , makeStereoPanner: makeStereoPanner_
-  , makeSubgraph: \{ id, parent, scope, scenes } audio ->
-      flip (makeSubgraph_ id parent scope) audio \index newScope ->
-        let
-          actualized =
-            let
-              elt = scenes index
-            in
-              fromE $ elt (Parent id)
-                ( let
-                    AudioInterpret ai = effectfulAudioInterpret' toE fromE
-                  in
-                    AudioInterpret ai { scope = newScope }
-                )
-        in
-          { actualized }
   , makeTriangleOsc: makeTriangleOsc_
   , makeWaveShaper: makeWaveShaper_
   , setAnalyserNodeCb: setAnalyserNodeCb_
@@ -498,9 +447,4 @@ effectfulAudioInterpret' toE fromE = C.AudioInterpret
   , setDelay: setDelay_
   , setPlaybackRate: setPlaybackRate_
   , setFrequency: setFrequency_
-  , removeSubgraph: removeSubgraph_
-  , insertSubgraph: insertSubgraph_
   }
-
-effectfulAudioInterpret :: C.AudioInterpret Event (FFIAudioSnapshot -> Effect Unit)
-effectfulAudioInterpret = effectfulAudioInterpret' identity identity

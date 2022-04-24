@@ -60,9 +60,8 @@ var genericSetter = function (unit, name, deprecatedTimeToSet, param) {
 	return protoSetter(unit[name], deprecatedTimeToSet, param);
 };
 var addToScope = function (ptr, scope, state) {
-	if (scope.type === "just") {
-		state.scopes[scope.value].push(ptr);
-	}
+	state.scopes[scope.value].push(ptr);
+	state.units[ptr].scope = scope;
 };
 var doDeferredConnections = function (ptr, state) {
 	if (state.toConnect[ptr]) {
@@ -145,6 +144,14 @@ var disconnectXFromY_ = function (x) {
 				if (state.units[y].se) {
 					state.units[x].main.disconnect(state.units[y].se);
 				}
+				if (state.units[ptr].scope === "@fan@") {
+					return;
+				}
+				const scope = state.units[ptr].scope;
+				state.scopes[scope].forEach((scp) => {
+					delete state.units[scp];
+				});
+				delete state.scopes[scope];
 			};
 		};
 	};
@@ -153,23 +160,6 @@ exports.disconnectXFromY_ = function (a) {
 	return function (state) {
 		return function () {
 			return disconnectXFromY_(a.from)(a.to)(state)();
-		};
-	};
-};
-exports.destroyUnit_ = function (a) {
-	return function (state) {
-		return function () {
-			var ptr = a.id;
-			// hack for recorder
-			if (state.units[ptr].recorder) {
-				state.units[ptr].recorder.stop();
-			}
-			// hack for analyser
-			if (state.units[ptr].analyser) {
-				// effectful unsubscribe
-				state.units[ptr].analyser();
-			}
-			delete state.units[ptr];
 		};
 	};
 };
@@ -417,16 +407,6 @@ exports.makeHighshelf_ = function (a) {
 	};
 };
 
-// input
-exports.makeInput_ = function (a) {
-	return function (state) {
-		return function () {
-			var ptr = a.id;
-			doDeferredConnections(ptr, state);
-			mConnectXToY_(ptr, a.parent, state);
-		};
-	};
-};
 exports.makeIIRFilter_ = function (a) {
 	return function (state) {
 		return function () {
@@ -796,64 +776,7 @@ exports.makeSinOsc_ = function (a) {
 		};
 	};
 };
-exports.makeSubgraph_ = function (ptr) {
-	return function (parent) {
-		return function (enclosingScope) {
-			return function (sceneM) {
-				return function (state) {
-					return function () {
-						makeGain_({
-							id: ptr,
-							parent: parent,
-							scope: { type: "just", value: enclosingScope },
-							gain: 1.0,
-						})(state)();
-						state.units[ptr].sceneM = sceneM;
-					};
-				};
-			};
-		};
-	};
-};
 
-exports.removeSubgraph_ = function (a) {
-	return function (state) {
-		return function () {
-			var ptr = a.id;
-			var j = a.pos;
-			var pj = `${ptr}-${j}`;
-			if (state.unsu[pj] !== undefined) {
-				state.unsu[pj]();
-				for (var i = 0; i < state.scopes[pj].length; i++) {
-					state.units[state.scopes[pj][i]].main.disconnect();
-					if (state.units[state.scopes[pj][i]].se) {
-						state.units[state.scopes[pj][i]].se.disconnect();
-					}
-					delete state.units[state.scopes[pj][i]];
-				}
-				delete state.scopes[pj];
-				delete state.unsu[pj];
-				delete state.scopes[pj];
-			}
-		};
-	};
-};
-
-exports.insertSubgraph_ = function (a) {
-	return function (state) {
-		return function () {
-			var ptr = a.id;
-			var j = a.pos;
-			var index = a.index;
-			var pj = `${ptr}-${j}`;
-			if (state.unsu[pj] === undefined) {
-				state.scopes[pj] = [];
-				var sg = state.units[ptr].sceneM(index)(pj);
-				state.unsu[pj] = sg.actualized((instr) => () => instr(state)())();
-			}
-		};
-	};
-};
 // make speaker
 exports.makeSpeaker_ = function (a) {
 	return function (state) {

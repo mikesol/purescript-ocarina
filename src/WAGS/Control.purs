@@ -6,63 +6,58 @@ import Control.Alt ((<|>))
 import Control.Comonad (extract)
 import Control.Plus (empty)
 import ConvertableOptions (class ConvertOption, class ConvertOptionsWithDefaults, convertOptionsWithDefaults)
+import Data.Either (Either(..))
 import Data.Foldable (oneOf)
+import Data.FunctorWithIndex (mapWithIndex)
 import Data.Homogeneous (class HomogeneousRowLabels)
 import Data.Homogeneous.Variant (homogeneous)
 import Data.Int (pow)
-import Data.Profunctor (lcmap)
 import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.Tuple.Nested (type (/\), (/\))
 import Data.Typelevel.Num (class Lt, class Nat, class Pos, class Pred, D1, D2, pred, toInt)
 import Data.Variant (Unvariant(..), match, unvariant)
-import Data.Variant.Maybe (Maybe, just, maybe, nothing)
-import Data.Vec (toArray)
-import FRP.Behavior (sample_)
-import FRP.Event (class IsEvent, Event, keepLatest)
+import Data.Variant.Maybe (Maybe, just, nothing)
+import Data.Vec (Vec, toArray)
+import Effect (Effect)
+import Effect.AVar (tryPut)
+import Effect.AVar as AVar
+import Effect.Exception (throwException)
+import FRP.Event (Event, makeEvent, subscribe)
 import FRP.Event.Class (bang)
 import Foreign.Object (fromHomogeneous)
+import Safe.Coerce (coerce)
 import Simple.JSON as JSON
+import Type.Equality (proof)
 import Type.Proxy (Proxy(..))
 import Type.Row.Homogeneous (class Homogeneous)
+import Unsafe.Coerce (unsafeCoerce)
 import WAGS.Common as Common
-import WAGS.Core (ChannelCountMode(..), ChannelInterpretation(..), MeOrParent(..), Po2(..), useParentIfParent)
+import WAGS.Core (ChannelCountMode(..), ChannelInterpretation(..), Po2(..), __internalWagsFlatten, mix)
 import WAGS.Core as C
 import WAGS.Parameter (AudioParameter, InitialAudioParameter)
 import WAGS.WebAPI (AnalyserNodeCb(..), BrowserAudioBuffer)
 
--- __maybeUseName scope mId
--- tmpIdentity = identity
-parentalSupervision :: forall a. MeOrParent -> (String -> a) -> String -> a
-parentalSupervision (Me me) = lcmap (const me)
-parentalSupervision _ = identity
-
-__appendScopeToNamedInput :: String -> String -> String
-__appendScopeToNamedInput i scope = i <> "!" <> scope
-
-__maybeUseName
-  :: forall a. String -> Maybe String -> (String -> a) -> String -> a
---__maybeUseName s f = maybe f (\i -> const (f i)) s
-__maybeUseName scope perhapsName f = maybe f
-  (\i _ -> (f $ __appendScopeToNamedInput i scope))
-  perhapsName
-
 -- allpass
 
 allpass
-  :: forall i (outputChannels :: Type) lock payload
+  :: forall i aud (outputChannels :: Type) lock payload
    . Common.InitialAllpass i
+  => C.Mix aud (C.Streamy outputChannels lock payload)
   => i
   -> Event C.Allpass
-  -> Array (C.Node outputChannels lock payload)
+  -> aud -- Array (C.Node outputChannels lock payload)
   -> C.Node outputChannels lock payload
 allpass i' atts elts = C.Node go
   where
   C.InitializeAllpass i = Common.toInitializeAllpass i'
-  go parent di@(C.AudioInterpret { ids, scope, makeAllpass, setFrequency, setQ }) = keepLatest
-    ( (sample_ ids (bang unit)) <#> parentalSupervision parent \me ->
+  go parent di@(C.AudioInterpret { ids, makeAllpass, setFrequency, setQ }) =     makeEvent \k -> do
+      me <- ids
+      parent.raiseId me
+      flip subscribe k $
+
         bang
           ( makeAllpass
-              { id: me, parent: useParentIfParent parent, scope: just scope, frequency: i.frequency, q: i.q }
+              { id: me, parent: just parent.parent, scope: parent.scope, frequency: i.frequency, q: i.q }
           )
           <|> map
             ( \(C.Allpass e) -> match
@@ -72,15 +67,15 @@ allpass i' atts elts = C.Node go
                 e
             )
             atts
-          <|> oneOf
-            (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
-    )
+          <|> __internalWagsFlatten me di (mix elts)
+
 
 allpass_
-  :: forall i (outputChannels :: Type) lock payload
+  :: forall i aud (outputChannels :: Type) lock payload
    . Common.InitialAllpass i
+  => C.Mix aud (C.Streamy outputChannels lock payload)
   => i
-  -> Array (C.Node outputChannels lock payload)
+  -> aud
   -> C.Node outputChannels lock payload
 allpass_ i a = allpass i empty a
 
@@ -171,62 +166,65 @@ instance
     (convertOptionsWithDefaults AnalyserOptions defaultAnalyser provided)
 
 analyser
-  :: forall i outputChannels lock payload
+  :: forall i aud outputChannels lock payload
    . InitialAnalyser i
+  => C.Mix aud (C.Streamy outputChannels lock payload)
   => i
   -> Event C.Analyser
+  -> aud
   -> C.Node outputChannels lock payload
-  -> C.Node outputChannels lock payload
-analyser i' atts elt = C.Node go
+analyser i' atts elts = C.Node go
   where
   C.InitializeAnalyser i = toInitializeAnalyser i'
   go
     parent
-    di@(C.AudioInterpret { ids, scope, makeAnalyser, setAnalyserNodeCb }) =
-    keepLatest
-      ( (sample_ ids (bang unit)) <#> parentalSupervision parent \me ->
-          bang
-            ( makeAnalyser
-                { id: me
-                , parent: useParentIfParent parent
-                , scope: just scope
-                , cb: i.cb
-                , fftSize: 2 `pow`
-                    ( case i.fftSize of
-                        TTT7 -> 7
-                        TTT8 -> 8
-                        TTT9 -> 9
-                        TTT10 -> 10
-                        TTT11 -> 11
-                        TTT12 -> 12
-                        TTT13 -> 13
-                    )
-                , maxDecibels: i.maxDecibels
-                , minDecibels: i.minDecibels
-                , smoothingTimeConstant: i.smoothingTimeConstant
-                , channelCount: i.channelCount
-                , channelCountMode: case i.channelCountMode of
-                    Explicit -> "explicit"
-                    Max -> "max"
-                    ClampedMax -> "clamped-max"
-                , channelInterpretation: case i.channelInterpretation of
-                    Speakers -> "speakers"
-                    Discrete -> "discrete"
+    di@(C.AudioInterpret { ids, makeAnalyser, setAnalyserNodeCb }) =
+    makeEvent \k -> do
+      me <- ids
+      parent.raiseId me
+      flip subscribe k $
+        bang
+          ( makeAnalyser
+              { id: me
+              , parent: just parent.parent
+              , scope: parent.scope
+              , cb: i.cb
+              , fftSize: 2 `pow`
+                  ( case i.fftSize of
+                      TTT7 -> 7
+                      TTT8 -> 8
+                      TTT9 -> 9
+                      TTT10 -> 10
+                      TTT11 -> 11
+                      TTT12 -> 12
+                      TTT13 -> 13
+                  )
+              , maxDecibels: i.maxDecibels
+              , minDecibels: i.minDecibels
+              , smoothingTimeConstant: i.smoothingTimeConstant
+              , channelCount: i.channelCount
+              , channelCountMode: case i.channelCountMode of
+                  Explicit -> "explicit"
+                  Max -> "max"
+                  ClampedMax -> "clamped-max"
+              , channelInterpretation: case i.channelInterpretation of
+                  Speakers -> "speakers"
+                  Discrete -> "discrete"
+              }
+          )
+          <|> map
+            ( \(C.Analyser e) -> match
+                { cb: \cb -> setAnalyserNodeCb { id: me, cb }
                 }
+                e
             )
-            <|> map
-              ( \(C.Analyser e) -> match
-                  { cb: \cb -> setAnalyserNodeCb { id: me, cb }
-                  }
-                  e
-              )
-              atts
-            <|> ((\y -> let C.Node x = y in x) elt) (Parent me) di
-      )
+            atts
+          <|> __internalWagsFlatten me di (mix elts)
 
 analyser_
-  :: forall i outputChannels lock payload
+  :: forall i aud outputChannels lock payload
    . InitialAnalyser i
+  => C.Mix aud (C.Streamy outputChannels lock payload)
   => i
   -> C.Node outputChannels lock payload
   -> C.Node outputChannels lock payload
@@ -281,39 +279,40 @@ __audioWorklet (C.InitializeAudioWorkletNode i) atts elt = C.Node go
     parent
     di@
       ( C.AudioInterpret
-          { ids, scope, makeAudioWorkletNode, setAudioWorkletParameter }
+          { ids, makeAudioWorkletNode, setAudioWorkletParameter }
       ) =
-    keepLatest
-      ( (sample_ ids (bang unit)) <#> parentalSupervision parent \me ->
-          bang
-            ( makeAudioWorkletNode
+    makeEvent \k -> do
+      me <- ids
+      parent.raiseId me
+      flip subscribe k $
+        bang
+          ( makeAudioWorkletNode
+              { id: me
+              , parent: just parent.parent
+              , scope: parent.scope
+              , options:
+                  C.AudioWorkletNodeOptions_
+                    { name: reflectSymbol (Proxy :: _ name)
+                    , numberOfInputs: toInt i.numberOfInputs
+                    , numberOfOutputs: toInt i.numberOfOutputs
+                    , outputChannelCount: toOutputChannelCount
+                        i.numberOfOutputs
+                        i.outputChannelCount
+                    , parameterData: fromHomogeneous i.parameterData
+                    , processorOptions: JSON.writeImpl i.processorOptions
+                    }
+              }
+          )
+          <|> map
+            ( \(C.AudioWorkletNode e) -> setAudioWorkletParameter
                 { id: me
-                , parent: useParentIfParent parent
-                , scope: just scope
-                , options:
-                    C.AudioWorkletNodeOptions_
-                      { name: reflectSymbol (Proxy :: _ name)
-                      , numberOfInputs: toInt i.numberOfInputs
-                      , numberOfOutputs: toInt i.numberOfOutputs
-                      , outputChannelCount: toOutputChannelCount
-                          i.numberOfOutputs
-                          i.outputChannelCount
-                      , parameterData: fromHomogeneous i.parameterData
-                      , processorOptions: JSON.writeImpl i.processorOptions
-                      }
+                , paramName: (let Unvariant e' = unvariant e in e')
+                    (\sym _ -> reflectSymbol sym)
+                , paramValue: extract (homogeneous e)
                 }
             )
-            <|> map
-              ( \(C.AudioWorkletNode e) -> setAudioWorkletParameter
-                  { id: me
-                  , paramName: (let Unvariant e' = unvariant e in e')
-                      (\sym _ -> reflectSymbol sym)
-                  , paramValue: extract (homogeneous e)
-                  }
-              )
-              atts
-            <|> ((\y -> let C.Node x = y in x) elt) (Parent me) di
-      )
+            atts
+          <|> __internalWagsFlatten me di (mix elt)
 
 audioWorklet
   :: forall name numberOfInputs numberOfOutputs outputChannelCount parameterData
@@ -337,20 +336,24 @@ audioWorklet = __audioWorklet
 
 -- bandpass
 bandpass
-  :: forall i (outputChannels :: Type) lock payload
+  :: forall i aud (outputChannels :: Type) lock payload
    . Common.InitialBandpass i
+  => C.Mix aud (C.Streamy outputChannels lock payload)
   => i
   -> Event C.Bandpass
-  -> Array (C.Node outputChannels lock payload)
+  -> aud
   -> C.Node outputChannels lock payload
 bandpass i' atts elts = C.Node go
   where
   C.InitializeBandpass i = Common.toInitializeBandpass i'
-  go parent di@(C.AudioInterpret { ids, scope, makeBandpass, setFrequency, setQ }) = keepLatest
-    ( (sample_ ids (bang unit)) <#> parentalSupervision parent \me ->
+  go parent di@(C.AudioInterpret { ids, makeBandpass, setFrequency, setQ }) =     makeEvent \k -> do
+      me <- ids
+      parent.raiseId me
+      flip subscribe k $
+
         bang
           ( makeBandpass
-              { id: me, parent: useParentIfParent parent, scope: just scope, frequency: i.frequency, q: i.q }
+              { id: me, parent: just parent.parent, scope: parent.scope, frequency: i.frequency, q: i.q }
           )
           <|> map
             ( \(C.Bandpass e) -> match
@@ -360,16 +363,15 @@ bandpass i' atts elts = C.Node go
                 e
             )
             atts
-          <|> oneOf
-            ( (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
-            )
-    )
+          <|> __internalWagsFlatten me di (mix elts)
+
 
 bandpass_
-  :: forall i (outputChannels :: Type) lock payload
+  :: forall i aud (outputChannels :: Type) lock payload
    . Common.InitialBandpass i
+  => C.Mix aud (C.Streamy outputChannels lock payload)
   => i
-  -> Array (C.Node outputChannels lock payload)
+  -> aud
   -> C.Node outputChannels lock payload
 bandpass_ i a = bandpass i empty a
 
@@ -384,27 +386,28 @@ __constant
 __constant i' atts = C.Node go
   where
   C.InitializeConstant i = Common.toInitializeConstant i'
-  go parent (C.AudioInterpret { ids, scope, makeConstant, setOffset, setOnOff }) =
-    keepLatest
-      ( (sample_ ids (bang unit)) <#> parentalSupervision parent \me ->
-          bang
-            ( makeConstant
-                { id: me
-                , parent: useParentIfParent parent
-                , scope: just scope
-                , offset: i.offset
+  go parent (C.AudioInterpret { ids, makeConstant, setOffset, setOnOff }) =
+    makeEvent \k -> do
+      me <- ids
+      parent.raiseId me
+      flip subscribe k $
+        bang
+          ( makeConstant
+              { id: me
+              , parent: just parent.parent
+              , scope: parent.scope
+              , offset: i.offset
+              }
+          )
+          <|> map
+            ( \(C.Constant e) -> match
+                { offset: \offset -> setOffset
+                    { id: me, offset }
+                , onOff: \onOff -> setOnOff { id: me, onOff }
                 }
+                e
             )
-            <|> map
-              ( \(C.Constant e) -> match
-                  { offset: \offset -> setOffset
-                      { id: me, offset }
-                  , onOff: \onOff -> setOnOff { id: me, onOff }
-                  }
-                  e
-              )
-              atts
-      )
+            atts
 
 constant
   :: forall i outputChannels lock payload
@@ -424,10 +427,11 @@ constant_ i = constant i empty
 -- convolver
 
 convolver
-  :: forall i (outputChannels :: Type) lock payload
+  :: forall i aud (outputChannels :: Type) lock payload
    . Common.InitialConvolver i
+  => C.Mix aud (C.Streamy outputChannels lock payload)
   => i
-  -> Array (C.Node outputChannels lock payload)
+  -> aud
   -> C.Node outputChannels lock payload
 convolver i' elts = C.Node go
   where
@@ -437,41 +441,43 @@ convolver i' elts = C.Node go
     di@
       ( C.AudioInterpret
           { ids
-          , scope
           , makeConvolver
           }
       ) =
-    keepLatest
-      ( (sample_ ids (bang unit)) <#> parentalSupervision parent \me ->
-          bang
-            ( makeConvolver
-                { id: me
-                , parent: useParentIfParent parent
-                , scope: just scope
-                , buffer: i.buffer
-                }
-            )
-            <|> oneOf
-              ( (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
-              )
-      )
+    makeEvent \k -> do
+      me <- ids
+      parent.raiseId me
+      flip subscribe k $
+        bang
+          ( makeConvolver
+              { id: me
+              , parent: just parent.parent
+              , scope: parent.scope
+              , buffer: i.buffer
+              }
+          )
+          <|> __internalWagsFlatten me di (mix elts)
 
 -- delay
 delay
-  :: forall i (outputChannels :: Type) lock payload
+  :: forall i aud (outputChannels :: Type) lock payload
    . Common.InitialDelay i
+  => C.Mix aud (C.Streamy outputChannels lock payload)
   => i
   -> Event C.Delay
-  -> Array (C.Node outputChannels lock payload)
+  -> aud
   -> C.Node outputChannels lock payload
 delay i' atts elts = C.Node go
   where
   C.InitializeDelay i = Common.toInitializeDelay i'
-  go parent di@(C.AudioInterpret { ids, scope, makeDelay, setDelay }) = keepLatest
-    ( (sample_ ids (bang unit)) <#> parentalSupervision parent \me ->
+  go parent di@(C.AudioInterpret { ids, makeDelay, setDelay }) =     makeEvent \k -> do
+      me <- ids
+      parent.raiseId me
+      flip subscribe k $
+
         bang
           ( makeDelay
-              { id: me, parent: useParentIfParent parent, scope: just scope, delayTime: i.delayTime, maxDelayTime: i.maxDelayTime }
+              { id: me, parent: just parent.parent, scope: parent.scope, delayTime: i.delayTime, maxDelayTime: i.maxDelayTime }
           )
           <|> map
             ( \(C.Delay e) -> match
@@ -480,26 +486,26 @@ delay i' atts elts = C.Node go
                 e
             )
             atts
-          <|> oneOf
-            ( (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
-            )
-    )
+          <|> __internalWagsFlatten me di (mix elts)
+
 
 delay_
-  :: forall i (outputChannels :: Type) lock payload
+  :: forall i aud (outputChannels :: Type) lock payload
    . Common.InitialDelay i
+  => C.Mix aud (C.Streamy outputChannels lock payload)
   => i
-  -> Array (C.Node outputChannels lock payload)
+  -> aud
   -> C.Node outputChannels lock payload
 delay_ i a = delay i empty a
 
 -- dynamics compressor
 dynamicsCompressor
-  :: forall i (outputChannels :: Type) lock payload
+  :: forall i aud (outputChannels :: Type) lock payload
    . Common.InitialDynamicsCompressor i
+  => C.Mix aud (C.Streamy outputChannels lock payload)
   => i
   -> Event C.DynamicsCompressor
-  -> Array (C.Node outputChannels lock payload)
+  -> aud
   -> C.Node outputChannels lock payload
 dynamicsCompressor i' atts elts = C.Node go
   where
@@ -509,7 +515,6 @@ dynamicsCompressor i' atts elts = C.Node go
     di@
       ( C.AudioInterpret
           { ids
-          , scope
           , makeDynamicsCompressor
           , setThreshold
           , setRatio
@@ -518,65 +523,69 @@ dynamicsCompressor i' atts elts = C.Node go
           , setRelease
           }
       ) =
-    keepLatest
-      ( (sample_ ids (bang unit)) <#> parentalSupervision parent \me ->
-          bang
-            ( makeDynamicsCompressor
-                { id: me
-                , parent: useParentIfParent parent
-                , scope: just scope
-                , threshold: i.threshold
-                , ratio: i.ratio
-                , knee: i.knee
-                , attack: i.attack
-                , release: i.release
+    makeEvent \k -> do
+      me <- ids
+      parent.raiseId me
+      flip subscribe k $
+        bang
+          ( makeDynamicsCompressor
+              { id: me
+              , parent: just parent.parent
+              , scope: parent.scope
+              , threshold: i.threshold
+              , ratio: i.ratio
+              , knee: i.knee
+              , attack: i.attack
+              , release: i.release
+              }
+          )
+          <|> map
+            ( \(C.DynamicsCompressor e) -> match
+                { threshold: \threshold -> setThreshold
+                    { id: me, threshold }
+                , ratio: \ratio -> setRatio
+                    { id: me, ratio }
+                , knee: \knee -> setKnee
+                    { id: me, knee }
+                , attack: \attack -> setAttack
+                    { id: me, attack }
+                , release: \release -> setRelease
+                    { id: me, release }
                 }
+                e
             )
-            <|> map
-              ( \(C.DynamicsCompressor e) -> match
-                  { threshold: \threshold -> setThreshold
-                      { id: me, threshold }
-                  , ratio: \ratio -> setRatio
-                      { id: me, ratio }
-                  , knee: \knee -> setKnee
-                      { id: me, knee }
-                  , attack: \attack -> setAttack
-                      { id: me, attack }
-                  , release: \release -> setRelease
-                      { id: me, release }
-                  }
-                  e
-              )
-              atts
-            <|> oneOf
-              ( (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
-              )
-      )
+            atts
+          <|> __internalWagsFlatten me di (mix elts)
 
 dynamicsCompressor_
-  :: forall i (outputChannels :: Type) lock payload
+  :: forall i aud (outputChannels :: Type) lock payload
    . Common.InitialDynamicsCompressor i
+  => C.Mix aud (C.Streamy outputChannels lock payload)
   => i
-  -> Array (C.Node outputChannels lock payload)
+  -> aud
   -> C.Node outputChannels lock payload
 dynamicsCompressor_ i = dynamicsCompressor i empty
 
 -- gain
 gain
-  :: forall i (outputChannels :: Type) lock payload
+  :: forall i aud (outputChannels :: Type) lock payload
    . Common.InitialGain i
+  => C.Mix aud (C.Streamy outputChannels lock payload)
   => i
   -> Event C.Gain
-  -> Array (C.Node outputChannels lock payload)
+  -> aud
   -> C.Node outputChannels lock payload
 gain i' atts elts = C.Node go
   where
   C.InitializeGain i = Common.toInitializeGain i'
-  go parent di@(C.AudioInterpret { ids, scope, makeGain, setGain }) = keepLatest
-    ( (sample_ ids (bang unit)) <#> parentalSupervision parent \me ->
+  go parent di@(C.AudioInterpret { ids, makeGain, setGain }) =     makeEvent \k -> do
+      me <- ids
+      parent.raiseId me
+      flip subscribe k $
+
         bang
           ( makeGain
-              { id: me, parent: useParentIfParent parent, scope: just scope, gain: i.gain }
+              { id: me, parent: just parent.parent, scope: parent.scope, gain: i.gain }
           )
           <|> map
             ( \(C.Gain e) -> match
@@ -585,35 +594,38 @@ gain i' atts elts = C.Node go
                 e
             )
             atts
-          <|> oneOf
-            ( (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
-            )
-    )
+          <|> __internalWagsFlatten me di (mix elts)
+
 
 gain_
-  :: forall i (outputChannels :: Type) lock payload
+  :: forall i aud (outputChannels :: Type) lock payload
    . Common.InitialGain i
+  => C.Mix aud (C.Streamy outputChannels lock payload)
   => i
-  -> Array (C.Node outputChannels lock payload)
+  -> aud
   -> C.Node outputChannels lock payload
 gain_ i a = gain i empty a
 
 -- highpass
 highpass
-  :: forall i (outputChannels :: Type) lock payload
+  :: forall i aud (outputChannels :: Type) lock payload
    . Common.InitialHighpass i
+  => C.Mix aud (C.Streamy outputChannels lock payload)
   => i
   -> Event C.Highpass
-  -> Array (C.Node outputChannels lock payload)
+  -> aud
   -> C.Node outputChannels lock payload
 highpass i' atts elts = C.Node go
   where
   C.InitializeHighpass i = Common.toInitializeHighpass i'
-  go parent di@(C.AudioInterpret { ids, scope, makeHighpass, setFrequency, setQ }) = keepLatest
-    ( (sample_ ids (bang unit)) <#> parentalSupervision parent \me ->
+  go parent di@(C.AudioInterpret { ids, makeHighpass, setFrequency, setQ }) =     makeEvent \k -> do
+      me <- ids
+      parent.raiseId me
+      flip subscribe k $
+
         bang
           ( makeHighpass
-              { id: me, parent: useParentIfParent parent, scope: just scope, frequency: i.frequency, q: i.q }
+              { id: me, parent: just parent.parent, scope: parent.scope, frequency: i.frequency, q: i.q }
           )
           <|> map
             ( \(C.Highpass e) -> match
@@ -623,35 +635,38 @@ highpass i' atts elts = C.Node go
                 e
             )
             atts
-          <|> oneOf
-            ( (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
-            )
-    )
+          <|> __internalWagsFlatten me di (mix elts)
+
 
 highpass_
-  :: forall i (outputChannels :: Type) lock payload
+  :: forall i aud (outputChannels :: Type) lock payload
    . Common.InitialHighpass i
+  => C.Mix aud (C.Streamy outputChannels lock payload)
   => i
-  -> Array (C.Node outputChannels lock payload)
+  -> aud
   -> C.Node outputChannels lock payload
 highpass_ i a = highpass i empty a
 
 -- highshelf
 highshelf
-  :: forall i (outputChannels :: Type) lock payload
+  :: forall i aud (outputChannels :: Type) lock payload
    . Common.InitialHighshelf i
+  => C.Mix aud (C.Streamy outputChannels lock payload)
   => i
   -> Event C.Highshelf
-  -> Array (C.Node outputChannels lock payload)
+  -> aud
   -> C.Node outputChannels lock payload
 highshelf i' atts elts = C.Node go
   where
   C.InitializeHighshelf i = Common.toInitializeHighshelf i'
-  go parent di@(C.AudioInterpret { ids, scope, makeHighshelf, setFrequency, setGain }) = keepLatest
-    ( (sample_ ids (bang unit)) <#> parentalSupervision parent \me ->
+  go parent di@(C.AudioInterpret { ids, makeHighshelf, setFrequency, setGain }) =     makeEvent \k -> do
+      me <- ids
+      parent.raiseId me
+      flip subscribe k $
+
         bang
           ( makeHighshelf
-              { id: me, parent: useParentIfParent parent, scope: just scope, frequency: i.frequency, gain: i.gain }
+              { id: me, parent: just parent.parent, scope: parent.scope, frequency: i.frequency, gain: i.gain }
           )
           <|> map
             ( \(C.Highshelf e) -> match
@@ -661,42 +676,44 @@ highshelf i' atts elts = C.Node go
                 e
             )
             atts
-          <|> oneOf
-            ( (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
-            )
-    )
+          <|> __internalWagsFlatten me di (mix elts)
+
 
 highshelf_
-  :: forall i (outputChannels :: Type) lock payload
+  :: forall i aud (outputChannels :: Type) lock payload
    . Common.InitialHighshelf i
+  => C.Mix aud (C.Streamy outputChannels lock payload)
   => i
-  -> Array (C.Node outputChannels lock payload)
+  -> aud
   -> C.Node outputChannels lock payload
 highshelf_ i a = highshelf i empty a
 
 -- iirFilter
 
 iirFilter
-  :: forall i (feedforward :: Type) (feedback :: Type) (outputChannels :: Type) lock event
+  :: forall i aud (feedforward :: Type) (feedback :: Type) (outputChannels :: Type) lock
        payload
    . Lt D2 feedforward
   => Lt D2 feedback
+  => C.Mix aud (C.Streamy outputChannels lock payload)
   => Common.InitialIIRFilter i feedforward feedback
+  => C.Mix aud (C.Streamy outputChannels lock payload)
   => i
-  -> Array (C.Node outputChannels lock payload)
+  -> aud
   -> C.Node outputChannels lock payload
 iirFilter = iirFilter' (Proxy :: _ feedforward) (Proxy :: _ feedback)
 
 iirFilter'
-  :: forall i proxy (feedforward :: Type) (feedback :: Type) (outputChannels :: Type) lock event
+  :: forall i aud proxy (feedforward :: Type) (feedback :: Type) (outputChannels :: Type) lock
        payload
    . Lt D2 feedforward
   => Lt D2 feedback
   => Common.InitialIIRFilter i feedforward feedback
+  => C.Mix aud (C.Streamy outputChannels lock payload)
   => proxy feedforward
   -> proxy feedback
   -> i
-  -> Array (C.Node outputChannels lock payload)
+  -> aud
   -> C.Node outputChannels lock payload
 iirFilter' fwd bk i' elts = C.Node go
   where
@@ -706,42 +723,44 @@ iirFilter' fwd bk i' elts = C.Node go
     di@
       ( C.AudioInterpret
           { ids
-          , scope
           , makeIIRFilter
           }
       ) =
-    keepLatest
-      ( (sample_ ids (bang unit)) <#> parentalSupervision parent \me ->
-          bang
-            ( makeIIRFilter
-                { id: me
-                , parent: useParentIfParent parent
-                , scope: just scope
-                , feedforward: toArray i.feedforward
-                , feedback: toArray i.feedback
-                }
-            )
-            <|> oneOf
-              ( (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
-              )
-      )
+    makeEvent \k -> do
+      me <- ids
+      parent.raiseId me
+      flip subscribe k $
+        bang
+          ( makeIIRFilter
+              { id: me
+              , parent: just parent.parent
+              , scope: parent.scope
+              , feedforward: toArray i.feedforward
+              , feedback: toArray i.feedback
+              }
+          )
+          <|> __internalWagsFlatten me di (mix elts)
 
 -- lowpass
 lowpass
-  :: forall i (outputChannels :: Type) lock payload
+  :: forall i aud (outputChannels :: Type) lock payload
    . Common.InitialLowpass i
+  => C.Mix aud (C.Streamy outputChannels lock payload)
   => i
   -> Event C.Lowpass
-  -> Array (C.Node outputChannels lock payload)
+  -> aud
   -> C.Node outputChannels lock payload
 lowpass i' atts elts = C.Node go
   where
   C.InitializeLowpass i = Common.toInitializeLowpass i'
-  go parent di@(C.AudioInterpret { ids, scope, makeLowpass, setFrequency, setQ }) = keepLatest
-    ( (sample_ ids (bang unit)) <#> parentalSupervision parent \me ->
+  go parent di@(C.AudioInterpret { ids, makeLowpass, setFrequency, setQ }) =     makeEvent \k -> do
+      me <- ids
+      parent.raiseId me
+      flip subscribe k $
+
         bang
           ( makeLowpass
-              { id: me, parent: useParentIfParent parent, scope: just scope, frequency: i.frequency, q: i.q }
+              { id: me, parent: just parent.parent, scope: parent.scope, frequency: i.frequency, q: i.q }
           )
           <|> map
             ( \(C.Lowpass e) -> match
@@ -751,35 +770,38 @@ lowpass i' atts elts = C.Node go
                 e
             )
             atts
-          <|> oneOf
-            ( (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
-            )
-    )
+          <|> __internalWagsFlatten me di (mix elts)
+
 
 lowpass_
-  :: forall i (outputChannels :: Type) lock payload
+  :: forall i aud (outputChannels :: Type) lock payload
    . Common.InitialLowpass i
+  => C.Mix aud (C.Streamy outputChannels lock payload)
   => i
-  -> Array (C.Node outputChannels lock payload)
+  -> aud
   -> C.Node outputChannels lock payload
 lowpass_ i a = lowpass i empty a
 
 -- lowshelf
 lowshelf
-  :: forall i (outputChannels :: Type) lock payload
+  :: forall i aud (outputChannels :: Type) lock payload
    . Common.InitialLowshelf i
+  => C.Mix aud (C.Streamy outputChannels lock payload)
   => i
   -> Event C.Lowshelf
-  -> Array (C.Node outputChannels lock payload)
+  -> aud
   -> C.Node outputChannels lock payload
 lowshelf i' atts elts = C.Node go
   where
   C.InitializeLowshelf i = Common.toInitializeLowshelf i'
-  go parent di@(C.AudioInterpret { ids, scope, makeLowshelf, setFrequency, setGain }) = keepLatest
-    ( (sample_ ids (bang unit)) <#> parentalSupervision parent \me ->
+  go parent di@(C.AudioInterpret { ids, makeLowshelf, setFrequency, setGain }) =     makeEvent \k -> do
+      me <- ids
+      parent.raiseId me
+      flip subscribe k $
+
         bang
           ( makeLowshelf
-              { id: me, parent: useParentIfParent parent, scope: just scope, frequency: i.frequency, gain: i.gain }
+              { id: me, parent: just parent.parent, scope: parent.scope, frequency: i.frequency, gain: i.gain }
           )
           <|> map
             ( \(C.Lowshelf e) -> match
@@ -789,16 +811,15 @@ lowshelf i' atts elts = C.Node go
                 e
             )
             atts
-          <|> oneOf
-            ( (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
-            )
-    )
+          <|> __internalWagsFlatten me di (mix elts)
+
 
 lowshelf_
-  :: forall i (outputChannels :: Type) lock payload
+  :: forall i aud (outputChannels :: Type) lock payload
    . Common.InitialLowshelf i
+  => C.Mix aud (C.Streamy outputChannels lock payload)
   => i
-  -> Array (C.Node outputChannels lock payload)
+  -> aud
   -> C.Node outputChannels lock payload
 lowshelf_ i a = lowshelf i empty a
 
@@ -817,7 +838,6 @@ __loopBuf i' atts = C.Node go
     parent
     ( C.AudioInterpret
         { ids
-        , scope
         , makeLoopBuf
         , setBuffer
         , setOnOff
@@ -826,33 +846,34 @@ __loopBuf i' atts = C.Node go
         , setLoopEnd
         }
     ) =
-    keepLatest
-      ( (sample_ ids (bang unit)) <#> parentalSupervision parent \me ->
-          bang
-            ( makeLoopBuf
-                { id: me
-                , parent: useParentIfParent parent
-                , scope: just scope
-                , buffer: i.buffer
-                , playbackRate: i.playbackRate
-                , loopStart: i.loopStart
-                , loopEnd: i.loopEnd
-                , duration: i.duration
+    makeEvent \k -> do
+      me <- ids
+      parent.raiseId me
+      flip subscribe k $
+        bang
+          ( makeLoopBuf
+              { id: me
+              , parent: just parent.parent
+              , scope: parent.scope
+              , buffer: i.buffer
+              , playbackRate: i.playbackRate
+              , loopStart: i.loopStart
+              , loopEnd: i.loopEnd
+              , duration: i.duration
+              }
+          )
+          <|> map
+            ( \(C.LoopBuf e) -> match
+                { buffer: \buffer -> setBuffer { id: me, buffer }
+                , playbackRate: \playbackRate -> setPlaybackRate
+                    { id: me, playbackRate }
+                , loopStart: \loopStart -> setLoopStart { id: me, loopStart }
+                , loopEnd: \loopEnd -> setLoopEnd { id: me, loopEnd }
+                , onOff: \onOff -> setOnOff { id: me, onOff }
                 }
+                e
             )
-            <|> map
-              ( \(C.LoopBuf e) -> match
-                  { buffer: \buffer -> setBuffer { id: me, buffer }
-                  , playbackRate: \playbackRate -> setPlaybackRate
-                      { id: me, playbackRate }
-                  , loopStart: \loopStart -> setLoopStart { id: me, loopStart }
-                  , loopEnd: \loopEnd -> setLoopEnd { id: me, loopEnd }
-                  , onOff: \onOff -> setOnOff { id: me, onOff }
-                  }
-                  e
-              )
-              atts
-      )
+            atts
 
 loopBuf
   :: forall i outputChannels lock payload
@@ -877,18 +898,19 @@ __mediaElement
   -> C.Node outputChannels lock payload
 __mediaElement (C.InitializeMediaElement i) = C.Node go
   where
-  go parent (C.AudioInterpret { ids, scope, makeMediaElement }) =
-    keepLatest
-      ( (sample_ ids (bang unit)) <#> parentalSupervision parent \me ->
-          bang
-            ( makeMediaElement
-                { id: me
-                , parent: useParentIfParent parent
-                , scope: just scope
-                , element: i.element
-                }
-            )
-      )
+  go parent (C.AudioInterpret { ids, makeMediaElement }) =
+    makeEvent \k -> do
+      me <- ids
+      parent.raiseId me
+      flip subscribe k $
+        bang
+          ( makeMediaElement
+              { id: me
+              , parent: just parent.parent
+              , scope: parent.scope
+              , element: i.element
+              }
+          )
 
 mediaElement
   :: forall outputChannels lock payload
@@ -906,18 +928,19 @@ __microphone
 __microphone i' = C.Node go
   where
   C.InitializeMicrophone i = Common.toInitializeMicrophone i'
-  go parent (C.AudioInterpret { ids, scope, makeMicrophone }) =
-    keepLatest
-      ( (sample_ ids (bang unit)) <#> parentalSupervision parent \me ->
-          bang
-            ( makeMicrophone
-                { id: me
-                , parent: useParentIfParent parent
-                , scope: just scope
-                , microphone: i.microphone
-                }
-            )
-      )
+  go parent (C.AudioInterpret { ids, makeMicrophone }) =
+    makeEvent \k -> do
+      me <- ids
+      parent.raiseId me
+      flip subscribe k $
+        bang
+          ( makeMicrophone
+              { id: me
+              , parent: just parent.parent
+              , scope: parent.scope
+              , microphone: i.microphone
+              }
+          )
 
 microphone
   :: forall i outputChannels lock payload
@@ -928,20 +951,24 @@ microphone = __microphone
 
 -- notch
 notch
-  :: forall i (outputChannels :: Type) lock payload
+  :: forall i aud (outputChannels :: Type) lock payload
    . Common.InitialNotch i
+  => C.Mix aud (C.Streamy outputChannels lock payload)
   => i
   -> Event C.Notch
-  -> Array (C.Node outputChannels lock payload)
+  -> aud
   -> C.Node outputChannels lock payload
 notch i' atts elts = C.Node go
   where
   C.InitializeNotch i = Common.toInitializeNotch i'
-  go parent di@(C.AudioInterpret { ids, scope, makeNotch, setFrequency, setQ }) = keepLatest
-    ( (sample_ ids (bang unit)) <#> parentalSupervision parent \me ->
+  go parent di@(C.AudioInterpret { ids, makeNotch, setFrequency, setQ }) =     makeEvent \k -> do
+      me <- ids
+      parent.raiseId me
+      flip subscribe k $
+
         bang
           ( makeNotch
-              { id: me, parent: useParentIfParent parent, scope: just scope, frequency: i.frequency, q: i.q }
+              { id: me, parent: just parent.parent, scope: parent.scope, frequency: i.frequency, q: i.q }
           )
           <|> map
             ( \(C.Notch e) -> match
@@ -951,35 +978,38 @@ notch i' atts elts = C.Node go
                 e
             )
             atts
-          <|> oneOf
-            ( (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
-            )
-    )
+          <|> __internalWagsFlatten me di (mix elts)
+
 
 notch_
-  :: forall i (outputChannels :: Type) lock payload
+  :: forall i aud (outputChannels :: Type) lock payload
    . Common.InitialNotch i
+  => C.Mix aud (C.Streamy outputChannels lock payload)
   => i
-  -> Array (C.Node outputChannels lock payload)
+  -> aud
   -> C.Node outputChannels lock payload
 notch_ i a = notch i empty a
 
 -- peaking
 peaking
-  :: forall i (outputChannels :: Type) lock payload
+  :: forall i aud (outputChannels :: Type) lock payload
    . Common.InitialPeaking i
+  => C.Mix aud (C.Streamy outputChannels lock payload)
   => i
   -> Event C.Peaking
-  -> Array (C.Node outputChannels lock payload)
+  -> aud
   -> C.Node outputChannels lock payload
 peaking i' atts elts = C.Node go
   where
   C.InitializePeaking i = Common.toInitializePeaking i'
-  go parent di@(C.AudioInterpret { ids, scope, makePeaking, setFrequency, setQ, setGain }) = keepLatest
-    ( (sample_ ids (bang unit)) <#> parentalSupervision parent \me ->
+  go parent di@(C.AudioInterpret { ids, makePeaking, setFrequency, setQ, setGain }) =     makeEvent \k -> do
+      me <- ids
+      parent.raiseId me
+      flip subscribe k $
+
         bang
           ( makePeaking
-              { id: me, parent: useParentIfParent parent, scope: just scope, frequency: i.frequency, q: i.q, gain: i.gain }
+              { id: me, parent: just parent.parent, scope: parent.scope, frequency: i.frequency, q: i.q, gain: i.gain }
           )
           <|> map
             ( \(C.Peaking e) -> match
@@ -990,16 +1020,15 @@ peaking i' atts elts = C.Node go
                 e
             )
             atts
-          <|> oneOf
-            ( (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
-            )
-    )
+          <|> __internalWagsFlatten me di (mix elts)
+
 
 peaking_
-  :: forall i (outputChannels :: Type) lock payload
+  :: forall i aud (outputChannels :: Type) lock payload
    . Common.InitialPeaking i
+  => C.Mix aud (C.Streamy outputChannels lock payload)
   => i
-  -> Array (C.Node outputChannels lock payload)
+  -> aud
   -> C.Node outputChannels lock payload
 peaking_ i a = peaking i empty a
 
@@ -1017,30 +1046,31 @@ __periodicOsc i' atts = C.Node go
   go
     parent
     ( C.AudioInterpret
-        { ids, scope, makePeriodicOsc, setFrequency, setOnOff, setPeriodicOsc }
+        { ids, makePeriodicOsc, setFrequency, setOnOff, setPeriodicOsc }
     ) =
-    keepLatest
-      ( (sample_ ids (bang unit)) <#> parentalSupervision parent \me ->
-          bang
-            ( makePeriodicOsc
-                { id: me
-                , parent: useParentIfParent parent
-                , scope: just scope
-                , frequency: i.frequency
-                , spec: i.spec
+    makeEvent \k -> do
+      me <- ids
+      parent.raiseId me
+      flip subscribe k $
+        bang
+          ( makePeriodicOsc
+              { id: me
+              , parent: just parent.parent
+              , scope: parent.scope
+              , frequency: i.frequency
+              , spec: i.spec
+              }
+          )
+          <|> map
+            ( \(C.PeriodicOsc e) -> match
+                { frequency: \frequency -> setFrequency
+                    { id: me, frequency }
+                , onOff: \onOff -> setOnOff { id: me, onOff }
+                , spec: \spec -> setPeriodicOsc { id: me, spec }
                 }
+                e
             )
-            <|> map
-              ( \(C.PeriodicOsc e) -> match
-                  { frequency: \frequency -> setFrequency
-                      { id: me, frequency }
-                  , onOff: \onOff -> setOnOff { id: me, onOff }
-                  , spec: \spec -> setPeriodicOsc { id: me, spec }
-                  }
-                  e
-              )
-              atts
-      )
+            atts
 
 periodicOsc
   :: forall i outputChannels lock payload
@@ -1125,7 +1155,6 @@ __playBuf i' atts = C.Node go
     parent
     ( C.AudioInterpret
         { ids
-        , scope
         , makePlayBuf
         , setBuffer
         , setOnOff
@@ -1134,33 +1163,34 @@ __playBuf i' atts = C.Node go
         , setBufferOffset
         }
     ) =
-    keepLatest
-      ( (sample_ ids (bang unit)) <#> parentalSupervision parent \me ->
-          bang
-            ( makePlayBuf
-                { id: me
-                , parent: useParentIfParent parent
-                , scope: just scope
-                , buffer: i.buffer
-                , playbackRate: i.playbackRate
-                , bufferOffset: i.bufferOffset
-                , duration: i.duration
+    makeEvent \k -> do
+      me <- ids
+      parent.raiseId me
+      flip subscribe k $
+        bang
+          ( makePlayBuf
+              { id: me
+              , parent: just parent.parent
+              , scope: parent.scope
+              , buffer: i.buffer
+              , playbackRate: i.playbackRate
+              , bufferOffset: i.bufferOffset
+              , duration: i.duration
+              }
+          )
+          <|> map
+            ( \(C.PlayBuf e) -> match
+                { buffer: \buffer -> setBuffer { id: me, buffer }
+                , playbackRate: \playbackRate -> setPlaybackRate
+                    { id: me, playbackRate }
+                , bufferOffset: \bufferOffset -> setBufferOffset
+                    { id: me, bufferOffset }
+                , onOff: \onOff -> setOnOff { id: me, onOff }
+                , duration: \duration -> setDuration { id: me, duration }
                 }
+                e
             )
-            <|> map
-              ( \(C.PlayBuf e) -> match
-                  { buffer: \buffer -> setBuffer { id: me, buffer }
-                  , playbackRate: \playbackRate -> setPlaybackRate
-                      { id: me, playbackRate }
-                  , bufferOffset: \bufferOffset -> setBufferOffset
-                      { id: me, bufferOffset }
-                  , onOff: \onOff -> setOnOff { id: me, onOff }
-                  , duration: \duration -> setDuration { id: me, duration }
-                  }
-                  e
-              )
-              atts
-      )
+            atts
 
 playBuf
   :: forall i outputChannels lock payload
@@ -1187,16 +1217,16 @@ recorder
 recorder i' elt = C.Node go
   where
   C.InitializeRecorder i = Common.toInitializeRecorder i'
-  go parent di@(C.AudioInterpret { ids, scope, makeRecorder }) =
-    keepLatest
-      ( (sample_ ids (bang unit)) <#> parentalSupervision parent \me ->
-          bang
-            ( makeRecorder
-                { id: me, parent: useParentIfParent parent, scope: just scope, cb: i.cb }
-            )
-            <|> ((\y -> let C.Node x = y in x) elt) (Parent me) di
-
-      )
+  go parent di@(C.AudioInterpret { ids, makeRecorder }) =
+    makeEvent \k -> do
+      me <- ids
+      parent.raiseId me
+      flip subscribe k $
+        bang
+          ( makeRecorder
+              { id: me, parent: just parent.parent, scope: parent.scope, cb: i.cb }
+          )
+          <|> __internalWagsFlatten me di (mix elt)
 
 -- sawtoothOsc
 
@@ -1211,27 +1241,28 @@ __sawtoothOsc i' atts = C.Node go
   C.InitializeSawtoothOsc i = Common.toInitializeSawtoothOsc i'
   go
     parent
-    (C.AudioInterpret { ids, scope, makeSawtoothOsc, setFrequency, setOnOff }) =
-    keepLatest
-      ( (sample_ ids (bang unit)) <#> parentalSupervision parent \me ->
-          bang
-            ( makeSawtoothOsc
-                { id: me
-                , parent: useParentIfParent parent
-                , scope: just scope
-                , frequency: i.frequency
+    (C.AudioInterpret { ids, makeSawtoothOsc, setFrequency, setOnOff }) =
+    makeEvent \k -> do
+      me <- ids
+      parent.raiseId me
+      flip subscribe k $
+        bang
+          ( makeSawtoothOsc
+              { id: me
+              , parent: just parent.parent
+              , scope: parent.scope
+              , frequency: i.frequency
+              }
+          )
+          <|> map
+            ( \(C.SawtoothOsc e) -> match
+                { frequency: \frequency -> setFrequency
+                    { id: me, frequency }
+                , onOff: \onOff -> setOnOff { id: me, onOff }
                 }
+                e
             )
-            <|> map
-              ( \(C.SawtoothOsc e) -> match
-                  { frequency: \frequency -> setFrequency
-                      { id: me, frequency }
-                  , onOff: \onOff -> setOnOff { id: me, onOff }
-                  }
-                  e
-              )
-              atts
-      )
+            atts
 
 sawtoothOsc
   :: forall i outputChannels lock payload
@@ -1261,27 +1292,28 @@ __sinOsc i' atts = C.Node go
   C.InitializeSinOsc i = Common.toInitializeSinOsc i'
   go
     parent
-    (C.AudioInterpret { ids, scope, makeSinOsc, setFrequency, setOnOff }) =
-    keepLatest
-      ( (sample_ ids (bang unit)) <#> parentalSupervision parent \me ->
-          bang
-            ( makeSinOsc
-                { id: me
-                , parent: useParentIfParent parent
-                , scope: just scope
-                , frequency: i.frequency
+    (C.AudioInterpret { ids, makeSinOsc, setFrequency, setOnOff }) =
+    makeEvent \k -> do
+      me <- ids
+      parent.raiseId me
+      flip subscribe k $
+        bang
+          ( makeSinOsc
+              { id: me
+              , parent: just parent.parent
+              , scope: parent.scope
+              , frequency: i.frequency
+              }
+          )
+          <|> map
+            ( \(C.SinOsc e) -> match
+                { frequency: \frequency -> setFrequency
+                    { id: me, frequency }
+                , onOff: \onOff -> setOnOff { id: me, onOff }
                 }
+                e
             )
-            <|> map
-              ( \(C.SinOsc e) -> match
-                  { frequency: \frequency -> setFrequency
-                      { id: me, frequency }
-                  , onOff: \onOff -> setOnOff { id: me, onOff }
-                  }
-                  e
-              )
-              atts
-      )
+            atts
 
 sinOsc
   :: forall i outputChannels lock payload
@@ -1311,27 +1343,28 @@ __squareOsc i' atts = C.Node go
   C.InitializeSquareOsc i = Common.toInitializeSquareOsc i'
   go
     parent
-    (C.AudioInterpret { ids, scope, makeSquareOsc, setFrequency, setOnOff }) =
-    keepLatest
-      ( (sample_ ids (bang unit)) <#> parentalSupervision parent \me ->
-          bang
-            ( makeSquareOsc
-                { id: me
-                , parent: useParentIfParent parent
-                , scope: just scope
-                , frequency: i.frequency
+    (C.AudioInterpret { ids, makeSquareOsc, setFrequency, setOnOff }) =
+    makeEvent \k -> do
+      me <- ids
+      parent.raiseId me
+      flip subscribe k $
+        bang
+          ( makeSquareOsc
+              { id: me
+              , parent: just parent.parent
+              , scope: parent.scope
+              , frequency: i.frequency
+              }
+          )
+          <|> map
+            ( \(C.SquareOsc e) -> match
+                { frequency: \frequency -> setFrequency
+                    { id: me, frequency }
+                , onOff: \onOff -> setOnOff { id: me, onOff }
                 }
+                e
             )
-            <|> map
-              ( \(C.SquareOsc e) -> match
-                  { frequency: \frequency -> setFrequency
-                      { id: me, frequency }
-                  , onOff: \onOff -> setOnOff { id: me, onOff }
-                  }
-                  e
-              )
-              atts
-      )
+            atts
 
 squareOsc
   :: forall i outputChannels lock payload
@@ -1353,38 +1386,39 @@ speaker
   :: forall outputChannels payload
    . (forall lock. Array (C.Node outputChannels lock payload))
   -> C.AudioInterpret payload
-  -> payload
-speaker elts di@(C.AudioInterpret { ids, makeSpeaker }) =
-  keepLatest
-    ( (sample_ ids (bang unit)) <#> \me ->
-        bang (makeSpeaker { id: me })
-          <|> oneOf
-            (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
-    )
+  -> Event payload
+speaker elts di@(C.AudioInterpret { ids, makeSpeaker }) = makeEvent \k -> do
+  id <- ids
+  k (makeSpeaker { id })
+  subscribe (__internalWagsFlatten id di (mix elts)) k
 
 speaker2
   :: forall payload
    . (forall lock. Array (C.Node D2 lock payload))
   -> C.AudioInterpret payload
-  -> payload
+  -> Event payload
 speaker2 = speaker
 
 -- pan
 pan
-  :: forall i (outputChannels :: Type) lock payload
+  :: forall i aud (outputChannels :: Type) lock payload
    . Common.InitialStereoPanner i
+  => C.Mix aud (C.Streamy outputChannels lock payload)
   => i
   -> Event C.StereoPanner
-  -> Array (C.Node outputChannels lock payload)
+  -> aud
   -> C.Node outputChannels lock payload
 pan i' atts elts = C.Node go
   where
   C.InitializeStereoPanner i = Common.toInitializeStereoPanner i'
-  go parent di@(C.AudioInterpret { ids, scope, makeStereoPanner, setPan }) = keepLatest
-    ( (sample_ ids (bang unit)) <#> parentalSupervision parent \me ->
+  go parent di@(C.AudioInterpret { ids, makeStereoPanner, setPan }) =     makeEvent \k -> do
+      me <- ids
+      parent.raiseId me
+      flip subscribe k $
+
         bang
           ( makeStereoPanner
-              { id: me, parent: useParentIfParent parent, scope: just scope, pan: i.pan }
+              { id: me, parent: just parent.parent, scope: parent.scope, pan: i.pan }
           )
           <|> map
             ( \(C.StereoPanner e) -> match
@@ -1393,16 +1427,15 @@ pan i' atts elts = C.Node go
                 e
             )
             atts
-          <|> oneOf
-            ( (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
-            )
-    )
+          <|> __internalWagsFlatten me di (mix elts)
+
 
 pan_
-  :: forall i (outputChannels :: Type) lock payload
+  :: forall i aud (outputChannels :: Type) lock payload
    . Common.InitialStereoPanner i
+  => C.Mix aud (C.Streamy outputChannels lock payload)
   => i
-  -> Array (C.Node outputChannels lock payload)
+  -> aud
   -> C.Node outputChannels lock payload
 pan_ i = pan i empty
 
@@ -1419,27 +1452,28 @@ __triangleOsc i' atts = C.Node go
   C.InitializeTriangleOsc i = Common.toInitializeTriangleOsc i'
   go
     parent
-    (C.AudioInterpret { ids, scope, makeTriangleOsc, setFrequency, setOnOff }) =
-    keepLatest
-      ( (sample_ ids (bang unit)) <#> parentalSupervision parent \me ->
-          bang
-            ( makeTriangleOsc
-                { id: me
-                , parent: useParentIfParent parent
-                , scope: just scope
-                , frequency: i.frequency
+    (C.AudioInterpret { ids, makeTriangleOsc, setFrequency, setOnOff }) =
+    makeEvent \k -> do
+      me <- ids
+      parent.raiseId me
+      flip subscribe k $
+        bang
+          ( makeTriangleOsc
+              { id: me
+              , parent: just parent.parent
+              , scope: parent.scope
+              , frequency: i.frequency
+              }
+          )
+          <|> map
+            ( \(C.TriangleOsc e) -> match
+                { frequency: \frequency -> setFrequency
+                    { id: me, frequency }
+                , onOff: \onOff -> setOnOff { id: me, onOff }
                 }
+                e
             )
-            <|> map
-              ( \(C.TriangleOsc e) -> match
-                  { frequency: \frequency -> setFrequency
-                      { id: me, frequency }
-                  , onOff: \onOff -> setOnOff { id: me, onOff }
-                  }
-                  e
-              )
-              atts
-      )
+            atts
 
 triangleOsc
   :: forall i outputChannels lock payload
@@ -1459,29 +1493,155 @@ triangleOsc_ i = triangleOsc i empty
 -- waveShaper
 
 waveShaper
-  :: forall i (outputChannels :: Type) lock payload
+  :: forall i aud (outputChannels :: Type) lock payload
    . Common.InitialWaveShaper i
+  => C.Mix aud (C.Streamy outputChannels lock payload)
   => i
-  -> Array (C.Node outputChannels lock payload)
+  -> aud
   -> C.Node outputChannels lock payload
 waveShaper i' elts = C.Node go
   where
   C.InitializeWaveShaper i = Common.toInitializeWaveShaper i'
-  go parent di@(C.AudioInterpret { ids, scope, makeWaveShaper }) =
-    keepLatest
-      ( (sample_ ids (bang unit)) <#> parentalSupervision parent \me ->
-          bang
-            ( makeWaveShaper
-                { id: me
-                , parent: useParentIfParent parent
-                , scope: just scope
-                , curve: i.curve
-                , oversample: i.oversample
-                }
-            ) <|> oneOf
-            ( (map (\elt -> ((\y -> let C.Node x = y in x) elt) (Parent me) di) elts)
+  go parent di@(C.AudioInterpret { ids, makeWaveShaper }) =
+    makeEvent \k -> do
+      me <- ids
+      parent.raiseId me
+      flip subscribe k $
+        bang
+          ( makeWaveShaper
+              { id: me
+              , parent: just parent.parent
+              , scope: parent.scope
+              , curve: i.curve
+              , oversample: i.oversample
+              }
+          ) <|> __internalWagsFlatten me di (mix elts)
+
+----------
+
+newtype MutAr a = MutAr (Array a)
+
+foreign import mutAr :: forall a. Array a -> Effect (MutAr a)
+foreign import unsafeUpdateMutAr :: forall a. Int -> a -> MutAr a -> Effect Unit
+foreign import readAr :: forall a. MutAr a -> Effect (Array a)
+
+-- todo: this is almost literally a copy-paste now of Deku
+-- are the libraries close enough now where we can merge the two functions into one?
+-- the only differences I can see are:
+-- - the deconstruction and reconstruction of Node
+-- - the name of the connection function
+internalFan
+  :: forall n outputChannels lock0 lock1 payload
+   . (String -> String)
+  -> Vec n (C.Node outputChannels lock0 payload)
+  -> ( Vec n (C.Node outputChannels lock1 payload)
+       -> (C.Node outputChannels lock0 payload -> C.Node outputChannels lock1 payload)
+       -> Event (Event (C.StreamingAudio outputChannels lock1 payload))
+     )
+  -> C.Node outputChannels lock0 payload
+internalFan scopeF gaga closure = C.Node go
+  where
+  go psr di = makeEvent \k -> do
+    av <- mutAr (map (const "") $ toArray gaga)
+    let
+      actualized = oneOf $ mapWithIndex
+        ( \ix (C.Node gogo) ->
+            gogo
+              { parent: "@fan@"
+              , scope: scopeF psr.scope
+              , raiseId: \id -> unsafeUpdateMutAr ix id av
+              }
+              di
+        )
+        gaga
+    u0 <- subscribe actualized k
+    av2 <- AVar.empty
+    let
+      asIds :: Array String -> Vec n String
+      asIds = unsafeCoerce
+    idz <- asIds <$> readAr av
+    let
+      -- we never connect or disconnect the referentially opaque node
+      -- instead, it is always managed inside a referentially transparent gain node
+      -- that can be properly connected and disconnected
+      injectable = map
+        ( \id -> gain_ 1.0
+            ( C.Node
+                \{ parent } (C.AudioInterpret { connectXToY }) ->
+                  bang (connectXToY { from: id, to: parent })
             )
+        )
+        idz
+      realized = __internalWagsFlatten psr.parent di
+        (proof (coerce (closure injectable (\(C.Node q) -> C.Node q))))
+    u <- subscribe realized k
+    void $ tryPut u av2
+    -- cancel immediately, as it should be run synchronously
+    -- so if this actually does something then we have a problem
+    pure do
+      u0
+      cncl2 <- AVar.take av2 \q -> case q of
+        Right usu -> usu
+        Left e -> throwException e
+      -- cancel immediately, as it should be run synchronously
+      -- so if this actually does something then we have a problem
+      cncl2
+
+globalFan
+  :: forall n outputChannels lock payload
+   . Vec n (C.Node outputChannels lock payload)
+  -> (Vec n (C.Node outputChannels lock payload) -> Event (Event (C.StreamingAudio outputChannels lock payload)))
+  -> C.Node outputChannels lock payload
+globalFan e f = internalFan (const "@portal@") e (\x _ -> f x)
+
+fan
+  :: forall n outputChannels lock0 payload
+   . Vec n (C.Node outputChannels lock0 payload)
+  -> ( forall lock1
+        . Vec n (C.Node outputChannels lock1 payload)
+       -> (C.Node outputChannels lock0 payload -> C.Node outputChannels lock1 payload)
+       -> Event (Event (C.StreamingAudio outputChannels lock1 payload))
+     )
+  -> C.Node outputChannels lock0 payload
+fan e = internalFan identity e
+
+---- fix
+fix
+  :: forall outputChannels lock payload
+   . (C.Node outputChannels lock payload -> C.Node outputChannels lock payload)
+  -> C.Node outputChannels lock payload
+fix f = C.Node go
+  where
+  go i di@(C.AudioInterpret { connectXToY }) = makeEvent \k -> do
+    av <- AVar.empty
+    let
+      -- we never connect or disconnect the referentially opaque node
+      -- instead, it is always managed inside a referentially transparent gain node
+      -- that can be properly connected and disconnected
+      C.Node nn = f $ gain_ 1.0 $ C.Node \ii _ -> makeEvent \k -> do
+        -- we never unsubscribe, as we always need this value
+        void $ AVar.read av case _ of
+          Left e -> throwException e
+          -- todo: test silence
+          Right r -> k (connectXToY { from: r, to: ii.parent })
+        pure (pure unit)
+    subscribe
+      ( nn
+          { parent: i.parent
+          , scope: i.scope
+          , raiseId: \s -> do
+              i.raiseId s
+              void $ tryPut s av
+          }
+          di
       )
+      k
+
+silence
+  :: forall outputChannels lock payload
+   . C.Node outputChannels lock payload
+silence = fix identity
+
 
 -----
 -- starts work on merge
@@ -1503,12 +1663,12 @@ waveShaper i' elts = C.Node go
 --           }
 --       ) =
 --     keepLatest
---       ( (sample_ ids (bang unit)) <#> parentalSupervision parent \me ->
+--       ( (sample_ ids (bang unit)) <#> \me ->
 --           bang
 --             ( makeMerger
 --                 { id: me
---                 , parent: useParentIfParent parent
---                 , scope: just scope
+--                 , parent: just parent.parent
+--                 , scope: parent.scope
 --                 }
 --             )
 --             <|> oneOf

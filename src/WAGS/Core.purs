@@ -3,34 +3,29 @@ module WAGS.Core where
 import Prelude
 
 import Data.Either (Either(..))
-import Data.Foldable (fold, traverse_, oneOf)
+import Data.Foldable (fold, oneOfMap, traverse_)
 import Data.Function (on)
-import Data.FunctorWithIndex (mapWithIndex)
 import Data.Generic.Rep (class Generic)
 import Data.Maybe as DM
 import Data.Newtype (class Newtype, unwrap)
 import Data.Show.Generic (genericShow)
-import Data.Tuple.Nested ((/\))
 import Data.Variant (Variant, inj)
 import Data.Variant.Maybe (Maybe)
-import Data.Vec (Vec, toArray)
+import Data.Vec (Vec)
 import Effect (Effect)
 import Effect.AVar (tryPut)
 import Effect.AVar as AVar
 import Effect.Exception (throwException)
 import Effect.Random as Random
 import Effect.Ref as Ref
-import FRP.Behavior (Behavior, sampleBy)
-import FRP.Event (Event, makeEvent, subscribe)
-import FRP.Event.Class (bang)
+import FRP.Event (Event, bang, makeEvent, subscribe)
 import Foreign (Foreign)
 import Foreign.Object (Object)
 import Foreign.Object as Object
 import Safe.Coerce (coerce)
 import Simple.JSON as JSON
-import Type.Equality (proof)
+import Type.Equality (class TypeEquals, proof)
 import Type.Proxy (Proxy(..))
-import Unsafe.Coerce (unsafeCoerce)
 import WAGS.Parameter (AudioOnOff, AudioParameter, InitialAudioParameter)
 import WAGS.WebAPI (AnalyserNodeCb, BrowserAudioBuffer, BrowserFloatArray, BrowserMediaElement, BrowserMicrophone, BrowserPeriodicWave, MediaRecorderCb)
 
@@ -110,124 +105,6 @@ instance showAudioWorkletNodeOptions_ ::
     <> JSON.writeJSON a.numberOfInputs
     <> " >"
 
-newtype MutAr a = MutAr (Array a)
-
-foreign import mutAr :: forall a. Array a -> Effect (MutAr a)
-foreign import unsafeUpdateMutAr :: forall a. Int -> a -> MutAr a -> Effect Unit
-foreign import readAr :: forall a. MutAr a -> Effect (Array a)
-
--- todo: this is almost literally a copy-paste now of Deku
--- are the libraries close enough now where we can merge the two functions into one?
--- the only differences I can see are:
--- - the deconstruction and reconstruction of Node
--- - the name of the connection function
-internalFan
-  :: forall n outputChannels lock0 lock1 payload
-   . (String -> String)
-  -> Vec n (Node outputChannels lock0 payload)
-  -> ( Vec n (Node outputChannels lock1 payload)
-       -> (Node outputChannels lock0 payload -> Node outputChannels lock1 payload)
-       -> Event (Event (StreamingAudio outputChannels lock1 payload))
-     )
-  -> Node outputChannels lock0 payload
-internalFan scopeF gaga closure = Node go
-  where
-  go psr di = makeEvent \k -> do
-    av <- mutAr (map (const "") $ toArray gaga)
-    let
-      actualized = oneOf $ mapWithIndex
-        ( \ix (Node gogo) ->
-            gogo
-              { parent: "@fan@"
-              , scope: scopeF psr.scope
-              , raiseId: \id -> unsafeUpdateMutAr ix id av
-              }
-              di
-        )
-        gaga
-    u0 <- subscribe actualized k
-    av2 <- AVar.empty
-    let
-      asIds :: Array String -> Vec n String
-      asIds = unsafeCoerce
-    idz <- asIds <$> readAr av
-    let
-      injectable = map
-        ( \id -> Node
-            -- this works because, in the Web Audio API,
-            -- connect is a no-op when the node is already connected
-            -- so we don't need to track whether it is or not
-            \{ parent } (AudioInterpret { connectXToY }) ->
-              bang (connectXToY { from: id, to: parent })
-        )
-        idz
-      realized = __internalWagsFlatten psr.parent di
-        (proof (coerce (closure injectable (\(Node q) -> Node q))))
-    u <- subscribe realized k
-    void $ tryPut u av2
-    -- cancel immediately, as it should be run synchronously
-    -- so if this actually does something then we have a problem
-    pure do
-      u0
-      cncl2 <- AVar.take av2 \q -> case q of
-        Right usu -> usu
-        Left e -> throwException e
-      -- cancel immediately, as it should be run synchronously
-      -- so if this actually does something then we have a problem
-      cncl2
-
-globalFan
-  :: forall n outputChannels lock payload
-   . Vec n (Node outputChannels lock payload)
-  -> (Vec n (Node outputChannels lock payload) -> Event (Event (StreamingAudio outputChannels lock payload)))
-  -> Node outputChannels lock payload
-globalFan e f = internalFan (const "@portal@") e (\x _ -> f x)
-
-fan
-  :: forall n outputChannels lock0 payload
-   . Vec n (Node outputChannels lock0 payload)
-  -> ( forall lock1
-        . Vec n (Node outputChannels lock1 payload)
-       -> (Node outputChannels lock0 payload -> Node outputChannels lock1 payload)
-       -> Event (Event (StreamingAudio outputChannels lock1 payload))
-     )
-  -> Node outputChannels lock0 payload
-fan e = internalFan identity e
-
-fix
-  :: forall outputChannels lock payload
-   . (Node outputChannels lock payload -> Node outputChannels lock payload)
-  -> Node outputChannels lock payload
-fix f = Node go
-  where
-  go i di@(AudioInterpret { connectXToY }) = makeEvent \k -> do
-          av <- AVar.empty
-          let
-            -- REWRITE WITH AVAR
-            Node nn = f $ Node \ii _ -> makeEvent \k -> do
-              -- we never unsubscribe, as we always need this value
-              void $ AVar.read av case _ of
-                Left e -> throwException e
-                -- if r is equal to the parent, then we've done fix identity
-                Right r ->  when (r /= ii.parent) (k (connectXToY { from: r, to: ii.parent }))
-              pure (pure unit)
-          subscribe
-            ( nn
-                { parent: i.parent
-                , scope: i.scope
-                , raiseId: \s -> do
-                    i.raiseId s
-                    void $ tryPut s av
-                }
-                di
-            )
-            k
-
-silence
-  :: forall outputChannels lock payload
-   . Node outputChannels lock payload
-silence = fix identity
-
 type Node' payload =
   { parent :: String
   , scope :: String
@@ -242,6 +119,84 @@ newtype Node outputChannels lock payload = Node (Node' payload)
 data StreamingAudio outputChannels lock payload
   = Sound (Node outputChannels lock payload)
   | Silence
+
+--
+class Mix sound board | sound -> board where
+  mix :: sound -> board
+
+type Streamy outputChannels lock payload = Event (Event (StreamingAudio outputChannels lock payload))
+
+instance
+  ( TypeEquals outputChannelsi outputChannelso
+  , TypeEquals locki locko
+  , TypeEquals payloadi payloado
+  ) =>
+  Mix (Event (Event (StreamingAudio outputChannelsi locki payloadi)))
+    (Event (Event (StreamingAudio outputChannelso locko payloado))) where
+  mix i = proof (coerce i)
+
+instance
+  ( TypeEquals outputChannelsi outputChannelso
+  , TypeEquals locki locko
+  , TypeEquals payloadi payloado
+  ) =>
+  Mix (Event (Event (Node outputChannelsi locki payloadi)))
+    (Event (Event (StreamingAudio outputChannelso locko payloado))) where
+  mix i = proof (coerce ((map <<< map) Sound i))
+
+instance
+  ( TypeEquals outputChannelsi outputChannelso
+  , TypeEquals locki locko
+  , TypeEquals payloadi payloado
+  ) =>
+  Mix (Event (StreamingAudio outputChannels locki payloadi))
+    (Event (Event (StreamingAudio outputChannelso locko payloado))) where
+  mix i = proof (coerce (bang i))
+
+instance
+  ( TypeEquals outputChannelsi outputChannelso
+  , TypeEquals locki locko
+  , TypeEquals payloadi payloado
+  ) =>
+  Mix (Event (Node outputChannelsi locki payloadi))
+    (Event (Event (StreamingAudio outputChannelso locko payloado))) where
+  mix i = proof (coerce ((bang <<< map Sound) i))
+
+instance
+  ( TypeEquals outputChannelsi outputChannelso
+  , TypeEquals locki locko
+  , TypeEquals payloadi payloado
+  ) =>
+  Mix (Node outputChannelsi locki payloadi) (Event (Event (StreamingAudio outputChannelso locko payloado))) where
+  mix i = proof (coerce ((bang <<< bang <<< Sound) i))
+
+instance
+  ( TypeEquals outputChannelsi outputChannelso
+  , TypeEquals locki locko
+  , TypeEquals payloadi payloado
+  ) =>
+  Mix (Array (Node outputChannelsi locki payloadi))
+    (Event (Event (StreamingAudio outputChannelso locko payloado))) where
+  mix i = proof (coerce (oneOfMap bang $ map (bang <<< Sound) i))
+
+instance
+  ( TypeEquals outputChannelsi outputChannelso
+  , TypeEquals locki locko
+  , TypeEquals payloadi payloado
+  ) =>
+  Mix (Array (Event (Node outputChannelsi locki payloadi)))
+    (Event (Event (StreamingAudio outputChannelso locko payloado))) where
+  mix i = proof (coerce (oneOfMap bang $ (map <<< map) Sound i))
+
+instance
+  ( TypeEquals outputChannelsi outputChannelso
+  , TypeEquals locki locko
+  , TypeEquals payloadi payloado
+  ) =>
+  Mix (StreamingAudio outputChannelsi locki payloadi)
+    (Event (Event (StreamingAudio outputChannelso locko payloado))) where
+  mix i = proof (coerce ((bang <<< bang) i))
+--
 
 newtype RealImg = RealImg { real :: Array Number, img :: Array Number }
 
@@ -302,10 +257,6 @@ type DisconnectXFromY_ = (from :: String, to :: String)
 type DisconnectXFromY = { | DisconnectXFromY_ }
 type DisconnectXFromY' =
   { fromUnit :: String, toUnit :: String | DisconnectXFromY_ }
-
-type DestroyUnit_ = (id :: String)
-type DestroyUnit = { | DestroyUnit_ }
-type DestroyUnit' = { unit :: String | DestroyUnit_ }
 
 derive instance newtypeAllpass :: Newtype Allpass _
 newtype Allpass = Allpass
@@ -971,8 +922,7 @@ type SetFrequency = { id :: String, frequency :: AudioParameter }
 type SetWaveShaperCurve = { id :: String, curve :: BrowserFloatArray }
 
 newtype AudioInterpret payload = AudioInterpret
-  { ids :: Behavior String
-  , destroyUnit :: DestroyUnit -> payload
+  { ids :: Effect String
   , disconnectXFromY :: DisconnectXFromY -> payload
   , connectXToY :: ConnectXToY -> payload
   , makeAllpass :: MakeAllpass -> payload
@@ -1051,7 +1001,8 @@ __internalWagsFlatten parent di@(AudioInterpret { ids, disconnectXFromY }) child
           myUnsub <- Ref.new (pure unit)
           myImmediateCancellation <- Ref.new (pure unit)
           rn <- map show Random.random
-          c0 <- subscribe (sampleBy (/\) ids inner) \(newScope /\ kid') ->
+          c0 <- subscribe inner \ kid' -> do
+            newScope <- ids
             case kid' of
               Silence -> do
                 let

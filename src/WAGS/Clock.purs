@@ -2,7 +2,7 @@ module WAGS.Clock where
 
 import Prelude
 
-import Data.Foldable (for_, traverse_)
+import Data.Foldable (traverse_)
 import Data.Int (round)
 import Data.Maybe (Maybe(..))
 import Effect.Ref (new, read, write)
