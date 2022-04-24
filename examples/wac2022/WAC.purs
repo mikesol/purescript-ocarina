@@ -11,11 +11,11 @@ import Data.Variant (Variant, match)
 import Deku.Attribute (cb, (:=))
 import Deku.Control (text)
 import Deku.DOM as D
-import Deku.Toplevel ((🚀))
+import Deku.Toplevel (runInBody)
 import Effect (Effect)
 import FRP.Event (Event, keepLatest)
 import FRP.Event.Class (bang, filterMap)
-import FRP.Event.Memoize (memoize)
+
 import Type.Proxy (Proxy(..))
 import WAGS.Clock (interval)
 import WAGS.Control (gain, gain_, sinOsc)

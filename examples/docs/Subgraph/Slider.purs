@@ -14,8 +14,7 @@ import Deku.Attribute (cb, (:=))
 import Deku.Control (text, text_)
 import Deku.Core (SubgraphF(..))
 import Deku.DOM as D
-import Deku.Subgraph ((@@))
-import Deku.Subgraph as Sg
+
 import Deku.Toplevel ((🚆))
 import Effect (Effect)
 import Effect.Aff (launchAff_)

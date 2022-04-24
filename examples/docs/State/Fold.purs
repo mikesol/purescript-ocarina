@@ -11,12 +11,12 @@ import Data.Vec as V
 import Deku.Attribute (cb, (:=))
 import Deku.Control (text)
 import Deku.DOM as D
-import Deku.Toplevel ((🚀))
+import Deku.Toplevel (runInBody)
 import Effect (Effect)
 import FRP.Behavior (sampleBy, sample_, step)
 import FRP.Event.Animate (animationFrameEvent)
 import FRP.Event.Class (bang, filterMap, fold, mapAccum, sampleOn)
-import FRP.Event.Memoize (memoize)
+
 import Math (pi, sin)
 import Type.Proxy (Proxy(..))
 import WAGS.Clock (withACTime)

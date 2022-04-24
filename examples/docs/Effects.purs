@@ -15,14 +15,13 @@ import Deku.Control (text, text_)
 import Deku.Core (Element, SubgraphF(..))
 import Deku.DOM as D
 import Deku.Pursx (nut, (~~))
-import Deku.Subgraph ((@@))
-import Deku.Subgraph as Sg
+
 import Effect (Effect)
 import FRP.Behavior (sampleBy, sample_, step)
 import FRP.Event (Event, filterMap, fold, mapAccum, sampleOn)
 import FRP.Event.Animate (animationFrameEvent)
 import FRP.Event.Class (class IsEvent, bang, biSampleOn)
-import FRP.Event.Memoize (memoize)
+
 import Math (pi, sin)
 import Type.Proxy (Proxy(..))
 import WAGS.Clock (withACTime)

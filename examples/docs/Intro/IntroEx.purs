@@ -26,8 +26,6 @@ import Deku.Core (Element, SubgraphF(..))
 import Deku.Core (SubgraphF(..))
 import Deku.DOM as D
 import Deku.Pursx (makePursx', nut)
-import Deku.Subgraph (subgraph, (@@))
-import Deku.Subgraph as Sg
 import Effect (Effect, foreachE)
 import Effect.Aff (launchAff, launchAff_)
 import Effect.Class (liftEffect)

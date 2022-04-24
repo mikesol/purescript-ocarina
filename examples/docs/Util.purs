@@ -10,8 +10,7 @@ import Deku.Attribute (cb, (:=))
 import Deku.Control (text, text_)
 import Deku.Core (Element, SubgraphF(..))
 import Deku.DOM as D
-import Deku.Subgraph ((@@))
-import Deku.Subgraph as Sg
+
 import Effect (Effect)
 import Effect.Aff (Aff, Fiber, bracket, error, joinFiber, killFiber, launchAff, launchAff_, parallel, sequential)
 import Effect.Class (liftEffect)

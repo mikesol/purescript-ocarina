@@ -17,7 +17,7 @@ import Deku.Control (deku, flatten, text_)
 import Deku.Core (Element, Subgraph, SubgraphF(..))
 import Deku.DOM as D
 import Deku.Interpret (effectfulDOMInterpret, makeFFIDOMSnapshot)
-import Deku.Subgraph (SubgraphAction(..), subgraph)
+
 import Effect (Effect)
 import Effect.Aff (launchAff_, try)
 import Effect.Class (liftEffect)
@@ -28,8 +28,6 @@ import WAGS.Example.HelloWorld as HelloWorld
 import WAGS.Example.MultiBuf as MultiBuf
 import WAGS.Example.StressTest as StressTest
 import WAGS.Example.Subgraph as Subg
-import WAGS.Example.Tumult as Tummult
-import WAGS.Example.Tumult as Tumult
 import WAGS.Example.Utils (ToCancel)
 import WAGS.Interpret (close)
 import Web.HTML (window)

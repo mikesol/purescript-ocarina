@@ -15,14 +15,13 @@ import Deku.Control (text, text_)
 import Deku.Core (Element, SubgraphF(..))
 import Deku.DOM as D
 import Deku.Pursx (nut, (~~))
-import Deku.Subgraph ((@@))
-import Deku.Subgraph as Sg
+
 import Effect (Effect)
 import FRP.Behavior (sampleBy, sample_, step)
 import FRP.Event (Event, filterMap, fold, mapAccum, sampleOn)
 import FRP.Event.Animate (animationFrameEvent)
 import FRP.Event.Class (class IsEvent, bang, biSampleOn)
-import FRP.Event.Memoize (memoize)
+
 import Math (pi, sin)
 import Type.Proxy (Proxy(..))
 import WAGS.Clock (withACTime)
@@ -47,7 +46,7 @@ import Data.Vec as V
 import Deku.Attribute (cb, (:=))
 import Deku.Control (text)
 import Deku.DOM as D
-import Deku.Toplevel ((🚀))
+import Deku.Toplevel (runInBody)
 import Effect (Effect)
 import Effect.Random (randomInt)
 import FRP.Behavior (ABehavior, Behavior, behavior, sample, sampleBy, sample_, step, switcher)
@@ -55,7 +54,7 @@ import FRP.Behavior.Mouse (buttons)
 import FRP.Behavior.Time as Time
 import FRP.Event.Animate (animationFrameEvent)
 import FRP.Event.Class (class IsEvent, bang, filterMap, fix, fold, sampleOn, withLast)
-import FRP.Event.Memoize (memoize)
+
 import FRP.Event.Mouse (Mouse, down, getMouse)
 import Test.QuickCheck (arbitrary, mkSeed)
 import Test.QuickCheck.Gen (evalGen)
@@ -199,7 +198,7 @@ import Data.Vec as V
 import Deku.Attribute (cb, (:=))
 import Deku.Control (text)
 import Deku.DOM as D
-import Deku.Toplevel ((🚀))
+import Deku.Toplevel (runInBody)
 import Effect (Effect)
 import Effect.Random (randomInt)
 import FRP.Behavior (ABehavior, Behavior, behavior, sample, sampleBy, sample_, step, switcher)
@@ -207,7 +206,7 @@ import FRP.Behavior.Mouse (buttons)
 import FRP.Behavior.Time as Time
 import FRP.Event.Animate (animationFrameEvent)
 import FRP.Event.Class (class IsEvent, bang, filterMap, fix, fold, sampleOn, withLast)
-import FRP.Event.Memoize (memoize)
+
 import FRP.Event.Mouse (Mouse, down, getMouse)
 import Test.QuickCheck (arbitrary, mkSeed)
 import Test.QuickCheck.Gen (evalGen)

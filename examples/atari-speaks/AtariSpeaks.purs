@@ -18,7 +18,7 @@ import Deku.Control (deku, text, text_)
 import Deku.Core (SubgraphF(..))
 import Deku.DOM as DOM
 import Deku.Interpret (effectfulDOMInterpret, makeFFIDOMSnapshot)
-import Deku.Subgraph (SubgraphAction(..), subgraph)
+
 import Effect (Effect)
 import Effect.Aff (Aff, launchAff_)
 import Effect.Class (liftEffect)

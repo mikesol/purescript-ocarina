@@ -17,7 +17,7 @@ import Deku.Control (deku, text, text_)
 import Deku.Core (Element, SubgraphF(..))
 import Deku.DOM as DOM
 import Deku.Interpret (effectfulDOMInterpret, makeFFIDOMSnapshot)
-import Deku.Subgraph (SubgraphAction(..), subgraph)
+
 import Effect (Effect)
 import Effect.Aff (Aff, launchAff_)
 import Effect.Class (liftEffect)
@@ -25,9 +25,6 @@ import FRP.Behavior (sample_)
 import FRP.Event (Event, class IsEvent, subscribe)
 import FRP.Event.Animate (animationFrameEvent)
 import FRP.Event.Class (bang)
-import FRP.Event.Memoizable as Memoizable
-import FRP.Event.Memoize (class MemoizableEvent, memoizeIfMemoizable)
-import FRP.Event.Memoized as Memoized
 import Math (pi, sin, (%))
 import WAGS.Clock (WriteHead, fot, writeHead)
 import WAGS.Control (gain, sinOsc, speaker2)

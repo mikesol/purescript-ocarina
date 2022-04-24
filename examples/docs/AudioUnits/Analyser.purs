@@ -22,8 +22,7 @@ import Deku.Control (text)
 import Deku.Core (Element, SubgraphF(..))
 import Deku.DOM as D
 import Deku.Pursx (nut, (~~))
-import Deku.Subgraph ((@@))
-import Deku.Subgraph as Sg
+
 import Effect (Effect, foreachE)
 import Effect.Ref (modify_, new, read, write)
 import FRP.Event (Event, class IsEvent, Event, create, sampleOn_, subscribe)

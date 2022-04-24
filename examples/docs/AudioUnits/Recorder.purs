@@ -14,8 +14,7 @@ import Deku.Control (text)
 import Deku.Core (Element, SubgraphF(..))
 import Deku.DOM as D
 import Deku.Pursx (nut, (~~))
-import Deku.Subgraph ((@@))
-import Deku.Subgraph as Sg
+
 import Effect (Effect)
 import Effect.AVar as AVar
 import Effect.Aff (launchAff, launchAff_, try)

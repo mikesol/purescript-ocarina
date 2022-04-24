@@ -15,8 +15,7 @@ import Deku.Control (text, text_)
 import Deku.Core (Element, SubgraphF(..))
 import Deku.DOM as D
 import Deku.Pursx (makePursx', nut)
-import Deku.Subgraph ((@@))
-import Deku.Subgraph as Sg
+
 import Effect (Effect)
 import FRP.Event (Event)
 import FRP.Event.Class (bang, biSampleOn)
@@ -99,7 +98,7 @@ import Data.Profunctor (lcmap)
 import Deku.Attribute (cb, (:=))
 import Deku.Control (text)
 import Deku.DOM as D
-import Deku.Toplevel ((🚀))
+import Deku.Toplevel (runInBody)
 import Effect (Effect)
 import FRP.Event.Class (bang)
 import Math (pow)

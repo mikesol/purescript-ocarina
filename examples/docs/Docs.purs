@@ -17,7 +17,7 @@ import Deku.Control (deku, flatten, text_)
 import Deku.Core (Element, Subgraph, SubgraphF(..))
 import Deku.DOM as D
 import Deku.Interpret (effectfulDOMInterpret, makeFFIDOMSnapshot)
-import Deku.Subgraph (SubgraphAction(..), subgraph)
+
 import Effect (Effect)
 import FRP.Event (Event, class IsEvent, create, fold, keepLatest, subscribe)
 import FRP.Event.Class (bang)

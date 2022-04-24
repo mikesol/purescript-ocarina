@@ -11,7 +11,6 @@ in      conf
               , "canvas"
               , "lcg"
               , "deku"
-              , "deku-toplevel"
               , "transformers"
               , "js-timers"
               , "nonempty"

@@ -14,7 +14,7 @@ import Data.Vec as V
 import Deku.Attribute (cb, (:=))
 import Deku.Control (text)
 import Deku.DOM as D
-import Deku.Toplevel ((🚀))
+import Deku.Toplevel (runInBody)
 import Effect (Effect)
 import Effect.Random (randomInt)
 import FRP.Behavior (ABehavior, Behavior, behavior, sample, sampleBy, sample_, step, switcher)
@@ -22,7 +22,6 @@ import FRP.Behavior.Mouse (buttons)
 import FRP.Behavior.Time as Time
 import FRP.Event.Animate (animationFrameEvent)
 import FRP.Event.Class (class IsEvent, bang, filterMap, fix, fold, sampleOn, withLast)
-import FRP.Event.Memoize (memoize)
 import FRP.Event.Mouse (Mouse, down, getMouse)
 import Test.QuickCheck (arbitrary, mkSeed)
 import Test.QuickCheck.Gen (evalGen)

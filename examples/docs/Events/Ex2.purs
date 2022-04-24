@@ -13,8 +13,7 @@ import Deku.Control (text, text_)
 import Deku.Core (Element, SubgraphF(..))
 import Deku.DOM as D
 import Deku.Pursx (makePursx', nut)
-import Deku.Subgraph ((@@))
-import Deku.Subgraph as Sg
+
 import Effect (Effect)
 import Effect.Aff (launchAff, launchAff_)
 import Effect.Class (liftEffect)
@@ -22,7 +21,7 @@ import Effect.Random as Random
 import FRP.Behavior (behavior, sampleBy)
 import FRP.Event (Event, makeEvent, subscribe)
 import FRP.Event.Class (bang, biSampleOn, filterMap)
-import FRP.Event.Memoize (memoize)
+
 import Type.Proxy (Proxy(..))
 import WAGS.Clock (interval)
 import WAGS.Control (bandpass_, gain, gain_, highpass_, triangleOsc)
@@ -78,13 +77,13 @@ import Data.Variant (Variant, match)
 import Deku.Attribute (cb, (:=))
 import Deku.Control (text, text_)
 import Deku.DOM as D
-import Deku.Toplevel ((🚀))
+import Deku.Toplevel (runInBody)
 import Effect (Effect)
 import Effect.Random as Random
 import FRP.Behavior (behavior, sampleBy)
 import FRP.Event (makeEvent, subscribe)
 import FRP.Event.Class (bang, filterMap)
-import FRP.Event.Memoize (memoize)
+
 import Type.Proxy (Proxy(..))
 import WAGS.Clock (interval)
 import WAGS.Control (bandpass_, gain, gain_, highpass_, triangleOsc)
