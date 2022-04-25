@@ -22,29 +22,29 @@ px =
   <pre><code>\buf -> run2_
   [
     notch_ { frequency: 400.0, q: 1.0 }
-    $ pure $ notch_ { frequency: 880.0, q: 5.0 }
-    $ pure $ notch_ { frequency: 1200.0, q: 10.0 }
-    $ pure $ notch_ { frequency: 2000.0, q: 20.0 }
-    $ pure $ notch_ { frequency: 3000.0, q: 30.0 }
-    $ pure $ loopBuf buf bangOn
+    $ notch_ { frequency: 880.0, q: 5.0 }
+    $ notch_ { frequency: 1200.0, q: 10.0 }
+    $ notch_ { frequency: 2000.0, q: 20.0 }
+    $ notch_ { frequency: 3000.0, q: 30.0 }
+    $ loopBuf buf bangOn
   ]</code></pre>
 
   ~notch~
   </section>
 """
 
-notch :: forall payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Element Event payload
+notch :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Element lock payload
 notch ccb _ ev = px ~~
   { notch: nut
       ( audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
           \ctx buf -> run2 ctx
             [
               notch_ { frequency: 400.0, q: 1.0 }
-              $ pure $ notch_ { frequency: 880.0, q: 5.0 }
-              $ pure $ notch_ { frequency: 1200.0, q: 10.0 }
-              $ pure $ notch_ { frequency: 2000.0, q: 20.0 }
-              $ pure $ notch_ { frequency: 3000.0, q: 30.0 }
-              $ pure $ loopBuf buf bangOn
+              $ notch_ { frequency: 880.0, q: 5.0 }
+              $ notch_ { frequency: 1200.0, q: 10.0 }
+              $ notch_ { frequency: 2000.0, q: 20.0 }
+              $ notch_ { frequency: 3000.0, q: 30.0 }
+              $ loopBuf buf bangOn
             ]
       )
   }

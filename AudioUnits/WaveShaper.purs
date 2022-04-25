@@ -31,7 +31,7 @@ px =
 """
 
 waveShaperEx
-  :: forall payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Element Event payload
+  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Element lock payload
 waveShaperEx ccb _ ev = px ~~
   { code: nut
       ( text_

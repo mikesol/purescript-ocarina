@@ -27,11 +27,11 @@ px =
 """
 
 square
-  :: forall payload
+  :: forall lock payload
    . CancelCurrentAudio
   -> (Page -> Effect Unit)
   -> Event SingleSubgraphEvent
-  -> Element Event payload
+  -> Element lock payload
 square ccb _ ev = px ~~
   { periodic: nut
       ( audioWrapper ev ccb (\_ -> pure unit)

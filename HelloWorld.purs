@@ -56,12 +56,12 @@ px =
 </div>"""
 
 helloWorld
-  :: forall payload
+  :: forall lock payload
    . CancelCurrentAudio
   -> (Page -> Effect Unit)
   -> SingleSubgraphPusher
   -> Event SingleSubgraphEvent
-  -> Element Event payload
+  -> Element lock payload
 helloWorld cca' dpage ssp ev = makePursx' (Proxy :: _ "@") px
   { code: nut
       ( D.pre_

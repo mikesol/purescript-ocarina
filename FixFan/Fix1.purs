@@ -9,17 +9,17 @@ import Effect (Effect)
 import FRP.Event (Event)
 import FRP.Event.Class (bang)
 import Type.Proxy (Proxy(..))
-import WAGS.Control (delay_, gain, gain_, highpass_, playBuf)
-import WAGS.Core (fan, fix)
+import WAGS.Control (delay_, fan1, fix, gain, gain_, highpass_, playBuf)
+import WAGS.Core (mix)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import WAGS.Example.Docs.Util (audioWrapper)
-import WAGS.Interpret (bracketCtx, decodeAudioDataFromUri)
+import WAGS.Interpret (decodeAudioDataFromUri)
 import WAGS.Parameter (AudioEnvelope(..), bangOn)
 import WAGS.Properties as P
-import WAGS.Run (run2, run2_)
+import WAGS.Run (run2)
 
 px =
-  Proxy    :: Proxy         """<div>
+  Proxy    :: Proxy      """<div>
   <pre><code>@txt@</code></pre>
 
   @ai0@
@@ -37,7 +37,7 @@ fade1 = bang
   $ P.gain
   $ AudioEnvelope { p: [ 1.0, 1.0, 0.0 ], o: 0.0, d: 10.0 }
 
-fix1 :: forall payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Element Event payload
+fix1 :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Element lock payload
 fix1 ccb _ ev = makePursx' (Proxy :: _ "@") px
   { txt: nut $ text_
       """dgh d g h i =
@@ -52,7 +52,7 @@ fade1 = bang
   $ AudioEnvelope { p: [1.0, 1.0, 0.0], o: 0.0, d: 10.0 }
 
 scene buf = run2_
-  [ fan (playBuf buf bangOn) \b -> fix
+  [ fan1 (playBuf buf bangOn) \b _ -> mix $ fix
       \g0 -> gain_ 1.0
         [ b
         , dgh 0.15 0.7 1500.0
@@ -82,7 +82,7 @@ scene buf = run2_
   , ai0: nut
       ( audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/178/178660_717950-lq.mp3")
           \ctx buf -> run2 ctx
-            [ fan (playBuf buf bangOn) \b -> fix
+            [ fan1 (playBuf buf bangOn) \b _ -> mix $ fix
                 \g0 -> gain_ 1.0
                   [ b
                   , dgh 0.15 0.7 1500.0

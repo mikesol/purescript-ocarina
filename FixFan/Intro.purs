@@ -39,7 +39,7 @@ px = Proxy :: Proxy
       </ul>
   </section>"""
 
-ffIntro :: forall payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent  -> Element Event payload
+ffIntro :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent  -> Element lock payload
 ffIntro cca' dpage ssp ev = makePursx'  (Proxy :: _ "@") px
   { hwLink: mnx HelloWorld
   }

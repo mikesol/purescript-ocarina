@@ -25,7 +25,7 @@ px = Proxy :: Proxy """<section>
   </section>
 """
 
-convolution :: forall payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Element Event payload
+convolution :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Element lock payload
 convolution ccb _ ev = px ~~
   { convolution: nut
       ( audioWrapper ev ccb (\ctx -> { loop: _, verb: _ }

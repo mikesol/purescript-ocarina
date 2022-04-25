@@ -22,7 +22,7 @@ px = Proxy :: Proxy
 
 </section>"""
 
-flavors :: forall payload. Element Event payload
+flavors :: forall lock payload. Element lock payload
 flavors = makePursx'  (Proxy :: _ "@") px
   {
   }

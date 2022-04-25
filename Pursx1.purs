@@ -129,7 +129,7 @@ px = Proxy :: Proxy """<div>
 </div>"""
 
 
-pursx1 :: forall payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent -> Element Event payload
+pursx1 :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent -> Element lock payload
 pursx1 _ dpage _ _ = px ~~
   { next: bang (D.OnClick := (cb (const $ dpage Events *> scrollToTop)))
   }

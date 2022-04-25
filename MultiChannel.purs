@@ -35,7 +35,7 @@ px = Proxy :: Proxy
   <p>In this section, saw how to merge and split audio. In the next section, we'll look at how to work with <a ~next~ style="cursor:pointer;">custom audio worklets</a>.</p>
 </div>"""
 
-multiChannel :: forall payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent  -> Element Event payload
+multiChannel :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent  -> Element lock payload
 multiChannel _ dpage _ _ = px ~~
   { next: bang (D.OnClick := (cb (const $ dpage AudioWorklets *> scrollToTop)))
   }

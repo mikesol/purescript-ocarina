@@ -34,7 +34,7 @@ px =
   </div>
 """
 
-ai0 :: forall payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Element Event payload
+ai0 :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Element lock payload
 ai0 ccb _ ev = makePursx' (Proxy :: _ "@") px
   { ai0: nut
       ( audioWrapper ev ccb

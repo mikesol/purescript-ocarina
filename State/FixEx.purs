@@ -3,39 +3,6 @@ module WAGS.Example.Docs.FixEx where
 import Prelude
 
 import Control.Alt ((<|>))
-import Control.Plus (class Plus)
-import Data.Exists (mkExists)
-import Data.Foldable (oneOf)
-import Data.Tuple.Nested ((/\))
-import Data.Variant (Variant, match)
-import Data.Vec ((+>))
-import Data.Vec as V
-import Deku.Attribute (cb, (:=))
-import Deku.Control (text, text_)
-import Deku.Core (Element, SubgraphF(..))
-import Deku.DOM as D
-import Deku.Pursx (nut, (~~))
-import Deku.Subgraph ((@@))
-import Deku.Subgraph as Sg
-import Effect (Effect)
-import FRP.Behavior (sampleBy, sample_, step)
-import FRP.Event (Event, filterMap, fold, mapAccum, sampleOn)
-import FRP.Event.Animate (animationFrameEvent)
-import FRP.Event.Class (class IsEvent, bang, biSampleOn)
-import FRP.Event.Memoize (memoize)
-import Math (pi, sin)
-import Type.Proxy (Proxy(..))
-import WAGS.Clock (withACTime)
-import WAGS.Control (gain, periodicOsc)
-import WAGS.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent(..), SingleSubgraphPusher)
-import WAGS.Example.Docs.Util (scrollToTop)
-import WAGS.Interpret (close, context)
-import WAGS.Math (calcSlope)
-import WAGS.Parameter (AudioNumeric(..), _linear, bangOn)
-import WAGS.Properties as P
-import WAGS.Run (run2)
-import WAGS.Variant (injs_, prjs_)
-import Control.Alt ((<|>))
 import Data.Maybe (Maybe(..))
 import Data.Newtype (unwrap)
 import Data.Profunctor.Strong (second)
@@ -45,32 +12,37 @@ import Data.Variant (Variant, match)
 import Data.Vec ((+>))
 import Data.Vec as V
 import Deku.Attribute (cb, (:=))
-import Deku.Control (text)
+import Deku.Control (text, text_)
+import Deku.Core (Element)
 import Deku.DOM as D
-import Deku.Toplevel ((🚀))
+import Deku.Pursx (nut, (~~))
 import Effect (Effect)
 import Effect.Random (randomInt)
 import FRP.Behavior (ABehavior, Behavior, behavior, sample, sampleBy, sample_, step, switcher)
 import FRP.Behavior.Mouse (buttons)
 import FRP.Behavior.Time as Time
+import FRP.Event (Event, bus, memoize)
 import FRP.Event.Animate (animationFrameEvent)
-import FRP.Event.Class (class IsEvent, bang, filterMap, fix, fold, sampleOn, withLast)
-import FRP.Event.Memoize (memoize)
+import FRP.Event.Class (class IsEvent, bang, biSampleOn, filterMap, fix, fold, sampleOn, withLast)
 import FRP.Event.Mouse (Mouse, down, getMouse)
 import Test.QuickCheck (arbitrary, mkSeed)
 import Test.QuickCheck.Gen (evalGen)
 import Type.Proxy (Proxy(..))
 import WAGS.Clock (withACTime)
 import WAGS.Control (bandpass_, gain, lowpass_, periodicOsc, squareOsc_)
+import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..), SingleSubgraphPusher)
 import WAGS.Interpret (close, context)
 import WAGS.Parameter (AudioNumeric(..), _linear, bangOn)
 import WAGS.Properties as P
-import WAGS.Run (run2)
+import WAGS.Run (run2e)
 import WAGS.Variant (injs_, prjs_)
 
 type StartStop = Variant (start :: Unit, stop :: Effect Unit)
-ssi = injs_ (Proxy :: _ StartStop)
+ssi ::_
+ssi = injs_ (Proxy :: Proxy StartStop)
+start :: _
 start = uii.startStop (ssi.start unit)
+stop :: _
 stop r = uii.startStop (ssi.stop r)
 
 type UIEvents = Variant
@@ -78,8 +50,9 @@ type UIEvents = Variant
   , startStop :: StartStop
   )
 
-uii = injs_ (Proxy :: _ UIEvents)
-uip = prjs_ (Proxy :: _ UIEvents)
+
+uii = injs_ (Proxy :: Proxy UIEvents)
+uip = prjs_ (Proxy :: Proxy UIEvents)
 
 -- `swell` is an interactive function of time defined by a differential equation:
 --
@@ -180,7 +153,7 @@ px =
   <p>When working with stateful events, a good way to decide if you should use <code>fold</code> versus <code>fix</code> is to ask the following question: can I incrementally change my state based on an initial state, or is my state defined in terms of how it changes? If you can incrementally change your state, go with <code>fold</code>. If, on the other hand, your state is defined in terms of how it changes, go with <code>fix</code>.</p>
 </section>"""
 
-fixEx :: forall payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent -> Element Event payload
+fixEx :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent -> Element lock payload
 fixEx ccb _ _ ev = px ~~
   { txt: nut $ text_
       """module Main where
@@ -190,6 +163,7 @@ import Prelude
 import Control.Alt ((<|>))
 import Data.Maybe (Maybe(..))
 import Data.Newtype (unwrap)
+import Data.Profunctor (lcmap)
 import Data.Profunctor.Strong (second)
 import Data.Set (isEmpty)
 import Data.Tuple.Nested ((/\))
@@ -199,25 +173,25 @@ import Data.Vec as V
 import Deku.Attribute (cb, (:=))
 import Deku.Control (text)
 import Deku.DOM as D
-import Deku.Toplevel ((🚀))
+import Deku.Toplevel (runInBody1)
 import Effect (Effect)
 import Effect.Random (randomInt)
 import FRP.Behavior (ABehavior, Behavior, behavior, sample, sampleBy, sample_, step, switcher)
 import FRP.Behavior.Mouse (buttons)
 import FRP.Behavior.Time as Time
+import FRP.Event (bus, memoize)
 import FRP.Event.Animate (animationFrameEvent)
 import FRP.Event.Class (class IsEvent, bang, filterMap, fix, fold, sampleOn, withLast)
-import FRP.Event.Memoize (memoize)
 import FRP.Event.Mouse (Mouse, down, getMouse)
 import Test.QuickCheck (arbitrary, mkSeed)
 import Test.QuickCheck.Gen (evalGen)
 import Type.Proxy (Proxy(..))
 import WAGS.Clock (withACTime)
 import WAGS.Control (bandpass_, gain, lowpass_, periodicOsc, squareOsc_)
-import WAGS.Interpret (close, context)
+import WAGS.Interpret (close, constant0Hack, context)
 import WAGS.Parameter (AudioNumeric(..), _linear, bangOn)
 import WAGS.Properties as P
-import WAGS.Run (run2)
+import WAGS.Run (run2e)
 import WAGS.Variant (injs_, prjs_)
 
 type StartStop = Variant (start :: Unit, stop :: Effect Unit)
@@ -314,162 +288,41 @@ swell mouse =
   integral' = integral (_ $ identity)
 
 main :: Effect Unit
-main = start 🚀 \push event -> do
-  let
-    ss = bang (ssi.start unit) <|> filterMap uip.startStop event
-  D.div_
-    [ D.button
-        ( ss <#>
-            \e -> D.OnClick := cb
-              ( const $ e # match
-                  { stop: \u -> u *> push start
-                  , start: \_ -> do
-                      ctx <- context
-                      afe <- animationFrameEvent
-                      mouse <- getMouse
-                      swm <- memoize
-                        $ map (\{ acTime, value } -> acTime /\ value)
-                        $ withACTime ctx
-                        $ sample_ (swell mouse) afe
-                      ri <- randomInt 0 10000
-                      let
-                        ttap (o /\ n) = AudioNumeric { o: o + 0.04, n, t: _linear }
-                        fund = 90.4
-                        spcn = map (_ - 0.5) arbitrary
-                        spc' = do
-                          a <- spcn
-                          b <- spcn
-                          c <- spcn
-                          d <- spcn
-                          pure (a +> b +> c +> d +> V.empty)
-                        spc = (/\) <$> spc' <*> spc'
-                        spcs = { s0: _, s1: _, s2: _, s3: _ } <$> spc <*> spc <*> spc <*> spc
-                        allSpcs = evalGen spcs { newSeed: mkSeed ri, size: 5 }
-                      r <- run2 ctx
-                        [ gain 0.0
-                            ( P.gain
-                                <<< ttap
-                                <<< second (\x -> max (-0.4) $ 0.5 * (x - 1.0)) <$> swm
-                            )
-                            [ lowpass_ { frequency: fund, q: 20.0 }
-                                [ squareOsc_ fund ]
-                            ]
-                        , gain 0.0
-                            ( P.gain
-                                <<< ttap
-                                <<< second (\x -> max (-0.2) $ 0.4 * (x - 3.0)) <$> swm
-                            )
-                            [ bandpass_ { frequency: fund * 4.0, q: 20.0 }
-                                [ periodicOsc
-                                    { frequency: (fund * 3.02)
-                                    , spec: allSpcs.s0
-                                    }
-                                    ( bangOn <|>
-                                        ( P.frequency
-                                            <<< ttap
-                                            <<< second (\x -> fund * 3.02 + 14.0 * (x - 1.0)) <$> swm
-                                        )
-                                    )
-                                ]
-                            ]
-                        , gain 0.0
-                            ( P.gain
-                                <<< ttap
-                                <<< second (\x -> max (-0.1) $ 0.2 * (x - 6.0)) <$> swm
-                            )
-                            [ bandpass_ { frequency: fund * 6.0, q: 20.0 }
-                                [ periodicOsc
-                                    { frequency: fund * 5.07
-                                    , spec: allSpcs.s1
-                                    }
-                                    ( bangOn <|>
-                                        ( P.frequency
-                                            <<< ttap
-                                            <<< second (\x -> fund * 5.07 + 18.0 * (x - 1.0)) <$> swm
-                                        )
-                                    )
-                                ]
-                            ]
-                        , gain 0.0
-                            ( P.gain
-                                <<< ttap
-                                <<< second (\x -> max 0.0 $ 0.2 * (x - 3.0)) <$> swm
-                            )
-                            [ bandpass_ { frequency: fund * 8.0, q: 20.0 }
-                                [ periodicOsc
-                                    { frequency: fund * 7.13
-                                    , spec: allSpcs.s2
-                                    }
-                                    ( bangOn <|>
-                                        ( P.frequency
-                                            <<< ttap
-                                            <<< second (\x -> fund * 7.13 + 32.0 * (x - 1.0)) <$> swm
-                                        )
-                                    )
-                                ]
-                            ]
-                        , gain 0.0
-                            ( P.gain
-                                <<< ttap
-                                <<< second (\x -> max 0.0 $ 0.1 * (x - 7.0)) <$> swm
-                            )
-                            [ periodicOsc
-                                { frequency: fund * 9.14
-                                , spec: allSpcs.s3
-                                }
-                                ( bangOn <|>
-                                    ( P.frequency
-                                        <<< ttap
-                                        <<< second (\x -> fund * 9.14 + 31.0 * (x - 1.0)) <$> swm
-                                    )
+main = runInBody1
+  ( bus \push -> lcmap (bang (uii.init unit) <|> _) \event -> do
+      let
+        ss = bang (ssi.start unit) <|> filterMap uip.startStop event
+      D.div_
+        [ D.button
+            ( ss <#>
+                \e -> D.OnClick := cb
+                  ( const $ e # match
+                      { stop: \u -> u *> push start
+                      , start: \_ -> do
+                          ctx <- context
+                          c0h <- constant0Hack ctx
+                          mouse <- getMouse
+                          ri <- randomInt 0 10000
+                          let
+                            ttap (o /\ n) = AudioNumeric { o: o + 0.04, n, t: _linear }
+                            fund = 90.4
+                            spcn = map (_ - 0.5) arbitrary
+                            spc' = do
+                              a <- spcn
+                              b <- spcn
+                              c <- spcn
+                              d <- spcn
+                              pure (a +> b +> c +> d +> V.empty)
+                            spc = (/\) <$> spc' <*> spc'
+                            spcs = { s0: _, s1: _, s2: _, s3: _ } <$> spc <*> spc <*> spc <*> spc
+                            allSpcs = evalGen spcs { newSeed: mkSeed ri, size: 5 }
+                          r <- run2e ctx
+                            ( memoize
+                                ( map (\{ acTime, value } -> acTime /\ value)
+                                    $ withACTime ctx
+                                    $ sample_ (swell mouse) animationFrameEvent
                                 )
-                            ]
-                        ]
-                      push $ (stop (r *> close ctx))
-                  }
-              )
-        )
-        [ text $ ss <#> match
-            { stop: \_ -> "Turn off"
-            , start: \_ -> "Turn on"
-            }
-        ]
-    ]"""
-  , empl: nut
-      ( bang (unit /\ Sg.Insert)
-          @@ \_ -> mkExists $ SubgraphF \push event -> do -- here
-            let
-              ss = bang (ssi.start unit) <|> filterMap uip.startStop event
-            D.div_
-              [ D.button
-                  ( (biSampleOn (bang (pure unit) <|> (map (\(SetCancel x) -> x) ev)) (map (/\) ss)) <#>
-                      \(e /\ cncl) -> D.OnClick := cb
-                        ( const $ e # match
-                            { stop: \u -> u *> push start *> ccb (pure unit)
-                            , start: \_ -> do
-                                cncl
-                                ctx <- context
-                                afe <- animationFrameEvent
-                                mouse <- getMouse
-                                swm <- memoize
-                                  $ map (\{ acTime, value } -> acTime /\ value)
-                                  $ withACTime ctx
-                                  $ sample_ (swell mouse) afe
-                                ri <- randomInt 0 10000
-                                let
-                                  ttap (o /\ n) = AudioNumeric { o: o + 0.04, n, t: _linear }
-                                  fund = 90.4
-                                  spcn = map (_ - 0.5) arbitrary
-                                  spc' = do
-                                    a <- spcn
-                                    b <- spcn
-                                    c <- spcn
-                                    d <- spcn
-                                    pure (a +> b +> c +> d +> V.empty)
-                                  spc = (/\) <$> spc' <*> spc'
-                                  spcs = { s0: _, s1: _, s2: _, s3: _ } <$> spc <*> spc <*> spc <*> spc
-                                  allSpcs = evalGen spcs { newSeed: mkSeed ri, size: 5 }
-                                r' <- run2 ctx
+                                \swm ->
                                   [ gain 0.0
                                       ( P.gain
                                           <<< ttap
@@ -549,6 +402,133 @@ main = start 🚀 \push event -> do
                                           )
                                       ]
                                   ]
+                            )
+                          push $ (stop (r *> c0h *> close ctx))
+                      }
+                  )
+            )
+            [ text $ ss <#> match
+                { stop: \_ -> "Turn off"
+                , start: \_ -> "Turn on"
+                }
+            ]
+        ]
+  )"""
+  , empl: nut
+      ( bus \push event -> do -- here
+            let
+              ss = bang (ssi.start unit) <|> filterMap uip.startStop event
+            D.div_
+              [ D.button
+                  ( (biSampleOn (bang (pure unit) <|> (map (\(SetCancel x) -> x) ev)) (map (/\) ss)) <#>
+                      \(e /\ cncl) -> D.OnClick := cb
+                        ( const $ e # match
+                            { stop: \u -> u *> push start *> ccb (pure unit)
+                            , start: \_ -> do
+                                cncl
+                                ctx <- context
+                                mouse <- getMouse
+                                ri <- randomInt 0 10000
+                                let
+                                  ttap (o /\ n) = AudioNumeric { o: o + 0.04, n, t: _linear }
+                                  fund = 90.4
+                                  spcn = map (_ - 0.5) arbitrary
+                                  spc' = do
+                                    a <- spcn
+                                    b <- spcn
+                                    c <- spcn
+                                    d <- spcn
+                                    pure (a +> b +> c +> d +> V.empty)
+                                  spc = (/\) <$> spc' <*> spc'
+                                  spcs = { s0: _, s1: _, s2: _, s3: _ } <$> spc <*> spc <*> spc <*> spc
+                                  allSpcs = evalGen spcs { newSeed: mkSeed ri, size: 5 }
+                                r' <- run2e ctx
+                                      ( memoize
+                                          ( map (\{ acTime, value } -> acTime /\ value)
+                                              $ withACTime ctx
+                                              $ sample_ (swell mouse) animationFrameEvent
+                                          )
+                                          \swm ->
+                                            [ gain 0.0
+                                                ( P.gain
+                                                    <<< ttap
+                                                    <<< second (\x -> max (-0.4) $ 0.5 * (x - 1.0)) <$> swm
+                                                )
+                                                [ lowpass_ { frequency: fund, q: 20.0 }
+                                                    [ squareOsc_ fund ]
+                                                ]
+                                            , gain 0.0
+                                                ( P.gain
+                                                    <<< ttap
+                                                    <<< second (\x -> max (-0.2) $ 0.4 * (x - 3.0)) <$> swm
+                                                )
+                                                [ bandpass_ { frequency: fund * 4.0, q: 20.0 }
+                                                    [ periodicOsc
+                                                        { frequency: (fund * 3.02)
+                                                        , spec: allSpcs.s0
+                                                        }
+                                                        ( bangOn <|>
+                                                            ( P.frequency
+                                                                <<< ttap
+                                                                <<< second (\x -> fund * 3.02 + 14.0 * (x - 1.0)) <$> swm
+                                                            )
+                                                        )
+                                                    ]
+                                                ]
+                                            , gain 0.0
+                                                ( P.gain
+                                                    <<< ttap
+                                                    <<< second (\x -> max (-0.1) $ 0.2 * (x - 6.0)) <$> swm
+                                                )
+                                                [ bandpass_ { frequency: fund * 6.0, q: 20.0 }
+                                                    [ periodicOsc
+                                                        { frequency: fund * 5.07
+                                                        , spec: allSpcs.s1
+                                                        }
+                                                        ( bangOn <|>
+                                                            ( P.frequency
+                                                                <<< ttap
+                                                                <<< second (\x -> fund * 5.07 + 18.0 * (x - 1.0)) <$> swm
+                                                            )
+                                                        )
+                                                    ]
+                                                ]
+                                            , gain 0.0
+                                                ( P.gain
+                                                    <<< ttap
+                                                    <<< second (\x -> max 0.0 $ 0.2 * (x - 3.0)) <$> swm
+                                                )
+                                                [ bandpass_ { frequency: fund * 8.0, q: 20.0 }
+                                                    [ periodicOsc
+                                                        { frequency: fund * 7.13
+                                                        , spec: allSpcs.s2
+                                                        }
+                                                        ( bangOn <|>
+                                                            ( P.frequency
+                                                                <<< ttap
+                                                                <<< second (\x -> fund * 7.13 + 32.0 * (x - 1.0)) <$> swm
+                                                            )
+                                                        )
+                                                    ]
+                                                ]
+                                            , gain 0.0
+                                                ( P.gain
+                                                    <<< ttap
+                                                    <<< second (\x -> max 0.0 $ 0.1 * (x - 7.0)) <$> swm
+                                                )
+                                                [ periodicOsc
+                                                    { frequency: fund * 9.14
+                                                    , spec: allSpcs.s3
+                                                    }
+                                                    ( bangOn <|>
+                                                        ( P.frequency
+                                                            <<< ttap
+                                                            <<< second (\x -> fund * 9.14 + 31.0 * (x - 1.0)) <$> swm
+                                                        )
+                                                    )
+                                                ]
+                                            ]
+                                      )
                                 let r = r' *> close ctx
                                 ccb (r *> push start) -- here
                                 push (stop r)

@@ -12,13 +12,11 @@ import Data.Tuple.Nested ((/\))
 import Data.Typelevel.Num (D2)
 import Deku.Attribute (cb, (:=))
 import Deku.Control (text, text_)
-import Deku.Core (Element, SubgraphF(..))
+import Deku.Core (Element)
 import Deku.DOM as D
 import Deku.Pursx (makePursx', nut)
-import Deku.Subgraph ((@@))
-import Deku.Subgraph as Sg
 import Effect (Effect)
-import FRP.Event (Event)
+import FRP.Event (Event, bus)
 import FRP.Event.Class (bang, biSampleOn)
 import Math (pow)
 import Type.Proxy (Proxy(..))
@@ -61,7 +59,7 @@ scene
   :: forall lock payload
    . BrowserMicrophone
   -> MediaRecorderCb
-  -> Node D2 lock Event payload
+  -> Node D2 lock payload
 scene m cb = recorder cb (microphone m)
 
 data UIEvents = Init | Start | Stop (Effect Unit)
@@ -99,8 +97,9 @@ import Data.Profunctor (lcmap)
 import Deku.Attribute (cb, (:=))
 import Deku.Control (text)
 import Deku.DOM as D
-import Deku.Toplevel ((🚀))
+import Deku.Toplevel (runInBody, runInBody1)
 import Effect (Effect)
+import FRP.Event (bus)
 import FRP.Event.Class (bang)
 import Math (pow)
 import WAGS.Control (gain_, gain, sinOsc)
@@ -139,7 +138,7 @@ cell = lcmap toNumber \i -> do
   ]
 
 main :: Effect Unit
-main = Init 🚀 \push event ->
+main = runInBody1 (bus \push -> lcmap (bang Init <|> _) \event ->
   D.div_
     [ D.button
         ( event <#>
@@ -160,17 +159,15 @@ main = Init 🚀 \push event ->
             Stop _ -> "Turn off"
             _ -> "Turn on"
         ]
-    ]
+    ])
 """
 
 ex0
-  :: forall payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Element Event payload
+  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Element lock payload
 ex0 ccb _ ev = makePursx' (Proxy :: _ "@") px
   { txt: nut (text_ txt)
   , ex0: nut
-      ( bang (unit /\ Sg.Insert)
-          @@ \_ -> mkExists $ SubgraphF \push -> lcmap (alt (bang Init)) \event -> -- here
-
+      ( bus \push -> lcmap  (bang Init <|> _) \event -> -- here
             D.div_
               [ D.button
                   ( (biSampleOn (bang (pure unit) <|> (map (\(SetCancel x) -> x) ev)) (map Tuple event)) <#> -- here

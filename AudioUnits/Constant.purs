@@ -33,7 +33,7 @@ px =
 """
 
 constantEx
-  :: forall payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Element Event payload
+  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Element lock payload
 constantEx ccb _ ev = px ~~
   { tf: nut (text_ "<|>")
   , txt: nut
