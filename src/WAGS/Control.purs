@@ -12,12 +12,13 @@ import Data.FunctorWithIndex (mapWithIndex)
 import Data.Homogeneous (class HomogeneousRowLabels)
 import Data.Homogeneous.Variant (homogeneous)
 import Data.Int (pow)
+import Data.Profunctor (lcmap)
 import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.Tuple.Nested (type (/\), (/\))
-import Data.Typelevel.Num (class Lt, class Nat, class Pos, class Pred, D1, D2, pred, toInt)
+import Data.Typelevel.Num (class Lt, class Nat, class Pos, class Pred, D1, D2, d0, pred, toInt)
 import Data.Variant (Unvariant(..), match, unvariant)
 import Data.Variant.Maybe (Maybe, just, nothing)
-import Data.Vec (Vec, toArray)
+import Data.Vec (Vec, index, singleton, toArray)
 import Effect (Effect, foreachE)
 import Effect.AVar (tryPut)
 import Effect.AVar as AVar
@@ -225,7 +226,7 @@ analyser_
    . InitialAnalyser i
   => C.Mix aud (C.Streamy outputChannels lock payload)
   => i
-  -> C.Node outputChannels lock payload
+  -> aud
   -> C.Node outputChannels lock payload
 analyser_ i = analyser i empty
 
@@ -1586,6 +1587,13 @@ globalFan
   -> C.Node outputChannels lock payload
 globalFan e f = internalFan true (const "@fan@") e (\x _ -> f x)
 
+globalFan1
+  :: forall outputChannels lock payload
+   . C.Node outputChannels lock payload
+  -> (C.Node outputChannels lock payload -> Event (Event (C.StreamingAudio outputChannels lock payload)))
+  -> C.Node outputChannels lock payload
+globalFan1 e f = globalFan (singleton e) (lcmap (flip index d0) f)
+
 fan
   :: forall n outputChannels lock0 payload
    . Vec n (C.Node outputChannels lock0 payload)
@@ -1596,6 +1604,17 @@ fan
      )
   -> C.Node outputChannels lock0 payload
 fan e = internalFan false identity e
+
+fan1
+  :: forall outputChannels lock0 payload
+   . C.Node outputChannels lock0 payload
+  -> ( forall lock1
+        . C.Node outputChannels lock1 payload
+       -> (C.Node outputChannels lock0 payload -> C.Node outputChannels lock1 payload)
+       -> Event (Event (C.StreamingAudio outputChannels lock1 payload))
+     )
+  -> C.Node outputChannels lock0 payload
+fan1 e f = fan (singleton e) (lcmap (flip index d0) f)
 
 ---- fix
 fix

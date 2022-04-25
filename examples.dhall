@@ -9,6 +9,7 @@ in      conf
               , "avar"
               , "quickcheck"
               , "canvas"
+              , "unordered-collections"
               , "lcg"
               , "deku"
               , "transformers"

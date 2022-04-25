@@ -150,7 +150,7 @@ instance
   ) =>
   Mix (Event (StreamingAudio outputChannels locki payloadi))
     (Event (Event (StreamingAudio outputChannelso locko payloado))) where
-  mix i = proof (coerce (bang i))
+  mix i = proof (coerce (map bang i))
 
 instance
   ( TypeEquals outputChannelsi outputChannelso
