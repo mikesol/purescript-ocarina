@@ -28,7 +28,7 @@ px =  Proxy :: Proxy """<div>
   </p>
 
   <p>
-    Subgraphs fix this problem. They provide a concise mechansim to dynamically insert audio graphs based on events. Subgraphs have the type <code>Event (Event (StreamingAudio outputChannels lock payload))</code>. Streaming audio is a data type with two constructors: <code>Sound (Node outputChannels lock payload)</code> to create a subgraph and <code>Silence</code> to turn it off. The inner event listens for sound/silence, and the outer event adds subgraphs to the scene. You can create as many subgraphs as you like: wags automatically frees up resources when you send the <code>Silence</code> event. Note that, once you turn a subraph off with <code>Silence</code>, you can't turn it back on again. In this case, just create a new subgraph.
+    Subgraphs fix this problem. They provide a concise mechansim to dynamically insert audio graphs based on events.
   </p>
 
   ~suby~
