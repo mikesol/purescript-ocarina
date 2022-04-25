@@ -39,7 +39,7 @@ px = Proxy :: Proxy """<ul>
     </ul>
 """
 
-toc :: forall payload. Element Event payload
+toc :: forall lock payload. Element lock payload
 toc = px ~~
   {
   }

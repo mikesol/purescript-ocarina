@@ -11,9 +11,9 @@ var makeid = function (length) {
 var NUMERIC = "numeric";
 var SUDDEN = "sudden";
 var CANCELLATION = "cancellation";
-var NO_RAMP = "noRamp";
-var LINEAR_RAMP = "linearRamp";
-var EXPONENTIAL_RAMP = "exponentialRamp";
+var NO_RAMP = "step";
+var LINEAR_RAMP = "linear";
+var EXPONENTIAL_RAMP = "exponential";
 var ENVELOPE = "envelope";
 var isOn = function (param) {
 	return param.type === "on" || param.type === "offOn";
@@ -60,9 +60,11 @@ var genericSetter = function (unit, name, deprecatedTimeToSet, param) {
 	return protoSetter(unit[name], deprecatedTimeToSet, param);
 };
 var addToScope = function (ptr, scope, state) {
-	if (scope.type === "just") {
-		state.scopes[scope.value].push(ptr);
+	if (!state.scopes[scope.value]) {
+		state.scopes[scope.value] = [];
 	}
+	state.scopes[scope.value].push(ptr);
+	state.units[ptr].scope = scope;
 };
 var doDeferredConnections = function (ptr, state) {
 	if (state.toConnect[ptr]) {
@@ -124,6 +126,13 @@ var connectXToY_ = function (x, y, state) {
 	connectF();
 };
 
+exports.deleteFromCache_ = function (a) {
+	return function (state) {
+		return function () {
+			delete state.units[a.id];
+		};
+	};
+};
 exports.connectXToY_ = function (parameters) {
 	return function (state) {
 		return function () {
@@ -145,6 +154,14 @@ var disconnectXFromY_ = function (x) {
 				if (state.units[y].se) {
 					state.units[x].main.disconnect(state.units[y].se);
 				}
+				if (state.units[ptr].scope === "@fan@") {
+					return;
+				}
+				const scope = state.units[ptr].scope;
+				state.scopes[scope].forEach((scp) => {
+					delete state.units[scp];
+				});
+				delete state.scopes[scope];
 			};
 		};
 	};
@@ -153,23 +170,6 @@ exports.disconnectXFromY_ = function (a) {
 	return function (state) {
 		return function () {
 			return disconnectXFromY_(a.from)(a.to)(state)();
-		};
-	};
-};
-exports.destroyUnit_ = function (a) {
-	return function (state) {
-		return function () {
-			var ptr = a.id;
-			// hack for recorder
-			if (state.units[ptr].recorder) {
-				state.units[ptr].recorder.stop();
-			}
-			// hack for analyser
-			if (state.units[ptr].analyser) {
-				// effectful unsubscribe
-				state.units[ptr].analyser();
-			}
-			delete state.units[ptr];
 		};
 	};
 };
@@ -281,7 +281,7 @@ exports.makeConstant_ = function (a) {
 				createClosure: createClosure,
 				onOff: false,
 				pendingOn: true,
-				//lazy main: createClosure(state.context, resume),
+				main: createClosure(state.context, resume), // needed so that setters don't error out, even though not started yet
 			};
 			addToScope(ptr, a.scope, state);
 			doDeferredConnections(ptr, state);
@@ -417,16 +417,6 @@ exports.makeHighshelf_ = function (a) {
 	};
 };
 
-// input
-exports.makeInput_ = function (a) {
-	return function (state) {
-		return function () {
-			var ptr = a.id;
-			doDeferredConnections(ptr, state);
-			mConnectXToY_(ptr, a.parent, state);
-		};
-	};
-};
 exports.makeIIRFilter_ = function (a) {
 	return function (state) {
 		return function () {
@@ -470,7 +460,7 @@ exports.makeLoopBuf_ = function (a) {
 				createClosure: createClosure,
 				onOff: false,
 				pendingOn: true,
-				//lazy main: createClosure(state.context, resume),
+				main: createClosure(state.context, resume), // needed so that setters don't error out, even though not started yet
 			};
 			addToScope(ptr, a.scope, state);
 			doDeferredConnections(ptr, state);
@@ -641,7 +631,7 @@ exports.makePeriodicOsc_ = function (a) {
 				createClosure: createClosure,
 				onOff: false,
 				pendingOn: true,
-				//lazy main: createClosure(state.context, resume),
+				main: createClosure(state.context, resume), // needed so that setters don't error out, even though not started yet
 			};
 			addToScope(ptr, a.scope, state);
 			doDeferredConnections(ptr, state);
@@ -686,7 +676,7 @@ exports.makePlayBuf_ = function (a) {
 				createClosure: createClosure,
 				onOff: false,
 				pendingOn: true,
-				//lazy main: createClosure(state.context, resume),
+				main: createClosure(state.context, resume), // needed so that setters don't error out, even though not started yet
 			};
 			addToScope(ptr, a.scope, state);
 			doDeferredConnections(ptr, state);
@@ -747,7 +737,7 @@ exports.makeSawtoothOsc_ = function (a) {
 				createClosure: createClosure,
 				onOff: false,
 				pendingOn: true,
-				//lazy main: createClosure(state.context, resume),
+				main: createClosure(state.context, resume), // needed so that setters don't error out, even though not started yet
 			};
 			addToScope(ptr, a.scope, state);
 			doDeferredConnections(ptr, state);
@@ -781,7 +771,7 @@ exports.makeSinOsc_ = function (a) {
 				createClosure: createClosure,
 				onOff: false,
 				pendingOn: true,
-				//lazy main: createClosure(state.context, resume),
+				main: createClosure(state.context, resume), // needed so that setters don't error out, even though not started yet
 			};
 			addToScope(ptr, a.scope, state);
 			doDeferredConnections(ptr, state);
@@ -796,64 +786,7 @@ exports.makeSinOsc_ = function (a) {
 		};
 	};
 };
-exports.makeSubgraph_ = function (ptr) {
-	return function (parent) {
-		return function (enclosingScope) {
-			return function (sceneM) {
-				return function (state) {
-					return function () {
-						makeGain_({
-							id: ptr,
-							parent: parent,
-							scope: { type: "just", value: enclosingScope },
-							gain: 1.0,
-						})(state)();
-						state.units[ptr].sceneM = sceneM;
-					};
-				};
-			};
-		};
-	};
-};
 
-exports.removeSubgraph_ = function (a) {
-	return function (state) {
-		return function () {
-			var ptr = a.id;
-			var j = a.pos;
-			var pj = `${ptr}-${j}`;
-			if (state.unsu[pj] !== undefined) {
-				state.unsu[pj]();
-				for (var i = 0; i < state.scopes[pj].length; i++) {
-					state.units[state.scopes[pj][i]].main.disconnect();
-					if (state.units[state.scopes[pj][i]].se) {
-						state.units[state.scopes[pj][i]].se.disconnect();
-					}
-					delete state.units[state.scopes[pj][i]];
-				}
-				delete state.scopes[pj];
-				delete state.unsu[pj];
-				delete state.scopes[pj];
-			}
-		};
-	};
-};
-
-exports.insertSubgraph_ = function (a) {
-	return function (state) {
-		return function () {
-			var ptr = a.id;
-			var j = a.pos;
-			var index = a.index;
-			var pj = `${ptr}-${j}`;
-			if (state.unsu[pj] === undefined) {
-				state.scopes[pj] = [];
-				var sg = state.units[ptr].sceneM(index)(pj);
-				state.unsu[pj] = sg.actualized((instr) => () => instr(state)())();
-			}
-		};
-	};
-};
 // make speaker
 exports.makeSpeaker_ = function (a) {
 	return function (state) {
@@ -904,7 +837,7 @@ exports.makeSquareOsc_ = function (a) {
 				createClosure: createClosure,
 				onOff: false,
 				pendingOn: true,
-				//lazy main: createClosure(state.context, resume),
+				main: createClosure(state.context, resume), // needed so that setters don't error out, even though not started yet
 			};
 			addToScope(ptr, a.scope, state);
 			doDeferredConnections(ptr, state);
@@ -938,7 +871,7 @@ exports.makeTriangleOsc_ = function (a) {
 				createClosure: createClosure,
 				onOff: false,
 				pendingOn: true,
-				//lazy main: createClosure(state.context, resume),
+				main: createClosure(state.context, resume), // needed so that setters don't error out, even though not started yet
 			};
 			addToScope(ptr, a.scope, state);
 			doDeferredConnections(ptr, state);
@@ -1590,7 +1523,7 @@ exports.makeFFIAudioSnapshot = function (audioCtx) {
 			deprecatedWriteHead: 0.0,
 			units: {},
 			unqidfr: makeid(10),
-			scopes: { root: [] },
+			scopes: {},
 			unsu: {},
 			toConnect: {},
 		};

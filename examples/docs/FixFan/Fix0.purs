@@ -7,8 +7,7 @@ import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
 import FRP.Event (Event)
 import Type.Proxy (Proxy(..))
-import WAGS.Control (delay_, gain_, playBuf)
-import WAGS.Core (fix)
+import WAGS.Control (delay_, gain_, playBuf, fix)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import WAGS.Example.Docs.Util (audioWrapper)
 import WAGS.Interpret (bracketCtx, decodeAudioDataFromUri)
@@ -29,7 +28,7 @@ px =
   </div>
 """
 
-fix0 :: forall payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Element Event payload
+fix0 :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Element lock payload
 fix0 ccb _ ev = makePursx' (Proxy :: _ "@") px
   { ai0: nut
       ( audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/178/178660_717950-lq.mp3")

@@ -2,40 +2,34 @@ module WAGS.Example.StressTest where
 
 import Prelude
 
-import Control.Alt ((<|>))
+import Control.Alt (alt, (<|>))
 import Data.Array ((..))
-import Data.Exists (Exists, mkExists)
 import Data.Filterable (filter, filterMap)
 import Data.Foldable (for_)
 import Data.Int (toNumber)
 import Data.Lens (over)
 import Data.Maybe (Maybe(..), maybe)
-import Data.Tuple (Tuple(..))
+import Data.Profunctor (lcmap)
 import Data.Typelevel.Num (D2)
 import Deku.Attribute (cb, (:=))
-import Deku.Control (deku, text, text_)
-import Deku.Core (Element, SubgraphF(..))
+import Deku.Control (deku1, text, text_)
+import Deku.Core (Element)
 import Deku.DOM as DOM
 import Deku.Interpret (effectfulDOMInterpret, makeFFIDOMSnapshot)
-import Deku.Subgraph (SubgraphAction(..), subgraph)
 import Effect (Effect)
 import Effect.Aff (Aff, launchAff_)
 import Effect.Class (liftEffect)
 import FRP.Behavior (sample_)
-import FRP.Event (Event, class IsEvent, subscribe)
+import FRP.Event (Event, bang, bus, keepLatest, memoize, subscribe)
 import FRP.Event.Animate (animationFrameEvent)
-import FRP.Event.Class (bang)
-import FRP.Event.Memoizable as Memoizable
-import FRP.Event.Memoize (class MemoizableEvent, memoizeIfMemoizable)
-import FRP.Event.Memoized as Memoized
 import Math (pi, sin, (%))
 import WAGS.Clock (WriteHead, fot, writeHead)
 import WAGS.Control (gain, sinOsc, speaker2)
-import WAGS.Core (Node)
+import WAGS.Core (StreamingAudio, mix)
 import WAGS.Example.Utils (RaiseCancellation)
-import WAGS.Interpret (FFIAudioSnapshot, close, context, effectfulAudioInterpret', makeFFIAudioSnapshot)
+import WAGS.Interpret (FFIAudioSnapshot, close, context, effectfulAudioInterpret, makeFFIAudioSnapshot)
 import WAGS.Math (calcSlope)
-import WAGS.Parameter (AudioNumeric(..), AudioOnOff(..), _off, _on, opticN)
+import WAGS.Parameter (AudioNumeric(..), AudioOnOff(..), _off, _on, _step, opticN)
 import WAGS.Properties as Common
 import WAGS.WebAPI (AudioContext)
 import Web.HTML (window)
@@ -53,14 +47,11 @@ lm2 :: Number
 lm2 = len - 2.0
 
 scene
-  :: forall lock event payload
-   . IsEvent event
-  => MemoizableEvent event
-  => WriteHead event
-  -> Array (Node D2 lock event payload)
-scene wh =
+  :: forall lock payload
+   . WriteHead Event
+  -> Event (Event (StreamingAudio D2 lock payload))
+scene wh = keepLatest $ memoize (fot wh (mul pi)) \tr ->
   let
-    tr = memoizeIfMemoizable (fot wh (mul pi))
     gso a b c st ed = gain 0.0
       ( Common.gain <$>
           ( filterMap
@@ -82,6 +73,8 @@ scene wh =
                       )
                     else if olen < st + 0.5 && olen > st then
                       (Just (AudioNumeric (x { n = a })))
+                    else if olen < ed && olen > (ed - 0.06) then
+                      (Just (AudioNumeric (x { n = 0.0, t = _step })))
                     else Nothing
               )
               tr
@@ -107,7 +100,7 @@ scene wh =
           )
       ]
   in
-    [ gso 0.1 440.0 (\rad -> 440.0 + (10.0 * sin (2.3 * rad))) 0.0 0.2 ] <>
+    mix
       ( map
           ( \i ->
               let
@@ -137,23 +130,20 @@ foreign import stressTest_
   :: forall event. AudioContext -> WriteHead event -> event (FFIAudioSnapshot -> Effect Unit)
 
 stressTest
-  :: forall payload
+  :: forall lock payload
    . Unit
   -> RaiseCancellation
-  -> Exists (SubgraphF Event payload)
-stressTest _ rc = mkExists $ SubgraphF \p e ->
+  -> Event (Element lock payload)
+stressTest _ rc = bus \p -> lcmap (alt $ bang Nothing) \e ->
   let
     musicButton
-      :: forall event
-       . IsEvent event
-      => String
-      -> (Event ~> event)
-      -> (event ~> Event)
+      :: forall lock0
+       . String
       -> (UIAction -> Effect Unit)
       -> Event UIAction
-      -> (AudioContext -> WriteHead event -> event (FFIAudioSnapshot -> Effect Unit))
-      -> Element Event payload
-    musicButton label toE fromE push event audioEvent = DOM.button
+      -> (AudioContext -> WriteHead Event -> Event (FFIAudioSnapshot -> Effect Unit))
+      -> Element lock0 payload
+    musicButton label push event audioEvent = DOM.button
       ( map
           ( \i -> DOM.OnClick := cb
               ( const $
@@ -162,9 +152,8 @@ stressTest _ rc = mkExists $ SubgraphF \p e ->
                         ctx <- context
                         ffi2 <- makeFFIAudioSnapshot ctx
                         let wh = writeHead 0.04 ctx
-                        afe <- animationFrameEvent
                         unsub <- subscribe
-                          (fromE (audioEvent ctx (toE (sample_ wh afe))))
+                          (audioEvent ctx (sample_ wh animationFrameEvent))
                           ((#) ffi2)
                         rc $ Just { unsub, ctx }
                         push $ Just { unsub, ctx }
@@ -186,24 +175,11 @@ stressTest _ rc = mkExists $ SubgraphF \p e ->
   in
     DOM.div_
       [ DOM.h1_ [ text_ "Stress test" ]
-      , musicButton "Event" identity identity p e
-          ( \_ ip -> speaker2 (scene ip) (effectfulAudioInterpret' identity identity)
+      , musicButton "Event" p e
+          ( \_ ip -> speaker2 (scene ip) (effectfulAudioInterpret)
 
           )
-      , musicButton "MemoizedEvent" Memoized.fromEvent Memoized.toEvent p e
-          ( \_ ip -> speaker2 (scene ip)
-              (effectfulAudioInterpret' Memoized.fromEvent Memoized.toEvent)
-
-          )
-      , musicButton "MemoizableEvent" Memoizable.fromEvent Memoizable.toEvent
-          p
-          e
-          ( \_ ip -> speaker2 (scene ip)
-              ( effectfulAudioInterpret' Memoizable.fromEvent
-                  Memoizable.toEvent
-              )
-          )
-      , musicButton "NativeJS" identity identity p e (stressTest_)
+      , musicButton "NativeJS" p e (stressTest_)
       ]
 
 main :: Effect Unit
@@ -214,10 +190,8 @@ main = launchAff_ do
     for_ (toElement <$> b') \elt -> do
       ffi <- makeFFIDOMSnapshot
       let
-        evt = deku elt
-          ( subgraph (bang (Tuple unit Insert))
-              (const $ stressTest init (const $ pure unit))
-          )
+        evt = deku1 elt
+          (stressTest init (const $ pure unit))
           effectfulDOMInterpret
       _ <- subscribe (evt) \i -> i ffi
       pure unit

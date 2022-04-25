@@ -48,7 +48,7 @@ let additions =
           , "now"
           ]
         , repo = "https://github.com/mikesol/purescript-event.git"
-        , version = "v1.5.0"
+        , version = "v1.6.0"
         }
       , everythings-better-with-variants =
         { dependencies =
@@ -134,41 +134,7 @@ let additions =
   , "web-dom"
   , "web-events"
   ], repo = "https://github.com/mikesol/purescript-deku.git"
-        , version = "v0.2.6"
-      },deku-toplevel = {
-        dependencies =  [ "arrays"
-  , "behaviors"
-  , "control"
-  , "datetime"
-  , "effect"
-  , "either"
-  , "event"
-  , "foldable-traversable"
-  , "foreign"
-  , "foreign-object"
-  , "indexed-monad"
-  , "lists"
-  , "maybe"
-  , "newtype"
-  , "nullable"
-  , "ordered-collections"
-  , "prelude"
-  , "record"
-  , "refs"
-  , "simple-json"
-  , "sized-vectors"
-  , "transformers"
-  , "tuples"
-  , "web-html"
-  , "typelevel"
-  , "typelevel-peano"
-  , "unordered-collections"
-  , "unsafe-coerce"
-  , "variant"
-  , "web-dom"
-  , "web-events"
-  ], repo = "https://github.com/mikesol/purescript-deku-toplevel.git"
-        , version = "v0.2.3.0"
+        , version = "v0.3.4"
       }
       }
 

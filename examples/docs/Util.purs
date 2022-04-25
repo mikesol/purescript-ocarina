@@ -3,20 +3,17 @@ module WAGS.Example.Docs.Util where
 import Prelude
 
 import Control.Alt ((<|>))
-import Data.Exists (mkExists)
 import Data.Tuple (Tuple(..))
 import Data.Tuple.Nested ((/\))
 import Deku.Attribute (cb, (:=))
-import Deku.Control (text, text_)
-import Deku.Core (Element, SubgraphF(..))
+import Deku.Control (text)
+import Deku.Core (Element)
 import Deku.DOM as D
-import Deku.Subgraph ((@@))
-import Deku.Subgraph as Sg
 import Effect (Effect)
-import Effect.Aff (Aff, Fiber, bracket, error, joinFiber, killFiber, launchAff, launchAff_, parallel, sequential)
+import Effect.Aff (Aff, Fiber, error, joinFiber, killFiber, launchAff, launchAff_, parallel, sequential)
 import Effect.Class (liftEffect)
-import FRP.Event (Event)
-import FRP.Event.Class (class IsEvent, bang, biSampleOn)
+import FRP.Event (Event, bus)
+import FRP.Event.Class (bang, biSampleOn)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, SingleSubgraphEvent(..), SingleSubgraphPusher)
 import WAGS.Interpret (close, constant0Hack, context)
 import WAGS.WebAPI (AudioContext)
@@ -73,14 +70,13 @@ clickCb cca push init i ev event = map
 mkWrapperEvent ev event' = bang Stopped <|> event'
 
 audioWrapper
-  :: forall a payload
+  :: forall a lock payload
    . Event SingleSubgraphEvent
   -> CancelCurrentAudio
   -> (AudioContext -> Aff a)
   -> (AudioContext -> a -> Effect (Effect Unit))
-  -> Element Event payload
-audioWrapper ev cca init i = bang (unit /\ Sg.Insert)
-  @@ \_ -> mkExists $ SubgraphF \push event' ->
+  -> Event (Element lock payload)
+audioWrapper ev cca init i = bus \push event' ->
     let
       event = mkWrapperEvent ev event'
     in
@@ -98,15 +94,14 @@ audioWrapper ev cca init i = bang (unit /\ Sg.Insert)
         ]
 
 audioWrapperSpan
-  :: forall a payload
+  :: forall a lock payload
    . String
   -> Event SingleSubgraphEvent
   -> CancelCurrentAudio
   -> (AudioContext -> Aff a)
   -> (AudioContext -> a -> Effect (Effect Unit))
-  -> Element Event payload
-audioWrapperSpan txt ev cca init i = bang (unit /\ Sg.Insert)
-  @@ \_ -> mkExists $ SubgraphF \push event' ->
+  -> Event (Element lock payload)
+audioWrapperSpan txt ev cca init i = bus \push event' ->
     let
       event = mkWrapperEvent ev event'
     in

@@ -9,7 +9,7 @@ import Data.Lens.Record (prop)
 import Data.Newtype (class Newtype, unwrap, wrap)
 import Data.Profunctor.Strong (class Strong)
 import Data.Variant (Variant, inj, match)
-import FRP.Event (class IsEvent)
+import FRP.Event (class IsEvent, Event)
 import FRP.Event.Class (bang)
 import Prim.Row (class Cons)
 import Type.Proxy (Proxy(..))
@@ -143,10 +143,9 @@ apOn :: AudioOnOff
 apOn = AudioOnOff { x: _on, o: 0.0 }
 
 bangOn
-  :: forall event nt r
-   . IsEvent event
-  => Newtype nt (Variant (onOff :: AudioOnOff | r))
-  => event nt
+  :: forall nt r
+   . Newtype nt (Variant (onOff :: AudioOnOff | r))
+  => Event nt
 bangOn = bang (wrap $ inj (Proxy :: _ "onOff") apOn)
 
 apOff :: AudioOnOff

@@ -25,8 +25,8 @@ px =
 
 
 pursx2
-  :: forall payload
+  :: forall lock payload
    . CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent
-  -> Element Event payload
+  -> Element lock payload
 pursx2 _ dpage _ _ = makePursx' (Proxy :: _ "~") px
   { }

@@ -49,7 +49,7 @@ px =
 """
 
 loopBufEx
-  :: forall payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Element Event payload
+  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Element lock payload
 loopBufEx ccb _ ev = makePursx' (Proxy :: _ "@") px
   { loopBuf: nut
       ( audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/100/100981_1234256-lq.mp3")

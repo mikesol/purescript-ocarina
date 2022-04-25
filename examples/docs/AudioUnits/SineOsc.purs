@@ -26,7 +26,7 @@ px =  Proxy   :: Proxy    """<section>
 """
 
 sine
-  :: forall payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Element Event payload
+  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Element lock payload
 sine ccb _ ev = px ~~
   { periodic: nut
       ( audioWrapper ev ccb (\_ -> pure unit)

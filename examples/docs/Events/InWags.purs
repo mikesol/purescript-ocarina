@@ -184,7 +184,7 @@ px = Proxy :: Proxy
   </p>
 </section>"""
 
-inWags :: forall payload. Element Event payload
+inWags :: forall lock payload. Element lock payload
 inWags = makePursx'  (Proxy :: _ "@") px
   {
   }

@@ -2,24 +2,28 @@ module WAGS.Core where
 
 import Prelude
 
-import Control.Alt ((<|>))
-import Control.Plus (empty)
+import Data.Either (Either(..))
+import Data.Foldable (fold, oneOfMap, traverse_)
 import Data.Function (on)
 import Data.Generic.Rep (class Generic)
-import Data.Hashable (class Hashable, hash)
+import Data.Maybe as DM
 import Data.Newtype (class Newtype, unwrap)
-import Data.Set (Set)
 import Data.Show.Generic (genericShow)
-import Data.Tuple.Nested (type (/\), (/\))
-import Data.Variant (Variant, inj, match)
-import Data.Variant.Maybe (Maybe, just, nothing)
+import Data.Variant (Variant, inj)
+import Data.Variant.Maybe (Maybe)
 import Data.Vec (Vec)
-import FRP.Behavior (ABehavior, sample_)
-import FRP.Event (class IsEvent, keepLatest)
-import FRP.Event.Class (bang)
+import Effect (Effect)
+import Effect.AVar (tryPut)
+import Effect.AVar as AVar
+import Effect.Exception (throwException)
+import Effect.Ref as Ref
+import FRP.Event (Event, bang, makeEvent, subscribe)
 import Foreign (Foreign)
 import Foreign.Object (Object)
+import Foreign.Object as Object
+import Safe.Coerce (coerce)
 import Simple.JSON as JSON
+import Type.Equality (class TypeEquals, proof)
 import Type.Proxy (Proxy(..))
 import WAGS.Parameter (AudioOnOff, AudioParameter, InitialAudioParameter)
 import WAGS.WebAPI (AnalyserNodeCb, BrowserAudioBuffer, BrowserFloatArray, BrowserMediaElement, BrowserMicrophone, BrowserPeriodicWave, MediaRecorderCb)
@@ -100,134 +104,98 @@ instance showAudioWorkletNodeOptions_ ::
     <> JSON.writeJSON a.numberOfInputs
     <> " >"
 
-newtype Input (lock :: Type) = Input String
+type Node' payload =
+  { parent :: String
+  , scope :: String
+  , raiseId :: String -> Effect Unit
+  }
+  -> AudioInterpret payload
+  -> Event payload
 
--- input
+newtype Node :: Type -> Type -> Type -> Type
+newtype Node outputChannels lock payload = Node (Node' payload)
 
-fan
-  :: forall outputChannels lock event payload
-   . IsEvent event
-  => ( Node outputChannels lock event payload
-       -> (Node outputChannels lock event payload -> Node outputChannels lock event payload)
-       -> Node outputChannels lock event payload
-     )
-fan (Node elt) f = Node go
-  where
-  go parentOrMe di@(AudioInterpret { ids }) = keepLatest
-    ((sample_ ids (bang unit)) <#> \me' -> let me = useMeIfMe parentOrMe me' in let Node nn = f (input (Input me)) in elt (Me me) di <|> nn parentOrMe di)
+data StreamingAudio outputChannels lock payload
+  = Sound (Node outputChannels lock payload)
+  | Silence
 
-fix
-  :: forall outputChannels lock event payload
-   . IsEvent event
-  => (Node outputChannels lock event payload -> Node outputChannels lock event payload)
-  -> Node outputChannels lock event payload
+--
+class Mix sound board | sound -> board where
+  mix :: sound -> board
 
-fix f = Node go
-  where
-  go parentOrMe di@(AudioInterpret { ids, connectXToY }) = keepLatest
-    ( (sample_ ids (bang unit)) <#> \me' -> do
-        let me = useMeIfMe parentOrMe me'
-        let Node nn = f (input (Input me))
-        nn (Me me) di <|> case parentOrMe of
-          Parent parent -> bang (connectXToY { from: me, to: parent })
-          Me _ -> empty
-    )
+type Streamy outputChannels lock payload = Event (Event (StreamingAudio outputChannels lock payload))
 
-silence
-  :: forall outputChannels lock event payload
-   . IsEvent event
-  => Node outputChannels lock event payload
-silence = fix identity
+instance
+  ( TypeEquals outputChannelsi outputChannelso
+  , TypeEquals locki locko
+  , TypeEquals payloadi payloado
+  ) =>
+  Mix (Event (Event (StreamingAudio outputChannelsi locki payloadi)))
+    (Event (Event (StreamingAudio outputChannelso locko payloado))) where
+  mix i = proof (coerce i)
 
-useMeIfMe :: MeOrParent -> String -> String
-useMeIfMe (Me me) _ = me
-useMeIfMe _ me = me
+instance
+  ( TypeEquals outputChannelsi outputChannelso
+  , TypeEquals locki locko
+  , TypeEquals payloadi payloado
+  ) =>
+  Mix (Event (Event (Node outputChannelsi locki payloadi)))
+    (Event (Event (StreamingAudio outputChannelso locko payloado))) where
+  mix i = proof (coerce ((map <<< map) Sound i))
 
-useParentIfParent :: MeOrParent -> Maybe String
-useParentIfParent (Parent parent) = just parent
-useParentIfParent _ = nothing
+instance
+  ( TypeEquals outputChannelsi outputChannelso
+  , TypeEquals locki locko
+  , TypeEquals payloadi payloado
+  ) =>
+  Mix (Event (StreamingAudio outputChannels locki payloadi))
+    (Event (Event (StreamingAudio outputChannelso locko payloado))) where
+  mix i = proof (coerce (map bang i))
 
-input
-  :: forall outputChannels lock event payload
-   . IsEvent event
-  => Input lock
-  -> Node outputChannels lock event payload
-input (Input me) = Node go
-  where
-  go meOrParent (AudioInterpret { scope, makeInput }) = bang
-    ( makeInput
-        { id: useMeIfMe meOrParent me, parent: useParentIfParent meOrParent, scope: just scope }
-    )
+instance
+  ( TypeEquals outputChannelsi outputChannelso
+  , TypeEquals locki locko
+  , TypeEquals payloadi payloado
+  ) =>
+  Mix (Event (Node outputChannelsi locki payloadi))
+    (Event (Event (StreamingAudio outputChannelso locko payloado))) where
+  mix i = proof (coerce ((bang <<< map Sound) i))
 
-data MeOrParent = Me String | Parent String
+instance
+  ( TypeEquals outputChannelsi outputChannelso
+  , TypeEquals locki locko
+  , TypeEquals payloadi payloado
+  ) =>
+  Mix (Node outputChannelsi locki payloadi) (Event (Event (StreamingAudio outputChannelso locko payloado))) where
+  mix i = proof (coerce ((bang <<< bang <<< Sound) i))
 
-type Node' event payload = MeOrParent -> AudioInterpret event payload -> event payload
+instance
+  ( TypeEquals outputChannelsi outputChannelso
+  , TypeEquals locki locko
+  , TypeEquals payloadi payloado
+  ) =>
+  Mix (Array (Node outputChannelsi locki payloadi))
+    (Event (Event (StreamingAudio outputChannelso locko payloado))) where
+  mix i = proof (coerce (oneOfMap bang $ map (bang <<< Sound) i))
 
-type G_ :: forall k. Row k
-type G_ = ()
+instance
+  ( TypeEquals outputChannelsi outputChannelso
+  , TypeEquals locki locko
+  , TypeEquals payloadi payloado
+  ) =>
+  Mix (Array (Event (Node outputChannelsi locki payloadi)))
+    (Event (Event (StreamingAudio outputChannelso locko payloado))) where
+  mix i = proof (coerce (oneOfMap bang $ (map <<< map) Sound i))
 
-newtype Node :: Type -> Type -> (Type -> Type) -> Type -> Type
-newtype Node outputChannels lock event payload = Node
-  (Node' event payload)
-
-newtype Subgraph :: Type -> Type -> (Type -> Type) -> Type -> Type
-newtype Subgraph outputChannels lock event payload =
-  Subgraph (Node outputChannels lock event payload)
-
-mkSubgraph
-  :: forall outputChannels lock event payload
-   . Node outputChannels lock event payload
-  -> Subgraph outputChannels lock event payload
-mkSubgraph (Node n) = Subgraph (Node n)
-
--- subgraph
-
-data SubgraphAction
-  = Insert
-  | Remove
-
-__subgraph
-  :: forall index outputChannels lock event payload
-   . IsEvent event
-  => Hashable index
-  => event (index /\ SubgraphAction)
-  -> (index -> Subgraph outputChannels lock event payload)
-  -> Node outputChannels lock event payload
-__subgraph mods scenes = Node go
-  where
-  go
-    parentOrMe
-    ( AudioInterpret
-        { ids, scope, makeSubgraph, insertSubgraph, removeSubgraph }
-    ) =
-    keepLatest
-      ( (sample_ ids (bang unit)) <#> \me' ->
-          let
-            me = useMeIfMe parentOrMe me'
-          in
-            bang
-              ( makeSubgraph
-                  { id: me, parent: useParentIfParent parentOrMe, scenes: (map (\x -> let Subgraph (Node n) = x in n) scenes), scope }
-              )
-              <|> map
-                ( \(index /\ instr) -> case instr of
-                    Remove -> removeSubgraph { id: me, pos: hash index, index }
-                    Insert -> insertSubgraph
-                      { id: me, pos: hash index, index }
-                )
-                mods
-      )
-
-subgraph
-  :: forall index outputChannels lock event payload
-   . IsEvent event
-  => Hashable index
-  => event (index /\ SubgraphAction)
-  -> (index -> Subgraph outputChannels lock event payload)
-  -> Node outputChannels lock event payload
-subgraph = __subgraph
-
-infixr 6 subgraph as @@
+instance
+  ( TypeEquals outputChannelsi outputChannelso
+  , TypeEquals locki locko
+  , TypeEquals payloadi payloado
+  ) =>
+  Mix (StreamingAudio outputChannelsi locki payloadi)
+    (Event (Event (StreamingAudio outputChannelso locko payloado))) where
+  mix i = proof (coerce ((bang <<< bang) i))
+--
 
 newtype RealImg = RealImg { real :: Array Number, img :: Array Number }
 
@@ -288,10 +256,7 @@ type DisconnectXFromY_ = (from :: String, to :: String)
 type DisconnectXFromY = { | DisconnectXFromY_ }
 type DisconnectXFromY' =
   { fromUnit :: String, toUnit :: String | DisconnectXFromY_ }
-
-type DestroyUnit_ = (id :: String)
-type DestroyUnit = { | DestroyUnit_ }
-type DestroyUnit' = { unit :: String | DestroyUnit_ }
+type DeleteFromCache = { id :: String }
 
 derive instance newtypeAllpass :: Newtype Allpass _
 newtype Allpass = Allpass
@@ -310,7 +275,7 @@ newtype InitializeAllpass = InitializeAllpass
 type MakeAllpass_ param =
   { id :: String
   , parent :: Maybe String
-  , scope :: Maybe String
+  , scope :: String
   , frequency :: param
   , q :: param
   }
@@ -340,7 +305,7 @@ newtype InitializeAnalyser = InitializeAnalyser
 type MakeAnalyser =
   { id :: String
   , parent :: Maybe String
-  , scope :: Maybe String
+  , scope :: String
   , cb :: AnalyserNodeCb
   , fftSize :: Int
   , maxDecibels :: Number
@@ -384,7 +349,7 @@ newtype InitializeAudioWorkletNode
 type MakeAudioWorkletNode_ param =
   { id :: String
   , parent :: Maybe String
-  , scope :: Maybe String
+  , scope :: String
   , options :: AudioWorkletNodeOptions_ param
   }
 
@@ -408,7 +373,7 @@ newtype InitializeBandpass = InitializeBandpass
 type MakeBandpass_ param =
   { id :: String
   , parent :: Maybe String
-  , scope :: Maybe String
+  , scope :: String
   , frequency :: param
   , q :: param
   }
@@ -427,7 +392,7 @@ newtype InitializeConstant = InitializeConstant
 type MakeConstant_ param =
   ( id :: String
   , parent :: Maybe String
-  , scope :: Maybe String
+  , scope :: String
   , offset :: param
   )
 
@@ -441,7 +406,7 @@ newtype InitializeConvolver = InitializeConvolver
 type MakeConvolver =
   { id :: String
   , parent :: Maybe String
-  , scope :: Maybe String
+  , scope :: String
   , buffer :: BrowserAudioBuffer
   }
 
@@ -453,7 +418,7 @@ newtype InitializeDelay = InitializeDelay { delayTime :: InitialAudioParameter, 
 type MakeDelay_ param =
   { id :: String
   , parent :: Maybe String
-  , scope :: Maybe String
+  , scope :: String
   , delayTime :: param
   , maxDelayTime :: Number
   }
@@ -486,7 +451,7 @@ newtype InitializeDynamicsCompressor = InitializeDynamicsCompressor
 type MakeDynamicsCompressor_ param =
   { id :: String
   , parent :: Maybe String
-  , scope :: Maybe String
+  , scope :: String
   , threshold :: param
   , knee :: param
   , ratio :: param
@@ -503,7 +468,7 @@ newtype Gain = Gain (Variant (gain :: AudioParameter))
 derive instance newtypeInitializeGain :: Newtype InitializeGain _
 newtype InitializeGain = InitializeGain { gain :: InitialAudioParameter }
 type MakeGain_ param =
-  { id :: String, parent :: Maybe String, scope :: Maybe String, gain :: param }
+  { id :: String, parent :: Maybe String, scope :: String, gain :: param }
 
 type MakeGain = MakeGain_ InitialAudioParameter
 type MakeGain' = MakeGain_ AudioParameter
@@ -525,7 +490,7 @@ newtype InitializeHighpass = InitializeHighpass
 type MakeHighpass_ param =
   { id :: String
   , parent :: Maybe String
-  , scope :: Maybe String
+  , scope :: String
   , frequency :: param
   , q :: param
   }
@@ -550,16 +515,13 @@ newtype InitializeHighshelf = InitializeHighshelf
 type MakeHighshelf_ param =
   { id :: String
   , parent :: Maybe String
-  , scope :: Maybe String
+  , scope :: String
   , frequency :: param
   , gain :: param
   }
 
 type MakeHighshelf = MakeHighshelf_ InitialAudioParameter
 type MakeHighshelf' = MakeHighshelf_ AudioParameter
-
-type MakeInput = { id :: String, parent :: Maybe String, scope :: Maybe String }
-type MakeTumultInput = { id :: String, input :: String }
 
 derive instance newtypeInitializeIIRFilter :: Newtype (InitializeIIRFilter feedforward feedback) _
 newtype InitializeIIRFilter (feedforward :: Type) (feedback :: Type) = InitializeIIRFilter
@@ -568,7 +530,7 @@ newtype InitializeIIRFilter (feedforward :: Type) (feedback :: Type) = Initializ
 type MakeIIRFilter =
   { id :: String
   , parent :: Maybe String
-  , scope :: Maybe String
+  , scope :: String
   , feedforward :: Array Number
   , feedback :: Array Number
   }
@@ -597,7 +559,7 @@ newtype InitializeLoopBuf = InitializeLoopBuf
 type MakeLoopBuf_ param =
   ( id :: String
   , parent :: Maybe String
-  , scope :: Maybe String
+  , scope :: String
   , buffer :: BrowserAudioBuffer
   , playbackRate :: param
   , loopStart :: Number
@@ -625,7 +587,7 @@ newtype InitializeLowpass = InitializeLowpass
 type MakeLowpass_ param =
   { id :: String
   , parent :: Maybe String
-  , scope :: Maybe String
+  , scope :: String
   , frequency :: param
   , q :: param
   }
@@ -650,7 +612,7 @@ newtype InitializeLowshelf = InitializeLowshelf
 type MakeLowshelf_ param =
   { id :: String
   , parent :: Maybe String
-  , scope :: Maybe String
+  , scope :: String
   , frequency :: param
   , gain :: param
   }
@@ -668,7 +630,7 @@ newtype InitializeMediaElement = InitializeMediaElement
 type MakeMediaElement =
   { id :: String
   , parent :: Maybe String
-  , scope :: Maybe String
+  , scope :: String
   , element :: BrowserMediaElement
   }
 
@@ -681,7 +643,7 @@ type MakeMicrophone =
   { id :: String
   , microphone :: BrowserMicrophone
   , parent :: Maybe String
-  , scope :: Maybe String
+  , scope :: String
   }
 
 derive instance newtypeNotch :: Newtype Notch _
@@ -701,7 +663,7 @@ newtype InitializeNotch = InitializeNotch
 type MakeNotch_ param =
   { id :: String
   , parent :: Maybe String
-  , scope :: Maybe String
+  , scope :: String
   , frequency :: param
   , q :: param
   }
@@ -728,7 +690,7 @@ newtype InitializePeaking = InitializePeaking
 type MakePeaking_ param =
   { id :: String
   , parent :: Maybe String
-  , scope :: Maybe String
+  , scope :: String
   , frequency :: param
   , q :: param
   , gain :: param
@@ -756,7 +718,7 @@ newtype InitializePeriodicOsc = InitializePeriodicOsc
 type MakePeriodicOsc_ param =
   ( id :: String
   , parent :: Maybe String
-  , scope :: Maybe String
+  , scope :: String
   , spec :: PeriodicOscSpec
   , frequency :: param
   )
@@ -788,7 +750,7 @@ newtype InitializePlayBuf = InitializePlayBuf
 type MakePlayBuf_ param =
   ( id :: String
   , parent :: Maybe String
-  , scope :: Maybe String
+  , scope :: String
   , buffer :: BrowserAudioBuffer
   , bufferOffset :: Number
   , playbackRate :: param
@@ -803,7 +765,7 @@ newtype InitializeRecorder = InitializeRecorder { cb :: MediaRecorderCb }
 type MakeRecorder =
   { id :: String
   , parent :: Maybe String
-  , scope :: Maybe String
+  , scope :: String
   , cb :: MediaRecorderCb
   }
 
@@ -826,7 +788,7 @@ newtype InitializeSawtoothOsc = InitializeSawtoothOsc
 type MakeSawtoothOsc_ param =
   ( id :: String
   , parent :: Maybe String
-  , scope :: Maybe String
+  , scope :: String
   , frequency :: param
   )
 
@@ -846,7 +808,7 @@ newtype InitializeSinOsc = InitializeSinOsc
 type MakeSinOsc_ param =
   ( id :: String
   , parent :: Maybe String
-  , scope :: Maybe String
+  , scope :: String
   , frequency :: param
   )
 
@@ -870,7 +832,7 @@ newtype InitializeSquareOsc = InitializeSquareOsc
 type MakeSquareOsc_ param =
   ( id :: String
   , parent :: Maybe String
-  , scope :: Maybe String
+  , scope :: String
   , frequency :: param
   )
 
@@ -888,7 +850,7 @@ newtype InitializeStereoPanner = InitializeStereoPanner
   { pan :: InitialAudioParameter }
 
 type MakeStereoPanner_ param =
-  { id :: String, parent :: Maybe String, scope :: Maybe String, pan :: param }
+  { id :: String, parent :: Maybe String, scope :: String, pan :: param }
 
 type MakeStereoPanner = MakeStereoPanner_ InitialAudioParameter
 type MakeStereoPanner' = MakeStereoPanner_ AudioParameter
@@ -910,7 +872,7 @@ newtype InitializeTriangleOsc = InitializeTriangleOsc
 type MakeTriangleOsc_ param =
   ( id :: String
   , parent :: Maybe String
-  , scope :: Maybe String
+  , scope :: String
   , frequency :: param
   )
 
@@ -927,39 +889,9 @@ newtype InitializeWaveShaper = InitializeWaveShaper
 type MakeWaveShaper =
   { id :: String
   , parent :: Maybe String
-  , scope :: Maybe String
+  , scope :: String
   , curve :: BrowserFloatArray
   , oversample :: Oversample
-  }
-
-type MakeTumultInternal =
-  { id :: String
-  , parent :: String
-  , instructions :: Set Instruction
-  }
-
-type MakeSubgraph
-  index
-  event
-  payload =
-  { id :: String
-  , parent :: Maybe String
-  , scope :: String
-  , scenes ::
-      index
-      -> Node' event payload
-  }
-
-type InsertSubgraph index =
-  { id :: String
-  , index :: index
-  , pos :: Int
-  }
-
-type RemoveSubgraph index =
-  { id :: String
-  , index :: index
-  , pos :: Int
   }
 
 type SetAnalyserNodeCb = { id :: String, cb :: AnalyserNodeCb }
@@ -989,18 +921,11 @@ type SetPlaybackRate = { id :: String, playbackRate :: AudioParameter }
 type SetFrequency = { id :: String, frequency :: AudioParameter }
 type SetWaveShaperCurve = { id :: String, curve :: BrowserFloatArray }
 
-type SetTumultInternal =
-  { id :: String
-  , terminus :: String
-  , instructions :: Set Instruction
-  }
-
-newtype AudioInterpret event payload = AudioInterpret
-  { scope :: String
-  , ids :: ABehavior (event) String
-  , destroyUnit :: DestroyUnit -> payload
+newtype AudioInterpret payload = AudioInterpret
+  { ids :: Effect String
   , disconnectXFromY :: DisconnectXFromY -> payload
   , connectXToY :: ConnectXToY -> payload
+  , deleteFromCache :: DeleteFromCache -> payload
   , makeAllpass :: MakeAllpass -> payload
   , makeAnalyser :: MakeAnalyser -> payload
   , makeAudioWorkletNode :: MakeAudioWorkletNode -> payload
@@ -1012,7 +937,6 @@ newtype AudioInterpret event payload = AudioInterpret
   , makeGain :: MakeGain -> payload
   , makeHighpass :: MakeHighpass -> payload
   , makeHighshelf :: MakeHighshelf -> payload
-  , makeInput :: MakeInput -> payload
   , makeIIRFilter :: MakeIIRFilter -> payload
   , makeLoopBuf :: MakeLoopBuf -> payload
   , makeLowpass :: MakeLowpass -> payload
@@ -1029,12 +953,7 @@ newtype AudioInterpret event payload = AudioInterpret
   , makeSpeaker :: MakeSpeaker -> payload
   , makeSquareOsc :: MakeSquareOsc -> payload
   , makeStereoPanner :: MakeStereoPanner -> payload
-  , makeSubgraph ::
-      forall index
-       . MakeSubgraph index event payload
-      -> payload
   , makeTriangleOsc :: MakeTriangleOsc -> payload
-  , makeTumult :: MakeTumultInternal -> payload
   , makeWaveShaper :: MakeWaveShaper -> payload
   , setAnalyserNodeCb :: SetAnalyserNodeCb -> payload
   , setMediaRecorderCb :: SetMediaRecorderCb -> payload
@@ -1060,208 +979,91 @@ newtype AudioInterpret event payload = AudioInterpret
   , setDelay :: SetDelay -> payload
   , setPlaybackRate :: SetPlaybackRate -> payload
   , setFrequency :: SetFrequency -> payload
-  , removeSubgraph ::
-      forall index
-       . RemoveSubgraph index
-      -> payload
-  , insertSubgraph ::
-      forall index
-       . InsertSubgraph index
-      -> payload
-  , setTumult :: SetTumultInternal -> payload
   }
 
-type Instruction' =
-  ( makeAllpass :: MakeAllpass'
-  , makeAnalyser :: MakeAnalyser
-  , makeAudioWorkletNode :: MakeAudioWorkletNode'
-  , makeBandpass :: MakeBandpass'
-  , makeConstant :: MakeConstant'
-  , makeConvolver :: MakeConvolver
-  , makeDelay :: MakeDelay'
-  , makeDynamicsCompressor :: MakeDynamicsCompressor'
-  , makeGain :: MakeGain'
-  , makeHighpass :: MakeHighpass'
-  , makeHighshelf :: MakeHighshelf'
-  , makeLoopBuf :: MakeLoopBuf'
-  , makeLowpass :: MakeLowpass'
-  , makeLowshelf :: MakeLowshelf'
-  , makeInput :: MakeTumultInput
-  , makeMediaElement :: MakeMediaElement
-  , makeMicrophone :: MakeMicrophone
-  , makeNotch :: MakeNotch'
-  , makePeaking :: MakePeaking'
-  , makePeriodicOsc :: MakePeriodicOsc'
-  , makePlayBuf :: MakePlayBuf'
-  , makeRecorder :: MakeRecorder
-  , makeSawtoothOsc :: MakeSawtoothOsc'
-  , makeSinOsc :: MakeSinOsc'
-  , makeSquareOsc :: MakeSquareOsc'
-  , makeStereoPanner :: MakeStereoPanner'
-  , makeTriangleOsc :: MakeTriangleOsc'
-  , makeWaveShaper :: MakeWaveShaper
-  , connectXToY :: ConnectXToY'
-  , destroyUnit :: DestroyUnit'
-  , disconnectXFromY :: DisconnectXFromY'
-  , setAnalyserNodeCb :: SetAnalyserNodeCb
-  , setMediaRecorderCb :: SetMediaRecorderCb
-  , setAudioWorkletParameter :: SetAudioWorkletParameter
-  , setBuffer :: SetBuffer
-  , setConvolverBuffer :: SetConvolverBuffer
-  , setPeriodicOsc :: SetPeriodicOsc
-  , setOnOff :: SetOnOff
-  , setBufferOffset :: SetBufferOffset
-  , setDuration :: SetDuration
-  , setLoopStart :: SetLoopStart
-  , setLoopEnd :: SetLoopEnd
-  , setRatio :: SetRatio
-  , setOffset :: SetOffset
-  , setAttack :: SetAttack
-  , setGain :: SetGain
-  , setQ :: SetQ
-  , setPan :: SetPan
-  , setThreshold :: SetThreshold
-  , setRelease :: SetRelease
-  , setKnee :: SetKnee
-  , setDelay :: SetDelay
-  , setPlaybackRate :: SetPlaybackRate
-  , setFrequency :: SetFrequency
-  , setWaveShaperCurve :: SetWaveShaperCurve
-  )
+-----
 
-newtype Instruction = Instruction (Variant Instruction')
+-- TODO:
+-- the code below is almost verbatim the same as deku
+-- only missing the "send to top" bit
+-- merge?
+data Stage = Begin | Middle | End
 
-instructionWeight :: Instruction -> Int
-instructionWeight (Instruction v) = v # match
-  { makeAllpass: const 2
-  , makeAnalyser: const 2
-  , makeAudioWorkletNode: const 2
-  , makeBandpass: const 2
-  , makeConstant: const 2
-  , makeConvolver: const 2
-  , makeDelay: const 2
-  , makeDynamicsCompressor: const 2
-  , makeGain: const 2
-  , makeHighpass: const 2
-  , makeHighshelf: const 2
-  , makeLoopBuf: const 2
-  , makeLowpass: const 2
-  , makeLowshelf: const 2
-  , makeMediaElement: const 2
-  , makeMicrophone: const 2
-  , makeNotch: const 2
-  , makePeaking: const 2
-  , makePeriodicOsc: const 2
-  , makePlayBuf: const 2
-  , makeRecorder: const 2
-  , makeSawtoothOsc: const 2
-  , makeSinOsc: const 2
-  , makeSquareOsc: const 2
-  , makeStereoPanner: const 2
-  , makeTriangleOsc: const 2
-  , makeWaveShaper: const 2
-  , makeInput: const 3
-  , connectXToY: const 5
-  , disconnectXFromY: const 0
-  , destroyUnit: const 1
-  , setAnalyserNodeCb: const 6
-  , setMediaRecorderCb: const 6
-  , setAudioWorkletParameter: const 6
-  , setBuffer: const 6
-  , setConvolverBuffer: const 6
-  , setPeriodicOsc: const 6
-  , setOnOff: const 6
-  , setBufferOffset: const 6
-  , setDuration: const 6
-  , setLoopStart: const 6
-  , setLoopEnd: const 6
-  , setRatio: const 6
-  , setOffset: const 6
-  , setAttack: const 6
-  , setGain: const 6
-  , setQ: const 6
-  , setPan: const 6
-  , setThreshold: const 6
-  , setRelease: const 6
-  , setKnee: const 6
-  , setDelay: const 6
-  , setPlaybackRate: const 6
-  , setFrequency: const 6
-  , setWaveShaperCurve: const 6
-  }
-
-instructionId :: Instruction -> String
-instructionId (Instruction v) = v # match
-  { makeAllpass: _.id
-  , makeAnalyser: _.id
-  , makeAudioWorkletNode: _.id
-  , makeBandpass: _.id
-  , makeConstant: _.id
-  , makeConvolver: _.id
-  , makeDelay: _.id
-  , makeDynamicsCompressor: _.id
-  , makeGain: _.id
-  , makeHighpass: _.id
-  , makeHighshelf: _.id
-  , makeLoopBuf: _.id
-  , makeLowpass: _.id
-  , makeLowshelf: _.id
-  , makeMediaElement: _.id
-  , makeMicrophone: _.id
-  , makeNotch: _.id
-  , makePeaking: _.id
-  , makePeriodicOsc: _.id
-  , makePlayBuf: _.id
-  , makeRecorder: _.id
-  , makeSawtoothOsc: _.id
-  , makeSinOsc: _.id
-  , makeSquareOsc: _.id
-  , makeStereoPanner: _.id
-  , makeTriangleOsc: _.id
-  , makeWaveShaper: _.id
-  , makeInput: _.id
-  , connectXToY: _.from
-  , disconnectXFromY: _.from
-  , destroyUnit: _.id
-  , setAnalyserNodeCb: _.id
-  , setMediaRecorderCb: _.id
-  , setAudioWorkletParameter: _.id
-  , setBuffer: _.id
-  , setConvolverBuffer: _.id
-  , setPeriodicOsc: _.id
-  , setOnOff: _.id
-  , setBufferOffset: _.id
-  , setDuration: _.id
-  , setLoopStart: _.id
-  , setLoopEnd: _.id
-  , setRatio: _.id
-  , setOffset: _.id
-  , setAttack: _.id
-  , setGain: _.id
-  , setQ: _.id
-  , setPan: _.id
-  , setThreshold: _.id
-  , setRelease: _.id
-  , setKnee: _.id
-  , setDelay: _.id
-  , setPlaybackRate: _.id
-  , setFrequency: _.id
-  , setWaveShaperCurve: _.id
-  }
-
-instance eqInstruction :: Eq Instruction where
-  eq a b = case compare a b of
-    EQ -> true
-    _ -> false
-
-instance ordInstruction :: Ord Instruction where
-  compare v1 v2 = case compare w1 w2 of
-    EQ -> c2 unit
-    x -> x
-    where
-    w1 = instructionWeight v1
-    w2 = instructionWeight v2
-    c2 _ = compare i1 i2
-      where
-      i1 = instructionId v1
-      i2 = instructionId v2
+__internalWagsFlatten
+  :: forall outputChannels lock payload
+   . String
+  -> AudioInterpret payload
+  -> Event (Event (StreamingAudio outputChannels lock payload))
+  -> Event payload
+__internalWagsFlatten
+  parent
+  di@(AudioInterpret { ids, disconnectXFromY })
+  children =
+  makeEvent \k -> do
+    cancelInner <- Ref.new Object.empty
+    cancelOuter <-
+      -- each child gets its own scope
+      subscribe children \inner ->
+        do
+          -- holds the previous id
+          myUnsubId <- ids
+          myUnsub <- Ref.new (pure unit)
+          eltsUnsubId <- ids
+          eltsUnsub <- Ref.new (pure unit)
+          myId <- Ref.new DM.Nothing
+          myImmediateCancellation <- Ref.new (pure unit)
+          myScope <- ids
+          stageRef <- Ref.new Begin
+          c0 <- subscribe inner \kid' -> do
+            stage <- Ref.read stageRef
+            case kid', stage of
+              Silence, Middle -> do
+                Ref.write End stageRef
+                let
+                  mic =
+                    ( Ref.read myId >>= traverse_ \old ->
+                        k
+                          ( disconnectXFromY
+                              { from: old, to: parent }
+                          )
+                    ) *> join (Ref.read myUnsub)
+                      *> join (Ref.read eltsUnsub)
+                      *> Ref.modify_
+                        (Object.delete myUnsubId)
+                        cancelInner
+                      *> Ref.modify_
+                        (Object.delete eltsUnsubId)
+                        cancelInner
+                Ref.write mic myImmediateCancellation *> mic
+              Sound (Node kid), Begin -> do
+                -- holds the current id
+                Ref.write Middle stageRef
+                av <- AVar.empty
+                c1 <- subscribe
+                  ( kid
+                      { parent
+                      , scope: myScope
+                      , raiseId: \id -> do
+                          void $ tryPut id av
+                      }
+                      di
+                  )
+                  k
+                cncl <- AVar.take av \q -> case q of
+                  Right r -> do
+                    Ref.write (DM.Just r) (myId)
+                    Ref.modify_ (Object.insert eltsUnsubId c1) cancelInner
+                    Ref.write c1 eltsUnsub
+                  Left e -> throwException e
+                -- cancel immediately, as it should be run synchronously
+                -- so if this actually does something then we have a problem
+                cncl
+              -- ignore
+              _,
+              _ -> pure unit
+          Ref.write c0 myUnsub
+          Ref.modify_ (Object.insert myUnsubId c0) cancelInner
+          join (Ref.read myImmediateCancellation)
+    pure do
+      Ref.read cancelInner >>= fold
+      cancelOuter

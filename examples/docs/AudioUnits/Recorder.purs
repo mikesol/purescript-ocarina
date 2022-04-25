@@ -10,17 +10,15 @@ import Data.Foldable (for_, traverse_)
 import Data.Maybe (Maybe(..), maybe)
 import Data.Tuple.Nested ((/\))
 import Deku.Attribute (cb, (:=))
-import Deku.Control (text)
-import Deku.Core (Element, SubgraphF(..))
+import Deku.Control (blank, text)
+import Deku.Core (Element)
 import Deku.DOM as D
 import Deku.Pursx (nut, (~~))
-import Deku.Subgraph ((@@))
-import Deku.Subgraph as Sg
 import Effect (Effect)
 import Effect.AVar as AVar
 import Effect.Aff (launchAff, launchAff_, try)
 import Effect.Class (liftEffect)
-import FRP.Event (Event, subscribe)
+import FRP.Event (Event, bus, subscribe)
 import FRP.Event.Class (bang, biSampleOn)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (microphone, recorder, speaker2)
@@ -45,11 +43,10 @@ type RecorderStates = Either (Either String MediaRecorder) WrapperStates
 scene m cb = recorder cb (microphone m)
 
 recorderEx
-  :: forall payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Element Event payload
+  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Element lock payload
 recorderEx ccb _ ev = px ~~
   { recorder: nut
-      ( bang (unit /\ Sg.Insert)
-          @@ \_ -> mkExists $ SubgraphF \push (event' :: Event RecorderStates) ->
+      ( bus \push (event' :: Event RecorderStates) ->
             let
               ptn = partitionMap identity event'
               event = mkWrapperEvent ev (_.right ptn)
@@ -131,7 +128,7 @@ recorderEx ccb _ ev = px ~~
                             (const (D.Style := "display:block;"))
                             aEv
                         )
-                        []
+                        blank
                     ]
                 ]
       )

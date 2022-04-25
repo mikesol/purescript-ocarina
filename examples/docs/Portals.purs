@@ -45,7 +45,7 @@ px =  Proxy :: Proxy """<div>
   <p>In the next section, we'll look at how to create audio graphs via an <a ~next~ style="cursor:pointer;">imperative API that more closely resembles Web Audio while providing additional type-safety benefits</a>.</p>
 </div>"""
 
-portals :: forall payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent -> Element Event payload
+portals :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent -> Element lock payload
 portals _ dpage _ _ = px ~~
   { next: bang (D.OnClick := (cb (const $ dpage Imperative *> scrollToTop)))
   }
