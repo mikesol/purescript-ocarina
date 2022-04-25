@@ -37,19 +37,12 @@ px =
   Proxy    :: Proxy      """<section>
   <h2>Hello subgraph</h2>
 
-  <p>To make a subgraph, you need two things:</p>
-
-  <ol>
-    <li>An index type. This type needs to implement the <code>Hashable</code> typeclass. You can use this to customize whatever the resulting subgraph will be.</li>
-    <li>The subgraph itself, which is a single audio node that must be prefaced by <code>mkSubgraph</code>.</li>
-  </ol>
+  <p>Subgraphs have the type <code>Event (Event (StreamingAudio outputChannels lock payload))</code>. Streaming audio is a data type with two constructors: <code>Sound (Node outputChannels lock payload)</code> to create a subgraph and <code>Silence</code> to turn it off. The inner event listens for sound/silence, and the outer event adds subgraphs to the scene. You can create as many subgraphs as you like: wags automatically frees up resources when you send the <code>Silence</code> event. Note that, once you turn a subraph off with <code>Silence</code>, you can't turn it back on again. In this case, just create a new subgraph.</p>
 
   <p>Here's a simple subgraph that is connected to a slider. As you slide the slider, new nodes are provisioned. Each one has a pseudo-random pitch.</p>
 
   <pre><code>@txt@</code></pre>
   @ex1@
-
-  <p>Note how, in this example, we use a delay to turn off audio nodes. One nice thing about subgraphs is that, when they are removed, their nodes are turned off <i>and</i> their events are cancelled, which means that there will never be a case where a subgraph keeps playing or consuming events after it has been removed.</p>
 
 </section>
 """
