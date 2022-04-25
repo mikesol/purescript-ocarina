@@ -22,8 +22,8 @@ import WAGS.Run (run2)
 px =
   Proxy    :: Proxy         """<div>
   <pre><code>\buf -> run2_
-  [ fan (loopBuf buf bangOn)
-      \b -> gain_ 0.8
+  [ fan1 (loopBuf buf bangOn)
+      \b _ -> mix $ gain_ 0.8
         $ 0 .. 40 &lt;#&gt; lcmap toNumber
             \i -> bandpass_
               { frequency: 200.0 + i * 150.0, q: 30.0 }

@@ -40,11 +40,11 @@ px = Proxy :: Proxy
 
   <h2>Fan</h2>
 
-  <p><span style="font-weight:800;">Fan</span> takes an audio signal and fans it out to multiple processing chains. For example, if you have a looping buffer and you'd like to filter it through a bank of different filters, you can do this via fan. Fan takes two arguments:</p>
+  <p><span style="font-weight:800;">Fan</span> takes a vector of audio signals and fans it out to multiple processing chains. If you have a single signal, you can use <code>fan1</code>. For example, if you have a looping buffer and you'd like to filter it through a bank of different filters, you can do this via fan. Fan takes two arguments:</p>
 
   <ul>
-    <li>The node to fan out.</li>
-    <li>A function that accepts a reference to this node and returns a new node that may or may not contain the input.</li>
+    <li>A vector of nodes to fan out (or a single node in the case of <code>fan1</code>).</li>
+    <li>A function that accepts a reference to this/these node(s) and returns a new <i>mixed</i> node that may or may not contain the input. Mixed nodes are created using the <code>mix</code> function.</li>
   </ul>
 
   <p>Let's see an example below that fans one <code>playBuf</code> to five bandpass filters.</p>

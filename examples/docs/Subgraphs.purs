@@ -28,13 +28,13 @@ px =  Proxy :: Proxy """<div>
   </p>
 
   <p>
-    Subgraphs fix this problem. They provide a concise mechansim to dynamically insert audio graphs based on events.
+    Subgraphs fix this problem. They provide a concise mechansim to dynamically insert audio graphs based on events. Subgraphs have the type <code>Event (Event (StreamingAudio outputChannels lock payload))</code>. Streaming audio is a data type with two constructors: <code>Sound (Node outputChannels lock payload)</code> to create a subgraph and <code>Silence</code> to turn it off. The inner event listens for sound/silence, and the outer event adds subgraphs to the scene. You can create as many subgraphs as you like: wags automatically frees up resources when you send the <code>Silence</code> event. Note that, once you turn a subraph off with <code>Silence</code>, you can't turn it back on again. In this case, just create a new subgraph.
   </p>
 
   ~suby~
 
   <h2>Go forth and be brilliant!</h2>
-  <p>Thus ends the first version of the wags documentation. Applause is always welcome ~appl~! Alas, some features remain undocumented, like audio worklets, an imperative API, and an experimental rendering engine called <code>tumult</code> that allows for efficient "VDOM"-esque audio unit diffing in portions of a graph. At some point I hope to document all of these, but hopefully this should be enough to get anyone interested up and running. If you need to use any of those features before I document them, ping me on the <a href="https://purescript.org/chat">PureScript Discord</a>. Otherwise, happy music making with Wags!</p>
+  <p>Thus ends the first version of the wags documentation. Applause is always welcome ~appl~! Alas, some features remain undocumented, like audio worklets and an imperative API. At some point I hope to document all of these, but hopefully this should be enough to get anyone interested up and running. If you need to use any of those features before I document them, ping me on the <a href="https://purescript.org/chat">PureScript Discord</a>. Otherwise, happy music making with Wags!</p>
 </div>"""
 
 subgraphs :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent  -> Element lock payload

@@ -18,8 +18,8 @@ import WAGS.Run (run2)
 px =
   Proxy    :: Proxy         """<div>
   <pre><code>run2_
-  [ fan (loopBuf buf bangOn)
-      \b -> gain_ 0.8
+  [ fan1 (loopBuf buf bangOn)
+      \b _ -> mix $ gain_ 0.8
         [ bandpass_ { frequency: 400.0, q: 1.0 } [ b ]
         , bandpass_ { frequency: 880.0, q: 5.0 } [ b ]
         , bandpass_ { frequency: 1200.0, q: 10.0 } [ b ]

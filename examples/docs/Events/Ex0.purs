@@ -97,8 +97,9 @@ import Data.Profunctor (lcmap)
 import Deku.Attribute (cb, (:=))
 import Deku.Control (text)
 import Deku.DOM as D
-import Deku.Toplevel (runInBody)
+import Deku.Toplevel (runInBody, runInBody1)
 import Effect (Effect)
+import FRP.Event (bus)
 import FRP.Event.Class (bang)
 import Math (pow)
 import WAGS.Control (gain_, gain, sinOsc)
@@ -137,7 +138,7 @@ cell = lcmap toNumber \i -> do
   ]
 
 main :: Effect Unit
-main = Init 🚀 \push event ->
+main = runInBody1 (bus \push -> lcmap (bang Init <|> _) \event ->
   D.div_
     [ D.button
         ( event <#>
@@ -158,7 +159,7 @@ main = Init 🚀 \push event ->
             Stop _ -> "Turn off"
             _ -> "Turn on"
         ]
-    ]
+    ])
 """
 
 ex0

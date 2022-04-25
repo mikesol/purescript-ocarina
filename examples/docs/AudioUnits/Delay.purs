@@ -23,8 +23,8 @@ px =
   <p>To create an even <i>better</i> echo effect, you can used fixed points, which is covered in the <a>Fix and fan</a> section of this documentation.</p>
 
   <pre><code>\buf -> run2_
-  [ fan (playBuf buf bangOn)
-      \b -> gain_ 0.2
+  [ fan1 (playBuf buf bangOn)
+      \b _ -> mix $ gain_ 0.2
         [ delay_ 0.03 [ b ]
         , delay_ 0.1 [ b ]
         , delay_ 0.3 [ b ]

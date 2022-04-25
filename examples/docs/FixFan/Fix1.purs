@@ -52,7 +52,7 @@ fade1 = bang
   $ AudioEnvelope { p: [1.0, 1.0, 0.0], o: 0.0, d: 10.0 }
 
 scene buf = run2_
-  [ fan (playBuf buf bangOn) \b -> fix
+  [ fan1 (playBuf buf bangOn) \b _ -> mix $ fix
       \g0 -> gain_ 1.0
         [ b
         , dgh 0.15 0.7 1500.0

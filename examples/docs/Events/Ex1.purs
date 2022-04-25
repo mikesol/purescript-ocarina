@@ -73,14 +73,14 @@ import Data.Newtype (class Newtype, unwrap)
 import Data.Tuple.Nested ((/\))
 import Data.Variant (Variant, match)
 import Deku.Attribute (cb, (:=))
-import Deku.Control (text, text_)
-
+import Deku.Control (blank, plant, switcher, text, text_)
+import Deku.Core (Element)
 import Deku.DOM as D
-
-import Deku.Toplevel ((🚆))
+import Deku.Toplevel (runInBody, runInBody1)
 import Effect (Effect)
 import Effect.Aff (launchAff_)
 import Effect.Class (liftEffect)
+import FRP.Event (bus, create)
 import FRP.Event.Class (bang, biSampleOn, filterMap, keepLatest)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (loopBuf)
@@ -113,107 +113,94 @@ sti = injs_ (Proxy :: _ State')
 loading = State $ sti.loading unit
 stp = prjs_ (Proxy :: _ State')
 
-derive instance Eq State
-
-instance Hashable State where
-  hash (State v) = match { loading: \_ -> 0, loaded: \_ -> 1 } v
 
 atari =
   "https://freesound.org/data/previews/100/100981_1234256-lq.mp3"
 
 main :: Effect Unit
 main = do
-  { push } <- loading 🚆 go
+  { push, event } <- create
+  runInBody (switcher scene event)
+  push loading
   launchAff_ $ bracketCtx
     \ctx -> decodeAudioDataFromUri ctx atari >>= liftEffect
       <<< push
       <<< State
       <<< sti.loaded
   where
-  go _ ev =
-    ( keepLatest $
-        ( \i@(State i') -> match
-            { loading: \_ -> bang (i /\ Sg.Insert)
-            , loaded: \_ -> bang (loading /\ Sg.Remove)
-                <|> bang (i /\ Sg.Insert)
-            }
-            i'
-        ) <$> ev
-    ) @@ scene
-    where
-    scene = unwrap >>> match
-      { loaded: \buffer -> mkExists $ SubgraphF \push event -> do
-          let
-            ss = bang (ssi.start unit) <|> filterMap uip.startStop event
-            sl = filterMap uip.slider event
-            sl0 = filterMap slp.s0 sl
-            sl1 = filterMap slp.s1 sl
-            sl2 = filterMap slp.s2 sl
-            music = run2_
-              [ loopBuf
-                  { buffer: buffer
-                  , playbackRate: 2.6
-                  , loopStart: 0.6
-                  , loopEnd: 1.1
-                  }
-                  $ oneOf
-                      [ bangOn
-                      , (calcSlope 0.0 0.2 100.0 5.0 >>> playbackRate) <$> sl0
-                      , (calcSlope 0.0 0.0 100.0 1.2 >>> loopStart) <$> sl1
-                      , (calcSlope 0.0 0.05 100.0 1.0 >>> loopEnd) <$> biSampleOn sl2
-                          (add <$> (bang 0.0 <|> sl1))
-                      ]
-              ]
-          D.div_
-            $
-              map
-                ( \{ l, f } -> D.div_
-                    [ text_ l
-                    , D.input
-                        ( oneOfMap bang
-                            [ D.Xtype := "range"
-                            , D.Min := "0"
-                            , D.Max := "100"
-                            , D.Step := "1"
-                            , D.Value := "50"
-                            , D.OnInput := cb
-                                ( traverse_
-                                    ( valueAsNumber
-                                        >=> push <<< uii.slider <<< f
-                                    )
-                                    <<< (=<<) fromEventTarget
-                                    <<< target
-                                )
-                            ]
+  scene :: forall lock payload. State -> Element lock payload
+  scene = unwrap >>> match
+    { loaded: \buffer -> D.div_ $ keepLatest $ bus \push event -> do
+        let
+          ss = bang (ssi.start unit) <|> filterMap uip.startStop event
+          sl = filterMap uip.slider event
+          sl0 = filterMap slp.s0 sl
+          sl1 = filterMap slp.s1 sl
+          sl2 = filterMap slp.s2 sl
+          music = run2_
+            [ loopBuf
+                { buffer: buffer
+                , playbackRate: 2.6
+                , loopStart: 0.6
+                , loopEnd: 1.1
+                }
+                $ oneOf
+                    [ bangOn
+                    , (calcSlope 0.0 0.2 100.0 5.0 >>> playbackRate) <$> sl0
+                    , (calcSlope 0.0 0.0 100.0 1.2 >>> loopStart) <$> sl1
+                    , (calcSlope 0.0 0.05 100.0 1.0 >>> loopEnd) <$> biSampleOn sl2
+                        (add <$> (bang 0.0 <|> sl1))
+                    ]
+            ]
+        plant $ D.div_
+          $
+            map
+              ( \{ l, f } -> D.div_
+                  [ text_ l
+                  , D.input
+                      ( oneOfMap bang
+                          [ D.Xtype := "range"
+                          , D.Min := "0"
+                          , D.Max := "100"
+                          , D.Step := "1"
+                          , D.Value := "50"
+                          , D.OnInput := cb
+                              ( traverse_
+                                  ( valueAsNumber
+                                      >=> push <<< uii.slider <<< f
+                                  )
+                                  <<< (=<<) fromEventTarget
+                                  <<< target
+                              )
+                          ]
+                      )
+                      blank
+                  ]
+              )
+              [ { l: "Playback rate", f: sli.s0 }
+              , { l: "Loop start", f: sli.s1 }
+              , { l: "Loop end", f: sli.s2 }
+              ] <>
+              [ D.button
+                  ( ss <#>
+                      \e -> D.OnClick := cb
+                        ( const $ e # match
+                            { stop: \u -> u *>
+                                push start
+                            , start: \_ -> do
+                                r <- music
+                                push (stop r)
+                            }
                         )
-                        []
-                    ]
-                )
-                [ { l: "Playback rate", f: sli.s0 }
-                , { l: "Loop start", f: sli.s1 }
-                , { l: "Loop end", f: sli.s2 }
-                ] <>
-                [ D.button
-                    ( ss <#>
-                        \e -> D.OnClick := cb
-                          ( const $ e # match
-                              { stop: \u -> u *>
-                                  push start
-                              , start: \_ -> do
-                                  r <- music
-                                  push (stop r)
-                              }
-                          )
-                    )
-                    [ text $ ss <#> match
-                        { stop: \_ -> "Turn off"
-                        , start: \_ -> "Turn on"
-                        }
-                    ]
-                ]
-      , loading: \_ -> mkExists
-          $ SubgraphF \_ _ -> D.div_ [ text_ "Loading..." ]
-      }
+                  )
+                  [ text $ ss <#> match
+                      { stop: \_ -> "Turn off"
+                      , start: \_ -> "Turn on"
+                      }
+                  ]
+              ]
+    , loading: \_ -> D.div_ [ text_ "Loading..." ]
+    }
 """
 
 type Slider = Variant (s0 :: Number, s1 :: Number, s2 :: Number)

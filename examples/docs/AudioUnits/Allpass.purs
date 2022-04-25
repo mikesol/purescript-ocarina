@@ -23,17 +23,17 @@ px =
   <p>The <code>bangOn</code> is an event that turns the loop buffer on. We'll learn more about turning things on and off in the "Events" section.</p>
 
   <pre><code>\buf -> run2_
-  [ fan (loopBuf buf bangOn)
-      \b -> gain_ 0.2
-        [ b
-        , allpass_ 700.0
-            [ allpass_ { frequency: 990.0, q: 20.0 } [ b ]
-            , allpass_ 1110.0
-                [ b
-                , allpass_ { frequency: 2010.0, q: 30.0 } [ b ]
-                ]
-            ]
-        ]
+  [ fan1 (loopBuf buf bangOn)
+    \b _ -> mix $ gain_ 0.2
+      [ b
+      , allpass_ 700.0
+          [ allpass_ { frequency: 990.0, q: 20.0 } [ b ]
+          , allpass_ 1110.0
+              [ b
+              , allpass_ { frequency: 2010.0, q: 30.0 } [ b ]
+              ]
+          ]
+      ]
   ]
 </code></pre>
 
