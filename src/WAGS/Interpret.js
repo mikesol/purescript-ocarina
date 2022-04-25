@@ -11,9 +11,9 @@ var makeid = function (length) {
 var NUMERIC = "numeric";
 var SUDDEN = "sudden";
 var CANCELLATION = "cancellation";
-var NO_RAMP = "noRamp";
-var LINEAR_RAMP = "linearRamp";
-var EXPONENTIAL_RAMP = "exponentialRamp";
+var NO_RAMP = "step";
+var LINEAR_RAMP = "linear";
+var EXPONENTIAL_RAMP = "exponential";
 var ENVELOPE = "envelope";
 var isOn = function (param) {
 	return param.type === "on" || param.type === "offOn";
@@ -281,7 +281,7 @@ exports.makeConstant_ = function (a) {
 				createClosure: createClosure,
 				onOff: false,
 				pendingOn: true,
-				//lazy main: createClosure(state.context, resume),
+				main: createClosure(state.context, resume), // needed so that setters don't error out, even though not started yet
 			};
 			addToScope(ptr, a.scope, state);
 			doDeferredConnections(ptr, state);
@@ -460,7 +460,7 @@ exports.makeLoopBuf_ = function (a) {
 				createClosure: createClosure,
 				onOff: false,
 				pendingOn: true,
-				//lazy main: createClosure(state.context, resume),
+				main: createClosure(state.context, resume), // needed so that setters don't error out, even though not started yet
 			};
 			addToScope(ptr, a.scope, state);
 			doDeferredConnections(ptr, state);
@@ -631,7 +631,7 @@ exports.makePeriodicOsc_ = function (a) {
 				createClosure: createClosure,
 				onOff: false,
 				pendingOn: true,
-				//lazy main: createClosure(state.context, resume),
+				main: createClosure(state.context, resume), // needed so that setters don't error out, even though not started yet
 			};
 			addToScope(ptr, a.scope, state);
 			doDeferredConnections(ptr, state);
@@ -676,7 +676,7 @@ exports.makePlayBuf_ = function (a) {
 				createClosure: createClosure,
 				onOff: false,
 				pendingOn: true,
-				//lazy main: createClosure(state.context, resume),
+				main: createClosure(state.context, resume), // needed so that setters don't error out, even though not started yet
 			};
 			addToScope(ptr, a.scope, state);
 			doDeferredConnections(ptr, state);
@@ -737,7 +737,7 @@ exports.makeSawtoothOsc_ = function (a) {
 				createClosure: createClosure,
 				onOff: false,
 				pendingOn: true,
-				//lazy main: createClosure(state.context, resume),
+				main: createClosure(state.context, resume), // needed so that setters don't error out, even though not started yet
 			};
 			addToScope(ptr, a.scope, state);
 			doDeferredConnections(ptr, state);
@@ -771,7 +771,7 @@ exports.makeSinOsc_ = function (a) {
 				createClosure: createClosure,
 				onOff: false,
 				pendingOn: true,
-				//lazy main: createClosure(state.context, resume),
+				main: createClosure(state.context, resume), // needed so that setters don't error out, even though not started yet
 			};
 			addToScope(ptr, a.scope, state);
 			doDeferredConnections(ptr, state);
@@ -837,7 +837,7 @@ exports.makeSquareOsc_ = function (a) {
 				createClosure: createClosure,
 				onOff: false,
 				pendingOn: true,
-				//lazy main: createClosure(state.context, resume),
+				main: createClosure(state.context, resume), // needed so that setters don't error out, even though not started yet
 			};
 			addToScope(ptr, a.scope, state);
 			doDeferredConnections(ptr, state);
@@ -871,7 +871,7 @@ exports.makeTriangleOsc_ = function (a) {
 				createClosure: createClosure,
 				onOff: false,
 				pendingOn: true,
-				//lazy main: createClosure(state.context, resume),
+				main: createClosure(state.context, resume), // needed so that setters don't error out, even though not started yet
 			};
 			addToScope(ptr, a.scope, state);
 			doDeferredConnections(ptr, state);
