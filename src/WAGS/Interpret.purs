@@ -270,9 +270,10 @@ audioBuffer i v = AudioBuffer i (map V.toArray $ V.toArray v)
 -- foreign
 data FFIAudioSnapshot
 
+foreign import deleteFromCache_
+  :: C.DeleteFromCache -> FFIAudioSnapshot -> Effect Unit
 foreign import disconnectXFromY_
   :: C.DisconnectXFromY -> FFIAudioSnapshot -> Effect Unit
-
 foreign import connectXToY_ :: C.ConnectXToY -> FFIAudioSnapshot -> Effect Unit
 foreign import makeAllpass_ :: C.MakeAllpass -> FFIAudioSnapshot -> Effect Unit
 foreign import makeAnalyser_
@@ -392,6 +393,7 @@ effectfulAudioInterpret
   :: C.AudioInterpret (FFIAudioSnapshot -> Effect Unit)
 effectfulAudioInterpret = C.AudioInterpret
   { ids: map show R.random
+  , deleteFromCache: deleteFromCache_
   , disconnectXFromY: disconnectXFromY_
   , connectXToY: connectXToY_
   , makeAllpass: makeAllpass_

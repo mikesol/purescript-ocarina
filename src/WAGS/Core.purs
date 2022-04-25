@@ -16,7 +16,6 @@ import Effect (Effect)
 import Effect.AVar (tryPut)
 import Effect.AVar as AVar
 import Effect.Exception (throwException)
-import Effect.Random as Random
 import Effect.Ref as Ref
 import FRP.Event (Event, bang, makeEvent, subscribe)
 import Foreign (Foreign)
@@ -257,6 +256,7 @@ type DisconnectXFromY_ = (from :: String, to :: String)
 type DisconnectXFromY = { | DisconnectXFromY_ }
 type DisconnectXFromY' =
   { fromUnit :: String, toUnit :: String | DisconnectXFromY_ }
+type DeleteFromCache = { id :: String }
 
 derive instance newtypeAllpass :: Newtype Allpass _
 newtype Allpass = Allpass
@@ -925,6 +925,7 @@ newtype AudioInterpret payload = AudioInterpret
   { ids :: Effect String
   , disconnectXFromY :: DisconnectXFromY -> payload
   , connectXToY :: ConnectXToY -> payload
+  , deleteFromCache :: DeleteFromCache -> payload
   , makeAllpass :: MakeAllpass -> payload
   , makeAnalyser :: MakeAnalyser -> payload
   , makeAudioWorkletNode :: MakeAudioWorkletNode -> payload
@@ -982,13 +983,22 @@ newtype AudioInterpret payload = AudioInterpret
 
 -----
 
+-- TODO:
+-- the code below is almost verbatim the same as deku
+-- only missing the "send to top" bit
+-- merge?
+data Stage = Begin | Middle | End
+
 __internalWagsFlatten
   :: forall outputChannels lock payload
    . String
   -> AudioInterpret payload
   -> Event (Event (StreamingAudio outputChannels lock payload))
   -> Event payload
-__internalWagsFlatten parent di@(AudioInterpret { ids, disconnectXFromY }) children =
+__internalWagsFlatten
+  parent
+  di@(AudioInterpret { ids, disconnectXFromY })
+  children =
   makeEvent \k -> do
     cancelInner <- Ref.new Object.empty
     cancelOuter <-
@@ -996,40 +1006,44 @@ __internalWagsFlatten parent di@(AudioInterpret { ids, disconnectXFromY }) child
       subscribe children \inner ->
         do
           -- holds the previous id
-          prevId <- Ref.new DM.Nothing
-          prevUnsub <- Ref.new (pure unit)
+          myUnsubId <- ids
           myUnsub <- Ref.new (pure unit)
+          eltsUnsubId <- ids
+          eltsUnsub <- Ref.new (pure unit)
+          myId <- Ref.new DM.Nothing
           myImmediateCancellation <- Ref.new (pure unit)
-          rn <- map show Random.random
-          c0 <- subscribe inner \ kid' -> do
-            newScope <- ids
-            case kid' of
-              Silence -> do
+          myScope <- ids
+          stageRef <- Ref.new Begin
+          c0 <- subscribe inner \kid' -> do
+            stage <- Ref.read stageRef
+            case kid', stage of
+              Silence, Middle -> do
+                Ref.write End stageRef
                 let
                   mic =
-                    ( Ref.read prevId >>= traverse_ \old ->
+                    ( Ref.read myId >>= traverse_ \old ->
                         k
                           ( disconnectXFromY
                               { from: old, to: parent }
                           )
-                    ) *> join (Ref.read myUnsub) *> join (Ref.read prevUnsub) *>
-                      Ref.modify_
-                        (Object.delete rn)
+                    ) *> join (Ref.read myUnsub)
+                      *> join (Ref.read eltsUnsub)
+                      *> Ref.modify_
+                        (Object.delete myUnsubId)
+                        cancelInner
+                      *> Ref.modify_
+                        (Object.delete eltsUnsubId)
                         cancelInner
                 Ref.write mic myImmediateCancellation *> mic
-              Sound (Node kid) -> do
+              Sound (Node kid), Begin -> do
                 -- holds the current id
+                Ref.write Middle stageRef
                 av <- AVar.empty
                 c1 <- subscribe
                   ( kid
                       { parent
-                      , scope: newScope
+                      , scope: myScope
                       , raiseId: \id -> do
-                          Ref.read prevId >>= traverse_ \old ->
-                            k
-                              ( disconnectXFromY
-                                  { from: old, to: parent }
-                              )
                           void $ tryPut id av
                       }
                       di
@@ -1037,15 +1051,18 @@ __internalWagsFlatten parent di@(AudioInterpret { ids, disconnectXFromY }) child
                   k
                 cncl <- AVar.take av \q -> case q of
                   Right r -> do
-                    Ref.write (DM.Just r) (prevId)
-                    join (Ref.read prevUnsub)
-                    Ref.write c1 prevUnsub
+                    Ref.write (DM.Just r) (myId)
+                    Ref.modify_ (Object.insert eltsUnsubId c1) cancelInner
+                    Ref.write c1 eltsUnsub
                   Left e -> throwException e
                 -- cancel immediately, as it should be run synchronously
                 -- so if this actually does something then we have a problem
                 cncl
+              -- ignore
+              _,
+              _ -> pure unit
           Ref.write c0 myUnsub
-          Ref.modify_ (Object.insert rn c0) cancelInner
+          Ref.modify_ (Object.insert myUnsubId c0) cancelInner
           join (Ref.read myImmediateCancellation)
     pure do
       Ref.read cancelInner >>= fold

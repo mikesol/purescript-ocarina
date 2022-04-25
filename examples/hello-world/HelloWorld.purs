@@ -2,25 +2,25 @@ module WAGS.Example.HelloWorld where
 
 import Prelude
 
-import Control.Alt ((<|>))
+import Control.Alt (alt, (<|>))
 import Control.Plus (empty)
 import Data.Exists (Exists, mkExists)
 import Data.Foldable (for_)
 import Data.Lens (over)
 import Data.Maybe (Maybe(..), maybe)
+import Data.Profunctor (lcmap)
 import Data.Tuple (Tuple(..))
 import Data.Typelevel.Num (D2)
 import Deku.Attribute (cb, (:=))
-import Deku.Control (deku, text, text_)
-import Deku.Core (SubgraphF(..))
+import Deku.Control (deku, deku1, text, text_)
+import Deku.Core (Element)
 import Deku.DOM as DOM
 import Deku.Interpret (effectfulDOMInterpret, makeFFIDOMSnapshot)
-
 import Effect (Effect)
 import Effect.Aff (Aff, launchAff_)
 import Effect.Class (liftEffect)
 import FRP.Behavior (sample_)
-import FRP.Event (Event, subscribe)
+import FRP.Event (Event, bus, keepLatest, memoize, subscribe)
 import FRP.Event.Animate (animationFrameEvent)
 import FRP.Event.Class (bang)
 import Math (pi, sin)
@@ -43,7 +43,7 @@ import Web.HTML.Window (document)
 scene
   :: forall lock payload
    . WriteHead Event
-  -> Array (Node D2 lock Event payload)
+  -> Array (Node D2 lock payload)
 scene wh =
   let
     tr = fot wh (mul pi)
@@ -59,7 +59,7 @@ scene wh =
 scene'
   :: forall payload
    . WriteHead (Event)
-  -> InitialGraphBuilder Event payload _ Unit
+  -> InitialGraphBuilder payload _ Unit
 scene' wh = I.do
   speaker <- I.speaker (Proxy :: Proxy "speaker")
   gain0 <- I.gain (Proxy :: Proxy "gain0") 0.1 empty
@@ -94,11 +94,11 @@ initializeHelloWorld :: Aff Init
 initializeHelloWorld = pure unit
 
 helloWorld
-  :: forall payload
+  :: forall lock payload
    . Unit
   -> RaiseCancellation
-  -> Exists (SubgraphF Event payload)
-helloWorld _ rc = mkExists $ SubgraphF \p e ->
+  -> Event (Element lock payload)
+helloWorld _ rc = keepLatest $ bus \p -> lcmap (alt (bang Nothing)) \e -> memoize animationFrameEvent \afe ->
   let
     musicButton push event audioEvent = DOM.button
       ( map
@@ -109,7 +109,6 @@ helloWorld _ rc = mkExists $ SubgraphF \p e ->
                         ctx <- context
                         ffi2 <- makeFFIAudioSnapshot ctx
                         let wh = writeHead 0.04 ctx
-                        afe <- animationFrameEvent
                         unsub <- subscribe
                           (audioEvent (sample_ wh afe))
                           ((#) ffi2)
@@ -147,10 +146,8 @@ main = launchAff_ do
     for_ (toElement <$> b') \elt -> do
       ffi <- makeFFIDOMSnapshot
       let
-        evt = deku elt
-          ( subgraph (bang (Tuple unit Insert))
-              (const $ helloWorld init (const $ pure unit))
-          )
+        evt = deku1 elt
+          ( helloWorld init (const $ pure unit))
           effectfulDOMInterpret
       _ <- subscribe (evt) \i -> i ffi
       pure unit

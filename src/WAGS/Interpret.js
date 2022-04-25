@@ -60,6 +60,9 @@ var genericSetter = function (unit, name, deprecatedTimeToSet, param) {
 	return protoSetter(unit[name], deprecatedTimeToSet, param);
 };
 var addToScope = function (ptr, scope, state) {
+	if (!state.scopes[scope.value]) {
+		state.scopes[scope.value] = [];
+	}
 	state.scopes[scope.value].push(ptr);
 	state.units[ptr].scope = scope;
 };
@@ -123,6 +126,13 @@ var connectXToY_ = function (x, y, state) {
 	connectF();
 };
 
+exports.deleteFromCache_ = function (a) {
+	return function (state) {
+		return function () {
+			delete state.units[a.id];
+		};
+	};
+};
 exports.connectXToY_ = function (parameters) {
 	return function (state) {
 		return function () {
@@ -1513,7 +1523,7 @@ exports.makeFFIAudioSnapshot = function (audioCtx) {
 			deprecatedWriteHead: 0.0,
 			units: {},
 			unqidfr: makeid(10),
-			scopes: { root: [] },
+			scopes: {},
 			unsu: {},
 			toConnect: {},
 		};
