@@ -69,19 +69,18 @@ txt = """module Main where
 import Prelude
 
 import Control.Alt ((<|>))
-import Data.Foldable (oneOfMap, traverse_)
-import Data.Profunctor (lcmap)
+import Data.Foldable (oneOf, oneOfMap, traverse_)
 import Data.Tuple (Tuple(..), fst, snd)
-import Data.Variant (Variant, match)
-import Deku.Attribute (cb, (:=))
+import Deku.Attribute (attr, cb, (:=))
 import Deku.Control (blank, text, text_)
 import Deku.DOM as D
 import Deku.Toplevel (runInBody1)
 import Effect (Effect)
 import Effect.Random as Random
-import FRP.Behavior (behavior, sampleBy)
-import FRP.Event (Event, bus, makeEvent, memoize, subscribe)
-import FRP.Event.Class (bang, filterMap)
+import FRP.Behavior (Behavior, behavior, sampleBy)
+import FRP.Event (Event, makeEvent, memoize, subscribe)
+import FRP.Event.Class (bang)
+import FRP.Event.VBus (V, vbus)
 import Type.Proxy (Proxy(..))
 import WAGS.Clock (interval)
 import WAGS.Control (bandpass_, fan1, gain, gain_, highpass_, triangleOsc)
@@ -92,29 +91,23 @@ import WAGS.Parameter (AudioEnvelope(..), bangOn)
 import WAGS.Properties (frequency)
 import WAGS.Properties as P
 import WAGS.Run (run2e)
-import WAGS.Variant (injs_, prjs_)
 import Web.Event.Event (target)
 import Web.HTML.HTMLInputElement (fromEventTarget, valueAsNumber)
 
-type StartStop = Variant (start :: Unit, stop :: Effect Unit)
-ssi = injs_ (Proxy :: _ StartStop)
-start = uii.startStop (ssi.start unit)
-stop r = uii.startStop (ssi.stop r)
+type StartStop = V (start :: Unit, stop :: Effect Unit)
 
-type UIEvents = Variant
-  ( init :: Unit
-  , startStop :: StartStop
+type UIEvents = V
+  ( startStop :: StartStop
   , slider :: Number
   )
 
+random :: Behavior Number
 random = behavior \e ->
   makeEvent \k -> subscribe e \f ->
     Random.random >>= k <<< f
 
-uii = injs_ (Proxy :: _ UIEvents)
-uip = prjs_ (Proxy :: _ UIEvents)
-
 -- pentatonic scale
+cp :: Number -> Number
 cp n
   | n < 0.142857 = 261.625565
   | n < 0.285714 = 293.664768
@@ -126,10 +119,9 @@ cp n
 
 main :: Effect Unit
 main = runInBody1
-  ( bus \push -> lcmap (bang (uii.init unit) <|> _) \event -> do
+  ( vbus (Proxy :: _ UIEvents) \push event -> do
       let
-        ss = bang (ssi.start unit) <|> filterMap uip.startStop event
-        sl = filterMap uip.slider event
+        start = event.startStop.start <|> bang unit
         music :: forall lock. _ -> Event (Array (Node _ lock _))
         music evt' = memoize evt' \evt -> do
           let
@@ -192,9 +184,7 @@ main = runInBody1
                     , D.Value := "50"
                     , D.OnInput := cb
                         ( traverse_
-                            ( valueAsNumber
-                                >=> push <<< uii.slider
-                            )
+                            (valueAsNumber >=> push.slider)
                             <<< (=<<) fromEventTarget
                             <<< target
                         )
@@ -203,30 +193,29 @@ main = runInBody1
                 blank
             ]
         , D.button
-            ( ss <#>
-                \e -> D.OnClick := cb
-                  ( const $ e # match
-                      { stop: \u -> u *>
-                          push start
-                      , start: \_ -> do
+            (( oneOfMap (map (attr D.OnClick <<< cb <<< const))
+                    [ start $> do
                           ctx <- context
                           let
                             myIvl = sampleBy Tuple random
                               $ interval ctx 0.91
-                              $ map (calcSlope 0.0 0.42 100.0 1.4) sl
+                              $ map (calcSlope 0.0 0.42 100.0 1.4)
+                              $ event.slider
                           r <- run2e ctx (music myIvl)
-                          push (stop (r *> close ctx))
-                      }
-                  )
+                          push.startStop.stop (r *> close ctx)
+                    , event.startStop.stop <#>
+                        (_ *> push.startStop.start unit)
+                    ]
+                )
             )
-            [ text $
-                match
-                  { stop: \_ -> "Turn off"
-                  , start: \_ -> "Turn on"
-                  } <$> ss
+            [ text $ oneOf
+                [ start $> "Turn on"
+                , event.startStop.stop $> "Turn off"
+                ]
             ]
         ]
-  )"""
+  )
+"""
 
 type StartStop = Variant (start :: Unit, stop :: Effect Unit)
 ssi = injs_ (Proxy :: _ StartStop)
