@@ -28,7 +28,6 @@
   , "profunctor"
   , "profunctor-lenses"
   , "random"
-  , "record"
   , "refs"
   , "safe-coerce"
   , "simple-json"

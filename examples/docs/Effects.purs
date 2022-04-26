@@ -35,7 +35,7 @@ import WAGS.Math (calcSlope)
 import WAGS.Parameter (AudioNumeric(..), _linear, bangOn)
 import WAGS.Properties as P
 import WAGS.Run (run2)
-import WAGS.Variant (injs_, prjs_)
+
 
 px = Proxy :: Proxy """<div>
   <h1>State</h1>

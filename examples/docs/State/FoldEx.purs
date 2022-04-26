@@ -3,33 +3,31 @@ module WAGS.Example.Docs.Effects.FoldEx where
 import Prelude
 
 import Control.Alt ((<|>))
-import Data.Exists (mkExists)
-import Data.Foldable (oneOf)
+import Data.Foldable (oneOf, oneOfMap)
 import Data.Tuple.Nested ((/\))
-import Data.Variant (Variant, match)
 import Data.Vec ((+>))
 import Data.Vec as V
-import Deku.Attribute (cb, (:=))
+import Deku.Attribute (attr, cb, (:=))
 import Deku.Control (blank, text, text_)
 import Deku.Core (Element)
 import Deku.DOM as D
 import Deku.Pursx (nut, (~~))
 import Effect (Effect)
 import FRP.Behavior (sampleBy, sample_, step)
-import FRP.Event (Event, bus, filterMap, fold, mapAccum, memoize, sampleOn)
+import FRP.Event (Event, fold, mapAccum, memoize, sampleOn)
 import FRP.Event.Animate (animationFrameEvent)
 import FRP.Event.Class (bang, biSampleOn)
+import FRP.Event.VBus (V, vbus)
 import Math (pi, sin)
 import Type.Proxy (Proxy(..))
 import WAGS.Clock (withACTime)
 import WAGS.Control (gain, periodicOsc)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..), SingleSubgraphPusher)
-import WAGS.Interpret (close, context)
+import WAGS.Interpret (close, constant0Hack, context)
 import WAGS.Math (calcSlope)
 import WAGS.Parameter (AudioNumeric(..), _linear, bangOn)
 import WAGS.Properties as P
-import WAGS.Run (run2, run2e)
-import WAGS.Variant (injs_, prjs_)
+import WAGS.Run (run2e)
 
 px =
   Proxy    :: Proxy      """<section>
@@ -57,47 +55,37 @@ px =
 
 </section>"""
 
-type Cbx = Variant (cbx0 :: Unit, cbx1 :: Unit, cbx2 :: Unit, cbx3 :: Unit)
-cbi = injs_ (Proxy :: _ Cbx)
-cbp = prjs_ (Proxy :: _ Cbx)
+type Cbx = V (cbx0 :: Unit, cbx1 :: Unit, cbx2 :: Unit, cbx3 :: Unit)
 
-type StartStop = Variant (start :: Unit, stop :: Effect Unit)
-ssi = injs_ (Proxy :: _ StartStop)
-start = uii.startStop (ssi.start unit)
-stop r = uii.startStop (ssi.stop r)
+type StartStop = V (start :: Unit, stop :: Effect Unit)
 
-type UIEvents = Variant
-  ( init :: Unit
-  , startStop :: StartStop
+type UIEvents = V
+  ( startStop :: StartStop
   , cbx :: Cbx
   )
 
-uii = injs_ (Proxy :: _ UIEvents)
-uip = prjs_ (Proxy :: _ UIEvents)
-
 foldEx :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent -> Element lock payload
-foldEx ccb dpage _ ev = px ~~
+foldEx ccb _ _ ev = px ~~
   { txt: nut $ text_
       """module Main where
 
 import Prelude
 
 import Control.Alt ((<|>))
-import Data.Foldable (oneOf)
-import Data.Profunctor (lcmap)
+import Data.Foldable (oneOf, oneOfMap)
 import Data.Tuple.Nested ((/\))
-import Data.Variant (Variant, match)
 import Data.Vec ((+>))
 import Data.Vec as V
-import Deku.Attribute (cb, (:=))
+import Deku.Attribute (attr, cb, (:=))
 import Deku.Control (blank, text)
 import Deku.DOM as D
 import Deku.Toplevel (runInBody1)
 import Effect (Effect)
 import FRP.Behavior (sampleBy, sample_, step)
-import FRP.Event (bus, memoize)
+import FRP.Event (memoize)
 import FRP.Event.Animate (animationFrameEvent)
-import FRP.Event.Class (bang, filterMap, fold, mapAccum, sampleOn)
+import FRP.Event.Class (bang, fold, mapAccum, sampleOn)
+import FRP.Event.VBus (V, vbus)
 import Math (pi, sin)
 import Type.Proxy (Proxy(..))
 import WAGS.Clock (withACTime)
@@ -107,233 +95,219 @@ import WAGS.Math (calcSlope)
 import WAGS.Parameter (AudioNumeric(..), _linear, bangOn)
 import WAGS.Properties as P
 import WAGS.Run (run2e)
-import WAGS.Variant (injs_, prjs_)
 
-type Cbx = Variant (cbx0 :: Unit, cbx1 :: Unit, cbx2 :: Unit, cbx3 :: Unit)
-cbi = injs_ (Proxy :: _ Cbx)
-cbp = prjs_ (Proxy :: _ Cbx)
+type Cbx = V (cbx0 :: Unit, cbx1 :: Unit, cbx2 :: Unit, cbx3 :: Unit)
 
-type StartStop = Variant (start :: Unit, stop :: Effect Unit)
-ssi = injs_ (Proxy :: _ StartStop)
-start = uii.startStop (ssi.start unit)
-stop r = uii.startStop (ssi.stop r)
+type StartStop = V (start :: Unit, stop :: Effect Unit)
 
-type UIEvents = Variant
-  ( init :: Unit
-  , startStop :: StartStop
+type UIEvents = V
+  ( startStop :: StartStop
   , cbx :: Cbx
   )
 
-uii = injs_ (Proxy :: _ UIEvents)
-uip = prjs_ (Proxy :: _ UIEvents)
-
 main :: Effect Unit
 main = runInBody1
-  ( bus \push -> lcmap (bang (uii.init unit) <|> _) \event -> do
+  ( vbus (Proxy :: _ UIEvents) \push event -> do
       let
-        ss = bang (ssi.start unit) <|> filterMap uip.startStop event
-        cbx = filterMap uip.cbx event
-        chkState e = step false $ fold (const not) (filterMap e cbx) false
-        cbx0 = chkState cbp.cbx0
-        cbx1 = chkState cbp.cbx1
-        cbx2 = chkState cbp.cbx2
-        cbx3 = chkState cbp.cbx3
+        startE = bang unit <|> event.startStop.start
+        stopE = event.startStop.stop
+        chkState e = step false $ fold (const not) e false
+        cbx0 = chkState event.cbx.cbx0
+        cbx1 = chkState event.cbx.cbx1
+        cbx2 = chkState event.cbx.cbx2
+        cbx3 = chkState event.cbx.cbx3
       D.div_
         [ D.button
-            ( ss <#>
-                \e -> D.OnClick := cb
-                  ( const $ e # match
-                      { stop: \u -> u *> push start
-                      , start: \_ -> do
-                          ctx <- context
-                          c0h <- constant0Hack ctx
-                          let
-                            cevt fast b tm = mapAccum
-                              ( \(oo /\ act) (pact /\ pt) ->
-                                  let
-                                    tn = pt +
-                                      ( (act - pact) *
-                                          (if oo then fast else 1.0)
-                                      )
-                                  in
-                                    ((act /\ tn) /\ tn)
-                              )
-                              (sampleBy (/\) b tm)
-                              (0.0 /\ 0.0)
-
-                          r <- run2e ctx
-                            ( memoize
-                                ( map (add 0.04 <<< _.acTime)
-                                    $ withACTime ctx animationFrameEvent
+            ( oneOfMap (map (attr D.OnClick <<< cb <<< const))
+                [ startE $> do
+                    ctx <- context
+                    c0h <- constant0Hack ctx
+                    let
+                      cevt fast b tm = mapAccum
+                        ( \(oo /\ act) (pact /\ pt) ->
+                            let
+                              tn = pt +
+                                ( (act - pact) *
+                                    (if oo then fast else 1.0)
                                 )
-                                \acTime ->
-                                  let
-                                    ev0 = cevt 8.0 cbx0 acTime
-                                    ev1 = map (if _ then 4.0 else 1.0) $ sample_ cbx1 acTime
-                                    ev2 = cevt 4.0 cbx2 acTime
-                                    ev3 = map (if _ then 4.0 else 1.0) $ sample_ cbx3 acTime
-                                    evs f a = sampleOn acTime
-                                      $ map ($)
-                                      $ sampleOn a
-                                      $ { f: _, a: _, t: _ } <$> f
-                                  in
-                                    [ gain 0.0
-                                        ( evs ev0 ev1 <#> \{ f, a, t } -> P.gain $ AudioNumeric
-                                            { n: calcSlope 1.0 0.01 4.0 0.15 a * sin (pi * f) + 0.15
-                                            , o: t
-                                            , t: _linear
-                                            }
-                                        )
-                                        [ periodicOsc
-                                            { frequency: 325.6
-                                            , spec: (0.3 +> -0.1 +> 0.7 +> -0.4 +> V.empty)
-                                                /\ (0.6 +> 0.3 +> 0.2 +> 0.0 +> V.empty)
-                                            }
-                                            ( oneOf
-                                                [ bangOn
-                                                , evs ev2 ev3 <#> \{ f, a, t } -> P.frequency
-                                                    $ AudioNumeric
-                                                      { n: 325.6 +
-                                                          (calcSlope 1.0 3.0 4.0 15.5 a * sin (pi * f))
-                                                      , o: t
-                                                      , t: _linear
-                                                      }
-                                                ]
-                                            )
-                                        ]
-                                    ]
-                            )
-                          push $ (stop (r *> c0h *> close ctx))
-                      }
-                  )
+                            in
+                              ((act /\ tn) /\ tn)
+                        )
+                        (sampleBy (/\) b tm)
+                        (0.0 /\ 0.0)
+
+                    r <- run2e ctx
+                      ( memoize
+                          ( map (add 0.04 <<< _.acTime)
+                              $ withACTime ctx animationFrameEvent
+                          )
+                          \acTime ->
+                            let
+                              ev0 = cevt 8.0 cbx0 acTime
+                              ev1 = map (if _ then 4.0 else 1.0) $ sample_ cbx1 acTime
+                              ev2 = cevt 4.0 cbx2 acTime
+                              ev3 = map (if _ then 4.0 else 1.0) $ sample_ cbx3 acTime
+                              evs f a = sampleOn acTime
+                                $ map ($)
+                                $ sampleOn a
+                                $ { f: _, a: _, t: _ } <$> f
+                            in
+                              [ gain 0.0
+                                  ( evs ev0 ev1 <#> \{ f, a, t } -> P.gain $ AudioNumeric
+                                      { n: calcSlope 1.0 0.01 4.0 0.15 a * sin (pi * f) + 0.15
+                                      , o: t
+                                      , t: _linear
+                                      }
+                                  )
+                                  [ periodicOsc
+                                      { frequency: 325.6
+                                      , spec: (0.3 +> -0.1 +> 0.7 +> -0.4 +> V.empty)
+                                          /\ (0.6 +> 0.3 +> 0.2 +> 0.0 +> V.empty)
+                                      }
+                                      ( oneOf
+                                          [ bangOn
+                                          , evs ev2 ev3 <#> \{ f, a, t } -> P.frequency
+                                              $ AudioNumeric
+                                                { n: 325.6 +
+                                                    (calcSlope 1.0 3.0 4.0 15.5 a * sin (pi * f))
+                                                , o: t
+                                                , t: _linear
+                                                }
+                                          ]
+                                      )
+                                  ]
+                              ]
+                      )
+                    push.startStop.stop (r *> c0h *> close ctx)
+                , stopE <#> (_ *> push.startStop.start unit)
+                ]
             )
-            [ text $ ss <#> match
-                { stop: \_ -> "Turn off"
-                , start: \_ -> "Turn on"
-                }
+            [ text $ oneOf
+                [ startE $> "Turn on"
+                , stopE $> "Turn off"
+                ]
             ]
         , D.div
-            ( ss <#> match
-                { stop: \_ -> D.Style := "display:block;"
-                , start: \_ -> D.Style := "display:none;"
-                }
+            ( oneOfMap (map (attr D.Style))
+                [ stopE $> "display:block;"
+                , startE $> "display:none;"
+                ]
             )
             ( map
                 ( \e -> D.input
                     ( oneOf
                         [ bang (D.Xtype := "checkbox")
-                        , bang (D.OnClick := cb (const $ push (uii.cbx $ e unit)))
-                        , (const $ D.Checked := "false") <$> ss
+                        , bang (D.OnClick := cb (const (e unit)))
+                        , startE $> (D.Checked := "false")
                         ]
                     )
                     blank
                 )
-                [ cbi.cbx0, cbi.cbx1, cbi.cbx2, cbi.cbx3 ]
+                ([ _.cbx0, _.cbx1, _.cbx2, _.cbx3 ] <@> push.cbx)
             )
         ]
   )"""
   , empl: nut
-      ( bus \push event -> do -- here
+      ( vbus (Proxy :: _ UIEvents) \push event -> do
           let
-            ss = bang (ssi.start unit) <|> filterMap uip.startStop event
-            cbx = filterMap uip.cbx event
-            chkState e = step false $ fold (const not) (filterMap e cbx) false
-            cbx0 = chkState cbp.cbx0
-            cbx1 = chkState cbp.cbx1
-            cbx2 = chkState cbp.cbx2
-            cbx3 = chkState cbp.cbx3
+            startE = bang unit <|> event.startStop.start
+            stopE = event.startStop.stop
+            chkState e = step false $ fold (const not) e false
+            cbx0 = chkState event.cbx.cbx0
+            cbx1 = chkState event.cbx.cbx1
+            cbx2 = chkState event.cbx.cbx2
+            cbx3 = chkState event.cbx.cbx3
           D.div_
             [ D.button
-                ( (biSampleOn (bang (pure unit) <|> (map (\(SetCancel x) -> x) ev)) (map (/\) ss)) <#>
-                    \(e /\ c) -> D.OnClick := cb
-                      ( const $ e # match
-                          { stop: \u -> u *> push start *> ccb (pure unit)
-                          , start: \_ -> do
-                              c
-                              ctx <- context
-                              let
-                                cevt fast b tm = mapAccum
-                                  ( \(oo /\ act) (pact /\ pt) ->
-                                      let
-                                        tn = pt +
-                                          ( (act - pact) *
-                                              (if oo then fast else 1.0)
-                                          )
-                                      in
-                                        ((act /\ tn) /\ tn)
-                                  )
-                                  (sampleBy (/\) b tm)
-                                  (0.0 /\ 0.0)
-                              r' <- run2e ctx
-                                ( memoize
-                                    ( map (add 0.04 <<< _.acTime)
-                                        $ withACTime ctx animationFrameEvent
+                ( oneOfMap (map (attr D.OnClick <<< cb <<< const))
+                    [ (biSampleOn (bang (pure unit) <|> (map (\(SetCancel x) -> x) ev)) (startE $> identity)) <#> \cncl -> do
+                        cncl
+                        ctx <- context
+                        c0h <- constant0Hack ctx
+                        let
+                          cevt fast b tm = mapAccum
+                            ( \(oo /\ act) (pact /\ pt) ->
+                                let
+                                  tn = pt +
+                                    ( (act - pact) *
+                                        (if oo then fast else 1.0)
                                     )
-                                    \acTime ->
-                                      let
-                                        ev0 = cevt 8.0 cbx0 acTime
-                                        ev1 = map (if _ then 4.0 else 1.0) $ sample_ cbx1 acTime
-                                        ev2 = cevt 4.0 cbx2 acTime
-                                        ev3 = map (if _ then 4.0 else 1.0) $ sample_ cbx3 acTime
-                                        evs f a = sampleOn acTime
-                                          $ map ($)
-                                          $ sampleOn a
-                                          $ { f: _, a: _, t: _ } <$> f
-                                      in
-                                        [ gain 0.0
-                                            ( evs ev0 ev1 <#> \{ f, a, t } -> P.gain $ AudioNumeric
-                                                { n: calcSlope 1.0 0.01 4.0 0.15 a * sin (pi * f) + 0.15
-                                                , o: t
-                                                , t: _linear
-                                                }
-                                            )
-                                            [ periodicOsc
-                                                { frequency: 325.6
-                                                , spec: (0.3 +> -0.1 +> 0.7 +> -0.4 +> V.empty)
-                                                    /\ (0.6 +> 0.3 +> 0.2 +> 0.0 +> V.empty)
-                                                }
-                                                ( oneOf
-                                                    [ bangOn
-                                                    , evs ev2 ev3 <#> \{ f, a, t } -> P.frequency
-                                                        $ AudioNumeric
-                                                          { n: 325.6 +
-                                                              (calcSlope 1.0 3.0 4.0 15.5 a * sin (pi * f))
-                                                          , o: t
-                                                          , t: _linear
-                                                          }
-                                                    ]
-                                                )
-                                            ]
-                                        ]
-                                )
-                              let r = r' *> close ctx
-                              ccb (r *> push start) -- here
-                              push (stop r)
-                          }
-                      )
+                                in
+                                  ((act /\ tn) /\ tn)
+                            )
+                            (sampleBy (/\) b tm)
+                            (0.0 /\ 0.0)
+
+                        r' <- run2e ctx
+                          ( memoize
+                              ( map (add 0.04 <<< _.acTime)
+                                  $ withACTime ctx animationFrameEvent
+                              )
+                              \acTime ->
+                                let
+                                  ev0 = cevt 8.0 cbx0 acTime
+                                  ev1 = map (if _ then 4.0 else 1.0) $ sample_ cbx1 acTime
+                                  ev2 = cevt 4.0 cbx2 acTime
+                                  ev3 = map (if _ then 4.0 else 1.0) $ sample_ cbx3 acTime
+                                  evs f a = sampleOn acTime
+                                    $ map ($)
+                                    $ sampleOn a
+                                    $ { f: _, a: _, t: _ } <$> f
+                                in
+                                  [ gain 0.0
+                                      ( evs ev0 ev1 <#> \{ f, a, t } -> P.gain $ AudioNumeric
+                                          { n: calcSlope 1.0 0.01 4.0 0.15 a * sin (pi * f) + 0.15
+                                          , o: t
+                                          , t: _linear
+                                          }
+                                      )
+                                      [ periodicOsc
+                                          { frequency: 325.6
+                                          , spec: (0.3 +> -0.1 +> 0.7 +> -0.4 +> V.empty)
+                                              /\ (0.6 +> 0.3 +> 0.2 +> 0.0 +> V.empty)
+                                          }
+                                          ( oneOf
+                                              [ bangOn
+                                              , evs ev2 ev3 <#> \{ f, a, t } -> P.frequency
+                                                  $ AudioNumeric
+                                                    { n: 325.6 +
+                                                        (calcSlope 1.0 3.0 4.0 15.5 a * sin (pi * f))
+                                                    , o: t
+                                                    , t: _linear
+                                                    }
+                                              ]
+                                          )
+                                      ]
+                                  ]
+                          )
+                        let r = r' *> c0h *> close ctx
+                        ccb (r *> push.startStop.start unit) -- here
+                        push.startStop.stop r
+                    , stopE <#> (_ *> ccb (pure unit) *> push.startStop.start unit)
+                    ]
                 )
-                [ text $ ss <#> match
-                    { stop: \_ -> "Turn off"
-                    , start: \_ -> "Turn on"
-                    }
+                [ text $ oneOf
+                    [ startE $> "Turn on"
+                    , stopE $> "Turn off"
+                    ]
                 ]
             , D.div
-                ( ss <#> match
-                    { stop: \_ -> D.Style := "display:block;"
-                    , start: \_ -> D.Style := "display:none;"
-                    }
+                ( oneOfMap (map (attr D.Style))
+                    [ stopE $> "display:block;"
+                    , startE $> "display:none;"
+                    ]
                 )
                 ( map
                     ( \e -> D.input
                         ( oneOf
                             [ bang (D.Xtype := "checkbox")
-                            , bang (D.OnClick := cb (const $ push (uii.cbx $ e unit)))
-                            , (const $ D.Checked := "false") <$> ss
+                            , bang (D.OnClick := cb (const (e unit)))
+                            , startE $> (D.Checked := "false")
                             ]
                         )
                         blank
                     )
-                    [ cbi.cbx0, cbi.cbx1, cbi.cbx2, cbi.cbx3 ]
+                    ([ _.cbx0, _.cbx1, _.cbx2, _.cbx3 ] <@> push.cbx)
                 )
             ]
       )
