@@ -4,12 +4,10 @@ import Prelude
 
 import Control.Alt ((<|>))
 import Data.Foldable (oneOf, oneOfMap)
-import Data.Tuple (Tuple(..), fst)
+import Data.Tuple (fst)
 import Data.Tuple.Nested ((/\))
-import Data.Variant (Variant, match)
-import Deku.Attribute (cb, (:=))
-import Deku.Control (blank, text)
-import Deku.Control (text, text_)
+import Deku.Attribute (attr, cb, (:=))
+import Deku.Control (blank, text, text_)
 import Deku.Core (Element)
 import Deku.DOM as D
 import Deku.Pursx (makePursx', nut)
@@ -18,11 +16,10 @@ import Effect.Aff (launchAff, launchAff_)
 import Effect.Class (liftEffect)
 import Effect.Random as Random
 import FRP.Behavior (Behavior, behavior, sampleBy)
-import FRP.Event (Event, bus, fold, makeEvent, subscribe)
-import FRP.Event.Class (bang)
+import FRP.Event (Event, fold, makeEvent, subscribe)
 import FRP.Event.Class (bang, biSampleOn)
-import FRP.Event.Class (bang, biSampleOn, filterMap)
 import FRP.Event.Time (delay)
+import FRP.Event.VBus (V, vbus)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (gain_, playBuf)
 import WAGS.Core (Node, StreamingAudio(..))
@@ -31,7 +28,6 @@ import WAGS.Example.Docs.Util (raceSelf)
 import WAGS.Interpret (close, constant0Hack, context, decodeAudioDataFromUri)
 import WAGS.Parameter (bangOn)
 import WAGS.Run (run2_)
-import WAGS.Variant (injs_, prjs_)
 
 px =
   Proxy    :: Proxy      """<section>
@@ -55,12 +51,11 @@ import Prelude
 
 import Control.Alt ((<|>))
 import Data.Foldable (oneOf, oneOfMap)
-import Data.Newtype (class Newtype, unwrap)
+import Data.Maybe (Maybe(..), maybe)
 import Data.Tuple (fst)
 import Data.Tuple.Nested ((/\))
-import Data.Variant (Variant, match)
-import Deku.Attribute (cb, (:=))
-import Deku.Control (blank, plant, switcher, text, text_)
+import Deku.Attribute (attr, cb, (:=))
+import Deku.Control (blank, switcher, text, text_)
 import Deku.Core (Element)
 import Deku.DOM as D
 import Deku.Toplevel (runInBody)
@@ -69,38 +64,24 @@ import Effect.Aff (launchAff_)
 import Effect.Class (liftEffect)
 import Effect.Random as Random
 import FRP.Behavior (Behavior, behavior, sampleBy)
-import FRP.Event (bus, create, fold, makeEvent, subscribe)
-import FRP.Event.Class (bang, filterMap, keepLatest)
+import FRP.Event (create, fold, makeEvent, subscribe)
+import FRP.Event.Class (bang)
 import FRP.Event.Time (delay)
+import FRP.Event.VBus (V, vbus)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (gain_, playBuf)
 import WAGS.Core (StreamingAudio(..))
 import WAGS.Interpret (bracketCtx, decodeAudioDataFromUri)
 import WAGS.Parameter (bangOn)
 import WAGS.Run (run2_)
-import WAGS.Variant (injs_, prjs_)
 import WAGS.WebAPI (BrowserAudioBuffer)
 
-type StartStop = Variant (start :: Unit, stop :: Effect Unit)
-ssi = injs_ (Proxy :: _ StartStop)
-start = uii.startStop (ssi.start unit)
-stop r = uii.startStop (ssi.stop r)
-ssp = prjs_ (Proxy :: _ StartStop)
-type UIEvents = Variant (startStop :: StartStop, slider :: Unit)
-uii = injs_ (Proxy :: _ UIEvents)
-uip = prjs_ (Proxy :: _ UIEvents)
-type State' = Variant (loading :: Unit, loaded :: BrowserAudioBuffer)
-
-derive instance Newtype State _
-newtype State = State State'
-sti = injs_ (Proxy :: _ State')
-loading = State $ sti.loading unit
-stp = prjs_ (Proxy :: _ State')
-
+type StartStop = V (start :: Unit, stop :: Effect Unit)
+type UIEvents = V (startStop :: StartStop, slider :: Unit)
 
 bell =
   "https://freesound.org/data/previews/339/339810_5121236-lq.mp3"
-  :: String
+    :: String
 
 random :: Behavior Number
 random = behavior \e ->
@@ -111,85 +92,66 @@ main :: Effect Unit
 main = do
   { push, event } <- create
   runInBody (switcher scene event)
-  push loading
+  push Nothing
   launchAff_ $ bracketCtx
     \ctx -> decodeAudioDataFromUri ctx bell >>= liftEffect
       <<< push
-      <<< State
-      <<< sti.loaded
+      <<< Just
   where
-  scene :: forall lock payload. State -> Element lock payload
-  scene = unwrap >>> match
-    { loaded: \buffer -> D.div_ $ keepLatest $ bus \push event -> do
-        let
-          ss = bang (ssi.start unit) <|> filterMap uip.startStop event
-          sl = sampleBy (/\) random
-            $ fold (\_ b -> b + 1) (filterMap uip.slider event) 0
-          music = run2_
-            [ gain_ 1.0 $ map
-                    ( \i ->
-                        oneOf
-                          [ bang $ Sound $ playBuf
-                              { buffer: buffer, playbackRate: 0.7 + (fst i) * 2.0 }
-                              bangOn
-                          , delay 5000 $ bang $ Silence
-                          ]
-                    )
-                    sl
-            ]
-        plant
-          [ D.div_
-              [ text_ "Slide me!"
-              , D.input
-                  ( oneOfMap bang
-                      [ D.Xtype := "range"
-                      , D.Min := "0"
-                      , D.Max := "100"
-                      , D.Step := "1"
-                      , D.Value := "50"
-                      , D.OnInput := cb (const (push $ uii.slider unit))
-                      ]
-                  )
-                  blank
-              ]
-          , D.button
-              ( ss <#>
-                  \e -> D.OnClick := cb
-                    ( const $ e # match
-                        { stop: \u -> u *>
-                            push start
-                        , start: \_ -> do
-                            r <- music
-                            push (stop r)
-                        }
-                    )
+  scene
+    :: forall lock payload
+     . Maybe BrowserAudioBuffer
+    -> Element lock payload
+  scene = maybe (D.div_ [ text_ "Loading..." ]) \buffer ->
+    D.div_ $ vbus (Proxy :: _ UIEvents) \push event -> do
+      let
+        startE = bang unit <|> event.startStop.start
+        sl = sampleBy (/\) random
+          $ fold (\_ b -> b + 1) event.slider 0
+        music = run2_
+          [ gain_ 1.0 $ map
+              ( \i ->
+                  oneOf
+                    [ bang $ Sound $ playBuf
+                        { buffer: buffer, playbackRate: 0.7 + (fst i) * 2.0 }
+                        bangOn
+                    , delay 5000 $ bang $ Silence
+                    ]
               )
-              [ text $ ss <#> match
-                  { stop: \_ -> "Turn off"
-                  , start: \_ -> "Turn on"
-                  }
-              ]
+              sl
           ]
-    , loading: \_ -> D.div_ [ text_ "Loading..." ]
-    }
+      D.div_
+        [ D.div_
+            [ text_ "Slide me!"
+            , D.input
+                ( oneOfMap bang
+                    [ D.Xtype := "range"
+                    , D.Min := "0"
+                    , D.Max := "100"
+                    , D.Step := "1"
+                    , D.Value := "50"
+                    , D.OnInput := cb (const (push.slider unit))
+                    ]
+                )
+                blank
+            ]
+        , D.button
+            ( oneOfMap (map (attr D.OnClick <<< cb <<< const))
+                [ startE $> (music >>= push.startStop.stop)
+                , event.startStop.stop <#>
+                    (_ *> push.startStop.start unit)
+                ]
+            )
+            [ text $ oneOf
+                [ startE $> "Turn on"
+                , event.startStop.stop $> "Turn off"
+                ]
+            ]
+        ]
 """
 
-type StartStop = Variant (start :: Unit, stop :: Effect Unit, loading :: Unit)
-ssi :: _
-ssi = injs_ (Proxy :: Proxy StartStop)
-ssp :: _
-ssp = prjs_ (Proxy :: Proxy StartStop)
-start :: _
-start = uii.startStop (ssi.start unit)
-loading :: _
-loading = uii.startStop (ssi.loading unit)
-stop :: _
-stop r = uii.startStop (ssi.stop r)
-type UIEvents = Variant (startStop :: StartStop, slider :: Unit)
-uii :: _
-uii = injs_ (Proxy :: Proxy UIEvents)
-uip :: _
-uip = prjs_ (Proxy :: Proxy UIEvents)
+type StartStop = V (start :: Unit, stop :: Effect Unit, loading :: Unit)
+type UIEvents = V (startStop :: StartStop, slider :: Unit)
 
 bell :: String
 bell =
@@ -209,14 +171,13 @@ sgSliderEx
 sgSliderEx ccb _ ev = makePursx' (Proxy :: _ "@") px
   { txt: nut (text_ txt)
   , ex1: nut
-      ( bus \push event -> -- here
+      ( vbus (Proxy :: _ UIEvents) \push event -> -- here
           do
             let
-              ss = bang (ssi.start unit) <|> filterMap uip.startStop event
-              startE = filterMap ssp.start ss
-              stopE = filterMap ssp.stop ss
+              startE = bang unit <|> event.startStop.start
+              stopE = event.startStop.stop
               sl = sampleBy (/\) random
-                $ fold (\_ b -> b + 1) (filterMap uip.slider event) 0
+                $ fold (\_ b -> b + 1) event.slider 0
 
               music :: forall lock0. _ -> Array (Node _ lock0 _)
               music buffer =
@@ -241,39 +202,41 @@ sgSliderEx ccb _ ev = makePursx' (Proxy :: _ "@") px
                           , D.Max := "100"
                           , D.Step := "1"
                           , D.Value := "50"
-                          , D.OnInput := cb (const (push $ uii.slider unit))
+                          , D.OnInput := cb (const (push.slider unit))
                           ]
                       )
                       blank
                   ]
               , D.button
-                  ( (biSampleOn (bang (pure unit) <|> (map (\(SetCancel x) -> x) ev)) (map Tuple ss)) <#>
-                      \(e /\ cncl) -> D.OnClick := cb
-                        ( const $ e # match
-                            { loading: \_ -> pure unit
-                            , stop: \u -> u
-                                *> ccb (pure unit)
-                                *> push start
-                            , start: \_ -> do
-                                cncl
-                                push loading
-                                fib <- launchAff do
-                                  ctx <- context
-                                  c0h <- constant0Hack ctx
-                                  buffer <- decodeAudioDataFromUri ctx bell
-                                  liftEffect do
-                                    res' <- run2_ (music buffer)
-                                    let res = res' *> c0h *> close ctx
-                                    push (stop res)
-                                    pure res
-                                ccb do
-                                  push start
-                                  launchAff_ $ raceSelf fib
-                                pure unit
-                            }
-                        )
+                  ( oneOfMap (map (attr D.OnClick <<< cb <<< const))
+                      [ event.startStop.loading $> pure unit
+                      , stopE <#>
+                          (_ *> ccb (pure unit) *> push.startStop.start unit)
+                      , ( biSampleOn (bang (pure unit) <|> (map (\(SetCancel x) -> x) ev))
+                            (startE $> identity)
+                        ) <#> \cncl -> do
+                          cncl
+                          push.startStop.loading unit
+                          fib <- launchAff do
+                            ctx <- context
+                            c0h <- constant0Hack ctx
+                            buffer <- decodeAudioDataFromUri ctx bell
+                            liftEffect do
+                              res' <- run2_ (music buffer)
+                              let res = res' *> c0h *> close ctx
+                              push.startStop.stop res
+                              pure res
+                          ccb do
+                            push.startStop.start unit
+                            launchAff_ $ raceSelf fib
+                          pure unit
+
+                      ]
                   )
-                  [ text $ oneOf [ map (const "Turn off") stopE, map (const "Turn on") startE ]
+                  [ text $ oneOf
+                      [ map (const "Turn off") stopE
+                      , map (const "Turn on") startE
+                      ]
                   ]
               ]
       )

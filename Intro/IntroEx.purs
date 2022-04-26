@@ -14,11 +14,9 @@ import Data.Int as Int
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Profunctor.Strong (second)
 import Data.Traversable (traverse)
-import Data.Tuple (Tuple(..))
 import Data.Tuple.Nested (type (/\), (/\))
 import Data.UInt (toNumber)
-import Data.Variant (Variant, match)
-import Deku.Attribute (cb, (:=))
+import Deku.Attribute (attr, cb, (:=))
 import Deku.Control (blank, text)
 import Deku.Core (Element)
 import Deku.DOM as D
@@ -30,9 +28,10 @@ import Effect.Random (randomInt)
 import Effect.Random as Random
 import Effect.Ref (new, read, write)
 import FRP.Behavior (behavior)
-import FRP.Event (Event, bus, filterMap, makeEvent, subscribe)
+import FRP.Event (Event, makeEvent, subscribe)
 import FRP.Event.Animate (animationFrameEvent)
 import FRP.Event.Class (bang, biSampleOn)
+import FRP.Event.VBus (V, vbus)
 import Foreign.Object (fromHomogeneous, values)
 import Graphics.Canvas (arc, beginPath, fill, fillRect, setFillStyle)
 import Math (pi)
@@ -49,28 +48,19 @@ import WAGS.Math (calcSlope)
 import WAGS.Parameter (AudioEnvelope(..), AudioNumeric(..), _linear, bangOn)
 import WAGS.Properties as P
 import WAGS.Run (run2)
-import WAGS.Variant (injs_, prjs_)
 import WAGS.WebAPI (AnalyserNodeCb(..))
 import Web.Event.Event (target)
 import Web.HTML.HTMLInputElement (fromEventTarget, valueAsNumber)
 
 px = Proxy :: Proxy """<section>@ex1@</section>"""
 
-type StartStop = Variant (start :: Unit, stop :: Effect Unit, loading :: Unit)
-ssi = injs_ (Proxy :: Proxy StartStop)
-ssp = prjs_ (Proxy :: Proxy StartStop)
-start = uii.startStop (ssi.start unit)
-loading = uii.startStop (ssi.loading unit)
-stop r = uii.startStop (ssi.stop r)
+type StartStop = V (start :: Unit, stop :: Effect Unit, loading :: Unit)
 type CanvasInfo = { x :: Number, y :: Number } /\ Number
-type UIEvents = Variant
+type UIEvents = V
   ( startStop :: StartStop
   , slider :: Number
   , canvas :: Array CanvasInfo
   )
-
-uii = injs_ (Proxy :: _ UIEvents)
-uip = prjs_ (Proxy :: _ UIEvents)
 
 buffers' =
   { pluck0: "https://freesound.org/data/previews/493/493016_10350281-lq.mp3"
@@ -121,19 +111,18 @@ introEx
   :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Element lock payload
 introEx ccb _ ev = makePursx' (Proxy :: _ "@") px
   { ex1: nut
-      ( bus \push event -> -- here
+      ( vbus (Proxy :: _ UIEvents) \push event -> -- here
 
           do
             let
-              ss = bang (ssi.start unit) <|> filterMap uip.startStop event
-              startE = filterMap ssp.start ss
-              loadingE = filterMap ssp.loading ss
-              stopE = filterMap ssp.stop ss
+              startE = bang unit <|> event.startStop.start
+              loadingE = event.startStop.loading
+              stopE = event.startStop.stop
 
               music :: forall lock. _ -> _ -> _ -> Array (Node _ lock _)
               music ctx buffer analyserE = do
                 let
-                  sliderE = (\{ acTime, value } -> acTime /\ value) <$> withACTime ctx (filterMap uip.slider event)
+                  sliderE = (\{ acTime, value } -> acTime /\ value) <$> withACTime ctx event.slider
                 [ analyser_
                     { cb:
                         ( AnalyserNodeCb
@@ -196,7 +185,7 @@ introEx ccb _ ev = makePursx' (Proxy :: _ "@") px
                               beginPath ctx
                               arc ctx { end: twoPi, radius: n * 40.0, start: 0.0, x: x * cvsxn, y: y * cvsyn }
                               fill ctx
-                        ) <$> filterMap uip.canvas event
+                        ) <$> event.canvas
                       )
                   )
                   blank
@@ -210,9 +199,7 @@ introEx ccb _ ev = makePursx' (Proxy :: _ "@") px
                       , D.Style := "width: 100%;"
                       , D.OnInput := cb
                           ( traverse_
-                              ( valueAsNumber
-                                  >=> push <<< uii.slider
-                              )
+                              (valueAsNumber >=> push.slider)
                               <<< (=<<) fromEventTarget
                               <<< target
                           )
@@ -222,54 +209,51 @@ introEx ccb _ ev = makePursx' (Proxy :: _ "@") px
               , D.button
                   ( oneOf
                       [ bang $ D.Style := "width:100%; padding:1.0rem;"
-                      , (biSampleOn (bang (pure unit) <|> (map (\(SetCancel x) -> x) ev)) (map Tuple ss)) <#>
-                          \(e /\ cncl) -> D.OnClick := cb
-                            ( const $ e # match
-                                { loading: \_ -> pure unit
-                                , stop: \u -> u
-                                    *> ccb (pure unit)
-                                    *> push start
-                                , start: \_ -> do
-                                    cncl
-                                    push loading
-                                    analyserE <- new Nothing
-                                    fib <- launchAff do
-                                      ctx <- context
-                                      c0h <- constant0Hack ctx
-                                      sounds <- Rc.fromHomogeneous <$> parTraverse (decodeAudioDataFromUri ctx) (Rc.homogeneous buffers')
-                                      ri <- liftEffect $ randomInt 0 50000
-                                      let
-                                        randSound = evalGen
-                                          ( elements
-                                              $ fromMaybe (singleton sounds.pluck0)
-                                              $ fromArray
-                                              $ values
-                                              $ fromHomogeneous sounds
-                                          )
-                                          { newSeed: mkSeed ri, size: 4 }
-                                      liftEffect do
-                                        rands <- 0 .. 127 # traverse \_ -> do
-                                          x <- Random.random
-                                          y <- Random.random
-                                          pure { x, y }
-                                        ssub <- run2 ctx (music ctx randSound analyserE)
-                                        anisub <- subscribe animationFrameEvent \_ -> do
-                                          ae <- read analyserE
-                                          for_ ae \a -> do
-                                            frequencyData <-
-                                              getByteFrequencyData a
-                                            arr <- map (zip rands <<< map ((_ / 255.0) <<< toNumber)) (toArray frequencyData)
-                                            push (uii.canvas arr)
-                                            pure unit
-                                        let res = ssub *> c0h *> close ctx *> anisub
-                                        push (stop res)
-                                        pure res
-                                    ccb do
-                                      push start
-                                      launchAff_ $ raceSelf fib
-                                    pure unit
-                                }
-                            )
+                      , ( oneOfMap (map (attr D.OnClick <<< cb <<< const))
+                            [ loadingE $> pure unit
+                            , stopE <#>
+                                (_ *> ccb (pure unit) *> push.startStop.start unit)
+                            , (biSampleOn (bang (pure unit) <|> (map (\(SetCancel x) -> x) ev)) (startE $> identity)) <#> \cncl -> do
+                                cncl
+                                push.startStop.loading unit
+                                analyserE <- new Nothing
+                                fib <- launchAff do
+                                  ctx <- context
+                                  c0h <- constant0Hack ctx
+                                  sounds <- Rc.fromHomogeneous <$> parTraverse (decodeAudioDataFromUri ctx) (Rc.homogeneous buffers')
+                                  ri <- liftEffect $ randomInt 0 50000
+                                  let
+                                    randSound = evalGen
+                                      ( elements
+                                          $ fromMaybe (singleton sounds.pluck0)
+                                          $ fromArray
+                                          $ values
+                                          $ fromHomogeneous sounds
+                                      )
+                                      { newSeed: mkSeed ri, size: 4 }
+                                  liftEffect do
+                                    rands <- 0 .. 127 # traverse \_ -> do
+                                      x <- Random.random
+                                      y <- Random.random
+                                      pure { x, y }
+                                    ssub <- run2 ctx (music ctx randSound analyserE)
+                                    anisub <- subscribe animationFrameEvent \_ -> do
+                                      ae <- read analyserE
+                                      for_ ae \a -> do
+                                        frequencyData <-
+                                          getByteFrequencyData a
+                                        arr <- map (zip rands <<< map ((_ / 255.0) <<< toNumber)) (toArray frequencyData)
+                                        push.canvas arr
+                                        pure unit
+                                    let res = ssub *> c0h *> close ctx *> anisub
+                                    push.startStop.stop res
+                                    pure res
+                                ccb do
+                                  push.startStop.start unit
+                                  launchAff_ $ raceSelf fib
+                                pure unit
+                            ]
+                        )
                       ]
                   )
                   [ text $ oneOf
