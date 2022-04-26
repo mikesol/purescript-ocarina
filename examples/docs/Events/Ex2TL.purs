@@ -127,20 +127,19 @@ main = runInBody1
                 blank
             ]
         , D.button
-            (( oneOfMap (map (attr D.OnClick <<< cb <<< const))
-                    [ start $> do
-                          ctx <- context
-                          let
-                            myIvl = sampleBy Tuple random
-                              $ interval ctx 0.91
-                              $ map (calcSlope 0.0 0.42 100.0 1.4)
-                              $ event.slider
-                          r <- run2e ctx (music myIvl)
-                          push.startStop.stop (r *> close ctx)
-                    , event.startStop.stop <#>
-                        (_ *> push.startStop.start unit)
-                    ]
-                )
+            ( oneOfMap (map (attr D.OnClick <<< cb <<< const))
+                [ start $> do
+                    ctx <- context
+                    let
+                      myIvl = sampleBy Tuple random
+                        $ interval ctx 0.91
+                        $ map (calcSlope 0.0 0.42 100.0 1.4)
+                        $ event.slider
+                    r <- run2e ctx (music myIvl)
+                    push.startStop.stop (r *> close ctx)
+                , event.startStop.stop <#>
+                    (_ *> push.startStop.start unit)
+                ]
             )
             [ text $ oneOf
                 [ start $> "Turn on"

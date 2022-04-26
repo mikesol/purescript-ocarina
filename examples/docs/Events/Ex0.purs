@@ -171,7 +171,6 @@ ex0 ccb _ ev = makePursx' (Proxy :: _ "@") px
             D.div_
               [ D.button
                   ( (biSampleOn (bang (pure unit) <|> (map (\(SetCancel x) -> x) ev)) (map Tuple event)) <#> -- here
-
                       \(e /\ c) -> D.OnClick := cb -- here
                         ( const $ case e of
                             Stop u -> u *> push Start *> ccb (pure unit) -- here

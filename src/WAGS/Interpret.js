@@ -1294,20 +1294,7 @@ var setOff_ = function (ptr) {
 				var oldOutgoing = state.units[ptr].outgoing.slice();
 				// defer disconnection until stop has happened
 				oldMain.addEventListener("ended", () => {
-					for (var i = 0; i < oldOutgoing.length; i++) {
-						var oogi = oldOutgoing[i];
-						try {
-							oldMain.disconnect(state.units[oogi].main);
-							if (state.units[oogi].se) {
-								oldMain.disconnect(state.units[oogi].se);
-							}
-						} catch (e) {
-							console.log(e);
-							// fail silently, as it means the unit is no longer available, but
-							// as we are disconnecting it doesn't matter
-							continue;
-						}
-					}
+					oldMain.disconnect();
 				});
 				oldMain.stop(state.deprecatedWriteHead + onOffInstr.o);
 			};

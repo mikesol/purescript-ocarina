@@ -4,47 +4,40 @@ import Prelude
 
 import Control.Alt ((<|>))
 import Data.Array ((..))
-import Data.Foldable (oneOf)
+import Data.Foldable (oneOf, oneOfMap)
 import Data.Int (toNumber)
 import Data.Traversable (sequence)
-import Data.Variant (Variant, match)
-import Deku.Attribute (cb, (:=))
+import Deku.Attribute (attr, cb)
 import Deku.Control (text)
 import Deku.DOM as D
-import Deku.Toplevel (runInBody, runInBody1)
+import Deku.Toplevel (runInBody1)
 import Effect (Effect)
-import Effect.Ref as Ref
-import FRP.Event (Event, bus, keepLatest, memoize, subscribe)
-import FRP.Event.Class (bang, filterMap)
+import FRP.Event (keepLatest, memoize)
+import FRP.Event.Class (bang)
+import FRP.Event.VBus (V, vbus)
 import Type.Proxy (Proxy(..))
 import WAGS.Clock (interval)
 import WAGS.Control (gain, gain_, sinOsc)
-import WAGS.Core (Node, SinOsc)
+import WAGS.Core (Node)
 import WAGS.Interpret (close, context)
 import WAGS.Parameter (AudioEnvelope(..), AudioOnOff(..), _off, _on)
 import WAGS.Properties (onOff)
 import WAGS.Properties as P
-import WAGS.Run (run2, run2e)
-import WAGS.Variant (injs_, prjs_)
+import WAGS.Run (run2e)
 
-type StartStop = Variant (start :: Unit, stop :: Effect Unit)
-ssi = injs_ (Proxy :: _ StartStop)
-start = uii.startStop (ssi.start unit)
-stop r = uii.startStop (ssi.stop r)
+type StartStop = V (start :: Unit, stop :: Effect Unit)
 
-type UIEvents = Variant
+type UIEvents = V
   ( init :: Unit
   , startStop :: StartStop
   )
 
-uii = injs_ (Proxy :: _ UIEvents)
-uip = prjs_ (Proxy :: _ UIEvents)
-
 main :: Effect Unit
 main = runInBody1
-  ( bus \push event -> do
+  ( vbus (Proxy :: _ UIEvents) \push event -> do
       let
-        ss = bang (ssi.start unit) <|> filterMap uip.startStop event
+        startE = bang unit <|> event.startStop.start
+        stopE = event.startStop.stop
         music :: forall lock. _ -> Array (Node _ lock _)
         music time = do
           let
@@ -71,27 +64,23 @@ main = runInBody1
       D.div_
         [ D.div_
             [ D.button
-                ( ss <#>
-                    \e -> D.OnClick := cb
-                      ( const $ e # match
-                          { stop: \u -> u *>
-                              push start
-                          , start: \_ -> do
-                              ctx <- context
-                              r <- run2e ctx
-                                ( memoize
-                                    (interval ctx 0.25 (bang 0.25))
-                                    music
-                                )
-                              push (stop (r *> close ctx))
-                          }
-                      )
+                ( oneOfMap (map (attr D.OnClick <<< cb <<< const))
+                    [ event.startStop.stop <#>
+                        (_ *> push.startStop.start unit)
+                    , event.startStop.start $> do
+                        ctx <- context
+                        r <- run2e ctx
+                          ( memoize
+                              (interval ctx 0.25 (bang 0.25))
+                              music
+                          )
+                        push.startStop.stop (r *> close ctx)
+                    ]
                 )
-                [ text $
-                    match
-                      { stop: \_ -> "Turn off"
-                      , start: \_ -> "Turn on"
-                      } <$> ss
+                [ text $ oneOf
+                    [ startE $> "Turn on"
+                    , stopE $> "Turn off"
+                    ]
                 ]
             ]
         ]
