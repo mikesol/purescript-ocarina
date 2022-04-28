@@ -9,7 +9,7 @@ import Data.Generic.Rep (class Generic)
 import Data.Maybe as DM
 import Data.Newtype (class Newtype, unwrap)
 import Data.Show.Generic (genericShow)
-import Data.Variant (Variant, inj)
+import Data.Variant (Variant, inj, match)
 import Data.Variant.Maybe (Maybe)
 import Data.Vec (Vec)
 import Effect (Effect)
@@ -17,14 +17,14 @@ import Effect.AVar (tryPut)
 import Effect.AVar as AVar
 import Effect.Exception (throwException)
 import Effect.Ref as Ref
-import FRP.Event (Event, bang, makeEvent, subscribe)
+import FRP.Event (Event, keepLatest, makeEvent, subscribe)
 import Foreign (Foreign)
 import Foreign.Object (Object)
 import Foreign.Object as Object
-import Safe.Coerce (coerce)
 import Simple.JSON as JSON
-import Type.Equality (class TypeEquals, proof)
+import Type.Equality (class TypeEquals)
 import Type.Proxy (Proxy(..))
+import Unsafe.Coerce (unsafeCoerce)
 import WAGS.Parameter (AudioOnOff, AudioParameter, InitialAudioParameter)
 import WAGS.WebAPI (AnalyserNodeCb, BrowserAudioBuffer, BrowserFloatArray, BrowserMediaElement, BrowserMicrophone, BrowserPeriodicWave, MediaRecorderCb)
 
@@ -104,6 +104,15 @@ instance showAudioWorkletNodeOptions_ ::
     <> JSON.writeJSON a.numberOfInputs
     <> " >"
 
+newtype DynamicChannels outputChannels lock payload = DynamicChannels
+  (Event (Event (Channel outputChannels lock payload)))
+
+newtype FixedChannels outputChannels lock payload = FixedChannels
+  (Array (Node outputChannels lock payload))
+
+newtype EventfulNode outputChannels lock payload = EventfulNode
+  (Event (Audible outputChannels lock payload))
+
 type Node' payload =
   { parent :: String
   , scope :: String
@@ -119,11 +128,27 @@ data Channel outputChannels lock payload
   = Sound (Node outputChannels lock payload)
   | Silence
 
+newtype Audible outputChannels lock payload = Audible
+  ( Variant
+      ( dynamicChannels :: DynamicChannels outputChannels lock payload
+      , fixedChannels :: FixedChannels outputChannels lock payload
+      , eventfulNode :: EventfulNode outputChannels lock payload
+      , node :: Node outputChannels lock payload
+      )
+  )
+
 --
 class Mix sound board | sound -> board where
   mix :: sound -> board
 
-type Streamy outputChannels lock payload = Event (Event (Channel outputChannels lock payload))
+instance
+  ( TypeEquals outputChannelsi outputChannelso
+  , TypeEquals locki locko
+  , TypeEquals payloadi payloado
+  ) =>
+  Mix (Audible outputChannelsi locki payloadi)
+    (Audible outputChannelso locko paylaodo) where
+  mix = unsafeCoerce :: Audible _ _ _ -> Audible _ _ _
 
 instance
   ( TypeEquals outputChannelsi outputChannelso
@@ -131,43 +156,26 @@ instance
   , TypeEquals payloadi payloado
   ) =>
   Mix (Event (Event (Channel outputChannelsi locki payloadi)))
-    (Event (Event (Channel outputChannelso locko payloado))) where
-  mix i = proof (coerce i)
+    (Audible outputChannelso locko paylaodo) where
+  mix i = Audible $ inj (Proxy :: _ "dynamicChannels")
+    (DynamicChannels ((unsafeCoerce :: (Event (Event (Channel _ _ _))) -> (Event (Event (Channel _ _ _)))) i))
 
 instance
   ( TypeEquals outputChannelsi outputChannelso
   , TypeEquals locki locko
   , TypeEquals payloadi payloado
   ) =>
-  Mix (Event (Event (Node outputChannelsi locki payloadi)))
-    (Event (Event (Channel outputChannelso locko payloado))) where
-  mix i = proof (coerce ((map <<< map) Sound i))
+  Mix (Event (Audible outputChannelsi locki payloadi))
+    (Audible outputChannelso locko paylaodo) where
+  mix i = Audible $ inj (Proxy :: _ "eventfulNode") (EventfulNode ((unsafeCoerce :: Event (Audible _ _ _) -> Event (Audible _ _ _)) i))
 
 instance
   ( TypeEquals outputChannelsi outputChannelso
   , TypeEquals locki locko
   , TypeEquals payloadi payloado
   ) =>
-  Mix (Event (Channel outputChannels locki payloadi))
-    (Event (Event (Channel outputChannelso locko payloado))) where
-  mix i = proof (coerce (map bang i))
-
-instance
-  ( TypeEquals outputChannelsi outputChannelso
-  , TypeEquals locki locko
-  , TypeEquals payloadi payloado
-  ) =>
-  Mix (Event (Node outputChannelsi locki payloadi))
-    (Event (Event (Channel outputChannelso locko payloado))) where
-  mix i = proof (coerce ((bang <<< map Sound) i))
-
-instance
-  ( TypeEquals outputChannelsi outputChannelso
-  , TypeEquals locki locko
-  , TypeEquals payloadi payloado
-  ) =>
-  Mix (Node outputChannelsi locki payloadi) (Event (Event (Channel outputChannelso locko payloado))) where
-  mix i = proof (coerce ((bang <<< bang <<< Sound) i))
+  Mix (Node outputChannelsi locki payloadi) (Audible outputChannelso locko paylaodo) where
+  mix i = Audible $ inj (Proxy :: _ "node") ((unsafeCoerce :: Node _ _ _ -> Node _ _ _) i)
 
 instance
   ( TypeEquals outputChannelsi outputChannelso
@@ -175,26 +183,9 @@ instance
   , TypeEquals payloadi payloado
   ) =>
   Mix (Array (Node outputChannelsi locki payloadi))
-    (Event (Event (Channel outputChannelso locko payloado))) where
-  mix i = proof (coerce (oneOfMap bang $ map (bang <<< Sound) i))
+    (Audible outputChannelso locko paylaodo) where
+  mix i = Audible $ inj (Proxy :: _ "fixedChannels") (FixedChannels ((unsafeCoerce :: Array (Node _ _ _) -> Array (Node _ _ _)) i))
 
-instance
-  ( TypeEquals outputChannelsi outputChannelso
-  , TypeEquals locki locko
-  , TypeEquals payloadi payloado
-  ) =>
-  Mix (Array (Event (Node outputChannelsi locki payloadi)))
-    (Event (Event (Channel outputChannelso locko payloado))) where
-  mix i = proof (coerce (oneOfMap bang $ (map <<< map) Sound i))
-
-instance
-  ( TypeEquals outputChannelsi outputChannelso
-  , TypeEquals locki locko
-  , TypeEquals payloadi payloado
-  ) =>
-  Mix (Channel outputChannelsi locki payloadi)
-    (Event (Event (Channel outputChannelso locko payloado))) where
-  mix i = proof (coerce ((bang <<< bang) i))
 --
 
 newtype RealImg = RealImg { real :: Array Number, img :: Array Number }
@@ -993,77 +984,88 @@ __internalWagsFlatten
   :: forall outputChannels lock payload
    . String
   -> AudioInterpret payload
-  -> Event (Event (Channel outputChannels lock payload))
+  -> Audible outputChannels lock payload
   -> Event payload
 __internalWagsFlatten
   parent
   di@(AudioInterpret { ids, disconnectXFromY })
-  children =
-  makeEvent \k -> do
-    cancelInner <- Ref.new Object.empty
-    cancelOuter <-
-      -- each child gets its own scope
-      subscribe children \inner ->
-        do
-          -- holds the previous id
-          myUnsubId <- ids
-          myUnsub <- Ref.new (pure unit)
-          eltsUnsubId <- ids
-          eltsUnsub <- Ref.new (pure unit)
-          myId <- Ref.new DM.Nothing
-          myImmediateCancellation <- Ref.new (pure unit)
-          myScope <- ids
-          stageRef <- Ref.new Begin
-          c0 <- subscribe inner \kid' -> do
-            stage <- Ref.read stageRef
-            case kid', stage of
-              Silence, Middle -> do
-                Ref.write End stageRef
-                let
-                  mic =
-                    ( Ref.read myId >>= traverse_ \old ->
-                        k
-                          ( disconnectXFromY
-                              { from: old, to: parent }
-                          )
-                    ) *> join (Ref.read myUnsub)
-                      *> join (Ref.read eltsUnsub)
-                      *> Ref.modify_
-                        (Object.delete myUnsubId)
-                        cancelInner
-                      *> Ref.modify_
-                        (Object.delete eltsUnsubId)
-                        cancelInner
-                Ref.write mic myImmediateCancellation *> mic
-              Sound (Node kid), Begin -> do
-                -- holds the current id
-                Ref.write Middle stageRef
-                av <- AVar.empty
-                c1 <- subscribe
-                  ( kid
-                      { parent
-                      , scope: myScope
-                      , raiseId: \id -> do
-                          void $ tryPut id av
-                      }
-                      di
-                  )
-                  k
-                cncl <- AVar.take av \q -> case q of
-                  Right r -> do
-                    Ref.write (DM.Just r) (myId)
-                    Ref.modify_ (Object.insert eltsUnsubId c1) cancelInner
-                    Ref.write c1 eltsUnsub
-                  Left e -> throwException e
-                -- cancel immediately, as it should be run synchronously
-                -- so if this actually does something then we have a problem
-                cncl
-              -- ignore
-              _,
-              _ -> pure unit
-          Ref.write c0 myUnsub
-          Ref.modify_ (Object.insert myUnsubId c0) cancelInner
-          join (Ref.read myImmediateCancellation)
-    pure do
-      Ref.read cancelInner >>= fold
-      cancelOuter
+  (Audible children') = children' # match
+  { fixedChannels: \(FixedChannels f) -> oneOfMap node f
+  , eventfulNode: \(EventfulNode e) -> keepLatest (map (__internalWagsFlatten parent di) e)
+  , node
+  , dynamicChannels: \(DynamicChannels children) -> makeEvent \k -> do
+      cancelInner <- Ref.new Object.empty
+      cancelOuter <-
+        -- each child gets its own scope
+        subscribe children \inner ->
+          do
+            -- holds the previous id
+            myUnsubId <- ids
+            myUnsub <- Ref.new (pure unit)
+            eltsUnsubId <- ids
+            eltsUnsub <- Ref.new (pure unit)
+            myId <- Ref.new DM.Nothing
+            myImmediateCancellation <- Ref.new (pure unit)
+            myScope <- ids
+            stageRef <- Ref.new Begin
+            c0 <- subscribe inner \kid' -> do
+              stage <- Ref.read stageRef
+              case kid', stage of
+                Silence, Middle -> do
+                  Ref.write End stageRef
+                  let
+                    mic =
+                      ( Ref.read myId >>= traverse_ \old ->
+                          k
+                            ( disconnectXFromY
+                                { from: old, to: parent }
+                            )
+                      ) *> join (Ref.read myUnsub)
+                        *> join (Ref.read eltsUnsub)
+                        *> Ref.modify_
+                          (Object.delete myUnsubId)
+                          cancelInner
+                        *> Ref.modify_
+                          (Object.delete eltsUnsubId)
+                          cancelInner
+                  Ref.write mic myImmediateCancellation *> mic
+                Sound (Node kid), Begin -> do
+                  -- holds the current id
+                  Ref.write Middle stageRef
+                  av <- AVar.empty
+                  c1 <- subscribe
+                    ( kid
+                        { parent
+                        , scope: myScope
+                        , raiseId: \id -> do
+                            void $ tryPut id av
+                        }
+                        di
+                    )
+                    k
+                  cncl <- AVar.take av \q -> case q of
+                    Right r -> do
+                      Ref.write (DM.Just r) (myId)
+                      Ref.modify_ (Object.insert eltsUnsubId c1) cancelInner
+                      Ref.write c1 eltsUnsub
+                    Left e -> throwException e
+                  -- cancel immediately, as it should be run synchronously
+                  -- so if this actually does something then we have a problem
+                  cncl
+                -- ignore
+                _,
+                _ -> pure unit
+            Ref.write c0 myUnsub
+            Ref.modify_ (Object.insert myUnsubId c0) cancelInner
+            join (Ref.read myImmediateCancellation)
+      pure do
+        Ref.read cancelInner >>= fold
+        cancelOuter
+  }
+  where
+  node (Node e) = e
+    { parent
+    , scope: "trivial"
+    , raiseId: mempty
+    }
+    di

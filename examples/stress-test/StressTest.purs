@@ -20,12 +20,12 @@ import Effect (Effect)
 import Effect.Aff (Aff, launchAff_)
 import Effect.Class (liftEffect)
 import FRP.Behavior (sample_)
-import FRP.Event (Event, bang, bus, keepLatest, memoize, subscribe)
+import FRP.Event (Event, bang, bus, memoize, subscribe)
 import FRP.Event.Animate (animationFrameEvent)
 import Math (pi, sin, (%))
 import WAGS.Clock (WriteHead, fot, writeHead)
 import WAGS.Control (gain, sinOsc, speaker2)
-import WAGS.Core (Channel, mix)
+import WAGS.Core (Audible, mix)
 import WAGS.Example.Utils (RaiseCancellation)
 import WAGS.Interpret (FFIAudioSnapshot, close, context, effectfulAudioInterpret, makeFFIAudioSnapshot)
 import WAGS.Math (calcSlope)
@@ -49,8 +49,8 @@ lm2 = len - 2.0
 scene
   :: forall lock payload
    . WriteHead Event
-  -> Event (Event (Channel D2 lock payload))
-scene wh = keepLatest $ memoize (fot wh (mul pi)) \tr ->
+  -> Audible D2 lock payload
+scene wh = mix $ memoize (fot wh (mul pi)) \tr ->
   let
     gso a b c st ed = gain 0.0
       ( Common.gain <$>

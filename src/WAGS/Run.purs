@@ -4,7 +4,7 @@ import Prelude
 
 import Data.Typelevel.Num (D2)
 import Effect (Effect)
-import FRP.Event (Event, keepLatest, subscribe)
+import FRP.Event (Event, subscribe)
 import WAGS.Control (speaker2)
 import WAGS.Core (mix)
 import WAGS.Core as C
@@ -41,6 +41,6 @@ run2e
   -> Effect (Effect Unit)
 run2e ctx s = do
     ffi <- makeFFIAudioSnapshot ctx
-    u <- subscribe (speaker2 (keepLatest (map mix s)) effectfulAudioInterpret)
+    u <- subscribe (speaker2 (map mix s) effectfulAudioInterpret)
       \f -> f ffi
     pure u

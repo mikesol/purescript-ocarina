@@ -26,9 +26,7 @@ import Effect.Exception (throwException)
 import FRP.Event (Event, makeEvent, subscribe)
 import FRP.Event.Class (bang)
 import Foreign.Object (fromHomogeneous)
-import Safe.Coerce (coerce)
 import Simple.JSON as JSON
-import Type.Equality (proof)
 import Type.Proxy (Proxy(..))
 import Type.Row.Homogeneous (class Homogeneous)
 import Unsafe.Coerce (unsafeCoerce)
@@ -43,7 +41,7 @@ import WAGS.WebAPI (AnalyserNodeCb(..), BrowserAudioBuffer)
 allpass
   :: forall i aud (outputChannels :: Type) lock payload
    . Common.InitialAllpass i
-  => C.Mix aud (C.Streamy outputChannels lock payload)
+  => C.Mix aud (C.Audible outputChannels lock payload)
   => i
   -> Event C.Allpass
   -> aud -- Array (C.Node outputChannels lock payload)
@@ -73,7 +71,7 @@ allpass i' atts elts = C.Node go
 allpass_
   :: forall i aud (outputChannels :: Type) lock payload
    . Common.InitialAllpass i
-  => C.Mix aud (C.Streamy outputChannels lock payload)
+  => C.Mix aud (C.Audible outputChannels lock payload)
   => i
   -> aud
   -> C.Node outputChannels lock payload
@@ -168,7 +166,7 @@ instance
 analyser
   :: forall i aud outputChannels lock payload
    . InitialAnalyser i
-  => C.Mix aud (C.Streamy outputChannels lock payload)
+  => C.Mix aud (C.Audible outputChannels lock payload)
   => i
   -> Event C.Analyser
   -> aud
@@ -224,7 +222,7 @@ analyser i' atts elts = C.Node go
 analyser_
   :: forall i aud outputChannels lock payload
    . InitialAnalyser i
-  => C.Mix aud (C.Streamy outputChannels lock payload)
+  => C.Mix aud (C.Audible outputChannels lock payload)
   => i
   -> aud
   -> C.Node outputChannels lock payload
@@ -338,7 +336,7 @@ audioWorklet = __audioWorklet
 bandpass
   :: forall i aud (outputChannels :: Type) lock payload
    . Common.InitialBandpass i
-  => C.Mix aud (C.Streamy outputChannels lock payload)
+  => C.Mix aud (C.Audible outputChannels lock payload)
   => i
   -> Event C.Bandpass
   -> aud
@@ -368,7 +366,7 @@ bandpass i' atts elts = C.Node go
 bandpass_
   :: forall i aud (outputChannels :: Type) lock payload
    . Common.InitialBandpass i
-  => C.Mix aud (C.Streamy outputChannels lock payload)
+  => C.Mix aud (C.Audible outputChannels lock payload)
   => i
   -> aud
   -> C.Node outputChannels lock payload
@@ -428,7 +426,7 @@ constant_ i = constant i empty
 convolver
   :: forall i aud (outputChannels :: Type) lock payload
    . Common.InitialConvolver i
-  => C.Mix aud (C.Streamy outputChannels lock payload)
+  => C.Mix aud (C.Audible outputChannels lock payload)
   => i
   -> aud
   -> C.Node outputChannels lock payload
@@ -454,7 +452,7 @@ convolver i' elts = C.Node go
 delay
   :: forall i aud (outputChannels :: Type) lock payload
    . Common.InitialDelay i
-  => C.Mix aud (C.Streamy outputChannels lock payload)
+  => C.Mix aud (C.Audible outputChannels lock payload)
   => i
   -> Event C.Delay
   -> aud
@@ -483,7 +481,7 @@ delay i' atts elts = C.Node go
 delay_
   :: forall i aud (outputChannels :: Type) lock payload
    . Common.InitialDelay i
-  => C.Mix aud (C.Streamy outputChannels lock payload)
+  => C.Mix aud (C.Audible outputChannels lock payload)
   => i
   -> aud
   -> C.Node outputChannels lock payload
@@ -493,7 +491,7 @@ delay_ i a = delay i empty a
 dynamicsCompressor
   :: forall i aud (outputChannels :: Type) lock payload
    . Common.InitialDynamicsCompressor i
-  => C.Mix aud (C.Streamy outputChannels lock payload)
+  => C.Mix aud (C.Audible outputChannels lock payload)
   => i
   -> Event C.DynamicsCompressor
   -> aud
@@ -552,7 +550,7 @@ dynamicsCompressor i' atts elts = C.Node go
 dynamicsCompressor_
   :: forall i aud (outputChannels :: Type) lock payload
    . Common.InitialDynamicsCompressor i
-  => C.Mix aud (C.Streamy outputChannels lock payload)
+  => C.Mix aud (C.Audible outputChannels lock payload)
   => i
   -> aud
   -> C.Node outputChannels lock payload
@@ -562,7 +560,7 @@ dynamicsCompressor_ i = dynamicsCompressor i empty
 gain
   :: forall i aud (outputChannels :: Type) lock payload
    . Common.InitialGain i
-  => C.Mix aud (C.Streamy outputChannels lock payload)
+  => C.Mix aud (C.Audible outputChannels lock payload)
   => i
   -> Event C.Gain
   -> aud
@@ -591,7 +589,7 @@ gain i' atts elts = C.Node go
 gain_
   :: forall i aud (outputChannels :: Type) lock payload
    . Common.InitialGain i
-  => C.Mix aud (C.Streamy outputChannels lock payload)
+  => C.Mix aud (C.Audible outputChannels lock payload)
   => i
   -> aud
   -> C.Node outputChannels lock payload
@@ -601,7 +599,7 @@ gain_ i a = gain i empty a
 highpass
   :: forall i aud (outputChannels :: Type) lock payload
    . Common.InitialHighpass i
-  => C.Mix aud (C.Streamy outputChannels lock payload)
+  => C.Mix aud (C.Audible outputChannels lock payload)
   => i
   -> Event C.Highpass
   -> aud
@@ -631,7 +629,7 @@ highpass i' atts elts = C.Node go
 highpass_
   :: forall i aud (outputChannels :: Type) lock payload
    . Common.InitialHighpass i
-  => C.Mix aud (C.Streamy outputChannels lock payload)
+  => C.Mix aud (C.Audible outputChannels lock payload)
   => i
   -> aud
   -> C.Node outputChannels lock payload
@@ -641,7 +639,7 @@ highpass_ i a = highpass i empty a
 highshelf
   :: forall i aud (outputChannels :: Type) lock payload
    . Common.InitialHighshelf i
-  => C.Mix aud (C.Streamy outputChannels lock payload)
+  => C.Mix aud (C.Audible outputChannels lock payload)
   => i
   -> Event C.Highshelf
   -> aud
@@ -671,7 +669,7 @@ highshelf i' atts elts = C.Node go
 highshelf_
   :: forall i aud (outputChannels :: Type) lock payload
    . Common.InitialHighshelf i
-  => C.Mix aud (C.Streamy outputChannels lock payload)
+  => C.Mix aud (C.Audible outputChannels lock payload)
   => i
   -> aud
   -> C.Node outputChannels lock payload
@@ -684,9 +682,9 @@ iirFilter
        payload
    . Lt D2 feedforward
   => Lt D2 feedback
-  => C.Mix aud (C.Streamy outputChannels lock payload)
+  => C.Mix aud (C.Audible outputChannels lock payload)
   => Common.InitialIIRFilter i feedforward feedback
-  => C.Mix aud (C.Streamy outputChannels lock payload)
+  => C.Mix aud (C.Audible outputChannels lock payload)
   => i
   -> aud
   -> C.Node outputChannels lock payload
@@ -698,7 +696,7 @@ iirFilter'
    . Lt D2 feedforward
   => Lt D2 feedback
   => Common.InitialIIRFilter i feedforward feedback
-  => C.Mix aud (C.Streamy outputChannels lock payload)
+  => C.Mix aud (C.Audible outputChannels lock payload)
   => proxy feedforward
   -> proxy feedback
   -> i
@@ -735,7 +733,7 @@ iirFilter' fwd bk i' elts = C.Node go
 lowpass
   :: forall i aud (outputChannels :: Type) lock payload
    . Common.InitialLowpass i
-  => C.Mix aud (C.Streamy outputChannels lock payload)
+  => C.Mix aud (C.Audible outputChannels lock payload)
   => i
   -> Event C.Lowpass
   -> aud
@@ -765,7 +763,7 @@ lowpass i' atts elts = C.Node go
 lowpass_
   :: forall i aud (outputChannels :: Type) lock payload
    . Common.InitialLowpass i
-  => C.Mix aud (C.Streamy outputChannels lock payload)
+  => C.Mix aud (C.Audible outputChannels lock payload)
   => i
   -> aud
   -> C.Node outputChannels lock payload
@@ -775,7 +773,7 @@ lowpass_ i a = lowpass i empty a
 lowshelf
   :: forall i aud (outputChannels :: Type) lock payload
    . Common.InitialLowshelf i
-  => C.Mix aud (C.Streamy outputChannels lock payload)
+  => C.Mix aud (C.Audible outputChannels lock payload)
   => i
   -> Event C.Lowshelf
   -> aud
@@ -805,7 +803,7 @@ lowshelf i' atts elts = C.Node go
 lowshelf_
   :: forall i aud (outputChannels :: Type) lock payload
    . Common.InitialLowshelf i
-  => C.Mix aud (C.Streamy outputChannels lock payload)
+  => C.Mix aud (C.Audible outputChannels lock payload)
   => i
   -> aud
   -> C.Node outputChannels lock payload
@@ -942,7 +940,7 @@ microphone = __microphone
 notch
   :: forall i aud (outputChannels :: Type) lock payload
    . Common.InitialNotch i
-  => C.Mix aud (C.Streamy outputChannels lock payload)
+  => C.Mix aud (C.Audible outputChannels lock payload)
   => i
   -> Event C.Notch
   -> aud
@@ -972,7 +970,7 @@ notch i' atts elts = C.Node go
 notch_
   :: forall i aud (outputChannels :: Type) lock payload
    . Common.InitialNotch i
-  => C.Mix aud (C.Streamy outputChannels lock payload)
+  => C.Mix aud (C.Audible outputChannels lock payload)
   => i
   -> aud
   -> C.Node outputChannels lock payload
@@ -982,7 +980,7 @@ notch_ i a = notch i empty a
 peaking
   :: forall i aud (outputChannels :: Type) lock payload
    . Common.InitialPeaking i
-  => C.Mix aud (C.Streamy outputChannels lock payload)
+  => C.Mix aud (C.Audible outputChannels lock payload)
   => i
   -> Event C.Peaking
   -> aud
@@ -1013,7 +1011,7 @@ peaking i' atts elts = C.Node go
 peaking_
   :: forall i aud (outputChannels :: Type) lock payload
    . Common.InitialPeaking i
-  => C.Mix aud (C.Streamy outputChannels lock payload)
+  => C.Mix aud (C.Audible outputChannels lock payload)
   => i
   -> aud
   -> C.Node outputChannels lock payload
@@ -1372,7 +1370,7 @@ squareOsc_ i = squareOsc i empty
 -- speaker
 speaker
   :: forall aud (outputChannels :: Type) lock payload
-   . C.Mix aud (C.Streamy outputChannels lock payload)
+   . C.Mix aud (C.Audible outputChannels lock payload)
   => aud
   -> C.AudioInterpret payload
   -> Event payload
@@ -1383,7 +1381,7 @@ speaker elts di@(C.AudioInterpret { ids, makeSpeaker }) = makeEvent \k -> do
 
 speaker2
   :: forall aud lock payload
-   . C.Mix aud (C.Streamy D2 lock payload)
+   . C.Mix aud (C.Audible D2 lock payload)
   => aud
   -> C.AudioInterpret payload
   -> Event payload
@@ -1393,7 +1391,7 @@ speaker2 = speaker
 pan
   :: forall i aud (outputChannels :: Type) lock payload
    . Common.InitialStereoPanner i
-  => C.Mix aud (C.Streamy outputChannels lock payload)
+  => C.Mix aud (C.Audible outputChannels lock payload)
   => i
   -> Event C.StereoPanner
   -> aud
@@ -1422,7 +1420,7 @@ pan i' atts elts = C.Node go
 pan_
   :: forall i aud (outputChannels :: Type) lock payload
    . Common.InitialStereoPanner i
-  => C.Mix aud (C.Streamy outputChannels lock payload)
+  => C.Mix aud (C.Audible outputChannels lock payload)
   => i
   -> aud
   -> C.Node outputChannels lock payload
@@ -1484,7 +1482,7 @@ triangleOsc_ i = triangleOsc i empty
 waveShaper
   :: forall i aud (outputChannels :: Type) lock payload
    . Common.InitialWaveShaper i
-  => C.Mix aud (C.Streamy outputChannels lock payload)
+  => C.Mix aud (C.Audible outputChannels lock payload)
   => i
   -> aud
   -> C.Node outputChannels lock payload
@@ -1526,7 +1524,7 @@ internalFan
   -> Vec n (C.Node outputChannels lock0 payload)
   -> ( Vec n (C.Node outputChannels lock1 payload)
        -> (C.Node outputChannels lock0 payload -> C.Node outputChannels lock1 payload)
-       -> Event (Event (C.Channel outputChannels lock1 payload))
+       -> C.Audible outputChannels lock1 payload
      )
   -> C.Node outputChannels lock0 payload
 internalFan isGlobal scopeF gaga closure = C.Node go
@@ -1564,7 +1562,7 @@ internalFan isGlobal scopeF gaga closure = C.Node go
         )
         idz
       realized = __internalWagsFlatten psr.parent di
-        (proof (coerce (closure injectable (\(C.Node q) -> C.Node q))))
+        ((unsafeCoerce :: C.Audible _ _ _ -> C.Audible _ _ _) (closure injectable (\(C.Node q) -> C.Node q)))
     u <- subscribe realized k
     void $ tryPut u av2
     -- cancel immediately, as it should be run synchronously
@@ -1583,14 +1581,14 @@ internalFan isGlobal scopeF gaga closure = C.Node go
 globalFan
   :: forall n outputChannels lock payload
    . Vec n (C.Node outputChannels lock payload)
-  -> (Vec n (C.Node outputChannels lock payload) -> Event (Event (C.Channel outputChannels lock payload)))
+  -> (Vec n (C.Node outputChannels lock payload) -> C.Audible outputChannels lock payload)
   -> C.Node outputChannels lock payload
 globalFan e f = internalFan true (const "@fan@") e (\x _ -> f x)
 
 globalFan1
   :: forall outputChannels lock payload
    . C.Node outputChannels lock payload
-  -> (C.Node outputChannels lock payload -> Event (Event (C.Channel outputChannels lock payload)))
+  -> (C.Node outputChannels lock payload -> C.Audible outputChannels lock payload)
   -> C.Node outputChannels lock payload
 globalFan1 e f = globalFan (singleton e) (lcmap (flip index d0) f)
 
@@ -1600,7 +1598,7 @@ fan
   -> ( forall lock1
         . Vec n (C.Node outputChannels lock1 payload)
        -> (C.Node outputChannels lock0 payload -> C.Node outputChannels lock1 payload)
-       -> Event (Event (C.Channel outputChannels lock1 payload))
+       -> C.Audible outputChannels lock1 payload
      )
   -> C.Node outputChannels lock0 payload
 fan e = internalFan false identity e
@@ -1611,7 +1609,7 @@ fan1
   -> ( forall lock1
         . C.Node outputChannels lock1 payload
        -> (C.Node outputChannels lock0 payload -> C.Node outputChannels lock1 payload)
-       -> Event (Event (C.Channel outputChannels lock1 payload))
+       -> C.Audible outputChannels lock1 payload
      )
   -> C.Node outputChannels lock0 payload
 fan1 e f = fan (singleton e) (lcmap (flip index d0) f)
