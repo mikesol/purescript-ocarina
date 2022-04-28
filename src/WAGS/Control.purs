@@ -1526,7 +1526,7 @@ internalFan
   -> Vec n (C.Node outputChannels lock0 payload)
   -> ( Vec n (C.Node outputChannels lock1 payload)
        -> (C.Node outputChannels lock0 payload -> C.Node outputChannels lock1 payload)
-       -> Event (Event (C.StreamingAudio outputChannels lock1 payload))
+       -> Event (Event (C.Channel outputChannels lock1 payload))
      )
   -> C.Node outputChannels lock0 payload
 internalFan isGlobal scopeF gaga closure = C.Node go
@@ -1583,14 +1583,14 @@ internalFan isGlobal scopeF gaga closure = C.Node go
 globalFan
   :: forall n outputChannels lock payload
    . Vec n (C.Node outputChannels lock payload)
-  -> (Vec n (C.Node outputChannels lock payload) -> Event (Event (C.StreamingAudio outputChannels lock payload)))
+  -> (Vec n (C.Node outputChannels lock payload) -> Event (Event (C.Channel outputChannels lock payload)))
   -> C.Node outputChannels lock payload
 globalFan e f = internalFan true (const "@fan@") e (\x _ -> f x)
 
 globalFan1
   :: forall outputChannels lock payload
    . C.Node outputChannels lock payload
-  -> (C.Node outputChannels lock payload -> Event (Event (C.StreamingAudio outputChannels lock payload)))
+  -> (C.Node outputChannels lock payload -> Event (Event (C.Channel outputChannels lock payload)))
   -> C.Node outputChannels lock payload
 globalFan1 e f = globalFan (singleton e) (lcmap (flip index d0) f)
 
@@ -1600,7 +1600,7 @@ fan
   -> ( forall lock1
         . Vec n (C.Node outputChannels lock1 payload)
        -> (C.Node outputChannels lock0 payload -> C.Node outputChannels lock1 payload)
-       -> Event (Event (C.StreamingAudio outputChannels lock1 payload))
+       -> Event (Event (C.Channel outputChannels lock1 payload))
      )
   -> C.Node outputChannels lock0 payload
 fan e = internalFan false identity e
@@ -1611,7 +1611,7 @@ fan1
   -> ( forall lock1
         . C.Node outputChannels lock1 payload
        -> (C.Node outputChannels lock0 payload -> C.Node outputChannels lock1 payload)
-       -> Event (Event (C.StreamingAudio outputChannels lock1 payload))
+       -> Event (Event (C.Channel outputChannels lock1 payload))
      )
   -> C.Node outputChannels lock0 payload
 fan1 e f = fan (singleton e) (lcmap (flip index d0) f)

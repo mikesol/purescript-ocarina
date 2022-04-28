@@ -115,7 +115,7 @@ type Node' payload =
 newtype Node :: Type -> Type -> Type -> Type
 newtype Node outputChannels lock payload = Node (Node' payload)
 
-data StreamingAudio outputChannels lock payload
+data Channel outputChannels lock payload
   = Sound (Node outputChannels lock payload)
   | Silence
 
@@ -123,15 +123,15 @@ data StreamingAudio outputChannels lock payload
 class Mix sound board | sound -> board where
   mix :: sound -> board
 
-type Streamy outputChannels lock payload = Event (Event (StreamingAudio outputChannels lock payload))
+type Streamy outputChannels lock payload = Event (Event (Channel outputChannels lock payload))
 
 instance
   ( TypeEquals outputChannelsi outputChannelso
   , TypeEquals locki locko
   , TypeEquals payloadi payloado
   ) =>
-  Mix (Event (Event (StreamingAudio outputChannelsi locki payloadi)))
-    (Event (Event (StreamingAudio outputChannelso locko payloado))) where
+  Mix (Event (Event (Channel outputChannelsi locki payloadi)))
+    (Event (Event (Channel outputChannelso locko payloado))) where
   mix i = proof (coerce i)
 
 instance
@@ -140,7 +140,7 @@ instance
   , TypeEquals payloadi payloado
   ) =>
   Mix (Event (Event (Node outputChannelsi locki payloadi)))
-    (Event (Event (StreamingAudio outputChannelso locko payloado))) where
+    (Event (Event (Channel outputChannelso locko payloado))) where
   mix i = proof (coerce ((map <<< map) Sound i))
 
 instance
@@ -148,8 +148,8 @@ instance
   , TypeEquals locki locko
   , TypeEquals payloadi payloado
   ) =>
-  Mix (Event (StreamingAudio outputChannels locki payloadi))
-    (Event (Event (StreamingAudio outputChannelso locko payloado))) where
+  Mix (Event (Channel outputChannels locki payloadi))
+    (Event (Event (Channel outputChannelso locko payloado))) where
   mix i = proof (coerce (map bang i))
 
 instance
@@ -158,7 +158,7 @@ instance
   , TypeEquals payloadi payloado
   ) =>
   Mix (Event (Node outputChannelsi locki payloadi))
-    (Event (Event (StreamingAudio outputChannelso locko payloado))) where
+    (Event (Event (Channel outputChannelso locko payloado))) where
   mix i = proof (coerce ((bang <<< map Sound) i))
 
 instance
@@ -166,7 +166,7 @@ instance
   , TypeEquals locki locko
   , TypeEquals payloadi payloado
   ) =>
-  Mix (Node outputChannelsi locki payloadi) (Event (Event (StreamingAudio outputChannelso locko payloado))) where
+  Mix (Node outputChannelsi locki payloadi) (Event (Event (Channel outputChannelso locko payloado))) where
   mix i = proof (coerce ((bang <<< bang <<< Sound) i))
 
 instance
@@ -175,7 +175,7 @@ instance
   , TypeEquals payloadi payloado
   ) =>
   Mix (Array (Node outputChannelsi locki payloadi))
-    (Event (Event (StreamingAudio outputChannelso locko payloado))) where
+    (Event (Event (Channel outputChannelso locko payloado))) where
   mix i = proof (coerce (oneOfMap bang $ map (bang <<< Sound) i))
 
 instance
@@ -184,7 +184,7 @@ instance
   , TypeEquals payloadi payloado
   ) =>
   Mix (Array (Event (Node outputChannelsi locki payloadi)))
-    (Event (Event (StreamingAudio outputChannelso locko payloado))) where
+    (Event (Event (Channel outputChannelso locko payloado))) where
   mix i = proof (coerce (oneOfMap bang $ (map <<< map) Sound i))
 
 instance
@@ -192,8 +192,8 @@ instance
   , TypeEquals locki locko
   , TypeEquals payloadi payloado
   ) =>
-  Mix (StreamingAudio outputChannelsi locki payloadi)
-    (Event (Event (StreamingAudio outputChannelso locko payloado))) where
+  Mix (Channel outputChannelsi locki payloadi)
+    (Event (Event (Channel outputChannelso locko payloado))) where
   mix i = proof (coerce ((bang <<< bang) i))
 --
 
@@ -993,7 +993,7 @@ __internalWagsFlatten
   :: forall outputChannels lock payload
    . String
   -> AudioInterpret payload
-  -> Event (Event (StreamingAudio outputChannels lock payload))
+  -> Event (Event (Channel outputChannels lock payload))
   -> Event payload
 __internalWagsFlatten
   parent
