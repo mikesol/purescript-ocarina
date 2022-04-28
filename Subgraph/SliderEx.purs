@@ -22,7 +22,7 @@ import FRP.Event.Time (delay)
 import FRP.Event.VBus (V, vbus)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (gain_, playBuf)
-import WAGS.Core (Node, StreamingAudio(..))
+import WAGS.Core (Node, Channel(..))
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..))
 import WAGS.Example.Docs.Util (raceSelf)
 import WAGS.Interpret (close, constant0Hack, context, decodeAudioDataFromUri)
@@ -33,7 +33,7 @@ px =
   Proxy    :: Proxy      """<section>
   <h2>Hello subgraph</h2>
 
-  <p>Subgraphs have the type <code>Event (Event (StreamingAudio outputChannels lock payload))</code>. Streaming audio is a data type with two constructors: <code>Sound (Node outputChannels lock payload)</code> to create a subgraph and <code>Silence</code> to turn it off. The inner event listens for sound/silence, and the outer event adds subgraphs to the scene. You can create as many subgraphs as you like: wags automatically frees up resources when you send the <code>Silence</code> event. Note that, once you turn a subraph off with <code>Silence</code>, you can't turn it back on again. In this case, just create a new subgraph.</p>
+  <p>Subgraphs have the type <code>Event (Event (Channel outputChannels lock payload))</code>. Streaming audio is a data type with two constructors: <code>Sound (Node outputChannels lock payload)</code> to create a subgraph and <code>Silence</code> to turn it off. The inner event listens for sound/silence, and the outer event adds subgraphs to the scene. You can create as many subgraphs as you like: wags automatically frees up resources when you send the <code>Silence</code> event. Note that, once you turn a subraph off with <code>Silence</code>, you can't turn it back on again. In this case, just create a new subgraph.</p>
 
   <p>Here's a simple subgraph that is connected to a slider. As you slide the slider, new nodes are provisioned. Each one has a pseudo-random pitch.</p>
 
@@ -70,7 +70,7 @@ import FRP.Event.Time (delay)
 import FRP.Event.VBus (V, vbus)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (gain_, playBuf)
-import WAGS.Core (StreamingAudio(..))
+import WAGS.Core (Channel(..))
 import WAGS.Interpret (bracketCtx, decodeAudioDataFromUri)
 import WAGS.Parameter (bangOn)
 import WAGS.Run (run2_)
