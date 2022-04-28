@@ -11440,9 +11440,8 @@ var PS = {};
   var Effect_Exception = $PS["Effect.Exception"];
   var Effect_Ref = $PS["Effect.Ref"];
   var FRP_Event = $PS["FRP.Event"];
+  var FRP_Event_Class = $PS["FRP.Event.Class"];
   var Foreign_Object = $PS["Foreign.Object"];
-  var Safe_Coerce = $PS["Safe.Coerce"];
-  var Type_Equality = $PS["Type.Equality"];
   var Type_Proxy = $PS["Type.Proxy"];
   var Begin = (function () {
       function Begin() {
@@ -11595,36 +11594,61 @@ var PS = {};
       Silence.value = new Silence();
       return Silence;
   })();
-  var mixNodeEventEventChannel = function (dictTypeEquals) {
+  var mixNodeAudible = function (dictTypeEquals) {
       return function (dictTypeEquals1) {
           return function (dictTypeEquals2) {
               return {
                   mix: function (i) {
-                      return Type_Equality.proof(Type_Equality.refl)(Safe_Coerce.coerce()(FRP_Event.bang(FRP_Event.bang(Sound.create(i)))));
+                      return Data_Variant.inj()({
+                          reflectSymbol: function () {
+                              return "node";
+                          }
+                      })(Type_Proxy["Proxy"].value)(i);
                   }
               };
           };
       };
   };
-  var mixEventEventChannelEvent = function (dictTypeEquals) {
+  var mixEventEventChannelAudib = function (dictTypeEquals) {
       return function (dictTypeEquals1) {
           return function (dictTypeEquals2) {
               return {
                   mix: function (i) {
-                      return Type_Equality.proof(Type_Equality.refl)(Safe_Coerce.coerce()(i));
+                      return Data_Variant.inj()({
+                          reflectSymbol: function () {
+                              return "dynamicChannels";
+                          }
+                      })(Type_Proxy["Proxy"].value)(i);
                   }
               };
           };
       };
   };
-  var mixArrayNodeEventEventCha = function (dictTypeEquals) {
+  var mixEventAudibleAudible = function (dictTypeEquals) {
       return function (dictTypeEquals1) {
           return function (dictTypeEquals2) {
               return {
                   mix: function (i) {
-                      return Type_Equality.proof(Type_Equality.refl)(Safe_Coerce.coerce()(Data_Foldable.oneOfMap(Data_Foldable.foldableArray)(FRP_Event.plusEvent)(FRP_Event.bang)(Data_Functor.map(Data_Functor.functorArray)(function ($89) {
-                          return FRP_Event.bang(Sound.create($89));
-                      })(i))));
+                      return Data_Variant.inj()({
+                          reflectSymbol: function () {
+                              return "eventfulNode";
+                          }
+                      })(Type_Proxy["Proxy"].value)(i);
+                  }
+              };
+          };
+      };
+  };
+  var mixArrayNodeAudible = function (dictTypeEquals) {
+      return function (dictTypeEquals1) {
+          return function (dictTypeEquals2) {
+              return {
+                  mix: function (i) {
+                      return Data_Variant.inj()({
+                          reflectSymbol: function () {
+                              return "fixedChannels";
+                          }
+                      })(Type_Proxy["Proxy"].value)(i);
                   }
               };
           };
@@ -11640,72 +11664,90 @@ var PS = {};
   })(Type_Proxy["Proxy"].value)(Data_Unit.unit);
   var __internalWagsFlatten = function (parent) {
       return function (v) {
-          return function (children) {
-              return FRP_Event.makeEvent(function (k) {
-                  return function __do() {
-                      var cancelInner = Effect_Ref["new"](Foreign_Object.empty)();
-                      var cancelOuter = FRP_Event.subscribe(children)(function (inner) {
+          return function (v1) {
+              var node = function (v2) {
+                  return v2({
+                      parent: parent,
+                      scope: "trivial",
+                      raiseId: Data_Monoid.mempty(Data_Monoid.monoidFn(Effect.monoidEffect(Data_Monoid.monoidUnit)))
+                  })(v);
+              };
+              return Data_Variant.match()()()({
+                  fixedChannels: function (v2) {
+                      return Data_Foldable.oneOfMap(Data_Foldable.foldableArray)(FRP_Event.plusEvent)(node)(v2);
+                  },
+                  eventfulNode: function (v2) {
+                      return FRP_Event_Class.keepLatest(FRP_Event.eventIsEvent)(Data_Functor.map(FRP_Event.functorEvent)(__internalWagsFlatten(parent)(v))(v2));
+                  },
+                  node: node,
+                  dynamicChannels: function (v2) {
+                      return FRP_Event.makeEvent(function (k) {
                           return function __do() {
-                              var myUnsubId = v.ids();
-                              var myUnsub = Effect_Ref["new"](Control_Applicative.pure(Effect.applicativeEffect)(Data_Unit.unit))();
-                              var eltsUnsubId = v.ids();
-                              var eltsUnsub = Effect_Ref["new"](Control_Applicative.pure(Effect.applicativeEffect)(Data_Unit.unit))();
-                              var myId = Effect_Ref["new"](Data_Maybe.Nothing.value)();
-                              var myImmediateCancellation = Effect_Ref["new"](Control_Applicative.pure(Effect.applicativeEffect)(Data_Unit.unit))();
-                              var myScope = v.ids();
-                              var stageRef = Effect_Ref["new"](Begin.value)();
-                              var c0 = FRP_Event.subscribe(inner)(function (kid$prime) {
+                              var cancelInner = Effect_Ref["new"](Foreign_Object.empty)();
+                              var cancelOuter = FRP_Event.subscribe(v2)(function (inner) {
                                   return function __do() {
-                                      var stage = Effect_Ref.read(stageRef)();
-                                      if (kid$prime instanceof Silence && stage instanceof Middle) {
-                                          Effect_Ref.write(End.value)(stageRef)();
-                                          var mic = Control_Apply.applySecond(Effect.applyEffect)(Control_Apply.applySecond(Effect.applyEffect)(Control_Apply.applySecond(Effect.applyEffect)(Control_Apply.applySecond(Effect.applyEffect)(Control_Bind.bind(Effect.bindEffect)(Effect_Ref.read(myId))(Data_Foldable.traverse_(Effect.applicativeEffect)(Data_Foldable.foldableMaybe)(function (old) {
-                                              return k(v.disconnectXFromY({
-                                                  from: old,
-                                                  to: parent
-                                              }));
-                                          })))(Control_Bind.join(Effect.bindEffect)(Effect_Ref.read(myUnsub))))(Control_Bind.join(Effect.bindEffect)(Effect_Ref.read(eltsUnsub))))(Effect_Ref.modify_(Foreign_Object["delete"](myUnsubId))(cancelInner)))(Effect_Ref.modify_(Foreign_Object["delete"](eltsUnsubId))(cancelInner));
-                                          return Control_Apply.applySecond(Effect.applyEffect)(Effect_Ref.write(mic)(myImmediateCancellation))(mic)();
-                                      };
-                                      if (kid$prime instanceof Sound && stage instanceof Begin) {
-                                          Effect_Ref.write(Middle.value)(stageRef)();
-                                          var av = Effect_AVar.empty();
-                                          var c1 = FRP_Event.subscribe(kid$prime.value0({
-                                              parent: parent,
-                                              scope: myScope,
-                                              raiseId: function (id) {
-                                                  return Data_Functor["void"](Effect.functorEffect)(Effect_AVar.tryPut(id)(av));
-                                              }
-                                          })(v))(k)();
-                                          var cncl = Effect_AVar.take(av)(function (q) {
-                                              if (q instanceof Data_Either.Right) {
-                                                  return function __do() {
-                                                      Effect_Ref.write(new Data_Maybe.Just(q.value0))(myId)();
-                                                      Effect_Ref.modify_(Foreign_Object.insert(eltsUnsubId)(c1))(cancelInner)();
-                                                      return Effect_Ref.write(c1)(eltsUnsub)();
-                                                  };
+                                      var myUnsubId = v.ids();
+                                      var myUnsub = Effect_Ref["new"](Control_Applicative.pure(Effect.applicativeEffect)(Data_Unit.unit))();
+                                      var eltsUnsubId = v.ids();
+                                      var eltsUnsub = Effect_Ref["new"](Control_Applicative.pure(Effect.applicativeEffect)(Data_Unit.unit))();
+                                      var myId = Effect_Ref["new"](Data_Maybe.Nothing.value)();
+                                      var myImmediateCancellation = Effect_Ref["new"](Control_Applicative.pure(Effect.applicativeEffect)(Data_Unit.unit))();
+                                      var myScope = v.ids();
+                                      var stageRef = Effect_Ref["new"](Begin.value)();
+                                      var c0 = FRP_Event.subscribe(inner)(function (kid$prime) {
+                                          return function __do() {
+                                              var stage = Effect_Ref.read(stageRef)();
+                                              if (kid$prime instanceof Silence && stage instanceof Middle) {
+                                                  Effect_Ref.write(End.value)(stageRef)();
+                                                  var mic = Control_Apply.applySecond(Effect.applyEffect)(Control_Apply.applySecond(Effect.applyEffect)(Control_Apply.applySecond(Effect.applyEffect)(Control_Apply.applySecond(Effect.applyEffect)(Control_Bind.bind(Effect.bindEffect)(Effect_Ref.read(myId))(Data_Foldable.traverse_(Effect.applicativeEffect)(Data_Foldable.foldableMaybe)(function (old) {
+                                                      return k(v.disconnectXFromY({
+                                                          from: old,
+                                                          to: parent
+                                                      }));
+                                                  })))(Control_Bind.join(Effect.bindEffect)(Effect_Ref.read(myUnsub))))(Control_Bind.join(Effect.bindEffect)(Effect_Ref.read(eltsUnsub))))(Effect_Ref.modify_(Foreign_Object["delete"](myUnsubId))(cancelInner)))(Effect_Ref.modify_(Foreign_Object["delete"](eltsUnsubId))(cancelInner));
+                                                  return Control_Apply.applySecond(Effect.applyEffect)(Effect_Ref.write(mic)(myImmediateCancellation))(mic)();
                                               };
-                                              if (q instanceof Data_Either.Left) {
-                                                  return Effect_Exception.throwException(q.value0);
+                                              if (kid$prime instanceof Sound && stage instanceof Begin) {
+                                                  Effect_Ref.write(Middle.value)(stageRef)();
+                                                  var av = Effect_AVar.empty();
+                                                  var c1 = FRP_Event.subscribe(kid$prime.value0({
+                                                      parent: parent,
+                                                      scope: myScope,
+                                                      raiseId: function (id) {
+                                                          return Data_Functor["void"](Effect.functorEffect)(Effect_AVar.tryPut(id)(av));
+                                                      }
+                                                  })(v))(k)();
+                                                  var cncl = Effect_AVar.take(av)(function (q) {
+                                                      if (q instanceof Data_Either.Right) {
+                                                          return function __do() {
+                                                              Effect_Ref.write(new Data_Maybe.Just(q.value0))(myId)();
+                                                              Effect_Ref.modify_(Foreign_Object.insert(eltsUnsubId)(c1))(cancelInner)();
+                                                              return Effect_Ref.write(c1)(eltsUnsub)();
+                                                          };
+                                                      };
+                                                      if (q instanceof Data_Either.Left) {
+                                                          return Effect_Exception.throwException(q.value0);
+                                                      };
+                                                      throw new Error("Failed pattern match at WAGS.Core (line 1046, column 46 - line 1051, column 47): " + [ q.constructor.name ]);
+                                                  })();
+                                                  return cncl();
                                               };
-                                              throw new Error("Failed pattern match at WAGS.Core (line 1052, column 44 - line 1057, column 45): " + [ q.constructor.name ]);
-                                          })();
-                                          return cncl();
-                                      };
-                                      return Data_Unit.unit;
+                                              return Data_Unit.unit;
+                                          };
+                                      })();
+                                      Effect_Ref.write(c0)(myUnsub)();
+                                      Effect_Ref.modify_(Foreign_Object.insert(myUnsubId)(c0))(cancelInner)();
+                                      return Control_Bind.join(Effect.bindEffect)(Effect_Ref.read(myImmediateCancellation))();
                                   };
                               })();
-                              Effect_Ref.write(c0)(myUnsub)();
-                              Effect_Ref.modify_(Foreign_Object.insert(myUnsubId)(c0))(cancelInner)();
-                              return Control_Bind.join(Effect.bindEffect)(Effect_Ref.read(myImmediateCancellation))();
+                              return function __do() {
+                                  Control_Bind.bind(Effect.bindEffect)(Effect_Ref.read(cancelInner))(Data_Foldable.fold(Foreign_Object.foldableObject)(Effect.monoidEffect(Data_Monoid.monoidUnit)))();
+                                  return cancelOuter();
+                              };
                           };
-                      })();
-                      return function __do() {
-                          Control_Bind.bind(Effect.bindEffect)(Effect_Ref.read(cancelInner))(Data_Foldable.fold(Foreign_Object.foldableObject)(Effect.monoidEffect(Data_Monoid.monoidUnit)))();
-                          return cancelOuter();
-                      };
-                  };
-              });
+                      });
+                  }
+              })(v1);
           };
       };
   };
@@ -11736,9 +11778,10 @@ var PS = {};
   exports["InitializeStereoPanner"] = InitializeStereoPanner;
   exports["InitializeTriangleOsc"] = InitializeTriangleOsc;
   exports["__internalWagsFlatten"] = __internalWagsFlatten;
-  exports["mixEventEventChannelEvent"] = mixEventEventChannelEvent;
-  exports["mixNodeEventEventChannel"] = mixNodeEventEventChannel;
-  exports["mixArrayNodeEventEventCha"] = mixArrayNodeEventEventCha;
+  exports["mixEventEventChannelAudib"] = mixEventEventChannelAudib;
+  exports["mixEventAudibleAudible"] = mixEventAudibleAudible;
+  exports["mixNodeAudible"] = mixNodeAudible;
+  exports["mixArrayNodeAudible"] = mixArrayNodeAudible;
 })(PS);
 (function($PS) {
   // Generated by purs version 0.14.9
@@ -12667,7 +12710,6 @@ var PS = {};
   var Effect_Exception = $PS["Effect.Exception"];
   var FRP_Event = $PS["FRP.Event"];
   var FRP_Event_Class = $PS["FRP.Event.Class"];
-  var Safe_Coerce = $PS["Safe.Coerce"];
   var Type_Equality = $PS["Type.Equality"];
   var Type_Proxy = $PS["Type.Proxy"];
   var Unsafe_Coerce = $PS["Unsafe.Coerce"];
@@ -12764,7 +12806,7 @@ var PS = {};
                                   parent: Data_Variant_Maybe.just(parent.parent),
                                   scope: parent.scope,
                                   cb: v.cb
-                              })))(WAGS_Core["__internalWagsFlatten"](me)(v1)(WAGS_Core.mix(WAGS_Core.mixNodeEventEventChannel(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(elt)))))();
+                              })))(WAGS_Core["__internalWagsFlatten"](me)(v1)(WAGS_Core.mix(WAGS_Core.mixNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(elt)))))();
                           };
                       });
                   };
@@ -13085,9 +13127,9 @@ var PS = {};
                                           };
                                       };
                                   })(idz);
-                                  var realized = WAGS_Core["__internalWagsFlatten"](psr.parent)(v)(Type_Equality.proof(Type_Equality.refl)(Safe_Coerce.coerce()(closure(injectable)(function (v1) {
+                                  var realized = WAGS_Core["__internalWagsFlatten"](psr.parent)(v)(closure(injectable)(function (v1) {
                                       return v1;
-                                  }))));
+                                  }));
                                   var u = FRP_Event.subscribe(realized)(k)();
                                   Data_Functor["void"](Effect.functorEffect)(Effect_AVar.tryPut(u)(av2))();
                                   return function __do() {
@@ -13104,7 +13146,7 @@ var PS = {};
                                           if (q instanceof Data_Either.Left) {
                                               return Effect_Exception.throwException(q.value0);
                                           };
-                                          throw new Error("Failed pattern match at WAGS.Control (line 1576, column 36 - line 1578, column 35): " + [ q.constructor.name ]);
+                                          throw new Error("Failed pattern match at WAGS.Control (line 1574, column 36 - line 1576, column 35): " + [ q.constructor.name ]);
                                       })();
                                       return cncl2();
                                   };
@@ -13343,7 +13385,7 @@ var PS = {};
                                                   to: ii.parent
                                               }))));
                                           };
-                                          throw new Error("Failed pattern match at WAGS.Control (line 1630, column 29 - line 1633, column 104): " + [ v3.constructor.name ]);
+                                          throw new Error("Failed pattern match at WAGS.Control (line 1628, column 29 - line 1631, column 104): " + [ v3.constructor.name ]);
                                       }))();
                                       return Control_Applicative.pure(Effect.applicativeEffect)(Data_Unit.unit);
                                   };
@@ -13640,7 +13682,7 @@ var PS = {};
                                               if (v.fftSize instanceof WAGS_Core.TTT13) {
                                                   return 13;
                                               };
-                                              throw new Error("Failed pattern match at WAGS.Control (line 193, column 21 - line 200, column 34): " + [ v.fftSize.constructor.name ]);
+                                              throw new Error("Failed pattern match at WAGS.Control (line 191, column 21 - line 198, column 34): " + [ v.fftSize.constructor.name ]);
                                           })()),
                                           maxDecibels: v.maxDecibels,
                                           minDecibels: v.minDecibels,
@@ -13656,7 +13698,7 @@ var PS = {};
                                               if (v.channelCountMode instanceof WAGS_Core.ClampedMax) {
                                                   return "clamped-max";
                                               };
-                                              throw new Error("Failed pattern match at WAGS.Control (line 206, column 35 - line 209, column 46): " + [ v.channelCountMode.constructor.name ]);
+                                              throw new Error("Failed pattern match at WAGS.Control (line 204, column 35 - line 207, column 46): " + [ v.channelCountMode.constructor.name ]);
                                           })(),
                                           channelInterpretation: (function () {
                                               if (v.channelInterpretation instanceof WAGS_Core.Speakers) {
@@ -13665,7 +13707,7 @@ var PS = {};
                                               if (v.channelInterpretation instanceof WAGS_Core.Discrete) {
                                                   return "discrete";
                                               };
-                                              throw new Error("Failed pattern match at WAGS.Control (line 210, column 40 - line 212, column 41): " + [ v.channelInterpretation.constructor.name ]);
+                                              throw new Error("Failed pattern match at WAGS.Control (line 208, column 40 - line 210, column 41): " + [ v.channelInterpretation.constructor.name ]);
                                           })()
                                       })))(Data_Functor.map(FRP_Event.functorEvent)(function (v2) {
                                           return Data_Variant.match()()()({
@@ -14881,7 +14923,6 @@ var PS = {};
   var Data_Functor = $PS["Data.Functor"];
   var Effect_Class = $PS["Effect.Class"];
   var FRP_Event = $PS["FRP.Event"];
-  var FRP_Event_Class = $PS["FRP.Event.Class"];
   var Type_Equality = $PS["Type.Equality"];
   var WAGS_Control = $PS["WAGS.Control"];
   var WAGS_Core = $PS["WAGS.Core"];
@@ -14890,7 +14931,7 @@ var PS = {};
       return function (s) {
           return function __do() {
               var ffi = WAGS_Interpret.makeFFIAudioSnapshot(ctx)();
-              var u = FRP_Event.subscribe(WAGS_Control.speaker2(WAGS_Core.mixEventEventChannelEvent(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(FRP_Event_Class.keepLatest(FRP_Event.eventIsEvent)(Data_Functor.map(FRP_Event.functorEvent)(WAGS_Core.mix(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl)))(s)))(WAGS_Interpret.effectfulAudioInterpret))(function (f) {
+              var u = FRP_Event.subscribe(WAGS_Control.speaker2(WAGS_Core.mixEventAudibleAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(Data_Functor.map(FRP_Event.functorEvent)(WAGS_Core.mix(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl)))(s))(WAGS_Interpret.effectfulAudioInterpret))(function (f) {
                   return f(ffi);
               })();
               return u;
@@ -14901,7 +14942,7 @@ var PS = {};
       return function (s) {
           return function __do() {
               var ffi = WAGS_Interpret.makeFFIAudioSnapshot(ctx)();
-              var u = FRP_Event.subscribe(WAGS_Control.speaker2(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(s)(WAGS_Interpret.effectfulAudioInterpret))(function (f) {
+              var u = FRP_Event.subscribe(WAGS_Control.speaker2(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(s)(WAGS_Interpret.effectfulAudioInterpret))(function (f) {
                   return f(ffi);
               })();
               return u;
@@ -14958,7 +14999,7 @@ var PS = {};
                       return function (buf) {
                           return WAGS_Run.run2(ctx)([ WAGS_Control.fan1(WAGS_Control.loopBuf(WAGS_Common.initialLoopBufBrowserAudi)(buf)(WAGS_Parameter.bangOn()))(function (b) {
                               return function (v1) {
-                                  return WAGS_Core.mix(WAGS_Core.mixNodeEventEventChannel(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(WAGS_Control.gain_(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.2)([ b, WAGS_Control.allpass_(WAGS_Common.initialAllpassInitialAudi)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(700.0)([ WAGS_Control.allpass_(WAGS_Common.initialAllpassRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionAllpassOptio)()()()({
+                                  return WAGS_Core.mix(WAGS_Core.mixNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(WAGS_Control.gain_(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.2)([ b, WAGS_Control.allpass_(WAGS_Common.initialAllpassInitialAudi)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(700.0)([ WAGS_Control.allpass_(WAGS_Common.initialAllpassRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionAllpassOptio)()()()({
                                       reflectSymbol: function () {
                                           return "q";
                                       }
@@ -14966,10 +15007,10 @@ var PS = {};
                                       reflectSymbol: function () {
                                           return "frequency";
                                       }
-                                  })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
+                                  })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
                                       frequency: 990.0,
                                       q: 20.0
-                                  })([ b ]), WAGS_Control.allpass_(WAGS_Common.initialAllpassInitialAudi)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(1110.0)([ b, WAGS_Control.allpass_(WAGS_Common.initialAllpassRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionAllpassOptio)()()()({
+                                  })([ b ]), WAGS_Control.allpass_(WAGS_Common.initialAllpassInitialAudi)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(1110.0)([ b, WAGS_Control.allpass_(WAGS_Common.initialAllpassRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionAllpassOptio)()()()({
                                       reflectSymbol: function () {
                                           return "q";
                                       }
@@ -14977,7 +15018,7 @@ var PS = {};
                                       reflectSymbol: function () {
                                           return "frequency";
                                       }
-                                  })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
+                                  })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
                                       frequency: 2010.0,
                                       q: 30.0
                                   })([ b ]) ]) ]) ]));
@@ -15058,7 +15099,7 @@ var PS = {};
                       reflectSymbol: function () {
                           return "cb";
                       }
-                  })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixNodeEventEventChannel(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
+                  })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
                       cb: cb,
                       fftSize: WAGS_Core.TTT8.value
                   })(WAGS_Control.loopBuf(dictInitialLoopBuf)(atar)(WAGS_Parameter.bangOn()));
@@ -15134,7 +15175,7 @@ var PS = {};
                                   return function __do() {
                                       var analyserE = Effect_Ref["new"](Data_Maybe.Nothing.value)();
                                       var ffi2 = WAGS_Interpret.makeFFIAudioSnapshot(ctx)();
-                                      var audioE = WAGS_Control.speaker2(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))([ scene(WAGS_Control.convertOptionAnalyserOpti)(WAGS_Common.initialLoopBufBrowserAudi)(atar)(function (a) {
+                                      var audioE = WAGS_Control.speaker2(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))([ scene(WAGS_Control.convertOptionAnalyserOpti)(WAGS_Common.initialLoopBufBrowserAudi)(atar)(function (a) {
                                           return function __do() {
                                               Effect_Ref.write(new Data_Maybe.Just(a))(analyserE)();
                                               return Effect_Ref.write(Data_Maybe.Nothing.value)(analyserE);
@@ -15281,7 +15322,7 @@ var PS = {};
                       return function (buf) {
                           return WAGS_Run.run2(ctx)([ WAGS_Control.fan1(WAGS_Control.loopBuf(WAGS_Common.initialLoopBufBrowserAudi)(buf)(WAGS_Parameter.bangOn()))(function (b) {
                               return function (v1) {
-                                  return WAGS_Core.mix(WAGS_Core.mixNodeEventEventChannel(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(WAGS_Control.gain_(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.8)([ WAGS_Control.bandpass_(WAGS_Common.initialBandpassRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionBandpassOpti)()()()({
+                                  return WAGS_Core.mix(WAGS_Core.mixNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(WAGS_Control.gain_(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.8)([ WAGS_Control.bandpass_(WAGS_Common.initialBandpassRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionBandpassOpti)()()()({
                                       reflectSymbol: function () {
                                           return "q";
                                       }
@@ -15289,7 +15330,7 @@ var PS = {};
                                       reflectSymbol: function () {
                                           return "frequency";
                                       }
-                                  })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
+                                  })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
                                       frequency: 400.0,
                                       q: 1.0
                                   })([ b ]), WAGS_Control.bandpass_(WAGS_Common.initialBandpassRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionBandpassOpti)()()()({
@@ -15300,7 +15341,7 @@ var PS = {};
                                       reflectSymbol: function () {
                                           return "frequency";
                                       }
-                                  })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
+                                  })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
                                       frequency: 880.0,
                                       q: 5.0
                                   })([ b ]), WAGS_Control.bandpass_(WAGS_Common.initialBandpassRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionBandpassOpti)()()()({
@@ -15311,7 +15352,7 @@ var PS = {};
                                       reflectSymbol: function () {
                                           return "frequency";
                                       }
-                                  })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
+                                  })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
                                       frequency: 1200.0,
                                       q: 10.0
                                   })([ b ]), WAGS_Control.bandpass_(WAGS_Common.initialBandpassRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionBandpassOpti)()()()({
@@ -15322,7 +15363,7 @@ var PS = {};
                                       reflectSymbol: function () {
                                           return "frequency";
                                       }
-                                  })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
+                                  })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
                                       frequency: 2000.0,
                                       q: 20.0
                                   })([ b ]), WAGS_Control.bandpass_(WAGS_Common.initialBandpassRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionBandpassOpti)()()()({
@@ -15333,7 +15374,7 @@ var PS = {};
                                       reflectSymbol: function () {
                                           return "frequency";
                                       }
-                                  })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
+                                  })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
                                       frequency: 3000.0,
                                       q: 30.0
                                   })([ b ]) ]));
@@ -15381,7 +15422,7 @@ var PS = {};
                       return WAGS_Interpret.decodeAudioDataFromUri(ctx)("https://freesound.org/data/previews/320/320873_527080-hq.mp3");
                   })(function (ctx) {
                       return function (buf) {
-                          return WAGS_Run.run2(ctx)([ WAGS_Control.dynamicsCompressor_(WAGS_Common.initialDynamicsCompressor1(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsNil))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({})([ WAGS_Control.loopBuf(WAGS_Common.initialLoopBufBrowserAudi)(buf)(WAGS_Parameter.bangOn()) ]) ]);
+                          return WAGS_Run.run2(ctx)([ WAGS_Control.dynamicsCompressor_(WAGS_Common.initialDynamicsCompressor1(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsNil))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({})([ WAGS_Control.loopBuf(WAGS_Common.initialLoopBufBrowserAudi)(buf)(WAGS_Parameter.bangOn()) ]) ]);
                       };
                   }))
               });
@@ -15567,7 +15608,7 @@ var PS = {};
                       return Control_Applicative.pure(Effect_Aff.applicativeAff)(Data_Unit.unit);
                   })(function (ctx) {
                       return function (v1) {
-                          return WAGS_Run.run2(ctx)([ WAGS_Control.gain_(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.5)([ WAGS_Control.constant(WAGS_Common.initialConstantNumber)(0.0)(Control_Alt.alt(FRP_Event.altEvent)(WAGS_Parameter.bangOn())(FRP_Event_Class.bang(FRP_Event.eventIsEvent)(WAGS_Properties.offset()(WAGS_Parameter.toAudioParameterAudioEnve)({
+                          return WAGS_Run.run2(ctx)([ WAGS_Control.gain_(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.5)([ WAGS_Control.constant(WAGS_Common.initialConstantNumber)(0.0)(Control_Alt.alt(FRP_Event.altEvent)(WAGS_Parameter.bangOn())(FRP_Event_Class.bang(FRP_Event.eventIsEvent)(WAGS_Properties.offset()(WAGS_Parameter.toAudioParameterAudioEnve)({
                               d: 5.0,
                               o: 0.1,
                               p: Data_FunctorWithIndex.mapWithIndex(Data_FunctorWithIndex.functorWithIndexArray)(function (i) {
@@ -15631,7 +15672,7 @@ var PS = {};
                       })(WAGS_Interpret.decodeAudioDataFromUri(ctx)("https://freesound.org/data/previews/320/320873_527080-hq.mp3")))(WAGS_Interpret.decodeAudioDataFromUri(ctx)("https://cdn.jsdelivr.net/gh/andibrae/Reverb.js/Library/StMarysAbbeyReconstructionPhase3.m4a"));
                   })(function (ctx) {
                       return function (v1) {
-                          return WAGS_Run.run2(ctx)([ WAGS_Control.convolver(WAGS_Common.initialConvolverBrowserAu)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(v1.verb)([ WAGS_Control.loopBuf(WAGS_Common.initialLoopBufBrowserAudi)(v1.loop)(WAGS_Parameter.bangOn()) ]) ]);
+                          return WAGS_Run.run2(ctx)([ WAGS_Control.convolver(WAGS_Common.initialConvolverBrowserAu)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(v1.verb)([ WAGS_Control.loopBuf(WAGS_Common.initialLoopBufBrowserAudi)(v1.loop)(WAGS_Parameter.bangOn()) ]) ]);
                       };
                   }))
               });
@@ -15679,7 +15720,7 @@ var PS = {};
                       return function (buf) {
                           return WAGS_Run.run2(ctx)([ WAGS_Control.fan1(WAGS_Control.playBuf(WAGS_Common.initialPlayBufBrowserAudi)(buf)(WAGS_Parameter.bangOn()))(function (b) {
                               return function (v1) {
-                                  return WAGS_Core.mix(WAGS_Core.mixNodeEventEventChannel(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(WAGS_Control.gain_(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.2)([ WAGS_Control.delay_(WAGS_Common.initialDelayInitialAudioP)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(3.0e-2)([ b ]), WAGS_Control.delay_(WAGS_Common.initialDelayInitialAudioP)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.1)([ b ]), WAGS_Control.delay_(WAGS_Common.initialDelayInitialAudioP)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.3)([ b ]), WAGS_Control.delay_(WAGS_Common.initialDelayInitialAudioP)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.7)([ b ]) ]));
+                                  return WAGS_Core.mix(WAGS_Core.mixNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(WAGS_Control.gain_(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.2)([ WAGS_Control.delay_(WAGS_Common.initialDelayInitialAudioP)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(3.0e-2)([ b ]), WAGS_Control.delay_(WAGS_Common.initialDelayInitialAudioP)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.1)([ b ]), WAGS_Control.delay_(WAGS_Common.initialDelayInitialAudioP)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.3)([ b ]), WAGS_Control.delay_(WAGS_Common.initialDelayInitialAudioP)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.7)([ b ]) ]));
                               };
                           }) ]);
                       };
@@ -15723,7 +15764,7 @@ var PS = {};
                       return WAGS_Interpret.decodeAudioDataFromUri(ctx)("https://freesound.org/data/previews/339/339822_5121236-lq.mp3");
                   })(function (ctx) {
                       return function (buf) {
-                          return WAGS_Run.run2(ctx)([ WAGS_Control.gain_(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.1)([ WAGS_Control.loopBuf(WAGS_Common.initialLoopBufBrowserAudi)(buf)(WAGS_Parameter.bangOn()) ]) ]);
+                          return WAGS_Run.run2(ctx)([ WAGS_Control.gain_(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.1)([ WAGS_Control.loopBuf(WAGS_Common.initialLoopBufBrowserAudi)(buf)(WAGS_Parameter.bangOn()) ]) ]);
                       };
                   }))
               });
@@ -15765,7 +15806,7 @@ var PS = {};
                       return WAGS_Interpret.decodeAudioDataFromUri(ctx)("https://freesound.org/data/previews/320/320873_527080-hq.mp3");
                   })(function (ctx) {
                       return function (buf) {
-                          return WAGS_Run.run2(ctx)([ WAGS_Control.highpass_(WAGS_Common.initialHighpassInitialAud)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(2000.0)([ WAGS_Control.loopBuf(WAGS_Common.initialLoopBufBrowserAudi)(buf)(WAGS_Parameter.bangOn()) ]) ]);
+                          return WAGS_Run.run2(ctx)([ WAGS_Control.highpass_(WAGS_Common.initialHighpassInitialAud)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(2000.0)([ WAGS_Control.loopBuf(WAGS_Common.initialLoopBufBrowserAudi)(buf)(WAGS_Parameter.bangOn()) ]) ]);
                       };
                   }))
               });
@@ -15816,7 +15857,7 @@ var PS = {};
                               reflectSymbol: function () {
                                   return "frequency";
                               }
-                          })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
+                          })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
                               frequency: 2000.0,
                               gain: 0.4
                           })([ WAGS_Control.loopBuf(WAGS_Common.initialLoopBufBrowserAudi)(buf)(WAGS_Parameter.bangOn()) ]) ]);
@@ -15865,7 +15906,7 @@ var PS = {};
                       return WAGS_Interpret.decodeAudioDataFromUri(ctx)("https://freesound.org/data/previews/320/320873_527080-hq.mp3");
                   })(function (ctx) {
                       return function (buf) {
-                          return WAGS_Run.run2(ctx)([ WAGS_Control.iirFilter()()(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(WAGS_Common.initialIIRFilterVecNumber(Type_Equality.refl)(Type_Equality.refl))(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(new Data_Tuple.Tuple(Data_Vec.cons(Data_Typelevel_Num_Ops.typelevelSucc(Data_Typelevel_Num_Sets.posD3)()(Data_Typelevel_Num_Ops.divMod10D2D0)()(Data_Typelevel_Num_Ops.divMod10D3D0))(2.0298e-4)(Data_Vec.cons(Data_Typelevel_Num_Ops.typelevelSucc(Data_Typelevel_Num_Sets.posD2)()(Data_Typelevel_Num_Ops.divMod10D1D0)()(Data_Typelevel_Num_Ops.divMod10D2D0))(4.059599e-4)(Data_Vec.cons(Data_Typelevel_Num_Ops.typelevelSucc(Data_Typelevel_Num_Sets.posD1)()(Data_Typelevel_Num_Ops.divMod10D0D0)()(Data_Typelevel_Num_Ops.divMod10D1D0))(2.0298e-4)(Data_Vec.empty))), Data_Vec.cons(Data_Typelevel_Num_Ops.typelevelSucc(Data_Typelevel_Num_Sets.posD3)()(Data_Typelevel_Num_Ops.divMod10D2D0)()(Data_Typelevel_Num_Ops.divMod10D3D0))(1.0126964558)(Data_Vec.cons(Data_Typelevel_Num_Ops.typelevelSucc(Data_Typelevel_Num_Sets.posD2)()(Data_Typelevel_Num_Ops.divMod10D1D0)()(Data_Typelevel_Num_Ops.divMod10D2D0))(-1.9991880801)(Data_Vec.cons(Data_Typelevel_Num_Ops.typelevelSucc(Data_Typelevel_Num_Sets.posD1)()(Data_Typelevel_Num_Ops.divMod10D0D0)()(Data_Typelevel_Num_Ops.divMod10D1D0))(0.9873035442)(Data_Vec.empty)))))([ WAGS_Control.loopBuf(WAGS_Common.initialLoopBufBrowserAudi)(buf)(WAGS_Parameter.bangOn()) ]) ]);
+                          return WAGS_Run.run2(ctx)([ WAGS_Control.iirFilter()()(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(WAGS_Common.initialIIRFilterVecNumber(Type_Equality.refl)(Type_Equality.refl))(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(new Data_Tuple.Tuple(Data_Vec.cons(Data_Typelevel_Num_Ops.typelevelSucc(Data_Typelevel_Num_Sets.posD3)()(Data_Typelevel_Num_Ops.divMod10D2D0)()(Data_Typelevel_Num_Ops.divMod10D3D0))(2.0298e-4)(Data_Vec.cons(Data_Typelevel_Num_Ops.typelevelSucc(Data_Typelevel_Num_Sets.posD2)()(Data_Typelevel_Num_Ops.divMod10D1D0)()(Data_Typelevel_Num_Ops.divMod10D2D0))(4.059599e-4)(Data_Vec.cons(Data_Typelevel_Num_Ops.typelevelSucc(Data_Typelevel_Num_Sets.posD1)()(Data_Typelevel_Num_Ops.divMod10D0D0)()(Data_Typelevel_Num_Ops.divMod10D1D0))(2.0298e-4)(Data_Vec.empty))), Data_Vec.cons(Data_Typelevel_Num_Ops.typelevelSucc(Data_Typelevel_Num_Sets.posD3)()(Data_Typelevel_Num_Ops.divMod10D2D0)()(Data_Typelevel_Num_Ops.divMod10D3D0))(1.0126964558)(Data_Vec.cons(Data_Typelevel_Num_Ops.typelevelSucc(Data_Typelevel_Num_Sets.posD2)()(Data_Typelevel_Num_Ops.divMod10D1D0)()(Data_Typelevel_Num_Ops.divMod10D2D0))(-1.9991880801)(Data_Vec.cons(Data_Typelevel_Num_Ops.typelevelSucc(Data_Typelevel_Num_Sets.posD1)()(Data_Typelevel_Num_Ops.divMod10D0D0)()(Data_Typelevel_Num_Ops.divMod10D1D0))(0.9873035442)(Data_Vec.empty)))))([ WAGS_Control.loopBuf(WAGS_Common.initialLoopBufBrowserAudi)(buf)(WAGS_Parameter.bangOn()) ]) ]);
                       };
                   }))
               });
@@ -16006,7 +16047,7 @@ var PS = {};
                       return WAGS_Interpret.decodeAudioDataFromUri(ctx)("https://freesound.org/data/previews/320/320873_527080-hq.mp3");
                   })(function (ctx) {
                       return function (buf) {
-                          return WAGS_Run.run2(ctx)([ WAGS_Control.lowpass_(WAGS_Common.initialLowpassInitialAudi)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(215.0)([ WAGS_Control.loopBuf(WAGS_Common.initialLoopBufBrowserAudi)(buf)(WAGS_Parameter.bangOn()) ]) ]);
+                          return WAGS_Run.run2(ctx)([ WAGS_Control.lowpass_(WAGS_Common.initialLowpassInitialAudi)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(215.0)([ WAGS_Control.loopBuf(WAGS_Common.initialLoopBufBrowserAudi)(buf)(WAGS_Parameter.bangOn()) ]) ]);
                       };
                   }))
               });
@@ -16057,7 +16098,7 @@ var PS = {};
                               reflectSymbol: function () {
                                   return "frequency";
                               }
-                          })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
+                          })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
                               frequency: 91.0,
                               gain: 0.4
                           })([ WAGS_Control.loopBuf(WAGS_Common.initialLoopBufBrowserAudi)(buf)(WAGS_Parameter.bangOn()) ]) ]);
@@ -16109,11 +16150,11 @@ var PS = {};
                           return WAGS_Run.run2(ctx)([ (function () {
                               if (v1.microphone instanceof Data_Maybe.Just) {
                                   return WAGS_Control.fix(function (i) {
-                                      return WAGS_Control.gain_(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(1.0)([ WAGS_Control.microphone(WAGS_Common.initialMicrophoneBrowserM)(v1.microphone.value0), WAGS_Control.delay_(WAGS_Common.initialDelayInitialAudioP)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.1)([ WAGS_Control.gain_(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.2)([ i ]) ]) ]);
+                                      return WAGS_Control.gain_(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(1.0)([ WAGS_Control.microphone(WAGS_Common.initialMicrophoneBrowserM)(v1.microphone.value0), WAGS_Control.delay_(WAGS_Common.initialDelayInitialAudioP)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.1)([ WAGS_Control.gain_(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.2)([ i ]) ]) ]);
                                   });
                               };
                               if (v1.microphone instanceof Data_Maybe.Nothing) {
-                                  return WAGS_Control.gain_(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(2.0e-2)([ WAGS_Control.sinOsc_(WAGS_Common.initialSinOscNumber)(440.0) ]);
+                                  return WAGS_Control.gain_(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(2.0e-2)([ WAGS_Control.sinOsc_(WAGS_Common.initialSinOscNumber)(440.0) ]);
                               };
                               throw new Error("Failed pattern match at WAGS.Example.Docs.AudioUnits.Microphone (line 43, column 15 - line 48, column 56): " + [ v1.microphone.constructor.name ]);
                           })() ]);
@@ -16167,7 +16208,7 @@ var PS = {};
                               reflectSymbol: function () {
                                   return "frequency";
                               }
-                          })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixNodeEventEventChannel(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
+                          })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
                               frequency: 400.0,
                               q: 1.0
                           })(WAGS_Control.notch_(WAGS_Common.initialNotchRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionNotchOptions)()()()({
@@ -16178,7 +16219,7 @@ var PS = {};
                               reflectSymbol: function () {
                                   return "frequency";
                               }
-                          })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixNodeEventEventChannel(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
+                          })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
                               frequency: 880.0,
                               q: 5.0
                           })(WAGS_Control.notch_(WAGS_Common.initialNotchRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionNotchOptions)()()()({
@@ -16189,7 +16230,7 @@ var PS = {};
                               reflectSymbol: function () {
                                   return "frequency";
                               }
-                          })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixNodeEventEventChannel(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
+                          })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
                               frequency: 1200.0,
                               q: 10.0
                           })(WAGS_Control.notch_(WAGS_Common.initialNotchRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionNotchOptions)()()()({
@@ -16200,7 +16241,7 @@ var PS = {};
                               reflectSymbol: function () {
                                   return "frequency";
                               }
-                          })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixNodeEventEventChannel(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
+                          })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
                               frequency: 2000.0,
                               q: 20.0
                           })(WAGS_Control.notch_(WAGS_Common.initialNotchRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionNotchOptions)()()()({
@@ -16211,7 +16252,7 @@ var PS = {};
                               reflectSymbol: function () {
                                   return "frequency";
                               }
-                          })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixNodeEventEventChannel(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
+                          })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
                               frequency: 3000.0,
                               q: 30.0
                           })(WAGS_Control.loopBuf(WAGS_Common.initialLoopBufBrowserAudi)(buf)(WAGS_Parameter.bangOn())))))) ]);
@@ -16269,7 +16310,7 @@ var PS = {};
                               reflectSymbol: function () {
                                   return "frequency";
                               }
-                          })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixNodeEventEventChannel(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
+                          })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
                               frequency: 400.0,
                               q: 1.0,
                               gain: -20.0
@@ -16285,7 +16326,7 @@ var PS = {};
                               reflectSymbol: function () {
                                   return "frequency";
                               }
-                          })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixNodeEventEventChannel(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
+                          })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
                               frequency: 880.0,
                               q: 5.0,
                               gain: 20.0
@@ -16301,7 +16342,7 @@ var PS = {};
                               reflectSymbol: function () {
                                   return "frequency";
                               }
-                          })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixNodeEventEventChannel(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
+                          })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
                               frequency: 1200.0,
                               q: 10.0,
                               gain: -20.0
@@ -16317,7 +16358,7 @@ var PS = {};
                               reflectSymbol: function () {
                                   return "frequency";
                               }
-                          })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixNodeEventEventChannel(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
+                          })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
                               frequency: 2000.0,
                               q: 20.0,
                               gain: 20.0
@@ -16333,7 +16374,7 @@ var PS = {};
                               reflectSymbol: function () {
                                   return "frequency";
                               }
-                          })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixNodeEventEventChannel(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
+                          })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
                               frequency: 3000.0,
                               q: 30.0,
                               gain: -20.0
@@ -16386,7 +16427,7 @@ var PS = {};
                       return Control_Applicative.pure(Effect_Aff.applicativeAff)(Data_Unit.unit);
                   })(function (ctx) {
                       return function (v1) {
-                          return WAGS_Run.run2(ctx)([ WAGS_Control.gain_(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.2)([ WAGS_Control.periodicOsc(WAGS_Common.initialPeriodicOscRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionPeriodicOscO1(WAGS_Common.periodicOscSpecableVecNum(Data_Typelevel_Num_Sets.posD4)))()()()({
+                          return WAGS_Run.run2(ctx)([ WAGS_Control.gain_(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.2)([ WAGS_Control.periodicOsc(WAGS_Common.initialPeriodicOscRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionPeriodicOscO1(WAGS_Common.periodicOscSpecableVecNum(Data_Typelevel_Num_Sets.posD4)))()()()({
                               reflectSymbol: function () {
                                   return "spec";
                               }
@@ -16568,7 +16609,7 @@ var PS = {};
                                                       return function __do() {
                                                           var ctx = WAGS_Interpret.context(Effect_Class.monadEffectEffect)();
                                                           var ffi2 = WAGS_Interpret.makeFFIAudioSnapshot(ctx)();
-                                                          var audioE = WAGS_Control.speaker2(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))([ scene(WAGS_Common.initialRecorderMediaRecor)(WAGS_Common.initialMicrophoneBrowserM)(mc)(function (mr) {
+                                                          var audioE = WAGS_Control.speaker2(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))([ scene(WAGS_Common.initialRecorderMediaRecor)(WAGS_Common.initialMicrophoneBrowserM)(mc)(function (mr) {
                                                               return function __do() {
                                                                   push(new Data_Either.Left(new Data_Either.Right(mr)))();
                                                                   Data_Functor["void"](Effect.functorEffect)(Effect_AVar.tryPut(mr)(av))();
@@ -16675,7 +16716,7 @@ var PS = {};
                       return Control_Applicative.pure(Effect_Aff.applicativeAff)(Data_Unit.unit);
                   })(function (ctx) {
                       return function (v1) {
-                          return WAGS_Run.run2(ctx)([ WAGS_Control.gain_(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.2)([ WAGS_Control.sawtoothOsc(WAGS_Common.initialSawtoothOscNumber)(448.0)(WAGS_Parameter.bangOn()) ]) ]);
+                          return WAGS_Run.run2(ctx)([ WAGS_Control.gain_(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.2)([ WAGS_Control.sawtoothOsc(WAGS_Common.initialSawtoothOscNumber)(448.0)(WAGS_Parameter.bangOn()) ]) ]);
                       };
                   }))
               });
@@ -16719,7 +16760,7 @@ var PS = {};
                       return Control_Applicative.pure(Effect_Aff.applicativeAff)(Data_Unit.unit);
                   })(function (ctx) {
                       return function (v1) {
-                          return WAGS_Run.run2(ctx)([ WAGS_Control.gain_(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.2)([ WAGS_Control.sinOsc(WAGS_Common.initialSinOscNumber)(448.0)(WAGS_Parameter.bangOn()) ]) ]);
+                          return WAGS_Run.run2(ctx)([ WAGS_Control.gain_(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.2)([ WAGS_Control.sinOsc(WAGS_Common.initialSinOscNumber)(448.0)(WAGS_Parameter.bangOn()) ]) ]);
                       };
                   }))
               });
@@ -16763,7 +16804,7 @@ var PS = {};
                       return Control_Applicative.pure(Effect_Aff.applicativeAff)(Data_Unit.unit);
                   })(function (ctx) {
                       return function (v1) {
-                          return WAGS_Run.run2(ctx)([ WAGS_Control.gain_(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.2)([ WAGS_Control.squareOsc(WAGS_Common.initialSquareOscNumber)(448.0)(WAGS_Parameter.bangOn()) ]) ]);
+                          return WAGS_Run.run2(ctx)([ WAGS_Control.gain_(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.2)([ WAGS_Control.squareOsc(WAGS_Common.initialSquareOscNumber)(448.0)(WAGS_Parameter.bangOn()) ]) ]);
                       };
                   }))
               });
@@ -16805,7 +16846,7 @@ var PS = {};
                       return WAGS_Interpret.decodeAudioDataFromUri(ctx)("https://freesound.org/data/previews/339/339822_5121236-lq.mp3");
                   })(function (ctx) {
                       return function (buf) {
-                          return WAGS_Run.run2(ctx)([ WAGS_Control.pan_(WAGS_Common.initialStereoPannerNumber)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(1.0)([ WAGS_Control.loopBuf(WAGS_Common.initialLoopBufBrowserAudi)(buf)(WAGS_Parameter.bangOn()) ]) ]);
+                          return WAGS_Run.run2(ctx)([ WAGS_Control.pan_(WAGS_Common.initialStereoPannerNumber)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(1.0)([ WAGS_Control.loopBuf(WAGS_Common.initialLoopBufBrowserAudi)(buf)(WAGS_Parameter.bangOn()) ]) ]);
                       };
                   }))
               });
@@ -16864,7 +16905,7 @@ var PS = {};
                       return Control_Applicative.pure(Effect_Aff.applicativeAff)(Data_Unit.unit);
                   })(function (ctx) {
                       return function (v1) {
-                          return WAGS_Run.run2(ctx)([ WAGS_Control.gain_(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.2)([ WAGS_Control.triangleOsc(WAGS_Common.initialTriangleOscNumber)(448.0)(WAGS_Parameter.bangOn()) ]) ]);
+                          return WAGS_Run.run2(ctx)([ WAGS_Control.gain_(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.2)([ WAGS_Control.triangleOsc(WAGS_Common.initialTriangleOscNumber)(448.0)(WAGS_Parameter.bangOn()) ]) ]);
                       };
                   }))
               });
@@ -16926,7 +16967,7 @@ var PS = {};
                           };
                           return function __do() {
                               var wicked = WAGS_Interpret.makeFloatArray(makeDistortionCurve(400.0))();
-                              return WAGS_Run.run2(ctx)([ WAGS_Control.waveShaper(WAGS_Common.initialWaveShaperBrowserF)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(wicked)([ WAGS_Control.loopBuf(WAGS_Common.initialLoopBufBrowserAudi)(buf)(WAGS_Parameter.bangOn()) ]) ])();
+                              return WAGS_Run.run2(ctx)([ WAGS_Control.waveShaper(WAGS_Common.initialWaveShaperBrowserF)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(wicked)([ WAGS_Control.loopBuf(WAGS_Common.initialLoopBufBrowserAudi)(buf)(WAGS_Parameter.bangOn()) ]) ])();
                           };
                       };
                   }))
@@ -17115,7 +17156,7 @@ var PS = {};
                           return WAGS_Interpret.decodeAudioDataFromUri(ctx)("https://freesound.org/data/previews/50/50711_179538-lq.mp3");
                       })(function (ctx) {
                           return function (buf) {
-                              return WAGS_Run.run2(ctx)([ WAGS_Control.gain_(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(1.0)([ WAGS_Control.loopBuf(WAGS_Common.initialLoopBufBrowserAudi)(buf)(WAGS_Parameter.bangOn()) ]) ]);
+                              return WAGS_Run.run2(ctx)([ WAGS_Control.gain_(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(1.0)([ WAGS_Control.loopBuf(WAGS_Common.initialLoopBufBrowserAudi)(buf)(WAGS_Parameter.bangOn()) ]) ]);
                           };
                       })),
                       toc: Deku_Pursx.nut(Deku_Control.plantElementEventEventStr(Type_Equality.refl)(Type_Equality.refl))(WAGS_Example_Docs_AudioUnits_TOC.toc),
@@ -17353,7 +17394,7 @@ var PS = {};
                                               return 1.0;
                                           })(FRP_Behavior.sample_(FRP_Event.eventIsEvent)(cbx1)(acTime));
                                           var ev0 = cevt(8.0)(cbx0)(acTime);
-                                          return [ WAGS_Control.gain(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.0)(Data_Functor.mapFlipped(FRP_Event.functorEvent)(evs(ev0)(ev1))(function (v2) {
+                                          return [ WAGS_Control.gain(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.0)(Data_Functor.mapFlipped(FRP_Event.functorEvent)(evs(ev0)(ev1))(function (v2) {
                                               return WAGS_Properties.gain()(WAGS_Parameter.toAudioParameterAudioNume)({
                                                   n: WAGS_Math.calcSlope(1.0)(1.0e-2)(4.0)(0.15)(v2.a) * $$Math.sin($$Math.pi * v2.f) + 0.15,
                                                   o: v2.t,
@@ -17626,7 +17667,7 @@ var PS = {};
                                       var r$prime = WAGS_Run.run2e(ctx)(FRP_Event.memoize(Data_Functor.map(FRP_Event.functorEvent)(function (v2) {
                                           return new Data_Tuple.Tuple(v2.acTime, v2.value);
                                       })(WAGS_Clock.withACTime(ctx)(FRP_Behavior.sample_(FRP_Event.eventIsEvent)(swell(mouse))(FRP_Event_Animate.animationFrameEvent))))(function (swm) {
-                                          return [ WAGS_Control.gain(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.0)(Data_Functor.map(FRP_Event.functorEvent)((function () {
+                                          return [ WAGS_Control.gain(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.0)(Data_Functor.map(FRP_Event.functorEvent)((function () {
                                               var $41 = WAGS_Properties.gain()(WAGS_Parameter.toAudioParameterAudioNume);
                                               var $42 = Data_Profunctor_Strong.second(Data_Profunctor_Strong.strongFn)(function (x) {
                                                   return Data_Ord.max(Data_Ord.ordNumber)(-0.4)(0.5 * (x - 1.0));
@@ -17642,10 +17683,10 @@ var PS = {};
                                               reflectSymbol: function () {
                                                   return "frequency";
                                               }
-                                          })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
+                                          })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
                                               frequency: 90.4,
                                               q: 20.0
-                                          })([ WAGS_Control.squareOsc_(WAGS_Common.initialSquareOscNumber)(90.4) ]) ]), WAGS_Control.gain(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.0)(Data_Functor.map(FRP_Event.functorEvent)((function () {
+                                          })([ WAGS_Control.squareOsc_(WAGS_Common.initialSquareOscNumber)(90.4) ]) ]), WAGS_Control.gain(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.0)(Data_Functor.map(FRP_Event.functorEvent)((function () {
                                               var $44 = WAGS_Properties.gain()(WAGS_Parameter.toAudioParameterAudioNume);
                                               var $45 = Data_Profunctor_Strong.second(Data_Profunctor_Strong.strongFn)(function (x) {
                                                   return Data_Ord.max(Data_Ord.ordNumber)(-0.2)(0.4 * (x - 3.0));
@@ -17661,7 +17702,7 @@ var PS = {};
                                               reflectSymbol: function () {
                                                   return "frequency";
                                               }
-                                          })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
+                                          })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
                                               frequency: 90.4 * 4.0,
                                               q: 20.0
                                           })([ WAGS_Control.periodicOsc(WAGS_Common.initialPeriodicOscRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionPeriodicOscO1(WAGS_Common.periodicOscSpecableVecNum(Data_Typelevel_Num_Sets.posD4)))()()()({
@@ -17683,7 +17724,7 @@ var PS = {};
                                               return function ($49) {
                                                   return $47(ttap($48($49)));
                                               };
-                                          })())(swm))) ]) ]), WAGS_Control.gain(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.0)(Data_Functor.map(FRP_Event.functorEvent)((function () {
+                                          })())(swm))) ]) ]), WAGS_Control.gain(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.0)(Data_Functor.map(FRP_Event.functorEvent)((function () {
                                               var $50 = WAGS_Properties.gain()(WAGS_Parameter.toAudioParameterAudioNume);
                                               var $51 = Data_Profunctor_Strong.second(Data_Profunctor_Strong.strongFn)(function (x) {
                                                   return Data_Ord.max(Data_Ord.ordNumber)(-0.1)(0.2 * (x - 6.0));
@@ -17699,7 +17740,7 @@ var PS = {};
                                               reflectSymbol: function () {
                                                   return "frequency";
                                               }
-                                          })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
+                                          })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
                                               frequency: 90.4 * 6.0,
                                               q: 20.0
                                           })([ WAGS_Control.periodicOsc(WAGS_Common.initialPeriodicOscRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionPeriodicOscO1(WAGS_Common.periodicOscSpecableVecNum(Data_Typelevel_Num_Sets.posD4)))()()()({
@@ -17721,7 +17762,7 @@ var PS = {};
                                               return function ($55) {
                                                   return $53(ttap($54($55)));
                                               };
-                                          })())(swm))) ]) ]), WAGS_Control.gain(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.0)(Data_Functor.map(FRP_Event.functorEvent)((function () {
+                                          })())(swm))) ]) ]), WAGS_Control.gain(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.0)(Data_Functor.map(FRP_Event.functorEvent)((function () {
                                               var $56 = WAGS_Properties.gain()(WAGS_Parameter.toAudioParameterAudioNume);
                                               var $57 = Data_Profunctor_Strong.second(Data_Profunctor_Strong.strongFn)(function (x) {
                                                   return Data_Ord.max(Data_Ord.ordNumber)(0.0)(0.2 * (x - 3.0));
@@ -17737,7 +17778,7 @@ var PS = {};
                                               reflectSymbol: function () {
                                                   return "frequency";
                                               }
-                                          })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
+                                          })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
                                               frequency: 90.4 * 8.0,
                                               q: 20.0
                                           })([ WAGS_Control.periodicOsc(WAGS_Common.initialPeriodicOscRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionPeriodicOscO1(WAGS_Common.periodicOscSpecableVecNum(Data_Typelevel_Num_Sets.posD4)))()()()({
@@ -17759,7 +17800,7 @@ var PS = {};
                                               return function ($61) {
                                                   return $59(ttap($60($61)));
                                               };
-                                          })())(swm))) ]) ]), WAGS_Control.gain(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.0)(Data_Functor.map(FRP_Event.functorEvent)((function () {
+                                          })())(swm))) ]) ]), WAGS_Control.gain(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.0)(Data_Functor.map(FRP_Event.functorEvent)((function () {
                                               var $62 = WAGS_Properties.gain()(WAGS_Parameter.toAudioParameterAudioNume);
                                               var $63 = Data_Profunctor_Strong.second(Data_Profunctor_Strong.strongFn)(function (x) {
                                                   return Data_Ord.max(Data_Ord.ordNumber)(0.0)(0.1 * (x - 7.0));
@@ -17945,7 +17986,7 @@ var PS = {};
       };
       var strand = function (x) {
           return function (y) {
-              return WAGS_Control.gain(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.0)(genv(x))([ WAGS_Control.sinOsc(WAGS_Common.initialSinOscNumber)(200.0 + i * y)(ooo$prime(x)) ]);
+              return WAGS_Control.gain(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.0)(genv(x))([ WAGS_Control.sinOsc(WAGS_Common.initialSinOscNumber)(200.0 + i * y)(ooo$prime(x)) ]);
           };
       };
       return [ strand(0.2)(4.0), strand(0.3)(6.0), strand(0.45)(14.0), strand(0.7)(20.0) ];
@@ -17984,7 +18025,7 @@ var PS = {};
                                   };
                                   return function __do() {
                                       v1.value1();
-                                      var r = WAGS_Run.run2_([ WAGS_Control.gain_(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(1.0)(Control_Bind.join(Control_Bind.bindArray)(Data_Functor.map(Data_Functor.functorArray)(cell)(Data_Array.range(0)(100)))) ])();
+                                      var r = WAGS_Run.run2_([ WAGS_Control.gain_(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(1.0)(Control_Bind.join(Control_Bind.bindArray)(Data_Functor.map(Data_Functor.functorArray)(cell)(Data_Array.range(0)(100)))) ])();
                                       ccb(Control_Apply.applySecond(Effect.applyEffect)(r)(push(Start.value)))();
                                       return push(new Stop(r))();
                                   };
@@ -18428,7 +18469,7 @@ var PS = {};
                                   })(time);
                                   return [ WAGS_Control.fan1(WAGS_Control.triangleOsc(WAGS_Common.initialTriangleOscNumber)(0.0)(f0))(function (ipt) {
                                       return function (v1) {
-                                          return WAGS_Core.mix(WAGS_Core.mixNodeEventEventChannel(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(WAGS_Control.gain_(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(2.0)([ WAGS_Control.gain(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.0)(Data_Functor.map(FRP_Event.functorEvent)(WAGS_Properties.gain()(WAGS_Parameter.toAudioParameterAudioEnve))(e0))([ WAGS_Control.bandpass_(WAGS_Common.initialBandpassRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionBandpassOpti)()()()({
+                                          return WAGS_Core.mix(WAGS_Core.mixNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(WAGS_Control.gain_(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(2.0)([ WAGS_Control.gain(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.0)(Data_Functor.map(FRP_Event.functorEvent)(WAGS_Properties.gain()(WAGS_Parameter.toAudioParameterAudioEnve))(e0))([ WAGS_Control.bandpass_(WAGS_Common.initialBandpassRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionBandpassOpti)()()()({
                                               reflectSymbol: function () {
                                                   return "q";
                                               }
@@ -18436,10 +18477,10 @@ var PS = {};
                                               reflectSymbol: function () {
                                                   return "frequency";
                                               }
-                                          })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
+                                          })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
                                               frequency: 1000.0,
                                               q: 20.0
-                                          })([ ipt ]) ]), WAGS_Control.gain(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.0)(Data_Functor.map(FRP_Event.functorEvent)(WAGS_Properties.gain()(WAGS_Parameter.toAudioParameterAudioEnve))(e1))([ WAGS_Control.bandpass_(WAGS_Common.initialBandpassRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionBandpassOpti)()()()({
+                                          })([ ipt ]) ]), WAGS_Control.gain(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.0)(Data_Functor.map(FRP_Event.functorEvent)(WAGS_Properties.gain()(WAGS_Parameter.toAudioParameterAudioEnve))(e1))([ WAGS_Control.bandpass_(WAGS_Common.initialBandpassRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionBandpassOpti)()()()({
                                               reflectSymbol: function () {
                                                   return "q";
                                               }
@@ -18447,10 +18488,10 @@ var PS = {};
                                               reflectSymbol: function () {
                                                   return "frequency";
                                               }
-                                          })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
+                                          })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
                                               frequency: 2000.0,
                                               q: 20.0
-                                          })([ ipt ]) ]), WAGS_Control.gain(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.0)(Data_Functor.map(FRP_Event.functorEvent)(WAGS_Properties.gain()(WAGS_Parameter.toAudioParameterAudioEnve))(e2))([ WAGS_Control.highpass_(WAGS_Common.initialHighpassRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionHighpassOpti)()()()({
+                                          })([ ipt ]) ]), WAGS_Control.gain(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.0)(Data_Functor.map(FRP_Event.functorEvent)(WAGS_Properties.gain()(WAGS_Parameter.toAudioParameterAudioEnve))(e2))([ WAGS_Control.highpass_(WAGS_Common.initialHighpassRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionHighpassOpti)()()()({
                                               reflectSymbol: function () {
                                                   return "q";
                                               }
@@ -18458,7 +18499,7 @@ var PS = {};
                                               reflectSymbol: function () {
                                                   return "frequency";
                                               }
-                                          })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
+                                          })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
                                               frequency: 4000.0,
                                               q: 20.0
                                           })([ ipt ]) ]) ]));
@@ -18695,7 +18736,7 @@ var PS = {};
                       })(Control_Parallel_Class.parallel(Effect_Aff.parallelAff)(WAGS_Interpret.decodeAudioDataFromUri(ctx)("https://freesound.org/data/previews/178/178660_717950-lq.mp3"))))(Control_Parallel_Class.parallel(Effect_Aff.parallelAff)(WAGS_Interpret.decodeAudioDataFromUri(ctx)("https://freesound.org/data/previews/178/178660_717950-lq.mp3"))))(Control_Parallel_Class.parallel(Effect_Aff.parallelAff)(WAGS_Interpret.decodeAudioDataFromUri(ctx)("https://freesound.org/data/previews/562/562008_7107243-lq.mp3"))))(Control_Parallel_Class.parallel(Effect_Aff.parallelAff)(WAGS_Interpret.decodeAudioDataFromUri(ctx)("https://freesound.org/data/previews/126/126531_2044671-lq.mp3"))));
                   })(function (ctx) {
                       return function (v1) {
-                          return WAGS_Run.run2(ctx)([ WAGS_Control.gain_(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(1.0)((function () {
+                          return WAGS_Run.run2(ctx)([ WAGS_Control.gain_(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(1.0)((function () {
                               var ooo = function (n) {
                                   return FRP_Event_Class.bang(FRP_Event.eventIsEvent)(WAGS_Properties.onOff()(WAGS_Parameter.toAudioOnOffAudioOnOff)(WAGS_Parameter.dt()(Data_Semiring.add(Data_Semiring.semiringNumber)(n))(WAGS_Parameter.apOn)));
                               };
@@ -18771,7 +18812,7 @@ var PS = {};
                       })(Control_Parallel_Class.parallel(Effect_Aff.parallelAff)(WAGS_Interpret.decodeAudioDataFromUri(ctx)("https://freesound.org/data/previews/178/178660_717950-lq.mp3"))))(Control_Parallel_Class.parallel(Effect_Aff.parallelAff)(WAGS_Interpret.decodeAudioDataFromUri(ctx)("https://freesound.org/data/previews/178/178660_717950-lq.mp3"))))(Control_Parallel_Class.parallel(Effect_Aff.parallelAff)(WAGS_Interpret.decodeAudioDataFromUri(ctx)("https://freesound.org/data/previews/562/562008_7107243-lq.mp3"))))(Control_Parallel_Class.parallel(Effect_Aff.parallelAff)(WAGS_Interpret.decodeAudioDataFromUri(ctx)("https://freesound.org/data/previews/126/126531_2044671-lq.mp3"))));
                   })(function (ctx) {
                       return function (v1) {
-                          return WAGS_Run.run2(ctx)([ WAGS_Control.gain_(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(1.0)((function () {
+                          return WAGS_Run.run2(ctx)([ WAGS_Control.gain_(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(1.0)((function () {
                               var ooo = function (n) {
                                   return FRP_Event_Class.bang(FRP_Event.eventIsEvent)(WAGS_Properties.onOff()(WAGS_Parameter.toAudioOnOffAudioOnOff)(WAGS_Parameter.dt()(Data_Semiring.add(Data_Semiring.semiringNumber)(n))(WAGS_Parameter.apOn)));
                               };
@@ -18841,7 +18882,7 @@ var PS = {};
                       return function (buf) {
                           return WAGS_Run.run2(ctx)([ WAGS_Control.fan1(WAGS_Control.loopBuf(WAGS_Common.initialLoopBufBrowserAudi)(buf)(WAGS_Parameter.bangOn()))(function (b) {
                               return function (v1) {
-                                  return WAGS_Core.mix(WAGS_Core.mixNodeEventEventChannel(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(WAGS_Control.gain_(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.8)([ WAGS_Control.bandpass_(WAGS_Common.initialBandpassRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionBandpassOpti)()()()({
+                                  return WAGS_Core.mix(WAGS_Core.mixNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(WAGS_Control.gain_(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.8)([ WAGS_Control.bandpass_(WAGS_Common.initialBandpassRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionBandpassOpti)()()()({
                                       reflectSymbol: function () {
                                           return "q";
                                       }
@@ -18849,7 +18890,7 @@ var PS = {};
                                       reflectSymbol: function () {
                                           return "frequency";
                                       }
-                                  })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
+                                  })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
                                       frequency: 400.0,
                                       q: 1.0
                                   })([ b ]), WAGS_Control.bandpass_(WAGS_Common.initialBandpassRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionBandpassOpti)()()()({
@@ -18860,7 +18901,7 @@ var PS = {};
                                       reflectSymbol: function () {
                                           return "frequency";
                                       }
-                                  })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
+                                  })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
                                       frequency: 880.0,
                                       q: 5.0
                                   })([ b ]), WAGS_Control.bandpass_(WAGS_Common.initialBandpassRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionBandpassOpti)()()()({
@@ -18871,7 +18912,7 @@ var PS = {};
                                       reflectSymbol: function () {
                                           return "frequency";
                                       }
-                                  })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
+                                  })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
                                       frequency: 1200.0,
                                       q: 10.0
                                   })([ b ]), WAGS_Control.bandpass_(WAGS_Common.initialBandpassRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionBandpassOpti)()()()({
@@ -18882,7 +18923,7 @@ var PS = {};
                                       reflectSymbol: function () {
                                           return "frequency";
                                       }
-                                  })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
+                                  })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
                                       frequency: 2000.0,
                                       q: 20.0
                                   })([ b ]), WAGS_Control.bandpass_(WAGS_Common.initialBandpassRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionBandpassOpti)()()()({
@@ -18893,7 +18934,7 @@ var PS = {};
                                       reflectSymbol: function () {
                                           return "frequency";
                                       }
-                                  })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
+                                  })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
                                       frequency: 3000.0,
                                       q: 30.0
                                   })([ b ]) ]));
@@ -18951,7 +18992,7 @@ var PS = {};
                       return function (buf) {
                           return WAGS_Run.run2(ctx)([ WAGS_Control.fan1(WAGS_Control.loopBuf(WAGS_Common.initialLoopBufBrowserAudi)(buf)(WAGS_Parameter.bangOn()))(function (b) {
                               return function (v1) {
-                                  return WAGS_Core.mix(WAGS_Core.mixNodeEventEventChannel(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(WAGS_Control.gain_(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.8)(Data_Functor.mapFlipped(Data_Functor.functorArray)(Data_Array.range(0)(40))(Data_Profunctor.lcmap(Data_Profunctor.profunctorFn)(Data_Int.toNumber)(function (i) {
+                                  return WAGS_Core.mix(WAGS_Core.mixNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(WAGS_Control.gain_(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.8)(Data_Functor.mapFlipped(Data_Functor.functorArray)(Data_Array.range(0)(40))(Data_Profunctor.lcmap(Data_Profunctor.profunctorFn)(Data_Int.toNumber)(function (i) {
                                       return WAGS_Control.bandpass_(WAGS_Common.initialBandpassRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionBandpassOpti)()()()({
                                           reflectSymbol: function () {
                                               return "q";
@@ -18960,7 +19001,7 @@ var PS = {};
                                           reflectSymbol: function () {
                                               return "frequency";
                                           }
-                                      })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
+                                      })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
                                           frequency: 200.0 + i * 150.0,
                                           q: 30.0
                                       })([ b ]);
@@ -19013,7 +19054,7 @@ var PS = {};
                   })(function (ctx) {
                       return function (buf) {
                           return WAGS_Run.run2(ctx)([ WAGS_Control.fix(function (b) {
-                              return WAGS_Control.gain_(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(1.0)([ WAGS_Control.playBuf(WAGS_Common.initialPlayBufBrowserAudi)(buf)(WAGS_Parameter.bangOn()), WAGS_Control.delay_(WAGS_Common.initialDelayInitialAudioP)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.1)([ WAGS_Control.gain_(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.6)([ b ]) ]) ]);
+                              return WAGS_Control.gain_(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(1.0)([ WAGS_Control.playBuf(WAGS_Common.initialPlayBufBrowserAudi)(buf)(WAGS_Parameter.bangOn()), WAGS_Control.delay_(WAGS_Common.initialDelayInitialAudioP)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.1)([ WAGS_Control.gain_(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.6)([ b ]) ]) ]);
                           }) ]);
                       };
                   }))
@@ -19069,7 +19110,7 @@ var PS = {};
                       return function (g) {
                           return function (h) {
                               return function (i) {
-                                  return WAGS_Control.delay_(dictInitialDelay)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(d)([ WAGS_Control.gain_(dictInitialGain)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(g)([ WAGS_Control.highpass_(dictInitialHighpass)(dictMix)(h)(i) ]) ]);
+                                  return WAGS_Control.delay_(dictInitialDelay)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(d)([ WAGS_Control.gain_(dictInitialGain)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(g)([ WAGS_Control.highpass_(dictInitialHighpass)(dictMix)(h)(i) ]) ]);
                               };
                           };
                       };
@@ -19105,12 +19146,12 @@ var PS = {};
                       return function (buf) {
                           return WAGS_Run.run2(ctx)([ WAGS_Control.fan1(WAGS_Control.playBuf(WAGS_Common.initialPlayBufBrowserAudi)(buf)(WAGS_Parameter.bangOn()))(function (b) {
                               return function (v1) {
-                                  return WAGS_Core.mix(WAGS_Core.mixNodeEventEventChannel(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(WAGS_Control.fix(function (g0) {
-                                      return WAGS_Control.gain_(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(1.0)([ b, dgh(WAGS_Common.initialDelayInitialAudioP)(WAGS_Common.initialGainNumber)(WAGS_Common.initialHighpassInitialAud)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.15)(0.7)(1500.0)([ WAGS_Control.fix(function (g1) {
-                                          return WAGS_Control.gain(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(1.0)(fade1(FRP_Event.eventIsEvent)())([ dgh(WAGS_Common.initialDelayInitialAudioP)(WAGS_Common.initialGainNumber)(WAGS_Common.initialHighpassInitialAud)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.4)(0.5)(2500.0)([ g0, g1 ]) ]);
-                                      }) ]), dgh(WAGS_Common.initialDelayInitialAudioP)(WAGS_Common.initialGainNumber)(WAGS_Common.initialHighpassInitialAud)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.29)(0.85)(2000.0)([ WAGS_Control.fix(function (g1) {
-                                          return WAGS_Control.gain_(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(1.0)([ dgh(WAGS_Common.initialDelayInitialAudioP)(WAGS_Common.initialGainNumber)(WAGS_Common.initialHighpassInitialAud)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.6)(0.6)(3500.0)([ g0, WAGS_Control.fix(function (g2) {
-                                              return WAGS_Control.gain(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(1.0)(fade0(FRP_Event.eventIsEvent)())([ dgh(WAGS_Common.initialDelayInitialAudioP)(WAGS_Common.initialGainNumber)(WAGS_Common.initialHighpassInitialAud)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.75)(0.6)(4000.0)([ g1, g2 ]), dgh(WAGS_Common.initialDelayInitialAudioP)(WAGS_Common.initialGainNumber)(WAGS_Common.initialHighpassInitialAud)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.75)(0.55)(3000.0)([ b ]) ]);
+                                  return WAGS_Core.mix(WAGS_Core.mixNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(WAGS_Control.fix(function (g0) {
+                                      return WAGS_Control.gain_(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(1.0)([ b, dgh(WAGS_Common.initialDelayInitialAudioP)(WAGS_Common.initialGainNumber)(WAGS_Common.initialHighpassInitialAud)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.15)(0.7)(1500.0)([ WAGS_Control.fix(function (g1) {
+                                          return WAGS_Control.gain(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(1.0)(fade1(FRP_Event.eventIsEvent)())([ dgh(WAGS_Common.initialDelayInitialAudioP)(WAGS_Common.initialGainNumber)(WAGS_Common.initialHighpassInitialAud)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.4)(0.5)(2500.0)([ g0, g1 ]) ]);
+                                      }) ]), dgh(WAGS_Common.initialDelayInitialAudioP)(WAGS_Common.initialGainNumber)(WAGS_Common.initialHighpassInitialAud)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.29)(0.85)(2000.0)([ WAGS_Control.fix(function (g1) {
+                                          return WAGS_Control.gain_(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(1.0)([ dgh(WAGS_Common.initialDelayInitialAudioP)(WAGS_Common.initialGainNumber)(WAGS_Common.initialHighpassInitialAud)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.6)(0.6)(3500.0)([ g0, WAGS_Control.fix(function (g2) {
+                                              return WAGS_Control.gain(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(1.0)(fade0(FRP_Event.eventIsEvent)())([ dgh(WAGS_Common.initialDelayInitialAudioP)(WAGS_Common.initialGainNumber)(WAGS_Common.initialHighpassInitialAud)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.75)(0.6)(4000.0)([ g1, g2 ]), dgh(WAGS_Common.initialDelayInitialAudioP)(WAGS_Common.initialGainNumber)(WAGS_Common.initialHighpassInitialAud)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.75)(0.55)(3000.0)([ b ]) ]);
                                           }) ]) ]);
                                       }) ]) ]);
                                   }));
@@ -19309,7 +19350,7 @@ var PS = {};
                           return Control_Applicative.pure(Effect_Aff.applicativeAff)(Data_Unit.unit);
                       })(function (ctx) {
                           return function (v) {
-                              return WAGS_Run.run2(ctx)([ WAGS_Control.gain_(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.15)([ WAGS_Control.sinOsc(WAGS_Common.initialSinOscNumber)(440.0)(WAGS_Parameter.bangOn()) ]) ]);
+                              return WAGS_Run.run2(ctx)([ WAGS_Control.gain_(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.15)([ WAGS_Control.sinOsc(WAGS_Common.initialSinOscNumber)(440.0)(WAGS_Parameter.bangOn()) ]) ]);
                           };
                       })),
                       next: WAGS_Example_Docs_Util.mkNext(FRP_Event.altEvent)(FRP_Event.eventIsEvent)(ev)(cpage)
@@ -19456,7 +19497,7 @@ var PS = {};
                                   return function (h) {
                                       return function (he) {
                                           return function (i) {
-                                              return WAGS_Control.delay(dictInitialDelay)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(d)(de)([ WAGS_Control.gain(dictInitialGain)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(g)(ge)([ WAGS_Control.highpass(dictInitialHighpass)(dictMix)(h)(he)(i) ]) ]);
+                                              return WAGS_Control.delay(dictInitialDelay)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(d)(de)([ WAGS_Control.gain(dictInitialGain)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(g)(ge)([ WAGS_Control.highpass(dictInitialHighpass)(dictMix)(h)(he)(i) ]) ]);
                                           };
                                       };
                                   };
@@ -19479,7 +19520,7 @@ var PS = {};
                                   return function (h) {
                                       return function (he) {
                                           return function (i) {
-                                              return WAGS_Control.delay(dictInitialDelay)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(d)(de)([ WAGS_Control.gain(dictInitialGain)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(g)(ge)([ WAGS_Control.bandpass(dictInitialBandpass)(dictMix)(h)(he)(i) ]) ]);
+                                              return WAGS_Control.delay(dictInitialDelay)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(d)(de)([ WAGS_Control.gain(dictInitialGain)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(g)(ge)([ WAGS_Control.bandpass(dictInitialBandpass)(dictMix)(h)(he)(i) ]) ]);
                                           };
                                       };
                                   };
@@ -19572,7 +19613,7 @@ var PS = {};
                                           reflectSymbol: function () {
                                               return "cb";
                                           }
-                                      })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixNodeEventEventChannel(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
+                                      })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
                                           cb: function (a) {
                                               return function __do() {
                                                   Effect_Ref.write(new Data_Maybe.Just(a))(analyserE)();
@@ -19588,8 +19629,8 @@ var PS = {};
                                           };
                                       })())(sliderE))))(function (b) {
                                           return function (v1) {
-                                              return WAGS_Core.mix(WAGS_Core.mixNodeEventEventChannel(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(WAGS_Control.fix(function (g0) {
-                                                  return WAGS_Control.gain_(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(1.0)([ b, WAGS_Control.delay(WAGS_Common.initialDelayRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionDelayOptions)()()()({
+                                              return WAGS_Core.mix(WAGS_Core.mixNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(WAGS_Control.fix(function (g0) {
+                                                  return WAGS_Control.gain_(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(1.0)([ b, WAGS_Control.delay(WAGS_Common.initialDelayRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionDelayOptions)()()()({
                                                       reflectSymbol: function () {
                                                           return "maxDelayTime";
                                                       }
@@ -19597,7 +19638,7 @@ var PS = {};
                                                       reflectSymbol: function () {
                                                           return "delayTime";
                                                       }
-                                                  })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
+                                                  })))(ConvertableOptions.defaultsRecord()())))(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))({
                                                       maxDelayTime: 2.5,
                                                       delayTime: 1.0
                                                   })(Data_Functor.map(FRP_Event.functorEvent)((function () {
@@ -19606,35 +19647,35 @@ var PS = {};
                                                       return function ($49) {
                                                           return $47(ttap($48($49)));
                                                       };
-                                                  })())(sliderE))([ WAGS_Control.gain(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.4)(Data_Functor.map(FRP_Event.functorEvent)((function () {
+                                                  })())(sliderE))([ WAGS_Control.gain(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.4)(Data_Functor.map(FRP_Event.functorEvent)((function () {
                                                       var $50 = WAGS_Properties.gain()(WAGS_Parameter.toAudioParameterAudioNume);
                                                       var $51 = Data_Profunctor_Strong.second(Data_Profunctor_Strong.strongFn)(WAGS_Math.calcSlope(0.0)(0.6)(100.0)(0.9));
                                                       return function ($52) {
                                                           return $50(ttap($51($52)));
                                                       };
-                                                  })())(sliderE))([ b ]) ]), dgh(WAGS_Common.initialDelayInitialAudioP)(WAGS_Common.initialGainNumber)(WAGS_Common.initialHighpassInitialAud)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.15)(Control_Plus.empty(FRP_Event.plusEvent))(0.7)(Control_Plus.empty(FRP_Event.plusEvent))(1500.0)(fenv(FRP_Event.eventIsEvent)()(1500.0)(3000.0))([ WAGS_Control.fix(function (g1) {
-                                                      return WAGS_Control.gain(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(1.0)(fade1(FRP_Event.eventIsEvent)())([ dgh(WAGS_Common.initialDelayInitialAudioP)(WAGS_Common.initialGainNumber)(WAGS_Common.initialHighpassInitialAud)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.4)(Control_Plus.empty(FRP_Event.plusEvent))(0.5)(Control_Plus.empty(FRP_Event.plusEvent))(3000.0)(fenv(FRP_Event.eventIsEvent)()(3000.0)(100.0))([ g0, g1 ]) ]);
-                                                  }) ]), dgh(WAGS_Common.initialDelayInitialAudioP)(WAGS_Common.initialGainNumber)(WAGS_Common.initialHighpassInitialAud)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.29)(Data_Functor.map(FRP_Event.functorEvent)((function () {
+                                                  })())(sliderE))([ b ]) ]), dgh(WAGS_Common.initialDelayInitialAudioP)(WAGS_Common.initialGainNumber)(WAGS_Common.initialHighpassInitialAud)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.15)(Control_Plus.empty(FRP_Event.plusEvent))(0.7)(Control_Plus.empty(FRP_Event.plusEvent))(1500.0)(fenv(FRP_Event.eventIsEvent)()(1500.0)(3000.0))([ WAGS_Control.fix(function (g1) {
+                                                      return WAGS_Control.gain(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(1.0)(fade1(FRP_Event.eventIsEvent)())([ dgh(WAGS_Common.initialDelayInitialAudioP)(WAGS_Common.initialGainNumber)(WAGS_Common.initialHighpassInitialAud)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.4)(Control_Plus.empty(FRP_Event.plusEvent))(0.5)(Control_Plus.empty(FRP_Event.plusEvent))(3000.0)(fenv(FRP_Event.eventIsEvent)()(3000.0)(100.0))([ g0, g1 ]) ]);
+                                                  }) ]), dgh(WAGS_Common.initialDelayInitialAudioP)(WAGS_Common.initialGainNumber)(WAGS_Common.initialHighpassInitialAud)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.29)(Data_Functor.map(FRP_Event.functorEvent)((function () {
                                                       var $53 = WAGS_Properties.delayTime()(WAGS_Parameter.toAudioParameterAudioNume);
                                                       var $54 = Data_Profunctor_Strong.second(Data_Profunctor_Strong.strongFn)(WAGS_Math.calcSlope(0.0)(0.1)(100.0)(0.4));
                                                       return function ($55) {
                                                           return $53(ttap($54($55)));
                                                       };
                                                   })())(sliderE))(0.85)(Control_Plus.empty(FRP_Event.plusEvent))(2000.0)(fenv(FRP_Event.eventIsEvent)()(2000.0)(5000.0))([ WAGS_Control.fix(function (g1) {
-                                                      return WAGS_Control.gain_(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(1.0)([ dgh(WAGS_Common.initialDelayInitialAudioP)(WAGS_Common.initialGainNumber)(WAGS_Common.initialHighpassInitialAud)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.6)(Data_Functor.map(FRP_Event.functorEvent)((function () {
+                                                      return WAGS_Control.gain_(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(1.0)([ dgh(WAGS_Common.initialDelayInitialAudioP)(WAGS_Common.initialGainNumber)(WAGS_Common.initialHighpassInitialAud)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.6)(Data_Functor.map(FRP_Event.functorEvent)((function () {
                                                           var $56 = WAGS_Properties.delayTime()(WAGS_Parameter.toAudioParameterAudioNume);
                                                           var $57 = Data_Profunctor_Strong.second(Data_Profunctor_Strong.strongFn)(WAGS_Math.calcSlope(0.0)(0.8)(100.0)(0.3));
                                                           return function ($58) {
                                                               return $56(ttap($57($58)));
                                                           };
                                                       })())(sliderE))(0.6)(Control_Plus.empty(FRP_Event.plusEvent))(3500.0)(fenv(FRP_Event.eventIsEvent)()(3500.0)(100.0))([ g0, WAGS_Control.fix(function (g2) {
-                                                          return WAGS_Control.gain(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(1.0)(fade0(FRP_Event.eventIsEvent)())([ dgb(WAGS_Common.initialDelayInitialAudioP)(WAGS_Common.initialGainNumber)(WAGS_Common.initialBandpassInitialAud)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.75)(Data_Functor.map(FRP_Event.functorEvent)((function () {
+                                                          return WAGS_Control.gain(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(1.0)(fade0(FRP_Event.eventIsEvent)())([ dgb(WAGS_Common.initialDelayInitialAudioP)(WAGS_Common.initialGainNumber)(WAGS_Common.initialBandpassInitialAud)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.75)(Data_Functor.map(FRP_Event.functorEvent)((function () {
                                                               var $59 = WAGS_Properties.delayTime()(WAGS_Parameter.toAudioParameterAudioNume);
                                                               var $60 = Data_Profunctor_Strong.second(Data_Profunctor_Strong.strongFn)(WAGS_Math.calcSlope(0.0)(0.9)(100.0)(0.1));
                                                               return function ($61) {
                                                                   return $59(ttap($60($61)));
                                                               };
-                                                          })())(sliderE))(0.6)(Control_Plus.empty(FRP_Event.plusEvent))(4000.0)(fenv(FRP_Event.eventIsEvent)()(4000.0)(200.0))([ g1, g2 ]), dgb(WAGS_Common.initialDelayInitialAudioP)(WAGS_Common.initialGainNumber)(WAGS_Common.initialBandpassInitialAud)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.75)(denv(FRP_Event.eventIsEvent)()(0.75)(0.2))(0.55)(Control_Plus.empty(FRP_Event.plusEvent))(200.0)(fenv(FRP_Event.eventIsEvent)()(200.0)(4000.0))([ b ]) ]);
+                                                          })())(sliderE))(0.6)(Control_Plus.empty(FRP_Event.plusEvent))(4000.0)(fenv(FRP_Event.eventIsEvent)()(4000.0)(200.0))([ g1, g2 ]), dgb(WAGS_Common.initialDelayInitialAudioP)(WAGS_Common.initialGainNumber)(WAGS_Common.initialBandpassInitialAud)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(0.75)(denv(FRP_Event.eventIsEvent)()(0.75)(0.2))(0.55)(Control_Plus.empty(FRP_Event.plusEvent))(200.0)(fenv(FRP_Event.eventIsEvent)()(200.0)(4000.0))([ b ]) ]);
                                                       }) ]) ]);
                                                   }) ]) ]);
                                               }));
@@ -20060,7 +20101,7 @@ var PS = {};
                               };
                           })(event.slider)(0));
                           var music = function (buffer) {
-                              return [ WAGS_Control.gain_(WAGS_Common.initialGainNumber)(WAGS_Core.mixEventEventChannelEvent(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(1.0)(Data_Functor.map(FRP_Event.functorEvent)(function (i) {
+                              return [ WAGS_Control.gain_(WAGS_Common.initialGainNumber)(WAGS_Core.mixEventEventChannelAudib(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(1.0)(Data_Functor.map(FRP_Event.functorEvent)(function (i) {
                                   return Data_Foldable.oneOf(Data_Foldable.foldableArray)(FRP_Event.plusEvent)([ FRP_Event_Class.bang(FRP_Event.eventIsEvent)(new WAGS_Core.Sound(WAGS_Control.playBuf(WAGS_Common.initialPlayBufRecord(ConvertableOptions.convertOptionsWithDefaultsRecord(ConvertableOptions.convertOptionsRecord()(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsCons(ConvertableOptions.convertRecordOptionsNil)(WAGS_Common.convertOptionPlayBufOptio3)()()()({
                                       reflectSymbol: function () {
                                           return "playbackRate";
@@ -20155,7 +20196,7 @@ var PS = {};
                           return WAGS_Interpret.decodeAudioDataFromUri(ctx)("https://freesound.org/data/previews/277/277021_1402315-lq.mp3");
                       })(function (ctx) {
                           return function (buf) {
-                              return WAGS_Run.run2(ctx)([ WAGS_Control.gain_(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeEventEventCha(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(1.0)([ WAGS_Control.loopBuf(WAGS_Common.initialLoopBufBrowserAudi)(buf)(WAGS_Parameter.bangOn()) ]) ]);
+                              return WAGS_Run.run2(ctx)([ WAGS_Control.gain_(WAGS_Common.initialGainNumber)(WAGS_Core.mixArrayNodeAudible(Type_Equality.refl)(Type_Equality.refl)(Type_Equality.refl))(1.0)([ WAGS_Control.loopBuf(WAGS_Common.initialLoopBufBrowserAudi)(buf)(WAGS_Parameter.bangOn()) ]) ]);
                           };
                       })),
                       suby: Deku_Pursx.nut(Deku_Control.plantElementEventEventStr(Type_Equality.refl)(Type_Equality.refl))(WAGS_Example_Docs_Subgraph_SliderEx.sgSliderEx(ccb)(dpage)(ev))
