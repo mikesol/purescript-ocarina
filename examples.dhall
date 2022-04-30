@@ -9,7 +9,6 @@ in      conf
               , "avar"
               , "quickcheck"
               , "canvas"
-              , "unordered-collections"
               , "lcg"
               , "deku"
               , "js-timers"
@@ -19,13 +18,12 @@ in      conf
               , "filterable"
               , "profunctor"
               , "web-html"
-              , "stringutils"
               , "uint"
               , "media-types"
               , "web-file"
               , "profunctor-lenses"
               , "free"
-              , "math"
+              , "numbers"
               , "refs"
               ]
         }

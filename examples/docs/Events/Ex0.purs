@@ -11,14 +11,14 @@ import Data.Tuple (Tuple(..))
 import Data.Tuple.Nested ((/\))
 import Data.Typelevel.Num (D2)
 import Deku.Attribute (cb, (:=))
-import Deku.Control (text, text_)
+import Deku.Control (text, plant, text_)
 import Deku.Core (Element)
 import Deku.DOM as D
 import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
 import FRP.Event (Event, bus)
 import FRP.Event.Class (bang, biSampleOn)
-import Math (pow)
+import Data.Number (pow)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (gain, gain_, microphone, recorder, sinOsc)
 import WAGS.Core (Node)
@@ -168,7 +168,7 @@ ex0 ccb _ ev = makePursx' (Proxy :: _ "@") px
   { txt: nut (text_ txt)
   , ex0: nut
       ( bus \push -> lcmap  (bang Init <|> _) \event -> -- here
-            D.div_
+            plant $ D.div_
               [ D.button
                   ( (biSampleOn (bang (pure unit) <|> (map (\(SetCancel x) -> x) ev)) (map Tuple event)) <#> -- here
                       \(e /\ c) -> D.OnClick := cb -- here

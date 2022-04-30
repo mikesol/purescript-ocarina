@@ -8,7 +8,7 @@ import Data.Foldable (oneOf, oneOfMap)
 import Data.Int (toNumber)
 import Data.Traversable (sequence)
 import Deku.Attribute (attr, cb)
-import Deku.Control (text)
+import Deku.Control (text, plant)
 import Deku.DOM as D
 import Deku.Toplevel (runInBody1)
 import Effect (Effect)
@@ -61,7 +61,7 @@ main = runInBody1
                   (0 .. 29)
               )
           ]
-      D.div_
+      plant $ D.div_
         [ D.div_
             [ D.button
                 ( oneOfMap (map (attr D.OnClick <<< cb <<< const))

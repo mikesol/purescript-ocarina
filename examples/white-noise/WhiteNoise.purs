@@ -12,7 +12,7 @@ import Effect (Effect)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect)
 import FRP.Event (Event, subscribe)
-import Math (cos, pi)
+import Data.Number (cos, pi)
 import Web.File.Blob as Blob
 import Web.File.Url (createObjectURL)
 

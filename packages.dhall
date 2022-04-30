@@ -1,43 +1,11 @@
 let upstream =
-      https://github.com/purescript/package-sets/releases/download/psc-0.14.7-20220418/packages.dhall
-        sha256:2523a5659d0f3b198ffa2f800da147e0120578842e492a7148e4b44f357848b3
+      https://github.com/purescript/package-sets/releases/download/psc-0.15.0-20220429/packages.dhall
+        sha256:03c682bff56fc8f9d8c495ffcc6f524cbd3c89fe04778f965265c08757de8c9d
 
-let overrides =
-      { arraybuffer =
-        { dependencies =
-          [ "arraybuffer-types"
-          , "arrays"
-          , "effect"
-          , "float32"
-          , "functions"
-          , "gen"
-          , "maybe"
-          , "nullable"
-          , "prelude"
-          , "tailrec"
-          , "uint"
-          , "unfoldable"
-          ]
-        , repo =
-            "https://github.com/purescript-contrib/purescript-arraybuffer.git"
-        , version = "v12.0.0"
-        }
-      }
+let overrides = {=}
 
 let additions =
-      { typelevel-peano =
-        { dependencies =
-          [ "arrays"
-          , "console"
-          , "effect"
-          , "prelude"
-          , "typelevel-prelude"
-          , "unsafe-coerce"
-          ]
-        , repo = "https://github.com/csicar/purescript-typelevel-peano.git"
-        , version = "v1.0.1"
-        }
-      , event =
+      { event =
         { dependencies =
           [ "console"
           , "effect"
@@ -48,7 +16,27 @@ let additions =
           , "now"
           ]
         , repo = "https://github.com/mikesol/purescript-event.git"
-        , version = "v1.6.2"
+        , version = "v1.6.3"
+        }
+      , variant =
+        { dependencies =
+          [  "assert"
+  , "control"
+  , "effect"
+  , "either"
+  , "enums"
+  , "foldable-traversable"
+  , "lists"
+  , "maybe"
+  , "partial"
+  , "prelude"
+  , "record"
+  , "tuples"
+  , "type-equality"
+  , "unsafe-coerce"
+          ]
+        , repo = "https://github.com/natefaubion/purescript-variant.git"
+        , version = "v8.0.0"
         }
       , everythings-better-with-variants =
         { dependencies =
@@ -127,14 +115,49 @@ let additions =
   , "tuples"
   , "typelevel"
   , "typelevel-peano"
-  , "unordered-collections"
   , "unsafe-coerce"
   , "variant"
   , "canvas"
   , "web-dom"
   , "web-events"
   ], repo = "https://github.com/mikesol/purescript-deku.git"
-        , version = "v0.3.4"
+        , version = "v0.3.6"
+      }, homogeneous = {
+        dependencies =  [ "arrays"
+  , "assert"
+  , "control"
+  , "effect"
+  , "enums"
+  , "foldable-traversable"
+  , "foreign-object"
+  , "lists"
+  , "maybe"
+  , "partial"
+  , "prelude"
+  , "tuples"
+  , "typelevel-prelude"
+  , "unsafe-coerce"
+  , "variant"
+  ], repo = "https://github.com/mikesol/purescript-homogeneous.git"
+        , version = "0.15.0"
+      }, simple-json = {
+        dependencies =  [ "arrays"
+  , "assert"
+  , "control"
+  , "effect"
+  , "enums"
+  , "foldable-traversable"
+  , "foreign-object"
+  , "lists"
+  , "maybe"
+  , "partial"
+  , "prelude"
+  , "tuples"
+  , "typelevel-prelude"
+  , "unsafe-coerce"
+  , "variant"
+  ], repo = "https://github.com/mikesol/purescript-simple-json.git"
+        , version = "0.15.0"
       }
       }
 

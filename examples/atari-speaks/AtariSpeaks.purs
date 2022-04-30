@@ -4,18 +4,18 @@ import Prelude
 
 import Control.Alt (alt, (<|>))
 import Control.Plus (empty)
+import Data.Array ((..))
 import Data.ArrayBuffer.Typed (toArray)
-import Data.Foldable (for_, intercalate)
+import Data.Foldable (for_, intercalate, fold)
 import Data.Lens (over, view)
 import Data.Maybe (Maybe(..))
 import Data.Profunctor (lcmap)
-import Data.String.Utils (unsafeRepeat)
 import Data.Tuple (Tuple(..))
 import Data.Typelevel.Num (D2)
 import Data.UInt (toInt)
 import Deku.Attribute (cb, (:=))
-import Deku.Control (deku1, text, text_)
-import Deku.Core (Element)
+import Deku.Control (deku1, text, plant, text_)
+import Deku.Core (Element, Domable)
 import Deku.DOM as DOM
 import Deku.Interpret (effectfulDOMInterpret, makeFFIDOMSnapshot)
 import Effect (Effect)
@@ -25,7 +25,7 @@ import FRP.Behavior (sample_)
 import FRP.Event (Event, bus, create, filterMap, keepLatest, memoize, sampleOn, subscribe)
 import FRP.Event.Animate (animationFrameEvent)
 import FRP.Event.Class (bang)
-import Math (pi, sin)
+import Data.Number (pi, sin)
 import WAGS.Clock (WriteHead, fot, writeHead)
 import WAGS.Control (analyser, gain, loopBuf, speaker2)
 import WAGS.Core (Node)
@@ -96,10 +96,10 @@ atariSpeaks
   :: forall lock payload
    . BrowserAudioBuffer
   -> RaiseCancellation
-  -> Event (Element lock payload)
+  -> Event (Domable lock payload)
 atariSpeaks atar rc = keepLatest $ bus \push -> lcmap (alt (bang TurnOn)) \event ->
   memoize animationFrameEvent \afe ->
-    DOM.div_
+    plant $ DOM.div_
       [ DOM.h1_ [ text_ "Atari speaks" ]
       , DOM.button
           ( map
@@ -139,9 +139,9 @@ atariSpeaks atar rc = keepLatest $ bus \push -> lcmap (alt (bang TurnOn)) \event
                                     intercalate "\n"
                                       ( map
                                           ( \ii ->
-                                              unsafeRepeat
-                                                (toInt ii + 1)
-                                                ">"
+                                               fold ((0 ..
+                                                (toInt ii)) $> ">")
+
                                           )
                                           arr
                                       )

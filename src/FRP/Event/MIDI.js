@@ -1,4 +1,4 @@
-exports.midiAccess = function () {
+export function midiAccess() {
   return navigator.requestMIDIAccess()
 }
 
@@ -16,15 +16,15 @@ const mkMidiDevices = function (devices) {
   }
 }
 
-exports.midiInputDevices_ = function (midiAccess) {
+export function midiInputDevices_(midiAccess) {
   return mkMidiDevices(midiAccess.inputs)
 }
 
-exports.midiOutputDevices_ = function (midiAccess) {
+export function midiOutputDevices_(midiAccess) {
   return mkMidiDevices(midiAccess.outputs)
 }
 
-exports.getData_ = function (nothing) {
+export function getData_(nothing) {
   return function (just) {
     return function (e) {
       return function () {
@@ -32,9 +32,9 @@ exports.getData_ = function (nothing) {
       };
     };
   };
-};
+}
 
-exports.getTimeStamp_ = function (nothing) {
+export function getTimeStamp_(nothing) {
   return function (just) {
     return function (e) {
       return function () {
@@ -42,9 +42,9 @@ exports.getTimeStamp_ = function (nothing) {
       };
     };
   };
-};
+}
 
-exports.toTargetMap = function (midiAccess) {
+export function toTargetMap(midiAccess) {
   return function () {
     var o = {};
     var a = Array.from(midiAccess.inputs);
@@ -53,8 +53,9 @@ exports.toTargetMap = function (midiAccess) {
     }
     return o;
   };
-};
-exports.toMIDIEvent_ = function (NoteOff) {
+}
+
+export function toMIDIEvent_(NoteOff) {
   return function (NoteOn) {
     return function (Polytouch) {
       return function (ControlChange) {
@@ -90,4 +91,4 @@ exports.toMIDIEvent_ = function (NoteOff) {
       };
     };
   };
-};
+}

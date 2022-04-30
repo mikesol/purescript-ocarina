@@ -7,13 +7,13 @@ import Data.Array ((..))
 import Data.Int (toNumber)
 import Data.Profunctor (lcmap)
 import Deku.Attribute (cb, (:=))
-import Deku.Control (text)
+import Deku.Control (text, plant)
 import Deku.DOM as D
 import Deku.Toplevel (runInBody, runInBody1)
 import Effect (Effect)
 import FRP.Event (bus)
 import FRP.Event.Class (bang)
-import Math (pow)
+import Data.Number (pow)
 import WAGS.Control (gain_, gain, sinOsc)
 import WAGS.Parameter (AudioEnvelope(..), AudioOnOff(..), _on, _off)
 import WAGS.Properties (onOff)
@@ -51,7 +51,7 @@ cell = lcmap toNumber \i -> do
 
 main :: Effect Unit
 main = runInBody1 (bus \push -> lcmap (bang Init <|> _) \event ->
-  D.div_
+  plant $ D.div_
     [ D.button
         ( event <#>
             \e -> D.OnClick := cb

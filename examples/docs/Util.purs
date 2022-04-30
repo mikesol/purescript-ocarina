@@ -6,8 +6,8 @@ import Control.Alt ((<|>))
 import Data.Tuple (Tuple(..))
 import Data.Tuple.Nested ((/\))
 import Deku.Attribute (cb, (:=))
-import Deku.Control (text)
-import Deku.Core (Element)
+import Deku.Control (text, plant)
+import Deku.Core (Element, Domable)
 import Deku.DOM as D
 import Effect (Effect)
 import Effect.Aff (Aff, Fiber, error, joinFiber, killFiber, launchAff, launchAff_, parallel, sequential)
@@ -39,6 +39,8 @@ raceSelf fib = sequential
             fib
         )
   )
+
+foreign import hackishRandInt :: Effect Int
 
 clickCb cca push init i ev event = map
   ( \(e /\ cncl) -> D.OnClick :=
@@ -75,12 +77,12 @@ audioWrapper
   -> CancelCurrentAudio
   -> (AudioContext -> Aff a)
   -> (AudioContext -> a -> Effect (Effect Unit))
-  -> Event (Element lock payload)
+  -> Event (Domable lock payload)
 audioWrapper ev cca init i = bus \push event' ->
     let
       event = mkWrapperEvent ev event'
     in
-      D.button
+      plant $ D.button
         (clickCb cca push init i ev event)
         [ text
             ( map
@@ -100,12 +102,12 @@ audioWrapperSpan
   -> CancelCurrentAudio
   -> (AudioContext -> Aff a)
   -> (AudioContext -> a -> Effect (Effect Unit))
-  -> Event (Element lock payload)
+  -> Event (Domable lock payload)
 audioWrapperSpan txt ev cca init i = bus \push event' ->
     let
       event = mkWrapperEvent ev event'
     in
-      D.span
+      plant $ D.span
         ( (bang (D.Style := "cursor: pointer;")) <|> (clickCb cca push init i ev event)
         )
         [ text

@@ -20,7 +20,7 @@
   , "integers"
   , "js-timers"
   , "lists"
-  , "math"
+  , "numbers"
   , "maybe"
   , "newtype"
   , "ordered-collections"

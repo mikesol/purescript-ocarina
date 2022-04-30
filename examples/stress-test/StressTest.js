@@ -1,4 +1,4 @@
-exports.stressTest_ = function (context) {
+export function stressTest_(context) {
 	return function (wh) {
 		return function () {
 			return function () {
@@ -36,4 +36,4 @@ exports.stressTest_ = function (context) {
 			};
 		};
 	};
-};
+}

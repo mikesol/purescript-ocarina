@@ -12,8 +12,8 @@ import Data.Profunctor (lcmap)
 import Data.Tuple (Tuple(..))
 import Data.Typelevel.Num (D2)
 import Deku.Attribute (cb, (:=))
-import Deku.Control (deku, deku1, text, text_)
-import Deku.Core (Element)
+import Deku.Control (deku, deku1, plant, text, text_)
+import Deku.Core (Element, Domable)
 import Deku.DOM as DOM
 import Deku.Interpret (effectfulDOMInterpret, makeFFIDOMSnapshot)
 import Effect (Effect)
@@ -23,7 +23,7 @@ import FRP.Behavior (sample_)
 import FRP.Event (Event, bus, keepLatest, memoize, subscribe)
 import FRP.Event.Animate (animationFrameEvent)
 import FRP.Event.Class (bang)
-import Math (pi, sin)
+import Data.Number (pi, sin)
 import Type.Proxy (Proxy(..))
 import WAGS.Clock (WriteHead, fot, writeHead)
 import WAGS.Control (gain, sinOsc, speaker2)
@@ -97,7 +97,7 @@ helloWorld
   :: forall lock payload
    . Unit
   -> RaiseCancellation
-  -> Event (Element lock payload)
+  -> Event (Domable lock payload)
 helloWorld _ rc = keepLatest $ bus \p -> lcmap (alt (bang Nothing)) \e -> memoize animationFrameEvent \afe ->
   let
     musicButton push event audioEvent = DOM.button
@@ -130,7 +130,7 @@ helloWorld _ rc = keepLatest $ bus \p -> lcmap (alt (bang Nothing)) \e -> memoiz
           (map (maybe "Turn on" (const "Turn off")) event)
       ]
   in
-    DOM.div_
+    plant $ DOM.div_
       [ DOM.h1_ [ text_ "Hello world" ]
       , musicButton p e
           (flip runGraphBuilder effectfulAudioInterpret <<< scene')

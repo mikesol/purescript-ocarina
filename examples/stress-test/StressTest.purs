@@ -12,8 +12,8 @@ import Data.Maybe (Maybe(..), maybe)
 import Data.Profunctor (lcmap)
 import Data.Typelevel.Num (D2)
 import Deku.Attribute (cb, (:=))
-import Deku.Control (deku1, text, text_)
-import Deku.Core (Element)
+import Deku.Control (deku1, text, text_, plant)
+import Deku.Core (Element, Domable)
 import Deku.DOM as DOM
 import Deku.Interpret (effectfulDOMInterpret, makeFFIDOMSnapshot)
 import Effect (Effect)
@@ -22,7 +22,7 @@ import Effect.Class (liftEffect)
 import FRP.Behavior (sample_)
 import FRP.Event (Event, bang, bus, memoize, subscribe)
 import FRP.Event.Animate (animationFrameEvent)
-import Math (pi, sin, (%))
+import Data.Number (pi, sin, (%))
 import WAGS.Clock (WriteHead, fot, writeHead)
 import WAGS.Control (gain, sinOsc, speaker2)
 import WAGS.Core (Audible, mix)
@@ -133,7 +133,7 @@ stressTest
   :: forall lock payload
    . Unit
   -> RaiseCancellation
-  -> Event (Element lock payload)
+  -> Event (Domable lock payload)
 stressTest _ rc = bus \p -> lcmap (alt $ bang Nothing) \e ->
   let
     musicButton
@@ -173,7 +173,7 @@ stressTest _ rc = bus \p -> lcmap (alt $ bang Nothing) \e ->
           (map (maybe ("Turn on " <> label) (const "Turn off")) event)
       ]
   in
-    DOM.div_
+    plant $ DOM.div_
       [ DOM.h1_ [ text_ "Stress test" ]
       , musicButton "Event" p e
           ( \_ ip -> speaker2 (scene ip) (effectfulAudioInterpret)

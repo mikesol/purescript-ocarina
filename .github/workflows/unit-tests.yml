@@ -35,9 +35,7 @@ jobs:
       #- name: Spago test
       #  run: npx spago -x test.dhall test
       - name: Build qc
-        run: npx spago -x examples.dhall bundle-app --main WAGS.Example.Docs --to examples/docs/index0.js
-      - name: Minify
-        run: npx esbuild examples/docs/index0.js --bundle --minify --outfile=examples/docs/index.js
+        run: npx spago -x examples.dhall bundle-app --main WAGS.Example.Docs --to examples/docs/index.js --minify
       - name: Deploy
         if: ${{ github.ref == 'refs/heads/main' }}
         uses: peaceiris/actions-gh-pages@v3

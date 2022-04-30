@@ -87,10 +87,10 @@ var doDeferredConnections = function (ptr, state) {
 };
 var mConnectXToY_ = function (x, y, state) {
 	if (y.type === "just") {
-		connectXToY_(x, y.value, state);
+		connectXToYInternal_(x, y.value, state);
 	}
 };
-var connectXToY_ = function (x, y, state) {
+var connectXToYInternal_ = function (x, y, state) {
 	var connectF = function () {
 		state.units[x].outgoing.push(y);
 		state.units[y].incoming.push(x);
@@ -126,20 +126,22 @@ var connectXToY_ = function (x, y, state) {
 	connectF();
 };
 
-exports.deleteFromCache_ = function (a) {
+export function deleteFromCache_(a) {
 	return function (state) {
 		return function () {
 			delete state.units[a.id];
 		};
 	};
-};
-exports.connectXToY_ = function (parameters) {
+}
+
+export function connectXToY_(parameters) {
 	return function (state) {
 		return function () {
-			connectXToY_(parameters["from"], parameters["to"], state);
+			connectXToYInternal_(parameters["from"], parameters["to"], state);
 		};
 	};
-};
+}
+
 var disconnectXFromY_ = function (x) {
 	return function (y) {
 		return function (state) {
@@ -166,15 +168,17 @@ var disconnectXFromY_ = function (x) {
 		};
 	};
 };
-exports.disconnectXFromY_ = function (a) {
+
+export function disconnectXFromY_(a) {
 	return function (state) {
 		return function () {
 			return disconnectXFromY_(a.from)(a.to)(state)();
 		};
 	};
-};
+}
+
 // allpass
-exports.makeAllpass_ = function (a) {
+export function makeAllpass_(a) {
 	return function (state) {
 		return function () {
 			var ptr = a.id;
@@ -192,10 +196,10 @@ exports.makeAllpass_ = function (a) {
 			mConnectXToY_(ptr, a.parent, state);
 		};
 	};
-};
+}
 
 // analyser
-exports.makeAnalyser_ = function (a) {
+export function makeAnalyser_(a) {
 	return function (state) {
 		return function () {
 			var ptr = a.id;
@@ -216,10 +220,10 @@ exports.makeAnalyser_ = function (a) {
 			mConnectXToY_(ptr, a.parent, state);
 		};
 	};
-};
+}
 
 // audio worklet node
-exports.makeAudioWorkletNode_ = function (a) {
+export function makeAudioWorkletNode_(a) {
 	return function (state) {
 		return function () {
 			var ptr = a.id;
@@ -240,10 +244,10 @@ exports.makeAudioWorkletNode_ = function (a) {
 			mConnectXToY_(ptr, a.parent, state);
 		};
 	};
-};
+}
 
 // bandpass
-exports.makeBandpass_ = function (a) {
+export function makeBandpass_(a) {
 	return function (state) {
 		return function () {
 			var ptr = a.id;
@@ -261,10 +265,10 @@ exports.makeBandpass_ = function (a) {
 			mConnectXToY_(ptr, a.parent, state);
 		};
 	};
-};
+}
 
 // constant
-exports.makeConstant_ = function (a) {
+export function makeConstant_(a) {
 	return function (state) {
 		return function () {
 			var ptr = a.id;
@@ -295,9 +299,9 @@ exports.makeConstant_ = function (a) {
 			// state.units[ptr].onOff = oo;
 		};
 	};
-};
+}
 
-exports.makeConvolver_ = function (a) {
+export function makeConvolver_(a) {
 	return function (state) {
 		return function () {
 			var ptr = a.id;
@@ -311,10 +315,10 @@ exports.makeConvolver_ = function (a) {
 			mConnectXToY_(ptr, a.parent, state);
 		};
 	};
-};
+}
 
 // delay
-exports.makeDelay_ = function (a) {
+export function makeDelay_(a) {
 	return function (state) {
 		return function () {
 			var ptr = a.id;
@@ -331,10 +335,10 @@ exports.makeDelay_ = function (a) {
 			mConnectXToY_(ptr, a.parent, state);
 		};
 	};
-};
+}
 
 // dynamicsCompressor
-exports.makeDynamicsCompressor_ = function (a) {
+export function makeDynamicsCompressor_(a) {
 	return function (state) {
 		return function () {
 			var ptr = a.id;
@@ -354,7 +358,7 @@ exports.makeDynamicsCompressor_ = function (a) {
 			mConnectXToY_(ptr, a.parent, state);
 		};
 	};
-};
+}
 
 // gain
 var makeGain_ = function (a) {
@@ -374,9 +378,10 @@ var makeGain_ = function (a) {
 		};
 	};
 };
-exports.makeGain_ = makeGain_;
+export {makeGain_};
+
 // highpass
-exports.makeHighpass_ = function (a) {
+export function makeHighpass_(a) {
 	return function (state) {
 		return function () {
 			var ptr = a.id;
@@ -394,10 +399,10 @@ exports.makeHighpass_ = function (a) {
 			mConnectXToY_(ptr, a.parent, state);
 		};
 	};
-};
+}
 
 // highshelf
-exports.makeHighshelf_ = function (a) {
+export function makeHighshelf_(a) {
 	return function (state) {
 		return function () {
 			var ptr = a.id;
@@ -415,9 +420,9 @@ exports.makeHighshelf_ = function (a) {
 			mConnectXToY_(ptr, a.parent, state);
 		};
 	};
-};
+}
 
-exports.makeIIRFilter_ = function (a) {
+export function makeIIRFilter_(a) {
 	return function (state) {
 		return function () {
 			var ptr = a.id;
@@ -434,10 +439,10 @@ exports.makeIIRFilter_ = function (a) {
 			mConnectXToY_(ptr, a.parent, state);
 		};
 	};
-};
+}
 
 // loopBuf
-exports.makeLoopBuf_ = function (a) {
+export function makeLoopBuf_(a) {
 	return function (state) {
 		return function () {
 			var ptr = a.id;
@@ -474,10 +479,10 @@ exports.makeLoopBuf_ = function (a) {
 			// state.units[ptr].onOff = oo;
 		};
 	};
-};
+}
 
 // lowpass
-exports.makeLowpass_ = function (a) {
+export function makeLowpass_(a) {
 	return function (state) {
 		return function () {
 			var ptr = a.id;
@@ -495,10 +500,10 @@ exports.makeLowpass_ = function (a) {
 			mConnectXToY_(ptr, a.parent, state);
 		};
 	};
-};
+}
 
 // lowshelf
-exports.makeLowshelf_ = function (a) {
+export function makeLowshelf_(a) {
 	return function (state) {
 		return function () {
 			var ptr = a.id;
@@ -516,11 +521,11 @@ exports.makeLowshelf_ = function (a) {
 			mConnectXToY_(ptr, a.parent, state);
 		};
 	};
-};
+}
 
 // media element
 
-exports.makeMediaElement_ = function (a) {
+export function makeMediaElement_(a) {
 	return function (state) {
 		return function () {
 			var ptr = a.id;
@@ -541,10 +546,10 @@ exports.makeMediaElement_ = function (a) {
 			mConnectXToY_(ptr, a.parent, state);
 		};
 	};
-};
+}
 
 // microphone
-exports.makeMicrophone_ = function (a) {
+export function makeMicrophone_(a) {
 	return function (state) {
 		return function () {
 			var ptr = a.id;
@@ -558,10 +563,10 @@ exports.makeMicrophone_ = function (a) {
 			mConnectXToY_(ptr, a.parent, state);
 		};
 	};
-};
+}
 
 // notch
-exports.makeNotch_ = function (a) {
+export function makeNotch_(a) {
 	return function (state) {
 		return function () {
 			var ptr = a.id;
@@ -579,10 +584,10 @@ exports.makeNotch_ = function (a) {
 			mConnectXToY_(ptr, a.parent, state);
 		};
 	};
-};
+}
 
 // peaking
-exports.makePeaking_ = function (a) {
+export function makePeaking_(a) {
 	return function (state) {
 		return function () {
 			var ptr = a.id;
@@ -601,10 +606,10 @@ exports.makePeaking_ = function (a) {
 			mConnectXToY_(ptr, a.parent, state);
 		};
 	};
-};
+}
 
 // periodic osc
-exports.makePeriodicOsc_ = function (a) {
+export function makePeriodicOsc_(a) {
 	return function (state) {
 		return function () {
 			var ptr = a.id;
@@ -645,10 +650,10 @@ exports.makePeriodicOsc_ = function (a) {
 			// state.units[ptr].onOff = oo;
 		};
 	};
-};
+}
 
 // playBuf
-exports.makePlayBuf_ = function (a) {
+export function makePlayBuf_(a) {
 	return function (state) {
 		return function () {
 			var ptr = a.id;
@@ -692,10 +697,10 @@ exports.makePlayBuf_ = function (a) {
 			// state.units[ptr].onOff = oo;
 		};
 	};
-};
+}
 
 // recorder
-exports.makeRecorder_ = function (a) {
+export function makeRecorder_(a) {
 	return function (state) {
 		return function () {
 			var ptr = a.id;
@@ -717,10 +722,10 @@ exports.makeRecorder_ = function (a) {
 			mConnectXToY_(ptr, a.parent, state);
 		};
 	};
-};
+}
 
 // sawtooth osc
-exports.makeSawtoothOsc_ = function (a) {
+export function makeSawtoothOsc_(a) {
 	return function (state) {
 		return function () {
 			var ptr = a.id;
@@ -751,10 +756,10 @@ exports.makeSawtoothOsc_ = function (a) {
 			// state.units[ptr].onOff = oo;
 		};
 	};
-};
+}
 
 // sine osc
-exports.makeSinOsc_ = function (a) {
+export function makeSinOsc_(a) {
 	return function (state) {
 		return function () {
 			var ptr = a.id;
@@ -785,10 +790,10 @@ exports.makeSinOsc_ = function (a) {
 			// state.units[ptr].onOff = oo;
 		};
 	};
-};
+}
 
 // make speaker
-exports.makeSpeaker_ = function (a) {
+export function makeSpeaker_(a) {
 	return function (state) {
 		return function () {
 			state.units[a.id] = {
@@ -799,9 +804,10 @@ exports.makeSpeaker_ = function (a) {
 			};
 		};
 	};
-};
+}
+
 // pan
-exports.makeStereoPanner_ = function (a) {
+export function makeStereoPanner_(a) {
 	return function (state) {
 		return function () {
 			var ptr = a.id;
@@ -817,10 +823,10 @@ exports.makeStereoPanner_ = function (a) {
 			mConnectXToY_(ptr, a.parent, state);
 		};
 	};
-};
+}
 
 // square osc
-exports.makeSquareOsc_ = function (a) {
+export function makeSquareOsc_(a) {
 	return function (state) {
 		return function () {
 			var ptr = a.id;
@@ -851,10 +857,10 @@ exports.makeSquareOsc_ = function (a) {
 			// state.units[ptr].onOff = oo;
 		};
 	};
-};
+}
 
 // triangle osc
-exports.makeTriangleOsc_ = function (a) {
+export function makeTriangleOsc_(a) {
 	return function (state) {
 		return function () {
 			var ptr = a.id;
@@ -885,9 +891,10 @@ exports.makeTriangleOsc_ = function (a) {
 			// state.units[ptr].onOff = oo;
 		};
 	};
-};
+}
+
 // wave shaper
-exports.makeWaveShaper_ = function (aa) {
+export function makeWaveShaper_(aa) {
 	return function (state) {
 		return function () {
 			var ptr = aa.id;
@@ -906,11 +913,11 @@ exports.makeWaveShaper_ = function (aa) {
 			mConnectXToY_(ptr, aa.parent, state);
 		};
 	};
-};
+}
 
 // set analyser
 
-exports.setAnalyserNodeCb_ = function (aa) {
+export function setAnalyserNodeCb_(aa) {
 	return function (state) {
 		return function () {
 			var ptr = aa.id;
@@ -924,12 +931,12 @@ exports.setAnalyserNodeCb_ = function (aa) {
 			state.units[ptr].analyserOrig = a;
 		};
 	};
-};
+}
 
 // recorder
 
 // setting makes us stop the previous one if it exists
-exports.setMediaRecorderCb_ = function (aa) {
+export function setMediaRecorderCb_(aa) {
 	return function (state) {
 		return function () {
 			var a = aa.cb;
@@ -945,10 +952,10 @@ exports.setMediaRecorderCb_ = function (aa) {
 			mediaRecorder.start();
 		};
 	};
-};
+}
 
 // waveshaper curve
-exports.setWaveShaperCurve_ = function (aa) {
+export function setWaveShaperCurve_(aa) {
 	return function (state) {
 		return function () {
 			var ptr = aa.id;
@@ -956,8 +963,9 @@ exports.setWaveShaperCurve_ = function (aa) {
 			state.units[ptr].main.curve = a;
 		};
 	};
-};
-exports.setAudioWorkletParameter_ = function (aa) {
+}
+
+export function setAudioWorkletParameter_(aa) {
 	return function (state) {
 		return function () {
 			var ptr = aa.id;
@@ -966,7 +974,8 @@ exports.setAudioWorkletParameter_ = function (aa) {
 			workletSetter(state.units[ptr].main, a, state.deprecatedWriteHead, b);
 		};
 	};
-};
+}
+
 const recalcResume = function (a, u, v) {
 	if (u.resume) {
 		if (a.value.n !== undefined) {
@@ -974,7 +983,8 @@ const recalcResume = function (a, u, v) {
 		}
 	}
 };
-exports.setGain_ = function (aa) {
+
+export function setGain_(aa) {
 	return function (state) {
 		return function () {
 			var ptr = aa.id;
@@ -988,9 +998,9 @@ exports.setGain_ = function (aa) {
 			recalcResume(a, state.units[ptr], "gain");
 		};
 	};
-};
+}
 
-exports.setQ_ = function (aa) {
+export function setQ_(aa) {
 	return function (state) {
 		return function () {
 			var ptr = aa.id;
@@ -999,8 +1009,9 @@ exports.setQ_ = function (aa) {
 			recalcResume(a, state.units[ptr], "Q");
 		};
 	};
-};
-exports.setBuffer_ = function (aa) {
+}
+
+export function setBuffer_(aa) {
 	return function (state) {
 		return function () {
 			var ptr = aa.id;
@@ -1010,8 +1021,9 @@ exports.setBuffer_ = function (aa) {
 			}
 		};
 	};
-};
-exports.setConvolverBuffer_ = function (aa) {
+}
+
+export function setConvolverBuffer_(aa) {
 	return function (state) {
 		return function () {
 			var ptr = aa.id;
@@ -1019,8 +1031,9 @@ exports.setConvolverBuffer_ = function (aa) {
 			state.units[ptr].main.buffer = buffer;
 		};
 	};
-};
-exports.setPeriodicOsc_ = function (aa) {
+}
+
+export function setPeriodicOsc_(aa) {
 	return function (state) {
 		return function () {
 			var ptr = aa.id;
@@ -1030,8 +1043,9 @@ exports.setPeriodicOsc_ = function (aa) {
 			}
 		};
 	};
-};
-exports.setPan_ = function (aa) {
+}
+
+export function setPan_(aa) {
 	return function (state) {
 		return function () {
 			var ptr = aa.id;
@@ -1040,8 +1054,9 @@ exports.setPan_ = function (aa) {
 			recalcResume(a, state.units[ptr], "pan");
 		};
 	};
-};
-exports.setThreshold_ = function (aa) {
+}
+
+export function setThreshold_(aa) {
 	return function (state) {
 		return function () {
 			var ptr = aa.id;
@@ -1055,8 +1070,9 @@ exports.setThreshold_ = function (aa) {
 			recalcResume(a, state.units[ptr], "threshold");
 		};
 	};
-};
-exports.setLoopStart_ = function (aa) {
+}
+
+export function setLoopStart_(aa) {
 	return function (state) {
 		return function () {
 			var ptr = aa.id;
@@ -1065,8 +1081,9 @@ exports.setLoopStart_ = function (aa) {
 			state.units[ptr].resume.loopStart = a;
 		};
 	};
-};
-exports.setLoopEnd_ = function (aa) {
+}
+
+export function setLoopEnd_(aa) {
 	return function (state) {
 		return function () {
 			var ptr = aa.id;
@@ -1075,8 +1092,9 @@ exports.setLoopEnd_ = function (aa) {
 			state.units[ptr].resume.loopEnd = a;
 		};
 	};
-};
-exports.setBufferOffset_ = function (aa) {
+}
+
+export function setBufferOffset_(aa) {
 	return function (state) {
 		return function () {
 			var ptr = aa.id;
@@ -1084,8 +1102,9 @@ exports.setBufferOffset_ = function (aa) {
 			state.units[ptr].resume.bufferOffset = a;
 		};
 	};
-};
-exports.setDuration_ = function (aa) {
+}
+
+export function setDuration_(aa) {
 	return function (state) {
 		return function () {
 			var ptr = aa.id;
@@ -1093,8 +1112,9 @@ exports.setDuration_ = function (aa) {
 			state.units[ptr].duration = a;
 		};
 	};
-};
-exports.setRelease_ = function (aa) {
+}
+
+export function setRelease_(aa) {
 	return function (state) {
 		return function () {
 			var ptr = aa.id;
@@ -1108,8 +1128,9 @@ exports.setRelease_ = function (aa) {
 			recalcResume(a, state.units[ptr], "release");
 		};
 	};
-};
-exports.setOffset_ = function (aa) {
+}
+
+export function setOffset_(aa) {
 	return function (state) {
 		return function () {
 			var ptr = aa.id;
@@ -1123,9 +1144,9 @@ exports.setOffset_ = function (aa) {
 			recalcResume(a, state.units[ptr], "offset");
 		};
 	};
-};
+}
 
-exports.setRatio_ = function (aa) {
+export function setRatio_(aa) {
 	return function (state) {
 		return function () {
 			var ptr = aa.id;
@@ -1139,8 +1160,9 @@ exports.setRatio_ = function (aa) {
 			recalcResume(a, state.units[ptr], "ratio");
 		};
 	};
-};
-exports.setAttack_ = function (aa) {
+}
+
+export function setAttack_(aa) {
 	return function (state) {
 		return function () {
 			var ptr = aa.id;
@@ -1154,8 +1176,9 @@ exports.setAttack_ = function (aa) {
 			recalcResume(a, state.units[ptr], "attack");
 		};
 	};
-};
-exports.setKnee_ = function (aa) {
+}
+
+export function setKnee_(aa) {
 	return function (state) {
 		return function () {
 			var ptr = aa.id;
@@ -1169,8 +1192,9 @@ exports.setKnee_ = function (aa) {
 			recalcResume(a, state.units[ptr], "knee");
 		};
 	};
-};
-exports.setDelay_ = function (aa) {
+}
+
+export function setDelay_(aa) {
 	return function (state) {
 		return function () {
 			var ptr = aa.id;
@@ -1184,8 +1208,9 @@ exports.setDelay_ = function (aa) {
 			recalcResume(a, state.units[ptr], "delayTime");
 		};
 	};
-};
-exports.setPlaybackRate_ = function (aa) {
+}
+
+export function setPlaybackRate_(aa) {
 	return function (state) {
 		return function () {
 			var ptr = aa.id;
@@ -1199,8 +1224,9 @@ exports.setPlaybackRate_ = function (aa) {
 			recalcResume(a, state.units[ptr], "playbackRate");
 		};
 	};
-};
-exports.setFrequency_ = function (aa) {
+}
+
+export function setFrequency_(aa) {
 	return function (state) {
 		return function () {
 			var ptr = aa.id;
@@ -1214,9 +1240,10 @@ exports.setFrequency_ = function (aa) {
 			recalcResume(a, state.units[ptr], "frequency");
 		};
 	};
-};
+}
+
 ///////////
-exports.setOnOff_ = function (aa) {
+export function setOnOff_(aa) {
 	return function (state) {
 		return function () {
 			var ptr = aa.id;
@@ -1231,7 +1258,7 @@ exports.setOnOff_ = function (aa) {
 			}
 		};
 	};
-};
+}
 
 var setOn_ = function (ptr) {
 	return function (onOffInstr) {
@@ -1301,9 +1328,10 @@ var setOff_ = function (ptr) {
 		};
 	};
 };
+
 ///////////
 // various and sundry... mostly sundry... //
-exports.makeFloatArray = function (fa) {
+export function makeFloatArray(fa) {
 	return function () {
 		var r = new Float32Array(fa.length);
 		for (var i = 0; i < fa.length; i++) {
@@ -1311,19 +1339,20 @@ exports.makeFloatArray = function (fa) {
 		}
 		return r;
 	};
-};
+}
 
-exports.stopMediaRecorder = function (mediaRecorder) {
+export function stopMediaRecorder(mediaRecorder) {
 	return function () {
 		mediaRecorder.stop();
 	};
-};
+}
 
-exports.isTypeSupported = function (mimeType) {
+export function isTypeSupported(mimeType) {
 	return function () {
 		return MediaRecorder.isTypeSupported(mimeType);
 	};
-};
+}
+
 // currently, there is no unsubscription logic to the media recorder
 // in the case where a second subscriber is called, it will simply
 // overwrite the first subscriber
@@ -1332,7 +1361,7 @@ exports.isTypeSupported = function (mimeType) {
 // of being set
 // if it is set in a loop, then there will effectively be no recording, as it will only capture the
 // last couple milliseconds of the loop
-exports.mediaRecorderToBlob = function (mimeType) {
+export function mediaRecorderToBlob(mimeType) {
 	return function (handler) {
 		return function (mediaRecorder) {
 			return function () {
@@ -1349,8 +1378,9 @@ exports.mediaRecorderToBlob = function (mimeType) {
 			};
 		};
 	};
-};
-exports.getBrowserMediaStreamImpl = function (audio) {
+}
+
+export function getBrowserMediaStreamImpl(audio) {
 	return function (video) {
 		return function () {
 			return navigator.mediaDevices.getUserMedia({
@@ -1359,118 +1389,123 @@ exports.getBrowserMediaStreamImpl = function (audio) {
 			});
 		};
 	};
-};
+}
 
-exports.getFFTSize = function (analyserNode) {
+export function getFFTSize(analyserNode) {
 	return function () {
 		return analyserNode.fftSize;
 	};
-};
+}
 
-exports.setFFTSize = function (analyserNode) {
+export function setFFTSize(analyserNode) {
 	return function (fftSize) {
 		return function () {
 			analyserNode.fftSize = fftSize;
 		};
 	};
-};
+}
 
-exports.getSmoothingTimeConstant = function (analyserNode) {
+export function getSmoothingTimeConstant(analyserNode) {
 	return function () {
 		return analyserNode.smoothingTimeConstant;
 	};
-};
+}
 
-exports.setSmoothingTimeConstant = function (analyserNode) {
+export function setSmoothingTimeConstant(analyserNode) {
 	return function (smoothingTimeConstant) {
 		return function () {
 			analyserNode.smoothingTimeConstant = smoothingTimeConstant;
 		};
 	};
-};
+}
 
-exports.getMinDecibels = function (analyserNode) {
+export function getMinDecibels(analyserNode) {
 	return function () {
 		return analyserNode.minDecibels;
 	};
-};
+}
 
-exports.setMinDecibels = function (analyserNode) {
+export function setMinDecibels(analyserNode) {
 	return function (minDecibels) {
 		return function () {
 			analyserNode.minDecibels = minDecibels;
 		};
 	};
-};
+}
 
-exports.getMaxDecibels = function (analyserNode) {
+export function getMaxDecibels(analyserNode) {
 	return function () {
 		return analyserNode.maxDecibels;
 	};
-};
+}
 
-exports.setMaxDecibels = function (analyserNode) {
+export function setMaxDecibels(analyserNode) {
 	return function (maxDecibels) {
 		return function () {
 			analyserNode.maxDecibels = maxDecibels;
 		};
 	};
-};
+}
 
-exports.getFrequencyBinCount = function (analyserNode) {
+export function getFrequencyBinCount(analyserNode) {
 	return function () {
 		return analyserNode.frequencyBinCount;
 	};
-};
+}
 
 // https://developer.mozilla.org/en-US/docs/Web/API/AnalyserNode/getFloatTimeDomainData
-exports.getFloatTimeDomainData = function (analyserNode) {
+export function getFloatTimeDomainData(analyserNode) {
 	return function () {
 		var dataArray = new Float32Array(analyserNode.fftSize);
 		analyserNode.getFloatTimeDomainData(dataArray);
 		return dataArray;
 	};
-};
+}
 
 // https://developer.mozilla.org/en-US/docs/Web/API/AnalyserNode/getFloatFrequencyData
-exports.getFloatFrequencyData = function (analyserNode) {
+export function getFloatFrequencyData(analyserNode) {
 	return function () {
 		var dataArray = new Float32Array(analyserNode.frequencyBinCount);
 		analyserNode.getFloatFrequencyData(dataArray);
 		return dataArray;
 	};
-};
+}
 
 // https://developer.mozilla.org/en-US/docs/Web/API/AnalyserNode/getByteTimeDomainData
-exports.getByteTimeDomainData = function (analyserNode) {
+export function getByteTimeDomainData(analyserNode) {
 	return function () {
 		var dataArray = new Uint8Array(analyserNode.fftSize);
 		analyserNode.getByteTimeDomainData(dataArray);
 		return dataArray;
 	};
-};
+}
 
 // https://developer.mozilla.org/en-US/docs/Web/API/AnalyserNode/getByteFrequencyData
-exports.getByteFrequencyData = function (analyserNode) {
+export function getByteFrequencyData(analyserNode) {
 	return function () {
 		var dataArray = new Uint8Array(analyserNode.frequencyBinCount);
 		analyserNode.getByteFrequencyData(dataArray);
 		return dataArray;
 	};
-};
-exports.bufferSampleRate = function (buffer) {
+}
+
+export function bufferSampleRate(buffer) {
 	return buffer.sampleRate;
-};
-exports.bufferLength = function (buffer) {
+}
+
+export function bufferLength(buffer) {
 	return buffer.length;
-};
-exports.bufferDuration = function (buffer) {
+}
+
+export function bufferDuration(buffer) {
 	return buffer.duration;
-};
-exports.bufferNumberOfChannels = function (buffer) {
+}
+
+export function bufferNumberOfChannels(buffer) {
 	return buffer.numberOfChannels;
-};
-exports.constant0Hack_ = function (context) {
+}
+
+export function constant0Hack_(context) {
 	return function () {
 		var constant = context.createConstantSource();
 		constant.offset.value = 0.0;
@@ -1481,7 +1516,7 @@ exports.constant0Hack_ = function (context) {
 			constant.disconnect(context.destination);
 		};
 	};
-};
+}
 
 var makePeriodicWaveImpl = function (ctx) {
 	return function (real_) {
@@ -1502,8 +1537,9 @@ var makePeriodicWaveImpl = function (ctx) {
 		};
 	};
 };
-exports.makePeriodicWaveImpl = makePeriodicWaveImpl;
-exports.makeFFIAudioSnapshot = function (audioCtx) {
+export {makePeriodicWaveImpl};
+
+export function makeFFIAudioSnapshot(audioCtx) {
 	return function () {
 		return {
 			context: audioCtx,
@@ -1515,8 +1551,9 @@ exports.makeFFIAudioSnapshot = function (audioCtx) {
 			toConnect: {},
 		};
 	};
-};
-exports.audioWorkletAddModule_ = function (ctx) {
+}
+
+export function audioWorkletAddModule_(ctx) {
 	return function (s) {
 		return function () {
 			{
@@ -1524,26 +1561,27 @@ exports.audioWorkletAddModule_ = function (ctx) {
 			}
 		};
 	};
-};
+}
 
-exports.contextFromSnapshot = function (snapshot) {
+export function contextFromSnapshot(snapshot) {
 	return snapshot.context;
-};
+}
 
-exports.advanceWriteHead = function (snapshot) {
+export function advanceWriteHead(snapshot) {
 	return function (deprecatedWriteHead) {
 		return function () {
 			snapshot.deprecatedWriteHead = deprecatedWriteHead;
 		};
 	};
-};
+}
 
-exports.close_ = function (audioCtx) {
+export function close_(audioCtx) {
 	return function () {
 		audioCtx.close();
 	};
-};
-exports.decodeAudioDataFromBase64EncodedString = function (ctx) {
+}
+
+export function decodeAudioDataFromBase64EncodedString(ctx) {
 	return function (s) {
 		return function () {
 			{
@@ -1560,8 +1598,9 @@ exports.decodeAudioDataFromBase64EncodedString = function (ctx) {
 			}
 		};
 	};
-};
-exports.fetchArrayBuffer = function (s) {
+}
+
+export function fetchArrayBuffer(s) {
 	return function () {
 		{
 			return fetch(s).then(
@@ -1575,33 +1614,39 @@ exports.fetchArrayBuffer = function (s) {
 			);
 		}
 	};
-};
-exports.decodeAudioDataFromArrayBuffer = function (ctx) {
+}
+
+export function decodeAudioDataFromArrayBuffer(ctx) {
 	return function (b) {
 		return function () {
 			return ctx.decodeAudioData(b);
 		};
 	};
-};
-exports.context_ = function () {
+}
+
+export function context_() {
 	return new (window.AudioContext || window.webkitAudioContext)();
-};
-exports.contextState_ = function (audioCtx) {
+}
+
+export function contextState_(audioCtx) {
 	return function () {
 		return audioCtx.state;
 	};
-};
-exports.contextResume_ = function (audioCtx) {
+}
+
+export function contextResume_(audioCtx) {
 	return function () {
 		return audioCtx.resume();
 	};
-};
-exports.getAudioClockTime = function (ctx) {
+}
+
+export function getAudioClockTime(ctx) {
 	return function () {
 		return ctx.currentTime;
 	};
-};
-exports.makeAudioBuffer = function (ctx) {
+}
+
+export function makeAudioBuffer(ctx) {
 	return function (b) {
 		return function () {
 			var myArrayBuffer = ctx.createBuffer(
@@ -1622,4 +1667,4 @@ exports.makeAudioBuffer = function (ctx) {
 			return myArrayBuffer;
 		};
 	};
-};
+}

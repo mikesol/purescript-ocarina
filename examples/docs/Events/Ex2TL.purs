@@ -6,7 +6,7 @@ import Control.Alt ((<|>))
 import Data.Foldable (oneOf, oneOfMap, traverse_)
 import Data.Tuple (Tuple(..), fst, snd)
 import Deku.Attribute (attr, cb, (:=))
-import Deku.Control (blank, text, text_)
+import Deku.Control (blank, text, plant, text_)
 import Deku.DOM as D
 import Deku.Toplevel (runInBody1)
 import Effect (Effect)
@@ -106,7 +106,7 @@ main = runInBody1
                     ]
                 ]
           ]
-      D.div_
+      plant $ D.div_
         [ D.div_
             [ text_ "tempo"
             , D.input

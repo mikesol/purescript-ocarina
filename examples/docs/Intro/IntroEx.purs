@@ -17,7 +17,7 @@ import Data.Traversable (traverse)
 import Data.Tuple.Nested (type (/\), (/\))
 import Data.UInt (toNumber)
 import Deku.Attribute (attr, cb, (:=))
-import Deku.Control (blank, text)
+import Deku.Control (blank, plant, text)
 import Deku.Core (Element)
 import Deku.DOM as D
 import Deku.Pursx (makePursx', nut)
@@ -34,7 +34,7 @@ import FRP.Event.Class (bang, biSampleOn)
 import FRP.Event.VBus (V, vbus)
 import Foreign.Object (fromHomogeneous, values)
 import Graphics.Canvas (arc, beginPath, fill, fillRect, setFillStyle)
-import Math (pi)
+import Data.Number (pi)
 import Random.LCG (mkSeed)
 import Test.QuickCheck.Gen (elements, evalGen)
 import Type.Proxy (Proxy(..))
@@ -166,7 +166,7 @@ introEx ccb _ ev = makePursx' (Proxy :: _ "@") px
                           ]
                       ]
                 ]
-            D.div_
+            plant $ D.div_
               [ D.canvas
                   ( oneOfMap bang
                       [ D.Width := cvsxs
@@ -183,7 +183,7 @@ introEx ccb _ ev = makePursx' (Proxy :: _ "@") px
                             setFillStyle ctx "rgba(255,255,255,0.2)"
                             foreachE arr \({ x, y } /\ n) -> do
                               beginPath ctx
-                              arc ctx { end: twoPi, radius: n * 40.0, start: 0.0, x: x * cvsxn, y: y * cvsyn }
+                              arc ctx { end: twoPi, radius: n * 40.0, start: 0.0, x: x * cvsxn, y: y * cvsyn, useCounterClockwise: false }
                               fill ctx
                         ) <$> event.canvas
                       )
@@ -212,7 +212,7 @@ introEx ccb _ ev = makePursx' (Proxy :: _ "@") px
                       , ( oneOfMap (map (attr D.OnClick <<< cb <<< const))
                             [ loadingE $> pure unit
                             , stopE <#>
-                                (_ *> ccb (pure unit) *> push.startStop.start unit)
+                                (_ *> (ccb (pure unit) *> push.startStop.start unit))
                             , (biSampleOn (bang (pure unit) <|> (map (\(SetCancel x) -> x) ev)) (startE $> identity)) <#> \cncl -> do
                                 cncl
                                 push.startStop.loading unit

@@ -49,7 +49,7 @@ main = do
      . Maybe BrowserAudioBuffer
     -> Element lock payload
   scene = maybe (D.div_ [ text_ "Loading..." ]) \buffer ->
-    D.div_ $ keepLatest $ vbus (Proxy :: _ UIEvents) \push event -> do
+    D.div_ $ vbus (Proxy :: _ UIEvents) \push event -> do
       let
         sl0 = event.slider.s0
         sl1 = event.slider.s1

@@ -5,6 +5,7 @@ import Prelude
 import Control.Alt ((<|>))
 import Data.Foldable (oneOf, oneOfMap)
 import Data.Maybe (Maybe(..))
+import Effect.Random (randomInt)
 import Data.Newtype (unwrap)
 import Data.Profunctor.Strong (second)
 import Data.Set (isEmpty)
@@ -12,12 +13,11 @@ import Data.Tuple.Nested ((/\))
 import Data.Vec ((+>))
 import Data.Vec as V
 import Deku.Attribute (attr, cb)
-import Deku.Control (text, text_)
+import Deku.Control (text, plant, text_)
 import Deku.Core (Element)
 import Deku.DOM as D
 import Deku.Pursx (nut, (~~))
 import Effect (Effect)
-import Effect.Random (randomInt)
 import FRP.Behavior (ABehavior, Behavior, behavior, sample, sampleBy, sample_, step, switcher)
 import FRP.Behavior.Mouse (buttons)
 import FRP.Behavior.Time as Time
@@ -391,7 +391,7 @@ main = runInBody1
           let
             startE = bang unit <|> event.start
             stopE = event.stop
-          D.div_
+          plant $ D.div_
             [ D.button
                 ( oneOfMap (map (attr D.OnClick <<< cb <<< const))
                     [ (biSampleOn (bang (pure unit) <|> (map (\(SetCancel x) -> x) ev)) (startE $> identity)) <#> \cncl ->
@@ -504,7 +504,7 @@ main = runInBody1
                           let r = r' *> c0h *> close ctx
                           ccb (r *> push.start unit) -- here
                           push.stop r
-                    , event.stop <#> (_ *> ccb (pure unit) *> push.start unit)
+                    , event.stop <#> (_ *> (ccb (pure unit) *> push.start unit))
                     ]
                 )
                 [ text $ oneOf

@@ -18,7 +18,7 @@ import Data.UInt (toInt)
 import Data.Vec (Vec, (+>))
 import Data.Vec as V
 import Deku.Attribute ((:=))
-import Deku.Control (blank, text)
+import Deku.Control (blank, text, plant)
 import Deku.Core (Element)
 import Deku.DOM as D
 import Deku.Pursx (nut, (~~))
@@ -99,7 +99,7 @@ analyserEx ccb _ ev = px ~~
               event = mkWrapperEvent ev  (_.right ptn)
               aEv = _.left ptn
             in
-              D.div_
+              plant $ D.div_
                 [ D.button
                     ( (bang (D.Style := "cursor: pointer;")) <|>
                         ( clickCb ccb (Right >>> push)

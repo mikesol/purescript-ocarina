@@ -2,7 +2,7 @@ module WAGS.Math where
 
 import Prelude
 
-import Math (pow)
+import Data.Number (pow)
 
 calcSlope :: Number -> Number -> Number -> Number -> Number -> Number
 calcSlope x0 y0 x1 y1 x =
