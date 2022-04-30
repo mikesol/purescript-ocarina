@@ -7,7 +7,7 @@ import Data.Foldable (oneOf, oneOfMap)
 import Data.Tuple (fst)
 import Data.Tuple.Nested ((/\))
 import Deku.Attribute (attr, cb, (:=))
-import Deku.Control (blank, text, text_)
+import Deku.Control (blank, plant, text, text_)
 import Deku.Core (Element)
 import Deku.DOM as D
 import Deku.Pursx (makePursx', nut)
@@ -192,7 +192,7 @@ sgSliderEx ccb _ ev = makePursx' (Proxy :: _ "@") px
                     )
                     sl
                 ]
-            D.div_
+            plant $ D.div_
               [ D.div_
                   [ text_ "Slide me!"
                   , D.input
@@ -211,7 +211,7 @@ sgSliderEx ccb _ ev = makePursx' (Proxy :: _ "@") px
                   ( oneOfMap (map (attr D.OnClick <<< cb <<< const))
                       [ event.startStop.loading $> pure unit
                       , stopE <#>
-                          (_ *> ccb (pure unit) *> push.startStop.start unit)
+                          (_ *> (ccb (pure unit) *> push.startStop.start unit))
                       , ( biSampleOn (bang (pure unit) <|> (map (\(SetCancel x) -> x) ev))
                             (startE $> identity)
                         ) <#> \cncl -> do

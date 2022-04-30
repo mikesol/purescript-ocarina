@@ -8,7 +8,7 @@ import Data.Tuple.Nested ((/\))
 import Data.Vec ((+>))
 import Data.Vec as V
 import Deku.Attribute (attr, cb, (:=))
-import Deku.Control (blank, text, text_)
+import Deku.Control (blank, plant, text, text_)
 import Deku.Core (Element)
 import Deku.DOM as D
 import Deku.Pursx (nut, (~~))
@@ -18,7 +18,7 @@ import FRP.Event (Event, fold, mapAccum, memoize, sampleOn)
 import FRP.Event.Animate (animationFrameEvent)
 import FRP.Event.Class (bang, biSampleOn)
 import FRP.Event.VBus (V, vbus)
-import Math (pi, sin)
+import Data.Number (pi, sin)
 import Type.Proxy (Proxy(..))
 import WAGS.Clock (withACTime)
 import WAGS.Control (gain, periodicOsc)
@@ -217,7 +217,7 @@ main = runInBody1
             cbx1 = chkState event.cbx.cbx1
             cbx2 = chkState event.cbx.cbx2
             cbx3 = chkState event.cbx.cbx3
-          D.div_
+          plant $ D.div_
             [ D.button
                 ( oneOfMap (map (attr D.OnClick <<< cb <<< const))
                     [ (biSampleOn (bang (pure unit) <|> (map (\(SetCancel x) -> x) ev)) (startE $> identity)) <#> \cncl -> do
@@ -283,7 +283,7 @@ main = runInBody1
                         let r = r' *> c0h *> close ctx
                         ccb (r *> push.startStop.start unit) -- here
                         push.startStop.stop r
-                    , stopE <#> (_ *> ccb (pure unit) *> push.startStop.start unit)
+                    , stopE <#> (_ *> (ccb (pure unit) *> push.startStop.start unit))
                     ]
                 )
                 [ text $ oneOf

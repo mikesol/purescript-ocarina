@@ -8,7 +8,7 @@ import Data.Maybe (Maybe(..), maybe)
 import Data.Tuple (fst)
 import Data.Tuple.Nested ((/\))
 import Deku.Attribute (attr, cb, (:=))
-import Deku.Control (blank, switcher, text, text_)
+import Deku.Control (blank, plant, switcher, text, text_)
 import Deku.Core (Element)
 import Deku.DOM as D
 import Deku.Toplevel (runInBody)
@@ -73,7 +73,7 @@ main = do
               )
               sl
           ]
-      D.div_
+      plant $ D.div_
         [ D.div_
             [ text_ "Slide me!"
             , D.input

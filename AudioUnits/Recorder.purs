@@ -10,7 +10,7 @@ import Data.Foldable (for_, traverse_)
 import Data.Maybe (Maybe(..), maybe)
 import Data.Tuple.Nested ((/\))
 import Deku.Attribute (cb, (:=))
-import Deku.Control (blank, text)
+import Deku.Control (blank, plant, text)
 import Deku.Core (Element)
 import Deku.DOM as D
 import Deku.Pursx (nut, (~~))
@@ -54,7 +54,7 @@ recorderEx ccb _ ev = px ~~
               aEv = _.left ls
               rEv = _.right ls
             in
-              D.div_
+              plant $ D.div_
                 [ D.button
                     ( (bang (D.Style := "cursor: pointer;")) <|>
                         ( map

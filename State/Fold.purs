@@ -8,7 +8,7 @@ import Data.Tuple.Nested ((/\))
 import Data.Vec ((+>))
 import Data.Vec as V
 import Deku.Attribute (attr, cb, (:=))
-import Deku.Control (blank, text)
+import Deku.Control (blank, plant, text)
 import Deku.DOM as D
 import Deku.Toplevel (runInBody1)
 import Effect (Effect)
@@ -17,7 +17,7 @@ import FRP.Event (memoize)
 import FRP.Event.Animate (animationFrameEvent)
 import FRP.Event.Class (bang, fold, mapAccum, sampleOn)
 import FRP.Event.VBus (V, vbus)
-import Math (pi, sin)
+import Data.Number (pi, sin)
 import Type.Proxy (Proxy(..))
 import WAGS.Clock (withACTime)
 import WAGS.Control (gain, periodicOsc)
@@ -47,7 +47,7 @@ main = runInBody1
         cbx1 = chkState event.cbx.cbx1
         cbx2 = chkState event.cbx.cbx2
         cbx3 = chkState event.cbx.cbx3
-      D.div_
+      plant $ D.div_
         [ D.button
             ( oneOfMap (map (attr D.OnClick <<< cb <<< const))
                 [ startE $> do

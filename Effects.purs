@@ -22,7 +22,7 @@ import FRP.Event (Event, filterMap, fold, mapAccum, sampleOn)
 import FRP.Event.Animate (animationFrameEvent)
 import FRP.Event.Class (class IsEvent, bang, biSampleOn)
 
-import Math (pi, sin)
+import Data.Number (pi, sin)
 import Type.Proxy (Proxy(..))
 import WAGS.Clock (withACTime)
 import WAGS.Control (gain, periodicOsc)

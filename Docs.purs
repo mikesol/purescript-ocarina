@@ -6,12 +6,11 @@ import Control.Alt ((<|>))
 import Data.Filterable (filter)
 import Data.Foldable (for_, oneOfMap)
 import Data.Function (on)
-import Data.Hashable (class Hashable, hash)
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype, unwrap)
 import Data.Tuple.Nested ((/\))
 import Deku.Attribute (cb, (:=))
-import Deku.Control (dekuA, switcher, text_)
+import Deku.Control (dekuA, plant, switcher, text_)
 import Deku.Core (Element)
 import Deku.DOM as D
 import Deku.Interpret (effectfulDOMInterpret, makeFFIDOMSnapshot)
@@ -42,11 +41,6 @@ newtype TopLevelSg = TopLevelSg
   }
 
 derive instance Newtype TopLevelSg _
-instance Eq TopLevelSg where
-  eq = eq `on` (unwrap >>> _.page)
-
-instance Hashable TopLevelSg where
-  hash = unwrap >>> _.page >>> hash
 
 p2tl :: Page -> TopLevelSg
 p2tl page = TopLevelSg { page, setPage: mempty, setCancellation: mempty }
@@ -145,17 +139,17 @@ scene push event' =
   page :: TopLevelSg -> Element lock payload
   page (TopLevelSg { page: pg, setCancellation, setPage }) = go pg
     where
-    go Intro = D.div_ $ bus (Intro.intro setCancellation setPage)
-    go HelloWorld = D.div_ $ bus (HelloWorld.helloWorld setCancellation setPage)
-    go FixFan = D.div_ $ bus (FixFan.fixFan setCancellation setPage)
-    go AudioUnits = D.div_ $ bus (Component.components setCancellation setPage)
-    go AudioWorklets = D.div_ $ bus (Pursx1.pursx1 setCancellation setPage)
-    go Events = D.div_ $ bus (Events.events setCancellation setPage)
-    go State = D.div_ $ bus (Effects.effects setCancellation setPage)
-    go Imperative = D.div_ $ bus (Pursx2.pursx2 setCancellation setPage)
-    go MultiChannel = D.div_ $ bus (Multichannel.multiChannel setCancellation setPage)
-    go Subgraph = D.div_ $ bus (Subgraph.subgraphs setCancellation setPage)
-    go Tumult = D.div_ $ bus (Portals.portals setCancellation setPage)
+    go Intro = D.div_ $ map plant $ bus (Intro.intro setCancellation setPage)
+    go HelloWorld = D.div_ $ map plant $ bus (HelloWorld.helloWorld setCancellation setPage)
+    go FixFan = D.div_ $ map plant $ bus (FixFan.fixFan setCancellation setPage)
+    go AudioUnits = D.div_ $ map plant $ bus (Component.components setCancellation setPage)
+    go AudioWorklets = D.div_ $ map plant $ bus (Pursx1.pursx1 setCancellation setPage)
+    go Events = D.div_ $ map plant $ bus (Events.events setCancellation setPage)
+    go State = D.div_ $ map plant $ bus (Effects.effects setCancellation setPage)
+    go Imperative = D.div_ $ map plant $ bus (Pursx2.pursx2 setCancellation setPage)
+    go MultiChannel = D.div_ $ map plant $ bus (Multichannel.multiChannel setCancellation setPage)
+    go Subgraph = D.div_ $ map plant $ bus (Subgraph.subgraphs setCancellation setPage)
+    go Tumult = D.div_ $ map plant $ bus (Portals.portals setCancellation setPage)
 
 main :: Effect Unit
 main = do

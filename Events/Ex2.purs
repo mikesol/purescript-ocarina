@@ -6,7 +6,7 @@ import Control.Alt ((<|>))
 import Data.Foldable (oneOf, oneOfMap, traverse_)
 import Data.Tuple (Tuple(..), fst, snd)
 import Deku.Attribute (attr, cb, (:=))
-import Deku.Control (blank, text, text_)
+import Deku.Control (blank, plant, text, text_)
 import Deku.Core (Element)
 import Deku.DOM as D
 import Deku.Pursx (makePursx', nut)
@@ -291,7 +291,7 @@ ex2 ccb _ ev = makePursx' (Proxy :: _ "@") px
                     ]
               ]
           in
-            D.div_
+            plant $ D.div_
               [ D.div_
                   [ text_ "tempo"
                   , D.input
@@ -331,7 +331,7 @@ ex2 ccb _ ev = makePursx' (Proxy :: _ "@") px
                           ccb (r *> push.startStop.start unit)
                           push.startStop.stop (r *> close ctx)
                       , event.startStop.stop <#>
-                          (_ *> ccb (pure unit) *> push.startStop.start unit)
+                          (_ *> (ccb (pure unit) *> push.startStop.start unit))
                       ]
                   )
                   [ text $ oneOf
