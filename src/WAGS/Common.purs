@@ -2,16 +2,22 @@ module WAGS.Common where
 
 import Prelude
 
+import Control.Alt ((<|>))
 import ConvertableOptions (class ConvertOption, class ConvertOptionsWithDefaults, convertOptionsWithDefaults)
+import Data.Either (Either(..))
 import Data.Tuple.Nested (type (/\), (/\))
 import Data.Typelevel.Num (class Pos)
-import Data.Variant (inj)
+import Data.Variant (inj, match)
 import Data.Variant.Maybe (Maybe, just, nothing)
 import Data.Vec (Vec, toArray)
+import Effect.AVar as AVar
+import Effect.Exception (throwException)
+import FRP.Event (Event, bang, makeEvent, subscribe)
 import Safe.Coerce (coerce)
 import Type.Equality (class TypeEquals, proof)
 import Type.Proxy (Proxy(..))
 import WAGS.Core (Oversample, PeriodicOscSpec(..), RealImg(..), _twoX)
+import WAGS.Core as C
 import WAGS.Core as Core
 import WAGS.WebAPI (BrowserAudioBuffer, BrowserFloatArray, BrowserMicrophone, BrowserPeriodicWave, MediaRecorderCb)
 
@@ -854,3 +860,33 @@ instance
   InitialWaveShaper { | provided } where
   toInitializeWaveShaper provided = Core.InitializeWaveShaper
     (convertOptionsWithDefaults WaveShaperOptions defaultWaveShaper provided)
+
+-- resolveAU
+
+resolveAU :: forall payload. C.AudioInterpret payload -> (C.FFIAudioParameter -> payload) -> C.AudioParameter payload -> Event payload
+resolveAU = go
+  where
+  cncl = C.FFIAudioParameter <<< inj (Proxy :: _ "cancel")
+  ev = C.FFIAudioParameter <<< inj (Proxy :: _ "envelope")
+  nmc = C.FFIAudioParameter <<< inj (Proxy :: _ "numeric")
+  sdn = C.FFIAudioParameter <<< inj (Proxy :: _ "sudden")
+  ut = C.FFIAudioParameter <<< inj (Proxy :: _ "unit")
+  go di@(C.AudioInterpret { ids }) f (C.AudioParameter a) = match
+    { numeric: bang <<< f <<< nmc
+    , envelope: bang <<< f <<< ev
+    , cancel: bang <<< f <<< cncl
+    , sudden: bang <<< f <<< sdn
+    , unit: \(C.AudioUnit { o: (C.Node n) }) -> makeEvent \k -> do
+        newScope <- ids
+        av <- AVar.empty
+        subscribe
+          ( n { parent: nothing, scope: newScope, raiseId: \x -> void $ AVar.tryPut x av } di <|> makeEvent \k2 -> do
+              void $ AVar.take av case _ of
+                Left e -> throwException e
+                -- only do the connection if not silence
+                Right i -> k2 (f (ut (C.FFIAudioUnit { i })))
+              pure (pure unit)
+          )
+          k
+    }
+    a

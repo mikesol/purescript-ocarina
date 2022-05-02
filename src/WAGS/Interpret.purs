@@ -176,7 +176,7 @@ foreign import getBrowserMediaStreamImpl
 data Audio
 
 audioWorkletAddModule
-  :: forall node numberOfInputs numberOfOutputs outputChannelCount parameterData
+  :: forall node payload numberOfInputs numberOfOutputs outputChannelCount parameterData
        processorOptions
    . IsSymbol node
   => Nat numberOfInputs

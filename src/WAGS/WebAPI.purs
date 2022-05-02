@@ -135,16 +135,3 @@ instance eqBrowserMediaElement :: Eq BrowserMediaElement where
 
 instance ordBrowserMediaElement :: Ord BrowserMediaElement where
   compare a b = if a == b then EQ else LT
-
--- https://developer.mozilla.org/en-US/docs/Web/API/AudioNode
--- Needed for the FFI
-foreign import data BrowserAudioNode :: Type
-
-instance showBrowserAudioNode :: Show BrowserAudioNode where
-  show = const "<BrowserMediaElement>"
-
-instance eqBrowserAudioNode :: Eq BrowserAudioNode where
-  eq = unsafeRefEq
-
-instance ordBrowserAudioNode :: Ord BrowserAudioNode where
-  compare a b = if a == b then EQ else LT

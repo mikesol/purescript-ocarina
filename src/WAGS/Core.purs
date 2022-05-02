@@ -3,7 +3,7 @@ module WAGS.Core where
 import Prelude
 
 import Data.Either (Either(..))
-import Data.Foldable (fold, oneOfMap, traverse_)
+import Data.Foldable (fold, for_, oneOfMap, traverse_)
 import Data.Function (on)
 import Data.Generic.Rep (class Generic)
 import Data.Lens (Optic', over)
@@ -31,7 +31,7 @@ import Simple.JSON as JSON
 import Type.Equality (class TypeEquals, proof)
 import Type.Proxy (Proxy(..))
 import Unsafe.Coerce (unsafeCoerce)
-import WAGS.WebAPI (AnalyserNodeCb, BrowserAudioBuffer, BrowserAudioNode, BrowserFloatArray, BrowserMediaElement, BrowserMicrophone, BrowserPeriodicWave, MediaRecorderCb)
+import WAGS.WebAPI (AnalyserNodeCb, BrowserAudioBuffer, BrowserFloatArray, BrowserMediaElement, BrowserMicrophone, BrowserPeriodicWave, MediaRecorderCb)
 
 -- start param
 newtype Transition = Transition
@@ -101,13 +101,17 @@ newtype AudioParameter payload = AudioParameter
       )
   )
 
+type FFIAudioUnit' = { i :: String }
+newtype FFIAudioUnit = FFIAudioUnit FFIAudioUnit'
+derive instance Newtype FFIAudioUnit _
+
 newtype FFIAudioParameter = FFIAudioParameter
   ( Variant
       ( numeric :: AudioNumeric
       , envelope :: AudioEnvelope
       , cancel :: AudioCancel
       , sudden :: AudioSudden
-      , unit :: BrowserAudioNode
+      , unit :: FFIAudioUnit
       )
   )
 
@@ -308,7 +312,7 @@ newtype EventfulNode outputChannels lock payload = EventfulNode
   (Event (Audible outputChannels lock payload))
 
 type Node' payload =
-  { parent :: String
+  { parent :: Maybe String
   , scope :: String
   , raiseId :: String -> Effect Unit
   }
@@ -1176,16 +1180,18 @@ data Stage = Begin | Middle | End
 
 __internalWagsFlatten
   :: forall outputChannels lock payload
-   . String
+   . Maybe String
+  -> String
   -> AudioInterpret payload
   -> Audible outputChannels lock payload
   -> Event payload
 __internalWagsFlatten
   parent
+  pScope
   di@(AudioInterpret { ids, disconnectXFromY })
   (Audible children') = children' # match
   { fixedChannels: \(FixedChannels f) -> oneOfMap node f
-  , eventfulNode: \(EventfulNode e) -> keepLatest (map (__internalWagsFlatten parent di) e)
+  , eventfulNode: \(EventfulNode e) -> keepLatest (map (__internalWagsFlatten parent pScope di) e)
   , node
   , dynamicChannels: \(DynamicChannels children) -> makeEvent \k -> do
       cancelInner <- Ref.new Object.empty
@@ -1210,9 +1216,9 @@ __internalWagsFlatten
                   let
                     mic =
                       ( Ref.read myId >>= traverse_ \old ->
-                          k
+                          for_ parent \p' -> k
                             ( disconnectXFromY
-                                { from: old, to: parent }
+                                { from: old, to: p' }
                             )
                       ) *> join (Ref.read myUnsub)
                         *> join (Ref.read eltsUnsub)
@@ -1259,7 +1265,7 @@ __internalWagsFlatten
   where
   node (Node e) = e
     { parent
-    , scope: "trivial"
+    , scope: pScope
     , raiseId: mempty
     }
     di

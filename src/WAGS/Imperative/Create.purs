@@ -12,7 +12,7 @@ import Control.Alternative ((<|>))
 import Data.Newtype (unwrap)
 import Data.Variant (match)
 import Data.Variant.Maybe (nothing)
-import FRP.Event (Event)
+import FRP.Event (Event, keepLatest)
 import FRP.Event.Class (bang)
 import Prim.Boolean (True, False)
 import Prim.Row as Row
@@ -90,12 +90,12 @@ gain
   => CreateNode i id False o
   => Proxy id
   -> initialGain
-  -> Event Core.Gain
+  -> Event (Core.Gain p)
   -> GraphBuilder p i o (T.GraphUnit id T.Gain)
 gain _ initialGain attributes = GraphBuilder go
   where
   initializeGain = unwrap $ Common.toInitializeGain initialGain
-  go (Core.AudioInterpret { makeGain, setGain }) =
+  go di@(Core.AudioInterpret { makeGain, setGain }) =
     { event:
         let
           id = reflectSymbol (Proxy :: _ id)
@@ -106,9 +106,9 @@ gain _ initialGain attributes = GraphBuilder go
               , gain: initializeGain.gain
               , scope: "imperative"
               }
-          eventN = attributes <#> unwrap >>> match
-            { gain: setGain <<< { id, gain: _ }
-            }
+          eventN = keepLatest (attributes <#> unwrap >>> match
+            { gain: Common.resolveAU di (setGain <<< { id, gain: _ })
+            })
         in
           event0 <|> eventN
     , result: T.GraphUnit
@@ -126,21 +126,21 @@ sinOsc
   => CreateNode i id False o
   => Proxy id
   -> initialSinOsc
-  -> Event Core.SinOsc
+  -> Event (Core.SinOsc p)
   -> GraphBuilder p i o (T.GraphUnit id T.SinOsc)
 sinOsc _ initialSinOsc attributes = GraphBuilder go
   where
   { frequency } = unwrap $ Common.toInitializeSinOsc initialSinOsc
-  go (Core.AudioInterpret { makeSinOsc, setFrequency, setOnOff }) =
+  go di@(Core.AudioInterpret { makeSinOsc, setFrequency, setOnOff }) =
     { event:
         let
           id = reflectSymbol (Proxy :: _ id)
           event0 = bang $
             makeSinOsc { id, parent: nothing, frequency, scope: "imperative" }
-          eventN = attributes <#> unwrap >>> match
-            { frequency: setFrequency <<< { id, frequency: _ }
-            , onOff: setOnOff <<< { id, onOff: _ }
-            }
+          eventN = keepLatest (attributes <#> unwrap >>> match
+            { frequency: Common.resolveAU di (setFrequency <<< { id, frequency: _ })
+            , onOff: bang <<< setOnOff <<< { id, onOff: _ }
+            })
         in
           event0 <|> eventN
     , result: T.GraphUnit
@@ -158,14 +158,14 @@ playBuf
   => CreateNode i id False o
   => Proxy id
   -> initialPlayBuf
-  -> Event Core.PlayBuf
+  -> Event (Core.PlayBuf p)
   -> GraphBuilder p i o (T.GraphUnit id T.PlayBuf)
 playBuf _ initialPlayBuf attributes = GraphBuilder go
   where
   { buffer, playbackRate, bufferOffset, duration } = unwrap $
     Common.toInitializePlayBuf initialPlayBuf
   go
-    ( Core.AudioInterpret
+    di@( Core.AudioInterpret
         { makePlayBuf
         , setBuffer
         , setOnOff
@@ -186,13 +186,13 @@ playBuf _ initialPlayBuf attributes = GraphBuilder go
             , duration
             , scope: "imperative"
             }
-          eventN = attributes <#> unwrap >>> match
-            { buffer: setBuffer <<< { id, buffer: _ }
-            , playbackRate: setPlaybackRate <<< { id, playbackRate: _ }
-            , bufferOffset: setBufferOffset <<< { id, bufferOffset: _ }
-            , duration: setDuration <<< { id, duration: _ }
-            , onOff: setOnOff <<< { id, onOff: _ }
-            }
+          eventN = keepLatest (attributes <#> unwrap >>> match
+            { buffer: bang <<< setBuffer <<< { id, buffer: _ }
+            , playbackRate: Common.resolveAU di (setPlaybackRate <<< { id, playbackRate: _ })
+            , bufferOffset: bang <<< setBufferOffset <<< { id, bufferOffset: _ }
+            , duration: bang <<< setDuration <<< { id, duration: _ }
+            , onOff: bang <<< setOnOff <<< { id, onOff: _ }
+            })
         in
           event0 <|> eventN
     , result: T.GraphUnit

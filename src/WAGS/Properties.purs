@@ -87,7 +87,7 @@ offset
 offset = wrap <<< inj (Proxy :: Proxy "offset") <<< toAudioParameter
 
 onOff
-  :: forall nt r ap p
+  :: forall nt r ap
    . Newtype nt (Variant (onOff :: AudioOnOff | r))
   => ToAudioOnOff ap
   => ap

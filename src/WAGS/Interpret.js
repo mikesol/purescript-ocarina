@@ -10,6 +10,7 @@ var makeid = function (length) {
 };
 var NUMERIC = "numeric";
 var SUDDEN = "sudden";
+var SUDDEN = "unit";
 var CANCELLATION = "cancellation";
 var NO_RAMP = "step";
 var LINEAR_RAMP = "linear";
@@ -18,9 +19,15 @@ var ENVELOPE = "envelope";
 var isCancellation = function (a) {
 	return a.type === CANCELLATION;
 };
-var protoSetter = function (thingee, deprecatedTimeToSet, param) {
+var protoSetter = function (thingee, ctrl, param, state) {
 	if (param.type === SUDDEN) {
 		thingee.value = param.value.n;
+	} else if (param.type === UNIT) {
+		if (ctrl.id) {
+			disconnectCtrl(ctrl.id, state);
+		}
+		state.units[param.value.i].main.connect(thingee);
+		ctrl.id = param.value.i;
 	} else {
 		if (param.type === NUMERIC) {
 			thingee[
@@ -31,14 +38,14 @@ var protoSetter = function (thingee, deprecatedTimeToSet, param) {
 					: param.value.t.type === EXPONENTIAL_RAMP
 					? "exponentialRampToValueAtTime"
 					: "linearRampToValueAtTime"
-			](param.value.n, deprecatedTimeToSet + param.value.o);
+			](param.value.n, param.value.o);
 		} else if (isCancellation(param)) {
 			param.value.hold
-				? thingee.cancelAndHoldAtTime(deprecatedTimeToSet + param.value.o)
-				: thingee.cancelScheduledValues(deprecatedTimeToSet + param.value.o);
+				? thingee.cancelAndHoldAtTime(param.value.o)
+				: thingee.cancelScheduledValues(param.value.o);
 		} else if (param.type === ENVELOPE) {
 			// envelope is last option
-			const tm = deprecatedTimeToSet + param.value.o;
+			const tm = param.value.o;
 			thingee.cancelScheduledValues(Math.max(0.0, tm));
 			thingee.setValueCurveAtTime(param.value.p, tm, param.value.d);
 		} else {
@@ -46,15 +53,22 @@ var protoSetter = function (thingee, deprecatedTimeToSet, param) {
 		}
 	}
 };
-var workletSetter = function (unit, paramName, deprecatedTimeToSet, param) {
+var workletSetter = function (state, unit, paramName, controllers, param) {
+	if (!controllers[paramName]) {
+		controllers[paramName] = {};
+	}
 	return protoSetter(
 		unit.parameters.get(paramName),
-		deprecatedTimeToSet,
-		param
+		controllers[paramName],
+		param,
+		state
 	);
 };
-var genericSetter = function (unit, name, deprecatedTimeToSet, param) {
-	return protoSetter(unit[name], deprecatedTimeToSet, param);
+var genericSetter = function (state, unit, name, controllers, param) {
+	if (!controllers[name]) {
+		controllers[name] = {};
+	}
+	return protoSetter(unit[name], controllers[name], param, state);
 };
 var addToScope = function (ptr, scope, state) {
 	if (!state.scopes[scope.value]) {
@@ -138,6 +152,17 @@ export function connectXToY_(parameters) {
 	};
 }
 
+var disconnectCtrl = function (ptr, state) {
+	if (state.units[ptr].scope === "@fan@") {
+		return;
+	}
+	const scope = state.units[ptr].scope;
+	state.scopes[scope].forEach((scp) => {
+		delete state.units[scp];
+	});
+	delete state.scopes[scope];
+};
+
 export function disconnectXFromY_(a) {
 	return function (state) {
 		return function () {
@@ -170,6 +195,7 @@ export function makeAllpass_(a) {
 		return function () {
 			var ptr = a.id;
 			state.units[ptr] = {
+				controllers: {},
 				audioOutgoing: [],
 				controlOutgoing: [],
 				main: new BiquadFilterNode(state.context, {
@@ -195,6 +221,7 @@ export function makeAnalyser_(a) {
 			// unsubscribe is effect unit
 			var unsubscribe = analyserSideEffectFunction(dest)();
 			state.units[ptr] = {
+				controllers: {},
 				audioOutgoing: [],
 				controlOutgoing: [],
 				analyserOrig: analyserSideEffectFunction,
@@ -216,6 +243,7 @@ export function makeAudioWorkletNode_(a) {
 			var ptr = a.id;
 			var opts = a.options;
 			state.units[ptr] = {
+				controllers: {},
 				audioOutgoing: [],
 				controlOutgoing: [],
 				main: new AudioWorkletNode(state.context, opts.name, {
@@ -239,6 +267,7 @@ export function makeBandpass_(a) {
 		return function () {
 			var ptr = a.id;
 			state.units[ptr] = {
+				controllers: {},
 				audioOutgoing: [],
 				controlOutgoing: [],
 				main: new BiquadFilterNode(state.context, {
@@ -265,6 +294,7 @@ export function makeConstant_(a) {
 			};
 			var resume = { offset: a.offset };
 			state.units[ptr] = {
+				controllers: {},
 				audioOutgoing: [],
 				controlOutgoing: [],
 				resume: resume,
@@ -292,6 +322,7 @@ export function makeConvolver_(a) {
 		return function () {
 			var ptr = a.id;
 			state.units[ptr] = {
+				controllers: {},
 				audioOutgoing: [],
 				controlOutgoing: [],
 				main: new ConvolverNode(state.context, { buffer: a.buffer }),
@@ -309,6 +340,7 @@ export function makeDelay_(a) {
 		return function () {
 			var ptr = a.id;
 			state.units[ptr] = {
+				controllers: {},
 				audioOutgoing: [],
 				controlOutgoing: [],
 				main: new DelayNode(state.context, {
@@ -329,6 +361,7 @@ export function makeDynamicsCompressor_(a) {
 		return function () {
 			var ptr = a.id;
 			state.units[ptr] = {
+				controllers: {},
 				audioOutgoing: [],
 				controlOutgoing: [],
 				main: new DynamicsCompressorNode(state.context, {
@@ -352,6 +385,7 @@ var makeGain_ = function (a) {
 		return function () {
 			var ptr = a.id;
 			state.units[ptr] = {
+				controllers: {},
 				audioOutgoing: [],
 				controlOutgoing: [],
 				main: new GainNode(state.context, {
@@ -372,6 +406,7 @@ export function makeHighpass_(a) {
 		return function () {
 			var ptr = a.id;
 			state.units[ptr] = {
+				controllers: {},
 				audioOutgoing: [],
 				controlOutgoing: [],
 				main: new BiquadFilterNode(state.context, {
@@ -393,6 +428,7 @@ export function makeHighshelf_(a) {
 		return function () {
 			var ptr = a.id;
 			state.units[ptr] = {
+				controllers: {},
 				audioOutgoing: [],
 				controlOutgoing: [],
 				main: new BiquadFilterNode(state.context, {
@@ -413,6 +449,7 @@ export function makeIIRFilter_(a) {
 		return function () {
 			var ptr = a.id;
 			state.units[ptr] = {
+				controllers: {},
 				audioOutgoing: [],
 				controlOutgoing: [],
 				main: new IIRFilterNode(state.context, {
@@ -444,6 +481,7 @@ export function makeLoopBuf_(a) {
 				playbackRate: a.playbackRate,
 			};
 			state.units[ptr] = {
+				controllers: {},
 				audioOutgoing: [],
 				controlOutgoing: [],
 				resume: resume,
@@ -472,6 +510,7 @@ export function makeLowpass_(a) {
 		return function () {
 			var ptr = a.id;
 			state.units[ptr] = {
+				controllers: {},
 				audioOutgoing: [],
 				controlOutgoing: [],
 				main: new BiquadFilterNode(state.context, {
@@ -493,6 +532,7 @@ export function makeLowshelf_(a) {
 		return function () {
 			var ptr = a.id;
 			state.units[ptr] = {
+				controllers: {},
 				audioOutgoing: [],
 				controlOutgoing: [],
 				main: new BiquadFilterNode(state.context, {
@@ -520,6 +560,7 @@ export function makeMediaElement_(a) {
 				return unit;
 			};
 			state.units[ptr] = {
+				controllers: {},
 				audioOutgoing: [],
 				controlOutgoing: [],
 				createClosure: createClosure,
@@ -540,6 +581,7 @@ export function makeMicrophone_(a) {
 			var ptr = a.id;
 			state.units[a.id] = {
 				main: state.context.createMediaStreamSource(a.microphone),
+				controllers: {},
 				audioOutgoing: [],
 				controlOutgoing: [],
 			};
@@ -556,6 +598,7 @@ export function makeNotch_(a) {
 		return function () {
 			var ptr = a.id;
 			state.units[ptr] = {
+				controllers: {},
 				audioOutgoing: [],
 				controlOutgoing: [],
 				main: new BiquadFilterNode(state.context, {
@@ -577,6 +620,7 @@ export function makePeaking_(a) {
 		return function () {
 			var ptr = a.id;
 			state.units[ptr] = {
+				controllers: {},
 				audioOutgoing: [],
 				controlOutgoing: [],
 				main: new BiquadFilterNode(state.context, {
@@ -614,6 +658,7 @@ export function makePeriodicOsc_(a) {
 			};
 			var resume = { frequency: a.frequency, type: "custom", spec: a.spec };
 			state.units[ptr] = {
+				controllers: {},
 				audioOutgoing: [],
 				controlOutgoing: [],
 				resume: resume,
@@ -658,6 +703,7 @@ export function makePlayBuf_(a) {
 				duration: a.duration,
 			};
 			state.units[ptr] = {
+				controllers: {},
 				audioOutgoing: [],
 				controlOutgoing: [],
 				resume: resume,
@@ -693,6 +739,7 @@ export function makeRecorder_(a) {
 			mediaRecorderSideEffectFn(mediaRecorder)();
 			mediaRecorder.start();
 			state.units[ptr] = {
+				controllers: {},
 				audioOutgoing: [],
 				controlOutgoing: [],
 				recorderOrig: mediaRecorderSideEffectFn,
@@ -718,6 +765,7 @@ export function makeSawtoothOsc_(a) {
 			};
 			var resume = { frequency: a.frequency, type: "sawtooth" };
 			state.units[ptr] = {
+				controllers: {},
 				audioOutgoing: [],
 				controlOutgoing: [],
 				resume: resume,
@@ -751,6 +799,7 @@ export function makeSinOsc_(a) {
 			};
 			var resume = { frequency: a.frequency, type: "sine" };
 			state.units[ptr] = {
+				controllers: {},
 				audioOutgoing: [],
 				controlOutgoing: [],
 				resume: resume,
@@ -778,6 +827,7 @@ export function makeSpeaker_(a) {
 	return function (state) {
 		return function () {
 			state.units[a.id] = {
+				controllers: {},
 				audioOutgoing: [],
 				controlOutgoing: [],
 				main: state.context.createGain(),
@@ -793,6 +843,7 @@ export function makeStereoPanner_(a) {
 		return function () {
 			var ptr = a.id;
 			state.units[ptr] = {
+				controllers: {},
 				audioOutgoing: [],
 				controlOutgoing: [],
 				main: new StereoPannerNode(state.context, {
@@ -817,6 +868,7 @@ export function makeSquareOsc_(a) {
 			};
 			var resume = { frequency: a.frequency, type: "square" };
 			state.units[ptr] = {
+				controllers: {},
 				audioOutgoing: [],
 				controlOutgoing: [],
 				resume: resume,
@@ -850,6 +902,7 @@ export function makeTriangleOsc_(a) {
 			};
 			var resume = { frequency: a.frequency, type: "triangle" };
 			state.units[ptr] = {
+				controllers: {},
 				audioOutgoing: [],
 				controlOutgoing: [],
 				resume: resume,
@@ -880,6 +933,7 @@ export function makeWaveShaper_(aa) {
 			var a = aa.curve;
 			var b = aa.oversample;
 			state.units[ptr] = {
+				controllers: {},
 				audioOutgoing: [],
 				controlOutgoing: [],
 				main: new WaveShaperNode(state.context, {
@@ -950,7 +1004,13 @@ export function setAudioWorkletParameter_(aa) {
 			var ptr = aa.id;
 			var a = aa.paramName;
 			var b = aa.paramValue;
-			workletSetter(state.units[ptr].main, a, state.deprecatedWriteHead, b);
+			workletSetter(
+				state,
+				state.units[ptr].main,
+				a,
+				state.units[ptr].controllers,
+				b
+			);
 		};
 	};
 }
@@ -969,9 +1029,10 @@ export function setGain_(aa) {
 			var ptr = aa.id;
 			var a = aa.gain;
 			genericSetter(
+				state,
 				state.units[ptr].main,
 				"gain",
-				state.deprecatedWriteHead,
+				state.units[ptr].controllers,
 				a
 			);
 			recalcResume(a, state.units[ptr], "gain");
@@ -984,7 +1045,13 @@ export function setQ_(aa) {
 		return function () {
 			var ptr = aa.id;
 			var a = aa.q;
-			genericSetter(state.units[ptr].main, "Q", state.deprecatedWriteHead, a);
+			genericSetter(
+				state,
+				state.units[ptr].main,
+				"Q",
+				state.units[ptr].controllers,
+				a
+			);
 			recalcResume(a, state.units[ptr], "Q");
 		};
 	};
@@ -1029,7 +1096,13 @@ export function setPan_(aa) {
 		return function () {
 			var ptr = aa.id;
 			var a = aa.pan;
-			genericSetter(state.units[ptr].main, "pan", state.deprecatedWriteHead, a);
+			genericSetter(
+				state,
+				state.units[ptr].main,
+				"pan",
+				state.units[ptr].controllers,
+				a
+			);
 			recalcResume(a, state.units[ptr], "pan");
 		};
 	};
@@ -1041,9 +1114,10 @@ export function setThreshold_(aa) {
 			var ptr = aa.id;
 			var a = aa.threshold;
 			genericSetter(
+				state,
 				state.units[ptr].main,
 				"threshold",
-				state.deprecatedWriteHead,
+				state.units[ptr].controllers,
 				a
 			);
 			recalcResume(a, state.units[ptr], "threshold");
@@ -1099,9 +1173,10 @@ export function setRelease_(aa) {
 			var ptr = aa.id;
 			var a = aa.release;
 			genericSetter(
+				state,
 				state.units[ptr].main,
 				"release",
-				state.deprecatedWriteHead,
+				state.units[ptr].controllers,
 				a
 			);
 			recalcResume(a, state.units[ptr], "release");
@@ -1115,9 +1190,10 @@ export function setOffset_(aa) {
 			var ptr = aa.id;
 			var a = aa.offset;
 			genericSetter(
+				state,
 				state.units[ptr].main,
 				"offset",
-				state.deprecatedWriteHead,
+				state.units[ptr].controllers,
 				a
 			);
 			recalcResume(a, state.units[ptr], "offset");
@@ -1131,9 +1207,10 @@ export function setRatio_(aa) {
 			var ptr = aa.id;
 			var a = aa.ratio;
 			genericSetter(
+				state,
 				state.units[ptr].main,
 				"ratio",
-				state.deprecatedWriteHead,
+				state.units[ptr].controllers,
 				a
 			);
 			recalcResume(a, state.units[ptr], "ratio");
@@ -1147,9 +1224,10 @@ export function setAttack_(aa) {
 			var ptr = aa.id;
 			var a = aa.attack;
 			genericSetter(
+				state,
 				state.units[ptr].main,
 				"attack",
-				state.deprecatedWriteHead,
+				state.units[ptr].controllers,
 				a
 			);
 			recalcResume(a, state.units[ptr], "attack");
@@ -1163,9 +1241,10 @@ export function setKnee_(aa) {
 			var ptr = aa.id;
 			var a = aa.knee;
 			genericSetter(
+				state,
 				state.units[ptr].main,
 				"knee",
-				state.deprecatedWriteHead,
+				state.units[ptr].controllers,
 				a
 			);
 			recalcResume(a, state.units[ptr], "knee");
@@ -1179,9 +1258,10 @@ export function setDelay_(aa) {
 			var ptr = aa.id;
 			var a = aa.delayTime;
 			genericSetter(
+				state,
 				state.units[ptr].main,
 				"delayTime",
-				state.deprecatedWriteHead,
+				state.units[ptr].controllers,
 				a
 			);
 			recalcResume(a, state.units[ptr], "delayTime");
@@ -1195,9 +1275,10 @@ export function setPlaybackRate_(aa) {
 			var ptr = aa.id;
 			var a = aa.playbackRate;
 			genericSetter(
+				state,
 				state.units[ptr].main,
 				"playbackRate",
-				state.deprecatedWriteHead,
+				state.units[ptr].controllers,
 				a
 			);
 			recalcResume(a, state.units[ptr], "playbackRate");
@@ -1211,9 +1292,10 @@ export function setFrequency_(aa) {
 			var ptr = aa.id;
 			var a = aa.frequency;
 			genericSetter(
+				state,
 				state.units[ptr].main,
 				"frequency",
-				state.deprecatedWriteHead,
+				state.units[ptr].controllers,
 				a
 			);
 			recalcResume(a, state.units[ptr], "frequency");
