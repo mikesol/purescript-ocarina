@@ -6,8 +6,12 @@ import Data.Either (Either(..))
 import Data.Foldable (fold, oneOfMap, traverse_)
 import Data.Function (on)
 import Data.Generic.Rep (class Generic)
+import Data.Lens (Optic', over)
+import Data.Lens.Iso.Newtype (_Newtype, unto)
+import Data.Lens.Record (prop)
 import Data.Maybe as DM
-import Data.Newtype (class Newtype, unwrap)
+import Data.Newtype (class Newtype, unwrap, wrap)
+import Data.Profunctor.Strong (class Strong)
 import Data.Show.Generic (genericShow)
 import Data.Variant (Variant, inj, match)
 import Data.Variant.Maybe (Maybe)
@@ -18,16 +22,195 @@ import Effect.AVar as AVar
 import Effect.Exception (throwException)
 import Effect.Ref as Ref
 import FRP.Event (Event, keepLatest, makeEvent, subscribe)
+import FRP.Event.Class (bang)
 import Foreign (Foreign)
 import Foreign.Object (Object)
 import Foreign.Object as Object
+import Prim.Row (class Cons)
 import Simple.JSON as JSON
-import Type.Equality (class TypeEquals)
+import Type.Equality (class TypeEquals, proof)
 import Type.Proxy (Proxy(..))
 import Unsafe.Coerce (unsafeCoerce)
-import WAGS.Parameter (AudioOnOff, AudioParameter, InitialAudioParameter)
 import WAGS.WebAPI (AnalyserNodeCb, BrowserAudioBuffer, BrowserFloatArray, BrowserMediaElement, BrowserMicrophone, BrowserPeriodicWave, MediaRecorderCb)
 
+-- start param
+newtype Transition = Transition
+  (Variant (linear :: Unit, exponential :: Unit, step :: Unit))
+
+_linear :: Transition
+_linear = Transition $ inj (Proxy :: _ "linear") unit
+
+_exponential :: Transition
+_exponential = Transition $ inj (Proxy :: _ "exponential") unit
+
+_step :: Transition
+_step = Transition $ inj (Proxy :: _ "step") unit
+
+_numeric' :: forall payload. AudioNumeric' -> AudioParameter payload
+_numeric' = _numeric <<< AudioNumeric
+
+_numeric :: forall payload. AudioNumeric -> AudioParameter payload
+_numeric = AudioParameter <<< inj (Proxy :: _ "numeric")
+
+_envelope :: forall payload. AudioEnvelope -> AudioParameter payload
+_envelope = AudioParameter <<< inj (Proxy :: _ "envelope")
+
+_envelope' :: forall payload. AudioEnvelope' -> AudioParameter payload
+_envelope' = _envelope <<< AudioEnvelope
+
+_cancel :: forall payload. AudioCancel -> AudioParameter payload
+_cancel = AudioParameter <<< inj (Proxy :: _ "cancel")
+
+_cancel' :: forall payload. AudioCancel' -> AudioParameter payload
+_cancel' = _cancel <<< AudioCancel
+
+_sudden :: forall payload. AudioSudden -> AudioParameter payload
+_sudden = AudioParameter <<< inj (Proxy :: _ "sudden")
+
+_sudden' :: forall payload. AudioSudden' -> AudioParameter payload
+_sudden' = _sudden <<< AudioSudden
+
+type AudioNumeric' = { n :: Number, o :: Number, t :: Transition }
+newtype AudioNumeric = AudioNumeric AudioNumeric'
+derive instance Newtype AudioNumeric _
+
+type AudioEnvelope' = { p :: Array Number, o :: Number, d :: Number }
+newtype AudioEnvelope = AudioEnvelope AudioEnvelope'
+derive instance Newtype AudioEnvelope _
+
+type AudioCancel' = { o :: Number }
+newtype AudioCancel = AudioCancel AudioCancel'
+derive instance Newtype AudioCancel _
+
+type AudioUnit' payload = { o :: forall outputChannels lock. Node outputChannels lock payload }
+newtype AudioUnit payload = AudioUnit (AudioUnit' payload)
+
+type AudioSudden' = { n :: Number }
+newtype AudioSudden = AudioSudden AudioSudden'
+derive instance Newtype AudioSudden _
+
+type InitialAudioParameter = Number
+newtype AudioParameter payload = AudioParameter
+  ( Variant
+      ( numeric :: AudioNumeric
+      , envelope :: AudioEnvelope
+      , cancel :: AudioCancel
+      , sudden :: AudioSudden
+      , unit :: AudioUnit payload
+      )
+  )
+
+-- | Term-level constructor for a generator being on or off
+newtype OnOff = OnOff
+  ( Variant
+      ( on :: Unit
+      , off :: Unit
+      )
+  )
+
+_on :: OnOff
+_on = OnOff $ inj (Proxy :: _ "on") unit
+
+_off :: OnOff
+_off = OnOff $ inj (Proxy :: _ "off") unit
+
+derive instance eqOnOff :: Eq OnOff
+derive instance ordOnOff :: Ord OnOff
+derive instance newtypeOnOff :: Newtype OnOff _
+derive instance genericOnOff :: Generic OnOff _
+
+instance showOnOff :: Show OnOff where
+  show = unwrap >>> match
+    { on: const "on", off: const "off" }
+
+newtype AudioOnOff = AudioOnOff
+  { x :: OnOff
+  , o :: Number
+  }
+
+apOn :: AudioOnOff
+apOn = AudioOnOff { x: _on, o: 0.0 }
+
+bangOn
+  :: forall nt r
+   . Newtype nt (Variant (onOff :: AudioOnOff | r))
+  => Event nt
+bangOn = bang (wrap $ inj (Proxy :: _ "onOff") apOn)
+
+apOff :: AudioOnOff
+apOff = AudioOnOff { x: _off, o: 0.0 }
+
+dt
+  :: forall nt r
+   . Newtype nt { o :: Number | r }
+  => (Number -> Number)
+  -> nt
+  -> nt
+dt = over (_Newtype <<< prop (Proxy :: _ "o"))
+
+derive instance eqAudioOnOff :: Eq AudioOnOff
+derive instance ordAudioOnOff :: Ord AudioOnOff
+derive instance newtypeAudioOnOff :: Newtype AudioOnOff _
+derive instance genericAudioOnOff :: Generic AudioOnOff _
+
+class ToAudioOnOff i where
+  toAudioOnOff :: i -> AudioOnOff
+
+instance ToAudioOnOff Number where
+  toAudioOnOff = AudioOnOff <<< { o: _, x: _on }
+
+instance ToAudioOnOff OnOff where
+  toAudioOnOff = AudioOnOff <<< { o: 0.0, x: _ }
+
+instance ToAudioOnOff AudioOnOff where
+  toAudioOnOff = identity
+
+class ToAudioParameter i p where
+  toAudioParameter :: i -> AudioParameter p
+
+instance ToAudioParameter Number p where
+  toAudioParameter n = _sudden (AudioSudden { n })
+
+instance TypeEquals p0 p1 => ToAudioParameter (AudioParameter p0) p1 where
+  toAudioParameter = proof
+
+instance ToAudioParameter AudioNumeric p where
+  toAudioParameter = _numeric
+
+instance ToAudioParameter AudioSudden p where
+  toAudioParameter = _sudden
+
+instance ToAudioParameter AudioCancel p where
+  toAudioParameter = _cancel
+
+instance ToAudioParameter AudioEnvelope p where
+  toAudioParameter = _envelope
+
+class OpticN s where
+  opticN :: forall p. Strong p => Optic' p s Number
+
+instance (Cons "n" Number r' r) => OpticN AudioNumeric where
+  opticN = unto AudioNumeric <<< prop (Proxy :: _ "n")
+
+instance (Cons "n" Number r' r) => OpticN AudioSudden where
+  opticN = unto AudioSudden <<< prop (Proxy :: _ "n")
+
+class OpticO s where
+  opticO :: forall p. Strong p => Optic' p s Number
+
+instance (Cons "n" Number r' r) => OpticO AudioOnOff where
+  opticO = unto AudioOnOff <<< prop (Proxy :: _ "o")
+
+instance (Cons "n" Number r' r) => OpticO AudioNumeric where
+  opticO = unto AudioNumeric <<< prop (Proxy :: _ "o")
+
+instance (Cons "n" Number r' r) => OpticO AudioEnvelope where
+  opticO = unto AudioEnvelope <<< prop (Proxy :: _ "o")
+
+instance (Cons "n" Number r' r) => OpticO AudioCancel where
+  opticO = unto AudioCancel <<< prop (Proxy :: _ "o")
+-----------
+-- end param
 --
 type AudioWorkletNodeOptions_' param =
   { name :: String
@@ -147,7 +330,7 @@ instance
   , TypeEquals payloadi payloado
   ) =>
   Mix (Audible outputChannelsi locki payloadi)
-    (Audible outputChannelso locko paylaodo) where
+    (Audible outputChannelso locko payloado) where
   mix = unsafeCoerce :: Audible _ _ _ -> Audible _ _ _
 
 instance
@@ -156,7 +339,7 @@ instance
   , TypeEquals payloadi payloado
   ) =>
   Mix (Event (Event (Channel outputChannelsi locki payloadi)))
-    (Audible outputChannelso locko paylaodo) where
+    (Audible outputChannelso locko payloado) where
   mix i = Audible $ inj (Proxy :: _ "dynamicChannels")
     (DynamicChannels ((unsafeCoerce :: (Event (Event (Channel _ _ _))) -> (Event (Event (Channel _ _ _)))) i))
 
@@ -166,7 +349,7 @@ instance
   , TypeEquals payloadi payloado
   ) =>
   Mix (Event (Audible outputChannelsi locki payloadi))
-    (Audible outputChannelso locko paylaodo) where
+    (Audible outputChannelso locko payloado) where
   mix i = Audible $ inj (Proxy :: _ "eventfulNode") (EventfulNode ((unsafeCoerce :: Event (Audible _ _ _) -> Event (Audible _ _ _)) i))
 
 instance
@@ -174,7 +357,7 @@ instance
   , TypeEquals locki locko
   , TypeEquals payloadi payloado
   ) =>
-  Mix (Node outputChannelsi locki payloadi) (Audible outputChannelso locko paylaodo) where
+  Mix (Node outputChannelsi locki payloadi) (Audible outputChannelso locko payloado) where
   mix i = Audible $ inj (Proxy :: _ "node") ((unsafeCoerce :: Node _ _ _ -> Node _ _ _) i)
 
 instance
@@ -183,7 +366,7 @@ instance
   , TypeEquals payloadi payloado
   ) =>
   Mix (Array (Node outputChannelsi locki payloadi))
-    (Audible outputChannelso locko paylaodo) where
+    (Audible outputChannelso locko payloado) where
   mix i = Audible $ inj (Proxy :: _ "fixedChannels") (FixedChannels ((unsafeCoerce :: Array (Node _ _ _) -> Array (Node _ _ _)) i))
 
 --
@@ -249,11 +432,11 @@ type DisconnectXFromY' =
   { fromUnit :: String, toUnit :: String | DisconnectXFromY_ }
 type DeleteFromCache = { id :: String }
 
-derive instance newtypeAllpass :: Newtype Allpass _
-newtype Allpass = Allpass
+derive instance newtypeAllpass :: Newtype (Allpass parameter) _
+newtype Allpass parameter = Allpass
   ( Variant
-      ( frequency :: AudioParameter
-      , q :: AudioParameter
+      ( frequency :: AudioParameter parameter
+      , q :: AudioParameter parameter
       )
   )
 
@@ -272,7 +455,7 @@ type MakeAllpass_ param =
   }
 
 type MakeAllpass = MakeAllpass_ InitialAudioParameter
-type MakeAllpass' = MakeAllpass_ AudioParameter
+type MakeAllpass' payload = MakeAllpass_ (AudioParameter payload)
 
 derive instance newtypeAnalyser :: Newtype Analyser _
 newtype Analyser = Analyser (Variant (cb :: AnalyserNodeCb))
@@ -345,13 +528,13 @@ type MakeAudioWorkletNode_ param =
   }
 
 type MakeAudioWorkletNode = MakeAudioWorkletNode_ InitialAudioParameter
-type MakeAudioWorkletNode' = MakeAudioWorkletNode_ AudioParameter
+type MakeAudioWorkletNode' payload = MakeAudioWorkletNode_ (AudioParameter payload)
 
-derive instance newtypeBandpass :: Newtype Bandpass _
-newtype Bandpass = Bandpass
+derive instance newtypeBandpass :: Newtype (Bandpass payload) _
+newtype Bandpass payload = Bandpass
   ( Variant
-      ( frequency :: AudioParameter
-      , q :: AudioParameter
+      ( frequency :: AudioParameter payload
+      , q :: AudioParameter payload
       )
   )
 
@@ -370,11 +553,11 @@ type MakeBandpass_ param =
   }
 
 type MakeBandpass = MakeBandpass_ InitialAudioParameter
-type MakeBandpass' = MakeBandpass_ AudioParameter
+type MakeBandpass' payload = MakeBandpass_ (AudioParameter payload)
 
-derive instance newtypeConstant :: Newtype Constant _
-newtype Constant = Constant
-  (Variant (offset :: AudioParameter, onOff :: AudioOnOff))
+derive instance newtypeConstant :: Newtype (Constant payload) _
+newtype Constant payload = Constant
+  (Variant (offset :: AudioParameter payload, onOff :: AudioOnOff))
 
 derive instance newtypeInitializeConstant :: Newtype InitializeConstant _
 newtype InitializeConstant = InitializeConstant
@@ -388,7 +571,7 @@ type MakeConstant_ param =
   )
 
 type MakeConstant = { | MakeConstant_ InitialAudioParameter }
-type MakeConstant' = { onOff :: AudioOnOff | MakeConstant_ AudioParameter }
+type MakeConstant' payload = { onOff :: AudioOnOff | MakeConstant_ (AudioParameter payload) }
 
 derive instance newtypeInitializeConvolver :: Newtype InitializeConvolver _
 newtype InitializeConvolver = InitializeConvolver
@@ -401,8 +584,8 @@ type MakeConvolver =
   , buffer :: BrowserAudioBuffer
   }
 
-derive instance newtypeDelay :: Newtype Delay _
-newtype Delay = Delay (Variant (delayTime :: AudioParameter))
+derive instance newtypeDelay :: Newtype (Delay payload) _
+newtype Delay payload = Delay (Variant (delayTime :: AudioParameter payload))
 
 derive instance newtypeInitializeDelay :: Newtype InitializeDelay _
 newtype InitializeDelay = InitializeDelay { delayTime :: InitialAudioParameter, maxDelayTime :: InitialAudioParameter }
@@ -415,16 +598,16 @@ type MakeDelay_ param =
   }
 
 type MakeDelay = MakeDelay_ InitialAudioParameter
-type MakeDelay' = MakeDelay_ AudioParameter
+type MakeDelay' payload = MakeDelay_ (AudioParameter payload)
 
-derive instance newtypeDynamicsCompressor :: Newtype DynamicsCompressor _
-newtype DynamicsCompressor = DynamicsCompressor
+derive instance newtypeDynamicsCompressor :: Newtype (DynamicsCompressor payload) _
+newtype DynamicsCompressor payload = DynamicsCompressor
   ( Variant
-      ( threshold :: AudioParameter
-      , knee :: AudioParameter
-      , ratio :: AudioParameter
-      , attack :: AudioParameter
-      , release :: AudioParameter
+      ( threshold :: AudioParameter payload
+      , knee :: AudioParameter payload
+      , ratio :: AudioParameter payload
+      , attack :: AudioParameter payload
+      , release :: AudioParameter payload
       )
   )
 
@@ -451,10 +634,10 @@ type MakeDynamicsCompressor_ param =
   }
 
 type MakeDynamicsCompressor = MakeDynamicsCompressor_ InitialAudioParameter
-type MakeDynamicsCompressor' = MakeDynamicsCompressor_ AudioParameter
+type MakeDynamicsCompressor' payload = MakeDynamicsCompressor_ (AudioParameter payload)
 
-derive instance newtypeGain :: Newtype Gain _
-newtype Gain = Gain (Variant (gain :: AudioParameter))
+derive instance newtypeGain :: Newtype (Gain payload) _
+newtype Gain payload = Gain (Variant (gain :: AudioParameter payload))
 
 derive instance newtypeInitializeGain :: Newtype InitializeGain _
 newtype InitializeGain = InitializeGain { gain :: InitialAudioParameter }
@@ -462,13 +645,13 @@ type MakeGain_ param =
   { id :: String, parent :: Maybe String, scope :: String, gain :: param }
 
 type MakeGain = MakeGain_ InitialAudioParameter
-type MakeGain' = MakeGain_ AudioParameter
+type MakeGain' payload = MakeGain_ (AudioParameter payload)
 
-derive instance newtypeHighpass :: Newtype Highpass _
-newtype Highpass = Highpass
+derive instance newtypeHighpass :: Newtype (Highpass payload) _
+newtype Highpass payload = Highpass
   ( Variant
-      ( frequency :: AudioParameter
-      , q :: AudioParameter
+      ( frequency :: AudioParameter payload
+      , q :: AudioParameter payload
       )
   )
 
@@ -487,13 +670,13 @@ type MakeHighpass_ param =
   }
 
 type MakeHighpass = MakeHighpass_ InitialAudioParameter
-type MakeHighpass' = MakeHighpass_ AudioParameter
+type MakeHighpass' payload = MakeHighpass_ (AudioParameter payload)
 
-derive instance newtypeHighshelf :: Newtype Highshelf _
-newtype Highshelf = Highshelf
+derive instance newtypeHighshelf :: Newtype (Highshelf payload) _
+newtype Highshelf payload = Highshelf
   ( Variant
-      ( frequency :: AudioParameter
-      , gain :: AudioParameter
+      ( frequency :: AudioParameter payload
+      , gain :: AudioParameter payload
       )
   )
 
@@ -512,7 +695,7 @@ type MakeHighshelf_ param =
   }
 
 type MakeHighshelf = MakeHighshelf_ InitialAudioParameter
-type MakeHighshelf' = MakeHighshelf_ AudioParameter
+type MakeHighshelf' payload = MakeHighshelf_ (AudioParameter payload)
 
 derive instance newtypeInitializeIIRFilter :: Newtype (InitializeIIRFilter feedforward feedback) _
 newtype InitializeIIRFilter (feedforward :: Type) (feedback :: Type) = InitializeIIRFilter
@@ -526,12 +709,12 @@ type MakeIIRFilter =
   , feedback :: Array Number
   }
 
-derive instance newtypeLoopBuf :: Newtype LoopBuf _
-newtype LoopBuf = LoopBuf
+derive instance newtypeLoopBuf :: Newtype (LoopBuf payload) _
+newtype LoopBuf payload = LoopBuf
   ( Variant
       ( buffer :: BrowserAudioBuffer
       , onOff :: AudioOnOff
-      , playbackRate :: AudioParameter
+      , playbackRate :: AudioParameter payload
       , loopStart :: Number
       , loopEnd :: Number
       )
@@ -559,13 +742,13 @@ type MakeLoopBuf_ param =
   )
 
 type MakeLoopBuf = { | MakeLoopBuf_ InitialAudioParameter }
-type MakeLoopBuf' = { onOff :: AudioOnOff | MakeLoopBuf_ AudioParameter }
+type MakeLoopBuf' payload = { onOff :: AudioOnOff | MakeLoopBuf_ (AudioParameter payload) }
 
-derive instance newtypeLowpass :: Newtype Lowpass _
-newtype Lowpass = Lowpass
+derive instance newtypeLowpass :: Newtype (Lowpass payload) _
+newtype Lowpass payload = Lowpass
   ( Variant
-      ( frequency :: AudioParameter
-      , q :: AudioParameter
+      ( frequency :: AudioParameter payload
+      , q :: AudioParameter payload
       )
   )
 
@@ -584,13 +767,13 @@ type MakeLowpass_ param =
   }
 
 type MakeLowpass = MakeLowpass_ InitialAudioParameter
-type MakeLowpass' = MakeLowpass_ AudioParameter
+type MakeLowpass' payload = MakeLowpass_ (AudioParameter payload)
 
-derive instance newtypeLowshelf :: Newtype Lowshelf _
-newtype Lowshelf = Lowshelf
+derive instance newtypeLowshelf :: Newtype (Lowshelf payload) _
+newtype Lowshelf payload = Lowshelf
   ( Variant
-      ( frequency :: AudioParameter
-      , gain :: AudioParameter
+      ( frequency :: AudioParameter payload
+      , gain :: AudioParameter payload
       )
   )
 
@@ -609,7 +792,7 @@ type MakeLowshelf_ param =
   }
 
 type MakeLowshelf = MakeLowshelf_ InitialAudioParameter
-type MakeLowshelf' = MakeLowshelf_ AudioParameter
+type MakeLowshelf' payload = MakeLowshelf_ (AudioParameter payload)
 
 derive instance newtypeInitializeMediaElement ::
   Newtype InitializeMediaElement _
@@ -637,11 +820,11 @@ type MakeMicrophone =
   , scope :: String
   }
 
-derive instance newtypeNotch :: Newtype Notch _
-newtype Notch = Notch
+derive instance newtypeNotch :: Newtype (Notch payload) _
+newtype Notch payload = Notch
   ( Variant
-      ( frequency :: AudioParameter
-      , q :: AudioParameter
+      ( frequency :: AudioParameter payload
+      , q :: AudioParameter payload
       )
   )
 
@@ -660,14 +843,14 @@ type MakeNotch_ param =
   }
 
 type MakeNotch = MakeNotch_ InitialAudioParameter
-type MakeNotch' = MakeNotch_ AudioParameter
+type MakeNotch' payload = MakeNotch_ (AudioParameter payload)
 
-derive instance newtypePeaking :: Newtype Peaking _
-newtype Peaking = Peaking
+derive instance newtypePeaking :: Newtype (Peaking payload) _
+newtype Peaking payload = Peaking
   ( Variant
-      ( frequency :: AudioParameter
-      , q :: AudioParameter
-      , gain :: AudioParameter
+      ( frequency :: AudioParameter payload
+      , q :: AudioParameter payload
+      , gain :: AudioParameter payload
       )
   )
 
@@ -688,15 +871,15 @@ type MakePeaking_ param =
   }
 
 type MakePeaking = MakePeaking_ InitialAudioParameter
-type MakePeaking' = MakePeaking_ AudioParameter
+type MakePeaking' payload = MakePeaking_ (AudioParameter payload)
 
-derive instance newtypePeriodicOsc :: Newtype PeriodicOsc _
-newtype PeriodicOsc =
+derive instance newtypePeriodicOsc :: Newtype (PeriodicOsc payload) _
+newtype PeriodicOsc payload =
   PeriodicOsc
     ( Variant
         ( spec :: PeriodicOscSpec
         , onOff :: AudioOnOff
-        , frequency :: AudioParameter
+        , frequency :: AudioParameter payload
         )
     )
 
@@ -715,17 +898,17 @@ type MakePeriodicOsc_ param =
   )
 
 type MakePeriodicOsc = { | MakePeriodicOsc_ InitialAudioParameter }
-type MakePeriodicOsc' =
-  { onOff :: AudioOnOff | MakePeriodicOsc_ AudioParameter }
+type MakePeriodicOsc' payload =
+  { onOff :: AudioOnOff | MakePeriodicOsc_ (AudioParameter payload) }
 
-derive instance newtypePlayBuf :: Newtype PlayBuf _
-newtype PlayBuf =
+derive instance newtypePlayBuf :: Newtype (PlayBuf payload) _
+newtype PlayBuf payload =
   PlayBuf
     ( Variant
         ( buffer :: BrowserAudioBuffer
         , bufferOffset :: Number
         , onOff :: AudioOnOff
-        , playbackRate :: AudioParameter
+        , playbackRate :: AudioParameter payload
         , duration :: Maybe Number
         )
     )
@@ -749,7 +932,7 @@ type MakePlayBuf_ param =
   )
 
 type MakePlayBuf = { | MakePlayBuf_ InitialAudioParameter }
-type MakePlayBuf' = { onOff :: AudioOnOff | MakePlayBuf_ AudioParameter }
+type MakePlayBuf' payload = { onOff :: AudioOnOff | MakePlayBuf_ (AudioParameter payload) }
 
 derive instance newtypeInitializeRecorder :: Newtype InitializeRecorder _
 newtype InitializeRecorder = InitializeRecorder { cb :: MediaRecorderCb }
@@ -762,12 +945,12 @@ type MakeRecorder =
 
 type MakeSpeaker = { id :: String }
 
-derive instance newtypeSawtoothOsc :: Newtype SawtoothOsc _
-newtype SawtoothOsc =
+derive instance newtypeSawtoothOsc :: Newtype (SawtoothOsc payload) _
+newtype SawtoothOsc payload =
   SawtoothOsc
     ( Variant
         ( onOff :: AudioOnOff
-        , frequency :: AudioParameter
+        , frequency :: AudioParameter payload
         )
     )
 
@@ -784,12 +967,12 @@ type MakeSawtoothOsc_ param =
   )
 
 type MakeSawtoothOsc = { | MakeSawtoothOsc_ InitialAudioParameter }
-type MakeSawtoothOsc' =
-  { onOff :: AudioOnOff | MakeSawtoothOsc_ AudioParameter }
+type MakeSawtoothOsc' payload =
+  { onOff :: AudioOnOff | MakeSawtoothOsc_ (AudioParameter payload) }
 
-derive instance newtypeSinOsc :: Newtype SinOsc _
-newtype SinOsc = SinOsc
-  (Variant (frequency :: AudioParameter, onOff :: AudioOnOff))
+derive instance newtypeSinOsc :: Newtype (SinOsc payload) _
+newtype SinOsc payload = SinOsc
+  (Variant (frequency :: AudioParameter payload, onOff :: AudioOnOff))
 
 derive instance newtypeInitializeSinOsc :: Newtype InitializeSinOsc _
 newtype InitializeSinOsc = InitializeSinOsc
@@ -804,14 +987,14 @@ type MakeSinOsc_ param =
   )
 
 type MakeSinOsc = { | MakeSinOsc_ InitialAudioParameter }
-type MakeSinOsc' = { onOff :: AudioOnOff | MakeSinOsc_ AudioParameter }
+type MakeSinOsc' payload = { onOff :: AudioOnOff | MakeSinOsc_ (AudioParameter payload) }
 
-derive instance newtypeSquareOsc :: Newtype SquareOsc _
-newtype SquareOsc =
+derive instance newtypeSquareOsc :: Newtype (SquareOsc payload) _
+newtype SquareOsc payload =
   SquareOsc
     ( Variant
         ( onOff :: AudioOnOff
-        , frequency :: AudioParameter
+        , frequency :: AudioParameter payload
         )
     )
 
@@ -828,11 +1011,11 @@ type MakeSquareOsc_ param =
   )
 
 type MakeSquareOsc = { | MakeSquareOsc_ InitialAudioParameter }
-type MakeSquareOsc' = { onOff :: AudioOnOff | MakeSquareOsc_ AudioParameter }
+type MakeSquareOsc' payload = { onOff :: AudioOnOff | MakeSquareOsc_ (AudioParameter payload) }
 
-derive instance newtypeStereoPanner :: Newtype StereoPanner _
-newtype StereoPanner =
-  StereoPanner (Variant (pan :: AudioParameter))
+derive instance newtypeStereoPanner :: Newtype (StereoPanner payload) _
+newtype StereoPanner payload =
+  StereoPanner (Variant (pan :: AudioParameter payload))
 
 derive instance newtypeInitializeStereoPanner ::
   Newtype InitializeStereoPanner _
@@ -844,14 +1027,14 @@ type MakeStereoPanner_ param =
   { id :: String, parent :: Maybe String, scope :: String, pan :: param }
 
 type MakeStereoPanner = MakeStereoPanner_ InitialAudioParameter
-type MakeStereoPanner' = MakeStereoPanner_ AudioParameter
+type MakeStereoPanner' payload = MakeStereoPanner_ (AudioParameter payload)
 
-derive instance newtypeTriangleOsc :: Newtype TriangleOsc _
-newtype TriangleOsc =
+derive instance newtypeTriangleOsc :: Newtype (TriangleOsc parameter) _
+newtype TriangleOsc parameter =
   TriangleOsc
     ( Variant
         ( onOff :: AudioOnOff
-        , frequency :: AudioParameter
+        , frequency :: AudioParameter parameter
         )
     )
 
@@ -868,8 +1051,8 @@ type MakeTriangleOsc_ param =
   )
 
 type MakeTriangleOsc = { | MakeTriangleOsc_ InitialAudioParameter }
-type MakeTriangleOsc' =
-  { onOff :: AudioOnOff | MakeTriangleOsc_ AudioParameter }
+type MakeTriangleOsc' payload =
+  { onOff :: AudioOnOff | MakeTriangleOsc_ (AudioParameter payload) }
 
 derive instance newtypeInitializeWaveShaper :: Newtype InitializeWaveShaper _
 newtype InitializeWaveShaper = InitializeWaveShaper
@@ -887,8 +1070,8 @@ type MakeWaveShaper =
 
 type SetAnalyserNodeCb = { id :: String, cb :: AnalyserNodeCb }
 type SetMediaRecorderCb = { id :: String, cb :: MediaRecorderCb }
-type SetAudioWorkletParameter =
-  { id :: String, paramName :: String, paramValue :: AudioParameter }
+type SetAudioWorkletParameter payload  =
+  { id :: String, paramName :: String, paramValue :: AudioParameter payload }
 
 type SetBuffer = { id :: String, buffer :: BrowserAudioBuffer }
 type SetConvolverBuffer = { id :: String, buffer :: BrowserAudioBuffer }
@@ -898,18 +1081,18 @@ type SetBufferOffset = { id :: String, bufferOffset :: Number }
 type SetDuration = { id :: String, duration :: Maybe Number }
 type SetLoopStart = { id :: String, loopStart :: Number }
 type SetLoopEnd = { id :: String, loopEnd :: Number }
-type SetRatio = { id :: String, ratio :: AudioParameter }
-type SetOffset = { id :: String, offset :: AudioParameter }
-type SetAttack = { id :: String, attack :: AudioParameter }
-type SetGain = { id :: String, gain :: AudioParameter }
-type SetQ = { id :: String, q :: AudioParameter }
-type SetPan = { id :: String, pan :: AudioParameter }
-type SetThreshold = { id :: String, threshold :: AudioParameter }
-type SetRelease = { id :: String, release :: AudioParameter }
-type SetKnee = { id :: String, knee :: AudioParameter }
-type SetDelay = { id :: String, delayTime :: AudioParameter }
-type SetPlaybackRate = { id :: String, playbackRate :: AudioParameter }
-type SetFrequency = { id :: String, frequency :: AudioParameter }
+type SetRatio payload = { id :: String, ratio :: AudioParameter payload }
+type SetOffset payload = { id :: String, offset :: AudioParameter payload }
+type SetAttack payload = { id :: String, attack :: AudioParameter payload }
+type SetGain payload = { id :: String, gain :: AudioParameter payload }
+type SetQ payload = { id :: String, q :: AudioParameter payload }
+type SetPan payload = { id :: String, pan :: AudioParameter payload }
+type SetThreshold payload = { id :: String, threshold :: AudioParameter payload }
+type SetRelease payload = { id :: String, release :: AudioParameter payload }
+type SetKnee payload = { id :: String, knee :: AudioParameter payload }
+type SetDelay payload = { id :: String, delayTime :: AudioParameter payload }
+type SetPlaybackRate payload = { id :: String, playbackRate :: AudioParameter payload }
+type SetFrequency payload = { id :: String, frequency :: AudioParameter payload }
 type SetWaveShaperCurve = { id :: String, curve :: BrowserFloatArray }
 
 newtype AudioInterpret payload = AudioInterpret
@@ -949,7 +1132,7 @@ newtype AudioInterpret payload = AudioInterpret
   , setAnalyserNodeCb :: SetAnalyserNodeCb -> payload
   , setMediaRecorderCb :: SetMediaRecorderCb -> payload
   , setWaveShaperCurve :: SetWaveShaperCurve -> payload
-  , setAudioWorkletParameter :: SetAudioWorkletParameter -> payload
+  , setAudioWorkletParameter :: SetAudioWorkletParameter payload -> payload
   , setBuffer :: SetBuffer -> payload
   , setConvolverBuffer :: SetConvolverBuffer -> payload
   , setPeriodicOsc :: SetPeriodicOsc -> payload
@@ -958,18 +1141,18 @@ newtype AudioInterpret payload = AudioInterpret
   , setDuration :: SetDuration -> payload
   , setLoopStart :: SetLoopStart -> payload
   , setLoopEnd :: SetLoopEnd -> payload
-  , setRatio :: SetRatio -> payload
-  , setOffset :: SetOffset -> payload
-  , setAttack :: SetAttack -> payload
-  , setGain :: SetGain -> payload
-  , setQ :: SetQ -> payload
-  , setPan :: SetPan -> payload
-  , setThreshold :: SetThreshold -> payload
-  , setRelease :: SetRelease -> payload
-  , setKnee :: SetKnee -> payload
-  , setDelay :: SetDelay -> payload
-  , setPlaybackRate :: SetPlaybackRate -> payload
-  , setFrequency :: SetFrequency -> payload
+  , setRatio :: SetRatio payload -> payload
+  , setOffset :: SetOffset payload -> payload
+  , setAttack :: SetAttack payload -> payload
+  , setGain :: SetGain payload -> payload
+  , setQ :: SetQ payload -> payload
+  , setPan :: SetPan payload -> payload
+  , setThreshold :: SetThreshold payload -> payload
+  , setRelease :: SetRelease payload -> payload
+  , setKnee :: SetKnee payload -> payload
+  , setDelay :: SetDelay payload -> payload
+  , setPlaybackRate :: SetPlaybackRate payload -> payload
+  , setFrequency :: SetFrequency payload -> payload
   }
 
 -----

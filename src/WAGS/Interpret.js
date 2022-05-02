@@ -89,8 +89,7 @@ var mConnectXToY_ = function (x, y, state) {
 };
 var connectXToYInternal_ = function (x, y, state) {
 	var connectF = function () {
-		state.units[x].outgoing.push(y);
-		state.units[y].incoming.push(x);
+		state.units[x].audioOutgoing.push(y);
 		if (!state.units[x].pendingOn) {
 			state.units[x].main.connect(state.units[y].main);
 			if (state.units[y].se) {
@@ -139,37 +138,28 @@ export function connectXToY_(parameters) {
 	};
 }
 
-var disconnectXFromY_ = function (x) {
-	return function (y) {
-		return function (state) {
-			return function () {
-				state.units[x].outgoing = state.units[x].outgoing.filter(function (i) {
-					return !(i === y);
-				});
-				state.units[y].incoming = state.units[y].incoming.filter(function (i) {
-					return !(i === x);
-				});
-				state.units[x].main.disconnect(state.units[y].main);
-				if (state.units[y].se) {
-					state.units[x].main.disconnect(state.units[y].se);
-				}
-				if (state.units[ptr].scope === "@fan@") {
-					return;
-				}
-				const scope = state.units[ptr].scope;
-				state.scopes[scope].forEach((scp) => {
-					delete state.units[scp];
-				});
-				delete state.scopes[scope];
-			};
-		};
-	};
-};
-
 export function disconnectXFromY_(a) {
 	return function (state) {
 		return function () {
-			return disconnectXFromY_(a.from)(a.to)(state)();
+			var x = a.from;
+			var y = a.to;
+			state.units[x].audioOutgoing = state.units[x].audioOutgoing.filter(
+				function (i) {
+					return !(i === y);
+				}
+			);
+			state.units[x].main.disconnect(state.units[y].main);
+			if (state.units[y].se) {
+				state.units[x].main.disconnect(state.units[y].se);
+			}
+			if (state.units[ptr].scope === "@fan@") {
+				return;
+			}
+			const scope = state.units[ptr].scope;
+			state.scopes[scope].forEach((scp) => {
+				delete state.units[scp];
+			});
+			delete state.scopes[scope];
 		};
 	};
 }
@@ -180,8 +170,8 @@ export function makeAllpass_(a) {
 		return function () {
 			var ptr = a.id;
 			state.units[ptr] = {
-				outgoing: [a.parent],
-				incoming: [],
+				audioOutgoing: [],
+				controlOutgoing: [],
 				main: new BiquadFilterNode(state.context, {
 					type: "allpass",
 					Q: a.q,
@@ -205,8 +195,8 @@ export function makeAnalyser_(a) {
 			// unsubscribe is effect unit
 			var unsubscribe = analyserSideEffectFunction(dest)();
 			state.units[ptr] = {
-				outgoing: [],
-				incoming: [],
+				audioOutgoing: [],
+				controlOutgoing: [],
 				analyserOrig: analyserSideEffectFunction,
 				analyser: unsubscribe,
 				main: state.context.createGain(),
@@ -226,8 +216,8 @@ export function makeAudioWorkletNode_(a) {
 			var ptr = a.id;
 			var opts = a.options;
 			state.units[ptr] = {
-				outgoing: [],
-				incoming: [],
+				audioOutgoing: [],
+				controlOutgoing: [],
 				main: new AudioWorkletNode(state.context, opts.name, {
 					numberOfInputs: opts.numberOfInputs,
 					numberOfOutputs: opts.numberOfOutputs,
@@ -249,8 +239,8 @@ export function makeBandpass_(a) {
 		return function () {
 			var ptr = a.id;
 			state.units[ptr] = {
-				outgoing: [a.parent],
-				incoming: [],
+				audioOutgoing: [],
+				controlOutgoing: [],
 				main: new BiquadFilterNode(state.context, {
 					type: "bandpass",
 					Q: a.q,
@@ -275,9 +265,8 @@ export function makeConstant_(a) {
 			};
 			var resume = { offset: a.offset };
 			state.units[ptr] = {
-				//outgoing: [a.parent],
-				outgoing: [],
-				incoming: [],
+				audioOutgoing: [],
+				controlOutgoing: [],
 				resume: resume,
 				createClosure: createClosure,
 				onOff: false,
@@ -303,8 +292,8 @@ export function makeConvolver_(a) {
 		return function () {
 			var ptr = a.id;
 			state.units[ptr] = {
-				outgoing: [],
-				incoming: [],
+				audioOutgoing: [],
+				controlOutgoing: [],
 				main: new ConvolverNode(state.context, { buffer: a.buffer }),
 			};
 			addToScope(ptr, a.scope, state);
@@ -320,8 +309,8 @@ export function makeDelay_(a) {
 		return function () {
 			var ptr = a.id;
 			state.units[ptr] = {
-				outgoing: [a.parent],
-				incoming: [],
+				audioOutgoing: [],
+				controlOutgoing: [],
 				main: new DelayNode(state.context, {
 					delayTime: a.delayTime,
 					maxDelayTime: a.maxDelayTime,
@@ -340,8 +329,8 @@ export function makeDynamicsCompressor_(a) {
 		return function () {
 			var ptr = a.id;
 			state.units[ptr] = {
-				outgoing: [a.parent],
-				incoming: [],
+				audioOutgoing: [],
+				controlOutgoing: [],
 				main: new DynamicsCompressorNode(state.context, {
 					knee: a.knee,
 					ratio: a.ratio,
@@ -363,8 +352,8 @@ var makeGain_ = function (a) {
 		return function () {
 			var ptr = a.id;
 			state.units[ptr] = {
-				outgoing: [a.parent],
-				incoming: [],
+				audioOutgoing: [],
+				controlOutgoing: [],
 				main: new GainNode(state.context, {
 					gain: a.gain,
 				}),
@@ -375,7 +364,7 @@ var makeGain_ = function (a) {
 		};
 	};
 };
-export {makeGain_};
+export { makeGain_ };
 
 // highpass
 export function makeHighpass_(a) {
@@ -383,8 +372,8 @@ export function makeHighpass_(a) {
 		return function () {
 			var ptr = a.id;
 			state.units[ptr] = {
-				outgoing: [a.parent],
-				incoming: [],
+				audioOutgoing: [],
+				controlOutgoing: [],
 				main: new BiquadFilterNode(state.context, {
 					type: "highpass",
 					Q: a.q,
@@ -404,8 +393,8 @@ export function makeHighshelf_(a) {
 		return function () {
 			var ptr = a.id;
 			state.units[ptr] = {
-				outgoing: [a.parent],
-				incoming: [],
+				audioOutgoing: [],
+				controlOutgoing: [],
 				main: new BiquadFilterNode(state.context, {
 					type: "highshelf",
 					frequency: a.frequency,
@@ -424,8 +413,8 @@ export function makeIIRFilter_(a) {
 		return function () {
 			var ptr = a.id;
 			state.units[ptr] = {
-				outgoing: [],
-				incoming: [],
+				audioOutgoing: [],
+				controlOutgoing: [],
 				main: new IIRFilterNode(state.context, {
 					feedforward: a.feedforward,
 					feedback: a.feedback,
@@ -455,9 +444,8 @@ export function makeLoopBuf_(a) {
 				playbackRate: a.playbackRate,
 			};
 			state.units[ptr] = {
-				//outgoing: [a.parent],
-				outgoing: [],
-				incoming: [],
+				audioOutgoing: [],
+				controlOutgoing: [],
 				resume: resume,
 				createClosure: createClosure,
 				onOff: false,
@@ -484,8 +472,8 @@ export function makeLowpass_(a) {
 		return function () {
 			var ptr = a.id;
 			state.units[ptr] = {
-				outgoing: [a.parent],
-				incoming: [],
+				audioOutgoing: [],
+				controlOutgoing: [],
 				main: new BiquadFilterNode(state.context, {
 					type: "lowpass",
 					Q: a.q,
@@ -505,8 +493,8 @@ export function makeLowshelf_(a) {
 		return function () {
 			var ptr = a.id;
 			state.units[ptr] = {
-				outgoing: [a.parent],
-				incoming: [],
+				audioOutgoing: [],
+				controlOutgoing: [],
 				main: new BiquadFilterNode(state.context, {
 					type: "lowshelf",
 					frequency: a.frequency,
@@ -532,8 +520,8 @@ export function makeMediaElement_(a) {
 				return unit;
 			};
 			state.units[ptr] = {
-				outgoing: [a.parent],
-				incoming: [],
+				audioOutgoing: [],
+				controlOutgoing: [],
 				createClosure: createClosure,
 				resumeClosure: {},
 				main: createClosure(),
@@ -552,8 +540,8 @@ export function makeMicrophone_(a) {
 			var ptr = a.id;
 			state.units[a.id] = {
 				main: state.context.createMediaStreamSource(a.microphone),
-				outgoing: [a.parent],
-				incoming: [],
+				audioOutgoing: [],
+				controlOutgoing: [],
 			};
 			addToScope(ptr, a.scope, state);
 			doDeferredConnections(ptr, state);
@@ -568,8 +556,8 @@ export function makeNotch_(a) {
 		return function () {
 			var ptr = a.id;
 			state.units[ptr] = {
-				outgoing: [a.parent],
-				incoming: [],
+				audioOutgoing: [],
+				controlOutgoing: [],
 				main: new BiquadFilterNode(state.context, {
 					type: "notch",
 					frequency: a.frequency,
@@ -589,8 +577,8 @@ export function makePeaking_(a) {
 		return function () {
 			var ptr = a.id;
 			state.units[ptr] = {
-				outgoing: [a.parent],
-				incoming: [],
+				audioOutgoing: [],
+				controlOutgoing: [],
 				main: new BiquadFilterNode(state.context, {
 					type: "peaking",
 					frequency: a.frequency,
@@ -626,9 +614,8 @@ export function makePeriodicOsc_(a) {
 			};
 			var resume = { frequency: a.frequency, type: "custom", spec: a.spec };
 			state.units[ptr] = {
-				//outgoing: [a.parent],
-				outgoing: [],
-				incoming: [],
+				audioOutgoing: [],
+				controlOutgoing: [],
 				resume: resume,
 				createClosure: createClosure,
 				onOff: false,
@@ -671,9 +658,8 @@ export function makePlayBuf_(a) {
 				duration: a.duration,
 			};
 			state.units[ptr] = {
-				//outgoing: [a.parent],
-				outgoing: [],
-				incoming: [],
+				audioOutgoing: [],
+				controlOutgoing: [],
 				resume: resume,
 				createClosure: createClosure,
 				onOff: false,
@@ -707,8 +693,8 @@ export function makeRecorder_(a) {
 			mediaRecorderSideEffectFn(mediaRecorder)();
 			mediaRecorder.start();
 			state.units[ptr] = {
-				outgoing: [],
-				incoming: [],
+				audioOutgoing: [],
+				controlOutgoing: [],
 				recorderOrig: mediaRecorderSideEffectFn,
 				recorder: mediaRecorder,
 				main: state.context.createGain(),
@@ -732,9 +718,8 @@ export function makeSawtoothOsc_(a) {
 			};
 			var resume = { frequency: a.frequency, type: "sawtooth" };
 			state.units[ptr] = {
-				//outgoing: [a.parent],
-				outgoing: [],
-				incoming: [],
+				audioOutgoing: [],
+				controlOutgoing: [],
 				resume: resume,
 				createClosure: createClosure,
 				onOff: false,
@@ -766,9 +751,8 @@ export function makeSinOsc_(a) {
 			};
 			var resume = { frequency: a.frequency, type: "sine" };
 			state.units[ptr] = {
-				//outgoing: [a.parent],
-				outgoing: [],
-				incoming: [],
+				audioOutgoing: [],
+				controlOutgoing: [],
 				resume: resume,
 				createClosure: createClosure,
 				onOff: false,
@@ -794,8 +778,8 @@ export function makeSpeaker_(a) {
 	return function (state) {
 		return function () {
 			state.units[a.id] = {
-				outgoing: [],
-				incoming: [],
+				audioOutgoing: [],
+				controlOutgoing: [],
 				main: state.context.createGain(),
 				se: state.context.destination,
 			};
@@ -809,8 +793,8 @@ export function makeStereoPanner_(a) {
 		return function () {
 			var ptr = a.id;
 			state.units[ptr] = {
-				outgoing: [a.parent],
-				incoming: [],
+				audioOutgoing: [],
+				controlOutgoing: [],
 				main: new StereoPannerNode(state.context, {
 					pan: a.pan,
 				}),
@@ -833,9 +817,8 @@ export function makeSquareOsc_(a) {
 			};
 			var resume = { frequency: a.frequency, type: "square" };
 			state.units[ptr] = {
-				//outgoing: [a.parent],
-				outgoing: [],
-				incoming: [],
+				audioOutgoing: [],
+				controlOutgoing: [],
 				resume: resume,
 				createClosure: createClosure,
 				onOff: false,
@@ -867,9 +850,8 @@ export function makeTriangleOsc_(a) {
 			};
 			var resume = { frequency: a.frequency, type: "triangle" };
 			state.units[ptr] = {
-				//outgoing: [a.parent],
-				outgoing: [],
-				incoming: [],
+				audioOutgoing: [],
+				controlOutgoing: [],
 				resume: resume,
 				createClosure: createClosure,
 				onOff: false,
@@ -898,8 +880,8 @@ export function makeWaveShaper_(aa) {
 			var a = aa.curve;
 			var b = aa.oversample;
 			state.units[ptr] = {
-				outgoing: [a.parent],
-				incoming: [],
+				audioOutgoing: [],
+				controlOutgoing: [],
 				main: new WaveShaperNode(state.context, {
 					curve: a,
 					oversample: b.type,
@@ -1267,8 +1249,8 @@ var setOn_ = function (ptr) {
 					state.context,
 					state.units[ptr].resume
 				);
-				for (var i = 0; i < state.units[ptr].outgoing.length; i++) {
-					var ogi = state.units[ptr].outgoing[i];
+				for (var i = 0; i < state.units[ptr].audioOutgoing.length; i++) {
+					var ogi = state.units[ptr].audioOutgoing[i];
 					state.units[ptr].main.connect(state.units[ogi].main);
 					if (state.units[ogi].se) {
 						state.units[ptr].main.connect(state.units[ogi].se);
@@ -1312,7 +1294,6 @@ var setOff_ = function (ptr) {
 				}
 				state.units[ptr].onOff = false;
 				var oldMain = state.units[ptr].main;
-				var oldOutgoing = state.units[ptr].outgoing.slice();
 				// defer disconnection until stop has happened
 				oldMain.addEventListener("ended", () => {
 					oldMain.disconnect();
@@ -1531,7 +1512,7 @@ var makePeriodicWaveImpl = function (ctx) {
 		};
 	};
 };
-export {makePeriodicWaveImpl};
+export { makePeriodicWaveImpl };
 
 export function makeFFIAudioSnapshot(audioCtx) {
 	return function () {
