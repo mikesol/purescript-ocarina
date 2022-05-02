@@ -35,12 +35,12 @@ px = Proxy :: Proxy
   @ex2@
 
   <h2>Next steps</h2>
-  <p>In this section, saw how to build rich audio applications using the <code>Event</code> and <code>Behavior</code> types. We also covered the three most common patterns you'll see when working with events: events that need to happen <i>now</i>, events that come from user interaction, and timed events. In the next section, we'll look at how to make events <a @next@ style="cursor:pointer;">stateful</a>.</p>
+  <p>In this section, saw how to build rich audio applications using the <code>Event</code> and <code>Behavior</code> types. We also covered the three most common patterns you'll see when working with events: events that need to happen <i>now</i>, events that come from user interaction, and timed events. In the next section, we'll look at different ways to specify <a @next@ style="cursor:pointer;">the numeric parameters being sent as events</a>.</p>
 </div>"""
 
 events :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent -> Element lock payload
 events cca' dpage ssp ev = makePursx'  (Proxy :: _ "@") px
-  { next: mnx State
+  { next: mnx Params
   , primer: nut $ Primer.primer
   , inWags: nut $ InWags.inWags
   , flavors: nut $ Flavors.flavors

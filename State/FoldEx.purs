@@ -25,7 +25,7 @@ import WAGS.Control (gain, periodicOsc)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..), SingleSubgraphPusher)
 import WAGS.Interpret (close, constant0Hack, context)
 import WAGS.Math (calcSlope)
-import WAGS.Parameter (AudioNumeric(..), _linear, bangOn)
+import WAGS.Core (AudioNumeric(..), _linear, bangOn)
 import WAGS.Properties as P
 import WAGS.Run (run2e)
 
@@ -92,7 +92,7 @@ import WAGS.Clock (withACTime)
 import WAGS.Control (gain, periodicOsc)
 import WAGS.Interpret (close, constant0Hack, context)
 import WAGS.Math (calcSlope)
-import WAGS.Parameter (AudioNumeric(..), _linear, bangOn)
+import WAGS.Core (AudioNumeric(..), _linear, bangOn)
 import WAGS.Properties as P
 import WAGS.Run (run2e)
 

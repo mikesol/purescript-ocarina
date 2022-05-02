@@ -16,7 +16,7 @@ import Type.Proxy (Proxy(..))
 import WAGS.Control (gain_, sinOsc)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent(..), SingleSubgraphPusher)
 import WAGS.Example.Docs.Util (audioWrapper, ccassp, mkNext, scrollToTop)
-import WAGS.Parameter (bangOn)
+import WAGS.Core (bangOn)
 import WAGS.Run (run2, run2_)
 
 px =

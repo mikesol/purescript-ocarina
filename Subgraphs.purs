@@ -16,7 +16,7 @@ import WAGS.Example.Docs.Subgraph.SliderEx as SliderEx
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
 import WAGS.Example.Docs.Util (audioWrapperSpan, ccassp, scrollToTop)
 import WAGS.Interpret (bracketCtx, decodeAudioDataFromUri)
-import WAGS.Parameter (bangOn)
+import WAGS.Core (bangOn)
 import WAGS.Run (run2, run2_)
 
 px =  Proxy :: Proxy """<div>

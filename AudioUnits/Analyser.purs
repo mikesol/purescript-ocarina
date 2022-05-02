@@ -33,7 +33,7 @@ import WAGS.Core (Po2(..))
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import WAGS.Example.Docs.Util (WrapperStates(..), clickCb, mkWrapperEvent)
 import WAGS.Interpret (close, context, contextState, bracketCtx, decodeAudioDataFromUri, effectfulAudioInterpret, getByteFrequencyData, makeFFIAudioSnapshot)
-import WAGS.Parameter (bangOn)
+import WAGS.Core (bangOn)
 import WAGS.WebAPI (AnalyserNodeCb(..), BrowserAudioBuffer)
 
 px =

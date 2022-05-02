@@ -33,7 +33,7 @@ import WAGS.Clock (withACTime)
 import WAGS.Control (bandpass_, gain, lowpass_, periodicOsc, squareOsc_)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..), SingleSubgraphPusher)
 import WAGS.Interpret (close, constant0Hack, context)
-import WAGS.Parameter (AudioNumeric(..), _linear, bangOn)
+import WAGS.Core (AudioNumeric(..), _linear, bangOn)
 import WAGS.Properties as P
 import WAGS.Run (run2e)
 
@@ -174,7 +174,7 @@ import Type.Proxy (Proxy(..))
 import WAGS.Clock (withACTime)
 import WAGS.Control (bandpass_, gain, lowpass_, periodicOsc, squareOsc_)
 import WAGS.Interpret (close, constant0Hack, context)
-import WAGS.Parameter (AudioNumeric(..), _linear, bangOn)
+import WAGS.Core (AudioNumeric(..), _linear, bangOn)
 import WAGS.Properties as P
 import WAGS.Run (run2e)
 

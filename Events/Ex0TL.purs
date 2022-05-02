@@ -15,7 +15,7 @@ import FRP.Event (bus)
 import FRP.Event.Class (bang)
 import Data.Number (pow)
 import WAGS.Control (gain_, gain, sinOsc)
-import WAGS.Parameter (AudioEnvelope(..), AudioOnOff(..), _on, _off)
+import WAGS.Core (AudioEnvelope(..), AudioOnOff(..), _on, _off)
 import WAGS.Properties (onOff)
 import WAGS.Properties as P
 import WAGS.Run (run2_)

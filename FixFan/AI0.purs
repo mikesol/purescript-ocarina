@@ -14,7 +14,7 @@ import WAGS.Control (gain_, playBuf)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import WAGS.Example.Docs.Util (audioWrapper)
 import WAGS.Interpret (bracketCtx, decodeAudioDataFromUri)
-import WAGS.Parameter (apOn, dt)
+import WAGS.Core (apOn, dt)
 import WAGS.Properties (onOff)
 import WAGS.Run (run2, run2_)
 

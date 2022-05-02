@@ -14,7 +14,7 @@ import WAGS.Core (mix)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import WAGS.Example.Docs.Util (audioWrapper)
 import WAGS.Interpret (decodeAudioDataFromUri)
-import WAGS.Parameter (AudioEnvelope(..), bangOn)
+import WAGS.Core (AudioEnvelope(..), bangOn)
 import WAGS.Properties as P
 import WAGS.Run (run2)
 
