@@ -16,7 +16,7 @@ import Data.Profunctor (lcmap)
 import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.Tuple.Nested (type (/\), (/\))
 import Data.Typelevel.Num (class Lt, class Nat, class Pos, class Pred, D1, D2, d0, pred, toInt)
-import Data.Variant (Unvariant(..), match, unvariant)
+import Data.Variant (Unvariant(..), inj, match, unvariant)
 import Data.Variant.Maybe (Maybe, just, nothing)
 import Data.Vec (Vec, index, singleton, toArray)
 import Effect (Effect, foreachE)
@@ -41,7 +41,7 @@ allpass
    . Common.InitialAllpass i
   => C.Mix aud (C.Audible outputChannels lock payload)
   => i
-  -> Event (C.Allpass payload)
+  -> Event (C.Allpass lock payload)
   -> aud -- Array (C.Node outputChannels lock payload)
   -> C.Node outputChannels lock payload
 allpass i' atts elts = C.Node go
@@ -58,8 +58,8 @@ allpass i' atts elts = C.Node go
         <|>
           ( keepLatest $ map
               ( \(C.Allpass e) -> match
-                  { frequency: Common.resolveAU di (setFrequency <<< { id: me, frequency: _ })
-                  , q: Common.resolveAU di (setQ <<< { id: me, q: _ })
+                  { frequency: tmpResolveAU di (setFrequency <<< { id: me, frequency: _ })
+                  , q: tmpResolveAU di (setQ <<< { id: me, q: _ })
                   }
                   e
               )
@@ -261,7 +261,7 @@ __audioWorklet
   => Pos numberOfOutputs
   => ValidateOutputChannelCount numberOfOutputs outputChannelCount
   => Homogeneous parameterData C.InitialAudioParameter
-  => HomogeneousRowLabels parameterData (C.AudioParameter payload) parameterDataRL
+  => HomogeneousRowLabels parameterData (C.AudioParameter lock payload) parameterDataRL
   => JSON.WriteForeign { | processorOptions }
   => C.InitializeAudioWorkletNode name numberOfInputs numberOfOutputs
        outputChannelCount
@@ -302,7 +302,7 @@ __audioWorklet (C.InitializeAudioWorkletNode i) atts elt = C.Node go
           )
           <|>
             ( keepLatest $ map
-                ( \(C.AudioWorkletNode e) -> Common.resolveAU di
+                ( \(C.AudioWorkletNode e) -> tmpResolveAU di
                     ( \paramValue -> setAudioWorkletParameter
                         { id: me
                         , paramName: (let Unvariant e' = unvariant e in e')
@@ -325,7 +325,7 @@ audioWorklet
   => Pos numberOfOutputs
   => ValidateOutputChannelCount numberOfOutputs outputChannelCount
   => Homogeneous parameterData C.InitialAudioParameter
-  => HomogeneousRowLabels parameterData (C.AudioParameter payload) parameterDataRL
+  => HomogeneousRowLabels parameterData (C.AudioParameter lock payload) parameterDataRL
   => JSON.WriteForeign { | processorOptions }
   => C.InitializeAudioWorkletNode name numberOfInputs numberOfOutputs
        outputChannelCount
@@ -342,7 +342,7 @@ bandpass
    . Common.InitialBandpass i
   => C.Mix aud (C.Audible outputChannels lock payload)
   => i
-  -> Event (C.Bandpass payload)
+  -> Event (C.Bandpass lock payload)
   -> aud
   -> C.Node outputChannels lock payload
 bandpass i' atts elts = C.Node go
@@ -359,8 +359,8 @@ bandpass i' atts elts = C.Node go
         <|>
           ( keepLatest $ map
               ( \(C.Bandpass e) -> match
-                  { frequency: Common.resolveAU di (setFrequency <<< { id: me, frequency: _ })
-                  , q: Common.resolveAU di (setQ <<< { id: me, q: _ })
+                  { frequency: tmpResolveAU di (setFrequency <<< { id: me, frequency: _ })
+                  , q: tmpResolveAU di (setQ <<< { id: me, q: _ })
                   }
                   e
               )
@@ -383,7 +383,7 @@ __constant
   :: forall i outputChannels lock payload
    . Common.InitialConstant i
   => i
-  -> Event (C.Constant payload)
+  -> Event (C.Constant lock payload)
   -> C.Node outputChannels lock payload
 __constant i' atts = C.Node go
   where
@@ -404,7 +404,7 @@ __constant i' atts = C.Node go
           <|>
             ( keepLatest $ map
                 ( \(C.Constant e) -> match
-                    { offset: Common.resolveAU di (setOffset <<< { id: me, offset: _ })
+                    { offset: tmpResolveAU di (setOffset <<< { id: me, offset: _ })
                     , onOff: \onOff -> bang $ setOnOff { id: me, onOff }
                     }
                     e
@@ -416,7 +416,7 @@ constant
   :: forall i outputChannels lock payload
    . Common.InitialConstant i
   => i
-  -> Event (C.Constant payload)
+  -> Event (C.Constant lock payload)
   -> C.Node outputChannels lock payload
 constant = __constant
 
@@ -460,7 +460,7 @@ delay
    . Common.InitialDelay i
   => C.Mix aud (C.Audible outputChannels lock payload)
   => i
-  -> Event (C.Delay payload)
+  -> Event (C.Delay lock payload)
   -> aud
   -> C.Node outputChannels lock payload
 delay i' atts elts = C.Node go
@@ -477,7 +477,7 @@ delay i' atts elts = C.Node go
         <|>
           ( keepLatest $ map
               ( \(C.Delay e) -> match
-                  { delayTime: Common.resolveAU di (setDelay <<< { id: me, delayTime: _ })
+                  { delayTime: tmpResolveAU di (setDelay <<< { id: me, delayTime: _ })
                   }
                   e
               )
@@ -500,7 +500,7 @@ dynamicsCompressor
    . Common.InitialDynamicsCompressor i
   => C.Mix aud (C.Audible outputChannels lock payload)
   => i
-  -> Event (C.DynamicsCompressor payload)
+  -> Event (C.DynamicsCompressor lock payload)
   -> aud
   -> C.Node outputChannels lock payload
 dynamicsCompressor i' atts elts = C.Node go
@@ -539,23 +539,23 @@ dynamicsCompressor i' atts elts = C.Node go
           <|>
             ( keepLatest $ map
                 ( \(C.DynamicsCompressor e) -> match
-                    { threshold: Common.resolveAU di
+                    { threshold: tmpResolveAU di
                         ( setThreshold <<<
                             { id: me, threshold: _ }
                         )
-                    , ratio: Common.resolveAU di
+                    , ratio: tmpResolveAU di
                         ( setRatio <<<
                             { id: me, ratio: _ }
                         )
-                    , knee: Common.resolveAU di
+                    , knee: tmpResolveAU di
                         ( setKnee <<<
                             { id: me, knee: _ }
                         )
-                    , attack: Common.resolveAU di
+                    , attack: tmpResolveAU di
                         ( setAttack <<<
                             { id: me, attack: _ }
                         )
-                    , release: Common.resolveAU di
+                    , release: tmpResolveAU di
                         ( setRelease <<<
                             { id: me, release: _ }
                         )
@@ -581,7 +581,7 @@ gain
    . Common.InitialGain i
   => C.Mix aud (C.Audible outputChannels lock payload)
   => i
-  -> Event (C.Gain payload)
+  -> Event (C.Gain lock payload)
   -> aud
   -> C.Node outputChannels lock payload
 gain i' atts elts = C.Node go
@@ -598,7 +598,7 @@ gain i' atts elts = C.Node go
         <|>
           ( keepLatest $ map
               ( \(C.Gain e) -> match
-                  { gain: Common.resolveAU di (setGain <<< { id: me, gain: _ })
+                  { gain: tmpResolveAU di (setGain <<< { id: me, gain: _ })
                   }
                   e
               )
@@ -621,7 +621,7 @@ highpass
    . Common.InitialHighpass i
   => C.Mix aud (C.Audible outputChannels lock payload)
   => i
-  -> Event (C.Highpass payload)
+  -> Event (C.Highpass lock payload)
   -> aud
   -> C.Node outputChannels lock payload
 highpass i' atts elts = C.Node go
@@ -638,8 +638,8 @@ highpass i' atts elts = C.Node go
         <|>
           ( keepLatest $ map
               ( \(C.Highpass e) -> match
-                  { frequency: Common.resolveAU di (setFrequency <<< { id: me, frequency: _ })
-                  , q: Common.resolveAU di (setQ <<< { id: me, q: _ })
+                  { frequency: tmpResolveAU di (setFrequency <<< { id: me, frequency: _ })
+                  , q: tmpResolveAU di (setQ <<< { id: me, q: _ })
                   }
                   e
               )
@@ -662,7 +662,7 @@ highshelf
    . Common.InitialHighshelf i
   => C.Mix aud (C.Audible outputChannels lock payload)
   => i
-  -> Event (C.Highshelf payload)
+  -> Event (C.Highshelf lock payload)
   -> aud
   -> C.Node outputChannels lock payload
 highshelf i' atts elts = C.Node go
@@ -679,8 +679,8 @@ highshelf i' atts elts = C.Node go
         <|>
           ( keepLatest $ map
               ( \(C.Highshelf e) -> match
-                  { frequency: Common.resolveAU di (setFrequency <<< { id: me, frequency: _ })
-                  , gain: Common.resolveAU di (setGain <<< { id: me, gain: _ })
+                  { frequency: tmpResolveAU di (setFrequency <<< { id: me, frequency: _ })
+                  , gain: tmpResolveAU di (setGain <<< { id: me, gain: _ })
                   }
                   e
               )
@@ -757,7 +757,7 @@ lowpass
    . Common.InitialLowpass i
   => C.Mix aud (C.Audible outputChannels lock payload)
   => i
-  -> Event (C.Lowpass payload)
+  -> Event (C.Lowpass lock payload)
   -> aud
   -> C.Node outputChannels lock payload
 lowpass i' atts elts = C.Node go
@@ -774,8 +774,8 @@ lowpass i' atts elts = C.Node go
         <|>
           ( keepLatest $ map
               ( \(C.Lowpass e) -> match
-                  { frequency: Common.resolveAU di (setFrequency <<< { id: me, frequency: _ })
-                  , q: Common.resolveAU di (setQ <<< { id: me, q: _ })
+                  { frequency: tmpResolveAU di (setFrequency <<< { id: me, frequency: _ })
+                  , q: tmpResolveAU di (setQ <<< { id: me, q: _ })
                   }
                   e
               )
@@ -798,7 +798,7 @@ lowshelf
    . Common.InitialLowshelf i
   => C.Mix aud (C.Audible outputChannels lock payload)
   => i
-  -> Event (C.Lowshelf payload)
+  -> Event (C.Lowshelf lock payload)
   -> aud
   -> C.Node outputChannels lock payload
 lowshelf i' atts elts = C.Node go
@@ -815,8 +815,8 @@ lowshelf i' atts elts = C.Node go
         <|>
           ( keepLatest $ map
               ( \(C.Lowshelf e) -> match
-                  { frequency: Common.resolveAU di (setFrequency <<< { id: me, frequency: _ })
-                  , gain: Common.resolveAU di (setGain <<< { id: me, gain: _ })
+                  { frequency: tmpResolveAU di (setFrequency <<< { id: me, frequency: _ })
+                  , gain: tmpResolveAU di (setGain <<< { id: me, gain: _ })
                   }
                   e
               )
@@ -839,7 +839,7 @@ __loopBuf
   :: forall i outputChannels lock payload
    . Common.InitialLoopBuf i
   => i
-  -> Event (C.LoopBuf payload)
+  -> Event (C.LoopBuf lock payload)
   -> C.Node outputChannels lock payload
 __loopBuf i' atts = C.Node go
   where
@@ -878,7 +878,7 @@ __loopBuf i' atts = C.Node go
             ( keepLatest $ map
                 ( \(C.LoopBuf e) -> match
                     { buffer: \buffer -> bang $ setBuffer { id: me, buffer }
-                    , playbackRate: Common.resolveAU di (setPlaybackRate <<< { id: me, playbackRate: _ })
+                    , playbackRate: tmpResolveAU di (setPlaybackRate <<< { id: me, playbackRate: _ })
                     , loopStart: \loopStart -> bang $ setLoopStart { id: me, loopStart }
                     , loopEnd: \loopEnd -> bang $ setLoopEnd { id: me, loopEnd }
                     , onOff: \onOff -> bang $ setOnOff { id: me, onOff }
@@ -892,7 +892,7 @@ loopBuf
   :: forall i outputChannels lock payload
    . Common.InitialLoopBuf i
   => i
-  -> Event (C.LoopBuf payload)
+  -> Event (C.LoopBuf lock payload)
   -> C.Node outputChannels lock payload
 loopBuf = __loopBuf
 
@@ -968,7 +968,7 @@ notch
    . Common.InitialNotch i
   => C.Mix aud (C.Audible outputChannels lock payload)
   => i
-  -> Event (C.Notch payload)
+  -> Event (C.Notch lock payload)
   -> aud
   -> C.Node outputChannels lock payload
 notch i' atts elts = C.Node go
@@ -985,8 +985,8 @@ notch i' atts elts = C.Node go
         <|>
           ( keepLatest $ map
               ( \(C.Notch e) -> match
-                  { frequency: Common.resolveAU di (setFrequency <<< { id: me, frequency: _ })
-                  , q: Common.resolveAU di (setQ <<< { id: me, q: _ })
+                  { frequency: tmpResolveAU di (setFrequency <<< { id: me, frequency: _ })
+                  , q: tmpResolveAU di (setQ <<< { id: me, q: _ })
                   }
                   e
               )
@@ -1009,7 +1009,7 @@ peaking
    . Common.InitialPeaking i
   => C.Mix aud (C.Audible outputChannels lock payload)
   => i
-  -> Event (C.Peaking payload)
+  -> Event (C.Peaking lock payload)
   -> aud
   -> C.Node outputChannels lock payload
 peaking i' atts elts = C.Node go
@@ -1026,9 +1026,9 @@ peaking i' atts elts = C.Node go
         <|>
           ( keepLatest $ map
               ( \(C.Peaking e) -> match
-                  { frequency: Common.resolveAU di (setFrequency <<< { id: me, frequency: _ })
-                  , q: Common.resolveAU di (setQ <<< { id: me, q: _ })
-                  , gain: Common.resolveAU di (setGain <<< { id: me, gain: _ })
+                  { frequency: tmpResolveAU di (setFrequency <<< { id: me, frequency: _ })
+                  , q: tmpResolveAU di (setQ <<< { id: me, q: _ })
+                  , gain: tmpResolveAU di (setGain <<< { id: me, gain: _ })
                   }
                   e
               )
@@ -1051,7 +1051,7 @@ __periodicOsc
   :: forall i outputChannels lock payload
    . Common.InitialPeriodicOsc i
   => i
-  -> Event (C.PeriodicOsc payload)
+  -> Event (C.PeriodicOsc lock payload)
   -> C.Node outputChannels lock payload
 __periodicOsc i' atts = C.Node go
   where
@@ -1078,7 +1078,7 @@ __periodicOsc i' atts = C.Node go
           <|>
             ( keepLatest $ map
                 ( \(C.PeriodicOsc e) -> match
-                    { frequency: Common.resolveAU di (setFrequency <<< { id: me, frequency: _ })
+                    { frequency: tmpResolveAU di (setFrequency <<< { id: me, frequency: _ })
                     , onOff: \onOff -> bang $ setOnOff { id: me, onOff }
                     , spec: \spec -> bang $ setPeriodicOsc { id: me, spec }
                     }
@@ -1091,7 +1091,7 @@ periodicOsc
   :: forall i outputChannels lock payload
    . Common.InitialPeriodicOsc i
   => i
-  -> Event (C.PeriodicOsc payload)
+  -> Event (C.PeriodicOsc lock payload)
   -> C.Node outputChannels lock payload
 periodicOsc = __periodicOsc
 
@@ -1161,7 +1161,7 @@ __playBuf
   :: forall i outputChannels lock payload
    . Common.InitialPlayBuf i
   => i
-  -> Event (C.PlayBuf payload)
+  -> Event (C.PlayBuf lock payload)
   -> C.Node outputChannels lock payload
 __playBuf i' atts = C.Node go
   where
@@ -1199,7 +1199,7 @@ __playBuf i' atts = C.Node go
             ( keepLatest $ map
                 ( \(C.PlayBuf e) -> match
                     { buffer: \buffer -> bang $ setBuffer { id: me, buffer }
-                    , playbackRate: Common.resolveAU di
+                    , playbackRate: tmpResolveAU di
                         ( setPlaybackRate <<<
                             { id: me, playbackRate: _ }
                         )
@@ -1217,7 +1217,7 @@ playBuf
   :: forall i outputChannels lock payload
    . Common.InitialPlayBuf i
   => i
-  -> Event (C.PlayBuf payload)
+  -> Event (C.PlayBuf lock payload)
   -> C.Node outputChannels lock payload
 playBuf = __playBuf
 
@@ -1255,7 +1255,7 @@ __sawtoothOsc
   :: forall i outputChannels lock payload
    . Common.InitialSawtoothOsc i
   => i
-  -> Event (C.SawtoothOsc payload)
+  -> Event (C.SawtoothOsc lock payload)
   -> C.Node outputChannels lock payload
 __sawtoothOsc i' atts = C.Node go
   where
@@ -1278,7 +1278,7 @@ __sawtoothOsc i' atts = C.Node go
           <|>
             ( keepLatest $ map
                 ( \(C.SawtoothOsc e) -> match
-                    { frequency: Common.resolveAU di (setFrequency <<< { id: me, frequency: _ })
+                    { frequency: tmpResolveAU di (setFrequency <<< { id: me, frequency: _ })
                     , onOff: \onOff -> bang $ setOnOff { id: me, onOff }
                     }
                     e
@@ -1290,7 +1290,7 @@ sawtoothOsc
   :: forall i outputChannels lock payload
    . Common.InitialSawtoothOsc i
   => i
-  -> Event (C.SawtoothOsc payload)
+  -> Event (C.SawtoothOsc lock payload)
   -> C.Node outputChannels lock payload
 sawtoothOsc = __sawtoothOsc
 
@@ -1307,7 +1307,7 @@ __sinOsc
   :: forall i outputChannels lock payload
    . Common.InitialSinOsc i
   => i
-  -> Event (C.SinOsc payload)
+  -> Event (C.SinOsc lock payload)
   -> C.Node outputChannels lock payload
 __sinOsc i' atts = C.Node go
   where
@@ -1330,7 +1330,7 @@ __sinOsc i' atts = C.Node go
           <|>
             ( keepLatest $ map
                 ( \(C.SinOsc e) -> match
-                    { frequency: Common.resolveAU di (setFrequency <<< { id: me, frequency: _ })
+                    { frequency: tmpResolveAU di (setFrequency <<< { id: me, frequency: _ })
                     , onOff: \onOff -> bang $ setOnOff { id: me, onOff }
                     }
                     e
@@ -1342,7 +1342,7 @@ sinOsc
   :: forall i outputChannels lock payload
    . Common.InitialSinOsc i
   => i
-  -> Event (C.SinOsc payload)
+  -> Event (C.SinOsc lock payload)
   -> C.Node outputChannels lock payload
 sinOsc = __sinOsc
 
@@ -1359,7 +1359,7 @@ __squareOsc
   :: forall i outputChannels lock payload
    . Common.InitialSquareOsc i
   => i
-  -> Event (C.SquareOsc payload)
+  -> Event (C.SquareOsc lock payload)
   -> C.Node outputChannels lock payload
 __squareOsc i' atts = C.Node go
   where
@@ -1382,7 +1382,7 @@ __squareOsc i' atts = C.Node go
           <|>
             ( keepLatest $ map
                 ( \(C.SquareOsc e) -> match
-                    { frequency: Common.resolveAU di (setFrequency <<< { id: me, frequency: _ })
+                    { frequency: tmpResolveAU di (setFrequency <<< { id: me, frequency: _ })
                     , onOff: \onOff -> bang $ setOnOff { id: me, onOff }
                     }
                     e
@@ -1394,7 +1394,7 @@ squareOsc
   :: forall i outputChannels lock payload
    . Common.InitialSquareOsc i
   => i
-  -> Event (C.SquareOsc payload)
+  -> Event (C.SquareOsc lock payload)
   -> C.Node outputChannels lock payload
 squareOsc = __squareOsc
 
@@ -1431,7 +1431,7 @@ pan
    . Common.InitialStereoPanner i
   => C.Mix aud (C.Audible outputChannels lock payload)
   => i
-  -> Event (C.StereoPanner payload)
+  -> Event (C.StereoPanner lock payload)
   -> aud
   -> C.Node outputChannels lock payload
 pan i' atts elts = C.Node go
@@ -1448,7 +1448,7 @@ pan i' atts elts = C.Node go
         <|>
           ( keepLatest $ map
               ( \(C.StereoPanner e) -> match
-                  { pan: Common.resolveAU di (setPan <<< { id: me, pan: _ })
+                  { pan: tmpResolveAU di (setPan <<< { id: me, pan: _ })
                   }
                   e
               )
@@ -1471,7 +1471,7 @@ __triangleOsc
   :: forall i outputChannels lock payload
    . Common.InitialTriangleOsc i
   => i
-  -> Event (C.TriangleOsc payload)
+  -> Event (C.TriangleOsc lock payload)
   -> C.Node outputChannels lock payload
 __triangleOsc i' atts = C.Node go
   where
@@ -1494,7 +1494,7 @@ __triangleOsc i' atts = C.Node go
           <|>
             ( keepLatest $ map
                 ( \(C.TriangleOsc e) -> match
-                    { frequency: Common.resolveAU di (setFrequency <<< { id: me, frequency: _ })
+                    { frequency: tmpResolveAU di (setFrequency <<< { id: me, frequency: _ })
                     , onOff: \onOff -> bang $ setOnOff { id: me, onOff }
                     }
                     e
@@ -1506,7 +1506,7 @@ triangleOsc
   :: forall i outputChannels lock payload
    . Common.InitialTriangleOsc i
   => i
-  -> Event (C.TriangleOsc payload)
+  -> Event (C.TriangleOsc lock payload)
   -> C.Node outputChannels lock payload
 triangleOsc = __triangleOsc
 
@@ -1726,3 +1726,45 @@ silence = fix identity
 --                 )
 --               )
 --       )
+
+-- TODO
+-- this function is copied between two files
+-- with the sole difference that this version wraps its argument in a gain node
+-- the reason for this is that, otherwise, we'd have to write additional machinery
+-- for all generators (ie sine wave oscillators) to listen to when they turn on and off and reconnect fresh generators whenever something turns on again
+-- by doing it this way, all generators go to a gain node, so we can use code we've already written
+-- the downside is that we have an extra gain node for every audio parameter
+-- which can add up
+-- so we definitely want to delete this and use Common.resolveAU
+-- as soon as we can correctly attach and detach generators
+tmpResolveAU :: forall lock payload. C.AudioInterpret payload -> (C.FFIAudioParameter -> payload) -> C.AudioParameter lock payload -> Event payload
+tmpResolveAU = go
+  where
+  cncl = C.FFIAudioParameter <<< inj (Proxy :: _ "cancel")
+  ev = C.FFIAudioParameter <<< inj (Proxy :: _ "envelope")
+  nmc = C.FFIAudioParameter <<< inj (Proxy :: _ "numeric")
+  sdn = C.FFIAudioParameter <<< inj (Proxy :: _ "sudden")
+  ut = C.FFIAudioParameter <<< inj (Proxy :: _ "unit")
+  go di@(C.AudioInterpret { ids }) f (C.AudioParameter a) = match
+    { numeric: bang <<< f <<< nmc
+    , envelope: bang <<< f <<< ev
+    , cancel: bang <<< f <<< cncl
+    , sudden: bang <<< f <<< sdn
+    , unit: \(C.AudioUnit { u }) ->
+        let
+          C.Node n = gain_ 1.0 u
+        in
+          makeEvent \k -> do
+            newScope <- ids
+            av <- AVar.empty
+            subscribe
+              ( n { parent: nothing, scope: newScope, raiseId: \x -> void $ AVar.tryPut x av } di <|> makeEvent \k2 -> do
+                  void $ AVar.take av case _ of
+                    Left e -> throwException e
+                    -- only do the connection if not silence
+                    Right i -> k2 (f (ut (C.FFIAudioUnit { i })))
+                  pure (pure unit)
+              )
+              k
+    }
+    a

@@ -1,4 +1,4 @@
-module WAGS.Example.Docs.AudioUnits.Highpass where
+module WAGS.Example.Docs.Params.Unit where
 
 import Prelude
 

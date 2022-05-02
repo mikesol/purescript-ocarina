@@ -32,7 +32,7 @@ import WAGS.Example.Utils (RaiseCancellation)
 import WAGS.Imperative (InitialGraphBuilder, runGraphBuilder)
 import WAGS.Imperative as I
 import WAGS.Interpret (close, context, effectfulAudioInterpret, makeFFIAudioSnapshot)
-import WAGS.Parameter (opticN, bangOn)
+import WAGS.Core (opticN, bangOn)
 import WAGS.Properties (frequency)
 import WAGS.WebAPI (AudioContext)
 import Web.HTML (window)

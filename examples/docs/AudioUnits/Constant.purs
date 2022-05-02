@@ -15,7 +15,7 @@ import Type.Proxy (Proxy(..))
 import WAGS.Control (gain_, constant)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import WAGS.Example.Docs.Util (audioWrapper)
-import WAGS.Parameter (AudioEnvelope(..), bangOn)
+import WAGS.Core (AudioEnvelope(..), bangOn)
 import WAGS.Properties (offset)
 import WAGS.Run (run2)
 

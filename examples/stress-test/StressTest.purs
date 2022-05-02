@@ -29,7 +29,7 @@ import WAGS.Core (Audible, mix)
 import WAGS.Example.Utils (RaiseCancellation)
 import WAGS.Interpret (FFIAudioSnapshot, close, context, effectfulAudioInterpret, makeFFIAudioSnapshot)
 import WAGS.Math (calcSlope)
-import WAGS.Parameter (AudioNumeric(..), AudioOnOff(..), _off, _on, _step, opticN)
+import WAGS.Core (AudioNumeric(..), AudioOnOff(..), _off, _on, _step, opticN)
 import WAGS.Properties as Common
 import WAGS.WebAPI (AudioContext)
 import Web.HTML (window)

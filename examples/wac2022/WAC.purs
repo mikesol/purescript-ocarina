@@ -20,7 +20,7 @@ import WAGS.Clock (interval)
 import WAGS.Control (gain, gain_, sinOsc)
 import WAGS.Core (Node)
 import WAGS.Interpret (close, context)
-import WAGS.Parameter (AudioEnvelope(..), AudioOnOff(..), _off, _on)
+import WAGS.Core (AudioEnvelope(..), AudioOnOff(..), _off, _on)
 import WAGS.Properties (onOff)
 import WAGS.Properties as P
 import WAGS.Run (run2e)

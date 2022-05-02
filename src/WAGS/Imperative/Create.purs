@@ -84,13 +84,13 @@ speaker _ = GraphBuilder go
 -- | gain <- Create.gain (Proxy :: _ "gain") 1.0 empty
 -- | ```
 gain
-  :: forall p i o id initialGain
+  :: forall l p i o id initialGain
    . IsSymbol id
   => Common.InitialGain initialGain
   => CreateNode i id False o
   => Proxy id
   -> initialGain
-  -> Event (Core.Gain p)
+  -> Event (Core.Gain l p)
   -> GraphBuilder p i o (T.GraphUnit id T.Gain)
 gain _ initialGain attributes = GraphBuilder go
   where
@@ -120,13 +120,13 @@ gain _ initialGain attributes = GraphBuilder go
 -- | sinOsc <- Create.sinOsc (Proxy :: _ "sinOsc") 440.0 bangOn
 -- | ```
 sinOsc
-  :: forall p i o id initialSinOsc
+  :: forall l p i o id initialSinOsc
    . IsSymbol id
   => Common.InitialSinOsc initialSinOsc
   => CreateNode i id False o
   => Proxy id
   -> initialSinOsc
-  -> Event (Core.SinOsc p)
+  -> Event (Core.SinOsc l p)
   -> GraphBuilder p i o (T.GraphUnit id T.SinOsc)
 sinOsc _ initialSinOsc attributes = GraphBuilder go
   where
@@ -152,13 +152,13 @@ sinOsc _ initialSinOsc attributes = GraphBuilder go
 -- | playBuf <- Create.playBuf (Proxy :: _ "playBuf") audioBuffer bangOn
 -- | ```
 playBuf
-  :: forall p i o id initialPlayBuf
+  :: forall l p i o id initialPlayBuf
    . IsSymbol id
   => Common.InitialPlayBuf initialPlayBuf
   => CreateNode i id False o
   => Proxy id
   -> initialPlayBuf
-  -> Event (Core.PlayBuf p)
+  -> Event (Core.PlayBuf l p)
   -> GraphBuilder p i o (T.GraphUnit id T.PlayBuf)
 playBuf _ initialPlayBuf attributes = GraphBuilder go
   where

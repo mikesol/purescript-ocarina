@@ -10,7 +10,7 @@ var makeid = function (length) {
 };
 var NUMERIC = "numeric";
 var SUDDEN = "sudden";
-var SUDDEN = "unit";
+var UNIT = "unit";
 var CANCELLATION = "cancellation";
 var NO_RAMP = "step";
 var LINEAR_RAMP = "linear";

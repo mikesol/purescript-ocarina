@@ -734,21 +734,21 @@ instance PeriodicOscSpecable BrowserPeriodicWave where
 instance Pos n => PeriodicOscSpecable (Vec n Number /\ Vec n Number) where
   toPeriodicOscSpec (real /\ img) = PeriodicOscSpec $ inj (Proxy :: _ "realImg") $ RealImg { real: toArray real, img: toArray img }
 
-instance PeriodicOscSpecable i =>
+instance
+  PeriodicOscSpecable i =>
   ConvertOption PeriodicOscOptions
     "spec"
     i
     PeriodicOscSpec where
   convertOption _ _ = toPeriodicOscSpec
 
-
 type PeriodicOscAll =
   ( frequency :: Core.InitialAudioParameter
   , spec :: PeriodicOscSpec
   )
 
-defaultPeriodicOsc :: { }
-defaultPeriodicOsc = {  }
+defaultPeriodicOsc :: {}
+defaultPeriodicOsc = {}
 
 class InitialPeriodicOsc i where
   toInitializePeriodicOsc :: i -> Core.InitializePeriodicOsc
@@ -757,12 +757,11 @@ instance InitialPeriodicOsc Core.InitializePeriodicOsc where
   toInitializePeriodicOsc = identity
 
 instance
-  ConvertOptionsWithDefaults PeriodicOscOptions { } { | provided }
+  ConvertOptionsWithDefaults PeriodicOscOptions {} { | provided }
     { | PeriodicOscAll } =>
   InitialPeriodicOsc { | provided } where
   toInitializePeriodicOsc provided = Core.InitializePeriodicOsc
     (convertOptionsWithDefaults PeriodicOscOptions defaultPeriodicOsc provided)
-
 
 -- SawtoothOsc
 class InitialSawtoothOsc i where
@@ -863,7 +862,7 @@ instance
 
 -- resolveAU
 
-resolveAU :: forall payload. C.AudioInterpret payload -> (C.FFIAudioParameter -> payload) -> C.AudioParameter payload -> Event payload
+resolveAU :: forall lock payload. C.AudioInterpret payload -> (C.FFIAudioParameter -> payload) -> C.AudioParameter lock payload -> Event payload
 resolveAU = go
   where
   cncl = C.FFIAudioParameter <<< inj (Proxy :: _ "cancel")
@@ -876,17 +875,17 @@ resolveAU = go
     , envelope: bang <<< f <<< ev
     , cancel: bang <<< f <<< cncl
     , sudden: bang <<< f <<< sdn
-    , unit: \(C.AudioUnit { o: (C.Node n) }) -> makeEvent \k -> do
-        newScope <- ids
-        av <- AVar.empty
-        subscribe
-          ( n { parent: nothing, scope: newScope, raiseId: \x -> void $ AVar.tryPut x av } di <|> makeEvent \k2 -> do
-              void $ AVar.take av case _ of
-                Left e -> throwException e
-                -- only do the connection if not silence
-                Right i -> k2 (f (ut (C.FFIAudioUnit { i })))
-              pure (pure unit)
-          )
-          k
+    , unit: \(C.AudioUnit { u }) -> let C.Node n = u in makeEvent \k -> do
+            newScope <- ids
+            av <- AVar.empty
+            subscribe
+              ( n { parent: nothing, scope: newScope, raiseId: \x -> void $ AVar.tryPut x av } di <|> makeEvent \k2 -> do
+                  void $ AVar.take av case _ of
+                    Left e -> throwException e
+                    -- only do the connection if not silence
+                    Right i -> k2 (f (ut (C.FFIAudioUnit { i })))
+                  pure (pure unit)
+              )
+              k
     }
     a

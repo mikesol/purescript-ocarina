@@ -45,7 +45,7 @@ import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..
 import WAGS.Example.Docs.Util (raceSelf)
 import WAGS.Interpret (close, constant0Hack, context, decodeAudioDataFromUri, getByteFrequencyData)
 import WAGS.Math (calcSlope)
-import WAGS.Parameter (AudioEnvelope(..), AudioNumeric(..), _linear, bangOn)
+import WAGS.Core (AudioEnvelope(..), AudioNumeric(..), _linear, bangOn)
 import WAGS.Properties as P
 import WAGS.Run (run2)
 import WAGS.WebAPI (AnalyserNodeCb(..))

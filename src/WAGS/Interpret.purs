@@ -176,13 +176,13 @@ foreign import getBrowserMediaStreamImpl
 data Audio
 
 audioWorkletAddModule
-  :: forall node payload numberOfInputs numberOfOutputs outputChannelCount parameterData
+  :: forall node lock payload numberOfInputs numberOfOutputs outputChannelCount parameterData
        processorOptions
    . IsSymbol node
   => Nat numberOfInputs
   => Pos numberOfOutputs
   => ValidateOutputChannelCount numberOfOutputs outputChannelCount
-  => Homogeneous parameterData (C.AudioParameter payload)
+  => Homogeneous parameterData (C.AudioParameter lock payload)
   => JSON.WriteForeign { | processorOptions }
   => WebAPI.AudioContext
   -> String

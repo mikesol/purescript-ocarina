@@ -32,7 +32,7 @@ import WAGS.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEven
 import WAGS.Example.Docs.Util (ccassp, mkNext, scrollToTop)
 import WAGS.Interpret (close, context)
 import WAGS.Math (calcSlope)
-import WAGS.Parameter (AudioNumeric(..), _linear, bangOn)
+import WAGS.Core (AudioNumeric(..), _linear, bangOn)
 import WAGS.Properties as P
 import WAGS.Run (run2)
 
