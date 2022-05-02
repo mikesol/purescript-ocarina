@@ -15,9 +15,6 @@ var NO_RAMP = "step";
 var LINEAR_RAMP = "linear";
 var EXPONENTIAL_RAMP = "exponential";
 var ENVELOPE = "envelope";
-var isOn = function (param) {
-	return param.type === "on" || param.type === "offOn";
-};
 var isCancellation = function (a) {
 	return a.type === CANCELLATION;
 };
@@ -1252,9 +1249,6 @@ export function setOnOff_(aa) {
 				setOn_(ptr)(onOff)(state)();
 			} else if (onOff.x.type === "off") {
 				setOff_(ptr)(onOff)(state)();
-			} else if (onOff.x.type === "offOn") {
-				setOff_(ptr)({ x: { type: "off" }, o: 0.0 })(state)();
-				setOn_(ptr)({ x: { type: "on" }, o: onOff.o })(state)();
 			}
 		};
 	};

@@ -9,7 +9,7 @@ import Data.Lens.Record (prop)
 import Data.Newtype (class Newtype, unwrap, wrap)
 import Data.Profunctor.Strong (class Strong)
 import Data.Variant (Variant, inj, match)
-import FRP.Event (class IsEvent, Event)
+import FRP.Event (Event)
 import FRP.Event.Class (bang)
 import Prim.Row (class Cons)
 import Type.Proxy (Proxy(..))
@@ -107,12 +107,6 @@ newtype OnOff = OnOff
   ( Variant
       ( on :: Unit
       , off :: Unit
-      -- turns off immediately and then on, good for loops.
-      -- todo: because of the way audioParameter works, this
-      -- is forced to stop immediately
-      -- this almost always is fine, but for more fine-grained control
-      -- we'll need a different abstraction
-      , offOn :: Unit
       )
   )
 
@@ -122,9 +116,6 @@ _on = OnOff $ inj (Proxy :: _ "on") unit
 _off :: OnOff
 _off = OnOff $ inj (Proxy :: _ "off") unit
 
-_offOn :: OnOff
-_offOn = OnOff $ inj (Proxy :: _ "offOn") unit
-
 derive instance eqOnOff :: Eq OnOff
 derive instance ordOnOff :: Ord OnOff
 derive instance newtypeOnOff :: Newtype OnOff _
@@ -132,7 +123,7 @@ derive instance genericOnOff :: Generic OnOff _
 
 instance showOnOff :: Show OnOff where
   show = unwrap >>> match
-    { on: const "on", off: const "off", offOn: const "offOn" }
+    { on: const "on", off: const "off" }
 
 newtype AudioOnOff = AudioOnOff
   { x :: OnOff
@@ -150,9 +141,6 @@ bangOn = bang (wrap $ inj (Proxy :: _ "onOff") apOn)
 
 apOff :: AudioOnOff
 apOff = AudioOnOff { x: _off, o: 0.0 }
-
-apOffOn :: AudioOnOff
-apOffOn = AudioOnOff { x: _offOn, o: 0.0 }
 
 dt
   :: forall nt r
