@@ -8,7 +8,7 @@ import FRP.Event (Event, subscribe)
 import WAGS.Control (speaker2)
 import WAGS.Core (mix)
 import WAGS.Core as C
-import WAGS.Interpret (FFIAudioSnapshot, context, effectfulAudioInterpret, makeFFIAudioSnapshot)
+import WAGS.Interpret (FFIAudioSnapshot, close, context, effectfulAudioInterpret, makeFFIAudioSnapshot)
 import WAGS.WebAPI (AudioContext)
 
 run2_
@@ -16,7 +16,7 @@ run2_
   -> Effect (Effect Unit)
 run2_ s = do
   ctx <- context
-  run2 ctx s
+  map (_ *> close ctx) (run2 ctx s)
 
 run2
   :: AudioContext
@@ -33,7 +33,7 @@ run2e_
   -> Effect (Effect Unit)
 run2e_ s = do
   ctx <- context
-  run2e ctx s
+  map (_ *> close ctx) (run2e ctx s)
 
 run2e
   :: AudioContext
