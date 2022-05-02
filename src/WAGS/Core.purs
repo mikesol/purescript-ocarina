@@ -31,7 +31,7 @@ import Simple.JSON as JSON
 import Type.Equality (class TypeEquals, proof)
 import Type.Proxy (Proxy(..))
 import Unsafe.Coerce (unsafeCoerce)
-import WAGS.WebAPI (AnalyserNodeCb, BrowserAudioBuffer, BrowserFloatArray, BrowserMediaElement, BrowserMicrophone, BrowserPeriodicWave, MediaRecorderCb)
+import WAGS.WebAPI (AnalyserNodeCb, BrowserAudioBuffer, BrowserAudioNode, BrowserFloatArray, BrowserMediaElement, BrowserMicrophone, BrowserPeriodicWave, MediaRecorderCb)
 
 -- start param
 newtype Transition = Transition
@@ -90,6 +90,7 @@ newtype AudioSudden = AudioSudden AudioSudden'
 derive instance Newtype AudioSudden _
 
 type InitialAudioParameter = Number
+
 newtype AudioParameter payload = AudioParameter
   ( Variant
       ( numeric :: AudioNumeric
@@ -97,6 +98,16 @@ newtype AudioParameter payload = AudioParameter
       , cancel :: AudioCancel
       , sudden :: AudioSudden
       , unit :: AudioUnit payload
+      )
+  )
+
+newtype FFIAudioParameter = FFIAudioParameter
+  ( Variant
+      ( numeric :: AudioNumeric
+      , envelope :: AudioEnvelope
+      , cancel :: AudioCancel
+      , sudden :: AudioSudden
+      , unit :: BrowserAudioNode
       )
   )
 
@@ -1070,8 +1081,8 @@ type MakeWaveShaper =
 
 type SetAnalyserNodeCb = { id :: String, cb :: AnalyserNodeCb }
 type SetMediaRecorderCb = { id :: String, cb :: MediaRecorderCb }
-type SetAudioWorkletParameter payload  =
-  { id :: String, paramName :: String, paramValue :: AudioParameter payload }
+type SetAudioWorkletParameter =
+  { id :: String, paramName :: String, paramValue :: FFIAudioParameter }
 
 type SetBuffer = { id :: String, buffer :: BrowserAudioBuffer }
 type SetConvolverBuffer = { id :: String, buffer :: BrowserAudioBuffer }
@@ -1081,18 +1092,18 @@ type SetBufferOffset = { id :: String, bufferOffset :: Number }
 type SetDuration = { id :: String, duration :: Maybe Number }
 type SetLoopStart = { id :: String, loopStart :: Number }
 type SetLoopEnd = { id :: String, loopEnd :: Number }
-type SetRatio payload = { id :: String, ratio :: AudioParameter payload }
-type SetOffset payload = { id :: String, offset :: AudioParameter payload }
-type SetAttack payload = { id :: String, attack :: AudioParameter payload }
-type SetGain payload = { id :: String, gain :: AudioParameter payload }
-type SetQ payload = { id :: String, q :: AudioParameter payload }
-type SetPan payload = { id :: String, pan :: AudioParameter payload }
-type SetThreshold payload = { id :: String, threshold :: AudioParameter payload }
-type SetRelease payload = { id :: String, release :: AudioParameter payload }
-type SetKnee payload = { id :: String, knee :: AudioParameter payload }
-type SetDelay payload = { id :: String, delayTime :: AudioParameter payload }
-type SetPlaybackRate payload = { id :: String, playbackRate :: AudioParameter payload }
-type SetFrequency payload = { id :: String, frequency :: AudioParameter payload }
+type SetRatio = { id :: String, ratio :: FFIAudioParameter }
+type SetOffset = { id :: String, offset :: FFIAudioParameter }
+type SetAttack = { id :: String, attack :: FFIAudioParameter }
+type SetGain = { id :: String, gain :: FFIAudioParameter }
+type SetQ = { id :: String, q :: FFIAudioParameter }
+type SetPan = { id :: String, pan :: FFIAudioParameter }
+type SetThreshold = { id :: String, threshold :: FFIAudioParameter }
+type SetRelease = { id :: String, release :: FFIAudioParameter }
+type SetKnee = { id :: String, knee :: FFIAudioParameter }
+type SetDelay = { id :: String, delayTime :: FFIAudioParameter }
+type SetPlaybackRate = { id :: String, playbackRate :: FFIAudioParameter }
+type SetFrequency = { id :: String, frequency :: FFIAudioParameter }
 type SetWaveShaperCurve = { id :: String, curve :: BrowserFloatArray }
 
 newtype AudioInterpret payload = AudioInterpret
@@ -1132,7 +1143,7 @@ newtype AudioInterpret payload = AudioInterpret
   , setAnalyserNodeCb :: SetAnalyserNodeCb -> payload
   , setMediaRecorderCb :: SetMediaRecorderCb -> payload
   , setWaveShaperCurve :: SetWaveShaperCurve -> payload
-  , setAudioWorkletParameter :: SetAudioWorkletParameter payload -> payload
+  , setAudioWorkletParameter :: SetAudioWorkletParameter -> payload
   , setBuffer :: SetBuffer -> payload
   , setConvolverBuffer :: SetConvolverBuffer -> payload
   , setPeriodicOsc :: SetPeriodicOsc -> payload
@@ -1141,18 +1152,18 @@ newtype AudioInterpret payload = AudioInterpret
   , setDuration :: SetDuration -> payload
   , setLoopStart :: SetLoopStart -> payload
   , setLoopEnd :: SetLoopEnd -> payload
-  , setRatio :: SetRatio payload -> payload
-  , setOffset :: SetOffset payload -> payload
-  , setAttack :: SetAttack payload -> payload
-  , setGain :: SetGain payload -> payload
-  , setQ :: SetQ payload -> payload
-  , setPan :: SetPan payload -> payload
-  , setThreshold :: SetThreshold payload -> payload
-  , setRelease :: SetRelease payload -> payload
-  , setKnee :: SetKnee payload -> payload
-  , setDelay :: SetDelay payload -> payload
-  , setPlaybackRate :: SetPlaybackRate payload -> payload
-  , setFrequency :: SetFrequency payload -> payload
+  , setRatio :: SetRatio -> payload
+  , setOffset :: SetOffset -> payload
+  , setAttack :: SetAttack -> payload
+  , setGain :: SetGain -> payload
+  , setQ :: SetQ -> payload
+  , setPan :: SetPan -> payload
+  , setThreshold :: SetThreshold -> payload
+  , setRelease :: SetRelease -> payload
+  , setKnee :: SetKnee -> payload
+  , setDelay :: SetDelay -> payload
+  , setPlaybackRate :: SetPlaybackRate -> payload
+  , setFrequency :: SetFrequency -> payload
   }
 
 -----

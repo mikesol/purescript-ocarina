@@ -33,7 +33,6 @@ import Unsafe.Coerce (unsafeCoerce)
 import WAGS.Common as Common
 import WAGS.Core (ChannelCountMode(..), ChannelInterpretation(..), Po2(..), __internalWagsFlatten, mix)
 import WAGS.Core as C
-import WAGS.Parameter (AudioParameter, InitialAudioParameter)
 import WAGS.WebAPI (AnalyserNodeCb(..), BrowserAudioBuffer)
 
 -- allpass
@@ -43,7 +42,7 @@ allpass
    . Common.InitialAllpass i
   => C.Mix aud (C.Audible outputChannels lock payload)
   => i
-  -> Event C.Allpass
+  -> Event (C.Allpass payload)
   -> aud -- Array (C.Node outputChannels lock payload)
   -> C.Node outputChannels lock payload
 allpass i' atts elts = C.Node go
@@ -84,8 +83,8 @@ data AnalyserOptions = AnalyserOptions
 instance
   ConvertOption AnalyserOptions
     "playbackRate"
-    InitialAudioParameter
-    InitialAudioParameter where
+    C.InitialAudioParameter
+    C.InitialAudioParameter where
   convertOption _ _ = identity
 
 instance
@@ -261,8 +260,8 @@ __audioWorklet
   => Nat numberOfInputs
   => Pos numberOfOutputs
   => ValidateOutputChannelCount numberOfOutputs outputChannelCount
-  => Homogeneous parameterData InitialAudioParameter
-  => HomogeneousRowLabels parameterData AudioParameter parameterDataRL
+  => Homogeneous parameterData C.InitialAudioParameter
+  => HomogeneousRowLabels parameterData (C.AudioParameter payload) parameterDataRL
   => JSON.WriteForeign { | processorOptions }
   => C.InitializeAudioWorkletNode name numberOfInputs numberOfOutputs
        outputChannelCount
@@ -320,8 +319,8 @@ audioWorklet
   => Nat numberOfInputs
   => Pos numberOfOutputs
   => ValidateOutputChannelCount numberOfOutputs outputChannelCount
-  => Homogeneous parameterData InitialAudioParameter
-  => HomogeneousRowLabels parameterData AudioParameter parameterDataRL
+  => Homogeneous parameterData C.InitialAudioParameter
+  => HomogeneousRowLabels parameterData (C.AudioParameter payload) parameterDataRL
   => JSON.WriteForeign { | processorOptions }
   => C.InitializeAudioWorkletNode name numberOfInputs numberOfOutputs
        outputChannelCount
@@ -338,7 +337,7 @@ bandpass
    . Common.InitialBandpass i
   => C.Mix aud (C.Audible outputChannels lock payload)
   => i
-  -> Event C.Bandpass
+  -> Event (C.Bandpass payload)
   -> aud
   -> C.Node outputChannels lock payload
 bandpass i' atts elts = C.Node go
@@ -378,7 +377,7 @@ __constant
   :: forall i outputChannels lock payload
    . Common.InitialConstant i
   => i
-  -> Event C.Constant
+  -> Event (C.Constant payload)
   -> C.Node outputChannels lock payload
 __constant i' atts = C.Node go
   where
@@ -410,7 +409,7 @@ constant
   :: forall i outputChannels lock payload
    . Common.InitialConstant i
   => i
-  -> Event C.Constant
+  -> Event (C.Constant payload)
   -> C.Node outputChannels lock payload
 constant = __constant
 
@@ -454,7 +453,7 @@ delay
    . Common.InitialDelay i
   => C.Mix aud (C.Audible outputChannels lock payload)
   => i
-  -> Event C.Delay
+  -> Event (C.Delay payload)
   -> aud
   -> C.Node outputChannels lock payload
 delay i' atts elts = C.Node go
@@ -493,7 +492,7 @@ dynamicsCompressor
    . Common.InitialDynamicsCompressor i
   => C.Mix aud (C.Audible outputChannels lock payload)
   => i
-  -> Event C.DynamicsCompressor
+  -> Event (C.DynamicsCompressor payload)
   -> aud
   -> C.Node outputChannels lock payload
 dynamicsCompressor i' atts elts = C.Node go
@@ -562,7 +561,7 @@ gain
    . Common.InitialGain i
   => C.Mix aud (C.Audible outputChannels lock payload)
   => i
-  -> Event C.Gain
+  -> Event (C.Gain payload)
   -> aud
   -> C.Node outputChannels lock payload
 gain i' atts elts = C.Node go
@@ -601,7 +600,7 @@ highpass
    . Common.InitialHighpass i
   => C.Mix aud (C.Audible outputChannels lock payload)
   => i
-  -> Event C.Highpass
+  -> Event (C.Highpass payload)
   -> aud
   -> C.Node outputChannels lock payload
 highpass i' atts elts = C.Node go
@@ -641,7 +640,7 @@ highshelf
    . Common.InitialHighshelf i
   => C.Mix aud (C.Audible outputChannels lock payload)
   => i
-  -> Event C.Highshelf
+  -> Event (C.Highshelf payload)
   -> aud
   -> C.Node outputChannels lock payload
 highshelf i' atts elts = C.Node go
@@ -735,7 +734,7 @@ lowpass
    . Common.InitialLowpass i
   => C.Mix aud (C.Audible outputChannels lock payload)
   => i
-  -> Event C.Lowpass
+  -> Event (C.Lowpass payload)
   -> aud
   -> C.Node outputChannels lock payload
 lowpass i' atts elts = C.Node go
@@ -775,7 +774,7 @@ lowshelf
    . Common.InitialLowshelf i
   => C.Mix aud (C.Audible outputChannels lock payload)
   => i
-  -> Event C.Lowshelf
+  -> Event (C.Lowshelf payload)
   -> aud
   -> C.Node outputChannels lock payload
 lowshelf i' atts elts = C.Node go
@@ -815,7 +814,7 @@ __loopBuf
   :: forall i outputChannels lock payload
    . Common.InitialLoopBuf i
   => i
-  -> Event C.LoopBuf
+  -> Event (C.LoopBuf payload)
   -> C.Node outputChannels lock payload
 __loopBuf i' atts = C.Node go
   where
@@ -866,7 +865,7 @@ loopBuf
   :: forall i outputChannels lock payload
    . Common.InitialLoopBuf i
   => i
-  -> Event C.LoopBuf
+  -> Event (C.LoopBuf payload)
   -> C.Node outputChannels lock payload
 loopBuf = __loopBuf
 
@@ -942,7 +941,7 @@ notch
    . Common.InitialNotch i
   => C.Mix aud (C.Audible outputChannels lock payload)
   => i
-  -> Event C.Notch
+  -> Event (C.Notch payload)
   -> aud
   -> C.Node outputChannels lock payload
 notch i' atts elts = C.Node go
@@ -982,7 +981,7 @@ peaking
    . Common.InitialPeaking i
   => C.Mix aud (C.Audible outputChannels lock payload)
   => i
-  -> Event C.Peaking
+  -> Event (C.Peaking payload)
   -> aud
   -> C.Node outputChannels lock payload
 peaking i' atts elts = C.Node go
@@ -1023,7 +1022,7 @@ __periodicOsc
   :: forall i outputChannels lock payload
    . Common.InitialPeriodicOsc i
   => i
-  -> Event C.PeriodicOsc
+  -> Event (C.PeriodicOsc payload)
   -> C.Node outputChannels lock payload
 __periodicOsc i' atts = C.Node go
   where
@@ -1061,7 +1060,7 @@ periodicOsc
   :: forall i outputChannels lock payload
    . Common.InitialPeriodicOsc i
   => i
-  -> Event C.PeriodicOsc
+  -> Event (C.PeriodicOsc payload)
   -> C.Node outputChannels lock payload
 periodicOsc = __periodicOsc
 
@@ -1079,8 +1078,8 @@ data PlayBufOptions = PlayBufOptions
 instance
   ConvertOption PlayBufOptions
     "playbackRate"
-    InitialAudioParameter
-    InitialAudioParameter where
+    C.InitialAudioParameter
+    C.InitialAudioParameter where
   convertOption _ _ = identity
 
 instance ConvertOption PlayBufOptions "duration" Number (Maybe Number) where
@@ -1095,7 +1094,7 @@ instance
 
 type PlayBufOptional =
   ( bufferOffset :: Number
-  , playbackRate :: InitialAudioParameter
+  , playbackRate :: C.InitialAudioParameter
   , duration :: Maybe Number
   )
 
@@ -1131,7 +1130,7 @@ __playBuf
   :: forall i outputChannels lock payload
    . Common.InitialPlayBuf i
   => i
-  -> Event C.PlayBuf
+  -> Event (C.PlayBuf payload)
   -> C.Node outputChannels lock payload
 __playBuf i' atts = C.Node go
   where
@@ -1182,7 +1181,7 @@ playBuf
   :: forall i outputChannels lock payload
    . Common.InitialPlayBuf i
   => i
-  -> Event C.PlayBuf
+  -> Event (C.PlayBuf payload)
   -> C.Node outputChannels lock payload
 playBuf = __playBuf
 
@@ -1220,7 +1219,7 @@ __sawtoothOsc
   :: forall i outputChannels lock payload
    . Common.InitialSawtoothOsc i
   => i
-  -> Event C.SawtoothOsc
+  -> Event (C.SawtoothOsc payload)
   -> C.Node outputChannels lock payload
 __sawtoothOsc i' atts = C.Node go
   where
@@ -1254,7 +1253,7 @@ sawtoothOsc
   :: forall i outputChannels lock payload
    . Common.InitialSawtoothOsc i
   => i
-  -> Event C.SawtoothOsc
+  -> Event (C.SawtoothOsc payload)
   -> C.Node outputChannels lock payload
 sawtoothOsc = __sawtoothOsc
 
@@ -1271,7 +1270,7 @@ __sinOsc
   :: forall i outputChannels lock payload
    . Common.InitialSinOsc i
   => i
-  -> Event C.SinOsc
+  -> Event (C.SinOsc payload)
   -> C.Node outputChannels lock payload
 __sinOsc i' atts = C.Node go
   where
@@ -1305,7 +1304,7 @@ sinOsc
   :: forall i outputChannels lock payload
    . Common.InitialSinOsc i
   => i
-  -> Event C.SinOsc
+  -> Event (C.SinOsc payload)
   -> C.Node outputChannels lock payload
 sinOsc = __sinOsc
 
@@ -1322,7 +1321,7 @@ __squareOsc
   :: forall i outputChannels lock payload
    . Common.InitialSquareOsc i
   => i
-  -> Event C.SquareOsc
+  -> Event (C.SquareOsc payload)
   -> C.Node outputChannels lock payload
 __squareOsc i' atts = C.Node go
   where
@@ -1356,7 +1355,7 @@ squareOsc
   :: forall i outputChannels lock payload
    . Common.InitialSquareOsc i
   => i
-  -> Event C.SquareOsc
+  -> Event (C.SquareOsc payload)
   -> C.Node outputChannels lock payload
 squareOsc = __squareOsc
 
@@ -1393,7 +1392,7 @@ pan
    . Common.InitialStereoPanner i
   => C.Mix aud (C.Audible outputChannels lock payload)
   => i
-  -> Event C.StereoPanner
+  -> Event (C.StereoPanner payload)
   -> aud
   -> C.Node outputChannels lock payload
 pan i' atts elts = C.Node go
@@ -1432,7 +1431,7 @@ __triangleOsc
   :: forall i outputChannels lock payload
    . Common.InitialTriangleOsc i
   => i
-  -> Event C.TriangleOsc
+  -> Event (C.TriangleOsc payload)
   -> C.Node outputChannels lock payload
 __triangleOsc i' atts = C.Node go
   where
@@ -1466,7 +1465,7 @@ triangleOsc
   :: forall i outputChannels lock payload
    . Common.InitialTriangleOsc i
   => i
-  -> Event C.TriangleOsc
+  -> Event (C.TriangleOsc payload)
   -> C.Node outputChannels lock payload
 triangleOsc = __triangleOsc
 

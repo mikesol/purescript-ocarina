@@ -19,7 +19,6 @@ import Type.Row.Homogeneous (class Homogeneous)
 import Unsafe.Coerce (unsafeCoerce)
 import WAGS.Control (class ValidateOutputChannelCount)
 import WAGS.Core as C
-import WAGS.Parameter (AudioParameter)
 import WAGS.WebAPI (AudioContext, BrowserAudioBuffer)
 import WAGS.WebAPI as WebAPI
 import Web.File.Blob (Blob)
@@ -183,7 +182,7 @@ audioWorkletAddModule
   => Nat numberOfInputs
   => Pos numberOfOutputs
   => ValidateOutputChannelCount numberOfOutputs outputChannelCount
-  => Homogeneous parameterData AudioParameter
+  => Homogeneous parameterData (C.AudioParameter payload)
   => JSON.WriteForeign { | processorOptions }
   => WebAPI.AudioContext
   -> String
