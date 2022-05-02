@@ -21,7 +21,7 @@ import WAGS.Control (bandpass_, fan1, gain, gain_, highpass_, triangleOsc)
 import WAGS.Core (Node, mix)
 import WAGS.Interpret (close, context)
 import WAGS.Math (calcSlope)
-import WAGS.Parameter (AudioEnvelope(..), bangOn)
+import WAGS.Core (AudioEnvelope(..), bangOn)
 import WAGS.Properties (frequency)
 import WAGS.Properties as P
 import WAGS.Run (run2e)

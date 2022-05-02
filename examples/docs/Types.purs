@@ -12,6 +12,7 @@ data Page
   | AudioUnits
   | Events
   | FixFan
+  | Params
   | MultiChannel
   | AudioWorklets
   | Imperative

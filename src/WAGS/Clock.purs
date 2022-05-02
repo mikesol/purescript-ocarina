@@ -10,7 +10,7 @@ import Effect.Timer (clearTimeout, setTimeout)
 import FRP.Behavior (Behavior, behavior)
 import FRP.Event (Event, makeEvent, subscribe)
 import WAGS.Interpret (getAudioClockTime)
-import WAGS.Parameter (AudioNumeric(..), AudioOnOff(..), _linear)
+import WAGS.Core (AudioNumeric(..), AudioOnOff(..), _linear)
 import WAGS.WebAPI (AudioContext)
 import WAGS.WebAPI as WebAPI
 

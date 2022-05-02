@@ -2,18 +2,23 @@ module WAGS.Common where
 
 import Prelude
 
+import Control.Alt ((<|>))
 import ConvertableOptions (class ConvertOption, class ConvertOptionsWithDefaults, convertOptionsWithDefaults)
+import Data.Either (Either(..))
 import Data.Tuple.Nested (type (/\), (/\))
 import Data.Typelevel.Num (class Pos)
-import Data.Variant (inj)
+import Data.Variant (inj, match)
 import Data.Variant.Maybe (Maybe, just, nothing)
 import Data.Vec (Vec, toArray)
+import Effect.AVar as AVar
+import Effect.Exception (throwException)
+import FRP.Event (Event, bang, makeEvent, subscribe)
 import Safe.Coerce (coerce)
 import Type.Equality (class TypeEquals, proof)
 import Type.Proxy (Proxy(..))
 import WAGS.Core (Oversample, PeriodicOscSpec(..), RealImg(..), _twoX)
+import WAGS.Core as C
 import WAGS.Core as Core
-import WAGS.Parameter (InitialAudioParameter)
 import WAGS.WebAPI (BrowserAudioBuffer, BrowserFloatArray, BrowserMicrophone, BrowserPeriodicWave, MediaRecorderCb)
 
 -- Allpass
@@ -23,23 +28,23 @@ data AllpassOptions = AllpassOptions
 instance
   ConvertOption AllpassOptions
     "frequency"
-    InitialAudioParameter
-    InitialAudioParameter where
+    Core.InitialAudioParameter
+    Core.InitialAudioParameter where
   convertOption _ _ = identity
 
 instance
   ConvertOption AllpassOptions
     "q"
-    InitialAudioParameter
-    InitialAudioParameter where
+    Core.InitialAudioParameter
+    Core.InitialAudioParameter where
   convertOption _ _ = identity
 
 type AllpassOptional =
-  ( q :: InitialAudioParameter
+  ( q :: Core.InitialAudioParameter
   )
 
 type AllpassAll =
-  ( frequency :: InitialAudioParameter
+  ( frequency :: Core.InitialAudioParameter
   | AllpassOptional
   )
 
@@ -53,7 +58,7 @@ class InitialAllpass i where
 instance InitialAllpass Core.InitializeAllpass where
   toInitializeAllpass = identity
 
-instance InitialAllpass InitialAudioParameter where
+instance InitialAllpass Core.InitialAudioParameter where
   toInitializeAllpass = toInitializeAllpass <<< { frequency: _ }
 
 instance
@@ -70,23 +75,23 @@ data BandpassOptions = BandpassOptions
 instance
   ConvertOption BandpassOptions
     "frequency"
-    InitialAudioParameter
-    InitialAudioParameter where
+    Core.InitialAudioParameter
+    Core.InitialAudioParameter where
   convertOption _ _ = identity
 
 instance
   ConvertOption BandpassOptions
     "q"
-    InitialAudioParameter
-    InitialAudioParameter where
+    Core.InitialAudioParameter
+    Core.InitialAudioParameter where
   convertOption _ _ = identity
 
 type BandpassOptional =
-  ( q :: InitialAudioParameter
+  ( q :: Core.InitialAudioParameter
   )
 
 type BandpassAll =
-  ( frequency :: InitialAudioParameter
+  ( frequency :: Core.InitialAudioParameter
   | BandpassOptional
   )
 
@@ -100,7 +105,7 @@ class InitialBandpass i where
 instance InitialBandpass Core.InitializeBandpass where
   toInitializeBandpass = identity
 
-instance InitialBandpass InitialAudioParameter where
+instance InitialBandpass Core.InitialAudioParameter where
   toInitializeBandpass = toInitializeBandpass <<< { frequency: _ }
 
 instance
@@ -157,8 +162,8 @@ data DelayOptions = DelayOptions
 instance
   ConvertOption DelayOptions
     "delayTime"
-    InitialAudioParameter
-    InitialAudioParameter where
+    Core.InitialAudioParameter
+    Core.InitialAudioParameter where
   convertOption _ _ = identity
 
 instance
@@ -173,7 +178,7 @@ type DelayOptional =
   )
 
 type DelayAll =
-  ( delayTime :: InitialAudioParameter
+  ( delayTime :: Core.InitialAudioParameter
   | DelayOptional
   )
 
@@ -187,7 +192,7 @@ class InitialDelay i where
 instance InitialDelay Core.InitializeDelay where
   toInitializeDelay = identity
 
-instance InitialDelay InitialAudioParameter where
+instance InitialDelay Core.InitialAudioParameter where
   toInitializeDelay = toInitializeDelay <<< { delayTime: _ }
 
 instance
@@ -205,44 +210,44 @@ data DynamicsCompressorOptions = DynamicsCompressorOptions
 instance
   ConvertOption DynamicsCompressorOptions
     "threshold"
-    InitialAudioParameter
-    InitialAudioParameter where
+    Core.InitialAudioParameter
+    Core.InitialAudioParameter where
   convertOption _ _ = identity
 
 instance
   ConvertOption DynamicsCompressorOptions
     "ratio"
-    InitialAudioParameter
-    InitialAudioParameter where
+    Core.InitialAudioParameter
+    Core.InitialAudioParameter where
   convertOption _ _ = identity
 
 instance
   ConvertOption DynamicsCompressorOptions
     "knee"
-    InitialAudioParameter
-    InitialAudioParameter where
+    Core.InitialAudioParameter
+    Core.InitialAudioParameter where
   convertOption _ _ = identity
 
 instance
   ConvertOption DynamicsCompressorOptions
     "attack"
-    InitialAudioParameter
-    InitialAudioParameter where
+    Core.InitialAudioParameter
+    Core.InitialAudioParameter where
   convertOption _ _ = identity
 
 instance
   ConvertOption DynamicsCompressorOptions
     "release"
-    InitialAudioParameter
-    InitialAudioParameter where
+    Core.InitialAudioParameter
+    Core.InitialAudioParameter where
   convertOption _ _ = identity
 
 type DynamicsCompressorOptional =
-  ( ratio :: InitialAudioParameter
-  , threshold :: InitialAudioParameter
-  , attack :: InitialAudioParameter
-  , release :: InitialAudioParameter
-  , knee :: InitialAudioParameter
+  ( ratio :: Core.InitialAudioParameter
+  , threshold :: Core.InitialAudioParameter
+  , attack :: Core.InitialAudioParameter
+  , release :: Core.InitialAudioParameter
+  , knee :: Core.InitialAudioParameter
   )
 
 type DynamicsCompressorAll =
@@ -288,23 +293,23 @@ data HighpassOptions = HighpassOptions
 instance
   ConvertOption HighpassOptions
     "frequency"
-    InitialAudioParameter
-    InitialAudioParameter where
+    Core.InitialAudioParameter
+    Core.InitialAudioParameter where
   convertOption _ _ = identity
 
 instance
   ConvertOption HighpassOptions
     "q"
-    InitialAudioParameter
-    InitialAudioParameter where
+    Core.InitialAudioParameter
+    Core.InitialAudioParameter where
   convertOption _ _ = identity
 
 type HighpassOptional =
-  ( q :: InitialAudioParameter
+  ( q :: Core.InitialAudioParameter
   )
 
 type HighpassAll =
-  ( frequency :: InitialAudioParameter
+  ( frequency :: Core.InitialAudioParameter
   | HighpassOptional
   )
 
@@ -318,7 +323,7 @@ class InitialHighpass i where
 instance InitialHighpass Core.InitializeHighpass where
   toInitializeHighpass = identity
 
-instance InitialHighpass InitialAudioParameter where
+instance InitialHighpass Core.InitialAudioParameter where
   toInitializeHighpass = toInitializeHighpass <<< { frequency: _ }
 
 instance
@@ -336,23 +341,23 @@ data HighshelfOptions = HighshelfOptions
 instance
   ConvertOption HighshelfOptions
     "frequency"
-    InitialAudioParameter
-    InitialAudioParameter where
+    Core.InitialAudioParameter
+    Core.InitialAudioParameter where
   convertOption _ _ = identity
 
 instance
   ConvertOption HighshelfOptions
     "gain"
-    InitialAudioParameter
-    InitialAudioParameter where
+    Core.InitialAudioParameter
+    Core.InitialAudioParameter where
   convertOption _ _ = identity
 
 type HighshelfOptional =
-  ( gain :: InitialAudioParameter
+  ( gain :: Core.InitialAudioParameter
   )
 
 type HighshelfAll =
-  ( frequency :: InitialAudioParameter
+  ( frequency :: Core.InitialAudioParameter
   | HighshelfOptional
   )
 
@@ -366,7 +371,7 @@ class InitialHighshelf i where
 instance InitialHighshelf Core.InitializeHighshelf where
   toInitializeHighshelf = identity
 
-instance InitialHighshelf InitialAudioParameter where
+instance InitialHighshelf Core.InitialAudioParameter where
   toInitializeHighshelf = toInitializeHighshelf <<< { frequency: _ }
 
 instance
@@ -383,8 +388,8 @@ data LoopBufOptions = LoopBufOptions
 instance
   ConvertOption LoopBufOptions
     "playbackRate"
-    InitialAudioParameter
-    InitialAudioParameter where
+    Core.InitialAudioParameter
+    Core.InitialAudioParameter where
   convertOption _ _ = identity
 
 instance ConvertOption LoopBufOptions "duration" Number (Maybe Number) where
@@ -403,7 +408,7 @@ instance
 type LoopBufOptional =
   ( loopStart :: Number
   , loopEnd :: Number
-  , playbackRate :: InitialAudioParameter
+  , playbackRate :: Core.InitialAudioParameter
   , duration :: Maybe Number
   )
 
@@ -442,23 +447,23 @@ data LowpassOptions = LowpassOptions
 instance
   ConvertOption LowpassOptions
     "frequency"
-    InitialAudioParameter
-    InitialAudioParameter where
+    Core.InitialAudioParameter
+    Core.InitialAudioParameter where
   convertOption _ _ = identity
 
 instance
   ConvertOption LowpassOptions
     "q"
-    InitialAudioParameter
-    InitialAudioParameter where
+    Core.InitialAudioParameter
+    Core.InitialAudioParameter where
   convertOption _ _ = identity
 
 type LowpassOptional =
-  ( q :: InitialAudioParameter
+  ( q :: Core.InitialAudioParameter
   )
 
 type LowpassAll =
-  ( frequency :: InitialAudioParameter
+  ( frequency :: Core.InitialAudioParameter
   | LowpassOptional
   )
 
@@ -472,7 +477,7 @@ class InitialLowpass i where
 instance InitialLowpass Core.InitializeLowpass where
   toInitializeLowpass = identity
 
-instance InitialLowpass InitialAudioParameter where
+instance InitialLowpass Core.InitialAudioParameter where
   toInitializeLowpass = toInitializeLowpass <<< { frequency: _ }
 
 instance
@@ -489,23 +494,23 @@ data LowshelfOptions = LowshelfOptions
 instance
   ConvertOption LowshelfOptions
     "frequency"
-    InitialAudioParameter
-    InitialAudioParameter where
+    Core.InitialAudioParameter
+    Core.InitialAudioParameter where
   convertOption _ _ = identity
 
 instance
   ConvertOption LowshelfOptions
     "gain"
-    InitialAudioParameter
-    InitialAudioParameter where
+    Core.InitialAudioParameter
+    Core.InitialAudioParameter where
   convertOption _ _ = identity
 
 type LowshelfOptional =
-  ( gain :: InitialAudioParameter
+  ( gain :: Core.InitialAudioParameter
   )
 
 type LowshelfAll =
-  ( frequency :: InitialAudioParameter
+  ( frequency :: Core.InitialAudioParameter
   | LowshelfOptional
   )
 
@@ -519,7 +524,7 @@ class InitialLowshelf i where
 instance InitialLowshelf Core.InitializeLowshelf where
   toInitializeLowshelf = identity
 
-instance InitialLowshelf InitialAudioParameter where
+instance InitialLowshelf Core.InitialAudioParameter where
   toInitializeLowshelf = toInitializeLowshelf <<< { frequency: _ }
 
 instance
@@ -549,23 +554,23 @@ data NotchOptions = NotchOptions
 instance
   ConvertOption NotchOptions
     "frequency"
-    InitialAudioParameter
-    InitialAudioParameter where
+    Core.InitialAudioParameter
+    Core.InitialAudioParameter where
   convertOption _ _ = identity
 
 instance
   ConvertOption NotchOptions
     "q"
-    InitialAudioParameter
-    InitialAudioParameter where
+    Core.InitialAudioParameter
+    Core.InitialAudioParameter where
   convertOption _ _ = identity
 
 type NotchOptional =
-  ( q :: InitialAudioParameter
+  ( q :: Core.InitialAudioParameter
   )
 
 type NotchAll =
-  ( frequency :: InitialAudioParameter
+  ( frequency :: Core.InitialAudioParameter
   | NotchOptional
   )
 
@@ -579,7 +584,7 @@ class InitialNotch i where
 instance InitialNotch Core.InitializeNotch where
   toInitializeNotch = identity
 
-instance InitialNotch InitialAudioParameter where
+instance InitialNotch Core.InitialAudioParameter where
   toInitializeNotch = toInitializeNotch <<< { frequency: _ }
 
 instance
@@ -606,31 +611,31 @@ data PeakingOptions = PeakingOptions
 instance
   ConvertOption PeakingOptions
     "frequency"
-    InitialAudioParameter
-    InitialAudioParameter where
+    Core.InitialAudioParameter
+    Core.InitialAudioParameter where
   convertOption _ _ = identity
 
 instance
   ConvertOption PeakingOptions
     "gain"
-    InitialAudioParameter
-    InitialAudioParameter where
+    Core.InitialAudioParameter
+    Core.InitialAudioParameter where
   convertOption _ _ = identity
 
 instance
   ConvertOption PeakingOptions
     "q"
-    InitialAudioParameter
-    InitialAudioParameter where
+    Core.InitialAudioParameter
+    Core.InitialAudioParameter where
   convertOption _ _ = identity
 
 type PeakingOptional =
-  ( q :: InitialAudioParameter
-  , gain :: InitialAudioParameter
+  ( q :: Core.InitialAudioParameter
+  , gain :: Core.InitialAudioParameter
   )
 
 type PeakingAll =
-  ( frequency :: InitialAudioParameter
+  ( frequency :: Core.InitialAudioParameter
   | PeakingOptional
   )
 
@@ -644,7 +649,7 @@ class InitialPeaking i where
 instance InitialPeaking Core.InitializePeaking where
   toInitializePeaking = identity
 
-instance InitialPeaking InitialAudioParameter where
+instance InitialPeaking Core.InitialAudioParameter where
   toInitializePeaking = toInitializePeaking <<< { frequency: _ }
 
 instance
@@ -660,8 +665,8 @@ data PlayBufOptions = PlayBufOptions
 instance
   ConvertOption PlayBufOptions
     "playbackRate"
-    InitialAudioParameter
-    InitialAudioParameter where
+    Core.InitialAudioParameter
+    Core.InitialAudioParameter where
   convertOption _ _ = identity
 
 instance ConvertOption PlayBufOptions "duration" Number (Maybe Number) where
@@ -676,7 +681,7 @@ instance
 
 type PlayBufOptional =
   ( bufferOffset :: Number
-  , playbackRate :: InitialAudioParameter
+  , playbackRate :: Core.InitialAudioParameter
   , duration :: Maybe Number
   )
 
@@ -716,8 +721,8 @@ data PeriodicOscOptions = PeriodicOscOptions
 instance
   ConvertOption PeriodicOscOptions
     "frequency"
-    InitialAudioParameter
-    InitialAudioParameter where
+    Core.InitialAudioParameter
+    Core.InitialAudioParameter where
   convertOption _ _ = identity
 
 class PeriodicOscSpecable i where
@@ -729,21 +734,21 @@ instance PeriodicOscSpecable BrowserPeriodicWave where
 instance Pos n => PeriodicOscSpecable (Vec n Number /\ Vec n Number) where
   toPeriodicOscSpec (real /\ img) = PeriodicOscSpec $ inj (Proxy :: _ "realImg") $ RealImg { real: toArray real, img: toArray img }
 
-instance PeriodicOscSpecable i =>
+instance
+  PeriodicOscSpecable i =>
   ConvertOption PeriodicOscOptions
     "spec"
     i
     PeriodicOscSpec where
   convertOption _ _ = toPeriodicOscSpec
 
-
 type PeriodicOscAll =
-  ( frequency :: InitialAudioParameter
+  ( frequency :: Core.InitialAudioParameter
   , spec :: PeriodicOscSpec
   )
 
-defaultPeriodicOsc :: { }
-defaultPeriodicOsc = {  }
+defaultPeriodicOsc :: {}
+defaultPeriodicOsc = {}
 
 class InitialPeriodicOsc i where
   toInitializePeriodicOsc :: i -> Core.InitializePeriodicOsc
@@ -752,12 +757,11 @@ instance InitialPeriodicOsc Core.InitializePeriodicOsc where
   toInitializePeriodicOsc = identity
 
 instance
-  ConvertOptionsWithDefaults PeriodicOscOptions { } { | provided }
+  ConvertOptionsWithDefaults PeriodicOscOptions {} { | provided }
     { | PeriodicOscAll } =>
   InitialPeriodicOsc { | provided } where
   toInitializePeriodicOsc provided = Core.InitializePeriodicOsc
     (convertOptionsWithDefaults PeriodicOscOptions defaultPeriodicOsc provided)
-
 
 -- SawtoothOsc
 class InitialSawtoothOsc i where
@@ -855,3 +859,33 @@ instance
   InitialWaveShaper { | provided } where
   toInitializeWaveShaper provided = Core.InitializeWaveShaper
     (convertOptionsWithDefaults WaveShaperOptions defaultWaveShaper provided)
+
+-- resolveAU
+
+resolveAU :: forall lock payload. C.AudioInterpret payload -> (C.FFIAudioParameter -> payload) -> C.AudioParameter lock payload -> Event payload
+resolveAU = go
+  where
+  cncl = C.FFIAudioParameter <<< inj (Proxy :: _ "cancel")
+  ev = C.FFIAudioParameter <<< inj (Proxy :: _ "envelope")
+  nmc = C.FFIAudioParameter <<< inj (Proxy :: _ "numeric")
+  sdn = C.FFIAudioParameter <<< inj (Proxy :: _ "sudden")
+  ut = C.FFIAudioParameter <<< inj (Proxy :: _ "unit")
+  go di@(C.AudioInterpret { ids }) f (C.AudioParameter a) = match
+    { numeric: bang <<< f <<< nmc
+    , envelope: bang <<< f <<< ev
+    , cancel: bang <<< f <<< cncl
+    , sudden: bang <<< f <<< sdn
+    , unit: \(C.AudioUnit { u }) -> let C.Node n = u in makeEvent \k -> do
+            newScope <- ids
+            av <- AVar.empty
+            subscribe
+              ( n { parent: nothing, scope: newScope, raiseId: \x -> void $ AVar.tryPut x av } di <|> makeEvent \k2 -> do
+                  void $ AVar.take av case _ of
+                    Left e -> throwException e
+                    -- only do the connection if not silence
+                    Right i -> k2 (f (ut (C.FFIAudioUnit { i })))
+                  pure (pure unit)
+              )
+              k
+    }
+    a

@@ -26,7 +26,7 @@ import WAGS.Core (Node, Channel(..))
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..))
 import WAGS.Example.Docs.Util (raceSelf)
 import WAGS.Interpret (close, constant0Hack, context, decodeAudioDataFromUri)
-import WAGS.Parameter (bangOn)
+import WAGS.Core (bangOn)
 import WAGS.Run (run2_)
 
 px =
@@ -72,7 +72,7 @@ import Type.Proxy (Proxy(..))
 import WAGS.Control (gain_, playBuf)
 import WAGS.Core (Channel(..))
 import WAGS.Interpret (bracketCtx, decodeAudioDataFromUri)
-import WAGS.Parameter (bangOn)
+import WAGS.Core (bangOn)
 import WAGS.Run (run2_)
 import WAGS.WebAPI (BrowserAudioBuffer)
 
