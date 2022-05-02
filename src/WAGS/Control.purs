@@ -58,8 +58,8 @@ allpass i' atts elts = C.Node go
         <|>
           ( keepLatest $ map
               ( \(C.Allpass e) -> match
-                  { frequency: tmpResolveAU di (setFrequency <<< { id: me, frequency: _ })
-                  , q: tmpResolveAU di (setQ <<< { id: me, q: _ })
+                  { frequency: tmpResolveAU parent.scope di (setFrequency <<< { id: me, frequency: _ })
+                  , q: tmpResolveAU parent.scope di (setQ <<< { id: me, q: _ })
                   }
                   e
               )
@@ -302,7 +302,7 @@ __audioWorklet (C.InitializeAudioWorkletNode i) atts elt = C.Node go
           )
           <|>
             ( keepLatest $ map
-                ( \(C.AudioWorkletNode e) -> tmpResolveAU di
+                ( \(C.AudioWorkletNode e) -> tmpResolveAU parent.scope di
                     ( \paramValue -> setAudioWorkletParameter
                         { id: me
                         , paramName: (let Unvariant e' = unvariant e in e')
@@ -359,8 +359,8 @@ bandpass i' atts elts = C.Node go
         <|>
           ( keepLatest $ map
               ( \(C.Bandpass e) -> match
-                  { frequency: tmpResolveAU di (setFrequency <<< { id: me, frequency: _ })
-                  , q: tmpResolveAU di (setQ <<< { id: me, q: _ })
+                  { frequency: tmpResolveAU parent.scope di (setFrequency <<< { id: me, frequency: _ })
+                  , q: tmpResolveAU parent.scope di (setQ <<< { id: me, q: _ })
                   }
                   e
               )
@@ -404,7 +404,7 @@ __constant i' atts = C.Node go
           <|>
             ( keepLatest $ map
                 ( \(C.Constant e) -> match
-                    { offset: tmpResolveAU di (setOffset <<< { id: me, offset: _ })
+                    { offset: tmpResolveAU parent.scope di (setOffset <<< { id: me, offset: _ })
                     , onOff: \onOff -> bang $ setOnOff { id: me, onOff }
                     }
                     e
@@ -477,7 +477,7 @@ delay i' atts elts = C.Node go
         <|>
           ( keepLatest $ map
               ( \(C.Delay e) -> match
-                  { delayTime: tmpResolveAU di (setDelay <<< { id: me, delayTime: _ })
+                  { delayTime: tmpResolveAU parent.scope di (setDelay <<< { id: me, delayTime: _ })
                   }
                   e
               )
@@ -539,23 +539,23 @@ dynamicsCompressor i' atts elts = C.Node go
           <|>
             ( keepLatest $ map
                 ( \(C.DynamicsCompressor e) -> match
-                    { threshold: tmpResolveAU di
+                    { threshold: tmpResolveAU parent.scope di
                         ( setThreshold <<<
                             { id: me, threshold: _ }
                         )
-                    , ratio: tmpResolveAU di
+                    , ratio: tmpResolveAU parent.scope di
                         ( setRatio <<<
                             { id: me, ratio: _ }
                         )
-                    , knee: tmpResolveAU di
+                    , knee: tmpResolveAU parent.scope di
                         ( setKnee <<<
                             { id: me, knee: _ }
                         )
-                    , attack: tmpResolveAU di
+                    , attack: tmpResolveAU parent.scope di
                         ( setAttack <<<
                             { id: me, attack: _ }
                         )
-                    , release: tmpResolveAU di
+                    , release: tmpResolveAU parent.scope di
                         ( setRelease <<<
                             { id: me, release: _ }
                         )
@@ -598,7 +598,7 @@ gain i' atts elts = C.Node go
         <|>
           ( keepLatest $ map
               ( \(C.Gain e) -> match
-                  { gain: tmpResolveAU di (setGain <<< { id: me, gain: _ })
+                  { gain: tmpResolveAU parent.scope di (setGain <<< { id: me, gain: _ })
                   }
                   e
               )
@@ -638,8 +638,8 @@ highpass i' atts elts = C.Node go
         <|>
           ( keepLatest $ map
               ( \(C.Highpass e) -> match
-                  { frequency: tmpResolveAU di (setFrequency <<< { id: me, frequency: _ })
-                  , q: tmpResolveAU di (setQ <<< { id: me, q: _ })
+                  { frequency: tmpResolveAU parent.scope di (setFrequency <<< { id: me, frequency: _ })
+                  , q: tmpResolveAU parent.scope di (setQ <<< { id: me, q: _ })
                   }
                   e
               )
@@ -679,8 +679,8 @@ highshelf i' atts elts = C.Node go
         <|>
           ( keepLatest $ map
               ( \(C.Highshelf e) -> match
-                  { frequency: tmpResolveAU di (setFrequency <<< { id: me, frequency: _ })
-                  , gain: tmpResolveAU di (setGain <<< { id: me, gain: _ })
+                  { frequency: tmpResolveAU parent.scope di (setFrequency <<< { id: me, frequency: _ })
+                  , gain: tmpResolveAU parent.scope di (setGain <<< { id: me, gain: _ })
                   }
                   e
               )
@@ -774,8 +774,8 @@ lowpass i' atts elts = C.Node go
         <|>
           ( keepLatest $ map
               ( \(C.Lowpass e) -> match
-                  { frequency: tmpResolveAU di (setFrequency <<< { id: me, frequency: _ })
-                  , q: tmpResolveAU di (setQ <<< { id: me, q: _ })
+                  { frequency: tmpResolveAU parent.scope di (setFrequency <<< { id: me, frequency: _ })
+                  , q: tmpResolveAU parent.scope di (setQ <<< { id: me, q: _ })
                   }
                   e
               )
@@ -815,8 +815,8 @@ lowshelf i' atts elts = C.Node go
         <|>
           ( keepLatest $ map
               ( \(C.Lowshelf e) -> match
-                  { frequency: tmpResolveAU di (setFrequency <<< { id: me, frequency: _ })
-                  , gain: tmpResolveAU di (setGain <<< { id: me, gain: _ })
+                  { frequency: tmpResolveAU parent.scope di (setFrequency <<< { id: me, frequency: _ })
+                  , gain: tmpResolveAU parent.scope di (setGain <<< { id: me, gain: _ })
                   }
                   e
               )
@@ -878,7 +878,7 @@ __loopBuf i' atts = C.Node go
             ( keepLatest $ map
                 ( \(C.LoopBuf e) -> match
                     { buffer: \buffer -> bang $ setBuffer { id: me, buffer }
-                    , playbackRate: tmpResolveAU di (setPlaybackRate <<< { id: me, playbackRate: _ })
+                    , playbackRate: tmpResolveAU parent.scope di (setPlaybackRate <<< { id: me, playbackRate: _ })
                     , loopStart: \loopStart -> bang $ setLoopStart { id: me, loopStart }
                     , loopEnd: \loopEnd -> bang $ setLoopEnd { id: me, loopEnd }
                     , onOff: \onOff -> bang $ setOnOff { id: me, onOff }
@@ -985,8 +985,8 @@ notch i' atts elts = C.Node go
         <|>
           ( keepLatest $ map
               ( \(C.Notch e) -> match
-                  { frequency: tmpResolveAU di (setFrequency <<< { id: me, frequency: _ })
-                  , q: tmpResolveAU di (setQ <<< { id: me, q: _ })
+                  { frequency: tmpResolveAU parent.scope di (setFrequency <<< { id: me, frequency: _ })
+                  , q: tmpResolveAU parent.scope di (setQ <<< { id: me, q: _ })
                   }
                   e
               )
@@ -1026,9 +1026,9 @@ peaking i' atts elts = C.Node go
         <|>
           ( keepLatest $ map
               ( \(C.Peaking e) -> match
-                  { frequency: tmpResolveAU di (setFrequency <<< { id: me, frequency: _ })
-                  , q: tmpResolveAU di (setQ <<< { id: me, q: _ })
-                  , gain: tmpResolveAU di (setGain <<< { id: me, gain: _ })
+                  { frequency: tmpResolveAU parent.scope di (setFrequency <<< { id: me, frequency: _ })
+                  , q: tmpResolveAU parent.scope di (setQ <<< { id: me, q: _ })
+                  , gain: tmpResolveAU parent.scope di (setGain <<< { id: me, gain: _ })
                   }
                   e
               )
@@ -1078,7 +1078,7 @@ __periodicOsc i' atts = C.Node go
           <|>
             ( keepLatest $ map
                 ( \(C.PeriodicOsc e) -> match
-                    { frequency: tmpResolveAU di (setFrequency <<< { id: me, frequency: _ })
+                    { frequency: tmpResolveAU parent.scope di (setFrequency <<< { id: me, frequency: _ })
                     , onOff: \onOff -> bang $ setOnOff { id: me, onOff }
                     , spec: \spec -> bang $ setPeriodicOsc { id: me, spec }
                     }
@@ -1199,7 +1199,7 @@ __playBuf i' atts = C.Node go
             ( keepLatest $ map
                 ( \(C.PlayBuf e) -> match
                     { buffer: \buffer -> bang $ setBuffer { id: me, buffer }
-                    , playbackRate: tmpResolveAU di
+                    , playbackRate: tmpResolveAU parent.scope di
                         ( setPlaybackRate <<<
                             { id: me, playbackRate: _ }
                         )
@@ -1278,7 +1278,7 @@ __sawtoothOsc i' atts = C.Node go
           <|>
             ( keepLatest $ map
                 ( \(C.SawtoothOsc e) -> match
-                    { frequency: tmpResolveAU di (setFrequency <<< { id: me, frequency: _ })
+                    { frequency: tmpResolveAU parent.scope di (setFrequency <<< { id: me, frequency: _ })
                     , onOff: \onOff -> bang $ setOnOff { id: me, onOff }
                     }
                     e
@@ -1330,7 +1330,7 @@ __sinOsc i' atts = C.Node go
           <|>
             ( keepLatest $ map
                 ( \(C.SinOsc e) -> match
-                    { frequency: tmpResolveAU di (setFrequency <<< { id: me, frequency: _ })
+                    { frequency: tmpResolveAU parent.scope di (setFrequency <<< { id: me, frequency: _ })
                     , onOff: \onOff -> bang $ setOnOff { id: me, onOff }
                     }
                     e
@@ -1382,7 +1382,7 @@ __squareOsc i' atts = C.Node go
           <|>
             ( keepLatest $ map
                 ( \(C.SquareOsc e) -> match
-                    { frequency: tmpResolveAU di (setFrequency <<< { id: me, frequency: _ })
+                    { frequency: tmpResolveAU parent.scope di (setFrequency <<< { id: me, frequency: _ })
                     , onOff: \onOff -> bang $ setOnOff { id: me, onOff }
                     }
                     e
@@ -1448,7 +1448,7 @@ pan i' atts elts = C.Node go
         <|>
           ( keepLatest $ map
               ( \(C.StereoPanner e) -> match
-                  { pan: tmpResolveAU di (setPan <<< { id: me, pan: _ })
+                  { pan: tmpResolveAU parent.scope di (setPan <<< { id: me, pan: _ })
                   }
                   e
               )
@@ -1494,7 +1494,7 @@ __triangleOsc i' atts = C.Node go
           <|>
             ( keepLatest $ map
                 ( \(C.TriangleOsc e) -> match
-                    { frequency: tmpResolveAU di (setFrequency <<< { id: me, frequency: _ })
+                    { frequency: tmpResolveAU parent.scope di (setFrequency <<< { id: me, frequency: _ })
                     , onOff: \onOff -> bang $ setOnOff { id: me, onOff }
                     }
                     e
@@ -1737,7 +1737,7 @@ silence = fix identity
 -- which can add up
 -- so we definitely want to delete this and use Common.resolveAU
 -- as soon as we can correctly attach and detach generators
-tmpResolveAU :: forall lock payload. C.AudioInterpret payload -> (C.FFIAudioParameter -> payload) -> C.AudioParameter lock payload -> Event payload
+tmpResolveAU :: forall lock payload. String -> C.AudioInterpret payload -> (C.FFIAudioParameter -> payload) -> C.AudioParameter lock payload -> Event payload
 tmpResolveAU = go
   where
   cncl = C.FFIAudioParameter <<< inj (Proxy :: _ "cancel")
@@ -1745,7 +1745,7 @@ tmpResolveAU = go
   nmc = C.FFIAudioParameter <<< inj (Proxy :: _ "numeric")
   sdn = C.FFIAudioParameter <<< inj (Proxy :: _ "sudden")
   ut = C.FFIAudioParameter <<< inj (Proxy :: _ "unit")
-  go di@(C.AudioInterpret { ids }) f (C.AudioParameter a) = match
+  go scope di f (C.AudioParameter a) = match
     { numeric: bang <<< f <<< nmc
     , envelope: bang <<< f <<< ev
     , cancel: bang <<< f <<< cncl
@@ -1755,10 +1755,9 @@ tmpResolveAU = go
           C.Node n = gain_ 1.0 u
         in
           makeEvent \k -> do
-            newScope <- ids
             av <- AVar.empty
             subscribe
-              ( n { parent: nothing, scope: newScope, raiseId: \x -> void $ AVar.tryPut x av } di <|> makeEvent \k2 -> do
+              ( n { parent: nothing, scope: scope, raiseId: \x -> void $ AVar.tryPut x av } di <|> makeEvent \k2 -> do
                   void $ AVar.take av case _ of
                     Left e -> throwException e
                     -- only do the connection if not silence

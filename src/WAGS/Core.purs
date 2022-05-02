@@ -53,6 +53,12 @@ _numeric' = _numeric <<< AudioNumeric
 _numeric :: forall lock payload. AudioNumeric -> AudioParameter lock payload
 _numeric = AudioParameter <<< inj (Proxy :: _ "numeric")
 
+_unit' :: forall lock payload. AudioUnit' lock payload -> AudioParameter lock payload
+_unit' = _unit <<< AudioUnit
+
+_unit :: forall lock payload. AudioUnit lock payload -> AudioParameter lock payload
+_unit = AudioParameter <<< inj (Proxy :: _ "unit")
+
 _envelope :: forall lock payload. AudioEnvelope -> AudioParameter lock payload
 _envelope = AudioParameter <<< inj (Proxy :: _ "envelope")
 
@@ -201,6 +207,15 @@ instance ToAudioParameter AudioCancel l p where
 
 instance ToAudioParameter AudioEnvelope l p where
   toAudioParameter = _envelope
+
+instance (TypeEquals l0 l1, TypeEquals p0 p1) => ToAudioParameter (AudioUnit l0 p0) l1 p1 where
+  toAudioParameter = _unit <<< (unsafeCoerce :: AudioUnit l0 p0 -> AudioUnit l1 p1)
+
+instance (TypeEquals l0 l1, TypeEquals p0 p1) => ToAudioParameter (Node D1 l0 p0) l1 p1 where
+  toAudioParameter = toAudioParameter <<< AudioUnit <<< { u: _ }
+
+c1 :: forall l p. (forall o. Node o l p) -> Node D1 l p
+c1 (Node o) = Node o
 
 class OpticN s where
   opticN :: forall p. Strong p => Optic' p s Number

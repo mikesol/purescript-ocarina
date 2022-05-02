@@ -27,6 +27,7 @@ import WAGS.Example.Docs.MultiChannel as Multichannel
 import WAGS.Example.Docs.Portals as Portals
 import WAGS.Example.Docs.Pursx1 as Pursx1
 import WAGS.Example.Docs.Pursx2 as Pursx2
+import WAGS.Example.Docs.Params as Params
 import WAGS.Example.Docs.Subgraphs as Subgraph
 import WAGS.Example.Docs.Types (Page(..), ToplevelEvent(..))
 import Web.HTML (window)
@@ -95,9 +96,9 @@ scene push event' =
         , Events
             /\ "Events"
             /\ true
-        --   , MultiChannel
-        --       /\ "Merging and splitting"
-        --       /\ true
+          , Params
+              /\ "Parameters"
+              /\ true
         --   , AudioWorklets
         --       /\ "Audio worklets"
         --       /\ true
@@ -145,6 +146,7 @@ scene push event' =
     go AudioUnits = D.div_ $ map plant $ bus (Component.components setCancellation setPage)
     go AudioWorklets = D.div_ $ map plant $ bus (Pursx1.pursx1 setCancellation setPage)
     go Events = D.div_ $ map plant $ bus (Events.events setCancellation setPage)
+    go Params = D.div_ $ map plant $ bus (Params.params setCancellation setPage)
     go State = D.div_ $ map plant $ bus (Effects.effects setCancellation setPage)
     go Imperative = D.div_ $ map plant $ bus (Pursx2.pursx2 setCancellation setPage)
     go MultiChannel = D.div_ $ map plant $ bus (Multichannel.multiChannel setCancellation setPage)

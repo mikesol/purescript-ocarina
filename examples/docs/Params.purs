@@ -8,7 +8,7 @@ import Effect (Effect)
 import FRP.Event (Event)
 import Type.Proxy (Proxy(..))
 import WAGS.Example.Docs.Params.Numeric as Numeric
-import WAGS.Example.Docs.AudioUnits.Compression as Compression
+import WAGS.Example.Docs.Params.Unit as Unit
 import WAGS.Example.Docs.Params.Sudden as Sudden
 import WAGS.Example.Docs.Params.Envelope as Envelope
 import WAGS.Example.Docs.Params.Cancel as Cancel
@@ -30,7 +30,7 @@ px = Proxy :: Proxy """<div>
   ~unit~
 
   <h2>Next steps</h2>
-  <p>Phew, that was a lot of audio units! In the next section, we'll make them come alive thanks to the magic of <a ~next~ style="cursor:pointer;">events</a>.</p>
+  <p>In this section, we saw how to specify parameters for audio units, including using audio-rate audio units as parameters. In the next section, we'll look at how to make events <a ~next~ style="cursor:pointer;">stateful</a>.</p>
 </div>"""
 
 params :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent  -> Element lock payload
@@ -39,9 +39,9 @@ params cca' dpage ssp ev = px ~~
   , numeric: nut $ Numeric.numericEx ccb dpage ev
   , envelope: nut $ Envelope.envelopeEx ccb dpage ev
   , cancel: nut $ Cancel.cancelEx ccb dpage ev
-  , unit: nut $ Compression.compression ccb dpage ev
+  , unit: nut $ Unit.unitEx ccb dpage ev
   , next: mkNext ev cpage
   }
   where
-  cpage = dpage Events *> scrollToTop
+  cpage = dpage State *> scrollToTop
   ccb = ccassp cca' ssp

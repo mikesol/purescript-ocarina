@@ -11,14 +11,11 @@ var makeid = function (length) {
 var NUMERIC = "numeric";
 var SUDDEN = "sudden";
 var UNIT = "unit";
-var CANCELLATION = "cancellation";
+var CANCEL = "cancel";
 var NO_RAMP = "step";
 var LINEAR_RAMP = "linear";
 var EXPONENTIAL_RAMP = "exponential";
 var ENVELOPE = "envelope";
-var isCancellation = function (a) {
-	return a.type === CANCELLATION;
-};
 var protoSetter = function (thingee, ctrl, param, state) {
 	if (param.type === SUDDEN) {
 		thingee.value = param.value.n;
@@ -39,7 +36,7 @@ var protoSetter = function (thingee, ctrl, param, state) {
 					? "exponentialRampToValueAtTime"
 					: "linearRampToValueAtTime"
 			](param.value.n, param.value.o);
-		} else if (isCancellation(param)) {
+		} else if (param.type === CANCEL) {
 			param.value.hold
 				? thingee.cancelAndHoldAtTime(param.value.o)
 				: thingee.cancelScheduledValues(param.value.o);

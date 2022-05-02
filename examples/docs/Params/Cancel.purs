@@ -57,7 +57,7 @@ cancelEx ccb _ ev = px ~~
   ]"""
       )
   , cancel: nut
-      ( audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/339/339822_5121236-lq.mp3")
+      ( audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
           \ctx buf -> run2 ctx
             [ gain_ 1.0
                 [ loopBuf buf
