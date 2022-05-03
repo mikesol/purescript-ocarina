@@ -57,63 +57,6 @@ instance createNodeDefault ::
   ) =>
   CreateNode (c \/ t \/ s) id isTerminal (c \/ t' \/ s)
 
--- | Creates a `Speaker` node.
--- |
--- | Note that since speakers are terminal nodes, they serve as the anchor to
--- | which all other nodes must connect or reach into.
--- |
--- | ```purescript
--- | speaker <- Create.speaker (Proxy :: Proxy "speaker")
--- | ```
-speaker
-  :: forall p i o id
-   . IsSymbol id
-  => CreateNode i id True o
-  => Proxy id
-  -> GraphBuilder p i o (T.GraphUnit id T.Speaker)
-speaker _ = GraphBuilder go
-  where
-  go (Core.AudioInterpret { makeSpeaker }) =
-    { event: bang $ makeSpeaker { id: reflectSymbol (Proxy :: _ id) }
-    , result: T.GraphUnit
-    }
-
--- | Creates a `Gain` node.
--- |
--- | ```purescript
--- | gain <- Create.gain (Proxy :: _ "gain") 1.0 empty
--- | ```
-gain
-  :: forall l p i o id initialGain
-   . IsSymbol id
-  => Common.InitialGain initialGain
-  => CreateNode i id False o
-  => Proxy id
-  -> initialGain
-  -> Event (Core.Gain l p)
-  -> GraphBuilder p i o (T.GraphUnit id T.Gain)
-gain _ initialGain attributes = GraphBuilder go
-  where
-  initializeGain = unwrap $ Common.toInitializeGain initialGain
-  go di@(Core.AudioInterpret { makeGain, setGain }) =
-    { event:
-        let
-          id = reflectSymbol (Proxy :: _ id)
-          event0 = bang $
-            makeGain
-              { id
-              , parent: nothing
-              , gain: initializeGain.gain
-              , scope: "imperative"
-              }
-          eventN = keepLatest (attributes <#> unwrap >>> match
-            { gain: Common.resolveAU di (setGain <<< { id, gain: _ })
-            })
-        in
-          event0 <|> eventN
-    , result: T.GraphUnit
-    }
-
 -- | Creates a `SinOsc` node.
 -- |
 -- | ```purescript
@@ -137,10 +80,12 @@ sinOsc _ initialSinOsc attributes = GraphBuilder go
           id = reflectSymbol (Proxy :: _ id)
           event0 = bang $
             makeSinOsc { id, parent: nothing, frequency, scope: "imperative" }
-          eventN = keepLatest (attributes <#> unwrap >>> match
-            { frequency: Common.resolveAU di (setFrequency <<< { id, frequency: _ })
-            , onOff: bang <<< setOnOff <<< { id, onOff: _ }
-            })
+          eventN = keepLatest
+            ( attributes <#> unwrap >>> match
+                { frequency: Common.resolveAU di (setFrequency <<< { id, frequency: _ })
+                , onOff: bang <<< setOnOff <<< { id, onOff: _ }
+                }
+            )
         in
           event0 <|> eventN
     , result: T.GraphUnit
@@ -165,15 +110,16 @@ playBuf _ initialPlayBuf attributes = GraphBuilder go
   { buffer, playbackRate, bufferOffset, duration } = unwrap $
     Common.toInitializePlayBuf initialPlayBuf
   go
-    di@( Core.AudioInterpret
-        { makePlayBuf
-        , setBuffer
-        , setOnOff
-        , setDuration
-        , setPlaybackRate
-        , setBufferOffset
-        }
-    ) =
+    di@
+      ( Core.AudioInterpret
+          { makePlayBuf
+          , setBuffer
+          , setOnOff
+          , setDuration
+          , setPlaybackRate
+          , setBufferOffset
+          }
+      ) =
     { event:
         let
           id = reflectSymbol (Proxy :: _ id)
@@ -186,13 +132,15 @@ playBuf _ initialPlayBuf attributes = GraphBuilder go
             , duration
             , scope: "imperative"
             }
-          eventN = keepLatest (attributes <#> unwrap >>> match
-            { buffer: bang <<< setBuffer <<< { id, buffer: _ }
-            , playbackRate: Common.resolveAU di (setPlaybackRate <<< { id, playbackRate: _ })
-            , bufferOffset: bang <<< setBufferOffset <<< { id, bufferOffset: _ }
-            , duration: bang <<< setDuration <<< { id, duration: _ }
-            , onOff: bang <<< setOnOff <<< { id, onOff: _ }
-            })
+          eventN = keepLatest
+            ( attributes <#> unwrap >>> match
+                { buffer: bang <<< setBuffer <<< { id, buffer: _ }
+                , playbackRate: Common.resolveAU di (setPlaybackRate <<< { id, playbackRate: _ })
+                , bufferOffset: bang <<< setBufferOffset <<< { id, bufferOffset: _ }
+                , duration: bang <<< setDuration <<< { id, duration: _ }
+                , onOff: bang <<< setOnOff <<< { id, onOff: _ }
+                }
+            )
         in
           event0 <|> eventN
     , result: T.GraphUnit

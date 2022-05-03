@@ -28,6 +28,17 @@ class HasSound node tOrF | node -> tOrF
 -- | The kind of audio nodes.
 data Node
 
+foreign import data Allpass :: Node
+
+instance hasInputAllpass :: HasInput Allpass
+instance hasOutputAllpass :: HasOutput Allpass
+instance hasSoundAllpass :: HasSound Allpass False
+
+foreign import data Analyser :: Node
+
+instance hasInputAnalyser :: HasInput Analyser
+instance hasSoundAnalyser :: HasSound Analyser False
+
 foreign import data Speaker :: Node
 
 instance hasInputSpeaker :: HasInput Speaker

@@ -16,57 +16,9 @@ import FRP.Event (Event, bang, makeEvent, subscribe)
 import Safe.Coerce (coerce)
 import Type.Equality (class TypeEquals, proof)
 import Type.Proxy (Proxy(..))
-import WAGS.Core (Oversample, PeriodicOscSpec(..), RealImg(..), _twoX)
-import WAGS.Core as C
+import WAGS.Core (ChannelCountMode(..), ChannelInterpretation(..), Oversample, PeriodicOscSpec(..), Po2(..), RealImg(..), _twoX)
 import WAGS.Core as Core
-import WAGS.WebAPI (BrowserAudioBuffer, BrowserFloatArray, BrowserMicrophone, BrowserPeriodicWave, MediaRecorderCb)
-
--- Allpass
-
-data AllpassOptions = AllpassOptions
-
-instance
-  ConvertOption AllpassOptions
-    "frequency"
-    Core.InitialAudioParameter
-    Core.InitialAudioParameter where
-  convertOption _ _ = identity
-
-instance
-  ConvertOption AllpassOptions
-    "q"
-    Core.InitialAudioParameter
-    Core.InitialAudioParameter where
-  convertOption _ _ = identity
-
-type AllpassOptional =
-  ( q :: Core.InitialAudioParameter
-  )
-
-type AllpassAll =
-  ( frequency :: Core.InitialAudioParameter
-  | AllpassOptional
-  )
-
-defaultAllpass :: { | AllpassOptional }
-defaultAllpass =
-  { q: 1.0 }
-
-class InitialAllpass i where
-  toInitializeAllpass :: i -> Core.InitializeAllpass
-
-instance InitialAllpass Core.InitializeAllpass where
-  toInitializeAllpass = identity
-
-instance InitialAllpass Core.InitialAudioParameter where
-  toInitializeAllpass = toInitializeAllpass <<< { frequency: _ }
-
-instance
-  ConvertOptionsWithDefaults AllpassOptions { | AllpassOptional } { | provided }
-    { | AllpassAll } =>
-  InitialAllpass { | provided } where
-  toInitializeAllpass provided = Core.InitializeAllpass
-    (convertOptionsWithDefaults AllpassOptions defaultAllpass provided)
+import WAGS.WebAPI (AnalyserNodeCb(..), BrowserAudioBuffer, BrowserFloatArray, BrowserMicrophone, BrowserPeriodicWave, MediaRecorderCb)
 
 -- Bandpass
 
@@ -862,20 +814,24 @@ instance
 
 -- resolveAU
 
-resolveAU :: forall lock payload. C.AudioInterpret payload -> (C.FFIAudioParameter -> payload) -> C.AudioParameter lock payload -> Event payload
+resolveAU :: forall lock payload. Core.AudioInterpret payload -> (Core.FFIAudioParameter -> payload) -> Core.AudioParameter lock payload -> Event payload
 resolveAU = go
   where
-  cncl = C.FFIAudioParameter <<< inj (Proxy :: _ "cancel")
-  ev = C.FFIAudioParameter <<< inj (Proxy :: _ "envelope")
-  nmc = C.FFIAudioParameter <<< inj (Proxy :: _ "numeric")
-  sdn = C.FFIAudioParameter <<< inj (Proxy :: _ "sudden")
-  ut = C.FFIAudioParameter <<< inj (Proxy :: _ "unit")
-  go di@(C.AudioInterpret { ids }) f (C.AudioParameter a) = match
+  cncl = Core.FFIAudioParameter <<< inj (Proxy :: _ "cancel")
+  ev = Core.FFIAudioParameter <<< inj (Proxy :: _ "envelope")
+  nmc = Core.FFIAudioParameter <<< inj (Proxy :: _ "numeric")
+  sdn = Core.FFIAudioParameter <<< inj (Proxy :: _ "sudden")
+  ut = Core.FFIAudioParameter <<< inj (Proxy :: _ "unit")
+  go di@(Core.AudioInterpret { ids }) f (Core.AudioParameter a) = match
     { numeric: bang <<< f <<< nmc
     , envelope: bang <<< f <<< ev
     , cancel: bang <<< f <<< cncl
     , sudden: bang <<< f <<< sdn
-    , unit: \(C.AudioUnit { u }) -> let C.Node n = u in makeEvent \k -> do
+    , unit: \(Core.AudioUnit { u }) ->
+        let
+          Core.Node n = u
+        in
+          makeEvent \k -> do
             newScope <- ids
             av <- AVar.empty
             subscribe
@@ -883,7 +839,7 @@ resolveAU = go
                   void $ AVar.take av case _ of
                     Left e -> throwException e
                     -- only do the connection if not silence
-                    Right i -> k2 (f (ut (C.FFIAudioUnit { i })))
+                    Right i -> k2 (f (ut (Core.FFIAudioUnit { i })))
                   pure (pure unit)
               )
               k
