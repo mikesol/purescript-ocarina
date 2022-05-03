@@ -1931,7 +1931,7 @@ scene buf = run2_
   </section>
 `}})({reflectType:function(){return"@"}})()()(M()(X)({reflectType:function(){return"numericEx"}})({reflectSymbol:function(){return"numericEx"}}))(D.value)(gL)({numericEx:O(et(a)(a))(xt(r)(t)(function(n){return Et(n)("https://freesound.org/data/previews/320/320873_527080-hq.mp3")})(function(n){return function(u){return st(n)([Nt(ot)(W(a)(a)(a))(1)([ue(Ce)(u)(tr(wt)(g)([lt(),Wu(1e3)(tr(wt)(g)([Tt(Zn()(Wr)({n:1,o:1,t:aD})),Tt(Zn()(Wr)({n:1.3,o:2,t:Ro}))])),Wu(2500)(tr(wt)(g)([Tt(Zn()(Wr)({n:1,o:2.5,t:aD})),Tt(Zn()(Wr)({n:.7,o:3.5,t:mE}))]))]))])])}}))})}}};var CL=function(){return D.value}(),Jh=function(t){return function(e){return function(r){return le({reflectType:function(){return`<section>
   <h2>AudioSudden</h2>
-  <p>The simplest change you can make is scheduling a value to change <i>now</i>. This is done with <code>AudioSudden</code>, which is a wrapper around the setter for an audio parameter's <a href="https://developer.mozilla.org/en-US/docs/Web/API/AudioParam/value">\`value\`</a> field in the Web Audio API.</p>
+  <p>The simplest change you can make is scheduling a value to change <i>now</i>. This is done with <code>AudioSudden</code>, which is a wrapper around the setter for an audio parameter's <a href="https://developer.mozilla.org/en-US/docs/Web/API/AudioParam/value"><code>value</code></a> field in the Web Audio API.</p>
 
   <p>In the example below, we change a value after it has run for 1.5 seconds.</p>
 
