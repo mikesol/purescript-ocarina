@@ -20,7 +20,13 @@ import WAGS.Run (run2)
 px =
   Proxy    :: Proxy         """<section>
   <h2>AudioNumeric</h2>
-  <p><code>AudioNumeric encompasses the following three functions from the Web Audio API</code>:</p>
+  <p><code>AudioNumeric</code> encompasses the following three functions from the Web Audio API:</p>
+
+  <ul>
+    <li><code>linearRampToValueAtTime</code> via the <code>_linear</code> transition.</li>
+    <li><code>exponentialRampToValueAtTime</code> via the <code>_exponential</code> transition.</li>
+    <li><code>setValueAtTime</code> via the <code>_step</code> transition.</li>
+  </ul>
 
   <p>Let's explore all of them in the example below.</p>
 
