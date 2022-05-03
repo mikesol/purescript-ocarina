@@ -1,13 +1,3 @@
-var makeid = function (length) {
-	var result = "";
-	var characters =
-		"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-	var charactersLength = characters.length;
-	for (var i = 0; i < length; i++) {
-		result += characters.charAt(Math.floor(Math.random() * charactersLength));
-	}
-	return result;
-};
 var NUMERIC = "numeric";
 var SUDDEN = "sudden";
 var UNIT = "unit";
@@ -1599,7 +1589,6 @@ export function makeFFIAudioSnapshot(audioCtx) {
 			context: audioCtx,
 			deprecatedWriteHead: 0.0,
 			units: {},
-			unqidfr: makeid(10),
 			scopes: {},
 			unsu: {},
 			toConnect: {},
