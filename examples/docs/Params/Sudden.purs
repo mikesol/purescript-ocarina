@@ -20,7 +20,7 @@ import WAGS.Run (run2)
 px =
   Proxy    :: Proxy         """<section>
   <h2>AudioSudden</h2>
-  <p>The simplest change you can make is scheduling a value to change <i>now</i>. This is done with <code>AudioSudden</code>, which is a wrapper around the setter for an audio parameter's <a href="https://developer.mozilla.org/en-US/docs/Web/API/AudioParam/value">`value`</a> field in the Web Audio API.</p>
+  <p>The simplest change you can make is scheduling a value to change <i>now</i>. This is done with <code>AudioSudden</code>, which is a wrapper around the setter for an audio parameter's <a href="https://developer.mozilla.org/en-US/docs/Web/API/AudioParam/value"><code>value</code></a> field in the Web Audio API.</p>
 
   <p>In the example below, we change a value after it has run for 1.5 seconds.</p>
 
