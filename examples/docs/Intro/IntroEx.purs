@@ -12,6 +12,7 @@ import Data.Foldable (for_, oneOf, oneOfMap, traverse_)
 import Data.Homogeneous.Record as Rc
 import Data.Int as Int
 import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Number (pi)
 import Data.Profunctor.Strong (second)
 import Data.Traversable (traverse)
 import Data.Tuple.Nested (type (/\), (/\))
@@ -33,23 +34,24 @@ import FRP.Event.Animate (animationFrameEvent)
 import FRP.Event.Class (bang, biSampleOn)
 import FRP.Event.VBus (V, vbus)
 import Foreign.Object (fromHomogeneous, values)
-import Graphics.Canvas (arc, beginPath, fill, fillRect, setFillStyle)
-import Data.Number (pi)
+import Graphics.Canvas (CanvasElement, arc, beginPath, fill, fillRect, getContext2D, setFillStyle)
 import Random.LCG (mkSeed)
 import Test.QuickCheck.Gen (elements, evalGen)
 import Type.Proxy (Proxy(..))
+import Unsafe.Coerce (unsafeCoerce)
 import WAGS.Clock (withACTime)
 import WAGS.Control (analyser_, bandpass, delay, fan1, fix, gain, gain_, highpass, lowpass, playBuf)
+import WAGS.Core (AudioEnvelope(..), AudioNumeric(..), _linear, bangOn)
 import WAGS.Core (Node, Po2(..), mix)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..))
 import WAGS.Example.Docs.Util (raceSelf)
 import WAGS.Interpret (close, constant0Hack, context, decodeAudioDataFromUri, getByteFrequencyData)
 import WAGS.Math (calcSlope)
-import WAGS.Core (AudioEnvelope(..), AudioNumeric(..), _linear, bangOn)
 import WAGS.Properties as P
 import WAGS.Run (run2)
 import WAGS.WebAPI (AnalyserNodeCb(..))
 import Web.Event.Event (target)
+import Web.HTML.HTMLCanvasElement as HTMLCanvasElement
 import Web.HTML.HTMLInputElement (fromEventTarget, valueAsNumber)
 
 px = Proxy :: Proxy """<section>@ex1@</section>"""
@@ -105,6 +107,7 @@ fenv s e = bang
 denv s e = bang
   $ P.delayTime
   $ AudioEnvelope { p: [ s, e ], o: 0.0, d: 16.0 }
+
 ttap (o /\ n) = AudioNumeric { o: o + 0.04, n, t: _linear }
 
 introEx
@@ -144,16 +147,16 @@ introEx ccb _ ev = makePursx' (Proxy :: _ "@") px
                                     [ g0, g1 ]
                                 ]
                           ]
-                      , dgh 0.29 ((P.delayTime <<< ttap <<< second (calcSlope 0.0 0.1 100.0 0.4)) <$> sliderE) {-(denv 0.29 0.9)-} 0.85 empty 2000.0
+                      , dgh 0.29 ((P.delayTime <<< ttap <<< second (calcSlope 0.0 0.1 100.0 0.4)) <$> sliderE) {-(denv 0.29 0.9)-}  0.85 empty 2000.0
                           (fenv 2000.0 5000.0)
                           [ fix
                               \g1 -> gain_ 1.0
-                                [ dgh 0.6 ((P.delayTime <<< ttap <<< second (calcSlope 0.0 0.8 100.0 0.3)) <$> sliderE) {-(denv 0.6 0.2)-} 0.6 empty 3500.0
+                                [ dgh 0.6 ((P.delayTime <<< ttap <<< second (calcSlope 0.0 0.8 100.0 0.3)) <$> sliderE) {-(denv 0.6 0.2)-}  0.6 empty 3500.0
                                     (fenv 3500.0 100.0)
                                     [ g0
                                     , ( fix
                                           \g2 -> gain 1.0 fade0
-                                            [ dgb 0.75 ((P.delayTime <<< ttap <<< second (calcSlope 0.0 0.9 100.0 0.1)) <$> sliderE) {-(denv 0.75 0.99)-} 0.6
+                                            [ dgb 0.75 ((P.delayTime <<< ttap <<< second (calcSlope 0.0 0.9 100.0 0.1)) <$> sliderE) {-(denv 0.75 0.99)-}  0.6
                                                 empty
                                                 4000.0
                                                 (fenv 4000.0 200.0)
@@ -172,12 +175,22 @@ introEx ccb _ ev = makePursx' (Proxy :: _ "@") px
                       [ D.Width := cvsxs
                       , D.Height := cvsys
                       , D.Style := "width: 100%;"
-                      , D.Draw2D := \ctx -> do
+                      , D.Self := HTMLCanvasElement.fromElement >>> traverse_ \e -> do
+                          ctx <- getContext2D
+                            ( ( unsafeCoerce
+                                  :: HTMLCanvasElement.HTMLCanvasElement -> CanvasElement
+                              ) e
+                            )
                           setFillStyle ctx "black"
                           fillRect ctx { width: cvsxn, height: cvsyn, x: 0.0, y: 0.0 }
                           pure unit
                       ] <|>
-                      ( ( \arr -> D.Draw2D := \ctx -> do
+                      ( ( \arr -> D.Self := HTMLCanvasElement.fromElement >>> traverse_ \e -> do
+                            ctx <- getContext2D
+                              ( ( unsafeCoerce
+                                    :: HTMLCanvasElement.HTMLCanvasElement -> CanvasElement
+                                ) e
+                              )
                             setFillStyle ctx "black"
                             fillRect ctx { width: cvsxn, height: cvsyn, x: 0.0, y: 0.0 }
                             setFillStyle ctx "rgba(255,255,255,0.2)"

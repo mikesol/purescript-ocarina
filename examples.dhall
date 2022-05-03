@@ -19,6 +19,7 @@ in      conf
               , "profunctor"
               , "web-html"
               , "uint"
+              , "canvas"
               , "media-types"
               , "web-file"
               , "profunctor-lenses"
