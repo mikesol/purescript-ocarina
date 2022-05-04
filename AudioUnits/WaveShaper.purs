@@ -51,9 +51,8 @@ waveShaperEx ccb _ ev = px ~~
       n_samples = 44100
 
       deg = pi / 180.0
-  wicked <- makeFloatArray (makeDistortionCurve 400.0)
   run2_
-    [ waveShaper wicked [ loopBuf buf bangOn ] ]"""
+    [ waveShaper (makeFloatArray (makeDistortionCurve 400.0)) [ loopBuf buf bangOn ] ]"""
       )
   , waveShaper: nut
       ( audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/339/339822_5121236-lq.mp3")
@@ -73,8 +72,7 @@ waveShaperEx ccb _ ev = px ~~
                 n_samples = 44100
 
                 deg = pi / 180.0
-            wicked <- makeFloatArray (makeDistortionCurve 400.0)
             run2 ctx
-              [waveShaper wicked [loopBuf buf bangOn]]
+              [waveShaper (makeFloatArray (makeDistortionCurve 400.0)) [loopBuf buf bangOn]]
       )
   }
