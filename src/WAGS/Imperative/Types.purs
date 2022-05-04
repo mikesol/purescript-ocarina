@@ -69,6 +69,12 @@ instance hasInputDynamicsCompressor :: HasInput DynamicsCompressor
 instance hasOutputDynamicsCompressor :: HasOutput DynamicsCompressor
 instance hasSoundDynamicsCompressor :: HasSound DynamicsCompressor False
 
+foreign import data Highpass :: Node
+
+instance hasInputHighpass :: HasInput Highpass
+instance hasOutputHighpass :: HasOutput Highpass
+instance hasSoundHighpass :: HasSound Highpass False
+
 foreign import data Speaker :: Node
 
 instance hasInputSpeaker :: HasInput Speaker
