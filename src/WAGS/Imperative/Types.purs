@@ -75,6 +75,12 @@ instance hasInputHighpass :: HasInput Highpass
 instance hasOutputHighpass :: HasOutput Highpass
 instance hasSoundHighpass :: HasSound Highpass False
 
+foreign import data Highshelf :: Node
+
+instance hasInputHighshelf :: HasInput Highshelf
+instance hasOutputHighshelf :: HasOutput Highshelf
+instance hasSoundHighshelf :: HasSound Highshelf False
+
 foreign import data Speaker :: Node
 
 instance hasInputSpeaker :: HasInput Speaker
