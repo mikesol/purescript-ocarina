@@ -45,6 +45,12 @@ instance hasInputBandpass :: HasInput Bandpass
 instance hasOutputBandpass :: HasOutput Bandpass
 instance hasSoundBandpass :: HasSound Bandpass False
 
+foreign import data Constant :: Node
+
+instance hasInputConstant :: HasInput Constant
+instance hasOutputConstant :: HasOutput Constant
+instance hasSoundConstant :: HasSound Constant False
+
 foreign import data Speaker :: Node
 
 instance hasInputSpeaker :: HasInput Speaker

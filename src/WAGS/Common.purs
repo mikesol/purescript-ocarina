@@ -20,26 +20,6 @@ import WAGS.Core (ChannelCountMode(..), ChannelInterpretation(..), Oversample, P
 import WAGS.Core as Core
 import WAGS.WebAPI (AnalyserNodeCb(..), BrowserAudioBuffer, BrowserFloatArray, BrowserMicrophone, BrowserPeriodicWave, MediaRecorderCb)
 
--- Constant
-class InitialConstant i where
-  toInitializeConstant :: i -> Core.InitializeConstant
-
-instance InitialConstant Core.InitializeConstant where
-  toInitializeConstant = identity
-
-instance InitialConstant Number where
-  toInitializeConstant = Core.InitializeConstant <<< { offset: _ }
-
--- Convolver
-class InitialConvolver i where
-  toInitializeConvolver :: i -> Core.InitializeConvolver
-
-instance InitialConvolver Core.InitializeConvolver where
-  toInitializeConvolver = identity
-
-instance InitialConvolver BrowserAudioBuffer where
-  toInitializeConvolver = Core.InitializeConvolver <<< { buffer: _ }
-
 -- IIRFilter
 class InitialIIRFilter i feedforward feedback where
   toInitializeIIRFilter :: forall proxy. i -> proxy feedforward -> proxy feedback -> (Core.InitializeIIRFilter feedforward feedback)
