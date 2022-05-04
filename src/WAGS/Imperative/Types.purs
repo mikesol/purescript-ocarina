@@ -51,6 +51,12 @@ instance hasInputConstant :: HasInput Constant
 instance hasOutputConstant :: HasOutput Constant
 instance hasSoundConstant :: HasSound Constant False
 
+foreign import data Convolver :: Node
+
+instance hasInputConvolver :: HasInput Convolver
+instance hasOutputConvolver :: HasOutput Convolver
+instance hasSoundConvolver :: HasSound Convolver False
+
 foreign import data Speaker :: Node
 
 instance hasInputSpeaker :: HasInput Speaker
