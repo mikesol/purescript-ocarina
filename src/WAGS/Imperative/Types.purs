@@ -39,6 +39,12 @@ foreign import data Analyser :: Node
 instance hasInputAnalyser :: HasInput Analyser
 instance hasSoundAnalyser :: HasSound Analyser False
 
+foreign import data Bandpass :: Node
+
+instance hasInputBandpass :: HasInput Bandpass
+instance hasOutputBandpass :: HasOutput Bandpass
+instance hasSoundBandpass :: HasSound Bandpass False
+
 foreign import data Speaker :: Node
 
 instance hasInputSpeaker :: HasInput Speaker

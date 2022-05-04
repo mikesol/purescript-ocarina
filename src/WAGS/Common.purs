@@ -20,54 +20,6 @@ import WAGS.Core (ChannelCountMode(..), ChannelInterpretation(..), Oversample, P
 import WAGS.Core as Core
 import WAGS.WebAPI (AnalyserNodeCb(..), BrowserAudioBuffer, BrowserFloatArray, BrowserMicrophone, BrowserPeriodicWave, MediaRecorderCb)
 
--- Bandpass
-
-data BandpassOptions = BandpassOptions
-
-instance
-  ConvertOption BandpassOptions
-    "frequency"
-    Core.InitialAudioParameter
-    Core.InitialAudioParameter where
-  convertOption _ _ = identity
-
-instance
-  ConvertOption BandpassOptions
-    "q"
-    Core.InitialAudioParameter
-    Core.InitialAudioParameter where
-  convertOption _ _ = identity
-
-type BandpassOptional =
-  ( q :: Core.InitialAudioParameter
-  )
-
-type BandpassAll =
-  ( frequency :: Core.InitialAudioParameter
-  | BandpassOptional
-  )
-
-defaultBandpass :: { | BandpassOptional }
-defaultBandpass =
-  { q: 1.0 }
-
-class InitialBandpass i where
-  toInitializeBandpass :: i -> Core.InitializeBandpass
-
-instance InitialBandpass Core.InitializeBandpass where
-  toInitializeBandpass = identity
-
-instance InitialBandpass Core.InitialAudioParameter where
-  toInitializeBandpass = toInitializeBandpass <<< { frequency: _ }
-
-instance
-  ConvertOptionsWithDefaults BandpassOptions { | BandpassOptional }
-    { | provided }
-    { | BandpassAll } =>
-  InitialBandpass { | provided } where
-  toInitializeBandpass provided = Core.InitializeBandpass
-    (convertOptionsWithDefaults BandpassOptions defaultBandpass provided)
-
 -- Constant
 class InitialConstant i where
   toInitializeConstant :: i -> Core.InitializeConstant
