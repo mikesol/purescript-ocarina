@@ -63,6 +63,12 @@ instance hasInputDelay :: HasInput Delay
 instance hasOutputDelay :: HasOutput Delay
 instance hasSoundDelay :: HasSound Delay False
 
+foreign import data DynamicsCompressor :: Node
+
+instance hasInputDynamicsCompressor :: HasInput DynamicsCompressor
+instance hasOutputDynamicsCompressor :: HasOutput DynamicsCompressor
+instance hasSoundDynamicsCompressor :: HasSound DynamicsCompressor False
+
 foreign import data Speaker :: Node
 
 instance hasInputSpeaker :: HasInput Speaker
