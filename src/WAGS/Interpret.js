@@ -1376,13 +1376,11 @@ var setOff_ = function (ptr) {
 ///////////
 // various and sundry... mostly sundry... //
 export function makeFloatArray(fa) {
-	return function () {
-		var r = new Float32Array(fa.length);
-		for (var i = 0; i < fa.length; i++) {
-			r[i] = fa[i];
-		}
-		return r;
-	};
+	var r = new Float32Array(fa.length);
+	for (var i = 0; i < fa.length; i++) {
+		r[i] = fa[i];
+	}
+	return r;
 }
 
 export function stopMediaRecorder(mediaRecorder) {

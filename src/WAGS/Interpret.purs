@@ -132,7 +132,7 @@ foreign import makeAudioBuffer
   :: WebAPI.AudioContext -> AudioBuffer -> Effect WebAPI.BrowserAudioBuffer
 
 -- | Make a float 32 array. Useful when creating a waveshaper node.
-foreign import makeFloatArray :: Array Number -> Effect WebAPI.BrowserFloatArray
+foreign import makeFloatArray :: Array Number -> WebAPI.BrowserFloatArray
 
 -- | Make a new audio context.
 foreign import context_ :: Effect WebAPI.AudioContext
