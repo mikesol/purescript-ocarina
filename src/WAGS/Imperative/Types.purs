@@ -57,6 +57,12 @@ instance hasInputConvolver :: HasInput Convolver
 instance hasOutputConvolver :: HasOutput Convolver
 instance hasSoundConvolver :: HasSound Convolver False
 
+foreign import data Delay :: Node
+
+instance hasInputDelay :: HasInput Delay
+instance hasOutputDelay :: HasOutput Delay
+instance hasSoundDelay :: HasSound Delay False
+
 foreign import data Speaker :: Node
 
 instance hasInputSpeaker :: HasInput Speaker
