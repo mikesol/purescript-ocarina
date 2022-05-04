@@ -58,10 +58,10 @@ var genericSetter = function (state, unit, name, controllers, param) {
 	return protoSetter(unit[name], controllers[name], param, state);
 };
 var addToScope = function (ptr, scope, state) {
-	if (!state.scopes[scope.value]) {
-		state.scopes[scope.value] = [];
+	if (!state.scopes[scope]) {
+		state.scopes[scope] = [];
 	}
-	state.scopes[scope.value].push(ptr);
+	state.scopes[scope].push(ptr);
 	state.units[ptr].scope = scope;
 };
 var doDeferredConnections = function (ptr, state) {
@@ -164,10 +164,10 @@ export function disconnectXFromY_(a) {
 			if (state.units[y].se) {
 				state.units[x].main.disconnect(state.units[y].se);
 			}
-			if (state.units[ptr].scope === "@fan@") {
+			if (state.units[x].scope === "@fan@") {
 				return;
 			}
-			const scope = state.units[ptr].scope;
+			const scope = state.units[x].scope;
 			state.scopes[scope].forEach((scp) => {
 				delete state.units[scp];
 			});
