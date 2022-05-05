@@ -9,8 +9,10 @@ import Data.Functor.Indexed (class IxFunctor)
 import Effect (Effect)
 import FRP.Event (Event)
 import Prim.Boolean (True, False)
+import Prim.Row as Row
 import Prim.RowList as RL
 import Prim.TypeError (class Fail, Beside, Text)
+import Row.Extra as RowExtra
 import WAGS.Core (AudioInterpret)
 import WAGS.Imperative.Types (type (\/))
 import WAGS.Interpret (FFIAudioSnapshot, effectfulAudioInterpret)
@@ -211,3 +213,37 @@ effectfulGraphBuilder
   => InitialGraphBuilder (FFIAudioSnapshot -> Effect Unit) o a
   -> Event (FFIAudioSnapshot -> Effect Unit)
 effectfulGraphBuilder = effectfulGraphBuilder_ >>> _.event
+
+------------------------------#| Create |#------------------------------
+
+-- | Fails if `tOrF` resolves to `False`.
+class IdNotInUse :: Symbol -> Boolean -> Constraint
+class IdNotInUse id tOrF
+
+instance idNotInUseFalse :: IdNotInUse id True
+instance idNotInUseTrue ::
+  ( Fail
+      ( Beside
+          ( Beside
+              ( Text "CreateNode: A node with the id '"
+              )
+              ( Text id
+              )
+          )
+          ( Text "' has already been created."
+          )
+      )
+  ) =>
+  IdNotInUse id False
+
+-- | A constraint that modifies the graph builder index such that the
+-- | terminality of freshly-created nodes are tracked.
+class CreateNode :: Type -> Symbol -> Boolean -> Type -> Constraint
+class CreateNode i id isTerminal o | i id isTerminal -> o
+
+instance createNodeDefault ::
+  ( RowExtra.Lacks id t idNotInUse
+  , IdNotInUse id idNotInUse
+  , Row.Cons id isTerminal t t'
+  ) =>
+  CreateNode (c \/ t \/ s) id isTerminal (c \/ t' \/ s)
