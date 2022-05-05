@@ -87,6 +87,11 @@ instance hasInputHighshelf :: HasInput Highshelf
 instance hasOutputHighshelf :: HasOutput Highshelf
 instance hasSoundHighshelf :: HasSound Highshelf False
 
+foreign import data LoopBuf :: Node
+
+instance hasOutputLoopBuf :: HasOutput LoopBuf
+instance hasSoundLoopBuf :: HasSound LoopBuf True
+
 foreign import data Lowpass :: Node
 
 instance hasInputLowpass :: HasInput Lowpass

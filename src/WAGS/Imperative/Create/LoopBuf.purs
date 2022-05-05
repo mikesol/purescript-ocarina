@@ -1,4 +1,4 @@
-module WAGS.Imperative.Create.PlayBuf where
+module WAGS.Imperative.Create.LoopBuf where
 
 import Prelude
 
@@ -10,43 +10,44 @@ import FRP.Event (Event, keepLatest)
 import FRP.Event.Class (bang)
 import Prim.Boolean (False)
 import Type.Prelude (class IsSymbol, Proxy(..), reflectSymbol)
-import WAGS.Common as Common
-import WAGS.Common.Parameters.PlayBuf as Parameters
+import WAGS.Common.Parameters.LoopBuf as Parameters
 import WAGS.Core as Core
+import WAGS.Declarative.Create.Gain (tmpResolveAU)
 import WAGS.Imperative.Monad (class CreateNode, GraphBuilder(..))
 import WAGS.Imperative.Types as T
 
-playBuf
-  :: forall l p i o id initialPlayBuf
+loopBuf
+  :: forall l p i o id initialLoopBuf
    . IsSymbol id
-  => Parameters.InitialPlayBuf initialPlayBuf
+  => Parameters.InitialLoopBuf initialLoopBuf
   => CreateNode i id False o
   => Proxy id
-  -> initialPlayBuf
-  -> Event (Core.PlayBuf l p)
-  -> GraphBuilder p i o (T.GraphUnit id T.PlayBuf)
-playBuf _ initialPlayBuf attributes = GraphBuilder go
+  -> initialLoopBuf
+  -> Event (Core.LoopBuf l p)
+  -> GraphBuilder p i o (T.GraphUnit id T.LoopBuf)
+loopBuf _ initialLoopBuf attributes = GraphBuilder go
   where
-  { buffer, playbackRate, bufferOffset, duration } = unwrap $
-    Parameters.toInitializePlayBuf initialPlayBuf
-  go i@(Core.AudioInterpret { makePlayBuf, setBuffer, setOnOff, setDuration, setPlaybackRate, setBufferOffset }) =
+  { buffer, playbackRate, loopStart, loopEnd, duration } = unwrap $
+    Parameters.toInitializeLoopBuf initialLoopBuf
+  go i@(Core.AudioInterpret { makeLoopBuf, setBuffer, setOnOff, setPlaybackRate, setLoopStart, setLoopEnd }) =
     { event:
         let
           id = reflectSymbol (Proxy :: _ id)
-          event0 = bang $ makePlayBuf
+          event0 = bang $ makeLoopBuf
             { id
             , parent: nothing
             , buffer
             , playbackRate
-            , bufferOffset
+            , loopStart
+            , loopEnd
             , duration
             , scope: "imperative"
             }
           eventN = keepLatest $ attributes <#> unwrap >>> match
             { buffer: bang <<< setBuffer <<< { id, buffer: _ }
-            , playbackRate: Common.resolveAU i $ setPlaybackRate <<< { id, playbackRate: _ }
-            , bufferOffset: bang <<< setBufferOffset <<< { id, bufferOffset: _ }
-            , duration: bang <<< setDuration <<< { id, duration: _ }
+            , playbackRate: tmpResolveAU "imperative" i $ setPlaybackRate <<< { id, playbackRate: _ }
+            , loopStart: bang <<< setLoopStart <<< { id, loopStart: _ }
+            , loopEnd: bang <<< setLoopEnd <<< { id, loopEnd: _ }
             , onOff: bang <<< setOnOff <<< { id, onOff: _ }
             }
         in
