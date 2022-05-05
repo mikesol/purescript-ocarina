@@ -22,8 +22,7 @@ import Effect.AVar (tryPut)
 import Effect.AVar as AVar
 import Effect.Exception (throwException)
 import Effect.Ref as Ref
-import FRP.Event (Event, keepLatest, makeEvent, subscribe)
-import FRP.Event.Class (bang)
+import FRP.Event (Event, bang, keepLatest, makeEvent, subscribe)
 import Foreign (Foreign)
 import Foreign.Object (Object)
 import Foreign.Object as Object

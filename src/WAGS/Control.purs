@@ -238,33 +238,6 @@ speaker2
   -> Event payload
 speaker2 = speaker
 
--- -- waveShaper
-
--- waveShaper
---   :: forall i aud (outputChannels :: Type) lock payload
---    . Common.InitialWaveShaper i
---   => Core.Mix aud (Core.Audible outputChannels lock payload)
---   => i
---   -> aud
---   -> Core.Node outputChannels lock payload
--- waveShaper i' elts = Core.Node go
---   where
---   Core.InitializeWaveShaper i = Common.toInitializeWaveShaper i'
---   go parent di@(Core.AudioInterpret { ids, deleteFromCache, makeWaveShaper }) =
---     makeEvent \k -> do
---       me <- ids
---       parent.raiseId me
---       map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
---         bang
---           ( makeWaveShaper
---               { id: me
---               , parent: parent.parent
---               , scope: parent.scope
---               , curve: i.curve
---               , oversample: i.oversample
---               }
---           ) <|> __internalWagsFlatten (just me) parent.scope di (mix elts)
-
 -- ----------
 
 -- newtype MutAr a = MutAr (Array a)

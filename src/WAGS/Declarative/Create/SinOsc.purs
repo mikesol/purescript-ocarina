@@ -5,8 +5,7 @@ import Prelude
 import Control.Alt ((<|>))
 import Control.Plus (empty)
 import Data.Variant (match)
-import FRP.Event (Event, makeEvent, subscribe, keepLatest)
-import FRP.Event.Class (bang)
+import FRP.Event (Event, bang, makeEvent, subscribe, keepLatest)
 import WAGS.Common.Parameters.SinOsc as Parameters
 import WAGS.Core as Core
 import WAGS.Declarative.Create.Gain (tmpResolveAU)

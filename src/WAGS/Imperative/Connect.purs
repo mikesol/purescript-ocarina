@@ -2,7 +2,7 @@ module WAGS.Imperative.Connect where
 
 import Prelude
 
-import FRP.Event.Class (bang)
+import FRP.Event (bang)
 import Prim.Boolean (True, False)
 import Prim.Row as Row
 import Prim.Symbol as Symbol

@@ -167,3 +167,9 @@ foreign import data TriangleOsc :: Node
 
 instance hasOutputTriangleOsc :: HasOutput TriangleOsc
 instance hasSoundTriangleOsc :: HasSound TriangleOsc True
+
+foreign import data WaveShaper :: Node
+
+instance hasInputWaveShaper :: HasInput WaveShaper
+instance hasOutputWaveShaper :: HasOutput WaveShaper
+instance hasSoundWaveShaper :: HasSound WaveShaper False

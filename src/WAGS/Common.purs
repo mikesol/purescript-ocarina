@@ -49,53 +49,6 @@ instance InitialRecorder Core.InitializeRecorder where
 instance InitialRecorder MediaRecorderCb where
   toInitializeRecorder = Core.InitializeRecorder <<< { cb: _ }
 
--- WaveShaper
-
-data WaveShaperOptions = WaveShaperOptions
-
-instance
-  ConvertOption WaveShaperOptions
-    "curve"
-    BrowserFloatArray
-    BrowserFloatArray where
-  convertOption _ _ = identity
-
-instance
-  ConvertOption WaveShaperOptions
-    "oversample"
-    Oversample
-    Oversample where
-  convertOption _ _ = identity
-
-type WaveShaperOptional =
-  ( oversample :: Oversample
-  )
-
-type WaveShaperAll =
-  ( curve :: BrowserFloatArray
-  | WaveShaperOptional
-  )
-
-defaultWaveShaper :: { | WaveShaperOptional }
-defaultWaveShaper =
-  { oversample: _twoX }
-
-class InitialWaveShaper i where
-  toInitializeWaveShaper :: i -> Core.InitializeWaveShaper
-
-instance InitialWaveShaper Core.InitializeWaveShaper where
-  toInitializeWaveShaper = identity
-
-instance InitialWaveShaper BrowserFloatArray where
-  toInitializeWaveShaper = toInitializeWaveShaper <<< { curve: _ }
-
-instance
-  ConvertOptionsWithDefaults WaveShaperOptions { | WaveShaperOptional } { | provided }
-    { | WaveShaperAll } =>
-  InitialWaveShaper { | provided } where
-  toInitializeWaveShaper provided = Core.InitializeWaveShaper
-    (convertOptionsWithDefaults WaveShaperOptions defaultWaveShaper provided)
-
 -- resolveAU
 
 resolveAU :: forall lock payload. Core.AudioInterpret payload -> (Core.FFIAudioParameter -> payload) -> Core.AudioParameter lock payload -> Event payload
