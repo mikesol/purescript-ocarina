@@ -23,10 +23,10 @@ run2
   -> (forall lock. Array (C.Node D2 lock (FFIAudioSnapshot -> Effect Unit)))
   -> Effect (Effect Unit)
 run2 ctx s = do
-    ffi <- makeFFIAudioSnapshot ctx
-    u <- subscribe (speaker2 s effectfulAudioInterpret)
-      \f -> f ffi
-    pure u
+  ffi <- makeFFIAudioSnapshot ctx
+  u <- subscribe (speaker2 s effectfulAudioInterpret)
+    \f -> f ffi
+  pure u
 
 run2e_
   :: (forall lock. Event (Array (C.Node D2 lock (FFIAudioSnapshot -> Effect Unit))))
@@ -40,7 +40,7 @@ run2e
   -> (forall lock. Event (Array (C.Node D2 lock (FFIAudioSnapshot -> Effect Unit))))
   -> Effect (Effect Unit)
 run2e ctx s = do
-    ffi <- makeFFIAudioSnapshot ctx
-    u <- subscribe (speaker2 (map mix s) effectfulAudioInterpret)
-      \f -> f ffi
-    pure u
+  ffi <- makeFFIAudioSnapshot ctx
+  u <- subscribe (speaker2 (map mix s) effectfulAudioInterpret)
+    \f -> f ffi
+  pure u

@@ -78,14 +78,17 @@ _sudden' = _sudden <<< AudioSudden
 
 type AudioNumeric' = { n :: Number, o :: Number, t :: Transition }
 newtype AudioNumeric = AudioNumeric AudioNumeric'
+
 derive instance Newtype AudioNumeric _
 
 type AudioEnvelope' = { p :: Array Number, o :: Number, d :: Number }
 newtype AudioEnvelope = AudioEnvelope AudioEnvelope'
+
 derive instance Newtype AudioEnvelope _
 
 type AudioCancel' = { o :: Number }
 newtype AudioCancel = AudioCancel AudioCancel'
+
 derive instance Newtype AudioCancel _
 
 type AudioUnit' lock payload = { u :: Node D1 lock payload }
@@ -93,6 +96,7 @@ newtype AudioUnit lock payload = AudioUnit (AudioUnit' lock payload)
 
 type AudioSudden' = { n :: Number }
 newtype AudioSudden = AudioSudden AudioSudden'
+
 derive instance Newtype AudioSudden _
 
 type InitialAudioParameter = Number
@@ -109,6 +113,7 @@ newtype AudioParameter lock payload = AudioParameter
 
 type FFIAudioUnit' = { i :: String }
 newtype FFIAudioUnit = FFIAudioUnit FFIAudioUnit'
+
 derive instance Newtype FFIAudioUnit _
 
 newtype FFIAudioParameter = FFIAudioParameter
@@ -239,6 +244,7 @@ instance (Cons "n" Number r' r) => OpticO AudioEnvelope where
 
 instance (Cons "n" Number r' r) => OpticO AudioCancel where
   opticO = unto AudioCancel <<< prop (Proxy :: _ "o")
+
 -----------
 -- end param
 --
@@ -461,6 +467,7 @@ type DisconnectXFromY_ = (from :: String, to :: String)
 type DisconnectXFromY = { | DisconnectXFromY_ }
 type DisconnectXFromY' =
   { fromUnit :: String, toUnit :: String | DisconnectXFromY_ }
+
 type DeleteFromCache = { id :: String }
 
 derive instance newtypeAllpass :: Newtype (Allpass lock parameter) _
