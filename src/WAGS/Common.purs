@@ -39,53 +39,6 @@ instance
   InitialIIRFilter (Vec feedforwardI Number /\ Vec feedbackI Number) feedforwardO feedbackO where
   toInitializeIIRFilter (feedforward /\ feedback) _ _ = Core.InitializeIIRFilter { feedforward: proof (coerce feedforward), feedback: proof (coerce feedback) }
 
--- Notch
-
-data NotchOptions = NotchOptions
-
-instance
-  ConvertOption NotchOptions
-    "frequency"
-    Core.InitialAudioParameter
-    Core.InitialAudioParameter where
-  convertOption _ _ = identity
-
-instance
-  ConvertOption NotchOptions
-    "q"
-    Core.InitialAudioParameter
-    Core.InitialAudioParameter where
-  convertOption _ _ = identity
-
-type NotchOptional =
-  ( q :: Core.InitialAudioParameter
-  )
-
-type NotchAll =
-  ( frequency :: Core.InitialAudioParameter
-  | NotchOptional
-  )
-
-defaultNotch :: { | NotchOptional }
-defaultNotch =
-  { q: 1.0 }
-
-class InitialNotch i where
-  toInitializeNotch :: i -> Core.InitializeNotch
-
-instance InitialNotch Core.InitializeNotch where
-  toInitializeNotch = identity
-
-instance InitialNotch Core.InitialAudioParameter where
-  toInitializeNotch = toInitializeNotch <<< { frequency: _ }
-
-instance
-  ConvertOptionsWithDefaults NotchOptions { | NotchOptional } { | provided }
-    { | NotchAll } =>
-  InitialNotch { | provided } where
-  toInitializeNotch provided = Core.InitializeNotch
-    (convertOptionsWithDefaults NotchOptions defaultNotch provided)
-
 -- StereoPanner
 class InitialStereoPanner i where
   toInitializeStereoPanner :: i -> Core.InitializeStereoPanner
@@ -95,61 +48,6 @@ instance InitialStereoPanner Core.InitializeStereoPanner where
 
 instance InitialStereoPanner Number where
   toInitializeStereoPanner = Core.InitializeStereoPanner <<< { pan: _ }
-
--- Peaking
-
-data PeakingOptions = PeakingOptions
-
-instance
-  ConvertOption PeakingOptions
-    "frequency"
-    Core.InitialAudioParameter
-    Core.InitialAudioParameter where
-  convertOption _ _ = identity
-
-instance
-  ConvertOption PeakingOptions
-    "gain"
-    Core.InitialAudioParameter
-    Core.InitialAudioParameter where
-  convertOption _ _ = identity
-
-instance
-  ConvertOption PeakingOptions
-    "q"
-    Core.InitialAudioParameter
-    Core.InitialAudioParameter where
-  convertOption _ _ = identity
-
-type PeakingOptional =
-  ( q :: Core.InitialAudioParameter
-  , gain :: Core.InitialAudioParameter
-  )
-
-type PeakingAll =
-  ( frequency :: Core.InitialAudioParameter
-  | PeakingOptional
-  )
-
-defaultPeaking :: { | PeakingOptional }
-defaultPeaking =
-  { q: 1.0, gain: 0.0 }
-
-class InitialPeaking i where
-  toInitializePeaking :: i -> Core.InitializePeaking
-
-instance InitialPeaking Core.InitializePeaking where
-  toInitializePeaking = identity
-
-instance InitialPeaking Core.InitialAudioParameter where
-  toInitializePeaking = toInitializePeaking <<< { frequency: _ }
-
-instance
-  ConvertOptionsWithDefaults PeakingOptions { | PeakingOptional } { | provided }
-    { | PeakingAll } =>
-  InitialPeaking { | provided } where
-  toInitializePeaking provided = Core.InitializePeaking
-    (convertOptionsWithDefaults PeakingOptions defaultPeaking provided)
 
 -- Recorder
 class InitialRecorder i where

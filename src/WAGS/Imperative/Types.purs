@@ -114,6 +114,18 @@ foreign import data Microphone :: Node
 instance hasOutputMicrophone :: HasOutput Microphone
 instance hasSoundMicrophone :: HasSound Microphone True
 
+foreign import data Notch :: Node
+
+instance hasInputNotch :: HasInput Notch
+instance hasOutputNotch :: HasOutput Notch
+instance hasSoundNotch :: HasSound Notch False
+
+foreign import data Peaking :: Node
+
+instance hasInputPeaking :: HasInput Peaking
+instance hasOutputPeaking :: HasOutput Peaking
+instance hasSoundPeaking :: HasSound Peaking False
+
 foreign import data PeriodicOsc :: Node
 
 instance hasOutputPeriodicOsc :: HasOutput PeriodicOsc
