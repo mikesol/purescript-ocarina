@@ -27,7 +27,7 @@ delay
   -> GraphBuilder p i o (T.GraphUnit id T.Delay)
 delay _ initialDelay attributes = GraphBuilder go
   where
-  initializeDelay = unwrap $ Parameters.toInitializeDelay initialDelay
+  { delayTime, maxDelayTime } = unwrap $ Parameters.toInitializeDelay initialDelay
   go i@(Core.AudioInterpret { makeDelay, setDelay }) =
     { event:
         let
@@ -36,8 +36,8 @@ delay _ initialDelay attributes = GraphBuilder go
             { id
             , parent: nothing
             , scope: "imperative"
-            , delayTime: initializeDelay.delayTime
-            , maxDelayTime: initializeDelay.maxDelayTime
+            , delayTime
+            , maxDelayTime
             }
           eventN = keepLatest $ attributes <#> unwrap >>> match
             { delayTime: tmpResolveAU "imperative" i $ setDelay <<< { id, delayTime: _ }

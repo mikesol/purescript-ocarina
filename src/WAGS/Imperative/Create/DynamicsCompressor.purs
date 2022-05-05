@@ -29,14 +29,17 @@ dynamicsCompressor _ initialDynamicsCompressor attributes = GraphBuilder go
   where
   initializeDynamicsCompressor = unwrap $
     Parameters.toInitializeDynamicsCompressor initialDynamicsCompressor
-  go i@(Core.AudioInterpret
+  go
+    i@
+      ( Core.AudioInterpret
           { makeDynamicsCompressor
           , setThreshold
           , setRatio
           , setKnee
           , setAttack
           , setRelease
-          }) =
+          }
+      ) =
     { event:
         let
           id = reflectSymbol (Proxy :: _ id)

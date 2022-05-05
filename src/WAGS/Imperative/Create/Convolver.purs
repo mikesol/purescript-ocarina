@@ -22,7 +22,7 @@ convolver
   -> GraphBuilder p i o (T.GraphUnit id T.Convolver)
 convolver _ initialConvolver = GraphBuilder go
   where
-  initializeConvolver = unwrap $ Parameters.toInitializeConvolver initialConvolver
+  { buffer } = unwrap $ Parameters.toInitializeConvolver initialConvolver
   go (Core.AudioInterpret { makeConvolver }) =
     { event:
         let
@@ -31,7 +31,7 @@ convolver _ initialConvolver = GraphBuilder go
             { id
             , parent: nothing
             , scope: "imperative"
-            , buffer: initializeConvolver.buffer
+            , buffer
             }
         in
           event0

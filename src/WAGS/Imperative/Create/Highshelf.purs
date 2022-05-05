@@ -27,7 +27,7 @@ highshelf
   -> GraphBuilder p i o (T.GraphUnit id T.Highshelf)
 highshelf _ initialHighshelf attributes = GraphBuilder go
   where
-  initializeHighshelf = unwrap $ Parameters.toInitializeHighshelf initialHighshelf
+  { frequency, gain } = unwrap $ Parameters.toInitializeHighshelf initialHighshelf
   go i@(Core.AudioInterpret { makeHighshelf, setFrequency, setGain }) =
     { event:
         let
@@ -36,8 +36,8 @@ highshelf _ initialHighshelf attributes = GraphBuilder go
             { id
             , parent: nothing
             , scope: "imperative"
-            , frequency: initializeHighshelf.frequency
-            , gain: initializeHighshelf.gain
+            , frequency
+            , gain
             }
           eventN = keepLatest $ attributes <#> unwrap >>> match
             { frequency: tmpResolveAU "imperative" i $ setFrequency <<< { id, frequency: _ }

@@ -27,7 +27,7 @@ constant
   -> GraphBuilder p i o (T.GraphUnit id T.Constant)
 constant _ initialConstant attributes = GraphBuilder go
   where
-  initializeConstant = unwrap $ Parameters.toInitializeConstant initialConstant
+  { offset } = unwrap $ Parameters.toInitializeConstant initialConstant
   go i@(Core.AudioInterpret { makeConstant, setOffset, setOnOff }) =
     { event:
         let
@@ -36,10 +36,10 @@ constant _ initialConstant attributes = GraphBuilder go
             { id
             , parent: nothing
             , scope: "imperative"
-            , offset: initializeConstant.offset
+            , offset
             }
           eventN = keepLatest $ attributes <#> unwrap >>> match
-            { offset: tmpResolveAU "imperative" i $ setOffset <<< { id, offset:_  }
+            { offset: tmpResolveAU "imperative" i $ setOffset <<< { id, offset: _ }
             , onOff: bang <<< setOnOff <<< { id, onOff: _ }
             }
         in

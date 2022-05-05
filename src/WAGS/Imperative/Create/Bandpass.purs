@@ -27,7 +27,7 @@ bandpass
   -> GraphBuilder p i o (T.GraphUnit id T.Bandpass)
 bandpass _ initialBandpass attributes = GraphBuilder go
   where
-  initializeBandpass = unwrap $ Parameters.toInitializeBandpass initialBandpass
+  { frequency, q } = unwrap $ Parameters.toInitializeBandpass initialBandpass
   go i@(Core.AudioInterpret { makeBandpass, setFrequency, setQ }) =
     { event:
         let
@@ -36,12 +36,12 @@ bandpass _ initialBandpass attributes = GraphBuilder go
             { id
             , parent: nothing
             , scope: "imperative"
-            , frequency: initializeBandpass.frequency
-            , q: initializeBandpass.q
+            , frequency
+            , q
             }
           eventN = keepLatest $ attributes <#> unwrap >>> match
-            { frequency: tmpResolveAU "imperative" i (setFrequency <<< { id, frequency: _ })
-            , q: tmpResolveAU "imperative" i (setQ <<< { id, q: _ })
+            { frequency: tmpResolveAU "imperative" i $ setFrequency <<< { id, frequency: _ }
+            , q: tmpResolveAU "imperative" i $ setQ <<< { id, q: _ }
             }
         in
           event0 <|> eventN

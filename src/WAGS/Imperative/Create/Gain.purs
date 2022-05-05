@@ -32,7 +32,7 @@ gain
   -> GraphBuilder p i o (T.GraphUnit id T.Gain)
 gain _ initialGain attributes = GraphBuilder go
   where
-  initializeGain = unwrap $ Parameters.toInitializeGain initialGain
+  { gain } = unwrap $ Parameters.toInitializeGain initialGain
   go i@(Core.AudioInterpret { makeGain, setGain }) =
     { event:
         let
@@ -41,11 +41,11 @@ gain _ initialGain attributes = GraphBuilder go
             makeGain
               { id
               , parent: nothing
-              , gain: initializeGain.gain
+              , gain
               , scope: "imperative"
               }
           eventN = keepLatest $ attributes <#> unwrap >>> match
-            { gain: Common.resolveAU i (setGain <<< { id, gain: _ })
+            { gain: Common.resolveAU i $ setGain <<< { id, gain: _ }
             }
         in
           event0 <|> eventN

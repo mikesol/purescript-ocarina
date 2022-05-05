@@ -27,7 +27,7 @@ lowpass
   -> GraphBuilder p i o (T.GraphUnit id T.Lowpass)
 lowpass _ initialLowpass attributes = GraphBuilder go
   where
-  initializeLowpass = unwrap $ Parameters.toInitializeLowpass initialLowpass
+  { frequency, q } = unwrap $ Parameters.toInitializeLowpass initialLowpass
   go i@(Core.AudioInterpret { makeLowpass, setFrequency, setQ }) =
     { event:
         let
@@ -36,8 +36,8 @@ lowpass _ initialLowpass attributes = GraphBuilder go
             { id
             , parent: nothing
             , scope: "imperative"
-            , frequency: initializeLowpass.frequency
-            , q: initializeLowpass.q
+            , frequency
+            , q
             }
           eventN = keepLatest $ attributes <#> unwrap >>> match
             { frequency: tmpResolveAU "imperative" i $ setFrequency <<< { id, frequency: _ }

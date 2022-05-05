@@ -27,7 +27,7 @@ allpass
   -> GraphBuilder p i o (T.GraphUnit id T.Allpass)
 allpass _ initialAllpass attributes = GraphBuilder go
   where
-  initializeAllpass = unwrap $ Parameters.toInitializeAllpass initialAllpass
+  { frequency, q } = unwrap $ Parameters.toInitializeAllpass initialAllpass
   go i@(Core.AudioInterpret { makeAllpass, setFrequency, setQ }) =
     { event:
         let
@@ -37,8 +37,8 @@ allpass _ initialAllpass attributes = GraphBuilder go
               { id
               , parent: nothing
               , scope: "imperative"
-              , frequency: initializeAllpass.frequency
-              , q: initializeAllpass.q
+              , frequency
+              , q
               }
           eventN = keepLatest $ attributes <#> unwrap >>> match
             { frequency: tmpResolveAU "imperative" i (setFrequency <<< { id, frequency: _ })

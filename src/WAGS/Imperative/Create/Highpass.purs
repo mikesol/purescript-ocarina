@@ -27,7 +27,7 @@ highpass
   -> GraphBuilder p i o (T.GraphUnit id T.Highpass)
 highpass _ initialHighpass attributes = GraphBuilder go
   where
-  initializeHighpass = unwrap $ Parameters.toInitializeHighpass initialHighpass
+  { frequency, q } = unwrap $ Parameters.toInitializeHighpass initialHighpass
   go i@(Core.AudioInterpret { makeHighpass, setFrequency, setQ }) =
     { event:
         let
@@ -36,8 +36,8 @@ highpass _ initialHighpass attributes = GraphBuilder go
             { id
             , parent: nothing
             , scope: "imperative"
-            , frequency: initializeHighpass.frequency
-            , q: initializeHighpass.q
+            , frequency
+            , q
             }
           eventN = keepLatest $ attributes <#> unwrap >>> match
             { frequency: tmpResolveAU "imperative" i $ setFrequency <<< { id, frequency: _ }
