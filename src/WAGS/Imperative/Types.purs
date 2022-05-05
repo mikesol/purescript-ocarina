@@ -69,6 +69,12 @@ instance hasInputDynamicsCompressor :: HasInput DynamicsCompressor
 instance hasOutputDynamicsCompressor :: HasOutput DynamicsCompressor
 instance hasSoundDynamicsCompressor :: HasSound DynamicsCompressor False
 
+foreign import data Gain :: Node
+
+instance hasInputGain :: HasInput Gain
+instance hasOutputGain :: HasOutput Gain
+instance hasSoundGain :: HasSound Gain False
+
 foreign import data Highpass :: Node
 
 instance hasInputHighpass :: HasInput Highpass
@@ -93,24 +99,38 @@ instance hasInputLowshelf :: HasInput Lowshelf
 instance hasOutputLowshelf :: HasOutput Lowshelf
 instance hasSoundLowshelf :: HasSound Lowshelf False
 
-foreign import data Speaker :: Node
+foreign import data PeriodicOsc :: Node
 
-instance hasInputSpeaker :: HasInput Speaker
-instance hasOutputSpeaker :: HasOutput Speaker
-instance hasSoundSpeaker :: HasSound Speaker False
+instance hasOutputPeriodicOsc :: HasOutput PeriodicOsc
+instance hasSoundPeriodicOsc :: HasSound PeriodicOsc True
 
-foreign import data Gain :: Node
+foreign import data PlayBuf :: Node
 
-instance hasInputGain :: HasInput Gain
-instance hasOutputGain :: HasOutput Gain
-instance hasSoundGain :: HasSound Gain False
+instance hasOutputPlayBuf :: HasOutput PlayBuf
+instance hasSoundPlayBuf :: HasSound PlayBuf True
+
+foreign import data SawtoothOsc :: Node
+
+instance hasOutputSawtoothOsc :: HasOutput SawtoothOsc
+instance hasSoundSawtoothOsc :: HasSound SawtoothOsc True
 
 foreign import data SinOsc :: Node
 
 instance hasOutputSinOsc :: HasOutput SinOsc
 instance hasSoundSinOsc :: HasSound SinOsc True
 
-foreign import data PlayBuf :: Node
+foreign import data Speaker :: Node
 
-instance hasOutputPlayBuf :: HasOutput PlayBuf
-instance hasSoundPlayBuf :: HasSound PlayBuf True
+instance hasInputSpeaker :: HasInput Speaker
+instance hasOutputSpeaker :: HasOutput Speaker
+instance hasSoundSpeaker :: HasSound Speaker False
+
+foreign import data SquareOsc :: Node
+
+instance hasOutputSquareOsc :: HasOutput SquareOsc
+instance hasSoundSquareOsc :: HasSound SquareOsc True
+
+foreign import data TriangleOsc :: Node
+
+instance hasOutputTriangleOsc :: HasOutput TriangleOsc
+instance hasSoundTriangleOsc :: HasSound TriangleOsc True
