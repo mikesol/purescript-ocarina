@@ -157,6 +157,12 @@ foreign import data SquareOsc :: Node
 instance hasOutputSquareOsc :: HasOutput SquareOsc
 instance hasSoundSquareOsc :: HasSound SquareOsc True
 
+foreign import data StereoPanner :: Node
+
+instance hasInputStereoPanner :: HasInput StereoPanner
+instance hasOutputStereoPanner :: HasOutput StereoPanner
+instance hasSoundStereoPanner :: HasSound StereoPanner False
+
 foreign import data TriangleOsc :: Node
 
 instance hasOutputTriangleOsc :: HasOutput TriangleOsc

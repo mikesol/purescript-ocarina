@@ -39,16 +39,6 @@ instance
   InitialIIRFilter (Vec feedforwardI Number /\ Vec feedbackI Number) feedforwardO feedbackO where
   toInitializeIIRFilter (feedforward /\ feedback) _ _ = Core.InitializeIIRFilter { feedforward: proof (coerce feedforward), feedback: proof (coerce feedback) }
 
--- StereoPanner
-class InitialStereoPanner i where
-  toInitializeStereoPanner :: i -> Core.InitializeStereoPanner
-
-instance InitialStereoPanner Core.InitializeStereoPanner where
-  toInitializeStereoPanner = identity
-
-instance InitialStereoPanner Number where
-  toInitializeStereoPanner = Core.InitializeStereoPanner <<< { pan: _ }
-
 -- Recorder
 class InitialRecorder i where
   toInitializeRecorder :: i -> Core.InitializeRecorder
