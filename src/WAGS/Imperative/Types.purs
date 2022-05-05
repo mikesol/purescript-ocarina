@@ -104,6 +104,16 @@ instance hasInputLowshelf :: HasInput Lowshelf
 instance hasOutputLowshelf :: HasOutput Lowshelf
 instance hasSoundLowshelf :: HasSound Lowshelf False
 
+foreign import data MediaElement :: Node
+
+instance hasOutputMediaElement :: HasOutput MediaElement
+instance hasSoundMediaElement :: HasSound MediaElement True
+
+foreign import data Microphone :: Node
+
+instance hasOutputMicrophone :: HasOutput Microphone
+instance hasSoundMicrophone :: HasSound Microphone True
+
 foreign import data PeriodicOsc :: Node
 
 instance hasOutputPeriodicOsc :: HasOutput PeriodicOsc
