@@ -40,8 +40,8 @@ allpass _ initialAllpass attributes = GraphBuilder go
               , q
               }
           eventN = keepLatest $ attributes <#> unwrap >>> match
-            { frequency: tmpResolveAU "imperative" i (setFrequency <<< { id, frequency: _ })
-            , q: tmpResolveAU "imperative" i (setQ <<< { id, q: _ })
+            { frequency: tmpResolveAU "imperative" i $ setFrequency <<< { id, frequency: _ }
+            , q: tmpResolveAU "imperative" i $ setQ <<< { id, q: _ }
             }
         in
           event0 <|> eventN

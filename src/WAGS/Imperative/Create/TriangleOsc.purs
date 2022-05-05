@@ -27,18 +27,16 @@ triangleOsc
 triangleOsc _ initialTriangleOsc attributes = GraphBuilder go
   where
   { frequency } = unwrap $ Parameters.toInitializeTriangleOsc initialTriangleOsc
-  go di@(Core.AudioInterpret { makeTriangleOsc, setFrequency, setOnOff }) =
+  go i@(Core.AudioInterpret { makeTriangleOsc, setFrequency, setOnOff }) =
     { event:
         let
           id = reflectSymbol (Proxy :: _ id)
           event0 = bang $
             makeTriangleOsc { id, parent: nothing, frequency, scope: "imperative" }
-          eventN = keepLatest
-            ( attributes <#> unwrap >>> match
-                { frequency: Common.resolveAU di (setFrequency <<< { id, frequency: _ })
-                , onOff: bang <<< setOnOff <<< { id, onOff: _ }
-                }
-            )
+          eventN = keepLatest $ attributes <#> unwrap >>> match
+            { frequency: Common.resolveAU i $ setFrequency <<< { id, frequency: _ }
+            , onOff: bang <<< setOnOff <<< { id, onOff: _ }
+            }
         in
           event0 <|> eventN
     , result: T.GraphUnit

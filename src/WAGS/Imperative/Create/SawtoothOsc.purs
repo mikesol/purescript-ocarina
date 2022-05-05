@@ -27,18 +27,16 @@ sawtoothOsc
 sawtoothOsc _ initialSawtoothOsc attributes = GraphBuilder go
   where
   { frequency } = unwrap $ Parameters.toInitializeSawtoothOsc initialSawtoothOsc
-  go di@(Core.AudioInterpret { makeSawtoothOsc, setFrequency, setOnOff }) =
+  go i@(Core.AudioInterpret { makeSawtoothOsc, setFrequency, setOnOff }) =
     { event:
         let
           id = reflectSymbol (Proxy :: _ id)
           event0 = bang $
             makeSawtoothOsc { id, parent: nothing, frequency, scope: "imperative" }
-          eventN = keepLatest
-            ( attributes <#> unwrap >>> match
-                { frequency: Common.resolveAU di (setFrequency <<< { id, frequency: _ })
-                , onOff: bang <<< setOnOff <<< { id, onOff: _ }
-                }
-            )
+          eventN = keepLatest $ attributes <#> unwrap >>> match
+            { frequency: Common.resolveAU i $ setFrequency <<< { id, frequency: _ }
+            , onOff: bang <<< setOnOff <<< { id, onOff: _ }
+            }
         in
           event0 <|> eventN
     , result: T.GraphUnit

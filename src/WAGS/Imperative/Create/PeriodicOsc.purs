@@ -27,19 +27,17 @@ periodicOsc
 periodicOsc _ initialPeriodicOsc attributes = GraphBuilder go
   where
   { frequency, spec } = unwrap $ Parameters.toInitializePeriodicOsc initialPeriodicOsc
-  go di@(Core.AudioInterpret { makePeriodicOsc, setFrequency, setOnOff, setPeriodicOsc }) =
+  go i@(Core.AudioInterpret { makePeriodicOsc, setFrequency, setOnOff, setPeriodicOsc }) =
     { event:
         let
           id = reflectSymbol (Proxy :: _ id)
           event0 = bang $
             makePeriodicOsc { id, parent: nothing, frequency, spec, scope: "imperative" }
-          eventN = keepLatest
-            ( attributes <#> unwrap >>> match
-                { frequency: Common.resolveAU di (setFrequency <<< { id, frequency: _ })
-                , onOff: bang <<< setOnOff <<< { id, onOff: _ }
-                , spec: bang <<< setPeriodicOsc <<< { id, spec: _ }
-                }
-            )
+          eventN = keepLatest $ attributes <#> unwrap >>> match
+            { frequency: Common.resolveAU i $ setFrequency <<< { id, frequency: _ }
+            , onOff: bang <<< setOnOff <<< { id, onOff: _ }
+            , spec: bang <<< setPeriodicOsc <<< { id, spec: _ }
+            }
         in
           event0 <|> eventN
     , result: T.GraphUnit
