@@ -3,25 +3,22 @@ module WAGS.Example.Docs.FixFan.AI1 where
 import Prelude
 
 import Control.Parallel (parallel, sequential)
-import Control.Plus (class Plus)
 import Data.Array ((..))
 import Data.Int (toNumber)
-import Data.Profunctor (lcmap)
-import Data.Tuple (Tuple(..))
-import Deku.Core (Element)
+import Data.Number (pow)
+import Deku.Core (Domable, toDOM)
 import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
-import FRP.Event (Event, class IsEvent)
+import FRP.Event (Event)
 import FRP.Event.Class (bang)
-import Data.Number (pow)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (gain_, playBuf)
+import WAGS.Core (apOn, dt)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import WAGS.Example.Docs.Util (audioWrapper)
-import WAGS.Interpret (bracketCtx, decodeAudioDataFromUri)
-import WAGS.Core (apOn, dt)
+import WAGS.Interpret (decodeAudioDataFromUri)
 import WAGS.Properties (onOff)
-import WAGS.Run (run2, run2_)
+import WAGS.Run (run2)
 
 px =
   Proxy    :: Proxy         """<div>
@@ -46,10 +43,10 @@ px =
   </div>
 """
 
-ai1 :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Element lock payload
+ai1 :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable Effect lock payload
 ai1 ccb _ ev = makePursx' (Proxy :: _ "@") px
   { ai0: nut
-      ( audioWrapper ev ccb
+      (toDOM $ audioWrapper ev ccb
           ( \ctx -> sequential $ { tink0: _, tink1: _, tink2: _, tink3: _ }
               <$> (parallel $ decodeAudioDataFromUri ctx "https://freesound.org/data/previews/178/178660_717950-lq.mp3")
               <*> (parallel $ decodeAudioDataFromUri ctx "https://freesound.org/data/previews/178/178660_717950-lq.mp3")

@@ -2,22 +2,18 @@ module WAGS.Example.Docs.Subgraphs where
 
 import Prelude
 
-import Control.Plus (class Plus)
-import Deku.Attribute (cb, (:=))
-import Deku.Core (Element)
-import Deku.DOM as D
+import Deku.Core (Domable, toDOM)
 import Deku.Pursx (nut, (~~))
 import Effect (Effect)
-import FRP.Event (Event, class IsEvent)
-import FRP.Event.Class (bang)
+import FRP.Event (Event)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (gain_, loopBuf)
-import WAGS.Example.Docs.Subgraph.SliderEx as SliderEx
-import WAGS.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
-import WAGS.Example.Docs.Util (audioWrapperSpan, ccassp, scrollToTop)
-import WAGS.Interpret (bracketCtx, decodeAudioDataFromUri)
 import WAGS.Core (bangOn)
-import WAGS.Run (run2, run2_)
+import WAGS.Example.Docs.Subgraph.SliderEx as SliderEx
+import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent, SingleSubgraphPusher)
+import WAGS.Example.Docs.Util (audioWrapperSpan, ccassp)
+import WAGS.Interpret (decodeAudioDataFromUri)
+import WAGS.Run (run2)
 
 px =  Proxy :: Proxy """<div>
   <h1>Subgraphs</h1>
@@ -37,10 +33,10 @@ px =  Proxy :: Proxy """<div>
   <p>Thus ends the first version of the wags documentation. Applause is always welcome ~appl~! Alas, some features remain undocumented, like audio worklets and an imperative API. At some point I hope to document all of these, but hopefully this should be enough to get anyone interested up and running. If you need to use any of those features before I document them, ping me on the <a href="https://purescript.org/chat">PureScript Discord</a>. Otherwise, happy music making with Wags!</p>
 </div>"""
 
-subgraphs :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent  -> Element lock payload
+subgraphs :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent  -> Domable Effect lock payload
 subgraphs cca' dpage ssp ev = px ~~
   { appl: nut
-      ( audioWrapperSpan "👏" ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/277/277021_1402315-lq.mp3")
+      (toDOM $ audioWrapperSpan "👏" ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/277/277021_1402315-lq.mp3")
           \ctx buf -> run2 ctx [ gain_ 1.0 [ loopBuf buf bangOn ] ]
       ),
     suby: nut $ SliderEx.sgSliderEx ccb dpage ev

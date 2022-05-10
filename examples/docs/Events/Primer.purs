@@ -1,9 +1,9 @@
 module WAGS.Example.Docs.Events.Primer where
 
 
-import Deku.Core (Element)
+import Deku.Core (Domable)
 import Deku.Pursx (makePursx')
-import FRP.Event (Event)
+import Effect (Effect)
 import Type.Proxy (Proxy(..))
 
 px = Proxy :: Proxy
@@ -45,7 +45,7 @@ type Behavior = ABehavior Event
   </p>
 </section>"""
 
-primer :: forall lock payload. Element lock payload
+primer :: forall lock payload. Domable Effect lock payload
 primer = makePursx'  (Proxy :: _ "@") px
   {
   }

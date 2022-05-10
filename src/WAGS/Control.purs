@@ -9,13 +9,14 @@ import Control.Monad.ST.Internal as Ref
 import Control.Plus (empty)
 import ConvertableOptions (class ConvertOption, class ConvertOptionsWithDefaults, convertOptionsWithDefaults)
 import Data.Either (Either(..))
-import Data.FastVect.FastVect (toArray, Vect)
+import Data.FastVect.FastVect (Vect, singleton, toArray, index)
 import Data.Foldable (foldl, for_, oneOf, oneOfMap, traverse_)
 import Data.FunctorWithIndex (mapWithIndex)
 import Data.Homogeneous (class HomogeneousRowLabels)
 import Data.Homogeneous.Variant (homogeneous)
 import Data.Int (pow)
 import Data.Maybe as DM
+import Data.Profunctor (lcmap)
 import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.Tuple.Nested (type (/\), (/\))
 import Data.Typelevel.Num (class Nat, class Pos, class Pred, D1, D2, pred, toInt)
@@ -1604,6 +1605,15 @@ globalFan
   -> C.Audible o lock payload
 globalFan e f = internalFan true (const "@fan@") e (\x _ -> f x)
 
+globalFan1
+  :: forall o lock payload
+   . C.Audible o lock payload
+  -> ( C.Audible o lock payload
+       -> C.Audible o lock payload
+     )
+  -> C.Audible o lock payload
+globalFan1 a b = globalFan (singleton a) (lcmap (index (Proxy :: _ 0)) b)
+
 fan
   :: forall n o lock0 payload
    . Compare n (-1) GT
@@ -1615,6 +1625,17 @@ fan
      )
   -> C.Audible o lock0 payload
 fan e = internalFan false identity e
+
+fan1
+  :: forall o lock0 payload
+   . C.Audible o lock0 payload
+  -> ( forall lock1
+        . C.Audible o lock1 payload
+       -> (C.Audible o lock0 payload -> C.Audible o lock1 payload)
+       -> C.Audible o lock1 payload
+     )
+  -> C.Audible o lock0 payload
+fan1 a b = fan (singleton a) (lcmap (index (Proxy :: _ 0)) b)
 
 ---- fix
 fix

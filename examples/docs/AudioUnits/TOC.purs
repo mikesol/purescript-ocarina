@@ -2,8 +2,9 @@ module WAGS.Example.Docs.AudioUnits.TOC where
 
 
 import Control.Plus (class Plus)
-import Deku.Core (Element)
+import Deku.Core (Domable, Element)
 import Deku.Pursx ((~~))
+import Effect (Effect)
 import FRP.Event (Event, class IsEvent)
 import Type.Proxy (Proxy(..))
 
@@ -39,7 +40,7 @@ px = Proxy :: Proxy """<ul>
     </ul>
 """
 
-toc :: forall lock payload. Element lock payload
+toc :: forall lock payload. Domable Effect lock payload
 toc = px ~~
   {
   }

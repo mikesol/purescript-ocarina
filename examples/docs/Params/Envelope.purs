@@ -5,14 +5,14 @@ import Prelude
 import Data.Array ((..))
 import Data.Foldable (oneOf)
 import Deku.Control (text_)
-import Deku.Core (Element)
+import Deku.Core (Domable, toDOM)
 import Deku.Pursx (nut, (~~))
 import Effect (Effect)
 import FRP.Event (Event, bang)
 import FRP.Event (delay)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (gain_, loopBuf)
-import WAGS.Core (AudioCancel(..), AudioEnvelope(..), bangOn)
+import WAGS.Core (AudioEnvelope(..), bangOn)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import WAGS.Example.Docs.Util (audioWrapper)
 import WAGS.Interpret (decodeAudioDataFromUri)
@@ -28,7 +28,7 @@ px =
   </section>
 """
 
-envelopeEx :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Element lock payload
+envelopeEx :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable Effect lock payload
 envelopeEx ccb _ ev = px ~~
   { txt: nut
       ( text_
@@ -51,7 +51,7 @@ envelopeEx ccb _ ev = px ~~
   ]"""
       )
   , envelope: nut
-      ( audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
+      ( toDOM $ audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
           \ctx buf -> run2 ctx
             [ gain_ 1.0
                 [ loopBuf buf

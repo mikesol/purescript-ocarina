@@ -2,15 +2,15 @@ module WAGS.Example.Docs.AudioUnits.SquareOsc where
 
 import Prelude
 
-import Deku.Core (Element)
+import Deku.Core (Domable, Element, toDOM)
 import Deku.Pursx (nut, (~~))
 import Effect (Effect)
 import FRP.Event (Event)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (gain_, squareOsc)
+import WAGS.Core (bangOn)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import WAGS.Example.Docs.Util (audioWrapper)
-import WAGS.Core (bangOn)
 import WAGS.Run (run2)
 
 px =
@@ -31,10 +31,10 @@ square
    . CancelCurrentAudio
   -> (Page -> Effect Unit)
   -> Event SingleSubgraphEvent
-  -> Element lock payload
+  -> Domable Effect lock payload
 square ccb _ ev = px ~~
   { periodic: nut
-      ( audioWrapper ev ccb (\_ -> pure unit)
+      ( toDOM $ audioWrapper ev ccb (\_ -> pure unit)
           \ctx _ -> run2 ctx
             [gain_ 0.2 [squareOsc 448.0 bangOn]]
       )

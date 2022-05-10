@@ -1,9 +1,9 @@
 module WAGS.Example.Docs.Events.Flavors where
 
 
-import Deku.Core (Element)
+import Deku.Core (Domable)
 import Deku.Pursx (makePursx')
-import FRP.Event (Event)
+import Effect (Effect)
 import Type.Proxy (Proxy(..))
 
 px = Proxy :: Proxy
@@ -22,7 +22,7 @@ px = Proxy :: Proxy
 
 </section>"""
 
-flavors :: forall lock payload. Element lock payload
+flavors :: forall lock payload. Domable Effect lock payload
 flavors = makePursx'  (Proxy :: _ "@") px
   {
   }

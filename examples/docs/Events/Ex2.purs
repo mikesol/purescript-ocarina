@@ -6,8 +6,8 @@ import Control.Alt ((<|>))
 import Data.Foldable (oneOf, oneOfMap, traverse_)
 import Data.Tuple (Tuple(..), fst, snd)
 import Deku.Attribute (attr, cb, (:=))
-import Deku.Control (blank, plant, text, text_)
-import Deku.Core (Element)
+import Deku.Control (text, text_)
+import Deku.Core (Domable, Element, toDOM)
 import Deku.DOM as D
 import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
@@ -19,11 +19,11 @@ import FRP.Event.VBus (V, vbus)
 import Type.Proxy (Proxy(..))
 import WAGS.Clock (interval)
 import WAGS.Control (bandpass_, fan1, gain, gain_, highpass_, triangleOsc)
-import WAGS.Core (Node, mix)
+import WAGS.Core (Audible, AudioEnvelope(..), bangOn)
+import WAGS.Core (Node)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..))
 import WAGS.Interpret (close, context)
 import WAGS.Math (calcSlope)
-import WAGS.Core (AudioEnvelope(..), bangOn)
 import WAGS.Properties (frequency)
 import WAGS.Properties as P
 import WAGS.Run (run2e)
@@ -79,7 +79,7 @@ import FRP.Event.VBus (V, vbus)
 import Type.Proxy (Proxy(..))
 import WAGS.Clock (interval)
 import WAGS.Control (bandpass_, fan1, gain, gain_, highpass_, triangleOsc)
-import WAGS.Core (Node, mix)
+import WAGS.Core (Node)
 import WAGS.Interpret (close, context)
 import WAGS.Math (calcSlope)
 import WAGS.Core (AudioEnvelope(..), bangOn)
@@ -143,7 +143,7 @@ main = runInBody1
                 } <$> time
             f0 = bangOn <|> frequency <<< cp <$> pitch
           [ fan1 (triangleOsc 0.0 f0) \ipt _ -> do
-              mix $ gain_ 2.0
+              gain_ 2.0
                 [ gain 0.0 (P.gain <$> e0)
                     [ bandpass_
                         { frequency: 1000.0
@@ -233,14 +233,14 @@ cp n
   | otherwise = 587.329536
 
 ex2
-  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Element lock payload
+  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable Effect lock payload
 ex2 ccb _ ev = makePursx' (Proxy :: _ "@") px
   { txt: nut (text_ txt)
   , ex2: nut
-      ( vbus (Proxy :: _ UIEvents) \push event -> -- here
+      ( toDOM $ vbus (Proxy :: _ UIEvents) \push event -> -- here
           let
             start = event.startStop.start <|> bang unit
-            music :: forall lock0. _ -> Event (Array (Node _ lock0 _))
+            music :: forall lock0. _ -> Event (Array (Audible _ lock0 _))
             music evt' = memoize evt' \evt -> do
               let
                 pitch = map fst evt
@@ -266,7 +266,7 @@ ex2 ccb _ ev = makePursx' (Proxy :: _ "@") px
                     } <$> time
                 f0 = bangOn <|> frequency <<< cp <$> pitch
               [ fan1 (triangleOsc 0.0 f0) \ipt _ -> do
-                  mix $ gain_ 2.0
+                  gain_ 2.0
                     [ gain 0.0 (P.gain <$> e0)
                         [ bandpass_
                             { frequency: 1000.0
@@ -291,7 +291,7 @@ ex2 ccb _ ev = makePursx' (Proxy :: _ "@") px
                     ]
               ]
           in
-            plant $ D.div_
+            D.div_
               [ D.div_
                   [ text_ "tempo"
                   , D.input
@@ -309,7 +309,7 @@ ex2 ccb _ ev = makePursx' (Proxy :: _ "@") px
                               )
                           ]
                       )
-                      blank
+                      []
                   ]
               --                     r' <- run2e ctx (music myIvl)
               -- let r = r' *> close ctx

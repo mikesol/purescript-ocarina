@@ -3,7 +3,7 @@ module WAGS.Example.Docs.FixFan where
 import Prelude
 
 import Control.Plus (class Plus)
-import Deku.Core (Element)
+import Deku.Core (Domable, Element)
 import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
 import FRP.Event (Event, class IsEvent)
@@ -44,7 +44,7 @@ px = Proxy :: Proxy
 
   <ul>
     <li>A vector of nodes to fan out (or a single node in the case of <code>fan1</code>).</li>
-    <li>A function that accepts a reference to this/these node(s) and returns a new <i>mixed</i> node that may or may not contain the input. Mixed nodes are created using the <code>mix</code> function.</li>
+    <li>A function that accepts a reference to this/these node(s) and returns a new node that may or may not contain the input.</li>
   </ul>
 
   <p>Let's see an example below that fans one <code>playBuf</code> to five bandpass filters.</p>
@@ -73,7 +73,7 @@ px = Proxy :: Proxy
   <p>In this section, saw how to combine together audio nodes with arrays, fan one audio node to many processing chains via <code>fan</code>, and how to create a fixed point, aka feedback, for a node via <code>fix</code>. In the next section, we'll ramp up on all of the yummy <a @next@ style="cursor:pointer;">audio nodes you can use</a>.</p>
 </div>"""
 
-fixFan :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent  -> Element lock payload
+fixFan :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent -> Domable Effect lock payload
 fixFan cca' dpage ssp ev = makePursx'  (Proxy :: _ "@") px
   { intro: nut (FFIntro.ffIntro cca' dpage ssp ev)
   , next: mnx AudioUnits

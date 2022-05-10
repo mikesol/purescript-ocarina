@@ -2,17 +2,16 @@ module WAGS.Example.Docs.AudioUnits.Delay where
 
 import Prelude
 
-import Deku.Core (Element)
+import Deku.Core (Domable, Element, toDOM)
 import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
 import FRP.Event (Event)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (delay_, fan1, gain_, playBuf)
-import WAGS.Core (mix)
+import WAGS.Core (bangOn)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import WAGS.Example.Docs.Util (audioWrapper)
 import WAGS.Interpret (decodeAudioDataFromUri)
-import WAGS.Core (bangOn)
 import WAGS.Run (run2)
 
 px =
@@ -24,7 +23,7 @@ px =
 
   <pre><code>\buf -> run2_
   [ fan1 (playBuf buf bangOn)
-      \b _ -> mix $ gain_ 0.2
+      \b _ -> gain_ 0.2
         [ delay_ 0.03 [ b ]
         , delay_ 0.1 [ b ]
         , delay_ 0.3 [ b ]
@@ -36,13 +35,13 @@ px =
   </section>
 """
 
-delay :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Element lock payload
+delay :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable Effect lock payload
 delay ccb _ ev = makePursx' (Proxy :: _ "@") px
   { delay: nut
-      ( audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/339/339822_5121236-lq.mp3")
+      ( toDOM $ audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/339/339822_5121236-lq.mp3")
           \ctx buf -> run2 ctx
             [ fan1 (playBuf buf bangOn)
-                \b _ -> mix $ gain_ 0.2
+                \b _ -> gain_ 0.2
                   [ delay_ 0.03 [ b ]
                   , delay_ 0.1 [ b ]
                   , delay_ 0.3 [ b ]

@@ -10,8 +10,8 @@ import Data.Foldable (for_, traverse_)
 import Data.Maybe (Maybe(..), maybe)
 import Data.Tuple.Nested ((/\))
 import Deku.Attribute (cb, (:=))
-import Deku.Control (blank, plant, text)
-import Deku.Core (Element)
+import Deku.Control (text)
+import Deku.Core (Domable, Element, toDOM)
 import Deku.DOM as D
 import Deku.Pursx (nut, (~~))
 import Effect (Effect)
@@ -43,10 +43,10 @@ type RecorderStates = Either (Either String MediaRecorder) WrapperStates
 scene m cb = recorder cb (microphone m)
 
 recorderEx
-  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Element lock payload
+  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable Effect lock payload
 recorderEx ccb _ ev = px ~~
   { recorder: nut
-      ( bus \push (event' :: Event RecorderStates) ->
+      ( toDOM $ bus \push (event' :: Event RecorderStates) ->
             let
               ptn = partitionMap identity event'
               event = mkWrapperEvent ev (_.right ptn)
@@ -54,7 +54,7 @@ recorderEx ccb _ ev = px ~~
               aEv = _.left ls
               rEv = _.right ls
             in
-              plant $ D.div_
+              D.div_
                 [ D.button
                     ( (bang (D.Style := "cursor: pointer;")) <|>
                         ( map
@@ -128,7 +128,7 @@ recorderEx ccb _ ev = px ~~
                             (const (D.Style := "display:block;"))
                             aEv
                         )
-                        blank
+                        []
                     ]
                 ]
       )

@@ -18,8 +18,8 @@ import Data.Traversable (traverse)
 import Data.Tuple.Nested (type (/\), (/\))
 import Data.UInt (toNumber)
 import Deku.Attribute (attr, cb, (:=))
-import Deku.Control (blank, plant, text)
-import Deku.Core (Element)
+import Deku.Control (text)
+import Deku.Core (Domable, Element, toDOM)
 import Deku.DOM as D
 import Deku.Pursx (makePursx', nut)
 import Effect (Effect, foreachE)
@@ -41,8 +41,8 @@ import Type.Proxy (Proxy(..))
 import Unsafe.Coerce (unsafeCoerce)
 import WAGS.Clock (withACTime)
 import WAGS.Control (analyser_, bandpass, delay, fan1, fix, gain, gain_, highpass, lowpass, playBuf)
-import WAGS.Core (AudioEnvelope(..), AudioNumeric(..), _linear, bangOn)
-import WAGS.Core (Node, Po2(..), mix)
+import WAGS.Core (Audible, AudioEnvelope(..), AudioNumeric(..), _linear, bangOn)
+import WAGS.Core (Node, Po2(..))
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..))
 import WAGS.Example.Docs.Util (raceSelf)
 import WAGS.Interpret (close, constant0Hack, context, decodeAudioDataFromUri, getByteFrequencyData)
@@ -111,10 +111,10 @@ denv s e = bang
 ttap (o /\ n) = AudioNumeric { o: o + 0.04, n, t: _linear }
 
 introEx
-  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Element lock payload
+  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable Effect lock payload
 introEx ccb _ ev = makePursx' (Proxy :: _ "@") px
   { ex1: nut
-      ( vbus (Proxy :: _ UIEvents) \push event -> -- here
+      ( toDOM $ vbus (Proxy :: _ UIEvents) \push event -> -- here
 
           do
             let
@@ -122,7 +122,7 @@ introEx ccb _ ev = makePursx' (Proxy :: _ "@") px
               loadingE = event.startStop.loading
               stopE = event.startStop.stop
 
-              music :: forall lock. _ -> _ -> _ -> Array (Node _ lock _)
+              music :: forall lock. _ -> _ -> _ -> Array (Audible _ lock _)
               music ctx buffer analyserE = do
                 let
                   sliderE = (\{ acTime, value } -> acTime /\ value) <$> withACTime ctx event.slider
@@ -135,7 +135,7 @@ introEx ccb _ ev = makePursx' (Proxy :: _ "@") px
                             )
                         )
                     , fftSize: TTT7
-                    } $ fan1 (playBuf buffer (bangOn <|> (P.playbackRate <<< ttap <<< second (calcSlope 0.0 0.96 100.0 1.04)) <$> sliderE)) \b _ -> mix $ fix
+                    } $ pure $ fan1 (playBuf buffer (bangOn <|> (P.playbackRate <<< ttap <<< second (calcSlope 0.0 0.96 100.0 1.04)) <$> sliderE)) \b _ -> fix
                     \g0 -> gain_ 1.0
                       [ b
                       , delay { maxDelayTime: 2.5, delayTime: 1.0 } ((P.delayTime <<< ttap <<< second (calcSlope 0.0 0.5 100.0 2.45)) <$> sliderE)
@@ -169,7 +169,7 @@ introEx ccb _ ev = makePursx' (Proxy :: _ "@") px
                           ]
                       ]
                 ]
-            plant $ D.div_
+            D.div_
               [ D.canvas
                   ( oneOfMap bang
                       [ D.Width := cvsxs
@@ -201,7 +201,7 @@ introEx ccb _ ev = makePursx' (Proxy :: _ "@") px
                         ) <$> event.canvas
                       )
                   )
-                  blank
+                  []
               , D.input
                   ( oneOfMap bang
                       [ D.Xtype := "range"
@@ -218,7 +218,7 @@ introEx ccb _ ev = makePursx' (Proxy :: _ "@") px
                           )
                       ]
                   )
-                  blank
+                  []
               , D.button
                   ( oneOf
                       [ bang $ D.Style := "width:100%; padding:1.0rem;"

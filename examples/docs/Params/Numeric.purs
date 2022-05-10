@@ -3,14 +3,14 @@ module WAGS.Example.Docs.Params.Numeric where
 import Prelude
 
 import Data.Foldable (oneOf)
-import Deku.Core (Element)
+import Deku.Core (Domable, toDOM)
 import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
 import FRP.Event (Event, bang)
 import FRP.Event (delay)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (gain_, loopBuf)
-import WAGS.Core (AudioNumeric(..), AudioSudden(..), _exponential, _linear, _step, bangOn)
+import WAGS.Core (AudioNumeric(..), _exponential, _linear, _step, bangOn)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import WAGS.Example.Docs.Util (audioWrapper)
 import WAGS.Interpret (decodeAudioDataFromUri)
@@ -65,10 +65,10 @@ px =
 """
 
 numericEx
-  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Element lock payload
+  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable Effect lock payload
 numericEx ccb _ ev = makePursx' (Proxy :: _ "@") px
   { numericEx: nut
-      ( audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
+      ( toDOM $ audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
           \ctx buf -> run2 ctx
             [ gain_ 1.0
                 [ loopBuf buf

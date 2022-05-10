@@ -1,9 +1,9 @@
 module WAGS.Example.Docs.Events.InWags where
 
 
-import Deku.Core (Element)
+import Deku.Core (Domable)
 import Deku.Pursx (makePursx')
-import FRP.Event (Event)
+import Effect (Effect)
 import Type.Proxy (Proxy(..))
 
 px = Proxy :: Proxy
@@ -184,7 +184,7 @@ px = Proxy :: Proxy
   </p>
 </section>"""
 
-inWags :: forall lock payload. Element lock payload
+inWags :: forall lock payload. Domable Effect lock payload
 inWags = makePursx'  (Proxy :: _ "@") px
   {
   }

@@ -8,8 +8,8 @@ import Data.Maybe (Maybe(..), maybe)
 import Data.Tuple (fst)
 import Data.Tuple.Nested ((/\))
 import Deku.Attribute (attr, cb, (:=))
-import Deku.Control (blank, plant, switcher, text, text_)
-import Deku.Core (Element)
+import Deku.Control (switcher, text, text_)
+import Deku.Core (Domable, toDOM)
 import Deku.DOM as D
 import Deku.Toplevel (runInBody)
 import Effect (Effect)
@@ -17,15 +17,13 @@ import Effect.Aff (launchAff_)
 import Effect.Class (liftEffect)
 import Effect.Random as Random
 import FRP.Behavior (Behavior, behavior, sampleBy)
-import FRP.Event (create, fold, makeEvent, subscribe)
+import FRP.Event (create, fold, makeEvent, subscribe, delay)
 import FRP.Event.Class (bang)
-import FRP.Event (delay)
 import FRP.Event.VBus (V, vbus)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (gain_, playBuf)
-import WAGS.Core (Channel(..))
+import WAGS.Core (Channel(..), subgraph, bangOn)
 import WAGS.Interpret (bracketCtx, decodeAudioDataFromUri)
-import WAGS.Core (bangOn)
 import WAGS.Run (run2_)
 import WAGS.WebAPI (BrowserAudioBuffer)
 
@@ -54,15 +52,15 @@ main = do
   scene
     :: forall lock payload
      . Maybe BrowserAudioBuffer
-    -> Element lock payload
+    -> Domable Effect lock payload
   scene = maybe (D.div_ [ text_ "Loading..." ]) \buffer ->
-    D.div_ $ vbus (Proxy :: _ UIEvents) \push event -> do
+    D.div_ $ pure $ toDOM $ vbus (Proxy :: _ UIEvents) \push event -> do
       let
         startE = bang unit <|> event.startStop.start
         sl = sampleBy (/\) random
           $ fold (\_ b -> b + 1) event.slider 0
         music = run2_
-          [ gain_ 1.0 $ map
+          [ gain_ 1.0 [subgraph $ map
               ( \i ->
                   oneOf
                     [ bang $ Sound $ playBuf
@@ -71,9 +69,9 @@ main = do
                     , delay 5000 $ bang $ Silence
                     ]
               )
-              sl
+              sl]
           ]
-      plant $ D.div_
+      D.div_
         [ D.div_
             [ text_ "Slide me!"
             , D.input
@@ -86,7 +84,7 @@ main = do
                     , D.OnInput := cb (const (push.slider unit))
                     ]
                 )
-                blank
+                []
             ]
         , D.button
             ( oneOfMap (map (attr D.OnClick <<< cb <<< const))

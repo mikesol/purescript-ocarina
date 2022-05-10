@@ -211,8 +211,8 @@ instance (TypeEquals l0 l1, TypeEquals p0 p1) => ToAudioParameter (AudioUnit l0 
 instance (TypeEquals l0 l1, TypeEquals p0 p1) => ToAudioParameter (Audible D1 l0 p0) l1 p1 where
   toAudioParameter = toAudioParameter <<< AudioUnit <<< { u: _ }
 
-c1 :: forall l p. (forall o. Node o l p) -> Node D1 l p
-c1 (Node o) = Node o
+c1 :: forall l p. (forall o. Audible o l p) -> Audible D1 l p
+c1 = unsafeCoerce
 
 class OpticN s where
   opticN :: forall p. Strong p => Optic' p s Number
@@ -349,6 +349,9 @@ data Audible outputChannels lock payload
   | FixedChannels' (FixedChannels outputChannels lock payload)
   | EventfulNode' (EventfulNode outputChannels lock payload)
   | Node' (Node outputChannels lock payload)
+
+toAudible = EventfulNode' <<< EventfulNode
+subgraph = DynamicChannels' <<< DynamicChannels
 
 --
 

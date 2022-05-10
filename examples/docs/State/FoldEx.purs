@@ -4,12 +4,13 @@ import Prelude
 
 import Control.Alt ((<|>))
 import Data.Foldable (oneOf, oneOfMap)
+import Data.Number (pi, sin)
 import Data.Tuple.Nested ((/\))
 import Data.Vec ((+>))
 import Data.Vec as V
 import Deku.Attribute (attr, cb, (:=))
-import Deku.Control (blank, plant, text, text_)
-import Deku.Core (Element)
+import Deku.Control (text, text_)
+import Deku.Core (Domable, Element, toDOM)
 import Deku.DOM as D
 import Deku.Pursx (nut, (~~))
 import Effect (Effect)
@@ -18,14 +19,13 @@ import FRP.Event (Event, fold, mapAccum, memoize, sampleOn)
 import FRP.Event.Animate (animationFrameEvent)
 import FRP.Event.Class (bang, biSampleOn)
 import FRP.Event.VBus (V, vbus)
-import Data.Number (pi, sin)
 import Type.Proxy (Proxy(..))
 import WAGS.Clock (withACTime)
 import WAGS.Control (gain, periodicOsc)
+import WAGS.Core (AudioNumeric(..), _linear, bangOn)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..), SingleSubgraphPusher)
 import WAGS.Interpret (close, constant0Hack, context)
 import WAGS.Math (calcSlope)
-import WAGS.Core (AudioNumeric(..), _linear, bangOn)
 import WAGS.Properties as P
 import WAGS.Run (run2e)
 
@@ -64,7 +64,7 @@ type UIEvents = V
   , cbx :: Cbx
   )
 
-foldEx :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent -> Element lock payload
+foldEx :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent -> Domable Effect lock payload
 foldEx ccb _ _ ev = px ~~
   { txt: nut $ text_
       """module Main where
@@ -208,7 +208,7 @@ main = runInBody1
         ]
   )"""
   , empl: nut
-      ( vbus (Proxy :: _ UIEvents) \push event -> do
+      ( toDOM $ vbus (Proxy :: _ UIEvents) \push event -> do
           let
             startE = bang unit <|> event.startStop.start
             stopE = event.startStop.stop
@@ -217,7 +217,7 @@ main = runInBody1
             cbx1 = chkState event.cbx.cbx1
             cbx2 = chkState event.cbx.cbx2
             cbx3 = chkState event.cbx.cbx3
-          plant $ D.div_
+          D.div_
             [ D.button
                 ( oneOfMap (map (attr D.OnClick <<< cb <<< const))
                     [ (biSampleOn (bang (pure unit) <|> (map (\(SetCancel x) -> x) ev)) (startE $> identity)) <#> \cncl -> do
@@ -305,7 +305,7 @@ main = runInBody1
                             , startE $> (D.Checked := "false")
                             ]
                         )
-                        blank
+                        []
                     )
                     ([ _.cbx0, _.cbx1, _.cbx2, _.cbx3 ] <@> push.cbx)
                 )

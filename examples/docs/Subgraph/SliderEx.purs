@@ -7,8 +7,8 @@ import Data.Foldable (oneOf, oneOfMap)
 import Data.Tuple (fst)
 import Data.Tuple.Nested ((/\))
 import Deku.Attribute (attr, cb, (:=))
-import Deku.Control (blank, plant, text, text_)
-import Deku.Core (Element)
+import Deku.Control (text, text_)
+import Deku.Core (Domable, toDOM)
 import Deku.DOM as D
 import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
@@ -17,16 +17,16 @@ import Effect.Class (liftEffect)
 import Effect.Random as Random
 import FRP.Behavior (Behavior, behavior, sampleBy)
 import FRP.Event (Event, fold, makeEvent, subscribe)
-import FRP.Event.Class (bang, biSampleOn)
 import FRP.Event (delay)
+import FRP.Event.Class (bang, biSampleOn)
 import FRP.Event.VBus (V, vbus)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (gain_, playBuf)
-import WAGS.Core (Node, Channel(..))
+import WAGS.Core (Audible, Channel(..), bangOn, subgraph)
+import WAGS.Core (bangOn)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..))
 import WAGS.Example.Docs.Util (raceSelf)
 import WAGS.Interpret (close, constant0Hack, context, decodeAudioDataFromUri)
-import WAGS.Core (bangOn)
 import WAGS.Run (run2_)
 
 px =
@@ -167,11 +167,11 @@ sgSliderEx
    . CancelCurrentAudio
   -> (Page -> Effect Unit)
   -> Event SingleSubgraphEvent
-  -> Element lock payload
+  -> Domable Effect lock payload
 sgSliderEx ccb _ ev = makePursx' (Proxy :: _ "@") px
   { txt: nut (text_ txt)
   , ex1: nut
-      ( vbus (Proxy :: _ UIEvents) \push event -> -- here
+      (toDOM $ vbus (Proxy :: _ UIEvents) \push event -> -- here
           do
             let
               startE = bang unit <|> event.startStop.start
@@ -179,9 +179,9 @@ sgSliderEx ccb _ ev = makePursx' (Proxy :: _ "@") px
               sl = sampleBy (/\) random
                 $ fold (\_ b -> b + 1) event.slider 0
 
-              music :: forall lock0. _ -> Array (Node _ lock0 _)
+              music :: forall lock0. _ -> Array (Audible _ lock0 _)
               music buffer =
-                [ gain_ 1.0 $ map
+                [ gain_ 1.0 [ subgraph $ map
                     ( \i ->
                         oneOf
                           [ bang $ Sound $ playBuf
@@ -190,9 +190,9 @@ sgSliderEx ccb _ ev = makePursx' (Proxy :: _ "@") px
                           , delay 5000 $ bang $ Silence
                           ]
                     )
-                    sl
+                    sl]
                 ]
-            plant $ D.div_
+            D.div_
               [ D.div_
                   [ text_ "Slide me!"
                   , D.input
@@ -205,7 +205,7 @@ sgSliderEx ccb _ ev = makePursx' (Proxy :: _ "@") px
                           , D.OnInput := cb (const (push.slider unit))
                           ]
                       )
-                      blank
+                      []
                   ]
               , D.button
                   ( oneOfMap (map (attr D.OnClick <<< cb <<< const))

@@ -5,8 +5,8 @@ import Prelude
 import Control.Alt ((<|>))
 import Data.Foldable (oneOf, oneOfMap, traverse_)
 import Deku.Attribute (attr, cb, (:=))
-import Deku.Control (blank, plant, text, text_)
-import Deku.Core (Element)
+import Deku.Control (text, text_)
+import Deku.Core (Domable, Element, toDOM)
 import Deku.DOM as D
 import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
@@ -17,12 +17,12 @@ import FRP.Event.Class (bang, biSampleOn)
 import FRP.Event.VBus (V, vbus)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (loopBuf)
-import WAGS.Core (Node)
+import WAGS.Core (Audible, Node)
+import WAGS.Core (bangOn)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..))
 import WAGS.Example.Docs.Util (raceSelf)
 import WAGS.Interpret (close, constant0Hack, context, decodeAudioDataFromUri)
 import WAGS.Math (calcSlope)
-import WAGS.Core (bangOn)
 import WAGS.Properties (loopEnd, loopStart, playbackRate)
 import WAGS.Run (run2)
 import Web.Event.Event (target)
@@ -180,7 +180,7 @@ atari =
   "https://freesound.org/data/previews/100/100981_1234256-lq.mp3"
 
 ex1
-  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Element lock payload
+  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable Effect lock payload
 ex1 ccb _ ev = makePursx' (Proxy :: _ "@") px
   { wagtxt: nut
       ( text_
@@ -201,14 +201,14 @@ ex1 ccb _ ev = makePursx' (Proxy :: _ "@") px
       )
   , txt: nut (text_ txt)
   , ex1: nut
-      ( vbus (Proxy :: _ UIEvents) \push event -> -- here
+      ( toDOM $ vbus (Proxy :: _ UIEvents) \push event -> -- here
           do
             let
               sl0 = event.slider.s0
               sl1 = event.slider.s1
               sl2 = event.slider.s2
               start = event.startStop.start <|> bang unit
-              music :: forall lock0. _ -> Node _ lock0 _
+              music :: forall lock0. _ -> Audible _ lock0 _
               music buffer =
                 loopBuf
                   { buffer: buffer
@@ -223,7 +223,7 @@ ex1 ccb _ ev = makePursx' (Proxy :: _ "@") px
                     , (calcSlope 0.0 0.05 100.0 1.0 >>> loopEnd) <$> biSampleOn sl2
                         (add <$> (bang 0.0 <|> sl1))
                     ]
-            plant $ D.div_
+            D.div_
               $
                 map
                   ( \{ l, f } -> D.div_
@@ -243,7 +243,7 @@ ex1 ccb _ ev = makePursx' (Proxy :: _ "@") px
                                   )
                               ]
                           )
-                          blank
+                          []
                       ]
                   )
                   [ { l: "Playback rate", f: push.slider.s0 }
