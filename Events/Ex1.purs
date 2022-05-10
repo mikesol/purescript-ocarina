@@ -3,10 +3,12 @@ module WAGS.Example.Docs.Events.Ex1 where
 import Prelude
 
 import Control.Alt ((<|>))
-import Data.Foldable (oneOf, oneOfMap, traverse_)
+import QualifiedDo.Alt as OneOf
+import QualifiedDo.OneOfMap as O
+import Data.Foldable (traverse_)
 import Deku.Attribute (attr, cb, (:=))
 import Deku.Control (text, text_)
-import Deku.Core (Domable, Element, toDOM)
+import Deku.Core (Domable, toDOM)
 import Deku.DOM as D
 import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
@@ -17,7 +19,7 @@ import FRP.Event.Class (bang, biSampleOn)
 import FRP.Event.VBus (V, vbus)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (loopBuf)
-import WAGS.Core (Audible, Node)
+import WAGS.Core (Audible, bangOn)
 import WAGS.Core (bangOn)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..))
 import WAGS.Example.Docs.Util (raceSelf)
@@ -29,7 +31,7 @@ import Web.Event.Event (target)
 import Web.HTML.HTMLInputElement (fromEventTarget, valueAsNumber)
 
 px =
-  Proxy    :: Proxy      """<section>
+  Proxy    :: Proxy         """<section>
  <h2>Example 2: Three sliders</h2>
 
   <p>In this example, we'll use three sliders to control the playback rate, the start time, and the end time of a looping buffer.</p>
@@ -58,24 +60,26 @@ txt =
 import Prelude
 
 import Control.Alt ((<|>))
-import Data.Foldable (oneOf, oneOfMap, traverse_)
+import Data.Foldable (traverse_)
 import Data.Maybe (Maybe(..), maybe)
 import Deku.Attribute (attr, cb, (:=))
-import Deku.Control (blank, plant, switcher, text, text_)
-import Deku.Core (Element)
+import Deku.Control (switcher, text, text_)
+import Deku.Core (Domable, toDOM)
 import Deku.DOM as D
 import Deku.Toplevel (runInBody)
 import Effect (Effect)
 import Effect.Aff (launchAff_)
 import Effect.Class (liftEffect)
 import FRP.Event (create)
-import FRP.Event.Class (bang, biSampleOn, keepLatest)
+import FRP.Event.Class (bang, biSampleOn)
 import FRP.Event.VBus (V, vbus)
+import QualifiedDo.Alt as OneOf
+import QualifiedDo.OneOfMap as O
 import Type.Proxy (Proxy(..))
 import WAGS.Control (loopBuf)
+import WAGS.Core (bangOn)
 import WAGS.Interpret (bracketCtx, decodeAudioDataFromUri)
 import WAGS.Math (calcSlope)
-import WAGS.Core (bangOn)
 import WAGS.Properties (loopEnd, loopStart, playbackRate)
 import WAGS.Run (run2_)
 import WAGS.WebAPI (BrowserAudioBuffer)
@@ -102,9 +106,9 @@ main = do
   scene
     :: forall lock payload
      . Maybe BrowserAudioBuffer
-    -> Element lock payload
+    -> Domable Effect lock payload
   scene = maybe (D.div_ [ text_ "Loading..." ]) \buffer ->
-    D.div_ $ keepLatest $ vbus (Proxy :: _ UIEvents) \push event -> do
+    D.div_ $ pure $ toDOM $ vbus (Proxy :: _ UIEvents) \push event -> do
       let
         sl0 = event.slider.s0
         sl1 = event.slider.s1
@@ -117,40 +121,38 @@ main = do
               , loopStart: 0.6
               , loopEnd: 1.1
               }
-              $ oneOf
-                [ bangOn
-                , map
-                    (calcSlope 0.0 0.2 100.0 5.0 >>> playbackRate)
-                    sl0
-                , map
-                    (calcSlope 0.0 0.0 100.0 1.2 >>> loopStart)
-                    sl1
-                , map
-                    (calcSlope 0.0 0.05 100.0 1.0 >>> loopEnd)
-                    (biSampleOn sl2 (add <$> (bang 0.0 <|> sl1)))
-                ]
+              OneOf.do
+                bangOn
+                map
+                  (calcSlope 0.0 0.2 100.0 5.0 >>> playbackRate)
+                  sl0
+                map
+                  (calcSlope 0.0 0.0 100.0 1.2 >>> loopStart)
+                  sl1
+                map
+                  (calcSlope 0.0 0.05 100.0 1.0 >>> loopEnd)
+                  (biSampleOn sl2 (add <$> (bang 0.0 <|> sl1)))
           ]
-      plant $ D.div_
+      D.div_
         $
           map
             ( \{ l, f } -> D.div_
                 [ text_ l
                 , D.input
-                    ( oneOfMap bang
-                        [ D.Xtype := "range"
-                        , D.Min := "0"
-                        , D.Max := "100"
-                        , D.Step := "1"
-                        , D.Value := "50"
-                        , D.OnInput := cb
-                            ( traverse_
-                                (valueAsNumber >=> f)
-                                <<< (=<<) fromEventTarget
-                                <<< target
-                            )
-                        ]
+                    ( O.oneOfMap bang O.do
+                        D.Xtype := "range"
+                        D.Min := "0"
+                        D.Max := "100"
+                        D.Step := "1"
+                        D.Value := "50"
+                        D.OnInput := cb
+                          ( traverse_
+                              (valueAsNumber >=> f)
+                              <<< (=<<) fromEventTarget
+                              <<< target
+                          )
                     )
-                    blank
+                    []
                 ]
             )
             [ { l: "Playback rate", f: push.slider.s0 }
@@ -158,19 +160,18 @@ main = do
             , { l: "Loop end", f: push.slider.s2 }
             ] <>
             [ D.button
-                ( oneOfMap (map (attr D.OnClick <<< cb <<< const))
-                    [ start $> (music >>= push.startStop.stop)
-                    , event.startStop.stop <#>
-                        (_ *> push.startStop.start unit)
-                    ]
+                ( O.oneOfMap (map (attr D.OnClick <<< cb <<< const)) O.do
+                    start $> (music >>= push.startStop.stop)
+                    event.startStop.stop <#>
+                      (_ *> push.startStop.start unit)
                 )
-                [ text $ oneOf
-                    [ start $> "Turn on"
-                    , event.startStop.stop $> "Turn off"
-                    ]
+                [ text OneOf.do
+                    start $> "Turn on"
+                    event.startStop.stop $> "Turn off"
                 ]
             ]
 """
+
 type Slider = V (s0 :: Number, s1 :: Number, s2 :: Number)
 type StartStop = V (start :: Unit, stop :: Effect Unit, loading :: Unit)
 type UIEvents = V (startStop :: StartStop, slider :: Slider)
@@ -191,23 +192,24 @@ ex1 ccb _ ev = makePursx' (Proxy :: _ "@") px
       , loopStart: 0.6
       , loopEnd: 1.1
       }
-  $ oneOf
-      [ bangOn
-      , (calcSlope 0.0 0.2 100.0 5.0 >>> playbackRate) <$> sl0
-      , (calcSlope 0.0 0.0 100.0 1.2 >>> loopStart) <$> sl1
-      , (calcSlope 0.0 0.05 100.0 1.0 >>> loopEnd) <$> biSampleOn sl2
-          (add <$> (bang 0.0 <|> sl1))
-      ]"""
+  $ OneOf.do
+      bangOn
+      (calcSlope 0.0 0.2 100.0 5.0 >>> playbackRate) <$> sl0
+      (calcSlope 0.0 0.0 100.0 1.2 >>> loopStart) <$> sl1
+      (calcSlope 0.0 0.05 100.0 1.0 >>> loopEnd) <$> biSampleOn sl2
+          (add <$> (bang 0.0 <|> sl1))"""
       )
   , txt: nut (text_ txt)
   , ex1: nut
       ( toDOM $ vbus (Proxy :: _ UIEvents) \push event -> -- here
+
           do
             let
               sl0 = event.slider.s0
               sl1 = event.slider.s1
               sl2 = event.slider.s2
               start = event.startStop.start <|> bang unit
+
               music :: forall lock0. _ -> Audible _ lock0 _
               music buffer =
                 loopBuf
@@ -216,32 +218,30 @@ ex1 ccb _ ev = makePursx' (Proxy :: _ "@") px
                   , loopStart: 0.6
                   , loopEnd: 1.1
                   }
-                  $ oneOf
-                    [ bangOn
-                    , (calcSlope 0.0 0.2 100.0 5.0 >>> playbackRate) <$> sl0
-                    , (calcSlope 0.0 0.0 100.0 1.2 >>> loopStart) <$> sl1
-                    , (calcSlope 0.0 0.05 100.0 1.0 >>> loopEnd) <$> biSampleOn sl2
+                  $ OneOf.do
+                      bangOn
+                      (calcSlope 0.0 0.2 100.0 5.0 >>> playbackRate) <$> sl0
+                      (calcSlope 0.0 0.0 100.0 1.2 >>> loopStart) <$> sl1
+                      (calcSlope 0.0 0.05 100.0 1.0 >>> loopEnd) <$> biSampleOn sl2
                         (add <$> (bang 0.0 <|> sl1))
-                    ]
             D.div_
               $
                 map
                   ( \{ l, f } -> D.div_
                       [ text_ l
                       , D.input
-                          ( oneOfMap bang
-                              [ D.Xtype := "range"
-                              , D.Min := "0"
-                              , D.Max := "100"
-                              , D.Step := "1"
-                              , D.Value := "50"
-                              , D.OnInput := cb
-                                  ( traverse_
-                                      (valueAsNumber >=> f)
-                                      <<< (=<<) fromEventTarget
-                                      <<< target
-                                  )
-                              ]
+                          ( O.oneOfMap bang O.do
+                              D.Xtype := "range"
+                              D.Min := "0"
+                              D.Max := "100"
+                              D.Step := "1"
+                              D.Value := "50"
+                              D.OnInput := cb
+                                ( traverse_
+                                    (valueAsNumber >=> f)
+                                    <<< (=<<) fromEventTarget
+                                    <<< target
+                                )
                           )
                           []
                       ]
@@ -251,32 +251,34 @@ ex1 ccb _ ev = makePursx' (Proxy :: _ "@") px
                   , { l: "Loop end", f: push.slider.s2 }
                   ] <>
                   [ D.button
-                      ( oneOfMap (map (attr D.OnClick <<< cb <<< const))
-                          [ event.startStop.loading $> pure unit
-                          , event.startStop.stop <#>
-                              (_ *> (ccb (pure unit) *> push.startStop.start unit))
-                          , (biSampleOn (bang (pure unit) <|> (map (\(SetCancel x) -> x) ev))
-                              (start $> identity)) <#> \cncl -> do
-                              cncl
-                              push.startStop.loading unit
-                              fib <- launchAff do
-                                ctx <- context
-                                c0h <- constant0Hack ctx
-                                buffer <- decodeAudioDataFromUri ctx atari
-                                liftEffect do
-                                  res' <- run2 ctx [ music buffer ]
-                                  let res = res' *> c0h *> close ctx
-                                  push.startStop.stop res
-                                  pure res
-                              ccb do
-                                push.startStop.start unit
-                                launchAff_ $ raceSelf fib
-                              pure unit
-                          ]
+                      ( O.oneOfMap (map (attr D.OnClick <<< cb <<< const)) O.do
+                          event.startStop.loading $> pure unit
+                          event.startStop.stop <#>
+                            (_ *> (ccb (pure unit) *> push.startStop.start unit))
+                          ( biSampleOn (bang (pure unit) <|> (map (\(SetCancel x) -> x) ev))
+                              (start $> identity)
+                          ) <#> \cncl -> do
+                            cncl
+                            push.startStop.loading unit
+                            fib <- launchAff do
+                              ctx <- context
+                              c0h <- constant0Hack ctx
+                              buffer <- decodeAudioDataFromUri ctx atari
+                              liftEffect do
+                                res' <- run2 ctx [ music buffer ]
+                                let res = res' *> c0h *> close ctx
+                                push.startStop.stop res
+                                pure res
+                            ccb do
+                              push.startStop.start unit
+                              launchAff_ $ raceSelf fib
+                            pure unit
+
                       )
 
-                      [ text $ oneOf [ map (const "Turn off") event.startStop.stop
-                      , map (const "Turn on") start ]
+                      [ text $ OneOf.do
+                          map (const "Turn off") event.startStop.stop
+                          map (const "Turn on") start
                       ]
                   ]
       )

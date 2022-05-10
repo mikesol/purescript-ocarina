@@ -26,15 +26,12 @@ px =
 
   <pre><code>\ctx buf -> run2 ctx
   [ gain_ 1.0
-      [ loopBuf buf
-          ( oneOf
-              [ bangOn
-              , delay 1500
-                  $ bang
-                  $ playbackRate
-                  $ AudioSudden { n: 1.4 }
-              ]
-          )
+      [ loopBuf buf OneOf.do
+          bangOn
+          delay 1500
+            $ bang
+            $ playbackRate
+            $ AudioSudden { n: 1.4 }
       ]
   ]</code></pre>
 

@@ -24,18 +24,16 @@ px =
   <p>To control an audio parameter with an audio unit, use the <code>AudioUnit</code> constructor. You can also use a <code>Node D1 l p</code>. If your node is for an arbitrary number of channels, make sure to coerce it to mono using the <code>c1</code> function, as in the example below.</p>
 
   <pre><code>\ctx buf -> run2 ctx
-  [ loopBuf buf
-      ( oneOf
-          [ bangOn
-          , bang
-              $ playbackRate
-              $ c1
-                  ( gain_ 1.0
-                      [ constant 1.0 bangOn
-                      , gain_ 0.2 (lowpass_ 100.0 (squareOsc 50.0 bangOn))
-                      ]
-                  )
-          ]
+  [ loopBuf buf OneOf.do
+      bangOn
+      bang
+        $ playbackRate
+        $ c1
+            ( gain_ 1.0
+                [ constant 1.0 bangOn
+                , gain_ 0.2 (lowpass_ 100.0 (squareOsc 50.0 bangOn))
+                ]
+            )
       )
   ]
 </code></pre>

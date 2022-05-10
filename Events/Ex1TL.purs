@@ -3,7 +3,7 @@ module WAGS.Example.Docs.Events.Ex1TL where
 import Prelude
 
 import Control.Alt ((<|>))
-import Data.Foldable (oneOf, oneOfMap, traverse_)
+import Data.Foldable (traverse_)
 import Data.Maybe (Maybe(..), maybe)
 import Deku.Attribute (attr, cb, (:=))
 import Deku.Control (switcher, text, text_)
@@ -16,6 +16,8 @@ import Effect.Class (liftEffect)
 import FRP.Event (create)
 import FRP.Event.Class (bang, biSampleOn)
 import FRP.Event.VBus (V, vbus)
+import QualifiedDo.Alt as OneOf
+import QualifiedDo.OneOfMap as O
 import Type.Proxy (Proxy(..))
 import WAGS.Control (loopBuf)
 import WAGS.Core (bangOn)
@@ -62,18 +64,17 @@ main = do
               , loopStart: 0.6
               , loopEnd: 1.1
               }
-              $ oneOf
-                [ bangOn
-                , map
-                    (calcSlope 0.0 0.2 100.0 5.0 >>> playbackRate)
-                    sl0
-                , map
-                    (calcSlope 0.0 0.0 100.0 1.2 >>> loopStart)
-                    sl1
-                , map
-                    (calcSlope 0.0 0.05 100.0 1.0 >>> loopEnd)
-                    (biSampleOn sl2 (add <$> (bang 0.0 <|> sl1)))
-                ]
+              OneOf.do
+                bangOn
+                map
+                  (calcSlope 0.0 0.2 100.0 5.0 >>> playbackRate)
+                  sl0
+                map
+                  (calcSlope 0.0 0.0 100.0 1.2 >>> loopStart)
+                  sl1
+                map
+                  (calcSlope 0.0 0.05 100.0 1.0 >>> loopEnd)
+                  (biSampleOn sl2 (add <$> (bang 0.0 <|> sl1)))
           ]
       D.div_
         $
@@ -81,19 +82,18 @@ main = do
             ( \{ l, f } -> D.div_
                 [ text_ l
                 , D.input
-                    ( oneOfMap bang
-                        [ D.Xtype := "range"
-                        , D.Min := "0"
-                        , D.Max := "100"
-                        , D.Step := "1"
-                        , D.Value := "50"
-                        , D.OnInput := cb
-                            ( traverse_
-                                (valueAsNumber >=> f)
-                                <<< (=<<) fromEventTarget
-                                <<< target
-                            )
-                        ]
+                    ( O.oneOfMap bang O.do
+                        D.Xtype := "range"
+                        D.Min := "0"
+                        D.Max := "100"
+                        D.Step := "1"
+                        D.Value := "50"
+                        D.OnInput := cb
+                          ( traverse_
+                              (valueAsNumber >=> f)
+                              <<< (=<<) fromEventTarget
+                              <<< target
+                          )
                     )
                     []
                 ]
@@ -103,15 +103,13 @@ main = do
             , { l: "Loop end", f: push.slider.s2 }
             ] <>
             [ D.button
-                ( oneOfMap (map (attr D.OnClick <<< cb <<< const))
-                    [ start $> (music >>= push.startStop.stop)
-                    , event.startStop.stop <#>
-                        (_ *> push.startStop.start unit)
-                    ]
+                ( O.oneOfMap (map (attr D.OnClick <<< cb <<< const)) O.do
+                    start $> (music >>= push.startStop.stop)
+                    event.startStop.stop <#>
+                      (_ *> push.startStop.start unit)
                 )
-                [ text $ oneOf
-                    [ start $> "Turn on"
-                    , event.startStop.stop $> "Turn off"
-                    ]
+                [ text OneOf.do
+                    start $> "Turn on"
+                    event.startStop.stop $> "Turn off"
                 ]
             ]

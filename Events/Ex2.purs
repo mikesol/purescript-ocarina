@@ -5,9 +5,10 @@ import Prelude
 import Control.Alt ((<|>))
 import Data.Foldable (oneOf, oneOfMap, traverse_)
 import Data.Tuple (Tuple(..), fst, snd)
+import QualifiedDo.OneOfMap as O
 import Deku.Attribute (attr, cb, (:=))
 import Deku.Control (text, text_)
-import Deku.Core (Domable, Element, toDOM)
+import Deku.Core (Domable, toDOM)
 import Deku.DOM as D
 import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
@@ -20,7 +21,6 @@ import Type.Proxy (Proxy(..))
 import WAGS.Clock (interval)
 import WAGS.Control (bandpass_, fan1, gain, gain_, highpass_, triangleOsc)
 import WAGS.Core (Audible, AudioEnvelope(..), bangOn)
-import WAGS.Core (Node)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..))
 import WAGS.Interpret (close, context)
 import WAGS.Math (calcSlope)
@@ -31,7 +31,7 @@ import Web.Event.Event (target)
 import Web.HTML.HTMLInputElement (fromEventTarget, valueAsNumber)
 
 px =
-  Proxy    :: Proxy      """<section>
+  Proxy    :: Proxy         """<section>
   <h2>Example 3: Fascinating rhyhtm</h2>
 
   <p>Wags comes with several different ways to hook into the Web Audio API's sample-accurate timers. In this section, we'll use a Wags <code>interval</code> event to create a sample-accurate ticker. We'll also use a <code>random</code> beahvior to change up our samples.</p>
@@ -66,8 +66,9 @@ import Prelude
 import Control.Alt ((<|>))
 import Data.Foldable (oneOf, oneOfMap, traverse_)
 import Data.Tuple (Tuple(..), fst, snd)
+import QualifiedDo.OneOfMap as O
 import Deku.Attribute (attr, cb, (:=))
-import Deku.Control (blank, text, text_)
+import Deku.Control (text, text_)
 import Deku.DOM as D
 import Deku.Toplevel (runInBody1)
 import Effect (Effect)
@@ -79,10 +80,9 @@ import FRP.Event.VBus (V, vbus)
 import Type.Proxy (Proxy(..))
 import WAGS.Clock (interval)
 import WAGS.Control (bandpass_, fan1, gain, gain_, highpass_, triangleOsc)
-import WAGS.Core (Node)
+import WAGS.Core (Audible, AudioEnvelope(AudioEnvelope), bangOn)
 import WAGS.Interpret (close, context)
 import WAGS.Math (calcSlope)
-import WAGS.Core (AudioEnvelope(..), bangOn)
 import WAGS.Properties (frequency)
 import WAGS.Properties as P
 import WAGS.Run (run2e)
@@ -117,7 +117,8 @@ main = runInBody1
   ( vbus (Proxy :: _ UIEvents) \push event -> do
       let
         start = event.startStop.start <|> bang unit
-        music :: forall lock. _ -> Event (Array (Node _ lock _))
+
+        music :: forall lock. _ -> Event (Array (Audible _ lock _))
         music evt' = memoize evt' \evt -> do
           let
             pitch = map fst evt
@@ -171,21 +172,20 @@ main = runInBody1
         [ D.div_
             [ text_ "tempo"
             , D.input
-                ( oneOfMap bang
-                    [ D.Xtype := "range"
-                    , D.Min := "0"
-                    , D.Max := "100"
-                    , D.Step := "1"
-                    , D.Value := "50"
-                    , D.OnInput := cb
-                        ( traverse_
-                            (valueAsNumber >=> push.slider)
-                            <<< (=<<) fromEventTarget
-                            <<< target
-                        )
-                    ]
+                ( O.oneOfMap bang O.do
+                    D.Xtype := "range"
+                    D.Min := "0"
+                    D.Max := "100"
+                    D.Step := "1"
+                    D.Value := "50"
+                    D.OnInput := cb
+                      ( traverse_
+                          (valueAsNumber >=> push.slider)
+                          <<< (=<<) fromEventTarget
+                          <<< target
+                      )
                 )
-                blank
+                []
             ]
         , D.button
             ( oneOfMap (map (attr D.OnClick <<< cb <<< const))
@@ -240,6 +240,7 @@ ex2 ccb _ ev = makePursx' (Proxy :: _ "@") px
       ( toDOM $ vbus (Proxy :: _ UIEvents) \push event -> -- here
           let
             start = event.startStop.start <|> bang unit
+
             music :: forall lock0. _ -> Event (Array (Audible _ lock0 _))
             music evt' = memoize evt' \evt -> do
               let
@@ -295,19 +296,18 @@ ex2 ccb _ ev = makePursx' (Proxy :: _ "@") px
               [ D.div_
                   [ text_ "tempo"
                   , D.input
-                      ( oneOfMap bang
-                          [ D.Xtype := "range"
-                          , D.Min := "0"
-                          , D.Max := "100"
-                          , D.Step := "1"
-                          , D.Value := "50"
-                          , D.OnInput := cb
-                              ( traverse_
-                                  (valueAsNumber >=> push.slider)
-                                  <<< (=<<) fromEventTarget
-                                  <<< target
-                              )
-                          ]
+                      ( O.oneOfMap bang O.do
+                          D.Xtype := "range"
+                          D.Min := "0"
+                          D.Max := "100"
+                          D.Step := "1"
+                          D.Value := "50"
+                          D.OnInput := cb
+                            ( traverse_
+                                (valueAsNumber >=> push.slider)
+                                <<< (=<<) fromEventTarget
+                                <<< target
+                            )
                       )
                       []
                   ]

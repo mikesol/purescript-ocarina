@@ -3,9 +3,9 @@ module WAGS.Example.Docs.Subgraph.Slider where
 import Prelude
 
 import Control.Alt ((<|>))
-import Data.Foldable (oneOf, oneOfMap)
 import Data.Maybe (Maybe(..), maybe)
 import Data.Tuple (fst)
+import QualifiedDo.Alt as OneOf
 import Data.Tuple.Nested ((/\))
 import Deku.Attribute (attr, cb, (:=))
 import Deku.Control (switcher, text, text_)
@@ -20,6 +20,7 @@ import FRP.Behavior (Behavior, behavior, sampleBy)
 import FRP.Event (create, fold, makeEvent, subscribe, delay)
 import FRP.Event.Class (bang)
 import FRP.Event.VBus (V, vbus)
+import QualifiedDo.OneOfMap as O
 import Type.Proxy (Proxy(..))
 import WAGS.Control (gain_, playBuf)
 import WAGS.Core (Channel(..), subgraph, bangOn)
@@ -60,42 +61,40 @@ main = do
         sl = sampleBy (/\) random
           $ fold (\_ b -> b + 1) event.slider 0
         music = run2_
-          [ gain_ 1.0 [subgraph $ map
-              ( \i ->
-                  oneOf
-                    [ bang $ Sound $ playBuf
-                        { buffer: buffer, playbackRate: 0.7 + (fst i) * 2.0 }
-                        bangOn
-                    , delay 5000 $ bang $ Silence
-                    ]
-              )
-              sl]
+          [ gain_ 1.0
+              [ subgraph $ map
+                  ( \i ->
+                      OneOf.do
+                        bang $ Sound $ playBuf
+                          { buffer: buffer, playbackRate: 0.7 + (fst i) * 2.0 }
+                          bangOn
+                        delay 5000 $ bang $ Silence
+                  )
+                  sl
+              ]
           ]
       D.div_
         [ D.div_
             [ text_ "Slide me!"
             , D.input
-                ( oneOfMap bang
-                    [ D.Xtype := "range"
-                    , D.Min := "0"
-                    , D.Max := "100"
-                    , D.Step := "1"
-                    , D.Value := "50"
-                    , D.OnInput := cb (const (push.slider unit))
-                    ]
+                ( O.oneOfMap bang O.do
+                    D.Xtype := "range"
+                    D.Min := "0"
+                    D.Max := "100"
+                    D.Step := "1"
+                    D.Value := "50"
+                    D.OnInput := cb (const (push.slider unit))
                 )
                 []
             ]
         , D.button
-            ( oneOfMap (map (attr D.OnClick <<< cb <<< const))
-                [ startE $> (music >>= push.startStop.stop)
-                , event.startStop.stop <#>
-                    (_ *> push.startStop.start unit)
-                ]
+            ( O.oneOfMap (map (attr D.OnClick <<< cb <<< const)) O.do
+                startE $> (music >>= push.startStop.stop)
+                event.startStop.stop <#>
+                  (_ *> push.startStop.start unit)
             )
-            [ text $ oneOf
-                [ startE $> "Turn on"
-                , event.startStop.stop $> "Turn off"
-                ]
+            [ text OneOf.do
+                startE $> "Turn on"
+                event.startStop.stop $> "Turn off"
             ]
         ]
