@@ -10,11 +10,12 @@ import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype, unwrap)
 import Data.Tuple.Nested ((/\))
 import Deku.Attribute (cb, (:=))
-import Deku.Control (dekuA, plant, switcher, text_)
-import Deku.Core (Element)
+import Deku.Control (dekuA, switcher, text_)
+import Deku.Core (Domable, Element, toDOM)
 import Deku.DOM as D
-import Deku.Interpret (effectfulDOMInterpret, makeFFIDOMSnapshot)
+import Deku.Interpret (fullDOMInterpret, makeFFIDOMSnapshot)
 import Effect (Effect)
+import Effect.Ref as Ref
 import FRP.Event (Event, bus, create, fold, subscribe)
 import FRP.Event.Class (bang)
 import WAGS.Example.Docs.Component as Component
@@ -24,10 +25,10 @@ import WAGS.Example.Docs.FixFan as FixFan
 import WAGS.Example.Docs.HelloWorld as HelloWorld
 import WAGS.Example.Docs.Intro as Intro
 import WAGS.Example.Docs.MultiChannel as Multichannel
+import WAGS.Example.Docs.Params as Params
 import WAGS.Example.Docs.Portals as Portals
 import WAGS.Example.Docs.Pursx1 as Pursx1
 import WAGS.Example.Docs.Pursx2 as Pursx2
-import WAGS.Example.Docs.Params as Params
 import WAGS.Example.Docs.Subgraphs as Subgraph
 import WAGS.Example.Docs.Types (Page(..), ToplevelEvent(..))
 import Web.HTML (window)
@@ -50,7 +51,7 @@ scene
   :: forall lock payload
    . (ToplevelEvent -> Effect Unit)
   -> Event ToplevelEvent
-  -> Array (Element lock payload)
+  -> Array (Domable Effect lock payload)
 scene push event' =
   [ D.div_
       $ map
@@ -115,7 +116,7 @@ scene push event' =
         --       /\ "Imperative API"
         --       /\ false
         ]
-  , D.div_ $ switcher
+  , D.div_ $ pure $ switcher
       ( \{ curPage } ->
           page
             ( TopLevelSg
@@ -137,28 +138,29 @@ scene push event' =
     event'
     { prevPage: Nothing, curPage: Intro, cancel: pure unit, pageChange: true }
 
-  page :: TopLevelSg -> Element lock payload
+  page :: TopLevelSg -> Domable Effect lock payload
   page (TopLevelSg { page: pg, setCancellation, setPage }) = go pg
     where
-    go Intro = D.div_ $ map plant $ bus (Intro.intro setCancellation setPage)
-    go HelloWorld = D.div_ $ map plant $ bus (HelloWorld.helloWorld setCancellation setPage)
-    go FixFan = D.div_ $ map plant $ bus (FixFan.fixFan setCancellation setPage)
-    go AudioUnits = D.div_ $ map plant $ bus (Component.components setCancellation setPage)
-    go AudioWorklets = D.div_ $ map plant $ bus (Pursx1.pursx1 setCancellation setPage)
-    go Events = D.div_ $ map plant $ bus (Events.events setCancellation setPage)
-    go Params = D.div_ $ map plant $ bus (Params.params setCancellation setPage)
-    go State = D.div_ $ map plant $ bus (Effects.effects setCancellation setPage)
-    go Imperative = D.div_ $ map plant $ bus (Pursx2.pursx2 setCancellation setPage)
-    go MultiChannel = D.div_ $ map plant $ bus (Multichannel.multiChannel setCancellation setPage)
-    go Subgraph = D.div_ $ map plant $ bus (Subgraph.subgraphs setCancellation setPage)
-    go Tumult = D.div_ $ map plant $ bus (Portals.portals setCancellation setPage)
+    go Intro = D.div_ $ pure $ toDOM $ bus (Intro.intro setCancellation setPage)
+    go HelloWorld = D.div_ $ pure $ toDOM $ bus (HelloWorld.helloWorld setCancellation setPage)
+    go FixFan = D.div_ $ pure $ toDOM $ bus (FixFan.fixFan setCancellation setPage)
+    go AudioUnits = D.div_ $ pure $ toDOM $ bus (Component.components setCancellation setPage)
+    go AudioWorklets = D.div_ $ pure $ toDOM $ bus (Pursx1.pursx1 setCancellation setPage)
+    go Events = D.div_ $ pure $ toDOM $ bus (Events.events setCancellation setPage)
+    go Params = D.div_ $ pure $ toDOM $ bus (Params.params setCancellation setPage)
+    go State = D.div_ $ pure $ toDOM $ bus (Effects.effects setCancellation setPage)
+    go Imperative = D.div_ $ pure $ toDOM $ bus (Pursx2.pursx2 setCancellation setPage)
+    go MultiChannel = D.div_ $ pure $ toDOM $ bus (Multichannel.multiChannel setCancellation setPage)
+    go Subgraph = D.div_ $ pure $ toDOM $ bus (Subgraph.subgraphs setCancellation setPage)
+    go Tumult = D.div_ $ pure $ toDOM $ bus (Portals.portals setCancellation setPage)
 
 main :: Effect Unit
 main = do
   b' <- window >>= document >>= body
   for_ (toElement <$> b') \b -> do
     ffi <- makeFFIDOMSnapshot
+    r <- Ref.new 0
     { push, event } <- create
-    let evt = dekuA b (scene push event) effectfulDOMInterpret
+    let evt = dekuA b (scene push event) (fullDOMInterpret r)
     void $ subscribe evt \i -> i ffi
     push (ChangePage Intro)

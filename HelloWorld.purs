@@ -6,7 +6,7 @@ import Control.Alt ((<|>))
 import Control.Plus (class Plus)
 import Deku.Attribute (cb, (:=))
 import Deku.Control (text_)
-import Deku.Core (Element)
+import Deku.Core (Domable, Element, toDOM)
 import Deku.DOM as D
 import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
@@ -14,9 +14,9 @@ import FRP.Event (Event)
 import FRP.Event.Class (bang, class IsEvent)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (gain_, sinOsc)
+import WAGS.Core (bangOn)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent(..), SingleSubgraphPusher)
 import WAGS.Example.Docs.Util (audioWrapper, ccassp, mkNext, scrollToTop)
-import WAGS.Core (bangOn)
 import WAGS.Run (run2, run2_)
 
 px =
@@ -61,7 +61,7 @@ helloWorld
   -> (Page -> Effect Unit)
   -> SingleSubgraphPusher
   -> Event SingleSubgraphEvent
-  -> Element lock payload
+  -> Domable Effect lock payload
 helloWorld cca' dpage ssp ev = makePursx' (Proxy :: _ "@") px
   { code: nut
       ( D.pre_
@@ -75,7 +75,7 @@ helloWorld cca' dpage ssp ev = makePursx' (Proxy :: _ "@") px
           ]
       )
   , result: nut
-      ( audioWrapper ev cca (\_ -> pure unit) $ \ctx _ -> run2 ctx [ gain_ 0.15 [ sinOsc 440.0 bangOn ] ]
+      ( toDOM $ audioWrapper ev cca (\_ -> pure unit) $ \ctx _ -> run2 ctx [ gain_ 0.15 [ sinOsc 440.0 bangOn ] ]
       )
   , next: mkNext ev cpage
   }

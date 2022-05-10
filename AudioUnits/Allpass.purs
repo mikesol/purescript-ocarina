@@ -2,17 +2,16 @@ module WAGS.Example.Docs.AudioUnits.Allpass where
 
 import Prelude
 
-import Deku.Core (Element)
+import Deku.Core (Domable, Element, toDOM)
 import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
 import FRP.Event (Event)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (allpass_, fan1, gain_, loopBuf)
-import WAGS.Core (mix)
+import WAGS.Core (bangOn)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import WAGS.Example.Docs.Util (audioWrapper)
 import WAGS.Interpret (decodeAudioDataFromUri)
-import WAGS.Core (bangOn)
 import WAGS.Run (run2)
 
 px =
@@ -24,7 +23,7 @@ px =
 
   <pre><code>\buf -> run2_
   [ fan1 (loopBuf buf bangOn)
-    \b _ -> mix $ gain_ 0.2
+    \b _ -> gain_ 0.2
       [ b
       , allpass_ 700.0
           [ allpass_ { frequency: 990.0, q: 20.0 } [ b ]
@@ -42,13 +41,13 @@ px =
 """
 
 allpass
-  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Element lock payload
+  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable Effect lock payload
 allpass ccb _ ev = makePursx' (Proxy :: _ "@") px
   { allpass: nut
-      ( audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
+      ( toDOM $ audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
           \ctx buf -> run2 ctx
             [ fan1 (loopBuf buf bangOn)
-                \b _ -> mix $ gain_ 0.2
+                \b _ -> gain_ 0.2
                   [ b
                   , allpass_ 700.0
                       [ allpass_ { frequency: 990.0, q: 20.0 } [ b ]

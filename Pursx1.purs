@@ -4,7 +4,7 @@ import Prelude
 
 import Control.Plus (class Plus)
 import Deku.Attribute (cb, (:=))
-import Deku.Core (Element)
+import Deku.Core (Domable, Element)
 import Deku.DOM as D
 import Deku.Pursx ((~~))
 import Effect (Effect)
@@ -129,7 +129,7 @@ px = Proxy :: Proxy """<div>
 </div>"""
 
 
-pursx1 :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent -> Element lock payload
+pursx1 :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent -> Domable Effect lock payload
 pursx1 _ dpage _ _ = px ~~
   { next: bang (D.OnClick := (cb (const $ dpage Events *> scrollToTop)))
   }

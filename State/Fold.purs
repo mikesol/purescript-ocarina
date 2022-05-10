@@ -8,7 +8,7 @@ import Data.Tuple.Nested ((/\))
 import Data.Vec ((+>))
 import Data.Vec as V
 import Deku.Attribute (attr, cb, (:=))
-import Deku.Control (blank, plant, text)
+import Deku.Control (text)
 import Deku.DOM as D
 import Deku.Toplevel (runInBody1)
 import Effect (Effect)
@@ -47,7 +47,7 @@ main = runInBody1
         cbx1 = chkState event.cbx.cbx1
         cbx2 = chkState event.cbx.cbx2
         cbx3 = chkState event.cbx.cbx3
-      plant $ D.div_
+      D.div_
         [ D.button
             ( oneOfMap (map (attr D.OnClick <<< cb <<< const))
                 [ startE $> do
@@ -132,7 +132,7 @@ main = runInBody1
                         , startE $> (D.Checked := "false")
                         ]
                     )
-                    blank
+                    []
                 )
                 ([ _.cbx0, _.cbx1, _.cbx2, _.cbx3 ] <@> push.cbx)
             )

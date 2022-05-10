@@ -2,11 +2,10 @@ module WAGS.Example.Docs.Pursx2 where
 
 import Prelude
 
-import Control.Plus (class Plus)
-import Deku.Core (Element)
+import Deku.Core (Domable)
 import Deku.Pursx (makePursx')
 import Effect (Effect)
-import FRP.Event (Event, class IsEvent)
+import FRP.Event (Event)
 import Type.Proxy (Proxy(..))
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent, SingleSubgraphPusher)
 
@@ -27,6 +26,6 @@ px =
 pursx2
   :: forall lock payload
    . CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent
-  -> Element lock payload
+  -> Domable Effect lock payload
 pursx2 _ dpage _ _ = makePursx' (Proxy :: _ "~") px
   { }

@@ -6,7 +6,7 @@ import Control.Alt ((<|>))
 import Data.Foldable (oneOf, oneOfMap, traverse_)
 import Data.Tuple (Tuple(..), fst, snd)
 import Deku.Attribute (attr, cb, (:=))
-import Deku.Control (blank, text, plant, text_)
+import Deku.Control (text, text_)
 import Deku.DOM as D
 import Deku.Toplevel (runInBody1)
 import Effect (Effect)
@@ -18,10 +18,10 @@ import FRP.Event.VBus (V, vbus)
 import Type.Proxy (Proxy(..))
 import WAGS.Clock (interval)
 import WAGS.Control (bandpass_, fan1, gain, gain_, highpass_, triangleOsc)
-import WAGS.Core (Node, mix)
+import WAGS.Core (Audible, AudioEnvelope(AudioEnvelope), bangOn)
+import WAGS.Core (AudioEnvelope(..), bangOn)
 import WAGS.Interpret (close, context)
 import WAGS.Math (calcSlope)
-import WAGS.Core (AudioEnvelope(..), bangOn)
 import WAGS.Properties (frequency)
 import WAGS.Properties as P
 import WAGS.Run (run2e)
@@ -56,7 +56,7 @@ main = runInBody1
   ( vbus (Proxy :: _ UIEvents) \push event -> do
       let
         start = event.startStop.start <|> bang unit
-        music :: forall lock. _ -> Event (Array (Node _ lock _))
+        music :: forall lock. _ -> Event (Array (Audible _ lock _))
         music evt' = memoize evt' \evt -> do
           let
             pitch = map fst evt
@@ -82,7 +82,7 @@ main = runInBody1
                 } <$> time
             f0 = bangOn <|> frequency <<< cp <$> pitch
           [ fan1 (triangleOsc 0.0 f0) \ipt _ -> do
-              mix $ gain_ 2.0
+              gain_ 2.0
                 [ gain 0.0 (P.gain <$> e0)
                     [ bandpass_
                         { frequency: 1000.0
@@ -106,7 +106,7 @@ main = runInBody1
                     ]
                 ]
           ]
-      plant $ D.div_
+      D.div_
         [ D.div_
             [ text_ "tempo"
             , D.input
@@ -124,7 +124,7 @@ main = runInBody1
                         )
                     ]
                 )
-                blank
+                []
             ]
         , D.button
             ( oneOfMap (map (attr D.OnClick <<< cb <<< const))

@@ -2,16 +2,16 @@ module WAGS.Example.Docs.Params where
 
 import Prelude
 
-import Deku.Core (Element)
+import Deku.Core (Domable)
 import Deku.Pursx (nut, (~~))
 import Effect (Effect)
 import FRP.Event (Event)
 import Type.Proxy (Proxy(..))
-import WAGS.Example.Docs.Params.Numeric as Numeric
-import WAGS.Example.Docs.Params.Unit as Unit
-import WAGS.Example.Docs.Params.Sudden as Sudden
-import WAGS.Example.Docs.Params.Envelope as Envelope
 import WAGS.Example.Docs.Params.Cancel as Cancel
+import WAGS.Example.Docs.Params.Envelope as Envelope
+import WAGS.Example.Docs.Params.Numeric as Numeric
+import WAGS.Example.Docs.Params.Sudden as Sudden
+import WAGS.Example.Docs.Params.Unit as Unit
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
 import WAGS.Example.Docs.Util (ccassp, mkNext, scrollToTop)
 
@@ -33,7 +33,7 @@ px = Proxy :: Proxy """<div>
   <p>In this section, we saw how to specify parameters for audio units, including using audio-rate audio units as parameters. In the next section, we'll look at how to make events <a ~next~ style="cursor:pointer;">stateful</a>.</p>
 </div>"""
 
-params :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent  -> Element lock payload
+params :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent  -> Domable Effect lock payload
 params cca' dpage ssp ev = px ~~
   { sudden: nut $ Sudden.suddenEx ccb dpage ev
   , numeric: nut $ Numeric.numericEx ccb dpage ev

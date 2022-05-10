@@ -3,11 +3,11 @@ module WAGS.Example.Docs.Params.Sudden where
 import Prelude
 
 import Data.Foldable (oneOf)
-import Deku.Core (Element)
+import Deku.Core (Domable, toDOM)
 import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
 import FRP.Event (Event, bang)
-import FRP.Event.Time (delay)
+import FRP.Event (delay)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (gain_, loopBuf)
 import WAGS.Core (AudioSudden(..), bangOn)
@@ -43,10 +43,10 @@ px =
 """
 
 suddenEx
-  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Element lock payload
+  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable Effect lock payload
 suddenEx ccb _ ev = makePursx' (Proxy :: _ "@") px
   { suddenEx: nut
-      ( audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
+      ( toDOM $ audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
           \ctx buf -> run2 ctx
             [ gain_ 1.0
                 [ loopBuf buf

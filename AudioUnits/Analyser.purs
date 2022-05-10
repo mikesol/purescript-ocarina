@@ -18,8 +18,8 @@ import Data.UInt (toInt)
 import Data.Vec (Vec, (+>))
 import Data.Vec as V
 import Deku.Attribute ((:=))
-import Deku.Control (blank, text, plant)
-import Deku.Core (Element)
+import Deku.Control (text)
+import Deku.Core (Domable, Element, toDOM)
 import Deku.DOM as D
 import Deku.Pursx (nut, (~~))
 import Effect (Effect, foreachE)
@@ -30,10 +30,10 @@ import FRP.Event.Class (bang)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (analyser_, loopBuf, speaker2)
 import WAGS.Core (Po2(..))
+import WAGS.Core (bangOn)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import WAGS.Example.Docs.Util (WrapperStates(..), clickCb, mkWrapperEvent)
 import WAGS.Interpret (close, context, contextState, bracketCtx, decodeAudioDataFromUri, effectfulAudioInterpret, getByteFrequencyData, makeFFIAudioSnapshot)
-import WAGS.Core (bangOn)
 import WAGS.WebAPI (AnalyserNodeCb(..), BrowserAudioBuffer)
 
 px =
@@ -41,7 +41,7 @@ px =
   <h2 id="analyser">Analyser</h2>
   <p>An <a href="https://developer.mozilla.org/en-US/docs/Web/API/AnalyserNode">analyser node</a> provides methods to recuperate the analysed data of an input. This is how, for example, Google Meet shows the little animation around a microphone icon. Wags provides the possibility to use the analyser as the terminus of an audio graph <i>or</i> as part of a longer DSP chain, as in the following example. The example uses an FFT size of 256, which is indicated in Wags as <code>TTT8</code> (two to the eighth power).</p>
 
-  <pre><code>analyser_ { cb, fftSize: TTT8 } (loopBuf atar bangOn)</code></pre>
+  <pre><code>analyser_ { cb, fftSize: TTT8 } [ loopBuf atar bangOn ]</code></pre>
 
   ~analyser~
   </section>
@@ -66,7 +66,7 @@ style3 = "background-color: rgb(130,60,10);"
 style4 :: String
 style4 = "background-color: rgb(150,30,10);"
 
-scene atar cb =   analyser_ { cb, fftSize: TTT8 } (loopBuf atar bangOn)
+scene atar cb =   analyser_ { cb, fftSize: TTT8 } [loopBuf atar bangOn]
 
 b0 :: Number
 b0 = 1.0 / 40.0
@@ -90,16 +90,16 @@ stys = V.fill (\_ -> style4 +> style3 +> style2 +> style1 +> style0 +> V.empty) 
 mkSt i0 i1 e = map (\v -> if V.index (V.index v i0) i1 then D.Style := V.index (V.index stys i0) i1 else D.Style := bgWhite) e
 
 analyserEx
-  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Element lock payload
+  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable Effect lock payload
 analyserEx ccb _ ev = px ~~
   { analyser: nut
-      ( bus \push (event' :: Event AnalyserStates) ->
+      (toDOM $ bus \push (event' :: Event AnalyserStates) ->
             let
               ptn = partitionMap identity event'
               event = mkWrapperEvent ev  (_.right ptn)
               aEv = _.left ptn
             in
-              plant $ D.div_
+              D.div_
                 [ D.button
                     ( (bang (D.Style := "cursor: pointer;")) <|>
                         ( clickCb ccb (Right >>> push)
@@ -182,46 +182,46 @@ analyserEx ccb _ ev = px ~~
                     ]
                 -- grid-auto-rows: 20px;
                 , D.div (bang $ D.Style := "display: grid; grid-template-columns: repeat(8, 1fr); grid-auto-rows: 20px;")
-                    [ D.div ((bang $ D.Style := bgWhite) <|> (mkSt d0 d0 aEv)) blank
-                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d1 d0 aEv)) blank
-                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d2 d0 aEv)) blank
-                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d3 d0 aEv)) blank
-                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d4 d0 aEv)) blank
-                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d5 d0 aEv)) blank
-                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d6 d0 aEv)) blank
-                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d7 d0 aEv)) blank
-                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d0 d1 aEv)) blank
-                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d1 d1 aEv)) blank
-                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d2 d1 aEv)) blank
-                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d3 d1 aEv)) blank
-                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d4 d1 aEv)) blank
-                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d5 d1 aEv)) blank
-                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d6 d1 aEv)) blank
-                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d7 d1 aEv)) blank
-                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d0 d2 aEv)) blank
-                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d1 d2 aEv)) blank
-                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d2 d2 aEv)) blank
-                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d3 d2 aEv)) blank
-                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d4 d2 aEv)) blank
-                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d5 d2 aEv)) blank
-                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d6 d2 aEv)) blank
-                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d7 d2 aEv)) blank
-                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d0 d3 aEv)) blank
-                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d1 d3 aEv)) blank
-                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d2 d3 aEv)) blank
-                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d3 d3 aEv)) blank
-                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d4 d3 aEv)) blank
-                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d5 d3 aEv)) blank
-                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d6 d3 aEv)) blank
-                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d7 d3 aEv)) blank
-                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d0 d4 aEv)) blank
-                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d1 d4 aEv)) blank
-                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d2 d4 aEv)) blank
-                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d3 d4 aEv)) blank
-                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d4 d4 aEv)) blank
-                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d5 d4 aEv)) blank
-                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d6 d4 aEv)) blank
-                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d7 d4 aEv)) blank
+                    [ D.div ((bang $ D.Style := bgWhite) <|> (mkSt d0 d0 aEv)) []
+                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d1 d0 aEv)) []
+                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d2 d0 aEv)) []
+                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d3 d0 aEv)) []
+                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d4 d0 aEv)) []
+                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d5 d0 aEv)) []
+                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d6 d0 aEv)) []
+                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d7 d0 aEv)) []
+                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d0 d1 aEv)) []
+                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d1 d1 aEv)) []
+                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d2 d1 aEv)) []
+                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d3 d1 aEv)) []
+                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d4 d1 aEv)) []
+                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d5 d1 aEv)) []
+                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d6 d1 aEv)) []
+                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d7 d1 aEv)) []
+                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d0 d2 aEv)) []
+                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d1 d2 aEv)) []
+                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d2 d2 aEv)) []
+                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d3 d2 aEv)) []
+                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d4 d2 aEv)) []
+                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d5 d2 aEv)) []
+                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d6 d2 aEv)) []
+                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d7 d2 aEv)) []
+                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d0 d3 aEv)) []
+                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d1 d3 aEv)) []
+                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d2 d3 aEv)) []
+                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d3 d3 aEv)) []
+                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d4 d3 aEv)) []
+                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d5 d3 aEv)) []
+                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d6 d3 aEv)) []
+                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d7 d3 aEv)) []
+                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d0 d4 aEv)) []
+                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d1 d4 aEv)) []
+                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d2 d4 aEv)) []
+                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d3 d4 aEv)) []
+                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d4 d4 aEv)) []
+                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d5 d4 aEv)) []
+                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d6 d4 aEv)) []
+                    , D.div ((bang $ D.Style := bgWhite) <|> (mkSt d7 d4 aEv)) []
                     ]
                 ]
       )
