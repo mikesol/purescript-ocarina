@@ -8,6 +8,11 @@ let overrides =
         , repo = "https://github.com/mikesol/purescript-js-timers.git"
         , version = "rename-functions"
         }
+      , qualified-do =
+        { dependencies = [ "prelude" ]
+        , repo = "https://github.com/artemisSystem/purescript-qualified-do"
+        , version = "v2.2.0"
+        }
       }
 
 let additions =

@@ -5,6 +5,7 @@ import Prelude
 import Control.Alt ((<|>))
 import Data.Foldable (oneOf, oneOfMap, traverse_)
 import Data.Tuple (Tuple(..), fst, snd)
+import QualifiedDo.OneOfMap as O
 import Deku.Attribute (attr, cb, (:=))
 import Deku.Control (text, text_)
 import Deku.DOM as D
@@ -19,7 +20,6 @@ import Type.Proxy (Proxy(..))
 import WAGS.Clock (interval)
 import WAGS.Control (bandpass_, fan1, gain, gain_, highpass_, triangleOsc)
 import WAGS.Core (Audible, AudioEnvelope(AudioEnvelope), bangOn)
-import WAGS.Core (AudioEnvelope(..), bangOn)
 import WAGS.Interpret (close, context)
 import WAGS.Math (calcSlope)
 import WAGS.Properties (frequency)
@@ -56,6 +56,7 @@ main = runInBody1
   ( vbus (Proxy :: _ UIEvents) \push event -> do
       let
         start = event.startStop.start <|> bang unit
+
         music :: forall lock. _ -> Event (Array (Audible _ lock _))
         music evt' = memoize evt' \evt -> do
           let
@@ -110,19 +111,18 @@ main = runInBody1
         [ D.div_
             [ text_ "tempo"
             , D.input
-                ( oneOfMap bang
-                    [ D.Xtype := "range"
-                    , D.Min := "0"
-                    , D.Max := "100"
-                    , D.Step := "1"
-                    , D.Value := "50"
-                    , D.OnInput := cb
-                        ( traverse_
-                            (valueAsNumber >=> push.slider)
-                            <<< (=<<) fromEventTarget
-                            <<< target
-                        )
-                    ]
+                ( O.oneOfMap bang O.do
+                    D.Xtype := "range"
+                    D.Min := "0"
+                    D.Max := "100"
+                    D.Step := "1"
+                    D.Value := "50"
+                    D.OnInput := cb
+                      ( traverse_
+                          (valueAsNumber >=> push.slider)
+                          <<< (=<<) fromEventTarget
+                          <<< target
+                      )
                 )
                 []
             ]

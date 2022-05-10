@@ -10,6 +10,7 @@ in      conf
               , "quickcheck"
               , "canvas"
               , "lcg"
+              , "qualified-do"
               , "deku"
               , "js-timers"
               , "either"

@@ -39,20 +39,17 @@ cancelEx ccb _ ev = px ~~
       ( text_
           """\ctx buf -> run2 ctx
   [ gain_ 1.0
-      [ loopBuf buf
-          ( oneOf
-              [ bangOn
-              , delay 1000
-                  $ bang
-                  $ playbackRate
-                  $ AudioEnvelope
-                      { p: join (0 .. 60 $> [ 1.0, 1.2, 1.0, 0.8 ])
-                      , o: 1.5
-                      , d: 30.0
-                      }
-              , delay 3000 (bang (playbackRate (AudioCancel { o: 3.5 })))
-              ]
-          )
+      [ loopBuf buf OneOf.do
+          bangOn
+          delay 1000
+            $ bang
+            $ playbackRate
+            $ AudioEnvelope
+                { p: join (0 .. 60 $> [ 1.0, 1.2, 1.0, 0.8 ])
+                , o: 1.5
+                , d: 30.0
+                }
+          delay 3000 (bang (playbackRate (AudioCancel { o: 3.5 })))
       ]
   ]"""
       )

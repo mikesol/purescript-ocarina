@@ -2,8 +2,8 @@ module WAGS.Example.Docs.Params.Numeric where
 
 import Prelude
 
-import Data.Foldable (oneOf)
 import Deku.Core (Domable, toDOM)
+import QualifiedDo.Alt as OneOf
 import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
 import FRP.Event (Event, bang)
@@ -18,7 +18,8 @@ import WAGS.Properties (playbackRate)
 import WAGS.Run (run2)
 
 px =
-  Proxy    :: Proxy         """<section>
+  Proxy    :: Proxy
+         """<section>
   <h2>AudioNumeric</h2>
   <p><code>AudioNumeric</code> encompasses the following three functions from the Web Audio API:</p>
 
@@ -34,29 +35,22 @@ px =
 
   <pre><code>\ctx buf -> run2 ctx
   [ gain_ 1.0
-      [ loopBuf buf
-          ( oneOf
-              [ bangOn
-              , delay 1000
-                  $ oneOf
-                      [ bang
-                          $ playbackRate
-                          $ AudioNumeric { n: 1.0, o: 1.0, t: _step }
-                      , bang
-                          $ playbackRate
-                          $ AudioNumeric { n: 1.3, o: 2.0, t: _linear }
-                      ]
-              , delay 2500
-                  $ oneOf
-                      [ bang
-                          $ playbackRate
-                          $ AudioNumeric { n: 1.0, o: 2.5, t: _step }
-                      , bang
-                          $ playbackRate
-                          $ AudioNumeric { n: 0.7, o: 3.5, t: _exponential }
-                      ]
-              ]
-          )
+      [ loopBuf buf OneOf.do
+          bangOn
+          delay 1000 OneOf.do
+            bang
+              $ playbackRate
+              $ AudioNumeric { n: 1.0, o: 1.0, t: _step }
+            bang
+              $ playbackRate
+              $ AudioNumeric { n: 1.3, o: 2.0, t: _linear }
+          delay 2500 OneOf.do
+            bang
+              $ playbackRate
+              $ AudioNumeric { n: 1.0, o: 2.5, t: _step }
+            bang
+              $ playbackRate
+              $ AudioNumeric { n: 0.7, o: 3.5, t: _exponential }
       ]
   ]</code></pre>
 
@@ -71,29 +65,23 @@ numericEx ccb _ ev = makePursx' (Proxy :: _ "@") px
       ( toDOM $ audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
           \ctx buf -> run2 ctx
             [ gain_ 1.0
-                [ loopBuf buf
-                    ( oneOf
-                        [ bangOn
-                        , delay 1000
-                            $ oneOf
-                                [ bang
-                                    $ playbackRate
-                                    $ AudioNumeric { n: 1.0, o: 1.0, t: _step }
-                                , bang
-                                    $ playbackRate
-                                    $ AudioNumeric { n: 1.3, o: 2.0, t: _linear }
-                                ]
-                        , delay 2500
-                            $ oneOf
-                                [ bang
-                                    $ playbackRate
-                                    $ AudioNumeric { n: 1.0, o: 2.5, t: _step }
-                                , bang
-                                    $ playbackRate
-                                    $ AudioNumeric { n: 0.7, o: 3.5, t: _exponential }
-                                ]
-                        ]
-                    )
+                [ loopBuf buf OneOf.do
+                    bangOn
+                    delay 1000 OneOf.do
+                      bang
+                        $ playbackRate
+                        $ AudioNumeric { n: 1.0, o: 1.0, t: _step }
+                      bang
+                        $ playbackRate
+                        $ AudioNumeric { n: 1.3, o: 2.0, t: _linear }
+
+                    delay 2500 OneOf.do
+                      bang
+                        $ playbackRate
+                        $ AudioNumeric { n: 1.0, o: 2.5, t: _step }
+                      bang
+                        $ playbackRate
+                        $ AudioNumeric { n: 0.7, o: 3.5, t: _exponential }
                 ]
             ]
       )

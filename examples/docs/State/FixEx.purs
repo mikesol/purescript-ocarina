@@ -141,12 +141,13 @@ px =
 fixEx :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent -> Domable Effect lock payload
 fixEx ccb _ _ ev = px ~~
   { txt: nut $ text_
-      """module Main where
+      """module Main
 
 import Prelude
 
 import Control.Alt ((<|>))
-import Data.Foldable (oneOf, oneOfMap)
+import QualifiedDo.OneOfMap as O
+import QualifiedDo.Alt as OneOf
 import Data.Maybe (Maybe(..))
 import Data.Newtype (unwrap)
 import Data.Profunctor.Strong (second)
@@ -268,121 +269,119 @@ main = runInBody1
         stopE = event.stop
       D.div_
         [ D.button
-            ( oneOfMap (map (attr D.OnClick <<< cb <<< const))
-                [ startE $>
-                    do
-                      ctx <- context
-                      c0h <- constant0Hack ctx
-                      mouse <- getMouse
-                      ri <- randomInt 0 10000
-                      let
-                        ttap (o /\ n) = AudioNumeric { o: o + 0.04, n, t: _linear }
-                        fund = 90.4
-                        spcn = map (_ - 0.5) arbitrary
-                        spc' = do
-                          a <- spcn
-                          b <- spcn
-                          c <- spcn
-                          d <- spcn
-                          pure (a +> b +> c +> d +> V.empty)
-                        spc = (/\) <$> spc' <*> spc'
-                        spcs = { s0: _, s1: _, s2: _, s3: _ } <$> spc <*> spc <*> spc <*> spc
-                        allSpcs = evalGen spcs { newSeed: mkSeed ri, size: 5 }
-                      r <- run2e ctx
-                        ( memoize
-                            ( map (\{ acTime, value } -> acTime /\ value)
-                                $ withACTime ctx
-                                $ sample_ (swell mouse) animationFrameEvent
-                            )
-                            \swm ->
-                              [ gain 0.0
-                                  ( P.gain
-                                      <<< ttap
-                                      <<< second (\x -> max (-0.4) $ 0.5 * (x - 1.0)) <$> swm
-                                  )
-                                  [ lowpass_ { frequency: fund, q: 20.0 }
-                                      [ squareOsc_ fund ]
-                                  ]
-                              , gain 0.0
-                                  ( P.gain
-                                      <<< ttap
-                                      <<< second (\x -> max (-0.2) $ 0.4 * (x - 3.0)) <$> swm
-                                  )
-                                  [ bandpass_ { frequency: fund * 4.0, q: 20.0 }
-                                      [ periodicOsc
-                                          { frequency: (fund * 3.02)
-                                          , spec: allSpcs.s0
-                                          }
-                                          ( bangOn <|>
-                                              ( P.frequency
-                                                  <<< ttap
-                                                  <<< second (\x -> fund * 3.02 + 14.0 * (x - 1.0)) <$> swm
-                                              )
-                                          )
-                                      ]
-                                  ]
-                              , gain 0.0
-                                  ( P.gain
-                                      <<< ttap
-                                      <<< second (\x -> max (-0.1) $ 0.2 * (x - 6.0)) <$> swm
-                                  )
-                                  [ bandpass_ { frequency: fund * 6.0, q: 20.0 }
-                                      [ periodicOsc
-                                          { frequency: fund * 5.07
-                                          , spec: allSpcs.s1
-                                          }
-                                          ( bangOn <|>
-                                              ( P.frequency
-                                                  <<< ttap
-                                                  <<< second (\x -> fund * 5.07 + 18.0 * (x - 1.0)) <$> swm
-                                              )
-                                          )
-                                      ]
-                                  ]
-                              , gain 0.0
-                                  ( P.gain
-                                      <<< ttap
-                                      <<< second (\x -> max 0.0 $ 0.2 * (x - 3.0)) <$> swm
-                                  )
-                                  [ bandpass_ { frequency: fund * 8.0, q: 20.0 }
-                                      [ periodicOsc
-                                          { frequency: fund * 7.13
-                                          , spec: allSpcs.s2
-                                          }
-                                          ( bangOn <|>
-                                              ( P.frequency
-                                                  <<< ttap
-                                                  <<< second (\x -> fund * 7.13 + 32.0 * (x - 1.0)) <$> swm
-                                              )
-                                          )
-                                      ]
-                                  ]
-                              , gain 0.0
-                                  ( P.gain
-                                      <<< ttap
-                                      <<< second (\x -> max 0.0 $ 0.1 * (x - 7.0)) <$> swm
-                                  )
-                                  [ periodicOsc
-                                      { frequency: fund * 9.14
-                                      , spec: allSpcs.s3
-                                      }
-                                      ( bangOn <|>
-                                          ( P.frequency
-                                              <<< ttap
-                                              <<< second (\x -> fund * 9.14 + 31.0 * (x - 1.0)) <$> swm
-                                          )
-                                      )
-                                  ]
-                              ]
-                        )
-                      push.stop (r *> c0h *> close ctx)
-                , event.stop <#> (_ *> push.start unit)
-                ]
+            ( O.oneOfMap (map (attr D.OnClick <<< cb <<< const)) O.do
+                event.stop <#> (_ *> push.start unit)
+                startE $>
+                  do
+                    ctx <- context
+                    c0h <- constant0Hack ctx
+                    mouse <- getMouse
+                    ri <- randomInt 0 10000
+                    let
+                      ttap (o /\ n) = AudioNumeric { o: o + 0.04, n, t: _linear }
+                      fund = 90.4
+                      spcn = map (_ - 0.5) arbitrary
+                      spc' = do
+                        a <- spcn
+                        b <- spcn
+                        c <- spcn
+                        d <- spcn
+                        pure (a +> b +> c +> d +> V.empty)
+                      spc = (/\) <$> spc' <*> spc'
+                      spcs = { s0: _, s1: _, s2: _, s3: _ } <$> spc <*> spc <*> spc <*> spc
+                      allSpcs = evalGen spcs { newSeed: mkSeed ri, size: 5 }
+                    r <- run2e ctx
+                      ( memoize
+                          ( map (\{ acTime, value } -> acTime /\ value)
+                              $ withACTime ctx
+                              $ sample_ (swell mouse) animationFrameEvent
+                          )
+                          \swm ->
+                            [ gain 0.0
+                                ( P.gain
+                                    <<< ttap
+                                    <<< second (\x -> max (-0.4) $ 0.5 * (x - 1.0)) <$> swm
+                                )
+                                [ lowpass_ { frequency: fund, q: 20.0 }
+                                    [ squareOsc_ fund ]
+                                ]
+                            , gain 0.0
+                                ( P.gain
+                                    <<< ttap
+                                    <<< second (\x -> max (-0.2) $ 0.4 * (x - 3.0)) <$> swm
+                                )
+                                [ bandpass_ { frequency: fund * 4.0, q: 20.0 }
+                                    [ periodicOsc
+                                        { frequency: (fund * 3.02)
+                                        , spec: allSpcs.s0
+                                        }
+                                        ( bangOn <|>
+                                            ( P.frequency
+                                                <<< ttap
+                                                <<< second (\x -> fund * 3.02 + 14.0 * (x - 1.0)) <$> swm
+                                            )
+                                        )
+                                    ]
+                                ]
+                            , gain 0.0
+                                ( P.gain
+                                    <<< ttap
+                                    <<< second (\x -> max (-0.1) $ 0.2 * (x - 6.0)) <$> swm
+                                )
+                                [ bandpass_ { frequency: fund * 6.0, q: 20.0 }
+                                    [ periodicOsc
+                                        { frequency: fund * 5.07
+                                        , spec: allSpcs.s1
+                                        }
+                                        ( bangOn <|>
+                                            ( P.frequency
+                                                <<< ttap
+                                                <<< second (\x -> fund * 5.07 + 18.0 * (x - 1.0)) <$> swm
+                                            )
+                                        )
+                                    ]
+                                ]
+                            , gain 0.0
+                                ( P.gain
+                                    <<< ttap
+                                    <<< second (\x -> max 0.0 $ 0.2 * (x - 3.0)) <$> swm
+                                )
+                                [ bandpass_ { frequency: fund * 8.0, q: 20.0 }
+                                    [ periodicOsc
+                                        { frequency: fund * 7.13
+                                        , spec: allSpcs.s2
+                                        }
+                                        ( bangOn <|>
+                                            ( P.frequency
+                                                <<< ttap
+                                                <<< second (\x -> fund * 7.13 + 32.0 * (x - 1.0)) <$> swm
+                                            )
+                                        )
+                                    ]
+                                ]
+                            , gain 0.0
+                                ( P.gain
+                                    <<< ttap
+                                    <<< second (\x -> max 0.0 $ 0.1 * (x - 7.0)) <$> swm
+                                )
+                                [ periodicOsc
+                                    { frequency: fund * 9.14
+                                    , spec: allSpcs.s3
+                                    }
+                                    ( bangOn <|>
+                                        ( P.frequency
+                                            <<< ttap
+                                            <<< second (\x -> fund * 9.14 + 31.0 * (x - 1.0)) <$> swm
+                                        )
+                                    )
+                                ]
+                            ]
+                      )
+                    push.stop (r *> c0h *> close ctx)
             )
-            [ text $ oneOf
-                [ startE $> "Turn on"
-                , stopE $> "Turn off"
-                ]
+            [ text $ OneOf.do
+                startE $> "Turn on"
+                stopE $> "Turn off"
             ]
         ]
   )"""
