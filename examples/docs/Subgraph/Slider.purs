@@ -19,7 +19,7 @@ import Effect.Random as Random
 import FRP.Behavior (Behavior, behavior, sampleBy)
 import FRP.Event (create, fold, makeEvent, subscribe)
 import FRP.Event.Class (bang)
-import FRP.Event.Time (delay)
+import FRP.Event (delay)
 import FRP.Event.VBus (V, vbus)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (gain_, playBuf)

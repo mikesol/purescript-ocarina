@@ -15,6 +15,7 @@ let additions =
         { dependencies =
           [ "console"
           , "effect"
+          , "monoid-extras"
           , "filterable"
           , "nullable"
           , "unsafe-reference"
@@ -22,9 +23,16 @@ let additions =
           , "now"
           ]
         , repo = "https://github.com/mikesol/purescript-event.git"
-        , version = "v1.6.3"
+        , version = "v1.6.5"
         }
-      , variant =
+      ,  monoid-extras =
+        { dependencies =
+          [ "prelude"
+          ]
+        , repo = "https://github.com/mikesol/purescript-monoid-extras.git"
+        , version = "v0.0.1"
+        }
+      ,variant =
         { dependencies =
           [ "assert"
           , "control"
@@ -81,7 +89,7 @@ let additions =
           , "web-uievents"
           ]
         , repo = "https://github.com/mikesol/purescript-behaviors.git"
-        , version = "v8.2.0"
+        , version = "v8.2.1"
         }
       , row-options =
         { dependencies = [ "homogeneous", "heterogeneous" ]
