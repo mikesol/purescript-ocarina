@@ -4,7 +4,7 @@ import Prelude
 
 import Control.Plus (class Plus)
 import Deku.Attribute (cb, (:=))
-import Deku.Core (Element)
+import Deku.Core (Domable, Element)
 import Deku.DOM as D
 import Deku.Pursx (nut, (~~))
 import Effect (Effect)
@@ -43,7 +43,7 @@ px = Proxy :: Proxy """<div>
   <p>And now, without further ado, let's write a small <a ~next~ style="cursor:pointer;">hello world à la wags</a>!</p>
 </div>"""
 
-intro :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent   -> Element lock payload
+intro :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent -> Domable Effect lock payload
 intro cca' dpage ssp ev = px ~~
   { next: mkNext ev (dpage HelloWorld *> scrollToTop)
   , ex: nut $ Intro.introEx ccb dpage ev

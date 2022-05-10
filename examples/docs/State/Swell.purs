@@ -12,7 +12,7 @@ import Data.Tuple.Nested ((/\))
 import Data.Vec ((+>))
 import Data.Vec as V
 import Deku.Attribute (attr, cb)
-import Deku.Control (text, plant)
+import Deku.Control (text)
 import Deku.DOM as D
 import Deku.Toplevel (runInBody1)
 import Effect (Effect)
@@ -123,7 +123,7 @@ main = runInBody1
       let
         startE = bang unit <|> event.start
         stopE = event.stop
-      plant $ D.div_
+      D.div_
         [ D.button
             ( oneOfMap (map (attr D.OnClick <<< cb <<< const))
                 [ startE $>

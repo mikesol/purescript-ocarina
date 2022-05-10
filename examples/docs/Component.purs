@@ -3,12 +3,13 @@ module WAGS.Example.Docs.Component where
 import Prelude
 
 import Control.Plus (class Plus)
-import Deku.Core (Element)
+import Deku.Core (Domable, Element, toDOM)
 import Deku.Pursx (nut, (~~))
 import Effect (Effect)
 import FRP.Event (Event, class IsEvent)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (gain_, loopBuf)
+import WAGS.Core (bangOn)
 import WAGS.Example.Docs.AudioUnits.Allpass as Allpass
 import WAGS.Example.Docs.AudioUnits.Analyser as Analyser
 import WAGS.Example.Docs.AudioUnits.Bandpass as Bandpass
@@ -39,7 +40,6 @@ import WAGS.Example.Docs.AudioUnits.WaveShaper as WaveShaper
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
 import WAGS.Example.Docs.Util (audioWrapperSpan, ccassp, mkNext, scrollToTop)
 import WAGS.Interpret (bracketCtx, decodeAudioDataFromUri)
-import WAGS.Core (bangOn)
 import WAGS.Run (run2, run2_)
 
 
@@ -101,10 +101,10 @@ px = Proxy :: Proxy """<div>
   <p>Phew, that was a lot of audio units! In the next section, we'll make them come alive thanks to the magic of <a ~next~ style="cursor:pointer;">events</a>.</p>
 </div>"""
 
-components :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent  -> Element lock payload
+components :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent  -> Domable Effect lock payload
 components cca' dpage ssp ev = px ~~
   { drumroll: nut
-      ( audioWrapperSpan "🥁" ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/50/50711_179538-lq.mp3")
+      (toDOM $ audioWrapperSpan "🥁" ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/50/50711_179538-lq.mp3")
           \ctx buf -> run2 ctx [ gain_ 1.0 [ loopBuf buf bangOn ] ]
       )
   , toc: nut TOC.toc

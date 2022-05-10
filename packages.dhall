@@ -1,6 +1,6 @@
 let upstream =
-      https://github.com/purescript/package-sets/releases/download/psc-0.15.0-20220429/packages.dhall
-        sha256:03c682bff56fc8f9d8c495ffcc6f524cbd3c89fe04778f965265c08757de8c9d
+      https://github.com/purescript/package-sets/releases/download/psc-0.15.0-20220507/packages.dhall
+        sha256:cf54330f3bc1b25a093b69bff8489180c954b43668c81288901a2ec29a08cc64
 
 let overrides =
       { js-timers =
@@ -15,6 +15,7 @@ let additions =
         { dependencies =
           [ "console"
           , "effect"
+          , "monoid-extras"
           , "filterable"
           , "nullable"
           , "unsafe-reference"
@@ -22,9 +23,16 @@ let additions =
           , "now"
           ]
         , repo = "https://github.com/mikesol/purescript-event.git"
-        , version = "v1.6.3"
+        , version = "v1.6.5"
         }
-      , variant =
+      ,  monoid-extras =
+        { dependencies =
+          [ "prelude"
+          ]
+        , repo = "https://github.com/mikesol/purescript-monoid-extras.git"
+        , version = "v0.0.1"
+        }
+      ,variant =
         { dependencies =
           [ "assert"
           , "control"
@@ -81,7 +89,7 @@ let additions =
           , "web-uievents"
           ]
         , repo = "https://github.com/mikesol/purescript-behaviors.git"
-        , version = "v8.2.0"
+        , version = "v8.2.1"
         }
       , row-options =
         { dependencies = [ "homogeneous", "heterogeneous" ]
@@ -126,10 +134,11 @@ let additions =
           , "variant"
           , "canvas"
           , "web-dom"
+          , "heterogeneous"
           , "web-events"
           ]
         , repo = "https://github.com/mikesol/purescript-deku.git"
-        , version = "v0.3.7"
+        , version = "v0.4.0"
         }
       , homogeneous =
         { dependencies =

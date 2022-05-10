@@ -5,7 +5,6 @@ import Prelude
 import Control.Alt ((<|>))
 import Data.Foldable (oneOf, oneOfMap)
 import Data.Maybe (Maybe(..))
-import Effect.Random (randomInt)
 import Data.Newtype (unwrap)
 import Data.Profunctor.Strong (second)
 import Data.Set (isEmpty)
@@ -13,11 +12,12 @@ import Data.Tuple.Nested ((/\))
 import Data.Vec ((+>))
 import Data.Vec as V
 import Deku.Attribute (attr, cb)
-import Deku.Control (text, plant, text_)
-import Deku.Core (Element)
+import Deku.Control (text, text_)
+import Deku.Core (Domable, toDOM)
 import Deku.DOM as D
 import Deku.Pursx (nut, (~~))
 import Effect (Effect)
+import Effect.Random (randomInt)
 import FRP.Behavior (ABehavior, Behavior, behavior, sample, sampleBy, sample_, step, switcher)
 import FRP.Behavior.Mouse (buttons)
 import FRP.Behavior.Time as Time
@@ -31,9 +31,9 @@ import Test.QuickCheck.Gen (evalGen)
 import Type.Proxy (Proxy(..))
 import WAGS.Clock (withACTime)
 import WAGS.Control (bandpass_, gain, lowpass_, periodicOsc, squareOsc_)
+import WAGS.Core (AudioNumeric(..), _linear, bangOn)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..), SingleSubgraphPusher)
 import WAGS.Interpret (close, constant0Hack, context)
-import WAGS.Core (AudioNumeric(..), _linear, bangOn)
 import WAGS.Properties as P
 import WAGS.Run (run2e)
 
@@ -138,7 +138,7 @@ px =
   <p>When working with stateful events, a good way to decide if you should use <code>fold</code> versus <code>fix</code> is to ask the following question: can I incrementally change my state based on an initial state, or is my state defined in terms of how it changes? If you can incrementally change your state, go with <code>fold</code>. If, on the other hand, your state is defined in terms of how it changes, go with <code>fix</code>.</p>
 </section>"""
 
-fixEx :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent -> Element lock payload
+fixEx :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent -> Domable Effect lock payload
 fixEx ccb _ _ ev = px ~~
   { txt: nut $ text_
       """module Main where
@@ -387,11 +387,11 @@ main = runInBody1
         ]
   )"""
   , empl: nut
-      ( vbus (Proxy :: _ StartStop) \push event -> do
+      (toDOM $ vbus (Proxy :: _ StartStop) \push event -> do
           let
             startE = bang unit <|> event.start
             stopE = event.stop
-          plant $ D.div_
+          D.div_
             [ D.button
                 ( oneOfMap (map (attr D.OnClick <<< cb <<< const))
                     [ (biSampleOn (bang (pure unit) <|> (map (\(SetCancel x) -> x) ev)) (startE $> identity)) <#> \cncl ->

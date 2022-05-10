@@ -8,7 +8,7 @@ import Data.Foldable (oneOf, oneOfMap)
 import Data.Int (toNumber)
 import Data.Traversable (sequence)
 import Deku.Attribute (attr, cb)
-import Deku.Control (text, plant)
+import Deku.Control (text)
 import Deku.DOM as D
 import Deku.Toplevel (runInBody1)
 import Effect (Effect)
@@ -18,9 +18,8 @@ import FRP.Event.VBus (V, vbus)
 import Type.Proxy (Proxy(..))
 import WAGS.Clock (interval)
 import WAGS.Control (gain, gain_, sinOsc)
-import WAGS.Core (Node)
+import WAGS.Core (Audible, AudioEnvelope(AudioEnvelope), AudioOnOff(AudioOnOff), _off, _on)
 import WAGS.Interpret (close, context)
-import WAGS.Core (AudioEnvelope(..), AudioOnOff(..), _off, _on)
 import WAGS.Properties (onOff)
 import WAGS.Properties as P
 import WAGS.Run (run2e)
@@ -38,7 +37,7 @@ main = runInBody1
       let
         startE = bang unit <|> event.startStop.start
         stopE = event.startStop.stop
-        music :: forall lock. _ -> Array (Node _ lock _)
+        music :: forall lock. _ -> Array (Audible _ lock _)
         music time = do
           let
             adsr = AudioEnvelope
@@ -61,7 +60,7 @@ main = runInBody1
                   (0 .. 29)
               )
           ]
-      plant $ D.div_
+      D.div_
         [ D.div_
             [ D.button
                 ( oneOfMap (map (attr D.OnClick <<< cb <<< const))

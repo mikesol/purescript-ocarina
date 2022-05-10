@@ -3,7 +3,7 @@ module WAGS.Example.Docs.Params.Unit where
 import Prelude
 
 import Data.Foldable (oneOf)
-import Deku.Core (Element)
+import Deku.Core (Domable, toDOM)
 import Deku.Pursx (nut, (~~))
 import Effect (Effect)
 import FRP.Event (Event, bang)
@@ -44,10 +44,10 @@ px =
   </section>
 """
 
-unitEx :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Element lock payload
+unitEx :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable Effect lock payload
 unitEx ccb _ ev = px ~~
   { unitEx: nut
-      ( audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
+      ( toDOM $ audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
           \ctx buf -> run2 ctx
             [ loopBuf buf
                 ( oneOf
@@ -57,7 +57,7 @@ unitEx ccb _ ev = px ~~
                         $ c1
                             ( gain_ 1.0
                                 [ constant 1.0 bangOn
-                                , gain_ 0.2 (lowpass_ 100.0 (squareOsc 50.0 bangOn))
+                                , gain_ 0.2 [lowpass_ 100.0 [squareOsc 50.0 bangOn]]
                                 ]
                             )
                     ]

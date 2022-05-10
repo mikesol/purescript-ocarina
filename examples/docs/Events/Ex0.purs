@@ -6,24 +6,24 @@ import Control.Alt (alt, (<|>))
 import Data.Array ((..))
 import Data.Exists (mkExists)
 import Data.Int (toNumber)
+import Data.Number (pow)
 import Data.Profunctor (lcmap)
 import Data.Tuple (Tuple(..))
 import Data.Tuple.Nested ((/\))
 import Data.Typelevel.Num (D2)
 import Deku.Attribute (cb, (:=))
-import Deku.Control (text, plant, text_)
-import Deku.Core (Element)
+import Deku.Control (text, text_)
+import Deku.Core (Domable, Element, toDOM)
 import Deku.DOM as D
 import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
 import FRP.Event (Event, bus)
 import FRP.Event.Class (bang, biSampleOn)
-import Data.Number (pow)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (gain, gain_, microphone, recorder, sinOsc)
-import WAGS.Core (Node)
-import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..))
+import WAGS.Core (Audible, Node)
 import WAGS.Core (AudioEnvelope(..), AudioOnOff(..), _off, _on)
+import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..))
 import WAGS.Properties (onOff)
 import WAGS.Properties as P
 import WAGS.Run (run2_)
@@ -59,7 +59,7 @@ scene
   :: forall lock payload
    . BrowserMicrophone
   -> MediaRecorderCb
-  -> Node D2 lock payload
+  -> Audible D2 lock payload
 scene m cb = recorder cb (microphone m)
 
 data UIEvents = Init | Start | Stop (Effect Unit)
@@ -163,12 +163,12 @@ main = runInBody1 (bus \push -> lcmap (bang Init <|> _) \event ->
 """
 
 ex0
-  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Element lock payload
+  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable Effect lock payload
 ex0 ccb _ ev = makePursx' (Proxy :: _ "@") px
   { txt: nut (text_ txt)
   , ex0: nut
-      ( bus \push -> lcmap  (bang Init <|> _) \event -> -- here
-            plant $ D.div_
+      ( toDOM $ bus \push -> lcmap  (bang Init <|> _) \event -> -- here
+            D.div_
               [ D.button
                   ( (biSampleOn (bang (pure unit) <|> (map (\(SetCancel x) -> x) ev)) (map Tuple event)) <#> -- here
                       \(e /\ c) -> D.OnClick := cb -- here

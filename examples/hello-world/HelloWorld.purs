@@ -8,31 +8,30 @@ import Data.Exists (Exists, mkExists)
 import Data.Foldable (for_)
 import Data.Lens (over)
 import Data.Maybe (Maybe(..), maybe)
+import Data.Number (pi, sin)
 import Data.Profunctor (lcmap)
-import Data.Tuple (Tuple(..))
 import Data.Typelevel.Num (D2)
 import Deku.Attribute (cb, (:=))
-import Deku.Control (deku, deku1, plant, text, text_)
-import Deku.Core (Element, Domable)
+import Deku.Control (deku1, text, text_)
+import Deku.Core (Domable)
 import Deku.DOM as DOM
-import Deku.Interpret (effectfulDOMInterpret, makeFFIDOMSnapshot)
+import Deku.Interpret (fullDOMInterpret, makeFFIDOMSnapshot)
 import Effect (Effect)
 import Effect.Aff (Aff, launchAff_)
 import Effect.Class (liftEffect)
+import Effect.Ref as Ref
 import FRP.Behavior (sample_)
 import FRP.Event (Event, bus, keepLatest, memoize, subscribe)
 import FRP.Event.Animate (animationFrameEvent)
 import FRP.Event.Class (bang)
-import Data.Number (pi, sin)
 import Type.Proxy (Proxy(..))
 import WAGS.Clock (WriteHead, fot, writeHead)
 import WAGS.Control (gain, sinOsc, speaker2)
-import WAGS.Core (Node)
+import WAGS.Core (Audible, bangOn, opticN)
 import WAGS.Example.Utils (RaiseCancellation)
 import WAGS.Imperative (InitialGraphBuilder, runGraphBuilder)
 import WAGS.Imperative as I
 import WAGS.Interpret (close, context, effectfulAudioInterpret, makeFFIAudioSnapshot)
-import WAGS.Core (opticN, bangOn)
 import WAGS.Properties (frequency)
 import WAGS.WebAPI (AudioContext)
 import Web.HTML (window)
@@ -43,7 +42,7 @@ import Web.HTML.Window (document)
 scene
   :: forall lock payload
    . WriteHead Event
-  -> Array (Node D2 lock payload)
+  -> Array (Audible D2 lock payload)
 scene wh =
   let
     tr = fot wh (mul pi)
@@ -97,7 +96,7 @@ helloWorld
   :: forall lock payload
    . Unit
   -> RaiseCancellation
-  -> Event (Domable lock payload)
+  -> Event (Domable Effect lock payload)
 helloWorld _ rc = keepLatest $ bus \p -> lcmap (alt (bang Nothing)) \e -> memoize animationFrameEvent \afe ->
   let
     musicButton push event audioEvent = DOM.button
@@ -130,7 +129,7 @@ helloWorld _ rc = keepLatest $ bus \p -> lcmap (alt (bang Nothing)) \e -> memoiz
           (map (maybe "Turn on" (const "Turn off")) event)
       ]
   in
-    plant $ DOM.div_
+    DOM.div_
       [ DOM.h1_ [ text_ "Hello world" ]
       , musicButton p e
           (flip runGraphBuilder effectfulAudioInterpret <<< scene')
@@ -145,9 +144,10 @@ main = launchAff_ do
     b' <- window >>= document >>= body
     for_ (toElement <$> b') \elt -> do
       ffi <- makeFFIDOMSnapshot
+      rf <- Ref.new 0
       let
         evt = deku1 elt
           ( helloWorld init (const $ pure unit))
-          effectfulDOMInterpret
+          (fullDOMInterpret rf)
       _ <- subscribe (evt) \i -> i ffi
       pure unit

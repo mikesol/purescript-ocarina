@@ -4,19 +4,19 @@ import Prelude
 
 import Data.Array ((..))
 import Data.Int (toNumber)
+import Data.Number (pi)
 import Data.Ord (abs)
 import Deku.Control (text_)
-import Deku.Core (Element)
+import Deku.Core (Domable, Element, toDOM)
 import Deku.Pursx (nut, (~~))
 import Effect (Effect)
 import FRP.Event (Event)
-import Data.Number (pi)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (loopBuf, waveShaper)
+import WAGS.Core (bangOn)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import WAGS.Example.Docs.Util (audioWrapper)
 import WAGS.Interpret (decodeAudioDataFromUri, makeFloatArray)
-import WAGS.Core (bangOn)
 import WAGS.Run (run2)
 
 px =
@@ -31,7 +31,7 @@ px =
 """
 
 waveShaperEx
-  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Element lock payload
+  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable Effect lock payload
 waveShaperEx ccb _ ev = px ~~
   { code: nut
       ( text_
@@ -55,7 +55,7 @@ waveShaperEx ccb _ ev = px ~~
     [ waveShaper (makeFloatArray (makeDistortionCurve 400.0)) [ loopBuf buf bangOn ] ]"""
       )
   , waveShaper: nut
-      ( audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/339/339822_5121236-lq.mp3")
+      ( toDOM $ audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/339/339822_5121236-lq.mp3")
           \ctx buf -> do
             let
               makeDistortionCurve :: Number -> Array Number

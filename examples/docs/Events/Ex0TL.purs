@@ -7,7 +7,7 @@ import Data.Array ((..))
 import Data.Int (toNumber)
 import Data.Profunctor (lcmap)
 import Deku.Attribute (cb, (:=))
-import Deku.Control (text, plant)
+import Deku.Control (text)
 import Deku.DOM as D
 import Deku.Toplevel (runInBody, runInBody1)
 import Effect (Effect)
@@ -51,7 +51,7 @@ cell = lcmap toNumber \i -> do
 
 main :: Effect Unit
 main = runInBody1 (bus \push -> lcmap (bang Init <|> _) \event ->
-  plant $ D.div_
+  D.div_
     [ D.button
         ( event <#>
             \e -> D.OnClick := cb

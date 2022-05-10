@@ -9,27 +9,27 @@ import Data.Foldable (for_)
 import Data.Int (toNumber)
 import Data.Lens (over)
 import Data.Maybe (Maybe(..), maybe)
+import Data.Number (pi, sin, (%))
 import Data.Profunctor (lcmap)
 import Data.Typelevel.Num (D2)
 import Deku.Attribute (cb, (:=))
-import Deku.Control (deku1, text, text_, plant)
-import Deku.Core (Element, Domable)
+import Deku.Control (deku1, text, text_)
+import Deku.Core (Domable)
 import Deku.DOM as DOM
-import Deku.Interpret (effectfulDOMInterpret, makeFFIDOMSnapshot)
+import Deku.Interpret (fullDOMInterpret, makeFFIDOMSnapshot)
 import Effect (Effect)
 import Effect.Aff (Aff, launchAff_)
 import Effect.Class (liftEffect)
+import Effect.Ref as Ref
 import FRP.Behavior (sample_)
 import FRP.Event (Event, bang, bus, memoize, subscribe)
 import FRP.Event.Animate (animationFrameEvent)
-import Data.Number (pi, sin, (%))
 import WAGS.Clock (WriteHead, fot, writeHead)
-import WAGS.Control (gain, sinOsc, speaker2)
-import WAGS.Core (Audible, mix)
+import WAGS.Control (gain, gain_, sinOsc, speaker2)
+import WAGS.Core (Audible, AudioNumeric(..), AudioOnOff(..), _off, _on, _step, opticN, toAudible)
 import WAGS.Example.Utils (RaiseCancellation)
 import WAGS.Interpret (FFIAudioSnapshot, close, context, effectfulAudioInterpret, makeFFIAudioSnapshot)
 import WAGS.Math (calcSlope)
-import WAGS.Core (AudioNumeric(..), AudioOnOff(..), _off, _on, _step, opticN)
 import WAGS.Properties as Common
 import WAGS.WebAPI (AudioContext)
 import Web.HTML (window)
@@ -50,7 +50,7 @@ scene
   :: forall lock payload
    . WriteHead Event
   -> Audible D2 lock payload
-scene wh = mix $ memoize (fot wh (mul pi)) \tr ->
+scene wh = toAudible $ memoize (fot wh (mul pi)) \tr ->
   let
     gso a b c st ed = gain 0.0
       ( Common.gain <$>
@@ -100,8 +100,7 @@ scene wh = mix $ memoize (fot wh (mul pi)) \tr ->
           )
       ]
   in
-    mix
-      ( map
+      gain_ 1.0 ( map
           ( \i ->
               let
                 frac = toNumber i / toNumber last
@@ -133,7 +132,7 @@ stressTest
   :: forall lock payload
    . Unit
   -> RaiseCancellation
-  -> Event (Domable lock payload)
+  -> Event (Domable Effect lock payload)
 stressTest _ rc = bus \p -> lcmap (alt $ bang Nothing) \e ->
   let
     musicButton
@@ -142,7 +141,7 @@ stressTest _ rc = bus \p -> lcmap (alt $ bang Nothing) \e ->
       -> (UIAction -> Effect Unit)
       -> Event UIAction
       -> (AudioContext -> WriteHead Event -> Event (FFIAudioSnapshot -> Effect Unit))
-      -> Element lock0 payload
+      -> Domable Effect lock0 payload
     musicButton label push event audioEvent = DOM.button
       ( map
           ( \i -> DOM.OnClick := cb
@@ -173,10 +172,10 @@ stressTest _ rc = bus \p -> lcmap (alt $ bang Nothing) \e ->
           (map (maybe ("Turn on " <> label) (const "Turn off")) event)
       ]
   in
-    plant $ DOM.div_
+    DOM.div_
       [ DOM.h1_ [ text_ "Stress test" ]
       , musicButton "Event" p e
-          ( \_ ip -> speaker2 (scene ip) (effectfulAudioInterpret)
+          ( \_ ip -> speaker2 [scene ip] (effectfulAudioInterpret)
 
           )
       , musicButton "NativeJS" p e (stressTest_)
@@ -189,9 +188,10 @@ main = launchAff_ do
     b' <- window >>= document >>= body
     for_ (toElement <$> b') \elt -> do
       ffi <- makeFFIDOMSnapshot
+      rf <- Ref.new 0
       let
         evt = deku1 elt
           (stressTest init (const $ pure unit))
-          effectfulDOMInterpret
+          (fullDOMInterpret rf)
       _ <- subscribe (evt) \i -> i ffi
       pure unit

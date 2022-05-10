@@ -6,21 +6,21 @@ import Control.Alt ((<|>))
 import Data.Foldable (oneOf, oneOfMap, traverse_)
 import Data.Maybe (Maybe(..), maybe)
 import Deku.Attribute (attr, cb, (:=))
-import Deku.Control (blank, plant, switcher, text, text_)
-import Deku.Core (Element)
+import Deku.Control (switcher, text, text_)
+import Deku.Core (Domable, toDOM)
 import Deku.DOM as D
 import Deku.Toplevel (runInBody)
 import Effect (Effect)
 import Effect.Aff (launchAff_)
 import Effect.Class (liftEffect)
 import FRP.Event (create)
-import FRP.Event.Class (bang, biSampleOn, keepLatest)
+import FRP.Event.Class (bang, biSampleOn)
 import FRP.Event.VBus (V, vbus)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (loopBuf)
+import WAGS.Core (bangOn)
 import WAGS.Interpret (bracketCtx, decodeAudioDataFromUri)
 import WAGS.Math (calcSlope)
-import WAGS.Core (bangOn)
 import WAGS.Properties (loopEnd, loopStart, playbackRate)
 import WAGS.Run (run2_)
 import WAGS.WebAPI (BrowserAudioBuffer)
@@ -47,9 +47,9 @@ main = do
   scene
     :: forall lock payload
      . Maybe BrowserAudioBuffer
-    -> Element lock payload
+    -> Domable Effect lock payload
   scene = maybe (D.div_ [ text_ "Loading..." ]) \buffer ->
-    D.div_ $ vbus (Proxy :: _ UIEvents) \push event -> do
+    D.div_ $ pure $ toDOM $ vbus (Proxy :: _ UIEvents) \push event -> do
       let
         sl0 = event.slider.s0
         sl1 = event.slider.s1
@@ -75,7 +75,7 @@ main = do
                     (biSampleOn sl2 (add <$> (bang 0.0 <|> sl1)))
                 ]
           ]
-      plant $ D.div_
+      D.div_
         $
           map
             ( \{ l, f } -> D.div_
@@ -95,7 +95,7 @@ main = do
                             )
                         ]
                     )
-                    blank
+                    []
                 ]
             )
             [ { l: "Playback rate", f: push.slider.s0 }

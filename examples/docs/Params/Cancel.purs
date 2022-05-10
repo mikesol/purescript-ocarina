@@ -5,11 +5,11 @@ import Prelude
 import Data.Array ((..))
 import Data.Foldable (oneOf)
 import Deku.Control (text_)
-import Deku.Core (Element)
+import Deku.Core (Domable, Element, toDOM)
 import Deku.Pursx (nut, (~~))
 import Effect (Effect)
 import FRP.Event (Event, bang)
-import FRP.Event.Time (delay)
+import FRP.Event (delay)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (gain_, loopBuf)
 import WAGS.Core (AudioCancel(..), AudioEnvelope(..), bangOn)
@@ -33,7 +33,7 @@ px =
   </section>
 """
 
-cancelEx :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Element lock payload
+cancelEx :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable Effect lock payload
 cancelEx ccb _ ev = px ~~
   { txt: nut
       ( text_
@@ -57,7 +57,7 @@ cancelEx ccb _ ev = px ~~
   ]"""
       )
   , cancel: nut
-      ( audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
+      (toDOM $ audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
           \ctx buf -> run2 ctx
             [ gain_ 1.0
                 [ loopBuf buf

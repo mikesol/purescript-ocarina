@@ -3,7 +3,7 @@ module WAGS.Example.Docs.FixFan.Intro where
 import Prelude
 
 import Control.Plus (class Plus)
-import Deku.Core (Element)
+import Deku.Core (Domable, Element)
 import Deku.Pursx (makePursx')
 import Effect (Effect)
 import FRP.Event (Event, class IsEvent)
@@ -39,10 +39,9 @@ px = Proxy :: Proxy
       </ul>
   </section>"""
 
-ffIntro :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent  -> Element lock payload
-ffIntro cca' dpage ssp ev = makePursx'  (Proxy :: _ "@") px
+ffIntro :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent  -> Domable Effect lock payload
+ffIntro _ dpage _ ev = makePursx'  (Proxy :: _ "@") px
   { hwLink: mnx HelloWorld
   }
   where
   mnx i = mkNext ev (dpage i *> scrollToTop)
-  cca = ccassp cca' ssp

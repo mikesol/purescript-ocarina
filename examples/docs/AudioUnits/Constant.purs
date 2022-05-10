@@ -6,16 +6,16 @@ import Control.Alt ((<|>))
 import Data.Array ((..))
 import Data.FunctorWithIndex (mapWithIndex)
 import Deku.Control (text_)
-import Deku.Core (Element)
+import Deku.Core (Domable, Element, toDOM)
 import Deku.Pursx (nut, (~~))
 import Effect (Effect)
 import FRP.Event (Event)
 import FRP.Event.Class (bang)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (gain_, constant)
+import WAGS.Core (AudioEnvelope(..), bangOn)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import WAGS.Example.Docs.Util (audioWrapper)
-import WAGS.Core (AudioEnvelope(..), bangOn)
 import WAGS.Properties (offset)
 import WAGS.Run (run2)
 
@@ -33,7 +33,7 @@ px =
 """
 
 constantEx
-  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Element lock payload
+  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable Effect lock payload
 constantEx ccb _ ev = px ~~
   { tf: nut (text_ "<|>")
   , txt: nut
@@ -56,7 +56,7 @@ constantEx ccb _ ev = px ~~
   ]"""
       )
   , constant: nut
-      ( audioWrapper ev ccb (\_ -> pure unit) \ctx _ -> run2 ctx
+      (toDOM $ audioWrapper ev ccb (\_ -> pure unit) \ctx _ -> run2 ctx
           [ gain_ 0.5
               [ constant 0.0
                   ( bangOn <|>

@@ -15,11 +15,11 @@
   "devDependencies": {
     "esbuild": "^0.14.36",
     "psc-package": "^4.0.1",
-    "pulp": "^15.0.0"
+    "pulp": "^15.0.0",
+    "purs-tidy": "^0.8.0"
   },
   "dependencies": {
     "purescript": "^0.15.0",
-    "purs-tidy": "^0.8.0",
     "spago": "^0.20.8"
   }
 }

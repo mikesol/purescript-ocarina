@@ -3,8 +3,10 @@ module WAGS.Common where
 import Prelude
 
 import Control.Alt ((<|>))
+import Control.Plus (empty)
 import ConvertableOptions (class ConvertOption, class ConvertOptionsWithDefaults, convertOptionsWithDefaults)
 import Data.Either (Either(..))
+import Data.FastVect.FastVect (Vect)
 import Data.Tuple.Nested (type (/\), (/\))
 import Data.Typelevel.Num (class Pos)
 import Data.Variant (inj, match)
@@ -137,8 +139,8 @@ instance InitialConvolver BrowserAudioBuffer where
   toInitializeConvolver = Core.InitializeConvolver <<< { buffer: _ }
 
 -- IIRFilter
-class InitialIIRFilter i feedforward feedback where
-  toInitializeIIRFilter :: forall proxy. i -> proxy feedforward -> proxy feedback -> (Core.InitializeIIRFilter feedforward feedback)
+class InitialIIRFilter i (feedforward :: Int) (feedback :: Int) where
+  toInitializeIIRFilter :: i -> Proxy feedforward -> Proxy feedback -> (Core.InitializeIIRFilter feedforward feedback)
 
 instance
   ( TypeEquals feedforwardI feedforwardO
@@ -152,7 +154,7 @@ instance
   ( TypeEquals feedforwardI feedforwardO
   , TypeEquals feedbackI feedbackO
   ) =>
-  InitialIIRFilter (Vec feedforwardI Number /\ Vec feedbackI Number) feedforwardO feedbackO where
+  InitialIIRFilter (Vect feedforwardI Number /\ Vect feedbackI Number) feedforwardO feedbackO where
   toInitializeIIRFilter (feedforward /\ feedback) _ _ = Core.InitializeIIRFilter { feedforward: proof (coerce feedforward), feedback: proof (coerce feedback) }
 
 -- Delay
@@ -863,7 +865,7 @@ instance
 -- resolveAU
 
 resolveAU :: forall lock payload. C.AudioInterpret payload -> (C.FFIAudioParameter -> payload) -> C.AudioParameter lock payload -> Event payload
-resolveAU = go
+resolveAU = \_ _ _ -> empty {-go
   where
   cncl = C.FFIAudioParameter <<< inj (Proxy :: _ "cancel")
   ev = C.FFIAudioParameter <<< inj (Proxy :: _ "envelope")
@@ -888,4 +890,4 @@ resolveAU = go
               )
               k
     }
-    a
+    a-}

@@ -2,16 +2,16 @@ module WAGS.Example.Docs.AudioUnits.Highpass where
 
 import Prelude
 
-import Deku.Core (Element)
+import Deku.Core (Domable, Element, toDOM)
 import Deku.Pursx (nut, (~~))
 import Effect (Effect)
 import FRP.Event (Event)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (highpass_, loopBuf)
+import WAGS.Core (bangOn)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import WAGS.Example.Docs.Util (audioWrapper)
 import WAGS.Interpret (decodeAudioDataFromUri)
-import WAGS.Core (bangOn)
 import WAGS.Run (run2)
 
 px = Proxy :: Proxy """<section>
@@ -28,10 +28,10 @@ px = Proxy :: Proxy """<section>
   </section>
 """
 
-highpass :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Element lock payload
+highpass :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable Effect lock payload
 highpass ccb _ ev = px ~~
   { highpass: nut
-      ( audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
+      ( toDOM $ audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
           \ctx buf -> run2 ctx
             [highpass_ 2000.0  [loopBuf buf bangOn]]
       )
