@@ -13,7 +13,7 @@ import Data.Tuple.Nested ((/\))
 import Data.Typelevel.Num (D2)
 import Deku.Attribute (cb, (:=))
 import Deku.Control (text, text_)
-import Deku.Core (Domable, Element, toDOM)
+import Deku.Core (Domable, envy)
 import Deku.DOM as D
 import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
@@ -167,7 +167,7 @@ ex0
 ex0 ccb _ ev = makePursx' (Proxy :: _ "@") px
   { txt: nut (text_ txt)
   , ex0: nut
-      ( toDOM $ bus \push -> lcmap  (bang Init <|> _) \event -> -- here
+      ( envy $ bus \push -> lcmap  (bang Init <|> _) \event -> -- here
             D.div_
               [ D.button
                   ( (biSampleOn (bang (pure unit) <|> (map (\(SetCancel x) -> x) ev)) (map Tuple event)) <#> -- here

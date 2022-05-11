@@ -8,7 +8,7 @@ import Data.Tuple (Tuple(..), fst, snd)
 import QualifiedDo.OneOfMap as O
 import Deku.Attribute (attr, cb, (:=))
 import Deku.Control (text, text_)
-import Deku.Core (Domable, toDOM)
+import Deku.Core (Domable, envy)
 import Deku.DOM as D
 import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
@@ -237,7 +237,7 @@ ex2
 ex2 ccb _ ev = makePursx' (Proxy :: _ "@") px
   { txt: nut (text_ txt)
   , ex2: nut
-      ( toDOM $ vbus (Proxy :: _ UIEvents) \push event -> -- here
+      ( envy $ vbus (Proxy :: _ UIEvents) \push event -> -- here
           let
             start = event.startStop.start <|> bang unit
 

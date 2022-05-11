@@ -9,7 +9,7 @@ import QualifiedDo.Alt as OneOf
 import Data.Tuple.Nested ((/\))
 import Deku.Attribute (attr, cb, (:=))
 import Deku.Control (switcher, text, text_)
-import Deku.Core (Domable, toDOM)
+import Deku.Core (Domable, envy)
 import Deku.DOM as D
 import Deku.Toplevel (runInBody)
 import Effect (Effect)
@@ -23,7 +23,7 @@ import FRP.Event.VBus (V, vbus)
 import QualifiedDo.OneOfMap as O
 import Type.Proxy (Proxy(..))
 import WAGS.Control (gain_, playBuf)
-import WAGS.Core (Channel(..), subgraph, bangOn)
+import WAGS.Core (dyn, sound, silence, bangOn)
 import WAGS.Interpret (bracketCtx, decodeAudioDataFromUri)
 import WAGS.Run (run2_)
 import WAGS.WebAPI (BrowserAudioBuffer)
@@ -55,20 +55,20 @@ main = do
      . Maybe BrowserAudioBuffer
     -> Domable Effect lock payload
   scene = maybe (D.div_ [ text_ "Loading..." ]) \buffer ->
-    D.div_ $ pure $ toDOM $ vbus (Proxy :: _ UIEvents) \push event -> do
+    D.div_ $ pure $ envy $ vbus (Proxy :: _ UIEvents) \push event -> do
       let
         startE = bang unit <|> event.startStop.start
         sl = sampleBy (/\) random
           $ fold (\_ b -> b + 1) event.slider 0
         music = run2_
           [ gain_ 1.0
-              [ subgraph $ map
+              [ dyn $ map
                   ( \i ->
                       OneOf.do
-                        bang $ Sound $ playBuf
+                        bang $ sound $ playBuf
                           { buffer: buffer, playbackRate: 0.7 + (fst i) * 2.0 }
                           bangOn
-                        delay 5000 $ bang $ Silence
+                        delay 5000 $ bang $ silence
                   )
                   sl
               ]

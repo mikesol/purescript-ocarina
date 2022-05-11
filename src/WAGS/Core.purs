@@ -1,19 +1,214 @@
-module WAGS.Core where
+module WAGS.Core
+  ( module Bolson.Core
+  , Po2(..)
+  , ChannelInterpretation(..)
+  , ChannelCountMode(..)
+  , AudioInterpret(..)
+  , PeriodicOscSpec(..)
+  , RealImg(..)
+  , Oversample(..)
+  , FFIAudioParameter(..)
+  , OnOff(..)
+  , AudioOnOff(..)
+  , Transition(..)
+  , NodeC'
+  , Node(..)
+  , Audible
+  , AudioWorkletNode(..)
+  , AudioUnit'
+  , AudioUnit(..)
+  , AudioParameter(..)
+  , AudioNumeric'
+  , AudioNumeric(..)
+  , AudioEnvelope'
+  , AudioEnvelope(..)
+  , AudioCancel'
+  , AudioCancel(..)
+  , AudioSudden'
+  , AudioSudden(..)
+  , FFIAudioUnit'
+  , FFIAudioUnit(..)
+  , AudioWorkletNodeOptions_(..)
+  , InitialAudioParameter
+  , ConnectXToY
+  , ConnectXToY_
+  , DisconnectXFromY
+  , DisconnectXFromY_
+  , DeleteFromCache
+  , InitializeAllpass(..)
+  , Allpass(..)
+  , MakeAllpass
+  , MakeAllpass_
+  , InitializeAnalyser(..)
+  , Analyser(..)
+  , MakeAnalyser
+  , InitializeAudioWorkletNode(..)
+  , MakeAudioWorkletNode
+  , MakeAudioWorkletNode_
+  , InitializeBandpass(..)
+  , Bandpass(..)
+  , MakeBandpass
+  , MakeBandpass_
+  , InitializeConstant(..)
+  , Constant(..)
+  , MakeConstant
+  , MakeConstant_
+  , InitializeConvolver(..)
+  , MakeConvolver
+  , InitializeDelay(..)
+  , Delay(..)
+  , MakeDelay
+  , MakeDelay_
+  , InitializeDynamicsCompressor(..)
+  , DynamicsCompressor(..)
+  , MakeDynamicsCompressor
+  , MakeDynamicsCompressor_
+  , InitializeGain(..)
+  , Gain(..)
+  , MakeGain
+  , MakeGain_
+  , InitializeHighpass(..)
+  , Highpass(..)
+  , MakeHighpass
+  , MakeHighpass_
+  , InitializeHighshelf(..)
+  , Highshelf(..)
+  , MakeHighshelf
+  , MakeHighshelf_
+  , InitializeIIRFilter(..)
+  , MakeIIRFilter
+  , InitializeLoopBuf(..)
+  , LoopBuf(..)
+  , MakeLoopBuf
+  , MakeLoopBuf_
+  , InitializeLowpass(..)
+  , Lowpass(..)
+  , MakeLowpass
+  , MakeLowpass_
+  , InitializeLowshelf(..)
+  , Lowshelf(..)
+  , MakeLowshelf
+  , MakeLowshelf_
+  , InitializeMediaElement(..)
+  , MakeMediaElement
+  , InitializeMicrophone(..)
+  , MakeMicrophone
+  , InitializeNotch(..)
+  , Notch(..)
+  , MakeNotch
+  , MakeNotch_
+  , InitializePeaking(..)
+  , Peaking(..)
+  , MakePeaking
+  , MakePeaking_
+  , InitializePeriodicOsc(..)
+  , PeriodicOsc(..)
+  , MakePeriodicOsc
+  , MakePeriodicOsc_
+  , InitializePlayBuf(..)
+  , PlayBuf(..)
+  , MakePlayBuf
+  , MakePlayBuf_
+  , InitializeRecorder(..)
+  , MakeRecorder
+  , InitializeSawtoothOsc(..)
+  , SawtoothOsc(..)
+  , MakeSawtoothOsc
+  , MakeSawtoothOsc_
+  , InitializeSinOsc(..)
+  , SinOsc(..)
+  , MakeSinOsc
+  , MakeSinOsc_
+  , MakeSpeaker
+  , InitializeSquareOsc(..)
+  , SquareOsc(..)
+  , MakeSquareOsc
+  , MakeSquareOsc_
+  , InitializeStereoPanner(..)
+  , StereoPanner(..)
+  , MakeStereoPanner
+  , MakeStereoPanner_
+  , InitializeTriangleOsc(..)
+  , TriangleOsc(..)
+  , MakeTriangleOsc
+  , MakeTriangleOsc_
+  , InitializeWaveShaper(..)
+  , MakeWaveShaper
+  , SetAnalyserNodeCb
+  , SetMediaRecorderCb
+  , SetWaveShaperCurve
+  , SetAudioWorkletParameter
+  , SetBuffer
+  , SetConvolverBuffer
+  , SetPeriodicOsc
+  , SetOnOff
+  , SetBufferOffset
+  , SetDuration
+  , SetLoopStart
+  , SetLoopEnd
+  , SetRatio
+  , SetOffset
+  , SetAttack
+  , SetGain
+  , SetQ
+  , SetPan
+  , SetThreshold
+  , SetRelease
+  , SetKnee
+  , SetDelay
+  , SetPlaybackRate
+  , SetFrequency
+  , _linear
+  , _exponential
+  , _step
+  , _numeric'
+  , _numeric
+  , _unit'
+  , _unit
+  , _envelope'
+  , _envelope
+  , _sudden'
+  , _sudden
+  , _cancel'
+  , _cancel
+  , _on
+  , _off
+  , bangOn
+  , apOn
+  , apOff
+  , c1
+  , dt
+  , sound
+  , silence
+  , _wave
+  , _realImg
+  , _none
+  , _twoX
+  , _fourX
+  , class ToAudioOnOff
+  , toAudioOnOff
+  , class ToAudioParameter
+  , toAudioParameter
+  , class OpticN
+  , opticN
+  ) where
 
 import Prelude
 
+import Bolson.Core (envy, dyn, fixed)
+import Bolson.Core as Bolson
 import Data.FastVect.FastVect (Vect)
 import Data.Function (on)
 import Data.Generic.Rep (class Generic)
 import Data.Lens (Optic', over)
 import Data.Lens.Iso.Newtype (_Newtype, unto)
 import Data.Lens.Record (prop)
+import Data.Maybe (Maybe)
 import Data.Newtype (class Newtype, unwrap, wrap)
 import Data.Profunctor.Strong (class Strong)
 import Data.Show.Generic (genericShow)
 import Data.Typelevel.Num (D1)
 import Data.Variant (Variant, inj, match)
-import Data.Variant.Maybe (Maybe)
 import Effect (Effect)
 import FRP.Event (Event)
 import FRP.Event.Class (bang)
@@ -316,43 +511,25 @@ instance showAudioWorkletNodeOptions_ ::
     <> JSON.writeJSON a.numberOfInputs
     <> " >"
 
-newtype DynamicChannels outputChannels lock payload = DynamicChannels
-  (Event (Event (Channel outputChannels lock payload)))
-
-newtype FixedChannels outputChannels lock payload = FixedChannels
-  (Array (Audible outputChannels lock payload))
-
-newtype EventfulNode outputChannels lock payload = EventfulNode
-  (Event (Audible outputChannels lock payload))
-
-type PSR =
-  { parent :: Maybe String
-  , scope :: String
-  , raiseId :: String -> Effect Unit
-  }
-
 type NodeC' :: forall k. k -> Type -> Type
 type NodeC' lock payload =
-  PSR
+  Bolson.PSR Effect
   -> AudioInterpret payload
   -> Event payload
 
 newtype Node :: Type -> Type -> Type -> Type
 newtype Node outputChannels lock payload = Node (NodeC' lock payload)
 
-data Channel outputChannels lock payload
-  = Sound (Audible outputChannels lock payload)
-  | Silence
+sound
+  :: forall logic obj m lock
+   . Bolson.Entity logic obj m lock
+  -> Bolson.Child logic obj m lock
+sound = Bolson.Insert
 
-data Audible outputChannels lock payload
-  = DynamicChannels' (DynamicChannels outputChannels lock payload)
-  | FixedChannels' (FixedChannels outputChannels lock payload)
-  | EventfulNode' (EventfulNode outputChannels lock payload)
-  | Node' (Node outputChannels lock payload)
+silence :: forall logic obj m lock. Bolson.Child logic obj m lock
+silence = Bolson.Remove
 
-toAudible = EventfulNode' <<< EventfulNode
-subgraph = DynamicChannels' <<< DynamicChannels
-
+type Audible outputChannels lock payload = Bolson.Entity Void (Node outputChannels lock payload) Effect lock
 --
 
 newtype RealImg = RealImg { real :: Array Number, img :: Array Number }
@@ -434,7 +611,7 @@ newtype InitializeAllpass = InitializeAllpass
 type MakeAllpass_ param =
   { id :: String
   , parent :: Maybe String
-  , scope :: String
+  , scope :: Bolson.Scope
   , frequency :: param
   , q :: param
   }
@@ -464,7 +641,7 @@ newtype InitializeAnalyser = InitializeAnalyser
 type MakeAnalyser =
   { id :: String
   , parent :: Maybe String
-  , scope :: String
+  , scope :: Bolson.Scope
   , cb :: AnalyserNodeCb
   , fftSize :: Int
   , maxDecibels :: Number
@@ -508,7 +685,7 @@ newtype InitializeAudioWorkletNode
 type MakeAudioWorkletNode_ param =
   { id :: String
   , parent :: Maybe String
-  , scope :: String
+  , scope :: Bolson.Scope
   , options :: AudioWorkletNodeOptions_ param
   }
 
@@ -532,7 +709,7 @@ newtype InitializeBandpass = InitializeBandpass
 type MakeBandpass_ param =
   { id :: String
   , parent :: Maybe String
-  , scope :: String
+  , scope :: Bolson.Scope
   , frequency :: param
   , q :: param
   }
@@ -551,7 +728,7 @@ newtype InitializeConstant = InitializeConstant
 type MakeConstant_ param =
   ( id :: String
   , parent :: Maybe String
-  , scope :: String
+  , scope :: Bolson.Scope
   , offset :: param
   )
 
@@ -565,7 +742,7 @@ newtype InitializeConvolver = InitializeConvolver
 type MakeConvolver =
   { id :: String
   , parent :: Maybe String
-  , scope :: String
+  , scope :: Bolson.Scope
   , buffer :: BrowserAudioBuffer
   }
 
@@ -577,7 +754,7 @@ newtype InitializeDelay = InitializeDelay { delayTime :: InitialAudioParameter, 
 type MakeDelay_ param =
   { id :: String
   , parent :: Maybe String
-  , scope :: String
+  , scope :: Bolson.Scope
   , delayTime :: param
   , maxDelayTime :: Number
   }
@@ -610,7 +787,7 @@ newtype InitializeDynamicsCompressor = InitializeDynamicsCompressor
 type MakeDynamicsCompressor_ param =
   { id :: String
   , parent :: Maybe String
-  , scope :: String
+  , scope :: Bolson.Scope
   , threshold :: param
   , knee :: param
   , ratio :: param
@@ -627,7 +804,7 @@ newtype Gain lock payload = Gain (Variant (gain :: AudioParameter lock payload))
 derive instance newtypeInitializeGain :: Newtype InitializeGain _
 newtype InitializeGain = InitializeGain { gain :: InitialAudioParameter }
 type MakeGain_ param =
-  { id :: String, parent :: Maybe String, scope :: String, gain :: param }
+  { id :: String, parent :: Maybe String, scope :: Bolson.Scope, gain :: param }
 
 type MakeGain = MakeGain_ InitialAudioParameter
 type MakeGain' lock payload = MakeGain_ (AudioParameter lock payload)
@@ -649,7 +826,7 @@ newtype InitializeHighpass = InitializeHighpass
 type MakeHighpass_ param =
   { id :: String
   , parent :: Maybe String
-  , scope :: String
+  , scope :: Bolson.Scope
   , frequency :: param
   , q :: param
   }
@@ -674,7 +851,7 @@ newtype InitializeHighshelf = InitializeHighshelf
 type MakeHighshelf_ param =
   { id :: String
   , parent :: Maybe String
-  , scope :: String
+  , scope :: Bolson.Scope
   , frequency :: param
   , gain :: param
   }
@@ -689,7 +866,7 @@ newtype InitializeIIRFilter (feedforward :: Int) (feedback :: Int) = InitializeI
 type MakeIIRFilter =
   { id :: String
   , parent :: Maybe String
-  , scope :: String
+  , scope :: Bolson.Scope
   , feedforward :: Array Number
   , feedback :: Array Number
   }
@@ -718,7 +895,7 @@ newtype InitializeLoopBuf = InitializeLoopBuf
 type MakeLoopBuf_ param =
   ( id :: String
   , parent :: Maybe String
-  , scope :: String
+  , scope :: Bolson.Scope
   , buffer :: BrowserAudioBuffer
   , playbackRate :: param
   , loopStart :: Number
@@ -746,7 +923,7 @@ newtype InitializeLowpass = InitializeLowpass
 type MakeLowpass_ param =
   { id :: String
   , parent :: Maybe String
-  , scope :: String
+  , scope :: Bolson.Scope
   , frequency :: param
   , q :: param
   }
@@ -771,7 +948,7 @@ newtype InitializeLowshelf = InitializeLowshelf
 type MakeLowshelf_ param =
   { id :: String
   , parent :: Maybe String
-  , scope :: String
+  , scope :: Bolson.Scope
   , frequency :: param
   , gain :: param
   }
@@ -789,7 +966,7 @@ newtype InitializeMediaElement = InitializeMediaElement
 type MakeMediaElement =
   { id :: String
   , parent :: Maybe String
-  , scope :: String
+  , scope :: Bolson.Scope
   , element :: BrowserMediaElement
   }
 
@@ -802,7 +979,7 @@ type MakeMicrophone =
   { id :: String
   , microphone :: BrowserMicrophone
   , parent :: Maybe String
-  , scope :: String
+  , scope :: Bolson.Scope
   }
 
 derive instance newtypeNotch :: Newtype (Notch lock payload) _
@@ -822,7 +999,7 @@ newtype InitializeNotch = InitializeNotch
 type MakeNotch_ param =
   { id :: String
   , parent :: Maybe String
-  , scope :: String
+  , scope :: Bolson.Scope
   , frequency :: param
   , q :: param
   }
@@ -849,7 +1026,7 @@ newtype InitializePeaking = InitializePeaking
 type MakePeaking_ param =
   { id :: String
   , parent :: Maybe String
-  , scope :: String
+  , scope :: Bolson.Scope
   , frequency :: param
   , q :: param
   , gain :: param
@@ -877,7 +1054,7 @@ newtype InitializePeriodicOsc = InitializePeriodicOsc
 type MakePeriodicOsc_ param =
   ( id :: String
   , parent :: Maybe String
-  , scope :: String
+  , scope :: Bolson.Scope
   , spec :: PeriodicOscSpec
   , frequency :: param
   )
@@ -909,7 +1086,7 @@ newtype InitializePlayBuf = InitializePlayBuf
 type MakePlayBuf_ param =
   ( id :: String
   , parent :: Maybe String
-  , scope :: String
+  , scope :: Bolson.Scope
   , buffer :: BrowserAudioBuffer
   , bufferOffset :: Number
   , playbackRate :: param
@@ -924,7 +1101,7 @@ newtype InitializeRecorder = InitializeRecorder { cb :: MediaRecorderCb }
 type MakeRecorder =
   { id :: String
   , parent :: Maybe String
-  , scope :: String
+  , scope :: Bolson.Scope
   , cb :: MediaRecorderCb
   }
 
@@ -947,7 +1124,7 @@ newtype InitializeSawtoothOsc = InitializeSawtoothOsc
 type MakeSawtoothOsc_ param =
   ( id :: String
   , parent :: Maybe String
-  , scope :: String
+  , scope :: Bolson.Scope
   , frequency :: param
   )
 
@@ -967,7 +1144,7 @@ newtype InitializeSinOsc = InitializeSinOsc
 type MakeSinOsc_ param =
   ( id :: String
   , parent :: Maybe String
-  , scope :: String
+  , scope :: Bolson.Scope
   , frequency :: param
   )
 
@@ -991,7 +1168,7 @@ newtype InitializeSquareOsc = InitializeSquareOsc
 type MakeSquareOsc_ param =
   ( id :: String
   , parent :: Maybe String
-  , scope :: String
+  , scope :: Bolson.Scope
   , frequency :: param
   )
 
@@ -1009,7 +1186,7 @@ newtype InitializeStereoPanner = InitializeStereoPanner
   { pan :: InitialAudioParameter }
 
 type MakeStereoPanner_ param =
-  { id :: String, parent :: Maybe String, scope :: String, pan :: param }
+  { id :: String, parent :: Maybe String, scope :: Bolson.Scope, pan :: param }
 
 type MakeStereoPanner = MakeStereoPanner_ InitialAudioParameter
 type MakeStereoPanner' lock payload = MakeStereoPanner_ (AudioParameter lock payload)
@@ -1031,7 +1208,7 @@ newtype InitializeTriangleOsc = InitializeTriangleOsc
 type MakeTriangleOsc_ param =
   ( id :: String
   , parent :: Maybe String
-  , scope :: String
+  , scope :: Bolson.Scope
   , frequency :: param
   )
 
@@ -1048,7 +1225,7 @@ newtype InitializeWaveShaper = InitializeWaveShaper
 type MakeWaveShaper =
   { id :: String
   , parent :: Maybe String
-  , scope :: String
+  , scope :: Bolson.Scope
   , curve :: BrowserFloatArray
   , oversample :: Oversample
   }
@@ -1139,3 +1316,5 @@ newtype AudioInterpret payload = AudioInterpret
   , setPlaybackRate :: SetPlaybackRate -> payload
   , setFrequency :: SetFrequency -> payload
   }
+
+derive instance Newtype (AudioInterpret payload) _

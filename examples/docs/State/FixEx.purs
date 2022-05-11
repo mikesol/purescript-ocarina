@@ -13,7 +13,7 @@ import Data.Vec ((+>))
 import Data.Vec as V
 import Deku.Attribute (attr, cb)
 import Deku.Control (text, text_)
-import Deku.Core (Domable, toDOM)
+import Deku.Core (Domable, envy)
 import Deku.DOM as D
 import Deku.Pursx (nut, (~~))
 import Effect (Effect)
@@ -386,7 +386,7 @@ main = runInBody1
         ]
   )"""
   , empl: nut
-      (toDOM $ vbus (Proxy :: _ StartStop) \push event -> do
+      (envy $ vbus (Proxy :: _ StartStop) \push event -> do
           let
             startE = bang unit <|> event.start
             stopE = event.stop

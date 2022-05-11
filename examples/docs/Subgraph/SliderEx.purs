@@ -8,7 +8,7 @@ import Data.Tuple (fst)
 import Data.Tuple.Nested ((/\))
 import Deku.Attribute (attr, cb, (:=))
 import Deku.Control (text, text_)
-import Deku.Core (Domable, toDOM)
+import Deku.Core (Domable, envy)
 import Deku.DOM as D
 import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
@@ -16,14 +16,12 @@ import Effect.Aff (launchAff, launchAff_)
 import Effect.Class (liftEffect)
 import Effect.Random as Random
 import FRP.Behavior (Behavior, behavior, sampleBy)
-import FRP.Event (Event, fold, makeEvent, subscribe)
-import FRP.Event (delay)
+import FRP.Event (Event, fold, makeEvent, subscribe, delay)
 import FRP.Event.Class (bang, biSampleOn)
 import FRP.Event.VBus (V, vbus)
 import Type.Proxy (Proxy(..))
 import WAGS.Control (gain_, playBuf)
-import WAGS.Core (Audible, Channel(..), bangOn, subgraph)
-import WAGS.Core (bangOn)
+import WAGS.Core (Audible, silence, sound, bangOn, dyn)
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..))
 import WAGS.Example.Docs.Util (raceSelf)
 import WAGS.Interpret (close, constant0Hack, context, decodeAudioDataFromUri)
@@ -33,7 +31,7 @@ px =
   Proxy    :: Proxy      """<section>
   <h2>Hello subgraph</h2>
 
-  <p>Subgraphs have the type <code>Event (Event (Channel outputChannels lock payload))</code>. Streaming audio is a data type with two constructors: <code>Sound (Node outputChannels lock payload)</code> to create a subgraph and <code>Silence</code> to turn it off. The inner event listens for sound/silence, and the outer event adds subgraphs to the scene. You can create as many subgraphs as you like: wags automatically frees up resources when you send the <code>Silence</code> event. Note that, once you turn a subraph off with <code>Silence</code>, you can't turn it back on again. In this case, just create a new subgraph.</p>
+  <p>Subgraphs have the type <code>Event (Event (Channel outputChannels lock payload))</code>. Streaming audio is a data type with two constructors: <code>sound</code> to create a subgraph and <code>silence</code> to turn it off. The inner event listens for sound/silence, and the outer event adds subgraphs to the scene. You can create as many subgraphs as you like: wags automatically frees up resources when you send the <code>silence</code> event. Note that, once you turn a subraph off with <code>silence</code>, you can't turn it back on again. In this case, just create a new subgraph.</p>
 
   <p>Here's a simple subgraph that is connected to a slider. As you slide the slider, new nodes are provisioned. Each one has a pseudo-random pitch.</p>
 
@@ -56,7 +54,7 @@ import QualifiedDo.Alt as OneOf
 import Data.Tuple.Nested ((/\))
 import Deku.Attribute (attr, cb, (:=))
 import Deku.Control (switcher, text, text_)
-import Deku.Core (Domable, toDOM)
+import Deku.Core (Domable, envy)
 import Deku.DOM as D
 import Deku.Toplevel (runInBody)
 import Effect (Effect)
@@ -70,7 +68,7 @@ import FRP.Event.VBus (V, vbus)
 import QualifiedDo.OneOfMap as O
 import Type.Proxy (Proxy(..))
 import WAGS.Control (gain_, playBuf)
-import WAGS.Core (Channel(..), subgraph, bangOn)
+import WAGS.Core (Channel(..), dyn, bangOn)
 import WAGS.Interpret (bracketCtx, decodeAudioDataFromUri)
 import WAGS.Run (run2_)
 import WAGS.WebAPI (BrowserAudioBuffer)
@@ -102,20 +100,20 @@ main = do
      . Maybe BrowserAudioBuffer
     -> Domable Effect lock payload
   scene = maybe (D.div_ [ text_ "Loading..." ]) \buffer ->
-    D.div_ $ pure $ toDOM $ vbus (Proxy :: _ UIEvents) \push event -> do
+    D.div_ $ pure $ envy $ vbus (Proxy :: _ UIEvents) \push event -> do
       let
         startE = bang unit <|> event.startStop.start
         sl = sampleBy (/\) random
           $ fold (\_ b -> b + 1) event.slider 0
         music = run2_
           [ gain_ 1.0
-              [ subgraph $ map
+              [ dyn $ map
                   ( \i ->
                       OneOf.do
-                        bang $ Sound $ playBuf
+                        bang $ sound $ playBuf
                           { buffer: buffer, playbackRate: 0.7 + (fst i) * 2.0 }
                           bangOn
-                        delay 5000 $ bang $ Silence
+                        delay 5000 $ bang $ silence
                   )
                   sl
               ]
@@ -168,7 +166,7 @@ sgSliderEx
 sgSliderEx ccb _ ev = makePursx' (Proxy :: _ "@") px
   { txt: nut (text_ txt)
   , ex1: nut
-      (toDOM $ vbus (Proxy :: _ UIEvents) \push event -> -- here
+      (envy $ vbus (Proxy :: _ UIEvents) \push event -> -- here
           do
             let
               startE = bang unit <|> event.startStop.start
@@ -178,13 +176,13 @@ sgSliderEx ccb _ ev = makePursx' (Proxy :: _ "@") px
 
               music :: forall lock0. _ -> Array (Audible _ lock0 _)
               music buffer =
-                [ gain_ 1.0 [ subgraph $ map
+                [ gain_ 1.0 [ dyn $ map
                     ( \i ->
                         oneOf
-                          [ bang $ Sound $ playBuf
+                          [ bang $ sound $ playBuf
                               { buffer: buffer, playbackRate: 0.7 + (fst i) * 2.0 }
                               bangOn
-                          , delay 5000 $ bang $ Silence
+                          , delay 5000 $ bang $ silence
                           ]
                     )
                     sl]

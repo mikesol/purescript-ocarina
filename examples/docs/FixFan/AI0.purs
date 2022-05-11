@@ -3,7 +3,7 @@ module WAGS.Example.Docs.FixFan.AI0 where
 import Prelude
 
 import Control.Parallel (parallel, sequential)
-import Deku.Core (Domable, toDOM)
+import Deku.Core (Domable, envy)
 import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
 import FRP.Event (Event)
@@ -36,7 +36,7 @@ px =
 ai0 :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable Effect lock payload
 ai0 ccb _ ev = makePursx' (Proxy :: _ "@") px
   { ai0: nut
-      ( toDOM $ audioWrapper ev ccb
+      ( envy $ audioWrapper ev ccb
           ( \ctx -> sequential $ { tink0: _, tink1: _, tink2: _, tink3: _ }
               <$> (parallel $ decodeAudioDataFromUri ctx "https://freesound.org/data/previews/178/178660_717950-lq.mp3")
               <*> (parallel $ decodeAudioDataFromUri ctx "https://freesound.org/data/previews/178/178660_717950-lq.mp3")

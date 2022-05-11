@@ -2,7 +2,7 @@ module WAGS.Example.Docs.AudioUnits.Compression where
 
 import Prelude
 
-import Deku.Core (Domable, Element, toDOM)
+import Deku.Core (Domable, envy)
 import Deku.Pursx (nut, (~~))
 import Effect (Effect)
 import FRP.Event (Event)
@@ -38,7 +38,7 @@ run2_
 compression :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable Effect lock payload
 compression ccb _ ev = px ~~
   { compression: nut
-      (toDOM $ audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
+      (envy $ audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
           \ctx buf -> run2 ctx
             [ dynamicsCompressor_ {} [ loopBuf buf bangOn ] ]
       )

@@ -11,7 +11,7 @@ import Data.Maybe (Maybe(..), maybe)
 import Data.Tuple.Nested ((/\))
 import Deku.Attribute (cb, (:=))
 import Deku.Control (text)
-import Deku.Core (Domable, Element, toDOM)
+import Deku.Core (Domable, envy)
 import Deku.DOM as D
 import Deku.Pursx (nut, (~~))
 import Effect (Effect)
@@ -46,7 +46,7 @@ recorderEx
   :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable Effect lock payload
 recorderEx ccb _ ev = px ~~
   { recorder: nut
-      ( toDOM $ bus \push (event' :: Event RecorderStates) ->
+      ( envy $ bus \push (event' :: Event RecorderStates) ->
             let
               ptn = partitionMap identity event'
               event = mkWrapperEvent ev (_.right ptn)

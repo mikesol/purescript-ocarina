@@ -2,7 +2,7 @@ module WAGS.Example.Docs.AudioUnits.SinOsc where
 
 import Prelude
 
-import Deku.Core (Domable, Element, toDOM)
+import Deku.Core (Domable, envy)
 import Deku.Pursx (nut, (~~))
 import Effect (Effect)
 import FRP.Event (Event)
@@ -29,7 +29,7 @@ sine
   :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable Effect lock payload
 sine ccb _ ev = px ~~
   { periodic: nut
-      ( toDOM $ audioWrapper ev ccb (\_ -> pure unit)
+      ( envy $ audioWrapper ev ccb (\_ -> pure unit)
           \ctx _ -> run2 ctx
             [gain_ 0.2
             [sinOsc 448.0 bangOn]]

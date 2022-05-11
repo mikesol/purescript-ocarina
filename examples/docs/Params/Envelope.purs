@@ -5,7 +5,7 @@ import Prelude
 import Data.Array ((..))
 import Data.Foldable (oneOf)
 import Deku.Control (text_)
-import Deku.Core (Domable, toDOM)
+import Deku.Core (Domable, envy)
 import Deku.Pursx (nut, (~~))
 import Effect (Effect)
 import FRP.Event (Event, bang)
@@ -50,7 +50,7 @@ envelopeEx ccb _ ev = px ~~
   ]"""
       )
   , envelope: nut
-      ( toDOM $ audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
+      ( envy $ audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
           \ctx buf -> run2 ctx
             [ gain_ 1.0
                 [ loopBuf buf

@@ -3,7 +3,7 @@ module WAGS.Example.Docs.FixFan.Intro where
 import Prelude
 
 import Control.Plus (class Plus)
-import Deku.Core (Domable, Element)
+import Deku.Core (Domable)
 import Deku.Pursx (makePursx')
 import Effect (Effect)
 import FRP.Event (Event, class IsEvent)

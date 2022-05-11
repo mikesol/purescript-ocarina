@@ -4,7 +4,7 @@ import Prelude
 
 import Data.Tuple.Nested ((/\))
 import Data.Vec (empty, (+>))
-import Deku.Core (Domable, Element, toDOM)
+import Deku.Core (Domable, envy)
 import Deku.Pursx (nut, (~~))
 import Effect (Effect)
 import FRP.Event (Event)
@@ -43,7 +43,7 @@ periodic
   :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable Effect lock payload
 periodic ccb _ ev = px ~~
   { periodic: nut
-      ( toDOM $ audioWrapper ev ccb (\_ -> pure unit)
+      ( envy $ audioWrapper ev ccb (\_ -> pure unit)
           \ctx _ -> run2 ctx
             [gain_ 0.2
             [periodicOsc

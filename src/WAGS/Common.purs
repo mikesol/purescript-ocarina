@@ -2,19 +2,15 @@ module WAGS.Common where
 
 import Prelude
 
-import Control.Alt ((<|>))
 import Control.Plus (empty)
 import ConvertableOptions (class ConvertOption, class ConvertOptionsWithDefaults, convertOptionsWithDefaults)
-import Data.Either (Either(..))
 import Data.FastVect.FastVect (Vect)
+import Data.Maybe (Maybe(..))
 import Data.Tuple.Nested (type (/\), (/\))
 import Data.Typelevel.Num (class Pos)
-import Data.Variant (inj, match)
-import Data.Variant.Maybe (Maybe, just, nothing)
+import Data.Variant (inj)
 import Data.Vec (Vec, toArray)
-import Effect.AVar as AVar
-import Effect.Exception (throwException)
-import FRP.Event (Event, bang, makeEvent, subscribe)
+import FRP.Event (Event)
 import Safe.Coerce (coerce)
 import Type.Equality (class TypeEquals, proof)
 import Type.Proxy (Proxy(..))
@@ -395,7 +391,7 @@ instance
   convertOption _ _ = identity
 
 instance ConvertOption LoopBufOptions "duration" Number (Maybe Number) where
-  convertOption _ _ = just
+  convertOption _ _ = Just
 
 instance ConvertOption LoopBufOptions "loopStart" Number Number where
   convertOption _ _ = identity
@@ -424,7 +420,7 @@ defaultLoopBuf =
   { loopStart: 0.0
   , loopEnd: 0.0
   , playbackRate: 1.0
-  , duration: nothing
+  , duration: Nothing
   }
 
 class InitialLoopBuf i where
@@ -672,7 +668,7 @@ instance
   convertOption _ _ = identity
 
 instance ConvertOption PlayBufOptions "duration" Number (Maybe Number) where
-  convertOption _ _ = just
+  convertOption _ _ = Just
 
 instance ConvertOption PlayBufOptions "bufferOffset" Number Number where
   convertOption _ _ = identity
@@ -696,7 +692,7 @@ defaultPlayBuf :: { | PlayBufOptional }
 defaultPlayBuf =
   { bufferOffset: 0.0
   , playbackRate: 1.0
-  , duration: nothing
+  , duration: Nothing
   }
 
 class InitialPlayBuf i where

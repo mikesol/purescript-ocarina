@@ -7,7 +7,7 @@ import Data.Tuple (Tuple(..))
 import Data.Tuple.Nested ((/\))
 import Deku.Attribute (cb, (:=))
 import Deku.Control (text)
-import Deku.Core (Element, Domable)
+import Deku.Core as DC
 import Deku.DOM as D
 import Effect (Effect)
 import Effect.Aff (Aff, Fiber, error, joinFiber, killFiber, launchAff, launchAff_, parallel, sequential)
@@ -77,7 +77,7 @@ audioWrapper
   -> CancelCurrentAudio
   -> (AudioContext -> Aff a)
   -> (AudioContext -> a -> Effect (Effect Unit))
-  -> Event (Domable Effect lock payload)
+  -> Event (DC.Domable Effect lock payload)
 audioWrapper ev cca init i = bus \push event' ->
     let
       event = mkWrapperEvent ev event'
@@ -102,7 +102,7 @@ audioWrapperSpan
   -> CancelCurrentAudio
   -> (AudioContext -> Aff a)
   -> (AudioContext -> a -> Effect (Effect Unit))
-  -> Event (Domable Effect lock payload)
+  -> Event (DC.Domable Effect lock payload)
 audioWrapperSpan txt ev cca init i = bus \push event' ->
     let
       event = mkWrapperEvent ev event'

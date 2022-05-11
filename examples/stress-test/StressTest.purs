@@ -26,7 +26,7 @@ import FRP.Event (Event, bang, bus, memoize, subscribe)
 import FRP.Event.Animate (animationFrameEvent)
 import WAGS.Clock (WriteHead, fot, writeHead)
 import WAGS.Control (gain, gain_, sinOsc, speaker2)
-import WAGS.Core (Audible, AudioNumeric(..), AudioOnOff(..), _off, _on, _step, opticN, toAudible)
+import WAGS.Core (Audible, AudioNumeric(..), AudioOnOff(..), _off, _on, _step, opticN, envy)
 import WAGS.Example.Utils (RaiseCancellation)
 import WAGS.Interpret (FFIAudioSnapshot, close, context, effectfulAudioInterpret, makeFFIAudioSnapshot)
 import WAGS.Math (calcSlope)
@@ -50,7 +50,7 @@ scene
   :: forall lock payload
    . WriteHead Event
   -> Audible D2 lock payload
-scene wh = toAudible $ memoize (fot wh (mul pi)) \tr ->
+scene wh = envy $ memoize (fot wh (mul pi)) \tr ->
   let
     gso a b c st ed = gain 0.0
       ( Common.gain <$>
