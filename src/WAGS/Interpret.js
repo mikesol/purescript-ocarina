@@ -57,7 +57,9 @@ var genericSetter = function (state, unit, name, controllers, param) {
 	}
 	return protoSetter(unit[name], controllers[name], param, state);
 };
-var addToScope = function (ptr, scope, state) {
+var addToScope = function (ptr, scope$, state) {
+	// todo: unhinge from internal representation of scope...
+	const scope = scope$.value1 ? scope$.value1 : '@fan@';
 	if (!state.scopes[scope]) {
 		state.scopes[scope] = [];
 	}
@@ -83,10 +85,8 @@ var doDeferredConnections = function (ptr, state) {
 		delete state.toConnect[ptr];
 	}
 };
-var mConnectXToY_ = function (x, y, state) {
-	if (y.type === "just") {
-		connectXToYInternal_(x, y.value, state);
-	}
+var mConnectXToY_ = function (mbe, x, y$, state) {
+	mbe()((y) => connectXToYInternal_(x, y, state))(y$);
 };
 var connectXToYInternal_ = function (x, y, state) {
 	var connectF = function () {
@@ -177,763 +177,586 @@ export function disconnectXFromY_(a) {
 }
 
 // allpass
-export function makeAllpass_(a) {
-	return function (state) {
-		return function () {
-			var ptr = a.id;
-			state.units[ptr] = {
-				controllers: {},
-				audioOutgoing: [],
-				controlOutgoing: [],
-				main: new BiquadFilterNode(state.context, {
-					type: "allpass",
-					Q: a.q,
-					frequency: a.frequency,
-				}),
-			};
-			addToScope(ptr, a.scope, state);
-			doDeferredConnections(ptr, state);
-			mConnectXToY_(ptr, a.parent, state);
-		};
+export const makeAllpass_ = (mbe) => (a) => (state) => () => {
+	var ptr = a.id;
+	state.units[ptr] = {
+		controllers: {},
+		audioOutgoing: [],
+		controlOutgoing: [],
+		main: new BiquadFilterNode(state.context, {
+			type: "allpass",
+			Q: a.q,
+			frequency: a.frequency,
+		}),
 	};
-}
+	addToScope(ptr, a.scope, state);
+	doDeferredConnections(ptr, state);
+	mConnectXToY_(mbe, ptr, a.parent, state);
+};
 
 // analyser
-export function makeAnalyser_(a) {
-	return function (state) {
-		return function () {
-			var ptr = a.id;
-			var analyserSideEffectFunction = a.cb;
-			var dest = new AnalyserNode(state.context, a);
-			// unsubscribe is effect unit
-			var unsubscribe = analyserSideEffectFunction(dest)();
-			state.units[ptr] = {
-				controllers: {},
-				audioOutgoing: [],
-				controlOutgoing: [],
-				analyserOrig: analyserSideEffectFunction,
-				analyser: unsubscribe,
-				main: state.context.createGain(),
-				se: dest,
-			};
-			addToScope(ptr, a.scope, state);
-			doDeferredConnections(ptr, state);
-			mConnectXToY_(ptr, a.parent, state);
-		};
+export const makeAnalyser_ = (mbe) => (a) => (state) => () => {
+	var ptr = a.id;
+	var analyserSideEffectFunction = a.cb;
+	var dest = new AnalyserNode(state.context, a);
+	// unsubscribe is effect unit
+	var unsubscribe = analyserSideEffectFunction(dest)();
+	state.units[ptr] = {
+		controllers: {},
+		audioOutgoing: [],
+		controlOutgoing: [],
+		analyserOrig: analyserSideEffectFunction,
+		analyser: unsubscribe,
+		main: state.context.createGain(),
+		se: dest,
 	};
-}
+	addToScope(ptr, a.scope, state);
+	doDeferredConnections(ptr, state);
+	mConnectXToY_(mbe, ptr, a.parent, state);
+};
 
 // audio worklet node
-export function makeAudioWorkletNode_(a) {
-	return function (state) {
-		return function () {
-			var ptr = a.id;
-			var opts = a.options;
-			state.units[ptr] = {
-				controllers: {},
-				audioOutgoing: [],
-				controlOutgoing: [],
-				main: new AudioWorkletNode(state.context, opts.name, {
-					numberOfInputs: opts.numberOfInputs,
-					numberOfOutputs: opts.numberOfOutputs,
-					outputChannelCount: opts.outputChannelCount,
-					parameterData: opts.parameterData,
-					processorOptions: opts.processorOptions,
-				}),
-			};
-			addToScope(ptr, a.scope, state);
-			doDeferredConnections(ptr, state);
-			mConnectXToY_(ptr, a.parent, state);
-		};
+export const makeAudioWorkletNode_ = (mbe) => (a) => (state) => () => {
+	var ptr = a.id;
+	var opts = a.options;
+	state.units[ptr] = {
+		controllers: {},
+		audioOutgoing: [],
+		controlOutgoing: [],
+		main: new AudioWorkletNode(state.context, opts.name, {
+			numberOfInputs: opts.numberOfInputs,
+			numberOfOutputs: opts.numberOfOutputs,
+			outputChannelCount: opts.outputChannelCount,
+			parameterData: opts.parameterData,
+			processorOptions: opts.processorOptions,
+		}),
 	};
-}
+	addToScope(ptr, a.scope, state);
+	doDeferredConnections(ptr, state);
+	mConnectXToY_(mbe, ptr, a.parent, state);
+};
 
 // bandpass
-export function makeBandpass_(a) {
-	return function (state) {
-		return function () {
-			var ptr = a.id;
-			state.units[ptr] = {
-				controllers: {},
-				audioOutgoing: [],
-				controlOutgoing: [],
-				main: new BiquadFilterNode(state.context, {
-					type: "bandpass",
-					Q: a.q,
-					frequency: a.frequency,
-				}),
-			};
-			addToScope(ptr, a.scope, state);
-			doDeferredConnections(ptr, state);
-			mConnectXToY_(ptr, a.parent, state);
-		};
+export const makeBandpass_ = (mbe) => (a) => (state) => () => {
+	var ptr = a.id;
+	state.units[ptr] = {
+		controllers: {},
+		audioOutgoing: [],
+		controlOutgoing: [],
+		main: new BiquadFilterNode(state.context, {
+			type: "bandpass",
+			Q: a.q,
+			frequency: a.frequency,
+		}),
 	};
-}
+	addToScope(ptr, a.scope, state);
+	doDeferredConnections(ptr, state);
+	mConnectXToY_(mbe, ptr, a.parent, state);
+};
 
 // constant
-export function makeConstant_(a) {
-	return function (state) {
-		return function () {
-			var ptr = a.id;
-			// var onOff = a.onOff;
-			var createClosure = function (context, i) {
-				return new ConstantSourceNode(context, i);
-			};
-			var resume = { offset: a.offset };
-			state.units[ptr] = {
-				controllers: {},
-				audioOutgoing: [],
-				controlOutgoing: [],
-				resume: resume,
-				createClosure: createClosure,
-				onOff: false,
-				pendingOn: true,
-				main: createClosure(state.context, resume), // needed so that setters don't error out, even though not started yet
-			};
-			addToScope(ptr, a.scope, state);
-			doDeferredConnections(ptr, state);
-			mConnectXToY_(ptr, a.parent, state);
-			// var oo = isOn(onOff.onOff);
-			// if (oo) {
-			// 	state.units[ptr].main.start(
-			// 		state.deprecatedWriteHead + onOff.timeOffset
-			// 	);
-			// }
-			// state.units[ptr].onOff = oo;
-		};
+export const makeConstant_ = (mbe) => (a) => (state) => () => {
+	var ptr = a.id;
+	// var onOff = a.onOff;
+	var createClosure = function (context, i) {
+		return new ConstantSourceNode(context, i);
 	};
-}
+	var resume = { offset: a.offset };
+	state.units[ptr] = {
+		controllers: {},
+		audioOutgoing: [],
+		controlOutgoing: [],
+		resume: resume,
+		createClosure: createClosure,
+		onOff: false,
+		pendingOn: true,
+		main: createClosure(state.context, resume), // needed so that setters don't error out, even though not started yet
+	};
+	addToScope(ptr, a.scope, state);
+	doDeferredConnections(ptr, state);
+	mConnectXToY_(mbe, ptr, a.parent, state);
+};
 
-export function makeConvolver_(a) {
-	return function (state) {
-		return function () {
-			var ptr = a.id;
-			state.units[ptr] = {
-				controllers: {},
-				audioOutgoing: [],
-				controlOutgoing: [],
-				main: new ConvolverNode(state.context, { buffer: a.buffer }),
-			};
-			addToScope(ptr, a.scope, state);
-			doDeferredConnections(ptr, state);
-			mConnectXToY_(ptr, a.parent, state);
-		};
+export const makeConvolver_ = (mbe) => (a) => (state) => () => {
+	var ptr = a.id;
+	state.units[ptr] = {
+		controllers: {},
+		audioOutgoing: [],
+		controlOutgoing: [],
+		main: new ConvolverNode(state.context, { buffer: a.buffer }),
 	};
-}
+	addToScope(ptr, a.scope, state);
+	doDeferredConnections(ptr, state);
+	mConnectXToY_(mbe, ptr, a.parent, state);
+};
 
 // delay
-export function makeDelay_(a) {
-	return function (state) {
-		return function () {
-			var ptr = a.id;
-			state.units[ptr] = {
-				controllers: {},
-				audioOutgoing: [],
-				controlOutgoing: [],
-				main: new DelayNode(state.context, {
-					delayTime: a.delayTime,
-					maxDelayTime: a.maxDelayTime,
-				}),
-			};
-			addToScope(ptr, a.scope, state);
-			doDeferredConnections(ptr, state);
-			mConnectXToY_(ptr, a.parent, state);
-		};
+export const makeDelay_ = (mbe) => (a) => (state) => () => {
+	var ptr = a.id;
+	state.units[ptr] = {
+		controllers: {},
+		audioOutgoing: [],
+		controlOutgoing: [],
+		main: new DelayNode(state.context, {
+			delayTime: a.delayTime,
+			maxDelayTime: a.maxDelayTime,
+		}),
 	};
-}
+	addToScope(ptr, a.scope, state);
+	doDeferredConnections(ptr, state);
+	mConnectXToY_(mbe, ptr, a.parent, state);
+};
 
 // dynamicsCompressor
-export function makeDynamicsCompressor_(a) {
-	return function (state) {
-		return function () {
-			var ptr = a.id;
-			state.units[ptr] = {
-				controllers: {},
-				audioOutgoing: [],
-				controlOutgoing: [],
-				main: new DynamicsCompressorNode(state.context, {
-					knee: a.knee,
-					ratio: a.ratio,
-					threshold: a.threshold,
-					attack: a.attack,
-					release: a.release,
-				}),
-			};
-			addToScope(ptr, a.scope, state);
-			doDeferredConnections(ptr, state);
-			mConnectXToY_(ptr, a.parent, state);
-		};
+export const makeDynamicsCompressor_ = (mbe) => (a) => (state) => () => {
+	var ptr = a.id;
+	state.units[ptr] = {
+		controllers: {},
+		audioOutgoing: [],
+		controlOutgoing: [],
+		main: new DynamicsCompressorNode(state.context, {
+			knee: a.knee,
+			ratio: a.ratio,
+			threshold: a.threshold,
+			attack: a.attack,
+			release: a.release,
+		}),
 	};
-}
-
-// gain
-var makeGain_ = function (a) {
-	return function (state) {
-		return function () {
-			var ptr = a.id;
-			state.units[ptr] = {
-				controllers: {},
-				audioOutgoing: [],
-				controlOutgoing: [],
-				main: new GainNode(state.context, {
-					gain: a.gain,
-				}),
-			};
-			addToScope(ptr, a.scope, state);
-			doDeferredConnections(ptr, state);
-			mConnectXToY_(ptr, a.parent, state);
-		};
-	};
+	addToScope(ptr, a.scope, state);
+	doDeferredConnections(ptr, state);
+	mConnectXToY_(mbe, ptr, a.parent, state);
 };
-export { makeGain_ };
+// gain
+export const makeGain_ = (mbe) => (a) => (state) => () => {
+	var ptr = a.id;
+	state.units[ptr] = {
+		controllers: {},
+		audioOutgoing: [],
+		controlOutgoing: [],
+		main: new GainNode(state.context, {
+			gain: a.gain,
+		}),
+	};
+	addToScope(ptr, a.scope, state);
+	doDeferredConnections(ptr, state);
+	mConnectXToY_(mbe, ptr, a.parent, state);
+};
 
 // highpass
-export function makeHighpass_(a) {
-	return function (state) {
-		return function () {
-			var ptr = a.id;
-			state.units[ptr] = {
-				controllers: {},
-				audioOutgoing: [],
-				controlOutgoing: [],
-				main: new BiquadFilterNode(state.context, {
-					type: "highpass",
-					Q: a.q,
-					frequency: a.frequency,
-				}),
-			};
-			addToScope(ptr, a.scope, state);
-			doDeferredConnections(ptr, state);
-			mConnectXToY_(ptr, a.parent, state);
-		};
+export const makeHighpass_ = (mbe) => (a) => (state) => () => {
+	var ptr = a.id;
+	state.units[ptr] = {
+		controllers: {},
+		audioOutgoing: [],
+		controlOutgoing: [],
+		main: new BiquadFilterNode(state.context, {
+			type: "highpass",
+			Q: a.q,
+			frequency: a.frequency,
+		}),
 	};
-}
+	addToScope(ptr, a.scope, state);
+	doDeferredConnections(ptr, state);
+	mConnectXToY_(mbe, ptr, a.parent, state);
+};
 
 // highshelf
-export function makeHighshelf_(a) {
-	return function (state) {
-		return function () {
-			var ptr = a.id;
-			state.units[ptr] = {
-				controllers: {},
-				audioOutgoing: [],
-				controlOutgoing: [],
-				main: new BiquadFilterNode(state.context, {
-					type: "highshelf",
-					frequency: a.frequency,
-					gain: a.gain,
-				}),
-			};
-			addToScope(ptr, a.scope, state);
-			doDeferredConnections(ptr, state);
-			mConnectXToY_(ptr, a.parent, state);
-		};
+export const makeHighshelf_ = (mbe) => (a) => (state) => () => {
+	var ptr = a.id;
+	state.units[ptr] = {
+		controllers: {},
+		audioOutgoing: [],
+		controlOutgoing: [],
+		main: new BiquadFilterNode(state.context, {
+			type: "highshelf",
+			frequency: a.frequency,
+			gain: a.gain,
+		}),
 	};
-}
+	addToScope(ptr, a.scope, state);
+	doDeferredConnections(ptr, state);
+	mConnectXToY_(mbe, ptr, a.parent, state);
+};
 
-export function makeIIRFilter_(a) {
-	return function (state) {
-		return function () {
-			var ptr = a.id;
-			state.units[ptr] = {
-				controllers: {},
-				audioOutgoing: [],
-				controlOutgoing: [],
-				main: new IIRFilterNode(state.context, {
-					feedforward: a.feedforward,
-					feedback: a.feedback,
-				}),
-			};
-			addToScope(ptr, a.scope, state);
-			doDeferredConnections(ptr, state);
-			mConnectXToY_(ptr, a.parent, state);
-		};
+export const makeIIRFilter_ = (mbe) => (a) => (state) => () => {
+	var ptr = a.id;
+	state.units[ptr] = {
+		controllers: {},
+		audioOutgoing: [],
+		controlOutgoing: [],
+		main: new IIRFilterNode(state.context, {
+			feedforward: a.feedforward,
+			feedback: a.feedback,
+		}),
 	};
-}
+	addToScope(ptr, a.scope, state);
+	doDeferredConnections(ptr, state);
+	mConnectXToY_(mbe, ptr, a.parent, state);
+};
 
 // loopBuf
-export function makeLoopBuf_(a) {
-	return function (state) {
-		return function () {
-			var ptr = a.id;
-			// var onOff = a.onOff;
-			var createClosure = function (context, i) {
-				return new AudioBufferSourceNode(context, i);
-			};
-			var resume = {
-				loop: true,
-				buffer: a.buffer,
-				loopStart: a.loopStart,
-				loopEnd: a.loopEnd,
-				playbackRate: a.playbackRate,
-			};
-			state.units[ptr] = {
-				controllers: {},
-				audioOutgoing: [],
-				controlOutgoing: [],
-				resume: resume,
-				createClosure: createClosure,
-				onOff: false,
-				pendingOn: true,
-				main: createClosure(state.context, resume), // needed so that setters don't error out, even though not started yet
-			};
-			addToScope(ptr, a.scope, state);
-			doDeferredConnections(ptr, state);
-			mConnectXToY_(ptr, a.parent, state);
-			// var oo = isOn(onOff.onOff);
-			// if (oo) {
-			// 	state.units[ptr].main.start(
-			// 		state.deprecatedWriteHead + onOff.timeOffset
-			// 	);
-			// }
-			// state.units[ptr].onOff = oo;
-		};
+export const makeLoopBuf_ = (mbe) => (a) => (state) => () => {
+	var ptr = a.id;
+	// var onOff = a.onOff;
+	var createClosure = function (context, i) {
+		return new AudioBufferSourceNode(context, i);
 	};
-}
+	var resume = {
+		loop: true,
+		buffer: a.buffer,
+		loopStart: a.loopStart,
+		loopEnd: a.loopEnd,
+		playbackRate: a.playbackRate,
+	};
+	state.units[ptr] = {
+		controllers: {},
+		audioOutgoing: [],
+		controlOutgoing: [],
+		resume: resume,
+		createClosure: createClosure,
+		onOff: false,
+		pendingOn: true,
+		main: createClosure(state.context, resume), // needed so that setters don't error out, even though not started yet
+	};
+	addToScope(ptr, a.scope, state);
+	doDeferredConnections(ptr, state);
+	mConnectXToY_(mbe, ptr, a.parent, state);
+};
 
 // lowpass
-export function makeLowpass_(a) {
-	return function (state) {
-		return function () {
-			var ptr = a.id;
-			state.units[ptr] = {
-				controllers: {},
-				audioOutgoing: [],
-				controlOutgoing: [],
-				main: new BiquadFilterNode(state.context, {
-					type: "lowpass",
-					Q: a.q,
-					frequency: a.frequency,
-				}),
-			};
-			addToScope(ptr, a.scope, state);
-			doDeferredConnections(ptr, state);
-			mConnectXToY_(ptr, a.parent, state);
-		};
+export const makeLowpass_ = (mbe) => (a) => (state) => () => {
+	var ptr = a.id;
+	state.units[ptr] = {
+		controllers: {},
+		audioOutgoing: [],
+		controlOutgoing: [],
+		main: new BiquadFilterNode(state.context, {
+			type: "lowpass",
+			Q: a.q,
+			frequency: a.frequency,
+		}),
 	};
-}
+	addToScope(ptr, a.scope, state);
+	doDeferredConnections(ptr, state);
+	mConnectXToY_(mbe, ptr, a.parent, state);
+};
 
 // lowshelf
-export function makeLowshelf_(a) {
-	return function (state) {
-		return function () {
-			var ptr = a.id;
-			state.units[ptr] = {
-				controllers: {},
-				audioOutgoing: [],
-				controlOutgoing: [],
-				main: new BiquadFilterNode(state.context, {
-					type: "lowshelf",
-					frequency: a.frequency,
-					gain: a.gain,
-				}),
-			};
-			addToScope(ptr, a.scope, state);
-			doDeferredConnections(ptr, state);
-			mConnectXToY_(ptr, a.parent, state);
-		};
+export const makeLowshelf_ = (mbe) => (a) => (state) => () => {
+	var ptr = a.id;
+	state.units[ptr] = {
+		controllers: {},
+		audioOutgoing: [],
+		controlOutgoing: [],
+		main: new BiquadFilterNode(state.context, {
+			type: "lowshelf",
+			frequency: a.frequency,
+			gain: a.gain,
+		}),
 	};
-}
+	addToScope(ptr, a.scope, state);
+	doDeferredConnections(ptr, state);
+	mConnectXToY_(mbe, ptr, a.parent, state);
+};
 
 // media element
 
-export function makeMediaElement_(a) {
-	return function (state) {
-		return function () {
-			var ptr = a.id;
-			var elt = a.element;
-			var createClosure = function () {
-				var unit = state.context.createMediaElementSource(elt);
-				return unit;
-			};
-			state.units[ptr] = {
-				controllers: {},
-				audioOutgoing: [],
-				controlOutgoing: [],
-				createClosure: createClosure,
-				resumeClosure: {},
-				main: createClosure(),
-			};
-			addToScope(ptr, a.scope, state);
-			doDeferredConnections(ptr, state);
-			mConnectXToY_(ptr, a.parent, state);
-		};
+export const makeMediaElement_ = (mbe) => (a) => (state) => () => {
+	var ptr = a.id;
+	var elt = a.element;
+	var createClosure = function () {
+		var unit = state.context.createMediaElementSource(elt);
+		return unit;
 	};
-}
-
+	state.units[ptr] = {
+		controllers: {},
+		audioOutgoing: [],
+		controlOutgoing: [],
+		createClosure: createClosure,
+		resumeClosure: {},
+		main: createClosure(),
+	};
+	addToScope(ptr, a.scope, state);
+	doDeferredConnections(ptr, state);
+	mConnectXToY_(mbe, ptr, a.parent, state);
+};
 // microphone
-export function makeMicrophone_(a) {
-	return function (state) {
-		return function () {
-			var ptr = a.id;
-			state.units[a.id] = {
-				main: state.context.createMediaStreamSource(a.microphone),
-				controllers: {},
-				audioOutgoing: [],
-				controlOutgoing: [],
-			};
-			addToScope(ptr, a.scope, state);
-			doDeferredConnections(ptr, state);
-			mConnectXToY_(ptr, a.parent, state);
-		};
+export const makeMicrophone_ = (mbe) => (a) => (state) => () => {
+	var ptr = a.id;
+	state.units[a.id] = {
+		main: state.context.createMediaStreamSource(a.microphone),
+		controllers: {},
+		audioOutgoing: [],
+		controlOutgoing: [],
 	};
-}
+	addToScope(ptr, a.scope, state);
+	doDeferredConnections(ptr, state);
+	mConnectXToY_(mbe, ptr, a.parent, state);
+};
 
 // notch
-export function makeNotch_(a) {
-	return function (state) {
-		return function () {
-			var ptr = a.id;
-			state.units[ptr] = {
-				controllers: {},
-				audioOutgoing: [],
-				controlOutgoing: [],
-				main: new BiquadFilterNode(state.context, {
-					type: "notch",
-					frequency: a.frequency,
-					Q: a.q,
-				}),
-			};
-			addToScope(ptr, a.scope, state);
-			doDeferredConnections(ptr, state);
-			mConnectXToY_(ptr, a.parent, state);
-		};
+export const makeNotch_ = (mbe) => (a) => (state) => () => {
+	var ptr = a.id;
+	state.units[ptr] = {
+		controllers: {},
+		audioOutgoing: [],
+		controlOutgoing: [],
+		main: new BiquadFilterNode(state.context, {
+			type: "notch",
+			frequency: a.frequency,
+			Q: a.q,
+		}),
 	};
-}
+	addToScope(ptr, a.scope, state);
+	doDeferredConnections(ptr, state);
+	mConnectXToY_(mbe, ptr, a.parent, state);
+};
 
 // peaking
-export function makePeaking_(a) {
-	return function (state) {
-		return function () {
-			var ptr = a.id;
-			state.units[ptr] = {
-				controllers: {},
-				audioOutgoing: [],
-				controlOutgoing: [],
-				main: new BiquadFilterNode(state.context, {
-					type: "peaking",
-					frequency: a.frequency,
-					Q: a.q,
-					gain: a.gain,
-				}),
-			};
-			addToScope(ptr, a.scope, state);
-			doDeferredConnections(ptr, state);
-			mConnectXToY_(ptr, a.parent, state);
-		};
+export const makePeaking_ = (mbe) => (a) => (state) => () => {
+	var ptr = a.id;
+	state.units[ptr] = {
+		controllers: {},
+		audioOutgoing: [],
+		controlOutgoing: [],
+		main: new BiquadFilterNode(state.context, {
+			type: "peaking",
+			frequency: a.frequency,
+			Q: a.q,
+			gain: a.gain,
+		}),
 	};
-}
+	addToScope(ptr, a.scope, state);
+	doDeferredConnections(ptr, state);
+	mConnectXToY_(mbe, ptr, a.parent, state);
+};
 
 // periodic osc
-export function makePeriodicOsc_(a) {
-	return function (state) {
-		return function () {
-			var ptr = a.id;
-			// var onOff = a.onOff;
-			var createClosure = function (context, i) {
-				var opts = {
-					frequency: i.frequency,
-					periodicWave:
-						i.spec.type === "wave"
-							? i.spec.value
-							: makePeriodicWaveImpl(state.context)(i.spec.value.real)(
-									i.spec.value.img
-							  )(),
-				};
-				var o = new OscillatorNode(context, opts);
-				return o;
-			};
-			var resume = { frequency: a.frequency, type: "custom", spec: a.spec };
-			state.units[ptr] = {
-				controllers: {},
-				audioOutgoing: [],
-				controlOutgoing: [],
-				resume: resume,
-				createClosure: createClosure,
-				onOff: false,
-				pendingOn: true,
-				main: createClosure(state.context, resume), // needed so that setters don't error out, even though not started yet
-			};
-			addToScope(ptr, a.scope, state);
-			doDeferredConnections(ptr, state);
-			mConnectXToY_(ptr, a.parent, state);
-			// var oo = isOn(onOff.onOff);
-			// if (oo) {
-			// 	state.units[ptr].main.start(
-			// 		state.deprecatedWriteHead + onOff.timeOffset
-			// 	);
-			// }
-			// state.units[ptr].onOff = oo;
+export const makePeriodicOsc_ = (mbe) => (a) => (state) => () => {
+	var ptr = a.id;
+	// var onOff = a.onOff;
+	var createClosure = function (context, i) {
+		var opts = {
+			frequency: i.frequency,
+			periodicWave:
+				i.spec.type === "wave"
+					? i.spec.value
+					: makePeriodicWaveImpl(state.context)(i.spec.value.real)(
+							i.spec.value.img
+					  )(),
 		};
+		var o = new OscillatorNode(context, opts);
+		return o;
 	};
-}
+	var resume = { frequency: a.frequency, type: "custom", spec: a.spec };
+	state.units[ptr] = {
+		controllers: {},
+		audioOutgoing: [],
+		controlOutgoing: [],
+		resume: resume,
+		createClosure: createClosure,
+		onOff: false,
+		pendingOn: true,
+		main: createClosure(state.context, resume), // needed so that setters don't error out, even though not started yet
+	};
+	addToScope(ptr, a.scope, state);
+	doDeferredConnections(ptr, state);
+	mConnectXToY_(mbe, ptr, a.parent, state);
+};
 
 // playBuf
-export function makePlayBuf_(a) {
-	return function (state) {
-		return function () {
-			var ptr = a.id;
-			// var onOff = a.onOff;
-			var createClosure = function (context, i) {
-				var opts = {
-					loop: i.loop,
-					buffer: i.buffer,
-					playbackRate: i.playbackRate,
-				};
-				return new AudioBufferSourceNode(context, opts);
-			};
-			var resume = {
-				loop: false,
-				buffer: a.buffer,
-				playbackRate: a.playbackRate,
-				bufferOffset: a.bufferOffset,
-				duration: a.duration,
-			};
-			state.units[ptr] = {
-				controllers: {},
-				audioOutgoing: [],
-				controlOutgoing: [],
-				resume: resume,
-				createClosure: createClosure,
-				onOff: false,
-				pendingOn: true,
-				main: createClosure(state.context, resume), // needed so that setters don't error out, even though not started yet
-			};
-			addToScope(ptr, a.scope, state);
-			doDeferredConnections(ptr, state);
-			mConnectXToY_(ptr, a.parent, state);
-			// var oo = isOn(onOff.onOff);
-			// if (oo) {
-			// 	state.units[ptr].main.start(
-			// 		state.deprecatedWriteHead + onOff.timeOffset,
-			// 		a.bufferOffset,
-			// 		a.duration.type === "just" ? a.duration.value : undefined
-			// 	);
-			// }
-			// state.units[ptr].onOff = oo;
+export const makePlayBuf_ = (mbe) => (a) => (state) => () => {
+	var ptr = a.id;
+	// var onOff = a.onOff;
+	var createClosure = function (context, i) {
+		var opts = {
+			loop: i.loop,
+			buffer: i.buffer,
+			playbackRate: i.playbackRate,
 		};
+		return new AudioBufferSourceNode(context, opts);
 	};
-}
+	var resume = {
+		loop: false,
+		buffer: a.buffer,
+		playbackRate: a.playbackRate,
+		bufferOffset: a.bufferOffset,
+		duration: mbe(undefined)((x) => x)(a.duration),
+	};
+	state.units[ptr] = {
+		controllers: {},
+		audioOutgoing: [],
+		controlOutgoing: [],
+		resume: resume,
+		createClosure: createClosure,
+		onOff: false,
+		pendingOn: true,
+		main: createClosure(state.context, resume), // needed so that setters don't error out, even though not started yet
+	};
+	addToScope(ptr, a.scope, state);
+	doDeferredConnections(ptr, state);
+	mConnectXToY_(mbe, ptr, a.parent, state);
+};
 
 // recorder
-export function makeRecorder_(a) {
-	return function (state) {
-		return function () {
-			var ptr = a.id;
-			var mediaRecorderSideEffectFn = a.cb;
-			var dest = state.context.createMediaStreamDestination();
-			var mediaRecorder = new MediaRecorder(dest.stream);
-			mediaRecorderSideEffectFn(mediaRecorder)();
-			mediaRecorder.start();
-			state.units[ptr] = {
-				controllers: {},
-				audioOutgoing: [],
-				controlOutgoing: [],
-				recorderOrig: mediaRecorderSideEffectFn,
-				recorder: mediaRecorder,
-				main: state.context.createGain(),
-				se: dest,
-			};
-			addToScope(ptr, a.scope, state);
-			doDeferredConnections(ptr, state);
-			mConnectXToY_(ptr, a.parent, state);
-		};
+export const makeRecorder_ = (mbe) => (a) => (state) => () => {
+	var ptr = a.id;
+	var mediaRecorderSideEffectFn = a.cb;
+	var dest = state.context.createMediaStreamDestination();
+	var mediaRecorder = new MediaRecorder(dest.stream);
+	mediaRecorderSideEffectFn(mediaRecorder)();
+	mediaRecorder.start();
+	state.units[ptr] = {
+		controllers: {},
+		audioOutgoing: [],
+		controlOutgoing: [],
+		recorderOrig: mediaRecorderSideEffectFn,
+		recorder: mediaRecorder,
+		main: state.context.createGain(),
+		se: dest,
 	};
-}
+	addToScope(ptr, a.scope, state);
+	doDeferredConnections(ptr, state);
+	mConnectXToY_(mbe, ptr, a.parent, state);
+};
 
 // sawtooth osc
-export function makeSawtoothOsc_(a) {
-	return function (state) {
-		return function () {
-			var ptr = a.id;
-			// var onOff = a.onOff;
-			var createClosure = function (context, i) {
-				return new OscillatorNode(context, i);
-			};
-			var resume = { frequency: a.frequency, type: "sawtooth" };
-			state.units[ptr] = {
-				controllers: {},
-				audioOutgoing: [],
-				controlOutgoing: [],
-				resume: resume,
-				createClosure: createClosure,
-				onOff: false,
-				pendingOn: true,
-				main: createClosure(state.context, resume), // needed so that setters don't error out, even though not started yet
-			};
-			addToScope(ptr, a.scope, state);
-			doDeferredConnections(ptr, state);
-			mConnectXToY_(ptr, a.parent, state);
-			// var oo = isOn(onOff.onOff);
-			// if (oo) {
-			// 	state.units[ptr].main.start(
-			// 		state.deprecatedWriteHead + onOff.timeOffset
-			// 	);
-			// }
-			// state.units[ptr].onOff = oo;
-		};
+export const makeSawtoothOsc_ = (mbe) => (a) => (state) => () => {
+	var ptr = a.id;
+	// var onOff = a.onOff;
+	var createClosure = function (context, i) {
+		return new OscillatorNode(context, i);
 	};
-}
+	var resume = { frequency: a.frequency, type: "sawtooth" };
+	state.units[ptr] = {
+		controllers: {},
+		audioOutgoing: [],
+		controlOutgoing: [],
+		resume: resume,
+		createClosure: createClosure,
+		onOff: false,
+		pendingOn: true,
+		main: createClosure(state.context, resume), // needed so that setters don't error out, even though not started yet
+	};
+	addToScope(ptr, a.scope, state);
+	doDeferredConnections(ptr, state);
+	mConnectXToY_(mbe, ptr, a.parent, state);
+};
 
 // sine osc
-export function makeSinOsc_(a) {
-	return function (state) {
-		return function () {
-			var ptr = a.id;
-			// var onOff = a.onOff;
-			var createClosure = function (context, i) {
-				return new OscillatorNode(context, i);
-			};
-			var resume = { frequency: a.frequency, type: "sine" };
-			state.units[ptr] = {
-				controllers: {},
-				audioOutgoing: [],
-				controlOutgoing: [],
-				resume: resume,
-				createClosure: createClosure,
-				onOff: false,
-				pendingOn: true,
-				main: createClosure(state.context, resume), // needed so that setters don't error out, even though not started yet
-			};
-			addToScope(ptr, a.scope, state);
-			doDeferredConnections(ptr, state);
-			mConnectXToY_(ptr, a.parent, state);
-			// var oo = isOn(onOff.onOff);
-			// if (oo) {
-			// 	state.units[ptr].main.start(
-			// 		state.deprecatedWriteHead + onOff.timeOffset
-			// 	);
-			// }
-			// state.units[ptr].onOff = oo;
-		};
+export const makeSinOsc_ = (mbe) => (a) => (state) => () => {
+	var ptr = a.id;
+	// var onOff = a.onOff;
+	var createClosure = function (context, i) {
+		return new OscillatorNode(context, i);
 	};
-}
+	var resume = { frequency: a.frequency, type: "sine" };
+	state.units[ptr] = {
+		controllers: {},
+		audioOutgoing: [],
+		controlOutgoing: [],
+		resume: resume,
+		createClosure: createClosure,
+		onOff: false,
+		pendingOn: true,
+		main: createClosure(state.context, resume), // needed so that setters don't error out, even though not started yet
+	};
+	addToScope(ptr, a.scope, state);
+	doDeferredConnections(ptr, state);
+	mConnectXToY_(mbe, ptr, a.parent, state);
+};
 
 // make speaker
-export function makeSpeaker_(a) {
-	return function (state) {
-		return function () {
-			state.units[a.id] = {
-				controllers: {},
-				audioOutgoing: [],
-				controlOutgoing: [],
-				main: state.context.createGain(),
-				se: state.context.destination,
-			};
-		};
+export const makeSpeaker_ = (a) => (state) => () => {
+	state.units[a.id] = {
+		controllers: {},
+		audioOutgoing: [],
+		controlOutgoing: [],
+		main: state.context.createGain(),
+		se: state.context.destination,
 	};
-}
+};
 
 // pan
-export function makeStereoPanner_(a) {
-	return function (state) {
-		return function () {
-			var ptr = a.id;
-			state.units[ptr] = {
-				controllers: {},
-				audioOutgoing: [],
-				controlOutgoing: [],
-				main: new StereoPannerNode(state.context, {
-					pan: a.pan,
-				}),
-			};
-			addToScope(ptr, a.scope, state);
-			doDeferredConnections(ptr, state);
-			mConnectXToY_(ptr, a.parent, state);
-		};
+export const makeStereoPanner_ = (mbe) => (a) => (state) => () => {
+	var ptr = a.id;
+	state.units[ptr] = {
+		controllers: {},
+		audioOutgoing: [],
+		controlOutgoing: [],
+		main: new StereoPannerNode(state.context, {
+			pan: a.pan,
+		}),
 	};
-}
+	addToScope(ptr, a.scope, state);
+	doDeferredConnections(ptr, state);
+	mConnectXToY_(mbe, ptr, a.parent, state);
+};
 
 // square osc
-export function makeSquareOsc_(a) {
-	return function (state) {
-		return function () {
-			var ptr = a.id;
-			// var onOff = a.onOff;
-			var createClosure = function (context, i) {
-				return new OscillatorNode(context, i);
-			};
-			var resume = { frequency: a.frequency, type: "square" };
-			state.units[ptr] = {
-				controllers: {},
-				audioOutgoing: [],
-				controlOutgoing: [],
-				resume: resume,
-				createClosure: createClosure,
-				onOff: false,
-				pendingOn: true,
-				main: createClosure(state.context, resume), // needed so that setters don't error out, even though not started yet
-			};
-			addToScope(ptr, a.scope, state);
-			doDeferredConnections(ptr, state);
-			mConnectXToY_(ptr, a.parent, state);
-			// var oo = isOn(onOff.onOff);
-			// if (oo) {
-			// 	state.units[ptr].main.start(
-			// 		state.deprecatedWriteHead + onOff.timeOffset
-			// 	);
-			// }
-			// state.units[ptr].onOff = oo;
-		};
+export const makeSquareOsc_ = (mbe) => (a) => (state) => () => {
+	var ptr = a.id;
+	// var onOff = a.onOff;
+	var createClosure = function (context, i) {
+		return new OscillatorNode(context, i);
 	};
-}
+	var resume = { frequency: a.frequency, type: "square" };
+	state.units[ptr] = {
+		controllers: {},
+		audioOutgoing: [],
+		controlOutgoing: [],
+		resume: resume,
+		createClosure: createClosure,
+		onOff: false,
+		pendingOn: true,
+		main: createClosure(state.context, resume), // needed so that setters don't error out, even though not started yet
+	};
+	addToScope(ptr, a.scope, state);
+	doDeferredConnections(ptr, state);
+	mConnectXToY_(mbe, ptr, a.parent, state);
+};
 
 // triangle osc
-export function makeTriangleOsc_(a) {
-	return function (state) {
-		return function () {
-			var ptr = a.id;
-			// var onOff = a.onOff;
-			var createClosure = function (context, i) {
-				return new OscillatorNode(context, i);
-			};
-			var resume = { frequency: a.frequency, type: "triangle" };
-			state.units[ptr] = {
-				controllers: {},
-				audioOutgoing: [],
-				controlOutgoing: [],
-				resume: resume,
-				createClosure: createClosure,
-				onOff: false,
-				pendingOn: true,
-				main: createClosure(state.context, resume), // needed so that setters don't error out, even though not started yet
-			};
-			addToScope(ptr, a.scope, state);
-			doDeferredConnections(ptr, state);
-			mConnectXToY_(ptr, a.parent, state);
-			// var oo = isOn(onOff.onOff);
-			// if (oo) {
-			// 	state.units[ptr].main.start(
-			// 		state.deprecatedWriteHead + onOff.timeOffset
-			// 	);
-			// }
-			// state.units[ptr].onOff = oo;
-		};
+export const makeTriangleOsc_ = (mbe) => (a) => (state) => () => {
+	var ptr = a.id;
+	// var onOff = a.onOff;
+	var createClosure = function (context, i) {
+		return new OscillatorNode(context, i);
 	};
-}
+	var resume = { frequency: a.frequency, type: "triangle" };
+	state.units[ptr] = {
+		controllers: {},
+		audioOutgoing: [],
+		controlOutgoing: [],
+		resume: resume,
+		createClosure: createClosure,
+		onOff: false,
+		pendingOn: true,
+		main: createClosure(state.context, resume), // needed so that setters don't error out, even though not started yet
+	};
+	addToScope(ptr, a.scope, state);
+	doDeferredConnections(ptr, state);
+	mConnectXToY_(mbe, ptr, a.parent, state);
+};
 
 // wave shaper
-export function makeWaveShaper_(aa) {
-	return function (state) {
-		return function () {
-			var ptr = aa.id;
-			var a = aa.curve;
-			var b = aa.oversample;
-			state.units[ptr] = {
-				controllers: {},
-				audioOutgoing: [],
-				controlOutgoing: [],
-				main: new WaveShaperNode(state.context, {
-					curve: a,
-					oversample: b.type,
-				}),
-			};
-			addToScope(ptr, aa.scope, state);
-			doDeferredConnections(ptr, state);
-			mConnectXToY_(ptr, aa.parent, state);
-		};
+export const makeWaveShaper_ = (mbe) => (a) => (state) => () => {
+	var ptr = a.id;
+	var curve = a.curve;
+	var b = a.oversample;
+	state.units[ptr] = {
+		controllers: {},
+		audioOutgoing: [],
+		controlOutgoing: [],
+		main: new WaveShaperNode(state.context, {
+			curve: curve,
+			oversample: b.type,
+		}),
 	};
-}
+	addToScope(ptr, a.scope, state);
+	doDeferredConnections(ptr, state);
+	mConnectXToY_(mbe, ptr, a.parent, state);
+};
 
 // set analyser
 
@@ -1144,12 +967,14 @@ export function setBufferOffset_(aa) {
 	};
 }
 
-export function setDuration_(aa) {
-	return function (state) {
-		return function () {
-			var ptr = aa.id;
-			var a = aa.duration;
-			state.units[ptr].duration = a;
+export function setDuration_(mbe) {
+	return function (aa) {
+		return function (state) {
+			return function () {
+				var ptr = aa.id;
+				var a = aa.duration;
+				state.units[ptr].duration = mbe(undefined)((x) => x)(a);
+			};
 		};
 	};
 }
@@ -1326,11 +1151,11 @@ var setOn_ = function (ptr) {
 					}
 				}
 				if (state.units[ptr].resume && state.units[ptr].resume.bufferOffset) {
-					if (state.units[ptr].resume.duration.type === "just") {
+					if (typeof state.units[ptr].resume.duration === "number") {
 						state.units[ptr].main.start(
 							state.deprecatedWriteHead + onOffInstr.o,
 							state.units[ptr].resume.bufferOffset,
-							state.units[ptr].resume.duration.value
+							state.units[ptr].resume.duration
 						);
 					} else {
 						state.units[ptr].main.start(

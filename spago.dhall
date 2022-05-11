@@ -11,7 +11,6 @@
   , "effect"
   , "either"
   , "event"
-  , "everythings-better-with-variants"
   , "exceptions"
   , "fast-vect"
   , "foldable-traversable"

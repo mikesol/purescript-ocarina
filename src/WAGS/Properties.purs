@@ -2,9 +2,9 @@ module WAGS.Properties where
 
 import Prelude
 
+import Data.Maybe (Maybe)
 import Data.Newtype (class Newtype, wrap)
 import Data.Variant (Variant, inj)
-import Data.Variant.Maybe (Maybe)
 import Type.Proxy (Proxy(..))
 import WAGS.Core (class ToAudioOnOff, class ToAudioParameter, AudioOnOff, AudioParameter, toAudioOnOff, toAudioParameter)
 import WAGS.WebAPI (BrowserAudioBuffer)
