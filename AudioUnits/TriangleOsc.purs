@@ -2,7 +2,7 @@ module WAGS.Example.Docs.AudioUnits.TriangleOsc where
 
 import Prelude
 
-import Deku.Core (Domable, Element, toDOM)
+import Deku.Core (Domable, envy)
 import Deku.Pursx (nut, (~~))
 import Effect (Effect)
 import FRP.Event (Event)
@@ -31,7 +31,7 @@ triangle
   :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable Effect lock payload
 triangle ccb _ ev = px ~~
   { periodic: nut
-      ( toDOM $ audioWrapper ev ccb (\_ -> pure unit)
+      ( envy $ audioWrapper ev ccb (\_ -> pure unit)
           \ctx _ -> run2 ctx
   [gain_ 0.2
       [triangleOsc 448.0 bangOn]]

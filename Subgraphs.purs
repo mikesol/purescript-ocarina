@@ -2,7 +2,7 @@ module WAGS.Example.Docs.Subgraphs where
 
 import Prelude
 
-import Deku.Core (Domable, toDOM)
+import Deku.Core (Domable, envy)
 import Deku.Pursx (nut, (~~))
 import Effect (Effect)
 import FRP.Event (Event)
@@ -36,7 +36,7 @@ px =  Proxy :: Proxy """<div>
 subgraphs :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent  -> Domable Effect lock payload
 subgraphs cca' dpage ssp ev = px ~~
   { appl: nut
-      (toDOM $ audioWrapperSpan "👏" ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/277/277021_1402315-lq.mp3")
+      (envy $ audioWrapperSpan "👏" ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/277/277021_1402315-lq.mp3")
           \ctx buf -> run2 ctx [ gain_ 1.0 [ loopBuf buf bangOn ] ]
       ),
     suby: nut $ SliderEx.sgSliderEx ccb dpage ev

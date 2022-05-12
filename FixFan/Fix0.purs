@@ -2,7 +2,7 @@ module WAGS.Example.Docs.FixFan.Fix0 where
 
 import Prelude
 
-import Deku.Core (Domable, toDOM)
+import Deku.Core (Domable, envy)
 import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
 import FRP.Event (Event)
@@ -31,7 +31,7 @@ px =
 fix0 :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable Effect lock payload
 fix0 ccb _ ev = makePursx' (Proxy :: _ "@") px
   { ai0: nut
-      (toDOM $ audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/178/178660_717950-lq.mp3")
+      (envy $ audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/178/178660_717950-lq.mp3")
           \ctx buf -> run2 ctx
             [ fix
                 \b -> gain_ 1.0

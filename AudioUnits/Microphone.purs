@@ -3,7 +3,7 @@ module WAGS.Example.Docs.AudioUnits.Microphone where
 import Prelude
 
 import Data.Maybe (Maybe(..))
-import Deku.Core (Domable, Element, toDOM)
+import Deku.Core (Domable, envy)
 import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
 import FRP.Event (Event)
@@ -38,7 +38,7 @@ microphoneEx
   :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable Effect lock payload
 microphoneEx ccb _ ev = makePursx' (Proxy :: _ "@") px
   { microphone: nut
-      (toDOM $ audioWrapper ev ccb (\_ -> getMicrophoneAndCamera true false)
+      (envy $ audioWrapper ev ccb (\_ -> getMicrophoneAndCamera true false)
           \ctx { microphone: mic } -> run2 ctx
             [ case mic of
                 Just m -> fix \i -> gain_ 1.0

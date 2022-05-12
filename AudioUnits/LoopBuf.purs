@@ -2,7 +2,7 @@ module WAGS.Example.Docs.AudioUnits.LoopBuf where
 
 import Prelude
 
-import Deku.Core (Domable, Element, toDOM)
+import Deku.Core (Domable, envy)
 import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
 import FRP.Event (Event)
@@ -50,7 +50,7 @@ loopBufEx
   :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable Effect lock payload
 loopBufEx ccb _ ev = makePursx' (Proxy :: _ "@") px
   { loopBuf: nut
-      (toDOM $ audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/100/100981_1234256-lq.mp3")
+      (envy $ audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/100/100981_1234256-lq.mp3")
           \ctx buf -> run2 ctx
             [ loopBuf
                 { buffer: buf

@@ -3,7 +3,7 @@ module WAGS.Example.Docs.Params.Unit where
 import Prelude
 
 import Data.Foldable (oneOf)
-import Deku.Core (Domable, toDOM)
+import Deku.Core (Domable, envy)
 import Deku.Pursx (nut, (~~))
 import Effect (Effect)
 import FRP.Event (Event, bang)
@@ -45,7 +45,7 @@ px =
 unitEx :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable Effect lock payload
 unitEx ccb _ ev = px ~~
   { unitEx: nut
-      ( toDOM $ audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
+      ( envy $ audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
           \ctx buf -> run2 ctx
             [ loopBuf buf
                 ( oneOf

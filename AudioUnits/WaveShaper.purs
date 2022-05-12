@@ -7,7 +7,7 @@ import Data.Int (toNumber)
 import Data.Number (pi)
 import Data.Ord (abs)
 import Deku.Control (text_)
-import Deku.Core (Domable, Element, toDOM)
+import Deku.Core (Domable, envy)
 import Deku.Pursx (nut, (~~))
 import Effect (Effect)
 import FRP.Event (Event)
@@ -55,7 +55,7 @@ waveShaperEx ccb _ ev = px ~~
     [ waveShaper (makeFloatArray (makeDistortionCurve 400.0)) [ loopBuf buf bangOn ] ]"""
       )
   , waveShaper: nut
-      ( toDOM $ audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/339/339822_5121236-lq.mp3")
+      ( envy $ audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/339/339822_5121236-lq.mp3")
           \ctx buf -> do
             let
               makeDistortionCurve :: Number -> Array Number

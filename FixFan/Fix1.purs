@@ -3,7 +3,7 @@ module WAGS.Example.Docs.FixFan.Fix1 where
 import Prelude
 
 import Deku.Control (text_)
-import Deku.Core (Domable, toDOM)
+import Deku.Core (Domable, envy)
 import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
 import FRP.Event (Event)
@@ -79,7 +79,7 @@ scene buf = run2_
         ]
   ]"""
   , ai0: nut
-      (toDOM $ audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/178/178660_717950-lq.mp3")
+      (envy $ audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/178/178660_717950-lq.mp3")
           \ctx buf -> run2 ctx
             [ fan1 (playBuf buf bangOn) \b _ -> fix
                 \g0 -> gain_ 1.0

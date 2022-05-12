@@ -19,7 +19,7 @@ import Data.Tuple.Nested (type (/\), (/\))
 import Data.UInt (toNumber)
 import Deku.Attribute (attr, cb, (:=))
 import Deku.Control (text)
-import Deku.Core (Domable, Element, toDOM)
+import Deku.Core (Domable, envy)
 import Deku.DOM as D
 import Deku.Pursx (makePursx', nut)
 import Effect (Effect, foreachE)
@@ -114,7 +114,7 @@ introEx
   :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable Effect lock payload
 introEx ccb _ ev = makePursx' (Proxy :: _ "@") px
   { ex1: nut
-      ( toDOM $ vbus (Proxy :: _ UIEvents) \push event -> -- here
+      ( envy $ vbus (Proxy :: _ UIEvents) \push event -> -- here
 
           do
             let

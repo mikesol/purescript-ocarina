@@ -2,7 +2,7 @@ module WAGS.Example.Docs.AudioUnits.Convolution where
 
 import Prelude
 
-import Deku.Core (Domable, Element, toDOM)
+import Deku.Core (Domable, envy)
 import Deku.Pursx (nut, (~~))
 import Effect (Effect)
 import FRP.Event (Event)
@@ -28,7 +28,7 @@ px = Proxy :: Proxy """<section>
 convolution :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable Effect lock payload
 convolution ccb _ ev = px ~~
   { convolution: nut
-      ( toDOM $ audioWrapper ev ccb (\ctx -> { loop: _, verb: _ }
+      ( envy $ audioWrapper ev ccb (\ctx -> { loop: _, verb: _ }
          <$> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3" <*> decodeAudioDataFromUri ctx "https://cdn.jsdelivr.net/gh/andibrae/Reverb.js/Library/StMarysAbbeyReconstructionPhase3.m4a")
           \ctx {loop, verb} -> run2 ctx
             [convolver verb [loopBuf loop bangOn]]

@@ -8,7 +8,7 @@ import QualifiedDo.OneOfMap as O
 import Data.Foldable (traverse_)
 import Deku.Attribute (attr, cb, (:=))
 import Deku.Control (text, text_)
-import Deku.Core (Domable, toDOM)
+import Deku.Core (Domable, envy)
 import Deku.DOM as D
 import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
@@ -64,7 +64,7 @@ import Data.Foldable (traverse_)
 import Data.Maybe (Maybe(..), maybe)
 import Deku.Attribute (attr, cb, (:=))
 import Deku.Control (switcher, text, text_)
-import Deku.Core (Domable, toDOM)
+import Deku.Core (Domable, envy)
 import Deku.DOM as D
 import Deku.Toplevel (runInBody)
 import Effect (Effect)
@@ -108,7 +108,7 @@ main = do
      . Maybe BrowserAudioBuffer
     -> Domable Effect lock payload
   scene = maybe (D.div_ [ text_ "Loading..." ]) \buffer ->
-    D.div_ $ pure $ toDOM $ vbus (Proxy :: _ UIEvents) \push event -> do
+    D.div_ $ pure $ envy $ vbus (Proxy :: _ UIEvents) \push event -> do
       let
         sl0 = event.slider.s0
         sl1 = event.slider.s1
@@ -201,7 +201,7 @@ ex1 ccb _ ev = makePursx' (Proxy :: _ "@") px
       )
   , txt: nut (text_ txt)
   , ex1: nut
-      ( toDOM $ vbus (Proxy :: _ UIEvents) \push event -> -- here
+      ( envy $ vbus (Proxy :: _ UIEvents) \push event -> -- here
 
           do
             let
