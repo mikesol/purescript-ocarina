@@ -2,7 +2,7 @@ module WAGS.Example.Docs.AudioUnits.Delay where
 
 import Prelude
 
-import Deku.Core (Domable, Element, toDOM)
+import Deku.Core (Domable, envy)
 import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
 import FRP.Event (Event)
@@ -38,7 +38,7 @@ px =
 delay :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable Effect lock payload
 delay ccb _ ev = makePursx' (Proxy :: _ "@") px
   { delay: nut
-      ( toDOM $ audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/339/339822_5121236-lq.mp3")
+      ( envy $ audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/339/339822_5121236-lq.mp3")
           \ctx buf -> run2 ctx
             [ fan1 (playBuf buf bangOn)
                 \b _ -> gain_ 0.2

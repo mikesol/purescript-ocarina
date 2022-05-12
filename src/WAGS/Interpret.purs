@@ -5,7 +5,7 @@ import Prelude
 import Control.Bind (bindFlipped)
 import Control.Promise (Promise, toAff, toAffE)
 import Data.ArrayBuffer.Types (ArrayBuffer, Float32Array, Uint8Array)
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), maybe)
 import Data.Symbol (class IsSymbol)
 import Data.Typelevel.Num (class Lt, class Nat, class Pos, D1)
 import Data.Vec (Vec)
@@ -269,76 +269,78 @@ audioBuffer i v = AudioBuffer i (map V.toArray $ V.toArray v)
 -- foreign
 data FFIAudioSnapshot
 
+type Mbe = forall a b. b -> (a -> b) -> Maybe a -> b
+
 foreign import deleteFromCache_
   :: C.DeleteFromCache -> FFIAudioSnapshot -> Effect Unit
 foreign import disconnectXFromY_
   :: C.DisconnectXFromY -> FFIAudioSnapshot -> Effect Unit
 foreign import connectXToY_ :: C.ConnectXToY -> FFIAudioSnapshot -> Effect Unit
-foreign import makeAllpass_ :: C.MakeAllpass -> FFIAudioSnapshot -> Effect Unit
+foreign import makeAllpass_ :: Mbe -> C.MakeAllpass -> FFIAudioSnapshot -> Effect Unit
 foreign import makeAnalyser_
-  :: C.MakeAnalyser -> FFIAudioSnapshot -> Effect Unit
+  :: Mbe -> C.MakeAnalyser -> FFIAudioSnapshot -> Effect Unit
 
 foreign import makeAudioWorkletNode_
-  :: C.MakeAudioWorkletNode -> FFIAudioSnapshot -> Effect Unit
+  :: Mbe -> C.MakeAudioWorkletNode -> FFIAudioSnapshot -> Effect Unit
 
 foreign import makeBandpass_
-  :: C.MakeBandpass -> FFIAudioSnapshot -> Effect Unit
+  :: Mbe -> C.MakeBandpass -> FFIAudioSnapshot -> Effect Unit
 
 foreign import makeConstant_
-  :: C.MakeConstant -> FFIAudioSnapshot -> Effect Unit
+  :: Mbe -> C.MakeConstant -> FFIAudioSnapshot -> Effect Unit
 
 foreign import makeConvolver_
-  :: C.MakeConvolver -> FFIAudioSnapshot -> Effect Unit
+  :: Mbe -> C.MakeConvolver -> FFIAudioSnapshot -> Effect Unit
 
-foreign import makeDelay_ :: C.MakeDelay -> FFIAudioSnapshot -> Effect Unit
+foreign import makeDelay_ :: Mbe -> C.MakeDelay -> FFIAudioSnapshot -> Effect Unit
 foreign import makeDynamicsCompressor_
-  :: C.MakeDynamicsCompressor -> FFIAudioSnapshot -> Effect Unit
+  :: Mbe -> C.MakeDynamicsCompressor -> FFIAudioSnapshot -> Effect Unit
 
-foreign import makeGain_ :: C.MakeGain -> FFIAudioSnapshot -> Effect Unit
+foreign import makeGain_ :: Mbe -> C.MakeGain -> FFIAudioSnapshot -> Effect Unit
 foreign import makeHighpass_
-  :: C.MakeHighpass -> FFIAudioSnapshot -> Effect Unit
+  :: Mbe -> C.MakeHighpass -> FFIAudioSnapshot -> Effect Unit
 
 foreign import makeHighshelf_
-  :: C.MakeHighshelf -> FFIAudioSnapshot -> Effect Unit
+  :: Mbe -> C.MakeHighshelf -> FFIAudioSnapshot -> Effect Unit
 
 foreign import makeIIRFilter_
-  :: C.MakeIIRFilter -> FFIAudioSnapshot -> Effect Unit
-foreign import makeLoopBuf_ :: C.MakeLoopBuf -> FFIAudioSnapshot -> Effect Unit
-foreign import makeLowpass_ :: C.MakeLowpass -> FFIAudioSnapshot -> Effect Unit
+  :: Mbe -> C.MakeIIRFilter -> FFIAudioSnapshot -> Effect Unit
+foreign import makeLoopBuf_ :: Mbe -> C.MakeLoopBuf -> FFIAudioSnapshot -> Effect Unit
+foreign import makeLowpass_ :: Mbe -> C.MakeLowpass -> FFIAudioSnapshot -> Effect Unit
 foreign import makeLowshelf_
-  :: C.MakeLowshelf -> FFIAudioSnapshot -> Effect Unit
+  :: Mbe -> C.MakeLowshelf -> FFIAudioSnapshot -> Effect Unit
 
 foreign import makeMediaElement_
-  :: C.MakeMediaElement -> FFIAudioSnapshot -> Effect Unit
+  :: Mbe -> C.MakeMediaElement -> FFIAudioSnapshot -> Effect Unit
 
 foreign import makeMicrophone_
-  :: C.MakeMicrophone -> FFIAudioSnapshot -> Effect Unit
+  :: Mbe -> C.MakeMicrophone -> FFIAudioSnapshot -> Effect Unit
 
-foreign import makeNotch_ :: C.MakeNotch -> FFIAudioSnapshot -> Effect Unit
-foreign import makePeaking_ :: C.MakePeaking -> FFIAudioSnapshot -> Effect Unit
+foreign import makeNotch_ :: Mbe -> C.MakeNotch -> FFIAudioSnapshot -> Effect Unit
+foreign import makePeaking_ :: Mbe -> C.MakePeaking -> FFIAudioSnapshot -> Effect Unit
 foreign import makePeriodicOsc_
-  :: C.MakePeriodicOsc -> FFIAudioSnapshot -> Effect Unit
+  :: Mbe -> C.MakePeriodicOsc -> FFIAudioSnapshot -> Effect Unit
 
-foreign import makePlayBuf_ :: C.MakePlayBuf -> FFIAudioSnapshot -> Effect Unit
+foreign import makePlayBuf_ :: Mbe -> C.MakePlayBuf -> FFIAudioSnapshot -> Effect Unit
 foreign import makeRecorder_
-  :: C.MakeRecorder -> FFIAudioSnapshot -> Effect Unit
+  :: Mbe -> C.MakeRecorder -> FFIAudioSnapshot -> Effect Unit
 
 foreign import makeSawtoothOsc_
-  :: C.MakeSawtoothOsc -> FFIAudioSnapshot -> Effect Unit
+  :: Mbe -> C.MakeSawtoothOsc -> FFIAudioSnapshot -> Effect Unit
 
-foreign import makeSinOsc_ :: C.MakeSinOsc -> FFIAudioSnapshot -> Effect Unit
+foreign import makeSinOsc_ :: Mbe -> C.MakeSinOsc -> FFIAudioSnapshot -> Effect Unit
 foreign import makeSpeaker_ :: C.MakeSpeaker -> FFIAudioSnapshot -> Effect Unit
 foreign import makeSquareOsc_
-  :: C.MakeSquareOsc -> FFIAudioSnapshot -> Effect Unit
+  :: Mbe -> C.MakeSquareOsc -> FFIAudioSnapshot -> Effect Unit
 
 foreign import makeStereoPanner_
-  :: C.MakeStereoPanner -> FFIAudioSnapshot -> Effect Unit
+  :: Mbe -> C.MakeStereoPanner -> FFIAudioSnapshot -> Effect Unit
 
 foreign import makeTriangleOsc_
-  :: C.MakeTriangleOsc -> FFIAudioSnapshot -> Effect Unit
+  :: Mbe -> C.MakeTriangleOsc -> FFIAudioSnapshot -> Effect Unit
 
 foreign import makeWaveShaper_
-  :: C.MakeWaveShaper -> FFIAudioSnapshot -> Effect Unit
+  :: Mbe -> C.MakeWaveShaper -> FFIAudioSnapshot -> Effect Unit
 
 foreign import setAnalyserNodeCb_
   :: C.SetAnalyserNodeCb -> FFIAudioSnapshot -> Effect Unit
@@ -361,7 +363,7 @@ foreign import setPeriodicOsc_
 
 foreign import setOnOff_ :: C.SetOnOff -> FFIAudioSnapshot -> Effect Unit
 foreign import setDuration_
-  :: C.SetDuration -> FFIAudioSnapshot -> Effect Unit
+  :: Mbe -> C.SetDuration -> FFIAudioSnapshot -> Effect Unit
 
 foreign import setBufferOffset_
   :: C.SetBufferOffset -> FFIAudioSnapshot -> Effect Unit
@@ -395,42 +397,42 @@ effectfulAudioInterpret = C.AudioInterpret
   , deleteFromCache: deleteFromCache_
   , disconnectXFromY: disconnectXFromY_
   , connectXToY: connectXToY_
-  , makeAllpass: makeAllpass_
-  , makeAnalyser: makeAnalyser_
-  , makeAudioWorkletNode: makeAudioWorkletNode_
-  , makeBandpass: makeBandpass_
-  , makeConstant: makeConstant_
-  , makeConvolver: makeConvolver_
-  , makeDelay: makeDelay_
-  , makeDynamicsCompressor: makeDynamicsCompressor_
-  , makeGain: makeGain_
-  , makeHighpass: makeHighpass_
-  , makeHighshelf: makeHighshelf_
-  , makeIIRFilter: makeIIRFilter_
-  , makeLoopBuf: makeLoopBuf_
-  , makeLowpass: makeLowpass_
-  , makeLowshelf: makeLowshelf_
-  , makeMediaElement: makeMediaElement_
-  , makeMicrophone: makeMicrophone_
-  , makeNotch: makeNotch_
-  , makePeaking: makePeaking_
-  , makePeriodicOsc: makePeriodicOsc_
-  , makePlayBuf: makePlayBuf_
-  , makeRecorder: makeRecorder_
-  , makeSawtoothOsc: makeSawtoothOsc_
-  , makeSinOsc: makeSinOsc_
+  , makeAllpass: makeAllpass_ maybe
+  , makeAnalyser: makeAnalyser_ maybe
+  , makeAudioWorkletNode: makeAudioWorkletNode_ maybe
+  , makeBandpass: makeBandpass_ maybe
+  , makeConstant: makeConstant_ maybe
+  , makeConvolver: makeConvolver_ maybe
+  , makeDelay: makeDelay_ maybe
+  , makeDynamicsCompressor: makeDynamicsCompressor_ maybe
+  , makeGain: makeGain_ maybe
+  , makeHighpass: makeHighpass_ maybe
+  , makeHighshelf: makeHighshelf_ maybe
+  , makeIIRFilter: makeIIRFilter_ maybe
+  , makeLoopBuf: makeLoopBuf_ maybe
+  , makeLowpass: makeLowpass_ maybe
+  , makeLowshelf: makeLowshelf_ maybe
+  , makeMediaElement: makeMediaElement_ maybe
+  , makeMicrophone: makeMicrophone_ maybe
+  , makeNotch: makeNotch_ maybe
+  , makePeaking: makePeaking_ maybe
+  , makePeriodicOsc: makePeriodicOsc_ maybe
+  , makePlayBuf: makePlayBuf_ maybe
+  , makeRecorder: makeRecorder_ maybe
+  , makeSawtoothOsc: makeSawtoothOsc_ maybe
+  , makeSinOsc: makeSinOsc_ maybe
   , makeSpeaker: makeSpeaker_
-  , setDuration: setDuration_
-  , makeSquareOsc: makeSquareOsc_
-  , makeStereoPanner: makeStereoPanner_
-  , makeTriangleOsc: makeTriangleOsc_
-  , makeWaveShaper: makeWaveShaper_
+  , makeSquareOsc: makeSquareOsc_ maybe
+  , makeStereoPanner: makeStereoPanner_ maybe
+  , makeTriangleOsc: makeTriangleOsc_ maybe
+  , makeWaveShaper: makeWaveShaper_ maybe
   , setAnalyserNodeCb: setAnalyserNodeCb_
   , setMediaRecorderCb: setMediaRecorderCb_
   , setWaveShaperCurve: setWaveShaperCurve_
   , setAudioWorkletParameter: setAudioWorkletParameter_
   , setBuffer: setBuffer_
   , setConvolverBuffer: setConvolverBuffer_
+  , setDuration: setDuration_ maybe
   , setPeriodicOsc: setPeriodicOsc_
   , setOnOff: setOnOff_
   , setBufferOffset: setBufferOffset_

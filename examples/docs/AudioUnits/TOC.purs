@@ -2,7 +2,7 @@ module WAGS.Example.Docs.AudioUnits.TOC where
 
 
 import Control.Plus (class Plus)
-import Deku.Core (Domable, Element)
+import Deku.Core (Domable)
 import Deku.Pursx ((~~))
 import Effect (Effect)
 import FRP.Event (Event, class IsEvent)

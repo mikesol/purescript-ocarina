@@ -2,7 +2,7 @@ module WAGS.Example.Docs.AudioUnits.Highshelf where
 
 import Prelude
 
-import Deku.Core (Domable, Element, toDOM)
+import Deku.Core (Domable, envy)
 import Deku.Pursx (nut, (~~))
 import Effect (Effect)
 import FRP.Event (Event)
@@ -30,7 +30,7 @@ px = Proxy :: Proxy """<section>
 highshelf :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable Effect lock payload
 highshelf ccb _ ev = px ~~
   { highshelf: nut
-      (toDOM $ audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
+      (envy $ audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
           \ctx buf -> run2 ctx
             [highshelf_ {frequency: 2000.0, gain: 0.4 } [loopBuf buf bangOn]]
       )

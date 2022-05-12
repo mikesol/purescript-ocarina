@@ -19,7 +19,7 @@ import Data.Vec (Vec, (+>))
 import Data.Vec as V
 import Deku.Attribute ((:=))
 import Deku.Control (text)
-import Deku.Core (Domable, Element, toDOM)
+import Deku.Core (Domable, envy)
 import Deku.DOM as D
 import Deku.Pursx (nut, (~~))
 import Effect (Effect, foreachE)
@@ -93,7 +93,7 @@ analyserEx
   :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable Effect lock payload
 analyserEx ccb _ ev = px ~~
   { analyser: nut
-      (toDOM $ bus \push (event' :: Event AnalyserStates) ->
+      (envy $ bus \push (event' :: Event AnalyserStates) ->
             let
               ptn = partitionMap identity event'
               event = mkWrapperEvent ev  (_.right ptn)

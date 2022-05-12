@@ -4,11 +4,11 @@ import Prelude
 
 import Control.Plus (class Plus)
 import Deku.Attribute (cb, (:=))
-import Deku.Core (Domable, Element)
+import Deku.Core (Domable)
 import Deku.DOM as D
 import Deku.Pursx ((~~))
 import Effect (Effect)
-import FRP.Event (Event, class IsEvent)
+import FRP.Event (Event)
 import FRP.Event.Class (bang)
 import Type.Proxy (Proxy(..))
 import WAGS.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)

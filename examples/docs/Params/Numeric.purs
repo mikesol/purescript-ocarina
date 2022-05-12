@@ -2,7 +2,7 @@ module WAGS.Example.Docs.Params.Numeric where
 
 import Prelude
 
-import Deku.Core (Domable, toDOM)
+import Deku.Core (Domable, envy)
 import QualifiedDo.Alt as OneOf
 import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
@@ -62,7 +62,7 @@ numericEx
   :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable Effect lock payload
 numericEx ccb _ ev = makePursx' (Proxy :: _ "@") px
   { numericEx: nut
-      ( toDOM $ audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
+      ( envy $ audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
           \ctx buf -> run2 ctx
             [ gain_ 1.0
                 [ loopBuf buf OneOf.do

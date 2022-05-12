@@ -6,7 +6,7 @@ import Control.Alt ((<|>))
 import Data.Array ((..))
 import Data.FunctorWithIndex (mapWithIndex)
 import Deku.Control (text_)
-import Deku.Core (Domable, Element, toDOM)
+import Deku.Core (Domable, envy)
 import Deku.Pursx (nut, (~~))
 import Effect (Effect)
 import FRP.Event (Event)
@@ -56,7 +56,7 @@ constantEx ccb _ ev = px ~~
   ]"""
       )
   , constant: nut
-      (toDOM $ audioWrapper ev ccb (\_ -> pure unit) \ctx _ -> run2 ctx
+      (envy $ audioWrapper ev ccb (\_ -> pure unit) \ctx _ -> run2 ctx
           [ gain_ 0.5
               [ constant 0.0
                   ( bangOn <|>

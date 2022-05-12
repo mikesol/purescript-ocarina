@@ -2,7 +2,7 @@ module WAGS.Example.Docs.Events where
 
 import Prelude
 
-import Deku.Core (Domable, Element)
+import Deku.Core (Domable)
 import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
 import FRP.Event (Event)

@@ -8,10 +8,11 @@ module WAGS.Imperative.Create where
 
 import Prelude
 
+import Bolson.Core (Scope(..))
 import Control.Alternative ((<|>))
+import Data.Maybe (Maybe(..))
 import Data.Newtype (unwrap)
 import Data.Variant (match)
-import Data.Variant.Maybe (nothing)
 import FRP.Event (Event, keepLatest)
 import FRP.Event.Class (bang)
 import Prim.Boolean (True, False)
@@ -102,9 +103,9 @@ gain _ initialGain attributes = GraphBuilder go
           event0 = bang $
             makeGain
               { id
-              , parent: nothing
+              , parent: Nothing
               , gain: initializeGain.gain
-              , scope: "imperative"
+              , scope: Local "imperative"
               }
           eventN = keepLatest (attributes <#> unwrap >>> match
             { gain: Common.resolveAU di (setGain <<< { id, gain: _ })
@@ -136,7 +137,7 @@ sinOsc _ initialSinOsc attributes = GraphBuilder go
         let
           id = reflectSymbol (Proxy :: _ id)
           event0 = bang $
-            makeSinOsc { id, parent: nothing, frequency, scope: "imperative" }
+            makeSinOsc { id, parent: Nothing, frequency, scope: Local "imperative" }
           eventN = keepLatest (attributes <#> unwrap >>> match
             { frequency: Common.resolveAU di (setFrequency <<< { id, frequency: _ })
             , onOff: bang <<< setOnOff <<< { id, onOff: _ }
@@ -179,12 +180,12 @@ playBuf _ initialPlayBuf attributes = GraphBuilder go
           id = reflectSymbol (Proxy :: _ id)
           event0 = bang $ makePlayBuf
             { id
-            , parent: nothing
+            , parent: Nothing
             , buffer
             , playbackRate
             , bufferOffset
             , duration
-            , scope: "imperative"
+            , scope: Local "imperative"
             }
           eventN = keepLatest (attributes <#> unwrap >>> match
             { buffer: bang <<< setBuffer <<< { id, buffer: _ }

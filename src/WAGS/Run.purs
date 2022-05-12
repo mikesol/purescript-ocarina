@@ -2,6 +2,7 @@ module WAGS.Run where
 
 import Prelude
 
+import Bolson.Core as B
 import Data.Typelevel.Num (D2)
 import Effect (Effect)
 import FRP.Event (Event, subscribe)
@@ -40,6 +41,6 @@ run2e
   -> Effect (Effect Unit)
 run2e ctx s = do
     ffi <- makeFFIAudioSnapshot ctx
-    u <- subscribe (speaker2 [C.EventfulNode' $ C.EventfulNode (map (C.FixedChannels' <<< C.FixedChannels) s)] effectfulAudioInterpret)
+    u <- subscribe (speaker2 [B.EventfulElement' $ B.EventfulElement (map (B.FixedChildren' <<< B.FixedChildren) s)] effectfulAudioInterpret)
       \f -> f ffi
     pure u

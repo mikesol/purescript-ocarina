@@ -2,7 +2,7 @@ module WAGS.Example.Docs.AudioUnits.PlayBuf where
 
 import Prelude
 
-import Deku.Core (Domable, Element, toDOM)
+import Deku.Core (Domable, envy)
 import Deku.Pursx (nut, (~~))
 import Effect (Effect)
 import FRP.Event (Event)
@@ -37,7 +37,7 @@ playBufEx
   :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable Effect lock payload
 playBufEx ccb _ ev = px ~~
   { playBuf: nut
-      ( toDOM $ audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/470/470035_9564355-lq.mp3")
+      ( envy $ audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/470/470035_9564355-lq.mp3")
           \ctx buffer -> run2 ctx
             [playBuf
                 { buffer

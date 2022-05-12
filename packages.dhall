@@ -30,14 +30,17 @@ let additions =
         , repo = "https://github.com/mikesol/purescript-event.git"
         , version = "v1.6.5"
         }
-      ,  monoid-extras =
-        { dependencies =
-          [ "prelude"
-          ]
+      , bolson =
+        { dependencies = [ "prelude", "heterogeneous" ]
+        , repo = "https://github.com/mikesol/purescript-bolson.git"
+        , version = "v0.0.1"
+        }
+      , monoid-extras =
+        { dependencies = [ "prelude" ]
         , repo = "https://github.com/mikesol/purescript-monoid-extras.git"
         , version = "v0.0.1"
         }
-      ,variant =
+      , variant =
         { dependencies =
           [ "assert"
           , "control"
@@ -143,7 +146,7 @@ let additions =
           , "web-events"
           ]
         , repo = "https://github.com/mikesol/purescript-deku.git"
-        , version = "v0.4.0"
+        , version = "bolson"
         }
       , homogeneous =
         { dependencies =

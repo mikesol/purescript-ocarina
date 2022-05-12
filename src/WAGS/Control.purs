@@ -2,32 +2,29 @@ module WAGS.Control where
 
 import Prelude
 
+import Bolson.Control as Bolson
+import Bolson.Core (Element(..), Entity(..), PSR, Scope(..), fixed)
 import Control.Alt ((<|>))
 import Control.Comonad (extract)
-import Control.Monad.ST.Class (liftST)
-import Control.Monad.ST.Internal as Ref
 import Control.Plus (empty)
 import ConvertableOptions (class ConvertOption, class ConvertOptionsWithDefaults, convertOptionsWithDefaults)
 import Data.Either (Either(..))
 import Data.FastVect.FastVect (Vect, singleton, toArray, index)
-import Data.Foldable (foldl, for_, oneOf, oneOfMap, traverse_)
-import Data.FunctorWithIndex (mapWithIndex)
 import Data.Homogeneous (class HomogeneousRowLabels)
 import Data.Homogeneous.Variant (homogeneous)
 import Data.Int (pow)
-import Data.Maybe as DM
+import Data.Maybe (Maybe(..))
+import Data.Newtype (unwrap)
 import Data.Profunctor (lcmap)
 import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.Tuple.Nested (type (/\), (/\))
 import Data.Typelevel.Num (class Nat, class Pos, class Pred, D1, D2, pred, toInt)
 import Data.Variant (Unvariant(..), inj, match, unvariant)
-import Data.Variant.Maybe (Maybe, just, nothing)
 import Effect (Effect)
 import Effect.AVar as AVar
 import Effect.Exception (throwException)
 import FRP.Event (Event, bang, keepLatest, makeEvent, subscribe)
 import Foreign.Object (fromHomogeneous)
-import Foreign.Object as Object
 import Prim.Int (class Compare)
 import Prim.Ordering (GT, LT)
 import Simple.JSON as JSON
@@ -48,7 +45,7 @@ allpass
   -> Event (C.Allpass lock payload)
   -> Array (C.Audible outputChannels lock payload)
   -> C.Audible outputChannels lock payload
-allpass i' atts elts = C.Node' $ C.Node go
+allpass i' atts elts = Element' $ C.Node go
   where
   C.InitializeAllpass i = Common.toInitializeAllpass i'
   go parent di@(C.AudioInterpret { ids, deleteFromCache, makeAllpass, setFrequency, setQ }) = makeEvent \k -> do
@@ -69,7 +66,7 @@ allpass i' atts elts = C.Node' $ C.Node go
               )
               atts
           )
-        <|> __internalWagsFlatten { parent: just me, scope: parent.scope, raiseId: mempty } di (C.FixedChannels' $ C.FixedChannels elts)
+        <|> __internalWagsFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di (fixed elts)
 
 allpass_
   :: forall i (outputChannels :: Type) lock payload
@@ -172,7 +169,7 @@ analyser
   -> Event C.Analyser
   -> Array (C.Audible outputChannels lock payload)
   -> C.Audible outputChannels lock payload
-analyser i' atts elts = C.Node' $ C.Node go
+analyser i' atts elts = Element' $ C.Node go
   where
   C.InitializeAnalyser i = toInitializeAnalyser i'
   go
@@ -218,7 +215,7 @@ analyser i' atts elts = C.Node' $ C.Node go
                 e
             )
             atts
-          <|> __internalWagsFlatten { parent: just me, scope: parent.scope, raiseId: mempty } di (C.FixedChannels' $ C.FixedChannels elts)
+          <|> __internalWagsFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di (fixed elts)
 
 analyser_
   :: forall i outputChannels lock payload
@@ -271,7 +268,7 @@ __audioWorklet
   -> Event (C.AudioWorkletNode parameterData)
   -> C.Audible numberOfOutputs lock payload
   -> C.Audible numberOfOutputs lock payload
-__audioWorklet (C.InitializeAudioWorkletNode i) atts elt = C.Node' $ C.Node go
+__audioWorklet (C.InitializeAudioWorkletNode i) atts elt = Element' $ C.Node go
   where
   go
     parent
@@ -315,7 +312,7 @@ __audioWorklet (C.InitializeAudioWorkletNode i) atts elt = C.Node' $ C.Node go
                 )
                 atts
             )
-          <|> __internalWagsFlatten { parent: just me, scope: parent.scope, raiseId: mempty } di elt
+          <|> __internalWagsFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di elt
 
 audioWorklet
   :: forall name numberOfInputs numberOfOutputs outputChannelCount parameterData
@@ -345,7 +342,7 @@ bandpass
   -> Event (C.Bandpass lock payload)
   -> Array (C.Audible outputChannels lock payload)
   -> C.Audible outputChannels lock payload
-bandpass i' atts elts = C.Node' $ C.Node go
+bandpass i' atts elts = Element' $ C.Node go
   where
   C.InitializeBandpass i = Common.toInitializeBandpass i'
   go parent di@(C.AudioInterpret { ids, deleteFromCache, makeBandpass, setFrequency, setQ }) = makeEvent \k -> do
@@ -366,7 +363,7 @@ bandpass i' atts elts = C.Node' $ C.Node go
               )
               atts
           )
-        <|> __internalWagsFlatten { parent: just me, scope: parent.scope, raiseId: mempty } di (C.FixedChannels' $ C.FixedChannels elts)
+        <|> __internalWagsFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di (fixed elts)
 
 bandpass_
   :: forall i (outputChannels :: Type) lock payload
@@ -384,7 +381,7 @@ __constant
   => i
   -> Event (C.Constant lock payload)
   -> C.Audible outputChannels lock payload
-__constant i' atts = C.Node' $ C.Node go
+__constant i' atts = Element' $ C.Node go
   where
   C.InitializeConstant i = Common.toInitializeConstant i'
   go parent di@(C.AudioInterpret { ids, deleteFromCache, makeConstant, setOffset, setOnOff }) =
@@ -434,7 +431,7 @@ convolver
   => i
   -> Array (C.Audible outputChannels lock payload)
   -> C.Audible outputChannels lock payload
-convolver i' elts = C.Node' $ C.Node go
+convolver i' elts = Element' $ C.Node go
   where
   C.InitializeConvolver i = Common.toInitializeConvolver i'
   go parent di@(C.AudioInterpret { ids, deleteFromCache, makeConvolver }) =
@@ -450,7 +447,7 @@ convolver i' elts = C.Node' $ C.Node go
               , buffer: i.buffer
               }
           )
-          <|> __internalWagsFlatten { parent: just me, scope: parent.scope, raiseId: mempty } di (C.FixedChannels' $ C.FixedChannels elts)
+          <|> __internalWagsFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di (fixed elts)
 
 -- delay
 delay
@@ -460,7 +457,7 @@ delay
   -> Event (C.Delay lock payload)
   -> Array (C.Audible outputChannels lock payload)
   -> C.Audible outputChannels lock payload
-delay i' atts elts = C.Node' $ C.Node go
+delay i' atts elts = Element' $ C.Node go
   where
   C.InitializeDelay i = Common.toInitializeDelay i'
   go parent di@(C.AudioInterpret { ids, deleteFromCache, makeDelay, setDelay }) = makeEvent \k -> do
@@ -480,7 +477,7 @@ delay i' atts elts = C.Node' $ C.Node go
               )
               atts
           )
-        <|> __internalWagsFlatten { parent: just me, scope: parent.scope, raiseId: mempty } di (C.FixedChannels' $ C.FixedChannels elts)
+        <|> __internalWagsFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di (fixed elts)
 
 delay_
   :: forall i (outputChannels :: Type) lock payload
@@ -498,7 +495,7 @@ dynamicsCompressor
   -> Event (C.DynamicsCompressor lock payload)
   -> Array (C.Audible outputChannels lock payload)
   -> C.Audible outputChannels lock payload
-dynamicsCompressor i' atts elts = C.Node' $ C.Node go
+dynamicsCompressor i' atts elts = Element' $ C.Node go
   where
   C.InitializeDynamicsCompressor i = Common.toInitializeDynamicsCompressor i'
   go
@@ -559,7 +556,7 @@ dynamicsCompressor i' atts elts = C.Node' $ C.Node go
                 )
                 atts
             )
-          <|> __internalWagsFlatten { parent: just me, scope: parent.scope, raiseId: mempty } di (C.FixedChannels' $ C.FixedChannels elts)
+          <|> __internalWagsFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di (fixed elts)
 
 dynamicsCompressor_
   :: forall i (outputChannels :: Type) lock payload
@@ -577,7 +574,7 @@ gain
   -> Event (C.Gain lock payload)
   -> Array (C.Audible outputChannels lock payload)
   -> C.Audible outputChannels lock payload
-gain i' atts elts = C.Node' $ C.Node go
+gain i' atts elts = Element' $ C.Node go
   where
   C.InitializeGain i = Common.toInitializeGain i'
   go parent di@(C.AudioInterpret { ids, deleteFromCache, makeGain, setGain }) = makeEvent \k -> do
@@ -597,7 +594,7 @@ gain i' atts elts = C.Node' $ C.Node go
               )
               atts
           )
-        <|> __internalWagsFlatten { parent: just me, scope: parent.scope, raiseId: mempty } di (C.FixedChannels' $ C.FixedChannels elts)
+        <|> __internalWagsFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di (fixed elts)
 
 gain_
   :: forall i (outputChannels :: Type) lock payload
@@ -615,7 +612,7 @@ highpass
   -> Event (C.Highpass lock payload)
   -> Array (C.Audible outputChannels lock payload)
   -> C.Audible outputChannels lock payload
-highpass i' atts elts = C.Node' $ C.Node go
+highpass i' atts elts = Element' $ C.Node go
   where
   C.InitializeHighpass i = Common.toInitializeHighpass i'
   go parent di@(C.AudioInterpret { ids, deleteFromCache, makeHighpass, setFrequency, setQ }) = makeEvent \k -> do
@@ -636,7 +633,7 @@ highpass i' atts elts = C.Node' $ C.Node go
               )
               atts
           )
-        <|> __internalWagsFlatten { parent: just me, scope: parent.scope, raiseId: mempty } di (C.FixedChannels' $ C.FixedChannels elts)
+        <|> __internalWagsFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di (fixed elts)
 
 highpass_
   :: forall i (outputChannels :: Type) lock payload
@@ -654,7 +651,7 @@ highshelf
   -> Event (C.Highshelf lock payload)
   -> Array (C.Audible outputChannels lock payload)
   -> C.Audible outputChannels lock payload
-highshelf i' atts elts = C.Node' $ C.Node go
+highshelf i' atts elts = Element' $ C.Node go
   where
   C.InitializeHighshelf i = Common.toInitializeHighshelf i'
   go parent di@(C.AudioInterpret { ids, deleteFromCache, makeHighshelf, setFrequency, setGain }) = makeEvent \k -> do
@@ -675,7 +672,7 @@ highshelf i' atts elts = C.Node' $ C.Node go
               )
               atts
           )
-        <|> __internalWagsFlatten { parent: just me, scope: parent.scope, raiseId: mempty } di (C.FixedChannels' $ C.FixedChannels elts)
+        <|> __internalWagsFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di (fixed elts)
 
 highshelf_
   :: forall i (outputChannels :: Type) lock payload
@@ -709,7 +706,7 @@ iirFilter'
   -> i
   -> Array (C.Audible outputChannels lock payload)
   -> C.Audible outputChannels lock payload
-iirFilter' fwd bk i' elts = C.Node' $ C.Node go
+iirFilter' fwd bk i' elts = Element' $ C.Node go
   where
   C.InitializeIIRFilter i = Common.toInitializeIIRFilter i' fwd bk
   go
@@ -734,7 +731,7 @@ iirFilter' fwd bk i' elts = C.Node' $ C.Node go
               , feedback: toArray i.feedback
               }
           )
-          <|> __internalWagsFlatten { parent: just me, scope: parent.scope, raiseId: mempty } di (C.FixedChannels' $ C.FixedChannels elts)
+          <|> __internalWagsFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di (fixed elts)
 
 -- lowpass
 lowpass
@@ -744,7 +741,7 @@ lowpass
   -> Event (C.Lowpass lock payload)
   -> Array (C.Audible outputChannels lock payload)
   -> C.Audible outputChannels lock payload
-lowpass i' atts elts = C.Node' $ C.Node go
+lowpass i' atts elts = Element' $ C.Node go
   where
   C.InitializeLowpass i = Common.toInitializeLowpass i'
   go parent di@(C.AudioInterpret { ids, deleteFromCache, makeLowpass, setFrequency, setQ }) = makeEvent \k -> do
@@ -765,7 +762,7 @@ lowpass i' atts elts = C.Node' $ C.Node go
               )
               atts
           )
-        <|> __internalWagsFlatten { parent: just me, scope: parent.scope, raiseId: mempty } di (C.FixedChannels' $ C.FixedChannels elts)
+        <|> __internalWagsFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di (fixed elts)
 
 lowpass_
   :: forall i (outputChannels :: Type) lock payload
@@ -783,7 +780,7 @@ lowshelf
   -> Event (C.Lowshelf lock payload)
   -> Array (C.Audible outputChannels lock payload)
   -> C.Audible outputChannels lock payload
-lowshelf i' atts elts = C.Node' $ C.Node go
+lowshelf i' atts elts = Element' $ C.Node go
   where
   C.InitializeLowshelf i = Common.toInitializeLowshelf i'
   go parent di@(C.AudioInterpret { ids, deleteFromCache, makeLowshelf, setFrequency, setGain }) = makeEvent \k -> do
@@ -804,7 +801,7 @@ lowshelf i' atts elts = C.Node' $ C.Node go
               )
               atts
           )
-        <|> __internalWagsFlatten { parent: just me, scope: parent.scope, raiseId: mempty } di (C.FixedChannels' $ C.FixedChannels elts)
+        <|> __internalWagsFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di (fixed elts)
 
 lowshelf_
   :: forall i (outputChannels :: Type) lock payload
@@ -822,7 +819,7 @@ __loopBuf
   => i
   -> Event (C.LoopBuf lock payload)
   -> C.Audible outputChannels lock payload
-__loopBuf i' atts = C.Node' $ C.Node go
+__loopBuf i' atts = Element' $ C.Node go
   where
   C.InitializeLoopBuf i = Common.toInitializeLoopBuf i'
   go
@@ -890,7 +887,7 @@ __mediaElement
   :: forall outputChannels lock payload
    . C.InitializeMediaElement
   -> C.Audible outputChannels lock payload
-__mediaElement (C.InitializeMediaElement i) = C.Node' $ C.Node go
+__mediaElement (C.InitializeMediaElement i) = Element' $ C.Node go
   where
   go parent (C.AudioInterpret { ids, deleteFromCache, makeMediaElement }) =
     makeEvent \k -> do
@@ -919,7 +916,7 @@ __microphone
    . Common.InitialMicrophone i
   => i
   -> C.Audible outputChannels lock payload
-__microphone i' = C.Node' $ C.Node go
+__microphone i' = Element' $ C.Node go
   where
   C.InitializeMicrophone i = Common.toInitializeMicrophone i'
   go parent (C.AudioInterpret { ids, deleteFromCache, makeMicrophone }) =
@@ -951,7 +948,7 @@ notch
   -> Event (C.Notch lock payload)
   -> Array (C.Audible outputChannels lock payload)
   -> C.Audible outputChannels lock payload
-notch i' atts elts = C.Node' $ C.Node go
+notch i' atts elts = Element' $ C.Node go
   where
   C.InitializeNotch i = Common.toInitializeNotch i'
   go parent di@(C.AudioInterpret { ids, deleteFromCache, makeNotch, setFrequency, setQ }) = makeEvent \k -> do
@@ -972,7 +969,7 @@ notch i' atts elts = C.Node' $ C.Node go
               )
               atts
           )
-        <|> __internalWagsFlatten { parent: just me, scope: parent.scope, raiseId: mempty } di (C.FixedChannels' $ C.FixedChannels elts)
+        <|> __internalWagsFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di (fixed elts)
 
 notch_
   :: forall i (outputChannels :: Type) lock payload
@@ -990,7 +987,7 @@ peaking
   -> Event (C.Peaking lock payload)
   -> Array (C.Audible outputChannels lock payload)
   -> C.Audible outputChannels lock payload
-peaking i' atts elts = C.Node' $ C.Node go
+peaking i' atts elts = Element' $ C.Node go
   where
   C.InitializePeaking i = Common.toInitializePeaking i'
   go parent di@(C.AudioInterpret { ids, deleteFromCache, makePeaking, setFrequency, setQ, setGain }) = makeEvent \k -> do
@@ -1012,7 +1009,7 @@ peaking i' atts elts = C.Node' $ C.Node go
               )
               atts
           )
-        <|> __internalWagsFlatten { parent: just me, scope: parent.scope, raiseId: mempty } di (C.FixedChannels' $ C.FixedChannels elts)
+        <|> __internalWagsFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di (fixed elts)
 
 peaking_
   :: forall i (outputChannels :: Type) lock payload
@@ -1030,7 +1027,7 @@ __periodicOsc
   => i
   -> Event (C.PeriodicOsc lock payload)
   -> C.Audible outputChannels lock payload
-__periodicOsc i' atts = C.Node' $ C.Node go
+__periodicOsc i' atts = Element' $ C.Node go
   where
   C.InitializePeriodicOsc i = Common.toInitializePeriodicOsc i'
   go
@@ -1091,7 +1088,7 @@ instance
   convertOption _ _ = identity
 
 instance ConvertOption PlayBufOptions "duration" Number (Maybe Number) where
-  convertOption _ _ = just
+  convertOption _ _ = Just
 
 instance ConvertOption PlayBufOptions "bufferOffset" Number Number where
   convertOption _ _ = identity
@@ -1115,7 +1112,7 @@ defaultPlayBuf :: { | PlayBufOptional }
 defaultPlayBuf =
   { bufferOffset: 0.0
   , playbackRate: 1.0
-  , duration: nothing
+  , duration: Nothing
   }
 
 class InitialPlayBuf i where
@@ -1140,7 +1137,7 @@ __playBuf
   => i
   -> Event (C.PlayBuf lock payload)
   -> C.Audible outputChannels lock payload
-__playBuf i' atts = C.Node' $ C.Node go
+__playBuf i' atts = Element' $ C.Node go
   where
   C.InitializePlayBuf i = Common.toInitializePlayBuf i'
   go
@@ -1212,7 +1209,7 @@ recorder
   => i
   -> C.Audible outputChannels lock payload
   -> C.Audible outputChannels lock payload
-recorder i' elt = C.Node' $ C.Node go
+recorder i' elt = Element' $ C.Node go
   where
   C.InitializeRecorder i = Common.toInitializeRecorder i'
   go parent di@(C.AudioInterpret { ids, deleteFromCache, makeRecorder }) =
@@ -1224,7 +1221,7 @@ recorder i' elt = C.Node' $ C.Node go
           ( makeRecorder
               { id: me, parent: parent.parent, scope: parent.scope, cb: i.cb }
           )
-          <|> __internalWagsFlatten { parent: just me, scope: parent.scope, raiseId: mempty } di elt
+          <|> __internalWagsFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di elt
 
 -- sawtoothOsc
 
@@ -1234,7 +1231,7 @@ __sawtoothOsc
   => i
   -> Event (C.SawtoothOsc lock payload)
   -> C.Audible outputChannels lock payload
-__sawtoothOsc i' atts = C.Node' $ C.Node go
+__sawtoothOsc i' atts = Element' $ C.Node go
   where
   C.InitializeSawtoothOsc i = Common.toInitializeSawtoothOsc i'
   go
@@ -1286,7 +1283,7 @@ __sinOsc
   => i
   -> Event (C.SinOsc lock payload)
   -> C.Audible outputChannels lock payload
-__sinOsc i' atts = C.Node' $ C.Node go
+__sinOsc i' atts = Element' $ C.Node go
   where
   C.InitializeSinOsc i = Common.toInitializeSinOsc i'
   go
@@ -1338,7 +1335,7 @@ __squareOsc
   => i
   -> Event (C.SquareOsc lock payload)
   -> C.Audible outputChannels lock payload
-__squareOsc i' atts = C.Node' $ C.Node go
+__squareOsc i' atts = Element' $ C.Node go
   where
   C.InitializeSquareOsc i = Common.toInitializeSquareOsc i'
   go
@@ -1391,7 +1388,7 @@ speaker
 speaker elts di@(C.AudioInterpret { ids, makeSpeaker }) = makeEvent \k -> do
   id <- ids
   k (makeSpeaker { id })
-  subscribe (__internalWagsFlatten { parent: just id, scope: "toplevel", raiseId: mempty } di (C.FixedChannels' $ C.FixedChannels elts)) k
+  subscribe (__internalWagsFlatten { parent: Just id, scope: Local "toplevel", raiseId: mempty } di (fixed elts)) k
 
 speaker2
   :: forall lock payload
@@ -1408,7 +1405,7 @@ pan
   -> Event (C.StereoPanner lock payload)
   -> Array (C.Audible outputChannels lock payload)
   -> C.Audible outputChannels lock payload
-pan i' atts elts = C.Node' $ C.Node go
+pan i' atts elts = Element' $ C.Node go
   where
   C.InitializeStereoPanner i = Common.toInitializeStereoPanner i'
   go parent di@(C.AudioInterpret { ids, deleteFromCache, makeStereoPanner, setPan }) = makeEvent \k -> do
@@ -1428,7 +1425,7 @@ pan i' atts elts = C.Node' $ C.Node go
               )
               atts
           )
-        <|> __internalWagsFlatten { parent: just me, scope: parent.scope, raiseId: mempty } di (C.FixedChannels' $ C.FixedChannels elts)
+        <|> __internalWagsFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di (fixed elts)
 
 pan_
   :: forall i (outputChannels :: Type) lock payload
@@ -1446,7 +1443,7 @@ __triangleOsc
   => i
   -> Event (C.TriangleOsc lock payload)
   -> C.Audible outputChannels lock payload
-__triangleOsc i' atts = C.Node' $ C.Node go
+__triangleOsc i' atts = Element' $ C.Node go
   where
   C.InitializeTriangleOsc i = Common.toInitializeTriangleOsc i'
   go
@@ -1498,7 +1495,7 @@ waveShaper
   => i
   -> Array (C.Audible outputChannels lock payload)
   -> C.Audible outputChannels lock payload
-waveShaper i' elts = C.Node' $ C.Node go
+waveShaper i' elts = Element' $ C.Node go
   where
   C.InitializeWaveShaper i = Common.toInitializeWaveShaper i'
   go parent di@(C.AudioInterpret { ids, deleteFromCache, makeWaveShaper }) =
@@ -1514,96 +1511,29 @@ waveShaper i' elts = C.Node' $ C.Node go
               , curve: i.curve
               , oversample: i.oversample
               }
-          ) <|> __internalWagsFlatten { parent: just me, scope: parent.scope, raiseId: mempty } di (C.FixedChannels' $ C.FixedChannels elts)
+          ) <|> __internalWagsFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di (fixed elts)
 
 ----------
-
-newtype MutAr a = MutAr (Array a)
-
-foreign import mutAr :: forall a. Array a -> Effect (MutAr a)
-foreign import unsafeUpdateMutAr :: forall a. Int -> a -> MutAr a -> Effect Unit
-foreign import readAr :: forall a. MutAr a -> Effect (Array a)
-
--- todo: this is almost literally a copy-paste now of Deku
--- are the libraries close enough now where we can merge the two functions into one?
--- the only differences I can see are:
--- - the deconstruction and reconstruction of Node
--- - the name of the connection function
-internalFan
-  :: forall n o lock0 lock1 payload
-   . Compare n (-1) GT
-  => Boolean
-  -> (String -> String)
-  -> Vect n (C.Audible o lock0 payload)
-  -> ( Vect n (C.Audible o lock1 payload)
-       -> (C.Audible o lock0 payload -> C.Audible o lock1 payload)
-       -> C.Audible o lock1 payload
-     )
-  -> C.Audible o lock0 payload
-internalFan isGlobal scopeF gaga closure = C.Node' $ C.Node go
-  where
-  go psr di@(C.AudioInterpret { deleteFromCache }) = makeEvent \k -> do
-    av <- mutAr (map (const "") $ toArray gaga)
-    let
-      actualized = oneOf $ mapWithIndex
-        ( let
-            f =
-              ( \ix i -> case i of
-                  C.Node' (C.Node gogo) -> gogo
-                    { parent: just "@portal@"
-                    , scope: scopeF psr.scope
-                    , raiseId: \id -> unsafeUpdateMutAr ix id av
-                    }
-                    di
-                  _ -> f ix (gain_ 1.0 [ i ])
-              )
-          in
-            f
-        )
-        (toArray gaga)
-    u0 <- subscribe actualized k
-    av2 <- liftST $ Ref.new (pure unit)
-    let
-      asIds :: Array String -> Vect n String
-      asIds = unsafeCoerce
-    idz <- asIds <$> readAr av
-    let
-      -- we never connect or disconnect the referentially opaque node
-      -- instead, it is always managed inside a referentially transparent node
-      -- that can be properly connected and disconnected
-      injectable = map
-        ( \id -> C.Node' $ C.Node
-            \{ parent, raiseId } (C.AudioInterpret { connectXToY }) ->
-              makeEvent \k2 -> do
-                raiseId id
-                for_ parent \prnt -> k2 (connectXToY { from: id, to: prnt })
-                pure (pure unit)
-        )
-        idz
-      realized = __internalWagsFlatten psr di
-        ( ( closure injectable
-              ( unsafeCoerce
-                  :: C.Audible o lock0 payload -> C.Audible o lock1 payload
-              )
-          )
-        )
-    u <- subscribe realized k
-    void $ liftST $ Ref.write u av2
-    -- cancel immediately, as it should be run synchronously
-    -- so if this actually does something then we have a problem
-    pure do
-      u0
-      when (not isGlobal) $ for_ (toArray idz) \id -> k
-        (deleteFromCache { id })
-      join (liftST $ Ref.read av2)
-
 globalFan
   :: forall n o lock payload
    . Compare n (-1) GT
   => Vect n (C.Audible o lock payload)
   -> (Vect n (C.Audible o lock payload) -> C.Audible o lock payload)
   -> C.Audible o lock payload
-globalFan e f = internalFan true (const "@fan@") e (\x _ -> f x)
+globalFan = Bolson.globalPortal {doLogic: absurd, ids: unwrap >>> _.ids, disconnectElement: \(C.AudioInterpret { disconnectXFromY } ) {id,parent} -> disconnectXFromY { from:id,to:parent }, wrapElt: \e -> gain_ 1.0 [e], toElt: \(C.Node e) -> Element e} {fromElt: \(Element e) -> C.Node e, giveNewParent: \(C.AudioInterpret { connectXToY } ) {id,parent} -> connectXToY { from:id,to:parent }, deleteFromCache: unwrap >>> _.deleteFromCache}
+
+
+fan
+  :: forall o n lock0 payload
+   . Compare n (-1) GT
+  =>  Vect n (C.Audible o lock0 payload)
+  -> ( forall lockfoo
+        . Vect n (C.Audible o lockfoo payload)
+       -> (C.Audible o lock0 payload -> C.Audible o lockfoo payload)
+       -> C.Audible o lockfoo payload
+     )
+  -> C.Audible o lock0 payload
+fan a b = Bolson.portal {doLogic: absurd, ids: unwrap >>> _.ids, disconnectElement: \(C.AudioInterpret { disconnectXFromY } ) {id,parent} -> disconnectXFromY { from:id,to:parent }, wrapElt: \e -> gain_ 1.0 [e], toElt: \(C.Node e) -> Element e} {fromElt: \(Element e) -> C.Node e, giveNewParent: \(C.AudioInterpret { connectXToY } ) {id,parent} -> connectXToY { from:id,to:parent }, deleteFromCache: unwrap >>> _.deleteFromCache}  a (unsafeCoerce b)
 
 globalFan1
   :: forall o lock payload
@@ -1613,18 +1543,6 @@ globalFan1
      )
   -> C.Audible o lock payload
 globalFan1 a b = globalFan (singleton a) (lcmap (index (Proxy :: _ 0)) b)
-
-fan
-  :: forall n o lock0 payload
-   . Compare n (-1) GT
-  => Vect n (C.Audible o lock0 payload)
-  -> ( forall lock1
-        . Vect n (C.Audible o lock1 payload)
-       -> (C.Audible o lock0 payload -> C.Audible o lock1 payload)
-       -> C.Audible o lock1 payload
-     )
-  -> C.Audible o lock0 payload
-fan e = internalFan false identity e
 
 fan1
   :: forall o lock0 payload
@@ -1642,30 +1560,8 @@ fix
   :: forall outputChannels lock payload
    . (C.Audible outputChannels lock payload -> C.Audible outputChannels lock payload)
   -> C.Audible outputChannels lock payload
-fix f = C.Node' $ C.Node go
-  where
-  go i di@(C.AudioInterpret { connectXToY }) = makeEvent \k -> do
-    av <- liftST $ Ref.new DM.Nothing
-    let
-      nn = f $ C.Node' $ C.Node \ii _ -> makeEvent \k0 -> do
-        (liftST $ Ref.read av) >>= case _ of
-          DM.Nothing -> pure unit
-          -- only do the connection if not silence
-          DM.Just r -> for_ ii.parent \p' ->
-            when (r /= p') (ii.raiseId r *> k0 (connectXToY { from: r, to: p' }))
-        pure (pure unit)
-    subscribe
-      ( __internalWagsFlatten
-          { parent: i.parent
-          , scope: i.scope
-          , raiseId: \s -> do
-              i.raiseId s
-              void $ liftST $ Ref.write (DM.Just s) av
-          }
-          di
-          nn
-      )
-      k
+fix = Bolson.fix {doLogic: absurd, ids: unwrap >>> _.ids, disconnectElement: \(C.AudioInterpret { disconnectXFromY } ) {id,parent} -> disconnectXFromY { from:id,to:parent }, wrapElt: \e -> gain_ 1.0 [e], toElt: \(C.Node e) -> Element e} {fromElt: \(Element e) -> C.Node e, connectToParent: \(C.AudioInterpret { connectXToY } ) {id,parent} -> connectXToY { from:id, to:parent } }
+
 
 silence
   :: forall outputChannels lock payload
@@ -1680,7 +1576,7 @@ silence = fix identity
 --   => Pos n
 --   => Vec n (C.Node D1 lock payload)
 --   -> C.Node n lock payload
--- merge elts = C.Node' $ C.Node go
+-- merge elts = Element' $ C.Node go
 --   where
 --   go
 --     parent
@@ -1720,7 +1616,7 @@ silence = fix identity
 -- which can add up
 -- so we definitely want to delete this and use Common.resolveAU
 -- as soon as we can correctly attach and detach generators
-tmpResolveAU :: forall lock payload. String -> C.AudioInterpret payload -> (C.FFIAudioParameter -> payload) -> C.AudioParameter lock payload -> Event payload
+tmpResolveAU :: forall lock payload. Scope -> C.AudioInterpret payload -> (C.FFIAudioParameter -> payload) -> C.AudioParameter lock payload -> Event payload
 tmpResolveAU = go
   where
   cncl = C.FFIAudioParameter <<< inj (Proxy :: _ "cancel")
@@ -1740,7 +1636,7 @@ tmpResolveAU = go
           makeEvent \k -> do
             av <- AVar.empty
             subscribe
-              ( __internalWagsFlatten { parent: nothing, scope: scope, raiseId: \x -> void $ AVar.tryPut x av } di n <|> makeEvent \k2 -> do
+              ( __internalWagsFlatten { parent: Nothing, scope: scope, raiseId: \x -> void $ AVar.tryPut x av } di n <|> makeEvent \k2 -> do
                   void $ AVar.take av case _ of
                     Left e -> throwException e
                     -- only do the connection if not silence
@@ -1751,98 +1647,16 @@ tmpResolveAU = go
     }
     a
 
---------
------
-
--- TODO:
--- the code below is almost verbatim the same as deku
--- only missing the "send to top" bit
--- merge?
-data Stage = Begin | Middle | End
-
 __internalWagsFlatten
   :: forall o lock payload
-   . C.PSR
+   . PSR Effect
   -> C.AudioInterpret payload
   -> C.Audible o lock payload
   -> Event payload
-__internalWagsFlatten
-  psr
-  di@(C.AudioInterpret { ids, disconnectXFromY }) = case _ of
-  C.FixedChannels' (C.FixedChannels f) -> oneOfMap (__internalWagsFlatten psr di) f
-  C.EventfulNode' (C.EventfulNode e) -> keepLatest
-    (map (__internalWagsFlatten psr di) e)
-  C.Node' nd -> element nd
-  C.DynamicChannels' (C.DynamicChannels children) ->
-    makeEvent \k -> do
-      cancelInner <- liftST $ Ref.new Object.empty
-      cancelOuter <-
-        -- each child gets its own scope
-        subscribe children \inner ->
-          do
-            -- holds the previous id
-            myUnsubId <- ids
-            myUnsub <- liftST $ Ref.new (pure unit)
-            eltsUnsubId <- ids
-            eltsUnsub <- liftST $ Ref.new (pure unit)
-            myId <- liftST $ Ref.new DM.Nothing
-            myImmediateCancellation <- liftST $ Ref.new (pure unit)
-            myScope <- ids
-            stageRef <- liftST $ Ref.new Begin
-            c0 <- subscribe inner \kid' -> do
-              stage <- liftST $ Ref.read stageRef
-              case kid', stage of
-                C.Silence, Middle -> do
-                  void $ liftST $ Ref.write End stageRef
-                  let
-                    mic =
-                      ( (liftST $ Ref.read myId) >>= traverse_ \old -> for_ psr.parent \prnt ->
-                          k
-                            ( disconnectXFromY
-                                { from: old, to: prnt }
-                            )
-                      ) *> join (liftST $ Ref.read myUnsub)
-                        *> join (liftST $ Ref.read eltsUnsub)
-                        *>
-                          ( void $ liftST $ Ref.modify
-                              (Object.delete myUnsubId)
-                              cancelInner
-                          )
-                        *>
-                          ( void $ liftST $ Ref.modify
-                              (Object.delete eltsUnsubId)
-                              cancelInner
-                          )
-                  (void $ liftST $ Ref.write mic myImmediateCancellation) *> mic
-                C.Sound kid, Begin -> do
-                  -- holds the current id
-                  void $ liftST $ Ref.write Middle stageRef
-                  c1 <- subscribe
-                    ( __internalWagsFlatten
-                        { parent: psr.parent
-                        , scope: myScope
-                        , raiseId: \id -> do
-                            void $ liftST $ Ref.write (DM.Just id) myId
-                        }
-                        di
-                        -- hack to make sure that kid only ever raises its
-                        -- ID once
-                        -- if it is anything other than an element we wrap it in one
-                        -- otherwise, we'd risk raising many ids to a parent
-                        case kid of
-                          C.Node' _ -> kid
-                          _ -> gain_ 1.0 [ kid ]
-                    )
-                    k
-                  void $ liftST $ Ref.modify (Object.insert eltsUnsubId c1)
-                    cancelInner
-                  void $ liftST $ Ref.write c1 eltsUnsub
-                _, _ -> pure unit
-            void $ liftST $ Ref.write c0 myUnsub
-            void $ liftST $ Ref.modify (Object.insert myUnsubId c0) cancelInner
-            join (liftST $ Ref.read myImmediateCancellation)
-      pure do
-        (liftST $ Ref.read cancelInner) >>= foldl (*>) (pure unit)
-        cancelOuter
-  where
-  element (C.Node e) = e psr di
+__internalWagsFlatten = Bolson.flatten
+  { doLogic: absurd
+  , ids: unwrap >>> _.ids
+  , disconnectElement: \(C.AudioInterpret { disconnectXFromY } ) {id,parent} -> disconnectXFromY { from:id,to:parent }
+  , wrapElt: \e -> gain_ 1.0 [e]
+  , toElt: \(C.Node e) -> Element e
+  }

@@ -11,7 +11,7 @@ import Data.Newtype (class Newtype, unwrap)
 import Data.Tuple.Nested ((/\))
 import Deku.Attribute (cb, (:=))
 import Deku.Control (dekuA, switcher, text_)
-import Deku.Core (Domable, Element, toDOM)
+import Deku.Core (Domable, envy)
 import Deku.DOM as D
 import Deku.Interpret (fullDOMInterpret, makeFFIDOMSnapshot)
 import Effect (Effect)
@@ -141,18 +141,18 @@ scene push event' =
   page :: TopLevelSg -> Domable Effect lock payload
   page (TopLevelSg { page: pg, setCancellation, setPage }) = go pg
     where
-    go Intro = D.div_ $ pure $ toDOM $ bus (Intro.intro setCancellation setPage)
-    go HelloWorld = D.div_ $ pure $ toDOM $ bus (HelloWorld.helloWorld setCancellation setPage)
-    go FixFan = D.div_ $ pure $ toDOM $ bus (FixFan.fixFan setCancellation setPage)
-    go AudioUnits = D.div_ $ pure $ toDOM $ bus (Component.components setCancellation setPage)
-    go AudioWorklets = D.div_ $ pure $ toDOM $ bus (Pursx1.pursx1 setCancellation setPage)
-    go Events = D.div_ $ pure $ toDOM $ bus (Events.events setCancellation setPage)
-    go Params = D.div_ $ pure $ toDOM $ bus (Params.params setCancellation setPage)
-    go State = D.div_ $ pure $ toDOM $ bus (Effects.effects setCancellation setPage)
-    go Imperative = D.div_ $ pure $ toDOM $ bus (Pursx2.pursx2 setCancellation setPage)
-    go MultiChannel = D.div_ $ pure $ toDOM $ bus (Multichannel.multiChannel setCancellation setPage)
-    go Subgraph = D.div_ $ pure $ toDOM $ bus (Subgraph.subgraphs setCancellation setPage)
-    go Tumult = D.div_ $ pure $ toDOM $ bus (Portals.portals setCancellation setPage)
+    go Intro = D.div_ $ pure $ envy $ bus (Intro.intro setCancellation setPage)
+    go HelloWorld = D.div_ $ pure $ envy $ bus (HelloWorld.helloWorld setCancellation setPage)
+    go FixFan = D.div_ $ pure $ envy $ bus (FixFan.fixFan setCancellation setPage)
+    go AudioUnits = D.div_ $ pure $ envy $ bus (Component.components setCancellation setPage)
+    go AudioWorklets = D.div_ $ pure $ envy $ bus (Pursx1.pursx1 setCancellation setPage)
+    go Events = D.div_ $ pure $ envy $ bus (Events.events setCancellation setPage)
+    go Params = D.div_ $ pure $ envy $ bus (Params.params setCancellation setPage)
+    go State = D.div_ $ pure $ envy $ bus (Effects.effects setCancellation setPage)
+    go Imperative = D.div_ $ pure $ envy $ bus (Pursx2.pursx2 setCancellation setPage)
+    go MultiChannel = D.div_ $ pure $ envy $ bus (Multichannel.multiChannel setCancellation setPage)
+    go Subgraph = D.div_ $ pure $ envy $ bus (Subgraph.subgraphs setCancellation setPage)
+    go Tumult = D.div_ $ pure $ envy $ bus (Portals.portals setCancellation setPage)
 
 main :: Effect Unit
 main = do
