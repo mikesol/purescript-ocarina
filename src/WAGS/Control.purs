@@ -1520,7 +1520,7 @@ globalFan
   => Vect n (C.Audible o lock payload)
   -> (Vect n (C.Audible o lock payload) -> C.Audible o lock payload)
   -> C.Audible o lock payload
-globalFan = Bolson.globalPortal absurd (unwrap >>> _.ids) (\(C.AudioInterpret { disconnectXFromY } ) {id,parent} -> disconnectXFromY { from:id,to:parent }) (\e -> gain_ 1.0 [e]) (\(C.Node e) -> Element e) (\(Element e) -> C.Node e)  (\(C.AudioInterpret { connectXToY } ) {id,parent} -> connectXToY { from:id,to:parent }) (unwrap >>> _.deleteFromCache)
+globalFan = Bolson.globalPortal {doLogic: absurd, ids: unwrap >>> _.ids, disconnectElement: \(C.AudioInterpret { disconnectXFromY } ) {id,parent} -> disconnectXFromY { from:id,to:parent }, wrapElt: \e -> gain_ 1.0 [e], toElt: \(C.Node e) -> Element e} {fromElt: \(Element e) -> C.Node e, giveNewParent: \(C.AudioInterpret { connectXToY } ) {id,parent} -> connectXToY { from:id,to:parent }, deleteFromCache: unwrap >>> _.deleteFromCache}
 
 
 fan
@@ -1533,7 +1533,7 @@ fan
        -> C.Audible o lockfoo payload
      )
   -> C.Audible o lock0 payload
-fan a b = Bolson.portal absurd (unwrap >>> _.ids) (\(C.AudioInterpret { disconnectXFromY } ) {id,parent} -> disconnectXFromY { from:id,to:parent }) (\e -> gain_ 1.0 [e]) (\(C.Node e) -> Element e) (\(Element e) -> C.Node e)  (\(C.AudioInterpret { connectXToY } ) {id,parent} -> connectXToY { from:id,to:parent }) (unwrap >>> _.deleteFromCache)  a (unsafeCoerce b)
+fan a b = Bolson.portal {doLogic: absurd, ids: unwrap >>> _.ids, disconnectElement: \(C.AudioInterpret { disconnectXFromY } ) {id,parent} -> disconnectXFromY { from:id,to:parent }, wrapElt: \e -> gain_ 1.0 [e], toElt: \(C.Node e) -> Element e} {fromElt: \(Element e) -> C.Node e, giveNewParent: \(C.AudioInterpret { connectXToY } ) {id,parent} -> connectXToY { from:id,to:parent }, deleteFromCache: unwrap >>> _.deleteFromCache}  a (unsafeCoerce b)
 
 globalFan1
   :: forall o lock payload
@@ -1560,7 +1560,7 @@ fix
   :: forall outputChannels lock payload
    . (C.Audible outputChannels lock payload -> C.Audible outputChannels lock payload)
   -> C.Audible outputChannels lock payload
-fix = Bolson.fix absurd (unwrap >>> _.ids) (\(C.AudioInterpret { disconnectXFromY } ) {id,parent} -> disconnectXFromY { from:id,to:parent })  (\e -> gain_ 1.0 [e]) (\(C.Node e) -> Element e) (\(Element e) -> C.Node e) (\(C.AudioInterpret { connectXToY } ) {id,parent} -> connectXToY { from:id, to:parent })
+fix = Bolson.fix {doLogic: absurd, ids: unwrap >>> _.ids, disconnectElement: \(C.AudioInterpret { disconnectXFromY } ) {id,parent} -> disconnectXFromY { from:id,to:parent }, wrapElt: \e -> gain_ 1.0 [e], toElt: \(C.Node e) -> Element e} {fromElt: \(Element e) -> C.Node e, connectToParent: \(C.AudioInterpret { connectXToY } ) {id,parent} -> connectXToY { from:id, to:parent } }
 
 
 silence
@@ -1653,4 +1653,10 @@ __internalWagsFlatten
   -> C.AudioInterpret payload
   -> C.Audible o lock payload
   -> Event payload
-__internalWagsFlatten = Bolson.flatten absurd (unwrap >>> _.ids) (\(C.AudioInterpret { disconnectXFromY } ) {id,parent} -> disconnectXFromY { from:id,to:parent })  (\e -> gain_ 1.0 [e]) (\(C.Node e) -> Element e) (\(Element e) -> C.Node e)
+__internalWagsFlatten = Bolson.flatten
+  { doLogic: absurd
+  , ids: unwrap >>> _.ids
+  , disconnectElement: \(C.AudioInterpret { disconnectXFromY } ) {id,parent} -> disconnectXFromY { from:id,to:parent }
+  , wrapElt: \e -> gain_ 1.0 [e]
+  , toElt: \(C.Node e) -> Element e
+  }
