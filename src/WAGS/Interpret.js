@@ -59,7 +59,7 @@ var genericSetter = function (state, unit, name, controllers, param) {
 };
 var addToScope = function (ptr, scope$, state) {
 	// todo: unhinge from internal representation of scope...
-	const scope = scope$.value1 ? scope$.value1 : '@fan@';
+	const scope = scope$.value0 ? scope$.value0 : '@fan@';
 	if (!state.scopes[scope]) {
 		state.scopes[scope] = [];
 	}
