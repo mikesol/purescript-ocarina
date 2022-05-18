@@ -33,7 +33,7 @@ let additions =
       , bolson =
         { dependencies = [ "prelude", "heterogeneous" ]
         , repo = "https://github.com/mikesol/purescript-bolson.git"
-        , version = "v0.0.1"
+        , version = "v0.0.2"
         }
       , monoid-extras =
         { dependencies = [ "prelude" ]
@@ -146,7 +146,7 @@ let additions =
           , "web-events"
           ]
         , repo = "https://github.com/mikesol/purescript-deku.git"
-        , version = "v0.4.1"
+        , version = "v0.4.2"
         }
       , homogeneous =
         { dependencies =
