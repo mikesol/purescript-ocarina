@@ -521,15 +521,17 @@ newtype Node :: Type -> Type -> Type -> Type
 newtype Node outputChannels lock payload = Node (NodeC' lock payload)
 
 sound
-  :: forall logic obj m lock
-   . Bolson.Entity logic obj m lock
-  -> Bolson.Child logic obj m lock
+  :: forall outputChannels lock payload
+   . Audible outputChannels lock payload
+  -> AudibleChild outputChannels lock payload
 sound = Bolson.Insert
 
-silence :: forall logic obj m lock. Bolson.Child logic obj m lock
+silence :: forall outputChannels lock payload. AudibleChild outputChannels lock payload
 silence = Bolson.Remove
 
 type Audible outputChannels lock payload = Bolson.Entity Void (Node outputChannels lock payload) Effect lock
+type AudibleChild outputChannels lock payload = Bolson.Child Void (Node outputChannels lock payload) Effect lock
+
 --
 
 newtype RealImg = RealImg { real :: Array Number, img :: Array Number }
