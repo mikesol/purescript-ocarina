@@ -14,6 +14,7 @@ module WAGS.Core
   , NodeC'
   , Node(..)
   , Audible
+  , AudibleChild
   , AudioWorkletNode(..)
   , AudioUnit'
   , AudioUnit(..)
