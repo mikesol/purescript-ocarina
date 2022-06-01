@@ -146,7 +146,7 @@ let additions =
           , "web-events"
           ]
         , repo = "https://github.com/mikesol/purescript-deku.git"
-        , version = "v0.4.2"
+        , version = "v0.4.6"
         }
       , homogeneous =
         { dependencies =
