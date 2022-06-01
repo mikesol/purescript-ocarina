@@ -1524,10 +1524,10 @@ globalFan a b = Bolson.globalPortal
   { doLogic: absurd
   , ids: unwrap >>> _.ids
   , disconnectElement: \(C.AudioInterpret { disconnectXFromY }) { id, parent } -> disconnectXFromY { from: id, to: parent }
-  , wrapElt: \e -> gain_ 1.0 [ e ]
   , toElt: \(C.Node e) -> Element e
   }
   { fromElt: \(Element e) -> C.Node e
+  , wrapElt: \e -> gain_ 1.0 [ e ]
   , giveNewParent: \(C.AudioInterpret { connectXToY }) { id, parent } _ -> connectXToY { from: id, to: parent }
   , deleteFromCache: unwrap >>> _.deleteFromCache
   }
@@ -1548,10 +1548,10 @@ fan a b = Bolson.portal
   { doLogic: absurd
   , ids: unwrap >>> _.ids
   , disconnectElement: \(C.AudioInterpret { disconnectXFromY }) { id, parent } -> disconnectXFromY { from: id, to: parent }
-  , wrapElt: \e -> gain_ 1.0 [ e ]
   , toElt: \(C.Node e) -> Element e
   }
   { fromElt: \(Element e) -> C.Node e
+  , wrapElt: \e -> gain_ 1.0 [ e ]
   , giveNewParent: \(C.AudioInterpret { connectXToY }) { id, parent } _ -> connectXToY { from: id, to: parent }
   , deleteFromCache: unwrap >>> _.deleteFromCache
   }
@@ -1587,10 +1587,11 @@ fix = Bolson.fix
   { doLogic: absurd
   , ids: unwrap >>> _.ids
   , disconnectElement: \(C.AudioInterpret { disconnectXFromY }) { id, parent } -> disconnectXFromY { from: id, to: parent }
-  , wrapElt: \e -> gain_ 1.0 [ e ]
   , toElt: \(C.Node e) -> Element e
   }
-  { fromElt: \(Element e) -> C.Node e, connectToParent: \(C.AudioInterpret { connectXToY }) { id, parent } -> connectXToY { from: id, to: parent } }
+  { fromElt: \(Element e) -> C.Node e
+  , connectToParent: \(C.AudioInterpret { connectXToY }) { id, parent } -> connectXToY { from: id, to: parent }
+  }
 
 silence
   :: forall outputChannels lock payload
@@ -1686,6 +1687,5 @@ __internalWagsFlatten = Bolson.flatten
   { doLogic: absurd
   , ids: unwrap >>> _.ids
   , disconnectElement: \(C.AudioInterpret { disconnectXFromY }) { id, parent } -> disconnectXFromY { from: id, to: parent }
-  , wrapElt: \e -> gain_ 1.0 [ e ]
   , toElt: \(C.Node e) -> Element e
   }
