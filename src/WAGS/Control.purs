@@ -1520,13 +1520,15 @@ globalFan
   => Vect n (C.Audible o lock payload)
   -> (Vect n (C.Audible o lock payload) -> C.Audible o lock payload)
   -> C.Audible o lock payload
-globalFan a b = Bolson.globalPortal
+globalFan a b = Bolson.globalPortalComplexComplex
   { doLogic: absurd
   , ids: unwrap >>> _.ids
   , disconnectElement: \(C.AudioInterpret { disconnectXFromY }) { id, parent } -> disconnectXFromY { from: id, to: parent }
   , toElt: \(C.Node e) -> Element e
   }
-  { fromElt: \(Element e) -> C.Node e
+  { fromEltO1: coerce
+  , fromEltO2: coerce
+  , toElt: coerce
   , wrapElt: \e -> gain_ 1.0 [ e ]
   , giveNewParent: \(C.AudioInterpret { connectXToY }) { id, parent } _ -> connectXToY { from: id, to: parent }
   , deleteFromCache: unwrap >>> _.deleteFromCache
@@ -1544,13 +1546,15 @@ fan
        -> C.Audible o lock1 payload
      )
   -> C.Audible o lock0 payload
-fan a b = Bolson.portal
+fan a b = Bolson.portalComplexComplex
   { doLogic: absurd
   , ids: unwrap >>> _.ids
   , disconnectElement: \(C.AudioInterpret { disconnectXFromY }) { id, parent } -> disconnectXFromY { from: id, to: parent }
   , toElt: \(C.Node e) -> Element e
   }
-  { fromElt: \(Element e) -> C.Node e
+  { fromEltO1: coerce
+  , fromEltO2: coerce
+  , toElt: coerce
   , wrapElt: \e -> gain_ 1.0 [ e ]
   , giveNewParent: \(C.AudioInterpret { connectXToY }) { id, parent } _ -> connectXToY { from: id, to: parent }
   , deleteFromCache: unwrap >>> _.deleteFromCache
@@ -1583,13 +1587,13 @@ fix
   :: forall outputChannels lock payload
    . (C.Audible outputChannels lock payload -> C.Audible outputChannels lock payload)
   -> C.Audible outputChannels lock payload
-fix = Bolson.fix
+fix = Bolson.fixComplexComplex
   { doLogic: absurd
   , ids: unwrap >>> _.ids
   , disconnectElement: \(C.AudioInterpret { disconnectXFromY }) { id, parent } -> disconnectXFromY { from: id, to: parent }
   , toElt: \(C.Node e) -> Element e
   }
-  { fromElt: \(Element e) -> C.Node e
+  { fromElt: coerce
   , connectToParent: \(C.AudioInterpret { connectXToY }) { id, parent } -> connectXToY { from: id, to: parent }
   }
 
