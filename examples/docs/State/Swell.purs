@@ -1,4 +1,4 @@
-module WAGS.Example.Docs.State.Swell where
+module Ocarina.Example.Docs.State.Swell where
 
 import Prelude
 
@@ -29,12 +29,12 @@ import FRP.Event.VBus (V, vbus)
 import Test.QuickCheck (arbitrary, mkSeed)
 import Test.QuickCheck.Gen (evalGen)
 import Type.Proxy (Proxy(..))
-import WAGS.Clock (withACTime)
-import WAGS.Control (bandpass_, gain, lowpass_, periodicOsc, squareOsc_)
-import WAGS.Interpret (close, constant0Hack, context)
-import WAGS.Core (AudioNumeric(..), _linear, bangOn)
-import WAGS.Properties as P
-import WAGS.Run (run2e)
+import Ocarina.Clock (withACTime)
+import Ocarina.Control (bandpass_, gain, lowpass_, periodicOsc, squareOsc_)
+import Ocarina.Interpret (close, constant0Hack, context)
+import Ocarina.Core (AudioNumeric(..), _linear, bangOn)
+import Ocarina.Properties as P
+import Ocarina.Run (run2e)
 
 type StartStop = V (start :: Unit, stop :: Effect Unit)
 

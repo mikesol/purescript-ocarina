@@ -1,4 +1,4 @@
-module WAGS.Example.Docs.Component where
+module Ocarina.Example.Docs.Component where
 
 import Prelude
 
@@ -8,39 +8,39 @@ import Deku.Pursx (nut, (~~))
 import Effect (Effect)
 import FRP.Event (Event, class IsEvent)
 import Type.Proxy (Proxy(..))
-import WAGS.Control (gain_, loopBuf)
-import WAGS.Core (bangOn)
-import WAGS.Example.Docs.AudioUnits.Allpass as Allpass
-import WAGS.Example.Docs.AudioUnits.Analyser as Analyser
-import WAGS.Example.Docs.AudioUnits.Bandpass as Bandpass
-import WAGS.Example.Docs.AudioUnits.Compression as Compression
-import WAGS.Example.Docs.AudioUnits.Constant as Constant
-import WAGS.Example.Docs.AudioUnits.Convolution as Convolution
-import WAGS.Example.Docs.AudioUnits.Delay as Delay
-import WAGS.Example.Docs.AudioUnits.Gain as Gain
-import WAGS.Example.Docs.AudioUnits.Highpass as Highpass
-import WAGS.Example.Docs.AudioUnits.Highshelf as Highshelf
-import WAGS.Example.Docs.AudioUnits.IIRFilter as IIRFilter
-import WAGS.Example.Docs.AudioUnits.LoopBuf as LoopBuf
-import WAGS.Example.Docs.AudioUnits.Lowpass as Lowpass
-import WAGS.Example.Docs.AudioUnits.Lowshelf as Lowshelf
-import WAGS.Example.Docs.AudioUnits.Microphone as Microphone
-import WAGS.Example.Docs.AudioUnits.Notch as Notch
-import WAGS.Example.Docs.AudioUnits.Peaking as Peaking
-import WAGS.Example.Docs.AudioUnits.PeriodicOsc as PeriodicOsc
-import WAGS.Example.Docs.AudioUnits.PlayBuf as PlayBuf
-import WAGS.Example.Docs.AudioUnits.Recorder as Recorder
-import WAGS.Example.Docs.AudioUnits.SawtoothOsc as SawtoothOsc
-import WAGS.Example.Docs.AudioUnits.SinOsc as SinOsc
-import WAGS.Example.Docs.AudioUnits.SquareOsc as SquareOsc
-import WAGS.Example.Docs.AudioUnits.StereoPanner as StereoPanner
-import WAGS.Example.Docs.AudioUnits.TOC as TOC
-import WAGS.Example.Docs.AudioUnits.TriangleOsc as TriangleOsc
-import WAGS.Example.Docs.AudioUnits.WaveShaper as WaveShaper
-import WAGS.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
-import WAGS.Example.Docs.Util (audioWrapperSpan, ccassp, mkNext, scrollToTop)
-import WAGS.Interpret (bracketCtx, decodeAudioDataFromUri)
-import WAGS.Run (run2, run2_)
+import Ocarina.Control (gain_, loopBuf)
+import Ocarina.Core (bangOn)
+import Ocarina.Example.Docs.AudioUnits.Allpass as Allpass
+import Ocarina.Example.Docs.AudioUnits.Analyser as Analyser
+import Ocarina.Example.Docs.AudioUnits.Bandpass as Bandpass
+import Ocarina.Example.Docs.AudioUnits.Compression as Compression
+import Ocarina.Example.Docs.AudioUnits.Constant as Constant
+import Ocarina.Example.Docs.AudioUnits.Convolution as Convolution
+import Ocarina.Example.Docs.AudioUnits.Delay as Delay
+import Ocarina.Example.Docs.AudioUnits.Gain as Gain
+import Ocarina.Example.Docs.AudioUnits.Highpass as Highpass
+import Ocarina.Example.Docs.AudioUnits.Highshelf as Highshelf
+import Ocarina.Example.Docs.AudioUnits.IIRFilter as IIRFilter
+import Ocarina.Example.Docs.AudioUnits.LoopBuf as LoopBuf
+import Ocarina.Example.Docs.AudioUnits.Lowpass as Lowpass
+import Ocarina.Example.Docs.AudioUnits.Lowshelf as Lowshelf
+import Ocarina.Example.Docs.AudioUnits.Microphone as Microphone
+import Ocarina.Example.Docs.AudioUnits.Notch as Notch
+import Ocarina.Example.Docs.AudioUnits.Peaking as Peaking
+import Ocarina.Example.Docs.AudioUnits.PeriodicOsc as PeriodicOsc
+import Ocarina.Example.Docs.AudioUnits.PlayBuf as PlayBuf
+import Ocarina.Example.Docs.AudioUnits.Recorder as Recorder
+import Ocarina.Example.Docs.AudioUnits.SawtoothOsc as SawtoothOsc
+import Ocarina.Example.Docs.AudioUnits.SinOsc as SinOsc
+import Ocarina.Example.Docs.AudioUnits.SquareOsc as SquareOsc
+import Ocarina.Example.Docs.AudioUnits.StereoPanner as StereoPanner
+import Ocarina.Example.Docs.AudioUnits.TOC as TOC
+import Ocarina.Example.Docs.AudioUnits.TriangleOsc as TriangleOsc
+import Ocarina.Example.Docs.AudioUnits.WaveShaper as WaveShaper
+import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
+import Ocarina.Example.Docs.Util (audioWrapperSpan, ccassp, mkNext, scrollToTop)
+import Ocarina.Interpret (bracketCtx, decodeAudioDataFromUri)
+import Ocarina.Run (run2, run2_)
 
 
   -- todo
@@ -57,7 +57,7 @@ px = Proxy :: Proxy """<div>
 
   <h3>There sure are a lot of them!</h3>
   <p>
-    This section provides a tour of the web audio nodes provided by the Web Audio API and, by extension, Wags. There are only two omissions:</p>
+    This section provides a tour of the web audio nodes provided by the Web Audio API and, by extension, Ocarina. There are only two omissions:</p>
     <ul>
       <li>Audio Worklet Nodes</li>
       <li>Multi-channel audio</li>

@@ -1,5 +1,5 @@
 -- | Definitions for the indexed graph builder monad.
-module WAGS.Imperative.Monad where
+module Ocarina.Imperative.Monad where
 
 import Prelude
 
@@ -11,9 +11,9 @@ import FRP.Event (Event)
 import Prim.Boolean (True, False)
 import Prim.RowList as RL
 import Prim.TypeError (class Fail, Beside, Text)
-import WAGS.Core (AudioInterpret)
-import WAGS.Imperative.Types (type (\/))
-import WAGS.Interpret (FFIAudioSnapshot, effectfulAudioInterpret)
+import Ocarina.Core (AudioInterpret)
+import Ocarina.Imperative.Types (type (\/))
+import Ocarina.Interpret (FFIAudioSnapshot, effectfulAudioInterpret)
 
 -- | The indexed graph builder monad.
 -- |

@@ -35,4 +35,4 @@ jobs:
       #- name: Spago test
       #  run: npx spago -x test.dhall test
       - name: Build qc
-        run: npx spago -x examples.dhall bundle-module --main WAGS.Example.Docs --to examples/docs/index.js --minify
+        run: npx spago -x examples.dhall bundle-module --main Ocarina.Example.Docs --to examples/docs/index.js --minify

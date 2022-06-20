@@ -1,4 +1,4 @@
-module WAGS.Example.Docs.Effects.FoldEx where
+module Ocarina.Example.Docs.Effects.FoldEx where
 
 import Prelude
 
@@ -20,14 +20,14 @@ import FRP.Event.Animate (animationFrameEvent)
 import FRP.Event.Class (bang, biSampleOn)
 import FRP.Event.VBus (V, vbus)
 import Type.Proxy (Proxy(..))
-import WAGS.Clock (withACTime)
-import WAGS.Control (gain, periodicOsc)
-import WAGS.Core (AudioNumeric(..), _linear, bangOn)
-import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..), SingleSubgraphPusher)
-import WAGS.Interpret (close, constant0Hack, context)
-import WAGS.Math (calcSlope)
-import WAGS.Properties as P
-import WAGS.Run (run2e)
+import Ocarina.Clock (withACTime)
+import Ocarina.Control (gain, periodicOsc)
+import Ocarina.Core (AudioNumeric(..), _linear, bangOn)
+import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..), SingleSubgraphPusher)
+import Ocarina.Interpret (close, constant0Hack, context)
+import Ocarina.Math (calcSlope)
+import Ocarina.Properties as P
+import Ocarina.Run (run2e)
 
 px =
   Proxy    :: Proxy      """<section>
@@ -89,13 +89,13 @@ import FRP.Event.Class (bang, fold, mapAccum, sampleOn)
 import FRP.Event.VBus (V, vbus)
 import Data.Number (pi, sin)
 import Type.Proxy (Proxy(..))
-import WAGS.Clock (withACTime)
-import WAGS.Control (gain, periodicOsc)
-import WAGS.Interpret (close, constant0Hack, context)
-import WAGS.Math (calcSlope)
-import WAGS.Core (AudioNumeric(..), _linear, bangOn)
-import WAGS.Properties as P
-import WAGS.Run (run2e)
+import Ocarina.Clock (withACTime)
+import Ocarina.Control (gain, periodicOsc)
+import Ocarina.Interpret (close, constant0Hack, context)
+import Ocarina.Math (calcSlope)
+import Ocarina.Core (AudioNumeric(..), _linear, bangOn)
+import Ocarina.Properties as P
+import Ocarina.Run (run2e)
 
 type Cbx = V (cbx0 :: Unit, cbx1 :: Unit, cbx2 :: Unit, cbx3 :: Unit)
 

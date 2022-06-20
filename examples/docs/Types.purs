@@ -1,4 +1,4 @@
-module WAGS.Example.Docs.Types where
+module Ocarina.Example.Docs.Types where
 
 import Prelude
 

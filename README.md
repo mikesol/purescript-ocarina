@@ -1,10 +1,10 @@
-# purescript-wags
+# purescript-ocarina
 
 A library for web-based interactive audio and audio gaming.
 
 ## Documentation
 
-Wags's documentation is online [here](https://mikesol.github.io/purescript-wags) and the source [in this repository](./examples/docs/).
+Ocarina's documentation is online [here](https://mikesol.github.io/purescript-ocarina) and the source [in this repository](./examples/docs/).
 
 ## Bundling on your site
 
@@ -14,7 +14,7 @@ To compile the JS for the hello world example, issue the following command:
 
 ```bash
 npx spago -x examples.dhall bundle-app \
-  --main WAGS.Example.HelloWorld \
+  --main Ocarina.Example.HelloWorld \
   --to examples/hello-world/index.js
 ```
 

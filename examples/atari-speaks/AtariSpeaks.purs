@@ -1,4 +1,4 @@
-module WAGS.Example.AtariSpeaks where
+module Ocarina.Example.AtariSpeaks where
 
 import Prelude
 
@@ -27,14 +27,14 @@ import FRP.Behavior (sample_)
 import FRP.Event (Event, bus, create, filterMap, keepLatest, memoize, sampleOn, subscribe)
 import FRP.Event.Animate (animationFrameEvent)
 import FRP.Event.Class (bang)
-import WAGS.Clock (WriteHead, fot, writeHead)
-import WAGS.Control (analyser, gain, loopBuf, speaker2)
-import WAGS.Core (Audible, bangOn, opticN)
-import WAGS.Core (opticN, bangOn)
-import WAGS.Example.Utils (RaiseCancellation)
-import WAGS.Interpret (close, context, decodeAudioDataFromUri, effectfulAudioInterpret, getByteFrequencyData, makeFFIAudioSnapshot)
-import WAGS.Properties (loopEnd, loopStart, playbackRate)
-import WAGS.WebAPI (AnalyserNodeCb(..), AudioContext, BrowserAudioBuffer)
+import Ocarina.Clock (WriteHead, fot, writeHead)
+import Ocarina.Control (analyser, gain, loopBuf, speaker2)
+import Ocarina.Core (Audible, bangOn, opticN)
+import Ocarina.Core (opticN, bangOn)
+import Ocarina.Example.Utils (RaiseCancellation)
+import Ocarina.Interpret (close, context, decodeAudioDataFromUri, effectfulAudioInterpret, getByteFrequencyData, makeFFIAudioSnapshot)
+import Ocarina.Properties (loopEnd, loopStart, playbackRate)
+import Ocarina.WebAPI (AnalyserNodeCb(..), AudioContext, BrowserAudioBuffer)
 import Web.HTML (window)
 import Web.HTML.HTMLDocument (body)
 import Web.HTML.HTMLElement (toElement)

@@ -1,4 +1,4 @@
-module WAGS.Example.HelloWorld where
+module Ocarina.Example.HelloWorld where
 
 import Prelude
 
@@ -25,15 +25,15 @@ import FRP.Event (Event, bus, keepLatest, memoize, subscribe)
 import FRP.Event.Animate (animationFrameEvent)
 import FRP.Event.Class (bang)
 import Type.Proxy (Proxy(..))
-import WAGS.Clock (WriteHead, fot, writeHead)
-import WAGS.Control (gain, sinOsc, speaker2)
-import WAGS.Core (Audible, bangOn, opticN)
-import WAGS.Example.Utils (RaiseCancellation)
-import WAGS.Imperative (InitialGraphBuilder, runGraphBuilder)
-import WAGS.Imperative as I
-import WAGS.Interpret (close, context, effectfulAudioInterpret, makeFFIAudioSnapshot)
-import WAGS.Properties (frequency)
-import WAGS.WebAPI (AudioContext)
+import Ocarina.Clock (WriteHead, fot, writeHead)
+import Ocarina.Control (gain, sinOsc, speaker2)
+import Ocarina.Core (Audible, bangOn, opticN)
+import Ocarina.Example.Utils (RaiseCancellation)
+import Ocarina.Imperative (InitialGraphBuilder, runGraphBuilder)
+import Ocarina.Imperative as I
+import Ocarina.Interpret (close, context, effectfulAudioInterpret, makeFFIAudioSnapshot)
+import Ocarina.Properties (frequency)
+import Ocarina.WebAPI (AudioContext)
 import Web.HTML (window)
 import Web.HTML.HTMLDocument (body)
 import Web.HTML.HTMLElement (toElement)

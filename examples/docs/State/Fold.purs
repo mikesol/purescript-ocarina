@@ -1,4 +1,4 @@
-module WAGS.Example.Docs.State.Fold where
+module Ocarina.Example.Docs.State.Fold where
 
 import Prelude
 
@@ -20,13 +20,13 @@ import FRP.Event.Class (bang, fold, mapAccum, sampleOn)
 import FRP.Event.VBus (V, vbus)
 import Data.Number (pi, sin)
 import Type.Proxy (Proxy(..))
-import WAGS.Clock (withACTime)
-import WAGS.Control (gain, periodicOsc)
-import WAGS.Interpret (close, constant0Hack, context)
-import WAGS.Math (calcSlope)
-import WAGS.Core (AudioNumeric(..), _linear, bangOn)
-import WAGS.Properties as P
-import WAGS.Run (run2e)
+import Ocarina.Clock (withACTime)
+import Ocarina.Control (gain, periodicOsc)
+import Ocarina.Interpret (close, constant0Hack, context)
+import Ocarina.Math (calcSlope)
+import Ocarina.Core (AudioNumeric(..), _linear, bangOn)
+import Ocarina.Properties as P
+import Ocarina.Run (run2e)
 
 type Cbx = V (cbx0 :: Unit, cbx1 :: Unit, cbx2 :: Unit, cbx3 :: Unit)
 

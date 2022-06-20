@@ -7,5 +7,5 @@ def as_ps(name):
 
 for example in examples:
   subprocess.run(
-    f'EXAMPLE={example} spago -x examples.dhall bundle-app --main WAGS.Example.{as_ps(example)} --to examples/{example}/index.js', shell=True, check=True
+    f'EXAMPLE={example} spago -x examples.dhall bundle-app --main Ocarina.Example.{as_ps(example)} --to examples/{example}/index.js', shell=True, check=True
   )

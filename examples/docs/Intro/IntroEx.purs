@@ -1,4 +1,4 @@
-module WAGS.Example.Docs.Intro.IntroEx where
+module Ocarina.Example.Docs.Intro.IntroEx where
 
 import Prelude
 
@@ -39,17 +39,17 @@ import Random.LCG (mkSeed)
 import Test.QuickCheck.Gen (elements, evalGen)
 import Type.Proxy (Proxy(..))
 import Unsafe.Coerce (unsafeCoerce)
-import WAGS.Clock (withACTime)
-import WAGS.Control (analyser_, bandpass, delay, fan1, fix, gain, gain_, highpass, lowpass, playBuf)
-import WAGS.Core (Audible, AudioEnvelope(..), AudioNumeric(..), _linear, bangOn)
-import WAGS.Core (Node, Po2(..))
-import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..))
-import WAGS.Example.Docs.Util (raceSelf)
-import WAGS.Interpret (close, constant0Hack, context, decodeAudioDataFromUri, getByteFrequencyData)
-import WAGS.Math (calcSlope)
-import WAGS.Properties as P
-import WAGS.Run (run2)
-import WAGS.WebAPI (AnalyserNodeCb(..))
+import Ocarina.Clock (withACTime)
+import Ocarina.Control (analyser_, bandpass, delay, fan1, fix, gain, gain_, highpass, lowpass, playBuf)
+import Ocarina.Core (Audible, AudioEnvelope(..), AudioNumeric(..), _linear, bangOn)
+import Ocarina.Core (Node, Po2(..))
+import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..))
+import Ocarina.Example.Docs.Util (raceSelf)
+import Ocarina.Interpret (close, constant0Hack, context, decodeAudioDataFromUri, getByteFrequencyData)
+import Ocarina.Math (calcSlope)
+import Ocarina.Properties as P
+import Ocarina.Run (run2)
+import Ocarina.WebAPI (AnalyserNodeCb(..))
 import Web.Event.Event (target)
 import Web.HTML.HTMLCanvasElement as HTMLCanvasElement
 import Web.HTML.HTMLInputElement (fromEventTarget, valueAsNumber)

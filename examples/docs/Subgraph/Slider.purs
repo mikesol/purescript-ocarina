@@ -1,4 +1,4 @@
-module WAGS.Example.Docs.Subgraph.Slider where
+module Ocarina.Example.Docs.Subgraph.Slider where
 
 import Prelude
 
@@ -22,11 +22,11 @@ import FRP.Event.Class (bang)
 import FRP.Event.VBus (V, vbus)
 import QualifiedDo.OneOfMap as O
 import Type.Proxy (Proxy(..))
-import WAGS.Control (gain_, playBuf)
-import WAGS.Core (dyn, sound, silence, bangOn)
-import WAGS.Interpret (bracketCtx, decodeAudioDataFromUri)
-import WAGS.Run (run2_)
-import WAGS.WebAPI (BrowserAudioBuffer)
+import Ocarina.Control (gain_, playBuf)
+import Ocarina.Core (dyn, sound, silence, bangOn)
+import Ocarina.Interpret (bracketCtx, decodeAudioDataFromUri)
+import Ocarina.Run (run2_)
+import Ocarina.WebAPI (BrowserAudioBuffer)
 
 type StartStop = V (start :: Unit, stop :: Effect Unit)
 type UIEvents = V (startStop :: StartStop, slider :: Unit)

@@ -1,4 +1,4 @@
-module WAGS.Example.Docs.FixFan where
+module Ocarina.Example.Docs.FixFan where
 
 import Prelude
 
@@ -8,15 +8,15 @@ import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
 import FRP.Event (Event, class IsEvent)
 import Type.Proxy (Proxy(..))
-import WAGS.Example.Docs.FixFan.AI0 as AI0
-import WAGS.Example.Docs.FixFan.AI1 as AI1
-import WAGS.Example.Docs.FixFan.Fan0 as Fan0
-import WAGS.Example.Docs.FixFan.Fan1 as Fan1
-import WAGS.Example.Docs.FixFan.Fix0 as Fix0
-import WAGS.Example.Docs.FixFan.Fix1 as Fix1
-import WAGS.Example.Docs.FixFan.Intro as FFIntro
-import WAGS.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
-import WAGS.Example.Docs.Util (ccassp, mkNext, scrollToTop)
+import Ocarina.Example.Docs.FixFan.AI0 as AI0
+import Ocarina.Example.Docs.FixFan.AI1 as AI1
+import Ocarina.Example.Docs.FixFan.Fan0 as Fan0
+import Ocarina.Example.Docs.FixFan.Fan1 as Fan1
+import Ocarina.Example.Docs.FixFan.Fix0 as Fix0
+import Ocarina.Example.Docs.FixFan.Fix1 as Fix1
+import Ocarina.Example.Docs.FixFan.Intro as FFIntro
+import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
+import Ocarina.Example.Docs.Util (ccassp, mkNext, scrollToTop)
 
 data UIEvents = UIShown | ButtonClicked | SliderMoved Number
 derive instance Eq UIEvents
@@ -24,7 +24,7 @@ px = Proxy :: Proxy
       """<div>
   <h1>Array, fan, and fix</h1>
 
-  <h3>The anatomy of a Wags graph</h3>
+  <h3>The anatomy of a Ocarina graph</h3>
 
   @intro@
 
@@ -61,7 +61,7 @@ px = Proxy :: Proxy
 
   @code4@
 
-  <blockquote>If you don't have some sort of delay line in your processing chain, either via the Web-Audio-provided delay line or a custom delay node, Web Audio will raise a runtime error. Wags doesn't check for this, so make sure you test your audio to guarantee that it's feedback-explosion-free!</blockquote>
+  <blockquote>If you don't have some sort of delay line in your processing chain, either via the Web-Audio-provided delay line or a custom delay node, Web Audio will raise a runtime error. Ocarina doesn't check for this, so make sure you test your audio to guarantee that it's feedback-explosion-free!</blockquote>
 
   <p>Nothing stops you from nesting <code>fix</code>-s to create a mega-feedback loop!</p>
 

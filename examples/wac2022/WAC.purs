@@ -1,4 +1,4 @@
-module WAGS.Example.WAC where
+module Ocarina.Example.WAC where
 
 import Prelude
 
@@ -16,13 +16,13 @@ import FRP.Event (keepLatest, memoize)
 import FRP.Event.Class (bang)
 import FRP.Event.VBus (V, vbus)
 import Type.Proxy (Proxy(..))
-import WAGS.Clock (interval)
-import WAGS.Control (gain, gain_, sinOsc)
-import WAGS.Core (Audible, AudioEnvelope(AudioEnvelope), AudioOnOff(AudioOnOff), _off, _on)
-import WAGS.Interpret (close, context)
-import WAGS.Properties (onOff)
-import WAGS.Properties as P
-import WAGS.Run (run2e)
+import Ocarina.Clock (interval)
+import Ocarina.Control (gain, gain_, sinOsc)
+import Ocarina.Core (Audible, AudioEnvelope(AudioEnvelope), AudioOnOff(AudioOnOff), _off, _on)
+import Ocarina.Interpret (close, context)
+import Ocarina.Properties (onOff)
+import Ocarina.Properties as P
+import Ocarina.Run (run2e)
 
 type StartStop = V (start :: Unit, stop :: Effect Unit)
 

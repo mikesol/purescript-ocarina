@@ -1,4 +1,4 @@
-module WAGS.Imperative.Connect where
+module Ocarina.Imperative.Connect where
 
 import Prelude
 
@@ -9,10 +9,10 @@ import Prim.Symbol as Symbol
 import Prim.TypeError (class Fail, Beside, Text)
 import Row.Extra as RowExtra
 import Type.Prelude (class IsSymbol, reflectSymbol, Proxy(..))
-import WAGS.Core as Core
-import WAGS.Imperative.Monad (GraphBuilder(..))
-import WAGS.Imperative.Types (type (\/))
-import WAGS.Imperative.Types as T
+import Ocarina.Core as Core
+import Ocarina.Imperative.Monad (GraphBuilder(..))
+import Ocarina.Imperative.Types (type (\/))
+import Ocarina.Imperative.Types as T
 
 -- | Fails if `tOrF` resolves to `False`.
 class IsTerminalNode :: Symbol -> Boolean -> Constraint

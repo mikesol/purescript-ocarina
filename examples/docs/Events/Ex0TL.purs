@@ -1,4 +1,4 @@
-module WAGS.Example.Docs.Events.Ex0TL where
+module Ocarina.Example.Docs.Events.Ex0TL where
 
 import Prelude
 
@@ -14,11 +14,11 @@ import Effect (Effect)
 import FRP.Event (bus)
 import FRP.Event.Class (bang)
 import Data.Number (pow)
-import WAGS.Control (gain_, gain, sinOsc)
-import WAGS.Core (AudioEnvelope(..), AudioOnOff(..), _on, _off)
-import WAGS.Properties (onOff)
-import WAGS.Properties as P
-import WAGS.Run (run2_)
+import Ocarina.Control (gain_, gain, sinOsc)
+import Ocarina.Core (AudioEnvelope(..), AudioOnOff(..), _on, _off)
+import Ocarina.Properties (onOff)
+import Ocarina.Properties as P
+import Ocarina.Run (run2_)
 
 data UIEvents = Init | Start | Stop (Effect Unit)
 

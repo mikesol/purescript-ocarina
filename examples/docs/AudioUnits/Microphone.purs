@@ -1,4 +1,4 @@
-module WAGS.Example.Docs.AudioUnits.Microphone where
+module Ocarina.Example.Docs.AudioUnits.Microphone where
 
 import Prelude
 
@@ -8,11 +8,11 @@ import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
 import FRP.Event (Event)
 import Type.Proxy (Proxy(..))
-import WAGS.Control (delay_, fix, gain_, microphone, sinOsc_)
-import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
-import WAGS.Example.Docs.Util (audioWrapper)
-import WAGS.Interpret (getMicrophoneAndCamera)
-import WAGS.Run (run2)
+import Ocarina.Control (delay_, fix, gain_, microphone, sinOsc_)
+import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
+import Ocarina.Example.Docs.Util (audioWrapper)
+import Ocarina.Interpret (getMicrophoneAndCamera)
+import Ocarina.Run (run2)
 
 px =
   Proxy    :: Proxy         """<section>

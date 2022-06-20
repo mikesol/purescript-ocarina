@@ -1,4 +1,4 @@
-module WAGS.Example.Docs.Events.Ex1 where
+module Ocarina.Example.Docs.Events.Ex1 where
 
 import Prelude
 
@@ -18,15 +18,15 @@ import FRP.Event (Event)
 import FRP.Event.Class (bang, biSampleOn)
 import FRP.Event.VBus (V, vbus)
 import Type.Proxy (Proxy(..))
-import WAGS.Control (loopBuf)
-import WAGS.Core (Audible, bangOn)
-import WAGS.Core (bangOn)
-import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..))
-import WAGS.Example.Docs.Util (raceSelf)
-import WAGS.Interpret (close, constant0Hack, context, decodeAudioDataFromUri)
-import WAGS.Math (calcSlope)
-import WAGS.Properties (loopEnd, loopStart, playbackRate)
-import WAGS.Run (run2)
+import Ocarina.Control (loopBuf)
+import Ocarina.Core (Audible, bangOn)
+import Ocarina.Core (bangOn)
+import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..))
+import Ocarina.Example.Docs.Util (raceSelf)
+import Ocarina.Interpret (close, constant0Hack, context, decodeAudioDataFromUri)
+import Ocarina.Math (calcSlope)
+import Ocarina.Properties (loopEnd, loopStart, playbackRate)
+import Ocarina.Run (run2)
 import Web.Event.Event (target)
 import Web.HTML.HTMLInputElement (fromEventTarget, valueAsNumber)
 
@@ -36,13 +36,13 @@ px =
 
   <p>In this example, we'll use three sliders to control the playback rate, the start time, and the end time of a looping buffer.</p>
 
-  <p>There is a fair bit of DOM-related code in this example, so before showing the whole thing, let's isolate the Wags bit.</p>
+  <p>There is a fair bit of DOM-related code in this example, so before showing the whole thing, let's isolate the Ocarina bit.</p>
 
   <pre><code>@wagtxt@</code></pre>
 
   <p>Note that our loopBuf consumes four events: in addition to the three sliders, there is a <code>bangOn</code> event that turns it on. For the events belonging to range sliders, we use <code>calcSlope</code> to normalize the range to sensible values for these parameters.</p>
 
-  <p>Because each slider event contains a number, we can compose it with a function from <code>WAGS.Properties</code>, like <code>playbackRate</code> or <code>loopStart</code>, to create an event that controls a Wags parameter. The <code>oneOf</code> directive indicates that the incoming event will be "one of" the events in the array. It's also possible to use the tie-fighter, aka <code>alt</code>, to separate each event, but I like the array syntax when possible as tie fighters do, after all, work for the Empire, and who likes the Empire?</p>
+  <p>Because each slider event contains a number, we can compose it with a function from <code>Ocarina.Properties</code>, like <code>playbackRate</code> or <code>loopStart</code>, to create an event that controls a Ocarina parameter. The <code>oneOf</code> directive indicates that the incoming event will be "one of" the events in the array. It's also possible to use the tie-fighter, aka <code>alt</code>, to separate each event, but I like the array syntax when possible as tie fighters do, after all, work for the Empire, and who likes the Empire?</p>
 
   <p>And below you'll find the full example. It also shows useful patterns like downloading audio files and filtering events.</p>
 
@@ -76,13 +76,13 @@ import FRP.Event.VBus (V, vbus)
 import QualifiedDo.Alt as OneOf
 import QualifiedDo.OneOfMap as O
 import Type.Proxy (Proxy(..))
-import WAGS.Control (loopBuf)
-import WAGS.Core (bangOn)
-import WAGS.Interpret (bracketCtx, decodeAudioDataFromUri)
-import WAGS.Math (calcSlope)
-import WAGS.Properties (loopEnd, loopStart, playbackRate)
-import WAGS.Run (run2_)
-import WAGS.WebAPI (BrowserAudioBuffer)
+import Ocarina.Control (loopBuf)
+import Ocarina.Core (bangOn)
+import Ocarina.Interpret (bracketCtx, decodeAudioDataFromUri)
+import Ocarina.Math (calcSlope)
+import Ocarina.Properties (loopEnd, loopStart, playbackRate)
+import Ocarina.Run (run2_)
+import Ocarina.WebAPI (BrowserAudioBuffer)
 import Web.Event.Event (target)
 import Web.HTML.HTMLInputElement (fromEventTarget, valueAsNumber)
 

@@ -1,4 +1,4 @@
-module WAGS.Common where
+module Ocarina.Common where
 
 import Prelude
 
@@ -14,10 +14,10 @@ import FRP.Event (Event)
 import Safe.Coerce (coerce)
 import Type.Equality (class TypeEquals, proof)
 import Type.Proxy (Proxy(..))
-import WAGS.Core (Oversample, PeriodicOscSpec(..), RealImg(..), _twoX)
-import WAGS.Core as C
-import WAGS.Core as Core
-import WAGS.WebAPI (BrowserAudioBuffer, BrowserFloatArray, BrowserMicrophone, BrowserPeriodicWave, MediaRecorderCb)
+import Ocarina.Core (Oversample, PeriodicOscSpec(..), RealImg(..), _twoX)
+import Ocarina.Core as C
+import Ocarina.Core as Core
+import Ocarina.WebAPI (BrowserAudioBuffer, BrowserFloatArray, BrowserMicrophone, BrowserPeriodicWave, MediaRecorderCb)
 
 -- Allpass
 

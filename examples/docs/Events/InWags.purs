@@ -1,4 +1,4 @@
-module WAGS.Example.Docs.Events.InWags where
+module Ocarina.Example.Docs.Events.InOcarina where
 
 
 import Deku.Core (Domable)
@@ -8,8 +8,8 @@ import Type.Proxy (Proxy(..))
 
 px = Proxy :: Proxy
       """<section>
-  <h2>Events in Wags</h2>
-  <p>Wags follows a consistent pattern: every audio unit accepts an event containing a <code>newtype</code> around a <code>Variant</code> of parameters that can be changed. As a motivating example, let's look at the definition of <code>sinOsc</code>.</p>
+  <h2>Events in Ocarina</h2>
+  <p>Ocarina follows a consistent pattern: every audio unit accepts an event containing a <code>newtype</code> around a <code>Variant</code> of parameters that can be changed. As a motivating example, let's look at the definition of <code>sinOsc</code>.</p>
 
   <pre><code>sinOsc
   :: forall i outputChannels event payload
@@ -49,7 +49,7 @@ px = Proxy :: Proxy
     </tr>
   </table>
 
-  <p>In practice, you'll never need to use newtypes presented above. The <code>WAGS.Properties</code> module has highly-overloaded smart constructors for all these values. For example, to use an <code>Event Number</code> to set the frequency of a <code>sinOsc</code>, you'd write <code>frequency &lt;$&gt; event</code> instead of <code>SinOsc &lt;&lt;&lt; inj (Proxy :: _ "frequency") &lt;&lt;&lt; AudioParameter &lt;&lt;&lt; { o: 0.0, t: _linearRamp, n: _ } &lt;$&gt; event</code>. Of course, you <i>can</i> write the longer format, but life is short and keystrokes are precious! Below is a table showing the varoius smart constructors available and the units to which they apply.</p>
+  <p>In practice, you'll never need to use newtypes presented above. The <code>Ocarina.Properties</code> module has highly-overloaded smart constructors for all these values. For example, to use an <code>Event Number</code> to set the frequency of a <code>sinOsc</code>, you'd write <code>frequency &lt;$&gt; event</code> instead of <code>SinOsc &lt;&lt;&lt; inj (Proxy :: _ "frequency") &lt;&lt;&lt; AudioParameter &lt;&lt;&lt; { o: 0.0, t: _linearRamp, n: _ } &lt;$&gt; event</code>. Of course, you <i>can</i> write the longer format, but life is short and keystrokes are precious! Below is a table showing the varoius smart constructors available and the units to which they apply.</p>
 
 
     <table>
@@ -162,7 +162,7 @@ px = Proxy :: Proxy
     </tr>
   </table>
 
-  <p>You can use this smart-constructor pattern to transform any <code>Event</code> into something that Wags can consume. For example:</p>
+  <p>You can use this smart-constructor pattern to transform any <code>Event</code> into something that Ocarina can consume. For example:</p>
 
   <ul>
     <li>If you have an <code>Event Number</code> called <code>myFreq</code> and you'd like it to control the frequency of a band-pass filter, you can write <code>bandpass 440.0 (frequency &lt;$&gt; myFreq)</code>.</li>
@@ -170,7 +170,7 @@ px = Proxy :: Proxy
     <li>If you'd like <code>myFreq</code> <i>only</i> to have an effect when it's over <code>1000.0</code>, you can write <code>bandpass 440.0 (frequency &lt;$&gt; filter (_ > 1000.0) myFreq &lt;|&gt; q &lt;$&gt; myQ)</code>.</li>
   </ul>
 
-  <p>None of these transformations are unique to Wags:</p>
+  <p>None of these transformations are unique to Ocarina:</p>
   <ul>
     <li>Because <code>Event</code> implements <a href=""><code>Functor</code></a>, you can use <code>map</code> (aka <code>&lt;$&gt;</code> above).</li>
     <li>Because <code>Event</code> implements <a href=""><code>Alt</code></a>, you can use <code>alt</code> (aka <code>&lt;|&gt;</code> above).</li>
@@ -180,12 +180,12 @@ px = Proxy :: Proxy
   </ul>
 
   <p>
-    This gets to one of the core design principles of Wags. Idiomatic Wags projects use functional reactive programming as a way to "steer" web audio, and Wags aims to be a minimal viable framework to shepherd events to their web-audio destinations.
+    This gets to one of the core design principles of Ocarina. Idiomatic Ocarina projects use functional reactive programming as a way to "steer" web audio, and Ocarina aims to be a minimal viable framework to shepherd events to their web-audio destinations.
   </p>
 </section>"""
 
-inWags :: forall lock payload. Domable Effect lock payload
-inWags = makePursx'  (Proxy :: _ "@") px
+inOcarina :: forall lock payload. Domable Effect lock payload
+inOcarina = makePursx'  (Proxy :: _ "@") px
   {
   }
   -- where

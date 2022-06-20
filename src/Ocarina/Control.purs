@@ -1,4 +1,4 @@
-module WAGS.Control where
+module Ocarina.Control where
 
 import Prelude
 
@@ -31,10 +31,10 @@ import Safe.Coerce (coerce)
 import Simple.JSON as JSON
 import Type.Proxy (Proxy(..))
 import Type.Row.Homogeneous (class Homogeneous)
-import WAGS.Common as Common
-import WAGS.Core (ChannelCountMode(..), ChannelInterpretation(..), Po2(..))
-import WAGS.Core as C
-import WAGS.WebAPI (AnalyserNodeCb(..), BrowserAudioBuffer)
+import Ocarina.Common as Common
+import Ocarina.Core (ChannelCountMode(..), ChannelInterpretation(..), Po2(..))
+import Ocarina.Core as C
+import Ocarina.WebAPI (AnalyserNodeCb(..), BrowserAudioBuffer)
 
 -- allpass
 
@@ -66,7 +66,7 @@ allpass i' atts elts = Element' $ C.Node go
               )
               atts
           )
-        <|> __internalWagsFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di (fixed elts)
+        <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di (fixed elts)
 
 allpass_
   :: forall i (outputChannels :: Type) lock payload
@@ -215,7 +215,7 @@ analyser i' atts elts = Element' $ C.Node go
                 e
             )
             atts
-          <|> __internalWagsFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di (fixed elts)
+          <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di (fixed elts)
 
 analyser_
   :: forall i outputChannels lock payload
@@ -312,7 +312,7 @@ __audioWorklet (C.InitializeAudioWorkletNode i) atts elt = Element' $ C.Node go
                 )
                 atts
             )
-          <|> __internalWagsFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di elt
+          <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di elt
 
 audioWorklet
   :: forall name numberOfInputs numberOfOutputs outputChannelCount parameterData
@@ -363,7 +363,7 @@ bandpass i' atts elts = Element' $ C.Node go
               )
               atts
           )
-        <|> __internalWagsFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di (fixed elts)
+        <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di (fixed elts)
 
 bandpass_
   :: forall i (outputChannels :: Type) lock payload
@@ -447,7 +447,7 @@ convolver i' elts = Element' $ C.Node go
               , buffer: i.buffer
               }
           )
-          <|> __internalWagsFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di (fixed elts)
+          <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di (fixed elts)
 
 -- delay
 delay
@@ -477,7 +477,7 @@ delay i' atts elts = Element' $ C.Node go
               )
               atts
           )
-        <|> __internalWagsFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di (fixed elts)
+        <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di (fixed elts)
 
 delay_
   :: forall i (outputChannels :: Type) lock payload
@@ -556,7 +556,7 @@ dynamicsCompressor i' atts elts = Element' $ C.Node go
                 )
                 atts
             )
-          <|> __internalWagsFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di (fixed elts)
+          <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di (fixed elts)
 
 dynamicsCompressor_
   :: forall i (outputChannels :: Type) lock payload
@@ -594,7 +594,7 @@ gain i' atts elts = Element' $ C.Node go
               )
               atts
           )
-        <|> __internalWagsFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di (fixed elts)
+        <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di (fixed elts)
 
 gain_
   :: forall i (outputChannels :: Type) lock payload
@@ -633,7 +633,7 @@ highpass i' atts elts = Element' $ C.Node go
               )
               atts
           )
-        <|> __internalWagsFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di (fixed elts)
+        <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di (fixed elts)
 
 highpass_
   :: forall i (outputChannels :: Type) lock payload
@@ -672,7 +672,7 @@ highshelf i' atts elts = Element' $ C.Node go
               )
               atts
           )
-        <|> __internalWagsFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di (fixed elts)
+        <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di (fixed elts)
 
 highshelf_
   :: forall i (outputChannels :: Type) lock payload
@@ -731,7 +731,7 @@ iirFilter' fwd bk i' elts = Element' $ C.Node go
               , feedback: toArray i.feedback
               }
           )
-          <|> __internalWagsFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di (fixed elts)
+          <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di (fixed elts)
 
 -- lowpass
 lowpass
@@ -762,7 +762,7 @@ lowpass i' atts elts = Element' $ C.Node go
               )
               atts
           )
-        <|> __internalWagsFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di (fixed elts)
+        <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di (fixed elts)
 
 lowpass_
   :: forall i (outputChannels :: Type) lock payload
@@ -801,7 +801,7 @@ lowshelf i' atts elts = Element' $ C.Node go
               )
               atts
           )
-        <|> __internalWagsFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di (fixed elts)
+        <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di (fixed elts)
 
 lowshelf_
   :: forall i (outputChannels :: Type) lock payload
@@ -969,7 +969,7 @@ notch i' atts elts = Element' $ C.Node go
               )
               atts
           )
-        <|> __internalWagsFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di (fixed elts)
+        <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di (fixed elts)
 
 notch_
   :: forall i (outputChannels :: Type) lock payload
@@ -1009,7 +1009,7 @@ peaking i' atts elts = Element' $ C.Node go
               )
               atts
           )
-        <|> __internalWagsFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di (fixed elts)
+        <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di (fixed elts)
 
 peaking_
   :: forall i (outputChannels :: Type) lock payload
@@ -1221,7 +1221,7 @@ recorder i' elt = Element' $ C.Node go
           ( makeRecorder
               { id: me, parent: parent.parent, scope: parent.scope, cb: i.cb }
           )
-          <|> __internalWagsFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di elt
+          <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di elt
 
 -- sawtoothOsc
 
@@ -1388,7 +1388,7 @@ speaker
 speaker elts di@(C.AudioInterpret { ids, makeSpeaker }) = makeEvent \k -> do
   id <- ids
   k (makeSpeaker { id })
-  subscribe (__internalWagsFlatten { parent: Just id, scope: Local "toplevel", raiseId: mempty } di (fixed elts)) k
+  subscribe (__internalOcarinaFlatten { parent: Just id, scope: Local "toplevel", raiseId: mempty } di (fixed elts)) k
 
 speaker2
   :: forall lock payload
@@ -1425,7 +1425,7 @@ pan i' atts elts = Element' $ C.Node go
               )
               atts
           )
-        <|> __internalWagsFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di (fixed elts)
+        <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di (fixed elts)
 
 pan_
   :: forall i (outputChannels :: Type) lock payload
@@ -1511,7 +1511,7 @@ waveShaper i' elts = Element' $ C.Node go
               , curve: i.curve
               , oversample: i.oversample
               }
-          ) <|> __internalWagsFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di (fixed elts)
+          ) <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di (fixed elts)
 
 ----------
 globalFan
@@ -1670,7 +1670,7 @@ tmpResolveAU = go
           makeEvent \k -> do
             av <- AVar.empty
             subscribe
-              ( __internalWagsFlatten { parent: Nothing, scope: scope, raiseId: \x -> void $ AVar.tryPut x av } di n <|> makeEvent \k2 -> do
+              ( __internalOcarinaFlatten { parent: Nothing, scope: scope, raiseId: \x -> void $ AVar.tryPut x av } di n <|> makeEvent \k2 -> do
                   void $ AVar.take av case _ of
                     Left e -> throwException e
                     -- only do the connection if not silence
@@ -1681,13 +1681,13 @@ tmpResolveAU = go
     }
     a
 
-__internalWagsFlatten
+__internalOcarinaFlatten
   :: forall o lock payload
    . PSR Effect
   -> C.AudioInterpret payload
   -> C.Audible o lock payload
   -> Event payload
-__internalWagsFlatten = Bolson.flatten
+__internalOcarinaFlatten = Bolson.flatten
   { doLogic: absurd
   , ids: unwrap >>> _.ids
   , disconnectElement: \(C.AudioInterpret { disconnectXFromY }) { id, parent } -> disconnectXFromY { from: id, to: parent }

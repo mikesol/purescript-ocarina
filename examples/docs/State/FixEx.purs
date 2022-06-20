@@ -1,4 +1,4 @@
-module WAGS.Example.Docs.FixEx where
+module Ocarina.Example.Docs.FixEx where
 
 import Prelude
 
@@ -29,13 +29,13 @@ import FRP.Event.VBus (V, vbus)
 import Test.QuickCheck (arbitrary, mkSeed)
 import Test.QuickCheck.Gen (evalGen)
 import Type.Proxy (Proxy(..))
-import WAGS.Clock (withACTime)
-import WAGS.Control (bandpass_, gain, lowpass_, periodicOsc, squareOsc_)
-import WAGS.Core (AudioNumeric(..), _linear, bangOn)
-import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..), SingleSubgraphPusher)
-import WAGS.Interpret (close, constant0Hack, context)
-import WAGS.Properties as P
-import WAGS.Run (run2e)
+import Ocarina.Clock (withACTime)
+import Ocarina.Control (bandpass_, gain, lowpass_, periodicOsc, squareOsc_)
+import Ocarina.Core (AudioNumeric(..), _linear, bangOn)
+import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..), SingleSubgraphPusher)
+import Ocarina.Interpret (close, constant0Hack, context)
+import Ocarina.Properties as P
+import Ocarina.Run (run2e)
 
 type StartStop = V (start :: Unit, stop :: Effect Unit)
 
@@ -123,7 +123,7 @@ px =
   Proxy    :: Proxy      """<section>
   <h2>Fix</h2>
 
-  <p>Fix, like it's equivalent in wags that we've already seen, creates a feedback loop. However, in this case, we are talking about a feedback loop of <i>events</i>, not sound.</p>
+  <p>Fix, like it's equivalent in ocarina that we've already seen, creates a feedback loop. However, in this case, we are talking about a feedback loop of <i>events</i>, not sound.</p>
 
   <p>At first glance, it may not be clear why we need an event stream to feed back into itself? It seems prone to saturation: if you have a counter that feeds back into itself with a delay, after a few seconds you'll have so many events that it will crash your browser (I've tried it!).</p>
 
@@ -172,12 +172,12 @@ import FRP.Event.VBus (V, vbus)
 import Test.QuickCheck (arbitrary, mkSeed)
 import Test.QuickCheck.Gen (evalGen)
 import Type.Proxy (Proxy(..))
-import WAGS.Clock (withACTime)
-import WAGS.Control (bandpass_, gain, lowpass_, periodicOsc, squareOsc_)
-import WAGS.Interpret (close, constant0Hack, context)
-import WAGS.Core (AudioNumeric(..), _linear, bangOn)
-import WAGS.Properties as P
-import WAGS.Run (run2e)
+import Ocarina.Clock (withACTime)
+import Ocarina.Control (bandpass_, gain, lowpass_, periodicOsc, squareOsc_)
+import Ocarina.Interpret (close, constant0Hack, context)
+import Ocarina.Core (AudioNumeric(..), _linear, bangOn)
+import Ocarina.Properties as P
+import Ocarina.Run (run2e)
 
 type StartStop = V (start :: Unit, stop :: Effect Unit)
 

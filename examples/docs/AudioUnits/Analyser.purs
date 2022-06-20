@@ -1,4 +1,4 @@
-module WAGS.Example.Docs.AudioUnits.Analyser where
+module Ocarina.Example.Docs.AudioUnits.Analyser where
 
 import Prelude
 
@@ -28,18 +28,18 @@ import FRP.Event (class IsEvent, Event, bus, create, sampleOn_, subscribe)
 import FRP.Event.Animate (animationFrameEvent)
 import FRP.Event.Class (bang)
 import Type.Proxy (Proxy(..))
-import WAGS.Control (analyser_, loopBuf, speaker2)
-import WAGS.Core (Po2(..))
-import WAGS.Core (bangOn)
-import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
-import WAGS.Example.Docs.Util (WrapperStates(..), clickCb, mkWrapperEvent)
-import WAGS.Interpret (close, context, contextState, bracketCtx, decodeAudioDataFromUri, effectfulAudioInterpret, getByteFrequencyData, makeFFIAudioSnapshot)
-import WAGS.WebAPI (AnalyserNodeCb(..), BrowserAudioBuffer)
+import Ocarina.Control (analyser_, loopBuf, speaker2)
+import Ocarina.Core (Po2(..))
+import Ocarina.Core (bangOn)
+import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
+import Ocarina.Example.Docs.Util (WrapperStates(..), clickCb, mkWrapperEvent)
+import Ocarina.Interpret (close, context, contextState, bracketCtx, decodeAudioDataFromUri, effectfulAudioInterpret, getByteFrequencyData, makeFFIAudioSnapshot)
+import Ocarina.WebAPI (AnalyserNodeCb(..), BrowserAudioBuffer)
 
 px =
   Proxy    :: Proxy         """<section>
   <h2 id="analyser">Analyser</h2>
-  <p>An <a href="https://developer.mozilla.org/en-US/docs/Web/API/AnalyserNode">analyser node</a> provides methods to recuperate the analysed data of an input. This is how, for example, Google Meet shows the little animation around a microphone icon. Wags provides the possibility to use the analyser as the terminus of an audio graph <i>or</i> as part of a longer DSP chain, as in the following example. The example uses an FFT size of 256, which is indicated in Wags as <code>TTT8</code> (two to the eighth power).</p>
+  <p>An <a href="https://developer.mozilla.org/en-US/docs/Web/API/AnalyserNode">analyser node</a> provides methods to recuperate the analysed data of an input. This is how, for example, Google Meet shows the little animation around a microphone icon. Ocarina provides the possibility to use the analyser as the terminus of an audio graph <i>or</i> as part of a longer DSP chain, as in the following example. The example uses an FFT size of 256, which is indicated in Ocarina as <code>TTT8</code> (two to the eighth power).</p>
 
   <pre><code>analyser_ { cb, fftSize: TTT8 } [ loopBuf atar bangOn ]</code></pre>
 

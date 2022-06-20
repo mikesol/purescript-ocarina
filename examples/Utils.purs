@@ -1,4 +1,4 @@
-module WAGS.Example.Utils where
+module Ocarina.Example.Utils where
 
 import Prelude
 
@@ -7,7 +7,7 @@ import Data.Tuple.Nested (type (/\), (/\))
 import Effect (Effect)
 import Effect.Ref as Ref
 import FRP.Event (Event, Event, create, makeEvent, subscribe)
-import WAGS.WebAPI (AudioContext)
+import Ocarina.WebAPI (AudioContext)
 import Web.HTML (window)
 import Web.HTML.Window (requestAnimationFrame)
 

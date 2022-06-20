@@ -1,4 +1,4 @@
-module WAGS.Example.Docs.Events.Ex2 where
+module Ocarina.Example.Docs.Events.Ex2 where
 
 import Prelude
 
@@ -18,15 +18,15 @@ import FRP.Event (Event, makeEvent, memoize, subscribe)
 import FRP.Event.Class (bang, biSampleOn)
 import FRP.Event.VBus (V, vbus)
 import Type.Proxy (Proxy(..))
-import WAGS.Clock (interval)
-import WAGS.Control (bandpass_, fan1, gain, gain_, highpass_, triangleOsc)
-import WAGS.Core (Audible, AudioEnvelope(..), bangOn)
-import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..))
-import WAGS.Interpret (close, context)
-import WAGS.Math (calcSlope)
-import WAGS.Properties (frequency)
-import WAGS.Properties as P
-import WAGS.Run (run2e)
+import Ocarina.Clock (interval)
+import Ocarina.Control (bandpass_, fan1, gain, gain_, highpass_, triangleOsc)
+import Ocarina.Core (Audible, AudioEnvelope(..), bangOn)
+import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..))
+import Ocarina.Interpret (close, context)
+import Ocarina.Math (calcSlope)
+import Ocarina.Properties (frequency)
+import Ocarina.Properties as P
+import Ocarina.Run (run2e)
 import Web.Event.Event (target)
 import Web.HTML.HTMLInputElement (fromEventTarget, valueAsNumber)
 
@@ -34,14 +34,14 @@ px =
   Proxy    :: Proxy         """<section>
   <h2>Example 3: Fascinating rhyhtm</h2>
 
-  <p>Wags comes with several different ways to hook into the Web Audio API's sample-accurate timers. In this section, we'll use a Wags <code>interval</code> event to create a sample-accurate ticker. We'll also use a <code>random</code> beahvior to change up our samples.</p>
+  <p>Ocarina comes with several different ways to hook into the Web Audio API's sample-accurate timers. In this section, we'll use a Ocarina <code>interval</code> event to create a sample-accurate ticker. We'll also use a <code>random</code> beahvior to change up our samples.</p>
 
-  <p><code>interval :: AudioContext -> Event Number -> Event Number</code> in wags is similar to <a href=""><code>interval :: Int -> Event Instant</code></a> from the <code>Event</code> library with a few important exceptions.</p>
+  <p><code>interval :: AudioContext -> Event Number -> Event Number</code> in ocarina is similar to <a href=""><code>interval :: Int -> Event Instant</code></a> from the <code>Event</code> library with a few important exceptions.</p>
 
   <ul>
-    <li>The wags interval works in seconds (<code>Number</code>) instead of milliseconds.</li>
-    <li>The wags interval needs an audio context to work.</li>
-    <li>The wags interval gets its timing from an <code>Event Number</code> instead of a plain old <code>Number</code>. This is necessary to have variable rates.</li>
+    <li>The ocarina interval works in seconds (<code>Number</code>) instead of milliseconds.</li>
+    <li>The ocarina interval needs an audio context to work.</li>
+    <li>The ocarina interval gets its timing from an <code>Event Number</code> instead of a plain old <code>Number</code>. This is necessary to have variable rates.</li>
   </ul>
 
   <blockquote><code>interval</code> works fine for a stream of events where each event is separated by more than ~100 milliseconds. For anything faster, you'll likely want to use <code>requestAnimationLoop</code> coupled with a local state, as it will be more efficient for older and battery-sensitive devices.</blockquote>
@@ -78,14 +78,14 @@ import FRP.Event (Event, makeEvent, memoize, subscribe)
 import FRP.Event.Class (bang)
 import FRP.Event.VBus (V, vbus)
 import Type.Proxy (Proxy(..))
-import WAGS.Clock (interval)
-import WAGS.Control (bandpass_, fan1, gain, gain_, highpass_, triangleOsc)
-import WAGS.Core (Audible, AudioEnvelope(AudioEnvelope), bangOn)
-import WAGS.Interpret (close, context)
-import WAGS.Math (calcSlope)
-import WAGS.Properties (frequency)
-import WAGS.Properties as P
-import WAGS.Run (run2e)
+import Ocarina.Clock (interval)
+import Ocarina.Control (bandpass_, fan1, gain, gain_, highpass_, triangleOsc)
+import Ocarina.Core (Audible, AudioEnvelope(AudioEnvelope), bangOn)
+import Ocarina.Interpret (close, context)
+import Ocarina.Math (calcSlope)
+import Ocarina.Properties (frequency)
+import Ocarina.Properties as P
+import Ocarina.Run (run2e)
 import Web.Event.Event (target)
 import Web.HTML.HTMLInputElement (fromEventTarget, valueAsNumber)
 

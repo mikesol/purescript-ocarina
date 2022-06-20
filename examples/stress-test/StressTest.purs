@@ -1,4 +1,4 @@
-module WAGS.Example.StressTest where
+module Ocarina.Example.StressTest where
 
 import Prelude
 
@@ -24,14 +24,14 @@ import Effect.Ref as Ref
 import FRP.Behavior (sample_)
 import FRP.Event (Event, bang, bus, memoize, subscribe)
 import FRP.Event.Animate (animationFrameEvent)
-import WAGS.Clock (WriteHead, fot, writeHead)
-import WAGS.Control (gain, gain_, sinOsc, speaker2)
-import WAGS.Core (Audible, AudioNumeric(..), AudioOnOff(..), _off, _on, _step, opticN, envy)
-import WAGS.Example.Utils (RaiseCancellation)
-import WAGS.Interpret (FFIAudioSnapshot, close, context, effectfulAudioInterpret, makeFFIAudioSnapshot)
-import WAGS.Math (calcSlope)
-import WAGS.Properties as Common
-import WAGS.WebAPI (AudioContext)
+import Ocarina.Clock (WriteHead, fot, writeHead)
+import Ocarina.Control (gain, gain_, sinOsc, speaker2)
+import Ocarina.Core (Audible, AudioNumeric(..), AudioOnOff(..), _off, _on, _step, opticN, envy)
+import Ocarina.Example.Utils (RaiseCancellation)
+import Ocarina.Interpret (FFIAudioSnapshot, close, context, effectfulAudioInterpret, makeFFIAudioSnapshot)
+import Ocarina.Math (calcSlope)
+import Ocarina.Properties as Common
+import Ocarina.WebAPI (AudioContext)
 import Web.HTML (window)
 import Web.HTML.HTMLDocument (body)
 import Web.HTML.HTMLElement (toElement)

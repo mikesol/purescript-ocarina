@@ -1,4 +1,4 @@
-module WAGS.Example.Docs.FixFan.Intro where
+module Ocarina.Example.Docs.FixFan.Intro where
 
 import Prelude
 
@@ -8,8 +8,8 @@ import Deku.Pursx (makePursx')
 import Effect (Effect)
 import FRP.Event (Event, class IsEvent)
 import Type.Proxy (Proxy(..))
-import WAGS.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
-import WAGS.Example.Docs.Util (ccassp, mkNext, scrollToTop)
+import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
+import Ocarina.Example.Docs.Util (ccassp, mkNext, scrollToTop)
 
 data UIEvents = UIShown | ButtonClicked | SliderMoved Number
 derive instance Eq UIEvents
@@ -22,7 +22,7 @@ px = Proxy :: Proxy
       <li><span style="font-weight:800px;">One to many</span>, where a single audio unit passes through many different ones.</li>
       <li><span style="font-weight:800px;">Feedback</span>, where an audio unit is an input to itself.</li>
     </ul>
-    <p>This section will show how wags handles all three cases:</p>
+    <p>This section will show how ocarina handles all three cases:</p>
     <ul>
       <li><span style="font-weight:800px;"><code>Array</code></span> is the data structure we'll use to send many audio units into one.</li>
       <li><span style="font-weight:800px;"><code>fan</code></span> is a function that we'll use to "fan" one audio node out to many.</li>

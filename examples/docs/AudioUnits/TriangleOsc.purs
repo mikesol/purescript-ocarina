@@ -1,4 +1,4 @@
-module WAGS.Example.Docs.AudioUnits.TriangleOsc where
+module Ocarina.Example.Docs.AudioUnits.TriangleOsc where
 
 import Prelude
 
@@ -7,11 +7,11 @@ import Deku.Pursx (nut, (~~))
 import Effect (Effect)
 import FRP.Event (Event)
 import Type.Proxy (Proxy(..))
-import WAGS.Control (gain_, triangleOsc)
-import WAGS.Core (bangOn)
-import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
-import WAGS.Example.Docs.Util (audioWrapper)
-import WAGS.Run (run2)
+import Ocarina.Control (gain_, triangleOsc)
+import Ocarina.Core (bangOn)
+import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
+import Ocarina.Example.Docs.Util (audioWrapper)
+import Ocarina.Run (run2)
 
 px =
   Proxy    :: Proxy         """<section>

@@ -1,4 +1,4 @@
-module WAGS.Example.Docs.Events.Ex0 where
+module Ocarina.Example.Docs.Events.Ex0 where
 
 import Prelude
 
@@ -20,14 +20,14 @@ import Effect (Effect)
 import FRP.Event (Event, bus)
 import FRP.Event.Class (bang, biSampleOn)
 import Type.Proxy (Proxy(..))
-import WAGS.Control (gain, gain_, microphone, recorder, sinOsc)
-import WAGS.Core (Audible, Node)
-import WAGS.Core (AudioEnvelope(..), AudioOnOff(..), _off, _on)
-import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..))
-import WAGS.Properties (onOff)
-import WAGS.Properties as P
-import WAGS.Run (run2_)
-import WAGS.WebAPI (BrowserMicrophone, MediaRecorderCb)
+import Ocarina.Control (gain, gain_, microphone, recorder, sinOsc)
+import Ocarina.Core (Audible, Node)
+import Ocarina.Core (AudioEnvelope(..), AudioOnOff(..), _off, _on)
+import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..))
+import Ocarina.Properties (onOff)
+import Ocarina.Properties as P
+import Ocarina.Run (run2_)
+import Ocarina.WebAPI (BrowserMicrophone, MediaRecorderCb)
 
 px =
   Proxy    :: Proxy         """<section>
@@ -102,11 +102,11 @@ import Effect (Effect)
 import FRP.Event (bus)
 import FRP.Event.Class (bang)
 import Math (pow)
-import WAGS.Control (gain_, gain, sinOsc)
-import WAGS.Core (AudioEnvelope(..), AudioOnOff(..), _on, _off)
-import WAGS.Properties (onOff)
-import WAGS.Properties as P
-import WAGS.Run (run2_)
+import Ocarina.Control (gain_, gain, sinOsc)
+import Ocarina.Core (AudioEnvelope(..), AudioOnOff(..), _on, _off)
+import Ocarina.Properties (onOff)
+import Ocarina.Properties as P
+import Ocarina.Run (run2_)
 
 data UIEvents = Init | Start | Stop (Effect Unit)
 

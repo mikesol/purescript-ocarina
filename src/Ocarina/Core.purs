@@ -1,4 +1,4 @@
-module WAGS.Core
+module Ocarina.Core
   ( module Bolson.Core
   , Po2(..)
   , ChannelInterpretation(..)
@@ -220,7 +220,7 @@ import Simple.JSON as JSON
 import Type.Equality (class TypeEquals)
 import Type.Proxy (Proxy(..))
 import Unsafe.Coerce (unsafeCoerce)
-import WAGS.WebAPI (AnalyserNodeCb, BrowserAudioBuffer, BrowserFloatArray, BrowserMediaElement, BrowserMicrophone, BrowserPeriodicWave, MediaRecorderCb)
+import Ocarina.WebAPI (AnalyserNodeCb, BrowserAudioBuffer, BrowserFloatArray, BrowserMediaElement, BrowserMicrophone, BrowserPeriodicWave, MediaRecorderCb)
 
 -- start param
 newtype Transition = Transition

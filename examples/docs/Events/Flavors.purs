@@ -1,4 +1,4 @@
-module WAGS.Example.Docs.Events.Flavors where
+module Ocarina.Example.Docs.Events.Flavors where
 
 
 import Deku.Core (Domable)
