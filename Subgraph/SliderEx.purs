@@ -1,4 +1,4 @@
-module WAGS.Example.Docs.Subgraph.SliderEx where
+module Ocarina.Example.Docs.Subgraph.SliderEx where
 
 import Prelude
 
@@ -20,18 +20,18 @@ import FRP.Event (Event, fold, makeEvent, subscribe, delay)
 import FRP.Event.Class (bang, biSampleOn)
 import FRP.Event.VBus (V, vbus)
 import Type.Proxy (Proxy(..))
-import WAGS.Control (gain_, playBuf)
-import WAGS.Core (Audible, silence, sound, bangOn, dyn)
-import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..))
-import WAGS.Example.Docs.Util (raceSelf)
-import WAGS.Interpret (close, constant0Hack, context, decodeAudioDataFromUri)
-import WAGS.Run (run2_)
+import Ocarina.Control (gain_, playBuf)
+import Ocarina.Core (Audible, silence, sound, bangOn, dyn)
+import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..))
+import Ocarina.Example.Docs.Util (raceSelf)
+import Ocarina.Interpret (close, constant0Hack, context, decodeAudioDataFromUri)
+import Ocarina.Run (run2_)
 
 px =
   Proxy    :: Proxy      """<section>
   <h2>Hello subgraph</h2>
 
-  <p>Subgraphs have the type <code>Event (Event (Channel outputChannels lock payload))</code>. Streaming audio is a data type with two constructors: <code>sound</code> to create a subgraph and <code>silence</code> to turn it off. The inner event listens for sound/silence, and the outer event adds subgraphs to the scene. You can create as many subgraphs as you like: wags automatically frees up resources when you send the <code>silence</code> event. Note that, once you turn a subraph off with <code>silence</code>, you can't turn it back on again. In this case, just create a new subgraph.</p>
+  <p>Subgraphs have the type <code>Event (Event (Channel outputChannels lock payload))</code>. Streaming audio is a data type with two constructors: <code>sound</code> to create a subgraph and <code>silence</code> to turn it off. The inner event listens for sound/silence, and the outer event adds subgraphs to the scene. You can create as many subgraphs as you like: ocarina automatically frees up resources when you send the <code>silence</code> event. Note that, once you turn a subraph off with <code>silence</code>, you can't turn it back on again. In this case, just create a new subgraph.</p>
 
   <p>Here's a simple subgraph that is connected to a slider. As you slide the slider, new nodes are provisioned. Each one has a pseudo-random pitch.</p>
 
@@ -67,11 +67,11 @@ import FRP.Event.Class (bang)
 import FRP.Event.VBus (V, vbus)
 import QualifiedDo.OneOfMap as O
 import Type.Proxy (Proxy(..))
-import WAGS.Control (gain_, playBuf)
-import WAGS.Core (Channel(..), dyn, bangOn)
-import WAGS.Interpret (bracketCtx, decodeAudioDataFromUri)
-import WAGS.Run (run2_)
-import WAGS.WebAPI (BrowserAudioBuffer)
+import Ocarina.Control (gain_, playBuf)
+import Ocarina.Core (Channel(..), dyn, bangOn)
+import Ocarina.Interpret (bracketCtx, decodeAudioDataFromUri)
+import Ocarina.Run (run2_)
+import Ocarina.WebAPI (BrowserAudioBuffer)
 
 type StartStop = V (start :: Unit, stop :: Effect Unit)
 type UIEvents = V (startStop :: StartStop, slider :: Unit)

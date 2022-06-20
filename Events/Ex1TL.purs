@@ -1,4 +1,4 @@
-module WAGS.Example.Docs.Events.Ex1TL where
+module Ocarina.Example.Docs.Events.Ex1TL where
 
 import Prelude
 
@@ -19,13 +19,13 @@ import FRP.Event.VBus (V, vbus)
 import QualifiedDo.Alt as OneOf
 import QualifiedDo.OneOfMap as O
 import Type.Proxy (Proxy(..))
-import WAGS.Control (loopBuf)
-import WAGS.Core (bangOn)
-import WAGS.Interpret (bracketCtx, decodeAudioDataFromUri)
-import WAGS.Math (calcSlope)
-import WAGS.Properties (loopEnd, loopStart, playbackRate)
-import WAGS.Run (run2_)
-import WAGS.WebAPI (BrowserAudioBuffer)
+import Ocarina.Control (loopBuf)
+import Ocarina.Core (bangOn)
+import Ocarina.Interpret (bracketCtx, decodeAudioDataFromUri)
+import Ocarina.Math (calcSlope)
+import Ocarina.Properties (loopEnd, loopStart, playbackRate)
+import Ocarina.Run (run2_)
+import Ocarina.WebAPI (BrowserAudioBuffer)
 import Web.Event.Event (target)
 import Web.HTML.HTMLInputElement (fromEventTarget, valueAsNumber)
 

@@ -1,4 +1,4 @@
-module WAGS.Example.Docs.AudioUnits.WaveShaper where
+module Ocarina.Example.Docs.AudioUnits.WaveShaper where
 
 import Prelude
 
@@ -12,12 +12,12 @@ import Deku.Pursx (nut, (~~))
 import Effect (Effect)
 import FRP.Event (Event)
 import Type.Proxy (Proxy(..))
-import WAGS.Control (loopBuf, waveShaper)
-import WAGS.Core (bangOn)
-import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
-import WAGS.Example.Docs.Util (audioWrapper)
-import WAGS.Interpret (decodeAudioDataFromUri, makeFloatArray)
-import WAGS.Run (run2)
+import Ocarina.Control (loopBuf, waveShaper)
+import Ocarina.Core (bangOn)
+import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
+import Ocarina.Example.Docs.Util (audioWrapper)
+import Ocarina.Interpret (decodeAudioDataFromUri, makeFloatArray)
+import Ocarina.Run (run2)
 
 px =
   Proxy :: Proxy """<section>

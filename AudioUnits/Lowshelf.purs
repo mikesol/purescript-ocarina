@@ -1,4 +1,4 @@
-module WAGS.Example.Docs.AudioUnits.Lowshelf where
+module Ocarina.Example.Docs.AudioUnits.Lowshelf where
 
 import Prelude
 
@@ -7,12 +7,12 @@ import Deku.Pursx (nut, (~~))
 import Effect (Effect)
 import FRP.Event (Event)
 import Type.Proxy (Proxy(..))
-import WAGS.Control (loopBuf, lowshelf_)
-import WAGS.Core (bangOn)
-import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
-import WAGS.Example.Docs.Util (audioWrapper)
-import WAGS.Interpret (decodeAudioDataFromUri)
-import WAGS.Run (run2)
+import Ocarina.Control (loopBuf, lowshelf_)
+import Ocarina.Core (bangOn)
+import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
+import Ocarina.Example.Docs.Util (audioWrapper)
+import Ocarina.Interpret (decodeAudioDataFromUri)
+import Ocarina.Run (run2)
 
 px = Proxy :: Proxy """<section>
   <h2 id="lowshelf">Lowshelf filter</h2>

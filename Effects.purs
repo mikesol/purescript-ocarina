@@ -1,4 +1,4 @@
-module WAGS.Example.Docs.Effects where
+module Ocarina.Example.Docs.Effects where
 
 import Prelude
 
@@ -7,10 +7,10 @@ import Deku.Pursx (nut, (~~))
 import Effect (Effect)
 import FRP.Event (Event)
 import Type.Proxy (Proxy(..))
-import WAGS.Example.Docs.Effects.FoldEx as Fold
-import WAGS.Example.Docs.FixEx as Fix
-import WAGS.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
-import WAGS.Example.Docs.Util (ccassp, mkNext, scrollToTop)
+import Ocarina.Example.Docs.Effects.FoldEx as Fold
+import Ocarina.Example.Docs.FixEx as Fix
+import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
+import Ocarina.Example.Docs.Util (ccassp, mkNext, scrollToTop)
 
 
 px = Proxy :: Proxy """<div>

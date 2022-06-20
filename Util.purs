@@ -1,4 +1,4 @@
-module WAGS.Example.Docs.Util where
+module Ocarina.Example.Docs.Util where
 
 import Prelude
 
@@ -14,9 +14,9 @@ import Effect.Aff (Aff, Fiber, error, joinFiber, killFiber, launchAff, launchAff
 import Effect.Class (liftEffect)
 import FRP.Event (Event, bus)
 import FRP.Event.Class (bang, biSampleOn)
-import WAGS.Example.Docs.Types (CancelCurrentAudio, SingleSubgraphEvent(..), SingleSubgraphPusher)
-import WAGS.Interpret (close, constant0Hack, context)
-import WAGS.WebAPI (AudioContext)
+import Ocarina.Example.Docs.Types (CancelCurrentAudio, SingleSubgraphEvent(..), SingleSubgraphPusher)
+import Ocarina.Interpret (close, constant0Hack, context)
+import Ocarina.WebAPI (AudioContext)
 
 foreign import scrollToTop_ :: Effect Unit
 

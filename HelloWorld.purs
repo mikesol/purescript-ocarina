@@ -1,4 +1,4 @@
-module WAGS.Example.Docs.HelloWorld where
+module Ocarina.Example.Docs.HelloWorld where
 
 import Prelude
 
@@ -13,11 +13,11 @@ import Effect (Effect)
 import FRP.Event (Event)
 import FRP.Event.Class (bang, class IsEvent)
 import Type.Proxy (Proxy(..))
-import WAGS.Control (gain_, sinOsc)
-import WAGS.Core (bangOn)
-import WAGS.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent(..), SingleSubgraphPusher)
-import WAGS.Example.Docs.Util (audioWrapper, ccassp, mkNext, scrollToTop)
-import WAGS.Run (run2, run2_)
+import Ocarina.Control (gain_, sinOsc)
+import Ocarina.Core (bangOn)
+import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent(..), SingleSubgraphPusher)
+import Ocarina.Example.Docs.Util (audioWrapper, ccassp, mkNext, scrollToTop)
+import Ocarina.Run (run2, run2_)
 
 px =
   Proxy    :: Proxy         """<div>
@@ -25,7 +25,7 @@ px =
 
   <h3>Wagging at 440Hz</h3>
 
-  <p>Here's a "hello world" in Wags. In this and all the following sections, we'll start with a full example, and we'll pick it apart afterwards.</p>
+  <p>Here's a "hello world" in Ocarina. In this and all the following sections, we'll start with a full example, and we'll pick it apart afterwards.</p>
 
   @code@
   @result@
@@ -49,10 +49,10 @@ px =
 
   <p>In our case, a gain of <code>0.15</code> is roughly <code>-16.5 dB</code>.</p>
 
-  <p>Our sine wave oscillator is set to a frequency of <code>440Hz</code>. That means that your loudspeaker or headphones will vibrate back and forth in sinusoidal motion 440 times per second, which most folks perceive as the <a href="https://en.wikipedia.org/wiki/A440_(pitch_standard)">note A</a>. And we turn on the oscillator with <code>bangOn</code>, as the default is off for <i>all</i> sound generators in Wags. This is a design decision to help preserve the hearing of those that work frequently with audio.</p>
+  <p>Our sine wave oscillator is set to a frequency of <code>440Hz</code>. That means that your loudspeaker or headphones will vibrate back and forth in sinusoidal motion 440 times per second, which most folks perceive as the <a href="https://en.wikipedia.org/wiki/A440_(pitch_standard)">note A</a>. And we turn on the oscillator with <code>bangOn</code>, as the default is off for <i>all</i> sound generators in Ocarina. This is a design decision to help preserve the hearing of those that work frequently with audio.</p>
 
   <h2>Next steps</h2>
-  <p>Now that we have our setup running, let's explore the anatomy of a Wags graph. Irrespective of the nodes comprising the graph, there are three basic concepts you need to be familiar with before you start diving into audio units: <a @next@ style="cursor:pointer;">array, fan, and fix</a>.</p>
+  <p>Now that we have our setup running, let's explore the anatomy of a Ocarina graph. Irrespective of the nodes comprising the graph, there are three basic concepts you need to be familiar with before you start diving into audio units: <a @next@ style="cursor:pointer;">array, fan, and fix</a>.</p>
 </div>"""
 
 helloWorld

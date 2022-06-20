@@ -1,4 +1,4 @@
-module WAGS.Example.Docs.Subgraphs where
+module Ocarina.Example.Docs.Subgraphs where
 
 import Prelude
 
@@ -7,13 +7,13 @@ import Deku.Pursx (nut, (~~))
 import Effect (Effect)
 import FRP.Event (Event)
 import Type.Proxy (Proxy(..))
-import WAGS.Control (gain_, loopBuf)
-import WAGS.Core (bangOn)
-import WAGS.Example.Docs.Subgraph.SliderEx as SliderEx
-import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent, SingleSubgraphPusher)
-import WAGS.Example.Docs.Util (audioWrapperSpan, ccassp)
-import WAGS.Interpret (decodeAudioDataFromUri)
-import WAGS.Run (run2)
+import Ocarina.Control (gain_, loopBuf)
+import Ocarina.Core (bangOn)
+import Ocarina.Example.Docs.Subgraph.SliderEx as SliderEx
+import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent, SingleSubgraphPusher)
+import Ocarina.Example.Docs.Util (audioWrapperSpan, ccassp)
+import Ocarina.Interpret (decodeAudioDataFromUri)
+import Ocarina.Run (run2)
 
 px =  Proxy :: Proxy """<div>
   <h1>Subgraphs</h1>
@@ -30,7 +30,7 @@ px =  Proxy :: Proxy """<div>
   ~suby~
 
   <h2>Go forth and be brilliant!</h2>
-  <p>Thus ends the first version of the wags documentation. Applause is always welcome ~appl~! Alas, some features remain undocumented, like audio worklets and an imperative API. At some point I hope to document all of these, but hopefully this should be enough to get anyone interested up and running. If you need to use any of those features before I document them, ping me on the <a href="https://purescript.org/chat">PureScript Discord</a>. Otherwise, happy music making with Wags!</p>
+  <p>Thus ends the first version of the ocarina documentation. Applause is always welcome ~appl~! Alas, some features remain undocumented, like audio worklets and an imperative API. At some point I hope to document all of these, but hopefully this should be enough to get anyone interested up and running. If you need to use any of those features before I document them, ping me on the <a href="https://purescript.org/chat">PureScript Discord</a>. Otherwise, happy music making with Ocarina!</p>
 </div>"""
 
 subgraphs :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent  -> Domable Effect lock payload

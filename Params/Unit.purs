@@ -1,4 +1,4 @@
-module WAGS.Example.Docs.Params.Unit where
+module Ocarina.Example.Docs.Params.Unit where
 
 import Prelude
 
@@ -8,13 +8,13 @@ import Deku.Pursx (nut, (~~))
 import Effect (Effect)
 import FRP.Event (Event, bang)
 import Type.Proxy (Proxy(..))
-import WAGS.Control (constant, gain_, loopBuf, lowpass_, squareOsc)
-import WAGS.Core (bangOn, c1)
-import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
-import WAGS.Example.Docs.Util (audioWrapper)
-import WAGS.Interpret (decodeAudioDataFromUri)
-import WAGS.Properties (playbackRate)
-import WAGS.Run (run2)
+import Ocarina.Control (constant, gain_, loopBuf, lowpass_, squareOsc)
+import Ocarina.Core (bangOn, c1)
+import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
+import Ocarina.Example.Docs.Util (audioWrapper)
+import Ocarina.Interpret (decodeAudioDataFromUri)
+import Ocarina.Properties (playbackRate)
+import Ocarina.Run (run2)
 
 px =
   Proxy    :: Proxy         """<section>

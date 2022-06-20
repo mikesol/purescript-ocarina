@@ -1,4 +1,4 @@
-module WAGS.Example.Docs.AudioUnits.TOC where
+module Ocarina.Example.Docs.AudioUnits.TOC where
 
 
 import Control.Plus (class Plus)
