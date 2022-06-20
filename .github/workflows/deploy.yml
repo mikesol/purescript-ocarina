@@ -52,4 +52,4 @@ jobs:
       - name: deploy to netlify @ docs.ocarina.fm
         run: NETLIFY_SITE_ID=${{ secrets.NETLIFY_WAGS_DOCS_SITE_ID }} NETLIFY_AUTH_TOKEN=${{ secrets.NETLIFY_AUTH_TOKEN }} netlify deploy --dir=examples/docs --prod
       - name: deploy to netlify @ whatis.ocarina.fm
-        run: NETLIFY_SITE_ID=${{ secrets.NETLIFY_WHAT_IS_Ocarina_SITE_ID }} NETLIFY_AUTH_TOKEN=${{ secrets.NETLIFY_AUTH_TOKEN }} netlify deploy --dir=examples/docs --prod
+        run: NETLIFY_SITE_ID=${{ secrets.NETLIFY_WHAT_IS_WAGS_SITE_ID }} NETLIFY_AUTH_TOKEN=${{ secrets.NETLIFY_AUTH_TOKEN }} netlify deploy --dir=examples/docs --prod
