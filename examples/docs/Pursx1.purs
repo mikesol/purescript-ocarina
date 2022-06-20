@@ -1,4 +1,4 @@
-module WAGS.Example.Docs.Pursx1 where
+module Ocarina.Example.Docs.Pursx1 where
 
 import Prelude
 
@@ -11,8 +11,8 @@ import Effect (Effect)
 import FRP.Event (Event)
 import FRP.Event.Class (bang)
 import Type.Proxy (Proxy(..))
-import WAGS.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
-import WAGS.Example.Docs.Util (scrollToTop)
+import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
+import Ocarina.Example.Docs.Util (scrollToTop)
 
 myDom = Proxy :: Proxy """<div>
     <button>I do nothing</button>
@@ -45,7 +45,7 @@ px = Proxy :: Proxy """<div>
     <li>My go-to solution is Faust. <a href="https://faust.grame.fr/">Faust</a> is the greatest audio project on Earth, and let's you build very performant audio processors with an expressive and concise syntax. Faust's <a href="https://webaudioconf.com/posts/2017_EA_60/">Web Audio integration</a> is a one-liner from the command line.</li>
   </ul>
 
-  <p>In this example, we'll use Faust to create a three custom audio units and wire them together using Wags. The units are:</p>
+  <p>In this example, we'll use Faust to create a three custom audio units and wire them together using Ocarina. The units are:</p>
 
   <ul>
     <li>A wicked sawtooth synth.</li>
@@ -65,13 +65,13 @@ px = Proxy :: Proxy """<div>
 
   <h3>Compilation</h3>
 
-  We can compile each example using the following commands. Each command creates a self-contained JavaScript file, so all we need to do is link to it in wags-land.
+  We can compile each example using the following commands. Each command creates a self-contained JavaScript file, so all we need to do is link to it in ocarina-land.
 
   <pre><code>placeholder</code></pre>
 
-  <h2>Wags</h2>
+  <h2>Ocarina</h2>
 
-  <p>Wags provides a type-safe interface for declaring the API of Audio Worklets. While it's your job to make sure the API is in fact the actual API of the worklet, assuming this is correct, wags will enforce it for you. Let's see how in the following example. Here's the code:</p>
+  <p>Ocarina provides a type-safe interface for declaring the API of Audio Worklets. While it's your job to make sure the API is in fact the actual API of the worklet, assuming this is correct, ocarina will enforce it for you. Let's see how in the following example. Here's the code:</p>
 
   <pre><code>placeholder</code></pre>
 
@@ -124,8 +124,8 @@ px = Proxy :: Proxy """<div>
   </table>
 
   <h2>Next steps</h2>
-  <p>In this section, we created three audio worklet nodes using Faust and used them in the Web Audio API via wags. There is active work going on to bundle all this into a single toolchain so that Faust can be written directly in PureScript and automatically read as an Audio Worklet by wags. Until that happens, though, this is a great solution: just make sure to get the parameter names right across the language barrier! No amonut of type-safety can save you there 😅</p>
-  <p>In the next section, we'll look at how to create <a ~next~ style="cursor:pointer;">mutable state in a wags graph</a>.</p>
+  <p>In this section, we created three audio worklet nodes using Faust and used them in the Web Audio API via ocarina. There is active work going on to bundle all this into a single toolchain so that Faust can be written directly in PureScript and automatically read as an Audio Worklet by ocarina. Until that happens, though, this is a great solution: just make sure to get the parameter names right across the language barrier! No amonut of type-safety can save you there 😅</p>
+  <p>In the next section, we'll look at how to create <a ~next~ style="cursor:pointer;">mutable state in a ocarina graph</a>.</p>
 </div>"""
 
 

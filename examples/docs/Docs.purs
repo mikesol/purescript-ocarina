@@ -1,4 +1,4 @@
-module WAGS.Example.Docs where
+module Ocarina.Example.Docs where
 
 import Prelude
 
@@ -18,19 +18,19 @@ import Effect (Effect)
 import Effect.Ref as Ref
 import FRP.Event (Event, bus, create, fold, subscribe)
 import FRP.Event.Class (bang)
-import WAGS.Example.Docs.Component as Component
-import WAGS.Example.Docs.Effects as Effects
-import WAGS.Example.Docs.Events as Events
-import WAGS.Example.Docs.FixFan as FixFan
-import WAGS.Example.Docs.HelloWorld as HelloWorld
-import WAGS.Example.Docs.Intro as Intro
-import WAGS.Example.Docs.MultiChannel as Multichannel
-import WAGS.Example.Docs.Params as Params
-import WAGS.Example.Docs.Portals as Portals
-import WAGS.Example.Docs.Pursx1 as Pursx1
-import WAGS.Example.Docs.Pursx2 as Pursx2
-import WAGS.Example.Docs.Subgraphs as Subgraph
-import WAGS.Example.Docs.Types (Page(..), ToplevelEvent(..))
+import Ocarina.Example.Docs.Component as Component
+import Ocarina.Example.Docs.Effects as Effects
+import Ocarina.Example.Docs.Events as Events
+import Ocarina.Example.Docs.FixFan as FixFan
+import Ocarina.Example.Docs.HelloWorld as HelloWorld
+import Ocarina.Example.Docs.Intro as Intro
+import Ocarina.Example.Docs.MultiChannel as Multichannel
+import Ocarina.Example.Docs.Params as Params
+import Ocarina.Example.Docs.Portals as Portals
+import Ocarina.Example.Docs.Pursx1 as Pursx1
+import Ocarina.Example.Docs.Pursx2 as Pursx2
+import Ocarina.Example.Docs.Subgraphs as Subgraph
+import Ocarina.Example.Docs.Types (Page(..), ToplevelEvent(..))
 import Web.HTML (window)
 import Web.HTML.HTMLDocument (body)
 import Web.HTML.HTMLElement (toElement)

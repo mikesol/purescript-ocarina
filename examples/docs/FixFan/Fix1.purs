@@ -1,4 +1,4 @@
-module WAGS.Example.Docs.FixFan.Fix1 where
+module Ocarina.Example.Docs.FixFan.Fix1 where
 
 import Prelude
 
@@ -9,13 +9,13 @@ import Effect (Effect)
 import FRP.Event (Event)
 import FRP.Event.Class (bang)
 import Type.Proxy (Proxy(..))
-import WAGS.Control (delay_, fan1, fix, gain, gain_, highpass_, playBuf)
-import WAGS.Core (AudioEnvelope(..), bangOn)
-import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
-import WAGS.Example.Docs.Util (audioWrapper)
-import WAGS.Interpret (decodeAudioDataFromUri)
-import WAGS.Properties as P
-import WAGS.Run (run2)
+import Ocarina.Control (delay_, fan1, fix, gain, gain_, highpass_, playBuf)
+import Ocarina.Core (AudioEnvelope(..), bangOn)
+import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
+import Ocarina.Example.Docs.Util (audioWrapper)
+import Ocarina.Interpret (decodeAudioDataFromUri)
+import Ocarina.Properties as P
+import Ocarina.Run (run2)
 
 px =
   Proxy    :: Proxy      """<div>

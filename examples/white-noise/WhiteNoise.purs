@@ -1,4 +1,4 @@
-module WAGS.Example.WhiteNoise where
+module Ocarina.Example.WhiteNoise where
 
 import Prelude
 

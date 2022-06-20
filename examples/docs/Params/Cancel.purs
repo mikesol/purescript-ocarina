@@ -1,4 +1,4 @@
-module WAGS.Example.Docs.Params.Cancel where
+module Ocarina.Example.Docs.Params.Cancel where
 
 import Prelude
 
@@ -11,13 +11,13 @@ import Effect (Effect)
 import FRP.Event (Event, bang)
 import FRP.Event (delay)
 import Type.Proxy (Proxy(..))
-import WAGS.Control (gain_, loopBuf)
-import WAGS.Core (AudioCancel(..), AudioEnvelope(..), bangOn)
-import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
-import WAGS.Example.Docs.Util (audioWrapper)
-import WAGS.Interpret (decodeAudioDataFromUri)
-import WAGS.Properties (playbackRate)
-import WAGS.Run (run2)
+import Ocarina.Control (gain_, loopBuf)
+import Ocarina.Core (AudioCancel(..), AudioEnvelope(..), bangOn)
+import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
+import Ocarina.Example.Docs.Util (audioWrapper)
+import Ocarina.Interpret (decodeAudioDataFromUri)
+import Ocarina.Properties (playbackRate)
+import Ocarina.Run (run2)
 
 px =
   Proxy    :: Proxy         """<section>

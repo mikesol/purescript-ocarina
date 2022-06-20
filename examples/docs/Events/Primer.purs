@@ -1,4 +1,4 @@
-module WAGS.Example.Docs.Events.Primer where
+module Ocarina.Example.Docs.Events.Primer where
 
 
 import Deku.Core (Domable)
@@ -28,7 +28,7 @@ type Behavior = ABehavior Event
   <p>An event takes a pusher of type <code>a -> Effect Unit</code> to which you can push values of type <code>a</code>. What are the values? Whatever you want! It could be a mouse click, a slider's input, an animation loop thunk, whatever. The event returns a nested <code>Effect</code> - the outer one is triggered on event subscription and the inner one is triggered on event unsubscription. In the case of a click listener, for example, the outer effect will likely call <code>addEventListener</code> and the inner will likely call <code>removeEventListener</code>.</p>
 
   <p>
-    When using Wags, you have to get your events from somewhere. At a minimum, you'll consume a browser interaction like a click or swipe that turns on the audio. In fact, without some form of human interaction, most browsers will block the Web Audio API from turning on.
+    When using Ocarina, you have to get your events from somewhere. At a minimum, you'll consume a browser interaction like a click or swipe that turns on the audio. In fact, without some form of human interaction, most browsers will block the Web Audio API from turning on.
   </p>
   <p>
     <code>Events</code> are often produced within a web framework like <a href="https://github.com/mikesol/purescript-deku">Deku</a>, Halogen or React. They don't have to be, though - you can create and consume your own events.
@@ -41,7 +41,7 @@ type Behavior = ABehavior Event
   </p>
 
   <p>
-    In Wags, we usually want to observe the behavior of things like a mouse's position, an audio buffer's content or a random number generator.
+    In Ocarina, we usually want to observe the behavior of things like a mouse's position, an audio buffer's content or a random number generator.
   </p>
 </section>"""
 

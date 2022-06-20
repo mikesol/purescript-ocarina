@@ -1,4 +1,4 @@
-module WAGS.Clock where
+module Ocarina.Clock where
 
 import Prelude
 
@@ -9,10 +9,10 @@ import Effect.Ref (new, read, write)
 import Effect.Timer (clearTimeout, setTimeout)
 import FRP.Behavior (Behavior, behavior)
 import FRP.Event (Event, makeEvent, subscribe)
-import WAGS.Interpret (getAudioClockTime)
-import WAGS.Core (AudioNumeric(..), AudioOnOff(..), _linear)
-import WAGS.WebAPI (AudioContext)
-import WAGS.WebAPI as WebAPI
+import Ocarina.Interpret (getAudioClockTime)
+import Ocarina.Core (AudioNumeric(..), AudioOnOff(..), _linear)
+import Ocarina.WebAPI (AudioContext)
+import Ocarina.WebAPI as WebAPI
 
 type ACTime =
   { concreteTime :: Number, abstractTime :: Number, lookAhead :: Number }

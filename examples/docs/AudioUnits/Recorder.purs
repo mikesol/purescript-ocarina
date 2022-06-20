@@ -1,4 +1,4 @@
-module WAGS.Example.Docs.AudioUnits.Recorder where
+module Ocarina.Example.Docs.AudioUnits.Recorder where
 
 import Prelude
 
@@ -21,11 +21,11 @@ import Effect.Class (liftEffect)
 import FRP.Event (Event, bus, subscribe)
 import FRP.Event.Class (bang, biSampleOn)
 import Type.Proxy (Proxy(..))
-import WAGS.Control (microphone, recorder, speaker2)
-import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..))
-import WAGS.Example.Docs.Util (WrapperStates(..), mkWrapperEvent, raceSelf)
-import WAGS.Interpret (close, context, contextState, effectfulAudioInterpret, getMicrophoneAndCamera, makeFFIAudioSnapshot, mediaRecorderToUrl, stopMediaRecorder)
-import WAGS.WebAPI (MediaRecorder, MediaRecorderCb(..))
+import Ocarina.Control (microphone, recorder, speaker2)
+import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..))
+import Ocarina.Example.Docs.Util (WrapperStates(..), mkWrapperEvent, raceSelf)
+import Ocarina.Interpret (close, context, contextState, effectfulAudioInterpret, getMicrophoneAndCamera, makeFFIAudioSnapshot, mediaRecorderToUrl, stopMediaRecorder)
+import Ocarina.WebAPI (MediaRecorder, MediaRecorderCb(..))
 
 px =
   Proxy    :: Proxy         """<section>

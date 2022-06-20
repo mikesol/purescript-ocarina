@@ -1,4 +1,4 @@
-module WAGS.Example.Docs.Params where
+module Ocarina.Example.Docs.Params where
 
 import Prelude
 
@@ -7,20 +7,20 @@ import Deku.Pursx (nut, (~~))
 import Effect (Effect)
 import FRP.Event (Event)
 import Type.Proxy (Proxy(..))
-import WAGS.Example.Docs.Params.Cancel as Cancel
-import WAGS.Example.Docs.Params.Envelope as Envelope
-import WAGS.Example.Docs.Params.Numeric as Numeric
-import WAGS.Example.Docs.Params.Sudden as Sudden
-import WAGS.Example.Docs.Params.Unit as Unit
-import WAGS.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
-import WAGS.Example.Docs.Util (ccassp, mkNext, scrollToTop)
+import Ocarina.Example.Docs.Params.Cancel as Cancel
+import Ocarina.Example.Docs.Params.Envelope as Envelope
+import Ocarina.Example.Docs.Params.Numeric as Numeric
+import Ocarina.Example.Docs.Params.Sudden as Sudden
+import Ocarina.Example.Docs.Params.Unit as Unit
+import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
+import Ocarina.Example.Docs.Util (ccassp, mkNext, scrollToTop)
 
 px = Proxy :: Proxy """<div>
   <h1>Parameters</h1>
 
   <h3>Controlling our units</h3>
   <p>
-    In the previous section, we saw how we can use browser events to control audio units. The Web Audio API provides a rich set of tools to control both the audio-rate and control-rate parameters of audio units. This section goes over how wags exposes those parameters.
+    In the previous section, we saw how we can use browser events to control audio units. The Web Audio API provides a rich set of tools to control both the audio-rate and control-rate parameters of audio units. This section goes over how ocarina exposes those parameters.
   </p>
 
   ~sudden~

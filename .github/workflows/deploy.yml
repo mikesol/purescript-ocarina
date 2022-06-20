@@ -38,18 +38,18 @@ jobs:
       #- name: Spago test
       #  run: npx spago -x test.dhall test
       - name: Build qc
-        run: npx spago -x examples.dhall bundle-module --main WAGS.Example.Docs --to examples/docs/index.js --minify
+        run: npx spago -x examples.dhall bundle-module --main Ocarina.Example.Docs --to examples/docs/index.js --minify
       - name: Deploy
         if: ${{ github.ref == 'refs/heads/main' }}
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GH_TOKEN }}
           publish_dir: ./examples/docs
-      # the new wags breaks the old wags, so we want the old assets to point to the new docs
+      # the new ocarina breaks the old ocarina, so we want the old assets to point to the new docs
       # as much as possible
-      - name: deploy to netlify @ wags.fm
+      - name: deploy to netlify @ ocarina.fm
         run: NETLIFY_SITE_ID=${{ secrets.NETLIFY_WAGS_FM_SITE_ID }} NETLIFY_AUTH_TOKEN=${{ secrets.NETLIFY_AUTH_TOKEN }} netlify deploy --dir=examples/docs --prod
-      - name: deploy to netlify @ docs.wags.fm
+      - name: deploy to netlify @ docs.ocarina.fm
         run: NETLIFY_SITE_ID=${{ secrets.NETLIFY_WAGS_DOCS_SITE_ID }} NETLIFY_AUTH_TOKEN=${{ secrets.NETLIFY_AUTH_TOKEN }} netlify deploy --dir=examples/docs --prod
-      - name: deploy to netlify @ whatis.wags.fm
-        run: NETLIFY_SITE_ID=${{ secrets.NETLIFY_WHAT_IS_WAGS_SITE_ID }} NETLIFY_AUTH_TOKEN=${{ secrets.NETLIFY_AUTH_TOKEN }} netlify deploy --dir=examples/docs --prod
+      - name: deploy to netlify @ whatis.ocarina.fm
+        run: NETLIFY_SITE_ID=${{ secrets.NETLIFY_WHAT_IS_Ocarina_SITE_ID }} NETLIFY_AUTH_TOKEN=${{ secrets.NETLIFY_AUTH_TOKEN }} netlify deploy --dir=examples/docs --prod

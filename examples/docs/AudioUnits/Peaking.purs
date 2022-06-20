@@ -1,4 +1,4 @@
-module WAGS.Example.Docs.AudioUnits.Peaking where
+module Ocarina.Example.Docs.AudioUnits.Peaking where
 
 import Prelude
 
@@ -7,12 +7,12 @@ import Deku.Pursx (nut, (~~))
 import Effect (Effect)
 import FRP.Event (Event)
 import Type.Proxy (Proxy(..))
-import WAGS.Control (loopBuf, peaking_)
-import WAGS.Core (bangOn)
-import WAGS.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
-import WAGS.Example.Docs.Util (audioWrapper)
-import WAGS.Interpret (decodeAudioDataFromUri)
-import WAGS.Run (run2)
+import Ocarina.Control (loopBuf, peaking_)
+import Ocarina.Core (bangOn)
+import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
+import Ocarina.Example.Docs.Util (audioWrapper)
+import Ocarina.Interpret (decodeAudioDataFromUri)
+import Ocarina.Run (run2)
 
 px =
   Proxy :: Proxy """<section>

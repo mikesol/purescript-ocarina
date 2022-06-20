@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [1.2.0] - 2022-06-20
+
+- Changes namem to Ocarina
+
 ## [1.1.10] - 2022-06-06
 
 - Upgrades to new Bolson
@@ -50,9 +54,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.0.0] - 2022-04-20
 
-- Migrates wags to an event-based architecture
+- Migrates ocarina to an event-based architecture
 - Significantly reduces type-level machinery.
-- Adds documentation. As this is a complete rewrite of wags, please see the documentation (https://mikesol.github.io/purescript-wags) for information on how it all works.
+- Adds documentation. As this is a complete rewrite of ocarina, please see the documentation (https://mikesol.github.io/purescript-ocarina) for information on how it all works.
 
 ## [0.8.0] - 2022-03-29
 

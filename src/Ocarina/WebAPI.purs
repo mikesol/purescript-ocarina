@@ -1,4 +1,4 @@
-module WAGS.WebAPI where
+module Ocarina.WebAPI where
 
 import Prelude
 

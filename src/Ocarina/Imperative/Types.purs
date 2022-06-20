@@ -1,5 +1,5 @@
 -- | Type definitions for the imperative graph builder.
-module WAGS.Imperative.Types where
+module Ocarina.Imperative.Types where
 
 import Prim.Boolean (True, False)
 

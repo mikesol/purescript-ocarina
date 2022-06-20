@@ -1,4 +1,4 @@
-module WAGS.Example.Nested where
+module Ocarina.Example.Nested where
 
 import Prelude
 
@@ -12,11 +12,11 @@ import Effect (Effect)
 import FRP.Event.Class (bang)
 import FRP.Event.VBus (V, vbus)
 import Type.Proxy (Proxy(..))
-import WAGS.Control (constant, gain, gain_, sinOsc)
-import WAGS.Core (Audible, bangOn, c1)
-import WAGS.Interpret (close, context)
-import WAGS.Properties as P
-import WAGS.Run (run2)
+import Ocarina.Control (constant, gain, gain_, sinOsc)
+import Ocarina.Core (Audible, bangOn, c1)
+import Ocarina.Interpret (close, context)
+import Ocarina.Properties as P
+import Ocarina.Run (run2)
 
 type StartStop = V (start :: Unit, stop :: Effect Unit)
 

@@ -1,4 +1,4 @@
-{ name = "wags"
+{ name = "ocarina"
 , dependencies =
   [ "aff"
   , "aff-promise"

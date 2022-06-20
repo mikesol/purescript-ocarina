@@ -1,4 +1,4 @@
-module WAGS.Run where
+module Ocarina.Run where
 
 import Prelude
 
@@ -6,10 +6,10 @@ import Bolson.Core as B
 import Data.Typelevel.Num (D2)
 import Effect (Effect)
 import FRP.Event (Event, subscribe)
-import WAGS.Control (speaker2)
-import WAGS.Core as C
-import WAGS.Interpret (FFIAudioSnapshot, close, context, effectfulAudioInterpret, makeFFIAudioSnapshot)
-import WAGS.WebAPI (AudioContext)
+import Ocarina.Control (speaker2)
+import Ocarina.Core as C
+import Ocarina.Interpret (FFIAudioSnapshot, close, context, effectfulAudioInterpret, makeFFIAudioSnapshot)
+import Ocarina.WebAPI (AudioContext)
 
 run2_
   :: (forall lock. Array (C.Audible D2 lock (FFIAudioSnapshot -> Effect Unit)))

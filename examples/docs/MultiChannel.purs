@@ -1,4 +1,4 @@
-module WAGS.Example.Docs.MultiChannel where
+module Ocarina.Example.Docs.MultiChannel where
 
 import Prelude
 
@@ -11,8 +11,8 @@ import Effect (Effect)
 import FRP.Event (Event, class IsEvent)
 import FRP.Event.Class (bang)
 import Type.Proxy (Proxy(..))
-import WAGS.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
-import WAGS.Example.Docs.Util (scrollToTop)
+import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
+import Ocarina.Example.Docs.Util (scrollToTop)
 
 px = Proxy :: Proxy
       """<div>
@@ -20,12 +20,12 @@ px = Proxy :: Proxy
 
   <h3>Inputs and outputs abound!</h3>
   <p>
-    Web audio allows you to merge and split arbitrary audio. This is essential when you're working with complex audio setups like 5.1 surround sound or novel headphones used in some gaming setups. Wags allows you to both split and merge arbitrary signals using Web Audio's native merger and splitter nodes.
+    Web audio allows you to merge and split arbitrary audio. This is essential when you're working with complex audio setups like 5.1 surround sound or novel headphones used in some gaming setups. Ocarina allows you to both split and merge arbitrary signals using Web Audio's native merger and splitter nodes.
   </p>
 
   <h2>Merging</h2>
 
-  <p>Merging audio in wags looks like any node that takes multiple inputs, but instead of accepting something of type <code>AudioInput</code>, it accepts a <i>vector of audio inputs</i>.</p>
+  <p>Merging audio in ocarina looks like any node that takes multiple inputs, but instead of accepting something of type <code>AudioInput</code>, it accepts a <i>vector of audio inputs</i>.</p>
 
   <h2>Splitting</h2>
 

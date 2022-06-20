@@ -1,4 +1,4 @@
-module WAGS.Interpret where
+module Ocarina.Interpret where
 
 import Prelude
 
@@ -17,10 +17,10 @@ import Effect.Random as R
 import Simple.JSON as JSON
 import Type.Row.Homogeneous (class Homogeneous)
 import Unsafe.Coerce (unsafeCoerce)
-import WAGS.Control (class ValidateOutputChannelCount)
-import WAGS.Core as C
-import WAGS.WebAPI (AudioContext, BrowserAudioBuffer)
-import WAGS.WebAPI as WebAPI
+import Ocarina.Control (class ValidateOutputChannelCount)
+import Ocarina.Core as C
+import Ocarina.WebAPI (AudioContext, BrowserAudioBuffer)
+import Ocarina.WebAPI as WebAPI
 import Web.File.Blob (Blob)
 import Web.File.Url (createObjectURL)
 
@@ -127,7 +127,7 @@ foreign import makePeriodicWaveImpl
   -> Array Number
   -> Effect WebAPI.BrowserPeriodicWave
 
--- | For a given audio context, use an audio buffer to create a browser audio buffer. This is useful when doing DSP in the browser.  Note that `AudioBuffer` is a purescript type whereas `WebAPI.BrowserAudioBuffer` is an optimized browser-based type. That means that, once you write to `WebAPI.BrowserAudioBuffer`, it is effectively a blob and its contents cannot be retrieved using the WAGS API.
+-- | For a given audio context, use an audio buffer to create a browser audio buffer. This is useful when doing DSP in the browser.  Note that `AudioBuffer` is a purescript type whereas `WebAPI.BrowserAudioBuffer` is an optimized browser-based type. That means that, once you write to `WebAPI.BrowserAudioBuffer`, it is effectively a blob and its contents cannot be retrieved using the Ocarina API.
 foreign import makeAudioBuffer
   :: WebAPI.AudioContext -> AudioBuffer -> Effect WebAPI.BrowserAudioBuffer
 

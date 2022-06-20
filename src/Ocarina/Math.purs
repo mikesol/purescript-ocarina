@@ -1,4 +1,4 @@
-module WAGS.Math where
+module Ocarina.Math where
 
 import Prelude
 

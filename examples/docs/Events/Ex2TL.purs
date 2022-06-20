@@ -1,4 +1,4 @@
-module WAGS.Example.Docs.Events.Ex2TL where
+module Ocarina.Example.Docs.Events.Ex2TL where
 
 import Prelude
 
@@ -17,14 +17,14 @@ import FRP.Event (Event, makeEvent, memoize, subscribe)
 import FRP.Event.Class (bang)
 import FRP.Event.VBus (V, vbus)
 import Type.Proxy (Proxy(..))
-import WAGS.Clock (interval)
-import WAGS.Control (bandpass_, fan1, gain, gain_, highpass_, triangleOsc)
-import WAGS.Core (Audible, AudioEnvelope(AudioEnvelope), bangOn)
-import WAGS.Interpret (close, context)
-import WAGS.Math (calcSlope)
-import WAGS.Properties (frequency)
-import WAGS.Properties as P
-import WAGS.Run (run2e)
+import Ocarina.Clock (interval)
+import Ocarina.Control (bandpass_, fan1, gain, gain_, highpass_, triangleOsc)
+import Ocarina.Core (Audible, AudioEnvelope(AudioEnvelope), bangOn)
+import Ocarina.Interpret (close, context)
+import Ocarina.Math (calcSlope)
+import Ocarina.Properties (frequency)
+import Ocarina.Properties as P
+import Ocarina.Run (run2e)
 import Web.Event.Event (target)
 import Web.HTML.HTMLInputElement (fromEventTarget, valueAsNumber)
 

@@ -2,9 +2,9 @@
 -- |
 -- | It's recommended to import this module as qualified, like so:
 -- | ```purescript
--- | import WAGS.Imperative.Create as Create
+-- | import Ocarina.Imperative.Create as Create
 -- | ```
-module WAGS.Imperative.Create where
+module Ocarina.Imperative.Create where
 
 import Prelude
 
@@ -20,11 +20,11 @@ import Prim.Row as Row
 import Prim.TypeError (class Fail, Beside, Text)
 import Row.Extra as RowExtra
 import Type.Prelude (class IsSymbol, Proxy(..), reflectSymbol)
-import WAGS.Common as Common
-import WAGS.Core as Core
-import WAGS.Imperative.Monad (GraphBuilder(..))
-import WAGS.Imperative.Types (type (\/))
-import WAGS.Imperative.Types as T
+import Ocarina.Common as Common
+import Ocarina.Core as Core
+import Ocarina.Imperative.Monad (GraphBuilder(..))
+import Ocarina.Imperative.Types (type (\/))
+import Ocarina.Imperative.Types as T
 
 -- | Fails if `tOrF` resolves to `False`.
 class IdNotInUse :: Symbol -> Boolean -> Constraint
