@@ -155,6 +155,10 @@ export function disconnectXFromY_(a) {
 		return function () {
 			var x = a.from;
 			var y = a.to;
+			if (!state.units[x]) {
+				// Has already been cleared via other scope
+				return;
+			}
 			state.units[x].audioOutgoing = state.units[x].audioOutgoing.filter(
 				function (i) {
 					return !(i === y);
