@@ -8,7 +8,8 @@ import Data.Tuple (fst)
 import Data.Tuple.Nested ((/\))
 import Deku.Attribute (attr, cb, (:=))
 import Deku.Control (text, text_)
-import Deku.Core (Domable, envy)
+import Deku.Core (Domable)
+import Bolson.Core (envy)
 import Deku.DOM as D
 import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
@@ -17,7 +18,7 @@ import Effect.Class (liftEffect)
 import Effect.Random as Random
 import FRP.Behavior (Behavior, behavior, sampleBy)
 import FRP.Event (Event, fold, makeEvent, subscribe, delay)
-import FRP.Event.Class (bang, biSampleOn)
+import FRP.Event.Class (biSampleOn)
 import FRP.Event.VBus (V, vbus)
 import Type.Proxy (Proxy(..))
 import Ocarina.Control (gain_, playBuf)
@@ -54,7 +55,8 @@ import QualifiedDo.Alt as OneOf
 import Data.Tuple.Nested ((/\))
 import Deku.Attribute (attr, cb, (:=))
 import Deku.Control (switcher, text, text_)
-import Deku.Core (Domable, envy)
+import Deku.Core (Domable)
+import Bolson.Core (envy)
 import Deku.DOM as D
 import Deku.Toplevel (runInBody)
 import Effect (Effect)
@@ -63,7 +65,7 @@ import Effect.Class (liftEffect)
 import Effect.Random as Random
 import FRP.Behavior (Behavior, behavior, sampleBy)
 import FRP.Event (create, fold, makeEvent, subscribe, delay)
-import FRP.Event.Class (bang)
+
 import FRP.Event.VBus (V, vbus)
 import QualifiedDo.OneOfMap as O
 import Type.Proxy (Proxy(..))
@@ -102,7 +104,7 @@ main = do
   scene = maybe (D.div_ [ text_ "Loading..." ]) \buffer ->
     D.div_ $ pure $ envy $ vbus (Proxy :: _ UIEvents) \push event -> do
       let
-        startE = bang unit <|> event.startStop.start
+        startE = pure unit <|> event.startStop.start
         sl = sampleBy (/\) random
           $ fold (\_ b -> b + 1) event.slider 0
         music = run2_
@@ -110,10 +112,10 @@ main = do
               [ dyn $ map
                   ( \i ->
                       OneOf.do
-                        bang $ sound $ playBuf
+                        pure $ sound $ playBuf
                           { buffer: buffer, playbackRate: 0.7 + (fst i) * 2.0 }
                           bangOn
-                        delay 5000 $ bang $ silence
+                        delay 5000 $ pure $ silence
                   )
                   sl
               ]
@@ -122,7 +124,7 @@ main = do
         [ D.div_
             [ text_ "Slide me!"
             , D.input
-                ( O.oneOfMap bang O.do
+                ( O.oneOfMap pure O.do
                     D.Xtype := "range"
                     D.Min := "0"
                     D.Max := "100"
@@ -169,7 +171,7 @@ sgSliderEx ccb _ ev = makePursx' (Proxy :: _ "@") px
       (envy $ vbus (Proxy :: _ UIEvents) \push event -> -- here
           do
             let
-              startE = bang unit <|> event.startStop.start
+              startE = pure unit <|> event.startStop.start
               stopE = event.startStop.stop
               sl = sampleBy (/\) random
                 $ fold (\_ b -> b + 1) event.slider 0
@@ -179,10 +181,10 @@ sgSliderEx ccb _ ev = makePursx' (Proxy :: _ "@") px
                 [ gain_ 1.0 [ dyn $ map
                     ( \i ->
                         oneOf
-                          [ bang $ sound $ playBuf
+                          [ pure $ sound $ playBuf
                               { buffer: buffer, playbackRate: 0.7 + (fst i) * 2.0 }
                               bangOn
-                          , delay 5000 $ bang $ silence
+                          , delay 5000 $ pure $ silence
                           ]
                     )
                     sl]
@@ -191,7 +193,7 @@ sgSliderEx ccb _ ev = makePursx' (Proxy :: _ "@") px
               [ D.div_
                   [ text_ "Slide me!"
                   , D.input
-                      ( oneOfMap bang
+                      ( oneOfMap pure
                           [ D.Xtype := "range"
                           , D.Min := "0"
                           , D.Max := "100"
@@ -207,7 +209,7 @@ sgSliderEx ccb _ ev = makePursx' (Proxy :: _ "@") px
                       [ event.startStop.loading $> pure unit
                       , stopE <#>
                           (_ *> (ccb (pure unit) *> push.startStop.start unit))
-                      , ( biSampleOn (bang (pure unit) <|> (map (\(SetCancel x) -> x) ev))
+                      , ( biSampleOn (pure (pure unit) <|> (map (\(SetCancel x) -> x) ev))
                             (startE $> identity)
                         ) <#> \cncl -> do
                           cncl

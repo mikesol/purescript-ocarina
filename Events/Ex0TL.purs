@@ -12,7 +12,7 @@ import Deku.DOM as D
 import Deku.Toplevel (runInBody, runInBody1)
 import Effect (Effect)
 import FRP.Event (bus)
-import FRP.Event.Class (bang)
+
 import Data.Number (pow)
 import Ocarina.Control (gain_, gain, sinOsc)
 import Ocarina.Core (AudioEnvelope(..), AudioOnOff(..), _on, _off)
@@ -23,11 +23,11 @@ import Ocarina.Run (run2_)
 data UIEvents = Init | Start | Stop (Effect Unit)
 
 -- an event to turn our oscillators on
-oon o = bang $ onOff $ AudioOnOff { x: _on, o }
+oon o = pure $ onOff $ AudioOnOff { x: _on, o }
 -- an event to turn our oscillators off
-oof o = bang $ onOff $ AudioOnOff { x: _off, o }
+oof o = pure $ onOff $ AudioOnOff { x: _off, o }
 -- an event with an envelope for our gain
-env o = bang $ P.gain
+env o = pure $ P.gain
   $ AudioEnvelope
       { p: [ 0.0, 0.4, 0.1, 0.05, 0.01, 0.0 ]
       , d: 0.8
@@ -50,7 +50,7 @@ cell = lcmap toNumber \i -> do
   ]
 
 main :: Effect Unit
-main = runInBody1 (bus \push -> lcmap (bang Init <|> _) \event ->
+main = runInBody1 (bus \push -> lcmap (pure Init <|> _) \event ->
   D.div_
     [ D.button
         ( event <#>

@@ -10,14 +10,15 @@ import Data.Vec ((+>))
 import Data.Vec as V
 import Deku.Attribute (attr, cb, (:=))
 import Deku.Control (text, text_)
-import Deku.Core (Domable, envy)
+import Deku.Core (Domable)
+import Bolson.Core (envy)
 import Deku.DOM as D
 import Deku.Pursx (nut, (~~))
 import Effect (Effect)
 import FRP.Behavior (sampleBy, sample_, step)
 import FRP.Event (Event, fold, mapAccum, memoize, sampleOn)
 import FRP.Event.Animate (animationFrameEvent)
-import FRP.Event.Class (bang, biSampleOn)
+import FRP.Event.Class (biSampleOn)
 import FRP.Event.VBus (V, vbus)
 import Type.Proxy (Proxy(..))
 import Ocarina.Clock (withACTime)
@@ -85,7 +86,7 @@ import Effect (Effect)
 import FRP.Behavior (sampleBy, sample_, step)
 import FRP.Event (memoize)
 import FRP.Event.Animate (animationFrameEvent)
-import FRP.Event.Class (bang, fold, mapAccum, sampleOn)
+import FRP.Event.Class (fold, mapAccum, sampleOn)
 import FRP.Event.VBus (V, vbus)
 import Data.Number (pi, sin)
 import Type.Proxy (Proxy(..))
@@ -110,7 +111,7 @@ main :: Effect Unit
 main = runInBody1
   ( vbus (Proxy :: _ UIEvents) \push event -> do
       let
-        startE = bang unit <|> event.startStop.start
+        startE = pure unit <|> event.startStop.start
         stopE = event.startStop.stop
         chkState e = step false $ fold (const not) e false
         cbx0 = chkState event.cbx.cbx0
@@ -193,8 +194,8 @@ main = runInBody1
             ( map
                 ( \e -> D.input
                     ( OneOf.do
-                        bang (D.Xtype := "checkbox")
-                        bang (D.OnClick := cb (const (e unit)))
+                        pure (D.Xtype := "checkbox")
+                        pure (D.OnClick := cb (const (e unit)))
                         startE $> (D.Checked := "false")
                     )
                     []
@@ -206,7 +207,7 @@ main = runInBody1
   , empl: nut
       ( envy $ vbus (Proxy :: _ UIEvents) \push event -> do
           let
-            startE = bang unit <|> event.startStop.start
+            startE = pure unit <|> event.startStop.start
             stopE = event.startStop.stop
             chkState e = step false $ fold (const not) e false
             cbx0 = chkState event.cbx.cbx0
@@ -216,7 +217,7 @@ main = runInBody1
           D.div_
             [ D.button
                 ( oneOfMap (map (attr D.OnClick <<< cb <<< const))
-                    [ (biSampleOn (bang (pure unit) <|> (map (\(SetCancel x) -> x) ev)) (startE $> identity)) <#> \cncl -> do
+                    [ (biSampleOn (pure (pure unit) <|> (map (\(SetCancel x) -> x) ev)) (startE $> identity)) <#> \cncl -> do
                         cncl
                         ctx <- context
                         c0h <- constant0Hack ctx
@@ -296,8 +297,8 @@ main = runInBody1
                 ( map
                     ( \e -> D.input
                         ( oneOf
-                            [ bang (D.Xtype := "checkbox")
-                            , bang (D.OnClick := cb (const (e unit)))
+                            [ pure (D.Xtype := "checkbox")
+                            , pure (D.OnClick := cb (const (e unit)))
                             , startE $> (D.Checked := "false")
                             ]
                         )

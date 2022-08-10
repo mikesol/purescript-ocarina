@@ -5,10 +5,11 @@ import Prelude
 import Data.Array ((..))
 import Data.Foldable (oneOf)
 import Deku.Control (text_)
-import Deku.Core (Domable, envy)
+import Deku.Core (Domable)
+import Bolson.Core (envy)
 import Deku.Pursx (nut, (~~))
 import Effect (Effect)
-import FRP.Event (Event, bang)
+import FRP.Event (Event)
 import FRP.Event (delay)
 import Type.Proxy (Proxy(..))
 import Ocarina.Control (gain_, loopBuf)
@@ -42,14 +43,14 @@ cancelEx ccb _ ev = px ~~
       [ loopBuf buf OneOf.do
           bangOn
           delay 1000
-            $ bang
+            $ pure
             $ playbackRate
             $ AudioEnvelope
                 { p: join (0 .. 60 $> [ 1.0, 1.2, 1.0, 0.8 ])
                 , o: 1.5
                 , d: 30.0
                 }
-          delay 3000 (bang (playbackRate (AudioCancel { o: 3.5 })))
+          delay 3000 (pure (playbackRate (AudioCancel { o: 3.5 })))
       ]
   ]"""
       )
@@ -61,14 +62,14 @@ cancelEx ccb _ ev = px ~~
                     ( oneOf
                         [ bangOn
                         , delay 1000
-                            $ bang
+                            $ pure
                             $ playbackRate
                             $ AudioEnvelope
                                 { p: join (0 .. 60 $> [ 1.0, 1.2, 1.0, 0.8 ])
                                 , o: 1.5
                                 , d: 30.0
                                 }
-                        , delay 3000 (bang (playbackRate (AudioCancel { o: 3.5 })))
+                        , delay 3000 (pure (playbackRate (AudioCancel { o: 3.5 })))
                         ]
                     )
                 ]

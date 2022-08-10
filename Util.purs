@@ -13,7 +13,7 @@ import Effect (Effect)
 import Effect.Aff (Aff, Fiber, error, joinFiber, killFiber, launchAff, launchAff_, parallel, sequential)
 import Effect.Class (liftEffect)
 import FRP.Event (Event, bus)
-import FRP.Event.Class (bang, biSampleOn)
+import FRP.Event.Class (biSampleOn)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, SingleSubgraphEvent(..), SingleSubgraphPusher)
 import Ocarina.Interpret (close, constant0Hack, context)
 import Ocarina.WebAPI (AudioContext)
@@ -67,9 +67,9 @@ clickCb cca push init i ev event = map
           )
       )
   )
-  (biSampleOn (bang (pure unit) <|> (map (\(SetCancel x) -> x) ev)) (map Tuple event))
+  (biSampleOn (pure (pure unit) <|> (map (\(SetCancel x) -> x) ev)) (map Tuple event))
 
-mkWrapperEvent ev event' = bang Stopped <|> event'
+mkWrapperEvent ev event' = pure Stopped <|> event'
 
 audioWrapper
   :: forall a lock payload
@@ -108,7 +108,7 @@ audioWrapperSpan txt ev cca init i = bus \push event' ->
       event = mkWrapperEvent ev event'
     in
       D.span
-        ( (bang (D.Style := "cursor: pointer;")) <|> (clickCb cca push init i ev event)
+        ( (pure (D.Style := "cursor: pointer;")) <|> (clickCb cca push init i ev event)
         )
         [ text
             ( map
@@ -121,5 +121,5 @@ audioWrapperSpan txt ev cca init i = bus \push event' ->
             )
         ]
 
-mkNext ev cpage = bang (D.OnClick := cb (const cpage))
+mkNext ev cpage = pure (D.OnClick := cb (const cpage))
   <|> map (\cncl -> D.OnClick := cb (const (cncl *> cpage))) (map (\(SetCancel c) -> c) ev)

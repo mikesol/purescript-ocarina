@@ -16,7 +16,7 @@ import Effect (Effect)
 import FRP.Behavior (sampleBy, sample_, step)
 import FRP.Event (memoize)
 import FRP.Event.Animate (animationFrameEvent)
-import FRP.Event.Class (bang, fold, mapAccum, sampleOn)
+import FRP.Event.Class (fold, mapAccum, sampleOn)
 import FRP.Event.VBus (V, vbus)
 import Data.Number (pi, sin)
 import Type.Proxy (Proxy(..))
@@ -41,7 +41,7 @@ main :: Effect Unit
 main = runInBody1
   ( vbus (Proxy :: _ UIEvents) \push event -> do
       let
-        startE = bang unit <|> event.startStop.start
+        startE = pure unit <|> event.startStop.start
         stopE = event.startStop.stop
         chkState e = step false $ fold (const not) e false
         cbx0 = chkState event.cbx.cbx0
@@ -124,8 +124,8 @@ main = runInBody1
             ( map
                 ( \e -> D.input
                     ( OneOf.do
-                        bang (D.Xtype := "checkbox")
-                        bang (D.OnClick := cb (const (e unit)))
+                        pure (D.Xtype := "checkbox")
+                        pure (D.OnClick := cb (const (e unit)))
                         startE $> (D.Checked := "false")
                     )
                     []

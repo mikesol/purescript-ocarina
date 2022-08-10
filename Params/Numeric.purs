@@ -2,12 +2,12 @@ module Ocarina.Example.Docs.Params.Numeric where
 
 import Prelude
 
-import Deku.Core (Domable, envy)
+import Deku.Core (Domable)
+import Bolson.Core (envy)
 import QualifiedDo.Alt as OneOf
 import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
-import FRP.Event (Event, bang)
-import FRP.Event (delay)
+import FRP.Event (Event, delay)
 import Type.Proxy (Proxy(..))
 import Ocarina.Control (gain_, loopBuf)
 import Ocarina.Core (AudioNumeric(..), _exponential, _linear, _step, bangOn)
@@ -38,17 +38,17 @@ px =
       [ loopBuf buf OneOf.do
           bangOn
           delay 1000 OneOf.do
-            bang
+            pure
               $ playbackRate
               $ AudioNumeric { n: 1.0, o: 1.0, t: _step }
-            bang
+            pure
               $ playbackRate
               $ AudioNumeric { n: 1.3, o: 2.0, t: _linear }
           delay 2500 OneOf.do
-            bang
+            pure
               $ playbackRate
               $ AudioNumeric { n: 1.0, o: 2.5, t: _step }
-            bang
+            pure
               $ playbackRate
               $ AudioNumeric { n: 0.7, o: 3.5, t: _exponential }
       ]
@@ -68,18 +68,18 @@ numericEx ccb _ ev = makePursx' (Proxy :: _ "@") px
                 [ loopBuf buf OneOf.do
                     bangOn
                     delay 1000 OneOf.do
-                      bang
+                      pure
                         $ playbackRate
                         $ AudioNumeric { n: 1.0, o: 1.0, t: _step }
-                      bang
+                      pure
                         $ playbackRate
                         $ AudioNumeric { n: 1.3, o: 2.0, t: _linear }
 
                     delay 2500 OneOf.do
-                      bang
+                      pure
                         $ playbackRate
                         $ AudioNumeric { n: 1.0, o: 2.5, t: _step }
-                      bang
+                      pure
                         $ playbackRate
                         $ AudioNumeric { n: 0.7, o: 3.5, t: _exponential }
                 ]

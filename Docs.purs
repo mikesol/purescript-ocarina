@@ -11,13 +11,14 @@ import Data.Newtype (class Newtype, unwrap)
 import Data.Tuple.Nested ((/\))
 import Deku.Attribute (cb, (:=))
 import Deku.Control (dekuA, switcher, text_)
-import Deku.Core (Domable, envy)
+import Deku.Core (Domable)
+import Bolson.Core (envy)
 import Deku.DOM as D
 import Deku.Interpret (fullDOMInterpret, makeFFIDOMSnapshot)
 import Effect (Effect)
 import Effect.Ref as Ref
 import FRP.Event (Event, bus, create, fold, subscribe)
-import FRP.Event.Class (bang)
+
 import Ocarina.Example.Docs.Component as Component
 import Ocarina.Example.Docs.Effects as Effects
 import Ocarina.Example.Docs.Events as Events
@@ -57,7 +58,7 @@ scene push event' =
       $ map
         ( \(x /\ y /\ z) -> D.span_
             [ D.a
-                ( oneOfMap bang
+                ( oneOfMap pure
                     [ D.OnClick := cb
                         ( const do
                             push (ChangePage x)
@@ -74,7 +75,7 @@ scene push event' =
                 )
                 [ text_ y ]
             , D.span
-                ( bang $ D.Style :=
+                ( pure $ D.Style :=
                     if z then ""
                     else "display:none;"
                 )

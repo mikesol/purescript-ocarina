@@ -11,7 +11,8 @@ import Data.Maybe (Maybe(..), maybe)
 import Data.Tuple.Nested ((/\))
 import Deku.Attribute (cb, (:=))
 import Deku.Control (text)
-import Deku.Core (Domable, envy)
+import Deku.Core (Domable)
+import Bolson.Core (envy)
 import Deku.DOM as D
 import Deku.Pursx (nut, (~~))
 import Effect (Effect)
@@ -19,7 +20,7 @@ import Effect.AVar as AVar
 import Effect.Aff (launchAff, launchAff_, try)
 import Effect.Class (liftEffect)
 import FRP.Event (Event, bus, subscribe)
-import FRP.Event.Class (bang, biSampleOn)
+import FRP.Event.Class (biSampleOn)
 import Type.Proxy (Proxy(..))
 import Ocarina.Control (microphone, recorder, speaker2)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..))
@@ -56,7 +57,7 @@ recorderEx ccb _ ev = px ~~
             in
               D.div_
                 [ D.button
-                    ( (bang (D.Style := "cursor: pointer;")) <|>
+                    ( (pure (D.Style := "cursor: pointer;")) <|>
                         ( map
                             ( \{ e, cncl, rec } -> D.OnClick :=
                                 ( cb $
@@ -107,8 +108,8 @@ recorderEx ccb _ ev = px ~~
                                     )
                                 )
                             )
-                            ( biSampleOn (bang Nothing <|> map Just rEv)
-                                (map ($) (biSampleOn (bang (pure unit) <|> (map (\(SetCancel x) -> x) ev)) (map { e: _, cncl: _, rec: _ } event)))
+                            ( biSampleOn (pure Nothing <|> map Just rEv)
+                                (map ($) (biSampleOn (pure (pure unit) <|> (map (\(SetCancel x) -> x) ev)) (map { e: _, cncl: _, rec: _ } event)))
                             )
                         )
                     )
@@ -124,7 +125,7 @@ recorderEx ccb _ ev = px ~~
                     ]
                 , D.div_
                     [ D.audio
-                        ( (bang (D.Controls := "true")) <|> (bang (D.Style := "display:none;")) <|> map (\src -> (D.Src := src)) aEv <|> map
+                        ( (pure (D.Controls := "true")) <|> (pure (D.Style := "display:none;")) <|> map (\src -> (D.Src := src)) aEv <|> map
                             (const (D.Style := "display:block;"))
                             aEv
                         )

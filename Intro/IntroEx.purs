@@ -19,7 +19,8 @@ import Data.Tuple.Nested (type (/\), (/\))
 import Data.UInt (toNumber)
 import Deku.Attribute (attr, cb, (:=))
 import Deku.Control (text)
-import Deku.Core (Domable, envy)
+import Deku.Core (Domable)
+import Bolson.Core (envy)
 import Deku.DOM as D
 import Deku.Pursx (makePursx', nut)
 import Effect (Effect, foreachE)
@@ -31,7 +32,7 @@ import Effect.Ref (new, read, write)
 import FRP.Behavior (behavior)
 import FRP.Event (Event, makeEvent, subscribe)
 import FRP.Event.Animate (animationFrameEvent)
-import FRP.Event.Class (bang, biSampleOn)
+import FRP.Event.Class (biSampleOn)
 import FRP.Event.VBus (V, vbus)
 import Foreign.Object (fromHomogeneous, values)
 import Graphics.Canvas (CanvasElement, arc, beginPath, fill, fillRect, getContext2D, setFillStyle)
@@ -86,11 +87,11 @@ dgb d de g ge h he i =
 
 twoPi = 2.0 * pi :: Number
 
-fade0 = bang
+fade0 = pure
   $ P.gain
   $ AudioEnvelope { p: [ 1.0, 1.0, 0.75, 0.5, 0.75, 0.5, 0.75, 0.5, 0.25, 0.5, 0.25, 0.0 ], o: 0.0, d: 24.0 }
 
-fade1 = bang
+fade1 = pure
   $ P.gain
   $ AudioEnvelope { p: [ 1.0, 1.0, 0.75, 0.5, 0.75, 0.5, 0.75, 0.5, 0.25, 0.5, 0.25, 0.0 ], o: 0.0, d: 18.0 }
 
@@ -100,11 +101,11 @@ cvsxn = Int.toNumber cvsx
 cvsy = 400
 cvsys = show cvsy <> "px"
 cvsyn = Int.toNumber cvsy
-fenv s e = bang
+fenv s e = pure
   $ P.frequency
   $ AudioEnvelope { p: [ s, e ], o: 0.0, d: 16.0 }
 
-denv s e = bang
+denv s e = pure
   $ P.delayTime
   $ AudioEnvelope { p: [ s, e ], o: 0.0, d: 16.0 }
 
@@ -118,7 +119,7 @@ introEx ccb _ ev = makePursx' (Proxy :: _ "@") px
 
           do
             let
-              startE = bang unit <|> event.startStop.start
+              startE = pure unit <|> event.startStop.start
               loadingE = event.startStop.loading
               stopE = event.startStop.stop
 
@@ -171,7 +172,7 @@ introEx ccb _ ev = makePursx' (Proxy :: _ "@") px
                 ]
             D.div_
               [ D.canvas
-                  ( oneOfMap bang
+                  ( oneOfMap pure
                       [ D.Width := cvsxs
                       , D.Height := cvsys
                       , D.Style := "width: 100%;"
@@ -203,7 +204,7 @@ introEx ccb _ ev = makePursx' (Proxy :: _ "@") px
                   )
                   []
               , D.input
-                  ( oneOfMap bang
+                  ( oneOfMap pure
                       [ D.Xtype := "range"
                       , D.Min := "0"
                       , D.Max := "100"
@@ -221,12 +222,12 @@ introEx ccb _ ev = makePursx' (Proxy :: _ "@") px
                   []
               , D.button
                   ( oneOf
-                      [ bang $ D.Style := "width:100%; padding:1.0rem;"
+                      [ pure $ D.Style := "width:100%; padding:1.0rem;"
                       , ( oneOfMap (map (attr D.OnClick <<< cb <<< const))
                             [ loadingE $> pure unit
                             , stopE <#>
                                 (_ *> (ccb (pure unit) *> push.startStop.start unit))
-                            , (biSampleOn (bang (pure unit) <|> (map (\(SetCancel x) -> x) ev)) (startE $> identity)) <#> \cncl -> do
+                            , (biSampleOn (pure (pure unit) <|> (map (\(SetCancel x) -> x) ev)) (startE $> identity)) <#> \cncl -> do
                                 cncl
                                 push.startStop.loading unit
                                 analyserE <- new Nothing

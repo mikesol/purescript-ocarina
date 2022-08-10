@@ -4,7 +4,8 @@ import Prelude
 
 import Data.Tuple.Nested ((/\))
 import Data.FastVect.FastVect ((:), empty)
-import Deku.Core (Domable, envy)
+import Deku.Core (Domable)
+import Bolson.Core (envy)
 import Deku.Pursx (nut, (~~))
 import Effect (Effect)
 import FRP.Event (Event)

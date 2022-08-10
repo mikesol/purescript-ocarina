@@ -3,7 +3,8 @@ module Ocarina.Example.Docs.Component where
 import Prelude
 
 import Control.Plus (class Plus)
-import Deku.Core (Domable, envy)
+import Deku.Core (Domable)
+import Bolson.Core (envy)
 import Deku.Pursx (nut, (~~))
 import Effect (Effect)
 import FRP.Event (Event, class IsEvent)

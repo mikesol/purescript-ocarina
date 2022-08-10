@@ -2,7 +2,8 @@ module Ocarina.Example.Docs.AudioUnits.LoopBuf where
 
 import Prelude
 
-import Deku.Core (Domable, envy)
+import Deku.Core (Domable)
+import Bolson.Core (envy)
 import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
 import FRP.Event (Event)

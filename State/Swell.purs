@@ -23,7 +23,7 @@ import FRP.Behavior.Mouse (buttons)
 import FRP.Behavior.Time as Time
 import FRP.Event (memoize)
 import FRP.Event.Animate (animationFrameEvent)
-import FRP.Event.Class (class IsEvent, bang, fix, fold, sampleOn, withLast)
+import FRP.Event.Class (class IsEvent, fix, fold, sampleOn, withLast)
 import FRP.Event.Mouse (Mouse, down, getMouse)
 import FRP.Event.VBus (V, vbus)
 import Test.QuickCheck (arbitrary, mkSeed)
@@ -122,7 +122,7 @@ main :: Effect Unit
 main = runInBody1
   ( vbus (Proxy :: _ StartStop) \push event -> do
       let
-        startE = bang unit <|> event.start
+        startE = pure unit <|> event.start
         stopE = event.stop
       D.div_
         [ D.button

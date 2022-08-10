@@ -2,7 +2,8 @@ module Ocarina.Example.Docs.AudioUnits.StereoPanner where
 
 import Prelude
 
-import Deku.Core (Domable, envy)
+import Deku.Core (Domable)
+import Bolson.Core (envy)
 import Deku.Pursx (nut, (~~))
 import Effect (Effect)
 import FRP.Event (Event)
