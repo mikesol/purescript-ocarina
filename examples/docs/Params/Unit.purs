@@ -3,10 +3,11 @@ module Ocarina.Example.Docs.Params.Unit where
 import Prelude
 
 import Data.Foldable (oneOf)
-import Deku.Core (Domable, envy)
+import Deku.Core (Domable)
+import Bolson.Core (envy)
 import Deku.Pursx (nut, (~~))
 import Effect (Effect)
-import FRP.Event (Event, bang)
+import FRP.Event (Event)
 import Type.Proxy (Proxy(..))
 import Ocarina.Control (constant, gain_, loopBuf, lowpass_, squareOsc)
 import Ocarina.Core (bangOn, c1)
@@ -26,7 +27,7 @@ px =
   <pre><code>\ctx buf -> run2 ctx
   [ loopBuf buf OneOf.do
       bangOn
-      bang
+      pure
         $ playbackRate
         $ c1
             ( gain_ 1.0
@@ -50,7 +51,7 @@ unitEx ccb _ ev = px ~~
             [ loopBuf buf
                 ( oneOf
                     [ bangOn
-                    , bang
+                    , pure
                         $ playbackRate
                         $ c1
                             ( gain_ 1.0

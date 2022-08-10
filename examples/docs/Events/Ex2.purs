@@ -8,14 +8,15 @@ import Data.Tuple (Tuple(..), fst, snd)
 import QualifiedDo.OneOfMap as O
 import Deku.Attribute (attr, cb, (:=))
 import Deku.Control (text, text_)
-import Deku.Core (Domable, envy)
+import Deku.Core (Domable)
+import Bolson.Core (envy)
 import Deku.DOM as D
 import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
 import Effect.Random as Random
 import FRP.Behavior (Behavior, behavior, sampleBy)
 import FRP.Event (Event, makeEvent, memoize, subscribe)
-import FRP.Event.Class (bang, biSampleOn)
+import FRP.Event.Class (biSampleOn)
 import FRP.Event.VBus (V, vbus)
 import Type.Proxy (Proxy(..))
 import Ocarina.Clock (interval)
@@ -75,7 +76,7 @@ import Effect (Effect)
 import Effect.Random as Random
 import FRP.Behavior (Behavior, behavior, sampleBy)
 import FRP.Event (Event, makeEvent, memoize, subscribe)
-import FRP.Event.Class (bang)
+
 import FRP.Event.VBus (V, vbus)
 import Type.Proxy (Proxy(..))
 import Ocarina.Clock (interval)
@@ -116,7 +117,7 @@ main :: Effect Unit
 main = runInBody1
   ( vbus (Proxy :: _ UIEvents) \push event -> do
       let
-        start = event.startStop.start <|> bang unit
+        start = event.startStop.start <|> pure unit
 
         music :: forall lock. _ -> Event (Array (Audible _ lock _))
         music evt' = memoize evt' \evt -> do
@@ -172,7 +173,7 @@ main = runInBody1
         [ D.div_
             [ text_ "tempo"
             , D.input
-                ( O.oneOfMap bang O.do
+                ( O.oneOfMap pure O.do
                     D.Xtype := "range"
                     D.Min := "0"
                     D.Max := "100"
@@ -239,7 +240,7 @@ ex2 ccb _ ev = makePursx' (Proxy :: _ "@") px
   , ex2: nut
       ( envy $ vbus (Proxy :: _ UIEvents) \push event -> -- here
           let
-            start = event.startStop.start <|> bang unit
+            start = event.startStop.start <|> pure unit
 
             music :: forall lock0. _ -> Event (Array (Audible _ lock0 _))
             music evt' = memoize evt' \evt -> do
@@ -296,7 +297,7 @@ ex2 ccb _ ev = makePursx' (Proxy :: _ "@") px
               [ D.div_
                   [ text_ "tempo"
                   , D.input
-                      ( O.oneOfMap bang O.do
+                      ( O.oneOfMap pure O.do
                           D.Xtype := "range"
                           D.Min := "0"
                           D.Max := "100"
@@ -318,7 +319,7 @@ ex2 ccb _ ev = makePursx' (Proxy :: _ "@") px
 
               , D.button
                   ( oneOfMap (map (attr D.OnClick <<< cb <<< const))
-                      [ (biSampleOn (bang (pure unit) <|> (map (\(SetCancel x) -> x) ev)) (start $> identity)) <#> \cncl -> do
+                      [ (biSampleOn (pure (pure unit) <|> (map (\(SetCancel x) -> x) ev)) (start $> identity)) <#> \cncl -> do
                           cncl
                           ctx <- context
                           let

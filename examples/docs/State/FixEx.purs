@@ -13,7 +13,8 @@ import Data.Vec ((+>))
 import Data.Vec as V
 import Deku.Attribute (attr, cb)
 import Deku.Control (text, text_)
-import Deku.Core (Domable, envy)
+import Deku.Core (Domable)
+import Bolson.Core (envy)
 import Deku.DOM as D
 import Deku.Pursx (nut, (~~))
 import Effect (Effect)
@@ -23,7 +24,7 @@ import FRP.Behavior.Mouse (buttons)
 import FRP.Behavior.Time as Time
 import FRP.Event (Event, memoize)
 import FRP.Event.Animate (animationFrameEvent)
-import FRP.Event.Class (class IsEvent, bang, biSampleOn, fix, fold, sampleOn, withLast)
+import FRP.Event.Class (class IsEvent, biSampleOn, fix, fold, sampleOn, withLast)
 import FRP.Event.Mouse (Mouse, down, getMouse)
 import FRP.Event.VBus (V, vbus)
 import Test.QuickCheck (arbitrary, mkSeed)
@@ -166,7 +167,7 @@ import FRP.Behavior.Mouse (buttons)
 import FRP.Behavior.Time as Time
 import FRP.Event (memoize)
 import FRP.Event.Animate (animationFrameEvent)
-import FRP.Event.Class (class IsEvent, bang, fix, fold, sampleOn, withLast)
+import FRP.Event.Class (class IsEvent, fix, fold, sampleOn, withLast)
 import FRP.Event.Mouse (Mouse, down, getMouse)
 import FRP.Event.VBus (V, vbus)
 import Test.QuickCheck (arbitrary, mkSeed)
@@ -265,7 +266,7 @@ main :: Effect Unit
 main = runInBody1
   ( vbus (Proxy :: _ StartStop) \push event -> do
       let
-        startE = bang unit <|> event.start
+        startE = pure unit <|> event.start
         stopE = event.stop
       D.div_
         [ D.button
@@ -388,12 +389,12 @@ main = runInBody1
   , empl: nut
       (envy $ vbus (Proxy :: _ StartStop) \push event -> do
           let
-            startE = bang unit <|> event.start
+            startE = pure unit <|> event.start
             stopE = event.stop
           D.div_
             [ D.button
                 ( oneOfMap (map (attr D.OnClick <<< cb <<< const))
-                    [ (biSampleOn (bang (pure unit) <|> (map (\(SetCancel x) -> x) ev)) (startE $> identity)) <#> \cncl ->
+                    [ (biSampleOn (pure (pure unit) <|> (map (\(SetCancel x) -> x) ev)) (startE $> identity)) <#> \cncl ->
                         do
                           cncl
                           ctx <- context

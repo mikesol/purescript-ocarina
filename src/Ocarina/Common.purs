@@ -869,10 +869,10 @@ resolveAU = \_ _ _ -> empty {-go
   sdn = C.FFIAudioParameter <<< inj (Proxy :: _ "sudden")
   ut = C.FFIAudioParameter <<< inj (Proxy :: _ "unit")
   go di@(C.AudioInterpret { ids }) f (C.AudioParameter a) = match
-    { numeric: bang <<< f <<< nmc
-    , envelope: bang <<< f <<< ev
-    , cancel: bang <<< f <<< cncl
-    , sudden: bang <<< f <<< sdn
+    { numeric: pure <<< f <<< nmc
+    , envelope: pure <<< f <<< ev
+    , cancel: pure <<< f <<< cncl
+    , sudden: pure <<< f <<< sdn
     , unit: \(C.AudioUnit { u }) -> let C.Node n = u in makeEvent \k -> do
             newScope <- ids
             av <- AVar.empty

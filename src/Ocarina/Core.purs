@@ -212,7 +212,6 @@ import Data.Typelevel.Num (D1)
 import Data.Variant (Variant, inj, match)
 import Effect (Effect)
 import FRP.Event (Event)
-import FRP.Event.Class (bang)
 import Foreign (Foreign)
 import Foreign.Object (Object)
 import Prim.Row (class Cons)
@@ -350,7 +349,7 @@ bangOn
   :: forall nt r
    . Newtype nt (Variant (onOff :: AudioOnOff | r))
   => Event nt
-bangOn = bang (wrap $ inj (Proxy :: _ "onOff") apOn)
+bangOn = pure (wrap $ inj (Proxy :: _ "onOff") apOn)
 
 apOff :: AudioOnOff
 apOff = AudioOnOff { x: _off, o: 0.0 }
@@ -514,7 +513,7 @@ instance showAudioWorkletNodeOptions_ ::
 
 type NodeC' :: forall k. k -> Type -> Type
 type NodeC' lock payload =
-  Bolson.PSR Effect
+  Bolson.PSR Effect ()
   -> AudioInterpret payload
   -> Event payload
 

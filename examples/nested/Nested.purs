@@ -9,7 +9,7 @@ import Deku.Control (text)
 import Deku.DOM as D
 import Deku.Toplevel (runInBody1)
 import Effect (Effect)
-import FRP.Event.Class (bang)
+
 import FRP.Event.VBus (V, vbus)
 import Type.Proxy (Proxy(..))
 import Ocarina.Control (constant, gain, gain_, sinOsc)
@@ -26,18 +26,18 @@ main :: Effect Unit
 main = runInBody1
   ( vbus (Proxy :: _ UIEvents) \push event -> do
       let
-        startE = bang unit <|> event.startStop.start
+        startE = pure unit <|> event.startStop.start
         stopE = event.startStop.stop
 
         music :: forall lock. Array (Audible _ lock _)
         music =
           [ gain 0.0
-              ( bang
+              ( pure
                   ( P.gain
                       ( c1
                           ( gain_ 0.1
                               [ sinOsc 1.0
-                                  ( bangOn <|> bang
+                                  ( bangOn <|> pure
                                       ( P.frequency
                                           ( c1
                                               ( gain_ 1.0

@@ -8,14 +8,15 @@ import QualifiedDo.OneOfMap as O
 import Data.Foldable (traverse_)
 import Deku.Attribute (attr, cb, (:=))
 import Deku.Control (text, text_)
-import Deku.Core (Domable, envy)
+import Deku.Core (Domable)
+import Bolson.Core (envy)
 import Deku.DOM as D
 import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
 import Effect.Aff (launchAff, launchAff_)
 import Effect.Class (liftEffect)
 import FRP.Event (Event)
-import FRP.Event.Class (bang, biSampleOn)
+import FRP.Event.Class (biSampleOn)
 import FRP.Event.VBus (V, vbus)
 import Type.Proxy (Proxy(..))
 import Ocarina.Control (loopBuf)
@@ -64,14 +65,15 @@ import Data.Foldable (traverse_)
 import Data.Maybe (Maybe(..), maybe)
 import Deku.Attribute (attr, cb, (:=))
 import Deku.Control (switcher, text, text_)
-import Deku.Core (Domable, envy)
+import Deku.Core (Domable)
+import Bolson.Core (envy)
 import Deku.DOM as D
 import Deku.Toplevel (runInBody)
 import Effect (Effect)
 import Effect.Aff (launchAff_)
 import Effect.Class (liftEffect)
 import FRP.Event (create)
-import FRP.Event.Class (bang, biSampleOn)
+import FRP.Event.Class (biSampleOn)
 import FRP.Event.VBus (V, vbus)
 import QualifiedDo.Alt as OneOf
 import QualifiedDo.OneOfMap as O
@@ -113,7 +115,7 @@ main = do
         sl0 = event.slider.s0
         sl1 = event.slider.s1
         sl2 = event.slider.s2
-        start = event.startStop.start <|> bang unit
+        start = event.startStop.start <|> pure unit
         music = run2_
           [ loopBuf
               { buffer: buffer
@@ -131,7 +133,7 @@ main = do
                   sl1
                 map
                   (calcSlope 0.0 0.05 100.0 1.0 >>> loopEnd)
-                  (biSampleOn sl2 (add <$> (bang 0.0 <|> sl1)))
+                  (biSampleOn sl2 (add <$> (pure 0.0 <|> sl1)))
           ]
       D.div_
         $
@@ -139,7 +141,7 @@ main = do
             ( \{ l, f } -> D.div_
                 [ text_ l
                 , D.input
-                    ( O.oneOfMap bang O.do
+                    ( O.oneOfMap pure O.do
                         D.Xtype := "range"
                         D.Min := "0"
                         D.Max := "100"
@@ -197,7 +199,7 @@ ex1 ccb _ ev = makePursx' (Proxy :: _ "@") px
       (calcSlope 0.0 0.2 100.0 5.0 >>> playbackRate) <$> sl0
       (calcSlope 0.0 0.0 100.0 1.2 >>> loopStart) <$> sl1
       (calcSlope 0.0 0.05 100.0 1.0 >>> loopEnd) <$> biSampleOn sl2
-          (add <$> (bang 0.0 <|> sl1))"""
+          (add <$> (pure 0.0 <|> sl1))"""
       )
   , txt: nut (text_ txt)
   , ex1: nut
@@ -208,7 +210,7 @@ ex1 ccb _ ev = makePursx' (Proxy :: _ "@") px
               sl0 = event.slider.s0
               sl1 = event.slider.s1
               sl2 = event.slider.s2
-              start = event.startStop.start <|> bang unit
+              start = event.startStop.start <|> pure unit
 
               music :: forall lock0. _ -> Audible _ lock0 _
               music buffer =
@@ -223,14 +225,14 @@ ex1 ccb _ ev = makePursx' (Proxy :: _ "@") px
                       (calcSlope 0.0 0.2 100.0 5.0 >>> playbackRate) <$> sl0
                       (calcSlope 0.0 0.0 100.0 1.2 >>> loopStart) <$> sl1
                       (calcSlope 0.0 0.05 100.0 1.0 >>> loopEnd) <$> biSampleOn sl2
-                        (add <$> (bang 0.0 <|> sl1))
+                        (add <$> (pure 0.0 <|> sl1))
             D.div_
               $
                 map
                   ( \{ l, f } -> D.div_
                       [ text_ l
                       , D.input
-                          ( O.oneOfMap bang O.do
+                          ( O.oneOfMap pure O.do
                               D.Xtype := "range"
                               D.Min := "0"
                               D.Max := "100"
@@ -255,7 +257,7 @@ ex1 ccb _ ev = makePursx' (Proxy :: _ "@") px
                           event.startStop.loading $> pure unit
                           event.startStop.stop <#>
                             (_ *> (ccb (pure unit) *> push.startStop.start unit))
-                          ( biSampleOn (bang (pure unit) <|> (map (\(SetCancel x) -> x) ev))
+                          ( biSampleOn (pure (pure unit) <|> (map (\(SetCancel x) -> x) ev))
                               (start $> identity)
                           ) <#> \cncl -> do
                             cncl

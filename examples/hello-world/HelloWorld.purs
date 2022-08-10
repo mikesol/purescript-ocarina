@@ -23,7 +23,7 @@ import Effect.Ref as Ref
 import FRP.Behavior (sample_)
 import FRP.Event (Event, bus, keepLatest, memoize, subscribe)
 import FRP.Event.Animate (animationFrameEvent)
-import FRP.Event.Class (bang)
+
 import Type.Proxy (Proxy(..))
 import Ocarina.Clock (WriteHead, fot, writeHead)
 import Ocarina.Control (gain, sinOsc, speaker2)
@@ -97,7 +97,7 @@ helloWorld
    . Unit
   -> RaiseCancellation
   -> Event (Domable Effect lock payload)
-helloWorld _ rc = keepLatest $ bus \p -> lcmap (alt (bang Nothing)) \e -> memoize animationFrameEvent \afe ->
+helloWorld _ rc = keepLatest $ bus \p -> lcmap (alt (pure Nothing)) \e -> memoize animationFrameEvent \afe ->
   let
     musicButton push event audioEvent = DOM.button
       ( map

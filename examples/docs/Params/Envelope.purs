@@ -5,11 +5,11 @@ import Prelude
 import Data.Array ((..))
 import Data.Foldable (oneOf)
 import Deku.Control (text_)
-import Deku.Core (Domable, envy)
+import Deku.Core (Domable)
+import Bolson.Core (envy)
 import Deku.Pursx (nut, (~~))
 import Effect (Effect)
-import FRP.Event (Event, bang)
-import FRP.Event (delay)
+import FRP.Event (Event, delay)
 import Type.Proxy (Proxy(..))
 import Ocarina.Control (gain_, loopBuf)
 import Ocarina.Core (AudioEnvelope(..), bangOn)
@@ -38,7 +38,7 @@ envelopeEx ccb _ ev = px ~~
           OneOf.do
             bangOn
             delay 1000
-              $ bang
+              $ pure
               $ playbackRate
               $ AudioEnvelope
                   { p: join (0 .. 60 $> [ 1.0, 1.2, 1.0, 0.8 ])
@@ -57,7 +57,7 @@ envelopeEx ccb _ ev = px ~~
                     ( oneOf
                         [ bangOn
                         , delay 1000
-                            $ bang
+                            $ pure
                             $ playbackRate
                             $ AudioEnvelope
                                 { p: join (0 .. 60 $> [ 1.0, 1.2, 1.0, 0.8 ])

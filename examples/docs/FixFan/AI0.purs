@@ -3,11 +3,12 @@ module Ocarina.Example.Docs.FixFan.AI0 where
 import Prelude
 
 import Control.Parallel (parallel, sequential)
-import Deku.Core (Domable, envy)
+import Deku.Core (Domable)
+import Bolson.Core (envy)
 import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
 import FRP.Event (Event)
-import FRP.Event.Class (bang)
+
 import Type.Proxy (Proxy(..))
 import Ocarina.Control (gain_, playBuf)
 import Ocarina.Core (apOn, dt)
@@ -21,7 +22,7 @@ px =
   Proxy    :: Proxy         """<div>
   <pre><code>\{ tink0, tink1, tink2, tink3 } -> run2_
   [ gain_ 1.0 do
-      let ooo n = bang $ onOff $ dt (add n) apOn
+      let ooo n = pure $ onOff $ dt (add n) apOn
       [ playBuf tink0 (ooo 0.1)
       , playBuf tink1 (ooo 0.2)
       , playBuf tink2 (ooo 0.9)
@@ -45,7 +46,7 @@ ai0 ccb _ ev = makePursx' (Proxy :: _ "@") px
           )
           \ctx { tink0, tink1, tink2, tink3 } -> run2 ctx
             [ gain_ 1.0 do
-                let ooo n = bang $ onOff $ dt (add n) apOn
+                let ooo n = pure $ onOff $ dt (add n) apOn
                 [ playBuf tink0 (ooo 0.1)
                 , playBuf tink1 (ooo 0.2)
                 , playBuf tink2 (ooo 0.9)

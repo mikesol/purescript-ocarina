@@ -9,7 +9,7 @@ import Deku.DOM as D
 import Deku.Pursx ((~~))
 import Effect (Effect)
 import FRP.Event (Event, class IsEvent)
-import FRP.Event.Class (bang)
+
 import Type.Proxy (Proxy(..))
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
 import Ocarina.Example.Docs.Util (scrollToTop)
@@ -37,5 +37,5 @@ px = Proxy :: Proxy
 
 multiChannel :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent  -> Domable Effect lock payload
 multiChannel _ dpage _ _ = px ~~
-  { next: bang (D.OnClick := (cb (const $ dpage AudioWorklets *> scrollToTop)))
+  { next: pure (D.OnClick := (cb (const $ dpage AudioWorklets *> scrollToTop)))
   }

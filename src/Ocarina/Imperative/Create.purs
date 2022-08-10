@@ -14,7 +14,6 @@ import Data.Maybe (Maybe(..))
 import Data.Newtype (unwrap)
 import Data.Variant (match)
 import FRP.Event (Event, keepLatest)
-import FRP.Event.Class (bang)
 import Prim.Boolean (True, False)
 import Prim.Row as Row
 import Prim.TypeError (class Fail, Beside, Text)
@@ -75,7 +74,7 @@ speaker
 speaker _ = GraphBuilder go
   where
   go (Core.AudioInterpret { makeSpeaker }) =
-    { event: bang $ makeSpeaker { id: reflectSymbol (Proxy :: _ id) }
+    { event: pure $ makeSpeaker { id: reflectSymbol (Proxy :: _ id) }
     , result: T.GraphUnit
     }
 
@@ -100,7 +99,7 @@ gain _ initialGain attributes = GraphBuilder go
     { event:
         let
           id = reflectSymbol (Proxy :: _ id)
-          event0 = bang $
+          event0 = pure $
             makeGain
               { id
               , parent: Nothing
@@ -118,7 +117,7 @@ gain _ initialGain attributes = GraphBuilder go
 -- | Creates a `SinOsc` node.
 -- |
 -- | ```purescript
--- | sinOsc <- Create.sinOsc (Proxy :: _ "sinOsc") 440.0 bangOn
+-- | sinOsc <- Create.sinOsc (Proxy :: _ "sinOsc") 440.0 pureOn
 -- | ```
 sinOsc
   :: forall l p i o id initialSinOsc
@@ -136,11 +135,11 @@ sinOsc _ initialSinOsc attributes = GraphBuilder go
     { event:
         let
           id = reflectSymbol (Proxy :: _ id)
-          event0 = bang $
+          event0 = pure $
             makeSinOsc { id, parent: Nothing, frequency, scope: Local "imperative" }
           eventN = keepLatest (attributes <#> unwrap >>> match
             { frequency: Common.resolveAU di (setFrequency <<< { id, frequency: _ })
-            , onOff: bang <<< setOnOff <<< { id, onOff: _ }
+            , onOff: pure <<< setOnOff <<< { id, onOff: _ }
             })
         in
           event0 <|> eventN
@@ -178,7 +177,7 @@ playBuf _ initialPlayBuf attributes = GraphBuilder go
     { event:
         let
           id = reflectSymbol (Proxy :: _ id)
-          event0 = bang $ makePlayBuf
+          event0 = pure $ makePlayBuf
             { id
             , parent: Nothing
             , buffer
@@ -188,11 +187,11 @@ playBuf _ initialPlayBuf attributes = GraphBuilder go
             , scope: Local "imperative"
             }
           eventN = keepLatest (attributes <#> unwrap >>> match
-            { buffer: bang <<< setBuffer <<< { id, buffer: _ }
+            { buffer: pure <<< setBuffer <<< { id, buffer: _ }
             , playbackRate: Common.resolveAU di (setPlaybackRate <<< { id, playbackRate: _ })
-            , bufferOffset: bang <<< setBufferOffset <<< { id, bufferOffset: _ }
-            , duration: bang <<< setDuration <<< { id, duration: _ }
-            , onOff: bang <<< setOnOff <<< { id, onOff: _ }
+            , bufferOffset: pure <<< setBufferOffset <<< { id, bufferOffset: _ }
+            , duration: pure <<< setDuration <<< { id, duration: _ }
+            , onOff: pure <<< setOnOff <<< { id, onOff: _ }
             })
         in
           event0 <|> eventN

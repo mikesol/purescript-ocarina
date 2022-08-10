@@ -3,11 +3,11 @@ module Ocarina.Example.Docs.Params.Sudden where
 import Prelude
 
 import Data.Foldable (oneOf)
-import Deku.Core (Domable, envy)
+import Deku.Core (Domable)
+import Bolson.Core (envy)
 import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
-import FRP.Event (Event, bang)
-import FRP.Event (delay)
+import FRP.Event (Event, delay)
 import Type.Proxy (Proxy(..))
 import Ocarina.Control (gain_, loopBuf)
 import Ocarina.Core (AudioSudden(..), bangOn)
@@ -29,7 +29,7 @@ px =
       [ loopBuf buf OneOf.do
           bangOn
           delay 1500
-            $ bang
+            $ pure
             $ playbackRate
             $ AudioSudden { n: 1.4 }
       ]
@@ -50,7 +50,7 @@ suddenEx ccb _ ev = makePursx' (Proxy :: _ "@") px
                     ( oneOf
                         [ bangOn
                         , delay 1500
-                            $ bang
+                            $ pure
                             $ playbackRate
                             $ AudioSudden { n: 1.4 }
                         ]

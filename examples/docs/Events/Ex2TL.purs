@@ -14,7 +14,7 @@ import Effect (Effect)
 import Effect.Random as Random
 import FRP.Behavior (Behavior, behavior, sampleBy)
 import FRP.Event (Event, makeEvent, memoize, subscribe)
-import FRP.Event.Class (bang)
+
 import FRP.Event.VBus (V, vbus)
 import Type.Proxy (Proxy(..))
 import Ocarina.Clock (interval)
@@ -55,7 +55,7 @@ main :: Effect Unit
 main = runInBody1
   ( vbus (Proxy :: _ UIEvents) \push event -> do
       let
-        start = event.startStop.start <|> bang unit
+        start = event.startStop.start <|> pure unit
 
         music :: forall lock. _ -> Event (Array (Audible _ lock _))
         music evt' = memoize evt' \evt -> do
@@ -111,7 +111,7 @@ main = runInBody1
         [ D.div_
             [ text_ "tempo"
             , D.input
-                ( O.oneOfMap bang O.do
+                ( O.oneOfMap pure O.do
                     D.Xtype := "range"
                     D.Min := "0"
                     D.Max := "100"

@@ -26,11 +26,9 @@ import Effect.Ref as Ref
 import FRP.Behavior (sample_)
 import FRP.Event (Event, bus, create, filterMap, keepLatest, memoize, sampleOn, subscribe)
 import FRP.Event.Animate (animationFrameEvent)
-import FRP.Event.Class (bang)
 import Ocarina.Clock (WriteHead, fot, writeHead)
 import Ocarina.Control (analyser, gain, loopBuf, speaker2)
 import Ocarina.Core (Audible, bangOn, opticN)
-import Ocarina.Core (opticN, bangOn)
 import Ocarina.Example.Utils (RaiseCancellation)
 import Ocarina.Interpret (close, context, decodeAudioDataFromUri, effectfulAudioInterpret, getByteFrequencyData, makeFFIAudioSnapshot)
 import Ocarina.Properties (loopEnd, loopStart, playbackRate)
@@ -98,7 +96,7 @@ atariSpeaks
    . BrowserAudioBuffer
   -> RaiseCancellation
   -> Event (Domable Effect lock payload)
-atariSpeaks atar rc = keepLatest $ bus \push -> lcmap (alt (bang TurnOn)) \event ->
+atariSpeaks atar rc = keepLatest $ bus \push -> lcmap (alt (pure TurnOn)) \event ->
   memoize animationFrameEvent \afe ->
     DOM.div_
       [ DOM.h1_ [ text_ "Atari speaks" ]
@@ -127,7 +125,7 @@ atariSpeaks atar rc = keepLatest $ bus \push -> lcmap (alt (bang TurnOn)) \event
 
                           unsub <- subscribe
                             ( sampleOn
-                                (analyserE.event <|> bang Nothing)
+                                (analyserE.event <|> pure Nothing)
                                 (map Tuple audioE)
                             )
                             ( \(Tuple audio analyser) -> do

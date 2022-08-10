@@ -6,11 +6,12 @@ import Control.Parallel (parallel, sequential)
 import Data.Array ((..))
 import Data.Int (toNumber)
 import Data.Number (pow)
-import Deku.Core (Domable, envy)
+import Deku.Core (Domable)
+import Bolson.Core (envy)
 import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
 import FRP.Event (Event)
-import FRP.Event.Class (bang)
+
 import Type.Proxy (Proxy(..))
 import Ocarina.Control (gain_, playBuf)
 import Ocarina.Core (apOn, dt)
@@ -26,7 +27,7 @@ px =
   [ gain_ 1.0
       $ do
           let
-            ooo n = bang $ onOff $ dt (add n) apOn
+            ooo n = pure $ onOff $ dt (add n) apOn
             mtk i =
               case i `mod` 4 of
                 0 -> tink0
@@ -57,7 +58,7 @@ ai1 ccb _ ev = makePursx' (Proxy :: _ "@") px
             [ gain_ 1.0
                 $ do
                     let
-                      ooo n = bang $ onOff $ dt (add n) apOn
+                      ooo n = pure $ onOff $ dt (add n) apOn
                       mtk i =
                         case i `mod` 4 of
                           0 -> tink0

@@ -22,7 +22,7 @@ import Effect.Aff (Aff, launchAff_)
 import Effect.Class (liftEffect)
 import Effect.Ref as Ref
 import FRP.Behavior (sample_)
-import FRP.Event (Event, bang, bus, memoize, subscribe)
+import FRP.Event (Event, bus, memoize, subscribe)
 import FRP.Event.Animate (animationFrameEvent)
 import Ocarina.Clock (WriteHead, fot, writeHead)
 import Ocarina.Control (gain, gain_, sinOsc, speaker2)
@@ -133,7 +133,7 @@ stressTest
    . Unit
   -> RaiseCancellation
   -> Event (Domable Effect lock payload)
-stressTest _ rc = bus \p -> lcmap (alt $ bang Nothing) \e ->
+stressTest _ rc = bus \p -> lcmap (alt $ pure Nothing) \e ->
   let
     musicButton
       :: forall lock0

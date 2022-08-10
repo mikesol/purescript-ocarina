@@ -23,7 +23,7 @@ import Data.Variant (Unvariant(..), inj, match, unvariant)
 import Effect (Effect)
 import Effect.AVar as AVar
 import Effect.Exception (throwException)
-import FRP.Event (Event, bang, keepLatest, makeEvent, subscribe)
+import FRP.Event (Event, keepLatest, makeEvent, subscribe)
 import Foreign.Object (fromHomogeneous)
 import Prim.Int (class Compare)
 import Prim.Ordering (GT, LT)
@@ -52,7 +52,7 @@ allpass i' atts elts = Element' $ C.Node go
     me <- ids
     parent.raiseId me
     map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
-      bang
+      pure
         ( makeAllpass
             { id: me, parent: parent.parent, scope: parent.scope, frequency: i.frequency, q: i.q }
         )
@@ -179,7 +179,7 @@ analyser i' atts elts = Element' $ C.Node go
       me <- ids
       parent.raiseId me
       map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
-        bang
+        pure
           ( makeAnalyser
               { id: me
               , parent: parent.parent
@@ -280,7 +280,7 @@ __audioWorklet (C.InitializeAudioWorkletNode i) atts elt = Element' $ C.Node go
       me <- ids
       parent.raiseId me
       map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
-        bang
+        pure
           ( makeAudioWorkletNode
               { id: me
               , parent: parent.parent
@@ -349,7 +349,7 @@ bandpass i' atts elts = Element' $ C.Node go
     me <- ids
     parent.raiseId me
     map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
-      bang
+      pure
         ( makeBandpass
             { id: me, parent: parent.parent, scope: parent.scope, frequency: i.frequency, q: i.q }
         )
@@ -389,7 +389,7 @@ __constant i' atts = Element' $ C.Node go
       me <- ids
       parent.raiseId me
       map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
-        bang
+        pure
           ( makeConstant
               { id: me
               , parent: parent.parent
@@ -401,7 +401,7 @@ __constant i' atts = Element' $ C.Node go
             ( keepLatest $ map
                 ( \(C.Constant e) -> match
                     { offset: tmpResolveAU parent.scope di (setOffset <<< { id: me, offset: _ })
-                    , onOff: \onOff -> bang $ setOnOff { id: me, onOff }
+                    , onOff: \onOff -> pure $ setOnOff { id: me, onOff }
                     }
                     e
                 )
@@ -439,7 +439,7 @@ convolver i' elts = Element' $ C.Node go
       me <- ids
       parent.raiseId me
       map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
-        bang
+        pure
           ( makeConvolver
               { id: me
               , parent: parent.parent
@@ -464,7 +464,7 @@ delay i' atts elts = Element' $ C.Node go
     me <- ids
     parent.raiseId me
     map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
-      bang
+      pure
         ( makeDelay
             { id: me, parent: parent.parent, scope: parent.scope, delayTime: i.delayTime, maxDelayTime: i.maxDelayTime }
         )
@@ -516,7 +516,7 @@ dynamicsCompressor i' atts elts = Element' $ C.Node go
       me <- ids
       parent.raiseId me
       map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
-        bang
+        pure
           ( makeDynamicsCompressor
               { id: me
               , parent: parent.parent
@@ -581,7 +581,7 @@ gain i' atts elts = Element' $ C.Node go
     me <- ids
     parent.raiseId me
     map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
-      bang
+      pure
         ( makeGain
             { id: me, parent: parent.parent, scope: parent.scope, gain: i.gain }
         )
@@ -619,7 +619,7 @@ highpass i' atts elts = Element' $ C.Node go
     me <- ids
     parent.raiseId me
     map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
-      bang
+      pure
         ( makeHighpass
             { id: me, parent: parent.parent, scope: parent.scope, frequency: i.frequency, q: i.q }
         )
@@ -658,7 +658,7 @@ highshelf i' atts elts = Element' $ C.Node go
     me <- ids
     parent.raiseId me
     map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
-      bang
+      pure
         ( makeHighshelf
             { id: me, parent: parent.parent, scope: parent.scope, frequency: i.frequency, gain: i.gain }
         )
@@ -722,7 +722,7 @@ iirFilter' fwd bk i' elts = Element' $ C.Node go
       me <- ids
       parent.raiseId me
       map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
-        bang
+        pure
           ( makeIIRFilter
               { id: me
               , parent: parent.parent
@@ -748,7 +748,7 @@ lowpass i' atts elts = Element' $ C.Node go
     me <- ids
     parent.raiseId me
     map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
-      bang
+      pure
         ( makeLowpass
             { id: me, parent: parent.parent, scope: parent.scope, frequency: i.frequency, q: i.q }
         )
@@ -787,7 +787,7 @@ lowshelf i' atts elts = Element' $ C.Node go
     me <- ids
     parent.raiseId me
     map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
-      bang
+      pure
         ( makeLowshelf
             { id: me, parent: parent.parent, scope: parent.scope, frequency: i.frequency, gain: i.gain }
         )
@@ -840,7 +840,7 @@ __loopBuf i' atts = Element' $ C.Node go
       me <- ids
       parent.raiseId me
       map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
-        bang
+        pure
           ( makeLoopBuf
               { id: me
               , parent: parent.parent
@@ -855,11 +855,11 @@ __loopBuf i' atts = Element' $ C.Node go
           <|>
             ( keepLatest $ map
                 ( \(C.LoopBuf e) -> match
-                    { buffer: \buffer -> bang $ setBuffer { id: me, buffer }
+                    { buffer: \buffer -> pure $ setBuffer { id: me, buffer }
                     , playbackRate: tmpResolveAU parent.scope di (setPlaybackRate <<< { id: me, playbackRate: _ })
-                    , loopStart: \loopStart -> bang $ setLoopStart { id: me, loopStart }
-                    , loopEnd: \loopEnd -> bang $ setLoopEnd { id: me, loopEnd }
-                    , onOff: \onOff -> bang $ setOnOff { id: me, onOff }
+                    , loopStart: \loopStart -> pure $ setLoopStart { id: me, loopStart }
+                    , loopEnd: \loopEnd -> pure $ setLoopEnd { id: me, loopEnd }
+                    , onOff: \onOff -> pure $ setOnOff { id: me, onOff }
                     }
                     e
                 )
@@ -894,7 +894,7 @@ __mediaElement (C.InitializeMediaElement i) = Element' $ C.Node go
       me <- ids
       parent.raiseId me
       map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
-        bang
+        pure
           ( makeMediaElement
               { id: me
               , parent: parent.parent
@@ -924,7 +924,7 @@ __microphone i' = Element' $ C.Node go
       me <- ids
       parent.raiseId me
       map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
-        bang
+        pure
           ( makeMicrophone
               { id: me
               , parent: parent.parent
@@ -955,7 +955,7 @@ notch i' atts elts = Element' $ C.Node go
     me <- ids
     parent.raiseId me
     map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
-      bang
+      pure
         ( makeNotch
             { id: me, parent: parent.parent, scope: parent.scope, frequency: i.frequency, q: i.q }
         )
@@ -994,7 +994,7 @@ peaking i' atts elts = Element' $ C.Node go
     me <- ids
     parent.raiseId me
     map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
-      bang
+      pure
         ( makePeaking
             { id: me, parent: parent.parent, scope: parent.scope, frequency: i.frequency, q: i.q, gain: i.gain }
         )
@@ -1040,7 +1040,7 @@ __periodicOsc i' atts = Element' $ C.Node go
       me <- ids
       parent.raiseId me
       map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
-        bang
+        pure
           ( makePeriodicOsc
               { id: me
               , parent: parent.parent
@@ -1053,8 +1053,8 @@ __periodicOsc i' atts = Element' $ C.Node go
             ( keepLatest $ map
                 ( \(C.PeriodicOsc e) -> match
                     { frequency: tmpResolveAU parent.scope di (setFrequency <<< { id: me, frequency: _ })
-                    , onOff: \onOff -> bang $ setOnOff { id: me, onOff }
-                    , spec: \spec -> bang $ setPeriodicOsc { id: me, spec }
+                    , onOff: \onOff -> pure $ setOnOff { id: me, onOff }
+                    , spec: \spec -> pure $ setPeriodicOsc { id: me, spec }
                     }
                     e
                 )
@@ -1158,7 +1158,7 @@ __playBuf i' atts = Element' $ C.Node go
       me <- ids
       parent.raiseId me
       map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
-        bang
+        pure
           ( makePlayBuf
               { id: me
               , parent: parent.parent
@@ -1172,15 +1172,15 @@ __playBuf i' atts = Element' $ C.Node go
           <|>
             ( keepLatest $ map
                 ( \(C.PlayBuf e) -> match
-                    { buffer: \buffer -> bang $ setBuffer { id: me, buffer }
+                    { buffer: \buffer -> pure $ setBuffer { id: me, buffer }
                     , playbackRate: tmpResolveAU parent.scope di
                         ( setPlaybackRate <<<
                             { id: me, playbackRate: _ }
                         )
-                    , bufferOffset: \bufferOffset -> bang $ setBufferOffset
+                    , bufferOffset: \bufferOffset -> pure $ setBufferOffset
                         { id: me, bufferOffset }
-                    , onOff: \onOff -> bang $ setOnOff { id: me, onOff }
-                    , duration: \duration -> bang $ setDuration { id: me, duration }
+                    , onOff: \onOff -> pure $ setOnOff { id: me, onOff }
+                    , duration: \duration -> pure $ setDuration { id: me, duration }
                     }
                     e
                 )
@@ -1217,7 +1217,7 @@ recorder i' elt = Element' $ C.Node go
       me <- ids
       parent.raiseId me
       map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
-        bang
+        pure
           ( makeRecorder
               { id: me, parent: parent.parent, scope: parent.scope, cb: i.cb }
           )
@@ -1241,7 +1241,7 @@ __sawtoothOsc i' atts = Element' $ C.Node go
       me <- ids
       parent.raiseId me
       map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
-        bang
+        pure
           ( makeSawtoothOsc
               { id: me
               , parent: parent.parent
@@ -1253,7 +1253,7 @@ __sawtoothOsc i' atts = Element' $ C.Node go
             ( keepLatest $ map
                 ( \(C.SawtoothOsc e) -> match
                     { frequency: tmpResolveAU parent.scope di (setFrequency <<< { id: me, frequency: _ })
-                    , onOff: \onOff -> bang $ setOnOff { id: me, onOff }
+                    , onOff: \onOff -> pure $ setOnOff { id: me, onOff }
                     }
                     e
                 )
@@ -1293,7 +1293,7 @@ __sinOsc i' atts = Element' $ C.Node go
       me <- ids
       parent.raiseId me
       map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
-        bang
+        pure
           ( makeSinOsc
               { id: me
               , parent: parent.parent
@@ -1305,7 +1305,7 @@ __sinOsc i' atts = Element' $ C.Node go
             ( keepLatest $ map
                 ( \(C.SinOsc e) -> match
                     { frequency: tmpResolveAU parent.scope di (setFrequency <<< { id: me, frequency: _ })
-                    , onOff: \onOff -> bang $ setOnOff { id: me, onOff }
+                    , onOff: \onOff -> pure $ setOnOff { id: me, onOff }
                     }
                     e
                 )
@@ -1345,7 +1345,7 @@ __squareOsc i' atts = Element' $ C.Node go
       me <- ids
       parent.raiseId me
       map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
-        bang
+        pure
           ( makeSquareOsc
               { id: me
               , parent: parent.parent
@@ -1357,7 +1357,7 @@ __squareOsc i' atts = Element' $ C.Node go
             ( keepLatest $ map
                 ( \(C.SquareOsc e) -> match
                     { frequency: tmpResolveAU parent.scope di (setFrequency <<< { id: me, frequency: _ })
-                    , onOff: \onOff -> bang $ setOnOff { id: me, onOff }
+                    , onOff: \onOff -> pure $ setOnOff { id: me, onOff }
                     }
                     e
                 )
@@ -1412,7 +1412,7 @@ pan i' atts elts = Element' $ C.Node go
     me <- ids
     parent.raiseId me
     map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
-      bang
+      pure
         ( makeStereoPanner
             { id: me, parent: parent.parent, scope: parent.scope, pan: i.pan }
         )
@@ -1453,7 +1453,7 @@ __triangleOsc i' atts = Element' $ C.Node go
       me <- ids
       parent.raiseId me
       map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
-        bang
+        pure
           ( makeTriangleOsc
               { id: me
               , parent: parent.parent
@@ -1465,7 +1465,7 @@ __triangleOsc i' atts = Element' $ C.Node go
             ( keepLatest $ map
                 ( \(C.TriangleOsc e) -> match
                     { frequency: tmpResolveAU parent.scope di (setFrequency <<< { id: me, frequency: _ })
-                    , onOff: \onOff -> bang $ setOnOff { id: me, onOff }
+                    , onOff: \onOff -> pure $ setOnOff { id: me, onOff }
                     }
                     e
                 )
@@ -1503,7 +1503,7 @@ waveShaper i' elts = Element' $ C.Node go
       me <- ids
       parent.raiseId me
       map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
-        bang
+        pure
           ( makeWaveShaper
               { id: me
               , parent: parent.parent
@@ -1622,8 +1622,8 @@ silence = fix identity
 --           }
 --       ) =
 --     keepLatest
---       ( (sample_ ids (bang unit)) <#> \me ->
---           bang
+--       ( (sample_ ids (pure unit)) <#> \me ->
+--           pure
 --             ( makeMerger
 --                 { id: me
 --                 , parent: parent.parent
@@ -1659,10 +1659,10 @@ tmpResolveAU = go
   sdn = C.FFIAudioParameter <<< inj (Proxy :: _ "sudden")
   ut = C.FFIAudioParameter <<< inj (Proxy :: _ "unit")
   go scope di f (C.AudioParameter a) = match
-    { numeric: bang <<< f <<< nmc
-    , envelope: bang <<< f <<< ev
-    , cancel: bang <<< f <<< cncl
-    , sudden: bang <<< f <<< sdn
+    { numeric: pure <<< f <<< nmc
+    , envelope: pure <<< f <<< ev
+    , cancel: pure <<< f <<< cncl
+    , sudden: pure <<< f <<< sdn
     , unit: \(C.AudioUnit { u }) ->
         let
           n = gain_ 1.0 [ u ]
@@ -1683,7 +1683,7 @@ tmpResolveAU = go
 
 __internalOcarinaFlatten
   :: forall o lock payload
-   . PSR Effect
+   . PSR Effect ()
   -> C.AudioInterpret payload
   -> C.Audible o lock payload
   -> Event payload

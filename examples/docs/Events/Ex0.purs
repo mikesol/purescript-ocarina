@@ -13,12 +13,13 @@ import Data.Tuple.Nested ((/\))
 import Data.Typelevel.Num (D2)
 import Deku.Attribute (cb, (:=))
 import Deku.Control (text, text_)
-import Deku.Core (Domable, envy)
+import Deku.Core (Domable)
+import Bolson.Core (envy)
 import Deku.DOM as D
 import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
 import FRP.Event (Event, bus)
-import FRP.Event.Class (bang, biSampleOn)
+import FRP.Event.Class (biSampleOn)
 import Type.Proxy (Proxy(..))
 import Ocarina.Control (gain, gain_, microphone, recorder, sinOsc)
 import Ocarina.Core (Audible, Node)
@@ -64,13 +65,13 @@ scene m cb = recorder cb (microphone m)
 
 data UIEvents = Init | Start | Stop (Effect Unit)
 
-oon o = bang $ onOff $ AudioOnOff { x: _on, o }
-oof o = bang $ onOff $ AudioOnOff { x: _off, o }
+oon o = pure $ onOff $ AudioOnOff { x: _on, o }
+oof o = pure $ onOff $ AudioOnOff { x: _off, o }
 cell = lcmap toNumber \i -> do
   let
     ooo' x = oon (x + 0.27 * (i * (1.005 `pow` i)))
       <|> oof (x + 3.0 + 0.3 * (i * (1.005 `pow` i)))
-    genv x = bang $ P.gain
+    genv x = pure $ P.gain
       $ AudioEnvelope
           { p: [ 0.0, 0.4, 0.1, 0.05, 0.01, 0.0 ]
           , o: x + 0.3 * (i * (1.005 `pow` i))
@@ -100,7 +101,7 @@ import Deku.DOM as D
 import Deku.Toplevel (runInBody, runInBody1)
 import Effect (Effect)
 import FRP.Event (bus)
-import FRP.Event.Class (bang)
+
 import Math (pow)
 import Ocarina.Control (gain_, gain, sinOsc)
 import Ocarina.Core (AudioEnvelope(..), AudioOnOff(..), _on, _off)
@@ -111,11 +112,11 @@ import Ocarina.Run (run2_)
 data UIEvents = Init | Start | Stop (Effect Unit)
 
 -- an event to turn our oscillators on
-oon o = bang $ onOff $ AudioOnOff { x: _on, o }
+oon o = pure $ onOff $ AudioOnOff { x: _on, o }
 -- an event to turn our oscillators off
-oof o = bang $ onOff $ AudioOnOff { x: _off, o }
+oof o = pure $ onOff $ AudioOnOff { x: _off, o }
 -- an event with an envelope for our gain
-env o = bang $ P.gain
+env o = pure $ P.gain
   $ AudioEnvelope
       { p: [ 0.0, 0.4, 0.1, 0.05, 0.01, 0.0 ]
       , d: 0.8
@@ -138,7 +139,7 @@ cell = lcmap toNumber \i -> do
   ]
 
 main :: Effect Unit
-main = runInBody1 (bus \push -> lcmap (bang Init <|> _) \event ->
+main = runInBody1 (bus \push -> lcmap (pure Init <|> _) \event ->
   D.div_
     [ D.button
         ( event <#>
@@ -167,10 +168,10 @@ ex0
 ex0 ccb _ ev = makePursx' (Proxy :: _ "@") px
   { txt: nut (text_ txt)
   , ex0: nut
-      ( envy $ bus \push -> lcmap  (bang Init <|> _) \event -> -- here
+      ( envy $ bus \push -> lcmap  (pure Init <|> _) \event -> -- here
             D.div_
               [ D.button
-                  ( (biSampleOn (bang (pure unit) <|> (map (\(SetCancel x) -> x) ev)) (map Tuple event)) <#> -- here
+                  ( (biSampleOn (pure (pure unit) <|> (map (\(SetCancel x) -> x) ev)) (map Tuple event)) <#> -- here
                       \(e /\ c) -> D.OnClick := cb -- here
                         ( const $ case e of
                             Stop u -> u *> push Start *> ccb (pure unit) -- here

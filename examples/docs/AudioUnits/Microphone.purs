@@ -3,7 +3,8 @@ module Ocarina.Example.Docs.AudioUnits.Microphone where
 import Prelude
 
 import Data.Maybe (Maybe(..))
-import Deku.Core (Domable, envy)
+import Deku.Core (Domable)
+import Bolson.Core (envy)
 import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
 import FRP.Event (Event)

@@ -3,11 +3,12 @@ module Ocarina.Example.Docs.FixFan.Fix1 where
 import Prelude
 
 import Deku.Control (text_)
-import Deku.Core (Domable, envy)
+import Deku.Core (Domable)
+import Bolson.Core (envy)
 import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
 import FRP.Event (Event)
-import FRP.Event.Class (bang)
+
 import Type.Proxy (Proxy(..))
 import Ocarina.Control (delay_, fan1, fix, gain, gain_, highpass_, playBuf)
 import Ocarina.Core (AudioEnvelope(..), bangOn)
@@ -28,11 +29,11 @@ px =
 dgh d g h i =
   delay_ d [ gain_ g [ highpass_ h i ] ]
 
-fade0 = bang
+fade0 = pure
   $ P.gain
   $ AudioEnvelope { p: [ 1.0, 1.0, 0.0 ], o: 0.0, d: 8.0 }
 
-fade1 = bang
+fade1 = pure
   $ P.gain
   $ AudioEnvelope { p: [ 1.0, 1.0, 0.0 ], o: 0.0, d: 10.0 }
 
@@ -42,11 +43,11 @@ fix1 ccb _ ev = makePursx' (Proxy :: _ "@") px
       """dgh d g h i =
   delay_ d [gain_ g [highpass_ h i]]
 
-fade0 = bang
+fade0 = pure
   $ P.gain
   $ AudioEnvelope { p: [1.0, 1.0, 0.0], o: 0.0, d: 8.0 }
 
-fade1 = bang
+fade1 = pure
   $ P.gain
   $ AudioEnvelope { p: [1.0, 1.0, 0.0], o: 0.0, d: 10.0 }
 

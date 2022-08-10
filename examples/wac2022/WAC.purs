@@ -13,7 +13,7 @@ import Deku.DOM as D
 import Deku.Toplevel (runInBody1)
 import Effect (Effect)
 import FRP.Event (keepLatest, memoize)
-import FRP.Event.Class (bang)
+
 import FRP.Event.VBus (V, vbus)
 import Type.Proxy (Proxy(..))
 import Ocarina.Clock (interval)
@@ -35,7 +35,7 @@ main :: Effect Unit
 main = runInBody1
   ( vbus (Proxy :: _ UIEvents) \push event -> do
       let
-        startE = bang unit <|> event.startStop.start
+        startE = pure unit <|> event.startStop.start
         stopE = event.startStop.stop
         music :: forall lock. _ -> Array (Audible _ lock _)
         music time = do
@@ -48,8 +48,8 @@ main = runInBody1
                 }
             e0 = P.gain <<< adsr <<< add 0.03
             oon =
-              bang <<< onOff <<< AudioOnOff <<< { x: _on, o: _ }
-            oof = bang <<< onOff <<< AudioOnOff <<< { x: _off, o: _ } <<< add 0.22
+              pure <<< onOff <<< AudioOnOff <<< { x: _on, o: _ }
+            oof = pure <<< onOff <<< AudioOnOff <<< { x: _off, o: _ } <<< add 0.22
           [ gain_ 1.0
               ( map
                   ( \i -> gain 0.0 (map e0 time)
@@ -70,7 +70,7 @@ main = runInBody1
                         ctx <- context
                         r <- run2e ctx
                           ( memoize
-                              (interval ctx 0.25 (bang 0.25))
+                              (interval ctx 0.25 (pure 0.25))
                               music
                           )
                         push.startStop.stop (r *> close ctx)

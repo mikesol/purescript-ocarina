@@ -2,7 +2,8 @@ module Ocarina.Example.Docs.Subgraphs where
 
 import Prelude
 
-import Deku.Core (Domable, envy)
+import Deku.Core (Domable)
+import Bolson.Core (envy)
 import Deku.Pursx (nut, (~~))
 import Effect (Effect)
 import FRP.Event (Event)
@@ -40,7 +41,7 @@ subgraphs cca' dpage ssp ev = px ~~
           \ctx buf -> run2 ctx [ gain_ 1.0 [ loopBuf buf bangOn ] ]
       ),
     suby: nut $ SliderEx.sgSliderEx ccb dpage ev
-    -- next: bang (D.OnClick := (cb (const $ dpage Intro *> scrollToTop)))
+    -- next: pure (D.OnClick := (cb (const $ dpage Intro *> scrollToTop)))
   }
   where
   ccb = ccassp cca' ssp
