@@ -2,6 +2,7 @@ module Ocarina.Example.Docs.Events.Ex0 where
 
 import Prelude
 
+import Bolson.Core (envy)
 import Control.Alt (alt, (<|>))
 import Data.Array ((..))
 import Data.Exists (mkExists)
@@ -13,14 +14,13 @@ import Data.Tuple.Nested ((/\))
 import Data.Typelevel.Num (D2)
 import Deku.Attribute (cb, (:=))
 import Deku.Control (text, text_)
-import Deku.Core (Domable)
-import Bolson.Core (envy)
+import Deku.Core (Domable, bussed)
 import Deku.DOM as D
 import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
-import FRP.Event (Event, bus)
+import FRP.Event (AnEvent, Event, bus)
 import FRP.Event.Class (biSampleOn)
-import Type.Proxy (Proxy(..))
+import Hyrule.Zora (Zora)
 import Ocarina.Control (gain, gain_, microphone, recorder, sinOsc)
 import Ocarina.Core (Audible, Node)
 import Ocarina.Core (AudioEnvelope(..), AudioOnOff(..), _off, _on)
@@ -29,6 +29,7 @@ import Ocarina.Properties (onOff)
 import Ocarina.Properties as P
 import Ocarina.Run (run2_)
 import Ocarina.WebAPI (BrowserMicrophone, MediaRecorderCb)
+import Type.Proxy (Proxy(..))
 
 px =
   Proxy    :: Proxy         """<section>
@@ -164,11 +165,11 @@ main = runInBody1 (bus \push -> lcmap (pure Init <|> _) \event ->
 """
 
 ex0
-  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable Effect lock payload
+  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> AnEvent Zora SingleSubgraphEvent -> Domable lock payload
 ex0 ccb _ ev = makePursx' (Proxy :: _ "@") px
   { txt: nut (text_ txt)
   , ex0: nut
-      ( envy $ bus \push -> lcmap  (pure Init <|> _) \event -> -- here
+      ( bussed \push -> lcmap  (pure Init <|> _) \event -> -- here
             D.div_
               [ D.button
                   ( (biSampleOn (pure (pure unit) <|> (map (\(SetCancel x) -> x) ev)) (map Tuple event)) <#> -- here

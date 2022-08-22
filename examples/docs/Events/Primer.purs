@@ -45,7 +45,7 @@ type Behavior = ABehavior Event
   </p>
 </section>"""
 
-primer :: forall lock payload. Domable Effect lock payload
+primer :: forall lock payload. Domable lock payload
 primer = makePursx'  (Proxy :: _ "@") px
   {
   }

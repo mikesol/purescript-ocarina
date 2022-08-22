@@ -2,18 +2,19 @@ module Ocarina.Example.Docs.AudioUnits.Lowshelf where
 
 import Prelude
 
-import Deku.Core (Domable)
 import Bolson.Core (envy)
+import Deku.Core (Domable)
 import Deku.Pursx (nut, (~~))
 import Effect (Effect)
-import FRP.Event (Event)
-import Type.Proxy (Proxy(..))
+import FRP.Event (AnEvent, Event)
+import Hyrule.Zora (Zora)
 import Ocarina.Control (loopBuf, lowshelf_)
 import Ocarina.Core (bangOn)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import Ocarina.Example.Docs.Util (audioWrapper)
 import Ocarina.Interpret (decodeAudioDataFromUri)
 import Ocarina.Run (run2)
+import Type.Proxy (Proxy(..))
 
 px = Proxy :: Proxy """<section>
   <h2 id="lowshelf">Lowshelf filter</h2>
@@ -29,10 +30,10 @@ px = Proxy :: Proxy """<section>
   </section>
 """
 
-lowshelf :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable Effect lock payload
+lowshelf :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> AnEvent Zora SingleSubgraphEvent -> Domable lock payload
 lowshelf ccb _ ev = px ~~
   { lowshelf: nut
-      ( envy $ audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
+      (  audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
           \ctx buf -> run2 ctx
             [lowshelf_ {frequency: 91.0, gain: 0.4 } [loopBuf buf bangOn]]
       )

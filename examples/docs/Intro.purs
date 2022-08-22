@@ -8,12 +8,12 @@ import Deku.Core (Domable)
 import Deku.DOM as D
 import Deku.Pursx (nut, (~~))
 import Effect (Effect)
-import FRP.Event (Event, class IsEvent)
-
-import Type.Proxy (Proxy(..))
+import FRP.Event (class IsEvent, AnEvent, Event)
+import Hyrule.Zora (Zora)
 import Ocarina.Example.Docs.Intro.IntroEx as Intro
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
 import Ocarina.Example.Docs.Util (ccassp, mkNext, scrollToTop)
+import Type.Proxy (Proxy(..))
 
 px = Proxy :: Proxy """<div>
   <h1>Ocarina</h1>
@@ -43,7 +43,7 @@ px = Proxy :: Proxy """<div>
   <p>And now, without further ado, let's write a small <a ~next~ style="cursor:pointer;">hello world à la ocarina</a>!</p>
 </div>"""
 
-intro :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent -> Domable Effect lock payload
+intro :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> AnEvent Zora SingleSubgraphEvent -> Domable lock payload
 intro cca' dpage ssp ev = px ~~
   { next: mkNext ev (dpage HelloWorld *> scrollToTop)
   , ex: nut $ Intro.introEx ccb dpage ev

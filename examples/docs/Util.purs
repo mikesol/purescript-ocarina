@@ -2,18 +2,20 @@ module Ocarina.Example.Docs.Util where
 
 import Prelude
 
-import Control.Alt ((<|>))
+import Control.Alt (class Alt, (<|>))
 import Data.Tuple (Tuple(..))
 import Data.Tuple.Nested ((/\))
-import Deku.Attribute (cb, (:=))
+import Deku.Attribute (Attribute, cb, (:=))
 import Deku.Control (text)
+import Deku.Core (bussed)
 import Deku.Core as DC
 import Deku.DOM as D
 import Effect (Effect)
 import Effect.Aff (Aff, Fiber, error, joinFiber, killFiber, launchAff, launchAff_, parallel, sequential)
 import Effect.Class (liftEffect)
-import FRP.Event (Event, bus)
+import FRP.Event (AnEvent)
 import FRP.Event.Class (biSampleOn)
+import Hyrule.Zora (Zora)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, SingleSubgraphEvent(..), SingleSubgraphPusher)
 import Ocarina.Interpret (close, constant0Hack, context)
 import Ocarina.WebAPI (AudioContext)
@@ -42,6 +44,15 @@ raceSelf fib = sequential
 
 foreign import hackishRandInt :: Effect Int
 
+clickCb
+  :: forall i element
+   . (Effect Unit -> Effect Unit)
+  -> (WrapperStates -> Effect Unit)
+  -> (AudioContext -> Aff i)
+  -> (AudioContext -> i -> Effect (Effect Unit))
+  -> AnEvent Zora SingleSubgraphEvent
+  -> AnEvent Zora WrapperStates
+  -> AnEvent Zora (Attribute element)
 clickCb cca push init i ev event = map
   ( \(e /\ cncl) -> D.OnClick :=
       ( cb $
@@ -69,57 +80,59 @@ clickCb cca push init i ev event = map
   )
   (biSampleOn (pure (pure unit) <|> (map (\(SetCancel x) -> x) ev)) (map Tuple event))
 
+mkWrapperEvent :: forall t20 f22. Alt f22 => Applicative f22 => t20 -> f22 WrapperStates -> f22 WrapperStates
 mkWrapperEvent ev event' = pure Stopped <|> event'
 
 audioWrapper
   :: forall a lock payload
-   . Event SingleSubgraphEvent
+   . AnEvent Zora SingleSubgraphEvent
   -> CancelCurrentAudio
   -> (AudioContext -> Aff a)
   -> (AudioContext -> a -> Effect (Effect Unit))
-  -> Event (DC.Domable Effect lock payload)
-audioWrapper ev cca init i = bus \push event' ->
-    let
-      event = mkWrapperEvent ev event'
-    in
-      D.button
-        (clickCb cca push init i ev event)
-        [ text
-            ( map
-                ( case _ of
-                    Stopped -> "Turn on"
-                    Loading -> "Loading..."
-                    Playing _ -> "Turn off"
-                )
-                event
-            )
-        ]
+  -> DC.Domable lock payload
+audioWrapper ev cca init i = bussed \push event' ->
+  let
+    event = mkWrapperEvent ev event'
+  in
+    D.button
+      (clickCb cca push init i ev event)
+      [ text
+          ( map
+              ( case _ of
+                  Stopped -> "Turn on"
+                  Loading -> "Loading..."
+                  Playing _ -> "Turn off"
+              )
+              event
+          )
+      ]
 
 audioWrapperSpan
   :: forall a lock payload
    . String
-  -> Event SingleSubgraphEvent
+  -> AnEvent Zora SingleSubgraphEvent
   -> CancelCurrentAudio
   -> (AudioContext -> Aff a)
   -> (AudioContext -> a -> Effect (Effect Unit))
-  -> Event (DC.Domable Effect lock payload)
-audioWrapperSpan txt ev cca init i = bus \push event' ->
-    let
-      event = mkWrapperEvent ev event'
-    in
-      D.span
-        ( (pure (D.Style := "cursor: pointer;")) <|> (clickCb cca push init i ev event)
-        )
-        [ text
-            ( map
-                ( case _ of
-                    Stopped -> txt
-                    Loading -> "⏳"
-                    Playing _ -> "🛑"
-                )
-                event
-            )
-        ]
+  -> DC.Domable lock payload
+audioWrapperSpan txt ev cca init i = bussed \push event' ->
+  let
+    event = mkWrapperEvent ev event'
+  in
+    D.span
+      ( (pure (D.Style := "cursor: pointer;")) <|> (clickCb cca push init i ev event)
+      )
+      [ text
+          ( map
+              ( case _ of
+                  Stopped -> txt
+                  Loading -> "⏳"
+                  Playing _ -> "🛑"
+              )
+              event
+          )
+      ]
 
+mkNext :: forall f29 e35. Alt f29 => Applicative f29 => f29 SingleSubgraphEvent -> Effect Unit -> f29 (Attribute e35)
 mkNext ev cpage = pure (D.OnClick := cb (const cpage))
   <|> map (\cncl -> D.OnClick := cb (const (cncl *> cpage))) (map (\(SetCancel c) -> c) ev)

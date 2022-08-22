@@ -5,9 +5,10 @@ import Prelude
 import Deku.Core (Domable)
 import Deku.Pursx (makePursx')
 import Effect (Effect)
-import FRP.Event (Event)
-import Type.Proxy (Proxy(..))
+import FRP.Event (AnEvent, Event)
+import Hyrule.Zora (Zora)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent, SingleSubgraphPusher)
+import Type.Proxy (Proxy(..))
 
 px =
   Proxy   :: Proxy      """<div>
@@ -25,7 +26,7 @@ px =
 
 pursx2
   :: forall lock payload
-   . CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent
-  -> Domable Effect lock payload
-pursx2 _ dpage _ _ = makePursx' (Proxy :: _ "~") px
+   . CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> AnEvent Zora SingleSubgraphEvent
+  -> Domable lock payload
+pursx2 _ _ _ _ = makePursx' (Proxy :: _ "~") px
   { }

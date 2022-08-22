@@ -2,18 +2,19 @@ module Ocarina.Example.Docs.AudioUnits.Convolution where
 
 import Prelude
 
-import Deku.Core (Domable)
 import Bolson.Core (envy)
+import Deku.Core (Domable)
 import Deku.Pursx (nut, (~~))
 import Effect (Effect)
-import FRP.Event (Event)
-import Type.Proxy (Proxy(..))
+import FRP.Event (AnEvent, Event)
+import Hyrule.Zora (Zora)
 import Ocarina.Control (convolver, loopBuf)
 import Ocarina.Core (bangOn)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import Ocarina.Example.Docs.Util (audioWrapper)
 import Ocarina.Interpret (decodeAudioDataFromUri)
 import Ocarina.Run (run2)
+import Type.Proxy (Proxy(..))
 
 px = Proxy :: Proxy """<section>
   <h2 id="convolution">Convolution</h2>
@@ -26,10 +27,10 @@ px = Proxy :: Proxy """<section>
   </section>
 """
 
-convolution :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable Effect lock payload
+convolution :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> AnEvent Zora SingleSubgraphEvent -> Domable lock payload
 convolution ccb _ ev = px ~~
   { convolution: nut
-      ( envy $ audioWrapper ev ccb (\ctx -> { loop: _, verb: _ }
+      (  audioWrapper ev ccb (\ctx -> { loop: _, verb: _ }
          <$> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3" <*> decodeAudioDataFromUri ctx "https://cdn.jsdelivr.net/gh/andibrae/Reverb.js/Library/StMarysAbbeyReconstructionPhase3.m4a")
           \ctx {loop, verb} -> run2 ctx
             [convolver verb [loopBuf loop bangOn]]

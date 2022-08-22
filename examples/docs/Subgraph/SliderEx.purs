@@ -2,14 +2,14 @@ module Ocarina.Example.Docs.Subgraph.SliderEx where
 
 import Prelude
 
+import Bolson.Core (envy)
 import Control.Alt ((<|>))
 import Data.Foldable (oneOf, oneOfMap)
 import Data.Tuple (fst)
 import Data.Tuple.Nested ((/\))
 import Deku.Attribute (attr, cb, (:=))
 import Deku.Control (text, text_)
-import Deku.Core (Domable)
-import Bolson.Core (envy)
+import Deku.Core (Domable, vbussed)
 import Deku.DOM as D
 import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
@@ -17,16 +17,17 @@ import Effect.Aff (launchAff, launchAff_)
 import Effect.Class (liftEffect)
 import Effect.Random as Random
 import FRP.Behavior (Behavior, behavior, sampleBy)
-import FRP.Event (Event, fold, makeEvent, subscribe, delay)
+import FRP.Event (AnEvent, Event, delay, fold, makeEvent, subscribe, toEvent)
 import FRP.Event.Class (biSampleOn)
 import FRP.Event.VBus (V, vbus)
-import Type.Proxy (Proxy(..))
+import Hyrule.Zora (Zora)
 import Ocarina.Control (gain_, playBuf)
 import Ocarina.Core (Audible, silence, sound, bangOn, dyn)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..))
 import Ocarina.Example.Docs.Util (raceSelf)
 import Ocarina.Interpret (close, constant0Hack, context, decodeAudioDataFromUri)
 import Ocarina.Run (run2_)
+import Type.Proxy (Proxy(..))
 
 px =
   Proxy    :: Proxy      """<section>
@@ -163,18 +164,18 @@ sgSliderEx
   :: forall lock payload
    . CancelCurrentAudio
   -> (Page -> Effect Unit)
-  -> Event SingleSubgraphEvent
-  -> Domable Effect lock payload
+  -> AnEvent Zora SingleSubgraphEvent
+  -> Domable lock payload
 sgSliderEx ccb _ ev = makePursx' (Proxy :: _ "@") px
   { txt: nut (text_ txt)
   , ex1: nut
-      (envy $ vbus (Proxy :: _ UIEvents) \push event -> -- here
+      (vbussed (Proxy :: _ UIEvents) \push event -> -- here
           do
             let
               startE = pure unit <|> event.startStop.start
               stopE = event.startStop.stop
               sl = sampleBy (/\) random
-                $ fold (\_ b -> b + 1) event.slider 0
+                $ fold (\_ b -> b + 1) (toEvent event.slider) 0
 
               music :: forall lock0. _ -> Array (Audible _ lock0 _)
               music buffer =

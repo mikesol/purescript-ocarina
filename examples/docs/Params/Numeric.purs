@@ -2,13 +2,12 @@ module Ocarina.Example.Docs.Params.Numeric where
 
 import Prelude
 
-import Deku.Core (Domable)
 import Bolson.Core (envy)
-import QualifiedDo.Alt as OneOf
+import Deku.Core (Domable)
 import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
-import FRP.Event (Event, delay)
-import Type.Proxy (Proxy(..))
+import FRP.Event (AnEvent, Event, delay)
+import Hyrule.Zora (Zora)
 import Ocarina.Control (gain_, loopBuf)
 import Ocarina.Core (AudioNumeric(..), _exponential, _linear, _step, bangOn)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
@@ -16,6 +15,8 @@ import Ocarina.Example.Docs.Util (audioWrapper)
 import Ocarina.Interpret (decodeAudioDataFromUri)
 import Ocarina.Properties (playbackRate)
 import Ocarina.Run (run2)
+import QualifiedDo.Alt as OneOf
+import Type.Proxy (Proxy(..))
 
 px =
   Proxy    :: Proxy
@@ -59,10 +60,10 @@ px =
 """
 
 numericEx
-  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable Effect lock payload
+  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> AnEvent Zora SingleSubgraphEvent -> Domable lock payload
 numericEx ccb _ ev = makePursx' (Proxy :: _ "@") px
   { numericEx: nut
-      ( envy $ audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
+      ( audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
           \ctx buf -> run2 ctx
             [ gain_ 1.0
                 [ loopBuf buf OneOf.do

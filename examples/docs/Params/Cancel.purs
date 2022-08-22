@@ -2,16 +2,16 @@ module Ocarina.Example.Docs.Params.Cancel where
 
 import Prelude
 
+import Bolson.Core (envy)
 import Data.Array ((..))
 import Data.Foldable (oneOf)
 import Deku.Control (text_)
 import Deku.Core (Domable)
-import Bolson.Core (envy)
 import Deku.Pursx (nut, (~~))
 import Effect (Effect)
-import FRP.Event (Event)
+import FRP.Event (AnEvent, Event)
 import FRP.Event (delay)
-import Type.Proxy (Proxy(..))
+import Hyrule.Zora (Zora)
 import Ocarina.Control (gain_, loopBuf)
 import Ocarina.Core (AudioCancel(..), AudioEnvelope(..), bangOn)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
@@ -19,6 +19,7 @@ import Ocarina.Example.Docs.Util (audioWrapper)
 import Ocarina.Interpret (decodeAudioDataFromUri)
 import Ocarina.Properties (playbackRate)
 import Ocarina.Run (run2)
+import Type.Proxy (Proxy(..))
 
 px =
   Proxy    :: Proxy         """<section>
@@ -34,7 +35,7 @@ px =
   </section>
 """
 
-cancelEx :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable Effect lock payload
+cancelEx :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> AnEvent Zora SingleSubgraphEvent -> Domable lock payload
 cancelEx ccb _ ev = px ~~
   { txt: nut
       ( text_
@@ -55,7 +56,7 @@ cancelEx ccb _ ev = px ~~
   ]"""
       )
   , cancel: nut
-      (envy $ audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
+      (audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
           \ctx buf -> run2 ctx
             [ gain_ 1.0
                 [ loopBuf buf

@@ -2,18 +2,19 @@ module Ocarina.Example.Docs.AudioUnits.StereoPanner where
 
 import Prelude
 
-import Deku.Core (Domable)
 import Bolson.Core (envy)
+import Deku.Core (Domable)
 import Deku.Pursx (nut, (~~))
 import Effect (Effect)
-import FRP.Event (Event)
-import Type.Proxy (Proxy(..))
+import FRP.Event (AnEvent, Event)
+import Hyrule.Zora (Zora)
 import Ocarina.Control (loopBuf, pan_)
 import Ocarina.Core (bangOn)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import Ocarina.Example.Docs.Util (audioWrapper)
 import Ocarina.Interpret (decodeAudioDataFromUri)
 import Ocarina.Run (run2)
+import Type.Proxy (Proxy(..))
 
 px =
   Proxy    :: Proxy         """<section>
@@ -26,10 +27,10 @@ px =
   </section>
 """
 
-pan :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable Effect lock payload
+pan :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> AnEvent Zora SingleSubgraphEvent -> Domable lock payload
 pan ccb _ ev = px ~~
   { pan: nut
-      ( envy $ audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/339/339822_5121236-lq.mp3")
+      ( audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/339/339822_5121236-lq.mp3")
           \ctx buf -> run2 ctx
             [pan_ 1.0 [loopBuf buf bangOn]]
       )

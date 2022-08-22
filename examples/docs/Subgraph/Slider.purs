@@ -2,15 +2,14 @@ module Ocarina.Example.Docs.Subgraph.Slider where
 
 import Prelude
 
+import Bolson.Core (envy)
 import Control.Alt ((<|>))
 import Data.Maybe (Maybe(..), maybe)
 import Data.Tuple (fst)
-import QualifiedDo.Alt as OneOf
 import Data.Tuple.Nested ((/\))
 import Deku.Attribute (attr, cb, (:=))
-import Deku.Control (switcher, text, text_)
-import Deku.Core (Domable)
-import Bolson.Core (envy)
+import Deku.Control (switcher, switcher_, text, text_)
+import Deku.Core (Domable, vbussed)
 import Deku.DOM as D
 import Deku.Toplevel (runInBody)
 import Effect (Effect)
@@ -18,16 +17,16 @@ import Effect.Aff (launchAff_)
 import Effect.Class (liftEffect)
 import Effect.Random as Random
 import FRP.Behavior (Behavior, behavior, sampleBy)
-import FRP.Event (create, fold, makeEvent, subscribe, delay)
-
+import FRP.Event (create, delay, fold, fromEvent, makeEvent, subscribe, toEvent)
 import FRP.Event.VBus (V, vbus)
-import QualifiedDo.OneOfMap as O
-import Type.Proxy (Proxy(..))
 import Ocarina.Control (gain_, playBuf)
 import Ocarina.Core (dyn, sound, silence, bangOn)
 import Ocarina.Interpret (bracketCtx, decodeAudioDataFromUri)
 import Ocarina.Run (run2_)
 import Ocarina.WebAPI (BrowserAudioBuffer)
+import QualifiedDo.Alt as OneOf
+import QualifiedDo.OneOfMap as O
+import Type.Proxy (Proxy(..))
 
 type StartStop = V (start :: Unit, stop :: Effect Unit)
 type UIEvents = V (startStop :: StartStop, slider :: Unit)
@@ -44,7 +43,7 @@ random = behavior \e ->
 main :: Effect Unit
 main = do
   { push, event } <- create
-  runInBody (switcher scene event)
+  runInBody (switcher_ D.div scene (fromEvent event))
   push Nothing
   launchAff_ $ bracketCtx
     \ctx -> decodeAudioDataFromUri ctx bell >>= liftEffect
@@ -54,13 +53,13 @@ main = do
   scene
     :: forall lock payload
      . Maybe BrowserAudioBuffer
-    -> Domable Effect lock payload
+    -> Domable lock payload
   scene = maybe (D.div_ [ text_ "Loading..." ]) \buffer ->
-    D.div_ $ pure $ envy $ vbus (Proxy :: _ UIEvents) \push event -> do
+    D.div_ $ pure $ vbussed (Proxy :: _ UIEvents) \push event -> do
       let
         startE = pure unit <|> event.startStop.start
         sl = sampleBy (/\) random
-          $ fold (\_ b -> b + 1) event.slider 0
+          $ fold (\_ b -> b + 1) (toEvent event.slider) 0
         music = run2_
           [ gain_ 1.0
               [ dyn $ map
