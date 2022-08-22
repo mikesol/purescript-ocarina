@@ -22,7 +22,7 @@ px = Proxy :: Proxy
 
 </section>"""
 
-flavors :: forall lock payload. Domable Effect lock payload
+flavors :: forall lock payload. Domable lock payload
 flavors = makePursx'  (Proxy :: _ "@") px
   {
   }

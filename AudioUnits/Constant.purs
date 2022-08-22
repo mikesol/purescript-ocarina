@@ -2,23 +2,23 @@ module Ocarina.Example.Docs.AudioUnits.Constant where
 
 import Prelude
 
+import Bolson.Core (envy)
 import Control.Alt ((<|>))
 import Data.Array ((..))
 import Data.FunctorWithIndex (mapWithIndex)
 import Deku.Control (text_)
 import Deku.Core (Domable)
-import Bolson.Core (envy)
 import Deku.Pursx (nut, (~~))
 import Effect (Effect)
-import FRP.Event (Event)
-
-import Type.Proxy (Proxy(..))
+import FRP.Event (AnEvent, Event)
+import Hyrule.Zora (Zora)
 import Ocarina.Control (gain_, constant)
 import Ocarina.Core (AudioEnvelope(..), bangOn)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import Ocarina.Example.Docs.Util (audioWrapper)
 import Ocarina.Properties (offset)
 import Ocarina.Run (run2)
+import Type.Proxy (Proxy(..))
 
 px =
   Proxy    :: Proxy         """<section>
@@ -34,7 +34,7 @@ px =
 """
 
 constantEx
-  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable Effect lock payload
+  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> AnEvent Zora SingleSubgraphEvent -> Domable lock payload
 constantEx ccb _ ev = px ~~
   { tf: nut (text_ "<|>")
   , txt: nut
@@ -57,7 +57,7 @@ constantEx ccb _ ev = px ~~
   ]"""
       )
   , constant: nut
-      (envy $ audioWrapper ev ccb (\_ -> pure unit) \ctx _ -> run2 ctx
+      ( audioWrapper ev ccb (\_ -> pure unit) \ctx _ -> run2 ctx
           [ gain_ 0.5
               [ constant 0.0
                   ( bangOn <|>

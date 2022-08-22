@@ -2,18 +2,19 @@ module Ocarina.Example.Docs.AudioUnits.Microphone where
 
 import Prelude
 
+import Bolson.Core (envy)
 import Data.Maybe (Maybe(..))
 import Deku.Core (Domable)
-import Bolson.Core (envy)
 import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
-import FRP.Event (Event)
-import Type.Proxy (Proxy(..))
+import FRP.Event (AnEvent, Event)
+import Hyrule.Zora (Zora)
 import Ocarina.Control (delay_, fix, gain_, microphone, sinOsc_)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import Ocarina.Example.Docs.Util (audioWrapper)
 import Ocarina.Interpret (getMicrophoneAndCamera)
 import Ocarina.Run (run2)
+import Type.Proxy (Proxy(..))
 
 px =
   Proxy    :: Proxy         """<section>
@@ -36,10 +37,10 @@ px =
 """
 
 microphoneEx
-  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable Effect lock payload
+  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> AnEvent Zora SingleSubgraphEvent -> Domable lock payload
 microphoneEx ccb _ ev = makePursx' (Proxy :: _ "@") px
   { microphone: nut
-      (envy $ audioWrapper ev ccb (\_ -> getMicrophoneAndCamera true false)
+      ( audioWrapper ev ccb (\_ -> getMicrophoneAndCamera true false)
           \ctx { microphone: mic } -> run2 ctx
             [ case mic of
                 Just m -> fix \i -> gain_ 1.0

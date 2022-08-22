@@ -2,23 +2,24 @@ module Ocarina.Example.Docs.HelloWorld where
 
 import Prelude
 
+import Bolson.Core (envy)
 import Control.Alt ((<|>))
 import Control.Plus (class Plus)
 import Deku.Attribute (cb, (:=))
 import Deku.Control (text_)
 import Deku.Core (Domable)
-import Bolson.Core (envy)
 import Deku.DOM as D
 import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
-import FRP.Event (Event)
+import FRP.Event (AnEvent, Event)
 import FRP.Event.Class (class IsEvent)
-import Type.Proxy (Proxy(..))
+import Hyrule.Zora (Zora)
 import Ocarina.Control (gain_, sinOsc)
 import Ocarina.Core (bangOn)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent(..), SingleSubgraphPusher)
 import Ocarina.Example.Docs.Util (audioWrapper, ccassp, mkNext, scrollToTop)
 import Ocarina.Run (run2, run2_)
+import Type.Proxy (Proxy(..))
 
 px =
   Proxy    :: Proxy         """<div>
@@ -61,8 +62,8 @@ helloWorld
    . CancelCurrentAudio
   -> (Page -> Effect Unit)
   -> SingleSubgraphPusher
-  -> Event SingleSubgraphEvent
-  -> Domable Effect lock payload
+  -> AnEvent Zora SingleSubgraphEvent
+  -> Domable lock payload
 helloWorld cca' dpage ssp ev = makePursx' (Proxy :: _ "@") px
   { code: nut
       ( D.pre_
@@ -76,7 +77,7 @@ helloWorld cca' dpage ssp ev = makePursx' (Proxy :: _ "@") px
           ]
       )
   , result: nut
-      ( envy $ audioWrapper ev cca (\_ -> pure unit) $ \ctx _ -> run2 ctx [ gain_ 0.15 [ sinOsc 440.0 bangOn ] ]
+      ( audioWrapper ev cca (\_ -> pure unit) $ \ctx _ -> run2 ctx [ gain_ 0.15 [ sinOsc 440.0 bangOn ] ]
       )
   , next: mkNext ev cpage
   }

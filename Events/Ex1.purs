@@ -2,23 +2,21 @@ module Ocarina.Example.Docs.Events.Ex1 where
 
 import Prelude
 
+import Bolson.Core (envy)
 import Control.Alt ((<|>))
-import QualifiedDo.Alt as OneOf
-import QualifiedDo.OneOfMap as O
 import Data.Foldable (traverse_)
 import Deku.Attribute (attr, cb, (:=))
 import Deku.Control (text, text_)
-import Deku.Core (Domable)
-import Bolson.Core (envy)
+import Deku.Core (Domable, vbussed)
 import Deku.DOM as D
 import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
 import Effect.Aff (launchAff, launchAff_)
 import Effect.Class (liftEffect)
-import FRP.Event (Event)
+import FRP.Event (AnEvent, Event, toEvent)
 import FRP.Event.Class (biSampleOn)
 import FRP.Event.VBus (V, vbus)
-import Type.Proxy (Proxy(..))
+import Hyrule.Zora (Zora)
 import Ocarina.Control (loopBuf)
 import Ocarina.Core (Audible, bangOn)
 import Ocarina.Core (bangOn)
@@ -28,6 +26,9 @@ import Ocarina.Interpret (close, constant0Hack, context, decodeAudioDataFromUri)
 import Ocarina.Math (calcSlope)
 import Ocarina.Properties (loopEnd, loopStart, playbackRate)
 import Ocarina.Run (run2)
+import QualifiedDo.Alt as OneOf
+import QualifiedDo.OneOfMap as O
+import Type.Proxy (Proxy(..))
 import Web.Event.Event (target)
 import Web.HTML.HTMLInputElement (fromEventTarget, valueAsNumber)
 
@@ -183,7 +184,7 @@ atari =
   "https://freesound.org/data/previews/100/100981_1234256-lq.mp3"
 
 ex1
-  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable Effect lock payload
+  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> AnEvent Zora SingleSubgraphEvent -> Domable lock payload
 ex1 ccb _ ev = makePursx' (Proxy :: _ "@") px
   { wagtxt: nut
       ( text_
@@ -203,13 +204,13 @@ ex1 ccb _ ev = makePursx' (Proxy :: _ "@") px
       )
   , txt: nut (text_ txt)
   , ex1: nut
-      ( envy $ vbus (Proxy :: _ UIEvents) \push event -> -- here
+      ( vbussed (Proxy :: _ UIEvents) \push event -> -- here
 
           do
             let
-              sl0 = event.slider.s0
-              sl1 = event.slider.s1
-              sl2 = event.slider.s2
+              sl0 = toEvent event.slider.s0
+              sl1 = toEvent event.slider.s1
+              sl2 = toEvent event.slider.s2
               start = event.startStop.start <|> pure unit
 
               music :: forall lock0. _ -> Audible _ lock0 _

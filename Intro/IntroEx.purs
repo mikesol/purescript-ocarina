@@ -2,6 +2,7 @@ module Ocarina.Example.Docs.Intro.IntroEx where
 
 import Prelude
 
+import Bolson.Core (envy)
 import Control.Alt ((<|>))
 import Control.Parallel (parTraverse)
 import Control.Plus (empty)
@@ -19,8 +20,7 @@ import Data.Tuple.Nested (type (/\), (/\))
 import Data.UInt (toNumber)
 import Deku.Attribute (attr, cb, (:=))
 import Deku.Control (text)
-import Deku.Core (Domable)
-import Bolson.Core (envy)
+import Deku.Core (Domable, vbussed)
 import Deku.DOM as D
 import Deku.Pursx (makePursx', nut)
 import Effect (Effect, foreachE)
@@ -30,16 +30,13 @@ import Effect.Random (randomInt)
 import Effect.Random as Random
 import Effect.Ref (new, read, write)
 import FRP.Behavior (behavior)
-import FRP.Event (Event, makeEvent, subscribe)
+import FRP.Event (AnEvent, Event, makeEvent, subscribe, toEvent)
 import FRP.Event.Animate (animationFrameEvent)
 import FRP.Event.Class (biSampleOn)
 import FRP.Event.VBus (V, vbus)
 import Foreign.Object (fromHomogeneous, values)
 import Graphics.Canvas (CanvasElement, arc, beginPath, fill, fillRect, getContext2D, setFillStyle)
-import Random.LCG (mkSeed)
-import Test.QuickCheck.Gen (elements, evalGen)
-import Type.Proxy (Proxy(..))
-import Unsafe.Coerce (unsafeCoerce)
+import Hyrule.Zora (Zora)
 import Ocarina.Clock (withACTime)
 import Ocarina.Control (analyser_, bandpass, delay, fan1, fix, gain, gain_, highpass, lowpass, playBuf)
 import Ocarina.Core (Audible, AudioEnvelope(..), AudioNumeric(..), _linear, bangOn)
@@ -51,11 +48,15 @@ import Ocarina.Math (calcSlope)
 import Ocarina.Properties as P
 import Ocarina.Run (run2)
 import Ocarina.WebAPI (AnalyserNodeCb(..))
+import Random.LCG (mkSeed)
+import Test.QuickCheck.Gen (elements, evalGen)
+import Type.Proxy (Proxy(..))
+import Unsafe.Coerce (unsafeCoerce)
 import Web.Event.Event (target)
 import Web.HTML.HTMLCanvasElement as HTMLCanvasElement
 import Web.HTML.HTMLInputElement (fromEventTarget, valueAsNumber)
 
-px = Proxy :: Proxy """<section>@ex1@</section>"""
+px = Proxy :: Proxy "<section>@ex1@</section>"
 
 type StartStop = V (start :: Unit, stop :: Effect Unit, loading :: Unit)
 type CanvasInfo = { x :: Number, y :: Number } /\ Number
@@ -112,10 +113,10 @@ denv s e = pure
 ttap (o /\ n) = AudioNumeric { o: o + 0.04, n, t: _linear }
 
 introEx
-  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable Effect lock payload
+  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> AnEvent Zora SingleSubgraphEvent -> Domable lock payload
 introEx ccb _ ev = makePursx' (Proxy :: _ "@") px
   { ex1: nut
-      ( envy $ vbus (Proxy :: _ UIEvents) \push event -> -- here
+      ( vbussed (Proxy :: _ UIEvents) \push event -> -- here
 
           do
             let
@@ -126,7 +127,7 @@ introEx ccb _ ev = makePursx' (Proxy :: _ "@") px
               music :: forall lock. _ -> _ -> _ -> Array (Audible _ lock _)
               music ctx buffer analyserE = do
                 let
-                  sliderE = (\{ acTime, value } -> acTime /\ value) <$> withACTime ctx event.slider
+                  sliderE = (\{ acTime, value } -> acTime /\ value) <$> withACTime ctx (toEvent event.slider)
                 [ analyser_
                     { cb:
                         ( AnalyserNodeCb

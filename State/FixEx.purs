@@ -13,8 +13,7 @@ import Data.Vec ((+>))
 import Data.Vec as V
 import Deku.Attribute (attr, cb)
 import Deku.Control (text, text_)
-import Deku.Core (Domable)
-import Bolson.Core (envy)
+import Deku.Core (Domable, vbussed)
 import Deku.DOM as D
 import Deku.Pursx (nut, (~~))
 import Effect (Effect)
@@ -22,14 +21,12 @@ import Effect.Random (randomInt)
 import FRP.Behavior (ABehavior, Behavior, behavior, sample, sampleBy, sample_, step, switcher)
 import FRP.Behavior.Mouse (buttons)
 import FRP.Behavior.Time as Time
-import FRP.Event (Event, memoize)
+import FRP.Event (AnEvent, memoize)
 import FRP.Event.Animate (animationFrameEvent)
 import FRP.Event.Class (class IsEvent, biSampleOn, fix, fold, sampleOn, withLast)
 import FRP.Event.Mouse (Mouse, down, getMouse)
-import FRP.Event.VBus (V, vbus)
-import Test.QuickCheck (arbitrary, mkSeed)
-import Test.QuickCheck.Gen (evalGen)
-import Type.Proxy (Proxy(..))
+import FRP.Event.VBus (V)
+import Hyrule.Zora (Zora)
 import Ocarina.Clock (withACTime)
 import Ocarina.Control (bandpass_, gain, lowpass_, periodicOsc, squareOsc_)
 import Ocarina.Core (AudioNumeric(..), _linear, bangOn)
@@ -37,6 +34,9 @@ import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent
 import Ocarina.Interpret (close, constant0Hack, context)
 import Ocarina.Properties as P
 import Ocarina.Run (run2e)
+import Test.QuickCheck (arbitrary, mkSeed)
+import Test.QuickCheck.Gen (evalGen)
+import Type.Proxy (Proxy(..))
 
 type StartStop = V (start :: Unit, stop :: Effect Unit)
 
@@ -139,7 +139,7 @@ px =
   <p>When working with stateful events, a good way to decide if you should use <code>fold</code> versus <code>fix</code> is to ask the following question: can I incrementally change my state based on an initial state, or is my state defined in terms of how it changes? If you can incrementally change your state, go with <code>fold</code>. If, on the other hand, your state is defined in terms of how it changes, go with <code>fix</code>.</p>
 </section>"""
 
-fixEx :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent -> Domable Effect lock payload
+fixEx :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> AnEvent Zora SingleSubgraphEvent -> Domable lock payload
 fixEx ccb _ _ ev = px ~~
   { txt: nut $ text_
       """module Main
@@ -387,7 +387,7 @@ main = runInBody1
         ]
   )"""
   , empl: nut
-      (envy $ vbus (Proxy :: _ StartStop) \push event -> do
+      (vbussed (Proxy :: _ StartStop) \push event -> do
           let
             startE = pure unit <|> event.start
             stopE = event.stop

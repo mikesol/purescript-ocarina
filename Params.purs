@@ -5,8 +5,8 @@ import Prelude
 import Deku.Core (Domable)
 import Deku.Pursx (nut, (~~))
 import Effect (Effect)
-import FRP.Event (Event)
-import Type.Proxy (Proxy(..))
+import FRP.Event (AnEvent, Event)
+import Hyrule.Zora (Zora)
 import Ocarina.Example.Docs.Params.Cancel as Cancel
 import Ocarina.Example.Docs.Params.Envelope as Envelope
 import Ocarina.Example.Docs.Params.Numeric as Numeric
@@ -14,6 +14,7 @@ import Ocarina.Example.Docs.Params.Sudden as Sudden
 import Ocarina.Example.Docs.Params.Unit as Unit
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
 import Ocarina.Example.Docs.Util (ccassp, mkNext, scrollToTop)
+import Type.Proxy (Proxy(..))
 
 px = Proxy :: Proxy """<div>
   <h1>Parameters</h1>
@@ -33,7 +34,7 @@ px = Proxy :: Proxy """<div>
   <p>In this section, we saw how to specify parameters for audio units, including using audio-rate audio units as parameters. In the next section, we'll look at how to make events <a ~next~ style="cursor:pointer;">stateful</a>.</p>
 </div>"""
 
-params :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent  -> Domable Effect lock payload
+params :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> AnEvent Zora SingleSubgraphEvent  -> Domable lock payload
 params cca' dpage ssp ev = px ~~
   { sudden: nut $ Sudden.suddenEx ccb dpage ev
   , numeric: nut $ Numeric.numericEx ccb dpage ev

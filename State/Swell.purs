@@ -3,8 +3,6 @@ module Ocarina.Example.Docs.State.Swell where
 import Prelude
 
 import Control.Alt ((<|>))
-import QualifiedDo.OneOfMap as O
-import QualifiedDo.Alt as OneOf
 import Data.Maybe (Maybe(..))
 import Data.Newtype (unwrap)
 import Data.Profunctor.Strong (second)
@@ -14,8 +12,9 @@ import Data.Vec ((+>))
 import Data.Vec as V
 import Deku.Attribute (attr, cb)
 import Deku.Control (text)
+import Deku.Core (vbussed)
 import Deku.DOM as D
-import Deku.Toplevel (runInBody1)
+import Deku.Toplevel (runInBody)
 import Effect (Effect)
 import Effect.Random (randomInt)
 import FRP.Behavior (ABehavior, Behavior, behavior, sample, sampleBy, sample_, step, switcher)
@@ -25,16 +24,18 @@ import FRP.Event (memoize)
 import FRP.Event.Animate (animationFrameEvent)
 import FRP.Event.Class (class IsEvent, fix, fold, sampleOn, withLast)
 import FRP.Event.Mouse (Mouse, down, getMouse)
-import FRP.Event.VBus (V, vbus)
+import FRP.Event.VBus (V)
+import Ocarina.Clock (withACTime)
+import Ocarina.Control (bandpass_, gain, lowpass_, periodicOsc, squareOsc_)
+import Ocarina.Core (AudioNumeric(..), _linear, bangOn)
+import Ocarina.Interpret (close, constant0Hack, context)
+import Ocarina.Properties as P
+import Ocarina.Run (run2e)
+import QualifiedDo.Alt as OneOf
+import QualifiedDo.OneOfMap as O
 import Test.QuickCheck (arbitrary, mkSeed)
 import Test.QuickCheck.Gen (evalGen)
 import Type.Proxy (Proxy(..))
-import Ocarina.Clock (withACTime)
-import Ocarina.Control (bandpass_, gain, lowpass_, periodicOsc, squareOsc_)
-import Ocarina.Interpret (close, constant0Hack, context)
-import Ocarina.Core (AudioNumeric(..), _linear, bangOn)
-import Ocarina.Properties as P
-import Ocarina.Run (run2e)
 
 type StartStop = V (start :: Unit, stop :: Effect Unit)
 
@@ -119,8 +120,8 @@ swell mouse =
   integral' = integral (_ $ identity)
 
 main :: Effect Unit
-main = runInBody1
-  ( vbus (Proxy :: _ StartStop) \push event -> do
+main = runInBody
+  ( vbussed (Proxy :: _ StartStop) \push event -> do
       let
         startE = pure unit <|> event.start
         stopE = event.stop

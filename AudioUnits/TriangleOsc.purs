@@ -2,17 +2,18 @@ module Ocarina.Example.Docs.AudioUnits.TriangleOsc where
 
 import Prelude
 
-import Deku.Core (Domable)
 import Bolson.Core (envy)
+import Deku.Core (Domable)
 import Deku.Pursx (nut, (~~))
 import Effect (Effect)
-import FRP.Event (Event)
-import Type.Proxy (Proxy(..))
+import FRP.Event (AnEvent, Event)
+import Hyrule.Zora (Zora)
 import Ocarina.Control (gain_, triangleOsc)
 import Ocarina.Core (bangOn)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import Ocarina.Example.Docs.Util (audioWrapper)
 import Ocarina.Run (run2)
+import Type.Proxy (Proxy(..))
 
 px =
   Proxy    :: Proxy         """<section>
@@ -29,10 +30,10 @@ px =
 """
 
 triangle
-  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable Effect lock payload
+  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> AnEvent Zora SingleSubgraphEvent -> Domable lock payload
 triangle ccb _ ev = px ~~
   { periodic: nut
-      ( envy $ audioWrapper ev ccb (\_ -> pure unit)
+      ( audioWrapper ev ccb (\_ -> pure unit)
           \ctx _ -> run2 ctx
   [gain_ 0.2
       [triangleOsc 448.0 bangOn]]

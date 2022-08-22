@@ -2,6 +2,7 @@ module Ocarina.Example.Docs.AudioUnits.Analyser where
 
 import Prelude
 
+import Bolson.Core (envy)
 import Control.Alt ((<|>))
 import Control.Plus (class Plus)
 import Data.ArrayBuffer.Typed (toArray)
@@ -19,16 +20,14 @@ import Data.Vec (Vec, (+>))
 import Data.Vec as V
 import Deku.Attribute ((:=))
 import Deku.Control (text)
-import Deku.Core (Domable)
-import Bolson.Core (envy)
+import Deku.Core (Domable, bussed)
 import Deku.DOM as D
 import Deku.Pursx (nut, (~~))
 import Effect (Effect, foreachE)
 import Effect.Ref (modify_, new, read, write)
-import FRP.Event (class IsEvent, Event, bus, create, sampleOn_, subscribe)
+import FRP.Event (class IsEvent, AnEvent, Event, bus, create, sampleOn_, subscribe)
 import FRP.Event.Animate (animationFrameEvent)
-
-import Type.Proxy (Proxy(..))
+import Hyrule.Zora (Zora)
 import Ocarina.Control (analyser_, loopBuf, speaker2)
 import Ocarina.Core (Po2(..))
 import Ocarina.Core (bangOn)
@@ -36,6 +35,7 @@ import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent
 import Ocarina.Example.Docs.Util (WrapperStates(..), clickCb, mkWrapperEvent)
 import Ocarina.Interpret (close, context, contextState, bracketCtx, decodeAudioDataFromUri, effectfulAudioInterpret, getByteFrequencyData, makeFFIAudioSnapshot)
 import Ocarina.WebAPI (AnalyserNodeCb(..), BrowserAudioBuffer)
+import Type.Proxy (Proxy(..))
 
 px =
   Proxy    :: Proxy         """<section>
@@ -91,10 +91,10 @@ stys = V.fill (\_ -> style4 +> style3 +> style2 +> style1 +> style0 +> V.empty) 
 mkSt i0 i1 e = map (\v -> if V.index (V.index v i0) i1 then D.Style := V.index (V.index stys i0) i1 else D.Style := bgWhite) e
 
 analyserEx
-  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable Effect lock payload
+  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> AnEvent Zora SingleSubgraphEvent -> Domable lock payload
 analyserEx ccb _ ev = px ~~
   { analyser: nut
-      (envy $ bus \push (event' :: Event AnalyserStates) ->
+      (bussed \push (event' :: AnEvent Zora AnalyserStates) ->
             let
               ptn = partitionMap identity event'
               event = mkWrapperEvent ev  (_.right ptn)

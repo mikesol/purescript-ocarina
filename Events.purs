@@ -5,8 +5,8 @@ import Prelude
 import Deku.Core (Domable)
 import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
-import FRP.Event (Event)
-import Type.Proxy (Proxy(..))
+import FRP.Event (AnEvent, Event)
+import Hyrule.Zora (Zora)
 import Ocarina.Example.Docs.Events.Ex0 as Ex0
 import Ocarina.Example.Docs.Events.Ex1 as Ex1
 import Ocarina.Example.Docs.Events.Ex2 as Ex2
@@ -15,6 +15,7 @@ import Ocarina.Example.Docs.Events.InOcarina as InOcarina
 import Ocarina.Example.Docs.Events.Primer as Primer
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
 import Ocarina.Example.Docs.Util (ccassp, mkNext, scrollToTop)
+import Type.Proxy (Proxy(..))
 
 data UIEvents = UIShown | ButtonClicked | SliderMoved Number
 derive instance Eq UIEvents
@@ -38,7 +39,7 @@ px = Proxy :: Proxy
   <p>In this section, saw how to build rich audio applications using the <code>Event</code> and <code>Behavior</code> types. We also covered the three most common patterns you'll see when working with events: events that need to happen <i>now</i>, events that come from user interaction, and timed events. In the next section, we'll look at different ways to specify <a @next@ style="cursor:pointer;">the numeric parameters being sent as events</a>.</p>
 </div>"""
 
-events :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent -> Domable Effect lock payload
+events :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> AnEvent Zora SingleSubgraphEvent -> Domable lock payload
 events cca' dpage ssp ev = makePursx'  (Proxy :: _ "@") px
   { next: mnx Params
   , primer: nut $ Primer.primer

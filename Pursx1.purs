@@ -8,11 +8,11 @@ import Deku.Core (Domable)
 import Deku.DOM as D
 import Deku.Pursx ((~~))
 import Effect (Effect)
-import FRP.Event (Event)
-
-import Type.Proxy (Proxy(..))
+import FRP.Event (AnEvent, Event)
+import Hyrule.Zora (Zora)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
 import Ocarina.Example.Docs.Util (scrollToTop)
+import Type.Proxy (Proxy(..))
 
 myDom = Proxy :: Proxy """<div>
     <button>I do nothing</button>
@@ -129,7 +129,7 @@ px = Proxy :: Proxy """<div>
 </div>"""
 
 
-pursx1 :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent -> Domable Effect lock payload
+pursx1 :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> AnEvent Zora SingleSubgraphEvent -> Domable lock payload
 pursx1 _ dpage _ _ = px ~~
   { next: pure (D.OnClick := (cb (const $ dpage Events *> scrollToTop)))
   }

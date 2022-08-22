@@ -5,18 +5,16 @@ import Prelude
 import Control.Alt ((<|>))
 import Data.Foldable (oneOf, oneOfMap, traverse_)
 import Data.Tuple (Tuple(..), fst, snd)
-import QualifiedDo.OneOfMap as O
 import Deku.Attribute (attr, cb, (:=))
 import Deku.Control (text, text_)
+import Deku.Core (vbussed)
 import Deku.DOM as D
-import Deku.Toplevel (runInBody1)
+import Deku.Toplevel (runInBody, runInBody1)
 import Effect (Effect)
 import Effect.Random as Random
 import FRP.Behavior (Behavior, behavior, sampleBy)
-import FRP.Event (Event, makeEvent, memoize, subscribe)
-
+import FRP.Event (Event, makeEvent, memoize, subscribe, toEvent)
 import FRP.Event.VBus (V, vbus)
-import Type.Proxy (Proxy(..))
 import Ocarina.Clock (interval)
 import Ocarina.Control (bandpass_, fan1, gain, gain_, highpass_, triangleOsc)
 import Ocarina.Core (Audible, AudioEnvelope(AudioEnvelope), bangOn)
@@ -25,6 +23,8 @@ import Ocarina.Math (calcSlope)
 import Ocarina.Properties (frequency)
 import Ocarina.Properties as P
 import Ocarina.Run (run2e)
+import QualifiedDo.OneOfMap as O
+import Type.Proxy (Proxy(..))
 import Web.Event.Event (target)
 import Web.HTML.HTMLInputElement (fromEventTarget, valueAsNumber)
 
@@ -52,8 +52,8 @@ cp n
   | otherwise = 587.329536
 
 main :: Effect Unit
-main = runInBody1
-  ( vbus (Proxy :: _ UIEvents) \push event -> do
+main = runInBody
+  ( vbussed (Proxy :: _ UIEvents) \push event -> do
       let
         start = event.startStop.start <|> pure unit
 
@@ -134,7 +134,7 @@ main = runInBody1
                       myIvl = sampleBy Tuple random
                         $ interval ctx 0.91
                         $ map (calcSlope 0.0 0.42 100.0 1.4)
-                        $ event.slider
+                        $ toEvent event.slider
                     r <- run2e ctx (music myIvl)
                     push.startStop.stop (r *> close ctx)
                 , event.startStop.stop <#>

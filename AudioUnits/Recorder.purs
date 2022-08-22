@@ -2,6 +2,7 @@ module Ocarina.Example.Docs.AudioUnits.Recorder where
 
 import Prelude
 
+import Bolson.Core (envy)
 import Control.Alt ((<|>))
 import Data.Either (Either(..))
 import Data.Exists (mkExists)
@@ -11,22 +12,22 @@ import Data.Maybe (Maybe(..), maybe)
 import Data.Tuple.Nested ((/\))
 import Deku.Attribute (cb, (:=))
 import Deku.Control (text)
-import Deku.Core (Domable)
-import Bolson.Core (envy)
+import Deku.Core (Domable, bussed)
 import Deku.DOM as D
 import Deku.Pursx (nut, (~~))
 import Effect (Effect)
 import Effect.AVar as AVar
 import Effect.Aff (launchAff, launchAff_, try)
 import Effect.Class (liftEffect)
-import FRP.Event (Event, bus, subscribe)
+import FRP.Event (AnEvent, Event, bus, subscribe)
 import FRP.Event.Class (biSampleOn)
-import Type.Proxy (Proxy(..))
+import Hyrule.Zora (Zora)
 import Ocarina.Control (microphone, recorder, speaker2)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..))
 import Ocarina.Example.Docs.Util (WrapperStates(..), mkWrapperEvent, raceSelf)
 import Ocarina.Interpret (close, context, contextState, effectfulAudioInterpret, getMicrophoneAndCamera, makeFFIAudioSnapshot, mediaRecorderToUrl, stopMediaRecorder)
 import Ocarina.WebAPI (MediaRecorder, MediaRecorderCb(..))
+import Type.Proxy (Proxy(..))
 
 px =
   Proxy    :: Proxy         """<section>
@@ -44,10 +45,10 @@ type RecorderStates = Either (Either String MediaRecorder) WrapperStates
 scene m cb = recorder cb (microphone m)
 
 recorderEx
-  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable Effect lock payload
+  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> AnEvent Zora SingleSubgraphEvent -> Domable lock payload
 recorderEx ccb _ ev = px ~~
   { recorder: nut
-      ( envy $ bus \push (event' :: Event RecorderStates) ->
+      (bussed \push (event' :: AnEvent Zora RecorderStates) ->
             let
               ptn = partitionMap identity event'
               event = mkWrapperEvent ev (_.right ptn)
