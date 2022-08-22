@@ -10,10 +10,12 @@ import Data.Function (on)
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype, unwrap)
 import Data.Tuple.Nested ((/\))
+import Deku.Do as Deku
 import Deku.Attribute (cb, (:=))
 import Deku.Control (dekuA, switcher, switcher_, text_)
 import Deku.Core (Nut, Domable, bussed)
 import Deku.DOM as D
+import Deku.Do (useState)
 import Deku.Interpret (fullDOMInterpret, makeFFIDOMSnapshot)
 import Deku.Toplevel (runInBody)
 import Effect (Effect)
@@ -49,7 +51,8 @@ p2tl :: Page -> TopLevelSg
 p2tl page = TopLevelSg { page, setPage: mempty, setCancellation: mempty }
 
 scene :: Nut
-scene = bussed \push event' -> do
+scene = Deku.do
+  push /\ event' <- useState (ChangePage Intro)
   let event = fold
             ( case _ of
                 ChangePage p -> \{ curPage, cancel } -> { prevPage: Just curPage, curPage: p, cancel, pageChange: true }
