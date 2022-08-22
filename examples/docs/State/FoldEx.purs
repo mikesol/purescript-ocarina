@@ -2,6 +2,7 @@ module Ocarina.Example.Docs.Effects.FoldEx where
 
 import Prelude
 
+import Bolson.Core (envy)
 import Control.Alt ((<|>))
 import Data.Foldable (oneOf, oneOfMap)
 import Data.Number (pi, sin)
@@ -10,17 +11,16 @@ import Data.Vec ((+>))
 import Data.Vec as V
 import Deku.Attribute (attr, cb, (:=))
 import Deku.Control (text, text_)
-import Deku.Core (Domable)
-import Bolson.Core (envy)
+import Deku.Core (Domable, vbussed)
 import Deku.DOM as D
 import Deku.Pursx (nut, (~~))
 import Effect (Effect)
 import FRP.Behavior (sampleBy, sample_, step)
-import FRP.Event (Event, fold, mapAccum, memoize, sampleOn)
+import FRP.Event (AnEvent, Event, fold, mapAccum, memoize, sampleOn, toEvent)
 import FRP.Event.Animate (animationFrameEvent)
 import FRP.Event.Class (biSampleOn)
 import FRP.Event.VBus (V, vbus)
-import Type.Proxy (Proxy(..))
+import Hyrule.Zora (Zora)
 import Ocarina.Clock (withACTime)
 import Ocarina.Control (gain, periodicOsc)
 import Ocarina.Core (AudioNumeric(..), _linear, bangOn)
@@ -29,6 +29,7 @@ import Ocarina.Interpret (close, constant0Hack, context)
 import Ocarina.Math (calcSlope)
 import Ocarina.Properties as P
 import Ocarina.Run (run2e)
+import Type.Proxy (Proxy(..))
 
 px =
   Proxy    :: Proxy      """<section>
@@ -65,7 +66,7 @@ type UIEvents = V
   , cbx :: Cbx
   )
 
-foldEx :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent -> Domable Effect lock payload
+foldEx :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> AnEvent Zora SingleSubgraphEvent -> Domable lock payload
 foldEx ccb _ _ ev = px ~~
   { txt: nut $ text_
       """module Main where
@@ -205,11 +206,11 @@ main = runInBody1
         ]
   )"""
   , empl: nut
-      ( envy $ vbus (Proxy :: _ UIEvents) \push event -> do
+      ( vbussed (Proxy :: _ UIEvents) \push event -> do
           let
             startE = pure unit <|> event.startStop.start
             stopE = event.startStop.stop
-            chkState e = step false $ fold (const not) e false
+            chkState e = step false $ fold (const not) (toEvent e) false
             cbx0 = chkState event.cbx.cbx0
             cbx1 = chkState event.cbx.cbx1
             cbx2 = chkState event.cbx.cbx2

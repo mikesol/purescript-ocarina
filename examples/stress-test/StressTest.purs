@@ -5,7 +5,6 @@ import Prelude
 import Control.Alt (alt, (<|>))
 import Data.Array ((..))
 import Data.Filterable (filter, filterMap)
-import Data.Foldable (for_)
 import Data.Int (toNumber)
 import Data.Lens (over)
 import Data.Maybe (Maybe(..), maybe)
@@ -13,17 +12,17 @@ import Data.Number (pi, sin, (%))
 import Data.Profunctor (lcmap)
 import Data.Typelevel.Num (D2)
 import Deku.Attribute (cb, (:=))
-import Deku.Control (deku1, text, text_)
-import Deku.Core (Domable)
+import Deku.Control (text, text_)
+import Deku.Core (Domable, bussed)
 import Deku.DOM as DOM
-import Deku.Interpret (fullDOMInterpret, makeFFIDOMSnapshot)
+import Deku.Toplevel (runInBody)
 import Effect (Effect)
 import Effect.Aff (Aff, launchAff_)
 import Effect.Class (liftEffect)
-import Effect.Ref as Ref
 import FRP.Behavior (sample_)
-import FRP.Event (Event, bus, memoize, subscribe)
+import FRP.Event (AnEvent, Event, memoize, subscribe)
 import FRP.Event.Animate (animationFrameEvent)
+import Hyrule.Zora (Zora)
 import Ocarina.Clock (WriteHead, fot, writeHead)
 import Ocarina.Control (gain, gain_, sinOsc, speaker2)
 import Ocarina.Core (Audible, AudioNumeric(..), AudioOnOff(..), _off, _on, _step, opticN, envy)
@@ -32,10 +31,6 @@ import Ocarina.Interpret (FFIAudioSnapshot, close, context, effectfulAudioInterp
 import Ocarina.Math (calcSlope)
 import Ocarina.Properties as Common
 import Ocarina.WebAPI (AudioContext)
-import Web.HTML (window)
-import Web.HTML.HTMLDocument (body)
-import Web.HTML.HTMLElement (toElement)
-import Web.HTML.Window (document)
 
 last :: Int
 last = 100
@@ -132,16 +127,16 @@ stressTest
   :: forall lock payload
    . Unit
   -> RaiseCancellation
-  -> Event (Domable Effect lock payload)
-stressTest _ rc = bus \p -> lcmap (alt $ pure Nothing) \e ->
+  -> Domable lock payload
+stressTest _ rc = bussed \p -> lcmap (alt $ pure Nothing) \e ->
   let
     musicButton
       :: forall lock0
        . String
       -> (UIAction -> Effect Unit)
-      -> Event UIAction
+      -> AnEvent Zora UIAction
       -> (AudioContext -> WriteHead Event -> Event (FFIAudioSnapshot -> Effect Unit))
-      -> Domable Effect lock0 payload
+      -> Domable lock0 payload
     musicButton label push event audioEvent = DOM.button
       ( map
           ( \i -> DOM.OnClick := cb
@@ -184,14 +179,4 @@ stressTest _ rc = bus \p -> lcmap (alt $ pure Nothing) \e ->
 main :: Effect Unit
 main = launchAff_ do
   init <- initializeStressTest
-  liftEffect do
-    b' <- window >>= document >>= body
-    for_ (toElement <$> b') \elt -> do
-      ffi <- makeFFIDOMSnapshot
-      rf <- Ref.new 0
-      let
-        evt = deku1 elt
-          (stressTest init (const $ pure unit))
-          (fullDOMInterpret rf)
-      _ <- subscribe (evt) \i -> i ffi
-      pure unit
+  liftEffect $ runInBody (stressTest init (const $ pure unit))

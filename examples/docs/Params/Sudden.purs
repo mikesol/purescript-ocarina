@@ -2,13 +2,13 @@ module Ocarina.Example.Docs.Params.Sudden where
 
 import Prelude
 
+import Bolson.Core (envy)
 import Data.Foldable (oneOf)
 import Deku.Core (Domable)
-import Bolson.Core (envy)
 import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
-import FRP.Event (Event, delay)
-import Type.Proxy (Proxy(..))
+import FRP.Event (AnEvent, Event, delay)
+import Hyrule.Zora (Zora)
 import Ocarina.Control (gain_, loopBuf)
 import Ocarina.Core (AudioSudden(..), bangOn)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
@@ -16,6 +16,7 @@ import Ocarina.Example.Docs.Util (audioWrapper)
 import Ocarina.Interpret (decodeAudioDataFromUri)
 import Ocarina.Properties (playbackRate)
 import Ocarina.Run (run2)
+import Type.Proxy (Proxy(..))
 
 px =
   Proxy    :: Proxy         """<section>
@@ -40,10 +41,10 @@ px =
 """
 
 suddenEx
-  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable Effect lock payload
+  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> AnEvent Zora SingleSubgraphEvent -> Domable lock payload
 suddenEx ccb _ ev = makePursx' (Proxy :: _ "@") px
   { suddenEx: nut
-      ( envy $ audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
+      ( audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
           \ctx buf -> run2 ctx
             [ gain_ 1.0
                 [ loopBuf buf

@@ -12,10 +12,11 @@ import Data.Number (pi, sin)
 import Data.Profunctor (lcmap)
 import Data.Typelevel.Num (D2)
 import Deku.Attribute (cb, (:=))
-import Deku.Control (deku1, text, text_)
-import Deku.Core (Domable)
+import Deku.Control (deku, deku1, text, text_)
+import Deku.Core (Domable, bussed)
 import Deku.DOM as DOM
 import Deku.Interpret (fullDOMInterpret, makeFFIDOMSnapshot)
+import Deku.Toplevel (runInBody)
 import Effect (Effect)
 import Effect.Aff (Aff, launchAff_)
 import Effect.Class (liftEffect)
@@ -23,8 +24,6 @@ import Effect.Ref as Ref
 import FRP.Behavior (sample_)
 import FRP.Event (Event, bus, keepLatest, memoize, subscribe)
 import FRP.Event.Animate (animationFrameEvent)
-
-import Type.Proxy (Proxy(..))
 import Ocarina.Clock (WriteHead, fot, writeHead)
 import Ocarina.Control (gain, sinOsc, speaker2)
 import Ocarina.Core (Audible, bangOn, opticN)
@@ -34,6 +33,7 @@ import Ocarina.Imperative as I
 import Ocarina.Interpret (close, context, effectfulAudioInterpret, makeFFIAudioSnapshot)
 import Ocarina.Properties (frequency)
 import Ocarina.WebAPI (AudioContext)
+import Type.Proxy (Proxy(..))
 import Web.HTML (window)
 import Web.HTML.HTMLDocument (body)
 import Web.HTML.HTMLElement (toElement)
@@ -96,8 +96,8 @@ helloWorld
   :: forall lock payload
    . Unit
   -> RaiseCancellation
-  -> Event (Domable Effect lock payload)
-helloWorld _ rc = keepLatest $ bus \p -> lcmap (alt (pure Nothing)) \e -> memoize animationFrameEvent \afe ->
+  -> Domable lock payload
+helloWorld _ rc = bussed \p -> lcmap (alt (pure Nothing)) \e ->
   let
     musicButton push event audioEvent = DOM.button
       ( map
@@ -109,7 +109,7 @@ helloWorld _ rc = keepLatest $ bus \p -> lcmap (alt (pure Nothing)) \e -> memoiz
                         ffi2 <- makeFFIAudioSnapshot ctx
                         let wh = writeHead 0.04 ctx
                         unsub <- subscribe
-                          (audioEvent (sample_ wh afe))
+                          (audioEvent (sample_ wh animationFrameEvent))
                           ((#) ffi2)
                         rc $ Just { unsub, ctx }
                         push $ Just { unsub, ctx }
@@ -140,14 +140,4 @@ helloWorld _ rc = keepLatest $ bus \p -> lcmap (alt (pure Nothing)) \e -> memoiz
 main :: Effect Unit
 main = launchAff_ do
   init <- initializeHelloWorld
-  liftEffect do
-    b' <- window >>= document >>= body
-    for_ (toElement <$> b') \elt -> do
-      ffi <- makeFFIDOMSnapshot
-      rf <- Ref.new 0
-      let
-        evt = deku1 elt
-          ( helloWorld init (const $ pure unit))
-          (fullDOMInterpret rf)
-      _ <- subscribe (evt) \i -> i ffi
-      pure unit
+  liftEffect $ runInBody (helloWorld init (const $ pure unit))

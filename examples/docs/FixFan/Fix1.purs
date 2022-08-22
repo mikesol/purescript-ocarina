@@ -2,14 +2,13 @@ module Ocarina.Example.Docs.FixFan.Fix1 where
 
 import Prelude
 
+import Bolson.Core (envy)
 import Deku.Control (text_)
 import Deku.Core (Domable)
-import Bolson.Core (envy)
 import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
-import FRP.Event (Event)
-
-import Type.Proxy (Proxy(..))
+import FRP.Event (AnEvent, Event)
+import Hyrule.Zora (Zora)
 import Ocarina.Control (delay_, fan1, fix, gain, gain_, highpass_, playBuf)
 import Ocarina.Core (AudioEnvelope(..), bangOn)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
@@ -17,6 +16,7 @@ import Ocarina.Example.Docs.Util (audioWrapper)
 import Ocarina.Interpret (decodeAudioDataFromUri)
 import Ocarina.Properties as P
 import Ocarina.Run (run2)
+import Type.Proxy (Proxy(..))
 
 px =
   Proxy    :: Proxy      """<div>
@@ -37,7 +37,7 @@ fade1 = pure
   $ P.gain
   $ AudioEnvelope { p: [ 1.0, 1.0, 0.0 ], o: 0.0, d: 10.0 }
 
-fix1 :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable Effect lock payload
+fix1 :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> AnEvent Zora SingleSubgraphEvent -> Domable lock payload
 fix1 ccb _ ev = makePursx' (Proxy :: _ "@") px
   { txt: nut $ text_
       """dgh d g h i =
@@ -80,7 +80,7 @@ scene buf = run2_
         ]
   ]"""
   , ai0: nut
-      (envy $ audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/178/178660_717950-lq.mp3")
+      (audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/178/178660_717950-lq.mp3")
           \ctx buf -> run2 ctx
             [ fan1 (playBuf buf bangOn) \b _ -> fix
                 \g0 -> gain_ 1.0

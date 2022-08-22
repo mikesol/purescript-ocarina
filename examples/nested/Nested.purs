@@ -6,25 +6,25 @@ import Control.Alt ((<|>))
 import Data.Foldable (oneOf, oneOfMap)
 import Deku.Attribute (attr, cb)
 import Deku.Control (text)
+import Deku.Core (vbussed)
 import Deku.DOM as D
-import Deku.Toplevel (runInBody1)
+import Deku.Toplevel (runInBody)
 import Effect (Effect)
-
-import FRP.Event.VBus (V, vbus)
-import Type.Proxy (Proxy(..))
+import FRP.Event.VBus (V)
 import Ocarina.Control (constant, gain, gain_, sinOsc)
 import Ocarina.Core (Audible, bangOn, c1)
 import Ocarina.Interpret (close, context)
 import Ocarina.Properties as P
 import Ocarina.Run (run2)
+import Type.Proxy (Proxy(..))
 
 type StartStop = V (start :: Unit, stop :: Effect Unit)
 
 type UIEvents = V (startStop :: StartStop)
 
 main :: Effect Unit
-main = runInBody1
-  ( vbus (Proxy :: _ UIEvents) \push event -> do
+main = runInBody
+  ( vbussed (Proxy :: _ UIEvents) \push event -> do
       let
         startE = pure unit <|> event.startStop.start
         stopE = event.startStop.stop

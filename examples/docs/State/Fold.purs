@@ -3,30 +3,31 @@ module Ocarina.Example.Docs.State.Fold where
 import Prelude
 
 import Control.Alt ((<|>))
-import QualifiedDo.OneOfMap as O
-import QualifiedDo.Alt as OneOf
+import Data.Number (pi, sin)
 import Data.Tuple.Nested ((/\))
 import Data.Vec ((+>))
 import Data.Vec as V
 import Deku.Attribute (attr, cb, (:=))
 import Deku.Control (text)
+import Deku.Core (vbussed)
 import Deku.DOM as D
-import Deku.Toplevel (runInBody1)
+import Deku.Toplevel (runInBody)
 import Effect (Effect)
 import FRP.Behavior (sampleBy, sample_, step)
-import FRP.Event (memoize)
+import FRP.Event (memoize, toEvent)
 import FRP.Event.Animate (animationFrameEvent)
 import FRP.Event.Class (fold, mapAccum, sampleOn)
-import FRP.Event.VBus (V, vbus)
-import Data.Number (pi, sin)
-import Type.Proxy (Proxy(..))
+import FRP.Event.VBus (V)
 import Ocarina.Clock (withACTime)
 import Ocarina.Control (gain, periodicOsc)
+import Ocarina.Core (AudioNumeric(..), _linear, bangOn)
 import Ocarina.Interpret (close, constant0Hack, context)
 import Ocarina.Math (calcSlope)
-import Ocarina.Core (AudioNumeric(..), _linear, bangOn)
 import Ocarina.Properties as P
 import Ocarina.Run (run2e)
+import QualifiedDo.Alt as OneOf
+import QualifiedDo.OneOfMap as O
+import Type.Proxy (Proxy(..))
 
 type Cbx = V (cbx0 :: Unit, cbx1 :: Unit, cbx2 :: Unit, cbx3 :: Unit)
 
@@ -38,12 +39,12 @@ type UIEvents = V
   )
 
 main :: Effect Unit
-main = runInBody1
-  ( vbus (Proxy :: _ UIEvents) \push event -> do
+main = runInBody
+  ( vbussed (Proxy :: _ UIEvents) \push event -> do
       let
         startE = pure unit <|> event.startStop.start
         stopE = event.startStop.stop
-        chkState e = step false $ fold (const not) e false
+        chkState e = step false (toEvent $ fold (const not) e false)
         cbx0 = chkState event.cbx.cbx0
         cbx1 = chkState event.cbx.cbx1
         cbx2 = chkState event.cbx.cbx2

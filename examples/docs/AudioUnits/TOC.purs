@@ -40,7 +40,7 @@ px = Proxy :: Proxy """<ul>
     </ul>
 """
 
-toc :: forall lock payload. Domable Effect lock payload
+toc :: forall lock payload. Domable lock payload
 toc = px ~~
   {
   }

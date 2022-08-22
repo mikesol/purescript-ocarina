@@ -5,15 +5,15 @@ import Prelude
 import Control.Alt ((<|>))
 import Data.Array ((..))
 import Data.Int (toNumber)
+import Data.Number (pow)
 import Data.Profunctor (lcmap)
 import Deku.Attribute (cb, (:=))
 import Deku.Control (text)
+import Deku.Core (bussed)
 import Deku.DOM as D
 import Deku.Toplevel (runInBody, runInBody1)
 import Effect (Effect)
 import FRP.Event (bus)
-
-import Data.Number (pow)
 import Ocarina.Control (gain_, gain, sinOsc)
 import Ocarina.Core (AudioEnvelope(..), AudioOnOff(..), _on, _off)
 import Ocarina.Properties (onOff)
@@ -50,7 +50,7 @@ cell = lcmap toNumber \i -> do
   ]
 
 main :: Effect Unit
-main = runInBody1 (bus \push -> lcmap (pure Init <|> _) \event ->
+main = runInBody (bussed \push -> lcmap (pure Init <|> _) \event ->
   D.div_
     [ D.button
         ( event <#>

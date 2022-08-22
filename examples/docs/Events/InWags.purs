@@ -184,7 +184,7 @@ px = Proxy :: Proxy
   </p>
 </section>"""
 
-inOcarina :: forall lock payload. Domable Effect lock payload
+inOcarina :: forall lock payload. Domable lock payload
 inOcarina = makePursx'  (Proxy :: _ "@") px
   {
   }

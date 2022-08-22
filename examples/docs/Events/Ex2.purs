@@ -2,23 +2,22 @@ module Ocarina.Example.Docs.Events.Ex2 where
 
 import Prelude
 
+import Bolson.Core (envy)
 import Control.Alt ((<|>))
 import Data.Foldable (oneOf, oneOfMap, traverse_)
 import Data.Tuple (Tuple(..), fst, snd)
-import QualifiedDo.OneOfMap as O
 import Deku.Attribute (attr, cb, (:=))
 import Deku.Control (text, text_)
-import Deku.Core (Domable)
-import Bolson.Core (envy)
+import Deku.Core (Domable, vbussed)
 import Deku.DOM as D
 import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
 import Effect.Random as Random
 import FRP.Behavior (Behavior, behavior, sampleBy)
-import FRP.Event (Event, makeEvent, memoize, subscribe)
+import FRP.Event (AnEvent, Event, makeEvent, memoize, subscribe, toEvent)
 import FRP.Event.Class (biSampleOn)
 import FRP.Event.VBus (V, vbus)
-import Type.Proxy (Proxy(..))
+import Hyrule.Zora (Zora)
 import Ocarina.Clock (interval)
 import Ocarina.Control (bandpass_, fan1, gain, gain_, highpass_, triangleOsc)
 import Ocarina.Core (Audible, AudioEnvelope(..), bangOn)
@@ -28,6 +27,8 @@ import Ocarina.Math (calcSlope)
 import Ocarina.Properties (frequency)
 import Ocarina.Properties as P
 import Ocarina.Run (run2e)
+import QualifiedDo.OneOfMap as O
+import Type.Proxy (Proxy(..))
 import Web.Event.Event (target)
 import Web.HTML.HTMLInputElement (fromEventTarget, valueAsNumber)
 
@@ -196,7 +197,7 @@ main = runInBody1
                       myIvl = sampleBy Tuple random
                         $ interval ctx 0.91
                         $ map (calcSlope 0.0 0.42 100.0 1.4)
-                        $ event.slider
+                        $ toEvent event.slider
                     r <- run2e ctx (music myIvl)
                     push.startStop.stop (r *> close ctx)
                 , event.startStop.stop <#>
@@ -234,11 +235,11 @@ cp n
   | otherwise = 587.329536
 
 ex2
-  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable Effect lock payload
+  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> AnEvent Zora SingleSubgraphEvent -> Domable lock payload
 ex2 ccb _ ev = makePursx' (Proxy :: _ "@") px
   { txt: nut (text_ txt)
   , ex2: nut
-      ( envy $ vbus (Proxy :: _ UIEvents) \push event -> -- here
+      ( vbussed (Proxy :: _ UIEvents) \push event -> -- here
           let
             start = event.startStop.start <|> pure unit
 
@@ -326,7 +327,7 @@ ex2 ccb _ ev = makePursx' (Proxy :: _ "@") px
                             myIvl = sampleBy Tuple random
                               $ interval ctx 0.91
                               $ map (calcSlope 0.0 0.42 100.0 1.4)
-                              $ event.slider
+                              $ toEvent event.slider
                           r' <- run2e ctx (music myIvl)
                           let r = r' *> close ctx
                           ccb (r *> push.startStop.start unit)

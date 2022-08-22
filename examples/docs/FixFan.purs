@@ -6,8 +6,8 @@ import Control.Plus (class Plus)
 import Deku.Core (Domable)
 import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
-import FRP.Event (Event, class IsEvent)
-import Type.Proxy (Proxy(..))
+import FRP.Event (class IsEvent, AnEvent, Event)
+import Hyrule.Zora (Zora)
 import Ocarina.Example.Docs.FixFan.AI0 as AI0
 import Ocarina.Example.Docs.FixFan.AI1 as AI1
 import Ocarina.Example.Docs.FixFan.Fan0 as Fan0
@@ -17,6 +17,7 @@ import Ocarina.Example.Docs.FixFan.Fix1 as Fix1
 import Ocarina.Example.Docs.FixFan.Intro as FFIntro
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
 import Ocarina.Example.Docs.Util (ccassp, mkNext, scrollToTop)
+import Type.Proxy (Proxy(..))
 
 data UIEvents = UIShown | ButtonClicked | SliderMoved Number
 derive instance Eq UIEvents
@@ -73,7 +74,7 @@ px = Proxy :: Proxy
   <p>In this section, saw how to combine together audio nodes with arrays, fan one audio node to many processing chains via <code>fan</code>, and how to create a fixed point, aka feedback, for a node via <code>fix</code>. In the next section, we'll ramp up on all of the yummy <a @next@ style="cursor:pointer;">audio nodes you can use</a>.</p>
 </div>"""
 
-fixFan :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent -> Domable Effect lock payload
+fixFan :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> AnEvent Zora SingleSubgraphEvent -> Domable lock payload
 fixFan cca' dpage ssp ev = makePursx'  (Proxy :: _ "@") px
   { intro: nut (FFIntro.ffIntro cca' dpage ssp ev)
   , next: mnx AudioUnits
