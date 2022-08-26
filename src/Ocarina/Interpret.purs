@@ -128,14 +128,17 @@ foreign import makePeriodicWaveImpl
   -> Effect WebAPI.BrowserPeriodicWave
 
 -- | For a given audio context, use an audio buffer to create a browser audio buffer. This is useful when doing DSP in the browser.  Note that `AudioBuffer` is a purescript type whereas `WebAPI.BrowserAudioBuffer` is an optimized browser-based type. That means that, once you write to `WebAPI.BrowserAudioBuffer`, it is effectively a blob and its contents cannot be retrieved using the Ocarina API.
-foreign import makeAudioBuffer
-  :: WebAPI.AudioContext -> AudioBuffer -> Effect WebAPI.BrowserAudioBuffer
+foreign import makeAudioBuffer_ :: WebAPI.AudioContext -> { size :: Int, arr :: Array (Array Number) } -> Effect WebAPI.BrowserAudioBuffer
+
+makeAudioBuffer :: WebAPI.AudioContext -> AudioBuffer -> Effect WebAPI.BrowserAudioBuffer
+makeAudioBuffer ctx (AudioBuffer size arr) = makeAudioBuffer_ ctx { size, arr }
 
 -- | Make a float 32 array. Useful when creating a waveshaper node.
 foreign import makeFloatArray :: Array Number -> WebAPI.BrowserFloatArray
 
 -- | Make a new audio context.
 foreign import context_ :: Effect WebAPI.AudioContext
+
 context :: forall m. MonadEffect m => m WebAPI.AudioContext
 context = liftEffect context_
 
@@ -147,6 +150,7 @@ constant0Hack = liftEffect <<< constant0Hack_
 
 -- | Get the state of the context
 foreign import contextState_ :: WebAPI.AudioContext -> Effect String
+
 contextState :: forall e. MonadEffect e => WebAPI.AudioContext -> e String
 contextState = liftEffect <<< contextState_
 
@@ -163,6 +167,7 @@ contextResumeAff = (map <<< map) toAff contextResume
 
 -- | Close an audio context.
 foreign import close_ :: WebAPI.AudioContext -> Effect Unit
+
 close :: forall e. MonadEffect e => WebAPI.AudioContext -> e Unit
 close ctx = liftEffect do
   st <- contextState ctx
@@ -273,8 +278,10 @@ type Mbe = forall a b. b -> (a -> b) -> Maybe a -> b
 
 foreign import deleteFromCache_
   :: C.DeleteFromCache -> FFIAudioSnapshot -> Effect Unit
+
 foreign import disconnectXFromY_
   :: C.DisconnectXFromY -> FFIAudioSnapshot -> Effect Unit
+
 foreign import connectXToY_ :: C.ConnectXToY -> FFIAudioSnapshot -> Effect Unit
 foreign import makeAllpass_ :: Mbe -> C.MakeAllpass -> FFIAudioSnapshot -> Effect Unit
 foreign import makeAnalyser_
@@ -305,6 +312,7 @@ foreign import makeHighshelf_
 
 foreign import makeIIRFilter_
   :: Mbe -> C.MakeIIRFilter -> FFIAudioSnapshot -> Effect Unit
+
 foreign import makeLoopBuf_ :: Mbe -> C.MakeLoopBuf -> FFIAudioSnapshot -> Effect Unit
 foreign import makeLowpass_ :: Mbe -> C.MakeLowpass -> FFIAudioSnapshot -> Effect Unit
 foreign import makeLowshelf_

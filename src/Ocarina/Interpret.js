@@ -57,9 +57,9 @@ var genericSetter = function (state, unit, name, controllers, param) {
 	}
 	return protoSetter(unit[name], controllers[name], param, state);
 };
-var addToScope = function (ptr, scope$, state) {
+var addToScope = function (mbe, ptr, scope$, state) {
 	// todo: unhinge from internal representation of scope...
-	const scope = scope$.value0 ? scope$.value0 : '@fan@';
+	const scope = mbe('@fan@')((x) => x)(scope$);
 	if (!state.scopes[scope]) {
 		state.scopes[scope] = [];
 	}
@@ -193,7 +193,7 @@ export const makeAllpass_ = (mbe) => (a) => (state) => () => {
 			frequency: a.frequency,
 		}),
 	};
-	addToScope(ptr, a.scope, state);
+	addToScope(mbe, ptr, a.scope, state);
 	doDeferredConnections(ptr, state);
 	mConnectXToY_(mbe, ptr, a.parent, state);
 };
@@ -214,7 +214,7 @@ export const makeAnalyser_ = (mbe) => (a) => (state) => () => {
 		main: state.context.createGain(),
 		se: dest,
 	};
-	addToScope(ptr, a.scope, state);
+	addToScope(mbe, ptr, a.scope, state);
 	doDeferredConnections(ptr, state);
 	mConnectXToY_(mbe, ptr, a.parent, state);
 };
@@ -235,7 +235,7 @@ export const makeAudioWorkletNode_ = (mbe) => (a) => (state) => () => {
 			processorOptions: opts.processorOptions,
 		}),
 	};
-	addToScope(ptr, a.scope, state);
+	addToScope(mbe, ptr, a.scope, state);
 	doDeferredConnections(ptr, state);
 	mConnectXToY_(mbe, ptr, a.parent, state);
 };
@@ -253,7 +253,7 @@ export const makeBandpass_ = (mbe) => (a) => (state) => () => {
 			frequency: a.frequency,
 		}),
 	};
-	addToScope(ptr, a.scope, state);
+	addToScope(mbe, ptr, a.scope, state);
 	doDeferredConnections(ptr, state);
 	mConnectXToY_(mbe, ptr, a.parent, state);
 };
@@ -276,7 +276,7 @@ export const makeConstant_ = (mbe) => (a) => (state) => () => {
 		pendingOn: true,
 		main: createClosure(state.context, resume), // needed so that setters don't error out, even though not started yet
 	};
-	addToScope(ptr, a.scope, state);
+	addToScope(mbe, ptr, a.scope, state);
 	doDeferredConnections(ptr, state);
 	mConnectXToY_(mbe, ptr, a.parent, state);
 };
@@ -289,7 +289,7 @@ export const makeConvolver_ = (mbe) => (a) => (state) => () => {
 		controlOutgoing: [],
 		main: new ConvolverNode(state.context, { buffer: a.buffer }),
 	};
-	addToScope(ptr, a.scope, state);
+	addToScope(mbe, ptr, a.scope, state);
 	doDeferredConnections(ptr, state);
 	mConnectXToY_(mbe, ptr, a.parent, state);
 };
@@ -306,7 +306,7 @@ export const makeDelay_ = (mbe) => (a) => (state) => () => {
 			maxDelayTime: a.maxDelayTime,
 		}),
 	};
-	addToScope(ptr, a.scope, state);
+	addToScope(mbe, ptr, a.scope, state);
 	doDeferredConnections(ptr, state);
 	mConnectXToY_(mbe, ptr, a.parent, state);
 };
@@ -326,7 +326,7 @@ export const makeDynamicsCompressor_ = (mbe) => (a) => (state) => () => {
 			release: a.release,
 		}),
 	};
-	addToScope(ptr, a.scope, state);
+	addToScope(mbe, ptr, a.scope, state);
 	doDeferredConnections(ptr, state);
 	mConnectXToY_(mbe, ptr, a.parent, state);
 };
@@ -341,7 +341,7 @@ export const makeGain_ = (mbe) => (a) => (state) => () => {
 			gain: a.gain,
 		}),
 	};
-	addToScope(ptr, a.scope, state);
+	addToScope(mbe, ptr, a.scope, state);
 	doDeferredConnections(ptr, state);
 	mConnectXToY_(mbe, ptr, a.parent, state);
 };
@@ -359,7 +359,7 @@ export const makeHighpass_ = (mbe) => (a) => (state) => () => {
 			frequency: a.frequency,
 		}),
 	};
-	addToScope(ptr, a.scope, state);
+	addToScope(mbe, ptr, a.scope, state);
 	doDeferredConnections(ptr, state);
 	mConnectXToY_(mbe, ptr, a.parent, state);
 };
@@ -377,7 +377,7 @@ export const makeHighshelf_ = (mbe) => (a) => (state) => () => {
 			gain: a.gain,
 		}),
 	};
-	addToScope(ptr, a.scope, state);
+	addToScope(mbe, ptr, a.scope, state);
 	doDeferredConnections(ptr, state);
 	mConnectXToY_(mbe, ptr, a.parent, state);
 };
@@ -393,7 +393,7 @@ export const makeIIRFilter_ = (mbe) => (a) => (state) => () => {
 			feedback: a.feedback,
 		}),
 	};
-	addToScope(ptr, a.scope, state);
+	addToScope(mbe, ptr, a.scope, state);
 	doDeferredConnections(ptr, state);
 	mConnectXToY_(mbe, ptr, a.parent, state);
 };
@@ -422,7 +422,7 @@ export const makeLoopBuf_ = (mbe) => (a) => (state) => () => {
 		pendingOn: true,
 		main: createClosure(state.context, resume), // needed so that setters don't error out, even though not started yet
 	};
-	addToScope(ptr, a.scope, state);
+	addToScope(mbe, ptr, a.scope, state);
 	doDeferredConnections(ptr, state);
 	mConnectXToY_(mbe, ptr, a.parent, state);
 };
@@ -440,7 +440,7 @@ export const makeLowpass_ = (mbe) => (a) => (state) => () => {
 			frequency: a.frequency,
 		}),
 	};
-	addToScope(ptr, a.scope, state);
+	addToScope(mbe, ptr, a.scope, state);
 	doDeferredConnections(ptr, state);
 	mConnectXToY_(mbe, ptr, a.parent, state);
 };
@@ -458,7 +458,7 @@ export const makeLowshelf_ = (mbe) => (a) => (state) => () => {
 			gain: a.gain,
 		}),
 	};
-	addToScope(ptr, a.scope, state);
+	addToScope(mbe, ptr, a.scope, state);
 	doDeferredConnections(ptr, state);
 	mConnectXToY_(mbe, ptr, a.parent, state);
 };
@@ -480,7 +480,7 @@ export const makeMediaElement_ = (mbe) => (a) => (state) => () => {
 		resumeClosure: {},
 		main: createClosure(),
 	};
-	addToScope(ptr, a.scope, state);
+	addToScope(mbe, ptr, a.scope, state);
 	doDeferredConnections(ptr, state);
 	mConnectXToY_(mbe, ptr, a.parent, state);
 };
@@ -493,7 +493,7 @@ export const makeMicrophone_ = (mbe) => (a) => (state) => () => {
 		audioOutgoing: [],
 		controlOutgoing: [],
 	};
-	addToScope(ptr, a.scope, state);
+	addToScope(mbe, ptr, a.scope, state);
 	doDeferredConnections(ptr, state);
 	mConnectXToY_(mbe, ptr, a.parent, state);
 };
@@ -511,7 +511,7 @@ export const makeNotch_ = (mbe) => (a) => (state) => () => {
 			Q: a.q,
 		}),
 	};
-	addToScope(ptr, a.scope, state);
+	addToScope(mbe, ptr, a.scope, state);
 	doDeferredConnections(ptr, state);
 	mConnectXToY_(mbe, ptr, a.parent, state);
 };
@@ -530,7 +530,7 @@ export const makePeaking_ = (mbe) => (a) => (state) => () => {
 			gain: a.gain,
 		}),
 	};
-	addToScope(ptr, a.scope, state);
+	addToScope(mbe, ptr, a.scope, state);
 	doDeferredConnections(ptr, state);
 	mConnectXToY_(mbe, ptr, a.parent, state);
 };
@@ -563,7 +563,7 @@ export const makePeriodicOsc_ = (mbe) => (a) => (state) => () => {
 		pendingOn: true,
 		main: createClosure(state.context, resume), // needed so that setters don't error out, even though not started yet
 	};
-	addToScope(ptr, a.scope, state);
+	addToScope(mbe, ptr, a.scope, state);
 	doDeferredConnections(ptr, state);
 	mConnectXToY_(mbe, ptr, a.parent, state);
 };
@@ -597,7 +597,7 @@ export const makePlayBuf_ = (mbe) => (a) => (state) => () => {
 		pendingOn: true,
 		main: createClosure(state.context, resume), // needed so that setters don't error out, even though not started yet
 	};
-	addToScope(ptr, a.scope, state);
+	addToScope(mbe, ptr, a.scope, state);
 	doDeferredConnections(ptr, state);
 	mConnectXToY_(mbe, ptr, a.parent, state);
 };
@@ -619,7 +619,7 @@ export const makeRecorder_ = (mbe) => (a) => (state) => () => {
 		main: state.context.createGain(),
 		se: dest,
 	};
-	addToScope(ptr, a.scope, state);
+	addToScope(mbe, ptr, a.scope, state);
 	doDeferredConnections(ptr, state);
 	mConnectXToY_(mbe, ptr, a.parent, state);
 };
@@ -642,7 +642,7 @@ export const makeSawtoothOsc_ = (mbe) => (a) => (state) => () => {
 		pendingOn: true,
 		main: createClosure(state.context, resume), // needed so that setters don't error out, even though not started yet
 	};
-	addToScope(ptr, a.scope, state);
+	addToScope(mbe, ptr, a.scope, state);
 	doDeferredConnections(ptr, state);
 	mConnectXToY_(mbe, ptr, a.parent, state);
 };
@@ -665,7 +665,7 @@ export const makeSinOsc_ = (mbe) => (a) => (state) => () => {
 		pendingOn: true,
 		main: createClosure(state.context, resume), // needed so that setters don't error out, even though not started yet
 	};
-	addToScope(ptr, a.scope, state);
+	addToScope(mbe, ptr, a.scope, state);
 	doDeferredConnections(ptr, state);
 	mConnectXToY_(mbe, ptr, a.parent, state);
 };
@@ -692,7 +692,7 @@ export const makeStereoPanner_ = (mbe) => (a) => (state) => () => {
 			pan: a.pan,
 		}),
 	};
-	addToScope(ptr, a.scope, state);
+	addToScope(mbe, ptr, a.scope, state);
 	doDeferredConnections(ptr, state);
 	mConnectXToY_(mbe, ptr, a.parent, state);
 };
@@ -715,7 +715,7 @@ export const makeSquareOsc_ = (mbe) => (a) => (state) => () => {
 		pendingOn: true,
 		main: createClosure(state.context, resume), // needed so that setters don't error out, even though not started yet
 	};
-	addToScope(ptr, a.scope, state);
+	addToScope(mbe, ptr, a.scope, state);
 	doDeferredConnections(ptr, state);
 	mConnectXToY_(mbe, ptr, a.parent, state);
 };
@@ -738,7 +738,7 @@ export const makeTriangleOsc_ = (mbe) => (a) => (state) => () => {
 		pendingOn: true,
 		main: createClosure(state.context, resume), // needed so that setters don't error out, even though not started yet
 	};
-	addToScope(ptr, a.scope, state);
+	addToScope(mbe, ptr, a.scope, state);
 	doDeferredConnections(ptr, state);
 	mConnectXToY_(mbe, ptr, a.parent, state);
 };
@@ -757,7 +757,7 @@ export const makeWaveShaper_ = (mbe) => (a) => (state) => () => {
 			oversample: b.type,
 		}),
 	};
-	addToScope(ptr, a.scope, state);
+	addToScope(mbe, ptr, a.scope, state);
 	doDeferredConnections(ptr, state);
 	mConnectXToY_(mbe, ptr, a.parent, state);
 };
@@ -1516,13 +1516,13 @@ export function getAudioClockTime(ctx) {
 	};
 }
 
-export function makeAudioBuffer(ctx) {
+export function makeAudioBuffer_(ctx) {
 	return function (b) {
 		return function () {
 			var myArrayBuffer = ctx.createBuffer(
-				b.value1.length,
-				b.value1[0].length,
-				b.value0
+				b.arr.length,
+				b.arr[0].length,
+				b.size
 			);
 			for (
 				var channel = 0;
@@ -1531,7 +1531,7 @@ export function makeAudioBuffer(ctx) {
 			) {
 				var nowBuffering = myArrayBuffer.getChannelData(channel);
 				for (var i = 0; i < myArrayBuffer.length; i++) {
-					nowBuffering[i] = b.value1[channel][i];
+					nowBuffering[i] = b.arr[channel][i];
 				}
 			}
 			return myArrayBuffer;
