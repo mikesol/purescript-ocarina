@@ -14,16 +14,16 @@ import Data.Maybe (Maybe(..))
 import Data.Newtype (unwrap)
 import Data.Variant (match)
 import FRP.Event (Event, keepLatest)
-import Prim.Boolean (True, False)
-import Prim.Row as Row
-import Prim.TypeError (class Fail, Beside, Text)
-import Row.Extra as RowExtra
-import Type.Prelude (class IsSymbol, Proxy(..), reflectSymbol)
 import Ocarina.Common as Common
 import Ocarina.Core as Core
 import Ocarina.Imperative.Monad (GraphBuilder(..))
 import Ocarina.Imperative.Types (type (\/))
 import Ocarina.Imperative.Types as T
+import Prim.Boolean (True, False)
+import Prim.Row as Row
+import Prim.TypeError (class Fail, Beside, Text)
+import Row.Extra as RowExtra
+import Type.Prelude (class IsSymbol, Proxy(..), reflectSymbol)
 
 -- | Fails if `tOrF` resolves to `False`.
 class IdNotInUse :: Symbol -> Boolean -> Constraint
@@ -104,7 +104,7 @@ gain _ initialGain attributes = GraphBuilder go
               { id
               , parent: Nothing
               , gain: initializeGain.gain
-              , scope: Local "imperative"
+              , scope: Just "imperative"
               }
           eventN = keepLatest (attributes <#> unwrap >>> match
             { gain: Common.resolveAU di (setGain <<< { id, gain: _ })
@@ -136,7 +136,7 @@ sinOsc _ initialSinOsc attributes = GraphBuilder go
         let
           id = reflectSymbol (Proxy :: _ id)
           event0 = pure $
-            makeSinOsc { id, parent: Nothing, frequency, scope: Local "imperative" }
+            makeSinOsc { id, parent: Nothing, frequency, scope: Just "imperative" }
           eventN = keepLatest (attributes <#> unwrap >>> match
             { frequency: Common.resolveAU di (setFrequency <<< { id, frequency: _ })
             , onOff: pure <<< setOnOff <<< { id, onOff: _ }
@@ -184,7 +184,7 @@ playBuf _ initialPlayBuf attributes = GraphBuilder go
             , playbackRate
             , bufferOffset
             , duration
-            , scope: Local "imperative"
+            , scope: Just "imperative"
             }
           eventN = keepLatest (attributes <#> unwrap >>> match
             { buffer: pure <<< setBuffer <<< { id, buffer: _ }

@@ -613,7 +613,7 @@ newtype InitializeAllpass = InitializeAllpass
 type MakeAllpass_ param =
   { id :: String
   , parent :: Maybe String
-  , scope :: Bolson.Scope
+  , scope :: Maybe String
   , frequency :: param
   , q :: param
   }
@@ -643,7 +643,7 @@ newtype InitializeAnalyser = InitializeAnalyser
 type MakeAnalyser =
   { id :: String
   , parent :: Maybe String
-  , scope :: Bolson.Scope
+  , scope :: Maybe String
   , cb :: AnalyserNodeCb
   , fftSize :: Int
   , maxDecibels :: Number
@@ -687,7 +687,7 @@ newtype InitializeAudioWorkletNode
 type MakeAudioWorkletNode_ param =
   { id :: String
   , parent :: Maybe String
-  , scope :: Bolson.Scope
+  , scope :: Maybe String
   , options :: AudioWorkletNodeOptions_ param
   }
 
@@ -711,7 +711,7 @@ newtype InitializeBandpass = InitializeBandpass
 type MakeBandpass_ param =
   { id :: String
   , parent :: Maybe String
-  , scope :: Bolson.Scope
+  , scope :: Maybe String
   , frequency :: param
   , q :: param
   }
@@ -730,7 +730,7 @@ newtype InitializeConstant = InitializeConstant
 type MakeConstant_ param =
   ( id :: String
   , parent :: Maybe String
-  , scope :: Bolson.Scope
+  , scope :: Maybe String
   , offset :: param
   )
 
@@ -744,7 +744,7 @@ newtype InitializeConvolver = InitializeConvolver
 type MakeConvolver =
   { id :: String
   , parent :: Maybe String
-  , scope :: Bolson.Scope
+  , scope :: Maybe String
   , buffer :: BrowserAudioBuffer
   }
 
@@ -756,7 +756,7 @@ newtype InitializeDelay = InitializeDelay { delayTime :: InitialAudioParameter, 
 type MakeDelay_ param =
   { id :: String
   , parent :: Maybe String
-  , scope :: Bolson.Scope
+  , scope :: Maybe String
   , delayTime :: param
   , maxDelayTime :: Number
   }
@@ -789,7 +789,7 @@ newtype InitializeDynamicsCompressor = InitializeDynamicsCompressor
 type MakeDynamicsCompressor_ param =
   { id :: String
   , parent :: Maybe String
-  , scope :: Bolson.Scope
+  , scope :: Maybe String
   , threshold :: param
   , knee :: param
   , ratio :: param
@@ -806,7 +806,7 @@ newtype Gain lock payload = Gain (Variant (gain :: AudioParameter lock payload))
 derive instance newtypeInitializeGain :: Newtype InitializeGain _
 newtype InitializeGain = InitializeGain { gain :: InitialAudioParameter }
 type MakeGain_ param =
-  { id :: String, parent :: Maybe String, scope :: Bolson.Scope, gain :: param }
+  { id :: String, parent :: Maybe String, scope :: Maybe String, gain :: param }
 
 type MakeGain = MakeGain_ InitialAudioParameter
 type MakeGain' lock payload = MakeGain_ (AudioParameter lock payload)
@@ -828,7 +828,7 @@ newtype InitializeHighpass = InitializeHighpass
 type MakeHighpass_ param =
   { id :: String
   , parent :: Maybe String
-  , scope :: Bolson.Scope
+  , scope :: Maybe String
   , frequency :: param
   , q :: param
   }
@@ -853,7 +853,7 @@ newtype InitializeHighshelf = InitializeHighshelf
 type MakeHighshelf_ param =
   { id :: String
   , parent :: Maybe String
-  , scope :: Bolson.Scope
+  , scope :: Maybe String
   , frequency :: param
   , gain :: param
   }
@@ -868,7 +868,7 @@ newtype InitializeIIRFilter (feedforward :: Int) (feedback :: Int) = InitializeI
 type MakeIIRFilter =
   { id :: String
   , parent :: Maybe String
-  , scope :: Bolson.Scope
+  , scope :: Maybe String
   , feedforward :: Array Number
   , feedback :: Array Number
   }
@@ -897,7 +897,7 @@ newtype InitializeLoopBuf = InitializeLoopBuf
 type MakeLoopBuf_ param =
   ( id :: String
   , parent :: Maybe String
-  , scope :: Bolson.Scope
+  , scope :: Maybe String
   , buffer :: BrowserAudioBuffer
   , playbackRate :: param
   , loopStart :: Number
@@ -925,7 +925,7 @@ newtype InitializeLowpass = InitializeLowpass
 type MakeLowpass_ param =
   { id :: String
   , parent :: Maybe String
-  , scope :: Bolson.Scope
+  , scope :: Maybe String
   , frequency :: param
   , q :: param
   }
@@ -950,7 +950,7 @@ newtype InitializeLowshelf = InitializeLowshelf
 type MakeLowshelf_ param =
   { id :: String
   , parent :: Maybe String
-  , scope :: Bolson.Scope
+  , scope :: Maybe String
   , frequency :: param
   , gain :: param
   }
@@ -968,7 +968,7 @@ newtype InitializeMediaElement = InitializeMediaElement
 type MakeMediaElement =
   { id :: String
   , parent :: Maybe String
-  , scope :: Bolson.Scope
+  , scope :: Maybe String
   , element :: BrowserMediaElement
   }
 
@@ -981,7 +981,7 @@ type MakeMicrophone =
   { id :: String
   , microphone :: BrowserMicrophone
   , parent :: Maybe String
-  , scope :: Bolson.Scope
+  , scope :: Maybe String
   }
 
 derive instance newtypeNotch :: Newtype (Notch lock payload) _
@@ -1001,7 +1001,7 @@ newtype InitializeNotch = InitializeNotch
 type MakeNotch_ param =
   { id :: String
   , parent :: Maybe String
-  , scope :: Bolson.Scope
+  , scope :: Maybe String
   , frequency :: param
   , q :: param
   }
@@ -1028,7 +1028,7 @@ newtype InitializePeaking = InitializePeaking
 type MakePeaking_ param =
   { id :: String
   , parent :: Maybe String
-  , scope :: Bolson.Scope
+  , scope :: Maybe String
   , frequency :: param
   , q :: param
   , gain :: param
@@ -1056,7 +1056,7 @@ newtype InitializePeriodicOsc = InitializePeriodicOsc
 type MakePeriodicOsc_ param =
   ( id :: String
   , parent :: Maybe String
-  , scope :: Bolson.Scope
+  , scope :: Maybe String
   , spec :: PeriodicOscSpec
   , frequency :: param
   )
@@ -1088,7 +1088,7 @@ newtype InitializePlayBuf = InitializePlayBuf
 type MakePlayBuf_ param =
   ( id :: String
   , parent :: Maybe String
-  , scope :: Bolson.Scope
+  , scope :: Maybe String
   , buffer :: BrowserAudioBuffer
   , bufferOffset :: Number
   , playbackRate :: param
@@ -1103,7 +1103,7 @@ newtype InitializeRecorder = InitializeRecorder { cb :: MediaRecorderCb }
 type MakeRecorder =
   { id :: String
   , parent :: Maybe String
-  , scope :: Bolson.Scope
+  , scope :: Maybe String
   , cb :: MediaRecorderCb
   }
 
@@ -1126,7 +1126,7 @@ newtype InitializeSawtoothOsc = InitializeSawtoothOsc
 type MakeSawtoothOsc_ param =
   ( id :: String
   , parent :: Maybe String
-  , scope :: Bolson.Scope
+  , scope :: Maybe String
   , frequency :: param
   )
 
@@ -1146,7 +1146,7 @@ newtype InitializeSinOsc = InitializeSinOsc
 type MakeSinOsc_ param =
   ( id :: String
   , parent :: Maybe String
-  , scope :: Bolson.Scope
+  , scope :: Maybe String
   , frequency :: param
   )
 
@@ -1170,7 +1170,7 @@ newtype InitializeSquareOsc = InitializeSquareOsc
 type MakeSquareOsc_ param =
   ( id :: String
   , parent :: Maybe String
-  , scope :: Bolson.Scope
+  , scope :: Maybe String
   , frequency :: param
   )
 
@@ -1188,7 +1188,7 @@ newtype InitializeStereoPanner = InitializeStereoPanner
   { pan :: InitialAudioParameter }
 
 type MakeStereoPanner_ param =
-  { id :: String, parent :: Maybe String, scope :: Bolson.Scope, pan :: param }
+  { id :: String, parent :: Maybe String, scope :: Maybe String, pan :: param }
 
 type MakeStereoPanner = MakeStereoPanner_ InitialAudioParameter
 type MakeStereoPanner' lock payload = MakeStereoPanner_ (AudioParameter lock payload)
@@ -1210,7 +1210,7 @@ newtype InitializeTriangleOsc = InitializeTriangleOsc
 type MakeTriangleOsc_ param =
   ( id :: String
   , parent :: Maybe String
-  , scope :: Bolson.Scope
+  , scope :: Maybe String
   , frequency :: param
   )
 
@@ -1227,7 +1227,7 @@ newtype InitializeWaveShaper = InitializeWaveShaper
 type MakeWaveShaper =
   { id :: String
   , parent :: Maybe String
-  , scope :: Bolson.Scope
+  , scope :: Maybe String
   , curve :: BrowserFloatArray
   , oversample :: Oversample
   }

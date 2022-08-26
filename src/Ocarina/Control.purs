@@ -36,6 +36,10 @@ import Ocarina.Core (ChannelCountMode(..), ChannelInterpretation(..), Po2(..))
 import Ocarina.Core as C
 import Ocarina.WebAPI (AnalyserNodeCb(..), BrowserAudioBuffer)
 
+scopeToMaybe :: Scope -> Maybe String
+scopeToMaybe Global = Nothing
+scopeToMaybe (Local s) = Just s
+
 -- allpass
 
 allpass
@@ -54,7 +58,7 @@ allpass i' atts elts = Element' $ C.Node go
     map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
       pure
         ( makeAllpass
-            { id: me, parent: parent.parent, scope: parent.scope, frequency: i.frequency, q: i.q }
+            { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, frequency: i.frequency, q: i.q }
         )
         <|>
           ( keepLatest $ map
@@ -183,7 +187,7 @@ analyser i' atts elts = Element' $ C.Node go
           ( makeAnalyser
               { id: me
               , parent: parent.parent
-              , scope: parent.scope
+              , scope: scopeToMaybe parent.scope
               , cb: i.cb
               , fftSize: 2 `pow`
                   ( case i.fftSize of
@@ -284,7 +288,7 @@ __audioWorklet (C.InitializeAudioWorkletNode i) atts elt = Element' $ C.Node go
           ( makeAudioWorkletNode
               { id: me
               , parent: parent.parent
-              , scope: parent.scope
+              , scope: scopeToMaybe parent.scope
               , options:
                   C.AudioWorkletNodeOptions_
                     { name: reflectSymbol (Proxy :: _ name)
@@ -351,7 +355,7 @@ bandpass i' atts elts = Element' $ C.Node go
     map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
       pure
         ( makeBandpass
-            { id: me, parent: parent.parent, scope: parent.scope, frequency: i.frequency, q: i.q }
+            { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, frequency: i.frequency, q: i.q }
         )
         <|>
           ( keepLatest $ map
@@ -393,7 +397,7 @@ __constant i' atts = Element' $ C.Node go
           ( makeConstant
               { id: me
               , parent: parent.parent
-              , scope: parent.scope
+              , scope: scopeToMaybe parent.scope
               , offset: i.offset
               }
           )
@@ -443,7 +447,7 @@ convolver i' elts = Element' $ C.Node go
           ( makeConvolver
               { id: me
               , parent: parent.parent
-              , scope: parent.scope
+              , scope: scopeToMaybe parent.scope
               , buffer: i.buffer
               }
           )
@@ -466,7 +470,7 @@ delay i' atts elts = Element' $ C.Node go
     map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
       pure
         ( makeDelay
-            { id: me, parent: parent.parent, scope: parent.scope, delayTime: i.delayTime, maxDelayTime: i.maxDelayTime }
+            { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, delayTime: i.delayTime, maxDelayTime: i.maxDelayTime }
         )
         <|>
           ( keepLatest $ map
@@ -520,7 +524,7 @@ dynamicsCompressor i' atts elts = Element' $ C.Node go
           ( makeDynamicsCompressor
               { id: me
               , parent: parent.parent
-              , scope: parent.scope
+              , scope: scopeToMaybe parent.scope
               , threshold: i.threshold
               , ratio: i.ratio
               , knee: i.knee
@@ -583,7 +587,7 @@ gain i' atts elts = Element' $ C.Node go
     map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
       pure
         ( makeGain
-            { id: me, parent: parent.parent, scope: parent.scope, gain: i.gain }
+            { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, gain: i.gain }
         )
         <|>
           ( keepLatest $ map
@@ -621,7 +625,7 @@ highpass i' atts elts = Element' $ C.Node go
     map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
       pure
         ( makeHighpass
-            { id: me, parent: parent.parent, scope: parent.scope, frequency: i.frequency, q: i.q }
+            { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, frequency: i.frequency, q: i.q }
         )
         <|>
           ( keepLatest $ map
@@ -660,7 +664,7 @@ highshelf i' atts elts = Element' $ C.Node go
     map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
       pure
         ( makeHighshelf
-            { id: me, parent: parent.parent, scope: parent.scope, frequency: i.frequency, gain: i.gain }
+            { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, frequency: i.frequency, gain: i.gain }
         )
         <|>
           ( keepLatest $ map
@@ -726,7 +730,7 @@ iirFilter' fwd bk i' elts = Element' $ C.Node go
           ( makeIIRFilter
               { id: me
               , parent: parent.parent
-              , scope: parent.scope
+              , scope: scopeToMaybe parent.scope
               , feedforward: toArray i.feedforward
               , feedback: toArray i.feedback
               }
@@ -750,7 +754,7 @@ lowpass i' atts elts = Element' $ C.Node go
     map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
       pure
         ( makeLowpass
-            { id: me, parent: parent.parent, scope: parent.scope, frequency: i.frequency, q: i.q }
+            { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, frequency: i.frequency, q: i.q }
         )
         <|>
           ( keepLatest $ map
@@ -789,7 +793,7 @@ lowshelf i' atts elts = Element' $ C.Node go
     map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
       pure
         ( makeLowshelf
-            { id: me, parent: parent.parent, scope: parent.scope, frequency: i.frequency, gain: i.gain }
+            { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, frequency: i.frequency, gain: i.gain }
         )
         <|>
           ( keepLatest $ map
@@ -844,7 +848,7 @@ __loopBuf i' atts = Element' $ C.Node go
           ( makeLoopBuf
               { id: me
               , parent: parent.parent
-              , scope: parent.scope
+              , scope: scopeToMaybe parent.scope
               , buffer: i.buffer
               , playbackRate: i.playbackRate
               , loopStart: i.loopStart
@@ -898,7 +902,7 @@ __mediaElement (C.InitializeMediaElement i) = Element' $ C.Node go
           ( makeMediaElement
               { id: me
               , parent: parent.parent
-              , scope: parent.scope
+              , scope: scopeToMaybe parent.scope
               , element: i.element
               }
           )
@@ -928,7 +932,7 @@ __microphone i' = Element' $ C.Node go
           ( makeMicrophone
               { id: me
               , parent: parent.parent
-              , scope: parent.scope
+              , scope: scopeToMaybe parent.scope
               , microphone: i.microphone
               }
           )
@@ -957,7 +961,7 @@ notch i' atts elts = Element' $ C.Node go
     map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
       pure
         ( makeNotch
-            { id: me, parent: parent.parent, scope: parent.scope, frequency: i.frequency, q: i.q }
+            { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, frequency: i.frequency, q: i.q }
         )
         <|>
           ( keepLatest $ map
@@ -996,7 +1000,7 @@ peaking i' atts elts = Element' $ C.Node go
     map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
       pure
         ( makePeaking
-            { id: me, parent: parent.parent, scope: parent.scope, frequency: i.frequency, q: i.q, gain: i.gain }
+            { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, frequency: i.frequency, q: i.q, gain: i.gain }
         )
         <|>
           ( keepLatest $ map
@@ -1044,7 +1048,7 @@ __periodicOsc i' atts = Element' $ C.Node go
           ( makePeriodicOsc
               { id: me
               , parent: parent.parent
-              , scope: parent.scope
+              , scope: scopeToMaybe parent.scope
               , frequency: i.frequency
               , spec: i.spec
               }
@@ -1162,7 +1166,7 @@ __playBuf i' atts = Element' $ C.Node go
           ( makePlayBuf
               { id: me
               , parent: parent.parent
-              , scope: parent.scope
+              , scope: scopeToMaybe parent.scope
               , buffer: i.buffer
               , playbackRate: i.playbackRate
               , bufferOffset: i.bufferOffset
@@ -1219,7 +1223,7 @@ recorder i' elt = Element' $ C.Node go
       map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
         pure
           ( makeRecorder
-              { id: me, parent: parent.parent, scope: parent.scope, cb: i.cb }
+              { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, cb: i.cb }
           )
           <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di elt
 
@@ -1245,7 +1249,7 @@ __sawtoothOsc i' atts = Element' $ C.Node go
           ( makeSawtoothOsc
               { id: me
               , parent: parent.parent
-              , scope: parent.scope
+              , scope: scopeToMaybe parent.scope
               , frequency: i.frequency
               }
           )
@@ -1297,7 +1301,7 @@ __sinOsc i' atts = Element' $ C.Node go
           ( makeSinOsc
               { id: me
               , parent: parent.parent
-              , scope: parent.scope
+              , scope: scopeToMaybe parent.scope
               , frequency: i.frequency
               }
           )
@@ -1349,7 +1353,7 @@ __squareOsc i' atts = Element' $ C.Node go
           ( makeSquareOsc
               { id: me
               , parent: parent.parent
-              , scope: parent.scope
+              , scope: scopeToMaybe parent.scope
               , frequency: i.frequency
               }
           )
@@ -1414,7 +1418,7 @@ pan i' atts elts = Element' $ C.Node go
     map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
       pure
         ( makeStereoPanner
-            { id: me, parent: parent.parent, scope: parent.scope, pan: i.pan }
+            { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, pan: i.pan }
         )
         <|>
           ( keepLatest $ map
@@ -1457,7 +1461,7 @@ __triangleOsc i' atts = Element' $ C.Node go
           ( makeTriangleOsc
               { id: me
               , parent: parent.parent
-              , scope: parent.scope
+              , scope: scopeToMaybe parent.scope
               , frequency: i.frequency
               }
           )
@@ -1507,7 +1511,7 @@ waveShaper i' elts = Element' $ C.Node go
           ( makeWaveShaper
               { id: me
               , parent: parent.parent
-              , scope: parent.scope
+              , scope: scopeToMaybe parent.scope
               , curve: i.curve
               , oversample: i.oversample
               }
@@ -1627,7 +1631,7 @@ silence = fix identity
 --             ( makeMerger
 --                 { id: me
 --                 , parent: parent.parent
---                 , scope: parent.scope
+--                 , scope: scopeToMaybe parent.scope
 --                 }
 --             )
 --             <|> oneOf
