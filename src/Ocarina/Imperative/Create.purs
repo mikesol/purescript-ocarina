@@ -8,12 +8,12 @@ module Ocarina.Imperative.Create where
 
 import Prelude
 
-import Bolson.Core (Scope(..))
+import Bolson.EffectFn.Core (Scope(..))
 import Control.Alternative ((<|>))
 import Data.Maybe (Maybe(..))
 import Data.Newtype (unwrap)
 import Data.Variant (match)
-import FRP.Event (Event, keepLatest)
+import FRP.Event.EffectFn (Event, keepLatest)
 import Ocarina.Common as Common
 import Ocarina.Core as Core
 import Ocarina.Imperative.Monad (GraphBuilder(..))

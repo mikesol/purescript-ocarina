@@ -7,10 +7,10 @@ import Data.Int (round)
 import Data.Maybe (Maybe(..))
 import Effect.Ref (new, read, write)
 import Effect.Timer (clearTimeout, setTimeout)
-import FRP.Behavior (Behavior, behavior)
-import FRP.Event (Event, makeEvent, subscribe)
-import Ocarina.Interpret (getAudioClockTime)
+import FRP.Behavior (ABehavior, behavior)
+import FRP.Event.EffectFn (Event, makeEvent, subscribe)
 import Ocarina.Core (AudioNumeric(..), AudioOnOff(..), _linear)
+import Ocarina.Interpret (getAudioClockTime)
 import Ocarina.WebAPI (AudioContext)
 import Ocarina.WebAPI as WebAPI
 
@@ -52,7 +52,7 @@ interval ctx iN e = makeEvent \k -> do
           mkTimeout k (n + rt) cref iref vref rt
       write (Just tid) iref
 
-writeHead :: Number -> WebAPI.AudioContext -> WriteHead Behavior
+writeHead :: Number -> WebAPI.AudioContext -> WriteHead (ABehavior Event)
 writeHead lookAhead ctx = behavior \eab -> makeEvent \k ->
   subscribe eab \ab -> do
     t <- getAudioClockTime ctx

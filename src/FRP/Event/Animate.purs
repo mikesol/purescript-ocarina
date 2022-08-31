@@ -3,7 +3,7 @@ module FRP.Event.Animate where
 import Prelude
 
 import Effect.Ref as Ref
-import FRP.Event (Event, makeEvent)
+import FRP.Event.EffectFn (Event, makeEvent)
 import Web.HTML (window)
 import Web.HTML.Window (requestAnimationFrame)
 

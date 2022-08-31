@@ -1,5 +1,5 @@
 module Ocarina.Core
-  ( module Bolson.Core
+  ( module Bolson.EffectFn.Core
   , Po2(..)
   , ChannelInterpretation(..)
   , ChannelCountMode(..)
@@ -196,8 +196,8 @@ module Ocarina.Core
 
 import Prelude
 
-import Bolson.Core (envy, dyn, fixed)
-import Bolson.Core as Bolson
+import Bolson.EffectFn.Core (envy, dyn, fixed)
+import Bolson.EffectFn.Core as Bolson
 import Data.FastVect.FastVect (Vect)
 import Data.Function (on)
 import Data.Generic.Rep (class Generic)
@@ -211,7 +211,7 @@ import Data.Show.Generic (genericShow)
 import Data.Typelevel.Num (D1)
 import Data.Variant (Variant, inj, match)
 import Effect (Effect)
-import FRP.Event (Event)
+import FRP.Event.EffectFn (Event)
 import Foreign (Foreign)
 import Foreign.Object (Object)
 import Prim.Row (class Cons)
@@ -513,7 +513,7 @@ instance showAudioWorkletNodeOptions_ ::
 
 type NodeC' :: forall k. k -> Type -> Type
 type NodeC' lock payload =
-  Bolson.PSR Effect ()
+  Bolson.PSR ()
   -> AudioInterpret payload
   -> Event payload
 
@@ -529,8 +529,8 @@ sound = Bolson.Insert
 silence :: forall outputChannels lock payload. AudibleChild outputChannels lock payload
 silence = Bolson.Remove
 
-type Audible outputChannels lock payload = Bolson.Entity Void (Node outputChannels lock payload) Effect lock
-type AudibleChild outputChannels lock payload = Bolson.Child Void (Node outputChannels lock payload) Effect lock
+type Audible outputChannels lock payload = Bolson.Entity Void (Node outputChannels lock payload) lock
+type AudibleChild outputChannels lock payload = Bolson.Child Void (Node outputChannels lock payload) lock
 
 --
 

@@ -2,8 +2,8 @@ module Ocarina.Control where
 
 import Prelude
 
-import Bolson.Control as Bolson
-import Bolson.Core (Element(..), Entity(..), PSR, Scope(..), fixed)
+import Bolson.EffectFn.Control as Bolson
+import Bolson.EffectFn.Core (Element(..), Entity(..), PSR, Scope(..), fixed)
 import Control.Alt ((<|>))
 import Control.Comonad (extract)
 import Control.Plus (empty)
@@ -20,10 +20,9 @@ import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.Tuple.Nested (type (/\), (/\))
 import Data.Typelevel.Num (class Nat, class Pos, class Pred, D1, D2, pred, toInt)
 import Data.Variant (Unvariant(..), inj, match, unvariant)
-import Effect (Effect)
 import Effect.AVar as AVar
 import Effect.Exception (throwException)
-import FRP.Event (Event, keepLatest, makeEvent, subscribe)
+import FRP.Event.EffectFn (Event, keepLatest, makeEvent, subscribe)
 import Foreign.Object (fromHomogeneous)
 import Prim.Int (class Compare)
 import Prim.Ordering (GT, LT)
@@ -1687,7 +1686,7 @@ tmpResolveAU = go
 
 __internalOcarinaFlatten
   :: forall o lock payload
-   . PSR Effect ()
+   . PSR ()
   -> C.AudioInterpret payload
   -> C.Audible o lock payload
   -> Event payload

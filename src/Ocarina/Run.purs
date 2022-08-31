@@ -2,10 +2,10 @@ module Ocarina.Run where
 
 import Prelude
 
-import Bolson.Core as B
+import Bolson.EffectFn.Core as B
 import Data.Typelevel.Num (D2)
 import Effect (Effect)
-import FRP.Event (Event, subscribe)
+import FRP.Event.EffectFn (Event, subscribe)
 import Ocarina.Control (speaker2)
 import Ocarina.Core as C
 import Ocarina.Interpret (FFIAudioSnapshot, close, context, effectfulAudioInterpret, makeFFIAudioSnapshot)

@@ -112,7 +112,7 @@ let overrides =
       { bolson =
         { dependencies = [ "prelude", "heterogeneous" ]
         , repo = "https://github.com/mikesol/purescript-bolson.git"
-        , version = "main"
+        , version = "effn-event"
         }
         , deku =
         { dependencies = [ "prelude" ]
@@ -122,7 +122,7 @@ let overrides =
         , hyrule =
         { dependencies = [ "monoid-extras", "web-uievents", "js-timers", "unsafe-reference" ]
         , repo = "https://github.com/mikesol/purescript-hyrule.git"
-        , version = "master"
+        , version = "effn-event"
         }
       }
 

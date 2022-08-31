@@ -7,7 +7,7 @@ import Control.Alternative (empty, (<|>))
 import Control.Monad.Indexed (class IxApplicative, class IxApply, class IxBind, class IxMonad)
 import Data.Functor.Indexed (class IxFunctor)
 import Effect (Effect)
-import FRP.Event (Event)
+import FRP.Event.EffectFn (Event)
 import Prim.Boolean (True, False)
 import Prim.RowList as RL
 import Prim.TypeError (class Fail, Beside, Text)

@@ -21,7 +21,7 @@ import Data.Newtype (wrap)
 import Data.Traversable (sequence)
 import Data.Tuple (Tuple(..))
 import Effect (Effect)
-import FRP.Event (Event, makeEvent)
+import FRP.Event.EffectFn (Event, makeEvent)
 import Foreign.Object as O
 import Web.Event.Event as WE
 import Web.Event.EventTarget (EventTarget, addEventListener, eventListener, removeEventListener)
