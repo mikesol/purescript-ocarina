@@ -7,8 +7,7 @@ import Control.Plus (class Plus)
 import Deku.Core (Domable)
 import Deku.Pursx (nut, (~~))
 import Effect (Effect)
-import FRP.Event (class IsEvent, AnEvent, Event)
-import Hyrule.Zora (Zora)
+import FRP.Event (class IsEvent, Event)
 import Ocarina.Control (gain_, loopBuf)
 import Ocarina.Core (bangOn)
 import Ocarina.Example.Docs.AudioUnits.Allpass as Allpass
@@ -103,7 +102,7 @@ px = Proxy :: Proxy """<div>
   <p>Phew, that was a lot of audio units! In the next section, we'll make them come alive thanks to the magic of <a ~next~ style="cursor:pointer;">events</a>.</p>
 </div>"""
 
-components :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> AnEvent Zora SingleSubgraphEvent  -> Domable lock payload
+components :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent  -> Domable lock payload
 components cca' dpage ssp ev = px ~~
   { drumroll: nut
       (audioWrapperSpan "🥁" ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/50/50711_179538-lq.mp3")

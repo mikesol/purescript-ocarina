@@ -3,41 +3,32 @@ module Ocarina.Example.HelloWorld where
 import Prelude
 
 import Control.Alt (alt, (<|>))
+import Control.Monad.ST.Class (liftST)
+import Control.Monad.ST.Internal as RRef
 import Control.Plus (empty)
-import Data.Exists (Exists, mkExists)
-import Data.Foldable (for_)
 import Data.Lens (over)
 import Data.Maybe (Maybe(..), maybe)
 import Data.Number (pi, sin)
 import Data.Profunctor (lcmap)
 import Data.Typelevel.Num (D2)
 import Deku.Attribute (cb, (:=))
-import Deku.Control (deku, deku1, text, text_)
+import Deku.Control (text, text_)
 import Deku.Core (Domable, bussed)
 import Deku.DOM as DOM
-import Deku.Interpret (fullDOMInterpret, makeFFIDOMSnapshot)
 import Deku.Toplevel (runInBody)
 import Effect (Effect)
 import Effect.Aff (Aff, launchAff_)
 import Effect.Class (liftEffect)
-import Effect.Ref as Ref
 import FRP.Behavior (sample_)
-import FRP.Event (Event, bus, keepLatest, memoize, subscribe)
+import FRP.Event (Event, subscribe)
 import FRP.Event.Animate (animationFrameEvent)
 import Ocarina.Clock (WriteHead, fot, writeHead)
 import Ocarina.Control (gain, sinOsc, speaker2)
 import Ocarina.Core (Audible, bangOn, opticN)
 import Ocarina.Example.Utils (RaiseCancellation)
-import Ocarina.Imperative (InitialGraphBuilder, runGraphBuilder)
-import Ocarina.Imperative as I
 import Ocarina.Interpret (close, context, effectfulAudioInterpret, makeFFIAudioSnapshot)
 import Ocarina.Properties (frequency)
 import Ocarina.WebAPI (AudioContext)
-import Type.Proxy (Proxy(..))
-import Web.HTML (window)
-import Web.HTML.HTMLDocument (body)
-import Web.HTML.HTMLElement (toElement)
-import Web.HTML.Window (document)
 
 scene
   :: forall lock payload
@@ -54,36 +45,6 @@ scene wh =
     , gso 0.2 337.0 (\rad -> 337.0 + (10.0 * sin rad))
     , gso 0.1 530.0 (\rad -> 530.0 + (19.0 * (5.0 * sin rad)))
     ]
-
-scene'
-  :: forall payload
-   . WriteHead (Event)
-  -> InitialGraphBuilder payload _ Unit
-scene' wh = I.do
-  speaker <- I.speaker (Proxy :: Proxy "speaker")
-  gain0 <- I.gain (Proxy :: Proxy "gain0") 0.1 empty
-  gain1 <- I.gain (Proxy :: Proxy "gain1") 0.25 empty
-  gain2 <- I.gain (Proxy :: Proxy "gain2") 0.20 empty
-  gain3 <- I.gain (Proxy :: Proxy "gain3") 0.10 empty
-  sinOsc0 <- I.sinOsc (Proxy :: Proxy "sinOsc0") 440.0
-    (so \rad -> 440.0 + (10.0 * sin (2.3 * rad)))
-  sinOsc1 <- I.sinOsc (Proxy :: Proxy "sinOsc1") 235.0
-    (so \rad -> 235.0 + (10.0 * sin (1.7 * rad)))
-  sinOsc2 <- I.sinOsc (Proxy :: Proxy "sinOsc2") 337.0
-    (so \rad -> 337.0 + (10.0 * sin rad))
-  sinOsc3 <- I.sinOsc (Proxy :: Proxy "sinOsc3") 530.0
-    (so \rad -> 530.0 + (19.0 * (5.0 * sin rad)))
-  I.connect { from: gain0, into: speaker }
-  I.connect { from: gain1, into: speaker }
-  I.connect { from: gain2, into: speaker }
-  I.connect { from: gain3, into: speaker }
-  I.connect { from: sinOsc0, into: gain0 }
-  I.connect { from: sinOsc1, into: gain1 }
-  I.connect { from: sinOsc2, into: gain2 }
-  I.connect { from: sinOsc3, into: gain3 }
-  where
-  tr = fot wh (mul pi)
-  so f = bangOn <|> (frequency <<< (over opticN f) <$> tr)
 
 type UIAction = Maybe { unsub :: Effect Unit, ctx :: AudioContext }
 
@@ -107,9 +68,10 @@ helloWorld _ rc = bussed \p -> lcmap (alt (pure Nothing)) \e ->
                     ( do
                         ctx <- context
                         ffi2 <- makeFFIAudioSnapshot ctx
+                        rf <- liftST $ RRef.new 0
                         let wh = writeHead 0.04 ctx
                         unsub <- subscribe
-                          (audioEvent (sample_ wh animationFrameEvent))
+                          (audioEvent rf (sample_ wh animationFrameEvent))
                           ((#) ffi2)
                         rc $ Just { unsub, ctx }
                         push $ Just { unsub, ctx }
@@ -132,9 +94,7 @@ helloWorld _ rc = bussed \p -> lcmap (alt (pure Nothing)) \e ->
     DOM.div_
       [ DOM.h1_ [ text_ "Hello world" ]
       , musicButton p e
-          (flip runGraphBuilder effectfulAudioInterpret <<< scene')
-      , musicButton p e
-          (\i -> speaker2 (scene i) effectfulAudioInterpret)
+          (\rf i -> speaker2 (scene i) (effectfulAudioInterpret rf))
       ]
 
 main :: Effect Unit

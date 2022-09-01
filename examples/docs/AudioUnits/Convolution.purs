@@ -6,8 +6,7 @@ import Bolson.Core (envy)
 import Deku.Core (Domable)
 import Deku.Pursx (nut, (~~))
 import Effect (Effect)
-import FRP.Event (AnEvent, Event)
-import Hyrule.Zora (Zora)
+import FRP.Event (Event)
 import Ocarina.Control (convolver, loopBuf)
 import Ocarina.Core (bangOn)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
@@ -27,7 +26,7 @@ px = Proxy :: Proxy """<section>
   </section>
 """
 
-convolution :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> AnEvent Zora SingleSubgraphEvent -> Domable lock payload
+convolution :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable lock payload
 convolution ccb _ ev = px ~~
   { convolution: nut
       (  audioWrapper ev ccb (\ctx -> { loop: _, verb: _ }

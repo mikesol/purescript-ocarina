@@ -3,6 +3,8 @@ module Ocarina.Run where
 import Prelude
 
 import Bolson.Core as B
+import Control.Monad.ST.Class (liftST)
+import Control.Monad.ST.Internal as Ref
 import Data.Typelevel.Num (D2)
 import Effect (Effect)
 import FRP.Event (Event, subscribe)
@@ -24,7 +26,8 @@ run2
   -> Effect (Effect Unit)
 run2 ctx s = do
     ffi <- makeFFIAudioSnapshot ctx
-    u <- subscribe (speaker2 s effectfulAudioInterpret)
+    rf <- liftST $ Ref.new 0
+    u <- subscribe (speaker2 s (effectfulAudioInterpret rf))
       \f -> f ffi
     pure u
 
@@ -41,6 +44,7 @@ run2e
   -> Effect (Effect Unit)
 run2e ctx s = do
     ffi <- makeFFIAudioSnapshot ctx
-    u <- subscribe (speaker2 [B.EventfulElement' $ B.EventfulElement (map (B.FixedChildren' <<< B.FixedChildren) s)] effectfulAudioInterpret)
+    rf <- liftST $ Ref.new 0
+    u <- subscribe (speaker2 [B.EventfulElement' $ B.EventfulElement (map (B.FixedChildren' <<< B.FixedChildren) s)] (effectfulAudioInterpret rf))
       \f -> f ffi
     pure u

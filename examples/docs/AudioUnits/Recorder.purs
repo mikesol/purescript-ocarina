@@ -4,6 +4,8 @@ import Prelude
 
 import Bolson.Core (envy)
 import Control.Alt ((<|>))
+import Control.Monad.ST.Class (liftST)
+import Control.Monad.ST.Internal as RRef
 import Data.Either (Either(..))
 import Data.Exists (mkExists)
 import Data.Filterable (partitionMap)
@@ -19,9 +21,8 @@ import Effect (Effect)
 import Effect.AVar as AVar
 import Effect.Aff (launchAff, launchAff_, try)
 import Effect.Class (liftEffect)
-import FRP.Event (AnEvent, Event, bus, subscribe)
+import FRP.Event (Event, bus, subscribe)
 import FRP.Event.Class (biSampleOn)
-import Hyrule.Zora (Zora)
 import Ocarina.Control (microphone, recorder, speaker2)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..))
 import Ocarina.Example.Docs.Util (WrapperStates(..), mkWrapperEvent, raceSelf)
@@ -45,10 +46,10 @@ type RecorderStates = Either (Either String MediaRecorder) WrapperStates
 scene m cb = recorder cb (microphone m)
 
 recorderEx
-  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> AnEvent Zora SingleSubgraphEvent -> Domable lock payload
+  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable lock payload
 recorderEx ccb _ ev = px ~~
   { recorder: nut
-      (bussed \push (event' :: AnEvent Zora RecorderStates) ->
+      (bussed \push (event' :: Event RecorderStates) ->
             let
               ptn = partitionMap identity event'
               event = mkWrapperEvent ev (_.right ptn)
@@ -78,6 +79,7 @@ recorderEx ccb _ ev = px ~~
                                                 ( maybe (pure $ pure unit) \mc -> do
                                                     ctx <- context
                                                     ffi2 <- makeFFIAudioSnapshot ctx
+                                                    rf <- liftST (RRef.new 0)
                                                     let
                                                       audioE = speaker2
                                                         [ scene mc
@@ -90,7 +92,7 @@ recorderEx ccb _ ev = px ~~
                                                                   mr
                                                             )
                                                         ]
-                                                        effectfulAudioInterpret
+                                                        (effectfulAudioInterpret rf)
                                                     unsub <- subscribe
                                                       audioE
                                                       ( \audio -> audio ffi2

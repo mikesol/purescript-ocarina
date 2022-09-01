@@ -13,10 +13,9 @@ import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
 import Effect.Aff (launchAff, launchAff_)
 import Effect.Class (liftEffect)
-import FRP.Event (AnEvent, Event, toEvent)
+import FRP.Event (Event)
 import FRP.Event.Class (biSampleOn)
 import FRP.Event.VBus (V, vbus)
-import Hyrule.Zora (Zora)
 import Ocarina.Control (loopBuf)
 import Ocarina.Core (Audible, bangOn)
 import Ocarina.Core (bangOn)
@@ -184,7 +183,7 @@ atari =
   "https://freesound.org/data/previews/100/100981_1234256-lq.mp3"
 
 ex1
-  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> AnEvent Zora SingleSubgraphEvent -> Domable lock payload
+  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable lock payload
 ex1 ccb _ ev = makePursx' (Proxy :: _ "@") px
   { wagtxt: nut
       ( text_
@@ -208,9 +207,9 @@ ex1 ccb _ ev = makePursx' (Proxy :: _ "@") px
 
           do
             let
-              sl0 = toEvent event.slider.s0
-              sl1 = toEvent event.slider.s1
-              sl2 = toEvent event.slider.s2
+              sl0 =  event.slider.s0
+              sl1 =  event.slider.s1
+              sl2 =  event.slider.s2
               start = event.startStop.start <|> pure unit
 
               music :: forall lock0. _ -> Audible _ lock0 _

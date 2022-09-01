@@ -6,9 +6,9 @@ import Bolson.Control as Bolson
 import Bolson.Core (Element(..), Entity(..), PSR, Scope(..), fixed)
 import Control.Alt ((<|>))
 import Control.Comonad (extract)
+import Control.Monad.ST.Internal as RRef
 import Control.Plus (empty)
 import ConvertableOptions (class ConvertOption, class ConvertOptionsWithDefaults, convertOptionsWithDefaults)
-import Data.Either (Either(..))
 import Data.FastVect.FastVect (Vect, singleton, toArray, index)
 import Data.Homogeneous (class HomogeneousRowLabels)
 import Data.Homogeneous.Variant (homogeneous)
@@ -20,21 +20,18 @@ import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.Tuple.Nested (type (/\), (/\))
 import Data.Typelevel.Num (class Nat, class Pos, class Pred, D1, D2, pred, toInt)
 import Data.Variant (Unvariant(..), inj, match, unvariant)
-import Effect (Effect)
-import Effect.AVar as AVar
-import Effect.Exception (throwException)
-import FRP.Event (Event, keepLatest, makeEvent, subscribe)
+import FRP.Event (Event, keepLatest, makePureEvent, subscribePure)
 import Foreign.Object (fromHomogeneous)
+import Ocarina.Common as Common
+import Ocarina.Core (ChannelCountMode(..), ChannelInterpretation(..), Po2(..))
+import Ocarina.Core as C
+import Ocarina.WebAPI (AnalyserNodeCb(..), BrowserAudioBuffer)
 import Prim.Int (class Compare)
 import Prim.Ordering (GT, LT)
 import Safe.Coerce (coerce)
 import Simple.JSON as JSON
 import Type.Proxy (Proxy(..))
 import Type.Row.Homogeneous (class Homogeneous)
-import Ocarina.Common as Common
-import Ocarina.Core (ChannelCountMode(..), ChannelInterpretation(..), Po2(..))
-import Ocarina.Core as C
-import Ocarina.WebAPI (AnalyserNodeCb(..), BrowserAudioBuffer)
 
 scopeToMaybe :: Scope -> Maybe String
 scopeToMaybe Global = Nothing
@@ -52,10 +49,10 @@ allpass
 allpass i' atts elts = Element' $ C.Node go
   where
   C.InitializeAllpass i = Common.toInitializeAllpass i'
-  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeAllpass, setFrequency, setQ }) = makeEvent \k -> do
+  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeAllpass, setFrequency, setQ }) =  makePureEvent \k -> do
     me <- ids
     parent.raiseId me
-    map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
+    map (k (deleteFromCache { id: me }) *> _) $ flip subscribePure k $
       pure
         ( makeAllpass
             { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, frequency: i.frequency, q: i.q }
@@ -70,7 +67,7 @@ allpass i' atts elts = Element' $ C.Node go
               )
               atts
           )
-        <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di (fixed elts)
+        <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di (fixed elts)
 
 allpass_
   :: forall i (outputChannels :: Type) lock payload
@@ -179,10 +176,10 @@ analyser i' atts elts = Element' $ C.Node go
   go
     parent
     di@(C.AudioInterpret { ids, deleteFromCache, makeAnalyser, setAnalyserNodeCb }) =
-    makeEvent \k -> do
+     makePureEvent \k -> do
       me <- ids
       parent.raiseId me
-      map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
+      map (k (deleteFromCache { id: me }) *> _) $ flip subscribePure k $
         pure
           ( makeAnalyser
               { id: me
@@ -219,7 +216,7 @@ analyser i' atts elts = Element' $ C.Node go
                 e
             )
             atts
-          <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di (fixed elts)
+          <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di (fixed elts)
 
 analyser_
   :: forall i outputChannels lock payload
@@ -280,10 +277,10 @@ __audioWorklet (C.InitializeAudioWorkletNode i) atts elt = Element' $ C.Node go
       ( C.AudioInterpret
           { ids, deleteFromCache, makeAudioWorkletNode, setAudioWorkletParameter }
       ) =
-    makeEvent \k -> do
+     makePureEvent \k -> do
       me <- ids
       parent.raiseId me
-      map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
+      map (k (deleteFromCache { id: me }) *> _) $ flip subscribePure k $
         pure
           ( makeAudioWorkletNode
               { id: me
@@ -316,7 +313,7 @@ __audioWorklet (C.InitializeAudioWorkletNode i) atts elt = Element' $ C.Node go
                 )
                 atts
             )
-          <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di elt
+          <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di elt
 
 audioWorklet
   :: forall name numberOfInputs numberOfOutputs outputChannelCount parameterData
@@ -349,10 +346,10 @@ bandpass
 bandpass i' atts elts = Element' $ C.Node go
   where
   C.InitializeBandpass i = Common.toInitializeBandpass i'
-  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeBandpass, setFrequency, setQ }) = makeEvent \k -> do
+  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeBandpass, setFrequency, setQ }) =  makePureEvent \k -> do
     me <- ids
     parent.raiseId me
-    map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
+    map (k (deleteFromCache { id: me }) *> _) $ flip subscribePure k $
       pure
         ( makeBandpass
             { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, frequency: i.frequency, q: i.q }
@@ -367,7 +364,7 @@ bandpass i' atts elts = Element' $ C.Node go
               )
               atts
           )
-        <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di (fixed elts)
+        <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di (fixed elts)
 
 bandpass_
   :: forall i (outputChannels :: Type) lock payload
@@ -389,10 +386,10 @@ __constant i' atts = Element' $ C.Node go
   where
   C.InitializeConstant i = Common.toInitializeConstant i'
   go parent di@(C.AudioInterpret { ids, deleteFromCache, makeConstant, setOffset, setOnOff }) =
-    makeEvent \k -> do
+     makePureEvent \k -> do
       me <- ids
       parent.raiseId me
-      map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
+      map (k (deleteFromCache { id: me }) *> _) $ flip subscribePure k $
         pure
           ( makeConstant
               { id: me
@@ -439,10 +436,10 @@ convolver i' elts = Element' $ C.Node go
   where
   C.InitializeConvolver i = Common.toInitializeConvolver i'
   go parent di@(C.AudioInterpret { ids, deleteFromCache, makeConvolver }) =
-    makeEvent \k -> do
+     makePureEvent \k -> do
       me <- ids
       parent.raiseId me
-      map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
+      map (k (deleteFromCache { id: me }) *> _) $ flip subscribePure k $
         pure
           ( makeConvolver
               { id: me
@@ -451,7 +448,7 @@ convolver i' elts = Element' $ C.Node go
               , buffer: i.buffer
               }
           )
-          <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di (fixed elts)
+          <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di (fixed elts)
 
 -- delay
 delay
@@ -464,10 +461,10 @@ delay
 delay i' atts elts = Element' $ C.Node go
   where
   C.InitializeDelay i = Common.toInitializeDelay i'
-  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeDelay, setDelay }) = makeEvent \k -> do
+  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeDelay, setDelay }) =  makePureEvent \k -> do
     me <- ids
     parent.raiseId me
-    map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
+    map (k (deleteFromCache { id: me }) *> _) $ flip subscribePure k $
       pure
         ( makeDelay
             { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, delayTime: i.delayTime, maxDelayTime: i.maxDelayTime }
@@ -481,7 +478,7 @@ delay i' atts elts = Element' $ C.Node go
               )
               atts
           )
-        <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di (fixed elts)
+        <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di (fixed elts)
 
 delay_
   :: forall i (outputChannels :: Type) lock payload
@@ -516,10 +513,10 @@ dynamicsCompressor i' atts elts = Element' $ C.Node go
           , setRelease
           }
       ) =
-    makeEvent \k -> do
+     makePureEvent \k -> do
       me <- ids
       parent.raiseId me
-      map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
+      map (k (deleteFromCache { id: me }) *> _) $ flip subscribePure k $
         pure
           ( makeDynamicsCompressor
               { id: me
@@ -560,7 +557,7 @@ dynamicsCompressor i' atts elts = Element' $ C.Node go
                 )
                 atts
             )
-          <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di (fixed elts)
+          <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di (fixed elts)
 
 dynamicsCompressor_
   :: forall i (outputChannels :: Type) lock payload
@@ -581,10 +578,10 @@ gain
 gain i' atts elts = Element' $ C.Node go
   where
   C.InitializeGain i = Common.toInitializeGain i'
-  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeGain, setGain }) = makeEvent \k -> do
+  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeGain, setGain }) =  makePureEvent \k -> do
     me <- ids
     parent.raiseId me
-    map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
+    map (k (deleteFromCache { id: me }) *> _) $ flip subscribePure k $
       pure
         ( makeGain
             { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, gain: i.gain }
@@ -598,7 +595,7 @@ gain i' atts elts = Element' $ C.Node go
               )
               atts
           )
-        <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di (fixed elts)
+        <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di (fixed elts)
 
 gain_
   :: forall i (outputChannels :: Type) lock payload
@@ -619,10 +616,10 @@ highpass
 highpass i' atts elts = Element' $ C.Node go
   where
   C.InitializeHighpass i = Common.toInitializeHighpass i'
-  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeHighpass, setFrequency, setQ }) = makeEvent \k -> do
+  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeHighpass, setFrequency, setQ }) =  makePureEvent \k -> do
     me <- ids
     parent.raiseId me
-    map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
+    map (k (deleteFromCache { id: me }) *> _) $ flip subscribePure k $
       pure
         ( makeHighpass
             { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, frequency: i.frequency, q: i.q }
@@ -637,7 +634,7 @@ highpass i' atts elts = Element' $ C.Node go
               )
               atts
           )
-        <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di (fixed elts)
+        <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di (fixed elts)
 
 highpass_
   :: forall i (outputChannels :: Type) lock payload
@@ -658,10 +655,10 @@ highshelf
 highshelf i' atts elts = Element' $ C.Node go
   where
   C.InitializeHighshelf i = Common.toInitializeHighshelf i'
-  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeHighshelf, setFrequency, setGain }) = makeEvent \k -> do
+  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeHighshelf, setFrequency, setGain }) =  makePureEvent \k -> do
     me <- ids
     parent.raiseId me
-    map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
+    map (k (deleteFromCache { id: me }) *> _) $ flip subscribePure k $
       pure
         ( makeHighshelf
             { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, frequency: i.frequency, gain: i.gain }
@@ -676,7 +673,7 @@ highshelf i' atts elts = Element' $ C.Node go
               )
               atts
           )
-        <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di (fixed elts)
+        <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di (fixed elts)
 
 highshelf_
   :: forall i (outputChannels :: Type) lock payload
@@ -722,10 +719,10 @@ iirFilter' fwd bk i' elts = Element' $ C.Node go
           , makeIIRFilter
           }
       ) =
-    makeEvent \k -> do
+     makePureEvent \k -> do
       me <- ids
       parent.raiseId me
-      map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
+      map (k (deleteFromCache { id: me }) *> _) $ flip subscribePure k $
         pure
           ( makeIIRFilter
               { id: me
@@ -735,7 +732,7 @@ iirFilter' fwd bk i' elts = Element' $ C.Node go
               , feedback: toArray i.feedback
               }
           )
-          <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di (fixed elts)
+          <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di (fixed elts)
 
 -- lowpass
 lowpass
@@ -748,10 +745,10 @@ lowpass
 lowpass i' atts elts = Element' $ C.Node go
   where
   C.InitializeLowpass i = Common.toInitializeLowpass i'
-  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeLowpass, setFrequency, setQ }) = makeEvent \k -> do
+  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeLowpass, setFrequency, setQ }) =  makePureEvent \k -> do
     me <- ids
     parent.raiseId me
-    map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
+    map (k (deleteFromCache { id: me }) *> _) $ flip subscribePure k $
       pure
         ( makeLowpass
             { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, frequency: i.frequency, q: i.q }
@@ -766,7 +763,7 @@ lowpass i' atts elts = Element' $ C.Node go
               )
               atts
           )
-        <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di (fixed elts)
+        <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di (fixed elts)
 
 lowpass_
   :: forall i (outputChannels :: Type) lock payload
@@ -787,10 +784,10 @@ lowshelf
 lowshelf i' atts elts = Element' $ C.Node go
   where
   C.InitializeLowshelf i = Common.toInitializeLowshelf i'
-  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeLowshelf, setFrequency, setGain }) = makeEvent \k -> do
+  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeLowshelf, setFrequency, setGain }) =  makePureEvent \k -> do
     me <- ids
     parent.raiseId me
-    map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
+    map (k (deleteFromCache { id: me }) *> _) $ flip subscribePure k $
       pure
         ( makeLowshelf
             { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, frequency: i.frequency, gain: i.gain }
@@ -805,7 +802,7 @@ lowshelf i' atts elts = Element' $ C.Node go
               )
               atts
           )
-        <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di (fixed elts)
+        <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di (fixed elts)
 
 lowshelf_
   :: forall i (outputChannels :: Type) lock payload
@@ -840,10 +837,10 @@ __loopBuf i' atts = Element' $ C.Node go
           , setLoopEnd
           }
       ) =
-    makeEvent \k -> do
+     makePureEvent \k -> do
       me <- ids
       parent.raiseId me
-      map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
+      map (k (deleteFromCache { id: me }) *> _) $ flip subscribePure k $
         pure
           ( makeLoopBuf
               { id: me
@@ -894,10 +891,10 @@ __mediaElement
 __mediaElement (C.InitializeMediaElement i) = Element' $ C.Node go
   where
   go parent (C.AudioInterpret { ids, deleteFromCache, makeMediaElement }) =
-    makeEvent \k -> do
+     makePureEvent \k -> do
       me <- ids
       parent.raiseId me
-      map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
+      map (k (deleteFromCache { id: me }) *> _) $ flip subscribePure k $
         pure
           ( makeMediaElement
               { id: me
@@ -924,10 +921,10 @@ __microphone i' = Element' $ C.Node go
   where
   C.InitializeMicrophone i = Common.toInitializeMicrophone i'
   go parent (C.AudioInterpret { ids, deleteFromCache, makeMicrophone }) =
-    makeEvent \k -> do
+     makePureEvent \k -> do
       me <- ids
       parent.raiseId me
-      map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
+      map (k (deleteFromCache { id: me }) *> _) $ flip subscribePure k $
         pure
           ( makeMicrophone
               { id: me
@@ -955,10 +952,10 @@ notch
 notch i' atts elts = Element' $ C.Node go
   where
   C.InitializeNotch i = Common.toInitializeNotch i'
-  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeNotch, setFrequency, setQ }) = makeEvent \k -> do
+  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeNotch, setFrequency, setQ }) =  makePureEvent \k -> do
     me <- ids
     parent.raiseId me
-    map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
+    map (k (deleteFromCache { id: me }) *> _) $ flip subscribePure k $
       pure
         ( makeNotch
             { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, frequency: i.frequency, q: i.q }
@@ -973,7 +970,7 @@ notch i' atts elts = Element' $ C.Node go
               )
               atts
           )
-        <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di (fixed elts)
+        <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di (fixed elts)
 
 notch_
   :: forall i (outputChannels :: Type) lock payload
@@ -994,10 +991,10 @@ peaking
 peaking i' atts elts = Element' $ C.Node go
   where
   C.InitializePeaking i = Common.toInitializePeaking i'
-  go parent di@(C.AudioInterpret { ids, deleteFromCache, makePeaking, setFrequency, setQ, setGain }) = makeEvent \k -> do
+  go parent di@(C.AudioInterpret { ids, deleteFromCache, makePeaking, setFrequency, setQ, setGain }) =  makePureEvent \k -> do
     me <- ids
     parent.raiseId me
-    map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
+    map (k (deleteFromCache { id: me }) *> _) $ flip subscribePure k $
       pure
         ( makePeaking
             { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, frequency: i.frequency, q: i.q, gain: i.gain }
@@ -1013,7 +1010,7 @@ peaking i' atts elts = Element' $ C.Node go
               )
               atts
           )
-        <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di (fixed elts)
+        <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di (fixed elts)
 
 peaking_
   :: forall i (outputChannels :: Type) lock payload
@@ -1040,10 +1037,10 @@ __periodicOsc i' atts = Element' $ C.Node go
       ( C.AudioInterpret
           { ids, deleteFromCache, makePeriodicOsc, setFrequency, setOnOff, setPeriodicOsc }
       ) =
-    makeEvent \k -> do
+     makePureEvent \k -> do
       me <- ids
       parent.raiseId me
-      map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
+      map (k (deleteFromCache { id: me }) *> _) $ flip subscribePure k $
         pure
           ( makePeriodicOsc
               { id: me
@@ -1158,10 +1155,10 @@ __playBuf i' atts = Element' $ C.Node go
           , setBufferOffset
           }
       ) =
-    makeEvent \k -> do
+     makePureEvent \k -> do
       me <- ids
       parent.raiseId me
-      map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
+      map (k (deleteFromCache { id: me }) *> _) $ flip subscribePure k $
         pure
           ( makePlayBuf
               { id: me
@@ -1217,15 +1214,15 @@ recorder i' elt = Element' $ C.Node go
   where
   C.InitializeRecorder i = Common.toInitializeRecorder i'
   go parent di@(C.AudioInterpret { ids, deleteFromCache, makeRecorder }) =
-    makeEvent \k -> do
+     makePureEvent \k -> do
       me <- ids
       parent.raiseId me
-      map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
+      map (k (deleteFromCache { id: me }) *> _) $ flip subscribePure k $
         pure
           ( makeRecorder
               { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, cb: i.cb }
           )
-          <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di elt
+          <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di elt
 
 -- sawtoothOsc
 
@@ -1241,10 +1238,10 @@ __sawtoothOsc i' atts = Element' $ C.Node go
   go
     parent
     di@(C.AudioInterpret { ids, deleteFromCache, makeSawtoothOsc, setFrequency, setOnOff }) =
-    makeEvent \k -> do
+     makePureEvent \k -> do
       me <- ids
       parent.raiseId me
-      map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
+      map (k (deleteFromCache { id: me }) *> _) $ flip subscribePure k $
         pure
           ( makeSawtoothOsc
               { id: me
@@ -1293,10 +1290,10 @@ __sinOsc i' atts = Element' $ C.Node go
   go
     parent
     di@(C.AudioInterpret { ids, deleteFromCache, makeSinOsc, setFrequency, setOnOff }) =
-    makeEvent \k -> do
+     makePureEvent \k -> do
       me <- ids
       parent.raiseId me
-      map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
+      map (k (deleteFromCache { id: me }) *> _) $ flip subscribePure k $
         pure
           ( makeSinOsc
               { id: me
@@ -1345,10 +1342,10 @@ __squareOsc i' atts = Element' $ C.Node go
   go
     parent
     di@(C.AudioInterpret { ids, deleteFromCache, makeSquareOsc, setFrequency, setOnOff }) =
-    makeEvent \k -> do
+     makePureEvent \k -> do
       me <- ids
       parent.raiseId me
-      map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
+      map (k (deleteFromCache { id: me }) *> _) $ flip subscribePure k $
         pure
           ( makeSquareOsc
               { id: me
@@ -1389,10 +1386,10 @@ speaker
    . Array (C.Audible outputChannels lock payload)
   -> C.AudioInterpret payload
   -> Event payload
-speaker elts di@(C.AudioInterpret { ids, makeSpeaker }) = makeEvent \k -> do
+speaker elts di@(C.AudioInterpret { ids, makeSpeaker }) =  makePureEvent \k -> do
   id <- ids
   k (makeSpeaker { id })
-  subscribe (__internalOcarinaFlatten { parent: Just id, scope: Local "toplevel", raiseId: mempty } di (fixed elts)) k
+  subscribePure (__internalOcarinaFlatten { parent: Just id, scope: Local "toplevel", raiseId: \_ -> pure unit } di (fixed elts)) k
 
 speaker2
   :: forall lock payload
@@ -1412,10 +1409,10 @@ pan
 pan i' atts elts = Element' $ C.Node go
   where
   C.InitializeStereoPanner i = Common.toInitializeStereoPanner i'
-  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeStereoPanner, setPan }) = makeEvent \k -> do
+  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeStereoPanner, setPan }) =  makePureEvent \k -> do
     me <- ids
     parent.raiseId me
-    map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
+    map (k (deleteFromCache { id: me }) *> _) $ flip subscribePure k $
       pure
         ( makeStereoPanner
             { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, pan: i.pan }
@@ -1429,7 +1426,7 @@ pan i' atts elts = Element' $ C.Node go
               )
               atts
           )
-        <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di (fixed elts)
+        <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di (fixed elts)
 
 pan_
   :: forall i (outputChannels :: Type) lock payload
@@ -1453,10 +1450,10 @@ __triangleOsc i' atts = Element' $ C.Node go
   go
     parent
     di@(C.AudioInterpret { ids, deleteFromCache, makeTriangleOsc, setFrequency, setOnOff }) =
-    makeEvent \k -> do
+     makePureEvent \k -> do
       me <- ids
       parent.raiseId me
-      map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
+      map (k (deleteFromCache { id: me }) *> _) $ flip subscribePure k $
         pure
           ( makeTriangleOsc
               { id: me
@@ -1503,10 +1500,10 @@ waveShaper i' elts = Element' $ C.Node go
   where
   C.InitializeWaveShaper i = Common.toInitializeWaveShaper i'
   go parent di@(C.AudioInterpret { ids, deleteFromCache, makeWaveShaper }) =
-    makeEvent \k -> do
+     makePureEvent \k -> do
       me <- ids
       parent.raiseId me
-      map (k (deleteFromCache { id: me }) *> _) $ flip subscribe k $
+      map (k (deleteFromCache { id: me }) *> _) $ flip subscribePure k $
         pure
           ( makeWaveShaper
               { id: me
@@ -1515,7 +1512,7 @@ waveShaper i' elts = Element' $ C.Node go
               , curve: i.curve
               , oversample: i.oversample
               }
-          ) <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: mempty } di (fixed elts)
+          ) <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di (fixed elts)
 
 ----------
 globalFan
@@ -1671,14 +1668,13 @@ tmpResolveAU = go
         let
           n = gain_ 1.0 [ u ]
         in
-          makeEvent \k -> do
-            av <- AVar.empty
-            subscribe
-              ( __internalOcarinaFlatten { parent: Nothing, scope: scope, raiseId: \x -> void $ AVar.tryPut x av } di n <|> makeEvent \k2 -> do
-                  void $ AVar.take av case _ of
-                    Left e -> throwException e
-                    -- only do the connection if not silence
-                    Right i -> k2 (f (ut (C.FFIAudioUnit { i })))
+           makePureEvent \k -> do
+            av <- RRef.new Nothing
+            subscribePure
+              ( __internalOcarinaFlatten { parent: Nothing, scope: scope, raiseId: \x -> void $ RRef.write (Just x) av } di n <|>  makePureEvent \k2 -> do
+                  RRef.read av >>= case _ of
+                    Nothing -> pure unit -- ugh, fails silently
+                    Just i -> k2 (f (ut (C.FFIAudioUnit { i })))
                   pure (pure unit)
               )
               k
@@ -1687,7 +1683,7 @@ tmpResolveAU = go
 
 __internalOcarinaFlatten
   :: forall o lock payload
-   . PSR Effect ()
+   . PSR ()
   -> C.AudioInterpret payload
   -> C.Audible o lock payload
   -> Event payload

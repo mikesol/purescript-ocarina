@@ -3,6 +3,9 @@ module Ocarina.Example.StressTest where
 import Prelude
 
 import Control.Alt (alt, (<|>))
+import Control.Monad.ST.Class (liftST)
+import Control.Monad.ST.Global as Region
+import Control.Monad.ST.Internal as RRef
 import Data.Array ((..))
 import Data.Filterable (filter, filterMap)
 import Data.Int (toNumber)
@@ -20,9 +23,8 @@ import Effect (Effect)
 import Effect.Aff (Aff, launchAff_)
 import Effect.Class (liftEffect)
 import FRP.Behavior (sample_)
-import FRP.Event (AnEvent, Event, memoize, subscribe)
+import FRP.Event (Event, memoize, subscribe)
 import FRP.Event.Animate (animationFrameEvent)
-import Hyrule.Zora (Zora)
 import Ocarina.Clock (WriteHead, fot, writeHead)
 import Ocarina.Control (gain, gain_, sinOsc, speaker2)
 import Ocarina.Core (Audible, AudioNumeric(..), AudioOnOff(..), _off, _on, _step, opticN, envy)
@@ -121,7 +123,7 @@ initializeStressTest :: Aff Init
 initializeStressTest = pure unit
 
 foreign import stressTest_
-  :: forall event. AudioContext -> WriteHead event -> event (FFIAudioSnapshot -> Effect Unit)
+  :: forall event. RRef.STRef Region.Global Int -> AudioContext -> WriteHead event -> event (FFIAudioSnapshot -> Effect Unit)
 
 stressTest
   :: forall lock payload
@@ -134,8 +136,8 @@ stressTest _ rc = bussed \p -> lcmap (alt $ pure Nothing) \e ->
       :: forall lock0
        . String
       -> (UIAction -> Effect Unit)
-      -> AnEvent Zora UIAction
-      -> (AudioContext -> WriteHead Event -> Event (FFIAudioSnapshot -> Effect Unit))
+      -> Event UIAction
+      -> (RRef.STRef Region.Global Int -> AudioContext -> WriteHead Event -> Event (FFIAudioSnapshot -> Effect Unit))
       -> Domable lock0 payload
     musicButton label push event audioEvent = DOM.button
       ( map
@@ -144,10 +146,11 @@ stressTest _ rc = bussed \p -> lcmap (alt $ pure Nothing) \e ->
                   maybe
                     ( do
                         ctx <- context
+                        rf <- liftST $ RRef.new 0
                         ffi2 <- makeFFIAudioSnapshot ctx
                         let wh = writeHead 0.04 ctx
                         unsub <- subscribe
-                          (audioEvent ctx (sample_ wh animationFrameEvent))
+                          (audioEvent rf ctx (sample_ wh animationFrameEvent))
                           ((#) ffi2)
                         rc $ Just { unsub, ctx }
                         push $ Just { unsub, ctx }
@@ -170,7 +173,7 @@ stressTest _ rc = bussed \p -> lcmap (alt $ pure Nothing) \e ->
     DOM.div_
       [ DOM.h1_ [ text_ "Stress test" ]
       , musicButton "Event" p e
-          ( \_ ip -> speaker2 [scene ip] (effectfulAudioInterpret)
+          ( \rf _ ip -> speaker2 [scene ip] (effectfulAudioInterpret rf)
 
           )
       , musicButton "NativeJS" p e (stressTest_)

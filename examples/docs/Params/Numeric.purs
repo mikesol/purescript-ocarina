@@ -6,8 +6,7 @@ import Bolson.Core (envy)
 import Deku.Core (Domable)
 import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
-import FRP.Event (AnEvent, Event, delay)
-import Hyrule.Zora (Zora)
+import FRP.Event (Event, delay)
 import Ocarina.Control (gain_, loopBuf)
 import Ocarina.Core (AudioNumeric(..), _exponential, _linear, _step, bangOn)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
@@ -60,7 +59,7 @@ px =
 """
 
 numericEx
-  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> AnEvent Zora SingleSubgraphEvent -> Domable lock payload
+  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable lock payload
 numericEx ccb _ ev = makePursx' (Proxy :: _ "@") px
   { numericEx: nut
       ( audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")

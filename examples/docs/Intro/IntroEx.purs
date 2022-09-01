@@ -30,13 +30,12 @@ import Effect.Random (randomInt)
 import Effect.Random as Random
 import Effect.Ref (new, read, write)
 import FRP.Behavior (behavior)
-import FRP.Event (AnEvent, Event, makeEvent, subscribe, toEvent)
+import FRP.Event (Event, makeEvent, subscribe)
 import FRP.Event.Animate (animationFrameEvent)
 import FRP.Event.Class (biSampleOn)
 import FRP.Event.VBus (V, vbus)
 import Foreign.Object (fromHomogeneous, values)
 import Graphics.Canvas (CanvasElement, arc, beginPath, fill, fillRect, getContext2D, setFillStyle)
-import Hyrule.Zora (Zora)
 import Ocarina.Clock (withACTime)
 import Ocarina.Control (analyser_, bandpass, delay, fan1, fix, gain, gain_, highpass, lowpass, playBuf)
 import Ocarina.Core (Audible, AudioEnvelope(..), AudioNumeric(..), _linear, bangOn)
@@ -113,7 +112,7 @@ denv s e = pure
 ttap (o /\ n) = AudioNumeric { o: o + 0.04, n, t: _linear }
 
 introEx
-  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> AnEvent Zora SingleSubgraphEvent -> Domable lock payload
+  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable lock payload
 introEx ccb _ ev = makePursx' (Proxy :: _ "@") px
   { ex1: nut
       ( vbussed (Proxy :: _ UIEvents) \push event -> -- here
@@ -127,7 +126,7 @@ introEx ccb _ ev = makePursx' (Proxy :: _ "@") px
               music :: forall lock. _ -> _ -> _ -> Array (Audible _ lock _)
               music ctx buffer analyserE = do
                 let
-                  sliderE = (\{ acTime, value } -> acTime /\ value) <$> withACTime ctx (toEvent event.slider)
+                  sliderE = (\{ acTime, value } -> acTime /\ value) <$> withACTime ctx (event.slider)
                 [ analyser_
                     { cb:
                         ( AnalyserNodeCb

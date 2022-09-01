@@ -3,6 +3,8 @@ module Ocarina.Example.AtariSpeaks where
 import Prelude
 
 import Control.Alt (alt, (<|>))
+import Control.Monad.ST.Class (liftST)
+import Control.Monad.ST.Internal as RRef
 import Control.Plus (empty)
 import Data.Array ((..))
 import Data.ArrayBuffer.Typed (toArray)
@@ -108,6 +110,7 @@ atariSpeaks atar rc = bussed \push -> lcmap (alt (pure TurnOn)) \event ->
                       Nothing -> do
                         analyserE <- create
                         ctx <- context
+                        rf <- liftST $ RRef.new 0
                         ffi2 <- makeFFIAudioSnapshot ctx
                         afe <- hot animationFrameEvent
                         let wh = writeHead 0.04 ctx
@@ -122,7 +125,7 @@ atariSpeaks atar rc = bussed \push -> lcmap (alt (pure TurnOn)) \event ->
                                 )
                                 (sample_ wh afe.event)
                             ]
-                            effectfulAudioInterpret
+                            (effectfulAudioInterpret rf)
 
                         unsub' <- subscribe
                           ( sampleOn
