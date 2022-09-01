@@ -20,7 +20,7 @@ import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.Tuple.Nested (type (/\), (/\))
 import Data.Typelevel.Num (class Nat, class Pos, class Pred, D1, D2, pred, toInt)
 import Data.Variant (Unvariant(..), inj, match, unvariant)
-import FRP.Event (Event, keepLatest, makePureEvent, subscribePure)
+import FRP.Event (Event, keepLatest, makeLemmingEvent)
 import Foreign.Object (fromHomogeneous)
 import Ocarina.Common as Common
 import Ocarina.Core (ChannelCountMode(..), ChannelInterpretation(..), Po2(..))
@@ -49,10 +49,10 @@ allpass
 allpass i' atts elts = Element' $ C.Node go
   where
   C.InitializeAllpass i = Common.toInitializeAllpass i'
-  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeAllpass, setFrequency, setQ }) =  makePureEvent \k -> do
+  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeAllpass, setFrequency, setQ }) =  makeLemmingEvent \mySub k -> do
     me <- ids
     parent.raiseId me
-    map (k (deleteFromCache { id: me }) *> _) $ flip subscribePure k $
+    map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
       pure
         ( makeAllpass
             { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, frequency: i.frequency, q: i.q }
@@ -176,10 +176,10 @@ analyser i' atts elts = Element' $ C.Node go
   go
     parent
     di@(C.AudioInterpret { ids, deleteFromCache, makeAnalyser, setAnalyserNodeCb }) =
-     makePureEvent \k -> do
+     makeLemmingEvent \mySub k -> do
       me <- ids
       parent.raiseId me
-      map (k (deleteFromCache { id: me }) *> _) $ flip subscribePure k $
+      map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
         pure
           ( makeAnalyser
               { id: me
@@ -277,10 +277,10 @@ __audioWorklet (C.InitializeAudioWorkletNode i) atts elt = Element' $ C.Node go
       ( C.AudioInterpret
           { ids, deleteFromCache, makeAudioWorkletNode, setAudioWorkletParameter }
       ) =
-     makePureEvent \k -> do
+     makeLemmingEvent \mySub k -> do
       me <- ids
       parent.raiseId me
-      map (k (deleteFromCache { id: me }) *> _) $ flip subscribePure k $
+      map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
         pure
           ( makeAudioWorkletNode
               { id: me
@@ -346,10 +346,10 @@ bandpass
 bandpass i' atts elts = Element' $ C.Node go
   where
   C.InitializeBandpass i = Common.toInitializeBandpass i'
-  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeBandpass, setFrequency, setQ }) =  makePureEvent \k -> do
+  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeBandpass, setFrequency, setQ }) =  makeLemmingEvent \mySub k -> do
     me <- ids
     parent.raiseId me
-    map (k (deleteFromCache { id: me }) *> _) $ flip subscribePure k $
+    map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
       pure
         ( makeBandpass
             { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, frequency: i.frequency, q: i.q }
@@ -386,10 +386,10 @@ __constant i' atts = Element' $ C.Node go
   where
   C.InitializeConstant i = Common.toInitializeConstant i'
   go parent di@(C.AudioInterpret { ids, deleteFromCache, makeConstant, setOffset, setOnOff }) =
-     makePureEvent \k -> do
+     makeLemmingEvent \mySub k -> do
       me <- ids
       parent.raiseId me
-      map (k (deleteFromCache { id: me }) *> _) $ flip subscribePure k $
+      map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
         pure
           ( makeConstant
               { id: me
@@ -436,10 +436,10 @@ convolver i' elts = Element' $ C.Node go
   where
   C.InitializeConvolver i = Common.toInitializeConvolver i'
   go parent di@(C.AudioInterpret { ids, deleteFromCache, makeConvolver }) =
-     makePureEvent \k -> do
+     makeLemmingEvent \mySub k -> do
       me <- ids
       parent.raiseId me
-      map (k (deleteFromCache { id: me }) *> _) $ flip subscribePure k $
+      map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
         pure
           ( makeConvolver
               { id: me
@@ -461,10 +461,10 @@ delay
 delay i' atts elts = Element' $ C.Node go
   where
   C.InitializeDelay i = Common.toInitializeDelay i'
-  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeDelay, setDelay }) =  makePureEvent \k -> do
+  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeDelay, setDelay }) =  makeLemmingEvent \mySub k -> do
     me <- ids
     parent.raiseId me
-    map (k (deleteFromCache { id: me }) *> _) $ flip subscribePure k $
+    map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
       pure
         ( makeDelay
             { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, delayTime: i.delayTime, maxDelayTime: i.maxDelayTime }
@@ -513,10 +513,10 @@ dynamicsCompressor i' atts elts = Element' $ C.Node go
           , setRelease
           }
       ) =
-     makePureEvent \k -> do
+     makeLemmingEvent \mySub k -> do
       me <- ids
       parent.raiseId me
-      map (k (deleteFromCache { id: me }) *> _) $ flip subscribePure k $
+      map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
         pure
           ( makeDynamicsCompressor
               { id: me
@@ -578,10 +578,10 @@ gain
 gain i' atts elts = Element' $ C.Node go
   where
   C.InitializeGain i = Common.toInitializeGain i'
-  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeGain, setGain }) =  makePureEvent \k -> do
+  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeGain, setGain }) =  makeLemmingEvent \mySub k -> do
     me <- ids
     parent.raiseId me
-    map (k (deleteFromCache { id: me }) *> _) $ flip subscribePure k $
+    map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
       pure
         ( makeGain
             { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, gain: i.gain }
@@ -616,10 +616,10 @@ highpass
 highpass i' atts elts = Element' $ C.Node go
   where
   C.InitializeHighpass i = Common.toInitializeHighpass i'
-  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeHighpass, setFrequency, setQ }) =  makePureEvent \k -> do
+  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeHighpass, setFrequency, setQ }) =  makeLemmingEvent \mySub k -> do
     me <- ids
     parent.raiseId me
-    map (k (deleteFromCache { id: me }) *> _) $ flip subscribePure k $
+    map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
       pure
         ( makeHighpass
             { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, frequency: i.frequency, q: i.q }
@@ -655,10 +655,10 @@ highshelf
 highshelf i' atts elts = Element' $ C.Node go
   where
   C.InitializeHighshelf i = Common.toInitializeHighshelf i'
-  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeHighshelf, setFrequency, setGain }) =  makePureEvent \k -> do
+  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeHighshelf, setFrequency, setGain }) =  makeLemmingEvent \mySub k -> do
     me <- ids
     parent.raiseId me
-    map (k (deleteFromCache { id: me }) *> _) $ flip subscribePure k $
+    map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
       pure
         ( makeHighshelf
             { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, frequency: i.frequency, gain: i.gain }
@@ -719,10 +719,10 @@ iirFilter' fwd bk i' elts = Element' $ C.Node go
           , makeIIRFilter
           }
       ) =
-     makePureEvent \k -> do
+     makeLemmingEvent \mySub k -> do
       me <- ids
       parent.raiseId me
-      map (k (deleteFromCache { id: me }) *> _) $ flip subscribePure k $
+      map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
         pure
           ( makeIIRFilter
               { id: me
@@ -745,10 +745,10 @@ lowpass
 lowpass i' atts elts = Element' $ C.Node go
   where
   C.InitializeLowpass i = Common.toInitializeLowpass i'
-  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeLowpass, setFrequency, setQ }) =  makePureEvent \k -> do
+  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeLowpass, setFrequency, setQ }) =  makeLemmingEvent \mySub k -> do
     me <- ids
     parent.raiseId me
-    map (k (deleteFromCache { id: me }) *> _) $ flip subscribePure k $
+    map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
       pure
         ( makeLowpass
             { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, frequency: i.frequency, q: i.q }
@@ -784,10 +784,10 @@ lowshelf
 lowshelf i' atts elts = Element' $ C.Node go
   where
   C.InitializeLowshelf i = Common.toInitializeLowshelf i'
-  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeLowshelf, setFrequency, setGain }) =  makePureEvent \k -> do
+  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeLowshelf, setFrequency, setGain }) =  makeLemmingEvent \mySub k -> do
     me <- ids
     parent.raiseId me
-    map (k (deleteFromCache { id: me }) *> _) $ flip subscribePure k $
+    map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
       pure
         ( makeLowshelf
             { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, frequency: i.frequency, gain: i.gain }
@@ -837,10 +837,10 @@ __loopBuf i' atts = Element' $ C.Node go
           , setLoopEnd
           }
       ) =
-     makePureEvent \k -> do
+     makeLemmingEvent \mySub k -> do
       me <- ids
       parent.raiseId me
-      map (k (deleteFromCache { id: me }) *> _) $ flip subscribePure k $
+      map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
         pure
           ( makeLoopBuf
               { id: me
@@ -891,10 +891,10 @@ __mediaElement
 __mediaElement (C.InitializeMediaElement i) = Element' $ C.Node go
   where
   go parent (C.AudioInterpret { ids, deleteFromCache, makeMediaElement }) =
-     makePureEvent \k -> do
+     makeLemmingEvent \mySub k -> do
       me <- ids
       parent.raiseId me
-      map (k (deleteFromCache { id: me }) *> _) $ flip subscribePure k $
+      map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
         pure
           ( makeMediaElement
               { id: me
@@ -921,10 +921,10 @@ __microphone i' = Element' $ C.Node go
   where
   C.InitializeMicrophone i = Common.toInitializeMicrophone i'
   go parent (C.AudioInterpret { ids, deleteFromCache, makeMicrophone }) =
-     makePureEvent \k -> do
+     makeLemmingEvent \mySub k -> do
       me <- ids
       parent.raiseId me
-      map (k (deleteFromCache { id: me }) *> _) $ flip subscribePure k $
+      map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
         pure
           ( makeMicrophone
               { id: me
@@ -952,10 +952,10 @@ notch
 notch i' atts elts = Element' $ C.Node go
   where
   C.InitializeNotch i = Common.toInitializeNotch i'
-  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeNotch, setFrequency, setQ }) =  makePureEvent \k -> do
+  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeNotch, setFrequency, setQ }) =  makeLemmingEvent \mySub k -> do
     me <- ids
     parent.raiseId me
-    map (k (deleteFromCache { id: me }) *> _) $ flip subscribePure k $
+    map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
       pure
         ( makeNotch
             { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, frequency: i.frequency, q: i.q }
@@ -991,10 +991,10 @@ peaking
 peaking i' atts elts = Element' $ C.Node go
   where
   C.InitializePeaking i = Common.toInitializePeaking i'
-  go parent di@(C.AudioInterpret { ids, deleteFromCache, makePeaking, setFrequency, setQ, setGain }) =  makePureEvent \k -> do
+  go parent di@(C.AudioInterpret { ids, deleteFromCache, makePeaking, setFrequency, setQ, setGain }) =  makeLemmingEvent \mySub k -> do
     me <- ids
     parent.raiseId me
-    map (k (deleteFromCache { id: me }) *> _) $ flip subscribePure k $
+    map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
       pure
         ( makePeaking
             { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, frequency: i.frequency, q: i.q, gain: i.gain }
@@ -1037,10 +1037,10 @@ __periodicOsc i' atts = Element' $ C.Node go
       ( C.AudioInterpret
           { ids, deleteFromCache, makePeriodicOsc, setFrequency, setOnOff, setPeriodicOsc }
       ) =
-     makePureEvent \k -> do
+     makeLemmingEvent \mySub k -> do
       me <- ids
       parent.raiseId me
-      map (k (deleteFromCache { id: me }) *> _) $ flip subscribePure k $
+      map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
         pure
           ( makePeriodicOsc
               { id: me
@@ -1155,10 +1155,10 @@ __playBuf i' atts = Element' $ C.Node go
           , setBufferOffset
           }
       ) =
-     makePureEvent \k -> do
+     makeLemmingEvent \mySub k -> do
       me <- ids
       parent.raiseId me
-      map (k (deleteFromCache { id: me }) *> _) $ flip subscribePure k $
+      map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
         pure
           ( makePlayBuf
               { id: me
@@ -1214,10 +1214,10 @@ recorder i' elt = Element' $ C.Node go
   where
   C.InitializeRecorder i = Common.toInitializeRecorder i'
   go parent di@(C.AudioInterpret { ids, deleteFromCache, makeRecorder }) =
-     makePureEvent \k -> do
+     makeLemmingEvent \mySub k -> do
       me <- ids
       parent.raiseId me
-      map (k (deleteFromCache { id: me }) *> _) $ flip subscribePure k $
+      map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
         pure
           ( makeRecorder
               { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, cb: i.cb }
@@ -1238,10 +1238,10 @@ __sawtoothOsc i' atts = Element' $ C.Node go
   go
     parent
     di@(C.AudioInterpret { ids, deleteFromCache, makeSawtoothOsc, setFrequency, setOnOff }) =
-     makePureEvent \k -> do
+     makeLemmingEvent \mySub k -> do
       me <- ids
       parent.raiseId me
-      map (k (deleteFromCache { id: me }) *> _) $ flip subscribePure k $
+      map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
         pure
           ( makeSawtoothOsc
               { id: me
@@ -1290,10 +1290,10 @@ __sinOsc i' atts = Element' $ C.Node go
   go
     parent
     di@(C.AudioInterpret { ids, deleteFromCache, makeSinOsc, setFrequency, setOnOff }) =
-     makePureEvent \k -> do
+     makeLemmingEvent \mySub k -> do
       me <- ids
       parent.raiseId me
-      map (k (deleteFromCache { id: me }) *> _) $ flip subscribePure k $
+      map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
         pure
           ( makeSinOsc
               { id: me
@@ -1342,10 +1342,10 @@ __squareOsc i' atts = Element' $ C.Node go
   go
     parent
     di@(C.AudioInterpret { ids, deleteFromCache, makeSquareOsc, setFrequency, setOnOff }) =
-     makePureEvent \k -> do
+     makeLemmingEvent \mySub k -> do
       me <- ids
       parent.raiseId me
-      map (k (deleteFromCache { id: me }) *> _) $ flip subscribePure k $
+      map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
         pure
           ( makeSquareOsc
               { id: me
@@ -1386,10 +1386,10 @@ speaker
    . Array (C.Audible outputChannels lock payload)
   -> C.AudioInterpret payload
   -> Event payload
-speaker elts di@(C.AudioInterpret { ids, makeSpeaker }) =  makePureEvent \k -> do
+speaker elts di@(C.AudioInterpret { ids, makeSpeaker }) =  makeLemmingEvent \mySub k -> do
   id <- ids
   k (makeSpeaker { id })
-  subscribePure (__internalOcarinaFlatten { parent: Just id, scope: Local "toplevel", raiseId: \_ -> pure unit } di (fixed elts)) k
+  mySub (__internalOcarinaFlatten { parent: Just id, scope: Local "toplevel", raiseId: \_ -> pure unit } di (fixed elts)) k
 
 speaker2
   :: forall lock payload
@@ -1409,10 +1409,10 @@ pan
 pan i' atts elts = Element' $ C.Node go
   where
   C.InitializeStereoPanner i = Common.toInitializeStereoPanner i'
-  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeStereoPanner, setPan }) =  makePureEvent \k -> do
+  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeStereoPanner, setPan }) =  makeLemmingEvent \mySub k -> do
     me <- ids
     parent.raiseId me
-    map (k (deleteFromCache { id: me }) *> _) $ flip subscribePure k $
+    map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
       pure
         ( makeStereoPanner
             { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, pan: i.pan }
@@ -1450,10 +1450,10 @@ __triangleOsc i' atts = Element' $ C.Node go
   go
     parent
     di@(C.AudioInterpret { ids, deleteFromCache, makeTriangleOsc, setFrequency, setOnOff }) =
-     makePureEvent \k -> do
+     makeLemmingEvent \mySub k -> do
       me <- ids
       parent.raiseId me
-      map (k (deleteFromCache { id: me }) *> _) $ flip subscribePure k $
+      map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
         pure
           ( makeTriangleOsc
               { id: me
@@ -1500,10 +1500,10 @@ waveShaper i' elts = Element' $ C.Node go
   where
   C.InitializeWaveShaper i = Common.toInitializeWaveShaper i'
   go parent di@(C.AudioInterpret { ids, deleteFromCache, makeWaveShaper }) =
-     makePureEvent \k -> do
+     makeLemmingEvent \mySub k -> do
       me <- ids
       parent.raiseId me
-      map (k (deleteFromCache { id: me }) *> _) $ flip subscribePure k $
+      map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
         pure
           ( makeWaveShaper
               { id: me
@@ -1668,10 +1668,10 @@ tmpResolveAU = go
         let
           n = gain_ 1.0 [ u ]
         in
-           makePureEvent \k -> do
+           makeLemmingEvent \mySub k -> do
             av <- RRef.new Nothing
-            subscribePure
-              ( __internalOcarinaFlatten { parent: Nothing, scope: scope, raiseId: \x -> void $ RRef.write (Just x) av } di n <|>  makePureEvent \k2 -> do
+            mySub
+              ( __internalOcarinaFlatten { parent: Nothing, scope: scope, raiseId: \x -> void $ RRef.write (Just x) av } di n <|>  makeLemmingEvent \mySub k2 -> do
                   RRef.read av >>= case _ of
                     Nothing -> pure unit -- ugh, fails silently
                     Just i -> k2 (f (ut (C.FFIAudioUnit { i })))
