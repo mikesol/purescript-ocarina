@@ -7,8 +7,7 @@ import Deku.Control (text_)
 import Deku.Core (Domable)
 import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
-import FRP.Event (AnEvent, Event)
-import Hyrule.Zora (Zora)
+import FRP.Event (Event)
 import Ocarina.Control (delay_, fan1, fix, gain, gain_, highpass_, playBuf)
 import Ocarina.Core (AudioEnvelope(..), bangOn)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
@@ -37,7 +36,7 @@ fade1 = pure
   $ P.gain
   $ AudioEnvelope { p: [ 1.0, 1.0, 0.0 ], o: 0.0, d: 10.0 }
 
-fix1 :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> AnEvent Zora SingleSubgraphEvent -> Domable lock payload
+fix1 :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable lock payload
 fix1 ccb _ ev = makePursx' (Proxy :: _ "@") px
   { txt: nut $ text_
       """dgh d g h i =

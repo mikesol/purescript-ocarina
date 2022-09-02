@@ -6,8 +6,7 @@ import Control.Plus (class Plus)
 import Deku.Core (Domable)
 import Deku.Pursx (makePursx')
 import Effect (Effect)
-import FRP.Event (class IsEvent, AnEvent, Event)
-import Hyrule.Zora (Zora)
+import FRP.Event (class IsEvent, Event)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
 import Ocarina.Example.Docs.Util (ccassp, mkNext, scrollToTop)
 import Type.Proxy (Proxy(..))
@@ -40,7 +39,7 @@ px = Proxy :: Proxy
       </ul>
   </section>"""
 
-ffIntro :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> AnEvent Zora SingleSubgraphEvent  -> Domable lock payload
+ffIntro :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent  -> Domable lock payload
 ffIntro _ dpage _ ev = makePursx'  (Proxy :: _ "@") px
   { hwLink: mnx HelloWorld
   }

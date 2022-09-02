@@ -4,6 +4,8 @@ import Prelude
 
 import Bolson.Core (envy)
 import Control.Alt ((<|>))
+import Control.Monad.ST.Class (liftST)
+import Control.Monad.ST.Internal as RRef
 import Control.Plus (class Plus)
 import Data.ArrayBuffer.Typed (toArray)
 import Data.Either (Either(..))
@@ -25,9 +27,8 @@ import Deku.DOM as D
 import Deku.Pursx (nut, (~~))
 import Effect (Effect, foreachE)
 import Effect.Ref (modify_, new, read, write)
-import FRP.Event (class IsEvent, AnEvent, Event, bus, create, sampleOn_, subscribe)
+import FRP.Event (class IsEvent, Event, bus, create, sampleOn_, subscribe)
 import FRP.Event.Animate (animationFrameEvent)
-import Hyrule.Zora (Zora)
 import Ocarina.Control (analyser_, loopBuf, speaker2)
 import Ocarina.Core (Po2(..))
 import Ocarina.Core (bangOn)
@@ -91,10 +92,10 @@ stys = V.fill (\_ -> style4 +> style3 +> style2 +> style1 +> style0 +> V.empty) 
 mkSt i0 i1 e = map (\v -> if V.index (V.index v i0) i1 then D.Style := V.index (V.index stys i0) i1 else D.Style := bgWhite) e
 
 analyserEx
-  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> AnEvent Zora SingleSubgraphEvent -> Domable lock payload
+  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable lock payload
 analyserEx ccb _ ev = px ~~
   { analyser: nut
-      (bussed \push (event' :: AnEvent Zora AnalyserStates) ->
+      (bussed \push (event' :: Event AnalyserStates) ->
             let
               ptn = partitionMap identity event'
               event = mkWrapperEvent ev  (_.right ptn)
@@ -108,6 +109,7 @@ analyserEx ccb _ ev = px ~~
                             ( \ctx atar -> do
                                 analyserE <- new Nothing
                                 ffi2 <- makeFFIAudioSnapshot ctx
+                                rf <- liftST (RRef.new 0)
                                 let
                                   audioE = speaker2
                                     [scene atar
@@ -118,7 +120,7 @@ analyserEx ccb _ ev = px ~~
                                             )
                                         )
                                     ]
-                                    effectfulAudioInterpret
+                                    (effectfulAudioInterpret rf)
                                 unsub <- subscribe
                                   ( map Right audioE <|> map Left animationFrameEvent
                                   )

@@ -16,11 +16,10 @@ import Deku.DOM as D
 import Deku.Pursx (nut, (~~))
 import Effect (Effect)
 import FRP.Behavior (sampleBy, sample_, step)
-import FRP.Event (AnEvent, Event, fold, mapAccum, memoize, sampleOn, toEvent)
+import FRP.Event (Event, fold, mapAccum, memoize, sampleOn)
 import FRP.Event.Animate (animationFrameEvent)
 import FRP.Event.Class (biSampleOn)
 import FRP.Event.VBus (V, vbus)
-import Hyrule.Zora (Zora)
 import Ocarina.Clock (withACTime)
 import Ocarina.Control (gain, periodicOsc)
 import Ocarina.Core (AudioNumeric(..), _linear, bangOn)
@@ -66,7 +65,7 @@ type UIEvents = V
   , cbx :: Cbx
   )
 
-foldEx :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> AnEvent Zora SingleSubgraphEvent -> Domable lock payload
+foldEx :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent -> Domable lock payload
 foldEx ccb _ _ ev = px ~~
   { txt: nut $ text_
       """module Main where
@@ -210,7 +209,7 @@ main = runInBody1
           let
             startE = pure unit <|> event.startStop.start
             stopE = event.startStop.stop
-            chkState e = step false $ fold (const not) (toEvent e) false
+            chkState e = step false $ fold (const not) e false
             cbx0 = chkState event.cbx.cbx0
             cbx1 = chkState event.cbx.cbx1
             cbx2 = chkState event.cbx.cbx2

@@ -13,9 +13,8 @@ import Deku.DOM as D
 import Effect (Effect)
 import Effect.Aff (Aff, Fiber, error, joinFiber, killFiber, launchAff, launchAff_, parallel, sequential)
 import Effect.Class (liftEffect)
-import FRP.Event (AnEvent)
+import FRP.Event (Event)
 import FRP.Event.Class (biSampleOn)
-import Hyrule.Zora (Zora)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, SingleSubgraphEvent(..), SingleSubgraphPusher)
 import Ocarina.Interpret (close, constant0Hack, context)
 import Ocarina.WebAPI (AudioContext)
@@ -50,9 +49,9 @@ clickCb
   -> (WrapperStates -> Effect Unit)
   -> (AudioContext -> Aff i)
   -> (AudioContext -> i -> Effect (Effect Unit))
-  -> AnEvent Zora SingleSubgraphEvent
-  -> AnEvent Zora WrapperStates
-  -> AnEvent Zora (Attribute element)
+  -> Event SingleSubgraphEvent
+  -> Event WrapperStates
+  -> Event (Attribute element)
 clickCb cca push init i ev event = map
   ( \(e /\ cncl) -> D.OnClick :=
       ( cb $
@@ -85,7 +84,7 @@ mkWrapperEvent ev event' = pure Stopped <|> event'
 
 audioWrapper
   :: forall a lock payload
-   . AnEvent Zora SingleSubgraphEvent
+   . Event SingleSubgraphEvent
   -> CancelCurrentAudio
   -> (AudioContext -> Aff a)
   -> (AudioContext -> a -> Effect (Effect Unit))
@@ -110,7 +109,7 @@ audioWrapper ev cca init i = bussed \push event' ->
 audioWrapperSpan
   :: forall a lock payload
    . String
-  -> AnEvent Zora SingleSubgraphEvent
+  -> Event SingleSubgraphEvent
   -> CancelCurrentAudio
   -> (AudioContext -> Aff a)
   -> (AudioContext -> a -> Effect (Effect Unit))

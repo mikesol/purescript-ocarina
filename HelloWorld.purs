@@ -11,9 +11,8 @@ import Deku.Core (Domable)
 import Deku.DOM as D
 import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
-import FRP.Event (AnEvent, Event)
+import FRP.Event (Event)
 import FRP.Event.Class (class IsEvent)
-import Hyrule.Zora (Zora)
 import Ocarina.Control (gain_, sinOsc)
 import Ocarina.Core (bangOn)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent(..), SingleSubgraphPusher)
@@ -62,7 +61,7 @@ helloWorld
    . CancelCurrentAudio
   -> (Page -> Effect Unit)
   -> SingleSubgraphPusher
-  -> AnEvent Zora SingleSubgraphEvent
+  -> Event SingleSubgraphEvent
   -> Domable lock payload
 helloWorld cca' dpage ssp ev = makePursx' (Proxy :: _ "@") px
   { code: nut

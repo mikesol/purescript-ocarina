@@ -6,8 +6,7 @@ import Bolson.Core (envy)
 import Deku.Core (Domable)
 import Deku.Pursx (nut, (~~))
 import Effect (Effect)
-import FRP.Event (AnEvent, Event)
-import Hyrule.Zora (Zora)
+import FRP.Event (Event)
 import Ocarina.Control (gain_, squareOsc)
 import Ocarina.Core (bangOn)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
@@ -32,7 +31,7 @@ square
   :: forall lock payload
    . CancelCurrentAudio
   -> (Page -> Effect Unit)
-  -> AnEvent Zora SingleSubgraphEvent
+  -> Event SingleSubgraphEvent
   -> Domable lock payload
 square ccb _ ev = px ~~
   { periodic: nut

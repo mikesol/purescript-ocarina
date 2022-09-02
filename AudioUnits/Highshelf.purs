@@ -6,8 +6,7 @@ import Bolson.Core (envy)
 import Deku.Core (Domable)
 import Deku.Pursx (nut, (~~))
 import Effect (Effect)
-import FRP.Event (AnEvent, Event)
-import Hyrule.Zora (Zora)
+import FRP.Event (Event)
 import Ocarina.Control (highshelf_, loopBuf)
 import Ocarina.Core (bangOn)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
@@ -29,7 +28,7 @@ px = Proxy :: Proxy """<section>
   </section>
 """
 
-highshelf :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> AnEvent Zora SingleSubgraphEvent -> Domable lock payload
+highshelf :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable lock payload
 highshelf ccb _ ev = px ~~
   { highshelf: nut
       (audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")

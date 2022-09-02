@@ -7,8 +7,7 @@ import Data.Maybe (Maybe(..))
 import Deku.Core (Domable)
 import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
-import FRP.Event (AnEvent, Event)
-import Hyrule.Zora (Zora)
+import FRP.Event (Event)
 import Ocarina.Control (delay_, fix, gain_, microphone, sinOsc_)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import Ocarina.Example.Docs.Util (audioWrapper)
@@ -37,7 +36,7 @@ px =
 """
 
 microphoneEx
-  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> AnEvent Zora SingleSubgraphEvent -> Domable lock payload
+  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable lock payload
 microphoneEx ccb _ ev = makePursx' (Proxy :: _ "@") px
   { microphone: nut
       ( audioWrapper ev ccb (\_ -> getMicrophoneAndCamera true false)

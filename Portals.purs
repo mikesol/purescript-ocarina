@@ -7,8 +7,7 @@ import Deku.Core (Domable)
 import Deku.DOM as D
 import Deku.Pursx ((~~))
 import Effect (Effect)
-import FRP.Event (AnEvent, Event)
-import Hyrule.Zora (Zora)
+import FRP.Event (Event)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
 import Ocarina.Example.Docs.Util (scrollToTop)
 import Type.Proxy (Proxy(..))
@@ -44,7 +43,7 @@ px =  Proxy :: Proxy """<div>
   <p>In the next section, we'll look at how to create audio graphs via an <a ~next~ style="cursor:pointer;">imperative API that more closely resembles Web Audio while providing additional type-safety benefits</a>.</p>
 </div>"""
 
-portals :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> AnEvent Zora SingleSubgraphEvent -> Domable lock payload
+portals :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent -> Domable lock payload
 portals _ dpage _ _ = px ~~
   { next: pure (D.OnClick := (cb (const $ dpage Imperative *> scrollToTop)))
   }
