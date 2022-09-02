@@ -12,6 +12,7 @@ in      conf
               , "lcg"
               , "qualified-do"
               , "deku"
+              , "random"
               , "js-timers"
               , "either"
               , "parallel"

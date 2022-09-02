@@ -2,21 +2,20 @@ module Ocarina.Example.Docs.Events.Ex1TL where
 
 import Prelude
 
-import Bolson.Core (envy)
 import Control.Alt ((<|>))
 import Data.Foldable (traverse_)
 import Data.Maybe (Maybe(..), maybe)
 import Deku.Attribute (attr, cb, (:=))
-import Deku.Control (switcher, switcher_, text, text_)
+import Deku.Control (switcher_, text, text_)
 import Deku.Core (Domable, vbussed)
 import Deku.DOM as D
 import Deku.Toplevel (runInBody)
 import Effect (Effect)
 import Effect.Aff (launchAff_)
 import Effect.Class (liftEffect)
-import FRP.Event (create, fromEvent, toEvent)
+import FRP.Event (create)
 import FRP.Event.Class (biSampleOn)
-import FRP.Event.VBus (V, vbus)
+import FRP.Event.VBus (V)
 import Ocarina.Control (loopBuf)
 import Ocarina.Core (bangOn)
 import Ocarina.Interpret (bracketCtx, decodeAudioDataFromUri)
@@ -40,7 +39,7 @@ atari =
 main :: Effect Unit
 main = do
   { push, event } <- create
-  runInBody (switcher_ D.div scene (fromEvent event))
+  runInBody (switcher_ D.div scene (event))
   push Nothing
   launchAff_ $ bracketCtx
     \ctx -> decodeAudioDataFromUri ctx atari >>= liftEffect
@@ -54,9 +53,9 @@ main = do
   scene = maybe (D.div_ [ text_ "Loading..." ]) \buffer ->
     D.div_ $ pure $ vbussed (Proxy :: _ UIEvents) \push event -> do
       let
-        sl0 = toEvent event.slider.s0
-        sl1 = toEvent event.slider.s1
-        sl2 = toEvent event.slider.s2
+        sl0 = event.slider.s0
+        sl1 = event.slider.s1
+        sl2 = event.slider.s2
         start = event.startStop.start <|> pure unit
         music = run2_
           [ loopBuf

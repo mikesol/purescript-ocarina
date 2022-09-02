@@ -198,6 +198,8 @@ import Prelude
 
 import Bolson.Core (envy, dyn, fixed)
 import Bolson.Core as Bolson
+import Control.Monad.ST (ST)
+import Control.Monad.ST.Global as Region
 import Data.FastVect.FastVect (Vect)
 import Data.Function (on)
 import Data.Generic.Rep (class Generic)
@@ -210,16 +212,15 @@ import Data.Profunctor.Strong (class Strong)
 import Data.Show.Generic (genericShow)
 import Data.Typelevel.Num (D1)
 import Data.Variant (Variant, inj, match)
-import Effect (Effect)
 import FRP.Event (Event)
 import Foreign (Foreign)
 import Foreign.Object (Object)
+import Ocarina.WebAPI (AnalyserNodeCb, BrowserAudioBuffer, BrowserFloatArray, BrowserMediaElement, BrowserMicrophone, BrowserPeriodicWave, MediaRecorderCb)
 import Prim.Row (class Cons)
 import Simple.JSON as JSON
 import Type.Equality (class TypeEquals)
 import Type.Proxy (Proxy(..))
 import Unsafe.Coerce (unsafeCoerce)
-import Ocarina.WebAPI (AnalyserNodeCb, BrowserAudioBuffer, BrowserFloatArray, BrowserMediaElement, BrowserMicrophone, BrowserPeriodicWave, MediaRecorderCb)
 
 -- start param
 newtype Transition = Transition
@@ -513,7 +514,7 @@ instance showAudioWorkletNodeOptions_ ::
 
 type NodeC' :: forall k. k -> Type -> Type
 type NodeC' lock payload =
-  Bolson.PSR Effect ()
+  Bolson.PSR ()
   -> AudioInterpret payload
   -> Event payload
 
@@ -529,8 +530,8 @@ sound = Bolson.Insert
 silence :: forall outputChannels lock payload. AudibleChild outputChannels lock payload
 silence = Bolson.Remove
 
-type Audible outputChannels lock payload = Bolson.Entity Void (Node outputChannels lock payload) Effect lock
-type AudibleChild outputChannels lock payload = Bolson.Child Void (Node outputChannels lock payload) Effect lock
+type Audible outputChannels lock payload = Bolson.Entity Void (Node outputChannels lock payload) lock
+type AudibleChild outputChannels lock payload = Bolson.Child Void (Node outputChannels lock payload) lock
 
 --
 
@@ -1260,7 +1261,7 @@ type SetFrequency = { id :: String, frequency :: FFIAudioParameter }
 type SetWaveShaperCurve = { id :: String, curve :: BrowserFloatArray }
 
 newtype AudioInterpret payload = AudioInterpret
-  { ids :: Effect String
+  { ids :: ST Region.Global String
   , disconnectXFromY :: DisconnectXFromY -> payload
   , connectXToY :: ConnectXToY -> payload
   , deleteFromCache :: DeleteFromCache -> payload

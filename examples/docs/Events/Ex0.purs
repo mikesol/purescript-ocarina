@@ -18,9 +18,8 @@ import Deku.Core (Domable, bussed)
 import Deku.DOM as D
 import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
-import FRP.Event (AnEvent, Event, bus)
+import FRP.Event (Event, bus)
 import FRP.Event.Class (biSampleOn)
-import Hyrule.Zora (Zora)
 import Ocarina.Control (gain, gain_, microphone, recorder, sinOsc)
 import Ocarina.Core (Audible, Node)
 import Ocarina.Core (AudioEnvelope(..), AudioOnOff(..), _off, _on)
@@ -165,7 +164,7 @@ main = runInBody1 (bus \push -> lcmap (pure Init <|> _) \event ->
 """
 
 ex0
-  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> AnEvent Zora SingleSubgraphEvent -> Domable lock payload
+  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable lock payload
 ex0 ccb _ ev = makePursx' (Proxy :: _ "@") px
   { txt: nut (text_ txt)
   , ex0: nut

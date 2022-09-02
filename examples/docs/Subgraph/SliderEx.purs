@@ -17,10 +17,9 @@ import Effect.Aff (launchAff, launchAff_)
 import Effect.Class (liftEffect)
 import Effect.Random as Random
 import FRP.Behavior (Behavior, behavior, sampleBy)
-import FRP.Event (AnEvent, Event, delay, fold, makeEvent, subscribe, toEvent)
+import FRP.Event (Event, delay, fold, makeEvent, subscribe)
 import FRP.Event.Class (biSampleOn)
 import FRP.Event.VBus (V, vbus)
-import Hyrule.Zora (Zora)
 import Ocarina.Control (gain_, playBuf)
 import Ocarina.Core (Audible, silence, sound, bangOn, dyn)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..))
@@ -164,7 +163,7 @@ sgSliderEx
   :: forall lock payload
    . CancelCurrentAudio
   -> (Page -> Effect Unit)
-  -> AnEvent Zora SingleSubgraphEvent
+  -> Event SingleSubgraphEvent
   -> Domable lock payload
 sgSliderEx ccb _ ev = makePursx' (Proxy :: _ "@") px
   { txt: nut (text_ txt)
@@ -175,7 +174,7 @@ sgSliderEx ccb _ ev = makePursx' (Proxy :: _ "@") px
               startE = pure unit <|> event.startStop.start
               stopE = event.startStop.stop
               sl = sampleBy (/\) random
-                $ fold (\_ b -> b + 1) (toEvent event.slider) 0
+                $ fold (\_ b -> b + 1) (event.slider) 0
 
               music :: forall lock0. _ -> Array (Audible _ lock0 _)
               music buffer =

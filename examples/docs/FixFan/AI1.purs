@@ -10,8 +10,7 @@ import Data.Number (pow)
 import Deku.Core (Domable)
 import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
-import FRP.Event (AnEvent, Event)
-import Hyrule.Zora (Zora)
+import FRP.Event (Event)
 import Ocarina.Control (gain_, playBuf)
 import Ocarina.Core (apOn, dt)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
@@ -44,7 +43,7 @@ px =
   </div>
 """
 
-ai1 :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> AnEvent Zora SingleSubgraphEvent -> Domable lock payload
+ai1 :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable lock payload
 ai1 ccb _ ev = makePursx' (Proxy :: _ "@") px
   { ai0: nut
       ( audioWrapper ev ccb

@@ -3,6 +3,8 @@ module Ocarina.Interpret where
 import Prelude
 
 import Control.Bind (bindFlipped)
+import Control.Monad.ST.Global as Region
+import Control.Monad.ST.Internal as Ref
 import Control.Promise (Promise, toAff, toAffE)
 import Data.ArrayBuffer.Types (ArrayBuffer, Float32Array, Uint8Array)
 import Data.Maybe (Maybe(..), maybe)
@@ -13,14 +15,16 @@ import Data.Vec as V
 import Effect (Effect)
 import Effect.Aff (Aff, bracket)
 import Effect.Class (class MonadEffect, liftEffect)
-import Effect.Random as R
-import Simple.JSON as JSON
-import Type.Row.Homogeneous (class Homogeneous)
-import Unsafe.Coerce (unsafeCoerce)
 import Ocarina.Control (class ValidateOutputChannelCount)
 import Ocarina.Core as C
 import Ocarina.WebAPI (AudioContext, BrowserAudioBuffer)
 import Ocarina.WebAPI as WebAPI
+import Random.LCG (mkSeed)
+import Simple.JSON as JSON
+import Test.QuickCheck (arbitrary)
+import Test.QuickCheck.Gen (Gen, evalGen)
+import Type.Row.Homogeneous (class Homogeneous)
+import Unsafe.Coerce (unsafeCoerce)
 import Web.File.Blob (Blob)
 import Web.File.Url (createObjectURL)
 
@@ -399,9 +403,15 @@ foreign import setPlaybackRate_
   :: C.SetPlaybackRate -> FFIAudioSnapshot -> Effect Unit
 
 effectfulAudioInterpret
-  :: C.AudioInterpret (FFIAudioSnapshot -> Effect Unit)
-effectfulAudioInterpret = C.AudioInterpret
-  { ids: map show R.random
+  :: Ref.STRef Region.Global Int -> C.AudioInterpret (FFIAudioSnapshot -> Effect Unit)
+effectfulAudioInterpret seed = C.AudioInterpret
+  { ids: do
+      s <- Ref.read seed
+      let
+        o = show
+          (evalGen (arbitrary :: Gen Int) { newSeed: mkSeed s, size: 5 })
+      void $ Ref.modify (add 1) seed
+      pure o
   , deleteFromCache: deleteFromCache_
   , disconnectXFromY: disconnectXFromY_
   , connectXToY: connectXToY_

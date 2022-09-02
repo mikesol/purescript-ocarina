@@ -17,7 +17,7 @@ import Effect.Aff (launchAff_)
 import Effect.Class (liftEffect)
 import Effect.Random as Random
 import FRP.Behavior (Behavior, behavior, sampleBy)
-import FRP.Event (create, delay, fold, fromEvent, makeEvent, subscribe, toEvent)
+import FRP.Event (create, delay, fold, makeEvent, subscribe)
 import FRP.Event.VBus (V, vbus)
 import Ocarina.Control (gain_, playBuf)
 import Ocarina.Core (dyn, sound, silence, bangOn)
@@ -43,7 +43,7 @@ random = behavior \e ->
 main :: Effect Unit
 main = do
   { push, event } <- create
-  runInBody (switcher_ D.div scene (fromEvent event))
+  runInBody (switcher_ D.div scene (event))
   push Nothing
   launchAff_ $ bracketCtx
     \ctx -> decodeAudioDataFromUri ctx bell >>= liftEffect
@@ -59,7 +59,7 @@ main = do
       let
         startE = pure unit <|> event.startStop.start
         sl = sampleBy (/\) random
-          $ fold (\_ b -> b + 1) (toEvent event.slider) 0
+          $ fold (\_ b -> b + 1) (event.slider) 0
         music = run2_
           [ gain_ 1.0
               [ dyn $ map

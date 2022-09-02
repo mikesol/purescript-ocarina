@@ -7,7 +7,7 @@
     "format": "purs-tidy format-in-place src/**/*.purs",
     "pulp-publish": "pulp publish",
     "docs": "pulp docs",
-    "test": "spago -x test.dhall test && spago -x examples.dhall build && spago -x cheatsheet.dhall build"
+    "test": "spago -x examples.dhall build && spago -x cheatsheet.dhall build"
   },
   "keywords": [],
   "author": "",

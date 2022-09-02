@@ -14,7 +14,7 @@ import Deku.DOM as D
 import Deku.Toplevel (runInBody)
 import Effect (Effect)
 import FRP.Behavior (sampleBy, sample_, step)
-import FRP.Event (memoize, toEvent)
+import FRP.Event (memoize)
 import FRP.Event.Animate (animationFrameEvent)
 import FRP.Event.Class (fold, mapAccum, sampleOn)
 import FRP.Event.VBus (V)
@@ -44,7 +44,7 @@ main = runInBody
       let
         startE = pure unit <|> event.startStop.start
         stopE = event.startStop.stop
-        chkState e = step false (toEvent $ fold (const not) e false)
+        chkState e = step false (fold (const not) e false)
         cbx0 = chkState event.cbx.cbx0
         cbx1 = chkState event.cbx.cbx1
         cbx2 = chkState event.cbx.cbx2

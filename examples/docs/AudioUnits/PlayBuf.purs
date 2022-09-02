@@ -6,8 +6,7 @@ import Bolson.Core (envy)
 import Deku.Core (Domable)
 import Deku.Pursx (nut, (~~))
 import Effect (Effect)
-import FRP.Event (AnEvent, Event)
-import Hyrule.Zora (Zora)
+import FRP.Event (Event)
 import Ocarina.Control (playBuf)
 import Ocarina.Core (bangOn)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
@@ -36,7 +35,7 @@ px =  Proxy :: Proxy   """<section>
 """
 
 playBufEx
-  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> AnEvent Zora SingleSubgraphEvent -> Domable lock payload
+  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable lock payload
 playBufEx ccb _ ev = px ~~
   { playBuf: nut
       ( audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/470/470035_9564355-lq.mp3")

@@ -14,10 +14,9 @@ import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
 import Effect.Random as Random
 import FRP.Behavior (Behavior, behavior, sampleBy)
-import FRP.Event (AnEvent, Event, makeEvent, memoize, subscribe, toEvent)
+import FRP.Event (Event, makeEvent, memoize, subscribe)
 import FRP.Event.Class (biSampleOn)
 import FRP.Event.VBus (V, vbus)
-import Hyrule.Zora (Zora)
 import Ocarina.Clock (interval)
 import Ocarina.Control (bandpass_, fan1, gain, gain_, highpass_, triangleOsc)
 import Ocarina.Core (Audible, AudioEnvelope(..), bangOn)
@@ -197,7 +196,7 @@ main = runInBody1
                       myIvl = sampleBy Tuple random
                         $ interval ctx 0.91
                         $ map (calcSlope 0.0 0.42 100.0 1.4)
-                        $ toEvent event.slider
+                        $ event.slider
                     r <- run2e ctx (music myIvl)
                     push.startStop.stop (r *> close ctx)
                 , event.startStop.stop <#>
@@ -235,7 +234,7 @@ cp n
   | otherwise = 587.329536
 
 ex2
-  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> AnEvent Zora SingleSubgraphEvent -> Domable lock payload
+  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable lock payload
 ex2 ccb _ ev = makePursx' (Proxy :: _ "@") px
   { txt: nut (text_ txt)
   , ex2: nut
@@ -327,7 +326,7 @@ ex2 ccb _ ev = makePursx' (Proxy :: _ "@") px
                             myIvl = sampleBy Tuple random
                               $ interval ctx 0.91
                               $ map (calcSlope 0.0 0.42 100.0 1.4)
-                              $ toEvent event.slider
+                              $ event.slider
                           r' <- run2e ctx (music myIvl)
                           let r = r' *> close ctx
                           ccb (r *> push.startStop.start unit)

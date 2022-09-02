@@ -9,12 +9,12 @@ import Deku.Attribute (attr, cb, (:=))
 import Deku.Control (text, text_)
 import Deku.Core (vbussed)
 import Deku.DOM as D
-import Deku.Toplevel (runInBody, runInBody1)
+import Deku.Toplevel (runInBody)
 import Effect (Effect)
 import Effect.Random as Random
 import FRP.Behavior (Behavior, behavior, sampleBy)
-import FRP.Event (Event, makeEvent, memoize, subscribe, toEvent)
-import FRP.Event.VBus (V, vbus)
+import FRP.Event (Event, makeEvent, memoize, subscribe)
+import FRP.Event.VBus (V)
 import Ocarina.Clock (interval)
 import Ocarina.Control (bandpass_, fan1, gain, gain_, highpass_, triangleOsc)
 import Ocarina.Core (Audible, AudioEnvelope(AudioEnvelope), bangOn)
@@ -134,7 +134,7 @@ main = runInBody
                       myIvl = sampleBy Tuple random
                         $ interval ctx 0.91
                         $ map (calcSlope 0.0 0.42 100.0 1.4)
-                        $ toEvent event.slider
+                        $ event.slider
                     r <- run2e ctx (music myIvl)
                     push.startStop.stop (r *> close ctx)
                 , event.startStop.stop <#>

@@ -9,9 +9,8 @@ import Deku.Control (text_)
 import Deku.Core (Domable)
 import Deku.Pursx (nut, (~~))
 import Effect (Effect)
-import FRP.Event (AnEvent, Event)
+import FRP.Event (Event)
 import FRP.Event (delay)
-import Hyrule.Zora (Zora)
 import Ocarina.Control (gain_, loopBuf)
 import Ocarina.Core (AudioCancel(..), AudioEnvelope(..), bangOn)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
@@ -35,7 +34,7 @@ px =
   </section>
 """
 
-cancelEx :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> AnEvent Zora SingleSubgraphEvent -> Domable lock payload
+cancelEx :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable lock payload
 cancelEx ccb _ ev = px ~~
   { txt: nut
       ( text_
