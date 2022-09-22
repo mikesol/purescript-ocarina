@@ -10,6 +10,7 @@ import Control.Monad.ST.Internal as RRef
 import Control.Plus (empty)
 import ConvertableOptions (class ConvertOption, class ConvertOptionsWithDefaults, convertOptionsWithDefaults)
 import Data.FastVect.FastVect (Vect, singleton, toArray, index)
+import Data.Foldable (oneOf)
 import Data.Homogeneous (class HomogeneousRowLabels)
 import Data.Homogeneous.Variant (homogeneous)
 import Data.Int (pow)
@@ -49,7 +50,7 @@ allpass
 allpass i' atts elts = Element' $ C.Node go
   where
   C.InitializeAllpass i = Common.toInitializeAllpass i'
-  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeAllpass, setFrequency, setQ }) =  makeLemmingEvent \mySub k -> do
+  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeAllpass, setFrequency, setQ }) = makeLemmingEvent \mySub k -> do
     me <- ids
     parent.raiseId me
     map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
@@ -176,7 +177,7 @@ analyser i' atts elts = Element' $ C.Node go
   go
     parent
     di@(C.AudioInterpret { ids, deleteFromCache, makeAnalyser, setAnalyserNodeCb }) =
-     makeLemmingEvent \mySub k -> do
+    makeLemmingEvent \mySub k -> do
       me <- ids
       parent.raiseId me
       map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
@@ -277,7 +278,7 @@ __audioWorklet (C.InitializeAudioWorkletNode i) atts elt = Element' $ C.Node go
       ( C.AudioInterpret
           { ids, deleteFromCache, makeAudioWorkletNode, setAudioWorkletParameter }
       ) =
-     makeLemmingEvent \mySub k -> do
+    makeLemmingEvent \mySub k -> do
       me <- ids
       parent.raiseId me
       map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
@@ -346,7 +347,7 @@ bandpass
 bandpass i' atts elts = Element' $ C.Node go
   where
   C.InitializeBandpass i = Common.toInitializeBandpass i'
-  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeBandpass, setFrequency, setQ }) =  makeLemmingEvent \mySub k -> do
+  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeBandpass, setFrequency, setQ }) = makeLemmingEvent \mySub k -> do
     me <- ids
     parent.raiseId me
     map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
@@ -386,7 +387,7 @@ __constant i' atts = Element' $ C.Node go
   where
   C.InitializeConstant i = Common.toInitializeConstant i'
   go parent di@(C.AudioInterpret { ids, deleteFromCache, makeConstant, setOffset, setOnOff }) =
-     makeLemmingEvent \mySub k -> do
+    makeLemmingEvent \mySub k -> do
       me <- ids
       parent.raiseId me
       map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
@@ -436,7 +437,7 @@ convolver i' elts = Element' $ C.Node go
   where
   C.InitializeConvolver i = Common.toInitializeConvolver i'
   go parent di@(C.AudioInterpret { ids, deleteFromCache, makeConvolver }) =
-     makeLemmingEvent \mySub k -> do
+    makeLemmingEvent \mySub k -> do
       me <- ids
       parent.raiseId me
       map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
@@ -461,7 +462,7 @@ delay
 delay i' atts elts = Element' $ C.Node go
   where
   C.InitializeDelay i = Common.toInitializeDelay i'
-  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeDelay, setDelay }) =  makeLemmingEvent \mySub k -> do
+  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeDelay, setDelay }) = makeLemmingEvent \mySub k -> do
     me <- ids
     parent.raiseId me
     map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
@@ -513,7 +514,7 @@ dynamicsCompressor i' atts elts = Element' $ C.Node go
           , setRelease
           }
       ) =
-     makeLemmingEvent \mySub k -> do
+    makeLemmingEvent \mySub k -> do
       me <- ids
       parent.raiseId me
       map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
@@ -578,7 +579,7 @@ gain
 gain i' atts elts = Element' $ C.Node go
   where
   C.InitializeGain i = Common.toInitializeGain i'
-  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeGain, setGain }) =  makeLemmingEvent \mySub k -> do
+  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeGain, setGain }) = makeLemmingEvent \mySub k -> do
     me <- ids
     parent.raiseId me
     map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
@@ -616,7 +617,7 @@ highpass
 highpass i' atts elts = Element' $ C.Node go
   where
   C.InitializeHighpass i = Common.toInitializeHighpass i'
-  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeHighpass, setFrequency, setQ }) =  makeLemmingEvent \mySub k -> do
+  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeHighpass, setFrequency, setQ }) = makeLemmingEvent \mySub k -> do
     me <- ids
     parent.raiseId me
     map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
@@ -655,7 +656,7 @@ highshelf
 highshelf i' atts elts = Element' $ C.Node go
   where
   C.InitializeHighshelf i = Common.toInitializeHighshelf i'
-  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeHighshelf, setFrequency, setGain }) =  makeLemmingEvent \mySub k -> do
+  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeHighshelf, setFrequency, setGain }) = makeLemmingEvent \mySub k -> do
     me <- ids
     parent.raiseId me
     map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
@@ -719,7 +720,7 @@ iirFilter' fwd bk i' elts = Element' $ C.Node go
           , makeIIRFilter
           }
       ) =
-     makeLemmingEvent \mySub k -> do
+    makeLemmingEvent \mySub k -> do
       me <- ids
       parent.raiseId me
       map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
@@ -745,7 +746,7 @@ lowpass
 lowpass i' atts elts = Element' $ C.Node go
   where
   C.InitializeLowpass i = Common.toInitializeLowpass i'
-  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeLowpass, setFrequency, setQ }) =  makeLemmingEvent \mySub k -> do
+  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeLowpass, setFrequency, setQ }) = makeLemmingEvent \mySub k -> do
     me <- ids
     parent.raiseId me
     map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
@@ -784,7 +785,7 @@ lowshelf
 lowshelf i' atts elts = Element' $ C.Node go
   where
   C.InitializeLowshelf i = Common.toInitializeLowshelf i'
-  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeLowshelf, setFrequency, setGain }) =  makeLemmingEvent \mySub k -> do
+  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeLowshelf, setFrequency, setGain }) = makeLemmingEvent \mySub k -> do
     me <- ids
     parent.raiseId me
     map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
@@ -837,7 +838,7 @@ __loopBuf i' atts = Element' $ C.Node go
           , setLoopEnd
           }
       ) =
-     makeLemmingEvent \mySub k -> do
+    makeLemmingEvent \mySub k -> do
       me <- ids
       parent.raiseId me
       map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
@@ -891,7 +892,7 @@ __mediaElement
 __mediaElement (C.InitializeMediaElement i) = Element' $ C.Node go
   where
   go parent (C.AudioInterpret { ids, deleteFromCache, makeMediaElement }) =
-     makeLemmingEvent \mySub k -> do
+    makeLemmingEvent \mySub k -> do
       me <- ids
       parent.raiseId me
       map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
@@ -921,7 +922,7 @@ __microphone i' = Element' $ C.Node go
   where
   C.InitializeMicrophone i = Common.toInitializeMicrophone i'
   go parent (C.AudioInterpret { ids, deleteFromCache, makeMicrophone }) =
-     makeLemmingEvent \mySub k -> do
+    makeLemmingEvent \mySub k -> do
       me <- ids
       parent.raiseId me
       map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
@@ -952,7 +953,7 @@ notch
 notch i' atts elts = Element' $ C.Node go
   where
   C.InitializeNotch i = Common.toInitializeNotch i'
-  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeNotch, setFrequency, setQ }) =  makeLemmingEvent \mySub k -> do
+  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeNotch, setFrequency, setQ }) = makeLemmingEvent \mySub k -> do
     me <- ids
     parent.raiseId me
     map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
@@ -991,16 +992,14 @@ peaking
 peaking i' atts elts = Element' $ C.Node go
   where
   C.InitializePeaking i = Common.toInitializePeaking i'
-  go parent di@(C.AudioInterpret { ids, deleteFromCache, makePeaking, setFrequency, setQ, setGain }) =  makeLemmingEvent \mySub k -> do
+  go parent di@(C.AudioInterpret { ids, deleteFromCache, makePeaking, setFrequency, setQ, setGain }) = makeLemmingEvent \mySub k -> do
     me <- ids
     parent.raiseId me
-    map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
-      pure
-        ( makePeaking
-            { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, frequency: i.frequency, q: i.q, gain: i.gain }
-        )
-        <|>
-          ( keepLatest $ map
+    unsub <- mySub
+      ( oneOf
+          [ makePeaking
+              { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, frequency: i.frequency, q: i.q, gain: i.gain }
+          , keepLatest $ map
               ( \(C.Peaking e) -> match
                   { frequency: tmpResolveAU parent.scope di (setFrequency <<< { id: me, frequency: _ })
                   , q: tmpResolveAU parent.scope di (setQ <<< { id: me, q: _ })
@@ -1009,8 +1008,13 @@ peaking i' atts elts = Element' $ C.Node go
                   e
               )
               atts
-          )
-        <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di (fixed elts)
+          , __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di (fixed elts)
+          ]
+      )
+      k
+    pure do
+      k (deleteFromCache { id: me })
+      unsub
 
 peaking_
   :: forall i (outputChannels :: Type) lock payload
@@ -1037,7 +1041,7 @@ __periodicOsc i' atts = Element' $ C.Node go
       ( C.AudioInterpret
           { ids, deleteFromCache, makePeriodicOsc, setFrequency, setOnOff, setPeriodicOsc }
       ) =
-     makeLemmingEvent \mySub k -> do
+    makeLemmingEvent \mySub k -> do
       me <- ids
       parent.raiseId me
       map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
@@ -1155,7 +1159,7 @@ __playBuf i' atts = Element' $ C.Node go
           , setBufferOffset
           }
       ) =
-     makeLemmingEvent \mySub k -> do
+    makeLemmingEvent \mySub k -> do
       me <- ids
       parent.raiseId me
       map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
@@ -1214,7 +1218,7 @@ recorder i' elt = Element' $ C.Node go
   where
   C.InitializeRecorder i = Common.toInitializeRecorder i'
   go parent di@(C.AudioInterpret { ids, deleteFromCache, makeRecorder }) =
-     makeLemmingEvent \mySub k -> do
+    makeLemmingEvent \mySub k -> do
       me <- ids
       parent.raiseId me
       map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
@@ -1238,7 +1242,7 @@ __sawtoothOsc i' atts = Element' $ C.Node go
   go
     parent
     di@(C.AudioInterpret { ids, deleteFromCache, makeSawtoothOsc, setFrequency, setOnOff }) =
-     makeLemmingEvent \mySub k -> do
+    makeLemmingEvent \mySub k -> do
       me <- ids
       parent.raiseId me
       map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
@@ -1290,7 +1294,7 @@ __sinOsc i' atts = Element' $ C.Node go
   go
     parent
     di@(C.AudioInterpret { ids, deleteFromCache, makeSinOsc, setFrequency, setOnOff }) =
-     makeLemmingEvent \mySub k -> do
+    makeLemmingEvent \mySub k -> do
       me <- ids
       parent.raiseId me
       map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
@@ -1342,7 +1346,7 @@ __squareOsc i' atts = Element' $ C.Node go
   go
     parent
     di@(C.AudioInterpret { ids, deleteFromCache, makeSquareOsc, setFrequency, setOnOff }) =
-     makeLemmingEvent \mySub k -> do
+    makeLemmingEvent \mySub k -> do
       me <- ids
       parent.raiseId me
       map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
@@ -1386,7 +1390,7 @@ speaker
    . Array (C.Audible outputChannels lock payload)
   -> C.AudioInterpret payload
   -> Event payload
-speaker elts di@(C.AudioInterpret { ids, makeSpeaker }) =  makeLemmingEvent \mySub k -> do
+speaker elts di@(C.AudioInterpret { ids, makeSpeaker }) = makeLemmingEvent \mySub k -> do
   id <- ids
   k (makeSpeaker { id })
   mySub (__internalOcarinaFlatten { parent: Just id, scope: Local "toplevel", raiseId: \_ -> pure unit } di (fixed elts)) k
@@ -1409,7 +1413,7 @@ pan
 pan i' atts elts = Element' $ C.Node go
   where
   C.InitializeStereoPanner i = Common.toInitializeStereoPanner i'
-  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeStereoPanner, setPan }) =  makeLemmingEvent \mySub k -> do
+  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeStereoPanner, setPan }) = makeLemmingEvent \mySub k -> do
     me <- ids
     parent.raiseId me
     map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
@@ -1450,7 +1454,7 @@ __triangleOsc i' atts = Element' $ C.Node go
   go
     parent
     di@(C.AudioInterpret { ids, deleteFromCache, makeTriangleOsc, setFrequency, setOnOff }) =
-     makeLemmingEvent \mySub k -> do
+    makeLemmingEvent \mySub k -> do
       me <- ids
       parent.raiseId me
       map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
@@ -1500,7 +1504,7 @@ waveShaper i' elts = Element' $ C.Node go
   where
   C.InitializeWaveShaper i = Common.toInitializeWaveShaper i'
   go parent di@(C.AudioInterpret { ids, deleteFromCache, makeWaveShaper }) =
-     makeLemmingEvent \mySub k -> do
+    makeLemmingEvent \mySub k -> do
       me <- ids
       parent.raiseId me
       map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
@@ -1668,14 +1672,15 @@ tmpResolveAU = go
         let
           n = gain_ 1.0 [ u ]
         in
-           makeLemmingEvent \mySub k -> do
+          makeLemmingEvent \mySub k -> do
             av <- RRef.new Nothing
             mySub
-              ( __internalOcarinaFlatten { parent: Nothing, scope: scope, raiseId: \x -> void $ RRef.write (Just x) av } di n <|>  makeLemmingEvent \mySub k2 -> do
-                  RRef.read av >>= case _ of
-                    Nothing -> pure unit -- ugh, fails silently
-                    Just i -> k2 (f (ut (C.FFIAudioUnit { i })))
-                  pure (pure unit)
+              ( __internalOcarinaFlatten { parent: Nothing, scope: scope, raiseId: \x -> void $ RRef.write (Just x) av } di n <|> makeLemmingEvent \mySub k2 ->
+                  do
+                    RRef.read av >>= case _ of
+                      Nothing -> pure unit -- ugh, fails silently
+                      Just i -> k2 (f (ut (C.FFIAudioUnit { i })))
+                    pure (pure unit)
               )
               k
     }
