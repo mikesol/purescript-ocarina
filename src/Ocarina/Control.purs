@@ -53,13 +53,13 @@ allpass i' atts elts = Element' $ C.Node go
   go parent di@(C.AudioInterpret { ids, deleteFromCache, makeAllpass, setFrequency, setQ }) = makeLemmingEvent \mySub k -> do
     me <- ids
     parent.raiseId me
-    map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
-      pure
-        ( makeAllpass
-            { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, frequency: i.frequency, q: i.q }
-        )
-        <|>
-          ( keepLatest $ map
+    unsub <- mySub
+      ( oneOf
+          [ pure
+              ( makeAllpass
+                  { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, frequency: i.frequency, q: i.q }
+              )
+          , keepLatest $ map
               ( \(C.Allpass e) -> match
                   { frequency: tmpResolveAU parent.scope di (setFrequency <<< { id: me, frequency: _ })
                   , q: tmpResolveAU parent.scope di (setQ <<< { id: me, q: _ })
@@ -67,8 +67,13 @@ allpass i' atts elts = Element' $ C.Node go
                   e
               )
               atts
-          )
-        <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di (fixed elts)
+          , __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di (fixed elts)
+          ]
+      )
+      k
+    pure do
+      k (deleteFromCache { id: me })
+      unsub
 
 allpass_
   :: forall i (outputChannels :: Type) lock payload
@@ -180,44 +185,51 @@ analyser i' atts elts = Element' $ C.Node go
     makeLemmingEvent \mySub k -> do
       me <- ids
       parent.raiseId me
-      map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
-        pure
-          ( makeAnalyser
-              { id: me
-              , parent: parent.parent
-              , scope: scopeToMaybe parent.scope
-              , cb: i.cb
-              , fftSize: 2 `pow`
-                  ( case i.fftSize of
-                      TTT7 -> 7
-                      TTT8 -> 8
-                      TTT9 -> 9
-                      TTT10 -> 10
-                      TTT11 -> 11
-                      TTT12 -> 12
-                      TTT13 -> 13
-                  )
-              , maxDecibels: i.maxDecibels
-              , minDecibels: i.minDecibels
-              , smoothingTimeConstant: i.smoothingTimeConstant
-              , channelCount: i.channelCount
-              , channelCountMode: case i.channelCountMode of
-                  Explicit -> "explicit"
-                  Max -> "max"
-                  ClampedMax -> "clamped-max"
-              , channelInterpretation: case i.channelInterpretation of
-                  Speakers -> "speakers"
-                  Discrete -> "discrete"
-              }
-          )
-          <|> map
-            ( \(C.Analyser e) -> match
-                { cb: \cb -> setAnalyserNodeCb { id: me, cb }
-                }
-                e
-            )
-            atts
-          <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di (fixed elts)
+      unsub <- mySub
+        ( oneOf
+            [ pure
+                ( makeAnalyser
+                    { id: me
+                    , parent: parent.parent
+                    , scope: scopeToMaybe parent.scope
+                    , cb: i.cb
+                    , fftSize: 2 `pow`
+                        ( case i.fftSize of
+                            TTT7 -> 7
+                            TTT8 -> 8
+                            TTT9 -> 9
+                            TTT10 -> 10
+                            TTT11 -> 11
+                            TTT12 -> 12
+                            TTT13 -> 13
+                        )
+                    , maxDecibels: i.maxDecibels
+                    , minDecibels: i.minDecibels
+                    , smoothingTimeConstant: i.smoothingTimeConstant
+                    , channelCount: i.channelCount
+                    , channelCountMode: case i.channelCountMode of
+                        Explicit -> "explicit"
+                        Max -> "max"
+                        ClampedMax -> "clamped-max"
+                    , channelInterpretation: case i.channelInterpretation of
+                        Speakers -> "speakers"
+                        Discrete -> "discrete"
+                    }
+                )
+            , map
+                ( \(C.Analyser e) -> match
+                    { cb: \cb -> setAnalyserNodeCb { id: me, cb }
+                    }
+                    e
+                )
+                atts
+            , __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di (fixed elts)
+            ]
+        )
+        k
+      pure do
+        k (deleteFromCache { id: me })
+        unsub
 
 analyser_
   :: forall i outputChannels lock payload
@@ -281,27 +293,27 @@ __audioWorklet (C.InitializeAudioWorkletNode i) atts elt = Element' $ C.Node go
     makeLemmingEvent \mySub k -> do
       me <- ids
       parent.raiseId me
-      map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
-        pure
-          ( makeAudioWorkletNode
-              { id: me
-              , parent: parent.parent
-              , scope: scopeToMaybe parent.scope
-              , options:
-                  C.AudioWorkletNodeOptions_
-                    { name: reflectSymbol (Proxy :: _ name)
-                    , numberOfInputs: toInt i.numberOfInputs
-                    , numberOfOutputs: toInt i.numberOfOutputs
-                    , outputChannelCount: toOutputChannelCount
-                        i.numberOfOutputs
-                        i.outputChannelCount
-                    , parameterData: fromHomogeneous i.parameterData
-                    , processorOptions: JSON.writeImpl i.processorOptions
+      unsub <- mySub
+        ( oneOf
+            [ pure
+                ( makeAudioWorkletNode
+                    { id: me
+                    , parent: parent.parent
+                    , scope: scopeToMaybe parent.scope
+                    , options:
+                        C.AudioWorkletNodeOptions_
+                          { name: reflectSymbol (Proxy :: _ name)
+                          , numberOfInputs: toInt i.numberOfInputs
+                          , numberOfOutputs: toInt i.numberOfOutputs
+                          , outputChannelCount: toOutputChannelCount
+                              i.numberOfOutputs
+                              i.outputChannelCount
+                          , parameterData: fromHomogeneous i.parameterData
+                          , processorOptions: JSON.writeImpl i.processorOptions
+                          }
                     }
-              }
-          )
-          <|>
-            ( keepLatest $ map
+                )
+            , keepLatest $ map
                 ( \(C.AudioWorkletNode e) -> tmpResolveAU parent.scope di
                     ( \paramValue -> setAudioWorkletParameter
                         { id: me
@@ -313,8 +325,13 @@ __audioWorklet (C.InitializeAudioWorkletNode i) atts elt = Element' $ C.Node go
                     (extract (homogeneous e))
                 )
                 atts
-            )
-          <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di elt
+            , __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di elt
+            ]
+        )
+        k
+      pure do
+        k (deleteFromCache { id: me })
+        unsub
 
 audioWorklet
   :: forall name numberOfInputs numberOfOutputs outputChannelCount parameterData
@@ -350,13 +367,13 @@ bandpass i' atts elts = Element' $ C.Node go
   go parent di@(C.AudioInterpret { ids, deleteFromCache, makeBandpass, setFrequency, setQ }) = makeLemmingEvent \mySub k -> do
     me <- ids
     parent.raiseId me
-    map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
-      pure
-        ( makeBandpass
-            { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, frequency: i.frequency, q: i.q }
-        )
-        <|>
-          ( keepLatest $ map
+    unsub <- mySub
+      ( oneOf
+          [ pure
+              ( makeBandpass
+                  { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, frequency: i.frequency, q: i.q }
+              )
+          , keepLatest $ map
               ( \(C.Bandpass e) -> match
                   { frequency: tmpResolveAU parent.scope di (setFrequency <<< { id: me, frequency: _ })
                   , q: tmpResolveAU parent.scope di (setQ <<< { id: me, q: _ })
@@ -364,8 +381,13 @@ bandpass i' atts elts = Element' $ C.Node go
                   e
               )
               atts
-          )
-        <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di (fixed elts)
+          , __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di (fixed elts)
+          ]
+      )
+      k
+    pure do
+      k (deleteFromCache { id: me })
+      unsub
 
 bandpass_
   :: forall i (outputChannels :: Type) lock payload
@@ -390,17 +412,17 @@ __constant i' atts = Element' $ C.Node go
     makeLemmingEvent \mySub k -> do
       me <- ids
       parent.raiseId me
-      map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
-        pure
-          ( makeConstant
-              { id: me
-              , parent: parent.parent
-              , scope: scopeToMaybe parent.scope
-              , offset: i.offset
-              }
-          )
-          <|>
-            ( keepLatest $ map
+      unsub <- mySub
+        ( oneOf
+            [ pure
+                ( makeConstant
+                    { id: me
+                    , parent: parent.parent
+                    , scope: scopeToMaybe parent.scope
+                    , offset: i.offset
+                    }
+                )
+            , keepLatest $ map
                 ( \(C.Constant e) -> match
                     { offset: tmpResolveAU parent.scope di (setOffset <<< { id: me, offset: _ })
                     , onOff: \onOff -> pure $ setOnOff { id: me, onOff }
@@ -408,7 +430,12 @@ __constant i' atts = Element' $ C.Node go
                     e
                 )
                 atts
-            )
+            ]
+        )
+        k
+      pure do
+        k (deleteFromCache { id: me })
+        unsub
 
 constant
   :: forall i outputChannels lock payload
@@ -440,16 +467,23 @@ convolver i' elts = Element' $ C.Node go
     makeLemmingEvent \mySub k -> do
       me <- ids
       parent.raiseId me
-      map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
-        pure
-          ( makeConvolver
-              { id: me
-              , parent: parent.parent
-              , scope: scopeToMaybe parent.scope
-              , buffer: i.buffer
-              }
-          )
-          <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di (fixed elts)
+      unsub <- mySub
+        ( oneOf
+            [ pure
+                ( makeConvolver
+                    { id: me
+                    , parent: parent.parent
+                    , scope: scopeToMaybe parent.scope
+                    , buffer: i.buffer
+                    }
+                )
+            , __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di (fixed elts)
+            ]
+        )
+        k
+      pure do
+        k (deleteFromCache { id: me })
+        unsub
 
 -- delay
 delay
@@ -465,21 +499,27 @@ delay i' atts elts = Element' $ C.Node go
   go parent di@(C.AudioInterpret { ids, deleteFromCache, makeDelay, setDelay }) = makeLemmingEvent \mySub k -> do
     me <- ids
     parent.raiseId me
-    map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
-      pure
-        ( makeDelay
-            { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, delayTime: i.delayTime, maxDelayTime: i.maxDelayTime }
-        )
-        <|>
-          ( keepLatest $ map
-              ( \(C.Delay e) -> match
-                  { delayTime: tmpResolveAU parent.scope di (setDelay <<< { id: me, delayTime: _ })
-                  }
-                  e
+    unsub <- mySub
+      ( oneOf
+          [ pure
+              ( makeDelay
+                  { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, delayTime: i.delayTime, maxDelayTime: i.maxDelayTime }
               )
-              atts
-          )
-        <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di (fixed elts)
+          , ( keepLatest $ map
+                ( \(C.Delay e) -> match
+                    { delayTime: tmpResolveAU parent.scope di (setDelay <<< { id: me, delayTime: _ })
+                    }
+                    e
+                )
+                atts
+            )
+          , __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di (fixed elts)
+          ]
+      )
+      k
+    pure do
+      k (deleteFromCache { id: me })
+      unsub
 
 delay_
   :: forall i (outputChannels :: Type) lock payload
@@ -517,21 +557,21 @@ dynamicsCompressor i' atts elts = Element' $ C.Node go
     makeLemmingEvent \mySub k -> do
       me <- ids
       parent.raiseId me
-      map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
-        pure
-          ( makeDynamicsCompressor
-              { id: me
-              , parent: parent.parent
-              , scope: scopeToMaybe parent.scope
-              , threshold: i.threshold
-              , ratio: i.ratio
-              , knee: i.knee
-              , attack: i.attack
-              , release: i.release
-              }
-          )
-          <|>
-            ( keepLatest $ map
+      unsub <- mySub
+        ( oneOf
+            [ pure
+                ( makeDynamicsCompressor
+                    { id: me
+                    , parent: parent.parent
+                    , scope: scopeToMaybe parent.scope
+                    , threshold: i.threshold
+                    , ratio: i.ratio
+                    , knee: i.knee
+                    , attack: i.attack
+                    , release: i.release
+                    }
+                )
+            , keepLatest $ map
                 ( \(C.DynamicsCompressor e) -> match
                     { threshold: tmpResolveAU parent.scope di
                         ( setThreshold <<<
@@ -557,8 +597,13 @@ dynamicsCompressor i' atts elts = Element' $ C.Node go
                     e
                 )
                 atts
-            )
-          <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di (fixed elts)
+            , __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di (fixed elts)
+            ]
+        )
+        k
+      pure do
+        k (deleteFromCache { id: me })
+        unsub
 
 dynamicsCompressor_
   :: forall i (outputChannels :: Type) lock payload
@@ -582,21 +627,27 @@ gain i' atts elts = Element' $ C.Node go
   go parent di@(C.AudioInterpret { ids, deleteFromCache, makeGain, setGain }) = makeLemmingEvent \mySub k -> do
     me <- ids
     parent.raiseId me
-    map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
-      pure
-        ( makeGain
-            { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, gain: i.gain }
-        )
-        <|>
-          ( keepLatest $ map
-              ( \(C.Gain e) -> match
-                  { gain: tmpResolveAU parent.scope di (setGain <<< { id: me, gain: _ })
-                  }
-                  e
+    unsub <- mySub
+      ( oneOf
+          [ pure
+              ( makeGain
+                  { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, gain: i.gain }
               )
-              atts
-          )
-        <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di (fixed elts)
+          , ( keepLatest $ map
+                ( \(C.Gain e) -> match
+                    { gain: tmpResolveAU parent.scope di (setGain <<< { id: me, gain: _ })
+                    }
+                    e
+                )
+                atts
+            )
+          , __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di (fixed elts)
+          ]
+      )
+      k
+    pure do
+      k (deleteFromCache { id: me })
+      unsub
 
 gain_
   :: forall i (outputChannels :: Type) lock payload
@@ -620,13 +671,13 @@ highpass i' atts elts = Element' $ C.Node go
   go parent di@(C.AudioInterpret { ids, deleteFromCache, makeHighpass, setFrequency, setQ }) = makeLemmingEvent \mySub k -> do
     me <- ids
     parent.raiseId me
-    map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
-      pure
-        ( makeHighpass
-            { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, frequency: i.frequency, q: i.q }
-        )
-        <|>
-          ( keepLatest $ map
+    unsub <- mySub
+      ( oneOf
+          [ pure
+              ( makeHighpass
+                  { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, frequency: i.frequency, q: i.q }
+              )
+          , keepLatest $ map
               ( \(C.Highpass e) -> match
                   { frequency: tmpResolveAU parent.scope di (setFrequency <<< { id: me, frequency: _ })
                   , q: tmpResolveAU parent.scope di (setQ <<< { id: me, q: _ })
@@ -634,8 +685,13 @@ highpass i' atts elts = Element' $ C.Node go
                   e
               )
               atts
-          )
-        <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di (fixed elts)
+          , __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di (fixed elts)
+          ]
+      )
+      k
+    pure do
+      k (deleteFromCache { id: me })
+      unsub
 
 highpass_
   :: forall i (outputChannels :: Type) lock payload
@@ -659,13 +715,13 @@ highshelf i' atts elts = Element' $ C.Node go
   go parent di@(C.AudioInterpret { ids, deleteFromCache, makeHighshelf, setFrequency, setGain }) = makeLemmingEvent \mySub k -> do
     me <- ids
     parent.raiseId me
-    map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
-      pure
-        ( makeHighshelf
-            { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, frequency: i.frequency, gain: i.gain }
-        )
-        <|>
-          ( keepLatest $ map
+    unsub <- mySub
+      ( oneOf
+          [ pure
+              ( makeHighshelf
+                  { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, frequency: i.frequency, gain: i.gain }
+              )
+          , keepLatest $ map
               ( \(C.Highshelf e) -> match
                   { frequency: tmpResolveAU parent.scope di (setFrequency <<< { id: me, frequency: _ })
                   , gain: tmpResolveAU parent.scope di (setGain <<< { id: me, gain: _ })
@@ -673,8 +729,13 @@ highshelf i' atts elts = Element' $ C.Node go
                   e
               )
               atts
-          )
-        <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di (fixed elts)
+          , __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di (fixed elts)
+          ]
+      )
+      k
+    pure do
+      k (deleteFromCache { id: me })
+      unsub
 
 highshelf_
   :: forall i (outputChannels :: Type) lock payload
@@ -723,17 +784,24 @@ iirFilter' fwd bk i' elts = Element' $ C.Node go
     makeLemmingEvent \mySub k -> do
       me <- ids
       parent.raiseId me
-      map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
-        pure
-          ( makeIIRFilter
-              { id: me
-              , parent: parent.parent
-              , scope: scopeToMaybe parent.scope
-              , feedforward: toArray i.feedforward
-              , feedback: toArray i.feedback
-              }
-          )
-          <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di (fixed elts)
+      unsub <- mySub
+        ( oneOf
+            [ pure
+                ( makeIIRFilter
+                    { id: me
+                    , parent: parent.parent
+                    , scope: scopeToMaybe parent.scope
+                    , feedforward: toArray i.feedforward
+                    , feedback: toArray i.feedback
+                    }
+                )
+            , __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di (fixed elts)
+            ]
+        )
+        k
+      pure do
+        k (deleteFromCache { id: me })
+        unsub
 
 -- lowpass
 lowpass
@@ -749,13 +817,13 @@ lowpass i' atts elts = Element' $ C.Node go
   go parent di@(C.AudioInterpret { ids, deleteFromCache, makeLowpass, setFrequency, setQ }) = makeLemmingEvent \mySub k -> do
     me <- ids
     parent.raiseId me
-    map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
-      pure
-        ( makeLowpass
-            { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, frequency: i.frequency, q: i.q }
-        )
-        <|>
-          ( keepLatest $ map
+    unsub <- mySub
+      ( oneOf
+          [ pure
+              ( makeLowpass
+                  { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, frequency: i.frequency, q: i.q }
+              )
+          , keepLatest $ map
               ( \(C.Lowpass e) -> match
                   { frequency: tmpResolveAU parent.scope di (setFrequency <<< { id: me, frequency: _ })
                   , q: tmpResolveAU parent.scope di (setQ <<< { id: me, q: _ })
@@ -763,8 +831,13 @@ lowpass i' atts elts = Element' $ C.Node go
                   e
               )
               atts
-          )
-        <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di (fixed elts)
+          , __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di (fixed elts)
+          ]
+      )
+      k
+    pure do
+      k (deleteFromCache { id: me })
+      unsub
 
 lowpass_
   :: forall i (outputChannels :: Type) lock payload
@@ -788,13 +861,13 @@ lowshelf i' atts elts = Element' $ C.Node go
   go parent di@(C.AudioInterpret { ids, deleteFromCache, makeLowshelf, setFrequency, setGain }) = makeLemmingEvent \mySub k -> do
     me <- ids
     parent.raiseId me
-    map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
-      pure
-        ( makeLowshelf
-            { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, frequency: i.frequency, gain: i.gain }
-        )
-        <|>
-          ( keepLatest $ map
+    unsub <- mySub
+      ( oneOf
+          [ pure
+              ( makeLowshelf
+                  { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, frequency: i.frequency, gain: i.gain }
+              )
+          , keepLatest $ map
               ( \(C.Lowshelf e) -> match
                   { frequency: tmpResolveAU parent.scope di (setFrequency <<< { id: me, frequency: _ })
                   , gain: tmpResolveAU parent.scope di (setGain <<< { id: me, gain: _ })
@@ -802,8 +875,13 @@ lowshelf i' atts elts = Element' $ C.Node go
                   e
               )
               atts
-          )
-        <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di (fixed elts)
+          , __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di (fixed elts)
+          ]
+      )
+      k
+    pure do
+      k (deleteFromCache { id: me })
+      unsub
 
 lowshelf_
   :: forall i (outputChannels :: Type) lock payload
@@ -841,21 +919,21 @@ __loopBuf i' atts = Element' $ C.Node go
     makeLemmingEvent \mySub k -> do
       me <- ids
       parent.raiseId me
-      map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
-        pure
-          ( makeLoopBuf
-              { id: me
-              , parent: parent.parent
-              , scope: scopeToMaybe parent.scope
-              , buffer: i.buffer
-              , playbackRate: i.playbackRate
-              , loopStart: i.loopStart
-              , loopEnd: i.loopEnd
-              , duration: i.duration
-              }
-          )
-          <|>
-            ( keepLatest $ map
+      unsub <- mySub
+        ( oneOf
+            [ pure
+                ( makeLoopBuf
+                    { id: me
+                    , parent: parent.parent
+                    , scope: scopeToMaybe parent.scope
+                    , buffer: i.buffer
+                    , playbackRate: i.playbackRate
+                    , loopStart: i.loopStart
+                    , loopEnd: i.loopEnd
+                    , duration: i.duration
+                    }
+                )
+            , keepLatest $ map
                 ( \(C.LoopBuf e) -> match
                     { buffer: \buffer -> pure $ setBuffer { id: me, buffer }
                     , playbackRate: tmpResolveAU parent.scope di (setPlaybackRate <<< { id: me, playbackRate: _ })
@@ -866,7 +944,12 @@ __loopBuf i' atts = Element' $ C.Node go
                     e
                 )
                 atts
-            )
+            ]
+        )
+        k
+      pure do
+        k (deleteFromCache { id: me })
+        unsub
 
 loopBuf
   :: forall i outputChannels lock payload
@@ -895,15 +978,20 @@ __mediaElement (C.InitializeMediaElement i) = Element' $ C.Node go
     makeLemmingEvent \mySub k -> do
       me <- ids
       parent.raiseId me
-      map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
-        pure
-          ( makeMediaElement
-              { id: me
-              , parent: parent.parent
-              , scope: scopeToMaybe parent.scope
-              , element: i.element
-              }
-          )
+      unsub <- mySub
+        ( pure
+            ( makeMediaElement
+                { id: me
+                , parent: parent.parent
+                , scope: scopeToMaybe parent.scope
+                , element: i.element
+                }
+            )
+        )
+        k
+      pure do
+        k (deleteFromCache { id: me })
+        unsub
 
 mediaElement
   :: forall outputChannels lock payload
@@ -925,15 +1013,20 @@ __microphone i' = Element' $ C.Node go
     makeLemmingEvent \mySub k -> do
       me <- ids
       parent.raiseId me
-      map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
-        pure
-          ( makeMicrophone
-              { id: me
-              , parent: parent.parent
-              , scope: scopeToMaybe parent.scope
-              , microphone: i.microphone
-              }
-          )
+      unsub <- mySub
+        ( pure
+            ( makeMicrophone
+                { id: me
+                , parent: parent.parent
+                , scope: scopeToMaybe parent.scope
+                , microphone: i.microphone
+                }
+            )
+        )
+        k
+      pure do
+        k (deleteFromCache { id: me })
+        unsub
 
 microphone
   :: forall i outputChannels lock payload
@@ -956,13 +1049,13 @@ notch i' atts elts = Element' $ C.Node go
   go parent di@(C.AudioInterpret { ids, deleteFromCache, makeNotch, setFrequency, setQ }) = makeLemmingEvent \mySub k -> do
     me <- ids
     parent.raiseId me
-    map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
-      pure
-        ( makeNotch
-            { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, frequency: i.frequency, q: i.q }
-        )
-        <|>
-          ( keepLatest $ map
+    unsub <- mySub
+      ( oneOf
+          [ pure
+              ( makeNotch
+                  { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, frequency: i.frequency, q: i.q }
+              )
+          , keepLatest $ map
               ( \(C.Notch e) -> match
                   { frequency: tmpResolveAU parent.scope di (setFrequency <<< { id: me, frequency: _ })
                   , q: tmpResolveAU parent.scope di (setQ <<< { id: me, q: _ })
@@ -970,8 +1063,13 @@ notch i' atts elts = Element' $ C.Node go
                   e
               )
               atts
-          )
-        <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di (fixed elts)
+          , __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di (fixed elts)
+          ]
+      )
+      k
+    pure do
+      k (deleteFromCache { id: me })
+      unsub
 
 notch_
   :: forall i (outputChannels :: Type) lock payload
@@ -997,7 +1095,7 @@ peaking i' atts elts = Element' $ C.Node go
     parent.raiseId me
     unsub <- mySub
       ( oneOf
-          [ makePeaking
+          [ pure $ makePeaking
               { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, frequency: i.frequency, q: i.q, gain: i.gain }
           , keepLatest $ map
               ( \(C.Peaking e) -> match
@@ -1044,18 +1142,18 @@ __periodicOsc i' atts = Element' $ C.Node go
     makeLemmingEvent \mySub k -> do
       me <- ids
       parent.raiseId me
-      map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
-        pure
-          ( makePeriodicOsc
-              { id: me
-              , parent: parent.parent
-              , scope: scopeToMaybe parent.scope
-              , frequency: i.frequency
-              , spec: i.spec
-              }
-          )
-          <|>
-            ( keepLatest $ map
+      unsub <- mySub
+        ( oneOf
+            [ pure
+                ( makePeriodicOsc
+                    { id: me
+                    , parent: parent.parent
+                    , scope: scopeToMaybe parent.scope
+                    , frequency: i.frequency
+                    , spec: i.spec
+                    }
+                )
+            , keepLatest $ map
                 ( \(C.PeriodicOsc e) -> match
                     { frequency: tmpResolveAU parent.scope di (setFrequency <<< { id: me, frequency: _ })
                     , onOff: \onOff -> pure $ setOnOff { id: me, onOff }
@@ -1064,7 +1162,12 @@ __periodicOsc i' atts = Element' $ C.Node go
                     e
                 )
                 atts
-            )
+            ]
+        )
+        k
+      pure do
+        k (deleteFromCache { id: me })
+        unsub
 
 periodicOsc
   :: forall i outputChannels lock payload
@@ -1162,20 +1265,20 @@ __playBuf i' atts = Element' $ C.Node go
     makeLemmingEvent \mySub k -> do
       me <- ids
       parent.raiseId me
-      map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
-        pure
-          ( makePlayBuf
-              { id: me
-              , parent: parent.parent
-              , scope: scopeToMaybe parent.scope
-              , buffer: i.buffer
-              , playbackRate: i.playbackRate
-              , bufferOffset: i.bufferOffset
-              , duration: i.duration
-              }
-          )
-          <|>
-            ( keepLatest $ map
+      unsub <- mySub
+        ( oneOf
+            [ pure
+                ( makePlayBuf
+                    { id: me
+                    , parent: parent.parent
+                    , scope: scopeToMaybe parent.scope
+                    , buffer: i.buffer
+                    , playbackRate: i.playbackRate
+                    , bufferOffset: i.bufferOffset
+                    , duration: i.duration
+                    }
+                )
+            , keepLatest $ map
                 ( \(C.PlayBuf e) -> match
                     { buffer: \buffer -> pure $ setBuffer { id: me, buffer }
                     , playbackRate: tmpResolveAU parent.scope di
@@ -1190,7 +1293,12 @@ __playBuf i' atts = Element' $ C.Node go
                     e
                 )
                 atts
-            )
+            ]
+        )
+        k
+      pure do
+        k (deleteFromCache { id: me })
+        unsub
 
 playBuf
   :: forall i outputChannels lock payload
@@ -1221,12 +1329,19 @@ recorder i' elt = Element' $ C.Node go
     makeLemmingEvent \mySub k -> do
       me <- ids
       parent.raiseId me
-      map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
-        pure
-          ( makeRecorder
-              { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, cb: i.cb }
-          )
-          <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di elt
+      unsub <- mySub
+        ( oneOf
+            [ pure
+                ( makeRecorder
+                    { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, cb: i.cb }
+                )
+            , __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di elt
+            ]
+        )
+        k
+      pure do
+        k (deleteFromCache { id: me })
+        unsub
 
 -- sawtoothOsc
 
@@ -1245,17 +1360,17 @@ __sawtoothOsc i' atts = Element' $ C.Node go
     makeLemmingEvent \mySub k -> do
       me <- ids
       parent.raiseId me
-      map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
-        pure
-          ( makeSawtoothOsc
-              { id: me
-              , parent: parent.parent
-              , scope: scopeToMaybe parent.scope
-              , frequency: i.frequency
-              }
-          )
-          <|>
-            ( keepLatest $ map
+      unsub <- mySub
+        ( oneOf
+            [ pure
+                ( makeSawtoothOsc
+                    { id: me
+                    , parent: parent.parent
+                    , scope: scopeToMaybe parent.scope
+                    , frequency: i.frequency
+                    }
+                )
+            , keepLatest $ map
                 ( \(C.SawtoothOsc e) -> match
                     { frequency: tmpResolveAU parent.scope di (setFrequency <<< { id: me, frequency: _ })
                     , onOff: \onOff -> pure $ setOnOff { id: me, onOff }
@@ -1263,7 +1378,12 @@ __sawtoothOsc i' atts = Element' $ C.Node go
                     e
                 )
                 atts
-            )
+            ]
+        )
+        k
+      pure do
+        k (deleteFromCache { id: me })
+        unsub
 
 sawtoothOsc
   :: forall i outputChannels lock payload
@@ -1297,17 +1417,17 @@ __sinOsc i' atts = Element' $ C.Node go
     makeLemmingEvent \mySub k -> do
       me <- ids
       parent.raiseId me
-      map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
-        pure
-          ( makeSinOsc
-              { id: me
-              , parent: parent.parent
-              , scope: scopeToMaybe parent.scope
-              , frequency: i.frequency
-              }
-          )
-          <|>
-            ( keepLatest $ map
+      unsub <- mySub
+        ( oneOf
+            [ pure
+                ( makeSinOsc
+                    { id: me
+                    , parent: parent.parent
+                    , scope: scopeToMaybe parent.scope
+                    , frequency: i.frequency
+                    }
+                )
+            , keepLatest $ map
                 ( \(C.SinOsc e) -> match
                     { frequency: tmpResolveAU parent.scope di (setFrequency <<< { id: me, frequency: _ })
                     , onOff: \onOff -> pure $ setOnOff { id: me, onOff }
@@ -1315,7 +1435,12 @@ __sinOsc i' atts = Element' $ C.Node go
                     e
                 )
                 atts
-            )
+            ]
+        )
+        k
+      pure do
+        k (deleteFromCache { id: me })
+        unsub
 
 sinOsc
   :: forall i outputChannels lock payload
@@ -1349,17 +1474,17 @@ __squareOsc i' atts = Element' $ C.Node go
     makeLemmingEvent \mySub k -> do
       me <- ids
       parent.raiseId me
-      map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
-        pure
-          ( makeSquareOsc
-              { id: me
-              , parent: parent.parent
-              , scope: scopeToMaybe parent.scope
-              , frequency: i.frequency
-              }
-          )
-          <|>
-            ( keepLatest $ map
+      unsub <- mySub
+        ( oneOf
+            [ pure
+                ( makeSquareOsc
+                    { id: me
+                    , parent: parent.parent
+                    , scope: scopeToMaybe parent.scope
+                    , frequency: i.frequency
+                    }
+                )
+            , keepLatest $ map
                 ( \(C.SquareOsc e) -> match
                     { frequency: tmpResolveAU parent.scope di (setFrequency <<< { id: me, frequency: _ })
                     , onOff: \onOff -> pure $ setOnOff { id: me, onOff }
@@ -1367,7 +1492,12 @@ __squareOsc i' atts = Element' $ C.Node go
                     e
                 )
                 atts
-            )
+            ]
+        )
+        k
+      pure do
+        k (deleteFromCache { id: me })
+        unsub
 
 squareOsc
   :: forall i outputChannels lock payload
@@ -1416,21 +1546,26 @@ pan i' atts elts = Element' $ C.Node go
   go parent di@(C.AudioInterpret { ids, deleteFromCache, makeStereoPanner, setPan }) = makeLemmingEvent \mySub k -> do
     me <- ids
     parent.raiseId me
-    map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
-      pure
-        ( makeStereoPanner
-            { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, pan: i.pan }
-        )
-        <|>
-          ( keepLatest $ map
+    unsub <- mySub
+      ( oneOf
+          [ pure
+              ( makeStereoPanner
+                  { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, pan: i.pan }
+              )
+          , keepLatest $ map
               ( \(C.StereoPanner e) -> match
                   { pan: tmpResolveAU parent.scope di (setPan <<< { id: me, pan: _ })
                   }
                   e
               )
               atts
-          )
-        <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di (fixed elts)
+          , __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di (fixed elts)
+          ]
+      )
+      k
+    pure do
+      k (deleteFromCache { id: me })
+      unsub
 
 pan_
   :: forall i (outputChannels :: Type) lock payload
@@ -1457,25 +1592,31 @@ __triangleOsc i' atts = Element' $ C.Node go
     makeLemmingEvent \mySub k -> do
       me <- ids
       parent.raiseId me
-      map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
-        pure
-          ( makeTriangleOsc
-              { id: me
-              , parent: parent.parent
-              , scope: scopeToMaybe parent.scope
-              , frequency: i.frequency
-              }
-          )
-          <|>
-            ( keepLatest $ map
-                ( \(C.TriangleOsc e) -> match
-                    { frequency: tmpResolveAU parent.scope di (setFrequency <<< { id: me, frequency: _ })
-                    , onOff: \onOff -> pure $ setOnOff { id: me, onOff }
+      unsub <- mySub
+        ( oneOf
+            [ pure
+                ( makeTriangleOsc
+                    { id: me
+                    , parent: parent.parent
+                    , scope: scopeToMaybe parent.scope
+                    , frequency: i.frequency
                     }
-                    e
                 )
-                atts
-            )
+            , ( keepLatest $ map
+                  ( \(C.TriangleOsc e) -> match
+                      { frequency: tmpResolveAU parent.scope di (setFrequency <<< { id: me, frequency: _ })
+                      , onOff: \onOff -> pure $ setOnOff { id: me, onOff }
+                      }
+                      e
+                  )
+                  atts
+              )
+            ]
+        )
+        k
+      pure do
+        k (deleteFromCache { id: me })
+        unsub
 
 triangleOsc
   :: forall i outputChannels lock payload
@@ -1507,16 +1648,24 @@ waveShaper i' elts = Element' $ C.Node go
     makeLemmingEvent \mySub k -> do
       me <- ids
       parent.raiseId me
-      map (k (deleteFromCache { id: me }) *> _) $ flip mySub k $
-        pure
-          ( makeWaveShaper
-              { id: me
-              , parent: parent.parent
-              , scope: scopeToMaybe parent.scope
-              , curve: i.curve
-              , oversample: i.oversample
-              }
-          ) <|> __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di (fixed elts)
+      unsub <- mySub
+        ( oneOf
+            [ pure
+                ( makeWaveShaper
+                    { id: me
+                    , parent: parent.parent
+                    , scope: scopeToMaybe parent.scope
+                    , curve: i.curve
+                    , oversample: i.oversample
+                    }
+                )
+            , __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di (fixed elts)
+            ]
+        )
+        k
+      pure do
+        k (deleteFromCache { id: me })
+        unsub
 
 ----------
 globalFan
