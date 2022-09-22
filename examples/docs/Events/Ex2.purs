@@ -2,7 +2,6 @@ module Ocarina.Example.Docs.Events.Ex2 where
 
 import Prelude
 
-import Bolson.Core (envy)
 import Control.Alt ((<|>))
 import Data.Foldable (oneOf, oneOfMap, traverse_)
 import Data.Tuple (Tuple(..), fst, snd)
@@ -15,8 +14,7 @@ import Effect (Effect)
 import Effect.Random as Random
 import FRP.Behavior (Behavior, behavior, sampleBy)
 import FRP.Event (Event, makeEvent, memoize, subscribe)
-import FRP.Event.Class (biSampleOn)
-import FRP.Event.VBus (V, vbus)
+import FRP.Event.VBus (V)
 import Ocarina.Clock (interval)
 import Ocarina.Control (bandpass_, fan1, gain, gain_, highpass_, triangleOsc)
 import Ocarina.Core (Audible, AudioEnvelope(..), bangOn)
@@ -319,7 +317,7 @@ ex2 ccb _ ev = makePursx' (Proxy :: _ "@") px
 
               , D.button
                   ( oneOfMap (map (attr D.OnClick <<< cb <<< const))
-                      [ (biSampleOn (pure (pure unit) <|> (map (\(SetCancel x) -> x) ev)) (start $> identity)) <#> \cncl -> do
+                      [ ((start $> identity) <*> (pure (pure unit) <|> (map (\(SetCancel x) -> x) ev)) ) <#> \cncl -> do
                           cncl
                           ctx <- context
                           let

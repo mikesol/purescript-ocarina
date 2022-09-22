@@ -32,7 +32,6 @@ import Effect.Ref (new, read, write)
 import FRP.Behavior (behavior)
 import FRP.Event (Event, makeEvent, subscribe)
 import FRP.Event.Animate (animationFrameEvent)
-import FRP.Event.Class (biSampleOn)
 import FRP.Event.VBus (V, vbus)
 import Foreign.Object (fromHomogeneous, values)
 import Graphics.Canvas (CanvasElement, arc, beginPath, fill, fillRect, getContext2D, setFillStyle)
@@ -227,7 +226,7 @@ introEx ccb _ ev = makePursx' (Proxy :: _ "@") px
                             [ loadingE $> pure unit
                             , stopE <#>
                                 (_ *> (ccb (pure unit) *> push.startStop.start unit))
-                            , (biSampleOn (pure (pure unit) <|> (map (\(SetCancel x) -> x) ev)) (startE $> identity)) <#> \cncl -> do
+                            , ((startE $> identity) <*> (pure (pure unit) <|> (map (\(SetCancel x) -> x) ev)) ) <#> \cncl -> do
                                 cncl
                                 push.startStop.loading unit
                                 analyserE <- new Nothing

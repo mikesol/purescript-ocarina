@@ -11,7 +11,7 @@ import Deku.Attribute (cb, (:=))
 import Deku.Control (text)
 import Deku.Core (bussed)
 import Deku.DOM as D
-import Deku.Toplevel (runInBody, runInBody1)
+import Deku.Toplevel (runInBody)
 import Effect (Effect)
 import FRP.Event (bus)
 import Ocarina.Control (gain_, gain, sinOsc)

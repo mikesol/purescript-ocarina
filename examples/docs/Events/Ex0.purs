@@ -19,7 +19,6 @@ import Deku.DOM as D
 import Deku.Pursx (makePursx', nut)
 import Effect (Effect)
 import FRP.Event (Event, bus)
-import FRP.Event.Class (biSampleOn)
 import Ocarina.Control (gain, gain_, microphone, recorder, sinOsc)
 import Ocarina.Core (Audible, Node)
 import Ocarina.Core (AudioEnvelope(..), AudioOnOff(..), _off, _on)
@@ -31,7 +30,9 @@ import Ocarina.WebAPI (BrowserMicrophone, MediaRecorderCb)
 import Type.Proxy (Proxy(..))
 
 px =
-  Proxy    :: Proxy         """<section>
+  Proxy
+    :: Proxy
+         """<section>
   <h2>Example 1: Hello events</h2>
 
   <p>Let's say hi to events! The simplest of events, which we've seen already, are the ones that occur <span style="font-weight:800;">now</span>, that is to say, immediately upon subscription. You create those types of events using <code>bang</code>. In this section, we'll use <code>bang</code> to set several different types of values:</p>
@@ -78,11 +79,11 @@ cell = lcmap toNumber \i -> do
           , d: 0.8
           }
     strand x y =
-      gain 0.0 (genv x) [sinOsc (200.0 + i * y) (ooo' x)]
-  [strand 0.2 4.0
-      , strand 0.3 6.0
-      , strand 0.45 14.0
-      , strand 0.7 20.0
+      gain 0.0 (genv x) [ sinOsc (200.0 + i * y) (ooo' x) ]
+  [ strand 0.2 4.0
+  , strand 0.3 6.0
+  , strand 0.45 14.0
+  , strand 0.7 20.0
   ]
 
 txt :: String
@@ -168,26 +169,30 @@ ex0
 ex0 ccb _ ev = makePursx' (Proxy :: _ "@") px
   { txt: nut (text_ txt)
   , ex0: nut
-      ( bussed \push -> lcmap  (pure Init <|> _) \event -> -- here
-            D.div_
-              [ D.button
-                  ( (biSampleOn (pure (pure unit) <|> (map (\(SetCancel x) -> x) ev)) (map Tuple event)) <#> -- here
-                      \(e /\ c) -> D.OnClick := cb -- here
-                        ( const $ case e of
-                            Stop u -> u *> push Start *> ccb (pure unit) -- here
-                            _ -> do
-                              c -- here
-                              r <- run2_ [gain_ 1.0
-                                $ join
-                                $ cell <$> 0 .. 100]
-                              ccb (r *> push Start) -- here
-                              push $ Stop r
-                        )
-                  )
-                  [ text $ event <#> case _ of
-                      Stop _ -> "Turn off"
-                      _ -> "Turn on"
-                  ]
-              ]
+      ( bussed \push -> lcmap (pure Init <|> _) \event -> -- here
+
+          D.div_
+            [ D.button
+                ( (Tuple <$> event <*> (pure (pure unit) <|> (map (\(SetCancel x) -> x) ev))) <#> -- here
+
+                    \(e /\ c) -> D.OnClick := cb -- here
+                      ( const $ case e of
+                          Stop u -> u *> push Start *> ccb (pure unit) -- here
+                          _ -> do
+                            c -- here
+                            r <- run2_
+                              [ gain_ 1.0
+                                  $ join
+                                  $ cell <$> 0 .. 100
+                              ]
+                            ccb (r *> push Start) -- here
+                            push $ Stop r
+                      )
+                )
+                [ text $ event <#> case _ of
+                    Stop _ -> "Turn off"
+                    _ -> "Turn on"
+                ]
+            ]
       )
   }

@@ -17,17 +17,15 @@ import Data.Tuple (Tuple(..))
 import Data.Typelevel.Num (D2)
 import Data.UInt (toInt)
 import Deku.Attribute (cb, (:=))
-import Deku.Control (deku1, text, text_)
+import Deku.Control (text, text_)
 import Deku.Core (Domable, bussed)
 import Deku.DOM as DOM
-import Deku.Interpret (fullDOMInterpret, makeFFIDOMSnapshot)
 import Deku.Toplevel (runInBody)
 import Effect (Effect)
 import Effect.Aff (Aff, launchAff_)
 import Effect.Class (liftEffect)
-import Effect.Ref as Ref
 import FRP.Behavior (sample_)
-import FRP.Event (Event, bus, create, filterMap, hot, keepLatest, memoize, sampleOn, subscribe)
+import FRP.Event (Event, create, filterMap, hot, sampleOnRight, subscribe)
 import FRP.Event.Animate (animationFrameEvent)
 import Ocarina.Clock (WriteHead, fot, writeHead)
 import Ocarina.Control (analyser, gain, loopBuf, speaker2)
@@ -36,10 +34,6 @@ import Ocarina.Example.Utils (RaiseCancellation)
 import Ocarina.Interpret (close, context, decodeAudioDataFromUri, effectfulAudioInterpret, getByteFrequencyData, makeFFIAudioSnapshot)
 import Ocarina.Properties (loopEnd, loopStart, playbackRate)
 import Ocarina.WebAPI (AnalyserNodeCb(..), AudioContext, BrowserAudioBuffer)
-import Web.HTML (window)
-import Web.HTML.HTMLDocument (body)
-import Web.HTML.HTMLElement (toElement)
-import Web.HTML.Window (document)
 
 scene
   :: forall lock payload
@@ -128,7 +122,7 @@ atariSpeaks atar rc = bussed \push -> lcmap (alt (pure TurnOn)) \event ->
                             (effectfulAudioInterpret rf)
 
                         unsub' <- subscribe
-                          ( sampleOn
+                          ( sampleOnRight
                               (analyserE.event <|> pure Nothing)
                               (map Tuple audioE)
                           )

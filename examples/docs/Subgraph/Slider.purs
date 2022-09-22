@@ -2,13 +2,12 @@ module Ocarina.Example.Docs.Subgraph.Slider where
 
 import Prelude
 
-import Bolson.Core (envy)
 import Control.Alt ((<|>))
 import Data.Maybe (Maybe(..), maybe)
 import Data.Tuple (fst)
 import Data.Tuple.Nested ((/\))
 import Deku.Attribute (attr, cb, (:=))
-import Deku.Control (switcher, switcher_, text, text_)
+import Deku.Control (switcher, text, text_)
 import Deku.Core (Domable, vbussed)
 import Deku.DOM as D
 import Deku.Toplevel (runInBody)
@@ -18,7 +17,7 @@ import Effect.Class (liftEffect)
 import Effect.Random as Random
 import FRP.Behavior (Behavior, behavior, sampleBy)
 import FRP.Event (create, delay, fold, makeEvent, subscribe)
-import FRP.Event.VBus (V, vbus)
+import FRP.Event.VBus (V)
 import Ocarina.Control (gain_, playBuf)
 import Ocarina.Core (dyn, sound, silence, bangOn)
 import Ocarina.Interpret (bracketCtx, decodeAudioDataFromUri)
@@ -43,7 +42,7 @@ random = behavior \e ->
 main :: Effect Unit
 main = do
   { push, event } <- create
-  runInBody (switcher_ D.div scene (event))
+  runInBody (switcher scene (event))
   push Nothing
   launchAff_ $ bracketCtx
     \ctx -> decodeAudioDataFromUri ctx bell >>= liftEffect
@@ -59,7 +58,7 @@ main = do
       let
         startE = pure unit <|> event.startStop.start
         sl = sampleBy (/\) random
-          $ fold (\_ b -> b + 1) (event.slider) 0
+          $ fold (\b _ -> b + 1) 0 (event.slider)
         music = run2_
           [ gain_ 1.0
               [ dyn $ map

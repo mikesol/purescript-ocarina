@@ -27,7 +27,7 @@ import Deku.DOM as D
 import Deku.Pursx (nut, (~~))
 import Effect (Effect, foreachE)
 import Effect.Ref (modify_, new, read, write)
-import FRP.Event (class IsEvent, Event, bus, create, sampleOn_, subscribe)
+import FRP.Event (class IsEvent, Event, bus, create, sampleOnRight_, subscribe)
 import FRP.Event.Animate (animationFrameEvent)
 import Ocarina.Control (analyser_, loopBuf, speaker2)
 import Ocarina.Core (Po2(..))

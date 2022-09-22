@@ -1821,10 +1821,10 @@ tmpResolveAU = go
         let
           n = gain_ 1.0 [ u ]
         in
-          makeLemmingEvent \mySub k -> do
+          makeLemmingEvent \mySub0 k -> do
             av <- RRef.new Nothing
-            mySub
-              ( __internalOcarinaFlatten { parent: Nothing, scope: scope, raiseId: \x -> void $ RRef.write (Just x) av } di n <|> makeLemmingEvent \mySub k2 ->
+            mySub0
+              ( __internalOcarinaFlatten { parent: Nothing, scope: scope, raiseId: \x -> void $ RRef.write (Just x) av } di n <|> makeLemmingEvent \_ k2 ->
                   do
                     RRef.read av >>= case _ of
                       Nothing -> pure unit -- ugh, fails silently
