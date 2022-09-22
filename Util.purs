@@ -14,7 +14,6 @@ import Effect (Effect)
 import Effect.Aff (Aff, Fiber, error, joinFiber, killFiber, launchAff, launchAff_, parallel, sequential)
 import Effect.Class (liftEffect)
 import FRP.Event (Event)
-import FRP.Event.Class (biSampleOn)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, SingleSubgraphEvent(..), SingleSubgraphPusher)
 import Ocarina.Interpret (close, constant0Hack, context)
 import Ocarina.WebAPI (AudioContext)
@@ -77,10 +76,11 @@ clickCb cca push init i ev event = map
           )
       )
   )
-  (biSampleOn (pure (pure unit) <|> (map (\(SetCancel x) -> x) ev)) (map Tuple event))
+  (Tuple <$> event <*> (pure (pure unit) <|> (map (\(SetCancel x) -> x) ev)) )
 
+-- todo, why does this have another argument? what's even going on...?
 mkWrapperEvent :: forall t20 f22. Alt f22 => Applicative f22 => t20 -> f22 WrapperStates -> f22 WrapperStates
-mkWrapperEvent ev event' = pure Stopped <|> event'
+mkWrapperEvent _ event' = pure Stopped <|> event'
 
 audioWrapper
   :: forall a lock payload

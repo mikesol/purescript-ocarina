@@ -2,7 +2,6 @@ module Ocarina.Example.Docs.Subgraph.SliderEx where
 
 import Prelude
 
-import Bolson.Core (envy)
 import Control.Alt ((<|>))
 import Data.Foldable (oneOf, oneOfMap)
 import Data.Tuple (fst)
@@ -18,8 +17,7 @@ import Effect.Class (liftEffect)
 import Effect.Random as Random
 import FRP.Behavior (Behavior, behavior, sampleBy)
 import FRP.Event (Event, delay, fold, makeEvent, subscribe)
-import FRP.Event.Class (biSampleOn)
-import FRP.Event.VBus (V, vbus)
+import FRP.Event.VBus (V)
 import Ocarina.Control (gain_, playBuf)
 import Ocarina.Core (Audible, silence, sound, bangOn, dyn)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..))
@@ -29,7 +27,9 @@ import Ocarina.Run (run2_)
 import Type.Proxy (Proxy(..))
 
 px =
-  Proxy    :: Proxy      """<section>
+  Proxy
+    :: Proxy
+         """<section>
   <h2>Hello subgraph</h2>
 
   <p>Subgraphs have the type <code>Event (Event (Channel outputChannels lock payload))</code>. Streaming audio is a data type with two constructors: <code>sound</code> to create a subgraph and <code>silence</code> to turn it off. The inner event listens for sound/silence, and the outer event adds subgraphs to the scene. You can create as many subgraphs as you like: ocarina automatically frees up resources when you send the <code>silence</code> event. Note that, once you turn a subraph off with <code>silence</code>, you can't turn it back on again. In this case, just create a new subgraph.</p>
@@ -168,26 +168,29 @@ sgSliderEx
 sgSliderEx ccb _ ev = makePursx' (Proxy :: _ "@") px
   { txt: nut (text_ txt)
   , ex1: nut
-      (vbussed (Proxy :: _ UIEvents) \push event -> -- here
+      ( vbussed (Proxy :: _ UIEvents) \push event -> -- here
+
           do
             let
               startE = pure unit <|> event.startStop.start
               stopE = event.startStop.stop
               sl = sampleBy (/\) random
-                $ fold (\_ b -> b + 1) (event.slider) 0
+                $ fold (\b _ -> b + 1) 0 (event.slider)
 
               music :: forall lock0. _ -> Array (Audible _ lock0 _)
               music buffer =
-                [ gain_ 1.0 [ dyn $ map
-                    ( \i ->
-                        oneOf
-                          [ pure $ sound $ playBuf
-                              { buffer: buffer, playbackRate: 0.7 + (fst i) * 2.0 }
-                              bangOn
-                          , delay 5000 $ pure $ silence
-                          ]
-                    )
-                    sl]
+                [ gain_ 1.0
+                    [ dyn $ map
+                        ( \i ->
+                            oneOf
+                              [ pure $ sound $ playBuf
+                                  { buffer: buffer, playbackRate: 0.7 + (fst i) * 2.0 }
+                                  bangOn
+                              , delay 5000 $ pure $ silence
+                              ]
+                        )
+                        sl
+                    ]
                 ]
             D.div_
               [ D.div_
@@ -209,8 +212,8 @@ sgSliderEx ccb _ ev = makePursx' (Proxy :: _ "@") px
                       [ event.startStop.loading $> pure unit
                       , stopE <#>
                           (_ *> (ccb (pure unit) *> push.startStop.start unit))
-                      , ( biSampleOn (pure (pure unit) <|> (map (\(SetCancel x) -> x) ev))
-                            (startE $> identity)
+                      , ( (startE $> identity) <*> (pure (pure unit) <|> (map (\(SetCancel x) -> x) ev))
+
                         ) <#> \cncl -> do
                           cncl
                           push.startStop.loading unit

@@ -12,7 +12,7 @@ import Data.Newtype (class Newtype, unwrap)
 import Data.Tuple.Nested ((/\))
 import Deku.Do as Deku
 import Deku.Attribute (cb, (:=))
-import Deku.Control (dekuA, switcher, switcher_, text_)
+import Deku.Control (switcher, text_)
 import Deku.Core (Nut, Domable, bussed)
 import Deku.DOM as D
 import Deku.Do (useState)
@@ -53,13 +53,16 @@ p2tl page = TopLevelSg { page, setPage: mempty, setCancellation: mempty }
 scene :: Nut
 scene = Deku.do
   push /\ event' <- useState (ChangePage Intro)
-  let event = fold
-            ( case _ of
-                ChangePage p -> \{ curPage, cancel } -> { prevPage: Just curPage, curPage: p, cancel, pageChange: true }
-                SetCancelation cancel -> _ { cancel = cancel, pageChange = false }
-            )
-            event'
-            { prevPage: Nothing, curPage: Intro, cancel: pure unit, pageChange: true }
+  let
+    event = fold
+      ( flip
+          ( case _ of
+              ChangePage p -> \{ curPage, cancel } -> { prevPage: Just curPage, curPage: p, cancel, pageChange: true }
+              SetCancelation cancel -> _ { cancel = cancel, pageChange = false }
+          )
+      )
+      { prevPage: Nothing, curPage: Intro, cancel: pure unit, pageChange: true }
+      event'
 
   D.div_
     [ D.div_
@@ -91,49 +94,49 @@ scene = Deku.do
                 ]
             )
         $
-            [ Intro
-                /\ "Home"
-                /\ true
-            , HelloWorld
-                /\ "Hello world"
-                /\ true
-            , FixFan
-                /\ "Array, fan, and fix"
-                /\ true
-            , AudioUnits
-                /\ "Audio units"
-                /\ true
-            , Events
-                /\ "Events"
-                /\ true
-            , Params
-                /\ "Parameters"
-                /\ true
-            --   , AudioWorklets
-            --       /\ "Audio worklets"
-            --       /\ true
-            , State
-                /\ "State"
-                /\ true
-            , Subgraph
-                /\ "Subgraphs"
-                /\ false
-            --   , Tumult
-            --       /\ "Tumult"
-            --       /\ true
-            --   , Imperative
-            --       /\ "Imperative API"
-            --       /\ false
-            ]
-    , switcher_ D.div
+          [ Intro
+              /\ "Home"
+              /\ true
+          , HelloWorld
+              /\ "Hello world"
+              /\ true
+          , FixFan
+              /\ "Array, fan, and fix"
+              /\ true
+          , AudioUnits
+              /\ "Audio units"
+              /\ true
+          , Events
+              /\ "Events"
+              /\ true
+          , Params
+              /\ "Parameters"
+              /\ true
+          --   , AudioWorklets
+          --       /\ "Audio worklets"
+          --       /\ true
+          , State
+              /\ "State"
+              /\ true
+          , Subgraph
+              /\ "Subgraphs"
+              /\ false
+          --   , Tumult
+          --       /\ "Tumult"
+          --       /\ true
+          --   , Imperative
+          --       /\ "Imperative API"
+          --       /\ false
+          ]
+    , switcher
         ( \{ curPage } ->
             page
-                ( TopLevelSg
-                    { page: curPage
-                    , setPage: ChangePage >>> push
-                    , setCancellation: SetCancelation >>> push
-                    }
-                )
+              ( TopLevelSg
+                  { page: curPage
+                  , setPage: ChangePage >>> push
+                  , setCancellation: SetCancelation >>> push
+                  }
+              )
         )
         (event # filter _.pageChange)
 

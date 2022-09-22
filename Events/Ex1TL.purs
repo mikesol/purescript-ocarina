@@ -6,7 +6,7 @@ import Control.Alt ((<|>))
 import Data.Foldable (traverse_)
 import Data.Maybe (Maybe(..), maybe)
 import Deku.Attribute (attr, cb, (:=))
-import Deku.Control (switcher_, text, text_)
+import Deku.Control (text, switcher, text_)
 import Deku.Core (Domable, vbussed)
 import Deku.DOM as D
 import Deku.Toplevel (runInBody)
@@ -14,7 +14,6 @@ import Effect (Effect)
 import Effect.Aff (launchAff_)
 import Effect.Class (liftEffect)
 import FRP.Event (create)
-import FRP.Event.Class (biSampleOn)
 import FRP.Event.VBus (V)
 import Ocarina.Control (loopBuf)
 import Ocarina.Core (bangOn)
@@ -39,7 +38,7 @@ atari =
 main :: Effect Unit
 main = do
   { push, event } <- create
-  runInBody (switcher_ D.div scene (event))
+  runInBody (switcher scene (event))
   push Nothing
   launchAff_ $ bracketCtx
     \ctx -> decodeAudioDataFromUri ctx atari >>= liftEffect
@@ -74,7 +73,7 @@ main = do
                   sl1
                 map
                   (calcSlope 0.0 0.05 100.0 1.0 >>> loopEnd)
-                  (biSampleOn sl2 (add <$> (pure 0.0 <|> sl1)))
+                  (add <$> (pure 0.0 <|> sl1) <*> sl2)
           ]
       D.div_
         $

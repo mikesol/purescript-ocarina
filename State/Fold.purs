@@ -16,7 +16,7 @@ import Effect (Effect)
 import FRP.Behavior (sampleBy, sample_, step)
 import FRP.Event (memoize)
 import FRP.Event.Animate (animationFrameEvent)
-import FRP.Event.Class (fold, mapAccum, sampleOn)
+import FRP.Event.Class (fold, mapAccum, sampleOnRight)
 import FRP.Event.VBus (V)
 import Ocarina.Clock (withACTime)
 import Ocarina.Control (gain, periodicOsc)
@@ -44,7 +44,7 @@ main = runInBody
       let
         startE = pure unit <|> event.startStop.start
         stopE = event.startStop.stop
-        chkState e = step false (fold (const not) e false)
+        chkState e = step false (fold (\a _ -> not a) false e)
         cbx0 = chkState event.cbx.cbx0
         cbx1 = chkState event.cbx.cbx1
         cbx2 = chkState event.cbx.cbx2
@@ -58,7 +58,7 @@ main = runInBody
                   c0h <- constant0Hack ctx
                   let
                     cevt fast b tm = mapAccum
-                      ( \(oo /\ act) (pact /\ pt) ->
+                      ( \(pact /\ pt) (oo /\ act)  ->
                           let
                             tn = pt +
                               ( (act - pact) *
@@ -67,8 +67,8 @@ main = runInBody
                           in
                             ((act /\ tn) /\ tn)
                       )
-                      (sampleBy (/\) b tm)
                       (0.0 /\ 0.0)
+                      (sampleBy (/\) b tm)
 
                   r <- run2e ctx
                     ( memoize
@@ -81,9 +81,9 @@ main = runInBody
                             ev1 = map (if _ then 4.0 else 1.0) $ sample_ cbx1 acTime
                             ev2 = cevt 4.0 cbx2 acTime
                             ev3 = map (if _ then 4.0 else 1.0) $ sample_ cbx3 acTime
-                            evs f a = sampleOn acTime
+                            evs f a = sampleOnRight acTime
                               $ map ($)
-                              $ sampleOn a
+                              $ sampleOnRight a
                               $ { f: _, a: _, t: _ } <$> f
                           in
                             [ gain 0.0

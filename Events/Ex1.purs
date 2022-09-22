@@ -2,7 +2,6 @@ module Ocarina.Example.Docs.Events.Ex1 where
 
 import Prelude
 
-import Bolson.Core (envy)
 import Control.Alt ((<|>))
 import Data.Foldable (traverse_)
 import Deku.Attribute (attr, cb, (:=))
@@ -14,8 +13,7 @@ import Effect (Effect)
 import Effect.Aff (launchAff, launchAff_)
 import Effect.Class (liftEffect)
 import FRP.Event (Event)
-import FRP.Event.Class (biSampleOn)
-import FRP.Event.VBus (V, vbus)
+import FRP.Event.VBus (V)
 import Ocarina.Control (loopBuf)
 import Ocarina.Core (Audible, bangOn)
 import Ocarina.Core (bangOn)
@@ -32,7 +30,9 @@ import Web.Event.Event (target)
 import Web.HTML.HTMLInputElement (fromEventTarget, valueAsNumber)
 
 px =
-  Proxy    :: Proxy         """<section>
+  Proxy
+    :: Proxy
+         """<section>
  <h2>Example 2: Three sliders</h2>
 
   <p>In this example, we'll use three sliders to control the playback rate, the start time, and the end time of a looping buffer.</p>
@@ -207,9 +207,9 @@ ex1 ccb _ ev = makePursx' (Proxy :: _ "@") px
 
           do
             let
-              sl0 =  event.slider.s0
-              sl1 =  event.slider.s1
-              sl2 =  event.slider.s2
+              sl0 = event.slider.s0
+              sl1 = event.slider.s1
+              sl2 = event.slider.s2
               start = event.startStop.start <|> pure unit
 
               music :: forall lock0. _ -> Audible _ lock0 _
@@ -224,7 +224,7 @@ ex1 ccb _ ev = makePursx' (Proxy :: _ "@") px
                       bangOn
                       (calcSlope 0.0 0.2 100.0 5.0 >>> playbackRate) <$> sl0
                       (calcSlope 0.0 0.0 100.0 1.2 >>> loopStart) <$> sl1
-                      (calcSlope 0.0 0.05 100.0 1.0 >>> loopEnd) <$> biSampleOn sl2
+                      (calcSlope 0.0 0.05 100.0 1.0 >>> loopEnd) <$> (_ <*> sl2)
                         (add <$> (pure 0.0 <|> sl1))
             D.div_
               $
@@ -257,8 +257,8 @@ ex1 ccb _ ev = makePursx' (Proxy :: _ "@") px
                           event.startStop.loading $> pure unit
                           event.startStop.stop <#>
                             (_ *> (ccb (pure unit) *> push.startStop.start unit))
-                          ( biSampleOn (pure (pure unit) <|> (map (\(SetCancel x) -> x) ev))
-                              (start $> identity)
+                          ( (start $> identity) <*> (pure (pure unit) <|> (map (\(SetCancel x) -> x) ev))
+
                           ) <#> \cncl -> do
                             cncl
                             push.startStop.loading unit

@@ -22,7 +22,7 @@ import FRP.Behavior.Mouse (buttons)
 import FRP.Behavior.Time as Time
 import FRP.Event (memoize)
 import FRP.Event.Animate (animationFrameEvent)
-import FRP.Event.Class (class IsEvent, fix, fold, sampleOn, withLast)
+import FRP.Event.Class (class IsEvent, fix, fold, sampleOnRight, withLast)
 import FRP.Event.Mouse (Mouse, down, getMouse)
 import FRP.Event.VBus (V)
 import Ocarina.Clock (withACTime)
@@ -64,12 +64,15 @@ swell mouse =
     | otherwise = 2.0 * (4.0 - s)
 
   fixB :: forall a. a -> (Behavior a -> Behavior a) -> Behavior a
-  fixB a fn = behavior \s ->
-    fix \event ->
-      let
-        b = fn (step a event)
-      in
-        { input: sample_ b s, output: sampleOn event s }
+  fixB a fn =   behavior \s ->
+    sampleOnRight
+      ( fix \event ->
+          let
+            b = fn (step a event)
+          in
+            sample_ b s
+      )
+      s
 
   -- | Integrate with respect to some measure of time.
   -- |
@@ -95,9 +98,9 @@ swell mouse =
       let
         x = sample b (e $> identity)
         y = withLast (sampleBy (/\) t x)
-        z = fold approx y initial
+        z = fold (flip approx) initial y
       in
-        sampleOn z e
+        sampleOnRight z e
     where
     approx { last: Nothing } s = s
     approx { now: t1 /\ a1, last: Just (t0 /\ a0) } s = s + g (\z -> z (a0 + a1) * (t1 - t0) / two)

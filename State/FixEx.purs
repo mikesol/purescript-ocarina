@@ -23,7 +23,7 @@ import FRP.Behavior.Mouse (buttons)
 import FRP.Behavior.Time as Time
 import FRP.Event (Event, memoize)
 import FRP.Event.Animate (animationFrameEvent)
-import FRP.Event.Class (class IsEvent, biSampleOn, fix, fold, sampleOn, withLast)
+import FRP.Event.Class (class IsEvent, fix, fold, sampleOnRight, withLast)
 import FRP.Event.Mouse (Mouse, down, getMouse)
 import FRP.Event.VBus (V)
 import Ocarina.Clock (withACTime)
@@ -64,12 +64,16 @@ swell mouse =
     | otherwise = 2.0 * (4.0 - s)
 
   fixB :: forall a. a -> (Behavior a -> Behavior a) -> Behavior a
-  fixB a fn = behavior \s ->
-    fix \event ->
-      let
-        b = fn (step a event)
-      in
-        { input: sample_ b s, output: sampleOn event s }
+  fixB a fn =   behavior \s ->
+    sampleOnRight
+      ( fix \event ->
+          let
+            b = fn (step a event)
+          in
+            sample_ b s
+      )
+      s
+
 
   -- | Integrate with respect to some measure of time.
   -- |
@@ -95,9 +99,9 @@ swell mouse =
       let
         x = sample b (e $> identity)
         y = withLast (sampleBy (/\) t x)
-        z = fold approx y initial
+        z = fold (flip approx) initial y
       in
-        sampleOn z e
+        sampleOnRight z e
     where
     approx { last: Nothing } s = s
     approx { now: t1 /\ a1, last: Just (t0 /\ a0) } s = s + g (\z -> z (a0 + a1) * (t1 - t0) / two)
@@ -120,7 +124,9 @@ swell mouse =
   integral' = integral (_ $ identity)
 
 px =
-  Proxy    :: Proxy      """<section>
+  Proxy
+    :: Proxy
+         """<section>
   <h2>Fix</h2>
 
   <p>Fix, like it's equivalent in ocarina that we've already seen, creates a feedback loop. However, in this case, we are talking about a feedback loop of <i>events</i>, not sound.</p>
@@ -166,7 +172,7 @@ import FRP.Behavior.Mouse (buttons)
 import FRP.Behavior.Time as Time
 import FRP.Event (memoize)
 import FRP.Event.Animate (animationFrameEvent)
-import FRP.Event.Class (class IsEvent, fix, fold, sampleOn, withLast)
+import FRP.Event.Class (class IsEvent, fix, fold, sampleOnRight, withLast)
 import FRP.Event.Mouse (Mouse, down, getMouse)
 import FRP.Event.VBus (V, vbus)
 import Test.QuickCheck (arbitrary, mkSeed)
@@ -211,7 +217,7 @@ swell mouse =
       let
         b = fn (step a event)
       in
-        { input: sample_ b s, output: sampleOn event s }
+        { input: sample_ b s, output: sampleOnRight event s }
 
   -- | Integrate with respect to some measure of time.
   -- |
@@ -239,7 +245,7 @@ swell mouse =
         y = withLast (sampleBy (/\) t x)
         z = fold approx y initial
       in
-        sampleOn z e
+        sampleOnRight z e
     where
     approx { last: Nothing } s = s
     approx { now: t1 /\ a1, last: Just (t0 /\ a0) } s = s + g (\z -> z (a0 + a1) * (t1 - t0) / two)
@@ -386,14 +392,14 @@ main = runInBody1
         ]
   )"""
   , empl: nut
-      (vbussed (Proxy :: _ StartStop) \push event -> do
+      ( vbussed (Proxy :: _ StartStop) \push event -> do
           let
             startE = pure unit <|> event.start
             stopE = event.stop
           D.div_
             [ D.button
                 ( oneOfMap (map (attr D.OnClick <<< cb <<< const))
-                    [ (biSampleOn (pure (pure unit) <|> (map (\(SetCancel x) -> x) ev)) (startE $> identity)) <#> \cncl ->
+                    [ ((startE $> identity) <*> (pure (pure unit) <|> (map (\(SetCancel x) -> x) ev))) <#> \cncl ->
                         do
                           cncl
                           ctx <- context
