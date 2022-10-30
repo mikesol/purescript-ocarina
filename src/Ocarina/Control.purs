@@ -7,6 +7,7 @@ import Bolson.Core (Element(..), Entity(..), PSR, Scope(..), fixed)
 import Control.Alt ((<|>))
 import Control.Comonad (extract)
 import Control.Monad.ST.Internal as RRef
+import Control.Monad.ST.Uncurried (mkSTFn2, runSTFn1, runSTFn2)
 import Control.Plus (empty)
 import ConvertableOptions (class ConvertOption, class ConvertOptionsWithDefaults, convertOptionsWithDefaults)
 import Data.FastVect.FastVect (Vect, singleton, toArray, index)
@@ -21,7 +22,7 @@ import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.Tuple.Nested (type (/\), (/\))
 import Data.Typelevel.Num (class Nat, class Pos, class Pred, D1, D2, pred, toInt)
 import Data.Variant (Unvariant(..), inj, match, unvariant)
-import FRP.Event (Event, keepLatest, makeLemmingEvent)
+import FRP.Event (Event, Subscriber(..), keepLatest, makeLemmingEventO)
 import Foreign.Object (fromHomogeneous)
 import Ocarina.Common as Common
 import Ocarina.Core (ChannelCountMode(..), ChannelInterpretation(..), Po2(..))
@@ -50,10 +51,10 @@ allpass
 allpass i' atts elts = Element' $ C.Node go
   where
   C.InitializeAllpass i = Common.toInitializeAllpass i'
-  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeAllpass, setFrequency, setQ }) = makeLemmingEvent \mySub k -> do
+  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeAllpass, setFrequency, setQ }) = makeLemmingEventO $ mkSTFn2 \(Subscriber mySub) k -> do
     me <- ids
     parent.raiseId me
-    unsub <- mySub
+    unsub <- runSTFn2 mySub
       ( oneOf
           [ pure
               ( makeAllpass
@@ -72,7 +73,7 @@ allpass i' atts elts = Element' $ C.Node go
       )
       k
     pure do
-      k (deleteFromCache { id: me })
+      runSTFn1 k (deleteFromCache { id: me })
       unsub
 
 allpass_
@@ -182,10 +183,10 @@ analyser i' atts elts = Element' $ C.Node go
   go
     parent
     di@(C.AudioInterpret { ids, deleteFromCache, makeAnalyser, setAnalyserNodeCb }) =
-    makeLemmingEvent \mySub k -> do
+    makeLemmingEventO $ mkSTFn2 \(Subscriber mySub) k -> do
       me <- ids
       parent.raiseId me
-      unsub <- mySub
+      unsub <- runSTFn2 mySub
         ( oneOf
             [ pure
                 ( makeAnalyser
@@ -228,7 +229,7 @@ analyser i' atts elts = Element' $ C.Node go
         )
         k
       pure do
-        k (deleteFromCache { id: me })
+        runSTFn1 k (deleteFromCache { id: me })
         unsub
 
 analyser_
@@ -290,10 +291,10 @@ __audioWorklet (C.InitializeAudioWorkletNode i) atts elt = Element' $ C.Node go
       ( C.AudioInterpret
           { ids, deleteFromCache, makeAudioWorkletNode, setAudioWorkletParameter }
       ) =
-    makeLemmingEvent \mySub k -> do
+    makeLemmingEventO $ mkSTFn2 \(Subscriber mySub) k -> do
       me <- ids
       parent.raiseId me
-      unsub <- mySub
+      unsub <- runSTFn2 mySub
         ( oneOf
             [ pure
                 ( makeAudioWorkletNode
@@ -330,7 +331,7 @@ __audioWorklet (C.InitializeAudioWorkletNode i) atts elt = Element' $ C.Node go
         )
         k
       pure do
-        k (deleteFromCache { id: me })
+        runSTFn1 k (deleteFromCache { id: me })
         unsub
 
 audioWorklet
@@ -364,10 +365,10 @@ bandpass
 bandpass i' atts elts = Element' $ C.Node go
   where
   C.InitializeBandpass i = Common.toInitializeBandpass i'
-  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeBandpass, setFrequency, setQ }) = makeLemmingEvent \mySub k -> do
+  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeBandpass, setFrequency, setQ }) = makeLemmingEventO $ mkSTFn2 \(Subscriber mySub) k -> do
     me <- ids
     parent.raiseId me
-    unsub <- mySub
+    unsub <- runSTFn2 mySub
       ( oneOf
           [ pure
               ( makeBandpass
@@ -386,7 +387,7 @@ bandpass i' atts elts = Element' $ C.Node go
       )
       k
     pure do
-      k (deleteFromCache { id: me })
+      runSTFn1 k (deleteFromCache { id: me })
       unsub
 
 bandpass_
@@ -409,10 +410,10 @@ __constant i' atts = Element' $ C.Node go
   where
   C.InitializeConstant i = Common.toInitializeConstant i'
   go parent di@(C.AudioInterpret { ids, deleteFromCache, makeConstant, setOffset, setOnOff }) =
-    makeLemmingEvent \mySub k -> do
+    makeLemmingEventO $ mkSTFn2 \(Subscriber mySub) k -> do
       me <- ids
       parent.raiseId me
-      unsub <- mySub
+      unsub <- runSTFn2 mySub
         ( oneOf
             [ pure
                 ( makeConstant
@@ -434,7 +435,7 @@ __constant i' atts = Element' $ C.Node go
         )
         k
       pure do
-        k (deleteFromCache { id: me })
+        runSTFn1 k (deleteFromCache { id: me })
         unsub
 
 constant
@@ -464,10 +465,10 @@ convolver i' elts = Element' $ C.Node go
   where
   C.InitializeConvolver i = Common.toInitializeConvolver i'
   go parent di@(C.AudioInterpret { ids, deleteFromCache, makeConvolver }) =
-    makeLemmingEvent \mySub k -> do
+    makeLemmingEventO $ mkSTFn2 \(Subscriber mySub) k -> do
       me <- ids
       parent.raiseId me
-      unsub <- mySub
+      unsub <- runSTFn2 mySub
         ( oneOf
             [ pure
                 ( makeConvolver
@@ -482,7 +483,7 @@ convolver i' elts = Element' $ C.Node go
         )
         k
       pure do
-        k (deleteFromCache { id: me })
+        runSTFn1 k (deleteFromCache { id: me })
         unsub
 
 -- delay
@@ -496,10 +497,10 @@ delay
 delay i' atts elts = Element' $ C.Node go
   where
   C.InitializeDelay i = Common.toInitializeDelay i'
-  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeDelay, setDelay }) = makeLemmingEvent \mySub k -> do
+  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeDelay, setDelay }) = makeLemmingEventO $ mkSTFn2 \(Subscriber mySub) k -> do
     me <- ids
     parent.raiseId me
-    unsub <- mySub
+    unsub <- runSTFn2 mySub
       ( oneOf
           [ pure
               ( makeDelay
@@ -518,7 +519,7 @@ delay i' atts elts = Element' $ C.Node go
       )
       k
     pure do
-      k (deleteFromCache { id: me })
+      runSTFn1 k (deleteFromCache { id: me })
       unsub
 
 delay_
@@ -554,10 +555,10 @@ dynamicsCompressor i' atts elts = Element' $ C.Node go
           , setRelease
           }
       ) =
-    makeLemmingEvent \mySub k -> do
+    makeLemmingEventO $ mkSTFn2 \(Subscriber mySub) k -> do
       me <- ids
       parent.raiseId me
-      unsub <- mySub
+      unsub <- runSTFn2 mySub
         ( oneOf
             [ pure
                 ( makeDynamicsCompressor
@@ -602,7 +603,7 @@ dynamicsCompressor i' atts elts = Element' $ C.Node go
         )
         k
       pure do
-        k (deleteFromCache { id: me })
+        runSTFn1 k (deleteFromCache { id: me })
         unsub
 
 dynamicsCompressor_
@@ -624,10 +625,10 @@ gain
 gain i' atts elts = Element' $ C.Node go
   where
   C.InitializeGain i = Common.toInitializeGain i'
-  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeGain, setGain }) = makeLemmingEvent \mySub k -> do
+  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeGain, setGain }) = makeLemmingEventO $ mkSTFn2 \(Subscriber mySub) k -> do
     me <- ids
     parent.raiseId me
-    unsub <- mySub
+    unsub <- runSTFn2 mySub
       ( oneOf
           [ pure
               ( makeGain
@@ -646,7 +647,7 @@ gain i' atts elts = Element' $ C.Node go
       )
       k
     pure do
-      k (deleteFromCache { id: me })
+      runSTFn1 k (deleteFromCache { id: me })
       unsub
 
 gain_
@@ -668,10 +669,10 @@ highpass
 highpass i' atts elts = Element' $ C.Node go
   where
   C.InitializeHighpass i = Common.toInitializeHighpass i'
-  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeHighpass, setFrequency, setQ }) = makeLemmingEvent \mySub k -> do
+  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeHighpass, setFrequency, setQ }) = makeLemmingEventO $ mkSTFn2 \(Subscriber mySub) k -> do
     me <- ids
     parent.raiseId me
-    unsub <- mySub
+    unsub <- runSTFn2 mySub
       ( oneOf
           [ pure
               ( makeHighpass
@@ -690,7 +691,7 @@ highpass i' atts elts = Element' $ C.Node go
       )
       k
     pure do
-      k (deleteFromCache { id: me })
+      runSTFn1 k (deleteFromCache { id: me })
       unsub
 
 highpass_
@@ -712,10 +713,10 @@ highshelf
 highshelf i' atts elts = Element' $ C.Node go
   where
   C.InitializeHighshelf i = Common.toInitializeHighshelf i'
-  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeHighshelf, setFrequency, setGain }) = makeLemmingEvent \mySub k -> do
+  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeHighshelf, setFrequency, setGain }) = makeLemmingEventO $ mkSTFn2 \(Subscriber mySub) k -> do
     me <- ids
     parent.raiseId me
-    unsub <- mySub
+    unsub <- runSTFn2 mySub
       ( oneOf
           [ pure
               ( makeHighshelf
@@ -734,7 +735,7 @@ highshelf i' atts elts = Element' $ C.Node go
       )
       k
     pure do
-      k (deleteFromCache { id: me })
+      runSTFn1 k (deleteFromCache { id: me })
       unsub
 
 highshelf_
@@ -781,10 +782,10 @@ iirFilter' fwd bk i' elts = Element' $ C.Node go
           , makeIIRFilter
           }
       ) =
-    makeLemmingEvent \mySub k -> do
+    makeLemmingEventO $ mkSTFn2 \(Subscriber mySub) k -> do
       me <- ids
       parent.raiseId me
-      unsub <- mySub
+      unsub <- runSTFn2 mySub
         ( oneOf
             [ pure
                 ( makeIIRFilter
@@ -800,7 +801,7 @@ iirFilter' fwd bk i' elts = Element' $ C.Node go
         )
         k
       pure do
-        k (deleteFromCache { id: me })
+        runSTFn1 k (deleteFromCache { id: me })
         unsub
 
 -- lowpass
@@ -814,10 +815,10 @@ lowpass
 lowpass i' atts elts = Element' $ C.Node go
   where
   C.InitializeLowpass i = Common.toInitializeLowpass i'
-  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeLowpass, setFrequency, setQ }) = makeLemmingEvent \mySub k -> do
+  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeLowpass, setFrequency, setQ }) = makeLemmingEventO $ mkSTFn2 \(Subscriber mySub) k -> do
     me <- ids
     parent.raiseId me
-    unsub <- mySub
+    unsub <- runSTFn2 mySub
       ( oneOf
           [ pure
               ( makeLowpass
@@ -836,7 +837,7 @@ lowpass i' atts elts = Element' $ C.Node go
       )
       k
     pure do
-      k (deleteFromCache { id: me })
+      runSTFn1 k (deleteFromCache { id: me })
       unsub
 
 lowpass_
@@ -858,10 +859,10 @@ lowshelf
 lowshelf i' atts elts = Element' $ C.Node go
   where
   C.InitializeLowshelf i = Common.toInitializeLowshelf i'
-  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeLowshelf, setFrequency, setGain }) = makeLemmingEvent \mySub k -> do
+  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeLowshelf, setFrequency, setGain }) = makeLemmingEventO $ mkSTFn2 \(Subscriber mySub) k -> do
     me <- ids
     parent.raiseId me
-    unsub <- mySub
+    unsub <- runSTFn2 mySub
       ( oneOf
           [ pure
               ( makeLowshelf
@@ -880,7 +881,7 @@ lowshelf i' atts elts = Element' $ C.Node go
       )
       k
     pure do
-      k (deleteFromCache { id: me })
+      runSTFn1 k (deleteFromCache { id: me })
       unsub
 
 lowshelf_
@@ -916,10 +917,10 @@ __loopBuf i' atts = Element' $ C.Node go
           , setLoopEnd
           }
       ) =
-    makeLemmingEvent \mySub k -> do
+    makeLemmingEventO $ mkSTFn2 \(Subscriber mySub) k -> do
       me <- ids
       parent.raiseId me
-      unsub <- mySub
+      unsub <- runSTFn2 mySub
         ( oneOf
             [ pure
                 ( makeLoopBuf
@@ -948,7 +949,7 @@ __loopBuf i' atts = Element' $ C.Node go
         )
         k
       pure do
-        k (deleteFromCache { id: me })
+        runSTFn1 k (deleteFromCache { id: me })
         unsub
 
 loopBuf
@@ -975,10 +976,10 @@ __mediaElement
 __mediaElement (C.InitializeMediaElement i) = Element' $ C.Node go
   where
   go parent (C.AudioInterpret { ids, deleteFromCache, makeMediaElement }) =
-    makeLemmingEvent \mySub k -> do
+    makeLemmingEventO $ mkSTFn2 \(Subscriber mySub) k -> do
       me <- ids
       parent.raiseId me
-      unsub <- mySub
+      unsub <- runSTFn2 mySub
         ( pure
             ( makeMediaElement
                 { id: me
@@ -990,7 +991,7 @@ __mediaElement (C.InitializeMediaElement i) = Element' $ C.Node go
         )
         k
       pure do
-        k (deleteFromCache { id: me })
+        runSTFn1 k (deleteFromCache { id: me })
         unsub
 
 mediaElement
@@ -1010,10 +1011,10 @@ __microphone i' = Element' $ C.Node go
   where
   C.InitializeMicrophone i = Common.toInitializeMicrophone i'
   go parent (C.AudioInterpret { ids, deleteFromCache, makeMicrophone }) =
-    makeLemmingEvent \mySub k -> do
+    makeLemmingEventO $ mkSTFn2 \(Subscriber mySub) k -> do
       me <- ids
       parent.raiseId me
-      unsub <- mySub
+      unsub <- runSTFn2 mySub
         ( pure
             ( makeMicrophone
                 { id: me
@@ -1025,7 +1026,7 @@ __microphone i' = Element' $ C.Node go
         )
         k
       pure do
-        k (deleteFromCache { id: me })
+        runSTFn1 k (deleteFromCache { id: me })
         unsub
 
 microphone
@@ -1046,10 +1047,10 @@ notch
 notch i' atts elts = Element' $ C.Node go
   where
   C.InitializeNotch i = Common.toInitializeNotch i'
-  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeNotch, setFrequency, setQ }) = makeLemmingEvent \mySub k -> do
+  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeNotch, setFrequency, setQ }) = makeLemmingEventO $ mkSTFn2 \(Subscriber mySub) k -> do
     me <- ids
     parent.raiseId me
-    unsub <- mySub
+    unsub <- runSTFn2 mySub
       ( oneOf
           [ pure
               ( makeNotch
@@ -1068,7 +1069,7 @@ notch i' atts elts = Element' $ C.Node go
       )
       k
     pure do
-      k (deleteFromCache { id: me })
+      runSTFn1 k (deleteFromCache { id: me })
       unsub
 
 notch_
@@ -1090,10 +1091,10 @@ peaking
 peaking i' atts elts = Element' $ C.Node go
   where
   C.InitializePeaking i = Common.toInitializePeaking i'
-  go parent di@(C.AudioInterpret { ids, deleteFromCache, makePeaking, setFrequency, setQ, setGain }) = makeLemmingEvent \mySub k -> do
+  go parent di@(C.AudioInterpret { ids, deleteFromCache, makePeaking, setFrequency, setQ, setGain }) = makeLemmingEventO $ mkSTFn2 \(Subscriber mySub) k -> do
     me <- ids
     parent.raiseId me
-    unsub <- mySub
+    unsub <- runSTFn2 mySub
       ( oneOf
           [ pure $ makePeaking
               { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, frequency: i.frequency, q: i.q, gain: i.gain }
@@ -1111,7 +1112,7 @@ peaking i' atts elts = Element' $ C.Node go
       )
       k
     pure do
-      k (deleteFromCache { id: me })
+      runSTFn1 k (deleteFromCache { id: me })
       unsub
 
 peaking_
@@ -1139,10 +1140,10 @@ __periodicOsc i' atts = Element' $ C.Node go
       ( C.AudioInterpret
           { ids, deleteFromCache, makePeriodicOsc, setFrequency, setOnOff, setPeriodicOsc }
       ) =
-    makeLemmingEvent \mySub k -> do
+    makeLemmingEventO $ mkSTFn2 \(Subscriber mySub) k -> do
       me <- ids
       parent.raiseId me
-      unsub <- mySub
+      unsub <- runSTFn2 mySub
         ( oneOf
             [ pure
                 ( makePeriodicOsc
@@ -1166,7 +1167,7 @@ __periodicOsc i' atts = Element' $ C.Node go
         )
         k
       pure do
-        k (deleteFromCache { id: me })
+        runSTFn1 k (deleteFromCache { id: me })
         unsub
 
 periodicOsc
@@ -1262,10 +1263,10 @@ __playBuf i' atts = Element' $ C.Node go
           , setBufferOffset
           }
       ) =
-    makeLemmingEvent \mySub k -> do
+    makeLemmingEventO $ mkSTFn2 \(Subscriber mySub) k -> do
       me <- ids
       parent.raiseId me
-      unsub <- mySub
+      unsub <- runSTFn2 mySub
         ( oneOf
             [ pure
                 ( makePlayBuf
@@ -1297,7 +1298,7 @@ __playBuf i' atts = Element' $ C.Node go
         )
         k
       pure do
-        k (deleteFromCache { id: me })
+        runSTFn1 k (deleteFromCache { id: me })
         unsub
 
 playBuf
@@ -1326,10 +1327,10 @@ recorder i' elt = Element' $ C.Node go
   where
   C.InitializeRecorder i = Common.toInitializeRecorder i'
   go parent di@(C.AudioInterpret { ids, deleteFromCache, makeRecorder }) =
-    makeLemmingEvent \mySub k -> do
+    makeLemmingEventO $ mkSTFn2 \(Subscriber mySub) k -> do
       me <- ids
       parent.raiseId me
-      unsub <- mySub
+      unsub <- runSTFn2 mySub
         ( oneOf
             [ pure
                 ( makeRecorder
@@ -1340,7 +1341,7 @@ recorder i' elt = Element' $ C.Node go
         )
         k
       pure do
-        k (deleteFromCache { id: me })
+        runSTFn1 k (deleteFromCache { id: me })
         unsub
 
 -- sawtoothOsc
@@ -1357,10 +1358,10 @@ __sawtoothOsc i' atts = Element' $ C.Node go
   go
     parent
     di@(C.AudioInterpret { ids, deleteFromCache, makeSawtoothOsc, setFrequency, setOnOff }) =
-    makeLemmingEvent \mySub k -> do
+    makeLemmingEventO $ mkSTFn2 \(Subscriber mySub) k -> do
       me <- ids
       parent.raiseId me
-      unsub <- mySub
+      unsub <- runSTFn2 mySub
         ( oneOf
             [ pure
                 ( makeSawtoothOsc
@@ -1382,7 +1383,7 @@ __sawtoothOsc i' atts = Element' $ C.Node go
         )
         k
       pure do
-        k (deleteFromCache { id: me })
+        runSTFn1 k (deleteFromCache { id: me })
         unsub
 
 sawtoothOsc
@@ -1414,10 +1415,10 @@ __sinOsc i' atts = Element' $ C.Node go
   go
     parent
     di@(C.AudioInterpret { ids, deleteFromCache, makeSinOsc, setFrequency, setOnOff }) =
-    makeLemmingEvent \mySub k -> do
+    makeLemmingEventO $ mkSTFn2 \(Subscriber mySub) k -> do
       me <- ids
       parent.raiseId me
-      unsub <- mySub
+      unsub <- runSTFn2 mySub
         ( oneOf
             [ pure
                 ( makeSinOsc
@@ -1439,7 +1440,7 @@ __sinOsc i' atts = Element' $ C.Node go
         )
         k
       pure do
-        k (deleteFromCache { id: me })
+        runSTFn1 k (deleteFromCache { id: me })
         unsub
 
 sinOsc
@@ -1471,10 +1472,10 @@ __squareOsc i' atts = Element' $ C.Node go
   go
     parent
     di@(C.AudioInterpret { ids, deleteFromCache, makeSquareOsc, setFrequency, setOnOff }) =
-    makeLemmingEvent \mySub k -> do
+    makeLemmingEventO $ mkSTFn2 \(Subscriber mySub) k -> do
       me <- ids
       parent.raiseId me
-      unsub <- mySub
+      unsub <- runSTFn2 mySub
         ( oneOf
             [ pure
                 ( makeSquareOsc
@@ -1496,7 +1497,7 @@ __squareOsc i' atts = Element' $ C.Node go
         )
         k
       pure do
-        k (deleteFromCache { id: me })
+        runSTFn1 k (deleteFromCache { id: me })
         unsub
 
 squareOsc
@@ -1520,10 +1521,10 @@ speaker
    . Array (C.Audible outputChannels lock payload)
   -> C.AudioInterpret payload
   -> Event payload
-speaker elts di@(C.AudioInterpret { ids, makeSpeaker }) = makeLemmingEvent \mySub k -> do
+speaker elts di@(C.AudioInterpret { ids, makeSpeaker }) = makeLemmingEventO $ mkSTFn2 \(Subscriber mySub) k -> do
   id <- ids
-  k (makeSpeaker { id })
-  mySub (__internalOcarinaFlatten { parent: Just id, scope: Local "toplevel", raiseId: \_ -> pure unit } di (fixed elts)) k
+  runSTFn1 k (makeSpeaker { id })
+  runSTFn2 mySub (__internalOcarinaFlatten { parent: Just id, scope: Local "toplevel", raiseId: \_ -> pure unit } di (fixed elts)) k
 
 speaker2
   :: forall lock payload
@@ -1543,10 +1544,10 @@ pan
 pan i' atts elts = Element' $ C.Node go
   where
   C.InitializeStereoPanner i = Common.toInitializeStereoPanner i'
-  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeStereoPanner, setPan }) = makeLemmingEvent \mySub k -> do
+  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeStereoPanner, setPan }) = makeLemmingEventO $ mkSTFn2 \(Subscriber mySub) k -> do
     me <- ids
     parent.raiseId me
-    unsub <- mySub
+    unsub <- runSTFn2 mySub
       ( oneOf
           [ pure
               ( makeStereoPanner
@@ -1564,7 +1565,7 @@ pan i' atts elts = Element' $ C.Node go
       )
       k
     pure do
-      k (deleteFromCache { id: me })
+      runSTFn1 k (deleteFromCache { id: me })
       unsub
 
 pan_
@@ -1589,10 +1590,10 @@ __triangleOsc i' atts = Element' $ C.Node go
   go
     parent
     di@(C.AudioInterpret { ids, deleteFromCache, makeTriangleOsc, setFrequency, setOnOff }) =
-    makeLemmingEvent \mySub k -> do
+    makeLemmingEventO $ mkSTFn2 \(Subscriber mySub) k -> do
       me <- ids
       parent.raiseId me
-      unsub <- mySub
+      unsub <- runSTFn2 mySub
         ( oneOf
             [ pure
                 ( makeTriangleOsc
@@ -1615,7 +1616,7 @@ __triangleOsc i' atts = Element' $ C.Node go
         )
         k
       pure do
-        k (deleteFromCache { id: me })
+        runSTFn1 k (deleteFromCache { id: me })
         unsub
 
 triangleOsc
@@ -1645,10 +1646,10 @@ waveShaper i' elts = Element' $ C.Node go
   where
   C.InitializeWaveShaper i = Common.toInitializeWaveShaper i'
   go parent di@(C.AudioInterpret { ids, deleteFromCache, makeWaveShaper }) =
-    makeLemmingEvent \mySub k -> do
+    makeLemmingEventO $ mkSTFn2 \(Subscriber mySub) k -> do
       me <- ids
       parent.raiseId me
-      unsub <- mySub
+      unsub <- runSTFn2 mySub
         ( oneOf
             [ pure
                 ( makeWaveShaper
@@ -1664,7 +1665,7 @@ waveShaper i' elts = Element' $ C.Node go
         )
         k
       pure do
-        k (deleteFromCache { id: me })
+        runSTFn1 k (deleteFromCache { id: me })
         unsub
 
 ----------
@@ -1821,15 +1822,17 @@ tmpResolveAU = go
         let
           n = gain_ 1.0 [ u ]
         in
-          makeLemmingEvent \mySub0 k -> do
+          makeLemmingEventO $ mkSTFn2 \(Subscriber mySub0) k -> do
             av <- RRef.new Nothing
-            mySub0
-              ( __internalOcarinaFlatten { parent: Nothing, scope: scope, raiseId: \x -> void $ RRef.write (Just x) av } di n <|> makeLemmingEvent \_ k2 ->
-                  do
-                    RRef.read av >>= case _ of
-                      Nothing -> pure unit -- ugh, fails silently
-                      Just i -> k2 (f (ut (C.FFIAudioUnit { i })))
-                    pure (pure unit)
+            runSTFn2 mySub0
+              ( __internalOcarinaFlatten { parent: Nothing, scope: scope, raiseId: \x -> void $ RRef.write (Just x) av } di n <|>
+                  ( makeLemmingEventO $ mkSTFn2 \_ k2 ->
+                      do
+                        RRef.read av >>= case _ of
+                          Nothing -> pure unit -- ugh, fails silently
+                          Just i -> runSTFn1 k2 (f (ut (C.FFIAudioUnit { i })))
+                        pure (pure unit)
+                  )
               )
               k
     }
