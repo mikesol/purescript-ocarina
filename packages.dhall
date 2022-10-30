@@ -112,17 +112,17 @@ let overrides =
       { bolson =
         { dependencies = [ "prelude", "heterogeneous" ]
         , repo = "https://github.com/mikesol/purescript-bolson.git"
-        , version = "main"
+        , version = "v0.3.1"
         }
         , deku =
         { dependencies = [ "prelude" ]
         , repo = "https://github.com/mikesol/purescript-deku.git"
-        , version = "main"
+        , version = "v0.8.1"
         }
         , hyrule =
         { dependencies = [ "monoid-extras", "web-uievents", "js-timers", "unsafe-reference" ]
         , repo = "https://github.com/mikesol/purescript-hyrule.git"
-        , version = "master"
+        , version = "v2.3.2"
         }
       }
 
