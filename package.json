@@ -1,6 +1,6 @@
 {
   "name": "purescript-ocarina",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "description": "Ordinary Cartesian Additive Relational Idempotent N-ary Auditives",
   "scripts": {
     "build": "spago build",
