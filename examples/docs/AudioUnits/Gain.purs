@@ -3,8 +3,8 @@ module Ocarina.Example.Docs.AudioUnits.Gain where
 import Prelude
 
 import Bolson.Core (envy)
-import Deku.Core (Domable)
-import Deku.Pursx (nut, (~~))
+import Deku.Core (Nut)
+import Deku.Pursx ((~~))
 import Effect (Effect)
 import FRP.Event (Event)
 import Ocarina.Control (gain_, loopBuf)
@@ -32,9 +32,9 @@ px = Proxy :: Proxy """<section>
   </section>
 """
 
-gain :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable lock payload
+gain :: CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Nut
 gain ccb _ ev = px ~~
-  { gain: nut
+  { gain:
       ( audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/339/339822_5121236-lq.mp3")
           \ctx buf -> run2 ctx
             [ gain_ 0.1  [ loopBuf buf bangOn ]]

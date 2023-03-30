@@ -15,7 +15,7 @@ import Effect.Random as Random
 import FRP.Behavior (Behavior, behavior, sampleBy)
 import FRP.Event (Event, makeEvent, memoize, subscribe)
 import FRP.Event.VBus (V)
-import Ocarina.Clock (interval)
+import Ocarina.Clock(interval)
 import Ocarina.Control (bandpass_, fan1, gain, gain_, highpass_, triangleOsc)
 import Ocarina.Core (Audible, AudioEnvelope(AudioEnvelope), bangOn)
 import Ocarina.Interpret (close, context)
@@ -57,7 +57,7 @@ main = runInBody
       let
         start = event.startStop.start <|> pure unit
 
-        music :: forall lock. _ -> Event (Array (Audible _ lock _))
+        music :: _ -> Event (Array (Audible _ _))
         music evt' = memoize evt' \evt -> do
           let
             pitch = map fst evt
@@ -82,7 +82,7 @@ main = runInBody
                 , o: _
                 } <$> time
             f0 = bangOn <|> frequency <<< cp <$> pitch
-          [ fan1 (triangleOsc 0.0 f0) \ipt _ -> do
+          [ fan1 (triangleOsc 0.0 f0) \ipt -> do
               gain_ 2.0
                 [ gain 0.0 (P.gain <$> e0)
                     [ bandpass_

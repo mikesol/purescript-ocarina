@@ -26,33 +26,33 @@ bufferOffset
 bufferOffset = wrap <<< inj (Proxy :: Proxy "bufferOffset")
 
 delayTime
-  :: forall nt r ap l p
-   . Newtype nt (Variant (delayTime :: AudioParameter l p | r))
-  => ToAudioParameter ap l p
+  :: forall nt r ap p
+   . Newtype nt (Variant (delayTime :: AudioParameter p | r))
+  => ToAudioParameter ap p
   => ap
   -> nt
 delayTime = wrap <<< inj (Proxy :: Proxy "delayTime") <<< toAudioParameter
 
 frequency
-  :: forall nt r ap l p
-   . Newtype nt (Variant (frequency :: AudioParameter l p | r))
-  => ToAudioParameter ap l p
+  :: forall nt r ap p
+   . Newtype nt (Variant (frequency :: AudioParameter p | r))
+  => ToAudioParameter ap p
   => ap
   -> nt
 frequency = wrap <<< inj (Proxy :: Proxy "frequency") <<< toAudioParameter
 
 q
-  :: forall nt r ap l p
-   . Newtype nt (Variant (q :: AudioParameter l p | r))
-  => ToAudioParameter ap l p
+  :: forall nt r ap p
+   . Newtype nt (Variant (q :: AudioParameter p | r))
+  => ToAudioParameter ap p
   => ap
   -> nt
 q = wrap <<< inj (Proxy :: Proxy "q") <<< toAudioParameter
 
 gain
-  :: forall nt r ap l p
-   . Newtype nt (Variant (gain :: AudioParameter l p | r))
-  => ToAudioParameter ap l p
+  :: forall nt r ap p
+   . Newtype nt (Variant (gain :: AudioParameter p | r))
+  => ToAudioParameter ap p
   => ap
   -> nt
 gain = wrap <<< inj (Proxy :: Proxy "gain") <<< toAudioParameter
@@ -79,9 +79,9 @@ loopStart
 loopStart = wrap <<< inj (Proxy :: Proxy "loopStart")
 
 offset
-  :: forall nt r ap l p
-   . Newtype nt (Variant (offset :: AudioParameter l p | r))
-  => ToAudioParameter ap l p
+  :: forall nt r ap p
+   . Newtype nt (Variant (offset :: AudioParameter p | r))
+  => ToAudioParameter ap p
   => ap
   -> nt
 offset = wrap <<< inj (Proxy :: Proxy "offset") <<< toAudioParameter
@@ -95,9 +95,9 @@ onOff
 onOff = wrap <<< inj (Proxy :: Proxy "onOff") <<< toAudioOnOff
 
 playbackRate
-  :: forall nt r ap l p
-   . Newtype nt (Variant (playbackRate :: AudioParameter l p | r))
-  => ToAudioParameter ap l p
+  :: forall nt r ap p
+   . Newtype nt (Variant (playbackRate :: AudioParameter p | r))
+  => ToAudioParameter ap p
   => ap
   -> nt
 playbackRate = wrap <<< inj (Proxy :: Proxy "playbackRate") <<< toAudioParameter

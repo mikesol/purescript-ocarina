@@ -3,8 +3,8 @@ module Ocarina.Example.Docs.AudioUnits.Highpass where
 import Prelude
 
 import Bolson.Core (envy)
-import Deku.Core (Domable)
-import Deku.Pursx (nut, (~~))
+import Deku.Core (Nut)
+import Deku.Pursx ((~~))
 import Effect (Effect)
 import FRP.Event (Event)
 import Ocarina.Control (highpass_, loopBuf)
@@ -29,9 +29,9 @@ px = Proxy :: Proxy """<section>
   </section>
 """
 
-highpass :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable lock payload
+highpass :: CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Nut
 highpass ccb _ ev = px ~~
-  { highpass: nut
+  { highpass:
       ( audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
           \ctx buf -> run2 ctx
             [highpass_ 2000.0  [loopBuf buf bangOn]]

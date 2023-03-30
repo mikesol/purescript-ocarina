@@ -3,8 +3,8 @@ module Ocarina.Example.Docs.AudioUnits.SquareOsc where
 import Prelude
 
 import Bolson.Core (envy)
-import Deku.Core (Domable)
-import Deku.Pursx (nut, (~~))
+import Deku.Core (Nut)
+import Deku.Pursx ((~~))
 import Effect (Effect)
 import FRP.Event (Event)
 import Ocarina.Control (gain_, squareOsc)
@@ -28,13 +28,13 @@ px =
 """
 
 square
-  :: forall lock payload
+  :: forall payload
    . CancelCurrentAudio
   -> (Page -> Effect Unit)
   -> Event SingleSubgraphEvent
-  -> Domable lock payload
+  -> Nut
 square ccb _ ev = px ~~
-  { periodic: nut
+  { periodic:
       ( audioWrapper ev ccb (\_ -> pure unit)
           \ctx _ -> run2 ctx
             [gain_ 0.2 [squareOsc 448.0 bangOn]]

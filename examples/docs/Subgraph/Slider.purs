@@ -8,8 +8,10 @@ import Data.Tuple (fst)
 import Data.Tuple.Nested ((/\))
 import Deku.Attribute (attr, cb, (:=))
 import Deku.Control (switcher, text, text_)
-import Deku.Core (Domable, vbussed)
+import Deku.Core (Nut)
 import Deku.DOM as D
+import Deku.Do as Deku
+import Deku.Hooks (useState')
 import Deku.Toplevel (runInBody)
 import Effect (Effect)
 import Effect.Aff (launchAff_)
@@ -25,7 +27,6 @@ import Ocarina.Run (run2_)
 import Ocarina.WebAPI (BrowserAudioBuffer)
 import QualifiedDo.Alt as OneOf
 import QualifiedDo.OneOfMap as O
-import Type.Proxy (Proxy(..))
 
 type StartStop = V (start :: Unit, stop :: Effect Unit)
 type UIEvents = V (startStop :: StartStop, slider :: Unit)
@@ -50,50 +51,54 @@ main = do
       <<< Just
   where
   scene
-    :: forall lock payload
-     . Maybe BrowserAudioBuffer
-    -> Domable lock payload
+    :: Maybe BrowserAudioBuffer
+    -> Nut
   scene = maybe (D.div_ [ text_ "Loading..." ]) \buffer ->
-    D.div_ $ pure $ vbussed (Proxy :: _ UIEvents) \push event -> do
-      let
-        startE = pure unit <|> event.startStop.start
-        sl = sampleBy (/\) random
-          $ fold (\b _ -> b + 1) 0 (event.slider)
-        music = run2_
-          [ gain_ 1.0
-              [ dyn $ map
-                  ( \i ->
-                      OneOf.do
-                        pure $ sound $ playBuf
-                          { buffer: buffer, playbackRate: 0.7 + (fst i) * 2.0 }
-                          bangOn
-                        delay 5000 $ pure $ silence
-                  )
-                  sl
+    D.div_
+      [ Deku.do
+          setStart /\ start <- useState'
+          setStop /\ stop <- useState'
+          setSlider /\ slider <- useState'
+          let
+            startE = pure unit <|> start
+            sl = sampleBy (/\) random
+              $ fold (\b _ -> b + 1) 0 (slider)
+            music = run2_
+              [ gain_ 1.0
+                  [ dyn $ map
+                      ( \i ->
+                          OneOf.do
+                            pure $ sound $ playBuf
+                              { buffer: buffer, playbackRate: 0.7 + (fst i) * 2.0 }
+                              bangOn
+                            delay 5000 $ pure $ silence
+                      )
+                      sl
+                  ]
               ]
-          ]
-      D.div_
-        [ D.div_
-            [ text_ "Slide me!"
-            , D.input
-                ( O.oneOfMap pure O.do
-                    D.Xtype := "range"
-                    D.Min := "0"
-                    D.Max := "100"
-                    D.Step := "1"
-                    D.Value := "50"
-                    D.OnInput := cb (const (push.slider unit))
+          D.div_
+            [ D.div_
+                [ text_ "Slide me!"
+                , D.input
+                    ( O.oneOfMap pure O.do
+                        D.Xtype := "range"
+                        D.Min := "0"
+                        D.Max := "100"
+                        D.Step := "1"
+                        D.Value := "50"
+                        D.OnInput := cb (const (setSlider unit))
+                    )
+                    []
+                ]
+            , D.button
+                ( O.oneOfMap (map (attr D.OnClick <<< cb <<< const)) O.do
+                    startE $> (music >>= setStop)
+                    stop <#>
+                      (_ *> setStart unit)
                 )
-                []
+                [ text OneOf.do
+                    startE $> "Turn on"
+                    stop $> "Turn off"
+                ]
             ]
-        , D.button
-            ( O.oneOfMap (map (attr D.OnClick <<< cb <<< const)) O.do
-                startE $> (music >>= push.startStop.stop)
-                event.startStop.stop <#>
-                  (_ *> push.startStop.start unit)
-            )
-            [ text OneOf.do
-                startE $> "Turn on"
-                event.startStop.stop $> "Turn off"
-            ]
-        ]
+      ]

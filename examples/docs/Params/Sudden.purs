@@ -2,10 +2,9 @@ module Ocarina.Example.Docs.Params.Sudden where
 
 import Prelude
 
-import Bolson.Core (envy)
 import Data.Foldable (oneOf)
-import Deku.Core (Domable)
-import Deku.Pursx (makePursx', nut)
+import Deku.Core (Nut)
+import Deku.Pursx (makePursx')
 import Effect (Effect)
 import FRP.Event (Event, delay)
 import Ocarina.Control (gain_, loopBuf)
@@ -40,9 +39,9 @@ px =
 """
 
 suddenEx
-  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable lock payload
+  :: CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Nut
 suddenEx ccb _ ev = makePursx' (Proxy :: _ "@") px
-  { suddenEx: nut
+  { suddenEx:
       ( audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
           \ctx buf -> run2 ctx
             [ gain_ 1.0

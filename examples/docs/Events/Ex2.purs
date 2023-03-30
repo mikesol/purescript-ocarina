@@ -7,15 +7,15 @@ import Data.Foldable (oneOf, oneOfMap, traverse_)
 import Data.Tuple (Tuple(..), fst, snd)
 import Deku.Attribute (attr, cb, (:=))
 import Deku.Control (text, text_)
-import Deku.Core (Domable, vbussed)
+import Deku.Core (Nut, vbussed)
 import Deku.DOM as D
-import Deku.Pursx (makePursx', nut)
+import Deku.Pursx (makePursx')
 import Effect (Effect)
 import Effect.Random as Random
 import FRP.Behavior (Behavior, behavior, sampleBy)
 import FRP.Event (Event, makeEvent, memoize, subscribe)
 import FRP.Event.VBus (V)
-import Ocarina.Clock (interval)
+import Ocarina.Clock(interval)
 import Ocarina.Control (bandpass_, fan1, gain, gain_, highpass_, triangleOsc)
 import Ocarina.Core (Audible, AudioEnvelope(..), bangOn)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..))
@@ -47,7 +47,7 @@ px =
 
   <p>In the following example, we use <code>interval</code> to control the playback rate of an analogue synth. We'll also use a custom behavior called <code>random</code> to control the pitch.</p>
 
-  <p>One important optimization we make here is the use of the function <code>memoize</code>. Whenever we're dealing with audio-clock timing, we want to limit the number of subscriptions to receive events from the audio clock. Ideally, there is only one subscription that takes a reading of the clock as a single source of truth. Because we are in PureScript-land, events (like everything else), are referrentially transparent, meaning that new ones will get created every time you use them (just like a new <code>2</code> is created every time you type the value <code>2</code>: they don't all refer to one uber-<code>2</code>). To sync all the events to the <i>same</i> source, we use <code>memoize</code>. While this optimization is not necessary, I recommend it: it will make sure the timing is 100% accurate at a very small energy cost (meaning <code>memoize</code> will eat up slightly more power from a phone's battery, but still not much).</p>
+  <p>One important optimization we make here is the use of the function <code>memoize</code>. Whenever we're dealing with audio-ctiming, we want to limit the number of subscriptions to receive events from the audio clock. Ideally, there is only one subscription that takes a reading of the cas a single source of truth. Because we are in PureScript-land, events (like everything else), are referrentially transparent, meaning that new ones will get created every time you use them (just like a new <code>2</code> is created every time you type the value <code>2</code>: they don't all refer to one uber-<code>2</code>). To sync all the events to the <i>same</i> source, we use <code>memoize</code>. While this optimization is not necessary, I recommend it: it will make sure the timing is 100% accurate at a very small energy cost (meaning <code>memoize</code> will eat up slightly more power from a phone's battery, but still not much).</p>
 
   <pre><code>@txt@</code></pre>
 
@@ -77,7 +77,7 @@ import FRP.Event (Event, makeEvent, memoize, subscribe)
 
 import FRP.Event.VBus (V, vbus)
 import Type.Proxy (Proxy(..))
-import Ocarina.Clock (interval)
+import Ocarina.Clock(interval)
 import Ocarina.Control (bandpass_, fan1, gain, gain_, highpass_, triangleOsc)
 import Ocarina.Core (Audible, AudioEnvelope(AudioEnvelope), bangOn)
 import Ocarina.Interpret (close, context)
@@ -117,7 +117,7 @@ main = runInBody1
       let
         start = event.startStop.start <|> pure unit
 
-        music :: forall lock. _ -> Event (Array (Audible _ lock _))
+        music :: forall lock. _ -> Event (Array (Audible _ _))
         music evt' = memoize evt' \evt -> do
           let
             pitch = map fst evt
@@ -232,15 +232,15 @@ cp n
   | otherwise = 587.329536
 
 ex2
-  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable lock payload
+  :: CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Nut
 ex2 ccb _ ev = makePursx' (Proxy :: _ "@") px
-  { txt: nut (text_ txt)
-  , ex2: nut
+  { txt: (text_ txt)
+  , ex2:
       ( vbussed (Proxy :: _ UIEvents) \push event -> -- here
           let
             start = event.startStop.start <|> pure unit
 
-            music :: forall lock0. _ -> Event (Array (Audible _ lock0 _))
+            music :: _ -> Event (Array (Audible _ _))
             music evt' = memoize evt' \evt -> do
               let
                 pitch = map fst evt
@@ -265,7 +265,7 @@ ex2 ccb _ ev = makePursx' (Proxy :: _ "@") px
                     , o: _
                     } <$> time
                 f0 = bangOn <|> frequency <<< cp <$> pitch
-              [ fan1 (triangleOsc 0.0 f0) \ipt _ -> do
+              [ fan1 (triangleOsc 0.0 f0) \ipt -> do
                   gain_ 2.0
                     [ gain 0.0 (P.gain <$> e0)
                         [ bandpass_

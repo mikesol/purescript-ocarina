@@ -3,8 +3,8 @@ module Ocarina.Example.Docs.AudioUnits.Convolution where
 import Prelude
 
 import Bolson.Core (envy)
-import Deku.Core (Domable)
-import Deku.Pursx (nut, (~~))
+import Deku.Core (Nut)
+import Deku.Pursx ((~~))
 import Effect (Effect)
 import FRP.Event (Event)
 import Ocarina.Control (convolver, loopBuf)
@@ -26,9 +26,9 @@ px = Proxy :: Proxy """<section>
   </section>
 """
 
-convolution :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable lock payload
+convolution :: CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Nut
 convolution ccb _ ev = px ~~
-  { convolution: nut
+  { convolution:
       (  audioWrapper ev ccb (\ctx -> { loop: _, verb: _ }
          <$> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3" <*> decodeAudioDataFromUri ctx "https://cdn.jsdelivr.net/gh/andibrae/Reverb.js/Library/StMarysAbbeyReconstructionPhase3.m4a")
           \ctx {loop, verb} -> run2 ctx

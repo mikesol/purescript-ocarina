@@ -2,8 +2,8 @@ module Ocarina.Example.Docs.Events where
 
 import Prelude
 
-import Deku.Core (Domable)
-import Deku.Pursx (makePursx', nut)
+import Deku.Core (Nut)
+import Deku.Pursx (makePursx')
 import Effect (Effect)
 import FRP.Event (Event)
 import Ocarina.Example.Docs.Events.Ex0 as Ex0
@@ -38,15 +38,15 @@ px = Proxy :: Proxy
   <p>In this section, saw how to build rich audio applications using the <code>Event</code> and <code>Behavior</code> types. We also covered the three most common patterns you'll see when working with events: events that need to happen <i>now</i>, events that come from user interaction, and timed events. In the next section, we'll look at different ways to specify <a @next@ style="cursor:pointer;">the numeric parameters being sent as events</a>.</p>
 </div>"""
 
-events :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent -> Domable lock payload
+events :: CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent -> Nut
 events cca' dpage ssp ev = makePursx'  (Proxy :: _ "@") px
   { next: mnx Params
-  , primer: nut $ Primer.primer
-  , inOcarina: nut $ InOcarina.inOcarina
-  , flavors: nut $ Flavors.flavors
-  , ex0: nut $ Ex0.ex0 ccb dpage ev
-  , ex1: nut $ Ex1.ex1 ccb dpage ev
-  , ex2: nut $ Ex2.ex2 ccb dpage ev
+  , primer: Primer.primer
+  , inOcarina: InOcarina.inOcarina
+  , flavors: Flavors.flavors
+  , ex0: Ex0.ex0 ccb dpage ev
+  , ex1: Ex1.ex1 ccb dpage ev
+  , ex2: Ex2.ex2 ccb dpage ev
   }
   where
   mnx i = mkNext ev (dpage i *> scrollToTop)

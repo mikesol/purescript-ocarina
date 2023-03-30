@@ -13,9 +13,9 @@ import Data.Vec ((+>))
 import Data.Vec as V
 import Deku.Attribute (attr, cb)
 import Deku.Control (text, text_)
-import Deku.Core (Domable, vbussed)
+import Deku.Core (Nut, vbussed)
 import Deku.DOM as D
-import Deku.Pursx (nut, (~~))
+import Deku.Pursx ((~~))
 import Effect (Effect)
 import Effect.Random (randomInt)
 import FRP.Behavior (ABehavior, Behavior, behavior, sample, sampleBy, sample_, step, switcher)
@@ -26,7 +26,7 @@ import FRP.Event.Animate (animationFrameEvent)
 import FRP.Event.Class (class IsEvent, fix, fold, sampleOnRight, withLast)
 import FRP.Event.Mouse (Mouse, down, getMouse)
 import FRP.Event.VBus (V)
-import Ocarina.Clock (withACTime)
+import Ocarina.Clock(withACTime)
 import Ocarina.Control (bandpass_, gain, lowpass_, periodicOsc, squareOsc_)
 import Ocarina.Core (AudioNumeric(..), _linear, bangOn)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..), SingleSubgraphPusher)
@@ -144,9 +144,9 @@ px =
   <p>When working with stateful events, a good way to decide if you should use <code>fold</code> versus <code>fix</code> is to ask the following question: can I incrementally change my state based on an initial state, or is my state defined in terms of how it changes? If you can incrementally change your state, go with <code>fold</code>. If, on the other hand, your state is defined in terms of how it changes, go with <code>fix</code>.</p>
 </section>"""
 
-fixEx :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent -> Domable lock payload
+fixEx :: CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent -> Nut
 fixEx ccb _ _ ev = px ~~
-  { txt: nut $ text_
+  { txt: text_
       """module Main
 
 import Prelude
@@ -178,7 +178,7 @@ import FRP.Event.VBus (V, vbus)
 import Test.QuickCheck (arbitrary, mkSeed)
 import Test.QuickCheck.Gen (evalGen)
 import Type.Proxy (Proxy(..))
-import Ocarina.Clock (withACTime)
+import Ocarina.Clock(withACTime)
 import Ocarina.Control (bandpass_, gain, lowpass_, periodicOsc, squareOsc_)
 import Ocarina.Interpret (close, constant0Hack, context)
 import Ocarina.Core (AudioNumeric(..), _linear, bangOn)
@@ -391,7 +391,7 @@ main = runInBody1
             ]
         ]
   )"""
-  , empl: nut
+  , empl:
       ( vbussed (Proxy :: _ StartStop) \push event -> do
           let
             startE = pure unit <|> event.start

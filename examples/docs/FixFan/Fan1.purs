@@ -6,8 +6,8 @@ import Bolson.Core (envy)
 import Data.Array ((..))
 import Data.Int (toNumber)
 import Data.Profunctor (lcmap)
-import Deku.Core (Domable)
-import Deku.Pursx (makePursx', nut)
+import Deku.Core (Nut)
+import Deku.Pursx (makePursx')
 import Effect (Effect)
 import FRP.Event (Event)
 import Ocarina.Control (bandpass_, loopBuf, gain_)
@@ -34,13 +34,13 @@ px =
   </div>
 """
 
-fan1 :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable lock payload
+fan1 :: CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Nut
 fan1 ccb _ ev = makePursx' (Proxy :: _ "@") px
-  { ai0: nut
+  { ai0:
       (audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
           \ctx buf -> run2 ctx
             [ C.fan1 (loopBuf buf bangOn)
-                \b _ -> gain_ 0.8
+                \b -> gain_ 0.8
                   $ 0 .. 40 <#> lcmap toNumber
                       \i -> bandpass_
                         { frequency: 200.0 + i * 150.0, q: 30.0 }

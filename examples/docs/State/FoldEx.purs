@@ -10,15 +10,15 @@ import Data.Vec ((+>))
 import Data.Vec as V
 import Deku.Attribute (attr, cb, (:=))
 import Deku.Control (text, text_)
-import Deku.Core (Domable, vbussed)
+import Deku.Core (Nut, vbussed)
 import Deku.DOM as D
-import Deku.Pursx (nut, (~~))
+import Deku.Pursx ((~~))
 import Effect (Effect)
 import FRP.Behavior (sampleBy, sample_, step)
 import FRP.Event (Event, fold, mapAccum, memoize, sampleOnRight)
 import FRP.Event.Animate (animationFrameEvent)
 import FRP.Event.VBus (V)
-import Ocarina.Clock (withACTime)
+import Ocarina.Clock(withACTime)
 import Ocarina.Control (gain, periodicOsc)
 import Ocarina.Core (AudioNumeric(..), _linear, bangOn)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..), SingleSubgraphPusher)
@@ -63,9 +63,9 @@ type UIEvents = V
   , cbx :: Cbx
   )
 
-foldEx :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent -> Domable lock payload
+foldEx :: CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent -> Nut
 foldEx ccb _ _ ev = px ~~
-  { txt: nut $ text_
+  { txt: text_
       """module Main where
 
 import Prelude
@@ -88,7 +88,7 @@ import FRP.Event.Class (fold, mapAccum, sampleOnRight)
 import FRP.Event.VBus (V, vbus)
 import Data.Number (pi, sin)
 import Type.Proxy (Proxy(..))
-import Ocarina.Clock (withACTime)
+import Ocarina.Clock(withACTime)
 import Ocarina.Control (gain, periodicOsc)
 import Ocarina.Interpret (close, constant0Hack, context)
 import Ocarina.Math (calcSlope)
@@ -202,7 +202,7 @@ main = runInBody1
             )
         ]
   )"""
-  , empl: nut
+  , empl:
       ( vbussed (Proxy :: _ UIEvents) \push event -> do
           let
             startE = pure unit <|> event.startStop.start

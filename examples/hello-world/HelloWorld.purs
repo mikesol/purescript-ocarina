@@ -13,7 +13,7 @@ import Data.Profunctor (lcmap)
 import Data.Typelevel.Num (D2)
 import Deku.Attribute (cb, (:=))
 import Deku.Control (text, text_)
-import Deku.Core (Domable, bussed)
+import Deku.Core (Nut, bussed)
 import Deku.DOM as DOM
 import Deku.Toplevel (runInBody)
 import Effect (Effect)
@@ -22,7 +22,7 @@ import Effect.Class (liftEffect)
 import FRP.Behavior (sample_)
 import FRP.Event (Event, subscribe)
 import FRP.Event.Animate (animationFrameEvent)
-import Ocarina.Clock (WriteHead, fot, writeHead)
+import Ocarina.Clock(WriteHead, fot, writeHead)
 import Ocarina.Control (gain, sinOsc, speaker2)
 import Ocarina.Core (Audible, bangOn, opticN)
 import Ocarina.Example.Utils (RaiseCancellation)
@@ -31,9 +31,9 @@ import Ocarina.Properties (frequency)
 import Ocarina.WebAPI (AudioContext)
 
 scene
-  :: forall lock payload
+  :: forall payload
    . WriteHead Event
-  -> Array (Audible D2 lock payload)
+  -> Array (Audible D2 payload)
 scene wh =
   let
     tr = fot wh (mul pi)
@@ -54,10 +54,10 @@ initializeHelloWorld :: Aff Init
 initializeHelloWorld = pure unit
 
 helloWorld
-  :: forall lock payload
+  :: forall payload
    . Unit
   -> RaiseCancellation
-  -> Domable lock payload
+  -> Nut
 helloWorld _ rc = bussed \p -> lcmap (alt (pure Nothing)) \e ->
   let
     musicButton push event audioEvent = DOM.button

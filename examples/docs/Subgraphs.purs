@@ -3,8 +3,8 @@ module Ocarina.Example.Docs.Subgraphs where
 import Prelude
 
 import Bolson.Core (envy)
-import Deku.Core (Domable)
-import Deku.Pursx (nut, (~~))
+import Deku.Core (Nut)
+import Deku.Pursx ((~~))
 import Effect (Effect)
 import FRP.Event (Event)
 import Ocarina.Control (gain_, loopBuf)
@@ -34,13 +34,13 @@ px =  Proxy :: Proxy """<div>
   <p>Thus ends the first version of the ocarina documentation. Applause is always welcome ~appl~! Alas, some features remain undocumented, like audio worklets and an imperative API. At some point I hope to document all of these, but hopefully this should be enough to get anyone interested up and running. If you need to use any of those features before I document them, ping me on the <a href="https://purescript.org/chat">PureScript Discord</a>. Otherwise, happy music making with Ocarina!</p>
 </div>"""
 
-subgraphs :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent  -> Domable lock payload
+subgraphs :: CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent  -> Nut
 subgraphs cca' dpage ssp ev = px ~~
-  { appl: nut
+  { appl:
       ( audioWrapperSpan "👏" ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/277/277021_1402315-lq.mp3")
           \ctx buf -> run2 ctx [ gain_ 1.0 [ loopBuf buf bangOn ] ]
       ),
-    suby: nut $ SliderEx.sgSliderEx ccb dpage ev
+    suby: SliderEx.sgSliderEx ccb dpage ev
     -- next: pure (D.OnClick := (cb (const $ dpage Intro *> scrollToTop)))
   }
   where

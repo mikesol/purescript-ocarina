@@ -860,7 +860,7 @@ instance
 
 -- resolveAU
 
-resolveAU :: forall lock payload. C.AudioInterpret payload -> (C.FFIAudioParameter -> payload) -> C.AudioParameter lock payload -> Event payload
+resolveAU :: forall payload. C.AudioInterpret payload -> (C.FFIAudioParameter -> payload) -> C.AudioParameter payload -> Event payload
 resolveAU = \_ _ _ -> empty {-go
   where
   cncl = C.FFIAudioParameter <<< inj (Proxy :: _ "cancel")

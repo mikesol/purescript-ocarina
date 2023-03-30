@@ -3,8 +3,8 @@ module Ocarina.Example.Docs.FixFan.Fan0 where
 import Prelude
 
 import Bolson.Core (envy)
-import Deku.Core (Domable)
-import Deku.Pursx (makePursx', nut)
+import Deku.Core (Nut)
+import Deku.Pursx (makePursx')
 import Effect (Effect)
 import FRP.Event (Event)
 import Ocarina.Control (bandpass_, fan1, gain_, loopBuf)
@@ -32,13 +32,13 @@ px =
   </div>
 """
 
-fan0 :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable lock payload
+fan0 :: CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Nut
 fan0 ccb _ ev = makePursx' (Proxy :: _ "@") px
-  { ai0: nut
+  { ai0:
       ( audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
           \ctx buf -> run2 ctx
             [ fan1 (loopBuf buf bangOn)
-                \b _ -> gain_ 0.8
+                \b -> gain_ 0.8
                   [ bandpass_ { frequency: 400.0, q: 1.0 } [ b ]
                   , bandpass_ { frequency: 880.0, q: 5.0 } [ b ]
                   , bandpass_ { frequency: 1200.0, q: 10.0 } [ b ]

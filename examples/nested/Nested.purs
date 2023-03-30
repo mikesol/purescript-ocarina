@@ -4,10 +4,12 @@ import Prelude
 
 import Control.Alt ((<|>))
 import Data.Foldable (oneOf, oneOfMap)
+import Data.Tuple.Nested ((/\))
 import Deku.Attribute (attr, cb)
 import Deku.Control (text)
-import Deku.Core (vbussed)
 import Deku.DOM as D
+import Deku.Do as Deku
+import Deku.Hooks (useState')
 import Deku.Toplevel (runInBody)
 import Effect (Effect)
 import FRP.Event.VBus (V)
@@ -16,63 +18,58 @@ import Ocarina.Core (Audible, bangOn, c1)
 import Ocarina.Interpret (close, context)
 import Ocarina.Properties as P
 import Ocarina.Run (run2)
-import Type.Proxy (Proxy(..))
-
-type StartStop = V (start :: Unit, stop :: Effect Unit)
-
-type UIEvents = V (startStop :: StartStop)
 
 main :: Effect Unit
-main = runInBody
-  ( vbussed (Proxy :: _ UIEvents) \push event -> do
-      let
-        startE = pure unit <|> event.startStop.start
-        stopE = event.startStop.stop
+main = runInBody Deku.do
+  setStart /\ start <- useState'
+  setStop /\ stop <- useState'
+  let
+    startE = pure unit <|> start
+    stopE = stop
 
-        music :: forall lock. Array (Audible _ lock _)
-        music =
-          [ gain 0.0
-              ( pure
-                  ( P.gain
-                      ( c1
-                          ( gain_ 0.1
-                              [ sinOsc 1.0
-                                  ( bangOn <|> pure
-                                      ( P.frequency
-                                          ( c1
-                                              ( gain_ 1.0
-                                                  [ constant 5.0 bangOn
-                                                  , gain_ 3.0 [ sinOsc 1.0 bangOn ]
-                                                  ]
-                                              )
+    music :: Array (Audible _ _)
+    music =
+      [ gain 0.0
+          ( pure
+              ( P.gain
+                  ( c1
+                      ( gain_ 0.1
+                          [ sinOsc 1.0
+                              ( bangOn <|> pure
+                                  ( P.frequency
+                                      ( c1
+                                          ( gain_ 1.0
+                                              [ constant 5.0 bangOn
+                                              , gain_ 3.0 [ sinOsc 1.0 bangOn ]
+                                              ]
                                           )
                                       )
                                   )
-                              ]
-                          )
+                              )
+                          ]
                       )
                   )
               )
-              [sinOsc 440.0 bangOn]
+          )
+          [sinOsc 440.0 bangOn]
 
-          ]
-      D.div_
-        [ D.div_
-            [ D.button
-                ( oneOfMap (map (attr D.OnClick <<< cb <<< const))
-                    [ stopE <#>
-                        (_ *> push.startStop.start unit)
-                    , startE $> do
-                        ctx <- context
-                        r <- run2 ctx music
-                        push.startStop.stop (r *> close ctx)
-                    ]
-                )
-                [ text $ oneOf
-                    [ startE $> "Turn on"
-                    , stopE $> "Turn off"
-                    ]
+      ]
+  D.div_
+    [ D.div_
+        [ D.button
+            ( oneOfMap (map (attr D.OnClick <<< cb <<< const))
+                [ stopE <#>
+                    (_ *> setStart unit)
+                , startE $> do
+                    ctx <- context
+                    r <- run2 ctx music
+                    setStop (r *> close ctx)
+                ]
+            )
+            [ text $ oneOf
+                [ startE $> "Turn on"
+                , stopE $> "Turn off"
                 ]
             ]
         ]
-  )
+    ]

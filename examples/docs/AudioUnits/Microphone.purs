@@ -4,8 +4,8 @@ import Prelude
 
 import Bolson.Core (envy)
 import Data.Maybe (Maybe(..))
-import Deku.Core (Domable)
-import Deku.Pursx (makePursx', nut)
+import Deku.Core (Nut)
+import Deku.Pursx (makePursx')
 import Effect (Effect)
 import FRP.Event (Event)
 import Ocarina.Control (delay_, fix, gain_, microphone, sinOsc_)
@@ -36,9 +36,9 @@ px =
 """
 
 microphoneEx
-  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable lock payload
+  :: CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Nut
 microphoneEx ccb _ ev = makePursx' (Proxy :: _ "@") px
-  { microphone: nut
+  { microphone:
       ( audioWrapper ev ccb (\_ -> getMicrophoneAndCamera true false)
           \ctx { microphone: mic } -> run2 ctx
             [ case mic of

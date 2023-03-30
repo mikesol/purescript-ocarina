@@ -2,11 +2,10 @@ module Ocarina.Example.Docs.FixFan where
 
 import Prelude
 
-import Control.Plus (class Plus)
-import Deku.Core (Domable)
-import Deku.Pursx (makePursx', nut)
+import Deku.Core (Nut)
+import Deku.Pursx (makePursx')
 import Effect (Effect)
-import FRP.Event (class IsEvent, Event)
+import FRP.Event (Event)
 import Ocarina.Example.Docs.FixFan.AI0 as AI0
 import Ocarina.Example.Docs.FixFan.AI1 as AI1
 import Ocarina.Example.Docs.FixFan.Fan0 as Fan0
@@ -73,16 +72,16 @@ px = Proxy :: Proxy
   <p>In this section, saw how to combine together audio nodes with arrays, fan one audio node to many processing chains via <code>fan</code>, and how to create a fixed point, aka feedback, for a node via <code>fix</code>. In the next section, we'll ramp up on all of the yummy <a @next@ style="cursor:pointer;">audio nodes you can use</a>.</p>
 </div>"""
 
-fixFan :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent -> Domable lock payload
+fixFan :: CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent -> Nut
 fixFan cca' dpage ssp ev = makePursx'  (Proxy :: _ "@") px
-  { intro: nut (FFIntro.ffIntro cca' dpage ssp ev)
+  { intro: (FFIntro.ffIntro cca' dpage ssp ev)
   , next: mnx AudioUnits
-  , code0: nut $ AI0.ai0 ccb dpage ev
-  , code1: nut $ AI1.ai1 ccb dpage ev
-  , code2: nut $ Fan0.fan0 ccb dpage ev
-  , code3: nut $ Fan1.fan1 ccb dpage ev
-  , code4: nut $ Fix0.fix0 ccb dpage ev
-  , code5: nut $ Fix1.fix1 ccb dpage ev
+  , code0: AI0.ai0 ccb dpage ev
+  , code1: AI1.ai1 ccb dpage ev
+  , code2: Fan0.fan0 ccb dpage ev
+  , code3: Fan1.fan1 ccb dpage ev
+  , code4: Fix0.fix0 ccb dpage ev
+  , code5: Fix1.fix1 ccb dpage ev
   }
   where
   mnx i = mkNext ev (dpage i *> scrollToTop)
