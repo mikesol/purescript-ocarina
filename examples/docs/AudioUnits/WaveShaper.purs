@@ -8,8 +8,8 @@ import Data.Int (toNumber)
 import Data.Number (pi)
 import Data.Ord (abs)
 import Deku.Control (text_)
-import Deku.Core (Domable)
-import Deku.Pursx (nut, (~~))
+import Deku.Core (Nut)
+import Deku.Pursx ((~~))
 import Effect (Effect)
 import FRP.Event (Event)
 import Ocarina.Control (loopBuf, waveShaper)
@@ -32,9 +32,9 @@ px =
 """
 
 waveShaperEx
-  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable lock payload
+  :: CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Nut
 waveShaperEx ccb _ ev = px ~~
-  { code: nut
+  { code:
       ( text_
           """do
   let
@@ -55,7 +55,7 @@ waveShaperEx ccb _ ev = px ~~
   run2_
     [ waveShaper (makeFloatArray (makeDistortionCurve 400.0)) [ loopBuf buf bangOn ] ]"""
       )
-  , waveShaper: nut
+  , waveShaper:
       ( audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/339/339822_5121236-lq.mp3")
           \ctx buf -> do
             let

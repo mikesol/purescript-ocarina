@@ -82,7 +82,7 @@ foreign import getByteFrequencyData :: WebAPI.AnalyserNode -> Effect Uint8Array
 foreign import audioWorkletAddModule_
   :: WebAPI.AudioContext -> String -> Effect (Promise Unit)
 
--- | Gets the audio clock time from an audio context.
+-- | Gets the audio ctime from an audio context.
 foreign import getAudioClockTime :: WebAPI.AudioContext -> Effect Number
 
 -- | Stops a media recorder
@@ -185,13 +185,13 @@ foreign import getBrowserMediaStreamImpl
 data Audio
 
 audioWorkletAddModule
-  :: forall node lock payload numberOfInputs numberOfOutputs outputChannelCount parameterData
+  :: forall node payload numberOfInputs numberOfOutputs outputChannelCount parameterData
        processorOptions
    . IsSymbol node
   => Nat numberOfInputs
   => Pos numberOfOutputs
   => ValidateOutputChannelCount numberOfOutputs outputChannelCount
-  => Homogeneous parameterData (C.AudioParameter lock payload)
+  => Homogeneous parameterData (C.AudioParameter payload)
   => JSON.WriteForeign { | processorOptions }
   => WebAPI.AudioContext
   -> String

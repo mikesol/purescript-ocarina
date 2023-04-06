@@ -16,7 +16,7 @@ import Data.Profunctor (lcmap)
 import Data.Typelevel.Num (D2)
 import Deku.Attribute (cb, (:=))
 import Deku.Control (text, text_)
-import Deku.Core (Domable, bussed)
+import Deku.Core (Nut, bussed)
 import Deku.DOM as DOM
 import Deku.Toplevel (runInBody)
 import Effect (Effect)
@@ -25,7 +25,7 @@ import Effect.Class (liftEffect)
 import FRP.Behavior (sample_)
 import FRP.Event (Event, memoize, subscribe)
 import FRP.Event.Animate (animationFrameEvent)
-import Ocarina.Clock (WriteHead, fot, writeHead)
+import Ocarina.Clock(WriteHead, fot, writeHead)
 import Ocarina.Control (gain, gain_, sinOsc, speaker2)
 import Ocarina.Core (Audible, AudioNumeric(..), AudioOnOff(..), _off, _on, _step, opticN, envy)
 import Ocarina.Example.Utils (RaiseCancellation)
@@ -44,9 +44,9 @@ lm2 :: Number
 lm2 = len - 2.0
 
 scene
-  :: forall lock payload
+  :: forall payload
    . WriteHead Event
-  -> Audible D2 lock payload
+  -> Audible D2 payload
 scene wh = envy $ memoize (fot wh (mul pi)) \tr ->
   let
     gso a b c st ed = gain 0.0
@@ -126,19 +126,17 @@ foreign import stressTest_
   :: forall event. RRef.STRef Region.Global Int -> AudioContext -> WriteHead event -> event (FFIAudioSnapshot -> Effect Unit)
 
 stressTest
-  :: forall lock payload
-   . Unit
+  :: Unit
   -> RaiseCancellation
-  -> Domable lock payload
+  -> Nut
 stressTest _ rc = bussed \p -> lcmap (alt $ pure Nothing) \e ->
   let
     musicButton
-      :: forall lock0
-       . String
+      :: String
       -> (UIAction -> Effect Unit)
       -> Event UIAction
       -> (RRef.STRef Region.Global Int -> AudioContext -> WriteHead Event -> Event (FFIAudioSnapshot -> Effect Unit))
-      -> Domable lock0 payload
+      -> Nut
     musicButton label push event audioEvent = DOM.button
       ( map
           ( \i -> DOM.OnClick := cb

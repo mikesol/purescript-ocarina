@@ -14,9 +14,9 @@ import Data.Maybe (Maybe(..), maybe)
 import Data.Tuple.Nested ((/\))
 import Deku.Attribute (cb, (:=))
 import Deku.Control (text)
-import Deku.Core (Domable, bussed)
+import Deku.Core (Nut, bussed)
 import Deku.DOM as D
-import Deku.Pursx (nut, (~~))
+import Deku.Pursx ((~~))
 import Effect (Effect)
 import Effect.AVar as AVar
 import Effect.Aff (launchAff, launchAff_, try)
@@ -47,9 +47,9 @@ type RecorderStates = Either (Either String MediaRecorder) WrapperStates
 scene m cb = recorder cb (microphone m)
 
 recorderEx
-  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable lock payload
+  :: CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Nut
 recorderEx ccb _ ev = px ~~
-  { recorder: nut
+  { recorder:
       ( bussed \push (event' :: Event RecorderStates) ->
           let
             ptn = partitionMap identity event'

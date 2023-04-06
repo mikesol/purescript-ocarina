@@ -2,13 +2,12 @@ module Ocarina.Example.Docs.MultiChannel where
 
 import Prelude
 
-import Control.Plus (class Plus)
 import Deku.Attribute (cb, (:=))
-import Deku.Core (Domable)
+import Deku.Core (Nut)
 import Deku.DOM as D
 import Deku.Pursx ((~~))
 import Effect (Effect)
-import FRP.Event (class IsEvent, Event)
+import FRP.Event (Event)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
 import Ocarina.Example.Docs.Util (scrollToTop)
 import Type.Proxy (Proxy(..))
@@ -34,7 +33,7 @@ px = Proxy :: Proxy
   <p>In this section, saw how to merge and split audio. In the next section, we'll look at how to work with <a ~next~ style="cursor:pointer;">custom audio worklets</a>.</p>
 </div>"""
 
-multiChannel :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent  -> Domable lock payload
+multiChannel :: CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent  -> Nut
 multiChannel _ dpage _ _ = px ~~
   { next: pure (D.OnClick := (cb (const $ dpage AudioWorklets *> scrollToTop)))
   }

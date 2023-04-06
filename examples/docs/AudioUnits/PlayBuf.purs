@@ -3,8 +3,8 @@ module Ocarina.Example.Docs.AudioUnits.PlayBuf where
 import Prelude
 
 import Bolson.Core (envy)
-import Deku.Core (Domable)
-import Deku.Pursx (nut, (~~))
+import Deku.Core (Nut)
+import Deku.Pursx ((~~))
 import Effect (Effect)
 import FRP.Event (Event)
 import Ocarina.Control (playBuf)
@@ -35,9 +35,9 @@ px =  Proxy :: Proxy   """<section>
 """
 
 playBufEx
-  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable lock payload
+  :: CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Nut
 playBufEx ccb _ ev = px ~~
-  { playBuf: nut
+  { playBuf:
       ( audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/470/470035_9564355-lq.mp3")
           \ctx buffer -> run2 ctx
             [playBuf

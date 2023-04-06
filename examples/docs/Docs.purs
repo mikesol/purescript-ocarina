@@ -2,25 +2,21 @@ module Ocarina.Example.Docs where
 
 import Prelude
 
-import Bolson.Core (envy)
 import Control.Alt ((<|>))
 import Data.Filterable (filter)
-import Data.Foldable (for_, oneOfMap)
-import Data.Function (on)
+import Data.Foldable (oneOfMap)
 import Data.Maybe (Maybe(..))
-import Data.Newtype (class Newtype, unwrap)
+import Data.Newtype (class Newtype)
 import Data.Tuple.Nested ((/\))
-import Deku.Do as Deku
 import Deku.Attribute (cb, (:=))
 import Deku.Control (switcher, text_)
-import Deku.Core (Nut, Domable, bussed)
+import Deku.Core (Nut, bussed)
 import Deku.DOM as D
-import Deku.Do (useState)
-import Deku.Interpret (fullDOMInterpret, makeFFIDOMSnapshot)
+import Deku.Do as Deku
+import Deku.Hooks (useState)
 import Deku.Toplevel (runInBody)
 import Effect (Effect)
-import Effect.Ref as Ref
-import FRP.Event (Event, bus, create, fold, subscribe)
+import FRP.Event (fold)
 import Ocarina.Example.Docs.Component as Component
 import Ocarina.Example.Docs.Effects as Effects
 import Ocarina.Example.Docs.Events as Events
@@ -34,10 +30,6 @@ import Ocarina.Example.Docs.Pursx1 as Pursx1
 import Ocarina.Example.Docs.Pursx2 as Pursx2
 import Ocarina.Example.Docs.Subgraphs as Subgraph
 import Ocarina.Example.Docs.Types (Page(..), ToplevelEvent(..))
-import Web.HTML (window)
-import Web.HTML.HTMLDocument (body)
-import Web.HTML.HTMLElement (toElement)
-import Web.HTML.Window (document)
 
 newtype TopLevelSg = TopLevelSg
   { page :: Page

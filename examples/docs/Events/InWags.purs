@@ -1,9 +1,8 @@
 module Ocarina.Example.Docs.Events.InOcarina where
 
 
-import Deku.Core (Domable)
+import Deku.Core (Nut)
 import Deku.Pursx (makePursx')
-import Effect (Effect)
 import Type.Proxy (Proxy(..))
 
 px = Proxy :: Proxy
@@ -184,7 +183,7 @@ px = Proxy :: Proxy
   </p>
 </section>"""
 
-inOcarina :: forall lock payload. Domable lock payload
+inOcarina :: Nut
 inOcarina = makePursx'  (Proxy :: _ "@") px
   {
   }

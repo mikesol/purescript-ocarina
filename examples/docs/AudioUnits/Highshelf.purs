@@ -3,8 +3,8 @@ module Ocarina.Example.Docs.AudioUnits.Highshelf where
 import Prelude
 
 import Bolson.Core (envy)
-import Deku.Core (Domable)
-import Deku.Pursx (nut, (~~))
+import Deku.Core (Nut)
+import Deku.Pursx ((~~))
 import Effect (Effect)
 import FRP.Event (Event)
 import Ocarina.Control (highshelf_, loopBuf)
@@ -28,9 +28,9 @@ px = Proxy :: Proxy """<section>
   </section>
 """
 
-highshelf :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable lock payload
+highshelf :: CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Nut
 highshelf ccb _ ev = px ~~
-  { highshelf: nut
+  { highshelf:
       (audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
           \ctx buf -> run2 ctx
             [highshelf_ {frequency: 2000.0, gain: 0.4 } [loopBuf buf bangOn]]

@@ -2,12 +2,10 @@ module Ocarina.Example.Docs.Component where
 
 import Prelude
 
-import Bolson.Core (envy)
-import Control.Plus (class Plus)
-import Deku.Core (Domable)
-import Deku.Pursx (nut, (~~))
+import Deku.Core (Nut)
+import Deku.Pursx ((~~))
 import Effect (Effect)
-import FRP.Event (class IsEvent, Event)
+import FRP.Event (Event)
 import Ocarina.Control (gain_, loopBuf)
 import Ocarina.Core (bangOn)
 import Ocarina.Example.Docs.AudioUnits.Allpass as Allpass
@@ -39,8 +37,8 @@ import Ocarina.Example.Docs.AudioUnits.TriangleOsc as TriangleOsc
 import Ocarina.Example.Docs.AudioUnits.WaveShaper as WaveShaper
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
 import Ocarina.Example.Docs.Util (audioWrapperSpan, ccassp, mkNext, scrollToTop)
-import Ocarina.Interpret (bracketCtx, decodeAudioDataFromUri)
-import Ocarina.Run (run2, run2_)
+import Ocarina.Interpret (decodeAudioDataFromUri)
+import Ocarina.Run (run2)
 import Type.Proxy (Proxy(..))
 
 
@@ -102,39 +100,39 @@ px = Proxy :: Proxy """<div>
   <p>Phew, that was a lot of audio units! In the next section, we'll make them come alive thanks to the magic of <a ~next~ style="cursor:pointer;">events</a>.</p>
 </div>"""
 
-components :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent  -> Domable lock payload
+components :: CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent  -> Nut
 components cca' dpage ssp ev = px ~~
-  { drumroll: nut
+  { drumroll:
       (audioWrapperSpan "🥁" ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/50/50711_179538-lq.mp3")
           \ctx buf -> run2 ctx [ gain_ 1.0 [ loopBuf buf bangOn ] ]
       )
-  , toc: nut TOC.toc
-  , allpass: nut $ Allpass.allpass ccb dpage ev
-  , analyser: nut $ Analyser.analyserEx ccb dpage ev
-  , bandpass: nut $ Bandpass.bandpass ccb dpage ev
-  , constant: nut $ Constant.constantEx ccb dpage ev
-  , compression: nut $ Compression.compression ccb dpage ev
-  , convolution: nut $ Convolution.convolution ccb dpage ev
-  , delay: nut $ Delay.delay ccb dpage ev
-  , gain: nut $ Gain.gain ccb dpage ev
-  , highpass: nut $ Highpass.highpass ccb dpage ev
-  , highshelf: nut $ Highshelf.highshelf ccb dpage ev
-  , iirFilter: nut $ IIRFilter.iirFilterEx ccb dpage ev
-  , loopBuf: nut $ LoopBuf.loopBufEx ccb dpage ev
-  , lowshelf: nut $ Lowshelf.lowshelf ccb dpage ev
-  , lowpass: nut $ Lowpass.lowpass ccb dpage ev
-  , notch: nut $ Notch.notch ccb dpage ev
-  , playBuf: nut $ PlayBuf.playBufEx ccb dpage ev
-  , peaking: nut $ Peaking.peaking ccb dpage ev
-  , microphone: nut $ Microphone.microphoneEx ccb dpage ev
-  , pan: nut $ StereoPanner.pan ccb dpage ev
-  , periodicOsc: nut $ PeriodicOsc.periodic ccb dpage ev
-  , recorder: nut $ Recorder.recorderEx ccb dpage ev
-  , sawtoothOsc: nut $ SawtoothOsc.sawtooth ccb dpage ev
-  , sinOsc: nut $ SinOsc.sine ccb dpage ev
-  , squareOsc: nut $ SquareOsc.square ccb dpage ev
-  , triangleOsc: nut $ TriangleOsc.triangle ccb dpage ev
-  , waveShaper: nut $ WaveShaper.waveShaperEx ccb dpage ev
+  , toc: TOC.toc
+  , allpass: Allpass.allpass ccb dpage ev
+  , analyser: Analyser.analyserEx ccb dpage ev
+  , bandpass: Bandpass.bandpass ccb dpage ev
+  , constant: Constant.constantEx ccb dpage ev
+  , compression: Compression.compression ccb dpage ev
+  , convolution: Convolution.convolution ccb dpage ev
+  , delay: Delay.delay ccb dpage ev
+  , gain: Gain.gain ccb dpage ev
+  , highpass: Highpass.highpass ccb dpage ev
+  , highshelf: Highshelf.highshelf ccb dpage ev
+  , iirFilter: IIRFilter.iirFilterEx ccb dpage ev
+  , loopBuf: LoopBuf.loopBufEx ccb dpage ev
+  , lowshelf: Lowshelf.lowshelf ccb dpage ev
+  , lowpass: Lowpass.lowpass ccb dpage ev
+  , notch: Notch.notch ccb dpage ev
+  , playBuf: PlayBuf.playBufEx ccb dpage ev
+  , peaking: Peaking.peaking ccb dpage ev
+  , microphone: Microphone.microphoneEx ccb dpage ev
+  , pan: StereoPanner.pan ccb dpage ev
+  , periodicOsc: PeriodicOsc.periodic ccb dpage ev
+  , recorder: Recorder.recorderEx ccb dpage ev
+  , sawtoothOsc: SawtoothOsc.sawtooth ccb dpage ev
+  , sinOsc: SinOsc.sine ccb dpage ev
+  , squareOsc: SquareOsc.square ccb dpage ev
+  , triangleOsc: TriangleOsc.triangle ccb dpage ev
+  , waveShaper: WaveShaper.waveShaperEx ccb dpage ev
   , next: mkNext ev cpage
   }
   where

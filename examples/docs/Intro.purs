@@ -2,13 +2,11 @@ module Ocarina.Example.Docs.Intro where
 
 import Prelude
 
-import Control.Plus (class Plus)
-import Deku.Attribute (cb, (:=))
-import Deku.Core (Domable)
+import Deku.Core (Nut)
 import Deku.DOM as D
-import Deku.Pursx (nut, (~~))
+import Deku.Pursx ((~~))
 import Effect (Effect)
-import FRP.Event (class IsEvent, Event)
+import FRP.Event (Event)
 import Ocarina.Example.Docs.Intro.IntroEx as Intro
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
 import Ocarina.Example.Docs.Util (ccassp, mkNext, scrollToTop)
@@ -42,10 +40,10 @@ px = Proxy :: Proxy """<div>
   <p>And now, without further ado, let's write a small <a ~next~ style="cursor:pointer;">hello world à la ocarina</a>!</p>
 </div>"""
 
-intro :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent -> Domable lock payload
+intro :: CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent -> Nut
 intro cca' dpage ssp ev = px ~~
   { next: mkNext ev (dpage HelloWorld *> scrollToTop)
-  , ex: nut $ Intro.introEx ccb dpage ev
+  , ex: Intro.introEx ccb dpage ev
   }
   where
   ccb = ccassp cca' ssp

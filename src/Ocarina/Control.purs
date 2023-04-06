@@ -42,12 +42,12 @@ scopeToMaybe (Local s) = Just s
 -- allpass
 
 allpass
-  :: forall i (outputChannels :: Type) lock payload
+  :: forall i (outputChannels :: Type) payload
    . Common.InitialAllpass i
   => i
-  -> Event (C.Allpass lock payload)
-  -> Array (C.Audible outputChannels lock payload)
-  -> C.Audible outputChannels lock payload
+  -> Event (C.Allpass payload)
+  -> Array (C.Audible outputChannels payload)
+  -> C.Audible outputChannels payload
 allpass i' atts elts = Element' $ C.Node go
   where
   C.InitializeAllpass i = Common.toInitializeAllpass i'
@@ -77,11 +77,11 @@ allpass i' atts elts = Element' $ C.Node go
       unsub
 
 allpass_
-  :: forall i (outputChannels :: Type) lock payload
+  :: forall i (outputChannels :: Type) payload
    . Common.InitialAllpass i
   => i
-  -> Array (C.Audible outputChannels lock payload)
-  -> C.Audible outputChannels lock payload
+  -> Array (C.Audible outputChannels payload)
+  -> C.Audible outputChannels payload
 allpass_ i a = allpass i empty a
 
 -- analyser
@@ -171,12 +171,12 @@ instance
     (convertOptionsWithDefaults AnalyserOptions defaultAnalyser provided)
 
 analyser
-  :: forall i outputChannels lock payload
+  :: forall i outputChannels payload
    . InitialAnalyser i
   => i
   -> Event C.Analyser
-  -> Array (C.Audible outputChannels lock payload)
-  -> C.Audible outputChannels lock payload
+  -> Array (C.Audible outputChannels payload)
+  -> C.Audible outputChannels payload
 analyser i' atts elts = Element' $ C.Node go
   where
   C.InitializeAnalyser i = toInitializeAnalyser i'
@@ -233,11 +233,11 @@ analyser i' atts elts = Element' $ C.Node go
         unsub
 
 analyser_
-  :: forall i outputChannels lock payload
+  :: forall i outputChannels payload
    . InitialAnalyser i
   => i
-  -> Array (C.Audible outputChannels lock payload)
-  -> C.Audible outputChannels lock payload
+  -> Array (C.Audible outputChannels payload)
+  -> C.Audible outputChannels payload
 analyser_ i = analyser i empty
 
 -- audio worklet
@@ -268,21 +268,21 @@ else instance validateOutputChannelCountN ::
 __audioWorklet
   :: forall name numberOfInputs numberOfOutputs outputChannelCount parameterData
        parameterDataRL
-       processorOptions lock payload
+       processorOptions payload
    . IsSymbol name
   => Nat numberOfInputs
   => Pos numberOfOutputs
   => ValidateOutputChannelCount numberOfOutputs outputChannelCount
   => Homogeneous parameterData C.InitialAudioParameter
-  => HomogeneousRowLabels parameterData (C.AudioParameter lock payload) parameterDataRL
+  => HomogeneousRowLabels parameterData (C.AudioParameter payload) parameterDataRL
   => JSON.WriteForeign { | processorOptions }
   => C.InitializeAudioWorkletNode name numberOfInputs numberOfOutputs
        outputChannelCount
        parameterData
        processorOptions
   -> Event (C.AudioWorkletNode parameterData)
-  -> C.Audible numberOfOutputs lock payload
-  -> C.Audible numberOfOutputs lock payload
+  -> C.Audible numberOfOutputs payload
+  -> C.Audible numberOfOutputs payload
 __audioWorklet (C.InitializeAudioWorkletNode i) atts elt = Element' $ C.Node go
   where
   go
@@ -337,31 +337,31 @@ __audioWorklet (C.InitializeAudioWorkletNode i) atts elt = Element' $ C.Node go
 audioWorklet
   :: forall name numberOfInputs numberOfOutputs outputChannelCount parameterData
        parameterDataRL
-       processorOptions lock payload
+       processorOptions payload
    . IsSymbol name
   => Nat numberOfInputs
   => Pos numberOfOutputs
   => ValidateOutputChannelCount numberOfOutputs outputChannelCount
   => Homogeneous parameterData C.InitialAudioParameter
-  => HomogeneousRowLabels parameterData (C.AudioParameter lock payload) parameterDataRL
+  => HomogeneousRowLabels parameterData (C.AudioParameter payload) parameterDataRL
   => JSON.WriteForeign { | processorOptions }
   => C.InitializeAudioWorkletNode name numberOfInputs numberOfOutputs
        outputChannelCount
        parameterData
        processorOptions
   -> Event (C.AudioWorkletNode parameterData)
-  -> C.Audible numberOfOutputs lock payload
-  -> C.Audible numberOfOutputs lock payload
+  -> C.Audible numberOfOutputs payload
+  -> C.Audible numberOfOutputs payload
 audioWorklet = __audioWorklet
 
 -- bandpass
 bandpass
-  :: forall i (outputChannels :: Type) lock payload
+  :: forall i (outputChannels :: Type) payload
    . Common.InitialBandpass i
   => i
-  -> Event (C.Bandpass lock payload)
-  -> Array (C.Audible outputChannels lock payload)
-  -> C.Audible outputChannels lock payload
+  -> Event (C.Bandpass payload)
+  -> Array (C.Audible outputChannels payload)
+  -> C.Audible outputChannels payload
 bandpass i' atts elts = Element' $ C.Node go
   where
   C.InitializeBandpass i = Common.toInitializeBandpass i'
@@ -391,21 +391,21 @@ bandpass i' atts elts = Element' $ C.Node go
       unsub
 
 bandpass_
-  :: forall i (outputChannels :: Type) lock payload
+  :: forall i (outputChannels :: Type) payload
    . Common.InitialBandpass i
   => i
-  -> Array (C.Audible outputChannels lock payload)
-  -> C.Audible outputChannels lock payload
+  -> Array (C.Audible outputChannels payload)
+  -> C.Audible outputChannels payload
 bandpass_ i a = bandpass i empty a
 
 -- constant
 
 __constant
-  :: forall i outputChannels lock payload
+  :: forall i outputChannels payload
    . Common.InitialConstant i
   => i
-  -> Event (C.Constant lock payload)
-  -> C.Audible outputChannels lock payload
+  -> Event (C.Constant payload)
+  -> C.Audible outputChannels payload
 __constant i' atts = Element' $ C.Node go
   where
   C.InitializeConstant i = Common.toInitializeConstant i'
@@ -439,28 +439,28 @@ __constant i' atts = Element' $ C.Node go
         unsub
 
 constant
-  :: forall i outputChannels lock payload
+  :: forall i outputChannels payload
    . Common.InitialConstant i
   => i
-  -> Event (C.Constant lock payload)
-  -> C.Audible outputChannels lock payload
+  -> Event (C.Constant payload)
+  -> C.Audible outputChannels payload
 constant = __constant
 
 constant_
-  :: forall i outputChannels lock payload
+  :: forall i outputChannels payload
    . Common.InitialConstant i
   => i
-  -> C.Audible outputChannels lock payload
+  -> C.Audible outputChannels payload
 constant_ i = constant i empty
 
 -- convolver
 
 convolver
-  :: forall i (outputChannels :: Type) lock payload
+  :: forall i (outputChannels :: Type) payload
    . Common.InitialConvolver i
   => i
-  -> Array (C.Audible outputChannels lock payload)
-  -> C.Audible outputChannels lock payload
+  -> Array (C.Audible outputChannels payload)
+  -> C.Audible outputChannels payload
 convolver i' elts = Element' $ C.Node go
   where
   C.InitializeConvolver i = Common.toInitializeConvolver i'
@@ -488,12 +488,12 @@ convolver i' elts = Element' $ C.Node go
 
 -- delay
 delay
-  :: forall i (outputChannels :: Type) lock payload
+  :: forall i (outputChannels :: Type) payload
    . Common.InitialDelay i
   => i
-  -> Event (C.Delay lock payload)
-  -> Array (C.Audible outputChannels lock payload)
-  -> C.Audible outputChannels lock payload
+  -> Event (C.Delay payload)
+  -> Array (C.Audible outputChannels payload)
+  -> C.Audible outputChannels payload
 delay i' atts elts = Element' $ C.Node go
   where
   C.InitializeDelay i = Common.toInitializeDelay i'
@@ -523,21 +523,21 @@ delay i' atts elts = Element' $ C.Node go
       unsub
 
 delay_
-  :: forall i (outputChannels :: Type) lock payload
+  :: forall i (outputChannels :: Type) payload
    . Common.InitialDelay i
   => i
-  -> Array (C.Audible outputChannels lock payload)
-  -> C.Audible outputChannels lock payload
+  -> Array (C.Audible outputChannels payload)
+  -> C.Audible outputChannels payload
 delay_ i a = delay i empty a
 
 -- dynamics compressor
 dynamicsCompressor
-  :: forall i (outputChannels :: Type) lock payload
+  :: forall i (outputChannels :: Type) payload
    . Common.InitialDynamicsCompressor i
   => i
-  -> Event (C.DynamicsCompressor lock payload)
-  -> Array (C.Audible outputChannels lock payload)
-  -> C.Audible outputChannels lock payload
+  -> Event (C.DynamicsCompressor payload)
+  -> Array (C.Audible outputChannels payload)
+  -> C.Audible outputChannels payload
 dynamicsCompressor i' atts elts = Element' $ C.Node go
   where
   C.InitializeDynamicsCompressor i = Common.toInitializeDynamicsCompressor i'
@@ -607,21 +607,21 @@ dynamicsCompressor i' atts elts = Element' $ C.Node go
         unsub
 
 dynamicsCompressor_
-  :: forall i (outputChannels :: Type) lock payload
+  :: forall i (outputChannels :: Type) payload
    . Common.InitialDynamicsCompressor i
   => i
-  -> Array (C.Audible outputChannels lock payload)
-  -> C.Audible outputChannels lock payload
+  -> Array (C.Audible outputChannels payload)
+  -> C.Audible outputChannels payload
 dynamicsCompressor_ i = dynamicsCompressor i empty
 
 -- gain
 gain
-  :: forall i (outputChannels :: Type) lock payload
+  :: forall i (outputChannels :: Type) payload
    . Common.InitialGain i
   => i
-  -> Event (C.Gain lock payload)
-  -> Array (C.Audible outputChannels lock payload)
-  -> C.Audible outputChannels lock payload
+  -> Event (C.Gain payload)
+  -> Array (C.Audible outputChannels payload)
+  -> C.Audible outputChannels payload
 gain i' atts elts = Element' $ C.Node go
   where
   C.InitializeGain i = Common.toInitializeGain i'
@@ -651,21 +651,21 @@ gain i' atts elts = Element' $ C.Node go
       unsub
 
 gain_
-  :: forall i (outputChannels :: Type) lock payload
+  :: forall i (outputChannels :: Type) payload
    . Common.InitialGain i
   => i
-  -> Array (C.Audible outputChannels lock payload)
-  -> C.Audible outputChannels lock payload
+  -> Array (C.Audible outputChannels payload)
+  -> C.Audible outputChannels payload
 gain_ i a = gain i empty a
 
 -- highpass
 highpass
-  :: forall i (outputChannels :: Type) lock payload
+  :: forall i (outputChannels :: Type) payload
    . Common.InitialHighpass i
   => i
-  -> Event (C.Highpass lock payload)
-  -> Array (C.Audible outputChannels lock payload)
-  -> C.Audible outputChannels lock payload
+  -> Event (C.Highpass payload)
+  -> Array (C.Audible outputChannels payload)
+  -> C.Audible outputChannels payload
 highpass i' atts elts = Element' $ C.Node go
   where
   C.InitializeHighpass i = Common.toInitializeHighpass i'
@@ -695,21 +695,21 @@ highpass i' atts elts = Element' $ C.Node go
       unsub
 
 highpass_
-  :: forall i (outputChannels :: Type) lock payload
+  :: forall i (outputChannels :: Type) payload
    . Common.InitialHighpass i
   => i
-  -> Array (C.Audible outputChannels lock payload)
-  -> C.Audible outputChannels lock payload
+  -> Array (C.Audible outputChannels payload)
+  -> C.Audible outputChannels payload
 highpass_ i a = highpass i empty a
 
 -- highshelf
 highshelf
-  :: forall i (outputChannels :: Type) lock payload
+  :: forall i (outputChannels :: Type) payload
    . Common.InitialHighshelf i
   => i
-  -> Event (C.Highshelf lock payload)
-  -> Array (C.Audible outputChannels lock payload)
-  -> C.Audible outputChannels lock payload
+  -> Event (C.Highshelf payload)
+  -> Array (C.Audible outputChannels payload)
+  -> C.Audible outputChannels payload
 highshelf i' atts elts = Element' $ C.Node go
   where
   C.InitializeHighshelf i = Common.toInitializeHighshelf i'
@@ -739,11 +739,11 @@ highshelf i' atts elts = Element' $ C.Node go
       unsub
 
 highshelf_
-  :: forall i (outputChannels :: Type) lock payload
+  :: forall i (outputChannels :: Type) payload
    . Common.InitialHighshelf i
   => i
-  -> Array (C.Audible outputChannels lock payload)
-  -> C.Audible outputChannels lock payload
+  -> Array (C.Audible outputChannels payload)
+  -> C.Audible outputChannels payload
 highshelf_ i a = highshelf i empty a
 
 -- iirFilter
@@ -755,8 +755,8 @@ iirFilter
   => Compare 2 feedback LT
   => Common.InitialIIRFilter i feedforward feedback
   => i
-  -> Array (C.Audible outputChannels lock payload)
-  -> C.Audible outputChannels lock payload
+  -> Array (C.Audible outputChannels payload)
+  -> C.Audible outputChannels payload
 iirFilter = iirFilter' (Proxy :: _ feedforward) (Proxy :: _ feedback)
 
 iirFilter'
@@ -768,8 +768,8 @@ iirFilter'
   => Proxy feedforward
   -> Proxy feedback
   -> i
-  -> Array (C.Audible outputChannels lock payload)
-  -> C.Audible outputChannels lock payload
+  -> Array (C.Audible outputChannels payload)
+  -> C.Audible outputChannels payload
 iirFilter' fwd bk i' elts = Element' $ C.Node go
   where
   C.InitializeIIRFilter i = Common.toInitializeIIRFilter i' fwd bk
@@ -806,12 +806,12 @@ iirFilter' fwd bk i' elts = Element' $ C.Node go
 
 -- lowpass
 lowpass
-  :: forall i (outputChannels :: Type) lock payload
+  :: forall i (outputChannels :: Type) payload
    . Common.InitialLowpass i
   => i
-  -> Event (C.Lowpass lock payload)
-  -> Array (C.Audible outputChannels lock payload)
-  -> C.Audible outputChannels lock payload
+  -> Event (C.Lowpass payload)
+  -> Array (C.Audible outputChannels payload)
+  -> C.Audible outputChannels payload
 lowpass i' atts elts = Element' $ C.Node go
   where
   C.InitializeLowpass i = Common.toInitializeLowpass i'
@@ -841,21 +841,21 @@ lowpass i' atts elts = Element' $ C.Node go
       unsub
 
 lowpass_
-  :: forall i (outputChannels :: Type) lock payload
+  :: forall i (outputChannels :: Type) payload
    . Common.InitialLowpass i
   => i
-  -> Array (C.Audible outputChannels lock payload)
-  -> C.Audible outputChannels lock payload
+  -> Array (C.Audible outputChannels payload)
+  -> C.Audible outputChannels payload
 lowpass_ i a = lowpass i empty a
 
 -- lowshelf
 lowshelf
-  :: forall i (outputChannels :: Type) lock payload
+  :: forall i (outputChannels :: Type) payload
    . Common.InitialLowshelf i
   => i
-  -> Event (C.Lowshelf lock payload)
-  -> Array (C.Audible outputChannels lock payload)
-  -> C.Audible outputChannels lock payload
+  -> Event (C.Lowshelf payload)
+  -> Array (C.Audible outputChannels payload)
+  -> C.Audible outputChannels payload
 lowshelf i' atts elts = Element' $ C.Node go
   where
   C.InitializeLowshelf i = Common.toInitializeLowshelf i'
@@ -885,21 +885,21 @@ lowshelf i' atts elts = Element' $ C.Node go
       unsub
 
 lowshelf_
-  :: forall i (outputChannels :: Type) lock payload
+  :: forall i (outputChannels :: Type) payload
    . Common.InitialLowshelf i
   => i
-  -> Array (C.Audible outputChannels lock payload)
-  -> C.Audible outputChannels lock payload
+  -> Array (C.Audible outputChannels payload)
+  -> C.Audible outputChannels payload
 lowshelf_ i a = lowshelf i empty a
 
 -- loopBuf
 
 __loopBuf
-  :: forall i outputChannels lock payload
+  :: forall i outputChannels payload
    . Common.InitialLoopBuf i
   => i
-  -> Event (C.LoopBuf lock payload)
-  -> C.Audible outputChannels lock payload
+  -> Event (C.LoopBuf payload)
+  -> C.Audible outputChannels payload
 __loopBuf i' atts = Element' $ C.Node go
   where
   C.InitializeLoopBuf i = Common.toInitializeLoopBuf i'
@@ -953,26 +953,26 @@ __loopBuf i' atts = Element' $ C.Node go
         unsub
 
 loopBuf
-  :: forall i outputChannels lock payload
+  :: forall i outputChannels payload
    . Common.InitialLoopBuf i
   => i
-  -> Event (C.LoopBuf lock payload)
-  -> C.Audible outputChannels lock payload
+  -> Event (C.LoopBuf payload)
+  -> C.Audible outputChannels payload
 loopBuf = __loopBuf
 
 loopBuf_
-  :: forall i outputChannels lock payload
+  :: forall i outputChannels payload
    . Common.InitialLoopBuf i
   => i
-  -> C.Audible outputChannels lock payload
+  -> C.Audible outputChannels payload
 loopBuf_ i = loopBuf i empty
 
 -- mediaElement
 
 __mediaElement
-  :: forall outputChannels lock payload
+  :: forall outputChannels payload
    . C.InitializeMediaElement
-  -> C.Audible outputChannels lock payload
+  -> C.Audible outputChannels payload
 __mediaElement (C.InitializeMediaElement i) = Element' $ C.Node go
   where
   go parent (C.AudioInterpret { ids, deleteFromCache, makeMediaElement }) =
@@ -995,18 +995,18 @@ __mediaElement (C.InitializeMediaElement i) = Element' $ C.Node go
         unsub
 
 mediaElement
-  :: forall outputChannels lock payload
+  :: forall outputChannels payload
    . C.InitializeMediaElement
-  -> C.Audible outputChannels lock payload
+  -> C.Audible outputChannels payload
 mediaElement = __mediaElement
 
 -- microphone
 
 __microphone
-  :: forall i outputChannels lock payload
+  :: forall i outputChannels payload
    . Common.InitialMicrophone i
   => i
-  -> C.Audible outputChannels lock payload
+  -> C.Audible outputChannels payload
 __microphone i' = Element' $ C.Node go
   where
   C.InitializeMicrophone i = Common.toInitializeMicrophone i'
@@ -1030,20 +1030,20 @@ __microphone i' = Element' $ C.Node go
         unsub
 
 microphone
-  :: forall i outputChannels lock payload
+  :: forall i outputChannels payload
    . Common.InitialMicrophone i
   => i
-  -> C.Audible outputChannels lock payload
+  -> C.Audible outputChannels payload
 microphone = __microphone
 
 -- notch
 notch
-  :: forall i (outputChannels :: Type) lock payload
+  :: forall i (outputChannels :: Type) payload
    . Common.InitialNotch i
   => i
-  -> Event (C.Notch lock payload)
-  -> Array (C.Audible outputChannels lock payload)
-  -> C.Audible outputChannels lock payload
+  -> Event (C.Notch payload)
+  -> Array (C.Audible outputChannels payload)
+  -> C.Audible outputChannels payload
 notch i' atts elts = Element' $ C.Node go
   where
   C.InitializeNotch i = Common.toInitializeNotch i'
@@ -1073,21 +1073,21 @@ notch i' atts elts = Element' $ C.Node go
       unsub
 
 notch_
-  :: forall i (outputChannels :: Type) lock payload
+  :: forall i (outputChannels :: Type) payload
    . Common.InitialNotch i
   => i
-  -> Array (C.Audible outputChannels lock payload)
-  -> C.Audible outputChannels lock payload
+  -> Array (C.Audible outputChannels payload)
+  -> C.Audible outputChannels payload
 notch_ i a = notch i empty a
 
 -- peaking
 peaking
-  :: forall i (outputChannels :: Type) lock payload
+  :: forall i (outputChannels :: Type) payload
    . Common.InitialPeaking i
   => i
-  -> Event (C.Peaking lock payload)
-  -> Array (C.Audible outputChannels lock payload)
-  -> C.Audible outputChannels lock payload
+  -> Event (C.Peaking payload)
+  -> Array (C.Audible outputChannels payload)
+  -> C.Audible outputChannels payload
 peaking i' atts elts = Element' $ C.Node go
   where
   C.InitializePeaking i = Common.toInitializePeaking i'
@@ -1116,21 +1116,21 @@ peaking i' atts elts = Element' $ C.Node go
       unsub
 
 peaking_
-  :: forall i (outputChannels :: Type) lock payload
+  :: forall i (outputChannels :: Type) payload
    . Common.InitialPeaking i
   => i
-  -> Array (C.Audible outputChannels lock payload)
-  -> C.Audible outputChannels lock payload
+  -> Array (C.Audible outputChannels payload)
+  -> C.Audible outputChannels payload
 peaking_ i a = peaking i empty a
 
 -- periodicOsc
 
 __periodicOsc
-  :: forall i outputChannels lock payload
+  :: forall i outputChannels payload
    . Common.InitialPeriodicOsc i
   => i
-  -> Event (C.PeriodicOsc lock payload)
-  -> C.Audible outputChannels lock payload
+  -> Event (C.PeriodicOsc payload)
+  -> C.Audible outputChannels payload
 __periodicOsc i' atts = Element' $ C.Node go
   where
   C.InitializePeriodicOsc i = Common.toInitializePeriodicOsc i'
@@ -1171,18 +1171,18 @@ __periodicOsc i' atts = Element' $ C.Node go
         unsub
 
 periodicOsc
-  :: forall i outputChannels lock payload
+  :: forall i outputChannels payload
    . Common.InitialPeriodicOsc i
   => i
-  -> Event (C.PeriodicOsc lock payload)
-  -> C.Audible outputChannels lock payload
+  -> Event (C.PeriodicOsc payload)
+  -> C.Audible outputChannels payload
 periodicOsc = __periodicOsc
 
 periodicOsc_
-  :: forall i outputChannels lock payload
+  :: forall i outputChannels payload
    . Common.InitialPeriodicOsc i
   => i
-  -> C.Audible outputChannels lock payload
+  -> C.Audible outputChannels payload
 periodicOsc_ i = periodicOsc i empty
 
 -- playBuf
@@ -1241,11 +1241,11 @@ instance
     (convertOptionsWithDefaults PlayBufOptions defaultPlayBuf provided)
 
 __playBuf
-  :: forall i outputChannels lock payload
+  :: forall i outputChannels payload
    . Common.InitialPlayBuf i
   => i
-  -> Event (C.PlayBuf lock payload)
-  -> C.Audible outputChannels lock payload
+  -> Event (C.PlayBuf payload)
+  -> C.Audible outputChannels payload
 __playBuf i' atts = Element' $ C.Node go
   where
   C.InitializePlayBuf i = Common.toInitializePlayBuf i'
@@ -1302,27 +1302,27 @@ __playBuf i' atts = Element' $ C.Node go
         unsub
 
 playBuf
-  :: forall i outputChannels lock payload
+  :: forall i outputChannels payload
    . Common.InitialPlayBuf i
   => i
-  -> Event (C.PlayBuf lock payload)
-  -> C.Audible outputChannels lock payload
+  -> Event (C.PlayBuf payload)
+  -> C.Audible outputChannels payload
 playBuf = __playBuf
 
 playBuf_
-  :: forall i outputChannels lock payload
+  :: forall i outputChannels payload
    . Common.InitialPlayBuf i
   => i
-  -> C.Audible outputChannels lock payload
+  -> C.Audible outputChannels payload
 playBuf_ i = playBuf i empty
 
 -- recorder
 recorder
-  :: forall i outputChannels lock payload
+  :: forall i outputChannels payload
    . Common.InitialRecorder i
   => i
-  -> C.Audible outputChannels lock payload
-  -> C.Audible outputChannels lock payload
+  -> C.Audible outputChannels payload
+  -> C.Audible outputChannels payload
 recorder i' elt = Element' $ C.Node go
   where
   C.InitializeRecorder i = Common.toInitializeRecorder i'
@@ -1347,11 +1347,11 @@ recorder i' elt = Element' $ C.Node go
 -- sawtoothOsc
 
 __sawtoothOsc
-  :: forall i outputChannels lock payload
+  :: forall i outputChannels payload
    . Common.InitialSawtoothOsc i
   => i
-  -> Event (C.SawtoothOsc lock payload)
-  -> C.Audible outputChannels lock payload
+  -> Event (C.SawtoothOsc payload)
+  -> C.Audible outputChannels payload
 __sawtoothOsc i' atts = Element' $ C.Node go
   where
   C.InitializeSawtoothOsc i = Common.toInitializeSawtoothOsc i'
@@ -1387,28 +1387,28 @@ __sawtoothOsc i' atts = Element' $ C.Node go
         unsub
 
 sawtoothOsc
-  :: forall i outputChannels lock payload
+  :: forall i outputChannels payload
    . Common.InitialSawtoothOsc i
   => i
-  -> Event (C.SawtoothOsc lock payload)
-  -> C.Audible outputChannels lock payload
+  -> Event (C.SawtoothOsc payload)
+  -> C.Audible outputChannels payload
 sawtoothOsc = __sawtoothOsc
 
 sawtoothOsc_
-  :: forall i outputChannels lock payload
+  :: forall i outputChannels payload
    . Common.InitialSawtoothOsc i
   => i
-  -> C.Audible outputChannels lock payload
+  -> C.Audible outputChannels payload
 sawtoothOsc_ i = sawtoothOsc i empty
 
 -- sinOsc
 
 __sinOsc
-  :: forall i outputChannels lock payload
+  :: forall i outputChannels payload
    . Common.InitialSinOsc i
   => i
-  -> Event (C.SinOsc lock payload)
-  -> C.Audible outputChannels lock payload
+  -> Event (C.SinOsc payload)
+  -> C.Audible outputChannels payload
 __sinOsc i' atts = Element' $ C.Node go
   where
   C.InitializeSinOsc i = Common.toInitializeSinOsc i'
@@ -1444,28 +1444,28 @@ __sinOsc i' atts = Element' $ C.Node go
         unsub
 
 sinOsc
-  :: forall i outputChannels lock payload
+  :: forall i outputChannels payload
    . Common.InitialSinOsc i
   => i
-  -> Event (C.SinOsc lock payload)
-  -> C.Audible outputChannels lock payload
+  -> Event (C.SinOsc payload)
+  -> C.Audible outputChannels payload
 sinOsc = __sinOsc
 
 sinOsc_
-  :: forall i outputChannels lock payload
+  :: forall i outputChannels payload
    . Common.InitialSinOsc i
   => i
-  -> C.Audible outputChannels lock payload
+  -> C.Audible outputChannels payload
 sinOsc_ a = sinOsc a empty
 
 -- squareOsc
 
 __squareOsc
-  :: forall i outputChannels lock payload
+  :: forall i outputChannels payload
    . Common.InitialSquareOsc i
   => i
-  -> Event (C.SquareOsc lock payload)
-  -> C.Audible outputChannels lock payload
+  -> Event (C.SquareOsc payload)
+  -> C.Audible outputChannels payload
 __squareOsc i' atts = Element' $ C.Node go
   where
   C.InitializeSquareOsc i = Common.toInitializeSquareOsc i'
@@ -1501,24 +1501,24 @@ __squareOsc i' atts = Element' $ C.Node go
         unsub
 
 squareOsc
-  :: forall i outputChannels lock payload
+  :: forall i outputChannels payload
    . Common.InitialSquareOsc i
   => i
-  -> Event (C.SquareOsc lock payload)
-  -> C.Audible outputChannels lock payload
+  -> Event (C.SquareOsc payload)
+  -> C.Audible outputChannels payload
 squareOsc = __squareOsc
 
 squareOsc_
-  :: forall i outputChannels lock payload
+  :: forall i outputChannels payload
    . Common.InitialSquareOsc i
   => i
-  -> C.Audible outputChannels lock payload
+  -> C.Audible outputChannels payload
 squareOsc_ i = squareOsc i empty
 
 -- speaker
 speaker
-  :: forall (outputChannels :: Type) lock payload
-   . Array (C.Audible outputChannels lock payload)
+  :: forall (outputChannels :: Type) payload
+   . Array (C.Audible outputChannels payload)
   -> C.AudioInterpret payload
   -> Event payload
 speaker elts di@(C.AudioInterpret { ids, makeSpeaker }) = makeLemmingEventO $ mkSTFn2 \(Subscriber mySub) k -> do
@@ -1527,20 +1527,20 @@ speaker elts di@(C.AudioInterpret { ids, makeSpeaker }) = makeLemmingEventO $ mk
   runSTFn2 mySub (__internalOcarinaFlatten { parent: Just id, scope: Local "toplevel", raiseId: \_ -> pure unit } di (fixed elts)) k
 
 speaker2
-  :: forall lock payload
-   . Array (C.Audible D2 lock payload)
+  :: forall payload
+   . Array (C.Audible D2 payload)
   -> C.AudioInterpret payload
   -> Event payload
 speaker2 = speaker
 
 -- pan
 pan
-  :: forall i (outputChannels :: Type) lock payload
+  :: forall i (outputChannels :: Type) payload
    . Common.InitialStereoPanner i
   => i
-  -> Event (C.StereoPanner lock payload)
-  -> Array (C.Audible outputChannels lock payload)
-  -> C.Audible outputChannels lock payload
+  -> Event (C.StereoPanner payload)
+  -> Array (C.Audible outputChannels payload)
+  -> C.Audible outputChannels payload
 pan i' atts elts = Element' $ C.Node go
   where
   C.InitializeStereoPanner i = Common.toInitializeStereoPanner i'
@@ -1569,21 +1569,21 @@ pan i' atts elts = Element' $ C.Node go
       unsub
 
 pan_
-  :: forall i (outputChannels :: Type) lock payload
+  :: forall i (outputChannels :: Type) payload
    . Common.InitialStereoPanner i
   => i
-  -> Array (C.Audible outputChannels lock payload)
-  -> C.Audible outputChannels lock payload
+  -> Array (C.Audible outputChannels payload)
+  -> C.Audible outputChannels payload
 pan_ i = pan i empty
 
 -- triangleOsc
 
 __triangleOsc
-  :: forall i outputChannels lock payload
+  :: forall i outputChannels payload
    . Common.InitialTriangleOsc i
   => i
-  -> Event (C.TriangleOsc lock payload)
-  -> C.Audible outputChannels lock payload
+  -> Event (C.TriangleOsc payload)
+  -> C.Audible outputChannels payload
 __triangleOsc i' atts = Element' $ C.Node go
   where
   C.InitializeTriangleOsc i = Common.toInitializeTriangleOsc i'
@@ -1620,28 +1620,28 @@ __triangleOsc i' atts = Element' $ C.Node go
         unsub
 
 triangleOsc
-  :: forall i outputChannels lock payload
+  :: forall i outputChannels payload
    . Common.InitialTriangleOsc i
   => i
-  -> Event (C.TriangleOsc lock payload)
-  -> C.Audible outputChannels lock payload
+  -> Event (C.TriangleOsc payload)
+  -> C.Audible outputChannels payload
 triangleOsc = __triangleOsc
 
 triangleOsc_
-  :: forall i outputChannels lock payload
+  :: forall i outputChannels payload
    . Common.InitialTriangleOsc i
   => i
-  -> C.Audible outputChannels lock payload
+  -> C.Audible outputChannels payload
 triangleOsc_ i = triangleOsc i empty
 
 -- waveShaper
 
 waveShaper
-  :: forall i (outputChannels :: Type) lock payload
+  :: forall i (outputChannels :: Type) payload
    . Common.InitialWaveShaper i
   => i
-  -> Array (C.Audible outputChannels lock payload)
-  -> C.Audible outputChannels lock payload
+  -> Array (C.Audible outputChannels payload)
+  -> C.Audible outputChannels payload
 waveShaper i' elts = Element' $ C.Node go
   where
   C.InitializeWaveShaper i = Common.toInitializeWaveShaper i'
@@ -1670,11 +1670,11 @@ waveShaper i' elts = Element' $ C.Node go
 
 ----------
 globalFan
-  :: forall n o lock payload
+  :: forall n o payload
    . Compare n (-1) GT
-  => Vect n (C.Audible o lock payload)
-  -> (Vect n (C.Audible o lock payload) -> C.Audible o lock payload)
-  -> C.Audible o lock payload
+  => Vect n (C.Audible o payload)
+  -> (Vect n (C.Audible o payload) -> C.Audible o payload)
+  -> C.Audible o payload
 globalFan a b = Bolson.globalPortalComplexComplex
   { doLogic: absurd
   , ids: unwrap >>> _.ids
@@ -1685,22 +1685,20 @@ globalFan a b = Bolson.globalPortalComplexComplex
   , fromEltO2: coerce
   , toElt: coerce
   , wrapElt: \e -> gain_ 1.0 [ e ]
-  , giveNewParent: \(C.AudioInterpret { connectXToY }) { id, parent } _ -> connectXToY { from: id, to: parent }
+  , giveNewParent: \(C.AudioInterpret { connectXToY }) { id, parent } _ _ -> connectXToY { from: id, to: parent }
   , deleteFromCache: unwrap >>> _.deleteFromCache
   }
   a
   (lcmap (map (_ $ unit)) b)
 
 fan
-  :: forall o n lock0 payload
+  :: forall o n payload
    . Compare n (-1) GT
-  => Vect n (C.Audible o lock0 payload)
-  -> ( forall lock1
-        . Vect n (C.Audible o lock1 payload)
-       -> (C.Audible o lock0 payload -> C.Audible o lock1 payload)
-       -> C.Audible o lock1 payload
+  => Vect n (C.Audible o payload)
+  -> (Vect n (C.Audible o payload)
+       -> C.Audible o payload
      )
-  -> C.Audible o lock0 payload
+  -> C.Audible o payload
 fan a b = Bolson.portalComplexComplex
   { doLogic: absurd
   , ids: unwrap >>> _.ids
@@ -1711,37 +1709,35 @@ fan a b = Bolson.portalComplexComplex
   , fromEltO2: coerce
   , toElt: coerce
   , wrapElt: \e -> gain_ 1.0 [ e ]
-  , giveNewParent: \(C.AudioInterpret { connectXToY }) { id, parent } _ -> connectXToY { from: id, to: parent }
+  , giveNewParent: \(C.AudioInterpret { connectXToY }) { id, parent } _ _ -> connectXToY { from: id, to: parent }
   , deleteFromCache: unwrap >>> _.deleteFromCache
   }
   a
   (lcmap (map (_ $ unit)) (coerce b))
 
 globalFan1
-  :: forall o lock payload
-   . C.Audible o lock payload
-  -> ( C.Audible o lock payload
-       -> C.Audible o lock payload
+  :: forall o payload
+   . C.Audible o payload
+  -> ( C.Audible o payload
+       -> C.Audible o payload
      )
-  -> C.Audible o lock payload
+  -> C.Audible o payload
 globalFan1 a b = globalFan (singleton a) (lcmap (index (Proxy :: _ 0)) b)
 
 fan1
-  :: forall o lock0 payload
-   . C.Audible o lock0 payload
-  -> ( forall lock1
-        . C.Audible o lock1 payload
-       -> (C.Audible o lock0 payload -> C.Audible o lock1 payload)
-       -> C.Audible o lock1 payload
+  :: forall o payload
+   . C.Audible o payload
+  -> (C.Audible o payload
+       -> C.Audible o payload
      )
-  -> C.Audible o lock0 payload
+  -> C.Audible o payload
 fan1 a b = fan (singleton a) (lcmap (index (Proxy :: _ 0)) b)
 
 ---- fix
 fix
-  :: forall outputChannels lock payload
-   . (C.Audible outputChannels lock payload -> C.Audible outputChannels lock payload)
-  -> C.Audible outputChannels lock payload
+  :: forall outputChannels payload
+   . (C.Audible outputChannels payload -> C.Audible outputChannels payload)
+  -> C.Audible outputChannels payload
 fix = Bolson.fixComplexComplex
   { doLogic: absurd
   , ids: unwrap >>> _.ids
@@ -1753,18 +1749,18 @@ fix = Bolson.fixComplexComplex
   }
 
 silence
-  :: forall outputChannels lock payload
-   . C.Audible outputChannels lock payload
+  :: forall outputChannels payload
+   . C.Audible outputChannels payload
 silence = fix identity
 
 -----
 -- starts work on merge
 -- merge
---   :: forall i n lock payload
+--   :: forall i n payload
 --    . IsEvent event
 --   => Pos n
---   => Vec n (C.Node D1 lock payload)
---   -> C.Node n lock payload
+--   => Vec n (C.Node D1 payload)
+--   -> C.Node n payload
 -- merge elts = Element' $ C.Node go
 --   where
 --   go
@@ -1805,7 +1801,7 @@ silence = fix identity
 -- which can add up
 -- so we definitely want to delete this and use Common.resolveAU
 -- as soon as we can correctly attach and detach generators
-tmpResolveAU :: forall lock payload. Scope -> C.AudioInterpret payload -> (C.FFIAudioParameter -> payload) -> C.AudioParameter lock payload -> Event payload
+tmpResolveAU :: forall payload. Scope -> C.AudioInterpret payload -> (C.FFIAudioParameter -> payload) -> C.AudioParameter payload -> Event payload
 tmpResolveAU = go
   where
   cncl = C.FFIAudioParameter <<< inj (Proxy :: _ "cancel")
@@ -1839,10 +1835,10 @@ tmpResolveAU = go
     a
 
 __internalOcarinaFlatten
-  :: forall o lock payload
+  :: forall o payload
    . PSR ()
   -> C.AudioInterpret payload
-  -> C.Audible o lock payload
+  -> C.Audible o payload
   -> Event payload
 __internalOcarinaFlatten = Bolson.flatten
   { doLogic: absurd

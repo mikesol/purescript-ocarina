@@ -14,7 +14,7 @@ import Ocarina.Interpret (FFIAudioSnapshot, close, context, effectfulAudioInterp
 import Ocarina.WebAPI (AudioContext)
 
 run2_
-  :: (forall lock. Array (C.Audible D2 lock (FFIAudioSnapshot -> Effect Unit)))
+  :: (forall lock. Array (C.Audible D2 (FFIAudioSnapshot -> Effect Unit)))
   -> Effect (Effect Unit)
 run2_ s = do
   ctx <- context
@@ -22,7 +22,7 @@ run2_ s = do
 
 run2
   :: AudioContext
-  -> (forall lock. Array (C.Audible D2 lock (FFIAudioSnapshot -> Effect Unit)))
+  -> (forall lock. Array (C.Audible D2 (FFIAudioSnapshot -> Effect Unit)))
   -> Effect (Effect Unit)
 run2 ctx s = do
     ffi <- makeFFIAudioSnapshot ctx
@@ -32,7 +32,7 @@ run2 ctx s = do
     pure u
 
 run2e_
-  :: (forall lock. Event (Array (C.Audible D2 lock (FFIAudioSnapshot -> Effect Unit))))
+  :: (forall lock. Event (Array (C.Audible D2 (FFIAudioSnapshot -> Effect Unit))))
   -> Effect (Effect Unit)
 run2e_ s = do
   ctx <- context
@@ -40,7 +40,7 @@ run2e_ s = do
 
 run2e
   :: AudioContext
-  -> (forall lock. Event (Array (C.Audible D2 lock (FFIAudioSnapshot -> Effect Unit))))
+  -> (forall lock. Event (Array (C.Audible D2 (FFIAudioSnapshot -> Effect Unit))))
   -> Effect (Effect Unit)
 run2e ctx s = do
     ffi <- makeFFIAudioSnapshot ctx

@@ -83,12 +83,12 @@ mkWrapperEvent :: forall t20 f22. Alt f22 => Applicative f22 => t20 -> f22 Wrapp
 mkWrapperEvent _ event' = pure Stopped <|> event'
 
 audioWrapper
-  :: forall a lock payload
+  :: forall a payload
    . Event SingleSubgraphEvent
   -> CancelCurrentAudio
   -> (AudioContext -> Aff a)
   -> (AudioContext -> a -> Effect (Effect Unit))
-  -> DC.Domable lock payload
+  -> DC.Nut
 audioWrapper ev cca init i = bussed \push event' ->
   let
     event = mkWrapperEvent ev event'
@@ -107,13 +107,13 @@ audioWrapper ev cca init i = bussed \push event' ->
       ]
 
 audioWrapperSpan
-  :: forall a lock payload
+  :: forall a payload
    . String
   -> Event SingleSubgraphEvent
   -> CancelCurrentAudio
   -> (AudioContext -> Aff a)
   -> (AudioContext -> a -> Effect (Effect Unit))
-  -> DC.Domable lock payload
+  -> DC.Nut
 audioWrapperSpan txt ev cca init i = bussed \push event' ->
   let
     event = mkWrapperEvent ev event'

@@ -18,7 +18,7 @@ import Data.Typelevel.Num (D2)
 import Data.UInt (toInt)
 import Deku.Attribute (cb, (:=))
 import Deku.Control (text, text_)
-import Deku.Core (Domable, bussed)
+import Deku.Core (Nut, bussed)
 import Deku.DOM as DOM
 import Deku.Toplevel (runInBody)
 import Effect (Effect)
@@ -27,7 +27,7 @@ import Effect.Class (liftEffect)
 import FRP.Behavior (sample_)
 import FRP.Event (Event, create, filterMap, hot, sampleOnRight, subscribe)
 import FRP.Event.Animate (animationFrameEvent)
-import Ocarina.Clock (WriteHead, fot, writeHead)
+import Ocarina.Clock(WriteHead, fot, writeHead)
 import Ocarina.Control (analyser, gain, loopBuf, speaker2)
 import Ocarina.Core (Audible, bangOn, opticN)
 import Ocarina.Example.Utils (RaiseCancellation)
@@ -36,11 +36,11 @@ import Ocarina.Properties (loopEnd, loopStart, playbackRate)
 import Ocarina.WebAPI (AnalyserNodeCb(..), AudioContext, BrowserAudioBuffer)
 
 scene
-  :: forall lock payload
+  :: forall payload
    . BrowserAudioBuffer
   -> AnalyserNodeCb
   -> WriteHead Event
-  -> Audible D2 lock payload
+  -> Audible D2 payload
 scene atar cb wh =
   let
     tr = fot wh (mul pi)
@@ -89,10 +89,10 @@ initializeAtariSpeaks = do
   pure atar
 
 atariSpeaks
-  :: forall lock payload
+  :: forall payload
    . BrowserAudioBuffer
   -> RaiseCancellation
-  -> Domable lock payload
+  -> Nut
 atariSpeaks atar rc = bussed \push -> lcmap (alt (pure TurnOn)) \event ->
   DOM.div_
     [ DOM.h1_ [ text_ "Atari speaks" ]

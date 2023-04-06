@@ -7,7 +7,7 @@ import Data.Foldable (traverse_)
 import Data.Maybe (Maybe(..), maybe)
 import Deku.Attribute (attr, cb, (:=))
 import Deku.Control (text, switcher, text_)
-import Deku.Core (Domable, vbussed)
+import Deku.Core (Nut, vbussed)
 import Deku.DOM as D
 import Deku.Toplevel (runInBody)
 import Effect (Effect)
@@ -46,9 +46,9 @@ main = do
       <<< Just
   where
   scene
-    :: forall lock payload
+    :: forall payload
      . Maybe BrowserAudioBuffer
-    -> Domable lock payload
+    -> Nut
   scene = maybe (D.div_ [ text_ "Loading..." ]) \buffer ->
     D.div_ $ pure $ vbussed (Proxy :: _ UIEvents) \push event -> do
       let

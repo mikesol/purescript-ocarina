@@ -2,9 +2,8 @@ module Ocarina.Example.Docs.AudioUnits.Delay where
 
 import Prelude
 
-import Bolson.Core (envy)
-import Deku.Core (Domable)
-import Deku.Pursx (makePursx', nut)
+import Deku.Core (Nut)
+import Deku.Pursx (makePursx')
 import Effect (Effect)
 import FRP.Event (Event)
 import Ocarina.Control (delay_, fan1, gain_, playBuf)
@@ -36,13 +35,13 @@ px =
   </section>
 """
 
-delay :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable lock payload
+delay :: CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Nut
 delay ccb _ ev = makePursx' (Proxy :: _ "@") px
-  { delay: nut
+  { delay:
       ( audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/339/339822_5121236-lq.mp3")
           \ctx buf -> run2 ctx
             [ fan1 (playBuf buf bangOn)
-                \b _ -> gain_ 0.2
+                \b -> gain_ 0.2
                   [ delay_ 0.03 [ b ]
                   , delay_ 0.1 [ b ]
                   , delay_ 0.3 [ b ]

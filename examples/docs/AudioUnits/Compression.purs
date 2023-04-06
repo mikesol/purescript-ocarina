@@ -3,8 +3,8 @@ module Ocarina.Example.Docs.AudioUnits.Compression where
 import Prelude
 
 import Bolson.Core (envy)
-import Deku.Core (Domable)
-import Deku.Pursx (nut, (~~))
+import Deku.Core (Nut)
+import Deku.Pursx ((~~))
 import Effect (Effect)
 import FRP.Event (Event)
 import Ocarina.Control (dynamicsCompressor_, loopBuf)
@@ -36,9 +36,9 @@ run2_
   </section>
 """
 
-compression :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable lock payload
+compression :: CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Nut
 compression ccb _ ev = px ~~
-  { compression: nut
+  { compression:
       ( audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
           \ctx buf -> run2 ctx
             [ dynamicsCompressor_ {} [ loopBuf buf bangOn ] ]

@@ -1,9 +1,8 @@
 module Ocarina.Example.Docs.Events.Flavors where
 
 
-import Deku.Core (Domable)
+import Deku.Core (Nut)
 import Deku.Pursx (makePursx')
-import Effect (Effect)
 import Type.Proxy (Proxy(..))
 
 px = Proxy :: Proxy
@@ -22,7 +21,7 @@ px = Proxy :: Proxy
 
 </section>"""
 
-flavors :: forall lock payload. Domable lock payload
+flavors :: Nut
 flavors = makePursx'  (Proxy :: _ "@") px
   {
   }

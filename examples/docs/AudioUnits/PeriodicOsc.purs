@@ -5,8 +5,8 @@ import Prelude
 import Bolson.Core (envy)
 import Data.Tuple.Nested ((/\))
 import Data.Vec (empty, (+>))
-import Deku.Core (Domable)
-import Deku.Pursx (nut, (~~))
+import Deku.Core (Nut)
+import Deku.Pursx ((~~))
 import Effect (Effect)
 import FRP.Event (Event)
 import Ocarina.Control (gain_, periodicOsc)
@@ -41,9 +41,9 @@ px =
 """
 
 periodic
-  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable lock payload
+  :: CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Nut
 periodic ccb _ ev = px ~~
-  { periodic: nut
+  { periodic:
       ( audioWrapper ev ccb (\_ -> pure unit)
           \ctx _ -> run2 ctx
             [gain_ 0.2

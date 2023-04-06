@@ -2,9 +2,8 @@ module Ocarina.Example.Docs.Params.Numeric where
 
 import Prelude
 
-import Bolson.Core (envy)
-import Deku.Core (Domable)
-import Deku.Pursx (makePursx', nut)
+import Deku.Core (Nut)
+import Deku.Pursx (makePursx')
 import Effect (Effect)
 import FRP.Event (Event, delay)
 import Ocarina.Control (gain_, loopBuf)
@@ -59,9 +58,9 @@ px =
 """
 
 numericEx
-  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable lock payload
+  :: CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Nut
 numericEx ccb _ ev = makePursx' (Proxy :: _ "@") px
-  { numericEx: nut
+  { numericEx:
       ( audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
           \ctx buf -> run2 ctx
             [ gain_ 1.0

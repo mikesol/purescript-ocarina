@@ -22,9 +22,9 @@ import Data.Vec (Vec, (+>))
 import Data.Vec as V
 import Deku.Attribute ((:=))
 import Deku.Control (text)
-import Deku.Core (Domable, bussed)
+import Deku.Core (Nut, bussed)
 import Deku.DOM as D
-import Deku.Pursx (nut, (~~))
+import Deku.Pursx ((~~))
 import Effect (Effect, foreachE)
 import Effect.Ref (modify_, new, read, write)
 import FRP.Event (class IsEvent, Event, bus, create, sampleOnRight_, subscribe)
@@ -92,9 +92,9 @@ stys = V.fill (\_ -> style4 +> style3 +> style2 +> style1 +> style0 +> V.empty) 
 mkSt i0 i1 e = map (\v -> if V.index (V.index v i0) i1 then D.Style := V.index (V.index stys i0) i1 else D.Style := bgWhite) e
 
 analyserEx
-  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable lock payload
+  :: CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Nut
 analyserEx ccb _ ev = px ~~
-  { analyser: nut
+  { analyser:
       (bussed \push (event' :: Event AnalyserStates) ->
             let
               ptn = partitionMap identity event'

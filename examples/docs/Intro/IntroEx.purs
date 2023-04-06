@@ -2,7 +2,6 @@ module Ocarina.Example.Docs.Intro.IntroEx where
 
 import Prelude
 
-import Bolson.Core (envy)
 import Control.Alt ((<|>))
 import Control.Parallel (parTraverse)
 import Control.Plus (empty)
@@ -20,9 +19,9 @@ import Data.Tuple.Nested (type (/\), (/\))
 import Data.UInt (toNumber)
 import Deku.Attribute (attr, cb, (:=))
 import Deku.Control (text)
-import Deku.Core (Domable, vbussed)
+import Deku.Core (Nut, vbussed)
 import Deku.DOM as D
-import Deku.Pursx (makePursx', nut)
+import Deku.Pursx (makePursx')
 import Effect (Effect, foreachE)
 import Effect.Aff (launchAff, launchAff_)
 import Effect.Class (liftEffect)
@@ -35,7 +34,7 @@ import FRP.Event.Animate (animationFrameEvent)
 import FRP.Event.VBus (V, vbus)
 import Foreign.Object (fromHomogeneous, values)
 import Graphics.Canvas (CanvasElement, arc, beginPath, fill, fillRect, getContext2D, setFillStyle)
-import Ocarina.Clock (withACTime)
+import Ocarina.Clock(withACTime)
 import Ocarina.Control (analyser_, bandpass, delay, fan1, fix, gain, gain_, highpass, lowpass, playBuf)
 import Ocarina.Core (Audible, AudioEnvelope(..), AudioNumeric(..), _linear, bangOn)
 import Ocarina.Core (Node, Po2(..))
@@ -111,9 +110,9 @@ denv s e = pure
 ttap (o /\ n) = AudioNumeric { o: o + 0.04, n, t: _linear }
 
 introEx
-  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable lock payload
+  :: CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Nut
 introEx ccb _ ev = makePursx' (Proxy :: _ "@") px
-  { ex1: nut
+  { ex1:
       ( vbussed (Proxy :: _ UIEvents) \push event -> -- here
 
           do
@@ -122,7 +121,7 @@ introEx ccb _ ev = makePursx' (Proxy :: _ "@") px
               loadingE = event.startStop.loading
               stopE = event.startStop.stop
 
-              music :: forall lock. _ -> _ -> _ -> Array (Audible _ lock _)
+              music :: forall lock. _ -> _ -> _ -> Array (Audible _ _)
               music ctx buffer analyserE = do
                 let
                   sliderE = (\{ acTime, value } -> acTime /\ value) <$> withACTime ctx (event.slider)
@@ -135,7 +134,7 @@ introEx ccb _ ev = makePursx' (Proxy :: _ "@") px
                             )
                         )
                     , fftSize: TTT7
-                    } $ pure $ fan1 (playBuf buffer (bangOn <|> (P.playbackRate <<< ttap <<< second (calcSlope 0.0 0.96 100.0 1.04)) <$> sliderE)) \b _ -> fix
+                    } $ pure $ fan1 (playBuf buffer (bangOn <|> (P.playbackRate <<< ttap <<< second (calcSlope 0.0 0.96 100.0 1.04)) <$> sliderE)) \b -> fix
                     \g0 -> gain_ 1.0
                       [ b
                       , delay { maxDelayTime: 2.5, delayTime: 1.0 } ((P.delayTime <<< ttap <<< second (calcSlope 0.0 0.5 100.0 2.45)) <$> sliderE)

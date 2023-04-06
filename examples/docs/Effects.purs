@@ -2,8 +2,8 @@ module Ocarina.Example.Docs.Effects where
 
 import Prelude
 
-import Deku.Core (Domable)
-import Deku.Pursx (nut, (~~))
+import Deku.Core (Nut)
+import Deku.Pursx ((~~))
 import Effect (Effect)
 import FRP.Event (Event)
 import Ocarina.Example.Docs.Effects.FoldEx as Fold
@@ -28,11 +28,11 @@ px = Proxy :: Proxy """<div>
   <p>Using <code>fold</code> and <code>fix</code>, we can create internal state in our Web Audio works that would be really tedious and error-prone to achieve in vanilla JS or other compile-to-JS languages. There's still one nagging issue that we haven't addressed, though. For all of the flexibility we can achieve with events, we still can't flex the audio graph itself, meaning that we can't add or remove components. In the next section, we'll learn how to do that with <a ~next~ style="cursor:pointer;">subgraphs</a>.</p>
 </div>"""
 
-effects :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent   -> Domable lock payload
+effects :: CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent   -> Nut
 effects cca' dpage ssp ev = px ~~
   { next: mkNext ev (dpage Subgraph *> scrollToTop)
-  , fold: nut $ Fold.foldEx ccb dpage ssp ev
-  , fix: nut $ Fix.fixEx ccb dpage ssp ev
+  , fold: Fold.foldEx ccb dpage ssp ev
+  , fix: Fix.fixEx ccb dpage ssp ev
   }
   where
   ccb = ccassp cca' ssp
