@@ -3,8 +3,8 @@ module Ocarina.Example.Docs.AudioUnits.SinOsc where
 import Prelude
 
 import Bolson.Core (envy)
-import Deku.Core (Domable)
-import Deku.Pursx (nut, (~~))
+import Deku.Core (Nut)
+import Deku.Pursx ((~~))
 import Effect (Effect)
 import FRP.Event (Event)
 import Ocarina.Control (gain_, sinOsc)
@@ -27,9 +27,9 @@ px =  Proxy   :: Proxy    """<section>
 """
 
 sine
-  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable lock payload
+  :: CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Nut
 sine ccb _ ev = px ~~
-  { periodic: nut
+  { periodic:
       ( audioWrapper ev ccb (\_ -> pure unit)
           \ctx _ -> run2 ctx
             [gain_ 0.2

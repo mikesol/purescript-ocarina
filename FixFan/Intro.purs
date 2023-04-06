@@ -3,7 +3,7 @@ module Ocarina.Example.Docs.FixFan.Intro where
 import Prelude
 
 import Control.Plus (class Plus)
-import Deku.Core (Domable)
+import Deku.Core (Nut)
 import Deku.Pursx (makePursx')
 import Effect (Effect)
 import FRP.Event (class IsEvent, Event)
@@ -39,7 +39,7 @@ px = Proxy :: Proxy
       </ul>
   </section>"""
 
-ffIntro :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent  -> Domable lock payload
+ffIntro :: CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent  -> Nut
 ffIntro _ dpage _ ev = makePursx'  (Proxy :: _ "@") px
   { hwLink: mnx HelloWorld
   }

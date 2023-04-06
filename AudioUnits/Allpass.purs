@@ -2,9 +2,8 @@ module Ocarina.Example.Docs.AudioUnits.Allpass where
 
 import Prelude
 
-import Bolson.Core (envy)
-import Deku.Core (Domable)
-import Deku.Pursx (makePursx', nut)
+import Deku.Core (Nut)
+import Deku.Pursx (makePursx')
 import Effect (Effect)
 import FRP.Event (Event)
 import Ocarina.Control (allpass_, fan1, gain_, loopBuf)
@@ -42,13 +41,13 @@ px =
 """
 
 allpass
-  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable lock payload
+  :: CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Nut
 allpass ccb _ ev = makePursx' (Proxy :: _ "@") px
-  { allpass: nut
+  { allpass:
       (  audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
           \ctx buf -> run2 ctx
             [ fan1 (loopBuf buf bangOn)
-                \b _ -> gain_ 0.2
+                \b -> gain_ 0.2
                   [ b
                   , allpass_ 700.0
                       [ allpass_ { frequency: 990.0, q: 20.0 } [ b ]

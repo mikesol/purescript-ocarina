@@ -2,7 +2,7 @@ module Ocarina.Example.Docs.Pursx2 where
 
 import Prelude
 
-import Deku.Core (Domable)
+import Deku.Core (Nut)
 import Deku.Pursx (makePursx')
 import Effect (Effect)
 import FRP.Event (Event)
@@ -24,8 +24,7 @@ px =
 
 
 pursx2
-  :: forall lock payload
-   . CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent
-  -> Domable lock payload
+  :: CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent
+  -> Nut
 pursx2 _ _ _ _ = makePursx' (Proxy :: _ "~") px
   { }

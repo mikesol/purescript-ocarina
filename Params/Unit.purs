@@ -2,10 +2,9 @@ module Ocarina.Example.Docs.Params.Unit where
 
 import Prelude
 
-import Bolson.Core (envy)
 import Data.Foldable (oneOf)
-import Deku.Core (Domable)
-import Deku.Pursx (nut, (~~))
+import Deku.Core (Nut)
+import Deku.Pursx ((~~))
 import Effect (Effect)
 import FRP.Event (Event)
 import Ocarina.Control (constant, gain_, loopBuf, lowpass_, squareOsc)
@@ -43,9 +42,9 @@ px =
   </section>
 """
 
-unitEx :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable lock payload
+unitEx :: CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Nut
 unitEx ccb _ ev = px ~~
-  { unitEx: nut
+  { unitEx:
       ( audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
           \ctx buf -> run2 ctx
             [ loopBuf buf

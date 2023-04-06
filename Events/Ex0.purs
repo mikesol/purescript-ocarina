@@ -14,9 +14,9 @@ import Data.Tuple.Nested ((/\))
 import Data.Typelevel.Num (D2)
 import Deku.Attribute (cb, (:=))
 import Deku.Control (text, text_)
-import Deku.Core (Domable, bussed)
+import Deku.Core (Nut, bussed)
 import Deku.DOM as D
-import Deku.Pursx (makePursx', nut)
+import Deku.Pursx (makePursx')
 import Effect (Effect)
 import FRP.Event (Event, bus)
 import Ocarina.Control (gain, gain_, microphone, recorder, sinOsc)
@@ -58,10 +58,10 @@ px =
 """
 
 scene
-  :: forall lock payload
+  :: forall payload
    . BrowserMicrophone
   -> MediaRecorderCb
-  -> Audible D2 lock payload
+  -> Audible D2 payload
 scene m cb = recorder cb (microphone m)
 
 data UIEvents = Init | Start | Stop (Effect Unit)
@@ -165,10 +165,10 @@ main = runInBody1 (bus \push -> lcmap (pure Init <|> _) \event ->
 """
 
 ex0
-  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable lock payload
+  :: CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Nut
 ex0 ccb _ ev = makePursx' (Proxy :: _ "@") px
-  { txt: nut (text_ txt)
-  , ex0: nut
+  { txt: (text_ txt)
+  , ex0:
       ( bussed \push -> lcmap (pure Init <|> _) \event -> -- here
 
           D.div_

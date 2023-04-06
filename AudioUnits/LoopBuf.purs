@@ -3,8 +3,8 @@ module Ocarina.Example.Docs.AudioUnits.LoopBuf where
 import Prelude
 
 import Bolson.Core (envy)
-import Deku.Core (Domable)
-import Deku.Pursx (makePursx', nut)
+import Deku.Core (Nut)
+import Deku.Pursx (makePursx')
 import Effect (Effect)
 import FRP.Event (Event)
 import Ocarina.Control (loopBuf)
@@ -48,9 +48,9 @@ px =
 """
 
 loopBufEx
-  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable lock payload
+  :: CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Nut
 loopBufEx ccb _ ev = makePursx' (Proxy :: _ "@") px
-  { loopBuf: nut
+  { loopBuf:
       ( audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/100/100981_1234256-lq.mp3")
           \ctx buf -> run2 ctx
             [ loopBuf

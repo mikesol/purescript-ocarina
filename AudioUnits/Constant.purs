@@ -7,8 +7,8 @@ import Control.Alt ((<|>))
 import Data.Array ((..))
 import Data.FunctorWithIndex (mapWithIndex)
 import Deku.Control (text_)
-import Deku.Core (Domable)
-import Deku.Pursx (nut, (~~))
+import Deku.Core (Nut)
+import Deku.Pursx ((~~))
 import Effect (Effect)
 import FRP.Event (Event)
 import Ocarina.Control (gain_, constant)
@@ -33,10 +33,10 @@ px =
 """
 
 constantEx
-  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable lock payload
+  :: CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Nut
 constantEx ccb _ ev = px ~~
-  { tf: nut (text_ "<|>")
-  , txt: nut
+  { tf: (text_ "<|>")
+  , txt:
       ( text_
           """run2_
   [ gain_ 0.5
@@ -55,7 +55,7 @@ constantEx ccb _ ev = px ~~
       ]
   ]"""
       )
-  , constant: nut
+  , constant:
       ( audioWrapper ev ccb (\_ -> pure unit) \ctx _ -> run2 ctx
           [ gain_ 0.5
               [ constant 0.0

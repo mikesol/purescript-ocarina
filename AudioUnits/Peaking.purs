@@ -3,8 +3,8 @@ module Ocarina.Example.Docs.AudioUnits.Peaking where
 import Prelude
 
 import Bolson.Core (envy)
-import Deku.Core (Domable)
-import Deku.Pursx (nut, (~~))
+import Deku.Core (Nut)
+import Deku.Pursx ((~~))
 import Effect (Effect)
 import FRP.Event (Event)
 import Ocarina.Control (loopBuf, peaking_)
@@ -35,9 +35,9 @@ px =
 """
 
 peaking
-  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable lock payload
+  :: CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Nut
 peaking ccb _ ev = px ~~
-  { peaking: nut
+  { peaking:
       (  audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
           \ctx buf -> run2 ctx
             [

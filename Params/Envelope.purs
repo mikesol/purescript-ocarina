@@ -2,12 +2,11 @@ module Ocarina.Example.Docs.Params.Envelope where
 
 import Prelude
 
-import Bolson.Core (envy)
 import Data.Array ((..))
 import Data.Foldable (oneOf)
 import Deku.Control (text_)
-import Deku.Core (Domable)
-import Deku.Pursx (nut, (~~))
+import Deku.Core (Nut)
+import Deku.Pursx ((~~))
 import Effect (Effect)
 import FRP.Event (Event, delay)
 import Ocarina.Control (gain_, loopBuf)
@@ -28,9 +27,9 @@ px =
   </section>
 """
 
-envelopeEx :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable lock payload
+envelopeEx :: CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Nut
 envelopeEx ccb _ ev = px ~~
-  { txt: nut
+  { txt:
       ( text_
           """\ctx buf -> run2 ctx
   [ gain_ 1.0
@@ -49,7 +48,7 @@ envelopeEx ccb _ ev = px ~~
       ]
   ]"""
       )
-  , envelope: nut
+  , envelope:
       ( audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
           \ctx buf -> run2 ctx
             [ gain_ 1.0

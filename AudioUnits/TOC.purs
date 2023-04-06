@@ -2,7 +2,7 @@ module Ocarina.Example.Docs.AudioUnits.TOC where
 
 
 import Control.Plus (class Plus)
-import Deku.Core (Domable)
+import Deku.Core (Nut)
 import Deku.Pursx ((~~))
 import Effect (Effect)
 import FRP.Event (Event, class IsEvent)
@@ -40,7 +40,7 @@ px = Proxy :: Proxy """<ul>
     </ul>
 """
 
-toc :: forall lock payload. Domable lock payload
+toc :: Nut
 toc = px ~~
   {
   }

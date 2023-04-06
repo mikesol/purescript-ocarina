@@ -6,9 +6,9 @@ import Control.Alt ((<|>))
 import Data.Foldable (traverse_)
 import Deku.Attribute (attr, cb, (:=))
 import Deku.Control (text, text_)
-import Deku.Core (Domable, vbussed)
+import Deku.Core (Nut, vbussed)
 import Deku.DOM as D
-import Deku.Pursx (makePursx', nut)
+import Deku.Pursx (makePursx')
 import Effect (Effect)
 import Effect.Aff (launchAff, launchAff_)
 import Effect.Class (liftEffect)
@@ -65,7 +65,7 @@ import Data.Foldable (traverse_)
 import Data.Maybe (Maybe(..), maybe)
 import Deku.Attribute (attr, cb, (:=))
 import Deku.Control (switcher, text, text_)
-import Deku.Core (Domable)
+import Deku.Core (Nut)
 import Bolson.Core (envy)
 import Deku.DOM as D
 import Deku.Toplevel (runInBody)
@@ -106,9 +106,9 @@ main = do
       <<< Just
   where
   scene
-    :: forall lock payload
+    :: forall payload
      . Maybe BrowserAudioBuffer
-    -> Domable Effect lock payload
+    -> Nut Effect payload
   scene = maybe (D.div_ [ text_ "Loading..." ]) \buffer ->
     D.div_ $ pure $ envy $ vbus (Proxy :: _ UIEvents) \push event -> do
       let
@@ -183,9 +183,9 @@ atari =
   "https://freesound.org/data/previews/100/100981_1234256-lq.mp3"
 
 ex1
-  :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable lock payload
+  :: CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Nut
 ex1 ccb _ ev = makePursx' (Proxy :: _ "@") px
-  { wagtxt: nut
+  { wagtxt:
       ( text_
           """run2_
   $ loopBuf
@@ -201,8 +201,8 @@ ex1 ccb _ ev = makePursx' (Proxy :: _ "@") px
       (calcSlope 0.0 0.05 100.0 1.0 >>> loopEnd) <$> biSampleOn sl2
           (add <$> (pure 0.0 <|> sl1))"""
       )
-  , txt: nut (text_ txt)
-  , ex1: nut
+  , txt: (text_ txt)
+  , ex1:
       ( vbussed (Proxy :: _ UIEvents) \push event -> -- here
 
           do
@@ -212,7 +212,7 @@ ex1 ccb _ ev = makePursx' (Proxy :: _ "@") px
               sl2 = event.slider.s2
               start = event.startStop.start <|> pure unit
 
-              music :: forall lock0. _ -> Audible _ lock0 _
+              music :: _ -> Audible _ _
               music buffer =
                 loopBuf
                   { buffer: buffer

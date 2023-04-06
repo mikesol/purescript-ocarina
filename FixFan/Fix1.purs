@@ -4,8 +4,8 @@ import Prelude
 
 import Bolson.Core (envy)
 import Deku.Control (text_)
-import Deku.Core (Domable)
-import Deku.Pursx (makePursx', nut)
+import Deku.Core (Nut)
+import Deku.Pursx (makePursx')
 import Effect (Effect)
 import FRP.Event (Event)
 import Ocarina.Control (delay_, fan1, fix, gain, gain_, highpass_, playBuf)
@@ -36,9 +36,9 @@ fade1 = pure
   $ P.gain
   $ AudioEnvelope { p: [ 1.0, 1.0, 0.0 ], o: 0.0, d: 10.0 }
 
-fix1 :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable lock payload
+fix1 :: CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Nut
 fix1 ccb _ ev = makePursx' (Proxy :: _ "@") px
-  { txt: nut $ text_
+  { txt: text_
       """dgh d g h i =
   delay_ d [gain_ g [highpass_ h i]]
 
@@ -78,10 +78,10 @@ scene buf = run2_
             ]
         ]
   ]"""
-  , ai0: nut
+  , ai0:
       (audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/178/178660_717950-lq.mp3")
           \ctx buf -> run2 ctx
-            [ fan1 (playBuf buf bangOn) \b _ -> fix
+            [ fan1 (playBuf buf bangOn) \b -> fix
                 \g0 -> gain_ 1.0
                   [ b
                   , dgh 0.15 0.7 1500.0

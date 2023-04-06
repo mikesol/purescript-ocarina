@@ -2,15 +2,13 @@ module Ocarina.Example.Docs.Params.Cancel where
 
 import Prelude
 
-import Bolson.Core (envy)
 import Data.Array ((..))
 import Data.Foldable (oneOf)
 import Deku.Control (text_)
-import Deku.Core (Domable)
-import Deku.Pursx (nut, (~~))
+import Deku.Core (Nut)
+import Deku.Pursx ((~~))
 import Effect (Effect)
-import FRP.Event (Event)
-import FRP.Event (delay)
+import FRP.Event (Event, delay)
 import Ocarina.Control (gain_, loopBuf)
 import Ocarina.Core (AudioCancel(..), AudioEnvelope(..), bangOn)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
@@ -34,9 +32,9 @@ px =
   </section>
 """
 
-cancelEx :: forall lock payload. CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Domable lock payload
+cancelEx :: CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Nut
 cancelEx ccb _ ev = px ~~
-  { txt: nut
+  { txt:
       ( text_
           """\ctx buf -> run2 ctx
   [ gain_ 1.0
@@ -54,7 +52,7 @@ cancelEx ccb _ ev = px ~~
       ]
   ]"""
       )
-  , cancel: nut
+  , cancel:
       (audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
           \ctx buf -> run2 ctx
             [ gain_ 1.0
