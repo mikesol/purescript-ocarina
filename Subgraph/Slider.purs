@@ -80,22 +80,22 @@ main = do
             [ D.div_
                 [ text_ "Slide me!"
                 , D.input
-                    ( O.oneOfMap pure O.do
+                    [O.oneOfMap pure O.do
                         D.Xtype := "range"
                         D.Min := "0"
                         D.Max := "100"
                         D.Step := "1"
                         D.Value := "50"
                         D.OnInput := cb (const (setSlider unit))
-                    )
+                    ]
                     []
                 ]
             , D.button
-                ( O.oneOfMap (map (attr D.OnClick <<< cb <<< const)) O.do
+                [O.oneOfMap (map (attr D.OnClick <<< cb <<< const)) O.do
                     startE $> (music >>= setStop)
                     stop <#>
                       (_ *> setStart unit)
-                )
+                ]
                 [ text OneOf.do
                     startE $> "Turn on"
                     stop $> "Turn off"

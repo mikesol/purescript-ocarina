@@ -232,7 +232,7 @@ ex1 ccb _ ev = makePursx' (Proxy :: _ "@") px
                   ( \{ l, f } -> D.div_
                       [ text_ l
                       , D.input
-                          ( O.oneOfMap pure O.do
+                          [O.oneOfMap pure O.do
                               D.Xtype := "range"
                               D.Min := "0"
                               D.Max := "100"
@@ -244,7 +244,7 @@ ex1 ccb _ ev = makePursx' (Proxy :: _ "@") px
                                     <<< (=<<) fromEventTarget
                                     <<< target
                                 )
-                          )
+                          ]
                           []
                       ]
                   )
@@ -253,7 +253,7 @@ ex1 ccb _ ev = makePursx' (Proxy :: _ "@") px
                   , { l: "Loop end", f: push.slider.s2 }
                   ] <>
                   [ D.button
-                      ( O.oneOfMap (map (attr D.OnClick <<< cb <<< const)) O.do
+                      [O.oneOfMap (map (attr D.OnClick <<< cb <<< const)) O.do
                           event.startStop.loading $> pure unit
                           event.startStop.stop <#>
                             (_ *> (ccb (pure unit) *> push.startStop.start unit))
@@ -276,8 +276,7 @@ ex1 ccb _ ev = makePursx' (Proxy :: _ "@") px
                               launchAff_ $ raceSelf fib
                             pure unit
 
-                      )
-
+                      ]
                       [ text $ OneOf.do
                           map (const "Turn off") event.startStop.stop
                           map (const "Turn on") start

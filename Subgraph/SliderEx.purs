@@ -184,7 +184,7 @@ sgSliderEx ccb _ ev = makePursx' (Proxy :: _ "@") px
         [ D.div_
             [ text_ "Slide me!"
             , D.input
-                ( oneOfMap pure
+                [oneOfMap pure
                     [ D.Xtype := "range"
                     , D.Min := "0"
                     , D.Max := "100"
@@ -192,11 +192,11 @@ sgSliderEx ccb _ ev = makePursx' (Proxy :: _ "@") px
                     , D.Value := "50"
                     , D.OnInput := cb (const (setSlider unit))
                     ]
-                )
+                ]
                 []
             ]
         , D.button
-            ( oneOfMap (map (attr D.OnClick <<< cb <<< const))
+            [oneOfMap (map (attr D.OnClick <<< cb <<< const))
                 [ loading $> pure unit
                 , stopE <#>
                     (_ *> (ccb (pure unit) *> setStart unit))
@@ -220,7 +220,7 @@ sgSliderEx ccb _ ev = makePursx' (Proxy :: _ "@") px
                     pure unit
 
                 ]
-            )
+            ]
             [ text $ oneOf
                 [ map (const "Turn off") stopE
                 , map (const "Turn on") startE

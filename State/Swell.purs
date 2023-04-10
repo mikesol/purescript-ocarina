@@ -128,7 +128,7 @@ main = runInBody Deku.do
     stopE = stop
   D.div_
     [ D.button
-        ( O.oneOfMap (map (attr D.OnClick <<< cb <<< const)) O.do
+        [O.oneOfMap (map (attr D.OnClick <<< cb <<< const)) O.do
             stop <#> (_ *> setStart unit)
             startE $>
               do
@@ -237,7 +237,7 @@ main = runInBody Deku.do
                         ]
                   )
                 setStop (r *> c0h *> close ctx)
-        )
+        ]
         [ text $ OneOf.do
             startE $> "Turn on"
             stopE $> "Turn off"

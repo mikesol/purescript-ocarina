@@ -60,7 +60,7 @@ recorderEx ccb _ ev = px ~~
           in
             D.div_
               [ D.button
-                  ( (pure (D.Style := "cursor: pointer;")) <|>
+                  [(pure (D.Style := "cursor: pointer;")) <|>
                       ( map
                           ( \{ e, cncl, rec } -> D.OnClick :=
                               ( cb $
@@ -117,7 +117,7 @@ recorderEx ccb _ ev = px ~~
 
                           )
                       )
-                  )
+                  ]
                   [ text
                       ( map
                           ( case _ of
@@ -130,10 +130,10 @@ recorderEx ccb _ ev = px ~~
                   ]
               , D.div_
                   [ D.audio
-                      ( (pure (D.Controls := "true")) <|> (pure (D.Style := "display:none;")) <|> map (\src -> (D.Src := src)) aEv <|> map
+                      [(pure (D.Controls := "true")) <|> (pure (D.Style := "display:none;")) <|> map (\src -> (D.Src := src)) aEv <|> map
                           (const (D.Style := "display:block;"))
                           aEv
-                      )
+                      ]
                       []
                   ]
               ]

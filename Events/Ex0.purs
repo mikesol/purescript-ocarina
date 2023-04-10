@@ -173,7 +173,7 @@ ex0 ccb _ ev = makePursx' (Proxy :: _ "@") px
 
           D.div_
             [ D.button
-                ( (Tuple <$> event <*> (pure (pure unit) <|> (map (\(SetCancel x) -> x) ev))) <#> -- here
+                [(Tuple <$> event <*> (pure (pure unit) <|> (map (\(SetCancel x) -> x) ev))) <#> -- here
 
                     \(e /\ c) -> D.OnClick := cb -- here
                       ( const $ case e of
@@ -188,7 +188,7 @@ ex0 ccb _ ev = makePursx' (Proxy :: _ "@") px
                             ccb (r *> push Start) -- here
                             push $ Stop r
                       )
-                )
+                ]
                 [ text $ event <#> case _ of
                     Stop _ -> "Turn off"
                     _ -> "Turn on"

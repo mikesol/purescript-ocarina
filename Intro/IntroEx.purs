@@ -121,7 +121,7 @@ introEx ccb _ ev = makePursx' (Proxy :: _ "@") px
               loadingE = event.startStop.loading
               stopE = event.startStop.stop
 
-              music :: forall lock. _ -> _ -> _ -> Array (Audible _ _)
+              music :: _ -> _ -> _ -> Array (Audible _ _)
               music ctx buffer analyserE = do
                 let
                   sliderE = (\{ acTime, value } -> acTime /\ value) <$> withACTime ctx (event.slider)
@@ -170,7 +170,7 @@ introEx ccb _ ev = makePursx' (Proxy :: _ "@") px
                 ]
             D.div_
               [ D.canvas
-                  ( oneOfMap pure
+                  [oneOfMap pure
                       [ D.Width := cvsxs
                       , D.Height := cvsys
                       , D.Style := "width: 100%;"
@@ -199,10 +199,10 @@ introEx ccb _ ev = makePursx' (Proxy :: _ "@") px
                               fill ctx
                         ) <$> event.canvas
                       )
-                  )
+                  ]
                   []
               , D.input
-                  ( oneOfMap pure
+                  [oneOfMap pure
                       [ D.Xtype := "range"
                       , D.Min := "0"
                       , D.Max := "100"
@@ -216,10 +216,10 @@ introEx ccb _ ev = makePursx' (Proxy :: _ "@") px
                               <<< target
                           )
                       ]
-                  )
+                  ]
                   []
               , D.button
-                  ( oneOf
+                  [oneOf
                       [ pure $ D.Style := "width:100%; padding:1.0rem;"
                       , ( oneOfMap (map (attr D.OnClick <<< cb <<< const))
                             [ loadingE $> pure unit
@@ -267,7 +267,7 @@ introEx ccb _ ev = makePursx' (Proxy :: _ "@") px
                             ]
                         )
                       ]
-                  )
+                  ]
                   [ text $ oneOf
                       [ map (const "Turn off") stopE
                       , map (const "Turn on") startE

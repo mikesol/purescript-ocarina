@@ -53,7 +53,7 @@ main :: Effect Unit
 main = runInBody (bussed \push -> lcmap (pure Init <|> _) \event ->
   D.div_
     [ D.button
-        ( event <#>
+        [event <#>
             \e -> D.OnClick := cb
               ( const $ case e of
                   Stop u -> u *> push Start
@@ -66,7 +66,7 @@ main = runInBody (bussed \push -> lcmap (pure Init <|> _) \event ->
                       ]
                     push $ Stop r
               )
-        )
+        ]
         [ text $ event <#> case _ of
             Stop _ -> "Turn off"
             _ -> "Turn on"
