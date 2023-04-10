@@ -15,5 +15,5 @@ in  upstream
       [ "bolson", "stringutils", "css"
       ]
     , repo = "https://github.com/mikesol/purescript-deku.git"
-    , version = "main"
+    , version = "v0.9.19"
     }
