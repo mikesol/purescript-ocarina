@@ -89,15 +89,14 @@ initializeAtariSpeaks = do
   pure atar
 
 atariSpeaks
-  :: forall payload
-   . BrowserAudioBuffer
+  :: BrowserAudioBuffer
   -> RaiseCancellation
   -> Nut
 atariSpeaks atar rc = bussed \push -> lcmap (alt (pure TurnOn)) \event ->
   DOM.div_
     [ DOM.h1_ [ text_ "Atari speaks" ]
     , DOM.button
-        ( map
+        [ map
             ( \i -> DOM.OnClick := cb
                 ( const $
                     case i of
@@ -162,7 +161,7 @@ atariSpeaks atar rc = bussed \push -> lcmap (alt (pure TurnOn)) \event ->
                 TurnOff a -> Just (Just a)
                 TurnOn -> Just Nothing
             )
-        )
+        ]
         [ text
             ( event # map case _ of
                 TurnOn -> "Turn on"

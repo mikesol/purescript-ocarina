@@ -138,7 +138,7 @@ stressTest _ rc = bussed \p -> lcmap (alt $ pure Nothing) \e ->
       -> (RRef.STRef Region.Global Int -> AudioContext -> WriteHead Event -> Event (FFIAudioSnapshot -> Effect Unit))
       -> Nut
     musicButton label push event audioEvent = DOM.button
-      ( map
+      [map
           ( \i -> DOM.OnClick := cb
               ( const $
                   maybe
@@ -163,7 +163,7 @@ stressTest _ rc = bussed \p -> lcmap (alt $ pure Nothing) \e ->
               )
           )
           event
-      )
+      ]
       [ text
           (map (maybe ("Turn on " <> label) (const "Turn off")) event)
       ]

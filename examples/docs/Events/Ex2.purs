@@ -295,7 +295,7 @@ ex2 ccb _ ev = makePursx' (Proxy :: _ "@") px
               [ D.div_
                   [ text_ "tempo"
                   , D.input
-                      ( O.oneOfMap pure O.do
+                      [O.oneOfMap pure O.do
                           D.Xtype := "range"
                           D.Min := "0"
                           D.Max := "100"
@@ -307,7 +307,7 @@ ex2 ccb _ ev = makePursx' (Proxy :: _ "@") px
                                 <<< (=<<) fromEventTarget
                                 <<< target
                             )
-                      )
+                      ]
                       []
                   ]
               --                     r' <- run2e ctx (music myIvl)
@@ -316,7 +316,7 @@ ex2 ccb _ ev = makePursx' (Proxy :: _ "@") px
               -- push (stop r)
 
               , D.button
-                  ( oneOfMap (map (attr D.OnClick <<< cb <<< const))
+                  [oneOfMap (map (attr D.OnClick <<< cb <<< const))
                       [ ((start $> identity) <*> (pure (pure unit) <|> (map (\(SetCancel x) -> x) ev)) ) <#> \cncl -> do
                           cncl
                           ctx <- context
@@ -332,7 +332,7 @@ ex2 ccb _ ev = makePursx' (Proxy :: _ "@") px
                       , event.startStop.stop <#>
                           (_ *> (ccb (pure unit) *> push.startStop.start unit))
                       ]
-                  )
+                  ]
                   [ text $ oneOf
                       [ start $> "Turn on"
                       , event.startStop.stop $> "Turn off"

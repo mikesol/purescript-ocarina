@@ -4,7 +4,7 @@ import Prelude
 
 import Control.Alt ((<|>))
 import Data.Array ((..))
-import Data.Foldable (oneOf, oneOfMap)
+import Data.Foldable (oneOf)
 import Data.Int (toNumber)
 import Data.Traversable (sequence)
 import Data.Tuple.Nested ((/\))
@@ -57,7 +57,7 @@ main = runInBody Deku.do
   D.div_
     [ D.div_
         [ D.button
-            ( oneOfMap (map (attr D.OnClick <<< cb <<< const))
+            ( map (map (attr D.OnClick <<< cb <<< const))
                 [ stop <#>
                     (_ *> setStart unit)
                 , start $> do

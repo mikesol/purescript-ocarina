@@ -2,21 +2,17 @@ module Ocarina.Example.Docs.AudioUnits.Analyser where
 
 import Prelude
 
-import Bolson.Core (envy)
 import Control.Alt ((<|>))
 import Control.Monad.ST.Class (liftST)
 import Control.Monad.ST.Internal as RRef
-import Control.Plus (class Plus)
 import Data.ArrayBuffer.Typed (toArray)
 import Data.Either (Either(..))
-import Data.Exists (mkExists)
 import Data.Filterable (partitionMap)
 import Data.Foldable (for_)
 import Data.Int (toNumber)
 import Data.Maybe (Maybe(..))
 import Data.Traversable (traverse)
-import Data.Tuple.Nested ((/\))
-import Data.Typelevel.Num (D2, D5, D8, d0, d1, d2, d3, d4, d5, d6, d7)
+import Data.Typelevel.Num (D5, D8, d0, d1, d2, d3, d4, d5, d6, d7)
 import Data.UInt (toInt)
 import Data.Vec (Vec, (+>))
 import Data.Vec as V
@@ -27,15 +23,15 @@ import Deku.DOM as D
 import Deku.Pursx ((~~))
 import Effect (Effect, foreachE)
 import Effect.Ref (modify_, new, read, write)
-import FRP.Event (class IsEvent, Event, bus, create, sampleOnRight_, subscribe)
+import FRP.Event (Event, subscribe)
 import FRP.Event.Animate (animationFrameEvent)
 import Ocarina.Control (analyser_, loopBuf, speaker2)
 import Ocarina.Core (Po2(..))
 import Ocarina.Core (bangOn)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import Ocarina.Example.Docs.Util (WrapperStates(..), clickCb, mkWrapperEvent)
-import Ocarina.Interpret (close, context, contextState, bracketCtx, decodeAudioDataFromUri, effectfulAudioInterpret, getByteFrequencyData, makeFFIAudioSnapshot)
-import Ocarina.WebAPI (AnalyserNodeCb(..), BrowserAudioBuffer)
+import Ocarina.Interpret (close, contextState, decodeAudioDataFromUri, effectfulAudioInterpret, getByteFrequencyData, makeFFIAudioSnapshot)
+import Ocarina.WebAPI (AnalyserNodeCb(..))
 import Type.Proxy (Proxy(..))
 
 px =
@@ -103,7 +99,7 @@ analyserEx ccb _ ev = px ~~
             in
               D.div_
                 [ D.button
-                    ( (pure (D.Style := "cursor: pointer;")) <|>
+                    [(pure (D.Style := "cursor: pointer;")) <|>
                         ( clickCb ccb (Right >>> push)
                             (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
                             ( \ctx atar -> do
@@ -172,7 +168,7 @@ analyserEx ccb _ ev = px ~~
                             ev
                             event
                         )
-                    )
+                    ]
                     [ text
                         ( map
                             ( case _ of
@@ -184,47 +180,47 @@ analyserEx ccb _ ev = px ~~
                         )
                     ]
                 -- grid-auto-rows: 20px;
-                , D.div (pure $ D.Style := "display: grid; grid-template-columns: repeat(8, 1fr); grid-auto-rows: 20px;")
-                    [ D.div ((pure $ D.Style := bgWhite) <|> (mkSt d0 d0 aEv)) []
-                    , D.div ((pure $ D.Style := bgWhite) <|> (mkSt d1 d0 aEv)) []
-                    , D.div ((pure $ D.Style := bgWhite) <|> (mkSt d2 d0 aEv)) []
-                    , D.div ((pure $ D.Style := bgWhite) <|> (mkSt d3 d0 aEv)) []
-                    , D.div ((pure $ D.Style := bgWhite) <|> (mkSt d4 d0 aEv)) []
-                    , D.div ((pure $ D.Style := bgWhite) <|> (mkSt d5 d0 aEv)) []
-                    , D.div ((pure $ D.Style := bgWhite) <|> (mkSt d6 d0 aEv)) []
-                    , D.div ((pure $ D.Style := bgWhite) <|> (mkSt d7 d0 aEv)) []
-                    , D.div ((pure $ D.Style := bgWhite) <|> (mkSt d0 d1 aEv)) []
-                    , D.div ((pure $ D.Style := bgWhite) <|> (mkSt d1 d1 aEv)) []
-                    , D.div ((pure $ D.Style := bgWhite) <|> (mkSt d2 d1 aEv)) []
-                    , D.div ((pure $ D.Style := bgWhite) <|> (mkSt d3 d1 aEv)) []
-                    , D.div ((pure $ D.Style := bgWhite) <|> (mkSt d4 d1 aEv)) []
-                    , D.div ((pure $ D.Style := bgWhite) <|> (mkSt d5 d1 aEv)) []
-                    , D.div ((pure $ D.Style := bgWhite) <|> (mkSt d6 d1 aEv)) []
-                    , D.div ((pure $ D.Style := bgWhite) <|> (mkSt d7 d1 aEv)) []
-                    , D.div ((pure $ D.Style := bgWhite) <|> (mkSt d0 d2 aEv)) []
-                    , D.div ((pure $ D.Style := bgWhite) <|> (mkSt d1 d2 aEv)) []
-                    , D.div ((pure $ D.Style := bgWhite) <|> (mkSt d2 d2 aEv)) []
-                    , D.div ((pure $ D.Style := bgWhite) <|> (mkSt d3 d2 aEv)) []
-                    , D.div ((pure $ D.Style := bgWhite) <|> (mkSt d4 d2 aEv)) []
-                    , D.div ((pure $ D.Style := bgWhite) <|> (mkSt d5 d2 aEv)) []
-                    , D.div ((pure $ D.Style := bgWhite) <|> (mkSt d6 d2 aEv)) []
-                    , D.div ((pure $ D.Style := bgWhite) <|> (mkSt d7 d2 aEv)) []
-                    , D.div ((pure $ D.Style := bgWhite) <|> (mkSt d0 d3 aEv)) []
-                    , D.div ((pure $ D.Style := bgWhite) <|> (mkSt d1 d3 aEv)) []
-                    , D.div ((pure $ D.Style := bgWhite) <|> (mkSt d2 d3 aEv)) []
-                    , D.div ((pure $ D.Style := bgWhite) <|> (mkSt d3 d3 aEv)) []
-                    , D.div ((pure $ D.Style := bgWhite) <|> (mkSt d4 d3 aEv)) []
-                    , D.div ((pure $ D.Style := bgWhite) <|> (mkSt d5 d3 aEv)) []
-                    , D.div ((pure $ D.Style := bgWhite) <|> (mkSt d6 d3 aEv)) []
-                    , D.div ((pure $ D.Style := bgWhite) <|> (mkSt d7 d3 aEv)) []
-                    , D.div ((pure $ D.Style := bgWhite) <|> (mkSt d0 d4 aEv)) []
-                    , D.div ((pure $ D.Style := bgWhite) <|> (mkSt d1 d4 aEv)) []
-                    , D.div ((pure $ D.Style := bgWhite) <|> (mkSt d2 d4 aEv)) []
-                    , D.div ((pure $ D.Style := bgWhite) <|> (mkSt d3 d4 aEv)) []
-                    , D.div ((pure $ D.Style := bgWhite) <|> (mkSt d4 d4 aEv)) []
-                    , D.div ((pure $ D.Style := bgWhite) <|> (mkSt d5 d4 aEv)) []
-                    , D.div ((pure $ D.Style := bgWhite) <|> (mkSt d6 d4 aEv)) []
-                    , D.div ((pure $ D.Style := bgWhite) <|> (mkSt d7 d4 aEv)) []
+                , D.div [pure $ D.Style := "display: grid; grid-template-columns: repeat(8, 1fr); grid-auto-rows: 20px;"]
+                    [ D.div [(pure $ D.Style := bgWhite) , (mkSt d0 d0 aEv)] []
+                    , D.div [(pure $ D.Style := bgWhite) , (mkSt d1 d0 aEv)] []
+                    , D.div [(pure $ D.Style := bgWhite) , (mkSt d2 d0 aEv)] []
+                    , D.div [(pure $ D.Style := bgWhite) , (mkSt d3 d0 aEv)] []
+                    , D.div [(pure $ D.Style := bgWhite) , (mkSt d4 d0 aEv)] []
+                    , D.div [(pure $ D.Style := bgWhite) , (mkSt d5 d0 aEv)] []
+                    , D.div [(pure $ D.Style := bgWhite) , (mkSt d6 d0 aEv)] []
+                    , D.div [(pure $ D.Style := bgWhite) , (mkSt d7 d0 aEv)] []
+                    , D.div [(pure $ D.Style := bgWhite) , (mkSt d0 d1 aEv)] []
+                    , D.div [(pure $ D.Style := bgWhite) , (mkSt d1 d1 aEv)] []
+                    , D.div [(pure $ D.Style := bgWhite) , (mkSt d2 d1 aEv)] []
+                    , D.div [(pure $ D.Style := bgWhite) , (mkSt d3 d1 aEv)] []
+                    , D.div [(pure $ D.Style := bgWhite) , (mkSt d4 d1 aEv)] []
+                    , D.div [(pure $ D.Style := bgWhite) , (mkSt d5 d1 aEv)] []
+                    , D.div [(pure $ D.Style := bgWhite) , (mkSt d6 d1 aEv)] []
+                    , D.div [(pure $ D.Style := bgWhite) , (mkSt d7 d1 aEv)] []
+                    , D.div [(pure $ D.Style := bgWhite) , (mkSt d0 d2 aEv)] []
+                    , D.div [(pure $ D.Style := bgWhite) , (mkSt d1 d2 aEv)] []
+                    , D.div [(pure $ D.Style := bgWhite) , (mkSt d2 d2 aEv)] []
+                    , D.div [(pure $ D.Style := bgWhite) , (mkSt d3 d2 aEv)] []
+                    , D.div [(pure $ D.Style := bgWhite) , (mkSt d4 d2 aEv)] []
+                    , D.div [(pure $ D.Style := bgWhite) , (mkSt d5 d2 aEv)] []
+                    , D.div [(pure $ D.Style := bgWhite) , (mkSt d6 d2 aEv)] []
+                    , D.div [(pure $ D.Style := bgWhite) , (mkSt d7 d2 aEv)] []
+                    , D.div [(pure $ D.Style := bgWhite) , (mkSt d0 d3 aEv)] []
+                    , D.div [(pure $ D.Style := bgWhite) , (mkSt d1 d3 aEv)] []
+                    , D.div [(pure $ D.Style := bgWhite) , (mkSt d2 d3 aEv)] []
+                    , D.div [(pure $ D.Style := bgWhite) , (mkSt d3 d3 aEv)] []
+                    , D.div [(pure $ D.Style := bgWhite) , (mkSt d4 d3 aEv)] []
+                    , D.div [(pure $ D.Style := bgWhite) , (mkSt d5 d3 aEv)] []
+                    , D.div [(pure $ D.Style := bgWhite) , (mkSt d6 d3 aEv)] []
+                    , D.div [(pure $ D.Style := bgWhite) , (mkSt d7 d3 aEv)] []
+                    , D.div [(pure $ D.Style := bgWhite) , (mkSt d0 d4 aEv)] []
+                    , D.div [(pure $ D.Style := bgWhite) , (mkSt d1 d4 aEv)] []
+                    , D.div [(pure $ D.Style := bgWhite) , (mkSt d2 d4 aEv)] []
+                    , D.div [(pure $ D.Style := bgWhite) , (mkSt d3 d4 aEv)] []
+                    , D.div [(pure $ D.Style := bgWhite) , (mkSt d4 d4 aEv)] []
+                    , D.div [(pure $ D.Style := bgWhite) , (mkSt d5 d4 aEv)] []
+                    , D.div [(pure $ D.Style := bgWhite) , (mkSt d6 d4 aEv)] []
+                    , D.div [(pure $ D.Style := bgWhite) , (mkSt d7 d4 aEv)] []
                     ]
                 ]
       )

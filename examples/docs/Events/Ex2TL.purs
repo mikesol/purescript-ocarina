@@ -111,7 +111,7 @@ main = runInBody
         [ D.div_
             [ text_ "tempo"
             , D.input
-                ( O.oneOfMap pure O.do
+                [O.oneOfMap pure O.do
                     D.Xtype := "range"
                     D.Min := "0"
                     D.Max := "100"
@@ -123,11 +123,11 @@ main = runInBody
                           <<< (=<<) fromEventTarget
                           <<< target
                       )
-                )
+                ]
                 []
             ]
         , D.button
-            ( oneOfMap (map (attr D.OnClick <<< cb <<< const))
+            [oneOfMap (map (attr D.OnClick <<< cb <<< const))
                 [ start $> do
                     ctx <- context
                     let
@@ -140,7 +140,7 @@ main = runInBody
                 , event.startStop.stop <#>
                     (_ *> push.startStop.start unit)
                 ]
-            )
+            ]
             [ text $ oneOf
                 [ start $> "Turn on"
                 , event.startStop.stop $> "Turn off"

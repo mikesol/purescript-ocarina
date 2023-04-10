@@ -51,7 +51,7 @@ main = runInBody
         cbx3 = chkState event.cbx.cbx3
       D.div_
         [ D.button
-            ( O.oneOfMap (map (attr D.OnClick <<< cb <<< const)) O.do
+            [O.oneOfMap (map (attr D.OnClick <<< cb <<< const)) O.do
                 stopE <#> (_ *> push.startStop.start unit)
                 startE $> do
                   ctx <- context
@@ -112,23 +112,23 @@ main = runInBody
                             ]
                     )
                   push.startStop.stop (r *> c0h *> close ctx)
-            )
+            ]
             [ text OneOf.do
                 startE $> "Turn on"
                 stopE $> "Turn off"
             ]
         , D.div
-            ( O.oneOfMap (map (attr D.Style)) O.do
+            [O.oneOfMap (map (attr D.Style)) O.do
                 stopE $> "display:block;"
                 startE $> "display:none;"
-            )
+            ]
             ( map
                 ( \e -> D.input
-                    ( OneOf.do
+                    [OneOf.do
                         pure (D.Xtype := "checkbox")
                         pure (D.OnClick := cb (const (e unit)))
                         startE $> (D.Checked := "false")
-                    )
+                    ]
                     []
                 )
                 ([ _.cbx0, _.cbx1, _.cbx2, _.cbx3 ] <@> push.cbx)

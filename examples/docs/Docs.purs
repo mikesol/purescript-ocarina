@@ -61,7 +61,7 @@ scene = Deku.do
         $ map
             ( \(x /\ y /\ z) -> D.span_
                 [ D.a
-                    ( oneOfMap pure
+                    [oneOfMap pure
                         [ D.OnClick := cb
                             ( const do
                                 push (ChangePage x)
@@ -75,13 +75,13 @@ scene = Deku.do
                             )
                         )
                         (event # filter (_.pageChange >>> not))
-                    )
+                    ]
                     [ text_ y ]
                 , D.span
-                    ( pure $ D.Style :=
+                    [pure $ D.Style :=
                         if z then ""
                         else "display:none;"
-                    )
+                    ]
                     [ text_ " | " ]
                 ]
             )

@@ -83,7 +83,7 @@ mkWrapperEvent :: forall t20 f22. Alt f22 => Applicative f22 => t20 -> f22 Wrapp
 mkWrapperEvent _ event' = pure Stopped <|> event'
 
 audioWrapper
-  :: forall a payload
+  :: forall a
    . Event SingleSubgraphEvent
   -> CancelCurrentAudio
   -> (AudioContext -> Aff a)
@@ -94,7 +94,7 @@ audioWrapper ev cca init i = bussed \push event' ->
     event = mkWrapperEvent ev event'
   in
     D.button
-      (clickCb cca push init i ev event)
+      [clickCb cca push init i ev event]
       [ text
           ( map
               ( case _ of
@@ -107,7 +107,7 @@ audioWrapper ev cca init i = bussed \push event' ->
       ]
 
 audioWrapperSpan
-  :: forall a payload
+  :: forall a
    . String
   -> Event SingleSubgraphEvent
   -> CancelCurrentAudio
@@ -119,8 +119,8 @@ audioWrapperSpan txt ev cca init i = bussed \push event' ->
     event = mkWrapperEvent ev event'
   in
     D.span
-      ( (pure (D.Style := "cursor: pointer;")) <|> (clickCb cca push init i ev event)
-      )
+      [(pure (D.Style := "cursor: pointer;")) <|> (clickCb cca push init i ev event)
+      ]
       [ text
           ( map
               ( case _ of

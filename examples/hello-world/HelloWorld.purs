@@ -61,7 +61,7 @@ helloWorld
 helloWorld _ rc = bussed \p -> lcmap (alt (pure Nothing)) \e ->
   let
     musicButton push event audioEvent = DOM.button
-      ( map
+      [map
           ( \i -> DOM.OnClick := cb
               ( const $
                   maybe
@@ -86,7 +86,7 @@ helloWorld _ rc = bussed \p -> lcmap (alt (pure Nothing)) \e ->
               )
           )
           event
-      )
+      ]
       [ text
           (map (maybe "Turn on" (const "Turn off")) event)
       ]

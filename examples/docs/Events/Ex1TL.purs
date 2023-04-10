@@ -46,8 +46,7 @@ main = do
       <<< Just
   where
   scene
-    :: forall payload
-     . Maybe BrowserAudioBuffer
+    :: Maybe BrowserAudioBuffer
     -> Nut
   scene = maybe (D.div_ [ text_ "Loading..." ]) \buffer ->
     D.div_ $ pure $ vbussed (Proxy :: _ UIEvents) \push event -> do
@@ -81,7 +80,7 @@ main = do
             ( \{ l, f } -> D.div_
                 [ text_ l
                 , D.input
-                    ( O.oneOfMap pure O.do
+                    [O.oneOfMap pure O.do
                         D.Xtype := "range"
                         D.Min := "0"
                         D.Max := "100"
@@ -93,7 +92,7 @@ main = do
                               <<< (=<<) fromEventTarget
                               <<< target
                           )
-                    )
+                    ]
                     []
                 ]
             )
@@ -102,11 +101,11 @@ main = do
             , { l: "Loop end", f: push.slider.s2 }
             ] <>
             [ D.button
-                ( O.oneOfMap (map (attr D.OnClick <<< cb <<< const)) O.do
+                [O.oneOfMap (map (attr D.OnClick <<< cb <<< const)) O.do
                     start $> (music >>= push.startStop.stop)
                     event.startStop.stop <#>
                       (_ *> push.startStop.start unit)
-                )
+                ]
                 [ text OneOf.do
                     start $> "Turn on"
                     event.startStop.stop $> "Turn off"

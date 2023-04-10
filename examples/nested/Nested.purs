@@ -3,7 +3,7 @@ module Ocarina.Example.Nested where
 import Prelude
 
 import Control.Alt ((<|>))
-import Data.Foldable (oneOf, oneOfMap)
+import Data.Foldable (oneOf)
 import Data.Tuple.Nested ((/\))
 import Deku.Attribute (attr, cb)
 import Deku.Control (text)
@@ -12,7 +12,6 @@ import Deku.Do as Deku
 import Deku.Hooks (useState')
 import Deku.Toplevel (runInBody)
 import Effect (Effect)
-import FRP.Event.VBus (V)
 import Ocarina.Control (constant, gain, gain_, sinOsc)
 import Ocarina.Core (Audible, bangOn, c1)
 import Ocarina.Interpret (close, context)
@@ -57,7 +56,7 @@ main = runInBody Deku.do
   D.div_
     [ D.div_
         [ D.button
-            ( oneOfMap (map (attr D.OnClick <<< cb <<< const))
+            ( map (map (attr D.OnClick <<< cb <<< const))
                 [ stopE <#>
                     (_ *> setStart unit)
                 , startE $> do

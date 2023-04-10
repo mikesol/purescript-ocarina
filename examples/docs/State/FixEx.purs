@@ -398,7 +398,7 @@ main = runInBody1
             stopE = event.stop
           D.div_
             [ D.button
-                ( oneOfMap (map (attr D.OnClick <<< cb <<< const))
+                [oneOfMap (map (attr D.OnClick <<< cb <<< const))
                     [ ((startE $> identity) <*> (pure (pure unit) <|> (map (\(SetCancel x) -> x) ev))) <#> \cncl ->
                         do
                           cncl
@@ -511,7 +511,7 @@ main = runInBody1
                           push.stop r
                     , event.stop <#> (_ *> (ccb (pure unit) *> push.start unit))
                     ]
-                )
+                ]
                 [ text $ oneOf
                     [ startE $> "Turn on"
                     , stopE $> "Turn off"
