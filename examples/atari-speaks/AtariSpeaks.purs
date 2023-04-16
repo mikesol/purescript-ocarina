@@ -126,8 +126,7 @@ atariSpeaks atari rc = bussed \push -> lcmap (alt (pure TurnOn)) \event ->
                           ( \(Tuple audio analyser) -> do
                               audio ffi2
                               for_ analyser \a -> do
-                                frequencyData <-
-                                  getByteFrequencyData a
+                                frequencyData <- getByteFrequencyData a
                                 arr <- toArray frequencyData
                                 push $ AsciiMixer $
                                   intercalate "\n"
