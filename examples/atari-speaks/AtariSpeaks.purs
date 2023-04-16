@@ -40,21 +40,21 @@ scene
   -> AnalyserNodeCb
   -> WriteHead Event
   -> Audible D2 payload
-scene atar cb wh =
+scene atari cb wh =
   let
     tr = fot wh (mul pi)
   in
     analyser_ { cb }
       [ gain_ 1.0
           [ gain_ 0.3
-              [ loopBuf { buffer: atar, playbackRate: 1.0 }
+              [ loopBuf { buffer: atari, playbackRate: 1.0 }
                   ( bangOn <|>
                       playbackRate <<<
                         over opticN (\rad -> 1.0 + 0.1 * sin rad) <$> tr
                   )
               ]
           , gain_ 0.15
-              [ loopBuf { buffer: atar, playbackRate: 1.0 }
+              [ loopBuf { buffer: atari, playbackRate: 1.0 }
                   ( bangOn
                       <|>
                         playbackRate <<<
@@ -70,7 +70,7 @@ scene atar cb wh =
                   )
               ]
           , gain_ 0.3
-              [ loopBuf { buffer: atar, playbackRate: 0.25 } bangOn ]
+              [ loopBuf { buffer: atari, playbackRate: 0.25 } bangOn ]
           ]
       ]
 
@@ -83,15 +83,15 @@ type Init = BrowserAudioBuffer
 
 initializeAtariSpeaks :: Aff Init
 initializeAtariSpeaks = do
-  atar <- liftEffect context >>= flip decodeAudioDataFromUri
+  atari <- liftEffect context >>= flip decodeAudioDataFromUri
     "https://freesound.org/data/previews/100/100981_1234256-lq.mp3"
-  pure atar
+  pure atari
 
 atariSpeaks
   :: BrowserAudioBuffer
   -> RaiseCancellation
   -> Nut
-atariSpeaks atar rc = bussed \push -> lcmap (alt (pure TurnOn)) \event ->
+atariSpeaks atari rc = bussed \push -> lcmap (alt (pure TurnOn)) \event ->
   DOM.div_
     [ DOM.h1_ [ text_ "Atari speaks" ]
     , DOM.button
@@ -108,7 +108,7 @@ atariSpeaks atar rc = bussed \push -> lcmap (alt (pure TurnOn)) \event ->
                         let wh = writeHead 0.04 ctx
                         let
                           audioE = speaker2
-                            [ scene atar
+                            [ scene atari
                                 ( AnalyserNodeCb
                                     ( \a -> do
                                         analyserE.push (Just a)
@@ -162,14 +162,14 @@ atariSpeaks atar rc = bussed \push -> lcmap (alt (pure TurnOn)) \event ->
             )
         ]
         [ text
-            ( event # map case _ of
+            ( event <#> case _ of
                 TurnOn -> "Turn on"
                 _ -> "Turn off"
             )
         ]
     , DOM.p_
         [ text
-            ( event # map case _ of
+            ( event <#> case _ of
                 AsciiMixer s -> s
                 _ -> ""
             )
