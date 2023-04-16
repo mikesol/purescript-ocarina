@@ -6,6 +6,8 @@ A library for web-based interactive audio and audio gaming.
 
 Ocarina's documentation is online [here](https://mikesol.github.io/purescript-ocarina) and the source [in this repository](./examples/docs/).
 
+For a simple example of `ocarina` with minimal boilerplate, check out the [`hello-world`](./examples/hello-world/HelloWorld.purs).
+
 ## Bundling on your site
 
 To see how to bundle this library on your site, please visit the [examples](./examples) directory.
