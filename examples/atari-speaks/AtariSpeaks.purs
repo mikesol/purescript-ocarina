@@ -128,12 +128,8 @@ atariSpeaks atari rc = bussed \push -> lcmap (alt (pure TurnOn)) \event ->
                               for_ analyser \a -> do
                                 frequencyData <- getByteFrequencyData a
                                 arr <- toArray frequencyData
-                                push $ AsciiMixer $
-                                  intercalate "\n"
-                                    ( map
-                                        (\ii -> fold ((0 .. toInt ii) $> ">"))
-                                        arr
-                                    )
+                                push $ AsciiMixer $ intercalate "\n" $
+                                  map (\ii -> fold ((0 .. toInt ii) $> ">")) arr
                           )
                         let unsub = unsub' *> afe.unsubscribe
                         rc $ Just { unsub, ctx }
