@@ -40,21 +40,21 @@ scene
   -> AnalyserNodeCb
   -> WriteHead Event
   -> Audible D2 payload
-scene atari cb wh =
+scene buffer cb wh =
   let
     tr = fot wh (mul pi)
   in
     analyser_ { cb }
       [ gain_ 1.0
           [ gain_ 0.3
-              [ loopBuf { buffer: atari, playbackRate: 1.0 }
+              [ loopBuf { buffer, playbackRate: 1.0 }
                   ( bangOn <|>
                       playbackRate <<<
                         over opticN (\rad -> 1.0 + 0.1 * sin rad) <$> tr
                   )
               ]
           , gain_ 0.15
-              [ loopBuf { buffer: atari, playbackRate: 1.0 }
+              [ loopBuf { buffer, playbackRate: 1.0 }
                   ( bangOn
                       <|>
                         playbackRate <<<
@@ -69,8 +69,7 @@ scene atari cb wh =
                           <<< view opticN <$> tr
                   )
               ]
-          , gain_ 0.3
-              [ loopBuf { buffer: atari, playbackRate: 0.25 } bangOn ]
+          , gain_ 0.3 [ loopBuf { buffer, playbackRate: 0.25 } bangOn ]
           ]
       ]
 
@@ -82,10 +81,10 @@ data UIAction
 type Init = BrowserAudioBuffer
 
 initializeAtariSpeaks :: Aff Init
-initializeAtariSpeaks = do
-  atari <- liftEffect context >>= flip decodeAudioDataFromUri
-    "https://freesound.org/data/previews/100/100981_1234256-lq.mp3"
-  pure atari
+initializeAtariSpeaks =
+  liftEffect context
+    >>= flip decodeAudioDataFromUri
+      "https://freesound.org/data/previews/100/100981_1234256-lq.mp3"
 
 atariSpeaks
   :: BrowserAudioBuffer
@@ -178,5 +177,5 @@ atariSpeaks atari rc = bussed \push -> lcmap (alt (pure TurnOn)) \event ->
 
 main :: Effect Unit
 main = launchAff_ do
-  atar <- initializeAtariSpeaks
-  liftEffect $ runInBody (atariSpeaks atar (const $ pure unit))
+  atari <- initializeAtariSpeaks
+  liftEffect $ runInBody (atariSpeaks atari (const $ pure unit))
