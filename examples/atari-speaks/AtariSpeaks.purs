@@ -27,7 +27,7 @@ import Effect.Class (liftEffect)
 import FRP.Behavior (sample_)
 import FRP.Event (Event, create, filterMap, hot, sampleOnRight, subscribe)
 import FRP.Event.Animate (animationFrameEvent)
-import Ocarina.Clock(WriteHead, fot, writeHead)
+import Ocarina.Clock (WriteHead, fot, writeHead)
 import Ocarina.Control (analyser, gain, loopBuf, speaker2)
 import Ocarina.Core (Audible, bangOn, opticN)
 import Ocarina.Example.Utils (RaiseCancellation)
@@ -51,7 +51,7 @@ scene atar cb wh =
               [ loopBuf { buffer: atar, playbackRate: 1.0 }
                   ( bangOn <|>
                       playbackRate <<<
-                        (over opticN (\rad -> 1.0 + 0.1 * sin rad)) <$> tr
+                        over opticN (\rad -> 1.0 + 0.1 * sin rad) <$> tr
                   )
               ]
           , gain 0.15 empty
@@ -59,7 +59,7 @@ scene atar cb wh =
                   ( bangOn
                       <|>
                         playbackRate <<<
-                          (over opticN (\rad -> 1.5 + 0.1 * sin (2.0 * rad)))
+                          over opticN (\rad -> 1.5 + 0.1 * sin (2.0 * rad))
                           <$> tr
                       <|>
                         loopStart <<< (\rad -> 0.1 + 0.1 * sin rad)
@@ -137,7 +137,7 @@ atariSpeaks atar rc = bussed \push -> lcmap (alt (pure TurnOn)) \event ->
                                         ( \ii ->
                                             fold
                                               ( ( 0 ..
-                                                    (toInt ii)
+                                                    toInt ii
                                                 ) $> ">"
                                               )
 
