@@ -5,7 +5,6 @@ import Prelude
 import Control.Alt (alt, (<|>))
 import Control.Monad.ST.Class (liftST)
 import Control.Monad.ST.Internal as RRef
-import Control.Plus (empty)
 import Data.Array ((..))
 import Data.ArrayBuffer.Typed (toArray)
 import Data.Foldable (for_, intercalate, fold)
@@ -28,7 +27,7 @@ import FRP.Behavior (sample_)
 import FRP.Event (Event, create, filterMap, hot, sampleOnRight, subscribe)
 import FRP.Event.Animate (animationFrameEvent)
 import Ocarina.Clock (WriteHead, fot, writeHead)
-import Ocarina.Control (analyser, gain, loopBuf, speaker2)
+import Ocarina.Control (analyser_, gain_, loopBuf, speaker2)
 import Ocarina.Core (Audible, bangOn, opticN)
 import Ocarina.Example.Utils (RaiseCancellation)
 import Ocarina.Interpret (close, context, decodeAudioDataFromUri, effectfulAudioInterpret, getByteFrequencyData, makeFFIAudioSnapshot)
@@ -45,16 +44,16 @@ scene atar cb wh =
   let
     tr = fot wh (mul pi)
   in
-    analyser { cb } empty
-      [ gain 1.0 empty
-          [ gain 0.3 empty
+    analyser_ { cb }
+      [ gain_ 1.0
+          [ gain_ 0.3
               [ loopBuf { buffer: atar, playbackRate: 1.0 }
                   ( bangOn <|>
                       playbackRate <<<
                         over opticN (\rad -> 1.0 + 0.1 * sin rad) <$> tr
                   )
               ]
-          , gain 0.15 empty
+          , gain_ 0.15
               [ loopBuf { buffer: atar, playbackRate: 1.0 }
                   ( bangOn
                       <|>
@@ -70,7 +69,7 @@ scene atar cb wh =
                           <<< view opticN <$> tr
                   )
               ]
-          , gain 0.3 empty
+          , gain_ 0.3
               [ loopBuf { buffer: atar, playbackRate: 0.25 } bangOn ]
           ]
       ]
