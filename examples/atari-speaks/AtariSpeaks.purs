@@ -132,14 +132,7 @@ atariSpeaks atari rc = bussed \push -> lcmap (alt (pure TurnOn)) \event ->
                                 push $ AsciiMixer $
                                   intercalate "\n"
                                     ( map
-                                        ( \ii ->
-                                            fold
-                                              ( ( 0 ..
-                                                    toInt ii
-                                                ) $> ">"
-                                              )
-
-                                        )
+                                        (\ii -> fold ((0 .. toInt ii) $> ">"))
                                         arr
                                     )
                           )
