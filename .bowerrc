@@ -1,7 +1,0 @@
-{
-  "directory": "bower_components",
-  "ignoredDependencies": [
-    "purescript-generics-rep",
-    "purescript-proxy"
-  ]
-}
