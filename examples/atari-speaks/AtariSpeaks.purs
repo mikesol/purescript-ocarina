@@ -5,7 +5,6 @@ import Prelude
 import Control.Alt (alt, (<|>))
 import Control.Monad.ST.Class (liftST)
 import Control.Monad.ST.Internal as RRef
-import Control.Plus (empty)
 import Data.Array ((..))
 import Data.ArrayBuffer.Typed (toArray)
 import Data.Foldable (for_, intercalate, fold)
@@ -27,8 +26,8 @@ import Effect.Class (liftEffect)
 import FRP.Behavior (sample_)
 import FRP.Event (Event, create, filterMap, hot, sampleOnRight, subscribe)
 import FRP.Event.Animate (animationFrameEvent)
-import Ocarina.Clock(WriteHead, fot, writeHead)
-import Ocarina.Control (analyser, gain, loopBuf, speaker2)
+import Ocarina.Clock (WriteHead, fot, writeHead)
+import Ocarina.Control (analyser_, gain_, loopBuf, speaker2)
 import Ocarina.Core (Audible, bangOn, opticN)
 import Ocarina.Example.Utils (RaiseCancellation)
 import Ocarina.Interpret (close, context, decodeAudioDataFromUri, effectfulAudioInterpret, getByteFrequencyData, makeFFIAudioSnapshot)
@@ -41,25 +40,25 @@ scene
   -> AnalyserNodeCb
   -> WriteHead Event
   -> Audible D2 payload
-scene atar cb wh =
+scene buffer cb wh =
   let
     tr = fot wh (mul pi)
   in
-    analyser { cb } empty
-      [ gain 1.0 empty
-          [ gain 0.3 empty
-              [ loopBuf { buffer: atar, playbackRate: 1.0 }
+    analyser_ { cb }
+      [ gain_ 1.0
+          [ gain_ 0.3
+              [ loopBuf { buffer, playbackRate: 1.0 }
                   ( bangOn <|>
                       playbackRate <<<
-                        (over opticN (\rad -> 1.0 + 0.1 * sin rad)) <$> tr
+                        over opticN (\rad -> 1.0 + 0.1 * sin rad) <$> tr
                   )
               ]
-          , gain 0.15 empty
-              [ loopBuf { buffer: atar, playbackRate: 1.0 }
+          , gain_ 0.15
+              [ loopBuf { buffer, playbackRate: 1.0 }
                   ( bangOn
                       <|>
                         playbackRate <<<
-                          (over opticN (\rad -> 1.5 + 0.1 * sin (2.0 * rad)))
+                          over opticN (\rad -> 1.5 + 0.1 * sin (2.0 * rad))
                           <$> tr
                       <|>
                         loopStart <<< (\rad -> 0.1 + 0.1 * sin rad)
@@ -70,8 +69,7 @@ scene atar cb wh =
                           <<< view opticN <$> tr
                   )
               ]
-          , gain 0.3 empty
-              [ loopBuf { buffer: atar, playbackRate: 0.25 } bangOn ]
+          , gain_ 0.3 [ loopBuf { buffer, playbackRate: 0.25 } bangOn ]
           ]
       ]
 
@@ -83,16 +81,16 @@ data UIAction
 type Init = BrowserAudioBuffer
 
 initializeAtariSpeaks :: Aff Init
-initializeAtariSpeaks = do
-  atar <- liftEffect context >>= flip decodeAudioDataFromUri
-    "https://freesound.org/data/previews/100/100981_1234256-lq.mp3"
-  pure atar
+initializeAtariSpeaks =
+  liftEffect context
+    >>= flip decodeAudioDataFromUri
+      "https://freesound.org/data/previews/100/100981_1234256-lq.mp3"
 
 atariSpeaks
   :: BrowserAudioBuffer
   -> RaiseCancellation
   -> Nut
-atariSpeaks atar rc = bussed \push -> lcmap (alt (pure TurnOn)) \event ->
+atariSpeaks atari rc = bussed \push -> lcmap (alt (pure TurnOn)) \event ->
   DOM.div_
     [ DOM.h1_ [ text_ "Atari speaks" ]
     , DOM.button
@@ -109,7 +107,7 @@ atariSpeaks atar rc = bussed \push -> lcmap (alt (pure TurnOn)) \event ->
                         let wh = writeHead 0.04 ctx
                         let
                           audioE = speaker2
-                            [ scene atar
+                            [ scene atari
                                 ( AnalyserNodeCb
                                     ( \a -> do
                                         analyserE.push (Just a)
@@ -128,22 +126,10 @@ atariSpeaks atar rc = bussed \push -> lcmap (alt (pure TurnOn)) \event ->
                           ( \(Tuple audio analyser) -> do
                               audio ffi2
                               for_ analyser \a -> do
-                                frequencyData <-
-                                  getByteFrequencyData a
+                                frequencyData <- getByteFrequencyData a
                                 arr <- toArray frequencyData
-                                push $ AsciiMixer $
-                                  intercalate "\n"
-                                    ( map
-                                        ( \ii ->
-                                            fold
-                                              ( ( 0 ..
-                                                    (toInt ii)
-                                                ) $> ">"
-                                              )
-
-                                        )
-                                        arr
-                                    )
+                                push $ AsciiMixer $ intercalate "\n" $
+                                  map (\ii -> fold ((0 .. toInt ii) $> ">")) arr
                           )
                         let unsub = unsub' *> afe.unsubscribe
                         rc $ Just { unsub, ctx }
@@ -163,14 +149,14 @@ atariSpeaks atar rc = bussed \push -> lcmap (alt (pure TurnOn)) \event ->
             )
         ]
         [ text
-            ( event # map case _ of
+            ( event <#> case _ of
                 TurnOn -> "Turn on"
                 _ -> "Turn off"
             )
         ]
     , DOM.p_
         [ text
-            ( event # map case _ of
+            ( event <#> case _ of
                 AsciiMixer s -> s
                 _ -> ""
             )
@@ -179,5 +165,5 @@ atariSpeaks atar rc = bussed \push -> lcmap (alt (pure TurnOn)) \event ->
 
 main :: Effect Unit
 main = launchAff_ do
-  atar <- initializeAtariSpeaks
-  liftEffect $ runInBody (atariSpeaks atar (const $ pure unit))
+  atari <- initializeAtariSpeaks
+  liftEffect $ runInBody (atariSpeaks atari (const $ pure unit))
