@@ -31,15 +31,17 @@ interval :: AudioContext -> Effect { fevent :: Event Number -> Event Number, uns
 interval ctx = do
   cref <- liftST $ new true
   iref <- liftST $ new Nothing
-  acTime <- getAudioClockTime ctx
-  vref <- liftST $ new acTime
+  vref <- liftST $ new Nothing
   pure
     { unsubscribe: liftST (write false cref) *> (liftST (read iref) >>= traverse_ clearTimeout)
     , fevent: \e -> makeEvent \k -> do
         subscribe e \newN -> do
           irr <- liftST $ read iref
           traverse_ clearTimeout irr
-          cT <- liftST $ read vref
+          cT' <- liftST $ read vref
+          cT <- case cT' of
+            Nothing -> getAudioClockTime ctx
+            Just x -> pure x
           mkTimeout k (cT + newN) cref iref vref newN
     }
   where
@@ -52,7 +54,7 @@ interval ctx = do
       tid <- setTimeout (round ((max (n - t - lookAhead) minVal) * 1000.0)) do
         go1 <- liftST $ read cref
         when go1 do
-          void $ liftST $ write n vref
+          void $ liftST $ write (Just n) vref
           k n
           mkTimeout k (n + rt) cref iref vref rt
       void $ liftST $ write (Just tid) iref
