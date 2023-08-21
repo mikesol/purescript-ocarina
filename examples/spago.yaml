@@ -1,0 +1,10 @@
+package:
+  name: ocarina-examples
+  publish:
+    version: 0.9.24
+    license: "Apache-2.0"
+  dependencies:
+  - ocarina
+  - free
+  - deku
+  - deku-core

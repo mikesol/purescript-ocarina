@@ -10,7 +10,7 @@ import Data.Map as Map
 import Data.Tuple (Tuple(..))
 import Data.Typelevel.Num (D2)
 import Effect (Effect)
-import FRP.Event (Event, create, subscribe)
+import FRP.Event (create, subscribe)
 import FRP.Poll (Poll, sample)
 import Ocarina.Control (speaker2)
 import Ocarina.Core as C
