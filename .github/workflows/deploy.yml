@@ -28,28 +28,20 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: Spago install
-        run: npx spago -x test.dhall install
+        run: npx spago install
       - name: Spago build
-        run: npx spago -x test.dhall build
-      - name: Spago build examples
-        run: npx spago -x examples.dhall build
-      #- name: Spago build cheatsheet
-      #  run: npx spago -x cheatsheet.dhall build
-      #- name: Spago test
-      #  run: npx spago -x test.dhall test
+        run: npx spago build
       - name: Build qc
-        run: npx spago -x examples.dhall bundle-module --main Ocarina.Example.Docs --to examples/docs/index.js --minify
+        run: npx vite build
       - name: Deploy
         if: ${{ github.ref == 'refs/heads/main' }}
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GH_TOKEN }}
-          publish_dir: ./examples/docs
-      # the new ocarina breaks the old ocarina, so we want the old assets to point to the new docs
-      # as much as possible
+          publish_dir: ./build
       - name: deploy to netlify @ ocarina.fm
-        run: NETLIFY_SITE_ID=${{ secrets.NETLIFY_WAGS_FM_SITE_ID }} NETLIFY_AUTH_TOKEN=${{ secrets.NETLIFY_AUTH_TOKEN }} netlify deploy --dir=examples/docs --prod
+        run: NETLIFY_SITE_ID=${{ secrets.NETLIFY_WAGS_FM_SITE_ID }} NETLIFY_AUTH_TOKEN=${{ secrets.NETLIFY_AUTH_TOKEN }} netlify deploy --dir=build --prod
       - name: deploy to netlify @ docs.ocarina.fm
-        run: NETLIFY_SITE_ID=${{ secrets.NETLIFY_WAGS_DOCS_SITE_ID }} NETLIFY_AUTH_TOKEN=${{ secrets.NETLIFY_AUTH_TOKEN }} netlify deploy --dir=examples/docs --prod
+        run: NETLIFY_SITE_ID=${{ secrets.NETLIFY_WAGS_DOCS_SITE_ID }} NETLIFY_AUTH_TOKEN=${{ secrets.NETLIFY_AUTH_TOKEN }} netlify deploy --dir=build --prod
       - name: deploy to netlify @ whatis.ocarina.fm
-        run: NETLIFY_SITE_ID=${{ secrets.NETLIFY_WHAT_IS_WAGS_SITE_ID }} NETLIFY_AUTH_TOKEN=${{ secrets.NETLIFY_AUTH_TOKEN }} netlify deploy --dir=examples/docs --prod
+        run: NETLIFY_SITE_ID=${{ secrets.NETLIFY_WHAT_IS_WAGS_SITE_ID }} NETLIFY_AUTH_TOKEN=${{ secrets.NETLIFY_AUTH_TOKEN }} netlify deploy --dir=build --prod
