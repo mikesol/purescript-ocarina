@@ -2,7 +2,7 @@ module Ocarina.Example.Docs.AudioUnits.Microphone where
 
 import Prelude
 
-import Bolson.Core (envy)
+
 import Data.Maybe (Maybe(..))
 import Deku.Core (Nut)
 import Deku.Pursx (makePursx')

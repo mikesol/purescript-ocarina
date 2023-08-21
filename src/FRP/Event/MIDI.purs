@@ -11,6 +11,7 @@ module FRP.Event.MIDI
 
 import Prelude
 
+import Control.Monad.ST.Class (liftST)
 import Control.Promise (Promise)
 import Data.ArrayBuffer.Types (ArrayBuffer)
 import Data.Foldable (traverse_)
@@ -21,7 +22,7 @@ import Data.Newtype (wrap)
 import Data.Traversable (sequence)
 import Data.Tuple (Tuple(..))
 import Effect (Effect)
-import FRP.Event (Event, makeEvent)
+import FRP.Event (Event, create)
 import Foreign.Object as O
 import Web.Event.Event as WE
 import Web.Event.EventTarget (EventTarget, addEventListener, eventListener, removeEventListener)
@@ -130,9 +131,9 @@ midiOutputDevices midiAccess_ =
   fromFoldable <$> midiOutputDevices_ midiAccess_ mkMIDIDevice
 
 -- | After having acquired the [MIDIAccess](https://developer.mozilla.org/en-US/docs/Web/API/MIDIAccess) from the browser, use it to create a streamed event of type `Event MIDIEventInTime`.
-midi :: MIDIAccess -> Event MIDIEventInTime
-midi midiAccess_ =
-  makeEvent \push -> do
+midi :: MIDIAccess -> Effect { event :: Event MIDIEventInTime, unsubscribe :: Effect Unit }
+midi midiAccess_ = do
+    { event, push } <- liftST create
     targetMap <- toTargetMap midiAccess_ >>= pure <<< M.fromFoldable <<<
       ( O.toUnfoldable
           :: O.Object EventTarget -> List (Tuple String EventTarget)
@@ -176,7 +177,7 @@ midi midiAccess_ =
             )
             targetMap
     let
-      dispose = do
+      unsubscribe = do
         _ <-
           sequence
             $ M.mapMaybeWithKey
@@ -191,4 +192,4 @@ midi midiAccess_ =
                 )
                 listeners
         pure unit
-    pure dispose
+    pure { event, unsubscribe }

@@ -18,9 +18,9 @@ import Deku.Hooks (useState')
 import Deku.Toplevel (runInBody)
 import Effect (Effect)
 import Effect.Random (randomInt)
-import FRP.Behavior (ABehavior, Behavior, behavior, sample, sampleBy, sample_, step, switcher)
-import FRP.Behavior.Mouse (buttons)
-import FRP.Behavior.Time as Time
+import FRP.Poll (APoll, Poll, poll, sample, sampleBy, sample_, step, switcher)
+import FRP.Poll.Mouse (buttons)
+import FRP.Poll.Time as Time
 import FRP.Event (memoize)
 import FRP.Event.Animate (animationFrameEvent)
 import FRP.Event.Class (class IsEvent, fix, fold, sampleOnRight, withLast)
@@ -46,7 +46,7 @@ import Test.QuickCheck.Gen (evalGen)
 -- the mouse is pressed or not.
 --
 -- We can solve the differential equation by integration using `solve2'`.
-swell :: Mouse -> Behavior Number
+swell :: Mouse -> Poll Number
 swell mouse =
   fixB 2.0 \b ->
     integral' 2.0 (unwrap <$> Time.seconds)
@@ -60,8 +60,8 @@ swell mouse =
     | isEmpty bs = -8.0 * (s - 1.0) - ds * 2.0
     | otherwise = 2.0 * (4.0 - s)
 
-  fixB :: forall a. a -> (Behavior a -> Behavior a) -> Behavior a
-  fixB a fn = behavior \s ->
+  fixB :: forall a. a -> (Poll a -> Poll a) -> Poll a
+  fixB a fn = poll \s ->
     sampleOnRight
       ( fix \event ->
           let
@@ -87,11 +87,11 @@ swell mouse =
     => Semiring a
     => (((a -> t) -> t) -> a)
     -> a
-    -> ABehavior event t
-    -> ABehavior event a
-    -> ABehavior event a
+    -> APoll event t
+    -> APoll event a
+    -> APoll event a
   integral g initial t b =
-    behavior \e ->
+    poll \e ->
       let
         x = sample b (e $> identity)
         y = withLast (sampleBy (/\) t x)
@@ -114,9 +114,9 @@ swell mouse =
      . IsEvent event
     => Field t
     => t
-    -> ABehavior event t
-    -> ABehavior event t
-    -> ABehavior event t
+    -> APoll event t
+    -> APoll event t
+    -> APoll event t
   integral' = integral (_ $ identity)
 
 main :: Effect Unit

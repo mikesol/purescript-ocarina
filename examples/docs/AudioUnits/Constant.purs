@@ -2,7 +2,7 @@ module Ocarina.Example.Docs.AudioUnits.Constant where
 
 import Prelude
 
-import Bolson.Core (envy)
+
 import Control.Alt ((<|>))
 import Data.Array ((..))
 import Data.FunctorWithIndex (mapWithIndex)

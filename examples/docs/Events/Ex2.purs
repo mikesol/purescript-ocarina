@@ -12,7 +12,7 @@ import Deku.DOM as D
 import Deku.Pursx (makePursx')
 import Effect (Effect)
 import Effect.Random as Random
-import FRP.Behavior (Behavior, behavior, sampleBy)
+import FRP.Poll (Poll, poll, sampleBy)
 import FRP.Event (Event, makeEvent, memoize, subscribe)
 import FRP.Event.VBus (V)
 import Ocarina.Clock(interval)
@@ -45,7 +45,7 @@ px =
 
   <blockquote><code>interval</code> works fine for a stream of events where each event is separated by more than ~100 milliseconds. For anything faster, you'll likely want to use <code>requestAnimationLoop</code> coupled with a local state, as it will be more efficient for older and battery-sensitive devices.</blockquote>
 
-  <p>In the following example, we use <code>interval</code> to control the playback rate of an analogue synth. We'll also use a custom behavior called <code>random</code> to control the pitch.</p>
+  <p>In the following example, we use <code>interval</code> to control the playback rate of an analogue synth. We'll also use a custom poll called <code>random</code> to control the pitch.</p>
 
   <p>One important optimization we make here is the use of the function <code>memoize</code>. Whenever we're dealing with audio-ctiming, we want to limit the number of subscriptions to receive events from the audio clock. Ideally, there is only one subscription that takes a reading of the cas a single source of truth. Because we are in PureScript-land, events (like everything else), are referrentially transparent, meaning that new ones will get created every time you use them (just like a new <code>2</code> is created every time you type the value <code>2</code>: they don't all refer to one uber-<code>2</code>). To sync all the events to the <i>same</i> source, we use <code>memoize</code>. While this optimization is not necessary, I recommend it: it will make sure the timing is 100% accurate at a very small energy cost (meaning <code>memoize</code> will eat up slightly more power from a phone's battery, but still not much).</p>
 
@@ -72,7 +72,7 @@ import Deku.DOM as D
 import Deku.Toplevel (runInBody1)
 import Effect (Effect)
 import Effect.Random as Random
-import FRP.Behavior (Behavior, behavior, sampleBy)
+import FRP.Poll (Poll, poll, sampleBy)
 import FRP.Event (Event, makeEvent, memoize, subscribe)
 
 import FRP.Event.VBus (V, vbus)
@@ -95,8 +95,8 @@ type UIEvents = V
   , slider :: Number
   )
 
-random :: Behavior Number
-random = behavior \e ->
+random :: Poll Number
+random = poll \e ->
   makeEvent \k -> subscribe e \f ->
     Random.random >>= k <<< f
 
@@ -215,8 +215,8 @@ type UIEvents = V
   , slider :: Number
   )
 
-random :: Behavior Number
-random = behavior \e ->
+random :: Poll Number
+random = poll \e ->
   makeEvent \k -> subscribe e \f ->
     Random.random >>= k <<< f
 

@@ -313,7 +313,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Assets, environment and behaviors have been merged into just environment.
+- Assets, environment and polls have been merged into just environment.
 
 ## [0.4.0] - 2021-09-01
 
@@ -382,7 +382,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Microphones, buffers, float arrays, wavetables and recorders are now behaviors instead of static objects. This means that it is possible to make and use new buffers mid-flight! Note that this is a _breaking change_, meaning that all microphones, buffers, float arrays, wavetables and recorders will need to become behaviors. This can be done by prepending existing ones with `pure`.
+- Microphones, buffers, float arrays, wavetables and recorders are now polls instead of static objects. This means that it is possible to make and use new buffers mid-flight! Note that this is a _breaking change_, meaning that all microphones, buffers, float arrays, wavetables and recorders will need to become polls. This can be done by prepending existing ones with `pure`.
 - The `active` field no longer exists on `BehavingScene`. Instead, the event is a `Maybe`, with `Nothing` representing an inactive state. This is also a _breaking change_.
 
 ## [0.3.5] - 2021-06-28
@@ -546,7 +546,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Exposes the WebAudio API via a FRP Behavior by using induction on existentially-quantified and linearly-typed indexed cofree comonads.
+- Exposes the WebAudio API via a FRP Poll by using induction on existentially-quantified and linearly-typed indexed cofree comonads.
 - A README.
 - A CHANGELOG.
 - Several tests.

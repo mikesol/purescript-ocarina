@@ -2,7 +2,7 @@ module Ocarina.Example.Docs.AudioUnits.IIRFilter where
 
 import Prelude
 
-import Bolson.Core (envy)
+
 import Data.FastVect.FastVect ((:), empty)
 import Data.Tuple.Nested ((/\))
 import Deku.Core (Nut)

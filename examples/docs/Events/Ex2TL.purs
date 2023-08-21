@@ -12,7 +12,7 @@ import Deku.DOM as D
 import Deku.Toplevel (runInBody)
 import Effect (Effect)
 import Effect.Random as Random
-import FRP.Behavior (Behavior, behavior, sampleBy)
+import FRP.Poll (Poll, poll, sampleBy)
 import FRP.Event (Event, makeEvent, memoize, subscribe)
 import FRP.Event.VBus (V)
 import Ocarina.Clock(interval)
@@ -35,8 +35,8 @@ type UIEvents = V
   , slider :: Number
   )
 
-random :: Behavior Number
-random = behavior \e ->
+random :: Poll Number
+random = poll \e ->
   makeEvent \k -> subscribe e \f ->
     Random.random >>= k <<< f
 

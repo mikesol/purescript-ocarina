@@ -13,7 +13,7 @@ import Deku.Core (vbussed)
 import Deku.DOM as D
 import Deku.Toplevel (runInBody)
 import Effect (Effect)
-import FRP.Behavior (sampleBy, sample_, step)
+import FRP.Poll (sampleBy, sample_, step)
 import FRP.Event (memoize)
 import FRP.Event.Animate (animationFrameEvent)
 import FRP.Event.Class (fold, mapAccum, sampleOnRight)

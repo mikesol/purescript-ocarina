@@ -189,7 +189,6 @@ module Ocarina.Core
   , module Bolson.Core
   , opticN
   , silence
-  , sound
   , toAudioOnOff
   , toAudioParameter
   )
@@ -197,7 +196,7 @@ module Ocarina.Core
 
 import Prelude
 
-import Bolson.Core (envy, dyn, fixed)
+import Bolson.Core (dyn, fixed)
 import Bolson.Core as Bolson
 import Control.Monad.ST (ST)
 import Control.Monad.ST.Global as Region
@@ -207,13 +206,14 @@ import Data.Generic.Rep (class Generic)
 import Data.Lens (Optic', over)
 import Data.Lens.Iso.Newtype (_Newtype, unto)
 import Data.Lens.Record (prop)
+import Data.List (List)
 import Data.Maybe (Maybe)
 import Data.Newtype (class Newtype, unwrap, wrap)
 import Data.Profunctor.Strong (class Strong)
 import Data.Show.Generic (genericShow)
 import Data.Typelevel.Num (D1)
 import Data.Variant (Variant, inj, match)
-import FRP.Event (Event)
+import FRP.Poll (Poll)
 import Foreign (Foreign)
 import Foreign.Object (Object)
 import Ocarina.WebAPI (AnalyserNodeCb, BrowserAudioBuffer, BrowserFloatArray, BrowserMediaElement, BrowserMicrophone, BrowserPeriodicWave, MediaRecorderCb)
@@ -350,7 +350,7 @@ apOn = AudioOnOff { x: _on, o: 0.0 }
 bangOn
   :: forall nt r
    . Newtype nt (Variant (onOff :: AudioOnOff | r))
-  => Event nt
+  => Poll nt
 bangOn = pure (wrap $ inj (Proxy :: _ "onOff") apOn)
 
 apOff :: AudioOnOff
@@ -516,24 +516,17 @@ instance showAudioWorkletNodeOptions_ ::
 type NodeC' payload =
   Bolson.PSR ()
   -> AudioInterpret payload
-  -> Event payload
+  -> Poll payload
 
 newtype Node :: forall k. k -> Type -> Type
 newtype Node outputChannels payload = Node (NodeC' payload)
 
-sound
-  :: forall outputChannels payload
-   . Audible outputChannels payload
-  -> AudibleChild outputChannels payload
-sound = Bolson.Insert
-
-silence :: forall outputChannels payload. AudibleChild outputChannels payload
+silence :: AudibleChild
 silence = Bolson.Remove
 
 type Audible :: forall k. k -> Type -> Type
 type Audible outputChannels payload = Bolson.Entity Void (Node outputChannels payload)
-type AudibleChild :: forall k. k -> Type -> Type
-type AudibleChild outputChannels payload = Bolson.Child Void (Node outputChannels payload)
+type AudibleChild = Bolson.Child Void
 
 --
 
@@ -1263,7 +1256,9 @@ type SetFrequency = { id :: String, frequency :: FFIAudioParameter }
 type SetWaveShaperCurve = { id :: String, curve :: BrowserFloatArray }
 
 newtype AudioInterpret payload = AudioInterpret
-  { ids :: ST Region.Global String
+  { ids :: ST Region.Global Int
+  , deferPayload :: List Int -> payload -> payload
+  , forcePayload :: List Int -> payload
   , disconnectXFromY :: DisconnectXFromY -> payload
   , connectXToY :: ConnectXToY -> payload
   , deleteFromCache :: DeleteFromCache -> payload

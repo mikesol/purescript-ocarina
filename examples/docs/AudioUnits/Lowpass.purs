@@ -2,7 +2,7 @@ module Ocarina.Example.Docs.AudioUnits.Lowpass where
 
 import Prelude
 
-import Bolson.Core (envy)
+
 import Deku.Core (Nut)
 import Deku.Pursx ((~~))
 import Effect (Effect)

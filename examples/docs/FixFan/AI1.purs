@@ -2,7 +2,7 @@ module Ocarina.Example.Docs.FixFan.AI1 where
 
 import Prelude
 
-import Bolson.Core (envy)
+
 import Control.Parallel (parallel, sequential)
 import Data.Array ((..))
 import Data.Int (toNumber)

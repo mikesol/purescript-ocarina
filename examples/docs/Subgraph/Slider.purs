@@ -17,7 +17,7 @@ import Effect (Effect)
 import Effect.Aff (launchAff_)
 import Effect.Class (liftEffect)
 import Effect.Random as Random
-import FRP.Behavior (Behavior, behavior, sampleBy)
+import FRP.Poll (Poll, poll, sampleBy)
 import FRP.Event (create, delay, fold, makeEvent, subscribe)
 import FRP.Event.VBus (V)
 import Ocarina.Control (gain_, playBuf)
@@ -35,8 +35,8 @@ bell =
   "https://freesound.org/data/previews/339/339810_5121236-lq.mp3"
     :: String
 
-random :: Behavior Number
-random = behavior \e ->
+random :: Poll Number
+random = poll \e ->
   makeEvent \k -> subscribe e \f ->
     Random.random >>= k <<< f
 

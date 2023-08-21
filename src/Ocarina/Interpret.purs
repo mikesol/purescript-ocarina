@@ -3,11 +3,20 @@ module Ocarina.Interpret where
 import Prelude
 
 import Control.Bind (bindFlipped)
+import Control.Monad.ST.Class (class MonadST, liftST)
+import Control.Monad.ST.Global (Global)
 import Control.Monad.ST.Global as Region
 import Control.Monad.ST.Internal as Ref
 import Control.Promise (Promise, toAff, toAffE)
+import Data.Array as Array
 import Data.ArrayBuffer.Types (ArrayBuffer, Float32Array, Uint8Array)
+import Data.Foldable (for_)
+import Data.List ((:))
+import Data.List as List
+import Data.Map as Map
 import Data.Maybe (Maybe(..), maybe)
+import Data.Monoid.Endo (Endo(..))
+import Data.Newtype (unwrap)
 import Data.Symbol (class IsSymbol)
 import Data.Typelevel.Num (class Lt, class Nat, class Pos, D1)
 import Data.Vec (Vec)
@@ -19,10 +28,7 @@ import Ocarina.Control (class ValidateOutputChannelCount)
 import Ocarina.Core as C
 import Ocarina.WebAPI (AudioContext, BrowserAudioBuffer)
 import Ocarina.WebAPI as WebAPI
-import Random.LCG (mkSeed)
 import Simple.JSON as JSON
-import Test.QuickCheck (arbitrary)
-import Test.QuickCheck.Gen (Gen, evalGen)
 import Type.Row.Homogeneous (class Homogeneous)
 import Unsafe.Coerce (unsafeCoerce)
 import Web.File.Blob (Blob)
@@ -281,138 +287,192 @@ data FFIAudioSnapshot
 type Mbe = forall a b. b -> (a -> b) -> Maybe a -> b
 
 foreign import deleteFromCache_
-  :: C.DeleteFromCache -> FFIAudioSnapshot -> Effect Unit
+  :: C.DeleteFromCache -> EffectfulPayload
 
 foreign import disconnectXFromY_
-  :: C.DisconnectXFromY -> FFIAudioSnapshot -> Effect Unit
+  :: C.DisconnectXFromY -> EffectfulPayload
 
-foreign import connectXToY_ :: C.ConnectXToY -> FFIAudioSnapshot -> Effect Unit
-foreign import makeAllpass_ :: Mbe -> C.MakeAllpass -> FFIAudioSnapshot -> Effect Unit
+foreign import connectXToY_ :: C.ConnectXToY -> EffectfulPayload
+foreign import makeAllpass_ :: Mbe -> C.MakeAllpass -> EffectfulPayload
 foreign import makeAnalyser_
-  :: Mbe -> C.MakeAnalyser -> FFIAudioSnapshot -> Effect Unit
+  :: Mbe -> C.MakeAnalyser -> EffectfulPayload
 
 foreign import makeAudioWorkletNode_
-  :: Mbe -> C.MakeAudioWorkletNode -> FFIAudioSnapshot -> Effect Unit
+  :: Mbe -> C.MakeAudioWorkletNode -> EffectfulPayload
 
 foreign import makeBandpass_
-  :: Mbe -> C.MakeBandpass -> FFIAudioSnapshot -> Effect Unit
+  :: Mbe -> C.MakeBandpass -> EffectfulPayload
 
 foreign import makeConstant_
-  :: Mbe -> C.MakeConstant -> FFIAudioSnapshot -> Effect Unit
+  :: Mbe -> C.MakeConstant -> EffectfulPayload
 
 foreign import makeConvolver_
-  :: Mbe -> C.MakeConvolver -> FFIAudioSnapshot -> Effect Unit
+  :: Mbe -> C.MakeConvolver -> EffectfulPayload
 
-foreign import makeDelay_ :: Mbe -> C.MakeDelay -> FFIAudioSnapshot -> Effect Unit
+foreign import makeDelay_ :: Mbe -> C.MakeDelay -> EffectfulPayload
 foreign import makeDynamicsCompressor_
-  :: Mbe -> C.MakeDynamicsCompressor -> FFIAudioSnapshot -> Effect Unit
+  :: Mbe -> C.MakeDynamicsCompressor -> EffectfulPayload
 
-foreign import makeGain_ :: Mbe -> C.MakeGain -> FFIAudioSnapshot -> Effect Unit
+foreign import makeGain_ :: Mbe -> C.MakeGain -> EffectfulPayload
 foreign import makeHighpass_
-  :: Mbe -> C.MakeHighpass -> FFIAudioSnapshot -> Effect Unit
+  :: Mbe -> C.MakeHighpass -> EffectfulPayload
 
 foreign import makeHighshelf_
-  :: Mbe -> C.MakeHighshelf -> FFIAudioSnapshot -> Effect Unit
+  :: Mbe -> C.MakeHighshelf -> EffectfulPayload
 
 foreign import makeIIRFilter_
-  :: Mbe -> C.MakeIIRFilter -> FFIAudioSnapshot -> Effect Unit
+  :: Mbe -> C.MakeIIRFilter -> EffectfulPayload
 
-foreign import makeLoopBuf_ :: Mbe -> C.MakeLoopBuf -> FFIAudioSnapshot -> Effect Unit
-foreign import makeLowpass_ :: Mbe -> C.MakeLowpass -> FFIAudioSnapshot -> Effect Unit
+foreign import makeLoopBuf_ :: Mbe -> C.MakeLoopBuf -> EffectfulPayload
+foreign import makeLowpass_ :: Mbe -> C.MakeLowpass -> EffectfulPayload
 foreign import makeLowshelf_
-  :: Mbe -> C.MakeLowshelf -> FFIAudioSnapshot -> Effect Unit
+  :: Mbe -> C.MakeLowshelf -> EffectfulPayload
 
 foreign import makeMediaElement_
-  :: Mbe -> C.MakeMediaElement -> FFIAudioSnapshot -> Effect Unit
+  :: Mbe -> C.MakeMediaElement -> EffectfulPayload
 
 foreign import makeMicrophone_
-  :: Mbe -> C.MakeMicrophone -> FFIAudioSnapshot -> Effect Unit
+  :: Mbe -> C.MakeMicrophone -> EffectfulPayload
 
-foreign import makeNotch_ :: Mbe -> C.MakeNotch -> FFIAudioSnapshot -> Effect Unit
-foreign import makePeaking_ :: Mbe -> C.MakePeaking -> FFIAudioSnapshot -> Effect Unit
+foreign import makeNotch_ :: Mbe -> C.MakeNotch -> EffectfulPayload
+foreign import makePeaking_ :: Mbe -> C.MakePeaking -> EffectfulPayload
 foreign import makePeriodicOsc_
-  :: Mbe -> C.MakePeriodicOsc -> FFIAudioSnapshot -> Effect Unit
+  :: Mbe -> C.MakePeriodicOsc -> EffectfulPayload
 
-foreign import makePlayBuf_ :: Mbe -> C.MakePlayBuf -> FFIAudioSnapshot -> Effect Unit
+foreign import makePlayBuf_ :: Mbe -> C.MakePlayBuf -> EffectfulPayload
 foreign import makeRecorder_
-  :: Mbe -> C.MakeRecorder -> FFIAudioSnapshot -> Effect Unit
+  :: Mbe -> C.MakeRecorder -> EffectfulPayload
 
 foreign import makeSawtoothOsc_
-  :: Mbe -> C.MakeSawtoothOsc -> FFIAudioSnapshot -> Effect Unit
+  :: Mbe -> C.MakeSawtoothOsc -> EffectfulPayload
 
-foreign import makeSinOsc_ :: Mbe -> C.MakeSinOsc -> FFIAudioSnapshot -> Effect Unit
-foreign import makeSpeaker_ :: C.MakeSpeaker -> FFIAudioSnapshot -> Effect Unit
+foreign import makeSinOsc_ :: Mbe -> C.MakeSinOsc -> EffectfulPayload
+foreign import makeSpeaker_ :: C.MakeSpeaker -> EffectfulPayload
 foreign import makeSquareOsc_
-  :: Mbe -> C.MakeSquareOsc -> FFIAudioSnapshot -> Effect Unit
+  :: Mbe -> C.MakeSquareOsc -> EffectfulPayload
 
 foreign import makeStereoPanner_
-  :: Mbe -> C.MakeStereoPanner -> FFIAudioSnapshot -> Effect Unit
+  :: Mbe -> C.MakeStereoPanner -> EffectfulPayload
 
 foreign import makeTriangleOsc_
-  :: Mbe -> C.MakeTriangleOsc -> FFIAudioSnapshot -> Effect Unit
+  :: Mbe -> C.MakeTriangleOsc -> EffectfulPayload
 
 foreign import makeWaveShaper_
-  :: Mbe -> C.MakeWaveShaper -> FFIAudioSnapshot -> Effect Unit
+  :: Mbe -> C.MakeWaveShaper -> EffectfulPayload
 
 foreign import setAnalyserNodeCb_
-  :: C.SetAnalyserNodeCb -> FFIAudioSnapshot -> Effect Unit
+  :: C.SetAnalyserNodeCb -> EffectfulPayload
 
 foreign import setMediaRecorderCb_
-  :: C.SetMediaRecorderCb -> FFIAudioSnapshot -> Effect Unit
+  :: C.SetMediaRecorderCb -> EffectfulPayload
 
 foreign import setWaveShaperCurve_
-  :: C.SetWaveShaperCurve -> FFIAudioSnapshot -> Effect Unit
+  :: C.SetWaveShaperCurve -> EffectfulPayload
 
 foreign import setAudioWorkletParameter_
-  :: C.SetAudioWorkletParameter -> FFIAudioSnapshot -> Effect Unit
+  :: C.SetAudioWorkletParameter -> EffectfulPayload
 
-foreign import setBuffer_ :: C.SetBuffer -> FFIAudioSnapshot -> Effect Unit
+foreign import setBuffer_ :: C.SetBuffer -> EffectfulPayload
 foreign import setConvolverBuffer_
-  :: C.SetConvolverBuffer -> FFIAudioSnapshot -> Effect Unit
+  :: C.SetConvolverBuffer -> EffectfulPayload
 
 foreign import setPeriodicOsc_
-  :: C.SetPeriodicOsc -> FFIAudioSnapshot -> Effect Unit
+  :: C.SetPeriodicOsc -> EffectfulPayload
 
-foreign import setOnOff_ :: C.SetOnOff -> FFIAudioSnapshot -> Effect Unit
+foreign import setOnOff_ :: C.SetOnOff -> EffectfulPayload
 foreign import setDuration_
-  :: Mbe -> C.SetDuration -> FFIAudioSnapshot -> Effect Unit
+  :: Mbe -> C.SetDuration -> EffectfulPayload
 
 foreign import setBufferOffset_
-  :: C.SetBufferOffset -> FFIAudioSnapshot -> Effect Unit
+  :: C.SetBufferOffset -> EffectfulPayload
 
 foreign import setLoopStart_
-  :: C.SetLoopStart -> FFIAudioSnapshot -> Effect Unit
+  :: C.SetLoopStart -> EffectfulPayload
 
-foreign import setLoopEnd_ :: C.SetLoopEnd -> FFIAudioSnapshot -> Effect Unit
-foreign import setRatio_ :: C.SetRatio -> FFIAudioSnapshot -> Effect Unit
-foreign import setOffset_ :: C.SetOffset -> FFIAudioSnapshot -> Effect Unit
-foreign import setGain_ :: C.SetGain -> FFIAudioSnapshot -> Effect Unit
-foreign import setQ_ :: C.SetQ -> FFIAudioSnapshot -> Effect Unit
+foreign import setLoopEnd_ :: C.SetLoopEnd -> EffectfulPayload
+foreign import setRatio_ :: C.SetRatio -> EffectfulPayload
+foreign import setOffset_ :: C.SetOffset -> EffectfulPayload
+foreign import setGain_ :: C.SetGain -> EffectfulPayload
+foreign import setQ_ :: C.SetQ -> EffectfulPayload
 foreign import setFrequency_
-  :: C.SetFrequency -> FFIAudioSnapshot -> Effect Unit
+  :: C.SetFrequency -> EffectfulPayload
 
-foreign import setKnee_ :: C.SetKnee -> FFIAudioSnapshot -> Effect Unit
-foreign import setAttack_ :: C.SetAttack -> FFIAudioSnapshot -> Effect Unit
-foreign import setRelease_ :: C.SetRelease -> FFIAudioSnapshot -> Effect Unit
-foreign import setPan_ :: C.SetPan -> FFIAudioSnapshot -> Effect Unit
+foreign import setKnee_ :: C.SetKnee -> EffectfulPayload
+foreign import setAttack_ :: C.SetAttack -> EffectfulPayload
+foreign import setRelease_ :: C.SetRelease -> EffectfulPayload
+foreign import setPan_ :: C.SetPan -> EffectfulPayload
 foreign import setThreshold_
-  :: C.SetThreshold -> FFIAudioSnapshot -> Effect Unit
+  :: C.SetThreshold -> EffectfulPayload
 
-foreign import setDelay_ :: C.SetDelay -> FFIAudioSnapshot -> Effect Unit
+foreign import setDelay_ :: C.SetDelay -> EffectfulPayload
 foreign import setPlaybackRate_
-  :: C.SetPlaybackRate -> FFIAudioSnapshot -> Effect Unit
+  :: C.SetPlaybackRate -> EffectfulPayload
+
+type EffectfulPayload = FFIAudioSnapshot -> Effect Unit
+type EffectfulExecutor = EffectfulPayload -> Effect Unit
+
+
+deferPayloadE
+  :: forall i o
+   . Functor o
+  => MonadST Global o
+  => Ref.STRef Global
+       (Map.Map (List.List Int) (Array (i -> o Unit)))
+  -> List.List Int
+  -> (i -> o Unit)
+  -> i
+  -> o Unit
+deferPayloadE deferredCache l p _ = do
+  void $ liftST $ Ref.modify
+    ( flip Map.alter l case _ of
+        Nothing -> Just [ p ]
+        Just x -> Just (x <> [ p ])
+    )
+    deferredCache
+
+forcePayloadE
+  :: forall i o
+   . Functor o
+  => MonadST Global o
+  => Ref.STRef Global
+       (Map.Map (List.List Int) (Array (i -> o Unit)))
+  -> ((i -> o Unit) -> o Unit)
+  -> List.List Int
+  -> i
+  -> o Unit
+forcePayloadE deferredCache executor l = fn
+  where
+  fn _ = do
+    o <- liftST $ Ref.read deferredCache
+    let
+      tail = case _ of
+        n : List.Nil -> (n + 1) : List.Nil
+        a : b -> a : tail b
+        x -> x
+      leftBound = Just l
+      rightBound = Just $ tail l
+      { newMap, instructions } = flip (Map.foldSubmap leftBound rightBound) o
+        \k v ->
+          { newMap: Endo (Map.delete k)
+          , instructions: Endo $ Array.cons v
+          }
+    void $ liftST $ Ref.modify (unwrap newMap)
+      deferredCache
+    for_ (join $ unwrap instructions []) executor
 
 effectfulAudioInterpret
-  :: Ref.STRef Region.Global Int -> C.AudioInterpret (FFIAudioSnapshot -> Effect Unit)
-effectfulAudioInterpret seed = C.AudioInterpret
+  :: Ref.STRef Region.Global Int
+  -> Ref.STRef Global (Map.Map (List.List Int) (Array EffectfulPayload))
+  -> EffectfulExecutor
+  -> C.AudioInterpret EffectfulPayload
+effectfulAudioInterpret seed deferredCache executor = C.AudioInterpret
   { ids: do
       s <- Ref.read seed
-      let
-        o = show
-          (evalGen (arbitrary :: Gen Int) { newSeed: mkSeed s, size: 5 })
       void $ Ref.modify (add 1) seed
-      pure o
+      pure s
   , deleteFromCache: deleteFromCache_
+  , deferPayload: deferPayloadE deferredCache
+  , forcePayload: forcePayloadE deferredCache executor
   , disconnectXFromY: disconnectXFromY_
   , connectXToY: connectXToY_
   , makeAllpass: makeAllpass_ maybe

@@ -28,7 +28,7 @@ import Effect.Class (liftEffect)
 import Effect.Random (randomInt)
 import Effect.Random as Random
 import Effect.Ref (new, read, write)
-import FRP.Behavior (behavior)
+import FRP.Poll (poll)
 import FRP.Event (Event, makeEvent, subscribe)
 import FRP.Event.Animate (animationFrameEvent)
 import FRP.Event.VBus (V, vbus)
@@ -70,7 +70,7 @@ buffers' =
   --, bass: "https://freesound.org/data/previews/381/381517_7088365-lq.mp3"
   }
 
-random = behavior \e ->
+random = poll \e ->
   makeEvent \k -> subscribe e \f ->
     Random.random >>= k <<< f
 

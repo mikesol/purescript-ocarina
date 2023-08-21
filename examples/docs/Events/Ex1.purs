@@ -66,7 +66,7 @@ import Data.Maybe (Maybe(..), maybe)
 import Deku.Attribute (attr, cb, (:=))
 import Deku.Control (switcher, text, text_)
 import Deku.Core (Nut)
-import Bolson.Core (envy)
+
 import Deku.DOM as D
 import Deku.Toplevel (runInBody)
 import Effect (Effect)

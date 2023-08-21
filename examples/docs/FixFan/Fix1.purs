@@ -2,7 +2,7 @@ module Ocarina.Example.Docs.FixFan.Fix1 where
 
 import Prelude
 
-import Bolson.Core (envy)
+
 import Deku.Control (text_)
 import Deku.Core (Nut)
 import Deku.Pursx (makePursx')

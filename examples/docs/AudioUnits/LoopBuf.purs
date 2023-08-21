@@ -2,7 +2,7 @@ module Ocarina.Example.Docs.AudioUnits.LoopBuf where
 
 import Prelude
 
-import Bolson.Core (envy)
+
 import Deku.Core (Nut)
 import Deku.Pursx (makePursx')
 import Effect (Effect)

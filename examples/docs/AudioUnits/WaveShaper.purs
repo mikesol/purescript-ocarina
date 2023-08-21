@@ -2,7 +2,7 @@ module Ocarina.Example.Docs.AudioUnits.WaveShaper where
 
 import Prelude
 
-import Bolson.Core (envy)
+
 import Data.Array ((..))
 import Data.Int (toNumber)
 import Data.Number (pi)

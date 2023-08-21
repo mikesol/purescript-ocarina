@@ -2,7 +2,7 @@ module Ocarina.Example.Docs.AudioUnits.Recorder where
 
 import Prelude
 
-import Bolson.Core (envy)
+
 import Control.Alt ((<|>))
 import Control.Monad.ST.Class (liftST)
 import Control.Monad.ST.Internal as RRef

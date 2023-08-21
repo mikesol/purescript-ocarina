@@ -2,7 +2,7 @@ module Ocarina.Example.Docs.FixFan.AI0 where
 
 import Prelude
 
-import Bolson.Core (envy)
+
 import Control.Parallel (parallel, sequential)
 import Deku.Core (Nut)
 import Deku.Pursx (makePursx')

@@ -2,19 +2,20 @@ module Ocarina.Control where
 
 import Prelude
 
+import Bolson.Control (behaving)
 import Bolson.Control as Bolson
 import Bolson.Core (Element(..), Entity(..), PSR, Scope(..), fixed)
 import Control.Alt ((<|>))
 import Control.Comonad (extract)
 import Control.Monad.ST.Internal as RRef
-import Control.Monad.ST.Uncurried (mkSTFn2, runSTFn1, runSTFn2)
+import Control.Monad.ST.Uncurried (mkSTFn2, runSTFn1)
 import Control.Plus (empty)
 import ConvertableOptions (class ConvertOption, class ConvertOptionsWithDefaults, convertOptionsWithDefaults)
 import Data.FastVect.FastVect (Vect, singleton, toArray, index)
-import Data.Foldable (oneOf)
 import Data.Homogeneous (class HomogeneousRowLabels)
 import Data.Homogeneous.Variant (homogeneous)
 import Data.Int (pow)
+import Data.List as List
 import Data.Maybe (Maybe(..))
 import Data.Newtype (unwrap)
 import Data.Profunctor (lcmap)
@@ -22,7 +23,10 @@ import Data.Symbol (class IsSymbol, reflectSymbol)
 import Data.Tuple.Nested (type (/\), (/\))
 import Data.Typelevel.Num (class Nat, class Pos, class Pred, D1, D2, pred, toInt)
 import Data.Variant (Unvariant(..), inj, match, unvariant)
-import FRP.Event (Event, Subscriber(..), keepLatest, makeLemmingEventO)
+import Effect.Console (error)
+import Effect.Unsafe (unsafePerformEffect)
+import FRP.Event (Event, keepLatest, makeLemmingEventO)
+import FRP.Poll (class Pollable, APoll, Poll, sample, sham)
 import Foreign.Object (fromHomogeneous)
 import Ocarina.Common as Common
 import Ocarina.Core (ChannelCountMode(..), ChannelInterpretation(..), Po2(..))
@@ -35,6 +39,30 @@ import Simple.JSON as JSON
 import Type.Proxy (Proxy(..))
 import Type.Row.Homogeneous (class Homogeneous)
 
+subscribeChildren
+  :: forall pollable478 a479 b480 o482 a485 t488
+   . Pollable Event pollable478
+  => Show a485
+  => (pollable478 b480 -> t488)
+  -> a485
+  -> List.List Int
+  -> Scope
+  -> C.AudioInterpret a479
+  -> Entity Void (C.Node o482 a479)
+  -> pollable478 (a479 -> b480)
+  -> t488
+subscribeChildren subscribe me deferralPath scope di elts ee =
+  subscribe (sample (__internalOcarinaFlatten { parent: Just (show me), deferralPath: deferralPath, scope: scope, raiseId: \_ -> pure unit } di elts) ee)
+
+subscribeAtts
+  :: forall event215 pollable216 a217 b218 t219
+   . Pollable event215 pollable216
+  => (pollable216 b218 -> t219)
+  -> pollable216 (a217 -> b218)
+  -> APoll event215 a217
+  -> t219
+subscribeAtts subscribe ee atts = subscribe (sample atts ee)
+
 scopeToMaybe :: Scope -> Maybe String
 scopeToMaybe Global = Nothing
 scopeToMaybe (Local s) = Just s
@@ -45,36 +73,29 @@ allpass
   :: forall i (outputChannels :: Type) payload
    . Common.InitialAllpass i
   => i
-  -> Event (C.Allpass payload)
+  -> Poll (C.Allpass payload)
   -> Array (C.Audible outputChannels payload)
   -> C.Audible outputChannels payload
 allpass i' atts elts = Element' $ C.Node go
   where
   C.InitializeAllpass i = Common.toInitializeAllpass i'
-  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeAllpass, setFrequency, setQ }) = makeLemmingEventO $ mkSTFn2 \(Subscriber mySub) k -> do
+  go parent di@(C.AudioInterpret { ids, deferPayload, deleteFromCache, makeAllpass, setFrequency, setQ }) = behaving \ee kx subscribe -> do
     me <- ids
-    parent.raiseId me
-    unsub <- runSTFn2 mySub
-      ( oneOf
-          [ pure
-              ( makeAllpass
-                  { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, frequency: i.frequency, q: i.q }
-              )
-          , keepLatest $ map
-              ( \(C.Allpass e) -> match
-                  { frequency: tmpResolveAU parent.scope di (setFrequency <<< { id: me, frequency: _ })
-                  , q: tmpResolveAU parent.scope di (setQ <<< { id: me, q: _ })
-                  }
-                  e
-              )
-              atts
-          , __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di (fixed elts)
-          ]
+    parent.raiseId $ show me
+    kx $ makeAllpass
+      { id: show me, parent: parent.parent, scope: scopeToMaybe parent.scope, frequency: i.frequency, q: i.q }
+    kx $ deferPayload parent.deferralPath $ deleteFromCache { id: show me }
+    subscribeChildren subscribe me parent.deferralPath parent.scope di (fixed elts) ee
+    subscribeAtts subscribe ee
+      ( keepLatest $ map
+          ( \(C.Allpass e) -> match
+              { frequency: tmpResolveAU parent.scope parent.deferralPath di (setFrequency <<< { id: show me, frequency: _ })
+              , q: tmpResolveAU parent.scope parent.deferralPath di (setQ <<< { id: show me, q: _ })
+              }
+              e
+          )
+          atts
       )
-      k
-    pure do
-      runSTFn1 k (deleteFromCache { id: me })
-      unsub
 
 allpass_
   :: forall i (outputChannels :: Type) payload
@@ -174,7 +195,7 @@ analyser
   :: forall i outputChannels payload
    . InitialAnalyser i
   => i
-  -> Event C.Analyser
+  -> Poll C.Analyser
   -> Array (C.Audible outputChannels payload)
   -> C.Audible outputChannels payload
 analyser i' atts elts = Element' $ C.Node go
@@ -182,55 +203,48 @@ analyser i' atts elts = Element' $ C.Node go
   C.InitializeAnalyser i = toInitializeAnalyser i'
   go
     parent
-    di@(C.AudioInterpret { ids, deleteFromCache, makeAnalyser, setAnalyserNodeCb }) =
-    makeLemmingEventO $ mkSTFn2 \(Subscriber mySub) k -> do
+    di@(C.AudioInterpret { ids, deferPayload, deleteFromCache, makeAnalyser, setAnalyserNodeCb }) =
+    behaving \ee kx subscribe -> do
       me <- ids
-      parent.raiseId me
-      unsub <- runSTFn2 mySub
-        ( oneOf
-            [ pure
-                ( makeAnalyser
-                    { id: me
-                    , parent: parent.parent
-                    , scope: scopeToMaybe parent.scope
-                    , cb: i.cb
-                    , fftSize: 2 `pow`
-                        ( case i.fftSize of
-                            TTT7 -> 7
-                            TTT8 -> 8
-                            TTT9 -> 9
-                            TTT10 -> 10
-                            TTT11 -> 11
-                            TTT12 -> 12
-                            TTT13 -> 13
-                        )
-                    , maxDecibels: i.maxDecibels
-                    , minDecibels: i.minDecibels
-                    , smoothingTimeConstant: i.smoothingTimeConstant
-                    , channelCount: i.channelCount
-                    , channelCountMode: case i.channelCountMode of
-                        Explicit -> "explicit"
-                        Max -> "max"
-                        ClampedMax -> "clamped-max"
-                    , channelInterpretation: case i.channelInterpretation of
-                        Speakers -> "speakers"
-                        Discrete -> "discrete"
-                    }
-                )
-            , map
-                ( \(C.Analyser e) -> match
-                    { cb: \cb -> setAnalyserNodeCb { id: me, cb }
-                    }
-                    e
-                )
-                atts
-            , __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di (fixed elts)
-            ]
+      parent.raiseId $ show me
+      kx $ makeAnalyser
+        { id: show me
+        , parent: parent.parent
+        , scope: scopeToMaybe parent.scope
+        , cb: i.cb
+        , fftSize: 2 `pow`
+            ( case i.fftSize of
+                TTT7 -> 7
+                TTT8 -> 8
+                TTT9 -> 9
+                TTT10 -> 10
+                TTT11 -> 11
+                TTT12 -> 12
+                TTT13 -> 13
+            )
+        , maxDecibels: i.maxDecibels
+        , minDecibels: i.minDecibels
+        , smoothingTimeConstant: i.smoothingTimeConstant
+        , channelCount: i.channelCount
+        , channelCountMode: case i.channelCountMode of
+            Explicit -> "explicit"
+            Max -> "max"
+            ClampedMax -> "clamped-max"
+        , channelInterpretation: case i.channelInterpretation of
+            Speakers -> "speakers"
+            Discrete -> "discrete"
+        }
+      kx $ deferPayload parent.deferralPath $ deleteFromCache { id: show me }
+      subscribeChildren subscribe me parent.deferralPath parent.scope di (fixed elts) ee
+      subscribeAtts subscribe ee
+        ( map
+            ( \(C.Analyser e) -> match
+                { cb: \cb -> setAnalyserNodeCb { id: show me, cb }
+                }
+                e
+            )
+            atts
         )
-        k
-      pure do
-        runSTFn1 k (deleteFromCache { id: me })
-        unsub
 
 analyser_
   :: forall i outputChannels payload
@@ -280,7 +294,7 @@ __audioWorklet
        outputChannelCount
        parameterData
        processorOptions
-  -> Event (C.AudioWorkletNode parameterData)
+  -> Poll (C.AudioWorkletNode parameterData)
   -> C.Audible numberOfOutputs payload
   -> C.Audible numberOfOutputs payload
 __audioWorklet (C.InitializeAudioWorkletNode i) atts elt = Element' $ C.Node go
@@ -289,50 +303,43 @@ __audioWorklet (C.InitializeAudioWorkletNode i) atts elt = Element' $ C.Node go
     parent
     di@
       ( C.AudioInterpret
-          { ids, deleteFromCache, makeAudioWorkletNode, setAudioWorkletParameter }
+          { ids, deferPayload, deleteFromCache, makeAudioWorkletNode, setAudioWorkletParameter }
       ) =
-    makeLemmingEventO $ mkSTFn2 \(Subscriber mySub) k -> do
+    behaving \ee kx subscribe -> do
       me <- ids
-      parent.raiseId me
-      unsub <- runSTFn2 mySub
-        ( oneOf
-            [ pure
-                ( makeAudioWorkletNode
-                    { id: me
-                    , parent: parent.parent
-                    , scope: scopeToMaybe parent.scope
-                    , options:
-                        C.AudioWorkletNodeOptions_
-                          { name: reflectSymbol (Proxy :: _ name)
-                          , numberOfInputs: toInt i.numberOfInputs
-                          , numberOfOutputs: toInt i.numberOfOutputs
-                          , outputChannelCount: toOutputChannelCount
-                              i.numberOfOutputs
-                              i.outputChannelCount
-                          , parameterData: fromHomogeneous i.parameterData
-                          , processorOptions: JSON.writeImpl i.processorOptions
-                          }
+      parent.raiseId $ show me
+      kx $ makeAudioWorkletNode
+        { id: show me
+        , parent: parent.parent
+        , scope: scopeToMaybe parent.scope
+        , options:
+            C.AudioWorkletNodeOptions_
+              { name: reflectSymbol (Proxy :: _ name)
+              , numberOfInputs: toInt i.numberOfInputs
+              , numberOfOutputs: toInt i.numberOfOutputs
+              , outputChannelCount: toOutputChannelCount
+                  i.numberOfOutputs
+                  i.outputChannelCount
+              , parameterData: fromHomogeneous i.parameterData
+              , processorOptions: JSON.writeImpl i.processorOptions
+              }
+        }
+      kx $ deferPayload parent.deferralPath $ deleteFromCache { id: show me }
+      subscribeChildren subscribe me parent.deferralPath parent.scope di elt ee
+      subscribeAtts subscribe ee
+        ( keepLatest $ map
+            ( \(C.AudioWorkletNode e) -> tmpResolveAU parent.scope parent.deferralPath di
+                ( \paramValue -> setAudioWorkletParameter
+                    { id: show me
+                    , paramName: (let Unvariant e' = unvariant e in e')
+                        (\sym _ -> reflectSymbol sym)
+                    , paramValue
                     }
                 )
-            , keepLatest $ map
-                ( \(C.AudioWorkletNode e) -> tmpResolveAU parent.scope di
-                    ( \paramValue -> setAudioWorkletParameter
-                        { id: me
-                        , paramName: (let Unvariant e' = unvariant e in e')
-                            (\sym _ -> reflectSymbol sym)
-                        , paramValue
-                        }
-                    )
-                    (extract (homogeneous e))
-                )
-                atts
-            , __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di elt
-            ]
+                (extract (homogeneous e))
+            )
+            atts
         )
-        k
-      pure do
-        runSTFn1 k (deleteFromCache { id: me })
-        unsub
 
 audioWorklet
   :: forall name numberOfInputs numberOfOutputs outputChannelCount parameterData
@@ -349,7 +356,7 @@ audioWorklet
        outputChannelCount
        parameterData
        processorOptions
-  -> Event (C.AudioWorkletNode parameterData)
+  -> Poll (C.AudioWorkletNode parameterData)
   -> C.Audible numberOfOutputs payload
   -> C.Audible numberOfOutputs payload
 audioWorklet = __audioWorklet
@@ -359,36 +366,29 @@ bandpass
   :: forall i (outputChannels :: Type) payload
    . Common.InitialBandpass i
   => i
-  -> Event (C.Bandpass payload)
+  -> Poll (C.Bandpass payload)
   -> Array (C.Audible outputChannels payload)
   -> C.Audible outputChannels payload
 bandpass i' atts elts = Element' $ C.Node go
   where
   C.InitializeBandpass i = Common.toInitializeBandpass i'
-  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeBandpass, setFrequency, setQ }) = makeLemmingEventO $ mkSTFn2 \(Subscriber mySub) k -> do
+  go parent di@(C.AudioInterpret { ids, deferPayload, deleteFromCache, makeBandpass, setFrequency, setQ }) = behaving \ee kx subscribe -> do
     me <- ids
-    parent.raiseId me
-    unsub <- runSTFn2 mySub
-      ( oneOf
-          [ pure
-              ( makeBandpass
-                  { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, frequency: i.frequency, q: i.q }
-              )
-          , keepLatest $ map
-              ( \(C.Bandpass e) -> match
-                  { frequency: tmpResolveAU parent.scope di (setFrequency <<< { id: me, frequency: _ })
-                  , q: tmpResolveAU parent.scope di (setQ <<< { id: me, q: _ })
-                  }
-                  e
-              )
-              atts
-          , __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di (fixed elts)
-          ]
+    parent.raiseId $ show me
+    kx $ makeBandpass
+      { id: show me, parent: parent.parent, scope: scopeToMaybe parent.scope, frequency: i.frequency, q: i.q }
+    kx $ deferPayload parent.deferralPath $ deleteFromCache { id: show me }
+    subscribeChildren subscribe me parent.deferralPath parent.scope di (fixed elts) ee
+    subscribeAtts subscribe ee
+      ( keepLatest $ map
+          ( \(C.Bandpass e) -> match
+              { frequency: tmpResolveAU parent.scope parent.deferralPath di (setFrequency <<< { id: show me, frequency: _ })
+              , q: tmpResolveAU parent.scope parent.deferralPath di (setQ <<< { id: show me, q: _ })
+              }
+              e
+          )
+          atts
       )
-      k
-    pure do
-      runSTFn1 k (deleteFromCache { id: me })
-      unsub
 
 bandpass_
   :: forall i (outputChannels :: Type) payload
@@ -404,45 +404,38 @@ __constant
   :: forall i outputChannels payload
    . Common.InitialConstant i
   => i
-  -> Event (C.Constant payload)
+  -> Poll (C.Constant payload)
   -> C.Audible outputChannels payload
 __constant i' atts = Element' $ C.Node go
   where
   C.InitializeConstant i = Common.toInitializeConstant i'
-  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeConstant, setOffset, setOnOff }) =
-    makeLemmingEventO $ mkSTFn2 \(Subscriber mySub) k -> do
+  go parent di@(C.AudioInterpret { ids, deferPayload, deleteFromCache, makeConstant, setOffset, setOnOff }) =
+    behaving \ee kx subscribe -> do
       me <- ids
-      parent.raiseId me
-      unsub <- runSTFn2 mySub
-        ( oneOf
-            [ pure
-                ( makeConstant
-                    { id: me
-                    , parent: parent.parent
-                    , scope: scopeToMaybe parent.scope
-                    , offset: i.offset
-                    }
-                )
-            , keepLatest $ map
-                ( \(C.Constant e) -> match
-                    { offset: tmpResolveAU parent.scope di (setOffset <<< { id: me, offset: _ })
-                    , onOff: \onOff -> pure $ setOnOff { id: me, onOff }
-                    }
-                    e
-                )
-                atts
-            ]
+      parent.raiseId $ show me
+      kx $ makeConstant
+        { id: show me
+        , parent: parent.parent
+        , scope: scopeToMaybe parent.scope
+        , offset: i.offset
+        }
+      kx $ deferPayload parent.deferralPath $ deleteFromCache { id: show me }
+      subscribeAtts subscribe ee
+        ( keepLatest $ map
+            ( \(C.Constant e) -> match
+                { offset: tmpResolveAU parent.scope parent.deferralPath di (setOffset <<< { id: show me, offset: _ })
+                , onOff: \onOff -> pure $ setOnOff { id: show me, onOff }
+                }
+                e
+            )
+            atts
         )
-        k
-      pure do
-        runSTFn1 k (deleteFromCache { id: me })
-        unsub
 
 constant
   :: forall i outputChannels payload
    . Common.InitialConstant i
   => i
-  -> Event (C.Constant payload)
+  -> Poll (C.Constant payload)
   -> C.Audible outputChannels payload
 constant = __constant
 
@@ -464,63 +457,46 @@ convolver
 convolver i' elts = Element' $ C.Node go
   where
   C.InitializeConvolver i = Common.toInitializeConvolver i'
-  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeConvolver }) =
-    makeLemmingEventO $ mkSTFn2 \(Subscriber mySub) k -> do
+  go parent di@(C.AudioInterpret { ids, deferPayload, deleteFromCache, makeConvolver }) =
+    behaving \ee kx subscribe -> do
       me <- ids
-      parent.raiseId me
-      unsub <- runSTFn2 mySub
-        ( oneOf
-            [ pure
-                ( makeConvolver
-                    { id: me
-                    , parent: parent.parent
-                    , scope: scopeToMaybe parent.scope
-                    , buffer: i.buffer
-                    }
-                )
-            , __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di (fixed elts)
-            ]
-        )
-        k
-      pure do
-        runSTFn1 k (deleteFromCache { id: me })
-        unsub
+      parent.raiseId $ show me
+      kx $ makeConvolver
+        { id: show me
+        , parent: parent.parent
+        , scope: scopeToMaybe parent.scope
+        , buffer: i.buffer
+        }
+      kx $ deferPayload parent.deferralPath $ deleteFromCache { id: show me }
+      subscribeChildren subscribe me parent.deferralPath parent.scope di (fixed elts) ee
 
 -- delay
 delay
   :: forall i (outputChannels :: Type) payload
    . Common.InitialDelay i
   => i
-  -> Event (C.Delay payload)
+  -> Poll (C.Delay payload)
   -> Array (C.Audible outputChannels payload)
   -> C.Audible outputChannels payload
 delay i' atts elts = Element' $ C.Node go
   where
   C.InitializeDelay i = Common.toInitializeDelay i'
-  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeDelay, setDelay }) = makeLemmingEventO $ mkSTFn2 \(Subscriber mySub) k -> do
+  go parent di@(C.AudioInterpret { ids, deferPayload, deleteFromCache, makeDelay, setDelay }) = behaving \ee kx subscribe -> do
     me <- ids
-    parent.raiseId me
-    unsub <- runSTFn2 mySub
-      ( oneOf
-          [ pure
-              ( makeDelay
-                  { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, delayTime: i.delayTime, maxDelayTime: i.maxDelayTime }
-              )
-          , ( keepLatest $ map
-                ( \(C.Delay e) -> match
-                    { delayTime: tmpResolveAU parent.scope di (setDelay <<< { id: me, delayTime: _ })
-                    }
-                    e
-                )
-                atts
-            )
-          , __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di (fixed elts)
-          ]
+    parent.raiseId $ show me
+    kx $ makeDelay
+      { id: show me, parent: parent.parent, scope: scopeToMaybe parent.scope, delayTime: i.delayTime, maxDelayTime: i.maxDelayTime }
+    kx $ deferPayload parent.deferralPath $ deleteFromCache { id: show me }
+    subscribeChildren subscribe me parent.deferralPath parent.scope di (fixed elts) ee
+    subscribeAtts subscribe ee
+      ( keepLatest $ map
+          ( \(C.Delay e) -> match
+              { delayTime: tmpResolveAU parent.scope parent.deferralPath di (setDelay <<< { id: show me, delayTime: _ })
+              }
+              e
+          )
+          atts
       )
-      k
-    pure do
-      runSTFn1 k (deleteFromCache { id: me })
-      unsub
 
 delay_
   :: forall i (outputChannels :: Type) payload
@@ -535,7 +511,7 @@ dynamicsCompressor
   :: forall i (outputChannels :: Type) payload
    . Common.InitialDynamicsCompressor i
   => i
-  -> Event (C.DynamicsCompressor payload)
+  -> Poll (C.DynamicsCompressor payload)
   -> Array (C.Audible outputChannels payload)
   -> C.Audible outputChannels payload
 dynamicsCompressor i' atts elts = Element' $ C.Node go
@@ -546,6 +522,7 @@ dynamicsCompressor i' atts elts = Element' $ C.Node go
     di@
       ( C.AudioInterpret
           { ids
+          , deferPayload
           , deleteFromCache
           , makeDynamicsCompressor
           , setThreshold
@@ -555,56 +532,49 @@ dynamicsCompressor i' atts elts = Element' $ C.Node go
           , setRelease
           }
       ) =
-    makeLemmingEventO $ mkSTFn2 \(Subscriber mySub) k -> do
+    behaving \ee kx subscribe -> do
       me <- ids
-      parent.raiseId me
-      unsub <- runSTFn2 mySub
-        ( oneOf
-            [ pure
-                ( makeDynamicsCompressor
-                    { id: me
-                    , parent: parent.parent
-                    , scope: scopeToMaybe parent.scope
-                    , threshold: i.threshold
-                    , ratio: i.ratio
-                    , knee: i.knee
-                    , attack: i.attack
-                    , release: i.release
-                    }
-                )
-            , keepLatest $ map
-                ( \(C.DynamicsCompressor e) -> match
-                    { threshold: tmpResolveAU parent.scope di
-                        ( setThreshold <<<
-                            { id: me, threshold: _ }
-                        )
-                    , ratio: tmpResolveAU parent.scope di
-                        ( setRatio <<<
-                            { id: me, ratio: _ }
-                        )
-                    , knee: tmpResolveAU parent.scope di
-                        ( setKnee <<<
-                            { id: me, knee: _ }
-                        )
-                    , attack: tmpResolveAU parent.scope di
-                        ( setAttack <<<
-                            { id: me, attack: _ }
-                        )
-                    , release: tmpResolveAU parent.scope di
-                        ( setRelease <<<
-                            { id: me, release: _ }
-                        )
-                    }
-                    e
-                )
-                atts
-            , __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di (fixed elts)
-            ]
+      parent.raiseId $ show me
+      kx $ makeDynamicsCompressor
+        { id: show me
+        , parent: parent.parent
+        , scope: scopeToMaybe parent.scope
+        , threshold: i.threshold
+        , ratio: i.ratio
+        , knee: i.knee
+        , attack: i.attack
+        , release: i.release
+        }
+      kx $ deferPayload parent.deferralPath $ deleteFromCache { id: show me }
+      subscribeChildren subscribe me parent.deferralPath parent.scope di (fixed elts) ee
+      subscribeAtts subscribe ee
+        ( keepLatest $ map
+            ( \(C.DynamicsCompressor e) -> match
+                { threshold: tmpResolveAU parent.scope parent.deferralPath di
+                    ( setThreshold <<<
+                        { id: show me, threshold: _ }
+                    )
+                , ratio: tmpResolveAU parent.scope parent.deferralPath di
+                    ( setRatio <<<
+                        { id: show me, ratio: _ }
+                    )
+                , knee: tmpResolveAU parent.scope parent.deferralPath di
+                    ( setKnee <<<
+                        { id: show me, knee: _ }
+                    )
+                , attack: tmpResolveAU parent.scope parent.deferralPath di
+                    ( setAttack <<<
+                        { id: show me, attack: _ }
+                    )
+                , release: tmpResolveAU parent.scope parent.deferralPath di
+                    ( setRelease <<<
+                        { id: show me, release: _ }
+                    )
+                }
+                e
+            )
+            atts
         )
-        k
-      pure do
-        runSTFn1 k (deleteFromCache { id: me })
-        unsub
 
 dynamicsCompressor_
   :: forall i (outputChannels :: Type) payload
@@ -619,36 +589,28 @@ gain
   :: forall i (outputChannels :: Type) payload
    . Common.InitialGain i
   => i
-  -> Event (C.Gain payload)
+  -> Poll (C.Gain payload)
   -> Array (C.Audible outputChannels payload)
   -> C.Audible outputChannels payload
 gain i' atts elts = Element' $ C.Node go
   where
   C.InitializeGain i = Common.toInitializeGain i'
-  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeGain, setGain }) = makeLemmingEventO $ mkSTFn2 \(Subscriber mySub) k -> do
+  go parent di@(C.AudioInterpret { ids, deferPayload, deleteFromCache, makeGain, setGain }) = behaving \ee kx subscribe -> do
     me <- ids
-    parent.raiseId me
-    unsub <- runSTFn2 mySub
-      ( oneOf
-          [ pure
-              ( makeGain
-                  { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, gain: i.gain }
-              )
-          , ( keepLatest $ map
-                ( \(C.Gain e) -> match
-                    { gain: tmpResolveAU parent.scope di (setGain <<< { id: me, gain: _ })
-                    }
-                    e
-                )
-                atts
-            )
-          , __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di (fixed elts)
-          ]
+    parent.raiseId $ show me
+    kx $ makeGain
+      { id: show me, parent: parent.parent, scope: scopeToMaybe parent.scope, gain: i.gain }
+    kx $ deferPayload parent.deferralPath $ deleteFromCache { id: show me }
+    subscribeChildren subscribe me parent.deferralPath parent.scope di (fixed elts) ee
+    subscribeAtts subscribe ee
+      ( keepLatest $ map
+          ( \(C.Gain e) -> match
+              { gain: tmpResolveAU parent.scope parent.deferralPath di (setGain <<< { id: show me, gain: _ })
+              }
+              e
+          )
+          atts
       )
-      k
-    pure do
-      runSTFn1 k (deleteFromCache { id: me })
-      unsub
 
 gain_
   :: forall i (outputChannels :: Type) payload
@@ -663,36 +625,29 @@ highpass
   :: forall i (outputChannels :: Type) payload
    . Common.InitialHighpass i
   => i
-  -> Event (C.Highpass payload)
+  -> Poll (C.Highpass payload)
   -> Array (C.Audible outputChannels payload)
   -> C.Audible outputChannels payload
 highpass i' atts elts = Element' $ C.Node go
   where
   C.InitializeHighpass i = Common.toInitializeHighpass i'
-  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeHighpass, setFrequency, setQ }) = makeLemmingEventO $ mkSTFn2 \(Subscriber mySub) k -> do
+  go parent di@(C.AudioInterpret { ids, deferPayload, deleteFromCache, makeHighpass, setFrequency, setQ }) = behaving \ee kx subscribe -> do
     me <- ids
-    parent.raiseId me
-    unsub <- runSTFn2 mySub
-      ( oneOf
-          [ pure
-              ( makeHighpass
-                  { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, frequency: i.frequency, q: i.q }
-              )
-          , keepLatest $ map
-              ( \(C.Highpass e) -> match
-                  { frequency: tmpResolveAU parent.scope di (setFrequency <<< { id: me, frequency: _ })
-                  , q: tmpResolveAU parent.scope di (setQ <<< { id: me, q: _ })
-                  }
-                  e
-              )
-              atts
-          , __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di (fixed elts)
-          ]
+    parent.raiseId $ show me
+    kx $ makeHighpass
+      { id: show me, parent: parent.parent, scope: scopeToMaybe parent.scope, frequency: i.frequency, q: i.q }
+    kx $ deferPayload parent.deferralPath $ deleteFromCache { id: show me }
+    subscribeChildren subscribe me parent.deferralPath parent.scope di (fixed elts) ee
+    subscribeAtts subscribe ee
+      ( keepLatest $ map
+          ( \(C.Highpass e) -> match
+              { frequency: tmpResolveAU parent.scope parent.deferralPath di (setFrequency <<< { id: show me, frequency: _ })
+              , q: tmpResolveAU parent.scope parent.deferralPath di (setQ <<< { id: show me, q: _ })
+              }
+              e
+          )
+          atts
       )
-      k
-    pure do
-      runSTFn1 k (deleteFromCache { id: me })
-      unsub
 
 highpass_
   :: forall i (outputChannels :: Type) payload
@@ -707,36 +662,29 @@ highshelf
   :: forall i (outputChannels :: Type) payload
    . Common.InitialHighshelf i
   => i
-  -> Event (C.Highshelf payload)
+  -> Poll (C.Highshelf payload)
   -> Array (C.Audible outputChannels payload)
   -> C.Audible outputChannels payload
 highshelf i' atts elts = Element' $ C.Node go
   where
   C.InitializeHighshelf i = Common.toInitializeHighshelf i'
-  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeHighshelf, setFrequency, setGain }) = makeLemmingEventO $ mkSTFn2 \(Subscriber mySub) k -> do
+  go parent di@(C.AudioInterpret { ids, deferPayload, deleteFromCache, makeHighshelf, setFrequency, setGain }) = behaving \ee kx subscribe -> do
     me <- ids
-    parent.raiseId me
-    unsub <- runSTFn2 mySub
-      ( oneOf
-          [ pure
-              ( makeHighshelf
-                  { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, frequency: i.frequency, gain: i.gain }
-              )
-          , keepLatest $ map
-              ( \(C.Highshelf e) -> match
-                  { frequency: tmpResolveAU parent.scope di (setFrequency <<< { id: me, frequency: _ })
-                  , gain: tmpResolveAU parent.scope di (setGain <<< { id: me, gain: _ })
-                  }
-                  e
-              )
-              atts
-          , __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di (fixed elts)
-          ]
+    parent.raiseId $ show me
+    kx $ makeHighshelf
+      { id: show me, parent: parent.parent, scope: scopeToMaybe parent.scope, frequency: i.frequency, gain: i.gain }
+    kx $ deferPayload parent.deferralPath $ deleteFromCache { id: show me }
+    subscribeChildren subscribe me parent.deferralPath parent.scope di (fixed elts) ee
+    subscribeAtts subscribe ee
+      ( keepLatest $ map
+          ( \(C.Highshelf e) -> match
+              { frequency: tmpResolveAU parent.scope parent.deferralPath di (setFrequency <<< { id: show me, frequency: _ })
+              , gain: tmpResolveAU parent.scope parent.deferralPath di (setGain <<< { id: show me, gain: _ })
+              }
+              e
+          )
+          atts
       )
-      k
-    pure do
-      runSTFn1 k (deleteFromCache { id: me })
-      unsub
 
 highshelf_
   :: forall i (outputChannels :: Type) payload
@@ -749,7 +697,7 @@ highshelf_ i a = highshelf i empty a
 -- iirFilter
 
 iirFilter
-  :: forall i (feedforward :: Int) (feedback :: Int) (outputChannels :: Type) lock
+  :: forall i (feedforward :: Int) (feedback :: Int) (outputChannels :: Type)
        payload
    . Compare 2 feedforward LT
   => Compare 2 feedback LT
@@ -760,7 +708,7 @@ iirFilter
 iirFilter = iirFilter' (Proxy :: _ feedforward) (Proxy :: _ feedback)
 
 iirFilter'
-  :: forall i (feedforward :: Int) (feedback :: Int) (outputChannels :: Type) lock
+  :: forall i (feedforward :: Int) (feedback :: Int) (outputChannels :: Type)
        payload
    . Compare 2 feedforward LT
   => Compare 2 feedback LT
@@ -778,67 +726,52 @@ iirFilter' fwd bk i' elts = Element' $ C.Node go
     di@
       ( C.AudioInterpret
           { ids
+          , deferPayload
           , deleteFromCache
           , makeIIRFilter
           }
       ) =
-    makeLemmingEventO $ mkSTFn2 \(Subscriber mySub) k -> do
+    behaving \ee kx subscribe -> do
       me <- ids
-      parent.raiseId me
-      unsub <- runSTFn2 mySub
-        ( oneOf
-            [ pure
-                ( makeIIRFilter
-                    { id: me
-                    , parent: parent.parent
-                    , scope: scopeToMaybe parent.scope
-                    , feedforward: toArray i.feedforward
-                    , feedback: toArray i.feedback
-                    }
-                )
-            , __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di (fixed elts)
-            ]
-        )
-        k
-      pure do
-        runSTFn1 k (deleteFromCache { id: me })
-        unsub
+      parent.raiseId $ show me
+      kx $ makeIIRFilter
+        { id: show me
+        , parent: parent.parent
+        , scope: scopeToMaybe parent.scope
+        , feedforward: toArray i.feedforward
+        , feedback: toArray i.feedback
+        }
+      kx $ deferPayload parent.deferralPath $ deleteFromCache { id: show me }
+      subscribeChildren subscribe me parent.deferralPath parent.scope di (fixed elts) ee
 
 -- lowpass
 lowpass
   :: forall i (outputChannels :: Type) payload
    . Common.InitialLowpass i
   => i
-  -> Event (C.Lowpass payload)
+  -> Poll (C.Lowpass payload)
   -> Array (C.Audible outputChannels payload)
   -> C.Audible outputChannels payload
 lowpass i' atts elts = Element' $ C.Node go
   where
   C.InitializeLowpass i = Common.toInitializeLowpass i'
-  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeLowpass, setFrequency, setQ }) = makeLemmingEventO $ mkSTFn2 \(Subscriber mySub) k -> do
+  go parent di@(C.AudioInterpret { ids, deferPayload, deleteFromCache, makeLowpass, setFrequency, setQ }) = behaving \ee kx subscribe -> do
     me <- ids
-    parent.raiseId me
-    unsub <- runSTFn2 mySub
-      ( oneOf
-          [ pure
-              ( makeLowpass
-                  { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, frequency: i.frequency, q: i.q }
-              )
-          , keepLatest $ map
-              ( \(C.Lowpass e) -> match
-                  { frequency: tmpResolveAU parent.scope di (setFrequency <<< { id: me, frequency: _ })
-                  , q: tmpResolveAU parent.scope di (setQ <<< { id: me, q: _ })
-                  }
-                  e
-              )
-              atts
-          , __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di (fixed elts)
-          ]
+    parent.raiseId $ show me
+    kx $ makeLowpass
+      { id: show me, parent: parent.parent, scope: scopeToMaybe parent.scope, frequency: i.frequency, q: i.q }
+    kx $ deferPayload parent.deferralPath $ deleteFromCache { id: show me }
+    subscribeChildren subscribe me parent.deferralPath parent.scope di (fixed elts) ee
+    subscribeAtts subscribe ee
+      ( keepLatest $ map
+          ( \(C.Lowpass e) -> match
+              { frequency: tmpResolveAU parent.scope parent.deferralPath di (setFrequency <<< { id: show me, frequency: _ })
+              , q: tmpResolveAU parent.scope parent.deferralPath di (setQ <<< { id: show me, q: _ })
+              }
+              e
+          )
+          atts
       )
-      k
-    pure do
-      runSTFn1 k (deleteFromCache { id: me })
-      unsub
 
 lowpass_
   :: forall i (outputChannels :: Type) payload
@@ -853,36 +786,29 @@ lowshelf
   :: forall i (outputChannels :: Type) payload
    . Common.InitialLowshelf i
   => i
-  -> Event (C.Lowshelf payload)
+  -> Poll (C.Lowshelf payload)
   -> Array (C.Audible outputChannels payload)
   -> C.Audible outputChannels payload
 lowshelf i' atts elts = Element' $ C.Node go
   where
   C.InitializeLowshelf i = Common.toInitializeLowshelf i'
-  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeLowshelf, setFrequency, setGain }) = makeLemmingEventO $ mkSTFn2 \(Subscriber mySub) k -> do
+  go parent di@(C.AudioInterpret { ids, deferPayload, deleteFromCache, makeLowshelf, setFrequency, setGain }) = behaving \ee kx subscribe -> do
     me <- ids
-    parent.raiseId me
-    unsub <- runSTFn2 mySub
-      ( oneOf
-          [ pure
-              ( makeLowshelf
-                  { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, frequency: i.frequency, gain: i.gain }
-              )
-          , keepLatest $ map
-              ( \(C.Lowshelf e) -> match
-                  { frequency: tmpResolveAU parent.scope di (setFrequency <<< { id: me, frequency: _ })
-                  , gain: tmpResolveAU parent.scope di (setGain <<< { id: me, gain: _ })
-                  }
-                  e
-              )
-              atts
-          , __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di (fixed elts)
-          ]
+    parent.raiseId $ show me
+    kx $ makeLowshelf
+      { id: show me, parent: parent.parent, scope: scopeToMaybe parent.scope, frequency: i.frequency, gain: i.gain }
+    kx $ deferPayload parent.deferralPath $ deleteFromCache { id: show me }
+    subscribeChildren subscribe me parent.deferralPath parent.scope di (fixed elts) ee
+    subscribeAtts subscribe ee
+      ( keepLatest $ map
+          ( \(C.Lowshelf e) -> match
+              { frequency: tmpResolveAU parent.scope parent.deferralPath di (setFrequency <<< { id: show me, frequency: _ })
+              , gain: tmpResolveAU parent.scope parent.deferralPath di (setGain <<< { id: show me, gain: _ })
+              }
+              e
+          )
+          atts
       )
-      k
-    pure do
-      runSTFn1 k (deleteFromCache { id: me })
-      unsub
 
 lowshelf_
   :: forall i (outputChannels :: Type) payload
@@ -898,7 +824,7 @@ __loopBuf
   :: forall i outputChannels payload
    . Common.InitialLoopBuf i
   => i
-  -> Event (C.LoopBuf payload)
+  -> Poll (C.LoopBuf payload)
   -> C.Audible outputChannels payload
 __loopBuf i' atts = Element' $ C.Node go
   where
@@ -909,6 +835,7 @@ __loopBuf i' atts = Element' $ C.Node go
       ( C.AudioInterpret
           { ids
           , deleteFromCache
+          , deferPayload
           , makeLoopBuf
           , setBuffer
           , setOnOff
@@ -917,46 +844,39 @@ __loopBuf i' atts = Element' $ C.Node go
           , setLoopEnd
           }
       ) =
-    makeLemmingEventO $ mkSTFn2 \(Subscriber mySub) k -> do
+    behaving \ee kx subscribe -> do
       me <- ids
-      parent.raiseId me
-      unsub <- runSTFn2 mySub
-        ( oneOf
-            [ pure
-                ( makeLoopBuf
-                    { id: me
-                    , parent: parent.parent
-                    , scope: scopeToMaybe parent.scope
-                    , buffer: i.buffer
-                    , playbackRate: i.playbackRate
-                    , loopStart: i.loopStart
-                    , loopEnd: i.loopEnd
-                    , duration: i.duration
-                    }
-                )
-            , keepLatest $ map
-                ( \(C.LoopBuf e) -> match
-                    { buffer: \buffer -> pure $ setBuffer { id: me, buffer }
-                    , playbackRate: tmpResolveAU parent.scope di (setPlaybackRate <<< { id: me, playbackRate: _ })
-                    , loopStart: \loopStart -> pure $ setLoopStart { id: me, loopStart }
-                    , loopEnd: \loopEnd -> pure $ setLoopEnd { id: me, loopEnd }
-                    , onOff: \onOff -> pure $ setOnOff { id: me, onOff }
-                    }
-                    e
-                )
-                atts
-            ]
+      parent.raiseId $ show me
+      kx $ makeLoopBuf
+        { id: show me
+        , parent: parent.parent
+        , scope: scopeToMaybe parent.scope
+        , buffer: i.buffer
+        , playbackRate: i.playbackRate
+        , loopStart: i.loopStart
+        , loopEnd: i.loopEnd
+        , duration: i.duration
+        }
+      kx $ deferPayload parent.deferralPath $ deleteFromCache { id: show me }
+      subscribeAtts subscribe ee
+        ( keepLatest $ map
+            ( \(C.LoopBuf e) -> match
+                { buffer: \buffer -> pure $ setBuffer { id: show me, buffer }
+                , playbackRate: tmpResolveAU parent.scope parent.deferralPath di (setPlaybackRate <<< { id: show me, playbackRate: _ })
+                , loopStart: \loopStart -> pure $ setLoopStart { id: show me, loopStart }
+                , loopEnd: \loopEnd -> pure $ setLoopEnd { id: show me, loopEnd }
+                , onOff: \onOff -> pure $ setOnOff { id: show me, onOff }
+                }
+                e
+            )
+            atts
         )
-        k
-      pure do
-        runSTFn1 k (deleteFromCache { id: me })
-        unsub
 
 loopBuf
   :: forall i outputChannels payload
    . Common.InitialLoopBuf i
   => i
-  -> Event (C.LoopBuf payload)
+  -> Poll (C.LoopBuf payload)
   -> C.Audible outputChannels payload
 loopBuf = __loopBuf
 
@@ -975,24 +895,17 @@ __mediaElement
   -> C.Audible outputChannels payload
 __mediaElement (C.InitializeMediaElement i) = Element' $ C.Node go
   where
-  go parent (C.AudioInterpret { ids, deleteFromCache, makeMediaElement }) =
-    makeLemmingEventO $ mkSTFn2 \(Subscriber mySub) k -> do
+  go parent (C.AudioInterpret { ids, deferPayload, deleteFromCache, makeMediaElement }) =
+    behaving \_ kx _ -> do
       me <- ids
-      parent.raiseId me
-      unsub <- runSTFn2 mySub
-        ( pure
-            ( makeMediaElement
-                { id: me
-                , parent: parent.parent
-                , scope: scopeToMaybe parent.scope
-                , element: i.element
-                }
-            )
-        )
-        k
-      pure do
-        runSTFn1 k (deleteFromCache { id: me })
-        unsub
+      parent.raiseId $ show me
+      kx $ makeMediaElement
+        { id: show me
+        , parent: parent.parent
+        , scope: scopeToMaybe parent.scope
+        , element: i.element
+        }
+      kx $ deferPayload parent.deferralPath $ deleteFromCache { id: show me }
 
 mediaElement
   :: forall outputChannels payload
@@ -1010,24 +923,19 @@ __microphone
 __microphone i' = Element' $ C.Node go
   where
   C.InitializeMicrophone i = Common.toInitializeMicrophone i'
-  go parent (C.AudioInterpret { ids, deleteFromCache, makeMicrophone }) =
-    makeLemmingEventO $ mkSTFn2 \(Subscriber mySub) k -> do
+  go parent (C.AudioInterpret { ids, deferPayload, deleteFromCache, makeMicrophone }) =
+    behaving \_ kx _ -> do
       me <- ids
-      parent.raiseId me
-      unsub <- runSTFn2 mySub
-        ( pure
-            ( makeMicrophone
-                { id: me
-                , parent: parent.parent
-                , scope: scopeToMaybe parent.scope
-                , microphone: i.microphone
-                }
-            )
+      parent.raiseId $ show me
+      kx
+        ( makeMicrophone
+            { id: show me
+            , parent: parent.parent
+            , scope: scopeToMaybe parent.scope
+            , microphone: i.microphone
+            }
         )
-        k
-      pure do
-        runSTFn1 k (deleteFromCache { id: me })
-        unsub
+      kx $ deferPayload parent.deferralPath $ deleteFromCache { id: show me }
 
 microphone
   :: forall i outputChannels payload
@@ -1041,36 +949,28 @@ notch
   :: forall i (outputChannels :: Type) payload
    . Common.InitialNotch i
   => i
-  -> Event (C.Notch payload)
+  -> Poll (C.Notch payload)
   -> Array (C.Audible outputChannels payload)
   -> C.Audible outputChannels payload
 notch i' atts elts = Element' $ C.Node go
   where
   C.InitializeNotch i = Common.toInitializeNotch i'
-  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeNotch, setFrequency, setQ }) = makeLemmingEventO $ mkSTFn2 \(Subscriber mySub) k -> do
+  go parent di@(C.AudioInterpret { ids, deferPayload, deleteFromCache, makeNotch, setFrequency, setQ }) = behaving \ee kx subscribe -> do
     me <- ids
-    parent.raiseId me
-    unsub <- runSTFn2 mySub
-      ( oneOf
-          [ pure
-              ( makeNotch
-                  { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, frequency: i.frequency, q: i.q }
-              )
-          , keepLatest $ map
-              ( \(C.Notch e) -> match
-                  { frequency: tmpResolveAU parent.scope di (setFrequency <<< { id: me, frequency: _ })
-                  , q: tmpResolveAU parent.scope di (setQ <<< { id: me, q: _ })
-                  }
-                  e
-              )
-              atts
-          , __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di (fixed elts)
-          ]
+    parent.raiseId $ show me
+    kx $ makeNotch { id: show me, parent: parent.parent, scope: scopeToMaybe parent.scope, frequency: i.frequency, q: i.q }
+    kx $ deferPayload parent.deferralPath $ deleteFromCache { id: show me }
+    subscribeChildren subscribe me parent.deferralPath parent.scope di (fixed elts) ee
+    subscribeAtts subscribe ee
+      ( keepLatest $ map
+          ( \(C.Notch e) -> match
+              { frequency: tmpResolveAU parent.scope parent.deferralPath di (setFrequency <<< { id: show me, frequency: _ })
+              , q: tmpResolveAU parent.scope parent.deferralPath di (setQ <<< { id: show me, q: _ })
+              }
+              e
+          )
+          atts
       )
-      k
-    pure do
-      runSTFn1 k (deleteFromCache { id: me })
-      unsub
 
 notch_
   :: forall i (outputChannels :: Type) payload
@@ -1085,35 +985,30 @@ peaking
   :: forall i (outputChannels :: Type) payload
    . Common.InitialPeaking i
   => i
-  -> Event (C.Peaking payload)
+  -> Poll (C.Peaking payload)
   -> Array (C.Audible outputChannels payload)
   -> C.Audible outputChannels payload
 peaking i' atts elts = Element' $ C.Node go
   where
   C.InitializePeaking i = Common.toInitializePeaking i'
-  go parent di@(C.AudioInterpret { ids, deleteFromCache, makePeaking, setFrequency, setQ, setGain }) = makeLemmingEventO $ mkSTFn2 \(Subscriber mySub) k -> do
+  go parent di@(C.AudioInterpret { ids, deferPayload, deleteFromCache, makePeaking, setFrequency, setQ, setGain }) = behaving \ee kx subscribe -> do
     me <- ids
-    parent.raiseId me
-    unsub <- runSTFn2 mySub
-      ( oneOf
-          [ pure $ makePeaking
-              { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, frequency: i.frequency, q: i.q, gain: i.gain }
-          , keepLatest $ map
-              ( \(C.Peaking e) -> match
-                  { frequency: tmpResolveAU parent.scope di (setFrequency <<< { id: me, frequency: _ })
-                  , q: tmpResolveAU parent.scope di (setQ <<< { id: me, q: _ })
-                  , gain: tmpResolveAU parent.scope di (setGain <<< { id: me, gain: _ })
-                  }
-                  e
-              )
-              atts
-          , __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di (fixed elts)
-          ]
+    parent.raiseId $ show me
+    kx $ makePeaking
+      { id: show me, parent: parent.parent, scope: scopeToMaybe parent.scope, frequency: i.frequency, q: i.q, gain: i.gain }
+    kx $ deferPayload parent.deferralPath $ deleteFromCache { id: show me }
+    subscribeChildren subscribe me parent.deferralPath parent.scope di (fixed elts) ee
+    subscribeAtts subscribe ee
+      ( keepLatest $ map
+          ( \(C.Peaking e) -> match
+              { frequency: tmpResolveAU parent.scope parent.deferralPath di (setFrequency <<< { id: show me, frequency: _ })
+              , q: tmpResolveAU parent.scope parent.deferralPath di (setQ <<< { id: show me, q: _ })
+              , gain: tmpResolveAU parent.scope parent.deferralPath di (setGain <<< { id: show me, gain: _ })
+              }
+              e
+          )
+          atts
       )
-      k
-    pure do
-      runSTFn1 k (deleteFromCache { id: me })
-      unsub
 
 peaking_
   :: forall i (outputChannels :: Type) payload
@@ -1129,7 +1024,7 @@ __periodicOsc
   :: forall i outputChannels payload
    . Common.InitialPeriodicOsc i
   => i
-  -> Event (C.PeriodicOsc payload)
+  -> Poll (C.PeriodicOsc payload)
   -> C.Audible outputChannels payload
 __periodicOsc i' atts = Element' $ C.Node go
   where
@@ -1138,43 +1033,36 @@ __periodicOsc i' atts = Element' $ C.Node go
     parent
     di@
       ( C.AudioInterpret
-          { ids, deleteFromCache, makePeriodicOsc, setFrequency, setOnOff, setPeriodicOsc }
+          { ids, deferPayload, deleteFromCache, makePeriodicOsc, setFrequency, setOnOff, setPeriodicOsc }
       ) =
-    makeLemmingEventO $ mkSTFn2 \(Subscriber mySub) k -> do
+    behaving \ee kx subscribe -> do
       me <- ids
-      parent.raiseId me
-      unsub <- runSTFn2 mySub
-        ( oneOf
-            [ pure
-                ( makePeriodicOsc
-                    { id: me
-                    , parent: parent.parent
-                    , scope: scopeToMaybe parent.scope
-                    , frequency: i.frequency
-                    , spec: i.spec
-                    }
-                )
-            , keepLatest $ map
-                ( \(C.PeriodicOsc e) -> match
-                    { frequency: tmpResolveAU parent.scope di (setFrequency <<< { id: me, frequency: _ })
-                    , onOff: \onOff -> pure $ setOnOff { id: me, onOff }
-                    , spec: \spec -> pure $ setPeriodicOsc { id: me, spec }
-                    }
-                    e
-                )
-                atts
-            ]
+      parent.raiseId $ show me
+      kx $ makePeriodicOsc
+        { id: show me
+        , parent: parent.parent
+        , scope: scopeToMaybe parent.scope
+        , frequency: i.frequency
+        , spec: i.spec
+        }
+      kx $ deferPayload parent.deferralPath $ deleteFromCache { id: show me }
+      subscribeAtts subscribe ee
+        ( keepLatest $ map
+            ( \(C.PeriodicOsc e) -> match
+                { frequency: tmpResolveAU parent.scope parent.deferralPath di (setFrequency <<< { id: show me, frequency: _ })
+                , onOff: \onOff -> pure $ setOnOff { id: show me, onOff }
+                , spec: \spec -> pure $ setPeriodicOsc { id: show me, spec }
+                }
+                e
+            )
+            atts
         )
-        k
-      pure do
-        runSTFn1 k (deleteFromCache { id: me })
-        unsub
 
 periodicOsc
   :: forall i outputChannels payload
    . Common.InitialPeriodicOsc i
   => i
-  -> Event (C.PeriodicOsc payload)
+  -> Poll (C.PeriodicOsc payload)
   -> C.Audible outputChannels payload
 periodicOsc = __periodicOsc
 
@@ -1244,7 +1132,7 @@ __playBuf
   :: forall i outputChannels payload
    . Common.InitialPlayBuf i
   => i
-  -> Event (C.PlayBuf payload)
+  -> Poll (C.PlayBuf payload)
   -> C.Audible outputChannels payload
 __playBuf i' atts = Element' $ C.Node go
   where
@@ -1255,6 +1143,7 @@ __playBuf i' atts = Element' $ C.Node go
       ( C.AudioInterpret
           { ids
           , deleteFromCache
+          , deferPayload
           , makePlayBuf
           , setBuffer
           , setOnOff
@@ -1263,49 +1152,42 @@ __playBuf i' atts = Element' $ C.Node go
           , setBufferOffset
           }
       ) =
-    makeLemmingEventO $ mkSTFn2 \(Subscriber mySub) k -> do
+    behaving \ee kx subscribe -> do
       me <- ids
-      parent.raiseId me
-      unsub <- runSTFn2 mySub
-        ( oneOf
-            [ pure
-                ( makePlayBuf
-                    { id: me
-                    , parent: parent.parent
-                    , scope: scopeToMaybe parent.scope
-                    , buffer: i.buffer
-                    , playbackRate: i.playbackRate
-                    , bufferOffset: i.bufferOffset
-                    , duration: i.duration
-                    }
-                )
-            , keepLatest $ map
-                ( \(C.PlayBuf e) -> match
-                    { buffer: \buffer -> pure $ setBuffer { id: me, buffer }
-                    , playbackRate: tmpResolveAU parent.scope di
-                        ( setPlaybackRate <<<
-                            { id: me, playbackRate: _ }
-                        )
-                    , bufferOffset: \bufferOffset -> pure $ setBufferOffset
-                        { id: me, bufferOffset }
-                    , onOff: \onOff -> pure $ setOnOff { id: me, onOff }
-                    , duration: \duration -> pure $ setDuration { id: me, duration }
-                    }
-                    e
-                )
-                atts
-            ]
+      parent.raiseId $ show me
+      kx $ makePlayBuf
+        { id: show me
+        , parent: parent.parent
+        , scope: scopeToMaybe parent.scope
+        , buffer: i.buffer
+        , playbackRate: i.playbackRate
+        , bufferOffset: i.bufferOffset
+        , duration: i.duration
+        }
+      kx $ deferPayload parent.deferralPath $ deleteFromCache { id: show me }
+      subscribeAtts subscribe ee
+        ( keepLatest $ map
+            ( \(C.PlayBuf e) -> match
+                { buffer: \buffer -> pure $ setBuffer { id: show me, buffer }
+                , playbackRate: tmpResolveAU parent.scope parent.deferralPath di
+                    ( setPlaybackRate <<<
+                        { id: show me, playbackRate: _ }
+                    )
+                , bufferOffset: \bufferOffset -> pure $ setBufferOffset
+                    { id: show me, bufferOffset }
+                , onOff: \onOff -> pure $ setOnOff { id: show me, onOff }
+                , duration: \duration -> pure $ setDuration { id: show me, duration }
+                }
+                e
+            )
+            atts
         )
-        k
-      pure do
-        runSTFn1 k (deleteFromCache { id: me })
-        unsub
 
 playBuf
   :: forall i outputChannels payload
    . Common.InitialPlayBuf i
   => i
-  -> Event (C.PlayBuf payload)
+  -> Poll (C.PlayBuf payload)
   -> C.Audible outputChannels payload
 playBuf = __playBuf
 
@@ -1326,23 +1208,14 @@ recorder
 recorder i' elt = Element' $ C.Node go
   where
   C.InitializeRecorder i = Common.toInitializeRecorder i'
-  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeRecorder }) =
-    makeLemmingEventO $ mkSTFn2 \(Subscriber mySub) k -> do
+  go parent di@(C.AudioInterpret { ids, deferPayload, deleteFromCache, makeRecorder }) =
+    behaving \ee kx subscribe -> do
       me <- ids
-      parent.raiseId me
-      unsub <- runSTFn2 mySub
-        ( oneOf
-            [ pure
-                ( makeRecorder
-                    { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, cb: i.cb }
-                )
-            , __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di elt
-            ]
-        )
-        k
-      pure do
-        runSTFn1 k (deleteFromCache { id: me })
-        unsub
+      parent.raiseId $ show me
+      kx $ makeRecorder
+        { id: show me, parent: parent.parent, scope: scopeToMaybe parent.scope, cb: i.cb }
+      kx $ deferPayload parent.deferralPath $ deleteFromCache { id: show me }
+      subscribeChildren subscribe me parent.deferralPath parent.scope di elt ee
 
 -- sawtoothOsc
 
@@ -1350,47 +1223,40 @@ __sawtoothOsc
   :: forall i outputChannels payload
    . Common.InitialSawtoothOsc i
   => i
-  -> Event (C.SawtoothOsc payload)
+  -> Poll (C.SawtoothOsc payload)
   -> C.Audible outputChannels payload
 __sawtoothOsc i' atts = Element' $ C.Node go
   where
   C.InitializeSawtoothOsc i = Common.toInitializeSawtoothOsc i'
   go
     parent
-    di@(C.AudioInterpret { ids, deleteFromCache, makeSawtoothOsc, setFrequency, setOnOff }) =
-    makeLemmingEventO $ mkSTFn2 \(Subscriber mySub) k -> do
+    di@(C.AudioInterpret { ids, deferPayload, deleteFromCache, makeSawtoothOsc, setFrequency, setOnOff }) =
+    behaving \ee kx subscribe -> do
       me <- ids
-      parent.raiseId me
-      unsub <- runSTFn2 mySub
-        ( oneOf
-            [ pure
-                ( makeSawtoothOsc
-                    { id: me
-                    , parent: parent.parent
-                    , scope: scopeToMaybe parent.scope
-                    , frequency: i.frequency
-                    }
-                )
-            , keepLatest $ map
-                ( \(C.SawtoothOsc e) -> match
-                    { frequency: tmpResolveAU parent.scope di (setFrequency <<< { id: me, frequency: _ })
-                    , onOff: \onOff -> pure $ setOnOff { id: me, onOff }
-                    }
-                    e
-                )
-                atts
-            ]
+      parent.raiseId $ show me
+      kx $ makeSawtoothOsc
+        { id: show me
+        , parent: parent.parent
+        , scope: scopeToMaybe parent.scope
+        , frequency: i.frequency
+        }
+      kx $ deferPayload parent.deferralPath $ deleteFromCache { id: show me }
+      subscribeAtts subscribe ee
+        ( keepLatest $ map
+            ( \(C.SawtoothOsc e) -> match
+                { frequency: tmpResolveAU parent.scope parent.deferralPath di (setFrequency <<< { id: show me, frequency: _ })
+                , onOff: \onOff -> pure $ setOnOff { id: show me, onOff }
+                }
+                e
+            )
+            atts
         )
-        k
-      pure do
-        runSTFn1 k (deleteFromCache { id: me })
-        unsub
 
 sawtoothOsc
   :: forall i outputChannels payload
    . Common.InitialSawtoothOsc i
   => i
-  -> Event (C.SawtoothOsc payload)
+  -> Poll (C.SawtoothOsc payload)
   -> C.Audible outputChannels payload
 sawtoothOsc = __sawtoothOsc
 
@@ -1407,47 +1273,40 @@ __sinOsc
   :: forall i outputChannels payload
    . Common.InitialSinOsc i
   => i
-  -> Event (C.SinOsc payload)
+  -> Poll (C.SinOsc payload)
   -> C.Audible outputChannels payload
 __sinOsc i' atts = Element' $ C.Node go
   where
   C.InitializeSinOsc i = Common.toInitializeSinOsc i'
   go
     parent
-    di@(C.AudioInterpret { ids, deleteFromCache, makeSinOsc, setFrequency, setOnOff }) =
-    makeLemmingEventO $ mkSTFn2 \(Subscriber mySub) k -> do
+    di@(C.AudioInterpret { ids, deferPayload, deleteFromCache, makeSinOsc, setFrequency, setOnOff }) =
+    behaving \ee kx subscribe -> do
       me <- ids
-      parent.raiseId me
-      unsub <- runSTFn2 mySub
-        ( oneOf
-            [ pure
-                ( makeSinOsc
-                    { id: me
-                    , parent: parent.parent
-                    , scope: scopeToMaybe parent.scope
-                    , frequency: i.frequency
-                    }
-                )
-            , keepLatest $ map
-                ( \(C.SinOsc e) -> match
-                    { frequency: tmpResolveAU parent.scope di (setFrequency <<< { id: me, frequency: _ })
-                    , onOff: \onOff -> pure $ setOnOff { id: me, onOff }
-                    }
-                    e
-                )
-                atts
-            ]
+      parent.raiseId $ show me
+      kx $ makeSinOsc
+        { id: show me
+        , parent: parent.parent
+        , scope: scopeToMaybe parent.scope
+        , frequency: i.frequency
+        }
+      kx $ deferPayload parent.deferralPath $ deleteFromCache { id: show me }
+      subscribeAtts subscribe ee
+        ( keepLatest $ map
+            ( \(C.SinOsc e) -> match
+                { frequency: tmpResolveAU parent.scope parent.deferralPath di (setFrequency <<< { id: show me, frequency: _ })
+                , onOff: \onOff -> pure $ setOnOff { id: show me, onOff }
+                }
+                e
+            )
+            atts
         )
-        k
-      pure do
-        runSTFn1 k (deleteFromCache { id: me })
-        unsub
 
 sinOsc
   :: forall i outputChannels payload
    . Common.InitialSinOsc i
   => i
-  -> Event (C.SinOsc payload)
+  -> Poll (C.SinOsc payload)
   -> C.Audible outputChannels payload
 sinOsc = __sinOsc
 
@@ -1464,47 +1323,40 @@ __squareOsc
   :: forall i outputChannels payload
    . Common.InitialSquareOsc i
   => i
-  -> Event (C.SquareOsc payload)
+  -> Poll (C.SquareOsc payload)
   -> C.Audible outputChannels payload
 __squareOsc i' atts = Element' $ C.Node go
   where
   C.InitializeSquareOsc i = Common.toInitializeSquareOsc i'
   go
     parent
-    di@(C.AudioInterpret { ids, deleteFromCache, makeSquareOsc, setFrequency, setOnOff }) =
-    makeLemmingEventO $ mkSTFn2 \(Subscriber mySub) k -> do
+    di@(C.AudioInterpret { ids, deferPayload, deleteFromCache, makeSquareOsc, setFrequency, setOnOff }) =
+    behaving \ee kx subscribe -> do
       me <- ids
-      parent.raiseId me
-      unsub <- runSTFn2 mySub
-        ( oneOf
-            [ pure
-                ( makeSquareOsc
-                    { id: me
-                    , parent: parent.parent
-                    , scope: scopeToMaybe parent.scope
-                    , frequency: i.frequency
-                    }
-                )
-            , keepLatest $ map
-                ( \(C.SquareOsc e) -> match
-                    { frequency: tmpResolveAU parent.scope di (setFrequency <<< { id: me, frequency: _ })
-                    , onOff: \onOff -> pure $ setOnOff { id: me, onOff }
-                    }
-                    e
-                )
-                atts
-            ]
+      parent.raiseId $ show me
+      kx $ makeSquareOsc
+        { id: show me
+        , parent: parent.parent
+        , scope: scopeToMaybe parent.scope
+        , frequency: i.frequency
+        }
+      kx $ deferPayload parent.deferralPath $ deleteFromCache { id: show me }
+      subscribeAtts subscribe ee
+        ( keepLatest $ map
+            ( \(C.SquareOsc e) -> match
+                { frequency: tmpResolveAU parent.scope parent.deferralPath di (setFrequency <<< { id: show me, frequency: _ })
+                , onOff: \onOff -> pure $ setOnOff { id: show me, onOff }
+                }
+                e
+            )
+            atts
         )
-        k
-      pure do
-        runSTFn1 k (deleteFromCache { id: me })
-        unsub
 
 squareOsc
   :: forall i outputChannels payload
    . Common.InitialSquareOsc i
   => i
-  -> Event (C.SquareOsc payload)
+  -> Poll (C.SquareOsc payload)
   -> C.Audible outputChannels payload
 squareOsc = __squareOsc
 
@@ -1520,17 +1372,17 @@ speaker
   :: forall (outputChannels :: Type) payload
    . Array (C.Audible outputChannels payload)
   -> C.AudioInterpret payload
-  -> Event payload
-speaker elts di@(C.AudioInterpret { ids, makeSpeaker }) = makeLemmingEventO $ mkSTFn2 \(Subscriber mySub) k -> do
-  id <- ids
-  runSTFn1 k (makeSpeaker { id })
-  runSTFn2 mySub (__internalOcarinaFlatten { parent: Just id, scope: Local "toplevel", raiseId: \_ -> pure unit } di (fixed elts)) k
+  -> Poll payload
+speaker elts di@(C.AudioInterpret { ids, makeSpeaker }) = behaving \ee kx subscribe -> do
+  me <- ids
+  kx $ makeSpeaker { id: show me }
+  subscribeChildren subscribe me List.Nil (Local "toplevel") di (fixed elts) ee
 
 speaker2
   :: forall payload
    . Array (C.Audible D2 payload)
   -> C.AudioInterpret payload
-  -> Event payload
+  -> Poll payload
 speaker2 = speaker
 
 -- pan
@@ -1538,35 +1390,28 @@ pan
   :: forall i (outputChannels :: Type) payload
    . Common.InitialStereoPanner i
   => i
-  -> Event (C.StereoPanner payload)
+  -> Poll (C.StereoPanner payload)
   -> Array (C.Audible outputChannels payload)
   -> C.Audible outputChannels payload
 pan i' atts elts = Element' $ C.Node go
   where
   C.InitializeStereoPanner i = Common.toInitializeStereoPanner i'
-  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeStereoPanner, setPan }) = makeLemmingEventO $ mkSTFn2 \(Subscriber mySub) k -> do
+  go parent di@(C.AudioInterpret { ids, deferPayload, deleteFromCache, makeStereoPanner, setPan }) = behaving \ee kx subscribe -> do
     me <- ids
-    parent.raiseId me
-    unsub <- runSTFn2 mySub
-      ( oneOf
-          [ pure
-              ( makeStereoPanner
-                  { id: me, parent: parent.parent, scope: scopeToMaybe parent.scope, pan: i.pan }
-              )
-          , keepLatest $ map
-              ( \(C.StereoPanner e) -> match
-                  { pan: tmpResolveAU parent.scope di (setPan <<< { id: me, pan: _ })
-                  }
-                  e
-              )
-              atts
-          , __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di (fixed elts)
-          ]
+    parent.raiseId $ show me
+    kx $ makeStereoPanner
+      { id: show me, parent: parent.parent, scope: scopeToMaybe parent.scope, pan: i.pan }
+    kx $ deferPayload parent.deferralPath $ deleteFromCache { id: show me }
+    subscribeChildren subscribe me parent.deferralPath parent.scope di (fixed elts) ee
+    subscribeAtts subscribe ee
+      ( keepLatest $ map
+          ( \(C.StereoPanner e) -> match
+              { pan: tmpResolveAU parent.scope parent.deferralPath di (setPan <<< { id: show me, pan: _ })
+              }
+              e
+          )
+          atts
       )
-      k
-    pure do
-      runSTFn1 k (deleteFromCache { id: me })
-      unsub
 
 pan_
   :: forall i (outputChannels :: Type) payload
@@ -1582,48 +1427,40 @@ __triangleOsc
   :: forall i outputChannels payload
    . Common.InitialTriangleOsc i
   => i
-  -> Event (C.TriangleOsc payload)
+  -> Poll (C.TriangleOsc payload)
   -> C.Audible outputChannels payload
 __triangleOsc i' atts = Element' $ C.Node go
   where
   C.InitializeTriangleOsc i = Common.toInitializeTriangleOsc i'
   go
     parent
-    di@(C.AudioInterpret { ids, deleteFromCache, makeTriangleOsc, setFrequency, setOnOff }) =
-    makeLemmingEventO $ mkSTFn2 \(Subscriber mySub) k -> do
+    di@(C.AudioInterpret { ids, deferPayload, deleteFromCache, makeTriangleOsc, setFrequency, setOnOff }) =
+    behaving \ee kx subscribe -> do
       me <- ids
-      parent.raiseId me
-      unsub <- runSTFn2 mySub
-        ( oneOf
-            [ pure
-                ( makeTriangleOsc
-                    { id: me
-                    , parent: parent.parent
-                    , scope: scopeToMaybe parent.scope
-                    , frequency: i.frequency
-                    }
-                )
-            , ( keepLatest $ map
-                  ( \(C.TriangleOsc e) -> match
-                      { frequency: tmpResolveAU parent.scope di (setFrequency <<< { id: me, frequency: _ })
-                      , onOff: \onOff -> pure $ setOnOff { id: me, onOff }
-                      }
-                      e
-                  )
-                  atts
-              )
-            ]
+      parent.raiseId $ show me
+      kx $ makeTriangleOsc
+        { id: show me
+        , parent: parent.parent
+        , scope: scopeToMaybe parent.scope
+        , frequency: i.frequency
+        }
+      kx $ deferPayload parent.deferralPath $ deleteFromCache { id: show me }
+      subscribeAtts subscribe ee
+        ( keepLatest $ map
+            ( \(C.TriangleOsc e) -> match
+                { frequency: tmpResolveAU parent.scope parent.deferralPath di (setFrequency <<< { id: show me, frequency: _ })
+                , onOff: \onOff -> pure $ setOnOff { id: show me, onOff }
+                }
+                e
+            )
+            atts
         )
-        k
-      pure do
-        runSTFn1 k (deleteFromCache { id: me })
-        unsub
 
 triangleOsc
   :: forall i outputChannels payload
    . Common.InitialTriangleOsc i
   => i
-  -> Event (C.TriangleOsc payload)
+  -> Poll (C.TriangleOsc payload)
   -> C.Audible outputChannels payload
 triangleOsc = __triangleOsc
 
@@ -1645,28 +1482,19 @@ waveShaper
 waveShaper i' elts = Element' $ C.Node go
   where
   C.InitializeWaveShaper i = Common.toInitializeWaveShaper i'
-  go parent di@(C.AudioInterpret { ids, deleteFromCache, makeWaveShaper }) =
-    makeLemmingEventO $ mkSTFn2 \(Subscriber mySub) k -> do
+  go parent di@(C.AudioInterpret { ids, deferPayload, deleteFromCache, makeWaveShaper }) =
+    behaving \ee kx subscribe -> do
       me <- ids
-      parent.raiseId me
-      unsub <- runSTFn2 mySub
-        ( oneOf
-            [ pure
-                ( makeWaveShaper
-                    { id: me
-                    , parent: parent.parent
-                    , scope: scopeToMaybe parent.scope
-                    , curve: i.curve
-                    , oversample: i.oversample
-                    }
-                )
-            , __internalOcarinaFlatten { parent: Just me, scope: parent.scope, raiseId: \_ -> pure unit } di (fixed elts)
-            ]
-        )
-        k
-      pure do
-        runSTFn1 k (deleteFromCache { id: me })
-        unsub
+      parent.raiseId $ show me
+      kx $ makeWaveShaper
+        { id: show me
+        , parent: parent.parent
+        , scope: scopeToMaybe parent.scope
+        , curve: i.curve
+        , oversample: i.oversample
+        }
+      kx $ deferPayload parent.deferralPath $ deleteFromCache { id: show me }
+      subscribeChildren subscribe me parent.deferralPath parent.scope di (fixed elts) ee
 
 ----------
 globalFan
@@ -1677,6 +1505,8 @@ globalFan
   -> C.Audible o payload
 globalFan a b = Bolson.globalPortalComplexComplex
   { doLogic: absurd
+  , deferPayload: \(C.AudioInterpret { deferPayload }) -> deferPayload
+  , forcePayload: \(C.AudioInterpret { forcePayload }) -> forcePayload
   , ids: unwrap >>> _.ids
   , disconnectElement: \(C.AudioInterpret { disconnectXFromY }) { id, parent } -> disconnectXFromY { from: id, to: parent }
   , toElt: \(C.Node e) -> Element e
@@ -1695,12 +1525,14 @@ fan
   :: forall o n payload
    . Compare n (-1) GT
   => Vect n (C.Audible o payload)
-  -> (Vect n (C.Audible o payload)
+  -> ( Vect n (C.Audible o payload)
        -> C.Audible o payload
      )
   -> C.Audible o payload
 fan a b = Bolson.portalComplexComplex
   { doLogic: absurd
+  , deferPayload: \(C.AudioInterpret { deferPayload }) -> deferPayload
+  , forcePayload: \(C.AudioInterpret { forcePayload }) -> forcePayload
   , ids: unwrap >>> _.ids
   , disconnectElement: \(C.AudioInterpret { disconnectXFromY }) { id, parent } -> disconnectXFromY { from: id, to: parent }
   , toElt: \(C.Node e) -> Element e
@@ -1727,7 +1559,7 @@ globalFan1 a b = globalFan (singleton a) (lcmap (index (Proxy :: _ 0)) b)
 fan1
   :: forall o payload
    . C.Audible o payload
-  -> (C.Audible o payload
+  -> ( C.Audible o payload
        -> C.Audible o payload
      )
   -> C.Audible o payload
@@ -1741,6 +1573,8 @@ fix
 fix = Bolson.fixComplexComplex
   { doLogic: absurd
   , ids: unwrap >>> _.ids
+  , deferPayload: \(C.AudioInterpret { deferPayload }) -> deferPayload
+  , forcePayload: \(C.AudioInterpret { forcePayload }) -> forcePayload
   , disconnectElement: \(C.AudioInterpret { disconnectXFromY }) { id, parent } -> disconnectXFromY { from: id, to: parent }
   , toElt: \(C.Node e) -> Element e
   }
@@ -1776,7 +1610,7 @@ silence = fix identity
 --       ( (sample_ ids (pure unit)) <#> \me ->
 --           pure
 --             ( makeMerger
---                 { id: me
+--                 { id: show me
 --                 , parent: parent.parent
 --                 , scope: scopeToMaybe parent.scope
 --                 }
@@ -1801,7 +1635,8 @@ silence = fix identity
 -- which can add up
 -- so we definitely want to delete this and use Common.resolveAU
 -- as soon as we can correctly attach and detach generators
-tmpResolveAU :: forall payload. Scope -> C.AudioInterpret payload -> (C.FFIAudioParameter -> payload) -> C.AudioParameter payload -> Event payload
+tmpResolveAU
+  :: forall payload. Scope -> List.List Int -> C.AudioInterpret payload -> (C.FFIAudioParameter -> payload) -> C.AudioParameter payload -> Poll payload
 tmpResolveAU = go
   where
   cncl = C.FFIAudioParameter <<< inj (Proxy :: _ "cancel")
@@ -1809,28 +1644,36 @@ tmpResolveAU = go
   nmc = C.FFIAudioParameter <<< inj (Proxy :: _ "numeric")
   sdn = C.FFIAudioParameter <<< inj (Proxy :: _ "sudden")
   ut = C.FFIAudioParameter <<< inj (Proxy :: _ "unit")
-  go scope di f (C.AudioParameter a) = match
+  go scope deferralPath di f (C.AudioParameter a) = match
     { numeric: pure <<< f <<< nmc
     , envelope: pure <<< f <<< ev
     , cancel: pure <<< f <<< cncl
     , sudden: pure <<< f <<< sdn
-    , unit: \(C.AudioUnit { u }) ->
-        let
-          n = gain_ 1.0 [ u ]
-        in
-          makeLemmingEventO $ mkSTFn2 \(Subscriber mySub0) k -> do
-            av <- RRef.new Nothing
-            runSTFn2 mySub0
-              ( __internalOcarinaFlatten { parent: Nothing, scope: scope, raiseId: \x -> void $ RRef.write (Just x) av } di n <|>
-                  ( makeLemmingEventO $ mkSTFn2 \_ k2 ->
-                      do
-                        RRef.read av >>= case _ of
-                          Nothing -> pure unit -- ugh, fails silently
-                          Just i -> runSTFn1 k2 (f (ut (C.FFIAudioUnit { i })))
-                        pure (pure unit)
-                  )
-              )
-              k
+    , unit: \(C.AudioUnit { u }) -> do
+        let wrappingGain = gain_ 1.0 [ u ]
+        behaving \ee _ subscribe -> do
+          av <- RRef.new Nothing
+          -- todo: make sure the ordering is correct here
+          -- in the old ocarina, it was easier to reason that the event
+          -- on the left would happen before the one on the right
+          -- however, with polls, it's tougher to think about an l-to-r relationship
+          -- if we see an error message, deal with it then
+          subscribe
+            ( sample
+                ( __internalOcarinaFlatten { parent: Nothing, scope: scope, deferralPath: deferralPath, raiseId: \x -> void $ RRef.write (Just x) av } di
+                    wrappingGain <|>
+                    ( sham
+                        ( makeLemmingEventO $ mkSTFn2 \_ k2 ->
+                            do
+                              RRef.read av >>= case _ of
+                                Nothing -> pure $ unsafePerformEffect (error "Wrapped audio unit failed!")
+                                Just i -> runSTFn1 k2 (f (ut (C.FFIAudioUnit { i })))
+                              pure (pure unit)
+                        )
+                    )
+                )
+                ee
+            )
     }
     a
 
@@ -1839,10 +1682,15 @@ __internalOcarinaFlatten
    . PSR ()
   -> C.AudioInterpret payload
   -> C.Audible o payload
-  -> Event payload
-__internalOcarinaFlatten = Bolson.flatten
+  -> Poll payload
+__internalOcarinaFlatten psr ai au = Bolson.flatten
   { doLogic: absurd
+  , deferPayload: \(C.AudioInterpret { deferPayload }) -> deferPayload
+  , forcePayload: \(C.AudioInterpret { forcePayload }) -> forcePayload
   , ids: unwrap >>> _.ids
   , disconnectElement: \(C.AudioInterpret { disconnectXFromY }) { id, parent } -> disconnectXFromY { from: id, to: parent }
   , toElt: \(C.Node e) -> Element e
   }
+  au
+  psr
+  ai

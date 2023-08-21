@@ -2,7 +2,7 @@ module Ocarina.Example.Docs.Events.Ex0 where
 
 import Prelude
 
-import Bolson.Core (envy)
+
 import Control.Alt (alt, (<|>))
 import Data.Array ((..))
 import Data.Exists (mkExists)

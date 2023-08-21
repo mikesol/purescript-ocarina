@@ -5,16 +5,20 @@ import Prelude
 import Bolson.Core as B
 import Control.Monad.ST.Class (liftST)
 import Control.Monad.ST.Internal as Ref
+import Control.Plus (empty)
+import Data.Map as Map
+import Data.Tuple (Tuple(..))
 import Data.Typelevel.Num (D2)
 import Effect (Effect)
-import FRP.Event (Event, subscribe)
+import FRP.Event (Event, create, subscribe)
+import FRP.Poll (Poll, sample)
 import Ocarina.Control (speaker2)
 import Ocarina.Core as C
 import Ocarina.Interpret (FFIAudioSnapshot, close, context, effectfulAudioInterpret, makeFFIAudioSnapshot)
 import Ocarina.WebAPI (AudioContext)
 
 run2_
-  :: (forall lock. Array (C.Audible D2 (FFIAudioSnapshot -> Effect Unit)))
+  :: (Array (C.Audible D2 (FFIAudioSnapshot -> Effect Unit)))
   -> Effect (Effect Unit)
 run2_ s = do
   ctx <- context
@@ -22,17 +26,19 @@ run2_ s = do
 
 run2
   :: AudioContext
-  -> (forall lock. Array (C.Audible D2 (FFIAudioSnapshot -> Effect Unit)))
+  -> (Array (C.Audible D2 (FFIAudioSnapshot -> Effect Unit)))
   -> Effect (Effect Unit)
 run2 ctx s = do
     ffi <- makeFFIAudioSnapshot ctx
-    rf <- liftST $ Ref.new 0
-    u <- subscribe (speaker2 s (effectfulAudioInterpret rf))
-      \f -> f ffi
-    pure u
-
+    rf0 <- liftST $ Ref.new 0
+    rf1 <- liftST $ Ref.new Map.empty
+    let ee f = f ffi
+    ep <- liftST $ create
+    u <- liftST $ subscribe (sample (speaker2 s (effectfulAudioInterpret rf0 rf1 ee)) ep.event) ee
+    ep.push identity
+    pure $ liftST u
 run2e_
-  :: (forall lock. Event (Array (C.Audible D2 (FFIAudioSnapshot -> Effect Unit))))
+  :: (Poll (Array (C.Audible D2 (FFIAudioSnapshot -> Effect Unit))))
   -> Effect (Effect Unit)
 run2e_ s = do
   ctx <- context
@@ -40,11 +46,14 @@ run2e_ s = do
 
 run2e
   :: AudioContext
-  -> (forall lock. Event (Array (C.Audible D2 (FFIAudioSnapshot -> Effect Unit))))
+  -> (Poll (Array (C.Audible D2 (FFIAudioSnapshot -> Effect Unit))))
   -> Effect (Effect Unit)
 run2e ctx s = do
     ffi <- makeFFIAudioSnapshot ctx
-    rf <- liftST $ Ref.new 0
-    u <- subscribe (speaker2 [B.EventfulElement' $ B.EventfulElement (map (B.FixedChildren' <<< B.FixedChildren) s)] (effectfulAudioInterpret rf))
-      \f -> f ffi
-    pure u
+    rf0 <- liftST $ Ref.new 0
+    rf1 <- liftST $ Ref.new Map.empty
+    let ee f = f ffi
+    ep <- liftST $ create
+    u <- liftST $ subscribe (sample (speaker2 [B.DynamicChildren' $ B.DynamicChildren (map (Tuple empty <<< B.FixedChildren' <<< B.FixedChildren) s)] (effectfulAudioInterpret rf0 rf1 ee)) ep.event) ee
+    ep.push identity
+    pure $ liftST u

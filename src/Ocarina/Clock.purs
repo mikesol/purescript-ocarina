@@ -2,15 +2,17 @@ module Ocarina.Clock where
 
 import Prelude
 
+import Control.Monad.ST.Class (liftST)
 import Data.Foldable (traverse_)
 import Data.Int (round)
 import Data.Maybe (Maybe(..))
+import Effect (Effect)
 import Effect.Ref (new, read, write)
 import Effect.Timer (clearTimeout, setTimeout)
-import FRP.Behavior (Behavior, behavior)
-import FRP.Event (Event, makeEvent, subscribe)
-import Ocarina.Interpret (getAudioClockTime)
+import FRP.Event (Event, create, makeEvent, subscribe)
+import FRP.Poll (Poll, poll)
 import Ocarina.Core (AudioNumeric(..), AudioOnOff(..), _linear)
+import Ocarina.Interpret (getAudioClockTime)
 import Ocarina.WebAPI (AudioContext)
 import Ocarina.WebAPI as WebAPI
 
@@ -25,18 +27,19 @@ withACTime ctx e = makeEvent \k -> do
     acTime <- getAudioClockTime ctx
     k { acTime, value }
 
-interval :: AudioContext -> Number -> Event Number -> Event Number
-interval ctx iN e = makeEvent \k -> do
+interval :: AudioContext -> Number -> Event Number -> Effect { event :: Event Number, unsubscribe :: Effect Unit }
+interval ctx iN e = do
+  { event, push } <- liftST create
   cref <- new true
   iref <- new Nothing
   acTime <- getAudioClockTime ctx
   vref <- new (acTime + iN)
-  mkTimeout k iN cref iref vref iN
-  unsub <- subscribe e \newN -> do
+  mkTimeout push iN cref iref vref iN
+  unsub <- liftST $ subscribe e \newN -> do
     read iref >>= traverse_ clearTimeout
     cT <- read vref
-    mkTimeout k (cT + newN) cref iref vref newN
-  pure (unsub *> write false cref *> (read iref >>= traverse_ clearTimeout))
+    mkTimeout push (cT + newN) cref iref vref newN
+  pure { event, unsubscribe: liftST unsub *> write false cref *> (read iref >>= traverse_ clearTimeout) }
   where
   lookAhead = 0.04
   minVal = 0.01
@@ -52,8 +55,8 @@ interval ctx iN e = makeEvent \k -> do
           mkTimeout k (n + rt) cref iref vref rt
       write (Just tid) iref
 
-writeHead :: Number -> WebAPI.AudioContext -> WriteHead Behavior
-writeHead lookAhead ctx = behavior \eab -> makeEvent \k ->
+writeHead :: Number -> WebAPI.AudioContext -> WriteHead Poll
+writeHead lookAhead ctx = poll \eab -> makeEvent \k ->
   subscribe eab \ab -> do
     t <- getAudioClockTime ctx
     k (ab { concreteTime: t, abstractTime: t - lookAhead, lookAhead })

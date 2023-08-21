@@ -2,7 +2,7 @@ module Ocarina.Example.Docs.AudioUnits.PeriodicOsc where
 
 import Prelude
 
-import Bolson.Core (envy)
+
 import Data.Tuple.Nested ((/\))
 import Data.Vec (empty, (+>))
 import Deku.Core (Nut)

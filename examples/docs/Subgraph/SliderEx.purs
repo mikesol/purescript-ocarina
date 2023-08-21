@@ -17,7 +17,7 @@ import Effect (Effect)
 import Effect.Aff (launchAff, launchAff_)
 import Effect.Class (liftEffect)
 import Effect.Random as Random
-import FRP.Behavior (Behavior, behavior, sampleBy)
+import FRP.Poll (Poll, poll, sampleBy)
 import FRP.Event (Event, delay, fold, makeEvent, subscribe)
 import FRP.Event.VBus (V)
 import Ocarina.Control (gain_, playBuf)
@@ -44,14 +44,14 @@ import Data.Tuple.Nested ((/\))
 import Deku.Attribute (attr, cb, (:=))
 import Deku.Control (switcher, text, text_)
 import Deku.Core (Nut)
-import Bolson.Core (envy)
+
 import Deku.DOM as D
 import Deku.Toplevel (runInBody)
 import Effect (Effect)
 import Effect.Aff (launchAff_)
 import Effect.Class (liftEffect)
 import Effect.Random as Random
-import FRP.Behavior (Behavior, behavior, sampleBy)
+import FRP.Poll (Poll, poll, sampleBy)
 import FRP.Event (create, fold, makeEvent, subscribe, delay)
 
 import FRP.Event.VBus (V, vbus)
@@ -70,8 +70,8 @@ bell =
   "https://freesound.org/data/previews/339/339810_5121236-lq.mp3"
     :: String
 
-random :: Behavior Number
-random = behavior \e ->
+random :: Poll Number
+random = poll \e ->
   makeEvent \k -> subscribe e \f ->
     Random.random >>= k <<< f
 
@@ -142,8 +142,8 @@ bell :: String
 bell =
   "https://freesound.org/data/previews/339/339810_5121236-lq.mp3"
 
-random :: Behavior Number
-random = behavior \e ->
+random :: Poll Number
+random = poll \e ->
   makeEvent \k -> subscribe e \f ->
     Random.random >>= k <<< f
 

@@ -2,7 +2,7 @@ module Ocarina.Example.Docs.FixFan.Fan1 where
 
 import Prelude
 
-import Bolson.Core (envy)
+
 import Data.Array ((..))
 import Data.Int (toNumber)
 import Data.Profunctor (lcmap)
