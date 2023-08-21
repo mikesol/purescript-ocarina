@@ -4,10 +4,10 @@ import Prelude
 
 import Data.Tuple.Nested ((/\))
 import Deku.Control (text)
-import Deku.DOM.Elt.Button (button) as D
+import Deku.DOM as D
+import Deku.DOM.Listeners as DL
 import Deku.Do as Deku
 import Deku.Hooks (useState)
-import Deku.Listeners (click)
 import Deku.Toplevel (runInBody)
 import Effect (Effect)
 import Ocarina.Control (gain_, sinOsc)
@@ -20,7 +20,7 @@ main :: Effect Unit
 main = runInBody Deku.do
   setAudioState /\ audioState <- useState Stopped
   D.button
-    [ click $ audioState <#> case _ of
+    [ DL.runOn DL.click $ audioState <#> case _ of
         Playing { stopPlaying } -> do
           stopPlaying
           setAudioState Stopped

@@ -2,30 +2,32 @@ module Ocarina.Example.AtariSpeaks where
 
 import Prelude
 
-import Control.Alt (alt, (<|>))
+import Control.Alt ((<|>))
 import Control.Monad.ST.Class (liftST)
 import Control.Monad.ST.Internal as RRef
 import Data.Array ((..))
 import Data.ArrayBuffer.Typed (toArray)
 import Data.Foldable (for_, intercalate, fold)
 import Data.Lens (over, view)
+import Data.Map as Map
 import Data.Maybe (Maybe(..))
 import Data.Number (pi, sin)
-import Data.Profunctor (lcmap)
-import Data.Tuple (Tuple(..))
+import Data.Tuple.Nested ((/\))
 import Data.Typelevel.Num (D2)
 import Data.UInt (toInt)
-import Deku.Attribute (cb, (:=))
 import Deku.Control (text, text_)
-import Deku.Core (Nut, bussed)
+import Deku.Core (Nut)
 import Deku.DOM as DOM
+import Deku.DOM.Listeners as DL
+import Deku.Do as Deku
+import Deku.Hooks (useState)
 import Deku.Toplevel (runInBody)
 import Effect (Effect)
 import Effect.Aff (Aff, launchAff_)
 import Effect.Class (liftEffect)
-import FRP.Poll (sample_)
-import FRP.Event (Event, create, filterMap, hot, sampleOnRight, subscribe)
-import FRP.Event.Animate (animationFrameEvent)
+import FRP.Event (create, filterMap, subscribe)
+import FRP.Event.AnimationFrame (animationFrame)
+import FRP.Poll (Poll, sample, sample_, sham)
 import Ocarina.Clock (WriteHead, fot, writeHead)
 import Ocarina.Control (analyser_, gain_, loopBuf, speaker2)
 import Ocarina.Core (Audible, bangOn, opticN)
@@ -38,7 +40,7 @@ scene
   :: forall payload
    . BrowserAudioBuffer
   -> AnalyserNodeCb
-  -> WriteHead Event
+  -> WriteHead Poll
   -> Audible D2 payload
 scene buffer cb wh =
   let
@@ -90,57 +92,53 @@ atariSpeaks
   :: BrowserAudioBuffer
   -> RaiseCancellation
   -> Nut
-atariSpeaks atari rc = bussed \push -> lcmap (alt (pure TurnOn)) \event ->
+atariSpeaks atari rc = Deku.do
+  push /\ event <- useState TurnOn
   DOM.div_
     [ DOM.h1_ [ text_ "Atari speaks" ]
     , DOM.button
-        [ map
-            ( \i -> DOM.OnClick := cb
-                ( const $
-                    case i of
-                      Nothing -> do
-                        analyserE <- create
-                        ctx <- context
-                        rf <- liftST $ RRef.new 0
-                        ffi2 <- makeFFIAudioSnapshot ctx
-                        afe <- hot animationFrameEvent
-                        let wh = writeHead 0.04 ctx
-                        let
-                          audioE = speaker2
-                            [ scene atari
-                                ( AnalyserNodeCb
-                                    ( \a -> do
-                                        analyserE.push (Just a)
-                                        pure (analyserE.push Nothing)
-                                    )
-                                )
-                                (sample_ wh afe.event)
-                            ]
-                            (effectfulAudioInterpret rf)
-
-                        unsub' <- subscribe
-                          ( sampleOnRight
-                              (analyserE.event <|> pure Nothing)
-                              (map Tuple audioE)
+        [ DL.runOn DL.click $ map
+            ( case _ of
+                Nothing -> do
+                  analyserE <- liftST create
+                  start <- liftST create
+                  ctx <- context
+                  rf0 <- liftST $ RRef.new 0
+                  rf1 <- liftST $ RRef.new Map.empty
+                  ffi2 <- makeFFIAudioSnapshot ctx
+                  afe <- animationFrame
+                  let exec audio = audio ffi2
+                  let wh = writeHead 0.04 ctx
+                  let
+                    audioE = speaker2
+                      [ scene atari
+                          ( AnalyserNodeCb
+                              ( \a -> do
+                                  analyserE.push (Just a)
+                                  pure (analyserE.push Nothing)
+                              )
                           )
-                          ( \(Tuple audio analyser) -> do
-                              audio ffi2
-                              for_ analyser \a -> do
-                                frequencyData <- getByteFrequencyData a
-                                arr <- toArray frequencyData
-                                push $ AsciiMixer $ intercalate "\n" $
-                                  map (\ii -> fold ((0 .. toInt ii) $> ">")) arr
-                          )
-                        let unsub = unsub' *> afe.unsubscribe
-                        rc $ Just { unsub, ctx }
-                        push $ TurnOff { unsub, ctx }
-                      Just { unsub, ctx } -> do
-                        unsub
-                        close ctx
-                        rc Nothing
-                        push TurnOn
+                          (sample_ wh (sham afe.event))
+                      ]
+                      (effectfulAudioInterpret rf0 rf1 exec)
 
-                )
+                  unsub0 <- liftST $ subscribe (sample audioE start.event) exec
+                  unsub1 <- liftST $ subscribe analyserE.event \analyser -> do
+                    for_ analyser \a -> do
+                      frequencyData <- getByteFrequencyData a
+                      arr <- toArray frequencyData
+                      push $ AsciiMixer $ intercalate "\n" $
+                        map (\ii -> fold ((0 .. toInt ii) $> ">")) arr
+                  start.push identity
+                  let unsub = liftST unsub0 *> liftST unsub1 *> afe.unsubscribe
+                  rc $ Just { unsub, ctx }
+                  push $ TurnOff { unsub, ctx }
+                Just { unsub, ctx } -> do
+                  unsub
+                  close ctx
+                  rc Nothing
+                  push TurnOn
+
             )
             ( event # filterMap case _ of
                 AsciiMixer _ -> Nothing

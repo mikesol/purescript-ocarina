@@ -7,13 +7,14 @@ import Data.Array ((..))
 import Data.Int (toNumber)
 import Data.Number (pow)
 import Data.Profunctor (lcmap)
-import Deku.Attribute (cb, (:=))
+import Data.Tuple.Nested ((/\))
 import Deku.Control (text)
-import Deku.Core (bussed)
 import Deku.DOM as D
+import Deku.DOM.Listeners as DL
+import Deku.Do as Deku
+import Deku.Hooks (useState)
 import Deku.Toplevel (runInBody)
 import Effect (Effect)
-import FRP.Event (bus)
 import Ocarina.Control (gain_, gain, sinOsc)
 import Ocarina.Core (AudioEnvelope(..), AudioOnOff(..), _on, _off)
 import Ocarina.Properties (onOff)
@@ -50,25 +51,23 @@ cell = lcmap toNumber \i -> do
   ]
 
 main :: Effect Unit
-main = runInBody (bussed \push -> lcmap (pure Init <|> _) \event ->
+main = runInBody Deku.do
+  push /\ event <- useState Init
   D.div_
     [ D.button
-        [event <#>
-            \e -> D.OnClick := cb
-              ( const $ case e of
-                  Stop u -> u *> push Start
-                  _ -> do
-                    r <- run2_
-                      [ gain_ 1.0
-                          -- we create 100 cells
-                          $ join
-                          $ cell <$> 0 .. 100
-                      ]
-                    push $ Stop r
-              )
+        [ DL.runOn DL.click $ event <#> case _ of
+            Stop u -> u *> push Start
+            _ -> do
+              r <- run2_
+                [ gain_ 1.0
+                    -- we create 100 cells
+                    $ join
+                    $ cell <$> 0 .. 100
+                ]
+              push $ Stop r
         ]
         [ text $ event <#> case _ of
             Stop _ -> "Turn off"
             _ -> "Turn on"
         ]
-    ])
+    ]

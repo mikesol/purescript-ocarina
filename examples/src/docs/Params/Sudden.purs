@@ -39,7 +39,7 @@ px =
 """
 
 suddenEx
-  :: CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Nut
+  :: CancelCurrentAudio -> (Page -> Effect Unit) -> Poll SingleSubgraphEvent -> Nut
 suddenEx ccb _ ev = makePursx' (Proxy :: _ "@") px
   { suddenEx:
       ( audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")

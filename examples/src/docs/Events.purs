@@ -6,6 +6,7 @@ import Deku.Core (Nut)
 import Deku.Pursx (makePursx')
 import Effect (Effect)
 import FRP.Event (Event)
+import FRP.Poll (Poll)
 import Ocarina.Example.Docs.Events.Ex0 as Ex0
 import Ocarina.Example.Docs.Events.Ex1 as Ex1
 import Ocarina.Example.Docs.Events.Ex2 as Ex2

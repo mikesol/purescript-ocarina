@@ -11,7 +11,7 @@ import Deku.Control (text_)
 import Deku.Core (Nut)
 import Deku.Pursx ((~~))
 import Effect (Effect)
-import FRP.Event (Event)
+import FRP.Poll (Poll)
 import Ocarina.Control (loopBuf, waveShaper)
 import Ocarina.Core (bangOn)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
@@ -32,7 +32,7 @@ px =
 """
 
 waveShaperEx
-  :: CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Nut
+  :: CancelCurrentAudio -> (Page -> Effect Unit) -> Poll SingleSubgraphEvent -> Nut
 waveShaperEx ccb _ ev = px ~~
   { code:
       ( text_

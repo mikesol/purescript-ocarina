@@ -3,18 +3,22 @@ module Ocarina.Example.Docs.Events.Ex1TL where
 import Prelude
 
 import Control.Alt ((<|>))
+import Control.Monad.ST.Class (liftST)
 import Data.Foldable (traverse_)
 import Data.Maybe (Maybe(..), maybe)
-import Deku.Attribute (attr, cb, (:=))
-import Deku.Control (text, switcher, text_)
-import Deku.Core (Nut, vbussed)
+import Data.Tuple.Nested ((/\))
+import Deku.Control (text, text_)
+import Deku.Core (Nut)
 import Deku.DOM as D
+import Deku.DOM.Attributes as DA
+import Deku.DOM.Listeners as DL
+import Deku.Do as Deku
+import Deku.Hooks (useState, useState', (<#~>))
 import Deku.Toplevel (runInBody)
 import Effect (Effect)
 import Effect.Aff (launchAff_)
 import Effect.Class (liftEffect)
-import FRP.Event (create)
-import FRP.Event.VBus (V)
+import FRP.Poll (create)
 import Ocarina.Control (loopBuf)
 import Ocarina.Core (bangOn)
 import Ocarina.Interpret (bracketCtx, decodeAudioDataFromUri)
@@ -23,22 +27,16 @@ import Ocarina.Properties (loopEnd, loopStart, playbackRate)
 import Ocarina.Run (run2_)
 import Ocarina.WebAPI (BrowserAudioBuffer)
 import QualifiedDo.Alt as OneOf
-import QualifiedDo.OneOfMap as O
-import Type.Proxy (Proxy(..))
 import Web.Event.Event (target)
 import Web.HTML.HTMLInputElement (fromEventTarget, valueAsNumber)
-
-type Slider = V (s0 :: Number, s1 :: Number, s2 :: Number)
-type StartStop = V (start :: Unit, stop :: Effect Unit)
-type UIEvents = V (startStop :: StartStop, slider :: Slider)
 
 atari =
   "https://freesound.org/data/previews/100/100981_1234256-lq.mp3" :: String
 
 main :: Effect Unit
 main = do
-  { push, event } <- create
-  runInBody (switcher scene (event))
+  { push, poll } <- liftST create
+  runInBody (poll <#~> scene)
   push Nothing
   launchAff_ $ bracketCtx
     \ctx -> decodeAudioDataFromUri ctx atari >>= liftEffect
@@ -49,12 +47,13 @@ main = do
     :: Maybe BrowserAudioBuffer
     -> Nut
   scene = maybe (D.div_ [ text_ "Loading..." ]) \buffer ->
-    D.div_ $ pure $ vbussed (Proxy :: _ UIEvents) \push event -> do
+    Deku.do
+      setS0 /\ sl0 <- useState'
+      setS1 /\ sl1 <- useState'
+      setS2 /\ sl2 <- useState'
+      setStart /\ start <- useState unit
+      setStop /\ stop <- useState'
       let
-        sl0 = event.slider.s0
-        sl1 = event.slider.s1
-        sl2 = event.slider.s2
-        start = event.startStop.start <|> pure unit
         music = run2_
           [ loopBuf
               { buffer: buffer
@@ -62,17 +61,12 @@ main = do
               , loopStart: 0.6
               , loopEnd: 1.1
               }
-              OneOf.do
-                bangOn
-                map
-                  (calcSlope 0.0 0.2 100.0 5.0 >>> playbackRate)
-                  sl0
-                map
-                  (calcSlope 0.0 0.0 100.0 1.2 >>> loopStart)
-                  sl1
-                map
-                  (calcSlope 0.0 0.05 100.0 1.0 >>> loopEnd)
-                  (add <$> (pure 0.0 <|> sl1) <*> sl2)
+              $ OneOf.do
+                  bangOn
+                  (calcSlope 0.0 0.2 100.0 5.0 >>> playbackRate) <$> sl0
+                  (calcSlope 0.0 0.0 100.0 1.2 >>> loopStart) <$> sl1
+                  (calcSlope 0.0 0.05 100.0 1.0 >>> loopEnd) <$> (_ <*> sl2)
+                    (add <$> (pure 0.0 <|> sl1))
           ]
       D.div_
         $
@@ -80,34 +74,32 @@ main = do
             ( \{ l, f } -> D.div_
                 [ text_ l
                 , D.input
-                    [O.oneOfMap pure O.do
-                        D.Xtype := "range"
-                        D.Min := "0"
-                        D.Max := "100"
-                        D.Step := "1"
-                        D.Value := "50"
-                        D.OnInput := cb
-                          ( traverse_
-                              (valueAsNumber >=> f)
-                              <<< (=<<) fromEventTarget
-                              <<< target
-                          )
+                    [ DA.xtypeRange
+                    , DA.min_ "0"
+                    , DA.max_ "100"
+                    , DA.step_ "1"
+                    , DA.value_ "50"
+                    , DL.input_
+                        ( traverse_
+                            (valueAsNumber >=> f)
+                            <<< (=<<) fromEventTarget
+                            <<< target
+                        )
                     ]
                     []
                 ]
             )
-            [ { l: "Playback rate", f: push.slider.s0 }
-            , { l: "Loop start", f: push.slider.s1 }
-            , { l: "Loop end", f: push.slider.s2 }
+            [ { l: "Playback rate", f: setS0 }
+            , { l: "Loop start", f: setS1 }
+            , { l: "Loop end", f: setS2 }
             ] <>
+
             [ D.button
-                [O.oneOfMap (map (attr D.OnClick <<< cb <<< const)) O.do
-                    start $> (music >>= push.startStop.stop)
-                    event.startStop.stop <#>
-                      (_ *> push.startStop.start unit)
+                [ DL.runOn DL.click $ start $> (music >>= setStop)
+                , DL.runOn DL.click $ stop <#> (_ *> setStart unit)
                 ]
-                [ text OneOf.do
+                [ text $ OneOf.do
+                    stop $> "Turn off"
                     start $> "Turn on"
-                    event.startStop.stop $> "Turn off"
                 ]
             ]

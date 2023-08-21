@@ -8,6 +8,7 @@ import Deku.Core (Nut)
 import Deku.Pursx (makePursx')
 import Effect (Effect)
 import FRP.Event (Event)
+import FRP.Poll (Poll)
 import Ocarina.Control (delay_, fan1, fix, gain, gain_, highpass_, playBuf)
 import Ocarina.Core (AudioEnvelope(..), bangOn)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
@@ -36,7 +37,7 @@ fade1 = pure
   $ P.gain
   $ AudioEnvelope { p: [ 1.0, 1.0, 0.0 ], o: 0.0, d: 10.0 }
 
-fix1 :: CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Nut
+fix1 :: CancelCurrentAudio -> (Page -> Effect Unit) -> Poll SingleSubgraphEvent -> Nut
 fix1 ccb _ ev = makePursx' (Proxy :: _ "@") px
   { txt: text_
       """dgh d g h i =

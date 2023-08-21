@@ -14,7 +14,7 @@ import Effect (Effect)
 import Effect.Random as Random
 import FRP.Poll (Poll, poll, sampleBy)
 import FRP.Event (Event, makeEvent, memoize, subscribe)
-import FRP.Event.VBus (V)
+
 import Ocarina.Clock(interval)
 import Ocarina.Control (bandpass_, fan1, gain, gain_, highpass_, triangleOsc)
 import Ocarina.Core (Audible, AudioEnvelope(AudioEnvelope), bangOn)

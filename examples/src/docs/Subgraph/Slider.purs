@@ -19,7 +19,6 @@ import Effect.Class (liftEffect)
 import Effect.Random as Random
 import FRP.Poll (Poll, poll, sampleBy)
 import FRP.Event (create, delay, fold, makeEvent, subscribe)
-import FRP.Event.VBus (V)
 import Ocarina.Control (gain_, playBuf)
 import Ocarina.Core (dyn, sound, silence, bangOn)
 import Ocarina.Interpret (bracketCtx, decodeAudioDataFromUri)

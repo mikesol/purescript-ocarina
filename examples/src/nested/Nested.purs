@@ -5,9 +5,9 @@ import Prelude
 import Control.Alt ((<|>))
 import Data.Foldable (oneOf)
 import Data.Tuple.Nested ((/\))
-import Deku.Attribute (attr, cb)
 import Deku.Control (text)
 import Deku.DOM as D
+import Deku.DOM.Listeners as DL
 import Deku.Do as Deku
 import Deku.Hooks (useState')
 import Deku.Toplevel (runInBody)
@@ -50,21 +50,19 @@ main = runInBody Deku.do
                   )
               )
           )
-          [sinOsc 440.0 bangOn]
+          [ sinOsc 440.0 bangOn ]
 
       ]
   D.div_
     [ D.div_
         [ D.button
-            ( map (map (attr D.OnClick <<< cb <<< const))
-                [ stopE <#>
-                    (_ *> setStart unit)
-                , startE $> do
-                    ctx <- context
-                    r <- run2 ctx music
-                    setStop (r *> close ctx)
-                ]
-            )
+            [ DL.runOn DL.click $ stopE <#>
+                (_ *> setStart unit)
+            , DL.runOn DL.click $ startE $> do
+                ctx <- context
+                r <- run2 ctx music
+                setStop (r *> close ctx)
+            ]
             [ text $ oneOf
                 [ startE $> "Turn on"
                 , stopE $> "Turn off"

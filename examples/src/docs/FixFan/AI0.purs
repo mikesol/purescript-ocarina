@@ -8,6 +8,7 @@ import Deku.Core (Nut)
 import Deku.Pursx (makePursx')
 import Effect (Effect)
 import FRP.Event (Event)
+import FRP.Poll (Poll)
 import Ocarina.Control (gain_, playBuf)
 import Ocarina.Core (apOn, dt)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
@@ -33,7 +34,7 @@ px =
   </div>
 """
 
-ai0 :: CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Nut
+ai0 :: CancelCurrentAudio -> (Page -> Effect Unit) -> Poll SingleSubgraphEvent -> Nut
 ai0 ccb _ ev = makePursx' (Proxy :: _ "@") px
   { ai0:
       ( audioWrapper ev ccb

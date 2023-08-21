@@ -6,7 +6,7 @@ import Prelude
 import Deku.Core (Nut)
 import Deku.Pursx ((~~))
 import Effect (Effect)
-import FRP.Event (Event)
+import FRP.Poll (Poll)
 import Ocarina.Control (gain_, sawtoothOsc)
 import Ocarina.Core (bangOn)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
@@ -29,7 +29,7 @@ px =
 """
 
 sawtooth
-  :: CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Nut
+  :: CancelCurrentAudio -> (Page -> Effect Unit) -> Poll SingleSubgraphEvent -> Nut
 sawtooth ccb _ ev = px ~~
   { periodic:
       ( audioWrapper ev ccb (\_ -> pure unit)

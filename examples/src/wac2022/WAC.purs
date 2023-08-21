@@ -3,26 +3,28 @@ module Ocarina.Example.WAC where
 import Prelude
 
 import Control.Alt ((<|>))
+import Control.Monad.ST.Class (liftST)
 import Data.Array ((..))
 import Data.Foldable (oneOf)
 import Data.Int (toNumber)
 import Data.Traversable (sequence)
 import Data.Tuple.Nested ((/\))
-import Deku.Attribute (attr, cb)
 import Deku.Control (text)
 import Deku.DOM as D
+import Deku.DOM.Listeners as DL
 import Deku.Do as Deku
 import Deku.Hooks (useState')
 import Deku.Toplevel (runInBody)
 import Effect (Effect)
-import FRP.Event (keepLatest, memoize)
+import FRP.Event (create, keepLatest)
+import FRP.Poll (rant, sham)
 import Ocarina.Clock (interval)
 import Ocarina.Control (gain, gain_, sinOsc)
 import Ocarina.Core (Audible, AudioEnvelope(AudioEnvelope), AudioOnOff(AudioOnOff), _off, _on)
 import Ocarina.Interpret (close, context)
 import Ocarina.Properties (onOff)
 import Ocarina.Properties as P
-import Ocarina.Run (run2e)
+import Ocarina.Run (run2)
 
 main :: Effect Unit
 main = runInBody Deku.do
@@ -57,19 +59,17 @@ main = runInBody Deku.do
   D.div_
     [ D.div_
         [ D.button
-            ( map (map (attr D.OnClick <<< cb <<< const))
-                [ stop <#>
+            [ DL.runOn DL.click $ stop <#>
                     (_ *> setStart unit)
-                , start $> do
+                , DL.runOn DL.click $ start $> do
                     ctx <- context
-                    r <- run2e ctx
-                      ( memoize
-                          (interval ctx 0.25 (pure 0.25))
-                          music
-                      )
-                    setStop (r *> close ctx)
+                    ep <- liftST create
+                    ii <- interval ctx 0.25 ep.event
+                    rt <- liftST $ rant (sham ii.event <|> pure 0.25)
+                    r <- run2 ctx (music rt.poll)
+                    ep.push 0.25
+                    setStop (r *> ii.unsubscribe *> liftST rt.unsubscribe *> close ctx)
                 ]
-            )
             [ text $ oneOf
                 [ startE $> "Turn on"
                 , stopE $> "Turn off"

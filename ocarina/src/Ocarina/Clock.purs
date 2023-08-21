@@ -3,13 +3,13 @@ module Ocarina.Clock where
 import Prelude
 
 import Control.Monad.ST.Class (liftST)
+import Control.Monad.ST.Internal (new, read, write)
 import Data.Foldable (traverse_)
 import Data.Int (round)
 import Data.Maybe (Maybe(..))
 import Effect (Effect)
-import Effect.Ref (new, read, write)
 import Effect.Timer (clearTimeout, setTimeout)
-import FRP.Event (Event, create, makeEvent, subscribe)
+import FRP.Event (Event, makeEvent, subscribe)
 import FRP.Poll (Poll, poll)
 import Ocarina.Core (AudioNumeric(..), AudioOnOff(..), _linear)
 import Ocarina.Interpret (getAudioClockTime)
@@ -27,33 +27,35 @@ withACTime ctx e = makeEvent \k -> do
     acTime <- getAudioClockTime ctx
     k { acTime, value }
 
-interval :: AudioContext -> Number -> Event Number -> Effect { event :: Event Number, unsubscribe :: Effect Unit }
-interval ctx iN e = do
-  { event, push } <- liftST create
-  cref <- new true
-  iref <- new Nothing
+interval :: AudioContext -> Effect { fevent :: Event Number -> Event Number, unsubscribe :: Effect Unit }
+interval ctx = do
+  cref <- liftST $ new true
+  iref <- liftST $ new Nothing
   acTime <- getAudioClockTime ctx
-  vref <- new (acTime + iN)
-  mkTimeout push iN cref iref vref iN
-  unsub <- liftST $ subscribe e \newN -> do
-    read iref >>= traverse_ clearTimeout
-    cT <- read vref
-    mkTimeout push (cT + newN) cref iref vref newN
-  pure { event, unsubscribe: liftST unsub *> write false cref *> (read iref >>= traverse_ clearTimeout) }
+  vref <- liftST $ new acTime
+  pure
+    { unsubscribe: liftST (write false cref) *> (liftST (read iref) >>= traverse_ clearTimeout)
+    , fevent: \e -> makeEvent \k -> do
+        subscribe e \newN -> do
+          irr <- liftST $ read iref
+          traverse_ clearTimeout irr
+          cT <- liftST $ read vref
+          mkTimeout k (cT + newN) cref iref vref newN
+    }
   where
   lookAhead = 0.04
   minVal = 0.01
   mkTimeout k n cref iref vref rt = do
-    go0 <- read cref
+    go0 <- liftST $ read cref
     when go0 do
       t <- getAudioClockTime ctx
       tid <- setTimeout (round ((max (n - t - lookAhead) minVal) * 1000.0)) do
-        go1 <- read cref
+        go1 <- liftST $ read cref
         when go1 do
-          write n vref
+          void $ liftST $ write n vref
           k n
           mkTimeout k (n + rt) cref iref vref rt
-      write (Just tid) iref
+      void $ liftST $ write (Just tid) iref
 
 writeHead :: Number -> WebAPI.AudioContext -> WriteHead Poll
 writeHead lookAhead ctx = poll \eab -> makeEvent \k ->

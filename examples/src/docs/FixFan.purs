@@ -6,6 +6,7 @@ import Deku.Core (Nut)
 import Deku.Pursx (makePursx')
 import Effect (Effect)
 import FRP.Event (Event)
+import FRP.Poll (Poll)
 import Ocarina.Example.Docs.FixFan.AI0 as AI0
 import Ocarina.Example.Docs.FixFan.AI1 as AI1
 import Ocarina.Example.Docs.FixFan.Fan0 as Fan0

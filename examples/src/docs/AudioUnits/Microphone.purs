@@ -7,7 +7,7 @@ import Data.Maybe (Maybe(..))
 import Deku.Core (Nut)
 import Deku.Pursx (makePursx')
 import Effect (Effect)
-import FRP.Event (Event)
+import FRP.Poll (Poll)
 import Ocarina.Control (delay_, fix, gain_, microphone, sinOsc_)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import Ocarina.Example.Docs.Util (audioWrapper)
@@ -36,7 +36,7 @@ px =
 """
 
 microphoneEx
-  :: CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Nut
+  :: CancelCurrentAudio -> (Page -> Effect Unit) -> Poll SingleSubgraphEvent -> Nut
 microphoneEx ccb _ ev = makePursx' (Proxy :: _ "@") px
   { microphone:
       ( audioWrapper ev ccb (\_ -> getMicrophoneAndCamera true false)

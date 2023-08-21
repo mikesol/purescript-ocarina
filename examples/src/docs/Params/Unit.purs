@@ -7,6 +7,7 @@ import Deku.Core (Nut)
 import Deku.Pursx ((~~))
 import Effect (Effect)
 import FRP.Event (Event)
+import FRP.Poll (Poll)
 import Ocarina.Control (constant, gain_, loopBuf, lowpass_, squareOsc)
 import Ocarina.Core (bangOn, c1)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
@@ -42,7 +43,7 @@ px =
   </section>
 """
 
-unitEx :: CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Nut
+unitEx :: CancelCurrentAudio -> (Page -> Effect Unit) -> Poll SingleSubgraphEvent -> Nut
 unitEx ccb _ ev = px ~~
   { unitEx:
       ( audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")

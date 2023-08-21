@@ -15,9 +15,9 @@ import Deku.Toplevel (runInBody)
 import Effect (Effect)
 import FRP.Poll (sampleBy, sample_, step)
 import FRP.Event (memoize)
-import FRP.Event.Animate (animationFrameEvent)
+
 import FRP.Event.Class (fold, mapAccum, sampleOnRight)
-import FRP.Event.VBus (V)
+
 import Ocarina.Clock(withACTime)
 import Ocarina.Control (gain, periodicOsc)
 import Ocarina.Core (AudioNumeric(..), _linear, bangOn)

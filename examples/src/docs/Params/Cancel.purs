@@ -32,7 +32,7 @@ px =
   </section>
 """
 
-cancelEx :: CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Nut
+cancelEx :: CancelCurrentAudio -> (Page -> Effect Unit) -> Poll SingleSubgraphEvent -> Nut
 cancelEx ccb _ ev = px ~~
   { txt:
       ( text_

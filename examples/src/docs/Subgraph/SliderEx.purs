@@ -19,7 +19,6 @@ import Effect.Class (liftEffect)
 import Effect.Random as Random
 import FRP.Poll (Poll, poll, sampleBy)
 import FRP.Event (Event, delay, fold, makeEvent, subscribe)
-import FRP.Event.VBus (V)
 import Ocarina.Control (gain_, playBuf)
 import Ocarina.Core (Audible, silence, sound, bangOn, dyn)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..))

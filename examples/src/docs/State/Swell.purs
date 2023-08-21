@@ -22,7 +22,7 @@ import FRP.Poll (APoll, Poll, poll, sample, sampleBy, sample_, step, switcher)
 import FRP.Poll.Mouse (buttons)
 import FRP.Poll.Time as Time
 import FRP.Event (memoize)
-import FRP.Event.Animate (animationFrameEvent)
+
 import FRP.Event.Class (class IsEvent, fix, fold, sampleOnRight, withLast)
 import FRP.Event.Mouse (Mouse, down, getMouse)
 import Ocarina.Clock (withACTime)

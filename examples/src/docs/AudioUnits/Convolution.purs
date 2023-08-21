@@ -6,7 +6,7 @@ import Prelude
 import Deku.Core (Nut)
 import Deku.Pursx ((~~))
 import Effect (Effect)
-import FRP.Event (Event)
+import FRP.Poll (Poll)
 import Ocarina.Control (convolver, loopBuf)
 import Ocarina.Core (bangOn)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
@@ -26,7 +26,7 @@ px = Proxy :: Proxy """<section>
   </section>
 """
 
-convolution :: CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Nut
+convolution :: CancelCurrentAudio -> (Page -> Effect Unit) -> Poll SingleSubgraphEvent -> Nut
 convolution ccb _ ev = px ~~
   { convolution:
       (  audioWrapper ev ccb (\ctx -> { loop: _, verb: _ }

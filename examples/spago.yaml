@@ -9,3 +9,11 @@ package:
   - deku
   - deku-core
   - deku-dom
+  - qualified-do
+  - canvas
+  - uint
+  - arraybuffer
+  - avar
+  - web-pointerevents
+  - web-touchevents
+  - stringutils

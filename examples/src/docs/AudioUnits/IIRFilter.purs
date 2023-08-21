@@ -2,13 +2,12 @@ module Ocarina.Example.Docs.AudioUnits.IIRFilter where
 
 import Prelude
 
-
 import Data.FastVect.FastVect ((:), empty)
 import Data.Tuple.Nested ((/\))
 import Deku.Core (Nut)
 import Deku.Pursx ((~~))
 import Effect (Effect)
-import FRP.Event (Event)
+import FRP.Poll (Poll)
 import Ocarina.Control (iirFilter, loopBuf)
 import Ocarina.Core (bangOn)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
@@ -40,7 +39,7 @@ px =
 """
 
 iirFilterEx
-  :: CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Nut
+  :: CancelCurrentAudio -> (Page -> Effect Unit) -> Poll SingleSubgraphEvent -> Nut
 iirFilterEx ccb _ ev = px ~~
   { iirFilterEx:
       (audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")

@@ -7,6 +7,7 @@ import Deku.Core (Nut)
 import Deku.Pursx ((~~))
 import Effect (Effect)
 import FRP.Event (Event)
+import FRP.Poll (Poll)
 import Ocarina.Control (gain_, loopBuf)
 import Ocarina.Core (bangOn)
 import Ocarina.Example.Docs.Subgraph.SliderEx as SliderEx

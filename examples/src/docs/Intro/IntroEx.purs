@@ -30,8 +30,7 @@ import Effect.Random as Random
 import Effect.Ref (new, read, write)
 import FRP.Poll (poll)
 import FRP.Event (Event, makeEvent, subscribe)
-import FRP.Event.Animate (animationFrameEvent)
-import FRP.Event.VBus (V, vbus)
+
 import Foreign.Object (fromHomogeneous, values)
 import Graphics.Canvas (CanvasElement, arc, beginPath, fill, fillRect, getContext2D, setFillStyle)
 import Ocarina.Clock(withACTime)
@@ -110,7 +109,7 @@ denv s e = pure
 ttap (o /\ n) = AudioNumeric { o: o + 0.04, n, t: _linear }
 
 introEx
-  :: CancelCurrentAudio -> (Page -> Effect Unit) -> Event SingleSubgraphEvent -> Nut
+  :: CancelCurrentAudio -> (Page -> Effect Unit) -> Poll SingleSubgraphEvent -> Nut
 introEx ccb _ ev = makePursx' (Proxy :: _ "@") px
   { ex1:
       ( vbussed (Proxy :: _ UIEvents) \push event -> -- here
