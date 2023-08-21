@@ -16,15 +16,21 @@ workspace:
       dependencies:
         - hyrule
     deku:
-      repo: "https://github.com/mikesol/purescript-deku.git"
+      git: "https://github.com/mikesol/purescript-deku.git"
       subdir: deku
-      version: "fantasy-land3"
+      ref: "92c35427a5ae3748ce056a3243276b9b26153212"
       dependencies:
         - bolson
     deku-core:
-      repo: "https://github.com/mikesol/purescript-deku.git"
+      git: "https://github.com/mikesol/purescript-deku.git"
       subdir: deku-core
-      version: "fantasy-land3"
+      ref: "92c35427a5ae3748ce056a3243276b9b26153212"
+      dependencies:
+        - bolson
+    deku-dom:
+      git: "https://github.com/mikesol/purescript-deku.git"
+      subdir: deku-dom
+      ref: "92c35427a5ae3748ce056a3243276b9b26153212"
       dependencies:
         - bolson
     tidy: 

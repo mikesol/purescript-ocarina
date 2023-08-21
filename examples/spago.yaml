@@ -8,3 +8,4 @@ package:
   - free
   - deku
   - deku-core
+  - deku-dom
