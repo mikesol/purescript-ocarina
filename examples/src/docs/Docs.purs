@@ -2,9 +2,7 @@ module Ocarina.Example.Docs where
 
 import Prelude
 
-import Control.Alt ((<|>))
 import Data.Filterable (filter)
-import Data.Foldable (oneOfMap)
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype)
 import Data.Tuple.Nested ((/\))
