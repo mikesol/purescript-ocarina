@@ -3,13 +3,15 @@ module Ocarina.Example.Docs.Subgraph.SliderEx where
 import Prelude
 
 import Control.Alt ((<|>))
-import Data.Foldable (oneOf, oneOfMap)
-import Data.Tuple (fst)
+import Data.Either (hush)
+import Data.Foldable (oneOf)
+import Data.Tuple (Tuple(..), fst)
 import Data.Tuple.Nested ((/\))
-import Deku.Attribute (attr, cb, (:=))
 import Deku.Control (text, text_)
 import Deku.Core (Nut)
 import Deku.DOM as D
+import Deku.DOM.Attributes as DA
+import Deku.DOM.Listeners as DL
 import Deku.Do as Deku
 import Deku.Hooks (useState')
 import Deku.Pursx (makePursx')
@@ -17,17 +19,16 @@ import Effect (Effect)
 import Effect.Aff (launchAff, launchAff_)
 import Effect.Class (liftEffect)
 import Effect.Random as Random
-import FRP.Poll (Poll, poll, sampleBy)
-import FRP.Event (Event, delay, fold, makeEvent, subscribe)
+import FRP.Event (delay, filterMap, fold, makeEvent, subscribe)
+import FRP.Event.Class (once)
+import FRP.Poll (Poll, dredge, poll, sampleBy)
 import Ocarina.Control (gain_, playBuf)
-import Ocarina.Core (Audible, silence, sound, bangOn, dyn)
+import Ocarina.Core (Audible, silence, bangOn, dyn)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..))
 import Ocarina.Example.Docs.Util (raceSelf)
 import Ocarina.Interpret (close, constant0Hack, context, decodeAudioDataFromUri)
 import Ocarina.Run (run2_)
 import Type.Proxy (Proxy(..))
-
-
 
 txt :: String
 txt =
@@ -134,9 +135,6 @@ main = do
         ]
 """
 
-type StartStop = V (start :: Unit, stop :: Effect Unit, loading :: Unit)
-type UIEvents = V (startStop :: StartStop, slider :: Unit)
-
 bell :: String
 bell =
   "https://freesound.org/data/previews/339/339810_5121236-lq.mp3"
@@ -149,7 +147,7 @@ random = poll \e ->
 sgSliderEx
   :: CancelCurrentAudio
   -> (Page -> Effect Unit)
-  -> Event SingleSubgraphEvent
+  -> Poll SingleSubgraphEvent
   -> Nut
 sgSliderEx ccb _ ev = makePursx' (Proxy :: _ "@") px
   { txt: (text_ txt)
@@ -169,12 +167,12 @@ sgSliderEx ccb _ ev = makePursx' (Proxy :: _ "@") px
           [ gain_ 1.0
               [ dyn $ map
                   ( \i ->
-                      oneOf
-                        [ pure $ sound $ playBuf
+                      Tuple
+                        ((filterMap (hush >>> map fst) (dredge (delay 5000) $ once sl)) $> silence)
+                        ( playBuf
                             { buffer: buffer, playbackRate: 0.7 + (fst i) * 2.0 }
                             bangOn
-                        , delay 5000 $ pure $ silence
-                        ]
+                        )
                   )
                   sl
               ]
@@ -183,42 +181,39 @@ sgSliderEx ccb _ ev = makePursx' (Proxy :: _ "@") px
         [ D.div_
             [ text_ "Slide me!"
             , D.input
-                [oneOfMap pure
-                    [ D.Xtype := "range"
-                    , D.Min := "0"
-                    , D.Max := "100"
-                    , D.Step := "1"
-                    , D.Value := "50"
-                    , D.OnInput := cb (const (setSlider unit))
-                    ]
+                [ DA.xtypeRange
+                , DA.min_ "0"
+                , DA.max_ "100"
+                , DA.step_ "1"
+                , DA.value_ "50"
+                , DL.input_ \_ -> setSlider unit
                 ]
                 []
             ]
         , D.button
-            [oneOfMap (map (attr D.OnClick <<< cb <<< const))
-                [ loading $> pure unit
-                , stopE <#>
-                    (_ *> (ccb (pure unit) *> setStart unit))
-                , ( (startE $> identity) <*> (pure (pure unit) <|> (map (\(SetCancel x) -> x) ev))
+            [ DL.runOn DL.click $ loading $> pure unit
+            , DL.runOn DL.click $ stopE <#>
+                (_ *> (ccb (pure unit) *> setStart unit))
+            , DL.runOn DL.click $
+                ( (startE $> identity) <*> (pure (pure unit) <|> (map (\(SetCancel x) -> x) ev))
 
-                  ) <#> \cncl -> do
-                    cncl
-                    setLoading unit
-                    fib <- launchAff do
-                      ctx <- context
-                      c0h <- constant0Hack ctx
-                      buffer <- decodeAudioDataFromUri ctx bell
-                      liftEffect do
-                        res' <- run2_ (music buffer)
-                        let res = res' *> c0h *> close ctx
-                        setStop res
-                        pure res
-                    ccb do
-                      setStart unit
-                      launchAff_ $ raceSelf fib
-                    pure unit
+                ) <#> \cncl -> do
+                  cncl
+                  setLoading unit
+                  fib <- launchAff do
+                    ctx <- context
+                    c0h <- constant0Hack ctx
+                    buffer <- decodeAudioDataFromUri ctx bell
+                    liftEffect do
+                      res' <- run2_ (music buffer)
+                      let res = res' *> c0h *> close ctx
+                      setStop res
+                      pure res
+                  ccb do
+                    setStart unit
+                    launchAff_ $ raceSelf fib
+                  pure unit
 
-                ]
             ]
             [ text $ oneOf
                 [ map (const "Turn off") stopE

@@ -5,7 +5,6 @@ import Prelude
 import Deku.Core (Nut)
 import Deku.Pursx (makePursx')
 import Effect (Effect)
-import FRP.Event (Event)
 import FRP.Poll (Poll)
 import Ocarina.Example.Docs.FixFan.AI0 as AI0
 import Ocarina.Example.Docs.FixFan.AI1 as AI1
@@ -73,7 +72,7 @@ px = Proxy :: Proxy
   <p>In this section, saw how to combine together audio nodes with arrays, fan one audio node to many processing chains via <code>fan</code>, and how to create a fixed point, aka feedback, for a node via <code>fix</code>. In the next section, we'll ramp up on all of the yummy <a @next@ style="cursor:pointer;">audio nodes you can use</a>.</p>
 </div>"""
 
-fixFan :: CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent -> Nut
+fixFan :: CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Poll SingleSubgraphEvent -> Nut
 fixFan cca' dpage ssp ev = makePursx'  (Proxy :: _ "@") px
   { intro: (FFIntro.ffIntro cca' dpage ssp ev)
   , next: mnx AudioUnits

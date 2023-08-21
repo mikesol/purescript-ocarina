@@ -5,7 +5,8 @@ import Prelude
 import Deku.Core (Nut)
 import Deku.Pursx (makePursx')
 import Effect (Effect)
-import FRP.Event (Event, delay)
+import FRP.Event (delay_)
+import FRP.Poll (Poll, dredge)
 import Ocarina.Control (gain_, loopBuf)
 import Ocarina.Core (AudioNumeric(..), _exponential, _linear, _step, bangOn)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
@@ -66,7 +67,7 @@ numericEx ccb _ ev = makePursx' (Proxy :: _ "@") px
             [ gain_ 1.0
                 [ loopBuf buf OneOf.do
                     bangOn
-                    delay 1000 OneOf.do
+                    dredge (delay_ 1000) OneOf.do
                       pure
                         $ playbackRate
                         $ AudioNumeric { n: 1.0, o: 1.0, t: _step }
@@ -74,7 +75,7 @@ numericEx ccb _ ev = makePursx' (Proxy :: _ "@") px
                         $ playbackRate
                         $ AudioNumeric { n: 1.3, o: 2.0, t: _linear }
 
-                    delay 2500 OneOf.do
+                    dredge (delay_ 2500) OneOf.do
                       pure
                         $ playbackRate
                         $ AudioNumeric { n: 1.0, o: 2.5, t: _step }

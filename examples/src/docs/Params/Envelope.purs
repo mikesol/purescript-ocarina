@@ -8,7 +8,8 @@ import Deku.Control (text_)
 import Deku.Core (Nut)
 import Deku.Pursx ((~~))
 import Effect (Effect)
-import FRP.Event (Event, delay)
+import FRP.Event (delay_)
+import FRP.Poll (Poll, dredge)
 import Ocarina.Control (gain_, loopBuf)
 import Ocarina.Core (AudioEnvelope(..), bangOn)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
@@ -55,7 +56,7 @@ envelopeEx ccb _ ev = px ~~
                 [ loopBuf buf
                     ( oneOf
                         [ bangOn
-                        , delay 1000
+                        , dredge (delay_ 1000)
                             $ pure
                             $ playbackRate
                             $ AudioEnvelope

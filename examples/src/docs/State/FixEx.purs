@@ -3,7 +3,8 @@ module Ocarina.Example.Docs.FixEx where
 import Prelude
 
 import Control.Alt ((<|>))
-import Data.Foldable (oneOf, oneOfMap)
+import Control.Monad.ST.Class (liftST)
+import Data.Foldable (oneOf)
 import Data.Maybe (Maybe(..))
 import Data.Newtype (unwrap)
 import Data.Profunctor.Strong (second)
@@ -11,33 +12,32 @@ import Data.Set (isEmpty)
 import Data.Tuple.Nested ((/\))
 import Data.Vec ((+>))
 import Data.Vec as V
-import Deku.Attribute (attr, cb)
 import Deku.Control (text, text_)
-import Deku.Core (Nut, vbussed)
+import Deku.Core (Nut)
 import Deku.DOM as D
+import Deku.DOM.Listeners as DL
+import Deku.Do as Deku
+import Deku.Hooks (useState')
 import Deku.Pursx ((~~))
 import Effect (Effect)
 import Effect.Random (randomInt)
-import FRP.Poll (APoll, Poll, poll, sample, sampleBy, sample_, step, switcher)
-import FRP.Poll.Mouse (buttons)
-import FRP.Poll.Time as Time
-import FRP.Event (Event, memoize)
-
+import FRP.Event (Event)
+import FRP.Event.AnimationFrame (animationFrame)
 import FRP.Event.Class (class IsEvent, fix, fold, sampleOnRight, withLast)
 import FRP.Event.Mouse (Mouse, down, getMouse)
-
-import Ocarina.Clock(withACTime)
+import FRP.Poll (class Pollable, APoll, Poll, poll, rant, sample, sampleBy, sample_, sham, step, switcher)
+import FRP.Poll.Mouse (buttons)
+import FRP.Poll.Time as Time
+import Ocarina.Clock (withACTime)
 import Ocarina.Control (bandpass_, gain, lowpass_, periodicOsc, squareOsc_)
 import Ocarina.Core (AudioNumeric(..), _linear, bangOn)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..), SingleSubgraphPusher)
 import Ocarina.Interpret (close, constant0Hack, context)
 import Ocarina.Properties as P
-import Ocarina.Run (run2e)
+import Ocarina.Run (run2)
 import Test.QuickCheck (arbitrary, mkSeed)
 import Test.QuickCheck.Gen (evalGen)
 import Type.Proxy (Proxy(..))
-
-type StartStop = V (start :: Unit, stop :: Effect Unit)
 
 -- `swell` is an interactive function of time defined by a differential equation:
 --
@@ -49,8 +49,8 @@ type StartStop = V (start :: Unit, stop :: Effect Unit)
 -- the mouse is pressed or not.
 --
 -- We can solve the differential equation by integration using `solve2'`.
-swell :: Mouse -> Poll Number
-swell mouse =
+swell :: Mouse -> Event Unit -> Poll Number
+swell mouse down =
   fixB 2.0 \b ->
     integral' 2.0 (unwrap <$> Time.seconds)
       let
@@ -64,7 +64,7 @@ swell mouse =
     | otherwise = 2.0 * (4.0 - s)
 
   fixB :: forall a. a -> (Poll a -> Poll a) -> Poll a
-  fixB a fn =   poll \s ->
+  fixB a fn = poll \s ->
     sampleOnRight
       ( fix \event ->
           let
@@ -87,6 +87,7 @@ swell mouse =
   integral
     :: forall event a t
      . IsEvent event
+    => Pollable event event
     => Field t
     => Semiring a
     => (((a -> t) -> t) -> a)
@@ -116,6 +117,7 @@ swell mouse =
   integral'
     :: forall event t
      . IsEvent event
+    => Pollable event event
     => Field t
     => t
     -> APoll event t
@@ -123,28 +125,7 @@ swell mouse =
     -> APoll event t
   integral' = integral (_ $ identity)
 
-px =
-  Proxy
-    :: Proxy
-         """<section>
-  <h2>Fix</h2>
-
-  <p>Fix, like it's equivalent in ocarina that we've already seen, creates a feedback loop. However, in this case, we are talking about a feedback loop of <i>events</i>, not sound.</p>
-
-  <p>At first glance, it may not be clear why we need an event stream to feed back into itself? It seems prone to saturation: if you have a counter that feeds back into itself with a delay, after a few seconds you'll have so many events that it will crash your browser (I've tried it!).</p>
-
-  <p>However, there's one important circumstance where you need fixed points: when an event can only be defined in terms of itself. One classic category of this is the <i>differential equation</i>. Differential equations allow you to produce <a href="https://en.wikipedia.org/wiki/Simple_harmonic_motion">Slinky effects, aka simple harmonic motion,</a> and a lot of other neat polls that are difficult to produce via other means.</p>
-
-  <p>Let's listen to the sound of simple harmonic motion in the example below, courtesy of <code>fix</code>. The differential equation in the example below comes from Phil Freeman, the creator of the PureScript language and the author of the <code>purescript-polls</code> package. When you click "Turn on", you won't hear much, but press and release your mouse anywhere on the screen to hear the differential equation take flight!</p>
-
-  <pre><code>~txt~</code></pre>
-
-  ~empl~
-
-  <p>When working with stateful events, a good way to decide if you should use <code>fold</code> versus <code>fix</code> is to ask the following question: can I incrementally change my state based on an initial state, or is my state defined in terms of how it changes? If you can incrementally change your state, go with <code>fold</code>. If, on the other hand, your state is defined in terms of how it changes, go with <code>fix</code>.</p>
-</section>"""
-
-fixEx :: CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent -> Nut
+fixEx :: CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Poll SingleSubgraphEvent -> Nut
 fixEx ccb _ _ ev = px ~~
   { txt: text_
       """module Main
@@ -391,15 +372,15 @@ main = runInBody1
             ]
         ]
   )"""
-  , empl:
-      ( vbussed (Proxy :: _ StartStop) \push event -> do
+  , empl:Deku.do
+          setStart /\ start <- useState'
+          setStop /\ stop <- useState'
           let
-            startE = pure unit <|> event.start
-            stopE = event.stop
+            startE = pure unit <|> start
+            stopE = stop
           D.div_
             [ D.button
-                [oneOfMap (map (attr D.OnClick <<< cb <<< const))
-                    [ ((startE $> identity) <*> (pure (pure unit) <|> (map (\(SetCancel x) -> x) ev))) <#> \cncl ->
+                    [ DL.runOn DL.click $ ((startE $> identity) <*> (pure (pure unit) <|> (map (\(SetCancel x) -> x) ev))) <#> \cncl ->
                         do
                           cncl
                           ctx <- context
@@ -419,17 +400,20 @@ main = runInBody1
                             spc = (/\) <$> spc' <*> spc'
                             spcs = { s0: _, s1: _, s2: _, s3: _ } <$> spc <*> spc <*> spc <*> spc
                             allSpcs = evalGen spcs { newSeed: mkSeed ri, size: 5 }
-                          r' <- run2e ctx
-                            ( memoize
+                          afe <- animationFrame
+                          dn <- down
+                          swm <- liftST$ rant
+                            ( sham
                                 ( map (\{ acTime, value } -> acTime /\ value)
                                     $ withACTime ctx
-                                    $ sample_ (swell mouse) animationFrameEvent
+                                    $ sample_ (swell mouse (dn.event $> unit)) afe.event
                                 )
-                                \swm ->
+                            )
+                          r' <- run2 ctx 
                                   [ gain 0.0
                                       ( P.gain
                                           <<< ttap
-                                          <<< second (\x -> max (-0.4) $ 0.5 * (x - 1.0)) <$> swm
+                                          <<< second (\x -> max (-0.4) $ 0.5 * (x - 1.0)) <$> swm.poll
                                       )
                                       [ lowpass_ { frequency: fund, q: 20.0 }
                                           [ squareOsc_ fund ]
@@ -437,7 +421,7 @@ main = runInBody1
                                   , gain 0.0
                                       ( P.gain
                                           <<< ttap
-                                          <<< second (\x -> max (-0.2) $ 0.4 * (x - 3.0)) <$> swm
+                                          <<< second (\x -> max (-0.2) $ 0.4 * (x - 3.0)) <$> swm.poll
                                       )
                                       [ bandpass_ { frequency: fund * 4.0, q: 20.0 }
                                           [ periodicOsc
@@ -447,7 +431,7 @@ main = runInBody1
                                               ( bangOn <|>
                                                   ( P.frequency
                                                       <<< ttap
-                                                      <<< second (\x -> fund * 3.02 + 14.0 * (x - 1.0)) <$> swm
+                                                      <<< second (\x -> fund * 3.02 + 14.0 * (x - 1.0)) <$> swm.poll
                                                   )
                                               )
                                           ]
@@ -455,7 +439,7 @@ main = runInBody1
                                   , gain 0.0
                                       ( P.gain
                                           <<< ttap
-                                          <<< second (\x -> max (-0.1) $ 0.2 * (x - 6.0)) <$> swm
+                                          <<< second (\x -> max (-0.1) $ 0.2 * (x - 6.0)) <$> swm.poll
                                       )
                                       [ bandpass_ { frequency: fund * 6.0, q: 20.0 }
                                           [ periodicOsc
@@ -465,7 +449,7 @@ main = runInBody1
                                               ( bangOn <|>
                                                   ( P.frequency
                                                       <<< ttap
-                                                      <<< second (\x -> fund * 5.07 + 18.0 * (x - 1.0)) <$> swm
+                                                      <<< second (\x -> fund * 5.07 + 18.0 * (x - 1.0)) <$> swm.poll
                                                   )
                                               )
                                           ]
@@ -473,7 +457,7 @@ main = runInBody1
                                   , gain 0.0
                                       ( P.gain
                                           <<< ttap
-                                          <<< second (\x -> max 0.0 $ 0.2 * (x - 3.0)) <$> swm
+                                          <<< second (\x -> max 0.0 $ 0.2 * (x - 3.0)) <$> swm.poll
                                       )
                                       [ bandpass_ { frequency: fund * 8.0, q: 20.0 }
                                           [ periodicOsc
@@ -483,7 +467,7 @@ main = runInBody1
                                               ( bangOn <|>
                                                   ( P.frequency
                                                       <<< ttap
-                                                      <<< second (\x -> fund * 7.13 + 32.0 * (x - 1.0)) <$> swm
+                                                      <<< second (\x -> fund * 7.13 + 32.0 * (x - 1.0)) <$> swm.poll
                                                   )
                                               )
                                           ]
@@ -491,7 +475,7 @@ main = runInBody1
                                   , gain 0.0
                                       ( P.gain
                                           <<< ttap
-                                          <<< second (\x -> max 0.0 $ 0.1 * (x - 7.0)) <$> swm
+                                          <<< second (\x -> max 0.0 $ 0.1 * (x - 7.0)) <$> swm.poll
                                       )
                                       [ periodicOsc
                                           { frequency: fund * 9.14
@@ -500,23 +484,43 @@ main = runInBody1
                                           ( bangOn <|>
                                               ( P.frequency
                                                   <<< ttap
-                                                  <<< second (\x -> fund * 9.14 + 31.0 * (x - 1.0)) <$> swm
+                                                  <<< second (\x -> fund * 9.14 + 31.0 * (x - 1.0)) <$> swm.poll
                                               )
                                           )
                                       ]
                                   ]
-                            )
                           let r = r' *> c0h *> close ctx
-                          ccb (r *> push.start unit) -- here
-                          push.stop r
-                    , event.stop <#> (_ *> (ccb (pure unit) *> push.start unit))
+                          ccb (r *> setStart unit) -- here
+                          setStop r
+                    , DL.runOn DL.click $ stop <#> (_ *> (ccb (pure unit) *> setStart unit))
                     ]
-                ]
+                
                 [ text $ oneOf
                     [ startE $> "Turn on"
                     , stopE $> "Turn off"
                     ]
                 ]
             ]
-      )
+      
   }
+
+px =
+  Proxy
+    :: Proxy
+         """<section>
+  <h2>Fix</h2>
+
+  <p>Fix, like it's equivalent in ocarina that we've already seen, creates a feedback loop. However, in this case, we are talking about a feedback loop of <i>events</i>, not sound.</p>
+
+  <p>At first glance, it may not be clear why we need an event stream to feed back into itself? It seems prone to saturation: if you have a counter that feeds back into itself with a delay, after a few seconds you'll have so many events that it will crash your browser (I've tried it!).</p>
+
+  <p>However, there's one important circumstance where you need fixed points: when an event can only be defined in terms of itself. One classic category of this is the <i>differential equation</i>. Differential equations allow you to produce <a href="https://en.wikipedia.org/wiki/Simple_harmonic_motion">Slinky effects, aka simple harmonic motion,</a> and a lot of other neat polls that are difficult to produce via other means.</p>
+
+  <p>Let's listen to the sound of simple harmonic motion in the example below, courtesy of <code>fix</code>. The differential equation in the example below comes from Phil Freeman, the creator of the PureScript language and the author of the <code>purescript-polls</code> package. When you click "Turn on", you won't hear much, but press and release your mouse anywhere on the screen to hear the differential equation take flight!</p>
+
+  <pre><code>~txt~</code></pre>
+
+  ~empl~
+
+  <p>When working with stateful events, a good way to decide if you should use <code>fold</code> versus <code>fix</code> is to ask the following question: can I incrementally change my state based on an initial state, or is my state defined in terms of how it changes? If you can incrementally change your state, go with <code>fold</code>. If, on the other hand, your state is defined in terms of how it changes, go with <code>fix</code>.</p>
+</section>"""

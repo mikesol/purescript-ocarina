@@ -8,15 +8,17 @@ import Data.Foldable (oneOfMap)
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype)
 import Data.Tuple.Nested ((/\))
-import Deku.Attribute (cb, (:=))
-import Deku.Control (switcher, text_)
+import Deku.Control (text_)
 import Deku.Core (Nut)
 import Deku.DOM as D
+import Deku.DOM.Attributes as DA
+import Deku.DOM.Listeners as DL
 import Deku.Do as Deku
-import Deku.Hooks (useState)
+import Deku.Hooks (useState, useState', (<#~>))
 import Deku.Toplevel (runInBody)
 import Effect (Effect)
 import FRP.Event (fold)
+import FRP.Poll (Poll)
 import Ocarina.Example.Docs.Component as Component
 import Ocarina.Example.Docs.Effects as Effects
 import Ocarina.Example.Docs.Events as Events
@@ -61,24 +63,18 @@ scene = Deku.do
         $ map
             ( \(x /\ y /\ z) -> D.span_
                 [ D.a
-                    [oneOfMap pure
-                        [ D.OnClick := cb
-                            ( const do
-                                push (ChangePage x)
-                            )
-                        , D.Style := "cursor:pointer;"
-                        ] <|> map
-                        ( \{ cancel } -> D.OnClick := cb
-                            ( const do
-                                cancel
-                                push (ChangePage x)
-                            )
+                    [ DL.click_ \_ -> push (ChangePage x)
+                    , DA.style_ "cursor:pointer;"
+                    , DL.runOn DL.click $ map
+                        ( \{ cancel } -> do
+                            cancel
+                            push (ChangePage x)
                         )
                         (event # filter (_.pageChange >>> not))
                     ]
                     [ text_ y ]
                 , D.span
-                    [pure $ D.Style :=
+                    [ DA.style_ $
                         if z then ""
                         else "display:none;"
                     ]
@@ -120,7 +116,7 @@ scene = Deku.do
           --       /\ "Imperative API"
           --       /\ false
           ]
-    , switcher
+    , (event # filter _.pageChange) <#~>
         ( \{ curPage } ->
             page
               ( TopLevelSg
@@ -130,25 +126,29 @@ scene = Deku.do
                   }
               )
         )
-        (event # filter _.pageChange)
 
     ]
   where
   page :: TopLevelSg -> Nut
   page (TopLevelSg { page: pg, setCancellation, setPage }) = go pg
     where
-    go Intro = D.div_ $ pure $ bussed (Intro.intro setCancellation setPage)
-    go HelloWorld = D.div_ $ pure $ bussed (HelloWorld.helloWorld setCancellation setPage)
-    go FixFan = D.div_ $ pure $ bussed (FixFan.fixFan setCancellation setPage)
-    go AudioUnits = D.div_ $ pure $ bussed (Component.components setCancellation setPage)
-    go AudioWorklets = D.div_ $ pure $ bussed (Pursx1.pursx1 setCancellation setPage)
-    go Events = D.div_ $ pure $ bussed (Events.events setCancellation setPage)
-    go Params = D.div_ $ pure $ bussed (Params.params setCancellation setPage)
-    go State = D.div_ $ pure $ bussed (Effects.effects setCancellation setPage)
-    go Imperative = D.div_ $ pure $ bussed (Pursx2.pursx2 setCancellation setPage)
-    go MultiChannel = D.div_ $ pure $ bussed (Multichannel.multiChannel setCancellation setPage)
-    go Subgraph = D.div_ $ pure $ bussed (Subgraph.subgraphs setCancellation setPage)
-    go Tumult = D.div_ $ pure $ bussed (Portals.portals setCancellation setPage)
+    go Intro = D.div_ [ bussed $ Intro.intro setCancellation setPage ]
+    go HelloWorld = D.div_ [ bussed $ HelloWorld.helloWorld setCancellation setPage ]
+    go FixFan = D.div_ [ bussed $ FixFan.fixFan setCancellation setPage ]
+    go AudioUnits = D.div_ [ bussed $ Component.components setCancellation setPage ]
+    go AudioWorklets = D.div_ [ bussed $ Pursx1.pursx1 setCancellation setPage ]
+    go Events = D.div_ [ bussed $ Events.events setCancellation setPage ]
+    go Params = D.div_ [ bussed $ Params.params setCancellation setPage ]
+    go State = D.div_ [ bussed $ Effects.effects setCancellation setPage ]
+    go Imperative = D.div_ [ bussed $ Pursx2.pursx2 setCancellation setPage ]
+    go MultiChannel = D.div_ [ bussed $ Multichannel.multiChannel setCancellation setPage ]
+    go Subgraph = D.div_ [ bussed $ Subgraph.subgraphs setCancellation setPage ]
+    go Tumult = D.div_ [ bussed $ Portals.portals setCancellation setPage ]
+
+bussed :: forall a. ((a -> Effect Unit) -> Poll a -> Nut) -> Nut
+bussed f = Deku.do
+  p /\ e <- useState'
+  f p e
 
 main :: Effect Unit
 main = runInBody scene

@@ -6,7 +6,6 @@ import Prelude
 import Deku.Core (Nut)
 import Deku.Pursx (makePursx')
 import Effect (Effect)
-import FRP.Event (Event)
 import FRP.Poll (Poll)
 import Ocarina.Control (delay_, gain_, playBuf, fix)
 import Ocarina.Core (bangOn)

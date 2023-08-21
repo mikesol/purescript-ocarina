@@ -2,13 +2,12 @@ module Ocarina.Example.Docs.FixFan.Intro where
 
 import Prelude
 
-import Control.Plus (class Plus)
 import Deku.Core (Nut)
 import Deku.Pursx (makePursx')
 import Effect (Effect)
-import FRP.Event (class IsEvent, Event)
+import FRP.Poll (Poll)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
-import Ocarina.Example.Docs.Util (ccassp, mkNext, scrollToTop)
+import Ocarina.Example.Docs.Util (mkNext, scrollToTop)
 import Type.Proxy (Proxy(..))
 
 data UIEvents = UIShown | ButtonClicked | SliderMoved Number
@@ -39,7 +38,7 @@ px = Proxy :: Proxy
       </ul>
   </section>"""
 
-ffIntro :: CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent  -> Nut
+ffIntro :: CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Poll SingleSubgraphEvent  -> Nut
 ffIntro _ dpage _ ev = makePursx'  (Proxy :: _ "@") px
   { hwLink: mnx HelloWorld
   }

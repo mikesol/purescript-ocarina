@@ -3,7 +3,8 @@ module Ocarina.Example.Docs.Events.Ex2 where
 import Prelude
 
 import Control.Alt ((<|>))
-import Data.Foldable (oneOf, oneOfMap, traverse_)
+import Control.Monad.ST.Class (liftST)
+import Data.Foldable (oneOf, traverse_)
 import Data.Tuple (Tuple(..), fst, snd)
 import Data.Tuple.Nested ((/\))
 import Deku.Control (text, text_)
@@ -16,8 +17,8 @@ import Deku.Hooks (useState, useState')
 import Deku.Pursx (makePursx')
 import Effect (Effect)
 import Effect.Random as Random
-import FRP.Event (Event, makeEvent, memoize, subscribe)
-import FRP.Poll (Poll, poll, rant, sampleBy, sham)
+import FRP.Event (makeEvent, subscribe)
+import FRP.Poll (Poll, dredge, poll, rant)
 import Ocarina.Clock (interval)
 import Ocarina.Control (bandpass_, fan1, gain, gain_, highpass_, triangleOsc)
 import Ocarina.Core (Audible, AudioEnvelope(..), bangOn)
@@ -26,8 +27,7 @@ import Ocarina.Interpret (close, context)
 import Ocarina.Math (calcSlope)
 import Ocarina.Properties (frequency)
 import Ocarina.Properties as P
-import Ocarina.Run (run2e)
-import QualifiedDo.OneOfMap as O
+import Ocarina.Run (run2)
 import Type.Proxy (Proxy(..))
 import Web.Event.Event (target)
 import Web.HTML.HTMLInputElement (fromEventTarget, valueAsNumber)
@@ -287,16 +287,17 @@ ex2 ccb _ ev = makePursx' (Proxy :: _ "@") px
             [ DL.runOn DL.click $ ((start $> identity) <*> (pure (pure unit) <|> (map (\(SetCancel x) -> x) ev))) <#> \cncl -> do
                 cncl
                 ctx <- context
-                let
-                  myIvl' = sampleBy Tuple random
-                    $ interval ctx 0.91
-                    $ map (calcSlope 0.0 0.42 100.0 1.4)
-                    $ slider
-                myIvl <- rant (sham myIvl')
-                r' <- run2e ctx (music myIvl.poll)
+                ivl <- interval ctx
+                myIvl <- liftST $ rant $ Tuple <$> random <*>
+                  ( dredge ivl.fevent
+                      ( map (calcSlope 0.0 0.42 100.0 1.4)
+                          slider
+                      )
+                  )
+                r' <- run2 ctx (music myIvl.poll)
                 let r = r' *> close ctx
                 ccb (r *> setStart unit)
-                setStop (r *> myIvl.unsubscribe *> close ctx)
+                setStop (r *> ivl.unsubscribe *> liftST myIvl.unsubscribe *> close ctx)
             , DL.runOn DL.click $ stop <#>
                 (_ *> (ccb (pure unit) *> setStart unit))
             ]

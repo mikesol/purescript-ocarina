@@ -5,7 +5,6 @@ import Prelude
 import Deku.Core (Nut)
 import Deku.Pursx (makePursx')
 import Effect (Effect)
-import FRP.Event (Event)
 import FRP.Poll (Poll)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent, SingleSubgraphPusher)
 import Type.Proxy (Proxy(..))
@@ -25,7 +24,7 @@ px =
 
 
 pursx2
-  :: CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent
+  :: CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Poll SingleSubgraphEvent
   -> Nut
 pursx2 _ _ _ _ = makePursx' (Proxy :: _ "~") px
   { }

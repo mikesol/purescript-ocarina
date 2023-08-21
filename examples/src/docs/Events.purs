@@ -5,7 +5,6 @@ import Prelude
 import Deku.Core (Nut)
 import Deku.Pursx (makePursx')
 import Effect (Effect)
-import FRP.Event (Event)
 import FRP.Poll (Poll)
 import Ocarina.Example.Docs.Events.Ex0 as Ex0
 import Ocarina.Example.Docs.Events.Ex1 as Ex1
@@ -39,7 +38,7 @@ px = Proxy :: Proxy
   <p>In this section, saw how to build rich audio applications using the <code>Event</code> and <code>Poll</code> types. We also covered the three most common patterns you'll see when working with events: events that need to happen <i>now</i>, events that come from user interaction, and timed events. In the next section, we'll look at different ways to specify <a @next@ style="cursor:pointer;">the numeric parameters being sent as events</a>.</p>
 </div>"""
 
-events :: CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent -> Nut
+events :: CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Poll SingleSubgraphEvent -> Nut
 events cca' dpage ssp ev = makePursx'  (Proxy :: _ "@") px
   { next: mnx Params
   , primer: Primer.primer

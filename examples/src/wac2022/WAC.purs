@@ -64,8 +64,8 @@ main = runInBody Deku.do
                 , DL.runOn DL.click $ start $> do
                     ctx <- context
                     ep <- liftST create
-                    ii <- interval ctx 0.25 ep.event
-                    rt <- liftST $ rant (sham ii.event <|> pure 0.25)
+                    ii <- interval ctx
+                    rt <- liftST $ rant (sham (ii.fevent ep.event) <|> pure 0.25)
                     r <- run2 ctx (music rt.poll)
                     ep.push 0.25
                     setStop (r *> ii.unsubscribe *> liftST rt.unsubscribe *> close ctx)

@@ -5,7 +5,6 @@ import Prelude
 import Deku.Core (Nut)
 import Deku.Pursx ((~~))
 import Effect (Effect)
-import FRP.Event (Event)
 import FRP.Poll (Poll)
 import Ocarina.Example.Docs.Params.Cancel as Cancel
 import Ocarina.Example.Docs.Params.Envelope as Envelope
@@ -34,7 +33,7 @@ px = Proxy :: Proxy """<div>
   <p>In this section, we saw how to specify parameters for audio units, including using audio-rate audio units as parameters. In the next section, we'll look at how to make events <a ~next~ style="cursor:pointer;">stateful</a>.</p>
 </div>"""
 
-params :: CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent  -> Nut
+params :: CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Poll SingleSubgraphEvent  -> Nut
 params cca' dpage ssp ev = px ~~
   { sudden: Sudden.suddenEx ccb dpage ev
   , numeric: Numeric.numericEx ccb dpage ev

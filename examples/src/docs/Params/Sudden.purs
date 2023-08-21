@@ -6,7 +6,8 @@ import Data.Foldable (oneOf)
 import Deku.Core (Nut)
 import Deku.Pursx (makePursx')
 import Effect (Effect)
-import FRP.Event (Event, delay)
+import FRP.Event (delay_)
+import FRP.Poll (Poll, dredge)
 import Ocarina.Control (gain_, loopBuf)
 import Ocarina.Core (AudioSudden(..), bangOn)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
@@ -48,7 +49,7 @@ suddenEx ccb _ ev = makePursx' (Proxy :: _ "@") px
                 [ loopBuf buf
                     ( oneOf
                         [ bangOn
-                        , delay 1500
+                        , dredge (delay_ 1500)
                             $ pure
                             $ playbackRate
                             $ AudioSudden { n: 1.4 }

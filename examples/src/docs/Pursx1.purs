@@ -2,12 +2,10 @@ module Ocarina.Example.Docs.Pursx1 where
 
 import Prelude
 
-import Deku.Attribute (cb, (:=))
 import Deku.Core (Nut)
-import Deku.DOM as D
+import Deku.DOM.Listeners as DL
 import Deku.Pursx ((~~))
 import Effect (Effect)
-import FRP.Event (Event)
 import FRP.Poll (Poll)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
 import Ocarina.Example.Docs.Util (scrollToTop)
@@ -128,7 +126,7 @@ px = Proxy :: Proxy """<div>
 </div>"""
 
 
-pursx1 :: CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent -> Nut
+pursx1 :: CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Poll SingleSubgraphEvent -> Nut
 pursx1 _ dpage _ _ = px ~~
-  { next: pure (D.OnClick := (cb (const $ dpage Events *> scrollToTop)))
+  { next: DL.click_ \_ -> dpage Events *> scrollToTop
   }

@@ -2,12 +2,10 @@ module Ocarina.Example.Docs.Portals where
 
 import Prelude
 
-import Deku.Attribute (cb, (:=))
 import Deku.Core (Nut)
-import Deku.DOM as D
+import Deku.DOM.Listeners as DL
 import Deku.Pursx ((~~))
 import Effect (Effect)
-import FRP.Event (Event)
 import FRP.Poll (Poll)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
 import Ocarina.Example.Docs.Util (scrollToTop)
@@ -44,7 +42,7 @@ px =  Proxy :: Proxy """<div>
   <p>In the next section, we'll look at how to create audio graphs via an <a ~next~ style="cursor:pointer;">imperative API that more closely resembles Web Audio while providing additional type-safety benefits</a>.</p>
 </div>"""
 
-portals :: CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent -> Nut
+portals :: CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Poll SingleSubgraphEvent -> Nut
 portals _ dpage _ _ = px ~~
-  { next: pure (D.OnClick := (cb (const $ dpage Imperative *> scrollToTop)))
+  { next: DL.click_ \_ -> dpage Imperative *> scrollToTop
   }

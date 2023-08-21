@@ -5,7 +5,6 @@ import Prelude
 import Deku.Core (Nut)
 import Deku.Pursx ((~~))
 import Effect (Effect)
-import FRP.Event (Event)
 import FRP.Poll (Poll)
 import Ocarina.Control (gain_, loopBuf)
 import Ocarina.Core (bangOn)
@@ -101,7 +100,7 @@ px = Proxy :: Proxy """<div>
   <p>Phew, that was a lot of audio units! In the next section, we'll make them come alive thanks to the magic of <a ~next~ style="cursor:pointer;">events</a>.</p>
 </div>"""
 
-components :: CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Event SingleSubgraphEvent  -> Nut
+components :: CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Poll SingleSubgraphEvent  -> Nut
 components cca' dpage ssp ev = px ~~
   { drumroll:
       (audioWrapperSpan "🥁" ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/50/50711_179538-lq.mp3")

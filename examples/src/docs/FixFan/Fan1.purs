@@ -9,7 +9,6 @@ import Data.Profunctor (lcmap)
 import Deku.Core (Nut)
 import Deku.Pursx (makePursx')
 import Effect (Effect)
-import FRP.Event (Event)
 import FRP.Poll (Poll)
 import Ocarina.Control (bandpass_, loopBuf, gain_)
 import Ocarina.Control as C

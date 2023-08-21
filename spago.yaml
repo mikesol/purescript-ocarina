@@ -3,8 +3,8 @@ workspace:
     registry: 31.0.0
   extra_packages:
     hyrule:
-      repo: "https://github.com/mikesol/purescript-hyrule.git"
-      version: "fantasy-land2"
+      git: "https://github.com/mikesol/purescript-hyrule.git"
+      ref: "94eaa62"
       dependencies:
         - effect
         - js-timers
@@ -18,19 +18,19 @@ workspace:
     deku:
       git: "https://github.com/mikesol/purescript-deku.git"
       subdir: deku
-      ref: "92c35427a5ae3748ce056a3243276b9b26153212"
+      ref: "21e829c30c42686bba8da61c918476aea940e5c4"
       dependencies:
         - bolson
     deku-core:
       git: "https://github.com/mikesol/purescript-deku.git"
       subdir: deku-core
-      ref: "92c35427a5ae3748ce056a3243276b9b26153212"
+      ref: "21e829c30c42686bba8da61c918476aea940e5c4"
       dependencies:
         - bolson
     deku-dom:
       git: "https://github.com/mikesol/purescript-deku.git"
       subdir: deku-dom
-      ref: "92c35427a5ae3748ce056a3243276b9b26153212"
+      ref: "21e829c30c42686bba8da61c918476aea940e5c4"
       dependencies:
         - bolson
     tidy: 

@@ -7,7 +7,6 @@ import Deku.Core (Nut)
 import Deku.DOM as D
 import Deku.Pursx (makePursx')
 import Effect (Effect)
-import FRP.Event (Event)
 import FRP.Poll (Poll)
 import Ocarina.Control (gain_, sinOsc)
 import Ocarina.Core (bangOn)
@@ -56,7 +55,7 @@ helloWorld
   :: CancelCurrentAudio
   -> (Page -> Effect Unit)
   -> SingleSubgraphPusher
-  -> Event SingleSubgraphEvent
+  -> Poll SingleSubgraphEvent
   -> Nut
 helloWorld cca' dpage ssp ev = makePursx' (Proxy :: _ "@") px
   { code:
