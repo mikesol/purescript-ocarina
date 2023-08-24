@@ -11,3 +11,4 @@
 /examples/**/index.js
 packages.json
 .#*.*
+dist

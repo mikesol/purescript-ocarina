@@ -6,8 +6,7 @@
     "build": "spago build",
     "format": "purs-tidy format-in-place src/**/*.purs",
     "pulp-publish": "pulp publish",
-    "docs": "pulp docs",
-    "test": "spago -x examples.dhall build"
+    "docs": "pulp docs"
   },
   "keywords": [],
   "author": "",
