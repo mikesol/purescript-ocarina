@@ -1,0 +1,96 @@
+workspace:
+  package_set:
+    registry: 31.0.0
+  extra_packages:
+    hyrule:
+      git: "https://github.com/mikesol/purescript-hyrule.git"
+      ref: "f388528a9aaa25a5307bf67f6ed12d2097620929"
+      dependencies:
+        - effect
+        - js-timers
+        - web-html
+        - web-uievents
+    bolson:
+      git: "https://github.com/mikesol/purescript-bolson.git"
+      ref: "d87900ceedfb81814bd282be464fa4c8a55677c2"
+      dependencies:
+        - hyrule
+    deku:
+      git: "https://github.com/mikesol/purescript-deku.git"
+      subdir: deku
+      ref: "22d4756f831ac57c17286bae86a5799a0377239a"
+      dependencies:
+        - bolson
+    deku-core:
+      git: "https://github.com/mikesol/purescript-deku.git"
+      subdir: deku-core
+      ref: "22d4756f831ac57c17286bae86a5799a0377239a"
+      dependencies:
+        - bolson
+    deku-dom:
+      git: "https://github.com/mikesol/purescript-deku.git"
+      subdir: deku-dom
+      ref: "22d4756f831ac57c17286bae86a5799a0377239a"
+      dependencies:
+        - bolson
+    tidy: 
+      repo: "https://github.com/natefaubion/purescript-tidy.git"
+      version: "v0.10.0"
+      dependencies:
+      - arrays
+      - dodo-printer
+      - foldable-traversable
+      - lists
+      - maybe
+      - ordered-collections
+      - partial
+      - prelude
+      - language-cst-parser
+      - strings
+      - tuples
+    tidy-codegen:
+      repo: "https://github.com/natefaubion/purescript-tidy-codegen"
+      version: "type-applications"
+      dependencies:
+      - aff
+      - ansi
+      - arrays
+      - avar
+      - bifunctors
+      - console
+      - control
+      - dodo-printer
+      - effect
+      - either
+      - enums
+      - exceptions
+      - filterable
+      - foldable-traversable
+      - free
+      - identity
+      - integers
+      - language-cst-parser
+      - lazy
+      - lists
+      - maybe
+      - newtype
+      - node-buffer
+      - node-child-process
+      - node-fs-aff
+      - node-path
+      - node-process
+      - node-streams
+      - ordered-collections
+      - parallel
+      - partial
+      - posix-types
+      - prelude
+      - record
+      - safe-coerce
+      - st
+      - strings
+      - tidy
+      - transformers
+      - tuples
+      - type-equality
+      - unicode
