@@ -38,10 +38,10 @@ jobs:
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GH_TOKEN }}
-          publish_dir: ./build
+          publish_dir: ./dist
       - name: deploy to netlify @ ocarina.fm
-        run: NETLIFY_SITE_ID=${{ secrets.NETLIFY_WAGS_FM_SITE_ID }} NETLIFY_AUTH_TOKEN=${{ secrets.NETLIFY_AUTH_TOKEN }} netlify deploy --dir=build --prod
+        run: NETLIFY_SITE_ID=${{ secrets.NETLIFY_WAGS_FM_SITE_ID }} NETLIFY_AUTH_TOKEN=${{ secrets.NETLIFY_AUTH_TOKEN }} netlify deploy --dir=dist --prod
       - name: deploy to netlify @ docs.ocarina.fm
-        run: NETLIFY_SITE_ID=${{ secrets.NETLIFY_WAGS_DOCS_SITE_ID }} NETLIFY_AUTH_TOKEN=${{ secrets.NETLIFY_AUTH_TOKEN }} netlify deploy --dir=build --prod
+        run: NETLIFY_SITE_ID=${{ secrets.NETLIFY_WAGS_DOCS_SITE_ID }} NETLIFY_AUTH_TOKEN=${{ secrets.NETLIFY_AUTH_TOKEN }} netlify deploy --dir=dist --prod
       - name: deploy to netlify @ whatis.ocarina.fm
-        run: NETLIFY_SITE_ID=${{ secrets.NETLIFY_WHAT_IS_WAGS_SITE_ID }} NETLIFY_AUTH_TOKEN=${{ secrets.NETLIFY_AUTH_TOKEN }} netlify deploy --dir=build --prod
+        run: NETLIFY_SITE_ID=${{ secrets.NETLIFY_WHAT_IS_WAGS_SITE_ID }} NETLIFY_AUTH_TOKEN=${{ secrets.NETLIFY_AUTH_TOKEN }} netlify deploy --dir=dist --prod
