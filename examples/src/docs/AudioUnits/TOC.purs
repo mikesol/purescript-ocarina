@@ -1,14 +1,10 @@
 module Ocarina.Example.Docs.AudioUnits.TOC where
 
 
-import Control.Plus (class Plus)
 import Deku.Core (Nut)
-import Deku.Pursx ((~~))
-import Effect (Effect)
-import FRP.Event (Event, class IsEvent)
-import Type.Proxy (Proxy(..))
+import Deku.Pursx (pursx')
 
-px = Proxy :: Proxy """<ul>
+type Px =  """<ul>
   <li><a href="#allpass">All-pass filter</a></li>
   <li><a href="#analyser">Analyser</a></li>
   <li><a href="#bandpass">Bandpass filter</a></li>
@@ -41,6 +37,4 @@ px = Proxy :: Proxy """<ul>
 """
 
 toc :: Nut
-toc = px ~~
-  {
-  }
+toc = pursx' @"~" @Px {}

@@ -5,7 +5,6 @@ import Prelude
 import Control.Alt ((<|>))
 import Control.Monad.ST.Class (liftST)
 import Data.Foldable (oneOf, traverse_)
-import Data.Tuple (Tuple(..), fst, snd)
 import Data.Tuple.Nested ((/\))
 import Deku.Control (text, text_)
 import Deku.Core (Nut)
@@ -14,12 +13,12 @@ import Deku.DOM.Attributes as DA
 import Deku.DOM.Listeners as DL
 import Deku.Do as Deku
 import Deku.Hooks (useState, useState')
-import Deku.Pursx (makePursx')
+import Deku.Pursx (pursx')
 import Effect (Effect)
-import Effect.Random as Random
-import FRP.Event (makeEvent, subscribe)
-import FRP.Poll (Poll, dredge, poll, rant)
-import Ocarina.Clock (interval)
+import FRP.Event (create)
+import FRP.Event.Random (withRandom)
+import FRP.Poll (Poll, rant, sample, sham)
+import Ocarina.Clock (interval')
 import Ocarina.Control (bandpass_, fan1, gain, gain_, highpass_, triangleOsc)
 import Ocarina.Core (Audible, AudioEnvelope(..), bangOn)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..))
@@ -28,7 +27,6 @@ import Ocarina.Math (calcSlope)
 import Ocarina.Properties (frequency)
 import Ocarina.Properties as P
 import Ocarina.Run (run2)
-import Type.Proxy (Proxy(..))
 import Web.Event.Event (target)
 import Web.HTML.HTMLInputElement (fromEventTarget, valueAsNumber)
 
@@ -185,11 +183,6 @@ main = runInBody1
         ]
   )"""
 
-random :: Poll Number
-random = poll \e ->
-  makeEvent \k -> subscribe e \f ->
-    Random.random >>= k <<< f
-
 -- pentatonic scale
 cp :: Number -> Number
 cp n
@@ -203,7 +196,7 @@ cp n
 
 ex2
   :: CancelCurrentAudio -> (Page -> Effect Unit) -> Poll SingleSubgraphEvent -> Nut
-ex2 ccb _ ev = makePursx' (Proxy :: _ "@") px
+ex2 ccb _ ev = pursx' @"@" @Px
   { txt: (text_ txt)
   , ex2: Deku.do
       setStart /\ start <- useState unit
@@ -213,9 +206,9 @@ ex2 ccb _ ev = makePursx' (Proxy :: _ "@") px
         music :: _ -> Array (Audible _ _)
         music evt = do
           let
-            pitch = map fst evt
+            pitch = map _.random evt
             -- to avoid artifacts in the pitch change
-            time = map (add 0.01 <<< snd) evt
+            time = map (add 0.01 <<< _.value) evt
             e0 =
               AudioEnvelope <<<
                 { p: [ 0.0, 0.6, 0.2, 0.1, 0.5, 0.03, 0.0 ]
@@ -287,13 +280,10 @@ ex2 ccb _ ev = makePursx' (Proxy :: _ "@") px
             [ DL.runOn DL.click $ ((start $> identity) <*> (pure (pure unit) <|> (map (\(SetCancel x) -> x) ev))) <#> \cncl -> do
                 cncl
                 ctx <- context
-                ivl <- interval ctx
-                myIvl <- liftST $ rant $ Tuple <$> random <*>
-                  ( dredge ivl.fevent
-                      ( map (calcSlope 0.0 0.42 100.0 1.4)
-                          slider
-                      )
-                  )
+                p <- liftST $ create
+                ivl <- interval' withRandom ctx $ map (calcSlope 0.0 0.42 100.0 1.4) (sample slider p.event)
+                p.push identity
+                myIvl <- liftST $ rant $ sham ivl.event
                 r' <- run2 ctx (music myIvl.poll)
                 let r = r' *> close ctx
                 ccb (r *> setStart unit)
@@ -310,10 +300,7 @@ ex2 ccb _ ev = makePursx' (Proxy :: _ "@") px
         ]
   }
 
-px =
-  Proxy
-    :: Proxy
-         """<section>
+type Px =  """<section>
   <h2>Example 3: Fascinating rhyhtm</h2>
 
   <p>Ocarina comes with several different ways to hook into the Web Audio API's sample-accurate timers. In this section, we'll use a Ocarina <code>interval</code> event to create a sample-accurate ticker. We'll also use a <code>random</code> beahvior to change up our samples.</p>

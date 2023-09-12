@@ -26,9 +26,9 @@ import Effect (Effect)
 import Effect.Aff (Aff, launchAff_)
 import Effect.Class (liftEffect)
 import FRP.Event (create, filterMap, subscribe)
-import FRP.Event.AnimationFrame (animationFrame)
-import FRP.Poll (Poll, sample, sample_, sham)
-import Ocarina.Clock (WriteHead, fot, writeHead)
+import FRP.Event.AnimationFrame (animationFrame')
+import FRP.Poll (Poll, sample, sham)
+import Ocarina.Clock (WriteHead, fot, withWriteHead)
 import Ocarina.Control (analyser_, gain_, loopBuf, speaker2)
 import Ocarina.Core (Audible, bangOn, opticN)
 import Ocarina.Example.Utils (RaiseCancellation)
@@ -106,9 +106,8 @@ atariSpeaks atari rc = Deku.do
                   rf0 <- liftST $ RRef.new 0
                   rf1 <- liftST $ RRef.new Map.empty
                   ffi2 <- makeFFIAudioSnapshot ctx
-                  afe <- animationFrame
+                  afe <- animationFrame' (withWriteHead 0.04 ctx)
                   let exec audio = audio ffi2
-                  let wh = writeHead 0.04 ctx
                   let
                     audioE = speaker2
                       [ scene atari
@@ -118,19 +117,19 @@ atariSpeaks atari rc = Deku.do
                                   pure (analyserE.push Nothing)
                               )
                           )
-                          (sample_ wh (sham afe.event))
+                          (sham $ map _.ac (afe.event))
                       ]
                       (effectfulAudioInterpret rf0 rf1 exec)
 
-                  unsub0 <- liftST $ subscribe (sample audioE start.event) exec
-                  unsub1 <- liftST $ subscribe analyserE.event \analyser -> do
+                  unsub0 <- subscribe (sample audioE start.event) exec
+                  unsub1 <- subscribe analyserE.event \analyser -> do
                     for_ analyser \a -> do
                       frequencyData <- getByteFrequencyData a
                       arr <- toArray frequencyData
                       push $ AsciiMixer $ intercalate "\n" $
                         map (\ii -> fold ((0 .. toInt ii) $> ">")) arr
                   start.push identity
-                  let unsub = liftST unsub0 *> liftST unsub1 *> afe.unsubscribe
+                  let unsub = unsub0 *> unsub1 *> afe.unsubscribe
                   rc $ Just { unsub, ctx }
                   push $ TurnOff { unsub, ctx }
                 Just { unsub, ctx } -> do

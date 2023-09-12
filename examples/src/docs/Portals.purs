@@ -4,14 +4,13 @@ import Prelude
 
 import Deku.Core (Nut)
 import Deku.DOM.Listeners as DL
-import Deku.Pursx ((~~))
+import Deku.Pursx (pursx)
 import Effect (Effect)
 import FRP.Poll (Poll)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
 import Ocarina.Example.Docs.Util (scrollToTop)
-import Type.Proxy (Proxy(..))
 
-px =  Proxy :: Proxy """<div>
+type Px = """<div>
   <h1>Tumult</h1>
 
   <h2>The unknown unknowns of web audio</h2>
@@ -43,6 +42,6 @@ px =  Proxy :: Proxy """<div>
 </div>"""
 
 portals :: CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Poll SingleSubgraphEvent -> Nut
-portals _ dpage _ _ = px ~~
+portals _ dpage _ _ = pursx @Px
   { next: DL.click_ \_ -> dpage Imperative *> scrollToTop
   }

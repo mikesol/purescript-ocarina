@@ -2,11 +2,10 @@ module Ocarina.Example.Docs.Events.InOcarina where
 
 
 import Deku.Core (Nut)
-import Deku.Pursx (makePursx')
 import Type.Proxy (Proxy(..))
+import Deku.Pursx (pursx')
 
-px = Proxy :: Proxy
-      """<section>
+type Px = """<section>
   <h2>Events in Ocarina</h2>
   <p>Ocarina follows a consistent pattern: every audio unit accepts an event containing a <code>newtype</code> around a <code>Variant</code> of parameters that can be changed. As a motivating example, let's look at the definition of <code>sinOsc</code>.</p>
 
@@ -184,7 +183,7 @@ px = Proxy :: Proxy
 </section>"""
 
 inOcarina :: Nut
-inOcarina = makePursx'  (Proxy :: _ "@") px
+inOcarina = pursx' @"@" @Px
   {
   }
   -- where

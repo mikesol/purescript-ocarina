@@ -13,21 +13,23 @@ import Data.Foldable (for_, oneOf, oneOfMap, traverse_)
 import Data.Homogeneous.Record as Rc
 import Data.Int as Int
 import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Newtype (under, unwrap)
 import Data.Number (pi)
+import Data.Op (Op(..))
 import Data.Profunctor.Strong (second)
 import Data.Traversable (traverse)
 import Data.Tuple.Nested (type (/\), (/\))
 import Data.UInt (toNumber)
 import Deku.Control (text)
-import Deku.Core (Nut)
+import Deku.Core (Nut, useRef, useState')
 import Deku.DOM as D
 import Deku.DOM.Attributes as DA
-import Deku.DOM.Combinators (injectElement)
+import Deku.DOM.Combinators (injectElement, numberOn_)
 import Deku.DOM.Listeners as DL
 import Deku.DOM.Self as Self
 import Deku.Do as Deku
 import Deku.Hooks (useState, useState')
-import Deku.Pursx (makePursx')
+import Deku.Pursx (pursx')
 import Effect (Effect, foreachE)
 import Effect.Aff (launchAff, launchAff_)
 import Effect.Class (liftEffect)
@@ -58,7 +60,7 @@ import Web.Event.Event (target)
 import Web.HTML.HTMLCanvasElement as HTMLCanvasElement
 import Web.HTML.HTMLInputElement (fromEventTarget, valueAsNumber)
 
-px = Proxy :: Proxy "<section>@ex1@</section>"
+type Px = "<section>@ex1@</section>"
 
 buffers' =
   { pluck0: "https://freesound.org/data/previews/493/493016_10350281-lq.mp3"
@@ -66,10 +68,6 @@ buffers' =
   , strum0: "https://freesound.org/data/previews/234/234738_3635427-lq.mp3"
   --, bass: "https://freesound.org/data/previews/381/381517_7088365-lq.mp3"
   }
-
-random = poll \e ->
-  makeEvent \k -> subscribe e \f ->
-    Random.random >>= k <<< f
 
 dgl d de g ge h he i =
   delay d de [ gain g ge [ lowpass h he i ] ]
@@ -108,8 +106,10 @@ ttap (o /\ n) = AudioNumeric { o: o + 0.04, n, t: _linear }
 
 introEx
   :: CancelCurrentAudio -> (Page -> Effect Unit) -> Poll SingleSubgraphEvent -> Nut
-introEx ccb _ ev = makePursx' (Proxy :: _ "@") px
+introEx ccb _ ev = pursx' @"@" @Px
   { ex1: Deku.do
+      setAudioContext /\ audioContext <- useState'
+      audioContextRef <- useRef Nothing audioContext
       setStart /\ startE <- useState unit
       setStop /\ stopE <- useState'
       setLoading /\ loadingE <- useState'
@@ -117,11 +117,10 @@ introEx ccb _ ev = makePursx' (Proxy :: _ "@") px
       setCanvas /\ canvas <- useState'
 
       let
+        sliderE = slider <#> \{ acTime, value } -> acTime /\ value
 
-        music :: _ -> _ -> _ -> Array (Audible _ _)
-        music ctx buffer analyserE = do
-          let
-            sliderE = (\{ acTime, value } -> acTime /\ value) <$> dredge (withACTime ctx) slider
+        music :: _ -> _ -> Array (Audible _ _)
+        music buffer analyserE = do
           [ analyser_
               { cb:
                   ( AnalyserNodeCb
@@ -204,12 +203,9 @@ introEx ccb _ ev = makePursx' (Proxy :: _ "@") px
             , DA.step_ "1"
             , DA.value_ "50"
             , DA.style_ "width: 100%;"
-            , DL.input_
-                ( traverse_
-                    (valueAsNumber >=> setSlider)
-                    <<< (=<<) fromEventTarget
-                    <<< target
-                )
+            , numberOn_ DL.input \n ->
+                audioContextRef >>= traverse_ \ctx ->
+                  unwrap (withACTime ctx (Op setSlider)) n
             ]
 
             []
@@ -218,7 +214,7 @@ introEx ccb _ ev = makePursx' (Proxy :: _ "@") px
                 [ DA.style_ "width:100%; padding:1.0rem;"
                 , DL.runOn DL.click $ loadingE $> pure unit
                 , DL.runOn DL.click $ stopE <#>
-                    (_ *> (ccb (pure unit) *> setStart unit))
+                    (_ *> (ccb (pure unit) *> setAudioContext Nothing *> setStart unit))
                 , DL.runOn DL.click $ ((startE $> identity) <*> (pure (pure unit) <|> (map (\(SetCancel x) -> x) ev))) <#> \cncl -> do
                     cncl
                     setLoading unit
@@ -242,9 +238,10 @@ introEx ccb _ ev = makePursx' (Proxy :: _ "@") px
                           x <- Random.random
                           y <- Random.random
                           pure { x, y }
-                        ssub <- run2 ctx (music ctx randSound analyserE)
+                        setAudioContext (Just ctx)
+                        ssub <- run2 ctx (music randSound analyserE)
                         afe <- animationFrame
-                        anisub <- liftST $ subscribe afe.event \_ -> do
+                        anisub <- subscribe afe.event \_ -> do
                           ae <- read analyserE
                           for_ ae \a -> do
                             frequencyData <-
@@ -252,7 +249,7 @@ introEx ccb _ ev = makePursx' (Proxy :: _ "@") px
                             arr <- map (zip rands <<< map ((_ / 255.0) <<< toNumber)) (toArray frequencyData)
                             setCanvas arr
                             pure unit
-                        let res = ssub *> c0h *> close ctx *> liftST anisub *> afe.unsubscribe
+                        let res = ssub *> c0h *> close ctx *> anisub *> afe.unsubscribe
                         setStop res
                         pure res
                     ccb do

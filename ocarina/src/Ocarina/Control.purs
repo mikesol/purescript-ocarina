@@ -8,7 +8,6 @@ import Bolson.Core (Element(..), Entity(..), PSR, Scope(..), fixed)
 import Control.Alt ((<|>))
 import Control.Comonad (extract)
 import Control.Monad.ST.Internal as RRef
-import Control.Monad.ST.Uncurried (mkSTFn2, runSTFn1)
 import Control.Plus (empty)
 import ConvertableOptions (class ConvertOption, class ConvertOptionsWithDefaults, convertOptionsWithDefaults)
 import Data.FastVect.FastVect (Vect, singleton, toArray, index)
@@ -25,8 +24,8 @@ import Data.Typelevel.Num (class Nat, class Pos, class Pred, D1, D2, pred, toInt
 import Data.Variant (Unvariant(..), inj, match, unvariant)
 import Effect.Console (error)
 import Effect.Unsafe (unsafePerformEffect)
-import FRP.Event (Event, keepLatest, makeLemmingEventO)
-import FRP.Poll (class Pollable, APoll, Poll, sample, sham)
+import FRP.Event (justNone, justOne, keepLatest, makeEvent)
+import FRP.Poll (Poll, poll, sample)
 import Foreign.Object (fromHomogeneous)
 import Ocarina.Common as Common
 import Ocarina.Core (ChannelCountMode(..), ChannelInterpretation(..), Po2(..))
@@ -39,28 +38,9 @@ import Simple.JSON as JSON
 import Type.Proxy (Proxy(..))
 import Type.Row.Homogeneous (class Homogeneous)
 
-subscribeChildren
-  :: forall pollable478 a479 b480 o482 a485 t488
-   . Pollable Event pollable478
-  => Show a485
-  => (pollable478 b480 -> t488)
-  -> a485
-  -> List.List Int
-  -> Scope
-  -> C.AudioInterpret a479
-  -> Entity Void (C.Node o482 a479)
-  -> pollable478 (a479 -> b480)
-  -> t488
 subscribeChildren subscribe me deferralPath scope di elts ee =
   subscribe (sample (__internalOcarinaFlatten { parent: Just (show me), deferralPath: deferralPath, scope: scope, raiseId: \_ -> pure unit } di elts) ee)
 
-subscribeAtts
-  :: forall event215 pollable216 a217 b218 t219
-   . Pollable event215 pollable216
-  => (pollable216 b218 -> t219)
-  -> pollable216 (a217 -> b218)
-  -> APoll event215 a217
-  -> t219
 subscribeAtts subscribe ee atts = subscribe (sample atts ee)
 
 scopeToMaybe :: Scope -> Maybe String
@@ -80,8 +60,8 @@ allpass i' atts elts = Element' $ C.Node go
   where
   C.InitializeAllpass i = Common.toInitializeAllpass i'
   go parent di@(C.AudioInterpret { ids, deferPayload, deleteFromCache, makeAllpass, setFrequency, setQ }) = behaving \ee kx subscribe -> do
-    me <- ids
-    parent.raiseId $ show me
+    me <- justNone ids
+    justNone $ parent.raiseId $ show me
     kx $ makeAllpass
       { id: show me, parent: parent.parent, scope: scopeToMaybe parent.scope, frequency: i.frequency, q: i.q }
     kx $ deferPayload parent.deferralPath $ deleteFromCache { id: show me }
@@ -205,8 +185,8 @@ analyser i' atts elts = Element' $ C.Node go
     parent
     di@(C.AudioInterpret { ids, deferPayload, deleteFromCache, makeAnalyser, setAnalyserNodeCb }) =
     behaving \ee kx subscribe -> do
-      me <- ids
-      parent.raiseId $ show me
+      me <- justNone ids
+      justNone $ parent.raiseId $ show me
       kx $ makeAnalyser
         { id: show me
         , parent: parent.parent
@@ -306,8 +286,8 @@ __audioWorklet (C.InitializeAudioWorkletNode i) atts elt = Element' $ C.Node go
           { ids, deferPayload, deleteFromCache, makeAudioWorkletNode, setAudioWorkletParameter }
       ) =
     behaving \ee kx subscribe -> do
-      me <- ids
-      parent.raiseId $ show me
+      me <- justNone ids
+      justNone $ parent.raiseId $ show me
       kx $ makeAudioWorkletNode
         { id: show me
         , parent: parent.parent
@@ -373,8 +353,8 @@ bandpass i' atts elts = Element' $ C.Node go
   where
   C.InitializeBandpass i = Common.toInitializeBandpass i'
   go parent di@(C.AudioInterpret { ids, deferPayload, deleteFromCache, makeBandpass, setFrequency, setQ }) = behaving \ee kx subscribe -> do
-    me <- ids
-    parent.raiseId $ show me
+    me <- justNone ids
+    justNone $ parent.raiseId $ show me
     kx $ makeBandpass
       { id: show me, parent: parent.parent, scope: scopeToMaybe parent.scope, frequency: i.frequency, q: i.q }
     kx $ deferPayload parent.deferralPath $ deleteFromCache { id: show me }
@@ -411,8 +391,8 @@ __constant i' atts = Element' $ C.Node go
   C.InitializeConstant i = Common.toInitializeConstant i'
   go parent di@(C.AudioInterpret { ids, deferPayload, deleteFromCache, makeConstant, setOffset, setOnOff }) =
     behaving \ee kx subscribe -> do
-      me <- ids
-      parent.raiseId $ show me
+      me <- justNone ids
+      justNone $ parent.raiseId $ show me
       kx $ makeConstant
         { id: show me
         , parent: parent.parent
@@ -459,8 +439,8 @@ convolver i' elts = Element' $ C.Node go
   C.InitializeConvolver i = Common.toInitializeConvolver i'
   go parent di@(C.AudioInterpret { ids, deferPayload, deleteFromCache, makeConvolver }) =
     behaving \ee kx subscribe -> do
-      me <- ids
-      parent.raiseId $ show me
+      me <- justNone ids
+      justNone $ parent.raiseId $ show me
       kx $ makeConvolver
         { id: show me
         , parent: parent.parent
@@ -482,8 +462,8 @@ delay i' atts elts = Element' $ C.Node go
   where
   C.InitializeDelay i = Common.toInitializeDelay i'
   go parent di@(C.AudioInterpret { ids, deferPayload, deleteFromCache, makeDelay, setDelay }) = behaving \ee kx subscribe -> do
-    me <- ids
-    parent.raiseId $ show me
+    me <- justNone ids
+    justNone $ parent.raiseId $ show me
     kx $ makeDelay
       { id: show me, parent: parent.parent, scope: scopeToMaybe parent.scope, delayTime: i.delayTime, maxDelayTime: i.maxDelayTime }
     kx $ deferPayload parent.deferralPath $ deleteFromCache { id: show me }
@@ -533,8 +513,8 @@ dynamicsCompressor i' atts elts = Element' $ C.Node go
           }
       ) =
     behaving \ee kx subscribe -> do
-      me <- ids
-      parent.raiseId $ show me
+      me <- justNone ids
+      justNone $ parent.raiseId $ show me
       kx $ makeDynamicsCompressor
         { id: show me
         , parent: parent.parent
@@ -596,8 +576,8 @@ gain i' atts elts = Element' $ C.Node go
   where
   C.InitializeGain i = Common.toInitializeGain i'
   go parent di@(C.AudioInterpret { ids, deferPayload, deleteFromCache, makeGain, setGain }) = behaving \ee kx subscribe -> do
-    me <- ids
-    parent.raiseId $ show me
+    me <- justNone ids
+    justNone $ parent.raiseId $ show me
     kx $ makeGain
       { id: show me, parent: parent.parent, scope: scopeToMaybe parent.scope, gain: i.gain }
     kx $ deferPayload parent.deferralPath $ deleteFromCache { id: show me }
@@ -632,8 +612,8 @@ highpass i' atts elts = Element' $ C.Node go
   where
   C.InitializeHighpass i = Common.toInitializeHighpass i'
   go parent di@(C.AudioInterpret { ids, deferPayload, deleteFromCache, makeHighpass, setFrequency, setQ }) = behaving \ee kx subscribe -> do
-    me <- ids
-    parent.raiseId $ show me
+    me <- justNone ids
+    justNone $ parent.raiseId $ show me
     kx $ makeHighpass
       { id: show me, parent: parent.parent, scope: scopeToMaybe parent.scope, frequency: i.frequency, q: i.q }
     kx $ deferPayload parent.deferralPath $ deleteFromCache { id: show me }
@@ -669,8 +649,8 @@ highshelf i' atts elts = Element' $ C.Node go
   where
   C.InitializeHighshelf i = Common.toInitializeHighshelf i'
   go parent di@(C.AudioInterpret { ids, deferPayload, deleteFromCache, makeHighshelf, setFrequency, setGain }) = behaving \ee kx subscribe -> do
-    me <- ids
-    parent.raiseId $ show me
+    me <- justNone ids
+    justNone $ parent.raiseId $ show me
     kx $ makeHighshelf
       { id: show me, parent: parent.parent, scope: scopeToMaybe parent.scope, frequency: i.frequency, gain: i.gain }
     kx $ deferPayload parent.deferralPath $ deleteFromCache { id: show me }
@@ -732,8 +712,8 @@ iirFilter' fwd bk i' elts = Element' $ C.Node go
           }
       ) =
     behaving \ee kx subscribe -> do
-      me <- ids
-      parent.raiseId $ show me
+      me <- justNone ids
+      justNone $ parent.raiseId $ show me
       kx $ makeIIRFilter
         { id: show me
         , parent: parent.parent
@@ -756,8 +736,8 @@ lowpass i' atts elts = Element' $ C.Node go
   where
   C.InitializeLowpass i = Common.toInitializeLowpass i'
   go parent di@(C.AudioInterpret { ids, deferPayload, deleteFromCache, makeLowpass, setFrequency, setQ }) = behaving \ee kx subscribe -> do
-    me <- ids
-    parent.raiseId $ show me
+    me <- justNone ids
+    justNone $ parent.raiseId $ show me
     kx $ makeLowpass
       { id: show me, parent: parent.parent, scope: scopeToMaybe parent.scope, frequency: i.frequency, q: i.q }
     kx $ deferPayload parent.deferralPath $ deleteFromCache { id: show me }
@@ -793,8 +773,8 @@ lowshelf i' atts elts = Element' $ C.Node go
   where
   C.InitializeLowshelf i = Common.toInitializeLowshelf i'
   go parent di@(C.AudioInterpret { ids, deferPayload, deleteFromCache, makeLowshelf, setFrequency, setGain }) = behaving \ee kx subscribe -> do
-    me <- ids
-    parent.raiseId $ show me
+    me <- justNone ids
+    justNone $ parent.raiseId $ show me
     kx $ makeLowshelf
       { id: show me, parent: parent.parent, scope: scopeToMaybe parent.scope, frequency: i.frequency, gain: i.gain }
     kx $ deferPayload parent.deferralPath $ deleteFromCache { id: show me }
@@ -845,8 +825,8 @@ __loopBuf i' atts = Element' $ C.Node go
           }
       ) =
     behaving \ee kx subscribe -> do
-      me <- ids
-      parent.raiseId $ show me
+      me <- justNone ids
+      justNone $ parent.raiseId $ show me
       kx $ makeLoopBuf
         { id: show me
         , parent: parent.parent
@@ -897,8 +877,8 @@ __mediaElement (C.InitializeMediaElement i) = Element' $ C.Node go
   where
   go parent (C.AudioInterpret { ids, deferPayload, deleteFromCache, makeMediaElement }) =
     behaving \_ kx _ -> do
-      me <- ids
-      parent.raiseId $ show me
+      me <- justNone ids
+      justNone $ parent.raiseId $ show me
       kx $ makeMediaElement
         { id: show me
         , parent: parent.parent
@@ -925,8 +905,8 @@ __microphone i' = Element' $ C.Node go
   C.InitializeMicrophone i = Common.toInitializeMicrophone i'
   go parent (C.AudioInterpret { ids, deferPayload, deleteFromCache, makeMicrophone }) =
     behaving \_ kx _ -> do
-      me <- ids
-      parent.raiseId $ show me
+      me <- justNone ids
+      justNone $ parent.raiseId $ show me
       kx
         ( makeMicrophone
             { id: show me
@@ -956,8 +936,8 @@ notch i' atts elts = Element' $ C.Node go
   where
   C.InitializeNotch i = Common.toInitializeNotch i'
   go parent di@(C.AudioInterpret { ids, deferPayload, deleteFromCache, makeNotch, setFrequency, setQ }) = behaving \ee kx subscribe -> do
-    me <- ids
-    parent.raiseId $ show me
+    me <- justNone ids
+    justNone $ parent.raiseId $ show me
     kx $ makeNotch { id: show me, parent: parent.parent, scope: scopeToMaybe parent.scope, frequency: i.frequency, q: i.q }
     kx $ deferPayload parent.deferralPath $ deleteFromCache { id: show me }
     subscribeChildren subscribe me parent.deferralPath parent.scope di (fixed elts) ee
@@ -992,8 +972,8 @@ peaking i' atts elts = Element' $ C.Node go
   where
   C.InitializePeaking i = Common.toInitializePeaking i'
   go parent di@(C.AudioInterpret { ids, deferPayload, deleteFromCache, makePeaking, setFrequency, setQ, setGain }) = behaving \ee kx subscribe -> do
-    me <- ids
-    parent.raiseId $ show me
+    me <- justNone ids
+    justNone $ parent.raiseId $ show me
     kx $ makePeaking
       { id: show me, parent: parent.parent, scope: scopeToMaybe parent.scope, frequency: i.frequency, q: i.q, gain: i.gain }
     kx $ deferPayload parent.deferralPath $ deleteFromCache { id: show me }
@@ -1036,8 +1016,8 @@ __periodicOsc i' atts = Element' $ C.Node go
           { ids, deferPayload, deleteFromCache, makePeriodicOsc, setFrequency, setOnOff, setPeriodicOsc }
       ) =
     behaving \ee kx subscribe -> do
-      me <- ids
-      parent.raiseId $ show me
+      me <- justNone ids
+      justNone $ parent.raiseId $ show me
       kx $ makePeriodicOsc
         { id: show me
         , parent: parent.parent
@@ -1153,8 +1133,8 @@ __playBuf i' atts = Element' $ C.Node go
           }
       ) =
     behaving \ee kx subscribe -> do
-      me <- ids
-      parent.raiseId $ show me
+      me <- justNone ids
+      justNone $ parent.raiseId $ show me
       kx $ makePlayBuf
         { id: show me
         , parent: parent.parent
@@ -1210,8 +1190,8 @@ recorder i' elt = Element' $ C.Node go
   C.InitializeRecorder i = Common.toInitializeRecorder i'
   go parent di@(C.AudioInterpret { ids, deferPayload, deleteFromCache, makeRecorder }) =
     behaving \ee kx subscribe -> do
-      me <- ids
-      parent.raiseId $ show me
+      me <- justNone ids
+      justNone $ parent.raiseId $ show me
       kx $ makeRecorder
         { id: show me, parent: parent.parent, scope: scopeToMaybe parent.scope, cb: i.cb }
       kx $ deferPayload parent.deferralPath $ deleteFromCache { id: show me }
@@ -1232,8 +1212,8 @@ __sawtoothOsc i' atts = Element' $ C.Node go
     parent
     di@(C.AudioInterpret { ids, deferPayload, deleteFromCache, makeSawtoothOsc, setFrequency, setOnOff }) =
     behaving \ee kx subscribe -> do
-      me <- ids
-      parent.raiseId $ show me
+      me <- justNone ids
+      justNone $ parent.raiseId $ show me
       kx $ makeSawtoothOsc
         { id: show me
         , parent: parent.parent
@@ -1282,8 +1262,8 @@ __sinOsc i' atts = Element' $ C.Node go
     parent
     di@(C.AudioInterpret { ids, deferPayload, deleteFromCache, makeSinOsc, setFrequency, setOnOff }) =
     behaving \ee kx subscribe -> do
-      me <- ids
-      parent.raiseId $ show me
+      me <- justNone ids
+      justNone $ parent.raiseId $ show me
       kx $ makeSinOsc
         { id: show me
         , parent: parent.parent
@@ -1332,8 +1312,8 @@ __squareOsc i' atts = Element' $ C.Node go
     parent
     di@(C.AudioInterpret { ids, deferPayload, deleteFromCache, makeSquareOsc, setFrequency, setOnOff }) =
     behaving \ee kx subscribe -> do
-      me <- ids
-      parent.raiseId $ show me
+      me <- justNone ids
+      justNone $ parent.raiseId $ show me
       kx $ makeSquareOsc
         { id: show me
         , parent: parent.parent
@@ -1374,7 +1354,7 @@ speaker
   -> C.AudioInterpret payload
   -> Poll payload
 speaker elts di@(C.AudioInterpret { ids, makeSpeaker }) = behaving \ee kx subscribe -> do
-  me <- ids
+  me <- justNone ids
   kx $ makeSpeaker { id: show me }
   subscribeChildren subscribe me List.Nil (Local "toplevel") di (fixed elts) ee
 
@@ -1397,8 +1377,8 @@ pan i' atts elts = Element' $ C.Node go
   where
   C.InitializeStereoPanner i = Common.toInitializeStereoPanner i'
   go parent di@(C.AudioInterpret { ids, deferPayload, deleteFromCache, makeStereoPanner, setPan }) = behaving \ee kx subscribe -> do
-    me <- ids
-    parent.raiseId $ show me
+    me <- justNone ids
+    justNone $ parent.raiseId $ show me
     kx $ makeStereoPanner
       { id: show me, parent: parent.parent, scope: scopeToMaybe parent.scope, pan: i.pan }
     kx $ deferPayload parent.deferralPath $ deleteFromCache { id: show me }
@@ -1436,8 +1416,8 @@ __triangleOsc i' atts = Element' $ C.Node go
     parent
     di@(C.AudioInterpret { ids, deferPayload, deleteFromCache, makeTriangleOsc, setFrequency, setOnOff }) =
     behaving \ee kx subscribe -> do
-      me <- ids
-      parent.raiseId $ show me
+      me <- justNone ids
+      justNone $ parent.raiseId $ show me
       kx $ makeTriangleOsc
         { id: show me
         , parent: parent.parent
@@ -1484,8 +1464,8 @@ waveShaper i' elts = Element' $ C.Node go
   C.InitializeWaveShaper i = Common.toInitializeWaveShaper i'
   go parent di@(C.AudioInterpret { ids, deferPayload, deleteFromCache, makeWaveShaper }) =
     behaving \ee kx subscribe -> do
-      me <- ids
-      parent.raiseId $ show me
+      me <- justNone ids
+      justNone $ parent.raiseId $ show me
       kx $ makeWaveShaper
         { id: show me
         , parent: parent.parent
@@ -1652,7 +1632,7 @@ tmpResolveAU = go
     , unit: \(C.AudioUnit { u }) -> do
         let wrappingGain = gain_ 1.0 [ u ]
         behaving \ee _ subscribe -> do
-          av <- RRef.new Nothing
+          av <- justNone $ RRef.new Nothing
           -- todo: make sure the ordering is correct here
           -- in the old ocarina, it was easier to reason that the event
           -- on the left would happen before the one on the right
@@ -1662,13 +1642,12 @@ tmpResolveAU = go
             ( sample
                 ( __internalOcarinaFlatten { parent: Nothing, scope: scope, deferralPath: deferralPath, raiseId: \x -> void $ RRef.write (Just x) av } di
                     wrappingGain <|>
-                    ( sham
-                        ( makeLemmingEventO $ mkSTFn2 \_ k2 ->
-                            do
-                              RRef.read av >>= case _ of
+                    ( poll \e ->
+                        ( makeEvent \sub ->
+                            sub e \f0 -> do
+                              justNone (RRef.read av) >>= case _ of
                                 Nothing -> pure $ unsafePerformEffect (error "Wrapped audio unit failed!")
-                                Just i -> runSTFn1 k2 (f (ut (C.FFIAudioUnit { i })))
-                              pure (pure unit)
+                                Just i -> justOne (f0 (f (ut (C.FFIAudioUnit { i }))))
                         )
                     )
                 )

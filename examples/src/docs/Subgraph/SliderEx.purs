@@ -3,9 +3,10 @@ module Ocarina.Example.Docs.Subgraph.SliderEx where
 import Prelude
 
 import Control.Alt ((<|>))
-import Data.Either (hush)
+import Data.Either (Either(..), hush)
+import Data.Filterable (filter)
 import Data.Foldable (oneOf)
-import Data.Tuple (Tuple(..), fst)
+import Data.Tuple (Tuple(..))
 import Data.Tuple.Nested ((/\))
 import Deku.Control (text, text_)
 import Deku.Core (Nut)
@@ -14,21 +15,20 @@ import Deku.DOM.Attributes as DA
 import Deku.DOM.Listeners as DL
 import Deku.Do as Deku
 import Deku.Hooks (useState')
-import Deku.Pursx (makePursx')
+import Deku.Pursx (pursx')
 import Effect (Effect)
-import Effect.Aff (launchAff, launchAff_)
+import Effect.Aff (Milliseconds(..), delay, launchAff, launchAff_)
 import Effect.Class (liftEffect)
-import Effect.Random as Random
-import FRP.Event (delay, filterMap, fold, makeEvent, subscribe)
+import Effect.Random (random)
+import FRP.Event (filterMap)
 import FRP.Event.Class (once)
-import FRP.Poll (Poll, dredge, poll, sampleBy)
+import FRP.Poll (Poll)
 import Ocarina.Control (gain_, playBuf)
 import Ocarina.Core (Audible, silence, bangOn, dyn)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..))
 import Ocarina.Example.Docs.Util (raceSelf)
 import Ocarina.Interpret (close, constant0Hack, context, decodeAudioDataFromUri)
 import Ocarina.Run (run2_)
-import Type.Proxy (Proxy(..))
 
 txt :: String
 txt =
@@ -69,11 +69,6 @@ type UIEvents = V (startStop :: StartStop, slider :: Unit)
 bell =
   "https://freesound.org/data/previews/339/339810_5121236-lq.mp3"
     :: String
-
-random :: Poll Number
-random = poll \e ->
-  makeEvent \k -> subscribe e \f ->
-    Random.random >>= k <<< f
 
 main :: Effect Unit
 main = do
@@ -139,17 +134,16 @@ bell :: String
 bell =
   "https://freesound.org/data/previews/339/339810_5121236-lq.mp3"
 
-random :: Poll Number
-random = poll \e ->
-  makeEvent \k -> subscribe e \f ->
-    Random.random >>= k <<< f
+swap :: forall a b. Either a b -> Either b a
+swap (Left l) = Right l
+swap (Right r) = Left r
 
 sgSliderEx
   :: CancelCurrentAudio
   -> (Page -> Effect Unit)
   -> Poll SingleSubgraphEvent
   -> Nut
-sgSliderEx ccb _ ev = makePursx' (Proxy :: _ "@") px
+sgSliderEx ccb _ ev = pursx' @"@" @Px
   { txt: (text_ txt)
   , ex1: Deku.do
       setStart /\ start <- useState'
@@ -159,8 +153,8 @@ sgSliderEx ccb _ ev = makePursx' (Proxy :: _ "@") px
       let
         startE = pure unit <|> start
         stopE = stop
-        sl = sampleBy (/\) random
-          $ fold (\b _ -> b + 1) 0 (slider)
+        turnOn = filterMap hush slider
+        turnOff = filterMap (swap >>> hush) slider
 
         music :: _ -> Array (Audible _ _)
         music buffer =
@@ -168,13 +162,13 @@ sgSliderEx ccb _ ev = makePursx' (Proxy :: _ "@") px
               [ dyn $ map
                   ( \i ->
                       Tuple
-                        ((filterMap (hush >>> map fst) (dredge (delay 5000) $ once sl)) $> silence)
+                        (once (filter (_ == i) turnOff) $> silence)
                         ( playBuf
-                            { buffer: buffer, playbackRate: 0.7 + (fst i) * 2.0 }
+                            { buffer: buffer, playbackRate: 0.7 + i * 2.0 }
                             bangOn
                         )
                   )
-                  sl
+                  turnOn
               ]
           ]
       D.div_
@@ -186,7 +180,13 @@ sgSliderEx ccb _ ev = makePursx' (Proxy :: _ "@") px
                 , DA.max_ "100"
                 , DA.step_ "1"
                 , DA.value_ "50"
-                , DL.input_ \_ -> setSlider unit
+                , DL.input_ \_ -> do
+                        r <- random
+                        setSlider $ Right r
+                        launchAff_ do
+                          delay (Milliseconds 5000.0)
+                          liftEffect $ setSlider $ Left r
+
                 ]
                 []
             ]
@@ -223,10 +223,7 @@ sgSliderEx ccb _ ev = makePursx' (Proxy :: _ "@") px
         ]
   }
 
-px =
-  Proxy
-    :: Proxy
-         """<section>
+type Px = """<section>
   <h2>Hello subgraph</h2>
 
   <p>Subgraphs have the type <code>Event (Event (Channel outputChannels payload))</code>. Streaming audio is a data type with two constructors: <code>sound</code> to create a subgraph and <code>silence</code> to turn it off. The inner event listens for sound/silence, and the outer event adds subgraphs to the scene. You can create as many subgraphs as you like: ocarina automatically frees up resources when you send the <code>silence</code> event. Note that, once you turn a subraph off with <code>silence</code>, you can't turn it back on again. In this case, just create a new subgraph.</p>

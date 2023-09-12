@@ -4,9 +4,10 @@ import Prelude
 
 import Control.Alt ((<|>))
 import Control.Monad.ST.Class (liftST)
-import Data.Either (hush)
+import Data.Either (Either(..), hush)
+import Data.Filterable (filter)
 import Data.Maybe (Maybe(..), maybe)
-import Data.Tuple (Tuple(..), fst)
+import Data.Tuple (Tuple(..))
 import Data.Tuple.Nested ((/\))
 import Deku.Control (text, text_)
 import Deku.Core (Nut)
@@ -17,12 +18,12 @@ import Deku.Do as Deku
 import Deku.Hooks (useState', (<#~>))
 import Deku.Toplevel (runInBody)
 import Effect (Effect)
-import Effect.Aff (launchAff_)
+import Effect.Aff (Milliseconds(..), delay, launchAff_)
 import Effect.Class (liftEffect)
-import Effect.Random as Random
-import FRP.Event (delay, filterMap, fold, makeEvent, subscribe)
+import Effect.Random (random)
+import FRP.Event (filterMap)
 import FRP.Event.Class (once)
-import FRP.Poll (Poll, dredge, create, poll, sampleBy)
+import FRP.Poll (create)
 import Ocarina.Control (gain_, playBuf)
 import Ocarina.Core (dyn, silence, bangOn)
 import Ocarina.Interpret (bracketCtx, decodeAudioDataFromUri)
@@ -34,10 +35,9 @@ bell =
   "https://freesound.org/data/previews/339/339810_5121236-lq.mp3"
     :: String
 
-random :: Poll Number
-random = poll \e ->
-  makeEvent \k -> subscribe e \f ->
-    Random.random >>= k <<< f
+swap :: forall a b. Either a b -> Either b a
+swap (Left l) = Right l
+swap (Right r) = Left r
 
 main :: Effect Unit
 main = do
@@ -60,20 +60,20 @@ main = do
           setSlider /\ slider <- useState'
           let
             startE = pure unit <|> start
-            sl = sampleBy (/\) random
-              $ fold (\b _ -> b + 1) 0 (slider)
+            turnOn = filterMap hush slider
+            turnOff = filterMap (swap >>> hush) slider
             music = run2_
               [ gain_ 1.0
                   [ dyn $ map
                       ( \i ->
                           Tuple
-                            ((filterMap (hush >>> map fst) (dredge (delay 5000) $ once sl)) $> silence)
+                            (once (filter (_ == i) turnOff) $> silence)
                             ( playBuf
-                                { buffer: buffer, playbackRate: 0.7 + (fst i) * 2.0 }
+                                { buffer: buffer, playbackRate: 0.7 + i * 2.0 }
                                 bangOn
                             )
                       )
-                      sl
+                      turnOn
                   ]
               ]
           D.div_
@@ -85,7 +85,12 @@ main = do
                     , DA.max_ "100"
                     , DA.step_ "1"
                     , DA.value_ "50"
-                    , DL.input_ \_ -> setSlider unit
+                    , DL.input_ \_ -> do
+                        r <- random
+                        setSlider $ Right r
+                        launchAff_ do
+                          delay (Milliseconds 5000.0)
+                          liftEffect $ setSlider $ Left r
                     ]
                     []
                 ]

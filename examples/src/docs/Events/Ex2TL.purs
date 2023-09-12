@@ -5,7 +5,6 @@ import Prelude
 import Control.Alt ((<|>))
 import Control.Monad.ST.Class (liftST)
 import Data.Foldable (oneOf, traverse_)
-import Data.Tuple (Tuple(..), fst, snd)
 import Data.Tuple.Nested ((/\))
 import Deku.Control (text, text_)
 import Deku.DOM as D
@@ -15,10 +14,10 @@ import Deku.Do as Deku
 import Deku.Hooks (useState, useState')
 import Deku.Toplevel (runInBody)
 import Effect (Effect)
-import Effect.Random as Random
-import FRP.Event (makeEvent, subscribe)
-import FRP.Poll (Poll, dredge, poll, rant)
-import Ocarina.Clock (interval)
+import FRP.Event (create)
+import FRP.Event.Random (withRandom)
+import FRP.Poll (rant, sample, sham)
+import Ocarina.Clock (interval')
 import Ocarina.Control (bandpass_, fan1, gain, gain_, highpass_, triangleOsc)
 import Ocarina.Core (Audible, AudioEnvelope(AudioEnvelope), bangOn)
 import Ocarina.Interpret (close, context)
@@ -28,11 +27,6 @@ import Ocarina.Properties as P
 import Ocarina.Run (run2)
 import Web.Event.Event (target)
 import Web.HTML.HTMLInputElement (fromEventTarget, valueAsNumber)
-
-random :: Poll Number
-random = poll \e ->
-  makeEvent \k -> subscribe e \f ->
-    Random.random >>= k <<< f
 
 -- pentatonic scale
 cp :: Number -> Number
@@ -55,9 +49,9 @@ main = runInBody Deku.do
     music :: _ -> Array (Audible _ _)
     music evt = do
       let
-        pitch = map fst evt
+        pitch = map _.random evt
         -- to avoid artifacts in the pitch change
-        time = map (add 0.01 <<< snd) evt
+        time = map (add 0.01 <<< _.value) evt
         e0 =
           AudioEnvelope <<<
             { p: [ 0.0, 0.6, 0.2, 0.1, 0.5, 0.03, 0.0 ]
@@ -123,13 +117,10 @@ main = runInBody Deku.do
     , D.button
         [ DL.runOn DL.click $ start $> do
             ctx <- context
-            ivl <- interval ctx
-            myIvl <- liftST $ rant $ Tuple <$> random <*>
-              ( dredge ivl.fevent
-                  ( map (calcSlope 0.0 0.42 100.0 1.4)
-                      slider
-                  )
-              )
+            p <- liftST $ create
+            ivl <- interval' withRandom ctx $ map (calcSlope 0.0 0.42 100.0 1.4) (sample slider p.event)
+            p.push identity
+            myIvl <- liftST $ rant $ sham ivl.event
             r <- run2 ctx (music myIvl.poll)
             setStop (r *> close ctx)
         , DL.runOn DL.click $ stop <#>

@@ -2,14 +2,18 @@ module Ocarina.Example.Docs.Params.Cancel where
 
 import Prelude
 
+import Control.Monad.ST.Class (liftST)
 import Data.Array ((..))
+import Data.Either (Either(..), isLeft, isRight)
+import Data.Filterable (filter)
 import Data.Foldable (oneOf)
 import Deku.Control (text_)
 import Deku.Core (Nut)
-import Deku.Pursx ((~~))
+import Deku.Pursx (pursx)
 import Effect (Effect)
-import FRP.Event (delay_)
-import FRP.Poll (Poll, dredge)
+import Effect.Aff (Milliseconds(..), delay, forkAff)
+import Effect.Class (liftEffect)
+import FRP.Poll (Poll, create)
 import Ocarina.Control (gain_, loopBuf)
 import Ocarina.Core (AudioCancel(..), AudioEnvelope(..), bangOn)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
@@ -17,10 +21,66 @@ import Ocarina.Example.Docs.Util (audioWrapper)
 import Ocarina.Interpret (decodeAudioDataFromUri)
 import Ocarina.Properties (playbackRate)
 import Ocarina.Run (run2)
-import Type.Proxy (Proxy(..))
 
-px =
-  Proxy    :: Proxy         """<section>
+cancelEx :: CancelCurrentAudio -> (Page -> Effect Unit) -> Poll SingleSubgraphEvent -> Nut
+cancelEx ccb _ ev = pursx @Px
+  { txt:
+      ( text_
+          """\ctx { buf, poll } -> run2 ctx
+  [ gain_ 1.0
+      [ loopBuf buf
+          ( oneOf
+              [ bangOn
+              , filter isLeft poll $>
+                  ( playbackRate
+                      $ AudioEnvelope
+                          { p: join (0 .. 60 $> [ 1.0, 1.2, 1.0, 0.8 ])
+                          , o: 1.5
+                          , d: 30.0
+                          }
+                  )
+              , filter isRight poll $> (playbackRate (AudioCancel { o: 3.5 }))
+              ]
+          )
+      ]
+  ]
+"""
+      )
+  , cancel:
+      ( audioWrapper ev ccb
+          ( \ctx -> do
+              buf <- decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3"
+              { poll, push } <- liftEffect $ liftST $ create
+              _ <- forkAff do
+                delay (Milliseconds 1000.0)
+                liftEffect $ push $ Left unit
+                delay (Milliseconds 3000.0)
+                liftEffect $ push $ Right unit
+              pure { buf, poll }
+          )
+          \ctx { buf, poll } -> run2 ctx
+            [ gain_ 1.0
+                [ loopBuf buf
+                    ( oneOf
+                        [ bangOn
+                        , filter isLeft poll $>
+                            ( playbackRate
+                                $ AudioEnvelope
+                                    { p: join (0 .. 60 $> [ 1.0, 1.2, 1.0, 0.8 ])
+                                    , o: 1.5
+                                    , d: 30.0
+                                    }
+                            )
+                        , filter isRight poll $> (playbackRate (AudioCancel { o: 3.5 }))
+                        ]
+                    )
+                ]
+            ]
+      )
+  }
+
+type Px =
+  """<section>
   <h2>Cancel</h2>
   <p>The <code>AudioCancel</code> parameter corresponds to the Web Audio API's <a href="https://developer.mozilla.org/en-US/docs/Web/API/AudioParam/cancelScheduledValues"><code>cancelScheduledValues</code></a> function and cancels whatever effects you programmed in the future. In the example below, we execute the following sequence:</p>
   <ol>
@@ -32,46 +92,3 @@ px =
   ~cancel~
   </section>
 """
-
-cancelEx :: CancelCurrentAudio -> (Page -> Effect Unit) -> Poll SingleSubgraphEvent -> Nut
-cancelEx ccb _ ev = px ~~
-  { txt:
-      ( text_
-          """\ctx buf -> run2 ctx
-  [ gain_ 1.0
-      [ loopBuf buf OneOf.do
-          bangOn
-          delay 1000
-            $ pure
-            $ playbackRate
-            $ AudioEnvelope
-                { p: join (0 .. 60 $> [ 1.0, 1.2, 1.0, 0.8 ])
-                , o: 1.5
-                , d: 30.0
-                }
-          delay 3000 (pure (playbackRate (AudioCancel { o: 3.5 })))
-      ]
-  ]"""
-      )
-  , cancel:
-      (audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
-          \ctx buf -> run2 ctx
-            [ gain_ 1.0
-                [ loopBuf buf
-                    ( oneOf
-                        [ bangOn
-                        , dredge (delay_ 1000)
-                            $ pure
-                            $ playbackRate
-                            $ AudioEnvelope
-                                { p: join (0 .. 60 $> [ 1.0, 1.2, 1.0, 0.8 ])
-                                , o: 1.5
-                                , d: 30.0
-                                }
-                        , dredge (delay_ 3000) (pure (playbackRate (AudioCancel { o: 3.5 })))
-                        ]
-                    )
-                ]
-            ]
-      )
-  }

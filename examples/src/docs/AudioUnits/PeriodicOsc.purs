@@ -6,7 +6,7 @@ import Prelude
 import Data.Tuple.Nested ((/\))
 import Data.Vec (empty, (+>))
 import Deku.Core (Nut)
-import Deku.Pursx ((~~))
+import Deku.Pursx (pursx)
 import Effect (Effect)
 import FRP.Poll (Poll)
 import Ocarina.Control (gain_, periodicOsc)
@@ -14,10 +14,8 @@ import Ocarina.Core (bangOn)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import Ocarina.Example.Docs.Util (audioWrapper)
 import Ocarina.Run (run2)
-import Type.Proxy (Proxy(..))
 
-px =
-  Proxy    :: Proxy         """<section>
+type Px =  """<section>
   <h2 id="periodic">Periodic wave oscillator</h2>
   <p>The <a href="https://developer.mozilla.org/en-US/docs/Web/API/OscillatorNode">periodic wave oscillator</a> plays back a custom periodic waveform at a given frequency. The custom waveform must be set as part of the initialization and can be changed after initialization. Note that the change will not go into effect if the oscillator is on: it must be turned off and on again.</p>
 
@@ -42,7 +40,7 @@ px =
 
 periodic
   :: CancelCurrentAudio -> (Page -> Effect Unit) -> Poll SingleSubgraphEvent -> Nut
-periodic ccb _ ev = px ~~
+periodic ccb _ ev = pursx @Px
   { periodic:
       ( audioWrapper ev ccb (\_ -> pure unit)
           \ctx _ -> run2 ctx

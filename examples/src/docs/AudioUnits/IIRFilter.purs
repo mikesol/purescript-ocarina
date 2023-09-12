@@ -5,7 +5,7 @@ import Prelude
 import Data.FastVect.FastVect ((:), empty)
 import Data.Tuple.Nested ((/\))
 import Deku.Core (Nut)
-import Deku.Pursx ((~~))
+import Deku.Pursx (pursx)
 import Effect (Effect)
 import FRP.Poll (Poll)
 import Ocarina.Control (iirFilter, loopBuf)
@@ -14,10 +14,8 @@ import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent
 import Ocarina.Example.Docs.Util (audioWrapper)
 import Ocarina.Interpret (decodeAudioDataFromUri)
 import Ocarina.Run (run2)
-import Type.Proxy (Proxy(..))
 
-px =
-  Proxy    :: Proxy         """<section>
+type Px =      """<section>
   <h2 id="iir">IIR filter</h2>
   <p>The <a href="https://developer.mozilla.org/en-US/docs/Web/API/IIRFilterNode">IIR filter</a>, or infinite impulse response filter, is the Swiss Army Knife of filters. You can carve out and boost parts of the spectrum with amazing precision. But it comes with a catch: you can't automate the parameters. The parameters are also tough to work with if you're new to IIR filters. In short, you're setting up coefficients for a filter of type:</p>
 
@@ -40,7 +38,7 @@ px =
 
 iirFilterEx
   :: CancelCurrentAudio -> (Page -> Effect Unit) -> Poll SingleSubgraphEvent -> Nut
-iirFilterEx ccb _ ev = px ~~
+iirFilterEx ccb _ ev = pursx @Px
   { iirFilterEx:
       (audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
           \ctx buf -> run2 ctx

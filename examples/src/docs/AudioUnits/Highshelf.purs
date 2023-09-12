@@ -4,7 +4,7 @@ import Prelude
 
 
 import Deku.Core (Nut)
-import Deku.Pursx ((~~))
+import Deku.Pursx (pursx)
 import Effect (Effect)
 import FRP.Poll (Poll)
 import Ocarina.Control (highshelf_, loopBuf)
@@ -13,9 +13,8 @@ import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent
 import Ocarina.Example.Docs.Util (audioWrapper)
 import Ocarina.Interpret (decodeAudioDataFromUri)
 import Ocarina.Run (run2)
-import Type.Proxy (Proxy(..))
 
-px = Proxy :: Proxy """<section>
+type Px = """<section>
   <h2 id="highshelf">Highshelf filter</h2>
   <p>A <a href="https://developer.mozilla.org/en-US/docs/Web/API/BiquadFilterNode">highshelf filter</a> boosts or attenuates high frequencies using a <code>gain</code> parameter, where gain is expressed in decibels from -40.0 to 40.0.</p>
 
@@ -29,7 +28,7 @@ px = Proxy :: Proxy """<section>
 """
 
 highshelf :: CancelCurrentAudio -> (Page -> Effect Unit) -> Poll SingleSubgraphEvent -> Nut
-highshelf ccb _ ev = px ~~
+highshelf ccb _ ev = pursx @Px
   { highshelf:
       (audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
           \ctx buf -> run2 ctx

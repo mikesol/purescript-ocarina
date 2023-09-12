@@ -15,7 +15,7 @@ import Deku.Do as Deku
 import Deku.Hooks (useState, useState')
 import Deku.Toplevel (runInBody)
 import Effect (Effect)
-import FRP.Event.AnimationFrame (animationFrame)
+import FRP.Event.AnimationFrame (animationFrame')
 import FRP.Event.Class (fold, mapAccum, sampleOnRight)
 import FRP.Poll (rant, sampleBy, sample_, sham)
 import Ocarina.Clock (withACTime)
@@ -60,11 +60,11 @@ main = runInBody Deku.do
                 )
                 (0.0 /\ 0.0)
                 (sampleBy (/\) b tm)
-            afe <- animationFrame
+            afe <- animationFrame' (withACTime ctx)
             acTime <- liftST $ rant
               ( sham
                   ( map (add 0.04 <<< _.acTime)
-                      $ withACTime ctx afe.event
+                      $ afe.event
                   )
               )
             r <- run2 ctx do
@@ -102,7 +102,7 @@ main = runInBody Deku.do
                       )
                   ]
               ]
-            setStop (r *> c0h *> close ctx)
+            setStop (r *> c0h *> close ctx *> afe.unsubscribe)
         ]
         [ text OneOf.do
             startE $> "Turn on"

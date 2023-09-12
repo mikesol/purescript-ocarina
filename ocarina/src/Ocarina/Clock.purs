@@ -7,43 +7,44 @@ import Control.Monad.ST.Internal (new, read, write)
 import Data.Foldable (traverse_)
 import Data.Int (round)
 import Data.Maybe (Maybe(..))
+import Data.Op (Op(..))
 import Effect (Effect)
 import Effect.Timer (clearTimeout, setTimeout)
-import FRP.Event (Event, makeEvent, subscribe)
-import FRP.Poll (Poll, poll)
+import FRP.Event (Event, makeEventE, subscribe)
 import Ocarina.Core (AudioNumeric(..), AudioOnOff(..), _linear)
 import Ocarina.Interpret (getAudioClockTime)
 import Ocarina.WebAPI (AudioContext)
 import Ocarina.WebAPI as WebAPI
+import Safe.Coerce (coerce)
 
 type ACTime =
   { concreteTime :: Number, abstractTime :: Number, lookAhead :: Number }
 
 type WriteHead (f :: Type -> Type) = f ACTime
 
-withACTime :: forall a. AudioContext -> Event a -> Event { acTime :: Number, value :: a }
-withACTime ctx e = makeEvent \k -> do
-  subscribe e \value -> do
-    acTime <- getAudioClockTime ctx
-    k { acTime, value }
+withACTime :: forall a. AudioContext -> Op (Effect Unit) { acTime :: Number, value :: a } -> Op (Effect Unit) a
+withACTime ctx = (coerce :: (_ -> a -> _ Unit) -> _ -> _) go
+  where
+  go f value = do
+    t <- getAudioClockTime ctx
+    f { value, acTime: t }
 
-interval :: AudioContext -> Effect { fevent :: Event Number -> Event Number, unsubscribe :: Effect Unit }
-interval ctx = do
+interval'
+  :: forall a. (Op (Effect Unit) a -> Op (Effect Unit) Number) -> AudioContext -> Event Number -> Effect { event :: Event a, unsubscribe :: Effect Unit }
+interval' f ctx e = makeEventE \k -> do
   cref <- liftST $ new true
   iref <- liftST $ new Nothing
   vref <- liftST $ new Nothing
-  pure
-    { unsubscribe: liftST (write false cref) *> (liftST (read iref) >>= traverse_ clearTimeout)
-    , fevent: \e -> makeEvent \k -> do
-        subscribe e \newN -> do
-          irr <- liftST $ read iref
-          traverse_ clearTimeout irr
-          cT' <- liftST $ read vref
-          cT <- case cT' of
-            Nothing -> getAudioClockTime ctx
-            Just x -> pure x
-          mkTimeout k (cT + newN) cref iref vref newN
-    }
+  unsubscribe <- subscribe e \newN -> do
+    irr <- liftST $ read iref
+    traverse_ clearTimeout irr
+    cT' <- liftST $ read vref
+    cT <- case cT' of
+      Nothing -> getAudioClockTime ctx
+      Just x -> pure x
+    mkTimeout ((coerce :: _ -> _ -> _ -> _ Unit) f k) (cT + newN) cref iref vref newN
+  pure do
+    liftST (write false cref) *> unsubscribe *> (liftST (read iref) >>= traverse_ clearTimeout)
   where
   lookAhead = 0.04
   minVal = 0.01
@@ -59,11 +60,15 @@ interval ctx = do
           mkTimeout k (n + rt) cref iref vref rt
       void $ liftST $ write (Just tid) iref
 
-writeHead :: Number -> WebAPI.AudioContext -> WriteHead Poll
-writeHead lookAhead ctx = poll \eab -> makeEvent \k ->
-  subscribe eab \ab -> do
+interval ∷ AudioContext → Event Number → Effect { event ∷ Event Number, unsubscribe ∷ Effect Unit }
+interval = interval' identity
+
+withWriteHead :: forall a. Number -> WebAPI.AudioContext -> Op (Effect Unit) { value :: a, ac :: ACTime } -> Op (Effect Unit) a
+withWriteHead lookAhead ctx = (coerce :: (_ -> a -> _ Unit) -> _ -> _) go
+  where
+  go f value = do
     t <- getAudioClockTime ctx
-    k (ab { concreteTime: t, abstractTime: t - lookAhead, lookAhead })
+    f { value, ac: { concreteTime: t, abstractTime: t - lookAhead, lookAhead } }
 
 oo
   :: forall f

@@ -2,14 +2,13 @@ module Ocarina.Example.Docs.AudioUnits.WaveShaper where
 
 import Prelude
 
-
 import Data.Array ((..))
 import Data.Int (toNumber)
 import Data.Number (pi)
 import Data.Ord (abs)
 import Deku.Control (text_)
 import Deku.Core (Nut)
-import Deku.Pursx ((~~))
+import Deku.Pursx (pursx)
 import Effect (Effect)
 import FRP.Poll (Poll)
 import Ocarina.Control (loopBuf, waveShaper)
@@ -18,10 +17,8 @@ import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent
 import Ocarina.Example.Docs.Util (audioWrapper)
 import Ocarina.Interpret (decodeAudioDataFromUri, makeFloatArray)
 import Ocarina.Run (run2)
-import Type.Proxy (Proxy(..))
 
-px =
-  Proxy :: Proxy """<section>
+type Px = """<section>
   <h2 id="waveshaper">Waveshaper</h2>
   <p>The <a href="https://developer.mozilla.org/en-US/docs/Web/API/WaveshaperNode">waveshaper node</a>, aka distortion, uses a <a href="https://en.wikipedia.org/wiki/Waveshaper">waveshaping function</a> to add warmth to a sound.</p>
 
@@ -33,7 +30,7 @@ px =
 
 waveShaperEx
   :: CancelCurrentAudio -> (Page -> Effect Unit) -> Poll SingleSubgraphEvent -> Nut
-waveShaperEx ccb _ ev = px ~~
+waveShaperEx ccb _ ev = pursx @Px
   { code:
       ( text_
           """do

@@ -4,7 +4,7 @@ import Prelude
 
 
 import Deku.Core (Nut)
-import Deku.Pursx ((~~))
+import Deku.Pursx (pursx)
 import Effect (Effect)
 import FRP.Poll (Poll)
 import Ocarina.Control (loopBuf, lowpass_)
@@ -13,9 +13,8 @@ import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent
 import Ocarina.Example.Docs.Util (audioWrapper)
 import Ocarina.Interpret (decodeAudioDataFromUri)
 import Ocarina.Run (run2)
-import Type.Proxy (Proxy(..))
 
-px = Proxy :: Proxy """<section>
+type Px = """<section>
   <h2 id="lowpass">Lowpass filter</h2>
   <p>A <a href="https://developer.mozilla.org/en-US/docs/Web/API/BiquadFilterNode">lowpass filter</a> lets lower frequencies pass and amortizes higher ones. If you amp up the Q value, the effect will be sharper.</p>
 
@@ -28,7 +27,7 @@ px = Proxy :: Proxy """<section>
 """
 
 lowpass :: CancelCurrentAudio -> (Page -> Effect Unit) -> Poll SingleSubgraphEvent -> Nut
-lowpass ccb _ ev = px ~~
+lowpass ccb _ ev = pursx @Px
   { lowpass:
       (audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
           \ctx buf -> run2 ctx

@@ -5,18 +5,16 @@ import Prelude
 
 import Data.Maybe (Maybe(..))
 import Deku.Core (Nut)
-import Deku.Pursx (makePursx')
 import Effect (Effect)
+import Deku.Pursx (pursx')
 import FRP.Poll (Poll)
 import Ocarina.Control (delay_, fix, gain_, microphone, sinOsc_)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import Ocarina.Example.Docs.Util (audioWrapper)
 import Ocarina.Interpret (getMicrophoneAndCamera)
 import Ocarina.Run (run2)
-import Type.Proxy (Proxy(..))
 
-px =
-  Proxy    :: Proxy         """<section>
+type Px =    """<section>
   <h2 id="microphone">Microphone</h2>
   <p>The <a href="https://developer.mozilla.org/en-US/docs/Web/API/MediaStreamAudioSourceNode">microphone</a> will use your microphone if you give the browser permission to do so.</p>
 
@@ -37,7 +35,7 @@ px =
 
 microphoneEx
   :: CancelCurrentAudio -> (Page -> Effect Unit) -> Poll SingleSubgraphEvent -> Nut
-microphoneEx ccb _ ev = makePursx' (Proxy :: _ "@") px
+microphoneEx ccb _ ev = pursx' @"@" @Px
   { microphone:
       ( audioWrapper ev ccb (\_ -> getMicrophoneAndCamera true false)
           \ctx { microphone: mic } -> run2 ctx

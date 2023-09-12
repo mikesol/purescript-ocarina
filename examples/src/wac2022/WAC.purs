@@ -33,6 +33,7 @@ main = runInBody Deku.do
   let
     startE = pure unit <|> start
     stopE = stop
+
     music :: _ -> Array (Audible _ _)
     music time = do
       let
@@ -60,16 +61,16 @@ main = runInBody Deku.do
     [ D.div_
         [ D.button
             [ DL.runOn DL.click $ stop <#>
-                    (_ *> setStart unit)
-                , DL.runOn DL.click $ start $> do
-                    ctx <- context
-                    ep <- liftST create
-                    ii <- interval ctx
-                    rt <- liftST $ rant (sham (ii.fevent ep.event) <|> pure 0.25)
-                    r <- run2 ctx (music rt.poll)
-                    ep.push 0.25
-                    setStop (r *> ii.unsubscribe *> liftST rt.unsubscribe *> close ctx)
-                ]
+                (_ *> setStart unit)
+            , DL.runOn DL.click $ start $> do
+                ctx <- context
+                ep <- liftST create
+                ii <- interval ctx ep.event
+                rt <- liftST $ rant (sham ii.event <|> pure 0.25)
+                r <- run2 ctx (music rt.poll)
+                ep.push 0.25
+                setStop (r *> ii.unsubscribe *> liftST rt.unsubscribe *> close ctx)
+            ]
             [ text $ oneOf
                 [ startE $> "Turn on"
                 , stopE $> "Turn off"

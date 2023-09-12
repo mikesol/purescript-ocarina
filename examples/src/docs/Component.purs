@@ -3,7 +3,7 @@ module Ocarina.Example.Docs.Component where
 import Prelude
 
 import Deku.Core (Nut)
-import Deku.Pursx ((~~))
+import Deku.Pursx (pursx)
 import Effect (Effect)
 import FRP.Poll (Poll)
 import Ocarina.Control (gain_, loopBuf)
@@ -39,7 +39,6 @@ import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphE
 import Ocarina.Example.Docs.Util (audioWrapperSpan, ccassp, mkNext, scrollToTop)
 import Ocarina.Interpret (decodeAudioDataFromUri)
 import Ocarina.Run (run2)
-import Type.Proxy (Proxy(..))
 
 
   -- todo
@@ -51,7 +50,7 @@ import Type.Proxy (Proxy(..))
   -- <h2 id="panner">Panner</h2>
   -- <p>The <a href="https://developer.mozilla.org/en-US/docs/Web/API/PannerNode">panner</a> is absolutely essential if you're making any sort of video game or animation with a camera, for example using WebGL. It is a cheap way for you to distribute your sounds in space without worrying about panning, filtering, volume and lots of other parameters you'd need to tweak if you did this manually. It's my favorite Web Audio node (my favorite <i>today</i>, I rotate them regularly to avoid jealousy...).</p>
 
-px = Proxy :: Proxy """<div>
+type Px = """<div>
   <h1>Audio Units</h1>
 
   <h3>There sure are a lot of them!</h3>
@@ -101,7 +100,7 @@ px = Proxy :: Proxy """<div>
 </div>"""
 
 components :: CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Poll SingleSubgraphEvent  -> Nut
-components cca' dpage ssp ev = px ~~
+components cca' dpage ssp ev =pursx @Px
   { drumroll:
       (audioWrapperSpan "🥁" ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/50/50711_179538-lq.mp3")
           \ctx buf -> run2 ctx [ gain_ 1.0 [ loopBuf buf bangOn ] ]

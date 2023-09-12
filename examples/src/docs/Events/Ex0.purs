@@ -2,35 +2,30 @@ module Ocarina.Example.Docs.Events.Ex0 where
 
 import Prelude
 
-import Control.Alt (alt, (<|>))
+import Control.Alt ((<|>))
 import Data.Array ((..))
-import Data.Exists (mkExists)
 import Data.Int (toNumber)
 import Data.Number (pow)
 import Data.Profunctor (lcmap)
 import Data.Tuple (Tuple(..))
 import Data.Tuple.Nested ((/\))
 import Data.Typelevel.Num (D2)
-import Deku.Attribute (cb)
 import Deku.Control (text, text_)
 import Deku.Core (Nut)
 import Deku.DOM as D
 import Deku.DOM.Listeners as DL
 import Deku.Do as Deku
 import Deku.Hooks (useState)
-import Deku.Pursx (makePursx')
+import Deku.Pursx (pursx')
 import Effect (Effect)
-import FRP.Event (Event)
 import FRP.Poll (Poll)
 import Ocarina.Control (gain, gain_, microphone, recorder, sinOsc)
-import Ocarina.Core (Audible, Node)
-import Ocarina.Core (AudioEnvelope(..), AudioOnOff(..), _off, _on)
+import Ocarina.Core (Audible, AudioEnvelope(AudioEnvelope), AudioOnOff(AudioOnOff), _off, _on, AudioEnvelope(..), AudioOnOff(..), _off, _on)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..))
 import Ocarina.Properties (onOff)
 import Ocarina.Properties as P
 import Ocarina.Run (run2_)
 import Ocarina.WebAPI (BrowserMicrophone, MediaRecorderCb)
-import Type.Proxy (Proxy(..))
 
 scene
   :: forall payload
@@ -140,7 +135,7 @@ main = runInBody Deku.do
 
 ex0
   :: CancelCurrentAudio -> (Page -> Effect Unit) -> Poll SingleSubgraphEvent -> Nut
-ex0 ccb _ ev = makePursx' (Proxy :: _ "@") px
+ex0 ccb _ ev = pursx' @"@" @Px
   { txt: (text_ txt)
   , ex0: Deku.do
       push /\ event <- useState Init
@@ -169,10 +164,7 @@ ex0 ccb _ ev = makePursx' (Proxy :: _ "@") px
 
   }
 
-px =
-  Proxy
-    :: Proxy
-         """<section>
+type Px = """<section>
   <h2>Example 1: Hello events</h2>
 
   <p>Let's say hi to events! The simplest of events, which we've seen already, are the ones that occur <span style="font-weight:800;">now</span>, that is to say, immediately upon subscription. You create those types of events using <code>bang</code>. In this section, we'll use <code>bang</code> to set several different types of values:</p>

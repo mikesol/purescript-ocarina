@@ -5,7 +5,7 @@ import Prelude
 
 import Control.Parallel (parallel, sequential)
 import Deku.Core (Nut)
-import Deku.Pursx (makePursx')
+import Deku.Pursx (pursx')
 import Effect (Effect)
 import FRP.Poll (Poll)
 import Ocarina.Control (gain_, playBuf)
@@ -15,10 +15,8 @@ import Ocarina.Example.Docs.Util (audioWrapper)
 import Ocarina.Interpret (decodeAudioDataFromUri)
 import Ocarina.Properties (onOff)
 import Ocarina.Run (run2)
-import Type.Proxy (Proxy(..))
 
-px =
-  Proxy    :: Proxy         """<div>
+type Px =     """<div>
   <pre><code>\{ tink0, tink1, tink2, tink3 } -> run2_
   [ gain_ 1.0 do
       let ooo n = pure $ onOff $ dt (add n) apOn
@@ -34,7 +32,7 @@ px =
 """
 
 ai0 :: CancelCurrentAudio -> (Page -> Effect Unit) -> Poll SingleSubgraphEvent -> Nut
-ai0 ccb _ ev = makePursx' (Proxy :: _ "@") px
+ai0 ccb _ ev = pursx' @"@" @Px
   { ai0:
       ( audioWrapper ev ccb
           ( \ctx -> sequential $ { tink0: _, tink1: _, tink2: _, tink3: _ }
