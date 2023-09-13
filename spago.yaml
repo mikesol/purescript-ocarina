@@ -9,7 +9,7 @@ workspace:
         - hyrule
     hyrule:
       git: "https://github.com/mikesol/purescript-hyrule.git"
-      ref: "b43c1e9"
+      ref: "acd1111"
       dependencies:
         - effect
         - js-timers

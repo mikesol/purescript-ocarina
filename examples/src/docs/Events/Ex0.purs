@@ -56,6 +56,65 @@ cell = lcmap toNumber \i -> do
   , strand 0.7 20.0
   ]
 
+ex0
+  :: CancelCurrentAudio -> (Page -> Effect Unit) -> Poll SingleSubgraphEvent -> Nut
+ex0 ccb _ ev = pursx' @"@" @Px
+  { txt: (text_ txt)
+  , ex0: Deku.do
+      push /\ event <- useState Init
+
+      D.div_
+        [ D.button
+            [ DL.runOn DL.click $ (Tuple <$> event <*> (pure (pure unit) <|> (map (\(SetCancel x) -> x) ev))) <#>
+                \(e /\ c) -> case e of
+                  Stop u -> u *> push Start *> ccb (pure unit)
+                  _ -> do
+                    c -- here
+                    r <- run2_
+                      [ gain_ 1.0
+                          $ join
+                          $ cell <$> 0 .. 2 -- 100
+                      ]
+                    ccb (r *> push Start) -- here
+                    push $ Stop r
+
+            ]
+            [ text $ event <#> case _ of
+                Stop _ -> "Turn off"
+                _ -> "Turn on"
+            ]
+        ]
+
+  }
+
+type Px = """<section>
+  <h2>Example 1: Hello events</h2>
+
+  <p>Let's say hi to events! The simplest of events, which we've seen already, are the ones that occur <span style="font-weight:800;">now</span>, that is to say, immediately upon subscription. You create those types of events using <code>bang</code>. In this section, we'll use <code>bang</code> to set several different types of values:</p>
+
+  <ul>
+    <li><code>AudioEnvelope</code> to create an envelope for the gain node. To construct one, use a record with the following parameters:<ul><li><code>p</code>: a list of numbers that will be interpolated over.</li><li><code>o</code>: the offset in time from the AudioContext clock's start time.</li><li><code>d</code>: the duration of the envelope.</li></ul></li>
+    <li><code>AudioOnOff</code> to turn the sine-wave oscillator on and off. To construct one, use a record with the following parameters:<ul><li><code>n</code>: an enum with the value <code>_on</code>, <code>_off</code> or <code>_onOff</code> (more on this in <a href="#example3">Example 3</a> below).</li><li><code>o</code>: the offset in time from the AudioContext clock's start time.</li></ul></li>
+  </ul>
+
+  <p>After that, in the example below, it's functions all the way down. <code>oon</code> and <code>oof</code> create our on/off events, <code>env</code> creates our gain envelope, <code>ooo'</code> and <code>env'</code> specialize these envelopes to a specific point in time, and <code>cell</code> creates a single cell that we deploy 100 times.</p>
+
+  <p>One important thing to note here is the use of the tie fighter (<code>&lt;|&gt;</code>), aka <code>alt</code>, in the definition of <code>ooo'</code>. The <code>Event</code> type, when <code>alt</code>'d, preserves a before-after relationship of the left and right operands when the operands happen at the same time. This is a bit hackish: the events conceptually happen at the same time, but on our CPU, one has to follow the other. We can use this, however, to make sure that certain events happen in a logical sequence. For example, an <code>off</code> instruction must be issued after an <code>on</code> instruction, which we guarantee by using <code>oon</code> on the left side of the alt. If we did it the other way, the <code>on</code> instruction would be last and we'd wind up with 100 oscillators playing at the same time!</p>
+
+  <p>A last thing to note before the music plays is how scheduling works here. Even though all the events are issued upfront via <code>bang</code>, they schedule things to be played <i>later</i> in the audio context. We'll see more advanced scheduling techniques in the <a href="#example4"><code>requestAnimationFrame</code> example below</a>.</p>
+
+  <pre><code>@txt@</code></pre>
+
+  @ex0@
+
+  <p>Unlike the previous examples, this one and all subsequent ones are "batteries included", meaning they are single-file, self-contained PureScript examples that you can compile and run yourself.</p>
+
+</section>
+"""
+--------------
+--------------
+--------------
+
 txt :: String
 txt =
   """module Main where
@@ -131,60 +190,4 @@ main = runInBody Deku.do
             _ -> "Turn on"
         ]
     ]
-"""
-
-ex0
-  :: CancelCurrentAudio -> (Page -> Effect Unit) -> Poll SingleSubgraphEvent -> Nut
-ex0 ccb _ ev = pursx' @"@" @Px
-  { txt: (text_ txt)
-  , ex0: Deku.do
-      push /\ event <- useState Init
-
-      D.div_
-        [ D.button
-            [ DL.runOn DL.click $ (Tuple <$> event <*> (pure (pure unit) <|> (map (\(SetCancel x) -> x) ev))) <#>
-                \(e /\ c) -> case e of
-                  Stop u -> u *> push Start *> ccb (pure unit)
-                  _ -> do
-                    c -- here
-                    r <- run2_
-                      [ gain_ 1.0
-                          $ join
-                          $ cell <$> 0 .. 100
-                      ]
-                    ccb (r *> push Start) -- here
-                    push $ Stop r
-
-            ]
-            [ text $ event <#> case _ of
-                Stop _ -> "Turn off"
-                _ -> "Turn on"
-            ]
-        ]
-
-  }
-
-type Px = """<section>
-  <h2>Example 1: Hello events</h2>
-
-  <p>Let's say hi to events! The simplest of events, which we've seen already, are the ones that occur <span style="font-weight:800;">now</span>, that is to say, immediately upon subscription. You create those types of events using <code>bang</code>. In this section, we'll use <code>bang</code> to set several different types of values:</p>
-
-  <ul>
-    <li><code>AudioEnvelope</code> to create an envelope for the gain node. To construct one, use a record with the following parameters:<ul><li><code>p</code>: a list of numbers that will be interpolated over.</li><li><code>o</code>: the offset in time from the AudioContext clock's start time.</li><li><code>d</code>: the duration of the envelope.</li></ul></li>
-    <li><code>AudioOnOff</code> to turn the sine-wave oscillator on and off. To construct one, use a record with the following parameters:<ul><li><code>n</code>: an enum with the value <code>_on</code>, <code>_off</code> or <code>_onOff</code> (more on this in <a href="#example3">Example 3</a> below).</li><li><code>o</code>: the offset in time from the AudioContext clock's start time.</li></ul></li>
-  </ul>
-
-  <p>After that, in the example below, it's functions all the way down. <code>oon</code> and <code>oof</code> create our on/off events, <code>env</code> creates our gain envelope, <code>ooo'</code> and <code>env'</code> specialize these envelopes to a specific point in time, and <code>cell</code> creates a single cell that we deploy 100 times.</p>
-
-  <p>One important thing to note here is the use of the tie fighter (<code>&lt;|&gt;</code>), aka <code>alt</code>, in the definition of <code>ooo'</code>. The <code>Event</code> type, when <code>alt</code>'d, preserves a before-after relationship of the left and right operands when the operands happen at the same time. This is a bit hackish: the events conceptually happen at the same time, but on our CPU, one has to follow the other. We can use this, however, to make sure that certain events happen in a logical sequence. For example, an <code>off</code> instruction must be issued after an <code>on</code> instruction, which we guarantee by using <code>oon</code> on the left side of the alt. If we did it the other way, the <code>on</code> instruction would be last and we'd wind up with 100 oscillators playing at the same time!</p>
-
-  <p>A last thing to note before the music plays is how scheduling works here. Even though all the events are issued upfront via <code>bang</code>, they schedule things to be played <i>later</i> in the audio context. We'll see more advanced scheduling techniques in the <a href="#example4"><code>requestAnimationFrame</code> example below</a>.</p>
-
-  <pre><code>@txt@</code></pre>
-
-  @ex0@
-
-  <p>Unlike the previous examples, this one and all subsequent ones are "batteries included", meaning they are single-file, self-contained PureScript examples that you can compile and run yourself.</p>
-
-</section>
 """
