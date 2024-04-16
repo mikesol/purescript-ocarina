@@ -9,7 +9,6 @@ package:
   - "arraybuffer-types"
   - "arrays"
   - "debug"
-  - "bolson"
   - "console"
   - "control"
   - "convertable-options"

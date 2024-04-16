@@ -2,35 +2,36 @@ workspace:
   package_set:
     registry: 31.0.0
   extra_packages:
-    bolson:
-      git: "https://github.com/mikesol/purescript-bolson.git"
-      ref: "dd44e9d"
-      dependencies:
-        - hyrule
     hyrule:
       git: "https://github.com/mikesol/purescript-hyrule.git"
-      ref: "acd1111"
+      ref: "0492d5e"
       dependencies:
         - effect
         - js-timers
-        - web-html
         - unsafe-reference
+        - web-html
         - web-uievents
+    deku:
+      git: "https://github.com/mikesol/purescript-deku.git"
+      subdir: deku
+      ref: "5a6222a"
+      dependencies:
+        - hyrule
+        - untagged-union
     deku-core:
       git: "https://github.com/mikesol/purescript-deku.git"
       subdir: deku-core
-      ref: "b8f9fee6"
+      ref: "5a6222a"
       dependencies:
         - hyrule
-        - web-dom-parser
-        - fast-vect
         - untagged-union
     deku-dom:
       git: "https://github.com/mikesol/purescript-deku.git"
       subdir: deku-dom
-      ref: "b8f9fee6"
+      ref: "5a6222a"
       dependencies:
         - hyrule
+        - untagged-union
     tidy: 
       repo: "https://github.com/natefaubion/purescript-tidy.git"
       version: "v0.10.0"
