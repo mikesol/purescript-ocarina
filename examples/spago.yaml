@@ -6,6 +6,7 @@ package:
   dependencies:
   - ocarina
   - free
+  - deku
   - deku-core
   - deku-dom
   - qualified-do
