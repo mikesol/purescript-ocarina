@@ -7,7 +7,7 @@ import Data.Array ((..))
 import Data.Int (toNumber)
 import Data.Profunctor (lcmap)
 import Deku.Core (Nut)
-import Deku.Pursx (makePursx')
+import Deku.Pursx (pursx')
 import Effect (Effect)
 import FRP.Poll (Poll)
 import Ocarina.Control (bandpass_, loopBuf, gain_)
@@ -17,10 +17,8 @@ import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent
 import Ocarina.Example.Docs.Util (audioWrapper)
 import Ocarina.Interpret (decodeAudioDataFromUri)
 import Ocarina.Run (run2)
-import Type.Proxy (Proxy(..))
 
-px =
-  Proxy    :: Proxy         """<div>
+type Px =       """<div>
   <pre><code>\buf -> run2_
   [ fan1 (loopBuf buf bangOn)
       \b _ -> gain_ 0.8
@@ -35,7 +33,7 @@ px =
 """
 
 fan1 :: CancelCurrentAudio -> (Page -> Effect Unit) -> Poll SingleSubgraphEvent -> Nut
-fan1 ccb _ ev = makePursx' (Proxy :: _ "@") px
+fan1 ccb _ ev = pursx' @"@" @Px
   { ai0:
       (audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
           \ctx buf -> run2 ctx

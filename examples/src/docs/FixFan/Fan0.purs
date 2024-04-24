@@ -4,7 +4,7 @@ import Prelude
 
 
 import Deku.Core (Nut)
-import Deku.Pursx (makePursx')
+import Deku.Pursx (pursx')
 import Effect (Effect)
 import FRP.Poll (Poll)
 import Ocarina.Control (bandpass_, fan1, gain_, loopBuf)
@@ -13,10 +13,8 @@ import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent
 import Ocarina.Example.Docs.Util (audioWrapper)
 import Ocarina.Interpret (decodeAudioDataFromUri)
 import Ocarina.Run (run2)
-import Type.Proxy (Proxy(..))
 
-px =
-  Proxy    :: Proxy         """<div>
+type Px =      """<div>
   <pre><code>run2_
   [ fan1 (loopBuf buf bangOn)
       \b _ -> gain_ 0.8
@@ -33,7 +31,7 @@ px =
 """
 
 fan0 :: CancelCurrentAudio -> (Page -> Effect Unit) -> Poll SingleSubgraphEvent -> Nut
-fan0 ccb _ ev = makePursx' (Proxy :: _ "@") px
+fan0 ccb _ ev = pursx' @"@" @Px
   { ai0:
       ( audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/320/320873_527080-hq.mp3")
           \ctx buf -> run2 ctx

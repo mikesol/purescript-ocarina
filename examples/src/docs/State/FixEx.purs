@@ -4,11 +4,14 @@ import Prelude
 
 import Control.Alt ((<|>))
 import Control.Monad.ST.Class (liftST)
+import Data.DateTime.Instant (Instant, unInstant)
 import Data.Foldable (oneOf)
 import Data.Maybe (Maybe(..))
 import Data.Newtype (unwrap)
 import Data.Profunctor.Strong (second)
 import Data.Set (isEmpty)
+import Data.Set as Set
+import Data.Tuple (Tuple(..))
 import Data.Tuple.Nested ((/\))
 import Data.Vec ((+>))
 import Data.Vec as V
@@ -18,16 +21,15 @@ import Deku.DOM as D
 import Deku.DOM.Listeners as DL
 import Deku.Do as Deku
 import Deku.Hooks (useState')
-import Deku.Pursx ((~~))
+import Deku.Pursx (pursx)
 import Effect (Effect)
 import Effect.Random (randomInt)
 import FRP.Event (Event)
-import FRP.Event.AnimationFrame (animationFrame)
-import FRP.Event.Class (class IsEvent, fix, fold, sampleOnRight, withLast)
-import FRP.Event.Mouse (Mouse, down, getMouse)
-import FRP.Poll (class Pollable, APoll, Poll, poll, rant, sample, sampleBy, sample_, sham, step, switcher)
-import FRP.Poll.Mouse (buttons)
-import FRP.Poll.Time as Time
+import FRP.Event.AnimationFrame (animationFrame')
+import FRP.Event.Class (fix, fold, sampleOnRight, withLast)
+import FRP.Event.Mouse (down, getMouse, withButtons)
+import FRP.Event.Time (withTime)
+import FRP.Poll (Poll, poll, rant, sample, sampleBy, sample_, sham, step, switcher)
 import Ocarina.Clock (withACTime)
 import Ocarina.Control (bandpass_, gain, lowpass_, periodicOsc, squareOsc_)
 import Ocarina.Core (AudioNumeric(..), _linear, bangOn)
@@ -37,7 +39,6 @@ import Ocarina.Properties as P
 import Ocarina.Run (run2)
 import Test.QuickCheck (arbitrary, mkSeed)
 import Test.QuickCheck.Gen (evalGen)
-import Type.Proxy (Proxy(..))
 
 -- `swell` is an interactive function of time defined by a differential equation:
 --
@@ -49,16 +50,17 @@ import Type.Proxy (Proxy(..))
 -- the mouse is pressed or not.
 --
 -- We can solve the differential equation by integration using `solve2'`.
-swell :: Mouse -> Event Unit -> Poll Number
-swell mouse down =
+swell :: Poll Instant -> Poll (Set.Set Int) -> Event Unit -> Poll Number
+swell timeInSeconds' currentButtons down =
   fixB 2.0 \b ->
-    integral' 2.0 (unwrap <$> Time.seconds)
+    integral' 2.0 timeInSeconds
       let
         db = fixB 10.0 \db_ ->
-          integral' 10.0 (unwrap <$> Time.seconds) (f <$> buttons mouse <*> b <*> db_)
+          integral' 10.0 timeInSeconds (f <$> currentButtons <*> b <*> db_)
       in
         switcher db (down $> db)
   where
+  timeInSeconds = map (unInstant >>> unwrap) timeInSeconds'
   f bs s ds
     | isEmpty bs = -8.0 * (s - 1.0) - ds * 2.0
     | otherwise = 2.0 * (4.0 - s)
@@ -85,16 +87,14 @@ swell mouse down =
   -- | function on `t` to a function on `a`. Simple examples where `t ~ a` can use
   -- | the `integral'` function instead.
   integral
-    :: forall event a t
-     . IsEvent event
-    => Pollable event event
-    => Field t
+    :: forall a t
+     . Field t
     => Semiring a
     => (((a -> t) -> t) -> a)
     -> a
-    -> APoll event t
-    -> APoll event a
-    -> APoll event a
+    -> Poll t
+    -> Poll a
+    -> Poll a
   integral g initial t b =
     poll \e ->
       let
@@ -115,18 +115,16 @@ swell mouse down =
   -- | This function is a simpler version of `integral` where the function being
   -- | integrated takes values in the same field used to represent time.
   integral'
-    :: forall event t
-     . IsEvent event
-    => Pollable event event
-    => Field t
+    :: forall t
+     . Field t
     => t
-    -> APoll event t
-    -> APoll event t
-    -> APoll event t
+    -> Poll t
+    -> Poll t
+    -> Poll t
   integral' = integral (_ $ identity)
 
 fixEx :: CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Poll SingleSubgraphEvent -> Nut
-fixEx ccb _ _ ev = px ~~
+fixEx ccb _ _ ev = pursx @Px
   { txt: text_
       """module Main
 
@@ -216,9 +214,9 @@ swell mouse =
     => Semiring a
     => (((a -> t) -> t) -> a)
     -> a
-    -> APoll event t
-    -> APoll event a
-    -> APoll event a
+    -> Poll t
+    -> Poll a
+    -> Poll a
   integral g initial t b =
     poll \e ->
       let
@@ -243,9 +241,9 @@ swell mouse =
      . IsEvent event
     => Field t
     => t
-    -> APoll event t
-    -> APoll event t
-    -> APoll event t
+    -> Poll t
+    -> Poll t
+    -> Poll t
   integral' = integral (_ $ identity)
 
 main :: Effect Unit
@@ -400,14 +398,12 @@ main = runInBody1
                             spc = (/\) <$> spc' <*> spc'
                             spcs = { s0: _, s1: _, s2: _, s3: _ } <$> spc <*> spc <*> spc <*> spc
                             allSpcs = evalGen spcs { newSeed: mkSeed ri, size: 5 }
-                          afe <- animationFrame
+                          afe <- animationFrame'
+                            (withButtons mouse >>> withTime >>> withACTime ctx)
                           dn <- down
-                          swm <- liftST$ rant
-                            ( sham
-                                ( map (\{ acTime, value } -> acTime /\ value)
-                                    $ withACTime ctx
-                                    $ sample_ (swell mouse (dn.event $> unit)) afe.event
-                                )
+                          swm <- liftST $ rant
+                            ( Tuple <$> (sham $ map _.value.value.acTime afe.event) <*>
+                                (swell (sham $ map _.value.time afe.event) (sham $ map _.buttons afe.event) (dn.event $> unit))
                             )
                           r' <- run2 ctx 
                                   [ gain 0.0
@@ -504,10 +500,7 @@ main = runInBody1
       
   }
 
-px =
-  Proxy
-    :: Proxy
-         """<section>
+type Px =  """<section>
   <h2>Fix</h2>
 
   <p>Fix, like it's equivalent in ocarina that we've already seen, creates a feedback loop. However, in this case, we are talking about a feedback loop of <i>events</i>, not sound.</p>

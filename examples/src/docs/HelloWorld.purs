@@ -5,7 +5,7 @@ import Prelude
 import Deku.Control (text_)
 import Deku.Core (Nut)
 import Deku.DOM as D
-import Deku.Pursx (makePursx')
+import Deku.Pursx (pursx')
 import Effect (Effect)
 import FRP.Poll (Poll)
 import Ocarina.Control (gain_, sinOsc)
@@ -13,10 +13,8 @@ import Ocarina.Core (bangOn)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
 import Ocarina.Example.Docs.Util (audioWrapper, ccassp, mkNext, scrollToTop)
 import Ocarina.Run (run2)
-import Type.Proxy (Proxy(..))
 
-px =
-  Proxy    :: Proxy         """<div>
+type Px =     """<div>
   <h1>Hello world</h1>
 
   <h3>Wagging at 440Hz</h3>
@@ -57,7 +55,7 @@ helloWorld
   -> SingleSubgraphPusher
   -> Poll SingleSubgraphEvent
   -> Nut
-helloWorld cca' dpage ssp ev = makePursx' (Proxy :: _ "@") px
+helloWorld cca' dpage ssp ev = pursx' @"@" @Px
   { code:
       ( D.pre_
           [ D.code_

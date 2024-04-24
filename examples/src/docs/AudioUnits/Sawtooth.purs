@@ -4,7 +4,7 @@ import Prelude
 
 
 import Deku.Core (Nut)
-import Deku.Pursx ((~~))
+import Deku.Pursx (pursx)
 import Effect (Effect)
 import FRP.Poll (Poll)
 import Ocarina.Control (gain_, sawtoothOsc)
@@ -12,10 +12,8 @@ import Ocarina.Core (bangOn)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import Ocarina.Example.Docs.Util (audioWrapper)
 import Ocarina.Run (run2)
-import Type.Proxy (Proxy(..))
 
-px =
-  Proxy    :: Proxy         """<section>
+type Px =       """<section>
   <h2 id="sawtooth">Sawtooth wave oscillator</h2>
   <p>The <a href="https://developer.mozilla.org/en-US/docs/Web/API/OscillatorNode">sawtooth wave oscillator</a> plays back a sawtooth wave at a given frequency.</p>
 
@@ -30,7 +28,7 @@ px =
 
 sawtooth
   :: CancelCurrentAudio -> (Page -> Effect Unit) -> Poll SingleSubgraphEvent -> Nut
-sawtooth ccb _ ev = px ~~
+sawtooth ccb _ ev = pursx @Px
   { periodic:
       ( audioWrapper ev ccb (\_ -> pure unit)
           \ctx _ -> run2 ctx

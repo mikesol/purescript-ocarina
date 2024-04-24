@@ -4,17 +4,13 @@ import Prelude
 
 import Deku.Core (Nut)
 import Deku.DOM.Listeners as DL
-import Deku.Pursx ((~~))
+import Deku.Pursx (pursx)
 import Effect (Effect)
 import FRP.Poll (Poll)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
 import Ocarina.Example.Docs.Util (scrollToTop)
-import Type.Proxy (Proxy(..))
 
-px =
-  Proxy
-    :: Proxy
-         """<div>
+type Px = """<div>
   <h1>Merge and split</h1>
 
   <h3>Inputs and outputs abound!</h3>
@@ -35,6 +31,6 @@ px =
 </div>"""
 
 multiChannel :: CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Poll SingleSubgraphEvent -> Nut
-multiChannel _ dpage _ _ = px ~~
+multiChannel _ dpage _ _ = pursx @Px
   { next: DL.click_ \_ -> dpage AudioWorklets *> scrollToTop
   }

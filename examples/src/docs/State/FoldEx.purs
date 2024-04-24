@@ -15,10 +15,10 @@ import Deku.DOM.Attributes as DA
 import Deku.DOM.Listeners as DL
 import Deku.Do as Deku
 import Deku.Hooks (useState, useState')
-import Deku.Pursx ((~~))
+import Deku.Pursx (pursx)
 import Effect (Effect)
 import FRP.Event (fold, mapAccum, sampleOnRight)
-import FRP.Event.AnimationFrame (animationFrame)
+import FRP.Event.AnimationFrame (animationFrame')
 import FRP.Poll (Poll, rant, sampleBy, sample_, sham)
 import Ocarina.Clock (withACTime)
 import Ocarina.Control (gain, periodicOsc)
@@ -29,10 +29,9 @@ import Ocarina.Math (calcSlope)
 import Ocarina.Properties as P
 import Ocarina.Run (run2)
 import QualifiedDo.Alt as OneOf
-import Type.Proxy (Proxy(..))
 
 foldEx :: CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Poll SingleSubgraphEvent -> Nut
-foldEx ccb _ _ ev = px ~~
+foldEx ccb _ _ ev = pursx @Px
   { txt: text_
       """module Main where
 
@@ -203,11 +202,11 @@ main = runInBody1
                     (0.0 /\ 0.0)
                     (sampleBy (/\) b tm)
 
-                afe <- animationFrame
+                afe <- animationFrame' (withACTime ctx)
                 acTime <- liftST $ rant
                   ( sham
                       ( map (add 0.04 <<< _.acTime)
-                          $ withACTime ctx afe.event
+                          $ afe.event
                       )
                   )
                 r' <- run2 ctx do
@@ -247,7 +246,7 @@ main = runInBody1
                   ]
 
                 let r = r' *> c0h *> close ctx
-                ccb (r *> setStart unit) -- here
+                ccb (r *> setStart unit *> afe.unsubscribe) -- here
                 setStop r
             , DL.runOn DL.click $ stopE <#> (_ *> (ccb (pure unit) *> setStart unit))
 
@@ -273,10 +272,7 @@ main = runInBody1
         ]
   }
 
-px =
-  Proxy
-    :: Proxy
-         """<section>
+type Px = """<section>
   <h2>Fold</h2>
 
   <p>The type of <code>fold</code> is:</p>

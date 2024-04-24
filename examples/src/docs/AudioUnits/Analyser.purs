@@ -23,7 +23,7 @@ import Deku.DOM as D
 import Deku.DOM.Attributes as DA
 import Deku.Do as Deku
 import Deku.Hooks (useState')
-import Deku.Pursx ((~~))
+import Deku.Pursx (pursx)
 import Effect (Effect, foreachE)
 import Effect.Ref (modify_, new, read, write)
 import FRP.Event (create, subscribe)
@@ -82,7 +82,7 @@ mkSt i0 i1 e = DA.style $ map (\v -> if V.index (V.index v i0) i1 then V.index (
 
 analyserEx
   :: CancelCurrentAudio -> (Page -> Effect Unit) -> Poll SingleSubgraphEvent -> Nut
-analyserEx ccb _ ev = px ~~
+analyserEx ccb _ ev = pursx @Px
   { analyser: Deku.do
       push /\ event' <- useState'
       let
@@ -113,8 +113,8 @@ analyserEx ccb _ ev = px ~~
                           ]
                           (effectfulAudioInterpret rf rf1 exec)
                       afe <- animationFrame
-                      unsub0 <- liftST $ subscribe (sample audioE ep.event) exec
-                      unsub1 <- liftST $ subscribe afe.event
+                      unsub0 <- subscribe (sample audioE ep.event) exec
+                      unsub1 <- subscribe afe.event
 
                         ( \_ -> do
                             analyser <- read analyserE
@@ -156,8 +156,8 @@ analyserEx ccb _ ev = px ~~
                         )
                       ep.push identity
                       pure do
-                        liftST unsub0
-                        liftST unsub1
+                        unsub0
+                        unsub1
                         afe.unsubscribe
                         contextState ctx >>= \st -> when (st /= "closed") (close ctx)
                         push $ Left (V.fill (const (V.fill (const false))))
@@ -222,9 +222,7 @@ analyserEx ccb _ ev = px ~~
         ]
   }
 
-px =
-  Proxy
-    :: Proxy
+type Px =
          """<section>
   <h2 id="analyser">Analyser</h2>
   <p>An <a href="https://developer.mozilla.org/en-US/docs/Web/API/AnalyserNode">analyser node</a> provides methods to recuperate the analysed data of an input. This is how, for example, Google Meet shows the little animation around a microphone icon. Ocarina provides the possibility to use the analyser as the terminus of an audio graph <i>or</i> as part of a longer DSP chain, as in the following example. The example uses an FFT size of 256, which is indicated in Ocarina as <code>TTT8</code> (two to the eighth power).</p>

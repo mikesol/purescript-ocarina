@@ -1,12 +1,10 @@
 module Ocarina.Example.Docs.Events.Primer where
 
-
+import Deku.Pursx (pursx')
 import Deku.Core (Nut)
-import Deku.Pursx (makePursx')
 import Type.Proxy (Proxy(..))
 
-px = Proxy :: Proxy
-      """<section>
+type Px =  """<section>
 
   <h2>Events, a primer</h2>
 
@@ -45,7 +43,7 @@ type Poll = APoll Event
 </section>"""
 
 primer :: Nut
-primer = makePursx'  (Proxy :: _ "@") px
+primer = pursx' @"@" @Px
   {
   }
   -- where

@@ -4,7 +4,7 @@ import Prelude
 
 
 import Deku.Core (Nut)
-import Deku.Pursx ((~~))
+import Deku.Pursx (pursx)
 import Effect (Effect)
 import FRP.Poll (Poll)
 import Ocarina.Control (gain_, sinOsc)
@@ -12,9 +12,8 @@ import Ocarina.Core (bangOn)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent)
 import Ocarina.Example.Docs.Util (audioWrapper)
 import Ocarina.Run (run2)
-import Type.Proxy (Proxy(..))
 
-px =  Proxy   :: Proxy    """<section>
+type Px =  """<section>
   <h2 id="sine">Sine wave oscillator</h2>
   <p>The <a href="https://developer.mozilla.org/en-US/docs/Web/API/OscillatorNode">sine wave oscillator</a> plays back a sine wave at a given frequency.</p>
 
@@ -28,7 +27,7 @@ px =  Proxy   :: Proxy    """<section>
 
 sine
   :: CancelCurrentAudio -> (Page -> Effect Unit) -> Poll SingleSubgraphEvent -> Nut
-sine ccb _ ev = px ~~
+sine ccb _ ev = pursx @Px
   { periodic:
       ( audioWrapper ev ccb (\_ -> pure unit)
           \ctx _ -> run2 ctx

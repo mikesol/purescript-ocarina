@@ -3,7 +3,7 @@ module Ocarina.Example.Docs.AudioUnits.LoopBuf where
 import Prelude
 
 import Deku.Core (Nut)
-import Deku.Pursx (makePursx')
+import Deku.Pursx (pursx')
 import Effect (Effect)
 import FRP.Poll (Poll)
 import Ocarina.Control (loopBuf)
@@ -12,10 +12,8 @@ import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent
 import Ocarina.Example.Docs.Util (audioWrapper)
 import Ocarina.Interpret (decodeAudioDataFromUri)
 import Ocarina.Run (run2)
-import Type.Proxy (Proxy(..))
 
-px =
-  Proxy    :: Proxy         """<section>
+type Px =      """<section>
   <h2 id="loopbuf">Looping buffer</h2>
 
   <p>A <a href="https://developer.mozilla.org/en-US/docs/Web/API/AudioBufferSourceNode">looping buffer</a> is buffered audio that loops. The buffered audio is usually a sound file, but it'll play anything you write to a buffer. Like in the Web Audio API, you can set the buffer's start and end and optionally its duration.</p>
@@ -48,7 +46,7 @@ px =
 
 loopBufEx
   :: CancelCurrentAudio -> (Page -> Effect Unit) -> Poll SingleSubgraphEvent -> Nut
-loopBufEx ccb _ ev = makePursx' (Proxy :: _ "@") px
+loopBufEx ccb _ ev = pursx' @"@" @Px
   { loopBuf:
       ( audioWrapper ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/100/100981_1234256-lq.mp3")
           \ctx buf -> run2 ctx

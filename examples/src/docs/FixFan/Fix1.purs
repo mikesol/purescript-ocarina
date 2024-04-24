@@ -5,7 +5,7 @@ import Prelude
 
 import Deku.Control (text_)
 import Deku.Core (Nut)
-import Deku.Pursx (makePursx')
+import Deku.Pursx (pursx')
 import Effect (Effect)
 import FRP.Poll (Poll)
 import Ocarina.Control (delay_, fan1, fix, gain, gain_, highpass_, playBuf)
@@ -15,10 +15,8 @@ import Ocarina.Example.Docs.Util (audioWrapper)
 import Ocarina.Interpret (decodeAudioDataFromUri)
 import Ocarina.Properties as P
 import Ocarina.Run (run2)
-import Type.Proxy (Proxy(..))
 
-px =
-  Proxy    :: Proxy      """<div>
+type Px =   """<div>
   <pre><code>@txt@</code></pre>
 
   @ai0@
@@ -37,7 +35,7 @@ fade1 = pure
   $ AudioEnvelope { p: [ 1.0, 1.0, 0.0 ], o: 0.0, d: 10.0 }
 
 fix1 :: CancelCurrentAudio -> (Page -> Effect Unit) -> Poll SingleSubgraphEvent -> Nut
-fix1 ccb _ ev = makePursx' (Proxy :: _ "@") px
+fix1 ccb _ ev = pursx' @"@" @Px
   { txt: text_
       """dgh d g h i =
   delay_ d [gain_ g [highpass_ h i]]

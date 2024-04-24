@@ -19,7 +19,7 @@ import Deku.DOM.Attributes as DA
 import Deku.DOM.Listeners as DL
 import Deku.Do as Deku
 import Deku.Hooks (useState')
-import Deku.Pursx ((~~))
+import Deku.Pursx (pursx)
 import Effect (Effect)
 import Effect.AVar as AVar
 import Effect.Aff (launchAff, launchAff_, try)
@@ -33,7 +33,6 @@ import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent
 import Ocarina.Example.Docs.Util (WrapperStates(..), mkWrapperEvent, raceSelf)
 import Ocarina.Interpret (close, context, contextState, effectfulAudioInterpret, getMicrophoneAndCamera, makeFFIAudioSnapshot, mediaRecorderToUrl, stopMediaRecorder)
 import Ocarina.WebAPI (MediaRecorder, MediaRecorderCb(..))
-import Type.Proxy (Proxy(..))
 
 type RecorderStates = Either (Either String MediaRecorder) WrapperStates
 
@@ -42,7 +41,7 @@ scene m cb = recorder cb (microphone m)
 
 recorderEx
   :: CancelCurrentAudio -> (Page -> Effect Unit) -> Poll SingleSubgraphEvent -> Nut
-recorderEx ccb _ ev = px ~~
+recorderEx ccb _ ev = pursx @Px
   { recorder: Deku.do
       push /\ event' <- useState' -- bussed \push (event' :: Event RecorderStates) ->
       let
@@ -90,10 +89,10 @@ recorderEx ccb _ ev = px ~~
                                             )
                                         ]
                                         (effectfulAudioInterpret rf rf2 exec) 
-                                    unsub <- liftST $ subscribe (sample audioE ep.event) exec
+                                    unsub <- subscribe (sample audioE ep.event) exec
                                     ep.push identity
                                     pure do
-                                      liftST unsub
+                                      unsub
                                       AVar.tryTake av >>= traverse_ (try <<< stopMediaRecorder)
                                       contextState ctx >>= \st -> when (st /= "closed") (close ctx)
                                 ) x
@@ -132,10 +131,7 @@ recorderEx ccb _ ev = px ~~
         ]
   }
 
-px =
-  Proxy
-    :: Proxy
-         """<section>
+type Px = """<section>
   <h2 id="recorder">Recorder</h2>
   <p>The <a href="https://developer.mozilla.org/en-US/docs/Web/API/MediaStreamAudioDestinationNode">recorder</a> allows you to record audio. It takes a callback that you can use to stash the recorded audio somewhere, like in a file for example, as the example below does. You can use it as a simple note-taking app 🎙️.</p>
 

@@ -3,15 +3,14 @@ module Ocarina.Example.Docs.Intro where
 import Prelude
 
 import Deku.Core (Nut)
-import Deku.Pursx ((~~))
+import Deku.Pursx (pursx)
 import Effect (Effect)
 import FRP.Poll (Poll)
 import Ocarina.Example.Docs.Intro.IntroEx as Intro
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
 import Ocarina.Example.Docs.Util (ccassp, mkNext, scrollToTop)
-import Type.Proxy (Proxy(..))
 
-px = Proxy :: Proxy """<div>
+type Px = """<div>
   <h1>Ocarina</h1>
 
   <h3>A web-audio framework written in PureScript</h3>
@@ -40,7 +39,7 @@ px = Proxy :: Proxy """<div>
 </div>"""
 
 intro :: CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Poll SingleSubgraphEvent -> Nut
-intro cca' dpage ssp ev = px ~~
+intro cca' dpage ssp ev = pursx @Px
   { next: mkNext ev (dpage HelloWorld *> scrollToTop)
   , ex: Intro.introEx ccb dpage ev
   }

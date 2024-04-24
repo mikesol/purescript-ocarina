@@ -3,7 +3,7 @@ module Ocarina.Example.Docs.FixFan where
 import Prelude
 
 import Deku.Core (Nut)
-import Deku.Pursx (makePursx')
+import Deku.Pursx (pursx')
 import Effect (Effect)
 import FRP.Poll (Poll)
 import Ocarina.Example.Docs.FixFan.AI0 as AI0
@@ -15,12 +15,10 @@ import Ocarina.Example.Docs.FixFan.Fix1 as Fix1
 import Ocarina.Example.Docs.FixFan.Intro as FFIntro
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
 import Ocarina.Example.Docs.Util (ccassp, mkNext, scrollToTop)
-import Type.Proxy (Proxy(..))
 
 data UIEvents = UIShown | ButtonClicked | SliderMoved Number
 derive instance Eq UIEvents
-px = Proxy :: Proxy
-      """<div>
+type Px =      """<div>
   <h1>Array, fan, and fix</h1>
 
   <h3>The anatomy of a Ocarina graph</h3>
@@ -73,7 +71,7 @@ px = Proxy :: Proxy
 </div>"""
 
 fixFan :: CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Poll SingleSubgraphEvent -> Nut
-fixFan cca' dpage ssp ev = makePursx'  (Proxy :: _ "@") px
+fixFan cca' dpage ssp ev = pursx'  @"@" @Px
   { intro: (FFIntro.ffIntro cca' dpage ssp ev)
   , next: mnx AudioUnits
   , code0: AI0.ai0 ccb dpage ev

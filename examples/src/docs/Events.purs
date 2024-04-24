@@ -3,7 +3,7 @@ module Ocarina.Example.Docs.Events where
 import Prelude
 
 import Deku.Core (Nut)
-import Deku.Pursx (makePursx')
+import Deku.Pursx (pursx')
 import Effect (Effect)
 import FRP.Poll (Poll)
 import Ocarina.Example.Docs.Events.Ex0 as Ex0
@@ -14,12 +14,12 @@ import Ocarina.Example.Docs.Events.InOcarina as InOcarina
 import Ocarina.Example.Docs.Events.Primer as Primer
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
 import Ocarina.Example.Docs.Util (ccassp, mkNext, scrollToTop)
-import Type.Proxy (Proxy(..))
 
 data UIEvents = UIShown | ButtonClicked | SliderMoved Number
+
 derive instance Eq UIEvents
-px = Proxy :: Proxy
-      """<div>
+type Px =
+  """<div>
   <h1>Events</h1>
 
   <h3>Clicks, wiggles and loops, oh my!</h3>
@@ -39,7 +39,7 @@ px = Proxy :: Proxy
 </div>"""
 
 events :: CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Poll SingleSubgraphEvent -> Nut
-events cca' dpage ssp ev = makePursx'  (Proxy :: _ "@") px
+events cca' dpage ssp ev = pursx' @"@" @Px
   { next: mnx Params
   , primer: Primer.primer
   , inOcarina: InOcarina.inOcarina

@@ -3,17 +3,15 @@ module Ocarina.Example.Docs.FixFan.Intro where
 import Prelude
 
 import Deku.Core (Nut)
-import Deku.Pursx (makePursx')
+import Deku.Pursx (pursx')
 import Effect (Effect)
 import FRP.Poll (Poll)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
 import Ocarina.Example.Docs.Util (mkNext, scrollToTop)
-import Type.Proxy (Proxy(..))
 
 data UIEvents = UIShown | ButtonClicked | SliderMoved Number
 derive instance Eq UIEvents
-px = Proxy :: Proxy
-      """<section>
+type Px =  """<section>
   <p>
     In the <a @hwLink@ style="cursor:pointer;">hello world</a> section, we saw how to create and wire up two audio nodes: a <code>sinOsc</code>, or a sine-wave oscillator, is hooked up to a <code>gain</code> node. For some cases, feeding one audio node to another all the way up to a loudspeaker will be all you need. However, in most cases, you'll need to exploit three additional relationships:</p>
     <ul>
@@ -39,7 +37,7 @@ px = Proxy :: Proxy
   </section>"""
 
 ffIntro :: CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Poll SingleSubgraphEvent  -> Nut
-ffIntro _ dpage _ ev = makePursx'  (Proxy :: _ "@") px
+ffIntro _ dpage _ ev = pursx'  @"@" @Px
   { hwLink: mnx HelloWorld
   }
   where

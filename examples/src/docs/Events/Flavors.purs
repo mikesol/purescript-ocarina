@@ -2,11 +2,10 @@ module Ocarina.Example.Docs.Events.Flavors where
 
 
 import Deku.Core (Nut)
-import Deku.Pursx (makePursx')
 import Type.Proxy (Proxy(..))
+import Deku.Pursx (pursx')
 
-px = Proxy :: Proxy
-      """<section>
+type Px = """<section>
   <h2>Three flavors of events.</h2>
 
   <p>When we're in the browser, events tend to come in three broad categories:</p>
@@ -22,7 +21,7 @@ px = Proxy :: Proxy
 </section>"""
 
 flavors :: Nut
-flavors = makePursx'  (Proxy :: _ "@") px
+flavors = pursx'  @"@" @Px
   {
   }
   -- where

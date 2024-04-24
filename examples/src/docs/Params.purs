@@ -3,7 +3,7 @@ module Ocarina.Example.Docs.Params where
 import Prelude
 
 import Deku.Core (Nut)
-import Deku.Pursx ((~~))
+import Deku.Pursx (pursx)
 import Effect (Effect)
 import FRP.Poll (Poll)
 import Ocarina.Example.Docs.Params.Cancel as Cancel
@@ -13,9 +13,8 @@ import Ocarina.Example.Docs.Params.Sudden as Sudden
 import Ocarina.Example.Docs.Params.Unit as Unit
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
 import Ocarina.Example.Docs.Util (ccassp, mkNext, scrollToTop)
-import Type.Proxy (Proxy(..))
 
-px = Proxy :: Proxy """<div>
+type Px = """<div>
   <h1>Parameters</h1>
 
   <h3>Controlling our units</h3>
@@ -34,7 +33,7 @@ px = Proxy :: Proxy """<div>
 </div>"""
 
 params :: CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Poll SingleSubgraphEvent  -> Nut
-params cca' dpage ssp ev = px ~~
+params cca' dpage ssp ev = pursx @Px
   { sudden: Sudden.suddenEx ccb dpage ev
   , numeric: Numeric.numericEx ccb dpage ev
   , envelope: Envelope.envelopeEx ccb dpage ev

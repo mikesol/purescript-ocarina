@@ -34,9 +34,9 @@ run2 ctx s = do
     rf1 <- liftST $ Ref.new Map.empty
     let ee f = f ffi
     ep <- liftST $ create
-    u <- liftST $ subscribe (sample (speaker2 s (effectfulAudioInterpret rf0 rf1 ee)) ep.event) ee
+    u <- subscribe (sample (speaker2 s (effectfulAudioInterpret rf0 rf1 ee)) ep.event) ee
     ep.push identity
-    pure $ liftST u
+    pure u
 run2e_
   :: (Poll (Array (C.Audible D2 (FFIAudioSnapshot -> Effect Unit))))
   -> Effect (Effect Unit)
@@ -54,6 +54,6 @@ run2e ctx s = do
     rf1 <- liftST $ Ref.new Map.empty
     let ee f = f ffi
     ep <- liftST $ create
-    u <- liftST $ subscribe (sample (speaker2 [B.DynamicChildren' $ B.DynamicChildren (map (Tuple empty <<< B.FixedChildren' <<< B.FixedChildren) s)] (effectfulAudioInterpret rf0 rf1 ee)) ep.event) ee
+    u <-  subscribe (sample (speaker2 [B.DynamicChildren' $ B.DynamicChildren (map (Tuple empty <<< B.FixedChildren' <<< B.FixedChildren) s)] (effectfulAudioInterpret rf0 rf1 ee)) ep.event) ee
     ep.push identity
-    pure $ liftST u
+    pure u

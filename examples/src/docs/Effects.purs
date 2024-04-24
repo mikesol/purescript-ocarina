@@ -3,17 +3,16 @@ module Ocarina.Example.Docs.Effects where
 import Prelude
 
 import Deku.Core (Nut)
-import Deku.Pursx ((~~))
 import Effect (Effect)
+import Deku.Pursx (pursx)
 import FRP.Poll (Poll)
 import Ocarina.Example.Docs.Effects.FoldEx as Fold
 import Ocarina.Example.Docs.FixEx as Fix
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page(..), SingleSubgraphEvent, SingleSubgraphPusher)
 import Ocarina.Example.Docs.Util (ccassp, mkNext, scrollToTop)
-import Type.Proxy (Proxy(..))
 
 
-px = Proxy :: Proxy """<div>
+type Px = """<div>
   <h1>State</h1>
 
   <h3>Or Events 2.0</h3>
@@ -29,7 +28,7 @@ px = Proxy :: Proxy """<div>
 </div>"""
 
 effects :: CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Poll SingleSubgraphEvent   -> Nut
-effects cca' dpage ssp ev = px ~~
+effects cca' dpage ssp ev = pursx @Px
   { next: mkNext ev (dpage Subgraph *> scrollToTop)
   , fold: Fold.foldEx ccb dpage ssp ev
   , fix: Fix.fixEx ccb dpage ssp ev

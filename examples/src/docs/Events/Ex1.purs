@@ -12,15 +12,13 @@ import Deku.DOM.Attributes as DA
 import Deku.DOM.Listeners as DL
 import Deku.Do as Deku
 import Deku.Hooks (useState, useState')
-import Deku.Pursx (makePursx')
+import Deku.Pursx (pursx')
 import Effect (Effect)
 import Effect.Aff (launchAff, launchAff_)
 import Effect.Class (liftEffect)
-import FRP.Event (Event)
 import FRP.Poll (Poll)
 import Ocarina.Control (loopBuf)
 import Ocarina.Core (Audible, bangOn)
-import Ocarina.Core (bangOn)
 import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent(..))
 import Ocarina.Example.Docs.Util (raceSelf)
 import Ocarina.Interpret (close, constant0Hack, context, decodeAudioDataFromUri)
@@ -28,8 +26,6 @@ import Ocarina.Math (calcSlope)
 import Ocarina.Properties (loopEnd, loopStart, playbackRate)
 import Ocarina.Run (run2)
 import QualifiedDo.Alt as OneOf
-import QualifiedDo.OneOfMap as O
-import Type.Proxy (Proxy(..))
 import Web.Event.Event (target)
 import Web.HTML.HTMLInputElement (fromEventTarget, valueAsNumber)
 
@@ -159,7 +155,7 @@ atari =
 
 ex1
   :: CancelCurrentAudio -> (Page -> Effect Unit) -> Poll SingleSubgraphEvent -> Nut
-ex1 ccb _ ev = makePursx' (Proxy :: _ "@") px
+ex1 ccb _ ev = pursx' @"@" @Px
   { wagtxt:
       ( text_
           """run2_
@@ -258,10 +254,7 @@ ex1 ccb _ ev = makePursx' (Proxy :: _ "@") px
             ]
   }
 
-px =
-  Proxy
-    :: Proxy
-         """<section>
+type Px = """<section>
  <h2>Example 2: Three sliders</h2>
 
   <p>In this example, we'll use three sliders to control the playback rate, the start time, and the end time of a looping buffer.</p>

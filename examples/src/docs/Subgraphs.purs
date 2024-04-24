@@ -4,7 +4,7 @@ import Prelude
 
 
 import Deku.Core (Nut)
-import Deku.Pursx ((~~))
+import Deku.Pursx (pursx)
 import Effect (Effect)
 import FRP.Poll (Poll)
 import Ocarina.Control (gain_, loopBuf)
@@ -14,9 +14,8 @@ import Ocarina.Example.Docs.Types (CancelCurrentAudio, Page, SingleSubgraphEvent
 import Ocarina.Example.Docs.Util (audioWrapperSpan, ccassp)
 import Ocarina.Interpret (decodeAudioDataFromUri)
 import Ocarina.Run (run2)
-import Type.Proxy (Proxy(..))
 
-px =  Proxy :: Proxy """<div>
+type Px = """<div>
   <h1>Subgraphs</h1>
 
   <h2>Making audio even more dynamic</h2>
@@ -35,7 +34,7 @@ px =  Proxy :: Proxy """<div>
 </div>"""
 
 subgraphs :: CancelCurrentAudio -> (Page -> Effect Unit) -> SingleSubgraphPusher -> Poll SingleSubgraphEvent  -> Nut
-subgraphs cca' dpage ssp ev = px ~~
+subgraphs cca' dpage ssp ev = pursx @Px
   { appl:
       ( audioWrapperSpan "👏" ev ccb (\ctx -> decodeAudioDataFromUri ctx "https://freesound.org/data/previews/277/277021_1402315-lq.mp3")
           \ctx buf -> run2 ctx [ gain_ 1.0 [ loopBuf buf bangOn ] ]
